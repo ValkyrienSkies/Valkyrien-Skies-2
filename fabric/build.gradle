@@ -1,0 +1,50 @@
+plugins {
+    id "com.github.johnrengelman.shadow" version "5.0.0"
+    id "org.jetbrains.kotlin.jvm"
+}
+
+configurations {
+    // Use shadow to shade the file but NOT add it as a dependency
+    shadow
+}
+
+architectury {
+    platformSetupLoomIde()
+}
+
+dependencies {
+    minecraft("com.mojang:minecraft:${rootProject.architect.minecraft}")
+    mappings(minecraft.officialMojangMappings())
+    modCompile("net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}")
+
+    compileOnly(project(path: ":common")) {
+        transitive = false
+    }
+    runtimeOnly(project(path: ":common", configuration: "transformedRuntime")) {
+        transitive = false
+    }
+    shadow(project(path: ":common", configuration: "transformed")) {
+        transitive = false
+    }
+
+    // Depend on the fabric kotlin mod instead...
+    modImplementation("net.fabricmc:fabric-language-kotlin:1.4.21+build.1")
+}
+
+processResources {
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version
+    }
+    inputs.property "version", project.version
+}
+
+shadowJar {
+    configurations = [project.configurations.shadow]
+    classifier "shadow"
+}
+
+remapJar {
+    dependsOn(shadowJar)
+    input.set(shadowJar.archivePath)
+    archiveClassifier = "fabric"
+}

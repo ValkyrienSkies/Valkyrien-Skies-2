@@ -1,0 +1,16 @@
+plugins {
+    id "org.jetbrains.kotlin.jvm"
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${rootProject.architect.minecraft}"
+    mappings minecraft.officialMojangMappings()
+    compileOnly "com.google.code.findbugs:jsr305:3.+"
+    // We depend on fabric loader here to use the fabric @Environment annotations
+    // Do NOT use other classes from fabric loader
+    modCompile "net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}"
+}
+
+architect {
+    common()
+}

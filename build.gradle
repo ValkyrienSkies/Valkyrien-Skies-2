@@ -1,0 +1,30 @@
+plugins {
+    id "architectury-plugin" version "1.3.44"
+    id "forgified-fabric-loom" version "0.5.23" apply false
+    id "org.jetbrains.kotlin.jvm" version "1.4.21" apply false
+}
+
+architectury {
+    minecraft = rootProject.minecraft_version
+}
+
+subprojects {
+    apply plugin: "forgified-fabric-loom"
+
+    loom {
+        silentMojangMappingsLicense()
+    }
+}
+
+allprojects {
+    apply plugin: "java"
+    apply plugin: "architectury-plugin"
+
+    archivesBaseName = rootProject.archives_base_name
+    version = rootProject.mod_version
+    group = rootProject.maven_group
+
+    tasks.withType(JavaCompile) {
+        options.encoding = "UTF-8"
+    }
+}
