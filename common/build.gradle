@@ -2,6 +2,12 @@ plugins {
     id "org.jetbrains.kotlin.jvm"
 }
 
+allprojects {
+    repositories {
+        maven { url 'https://jitpack.io' }
+    }
+}
+
 dependencies {
     minecraft "com.mojang:minecraft:${rootProject.architect.minecraft}"
     mappings minecraft.officialMojangMappings()
@@ -9,6 +15,9 @@ dependencies {
     // We depend on fabric loader here to use the fabric @Environment annotations
     // Do NOT use other classes from fabric loader
     modCompile "net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}"
+
+    // vs-core
+    implementation 'com.github.ValkyrienSkies:vs-core:e45e6df7a2'
 }
 
 architect {
