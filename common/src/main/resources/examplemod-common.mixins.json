@@ -4,10 +4,10 @@
   "compatibilityLevel": "JAVA_8",
   "refmap": "examplemod-common-refmap.json",
   "mixins": [
+    "client.multiplayer.MixinClientLevel",
+    "server.level.MixinServerLevel"
   ],
-  "client":[
-    "ExampleMixin"
-  ],
+  "client": [ ],
   "injectors": {
     "defaultRequire": 1
   },
