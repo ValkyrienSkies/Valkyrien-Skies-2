@@ -14,6 +14,7 @@ architectury {
 
 allprojects {
     repositories {
+        mavenCentral()
         maven { url 'https://jitpack.io' }
     }
 }
@@ -37,7 +38,13 @@ dependencies {
     modImplementation("net.fabricmc:fabric-language-kotlin:1.4.21+build.1")
 
     // vs-core
-    implementation("com.github.ValkyrienSkies:vs-core:${rootProject.vs_core_version}")
+    implementation("com.github.ValkyrienSkies:vs-core:${rootProject.vs_core_version}") {
+        exclude group: 'org.joml'
+    }
+
+    // JOML
+    implementation("org.joml:joml:${rootProject.joml_version}")
+    implementation("org.joml:joml-primitives:${rootProject.joml_version}")
 }
 
 processResources {
