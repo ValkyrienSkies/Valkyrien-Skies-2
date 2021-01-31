@@ -12,8 +12,6 @@ architectury {
     platformSetupLoomIde()
 }
 
-// TODO: This doesn't belong here because its already in the common build.gradle
-//  but without it fabric can't see the vs-core dependency so we need this for now.
 allprojects {
     repositories {
         maven { url 'https://jitpack.io' }
@@ -38,10 +36,8 @@ dependencies {
     // Depend on the fabric kotlin mod instead...
     modImplementation("net.fabricmc:fabric-language-kotlin:1.4.21+build.1")
 
-    // TODO: This doesn't belong here because its already in the common build.gradle
-    //  but without it fabric can't see the vs-core dependency so we need this for now.
     // vs-core
-    implementation 'com.github.ValkyrienSkies:vs-core:8378418081db81f0ff532b6e2a9a39b4a4435396'
+    implementation("com.github.ValkyrienSkies:vs-core:${rootProject.vs_core_version}")
 }
 
 processResources {

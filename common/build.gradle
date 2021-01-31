@@ -17,7 +17,7 @@ dependencies {
     modCompile "net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}"
 
     // vs-core
-    implementation 'com.github.ValkyrienSkies:vs-core:8378418081db81f0ff532b6e2a9a39b4a4435396'
+    implementation("com.github.ValkyrienSkies:vs-core:${rootProject.vs_core_version}")
 }
 
 architect {
