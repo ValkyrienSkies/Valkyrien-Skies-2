@@ -22,9 +22,13 @@ dependencies {
         exclude group: 'org.joml'
     }
 
-    // JOML
+    // JOML (TODO use dependency from vs-core instead)
     implementation("org.joml:joml:${rootProject.joml_version}")
     implementation("org.joml:joml-primitives:${rootProject.joml_version}")
+
+    // Jackson Binary Dataformat for Object Serialization (TODO use dependency from vs-core instead)
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:${rootProject.jacksonVersion}")
+    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:${rootProject.jacksonVersion}")
 }
 
 architect {
