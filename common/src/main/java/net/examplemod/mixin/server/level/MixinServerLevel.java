@@ -7,13 +7,14 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.valkyrienskies.core.game.ChunkAllocator;
 import org.valkyrienskies.core.game.QueryableShipData;
 import org.valkyrienskies.core.game.ShipObjectWorld;
 
 @Mixin(ServerLevel.class)
 public class MixinServerLevel implements IShipObjectWorldProvider {
 
-    private final ShipObjectWorld shipObjectWorld = new ShipObjectWorld(new QueryableShipData());
+    private final ShipObjectWorld shipObjectWorld = new ShipObjectWorld(new QueryableShipData(), new ChunkAllocator(-7000, 3000));
 
     @Inject(
             at = @At("TAIL"),
