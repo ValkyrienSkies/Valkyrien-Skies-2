@@ -1,7 +1,9 @@
 package net.examplemod.networking
 
-import net.minecraft.server.level.ServerPlayer
-
-interface IVSPacketServerHandler {
-    fun handlePacket(vsPacket: IVSPacket, sender: ServerPlayer)
+/**
+ * Handles [IVSPacket]s on the server side
+ * @param P: The player object class
+ */
+interface IVSPacketServerHandler<P> {
+    fun handlePacket(vsPacket: IVSPacket, sender: P)
 }

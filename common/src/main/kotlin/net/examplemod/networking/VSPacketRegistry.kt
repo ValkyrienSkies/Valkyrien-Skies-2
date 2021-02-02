@@ -1,22 +1,43 @@
 package net.examplemod.networking
 
 import io.netty.buffer.ByteBuf
-import net.minecraft.server.level.ServerPlayer
 
 /**
- * A custom networking api for VS.
+ * Custom networking code for VS to allow for compatibility with Fabric and Forge.
+ * Handlers registering packets and their handlers, as well as writing packets to bytes and processing packets when they arrive.
  *
- * Not ideal but that's the reality of supporting both forge and fabric.
+ * @param P: The player object class
  */
-object VSPacketRegistry {
+class VSPacketRegistry<P> {
 
+    // The ID that will be given to the next packet registered by [registerVSPacket]
     private var nextRegistryId: Int = 0
-    private val classToIdMap = HashMap<Class<*>, Int>()
-    private val idToSupplierMap = HashMap<Int, () -> IVSPacket>()
-    private val classToClientHandlerMap = HashMap<Class<*>, IVSPacketClientHandler>()
-    private val classToServerHandlerMap = HashMap<Class<*>, IVSPacketServerHandler>()
 
-    fun <T: IVSPacket> registerVSPacketHandler(clazz: Class<*>, supplier: () -> T, clientHandler: IVSPacketClientHandler?, serverHandler: IVSPacketServerHandler?) {
+    // Maps [IVSPacket] class types to their packet id
+    private val classToIdMap = HashMap<Class<*>, Int>()
+
+    // Maps packet ids to the supplier that creates a new empty version of that packet
+    private val idToSupplierMap = HashMap<Int, () -> IVSPacket>()
+
+    // Maps packet ids to the handler that runs them on the client
+    private val classToClientHandlerMap = HashMap<Class<*>, IVSPacketClientHandler>()
+
+    // Maps packet ids to the handler that runs them on the server
+    private val classToServerHandlerMap = HashMap<Class<*>, IVSPacketServerHandler<P>>()
+
+    /**
+     * Registers a new packet type
+     * @param clazz: The class of the packet type
+     * @param supplier: A supplier that creates a new empty instance of the packet type. Used when converting bytes to packets.
+     * @param clientHandler: An object that runs the code when this packet is received by the client
+     * @param serverHandler: An object that runs the code when this packet is received by the server
+     */
+    fun <T : IVSPacket> registerVSPacket(
+        clazz: Class<T>,
+        supplier: () -> T,
+        clientHandler: IVSPacketClientHandler?,
+        serverHandler: IVSPacketServerHandler<P>?
+    ) {
         if (classToIdMap[clazz] != null) {
             throw IllegalArgumentException("Already registered packet handlers for $clazz")
         }
@@ -54,7 +75,7 @@ object VSPacketRegistry {
         classToClientHandlerMap[vsPacket::class.java]!!.handlePacket(vsPacket)
     }
 
-    fun handleVSPacketServer(byteBuf: ByteBuf, sender: ServerPlayer) {
+    fun handleVSPacketServer(byteBuf: ByteBuf, sender: P) {
         val vsPacket = readVSPacket(byteBuf)
         if (!classToServerHandlerMap.containsKey(vsPacket::class.java)) {
             throw IllegalArgumentException("No server handler found for $vsPacket")
