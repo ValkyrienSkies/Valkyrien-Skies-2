@@ -1,7 +1,7 @@
 package net.examplemod.networking.impl
 
-import net.examplemod.networking.IVSPacket
-import net.examplemod.networking.IVSPacketClientHandler
+import org.valkyrienskies.core.networking.IVSPacket
+import org.valkyrienskies.core.networking.IVSPacketClientHandler
 
 object VSPacketShipDataClientHandler: IVSPacketClientHandler {
     override fun handlePacket(vsPacket: IVSPacket) {

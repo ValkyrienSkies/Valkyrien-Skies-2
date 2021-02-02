@@ -1,11 +1,11 @@
 package net.examplemod.fabric
 
 import net.examplemod.VSNetworking
-import net.examplemod.networking.IVSPacket
-import net.examplemod.networking.IVSPacketSender
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
 import net.minecraft.server.level.ServerPlayer
+import org.valkyrienskies.core.networking.IVSPacket
+import org.valkyrienskies.core.networking.IVSPacketSender
 
 object VSFabricServerToClientPacketSender : IVSPacketSender<ServerPlayer> {
     override fun sendToClient(vsPacket: IVSPacket, player: ServerPlayer) {

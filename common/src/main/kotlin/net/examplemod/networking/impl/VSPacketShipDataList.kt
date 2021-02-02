@@ -1,9 +1,9 @@
 package net.examplemod.networking.impl
 
 import io.netty.buffer.ByteBuf
-import net.examplemod.networking.IVSPacket
 import net.minecraft.network.FriendlyByteBuf
 import org.valkyrienskies.core.game.ShipData
+import org.valkyrienskies.core.networking.IVSPacket
 import org.valkyrienskies.core.util.serialization.VSJacksonUtil
 
 class VSPacketShipDataList private constructor(): IVSPacket {

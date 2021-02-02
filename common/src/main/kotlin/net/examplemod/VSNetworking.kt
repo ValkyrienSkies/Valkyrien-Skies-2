@@ -1,15 +1,15 @@
 package net.examplemod
 
 import io.netty.buffer.ByteBuf
-import net.examplemod.networking.IVSPacket
-import net.examplemod.networking.IVSPacketSender
-import net.examplemod.networking.VSPacketRegistry
 import net.examplemod.networking.impl.VSPacketShipDataClientHandler
 import net.examplemod.networking.impl.VSPacketShipDataList
 import net.minecraft.server.level.ServerPlayer
+import org.valkyrienskies.core.networking.IVSPacket
+import org.valkyrienskies.core.networking.IVSPacketSender
+import org.valkyrienskies.core.networking.VSPacketRegistry
 
 /**
- * Registers the [net.examplemod.networking.IVSPacket]s, and has [net.examplemod.networking.IVSPacketSender]s used to send
+ * Registers the [org.valkyrienskies.core.networking.IVSPacket]s, and has [org.valkyrienskies.core.networking.IVSPacketSender]s used to send
  * packets between clients and server.
  */
 object VSNetworking {
