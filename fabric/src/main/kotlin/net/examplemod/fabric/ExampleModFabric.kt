@@ -6,5 +6,6 @@ import net.fabricmc.api.ModInitializer
 class ExampleModFabric : ModInitializer {
 	override fun onInitialize() {
 		ExampleMod.init()
+		VSFabricNetworking.registerFabricNetworking()
 	}
 }

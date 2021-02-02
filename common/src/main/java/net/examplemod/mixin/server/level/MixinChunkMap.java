@@ -46,6 +46,7 @@ public abstract class MixinChunkMap {
      * If a chunk already exists do nothing. If it doesn't yet exist but its in the ship yard, then pretend that chunk
      * already existed and return a new chunk.
      *
+     * @reason An injector would be safer to use, but it doesn't seem to work properly unless I use an @Overwrite.
      * @author Tri0de
      */
     @Overwrite

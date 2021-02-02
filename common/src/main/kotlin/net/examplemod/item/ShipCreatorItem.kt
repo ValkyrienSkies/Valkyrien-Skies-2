@@ -2,6 +2,9 @@ package net.examplemod.item
 
 import net.examplemod.IShipObjectWorldProvider
 import net.examplemod.JOMLConversion
+import net.examplemod.VSNetworking
+import net.examplemod.networking.impl.VSPacketShipDataList
+import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.context.UseOnContext
@@ -38,6 +41,10 @@ class ShipCreatorItem(properties: Properties) : Item(properties) {
                 // Move the block from the world to a ship
                 level.setBlock(blockPos, Blocks.AIR.defaultBlockState(), 11)
                 level.setBlock(centerPos, blockState, 11)
+
+                // Send the ShipData to the player
+                val shipDataPacket = VSPacketShipDataList.createVSPacketShipDataList(listOf(shipData))
+                VSNetworking.shipDataToClientPacketSender.sendToClient(shipDataPacket, player as ServerPlayer)
 
                 // TODO: Create the initial ship chunks, transfer blocks, send ship to players, etc.
             }

@@ -10,11 +10,13 @@ class VSPacketShipDataList private constructor(): IVSPacket {
 
     private lateinit var shipDataList: List<ShipData>
 
+    fun getShipDataList() = shipDataList
+
     override fun write(byteBuf: ByteBuf) {
         val friendlyByteBuf = FriendlyByteBuf(byteBuf)
         friendlyByteBuf.writeVarInt(shipDataList.size)
         for (shipData in shipDataList) {
-            val bytes = VSJacksonUtil.packetMapper.writeValueAsBytes(shipData)
+            val bytes = VSJacksonUtil.defaultMapper.writeValueAsBytes(shipData)
             friendlyByteBuf.writeByteArray(bytes)
         }
     }
@@ -25,7 +27,7 @@ class VSPacketShipDataList private constructor(): IVSPacket {
         val listSize: Int = friendlyByteBuf.readVarInt()
         for (i in 1 .. listSize) {
             val bytes = friendlyByteBuf.readByteArray()
-            val shipDataFromBytes = VSJacksonUtil.packetMapper.readValue(bytes, ShipData::class.java)
+            val shipDataFromBytes = VSJacksonUtil.defaultMapper.readValue(bytes, ShipData::class.java)
             newShipDataList.add(shipDataFromBytes)
         }
         shipDataList = newShipDataList
