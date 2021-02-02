@@ -2,35 +2,21 @@ plugins {
     id "org.jetbrains.kotlin.jvm"
 }
 
-allprojects {
-    repositories {
-        mavenCentral()
-        maven { url 'https://jitpack.io' }
-    }
-}
-
 dependencies {
-    minecraft "com.mojang:minecraft:${rootProject.architect.minecraft}"
+    minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
     mappings minecraft.officialMojangMappings()
     compileOnly "com.google.code.findbugs:jsr305:3.+"
     // We depend on fabric loader here to use the fabric @Environment annotations
     // Do NOT use other classes from fabric loader
     modCompile "net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}"
 
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.4.21")
+
     // vs-core
-    implementation("com.github.ValkyrienSkies:vs-core:${rootProject.vs_core_version}") {
-        exclude group: 'org.joml'
-    }
+    implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}")
 
-    // JOML (TODO use dependency from vs-core instead)
-    implementation("org.joml:joml:${rootProject.joml_version}")
-    implementation("org.joml:joml-primitives:${rootProject.joml_version}")
-
-    // Jackson Binary Dataformat for Object Serialization (TODO use dependency from vs-core instead)
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:${rootProject.jacksonVersion}")
-    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:${rootProject.jacksonVersion}")
 }
 
-architect {
+architectury {
     common()
 }

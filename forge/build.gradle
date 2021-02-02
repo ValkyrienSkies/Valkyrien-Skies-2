@@ -13,28 +13,22 @@ architectury {
 }
 
 loom {
-    mixinConfigs = ["examplemod-common.mixins.json", "examplemod-forge.mixins.json"]
-}
-
-allprojects {
-    repositories {
-        mavenCentral()
-        maven { url 'https://jitpack.io' }
-    }
+    mixinConfigs = ["valkyrienskies-common.mixins.json", "valkyrienskies-forge.mixins.json"]
+    useFabricMixin = true
 }
 
 dependencies {
-    minecraft("com.mojang:minecraft:${rootProject.architect.minecraft}")
+    minecraft("com.mojang:minecraft:${rootProject.minecraft_version}")
     mappings(minecraft.officialMojangMappings())
-    forge("net.minecraftforge:forge:${rootProject.architect.minecraft}-${rootProject.forge_version}")
+    forge("net.minecraftforge:forge:${rootProject.minecraft_version}-${rootProject.forge_version}")
 
     compileOnly(project(path: ":common")) {
         transitive = false
     }
-    runtimeOnly(project(path: ":common", configuration: "transformForgeFakeMod")) {
+    runtimeOnly(project(path: ":common", configuration: "transformDevelopmentForge")) {
         transitive = false
     }
-    shadow(project(path: ":common", configuration: "transformForge")) {
+    shadow(project(path: ":common", configuration: "transformProductionForge")) {
         transitive = false
     }
 
@@ -43,17 +37,7 @@ dependencies {
     compile("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.2")
 
     // vs-core
-    implementation("com.github.ValkyrienSkies:vs-core:${rootProject.vs_core_version}") {
-        exclude group: 'org.joml'
-    }
-
-    // JOML (TODO use dependency from vs-core instead)
-    implementation("org.joml:joml:${rootProject.joml_version}")
-    implementation("org.joml:joml-primitives:${rootProject.joml_version}")
-
-    // Jackson Binary Dataformat for Object Serialization (TODO use dependency from vs-core instead)
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:${rootProject.jacksonVersion}")
-    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:${rootProject.jacksonVersion}")
+    implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}")
 }
 
 shadowJar {

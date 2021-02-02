@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "examplemod",
+  "id": "valkyrienskies",
   "version": "${version}",
   "name": "Example Mod",
   "description": "This is an example description! Tell everyone what your mod is about!",
@@ -16,12 +16,12 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "net.examplemod.fabric.ExampleModFabric"
+      "org.valkyrienskies.mod.fabric.ValkyrienSkiesModFabric"
     ]
   },
   "mixins": [
-    "examplemod-common.mixins.json",
-    "examplemod-fabric.mixins.json"
+    "valkyrienskies-common.mixins.json",
+    "valkyrienskies-fabric.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=0.7.4",

@@ -11,5 +11,6 @@ pluginManagement {
 include("common")
 include("fabric")
 include("forge")
+includeBuild("vs-core")
 
-rootProject.name = "examplemod"
+rootProject.name = "valkyrienskies"

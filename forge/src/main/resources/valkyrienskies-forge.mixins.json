@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "package": "org.valkyrienskies.mod.forge.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "refmap": "valkyrienskies-forge-refmap.json",
+  "mixins": [
+  ],
+  "client":[
+    "ExampleForgeMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "minVersion": "0.8"
+}

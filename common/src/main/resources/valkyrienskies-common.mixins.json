@@ -1,0 +1,17 @@
+{
+  "required": true,
+  "package": "org.valkyrienskies.mod.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "refmap": "valkyrienskies-common-refmap.json",
+  "mixins": [
+    "server.level.MixinServerLevel",
+    "server.level.MixinChunkMap"
+  ],
+  "client": [
+    "client.multiplayer.MixinClientLevel"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "minVersion": "0.8"
+}

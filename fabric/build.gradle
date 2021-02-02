@@ -12,25 +12,18 @@ architectury {
     platformSetupLoomIde()
 }
 
-allprojects {
-    repositories {
-        mavenCentral()
-        maven { url 'https://jitpack.io' }
-    }
-}
-
 dependencies {
-    minecraft("com.mojang:minecraft:${rootProject.architect.minecraft}")
+    minecraft("com.mojang:minecraft:${rootProject.minecraft_version}")
     mappings(minecraft.officialMojangMappings())
     modCompile("net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}")
 
     compileOnly(project(path: ":common")) {
         transitive = false
     }
-    runtimeOnly(project(path: ":common", configuration: "transformedRuntime")) {
+    runtimeOnly(project(path: ":common", configuration: "transformDevelopmentFabric")) {
         transitive = false
     }
-    shadow(project(path: ":common", configuration: "transformed")) {
+    shadow(project(path: ":common", configuration: "transformProductionFabric")) {
         transitive = false
     }
 
@@ -41,17 +34,7 @@ dependencies {
     modImplementation("net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}")
 
     // vs-core
-    implementation("com.github.ValkyrienSkies:vs-core:${rootProject.vs_core_version}") {
-        exclude group: 'org.joml'
-    }
-
-    // JOML (TODO use dependency from vs-core instead)
-    implementation("org.joml:joml:${rootProject.joml_version}")
-    implementation("org.joml:joml-primitives:${rootProject.joml_version}")
-
-    // Jackson Binary Dataformat for Object Serialization (TODO use dependency from vs-core instead)
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:${rootProject.jacksonVersion}")
-    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:${rootProject.jacksonVersion}")
+    implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}")
 }
 
 processResources {

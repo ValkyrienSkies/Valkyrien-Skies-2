@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "package": "org.valkyrienskies.mod.fabric.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "refmap": "valkyrienskies-fabric-refmap.json",
+  "mixins": [
+  ],
+  "client":[
+    "ExampleFabricMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "minVersion": "0.8"
+}
