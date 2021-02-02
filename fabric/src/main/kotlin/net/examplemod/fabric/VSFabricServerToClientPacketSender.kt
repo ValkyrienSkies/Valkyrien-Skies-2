@@ -5,9 +5,9 @@ import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
 import net.minecraft.server.level.ServerPlayer
 import org.valkyrienskies.core.networking.IVSPacket
-import org.valkyrienskies.core.networking.IVSPacketSender
+import org.valkyrienskies.core.networking.IVSPacketToClientSender
 
-object VSFabricServerToClientPacketSender : IVSPacketSender<ServerPlayer> {
+object VSFabricServerToClientPacketSender : IVSPacketToClientSender<ServerPlayer> {
     override fun sendToClient(vsPacket: IVSPacket, player: ServerPlayer) {
         val byteBuf = PacketByteBufs.create()
         VSNetworking.writeVSPacket(vsPacket, byteBuf)

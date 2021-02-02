@@ -44,7 +44,7 @@ class ShipCreatorItem(properties: Properties) : Item(properties) {
 
                 // Send the ShipData to the player
                 val shipDataPacket = VSPacketShipDataList.createVSPacketShipDataList(listOf(shipData))
-                VSNetworking.shipDataToClientPacketSender.sendToClient(shipDataPacket, player as ServerPlayer)
+                VSNetworking.shipDataPacketToClientSender.sendToClient(shipDataPacket, player as ServerPlayer)
 
                 // TODO: Create the initial ship chunks, transfer blocks, send ship to players, etc.
             }

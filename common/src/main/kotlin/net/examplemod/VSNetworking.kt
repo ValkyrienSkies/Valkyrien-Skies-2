@@ -5,17 +5,17 @@ import net.examplemod.networking.impl.VSPacketShipDataClientHandler
 import net.examplemod.networking.impl.VSPacketShipDataList
 import net.minecraft.server.level.ServerPlayer
 import org.valkyrienskies.core.networking.IVSPacket
-import org.valkyrienskies.core.networking.IVSPacketSender
+import org.valkyrienskies.core.networking.IVSPacketToClientSender
 import org.valkyrienskies.core.networking.VSPacketRegistry
 
 /**
- * Registers the [org.valkyrienskies.core.networking.IVSPacket]s, and has [org.valkyrienskies.core.networking.IVSPacketSender]s used to send
- * packets between clients and server.
+ * Registers the [org.valkyrienskies.core.networking.IVSPacket]s, and stores [org.valkyrienskies.core.networking.IVSPacketToClientSender]
+ * and [org.valkyrienskies.core.networking.IVSPacketToServerSender] packet senders.
  */
 object VSNetworking {
 
     private val vsPacketRegistry = VSPacketRegistry<ServerPlayer>()
-    lateinit var shipDataToClientPacketSender: IVSPacketSender<ServerPlayer>
+    lateinit var shipDataPacketToClientSender: IVSPacketToClientSender<ServerPlayer>
 
     internal fun registerVSPackets() {
         vsPacketRegistry.registerVSPacket(

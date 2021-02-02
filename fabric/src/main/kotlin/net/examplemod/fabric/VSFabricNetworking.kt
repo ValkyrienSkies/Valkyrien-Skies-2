@@ -21,6 +21,6 @@ object VSFabricNetworking {
     }
 
     private fun injectFabricPacketSenders() {
-        VSNetworking.shipDataToClientPacketSender = VSFabricServerToClientPacketSender
+        VSNetworking.shipDataPacketToClientSender = VSFabricServerToClientPacketSender
     }
 }
