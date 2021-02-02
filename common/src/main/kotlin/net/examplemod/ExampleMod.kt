@@ -1,6 +1,9 @@
 package net.examplemod
 
 import net.examplemod.item.ShipCreatorItem
+import net.examplemod.networking.VSPacketRegistry
+import net.examplemod.networking.impl.VSPacketShipDataClientHandler
+import net.examplemod.networking.impl.VSPacketShipDataList
 import net.minecraft.core.Registry
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.item.CreativeModeTab
@@ -14,5 +17,15 @@ object ExampleMod {
     fun init() {
         println("Hello from init")
         Registry.register(Registry.ITEM, ResourceLocation(MOD_ID, "ship_creator"), SHIP_CREATOR_ITEM)
+        registerVSPackets()
+    }
+
+    private fun registerVSPackets() {
+        VSPacketRegistry.registerVSPacketHandler(
+            VSPacketShipDataList::class.java,
+            { VSPacketShipDataList.createEmptyVSPacketShipDataList() },
+            VSPacketShipDataClientHandler,
+            null
+        )
     }
 }
