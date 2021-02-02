@@ -14,5 +14,7 @@ object ExampleMod {
     fun init() {
         println("Hello from init")
         Registry.register(Registry.ITEM, ResourceLocation(MOD_ID, "ship_creator"), SHIP_CREATOR_ITEM)
+        VSNetworking.registerVSPackets()
     }
+
 }

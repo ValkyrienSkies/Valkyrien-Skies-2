@@ -34,8 +34,11 @@ dependencies {
         transitive = false
     }
 
-    // Depend on the fabric kotlin mod instead...
+    // Depend on the fabric kotlin mod
     modImplementation("net.fabricmc:fabric-language-kotlin:1.4.21+build.1")
+
+    // Depend on the fabric API
+    modImplementation("net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}")
 
     // vs-core
     implementation("com.github.ValkyrienSkies:vs-core:${rootProject.vs_core_version}") {
