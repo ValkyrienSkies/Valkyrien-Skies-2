@@ -9,8 +9,8 @@ import org.valkyrienskies.core.networking.IVSPacketToClientSender
 import org.valkyrienskies.core.networking.VSPacketRegistry
 
 /**
- * Registers the [org.valkyrienskies.core.networking.IVSPacket]s, and stores [org.valkyrienskies.core.networking.IVSPacketToClientSender]
- * and [org.valkyrienskies.core.networking.IVSPacketToServerSender] packet senders.
+ * Registers the [IVSPacket]s, and stores [IVSPacketToClientSender]
+ * and [IVSPacketToServerSender] packet senders.
  */
 object VSNetworking {
 

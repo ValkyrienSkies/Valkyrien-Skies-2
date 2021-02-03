@@ -1,7 +1,6 @@
 package org.valkyrienskies.mod.item
 
 import org.valkyrienskies.mod.IShipObjectWorldProvider
-import org.valkyrienskies.mod.JOMLConversion
 import org.valkyrienskies.mod.VSNetworking
 import org.valkyrienskies.mod.networking.impl.VSPacketShipDataList
 import net.minecraft.server.level.ServerPlayer
@@ -11,6 +10,8 @@ import net.minecraft.world.item.context.UseOnContext
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import org.joml.Vector3i
+import org.valkyrienskies.mod.util.toBlockPos
+import org.valkyrienskies.mod.util.toJOML
 
 class ShipCreatorItem(properties: Properties) : Item(properties) {
 
@@ -26,17 +27,9 @@ class ShipCreatorItem(properties: Properties) : Item(properties) {
             if (!blockState.isAir) {
                 // Make a ship
                 level as IShipObjectWorldProvider
-                val shipData =
-                    level.shipObjectWorld.createNewShipAtBlock(
-                        JOMLConversion.convertBlockPosToVector3i(blockPos),
-                        false
-                    )
+                val shipData = level.shipObjectWorld.createNewShipAtBlock(blockPos.toJOML(), false)
 
-                val centerPos = JOMLConversion.convertVector3icToBlockPos(
-                    shipData.chunkClaim.getCenterBlockCoordinates(
-                        Vector3i()
-                    )
-                )
+                val centerPos = shipData.chunkClaim.getCenterBlockCoordinates(Vector3i()).toBlockPos()
 
                 // Move the block from the world to a ship
                 level.setBlock(blockPos, Blocks.AIR.defaultBlockState(), 11)

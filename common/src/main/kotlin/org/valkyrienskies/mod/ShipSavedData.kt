@@ -11,7 +11,21 @@ import org.valkyrienskies.core.util.serialization.VSJacksonUtil
  *
  * This is only a temporary solution, and should be replaced eventually because it is very inefficient.
  */
-class ShipSavedData: SavedData(SAVED_DATA_ID) {
+class ShipSavedData : SavedData(SAVED_DATA_ID) {
+
+    companion object {
+        const val SAVED_DATA_ID = "vs_ship_data"
+        private const val QUERYABLE_SHIP_DATA_NBT_KEY = "queryable_ship_data"
+        private const val CHUNK_ALLOCATOR_NBT_KEY = "chunk_allocator"
+
+        fun createNewEmptyShipSavedData(): ShipSavedData {
+            val shipSavedData = ShipSavedData()
+            shipSavedData.queryableShipData = QueryableShipData()
+            shipSavedData.chunkAllocator = ChunkAllocator.newChunkAllocator()
+            return shipSavedData
+        }
+    }
+
     private lateinit var queryableShipData: QueryableShipData
     private lateinit var chunkAllocator: ChunkAllocator
 
@@ -53,16 +67,4 @@ class ShipSavedData: SavedData(SAVED_DATA_ID) {
     fun getQueryableShipData() = queryableShipData
     fun getChunkAllocator() = chunkAllocator
 
-    companion object {
-        const val SAVED_DATA_ID = "vs_ship_data"
-        private const val QUERYABLE_SHIP_DATA_NBT_KEY = "queryable_ship_data"
-        private const val CHUNK_ALLOCATOR_NBT_KEY = "chunk_allocator"
-
-        fun createNewEmptyShipSavedData(): ShipSavedData {
-            val shipSavedData = ShipSavedData()
-            shipSavedData.queryableShipData = QueryableShipData()
-            shipSavedData.chunkAllocator = ChunkAllocator.newChunkAllocator()
-            return shipSavedData
-        }
-    }
 }
