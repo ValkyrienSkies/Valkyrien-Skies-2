@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.server.level;
 
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.server.world.ThreadedAnvilChunkStorage;
 import net.minecraft.util.Util;
@@ -8,11 +9,9 @@ import net.minecraft.util.registry.Registry;
 import net.minecraft.world.ChunkSerializer;
 import net.minecraft.world.PersistentStateManager;
 import net.minecraft.world.biome.Biome;
-import net.minecraft.world.biome.BiomeKeys;
+import net.minecraft.world.biome.BuiltinBiomes;
 import net.minecraft.world.biome.source.BiomeArray;
 import net.minecraft.world.chunk.WorldChunk;
-import org.valkyrienskies.mod.IShipObjectWorldProvider;
-import net.minecraft.nbt.CompoundTag;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -25,13 +24,13 @@ import java.util.Arrays;
 import java.util.function.Supplier;
 
 @Mixin(ThreadedAnvilChunkStorage.class)
-public abstract class MixinChunkMap {
+public abstract class MixinThreadedAnvilChunkStorage {
 
     private static final Biome[] BIOMES;
 
     static {
         // Make all ship chunks have the plains biome
-        BIOMES = Util.make(new Biome[BiomeArray.DEFAULT_LENGTH], (biomes) -> Arrays.fill(biomes, BiomeKeys.PLAINS));
+        BIOMES = Util.make(new Biome[BiomeArray.DEFAULT_LENGTH], (biomes) -> Arrays.fill(biomes, BuiltinBiomes.PLAINS));
     }
 
     @Shadow @Final

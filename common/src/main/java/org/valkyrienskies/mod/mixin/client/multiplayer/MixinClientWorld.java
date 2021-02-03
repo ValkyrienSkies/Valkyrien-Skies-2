@@ -9,7 +9,7 @@ import org.valkyrienskies.core.game.QueryableShipData;
 import org.valkyrienskies.core.game.ShipObjectWorld;
 
 @Mixin(ClientWorld.class)
-public class MixinClientLevel implements IShipObjectWorldProvider {
+public class MixinClientWorld implements IShipObjectWorldProvider {
 
     private final ShipObjectWorld shipObjectWorld = new ShipObjectWorld(new QueryableShipData(), new ChunkAllocator(-7000, 3000));
 

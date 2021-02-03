@@ -13,7 +13,7 @@ import org.valkyrienskies.mod.IShipObjectWorldProvider;
 import org.valkyrienskies.mod.ShipSavedData;
 
 @Mixin(ServerWorld.class)
-public abstract class MixinServerLevel implements IShipObjectWorldProvider {
+public abstract class MixinServerWorld implements IShipObjectWorldProvider {
 
     @Shadow public abstract PersistentStateManager getPersistentStateManager();
 
