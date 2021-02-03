@@ -14,7 +14,7 @@ architectury {
 
 dependencies {
     minecraft("com.mojang:minecraft:${rootProject.minecraft_version}")
-    mappings(minecraft.officialMojangMappings())
+    mappings("net.fabricmc:yarn:${rootProject.yarn_mappings}:v2")
     modCompile("net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}")
 
     compileOnly(project(path: ":common")) {

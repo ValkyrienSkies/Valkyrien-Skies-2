@@ -1,7 +1,7 @@
 package org.valkyrienskies.mod
 
 import net.minecraft.nbt.CompoundTag
-import net.minecraft.world.level.saveddata.SavedData
+import net.minecraft.world.PersistentState
 import org.valkyrienskies.core.game.ChunkAllocator
 import org.valkyrienskies.core.game.QueryableShipData
 import org.valkyrienskies.core.util.serialization.VSJacksonUtil
@@ -11,7 +11,7 @@ import org.valkyrienskies.core.util.serialization.VSJacksonUtil
  *
  * This is only a temporary solution, and should be replaced eventually because it is very inefficient.
  */
-class ShipSavedData : SavedData(SAVED_DATA_ID) {
+class ShipSavedData : PersistentState(SAVED_DATA_ID) {
 
     companion object {
         const val SAVED_DATA_ID = "vs_ship_data"
@@ -29,7 +29,7 @@ class ShipSavedData : SavedData(SAVED_DATA_ID) {
     private lateinit var queryableShipData: QueryableShipData
     private lateinit var chunkAllocator: ChunkAllocator
 
-    override fun load(compoundTag: CompoundTag) {
+    override fun fromTag(compoundTag: CompoundTag) {
         // Read bytes from the [CompoundTag]
         val queryableShipDataAsBytes = compoundTag.getByteArray(QUERYABLE_SHIP_DATA_NBT_KEY)
         val chunkAllocatorAsBytes = compoundTag.getByteArray(CHUNK_ALLOCATOR_NBT_KEY)
@@ -45,7 +45,7 @@ class ShipSavedData : SavedData(SAVED_DATA_ID) {
         )
     }
 
-    override fun save(compoundTag: CompoundTag): CompoundTag {
+    override fun toTag(compoundTag: CompoundTag): CompoundTag {
         // Convert objects to bytes
         val queryableShipDataAsBytes = VSJacksonUtil.defaultMapper.writeValueAsBytes(queryableShipData)
         val chunkAllocatorAsBytes = VSJacksonUtil.defaultMapper.writeValueAsBytes(chunkAllocator)

@@ -1,10 +1,7 @@
 package org.valkyrienskies.mod.mixin.server.level;
 
-import org.valkyrienskies.mod.IShipObjectWorldProvider;
-import org.valkyrienskies.mod.IShipObjectWorldProvider;
-import org.valkyrienskies.mod.ShipSavedData;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.storage.DimensionDataStorage;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.world.PersistentStateManager;
 import org.jetbrains.annotations.NotNull;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -13,9 +10,12 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.game.ShipObjectWorld;
 import org.valkyrienskies.mod.IShipObjectWorldProvider;
+import org.valkyrienskies.mod.ShipSavedData;
 
-@Mixin(ServerLevel.class)
+@Mixin(ServerWorld.class)
 public abstract class MixinServerLevel implements IShipObjectWorldProvider {
+
+    @Shadow public abstract PersistentStateManager getPersistentStateManager();
 
     private ShipObjectWorld shipObjectWorld = null;
     private ShipSavedData shipSavedData = null;
@@ -26,7 +26,8 @@ public abstract class MixinServerLevel implements IShipObjectWorldProvider {
     )
     private void postConstructor(CallbackInfo info) {
         // Load ship data from the world storage
-        shipSavedData = getDataStorage().computeIfAbsent(ShipSavedData.Companion::createNewEmptyShipSavedData, ShipSavedData.SAVED_DATA_ID);
+        shipSavedData = getPersistentStateManager()
+            .getOrCreate(ShipSavedData.Companion::createNewEmptyShipSavedData, ShipSavedData.SAVED_DATA_ID);
         // Make a ship world using the loaded ship data
         shipObjectWorld = new ShipObjectWorld(shipSavedData.getQueryableShipData(), shipSavedData.getChunkAllocator());
     }
@@ -37,6 +38,5 @@ public abstract class MixinServerLevel implements IShipObjectWorldProvider {
         return shipObjectWorld;
     }
 
-    @Shadow
-    public abstract DimensionDataStorage getDataStorage();
+
 }

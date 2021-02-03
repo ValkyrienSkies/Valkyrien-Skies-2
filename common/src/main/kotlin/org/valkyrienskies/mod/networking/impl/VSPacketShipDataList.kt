@@ -1,7 +1,7 @@
 package org.valkyrienskies.mod.networking.impl
 
 import io.netty.buffer.ByteBuf
-import net.minecraft.network.FriendlyByteBuf
+import net.minecraft.network.PacketByteBuf
 import org.valkyrienskies.core.game.ShipData
 import org.valkyrienskies.core.networking.IVSPacket
 import org.valkyrienskies.core.util.serialization.VSJacksonUtil
@@ -13,7 +13,7 @@ class VSPacketShipDataList private constructor(): IVSPacket {
     fun getShipDataList() = shipDataList
 
     override fun write(byteBuf: ByteBuf) {
-        val friendlyByteBuf = FriendlyByteBuf(byteBuf)
+        val friendlyByteBuf = PacketByteBuf(byteBuf)
         friendlyByteBuf.writeVarInt(shipDataList.size)
         for (shipData in shipDataList) {
             val bytes = VSJacksonUtil.defaultMapper.writeValueAsBytes(shipData)
@@ -23,7 +23,7 @@ class VSPacketShipDataList private constructor(): IVSPacket {
 
     override fun read(byteBuf: ByteBuf) {
         val newShipDataList: MutableList<ShipData> = ArrayList()
-        val friendlyByteBuf = FriendlyByteBuf(byteBuf)
+        val friendlyByteBuf = PacketByteBuf(byteBuf)
         val listSize: Int = friendlyByteBuf.readVarInt()
         for (i in 1 .. listSize) {
             val bytes = friendlyByteBuf.readByteArray()

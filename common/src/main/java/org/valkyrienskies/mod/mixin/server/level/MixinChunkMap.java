@@ -1,19 +1,18 @@
 package org.valkyrienskies.mod.mixin.server.level;
 
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.server.world.ThreadedAnvilChunkStorage;
+import net.minecraft.util.Util;
+import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.registry.Registry;
+import net.minecraft.world.ChunkSerializer;
+import net.minecraft.world.PersistentStateManager;
+import net.minecraft.world.biome.Biome;
+import net.minecraft.world.biome.BiomeKeys;
+import net.minecraft.world.biome.source.BiomeArray;
+import net.minecraft.world.chunk.WorldChunk;
 import org.valkyrienskies.mod.IShipObjectWorldProvider;
-import org.valkyrienskies.mod.IShipObjectWorldProvider;
-import net.minecraft.Util;
-import net.minecraft.core.Registry;
-import net.minecraft.data.worldgen.biome.Biomes;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.server.level.ChunkMap;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.biome.Biome;
-import net.minecraft.world.level.chunk.ChunkBiomeContainer;
-import net.minecraft.world.level.chunk.LevelChunk;
-import net.minecraft.world.level.chunk.storage.ChunkSerializer;
-import net.minecraft.world.level.storage.DimensionDataStorage;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -25,22 +24,23 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.function.Supplier;
 
-@Mixin(ChunkMap.class)
+@Mixin(ThreadedAnvilChunkStorage.class)
 public abstract class MixinChunkMap {
 
     private static final Biome[] BIOMES;
 
     static {
         // Make all ship chunks have the plains biome
-        BIOMES = Util.make(new Biome[ChunkBiomeContainer.BIOMES_SIZE], (biomes) -> Arrays.fill(biomes, Biomes.PLAINS));
+        BIOMES = Util.make(new Biome[BiomeArray.DEFAULT_LENGTH], (biomes) -> Arrays.fill(biomes, BiomeKeys.PLAINS));
     }
 
     @Shadow @Final
-    private ServerLevel level;
-    @Shadow @Final
-    private Supplier<DimensionDataStorage> overworldDataStorage;
+    private ServerWorld world;
 
-    private final ChunkMap thisAsChunkMap = ChunkMap.class.cast(this);
+    @Shadow @Final
+    private Supplier<PersistentStateManager> persistentStateManagerFactory;
+
+    private final ThreadedAnvilChunkStorage thisAsChunkMap = ThreadedAnvilChunkStorage.class.cast(this);
 
     /**
      * Force the game to generate empty chunks in the shipyard.
@@ -53,18 +53,19 @@ public abstract class MixinChunkMap {
      */
     @Overwrite
     @Nullable
-    private CompoundTag readChunk(ChunkPos chunkPos) throws IOException {
-        CompoundTag compoundTag = thisAsChunkMap.read(chunkPos);
-        final CompoundTag originalToReturn = compoundTag == null ? null : thisAsChunkMap.upgradeChunkTag(this.level.dimension(), this.overworldDataStorage, compoundTag);
+    private CompoundTag getUpdatedChunkTag(ChunkPos chunkPos) throws IOException {
+        CompoundTag compoundTag = thisAsChunkMap.getNbt(chunkPos);
+        final CompoundTag originalToReturn = compoundTag == null ? null :
+            thisAsChunkMap.updateChunkTag(this.world.getRegistryKey(), this.persistentStateManagerFactory, compoundTag);
 
         if (originalToReturn == null) {
-            final IShipObjectWorldProvider shipObjectWorldProvider = (IShipObjectWorldProvider) level;
+            final IShipObjectWorldProvider shipObjectWorldProvider = (IShipObjectWorldProvider) world;
             if (shipObjectWorldProvider.getShipObjectWorld().getChunkAllocator().isChunkInShipyard(chunkPos.x, chunkPos.z)) {
                 // The chunk doesn't yet exist and is in the shipyard. Make a new empty chunk
                 // Generate the chunk to be nothing
-                final LevelChunk generatedChunk = new LevelChunk(level, chunkPos, new ChunkBiomeContainer(level.registryAccess().registryOrThrow(Registry.BIOME_REGISTRY), BIOMES));
+                final WorldChunk generatedChunk = new WorldChunk(world, chunkPos, new BiomeArray(world.getRegistryManager().get(Registry.BIOME_KEY), BIOMES));
                 // Its wasteful to serialize just for this to be deserialized, but it will work for now.
-                return ChunkSerializer.write(level, generatedChunk);
+                return ChunkSerializer.serialize(world, generatedChunk);
             }
         }
 

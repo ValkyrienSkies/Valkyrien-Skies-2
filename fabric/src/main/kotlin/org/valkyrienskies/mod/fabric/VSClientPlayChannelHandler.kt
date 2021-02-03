@@ -3,15 +3,15 @@ package org.valkyrienskies.mod.fabric
 import org.valkyrienskies.mod.VSNetworking
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 import net.fabricmc.fabric.api.networking.v1.PacketSender
-import net.minecraft.client.Minecraft
-import net.minecraft.client.multiplayer.ClientPacketListener
-import net.minecraft.network.FriendlyByteBuf
+import net.minecraft.client.MinecraftClient
+import net.minecraft.client.network.ClientPlayNetworkHandler
+import net.minecraft.network.PacketByteBuf
 
 object VSClientPlayChannelHandler : ClientPlayNetworking.PlayChannelHandler {
     override fun receive(
-        client: Minecraft,
-        handler: ClientPacketListener,
-        buf: FriendlyByteBuf,
+        client: MinecraftClient,
+        handler: ClientPlayNetworkHandler,
+        buf: PacketByteBuf,
         responseSender: PacketSender?
     ) {
         VSNetworking.handleVSPacketClient(buf)

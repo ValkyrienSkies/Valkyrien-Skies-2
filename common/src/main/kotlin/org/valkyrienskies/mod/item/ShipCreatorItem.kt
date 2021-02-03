@@ -1,29 +1,29 @@
 package org.valkyrienskies.mod.item
 
+import net.minecraft.block.BlockState
+import net.minecraft.block.Blocks
+import net.minecraft.item.Item
+import net.minecraft.item.ItemUsageContext
+import net.minecraft.server.network.ServerPlayerEntity
+import net.minecraft.util.ActionResult
 import org.valkyrienskies.mod.IShipObjectWorldProvider
 import org.valkyrienskies.mod.VSNetworking
 import org.valkyrienskies.mod.networking.impl.VSPacketShipDataList
-import net.minecraft.server.level.ServerPlayer
-import net.minecraft.world.InteractionResult
-import net.minecraft.world.item.Item
-import net.minecraft.world.item.context.UseOnContext
-import net.minecraft.world.level.block.Blocks
-import net.minecraft.world.level.block.state.BlockState
 import org.joml.Vector3i
 import org.valkyrienskies.mod.util.toBlockPos
 import org.valkyrienskies.mod.util.toJOML
 
-class ShipCreatorItem(properties: Properties) : Item(properties) {
+class ShipCreatorItem(properties: Item.Settings) : Item(properties) {
 
-    override fun useOn(useOnContext: UseOnContext?): InteractionResult {
+    override fun useOnBlock(useOnContext: ItemUsageContext?): ActionResult {
         val player = useOnContext!!.player
-        val level = useOnContext.level
-        val blockPos = useOnContext.clickedPos
+        val level = useOnContext.world
+        val blockPos = useOnContext.blockPos
         val blockState: BlockState = level.getBlockState(blockPos)
 
         println("Player right clicked on $blockPos")
 
-        if (!level.isClientSide()) {
+        if (!level.isClient) {
             if (!blockState.isAir) {
                 // Make a ship
                 level as IShipObjectWorldProvider
@@ -32,17 +32,17 @@ class ShipCreatorItem(properties: Properties) : Item(properties) {
                 val centerPos = shipData.chunkClaim.getCenterBlockCoordinates(Vector3i()).toBlockPos()
 
                 // Move the block from the world to a ship
-                level.setBlock(blockPos, Blocks.AIR.defaultBlockState(), 11)
-                level.setBlock(centerPos, blockState, 11)
+                level.setBlockState(blockPos, Blocks.AIR.defaultState, 11)
+                level.setBlockState(centerPos, blockState, 11)
 
                 // Send the ShipData to the player
                 val shipDataPacket = VSPacketShipDataList.createVSPacketShipDataList(listOf(shipData))
-                VSNetworking.shipDataPacketToClientSender.sendToClient(shipDataPacket, player as ServerPlayer)
+                VSNetworking.shipDataPacketToClientSender.sendToClient(shipDataPacket, player as ServerPlayerEntity)
 
                 // TODO: Create the initial ship chunks, transfer blocks, send ship to players, etc.
             }
         }
 
-        return super.useOn(useOnContext)
+        return super.useOnBlock(useOnContext)
     }
 }

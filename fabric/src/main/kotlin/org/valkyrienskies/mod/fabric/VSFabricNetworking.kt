@@ -3,13 +3,13 @@ package org.valkyrienskies.mod.fabric
 import org.valkyrienskies.mod.ValkyrienSkiesMod
 import org.valkyrienskies.mod.VSNetworking
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
-import net.minecraft.resources.ResourceLocation
+import net.minecraft.util.Identifier
 
 /**
  * Registers VS with the Fabric networking API.
  */
 object VSFabricNetworking {
-    internal val VS_PACKET_ID = ResourceLocation(ValkyrienSkiesMod.MOD_ID, "vs_packet")
+    internal val VS_PACKET_ID = Identifier(ValkyrienSkiesMod.MOD_ID, "vs_packet")
 
     internal fun registerFabricNetworking() {
         registerClientPacketHandlers()

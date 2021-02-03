@@ -4,7 +4,7 @@ plugins {
 
 dependencies {
     minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
-    mappings minecraft.officialMojangMappings()
+    mappings("net.fabricmc:yarn:${rootProject.yarn_mappings}:v2")
     compileOnly "com.google.code.findbugs:jsr305:3.+"
     // We depend on fabric loader here to use the fabric @Environment annotations
     // Do NOT use other classes from fabric loader
