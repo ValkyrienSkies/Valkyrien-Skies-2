@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.server.level;
+package org.valkyrienskies.mod.mixin.server.world;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.world.ServerWorld;

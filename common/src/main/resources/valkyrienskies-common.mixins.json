@@ -4,11 +4,11 @@
   "compatibilityLevel": "JAVA_8",
   "refmap": "valkyrienskies-common-refmap.json",
   "mixins": [
-    "server.level.MixinServerWorld",
-    "server.level.MixinThreadedAnvilChunkStorage"
+    "server.world.MixinServerWorld",
+    "server.world.MixinThreadedAnvilChunkStorage"
   ],
   "client": [
-    "client.multiplayer.MixinClientWorld"
+    "client.world.MixinClientWorld"
   ],
   "injectors": {
     "defaultRequire": 1

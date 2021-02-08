@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.networking.impl
 
+import com.fasterxml.jackson.module.kotlin.readValue
 import io.netty.buffer.ByteBuf
 import net.minecraft.network.PacketByteBuf
 import org.valkyrienskies.core.game.ShipData
@@ -27,7 +28,7 @@ class VSPacketShipDataList private constructor(): IVSPacket {
         val listSize: Int = friendlyByteBuf.readVarInt()
         for (i in 1 .. listSize) {
             val bytes = friendlyByteBuf.readByteArray()
-            val shipDataFromBytes = VSJacksonUtil.defaultMapper.readValue(bytes, ShipData::class.java)
+            val shipDataFromBytes = VSJacksonUtil.defaultMapper.readValue<ShipData>(bytes)
             newShipDataList.add(shipDataFromBytes)
         }
         shipDataList = newShipDataList

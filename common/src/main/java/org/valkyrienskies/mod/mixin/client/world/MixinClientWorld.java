@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.client.multiplayer;
+package org.valkyrienskies.mod.mixin.client.world;
 
 import net.minecraft.client.world.ClientWorld;
 import org.valkyrienskies.mod.IShipObjectWorldProvider;
