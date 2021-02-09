@@ -6,10 +6,10 @@ import net.minecraft.item.Item
 import net.minecraft.item.ItemUsageContext
 import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.util.ActionResult
+import org.joml.Vector3i
+import org.valkyrienskies.core.networking.impl.VSPacketShipDataList
 import org.valkyrienskies.mod.IShipObjectWorldProvider
 import org.valkyrienskies.mod.VSNetworking
-import org.valkyrienskies.mod.networking.impl.VSPacketShipDataList
-import org.joml.Vector3i
 import org.valkyrienskies.mod.util.toBlockPos
 import org.valkyrienskies.mod.util.toJOML
 
