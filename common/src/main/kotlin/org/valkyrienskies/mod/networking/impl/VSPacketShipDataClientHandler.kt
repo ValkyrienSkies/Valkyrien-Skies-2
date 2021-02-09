@@ -8,6 +8,6 @@ object VSPacketShipDataClientHandler: IVSPacketClientHandler {
     override fun handlePacket(vsPacket: IVSPacket) {
         vsPacket as VSPacketShipDataList
         println("client got the following packet $vsPacket")
-        vsPacket.getShipDataList().forEach { println("Received ShipData $it") }
+        vsPacket.shipDataList.forEach { println("Received ShipData $it") }
     }
 }
