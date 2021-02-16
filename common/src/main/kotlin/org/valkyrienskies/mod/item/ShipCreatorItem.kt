@@ -7,13 +7,15 @@ import net.minecraft.item.ItemUsageContext
 import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.util.ActionResult
 import org.joml.Vector3i
+import org.valkyrienskies.core.game.VSBlockType
 import org.valkyrienskies.core.networking.impl.VSPacketShipDataList
 import org.valkyrienskies.mod.IShipObjectWorldProvider
+import org.valkyrienskies.mod.VSGameUtils
 import org.valkyrienskies.mod.VSNetworking
 import org.valkyrienskies.mod.util.toBlockPos
 import org.valkyrienskies.mod.util.toJOML
 
-class ShipCreatorItem(properties: Item.Settings) : Item(properties) {
+class ShipCreatorItem(properties: Settings) : Item(properties) {
 
     override fun useOnBlock(useOnContext: ItemUsageContext?): ActionResult {
         val player = useOnContext!!.player
@@ -35,8 +37,13 @@ class ShipCreatorItem(properties: Item.Settings) : Item(properties) {
                 level.setBlockState(blockPos, Blocks.AIR.defaultState, 11)
                 level.setBlockState(centerPos, blockState, 11)
 
+                // TODO: Temporary, call [shipObjectWorld.onSetBlock] somewhere else
+                level.shipObjectWorld.onSetBlock(centerPos.x, centerPos.y, centerPos.z, VSBlockType.SOLID, 10.0, 0.0)
+
+                val queryableShipData = VSGameUtils.getShipObjectWorldFromWorld(level).queryableShipData
+
                 // Send the ShipData to the player
-                val shipDataPacket = VSPacketShipDataList.createVSPacketShipDataList(listOf(shipData))
+                val shipDataPacket = VSPacketShipDataList.createVSPacketShipDataList(queryableShipData.iterator().asSequence().toList())
                 VSNetworking.shipDataPacketToClientSender.sendToClient(shipDataPacket, player as ServerPlayerEntity)
 
                 // TODO: Create the initial ship chunks, transfer blocks, send ship to players, etc.
