@@ -1,0 +1,10 @@
+accessWidener	v1	named
+
+# For Rendering
+accessible	class	net/minecraft/client/render/WorldRenderer$ChunkInfo
+accessible	method	net/minecraft/client/render/WorldRenderer$ChunkInfo	<init>	(Lnet/minecraft/client/render/chunk/ChunkBuilder$BuiltChunk;Lnet/minecraft/util/math/Direction;I)V
+accessible	method	net/minecraft/client/render/BuiltChunkStorage	getRenderedChunk	(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/client/render/chunk/ChunkBuilder$BuiltChunk;
+
+# For ChunkMap
+accessible  class   net/minecraft/client/world/ClientChunkManager$ClientChunkMap
+accessible  method  net/minecraft/client/world/ClientChunkManager$ClientChunkMap isInRadius (II)
