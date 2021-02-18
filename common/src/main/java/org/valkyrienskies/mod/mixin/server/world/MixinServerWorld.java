@@ -2,8 +2,11 @@ package org.valkyrienskies.mod.mixin.server.world;
 
 import com.google.common.collect.ImmutableList;
 import kotlin.Pair;
+import net.minecraft.network.Packet;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerChunkManager;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.PersistentStateManager;
 import org.jetbrains.annotations.NotNull;
 import org.spongepowered.asm.mixin.Final;
@@ -17,6 +20,7 @@ import org.valkyrienskies.core.chunk_tracking.ChunkWatchTask;
 import org.valkyrienskies.core.game.IPlayer;
 import org.valkyrienskies.core.game.ShipObjectWorld;
 import org.valkyrienskies.mod.IShipObjectWorldProvider;
+import org.valkyrienskies.mod.MixinInterfaces;
 import org.valkyrienskies.mod.ShipSavedData;
 import org.valkyrienskies.mod.util.MinecraftPlayer;
 
@@ -33,9 +37,12 @@ public abstract class MixinServerWorld implements IShipObjectWorldProvider {
     @Final
     private List<ServerPlayerEntity> players;
 
+    @Shadow
+    @Final
+    private ServerChunkManager serverChunkManager;
+
     private ShipObjectWorld shipObjectWorld = null;
     private ShipSavedData shipSavedData = null;
-
     private final Map<UUID, MinecraftPlayer> vsPlayerWrappers = new HashMap<>();
 
     @Inject(
@@ -75,6 +82,20 @@ public abstract class MixinServerWorld implements IShipObjectWorldProvider {
         // But for now just do it single threaded
         chunkWatchTasks.forEachRemaining(chunkWatchTask -> {
             System.out.println("Watch task for " + chunkWatchTask.getChunkX() + " : " + chunkWatchTask.getChunkZ());
+            final MixinInterfaces.ISendsChunkWatchPackets sendsChunkWatchPackets = (MixinInterfaces.ISendsChunkWatchPackets) serverChunkManager.threadedAnvilChunkStorage;
+            final Packet<?>[] chunkPacketBuffer = new Packet[2];
+            final ChunkPos chunkPos = new ChunkPos(chunkWatchTask.getChunkX(), chunkWatchTask.getChunkZ());
+
+            // TODO: Move this somewhere else
+            serverChunkManager.setChunkForced(chunkPos, true);
+
+            for (final IPlayer player : chunkWatchTask.getPlayersNeedWatching()) {
+                final MinecraftPlayer minecraftPlayer = (MinecraftPlayer) player;
+                final ServerPlayerEntity serverPlayerEntity = (ServerPlayerEntity) minecraftPlayer.getPlayerEntityReference().get();
+                if (serverPlayerEntity != null) {
+                    sendsChunkWatchPackets.vs$sendWatchPackets(serverPlayerEntity, chunkPos, chunkPacketBuffer);
+                }
+            }
             chunkWatchTask.onExecuteChunkWatchTask();
         });
 

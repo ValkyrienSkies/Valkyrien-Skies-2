@@ -12,7 +12,7 @@ import java.util.*
 class MinecraftPlayer(playerObject: PlayerEntity, private val playerID: UUID) : IPlayer {
 
     // Hold a weak reference to avoid memory leaks
-    private val playerEntityReference: WeakReference<PlayerEntity> = WeakReference(playerObject)
+    val playerEntityReference: WeakReference<PlayerEntity> = WeakReference(playerObject)
 
     override fun getPosition(dest: Vector3d): Vector3d {
         val player = playerEntityReference.get()
