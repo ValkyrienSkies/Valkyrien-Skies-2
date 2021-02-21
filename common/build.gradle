@@ -2,6 +2,10 @@ plugins {
     id "org.jetbrains.kotlin.jvm"
 }
 
+minecraft {
+    accessWidener("src/main/resources/vs-fabric.accesswidener")
+}
+
 dependencies {
     minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
     mappings("net.fabricmc:yarn:${rootProject.yarn_mappings}:v2")

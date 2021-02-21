@@ -12,6 +12,10 @@ architectury {
     platformSetupLoomIde()
 }
 
+minecraft {
+    accessWidener("../common/src/main/resources/vs-fabric.accesswidener")
+}
+
 dependencies {
     minecraft("com.mojang:minecraft:${rootProject.minecraft_version}")
     mappings("net.fabricmc:yarn:${rootProject.yarn_mappings}:v2")
