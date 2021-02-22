@@ -3,7 +3,7 @@ plugins {
 }
 
 minecraft {
-    accessWidener("src/main/resources/vs-fabric.accesswidener")
+    accessWidener("src/main/resources/valkyrienskies-common.accesswidener")
 }
 
 dependencies {
