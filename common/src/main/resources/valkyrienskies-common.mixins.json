@@ -10,7 +10,9 @@
   "client": [
     "client.world.MixinClientWorld",
     "client.world.MixinClientChunkManager",
-    "client.render.MixinBuiltChunkStorage"
+    "client.render.MixinBuiltChunkStorage",
+    "client.render.MixinWorldRenderer",
+    "client.render.MixinWorldRendererChunkInfo"
   ],
   "injectors": {
     "defaultRequire": 1
