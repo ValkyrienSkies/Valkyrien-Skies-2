@@ -9,7 +9,6 @@ import net.minecraft.network.PacketByteBuf;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.ChunkSectionPos;
 import net.minecraft.world.biome.source.BiomeArray;
-import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ChunkSection;
 import net.minecraft.world.chunk.ChunkStatus;
 import net.minecraft.world.chunk.WorldChunk;
@@ -23,16 +22,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.mod.VSGameUtils;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
 /**
  * The purpose of this mixin is to allow {@link ClientChunkManager} to store ship chunks.
  */
 @Mixin(ClientChunkManager.class)
 public abstract class MixinClientChunkManager {
-
-    private final ConcurrentMap<Long, WorldChunk> shipChunksMap = new ConcurrentHashMap<>();
 
     @Shadow
     private volatile ClientChunkManager.ClientChunkMap chunks;
@@ -40,7 +34,7 @@ public abstract class MixinClientChunkManager {
     @Final
     private ClientWorld world;
 
-    private final LongObjectMap<Chunk> shipChunks = new LongObjectHashMap<>();
+    private final LongObjectMap<WorldChunk> shipChunks = new LongObjectHashMap<>();
 
     @Inject(method = "loadChunkFromPacket", at = @At("HEAD"), cancellable = true)
     private void preLoadChunkFromPacket(int x, int z, BiomeArray biomes, PacketByteBuf buf, CompoundTag tag, int verticalStripBitmask, boolean complete, CallbackInfoReturnable<WorldChunk> cir) {
@@ -69,13 +63,13 @@ public abstract class MixinClientChunkManager {
 
     @Inject(method = "unload", at = @At("HEAD"), cancellable = true)
     public void preUnload(int chunkX, int chunkZ, CallbackInfo ci) {
-        shipChunksMap.remove(ChunkPos.toLong(chunkX, chunkZ));
+        shipChunks.remove(ChunkPos.toLong(chunkX, chunkZ));
         ci.cancel();
     }
 
     @Inject(method = "getChunk", at = @At("HEAD"), cancellable = true)
     public void preGetChunk(int chunkX, int chunkZ, ChunkStatus chunkStatus, boolean bl, CallbackInfoReturnable<WorldChunk> cir) {
-        final WorldChunk shipChunk = shipChunksMap.get(ChunkPos.toLong(chunkX, chunkZ));
+        final WorldChunk shipChunk = shipChunks.get(ChunkPos.toLong(chunkX, chunkZ));
         if (shipChunk != null) cir.setReturnValue(shipChunk);
     }
 
