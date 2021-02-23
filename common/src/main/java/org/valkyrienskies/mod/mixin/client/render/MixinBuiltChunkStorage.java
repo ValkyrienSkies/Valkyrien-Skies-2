@@ -1,7 +1,7 @@
 package org.valkyrienskies.mod.mixin.client.render;
 
-import io.netty.util.collection.LongObjectHashMap;
-import io.netty.util.collection.LongObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import net.minecraft.client.render.BuiltChunkStorage;
 import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.client.render.chunk.ChunkBuilder;
@@ -32,7 +32,7 @@ public class MixinBuiltChunkStorage {
     protected int sizeY;
 
     // Maps chunk position to an array of BuiltChunk, indexed by the y value.
-    private final LongObjectMap<ChunkBuilder.BuiltChunk[]> vs$shipRenderChunks = new LongObjectHashMap<>();
+    private final Long2ObjectMap<ChunkBuilder.BuiltChunk[]> vs$shipRenderChunks = new Long2ObjectOpenHashMap<>();
     private ChunkBuilder vs$chunkBuilder;
 
     @Inject(method = "<init>", at = @At("TAIL"))
@@ -45,9 +45,8 @@ public class MixinBuiltChunkStorage {
         if (y < 0 || y >= sizeY) return; // Weird, but just ignore it
         if (VSGameUtils.INSTANCE.getShipObjectWorldFromWorld(world).getChunkAllocator().isChunkInShipyard(x, z)) {
             final long chunkPosAsLong = ChunkPos.toLong(x, z);
-            if (!vs$shipRenderChunks.containsKey(chunkPosAsLong))
-                vs$shipRenderChunks.put(chunkPosAsLong, new ChunkBuilder.BuiltChunk[sizeY]);
-            final ChunkBuilder.BuiltChunk[] renderChunksArray = vs$shipRenderChunks.get(chunkPosAsLong);
+            final ChunkBuilder.BuiltChunk[] renderChunksArray =
+                    vs$shipRenderChunks.computeIfAbsent(chunkPosAsLong, k -> new ChunkBuilder.BuiltChunk[sizeY]);
 
             if (renderChunksArray[y] == null) {
                 renderChunksArray[y] = vs$chunkBuilder.new BuiltChunk();
