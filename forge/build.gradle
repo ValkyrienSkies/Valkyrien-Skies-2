@@ -12,10 +12,6 @@ architectury {
     platformSetupLoomIde()
 }
 
-minecraft {
-    accessWidener("../common/src/main/resources/valkyrienskies-common.accesswidener")
-}
-
 loom {
     mixinConfigs = ["valkyrienskies-common.mixins.json", "valkyrienskies-forge.mixins.json"]
     useFabricMixin = true
