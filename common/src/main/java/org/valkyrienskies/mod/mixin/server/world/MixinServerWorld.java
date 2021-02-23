@@ -72,7 +72,7 @@ public abstract class MixinServerWorld implements IShipObjectWorldProvider {
         shipObjectWorld.tickShips();
 
         // Then determine the chunk watch/unwatch tasks, and then execute them
-        final ImmutableList<IPlayer> playersToTick = ImmutableList.<IPlayer>builder().addAll(vsPlayerWrappers.values()).build();
+        final ImmutableList<IPlayer> playersToTick = ImmutableList.copyOf(vsPlayerWrappers.values());
         final Pair<Spliterator<ChunkWatchTask>, Spliterator<ChunkUnwatchTask>> chunkWatchAndUnwatchTasksPair = shipObjectWorld.tickShipChunkLoading(playersToTick);
 
         // Use Spliterator instead of iterators so that we can multi thread the execution of these tasks
