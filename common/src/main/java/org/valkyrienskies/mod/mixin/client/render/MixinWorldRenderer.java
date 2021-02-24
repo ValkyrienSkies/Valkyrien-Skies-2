@@ -1,20 +1,31 @@
 package org.valkyrienskies.mod.mixin.client.render;
 
 import it.unimi.dsi.fastutil.objects.ObjectList;
-import net.minecraft.client.render.BuiltChunkStorage;
-import net.minecraft.client.render.Camera;
-import net.minecraft.client.render.Frustum;
-import net.minecraft.client.render.WorldRenderer;
+import it.unimi.dsi.fastutil.objects.ObjectListIterator;
+import net.minecraft.client.gl.VertexBuffer;
+import net.minecraft.client.render.*;
 import net.minecraft.client.render.chunk.ChunkBuilder;
+import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.math.Matrix4f;
+import net.minecraft.util.math.Quaternion;
+import org.joml.Matrix4d;
+import org.joml.Matrix4dc;
+import org.joml.Quaterniondc;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
+import org.valkyrienskies.core.game.ShipData;
 import org.valkyrienskies.core.game.ShipObject;
+import org.valkyrienskies.core.game.ShipTransform;
+import org.valkyrienskies.mod.MixinInterfaces;
 import org.valkyrienskies.mod.VSGameUtils;
 
 @Mixin(WorldRenderer.class)
@@ -49,5 +60,46 @@ public class MixinWorldRenderer {
                 return null;
             });
         }
+    }
+
+    /**
+     * This mixin tells the game where to render ship chunks.
+     */
+    @Inject(method = "renderLayer", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gl/VertexBuffer;bind()V"), locals = LocalCapture.CAPTURE_FAILHARD)
+    private void renderShipChunk(RenderLayer renderLayer, MatrixStack matrixStack, double playerCameraX, double playerCameraY, double playerCameraZ, CallbackInfo ci,
+                                 boolean bl, ObjectListIterator objectListIterator, WorldRenderer.ChunkInfo chunkInfo2, ChunkBuilder.BuiltChunk builtChunk, VertexBuffer vertexBuffer) {
+        final BlockPos renderChunkOrigin = builtChunk.getOrigin();
+        final ShipData shipManagingChunk = VSGameUtils.INSTANCE.getShipManagingPos(world, new ChunkPos(renderChunkOrigin.getX() >> 4, renderChunkOrigin.getZ() >> 4));
+        if (shipManagingChunk != null) {
+            final ShipTransform renderTransform = shipManagingChunk.getShipTransform();
+
+            final Matrix4dc shipToWorldMatrix = renderTransform.getShipToWorldMatrix();
+
+            final Matrix4d renderMatrix = new Matrix4d();
+            renderMatrix.translate(-playerCameraX, -playerCameraY, -playerCameraZ);
+            renderMatrix.mul(shipToWorldMatrix);
+            renderMatrix.translate(renderChunkOrigin.getX(), renderChunkOrigin.getY(), renderChunkOrigin.getZ());
+
+            // Update the model transform matrix
+            final Matrix4f renderMatrixAsMinecraft = new Matrix4f();
+            MixinInterfaces.ISetMatrix4fFromJOML.class.cast(renderMatrixAsMinecraft).vs$setFromJOML(renderMatrix);
+            matrixStack.peek().getModel().multiply(renderMatrixAsMinecraft);
+
+            // Update the model normal matrix
+            final Quaterniondc shipTransformRotation = renderTransform.getShipCoordinatesToWorldCoordinatesRotation();
+            final Quaternion shipTransformRotationMinecraft = new Quaternion((float) shipTransformRotation.x(), (float) shipTransformRotation.y(), (float) shipTransformRotation.z(), (float) shipTransformRotation.w());
+            matrixStack.peek().getNormal().multiply(shipTransformRotationMinecraft);
+        } else {
+            // Restore MC default behavior (that was removed by cancelDefaultTransform())
+            matrixStack.translate(renderChunkOrigin.getX() - playerCameraX, renderChunkOrigin.getY() - playerCameraY, renderChunkOrigin.getZ() - playerCameraZ);
+        }
+    }
+
+    /**
+     * This mixin removes the vanilla code that determines where each chunk renders.
+     */
+    @Redirect(method = "renderLayer", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/util/math/MatrixStack;translate(DDD)V"))
+    private void cancelDefaultTransform(MatrixStack matrixStack, double x, double y, double z) {
+        // Do nothing
     }
 }
