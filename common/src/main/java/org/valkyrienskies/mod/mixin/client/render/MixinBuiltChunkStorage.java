@@ -49,7 +49,9 @@ public class MixinBuiltChunkStorage {
                     vs$shipRenderChunks.computeIfAbsent(chunkPosAsLong, k -> new ChunkBuilder.BuiltChunk[sizeY]);
 
             if (renderChunksArray[y] == null) {
-                renderChunksArray[y] = vs$chunkBuilder.new BuiltChunk();
+                final ChunkBuilder.BuiltChunk builtChunk = vs$chunkBuilder.new BuiltChunk();
+                builtChunk.setOrigin(x << 4, y << 4, z << 4);
+                renderChunksArray[y] = builtChunk;
             }
             callbackInfo.cancel();
         }
