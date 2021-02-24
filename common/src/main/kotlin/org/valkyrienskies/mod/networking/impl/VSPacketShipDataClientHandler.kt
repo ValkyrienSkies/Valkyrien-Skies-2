@@ -9,7 +9,6 @@ import org.valkyrienskies.mod.VSGameUtils
 object VSPacketShipDataClientHandler : IVSPacketClientHandler {
     override fun handlePacket(vsPacket: IVSPacket) {
         vsPacket as VSPacketShipDataList
-        println("client got the following packet $vsPacket")
 
         val gameWorld = MinecraftClient.getInstance().world
         val shipWorld = VSGameUtils.getShipObjectWorldFromWorld(gameWorld!!)

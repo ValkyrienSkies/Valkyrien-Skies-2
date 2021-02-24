@@ -19,9 +19,12 @@ import org.valkyrienskies.core.chunk_tracking.ChunkUnwatchTask;
 import org.valkyrienskies.core.chunk_tracking.ChunkWatchTask;
 import org.valkyrienskies.core.game.IPlayer;
 import org.valkyrienskies.core.game.ShipObjectWorld;
+import org.valkyrienskies.core.networking.IVSPacket;
+import org.valkyrienskies.core.networking.impl.VSPacketShipDataList;
 import org.valkyrienskies.mod.IShipObjectWorldProvider;
 import org.valkyrienskies.mod.MixinInterfaces;
 import org.valkyrienskies.mod.ShipSavedData;
+import org.valkyrienskies.mod.VSNetworking;
 import org.valkyrienskies.mod.util.MinecraftPlayer;
 
 import java.util.*;
@@ -70,6 +73,12 @@ public abstract class MixinServerWorld implements IShipObjectWorldProvider {
 
         // Then tick the ship world
         shipObjectWorld.tickShips();
+
+        // Send ships to clients
+        final IVSPacket shipDataPacket = VSPacketShipDataList.Companion.createVSPacketShipDataList(shipObjectWorld.getQueryableShipData().iterator());
+        for (ServerPlayerEntity playerEntity : players) {
+            VSNetworking.shipDataPacketToClientSender.sendToClient(shipDataPacket, playerEntity);
+        }
 
         // Then determine the chunk watch/unwatch tasks, and then execute them
         final ImmutableList<IPlayer> playersToTick = ImmutableList.copyOf(vsPlayerWrappers.values());

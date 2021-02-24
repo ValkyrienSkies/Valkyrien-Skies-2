@@ -8,7 +8,6 @@ import net.minecraft.client.render.chunk.ChunkBuilder;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Matrix4f;
 import net.minecraft.util.math.Quaternion;
 import org.joml.Matrix4d;
@@ -22,7 +21,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
-import org.valkyrienskies.core.game.ShipData;
 import org.valkyrienskies.core.game.ShipObject;
 import org.valkyrienskies.core.game.ShipTransform;
 import org.valkyrienskies.mod.MixinInterfaces;
@@ -69,9 +67,9 @@ public class MixinWorldRenderer {
     private void renderShipChunk(RenderLayer renderLayer, MatrixStack matrixStack, double playerCameraX, double playerCameraY, double playerCameraZ, CallbackInfo ci,
                                  boolean bl, ObjectListIterator objectListIterator, WorldRenderer.ChunkInfo chunkInfo2, ChunkBuilder.BuiltChunk builtChunk, VertexBuffer vertexBuffer) {
         final BlockPos renderChunkOrigin = builtChunk.getOrigin();
-        final ShipData shipManagingChunk = VSGameUtils.INSTANCE.getShipManagingPos(world, new ChunkPos(renderChunkOrigin.getX() >> 4, renderChunkOrigin.getZ() >> 4));
-        if (shipManagingChunk != null) {
-            final ShipTransform renderTransform = shipManagingChunk.getShipTransform();
+        final ShipObject getShipObjectManagingPos = VSGameUtils.INSTANCE.getShipObjectManagingPos(world, renderChunkOrigin);
+        if (getShipObjectManagingPos != null) {
+            final ShipTransform renderTransform = getShipObjectManagingPos.getRenderTransform();
 
             final Matrix4dc shipToWorldMatrix = renderTransform.getShipToWorldMatrix();
 
