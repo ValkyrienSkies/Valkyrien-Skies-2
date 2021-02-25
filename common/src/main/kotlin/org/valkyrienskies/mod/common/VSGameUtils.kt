@@ -6,23 +6,17 @@ import net.minecraft.world.World
 import org.joml.Vector3d
 import org.valkyrienskies.core.game.ShipData
 import org.valkyrienskies.core.game.ShipObject
-import org.valkyrienskies.core.game.ShipObjectWorld
 import org.valkyrienskies.mod.common.util.toJOMLD
 
 object VSGameUtils {
     @JvmStatic
     fun getShipManagingPos(world: World, chunkPos: ChunkPos): ShipData? {
-        val shipObjectWorld = getShipObjectWorldFromWorld(world)
+        val shipObjectWorld = world.shipObjectWorld
         return if (shipObjectWorld.chunkAllocator.isChunkInShipyard(chunkPos.x, chunkPos.z)) {
             shipObjectWorld.queryableShipData.getShipDataFromChunkPos(chunkPos.x, chunkPos.z)
         } else {
             null
         }
-    }
-
-    @JvmStatic
-    fun getShipObjectWorldFromWorld(world: World): ShipObjectWorld {
-        return world.shipObjectWorld
     }
 
     @JvmStatic

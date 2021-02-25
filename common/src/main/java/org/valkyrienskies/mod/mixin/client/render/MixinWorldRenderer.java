@@ -28,6 +28,7 @@ import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 import org.valkyrienskies.core.game.ShipObject;
 import org.valkyrienskies.core.game.ShipTransform;
 import org.valkyrienskies.mod.common.VSGameUtils;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 import java.util.Iterator;
@@ -58,7 +59,7 @@ public class MixinWorldRenderer {
     private void addShipVisibleChunks(Camera camera, Frustum frustum, boolean hasForcedFrustum, int frame, boolean spectator, CallbackInfo ci) {
         final WorldRenderer self = WorldRenderer.class.cast(this);
         final BlockPos.Mutable tempPos = new BlockPos.Mutable();
-        for (ShipObject shipObject : VSGameUtils.getShipObjectWorldFromWorld(world).getUuidToShipObjectMap().values()) {
+        for (ShipObject shipObject : VSGameUtilsKt.getShipObjectWorld(world).getUuidToShipObjectMap().values()) {
             shipObject.getShipData().getShipActiveChunksSet().iterateChunkPos((x, z) -> {
                 for (int y = 0; y < 16; y++) {
                     tempPos.set(x << 4, y << 4, z << 4);

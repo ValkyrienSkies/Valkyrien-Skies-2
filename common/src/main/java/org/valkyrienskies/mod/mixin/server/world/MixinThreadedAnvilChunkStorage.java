@@ -23,7 +23,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.game.IPlayer;
 import org.valkyrienskies.mod.common.IShipObjectWorldProvider;
-import org.valkyrienskies.mod.common.VSGameUtils;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.MinecraftPlayer;
 
 import java.io.IOException;
@@ -91,7 +91,8 @@ public abstract class MixinThreadedAnvilChunkStorage {
      */
     @Inject(method = "getPlayersWatchingChunk", at = @At("TAIL"), cancellable = true)
     private void postGetPlayersWatchingChunk(ChunkPos chunkPos, boolean onlyOnWatchDistanceEdge, CallbackInfoReturnable<Stream<ServerPlayerEntity>> cir) {
-        final Iterator<IPlayer> playersWatchingShipChunk = VSGameUtils.getShipObjectWorldFromWorld(world).getIPlayersWatchingShipChunk(chunkPos.x, chunkPos.z);
+        final Iterator<IPlayer> playersWatchingShipChunk =
+            VSGameUtilsKt.getShipObjectWorld(world).getIPlayersWatchingShipChunk(chunkPos.x, chunkPos.z);
 
         if (!playersWatchingShipChunk.hasNext()) {
             // No players watching this ship chunk, so we don't need to modify anything

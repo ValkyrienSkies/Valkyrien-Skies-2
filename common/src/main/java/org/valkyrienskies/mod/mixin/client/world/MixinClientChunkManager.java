@@ -20,7 +20,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.valkyrienskies.mod.common.VSGameUtils;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 /**
  * The purpose of this mixin is to allow {@link ClientChunkManager} to store ship chunks.
@@ -39,7 +39,7 @@ public abstract class MixinClientChunkManager {
     @Inject(method = "loadChunkFromPacket", at = @At("HEAD"), cancellable = true)
     private void preLoadChunkFromPacket(int x, int z, BiomeArray biomes, PacketByteBuf buf, CompoundTag tag, int verticalStripBitmask, boolean complete, CallbackInfoReturnable<WorldChunk> cir) {
         if (!this.chunks.isInRadius(x, z)) {
-            if (VSGameUtils.getShipObjectWorldFromWorld(world).getChunkAllocator().isChunkInShipyard(x, z)) {
+            if (VSGameUtilsKt.getShipObjectWorld(world).getChunkAllocator().isChunkInShipyard(x, z)) {
                 final long chunkPosLong = ChunkPos.toLong(x, z);
 
                 WorldChunk worldChunk = new WorldChunk(this.world, new ChunkPos(x, z), biomes);

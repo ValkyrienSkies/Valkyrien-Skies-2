@@ -16,7 +16,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.valkyrienskies.mod.common.VSGameUtils;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 /**
  * The purpose of this mixin is to allow {@link BuiltChunkStorage} to render ship chunks.
@@ -50,7 +50,7 @@ public class MixinBuiltChunkStorage {
     @Inject(method = "scheduleRebuild", at = @At("HEAD"), cancellable = true)
     private void preScheduleRebuild(int x, int y, int z, boolean important, CallbackInfo callbackInfo) {
         if (y < 0 || y >= sizeY) return; // Weird, but just ignore it
-        if (VSGameUtils.getShipObjectWorldFromWorld(world).getChunkAllocator().isChunkInShipyard(x, z)) {
+        if (VSGameUtilsKt.getShipObjectWorld(world).getChunkAllocator().isChunkInShipyard(x, z)) {
             final long chunkPosAsLong = ChunkPos.toLong(x, z);
             final ChunkBuilder.BuiltChunk[] renderChunksArray =
                     vs$shipRenderChunks.computeIfAbsent(chunkPosAsLong, k -> new ChunkBuilder.BuiltChunk[sizeY]);
@@ -78,7 +78,7 @@ public class MixinBuiltChunkStorage {
 
         if (chunkY < 0 || chunkY >= sizeY) return; // Weird, but ignore it
 
-        if (VSGameUtils.getShipObjectWorldFromWorld(world).getChunkAllocator().isChunkInShipyard(chunkX, chunkZ)) {
+        if (VSGameUtilsKt.getShipObjectWorld(world).getChunkAllocator().isChunkInShipyard(chunkX, chunkZ)) {
             final long chunkPosAsLong = ChunkPos.toLong(chunkX, chunkZ);
             final ChunkBuilder.BuiltChunk[] renderChunksArray = vs$shipRenderChunks.get(chunkPosAsLong);
             if (renderChunksArray == null) {
