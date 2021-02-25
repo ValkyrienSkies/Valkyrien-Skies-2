@@ -2,11 +2,9 @@ package org.valkyrienskies.mod.common.util
 
 
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
-import org.joml.Matrix4dc
-import org.joml.Matrix4fc
-import org.joml.Vector3i
-import org.joml.Vector3ic
+import org.joml.*
 import org.valkyrienskies.mod.mixin.util.math.Matrix4fAccessor
 import net.minecraft.util.math.Matrix4f as Matrix4fMC
 
@@ -74,6 +72,10 @@ fun setMatrix4fFromJOML(source: Matrix4fc, dest: Matrix4fMC): Matrix4fMC {
     matrix4fAccessor.setA32(source.m23())
     matrix4fAccessor.setA33(source.m33())
     return dest
+}
+
+fun getVec3dFromJOML(source: Vector3dc): Vec3d {
+    return Vec3d(source.x(), source.y(), source.z())
 }
 
 // endregion

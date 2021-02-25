@@ -17,6 +17,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.valkyrienskies.core.game.ShipObject;
 import org.valkyrienskies.core.game.ShipTransform;
 import org.valkyrienskies.mod.common.VSGameUtils;
+import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 /**
  * This mixin fixes {@link BlockEntity}s belonging to ships not rendering.
@@ -41,7 +42,7 @@ public class MixinBlockEntityRenderDispatcher {
             // Transform tileEntityPos to be in world coordinates
             final ShipTransform renderTransform = getShipObjectManagingPos.getRenderTransform();
             final Vector3dc tileEntityPosInWorldCoordinates = renderTransform.getShipToWorldMatrix().transformPosition(new Vector3d(tileEntityPos.getX(), tileEntityPos.getY(), tileEntityPos.getZ()));
-            final Vec3d tileEntityPosInWorldCoordinatesVec3d = new Vec3d(tileEntityPosInWorldCoordinates.x(), tileEntityPosInWorldCoordinates.y(), tileEntityPosInWorldCoordinates.z());
+            final Vec3d tileEntityPosInWorldCoordinatesVec3d = VectorConversionsMCKt.getVec3dFromJOML(tileEntityPosInWorldCoordinates);
             return tileEntityPosInWorldCoordinatesVec3d.isInRange(cameraPos, radiusSquared);
         }
         return false;
