@@ -38,6 +38,7 @@ dependencies {
 
     // vs-core
     implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}")
+    shadow("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}")
 }
 
 shadowJar {
