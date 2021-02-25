@@ -54,7 +54,7 @@ public abstract class MixinServerWorld implements IShipObjectWorldProvider {
     private void postConstructor(CallbackInfo info) {
         // Load ship data from the world storage
         shipSavedData = getPersistentStateManager()
-                .getOrCreate(ShipSavedData.Companion::createNewEmptyShipSavedData, ShipSavedData.SAVED_DATA_ID);
+                .getOrCreate(ShipSavedData.Companion::createEmpty, ShipSavedData.SAVED_DATA_ID);
         // Make a ship world using the loaded ship data
         shipObjectWorld = new ShipObjectWorld(shipSavedData.getQueryableShipData(), shipSavedData.getChunkAllocator());
     }
@@ -74,7 +74,7 @@ public abstract class MixinServerWorld implements IShipObjectWorldProvider {
         shipObjectWorld.tickShips();
 
         // Send ships to clients
-        final IVSPacket shipDataPacket = VSPacketShipDataList.Companion.createVSPacketShipDataList(shipObjectWorld.getQueryableShipData().iterator());
+        final IVSPacket shipDataPacket = VSPacketShipDataList.Companion.create(shipObjectWorld.getQueryableShipData().iterator());
         for (ServerPlayerEntity playerEntity : players) {
             VSNetworking.shipDataPacketToClientSender.sendToClient(shipDataPacket, playerEntity);
         }

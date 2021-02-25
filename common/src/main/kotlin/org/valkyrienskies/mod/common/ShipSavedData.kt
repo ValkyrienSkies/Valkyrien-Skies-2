@@ -20,7 +20,7 @@ class ShipSavedData : PersistentState(SAVED_DATA_ID) {
         private const val QUERYABLE_SHIP_DATA_NBT_KEY = "queryable_ship_data"
         private const val CHUNK_ALLOCATOR_NBT_KEY = "chunk_allocator"
 
-        fun createNewEmptyShipSavedData(): ShipSavedData {
+        fun createEmpty(): ShipSavedData {
             val shipSavedData = ShipSavedData()
             shipSavedData.queryableShipData = QueryableShipData()
             shipSavedData.chunkAllocator = ChunkAllocator.newChunkAllocator()

@@ -20,7 +20,7 @@ object VSNetworking {
     internal fun registerVSPackets() {
         vsPacketRegistry.registerVSPacket(
             VSPacketShipDataList::class.java,
-            { VSPacketShipDataList.createEmptyVSPacketShipDataList() },
+            { VSPacketShipDataList.createEmpty() },
             VSPacketShipDataClientHandler,
             null
         )
