@@ -1,10 +1,10 @@
-package org.valkyrienskies.mod
+package org.valkyrienskies.mod.common
 
 import net.minecraft.item.Item
 import net.minecraft.item.ItemGroup
 import net.minecraft.util.Identifier
 import net.minecraft.util.registry.Registry
-import org.valkyrienskies.mod.item.ShipCreatorItem
+import org.valkyrienskies.mod.common.item.ShipCreatorItem
 
 object ValkyrienSkiesMod {
     const val MOD_ID = "valkyrienskies"

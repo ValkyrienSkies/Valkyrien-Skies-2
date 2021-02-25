@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.item
+package org.valkyrienskies.mod.common.item
 
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
@@ -7,9 +7,9 @@ import net.minecraft.item.ItemUsageContext
 import net.minecraft.util.ActionResult
 import org.joml.Vector3i
 import org.valkyrienskies.core.game.VSBlockType
-import org.valkyrienskies.mod.IShipObjectWorldProvider
-import org.valkyrienskies.mod.util.toBlockPos
-import org.valkyrienskies.mod.util.toJOML
+import org.valkyrienskies.mod.common.IShipObjectWorldProvider
+import org.valkyrienskies.mod.common.util.toBlockPos
+import org.valkyrienskies.mod.common.util.toJOML
 
 class ShipCreatorItem(properties: Settings) : Item(properties) {
 

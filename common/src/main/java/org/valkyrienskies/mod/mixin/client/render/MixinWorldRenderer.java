@@ -21,10 +21,10 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
+import org.valkyrienskies.mod.MixinInterfaces;
 import org.valkyrienskies.core.game.ShipObject;
 import org.valkyrienskies.core.game.ShipTransform;
-import org.valkyrienskies.mod.MixinInterfaces;
-import org.valkyrienskies.mod.VSGameUtils;
+import org.valkyrienskies.mod.common.VSGameUtils;
 
 @Mixin(WorldRenderer.class)
 public class MixinWorldRenderer {

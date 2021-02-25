@@ -16,7 +16,7 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "org.valkyrienskies.mod.fabric.ValkyrienSkiesModFabric"
+      "org.valkyrienskies.mod.fabric.common.ValkyrienSkiesModFabric"
     ]
   },
   "mixins": [

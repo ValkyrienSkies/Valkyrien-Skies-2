@@ -21,11 +21,11 @@ import org.valkyrienskies.core.game.IPlayer;
 import org.valkyrienskies.core.game.ShipObjectWorld;
 import org.valkyrienskies.core.networking.IVSPacket;
 import org.valkyrienskies.core.networking.impl.VSPacketShipDataList;
-import org.valkyrienskies.mod.IShipObjectWorldProvider;
+import org.valkyrienskies.mod.common.IShipObjectWorldProvider;
 import org.valkyrienskies.mod.MixinInterfaces;
-import org.valkyrienskies.mod.ShipSavedData;
-import org.valkyrienskies.mod.VSNetworking;
-import org.valkyrienskies.mod.util.MinecraftPlayer;
+import org.valkyrienskies.mod.common.ShipSavedData;
+import org.valkyrienskies.mod.common.VSNetworking;
+import org.valkyrienskies.mod.common.util.MinecraftPlayer;
 
 import java.util.*;
 import java.util.function.BooleanSupplier;

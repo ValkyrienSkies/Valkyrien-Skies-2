@@ -9,7 +9,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.game.ChunkAllocator;
 import org.valkyrienskies.core.game.QueryableShipData;
 import org.valkyrienskies.core.game.ShipObjectWorld;
-import org.valkyrienskies.mod.IShipObjectWorldProvider;
+import org.valkyrienskies.mod.common.IShipObjectWorldProvider;
 
 import java.util.function.BooleanSupplier;
 

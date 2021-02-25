@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod
+package org.valkyrienskies.mod.common
 
 import io.netty.buffer.ByteBuf
 import net.minecraft.server.network.ServerPlayerEntity
@@ -6,7 +6,7 @@ import org.valkyrienskies.core.networking.IVSPacket
 import org.valkyrienskies.core.networking.IVSPacketToClientSender
 import org.valkyrienskies.core.networking.VSPacketRegistry
 import org.valkyrienskies.core.networking.impl.VSPacketShipDataList
-import org.valkyrienskies.mod.networking.impl.VSPacketShipDataClientHandler
+import org.valkyrienskies.mod.common.networking.impl.VSPacketShipDataClientHandler
 
 /**
  * Registers the [IVSPacket]s, and stores [IVSPacketToClientSender]

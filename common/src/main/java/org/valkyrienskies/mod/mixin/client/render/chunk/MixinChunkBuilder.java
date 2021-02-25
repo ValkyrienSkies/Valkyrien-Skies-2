@@ -15,7 +15,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.game.ShipObject;
-import org.valkyrienskies.mod.VSGameUtils;
+import org.valkyrienskies.mod.common.VSGameUtils;
 
 @Mixin(ChunkBuilder.BuiltChunk.class)
 public class MixinChunkBuilder {

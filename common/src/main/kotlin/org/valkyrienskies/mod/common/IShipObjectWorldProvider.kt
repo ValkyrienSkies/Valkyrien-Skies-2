@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod
+package org.valkyrienskies.mod.common
 
 import org.valkyrienskies.core.game.ShipObjectWorld
 

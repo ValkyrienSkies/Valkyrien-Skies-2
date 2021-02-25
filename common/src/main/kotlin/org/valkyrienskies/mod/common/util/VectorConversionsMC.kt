@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.util
+package org.valkyrienskies.mod.common.util
 
 
 import net.minecraft.util.math.BlockPos

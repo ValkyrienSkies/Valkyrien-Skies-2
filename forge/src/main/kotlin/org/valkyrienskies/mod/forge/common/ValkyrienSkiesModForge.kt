@@ -1,6 +1,6 @@
-package org.valkyrienskies.mod.forge
+package org.valkyrienskies.mod.forge.common
 
-import org.valkyrienskies.mod.ValkyrienSkiesMod
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import net.minecraftforge.fml.common.Mod
 
 @Mod(ValkyrienSkiesMod.MOD_ID)

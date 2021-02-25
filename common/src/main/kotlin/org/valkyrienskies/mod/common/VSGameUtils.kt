@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod
+package org.valkyrienskies.mod.common
 
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkPos

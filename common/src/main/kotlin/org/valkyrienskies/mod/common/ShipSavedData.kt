@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod
+package org.valkyrienskies.mod.common
 
 import com.fasterxml.jackson.module.kotlin.readValue
 import net.minecraft.nbt.CompoundTag

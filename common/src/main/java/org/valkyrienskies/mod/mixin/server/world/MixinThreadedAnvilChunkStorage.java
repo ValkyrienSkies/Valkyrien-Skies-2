@@ -22,11 +22,11 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.valkyrienskies.core.game.IPlayer;
-import org.valkyrienskies.mod.IShipObjectWorldProvider;
 import org.valkyrienskies.mod.MixinInterfaces;
-import org.valkyrienskies.mod.VSGameUtils;
-import org.valkyrienskies.mod.util.MinecraftPlayer;
+import org.valkyrienskies.core.game.IPlayer;
+import org.valkyrienskies.mod.common.IShipObjectWorldProvider;
+import org.valkyrienskies.mod.common.VSGameUtils;
+import org.valkyrienskies.mod.common.util.MinecraftPlayer;
 
 import java.io.IOException;
 import java.util.Arrays;
