@@ -19,6 +19,6 @@ class ValkyrienSkiesModForge {
 
         init {
             ITEMS.register("ship_creator") { ValkyrienSkiesMod.SHIP_CREATOR_ITEM }
-		}
+        }
     }
 }
