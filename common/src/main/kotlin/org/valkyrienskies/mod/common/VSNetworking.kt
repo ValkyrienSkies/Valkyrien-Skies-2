@@ -30,11 +30,19 @@ object VSNetworking {
         vsPacketRegistry.handleVSPacketClient(byteBuf)
     }
 
+    fun handleVSPacketClient(vsPacket: IVSPacket) {
+        vsPacketRegistry.handleVSPacketClient(vsPacket)
+    }
+
     fun handleVSPacketServer(byteBuf: ByteBuf, sender: ServerPlayerEntity) {
         vsPacketRegistry.handleVSPacketServer(byteBuf, sender)
     }
 
     fun writeVSPacket(vsPacket: IVSPacket, byteBuf: ByteBuf) {
         vsPacketRegistry.writeVSPacket(vsPacket, byteBuf)
+    }
+
+    fun readVSPacket(byteBuf: ByteBuf): IVSPacket {
+        return vsPacketRegistry.readVSPacket(byteBuf)
     }
 }
