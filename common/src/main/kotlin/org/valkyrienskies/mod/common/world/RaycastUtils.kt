@@ -28,8 +28,8 @@ fun World.raycastIncludeShips(ctx: RaycastContext): BlockHitResult {
     // Iterate every ship, find do the raycast in ship space,
     // choose the raycast with the lowest distance to the start position.
     for (ship in shipObjectWorld.uuidToShipObjectMap.values) {
-        val worldToShip = ship.getRenderTransform().worldToShipMatrix
-        val shipToWorld = ship.getRenderTransform().shipToWorldMatrix
+        val worldToShip = ship.renderTransform.worldToShipMatrix
+        val shipToWorld = ship.renderTransform.shipToWorldMatrix
         val shipStart = worldToShip.transformPosition(ctx.start.toJOML()).toVec3d()
         val shipEnd = worldToShip.transformPosition(ctx.end.toJOML()).toVec3d()
 
