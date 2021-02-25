@@ -39,7 +39,7 @@ public abstract class MixinClientChunkManager {
     @Inject(method = "loadChunkFromPacket", at = @At("HEAD"), cancellable = true)
     private void preLoadChunkFromPacket(int x, int z, BiomeArray biomes, PacketByteBuf buf, CompoundTag tag, int verticalStripBitmask, boolean complete, CallbackInfoReturnable<WorldChunk> cir) {
         if (!this.chunks.isInRadius(x, z)) {
-            if (VSGameUtils.INSTANCE.getShipObjectWorldFromWorld(world).getChunkAllocator().isChunkInShipyard(x, z)) {
+            if (VSGameUtils.getShipObjectWorldFromWorld(world).getChunkAllocator().isChunkInShipyard(x, z)) {
                 final long chunkPosLong = ChunkPos.toLong(x, z);
 
                 WorldChunk worldChunk = new WorldChunk(this.world, new ChunkPos(x, z), biomes);

@@ -91,7 +91,7 @@ public abstract class MixinThreadedAnvilChunkStorage {
      */
     @Inject(method = "getPlayersWatchingChunk", at = @At("TAIL"), cancellable = true)
     private void postGetPlayersWatchingChunk(ChunkPos chunkPos, boolean onlyOnWatchDistanceEdge, CallbackInfoReturnable<Stream<ServerPlayerEntity>> cir) {
-        final Iterator<IPlayer> playersWatchingShipChunk = VSGameUtils.INSTANCE.getShipObjectWorldFromWorld(world).getIPlayersWatchingShipChunk(chunkPos.x, chunkPos.z);
+        final Iterator<IPlayer> playersWatchingShipChunk = VSGameUtils.getShipObjectWorldFromWorld(world).getIPlayersWatchingShipChunk(chunkPos.x, chunkPos.z);
 
         if (!playersWatchingShipChunk.hasNext()) {
             // No players watching this ship chunk, so we don't need to modify anything

@@ -36,7 +36,7 @@ public class MixinChunkBuilderBuiltChunk {
     @Inject(method = "getSquaredCameraDistance", at = @At("HEAD"), cancellable = true)
     private void preGetSquaredCameraDistance(CallbackInfoReturnable<Double> cir) {
         final World world = MinecraftClient.getInstance().world;
-        final ShipObject getShipObjectManagingPos = VSGameUtils.INSTANCE.getShipObjectManagingPos(world, origin);
+        final ShipObject getShipObjectManagingPos = VSGameUtils.getShipObjectManagingPos(world, origin);
         if (getShipObjectManagingPos != null) {
             final Camera camera = MinecraftClient.getInstance().gameRenderer.getCamera();
             final Vector3dc chunkPosInWorld = getShipObjectManagingPos.getRenderTransform().getShipToWorldMatrix().transformPosition(

@@ -37,7 +37,7 @@ public class MixinBlockEntityRenderDispatcher {
         if (defaultResult) return true;
         // If defaultResult was false, then check if this BlockEntity belongs to a ship
         final BlockPos blockEntityPos = methodBlockEntity.getPos();
-        final ShipObject getShipObjectManagingPos = VSGameUtils.INSTANCE.getShipObjectManagingPos(world, blockEntityPos);
+        final ShipObject getShipObjectManagingPos = VSGameUtils.getShipObjectManagingPos(world, blockEntityPos);
         if (getShipObjectManagingPos != null) {
             // Transform tileEntityPos to be in world coordinates
             final ShipTransform renderTransform = getShipObjectManagingPos.getRenderTransform();

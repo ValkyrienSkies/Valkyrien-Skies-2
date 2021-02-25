@@ -50,7 +50,7 @@ public class MixinBuiltChunkStorage {
     @Inject(method = "scheduleRebuild", at = @At("HEAD"), cancellable = true)
     private void preScheduleRebuild(int x, int y, int z, boolean important, CallbackInfo callbackInfo) {
         if (y < 0 || y >= sizeY) return; // Weird, but just ignore it
-        if (VSGameUtils.INSTANCE.getShipObjectWorldFromWorld(world).getChunkAllocator().isChunkInShipyard(x, z)) {
+        if (VSGameUtils.getShipObjectWorldFromWorld(world).getChunkAllocator().isChunkInShipyard(x, z)) {
             final long chunkPosAsLong = ChunkPos.toLong(x, z);
             final ChunkBuilder.BuiltChunk[] renderChunksArray =
                     vs$shipRenderChunks.computeIfAbsent(chunkPosAsLong, k -> new ChunkBuilder.BuiltChunk[sizeY]);
@@ -78,7 +78,7 @@ public class MixinBuiltChunkStorage {
 
         if (chunkY < 0 || chunkY >= sizeY) return; // Weird, but ignore it
 
-        if (VSGameUtils.INSTANCE.getShipObjectWorldFromWorld(world).getChunkAllocator().isChunkInShipyard(chunkX, chunkZ)) {
+        if (VSGameUtils.getShipObjectWorldFromWorld(world).getChunkAllocator().isChunkInShipyard(chunkX, chunkZ)) {
             final long chunkPosAsLong = ChunkPos.toLong(chunkX, chunkZ);
             final ChunkBuilder.BuiltChunk[] renderChunksArray = vs$shipRenderChunks.get(chunkPosAsLong);
             if (renderChunksArray == null) {
