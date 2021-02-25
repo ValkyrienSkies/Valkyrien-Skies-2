@@ -102,7 +102,7 @@ public abstract class MixinServerWorld implements IShipObjectWorldProvider {
                 final MinecraftPlayer minecraftPlayer = (MinecraftPlayer) player;
                 final ServerPlayerEntity serverPlayerEntity = (ServerPlayerEntity) minecraftPlayer.getPlayerEntityReference().get();
                 if (serverPlayerEntity != null) {
-                    accessor.callSendWatchPackets(serverPlayerEntity, chunkPos, chunkPacketBuffer, false, false);
+                    accessor.callSendWatchPackets(serverPlayerEntity, chunkPos, chunkPacketBuffer, false, true);
                 }
             }
             chunkWatchTask.onExecuteChunkWatchTask();
