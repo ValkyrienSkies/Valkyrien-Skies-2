@@ -8,37 +8,51 @@ import org.valkyrienskies.core.game.ShipData
 import org.valkyrienskies.core.game.ShipObject
 import org.valkyrienskies.mod.common.util.toJOMLD
 
+val World.shipObjectWorld get() = (this as IShipObjectWorldProvider).shipObjectWorld
+
+fun World.getShipObjectManagingPos(blockPos: BlockPos): ShipObject? =
+    getShipObjectManagingPos(blockPos.x shr 4, blockPos.z shr 4)
+
+fun World.getShipObjectManagingPos(chunkPos: ChunkPos): ShipObject? =
+    getShipObjectManagingPos(chunkPos.x, chunkPos.z)
+
+fun World.getShipObjectManagingPos(chunkX: Int, chunkZ: Int): ShipObject? {
+    if (shipObjectWorld.chunkAllocator.isChunkInShipyard(chunkX, chunkZ)) {
+        val shipDataManagingPos = shipObjectWorld.queryableShipData.getShipDataFromChunkPos(chunkX, chunkZ)
+        if (shipDataManagingPos != null) {
+            return shipObjectWorld.uuidToShipObjectMap[shipDataManagingPos.shipUUID]
+        }
+    }
+    return null
+}
+
+fun World.getShipManagingPos(chunkPos: ChunkPos): ShipData? {
+    return if (shipObjectWorld.chunkAllocator.isChunkInShipyard(chunkPos.x, chunkPos.z)) {
+        shipObjectWorld.queryableShipData.getShipDataFromChunkPos(chunkPos.x, chunkPos.z)
+    } else {
+        null
+    }
+}
+
 object VSGameUtils {
     @JvmStatic
     fun getShipManagingPos(world: World, chunkPos: ChunkPos): ShipData? {
-        val shipObjectWorld = world.shipObjectWorld
-        return if (shipObjectWorld.chunkAllocator.isChunkInShipyard(chunkPos.x, chunkPos.z)) {
-            shipObjectWorld.queryableShipData.getShipDataFromChunkPos(chunkPos.x, chunkPos.z)
-        } else {
-            null
-        }
+        return world.getShipManagingPos(chunkPos)
     }
 
     @JvmStatic
     fun getShipObjectManagingPos(world: World, chunkPos: ChunkPos): ShipObject? {
-        return getShipObjectManagingPos(world, chunkPos.x, chunkPos.z)
+        return world.getShipObjectManagingPos(chunkPos.x, chunkPos.z)
     }
 
     @JvmStatic
     fun getShipObjectManagingPos(world: World, blockPos: BlockPos): ShipObject? {
-        return getShipObjectManagingPos(world, blockPos.x shr 4, blockPos.z shr 4)
+        return world.getShipObjectManagingPos(blockPos)
     }
 
     @JvmStatic
     fun getShipObjectManagingPos(world: World, chunkX: Int, chunkZ: Int): ShipObject? {
-        val shipObjectWorld = world.shipObjectWorld
-        if (shipObjectWorld.chunkAllocator.isChunkInShipyard(chunkX, chunkZ)) {
-            val shipDataManagingPos = shipObjectWorld.queryableShipData.getShipDataFromChunkPos(chunkX, chunkZ)
-            if (shipDataManagingPos != null) {
-                return shipObjectWorld.uuidToShipObjectMap[shipDataManagingPos.shipUUID]
-            }
-        }
-        return null
+        return world.getShipObjectManagingPos(chunkX, chunkZ)
     }
 
     @JvmStatic
@@ -53,4 +67,3 @@ object VSGameUtils {
     }
 }
 
-val World.shipObjectWorld get() = (this as IShipObjectWorldProvider).shipObjectWorld
