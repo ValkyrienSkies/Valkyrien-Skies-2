@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.common.mixin.server.world;
+package org.valkyrienskies.mod.mixin.server.world;
 
 import com.google.common.collect.ImmutableList;
 import kotlin.Pair;
@@ -22,7 +22,7 @@ import org.valkyrienskies.core.game.ShipObjectWorld;
 import org.valkyrienskies.core.networking.IVSPacket;
 import org.valkyrienskies.core.networking.impl.VSPacketShipDataList;
 import org.valkyrienskies.mod.common.IShipObjectWorldProvider;
-import org.valkyrienskies.mod.common.MixinInterfaces;
+import org.valkyrienskies.mod.MixinInterfaces;
 import org.valkyrienskies.mod.common.ShipSavedData;
 import org.valkyrienskies.mod.common.VSNetworking;
 import org.valkyrienskies.mod.common.util.MinecraftPlayer;

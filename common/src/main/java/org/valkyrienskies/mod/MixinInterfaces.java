@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.common;
+package org.valkyrienskies.mod;
 
 import net.minecraft.network.Packet;
 import net.minecraft.server.network.ServerPlayerEntity;

@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.common.mixin.client.world;
+package org.valkyrienskies.mod.mixin.client.world;
 
 import io.netty.util.collection.LongObjectHashMap;
 import io.netty.util.collection.LongObjectMap;

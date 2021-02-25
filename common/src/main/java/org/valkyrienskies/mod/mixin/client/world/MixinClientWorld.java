@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.common.mixin.client.world;
+package org.valkyrienskies.mod.mixin.client.world;
 
 import net.minecraft.client.world.ClientWorld;
 import org.jetbrains.annotations.NotNull;

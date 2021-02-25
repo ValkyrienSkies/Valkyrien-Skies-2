@@ -7,7 +7,7 @@ import org.joml.Matrix4dc
 import org.joml.Matrix4fc
 import org.joml.Vector3i
 import org.joml.Vector3ic
-import org.valkyrienskies.mod.common.MixinInterfaces
+import org.valkyrienskies.mod.MixinInterfaces
 import net.minecraft.util.math.Matrix4f as Matrix4fMC
 
 // region JOML

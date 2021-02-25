@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.common.mixin.client.render;
+package org.valkyrienskies.mod.mixin.client.render;
 
 import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.client.render.chunk.ChunkBuilder;

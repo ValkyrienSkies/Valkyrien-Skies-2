@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.common.mixin.client.render;
+package org.valkyrienskies.mod.mixin.client.render;
 
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import it.unimi.dsi.fastutil.objects.ObjectListIterator;
@@ -21,7 +21,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
-import org.valkyrienskies.mod.common.MixinInterfaces;
+import org.valkyrienskies.mod.MixinInterfaces;
 import org.valkyrienskies.core.game.ShipObject;
 import org.valkyrienskies.core.game.ShipTransform;
 import org.valkyrienskies.mod.common.VSGameUtils;

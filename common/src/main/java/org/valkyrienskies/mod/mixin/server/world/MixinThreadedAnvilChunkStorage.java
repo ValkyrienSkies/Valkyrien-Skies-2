@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.common.mixin.server.world;
+package org.valkyrienskies.mod.mixin.server.world;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.Packet;
@@ -22,7 +22,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.valkyrienskies.mod.common.MixinInterfaces;
+import org.valkyrienskies.mod.MixinInterfaces;
 import org.valkyrienskies.core.game.IPlayer;
 import org.valkyrienskies.mod.common.IShipObjectWorldProvider;
 import org.valkyrienskies.mod.common.VSGameUtils;
