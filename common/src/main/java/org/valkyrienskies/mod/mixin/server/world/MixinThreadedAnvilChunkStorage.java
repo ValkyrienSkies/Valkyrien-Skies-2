@@ -1,7 +1,6 @@
 package org.valkyrienskies.mod.mixin.server.world;
 
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.Packet;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.server.world.ThreadedAnvilChunkStorage;
@@ -22,7 +21,6 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.valkyrienskies.mod.MixinInterfaces;
 import org.valkyrienskies.core.game.IPlayer;
 import org.valkyrienskies.mod.common.IShipObjectWorldProvider;
 import org.valkyrienskies.mod.common.VSGameUtils;
@@ -37,7 +35,7 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 @Mixin(ThreadedAnvilChunkStorage.class)
-public abstract class MixinThreadedAnvilChunkStorage implements MixinInterfaces.ISendsChunkWatchPackets {
+public abstract class MixinThreadedAnvilChunkStorage {
 
     private static final Biome[] BIOMES;
 
@@ -117,12 +115,4 @@ public abstract class MixinThreadedAnvilChunkStorage implements MixinInterfaces.
         final Stream<ServerPlayerEntity> newReturnValue = watchingPlayers.stream();
         cir.setReturnValue(newReturnValue);
     }
-
-    @Override
-    public void vs$sendWatchPackets(ServerPlayerEntity player, ChunkPos pos, Packet<?>[] packets) {
-        sendWatchPackets(player, pos, packets, false, true);
-    }
-
-    @Shadow
-    protected abstract void sendWatchPackets(ServerPlayerEntity player, ChunkPos pos, Packet<?>[] packets, boolean withinMaxWatchDistance, boolean withinViewDistance);
 }

@@ -21,10 +21,10 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
-import org.valkyrienskies.mod.MixinInterfaces;
 import org.valkyrienskies.core.game.ShipObject;
 import org.valkyrienskies.core.game.ShipTransform;
 import org.valkyrienskies.mod.common.VSGameUtils;
+import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 /**
  * This mixin allows {@link WorldRenderer} to render ship chunks.
@@ -86,8 +86,7 @@ public class MixinWorldRenderer {
             renderMatrix.translate(renderChunkOrigin.getX(), renderChunkOrigin.getY(), renderChunkOrigin.getZ());
 
             // Update the model transform matrix to include the transformation described by [renderMatrix]
-            final Matrix4f renderMatrixAsMinecraft = new Matrix4f();
-            MixinInterfaces.ISetMatrix4fFromJOML.class.cast(renderMatrixAsMinecraft).vs$setFromJOML(renderMatrix);
+            final Matrix4f renderMatrixAsMinecraft = VectorConversionsMCKt.setMatrix4fFromJOML(renderMatrix, new Matrix4f());
             matrixStack.peek().getModel().multiply(renderMatrixAsMinecraft);
 
             // Update the model normal matrix to include the rotation described by [renderTransform]
