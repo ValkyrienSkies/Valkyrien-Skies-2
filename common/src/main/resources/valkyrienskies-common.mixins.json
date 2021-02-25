@@ -14,7 +14,7 @@
     "client.render.MixinWorldRendererChunkInfo",
     "client.world.MixinClientChunkManager",
     "client.world.MixinClientWorld",
-    "client.render.chunk.MixinChunkBuilder"
+    "client.render.chunk.MixinChunkBuilderBuiltChunk"
   ],
   "injectors": {
     "defaultRequire": 1

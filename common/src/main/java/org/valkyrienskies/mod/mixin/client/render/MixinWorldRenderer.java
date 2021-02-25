@@ -26,6 +26,9 @@ import org.valkyrienskies.core.game.ShipObject;
 import org.valkyrienskies.core.game.ShipTransform;
 import org.valkyrienskies.mod.common.VSGameUtils;
 
+/**
+ * This mixin allows {@link WorldRenderer} to render ship chunks.
+ */
 @Mixin(WorldRenderer.class)
 public class MixinWorldRenderer {
 
@@ -39,6 +42,9 @@ public class MixinWorldRenderer {
 
     private final WorldRenderer vs$thisAsWorldRenderer = WorldRenderer.class.cast(this);
 
+    /**
+     * This mixin tells the {@link WorldRenderer} to render ship chunks.
+     */
     @Inject(method = "setupTerrain", at = @At(
             value = "INVOKE",
             target = "Lit/unimi/dsi/fastutil/objects/ObjectList;iterator()Lit/unimi/dsi/fastutil/objects/ObjectListIterator;"
@@ -61,29 +67,30 @@ public class MixinWorldRenderer {
     }
 
     /**
-     * This mixin tells the game where to render ship chunks.
+     * This mixin tells the game where to render chunks; which allows us to render ship chunks in arbitrary positions.
      */
     @Inject(method = "renderLayer", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gl/VertexBuffer;bind()V"), locals = LocalCapture.CAPTURE_FAILHARD)
     private void renderShipChunk(RenderLayer renderLayer, MatrixStack matrixStack, double playerCameraX, double playerCameraY, double playerCameraZ, CallbackInfo ci,
-                                 boolean bl, ObjectListIterator objectListIterator, WorldRenderer.ChunkInfo chunkInfo2, ChunkBuilder.BuiltChunk builtChunk, VertexBuffer vertexBuffer) {
+                                 boolean bl, ObjectListIterator<?> objectListIterator, WorldRenderer.ChunkInfo chunkInfo2, ChunkBuilder.BuiltChunk builtChunk, VertexBuffer vertexBuffer) {
         final BlockPos renderChunkOrigin = builtChunk.getOrigin();
         final ShipObject getShipObjectManagingPos = VSGameUtils.INSTANCE.getShipObjectManagingPos(world, renderChunkOrigin);
         if (getShipObjectManagingPos != null) {
+            // This render chunk is a ship chunk, give it the ship chunk render transform
             final ShipTransform renderTransform = getShipObjectManagingPos.getRenderTransform();
-
             final Matrix4dc shipToWorldMatrix = renderTransform.getShipToWorldMatrix();
 
+            // Create the render matrix from the render transform and player position
             final Matrix4d renderMatrix = new Matrix4d();
             renderMatrix.translate(-playerCameraX, -playerCameraY, -playerCameraZ);
             renderMatrix.mul(shipToWorldMatrix);
             renderMatrix.translate(renderChunkOrigin.getX(), renderChunkOrigin.getY(), renderChunkOrigin.getZ());
 
-            // Update the model transform matrix
+            // Update the model transform matrix to include the transformation described by [renderMatrix]
             final Matrix4f renderMatrixAsMinecraft = new Matrix4f();
             MixinInterfaces.ISetMatrix4fFromJOML.class.cast(renderMatrixAsMinecraft).vs$setFromJOML(renderMatrix);
             matrixStack.peek().getModel().multiply(renderMatrixAsMinecraft);
 
-            // Update the model normal matrix
+            // Update the model normal matrix to include the rotation described by [renderTransform]
             final Quaterniondc shipTransformRotation = renderTransform.getShipCoordinatesToWorldCoordinatesRotation();
             final Quaternion shipTransformRotationMinecraft = new Quaternion((float) shipTransformRotation.x(), (float) shipTransformRotation.y(), (float) shipTransformRotation.z(), (float) shipTransformRotation.w());
             matrixStack.peek().getNormal().multiply(shipTransformRotationMinecraft);

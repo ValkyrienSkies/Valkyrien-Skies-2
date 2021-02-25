@@ -33,13 +33,20 @@ public class MixinBuiltChunkStorage {
 
     // Maps chunk position to an array of BuiltChunk, indexed by the y value.
     private final Long2ObjectMap<ChunkBuilder.BuiltChunk[]> vs$shipRenderChunks = new Long2ObjectOpenHashMap<>();
+    // This creates render chunks
     private ChunkBuilder vs$chunkBuilder;
 
+    /**
+     * This mixin stores the [chunkBuilder] object from the constructor. It is used to create new render chunks.
+     */
     @Inject(method = "<init>", at = @At("TAIL"))
-    private void preInit(ChunkBuilder chunkBuilder, World world, int viewDistance, WorldRenderer worldRenderer, CallbackInfo callbackInfo) {
+    private void postInit(ChunkBuilder chunkBuilder, World world, int viewDistance, WorldRenderer worldRenderer, CallbackInfo callbackInfo) {
         this.vs$chunkBuilder = chunkBuilder;
     }
 
+    /**
+     * This mixin creates render chunks for ship chunks.
+     */
     @Inject(method = "scheduleRebuild", at = @At("HEAD"), cancellable = true)
     private void preScheduleRebuild(int x, int y, int z, boolean important, CallbackInfo callbackInfo) {
         if (y < 0 || y >= sizeY) return; // Weird, but just ignore it
@@ -57,6 +64,9 @@ public class MixinBuiltChunkStorage {
         }
     }
 
+    /**
+     * This mixin allows {@link BuiltChunkStorage} to return the render chunks for ships.
+     */
     @Inject(method = "getRenderedChunk", at = @At("HEAD"), cancellable = true)
     private void preGetRenderedChunk(BlockPos pos, CallbackInfoReturnable<ChunkBuilder.BuiltChunk> callbackInfoReturnable) {
         final int chunkX = MathHelper.floorDiv(pos.getX(), 16);

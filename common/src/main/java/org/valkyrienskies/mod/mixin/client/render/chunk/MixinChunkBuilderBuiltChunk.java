@@ -18,7 +18,7 @@ import org.valkyrienskies.core.game.ShipObject;
 import org.valkyrienskies.mod.common.VSGameUtils;
 
 @Mixin(ChunkBuilder.BuiltChunk.class)
-public class MixinChunkBuilder {
+public class MixinChunkBuilderBuiltChunk {
 
     @Shadow
     public Box boundingBox;
