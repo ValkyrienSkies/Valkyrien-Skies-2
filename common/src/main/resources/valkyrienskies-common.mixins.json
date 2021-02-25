@@ -2,7 +2,7 @@
   "required": true,
   "package": "org.valkyrienskies.mod.mixin",
   "compatibilityLevel": "JAVA_8",
-  "refmap": "valkyrienskies-common-refmap.json",
+  "refmap": "valkyrienskies-116-common-refmap.json",
   "mixins": [
     "server.world.MixinServerWorld",
     "server.world.MixinThreadedAnvilChunkStorage",
@@ -13,10 +13,10 @@
     "client.render.MixinBuiltChunkStorage",
     "client.render.MixinWorldRenderer",
     "client.render.MixinWorldRendererChunkInfo",
-    "client.world.MixinClientChunkManager",
-    "client.world.MixinClientWorld",
+    "client.render.block.entity.MixinBlockEntityRenderDispatcher",
     "client.render.chunk.MixinChunkBuilderBuiltChunk",
-    "client.render.block.entity.MixinBlockEntityRenderDispatcher"
+    "client.world.MixinClientChunkManager",
+    "client.world.MixinClientWorld"
   ],
   "injectors": {
     "defaultRequire": 1
