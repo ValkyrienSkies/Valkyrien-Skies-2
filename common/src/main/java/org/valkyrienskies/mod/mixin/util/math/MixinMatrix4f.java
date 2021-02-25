@@ -2,6 +2,7 @@ package org.valkyrienskies.mod.mixin.util.math;
 
 import net.minecraft.util.math.Matrix4f;
 import org.joml.Matrix4dc;
+import org.joml.Matrix4fc;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.valkyrienskies.mod.MixinInterfaces;
@@ -44,23 +45,43 @@ public class MixinMatrix4f implements MixinInterfaces.ISetMatrix4fFromJOML {
     // endregion
 
     @Override
-    public void vs$setFromJOML(Matrix4dc matrix4dc) {
-        a00 = (float) matrix4dc.m00();
-        a01 = (float) matrix4dc.m10();
-        a02 = (float) matrix4dc.m20();
-        a03 = (float) matrix4dc.m30();
-        a10 = (float) matrix4dc.m01();
-        a11 = (float) matrix4dc.m11();
-        a12 = (float) matrix4dc.m21();
-        a13 = (float) matrix4dc.m31();
-        a20 = (float) matrix4dc.m02();
-        a21 = (float) matrix4dc.m12();
-        a22 = (float) matrix4dc.m22();
-        a23 = (float) matrix4dc.m32();
-        a30 = (float) matrix4dc.m03();
-        a31 = (float) matrix4dc.m13();
-        a32 = (float) matrix4dc.m23();
-        a33 = (float) matrix4dc.m33();
+    public void vs$setFromJOML(Matrix4dc m) {
+        a00 = (float) m.m00();
+        a01 = (float) m.m10();
+        a02 = (float) m.m20();
+        a03 = (float) m.m30();
+        a10 = (float) m.m01();
+        a11 = (float) m.m11();
+        a12 = (float) m.m21();
+        a13 = (float) m.m31();
+        a20 = (float) m.m02();
+        a21 = (float) m.m12();
+        a22 = (float) m.m22();
+        a23 = (float) m.m32();
+        a30 = (float) m.m03();
+        a31 = (float) m.m13();
+        a32 = (float) m.m23();
+        a33 = (float) m.m33();
+    }
+
+    @Override
+    public void vs$setFromJOML(Matrix4fc m) {
+        a00 = m.m00();
+        a01 = m.m10();
+        a02 = m.m20();
+        a03 = m.m30();
+        a10 = m.m01();
+        a11 = m.m11();
+        a12 = m.m21();
+        a13 = m.m31();
+        a20 = m.m02();
+        a21 = m.m12();
+        a22 = m.m22();
+        a23 = m.m32();
+        a30 = m.m03();
+        a31 = m.m13();
+        a32 = m.m23();
+        a33 = m.m33();
     }
 
 }
