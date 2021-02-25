@@ -12,14 +12,11 @@ import net.minecraft.world.World
 import org.valkyrienskies.mod.common.IShipObjectWorldProvider
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toVec3d
-import org.valkyrienskies.mod.mixin.world.RaycastContextAccessor
 import java.util.function.BiFunction
 import java.util.function.Function
 
 fun World.raycastIncludeShips(ctx: RaycastContext): BlockHitResult {
     this as IShipObjectWorldProvider
-    ctx as RaycastContextAccessor
-
 
     val vanillaHit = raycast(ctx)
 
@@ -27,6 +24,9 @@ fun World.raycastIncludeShips(ctx: RaycastContext): BlockHitResult {
     var closestHitPos = vanillaHit.pos
     var closestHitDist = closestHitPos.squaredDistanceTo(ctx.start)
 
+    // TODO make this more efficient
+    // Iterate every ship, find do the raycast in ship space,
+    // choose the raycast with the lowest distance to the start position.
     for (ship in shipObjectWorld.uuidToShipObjectMap.values) {
         val worldToShip = ship.getRenderTransform().worldToShipMatrix
         val shipToWorld = ship.getRenderTransform().shipToWorldMatrix
@@ -47,6 +47,7 @@ fun World.raycastIncludeShips(ctx: RaycastContext): BlockHitResult {
     return BlockHitResult(closestHitPos, closestHit.side, closestHit.blockPos, closestHit.isInsideBlock)
 }
 
+// copy paste of vanilla raycast with the option to specify a custom start/end
 private fun World.raycast(context: RaycastContext, realStart: Vec3d, realEnd: Vec3d): BlockHitResult {
     return raycast(realStart, realEnd, context, { raycastContext: RaycastContext, blockPos: BlockPos? ->
         val blockState: BlockState = getBlockState(blockPos)
