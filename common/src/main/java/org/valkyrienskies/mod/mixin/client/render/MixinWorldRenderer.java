@@ -2,14 +2,17 @@ package org.valkyrienskies.mod.mixin.client.render;
 
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import it.unimi.dsi.fastutil.objects.ObjectListIterator;
+import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.client.gl.VertexBuffer;
 import net.minecraft.client.render.*;
+import net.minecraft.client.render.block.entity.BlockEntityRenderDispatcher;
 import net.minecraft.client.render.chunk.ChunkBuilder;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Matrix4f;
 import net.minecraft.util.math.Quaternion;
+import net.minecraft.util.math.Vec3d;
 import org.joml.Matrix4d;
 import org.joml.Matrix4dc;
 import org.joml.Quaterniondc;
@@ -105,5 +108,37 @@ public class MixinWorldRenderer {
     @Redirect(method = "renderLayer", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/util/math/MatrixStack;translate(DDD)V"))
     private void cancelDefaultTransform(MatrixStack matrixStack, double x, double y, double z) {
         // Do nothing
+    }
+
+    /**
+     * This mixin makes {@link BlockEntity} in the ship render in the correct place.
+     */
+    @Redirect(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/block/entity/BlockEntityRenderDispatcher;render(Lnet/minecraft/block/entity/BlockEntity;FLnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;)V"))
+    private void renderShipChunkBlockEntity(BlockEntityRenderDispatcher blockEntityRenderDispatcher, BlockEntity blockEntity, float tickDelta, MatrixStack matrix, VertexConsumerProvider vertexConsumerProvider,
+                                            MatrixStack methodMatrices, float methodTickDelta, long methodLimitTime, boolean methodRenderBlockOutline, Camera methodCamera, GameRenderer methodGameRenderer, LightmapTextureManager methodLightmapTextureManager, Matrix4f methodMatrix4f) {
+        final BlockPos blockEntityPos = blockEntity.getPos();
+        final ShipObject getShipObjectManagingPos = VSGameUtils.INSTANCE.getShipObjectManagingPos(world, blockEntityPos);
+        if (getShipObjectManagingPos != null) {
+            // Remove the vanilla render transform
+            matrix.pop();
+
+            // Add the VS render transform
+            matrix.push();
+
+            final ShipTransform renderTransform = getShipObjectManagingPos.getRenderTransform();
+            final Matrix4dc shipToWorldMatrix = renderTransform.getShipToWorldMatrix();
+
+            // Create the render matrix from the render transform and player position
+            final Matrix4d renderMatrix = new Matrix4d();
+            final Vec3d cameraPos = methodCamera.getPos();
+            renderMatrix.translate(-cameraPos.getX(), -cameraPos.getY(), -cameraPos.getZ());
+            renderMatrix.mul(shipToWorldMatrix);
+            renderMatrix.translate(blockEntityPos.getX(), blockEntityPos.getY(), blockEntityPos.getZ());
+
+            // Update the model transform matrix to include the transformation described by [renderMatrix]
+            final Matrix4f renderMatrixAsMinecraft = VectorConversionsMCKt.setMatrix4fFromJOML(renderMatrix, new Matrix4f());
+            matrix.peek().getModel().multiply(renderMatrixAsMinecraft);
+        }
+        blockEntityRenderDispatcher.render(blockEntity, tickDelta, matrix, vertexConsumerProvider);
     }
 }
