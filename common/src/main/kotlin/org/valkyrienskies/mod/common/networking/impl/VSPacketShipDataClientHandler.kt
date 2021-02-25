@@ -11,7 +11,7 @@ object VSPacketShipDataClientHandler : IVSPacketClientHandler {
         vsPacket as VSPacketShipDataList
 
         val gameWorld = MinecraftClient.getInstance().world
-        val shipWorld = VSGameUtils.getShipObjectWorldFromWorld(gameWorld!!)
+        val shipWorld = VSGameUtils.getShipObjectWorldFromWorld(gameWorld ?: return)
 
         vsPacket.shipDataList.forEach {
             if (shipWorld.queryableShipData.getShipDataFromUUID(it.shipUUID) == null) {

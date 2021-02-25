@@ -42,7 +42,7 @@ public class MixinBlockEntityRenderDispatcher {
             // Transform tileEntityPos to be in world coordinates
             final ShipTransform renderTransform = getShipObjectManagingPos.getRenderTransform();
             final Vector3dc tileEntityPosInWorldCoordinates = renderTransform.getShipToWorldMatrix().transformPosition(new Vector3d(tileEntityPos.getX(), tileEntityPos.getY(), tileEntityPos.getZ()));
-            final Vec3d tileEntityPosInWorldCoordinatesVec3d = VectorConversionsMCKt.getVec3dFromJOML(tileEntityPosInWorldCoordinates);
+            final Vec3d tileEntityPosInWorldCoordinatesVec3d = VectorConversionsMCKt.toVec3d(tileEntityPosInWorldCoordinates);
             return tileEntityPosInWorldCoordinatesVec3d.isInRange(cameraPos, radiusSquared);
         }
         return false;

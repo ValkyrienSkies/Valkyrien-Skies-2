@@ -13,6 +13,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Matrix4f;
 import net.minecraft.util.math.Quaternion;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.profiler.Profiler;
 import org.joml.Matrix4d;
 import org.joml.Matrix4dc;
 import org.joml.Quaterniondc;
@@ -29,6 +30,10 @@ import org.valkyrienskies.core.game.ShipTransform;
 import org.valkyrienskies.mod.common.VSGameUtils;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
+import java.util.Iterator;
+import java.util.List;
+import java.util.SortedSet;
+
 /**
  * This mixin allows {@link WorldRenderer} to render ship chunks.
  */
@@ -43,24 +48,23 @@ public class MixinWorldRenderer {
     @Shadow
     private BuiltChunkStorage chunks;
 
-    private final WorldRenderer vs$thisAsWorldRenderer = WorldRenderer.class.cast(this);
-
     /**
      * This mixin tells the {@link WorldRenderer} to render ship chunks.
      */
     @Inject(method = "setupTerrain", at = @At(
-            value = "INVOKE",
-            target = "Lit/unimi/dsi/fastutil/objects/ObjectList;iterator()Lit/unimi/dsi/fastutil/objects/ObjectListIterator;"
+        value = "INVOKE",
+        target = "Lit/unimi/dsi/fastutil/objects/ObjectList;iterator()Lit/unimi/dsi/fastutil/objects/ObjectListIterator;"
     ))
     private void addShipVisibleChunks(Camera camera, Frustum frustum, boolean hasForcedFrustum, int frame, boolean spectator, CallbackInfo ci) {
+        final WorldRenderer self = WorldRenderer.class.cast(this);
         final BlockPos.Mutable tempPos = new BlockPos.Mutable();
-        for (ShipObject shipObject : VSGameUtils.INSTANCE.getShipObjectWorldFromWorld(world).getUuidToShipObjectMap().values()) {
+        for (ShipObject shipObject : VSGameUtils.getShipObjectWorldFromWorld(world).getUuidToShipObjectMap().values()) {
             shipObject.getShipData().getShipActiveChunksSet().iterateChunkPos((x, z) -> {
                 for (int y = 0; y < 16; y++) {
                     tempPos.set(x << 4, y << 4, z << 4);
                     final ChunkBuilder.BuiltChunk renderChunk = chunks.getRenderedChunk(tempPos);
                     if (renderChunk != null) {
-                        final WorldRenderer.ChunkInfo newChunkInfo = MixinWorldRendererChunkInfo.invoker$new(vs$thisAsWorldRenderer, renderChunk, null, 0);
+                        final WorldRenderer.ChunkInfo newChunkInfo = MixinWorldRendererChunkInfo.invoker$new(self, renderChunk, null, 0);
                         visibleChunks.add(newChunkInfo);
                     }
                 }
@@ -70,13 +74,40 @@ public class MixinWorldRenderer {
     }
 
     /**
+     * TODO: This doesn't work
+     */
+    @Inject(
+        method = "render",
+        locals = LocalCapture.CAPTURE_FAILHARD,
+        at = @At(
+            value = "NEW",
+            target = "net/minecraft/client/render/OverlayVertexConsumer",
+            ordinal = 0
+        )
+    )
+    public void renderBlockDamage(
+        MatrixStack matrices, float tickDelta, long limitTime, boolean renderBlockOutline, Camera camera,
+        GameRenderer gameRenderer, LightmapTextureManager lightmapTextureManager, Matrix4f matrix4f,
+        CallbackInfo ci, Profiler profiler, Vec3d vec3d, double d, double e, double f, Matrix4f matrix4f2,
+        boolean bl, Frustum frustum2, boolean bl3, VertexConsumerProvider.Immediate immediate, ObjectListIterator var39,
+        WorldRenderer.ChunkInfo chunkInfo, List list, Iterator var42, BlockEntity blockEntity, BlockPos blockPos,
+        VertexConsumerProvider vertexConsumerProvider3, SortedSet sortedSet, int w, MatrixStack.Entry entry
+    ) {
+        final ShipObject ship = VSGameUtils.getShipObjectManagingPos(world, blockPos);
+        if (ship != null) {
+            VectorConversionsMCKt.multiply(matrices, ship.getRenderTransform().getShipToWorldMatrix());
+        }
+    }
+
+
+    /**
      * This mixin tells the game where to render chunks; which allows us to render ship chunks in arbitrary positions.
      */
     @Inject(method = "renderLayer", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gl/VertexBuffer;bind()V"), locals = LocalCapture.CAPTURE_FAILHARD)
     private void renderShipChunk(RenderLayer renderLayer, MatrixStack matrixStack, double playerCameraX, double playerCameraY, double playerCameraZ, CallbackInfo ci,
                                  boolean bl, ObjectListIterator<?> objectListIterator, WorldRenderer.ChunkInfo chunkInfo2, ChunkBuilder.BuiltChunk builtChunk, VertexBuffer vertexBuffer) {
         final BlockPos renderChunkOrigin = builtChunk.getOrigin();
-        final ShipObject getShipObjectManagingPos = VSGameUtils.INSTANCE.getShipObjectManagingPos(world, renderChunkOrigin);
+        final ShipObject getShipObjectManagingPos = VSGameUtils.getShipObjectManagingPos(world, renderChunkOrigin);
         if (getShipObjectManagingPos != null) {
             // This render chunk is a ship chunk, give it the ship chunk render transform
             final ShipTransform renderTransform = getShipObjectManagingPos.getRenderTransform();
@@ -89,7 +120,7 @@ public class MixinWorldRenderer {
             renderMatrix.translate(renderChunkOrigin.getX(), renderChunkOrigin.getY(), renderChunkOrigin.getZ());
 
             // Update the model transform matrix to include the transformation described by [renderMatrix]
-            final Matrix4f renderMatrixAsMinecraft = VectorConversionsMCKt.setMatrix4fFromJOML(renderMatrix, new Matrix4f());
+            final Matrix4f renderMatrixAsMinecraft = VectorConversionsMCKt.set(new Matrix4f(), renderMatrix);
             matrixStack.peek().getModel().multiply(renderMatrixAsMinecraft);
 
             // Update the model normal matrix to include the rotation described by [renderTransform]
@@ -136,7 +167,7 @@ public class MixinWorldRenderer {
             renderMatrix.translate(blockEntityPos.getX(), blockEntityPos.getY(), blockEntityPos.getZ());
 
             // Update the model transform matrix to include the transformation described by [renderMatrix]
-            final Matrix4f renderMatrixAsMinecraft = VectorConversionsMCKt.setMatrix4fFromJOML(renderMatrix, new Matrix4f());
+            final Matrix4f renderMatrixAsMinecraft = VectorConversionsMCKt.set(new Matrix4f(), renderMatrix);
             matrix.peek().getModel().multiply(renderMatrixAsMinecraft);
         }
         blockEntityRenderDispatcher.render(blockEntity, tickDelta, matrix, vertexConsumerProvider);

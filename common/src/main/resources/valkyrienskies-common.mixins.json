@@ -4,10 +4,13 @@
   "compatibilityLevel": "JAVA_8",
   "refmap": "valkyrienskies-116-common-refmap.json",
   "mixins": [
+    "entity.MixinEntity",
+    "server.network.ServerPlayerInteractionManagerMixin",
+    "server.network.ServerPlayNetworkHandlerMixin",
     "server.world.MixinServerWorld",
     "server.world.MixinThreadedAnvilChunkStorage",
     "server.world.ThreadedAnvilChunkStorageAccessor",
-    "util.math.Matrix4fAccessor"
+    "util.math.Matrix4fAccessor",
   ],
   "client": [
     "client.render.MixinBuiltChunkStorage",

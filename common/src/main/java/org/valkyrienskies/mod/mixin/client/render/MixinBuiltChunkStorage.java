@@ -60,6 +60,9 @@ public class MixinBuiltChunkStorage {
                 builtChunk.setOrigin(x << 4, y << 4, z << 4);
                 renderChunksArray[y] = builtChunk;
             }
+
+            renderChunksArray[y].scheduleRebuild(important);
+
             callbackInfo.cancel();
         }
     }
