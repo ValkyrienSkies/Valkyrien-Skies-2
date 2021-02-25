@@ -7,7 +7,7 @@
     "server.world.MixinServerWorld",
     "server.world.MixinThreadedAnvilChunkStorage",
     "server.world.ThreadedAnvilChunkStorageAccessor",
-    "util.math.MixinMatrix4f"
+    "util.math.Matrix4fAccessor"
   ],
   "client": [
     "client.render.MixinBuiltChunkStorage",
