@@ -6,6 +6,7 @@
   "mixins": [
     "server.world.MixinServerWorld",
     "server.world.MixinThreadedAnvilChunkStorage",
+    "server.world.ThreadedAnvilChunkStorageAccessor",
     "util.math.MixinMatrix4f"
   ],
   "client": [

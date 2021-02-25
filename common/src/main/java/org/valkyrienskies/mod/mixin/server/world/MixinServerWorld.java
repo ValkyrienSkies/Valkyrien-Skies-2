@@ -22,7 +22,6 @@ import org.valkyrienskies.core.game.ShipObjectWorld;
 import org.valkyrienskies.core.networking.IVSPacket;
 import org.valkyrienskies.core.networking.impl.VSPacketShipDataList;
 import org.valkyrienskies.mod.common.IShipObjectWorldProvider;
-import org.valkyrienskies.mod.MixinInterfaces;
 import org.valkyrienskies.mod.common.ShipSavedData;
 import org.valkyrienskies.mod.common.VSNetworking;
 import org.valkyrienskies.mod.common.util.MinecraftPlayer;
@@ -88,10 +87,11 @@ public abstract class MixinServerWorld implements IShipObjectWorldProvider {
         final Spliterator<ChunkWatchTask> chunkWatchTasks = chunkWatchAndUnwatchTasksPair.getFirst();
         final Spliterator<ChunkUnwatchTask> chunkUnwatchTasks = chunkWatchAndUnwatchTasksPair.getSecond();
 
+        final ThreadedAnvilChunkStorageAccessor accessor = (ThreadedAnvilChunkStorageAccessor) serverChunkManager.threadedAnvilChunkStorage;
+
         // But for now just do it single threaded
         chunkWatchTasks.forEachRemaining(chunkWatchTask -> {
             System.out.println("Watch task for " + chunkWatchTask.getChunkX() + " : " + chunkWatchTask.getChunkZ());
-            final MixinInterfaces.ISendsChunkWatchPackets sendsChunkWatchPackets = (MixinInterfaces.ISendsChunkWatchPackets) serverChunkManager.threadedAnvilChunkStorage;
             final Packet<?>[] chunkPacketBuffer = new Packet[2];
             final ChunkPos chunkPos = new ChunkPos(chunkWatchTask.getChunkX(), chunkWatchTask.getChunkZ());
 
@@ -102,7 +102,7 @@ public abstract class MixinServerWorld implements IShipObjectWorldProvider {
                 final MinecraftPlayer minecraftPlayer = (MinecraftPlayer) player;
                 final ServerPlayerEntity serverPlayerEntity = (ServerPlayerEntity) minecraftPlayer.getPlayerEntityReference().get();
                 if (serverPlayerEntity != null) {
-                    sendsChunkWatchPackets.vs$sendWatchPackets(serverPlayerEntity, chunkPos, chunkPacketBuffer);
+                    accessor.callSendWatchPackets(serverPlayerEntity, chunkPos, chunkPacketBuffer, false, false);
                 }
             }
             chunkWatchTask.onExecuteChunkWatchTask();
