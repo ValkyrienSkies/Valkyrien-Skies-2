@@ -6,5 +6,5 @@ accessible	method	net/minecraft/client/render/WorldRenderer$ChunkInfo	<init>	(Ln
 accessible	method	net/minecraft/client/render/BuiltChunkStorage	getRenderedChunk	(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/client/render/chunk/ChunkBuilder$BuiltChunk;
 
 # For ChunkMap
-accessible  class   net/minecraft/client/world/ClientChunkManager$ClientChunkMap
-accessible  method  net/minecraft/client/world/ClientChunkManager$ClientChunkMap isInRadius (II)
+accessible	class	net/minecraft/client/world/ClientChunkManager$ClientChunkMap
+accessible	method	net/minecraft/client/world/ClientChunkManager$ClientChunkMap	isInRadius	(II)Z

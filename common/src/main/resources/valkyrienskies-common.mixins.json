@@ -5,10 +5,16 @@
   "refmap": "valkyrienskies-common-refmap.json",
   "mixins": [
     "server.world.MixinServerWorld",
-    "server.world.MixinThreadedAnvilChunkStorage"
+    "server.world.MixinThreadedAnvilChunkStorage",
+    "util.math.MixinMatrix4f"
   ],
   "client": [
-    "client.world.MixinClientWorld"
+    "client.render.MixinBuiltChunkStorage",
+    "client.render.MixinWorldRenderer",
+    "client.render.MixinWorldRendererChunkInfo",
+    "client.world.MixinClientChunkManager",
+    "client.world.MixinClientWorld",
+    "client.render.chunk.MixinChunkBuilder"
   ],
   "injectors": {
     "defaultRequire": 1
