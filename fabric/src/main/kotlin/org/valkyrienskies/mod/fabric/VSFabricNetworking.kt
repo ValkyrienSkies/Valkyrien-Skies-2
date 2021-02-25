@@ -1,7 +1,7 @@
 package org.valkyrienskies.mod.fabric
 
-import org.valkyrienskies.mod.ValkyrienSkiesMod
-import org.valkyrienskies.mod.VSNetworking
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod
+import org.valkyrienskies.mod.common.VSNetworking
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 import net.minecraft.util.Identifier
 

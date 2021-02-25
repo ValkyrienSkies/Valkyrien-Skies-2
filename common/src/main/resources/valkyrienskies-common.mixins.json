@@ -1,6 +1,6 @@
 {
   "required": true,
-  "package": "org.valkyrienskies.mod.mixin",
+  "package": "org.valkyrienskies.mod.common.mixin",
   "compatibilityLevel": "JAVA_8",
   "refmap": "valkyrienskies-common-refmap.json",
   "mixins": [

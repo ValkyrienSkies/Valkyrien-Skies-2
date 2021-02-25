@@ -1,6 +1,6 @@
 package org.valkyrienskies.mod.fabric
 
-import org.valkyrienskies.mod.VSNetworking
+import org.valkyrienskies.mod.common.VSNetworking
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 import net.fabricmc.fabric.api.networking.v1.PacketSender
 import net.minecraft.client.MinecraftClient
