@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.fabric
+package org.valkyrienskies.mod.fabric.common
 
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.VSNetworking

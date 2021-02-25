@@ -1,7 +1,7 @@
-package org.valkyrienskies.mod.fabric
+package org.valkyrienskies.mod.fabric.common
 
-import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import net.fabricmc.api.ModInitializer
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 
 class ValkyrienSkiesModFabric : ModInitializer {
 	override fun onInitialize() {
