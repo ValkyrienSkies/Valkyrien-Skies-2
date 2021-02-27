@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.common.world
 import net.minecraft.block.BlockState
 import net.minecraft.fluid.FluidState
 import net.minecraft.util.hit.BlockHitResult
+import net.minecraft.util.hit.HitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.MathHelper
@@ -37,14 +38,18 @@ fun World.raycastIncludeShips(ctx: RaycastContext): BlockHitResult {
         val shipHitPos = shipToWorld.transformPosition(shipHit.pos.toJOML()).toVec3d()
         val shipHitDist = shipHitPos.squaredDistanceTo(ctx.start)
 
-        if (shipHitDist < closestHitDist) {
+        if (shipHitDist < closestHitDist && shipHit.type != HitResult.Type.MISS) {
             closestHit = shipHit
             closestHitPos = shipHitPos
             closestHitDist = shipHitDist
         }
     }
 
-    return BlockHitResult(closestHitPos, closestHit.side, closestHit.blockPos, closestHit.isInsideBlock)
+    return if (closestHit.type == HitResult.Type.MISS) {
+        BlockHitResult.createMissed(closestHitPos, closestHit.side, closestHit.blockPos)
+    } else {
+        BlockHitResult(closestHitPos, closestHit.side, closestHit.blockPos, closestHit.isInsideBlock)
+    }
 }
 
 // copy paste of vanilla raycast with the option to specify a custom start/end

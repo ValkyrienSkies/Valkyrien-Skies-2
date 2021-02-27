@@ -52,10 +52,13 @@ public class MixinWorldRenderer {
     /**
      * This mixin tells the {@link WorldRenderer} to render ship chunks.
      */
-    @Inject(method = "setupTerrain", at = @At(
-        value = "INVOKE",
-        target = "Lit/unimi/dsi/fastutil/objects/ObjectList;iterator()Lit/unimi/dsi/fastutil/objects/ObjectListIterator;"
-    ))
+    @Inject(
+        method = "setupTerrain",
+        at = @At(
+            value = "INVOKE",
+            target = "Lit/unimi/dsi/fastutil/objects/ObjectList;iterator()Lit/unimi/dsi/fastutil/objects/ObjectListIterator;"
+        )
+    )
     private void addShipVisibleChunks(Camera camera, Frustum frustum, boolean hasForcedFrustum, int frame, boolean spectator, CallbackInfo ci) {
         final WorldRenderer self = WorldRenderer.class.cast(this);
         final BlockPos.Mutable tempPos = new BlockPos.Mutable();
