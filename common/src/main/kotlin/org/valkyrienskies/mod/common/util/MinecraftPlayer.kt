@@ -9,7 +9,7 @@ import java.util.*
 /**
  * We use this wrapper around [PlayerEntity] to create [IPlayer] objects used by vs-core.
  */
-class MinecraftPlayer(playerObject: PlayerEntity, private val playerID: UUID) : IPlayer {
+class MinecraftPlayer(playerObject: PlayerEntity, override val uuid: UUID) : IPlayer {
 
     // Hold a weak reference to avoid memory leaks
     val playerEntityReference: WeakReference<PlayerEntity> = WeakReference(playerObject)
@@ -20,12 +20,8 @@ class MinecraftPlayer(playerObject: PlayerEntity, private val playerID: UUID) : 
         return dest.set(player.x, player.y, player.z)
     }
 
-    override fun getPlayerID(): UUID {
-        return playerID
-    }
-
     override fun hashCode(): Int {
-        return playerID.hashCode()
+        return uuid.hashCode()
     }
 
     override fun equals(other: Any?): Boolean {
@@ -33,7 +29,7 @@ class MinecraftPlayer(playerObject: PlayerEntity, private val playerID: UUID) : 
             return true
         }
         if (other is MinecraftPlayer) {
-            return playerID == other.playerID
+            return uuid == other.uuid
         }
         return false
     }
