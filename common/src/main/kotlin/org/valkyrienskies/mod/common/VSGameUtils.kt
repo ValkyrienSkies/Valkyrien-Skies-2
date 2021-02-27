@@ -4,8 +4,8 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkPos
 import net.minecraft.world.World
 import org.joml.Vector3d
-import org.valkyrienskies.core.game.ShipData
-import org.valkyrienskies.core.game.ShipObject
+import org.valkyrienskies.core.game.ships.ShipData
+import org.valkyrienskies.core.game.ships.ShipObject
 import org.valkyrienskies.mod.common.util.toJOMLD
 
 val World.shipObjectWorld get() = (this as IShipObjectWorldProvider).shipObjectWorld

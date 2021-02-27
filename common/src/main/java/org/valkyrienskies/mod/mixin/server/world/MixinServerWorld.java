@@ -18,7 +18,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.chunk_tracking.ChunkUnwatchTask;
 import org.valkyrienskies.core.chunk_tracking.ChunkWatchTask;
 import org.valkyrienskies.core.game.IPlayer;
-import org.valkyrienskies.core.game.ShipObjectWorld;
+import org.valkyrienskies.core.game.ships.ShipObjectWorld;
 import org.valkyrienskies.core.networking.IVSPacket;
 import org.valkyrienskies.core.networking.impl.VSPacketShipDataList;
 import org.valkyrienskies.mod.common.IShipObjectWorldProvider;

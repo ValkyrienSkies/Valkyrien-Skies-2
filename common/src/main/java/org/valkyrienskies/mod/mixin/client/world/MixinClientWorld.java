@@ -11,9 +11,9 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.game.ChunkAllocator;
-import org.valkyrienskies.core.game.QueryableShipData;
-import org.valkyrienskies.core.game.ShipObject;
-import org.valkyrienskies.core.game.ShipObjectWorld;
+import org.valkyrienskies.core.game.ships.QueryableShipData;
+import org.valkyrienskies.core.game.ships.ShipObject;
+import org.valkyrienskies.core.game.ships.ShipObjectWorld;
 import org.valkyrienskies.mod.common.IShipObjectWorldProvider;
 import org.valkyrienskies.mod.common.VSGameUtils;
 

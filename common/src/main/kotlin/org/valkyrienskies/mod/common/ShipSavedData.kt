@@ -4,8 +4,8 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.world.PersistentState
 import org.valkyrienskies.core.game.ChunkAllocator
-import org.valkyrienskies.core.game.QueryableShipData
-import org.valkyrienskies.core.game.ShipData
+import org.valkyrienskies.core.game.ships.QueryableShipData
+import org.valkyrienskies.core.game.ships.ShipData
 import org.valkyrienskies.core.util.serialization.VSJacksonUtil
 
 /**
