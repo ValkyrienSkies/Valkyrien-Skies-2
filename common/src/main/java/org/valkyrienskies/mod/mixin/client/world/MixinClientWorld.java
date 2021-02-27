@@ -45,7 +45,7 @@ public abstract class MixinClientWorld implements IShipObjectWorldProvider {
     private void onPlaySound(double x, double y, double z, SoundEvent sound, SoundCategory category,
                              float volume, float pitch, boolean bl, CallbackInfo ci) {
         final ClientWorld self = ClientWorld.class.cast(this);
-        final ShipObject shipObject = VSGameUtils.getShipObjectManagingPos(self, (int) x / 16, (int) z / 16);
+        final ShipObject shipObject = VSGameUtils.getShipObjectManagingPos(self, (int) x >> 4, (int) z >> 4);
         if (shipObject != null) {
             Vector3d newPosition = shipObject.getRenderTransform().getShipToWorldMatrix()
                 .transformPosition(new Vector3d(x, y, z));
