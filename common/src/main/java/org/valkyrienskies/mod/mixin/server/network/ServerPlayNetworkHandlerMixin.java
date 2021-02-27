@@ -26,7 +26,7 @@ public class ServerPlayNetworkHandlerMixin {
             target = "Lnet/minecraft/server/network/ServerPlayerEntity;squaredDistanceTo(DDD)D"
         )
     )
-    public double includeShipsInDistanceCheck(ServerPlayerEntity receiver, double x, double y, double z) {
+    public double includeShipsInBlockInteractDistanceCheck(ServerPlayerEntity receiver, double x, double y, double z) {
         Vector3d inWorld = VSGameUtils.getWorldCoordinates(this.player.getServerWorld(), new Vector3d(x, y, z));
         return inWorld.distanceSquared(receiver.getX(), receiver.getY(), receiver.getZ());
     }

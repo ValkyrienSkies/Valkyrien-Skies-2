@@ -6,11 +6,13 @@ import net.minecraft.server.network.ServerPlayerInteractionManager;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.valkyrienskies.mod.common.VSGameUtils;
+import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(ServerPlayerInteractionManager.class)
 public class ServerPlayerInteractionManagerMixin {
@@ -29,11 +31,11 @@ public class ServerPlayerInteractionManagerMixin {
         at = @At("STORE"),
         index = 11
     )
-    public double modifyBlockBreakDistance(double g, BlockPos pos,
-                                           PlayerActionC2SPacket.Action action,
-                                           Direction direction, int worldHeight) {
-        return VSGameUtils.getWorldCoordinates(world, pos)
-            .add(0.5, 2.5, 0.5)
-            .distanceSquared(player.getX(), player.getY(), player.getZ());
+    public double includeShipsInBlockBreakDistanceCheck(double g, BlockPos pos,
+                                                        PlayerActionC2SPacket.Action action,
+                                                        Direction direction, int worldHeight) {
+        Vector3d blockCenter = VectorConversionsMCKt.toJOMLD(pos).add(0.5, 0.5, 0.5);
+        return VSGameUtils.getWorldCoordinates(world, pos, blockCenter)
+            .distanceSquared(player.getX(), player.getY() + 1.5, player.getZ());
     }
 }

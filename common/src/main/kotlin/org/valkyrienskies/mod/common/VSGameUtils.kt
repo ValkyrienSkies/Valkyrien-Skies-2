@@ -60,6 +60,21 @@ object VSGameUtils {
         return getWorldCoordinates(world, pos.toJOMLD())
     }
 
+    /**
+     * Transforms [pos] from ship space to world space if a ship exists there.
+     *
+     * Different from [getWorldCoordinates(World, Vector3d)] only in that resolves the ship owning
+     * [blockPos] rather than inferring it from [pos], which might be helpful at the boundaries of ships.
+     */
+    @JvmStatic
+    fun getWorldCoordinates(world: World, blockPos: BlockPos, pos: Vector3d): Vector3d {
+        return world.getShipObjectManagingPos(blockPos)
+            ?.shipData?.shipTransform?.shipToWorldMatrix?.transformPosition(pos) ?: pos
+    }
+
+    /**
+     * Transform [pos] from ship space to world space if a ship exists there.
+     */
     @JvmStatic
     fun getWorldCoordinates(world: World, pos: Vector3d): Vector3d {
         return getShipObjectManagingPos(world, pos.x.toInt() shr 4, pos.z.toInt() shr 4)
