@@ -23,7 +23,7 @@ class ShipSavedData : PersistentState(SAVED_DATA_ID) {
         fun createEmpty(): ShipSavedData {
             val shipSavedData = ShipSavedData()
             shipSavedData.queryableShipData = QueryableShipData()
-            shipSavedData.chunkAllocator = ChunkAllocator.newChunkAllocator()
+            shipSavedData.chunkAllocator = ChunkAllocator.create()
             return shipSavedData
         }
     }
