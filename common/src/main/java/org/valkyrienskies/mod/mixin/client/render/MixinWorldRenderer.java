@@ -98,27 +98,49 @@ public class MixinWorldRenderer {
      */
     @Redirect(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/block/BlockRenderManager;renderDamage(Lnet/minecraft/block/BlockState;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/world/BlockRenderView;Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumer;)V"))
     private void renderBlockDamage(BlockRenderManager blockRenderManager, BlockState state, BlockPos blockPos, BlockRenderView blockRenderWorld, MatrixStack matrix, VertexConsumer vertexConsumer,
-                                   MatrixStack methodMatrices, float methodTickDelta, long methodLimitTime, boolean methodRenderBlockOutline, Camera methodCamera, GameRenderer methodGameRenderer, LightmapTextureManager methodLightmapTextureManager, Matrix4f methodMatrix4f) {
+                                   MatrixStack matrixStack, float methodTickDelta, long methodLimitTime, boolean methodRenderBlockOutline, Camera methodCamera, GameRenderer methodGameRenderer, LightmapTextureManager methodLightmapTextureManager, Matrix4f methodMatrix4f) {
         final ShipObject ship = VSGameUtils.getShipObjectManagingPos(world, blockPos);
         if (ship != null) {
-            final Vec3d cam = methodCamera.getPos();
-            transformRenderWithShip(ship.getRenderTransform(), methodMatrices, blockPos, cam.getX(), cam.getY(), cam.getZ());
+            // Remove the vanilla render transform
+            matrixStack.pop();
 
+            // Add the VS render transform
+            matrixStack.push();
+
+            final ShipTransform renderTransform = ship.getRenderTransform();
+            final Matrix4dc shipToWorldMatrix = renderTransform.getShipToWorldMatrix();
+
+            final Matrix4d renderMatrix = new Matrix4d();
+            final Vec3d cameraPos = methodCamera.getPos();
+
+            // Create the render matrix from the render transform and player position
+            renderMatrix.translate(-cameraPos.getX(), -cameraPos.getY(), -cameraPos.getZ());
+            renderMatrix.mul(shipToWorldMatrix);
+            renderMatrix.translate(blockPos.getX(), blockPos.getY(), blockPos.getZ());
+            // Apply the render matrix to the matrix stack
+            VectorConversionsMCKt.multiply(matrixStack, renderMatrix, renderTransform.getShipCoordinatesToWorldCoordinatesRotation());
+
+            // Then update the matrices in vertexConsumer (I'm guessing vertexConsumer is responsible for mapping textures, so we need to update its matrices otherwise the block damage texture looks wrong)
             final OverlayVertexConsumerAccessor vertexConsumerAccessor = (OverlayVertexConsumerAccessor) vertexConsumer;
 
-            final Matrix3f newNormalMatrix = new Matrix3f(); // methodMatrices.peek().getNormal().copy();
-            newNormalMatrix.loadIdentity(); // Not correct, but at least it renders
-            // newNormalMatrix.invert();
+            final Matrix3f newNormalMatrix = matrixStack.peek().getNormal().copy();
+            newNormalMatrix.invert();
 
-            final Matrix4f newModelMatrix = new Matrix4f(); // methodMatrices.peek().getModel().copy();
-            newModelMatrix.loadIdentity(); // Not correct, but at least it renders
-            // newModelMatrix.invert();
+            final Matrix4f newModelMatrix = matrixStack.peek().getModel().copy();
+            // newModelMatrix.invert(); // DISABLED because Matrix4f.invert() doesn't work! Mojang code SMH >.<
+            final Matrix4d newModelMatrixAsJoml = VectorConversionsMCKt.toJOML(newModelMatrix);
+            newModelMatrixAsJoml.invert();
+            VectorConversionsMCKt.set(newModelMatrix, newModelMatrixAsJoml);
 
             vertexConsumerAccessor.setNormalMatrix(newNormalMatrix);
             vertexConsumerAccessor.setTextureMatrix(newModelMatrix);
-        }
 
-        blockRenderManager.renderDamage(state, blockPos, blockRenderWorld, matrix, vertexConsumer);
+            // Finally, invoke the render damage function.
+            blockRenderManager.renderDamage(state, blockPos, blockRenderWorld, matrix, vertexConsumer);
+        } else {
+            // Vanilla behavior
+            blockRenderManager.renderDamage(state, blockPos, blockRenderWorld, matrix, vertexConsumer);
+        }
     }
 
     /**

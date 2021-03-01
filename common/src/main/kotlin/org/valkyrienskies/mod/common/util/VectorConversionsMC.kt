@@ -40,6 +40,8 @@ fun Quaterniondc.toMinecraft() = Quaternion(x().toFloat(), y().toFloat(), z().to
 fun Matrix4fc.toMinecraft() = Matrix4fMC().set(this)
 fun Matrix4dc.toMinecraft() = Matrix4fMC().set(this)
 
+fun Matrix4fMC.toJOML() = Matrix4d().set(this)
+
 // endregion
 
 // region Minecraft
@@ -93,6 +95,27 @@ fun Matrix4fMC.set(m: Matrix4dc) = also {
     setA31(m.m13().toFloat())
     setA32(m.m23().toFloat())
     setA33(m.m33().toFloat())
+}
+
+fun Matrix4d.set(m: Matrix4fMC) = also {
+    @Suppress("CAST_NEVER_SUCCEEDS")
+    m as Matrix4fAccessor
+    m00(m.a00.toDouble())
+    m01(m.a10.toDouble())
+    m02(m.a20.toDouble())
+    m03(m.a30.toDouble())
+    m10(m.a01.toDouble())
+    m11(m.a11.toDouble())
+    m12(m.a21.toDouble())
+    m13(m.a31.toDouble())
+    m20(m.a02.toDouble())
+    m21(m.a12.toDouble())
+    m22(m.a22.toDouble())
+    m23(m.a32.toDouble())
+    m30(m.a03.toDouble())
+    m31(m.a13.toDouble())
+    m32(m.a23.toDouble())
+    m33(m.a33.toDouble())
 }
 
 // endregion
