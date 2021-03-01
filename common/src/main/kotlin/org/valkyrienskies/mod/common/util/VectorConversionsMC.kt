@@ -35,18 +35,18 @@ fun Vector3ic.toBlockPos() = BlockPos(x(), y(), z())
 fun Vector3dc.toVec3d() = Vec3d(x(), y(), z())
 
 fun Quaternionfc.toMinecraft() = Quaternion(x(), y(), z(), w())
+fun Quaterniondc.toMinecraft() = Quaternion(x().toFloat(), y().toFloat(), z().toFloat(), w().toFloat())
 
 fun Matrix4fc.toMinecraft() = Matrix4fMC().set(this)
+fun Matrix4dc.toMinecraft() = Matrix4fMC().set(this)
 
 // endregion
 
 // region Minecraft
 
-fun MatrixStack.multiply(m: Matrix4dc) = also {
-    val quaternion = m.getNormalizedRotation(Quaternionf())
-    val translation = m.getTranslation(Vector3d())
-    this.multiply(quaternion.toMinecraft())
-    this.translate(translation.x, translation.y, translation.z)
+fun MatrixStack.multiply(modelTransform: Matrix4dc, normalTransform: Quaterniondc) = also {
+    this.peek().model.multiply(modelTransform.toMinecraft())
+    this.peek().normal.multiply(normalTransform.toMinecraft())
 }
 
 fun Vec3i.toJOML() = Vector3i().set(this)
@@ -54,6 +54,7 @@ fun Vec3i.toJOMLD() = Vector3d().set(this)
 fun Vec3d.toJOML() = Vector3d().set(this)
 
 fun Matrix4fMC.set(m: Matrix4fc) = also {
+    @Suppress("CAST_NEVER_SUCCEEDS")
     this as Matrix4fAccessor
     setA00(m.m00())
     setA01(m.m10())
@@ -74,6 +75,7 @@ fun Matrix4fMC.set(m: Matrix4fc) = also {
 }
 
 fun Matrix4fMC.set(m: Matrix4dc) = also {
+    @Suppress("CAST_NEVER_SUCCEEDS")
     this as Matrix4fAccessor
     setA00(m.m00().toFloat())
     setA01(m.m10().toFloat())

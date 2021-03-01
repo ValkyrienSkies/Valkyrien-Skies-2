@@ -10,7 +10,7 @@
     "server.world.MixinServerWorld",
     "server.world.MixinThreadedAnvilChunkStorage",
     "server.world.ThreadedAnvilChunkStorageAccessor",
-    "util.math.Matrix4fAccessor",
+    "util.math.Matrix4fAccessor"
   ],
   "client": [
     "client.render.MixinBuiltChunkStorage",
@@ -19,7 +19,8 @@
     "client.render.block.entity.MixinBlockEntityRenderDispatcher",
     "client.render.chunk.MixinChunkBuilderBuiltChunk",
     "client.world.MixinClientChunkManager",
-    "client.world.MixinClientWorld"
+    "client.world.MixinClientWorld",
+    "client.render.OverlayVertexConsumerAccessor"
   ],
   "injectors": {
     "defaultRequire": 1
