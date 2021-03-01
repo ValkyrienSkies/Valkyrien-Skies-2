@@ -2,10 +2,19 @@ plugins {
     id "architectury-plugin" version "2.0.65"
     id "forgified-fabric-loom" version "0.6.59" apply false
     id "org.jetbrains.kotlin.jvm" version "1.4.21" apply false
+    id "org.sonarqube" version "3.1.1"
 }
 
 architectury {
     minecraft = rootProject.minecraft_version
+}
+
+sonarqube {
+    properties {
+        property "sonar.projectKey", "ValkyrienSkies_Valkyrien-Skies-2"
+        property "sonar.organization", "valkyrienskies"
+        property "sonar.host.url", "https://sonarcloud.io"
+    }
 }
 
 subprojects {
