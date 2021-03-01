@@ -17,10 +17,12 @@ import net.minecraft.util.math.Matrix3f;
 import net.minecraft.util.math.Matrix4f;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.BlockRenderView;
-import org.joml.*;
+import org.joml.Matrix4d;
+import org.joml.Matrix4dc;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.*;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
@@ -99,21 +101,8 @@ public class MixinWorldRenderer {
                                    MatrixStack methodMatrices, float methodTickDelta, long methodLimitTime, boolean methodRenderBlockOutline, Camera methodCamera, GameRenderer methodGameRenderer, LightmapTextureManager methodLightmapTextureManager, Matrix4f methodMatrix4f) {
         final ShipObject ship = VSGameUtils.getShipObjectManagingPos(world, blockPos);
         if (ship != null) {
-            // Remove the vanilla render transform
-            methodMatrices.pop();
-            // Add the VS render transform
-            methodMatrices.push();
-
-            final ShipTransform renderTransform = ship.getRenderTransform();
-            final Matrix4dc shipToWorldMatrix = renderTransform.getShipToWorldMatrix();
-
-            final Matrix4d renderMatrix = new Matrix4d();
-            final Vec3d cameraPos = methodCamera.getPos();
-            renderMatrix.translate(-cameraPos.getX(), -cameraPos.getY(), -cameraPos.getZ());
-            renderMatrix.mul(shipToWorldMatrix);
-            renderMatrix.translate(blockPos.getX(), blockPos.getY(), blockPos.getZ());
-
-            multiplyMatrixStack(methodMatrices, renderMatrix, renderTransform.getShipCoordinatesToWorldCoordinatesRotation());
+            final Vec3d cam = methodCamera.getPos();
+            transformRenderWithShip(ship.getRenderTransform(), methodMatrices, blockPos, cam.getX(), cam.getY(), cam.getZ());
 
             final OverlayVertexConsumerAccessor vertexConsumerAccessor = (OverlayVertexConsumerAccessor) vertexConsumer;
 
@@ -127,12 +116,9 @@ public class MixinWorldRenderer {
 
             vertexConsumerAccessor.setNormalMatrix(newNormalMatrix);
             vertexConsumerAccessor.setTextureMatrix(newModelMatrix);
-
-            blockRenderManager.renderDamage(state, blockPos, blockRenderWorld, matrix, vertexConsumer);
-        } else {
-            // Vanilla behavior
-            blockRenderManager.renderDamage(state, blockPos, blockRenderWorld, matrix, vertexConsumer);
         }
+
+        blockRenderManager.renderDamage(state, blockPos, blockRenderWorld, matrix, vertexConsumer);
     }
 
     /**
@@ -142,20 +128,10 @@ public class MixinWorldRenderer {
     private void renderShipChunk(RenderLayer renderLayer, MatrixStack matrixStack, double playerCameraX, double playerCameraY, double playerCameraZ, CallbackInfo ci,
                                  boolean bl, ObjectListIterator<?> objectListIterator, WorldRenderer.ChunkInfo chunkInfo2, ChunkBuilder.BuiltChunk builtChunk, VertexBuffer vertexBuffer) {
         final BlockPos renderChunkOrigin = builtChunk.getOrigin();
-        final ShipObject getShipObjectManagingPos = VSGameUtils.getShipObjectManagingPos(world, renderChunkOrigin);
-        if (getShipObjectManagingPos != null) {
-            // This render chunk is a ship chunk, give it the ship chunk render transform
-            final ShipTransform renderTransform = getShipObjectManagingPos.getRenderTransform();
-            final Matrix4dc shipToWorldMatrix = renderTransform.getShipToWorldMatrix();
-
-            // Create the render matrix from the render transform and player position
-            final Matrix4d renderMatrix = new Matrix4d();
-            renderMatrix.translate(-playerCameraX, -playerCameraY, -playerCameraZ);
-            renderMatrix.mul(shipToWorldMatrix);
-            renderMatrix.translate(renderChunkOrigin.getX(), renderChunkOrigin.getY(), renderChunkOrigin.getZ());
-
-            // Apply the render matrix to the
-            multiplyMatrixStack(matrixStack, renderMatrix, renderTransform.getShipCoordinatesToWorldCoordinatesRotation());
+        final ShipObject shipObject = VSGameUtils.getShipObjectManagingPos(world, renderChunkOrigin);
+        if (shipObject != null) {
+            transformRenderWithShip(shipObject.getRenderTransform(), matrixStack, renderChunkOrigin,
+                playerCameraX, playerCameraY, playerCameraZ);
         } else {
             // Restore MC default behavior (that was removed by cancelDefaultTransform())
             matrixStack.translate(renderChunkOrigin.getX() - playerCameraX, renderChunkOrigin.getY() - playerCameraY, renderChunkOrigin.getZ() - playerCameraZ);
@@ -177,36 +153,43 @@ public class MixinWorldRenderer {
     private void renderShipChunkBlockEntity(BlockEntityRenderDispatcher blockEntityRenderDispatcher, BlockEntity blockEntity, float tickDelta, MatrixStack matrix, VertexConsumerProvider vertexConsumerProvider,
                                             MatrixStack methodMatrices, float methodTickDelta, long methodLimitTime, boolean methodRenderBlockOutline, Camera methodCamera, GameRenderer methodGameRenderer, LightmapTextureManager methodLightmapTextureManager, Matrix4f methodMatrix4f) {
         final BlockPos blockEntityPos = blockEntity.getPos();
-        final ShipObject getShipObjectManagingPos = VSGameUtils.getShipObjectManagingPos(world, blockEntityPos);
-        if (getShipObjectManagingPos != null) {
+        final ShipObject shipObject = VSGameUtils.getShipObjectManagingPos(world, blockEntityPos);
+        if (shipObject != null) {
+            final Vec3d cam = methodCamera.getPos();
+            transformRenderWithShip(shipObject.getRenderTransform(), matrix, blockEntityPos,
+                cam.getX(), cam.getY(), cam.getZ());
+        }
+        blockEntityRenderDispatcher.render(blockEntity, tickDelta, matrix, vertexConsumerProvider);
+    }
+
+    /**
+     * @param renderTransform The ship's render transform
+     * @param matrix The {@link MatrixStack} we are multiplying
+     * @param blockPos The position of the block in question
+     * @param camX Player camera X
+     * @param camY Player camera Y
+     * @param camZ Player camera Z
+     */
+    @Unique
+    private void transformRenderWithShip(ShipTransform renderTransform, MatrixStack matrix, BlockPos blockPos, double camX, double camY, double camZ) {
+        final ShipObject shipObject = VSGameUtils.getShipObjectManagingPos(world, blockPos);
+        if (shipObject != null) {
             // Remove the vanilla render transform
             matrix.pop();
 
             // Add the VS render transform
             matrix.push();
 
-            final ShipTransform renderTransform = getShipObjectManagingPos.getRenderTransform();
             final Matrix4dc shipToWorldMatrix = renderTransform.getShipToWorldMatrix();
 
             // Create the render matrix from the render transform and player position
             final Matrix4d renderMatrix = new Matrix4d();
-            final Vec3d cameraPos = methodCamera.getPos();
-            renderMatrix.translate(-cameraPos.getX(), -cameraPos.getY(), -cameraPos.getZ());
+            renderMatrix.translate(-camX, -camY, -camZ);
             renderMatrix.mul(shipToWorldMatrix);
-            renderMatrix.translate(blockEntityPos.getX(), blockEntityPos.getY(), blockEntityPos.getZ());
+            renderMatrix.translate(blockPos.getX(), blockPos.getY(), blockPos.getZ());
 
             // Apply the render matrix to the
-            multiplyMatrixStack(matrix, renderMatrix, renderTransform.getShipCoordinatesToWorldCoordinatesRotation());
+            VectorConversionsMCKt.multiply(matrix, renderMatrix, renderTransform.getShipCoordinatesToWorldCoordinatesRotation());
         }
-        blockEntityRenderDispatcher.render(blockEntity, tickDelta, matrix, vertexConsumerProvider);
-    }
-
-    /**
-     * @param matrixStack    The {@link MatrixStack} we are multiplying
-     * @param matrix         The {@link Matrix4dc} the matrix we are multiplying the {@link MatrixStack} by.
-     * @param matrixRotation The rotation quaternion of the matrix.
-     */
-    private void multiplyMatrixStack(MatrixStack matrixStack, Matrix4dc matrix, Quaterniondc matrixRotation) {
-        VectorConversionsMCKt.multiply(matrixStack, matrix, matrixRotation);
     }
 }
