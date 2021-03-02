@@ -20,7 +20,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.valkyrienskies.mod.accessors.client.world.ClientChunkManagerClientChunkMapAccessor;
+import org.valkyrienskies.mod.mixin.accessors.client.world.ClientChunkManagerClientChunkMapAccessor;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 /**
