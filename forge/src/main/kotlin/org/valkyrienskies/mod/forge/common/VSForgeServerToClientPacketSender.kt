@@ -6,7 +6,7 @@ import org.valkyrienskies.core.networking.IVSPacket
 import org.valkyrienskies.core.networking.IVSPacketToClientSender
 
 object VSForgeServerToClientPacketSender : IVSPacketToClientSender<ServerPlayerEntity> {
-    override fun sendToClient(vsPacket: IVSPacket, player: ServerPlayerEntity) {
-        VSForgeNetworking.vsForgeChannel.send(PacketDistributor.PLAYER.with { player }, MessageVSPacket(vsPacket))
-    }
+	override fun sendToClient(vsPacket: IVSPacket, player: ServerPlayerEntity) {
+		VSForgeNetworking.vsForgeChannel.send(PacketDistributor.PLAYER.with { player }, MessageVSPacket(vsPacket))
+	}
 }

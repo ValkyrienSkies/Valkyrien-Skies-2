@@ -8,12 +8,12 @@ import net.minecraft.network.PacketByteBuf
 import org.valkyrienskies.mod.common.VSNetworking
 
 object VSClientPlayChannelHandler : ClientPlayNetworking.PlayChannelHandler {
-    override fun receive(
-        client: MinecraftClient,
-        handler: ClientPlayNetworkHandler,
-        buf: PacketByteBuf,
-        responseSender: PacketSender?
-    ) {
-        VSNetworking.handleVSPacketClient(buf)
-    }
+	override fun receive(
+		client: MinecraftClient,
+		handler: ClientPlayNetworkHandler,
+		buf: PacketByteBuf,
+		responseSender: PacketSender?
+	) {
+		VSNetworking.handleVSPacketClient(buf)
+	}
 }

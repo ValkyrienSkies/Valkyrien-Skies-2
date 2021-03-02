@@ -9,47 +9,47 @@ import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 
 object VSForgeNetworking {
 
-    private const val protocolVersion = "1"
-    val vsForgeChannel: SimpleChannel = NetworkRegistry.newSimpleChannel(
-        Identifier(ValkyrienSkiesMod.MOD_ID, "vs_packet"),
-        { protocolVersion },
-        { anObject: String? ->
-            protocolVersion == anObject
-        },
-        { anObject: String? ->
-            protocolVersion == anObject
-        }
-    )
+	private const val protocolVersion = "1"
+	val vsForgeChannel: SimpleChannel = NetworkRegistry.newSimpleChannel(
+		Identifier(ValkyrienSkiesMod.MOD_ID, "vs_packet"),
+		{ protocolVersion },
+		{ anObject: String? ->
+			protocolVersion == anObject
+		},
+		{ anObject: String? ->
+			protocolVersion == anObject
+		}
+	)
 
-    internal fun registerForgeNetworking() {
-        registerClientPacketHandlers()
-        injectForgePacketSenders()
-    }
+	internal fun registerForgeNetworking() {
+		registerClientPacketHandlers()
+		injectForgePacketSenders()
+	}
 
-    private fun registerClientPacketHandlers() {
-        // This gibberish is brought to you by forge
-        @Suppress("INACCESSIBLE_TYPE")
-        vsForgeChannel.registerMessage(
-            0,
-            MessageVSPacket::class.java,
-            { messageVSPacket, packetBuffer ->
-                run {
-                    VSNetworking.writeVSPacket(messageVSPacket.vsPacket, packetBuffer)
-                }
-            },
-            { packetBuffer: PacketByteBuf -> MessageVSPacket(VSNetworking.readVSPacket(packetBuffer)) },
-            { vsPacket, contextSupplier ->
-                run {
-                    contextSupplier.get().enqueueWork {
-                        VSNetworking.handleVSPacketClient(vsPacket.vsPacket)
-                    }
-                    contextSupplier.get().packetHandled = true
-                }
-            }
-        )
-    }
+	private fun registerClientPacketHandlers() {
+		// This gibberish is brought to you by forge
+		@Suppress("INACCESSIBLE_TYPE")
+		vsForgeChannel.registerMessage(
+			0,
+			MessageVSPacket::class.java,
+			{ messageVSPacket, packetBuffer ->
+				run {
+					VSNetworking.writeVSPacket(messageVSPacket.vsPacket, packetBuffer)
+				}
+			},
+			{ packetBuffer: PacketByteBuf -> MessageVSPacket(VSNetworking.readVSPacket(packetBuffer)) },
+			{ vsPacket, contextSupplier ->
+				run {
+					contextSupplier.get().enqueueWork {
+						VSNetworking.handleVSPacketClient(vsPacket.vsPacket)
+					}
+					contextSupplier.get().packetHandled = true
+				}
+			}
+		)
+	}
 
-    private fun injectForgePacketSenders() {
-        VSNetworking.shipDataPacketToClientSender = VSForgeServerToClientPacketSender
-    }
+	private fun injectForgePacketSenders() {
+		VSNetworking.shipDataPacketToClientSender = VSForgeServerToClientPacketSender
+	}
 }

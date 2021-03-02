@@ -1,55 +1,55 @@
 plugins {
-    // Needed for Forge+Fabric
-    id "architectury-plugin" version "3.0.93"
-    id "forgified-fabric-loom" version "0.6.72" apply false
-    // Kotlin
-    id "org.jetbrains.kotlin.jvm" version "1.4.21" apply false
-    // Configure SonarQube
-    id "org.sonarqube" version "3.1.1"
-    // Kotlin linter
-    id "org.jlleitschuh.gradle.ktlint" version "10.0.0"
-    // Java linter
-    id "checkstyle"
+	// Needed for Forge+Fabric
+	id "architectury-plugin" version "3.0.93"
+	id "forgified-fabric-loom" version "0.6.72" apply false
+	// Kotlin
+	id "org.jetbrains.kotlin.jvm" version "1.4.21" apply false
+	// Configure SonarQube
+	id "org.sonarqube" version "3.1.1"
+	// Kotlin linter
+	id "org.jlleitschuh.gradle.ktlint" version "10.0.0"
+	// Java linter
+	id "checkstyle"
 }
 
 architectury {
-    minecraft = rootProject.minecraft_version
+	minecraft = rootProject.minecraft_version
 }
 
 // Configure SonarQube
 sonarqube {
-    properties {
-        property "sonar.projectKey", "ValkyrienSkies_Valkyrien-Skies-2"
-        property "sonar.organization", "valkyrienskies"
-        property "sonar.host.url", "https://sonarcloud.io"
-    }
+	properties {
+		property "sonar.projectKey", "ValkyrienSkies_Valkyrien-Skies-2"
+		property "sonar.organization", "valkyrienskies"
+		property "sonar.host.url", "https://sonarcloud.io"
+	}
 }
 
 subprojects {
-    apply plugin: "forgified-fabric-loom"
-    apply plugin: "org.jlleitschuh.gradle.ktlint"
-    apply plugin: "checkstyle"
+	apply plugin: "forgified-fabric-loom"
+	apply plugin: "org.jlleitschuh.gradle.ktlint"
+	apply plugin: "checkstyle"
 
-    checkstyle {
-        toolVersion "8.41"
-        ignoreFailures = false
-        configFile = file("${rootDir}/.checkstyle/checkstyle.xml")
-    }
+	checkstyle {
+		toolVersion "8.41"
+		ignoreFailures = false
+		configFile = file("${rootDir}/.checkstyle/checkstyle.xml")
+	}
 
-    loom {
-        silentMojangMappingsLicense()
-    }
+	loom {
+		silentMojangMappingsLicense()
+	}
 }
 
 allprojects {
-    apply plugin: "java"
-    apply plugin: "architectury-plugin"
+	apply plugin: "java"
+	apply plugin: "architectury-plugin"
 
-    archivesBaseName = rootProject.archives_base_name
-    version = rootProject.mod_version
-    group = rootProject.maven_group
+	archivesBaseName = rootProject.archives_base_name
+	version = rootProject.mod_version
+	group = rootProject.maven_group
 
-    tasks.withType(JavaCompile) {
-        options.encoding = "UTF-8"
-    }
+	tasks.withType(JavaCompile) {
+		options.encoding = "UTF-8"
+	}
 }

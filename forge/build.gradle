@@ -1,56 +1,56 @@
 plugins {
-    id "com.github.johnrengelman.shadow" version "5.0.0"
-    id "org.jetbrains.kotlin.jvm"
+	id "com.github.johnrengelman.shadow" version "5.0.0"
+	id "org.jetbrains.kotlin.jvm"
 }
 
 configurations {
-    // Use shadow to shade the file but NOT add it as a dependency
-    shadowCommon
+	// Use shadow to shade the file but NOT add it as a dependency
+	shadowCommon
 }
 
 architectury {
-    platformSetupLoomIde()
-    forge()
+	platformSetupLoomIde()
+	forge()
 }
 
 loom {
-    mixinConfigs = ["valkyrienskies-common.mixins.json", "valkyrienskies-forge.mixins.json"]
-    useFabricMixin = true
+	mixinConfigs = ["valkyrienskies-common.mixins.json", "valkyrienskies-forge.mixins.json"]
+	useFabricMixin = true
 }
 
 dependencies {
-    minecraft("com.mojang:minecraft:${rootProject.minecraft_version}")
-    mappings("net.fabricmc:yarn:${rootProject.yarn_mappings}:v2")
-    forge("net.minecraftforge:forge:${rootProject.minecraft_version}-${rootProject.forge_version}")
+	minecraft("com.mojang:minecraft:${rootProject.minecraft_version}")
+	mappings("net.fabricmc:yarn:${rootProject.yarn_mappings}:v2")
+	forge("net.minecraftforge:forge:${rootProject.minecraft_version}-${rootProject.forge_version}")
 
-    implementation(project(path: ":common")) {
-        transitive = false
-    }
-    developmentForge(project(path: ":common")) {
-        transitive = false
-    }
-    shadowCommon(project(path: ":common", configuration: "transformProductionForge")) {
-        transitive = false
-    }
+	implementation(project(path: ":common")) {
+		transitive = false
+	}
+	developmentForge(project(path: ":common")) {
+		transitive = false
+	}
+	shadowCommon(project(path: ":common", configuration: "transformProductionForge")) {
+		transitive = false
+	}
 
-    shadowCommon("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.4.21")
-    shadowCommon("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.2")
-    compile("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.2")
+	shadowCommon("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.4.21")
+	shadowCommon("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.2")
+	compile("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.2")
 
-    // vs-core
-    implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}")
-    shadowCommon("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}")
+	// vs-core
+	implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}")
+	shadowCommon("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}")
 }
 
 shadowJar {
-    exclude "fabric.mod.json"
+	exclude "fabric.mod.json"
 
-    configurations = [project.configurations.shadowCommon]
-    classifier "shadow"
+	configurations = [project.configurations.shadowCommon]
+	classifier "shadow"
 }
 
 remapJar {
-    dependsOn(shadowJar)
-    input.set(shadowJar.archivePath)
-    archiveClassifier = "forge"
+	dependsOn(shadowJar)
+	input.set(shadowJar.archivePath)
+	archiveClassifier = "forge"
 }

@@ -7,16 +7,16 @@ import org.valkyrienskies.core.networking.impl.VSPacketShipDataList
 import org.valkyrienskies.mod.common.shipObjectWorld
 
 object VSPacketShipDataClientHandler : IVSPacketClientHandler {
-    override fun handlePacket(vsPacket: IVSPacket) {
-        vsPacket as VSPacketShipDataList
+	override fun handlePacket(vsPacket: IVSPacket) {
+		vsPacket as VSPacketShipDataList
 
-        val gameWorld = MinecraftClient.getInstance().world
-        val shipWorld = gameWorld?.shipObjectWorld ?: return
+		val gameWorld = MinecraftClient.getInstance().world
+		val shipWorld = gameWorld?.shipObjectWorld ?: return
 
-        vsPacket.shipDataList.forEach {
-            if (shipWorld.queryableShipData.getShipDataFromUUID(it.shipUUID) == null) {
-                shipWorld.queryableShipData.addShipData(it)
-            }
-        }
-    }
+		vsPacket.shipDataList.forEach {
+			if (shipWorld.queryableShipData.getShipDataFromUUID(it.shipUUID) == null) {
+				shipWorld.queryableShipData.addShipData(it)
+			}
+		}
+	}
 }

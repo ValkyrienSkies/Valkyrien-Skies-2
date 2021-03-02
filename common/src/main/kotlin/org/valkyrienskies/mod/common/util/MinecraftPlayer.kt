@@ -11,26 +11,26 @@ import java.util.UUID
  */
 class MinecraftPlayer(playerObject: PlayerEntity, override val uuid: UUID) : IPlayer {
 
-    // Hold a weak reference to avoid memory leaks
-    val playerEntityReference: WeakReference<PlayerEntity> = WeakReference(playerObject)
+	// Hold a weak reference to avoid memory leaks
+	val playerEntityReference: WeakReference<PlayerEntity> = WeakReference(playerObject)
 
-    override fun getPosition(dest: Vector3d): Vector3d {
-        val player = playerEntityReference.get()
-        player as PlayerEntity
-        return dest.set(player.x, player.y, player.z)
-    }
+	override fun getPosition(dest: Vector3d): Vector3d {
+		val player = playerEntityReference.get()
+		player as PlayerEntity
+		return dest.set(player.x, player.y, player.z)
+	}
 
-    override fun hashCode(): Int {
-        return uuid.hashCode()
-    }
+	override fun hashCode(): Int {
+		return uuid.hashCode()
+	}
 
-    override fun equals(other: Any?): Boolean {
-        if (super.equals(other)) {
-            return true
-        }
-        if (other is MinecraftPlayer) {
-            return uuid == other.uuid
-        }
-        return false
-    }
+	override fun equals(other: Any?): Boolean {
+		if (super.equals(other)) {
+			return true
+		}
+		if (other is MinecraftPlayer) {
+			return uuid == other.uuid
+		}
+		return false
+	}
 }

@@ -8,17 +8,17 @@ import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 
 @Mod(ValkyrienSkiesMod.MOD_ID)
 class ValkyrienSkiesModForge {
-    init {
-        ValkyrienSkiesMod.init()
-        VSForgeNetworking.registerForgeNetworking()
-        ITEMS.register(FMLJavaModLoadingContext.get().modEventBus)
-    }
+	init {
+		ValkyrienSkiesMod.init()
+		VSForgeNetworking.registerForgeNetworking()
+		ITEMS.register(FMLJavaModLoadingContext.get().modEventBus)
+	}
 
-    companion object {
-        private val ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, ValkyrienSkiesMod.MOD_ID)
+	companion object {
+		private val ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, ValkyrienSkiesMod.MOD_ID)
 
-        init {
-            ITEMS.register("ship_creator") { ValkyrienSkiesMod.SHIP_CREATOR_ITEM }
-        }
-    }
+		init {
+			ITEMS.register("ship_creator") { ValkyrienSkiesMod.SHIP_CREATOR_ITEM }
+		}
+	}
 }

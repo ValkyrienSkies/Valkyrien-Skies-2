@@ -6,12 +6,12 @@ import net.minecraft.util.registry.Registry
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 
 class ValkyrienSkiesModFabric : ModInitializer {
-    override fun onInitialize() {
-        ValkyrienSkiesMod.init()
-        Registry.register(
-            Registry.ITEM, Identifier(ValkyrienSkiesMod.MOD_ID, "ship_creator"),
-            ValkyrienSkiesMod.SHIP_CREATOR_ITEM
-        )
-        VSFabricNetworking.registerFabricNetworking()
-    }
+	override fun onInitialize() {
+		ValkyrienSkiesMod.init()
+		Registry.register(
+			Registry.ITEM, Identifier(ValkyrienSkiesMod.MOD_ID, "ship_creator"),
+			ValkyrienSkiesMod.SHIP_CREATOR_ITEM
+		)
+		VSFabricNetworking.registerFabricNetworking()
+	}
 }

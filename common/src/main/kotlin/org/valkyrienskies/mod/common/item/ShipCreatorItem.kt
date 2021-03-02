@@ -13,33 +13,33 @@ import org.valkyrienskies.mod.common.util.toJOML
 
 class ShipCreatorItem(properties: Settings) : Item(properties) {
 
-    override fun useOnBlock(useOnContext: ItemUsageContext?): ActionResult {
-        val player = useOnContext!!.player
-        val level = useOnContext.world
-        val blockPos = useOnContext.blockPos
-        val blockState: BlockState = level.getBlockState(blockPos)
+	override fun useOnBlock(useOnContext: ItemUsageContext?): ActionResult {
+		val player = useOnContext!!.player
+		val level = useOnContext.world
+		val blockPos = useOnContext.blockPos
+		val blockState: BlockState = level.getBlockState(blockPos)
 
-        println("Player right clicked on $blockPos")
+		println("Player right clicked on $blockPos")
 
-        if (!level.isClient) {
-            if (!blockState.isAir) {
-                // Make a ship
-                level as IShipObjectWorldProvider
-                val shipData = level.shipObjectWorld.createNewShipAtBlock(blockPos.toJOML(), false)
+		if (!level.isClient) {
+			if (!blockState.isAir) {
+				// Make a ship
+				level as IShipObjectWorldProvider
+				val shipData = level.shipObjectWorld.createNewShipAtBlock(blockPos.toJOML(), false)
 
-                val centerPos = shipData.chunkClaim.getCenterBlockCoordinates(Vector3i()).toBlockPos()
+				val centerPos = shipData.chunkClaim.getCenterBlockCoordinates(Vector3i()).toBlockPos()
 
-                // Move the block from the world to a ship
-                level.setBlockState(blockPos, Blocks.AIR.defaultState, 11)
-                level.setBlockState(centerPos, blockState, 11)
+				// Move the block from the world to a ship
+				level.setBlockState(blockPos, Blocks.AIR.defaultState, 11)
+				level.setBlockState(centerPos, blockState, 11)
 
-                // TODO: Temporary, call [shipObjectWorld.onSetBlock] somewhere else
-                level.shipObjectWorld.onSetBlock(centerPos.x, centerPos.y, centerPos.z, VSBlockType.SOLID, 10.0, 0.0)
+				// TODO: Temporary, call [shipObjectWorld.onSetBlock] somewhere else
+				level.shipObjectWorld.onSetBlock(centerPos.x, centerPos.y, centerPos.z, VSBlockType.SOLID, 10.0, 0.0)
 
-                // TODO: Create the initial ship chunks, transfer blocks, send ship to players, etc.
-            }
-        }
+				// TODO: Create the initial ship chunks, transfer blocks, send ship to players, etc.
+			}
+		}
 
-        return super.useOnBlock(useOnContext)
-    }
+		return super.useOnBlock(useOnContext)
+	}
 }
