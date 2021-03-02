@@ -90,7 +90,7 @@ public class MixinWorldRenderer {
                     final ChunkBuilder.BuiltChunk renderChunk = chunkStorageAccessor.callGetRenderedChunk(tempPos);
                     if (renderChunk != null) {
                         final WorldRenderer.ChunkInfo newChunkInfo =
-                            WorldRendererChunkInfoAccessor.invoker$new(self, renderChunk, null, 0);
+                            WorldRendererChunkInfoAccessor.vs$new(self, renderChunk, null, 0);
                         visibleChunks.add(newChunkInfo);
                     }
                 }
