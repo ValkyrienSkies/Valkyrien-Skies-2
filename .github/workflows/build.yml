@@ -39,4 +39,4 @@ jobs:
         with:
           path: |
             */build/reports/checkstyle/*.xml
-            */build/reports/ktlint/**.xml
+            */build/reports/ktlint/*/*.xml
