@@ -1,3 +1,4 @@
+
 # eclipse
 bin
 *.launch
@@ -11,7 +12,14 @@ out
 *.ipr
 *.iws
 *.iml
-.idea
+# ignore .idea except
+.idea/*
+# code style
+!.idea/codeStyles/
+# inspection profile
+!.idea/inspectionProfiles/
+# checkstyle config
+!.idea/checkstyle-idea.xml
 
 # vscode
 .vscode
@@ -23,6 +31,7 @@ build
 # other
 eclipse
 run
+logs
 
 # Files from Forge MDK
 forge*changelog.txt
