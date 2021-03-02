@@ -29,58 +29,58 @@ import org.valkyrienskies.mod.mixin.accessors.client.world.ClientChunkManagerCli
 @Mixin(ClientChunkManager.class)
 public abstract class MixinClientChunkManager {
 
-    @Shadow
-    private volatile ClientChunkManager.ClientChunkMap chunks;
-    @Shadow
-    @Final
-    private ClientWorld world;
+	@Shadow
+	private volatile ClientChunkManager.ClientChunkMap chunks;
+	@Shadow
+	@Final
+	private ClientWorld world;
 
-    private final LongObjectMap<WorldChunk> shipChunks = new LongObjectHashMap<>();
+	private final LongObjectMap<WorldChunk> shipChunks = new LongObjectHashMap<>();
 
-    @Inject(method = "loadChunkFromPacket", at = @At("HEAD"), cancellable = true)
-    private void preLoadChunkFromPacket(int x, int z, BiomeArray biomes, PacketByteBuf buf, CompoundTag tag,
-        int verticalStripBitmask, boolean complete, CallbackInfoReturnable<WorldChunk> cir) {
-        final ClientChunkManagerClientChunkMapAccessor clientChunkMapAccessor =
-            ClientChunkManagerClientChunkMapAccessor.class.cast(chunks);
-        if (!clientChunkMapAccessor.callIsInRadius(x, z)) {
-            if (VSGameUtilsKt.getShipObjectWorld(world).getChunkAllocator().isChunkInShipyard(x, z)) {
-                final long chunkPosLong = ChunkPos.toLong(x, z);
+	@Inject(method = "loadChunkFromPacket", at = @At("HEAD"), cancellable = true)
+	private void preLoadChunkFromPacket(int x, int z, BiomeArray biomes, PacketByteBuf buf, CompoundTag tag,
+		int verticalStripBitmask, boolean complete, CallbackInfoReturnable<WorldChunk> cir) {
+		final ClientChunkManagerClientChunkMapAccessor clientChunkMapAccessor =
+			ClientChunkManagerClientChunkMapAccessor.class.cast(chunks);
+		if (!clientChunkMapAccessor.callIsInRadius(x, z)) {
+			if (VSGameUtilsKt.getShipObjectWorld(world).getChunkAllocator().isChunkInShipyard(x, z)) {
+				final long chunkPosLong = ChunkPos.toLong(x, z);
 
-                WorldChunk worldChunk = new WorldChunk(this.world, new ChunkPos(x, z), biomes);
-                worldChunk.loadFromPacket(biomes, buf, tag, verticalStripBitmask);
-                shipChunks.put(chunkPosLong, worldChunk);
+				WorldChunk worldChunk = new WorldChunk(this.world, new ChunkPos(x, z), biomes);
+				worldChunk.loadFromPacket(biomes, buf, tag, verticalStripBitmask);
+				shipChunks.put(chunkPosLong, worldChunk);
 
-                ChunkSection[] chunkSections = worldChunk.getSectionArray();
-                LightingProvider lightingProvider = this.getLightingProvider();
-                lightingProvider.setColumnEnabled(new ChunkPos(x, z), true);
+				ChunkSection[] chunkSections = worldChunk.getSectionArray();
+				LightingProvider lightingProvider = this.getLightingProvider();
+				lightingProvider.setColumnEnabled(new ChunkPos(x, z), true);
 
-                for (int j = 0; j < chunkSections.length; ++j) {
-                    ChunkSection chunkSection = chunkSections[j];
-                    lightingProvider
-                        .setSectionStatus(ChunkSectionPos.from(x, j, z), ChunkSection.isEmpty(chunkSection));
-                }
+				for (int j = 0; j < chunkSections.length; ++j) {
+					ChunkSection chunkSection = chunkSections[j];
+					lightingProvider
+						.setSectionStatus(ChunkSectionPos.from(x, j, z), ChunkSection.isEmpty(chunkSection));
+				}
 
-                this.world.resetChunkColor(x, z);
-                cir.setReturnValue(worldChunk);
-            }
-        }
-    }
+				this.world.resetChunkColor(x, z);
+				cir.setReturnValue(worldChunk);
+			}
+		}
+	}
 
-    @Inject(method = "unload", at = @At("HEAD"), cancellable = true)
-    public void preUnload(int chunkX, int chunkZ, CallbackInfo ci) {
-        shipChunks.remove(ChunkPos.toLong(chunkX, chunkZ));
-        ci.cancel();
-    }
+	@Inject(method = "unload", at = @At("HEAD"), cancellable = true)
+	public void preUnload(int chunkX, int chunkZ, CallbackInfo ci) {
+		shipChunks.remove(ChunkPos.toLong(chunkX, chunkZ));
+		ci.cancel();
+	}
 
-    @Inject(method = "getChunk", at = @At("HEAD"), cancellable = true)
-    public void preGetChunk(int chunkX, int chunkZ, ChunkStatus chunkStatus, boolean bl,
-        CallbackInfoReturnable<WorldChunk> cir) {
-        final WorldChunk shipChunk = shipChunks.get(ChunkPos.toLong(chunkX, chunkZ));
-        if (shipChunk != null) {
-            cir.setReturnValue(shipChunk);
-        }
-    }
+	@Inject(method = "getChunk", at = @At("HEAD"), cancellable = true)
+	public void preGetChunk(int chunkX, int chunkZ, ChunkStatus chunkStatus, boolean bl,
+		CallbackInfoReturnable<WorldChunk> cir) {
+		final WorldChunk shipChunk = shipChunks.get(ChunkPos.toLong(chunkX, chunkZ));
+		if (shipChunk != null) {
+			cir.setReturnValue(shipChunk);
+		}
+	}
 
-    @Shadow
-    public abstract LightingProvider getLightingProvider();
+	@Shadow
+	public abstract LightingProvider getLightingProvider();
 }

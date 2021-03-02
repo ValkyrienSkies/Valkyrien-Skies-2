@@ -6,6 +6,6 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 
 @Mixin(ClientChunkManager.ClientChunkMap.class)
 public interface ClientChunkManagerClientChunkMapAccessor {
-    @Invoker(value = "isInRadius")
-    boolean callIsInRadius(int chunkX, int chunkZ);
+	@Invoker(value = "isInRadius")
+	boolean callIsInRadius(int chunkX, int chunkZ);
 }

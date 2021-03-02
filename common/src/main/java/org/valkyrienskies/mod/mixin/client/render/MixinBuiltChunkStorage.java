@@ -24,75 +24,75 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 @Mixin(BuiltChunkStorage.class)
 public class MixinBuiltChunkStorage {
 
-    @Shadow
-    @Final
-    protected World world;
+	@Shadow
+	@Final
+	protected World world;
 
-    @Shadow
-    protected int sizeY;
+	@Shadow
+	protected int sizeY;
 
-    // Maps chunk position to an array of BuiltChunk, indexed by the y value.
-    private final Long2ObjectMap<ChunkBuilder.BuiltChunk[]> vs$shipRenderChunks = new Long2ObjectOpenHashMap<>();
-    // This creates render chunks
-    private ChunkBuilder vs$chunkBuilder;
+	// Maps chunk position to an array of BuiltChunk, indexed by the y value.
+	private final Long2ObjectMap<ChunkBuilder.BuiltChunk[]> vs$shipRenderChunks = new Long2ObjectOpenHashMap<>();
+	// This creates render chunks
+	private ChunkBuilder vs$chunkBuilder;
 
-    /**
-     * This mixin stores the [chunkBuilder] object from the constructor. It is used to create new render chunks.
-     */
-    @Inject(method = "<init>", at = @At("TAIL"))
-    private void postInit(ChunkBuilder chunkBuilder, World world, int viewDistance, WorldRenderer worldRenderer,
-        CallbackInfo callbackInfo) {
-        this.vs$chunkBuilder = chunkBuilder;
-    }
+	/**
+	 * This mixin stores the [chunkBuilder] object from the constructor. It is used to create new render chunks.
+	 */
+	@Inject(method = "<init>", at = @At("TAIL"))
+	private void postInit(ChunkBuilder chunkBuilder, World world, int viewDistance, WorldRenderer worldRenderer,
+		CallbackInfo callbackInfo) {
+		this.vs$chunkBuilder = chunkBuilder;
+	}
 
-    /**
-     * This mixin creates render chunks for ship chunks.
-     */
-    @Inject(method = "scheduleRebuild", at = @At("HEAD"), cancellable = true)
-    private void preScheduleRebuild(int x, int y, int z, boolean important, CallbackInfo callbackInfo) {
-        if (y < 0 || y >= sizeY) {
-            return; // Weird, but just ignore it
-        }
-        if (VSGameUtilsKt.getShipObjectWorld(world).getChunkAllocator().isChunkInShipyard(x, z)) {
-            final long chunkPosAsLong = ChunkPos.toLong(x, z);
-            final ChunkBuilder.BuiltChunk[] renderChunksArray =
-                vs$shipRenderChunks.computeIfAbsent(chunkPosAsLong, k -> new ChunkBuilder.BuiltChunk[sizeY]);
+	/**
+	 * This mixin creates render chunks for ship chunks.
+	 */
+	@Inject(method = "scheduleRebuild", at = @At("HEAD"), cancellable = true)
+	private void preScheduleRebuild(int x, int y, int z, boolean important, CallbackInfo callbackInfo) {
+		if (y < 0 || y >= sizeY) {
+			return; // Weird, but just ignore it
+		}
+		if (VSGameUtilsKt.getShipObjectWorld(world).getChunkAllocator().isChunkInShipyard(x, z)) {
+			final long chunkPosAsLong = ChunkPos.toLong(x, z);
+			final ChunkBuilder.BuiltChunk[] renderChunksArray =
+				vs$shipRenderChunks.computeIfAbsent(chunkPosAsLong, k -> new ChunkBuilder.BuiltChunk[sizeY]);
 
-            if (renderChunksArray[y] == null) {
-                final ChunkBuilder.BuiltChunk builtChunk = vs$chunkBuilder.new BuiltChunk();
-                builtChunk.setOrigin(x << 4, y << 4, z << 4);
-                renderChunksArray[y] = builtChunk;
-            }
+			if (renderChunksArray[y] == null) {
+				final ChunkBuilder.BuiltChunk builtChunk = vs$chunkBuilder.new BuiltChunk();
+				builtChunk.setOrigin(x << 4, y << 4, z << 4);
+				renderChunksArray[y] = builtChunk;
+			}
 
-            renderChunksArray[y].scheduleRebuild(important);
+			renderChunksArray[y].scheduleRebuild(important);
 
-            callbackInfo.cancel();
-        }
-    }
+			callbackInfo.cancel();
+		}
+	}
 
-    /**
-     * This mixin allows {@link BuiltChunkStorage} to return the render chunks for ships.
-     */
-    @Inject(method = "getRenderedChunk", at = @At("HEAD"), cancellable = true)
-    private void preGetRenderedChunk(BlockPos pos,
-        CallbackInfoReturnable<ChunkBuilder.BuiltChunk> callbackInfoReturnable) {
-        final int chunkX = MathHelper.floorDiv(pos.getX(), 16);
-        final int chunkY = MathHelper.floorDiv(pos.getY(), 16);
-        final int chunkZ = MathHelper.floorDiv(pos.getZ(), 16);
+	/**
+	 * This mixin allows {@link BuiltChunkStorage} to return the render chunks for ships.
+	 */
+	@Inject(method = "getRenderedChunk", at = @At("HEAD"), cancellable = true)
+	private void preGetRenderedChunk(BlockPos pos,
+		CallbackInfoReturnable<ChunkBuilder.BuiltChunk> callbackInfoReturnable) {
+		final int chunkX = MathHelper.floorDiv(pos.getX(), 16);
+		final int chunkY = MathHelper.floorDiv(pos.getY(), 16);
+		final int chunkZ = MathHelper.floorDiv(pos.getZ(), 16);
 
-        if (chunkY < 0 || chunkY >= sizeY) {
-            return; // Weird, but ignore it
-        }
+		if (chunkY < 0 || chunkY >= sizeY) {
+			return; // Weird, but ignore it
+		}
 
-        if (VSGameUtilsKt.getShipObjectWorld(world).getChunkAllocator().isChunkInShipyard(chunkX, chunkZ)) {
-            final long chunkPosAsLong = ChunkPos.toLong(chunkX, chunkZ);
-            final ChunkBuilder.BuiltChunk[] renderChunksArray = vs$shipRenderChunks.get(chunkPosAsLong);
-            if (renderChunksArray == null) {
-                callbackInfoReturnable.setReturnValue(null);
-                return;
-            }
-            final ChunkBuilder.BuiltChunk renderChunk = renderChunksArray[chunkY];
-            callbackInfoReturnable.setReturnValue(renderChunk);
-        }
-    }
+		if (VSGameUtilsKt.getShipObjectWorld(world).getChunkAllocator().isChunkInShipyard(chunkX, chunkZ)) {
+			final long chunkPosAsLong = ChunkPos.toLong(chunkX, chunkZ);
+			final ChunkBuilder.BuiltChunk[] renderChunksArray = vs$shipRenderChunks.get(chunkPosAsLong);
+			if (renderChunksArray == null) {
+				callbackInfoReturnable.setReturnValue(null);
+				return;
+			}
+			final ChunkBuilder.BuiltChunk renderChunk = renderChunksArray[chunkY];
+			callbackInfoReturnable.setReturnValue(renderChunk);
+		}
+	}
 }

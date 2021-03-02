@@ -12,23 +12,23 @@ import org.valkyrienskies.mod.common.VSGameUtils;
 @Mixin(ServerPlayNetworkHandler.class)
 public class ServerPlayNetworkHandlerMixin {
 
-    @Shadow
-    public ServerPlayerEntity player;
+	@Shadow
+	public ServerPlayerEntity player;
 
 
-    /**
-     * Include ships in server-side distance check when player interacts with a block.
-     */
-    @Redirect(
-        method = "onPlayerInteractBlock",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/server/network/ServerPlayerEntity;squaredDistanceTo(DDD)D"
-        )
-    )
-    public double includeShipsInBlockInteractDistanceCheck(ServerPlayerEntity receiver, double x, double y, double z) {
-        Vector3d inWorld = VSGameUtils.getWorldCoordinates(this.player.getServerWorld(), new Vector3d(x, y, z));
-        return inWorld.distanceSquared(receiver.getX(), receiver.getY(), receiver.getZ());
-    }
+	/**
+	 * Include ships in server-side distance check when player interacts with a block.
+	 */
+	@Redirect(
+		method = "onPlayerInteractBlock",
+		at = @At(
+			value = "INVOKE",
+			target = "Lnet/minecraft/server/network/ServerPlayerEntity;squaredDistanceTo(DDD)D"
+		)
+	)
+	public double includeShipsInBlockInteractDistanceCheck(ServerPlayerEntity receiver, double x, double y, double z) {
+		Vector3d inWorld = VSGameUtils.getWorldCoordinates(this.player.getServerWorld(), new Vector3d(x, y, z));
+		return inWorld.distanceSquared(receiver.getX(), receiver.getY(), receiver.getZ());
+	}
 
 }

@@ -12,12 +12,12 @@ import org.spongepowered.asm.mixin.gen.Accessor;
  */
 @Mixin(OverlayVertexConsumer.class)
 public interface OverlayVertexConsumerAccessor {
-    @Accessor("vertexConsumer")
-    VertexConsumer getVertexConsumer();
+	@Accessor("vertexConsumer")
+	VertexConsumer getVertexConsumer();
 
-    @Accessor("textureMatrix")
-    void setTextureMatrix(Matrix4f textureMatrix);
+	@Accessor("textureMatrix")
+	void setTextureMatrix(Matrix4f textureMatrix);
 
-    @Accessor("normalMatrix")
-    void setNormalMatrix(Matrix3f normalMatrix);
+	@Accessor("normalMatrix")
+	void setNormalMatrix(Matrix3f normalMatrix);
 }

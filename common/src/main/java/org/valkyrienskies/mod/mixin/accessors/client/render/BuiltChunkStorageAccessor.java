@@ -8,6 +8,6 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 
 @Mixin(BuiltChunkStorage.class)
 public interface BuiltChunkStorageAccessor {
-    @Invoker(value = "getRenderedChunk")
-    ChunkBuilder.BuiltChunk callGetRenderedChunk(BlockPos pos);
+	@Invoker(value = "getRenderedChunk")
+	ChunkBuilder.BuiltChunk callGetRenderedChunk(BlockPos pos);
 }

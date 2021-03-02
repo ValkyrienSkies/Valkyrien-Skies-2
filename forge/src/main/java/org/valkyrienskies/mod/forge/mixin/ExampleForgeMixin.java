@@ -12,16 +12,16 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(TitleScreen.class)
 public class ExampleForgeMixin {
 
-    @Shadow
-    @Final
-    private static Logger field_23775;
+	@Shadow
+	@Final
+	private static Logger field_23775;
 
-    @Inject(
-        at = @At("HEAD"),
-        method = "init"
-    )
-    public void inject(CallbackInfo info) {
-        field_23775.info("Hello from ExampleForgeMixin");
-    }
+	@Inject(
+		at = @At("HEAD"),
+		method = "init"
+	)
+	public void inject(CallbackInfo info) {
+		field_23775.info("Hello from ExampleForgeMixin");
+	}
 
 }

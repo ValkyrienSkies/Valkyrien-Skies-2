@@ -22,41 +22,41 @@ import org.valkyrienskies.mod.common.VSGameUtils;
 public abstract class MixinClientWorld implements IShipObjectWorldProvider {
 
 
-    private final ShipObjectWorld shipObjectWorld =
-        new ShipObjectWorld(new QueryableShipData(), new ChunkAllocator(-7000, 3000));
+	private final ShipObjectWorld shipObjectWorld =
+		new ShipObjectWorld(new QueryableShipData(), new ChunkAllocator(-7000, 3000));
 
-    @NotNull
-    @Override
-    public ShipObjectWorld getShipObjectWorld() {
-        return shipObjectWorld;
-    }
+	@NotNull
+	@Override
+	public ShipObjectWorld getShipObjectWorld() {
+		return shipObjectWorld;
+	}
 
-    @Inject(method = "tick", at = @At("TAIL"))
-    private void postTick(BooleanSupplier shouldKeepTicking, CallbackInfo ci) {
-        // Tick the ship world
-        shipObjectWorld.tickShips();
-    }
+	@Inject(method = "tick", at = @At("TAIL"))
+	private void postTick(BooleanSupplier shouldKeepTicking, CallbackInfo ci) {
+		// Tick the ship world
+		shipObjectWorld.tickShips();
+	}
 
-    @Inject(
-        method = "playSound(DDDLnet/minecraft/sound/SoundEvent;Lnet/minecraft/sound/SoundCategory;FFZ)V",
-        at = @At("HEAD"),
-        cancellable = true
-    )
-    private void onPlaySound(double x, double y, double z, SoundEvent sound, SoundCategory category,
-        float volume, float pitch, boolean bl, CallbackInfo ci) {
-        final ClientWorld self = ClientWorld.class.cast(this);
-        final ShipObject shipObject = VSGameUtils.getShipObjectManagingPos(self, (int) x >> 4, (int) z >> 4);
-        if (shipObject != null) {
-            Vector3d newPosition = shipObject.getRenderTransform().getShipToWorldMatrix()
-                .transformPosition(new Vector3d(x, y, z));
+	@Inject(
+		method = "playSound(DDDLnet/minecraft/sound/SoundEvent;Lnet/minecraft/sound/SoundCategory;FFZ)V",
+		at = @At("HEAD"),
+		cancellable = true
+	)
+	private void onPlaySound(double x, double y, double z, SoundEvent sound, SoundCategory category,
+		float volume, float pitch, boolean bl, CallbackInfo ci) {
+		final ClientWorld self = ClientWorld.class.cast(this);
+		final ShipObject shipObject = VSGameUtils.getShipObjectManagingPos(self, (int) x >> 4, (int) z >> 4);
+		if (shipObject != null) {
+			Vector3d newPosition = shipObject.getRenderTransform().getShipToWorldMatrix()
+				.transformPosition(new Vector3d(x, y, z));
 
-            playSound(newPosition.x, newPosition.y, newPosition.z, sound, category, volume, pitch, bl);
-            ci.cancel();
-        }
-    }
+			playSound(newPosition.x, newPosition.y, newPosition.z, sound, category, volume, pitch, bl);
+			ci.cancel();
+		}
+	}
 
-    @Shadow
-    public abstract void playSound(double x, double y, double z, SoundEvent sound, SoundCategory category, float volume,
-        float pitch, boolean bl);
+	@Shadow
+	public abstract void playSound(double x, double y, double z, SoundEvent sound, SoundCategory category, float volume,
+		float pitch, boolean bl);
 
 }
