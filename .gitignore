@@ -20,6 +20,8 @@ out
 !.idea/inspectionProfiles/
 # checkstyle config
 !.idea/checkstyle-idea.xml
+# recommended plugins
+!.idea/externalDependencies.xml
 
 # vscode
 .vscode
