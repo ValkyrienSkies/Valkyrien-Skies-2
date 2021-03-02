@@ -5,11 +5,12 @@ plugins {
 
 configurations {
     // Use shadow to shade the file but NOT add it as a dependency
-    shadow
+    shadowCommon
 }
 
 architectury {
     platformSetupLoomIde()
+    fabric()
 }
 
 minecraft {
@@ -21,13 +22,13 @@ dependencies {
     mappings("net.fabricmc:yarn:${rootProject.yarn_mappings}:v2")
     modCompile("net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}")
 
-    compileOnly(project(path: ":common")) {
+    implementation(project(path: ":common")) {
         transitive = false
     }
-    runtimeOnly(project(path: ":common", configuration: "transformDevelopmentFabric")) {
+    developmentFabric(project(path: ":common")) {
         transitive = false
     }
-    shadow(project(path: ":common", configuration: "transformProductionFabric")) {
+    shadowCommon(project(path: ":common", configuration: "transformProductionFabric")) {
         transitive = false
     }
 
@@ -39,7 +40,7 @@ dependencies {
 
     // vs-core
     implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}")
-    shadow("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}")
+    shadowCommon("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}")
 }
 
 processResources {
@@ -50,7 +51,7 @@ processResources {
 }
 
 shadowJar {
-    configurations = [project.configurations.shadow]
+    configurations = [project.configurations.shadowCommon]
     classifier "shadow"
 }
 

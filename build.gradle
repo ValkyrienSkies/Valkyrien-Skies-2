@@ -1,7 +1,7 @@
 plugins {
     // Needed for Forge+Fabric
-    id "architectury-plugin" version "2.0.65"
-    id "forgified-fabric-loom" version "0.6.59" apply false
+    id "architectury-plugin" version "3.0.93"
+    id "forgified-fabric-loom" version "0.6.72" apply false
     // Kotlin
     id "org.jetbrains.kotlin.jvm" version "1.4.21" apply false
     // Configure SonarQube

@@ -5,11 +5,12 @@ plugins {
 
 configurations {
     // Use shadow to shade the file but NOT add it as a dependency
-    shadow
+    shadowCommon
 }
 
 architectury {
     platformSetupLoomIde()
+    forge()
 }
 
 loom {
@@ -22,29 +23,29 @@ dependencies {
     mappings("net.fabricmc:yarn:${rootProject.yarn_mappings}:v2")
     forge("net.minecraftforge:forge:${rootProject.minecraft_version}-${rootProject.forge_version}")
 
-    compileOnly(project(path: ":common")) {
+    implementation(project(path: ":common")) {
         transitive = false
     }
-    runtimeOnly(project(path: ":common", configuration: "transformDevelopmentForge")) {
+    developmentForge(project(path: ":common")) {
         transitive = false
     }
-    shadow(project(path: ":common", configuration: "transformProductionForge")) {
+    shadowCommon(project(path: ":common", configuration: "transformProductionForge")) {
         transitive = false
     }
 
-    shadow("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.4.21")
-    shadow("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.2")
+    shadowCommon("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.4.21")
+    shadowCommon("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.2")
     compile("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.2")
 
     // vs-core
     implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}")
-    shadow("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}")
+    shadowCommon("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}")
 }
 
 shadowJar {
     exclude "fabric.mod.json"
 
-    configurations = [project.configurations.shadow]
+    configurations = [project.configurations.shadowCommon]
     classifier "shadow"
 }
 
