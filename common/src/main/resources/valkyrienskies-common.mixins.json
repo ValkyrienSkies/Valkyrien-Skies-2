@@ -8,21 +8,15 @@
     "server.network.ServerPlayerInteractionManagerMixin",
     "server.network.ServerPlayNetworkHandlerMixin",
     "server.world.MixinServerWorld",
-    "server.world.MixinThreadedAnvilChunkStorage",
-    "server.world.ThreadedAnvilChunkStorageAccessor",
-    "util.math.Matrix4fAccessor"
+    "server.world.MixinThreadedAnvilChunkStorage"
   ],
   "client": [
     "client.render.MixinBuiltChunkStorage",
     "client.render.MixinWorldRenderer",
-    "client.render.MixinWorldRendererChunkInfo",
     "client.render.block.entity.MixinBlockEntityRenderDispatcher",
     "client.render.chunk.MixinChunkBuilderBuiltChunk",
     "client.world.MixinClientChunkManager",
-    "client.world.MixinClientWorld",
-    "client.render.OverlayVertexConsumerAccessor",
-    "client.render.BuiltChunkStorageAccessor",
-    "client.world.ClientChunkManagerClientChunkMapAccessor"
+    "client.world.MixinClientWorld"
   ],
   "injectors": {
     "defaultRequire": 1

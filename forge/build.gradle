@@ -13,7 +13,7 @@ architectury {
 }
 
 loom {
-    mixinConfigs = ["valkyrienskies-common.mixins.json", "valkyrienskies-forge.mixins.json"]
+    mixinConfigs = ["valkyrienskies-common.mixins.json", "valkyrienskies-common-accessors.mixins.json", "valkyrienskies-forge.mixins.json"]
     useFabricMixin = true
 }
 

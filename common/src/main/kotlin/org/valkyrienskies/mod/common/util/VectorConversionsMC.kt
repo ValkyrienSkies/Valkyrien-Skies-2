@@ -7,7 +7,7 @@ import net.minecraft.util.math.Quaternion
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
 import org.joml.*
-import org.valkyrienskies.mod.mixin.util.math.Matrix4fAccessor
+import org.valkyrienskies.mod.accessors.util.math.Matrix4fAccessor
 import net.minecraft.util.math.Matrix4f as Matrix4fMC
 
 // region JOML

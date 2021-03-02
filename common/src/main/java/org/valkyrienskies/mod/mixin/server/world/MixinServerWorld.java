@@ -21,6 +21,7 @@ import org.valkyrienskies.core.game.IPlayer;
 import org.valkyrienskies.core.game.ships.ShipObjectWorld;
 import org.valkyrienskies.core.networking.IVSPacket;
 import org.valkyrienskies.core.networking.impl.VSPacketShipDataList;
+import org.valkyrienskies.mod.accessors.server.world.ThreadedAnvilChunkStorageAccessor;
 import org.valkyrienskies.mod.common.IShipObjectWorldProvider;
 import org.valkyrienskies.mod.common.ShipSavedData;
 import org.valkyrienskies.mod.common.VSNetworking;

@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.client.world;
+package org.valkyrienskies.mod.accessors.client.world;
 
 import net.minecraft.client.world.ClientChunkManager;
 import org.spongepowered.asm.mixin.Mixin;

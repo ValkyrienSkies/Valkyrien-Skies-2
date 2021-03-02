@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.client.render;
+package org.valkyrienskies.mod.accessors.client.render;
 
 import net.minecraft.client.render.OverlayVertexConsumer;
 import net.minecraft.client.render.VertexConsumer;

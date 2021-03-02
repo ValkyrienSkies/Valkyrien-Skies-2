@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.server.world;
+package org.valkyrienskies.mod.accessors.server.world;
 
 import net.minecraft.network.Packet;
 import net.minecraft.server.network.ServerPlayerEntity;

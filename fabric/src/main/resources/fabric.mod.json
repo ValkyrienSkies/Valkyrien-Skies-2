@@ -21,6 +21,7 @@
   },
   "mixins": [
     "valkyrienskies-common.mixins.json",
+    "valkyrienskies-common-accessors.mixins.json",
     "valkyrienskies-fabric.mixins.json"
   ],
   "accessWidener": "valkyrienskies-common.accesswidener",
