@@ -27,17 +27,17 @@ sonarqube {
 
 subprojects {
     apply plugin: "forgified-fabric-loom"
+    // Apply checkstyle and ktlint to check the code style of every sub project
     apply plugin: "org.jlleitschuh.gradle.ktlint"
     apply plugin: "checkstyle"
 
     checkstyle {
+        // configure to use Checkstyle v8.41
         toolVersion "8.41"
+        // Gradle should fail builds on checkstyle errors (not warnings)
         ignoreFailures = false
+        // Checkstyle config file is in .checkstyle/checkstyle.xml
         configFile = file("${rootDir}/.checkstyle/checkstyle.xml")
-    }
-
-    loom {
-        silentMojangMappingsLicense()
     }
 }
 
@@ -45,6 +45,7 @@ allprojects {
     apply plugin: "java"
     apply plugin: "architectury-plugin"
 
+    // Set the base name, version, and group to the values in the gradle.properties
     archivesBaseName = rootProject.archives_base_name
     version = rootProject.mod_version
     group = rootProject.maven_group

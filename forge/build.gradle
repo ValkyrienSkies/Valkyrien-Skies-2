@@ -4,6 +4,7 @@ plugins {
 }
 
 configurations {
+    // Create a shadowCommon configuration.
     // Use shadow to shade the file but NOT add it as a dependency
     shadowCommon
 }
@@ -14,11 +15,15 @@ architectury {
 }
 
 loom {
+    // Include the following mixin configs in the META-INF file for Forge to load
     mixinConfigs = ["valkyrienskies-common.mixins.json", "valkyrienskies-forge.mixins.json"]
+    // This flag ensures that mixins work in forge in dev
     useFabricMixin = true
 }
 
 dependencies {
+    // Configure architectury/loom with specific minecraft version, yarn mappings, and forge version
+    // taken from the root project's gradle.properties file
     minecraft("com.mojang:minecraft:${rootProject.minecraft_version}")
     mappings("net.fabricmc:yarn:${rootProject.yarn_mappings}:v2")
     forge("net.minecraftforge:forge:${rootProject.minecraft_version}-${rootProject.forge_version}")
@@ -33,11 +38,12 @@ dependencies {
         transitive = false
     }
 
+    // We need to shade Kotlin on Forge because there are is no popular Kotlin dependency mod.
     shadowCommon("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.4.21")
     shadowCommon("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.2")
     compile("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.2")
 
-    // vs-core
+    // Shade vs-core
     implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}")
     shadowCommon("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}")
 }
@@ -45,12 +51,17 @@ dependencies {
 shadowJar {
     exclude "fabric.mod.json"
 
+    // Configure shadowCommon dependencies to be shaded by the shadow plugin
     configurations = [project.configurations.shadowCommon]
+    // The shadow plugin's JAR output (which is only a temporary step) is given the classifier "shadow"
     classifier "shadow"
 }
 
 remapJar {
+    // shadowJar must be created before this is run
     dependsOn(shadowJar)
+    // remap the shadowJar
     input.set(shadowJar.archivePath)
+    // Give the remapped jar the classifier "forge"
     archiveClassifier = "forge"
 }
