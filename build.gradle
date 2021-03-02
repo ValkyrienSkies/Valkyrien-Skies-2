@@ -41,6 +41,7 @@ subprojects {
         configFile = file("${rootDir}/.checkstyle/checkstyle.xml")
     }
 
+    // configure checkstyle, but different
     // https://docs.gradle.org/current/userguide/checkstyle_plugin.html
     tasks.withType(Checkstyle) {
         reports {
