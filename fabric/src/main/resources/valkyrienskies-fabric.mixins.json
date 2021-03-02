@@ -5,7 +5,7 @@
   "refmap": "valkyrienskies-116-fabric-refmap.json",
   "mixins": [
   ],
-  "client":[
+  "client": [
     "ExampleFabricMixin"
   ],
   "injectors": {

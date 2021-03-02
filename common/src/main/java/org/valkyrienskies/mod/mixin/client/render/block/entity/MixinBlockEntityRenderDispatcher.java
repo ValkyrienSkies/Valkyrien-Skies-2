@@ -31,18 +31,30 @@ public class MixinBlockEntityRenderDispatcher {
     /**
      * This mixin fixes the culling of {@link BlockEntity}s that belong to a ship.
      */
-    @Redirect(method = "render(Lnet/minecraft/block/entity/BlockEntity;FLnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/math/Vec3d;isInRange(Lnet/minecraft/util/math/Position;D)Z"))
-    private boolean isTileEntityInRenderRange(Vec3d tileEntityPos, Position cameraPos, double radiusSquared, BlockEntity methodBlockEntity, float methodTickDelta, MatrixStack methodMatrix, VertexConsumerProvider methodVertexConsumerProvider) {
+    @Redirect(
+        method = "render(Lnet/minecraft/block/entity/BlockEntity;FLnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;)V",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/util/math/Vec3d;isInRange(Lnet/minecraft/util/math/Position;D)Z"
+        )
+    )
+    private boolean isTileEntityInRenderRange(Vec3d tileEntityPos, Position cameraPos, double radiusSquared,
+        BlockEntity methodBlockEntity, float methodTickDelta, MatrixStack methodMatrix,
+        VertexConsumerProvider methodVertexConsumerProvider) {
         final boolean defaultResult = tileEntityPos.isInRange(cameraPos, radiusSquared);
-        if (defaultResult) return true;
+        if (defaultResult) {
+            return true;
+        }
         // If defaultResult was false, then check if this BlockEntity belongs to a ship
         final BlockPos blockEntityPos = methodBlockEntity.getPos();
         final ShipObject getShipObjectManagingPos = VSGameUtils.getShipObjectManagingPos(world, blockEntityPos);
         if (getShipObjectManagingPos != null) {
             // Transform tileEntityPos to be in world coordinates
             final ShipTransform renderTransform = getShipObjectManagingPos.getRenderTransform();
-            final Vector3dc tileEntityPosInWorldCoordinates = renderTransform.getShipToWorldMatrix().transformPosition(new Vector3d(tileEntityPos.getX(), tileEntityPos.getY(), tileEntityPos.getZ()));
-            final Vec3d tileEntityPosInWorldCoordinatesVec3d = VectorConversionsMCKt.toVec3d(tileEntityPosInWorldCoordinates);
+            final Vector3dc tileEntityPosInWorldCoordinates = renderTransform.getShipToWorldMatrix()
+                .transformPosition(new Vector3d(tileEntityPos.getX(), tileEntityPos.getY(), tileEntityPos.getZ()));
+            final Vec3d tileEntityPosInWorldCoordinatesVec3d =
+                VectorConversionsMCKt.toVec3d(tileEntityPosInWorldCoordinates);
             return tileEntityPosInWorldCoordinatesVec3d.isInRange(cameraPos, radiusSquared);
         }
         return false;

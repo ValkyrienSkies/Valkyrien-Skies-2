@@ -54,28 +54,34 @@ fun World.raycastIncludeShips(ctx: RaycastContext): BlockHitResult {
 
 // copy paste of vanilla raycast with the option to specify a custom start/end
 private fun World.raycast(context: RaycastContext, realStart: Vec3d, realEnd: Vec3d): BlockHitResult {
-    return raycast(realStart, realEnd, context, { raycastContext: RaycastContext, blockPos: BlockPos? ->
-        val blockState: BlockState = getBlockState(blockPos)
-        val fluidState: FluidState = getFluidState(blockPos)
-        val vec3d = realStart
-        val vec3d2 = realEnd
-        val voxelShape = raycastContext.getBlockShape(blockState, this, blockPos)
-        val blockHitResult: BlockHitResult? = raycastBlock(vec3d, vec3d2, blockPos, voxelShape, blockState)
-        val voxelShape2 = raycastContext.getFluidShape(fluidState, this, blockPos)
-        val blockHitResult2 = voxelShape2.raycast(vec3d, vec3d2, blockPos)
-        val d = if (blockHitResult == null) Double.MAX_VALUE else realStart.squaredDistanceTo(blockHitResult.pos)
-        val e = if (blockHitResult2 == null) Double.MAX_VALUE else realEnd.squaredDistanceTo(blockHitResult2.pos)
-        if (d <= e) blockHitResult else blockHitResult2
-    }) { raycastContext: RaycastContext ->
+    return raycast(
+        realStart, realEnd, context,
+        { raycastContext: RaycastContext, blockPos: BlockPos? ->
+            val blockState: BlockState = getBlockState(blockPos)
+            val fluidState: FluidState = getFluidState(blockPos)
+            val vec3d = realStart
+            val vec3d2 = realEnd
+            val voxelShape = raycastContext.getBlockShape(blockState, this, blockPos)
+            val blockHitResult: BlockHitResult? = raycastBlock(vec3d, vec3d2, blockPos, voxelShape, blockState)
+            val voxelShape2 = raycastContext.getFluidShape(fluidState, this, blockPos)
+            val blockHitResult2 = voxelShape2.raycast(vec3d, vec3d2, blockPos)
+            val d = if (blockHitResult == null) Double.MAX_VALUE else realStart.squaredDistanceTo(blockHitResult.pos)
+            val e = if (blockHitResult2 == null) Double.MAX_VALUE else realEnd.squaredDistanceTo(blockHitResult2.pos)
+            if (d <= e) blockHitResult else blockHitResult2
+        }
+    ) { raycastContext: RaycastContext ->
         val vec3d = realStart.subtract(realEnd)
         BlockHitResult.createMissed(realEnd, Direction.getFacing(vec3d.x, vec3d.y, vec3d.z), BlockPos(realEnd))
     } as BlockHitResult
 }
 
-private fun <T> raycast(realStart: Vec3d, realEnd: Vec3d,
-                        raycastContext: RaycastContext,
-                        context: BiFunction<RaycastContext, BlockPos?, T>,
-                        blockRaycaster: Function<RaycastContext, T>): T {
+private fun <T> raycast(
+    realStart: Vec3d,
+    realEnd: Vec3d,
+    raycastContext: RaycastContext,
+    context: BiFunction<RaycastContext, BlockPos?, T>,
+    blockRaycaster: Function<RaycastContext, T>
+): T {
     val vec3d = realStart
     val vec3d2 = realEnd
     return if (vec3d == vec3d2) {

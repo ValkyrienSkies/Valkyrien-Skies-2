@@ -4,7 +4,7 @@ import net.minecraft.entity.player.PlayerEntity
 import org.joml.Vector3d
 import org.valkyrienskies.core.game.IPlayer
 import java.lang.ref.WeakReference
-import java.util.*
+import java.util.UUID
 
 /**
  * We use this wrapper around [PlayerEntity] to create [IPlayer] objects used by vs-core.

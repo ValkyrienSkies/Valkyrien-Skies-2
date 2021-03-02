@@ -1,9 +1,9 @@
 package org.valkyrienskies.mod.fabric.common
 
-import org.valkyrienskies.mod.common.ValkyrienSkiesMod
-import org.valkyrienskies.mod.common.VSNetworking
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 import net.minecraft.util.Identifier
+import org.valkyrienskies.mod.common.VSNetworking
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 
 /**
  * Registers VS with the Fabric networking API.

@@ -5,7 +5,7 @@
   "refmap": "valkyrienskies-116-forge-refmap.json",
   "mixins": [
   ],
-  "client":[
+  "client": [
     "ExampleForgeMixin"
   ],
   "injectors": {

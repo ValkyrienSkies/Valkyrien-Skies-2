@@ -16,14 +16,16 @@ public interface WorldRendererChunkInfoAccessor {
     /**
      * This mixin allows us to invoke the private constructor of WorldRenderer.ChunkInfo.
      *
-     * The compiler complains about it because it thinks the constructor arguments are (ChunkBuilder.BuiltChunk, Direction, int),
-     * but at runtime the constructor arguments are actually (WorldRenderer, ChunkBuilder.BuiltChunk, Direction, int).
+     * <p>The compiler complains about it because it thinks the constructor arguments are
+     * (ChunkBuilder.BuiltChunk, Direction, int), but at runtime the constructor arguments are actually
+     * (WorldRenderer, ChunkBuilder.BuiltChunk, Direction, int).
      * This is caused by weird synthetic behavior of non-static inner classes.
      *
-     * The easy fix for this problem is to use a wildcard target.
+     * <p>The easy fix for this problem is to use a wildcard target.
      */
     @Invoker(value = "<init>")
-    static WorldRenderer.ChunkInfo invoker$new(WorldRenderer worldRenderer, ChunkBuilder.BuiltChunk chunk, @Nullable Direction direction, int propagationLevel) {
+    static WorldRenderer.ChunkInfo vs$new(WorldRenderer worldRenderer, ChunkBuilder.BuiltChunk chunk,
+        @Nullable Direction direction, int propagationLevel) {
         throw new AssertionError("MixinWorldRendererChunkInfo failed to apply");
     }
 }

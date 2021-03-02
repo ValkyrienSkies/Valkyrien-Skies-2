@@ -45,7 +45,8 @@ object VSForgeNetworking {
                     }
                     contextSupplier.get().packetHandled = true
                 }
-            })
+            }
+        )
     }
 
     private fun injectForgePacketSenders() {

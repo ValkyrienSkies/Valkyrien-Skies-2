@@ -12,10 +12,13 @@ import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 @Mixin(Entity.class)
 public class MixinEntity {
 
-    @Redirect(method = "raycast", at = @At(
-        value = "INVOKE",
-        target = "Lnet/minecraft/world/World;raycast(Lnet/minecraft/world/RaycastContext;)Lnet/minecraft/util/hit/BlockHitResult;"
-    ))
+    @Redirect(
+        method = "raycast",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/world/World;raycast(Lnet/minecraft/world/RaycastContext;)Lnet/minecraft/util/hit/BlockHitResult;"
+        )
+    )
     public BlockHitResult addShipsToRaycast(World receiver, RaycastContext ctx) {
         return RaycastUtilsKt.raycastIncludeShips(receiver, ctx);
     }

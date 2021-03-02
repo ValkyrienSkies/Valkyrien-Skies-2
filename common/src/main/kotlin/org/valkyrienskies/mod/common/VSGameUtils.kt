@@ -81,4 +81,3 @@ object VSGameUtils {
             ?.shipData?.shipTransform?.shipToWorldMatrix?.transformPosition(pos) ?: pos
     }
 }
-

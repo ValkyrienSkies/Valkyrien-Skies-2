@@ -1,6 +1,14 @@
 package org.valkyrienskies.mod.mixin.server.world;
 
 import com.google.common.collect.ImmutableList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Spliterator;
+import java.util.UUID;
+import java.util.function.BooleanSupplier;
 import kotlin.Pair;
 import net.minecraft.network.Packet;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -27,9 +35,6 @@ import org.valkyrienskies.mod.common.ShipSavedData;
 import org.valkyrienskies.mod.common.VSNetworking;
 import org.valkyrienskies.mod.common.util.MinecraftPlayer;
 
-import java.util.*;
-import java.util.function.BooleanSupplier;
-
 @Mixin(ServerWorld.class)
 public abstract class MixinServerWorld implements IShipObjectWorldProvider {
 
@@ -49,13 +54,13 @@ public abstract class MixinServerWorld implements IShipObjectWorldProvider {
     private final Map<UUID, MinecraftPlayer> vsPlayerWrappers = new HashMap<>();
 
     @Inject(
-            at = @At("TAIL"),
-            method = "<init>"
+        at = @At("TAIL"),
+        method = "<init>"
     )
     private void postConstructor(CallbackInfo info) {
         // Load ship data from the world storage
         shipSavedData = getPersistentStateManager()
-                .getOrCreate(ShipSavedData.Companion::createEmpty, ShipSavedData.SAVED_DATA_ID);
+            .getOrCreate(ShipSavedData.Companion::createEmpty, ShipSavedData.SAVED_DATA_ID);
         // Make a ship world using the loaded ship data
         shipObjectWorld = new ShipObjectWorld(shipSavedData.getQueryableShipData(), shipSavedData.getChunkAllocator());
     }
@@ -75,20 +80,24 @@ public abstract class MixinServerWorld implements IShipObjectWorldProvider {
         shipObjectWorld.tickShips();
 
         // Send ships to clients
-        final IVSPacket shipDataPacket = VSPacketShipDataList.Companion.create(shipObjectWorld.getQueryableShipData().iterator());
+        final IVSPacket shipDataPacket = VSPacketShipDataList.Companion
+            .create(shipObjectWorld.getQueryableShipData().iterator());
+
         for (ServerPlayerEntity playerEntity : players) {
             VSNetworking.shipDataPacketToClientSender.sendToClient(shipDataPacket, playerEntity);
         }
 
         // Then determine the chunk watch/unwatch tasks, and then execute them
         final ImmutableList<IPlayer> playersToTick = ImmutableList.copyOf(vsPlayerWrappers.values());
-        final Pair<Spliterator<ChunkWatchTask>, Spliterator<ChunkUnwatchTask>> chunkWatchAndUnwatchTasksPair = shipObjectWorld.tickShipChunkLoading(playersToTick);
+        final Pair<Spliterator<ChunkWatchTask>, Spliterator<ChunkUnwatchTask>> chunkWatchAndUnwatchTasksPair =
+            shipObjectWorld.tickShipChunkLoading(playersToTick);
 
         // Use Spliterator instead of iterators so that we can multi thread the execution of these tasks
         final Spliterator<ChunkWatchTask> chunkWatchTasks = chunkWatchAndUnwatchTasksPair.getFirst();
         final Spliterator<ChunkUnwatchTask> chunkUnwatchTasks = chunkWatchAndUnwatchTasksPair.getSecond();
 
-        final ThreadedAnvilChunkStorageAccessor accessor = (ThreadedAnvilChunkStorageAccessor) serverChunkManager.threadedAnvilChunkStorage;
+        final ThreadedAnvilChunkStorageAccessor accessor =
+            (ThreadedAnvilChunkStorageAccessor) serverChunkManager.threadedAnvilChunkStorage;
 
         // But for now just do it single threaded
         chunkWatchTasks.forEachRemaining(chunkWatchTask -> {
@@ -101,7 +110,8 @@ public abstract class MixinServerWorld implements IShipObjectWorldProvider {
 
             for (final IPlayer player : chunkWatchTask.getPlayersNeedWatching()) {
                 final MinecraftPlayer minecraftPlayer = (MinecraftPlayer) player;
-                final ServerPlayerEntity serverPlayerEntity = (ServerPlayerEntity) minecraftPlayer.getPlayerEntityReference().get();
+                final ServerPlayerEntity serverPlayerEntity =
+                    (ServerPlayerEntity) minecraftPlayer.getPlayerEntityReference().get();
                 if (serverPlayerEntity != null) {
                     accessor.callSendWatchPackets(serverPlayerEntity, chunkPos, chunkPacketBuffer, false, true);
                 }
@@ -110,7 +120,8 @@ public abstract class MixinServerWorld implements IShipObjectWorldProvider {
         });
 
         chunkUnwatchTasks.forEachRemaining(chunkUnwatchTask -> {
-            System.out.println("Unwatch task for " + chunkUnwatchTask.getChunkX() + " : " + chunkUnwatchTask.getChunkZ());
+            System.out
+                .println("Unwatch task for " + chunkUnwatchTask.getChunkX() + " : " + chunkUnwatchTask.getChunkZ());
             chunkUnwatchTask.onExecuteChunkUnwatchTask();
         });
     }

@@ -13,5 +13,4 @@ object ValkyrienSkiesMod {
         println("Hello from init")
         VSNetworking.registerVSPackets()
     }
-
 }

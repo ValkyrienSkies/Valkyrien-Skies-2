@@ -32,8 +32,8 @@ public class ServerPlayerInteractionManagerMixin {
         index = 11
     )
     public double includeShipsInBlockBreakDistanceCheck(double g, BlockPos pos,
-                                                        PlayerActionC2SPacket.Action action,
-                                                        Direction direction, int worldHeight) {
+        PlayerActionC2SPacket.Action action,
+        Direction direction, int worldHeight) {
         Vector3d blockCenter = VectorConversionsMCKt.toJOMLD(pos).add(0.5, 0.5, 0.5);
         return VSGameUtils.getWorldCoordinates(world, pos, blockCenter)
             .distanceSquared(player.getX(), player.getY() + 1.5, player.getZ());

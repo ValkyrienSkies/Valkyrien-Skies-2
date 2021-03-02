@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.client.world;
 
+import java.util.function.BooleanSupplier;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
@@ -17,13 +18,12 @@ import org.valkyrienskies.core.game.ships.ShipObjectWorld;
 import org.valkyrienskies.mod.common.IShipObjectWorldProvider;
 import org.valkyrienskies.mod.common.VSGameUtils;
 
-import java.util.function.BooleanSupplier;
-
 @Mixin(ClientWorld.class)
 public abstract class MixinClientWorld implements IShipObjectWorldProvider {
 
 
-    private final ShipObjectWorld shipObjectWorld = new ShipObjectWorld(new QueryableShipData(), new ChunkAllocator(-7000, 3000));
+    private final ShipObjectWorld shipObjectWorld =
+        new ShipObjectWorld(new QueryableShipData(), new ChunkAllocator(-7000, 3000));
 
     @NotNull
     @Override
@@ -43,7 +43,7 @@ public abstract class MixinClientWorld implements IShipObjectWorldProvider {
         cancellable = true
     )
     private void onPlaySound(double x, double y, double z, SoundEvent sound, SoundCategory category,
-                             float volume, float pitch, boolean bl, CallbackInfo ci) {
+        float volume, float pitch, boolean bl, CallbackInfo ci) {
         final ClientWorld self = ClientWorld.class.cast(this);
         final ShipObject shipObject = VSGameUtils.getShipObjectManagingPos(self, (int) x >> 4, (int) z >> 4);
         if (shipObject != null) {
@@ -56,6 +56,7 @@ public abstract class MixinClientWorld implements IShipObjectWorldProvider {
     }
 
     @Shadow
-    public abstract void playSound(double x, double y, double z, SoundEvent sound, SoundCategory category, float volume, float pitch, boolean bl);
+    public abstract void playSound(double x, double y, double z, SoundEvent sound, SoundCategory category, float volume,
+        float pitch, boolean bl);
 
 }

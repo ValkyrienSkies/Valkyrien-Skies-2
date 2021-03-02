@@ -64,5 +64,4 @@ class ShipSavedData : PersistentState(SAVED_DATA_ID) {
 
     fun getQueryableShipData() = queryableShipData
     fun getChunkAllocator() = chunkAllocator
-
 }

@@ -1,5 +1,12 @@
 package org.valkyrienskies.mod.mixin.server.world;
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -26,14 +33,6 @@ import org.valkyrienskies.mod.common.IShipObjectWorldProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.MinecraftPlayer;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
-import java.util.function.Supplier;
-import java.util.stream.Stream;
-
 @Mixin(ThreadedAnvilChunkStorage.class)
 public abstract class MixinThreadedAnvilChunkStorage {
 
@@ -56,9 +55,9 @@ public abstract class MixinThreadedAnvilChunkStorage {
 
     /**
      * Force the game to generate empty chunks in the shipyard.
-     * <p>
-     * If a chunk already exists do nothing. If it doesn't yet exist but its in the ship yard, then pretend that chunk
-     * already existed and return a new chunk.
+     *
+     * <p>If a chunk already exists do nothing. If it doesn't yet exist but its in the ship yard, then pretend that
+     * chunk already existed and return a new chunk.
      *
      * @reason An injector would be safer to use, but it doesn't seem to work properly unless I use an @Overwrite.
      * @author Tri0de
@@ -68,14 +67,17 @@ public abstract class MixinThreadedAnvilChunkStorage {
     private CompoundTag getUpdatedChunkTag(ChunkPos chunkPos) throws IOException {
         CompoundTag compoundTag = vs$thisAsChunkMap.getNbt(chunkPos);
         final CompoundTag originalToReturn = compoundTag == null ? null :
-                vs$thisAsChunkMap.updateChunkTag(this.world.getRegistryKey(), this.persistentStateManagerFactory, compoundTag);
+            vs$thisAsChunkMap
+                .updateChunkTag(this.world.getRegistryKey(), this.persistentStateManagerFactory, compoundTag);
 
         if (originalToReturn == null) {
             final IShipObjectWorldProvider shipObjectWorldProvider = (IShipObjectWorldProvider) world;
-            if (shipObjectWorldProvider.getShipObjectWorld().getChunkAllocator().isChunkInShipyard(chunkPos.x, chunkPos.z)) {
+            if (shipObjectWorldProvider.getShipObjectWorld().getChunkAllocator()
+                .isChunkInShipyard(chunkPos.x, chunkPos.z)) {
                 // The chunk doesn't yet exist and is in the shipyard. Make a new empty chunk
                 // Generate the chunk to be nothing
-                final WorldChunk generatedChunk = new WorldChunk(world, chunkPos, new BiomeArray(world.getRegistryManager().get(Registry.BIOME_KEY), BIOMES));
+                final WorldChunk generatedChunk = new WorldChunk(world, chunkPos,
+                    new BiomeArray(world.getRegistryManager().get(Registry.BIOME_KEY), BIOMES));
                 // Its wasteful to serialize just for this to be deserialized, but it will work for now.
                 return ChunkSerializer.serialize(world, generatedChunk);
             }
@@ -90,7 +92,8 @@ public abstract class MixinThreadedAnvilChunkStorage {
      * @author Tri0de
      */
     @Inject(method = "getPlayersWatchingChunk", at = @At("TAIL"), cancellable = true)
-    private void postGetPlayersWatchingChunk(ChunkPos chunkPos, boolean onlyOnWatchDistanceEdge, CallbackInfoReturnable<Stream<ServerPlayerEntity>> cir) {
+    private void postGetPlayersWatchingChunk(ChunkPos chunkPos, boolean onlyOnWatchDistanceEdge,
+        CallbackInfoReturnable<Stream<ServerPlayerEntity>> cir) {
         final Iterator<IPlayer> playersWatchingShipChunk =
             VSGameUtilsKt.getShipObjectWorld(world).getIPlayersWatchingShipChunk(chunkPos.x, chunkPos.z);
 
@@ -104,13 +107,14 @@ public abstract class MixinThreadedAnvilChunkStorage {
         oldReturnValue.forEach(watchingPlayers::add);
 
         playersWatchingShipChunk.forEachRemaining(
-                iPlayer -> {
-                    final MinecraftPlayer minecraftPlayer = (MinecraftPlayer) iPlayer;
-                    final ServerPlayerEntity playerEntity = (ServerPlayerEntity) minecraftPlayer.getPlayerEntityReference().get();
-                    if (playerEntity != null) {
-                        watchingPlayers.add(playerEntity);
-                    }
+            iPlayer -> {
+                final MinecraftPlayer minecraftPlayer = (MinecraftPlayer) iPlayer;
+                final ServerPlayerEntity playerEntity =
+                    (ServerPlayerEntity) minecraftPlayer.getPlayerEntityReference().get();
+                if (playerEntity != null) {
+                    watchingPlayers.add(playerEntity);
                 }
+            }
         );
 
         final Stream<ServerPlayerEntity> newReturnValue = watchingPlayers.stream();
