@@ -28,6 +28,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 import org.valkyrienskies.core.game.ships.ShipObject;
 import org.valkyrienskies.core.game.ships.ShipTransform;
+import org.valkyrienskies.mod.mixin.accessors.client.render.BuiltChunkStorageAccessor;
+import org.valkyrienskies.mod.mixin.accessors.client.render.OverlayVertexConsumerAccessor;
+import org.valkyrienskies.mod.mixin.accessors.client.render.WorldRendererChunkInfoAccessor;
 import org.valkyrienskies.mod.common.VSGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
@@ -72,7 +75,7 @@ public class MixinWorldRenderer {
                     tempPos.set(x << 4, y << 4, z << 4);
                     final ChunkBuilder.BuiltChunk renderChunk = chunkStorageAccessor.callGetRenderedChunk(tempPos);
                     if (renderChunk != null) {
-                        final WorldRenderer.ChunkInfo newChunkInfo = MixinWorldRendererChunkInfo.invoker$new(self, renderChunk, null, 0);
+                        final WorldRenderer.ChunkInfo newChunkInfo = WorldRendererChunkInfoAccessor.invoker$new(self, renderChunk, null, 0);
                         visibleChunks.add(newChunkInfo);
                     }
                 }

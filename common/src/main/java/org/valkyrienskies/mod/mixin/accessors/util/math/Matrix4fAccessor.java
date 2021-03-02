@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.util.math;
+package org.valkyrienskies.mod.mixin.accessors.util.math;
 
 import net.minecraft.util.math.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
