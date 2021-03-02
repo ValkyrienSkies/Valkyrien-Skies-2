@@ -1,12 +1,19 @@
 package org.valkyrienskies.mod.common.util
 
-
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Quaternion
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
-import org.joml.*
+import org.joml.Matrix4d
+import org.joml.Matrix4dc
+import org.joml.Matrix4fc
+import org.joml.Quaterniondc
+import org.joml.Quaternionfc
+import org.joml.Vector3d
+import org.joml.Vector3dc
+import org.joml.Vector3i
+import org.joml.Vector3ic
 import org.valkyrienskies.mod.mixin.accessors.util.math.Matrix4fAccessor
 import net.minecraft.util.math.Matrix4f as Matrix4fMC
 
@@ -29,7 +36,6 @@ fun Vector3d.set(v: Vec3d) = also {
     y = v.y
     z = v.z
 }
-
 
 fun Vector3ic.toBlockPos() = BlockPos(x(), y(), z())
 fun Vector3dc.toVec3d() = Vec3d(x(), y(), z())
@@ -58,43 +64,43 @@ fun Vec3d.toJOML() = Vector3d().set(this)
 fun Matrix4fMC.set(m: Matrix4fc) = also {
     @Suppress("CAST_NEVER_SUCCEEDS")
     this as Matrix4fAccessor
-    setA00(m.m00())
-    setA01(m.m10())
-    setA02(m.m20())
-    setA03(m.m30())
-    setA10(m.m01())
-    setA11(m.m11())
-    setA12(m.m21())
-    setA13(m.m31())
-    setA20(m.m02())
-    setA21(m.m12())
-    setA22(m.m22())
-    setA23(m.m32())
-    setA30(m.m03())
-    setA31(m.m13())
-    setA32(m.m23())
-    setA33(m.m33())
+    a00 = m.m00()
+    a01 = m.m10()
+    a02 = m.m20()
+    a03 = m.m30()
+    a10 = m.m01()
+    a11 = m.m11()
+    a12 = m.m21()
+    a13 = m.m31()
+    a20 = m.m02()
+    a21 = m.m12()
+    a22 = m.m22()
+    a23 = m.m32()
+    a30 = m.m03()
+    a31 = m.m13()
+    a32 = m.m23()
+    a33 = m.m33()
 }
 
 fun Matrix4fMC.set(m: Matrix4dc) = also {
     @Suppress("CAST_NEVER_SUCCEEDS")
     this as Matrix4fAccessor
-    setA00(m.m00().toFloat())
-    setA01(m.m10().toFloat())
-    setA02(m.m20().toFloat())
-    setA03(m.m30().toFloat())
-    setA10(m.m01().toFloat())
-    setA11(m.m11().toFloat())
-    setA12(m.m21().toFloat())
-    setA13(m.m31().toFloat())
-    setA20(m.m02().toFloat())
-    setA21(m.m12().toFloat())
-    setA22(m.m22().toFloat())
-    setA23(m.m32().toFloat())
-    setA30(m.m03().toFloat())
-    setA31(m.m13().toFloat())
-    setA32(m.m23().toFloat())
-    setA33(m.m33().toFloat())
+    a00 = m.m00().toFloat()
+    a01 = m.m10().toFloat()
+    a02 = m.m20().toFloat()
+    a03 = m.m30().toFloat()
+    a10 = m.m01().toFloat()
+    a11 = m.m11().toFloat()
+    a12 = m.m21().toFloat()
+    a13 = m.m31().toFloat()
+    a20 = m.m02().toFloat()
+    a21 = m.m12().toFloat()
+    a22 = m.m22().toFloat()
+    a23 = m.m32().toFloat()
+    a30 = m.m03().toFloat()
+    a31 = m.m13().toFloat()
+    a32 = m.m23().toFloat()
+    a33 = m.m33().toFloat()
 }
 
 fun Matrix4d.set(m: Matrix4fMC) = also {

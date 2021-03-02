@@ -4,25 +4,25 @@
   "compatibilityLevel": "JAVA_8",
   "refmap": "valkyrienskies-116-common-refmap.json",
   "mixins": [
+    "accessors.server.world.ThreadedAnvilChunkStorageAccessor",
+    "accessors.util.math.Matrix4fAccessor",
     "entity.MixinEntity",
     "server.network.ServerPlayerInteractionManagerMixin",
     "server.network.ServerPlayNetworkHandlerMixin",
     "server.world.MixinServerWorld",
-    "server.world.MixinThreadedAnvilChunkStorage",
-    "accessors.server.world.ThreadedAnvilChunkStorageAccessor",
-    "accessors.util.math.Matrix4fAccessor"
+    "server.world.MixinThreadedAnvilChunkStorage"
   ],
   "client": [
+    "accessors.client.render.BuiltChunkStorageAccessor",
+    "accessors.client.render.OverlayVertexConsumerAccessor",
+    "accessors.client.render.WorldRendererChunkInfoAccessor",
+    "accessors.client.world.ClientChunkManagerClientChunkMapAccessor",
     "client.render.MixinBuiltChunkStorage",
     "client.render.MixinWorldRenderer",
     "client.render.block.entity.MixinBlockEntityRenderDispatcher",
     "client.render.chunk.MixinChunkBuilderBuiltChunk",
     "client.world.MixinClientChunkManager",
-    "client.world.MixinClientWorld",
-    "accessors.client.render.WorldRendererChunkInfoAccessor",
-    "accessors.client.render.OverlayVertexConsumerAccessor",
-    "accessors.client.render.BuiltChunkStorageAccessor",
-    "accessors.client.world.ClientChunkManagerClientChunkMapAccessor"
+    "client.world.MixinClientWorld"
   ],
   "injectors": {
     "defaultRequire": 1

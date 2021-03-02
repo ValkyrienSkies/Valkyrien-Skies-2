@@ -20,8 +20,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.valkyrienskies.mod.mixin.accessors.client.world.ClientChunkManagerClientChunkMapAccessor;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.mixin.accessors.client.world.ClientChunkManagerClientChunkMapAccessor;
 
 /**
  * The purpose of this mixin is to allow {@link ClientChunkManager} to store ship chunks.
@@ -38,8 +38,10 @@ public abstract class MixinClientChunkManager {
     private final LongObjectMap<WorldChunk> shipChunks = new LongObjectHashMap<>();
 
     @Inject(method = "loadChunkFromPacket", at = @At("HEAD"), cancellable = true)
-    private void preLoadChunkFromPacket(int x, int z, BiomeArray biomes, PacketByteBuf buf, CompoundTag tag, int verticalStripBitmask, boolean complete, CallbackInfoReturnable<WorldChunk> cir) {
-        final ClientChunkManagerClientChunkMapAccessor clientChunkMapAccessor = ClientChunkManagerClientChunkMapAccessor.class.cast(chunks);
+    private void preLoadChunkFromPacket(int x, int z, BiomeArray biomes, PacketByteBuf buf, CompoundTag tag,
+        int verticalStripBitmask, boolean complete, CallbackInfoReturnable<WorldChunk> cir) {
+        final ClientChunkManagerClientChunkMapAccessor clientChunkMapAccessor =
+            ClientChunkManagerClientChunkMapAccessor.class.cast(chunks);
         if (!clientChunkMapAccessor.callIsInRadius(x, z)) {
             if (VSGameUtilsKt.getShipObjectWorld(world).getChunkAllocator().isChunkInShipyard(x, z)) {
                 final long chunkPosLong = ChunkPos.toLong(x, z);
@@ -54,7 +56,8 @@ public abstract class MixinClientChunkManager {
 
                 for (int j = 0; j < chunkSections.length; ++j) {
                     ChunkSection chunkSection = chunkSections[j];
-                    lightingProvider.setSectionStatus(ChunkSectionPos.from(x, j, z), ChunkSection.isEmpty(chunkSection));
+                    lightingProvider
+                        .setSectionStatus(ChunkSectionPos.from(x, j, z), ChunkSection.isEmpty(chunkSection));
                 }
 
                 this.world.resetChunkColor(x, z);
@@ -70,9 +73,12 @@ public abstract class MixinClientChunkManager {
     }
 
     @Inject(method = "getChunk", at = @At("HEAD"), cancellable = true)
-    public void preGetChunk(int chunkX, int chunkZ, ChunkStatus chunkStatus, boolean bl, CallbackInfoReturnable<WorldChunk> cir) {
+    public void preGetChunk(int chunkX, int chunkZ, ChunkStatus chunkStatus, boolean bl,
+        CallbackInfoReturnable<WorldChunk> cir) {
         final WorldChunk shipChunk = shipChunks.get(ChunkPos.toLong(chunkX, chunkZ));
-        if (shipChunk != null) cir.setReturnValue(shipChunk);
+        if (shipChunk != null) {
+            cir.setReturnValue(shipChunk);
+        }
     }
 
     @Shadow

@@ -6,7 +6,16 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.VertexBuffer;
-import net.minecraft.client.render.*;
+import net.minecraft.client.render.BufferBuilderStorage;
+import net.minecraft.client.render.BuiltChunkStorage;
+import net.minecraft.client.render.Camera;
+import net.minecraft.client.render.Frustum;
+import net.minecraft.client.render.GameRenderer;
+import net.minecraft.client.render.LightmapTextureManager;
+import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.render.VertexConsumer;
+import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.client.render.block.BlockRenderManager;
 import net.minecraft.client.render.block.entity.BlockEntityRenderDispatcher;
 import net.minecraft.client.render.chunk.ChunkBuilder;
@@ -23,17 +32,21 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
-import org.spongepowered.asm.mixin.injection.*;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Constant;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyConstant;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 import org.valkyrienskies.core.game.ships.ShipObject;
 import org.valkyrienskies.core.game.ships.ShipTransform;
-import org.valkyrienskies.mod.mixin.accessors.client.render.BuiltChunkStorageAccessor;
-import org.valkyrienskies.mod.mixin.accessors.client.render.OverlayVertexConsumerAccessor;
-import org.valkyrienskies.mod.mixin.accessors.client.render.WorldRendererChunkInfoAccessor;
 import org.valkyrienskies.mod.common.VSGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
+import org.valkyrienskies.mod.mixin.accessors.client.render.BuiltChunkStorageAccessor;
+import org.valkyrienskies.mod.mixin.accessors.client.render.OverlayVertexConsumerAccessor;
+import org.valkyrienskies.mod.mixin.accessors.client.render.WorldRendererChunkInfoAccessor;
 
 /**
  * This mixin allows {@link WorldRenderer} to render ship chunks.
@@ -59,13 +72,14 @@ public class MixinWorldRenderer {
      * This mixin tells the {@link WorldRenderer} to render ship chunks.
      */
     @Inject(
-            method = "setupTerrain",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lit/unimi/dsi/fastutil/objects/ObjectList;iterator()Lit/unimi/dsi/fastutil/objects/ObjectListIterator;"
-            )
+        method = "setupTerrain",
+        at = @At(
+            value = "INVOKE",
+            target = "Lit/unimi/dsi/fastutil/objects/ObjectList;iterator()Lit/unimi/dsi/fastutil/objects/ObjectListIterator;"
+        )
     )
-    private void addShipVisibleChunks(Camera camera, Frustum frustum, boolean hasForcedFrustum, int frame, boolean spectator, CallbackInfo ci) {
+    private void addShipVisibleChunks(Camera camera, Frustum frustum, boolean hasForcedFrustum, int frame,
+        boolean spectator, CallbackInfo ci) {
         final WorldRenderer self = WorldRenderer.class.cast(this);
         final BlockPos.Mutable tempPos = new BlockPos.Mutable();
         final BuiltChunkStorageAccessor chunkStorageAccessor = (BuiltChunkStorageAccessor) chunks;
@@ -75,7 +89,8 @@ public class MixinWorldRenderer {
                     tempPos.set(x << 4, y << 4, z << 4);
                     final ChunkBuilder.BuiltChunk renderChunk = chunkStorageAccessor.callGetRenderedChunk(tempPos);
                     if (renderChunk != null) {
-                        final WorldRenderer.ChunkInfo newChunkInfo = WorldRendererChunkInfoAccessor.invoker$new(self, renderChunk, null, 0);
+                        final WorldRenderer.ChunkInfo newChunkInfo =
+                            WorldRendererChunkInfoAccessor.invoker$new(self, renderChunk, null, 0);
                         visibleChunks.add(newChunkInfo);
                     }
                 }
@@ -88,11 +103,11 @@ public class MixinWorldRenderer {
      * @reason This mixin forces the game to always render block damage.
      */
     @ModifyConstant(
-            method = "render",
-            constant = @Constant(
-                    doubleValue = 1024,
-                    ordinal = 0
-            ))
+        method = "render",
+        constant = @Constant(
+            doubleValue = 1024,
+            ordinal = 0
+        ))
     private double disableBlockDamageDistanceCheck(double originalBlockDamageDistanceConstant) {
         return Double.MAX_VALUE;
     }
@@ -100,9 +115,13 @@ public class MixinWorldRenderer {
     /**
      * This mixin makes block damage render on ships.
      */
-    @Redirect(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/block/BlockRenderManager;renderDamage(Lnet/minecraft/block/BlockState;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/world/BlockRenderView;Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumer;)V"))
-    private void renderBlockDamage(BlockRenderManager blockRenderManager, BlockState state, BlockPos blockPos, BlockRenderView blockRenderWorld, MatrixStack matrix, VertexConsumer vertexConsumer,
-                                   MatrixStack matrixStack, float methodTickDelta, long methodLimitTime, boolean methodRenderBlockOutline, Camera methodCamera, GameRenderer methodGameRenderer, LightmapTextureManager methodLightmapTextureManager, Matrix4f methodMatrix4f) {
+    @Redirect(method = "render", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/client/render/block/BlockRenderManager;renderDamage(Lnet/minecraft/block/BlockState;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/world/BlockRenderView;Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumer;)V"))
+    private void renderBlockDamage(BlockRenderManager blockRenderManager, BlockState state, BlockPos blockPos,
+        BlockRenderView blockRenderWorld, MatrixStack matrix, VertexConsumer vertexConsumer,
+        MatrixStack matrixStack, float methodTickDelta, long methodLimitTime, boolean methodRenderBlockOutline,
+        Camera methodCamera, GameRenderer methodGameRenderer, LightmapTextureManager methodLightmapTextureManager,
+        Matrix4f methodMatrix4f) {
         final ShipObject ship = VSGameUtils.getShipObjectManagingPos(world, blockPos);
         if (ship != null) {
             // Remove the vanilla render transform
@@ -122,7 +141,8 @@ public class MixinWorldRenderer {
             renderMatrix.mul(shipToWorldMatrix);
             renderMatrix.translate(blockPos.getX(), blockPos.getY(), blockPos.getZ());
             // Apply the render matrix to the matrix stack
-            VectorConversionsMCKt.multiply(matrixStack, renderMatrix, renderTransform.getShipCoordinatesToWorldCoordinatesRotation());
+            VectorConversionsMCKt
+                .multiply(matrixStack, renderMatrix, renderTransform.getShipCoordinatesToWorldCoordinatesRotation());
 
             // Then update the matrices in vertexConsumer (I'm guessing vertexConsumer is responsible for mapping textures, so we need to update its matrices otherwise the block damage texture looks wrong)
             final OverlayVertexConsumerAccessor vertexConsumerAccessor = (OverlayVertexConsumerAccessor) vertexConsumer;
@@ -150,9 +170,13 @@ public class MixinWorldRenderer {
     /**
      * This mixin tells the game where to render chunks; which allows us to render ship chunks in arbitrary positions.
      */
-    @Inject(method = "renderLayer", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gl/VertexBuffer;bind()V"), locals = LocalCapture.CAPTURE_FAILHARD)
-    private void renderShipChunk(RenderLayer renderLayer, MatrixStack matrixStack, double playerCameraX, double playerCameraY, double playerCameraZ, CallbackInfo ci,
-                                 boolean bl, ObjectListIterator<?> objectListIterator, WorldRenderer.ChunkInfo chunkInfo2, ChunkBuilder.BuiltChunk builtChunk, VertexBuffer vertexBuffer) {
+    @Inject(method = "renderLayer",
+        at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gl/VertexBuffer;bind()V"),
+        locals = LocalCapture.CAPTURE_FAILHARD)
+    private void renderShipChunk(RenderLayer renderLayer, MatrixStack matrixStack, double playerCameraX,
+        double playerCameraY, double playerCameraZ, CallbackInfo ci,
+        boolean bl, ObjectListIterator<?> objectListIterator, WorldRenderer.ChunkInfo chunkInfo2,
+        ChunkBuilder.BuiltChunk builtChunk, VertexBuffer vertexBuffer) {
         final BlockPos renderChunkOrigin = builtChunk.getOrigin();
         final ShipObject shipObject = VSGameUtils.getShipObjectManagingPos(world, renderChunkOrigin);
         if (shipObject != null) {
@@ -160,14 +184,16 @@ public class MixinWorldRenderer {
                 playerCameraX, playerCameraY, playerCameraZ);
         } else {
             // Restore MC default behavior (that was removed by cancelDefaultTransform())
-            matrixStack.translate(renderChunkOrigin.getX() - playerCameraX, renderChunkOrigin.getY() - playerCameraY, renderChunkOrigin.getZ() - playerCameraZ);
+            matrixStack.translate(renderChunkOrigin.getX() - playerCameraX, renderChunkOrigin.getY() - playerCameraY,
+                renderChunkOrigin.getZ() - playerCameraZ);
         }
     }
 
     /**
      * This mixin removes the vanilla code that determines where each chunk renders.
      */
-    @Redirect(method = "renderLayer", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/util/math/MatrixStack;translate(DDD)V"))
+    @Redirect(method = "renderLayer",
+        at = @At(value = "INVOKE", target = "Lnet/minecraft/client/util/math/MatrixStack;translate(DDD)V"))
     private void cancelDefaultTransform(MatrixStack matrixStack, double x, double y, double z) {
         // Do nothing
     }
@@ -175,9 +201,13 @@ public class MixinWorldRenderer {
     /**
      * This mixin makes {@link BlockEntity} in the ship render in the correct place.
      */
-    @Redirect(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/block/entity/BlockEntityRenderDispatcher;render(Lnet/minecraft/block/entity/BlockEntity;FLnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;)V"))
-    private void renderShipChunkBlockEntity(BlockEntityRenderDispatcher blockEntityRenderDispatcher, BlockEntity blockEntity, float tickDelta, MatrixStack matrix, VertexConsumerProvider vertexConsumerProvider,
-                                            MatrixStack methodMatrices, float methodTickDelta, long methodLimitTime, boolean methodRenderBlockOutline, Camera methodCamera, GameRenderer methodGameRenderer, LightmapTextureManager methodLightmapTextureManager, Matrix4f methodMatrix4f) {
+    @Redirect(method = "render", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/client/render/block/entity/BlockEntityRenderDispatcher;render(Lnet/minecraft/block/entity/BlockEntity;FLnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;)V"))
+    private void renderShipChunkBlockEntity(BlockEntityRenderDispatcher blockEntityRenderDispatcher,
+        BlockEntity blockEntity, float tickDelta, MatrixStack matrix, VertexConsumerProvider vertexConsumerProvider,
+        MatrixStack methodMatrices, float methodTickDelta, long methodLimitTime, boolean methodRenderBlockOutline,
+        Camera methodCamera, GameRenderer methodGameRenderer, LightmapTextureManager methodLightmapTextureManager,
+        Matrix4f methodMatrix4f) {
         final BlockPos blockEntityPos = blockEntity.getPos();
         final ShipObject shipObject = VSGameUtils.getShipObjectManagingPos(world, blockEntityPos);
         if (shipObject != null) {
@@ -190,14 +220,15 @@ public class MixinWorldRenderer {
 
     /**
      * @param renderTransform The ship's render transform
-     * @param matrix The {@link MatrixStack} we are multiplying
-     * @param blockPos The position of the block in question
-     * @param camX Player camera X
-     * @param camY Player camera Y
-     * @param camZ Player camera Z
+     * @param matrix          The {@link MatrixStack} we are multiplying
+     * @param blockPos        The position of the block in question
+     * @param camX            Player camera X
+     * @param camY            Player camera Y
+     * @param camZ            Player camera Z
      */
     @Unique
-    private void transformRenderWithShip(ShipTransform renderTransform, MatrixStack matrix, BlockPos blockPos, double camX, double camY, double camZ) {
+    private void transformRenderWithShip(ShipTransform renderTransform, MatrixStack matrix, BlockPos blockPos,
+        double camX, double camY, double camZ) {
         final ShipObject shipObject = VSGameUtils.getShipObjectManagingPos(world, blockPos);
         if (shipObject != null) {
             // Remove the vanilla render transform
@@ -215,7 +246,8 @@ public class MixinWorldRenderer {
             renderMatrix.translate(blockPos.getX(), blockPos.getY(), blockPos.getZ());
 
             // Apply the render matrix to the
-            VectorConversionsMCKt.multiply(matrix, renderMatrix, renderTransform.getShipCoordinatesToWorldCoordinatesRotation());
+            VectorConversionsMCKt
+                .multiply(matrix, renderMatrix, renderTransform.getShipCoordinatesToWorldCoordinatesRotation());
         }
     }
 }

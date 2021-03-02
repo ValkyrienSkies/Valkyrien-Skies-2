@@ -17,9 +17,9 @@ public interface WorldRendererChunkInfoAccessor {
      * This mixin allows us to invoke the private constructor of WorldRenderer.ChunkInfo.
      *
      * <p>The compiler complains about it because it thinks the constructor arguments are
-     * (ChunkBuilder.BuiltChunk, Direction, int), but at runtime the constructor arguments are actually
-     * (WorldRenderer, ChunkBuilder.BuiltChunk, Direction, int).
-     * This is caused by weird synthetic behavior of non-static inner classes.
+     * (ChunkBuilder.BuiltChunk, Direction, int), but at runtime the constructor arguments are actually (WorldRenderer,
+     * ChunkBuilder.BuiltChunk, Direction, int). This is caused by weird synthetic behavior of non-static inner
+     * classes.
      *
      * <p>The easy fix for this problem is to use a wildcard target.
      */
