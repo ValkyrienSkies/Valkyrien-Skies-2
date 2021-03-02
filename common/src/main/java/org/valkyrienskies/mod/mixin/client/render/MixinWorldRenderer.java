@@ -65,11 +65,12 @@ public class MixinWorldRenderer {
     private void addShipVisibleChunks(Camera camera, Frustum frustum, boolean hasForcedFrustum, int frame, boolean spectator, CallbackInfo ci) {
         final WorldRenderer self = WorldRenderer.class.cast(this);
         final BlockPos.Mutable tempPos = new BlockPos.Mutable();
+        final BuiltChunkStorageAccessor chunkStorageAccessor = (BuiltChunkStorageAccessor) chunks;
         for (ShipObject shipObject : VSGameUtilsKt.getShipObjectWorld(world).getUuidToShipObjectMap().values()) {
             shipObject.getShipData().getShipActiveChunksSet().iterateChunkPos((x, z) -> {
                 for (int y = 0; y < 16; y++) {
                     tempPos.set(x << 4, y << 4, z << 4);
-                    final ChunkBuilder.BuiltChunk renderChunk = chunks.getRenderedChunk(tempPos);
+                    final ChunkBuilder.BuiltChunk renderChunk = chunkStorageAccessor.callGetRenderedChunk(tempPos);
                     if (renderChunk != null) {
                         final WorldRenderer.ChunkInfo newChunkInfo = MixinWorldRendererChunkInfo.invoker$new(self, renderChunk, null, 0);
                         visibleChunks.add(newChunkInfo);

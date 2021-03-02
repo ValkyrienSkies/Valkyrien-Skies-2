@@ -20,7 +20,9 @@
     "client.render.chunk.MixinChunkBuilderBuiltChunk",
     "client.world.MixinClientChunkManager",
     "client.world.MixinClientWorld",
-    "client.render.OverlayVertexConsumerAccessor"
+    "client.render.OverlayVertexConsumerAccessor",
+    "client.render.BuiltChunkStorageAccessor",
+    "client.world.ClientChunkManagerClientChunkMapAccessor"
   ],
   "injectors": {
     "defaultRequire": 1
