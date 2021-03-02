@@ -35,3 +35,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: ./gradlew build sonarqube --info
+      - uses: jwgmeligmeyling/checkstyle-github-action@master # show checkstyle/ktlint report
+        with:
+          path: |
+            */build/reports/checkstyle/*.xml
+            */build/reports/ktlint/**.xml
