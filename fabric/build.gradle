@@ -4,6 +4,7 @@ plugins {
 }
 
 configurations {
+	// Create a shadowCommon configuration.
 	// Use shadow to shade the file but NOT add it as a dependency
 	shadowCommon
 }
@@ -18,6 +19,8 @@ minecraft {
 }
 
 dependencies {
+	// Configure architectury/loom with specific minecraft version, yarn mappings, and fabric version
+	// taken from the root project's gradle.properties file
 	minecraft("com.mojang:minecraft:${rootProject.minecraft_version}")
 	mappings("net.fabricmc:yarn:${rootProject.yarn_mappings}:v2")
 	modCompile("net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}")
@@ -38,7 +41,7 @@ dependencies {
 	// Depend on the fabric API
 	modImplementation("net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}")
 
-	// vs-core
+	// Shade vs-core
 	implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}")
 	shadowCommon("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}")
 }
@@ -51,6 +54,7 @@ processResources {
 }
 
 shadowJar {
+<<<<<<< HEAD
 	configurations = [project.configurations.shadowCommon]
 	classifier "shadow"
 }
@@ -59,4 +63,19 @@ remapJar {
 	dependsOn(shadowJar)
 	input.set(shadowJar.archivePath)
 	archiveClassifier = "fabric"
+=======
+	// Configure shadowCommon dependencies to be shaded by the shadow plugin
+	configurations = [project.configurations.shadowCommon]
+	// The shadow plugin's JAR output (which is only a temporary step) is given the classifier "shadow"
+	classifier "shadow"
+}
+
+remapJar {
+	// shadowJar must be created before this is run
+	dependsOn(shadowJar)
+	// remap the shadowJar
+	input.set(shadowJar.archivePath)
+	// Give the remapped jar the classifier "fabric"
+	archiveClassifier = "fabric"
+>>>>>>> a5e7b099cca77d0e2ee2f61286de7ef191218834
 }
