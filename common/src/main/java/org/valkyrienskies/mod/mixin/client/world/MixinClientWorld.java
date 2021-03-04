@@ -32,7 +32,7 @@ public abstract class MixinClientWorld implements IShipObjectWorldProvider {
     }
 
     @Inject(method = "tick", at = @At("TAIL"))
-    private void postTick(BooleanSupplier shouldKeepTicking, CallbackInfo ci) {
+    private void postTick(final BooleanSupplier shouldKeepTicking, final CallbackInfo ci) {
         // Tick the ship world
         shipObjectWorld.tickShips();
     }
@@ -42,15 +42,17 @@ public abstract class MixinClientWorld implements IShipObjectWorldProvider {
         at = @At("HEAD"),
         cancellable = true
     )
-    private void onPlaySound(double x, double y, double z, SoundEvent sound, SoundCategory category,
-        float volume, float pitch, boolean bl, CallbackInfo ci) {
+    private void onPlaySound(final double x, final double y, final double z, final SoundEvent sound,
+        final SoundCategory category,
+        final float volume, final float pitch, final boolean bl, final CallbackInfo ci) {
         final ClientWorld self = ClientWorld.class.cast(this);
         final ShipObject shipObject = VSGameUtils.getShipObjectManagingPos(self, (int) x >> 4, (int) z >> 4);
         if (shipObject != null) {
-            Vector3d newPosition = shipObject.getRenderTransform().getShipToWorldMatrix()
-                .transformPosition(new Vector3d(x, y, z));
+            // in-world position
+            final Vector3d p = shipObject.getRenderTransform()
+                .getShipToWorldMatrix().transformPosition(new Vector3d(x, y, z));
 
-            playSound(newPosition.x, newPosition.y, newPosition.z, sound, category, volume, pitch, bl);
+            playSound(p.x, p.y, p.z, sound, category, volume, pitch, bl);
             ci.cancel();
         }
     }

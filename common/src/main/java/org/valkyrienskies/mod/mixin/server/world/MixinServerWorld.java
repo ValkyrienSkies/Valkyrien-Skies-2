@@ -14,25 +14,33 @@ import net.minecraft.network.Packet;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerChunkManager;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.math.Position;
 import net.minecraft.world.PersistentStateManager;
 import org.jetbrains.annotations.NotNull;
+import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.chunk_tracking.ChunkUnwatchTask;
 import org.valkyrienskies.core.chunk_tracking.ChunkWatchTask;
 import org.valkyrienskies.core.game.IPlayer;
+import org.valkyrienskies.core.game.ships.ShipObject;
 import org.valkyrienskies.core.game.ships.ShipObjectWorld;
 import org.valkyrienskies.core.networking.IVSPacket;
 import org.valkyrienskies.core.networking.impl.VSPacketShipDataList;
 import org.valkyrienskies.mod.common.IShipObjectWorldProvider;
 import org.valkyrienskies.mod.common.ShipSavedData;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.VSNetworking;
 import org.valkyrienskies.mod.common.util.MinecraftPlayer;
+import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.mixin.accessors.server.world.ThreadedAnvilChunkStorageAccessor;
 
 @Mixin(ServerWorld.class)
@@ -57,7 +65,7 @@ public abstract class MixinServerWorld implements IShipObjectWorldProvider {
         at = @At("TAIL"),
         method = "<init>"
     )
-    private void postConstructor(CallbackInfo info) {
+    private void postConstructor(final CallbackInfo info) {
         // Load ship data from the world storage
         shipSavedData = getPersistentStateManager()
             .getOrCreate(ShipSavedData.Companion::createEmpty, ShipSavedData.SAVED_DATA_ID);
@@ -71,8 +79,37 @@ public abstract class MixinServerWorld implements IShipObjectWorldProvider {
         return shipObjectWorld;
     }
 
+    /**
+     * Include ships in particle distance check. Seems to only be used by /particle
+     */
+    @Redirect(
+        method = "sendToPlayerIfNearby",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/util/math/BlockPos;isWithinDistance(Lnet/minecraft/util/math/Position;D)Z"
+        )
+    )
+    private boolean includeShipsInParticleDistanceCheck(
+        final BlockPos player, final Position particle, final double distance) {
+
+        final ServerWorld self = ServerWorld.class.cast(this);
+        final ShipObject ship = VSGameUtilsKt.getShipObjectManagingPos(
+            self, (int) particle.getX() >> 4, (int) particle.getZ() >> 4);
+
+        if (ship == null) {
+            // vanilla behaviour
+            return player.isWithinDistance(particle, distance);
+        }
+
+        // in-world position
+        final Vector3d posInWorld = ship.getShipData().getShipTransform().getShipToWorldMatrix()
+            .transformPosition(VectorConversionsMCKt.toJOML(particle));
+        
+        return posInWorld.distanceSquared(player.getX(), player.getY(), player.getZ()) < distance * distance;
+    }
+
     @Inject(method = "tick", at = @At("TAIL"))
-    private void postTick(BooleanSupplier shouldKeepTicking, CallbackInfo ci) {
+    private void postTick(final BooleanSupplier shouldKeepTicking, final CallbackInfo ci) {
         // First update the IPlayer wrapper list
         updateVSPlayerWrappers();
 
@@ -83,7 +120,7 @@ public abstract class MixinServerWorld implements IShipObjectWorldProvider {
         final IVSPacket shipDataPacket = VSPacketShipDataList.Companion
             .create(shipObjectWorld.getQueryableShipData().iterator());
 
-        for (ServerPlayerEntity playerEntity : players) {
+        for (final ServerPlayerEntity playerEntity : players) {
             VSNetworking.shipDataPacketToClientSender.sendToClient(shipDataPacket, playerEntity);
         }
 
@@ -126,6 +163,7 @@ public abstract class MixinServerWorld implements IShipObjectWorldProvider {
         });
     }
 
+    @Unique
     private void updateVSPlayerWrappers() {
         // First add new player objects
         players.forEach(player -> {

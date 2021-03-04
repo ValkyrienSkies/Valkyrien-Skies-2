@@ -34,7 +34,7 @@ public class MixinChunkBuilderBuiltChunk {
      * makes the ship chunks render in the correct order.
      */
     @Inject(method = "getSquaredCameraDistance", at = @At("HEAD"), cancellable = true)
-    private void preGetSquaredCameraDistance(CallbackInfoReturnable<Double> cir) {
+    private void preGetSquaredCameraDistance(final CallbackInfoReturnable<Double> cir) {
         final World world = MinecraftClient.getInstance().world;
         if (world == null) {
             return;

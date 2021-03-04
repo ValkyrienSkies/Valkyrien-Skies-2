@@ -26,15 +26,26 @@ fun World.getShipObjectManagingPos(chunkX: Int, chunkZ: Int): ShipObject? {
     return null
 }
 
-fun World.getShipManagingPos(chunkPos: ChunkPos): ShipData? {
-    return if (shipObjectWorld.chunkAllocator.isChunkInShipyard(chunkPos.x, chunkPos.z)) {
-        shipObjectWorld.queryableShipData.getShipDataFromChunkPos(chunkPos.x, chunkPos.z)
+fun World.getShipManagingPos(blockPos: BlockPos): ShipData? =
+    getShipManagingPos(blockPos.x shr 4, blockPos.z shr 4)
+
+fun World.getShipManagingPos(chunkPos: ChunkPos): ShipData? =
+    getShipManagingPos(chunkPos.x, chunkPos.z)
+
+fun World.getShipManagingPos(x: Int, z: Int): ShipData? {
+    return if (shipObjectWorld.chunkAllocator.isChunkInShipyard(x, z)) {
+        shipObjectWorld.queryableShipData.getShipDataFromChunkPos(x, z)
     } else {
         null
     }
 }
 
+fun ShipData.toWorldCoordinates(pos: BlockPos) = shipTransform.shipToWorldMatrix.transformPosition(pos.toJOMLD())
+fun ShipData.toWorldCoordinates(x: Double, y: Double, z: Double) =
+    shipTransform.shipToWorldMatrix.transformPosition(Vector3d(x, y, z))
+
 object VSGameUtils {
+
     @JvmStatic
     fun getShipManagingPos(world: World, chunkPos: ChunkPos): ShipData? {
         return world.getShipManagingPos(chunkPos)

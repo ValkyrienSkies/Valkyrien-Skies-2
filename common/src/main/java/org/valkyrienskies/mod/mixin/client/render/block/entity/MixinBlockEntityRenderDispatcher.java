@@ -38,9 +38,10 @@ public class MixinBlockEntityRenderDispatcher {
             target = "Lnet/minecraft/util/math/Vec3d;isInRange(Lnet/minecraft/util/math/Position;D)Z"
         )
     )
-    private boolean isTileEntityInRenderRange(Vec3d tileEntityPos, Position cameraPos, double radiusSquared,
-        BlockEntity methodBlockEntity, float methodTickDelta, MatrixStack methodMatrix,
-        VertexConsumerProvider methodVertexConsumerProvider) {
+    private boolean isTileEntityInRenderRange(final Vec3d tileEntityPos, final Position cameraPos,
+        final double radiusSquared, final BlockEntity methodBlockEntity, final float methodTickDelta,
+        final MatrixStack methodMatrix, final VertexConsumerProvider methodVertexConsumerProvider) {
+        
         final boolean defaultResult = tileEntityPos.isInRange(cameraPos, radiusSquared);
         if (defaultResult) {
             return true;

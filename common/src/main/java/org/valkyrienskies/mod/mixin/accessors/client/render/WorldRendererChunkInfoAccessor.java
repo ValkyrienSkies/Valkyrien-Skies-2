@@ -24,8 +24,8 @@ public interface WorldRendererChunkInfoAccessor {
      * <p>The easy fix for this problem is to use a wildcard target.
      */
     @Invoker(value = "<init>")
-    static WorldRenderer.ChunkInfo vs$new(WorldRenderer worldRenderer, ChunkBuilder.BuiltChunk chunk,
-        @Nullable Direction direction, int propagationLevel) {
+    static WorldRenderer.ChunkInfo vs$new(final WorldRenderer worldRenderer, final ChunkBuilder.BuiltChunk chunk,
+        @Nullable final Direction direction, final int propagationLevel) {
         throw new AssertionError("MixinWorldRendererChunkInfo failed to apply");
     }
 }

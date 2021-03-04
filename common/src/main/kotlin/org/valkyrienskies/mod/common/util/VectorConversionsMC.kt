@@ -2,6 +2,7 @@ package org.valkyrienskies.mod.common.util
 
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Position
 import net.minecraft.util.math.Quaternion
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
@@ -31,7 +32,7 @@ fun Vector3d.set(v: Vec3i) = also {
     z = v.z.toDouble()
 }
 
-fun Vector3d.set(v: Vec3d) = also {
+fun Vector3d.set(v: Position) = also {
     x = v.x
     y = v.y
     z = v.z
@@ -59,7 +60,7 @@ fun MatrixStack.multiply(modelTransform: Matrix4dc, normalTransform: Quaterniond
 
 fun Vec3i.toJOML() = Vector3i().set(this)
 fun Vec3i.toJOMLD() = Vector3d().set(this)
-fun Vec3d.toJOML() = Vector3d().set(this)
+fun Position.toJOML() = Vector3d().set(this)
 
 fun Matrix4fMC.set(m: Matrix4fc) = also {
     @Suppress("CAST_NEVER_SUCCEEDS")

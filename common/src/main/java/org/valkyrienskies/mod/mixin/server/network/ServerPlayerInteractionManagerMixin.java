@@ -31,10 +31,10 @@ public class ServerPlayerInteractionManagerMixin {
         at = @At("STORE"),
         index = 11
     )
-    public double includeShipsInBlockBreakDistanceCheck(double g, BlockPos pos,
-        PlayerActionC2SPacket.Action action,
-        Direction direction, int worldHeight) {
-        Vector3d blockCenter = VectorConversionsMCKt.toJOMLD(pos).add(0.5, 0.5, 0.5);
+    public double includeShipsInBlockBreakDistanceCheck(final double g, final BlockPos pos,
+        final PlayerActionC2SPacket.Action action,
+        final Direction direction, final int worldHeight) {
+        final Vector3d blockCenter = VectorConversionsMCKt.toJOMLD(pos).add(0.5, 0.5, 0.5);
         return VSGameUtils.getWorldCoordinates(world, pos, blockCenter)
             .distanceSquared(player.getX(), player.getY() + 1.5, player.getZ());
     }

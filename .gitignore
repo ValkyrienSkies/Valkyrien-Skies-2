@@ -18,8 +18,8 @@ out
 !.idea/codeStyles/
 # inspection profile
 !.idea/inspectionProfiles/
-# checkstyle config
-!.idea/checkstyle-idea.xml
+# saveactions config
+!.idea/saveactions_settings.xml
 # recommended plugins
 !.idea/externalDependencies.xml
 

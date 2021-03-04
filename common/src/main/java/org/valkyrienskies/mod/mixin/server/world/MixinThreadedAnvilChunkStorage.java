@@ -51,7 +51,6 @@ public abstract class MixinThreadedAnvilChunkStorage {
     @Final
     private Supplier<PersistentStateManager> persistentStateManagerFactory;
 
-    private final ThreadedAnvilChunkStorage vs$thisAsChunkMap = ThreadedAnvilChunkStorage.class.cast(this);
 
     /**
      * Force the game to generate empty chunks in the shipyard.
@@ -64,11 +63,11 @@ public abstract class MixinThreadedAnvilChunkStorage {
      */
     @Overwrite
     @Nullable
-    private CompoundTag getUpdatedChunkTag(ChunkPos chunkPos) throws IOException {
-        CompoundTag compoundTag = vs$thisAsChunkMap.getNbt(chunkPos);
+    private CompoundTag getUpdatedChunkTag(final ChunkPos chunkPos) throws IOException {
+        final ThreadedAnvilChunkStorage self = ThreadedAnvilChunkStorage.class.cast(this);
+        final CompoundTag compoundTag = self.getNbt(chunkPos);
         final CompoundTag originalToReturn = compoundTag == null ? null :
-            vs$thisAsChunkMap
-                .updateChunkTag(this.world.getRegistryKey(), this.persistentStateManagerFactory, compoundTag);
+            self.updateChunkTag(this.world.getRegistryKey(), this.persistentStateManagerFactory, compoundTag);
 
         if (originalToReturn == null) {
             final IShipObjectWorldProvider shipObjectWorldProvider = (IShipObjectWorldProvider) world;
@@ -92,8 +91,9 @@ public abstract class MixinThreadedAnvilChunkStorage {
      * @author Tri0de
      */
     @Inject(method = "getPlayersWatchingChunk", at = @At("TAIL"), cancellable = true)
-    private void postGetPlayersWatchingChunk(ChunkPos chunkPos, boolean onlyOnWatchDistanceEdge,
-        CallbackInfoReturnable<Stream<ServerPlayerEntity>> cir) {
+    private void postGetPlayersWatchingChunk(final ChunkPos chunkPos, final boolean onlyOnWatchDistanceEdge,
+        final CallbackInfoReturnable<Stream<ServerPlayerEntity>> cir) {
+
         final Iterator<IPlayer> playersWatchingShipChunk =
             VSGameUtilsKt.getShipObjectWorld(world).getIPlayersWatchingShipChunk(chunkPos.x, chunkPos.z);
 

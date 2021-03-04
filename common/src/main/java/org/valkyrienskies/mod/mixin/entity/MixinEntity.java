@@ -19,7 +19,7 @@ public class MixinEntity {
             target = "Lnet/minecraft/world/World;raycast(Lnet/minecraft/world/RaycastContext;)Lnet/minecraft/util/hit/BlockHitResult;"
         )
     )
-    public BlockHitResult addShipsToRaycast(World receiver, RaycastContext ctx) {
+    public BlockHitResult addShipsToRaycast(final World receiver, final RaycastContext ctx) {
         return RaycastUtilsKt.raycastIncludeShips(receiver, ctx);
     }
 

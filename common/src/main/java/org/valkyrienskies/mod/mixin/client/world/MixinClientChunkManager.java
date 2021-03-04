@@ -38,24 +38,25 @@ public abstract class MixinClientChunkManager {
     private final LongObjectMap<WorldChunk> shipChunks = new LongObjectHashMap<>();
 
     @Inject(method = "loadChunkFromPacket", at = @At("HEAD"), cancellable = true)
-    private void preLoadChunkFromPacket(int x, int z, BiomeArray biomes, PacketByteBuf buf, CompoundTag tag,
-        int verticalStripBitmask, boolean complete, CallbackInfoReturnable<WorldChunk> cir) {
+    private void preLoadChunkFromPacket(final int x, final int z, final BiomeArray biomes, final PacketByteBuf buf,
+        final CompoundTag tag,
+        final int verticalStripBitmask, final boolean complete, final CallbackInfoReturnable<WorldChunk> cir) {
         final ClientChunkManagerClientChunkMapAccessor clientChunkMapAccessor =
             ClientChunkManagerClientChunkMapAccessor.class.cast(chunks);
         if (!clientChunkMapAccessor.callIsInRadius(x, z)) {
             if (VSGameUtilsKt.getShipObjectWorld(world).getChunkAllocator().isChunkInShipyard(x, z)) {
                 final long chunkPosLong = ChunkPos.toLong(x, z);
 
-                WorldChunk worldChunk = new WorldChunk(this.world, new ChunkPos(x, z), biomes);
+                final WorldChunk worldChunk = new WorldChunk(this.world, new ChunkPos(x, z), biomes);
                 worldChunk.loadFromPacket(biomes, buf, tag, verticalStripBitmask);
                 shipChunks.put(chunkPosLong, worldChunk);
 
-                ChunkSection[] chunkSections = worldChunk.getSectionArray();
-                LightingProvider lightingProvider = this.getLightingProvider();
+                final ChunkSection[] chunkSections = worldChunk.getSectionArray();
+                final LightingProvider lightingProvider = this.getLightingProvider();
                 lightingProvider.setColumnEnabled(new ChunkPos(x, z), true);
 
                 for (int j = 0; j < chunkSections.length; ++j) {
-                    ChunkSection chunkSection = chunkSections[j];
+                    final ChunkSection chunkSection = chunkSections[j];
                     lightingProvider
                         .setSectionStatus(ChunkSectionPos.from(x, j, z), ChunkSection.isEmpty(chunkSection));
                 }
@@ -67,14 +68,14 @@ public abstract class MixinClientChunkManager {
     }
 
     @Inject(method = "unload", at = @At("HEAD"), cancellable = true)
-    public void preUnload(int chunkX, int chunkZ, CallbackInfo ci) {
+    public void preUnload(final int chunkX, final int chunkZ, final CallbackInfo ci) {
         shipChunks.remove(ChunkPos.toLong(chunkX, chunkZ));
         ci.cancel();
     }
 
     @Inject(method = "getChunk", at = @At("HEAD"), cancellable = true)
-    public void preGetChunk(int chunkX, int chunkZ, ChunkStatus chunkStatus, boolean bl,
-        CallbackInfoReturnable<WorldChunk> cir) {
+    public void preGetChunk(final int chunkX, final int chunkZ, final ChunkStatus chunkStatus, final boolean bl,
+        final CallbackInfoReturnable<WorldChunk> cir) {
         final WorldChunk shipChunk = shipChunks.get(ChunkPos.toLong(chunkX, chunkZ));
         if (shipChunk != null) {
             cir.setReturnValue(shipChunk);

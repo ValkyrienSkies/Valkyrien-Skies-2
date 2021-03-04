@@ -20,7 +20,7 @@ public class ExampleFabricMixin {
         at = @At("HEAD"),
         method = "init"
     )
-    public void inject(CallbackInfo info) {
+    public void inject(final CallbackInfo info) {
         field_23775.info("Hello from ExampleFabricMixin");
     }
 

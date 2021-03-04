@@ -6,7 +6,10 @@
   "mixins": [
     "accessors.server.world.ThreadedAnvilChunkStorageAccessor",
     "accessors.util.math.Matrix4fAccessor",
+    "block.MixinBlock",
+    "client.particle.ParticleMixin",
     "entity.MixinEntity",
+    "server.PlayerManagerMixin",
     "server.network.ServerPlayerInteractionManagerMixin",
     "server.network.ServerPlayNetworkHandlerMixin",
     "server.world.MixinServerWorld",

@@ -19,9 +19,14 @@
 <module name="Checker">
     <property name="charset" value="UTF-8"/>
 
-    <property name="severity" value="warning"/>
+    <property name="severity" value="error"/>
 
     <property name="fileExtensions" value="java, properties, xml"/>
+
+    <!-- VS CUSTOM RULES -->
+    <module name="NewlineAtEndOfFile"/>
+    <!-- END VS CUSTOM RULES -->
+
     <!-- Excludes all 'module-info.java' files              -->
     <!-- See https://checkstyle.org/config_filefilters.html -->
     <module name="BeforeExecutionExclusionFileFilter">
@@ -48,6 +53,12 @@
     </module>
 
     <module name="TreeWalker">
+        <!-- VS CUSTOM RULES -->
+        <module name="FinalLocalVariable">
+            <property name="tokens" value="VARIABLE_DEF,PARAMETER_DEF"/>
+            <property name="validateEnhancedForLoopVariable" value="true"/>
+        </module>
+        <!-- END VS CUSTOM RULES -->
         <module name="OuterTypeFilename"/>
         <module name="IllegalTokenText">
             <property name="tokens" value="STRING_LITERAL, CHAR_LITERAL"/>
