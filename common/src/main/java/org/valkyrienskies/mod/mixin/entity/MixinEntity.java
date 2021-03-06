@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.entity;
 
+import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.world.RaycastContext;
@@ -20,7 +21,7 @@ public class MixinEntity {
         )
     )
     public BlockHitResult addShipsToRaycast(final World receiver, final RaycastContext ctx) {
-        return RaycastUtilsKt.raycastIncludeShips(receiver, ctx);
+        return RaycastUtilsKt.raycastIncludeShips((ClientWorld) receiver, ctx);
     }
 
 }

@@ -9,7 +9,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.core.game.ships.ShipObject;
+import org.valkyrienskies.core.game.ships.ShipObjectClient;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(Particle.class)
@@ -36,7 +36,7 @@ public abstract class ParticleMixin {
     )
     public void checkShipCoords(final ClientWorld world, final double x, final double y, final double z,
         final CallbackInfo ci) {
-        final ShipObject ship = VSGameUtilsKt.getShipObjectManagingPos(world, (int) x >> 4, (int) z >> 4);
+        final ShipObjectClient ship = VSGameUtilsKt.getShipObjectManagingPos(world, (int) x >> 4, (int) z >> 4);
         if (ship == null) {
             return;
         }
@@ -57,7 +57,7 @@ public abstract class ParticleMixin {
         final double velocityX,
         final double velocityY, final double velocityZ, final CallbackInfo ci) {
 
-        final ShipObject ship = VSGameUtilsKt.getShipObjectManagingPos(world, (int) x >> 4, (int) z >> 4);
+        final ShipObjectClient ship = VSGameUtilsKt.getShipObjectManagingPos(world, (int) x >> 4, (int) z >> 4);
         if (ship == null) {
             return;
         }

@@ -4,7 +4,8 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.world.PersistentState
 import org.valkyrienskies.core.game.ChunkAllocator
-import org.valkyrienskies.core.game.ships.QueryableShipData
+import org.valkyrienskies.core.game.ships.MutableQueryableShipDataServer
+import org.valkyrienskies.core.game.ships.QueryableShipDataImpl
 import org.valkyrienskies.core.game.ships.ShipData
 import org.valkyrienskies.core.util.serialization.VSJacksonUtil
 
@@ -22,13 +23,13 @@ class ShipSavedData : PersistentState(SAVED_DATA_ID) {
 
         fun createEmpty(): ShipSavedData {
             val shipSavedData = ShipSavedData()
-            shipSavedData.queryableShipData = QueryableShipData()
+            shipSavedData.queryableShipData = QueryableShipDataImpl()
             shipSavedData.chunkAllocator = ChunkAllocator.create()
             return shipSavedData
         }
     }
 
-    private lateinit var queryableShipData: QueryableShipData
+    private lateinit var queryableShipData: MutableQueryableShipDataServer
     private lateinit var chunkAllocator: ChunkAllocator
 
     override fun fromTag(compoundTag: CompoundTag) {
@@ -39,7 +40,7 @@ class ShipSavedData : PersistentState(SAVED_DATA_ID) {
         // Convert bytes to objects
         val ships: List<ShipData> = VSJacksonUtil.defaultMapper.readValue(queryableShipDataAsBytes)
 
-        queryableShipData = QueryableShipData(ships)
+        queryableShipData = QueryableShipDataImpl(ships)
         chunkAllocator = VSJacksonUtil.defaultMapper.readValue(chunkAllocatorAsBytes)
     }
 

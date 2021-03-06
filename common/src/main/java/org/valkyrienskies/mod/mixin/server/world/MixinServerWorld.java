@@ -32,10 +32,10 @@ import org.valkyrienskies.core.chunk_tracking.ChunkUnwatchTask;
 import org.valkyrienskies.core.chunk_tracking.ChunkWatchTask;
 import org.valkyrienskies.core.game.IPlayer;
 import org.valkyrienskies.core.game.ships.ShipObject;
-import org.valkyrienskies.core.game.ships.ShipObjectWorld;
+import org.valkyrienskies.core.game.ships.ShipObjectServerWorld;
 import org.valkyrienskies.core.networking.IVSPacket;
 import org.valkyrienskies.core.networking.impl.VSPacketShipDataList;
-import org.valkyrienskies.mod.common.IShipObjectWorldProvider;
+import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.ShipSavedData;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.VSNetworking;
@@ -44,7 +44,7 @@ import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.mixin.accessors.server.world.ThreadedAnvilChunkStorageAccessor;
 
 @Mixin(ServerWorld.class)
-public abstract class MixinServerWorld implements IShipObjectWorldProvider {
+public abstract class MixinServerWorld implements IShipObjectWorldServerProvider {
 
     @Shadow
     public abstract PersistentStateManager getPersistentStateManager();
@@ -57,7 +57,7 @@ public abstract class MixinServerWorld implements IShipObjectWorldProvider {
     @Final
     private ServerChunkManager serverChunkManager;
 
-    private ShipObjectWorld shipObjectWorld = null;
+    private ShipObjectServerWorld shipObjectWorld = null;
     private ShipSavedData shipSavedData = null;
     private final Map<UUID, MinecraftPlayer> vsPlayerWrappers = new HashMap<>();
 
@@ -70,12 +70,13 @@ public abstract class MixinServerWorld implements IShipObjectWorldProvider {
         shipSavedData = getPersistentStateManager()
             .getOrCreate(ShipSavedData.Companion::createEmpty, ShipSavedData.SAVED_DATA_ID);
         // Make a ship world using the loaded ship data
-        shipObjectWorld = new ShipObjectWorld(shipSavedData.getQueryableShipData(), shipSavedData.getChunkAllocator());
+        shipObjectWorld =
+            new ShipObjectServerWorld(shipSavedData.getQueryableShipData(), shipSavedData.getChunkAllocator());
     }
 
     @NotNull
     @Override
-    public ShipObjectWorld getShipObjectWorld() {
+    public ShipObjectServerWorld getShipObjectWorld() {
         return shipObjectWorld;
     }
 
@@ -104,7 +105,7 @@ public abstract class MixinServerWorld implements IShipObjectWorldProvider {
         // in-world position
         final Vector3d posInWorld = ship.getShipData().getShipTransform().getShipToWorldMatrix()
             .transformPosition(VectorConversionsMCKt.toJOML(particle));
-        
+
         return posInWorld.distanceSquared(player.getX(), player.getY(), player.getZ()) < distance * distance;
     }
 

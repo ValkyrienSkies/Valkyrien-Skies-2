@@ -20,7 +20,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.core.game.ChunkAllocator;
 import org.valkyrienskies.mod.mixin.accessors.client.world.ClientChunkManagerClientChunkMapAccessor;
 
 /**
@@ -44,7 +44,7 @@ public abstract class MixinClientChunkManager {
         final ClientChunkManagerClientChunkMapAccessor clientChunkMapAccessor =
             ClientChunkManagerClientChunkMapAccessor.class.cast(chunks);
         if (!clientChunkMapAccessor.callIsInRadius(x, z)) {
-            if (VSGameUtilsKt.getShipObjectWorld(world).getChunkAllocator().isChunkInShipyard(x, z)) {
+            if (ChunkAllocator.isChunkInShipyard(x, z)) {
                 final long chunkPosLong = ChunkPos.toLong(x, z);
 
                 final WorldChunk worldChunk = new WorldChunk(this.world, new ChunkPos(x, z), biomes);

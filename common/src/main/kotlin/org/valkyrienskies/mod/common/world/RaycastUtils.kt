@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.common.world
 
 import net.minecraft.block.BlockState
+import net.minecraft.client.world.ClientWorld
 import net.minecraft.fluid.FluidState
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.hit.HitResult
@@ -10,15 +11,13 @@ import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.RaycastContext
 import net.minecraft.world.World
-import org.valkyrienskies.mod.common.IShipObjectWorldProvider
+import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toVec3d
 import java.util.function.BiFunction
 import java.util.function.Function
 
-fun World.raycastIncludeShips(ctx: RaycastContext): BlockHitResult {
-    this as IShipObjectWorldProvider
-
+fun ClientWorld.raycastIncludeShips(ctx: RaycastContext): BlockHitResult {
     val vanillaHit = raycast(ctx)
 
     var closestHit = vanillaHit
@@ -28,7 +27,7 @@ fun World.raycastIncludeShips(ctx: RaycastContext): BlockHitResult {
     // TODO make this more efficient
     // Iterate every ship, find do the raycast in ship space,
     // choose the raycast with the lowest distance to the start position.
-    for (ship in shipObjectWorld.uuidToShipObjectMap.values) {
+    for (ship in shipObjectWorld.shipObjects.values) {
         val worldToShip = ship.renderTransform.worldToShipMatrix
         val shipToWorld = ship.renderTransform.shipToWorldMatrix
         val shipStart = worldToShip.transformPosition(ctx.start.toJOML()).toVec3d()

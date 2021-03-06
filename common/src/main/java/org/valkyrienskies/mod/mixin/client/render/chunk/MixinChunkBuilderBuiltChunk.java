@@ -3,9 +3,9 @@ package org.valkyrienskies.mod.mixin.client.render.chunk;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.chunk.ChunkBuilder;
+import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
-import net.minecraft.world.World;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Final;
@@ -14,8 +14,8 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.valkyrienskies.core.game.ships.ShipObject;
-import org.valkyrienskies.mod.common.VSGameUtils;
+import org.valkyrienskies.core.game.ships.ShipObjectClient;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(ChunkBuilder.BuiltChunk.class)
 public class MixinChunkBuilderBuiltChunk {
@@ -35,12 +35,12 @@ public class MixinChunkBuilderBuiltChunk {
      */
     @Inject(method = "getSquaredCameraDistance", at = @At("HEAD"), cancellable = true)
     private void preGetSquaredCameraDistance(final CallbackInfoReturnable<Double> cir) {
-        final World world = MinecraftClient.getInstance().world;
+        final ClientWorld world = MinecraftClient.getInstance().world;
         if (world == null) {
             return;
         }
 
-        final ShipObject shipObject = VSGameUtils.getShipObjectManagingPos(world, origin);
+        final ShipObjectClient shipObject = VSGameUtilsKt.getShipObjectManagingPos(world, origin);
         if (shipObject != null) {
             final Camera camera = MinecraftClient.getInstance().gameRenderer.getCamera();
             final Vector3dc chunkPosInWorld = shipObject.getRenderTransform().getShipToWorldMatrix().transformPosition(

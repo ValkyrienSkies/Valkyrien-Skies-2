@@ -1,55 +1,96 @@
 package org.valkyrienskies.mod.common
 
+import net.minecraft.client.world.ClientWorld
+import net.minecraft.server.world.ServerWorld
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkPos
 import net.minecraft.world.World
 import org.joml.Vector3d
+import org.valkyrienskies.core.game.ChunkAllocator
 import org.valkyrienskies.core.game.ships.ShipData
+import org.valkyrienskies.core.game.ships.ShipDataClient
 import org.valkyrienskies.core.game.ships.ShipObject
+import org.valkyrienskies.core.game.ships.ShipObjectClient
+import org.valkyrienskies.core.game.ships.ShipObjectServer
 import org.valkyrienskies.mod.common.util.toJOMLD
 
 val World.shipObjectWorld get() = (this as IShipObjectWorldProvider).shipObjectWorld
+val ServerWorld.shipObjectWorld get() = (this as IShipObjectWorldServerProvider).shipObjectWorld
+val ClientWorld.shipObjectWorld get() = (this as IShipObjectWorldClientProvider).shipObjectWorld
 
-fun World.getShipObjectManagingPos(blockPos: BlockPos): ShipObject? =
-    getShipObjectManagingPos(blockPos.x shr 4, blockPos.z shr 4)
-
-fun World.getShipObjectManagingPos(chunkPos: ChunkPos): ShipObject? =
-    getShipObjectManagingPos(chunkPos.x, chunkPos.z)
-
-fun World.getShipObjectManagingPos(chunkX: Int, chunkZ: Int): ShipObject? {
-    if (shipObjectWorld.chunkAllocator.isChunkInShipyard(chunkX, chunkZ)) {
-        val shipDataManagingPos = shipObjectWorld.queryableShipData.getShipDataFromChunkPos(chunkX, chunkZ)
+private fun getShipObjectManagingPosImpl(world: World, chunkX: Int, chunkZ: Int): ShipObject? {
+    if (ChunkAllocator.isChunkInShipyard(chunkX, chunkZ)) {
+        val shipDataManagingPos = world.shipObjectWorld.queryableShipData.getShipDataFromChunkPos(chunkX, chunkZ)
         if (shipDataManagingPos != null) {
-            return shipObjectWorld.uuidToShipObjectMap[shipDataManagingPos.shipUUID]
+            return world.shipObjectWorld.shipObjects[shipDataManagingPos.shipUUID]
         }
     }
     return null
 }
 
-fun World.getShipManagingPos(blockPos: BlockPos): ShipData? =
-    getShipManagingPos(blockPos.x shr 4, blockPos.z shr 4)
+// World
+fun World.getShipObjectManagingPos(chunkX: Int, chunkZ: Int) =
+    getShipObjectManagingPosImpl(this, chunkX, chunkZ)
 
-fun World.getShipManagingPos(chunkPos: ChunkPos): ShipData? =
-    getShipManagingPos(chunkPos.x, chunkPos.z)
+fun World.getShipObjectManagingPos(blockPos: BlockPos) =
+    getShipObjectManagingPos(blockPos.x shr 4, blockPos.z shr 4)
 
-fun World.getShipManagingPos(x: Int, z: Int): ShipData? {
-    return if (shipObjectWorld.chunkAllocator.isChunkInShipyard(x, z)) {
-        shipObjectWorld.queryableShipData.getShipDataFromChunkPos(x, z)
+fun World.getShipObjectManagingPos(chunkPos: ChunkPos) =
+    getShipObjectManagingPos(chunkPos.x, chunkPos.z)
+
+// ClientWorld
+fun ClientWorld.getShipObjectManagingPos(chunkX: Int, chunkZ: Int) =
+    getShipObjectManagingPosImpl(this, chunkX, chunkZ) as ShipObjectClient?
+
+fun ClientWorld.getShipObjectManagingPos(blockPos: BlockPos) =
+    getShipObjectManagingPos(blockPos.x shr 4, blockPos.z shr 4)
+
+fun ClientWorld.getShipObjectManagingPos(chunkPos: ChunkPos) =
+    getShipObjectManagingPos(chunkPos.x, chunkPos.z)
+
+// ServerWorld
+fun ServerWorld.getShipObjectManagingPos(chunkX: Int, chunkZ: Int) =
+    getShipObjectManagingPosImpl(this, chunkX, chunkZ) as ShipObjectServer?
+
+fun ServerWorld.getShipObjectManagingPos(blockPos: BlockPos) =
+    getShipObjectManagingPos(blockPos.x shr 4, blockPos.z shr 4)
+
+fun ServerWorld.getShipObjectManagingPos(chunkPos: ChunkPos) =
+    getShipObjectManagingPos(chunkPos.x, chunkPos.z)
+
+private fun getShipManagingPosImpl(world: World, x: Int, z: Int): ShipDataClient? {
+    return if (ChunkAllocator.isChunkInShipyard(x, z)) {
+        world.shipObjectWorld.queryableShipData.getShipDataFromChunkPos(x, z)
     } else {
         null
     }
 }
 
-fun ShipData.toWorldCoordinates(pos: BlockPos) = shipTransform.shipToWorldMatrix.transformPosition(pos.toJOMLD())
-fun ShipData.toWorldCoordinates(x: Double, y: Double, z: Double) =
+// World
+fun World.getShipManagingPos(chunkX: Int, chunkZ: Int) =
+    getShipManagingPosImpl(this, chunkX, chunkZ)
+
+fun World.getShipManagingPos(blockPos: BlockPos) =
+    getShipManagingPos(blockPos.x shr 4, blockPos.z shr 4)
+
+fun World.getShipManagingPos(chunkPos: ChunkPos) =
+    getShipManagingPos(chunkPos.x, chunkPos.z)
+
+// ServerWorld
+fun ServerWorld.getShipManagingPos(chunkX: Int, chunkZ: Int) =
+    getShipManagingPosImpl(this, chunkX, chunkZ) as ShipData?
+
+fun ServerWorld.getShipManagingPos(blockPos: BlockPos) =
+    getShipManagingPos(blockPos.x shr 4, blockPos.z shr 4)
+
+fun ServerWorld.getShipManagingPos(chunkPos: ChunkPos) =
+    getShipManagingPos(chunkPos.x, chunkPos.z)
+
+fun ShipDataClient.toWorldCoordinates(pos: BlockPos) = shipTransform.shipToWorldMatrix.transformPosition(pos.toJOMLD())
+fun ShipDataClient.toWorldCoordinates(x: Double, y: Double, z: Double) =
     shipTransform.shipToWorldMatrix.transformPosition(Vector3d(x, y, z))
 
 object VSGameUtils {
-
-    @JvmStatic
-    fun getShipManagingPos(world: World, chunkPos: ChunkPos): ShipData? {
-        return world.getShipManagingPos(chunkPos)
-    }
 
     @JvmStatic
     fun getShipObjectManagingPos(world: World, chunkPos: ChunkPos): ShipObject? {

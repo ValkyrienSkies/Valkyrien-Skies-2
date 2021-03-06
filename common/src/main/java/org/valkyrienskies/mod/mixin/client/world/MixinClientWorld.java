@@ -11,23 +11,20 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.core.game.ChunkAllocator;
-import org.valkyrienskies.core.game.ships.QueryableShipData;
-import org.valkyrienskies.core.game.ships.ShipObject;
-import org.valkyrienskies.core.game.ships.ShipObjectWorld;
-import org.valkyrienskies.mod.common.IShipObjectWorldProvider;
-import org.valkyrienskies.mod.common.VSGameUtils;
+import org.valkyrienskies.core.game.ships.QueryableShipDataImpl;
+import org.valkyrienskies.core.game.ships.ShipObjectClient;
+import org.valkyrienskies.core.game.ships.ShipObjectClientWorld;
+import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(ClientWorld.class)
-public abstract class MixinClientWorld implements IShipObjectWorldProvider {
+public abstract class MixinClientWorld implements IShipObjectWorldClientProvider {
 
-
-    private final ShipObjectWorld shipObjectWorld =
-        new ShipObjectWorld(new QueryableShipData(), new ChunkAllocator(-7000, 3000));
+    private final ShipObjectClientWorld shipObjectWorld = new ShipObjectClientWorld(new QueryableShipDataImpl<>());
 
     @NotNull
     @Override
-    public ShipObjectWorld getShipObjectWorld() {
+    public ShipObjectClientWorld getShipObjectWorld() {
         return shipObjectWorld;
     }
 
@@ -46,7 +43,7 @@ public abstract class MixinClientWorld implements IShipObjectWorldProvider {
         final SoundCategory category,
         final float volume, final float pitch, final boolean bl, final CallbackInfo ci) {
         final ClientWorld self = ClientWorld.class.cast(this);
-        final ShipObject shipObject = VSGameUtils.getShipObjectManagingPos(self, (int) x >> 4, (int) z >> 4);
+        final ShipObjectClient shipObject = VSGameUtilsKt.getShipObjectManagingPos(self, (int) x >> 4, (int) z >> 4);
         if (shipObject != null) {
             // in-world position
             final Vector3d p = shipObject.getRenderTransform()

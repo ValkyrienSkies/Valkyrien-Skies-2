@@ -44,9 +44,8 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
-import org.valkyrienskies.core.game.ships.ShipObject;
+import org.valkyrienskies.core.game.ships.ShipObjectClient;
 import org.valkyrienskies.core.game.ships.ShipTransform;
-import org.valkyrienskies.mod.common.VSGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.mixin.accessors.client.render.BuiltChunkStorageAccessor;
@@ -76,8 +75,7 @@ public abstract class MixinWorldRenderer {
     @Shadow
     @Nullable
     protected abstract Particle spawnParticle(ParticleEffect parameters, boolean alwaysSpawn, boolean canSpawnOnMinimal,
-        double x,
-        double y, double z, double velocityX, double velocityY, double velocityZ);
+        double x, double y, double z, double velocityX, double velocityY, double velocityZ);
 
     /**
      * Render particles in-world. The {@link org.valkyrienskies.mod.mixin.client.particle.ParticleMixin} is not
@@ -95,7 +93,7 @@ public abstract class MixinWorldRenderer {
         final double velocityZ,
         final CallbackInfoReturnable<Particle> cir
     ) {
-        final ShipObject ship = VSGameUtilsKt.getShipObjectManagingPos(world, (int) x >> 4, (int) z >> 4);
+        final ShipObjectClient ship = VSGameUtilsKt.getShipObjectManagingPos(world, (int) x >> 4, (int) z >> 4);
 
         if (ship == null) {
             // vanilla behaviour
@@ -134,7 +132,7 @@ public abstract class MixinWorldRenderer {
         final WorldRenderer self = WorldRenderer.class.cast(this);
         final BlockPos.Mutable tempPos = new BlockPos.Mutable();
         final BuiltChunkStorageAccessor chunkStorageAccessor = (BuiltChunkStorageAccessor) chunks;
-        for (final ShipObject shipObject : VSGameUtilsKt.getShipObjectWorld(world).getUuidToShipObjectMap().values()) {
+        for (final ShipObjectClient shipObject : VSGameUtilsKt.getShipObjectWorld(world).getShipObjects().values()) {
             shipObject.getShipData().getShipActiveChunksSet().iterateChunkPos((x, z) -> {
                 for (int y = 0; y < 16; y++) {
                     tempPos.set(x << 4, y << 4, z << 4);
@@ -176,7 +174,7 @@ public abstract class MixinWorldRenderer {
         final Camera methodCamera, final GameRenderer methodGameRenderer,
         final LightmapTextureManager methodLightmapTextureManager,
         final Matrix4f methodMatrix4f) {
-        final ShipObject ship = VSGameUtils.getShipObjectManagingPos(world, blockPos);
+        final ShipObjectClient ship = VSGameUtilsKt.getShipObjectManagingPos(world, blockPos);
         if (ship != null) {
             // Remove the vanilla render transform
             matrixStack.pop();
@@ -234,7 +232,7 @@ public abstract class MixinWorldRenderer {
         final boolean bl, final ObjectListIterator<?> objectListIterator, final WorldRenderer.ChunkInfo chunkInfo2,
         final ChunkBuilder.BuiltChunk builtChunk, final VertexBuffer vertexBuffer) {
         final BlockPos renderChunkOrigin = builtChunk.getOrigin();
-        final ShipObject shipObject = VSGameUtils.getShipObjectManagingPos(world, renderChunkOrigin);
+        final ShipObjectClient shipObject = VSGameUtilsKt.getShipObjectManagingPos(world, renderChunkOrigin);
         if (shipObject != null) {
             transformRenderWithShip(shipObject.getRenderTransform(), matrixStack, renderChunkOrigin,
                 playerCameraX, playerCameraY, playerCameraZ);
@@ -268,7 +266,7 @@ public abstract class MixinWorldRenderer {
         final LightmapTextureManager methodLightmapTextureManager,
         final Matrix4f methodMatrix4f) {
         final BlockPos blockEntityPos = blockEntity.getPos();
-        final ShipObject shipObject = VSGameUtils.getShipObjectManagingPos(world, blockEntityPos);
+        final ShipObjectClient shipObject = VSGameUtilsKt.getShipObjectManagingPos(world, blockEntityPos);
         if (shipObject != null) {
             final Vec3d cam = methodCamera.getPos();
             transformRenderWithShip(shipObject.getRenderTransform(), matrix, blockEntityPos,
@@ -289,7 +287,7 @@ public abstract class MixinWorldRenderer {
     private void transformRenderWithShip(final ShipTransform renderTransform, final MatrixStack matrix,
         final BlockPos blockPos,
         final double camX, final double camY, final double camZ) {
-        final ShipObject shipObject = VSGameUtils.getShipObjectManagingPos(world, blockPos);
+        final ShipObjectClient shipObject = VSGameUtilsKt.getShipObjectManagingPos(world, blockPos);
         if (shipObject != null) {
             // Remove the vanilla render transform
             matrix.pop();

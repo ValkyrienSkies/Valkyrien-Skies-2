@@ -28,6 +28,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import org.valkyrienskies.core.game.ChunkAllocator;
 import org.valkyrienskies.core.game.IPlayer;
 import org.valkyrienskies.mod.common.IShipObjectWorldProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
@@ -51,7 +52,6 @@ public abstract class MixinThreadedAnvilChunkStorage {
     @Final
     private Supplier<PersistentStateManager> persistentStateManagerFactory;
 
-
     /**
      * Force the game to generate empty chunks in the shipyard.
      *
@@ -71,8 +71,7 @@ public abstract class MixinThreadedAnvilChunkStorage {
 
         if (originalToReturn == null) {
             final IShipObjectWorldProvider shipObjectWorldProvider = (IShipObjectWorldProvider) world;
-            if (shipObjectWorldProvider.getShipObjectWorld().getChunkAllocator()
-                .isChunkInShipyard(chunkPos.x, chunkPos.z)) {
+            if (ChunkAllocator.isChunkInShipyard(chunkPos.x, chunkPos.z)) {
                 // The chunk doesn't yet exist and is in the shipyard. Make a new empty chunk
                 // Generate the chunk to be nothing
                 final WorldChunk generatedChunk = new WorldChunk(world, chunkPos,

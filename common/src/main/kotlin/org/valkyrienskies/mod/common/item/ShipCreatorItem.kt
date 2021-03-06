@@ -4,18 +4,20 @@ import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
 import net.minecraft.item.Item
 import net.minecraft.item.ItemUsageContext
+import net.minecraft.server.world.ServerWorld
 import net.minecraft.util.ActionResult
 import org.joml.Vector3i
 import org.valkyrienskies.core.game.VSBlockType
-import org.valkyrienskies.mod.common.IShipObjectWorldProvider
+import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.toBlockPos
 import org.valkyrienskies.mod.common.util.toJOML
 
 class ShipCreatorItem(properties: Settings) : Item(properties) {
 
-    override fun useOnBlock(useOnContext: ItemUsageContext?): ActionResult {
+    override fun useOnBlock(useOnContext: ItemUsageContext): ActionResult {
+        println(useOnContext.world.isClient)
         val player = useOnContext!!.player
-        val level = useOnContext.world
+        val level = useOnContext.world as? ServerWorld ?: return super.useOnBlock(useOnContext)
         val blockPos = useOnContext.blockPos
         val blockState: BlockState = level.getBlockState(blockPos)
 
@@ -24,7 +26,6 @@ class ShipCreatorItem(properties: Settings) : Item(properties) {
         if (!level.isClient) {
             if (!blockState.isAir) {
                 // Make a ship
-                level as IShipObjectWorldProvider
                 val shipData = level.shipObjectWorld.createNewShipAtBlock(blockPos.toJOML(), false)
 
                 val centerPos = shipData.chunkClaim.getCenterBlockCoordinates(Vector3i()).toBlockPos()
