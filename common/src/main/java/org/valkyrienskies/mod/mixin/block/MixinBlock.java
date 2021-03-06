@@ -9,7 +9,7 @@ import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
-import org.valkyrienskies.core.game.ships.ShipDataClient;
+import org.valkyrienskies.core.game.ships.ShipDataCommon;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(Block.class)
@@ -32,7 +32,7 @@ public class MixinBlock {
         // dropStack arguments
         final World ignore, final BlockPos pos, final ItemStack ignore2
     ) {
-        final ShipDataClient ship = VSGameUtilsKt.getShipManagingPos(world, pos);
+        final ShipDataCommon ship = VSGameUtilsKt.getShipManagingPos(world, pos);
         if (ship == null) {
             // Vanilla behaviour
             return new ItemEntity(world, x, y, z, stack);

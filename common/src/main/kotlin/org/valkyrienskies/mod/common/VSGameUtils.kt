@@ -8,7 +8,7 @@ import net.minecraft.world.World
 import org.joml.Vector3d
 import org.valkyrienskies.core.game.ChunkAllocator
 import org.valkyrienskies.core.game.ships.ShipData
-import org.valkyrienskies.core.game.ships.ShipDataClient
+import org.valkyrienskies.core.game.ships.ShipDataCommon
 import org.valkyrienskies.core.game.ships.ShipObject
 import org.valkyrienskies.core.game.ships.ShipObjectClient
 import org.valkyrienskies.core.game.ships.ShipObjectServer
@@ -58,7 +58,7 @@ fun ServerWorld.getShipObjectManagingPos(blockPos: BlockPos) =
 fun ServerWorld.getShipObjectManagingPos(chunkPos: ChunkPos) =
     getShipObjectManagingPos(chunkPos.x, chunkPos.z)
 
-private fun getShipManagingPosImpl(world: World, x: Int, z: Int): ShipDataClient? {
+private fun getShipManagingPosImpl(world: World, x: Int, z: Int): ShipDataCommon? {
     return if (ChunkAllocator.isChunkInShipyard(x, z)) {
         world.shipObjectWorld.queryableShipData.getShipDataFromChunkPos(x, z)
     } else {
@@ -86,8 +86,8 @@ fun ServerWorld.getShipManagingPos(blockPos: BlockPos) =
 fun ServerWorld.getShipManagingPos(chunkPos: ChunkPos) =
     getShipManagingPos(chunkPos.x, chunkPos.z)
 
-fun ShipDataClient.toWorldCoordinates(pos: BlockPos) = shipTransform.shipToWorldMatrix.transformPosition(pos.toJOMLD())
-fun ShipDataClient.toWorldCoordinates(x: Double, y: Double, z: Double) =
+fun ShipDataCommon.toWorldCoordinates(pos: BlockPos) = shipTransform.shipToWorldMatrix.transformPosition(pos.toJOMLD())
+fun ShipDataCommon.toWorldCoordinates(x: Double, y: Double, z: Double) =
     shipTransform.shipToWorldMatrix.transformPosition(Vector3d(x, y, z))
 
 object VSGameUtils {
