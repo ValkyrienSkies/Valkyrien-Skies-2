@@ -2,6 +2,7 @@ package org.valkyrienskies.mod.common.util
 
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Box
 import net.minecraft.util.math.Position
 import net.minecraft.util.math.Quaternion
 import net.minecraft.util.math.Vec3d
@@ -15,6 +16,8 @@ import org.joml.Vector3d
 import org.joml.Vector3dc
 import org.joml.Vector3i
 import org.joml.Vector3ic
+import org.joml.primitives.AABBd
+import org.joml.primitives.AABBdc
 import org.valkyrienskies.mod.mixin.accessors.util.math.Matrix4fAccessor
 import net.minecraft.util.math.Matrix4f as Matrix4fMC
 
@@ -38,6 +41,15 @@ fun Vector3d.set(v: Position) = also {
     z = v.z
 }
 
+fun AABBd.set(v: Box) = also {
+    minX = v.minX
+    minY = v.minY
+    minZ = v.minZ
+    maxX = v.maxX
+    maxY = v.maxY
+    maxZ = v.maxZ
+}
+
 fun Vector3ic.toBlockPos() = BlockPos(x(), y(), z())
 fun Vector3dc.toVec3d() = Vec3d(x(), y(), z())
 
@@ -48,6 +60,9 @@ fun Matrix4fc.toMinecraft() = Matrix4fMC().set(this)
 fun Matrix4dc.toMinecraft() = Matrix4fMC().set(this)
 
 fun Matrix4fMC.toJOML() = Matrix4d().set(this)
+
+fun AABBdc.toMinecraft() = Box(minX(), minY(), minZ(), maxX(), maxY(), maxZ())
+fun Box.toJOML() = AABBd().set(this)
 
 // endregion
 
