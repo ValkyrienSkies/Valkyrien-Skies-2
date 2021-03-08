@@ -24,11 +24,10 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.valkyrienskies.core.collision.CollisionRange;
-import org.valkyrienskies.core.collision.CollisionRangec;
 import org.valkyrienskies.core.collision.CollisionResult;
-import org.valkyrienskies.core.collision.ConvexPolygon;
 import org.valkyrienskies.core.collision.ConvexPolygonc;
 import org.valkyrienskies.core.collision.SATConvexPolygonCollider;
+import org.valkyrienskies.core.collision.TransformedCuboidPolygon;
 import org.valkyrienskies.core.game.ships.ShipObject;
 import org.valkyrienskies.core.game.ships.ShipTransform;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
@@ -69,7 +68,7 @@ public abstract class MixinEntity {
             final Vector3d newMovement = VectorConversionsMCKt.toJOML(movement);
 
             final ConvexPolygonc entityPolygon =
-                ConvexPolygon.Companion
+                TransformedCuboidPolygon.Companion
                     .createFromAABB(VectorConversionsMCKt.toJOML(entityBoundingBox.stretch(movement)), null);
 
             final CollisionResult collisionResult = CollisionResult.Companion.create();
@@ -77,7 +76,7 @@ public abstract class MixinEntity {
             // region declare temp objects
             final CollisionRange temp1 = CollisionRange.Companion.create();
             final CollisionRange temp2 = CollisionRange.Companion.create();
-            final CollisionRange temp3 = CollisionRange.Companion.create();
+            final Vector3d temp3 = new Vector3d();
             // endregion
 
             for (final ConvexPolygonc shipPolygon : collidingPolygons) {
@@ -87,16 +86,12 @@ public abstract class MixinEntity {
                     Iterators.concat(Arrays.stream(UNIT_NORMALS).iterator(), shipPolygon.getNormals().iterator()),
                     collisionResult,
                     temp1,
-                    temp2,
-                    temp3
+                    temp2
                 );
 
                 if (collisionResult.getColliding()) {
-                    final Vector3dc axis = collisionResult.getCollisionAxis();
-                    final CollisionRangec collisionRangec = collisionResult.getCollisionRange();
-
-                    // TODO: WRONG, but kind of works :O
-                    newMovement.add(axis.mul(collisionRangec.getRangeLength(), new Vector3d()));
+                    final Vector3dc collisionResponse = collisionResult.getCollisionResponse(temp3);
+                    newMovement.add(collisionResponse);
                 }
             }
 
@@ -117,7 +112,7 @@ public abstract class MixinEntity {
             final ShipTransform shipTransform = shipObject.getShipData().getShipTransform();
 
             final ConvexPolygonc entityPolyInShipCoordinates =
-                ConvexPolygon.Companion.createFromAABB(VectorConversionsMCKt.toJOML(entityBoxWithMovement),
+                TransformedCuboidPolygon.Companion.createFromAABB(VectorConversionsMCKt.toJOML(entityBoxWithMovement),
                     shipTransform.getWorldToShipMatrix());
             final AABBdc enclosingBB = entityPolyInShipCoordinates.getEnclosingAABB(new AABBd());
             final Box enclosingBBAsBox = VectorConversionsMCKt.toMinecraft(enclosingBB);
@@ -127,8 +122,9 @@ public abstract class MixinEntity {
 
             stream2.forEach(voxelShape -> {
                 final ConvexPolygonc shipPolygon =
-                    ConvexPolygon.Companion.createFromAABB(VectorConversionsMCKt.toJOML(voxelShape.getBoundingBox()),
-                        shipTransform.getShipToWorldMatrix());
+                    TransformedCuboidPolygon.Companion
+                        .createFromAABB(VectorConversionsMCKt.toJOML(voxelShape.getBoundingBox()),
+                            shipTransform.getShipToWorldMatrix());
                 collidingPolygons.add(shipPolygon);
             });
         }
