@@ -33,7 +33,7 @@ object EntityShipCollisionUtils {
         val collidingPolygons = getShipPolygonsCollidingWithEntity(entity, movement, entityBoundingBox, world)
         if (collidingPolygons.isNotEmpty()) {
             val newMovement = movement.toJOML()
-            val entityPolygon: ConvexPolygonc = createFromAABB(entityBoundingBox.stretch(movement).toJOML(), null)
+            val entityPolygon: ConvexPolygonc = createFromAABB(entityBoundingBox.toJOML(), null)
             val collisionResult = CollisionResult.create()
 
             // region declare temp objects
@@ -55,6 +55,7 @@ object EntityShipCollisionUtils {
                 checkIfColliding(
                     entityPolygon,
                     shipPolygon,
+                    newMovement,
                     normals.iterator(),
                     collisionResult,
                     temp1,
