@@ -1,10 +1,5 @@
 package org.valkyrienskies.mod.mixin.entity;
 
-import com.google.common.collect.Iterators;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Stream;
 import net.minecraft.block.ShapeContext;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
@@ -16,29 +11,14 @@ import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.world.RaycastContext;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Vector3d;
-import org.joml.Vector3dc;
-import org.joml.primitives.AABBd;
-import org.joml.primitives.AABBdc;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
-import org.valkyrienskies.core.collision.CollisionRange;
-import org.valkyrienskies.core.collision.CollisionResult;
-import org.valkyrienskies.core.collision.ConvexPolygonc;
-import org.valkyrienskies.core.collision.SATConvexPolygonCollider;
-import org.valkyrienskies.core.collision.TransformedCuboidPolygon;
-import org.valkyrienskies.core.game.ships.ShipObject;
-import org.valkyrienskies.core.game.ships.ShipTransform;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
+import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 
 @Mixin(Entity.class)
 public abstract class MixinEntity {
-
-    private static final Vector3dc[] UNIT_NORMALS =
-        new Vector3dc[] {new Vector3d(1, 0, 0), new Vector3d(0, 1, 0), new Vector3d(1, 0, 0)};
 
     @Redirect(
         method = "raycast",
@@ -62,73 +42,9 @@ public abstract class MixinEntity {
         final Vec3d movement,
         final Box entityBoundingBox, final World world, final ShapeContext context,
         final ReusableStream<VoxelShape> collisions) {
-        final List<ConvexPolygonc> collidingPolygons =
-            vs$getShipPolygonsCollidingWithEntity(entity, movement, entityBoundingBox, world);
-        if (!collidingPolygons.isEmpty()) {
-            final Vector3d newMovement = VectorConversionsMCKt.toJOML(movement);
-
-            final ConvexPolygonc entityPolygon =
-                TransformedCuboidPolygon.Companion
-                    .createFromAABB(VectorConversionsMCKt.toJOML(entityBoundingBox.stretch(movement)), null);
-
-            final CollisionResult collisionResult = CollisionResult.Companion.create();
-
-            // region declare temp objects
-            final CollisionRange temp1 = CollisionRange.Companion.create();
-            final CollisionRange temp2 = CollisionRange.Companion.create();
-            final Vector3d temp3 = new Vector3d();
-            // endregion
-
-            for (final ConvexPolygonc shipPolygon : collidingPolygons) {
-                SATConvexPolygonCollider.INSTANCE.checkIfColliding(
-                    entityPolygon,
-                    shipPolygon,
-                    Iterators.concat(Arrays.stream(UNIT_NORMALS).iterator(), shipPolygon.getNormals().iterator()),
-                    collisionResult,
-                    temp1,
-                    temp2
-                );
-
-                if (collisionResult.getColliding()) {
-                    final Vector3dc collisionResponse = collisionResult.getCollisionResponse(temp3);
-                    newMovement.add(collisionResponse);
-                }
-            }
-
-            return Entity
-                .adjustMovementForCollisions(entity, VectorConversionsMCKt.toVec3d(newMovement), entityBoundingBox,
-                    world, context, collisions);
-        }
-        return Entity.adjustMovementForCollisions(entity, movement, entityBoundingBox, world, context, collisions);
-    }
-
-    private List<ConvexPolygonc> vs$getShipPolygonsCollidingWithEntity(@Nullable final Entity entity,
-        final Vec3d movement, final Box entityBoundingBox, final World world) {
-        final Box entityBoxWithMovement = entityBoundingBox.stretch(movement);
-
-        final List<ConvexPolygonc> collidingPolygons = new ArrayList<>();
-
-        for (final ShipObject shipObject : VSGameUtilsKt.getShipObjectWorld(world).getShipObjects().values()) {
-            final ShipTransform shipTransform = shipObject.getShipData().getShipTransform();
-
-            final ConvexPolygonc entityPolyInShipCoordinates =
-                TransformedCuboidPolygon.Companion.createFromAABB(VectorConversionsMCKt.toJOML(entityBoxWithMovement),
-                    shipTransform.getWorldToShipMatrix());
-            final AABBdc enclosingBB = entityPolyInShipCoordinates.getEnclosingAABB(new AABBd());
-            final Box enclosingBBAsBox = VectorConversionsMCKt.toMinecraft(enclosingBB);
-
-            final Stream<VoxelShape> stream2 =
-                world.getBlockCollisions(entity, enclosingBBAsBox);
-
-            stream2.forEach(voxelShape -> {
-                final ConvexPolygonc shipPolygon =
-                    TransformedCuboidPolygon.Companion
-                        .createFromAABB(VectorConversionsMCKt.toJOML(voxelShape.getBoundingBox()),
-                            shipTransform.getShipToWorldMatrix());
-                collidingPolygons.add(shipPolygon);
-            });
-        }
-        return collidingPolygons;
+        return EntityShipCollisionUtils.INSTANCE
+            .adjustMovementForCollisionsAndShipCollisions(entity, movement, entityBoundingBox, world, context,
+                collisions);
     }
 
 }
