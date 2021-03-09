@@ -27,7 +27,9 @@ object EntityShipCollisionUtils {
     fun adjustMovementForCollisionsAndShipCollisions(
         entity: Entity?,
         movement: Vec3d,
-        entityBoundingBox: Box, world: World, context: ShapeContext,
+        entityBoundingBox: Box,
+        world: World,
+        context: ShapeContext,
         collisions: ReusableStream<VoxelShape>
     ): Vec3d {
         val collidingPolygons = getShipPolygonsCollidingWithEntity(entity, movement, entityBoundingBox, world)
@@ -77,7 +79,9 @@ object EntityShipCollisionUtils {
 
     private fun getShipPolygonsCollidingWithEntity(
         entity: Entity?,
-        movement: Vec3d, entityBoundingBox: Box, world: World
+        movement: Vec3d,
+        entityBoundingBox: Box,
+        world: World
     ): List<ConvexPolygonc> {
         val entityBoxWithMovement = entityBoundingBox.stretch(movement)
         val collidingPolygons: MutableList<ConvexPolygonc> = ArrayList()
