@@ -17,7 +17,10 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.4.21")
 
     // vs-core
-    implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}")
+    implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {
+        exclude module: "netty-buffer"
+        exclude module: "fastutil"
+    }
 }
 
 architectury {

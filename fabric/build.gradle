@@ -42,8 +42,14 @@ dependencies {
     modImplementation("net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}")
 
     // Shade vs-core
-    implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}")
-    shadowCommon("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}")
+    implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {
+        exclude module: "netty-buffer"
+        exclude module: "fastutil"
+    }
+    shadowCommon("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {
+        exclude module: "netty-buffer"
+        exclude module: "fastutil"
+    }
 }
 
 processResources {

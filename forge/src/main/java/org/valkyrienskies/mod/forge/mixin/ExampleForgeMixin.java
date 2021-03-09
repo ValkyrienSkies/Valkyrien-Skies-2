@@ -14,14 +14,14 @@ public class ExampleForgeMixin {
 
     @Shadow
     @Final
-    private static Logger field_23775;
+    private static Logger LOGGER;
 
     @Inject(
         at = @At("HEAD"),
         method = "init"
     )
     public void inject(final CallbackInfo info) {
-        field_23775.info("Hello from ExampleForgeMixin");
+        LOGGER.info("Hello from ExampleForgeMixin");
     }
 
 }

@@ -44,8 +44,14 @@ dependencies {
     compile("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.2")
 
     // Shade vs-core
-    implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}")
-    shadowCommon("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}")
+    implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {
+        exclude module: "netty-buffer"
+        exclude module: "fastutil"
+    }
+    shadowCommon("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {
+        exclude module: "netty-buffer"
+        exclude module: "fastutil"
+    }
 }
 
 shadowJar {

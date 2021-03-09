@@ -2,7 +2,6 @@
   "required": true,
   "package": "org.valkyrienskies.mod.mixin",
   "compatibilityLevel": "JAVA_8",
-  "refmap": "valkyrienskies-116-common-refmap.json",
   "mixins": [
     "accessors.server.world.ThreadedAnvilChunkStorageAccessor",
     "accessors.util.math.Matrix4fAccessor",
