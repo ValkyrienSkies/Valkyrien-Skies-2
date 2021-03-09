@@ -46,7 +46,7 @@ object EntityShipCollisionUtils {
                 for (normal in shipPolygon.normals) {
                     normals.add(normal)
                     for (unitNormal in UNIT_NORMALS) {
-                        val crossProduct: Vector3dc = normal.cross(unitNormal, Vector3d())
+                        val crossProduct: Vector3dc = normal.cross(unitNormal, Vector3d()).normalize()
                         if (crossProduct.lengthSquared() > 1.0e-6) {
                             normals.add(crossProduct)
                         }
