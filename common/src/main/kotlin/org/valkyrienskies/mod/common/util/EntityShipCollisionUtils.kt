@@ -30,7 +30,8 @@ object EntityShipCollisionUtils {
         entityBoundingBox: Box,
         world: World,
         context: ShapeContext,
-        collisions: ReusableStream<VoxelShape>
+        collisions: ReusableStream<VoxelShape>,
+        isCollisionStepHeight: Boolean
     ): Vec3d {
         val collidingPolygons = getShipPolygonsCollidingWithEntity(entity, movement, entityBoundingBox, world)
         if (collidingPolygons.isNotEmpty()) {
@@ -44,16 +45,25 @@ object EntityShipCollisionUtils {
             val temp3 = Vector3d()
             // endregion
             for (shipPolygon in collidingPolygons) {
-                val normals: MutableList<Vector3dc> = ArrayList(listOf(*UNIT_NORMALS))
-                for (normal in shipPolygon.normals) {
-                    normals.add(normal)
-                    for (unitNormal in UNIT_NORMALS) {
-                        val crossProduct: Vector3dc = normal.cross(unitNormal, Vector3d()).normalize()
-                        if (crossProduct.lengthSquared() > 1.0e-6) {
-                            normals.add(crossProduct)
+                val normals: MutableList<Vector3dc> = ArrayList()
+
+                if (isCollisionStepHeight) {
+                    // If this collision is for step height, then only use the Y normal (0, 1, 0).
+                    normals.add(UNIT_NORMALS[1])
+                } else {
+                    for (normal in UNIT_NORMALS) normals.add(normal)
+                    for (normal in shipPolygon.normals) {
+                        normals.add(normal)
+                        for (unitNormal in UNIT_NORMALS) {
+                            val crossProduct: Vector3dc = normal.cross(unitNormal, Vector3d()).normalize()
+                            if (crossProduct.lengthSquared() > 1.0e-6) {
+                                normals.add(crossProduct)
+                            }
                         }
                     }
                 }
+
+
                 checkIfColliding(
                     entityPolygon,
                     shipPolygon,
