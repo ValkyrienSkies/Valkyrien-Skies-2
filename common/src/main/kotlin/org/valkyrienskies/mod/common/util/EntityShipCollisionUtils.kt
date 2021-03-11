@@ -1,8 +1,6 @@
 package org.valkyrienskies.mod.common.util
 
-import net.minecraft.block.ShapeContext
 import net.minecraft.entity.Entity
-import net.minecraft.util.collection.ReusableStream
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShape
@@ -18,6 +16,7 @@ import org.valkyrienskies.core.collision.SATConvexPolygonCollider.checkIfCollidi
 import org.valkyrienskies.core.collision.TransformedCuboidPolygon.Companion.createFromAABB
 import org.valkyrienskies.mod.common.shipObjectWorld
 import java.util.ArrayList
+import kotlin.math.abs
 
 object EntityShipCollisionUtils {
 
@@ -28,10 +27,7 @@ object EntityShipCollisionUtils {
         entity: Entity?,
         movement: Vec3d,
         entityBoundingBox: Box,
-        world: World,
-        context: ShapeContext,
-        collisions: ReusableStream<VoxelShape>,
-        isCollisionStepHeight: Boolean
+        world: World
     ): Vec3d {
         val collidingPolygons = getShipPolygonsCollidingWithEntity(entity, movement, entityBoundingBox, world)
         if (collidingPolygons.isNotEmpty()) {
@@ -43,26 +39,21 @@ object EntityShipCollisionUtils {
             val temp1 = CollisionRange.create()
             val temp2 = CollisionRange.create()
             val temp3 = Vector3d()
+            val temp4 = Vector3d()
             // endregion
             for (shipPolygon in collidingPolygons) {
                 val normals: MutableList<Vector3dc> = ArrayList()
 
-                if (isCollisionStepHeight) {
-                    // If this collision is for step height, then only use the Y normal (0, 1, 0).
-                    normals.add(UNIT_NORMALS[1])
-                } else {
-                    for (normal in UNIT_NORMALS) normals.add(normal)
-                    for (normal in shipPolygon.normals) {
-                        normals.add(normal)
-                        for (unitNormal in UNIT_NORMALS) {
-                            val crossProduct: Vector3dc = normal.cross(unitNormal, Vector3d()).normalize()
-                            if (crossProduct.lengthSquared() > 1.0e-6) {
-                                normals.add(crossProduct)
-                            }
+                for (normal in UNIT_NORMALS) normals.add(normal)
+                for (normal in shipPolygon.normals) {
+                    normals.add(normal)
+                    for (unitNormal in UNIT_NORMALS) {
+                        val crossProduct: Vector3dc = normal.cross(unitNormal, Vector3d()).normalize()
+                        if (crossProduct.lengthSquared() > 1.0e-6) {
+                            normals.add(crossProduct)
                         }
                     }
                 }
-
 
                 checkIfColliding(
                     entityPolygon,
@@ -75,16 +66,20 @@ object EntityShipCollisionUtils {
                 )
                 if (collisionResult.colliding) {
                     val collisionResponse: Vector3dc = collisionResult.getCollisionResponse(temp3)
-                    newMovement.add(collisionResponse)
+
+                    if (collisionResponse.y() > 0 && abs(collisionResult.collisionAxis.y()) > .7) {
+                        // Only add the collision to the Y axis
+                        val yAxisResponse: Vector3dc =
+                            temp4.set(0.0, collisionResult.penetrationOffset / collisionResult.collisionAxis.y(), 0.0)
+                        newMovement.add(yAxisResponse)
+                    } else {
+                        newMovement.add(collisionResponse)
+                    }
                 }
             }
-            return Entity
-                .adjustMovementForCollisions(
-                    entity, newMovement.toVec3d(), entityBoundingBox,
-                    world, context, collisions
-                )
+            return newMovement.toVec3d()
         }
-        return Entity.adjustMovementForCollisions(entity, movement, entityBoundingBox, world, context, collisions)
+        return movement
     }
 
     private fun getShipPolygonsCollidingWithEntity(
@@ -104,9 +99,16 @@ object EntityShipCollisionUtils {
             val enclosingBB: AABBdc = entityPolyInShipCoordinates.getEnclosingAABB(AABBd())
             val enclosingBBAsBox = enclosingBB.toMinecraft()
             val stream2 = world.getBlockCollisions(entity, enclosingBBAsBox)
+            val aabbList = ArrayList<Box>()
             stream2.forEach { voxelShape: VoxelShape ->
+                voxelShape.forEachBox { minX, minY, minZ, maxX, maxY, maxZ ->
+                    aabbList.add(Box(minX, minY, minZ, maxX, maxY, maxZ))
+                }
+            }
+            // mergeAABBList(aabbList)
+            aabbList.forEach { box: Box ->
                 val shipPolygon: ConvexPolygonc = createFromAABB(
-                    voxelShape.boundingBox.toJOML(),
+                    box.toJOML(),
                     shipTransform.shipToWorldMatrix
                 )
                 collidingPolygons.add(shipPolygon)
