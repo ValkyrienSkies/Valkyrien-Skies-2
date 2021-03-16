@@ -28,44 +28,67 @@ object EntityShipCollisionUtils {
         entityBoundingBox: Box,
         world: World
     ): Vec3d {
-        val collidingPolygons = getShipPolygonsCollidingWithEntity(entity, movement, entityBoundingBox, world)
+        val collidingPolygons =
+            getShipPolygonsCollidingWithEntity(entity, movement, entityBoundingBox.expand(1.0), world)
         if (collidingPolygons.isNotEmpty()) {
             val newMovement = movement.toJOML()
             val entityPolygon: ConvexPolygonc = createFromAABB(entityBoundingBox.toJOML(), null)
-            val collisionResult = CollisionResult.create()
 
-            // region declare temp objects
-            val temp1 = CollisionRange.create()
-            val temp2 = CollisionRange.create()
-            val temp3 = Vector3d()
-            val temp4 = Vector3d()
-            // endregion
-            for (shipPolygon in collidingPolygons) {
-                val normals: MutableList<Vector3dc> = ArrayList()
+            val yOnlyResponse = adjustMovement(entityPolygon, newMovement, collidingPolygons, false, UNIT_NORMALS[1])
 
-                for (normal in UNIT_NORMALS) normals.add(normal)
-                for (normal in shipPolygon.normals) {
-                    normals.add(normal)
-                    for (unitNormal in UNIT_NORMALS) {
-                        val crossProduct: Vector3dc = normal.cross(unitNormal, Vector3d()).normalize()
-                        if (crossProduct.lengthSquared() > 1.0e-6) {
-                            normals.add(crossProduct)
-                        }
+            if (yOnlyResponse.y() - newMovement.y() > 0 && yOnlyResponse.dot(newMovement) >= 0) {
+                val idk = adjustMovement(entityPolygon, yOnlyResponse, collidingPolygons, false)
+
+                return idk.toVec3d()
+            } else {
+                val idk = adjustMovement(entityPolygon, newMovement, collidingPolygons, false)
+
+                return idk.toVec3d()
+            }
+        }
+        return movement
+    }
+
+    private fun adjustMovement(
+        playerPolygon: ConvexPolygonc, playerVelocity: Vector3dc, polygons: List<ConvexPolygonc>,
+        forceReduceVelocity: Boolean,
+        forcedResponseNormal: Vector3dc? = null
+    ): Vector3dc {
+        val newMovement = Vector3d(playerVelocity)
+        val entityPolygon = playerPolygon
+        val collisionResult = CollisionResult.create()
+
+        // region declare temp objects
+        val temp1 = CollisionRange.create()
+        val temp2 = CollisionRange.create()
+        val temp3 = Vector3d()
+        val temp4 = Vector3d()
+        // endregion
+        for (shipPolygon in polygons) {
+            val normals: MutableList<Vector3dc> = ArrayList()
+
+            for (normal in UNIT_NORMALS) normals.add(normal)
+            for (normal in shipPolygon.normals) {
+                normals.add(normal)
+                for (unitNormal in UNIT_NORMALS) {
+                    val crossProduct: Vector3dc = normal.cross(unitNormal, Vector3d()).normalize()
+                    if (crossProduct.lengthSquared() > 1.0e-6) {
+                        normals.add(crossProduct)
                     }
                 }
+            }
 
-                checkIfColliding(
-                    entityPolygon,
-                    shipPolygon,
-                    newMovement,
-                    normals.iterator(),
-                    collisionResult,
-                    temp1,
-                    temp2
-                )
-                if (collisionResult.colliding) {
-                    val collisionResponse: Vector3dc = collisionResult.getCollisionResponse(temp3)
-
+            checkIfColliding(
+                entityPolygon,
+                shipPolygon,
+                newMovement,
+                normals.iterator(),
+                collisionResult,
+                temp1,
+                temp2
+            )
+            if (collisionResult.colliding) {
+                if (forcedResponseNormal != null) {
                     checkIfColliding(
                         entityPolygon,
                         shipPolygon,
@@ -74,22 +97,21 @@ object EntityShipCollisionUtils {
                         collisionResult,
                         temp1,
                         temp2,
-                        UNIT_NORMALS[1]
+                        forcedResponseNormal
                     )
-
-                    val yOnlyResponse: Vector3dc = collisionResult.getCollisionResponse(temp4)
-
-                    if (true) {
-                        // Only add the collision to the Y axis
-                        newMovement.add(yOnlyResponse)
-                    } else {
-                        newMovement.add(collisionResponse)
-                    }
+                    val forcedAxisResponse: Vector3dc = collisionResult.getCollisionResponse(temp3)
+                    if (!forceReduceVelocity || forcedAxisResponse.dot(newMovement) <= 0) newMovement.add(
+                        forcedAxisResponse
+                    )
+                } else {
+                    val collisionResponse: Vector3dc = collisionResult.getCollisionResponse(temp4)
+                    if (!forceReduceVelocity || collisionResponse.dot(newMovement) <= 0) newMovement.add(
+                        collisionResponse
+                    )
                 }
             }
-            return newMovement.toVec3d()
         }
-        return movement
+        return newMovement
     }
 
     private fun getShipPolygonsCollidingWithEntity(
