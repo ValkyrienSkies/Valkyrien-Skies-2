@@ -56,11 +56,13 @@ object EntityShipCollisionUtils {
         val originalVelY = playerVelocity.y()
         val originalVelZ = playerVelocity.z()
 
+        // Higher values make polygons push players out more
+        val velocityChangeTolerance = .1
+
         // region declare temp objects
         val temp1 = CollisionRange.create()
         val temp2 = CollisionRange.create()
         val temp3 = Vector3d()
-        val temp4 = Vector3d()
         // endregion
         for (shipPolygon in polygons) {
             val normals: MutableList<Vector3dc> = ArrayList()
@@ -86,54 +88,45 @@ object EntityShipCollisionUtils {
                 temp2
             )
             if (collisionResult.colliding) {
-                val collisionResponse: Vector3dc
-
-                if (forcedResponseNormal != null) {
-                    checkIfColliding(
-                        entityPolygon,
-                        shipPolygon,
-                        newMovement,
-                        normals.iterator(),
-                        collisionResult,
-                        temp1,
-                        temp2,
-                        forcedResponseNormal
-                    )
-                    collisionResponse = collisionResult.getCollisionResponse(temp3)
-                } else {
-                    collisionResponse = collisionResult.getCollisionResponse(temp4)
-                }
+                // Compute the response that pushes the player out of this polygon
+                val collisionResponse: Vector3dc =
+                    if (forcedResponseNormal != null) {
+                        checkIfColliding(
+                            entityPolygon,
+                            shipPolygon,
+                            newMovement,
+                            normals.iterator(),
+                            collisionResult,
+                            temp1,
+                            temp2,
+                            forcedResponseNormal
+                        )
+                        collisionResult.getCollisionResponse(temp3)
+                    } else {
+                        collisionResult.getCollisionResponse(temp3)
+                    }
 
                 if (!forceReduceVelocity) {
                     newMovement.add(collisionResponse)
                 } else {
-                    if (originalVelY < 0) {
-                        if (newMovement.y() + collisionResponse.y() < .1 && newMovement.y() + collisionResponse.y() > originalVelY - .1) {
-                            newMovement.y += collisionResponse.y()
-                        }
-                    } else {
-                        if (newMovement.y() + collisionResponse.y() > -.1 && newMovement.y() + collisionResponse.y() < originalVelY + .1) {
-                            newMovement.y += collisionResponse.y()
-                        }
-                    }
+                    val collisionNormal = collisionResult.collisionAxis
 
-                    if (originalVelX < 0) {
-                        if (newMovement.x() + collisionResponse.x() < .1 && newMovement.x() + collisionResponse.x() > originalVelX - .1) {
-                            newMovement.x += collisionResponse.x()
-                        }
-                    } else {
-                        if (newMovement.x() + collisionResponse.x() > -.1 && newMovement.x() + collisionResponse.x() < originalVelX + .1) {
-                            newMovement.x += collisionResponse.x()
-                        }
-                    }
+                    // The velocity of the player along [collisionNormal], assuming we add [collisionResponse]
+                    val netVelocityAlongNormal = collisionNormal.dot(
+                        newMovement.x() + collisionResponse.x(), newMovement.y() + collisionResponse.y(),
+                        newMovement.z() + collisionResponse.z()
+                    )
 
-                    if (originalVelZ < 0) {
-                        if (newMovement.z() + collisionResponse.z() < .1 && newMovement.z() + collisionResponse.z() > originalVelZ - .1) {
-                            newMovement.z += collisionResponse.z()
+                    // The original velocity of the player along [collisionNormal]
+                    val originalVelocityAlongNormal = collisionNormal.dot(originalVelX, originalVelY, originalVelZ)
+
+                    if (originalVelocityAlongNormal < 0) {
+                        if (netVelocityAlongNormal < velocityChangeTolerance && netVelocityAlongNormal > originalVelocityAlongNormal - velocityChangeTolerance) {
+                            newMovement.add(collisionResponse)
                         }
                     } else {
-                        if (newMovement.z() + collisionResponse.z() > -.1 && newMovement.z() + collisionResponse.z() < originalVelZ + .1) {
-                            newMovement.z += collisionResponse.z()
+                        if (netVelocityAlongNormal > -velocityChangeTolerance && netVelocityAlongNormal < originalVelocityAlongNormal + velocityChangeTolerance) {
+                            newMovement.add(collisionResponse)
                         }
                     }
                 }
