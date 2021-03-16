@@ -16,7 +16,6 @@ import org.valkyrienskies.core.collision.SATConvexPolygonCollider.checkIfCollidi
 import org.valkyrienskies.core.collision.TransformedCuboidPolygon.Companion.createFromAABB
 import org.valkyrienskies.mod.common.shipObjectWorld
 import java.util.ArrayList
-import kotlin.math.abs
 
 object EntityShipCollisionUtils {
 
@@ -67,11 +66,22 @@ object EntityShipCollisionUtils {
                 if (collisionResult.colliding) {
                     val collisionResponse: Vector3dc = collisionResult.getCollisionResponse(temp3)
 
-                    if (collisionResponse.y() > 0 && abs(collisionResult.collisionAxis.y()) > .7) {
+                    checkIfColliding(
+                        entityPolygon,
+                        shipPolygon,
+                        newMovement,
+                        normals.iterator(),
+                        collisionResult,
+                        temp1,
+                        temp2,
+                        UNIT_NORMALS[1]
+                    )
+
+                    val yOnlyResponse: Vector3dc = collisionResult.getCollisionResponse(temp4)
+
+                    if (true) {
                         // Only add the collision to the Y axis
-                        val yAxisResponse: Vector3dc =
-                            temp4.set(0.0, collisionResult.penetrationOffset / collisionResult.collisionAxis.y(), 0.0)
-                        newMovement.add(yAxisResponse)
+                        newMovement.add(yOnlyResponse)
                     } else {
                         newMovement.add(collisionResponse)
                     }
