@@ -34,17 +34,11 @@ object EntityShipCollisionUtils {
             val newMovement = movement.toJOML()
             val entityPolygon: ConvexPolygonc = createFromAABB(entityBoundingBox.toJOML(), null)
 
-            val yOnlyResponse = adjustMovement(entityPolygon, newMovement, collidingPolygons, false, UNIT_NORMALS[1])
+            val yOnlyResponse = adjustMovement(entityPolygon, newMovement, collidingPolygons, true, UNIT_NORMALS[1])
 
-            if (yOnlyResponse.y() - newMovement.y() > 0 && yOnlyResponse.dot(newMovement) >= 0) {
-                val idk = adjustMovement(entityPolygon, yOnlyResponse, collidingPolygons, false)
+            val idk = adjustMovement(entityPolygon, yOnlyResponse, collidingPolygons, true)
 
-                return idk.toVec3d()
-            } else {
-                val idk = adjustMovement(entityPolygon, newMovement, collidingPolygons, false)
-
-                return idk.toVec3d()
-            }
+            return idk.toVec3d()
         }
         return movement
     }
@@ -57,6 +51,10 @@ object EntityShipCollisionUtils {
         val newMovement = Vector3d(playerVelocity)
         val entityPolygon = playerPolygon
         val collisionResult = CollisionResult.create()
+
+        val originalVelX = playerVelocity.x()
+        val originalVelY = playerVelocity.y()
+        val originalVelZ = playerVelocity.z()
 
         // region declare temp objects
         val temp1 = CollisionRange.create()
@@ -88,6 +86,8 @@ object EntityShipCollisionUtils {
                 temp2
             )
             if (collisionResult.colliding) {
+                val collisionResponse: Vector3dc
+
                 if (forcedResponseNormal != null) {
                     checkIfColliding(
                         entityPolygon,
@@ -99,15 +99,43 @@ object EntityShipCollisionUtils {
                         temp2,
                         forcedResponseNormal
                     )
-                    val forcedAxisResponse: Vector3dc = collisionResult.getCollisionResponse(temp3)
-                    if (!forceReduceVelocity || forcedAxisResponse.dot(newMovement) <= 0) newMovement.add(
-                        forcedAxisResponse
-                    )
+                    collisionResponse = collisionResult.getCollisionResponse(temp3)
                 } else {
-                    val collisionResponse: Vector3dc = collisionResult.getCollisionResponse(temp4)
-                    if (!forceReduceVelocity || collisionResponse.dot(newMovement) <= 0) newMovement.add(
-                        collisionResponse
-                    )
+                    collisionResponse = collisionResult.getCollisionResponse(temp4)
+                }
+
+                if (!forceReduceVelocity) {
+                    newMovement.add(collisionResponse)
+                } else {
+                    if (originalVelY < 0) {
+                        if (newMovement.y() + collisionResponse.y() < .1 && newMovement.y() + collisionResponse.y() > originalVelY - .1) {
+                            newMovement.y += collisionResponse.y()
+                        }
+                    } else {
+                        if (newMovement.y() + collisionResponse.y() > -.1 && newMovement.y() + collisionResponse.y() < originalVelY + .1) {
+                            newMovement.y += collisionResponse.y()
+                        }
+                    }
+
+                    if (originalVelX < 0) {
+                        if (newMovement.x() + collisionResponse.x() < .1 && newMovement.x() + collisionResponse.x() > originalVelX - .1) {
+                            newMovement.x += collisionResponse.x()
+                        }
+                    } else {
+                        if (newMovement.x() + collisionResponse.x() > -.1 && newMovement.x() + collisionResponse.x() < originalVelX + .1) {
+                            newMovement.x += collisionResponse.x()
+                        }
+                    }
+
+                    if (originalVelZ < 0) {
+                        if (newMovement.z() + collisionResponse.z() < .1 && newMovement.z() + collisionResponse.z() > originalVelZ - .1) {
+                            newMovement.z += collisionResponse.z()
+                        }
+                    } else {
+                        if (newMovement.z() + collisionResponse.z() > -.1 && newMovement.z() + collisionResponse.z() < originalVelZ + .1) {
+                            newMovement.z += collisionResponse.z()
+                        }
+                    }
                 }
             }
         }
