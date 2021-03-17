@@ -17,6 +17,9 @@
   "entrypoints": {
     "main": [
       "org.valkyrienskies.mod.fabric.common.ValkyrienSkiesModFabric"
+    ],
+    "client": [
+      "org.valkyrienskies.mod.fabric.client.ValkyrienSkiesModFabricClient"
     ]
   },
   "mixins": [
