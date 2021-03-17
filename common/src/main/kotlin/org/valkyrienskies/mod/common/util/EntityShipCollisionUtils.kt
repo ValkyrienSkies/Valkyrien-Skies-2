@@ -61,6 +61,11 @@ object EntityShipCollisionUtils {
 
             val netInitialResponse = Vector3d(xOnlyResponse.x(), yOnlyResponse.y(), zOnlyResponse.z())
 
+            if (movement.x * movement.x + movement.z * movement.z < 1e-4) {
+                // Player isn't moving horizontally, don't step
+                return netInitialResponse.toVec3d()
+            }
+
             entity!!
 
             val secondPassEntityPolygon: ConvexPolygonc = createFromAABB(entityBoundingBox.toJOML(), null)
@@ -92,31 +97,32 @@ object EntityShipCollisionUtils {
                     true, UNIT_NORMALS[2]
                 )
 
-            val netResponse =
+            val stepUpResponse =
                 Vector3d(secondPassXOnlyResponse.x(), secondPassYOnlyResponse.y(), secondPassZOnlyResponse.z())
 
-            if (netResponse.x() * netResponse.x() + netResponse.z() * netResponse.z() > netInitialResponse.x() * netInitialResponse.x() + netInitialResponse.z() * netInitialResponse.z()) {
-                val fourthPassEntityPolygon: ConvexPolygonc =
+            val netInitialResponseHorizontal =
+                netInitialResponse.x() * netInitialResponse.x() + netInitialResponse.z() * netInitialResponse.z()
+            val stepUpResponseHorizontal =
+                stepUpResponse.x() * stepUpResponse.x() + stepUpResponse.z() * stepUpResponse.z()
+
+            if (netInitialResponseHorizontal != stepUpResponseHorizontal && stepUpResponse.x() * stepUpResponse.x() + stepUpResponse.z() * stepUpResponse.z() > (movement.x * movement.x + movement.z * movement.z) * .8) {
+                val thirdPassEntityPolygon: ConvexPolygonc =
                     createFromAABB(
                         entityBoundingBox.offset(
-                            netResponse.x(), netResponse.y(), netResponse.z()
+                            stepUpResponse.x(), stepUpResponse.y(), stepUpResponse.z()
                         ).toJOML(), null
                     )
-                val idk = adjustMovement(
-                    fourthPassEntityPolygon, Vector3d(0.0, newMovement.y() - netResponse.y(), 0.0),
+                val fixStepUpResponse = adjustMovement(
+                    thirdPassEntityPolygon, Vector3d(0.0, newMovement.y() - stepUpResponse.y(), 0.0),
                     collidingPolygons, true, UNIT_NORMALS[1]
                 )
 
-                val total = idk.add(netResponse, Vector3d())
+                val total = fixStepUpResponse.add(stepUpResponse, Vector3d())
 
                 return total.toVec3d()
             } else {
                 return netInitialResponse.toVec3d()
             }
-
-            // val idk = adjustMovement(entityPolygon, zOnlyResponse, collidingPolygons, true)
-
-            // return idk.toVec3d()
         }
         return movement
     }
