@@ -19,4 +19,4 @@ jobs:
         with:
           java-version: 11
       - name: Test Minecraft Servers
-        uses: ValkyrienSkies/Minecraft-Architectury-Testing@v1.6
+        uses: ValkyrienSkies/Minecraft-Architectury-Testing@v1.7
