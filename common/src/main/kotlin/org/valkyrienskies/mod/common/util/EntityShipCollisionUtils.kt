@@ -34,11 +34,89 @@ object EntityShipCollisionUtils {
             val newMovement = movement.toJOML()
             val entityPolygon: ConvexPolygonc = createFromAABB(entityBoundingBox.toJOML(), null)
 
-            val yOnlyResponse = adjustMovement(entityPolygon, newMovement, collidingPolygons, true, UNIT_NORMALS[1])
+            val yOnlyResponse = adjustMovement(
+                entityPolygon, Vector3d(0.0, newMovement.y(), 0.0), collidingPolygons, true, UNIT_NORMALS[1]
+            )
 
-            val idk = adjustMovement(entityPolygon, yOnlyResponse, collidingPolygons, true)
+            entityPolygon.points.forEach {
+                it as Vector3d
+                it.add(yOnlyResponse)
+            }
 
-            return idk.toVec3d()
+            val xOnlyResponse = adjustMovement(
+                entityPolygon, Vector3d(newMovement.x(), 0.0, 0.0), collidingPolygons, true,
+                UNIT_NORMALS[0]
+            )
+
+            entityPolygon.points.forEach {
+                it as Vector3d
+                it.add(xOnlyResponse)
+            }
+
+            val zOnlyResponse =
+                adjustMovement(
+                    entityPolygon, Vector3d(0.0, 0.0, newMovement.z()), collidingPolygons,
+                    true, UNIT_NORMALS[2]
+                )
+
+            val netInitialResponse = Vector3d(xOnlyResponse.x(), yOnlyResponse.y(), zOnlyResponse.z())
+
+            entity!!
+
+            val secondPassEntityPolygon: ConvexPolygonc = createFromAABB(entityBoundingBox.toJOML(), null)
+
+            val secondPassYOnlyResponse = adjustMovement(
+                secondPassEntityPolygon, Vector3d(0.0, entity.stepHeight.toDouble(), 0.0), collidingPolygons, true,
+                UNIT_NORMALS[1]
+            )
+
+            secondPassEntityPolygon.points.forEach {
+                it as Vector3d
+                it.add(secondPassYOnlyResponse)
+            }
+
+            val secondPassXOnlyResponse = adjustMovement(
+                secondPassEntityPolygon, Vector3d(newMovement.x(), 0.0, 0.0), collidingPolygons, true,
+                UNIT_NORMALS[0]
+            )
+
+            secondPassEntityPolygon.points.forEach {
+                it as Vector3d
+                it.add(secondPassXOnlyResponse)
+            }
+
+            val secondPassZOnlyResponse =
+                adjustMovement(
+                    secondPassEntityPolygon, Vector3d(0.0, 0.0, newMovement.z()),
+                    collidingPolygons,
+                    true, UNIT_NORMALS[2]
+                )
+
+            val netResponse =
+                Vector3d(secondPassXOnlyResponse.x(), secondPassYOnlyResponse.y(), secondPassZOnlyResponse.z())
+
+            if (netResponse.x() * netResponse.x() + netResponse.z() * netResponse.z() > netInitialResponse.x() * netInitialResponse.x() + netInitialResponse.z() * netInitialResponse.z()) {
+                val fourthPassEntityPolygon: ConvexPolygonc =
+                    createFromAABB(
+                        entityBoundingBox.offset(
+                            netResponse.x(), netResponse.y(), netResponse.z()
+                        ).toJOML(), null
+                    )
+                val idk = adjustMovement(
+                    fourthPassEntityPolygon, Vector3d(0.0, newMovement.y() - netResponse.y(), 0.0),
+                    collidingPolygons, true, UNIT_NORMALS[1]
+                )
+
+                val total = idk.add(netResponse, Vector3d())
+
+                return total.toVec3d()
+            } else {
+                return netInitialResponse.toVec3d()
+            }
+
+            // val idk = adjustMovement(entityPolygon, zOnlyResponse, collidingPolygons, true)
+
+            // return idk.toVec3d()
         }
         return movement
     }
