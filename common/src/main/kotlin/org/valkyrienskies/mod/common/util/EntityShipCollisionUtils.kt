@@ -105,7 +105,11 @@ object EntityShipCollisionUtils {
             val stepUpResponseHorizontal =
                 stepUpResponse.x() * stepUpResponse.x() + stepUpResponse.z() * stepUpResponse.z()
 
-            if (netInitialResponseHorizontal != stepUpResponseHorizontal && stepUpResponse.x() * stepUpResponse.x() + stepUpResponse.z() * stepUpResponse.z() > (movement.x * movement.x + movement.z * movement.z) * .8) {
+            val canPlayerStand =
+                canPlayerStand(createFromAABB(entityBoundingBox.toJOML(), null), newMovement, collidingPolygons)
+
+
+            if (canPlayerStand && netInitialResponseHorizontal != stepUpResponseHorizontal && stepUpResponse.x() * stepUpResponse.x() + stepUpResponse.z() * stepUpResponse.z() > (movement.x * movement.x + movement.z * movement.z) * .8) {
                 val thirdPassEntityPolygon: ConvexPolygonc =
                     createFromAABB(
                         entityBoundingBox.offset(
@@ -125,6 +129,53 @@ object EntityShipCollisionUtils {
             }
         }
         return movement
+    }
+
+    private fun canPlayerStand(
+        playerPolygon: ConvexPolygonc, playerVelocity: Vector3dc, polygons: List<ConvexPolygonc>
+    ): Boolean {
+        val newMovement = Vector3d(playerVelocity)
+        val entityPolygon = playerPolygon
+        val collisionResult = CollisionResult.create()
+
+        // region declare temp objects
+        val temp1 = CollisionRange.create()
+        val temp2 = CollisionRange.create()
+        val temp3 = Vector3d()
+        // endregion
+        for (shipPolygon in polygons) {
+            val normals: MutableList<Vector3dc> = ArrayList()
+
+            for (normal in UNIT_NORMALS) normals.add(normal)
+            for (normal in shipPolygon.normals) {
+                normals.add(normal)
+                for (unitNormal in UNIT_NORMALS) {
+                    val crossProduct: Vector3dc = normal.cross(unitNormal, Vector3d()).normalize()
+                    if (crossProduct.lengthSquared() > 1.0e-6) {
+                        normals.add(crossProduct)
+                    }
+                }
+            }
+
+            checkIfColliding(
+                entityPolygon,
+                shipPolygon,
+                newMovement,
+                normals.iterator(),
+                collisionResult,
+                temp1,
+                temp2
+            )
+            if (collisionResult.colliding) {
+                // Compute the response that pushes the player out of this polygon
+                val collisionResponse: Vector3dc = collisionResult.getCollisionResponse(temp3)
+
+                if (Math.toDegrees(collisionResponse.angle(UNIT_NORMALS[1])) < 30) {
+                    return true
+                }
+            }
+        }
+        return false
     }
 
     private fun adjustMovement(
