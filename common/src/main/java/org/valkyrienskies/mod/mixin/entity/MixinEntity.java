@@ -57,7 +57,7 @@ public abstract class MixinEntity {
         // vs code start
         final Vec3d originalMovement = movement;
         movement = EntityShipCollisionUtils.INSTANCE
-            .adjustMovementForCollisionsAndShipCollisions(thisAsEntity, movement, box, this.world);
+            .adjustEntityMovementForShipCollisions(thisAsEntity, movement, box, this.world);
 
         final Vec3d vec3d = movement.lengthSquared() == 0.0D ? movement :
             adjustMovementForCollisions(thisAsEntity, movement, box, this.world, shapeContext, reusableStream);
