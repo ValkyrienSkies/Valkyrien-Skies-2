@@ -48,8 +48,8 @@ public abstract class MixinEntity {
         final ShapeContext shapeContext = ShapeContext.of(thisAsEntity);
         final VoxelShape voxelShape = this.world.getWorldBorder().asVoxelShape();
         final Stream<VoxelShape> stream =
-            VoxelShapes.matchesAnywhere(voxelShape, VoxelShapes.cuboid(box.contract(1.0E-7D)), BooleanBiFunction.AND) ?
-                Stream.empty() : Stream.of(voxelShape);
+            VoxelShapes.matchesAnywhere(voxelShape, VoxelShapes.cuboid(box.contract(1.0E-7D)), BooleanBiFunction.AND)
+                ? Stream.empty() : Stream.of(voxelShape);
         final Stream<VoxelShape> stream2 =
             this.world.getEntityCollisions(thisAsEntity, box.stretch(movement), (entity) -> true);
         final ReusableStream<VoxelShape> reusableStream = new ReusableStream<>(Stream.concat(stream2, stream));
