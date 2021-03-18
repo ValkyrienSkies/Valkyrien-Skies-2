@@ -30,105 +30,107 @@ object EntityShipCollisionUtils {
     ): Vec3d {
         val collidingPolygons =
             getShipPolygonsCollidingWithEntity(entity, movement, entityBoundingBox.expand(1.0), world)
-        if (collidingPolygons.isNotEmpty()) {
-            val newMovement = movement.toJOML()
-            val entityPolygon: ConvexPolygonc = createFromAABB(entityBoundingBox.toJOML(), null)
 
-            val yOnlyResponse = adjustMovement(
-                entityPolygon, Vector3d(0.0, newMovement.y(), 0.0), collidingPolygons, true, UNIT_NORMALS[1]
-            )
-
-            entityPolygon.points.forEach {
-                it as Vector3d
-                it.add(yOnlyResponse)
-            }
-
-            val xOnlyResponse = adjustMovement(
-                entityPolygon, Vector3d(newMovement.x(), 0.0, 0.0), collidingPolygons, true,
-                UNIT_NORMALS[0]
-            )
-
-            entityPolygon.points.forEach {
-                it as Vector3d
-                it.add(xOnlyResponse)
-            }
-
-            val zOnlyResponse =
-                adjustMovement(
-                    entityPolygon, Vector3d(0.0, 0.0, newMovement.z()), collidingPolygons,
-                    true, UNIT_NORMALS[2]
-                )
-
-            val netInitialResponse = Vector3d(xOnlyResponse.x(), yOnlyResponse.y(), zOnlyResponse.z())
-
-            if (movement.x * movement.x + movement.z * movement.z < 1e-4) {
-                // Player isn't moving horizontally, don't step
-                return netInitialResponse.toVec3d()
-            }
-
-            entity!!
-
-            val secondPassEntityPolygon: ConvexPolygonc = createFromAABB(entityBoundingBox.toJOML(), null)
-
-            val secondPassYOnlyResponse = adjustMovement(
-                secondPassEntityPolygon, Vector3d(0.0, entity.stepHeight.toDouble(), 0.0), collidingPolygons, true,
-                UNIT_NORMALS[1]
-            )
-
-            secondPassEntityPolygon.points.forEach {
-                it as Vector3d
-                it.add(secondPassYOnlyResponse)
-            }
-
-            val secondPassXOnlyResponse = adjustMovement(
-                secondPassEntityPolygon, Vector3d(newMovement.x(), 0.0, 0.0), collidingPolygons, true,
-                UNIT_NORMALS[0]
-            )
-
-            secondPassEntityPolygon.points.forEach {
-                it as Vector3d
-                it.add(secondPassXOnlyResponse)
-            }
-
-            val secondPassZOnlyResponse =
-                adjustMovement(
-                    secondPassEntityPolygon, Vector3d(0.0, 0.0, newMovement.z()),
-                    collidingPolygons,
-                    true, UNIT_NORMALS[2]
-                )
-
-            val stepUpResponse =
-                Vector3d(secondPassXOnlyResponse.x(), secondPassYOnlyResponse.y(), secondPassZOnlyResponse.z())
-
-            val netInitialResponseHorizontal =
-                netInitialResponse.x() * netInitialResponse.x() + netInitialResponse.z() * netInitialResponse.z()
-            val stepUpResponseHorizontal =
-                stepUpResponse.x() * stepUpResponse.x() + stepUpResponse.z() * stepUpResponse.z()
-
-            val canPlayerStand =
-                canPlayerStand(createFromAABB(entityBoundingBox.toJOML(), null), newMovement, collidingPolygons)
-
-
-            if (canPlayerStand && netInitialResponseHorizontal != stepUpResponseHorizontal && stepUpResponse.x() * stepUpResponse.x() + stepUpResponse.z() * stepUpResponse.z() > (movement.x * movement.x + movement.z * movement.z) * .8) {
-                val thirdPassEntityPolygon: ConvexPolygonc =
-                    createFromAABB(
-                        entityBoundingBox.offset(
-                            stepUpResponse.x(), stepUpResponse.y(), stepUpResponse.z()
-                        ).toJOML(), null
-                    )
-                val fixStepUpResponse = adjustMovement(
-                    thirdPassEntityPolygon, Vector3d(0.0, newMovement.y() - stepUpResponse.y(), 0.0),
-                    collidingPolygons, true, UNIT_NORMALS[1]
-                )
-
-                val total = fixStepUpResponse.add(stepUpResponse, Vector3d())
-
-                return total.toVec3d()
-            } else {
-                return netInitialResponse.toVec3d()
-            }
+        // If the entity isn't colliding with any ship polygons, then don't adjust its movement
+        if (collidingPolygons.isEmpty()) {
+            return movement
         }
-        return movement
+
+        val originalMovement: Vector3dc = movement.toJOML()
+
+        // Compute the collision response assuming the entity can't step
+        val collisionResponseAssumingNoStep =
+            adjustMovementComponentWise(entityBoundingBox.toJOML(), originalMovement, collidingPolygons)
+
+        // If the entity is null then it cannot step
+        if (entity == null) {
+            return collisionResponseAssumingNoStep.toVec3d()
+        }
+
+        // If the entity is not moving horizontally then it cannot step
+        if (movement.x * movement.x + movement.z * movement.z < 1e-4) {
+            return collisionResponseAssumingNoStep.toVec3d()
+        }
+
+        // Determine if the entity is standing on the polygons
+        val isPlayerStandingOnPolygons =
+            canPlayerStand(createFromAABB(entityBoundingBox.toJOML(), null), originalMovement, collidingPolygons)
+
+        // If the entity is not standing on the polygons then it cannot step
+        if (!isPlayerStandingOnPolygons) {
+            return collisionResponseAssumingNoStep.toVec3d()
+        }
+
+        // Compute the collision response assuming the entity can step
+        val collisionResponseAssumingFullStep =
+            adjustMovementComponentWise(
+                entityBoundingBox.toJOML(),
+                Vector3d(originalMovement.x(), entity.stepHeight.toDouble(), originalMovement.z()),
+                collidingPolygons
+            )
+
+        val collisionResponseAssumingNoStepHorizontalSpeedSq =
+            collisionResponseAssumingNoStep.x() * collisionResponseAssumingNoStep.x() + collisionResponseAssumingNoStep.z() * collisionResponseAssumingNoStep.z()
+        val collisionResponseAssumingFullStepHorizontalSpeedSq =
+            collisionResponseAssumingFullStep.x() * collisionResponseAssumingFullStep.x() + collisionResponseAssumingFullStep.z() * collisionResponseAssumingFullStep.z()
+
+        // Only choose [collisionResponseAssumingFullStep] if it has a larger horizontal speed than [collisionResponseAssumingNoStep]
+        if (collisionResponseAssumingFullStepHorizontalSpeedSq >= collisionResponseAssumingNoStepHorizontalSpeedSq) {
+            // Now that we've chosen [collisionResponseAssumingFullStep], move the entity downwards such that it is still on the ground
+            val entityAfterSteppingFullyPolygon: ConvexPolygonc =
+                createFromAABB(
+                    entityBoundingBox.offset(
+                        collisionResponseAssumingFullStep.x(), collisionResponseAssumingFullStep.y(),
+                        collisionResponseAssumingFullStep.z()
+                    ).toJOML(), null
+                )
+            val fixStepUpResponse = adjustMovement(
+                entityAfterSteppingFullyPolygon,
+                Vector3d(0.0, originalMovement.y() - collisionResponseAssumingFullStep.y(), 0.0),
+                collidingPolygons, true, UNIT_NORMALS[1]
+            )
+
+            val collisionResponseAssumingPartialStep =
+                fixStepUpResponse.add(collisionResponseAssumingFullStep, Vector3d())
+
+            return collisionResponseAssumingPartialStep.toVec3d()
+        } else {
+            // [collisionResponseAssumingNoStep] had a larger horizontal speed, so we choose it instead of [collisionResponseAssumingFullStep]
+            return collisionResponseAssumingNoStep.toVec3d()
+        }
+    }
+
+    private fun adjustMovementComponentWise(
+        playerAABB: AABBdc, playerVelocity: Vector3dc, collidingPolygons: List<ConvexPolygonc>
+    ): Vector3dc {
+        val entityPolygon: ConvexPolygonc = createFromAABB(playerAABB, null)
+
+        val yOnlyResponse = adjustMovement(
+            entityPolygon, Vector3d(0.0, playerVelocity.y(), 0.0), collidingPolygons, true, UNIT_NORMALS[1]
+        )
+
+        entityPolygon.points.forEach {
+            it as Vector3d
+            it.add(yOnlyResponse)
+        }
+
+        val xOnlyResponse = adjustMovement(
+            entityPolygon, Vector3d(playerVelocity.x(), 0.0, 0.0), collidingPolygons, true,
+            UNIT_NORMALS[0]
+        )
+
+        entityPolygon.points.forEach {
+            it as Vector3d
+            it.add(xOnlyResponse)
+        }
+
+        val zOnlyResponse =
+            adjustMovement(
+                entityPolygon, Vector3d(0.0, 0.0, playerVelocity.z()), collidingPolygons,
+                true, UNIT_NORMALS[2]
+            )
+
+        return Vector3d(xOnlyResponse.x(), yOnlyResponse.y(), zOnlyResponse.z())
     }
 
     private fun canPlayerStand(
