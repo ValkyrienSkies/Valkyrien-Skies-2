@@ -2,19 +2,17 @@ package org.valkyrienskies.mod.mixin.server.network;
 
 import net.minecraft.server.network.ServerPlayNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
-import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
-import org.valkyrienskies.mod.common.VSGameUtils;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(ServerPlayNetworkHandler.class)
 public class ServerPlayNetworkHandlerMixin {
 
     @Shadow
     public ServerPlayerEntity player;
-
 
     /**
      * Include ships in server-side distance check when player interacts with a block.
@@ -26,11 +24,9 @@ public class ServerPlayNetworkHandlerMixin {
             target = "Lnet/minecraft/server/network/ServerPlayerEntity;squaredDistanceTo(DDD)D"
         )
     )
-    public double includeShipsInBlockInteractDistanceCheck(final ServerPlayerEntity receiver, final double x,
-        final double y, final double z) {
-        
-        final Vector3d inWorld = VSGameUtils.getWorldCoordinates(this.player.getServerWorld(), new Vector3d(x, y, z));
-        return inWorld.distanceSquared(receiver.getX(), receiver.getY(), receiver.getZ());
+    public double includeShipsInBlockInteractDistanceCheck(
+        final ServerPlayerEntity receiver, final double x, final double y, final double z) {
+        return VSGameUtilsKt.squaredDistanceToInclShips(receiver, x, y, z);
     }
 
 }
