@@ -141,8 +141,8 @@ public abstract class MixinEntity {
 
             this.world.getProfiler().pop();
             this.world.getProfiler().push("rest");
-            this.horizontalCollision = !MathHelper.approximatelyEquals(movement.x, vec3d.x) ||
-                !MathHelper.approximatelyEquals(movement.z, vec3d.z);
+            this.horizontalCollision = !MathHelper.approximatelyEquals(movement.x, vec3d.x)
+                || !MathHelper.approximatelyEquals(movement.z, vec3d.z);
             this.verticalCollision = movement.y != vec3d.y;
             this.onGround = this.verticalCollision && movement.y < 0.0D;
             final BlockPos blockPos = this.getLandingPos();
@@ -174,8 +174,8 @@ public abstract class MixinEntity {
                     e = 0.0D;
                 }
 
-                this.horizontalSpeed = (float) ((double) this.horizontalSpeed +
-                    (double) MathHelper.sqrt(squaredHorizontalLength(vec3d)) * 0.6D);
+                this.horizontalSpeed = (float) ((double) this.horizontalSpeed
+                    + (double) MathHelper.sqrt(squaredHorizontalLength(vec3d)) * 0.6D);
                 this.distanceTraveled =
                     (float) ((double) this.distanceTraveled + (double) MathHelper.sqrt(d * d + e * e + f * f) * 0.6D);
                 if (this.distanceTraveled > this.nextStepSoundDistance && !blockState.isAir()) {
@@ -186,8 +186,8 @@ public abstract class MixinEntity {
                                 thisAsEntity;
                         final float g = entity == thisAsEntity ? 0.35F : 0.4F;
                         final Vec3d vec3d3 = entity.getVelocity();
-                        float h = MathHelper.sqrt(vec3d3.x * vec3d3.x * 0.20000000298023224D + vec3d3.y * vec3d3.y +
-                            vec3d3.z * vec3d3.z * 0.20000000298023224D) * g;
+                        float h = MathHelper.sqrt(vec3d3.x * vec3d3.x * 0.20000000298023224D + vec3d3.y * vec3d3.y
+                            + vec3d3.z * vec3d3.z * 0.20000000298023224D) * g;
                         if (h > 1.0F) {
                             h = 1.0F;
                         }
