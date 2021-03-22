@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.common
 
 import net.minecraft.client.world.ClientWorld
+import net.minecraft.entity.Entity
 import net.minecraft.server.world.ServerWorld
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkPos
@@ -17,6 +18,31 @@ import org.valkyrienskies.mod.common.util.toJOMLD
 val World.shipObjectWorld get() = (this as IShipObjectWorldProvider).shipObjectWorld
 val ServerWorld.shipObjectWorld get() = (this as IShipObjectWorldServerProvider).shipObjectWorld
 val ClientWorld.shipObjectWorld get() = (this as IShipObjectWorldClientProvider).shipObjectWorld
+
+/**
+ * Like [Entity.squaredDistanceTo] except the destination is transformed into world coordinates if it is a ship
+ */
+fun Entity.squaredDistanceToInclShips(x: Double, y: Double, z: Double): Double {
+    val transform = this.world.getShipManagingPos(x.toInt() shr 4, z.toInt() shr 4)?.shipTransform
+
+    return if (transform != null) {
+        val m = transform.shipToWorldMatrix
+
+        // Do this transform manually to avoid allocation
+        val inWorldX = m.m00() * x + m.m10() * y + m.m20() * z + m.m30()
+        val inWorldY = m.m01() * x + m.m11() * y + m.m21() * z + m.m31()
+        val inWorldZ = m.m02() * x + m.m12() * y + m.m22() * z + m.m32()
+
+        val dx = this.x - inWorldX
+        val dy = this.y - inWorldY
+        val dz = this.z - inWorldZ
+
+        return dx * dx + dy * dy + dz * dz
+    } else {
+        // no ship, default behaviour
+        this.squaredDistanceTo(x, y, z)
+    }
+}
 
 private fun getShipObjectManagingPosImpl(world: World, chunkX: Int, chunkZ: Int): ShipObject? {
     if (ChunkAllocator.isChunkInShipyard(chunkX, chunkZ)) {
@@ -92,26 +118,6 @@ fun ShipDataCommon.toWorldCoordinates(x: Double, y: Double, z: Double) =
 
 object VSGameUtils {
 
-    @JvmStatic
-    fun getShipObjectManagingPos(world: World, chunkPos: ChunkPos): ShipObject? {
-        return world.getShipObjectManagingPos(chunkPos.x, chunkPos.z)
-    }
-
-    @JvmStatic
-    fun getShipObjectManagingPos(world: World, blockPos: BlockPos): ShipObject? {
-        return world.getShipObjectManagingPos(blockPos)
-    }
-
-    @JvmStatic
-    fun getShipObjectManagingPos(world: World, chunkX: Int, chunkZ: Int): ShipObject? {
-        return world.getShipObjectManagingPos(chunkX, chunkZ)
-    }
-
-    @JvmStatic
-    fun getWorldCoordinates(world: World, pos: BlockPos): Vector3d {
-        return getWorldCoordinates(world, pos.toJOMLD())
-    }
-
     /**
      * Transforms [pos] from ship space to world space if a ship exists there.
      *
@@ -129,7 +135,7 @@ object VSGameUtils {
      */
     @JvmStatic
     fun getWorldCoordinates(world: World, pos: Vector3d): Vector3d {
-        return getShipObjectManagingPos(world, pos.x.toInt() shr 4, pos.z.toInt() shr 4)
+        return world.getShipObjectManagingPos(pos.x.toInt() shr 4, pos.z.toInt() shr 4)
             ?.shipData?.shipTransform?.shipToWorldMatrix?.transformPosition(pos) ?: pos
     }
 }
