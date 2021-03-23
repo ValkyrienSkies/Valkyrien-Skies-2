@@ -17,7 +17,8 @@ import org.valkyrienskies.mod.common.util.toVec3d
 import java.util.function.BiFunction
 import java.util.function.Function
 
-fun ClientWorld.raycastIncludeShips(ctx: RaycastContext): BlockHitResult {
+@JvmOverloads
+fun ClientWorld.raycastIncludeShips(ctx: RaycastContext, shouldTransformHitPos: Boolean = true): BlockHitResult {
     val vanillaHit = raycast(ctx)
 
     var closestHit = vanillaHit
@@ -42,6 +43,10 @@ fun ClientWorld.raycastIncludeShips(ctx: RaycastContext): BlockHitResult {
             closestHitPos = shipHitPos
             closestHitDist = shipHitDist
         }
+    }
+
+    if (!shouldTransformHitPos) {
+        closestHitPos = closestHit.pos
     }
 
     return if (closestHit.type == HitResult.Type.MISS) {
