@@ -9,6 +9,7 @@ jobs:
   test-server:
     name: Test-Server
     runs-on: ubuntu-latest
+    timeout-minutes: 20 # Fail after 20 minutes
     steps:
       - uses: actions/checkout@v2
         with:
