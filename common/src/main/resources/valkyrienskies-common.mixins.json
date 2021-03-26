@@ -8,7 +8,6 @@
     "block.MixinBlock",
     "block.entity.MixinLootableContainerBlockEntity",
     "entity.MixinEntity",
-    "item.MixinBlockItem",
     "screen.MixinScreenHandler",
     "server.PlayerManagerMixin",
     "server.network.ServerPlayerInteractionManagerMixin",

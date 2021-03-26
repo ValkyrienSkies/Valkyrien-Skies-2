@@ -140,6 +140,7 @@ public abstract class MixinWorldRenderer {
     private void addShipVisibleChunks(
         final Camera camera, final Frustum frustum, final boolean hasForcedFrustum, final int frame,
         final boolean spectator, final CallbackInfo ci) {
+
         final WorldRenderer self = WorldRenderer.class.cast(this);
         final BlockPos.Mutable tempPos = new BlockPos.Mutable();
         final BuiltChunkStorageAccessor chunkStorageAccessor = (BuiltChunkStorageAccessor) chunks;
@@ -215,6 +216,7 @@ public abstract class MixinWorldRenderer {
         final Camera methodCamera, final GameRenderer methodGameRenderer,
         final LightmapTextureManager methodLightmapTextureManager,
         final Matrix4f methodMatrix4f) {
+
         final ShipObjectClient ship = VSGameUtilsKt.getShipObjectManagingPos(world, blockPos);
         if (ship != null) {
             // Remove the vanilla render transform
@@ -263,6 +265,7 @@ public abstract class MixinWorldRenderer {
         final double playerCameraY, final double playerCameraZ, final CallbackInfo ci,
         final boolean bl, final ObjectListIterator<?> objectListIterator, final WorldRenderer.ChunkInfo chunkInfo2,
         final ChunkBuilder.BuiltChunk builtChunk, final VertexBuffer vertexBuffer) {
+
         final BlockPos renderChunkOrigin = builtChunk.getOrigin();
         final ShipObjectClient shipObject = VSGameUtilsKt.getShipObjectManagingPos(world, renderChunkOrigin);
         if (shipObject != null) {
@@ -299,6 +302,7 @@ public abstract class MixinWorldRenderer {
         final Camera methodCamera, final GameRenderer methodGameRenderer,
         final LightmapTextureManager methodLightmapTextureManager,
         final Matrix4f methodMatrix4f) {
+
         final BlockPos blockEntityPos = blockEntity.getPos();
         final ShipObjectClient shipObject = VSGameUtilsKt.getShipObjectManagingPos(world, blockEntityPos);
         if (shipObject != null) {
