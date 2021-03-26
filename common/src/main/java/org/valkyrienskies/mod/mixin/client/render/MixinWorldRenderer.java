@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.mixin.client.render;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import it.unimi.dsi.fastutil.objects.ObjectListIterator;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.ShapeContext;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.VertexBuffer;
@@ -22,11 +23,13 @@ import net.minecraft.client.render.block.entity.BlockEntityRenderDispatcher;
 import net.minecraft.client.render.chunk.ChunkBuilder;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.client.world.ClientWorld;
+import net.minecraft.entity.Entity;
 import net.minecraft.particle.ParticleEffect;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Matrix3f;
 import net.minecraft.util.math.Matrix4f;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.world.BlockRenderView;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4d;
@@ -34,6 +37,7 @@ import org.joml.Matrix4dc;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -76,6 +80,13 @@ public abstract class MixinWorldRenderer {
     @Nullable
     protected abstract Particle spawnParticle(ParticleEffect parameters, boolean alwaysSpawn, boolean canSpawnOnMinimal,
         double x, double y, double z, double velocityX, double velocityY, double velocityZ);
+
+    @Shadow
+    private static void drawShapeOutline(final MatrixStack matrixStack, final VertexConsumer vertexConsumer,
+        final VoxelShape voxelShape, final double d, final double e, final double f, final float red, final float green,
+        final float blue, final float alpha) {
+        throw new AssertionError();
+    }
 
     /**
      * Render particles in-world. The {@link org.valkyrienskies.mod.mixin.client.particle.ParticleMixin} is not
@@ -162,6 +173,36 @@ public abstract class MixinWorldRenderer {
     }
 
     /**
+     * mojank developers who wrote this don't quite understand what a matrixstack is apparently
+     *
+     * @author Rubydesic
+     */
+    @Overwrite
+    private void drawBlockOutline(final MatrixStack matrixStack, final VertexConsumer vertexConsumer,
+        final Entity entity, final double camX, final double camY, final double camZ, final BlockPos blockPos,
+        final BlockState blockState) {
+
+        final ShipObjectClient ship = VSGameUtilsKt.getShipObjectManagingPos(world, blockPos);
+        if (ship != null) {
+            matrixStack.push();
+            transformRenderWithShip(ship.getRenderTransform(), matrixStack, blockPos, camX, camY, camZ);
+            drawShapeOutline(matrixStack, vertexConsumer,
+                blockState.getOutlineShape(this.world, blockPos, ShapeContext.of(entity)),
+                0d, 0d, 0d, 0.0F, 0.0F, 0.0F, 0.4F);
+            matrixStack.pop();
+        } else {
+            // vanilla
+            drawShapeOutline(matrixStack, vertexConsumer,
+                blockState.getOutlineShape(this.world, blockPos, ShapeContext.of(entity)),
+                (double) blockPos.getX() - camX,
+                (double) blockPos.getY() - camY,
+                (double) blockPos.getZ() - camZ,
+                0.0F, 0.0F, 0.0F, 0.4F);
+        }
+
+    }
+
+    /**
      * This mixin makes block damage render on ships.
      */
     @Redirect(method = "render", at = @At(value = "INVOKE",
@@ -183,18 +224,9 @@ public abstract class MixinWorldRenderer {
             matrixStack.push();
 
             final ShipTransform renderTransform = ship.getRenderTransform();
-            final Matrix4dc shipToWorldMatrix = renderTransform.getShipToWorldMatrix();
-
-            final Matrix4d renderMatrix = new Matrix4d();
             final Vec3d cameraPos = methodCamera.getPos();
 
-            // Create the render matrix from the render transform and player position
-            renderMatrix.translate(-cameraPos.getX(), -cameraPos.getY(), -cameraPos.getZ());
-            renderMatrix.mul(shipToWorldMatrix);
-            renderMatrix.translate(blockPos.getX(), blockPos.getY(), blockPos.getZ());
-            // Apply the render matrix to the matrix stack
-            VectorConversionsMCKt
-                .multiply(matrixStack, renderMatrix, renderTransform.getShipCoordinatesToWorldCoordinatesRotation());
+            transformRenderWithShip(renderTransform, matrixStack, blockPos, cameraPos.x, cameraPos.y, cameraPos.z);
 
             // Then update the matrices in vertexConsumer (I'm guessing vertexConsumer is responsible for mapping
             // textures, so we need to update its matrices otherwise the block damage texture looks wrong)
@@ -234,6 +266,8 @@ public abstract class MixinWorldRenderer {
         final BlockPos renderChunkOrigin = builtChunk.getOrigin();
         final ShipObjectClient shipObject = VSGameUtilsKt.getShipObjectManagingPos(world, renderChunkOrigin);
         if (shipObject != null) {
+            matrixStack.pop();
+            matrixStack.push();
             transformRenderWithShip(shipObject.getRenderTransform(), matrixStack, renderChunkOrigin,
                 playerCameraX, playerCameraY, playerCameraZ);
         } else {
@@ -269,6 +303,8 @@ public abstract class MixinWorldRenderer {
         final ShipObjectClient shipObject = VSGameUtilsKt.getShipObjectManagingPos(world, blockEntityPos);
         if (shipObject != null) {
             final Vec3d cam = methodCamera.getPos();
+            matrix.pop();
+            matrix.push();
             transformRenderWithShip(shipObject.getRenderTransform(), matrix, blockEntityPos,
                 cam.getX(), cam.getY(), cam.getZ());
         }
@@ -287,25 +323,18 @@ public abstract class MixinWorldRenderer {
     private void transformRenderWithShip(final ShipTransform renderTransform, final MatrixStack matrix,
         final BlockPos blockPos,
         final double camX, final double camY, final double camZ) {
-        final ShipObjectClient shipObject = VSGameUtilsKt.getShipObjectManagingPos(world, blockPos);
-        if (shipObject != null) {
-            // Remove the vanilla render transform
-            matrix.pop();
 
-            // Add the VS render transform
-            matrix.push();
+        final Matrix4dc shipToWorldMatrix = renderTransform.getShipToWorldMatrix();
 
-            final Matrix4dc shipToWorldMatrix = renderTransform.getShipToWorldMatrix();
+        // Create the render matrix from the render transform and player position
+        final Matrix4d renderMatrix = new Matrix4d();
+        renderMatrix.translate(-camX, -camY, -camZ);
+        renderMatrix.mul(shipToWorldMatrix);
+        renderMatrix.translate(blockPos.getX(), blockPos.getY(), blockPos.getZ());
 
-            // Create the render matrix from the render transform and player position
-            final Matrix4d renderMatrix = new Matrix4d();
-            renderMatrix.translate(-camX, -camY, -camZ);
-            renderMatrix.mul(shipToWorldMatrix);
-            renderMatrix.translate(blockPos.getX(), blockPos.getY(), blockPos.getZ());
-
-            // Apply the render matrix to the
-            VectorConversionsMCKt
-                .multiply(matrix, renderMatrix, renderTransform.getShipCoordinatesToWorldCoordinatesRotation());
-        }
+        // Apply the render matrix to the
+        VectorConversionsMCKt
+            .multiply(matrix, renderMatrix, renderTransform.getShipCoordinatesToWorldCoordinatesRotation());
     }
+
 }
