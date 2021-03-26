@@ -22,26 +22,36 @@ val ClientWorld.shipObjectWorld get() = (this as IShipObjectWorldClientProvider)
 /**
  * Like [Entity.squaredDistanceTo] except the destination is transformed into world coordinates if it is a ship
  */
-fun Entity.squaredDistanceToInclShips(x: Double, y: Double, z: Double): Double {
-    val transform = this.world.getShipManagingPos(x.toInt() shr 4, z.toInt() shr 4)?.shipTransform
+fun Entity.squaredDistanceToInclShips(x: Double, y: Double, z: Double) =
+    world.squaredDistanceBetweenInclShips(x, y, z, this.x, this.y, this.z)
 
-    return if (transform != null) {
+/**
+ * Calculates the squared distance between to points.
+ * x1/y1/z1 are transformed into world coordinates if they are on a ship
+ */
+fun World.squaredDistanceBetweenInclShips(
+    x1: Double, y1: Double, z1: Double, x2: Double, y2: Double, z2: Double
+): Double {
+    val transform = this.getShipManagingPos(x1.toInt() shr 4, z1.toInt() shr 4)?.shipTransform
+
+    var inWorldX = x1
+    var inWorldY = y1
+    var inWorldZ = z1
+
+    if (transform != null) {
         val m = transform.shipToWorldMatrix
 
         // Do this transform manually to avoid allocation
-        val inWorldX = m.m00() * x + m.m10() * y + m.m20() * z + m.m30()
-        val inWorldY = m.m01() * x + m.m11() * y + m.m21() * z + m.m31()
-        val inWorldZ = m.m02() * x + m.m12() * y + m.m22() * z + m.m32()
-
-        val dx = this.x - inWorldX
-        val dy = this.y - inWorldY
-        val dz = this.z - inWorldZ
-
-        return dx * dx + dy * dy + dz * dz
-    } else {
-        // no ship, default behaviour
-        this.squaredDistanceTo(x, y, z)
+        inWorldX = m.m00() * x1 + m.m10() * y1 + m.m20() * z1 + m.m30()
+        inWorldY = m.m01() * x1 + m.m11() * y1 + m.m21() * z1 + m.m31()
+        inWorldZ = m.m02() * x1 + m.m12() * y1 + m.m22() * z1 + m.m32()
     }
+
+    val dx = x2 - inWorldX
+    val dy = y2 - inWorldY
+    val dz = z2 - inWorldZ
+
+    return dx * dx + dy * dy + dz * dz
 }
 
 private fun getShipObjectManagingPosImpl(world: World, chunkX: Int, chunkZ: Int): ShipObject? {
