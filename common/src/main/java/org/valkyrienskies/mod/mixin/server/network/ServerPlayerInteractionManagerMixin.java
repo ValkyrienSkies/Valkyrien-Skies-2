@@ -12,6 +12,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.valkyrienskies.mod.common.VSGameUtils;
+import org.valkyrienskies.mod.common.config.VSConfig;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(ServerPlayerInteractionManager.class)
@@ -34,8 +35,12 @@ public class ServerPlayerInteractionManagerMixin {
     public double includeShipsInBlockBreakDistanceCheck(final double g, final BlockPos pos,
         final PlayerActionC2SPacket.Action action,
         final Direction direction, final int worldHeight) {
-        final Vector3d blockCenter = VectorConversionsMCKt.toJOMLD(pos).add(0.5, 0.5, 0.5);
-        return VSGameUtils.getWorldCoordinates(world, pos, blockCenter)
-            .distanceSquared(player.getX(), player.getY() + 1.5, player.getZ());
+        if (VSConfig.getEnableInteractDistanceChecks()) {
+            final Vector3d blockCenter = VectorConversionsMCKt.toJOMLD(pos).add(0.5, 0.5, 0.5);
+            return VSGameUtils.getWorldCoordinates(world, pos, blockCenter)
+                .distanceSquared(player.getX(), player.getY() + 1.5, player.getZ());
+        } else {
+            return 0;
+        }
     }
 }
