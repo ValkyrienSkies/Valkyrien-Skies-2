@@ -30,7 +30,12 @@ fun Entity.squaredDistanceToInclShips(x: Double, y: Double, z: Double) =
  * x1/y1/z1 are transformed into world coordinates if they are on a ship
  */
 fun World.squaredDistanceBetweenInclShips(
-    x1: Double, y1: Double, z1: Double, x2: Double, y2: Double, z2: Double
+    x1: Double,
+    y1: Double,
+    z1: Double,
+    x2: Double,
+    y2: Double,
+    z2: Double
 ): Double {
     val transform = this.getShipManagingPos(x1.toInt() shr 4, z1.toInt() shr 4)?.shipTransform
 
