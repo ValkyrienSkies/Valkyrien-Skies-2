@@ -1,55 +1,60 @@
 package org.valkyrienskies.mod.forge.common
 
-import net.minecraft.network.PacketByteBuf
+import io.netty.buffer.ByteBuf
+import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.util.Identifier
+import net.minecraftforge.fml.LogicalSide.CLIENT
 import net.minecraftforge.fml.network.NetworkRegistry
+import net.minecraftforge.fml.network.PacketDistributor
 import net.minecraftforge.fml.network.simple.SimpleChannel
-import org.valkyrienskies.mod.common.VSNetworking
+import org.valkyrienskies.core.networking.VSNetworking
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
+import org.valkyrienskies.mod.common.mcPlayer
+import org.valkyrienskies.mod.common.util.MinecraftPlayer
 
 object VSForgeNetworking {
 
     private const val protocolVersion = "1"
-    val vsForgeChannel: SimpleChannel = NetworkRegistry.newSimpleChannel(
+
+    private val vsForgeChannel: SimpleChannel = NetworkRegistry.newSimpleChannel(
         Identifier(ValkyrienSkiesMod.MOD_ID, "vs_packet"),
         { protocolVersion },
-        { anObject: String? ->
-            protocolVersion == anObject
-        },
-        { anObject: String? ->
-            protocolVersion == anObject
-        }
+        { version: String? -> protocolVersion == version },
+        { version: String? -> protocolVersion == version }
     )
 
-    internal fun registerForgeNetworking() {
-        registerClientPacketHandlers()
-        injectForgePacketSenders()
-    }
+    private class VSForgeMessage(val byteBuf: ByteBuf)
 
-    private fun registerClientPacketHandlers() {
+    internal fun registerForgeNetworking() {
         // This gibberish is brought to you by forge
         @Suppress("INACCESSIBLE_TYPE")
         vsForgeChannel.registerMessage(
+            // Who knows lol
             0,
-            MessageVSPacket::class.java,
-            { messageVSPacket, packetBuffer ->
-                run {
-                    VSNetworking.writeVSPacket(messageVSPacket.vsPacket, packetBuffer)
-                }
-            },
-            { packetBuffer: PacketByteBuf -> MessageVSPacket(VSNetworking.readVSPacket(packetBuffer)) },
-            { vsPacket, contextSupplier ->
-                run {
-                    contextSupplier.get().enqueueWork {
-                        VSNetworking.handleVSPacketClient(vsPacket.vsPacket)
-                    }
-                    contextSupplier.get().packetHandled = true
+            VSForgeMessage::class.java,
+            // Convert VSForgeMessage -> ByteBuf
+            { msg, buf -> buf.writeBytes(msg.byteBuf) },
+            // Convert ByteBuf -> VSForgeMessage
+            { buf -> VSForgeMessage(buf.copy()) },
+            // Handle packets
+            { msg, ctxSupplier ->
+                val ctx = ctxSupplier.get()
+                if (ctx.direction.receptionSide == CLIENT) {
+                    VSNetworking.TCP.onReceiveClient(msg.byteBuf)
+                } else {
+                    VSNetworking.TCP.onReceiveServer(msg.byteBuf, MinecraftPlayer.wrap(ctx.sender!!))
                 }
             }
         )
-    }
 
-    private fun injectForgePacketSenders() {
-        VSNetworking.shipDataPacketToClientSender = VSForgeServerToClientPacketSender
+        VSNetworking.TCP.rawSendToClient = { data, player ->
+            vsForgeChannel.send(
+                PacketDistributor.PLAYER.with { player.mcPlayer as ServerPlayerEntity },
+                VSForgeMessage(data)
+            )
+        }
+        VSNetworking.TCP.rawSendToServer = { data ->
+            vsForgeChannel.sendToServer(VSForgeMessage(data))
+        }
     }
 }

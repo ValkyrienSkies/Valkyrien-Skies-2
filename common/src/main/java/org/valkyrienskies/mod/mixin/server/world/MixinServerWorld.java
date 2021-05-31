@@ -30,15 +30,12 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.chunk_tracking.ChunkUnwatchTask;
 import org.valkyrienskies.core.chunk_tracking.ChunkWatchTask;
-import org.valkyrienskies.core.game.IPlayer;
+import org.valkyrienskies.core.game.bridge.IPlayer;
 import org.valkyrienskies.core.game.ships.ShipObject;
 import org.valkyrienskies.core.game.ships.ShipObjectServerWorld;
-import org.valkyrienskies.core.networking.IVSPacket;
-import org.valkyrienskies.core.networking.impl.VSPacketShipDataList;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.ShipSavedData;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.VSNetworking;
 import org.valkyrienskies.mod.common.util.MinecraftPlayer;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.mixin.accessors.server.world.ThreadedAnvilChunkStorageAccessor;
@@ -113,20 +110,13 @@ public abstract class MixinServerWorld implements IShipObjectWorldServerProvider
     private void postTick(final BooleanSupplier shouldKeepTicking, final CallbackInfo ci) {
         // First update the IPlayer wrapper list
         updateVSPlayerWrappers();
+        final ImmutableList<IPlayer> playersToTick = ImmutableList.copyOf(vsPlayerWrappers.values());
 
         // Then tick the ship world
         shipObjectWorld.tickShips();
 
-        // Send ships to clients
-        final IVSPacket shipDataPacket = VSPacketShipDataList.Companion
-            .create(shipObjectWorld.getQueryableShipData().iterator());
-
-        for (final ServerPlayerEntity playerEntity : players) {
-            VSNetworking.shipDataPacketToClientSender.sendToClient(shipDataPacket, playerEntity);
-        }
-
         // Then determine the chunk watch/unwatch tasks, and then execute them
-        final ImmutableList<IPlayer> playersToTick = ImmutableList.copyOf(vsPlayerWrappers.values());
+
         final Pair<Spliterator<ChunkWatchTask>, Spliterator<ChunkUnwatchTask>> chunkWatchAndUnwatchTasksPair =
             shipObjectWorld.tickShipChunkLoading(playersToTick);
 

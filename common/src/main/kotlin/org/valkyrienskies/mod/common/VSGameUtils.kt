@@ -8,16 +8,20 @@ import net.minecraft.util.math.ChunkPos
 import net.minecraft.world.World
 import org.joml.Vector3d
 import org.valkyrienskies.core.game.ChunkAllocator
+import org.valkyrienskies.core.game.bridge.IPlayer
 import org.valkyrienskies.core.game.ships.ShipData
 import org.valkyrienskies.core.game.ships.ShipDataCommon
 import org.valkyrienskies.core.game.ships.ShipObject
 import org.valkyrienskies.core.game.ships.ShipObjectClient
 import org.valkyrienskies.core.game.ships.ShipObjectServer
+import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.util.toJOMLD
 
 val World.shipObjectWorld get() = (this as IShipObjectWorldProvider).shipObjectWorld
 val ServerWorld.shipObjectWorld get() = (this as IShipObjectWorldServerProvider).shipObjectWorld
 val ClientWorld.shipObjectWorld get() = (this as IShipObjectWorldClientProvider).shipObjectWorld
+
+val IPlayer.mcPlayer get() = (this as MinecraftPlayer).playerEntityReference.get()!!
 
 /**
  * Like [Entity.squaredDistanceTo] except the destination is transformed into world coordinates if it is a ship
@@ -58,7 +62,7 @@ private fun getShipObjectManagingPosImpl(world: World, chunkX: Int, chunkZ: Int)
     if (ChunkAllocator.isChunkInShipyard(chunkX, chunkZ)) {
         val shipDataManagingPos = world.shipObjectWorld.queryableShipData.getShipDataFromChunkPos(chunkX, chunkZ)
         if (shipDataManagingPos != null) {
-            return world.shipObjectWorld.shipObjects[shipDataManagingPos.shipUUID]
+            return world.shipObjectWorld.shipObjects[shipDataManagingPos.id]
         }
     }
     return null
