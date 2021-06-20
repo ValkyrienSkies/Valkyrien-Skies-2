@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.core.game.ships.QueryableShipDataImpl;
+import org.valkyrienskies.core.game.ships.QueryableShipDataCommonImpl;
 import org.valkyrienskies.core.game.ships.ShipObjectClient;
 import org.valkyrienskies.core.game.ships.ShipObjectClientWorld;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
@@ -20,7 +20,8 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 @Mixin(ClientWorld.class)
 public abstract class MixinClientWorld implements IShipObjectWorldClientProvider {
 
-    private final ShipObjectClientWorld shipObjectWorld = new ShipObjectClientWorld(new QueryableShipDataImpl<>());
+    private final ShipObjectClientWorld shipObjectWorld =
+        new ShipObjectClientWorld(new QueryableShipDataCommonImpl<>());
 
     @NotNull
     @Override

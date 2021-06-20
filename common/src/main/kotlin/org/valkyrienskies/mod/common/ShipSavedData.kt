@@ -5,7 +5,7 @@ import net.minecraft.nbt.CompoundTag
 import net.minecraft.world.PersistentState
 import org.valkyrienskies.core.game.ChunkAllocator
 import org.valkyrienskies.core.game.ships.MutableQueryableShipDataServer
-import org.valkyrienskies.core.game.ships.QueryableShipDataImpl
+import org.valkyrienskies.core.game.ships.QueryableShipDataCommonImpl
 import org.valkyrienskies.core.game.ships.ShipData
 import org.valkyrienskies.core.util.serialization.VSJacksonUtil
 
@@ -23,7 +23,7 @@ class ShipSavedData : PersistentState(SAVED_DATA_ID) {
 
         fun createEmpty(): ShipSavedData {
             val shipSavedData = ShipSavedData()
-            shipSavedData.queryableShipData = QueryableShipDataImpl()
+            shipSavedData.queryableShipData = QueryableShipDataCommonImpl()
             shipSavedData.chunkAllocator = ChunkAllocator.create()
             return shipSavedData
         }
@@ -40,7 +40,7 @@ class ShipSavedData : PersistentState(SAVED_DATA_ID) {
         // Convert bytes to objects
         val ships: List<ShipData> = VSJacksonUtil.defaultMapper.readValue(queryableShipDataAsBytes)
 
-        queryableShipData = QueryableShipDataImpl(ships)
+        queryableShipData = QueryableShipDataCommonImpl(ships)
         chunkAllocator = VSJacksonUtil.defaultMapper.readValue(chunkAllocatorAsBytes)
     }
 
