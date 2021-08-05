@@ -36,7 +36,7 @@ dependencies {
     }
 
     // Depend on the fabric kotlin mod
-    modImplementation("net.fabricmc:fabric-language-kotlin:1.4.21+build.1")
+    modImplementation("net.fabricmc:fabric-language-kotlin:1.6.0+kotlin.1.5.0")
 
     // Depend on the fabric API
     modImplementation("net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}")
