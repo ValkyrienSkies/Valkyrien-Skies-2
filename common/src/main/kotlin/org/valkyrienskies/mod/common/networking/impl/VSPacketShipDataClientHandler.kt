@@ -16,6 +16,8 @@ object VSPacketShipDataClientHandler : IVSPacketClientHandler {
         vsPacket.shipDataList.forEach {
             if (shipWorld.queryableShipData.getShipDataFromUUID(it.shipUUID) == null) {
                 shipWorld.queryableShipData.addShipData(it)
+            } else {
+                shipWorld.queryableShipData.getShipDataFromUUID(it.shipUUID)!!.shipTransform = it.shipTransform
             }
         }
     }

@@ -13,7 +13,8 @@
     "server.network.ServerPlayerInteractionManagerMixin",
     "server.network.ServerPlayNetworkHandlerMixin",
     "server.world.MixinServerWorld",
-    "server.world.MixinThreadedAnvilChunkStorage"
+    "server.world.MixinThreadedAnvilChunkStorage",
+    "world.chunk.MixinWorldChunk"
   ],
   "client": [
     "accessors.client.render.BuiltChunkStorageAccessor",
