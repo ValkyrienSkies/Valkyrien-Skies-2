@@ -1,10 +1,13 @@
 package org.valkyrienskies.mod.mixin.server.world;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.Spliterator;
 import java.util.UUID;
@@ -12,14 +15,19 @@ import java.util.function.BooleanSupplier;
 import kotlin.Pair;
 import net.minecraft.network.Packet;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ChunkHolder;
 import net.minecraft.server.world.ServerChunkManager;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Position;
 import net.minecraft.world.PersistentStateManager;
+import net.minecraft.world.chunk.ChunkSection;
+import net.minecraft.world.chunk.WorldChunk;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3d;
+import org.joml.Vector3i;
+import org.joml.Vector3ic;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -42,6 +50,9 @@ import org.valkyrienskies.mod.common.VSNetworking;
 import org.valkyrienskies.mod.common.util.MinecraftPlayer;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.mixin.accessors.server.world.ThreadedAnvilChunkStorageAccessor;
+import org.valkyrienskies.physics_api.voxel_updates.DenseVoxelShapeUpdate;
+import org.valkyrienskies.physics_api.voxel_updates.EmptyVoxelShapeUpdate;
+import org.valkyrienskies.physics_api.voxel_updates.IVoxelShapeUpdate;
 
 @Mixin(ServerWorld.class)
 public abstract class MixinServerWorld implements IShipObjectWorldServerProvider {
@@ -60,6 +71,8 @@ public abstract class MixinServerWorld implements IShipObjectWorldServerProvider
     private ShipObjectServerWorld shipObjectWorld = null;
     private ShipSavedData shipSavedData = null;
     private final Map<UUID, MinecraftPlayer> vsPlayerWrappers = new HashMap<>();
+
+    private final HashSet<Vector3ic> knownChunkRegions = new HashSet<>();
 
     @Inject(
         at = @At("TAIL"),
@@ -114,8 +127,48 @@ public abstract class MixinServerWorld implements IShipObjectWorldServerProvider
         // First update the IPlayer wrapper list
         updateVSPlayerWrappers();
 
+        // Find newly loaded chunks
+        final List<ChunkHolder> loadedChunksList = Lists.newArrayList(
+            ((ThreadedAnvilChunkStorageAccessor) serverChunkManager.threadedAnvilChunkStorage).callEntryIterator());
+
+        // Create DenseVoxelShapeUpdate for new loaded chunks
+        final List<IVoxelShapeUpdate> newLoadedChunks = new ArrayList<>();
+
+        for (final ChunkHolder chunkHolder : loadedChunksList) {
+            final Optional<WorldChunk> worldChunkOptional =
+                chunkHolder.getTickingFuture().getNow(ChunkHolder.UNLOADED_WORLD_CHUNK).left();
+            if (worldChunkOptional.isPresent()) {
+                final WorldChunk worldChunk = worldChunkOptional.get();
+                final int chunkX = worldChunk.getPos().x;
+                final int chunkZ = worldChunk.getPos().z;
+
+                final ChunkSection[] chunkSections = worldChunk.getSectionArray();
+
+                // For now just assume chunkY goes from 0 to 16
+                for (int chunkY = 0; chunkY < 16; chunkY++) {
+                    final ChunkSection chunkSection = chunkSections[chunkY];
+                    final Vector3ic chunkPos = new Vector3i(chunkX, chunkY, chunkZ);
+
+                    if (!knownChunkRegions.contains(chunkPos)) {
+                        if (chunkSection != null) {
+                            // Add this chunk to the ground rigid body
+                            final DenseVoxelShapeUpdate voxelShapeUpdate =
+                                VSGameUtilsKt.toDenseVoxelUpdate(chunkSection, chunkPos);
+                            newLoadedChunks.add(voxelShapeUpdate);
+                        } else {
+                            final EmptyVoxelShapeUpdate emptyVoxelShapeUpdate =
+                                new EmptyVoxelShapeUpdate(chunkPos.x(), chunkPos.y(), chunkPos.z(), false);
+                            newLoadedChunks.add(emptyVoxelShapeUpdate);
+                        }
+
+                        knownChunkRegions.add(chunkPos);
+                    }
+                }
+            }
+        }
+
         // Then tick the ship world
-        shipObjectWorld.tickShips();
+        shipObjectWorld.tickShips(newLoadedChunks);
 
         // Send ships to clients
         final IVSPacket shipDataPacket = VSPacketShipDataList.Companion
@@ -134,9 +187,6 @@ public abstract class MixinServerWorld implements IShipObjectWorldServerProvider
         final Spliterator<ChunkWatchTask> chunkWatchTasks = chunkWatchAndUnwatchTasksPair.getFirst();
         final Spliterator<ChunkUnwatchTask> chunkUnwatchTasks = chunkWatchAndUnwatchTasksPair.getSecond();
 
-        final ThreadedAnvilChunkStorageAccessor accessor =
-            (ThreadedAnvilChunkStorageAccessor) serverChunkManager.threadedAnvilChunkStorage;
-
         // But for now just do it single threaded
         chunkWatchTasks.forEachRemaining(chunkWatchTask -> {
             System.out.println("Watch task for " + chunkWatchTask.getChunkX() + " : " + chunkWatchTask.getChunkZ());
@@ -151,7 +201,8 @@ public abstract class MixinServerWorld implements IShipObjectWorldServerProvider
                 final ServerPlayerEntity serverPlayerEntity =
                     (ServerPlayerEntity) minecraftPlayer.getPlayerEntityReference().get();
                 if (serverPlayerEntity != null) {
-                    accessor.callSendWatchPackets(serverPlayerEntity, chunkPos, chunkPacketBuffer, false, true);
+                    ((ThreadedAnvilChunkStorageAccessor) serverChunkManager.threadedAnvilChunkStorage)
+                        .callSendWatchPackets(serverPlayerEntity, chunkPos, chunkPacketBuffer, false, true);
                 }
             }
             chunkWatchTask.onExecuteChunkWatchTask();

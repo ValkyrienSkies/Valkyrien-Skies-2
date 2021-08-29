@@ -6,7 +6,9 @@ import net.minecraft.server.world.ServerWorld
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkPos
 import net.minecraft.world.World
+import net.minecraft.world.chunk.ChunkSection
 import org.joml.Vector3d
+import org.joml.Vector3ic
 import org.valkyrienskies.core.game.ChunkAllocator
 import org.valkyrienskies.core.game.ships.ShipData
 import org.valkyrienskies.core.game.ships.ShipDataCommon
@@ -14,6 +16,7 @@ import org.valkyrienskies.core.game.ships.ShipObject
 import org.valkyrienskies.core.game.ships.ShipObjectClient
 import org.valkyrienskies.core.game.ships.ShipObjectServer
 import org.valkyrienskies.mod.common.util.toJOMLD
+import org.valkyrienskies.physics_api.voxel_updates.DenseVoxelShapeUpdate
 
 val World.shipObjectWorld get() = (this as IShipObjectWorldProvider).shipObjectWorld
 val ServerWorld.shipObjectWorld get() = (this as IShipObjectWorldServerProvider).shipObjectWorld
@@ -130,6 +133,12 @@ fun ServerWorld.getShipManagingPos(chunkPos: ChunkPos) =
 fun ShipDataCommon.toWorldCoordinates(pos: BlockPos) = shipTransform.shipToWorldMatrix.transformPosition(pos.toJOMLD())
 fun ShipDataCommon.toWorldCoordinates(x: Double, y: Double, z: Double) =
     shipTransform.shipToWorldMatrix.transformPosition(Vector3d(x, y, z))
+
+fun ChunkSection.toDenseVoxelUpdate(chunkPos: Vector3ic): DenseVoxelShapeUpdate {
+    val update = DenseVoxelShapeUpdate.createDenseVoxelShapeUpdate(chunkPos)
+    update.setData { x: Int, y: Int, z: Int -> !getBlockState(x, y, z).isAir }
+    return update
+}
 
 object VSGameUtils {
 
