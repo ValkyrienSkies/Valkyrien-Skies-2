@@ -22,6 +22,7 @@
     "accessors.client.render.WorldRendererChunkInfoAccessor",
     "accessors.client.world.ClientChunkManagerClientChunkMapAccessor",
     "client.MixinMinecraftClient",
+    "client.gui.hud.MixinInGameHud",
     "client.particle.ParticleMixin",
     "client.render.MixinBuiltChunkStorage",
     "client.render.MixinGameRenderer",

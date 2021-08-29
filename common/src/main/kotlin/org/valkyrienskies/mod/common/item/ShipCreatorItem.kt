@@ -12,7 +12,7 @@ import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.toBlockPos
 import org.valkyrienskies.mod.common.util.toJOML
 
-class ShipCreatorItem(properties: Settings) : Item(properties) {
+class ShipCreatorItem(properties: Settings, private val scale: Double) : Item(properties) {
 
     override fun useOnBlock(useOnContext: ItemUsageContext): ActionResult {
         println(useOnContext.world.isClient)
@@ -25,7 +25,7 @@ class ShipCreatorItem(properties: Settings) : Item(properties) {
         if (!level.isClient) {
             if (!blockState.isAir) {
                 // Make a ship
-                val shipData = level.shipObjectWorld.createNewShipAtBlock(blockPos.toJOML(), false)
+                val shipData = level.shipObjectWorld.createNewShipAtBlock(blockPos.toJOML(), false, scale)
 
                 val centerPos = shipData.chunkClaim.getCenterBlockCoordinates(Vector3i()).toBlockPos()
 
