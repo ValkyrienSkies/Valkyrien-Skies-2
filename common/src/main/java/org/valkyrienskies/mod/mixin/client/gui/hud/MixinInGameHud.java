@@ -4,16 +4,22 @@ import static net.minecraft.client.gui.DrawableHelper.fill;
 
 import com.google.common.base.Strings;
 import com.mojang.blaze3d.systems.RenderSystem;
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.hud.InGameHud;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.server.integrated.IntegratedServer;
+import net.minecraft.server.world.ServerWorld;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.valkyrienskies.core.game.ships.ShipObjectServerWorld;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(InGameHud.class)
 public class MixinInGameHud {
@@ -30,16 +36,32 @@ public class MixinInGameHud {
         RenderSystem.pushMatrix();
 
         final TextRenderer fontRenderer = client.textRenderer;
-        final String string = "VS 2 Alpha Build";
-        if (!Strings.isNullOrEmpty(string)) {
-            final int j = 9;
-            final int k = fontRenderer.getWidth(string);
-            final int m = 20;
+        final List<String> debugText = new ArrayList<>();
+        debugText.add("VS 2 Alpha Build");
 
-            final int xMin = 1;
+        final IntegratedServer integratedServer = this.client.getServer();
+        if (integratedServer != null) {
+            for (final ServerWorld serverWorld : integratedServer.getWorlds()) {
+                final ShipObjectServerWorld shipObjectServerWorld = VSGameUtilsKt.getShipObjectWorld(serverWorld);
+                final String worldName = serverWorld.getRegistryKey().getValue().toString();
+                final double physicsTPS = shipObjectServerWorld.getPhysicsTPS();
+                final String worldPhysicsDebugText = worldName + " PhysTPS: " + physicsTPS;
+                debugText.add(worldPhysicsDebugText);
+            }
+        }
 
-            fill(matrices, xMin, m - 1, 2 + k + xMin, m + j - 1, -1873784752);
-            fontRenderer.draw(matrices, string, 2.0F, (float) m, 14737632);
+        for (int i = 0; i < debugText.size(); i++) {
+            final String string = debugText.get(i);
+            if (!Strings.isNullOrEmpty(string)) {
+                final int textHeight = 9;
+                final int textLength = fontRenderer.getWidth(string);
+                final int posY = 20 + i * textHeight;
+
+                final int posX = 1;
+
+                fill(matrices, posX, posY - 1, 2 + textLength + posX, posY + textHeight - 1, -1873784752);
+                fontRenderer.draw(matrices, string, 2.0F, (float) posY, 14737632);
+            }
         }
 
         RenderSystem.popMatrix();
