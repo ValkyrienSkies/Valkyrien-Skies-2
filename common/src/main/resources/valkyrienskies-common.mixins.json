@@ -29,6 +29,7 @@
     "client.render.MixinWorldRenderer",
     "client.render.block.entity.MixinBlockEntityRenderDispatcher",
     "client.render.chunk.MixinChunkBuilderBuiltChunk",
+    "client.render.debug.MixinDebugRenderer",
     "client.world.MixinClientChunkManager",
     "client.world.MixinClientWorld"
   ],

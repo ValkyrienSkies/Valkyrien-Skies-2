@@ -18,6 +18,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.valkyrienskies.core.game.VSOptions;
 import org.valkyrienskies.core.game.ships.ShipObjectServerWorld;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
@@ -33,6 +34,10 @@ public class MixinInGameHud {
      */
     @Inject(method = "renderStatusEffectOverlay", at = @At("HEAD"))
     private void preRenderStatusEffectOverlay(final MatrixStack matrices, final CallbackInfo ci) {
+        if (!VSOptions.INSTANCE.getRenderDebugText()) {
+            return;
+        }
+
         RenderSystem.pushMatrix();
 
         final TextRenderer fontRenderer = client.textRenderer;
