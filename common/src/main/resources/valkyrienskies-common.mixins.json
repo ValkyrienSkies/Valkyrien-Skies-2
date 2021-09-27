@@ -14,6 +14,7 @@
     "server.network.ServerPlayNetworkHandlerMixin",
     "server.world.MixinServerWorld",
     "server.world.MixinThreadedAnvilChunkStorage",
+    "world.MixinWorld",
     "world.chunk.MixinWorldChunk"
   ],
   "client": [
