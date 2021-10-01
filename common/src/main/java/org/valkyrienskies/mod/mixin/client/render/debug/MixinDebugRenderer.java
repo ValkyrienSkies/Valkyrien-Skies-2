@@ -24,8 +24,8 @@ public class MixinDebugRenderer {
 
     /**
      * This mixin renders ship bounding boxes and center of masses.
-     * <p>
-     * They get rendered in the same pass as entities.
+     *
+     * <p>They get rendered in the same pass as entities.
      */
     @Inject(method = "render", at = @At("HEAD"))
     private void postRender(final MatrixStack matrices, final VertexConsumerProvider.Immediate vertexConsumers,
