@@ -12,6 +12,10 @@ class ValkyrienSkiesModFabric : ModInitializer {
             Registry.ITEM, Identifier(ValkyrienSkiesMod.MOD_ID, "ship_creator"),
             ValkyrienSkiesMod.SHIP_CREATOR_ITEM
         )
+        Registry.register(
+            Registry.ITEM, Identifier(ValkyrienSkiesMod.MOD_ID, "ship_creator_smaller"),
+            ValkyrienSkiesMod.SHIP_CREATOR_ITEM_SMALLER
+        )
         VSFabricNetworking.injectFabricPacketSenders()
     }
 }

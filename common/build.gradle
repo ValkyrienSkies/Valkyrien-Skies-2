@@ -14,7 +14,7 @@ dependencies {
     // Do NOT use other classes from fabric loader
     modCompile "net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}"
 
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.4.21")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.5.0")
 
     // vs-core
     implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {

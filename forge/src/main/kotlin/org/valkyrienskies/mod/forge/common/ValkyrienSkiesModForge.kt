@@ -19,6 +19,7 @@ class ValkyrienSkiesModForge {
 
         init {
             ITEMS.register("ship_creator") { ValkyrienSkiesMod.SHIP_CREATOR_ITEM }
+            ITEMS.register("ship_creator_smaller") { ValkyrienSkiesMod.SHIP_CREATOR_ITEM_SMALLER }
         }
     }
 }
