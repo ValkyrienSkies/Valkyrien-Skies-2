@@ -1,7 +1,7 @@
 plugins {
     // Needed for Forge+Fabric
     id "architectury-plugin" version "3.0.99"
-    id "forgified-fabric-loom" version "0.6.79" apply false
+    id "forgified-fabric-loom" version "0.6.96" apply false
     // Kotlin
     id "org.jetbrains.kotlin.jvm" version "1.5.0" apply false
     // Configure SonarQube
@@ -34,7 +34,7 @@ subprojects {
     repositories {
         maven {
             name = "Valkyrien Skies Internal"
-            setUrl("https://maven.valkyrienskies.org/repository/internal/")
+            url = project.vs_maven_url
             content {
                 // this repository *only* contains artifacts with group "org.valkyrienskies"
                 includeGroup("org.valkyrienskies")
