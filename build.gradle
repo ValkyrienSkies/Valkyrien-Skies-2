@@ -1,9 +1,16 @@
+buildscript {
+    // Lock plugin dependencies
+    configurations.classpath {
+        resolutionStrategy.activateDependencyLocking()
+    }
+}
+
 plugins {
     // Needed for Forge+Fabric
-    id "architectury-plugin" version "3.0.99"
-    id "forgified-fabric-loom" version "0.6.96" apply false
+    id "architectury-plugin" version "3.4-SNAPSHOT"
+    id "dev.architectury.loom" version "0.11.0-SNAPSHOT" apply false
     // Kotlin
-    id "org.jetbrains.kotlin.jvm" version "1.5.0" apply false
+    id "org.jetbrains.kotlin.jvm" version "1.6.10" apply false
     // Configure SonarQube
     id "org.sonarqube" version "3.1.1"
     // Kotlin linter
@@ -16,6 +23,13 @@ architectury {
     minecraft = rootProject.minecraft_version
 }
 
+// Lock dependencies
+// https://docs.gradle.org/current/userguide/dependency_locking.html
+dependencyLocking {
+    lockAllConfigurations()
+}
+
+
 // Configure SonarQube
 sonarqube {
     properties {
@@ -26,10 +40,11 @@ sonarqube {
 }
 
 subprojects {
-    apply plugin: "forgified-fabric-loom"
+    apply plugin: "dev.architectury.loom"
     // Apply checkstyle and ktlint to check the code style of every sub project
     apply plugin: "org.jlleitschuh.gradle.ktlint"
     apply plugin: "checkstyle"
+    apply plugin: "org.jetbrains.kotlin.jvm"
 
     repositories {
         maven {
@@ -40,6 +55,14 @@ subprojects {
                 includeGroup("org.valkyrienskies")
             }
         }
+    }
+
+    dependencies {
+        minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
+        // The following line declares the mojmap mappings, you may use other mappings as well
+        mappings "net.fabricmc:yarn:${rootProject.yarn_mappings}"
+        // The following line declares the yarn mappings you may select this one as well.
+        // mappings "net.fabricmc:yarn:1.16.5+build.9:v2"
     }
 
     // configure checkstyle
@@ -75,6 +98,7 @@ subprojects {
 allprojects {
     apply plugin: "java"
     apply plugin: "architectury-plugin"
+    apply plugin: "maven-publish"
 
     // Set the base name, version, and group to the values in the gradle.properties
     archivesBaseName = rootProject.archives_base_name
@@ -83,7 +107,11 @@ allprojects {
 
     tasks.withType(JavaCompile) {
         options.encoding = "UTF-8"
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+
+        options.release = 17
+    }
+
+    java {
+        withSourcesJar()
     }
 }

@@ -1,12 +1,6 @@
 plugins {
-    id "com.github.johnrengelman.shadow" version "5.0.0"
+    id "com.github.johnrengelman.shadow" version "7.1.2"
     id "org.jetbrains.kotlin.jvm"
-}
-
-configurations {
-    // Create a shadowCommon configuration.
-    // Use shadow to shade the file but NOT add it as a dependency
-    shadowCommon
 }
 
 architectury {
@@ -14,21 +8,22 @@ architectury {
     fabric()
 }
 
-minecraft {
-    accessWidener("../common/src/main/resources/valkyrienskies-common.accesswidener")
+configurations {
+    common
+    shadowCommon // Don't use shadow from the shadow plugin because we don't want IDEA to index this.
+    compileClasspath.extendsFrom common
+    runtimeClasspath.extendsFrom common
+    developmentFabric.extendsFrom common
+}
+
+loom {
+    accessWidenerPath = project(":common").loom.accessWidenerPath
 }
 
 dependencies {
-    // Configure architectury/loom with specific minecraft version, yarn mappings, and fabric version
-    // taken from the root project's gradle.properties file
-    minecraft("com.mojang:minecraft:${rootProject.minecraft_version}")
-    mappings("net.fabricmc:yarn:${rootProject.yarn_mappings}:v2")
-    modCompile("net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}")
+    modImplementation("net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}")
 
-    implementation(project(path: ":common")) {
-        transitive = false
-    }
-    developmentFabric(project(path: ":common")) {
+    common(project(path: ":common", configuration: "namedElements")) {
         transitive = false
     }
     shadowCommon(project(path: ":common", configuration: "transformProductionFabric")) {
@@ -36,7 +31,7 @@ dependencies {
     }
 
     // Depend on the fabric kotlin mod
-    modImplementation("net.fabricmc:fabric-language-kotlin:1.6.0+kotlin.1.5.0")
+    modImplementation("net.fabricmc:fabric-language-kotlin:1.7.1+kotlin.1.6.10")
 
     // Depend on the fabric API
     modImplementation("net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}")
@@ -53,24 +48,50 @@ dependencies {
 }
 
 processResources {
+    inputs.property "version", project.version
+
     filesMatching("fabric.mod.json") {
         expand "version": project.version
     }
-    inputs.property "version", project.version
 }
 
 shadowJar {
-    // Configure shadowCommon dependencies to be shaded by the shadow plugin
     configurations = [project.configurations.shadowCommon]
-    // The shadow plugin's JAR output (which is only a temporary step) is given the classifier "shadow"
-    classifier "shadow"
+    classifier "dev-shadow"
 }
 
 remapJar {
-    // shadowJar must be created before this is run
-    dependsOn(shadowJar)
-    // remap the shadowJar
-    input.set(shadowJar.archivePath)
-    // Give the remapped jar the classifier "fabric"
-    archiveClassifier = "fabric"
+    input.set shadowJar.archiveFile
+    dependsOn shadowJar
+    classifier null
+}
+
+jar {
+    classifier "dev"
+}
+
+sourcesJar {
+    def commonSources = project(":common").sourcesJar
+    dependsOn commonSources
+    from commonSources.archiveFile.map { zipTree(it) }
+}
+
+components.java {
+    withVariantsFromConfiguration(project.configurations.shadowRuntimeElements) {
+        skip()
+    }
+}
+
+publishing {
+    publications {
+        mavenFabric(MavenPublication) {
+            artifactId = rootProject.archives_base_name + "-" + project.name
+            from components.java
+        }
+    }
+
+    // See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
+    repositories {
+        // Add repositories to publish to here.
+    }
 }

@@ -260,6 +260,7 @@ public abstract class MixinWorldRenderer {
     @Inject(method = "renderLayer",
         at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gl/VertexBuffer;bind()V"),
         locals = LocalCapture.CAPTURE_FAILHARD)
+    @SuppressWarnings("InvalidInjectorMethodSignature")
     private void renderShipChunk(final RenderLayer renderLayer, final MatrixStack matrixStack,
         final double playerCameraX,
         final double playerCameraY, final double playerCameraZ, final CallbackInfo ci,

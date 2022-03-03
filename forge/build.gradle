@@ -1,12 +1,6 @@
 plugins {
-    id "com.github.johnrengelman.shadow" version "5.0.0"
+    id "com.github.johnrengelman.shadow" version "7.1.2"
     id "org.jetbrains.kotlin.jvm"
-}
-
-configurations {
-    // Create a shadowCommon configuration.
-    // Use shadow to shade the file but NOT add it as a dependency
-    shadowCommon
 }
 
 architectury {
@@ -14,24 +8,32 @@ architectury {
     forge()
 }
 
+configurations {
+    common
+    shadowCommon // Don't use shadow from the shadow plugin because we don't want IDEA to index this.
+    compileClasspath.extendsFrom common
+    runtimeClasspath.extendsFrom common
+    developmentForge.extendsFrom common
+}
+
 loom {
     // Include the following mixin configs in the META-INF file for Forge to load
-    mixinConfigs = ["valkyrienskies-common.mixins.json", "valkyrienskies-forge.mixins.json"]
-    // This flag ensures that mixins work in forge in dev
-    useFabricMixin = true
+    forge {
+        mixinConfig "valkyrienskies-common.mixins.json"
+        // mixinConfig "valkyrienskies-forge.mixins.json"
+    }
+    accessWidenerPath = project(":common").loom.accessWidenerPath
+
+    forge {
+        convertAccessWideners = true
+        extraAccessWideners.add loom.accessWidenerPath.get().asFile.name
+    }
 }
 
 dependencies {
-    // Configure architectury/loom with specific minecraft version, yarn mappings, and forge version
-    // taken from the root project's gradle.properties file
-    minecraft("com.mojang:minecraft:${rootProject.minecraft_version}")
-    mappings("net.fabricmc:yarn:${rootProject.yarn_mappings}:v2")
-    forge("net.minecraftforge:forge:${rootProject.minecraft_version}-${rootProject.forge_version}")
+    forge "net.minecraftforge:forge:${rootProject.forge_version}"
 
-    implementation(project(path: ":common")) {
-        transitive = false
-    }
-    developmentForge(project(path: ":common")) {
+    common(project(path: ":common", configuration: "namedElements")) {
         transitive = false
     }
     shadowCommon(project(path: ":common", configuration: "transformProductionForge")) {
@@ -39,9 +41,9 @@ dependencies {
     }
 
     // We need to shade Kotlin on Forge because there are is no popular Kotlin dependency mod.
-    shadowCommon("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.6.0")
+    shadowCommon("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.6.10")
     shadowCommon("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
-    compile("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
 
     // Shade vs-core
     implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {
@@ -54,20 +56,53 @@ dependencies {
     }
 }
 
+processResources {
+    inputs.property "version", project.version
+
+    filesMatching("META-INF/mods.toml") {
+        expand "version": project.version
+    }
+}
+
 shadowJar {
     exclude "fabric.mod.json"
 
-    // Configure shadowCommon dependencies to be shaded by the shadow plugin
     configurations = [project.configurations.shadowCommon]
-    // The shadow plugin's JAR output (which is only a temporary step) is given the classifier "shadow"
-    classifier "shadow"
+    classifier "dev-shadow"
 }
 
 remapJar {
-    // shadowJar must be created before this is run
-    dependsOn(shadowJar)
-    // remap the shadowJar
-    input.set(shadowJar.archivePath)
-    // Give the remapped jar the classifier "forge"
-    archiveClassifier = "forge"
+    input.set shadowJar.archiveFile
+    dependsOn shadowJar
+    classifier null
+}
+
+jar {
+    classifier "dev"
+}
+
+sourcesJar {
+    def commonSources = project(":common").sourcesJar
+    dependsOn commonSources
+    from commonSources.archiveFile.map { zipTree(it) }
+}
+
+components.java {
+    withVariantsFromConfiguration(project.configurations.shadowRuntimeElements) {
+        skip()
+    }
+}
+
+publishing {
+    publications {
+        mavenForge(MavenPublication) {
+            artifactId = rootProject.archives_base_name + "-" + project.name
+            from components.java
+        }
+    }
+
+    // See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
+    repositories {
+        // Add repositories to publish to here.
+    }
 }

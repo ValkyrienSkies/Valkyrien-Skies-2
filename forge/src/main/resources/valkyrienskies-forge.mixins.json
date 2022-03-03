@@ -2,7 +2,6 @@
   "required": true,
   "package": "org.valkyrienskies.mod.forge.mixin",
   "compatibilityLevel": "JAVA_8",
-  "refmap": "valkyrienskies-116-forge-refmap.json",
   "mixins": [
   ],
   "client": [

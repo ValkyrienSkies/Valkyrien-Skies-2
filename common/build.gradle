@@ -1,20 +1,8 @@
-plugins {
-    id "org.jetbrains.kotlin.jvm"
-}
-
-minecraft {
-    accessWidener("src/main/resources/valkyrienskies-common.accesswidener")
-}
-
 dependencies {
-    minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
-    mappings("net.fabricmc:yarn:${rootProject.yarn_mappings}:v2")
-    compileOnly "com.google.code.findbugs:jsr305:3.+"
+    compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
     // We depend on fabric loader here to use the fabric @Environment annotations
     // Do NOT use other classes from fabric loader
-    modCompile "net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}"
-
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.5.0")
+    modImplementation "net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}"
 
     // vs-core
     implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {
@@ -25,4 +13,8 @@ dependencies {
 
 architectury {
     common()
+}
+
+loom {
+    accessWidenerPath = file("src/main/resources/valkyrienskies-common.accesswidener")
 }
