@@ -39,9 +39,9 @@ dependencies {
     }
 
     // We need to shade Kotlin on Forge because there are is no popular Kotlin dependency mod.
-    shadowCommon("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.5.0")
-    shadowCommon("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.0")
-    compile("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.0")
+    shadowCommon("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.6.0")
+    shadowCommon("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
+    compile("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
 
     // Shade vs-core
     implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {
