@@ -30,6 +30,10 @@ loom {
     }
 }
 
+repositories {
+    maven { url "https://jitpack.io" } // Jitpack for Valkyrien-Skies-Krunch-Physics-API
+}
+
 dependencies {
     forge "net.minecraftforge:forge:${rootProject.forge_version}"
 
