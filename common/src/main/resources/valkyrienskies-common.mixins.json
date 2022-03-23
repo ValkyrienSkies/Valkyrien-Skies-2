@@ -9,6 +9,7 @@
     "block.entity.MixinLootableContainerBlockEntity",
     "entity.MixinEntity",
     "screen.MixinScreenHandler",
+    "server.MixinMinecraftServer",
     "server.PlayerManagerMixin",
     "server.network.ServerPlayerInteractionManagerMixin",
     "server.network.ServerPlayNetworkHandlerMixin",
