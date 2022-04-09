@@ -49,7 +49,7 @@ public class MixinInGameHud {
             for (final ServerWorld serverWorld : integratedServer.getWorlds()) {
                 final ShipObjectServerWorld shipObjectServerWorld = VSGameUtilsKt.getShipObjectWorld(serverWorld);
                 final String worldName = serverWorld.getRegistryKey().getValue().toString();
-                final double physicsTPS = shipObjectServerWorld.getPhysicsTPS();
+                final double physicsTPS = 0.0; // TODO, add this back later
                 final String worldPhysicsDebugText = worldName + " PhysTPS: " + physicsTPS;
                 debugText.add(worldPhysicsDebugText);
             }

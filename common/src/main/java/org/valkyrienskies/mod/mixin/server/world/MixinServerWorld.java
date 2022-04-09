@@ -22,6 +22,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Position;
 import net.minecraft.world.PersistentStateManager;
+import net.minecraft.world.World;
 import net.minecraft.world.chunk.ChunkSection;
 import net.minecraft.world.chunk.WorldChunk;
 import org.jetbrains.annotations.NotNull;
@@ -74,6 +75,12 @@ public abstract class MixinServerWorld implements IShipObjectWorldServerProvider
 
     private final HashSet<Vector3ic> knownChunkRegions = new HashSet<>();
 
+    @Unique
+    private int getDimensionId() {
+        final World thisAsWorld = World.class.cast(this);
+        return thisAsWorld.getDimension().hashCode(); // TODO: This isn't ideal, but it should work for now
+    }
+
     @Inject(
         at = @At("TAIL"),
         method = "<init>"
@@ -84,7 +91,8 @@ public abstract class MixinServerWorld implements IShipObjectWorldServerProvider
             .getOrCreate(ShipSavedData.Companion::createEmpty, ShipSavedData.SAVED_DATA_ID);
         // Make a ship world using the loaded ship data
         shipObjectWorld =
-            new ShipObjectServerWorld(shipSavedData.getQueryableShipData(), shipSavedData.getChunkAllocator());
+            new ShipObjectServerWorld(shipSavedData.getQueryableShipData(), shipSavedData.getChunkAllocator(),
+                getDimensionId());
     }
 
     @NotNull
@@ -157,7 +165,7 @@ public abstract class MixinServerWorld implements IShipObjectWorldServerProvider
                             newLoadedChunks.add(voxelShapeUpdate);
                         } else {
                             final EmptyVoxelShapeUpdate emptyVoxelShapeUpdate =
-                                new EmptyVoxelShapeUpdate(chunkPos.x(), chunkPos.y(), chunkPos.z(), false);
+                                new EmptyVoxelShapeUpdate(chunkPos.x(), chunkPos.y(), chunkPos.z(), false, false);
                             newLoadedChunks.add(emptyVoxelShapeUpdate);
                         }
 
