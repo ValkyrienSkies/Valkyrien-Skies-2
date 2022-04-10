@@ -26,6 +26,7 @@
     "valkyrienskies-common.mixins.json",
     "valkyrienskies-fabric.mixins.json"
   ],
+  "accessWidener": "valkyrienskies-common.accesswidener",
   "depends": {
     "fabricloader": ">=0.7.4",
     "fabric-language-kotlin": ">=1.5.0",
