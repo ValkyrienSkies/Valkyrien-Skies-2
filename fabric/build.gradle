@@ -20,10 +20,6 @@ loom {
     accessWidenerPath = project(":common").loom.accessWidenerPath
 }
 
-repositories {
-    maven { url "https://jitpack.io" } // Jitpack for Valkyrien-Skies-Krunch-Physics-API
-}
-
 dependencies {
     modImplementation("net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}")
 

@@ -6,24 +6,17 @@ on:
       - 'main'
 
 jobs:
-  validate-gradle:
-    name: "Validate Gradle wrapper"
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-          submodules: true # Clone with vs-core submodule
-
-      - uses: gradle/wrapper-validation-action@v1
   build:
     name: "Build and Publish"
     strategy:
       matrix:
         java: [ 17 ] # Build on Java 17
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: true # Clone with vs-core submodule
 
       - name: Set up JDK ${{ matrix.java }}
         uses: actions/setup-java@v2
@@ -31,11 +24,8 @@ jobs:
           java-version: ${{ matrix.java }}
           distribution: 'adopt'
 
-      - name: Make gradlew executable
-        run: chmod +x ./gradlew
-
       - name: Build with Gradle
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ./gradlew publish --stacktrace --no-daemon
+          ./gradlew build publish --stacktrace --no-daemon

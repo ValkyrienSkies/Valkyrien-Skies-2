@@ -62,6 +62,14 @@ subprojects {
                 includeGroup("org.valkyrienskies")
             }
         }
+        maven {
+            name = "Jitpack"
+            url = "https://jitpack.io"
+            content {
+                // this repository *only* contains artifacts with group "com.github.ValkyrienSkies"
+                includeGroup("com.github.ValkyrienSkies")
+            }
+        }
     }
 
     dependencies {
