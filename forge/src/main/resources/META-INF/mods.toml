@@ -1,17 +1,17 @@
 modLoader = "javafml"
 loaderVersion = "[35,)"
-#issueTrackerURL = ""
-license = "Insert License Here"
+issueTrackerURL = "https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues"
+license = "Apache-2.0"
 
 [[mods]]
 modId = "valkyrienskies"
 version = "${version}"
-displayName = "Valkyrien Skies"
-authors = "Me!"
+displayName = "Valkyrien Skies 2"
+authors = ["Tri0de", "Rubydesic"]
 description = '''
-This is an example description! Tell everyone what your mod is about!
+Moving blocks with physics :)
 '''
-#logoFile = ""
+logoFile = "icon.png"
 
 [[dependencies.valkyrienskies]]
 modId = "forge"
@@ -23,6 +23,6 @@ side = "BOTH"
 [[dependencies.valkyrienskies]]
 modId = "minecraft"
 mandatory = true
-versionRange = "[1.16.2,)"
+versionRange = "[1.16.5,)"
 ordering = "NONE"
 side = "BOTH"
