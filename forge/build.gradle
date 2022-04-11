@@ -20,7 +20,7 @@ loom {
     // Include the following mixin configs in the META-INF file for Forge to load
     forge {
         mixinConfig "valkyrienskies-common.mixins.json"
-        // mixinConfig "valkyrienskies-forge.mixins.json"
+        mixinConfig "valkyrienskies-forge.mixins.json"
     }
     accessWidenerPath = project(":common").loom.accessWidenerPath
 
