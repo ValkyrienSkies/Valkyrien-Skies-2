@@ -1,7 +1,7 @@
 {
   "required": true,
   "package": "org.valkyrienskies.mod.fabric.mixin",
-  "compatibilityLevel": "JAVA_8",
+  "compatibilityLevel": "JAVA_17",
   "mixins": [
   ],
   "client": [
