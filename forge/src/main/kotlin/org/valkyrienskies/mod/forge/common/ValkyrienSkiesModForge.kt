@@ -4,14 +4,14 @@ import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.registries.DeferredRegister
 import net.minecraftforge.registries.ForgeRegistries
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
-import thedarkcolour.kotlinforforge.forge.FORGE_BUS
+import thedarkcolour.kotlinforforge.forge.MOD_BUS
 
 @Mod(ValkyrienSkiesMod.MOD_ID)
 class ValkyrienSkiesModForge {
     init {
         ValkyrienSkiesMod.init()
         VSForgeNetworking.registerForgeNetworking()
-        ITEMS.register(FORGE_BUS)
+        ITEMS.register(MOD_BUS)
     }
 
     companion object {
