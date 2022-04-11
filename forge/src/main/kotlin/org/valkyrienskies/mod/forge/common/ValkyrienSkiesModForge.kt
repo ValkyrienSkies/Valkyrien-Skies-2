@@ -1,17 +1,17 @@
 package org.valkyrienskies.mod.forge.common
 
 import net.minecraftforge.fml.common.Mod
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext
 import net.minecraftforge.registries.DeferredRegister
 import net.minecraftforge.registries.ForgeRegistries
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
+import thedarkcolour.kotlinforforge.forge.FORGE_BUS
 
 @Mod(ValkyrienSkiesMod.MOD_ID)
 class ValkyrienSkiesModForge {
     init {
         ValkyrienSkiesMod.init()
         VSForgeNetworking.registerForgeNetworking()
-        ITEMS.register(FMLJavaModLoadingContext.get().modEventBus)
+        ITEMS.register(FORGE_BUS)
     }
 
     companion object {
