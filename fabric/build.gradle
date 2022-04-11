@@ -49,7 +49,26 @@ dependencies {
     }
 }
 
+// Copy the VS common access widener to the generated resources folder
+//
+// Note: We have to do this because fabric can't find the access widener unless its in the fabric project
+File generatedResourcesDir = file("src/generated/resources")
+tasks.register("copyAccessWidener", Copy) {
+    from(project(":common").file("src/main/resources/valkyrienskies-common.accesswidener"))
+    into(generatedResourcesDir)
+}
+
+// Add [generatedResourcesDir] as a folder to search for resources
+sourceSets {
+    main {
+        resources {
+            srcDir(generatedResourcesDir)
+        }
+    }
+}
+
 processResources {
+    dependsOn("copyAccessWidener")
     inputs.property "version", project.version
 
     filesMatching("fabric.mod.json") {
@@ -60,6 +79,7 @@ processResources {
 shadowJar {
     configurations = [project.configurations.shadowCommon]
     classifier "dev-shadow"
+    duplicatesStrategy DuplicatesStrategy.EXCLUDE // Ignore duplicate valkyrienskies-common.accesswidener files
     dependencies {
         exclude(dependency("org.jetbrains.kotlin:.*:.*")) // Don't shade kotlin!
     }
@@ -69,13 +89,16 @@ remapJar {
     input.set shadowJar.archiveFile
     dependsOn shadowJar
     classifier null
+    duplicatesStrategy DuplicatesStrategy.EXCLUDE // Ignore duplicate valkyrienskies-common.accesswidener files
 }
 
 jar {
     classifier "dev"
+    duplicatesStrategy DuplicatesStrategy.EXCLUDE // Ignore duplicate valkyrienskies-common.accesswidener files
 }
 
 sourcesJar {
+    duplicatesStrategy DuplicatesStrategy.EXCLUDE // Ignore duplicate valkyrienskies-common.accesswidener files
     def commonSources = project(":common").sourcesJar
     dependsOn commonSources
     from commonSources.archiveFile.map { zipTree(it) }

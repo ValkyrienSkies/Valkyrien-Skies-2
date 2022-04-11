@@ -37,3 +37,6 @@ logs
 
 # Files from Forge MDK
 forge*changelog.txt
+
+# Files generated for Fabric
+/fabric/src/generated/
