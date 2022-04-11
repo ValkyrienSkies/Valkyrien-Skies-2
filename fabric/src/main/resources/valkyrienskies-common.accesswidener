@@ -1,0 +1,8 @@
+accessWidener	v1	named
+
+# Only put classes in here. For everything else use Accessor mixins
+# For Rendering
+accessible	class	net/minecraft/client/render/WorldRenderer$ChunkInfo
+
+# For ChunkMap
+accessible	class	net/minecraft/client/world/ClientChunkManager$ClientChunkMap

@@ -2,17 +2,18 @@
   "schemaVersion": 1,
   "id": "valkyrienskies",
   "version": "${version}",
-  "name": "Example Mod",
-  "description": "This is an example description! Tell everyone what your mod is about!",
+  "name": "Valkyrien Skies 2",
+  "description": "Moving blocks with physics :)",
   "authors": [
-    "Me!"
+    "Tri0de",
+    "Rubydesic"
   ],
   "contact": {
-    "homepage": "https://fabricmc.net/",
-    "sources": "https://github.com/FabricMC/fabric-example-mod"
+    "homepage": "https://valkyrienskies.org/",
+    "sources": "https://github.com/ValkyrienSkies/Valkyrien-Skies-2"
   },
-  "license": "Insert License Here",
-  "icon": "assets/examplemod/icon.png",
+  "license": "Apache-2.0",
+  "icon": "assets/valkyrienskies/icon.png",
   "environment": "*",
   "entrypoints": {
     "main": [
@@ -30,7 +31,8 @@
   "depends": {
     "fabricloader": ">=0.7.4",
     "fabric-language-kotlin": ">=1.5.0",
-    "minecraft": ">=1.16.4"
+    "minecraft": ">=1.16.5",
+    "fabric": "0.42.0+1.16"
   },
   "suggests": {
     "flamingo": "*"
