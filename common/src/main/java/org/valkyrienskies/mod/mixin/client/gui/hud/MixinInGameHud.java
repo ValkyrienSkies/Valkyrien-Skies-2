@@ -44,7 +44,14 @@ public class MixinInGameHud {
 
         final IntegratedServer integratedServer = this.client.getServer();
         if (integratedServer != null) {
-            final double physicsTPS = VSPipeline.Companion.getVSPipeline().computePhysTps();
+            String physicsTPS = "Error";
+            try {
+                // This is dangerous because we have to reach into the Server state from the Client, which can fail.
+                // So, put this in a try/catch block to catch any errors that may occur.
+                physicsTPS = " " + VSPipeline.Companion.getVSPipeline().computePhysTps();
+            } catch (final Exception e) {
+                e.printStackTrace();
+            }
             final String worldPhysicsDebugText = "VS PhysTPS: " + physicsTPS;
             debugText.add(worldPhysicsDebugText);
         }
