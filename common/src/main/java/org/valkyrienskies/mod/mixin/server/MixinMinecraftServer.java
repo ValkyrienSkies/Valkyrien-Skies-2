@@ -37,10 +37,10 @@ public class MixinMinecraftServer {
     }
 
     @Inject(
-        method = "close",
-        at = @At("TAIL")
+        method = "shutdown",
+        at = @At("HEAD")
     )
-    private void postClose(final CallbackInfo ci) {
+    private void preShutdown(final CallbackInfo ci) {
         VSPipeline.Companion.deleteVSPipeline();
     }
 }
