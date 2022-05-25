@@ -3,9 +3,27 @@ plugins {
     id "org.jetbrains.kotlin.jvm"
 }
 
+loom {
+    // Include the following mixin configs in the META-INF file for Forge to load
+    forge {
+        mixinConfig "valkyrienskies-common.mixins.json"
+        // Disable forge mixins for a variety of reasons
+        // mixinConfig "valkyrienskies-forge.mixins.json"
+    }
+}
+
 architectury {
     platformSetupLoomIde()
     forge()
+}
+
+loom {
+    accessWidenerPath = project(":common").loom.accessWidenerPath
+
+    forge {
+        convertAccessWideners = true
+        extraAccessWideners.add loom.accessWidenerPath.get().asFile.name
+    }
 }
 
 configurations {
@@ -14,20 +32,6 @@ configurations {
     compileClasspath.extendsFrom common
     runtimeClasspath.extendsFrom common
     developmentForge.extendsFrom common
-}
-
-loom {
-    // Include the following mixin configs in the META-INF file for Forge to load
-    forge {
-        mixinConfig "valkyrienskies-common.mixins.json"
-        mixinConfig "valkyrienskies-forge.mixins.json"
-    }
-    accessWidenerPath = project(":common").loom.accessWidenerPath
-
-    forge {
-        convertAccessWideners = true
-        extraAccessWideners.add loom.accessWidenerPath.get().asFile.name
-    }
 }
 
 repositories {
