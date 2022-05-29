@@ -6,6 +6,7 @@
     "accessors.server.world.ThreadedAnvilChunkStorageAccessor",
     "accessors.util.math.Matrix4fAccessor",
     "block.MixinBlock",
+    "block.MixinBlockItem",
     "block.entity.MixinLootableContainerBlockEntity",
     "entity.MixinEntity",
     "screen.MixinScreenHandler",
