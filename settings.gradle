@@ -1,6 +1,12 @@
 pluginManagement {
     repositories {
-        maven { url(vs_maven_url) }
+        maven {
+            url(vs_maven_url)
+            content {
+                // this repository *only* contains artifacts with group "org.valkyrienskies"
+                includeGroup("org.valkyrienskies")
+            }
+        }
         maven { url "https://maven.architectury.dev/" }
         maven { url "https://maven.fabricmc.net/" }
         maven { url "https://maven.minecraftforge.net/" }
