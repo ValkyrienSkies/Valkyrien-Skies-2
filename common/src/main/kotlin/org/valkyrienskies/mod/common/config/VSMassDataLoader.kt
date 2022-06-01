@@ -61,7 +61,7 @@ class MassDatapackResolver : BlockStateInfoProvider {
                     val tag: Tag<Block>? = BlockTags.getTagGroup().getTag(tagInfo.id)
 
                     if (tag == null) {
-                        LOGGER.warn("No specified tag '$tagInfo.id' doesn't exist!")
+                        LOGGER.warn("No specified tag '${tagInfo.id}' doesn't exist!")
                         return@forEach
                     }
 
@@ -71,8 +71,8 @@ class MassDatapackResolver : BlockStateInfoProvider {
             }
         }
 
-        // so why does this exist? cus tags themselves are also loaded out of json,
-        // and there is no way to load these json files later, so we note them down and use them later
+        // so why does this exist? cus for some reason initializes their tags after all the other things
+        // idk why, so we note them down and use them later
         private fun addToBeAddedTags(tag: VSBlockStateInfo) {
             tags.add(tag)
         }
@@ -83,14 +83,15 @@ class MassDatapackResolver : BlockStateInfoProvider {
 
         private fun parse(element: JsonElement, origin: Identifier) {
             val tag = element.asJsonObject["tag"]?.asString
-            val weight =
-                element.asJsonObject["mass"]?.asDouble ?: throw IllegalArgumentException("No mass in file $origin")
+            val weight = element.asJsonObject["mass"]?.asDouble
+                ?: throw IllegalArgumentException("No mass in file $origin")
+
             if (tag != null) {
                 addToBeAddedTags(VSBlockStateInfo(Identifier(tag), weight, SOLID))
             } else {
-                val block = element.asJsonObject["block"]?.asString ?: throw IllegalArgumentException(
-                    "No block or tag in file $origin"
-                )
+                val block = element.asJsonObject["block"]?.asString
+                    ?: throw IllegalArgumentException("No block or tag in file $origin")
+
                 add(VSBlockStateInfo(Identifier(block), weight, SOLID))
             }
         }
