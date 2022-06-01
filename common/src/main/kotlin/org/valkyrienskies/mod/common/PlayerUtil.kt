@@ -4,7 +4,7 @@ import net.minecraft.entity.player.PlayerEntity
 import org.valkyrienskies.core.game.ships.ShipObject
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toVec3d
-import org.valkyrienskies.mod.mixin.accessors.entity.AccessorEntity
+import org.valkyrienskies.mod.mixin.accessors.entity.EntityAccessor
 
 object PlayerUtil {
 
@@ -31,7 +31,7 @@ object PlayerUtil {
             val pitch = Math.asin(-direction.y)
             player.headYaw = (yaw * (180 / Math.PI)).toFloat() + 180
             player.pitch = (pitch * (180 / Math.PI)).toFloat()
-            (player as AccessorEntity).setPosNoUpdates(position.toVec3d())
+            (player as EntityAccessor).setPosNoUpdates(position.toVec3d())
         }
 
         try {
@@ -44,7 +44,7 @@ object PlayerUtil {
             else
                 player.headYaw = tmpYaw
 
-            (player as AccessorEntity).setPosNoUpdates(tmpPos)
+            (player as EntityAccessor).setPosNoUpdates(tmpPos)
         }
     }
 }

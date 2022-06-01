@@ -3,7 +3,7 @@
   "package": "org.valkyrienskies.mod.mixin",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
-    "accessors.entity.AccessorEntity",
+    "accessors.entity.EntityAccessor",
     "accessors.server.world.ThreadedAnvilChunkStorageAccessor",
     "accessors.util.math.Matrix4fAccessor",
     "block.MixinBlock",
