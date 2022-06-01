@@ -13,9 +13,9 @@ object PlayerUtil {
     private var tmpPitch = 0f
     private var tmpPos: Vec3d? = null
 
-    //stores old transformation and updates player to 'live' in ship space
+    //updates player to 'live' in ship space for everything executed in the inside lambda
     //is used for emulating the environment when you interact with a block
-    fun storeAndTransformPlayer(player: PlayerEntity, ship: ShipObject?) {
+    fun <T> transformPlayerTemporarily(player: PlayerEntity, ship: ShipObject?, inside: () -> T): T {
         tmpYaw = if (player.world.isClient)
             player.yaw
         else
@@ -38,16 +38,18 @@ object PlayerUtil {
             player.pitch = (pitch * (180 / Math.PI)).toFloat()
             (player as AccessorEntity).setPosNoUpdates(position.toVec3d())
         }
-    }
 
-    fun restoreTransformedPlayer(player: PlayerEntity) {
-        player.pitch = tmpPitch
+        try {
+            return inside()
+        } finally {
+            player.pitch = tmpPitch
 
-        if (player.world.isClient)
-            player.yaw = tmpYaw
-        else
-            player.headYaw = tmpYaw
-        
-        (player as AccessorEntity).setPosNoUpdates(tmpPos)
+            if (player.world.isClient)
+                player.yaw = tmpYaw
+            else
+                player.headYaw = tmpYaw
+
+            (player as AccessorEntity).setPosNoUpdates(tmpPos)
+        }
     }
 }
