@@ -12,6 +12,8 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.valkyrienskies.mod.common.PlayerUtil;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.mixinducks.client.MinecraftClientDuck;
 
 @Mixin(MinecraftClient.class)
@@ -37,8 +39,11 @@ public class MixinMinecraftClient implements MinecraftClientDuck {
             target = "Lnet/minecraft/client/network/ClientPlayerInteractionManager;interactBlock(Lnet/minecraft/client/network/ClientPlayerEntity;Lnet/minecraft/client/world/ClientWorld;Lnet/minecraft/util/Hand;Lnet/minecraft/util/hit/BlockHitResult;)Lnet/minecraft/util/ActionResult;"
         )
     )
-    private ActionResult makeSlabsWork(final ClientPlayerInteractionManager receiver,
+    private ActionResult wrapInteractBlock(final ClientPlayerInteractionManager receiver,
         final ClientPlayerEntity player, final ClientWorld world, final Hand hand, final BlockHitResult hitResult) {
-        return receiver.interactBlock(player, world, hand, (BlockHitResult) originalCrosshairTarget);
+
+        return PlayerUtil.INSTANCE.transformPlayerTemporarily(player,
+            VSGameUtilsKt.getShipObjectManagingPos(world, hitResult.getBlockPos()),
+            () -> receiver.interactBlock(player, world, hand, (BlockHitResult) originalCrosshairTarget));
     }
 }
