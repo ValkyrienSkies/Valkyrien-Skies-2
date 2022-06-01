@@ -1,7 +1,6 @@
 package org.valkyrienskies.mod.common
 
 import net.minecraft.entity.player.PlayerEntity
-import net.minecraft.util.math.Vec3d
 import org.valkyrienskies.core.game.ships.ShipObject
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toVec3d
@@ -9,19 +8,15 @@ import org.valkyrienskies.mod.mixin.accessors.entity.AccessorEntity
 
 object PlayerUtil {
 
-    private var tmpYaw = 0f
-    private var tmpPitch = 0f
-    private var tmpPos: Vec3d? = null
-
     //updates player to 'live' in ship space for everything executed in the inside lambda
     //is used for emulating the environment when you interact with a block
     fun <T> transformPlayerTemporarily(player: PlayerEntity, ship: ShipObject?, inside: () -> T): T {
-        tmpYaw = if (player.world.isClient)
+        val tmpYaw = if (player.world.isClient)
             player.yaw
         else
             player.headYaw
-        tmpPitch = player.pitch
-        tmpPos = player.pos
+        val tmpPitch = player.pitch
+        val tmpPos = player.pos
 
         if (ship != null) {
             val shipMatrix = ship.shipData.shipTransform
