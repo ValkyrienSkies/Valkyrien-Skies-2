@@ -6,3 +6,6 @@ accessible	class	net/minecraft/client/render/WorldRenderer$ChunkInfo
 
 # For ChunkMap
 accessible	class	net/minecraft/client/world/ClientChunkManager$ClientChunkMap
+
+#For inject at MixinMinecraftClient
+accessible	class	net/minecraft/client/MinecraftClient$WorldLoadAction

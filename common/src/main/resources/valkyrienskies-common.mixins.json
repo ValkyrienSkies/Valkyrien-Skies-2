@@ -36,6 +36,9 @@
     "client.world.MixinClientChunkManager",
     "client.world.MixinClientWorld"
   ],
+  "server": [
+    "server.MixinMain"
+  ],
   "injectors": {
     "defaultRequire": 1
   },
