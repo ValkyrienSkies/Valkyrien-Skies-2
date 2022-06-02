@@ -5,11 +5,13 @@ import org.valkyrienskies.core.game.ships.ShipObject
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toVec3d
 import org.valkyrienskies.mod.mixin.accessors.entity.EntityAccessor
+import kotlin.math.asin
+import kotlin.math.atan2
 
 object PlayerUtil {
 
-    //updates player to 'live' in ship space for everything executed in the inside lambda
-    //is used for emulating the environment when you interact with a block
+    // Updates player to 'live' in ship space for everything executed in the inside lambda
+    // is used for emulating the environment when you interact with a block
     fun <T> transformPlayerTemporarily(player: PlayerEntity, ship: ShipObject?, inside: () -> T): T {
         val tmpYaw = if (player.world.isClient)
             player.yaw
@@ -27,8 +29,8 @@ object PlayerUtil {
             val position = shipMatrix.transformPosition(
                 player.pos.toJOML()
             )
-            val yaw = Math.atan2(direction.x, -direction.z) //yaw in radians
-            val pitch = Math.asin(-direction.y)
+            val yaw = atan2(direction.x, -direction.z) // yaw in radians
+            val pitch = asin(-direction.y)
             player.headYaw = (yaw * (180 / Math.PI)).toFloat() + 180
             player.pitch = (pitch * (180 / Math.PI)).toFloat()
             (player as EntityAccessor).setPosNoUpdates(position.toVec3d())
