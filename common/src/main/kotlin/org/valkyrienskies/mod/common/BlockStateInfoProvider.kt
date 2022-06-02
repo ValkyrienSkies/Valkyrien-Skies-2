@@ -1,7 +1,7 @@
 package org.valkyrienskies.mod.common
 
 import com.mojang.serialization.Lifecycle
-import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState
 import net.minecraft.util.Identifier
@@ -37,10 +37,8 @@ object BlockStateInfo {
         Registry.register(REGISTRY, Identifier(ValkyrienSkiesMod.MOD_ID, "data"), MASS_DATAPACK_RESOLVER)
         Registry.register(REGISTRY, Identifier(ValkyrienSkiesMod.MOD_ID, "default"), DefaultBlockStateInfoProvider)
     }
-
-    // no clue about these different Int2ObjectMaps just took a random one
-
-    val CACHE = Int2ObjectAVLTreeMap<Pair<Double, VSBlockType>>()
+    
+    val CACHE = Int2ObjectOpenHashMap<Pair<Double, VSBlockType>>()
     // NOTE: this caching can get allot better, ex. default just returns constants so it might be more faster
     //  if we store that these values do not need to be cached by double and blocktype but just that they use default impl
 
