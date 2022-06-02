@@ -12,6 +12,7 @@ import net.minecraft.util.registry.SimpleRegistry
 import net.minecraft.world.World
 import org.valkyrienskies.core.game.VSBlockType
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod.MASS_DATAPACK_RESOLVER
+import org.valkyrienskies.mod.event.RegistryEvents
 
 // Other mods can then provide weights and types based on their added content
 // NOTE: if we have block's in vs-core we should ask getVSBlock(blockstate: BlockStat): VSBlock since thatd be more handy
@@ -33,11 +34,16 @@ object BlockStateInfo {
         Lifecycle.experimental()
     )
 
-    init {
+    lateinit var SORTED_REGISTRY: List<BlockStateInfoProvider>
+
+    // init { doesn't work since the class gets loaded too late
+    fun init() {
         Registry.register(REGISTRY, Identifier(ValkyrienSkiesMod.MOD_ID, "data"), MASS_DATAPACK_RESOLVER)
         Registry.register(REGISTRY, Identifier(ValkyrienSkiesMod.MOD_ID, "default"), DefaultBlockStateInfoProvider)
+
+        RegistryEvents.onRegistriesComplete { SORTED_REGISTRY = REGISTRY.sortedByDescending { it.priority } }
     }
-    
+
     val CACHE = Int2ObjectOpenHashMap<Pair<Double, VSBlockType>>()
     // NOTE: this caching can get allot better, ex. default just returns constants so it might be more faster
     //  if we store that these values do not need to be cached by double and blocktype but just that they use default impl
@@ -49,9 +55,8 @@ object BlockStateInfo {
 
     private fun iterateRegistry(blockState: BlockState): Pair<Double, VSBlockType> =
         Pair(
-            // TODO maybe i should sort the registry; instead of sorting it on the fly :P
-            REGISTRY.sortedByDescending { it.priority }.mapNotNull { it.getBlockStateMass(blockState) }.first(),
-            REGISTRY.sortedByDescending { it.priority }.mapNotNull { it.getBlockStateType(blockState) }.first(),
+            SORTED_REGISTRY.mapNotNull { it.getBlockStateMass(blockState) }.first(),
+            SORTED_REGISTRY.mapNotNull { it.getBlockStateType(blockState) }.first(),
         )
 
     // NOTE: this gets called irrelevant if the block is actually on a ship; so it needs to be changed that

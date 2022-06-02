@@ -2,7 +2,6 @@ package org.valkyrienskies.mod.common
 
 import net.minecraft.item.Item
 import net.minecraft.item.ItemGroup
-import org.valkyrienskies.mod.PlatformUtil
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
 
@@ -16,6 +15,6 @@ object ValkyrienSkiesMod {
     fun init() {
         println("Hello from init")
         VSNetworking.registerVSPackets()
-        PlatformUtil.registerDataResourceManager(MASS_DATAPACK_RESOLVER.loader, "vs_mass")
+        BlockStateInfo.init()
     }
 }
