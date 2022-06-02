@@ -14,6 +14,9 @@ import org.valkyrienskies.core.game.VSBlockType
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod.MASS_DATAPACK_RESOLVER
 
 // Other mods can then provide weights and types based on their added content
+// NOTE: if we have block's in vs-core we should ask getVSBlock(blockstate: BlockStat): VSBlock since thatd be more handy
+//  altough we might want to allow null properties in VSBlock that is returned since we do want partial data fetching
+// https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues/25
 interface BlockStateInfoProvider {
     val priority: Int
 
@@ -55,6 +58,9 @@ object BlockStateInfo {
 
     // NOTE: this gets called irrelevant if the block is actually on a ship; so it needs to be changed that
     // shipObjectWorld only requests the data if needed (maybe supplier?)
+    // NOTE2: spoken of in discord in the future well have prob block's in vs-core with id's and then
+    // the above issue shall be fixed
+    // https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues/25
     fun onSetBlock(world: World, blockPos: BlockPos, prevBlockState: BlockState, newBlockState: BlockState) {
         val shipObjectWorld = world.shipObjectWorld
 
