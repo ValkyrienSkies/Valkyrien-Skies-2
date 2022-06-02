@@ -11,7 +11,6 @@ import org.valkyrienskies.core.collision.ConvexPolygonc
 import org.valkyrienskies.core.collision.EntityPolygonCollider
 import org.valkyrienskies.core.collision.TransformedCuboidPolygon.Companion.createFromAABB
 import org.valkyrienskies.mod.common.shipObjectWorld
-import java.util.ArrayList
 
 object EntityShipCollisionUtils {
 
