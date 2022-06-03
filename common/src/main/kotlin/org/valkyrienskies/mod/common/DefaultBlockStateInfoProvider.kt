@@ -6,6 +6,7 @@ import org.valkyrienskies.core.game.VSBlockType
 import org.valkyrienskies.core.game.VSBlockType.AIR
 import org.valkyrienskies.core.game.VSBlockType.SOLID
 import org.valkyrienskies.core.game.VSBlockType.WATER
+import org.valkyrienskies.mod.mixin.accessors.block.AbstractBlockAccessor
 
 object DefaultBlockStateInfoProvider : BlockStateInfoProvider {
     override val priority: Int
@@ -19,6 +20,9 @@ object DefaultBlockStateInfoProvider : BlockStateInfoProvider {
     override fun getBlockStateType(blockState: BlockState): VSBlockType {
         return when {
             blockState.isAir -> {
+                AIR
+            }
+            !((blockState.block as AbstractBlockAccessor).isCollidable) -> {
                 AIR
             }
             blockState.block is FluidBlock -> {

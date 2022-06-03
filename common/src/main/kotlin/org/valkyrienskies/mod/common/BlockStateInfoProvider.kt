@@ -50,8 +50,8 @@ object BlockStateInfo {
 
     // this gets the weight and type provided by providers; or it gets it out of the cache
 
-    private fun get(blockState: BlockState): Pair<Double, VSBlockType> =
-        CACHE.get(Block.getRawIdFromState(blockState)) ?: iterateRegistry(blockState)
+    fun get(blockState: BlockState): Pair<Double, VSBlockType> =
+        CACHE.getOrPut(Block.getRawIdFromState(blockState)) { iterateRegistry(blockState) }
 
     private fun iterateRegistry(blockState: BlockState): Pair<Double, VSBlockType> =
         Pair(

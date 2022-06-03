@@ -3,6 +3,7 @@
   "package": "org.valkyrienskies.mod.mixin",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
+    "accessors.block.AbstractBlockAccessor",
     "accessors.entity.EntityAccessor",
     "accessors.server.world.ThreadedAnvilChunkStorageAccessor",
     "accessors.util.math.Matrix4fAccessor",
@@ -35,9 +36,6 @@
     "client.render.debug.MixinDebugRenderer",
     "client.world.MixinClientChunkManager",
     "client.world.MixinClientWorld"
-  ],
-  "server": [
-    "server.MixinMain"
   ],
   "injectors": {
     "defaultRequire": 1

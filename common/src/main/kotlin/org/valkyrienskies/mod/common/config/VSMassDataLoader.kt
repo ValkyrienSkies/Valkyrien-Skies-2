@@ -13,11 +13,10 @@ import net.minecraft.util.profiler.Profiler
 import net.minecraft.util.registry.Registry
 import org.apache.logging.log4j.LogManager
 import org.valkyrienskies.core.game.VSBlockType
-import org.valkyrienskies.core.game.VSBlockType.SOLID
 import org.valkyrienskies.mod.common.BlockStateInfoProvider
 import org.valkyrienskies.mod.event.RegistryEvents
 
-private data class VSBlockStateInfo(val id: Identifier, val mass: Double, val type: VSBlockType)
+private data class VSBlockStateInfo(val id: Identifier, val mass: Double, val type: VSBlockType?)
 class MassDatapackResolver : BlockStateInfoProvider {
     private val map = hashMapOf<Identifier, VSBlockStateInfo>()
     val loader get() = VSMassDataLoader(this)
@@ -87,12 +86,12 @@ class MassDatapackResolver : BlockStateInfoProvider {
                 ?: throw IllegalArgumentException("No mass in file $origin")
 
             if (tag != null) {
-                addToBeAddedTags(VSBlockStateInfo(Identifier(tag), weight, SOLID))
+                addToBeAddedTags(VSBlockStateInfo(Identifier(tag), weight, null))
             } else {
                 val block = element.asJsonObject["block"]?.asString
                     ?: throw IllegalArgumentException("No block or tag in file $origin")
 
-                add(VSBlockStateInfo(Identifier(block), weight, SOLID))
+                add(VSBlockStateInfo(Identifier(block), weight, null))
             }
         }
 
