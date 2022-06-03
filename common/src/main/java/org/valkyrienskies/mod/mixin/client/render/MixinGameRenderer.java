@@ -12,7 +12,12 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.valkyrienskies.core.game.ships.ShipObjectClient;
+import org.valkyrienskies.core.game.ships.ShipObjectClientWorld;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 import org.valkyrienskies.mod.mixinducks.client.MinecraftClientDuck;
 
@@ -59,6 +64,19 @@ public class MixinGameRenderer {
             ),
             false
         );
+    }
+
+    @Inject(method = "render", at = @At("HEAD"))
+    private void preRender(final float tickDelta, final long startTime, final boolean tick, final CallbackInfo ci) {
+        final ClientWorld clientWorld = client.world;
+        if (clientWorld != null) {
+            // Update ship render transforms
+            final ShipObjectClientWorld shipWorld = VSGameUtilsKt.getShipObjectWorld(clientWorld);
+
+            for (final ShipObjectClient shipObjectClient : shipWorld.getShipObjects().values()) {
+                shipObjectClient.getShipDataClient().updateRenderShipTransform(tickDelta);
+            }
+        }
     }
 
 }

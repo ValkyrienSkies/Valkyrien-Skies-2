@@ -20,8 +20,8 @@ object VSPacketShipDataClientHandler : IVSPacketClientHandler {
                 val shipDataClient = ShipDataClient.Companion.createShipDataClientFromShipDataCommon(it)
                 shipWorld.queryableShipData.addShipData(shipDataClient)
             } else {
-                // Update the ship transform
-                shipWorld.queryableShipData.getShipDataFromUUID(it.shipUUID)!!.shipTransform = it.shipTransform
+                // Update the next ship transform
+                shipWorld.queryableShipData.getShipDataFromUUID(it.shipUUID)!!.updateNextShipTransform(it.shipTransform)
             }
         }
     }
