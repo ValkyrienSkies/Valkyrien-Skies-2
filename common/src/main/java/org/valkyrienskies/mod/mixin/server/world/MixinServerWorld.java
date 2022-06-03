@@ -158,7 +158,7 @@ public abstract class MixinServerWorld implements IShipObjectWorldServerProvider
                     final Vector3ic chunkPos = new Vector3i(chunkX, chunkY, chunkZ);
 
                     if (!knownChunkRegions.contains(chunkPos)) {
-                        if (chunkSection != null) {
+                        if (chunkSection != null && !chunkSection.isEmpty()) {
                             // Add this chunk to the ground rigid body
                             final DenseVoxelShapeUpdate voxelShapeUpdate =
                                 VSGameUtilsKt.toDenseVoxelUpdate(chunkSection, chunkPos);
