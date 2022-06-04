@@ -13,10 +13,8 @@ object PlayerUtil {
     // Updates player to 'live' in ship space for everything executed in the inside lambda
     // is used for emulating the environment when you interact with a block
     fun <T> transformPlayerTemporarily(player: PlayerEntity, ship: ShipObject?, inside: () -> T): T {
-        val tmpYaw = if (player.world.isClient)
-            player.yaw
-        else
-            player.headYaw
+        val tmpYaw = player.yaw
+        val tmpHeadYaw = player.headYaw
         val tmpPitch = player.pitch
         val tmpPos = player.pos
 
@@ -32,6 +30,7 @@ object PlayerUtil {
             val yaw = atan2(direction.x, -direction.z) // yaw in radians
             val pitch = asin(-direction.y)
             player.headYaw = (yaw * (180 / Math.PI)).toFloat() + 180
+            player.yaw = player.headYaw
             player.pitch = (pitch * (180 / Math.PI)).toFloat()
             (player as EntityAccessor).setPosNoUpdates(position.toVec3d())
         }
@@ -41,10 +40,8 @@ object PlayerUtil {
         } finally {
             player.pitch = tmpPitch
 
-            if (player.world.isClient)
-                player.yaw = tmpYaw
-            else
-                player.headYaw = tmpYaw
+            player.yaw = tmpYaw
+            player.headYaw = tmpHeadYaw
 
             (player as EntityAccessor).setPosNoUpdates(tmpPos)
         }

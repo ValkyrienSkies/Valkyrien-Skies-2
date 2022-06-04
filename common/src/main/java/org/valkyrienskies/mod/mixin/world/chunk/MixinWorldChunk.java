@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.valkyrienskies.mod.common.BlockStateInfoProvider;
+import org.valkyrienskies.mod.common.BlockStateInfo;
 
 @Mixin(WorldChunk.class)
 public class MixinWorldChunk {
@@ -22,6 +22,6 @@ public class MixinWorldChunk {
     public void postSetBlockState(final BlockPos pos, final BlockState state, final boolean moved,
         final CallbackInfoReturnable<BlockState> cir) {
         final BlockState prevState = cir.getReturnValue();
-        BlockStateInfoProvider.INSTANCE.onSetBlock(world, pos, prevState, state);
+        BlockStateInfo.INSTANCE.onSetBlock(world, pos, prevState, state);
     }
 }

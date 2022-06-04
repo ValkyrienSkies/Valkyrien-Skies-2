@@ -1,0 +1,18 @@
+[
+  {
+    "block": "minecraft:dirt",
+    "mass": 1600.0
+  },
+  {
+    "block": "minecraft:grass",
+    "mass": 1700.0
+  },
+  {
+    "block": "minecraft:stone",
+    "mass": 2600.0
+  },
+  {
+    "block": "minecraft:cobblestone",
+    "mass": 2000.0
+  }
+]

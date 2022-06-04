@@ -142,13 +142,7 @@ fun ShipDataCommon.toWorldCoordinates(x: Double, y: Double, z: Double) =
 
 fun ChunkSection.toDenseVoxelUpdate(chunkPos: Vector3ic): DenseVoxelShapeUpdate {
     val update = DenseVoxelShapeUpdate.createDenseVoxelShapeUpdate(chunkPos)
-    update.setData { x: Int, y: Int, z: Int ->
-        if (getBlockState(x, y, z).isAir) {
-            KrunchVoxelStates.AIR_STATE
-        } else {
-            KrunchVoxelStates.SOLID_STATE
-        }
-    }
+    update.setData { x: Int, y: Int, z: Int -> BlockStateInfo.get(getBlockState(x, y, z)).second.toByte() }
     return update
 }
 
