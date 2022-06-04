@@ -21,7 +21,7 @@ loom {
 
 publishing {
     publications {
-        mavenFabric(MavenPublication) {
+        mavenCommon(MavenPublication) {
             groupId = "org.valkyrienskies"
             version = project.version
             artifactId = rootProject.archives_base_name + "-" + project.name
