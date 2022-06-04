@@ -21,7 +21,7 @@ object VSPacketShipDataClientHandler : IVSPacketClientHandler {
                 shipWorld.queryableShipData.addShipData(shipDataClient)
             } else {
                 // Update the next ship transform
-                shipWorld.queryableShipData.getShipDataFromUUID(it.shipUUID)!!.updateNextShipTransform(it.shipTransform)
+                shipWorld.shipObjects[it.shipUUID]?.updateNextShipTransform(it.shipTransform)
             }
         }
     }

@@ -74,7 +74,7 @@ public class MixinGameRenderer {
             final ShipObjectClientWorld shipWorld = VSGameUtilsKt.getShipObjectWorld(clientWorld);
 
             for (final ShipObjectClient shipObjectClient : shipWorld.getShipObjects().values()) {
-                shipObjectClient.getShipDataClient().updateRenderShipTransform(tickDelta);
+                shipObjectClient.updateRenderShipTransform(tickDelta);
             }
         }
     }
