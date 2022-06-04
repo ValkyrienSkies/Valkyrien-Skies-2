@@ -17,6 +17,8 @@ import org.valkyrienskies.core.game.ships.ShipObjectClient
 import org.valkyrienskies.core.game.ships.ShipObjectServer
 import org.valkyrienskies.mod.common.util.toJOMLD
 import org.valkyrienskies.physics_api.voxel_updates.DenseVoxelShapeUpdate
+import org.valkyrienskies.physics_api.voxel_updates.KrunchVoxelStates
+import kotlin.math.min
 
 val World.shipObjectWorld get() = (this as IShipObjectWorldProvider).shipObjectWorld
 val ServerWorld.shipObjectWorld get() = (this as IShipObjectWorldServerProvider).shipObjectWorld
@@ -40,26 +42,30 @@ fun World.squaredDistanceBetweenInclShips(
     y2: Double,
     z2: Double
 ): Double {
+    val origDx = x2 - x1
+    val origDy = y2 - y1
+    val origDz = z2 - z1
+
+    val squareDistWithoutRespectToShips = origDx * origDx + origDy * origDy + origDz * origDz
+
+    // If transform is null, then just return squareDistWithoutRespectToShips
     val transform = this.getShipManagingPos(x1.toInt() shr 4, z1.toInt() shr 4)?.shipTransform
+        ?: return squareDistWithoutRespectToShips
 
-    var inWorldX = x1
-    var inWorldY = y1
-    var inWorldZ = z1
+    val m = transform.shipToWorldMatrix
 
-    if (transform != null) {
-        val m = transform.shipToWorldMatrix
-
-        // Do this transform manually to avoid allocation
-        inWorldX = m.m00() * x1 + m.m10() * y1 + m.m20() * z1 + m.m30()
-        inWorldY = m.m01() * x1 + m.m11() * y1 + m.m21() * z1 + m.m31()
-        inWorldZ = m.m02() * x1 + m.m12() * y1 + m.m22() * z1 + m.m32()
-    }
+    // Do this transform manually to avoid allocation
+    val inWorldX = m.m00() * x1 + m.m10() * y1 + m.m20() * z1 + m.m30()
+    val inWorldY = m.m01() * x1 + m.m11() * y1 + m.m21() * z1 + m.m31()
+    val inWorldZ = m.m02() * x1 + m.m12() * y1 + m.m22() * z1 + m.m32()
 
     val dx = x2 - inWorldX
     val dy = y2 - inWorldY
     val dz = z2 - inWorldZ
 
-    return dx * dx + dy * dy + dz * dz
+    val squareDistWithRespectToShips = dx * dx + dy * dy + dz * dz
+
+    return min(squareDistWithRespectToShips, squareDistWithoutRespectToShips)
 }
 
 private fun getShipObjectManagingPosImpl(world: World, chunkX: Int, chunkZ: Int): ShipObject? {
