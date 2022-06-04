@@ -165,7 +165,7 @@ public abstract class MixinServerWorld implements IShipObjectWorldServerProvider
                             newLoadedChunks.add(voxelShapeUpdate);
                         } else {
                             final EmptyVoxelShapeUpdate emptyVoxelShapeUpdate =
-                                new EmptyVoxelShapeUpdate(chunkPos.x(), chunkPos.y(), chunkPos.z(), false, false);
+                                new EmptyVoxelShapeUpdate(chunkPos.x(), chunkPos.y(), chunkPos.z(), false, true);
                             newLoadedChunks.add(emptyVoxelShapeUpdate);
                         }
 
