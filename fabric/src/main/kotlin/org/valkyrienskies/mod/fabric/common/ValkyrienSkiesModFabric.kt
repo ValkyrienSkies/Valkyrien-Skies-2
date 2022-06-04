@@ -26,8 +26,8 @@ class ValkyrienSkiesModFabric : ModInitializer {
         )
         VSFabricNetworking.injectFabricPacketSenders()
 
-        //registering mass
-        val loader = ValkyrienSkiesMod.MASS_DATAPACK_RESOLVER.loader //the get makes a new instance so get it only once
+        // registering mass
+        val loader = ValkyrienSkiesMod.MASS_DATAPACK_RESOLVER.loader // the get makes a new instance so get it only once
         ResourceManagerHelper.get(SERVER_DATA)
             .registerReloadListener(object : IdentifiableResourceReloadListener {
                 override fun getFabricId(): Identifier {
@@ -37,8 +37,10 @@ class ValkyrienSkiesModFabric : ModInitializer {
                 override fun reload(
                     synchronizer: Synchronizer,
                     resourceManager: ResourceManager,
-                    profiler: Profiler, profiler2: Profiler,
-                    executor: Executor, executor2: Executor
+                    profiler: Profiler,
+                    profiler2: Profiler,
+                    executor: Executor,
+                    executor2: Executor
                 ): CompletableFuture<Void> {
                     return loader.reload(
                         synchronizer, resourceManager, profiler, profiler2,
