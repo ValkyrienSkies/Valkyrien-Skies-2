@@ -48,6 +48,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
+import org.valkyrienskies.core.game.ChunkAllocator;
 import org.valkyrienskies.core.game.ships.ShipObjectClient;
 import org.valkyrienskies.core.game.ships.ShipTransform;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
@@ -267,9 +268,14 @@ public abstract class MixinWorldRenderer {
         final boolean bl, final ObjectListIterator<?> objectListIterator, final WorldRenderer.ChunkInfo chunkInfo2,
         final ChunkBuilder.BuiltChunk builtChunk, final VertexBuffer vertexBuffer) {
 
+        final int playerChunkX = ((int) playerCameraX) >> 4;
+        final int playerChunkZ = ((int) playerCameraZ) >> 4;
+        // Don't apply the ship render transform if the player is in the shipyard
+        final boolean isPlayerInShipyard = ChunkAllocator.isChunkInShipyard(playerChunkX, playerChunkZ);
+
         final BlockPos renderChunkOrigin = builtChunk.getOrigin();
         final ShipObjectClient shipObject = VSGameUtilsKt.getShipObjectManagingPos(world, renderChunkOrigin);
-        if (shipObject != null) {
+        if (!isPlayerInShipyard && shipObject != null) {
             matrixStack.pop();
             matrixStack.push();
             transformRenderWithShip(shipObject.getRenderTransform(), matrixStack, renderChunkOrigin,
