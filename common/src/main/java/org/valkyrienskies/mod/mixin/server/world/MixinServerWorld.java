@@ -154,7 +154,8 @@ public abstract class MixinServerWorld implements IShipObjectWorldServerProvider
 
                 final ChunkSection[] chunkSections = worldChunk.getSectionArray();
 
-                final ShipData shipData = shipObjectWorld.getQueryableShipData().getShipDataFromChunkPos(chunkX, chunkZ);
+                final ShipData shipData =
+                    shipObjectWorld.getQueryableShipData().getShipDataFromChunkPos(chunkX, chunkZ);
                 if (shipData != null) {
                     // Tell the ship data that the chunk has been loaded
                     shipData.onLoadChunk(chunkX, chunkZ);

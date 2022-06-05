@@ -17,7 +17,6 @@ import org.valkyrienskies.core.game.ships.ShipObjectClient
 import org.valkyrienskies.core.game.ships.ShipObjectServer
 import org.valkyrienskies.mod.common.util.toJOMLD
 import org.valkyrienskies.physics_api.voxel_updates.DenseVoxelShapeUpdate
-import org.valkyrienskies.physics_api.voxel_updates.KrunchVoxelStates
 import kotlin.math.min
 
 val World.shipObjectWorld get() = (this as IShipObjectWorldProvider).shipObjectWorld
