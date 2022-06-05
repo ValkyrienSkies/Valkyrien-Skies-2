@@ -40,6 +40,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.chunk_tracking.ChunkUnwatchTask;
 import org.valkyrienskies.core.chunk_tracking.ChunkWatchTask;
 import org.valkyrienskies.core.game.IPlayer;
+import org.valkyrienskies.core.game.ships.ShipData;
 import org.valkyrienskies.core.game.ships.ShipObject;
 import org.valkyrienskies.core.game.ships.ShipObjectServerWorld;
 import org.valkyrienskies.core.networking.IVSPacket;
@@ -140,6 +141,7 @@ public abstract class MixinServerWorld implements IShipObjectWorldServerProvider
             ((ThreadedAnvilChunkStorageAccessor) serverChunkManager.threadedAnvilChunkStorage).callEntryIterator());
 
         // Create DenseVoxelShapeUpdate for new loaded chunks
+        // Also mark the chunks as loaded in the ship objects
         final List<IVoxelShapeUpdate> newLoadedChunks = new ArrayList<>();
 
         for (final ChunkHolder chunkHolder : loadedChunksList) {
@@ -151,6 +153,12 @@ public abstract class MixinServerWorld implements IShipObjectWorldServerProvider
                 final int chunkZ = worldChunk.getPos().z;
 
                 final ChunkSection[] chunkSections = worldChunk.getSectionArray();
+
+                final ShipData shipData = shipObjectWorld.getQueryableShipData().getShipDataFromChunkPos(chunkX, chunkZ);
+                if (shipData != null) {
+                    // Tell the ship data that the chunk has been loaded
+                    shipData.onLoadChunk(chunkX, chunkZ);
+                }
 
                 // For now just assume chunkY goes from 0 to 16
                 for (int chunkY = 0; chunkY < 16; chunkY++) {
