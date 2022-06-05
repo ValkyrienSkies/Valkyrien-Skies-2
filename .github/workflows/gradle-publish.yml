@@ -19,7 +19,7 @@ jobs:
     name: "Build and Publish"
     strategy:
       matrix:
-        java: [ 11 ] # Build on Java 11
+        java: [ 17 ] # Build on Java 17
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
