@@ -3,11 +3,6 @@ buildscript {
     configurations.classpath {
         resolutionStrategy.activateDependencyLocking()
     }
-
-    repositories {
-        mavenCentral()
-        mavenLocal()
-    }
 }
 
 plugins {
@@ -50,12 +45,6 @@ dependencyLocking {
     lockAllConfigurations()
 }
 
-repositories {
-    mavenCentral()
-    mavenLocal()
-}
-
-
 subprojects {
     apply plugin: "dev.architectury.loom"
     // Apply checkstyle and ktlint to check the code style of every sub project
@@ -64,6 +53,7 @@ subprojects {
     apply plugin: "org.jetbrains.kotlin.jvm"
 
     repositories {
+        mavenCentral()
         maven {
             name = "Valkyrien Skies Internal"
             url = project.vs_maven_url
