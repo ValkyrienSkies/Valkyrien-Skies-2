@@ -56,7 +56,15 @@ subprojects {
         mavenCentral()
         maven {
             name = "Valkyrien Skies Internal"
-            url = project.vs_maven_url
+            url = project.findProperty('vs_maven_url') ?: 'https://maven.valkyrienskies.org'
+
+            if (project.hasProperty('vs_maven_username') && project.hasProperty('vs_maven_url')) {
+                credentials {
+                    username = project.findProperty('vs_maven_username')
+                    password = project.findProperty('vs_maven_password')
+                }
+            }
+
             content {
                 // this repository *only* contains artifacts with group "org.valkyrienskies"
                 includeGroup("org.valkyrienskies")

@@ -118,11 +118,17 @@ publishing {
 
     // See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
     repositories {
-        // Add repositories to publish to here.
-        maven {
-            url = 'http://localhost:8787//'
-            allowInsecureProtocol = true
+        if (project.hasProperty('vs_maven_username') && project.hasProperty('vs_maven_url')) {
+            println "Publishing to VS Maven"
+            maven {
+                url = project.findProperty('vs_maven_url')
+                credentials {
+                    username = project.findProperty('vs_maven_username')
+                    password = project.findProperty('vs_maven_password')
+                }
+            }
         }
+        // Add repositories to publish to here.
         if (System.getenv("GITHUB_ACTOR") != null) {
             println "Publishing to Github Packages"
             maven {
