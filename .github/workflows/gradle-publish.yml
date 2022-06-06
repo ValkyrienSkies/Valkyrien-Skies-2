@@ -36,5 +36,8 @@ jobs:
       - name: Build with Gradle
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ORG_GRADLE_PROJECT_VS_MAVEN_PASSWORD: ${{ secrets.ORG_GRADLE_PROJECT_VS_MAVEN_PASSWORD }}
+          ORG_GRADLE_PROJECT_VS_MAVEN_URL: ${{ secrets.ORG_GRADLE_PROJECT_VS_MAVEN_URL }}
+          ORG_GRADLE_PROJECT_VS_MAVEN_USERNAME: ${{ secrets.ORG_GRADLE_PROJECT_VS_MAVEN_USERNAME }}
         run: |
           ./gradlew build publish --stacktrace --no-daemon
