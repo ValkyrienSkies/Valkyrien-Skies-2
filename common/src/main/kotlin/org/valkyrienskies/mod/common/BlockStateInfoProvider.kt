@@ -34,7 +34,7 @@ object BlockStateInfo {
         Lifecycle.experimental()
     )
 
-    lateinit var SORTED_REGISTRY: List<BlockStateInfoProvider>
+    private lateinit var SORTED_REGISTRY: List<BlockStateInfoProvider>
 
     // init { doesn't work since the class gets loaded too late
     fun init() {
@@ -72,8 +72,12 @@ object BlockStateInfo {
     // NOTE2: spoken of in discord in the future well have prob block's in vs-core with id's and then
     // the above issue shall be fixed
     // https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues/25
+
     fun onSetBlock(level: Level, blockPos: BlockPos, prevBlockState: BlockState, newBlockState: BlockState) {
+        if (!::SORTED_REGISTRY.isInitialized) return
+
         val shipObjectWorld = level.shipObjectWorld
+
 
         val (prevBlockMass, prevBlockType) = get(prevBlockState) ?: return
 

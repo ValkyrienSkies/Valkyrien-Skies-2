@@ -17,8 +17,7 @@ object VSPacketShipDataClientHandler : IVSPacketClientHandler {
         vsPacket.shipDataList.forEach {
             if (shipWorld.queryableShipData.getShipDataFromUUID(it.shipUUID) == null) {
                 // Convert [ShipDataCommon] to [ShipDataClient]
-                val shipDataClient = ShipDataClient.Companion.createShipDataClientFromShipDataCommon(it)
-                shipWorld.queryableShipData.addShipData(shipDataClient)
+                shipWorld.queryableShipData.addShipData(it)
             } else {
                 // Update the next ship transform
                 shipWorld.shipObjects[it.shipUUID]?.updateNextShipTransform(it.shipTransform)
