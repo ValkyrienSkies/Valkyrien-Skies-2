@@ -78,7 +78,6 @@ object BlockStateInfo {
 
         val shipObjectWorld = level.shipObjectWorld
 
-
         val (prevBlockMass, prevBlockType) = get(prevBlockState) ?: return
 
         val (newBlockMass, newBlockType) = get(newBlockState) ?: return

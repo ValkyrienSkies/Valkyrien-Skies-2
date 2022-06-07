@@ -1,7 +1,6 @@
 package org.valkyrienskies.mod.common.networking.impl
 
 import net.minecraft.client.Minecraft
-import org.valkyrienskies.core.game.ships.ShipDataClient
 import org.valkyrienskies.core.networking.IVSPacket
 import org.valkyrienskies.core.networking.IVSPacketClientHandler
 import org.valkyrienskies.core.networking.impl.VSPacketShipDataList
