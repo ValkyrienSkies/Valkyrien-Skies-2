@@ -1,13 +1,13 @@
 package org.valkyrienskies.mod.mixin.screen;
 
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.screen.ScreenHandler;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
-@Mixin(ScreenHandler.class)
+@Mixin(AbstractContainerMenu.class)
 public class MixinScreenHandler {
 
     // targeting lambdas is weird, thankfully there is only one usage of #squaredDistanceTo
@@ -16,11 +16,11 @@ public class MixinScreenHandler {
         method = "*",
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/entity/player/PlayerEntity;squaredDistanceTo(DDD)D"
+            target = "Lnet/minecraft/world/entity/player/Player;distanceToSqr(DDD)D"
         )
     )
     private static double includeShipsInDistanceCheck(
-        final PlayerEntity receiver, final double x, final double y, final double z) {
+        final Player receiver, final double x, final double y, final double z) {
         return VSGameUtilsKt.squaredDistanceToInclShips(receiver, x, y, z);
     }
 

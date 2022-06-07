@@ -1,108 +1,108 @@
 package org.valkyrienskies.mod.mixin.accessors.util.math;
 
-import net.minecraft.util.math.Matrix4f;
+import com.mojang.math.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
 @Mixin(Matrix4f.class)
 public interface Matrix4fAccessor {
     // region Setters
-    @Accessor("a00")
-    void setA00(float a00);
+    @Accessor("m00")
+    void setM00(float a00);
 
-    @Accessor("a01")
-    void setA01(float a01);
+    @Accessor("m01")
+    void setM01(float a01);
 
-    @Accessor("a02")
-    void setA02(float a02);
+    @Accessor("m02")
+    void setM02(float a02);
 
-    @Accessor("a03")
-    void setA03(float a03);
+    @Accessor("m03")
+    void setM03(float a03);
 
-    @Accessor("a10")
-    void setA10(float a10);
+    @Accessor("m10")
+    void setM10(float a10);
 
-    @Accessor("a11")
-    void setA11(float a11);
+    @Accessor("m11")
+    void setM11(float a11);
 
-    @Accessor("a12")
-    void setA12(float a12);
+    @Accessor("m12")
+    void setM12(float a12);
 
-    @Accessor("a13")
-    void setA13(float a13);
+    @Accessor("m13")
+    void setM13(float a13);
 
-    @Accessor("a20")
-    void setA20(float a20);
+    @Accessor("m20")
+    void setM20(float a20);
 
-    @Accessor("a21")
-    void setA21(float a21);
+    @Accessor("m21")
+    void setM21(float a21);
 
-    @Accessor("a22")
-    void setA22(float a22);
+    @Accessor("m22")
+    void setM22(float a22);
 
-    @Accessor("a23")
-    void setA23(float a23);
+    @Accessor("m23")
+    void setM23(float a23);
 
-    @Accessor("a30")
-    void setA30(float a30);
+    @Accessor("m30")
+    void setM30(float a30);
 
-    @Accessor("a31")
-    void setA31(float a31);
+    @Accessor("m31")
+    void setM31(float a31);
 
-    @Accessor("a32")
-    void setA32(float a32);
+    @Accessor("m32")
+    void setM32(float a32);
 
-    @Accessor("a33")
-    void setA33(float a33);
+    @Accessor("m33")
+    void setM33(float a33);
 
     // endregion
     // region Getters
-    @Accessor("a00")
-    float getA00();
+    @Accessor("m00")
+    float getM00();
 
-    @Accessor("a01")
-    float getA01();
+    @Accessor("m01")
+    float getM01();
 
-    @Accessor("a02")
-    float getA02();
+    @Accessor("m02")
+    float getM02();
 
-    @Accessor("a03")
-    float getA03();
+    @Accessor("m03")
+    float getM03();
 
-    @Accessor("a10")
-    float getA10();
+    @Accessor("m10")
+    float getM10();
 
-    @Accessor("a11")
-    float getA11();
+    @Accessor("m11")
+    float getM11();
 
-    @Accessor("a12")
-    float getA12();
+    @Accessor("m12")
+    float getM12();
 
-    @Accessor("a13")
-    float getA13();
+    @Accessor("m13")
+    float getM13();
 
-    @Accessor("a20")
-    float getA20();
+    @Accessor("m20")
+    float getM20();
 
-    @Accessor("a21")
-    float getA21();
+    @Accessor("m21")
+    float getM21();
 
-    @Accessor("a22")
-    float getA22();
+    @Accessor("m22")
+    float getM22();
 
-    @Accessor("a23")
-    float getA23();
+    @Accessor("m23")
+    float getM23();
 
-    @Accessor("a30")
-    float getA30();
+    @Accessor("m30")
+    float getM30();
 
-    @Accessor("a31")
-    float getA31();
+    @Accessor("m31")
+    float getM31();
 
-    @Accessor("a32")
-    float getA32();
+    @Accessor("m32")
+    float getM32();
 
-    @Accessor("a33")
-    float getA33();
+    @Accessor("m33")
+    float getM33();
     // endregion
 }

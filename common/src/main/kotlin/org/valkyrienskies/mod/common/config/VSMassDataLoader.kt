@@ -2,41 +2,41 @@ package org.valkyrienskies.mod.common.config
 
 import com.google.gson.Gson
 import com.google.gson.JsonElement
-import net.minecraft.block.Block
-import net.minecraft.block.BlockState
-import net.minecraft.resource.JsonDataLoader
-import net.minecraft.resource.ResourceManager
-import net.minecraft.tag.BlockTags
-import net.minecraft.tag.Tag
-import net.minecraft.util.Identifier
-import net.minecraft.util.profiler.Profiler
-import net.minecraft.util.registry.Registry
+import net.minecraft.core.Registry
+import net.minecraft.resources.ResourceLocation
+import net.minecraft.server.packs.resources.ResourceManager
+import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener
+import net.minecraft.tags.BlockTags
+import net.minecraft.tags.Tag
+import net.minecraft.util.profiling.ProfilerFiller
+import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.state.BlockState
 import org.apache.logging.log4j.LogManager
 import org.valkyrienskies.core.game.VSBlockType
 import org.valkyrienskies.mod.common.BlockStateInfoProvider
 import org.valkyrienskies.mod.event.RegistryEvents
 
-private data class VSBlockStateInfo(val id: Identifier, val mass: Double, val type: VSBlockType?)
+private data class VSBlockStateInfo(val id: ResourceLocation, val mass: Double, val type: VSBlockType?)
 class MassDatapackResolver : BlockStateInfoProvider {
-    private val map = hashMapOf<Identifier, VSBlockStateInfo>()
+    private val map = hashMapOf<ResourceLocation, VSBlockStateInfo>()
     val loader get() = VSMassDataLoader(this)
 
     override val priority: Int
         get() = 100
 
     override fun getBlockStateMass(blockState: BlockState): Double? =
-        map[Registry.BLOCK.getId(blockState.block)]?.mass
+        map[Registry.BLOCK.getKey(blockState.block)]?.mass
 
     override fun getBlockStateType(blockState: BlockState): VSBlockType? =
-        map[Registry.BLOCK.getId(blockState.block)]?.type
+        map[Registry.BLOCK.getKey(blockState.block)]?.type
 
-    class VSMassDataLoader(val resolver: MassDatapackResolver) : JsonDataLoader(Gson(), "vs_mass") {
+    class VSMassDataLoader(val resolver: MassDatapackResolver) : SimpleJsonResourceReloadListener(Gson(), "vs_mass") {
         private val tags = mutableListOf<VSBlockStateInfo>()
 
         override fun apply(
-            objects: MutableMap<Identifier, JsonElement>?,
+            objects: MutableMap<ResourceLocation, JsonElement>?,
             resourceManager: ResourceManager?,
-            profiler: Profiler?
+            profiler: ProfilerFiller?
         ) {
             resolver.map.clear()
             objects?.forEach { (location, element) ->
@@ -57,14 +57,14 @@ class MassDatapackResolver : BlockStateInfoProvider {
         init {
             RegistryEvents.onTagsLoaded {
                 tags.forEach { tagInfo ->
-                    val tag: Tag<Block>? = BlockTags.getTagGroup().getTag(tagInfo.id)
+                    val tag: Tag<Block>? = BlockTags.getAllTags().getTag(tagInfo.id)
 
                     if (tag == null) {
                         LOGGER.warn("No specified tag '${tagInfo.id}' doesn't exist!")
                         return@forEach
                     }
 
-                    tag.values().forEach { add(VSBlockStateInfo(Registry.BLOCK.getId(it), tagInfo.mass, tagInfo.type)) }
+                    tag.values.forEach { add(VSBlockStateInfo(Registry.BLOCK.getKey(it), tagInfo.mass, tagInfo.type)) }
                 }
                 tags.clear()
             }
@@ -80,18 +80,18 @@ class MassDatapackResolver : BlockStateInfoProvider {
             resolver.map[info.id] = info
         }
 
-        private fun parse(element: JsonElement, origin: Identifier) {
+        private fun parse(element: JsonElement, origin: ResourceLocation) {
             val tag = element.asJsonObject["tag"]?.asString
             val weight = element.asJsonObject["mass"]?.asDouble
                 ?: throw IllegalArgumentException("No mass in file $origin")
 
             if (tag != null) {
-                addToBeAddedTags(VSBlockStateInfo(Identifier(tag), weight, null))
+                addToBeAddedTags(VSBlockStateInfo(ResourceLocation(tag), weight, null))
             } else {
                 val block = element.asJsonObject["block"]?.asString
                     ?: throw IllegalArgumentException("No block or tag in file $origin")
 
-                add(VSBlockStateInfo(Identifier(block), weight, null))
+                add(VSBlockStateInfo(ResourceLocation(block), weight, null))
             }
         }
 

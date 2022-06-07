@@ -1,18 +1,18 @@
 package org.valkyrienskies.mod.mixin.entity;
 
-import net.minecraft.block.BlockState;
-import net.minecraft.block.ShapeContext;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.MovementType;
-import net.minecraft.util.collection.ReusableStream;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.shape.VoxelShape;
-import net.minecraft.world.RaycastContext;
-import net.minecraft.world.World;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.RewindableStream;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.MoverType;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Mixin;
@@ -28,15 +28,18 @@ import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 @Mixin(Entity.class)
 public abstract class MixinEntity {
 
+    @Shadow
+    public abstract void setDeltaMovement(Vec3 motion);
+
     @Redirect(
-        method = "raycast",
+        method = "pick",
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/world/World;raycast(Lnet/minecraft/world/RaycastContext;)Lnet/minecraft/util/hit/BlockHitResult;"
+            target = "Lnet/minecraft/world/level/Level;clip(Lnet/minecraft/world/level/ClipContext;)Lnet/minecraft/world/phys/BlockHitResult;"
         )
     )
-    public BlockHitResult addShipsToRaycast(final World receiver, final RaycastContext ctx) {
-        return RaycastUtilsKt.raycastIncludeShips((ClientWorld) receiver, ctx);
+    public BlockHitResult addShipsToRaycast(final Level receiver, final ClipContext ctx) {
+        return RaycastUtilsKt.clipIncludeShips((ClientLevel) receiver, ctx);
     }
 
     /**
@@ -46,14 +49,14 @@ public abstract class MixinEntity {
         method = "move",
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/entity/Entity;adjustMovementForCollisions(Lnet/minecraft/util/math/Vec3d;)Lnet/minecraft/util/math/Vec3d;"
+            target = "Lnet/minecraft/world/entity/Entity;collide(Lnet/minecraft/world/phys/Vec3;)Lnet/minecraft/world/phys/Vec3;"
         )
     )
-    public Vec3d collideWithShips(final Entity entity, Vec3d movement) {
-        final Box box = this.getBoundingBox();
+    public Vec3 collideWithShips(final Entity entity, Vec3 movement) {
+        final AABB box = this.getBoundingBox();
         movement = EntityShipCollisionUtils.INSTANCE
-            .adjustEntityMovementForShipCollisions(entity, movement, box, this.world);
-        return adjustMovementForCollisions(movement);
+            .adjustEntityMovementForShipCollisions(entity, movement, box, this.level);
+        return collide(movement);
     }
 
     /**
@@ -65,11 +68,14 @@ public abstract class MixinEntity {
      *
      * <p>This code makes accurate collision with non axis-aligned surfaces impossible, so this mixin replaces it. </p>
      */
-    @Inject(method = "move", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;setVelocity(DDD)V"),
-        locals = LocalCapture.CAPTURE_FAILHARD, cancellable = true)
-    private void redirectSetVelocity(final MovementType type, final Vec3d movement, final CallbackInfo callbackInfo,
-        final Vec3d movementAdjustedForCollisions, final BlockPos landingPos, final BlockState landingBlockState,
-        final Vec3d currentVelocity) {
+    @Inject(method = "move", at = @At(
+        value = "INVOKE",
+        target = "Lnet/minecraft/world/entity/Entity;setDeltaMovement(DDD)V"),
+        locals = LocalCapture.CAPTURE_FAILHARD, cancellable = true
+    )
+    private void redirectSetVelocity(final MoverType type, final Vec3 movement, final CallbackInfo callbackInfo,
+        final Vec3 movementAdjustedForCollisions, final BlockPos landingPos, final BlockState landingBlockState,
+        final Vec3 currentVelocity) {
 
         // Compute the collision response horizontal
         final Vector3dc collisionResponseHorizontal =
@@ -83,7 +89,7 @@ public abstract class MixinEntity {
                 collisionResponseHorizontalNormal
                     .dot(movementAdjustedForCollisions.x, 0.0, movementAdjustedForCollisions.z);
 
-            setVelocity(
+            setDeltaMovement(
                 movementAdjustedForCollisions.x
                     - collisionResponseHorizontalNormal.x() * parallelHorizontalVelocityComponent,
                 movementAdjustedForCollisions.y,
@@ -97,32 +103,32 @@ public abstract class MixinEntity {
 
     // region shadow functions and fields
     @Shadow
-    public World world;
+    public Level level;
     @Shadow
     protected boolean onGround;
     @Shadow
-    public float stepHeight;
+    public float maxUpStep;
 
     @Shadow
-    public abstract Box getBoundingBox();
+    public abstract AABB getBoundingBox();
 
     @Shadow
-    public abstract void setVelocity(double x, double y, double z);
+    public abstract void setDeltaMovement(double x, double y, double z);
 
     @Shadow
-    public static double squaredHorizontalLength(final Vec3d vector) {
+    public static double getHorizontalDistanceSqr(final Vec3 vector) {
         throw new AssertionError("Mixin failed to apply");
     }
 
     @Shadow
-    public static Vec3d adjustMovementForCollisions(final Entity thisAsEntity, final Vec3d movement, final Box box,
-        final World world,
-        final ShapeContext shapeContext, final ReusableStream<VoxelShape> reusableStream) {
+    public static Vec3 collideBoundingBoxHeuristically(final Entity thisAsEntity, final Vec3 movement, final AABB box,
+        final Level world,
+        final CollisionContext shapeContext, final RewindableStream<VoxelShape> reusableStream) {
         return null;
     }
 
     @Shadow
-    abstract Vec3d adjustMovementForCollisions(Vec3d vec3d);
+    abstract Vec3 collide(Vec3 vec3d);
     // endregion
 
 }

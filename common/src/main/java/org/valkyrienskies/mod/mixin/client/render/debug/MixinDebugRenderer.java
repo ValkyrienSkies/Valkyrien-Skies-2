@@ -1,13 +1,13 @@
 package org.valkyrienskies.mod.mixin.client.render.debug;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.render.WorldRenderer;
-import net.minecraft.client.render.debug.DebugRenderer;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.util.math.Box;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.debug.DebugRenderer;
+import net.minecraft.world.phys.AABB;
 import org.joml.Quaterniondc;
 import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Mixin;
@@ -28,9 +28,9 @@ public class MixinDebugRenderer {
      * <p>They get rendered in the same pass as entities.
      */
     @Inject(method = "render", at = @At("HEAD"))
-    private void postRender(final MatrixStack matrices, final VertexConsumerProvider.Immediate vertexConsumers,
+    private void postRender(final PoseStack matrices, final MultiBufferSource.BufferSource vertexConsumers,
         final double cameraX, final double cameraY, final double cameraZ, final CallbackInfo ci) {
-        final ClientWorld world = MinecraftClient.getInstance().world;
+        final ClientLevel world = Minecraft.getInstance().level;
         final ShipObjectClientWorld shipObjectClientWorld = VSGameUtilsKt.getShipObjectWorld(world);
 
         for (final ShipObjectClient shipObjectClient : shipObjectClientWorld.getShipObjects().values()) {
@@ -40,14 +40,14 @@ public class MixinDebugRenderer {
                 shipRenderTransform.getShipCoordinatesToWorldCoordinatesRotation();
 
             final double renderRadius = .25;
-            final Box shipCenterOfMassBox =
-                new Box(shipRenderPosition.x() - renderRadius, shipRenderPosition.y() - renderRadius,
+            final AABB shipCenterOfMassBox =
+                new AABB(shipRenderPosition.x() - renderRadius, shipRenderPosition.y() - renderRadius,
                     shipRenderPosition.z() - renderRadius, shipRenderPosition.x() + renderRadius,
                     shipRenderPosition.y() + renderRadius, shipRenderPosition.z() + renderRadius)
-                    .offset(-cameraX, -cameraY, -cameraZ);
+                    .move(-cameraX, -cameraY, -cameraZ);
 
-            WorldRenderer
-                .drawBox(matrices, vertexConsumers.getBuffer(RenderLayer.getLines()), shipCenterOfMassBox,
+            LevelRenderer
+                .renderLineBox(matrices, vertexConsumers.getBuffer(RenderType.lines()), shipCenterOfMassBox,
                     1.0F, 1.0F, 1.0F, 1.0F);
         }
     }

@@ -1,8 +1,8 @@
 package org.valkyrienskies.mod.mixinducks.client;
 
-import net.minecraft.util.hit.HitResult;
+import net.minecraft.world.phys.HitResult;
 
-public interface MinecraftClientDuck {
+public interface MinecraftDuck {
 
     void vs$setOriginalCrosshairTarget(HitResult h);
 

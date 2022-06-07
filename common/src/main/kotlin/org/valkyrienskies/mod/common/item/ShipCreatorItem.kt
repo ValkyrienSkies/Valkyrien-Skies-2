@@ -1,27 +1,27 @@
 package org.valkyrienskies.mod.common.item
 
-import net.minecraft.block.BlockState
-import net.minecraft.block.Blocks
-import net.minecraft.item.Item
-import net.minecraft.item.ItemUsageContext
-import net.minecraft.server.world.ServerWorld
-import net.minecraft.util.ActionResult
+import net.minecraft.server.level.ServerLevel
+import net.minecraft.world.InteractionResult
+import net.minecraft.world.item.Item
+import net.minecraft.world.item.context.UseOnContext
+import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.state.BlockState
 import org.joml.Vector3i
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.toBlockPos
 import org.valkyrienskies.mod.common.util.toJOML
 
-class ShipCreatorItem(properties: Settings, private val scale: Double) : Item(properties) {
+class ShipCreatorItem(properties: Properties, private val scale: Double) : Item(properties) {
 
-    override fun useOnBlock(useOnContext: ItemUsageContext): ActionResult {
-        println(useOnContext.world.isClient)
-        val level = useOnContext.world as? ServerWorld ?: return super.useOnBlock(useOnContext)
-        val blockPos = useOnContext.blockPos
+    override fun useOn(ctx: UseOnContext): InteractionResult {
+        println(ctx.level.isClientSide)
+        val level = ctx.level as? ServerLevel ?: return super.useOn(ctx)
+        val blockPos = ctx.clickedPos
         val blockState: BlockState = level.getBlockState(blockPos)
 
         println("Player right clicked on $blockPos")
 
-        if (!level.isClient) {
+        if (!level.isClientSide) {
             if (!blockState.isAir) {
                 // Make a ship
                 val dimensionId = 0 // TODO fix
@@ -30,11 +30,11 @@ class ShipCreatorItem(properties: Settings, private val scale: Double) : Item(pr
                 val centerPos = shipData.chunkClaim.getCenterBlockCoordinates(Vector3i()).toBlockPos()
 
                 // Move the block from the world to a ship
-                level.setBlockState(blockPos, Blocks.AIR.defaultState, 11)
-                level.setBlockState(centerPos, blockState, 11)
+                level.setBlock(blockPos, Blocks.AIR.defaultBlockState(), 11)
+                level.setBlock(centerPos, blockState, 11)
             }
         }
 
-        return super.useOnBlock(useOnContext)
+        return super.useOn(ctx)
     }
 }

@@ -8,16 +8,16 @@ import java.util.Optional;
 import java.util.Spliterator;
 import java.util.function.BooleanSupplier;
 import kotlin.Pair;
-import net.minecraft.network.Packet;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ChunkHolder;
-import net.minecraft.server.world.ServerChunkManager;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.util.math.Position;
-import net.minecraft.world.chunk.ChunkSection;
-import net.minecraft.world.chunk.WorldChunk;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Position;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.server.level.ChunkHolder;
+import net.minecraft.server.level.ServerChunkCache;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.chunk.LevelChunkSection;
 import org.joml.Vector3d;
 import org.joml.Vector3i;
 import org.joml.Vector3ic;
@@ -41,20 +41,20 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.VSNetworking;
 import org.valkyrienskies.mod.common.util.MinecraftPlayer;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
-import org.valkyrienskies.mod.mixin.accessors.server.world.ThreadedAnvilChunkStorageAccessor;
+import org.valkyrienskies.mod.mixin.accessors.server.world.ChunkMapAccessor;
 import org.valkyrienskies.physics_api.voxel_updates.DenseVoxelShapeUpdate;
 import org.valkyrienskies.physics_api.voxel_updates.EmptyVoxelShapeUpdate;
 import org.valkyrienskies.physics_api.voxel_updates.IVoxelShapeUpdate;
 
-@Mixin(ServerWorld.class)
-public abstract class MixinServerWorld implements IShipObjectWorldServerProvider {
+@Mixin(ServerLevel.class)
+public abstract class MixinServerLevel implements IShipObjectWorldServerProvider {
     @Shadow
     @Final
-    private List<ServerPlayerEntity> players;
+    private List<ServerPlayer> players;
 
     @Shadow
     @Final
-    private ServerChunkManager serverChunkManager;
+    private ServerChunkCache chunkSource;
 
     private final HashSet<Vector3ic> knownChunkRegions = new HashSet<>();
 
@@ -62,22 +62,22 @@ public abstract class MixinServerWorld implements IShipObjectWorldServerProvider
      * Include ships in particle distance check. Seems to only be used by /particle
      */
     @Redirect(
-        method = "sendToPlayerIfNearby",
+        method = "sendParticles(Lnet/minecraft/server/level/ServerPlayer;ZDDDLnet/minecraft/network/protocol/Packet;)Z",
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/util/math/BlockPos;isWithinDistance(Lnet/minecraft/util/math/Position;D)Z"
+            target = "Lnet/minecraft/core/BlockPos;closerThan(Lnet/minecraft/core/Position;D)Z"
         )
     )
     private boolean includeShipsInParticleDistanceCheck(
         final BlockPos player, final Position particle, final double distance) {
 
-        final ServerWorld self = ServerWorld.class.cast(this);
+        final ServerLevel self = ServerLevel.class.cast(this);
         final ShipObject ship = VSGameUtilsKt.getShipObjectManagingPos(
-            self, (int) particle.getX() >> 4, (int) particle.getZ() >> 4);
+            self, (int) particle.x() >> 4, (int) particle.z() >> 4);
 
         if (ship == null) {
             // vanilla behaviour
-            return player.isWithinDistance(particle, distance);
+            return player.closerThan(particle, distance);
         }
 
         // in-world position
@@ -89,25 +89,25 @@ public abstract class MixinServerWorld implements IShipObjectWorldServerProvider
 
     @Inject(method = "tick", at = @At("TAIL"))
     private void postTick(final BooleanSupplier shouldKeepTicking, final CallbackInfo ci) {
-        final ServerWorld self = ServerWorld.class.cast(this);
+        final ServerLevel self = ServerLevel.class.cast(this);
         final ShipObjectServerWorld shipObjectWorld = VSGameUtilsKt.getShipObjectWorld(self);
         // Find newly loaded chunks
         final List<ChunkHolder> loadedChunksList = Lists.newArrayList(
-            ((ThreadedAnvilChunkStorageAccessor) serverChunkManager.threadedAnvilChunkStorage).callEntryIterator());
+            ((ChunkMapAccessor) chunkSource.chunkMap).callGetChunks());
 
         // Create DenseVoxelShapeUpdate for new loaded chunks
         // Also mark the chunks as loaded in the ship objects
         final List<IVoxelShapeUpdate> newLoadedChunks = new ArrayList<>();
 
         for (final ChunkHolder chunkHolder : loadedChunksList) {
-            final Optional<WorldChunk> worldChunkOptional =
-                chunkHolder.getTickingFuture().getNow(ChunkHolder.UNLOADED_WORLD_CHUNK).left();
+            final Optional<LevelChunk> worldChunkOptional =
+                chunkHolder.getTickingChunkFuture().getNow(ChunkHolder.UNLOADED_LEVEL_CHUNK).left();
             if (worldChunkOptional.isPresent()) {
-                final WorldChunk worldChunk = worldChunkOptional.get();
+                final LevelChunk worldChunk = worldChunkOptional.get();
                 final int chunkX = worldChunk.getPos().x;
                 final int chunkZ = worldChunk.getPos().z;
 
-                final ChunkSection[] chunkSections = worldChunk.getSectionArray();
+                final LevelChunkSection[] chunkSections = worldChunk.getSections();
 
                 final ShipData shipData =
                     shipObjectWorld.getQueryableShipData().getShipDataFromChunkPos(chunkX, chunkZ);
@@ -119,7 +119,7 @@ public abstract class MixinServerWorld implements IShipObjectWorldServerProvider
 
                 // For now just assume chunkY goes from 0 to 16
                 for (int chunkY = 0; chunkY < 16; chunkY++) {
-                    final ChunkSection chunkSection = chunkSections[chunkY];
+                    final LevelChunkSection chunkSection = chunkSections[chunkY];
                     final Vector3ic chunkPos = new Vector3i(chunkX, chunkY, chunkZ);
 
                     if (!knownChunkRegions.contains(chunkPos)) {
@@ -147,7 +147,7 @@ public abstract class MixinServerWorld implements IShipObjectWorldServerProvider
         final IVSPacket shipDataPacket = VSPacketShipDataList.Companion
             .create(shipObjectWorld.getQueryableShipData().iterator());
 
-        for (final ServerPlayerEntity playerEntity : players) {
+        for (final ServerPlayer playerEntity : players) {
             VSNetworking.shipDataPacketToClientSender.sendToClient(shipDataPacket, playerEntity);
         }
 
@@ -166,15 +166,15 @@ public abstract class MixinServerWorld implements IShipObjectWorldServerProvider
             final ChunkPos chunkPos = new ChunkPos(chunkWatchTask.getChunkX(), chunkWatchTask.getChunkZ());
 
             // TODO: Move this somewhere else
-            serverChunkManager.setChunkForced(chunkPos, true);
+            chunkSource.updateChunkForced(chunkPos, true);
 
             for (final IPlayer player : chunkWatchTask.getPlayersNeedWatching()) {
                 final MinecraftPlayer minecraftPlayer = (MinecraftPlayer) player;
-                final ServerPlayerEntity serverPlayerEntity =
-                    (ServerPlayerEntity) minecraftPlayer.getPlayerEntityReference().get();
+                final ServerPlayer serverPlayerEntity =
+                    (ServerPlayer) minecraftPlayer.getPlayerEntityReference().get();
                 if (serverPlayerEntity != null) {
-                    ((ThreadedAnvilChunkStorageAccessor) serverChunkManager.threadedAnvilChunkStorage)
-                        .callSendWatchPackets(serverPlayerEntity, chunkPos, chunkPacketBuffer, false, true);
+                    ((ChunkMapAccessor) chunkSource.chunkMap)
+                        .callUpdateChunkTracking(serverPlayerEntity, chunkPos, chunkPacketBuffer, false, true);
                 }
             }
             chunkWatchTask.onExecuteChunkWatchTask();

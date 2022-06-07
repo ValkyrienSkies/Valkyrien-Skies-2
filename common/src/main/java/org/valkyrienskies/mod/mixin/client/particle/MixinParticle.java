@@ -1,7 +1,7 @@
 package org.valkyrienskies.mod.mixin.client.particle;
 
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.Particle;
-import net.minecraft.client.world.ClientWorld;
 import org.joml.Matrix4dc;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
@@ -11,30 +11,31 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.game.ships.ShipObjectClient;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.mixin.client.render.MixinLevelRenderer;
 
 @Mixin(Particle.class)
-public abstract class ParticleMixin {
+public abstract class MixinParticle {
 
     @Shadow
     public abstract void setPos(double x, double y, double z);
 
     @Shadow
-    protected double velocityX;
+    protected double xd;
 
     @Shadow
-    protected double velocityY;
+    protected double yd;
 
     @Shadow
-    protected double velocityZ;
+    protected double zd;
 
     /**
-     * See also {@link org.valkyrienskies.mod.mixin.client.render.MixinWorldRenderer}
+     * See also {@link MixinLevelRenderer}
      */
     @Inject(
-        method = "Lnet/minecraft/client/particle/Particle;<init>(Lnet/minecraft/client/world/ClientWorld;DDD)V",
+        method = "<init>(Lnet/minecraft/client/multiplayer/ClientLevel;DDD)V",
         at = @At("TAIL")
     )
-    public void checkShipCoords(final ClientWorld world, final double x, final double y, final double z,
+    public void checkShipCoords(final ClientLevel world, final double x, final double y, final double z,
         final CallbackInfo ci) {
         final ShipObjectClient ship = VSGameUtilsKt.getShipObjectManagingPos(world, (int) x >> 4, (int) z >> 4);
         if (ship == null) {
@@ -47,13 +48,13 @@ public abstract class ParticleMixin {
     }
 
     /**
-     * See also {@link org.valkyrienskies.mod.mixin.client.render.MixinWorldRenderer}
+     * See also {@link MixinLevelRenderer}
      */
     @Inject(
-        method = "Lnet/minecraft/client/particle/Particle;<init>(Lnet/minecraft/client/world/ClientWorld;DDDDDD)V",
+        method = "<init>(Lnet/minecraft/client/multiplayer/ClientLevel;DDDDDD)V",
         at = @At("TAIL")
     )
-    public void checkShipPosAndVelocity(final ClientWorld world, final double x, final double y, final double z,
+    public void checkShipPosAndVelocity(final ClientLevel world, final double x, final double y, final double z,
         final double velocityX,
         final double velocityY, final double velocityZ, final CallbackInfo ci) {
 
@@ -68,14 +69,14 @@ public abstract class ParticleMixin {
         // in-world velocity
         final Vector3d v = transform
             // Rotate velocity wrt ship transform
-            .transformDirection(new Vector3d(this.velocityX, this.velocityY, this.velocityZ))
+            .transformDirection(new Vector3d(this.xd, this.yd, this.zd))
             // Tack on the ships linear velocity (no angular velocity param unfortunately)
             .add(ship.getShipData().getPhysicsData().getLinearVelocity());
 
         this.setPos(p.x, p.y, p.z);
-        this.velocityX = v.x;
-        this.velocityY = v.y;
-        this.velocityZ = v.z;
+        this.xd = v.x;
+        this.yd = v.y;
+        this.zd = v.z;
     }
 
 }

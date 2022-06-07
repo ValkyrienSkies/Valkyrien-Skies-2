@@ -1,7 +1,7 @@
 package org.valkyrienskies.mod.common
 
-import net.minecraft.block.BlockState
-import net.minecraft.block.Material
+import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.material.Material
 import org.valkyrienskies.core.game.VSBlockType
 import org.valkyrienskies.core.game.VSBlockType.AIR
 import org.valkyrienskies.core.game.VSBlockType.LAVA
