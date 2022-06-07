@@ -13,6 +13,7 @@
     "screen.MixinScreenHandler",
     "server.MixinMinecraftServer",
     "server.PlayerManagerMixin",
+    "server.command.MixinCommandManager",
     "server.network.ServerPlayerInteractionManagerMixin",
     "server.network.ServerPlayNetworkHandlerMixin",
     "server.world.MixinServerWorld",

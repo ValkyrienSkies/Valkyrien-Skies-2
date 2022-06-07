@@ -2,6 +2,7 @@ package org.valkyrienskies.mod.common
 
 import net.minecraft.client.world.ClientWorld
 import net.minecraft.entity.Entity
+import net.minecraft.server.MinecraftServer
 import net.minecraft.server.world.ServerWorld
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkPos
@@ -19,8 +20,21 @@ import org.valkyrienskies.mod.common.util.toJOMLD
 import org.valkyrienskies.physics_api.voxel_updates.DenseVoxelShapeUpdate
 import kotlin.math.min
 
-val World.shipObjectWorld get() = (this as IShipObjectWorldProvider).shipObjectWorld
-val ServerWorld.shipObjectWorld get() = (this as IShipObjectWorldServerProvider).shipObjectWorld
+val World.shipObjectWorld
+    get() =
+        // Call the correct overload
+        when (this) {
+            is ServerWorld -> server.shipObjectWorld
+            is ClientWorld -> shipObjectWorld
+            else -> throw IllegalArgumentException("World is neither ServerWorld nor ClientWorld")
+        }
+
+val MinecraftServer.shipObjectWorld get() = (this as IShipObjectWorldServerProvider).shipObjectWorld
+val MinecraftServer.vsPipeline get() = (this as IShipObjectWorldServerProvider).vsPipeline
+
+val ServerWorld.shipObjectWorld
+    get() = server.shipObjectWorld
+
 val ClientWorld.shipObjectWorld get() = (this as IShipObjectWorldClientProvider).shipObjectWorld
 
 /**

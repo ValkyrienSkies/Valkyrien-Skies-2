@@ -18,7 +18,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.game.VSOptions;
-import org.valkyrienskies.core.pipelines.VSPipeline;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(InGameHud.class)
 public class MixinInGameHud {
@@ -48,7 +48,7 @@ public class MixinInGameHud {
             try {
                 // This is dangerous because we have to reach into the Server state from the Client, which can fail.
                 // So, put this in a try/catch block to catch any errors that may occur.
-                physicsTPS = " " + VSPipeline.Companion.getVSPipeline().computePhysTps();
+                physicsTPS = " " + VSGameUtilsKt.getVsPipeline(integratedServer).computePhysTps();
             } catch (final Exception e) {
                 e.printStackTrace();
             }

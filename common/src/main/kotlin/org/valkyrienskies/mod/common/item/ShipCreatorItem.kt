@@ -24,7 +24,8 @@ class ShipCreatorItem(properties: Settings, private val scale: Double) : Item(pr
         if (!level.isClient) {
             if (!blockState.isAir) {
                 // Make a ship
-                val shipData = level.shipObjectWorld.createNewShipAtBlock(blockPos.toJOML(), false, scale)
+                val dimensionId = 0 // TODO fix
+                val shipData = level.shipObjectWorld.createNewShipAtBlock(blockPos.toJOML(), false, scale, dimensionId)
 
                 val centerPos = shipData.chunkClaim.getCenterBlockCoordinates(Vector3i()).toBlockPos()
 
