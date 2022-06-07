@@ -34,7 +34,7 @@ object BlockStateInfo {
         Lifecycle.experimental()
     )
 
-    lateinit var SORTED_REGISTRY: List<BlockStateInfoProvider>
+    private lateinit var SORTED_REGISTRY: List<BlockStateInfoProvider>
 
     // init { doesn't work since the class gets loaded too late
     fun init() {
@@ -65,6 +65,8 @@ object BlockStateInfo {
     // the above issue shall be fixed
     // https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues/25
     fun onSetBlock(world: World, blockPos: BlockPos, prevBlockState: BlockState, newBlockState: BlockState) {
+        if (!::SORTED_REGISTRY.isInitialized) return
+
         val shipObjectWorld = world.shipObjectWorld
 
         val (prevBlockMass, prevBlockType) = get(prevBlockState)
