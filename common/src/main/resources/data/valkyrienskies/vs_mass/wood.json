@@ -10,5 +10,9 @@
   {
     "tag": "minecraft:wooden_stairs",
     "mass": 150.0
+  },
+  {
+    "tag": "minecraft:wooden_slab",
+    "mass": 100.0
   }
 ]
