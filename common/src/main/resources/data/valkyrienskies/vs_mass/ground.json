@@ -1,18 +1,239 @@
 [
   {
     "block": "minecraft:dirt",
-    "mass": 1600.0
+    "mass": 1220.0
+  },
+  {
+    "block": "minecraft:coarse_dirt",
+    "mass": 1500.0
+  },
+  //
+  {
+    "block": "minecraft:rooted_dirt",
+    "mass": 1100.0
+  },
+  //
+  {
+    "block": "minecraft:dirt_path",
+    "mass": 1200.0
   },
   {
     "block": "minecraft:grass",
+    "mass": 1300.0
+  },
+  {
+    "block": "minecraft:clay",
     "mass": 1700.0
+  },
+  {
+    "block": "minecraft:gravel",
+    "mass": 1680.0
+  },
+  //
+  {
+    "block": "minecraft:mud",
+    "mass": 1840.0
+  },
+  //
+  {
+    "block": "minecraft:mycelium",
+    "mass": 1300.0
+  },
+  {
+    "tag": "minecraft:nylium",
+    "mass": 1180.0
+  },
+  {
+    "block": "minecraft:podzol",
+    "mass": 1300.0
+  },
+  {
+    "tag": "minecraft:sand",
+    "mass": 1560.0
+  },
+  {
+    "block": "minecraft:soul_sand",
+    "mass": 1000.0
+  },
+  {
+    "block": "minecraft:soul_soil",
+    "mass": 900.0
+  },
+  {
+    "block": "minecraft:andesite",
+    "mass": 2770.0
+  },
+  {
+    "block": "minecraft:basalt",
+    "mass": 3010.0
+  },
+  {
+    "block": "minecraft:smooth_basalt",
+    "mass": 3010.0
+  },
+  {
+    "block": "minecraft:bedrock",
+    "mass": 0.0
+  },
+  {
+    "block": "minecraft:blackstone",
+    "mass": 3400.0
+  },
+  //
+  {
+    "block": "minecraft:calcite",
+    "mass": 2700.0
+  },
+  //
+  {
+    "block": "minecraft:cobblestone",
+    "mass": 2480.0
+  },
+  {
+    "block": "minecraft:mossy_cobblestone",
+    "mass": 2600.0
+  },
+  //
+  {
+    "block": "minecraft:deepslate",
+    "mass": 2900.0
+  },
+  {
+    "block": "minecraft:cobbled_deepslate",
+    "mass": 2720.0
+  },
+  //
+  {
+    "block": "minecraft:diorite",
+    "mass": 2900.0
+  },
+  //
+  {
+    "block": "minecraft:dripstone_block",
+    "mass": 2700.0
+  },
+  //
+  {
+    "block": "minecraft:end_stone",
+    "mass": 2800.0
+  },
+  {
+    "block": "minecraft:glowstone",
+    "mass": 1000.0
+  },
+  {
+    "block": "minecraft:granite",
+    "mass": 2700.0
+  },
+  {
+    "block": "minecraft:infested_stone",
+    "mass": 2600.0
+  },
+  {
+    "block": "minecraft:magma_block",
+    "mass": 3200.0
+  },
+  {
+    "block": "minecraft:netherrack",
+    "mass": 1100.0
+  },
+  {
+    "block": "minecraft:obsidian",
+    "mass": 3200.0
+  },
+  {
+    "block": "minecraft:crying_obsidian",
+    "mass": 3200.0
+  },
+  //
+  {
+    "block": "minecraft:pointed_dripstone",
+    "mass": 2100.0
+  },
+  //
+  {
+    "block": "minecraft:sandstone",
+    "mass": 2300.0
+  },
+  {
+    "block": "minecraft:red_sandstone",
+    "mass": 2300.0
   },
   {
     "block": "minecraft:stone",
     "mass": 2600.0
   },
   {
-    "block": "minecraft:cobblestone",
+    "block": "minecraft:terracotta",
     "mass": 2000.0
+  },
+  {
+    "block": "minecraft:white_terracotta",
+    "mass": 2000.0
+  },
+  {
+    "block": "minecraft:orange_terracotta",
+    "mass": 2000.0
+  },
+  {
+    "block": "minecraft:magenta_terracotta",
+    "mass": 2000.0
+  },
+  {
+    "block": "minecraft:light_blue_terracotta	",
+    "mass": 2000.0
+  },
+  {
+    "block": "minecraft:yellow_terracotta",
+    "mass": 2000.0
+  },
+  {
+    "block": "minecraft:lime_terracotta",
+    "mass": 2000.0
+  },
+  {
+    "block": "minecraft:pink_terracotta",
+    "mass": 2000.0
+  },
+  {
+    "block": "minecraft:gray_terracotta",
+    "mass": 2000.0
+  },
+  {
+    "block": "minecraft:light_gray_terracotta",
+    "mass": 2000.0
+  },
+  {
+    "block": "minecraft:cyan_terracotta",
+    "mass": 2000.0
+  },
+  {
+    "block": "minecraft:purple_terracotta",
+    "mass": 2000.0
+  },
+  {
+    "block": "minecraft:blue_terracotta",
+    "mass": 2000.0
+  },
+  {
+    "block": "minecraft:brown_terracotta",
+    "mass": 2000.0
+  },
+  {
+    "block": "minecraft:green_terracotta",
+    "mass": 2000.0
+  },
+  {
+    "block": "minecraft:red_terracotta",
+    "mass": 2000.0
+  },
+  {
+    "block": "minecraft:black_terracotta",
+    "mass": 2000.0
+  }//,
+  {
+    "block": "minecraft:tuff",
+    "mass": 1800.0
   }
+  //
 ]
