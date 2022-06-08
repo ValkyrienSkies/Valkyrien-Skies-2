@@ -6,5 +6,9 @@
   {
     "tag": "minecraft:planks",
     "mass": 200.0
+  },
+  {
+    "tag": "minecraft:wooden_stairs",
+    "mass": 150.0
   }
 ]
