@@ -1,10 +1,10 @@
 package org.valkyrienskies.mod.common.util
 
-import net.minecraft.entity.Entity
-import net.minecraft.util.math.Box
-import net.minecraft.util.math.Vec3d
-import net.minecraft.util.shape.VoxelShape
-import net.minecraft.world.World
+import net.minecraft.world.entity.Entity
+import net.minecraft.world.level.Level
+import net.minecraft.world.phys.AABB
+import net.minecraft.world.phys.Vec3
+import net.minecraft.world.phys.shapes.VoxelShape
 import org.joml.primitives.AABBd
 import org.joml.primitives.AABBdc
 import org.valkyrienskies.core.collision.ConvexPolygonc
@@ -19,17 +19,17 @@ object EntityShipCollisionUtils {
      */
     fun adjustEntityMovementForShipCollisions(
         entity: Entity?,
-        movement: Vec3d,
-        entityBoundingBox: Box,
-        world: World
-    ): Vec3d {
+        movement: Vec3,
+        entityBoundingBox: AABB,
+        world: Level
+    ): Vec3 {
         val collidingShipPolygons =
-            getShipPolygonsCollidingWithEntity(entity, movement, entityBoundingBox.expand(1.0), world)
+            getShipPolygonsCollidingWithEntity(entity, movement, entityBoundingBox.inflate(1.0), world)
         // If the entity isn't colliding with any ship polygons, then don't adjust its movement
         if (collidingShipPolygons.isEmpty()) {
             return movement
         }
-        val stepHeight: Double = entity?.stepHeight?.toDouble() ?: 0.0
+        val stepHeight: Double = entity?.maxUpStep?.toDouble() ?: 0.0
         return EntityPolygonCollider.adjustEntityMovementForPolygonCollisions(
             movement.toJOML(), entityBoundingBox.toJOML(), stepHeight, collidingShipPolygons
         ).toVec3d()
@@ -37,11 +37,11 @@ object EntityShipCollisionUtils {
 
     private fun getShipPolygonsCollidingWithEntity(
         entity: Entity?,
-        movement: Vec3d,
-        entityBoundingBox: Box,
-        world: World
+        movement: Vec3,
+        entityBoundingBox: AABB,
+        world: Level
     ): List<ConvexPolygonc> {
-        val entityBoxWithMovement = entityBoundingBox.stretch(movement)
+        val entityBoxWithMovement = entityBoundingBox.expandTowards(movement)
         val collidingPolygons: MutableList<ConvexPolygonc> = ArrayList()
         for (shipObject in world.shipObjectWorld.shipObjects.values) {
             val shipTransform = shipObject.shipData.shipTransform
@@ -53,7 +53,7 @@ object EntityShipCollisionUtils {
             val shipBlockCollisionStream =
                 world.getBlockCollisions(entity, entityBoundingBoxInShipCoordinates.toMinecraft())
             shipBlockCollisionStream.forEach { voxelShape: VoxelShape ->
-                voxelShape.forEachBox { minX, minY, minZ, maxX, maxY, maxZ ->
+                voxelShape.forAllBoxes { minX, minY, minZ, maxX, maxY, maxZ ->
                     val shipPolygon: ConvexPolygonc = createFromAABB(
                         AABBd(minX, minY, minZ, maxX, maxY, maxZ),
                         shipTransform.shipToWorldMatrix

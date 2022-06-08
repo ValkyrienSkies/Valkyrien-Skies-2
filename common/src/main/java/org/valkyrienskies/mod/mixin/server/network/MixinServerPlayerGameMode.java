@@ -1,11 +1,11 @@
 package org.valkyrienskies.mod.mixin.server.network;
 
-import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.network.ServerPlayerInteractionManager;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.ServerPlayerGameMode;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -15,29 +15,29 @@ import org.valkyrienskies.mod.common.VSGameUtils;
 import org.valkyrienskies.mod.common.config.VSConfig;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
-@Mixin(ServerPlayerInteractionManager.class)
-public class ServerPlayerInteractionManagerMixin {
+@Mixin(ServerPlayerGameMode.class)
+public class MixinServerPlayerGameMode {
 
     @Shadow
-    public ServerPlayerEntity player;
+    public ServerPlayer player;
 
     @Shadow
-    public ServerWorld world;
+    public ServerLevel level;
 
     /**
      * Includes ships in server-side distance check when player breaks a block.
      */
     @ModifyVariable(
-        method = "processBlockBreakingAction",
+        method = "handleBlockBreakAction",
         at = @At("STORE"),
         index = 11
     )
-    public double includeShipsInBlockBreakDistanceCheck(final double g, final BlockPos pos,
-        final PlayerActionC2SPacket.Action action,
+    public double handleBlockBreakAction(final double g, final BlockPos pos,
+        final ServerboundPlayerActionPacket.Action action,
         final Direction direction, final int worldHeight) {
         if (VSConfig.getEnableInteractDistanceChecks()) {
             final Vector3d blockCenter = VectorConversionsMCKt.toJOMLD(pos).add(0.5, 0.5, 0.5);
-            return VSGameUtils.getWorldCoordinates(world, pos, blockCenter)
+            return VSGameUtils.getWorldCoordinates(level, pos, blockCenter)
                 .distanceSquared(player.getX(), player.getY() + 1.5, player.getZ());
         } else {
             return 0;

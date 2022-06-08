@@ -1,13 +1,13 @@
 package org.valkyrienskies.mod.mixin.accessors.client.render;
 
-import net.minecraft.client.render.BuiltChunkStorage;
-import net.minecraft.client.render.chunk.ChunkBuilder;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.client.renderer.ViewArea;
+import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
+import net.minecraft.core.BlockPos;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Invoker;
 
-@Mixin(BuiltChunkStorage.class)
+@Mixin(ViewArea.class)
 public interface BuiltChunkStorageAccessor {
-    @Invoker(value = "getRenderedChunk")
-    ChunkBuilder.BuiltChunk callGetRenderedChunk(BlockPos pos);
+    @Invoker(value = "getRenderChunkAt")
+    ChunkRenderDispatcher.RenderChunk callGetRenderChunkAt(BlockPos pos);
 }

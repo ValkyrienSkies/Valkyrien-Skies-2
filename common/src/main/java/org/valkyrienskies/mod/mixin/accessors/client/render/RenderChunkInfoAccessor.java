@@ -1,17 +1,17 @@
 package org.valkyrienskies.mod.mixin.accessors.client.render;
 
-import net.minecraft.client.render.WorldRenderer;
-import net.minecraft.client.render.chunk.ChunkBuilder;
-import net.minecraft.util.math.Direction;
+import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
+import net.minecraft.core.Direction;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Invoker;
 
 /**
- * This mixin lets us create new {@link net.minecraft.client.render.WorldRenderer.ChunkInfo} objects.
+ * This mixin lets us create new {@link net.minecraft.client.renderer.LevelRenderer.RenderChunkInfo} objects.
  */
-@Mixin(WorldRenderer.ChunkInfo.class)
-public interface WorldRendererChunkInfoAccessor {
+@Mixin(LevelRenderer.RenderChunkInfo.class)
+public interface RenderChunkInfoAccessor {
 
     /**
      * This mixin allows us to invoke the private constructor of WorldRenderer.ChunkInfo.
@@ -24,7 +24,8 @@ public interface WorldRendererChunkInfoAccessor {
      * <p>The easy fix for this problem is to use a wildcard target.
      */
     @Invoker(value = "<init>")
-    static WorldRenderer.ChunkInfo vs$new(final WorldRenderer worldRenderer, final ChunkBuilder.BuiltChunk chunk,
+    static LevelRenderer.RenderChunkInfo vs$new(final LevelRenderer worldRenderer,
+        final ChunkRenderDispatcher.RenderChunk chunk,
         @Nullable final Direction direction, final int propagationLevel) {
         throw new AssertionError("MixinWorldRendererChunkInfo failed to apply");
     }

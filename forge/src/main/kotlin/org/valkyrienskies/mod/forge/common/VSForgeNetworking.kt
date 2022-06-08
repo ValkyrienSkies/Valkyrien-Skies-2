@@ -1,7 +1,7 @@
 package org.valkyrienskies.mod.forge.common
 
-import net.minecraft.network.PacketByteBuf
-import net.minecraft.util.Identifier
+import net.minecraft.network.FriendlyByteBuf
+import net.minecraft.resources.ResourceLocation
 import net.minecraftforge.fml.network.NetworkRegistry
 import net.minecraftforge.fml.network.simple.SimpleChannel
 import org.valkyrienskies.mod.common.VSNetworking
@@ -11,7 +11,7 @@ object VSForgeNetworking {
 
     private const val protocolVersion = "1"
     val vsForgeChannel: SimpleChannel = NetworkRegistry.newSimpleChannel(
-        Identifier(ValkyrienSkiesMod.MOD_ID, "vs_packet"),
+        ResourceLocation(ValkyrienSkiesMod.MOD_ID, "vs_packet"),
         { protocolVersion },
         { anObject: String? ->
             protocolVersion == anObject
@@ -37,7 +37,7 @@ object VSForgeNetworking {
                     VSNetworking.writeVSPacket(messageVSPacket.vsPacket, packetBuffer)
                 }
             },
-            { packetBuffer: PacketByteBuf -> MessageVSPacket(VSNetworking.readVSPacket(packetBuffer)) },
+            { packetBuffer: FriendlyByteBuf -> MessageVSPacket(VSNetworking.readVSPacket(packetBuffer)) },
             { vsPacket, contextSupplier ->
                 run {
                     contextSupplier.get().enqueueWork {

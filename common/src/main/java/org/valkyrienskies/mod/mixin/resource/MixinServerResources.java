@@ -1,17 +1,17 @@
 package org.valkyrienskies.mod.mixin.resource;
 
-import net.minecraft.resource.ServerResourceManager;
+import net.minecraft.server.ServerResources;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.mod.event.RegistryEvents;
 
-@Mixin(ServerResourceManager.class)
-public class MixinServerResourceManager {
+@Mixin(ServerResources.class)
+public class MixinServerResources {
 
     @Inject(
-        method = "loadRegistryTags",
+        method = "updateGlobals",
         at = @At("RETURN")
     )
     void afterTagsLoaded(final CallbackInfo ci) {

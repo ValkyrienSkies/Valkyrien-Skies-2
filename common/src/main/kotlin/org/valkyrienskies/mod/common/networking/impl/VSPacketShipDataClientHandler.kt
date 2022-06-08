@@ -1,6 +1,6 @@
 package org.valkyrienskies.mod.common.networking.impl
 
-import net.minecraft.client.MinecraftClient
+import net.minecraft.client.Minecraft
 import org.valkyrienskies.core.networking.IVSPacket
 import org.valkyrienskies.core.networking.IVSPacketClientHandler
 import org.valkyrienskies.core.networking.impl.VSPacketShipDataList
@@ -10,8 +10,8 @@ object VSPacketShipDataClientHandler : IVSPacketClientHandler {
     override fun handlePacket(vsPacket: IVSPacket) {
         vsPacket as VSPacketShipDataList
 
-        val gameWorld = MinecraftClient.getInstance().world
-        val shipWorld = gameWorld?.shipObjectWorld ?: return
+        val gameLevel = Minecraft.getInstance().level
+        val shipWorld = gameLevel?.shipObjectWorld ?: return
 
         vsPacket.shipDataList.forEach {
             if (shipWorld.queryableShipData.getShipDataFromUUID(it.shipUUID) == null) {

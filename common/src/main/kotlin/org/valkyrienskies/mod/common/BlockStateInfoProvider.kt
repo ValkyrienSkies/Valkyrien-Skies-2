@@ -2,14 +2,14 @@ package org.valkyrienskies.mod.common
 
 import com.mojang.serialization.Lifecycle
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
-import net.minecraft.block.Block
-import net.minecraft.block.BlockState
-import net.minecraft.util.Identifier
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.registry.Registry
-import net.minecraft.util.registry.RegistryKey
-import net.minecraft.util.registry.SimpleRegistry
-import net.minecraft.world.World
+import net.minecraft.core.BlockPos
+import net.minecraft.core.MappedRegistry
+import net.minecraft.core.Registry
+import net.minecraft.resources.ResourceKey
+import net.minecraft.resources.ResourceLocation
+import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.state.BlockState
 import org.valkyrienskies.core.game.VSBlockType
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod.MASS_DATAPACK_RESOLVER
 import org.valkyrienskies.mod.event.RegistryEvents
@@ -29,8 +29,8 @@ interface BlockStateInfoProvider {
 object BlockStateInfo {
 
     // registry for mods to add their weights
-    val REGISTRY = SimpleRegistry<BlockStateInfoProvider>(
-        RegistryKey.ofRegistry(Identifier(ValkyrienSkiesMod.MOD_ID, "blockstate_providers")),
+    val REGISTRY = MappedRegistry<BlockStateInfoProvider>(
+        ResourceKey.createRegistryKey(ResourceLocation(ValkyrienSkiesMod.MOD_ID, "blockstate_providers")),
         Lifecycle.experimental()
     )
 
@@ -38,8 +38,10 @@ object BlockStateInfo {
 
     // init { doesn't work since the class gets loaded too late
     fun init() {
-        Registry.register(REGISTRY, Identifier(ValkyrienSkiesMod.MOD_ID, "data"), MASS_DATAPACK_RESOLVER)
-        Registry.register(REGISTRY, Identifier(ValkyrienSkiesMod.MOD_ID, "default"), DefaultBlockStateInfoProvider)
+        Registry.register(REGISTRY, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "data"), MASS_DATAPACK_RESOLVER)
+        Registry.register(
+            REGISTRY, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "default"), DefaultBlockStateInfoProvider
+        )
 
         RegistryEvents.onRegistriesComplete { SORTED_REGISTRY = REGISTRY.sortedByDescending { it.priority } }
     }
@@ -50,8 +52,14 @@ object BlockStateInfo {
 
     // this gets the weight and type provided by providers; or it gets it out of the cache
 
-    fun get(blockState: BlockState): Pair<Double, VSBlockType> =
-        CACHE.getOrPut(Block.getRawIdFromState(blockState)) { iterateRegistry(blockState) }
+    fun get(blockState: BlockState): Pair<Double, VSBlockType>? =
+        getId(blockState)?.let { CACHE.getOrPut(it) { iterateRegistry(blockState) } }
+
+    fun getId(blockState: BlockState): Int? {
+        val r = Block.getId(blockState)
+        if (r == -1) return null
+        return r
+    }
 
     private fun iterateRegistry(blockState: BlockState): Pair<Double, VSBlockType> =
         Pair(
@@ -64,14 +72,15 @@ object BlockStateInfo {
     // NOTE2: spoken of in discord in the future well have prob block's in vs-core with id's and then
     // the above issue shall be fixed
     // https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues/25
-    fun onSetBlock(world: World, blockPos: BlockPos, prevBlockState: BlockState, newBlockState: BlockState) {
+
+    fun onSetBlock(level: Level, blockPos: BlockPos, prevBlockState: BlockState, newBlockState: BlockState) {
         if (!::SORTED_REGISTRY.isInitialized) return
 
-        val shipObjectWorld = world.shipObjectWorld
+        val shipObjectWorld = level.shipObjectWorld
 
-        val (prevBlockMass, prevBlockType) = get(prevBlockState)
+        val (prevBlockMass, prevBlockType) = get(prevBlockState) ?: return
 
-        val (newBlockMass, newBlockType) = get(newBlockState)
+        val (newBlockMass, newBlockType) = get(newBlockState) ?: return
 
         shipObjectWorld.onSetBlock(
             blockPos.x, blockPos.y, blockPos.z, prevBlockType, newBlockType, prevBlockMass, newBlockMass

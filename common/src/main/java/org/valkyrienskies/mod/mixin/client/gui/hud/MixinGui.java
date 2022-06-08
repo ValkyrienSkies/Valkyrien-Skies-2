@@ -1,16 +1,16 @@
 package org.valkyrienskies.mod.mixin.client.gui.hud;
 
-import static net.minecraft.client.gui.DrawableHelper.fill;
+import static net.minecraft.client.gui.GuiComponent.fill;
 
 import com.google.common.base.Strings;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.PoseStack;
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.hud.InGameHud;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.server.integrated.IntegratedServer;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.Gui;
+import net.minecraft.client.server.IntegratedServer;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -20,29 +20,29 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.game.VSOptions;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
-@Mixin(InGameHud.class)
-public class MixinInGameHud {
+@Mixin(Gui.class)
+public class MixinGui {
 
     @Shadow
     @Final
-    private MinecraftClient client;
+    private Minecraft minecraft;
 
     /**
      * Render the "VS 2 Alpha" text
      */
-    @Inject(method = "renderStatusEffectOverlay", at = @At("HEAD"))
-    private void preRenderStatusEffectOverlay(final MatrixStack matrices, final CallbackInfo ci) {
+    @Inject(method = "renderEffects", at = @At("HEAD"))
+    private void preRenderStatusEffectOverlay(final PoseStack matrices, final CallbackInfo ci) {
         if (!VSOptions.INSTANCE.getRenderDebugText()) {
             return;
         }
 
         RenderSystem.pushMatrix();
 
-        final TextRenderer fontRenderer = client.textRenderer;
+        final Font fontRenderer = minecraft.font;
         final List<String> debugText = new ArrayList<>();
         debugText.add("VS 2 Alpha Build");
 
-        final IntegratedServer integratedServer = this.client.getServer();
+        final IntegratedServer integratedServer = this.minecraft.getSingleplayerServer();
         if (integratedServer != null) {
             String physicsTPS = "Error";
             try {
@@ -60,7 +60,7 @@ public class MixinInGameHud {
             final String string = debugText.get(i);
             if (!Strings.isNullOrEmpty(string)) {
                 final int textHeight = 9;
-                final int textLength = fontRenderer.getWidth(string);
+                final int textLength = fontRenderer.width(string);
                 final int posY = 20 + i * textHeight;
 
                 final int posX = 1;

@@ -1,13 +1,13 @@
 package org.valkyrienskies.mod.mixin.server;
 
 import java.util.List;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.network.Packet;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.PlayerManager;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.registry.RegistryKey;
-import net.minecraft.world.World;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.players.PlayerList;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Final;
@@ -19,32 +19,32 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.game.ships.ShipObject;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
-@Mixin(PlayerManager.class)
-public abstract class PlayerManagerMixin {
+@Mixin(PlayerList.class)
+public abstract class MixinPlayerList {
 
     @Shadow
     @Final
-    private List<ServerPlayerEntity> players;
+    private List<ServerPlayer> players;
 
     @Shadow
     @Final
     private MinecraftServer server;
 
     @Shadow
-    public abstract void sendToAround(@Nullable PlayerEntity player, double x, double y, double z, double distance,
-        RegistryKey<World> worldKey, Packet<?> packet);
+    public abstract void broadcast(@Nullable Player player, double x, double y, double z, double distance,
+        ResourceKey<Level> worldKey, Packet<?> packet);
 
     /**
      * Transform x, y, z in sendToAround if they are in ship space.
      */
     @Inject(
-        method = "sendToAround",
+        method = "broadcast",
         at = @At("HEAD"),
         cancellable = true
     )
-    private void sendToAround(@Nullable final PlayerEntity player, final double x, final double y, final double z,
-        final double distance, final RegistryKey<World> worldKey, final Packet<?> packet, final CallbackInfo ci) {
-        final World world = server.getWorld(worldKey);
+    private void sendToAround(@Nullable final Player player, final double x, final double y, final double z,
+        final double distance, final ResourceKey<Level> worldKey, final Packet<?> packet, final CallbackInfo ci) {
+        final Level world = server.getLevel(worldKey);
         if (world == null) {
             return;
         }
@@ -58,7 +58,7 @@ public abstract class PlayerManagerMixin {
         final Vector3d p = VSGameUtilsKt.toWorldCoordinates(ship.getShipData(), x, y, z);
 
         // re-call with correct x, y, z and return
-        sendToAround(player, p.x, p.y, p.z, distance, worldKey, packet);
+        broadcast(player, p.x, p.y, p.z, distance, worldKey, packet);
         ci.cancel();
     }
 

@@ -1,11 +1,11 @@
 package org.valkyrienskies.mod.mixin.client.render.chunk;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.Camera;
-import net.minecraft.client.render.chunk.ChunkBuilder;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
+import net.minecraft.client.Camera;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.AABB;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Final;
@@ -17,14 +17,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.game.ships.ShipObjectClient;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
-@Mixin(ChunkBuilder.BuiltChunk.class)
-public class MixinChunkBuilderBuiltChunk {
+@Mixin(ChunkRenderDispatcher.RenderChunk.class)
+public class MixinRenderChunk {
 
     @Shadow
-    public Box boundingBox;
+    public AABB bb;
     @Shadow
     @Final
-    private BlockPos.Mutable origin;
+    private BlockPos.MutableBlockPos origin;
 
     /**
      * This mixin fixes chunk render sorting. Vanilla MC behavior is to render the chunks closest to the player first,
@@ -33,21 +33,21 @@ public class MixinChunkBuilderBuiltChunk {
      * <p>By injecting here we fix the calculation that determines the distance between the player and a chunk, which
      * makes the ship chunks render in the correct order.
      */
-    @Inject(method = "getSquaredCameraDistance", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "getDistToPlayerSqr", at = @At("HEAD"), cancellable = true)
     private void preGetSquaredCameraDistance(final CallbackInfoReturnable<Double> cir) {
-        final ClientWorld world = MinecraftClient.getInstance().world;
+        final ClientLevel world = Minecraft.getInstance().level;
         if (world == null) {
             return;
         }
 
         final ShipObjectClient shipObject = VSGameUtilsKt.getShipObjectManagingPos(world, origin);
         if (shipObject != null) {
-            final Camera camera = MinecraftClient.getInstance().gameRenderer.getCamera();
+            final Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
             final Vector3dc chunkPosInWorld = shipObject.getRenderTransform().getShipToWorldMatrix().transformPosition(
-                new Vector3d(boundingBox.minX + 8.0, boundingBox.minY + 8.0, boundingBox.minZ + 8.0)
+                new Vector3d(bb.minX + 8.0, bb.minY + 8.0, bb.minZ + 8.0)
             );
             final double relDistanceSq =
-                chunkPosInWorld.distanceSquared(camera.getPos().x, camera.getPos().y, camera.getPos().z);
+                chunkPosInWorld.distanceSquared(camera.getPosition().x, camera.getPosition().y, camera.getPosition().z);
             cir.setReturnValue(relDistanceSq);
         }
     }

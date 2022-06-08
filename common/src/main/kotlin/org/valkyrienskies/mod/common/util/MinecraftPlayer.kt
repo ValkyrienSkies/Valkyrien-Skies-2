@@ -1,6 +1,6 @@
 package org.valkyrienskies.mod.common.util
 
-import net.minecraft.entity.player.PlayerEntity
+import net.minecraft.world.entity.player.Player
 import org.joml.Vector3d
 import org.valkyrienskies.core.game.IPlayer
 import java.lang.ref.WeakReference
@@ -9,14 +9,14 @@ import java.util.UUID
 /**
  * We use this wrapper around [PlayerEntity] to create [IPlayer] objects used by vs-core.
  */
-class MinecraftPlayer(playerObject: PlayerEntity, override val uuid: UUID) : IPlayer {
+class MinecraftPlayer(playerObject: Player, override val uuid: UUID) : IPlayer {
 
     // Hold a weak reference to avoid memory leaks
-    val playerEntityReference: WeakReference<PlayerEntity> = WeakReference(playerObject)
+    val playerEntityReference: WeakReference<Player> = WeakReference(playerObject)
 
     override fun getPosition(dest: Vector3d): Vector3d {
         val player = playerEntityReference.get()
-        player as PlayerEntity
+        player as Player
         return dest.set(player.x, player.y, player.z)
     }
 

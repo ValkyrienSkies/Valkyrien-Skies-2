@@ -1,16 +1,16 @@
 package org.valkyrienskies.mod.common.world
 
-import net.minecraft.block.BlockState
-import net.minecraft.client.world.ClientWorld
-import net.minecraft.fluid.FluidState
-import net.minecraft.util.hit.BlockHitResult
-import net.minecraft.util.hit.HitResult
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Direction
-import net.minecraft.util.math.MathHelper
-import net.minecraft.util.math.Vec3d
-import net.minecraft.world.RaycastContext
-import net.minecraft.world.World
+import net.minecraft.client.multiplayer.ClientLevel
+import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
+import net.minecraft.util.Mth
+import net.minecraft.world.level.ClipContext
+import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.material.FluidState
+import net.minecraft.world.phys.BlockHitResult
+import net.minecraft.world.phys.HitResult
+import net.minecraft.world.phys.Vec3
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toVec3d
@@ -18,12 +18,12 @@ import java.util.function.BiFunction
 import java.util.function.Function
 
 @JvmOverloads
-fun ClientWorld.raycastIncludeShips(ctx: RaycastContext, shouldTransformHitPos: Boolean = true): BlockHitResult {
-    val vanillaHit = raycast(ctx)
+fun ClientLevel.clipIncludeShips(ctx: ClipContext, shouldTransformHitPos: Boolean = true): BlockHitResult {
+    val vanillaHit = clip(ctx)
 
     var closestHit = vanillaHit
-    var closestHitPos = vanillaHit.pos
-    var closestHitDist = closestHitPos.squaredDistanceTo(ctx.start)
+    var closestHitPos = vanillaHit.location
+    var closestHitDist = closestHitPos.distanceToSqr(ctx.from)
 
     // TODO make this more efficient
     // Iterate every ship, find do the raycast in ship space,
@@ -31,12 +31,12 @@ fun ClientWorld.raycastIncludeShips(ctx: RaycastContext, shouldTransformHitPos: 
     for (ship in shipObjectWorld.shipObjects.values) {
         val worldToShip = ship.renderTransform.worldToShipMatrix
         val shipToWorld = ship.renderTransform.shipToWorldMatrix
-        val shipStart = worldToShip.transformPosition(ctx.start.toJOML()).toVec3d()
-        val shipEnd = worldToShip.transformPosition(ctx.end.toJOML()).toVec3d()
+        val shipStart = worldToShip.transformPosition(ctx.from.toJOML()).toVec3d()
+        val shipEnd = worldToShip.transformPosition(ctx.to.toJOML()).toVec3d()
 
-        val shipHit = raycast(ctx, shipStart, shipEnd)
-        val shipHitPos = shipToWorld.transformPosition(shipHit.pos.toJOML()).toVec3d()
-        val shipHitDist = shipHitPos.squaredDistanceTo(ctx.start)
+        val shipHit = clip(ctx, shipStart, shipEnd)
+        val shipHitPos = shipToWorld.transformPosition(shipHit.location.toJOML()).toVec3d()
+        val shipHitDist = shipHitPos.distanceToSqr(ctx.from)
 
         if (shipHitDist < closestHitDist && shipHit.type != HitResult.Type.MISS) {
             closestHit = shipHit
@@ -46,61 +46,62 @@ fun ClientWorld.raycastIncludeShips(ctx: RaycastContext, shouldTransformHitPos: 
     }
 
     if (!shouldTransformHitPos) {
-        closestHitPos = closestHit.pos
+        closestHitPos = closestHit.location
     }
 
     return if (closestHit.type == HitResult.Type.MISS) {
-        BlockHitResult.createMissed(closestHitPos, closestHit.side, closestHit.blockPos)
+        BlockHitResult.miss(closestHitPos, closestHit.direction, closestHit.blockPos)
     } else {
-        BlockHitResult(closestHitPos, closestHit.side, closestHit.blockPos, closestHit.isInsideBlock)
+        BlockHitResult(closestHitPos, closestHit.direction, closestHit.blockPos, closestHit.isInside)
     }
 }
 
 // copy paste of vanilla raycast with the option to specify a custom start/end
-private fun World.raycast(context: RaycastContext, realStart: Vec3d, realEnd: Vec3d): BlockHitResult {
-    return raycast(
+private fun Level.clip(context: ClipContext, realStart: Vec3, realEnd: Vec3): BlockHitResult {
+    return clip(
         realStart, realEnd, context,
-        { raycastContext: RaycastContext, blockPos: BlockPos? ->
+        { raycastContext: ClipContext, blockPos: BlockPos? ->
             val blockState: BlockState = getBlockState(blockPos)
             val fluidState: FluidState = getFluidState(blockPos)
             val vec3d = realStart
             val vec3d2 = realEnd
             val voxelShape = raycastContext.getBlockShape(blockState, this, blockPos)
-            val blockHitResult: BlockHitResult? = raycastBlock(vec3d, vec3d2, blockPos, voxelShape, blockState)
+            val blockHitResult: BlockHitResult? =
+                clipWithInteractionOverride(vec3d, vec3d2, blockPos, voxelShape, blockState)
             val voxelShape2 = raycastContext.getFluidShape(fluidState, this, blockPos)
-            val blockHitResult2 = voxelShape2.raycast(vec3d, vec3d2, blockPos)
-            val d = if (blockHitResult == null) Double.MAX_VALUE else realStart.squaredDistanceTo(blockHitResult.pos)
-            val e = if (blockHitResult2 == null) Double.MAX_VALUE else realEnd.squaredDistanceTo(blockHitResult2.pos)
+            val blockHitResult2 = voxelShape2.clip(vec3d, vec3d2, blockPos)
+            val d = if (blockHitResult == null) Double.MAX_VALUE else realStart.distanceToSqr(blockHitResult.location)
+            val e = if (blockHitResult2 == null) Double.MAX_VALUE else realEnd.distanceToSqr(blockHitResult2.location)
             if (d <= e) blockHitResult else blockHitResult2
         }
-    ) { raycastContext: RaycastContext ->
+    ) { raycastContext: ClipContext ->
         val vec3d = realStart.subtract(realEnd)
-        BlockHitResult.createMissed(realEnd, Direction.getFacing(vec3d.x, vec3d.y, vec3d.z), BlockPos(realEnd))
+        BlockHitResult.miss(realEnd, Direction.getNearest(vec3d.x, vec3d.y, vec3d.z), BlockPos(realEnd))
     } as BlockHitResult
 }
 
-private fun <T> raycast(
-    realStart: Vec3d,
-    realEnd: Vec3d,
-    raycastContext: RaycastContext,
-    context: BiFunction<RaycastContext, BlockPos?, T>,
-    blockRaycaster: Function<RaycastContext, T>
+private fun <T> clip(
+    realStart: Vec3,
+    realEnd: Vec3,
+    raycastContext: ClipContext,
+    context: BiFunction<ClipContext, BlockPos?, T>,
+    blockRaycaster: Function<ClipContext, T>
 ): T {
     val vec3d = realStart
     val vec3d2 = realEnd
     return if (vec3d == vec3d2) {
         blockRaycaster.apply(raycastContext)
     } else {
-        val d = MathHelper.lerp(-1.0E-7, vec3d2.x, vec3d.x)
-        val e = MathHelper.lerp(-1.0E-7, vec3d2.y, vec3d.y)
-        val f = MathHelper.lerp(-1.0E-7, vec3d2.z, vec3d.z)
-        val g = MathHelper.lerp(-1.0E-7, vec3d.x, vec3d2.x)
-        val h = MathHelper.lerp(-1.0E-7, vec3d.y, vec3d2.y)
-        val i = MathHelper.lerp(-1.0E-7, vec3d.z, vec3d2.z)
-        var j = MathHelper.floor(g)
-        var k = MathHelper.floor(h)
-        var l = MathHelper.floor(i)
-        val mutable = BlockPos.Mutable(j, k, l)
+        val d = Mth.lerp(-1.0E-7, vec3d2.x, vec3d.x)
+        val e = Mth.lerp(-1.0E-7, vec3d2.y, vec3d.y)
+        val f = Mth.lerp(-1.0E-7, vec3d2.z, vec3d.z)
+        val g = Mth.lerp(-1.0E-7, vec3d.x, vec3d2.x)
+        val h = Mth.lerp(-1.0E-7, vec3d.y, vec3d2.y)
+        val i = Mth.lerp(-1.0E-7, vec3d.z, vec3d2.z)
+        var j = Mth.floor(g)
+        var k = Mth.floor(h)
+        var l = Mth.floor(i)
+        val mutable = BlockPos.MutableBlockPos(j, k, l)
         val `object`: T? = context.apply(raycastContext, mutable)
         if (`object` != null) {
             `object`
@@ -108,15 +109,15 @@ private fun <T> raycast(
             val m = d - g
             val n = e - h
             val o = f - i
-            val p = MathHelper.sign(m)
-            val q = MathHelper.sign(n)
-            val r = MathHelper.sign(o)
+            val p = Mth.sign(m)
+            val q = Mth.sign(n)
+            val r = Mth.sign(o)
             val s = if (p == 0) Double.MAX_VALUE else p.toDouble() / m
             val t = if (q == 0) Double.MAX_VALUE else q.toDouble() / n
             val u = if (r == 0) Double.MAX_VALUE else r.toDouble() / o
-            var v = s * if (p > 0) 1.0 - MathHelper.fractionalPart(g) else MathHelper.fractionalPart(g)
-            var w = t * if (q > 0) 1.0 - MathHelper.fractionalPart(h) else MathHelper.fractionalPart(h)
-            var x = u * if (r > 0) 1.0 - MathHelper.fractionalPart(i) else MathHelper.fractionalPart(i)
+            var v = s * if (p > 0) 1.0 - Mth.frac(g) else Mth.frac(g)
+            var w = t * if (q > 0) 1.0 - Mth.frac(h) else Mth.frac(h)
+            var x = u * if (r > 0) 1.0 - Mth.frac(i) else Mth.frac(i)
             var object2: T?
             do {
                 if (v > 1.0 && w > 1.0 && x > 1.0) {

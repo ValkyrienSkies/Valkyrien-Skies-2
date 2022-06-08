@@ -1,12 +1,12 @@
 package org.valkyrienskies.mod.mixin.client.render;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.GameRenderer;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.entity.Entity;
-import net.minecraft.util.hit.HitResult;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.RaycastContext;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -19,47 +19,47 @@ import org.valkyrienskies.core.game.ships.ShipObjectClient;
 import org.valkyrienskies.core.game.ships.ShipObjectClientWorld;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
-import org.valkyrienskies.mod.mixinducks.client.MinecraftClientDuck;
+import org.valkyrienskies.mod.mixinducks.client.MinecraftDuck;
 
 @Mixin(GameRenderer.class)
 public class MixinGameRenderer {
 
     @Shadow
     @Final
-    private MinecraftClient client;
+    private Minecraft minecraft;
 
     @Redirect(
-        method = "updateTargetedEntity",
+        method = "pick",
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/entity/Entity;raycast(DFZ)Lnet/minecraft/util/hit/HitResult;"
+            target = "Lnet/minecraft/world/entity/Entity;pick(DFZ)Lnet/minecraft/world/phys/HitResult;"
         )
     )
     public HitResult modifyCrosshairTarget(final Entity receiver, final double maxDistance, final float tickDelta,
         final boolean includeFluids) {
 
         final HitResult original = entityRaycastNoTransform(receiver, maxDistance, tickDelta, includeFluids);
-        ((MinecraftClientDuck) this.client).vs$setOriginalCrosshairTarget(original);
+        ((MinecraftDuck) this.minecraft).vs$setOriginalCrosshairTarget(original);
 
-        return receiver.raycast(maxDistance, tickDelta, includeFluids);
+        return receiver.pick(maxDistance, tickDelta, includeFluids);
     }
 
     /**
-     * {@link Entity#raycast(double, float, boolean)} except the hit pos is not transformed
+     * {@link Entity#pick(double, float, boolean)} except the hit pos is not transformed
      */
     @Unique
     private static HitResult entityRaycastNoTransform(
         final Entity entity, final double maxDistance, final float tickDelta, final boolean includeFluids) {
-        final Vec3d vec3d = entity.getCameraPosVec(tickDelta);
-        final Vec3d vec3d2 = entity.getRotationVec(tickDelta);
-        final Vec3d vec3d3 = vec3d.add(vec3d2.x * maxDistance, vec3d2.y * maxDistance, vec3d2.z * maxDistance);
-        return RaycastUtilsKt.raycastIncludeShips(
-            (ClientWorld) entity.world,
-            new RaycastContext(
+        final Vec3 vec3d = entity.getEyePosition(tickDelta);
+        final Vec3 vec3d2 = entity.getViewVector(tickDelta);
+        final Vec3 vec3d3 = vec3d.add(vec3d2.x * maxDistance, vec3d2.y * maxDistance, vec3d2.z * maxDistance);
+        return RaycastUtilsKt.clipIncludeShips(
+            (ClientLevel) entity.level,
+            new ClipContext(
                 vec3d,
                 vec3d3,
-                RaycastContext.ShapeType.OUTLINE,
-                includeFluids ? RaycastContext.FluidHandling.ANY : RaycastContext.FluidHandling.NONE,
+                ClipContext.Block.OUTLINE,
+                includeFluids ? ClipContext.Fluid.ANY : ClipContext.Fluid.NONE,
                 entity
             ),
             false
@@ -68,7 +68,7 @@ public class MixinGameRenderer {
 
     @Inject(method = "render", at = @At("HEAD"))
     private void preRender(final float tickDelta, final long startTime, final boolean tick, final CallbackInfo ci) {
-        final ClientWorld clientWorld = client.world;
+        final ClientLevel clientWorld = minecraft.level;
         if (clientWorld != null) {
             // Update ship render transforms
             final ShipObjectClientWorld shipWorld = VSGameUtilsKt.getShipObjectWorld(clientWorld);

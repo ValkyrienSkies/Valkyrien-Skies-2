@@ -1,23 +1,23 @@
 package org.valkyrienskies.mod.mixin.accessors.client.render;
 
-import net.minecraft.client.render.OverlayVertexConsumer;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.util.math.Matrix3f;
-import net.minecraft.util.math.Matrix4f;
+import com.mojang.blaze3d.vertex.SheetedDecalTextureGenerator;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.math.Matrix3f;
+import com.mojang.math.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
 /**
- * This mixin lets us get and set private fields in {@link OverlayVertexConsumer}.
+ * This mixin lets us get and set private fields in {@link SheetedDecalTextureGenerator}.
  */
-@Mixin(OverlayVertexConsumer.class)
+@Mixin(SheetedDecalTextureGenerator.class)
 public interface OverlayVertexConsumerAccessor {
-    @Accessor("vertexConsumer")
-    VertexConsumer getVertexConsumer();
+    @Accessor("delegate")
+    VertexConsumer getDelegate();
 
-    @Accessor("textureMatrix")
+    @Accessor("cameraInversePose")
     void setTextureMatrix(Matrix4f textureMatrix);
 
-    @Accessor("normalMatrix")
+    @Accessor("normalInversePose")
     void setNormalMatrix(Matrix3f normalMatrix);
 }

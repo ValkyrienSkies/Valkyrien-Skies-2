@@ -1,24 +1,24 @@
 package org.valkyrienskies.mod.mixin.block.entity;
 
-import net.minecraft.block.entity.LootableContainerBlockEntity;
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
-@Mixin(LootableContainerBlockEntity.class)
-public class MixinLootableContainerBlockEntity {
+@Mixin(RandomizableContainerBlockEntity.class)
+public class MixinRandomizableContainerBlockEntity {
 
     @Redirect(
-        method = "canPlayerUse",
+        method = "stillValid",
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/entity/player/PlayerEntity;squaredDistanceTo(DDD)D"
+            target = "Lnet/minecraft/world/entity/player/Player;distanceToSqr(DDD)D"
         )
     )
     private double includeShipsInDistanceCheck(
-        final PlayerEntity receiver, final double x, final double y, final double z) {
+        final Player receiver, final double x, final double y, final double z) {
         return VSGameUtilsKt.squaredDistanceToInclShips(receiver, x, y, z);
     }
 

@@ -9,9 +9,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.BooleanSupplier;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.PlayerManager;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.players.PlayerList;
 import org.jetbrains.annotations.NotNull;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -30,10 +30,10 @@ import org.valkyrienskies.physics_api_krunch.KrunchBootstrap;
 @Mixin(MinecraftServer.class)
 public abstract class MixinMinecraftServer implements IShipObjectWorldServerProvider {
     @Shadow
-    private PlayerManager playerManager;
+    private PlayerList playerList;
 
     @Shadow
-    public abstract ServerWorld getOverworld();
+    public abstract ServerLevel overworld();
 
     @Unique
     private ShipObjectServerWorld shipWorld;
@@ -46,7 +46,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
 
     @Inject(
         at = @At("HEAD"),
-        method = "tick"
+        method = "tickServer"
     )
     public void onTick(final BooleanSupplier booleanSupplier, final CallbackInfo ci) {
         updateVSPlayerWrappers();
@@ -55,10 +55,10 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
 
     @Unique
     private void updateVSPlayerWrappers() {
-        final List<ServerPlayerEntity> players = playerManager.getPlayerList();
+        final List<ServerPlayer> players = playerList.getPlayers();
         // First add new player objects
         players.forEach(player -> {
-            final UUID playerID = player.getUuid();
+            final UUID playerID = player.getUUID();
             if (!vsPlayerWrappers.containsKey(playerID)) {
                 final MinecraftPlayer playerWrapper = new MinecraftPlayer(player, playerID);
                 vsPlayerWrappers.put(playerID, playerWrapper);
@@ -68,7 +68,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         // Then remove removed player objects
         // First make a set of all current player IDs, so we can check if a player is online in O(1) time.
         final Set<UUID> currentPlayerIDs = new HashSet<>();
-        players.forEach(player -> currentPlayerIDs.add(player.getUuid()));
+        players.forEach(player -> currentPlayerIDs.add(player.getUUID()));
 
         // Then remove any old player wrappers whose players are no longer here.
         vsPlayerWrappers.entrySet().removeIf(entry -> !currentPlayerIDs.contains(entry.getKey()));
@@ -90,15 +90,15 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         method = "runServer",
         at = @At(
             value = "INVOKE_ASSIGN",
-            target = "Lnet/minecraft/server/MinecraftServer;setupServer()Z"
+            target = "Lnet/minecraft/server/MinecraftServer;initServer()Z"
         )
     )
     private void preRunServer(final CallbackInfo ci) {
         KrunchBootstrap.INSTANCE.loadNativeBinaries();
 
         // Load ship data from the world storage
-        final ShipSavedData shipSavedData = getOverworld().getPersistentStateManager()
-            .getOrCreate(ShipSavedData.Companion::createEmpty, ShipSavedData.SAVED_DATA_ID);
+        final ShipSavedData shipSavedData = overworld().getDataStorage()
+            .computeIfAbsent(ShipSavedData.Companion::createEmpty, ShipSavedData.SAVED_DATA_ID);
 
         // Create ship world and VS Pipeline
         shipWorld = new ShipObjectServerWorld(shipSavedData.getQueryableShipData(), shipSavedData.getChunkAllocator());
@@ -108,7 +108,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     }
 
     @Inject(
-        method = "tick",
+        method = "tickServer",
         at = @At("HEAD")
     )
     private void preTick(final CallbackInfo ci) {
@@ -116,7 +116,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     }
 
     @Inject(
-        method = "tick",
+        method = "tickServer",
         at = @At("TAIL")
     )
     private void postTick(final CallbackInfo ci) {
@@ -124,7 +124,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     }
 
     @Inject(
-        method = "shutdown",
+        method = "onServerExit",
         at = @At("HEAD")
     )
     private void preShutdown(final CallbackInfo ci) {

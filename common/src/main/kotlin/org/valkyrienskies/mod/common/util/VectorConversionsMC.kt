@@ -1,12 +1,12 @@
 package org.valkyrienskies.mod.common.util
 
-import net.minecraft.client.util.math.MatrixStack
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Box
-import net.minecraft.util.math.Position
-import net.minecraft.util.math.Quaternion
-import net.minecraft.util.math.Vec3d
-import net.minecraft.util.math.Vec3i
+import com.mojang.blaze3d.vertex.PoseStack
+import com.mojang.math.Quaternion
+import net.minecraft.core.BlockPos
+import net.minecraft.core.Position
+import net.minecraft.core.Vec3i
+import net.minecraft.world.phys.AABB
+import net.minecraft.world.phys.Vec3
 import org.joml.Matrix4d
 import org.joml.Matrix4dc
 import org.joml.Matrix4fc
@@ -19,7 +19,7 @@ import org.joml.Vector3ic
 import org.joml.primitives.AABBd
 import org.joml.primitives.AABBdc
 import org.valkyrienskies.mod.mixin.accessors.util.math.Matrix4fAccessor
-import net.minecraft.util.math.Matrix4f as Matrix4fMC
+import com.mojang.math.Matrix4f as Matrix4fMC
 
 // region JOML
 
@@ -36,12 +36,12 @@ fun Vector3d.set(v: Vec3i) = also {
 }
 
 fun Vector3d.set(v: Position) = also {
-    x = v.x
-    y = v.y
-    z = v.z
+    x = v.x()
+    y = v.y()
+    z = v.z()
 }
 
-fun AABBd.set(v: Box) = also {
+fun AABBd.set(v: AABB) = also {
     minX = v.minX
     minY = v.minY
     minZ = v.minZ
@@ -51,7 +51,7 @@ fun AABBd.set(v: Box) = also {
 }
 
 fun Vector3ic.toBlockPos() = BlockPos(x(), y(), z())
-fun Vector3dc.toVec3d() = Vec3d(x(), y(), z())
+fun Vector3dc.toVec3d() = Vec3(x(), y(), z())
 
 fun Quaternionfc.toMinecraft() = Quaternion(x(), y(), z(), w())
 fun Quaterniondc.toMinecraft() = Quaternion(x().toFloat(), y().toFloat(), z().toFloat(), w().toFloat())
@@ -61,16 +61,17 @@ fun Matrix4dc.toMinecraft() = Matrix4fMC().set(this)
 
 fun Matrix4fMC.toJOML() = Matrix4d().set(this)
 
-fun AABBdc.toMinecraft() = Box(minX(), minY(), minZ(), maxX(), maxY(), maxZ())
-fun Box.toJOML() = AABBd().set(this)
+fun AABBdc.toMinecraft() = AABB(minX(), minY(), minZ(), maxX(), maxY(), maxZ())
+fun AABB.toJOML() = AABBd().set(this)
 
 // endregion
 
 // region Minecraft
 
-fun MatrixStack.multiply(modelTransform: Matrix4dc, normalTransform: Quaterniondc) = also {
-    this.peek().model.multiply(modelTransform.toMinecraft())
-    this.peek().normal.multiply(normalTransform.toMinecraft())
+fun PoseStack.multiply(modelTransform: Matrix4dc, normalTransform: Quaterniondc) = also {
+    val last = last()
+    last.pose().multiply(modelTransform.toMinecraft())
+    last.normal().mul(normalTransform.toMinecraft())
 }
 
 fun Vec3i.toJOML() = Vector3i().set(this)
@@ -80,64 +81,64 @@ fun Position.toJOML() = Vector3d().set(this)
 fun Matrix4fMC.set(m: Matrix4fc) = also {
     @Suppress("CAST_NEVER_SUCCEEDS")
     this as Matrix4fAccessor
-    a00 = m.m00()
-    a01 = m.m10()
-    a02 = m.m20()
-    a03 = m.m30()
-    a10 = m.m01()
-    a11 = m.m11()
-    a12 = m.m21()
-    a13 = m.m31()
-    a20 = m.m02()
-    a21 = m.m12()
-    a22 = m.m22()
-    a23 = m.m32()
-    a30 = m.m03()
-    a31 = m.m13()
-    a32 = m.m23()
-    a33 = m.m33()
+    m00 = m.m00()
+    m01 = m.m10()
+    m02 = m.m20()
+    m03 = m.m30()
+    m10 = m.m01()
+    m11 = m.m11()
+    m12 = m.m21()
+    m13 = m.m31()
+    m20 = m.m02()
+    m21 = m.m12()
+    m22 = m.m22()
+    m23 = m.m32()
+    m30 = m.m03()
+    m31 = m.m13()
+    m32 = m.m23()
+    m33 = m.m33()
 }
 
 fun Matrix4fMC.set(m: Matrix4dc) = also {
     @Suppress("CAST_NEVER_SUCCEEDS")
     this as Matrix4fAccessor
-    a00 = m.m00().toFloat()
-    a01 = m.m10().toFloat()
-    a02 = m.m20().toFloat()
-    a03 = m.m30().toFloat()
-    a10 = m.m01().toFloat()
-    a11 = m.m11().toFloat()
-    a12 = m.m21().toFloat()
-    a13 = m.m31().toFloat()
-    a20 = m.m02().toFloat()
-    a21 = m.m12().toFloat()
-    a22 = m.m22().toFloat()
-    a23 = m.m32().toFloat()
-    a30 = m.m03().toFloat()
-    a31 = m.m13().toFloat()
-    a32 = m.m23().toFloat()
-    a33 = m.m33().toFloat()
+    m00 = m.m00().toFloat()
+    m01 = m.m10().toFloat()
+    m02 = m.m20().toFloat()
+    m03 = m.m30().toFloat()
+    m10 = m.m01().toFloat()
+    m11 = m.m11().toFloat()
+    m12 = m.m21().toFloat()
+    m13 = m.m31().toFloat()
+    m20 = m.m02().toFloat()
+    m21 = m.m12().toFloat()
+    m22 = m.m22().toFloat()
+    m23 = m.m32().toFloat()
+    m30 = m.m03().toFloat()
+    m31 = m.m13().toFloat()
+    m32 = m.m23().toFloat()
+    m33 = m.m33().toFloat()
 }
 
 fun Matrix4d.set(m: Matrix4fMC) = also {
     @Suppress("CAST_NEVER_SUCCEEDS")
     m as Matrix4fAccessor
-    m00(m.a00.toDouble())
-    m01(m.a10.toDouble())
-    m02(m.a20.toDouble())
-    m03(m.a30.toDouble())
-    m10(m.a01.toDouble())
-    m11(m.a11.toDouble())
-    m12(m.a21.toDouble())
-    m13(m.a31.toDouble())
-    m20(m.a02.toDouble())
-    m21(m.a12.toDouble())
-    m22(m.a22.toDouble())
-    m23(m.a32.toDouble())
-    m30(m.a03.toDouble())
-    m31(m.a13.toDouble())
-    m32(m.a23.toDouble())
-    m33(m.a33.toDouble())
+    m00(m.m00.toDouble())
+    m01(m.m10.toDouble())
+    m02(m.m20.toDouble())
+    m03(m.m30.toDouble())
+    m10(m.m01.toDouble())
+    m11(m.m11.toDouble())
+    m12(m.m21.toDouble())
+    m13(m.m31.toDouble())
+    m20(m.m02.toDouble())
+    m21(m.m12.toDouble())
+    m22(m.m22.toDouble())
+    m23(m.m32.toDouble())
+    m30(m.m03.toDouble())
+    m31(m.m13.toDouble())
+    m32(m.m23.toDouble())
+    m33(m.m33.toDouble())
 }
 
 // endregion

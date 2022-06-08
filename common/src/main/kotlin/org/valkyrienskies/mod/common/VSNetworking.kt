@@ -1,7 +1,7 @@
 package org.valkyrienskies.mod.common
 
 import io.netty.buffer.ByteBuf
-import net.minecraft.server.network.ServerPlayerEntity
+import net.minecraft.server.level.ServerPlayer
 import org.valkyrienskies.core.networking.IVSPacket
 import org.valkyrienskies.core.networking.IVSPacketToClientSender
 import org.valkyrienskies.core.networking.VSPacketRegistry
@@ -14,8 +14,8 @@ import org.valkyrienskies.mod.common.networking.impl.VSPacketShipDataClientHandl
  */
 object VSNetworking {
 
-    private val vsPacketRegistry = VSPacketRegistry<ServerPlayerEntity>()
-    lateinit var shipDataPacketToClientSender: IVSPacketToClientSender<ServerPlayerEntity>
+    private val vsPacketRegistry = VSPacketRegistry<ServerPlayer>()
+    lateinit var shipDataPacketToClientSender: IVSPacketToClientSender<ServerPlayer>
 
     internal fun registerVSPackets() {
         vsPacketRegistry.registerVSPacket(
@@ -34,7 +34,7 @@ object VSNetworking {
         vsPacketRegistry.handleVSPacketClient(vsPacket)
     }
 
-    fun handleVSPacketServer(byteBuf: ByteBuf, sender: ServerPlayerEntity) {
+    fun handleVSPacketServer(byteBuf: ByteBuf, sender: ServerPlayer) {
         vsPacketRegistry.handleVSPacketServer(byteBuf, sender)
     }
 
