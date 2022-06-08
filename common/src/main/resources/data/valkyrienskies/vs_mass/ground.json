@@ -7,12 +7,6 @@
     "block": "minecraft:coarse_dirt",
     "mass": 1500.0
   },
-  //
-  {
-    "block": "minecraft:rooted_dirt",
-    "mass": 1100.0
-  },
-  //
   {
     "block": "minecraft:dirt_path",
     "mass": 1200.0
@@ -29,12 +23,6 @@
     "block": "minecraft:gravel",
     "mass": 1680.0
   },
-  //
-  {
-    "block": "minecraft:mud",
-    "mass": 1840.0
-  },
-  //
   {
     "block": "minecraft:mycelium",
     "mass": 1300.0
@@ -79,12 +67,6 @@
     "block": "minecraft:blackstone",
     "mass": 3400.0
   },
-  //
-  {
-    "block": "minecraft:calcite",
-    "mass": 2700.0
-  },
-  //
   {
     "block": "minecraft:cobblestone",
     "mass": 2480.0
@@ -93,26 +75,10 @@
     "block": "minecraft:mossy_cobblestone",
     "mass": 2600.0
   },
-  //
-  {
-    "block": "minecraft:deepslate",
-    "mass": 2900.0
-  },
-  {
-    "block": "minecraft:cobbled_deepslate",
-    "mass": 2720.0
-  },
-  //
   {
     "block": "minecraft:diorite",
     "mass": 2900.0
   },
-  //
-  {
-    "block": "minecraft:dripstone_block",
-    "mass": 2700.0
-  },
-  //
   {
     "block": "minecraft:end_stone",
     "mass": 2800.0
@@ -145,12 +111,6 @@
     "block": "minecraft:crying_obsidian",
     "mass": 3200.0
   },
-  //
-  {
-    "block": "minecraft:pointed_dripstone",
-    "mass": 2100.0
-  },
-  //
   {
     "block": "minecraft:sandstone",
     "mass": 2300.0
@@ -230,10 +190,5 @@
   {
     "block": "minecraft:black_terracotta",
     "mass": 2000.0
-  }//,
-  {
-    "block": "minecraft:tuff",
-    "mass": 1800.0
   }
-  //
 ]
