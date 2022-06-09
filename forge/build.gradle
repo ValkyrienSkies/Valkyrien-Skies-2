@@ -69,6 +69,12 @@ dependencies {
     }
 }
 
+File generatedResourcesDir = file("src/generated/resources")
+tasks.register("copyAccessWidener", Copy) {
+    from(project(":common").file("src/main/resources/valkyrienskies-common.accesswidener"))
+    into(generatedResourcesDir)
+}
+
 processResources {
     dependsOn("copyAccessWidener") // for some reason, if u want to use this as a dependency in archtectury it needs it...
     inputs.property "version", project.version
