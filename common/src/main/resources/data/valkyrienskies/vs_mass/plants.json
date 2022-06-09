@@ -1,0 +1,290 @@
+[
+  {
+    "tag": "minecraft:saplings",
+    "mass": 15.0
+  },
+  {
+    "tag": "minecraft:leaves",
+    "mass": 200.0
+  },
+  {
+    "tag": "minecraft:small_flowers",
+    "mass": 1.0
+  },
+  {
+    "tag": "minecraft:tall_flowers",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:grass",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:tall_grass",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:fern",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:large_fern",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:lily_pad",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:vine",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:cocoa",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:wheat",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:beetroots",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:carrots",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:potatoes",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:sweet_berry_bush",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:sugar_cane",
+    "mass": 10.0
+  },
+  {
+    "block": "minecraft:bamboo_sapling",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:bamboo",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:kelp",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:kelp_plant",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:seagrass",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:sea_pickle",
+    "mass": 2.0
+  },
+  {
+    "tag": "minecraft:coral_blocks",
+    "mass": 1500.0
+  },
+  {
+    "block": "minecraft:dead_tube_coral_block",
+    "mass": 1500.0
+  },
+  {
+    "block": "minecraft:dead_brain_coral_block",
+    "mass": 1500.0
+  },
+  {
+    "block": "minecraft:dead_bubble_coral_block",
+    "mass": 1500.0
+  },
+  {
+    "block": "minecraft:dead_fire_coral_block",
+    "mass": 1500.0
+  },
+  {
+    "block": "minecraft:dead_horn_coral_block",
+    "mass": 1500.0
+  },
+  {
+    "tag": "minecraft:corals",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:dead_tube_coral",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:dead_brain_coral",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:dead_bubble_coral",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:dead_fire_coral",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:dead_horn_coral",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:dead_tube_coral_fan",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:dead_brain_coral_fan",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:dead_bubble_coral_fan",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:dead_fire_coral_fan",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:dead_horn_coral_fan",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:dead_tube_coral_wall_fan",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:dead_brain_coral_wall_fan",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:dead_bubble_coral_wall_fan",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:dead_fire_coral_wall_fan",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:dead_horn_coral_wall_fan",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:dead_bush",
+    "mass": 10.0
+  },
+  {
+    "block": "minecraft:cactus",
+    "mass": 600.0
+  },
+  {
+    "block": "minecraft:melon_stem",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:attached_melon_stem",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:melon",
+    "mass": 600.0
+  },
+  {
+    "block": "minecraft:pumpkin_stem",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:attached_pumpkin_stem",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:pumpkin",
+    "mass": 600.0
+  },
+  {
+    "block": "minecraft:warped_fungus",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:nether_sprouts",
+    "mass": 1.0
+  },
+  {
+    "block": "minecraft:warped_roots",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:twisting_vines",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:twisting_vines_plant",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:crimson_fungus",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:nether_wart",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:crimson_roots",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:weeping_vines",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:weeping_vines_plant",
+    "mass": 5.0
+  },
+  {
+    "tag": "minecraft:wart_blocks",
+    "mass": 600.0
+  },
+  {
+    "block": "minecraft:shroomlight",
+    "mass": 800.0
+  },
+  {
+    "block": "minecraft:chorus_plant",
+    "mass": 30.0
+  },
+  {
+    "block": "minecraft:chorus_flower",
+    "mass": 50.0
+  },
+  {
+    "block": "minecraft:brown_mushroom_block",
+    "mass": 400.0
+  },
+  {
+    "block": "minecraft:red_mushroom_block",
+    "mass": 400.0
+  },
+  {
+    "block": "minecraft:mushroom_stem",
+    "mass": 600.0
+  },
+  {
+    "block": "minecraft:brown_mushroom",
+    "mass": 1.0
+  },
+  {
+    "block": "minecraft:red_mushroom",
+    "mass": 1.0
+  }
+]
