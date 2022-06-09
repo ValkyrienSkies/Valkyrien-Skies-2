@@ -70,6 +70,7 @@ dependencies {
 }
 
 processResources {
+    dependsOn("copyAccessWidener") // for some reason, if u want to use this as a dependency in archtectury it needs it...
     inputs.property "version", project.version
 
     filesMatching("META-INF/mods.toml") {
