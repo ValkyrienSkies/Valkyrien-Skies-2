@@ -1,7 +1,7 @@
 [
   {
     "block": "minecraft:redstone_wire",
-    "mass": 150.0
+    "mass": 5.0
   },
   {
     "block": "minecraft:dispenser",
@@ -17,7 +17,7 @@
   },
   {
     "block": "minecraft:detector_rail",
-    "mass": 400.0
+    "mass": 380.0
   },
   {
     "block": "minecraft:powered_rail",
@@ -69,11 +69,11 @@
   },
   {
     "block": "minecraft:light_weighted_pressure_plate",
-    "mass": 1000.0
+    "mass": 800.0
   },
   {
     "block": "minecraft:heavy_weighted_pressure_plate",
-    "mass": 400.0
+    "mass": 350.0
   },
   {
     "block": "minecraft:redstone_torch",
@@ -113,7 +113,7 @@
   },
   {
     "block": "minecraft:target",
-    "mass": 150.0
+    "mass": 200.0
   },
   {
     "block": "minecraft:lectern",
@@ -141,7 +141,7 @@
   },
   {
     "tag": "minecraft:shulker_boxes",
-    "mass": 1000.0
+    "mass": 800.0
   },
   {
     "tag": "minecraft:fence_gates",
