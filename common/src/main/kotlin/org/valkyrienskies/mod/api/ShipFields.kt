@@ -5,10 +5,10 @@ import kotlin.reflect.KProperty
 
 open class ShipValueDelegate<T>(private val clazz: Class<T>, private val persistent: Boolean) {
     open operator fun getValue(thisRef: ShipProvider, property: KProperty<*>): T? =
-        thisRef.ship.get(clazz)
+        thisRef.ship.getAttachment(clazz)
 
     open operator fun setValue(thisRef: ShipProvider, property: KProperty<*>, value: T?) =
-        if (persistent) thisRef.ship.save(clazz, value) else thisRef.ship.set(clazz, value)
+        if (persistent) thisRef.ship.saveAttachment(clazz, value) else thisRef.ship.setAttachment(clazz, value)
 }
 
 class DefaultedShipValueDelegate<T>(clazz: Class<T>, persistent: Boolean, private val default: T) :
