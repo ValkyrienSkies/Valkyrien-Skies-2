@@ -1,4 +1,4 @@
-package org.valkyrienskies.api
+package org.valkyrienskies.mod.api
 
 import org.valkyrienskies.core.api.ShipProvider
 import kotlin.reflect.KProperty
