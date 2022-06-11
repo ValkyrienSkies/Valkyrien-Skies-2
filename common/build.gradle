@@ -1,11 +1,3 @@
-plugins {
-    id "com.github.johnrengelman.shadow" version "7.1.2"
-}
-
-configurations {
-    myShadow // Don't use shadow from the shadow plugin because we don't want IDEA to index this.
-}
-
 dependencies {
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
     // We depend on fabric loader here to use the fabric @Environment annotations
@@ -17,10 +9,6 @@ dependencies {
         exclude module: "netty-buffer"
         exclude module: "fastutil"
     }
-    myShadow("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {
-        exclude module: "netty-buffer"
-        exclude module: "fastutil"
-    }
 }
 
 architectury {
@@ -29,18 +17,6 @@ architectury {
 
 loom {
     accessWidenerPath = file("src/main/resources/valkyrienskies-common.accesswidener")
-}
-
-shadowJar {
-    configurations = [project.configurations.myShadow]
-    classifier "dev-shadow"
-}
-
-remapJar {
-    input.set shadowJar.archiveFile
-    dependsOn shadowJar
-    classifier null
-    duplicatesStrategy DuplicatesStrategy.EXCLUDE // Ignore duplicate valkyrienskies-common.accesswidener files
 }
 
 publishing {
