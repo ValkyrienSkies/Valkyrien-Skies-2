@@ -101,11 +101,11 @@
   },
   {
     "block": "minecraft:obsidian",
-    "mass": 3200.0
+    "mass": 2350.0
   },
   {
     "block": "minecraft:crying_obsidian",
-    "mass": 3200.0
+    "mass": 2350.0
   },
   {
     "block": "minecraft:sandstone",
