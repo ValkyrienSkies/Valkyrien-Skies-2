@@ -12,6 +12,10 @@
     "mass": 1200.0
   },
   {
+    "block": "minecraft:farmland",
+    "mass": 1220.0
+  },
+  {
     "block": "minecraft:grass",
     "mass": 1300.0
   },
@@ -60,10 +64,6 @@
     "mass": 3010.0
   },
   {
-    "block": "minecraft:bedrock",
-    "mass": 0.0
-  },
-  {
     "block": "minecraft:blackstone",
     "mass": 3400.0
   },
@@ -90,10 +90,6 @@
   {
     "block": "minecraft:granite",
     "mass": 2700.0
-  },
-  {
-    "block": "minecraft:infested_stone",
-    "mass": 2600.0
   },
   {
     "block": "minecraft:magma_block",
