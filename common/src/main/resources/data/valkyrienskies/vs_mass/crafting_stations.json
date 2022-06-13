@@ -25,7 +25,7 @@
   },
   {
     "block": "minecraft:enchanting_table",
-    "mass": 3200.0
+    "mass": 1600.0
   },
   {
     "tag": "minecraft:anvil",
@@ -37,7 +37,7 @@
   },
   {
     "block": "minecraft:water_cauldron",
-    "mass": 5800.0
+    "mass": 5900.0
   },
   {
     "block": "minecraft:brewing_stand",
