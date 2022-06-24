@@ -86,7 +86,7 @@ private fun getShipObjectManagingPosImpl(world: Level, chunkX: Int, chunkZ: Int)
     if (ChunkAllocator.isChunkInShipyard(chunkX, chunkZ)) {
         val shipDataManagingPos = world.shipObjectWorld.queryableShipData.getShipDataFromChunkPos(chunkX, chunkZ)
         if (shipDataManagingPos != null) {
-            return world.shipObjectWorld.shipObjects[shipDataManagingPos.shipUUID]
+            return world.shipObjectWorld.shipObjects[shipDataManagingPos.id]
         }
     }
     return null

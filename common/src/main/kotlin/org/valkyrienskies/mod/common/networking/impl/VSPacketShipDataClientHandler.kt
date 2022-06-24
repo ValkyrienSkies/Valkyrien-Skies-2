@@ -14,12 +14,12 @@ object VSPacketShipDataClientHandler : IVSPacketClientHandler {
         val shipWorld = gameLevel?.shipObjectWorld ?: return
 
         vsPacket.shipDataList.forEach {
-            if (shipWorld.queryableShipData.getShipDataFromUUID(it.shipUUID) == null) {
+            if (shipWorld.queryableShipData.getById(it.id) == null) {
                 // Convert [ShipDataCommon] to [ShipDataClient]
                 shipWorld.queryableShipData.addShipData(it)
             } else {
                 // Update the next ship transform
-                shipWorld.shipObjects[it.shipUUID]?.updateNextShipTransform(it.shipTransform)
+                shipWorld.shipObjects[it.id]?.updateNextShipTransform(it.shipTransform)
             }
         }
     }
