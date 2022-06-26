@@ -6,6 +6,15 @@ on:
   pull_request:
     types: [ opened, synchronize, reopened ]
 jobs:
+  validate-gradle:
+    name: "Validate Gradle wrapper"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: true # Clone with vs-core submodule
+      - uses: gradle/wrapper-validation-action@v1
   test-server:
     name: Test-Server
     strategy:
