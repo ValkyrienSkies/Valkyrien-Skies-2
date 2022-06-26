@@ -152,8 +152,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     private void preConnectionTick(final CallbackInfo ci) {
         shipWorld.tickShips();
         for (final ServerLevel serverLevel : getAllLevels()) {
-            // TODO: Need to rewrite this code entirely
-            ((IShipObjectWorldServerProvider) serverLevel).sendShipTerrainUpdatesToPlayers();
+            ((IShipObjectWorldServerProvider) serverLevel).loadShipTerrainBasedOnPlayerLocation();
         }
     }
 

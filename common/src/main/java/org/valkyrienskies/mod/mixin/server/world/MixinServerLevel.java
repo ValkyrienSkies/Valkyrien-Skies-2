@@ -148,7 +148,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
     }
 
     @Override
-    public void sendShipTerrainUpdatesToPlayers() {
+    public void loadShipTerrainBasedOnPlayerLocation() {
         final ServerLevel self = ServerLevel.class.cast(this);
         final ShipObjectServerWorld shipObjectWorld = VSGameUtilsKt.getShipObjectWorld(self);
 
@@ -156,13 +156,14 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
         final IVSPacket shipDataPacket = VSPacketShipDataList.Companion
             .create(shipObjectWorld.getQueryableShipData().iterator());
 
+        // Send the ships to all the players in this world
         for (final ServerPlayer playerEntity : players) {
             VSNetworking.shipDataPacketToClientSender.sendToClient(shipDataPacket, playerEntity);
         }
 
         // Then determine the chunk watch/unwatch tasks, and then execute them
         final Pair<Spliterator<ChunkWatchTask>, Spliterator<ChunkUnwatchTask>> chunkWatchAndUnwatchTasksPair =
-            shipObjectWorld.tickShipChunkLoading();
+            shipObjectWorld.tickShipChunkLoading(VSGameUtilsKt.getDimensionId(self));
 
         // Use Spliterator instead of iterators so that we can multi thread the execution of these tasks
         final Spliterator<ChunkWatchTask> chunkWatchTasks = chunkWatchAndUnwatchTasksPair.getFirst();
@@ -170,7 +171,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
 
         // But for now just do it single threaded
         chunkWatchTasks.forEachRemaining(chunkWatchTask -> {
-            System.out.println("Watch task for " + chunkWatchTask.getChunkX() + " : " + chunkWatchTask.getChunkZ());
+            System.out.println("Watch task for dimension " + self.dimension() + ": " + chunkWatchTask.getChunkX() + " : " + chunkWatchTask.getChunkZ());
             final Packet<?>[] chunkPacketBuffer = new Packet[2];
             final ChunkPos chunkPos = new ChunkPos(chunkWatchTask.getChunkX(), chunkWatchTask.getChunkZ());
 

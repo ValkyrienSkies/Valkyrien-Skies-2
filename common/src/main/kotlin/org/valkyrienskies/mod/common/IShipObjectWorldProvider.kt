@@ -14,7 +14,7 @@ interface IShipObjectWorldServerProvider : IShipObjectWorldProvider {
     val vsPipeline: VSPipeline
 
     // TODO: This isn't the best place to put this, but it'll do for now
-    fun sendShipTerrainUpdatesToPlayers()
+    fun loadShipTerrainBasedOnPlayerLocation()
 }
 
 interface IShipObjectWorldClientProvider : IShipObjectWorldProvider {
