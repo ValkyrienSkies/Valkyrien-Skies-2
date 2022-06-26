@@ -140,8 +140,17 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
             }
         }
 
-        // Then tick the ship world
-        shipObjectWorld.tickShips(newLoadedChunks);
+        // Send new loaded chunks updates to the ship world
+        shipObjectWorld.addNewLoadedChunks(
+            VSGameUtilsKt.getDimensionId(self),
+            newLoadedChunks
+        );
+    }
+
+    @Override
+    public void sendShipTerrainUpdatesToPlayers() {
+        final ServerLevel self = ServerLevel.class.cast(this);
+        final ShipObjectServerWorld shipObjectWorld = VSGameUtilsKt.getShipObjectWorld(self);
 
         // Send ships to clients
         final IVSPacket shipDataPacket = VSPacketShipDataList.Companion
@@ -186,5 +195,4 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
             chunkUnwatchTask.onExecuteChunkUnwatchTask();
         });
     }
-
 }

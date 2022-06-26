@@ -12,6 +12,9 @@ interface IShipObjectWorldProvider {
 interface IShipObjectWorldServerProvider : IShipObjectWorldProvider {
     override val shipObjectWorld: ShipObjectServerWorld
     val vsPipeline: VSPipeline
+
+    // TODO: This isn't the best place to put this, but it'll do for now
+    fun sendShipTerrainUpdatesToPlayers()
 }
 
 interface IShipObjectWorldClientProvider : IShipObjectWorldProvider {

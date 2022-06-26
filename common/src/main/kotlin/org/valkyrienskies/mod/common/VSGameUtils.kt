@@ -11,6 +11,7 @@ import net.minecraft.world.level.chunk.LevelChunkSection
 import org.joml.Vector3d
 import org.joml.Vector3ic
 import org.valkyrienskies.core.game.ChunkAllocator
+import org.valkyrienskies.core.game.DimensionId
 import org.valkyrienskies.core.game.VSBlockType
 import org.valkyrienskies.core.game.ships.ShipData
 import org.valkyrienskies.core.game.ships.ShipDataCommon
@@ -35,6 +36,9 @@ val MinecraftServer.vsPipeline get() = (this as IShipObjectWorldServerProvider).
 
 val ServerLevel.shipObjectWorld
     get() = server.shipObjectWorld
+
+val Level.dimensionId: DimensionId
+    get() = dimension().toString().hashCode()
 
 val ClientLevel.shipObjectWorld get() = (this as IShipObjectWorldClientProvider).shipObjectWorld
 

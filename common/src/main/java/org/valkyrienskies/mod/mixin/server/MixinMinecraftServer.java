@@ -13,6 +13,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.players.PlayerList;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -21,8 +22,10 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.game.ships.ShipObjectServerWorld;
 import org.valkyrienskies.core.pipelines.VSPipeline;
+import org.valkyrienskies.mod.common.IShipObjectWorldProvider;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.ShipSavedData;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.MinecraftPlayer;
 import org.valkyrienskies.mod.event.RegistryEvents;
 import org.valkyrienskies.physics_api_krunch.KrunchBootstrap;
@@ -35,6 +38,9 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     @Shadow
     public abstract ServerLevel overworld();
 
+    @Shadow
+    public abstract Iterable<ServerLevel> getAllLevels();
+
     @Unique
     private ShipObjectServerWorld shipWorld;
 
@@ -43,6 +49,8 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
 
     @Unique
     private final Map<UUID, MinecraftPlayer> vsPlayerWrappers = new HashMap<>();
+
+    private Set<Integer> loadedLevels = new HashSet<>();
 
     @Inject(
         at = @At("HEAD"),
@@ -112,7 +120,43 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         at = @At("HEAD")
     )
     private void preTick(final CallbackInfo ci) {
+        // region Tell the VS world to load new levels, and unload deleted ones
+        final Set<Integer> newLoadedLevels = new HashSet<>();
+        for (final ServerLevel level : getAllLevels()) {
+            newLoadedLevels.add(VSGameUtilsKt.getDimensionId(level));
+        }
+        for (final int loadedLevelId : newLoadedLevels) {
+            if (!loadedLevels.contains(loadedLevelId)) {
+                shipWorld.addDimension(loadedLevelId);
+            }
+        }
+        for (final int oldLoadedLevelId : loadedLevels) {
+            if (!newLoadedLevels.contains(oldLoadedLevelId)) {
+                shipWorld.removeDimension(oldLoadedLevelId);
+            }
+        }
+        loadedLevels = newLoadedLevels;
+        // endregion
+
         vsPipeline.preTickGame();
+    }
+
+    /**
+     * Tick the [shipWorld], then send voxel terrain updates for each level
+     */
+    @Inject(
+        method = "tickChildren",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/server/network/ServerConnectionListener;tick()V"
+        )
+    )
+    private void preConnectionTick(final CallbackInfo ci) {
+        shipWorld.tickShips();
+        for (final ServerLevel serverLevel : getAllLevels()) {
+            // TODO: Need to rewrite this code entirely
+            ((IShipObjectWorldServerProvider) serverLevel).sendShipTerrainUpdatesToPlayers();
+        }
     }
 
     @Inject(

@@ -83,7 +83,7 @@ object BlockStateInfo {
         val (newBlockMass, newBlockType) = get(newBlockState) ?: return
 
         shipObjectWorld.onSetBlock(
-            blockPos.x, blockPos.y, blockPos.z, prevBlockType, newBlockType, prevBlockMass, newBlockMass
+            blockPos.x, blockPos.y, blockPos.z, level.dimensionId, prevBlockType, newBlockType, prevBlockMass, newBlockMass
         )
     }
 }
