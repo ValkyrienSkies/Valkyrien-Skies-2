@@ -86,12 +86,10 @@ fun Level.squaredDistanceBetweenInclShips(
     return min(squareDistWithRespectToShips, squareDistWithoutRespectToShips)
 }
 
-private fun getShipObjectManagingPosImpl(
-    world: Level, chunkX: Int, chunkZ: Int, dimensionId: DimensionId
-): ShipObject? {
+private fun getShipObjectManagingPosImpl(world: Level, chunkX: Int, chunkZ: Int): ShipObject? {
     if (ChunkAllocator.isChunkInShipyard(chunkX, chunkZ)) {
         val shipDataManagingPos =
-            world.shipObjectWorld.queryableShipData.getShipDataFromChunkPos(chunkX, chunkZ, dimensionId)
+            world.shipObjectWorld.queryableShipData.getShipDataFromChunkPos(chunkX, chunkZ, world.dimensionId)
         if (shipDataManagingPos != null) {
             return world.shipObjectWorld.shipObjects[shipDataManagingPos.id]
         }
@@ -101,7 +99,7 @@ private fun getShipObjectManagingPosImpl(
 
 // Level
 fun Level.getShipObjectManagingPos(chunkX: Int, chunkZ: Int) =
-    getShipObjectManagingPosImpl(this, chunkX, chunkZ, dimensionId)
+    getShipObjectManagingPosImpl(this, chunkX, chunkZ)
 
 fun Level.getShipObjectManagingPos(blockPos: BlockPos) =
     getShipObjectManagingPos(blockPos.x shr 4, blockPos.z shr 4)
@@ -111,7 +109,7 @@ fun Level.getShipObjectManagingPos(chunkPos: ChunkPos) =
 
 // ClientLevel
 fun ClientLevel.getShipObjectManagingPos(chunkX: Int, chunkZ: Int) =
-    getShipObjectManagingPosImpl(this, chunkX, chunkZ, dimensionId) as ShipObjectClient?
+    getShipObjectManagingPosImpl(this, chunkX, chunkZ) as ShipObjectClient?
 
 fun ClientLevel.getShipObjectManagingPos(blockPos: BlockPos) =
     getShipObjectManagingPos(blockPos.x shr 4, blockPos.z shr 4)
@@ -121,7 +119,7 @@ fun ClientLevel.getShipObjectManagingPos(chunkPos: ChunkPos) =
 
 // ServerWorld
 fun ServerLevel.getShipObjectManagingPos(chunkX: Int, chunkZ: Int) =
-    getShipObjectManagingPosImpl(this, chunkX, chunkZ, dimensionId) as ShipObjectServer?
+    getShipObjectManagingPosImpl(this, chunkX, chunkZ) as ShipObjectServer?
 
 fun ServerLevel.getShipObjectManagingPos(blockPos: BlockPos) =
     getShipObjectManagingPos(blockPos.x shr 4, blockPos.z shr 4)
