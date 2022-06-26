@@ -94,7 +94,8 @@ public abstract class MixinChunkMap {
         final CallbackInfoReturnable<Stream<ServerPlayer>> cir) {
 
         final Iterator<IPlayer> playersWatchingShipChunk =
-            VSGameUtilsKt.getShipObjectWorld(level).getIPlayersWatchingShipChunk(chunkPos.x, chunkPos.z);
+            VSGameUtilsKt.getShipObjectWorld(level)
+                .getIPlayersWatchingShipChunk(chunkPos.x, chunkPos.z, VSGameUtilsKt.getDimensionId(level));
 
         if (!playersWatchingShipChunk.hasNext()) {
             // No players watching this ship chunk, so we don't need to modify anything

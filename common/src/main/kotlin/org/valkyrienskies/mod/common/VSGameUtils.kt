@@ -86,9 +86,12 @@ fun Level.squaredDistanceBetweenInclShips(
     return min(squareDistWithRespectToShips, squareDistWithoutRespectToShips)
 }
 
-private fun getShipObjectManagingPosImpl(world: Level, chunkX: Int, chunkZ: Int): ShipObject? {
+private fun getShipObjectManagingPosImpl(
+    world: Level, chunkX: Int, chunkZ: Int, dimensionId: DimensionId
+): ShipObject? {
     if (ChunkAllocator.isChunkInShipyard(chunkX, chunkZ)) {
-        val shipDataManagingPos = world.shipObjectWorld.queryableShipData.getShipDataFromChunkPos(chunkX, chunkZ)
+        val shipDataManagingPos =
+            world.shipObjectWorld.queryableShipData.getShipDataFromChunkPos(chunkX, chunkZ, dimensionId)
         if (shipDataManagingPos != null) {
             return world.shipObjectWorld.shipObjects[shipDataManagingPos.id]
         }
@@ -98,7 +101,7 @@ private fun getShipObjectManagingPosImpl(world: Level, chunkX: Int, chunkZ: Int)
 
 // Level
 fun Level.getShipObjectManagingPos(chunkX: Int, chunkZ: Int) =
-    getShipObjectManagingPosImpl(this, chunkX, chunkZ)
+    getShipObjectManagingPosImpl(this, chunkX, chunkZ, dimensionId)
 
 fun Level.getShipObjectManagingPos(blockPos: BlockPos) =
     getShipObjectManagingPos(blockPos.x shr 4, blockPos.z shr 4)
@@ -108,7 +111,7 @@ fun Level.getShipObjectManagingPos(chunkPos: ChunkPos) =
 
 // ClientLevel
 fun ClientLevel.getShipObjectManagingPos(chunkX: Int, chunkZ: Int) =
-    getShipObjectManagingPosImpl(this, chunkX, chunkZ) as ShipObjectClient?
+    getShipObjectManagingPosImpl(this, chunkX, chunkZ, dimensionId) as ShipObjectClient?
 
 fun ClientLevel.getShipObjectManagingPos(blockPos: BlockPos) =
     getShipObjectManagingPos(blockPos.x shr 4, blockPos.z shr 4)
@@ -118,7 +121,7 @@ fun ClientLevel.getShipObjectManagingPos(chunkPos: ChunkPos) =
 
 // ServerWorld
 fun ServerLevel.getShipObjectManagingPos(chunkX: Int, chunkZ: Int) =
-    getShipObjectManagingPosImpl(this, chunkX, chunkZ) as ShipObjectServer?
+    getShipObjectManagingPosImpl(this, chunkX, chunkZ, dimensionId) as ShipObjectServer?
 
 fun ServerLevel.getShipObjectManagingPos(blockPos: BlockPos) =
     getShipObjectManagingPos(blockPos.x shr 4, blockPos.z shr 4)
@@ -128,7 +131,7 @@ fun ServerLevel.getShipObjectManagingPos(chunkPos: ChunkPos) =
 
 private fun getShipManagingPosImpl(world: Level, x: Int, z: Int): ShipDataCommon? {
     return if (ChunkAllocator.isChunkInShipyard(x, z)) {
-        world.shipObjectWorld.queryableShipData.getShipDataFromChunkPos(x, z)
+        world.shipObjectWorld.queryableShipData.getShipDataFromChunkPos(x, z, world.dimensionId)
     } else {
         null
     }
