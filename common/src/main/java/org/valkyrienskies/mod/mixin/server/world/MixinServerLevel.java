@@ -34,11 +34,10 @@ import org.valkyrienskies.core.game.IPlayer;
 import org.valkyrienskies.core.game.ships.ShipData;
 import org.valkyrienskies.core.game.ships.ShipObject;
 import org.valkyrienskies.core.game.ships.ShipObjectServerWorld;
-import org.valkyrienskies.core.networking.IVSPacket;
-import org.valkyrienskies.core.networking.impl.VSPacketShipDataList;
+import org.valkyrienskies.core.networking.impl.PacketShipDataList;
+import org.valkyrienskies.core.networking.simple.SimplePacketsKt;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.VSNetworking;
 import org.valkyrienskies.mod.common.util.MinecraftPlayer;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.mixin.accessors.server.world.ChunkMapAccessor;
@@ -143,14 +142,12 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
         // Then tick the ship world
         shipObjectWorld.tickShips(newLoadedChunks);
 
-        // Send ships to clients
-        final IVSPacket shipDataPacket = VSPacketShipDataList.Companion
-            .create(shipObjectWorld.getQueryableShipData().iterator());
+        final PacketShipDataList packet =
+            new PacketShipDataList(Lists.newArrayList(shipObjectWorld.getQueryableShipData().iterator()));
 
-        for (final ServerPlayer playerEntity : players) {
-            VSNetworking.shipDataPacketToClientSender.sendToClient(shipDataPacket, playerEntity);
+        for (final IPlayer player : shipObjectWorld.getPlayers()) {
+            SimplePacketsKt.sendToClient(packet, player);
         }
-
         // Then determine the chunk watch/unwatch tasks, and then execute them
         final Pair<Spliterator<ChunkWatchTask>, Spliterator<ChunkUnwatchTask>> chunkWatchAndUnwatchTasksPair =
             shipObjectWorld.tickShipChunkLoading();
