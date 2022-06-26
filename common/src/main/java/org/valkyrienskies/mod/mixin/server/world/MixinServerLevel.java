@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.Spliterator;
 import java.util.function.BooleanSupplier;
 import kotlin.Pair;
@@ -15,6 +16,7 @@ import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
@@ -43,6 +45,7 @@ import org.valkyrienskies.mod.common.VSNetworking;
 import org.valkyrienskies.mod.common.util.MinecraftPlayer;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.mixin.accessors.server.world.ChunkMapAccessor;
+import org.valkyrienskies.physics_api.voxel_updates.DeleteVoxelShapeUpdate;
 import org.valkyrienskies.physics_api.voxel_updates.DenseVoxelShapeUpdate;
 import org.valkyrienskies.physics_api.voxel_updates.EmptyVoxelShapeUpdate;
 import org.valkyrienskies.physics_api.voxel_updates.IVoxelShapeUpdate;
@@ -57,7 +60,10 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
     @Final
     private ServerChunkCache chunkSource;
 
-    private final HashSet<Vector3ic> knownChunkRegions = new HashSet<>();
+    @Shadow
+    public abstract boolean loadFromChunk(Entity entity);
+
+    private Set<Vector3ic> knownChunkRegions = new HashSet<>();
 
     /**
      * Include ships in particle distance check. Seems to only be used by /particle
@@ -98,8 +104,9 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
 
         // Create DenseVoxelShapeUpdate for new loaded chunks
         // Also mark the chunks as loaded in the ship objects
-        final List<IVoxelShapeUpdate> newLoadedChunks = new ArrayList<>();
+        final List<IVoxelShapeUpdate> voxelShapeUpdates = new ArrayList<>();
 
+        final Set<Vector3ic> loadedChunkRegions = new HashSet<>();
         for (final ChunkHolder chunkHolder : loadedChunksList) {
             final Optional<LevelChunk> worldChunkOptional =
                 chunkHolder.getTickingChunkFuture().getNow(ChunkHolder.UNLOADED_LEVEL_CHUNK).left();
@@ -124,28 +131,38 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                     final LevelChunkSection chunkSection = chunkSections[chunkY];
                     final Vector3ic chunkPos = new Vector3i(chunkX, chunkY, chunkZ);
 
+                    loadedChunkRegions.add(chunkPos);
+
                     if (!knownChunkRegions.contains(chunkPos)) {
                         if (chunkSection != null && !chunkSection.isEmpty()) {
                             // Add this chunk to the ground rigid body
                             final DenseVoxelShapeUpdate voxelShapeUpdate =
                                 VSGameUtilsKt.toDenseVoxelUpdate(chunkSection, chunkPos);
-                            newLoadedChunks.add(voxelShapeUpdate);
+                            voxelShapeUpdates.add(voxelShapeUpdate);
                         } else {
                             final EmptyVoxelShapeUpdate emptyVoxelShapeUpdate =
                                 new EmptyVoxelShapeUpdate(chunkPos.x(), chunkPos.y(), chunkPos.z(), false, true);
-                            newLoadedChunks.add(emptyVoxelShapeUpdate);
+                            voxelShapeUpdates.add(emptyVoxelShapeUpdate);
                         }
-
-                        knownChunkRegions.add(chunkPos);
                     }
                 }
             }
         }
 
+        for (final Vector3ic chunkPos : knownChunkRegions) {
+            if (!loadedChunkRegions.contains(chunkPos)) {
+                // This chunk has been unloaded, remove it from Krunch
+                final DeleteVoxelShapeUpdate deleteVoxelShapeUpdate =
+                    new DeleteVoxelShapeUpdate(chunkPos.x(), chunkPos.y(), chunkPos.z(), false);
+                voxelShapeUpdates.add(deleteVoxelShapeUpdate);
+            }
+        }
+        knownChunkRegions = loadedChunkRegions;
+
         // Send new loaded chunks updates to the ship world
-        shipObjectWorld.addNewLoadedChunks(
+        shipObjectWorld.addVoxelShapeUpdates(
             VSGameUtilsKt.getDimensionId(self),
-            newLoadedChunks
+            voxelShapeUpdates
         );
     }
 
