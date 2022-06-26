@@ -173,7 +173,8 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
 
         // But for now just do it single threaded
         chunkWatchTasks.forEachRemaining(chunkWatchTask -> {
-            System.out.println("Watch task for dimension " + self.dimension() + ": " + chunkWatchTask.getChunkX() + " : " + chunkWatchTask.getChunkZ());
+            System.out.println("Watch task for dimension " + self.dimension() + ": " + chunkWatchTask.getChunkX()
+                + " : " + chunkWatchTask.getChunkZ());
             final Packet<?>[] chunkPacketBuffer = new Packet[2];
             final ChunkPos chunkPos = new ChunkPos(chunkWatchTask.getChunkX(), chunkWatchTask.getChunkZ());
 
@@ -194,7 +195,8 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
 
         chunkUnwatchTasks.forEachRemaining(chunkUnwatchTask -> {
             System.out.println(
-                "Unwatch task for " + chunkUnwatchTask.getChunkX() + " : " + chunkUnwatchTask.getChunkZ());
+                "Unwatch task for dimension " + self.dimension() + ": " + chunkUnwatchTask.getChunkX()
+                    + " : " + chunkUnwatchTask.getChunkZ());
             chunkUnwatchTask.onExecuteChunkUnwatchTask();
         });
     }
