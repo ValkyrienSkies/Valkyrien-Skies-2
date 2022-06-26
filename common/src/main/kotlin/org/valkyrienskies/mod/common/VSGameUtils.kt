@@ -11,6 +11,7 @@ import net.minecraft.world.level.chunk.LevelChunkSection
 import org.joml.Vector3d
 import org.joml.Vector3ic
 import org.valkyrienskies.core.game.ChunkAllocator
+import org.valkyrienskies.core.game.DimensionId
 import org.valkyrienskies.core.game.VSBlockType
 import org.valkyrienskies.core.game.ships.ShipData
 import org.valkyrienskies.core.game.ships.ShipDataCommon
@@ -35,6 +36,9 @@ val MinecraftServer.vsPipeline get() = (this as IShipObjectWorldServerProvider).
 
 val ServerLevel.shipObjectWorld
     get() = server.shipObjectWorld
+
+val Level.dimensionId: DimensionId
+    get() = dimension().toString().hashCode()
 
 val ClientLevel.shipObjectWorld get() = (this as IShipObjectWorldClientProvider).shipObjectWorld
 
@@ -84,7 +88,8 @@ fun Level.squaredDistanceBetweenInclShips(
 
 private fun getShipObjectManagingPosImpl(world: Level, chunkX: Int, chunkZ: Int): ShipObject? {
     if (ChunkAllocator.isChunkInShipyard(chunkX, chunkZ)) {
-        val shipDataManagingPos = world.shipObjectWorld.queryableShipData.getShipDataFromChunkPos(chunkX, chunkZ)
+        val shipDataManagingPos =
+            world.shipObjectWorld.queryableShipData.getShipDataFromChunkPos(chunkX, chunkZ, world.dimensionId)
         if (shipDataManagingPos != null) {
             return world.shipObjectWorld.shipObjects[shipDataManagingPos.id]
         }
@@ -124,7 +129,7 @@ fun ServerLevel.getShipObjectManagingPos(chunkPos: ChunkPos) =
 
 private fun getShipManagingPosImpl(world: Level, x: Int, z: Int): ShipDataCommon? {
     return if (ChunkAllocator.isChunkInShipyard(x, z)) {
-        world.shipObjectWorld.queryableShipData.getShipDataFromChunkPos(x, z)
+        world.shipObjectWorld.queryableShipData.getShipDataFromChunkPos(x, z, world.dimensionId)
     } else {
         null
     }

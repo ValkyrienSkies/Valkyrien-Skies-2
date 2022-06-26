@@ -18,7 +18,6 @@
     "server.network.MixinServerPlayerGameMode",
     "server.world.MixinChunkMap",
     "server.world.MixinServerLevel",
-    "world.MixinLevel",
     "world.chunk.MixinLevelChunk"
   ],
   "client": [

@@ -7,6 +7,7 @@ import net.minecraft.world.item.context.UseOnContext
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import org.joml.Vector3i
+import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.toBlockPos
 import org.valkyrienskies.mod.common.util.toJOML
@@ -24,7 +25,7 @@ class ShipCreatorItem(properties: Properties, private val scale: Double) : Item(
         if (!level.isClientSide) {
             if (!blockState.isAir) {
                 // Make a ship
-                val dimensionId = 0 // TODO fix
+                val dimensionId = level.dimensionId
                 val shipData = level.shipObjectWorld.createNewShipAtBlock(blockPos.toJOML(), false, scale, dimensionId)
 
                 val centerPos = shipData.chunkClaim.getCenterBlockCoordinates(Vector3i()).toBlockPos()
