@@ -36,6 +36,7 @@ import org.valkyrienskies.core.game.ships.ShipObject;
 import org.valkyrienskies.core.game.ships.ShipObjectServerWorld;
 import org.valkyrienskies.core.networking.IVSPacket;
 import org.valkyrienskies.core.networking.impl.VSPacketShipDataList;
+import org.valkyrienskies.mod.common.IServerLevelVSFunctions;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.VSNetworking;
@@ -47,7 +48,7 @@ import org.valkyrienskies.physics_api.voxel_updates.EmptyVoxelShapeUpdate;
 import org.valkyrienskies.physics_api.voxel_updates.IVoxelShapeUpdate;
 
 @Mixin(ServerLevel.class)
-public abstract class MixinServerLevel implements IShipObjectWorldServerProvider {
+public abstract class MixinServerLevel implements IShipObjectWorldServerProvider, IServerLevelVSFunctions {
     @Shadow
     @Final
     private List<ServerPlayer> players;

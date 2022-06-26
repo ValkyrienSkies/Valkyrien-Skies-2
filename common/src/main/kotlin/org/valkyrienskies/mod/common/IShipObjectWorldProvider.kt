@@ -12,11 +12,15 @@ interface IShipObjectWorldProvider {
 interface IShipObjectWorldServerProvider : IShipObjectWorldProvider {
     override val shipObjectWorld: ShipObjectServerWorld
     val vsPipeline: VSPipeline
-
-    // TODO: This isn't the best place to put this, but it'll do for now
-    fun loadShipTerrainBasedOnPlayerLocation()
 }
 
 interface IShipObjectWorldClientProvider : IShipObjectWorldProvider {
     override val shipObjectWorld: ShipObjectClientWorld
+}
+
+interface IServerLevelVSFunctions {
+    /**
+     * Load/unload ship chunks based on the location of players.
+     */
+    fun loadShipTerrainBasedOnPlayerLocation()
 }

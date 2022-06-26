@@ -21,6 +21,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.game.ships.ShipObjectServerWorld;
 import org.valkyrienskies.core.pipelines.VSPipeline;
+import org.valkyrienskies.mod.common.IServerLevelVSFunctions;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.ShipSavedData;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
@@ -152,7 +153,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     private void preConnectionTick(final CallbackInfo ci) {
         shipWorld.tickShips();
         for (final ServerLevel serverLevel : getAllLevels()) {
-            ((IShipObjectWorldServerProvider) serverLevel).loadShipTerrainBasedOnPlayerLocation();
+            ((IServerLevelVSFunctions) serverLevel).loadShipTerrainBasedOnPlayerLocation();
         }
     }
 
