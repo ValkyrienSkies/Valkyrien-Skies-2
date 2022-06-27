@@ -19,16 +19,18 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.valkyrienskies.core.game.IPlayer;
 import org.valkyrienskies.core.game.ships.ShipObjectServerWorld;
 import org.valkyrienskies.core.pipelines.VSPipeline;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.ShipSavedData;
 import org.valkyrienskies.mod.common.util.MinecraftPlayer;
 import org.valkyrienskies.mod.event.RegistryEvents;
+import org.valkyrienskies.mod.mixinducks.server.IPlayerProvider;
 import org.valkyrienskies.physics_api_krunch.KrunchBootstrap;
 
 @Mixin(MinecraftServer.class)
-public abstract class MixinMinecraftServer implements IShipObjectWorldServerProvider {
+public abstract class MixinMinecraftServer implements IShipObjectWorldServerProvider, IPlayerProvider {
     @Shadow
     private PlayerList playerList;
 
@@ -72,6 +74,11 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
 
         // Then remove any old player wrappers whose players are no longer here.
         vsPlayerWrappers.entrySet().removeIf(entry -> !currentPlayerIDs.contains(entry.getKey()));
+    }
+
+    @Override
+    public IPlayer getPlayer(final UUID uuid) {
+        return vsPlayerWrappers.get(uuid);
     }
 
     @NotNull
