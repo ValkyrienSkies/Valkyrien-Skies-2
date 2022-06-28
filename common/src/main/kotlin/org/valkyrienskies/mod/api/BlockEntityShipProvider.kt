@@ -18,5 +18,5 @@ interface BlockEntityShipProvider : ShipProvider {
      * @param newLevel
      * @param newShip
      */
-    fun shipChange(newPos: BlockPos, newLevel: Level, newShip: ShipObject) {}
+    fun onShipChange(newPos: BlockPos, newLevel: Level, newShip: ShipObject) {}
 }
