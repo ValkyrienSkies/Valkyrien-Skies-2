@@ -51,7 +51,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     @Unique
     private final Map<UUID, MinecraftPlayer> vsPlayerWrappers = new HashMap<>();
 
-    private Set<Integer> loadedLevels = new HashSet<>();
+    private Set<String> loadedLevels = new HashSet<>();
 
     @Inject(
         at = @At("HEAD"),
@@ -127,16 +127,16 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     )
     private void preTick(final CallbackInfo ci) {
         // region Tell the VS world to load new levels, and unload deleted ones
-        final Set<Integer> newLoadedLevels = new HashSet<>();
+        final Set<String> newLoadedLevels = new HashSet<>();
         for (final ServerLevel level : getAllLevels()) {
             newLoadedLevels.add(VSGameUtilsKt.getDimensionId(level));
         }
-        for (final int loadedLevelId : newLoadedLevels) {
+        for (final String loadedLevelId : newLoadedLevels) {
             if (!loadedLevels.contains(loadedLevelId)) {
                 shipWorld.addDimension(loadedLevelId);
             }
         }
-        for (final int oldLoadedLevelId : loadedLevels) {
+        for (final String oldLoadedLevelId : loadedLevels) {
             if (!newLoadedLevels.contains(oldLoadedLevelId)) {
                 shipWorld.removeDimension(oldLoadedLevelId);
             }
