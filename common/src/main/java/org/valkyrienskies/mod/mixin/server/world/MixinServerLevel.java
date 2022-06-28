@@ -36,6 +36,7 @@ import org.valkyrienskies.core.game.ships.ShipObject;
 import org.valkyrienskies.core.game.ships.ShipObjectServerWorld;
 import org.valkyrienskies.core.networking.impl.PacketShipDataList;
 import org.valkyrienskies.core.networking.simple.SimplePacketsKt;
+import org.valkyrienskies.mod.common.IServerLevelVSFunctions;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.MinecraftPlayer;
@@ -46,7 +47,7 @@ import org.valkyrienskies.physics_api.voxel_updates.EmptyVoxelShapeUpdate;
 import org.valkyrienskies.physics_api.voxel_updates.IVoxelShapeUpdate;
 
 @Mixin(ServerLevel.class)
-public abstract class MixinServerLevel implements IShipObjectWorldServerProvider {
+public abstract class MixinServerLevel implements IShipObjectWorldServerProvider, IServerLevelVSFunctions {
     @Shadow
     @Final
     private List<ServerPlayer> players;
@@ -109,7 +110,8 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                 final LevelChunkSection[] chunkSections = worldChunk.getSections();
 
                 final ShipData shipData =
-                    shipObjectWorld.getQueryableShipData().getShipDataFromChunkPos(chunkX, chunkZ);
+                    shipObjectWorld.getQueryableShipData()
+                        .getShipDataFromChunkPos(chunkX, chunkZ, VSGameUtilsKt.getDimensionId(self));
 
                 if (shipData != null) {
                     // Tell the ship data that the chunk has been loaded
@@ -139,18 +141,28 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
             }
         }
 
-        // Then tick the ship world
-        shipObjectWorld.tickShips(newLoadedChunks);
+        // Send new loaded chunks updates to the ship world
+        shipObjectWorld.addNewLoadedChunks(
+            VSGameUtilsKt.getDimensionId(self),
+            newLoadedChunks
+        );
+    }
+
+    @Override
+    public void loadShipTerrainBasedOnPlayerLocation() {
+        final ServerLevel self = ServerLevel.class.cast(this);
+        final ShipObjectServerWorld shipObjectWorld = VSGameUtilsKt.getShipObjectWorld(self);
 
         final PacketShipDataList packet =
             new PacketShipDataList(Lists.newArrayList(shipObjectWorld.getQueryableShipData().iterator()));
 
+        // Send the ships to all the players in this world
         for (final IPlayer player : shipObjectWorld.getPlayers()) {
             SimplePacketsKt.sendToClient(packet, player);
         }
         // Then determine the chunk watch/unwatch tasks, and then execute them
         final Pair<Spliterator<ChunkWatchTask>, Spliterator<ChunkUnwatchTask>> chunkWatchAndUnwatchTasksPair =
-            shipObjectWorld.tickShipChunkLoading();
+            shipObjectWorld.tickShipChunkLoading(VSGameUtilsKt.getDimensionId(self));
 
         // Use Spliterator instead of iterators so that we can multi thread the execution of these tasks
         final Spliterator<ChunkWatchTask> chunkWatchTasks = chunkWatchAndUnwatchTasksPair.getFirst();
@@ -158,7 +170,8 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
 
         // But for now just do it single threaded
         chunkWatchTasks.forEachRemaining(chunkWatchTask -> {
-            System.out.println("Watch task for " + chunkWatchTask.getChunkX() + " : " + chunkWatchTask.getChunkZ());
+            System.out.println("Watch task for dimension " + self.dimension() + ": " + chunkWatchTask.getChunkX()
+                + " : " + chunkWatchTask.getChunkZ());
             final Packet<?>[] chunkPacketBuffer = new Packet[2];
             final ChunkPos chunkPos = new ChunkPos(chunkWatchTask.getChunkX(), chunkWatchTask.getChunkZ());
 
@@ -179,9 +192,9 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
 
         chunkUnwatchTasks.forEachRemaining(chunkUnwatchTask -> {
             System.out.println(
-                "Unwatch task for " + chunkUnwatchTask.getChunkX() + " : " + chunkUnwatchTask.getChunkZ());
+                "Unwatch task for dimension " + self.dimension() + ": " + chunkUnwatchTask.getChunkX()
+                    + " : " + chunkUnwatchTask.getChunkZ());
             chunkUnwatchTask.onExecuteChunkUnwatchTask();
         });
     }
-
 }
