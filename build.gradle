@@ -9,6 +9,7 @@ plugins {
     // Needed for Forge+Fabric
     id "architectury-plugin" version "3.4-SNAPSHOT"
     id "dev.architectury.loom" version "0.11.0-SNAPSHOT" apply false
+    id 'io.github.juuxel.loom-quiltflower' version '1.7.1' apply false
     // Kotlin
     id "org.jetbrains.kotlin.jvm" version "1.7.0" apply false
     // Kotlin linter
@@ -51,6 +52,7 @@ subprojects {
     apply plugin: "org.jlleitschuh.gradle.ktlint"
     apply plugin: "checkstyle"
     apply plugin: "org.jetbrains.kotlin.jvm"
+    apply plugin: "io.github.juuxel.loom-quiltflower"
 
     repositories {
         mavenCentral()
