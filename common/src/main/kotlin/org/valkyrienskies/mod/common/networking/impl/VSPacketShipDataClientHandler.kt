@@ -20,6 +20,7 @@ object VSPacketShipDataClientHandler : IVSPacketClientHandler {
             } else {
                 // Update the next ship transform
                 shipWorld.shipObjects[it.id]?.updateNextShipTransform(it.shipTransform)
+                shipWorld.shipObjects[it.id]?.shipData?.shipAABB = it.shipAABB
             }
         }
     }

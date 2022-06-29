@@ -10,6 +10,7 @@ import net.minecraft.client.renderer.debug.DebugRenderer;
 import net.minecraft.world.phys.AABB;
 import org.joml.Quaterniondc;
 import org.joml.Vector3dc;
+import org.joml.primitives.AABBdc;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -49,6 +50,12 @@ public class MixinDebugRenderer {
             LevelRenderer
                 .renderLineBox(matrices, vertexConsumers.getBuffer(RenderType.lines()), shipCenterOfMassBox,
                     1.0F, 1.0F, 1.0F, 1.0F);
+
+            final AABBdc shipAABBdc = shipObjectClient.getShipData().getShipAABB();
+            final AABB shipAABB = new AABB(shipAABBdc.minX(), shipAABBdc.minY(), shipAABBdc.minZ(), shipAABBdc.maxX(), shipAABBdc.maxY(), shipAABBdc.maxZ());
+            LevelRenderer
+                .renderLineBox(matrices, vertexConsumers.getBuffer(RenderType.lines()), shipAABB.move(-cameraX, -cameraY, -cameraZ),
+                    1.0F, 0.0F, 0.0F, 1.0F);
         }
     }
 }
