@@ -5,6 +5,7 @@
   "mixins": [
     "accessors.block.BlockBehaviourAccessor",
     "accessors.entity.EntityAccessor",
+    "accessors.resource.ResourceKeyAccessor",
     "accessors.server.world.ChunkMapAccessor",
     "accessors.util.math.Matrix4fAccessor",
     "block.MixinBlock",

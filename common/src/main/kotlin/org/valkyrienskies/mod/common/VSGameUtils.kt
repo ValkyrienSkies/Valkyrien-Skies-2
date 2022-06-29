@@ -2,6 +2,8 @@ package org.valkyrienskies.mod.common
 
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
+import net.minecraft.resources.ResourceKey
+import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.entity.Entity
@@ -22,6 +24,7 @@ import org.valkyrienskies.core.game.ships.ShipObjectClient
 import org.valkyrienskies.core.game.ships.ShipObjectServer
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.util.toJOMLD
+import org.valkyrienskies.mod.mixin.accessors.resource.ResourceKeyAccessor
 import org.valkyrienskies.physics_api.voxel_updates.DenseVoxelShapeUpdate
 import kotlin.math.min
 
@@ -41,7 +44,27 @@ val ServerLevel.shipObjectWorld
     get() = server.shipObjectWorld
 
 val Level.dimensionId: DimensionId
-    get() = dimension().toString()
+    get() {
+        val dim = dimension()
+        dim as ResourceKeyAccessor
+
+        return dim.registryName.toString() + ":" + dim.location().toString()
+    }
+
+fun getResourceKey(dimensionId: DimensionId): ResourceKey<Level> {
+    val cached = ResourceKeyAccessor.getValues()[dimensionId] as ResourceKey<Level>?
+    if (cached == null) {
+        val (registryNamespace, registryName, namespace, name) = dimensionId.split(":")
+        return ResourceKeyAccessor.callCreate(
+            ResourceLocation(registryNamespace, registryName), ResourceLocation(namespace, name)
+        )
+    }
+    return cached
+}
+
+fun MinecraftServer.getLevelFromDimensionId(dimensionId: DimensionId): ServerLevel? {
+    return getLevel(getResourceKey(dimensionId))
+}
 
 val ClientLevel.shipObjectWorld get() = (this as IShipObjectWorldClientProvider).shipObjectWorld
 

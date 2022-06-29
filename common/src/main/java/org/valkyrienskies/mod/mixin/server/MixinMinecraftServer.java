@@ -22,11 +22,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.game.IPlayer;
 import org.valkyrienskies.core.game.ships.ShipObjectServerWorld;
 import org.valkyrienskies.core.pipelines.VSPipeline;
-import org.valkyrienskies.mod.common.IServerLevelVSFunctions;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.ShipSavedData;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.MinecraftPlayer;
+import org.valkyrienskies.mod.common.world.ChunkManagement;
 import org.valkyrienskies.mod.event.RegistryEvents;
 import org.valkyrienskies.mod.mixinducks.server.IPlayerProvider;
 import org.valkyrienskies.physics_api_krunch.KrunchBootstrap;
@@ -159,9 +159,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     )
     private void preConnectionTick(final CallbackInfo ci) {
         shipWorld.tickShips();
-        for (final ServerLevel serverLevel : getAllLevels()) {
-            ((IServerLevelVSFunctions) serverLevel).loadShipTerrainBasedOnPlayerLocation();
-        }
+        ChunkManagement.tickChunkLoading(shipWorld, MinecraftServer.class.cast(this));
     }
 
     @Inject(

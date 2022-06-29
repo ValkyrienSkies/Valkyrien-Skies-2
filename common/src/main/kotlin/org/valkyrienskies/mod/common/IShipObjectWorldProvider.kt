@@ -17,10 +17,3 @@ interface IShipObjectWorldServerProvider : IShipObjectWorldProvider {
 interface IShipObjectWorldClientProvider : IShipObjectWorldProvider {
     override val shipObjectWorld: ShipObjectClientWorld
 }
-
-interface IServerLevelVSFunctions {
-    /**
-     * Load/unload ship chunks based on the location of players.
-     */
-    fun loadShipTerrainBasedOnPlayerLocation()
-}

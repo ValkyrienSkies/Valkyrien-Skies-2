@@ -30,7 +30,7 @@ object VSFabricNetworking {
 
     internal fun injectFabricPacketSenders() {
         VSNetworking.TCP.rawSendToClient = { data, player ->
-            val serverPlayer = (player as MinecraftPlayer).playerEntityReference.get() as ServerPlayer
+            val serverPlayer = (player as MinecraftPlayer).player as ServerPlayer
             ServerPlayNetworking.send(serverPlayer, VS_PACKET_ID, FriendlyByteBuf(data))
         }
         VSNetworking.TCP.rawSendToServer = { data ->
