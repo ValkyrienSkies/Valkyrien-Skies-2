@@ -57,10 +57,17 @@ object ChunkManagement {
                 "Unwatch task for dimension " + chunkUnwatchTask.dimensionId + ": " + chunkUnwatchTask.getChunkX()
                     + " : " + chunkUnwatchTask.getChunkZ()
             )
+            val chunkPos = ChunkPos(chunkUnwatchTask.getChunkX(), chunkUnwatchTask.getChunkZ())
+
+            if (chunkUnwatchTask.shouldUnload) {
+                val level = server.getLevelFromDimensionId(chunkUnwatchTask.dimensionId)!!
+                level.chunkSource.updateChunkForced(chunkPos, false)
+            }
+
             for (player in chunkUnwatchTask.playersNeedUnwatching) {
-                val chunkPos = ChunkPos(chunkUnwatchTask.getChunkX(), chunkUnwatchTask.getChunkZ())
                 (player.mcPlayer as ServerPlayer).untrackChunk(chunkPos)
             }
+            
             chunkUnwatchTask.onExecuteChunkUnwatchTask()
         }
     }
