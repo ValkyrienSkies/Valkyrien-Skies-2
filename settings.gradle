@@ -11,11 +11,6 @@ pluginManagement {
                     password = getProperty('vs_maven_password')
                 }
             }
-
-            content {
-                // this repository *only* contains artifacts with group "org.valkyrienskies"
-                includeGroup("org.valkyrienskies")
-            }
         }
         maven { url "https://maven.architectury.dev/" }
         maven { url "https://maven.fabricmc.net/" }
