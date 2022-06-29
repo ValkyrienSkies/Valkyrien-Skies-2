@@ -22,9 +22,12 @@
     "world.chunk.MixinLevelChunk"
   ],
   "client": [
+    "accessors.client.multiplayer.ClientLevelAccessor",
     "accessors.client.render.BuiltChunkStorageAccessor",
+    "accessors.client.render.LevelRendererAccessor",
     "accessors.client.render.OverlayVertexConsumerAccessor",
     "accessors.client.render.RenderChunkInfoAccessor",
+    "accessors.client.render.chunk.RenderChunkAccessor",
     "accessors.client.world.ClientChunkCacheStorageAccessor",
     "client.MixinMinecraft",
     "client.gui.hud.MixinGui",

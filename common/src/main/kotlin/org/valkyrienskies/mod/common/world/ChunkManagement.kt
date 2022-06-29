@@ -10,6 +10,7 @@ import org.valkyrienskies.core.game.ships.ShipObjectServerWorld
 import org.valkyrienskies.core.networking.impl.PacketShipDataList
 import org.valkyrienskies.core.networking.simple.sendToClient
 import org.valkyrienskies.mod.common.getLevelFromDimensionId
+import org.valkyrienskies.mod.common.mcPlayer
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.mixin.accessors.server.world.ChunkMapAccessor
 
@@ -20,7 +21,7 @@ object ChunkManagement {
 
         val packet = PacketShipDataList(shipWorld.queryableShipData.toList())
         shipWorld.players.forEach(packet::sendToClient)
-        
+
         // Use Spliterator instead of iterators so that we can multi thread the execution of these tasks
         // But for now just do it single threaded
         chunkWatchTasks.forEachRemaining { chunkWatchTask: ChunkWatchTask ->
@@ -56,6 +57,10 @@ object ChunkManagement {
                 "Unwatch task for dimension " + chunkUnwatchTask.dimensionId + ": " + chunkUnwatchTask.getChunkX()
                     + " : " + chunkUnwatchTask.getChunkZ()
             )
+            for (player in chunkUnwatchTask.playersNeedUnwatching) {
+                val chunkPos = ChunkPos(chunkUnwatchTask.getChunkX(), chunkUnwatchTask.getChunkZ())
+                (player.mcPlayer as ServerPlayer).untrackChunk(chunkPos)
+            }
             chunkUnwatchTask.onExecuteChunkUnwatchTask()
         }
     }
