@@ -25,7 +25,7 @@ object ChunkManagement {
         // Use Spliterator instead of iterators so that we can multi thread the execution of these tasks
         // But for now just do it single threaded
         chunkWatchTasks.forEachRemaining { chunkWatchTask: ChunkWatchTask ->
-            System.out.println(
+            println(
                 "Watch task for dimension " + chunkWatchTask.dimensionId + ": " + chunkWatchTask.getChunkX()
                     + " : " + chunkWatchTask.getChunkZ()
             )
@@ -53,7 +53,7 @@ object ChunkManagement {
         }
 
         chunkUnwatchTasks.forEachRemaining { chunkUnwatchTask: ChunkUnwatchTask ->
-            System.out.println(
+            println(
                 "Unwatch task for dimension " + chunkUnwatchTask.dimensionId + ": " + chunkUnwatchTask.getChunkX()
                     + " : " + chunkUnwatchTask.getChunkZ()
             )
@@ -67,7 +67,7 @@ object ChunkManagement {
             for (player in chunkUnwatchTask.playersNeedUnwatching) {
                 (player.mcPlayer as ServerPlayer).untrackChunk(chunkPos)
             }
-            
+
             chunkUnwatchTask.onExecuteChunkUnwatchTask()
         }
     }
