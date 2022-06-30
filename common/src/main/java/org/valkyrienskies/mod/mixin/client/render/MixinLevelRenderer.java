@@ -50,7 +50,9 @@ import org.valkyrienskies.core.game.ChunkAllocator;
 import org.valkyrienskies.core.game.ships.ShipObjectClient;
 import org.valkyrienskies.core.game.ships.ShipTransform;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.config.VSConfig;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
+import org.valkyrienskies.mod.common.world.DynamicLighting;
 import org.valkyrienskies.mod.mixin.accessors.client.render.BuiltChunkStorageAccessor;
 import org.valkyrienskies.mod.mixin.accessors.client.render.OverlayVertexConsumerAccessor;
 import org.valkyrienskies.mod.mixin.accessors.client.render.RenderChunkInfoAccessor;
@@ -81,6 +83,38 @@ public abstract class MixinLevelRenderer {
         final VoxelShape voxelShape, final double d, final double e, final double f, final float red, final float green,
         final float blue, final float alpha) {
         throw new AssertionError();
+    }
+
+    @Inject(
+        method = "renderLevel",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/client/renderer/LevelRenderer;setupRender(Lnet/minecraft/client/Camera;Lnet/minecraft/client/renderer/culling/Frustum;ZIZ)V"
+        )
+    )
+    private void onSetupRender(final PoseStack matrixStack, final float partialTicks, final long finishTimeNano,
+        final boolean drawBlockOutline, final Camera activeRenderInfo, final GameRenderer gameRenderer,
+        final LightTexture lightmap, final Matrix4f projection, final CallbackInfo ci) {
+
+        if (VSConfig.getEnableDynamicLights()) {
+            DynamicLighting.updateChunkLighting(level);
+        }
+    }
+
+    @Inject(
+        method = {
+            "getLightColor(Lnet/minecraft/world/level/BlockAndTintGetter;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;)I"},
+        at = {@At("TAIL")},
+        cancellable = true
+    )
+    private static void onGetLightmapCoordinates(final BlockAndTintGetter world, final BlockState state,
+        final BlockPos pos,
+        final CallbackInfoReturnable<Integer> cir) {
+
+        if (VSConfig.getEnableDynamicLights()) {
+            cir.setReturnValue(DynamicLighting.getLightColor(world, state, pos, cir.getReturnValue()));
+        }
+
     }
 
     /**
