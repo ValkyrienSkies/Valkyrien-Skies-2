@@ -38,9 +38,7 @@ object ChunkManagement {
             for (player in chunkWatchTask.playersNeedWatching) {
                 val minecraftPlayer = player as MinecraftPlayer
                 if (chunkWatchTask.dimensionId != player.dimension) {
-                    println(
-                        "WARN: Player received watch task for chunk in dimension that they are not also in!"
-                    )
+                    println("WARN: Player received watch task for chunk in dimension that they are not also in!")
                 }
                 val serverPlayerEntity =
                     minecraftPlayer.playerEntityReference.get() as ServerPlayer?
