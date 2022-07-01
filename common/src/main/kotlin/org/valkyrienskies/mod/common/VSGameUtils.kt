@@ -167,6 +167,23 @@ fun LevelChunkSection.toDenseVoxelUpdate(chunkPos: Vector3ic): DenseVoxelShapeUp
     return update
 }
 
+fun LevelChunkSection.addChunkBlocksToShipVoxelAABB(chunkPos: Vector3ic, shipData: ShipData) {
+    // Send the blocks in the chunk to the AABB generator of [shipData]
+    val chunkBaseX = chunkPos.x() shl 4
+    val chunkBaseY = chunkPos.y() shl 4
+    val chunkBaseZ = chunkPos.z() shl 4
+    for (y in 0 until 16) {
+        for (z in 0 until 16) {
+            for (x in 0 until 16) {
+                val blockState: VSBlockType = BlockStateInfo.get(getBlockState(x, y, z))?.second ?: VSBlockType.AIR
+                shipData.updateShipAABBGenerator(
+                    chunkBaseX + x, chunkBaseY + y, chunkBaseZ + z, blockState != VSBlockType.AIR
+                )
+            }
+        }
+    }
+}
+
 object VSGameUtils {
 
     /**

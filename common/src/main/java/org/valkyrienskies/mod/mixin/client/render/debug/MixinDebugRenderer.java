@@ -9,6 +9,7 @@ import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.debug.DebugRenderer;
 import net.minecraft.world.phys.AABB;
 import org.joml.Quaterniondc;
+import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.joml.primitives.AABBdc;
 import org.spongepowered.asm.mixin.Mixin;
@@ -18,6 +19,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.game.ships.ShipObjectClient;
 import org.valkyrienskies.core.game.ships.ShipObjectClientWorld;
 import org.valkyrienskies.core.game.ships.ShipTransform;
+import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(DebugRenderer.class)
@@ -51,14 +53,46 @@ public class MixinDebugRenderer {
                     .renderLineBox(matrices, vertexConsumers.getBuffer(RenderType.lines()), shipCenterOfMassBox,
                         1.0F, 1.0F, 1.0F, 1.0F);
 
-                final AABBdc shipAABBdc = shipObjectClient.getDebugShipPhysicsAABB();
+                // Render AABB from Krunch
+                final AABBdc shipPhysicsAABBdc = shipObjectClient.getDebugShipPhysicsAABB();
                 final AABB shipAABB =
-                    new AABB(shipAABBdc.minX(), shipAABBdc.minY(), shipAABBdc.minZ(), shipAABBdc.maxX(),
-                        shipAABBdc.maxY(), shipAABBdc.maxZ());
+                    new AABB(shipPhysicsAABBdc.minX(), shipPhysicsAABBdc.minY(), shipPhysicsAABBdc.minZ(),
+                        shipPhysicsAABBdc.maxX(),
+                        shipPhysicsAABBdc.maxY(), shipPhysicsAABBdc.maxZ());
                 LevelRenderer
                     .renderLineBox(matrices, vertexConsumers.getBuffer(RenderType.lines()),
                         shipAABB.move(-cameraX, -cameraY, -cameraZ),
                         1.0F, 0.0F, 0.0F, 1.0F);
+
+                // Render the ship's voxel AABB
+                final AABBdc shipVoxelAABBdc = shipObjectClient.getShipData().getShipVoxelAABB();
+                if (shipVoxelAABBdc != null) {
+                    matrices.pushPose();
+                    final Vector3dc centerOfAABB = shipVoxelAABBdc.center(new Vector3d());
+
+                    // Offset the AABB by -[centerOfAABB] to fix floating point errors.
+                    final AABB shipVoxelAABBAfterOffset =
+                        new AABB(
+                            shipVoxelAABBdc.minX() - centerOfAABB.x(),
+                            shipVoxelAABBdc.minY() - centerOfAABB.y(),
+                            shipVoxelAABBdc.minZ() - centerOfAABB.z(),
+                            shipVoxelAABBdc.maxX() - centerOfAABB.x(),
+                            shipVoxelAABBdc.maxY() - centerOfAABB.y(),
+                            shipVoxelAABBdc.maxZ() - centerOfAABB.z()
+                        );
+
+                    // Offset the transform of the AABB by [centerOfAABB] to account for [shipVoxelAABBAfterOffset]
+                    // being offset by -[centerOfAABB].
+                    VSClientGameUtils.transformRenderWithShip(
+                        shipRenderTransform, matrices,
+                        centerOfAABB.x(), centerOfAABB.y(), centerOfAABB.z(),
+                        cameraX, cameraY, cameraZ);
+
+                    LevelRenderer
+                        .renderLineBox(matrices, vertexConsumers.getBuffer(RenderType.lines()),
+                            shipVoxelAABBAfterOffset, 1.0F, 0.0F, 0.0F, 1.0F);
+                    matrices.popPose();
+                }
             }
         }
     }
