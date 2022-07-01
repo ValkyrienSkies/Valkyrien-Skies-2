@@ -130,6 +130,10 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                             final DenseVoxelShapeUpdate voxelShapeUpdate =
                                 VSGameUtilsKt.toDenseVoxelUpdate(chunkSection, chunkPos);
                             newLoadedChunks.add(voxelShapeUpdate);
+
+                            if (shipData != null) {
+                                VSGameUtilsKt.addChunkBlocksToShipVoxelAABB(chunkSection, chunkPos, shipData);
+                            }
                         } else {
                             final EmptyVoxelShapeUpdate emptyVoxelShapeUpdate =
                                 new EmptyVoxelShapeUpdate(chunkPos.x(), chunkPos.y(), chunkPos.z(), false, true);
