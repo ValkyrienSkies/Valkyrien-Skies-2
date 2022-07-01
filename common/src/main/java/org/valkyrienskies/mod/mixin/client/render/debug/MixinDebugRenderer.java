@@ -92,13 +92,13 @@ public class MixinDebugRenderer {
                     matrices.popPose();
                 }
 
-                // Render the ship's AABB
-                final AABBdc shipAABBdc = shipObjectClient.getShipData().getShipAABB();
-                if (shipAABBdc != null) {
-                    final AABB shipAABB = VectorConversionsMCKt.toMinecraft(shipAABBdc);
+                // Render the ship's render AABB
+                final AABBdc shipRenderAABBdc = shipObjectClient.getRenderAABB();
+                if (shipRenderAABBdc != null) {
+                    final AABB shipRenderAABB = VectorConversionsMCKt.toMinecraft(shipRenderAABBdc);
                     LevelRenderer
                         .renderLineBox(matrices, vertexConsumers.getBuffer(RenderType.lines()),
-                            shipAABB.move(-cameraX, -cameraY, -cameraZ),
+                            shipRenderAABB.move(-cameraX, -cameraY, -cameraZ),
                             234.0F / 255.0F, 0.0F, 217.0f / 255.0f, 1.0F);
                 }
             }
