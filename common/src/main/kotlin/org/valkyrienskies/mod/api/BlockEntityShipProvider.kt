@@ -8,7 +8,7 @@ import org.valkyrienskies.core.api.ShipProvider
 import org.valkyrienskies.core.game.ships.ShipObject
 
 interface BlockEntityShipProvider : ShipProvider {
-    override var ship: Ship
+    override var ship: Ship?
 
     /**
      * Gets called on block entity creation and relocation
