@@ -53,12 +53,16 @@ public class MixinDebugRenderer {
                     .renderLineBox(matrices, vertexConsumers.getBuffer(RenderType.lines()), shipCenterOfMassBox,
                         1.0F, 1.0F, 1.0F, 1.0F);
 
-                // Render AABB from Krunch
+                // Render the ship's physics AABB from Krunch
                 final AABBdc shipPhysicsAABBdc = shipObjectClient.getDebugShipPhysicsAABB();
-                final AABB shipAABB =
-                    new AABB(shipPhysicsAABBdc.minX(), shipPhysicsAABBdc.minY(), shipPhysicsAABBdc.minZ(),
-                        shipPhysicsAABBdc.maxX(),
-                        shipPhysicsAABBdc.maxY(), shipPhysicsAABBdc.maxZ());
+                final AABB shipAABB = new AABB(
+                    shipPhysicsAABBdc.minX(),
+                    shipPhysicsAABBdc.minY(),
+                    shipPhysicsAABBdc.minZ(),
+                    shipPhysicsAABBdc.maxX(),
+                    shipPhysicsAABBdc.maxY(),
+                    shipPhysicsAABBdc.maxZ()
+                );
                 LevelRenderer
                     .renderLineBox(matrices, vertexConsumers.getBuffer(RenderType.lines()),
                         shipAABB.move(-cameraX, -cameraY, -cameraZ),

@@ -13,9 +13,14 @@ object VSClientGameUtils {
      */
     @JvmStatic
     fun transformRenderWithShip(
-        renderTransform: ShipTransform, poseStack: PoseStack,
-        offsetX: Double, offsetY: Double, offsetZ: Double,
-        camX: Double, camY: Double, camZ: Double
+        renderTransform: ShipTransform,
+        poseStack: PoseStack,
+        offsetX: Double,
+        offsetY: Double,
+        offsetZ: Double,
+        camX: Double,
+        camY: Double,
+        camZ: Double
     ) {
         val shipToWorldMatrix = renderTransform.shipToWorldMatrix
 
@@ -25,7 +30,7 @@ object VSClientGameUtils {
         renderMatrix.mul(shipToWorldMatrix)
         renderMatrix.translate(offsetX, offsetY, offsetZ)
 
-        // Apply the render matrix to the
+        // Multiply the last transform of [poseStack] by [shipToWorldMatrix]
         poseStack.multiply(renderMatrix, renderTransform.shipCoordinatesToWorldCoordinatesRotation)
     }
 }
