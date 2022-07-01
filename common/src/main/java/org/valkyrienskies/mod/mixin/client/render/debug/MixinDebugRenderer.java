@@ -21,6 +21,7 @@ import org.valkyrienskies.core.game.ships.ShipObjectClientWorld;
 import org.valkyrienskies.core.game.ships.ShipTransform;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(DebugRenderer.class)
 public class MixinDebugRenderer {
@@ -55,17 +56,10 @@ public class MixinDebugRenderer {
 
                 // Render the ship's physics AABB from Krunch
                 final AABBdc shipPhysicsAABBdc = shipObjectClient.getDebugShipPhysicsAABB();
-                final AABB shipAABB = new AABB(
-                    shipPhysicsAABBdc.minX(),
-                    shipPhysicsAABBdc.minY(),
-                    shipPhysicsAABBdc.minZ(),
-                    shipPhysicsAABBdc.maxX(),
-                    shipPhysicsAABBdc.maxY(),
-                    shipPhysicsAABBdc.maxZ()
-                );
+                final AABB shipPhysicsAABB = VectorConversionsMCKt.toMinecraft(shipPhysicsAABBdc);
                 LevelRenderer
                     .renderLineBox(matrices, vertexConsumers.getBuffer(RenderType.lines()),
-                        shipAABB.move(-cameraX, -cameraY, -cameraZ),
+                        shipPhysicsAABB.move(-cameraX, -cameraY, -cameraZ),
                         1.0F, 0.0F, 0.0F, 1.0F);
 
                 // Render the ship's voxel AABB
@@ -96,6 +90,16 @@ public class MixinDebugRenderer {
                         .renderLineBox(matrices, vertexConsumers.getBuffer(RenderType.lines()),
                             shipVoxelAABBAfterOffset, 1.0F, 0.0F, 0.0F, 1.0F);
                     matrices.popPose();
+                }
+
+                // Render the ship's AABB
+                final AABBdc shipAABBdc = shipObjectClient.getShipData().getShipAABB();
+                if (shipAABBdc != null) {
+                    final AABB shipAABB = VectorConversionsMCKt.toMinecraft(shipAABBdc);
+                    LevelRenderer
+                        .renderLineBox(matrices, vertexConsumers.getBuffer(RenderType.lines()),
+                            shipAABB.move(-cameraX, -cameraY, -cameraZ),
+                            234.0F / 255.0F, 0.0F, 217.0f / 255.0f, 1.0F);
                 }
             }
         }
