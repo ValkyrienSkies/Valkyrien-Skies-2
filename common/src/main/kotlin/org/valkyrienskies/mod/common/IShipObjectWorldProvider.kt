@@ -6,7 +6,7 @@ import org.valkyrienskies.core.game.ships.ShipObjectWorld
 import org.valkyrienskies.core.pipelines.VSPipeline
 
 interface IShipObjectWorldProvider {
-    val shipObjectWorld: ShipObjectWorld
+    val shipObjectWorld: ShipObjectWorld<*>
 }
 
 interface IShipObjectWorldServerProvider : IShipObjectWorldProvider {

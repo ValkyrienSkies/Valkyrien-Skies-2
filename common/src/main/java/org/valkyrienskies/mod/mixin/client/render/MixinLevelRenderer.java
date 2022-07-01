@@ -140,6 +140,11 @@ public abstract class MixinLevelRenderer {
         final BlockPos.MutableBlockPos tempPos = new BlockPos.MutableBlockPos();
         final BuiltChunkStorageAccessor chunkStorageAccessor = (BuiltChunkStorageAccessor) viewArea;
         for (final ShipObjectClient shipObject : VSGameUtilsKt.getShipObjectWorld(level).getShipObjects().values()) {
+            // Don't bother rendering the ship if its AABB isn't visible to the frustum
+            if (!frustum.isVisible(VectorConversionsMCKt.toMinecraft(shipObject.getRenderAABB()))) {
+                continue;
+            }
+
             shipObject.getShipData().getShipActiveChunksSet().iterateChunkPos((x, z) -> {
                 for (int y = 0; y < 16; y++) {
                     tempPos.set(x << 4, y << 4, z << 4);
