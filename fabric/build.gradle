@@ -36,7 +36,7 @@ dependencies {
     // Depend on the fabric API
     modImplementation("net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}")
 
-    implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {
+    compileOnly("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {
         exclude module: "netty-buffer"
         exclude module: "fastutil"
         exclude module: "kotlin-stdlib-jdk8"
