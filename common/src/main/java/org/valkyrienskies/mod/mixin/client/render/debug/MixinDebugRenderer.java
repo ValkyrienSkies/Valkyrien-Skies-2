@@ -12,6 +12,7 @@ import org.joml.Quaterniondc;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.joml.primitives.AABBdc;
+import org.joml.primitives.AABBic;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -63,20 +64,20 @@ public class MixinDebugRenderer {
                         1.0F, 0.0F, 0.0F, 1.0F);
 
                 // Render the ship's voxel AABB
-                final AABBdc shipVoxelAABBdc = shipObjectClient.getShipData().getShipVoxelAABB();
-                if (shipVoxelAABBdc != null) {
+                final AABBic shipVoxelAABBic = shipObjectClient.getShipData().getShipVoxelAABB();
+                if (shipVoxelAABBic != null) {
                     matrices.pushPose();
-                    final Vector3dc centerOfAABB = shipVoxelAABBdc.center(new Vector3d());
+                    final Vector3dc centerOfAABB = shipVoxelAABBic.center(new Vector3d());
 
                     // Offset the AABB by -[centerOfAABB] to fix floating point errors.
                     final AABB shipVoxelAABBAfterOffset =
                         new AABB(
-                            shipVoxelAABBdc.minX() - centerOfAABB.x(),
-                            shipVoxelAABBdc.minY() - centerOfAABB.y(),
-                            shipVoxelAABBdc.minZ() - centerOfAABB.z(),
-                            shipVoxelAABBdc.maxX() - centerOfAABB.x(),
-                            shipVoxelAABBdc.maxY() - centerOfAABB.y(),
-                            shipVoxelAABBdc.maxZ() - centerOfAABB.z()
+                            shipVoxelAABBic.minX() - centerOfAABB.x(),
+                            shipVoxelAABBic.minY() - centerOfAABB.y(),
+                            shipVoxelAABBic.minZ() - centerOfAABB.z(),
+                            shipVoxelAABBic.maxX() - centerOfAABB.x(),
+                            shipVoxelAABBic.maxY() - centerOfAABB.y(),
+                            shipVoxelAABBic.maxZ() - centerOfAABB.z()
                         );
 
                     // Offset the transform of the AABB by [centerOfAABB] to account for [shipVoxelAABBAfterOffset]
@@ -94,13 +95,11 @@ public class MixinDebugRenderer {
 
                 // Render the ship's render AABB
                 final AABBdc shipRenderAABBdc = shipObjectClient.getRenderAABB();
-                if (shipRenderAABBdc != null) {
-                    final AABB shipRenderAABB = VectorConversionsMCKt.toMinecraft(shipRenderAABBdc);
-                    LevelRenderer
-                        .renderLineBox(matrices, vertexConsumers.getBuffer(RenderType.lines()),
-                            shipRenderAABB.move(-cameraX, -cameraY, -cameraZ),
-                            234.0F / 255.0F, 0.0F, 217.0f / 255.0f, 1.0F);
-                }
+                final AABB shipRenderAABB = VectorConversionsMCKt.toMinecraft(shipRenderAABBdc);
+                LevelRenderer
+                    .renderLineBox(matrices, vertexConsumers.getBuffer(RenderType.lines()),
+                        shipRenderAABB.move(-cameraX, -cameraY, -cameraZ),
+                        234.0F / 255.0F, 0.0F, 217.0f / 255.0f, 1.0F);
             }
         }
     }
