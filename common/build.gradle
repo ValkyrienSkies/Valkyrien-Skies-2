@@ -5,7 +5,7 @@ dependencies {
     modImplementation "net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}"
 
     // vs-core
-    compileOnly("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {
+    implementation("org.valkyrienskies.core:vs-core") {
         exclude module: "netty-buffer"
         exclude module: "fastutil"
     }
