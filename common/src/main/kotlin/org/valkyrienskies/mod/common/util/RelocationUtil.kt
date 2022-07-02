@@ -5,10 +5,7 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.chunk.LevelChunk
 
 // the from and the to can be local or global
-fun relocateBlock(fromChunk: LevelChunk, fromP: BlockPos, toChunk: LevelChunk, toP: BlockPos) {
-    val from = fromP.localize()
-    val to = toP.localize()
-
+fun relocateBlock(fromChunk: LevelChunk, from: BlockPos, toChunk: LevelChunk, to: BlockPos) {
     val state = fromChunk.getBlockState(from)
     val entity = fromChunk.getBlockEntity(from)
 
@@ -22,5 +19,3 @@ fun relocateBlock(fromChunk: LevelChunk, fromP: BlockPos, toChunk: LevelChunk, t
 
 fun Level.relocateBlock(from: BlockPos, to: BlockPos) =
     relocateBlock(getChunkAt(from), from, getChunkAt(to), to)
-
-fun BlockPos.localize() = BlockPos(x and 15, y, z and 15)
