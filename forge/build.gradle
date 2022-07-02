@@ -59,7 +59,7 @@ dependencies {
     forgeRuntimeLibrary("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
 
     // Shade vs-core
-    compileOnly("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {
+    implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {
         exclude module: "netty-buffer"
         exclude module: "fastutil"
     }
