@@ -100,14 +100,15 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         return vsPipeline;
     }
 
+    /**
+     * Create the ship world immediately after the levels are created, so that nothing can try to access the ship world
+     * before it has been initialized.
+     */
     @Inject(
-        method = "runServer",
-        at = @At(
-            value = "INVOKE_ASSIGN",
-            target = "Lnet/minecraft/server/MinecraftServer;initServer()Z"
-        )
+        method = "createLevels",
+        at = @At("TAIL")
     )
-    private void preRunServer(final CallbackInfo ci) {
+    private void postCreateLevels(final CallbackInfo ci) {
         KrunchBootstrap.INSTANCE.loadNativeBinaries();
 
         // Load ship data from the world storage
@@ -117,7 +118,6 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         // Create ship world and VS Pipeline
         shipWorld = new ShipObjectServerWorld(shipSavedData.getQueryableShipData(), shipSavedData.getChunkAllocator());
         vsPipeline = new VSPipeline(shipWorld);
-
         RegistryEvents.registriesAreComplete();
     }
 

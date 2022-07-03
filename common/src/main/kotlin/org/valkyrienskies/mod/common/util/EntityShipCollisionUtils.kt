@@ -10,6 +10,7 @@ import org.joml.primitives.AABBdc
 import org.valkyrienskies.core.collision.ConvexPolygonc
 import org.valkyrienskies.core.collision.EntityPolygonCollider
 import org.valkyrienskies.core.collision.TransformedCuboidPolygon.Companion.createFromAABB
+import org.valkyrienskies.core.util.extend
 import org.valkyrienskies.mod.common.shipObjectWorld
 
 object EntityShipCollisionUtils {
@@ -43,7 +44,8 @@ object EntityShipCollisionUtils {
     ): List<ConvexPolygonc> {
         val entityBoxWithMovement = entityBoundingBox.expandTowards(movement)
         val collidingPolygons: MutableList<ConvexPolygonc> = ArrayList()
-        for (shipObject in world.shipObjectWorld.shipObjects.values) {
+        val entityBoundingBoxExtended = entityBoundingBox.toJOML().extend(movement.toJOML())
+        for (shipObject in world.shipObjectWorld.getShipObjectsIntersecting(entityBoundingBoxExtended)) {
             val shipTransform = shipObject.shipData.shipTransform
             val entityPolyInShipCoordinates: ConvexPolygonc = createFromAABB(
                 entityBoxWithMovement.toJOML(),

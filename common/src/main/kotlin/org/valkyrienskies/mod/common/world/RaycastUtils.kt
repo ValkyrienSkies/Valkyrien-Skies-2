@@ -11,6 +11,8 @@ import net.minecraft.world.level.material.FluidState
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.HitResult
 import net.minecraft.world.phys.Vec3
+import org.joml.primitives.AABBd
+import org.joml.primitives.AABBdc
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toVec3d
@@ -25,10 +27,11 @@ fun ClientLevel.clipIncludeShips(ctx: ClipContext, shouldTransformHitPos: Boolea
     var closestHitPos = vanillaHit.location
     var closestHitDist = closestHitPos.distanceToSqr(ctx.from)
 
-    // TODO make this more efficient
+    val clipAABB: AABBdc = AABBd(ctx.from.toJOML(), ctx.to.toJOML()).correctBounds()
+
     // Iterate every ship, find do the raycast in ship space,
     // choose the raycast with the lowest distance to the start position.
-    for (ship in shipObjectWorld.shipObjects.values) {
+    for (ship in shipObjectWorld.getShipObjectsIntersecting(clipAABB)) {
         val worldToShip = ship.renderTransform.worldToShipMatrix
         val shipToWorld = ship.renderTransform.shipToWorldMatrix
         val shipStart = worldToShip.transformPosition(ctx.from.toJOML()).toVec3d()
