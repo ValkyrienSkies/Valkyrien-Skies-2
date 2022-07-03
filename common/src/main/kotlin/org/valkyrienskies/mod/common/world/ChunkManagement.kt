@@ -15,8 +15,8 @@ import org.valkyrienskies.mod.mixin.accessors.server.world.ChunkMapAccessor
 object ChunkManagement {
     @JvmStatic
     fun tickChunkLoading(shipWorld: ShipObjectServerWorld, server: MinecraftServer) {
-        val (chunkWatchTasks, chunkUnwatchTasks) = shipWorld.tickShipChunkLoading()
-        
+        val (chunkWatchTasks, chunkUnwatchTasks) = shipWorld.getChunkWatchUnwatchTasks()
+
         // Use Spliterator instead of iterators so that we can multi thread the execution of these tasks
         // But for now just do it single threaded
         chunkWatchTasks.forEachRemaining { chunkWatchTask: ChunkWatchTask ->
