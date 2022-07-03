@@ -34,7 +34,7 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
           restore-keys: ${{ runner.os }}-gradle
       - name: Build and analyze
-        run: ./gradlew build --info
+        run: ./gradlew build -Dloom.refresh --info
         continue-on-error: true # still upload checkstyle report even if build fails
       - uses: jwgmeligmeyling/checkstyle-github-action@master # show checkstyle/ktlint report
         with:
