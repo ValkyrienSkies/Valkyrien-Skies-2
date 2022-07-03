@@ -20,7 +20,7 @@ jobs:
     strategy:
       matrix:
         java: [ 17 ] # Build on Java 17
-        serverType: [ 'fabric', 'forge' ]
+        serverType: [ 'fabric' ]
     runs-on: ubuntu-latest
     timeout-minutes: 20 # Fail after 20 minutes
     steps:
