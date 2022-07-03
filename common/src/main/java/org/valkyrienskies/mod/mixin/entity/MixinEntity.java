@@ -2,6 +2,7 @@ package org.valkyrienskies.mod.mixin.entity;
 
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
+import net.minecraft.util.Mth;
 import net.minecraft.util.RewindableStream;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.MoverType;
@@ -16,12 +17,14 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 
@@ -29,7 +32,13 @@ import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 public abstract class MixinEntity {
 
     @Shadow
-    public abstract void setDeltaMovement(Vec3 motion);
+    public abstract double getZ();
+
+    @Shadow
+    public abstract double getY();
+
+    @Shadow
+    public abstract double getX();
 
     @Redirect(
         method = "pick",
@@ -101,6 +110,36 @@ public abstract class MixinEntity {
         callbackInfo.cancel();
     }
 
+    // This whole part changes distanceTo(sqrt) to use ship locations if needed.
+    // and unjank mojank
+
+    /**
+     * @author ewoudje
+     * @reason unjank mojank, we need to modify distanceTo's so while were at it unjank it
+     */
+    @Overwrite
+    public float distanceTo(final Entity entity) {
+        return Mth.sqrt(distanceToSqr(entity));
+    }
+
+    /**
+     * @author ewoudje
+     * @reason unjank mojank, we need to modify distanceTo's so while were at it unjank it
+     */
+    @Overwrite
+    public double distanceToSqr(final Vec3 vec) {
+        return distanceToSqr(vec.x, vec.y, vec.z);
+    }
+
+    /**
+     * @author ewoudje
+     * @reason it fixes general issues when checking for distance between in world player and ship things
+     */
+    @Overwrite
+    public double distanceToSqr(final double x, final double y, final double z) {
+        return VSGameUtilsKt.squaredDistanceToInclShips((Entity) (Object) this, x, y, z);
+    }
+
     // region shadow functions and fields
     @Shadow
     public Level level;
@@ -108,6 +147,12 @@ public abstract class MixinEntity {
     protected boolean onGround;
     @Shadow
     public float maxUpStep;
+
+    @Shadow
+    public abstract void setDeltaMovement(Vec3 motion);
+
+    @Shadow
+    public abstract double distanceToSqr(final Entity entity);
 
     @Shadow
     public abstract AABB getBoundingBox();
