@@ -53,7 +53,7 @@ public class MixinDebugRenderer {
                         .move(-cameraX, -cameraY, -cameraZ);
                 LevelRenderer
                     .renderLineBox(matrices, vertexConsumers.getBuffer(RenderType.lines()), shipCenterOfMassBox,
-                        1.0F, 1.0F, 1.0F, 1.0F);
+                        250.0F / 255.0F, 194.0F / 255.0F, 19.0F / 255.0F, 1.0F);
 
                 // Render the ship's physics AABB from Krunch
                 final AABBdc shipPhysicsAABBdc = shipObjectClient.getDebugShipPhysicsAABB();
