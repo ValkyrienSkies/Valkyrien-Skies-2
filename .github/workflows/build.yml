@@ -36,6 +36,16 @@ jobs:
       - name: Build and analyze
         run: ./gradlew build --info
         continue-on-error: true # still upload checkstyle report even if build fails
+      - uses: actions/upload-artifact@v3
+        with:
+          name: fabric artifacts
+          path: |
+            fabric/build/libs/*.jar
+      - uses: actions/upload-artifact@v3
+        with:
+          name: forge artifacts
+          path: |
+            forge/build/libs/*.jar
       - uses: jwgmeligmeyling/checkstyle-github-action@master # show checkstyle/ktlint report
         with:
           path: |

@@ -21,8 +21,8 @@ object ChunkManagement {
         // But for now just do it single threaded
         chunkWatchTasks.forEachRemaining { chunkWatchTask: ChunkWatchTask ->
             println(
-                "Watch task for dimension " + chunkWatchTask.dimensionId + ": " + chunkWatchTask.getChunkX()
-                    + " : " + chunkWatchTask.getChunkZ()
+                "Watch task for dimension " + chunkWatchTask.dimensionId + ": " +
+                    chunkWatchTask.getChunkX() + " : " + chunkWatchTask.getChunkZ()
             )
             val chunkPacketBuffer: Array<Packet<*>?> = arrayOfNulls(2)
             val chunkPos = ChunkPos(chunkWatchTask.getChunkX(), chunkWatchTask.getChunkZ())
@@ -47,8 +47,8 @@ object ChunkManagement {
 
         chunkUnwatchTasks.forEachRemaining { chunkUnwatchTask: ChunkUnwatchTask ->
             println(
-                "Unwatch task for dimension " + chunkUnwatchTask.dimensionId + ": " + chunkUnwatchTask.getChunkX()
-                    + " : " + chunkUnwatchTask.getChunkZ()
+                "Unwatch task for dimension " + chunkUnwatchTask.dimensionId + ": " +
+                    chunkUnwatchTask.getChunkX() + " : " + chunkUnwatchTask.getChunkZ()
             )
             val chunkPos = ChunkPos(chunkUnwatchTask.getChunkX(), chunkUnwatchTask.getChunkZ())
 
