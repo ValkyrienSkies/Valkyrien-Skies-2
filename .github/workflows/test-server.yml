@@ -20,6 +20,7 @@ jobs:
     strategy:
       matrix:
         java: [ 17 ] # Build on Java 17
+        serverType: [ 'fabric', 'forge' ]
     runs-on: ubuntu-latest
     timeout-minutes: 20 # Fail after 20 minutes
     steps:
@@ -41,4 +42,4 @@ jobs:
       - name: Test Fabric Server
         uses: ValkyrienSkies/Minecraft-Architectury-Testing@v1.8
         with:
-          serverType: 'fabric'
+          serverType: ${{ matrix.serverType }}
