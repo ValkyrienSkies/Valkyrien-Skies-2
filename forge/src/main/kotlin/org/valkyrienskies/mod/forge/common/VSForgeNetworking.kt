@@ -45,7 +45,8 @@ object VSForgeNetworking {
     private fun injectForgePacketSenders() {
         VSNetworking.TCP.rawSendToClient = { data, player ->
             vsForgeChannel.send(
-                PacketDistributor.PLAYER.with { player.mcPlayer as ServerPlayer }, MessageVSPacket(data)
+                PacketDistributor.PLAYER.with { player.mcPlayer as ServerPlayer },
+                MessageVSPacket(data)
             )
         }
     }
