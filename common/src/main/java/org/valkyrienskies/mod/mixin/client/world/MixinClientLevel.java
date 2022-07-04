@@ -31,8 +31,8 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
         return shipObjectWorld;
     }
 
-    @Inject(method = "tick", at = @At("TAIL"))
-    private void postTick(final BooleanSupplier shouldKeepTicking, final CallbackInfo ci) {
+    @Inject(method = "tick", at = @At("HEAD"))
+    private void preTick(final BooleanSupplier shouldKeepTicking, final CallbackInfo ci) {
         // Tick the ship world
         shipObjectWorld.tickShips();
     }
