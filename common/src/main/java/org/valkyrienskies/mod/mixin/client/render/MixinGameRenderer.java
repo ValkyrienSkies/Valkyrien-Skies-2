@@ -7,6 +7,8 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import org.joml.Vector3d;
+import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -15,9 +17,11 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.valkyrienskies.core.game.IEntityProvider;
 import org.valkyrienskies.core.game.ships.ShipObjectClient;
 import org.valkyrienskies.core.game.ships.ShipObjectClientWorld;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.util.MinecraftEntity;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 import org.valkyrienskies.mod.mixinducks.client.MinecraftDuck;
 
@@ -76,7 +80,68 @@ public class MixinGameRenderer {
             for (final ShipObjectClient shipObjectClient : shipWorld.getShipObjects().values()) {
                 shipObjectClient.updateRenderShipTransform(tickDelta);
             }
+
+            // Also update entity last tick positions, so that they interpolate correctly
+            for (final Entity entity : clientWorld.entitiesForRendering()) {
+                final MinecraftEntity vsEntity = (MinecraftEntity) ((IEntityProvider) entity).getVsEntity();
+                final Long lastShipStoodOn = vsEntity.getLastShipStoodOn();
+                if (lastShipStoodOn != null) {
+                    final ShipObjectClient shipObject = VSGameUtilsKt.getShipObjectWorld(clientWorld).getShipObjects().get(lastShipStoodOn);
+                    if (shipObject != null) {
+                        vsEntity.setCachedLastPosition(new Vector3d(entity.xo, entity.yo, entity.zo));
+                        vsEntity.setRestoreCachedLastPosition(true);
+
+                        // The velocity added to the entity by ship dragging
+                        final Vector3dc entityAddedVelocity = vsEntity.getAddedMovementLastTick();
+
+                        // The velocity of the entity before we added ship dragging
+                        final double entityMovementX = entity.getX() - entityAddedVelocity.x() - entity.xo;
+                        final double entityMovementY = entity.getY() - entityAddedVelocity.y() - entity.yo;
+                        final double entityMovementZ = entity.getZ() - entityAddedVelocity.z() - entity.zo;
+
+                        // Without ship dragging, the entity would've been here
+                        final Vector3dc entityShouldBeHerePreTransform = new Vector3d(
+                            entity.xo + entityMovementX * tickDelta,
+                            entity.yo + entityMovementY * tickDelta,
+                            entity.zo + entityMovementZ * tickDelta
+                        );
+
+                        // Move [entityShouldBeHerePreTransform] with the ship, using the prev transform and the current
+                        // render transform
+                        final Vector3dc entityShouldBeHere = shipObject.getRenderTransform().getShipToWorldMatrix()
+                            .transformPosition(shipObject.getShipData().getPrevTickShipTransform().getWorldToShipMatrix()
+                                .transformPosition(entityShouldBeHerePreTransform, new Vector3d()));
+
+                        // Update the entity last tick positions such that Minecraft will interpolate the position
+                        // correctly
+                        entity.xo = (entityShouldBeHere.x() - (entity.getX() * tickDelta)) / (1 - tickDelta);
+                        entity.yo = (entityShouldBeHere.y() - (entity.getY() * tickDelta)) / (1 - tickDelta);
+                        entity.zo = (entityShouldBeHere.z() - (entity.getZ() * tickDelta)) / (1 - tickDelta);
+                    }
+                }
+            }
         }
     }
 
+    @Inject(method = "render", at = @At("TAIL"))
+    private void postRender(final float tickDelta, final long startTime, final boolean tick, final CallbackInfo ci) {
+        final ClientLevel clientWorld = minecraft.level;
+        if (clientWorld != null) {
+            // Restore the entity last tick positions that were replaced during this frame
+            for (final Entity entity : clientWorld.entitiesForRendering()) {
+                final MinecraftEntity vsEntity = (MinecraftEntity) ((IEntityProvider) entity).getVsEntity();
+                if (vsEntity.getRestoreCachedLastPosition()) {
+                    vsEntity.setRestoreCachedLastPosition(false);
+                    final Vector3dc cachedLastPosition = vsEntity.getCachedLastPosition();
+                    if (cachedLastPosition != null) {
+                        entity.xo = cachedLastPosition.x();
+                        entity.yo = cachedLastPosition.y();
+                        entity.zo = cachedLastPosition.z();
+                    } else {
+                        System.err.println("How was cachedLastPosition was null?");
+                    }
+                }
+            }
+        }
+    }
 }
