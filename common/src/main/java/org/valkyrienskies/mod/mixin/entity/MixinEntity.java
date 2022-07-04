@@ -14,22 +14,30 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
+import org.valkyrienskies.core.game.IEntity;
+import org.valkyrienskies.core.game.IEntityProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils;
+import org.valkyrienskies.mod.common.util.MinecraftEntity;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 
 @Mixin(Entity.class)
-public abstract class MixinEntity {
+public abstract class MixinEntity implements IEntityProvider {
+
+    @Unique
+    private final IEntity vsEntity = new MinecraftEntity(Entity.class.cast(this));
 
     @Shadow
     public abstract double getZ();
@@ -176,4 +184,9 @@ public abstract class MixinEntity {
     abstract Vec3 collide(Vec3 vec3d);
     // endregion
 
+    @Override
+    @NotNull
+    public IEntity getVsEntity() {
+        return vsEntity;
+    }
 }

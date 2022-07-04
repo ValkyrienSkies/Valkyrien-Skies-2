@@ -10,6 +10,7 @@ import org.joml.primitives.AABBdc
 import org.valkyrienskies.core.collision.ConvexPolygonc
 import org.valkyrienskies.core.collision.EntityPolygonCollider
 import org.valkyrienskies.core.collision.TransformedCuboidPolygon.Companion.createFromAABB
+import org.valkyrienskies.core.game.IEntityProvider
 import org.valkyrienskies.core.util.extend
 import org.valkyrienskies.mod.common.shipObjectWorld
 
@@ -31,9 +32,19 @@ object EntityShipCollisionUtils {
             return movement
         }
         val stepHeight: Double = entity?.maxUpStep?.toDouble() ?: 0.0
-        return EntityPolygonCollider.adjustEntityMovementForPolygonCollisions(
+        val (newMovement, shipCollidingWith) = EntityPolygonCollider.adjustEntityMovementForPolygonCollisions(
             movement.toJOML(), entityBoundingBox.toJOML(), stepHeight, collidingShipPolygons
-        ).toVec3d()
+        )
+        if (entity != null) {
+            if (shipCollidingWith != null) {
+                // Update the [IEntity.lastShipStoodOn]
+                (entity as IEntityProvider).vsEntity.lastShipStoodOn = shipCollidingWith
+            } else if (entity.isOnGround) {
+                // Don't drag entities on the ground
+                (entity as IEntityProvider).vsEntity.lastShipStoodOn = null
+            }
+        }
+        return newMovement.toVec3d()
     }
 
     private fun getShipPolygonsCollidingWithEntity(
@@ -58,7 +69,8 @@ object EntityShipCollisionUtils {
                 voxelShape.forAllBoxes { minX, minY, minZ, maxX, maxY, maxZ ->
                     val shipPolygon: ConvexPolygonc = createFromAABB(
                         AABBd(minX, minY, minZ, maxX, maxY, maxZ),
-                        shipTransform.shipToWorldMatrix
+                        shipTransform.shipToWorldMatrix,
+                        shipObject.shipData.id
                     )
                     collidingPolygons.add(shipPolygon)
                 }
