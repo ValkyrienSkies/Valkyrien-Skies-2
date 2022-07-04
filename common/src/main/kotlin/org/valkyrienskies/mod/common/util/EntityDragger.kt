@@ -2,7 +2,6 @@ package org.valkyrienskies.mod.common.util
 
 import net.minecraft.world.entity.Entity
 import org.joml.Vector3d
-import org.valkyrienskies.core.game.IEntityProvider
 import org.valkyrienskies.mod.common.shipObjectWorld
 import kotlin.math.asin
 import kotlin.math.atan2
@@ -15,9 +14,9 @@ class EntityDragger {
          */
         fun dragEntitiesWithShips(entities: Iterable<Entity>) {
             entities.forEach { entity ->
-                val vsEntity = (entity as IEntityProvider).vsEntity
-                val shipDraggingEntity = vsEntity.lastShipStoodOn
-                if (shipDraggingEntity != null && vsEntity.ticksSinceStoodOnShip < 5) {
+                val entityDraggingInformation = (entity as IEntityDraggingInformationProvider).draggingInformation
+                val shipDraggingEntity = entityDraggingInformation.lastShipStoodOn
+                if (shipDraggingEntity != null && entityDraggingInformation.ticksSinceStoodOnShip < 5) {
                     // Drag the entity
                     val shipData = entity.level.shipObjectWorld.queryableShipData.getById(shipDraggingEntity)
                     if (shipData != null) {
@@ -42,7 +41,7 @@ class EntityDragger {
                             entity.y + addedMovementFromDragging.y,
                             entity.z + addedMovementFromDragging.z
                         )
-                        vsEntity.addedMovementLastTick = addedMovementFromDragging
+                        entityDraggingInformation.addedMovementLastTick = addedMovementFromDragging
                         // endregion
 
                         // region Look dragging
@@ -72,10 +71,10 @@ class EntityDragger {
 
                         // Apply [addedYRotFromDragging]
                         entity.yRot += addedYRotFromDragging.toFloat()
-                        vsEntity.addedYawRotLastTick = addedYRotFromDragging
+                        entityDraggingInformation.addedYawRotLastTick = addedYRotFromDragging
                         // endregion
 
-                        vsEntity.ticksSinceStoodOnShip++
+                        entityDraggingInformation.ticksSinceStoodOnShip++
                     }
                 }
             }

@@ -26,18 +26,17 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
-import org.valkyrienskies.core.game.IEntity;
-import org.valkyrienskies.core.game.IEntityProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils;
-import org.valkyrienskies.mod.common.util.MinecraftEntity;
+import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 
 @Mixin(Entity.class)
-public abstract class MixinEntity implements IEntityProvider {
+public abstract class MixinEntity implements IEntityDraggingInformationProvider {
 
     @Unique
-    private final IEntity vsEntity = new MinecraftEntity(Entity.class.cast(this));
+    private final EntityDraggingInformation draggingInformation = new EntityDraggingInformation();
 
     @Shadow
     public abstract double getZ();
@@ -186,7 +185,7 @@ public abstract class MixinEntity implements IEntityProvider {
 
     @Override
     @NotNull
-    public IEntity getVsEntity() {
-        return vsEntity;
+    public EntityDraggingInformation getDraggingInformation() {
+        return draggingInformation;
     }
 }

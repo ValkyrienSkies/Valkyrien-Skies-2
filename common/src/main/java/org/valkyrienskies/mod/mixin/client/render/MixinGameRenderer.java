@@ -17,11 +17,11 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.core.game.IEntityProvider;
 import org.valkyrienskies.core.game.ships.ShipObjectClient;
 import org.valkyrienskies.core.game.ships.ShipObjectClientWorld;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.util.MinecraftEntity;
+import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
+import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 import org.valkyrienskies.mod.mixinducks.client.MinecraftDuck;
 
@@ -83,10 +83,12 @@ public class MixinGameRenderer {
 
             // Also update entity last tick positions, so that they interpolate correctly
             for (final Entity entity : clientWorld.entitiesForRendering()) {
-                final MinecraftEntity vsEntity = (MinecraftEntity) ((IEntityProvider) entity).getVsEntity();
+                final EntityDraggingInformation vsEntity =
+                    ((IEntityDraggingInformationProvider) entity).getDraggingInformation();
                 final Long lastShipStoodOn = vsEntity.getLastShipStoodOn();
                 if (lastShipStoodOn != null) {
-                    final ShipObjectClient shipObject = VSGameUtilsKt.getShipObjectWorld(clientWorld).getShipObjects().get(lastShipStoodOn);
+                    final ShipObjectClient shipObject =
+                        VSGameUtilsKt.getShipObjectWorld(clientWorld).getShipObjects().get(lastShipStoodOn);
                     if (shipObject != null) {
                         vsEntity.setCachedLastPosition(new Vector3d(entity.xo, entity.yo, entity.zo));
                         vsEntity.setRestoreCachedLastPosition(true);
@@ -109,11 +111,12 @@ public class MixinGameRenderer {
                         // Move [entityShouldBeHerePreTransform] with the ship, using the prev transform and the current
                         // render transform
                         final Vector3dc entityShouldBeHere = shipObject.getRenderTransform().getShipToWorldMatrix()
-                            .transformPosition(shipObject.getShipData().getPrevTickShipTransform().getWorldToShipMatrix()
-                                .transformPosition(entityShouldBeHerePreTransform, new Vector3d()));
+                            .transformPosition(
+                                shipObject.getShipData().getPrevTickShipTransform().getWorldToShipMatrix()
+                                    .transformPosition(entityShouldBeHerePreTransform, new Vector3d()));
 
-                        // Update the entity last tick positions such that Minecraft will interpolate the position
-                        // correctly
+                        // Update the entity last tick positions such that the entity's render position will be
+                        // interpolated to be [entityShouldBeHere]
                         entity.xo = (entityShouldBeHere.x() - (entity.getX() * tickDelta)) / (1 - tickDelta);
                         entity.yo = (entityShouldBeHere.y() - (entity.getY() * tickDelta)) / (1 - tickDelta);
                         entity.zo = (entityShouldBeHere.z() - (entity.getZ() * tickDelta)) / (1 - tickDelta);
@@ -129,7 +132,8 @@ public class MixinGameRenderer {
         if (clientWorld != null) {
             // Restore the entity last tick positions that were replaced during this frame
             for (final Entity entity : clientWorld.entitiesForRendering()) {
-                final MinecraftEntity vsEntity = (MinecraftEntity) ((IEntityProvider) entity).getVsEntity();
+                final EntityDraggingInformation vsEntity =
+                    ((IEntityDraggingInformationProvider) entity).getDraggingInformation();
                 if (vsEntity.getRestoreCachedLastPosition()) {
                     vsEntity.setRestoreCachedLastPosition(false);
                     final Vector3dc cachedLastPosition = vsEntity.getCachedLastPosition();

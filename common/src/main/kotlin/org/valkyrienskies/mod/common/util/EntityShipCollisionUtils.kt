@@ -10,7 +10,6 @@ import org.joml.primitives.AABBdc
 import org.valkyrienskies.core.collision.ConvexPolygonc
 import org.valkyrienskies.core.collision.EntityPolygonCollider
 import org.valkyrienskies.core.collision.TransformedCuboidPolygon.Companion.createFromAABB
-import org.valkyrienskies.core.game.IEntityProvider
 import org.valkyrienskies.core.util.extend
 import org.valkyrienskies.mod.common.shipObjectWorld
 
@@ -38,10 +37,10 @@ object EntityShipCollisionUtils {
         if (entity != null) {
             if (shipCollidingWith != null) {
                 // Update the [IEntity.lastShipStoodOn]
-                (entity as IEntityProvider).vsEntity.lastShipStoodOn = shipCollidingWith
+                (entity as IEntityDraggingInformationProvider).draggingInformation.lastShipStoodOn = shipCollidingWith
             } else if (entity.isOnGround) {
                 // Don't drag entities on the ground
-                (entity as IEntityProvider).vsEntity.lastShipStoodOn = null
+                (entity as IEntityDraggingInformationProvider).draggingInformation.lastShipStoodOn = null
             }
         }
         return newMovement.toVec3d()
