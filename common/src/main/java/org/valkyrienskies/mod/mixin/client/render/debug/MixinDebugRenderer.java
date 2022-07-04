@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.mixin.client.render.debug;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.Tesselator;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.LevelRenderer;
@@ -8,7 +9,6 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.debug.DebugRenderer;
 import net.minecraft.world.phys.AABB;
-import org.joml.Quaterniondc;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.joml.primitives.AABBdc;
@@ -33,8 +33,12 @@ public class MixinDebugRenderer {
      * <p>They get rendered in the same pass as entities.
      */
     @Inject(method = "render", at = @At("HEAD"))
-    private void postRender(final PoseStack matrices, final MultiBufferSource.BufferSource vertexConsumers,
+    private void postRender(final PoseStack matricesIgnore, final MultiBufferSource.BufferSource vertexConsumersIgnore,
         final double cameraX, final double cameraY, final double cameraZ, final CallbackInfo ci) {
+        // Ignore the matrix/buffer inputs to this, we're really just using this mixin as a place to run our render code
+        final PoseStack matrices = new PoseStack();
+        final MultiBufferSource.BufferSource bufferSource =
+            MultiBufferSource.immediate(Tesselator.getInstance().getBuilder());
         final ClientLevel world = Minecraft.getInstance().level;
         final ShipObjectClientWorld shipObjectClientWorld = VSGameUtilsKt.getShipObjectWorld(world);
 
@@ -42,8 +46,6 @@ public class MixinDebugRenderer {
             for (final ShipObjectClient shipObjectClient : shipObjectClientWorld.getShipObjects().values()) {
                 final ShipTransform shipRenderTransform = shipObjectClient.getRenderTransform();
                 final Vector3dc shipRenderPosition = shipRenderTransform.getShipPositionInWorldCoordinates();
-                final Quaterniondc shipRenderOrientation =
-                    shipRenderTransform.getShipCoordinatesToWorldCoordinatesRotation();
 
                 final double renderRadius = .25;
                 final AABB shipCenterOfMassBox =
@@ -52,14 +54,14 @@ public class MixinDebugRenderer {
                         shipRenderPosition.y() + renderRadius, shipRenderPosition.z() + renderRadius)
                         .move(-cameraX, -cameraY, -cameraZ);
                 LevelRenderer
-                    .renderLineBox(matrices, vertexConsumers.getBuffer(RenderType.lines()), shipCenterOfMassBox,
-                        1.0F, 1.0F, 1.0F, 1.0F);
+                    .renderLineBox(matrices, bufferSource.getBuffer(RenderType.lines()), shipCenterOfMassBox,
+                        250.0F / 255.0F, 194.0F / 255.0F, 19.0F / 255.0F, 1.0F);
 
                 // Render the ship's physics AABB from Krunch
                 final AABBdc shipPhysicsAABBdc = shipObjectClient.getDebugShipPhysicsAABB();
                 final AABB shipPhysicsAABB = VectorConversionsMCKt.toMinecraft(shipPhysicsAABBdc);
                 LevelRenderer
-                    .renderLineBox(matrices, vertexConsumers.getBuffer(RenderType.lines()),
+                    .renderLineBox(matrices, bufferSource.getBuffer(RenderType.lines()),
                         shipPhysicsAABB.move(-cameraX, -cameraY, -cameraZ),
                         1.0F, 0.0F, 0.0F, 1.0F);
 
@@ -88,7 +90,7 @@ public class MixinDebugRenderer {
                         cameraX, cameraY, cameraZ);
 
                     LevelRenderer
-                        .renderLineBox(matrices, vertexConsumers.getBuffer(RenderType.lines()),
+                        .renderLineBox(matrices, bufferSource.getBuffer(RenderType.lines()),
                             shipVoxelAABBAfterOffset, 1.0F, 0.0F, 0.0F, 1.0F);
                     matrices.popPose();
                 }
@@ -97,10 +99,11 @@ public class MixinDebugRenderer {
                 final AABBdc shipRenderAABBdc = shipObjectClient.getRenderAABB();
                 final AABB shipRenderAABB = VectorConversionsMCKt.toMinecraft(shipRenderAABBdc);
                 LevelRenderer
-                    .renderLineBox(matrices, vertexConsumers.getBuffer(RenderType.lines()),
+                    .renderLineBox(matrices, bufferSource.getBuffer(RenderType.lines()),
                         shipRenderAABB.move(-cameraX, -cameraY, -cameraZ),
                         234.0F / 255.0F, 0.0F, 217.0f / 255.0f, 1.0F);
             }
         }
+        bufferSource.endBatch();
     }
 }

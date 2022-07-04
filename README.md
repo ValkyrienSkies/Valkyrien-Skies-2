@@ -18,15 +18,5 @@ The Minecraft version dependent code lives in this repository, and the version i
 
 ### IntelliJ
 1. Clone the repo: `git clone --recurse-submodules https://github.com/ValkyrienSkies/Valkyrien-Skies-2`
-2. Open the project in IntelliJ
+2. Open the project in IntelliJ, using Java 17
 3. Import the gradle project, sync gradle
-
-## Troubleshooting
-
-### Running Forge in dev environment
-1. Use Java 8 when running forge
-2. Try deleting the mixin mappings at `common/build/loom-cache/*.tiny` for forge to launch properly
-3. If that doesn't work, then delete all the `.gradle` and `build` folders and try again 🤞
-
-### Running Fabric in dev environment
-1. Use java 17 when running fabric
