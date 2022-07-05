@@ -83,18 +83,18 @@ public class MixinGameRenderer {
 
             // Also update entity last tick positions, so that they interpolate correctly
             for (final Entity entity : clientWorld.entitiesForRendering()) {
-                final EntityDraggingInformation vsEntity =
+                final EntityDraggingInformation entityDraggingInformation =
                     ((IEntityDraggingInformationProvider) entity).getDraggingInformation();
-                final Long lastShipStoodOn = vsEntity.getLastShipStoodOn();
-                if (lastShipStoodOn != null) {
+                final Long lastShipStoodOn = entityDraggingInformation.getLastShipStoodOn();
+                if (lastShipStoodOn != null && entityDraggingInformation.isEntityBeingDraggedByAShip()) {
                     final ShipObjectClient shipObject =
                         VSGameUtilsKt.getShipObjectWorld(clientWorld).getShipObjects().get(lastShipStoodOn);
                     if (shipObject != null) {
-                        vsEntity.setCachedLastPosition(new Vector3d(entity.xo, entity.yo, entity.zo));
-                        vsEntity.setRestoreCachedLastPosition(true);
+                        entityDraggingInformation.setCachedLastPosition(new Vector3d(entity.xo, entity.yo, entity.zo));
+                        entityDraggingInformation.setRestoreCachedLastPosition(true);
 
                         // The velocity added to the entity by ship dragging
-                        final Vector3dc entityAddedVelocity = vsEntity.getAddedMovementLastTick();
+                        final Vector3dc entityAddedVelocity = entityDraggingInformation.getAddedMovementLastTick();
 
                         // The velocity of the entity before we added ship dragging
                         final double entityMovementX = entity.getX() - entityAddedVelocity.x() - entity.xo;

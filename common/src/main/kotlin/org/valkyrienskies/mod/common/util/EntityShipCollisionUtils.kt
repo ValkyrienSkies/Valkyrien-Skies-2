@@ -38,9 +38,6 @@ object EntityShipCollisionUtils {
             if (shipCollidingWith != null) {
                 // Update the [IEntity.lastShipStoodOn]
                 (entity as IEntityDraggingInformationProvider).draggingInformation.lastShipStoodOn = shipCollidingWith
-            } else if (entity.isOnGround) {
-                // Don't drag entities on the ground
-                (entity as IEntityDraggingInformationProvider).draggingInformation.lastShipStoodOn = null
             }
         }
         return newMovement.toVec3d()

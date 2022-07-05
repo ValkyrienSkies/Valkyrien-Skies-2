@@ -20,6 +20,10 @@ class EntityDraggingInformation {
     // Used by the client rendering code only
     var cachedLastPosition: Vector3dc? = null
     var restoreCachedLastPosition = false
+
+    fun isEntityBeingDraggedByAShip(): Boolean {
+        return (lastShipStoodOn != null) && (ticksSinceStoodOnShip < 10)
+    }
 }
 
 interface IEntityDraggingInformationProvider {
