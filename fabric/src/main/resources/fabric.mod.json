@@ -21,6 +21,9 @@
     ],
     "client": [
       "org.valkyrienskies.mod.fabric.client.ValkyrienSkiesModFabricClient"
+    ],
+    "modmenu": [
+      "org.valkyrienskies.mod.fabric.compat.modmenu.ValkyrienModMenu"
     ]
   },
   "mixins": [

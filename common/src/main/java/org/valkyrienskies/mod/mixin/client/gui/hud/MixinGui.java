@@ -17,7 +17,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.core.game.VSOptions;
+import org.valkyrienskies.core.config.VSCoreConfig;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(Gui.class)
@@ -32,7 +32,7 @@ public class MixinGui {
      */
     @Inject(method = "renderEffects", at = @At("HEAD"))
     private void preRenderStatusEffectOverlay(final PoseStack matrices, final CallbackInfo ci) {
-        if (!VSOptions.INSTANCE.getRenderDebugText()) {
+        if (!VSCoreConfig.Client.getRenderDebugText()) {
             return;
         }
 
