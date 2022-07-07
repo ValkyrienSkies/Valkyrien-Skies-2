@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.common.util
 
+import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.Entity
 import org.joml.Vector3d
 import org.joml.Vector3dc
@@ -87,7 +88,8 @@ class EntityDragger {
                     entityDraggingInformation.addedMovementLastTick = addedMovement
 
                     // Apply [addedYRot]
-                    if (addedYRot.isFinite()) {
+                    // Don't apply it to server players to fix rotation of placed blocks
+                    if (addedYRot.isFinite() && entity !is ServerPlayer) {
                         entity.yRot += addedYRot.toFloat()
                         entityDraggingInformation.addedYawRotLastTick = addedYRot
                     }
