@@ -72,7 +72,17 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         final AABB box = this.getBoundingBox();
         movement = EntityShipCollisionUtils.INSTANCE
             .adjustEntityMovementForShipCollisions(entity, movement, box, this.level);
-        return collide(movement);
+        final Vec3 collisionResultWithWorld = collide(movement);
+
+        if (!collisionResultWithWorld.equals(movement)) {
+            // We collided with the world? Set the dragging ship to null.
+            final EntityDraggingInformation entityDraggingInformation = getDraggingInformation();
+            entityDraggingInformation.setLastShipStoodOn(null);
+            entityDraggingInformation.setAddedMovementLastTick(new Vector3d());
+            entityDraggingInformation.setAddedYawRotLastTick(0.0);
+        }
+
+        return collisionResultWithWorld;
     }
 
     /**
@@ -144,7 +154,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
      */
     @Overwrite
     public double distanceToSqr(final double x, final double y, final double z) {
-        return VSGameUtilsKt.squaredDistanceToInclShips((Entity) (Object) this, x, y, z);
+        return VSGameUtilsKt.squaredDistanceToInclShips(Entity.class.cast(this), x, y, z);
     }
 
     // region shadow functions and fields
@@ -180,7 +190,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     }
 
     @Shadow
-    abstract Vec3 collide(Vec3 vec3d);
+    protected abstract Vec3 collide(Vec3 vec3d);
     // endregion
 
     @Override
