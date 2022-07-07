@@ -83,7 +83,6 @@ class EntityDragger {
                         addedYRot = entityDraggingInformation.addedYawRotLastTick * addedMovementDecay
                     }
                 }
-                // TODO: Also drag the entity in the air, until they hit the ground
 
                 if (dragTheEntity && addedMovement != null && addedMovement.isFinite && addedYRot.isFinite()) {
                     // TODO: Do collision on [addedMovement], as currently this can push players into
