@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.valkyrienskies.mod.common.PlayerUtil;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.config.VSConfig;
+import org.valkyrienskies.mod.common.config.VSGameConfig;
 
 @Mixin(ServerGamePacketListenerImpl.class)
 public class MixinServerGamePacketListenerImpl {
@@ -34,7 +34,7 @@ public class MixinServerGamePacketListenerImpl {
     )
     public double includeShipsInBlockInteractDistanceCheck(
         final ServerPlayer receiver, final double x, final double y, final double z) {
-        if (VSConfig.getEnableInteractDistanceChecks()) {
+        if (VSGameConfig.getEnableInteractDistanceChecks()) {
             return VSGameUtilsKt.squaredDistanceToInclShips(receiver, x, y, z);
         } else {
             return 0;

@@ -1,6 +1,6 @@
 package org.valkyrienskies.mod.common.config
 
-object VSConfig {
+object VSGameConfig {
     /**
      * Vanilla Behaviour: TRUE
      *
