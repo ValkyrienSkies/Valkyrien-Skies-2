@@ -31,7 +31,7 @@ class ShipCreatorItem(properties: Properties, private val scale: Double) : Item(
                 val centerPos = shipData.chunkClaim.getCenterBlockCoordinates(Vector3i()).toBlockPos()
 
                 // Move the block from the world to a ship
-                level.relocateBlock(blockPos, centerPos)
+                level.relocateBlock(blockPos, centerPos, shipData)
             }
         }
 
