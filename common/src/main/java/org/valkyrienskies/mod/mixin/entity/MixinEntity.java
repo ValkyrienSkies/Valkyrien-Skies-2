@@ -14,22 +14,29 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils;
+import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 
 @Mixin(Entity.class)
-public abstract class MixinEntity {
+public abstract class MixinEntity implements IEntityDraggingInformationProvider {
+
+    @Unique
+    private final EntityDraggingInformation draggingInformation = new EntityDraggingInformation();
 
     @Shadow
     public abstract double getZ();
@@ -65,7 +72,17 @@ public abstract class MixinEntity {
         final AABB box = this.getBoundingBox();
         movement = EntityShipCollisionUtils.INSTANCE
             .adjustEntityMovementForShipCollisions(entity, movement, box, this.level);
-        return collide(movement);
+        final Vec3 collisionResultWithWorld = collide(movement);
+
+        if (!collisionResultWithWorld.equals(movement)) {
+            // We collided with the world? Set the dragging ship to null.
+            final EntityDraggingInformation entityDraggingInformation = getDraggingInformation();
+            entityDraggingInformation.setLastShipStoodOn(null);
+            entityDraggingInformation.setAddedMovementLastTick(new Vector3d());
+            entityDraggingInformation.setAddedYawRotLastTick(0.0);
+        }
+
+        return collisionResultWithWorld;
     }
 
     /**
@@ -137,7 +154,7 @@ public abstract class MixinEntity {
      */
     @Overwrite
     public double distanceToSqr(final double x, final double y, final double z) {
-        return VSGameUtilsKt.squaredDistanceToInclShips((Entity) (Object) this, x, y, z);
+        return VSGameUtilsKt.squaredDistanceToInclShips(Entity.class.cast(this), x, y, z);
     }
 
     // region shadow functions and fields
@@ -173,7 +190,12 @@ public abstract class MixinEntity {
     }
 
     @Shadow
-    abstract Vec3 collide(Vec3 vec3d);
+    protected abstract Vec3 collide(Vec3 vec3d);
     // endregion
 
+    @Override
+    @NotNull
+    public EntityDraggingInformation getDraggingInformation() {
+        return draggingInformation;
+    }
 }

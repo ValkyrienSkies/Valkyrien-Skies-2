@@ -32,6 +32,7 @@
     "client.MixinMinecraft",
     "client.gui.hud.MixinGui",
     "client.particle.MixinParticle",
+    "client.player.MixinLocalPlayer",
     "client.render.MixinGameRenderer",
     "client.render.MixinLevelRenderer",
     "client.render.MixinViewArea",

@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.mixin.server.world;
 
 import com.google.common.collect.Lists;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -12,6 +13,7 @@ import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import org.joml.Vector3d;
@@ -29,6 +31,7 @@ import org.valkyrienskies.core.game.ships.ShipObject;
 import org.valkyrienskies.core.game.ships.ShipObjectServerWorld;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.mixin.accessors.server.world.ChunkMapAccessor;
 import org.valkyrienskies.physics_api.voxel_updates.DenseVoxelShapeUpdate;
@@ -44,6 +47,10 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
     @Shadow
     @Final
     private ServerChunkCache chunkSource;
+
+    @Shadow
+    @Final
+    private Int2ObjectMap<Entity> entitiesById;
 
     private final HashSet<Vector3ic> knownChunkRegions = new HashSet<>();
 
@@ -74,6 +81,12 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
             .transformPosition(VectorConversionsMCKt.toJOML(particle));
 
         return posInWorld.distanceSquared(player.getX(), player.getY(), player.getZ()) < distance * distance;
+    }
+
+    @Inject(method = "tick", at = @At("HEAD"))
+    private void preTick(final BooleanSupplier shouldKeepTicking, final CallbackInfo ci) {
+        // Drag entities (Make sure that we run this after ShipObjectWorld.tickShips(), otherwise this won't be correct)
+        EntityDragger.Companion.dragEntitiesWithShips(entitiesById.values());
     }
 
     @Inject(method = "tick", at = @At("TAIL"))

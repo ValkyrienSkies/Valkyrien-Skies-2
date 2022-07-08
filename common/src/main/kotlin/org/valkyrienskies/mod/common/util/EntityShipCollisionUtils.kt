@@ -31,9 +31,16 @@ object EntityShipCollisionUtils {
             return movement
         }
         val stepHeight: Double = entity?.maxUpStep?.toDouble() ?: 0.0
-        return EntityPolygonCollider.adjustEntityMovementForPolygonCollisions(
+        val (newMovement, shipCollidingWith) = EntityPolygonCollider.adjustEntityMovementForPolygonCollisions(
             movement.toJOML(), entityBoundingBox.toJOML(), stepHeight, collidingShipPolygons
-        ).toVec3d()
+        )
+        if (entity != null) {
+            if (shipCollidingWith != null) {
+                // Update the [IEntity.lastShipStoodOn]
+                (entity as IEntityDraggingInformationProvider).draggingInformation.lastShipStoodOn = shipCollidingWith
+            }
+        }
+        return newMovement.toVec3d()
     }
 
     private fun getShipPolygonsCollidingWithEntity(
@@ -58,7 +65,8 @@ object EntityShipCollisionUtils {
                 voxelShape.forAllBoxes { minX, minY, minZ, maxX, maxY, maxZ ->
                     val shipPolygon: ConvexPolygonc = createFromAABB(
                         AABBd(minX, minY, minZ, maxX, maxY, maxZ),
-                        shipTransform.shipToWorldMatrix
+                        shipTransform.shipToWorldMatrix,
+                        shipObject.shipData.id
                     )
                     collidingPolygons.add(shipPolygon)
                 }
