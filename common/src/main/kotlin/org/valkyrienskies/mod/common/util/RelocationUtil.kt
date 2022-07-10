@@ -30,8 +30,11 @@ fun relocateBlock(fromChunk: LevelChunk, from: BlockPos, toChunk: LevelChunk, to
         tag
     }
 
+    val level = toChunk.level
+
     fromChunk.setBlockState(from, AIR, false)
     toChunk.setBlockState(to, state, false) // TODO should isMoving be false?
+    level.sendBlockUpdated(from, state, AIR, 11)
 
     tag?.let {
         toChunk.getBlockEntity(to, CHECK)!!.load(state, tag)
