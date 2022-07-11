@@ -1,9 +1,9 @@
 package org.valkyrienskies.mod.api
 
 import org.valkyrienskies.core.api.Ship
-import org.valkyrienskies.core.api.ShipProvider
+import org.valkyrienskies.core.api.ShipUser
 
-interface BlockEntityShipProvider : ShipProvider {
+interface BlockEntityShipProvider : ShipUser {
     /**
      * Ship for the block entity, it will be set on creation
      */
