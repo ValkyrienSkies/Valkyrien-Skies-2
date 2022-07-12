@@ -24,24 +24,13 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.EntityDragger;
 
 @Mixin(ClientLevel.class)
-public abstract class MixinClientLevel implements IShipObjectWorldClientProvider {
+public abstract class MixinClientLevel {
     @Shadow
     @Final
     private Int2ObjectMap<Entity> entitiesById;
 
-    @Unique
-    private final ShipObjectClientWorld shipObjectWorld = new ShipObjectClientWorld(new QueryableShipDataImpl<>());
-
-    @NotNull
-    @Override
-    public ShipObjectClientWorld getShipObjectWorld() {
-        return shipObjectWorld;
-    }
-
     @Inject(method = "tick", at = @At("HEAD"))
     private void preTick(final BooleanSupplier shouldKeepTicking, final CallbackInfo ci) {
-        // Tick the ship world
-        shipObjectWorld.tickShips();
         // Drag entities
         EntityDragger.Companion.dragEntitiesWithShips(entitiesById.values());
     }
