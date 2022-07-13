@@ -7,8 +7,8 @@ buildscript {
 
 plugins {
     // Needed for Forge+Fabric
-    id "architectury-plugin" version "3.4-SNAPSHOT"
-    id "dev.architectury.loom" version "0.12.0.289" apply false
+    id "architectury-plugin" version "3.4.138"
+    id "dev.architectury.loom" version "0.12.0.291" apply false
     id 'io.github.juuxel.loom-quiltflower' version '1.7.1' apply false
     // Kotlin
     id "org.jetbrains.kotlin.jvm" version "1.7.0" apply false
@@ -86,6 +86,15 @@ subprojects {
             name = "ParchmentMC"
             url = "https://maven.parchmentmc.org"
         }
+        maven {
+            name = 'Kotlin for Forge'
+            url = 'https://thedarkcolour.github.io/KotlinForForge/'
+        }
+    }
+
+    quiltflower {
+        // Downloads the wanted QF version from the project repositories. (rather than QuiltMC Maven)
+        fromProjectRepositories()
     }
 
     dependencies {

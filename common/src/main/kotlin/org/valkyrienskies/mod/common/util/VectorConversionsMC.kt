@@ -14,6 +14,7 @@ import org.joml.Quaterniondc
 import org.joml.Quaternionfc
 import org.joml.Vector3d
 import org.joml.Vector3dc
+import org.joml.Vector3f
 import org.joml.Vector3i
 import org.joml.Vector3ic
 import org.joml.primitives.AABBd
@@ -33,6 +34,12 @@ fun Vector3d.set(v: Vec3i) = also {
     x = v.x.toDouble()
     y = v.y.toDouble()
     z = v.z.toDouble()
+}
+
+fun Vector3f.set(v: Vec3i) = also {
+    x = v.x.toFloat()
+    y = v.y.toFloat()
+    z = v.z.toFloat()
 }
 
 fun Vector3d.set(v: Position) = also {
@@ -76,6 +83,8 @@ fun PoseStack.multiply(modelTransform: Matrix4dc, normalTransform: Quaterniondc)
 
 fun Vec3i.toJOML() = Vector3i().set(this)
 fun Vec3i.toJOMLD() = Vector3d().set(this)
+fun Vec3i.toJOMLF() = Vector3f().set(this)
+
 fun Position.toJOML() = Vector3d().set(this)
 
 fun Matrix4fMC.set(m: Matrix4fc) = also {

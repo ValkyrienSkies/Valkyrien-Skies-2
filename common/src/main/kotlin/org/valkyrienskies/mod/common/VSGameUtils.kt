@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.common
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Vec3i
 import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
@@ -131,7 +132,7 @@ private fun getShipObjectManagingPosImpl(world: Level, chunkX: Int, chunkZ: Int)
 fun Level.getShipObjectManagingPos(chunkX: Int, chunkZ: Int) =
     getShipObjectManagingPosImpl(this, chunkX, chunkZ)
 
-fun Level.getShipObjectManagingPos(blockPos: BlockPos) =
+fun Level.getShipObjectManagingPos(blockPos: Vec3i) =
     getShipObjectManagingPos(blockPos.x shr 4, blockPos.z shr 4)
 
 fun Level.getShipObjectManagingPos(chunkPos: ChunkPos) =
@@ -141,7 +142,7 @@ fun Level.getShipObjectManagingPos(chunkPos: ChunkPos) =
 fun ClientLevel.getShipObjectManagingPos(chunkX: Int, chunkZ: Int) =
     getShipObjectManagingPosImpl(this, chunkX, chunkZ) as ShipObjectClient?
 
-fun ClientLevel.getShipObjectManagingPos(blockPos: BlockPos) =
+fun ClientLevel.getShipObjectManagingPos(blockPos: Vec3i) =
     getShipObjectManagingPos(blockPos.x shr 4, blockPos.z shr 4)
 
 fun ClientLevel.getShipObjectManagingPos(chunkPos: ChunkPos) =
@@ -151,7 +152,7 @@ fun ClientLevel.getShipObjectManagingPos(chunkPos: ChunkPos) =
 fun ServerLevel.getShipObjectManagingPos(chunkX: Int, chunkZ: Int) =
     getShipObjectManagingPosImpl(this, chunkX, chunkZ) as ShipObjectServer?
 
-fun ServerLevel.getShipObjectManagingPos(blockPos: BlockPos) =
+fun ServerLevel.getShipObjectManagingPos(blockPos: Vec3i) =
     getShipObjectManagingPos(blockPos.x shr 4, blockPos.z shr 4)
 
 fun ServerLevel.getShipObjectManagingPos(chunkPos: ChunkPos) =

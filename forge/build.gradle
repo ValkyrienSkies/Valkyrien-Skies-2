@@ -13,8 +13,7 @@ loom {
 
     forge {
         mixinConfig "valkyrienskies-common.mixins.json"
-        // Disable forge mixins for a variety of reasons
-        // mixinConfig "valkyrienskies-forge.mixins.json"
+        mixinConfig "valkyrienskies-forge.mixins.json"
         convertAccessWideners.set(true)
         extraAccessWideners.add loom.accessWidenerPath.get().asFile.name
     }
@@ -32,10 +31,7 @@ configurations {
 }
 
 repositories {
-    maven {
-        name = 'Kotlin for Forge'
-        url = 'https://thedarkcolour.github.io/KotlinForForge/'
-    }
+
 }
 
 dependencies {
@@ -47,6 +43,9 @@ dependencies {
     shadowCommon(project(path: ":common", configuration: "transformProductionForge")) {
         transitive = false
     }
+
+    modImplementation("curse.maven:flywheel-486392:3535459")
+    modImplementation("curse.maven:create-328085:3536025")
 
     // Add Kotlin for Forge.
     // Based on their own instructions: https://github.com/thedarkcolour/KotlinForForge/blob/70385f5/thedarkcolour/kotlinforforge/gradle/kff-3.0.0.gradle
