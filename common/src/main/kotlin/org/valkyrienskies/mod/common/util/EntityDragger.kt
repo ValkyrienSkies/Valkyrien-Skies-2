@@ -79,7 +79,8 @@ class EntityDragger {
                         }
                     } else {
                         dragTheEntity = true
-                        addedMovement = entityDraggingInformation.addedMovementLastTick.mul(addedMovementDecay, Vector3d())
+                        addedMovement = entityDraggingInformation.addedMovementLastTick
+                            .mul(addedMovementDecay, Vector3d())
                         addedYRot = entityDraggingInformation.addedYawRotLastTick * addedMovementDecay
                     }
                 }
