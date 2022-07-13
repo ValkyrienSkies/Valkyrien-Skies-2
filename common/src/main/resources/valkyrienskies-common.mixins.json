@@ -32,6 +32,7 @@
     "accessors.client.world.ClientChunkCacheStorageAccessor",
     "client.MixinMinecraft",
     "client.gui.hud.MixinGui",
+    "client.multiplayer.MixinClientPacketListener",
     "client.particle.MixinParticle",
     "client.player.MixinLocalPlayer",
     "client.render.MixinGameRenderer",
