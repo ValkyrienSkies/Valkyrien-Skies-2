@@ -3,11 +3,8 @@
   "package": "org.valkyrienskies.mod.forge.mixin",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
-    "compat.flywheel.client.MixinAllTileEntityInstances",
     "compat.flywheel.client.MixinInstanceWorld",
-    "compat.flywheel.client.MixinOrientedData",
-    "compat.flywheel.client.MixinTileInstanceManager",
-    "compat.flywheel.client.MixinTransformStack"
+    "compat.flywheel.client.MixinTileInstanceManager"
   ],
   "client": [
     "ExampleForgeMixin"

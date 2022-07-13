@@ -50,9 +50,8 @@ public abstract class MixinTileInstanceManager extends InstanceManager<BlockEnti
             final ShipObjectClient ship = VSGameUtilsKt.getShipObjectManagingPos(
                 level, blockEntity.getBlockPos());
             if (ship != null) {
-                final MaterialManager<WorldProgram> manager = shipMaterialManagers
-                    .computeIfAbsent(ship,
-                        k -> MaterialManager.builder(Contexts.WORLD).setIgnoreOriginCoordinate(true).build());
+                final MaterialManager<WorldProgram> manager = shipMaterialManagers.computeIfAbsent(ship,
+                    k -> MaterialManager.builder(Contexts.WORLD).setIgnoreOriginCoordinate(true).build());
                 cir.setReturnValue(InstancedRenderRegistry.getInstance().create(manager, blockEntity));
             }
         }
