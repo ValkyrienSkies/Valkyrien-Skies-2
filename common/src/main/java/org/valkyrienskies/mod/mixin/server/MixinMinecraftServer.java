@@ -19,18 +19,20 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.valkyrienskies.core.game.IPlayer;
 import org.valkyrienskies.core.game.ships.ShipObjectServerWorld;
 import org.valkyrienskies.core.pipelines.VSPipeline;
-import org.valkyrienskies.mod.common.IServerLevelVSFunctions;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.ShipSavedData;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.MinecraftPlayer;
+import org.valkyrienskies.mod.common.world.ChunkManagement;
 import org.valkyrienskies.mod.event.RegistryEvents;
+import org.valkyrienskies.mod.mixinducks.server.IPlayerProvider;
 import org.valkyrienskies.physics_api_krunch.KrunchBootstrap;
 
 @Mixin(MinecraftServer.class)
-public abstract class MixinMinecraftServer implements IShipObjectWorldServerProvider {
+public abstract class MixinMinecraftServer implements IShipObjectWorldServerProvider, IPlayerProvider {
     @Shadow
     private PlayerList playerList;
 
@@ -49,7 +51,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     @Unique
     private final Map<UUID, MinecraftPlayer> vsPlayerWrappers = new HashMap<>();
 
-    private Set<Integer> loadedLevels = new HashSet<>();
+    private Set<String> loadedLevels = new HashSet<>();
 
     @Inject(
         at = @At("HEAD"),
@@ -79,6 +81,11 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
 
         // Then remove any old player wrappers whose players are no longer here.
         vsPlayerWrappers.entrySet().removeIf(entry -> !currentPlayerIDs.contains(entry.getKey()));
+    }
+
+    @Override
+    public IPlayer getPlayer(final UUID uuid) {
+        return vsPlayerWrappers.get(uuid);
     }
 
     @NotNull
@@ -120,16 +127,16 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     )
     private void preTick(final CallbackInfo ci) {
         // region Tell the VS world to load new levels, and unload deleted ones
-        final Set<Integer> newLoadedLevels = new HashSet<>();
+        final Set<String> newLoadedLevels = new HashSet<>();
         for (final ServerLevel level : getAllLevels()) {
             newLoadedLevels.add(VSGameUtilsKt.getDimensionId(level));
         }
-        for (final int loadedLevelId : newLoadedLevels) {
+        for (final String loadedLevelId : newLoadedLevels) {
             if (!loadedLevels.contains(loadedLevelId)) {
                 shipWorld.addDimension(loadedLevelId);
             }
         }
-        for (final int oldLoadedLevelId : loadedLevels) {
+        for (final String oldLoadedLevelId : loadedLevels) {
             if (!newLoadedLevels.contains(oldLoadedLevelId)) {
                 shipWorld.removeDimension(oldLoadedLevelId);
             }
@@ -152,9 +159,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     )
     private void preConnectionTick(final CallbackInfo ci) {
         shipWorld.tickShips();
-        for (final ServerLevel serverLevel : getAllLevels()) {
-            ((IServerLevelVSFunctions) serverLevel).loadShipTerrainBasedOnPlayerLocation();
-        }
+        ChunkManagement.tickChunkLoading(shipWorld, MinecraftServer.class.cast(this));
     }
 
     @Inject(

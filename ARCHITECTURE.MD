@@ -25,3 +25,20 @@ Each ship is allocated a portion of the world called a ChunkClaim. A Minecraft
 chunk is composed of 16 blocks, a ChunkClaim is composed of 512 chunks.
 ChunkClaims are unique across dimensions, which means a ship in the Overworld
 could not have the same ChunkClaim as a ship in the Nether.
+
+## Ship Class Types
+
+What class should I use if I want to represent a ship?
+
+```mermaid
+flowchart LR
+    side{Which Side?} --> |Client*| ShipObjectClient
+    side --> |Server| server-loaded{Loaded?}
+    side --> |Either| either-loaded{Loaded?}
+    server-loaded --> |Yes| ShipObjectServer
+    server-loaded --> |Maybe| ShipData
+    either-loaded --> |Yes| ShipObject
+    either-loaded --> |Maybe| ShipDataCommon
+```
+
+* No such thing as an unloaded ship on the client

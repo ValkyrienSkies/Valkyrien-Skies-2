@@ -5,6 +5,7 @@
   "mixins": [
     "accessors.block.BlockBehaviourAccessor",
     "accessors.entity.EntityAccessor",
+    "accessors.resource.ResourceKeyAccessor",
     "accessors.server.world.ChunkMapAccessor",
     "accessors.util.math.Matrix4fAccessor",
     "block.MixinBlock",
@@ -21,13 +22,17 @@
     "world.chunk.MixinLevelChunk"
   ],
   "client": [
+    "accessors.client.multiplayer.ClientLevelAccessor",
     "accessors.client.render.BuiltChunkStorageAccessor",
+    "accessors.client.render.LevelRendererAccessor",
     "accessors.client.render.OverlayVertexConsumerAccessor",
     "accessors.client.render.RenderChunkInfoAccessor",
+    "accessors.client.render.chunk.RenderChunkAccessor",
     "accessors.client.world.ClientChunkCacheStorageAccessor",
     "client.MixinMinecraft",
     "client.gui.hud.MixinGui",
     "client.particle.MixinParticle",
+    "client.player.MixinLocalPlayer",
     "client.render.MixinGameRenderer",
     "client.render.MixinLevelRenderer",
     "client.render.MixinViewArea",

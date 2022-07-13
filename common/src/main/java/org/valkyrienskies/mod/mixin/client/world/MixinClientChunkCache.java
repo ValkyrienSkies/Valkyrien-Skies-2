@@ -21,7 +21,10 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.game.ChunkAllocator;
+import org.valkyrienskies.mod.mixin.accessors.client.multiplayer.ClientLevelAccessor;
+import org.valkyrienskies.mod.mixin.accessors.client.render.LevelRendererAccessor;
 import org.valkyrienskies.mod.mixin.accessors.client.world.ClientChunkCacheStorageAccessor;
+import org.valkyrienskies.mod.mixinducks.client.render.IVSViewAreaMethods;
 
 /**
  * The purpose of this mixin is to allow {@link ClientChunkCache} to store ship chunks.
@@ -71,6 +74,8 @@ public abstract class MixinClientChunkCache {
     @Inject(method = "drop", at = @At("HEAD"), cancellable = true)
     public void preUnload(final int chunkX, final int chunkZ, final CallbackInfo ci) {
         shipChunks.remove(ChunkPos.asLong(chunkX, chunkZ));
+        ((IVSViewAreaMethods) ((LevelRendererAccessor) ((ClientLevelAccessor) level).getLevelRenderer()).getViewArea())
+            .unloadChunk(chunkX, chunkZ);
         ci.cancel();
     }
 
