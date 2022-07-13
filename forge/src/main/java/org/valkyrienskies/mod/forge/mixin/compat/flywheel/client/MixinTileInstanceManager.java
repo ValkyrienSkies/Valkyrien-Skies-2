@@ -10,8 +10,10 @@ import com.jozufozu.flywheel.core.shader.WorldProgram;
 import java.util.WeakHashMap;
 import javax.annotation.ParametersAreNonnullByDefault;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import org.joml.Vector3i;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -52,6 +54,9 @@ public abstract class MixinTileInstanceManager extends InstanceManager<BlockEnti
             if (ship != null) {
                 final MaterialManager<WorldProgram> manager = shipMaterialManagers.computeIfAbsent(ship,
                     k -> MaterialManager.builder(Contexts.WORLD).setIgnoreOriginCoordinate(true).build());
+                final Vector3i c = ship.getShipData().getChunkClaim().getCenterBlockCoordinates(new Vector3i());
+                ((MaterialManagerAccessor) manager).setOriginCoordinate(new BlockPos(c.x, c.y, c.z));
+
                 cir.setReturnValue(InstancedRenderRegistry.getInstance().create(manager, blockEntity));
             }
         }

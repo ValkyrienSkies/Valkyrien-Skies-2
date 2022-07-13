@@ -26,19 +26,6 @@ public class MixinInstanceWorld {
     @Final
     protected InstanceManager<BlockEntity> tileEntityInstanceManager;
 
-//    @Inject(
-//        method = "beginFrame",
-//        at = @At("TAIL")
-//    )
-//    void beginFrame(final BeginFrameEvent event, final CallbackInfo ci) {
-//        final WeakHashMap<ShipObjectClient, MaterialManager<WorldProgram>> shipManagers =
-//            ((MixinTileInstanceManagerDuck) tileEntityInstanceManager).getShipMaterialManagers();
-//
-//        shipManagers.forEach((ship, manager) -> {
-//
-//        });
-//    }
-
     @Inject(
         method = "renderLayer",
         at = @At(
@@ -54,11 +41,11 @@ public class MixinInstanceWorld {
             final Matrix4d viewProjection = VectorConversionsMCKt.toJOML(event.viewProjection);
             final Matrix4dc shipToWorldMatrix = ship.getRenderTransform().getShipToWorldMatrix();
 
-//            final Matrix4d finalProjection = shipToWorldMatrix.mul(viewProjection, new Matrix4d());
-            final Matrix4d finalProjection = viewProjection.mul(shipToWorldMatrix);
+            final Matrix4d finalProjection =
+                new Matrix4d().mul(viewProjection).translate(-event.camX, -event.camY, -event.camZ)
+                    .mul(shipToWorldMatrix).translate(VectorConversionsMCKt.toJOMLD(manager.getOriginCoordinate()));
 
-            manager.render(event.layer, VectorConversionsMCKt.toMinecraft(finalProjection), event.camX, event.camY,
-                event.camZ);
+            manager.render(event.layer, VectorConversionsMCKt.toMinecraft(finalProjection), 0, 0, 0);
         });
     }
 }

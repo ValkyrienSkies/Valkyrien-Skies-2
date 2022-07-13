@@ -3,6 +3,7 @@
   "package": "org.valkyrienskies.mod.forge.mixin",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
+    "compat.flywheel.client.MaterialManagerAccessor",
     "compat.flywheel.client.MixinInstanceWorld",
     "compat.flywheel.client.MixinTileInstanceManager"
   ],
