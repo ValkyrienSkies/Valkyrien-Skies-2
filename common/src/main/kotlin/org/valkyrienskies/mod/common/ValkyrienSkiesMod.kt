@@ -5,7 +5,6 @@ import net.minecraft.world.item.Item
 import org.valkyrienskies.core.networking.VSNetworking
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
-import org.valkyrienskies.mod.common.networking.impl.VSGameNetworking
 
 object ValkyrienSkiesMod {
     const val MOD_ID = "valkyrienskies"
@@ -17,7 +16,6 @@ object ValkyrienSkiesMod {
     fun init() {
         println("Hello from init")
         VSNetworking.init()
-        VSGameNetworking.registerHandlers()
         BlockStateInfo.init()
     }
 }
