@@ -9,7 +9,7 @@ import net.minecraft.world.entity.EntityType
 import net.minecraft.world.level.Level
 import org.joml.Vector3d
 
-class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level): Entity(type, level) {
+class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level) : Entity(type, level) {
 
     private lateinit var inShipPosition: Vector3d
 

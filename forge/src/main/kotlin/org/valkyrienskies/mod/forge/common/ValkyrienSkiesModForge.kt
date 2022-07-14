@@ -25,6 +25,11 @@ import thedarkcolour.kotlinforforge.forge.MOD_BUS
 
 @Mod(ValkyrienSkiesMod.MOD_ID)
 class ValkyrienSkiesModForge {
+    private val BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, ValkyrienSkiesMod.MOD_ID)
+    private val ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, ValkyrienSkiesMod.MOD_ID)
+    private val ENTITIES = DeferredRegister.create(ForgeRegistries.ENTITIES, ValkyrienSkiesMod.MOD_ID)
+    private val SHIP_MOUNTING_ENTITY_REGISTRY: RegistryObject<EntityType<ShipMountingEntity>>
+
     init {
         ValkyrienSkiesMod.init()
         VSForgeNetworking.registerForgeNetworking()
@@ -34,43 +39,34 @@ class ValkyrienSkiesModForge {
         FORGE_BUS.addListener(::registerResourceManagers)
         FORGE_BUS.addListener(::registerEntityRenderers)
         FORGE_BUS.addListener(::registerBlockItems)
+
+        BLOCKS.register("test_chair") { TestChairBlock }
+        ITEMS.register("ship_creator") { ValkyrienSkiesMod.SHIP_CREATOR_ITEM }
+        ITEMS.register("ship_creator_smaller") { ValkyrienSkiesMod.SHIP_CREATOR_ITEM_SMALLER }
+        SHIP_MOUNTING_ENTITY_REGISTRY = ENTITIES.register("ship_mounting_entity") {
+            EntityType.Builder.of(
+                ::ShipMountingEntity,
+                MobCategory.MISC
+            ).sized(.3f, .3f)
+                .build(ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_mounting_entity").toString())
+        }
     }
 
-    companion object {
-        private val BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, ValkyrienSkiesMod.MOD_ID)
-        private val ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, ValkyrienSkiesMod.MOD_ID)
-        private val ENTITIES = DeferredRegister.create(ForgeRegistries.ENTITIES, ValkyrienSkiesMod.MOD_ID)
-        private val SHIP_MOUNTING_ENTITY_REGISTRY: RegistryObject<EntityType<ShipMountingEntity>>
+    private fun registerResourceManagers(event: AddReloadListenerEvent) {
+        event.addListener(ValkyrienSkiesMod.MASS_DATAPACK_RESOLVER.loader)
+    }
 
-        init {
-            BLOCKS.register("test_chair") { TestChairBlock() }
-            ITEMS.register("ship_creator") { ValkyrienSkiesMod.SHIP_CREATOR_ITEM }
-            ITEMS.register("ship_creator_smaller") { ValkyrienSkiesMod.SHIP_CREATOR_ITEM_SMALLER }
-            SHIP_MOUNTING_ENTITY_REGISTRY = ENTITIES.register("ship_mounting_entity") {
-                EntityType.Builder.of(
-                    ::ShipMountingEntity,
-                    MobCategory.MISC
-                ).sized(.3f, .3f)
-                    .build(ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_mounting_entity").toString())
+    private fun registerEntityRenderers(event: FMLClientSetupEvent) {
+        RenderingRegistry.registerEntityRenderingHandler(SHIP_MOUNTING_ENTITY_REGISTRY.get(), ::EmptyRenderer)
+    }
+
+    private fun registerBlockItems(event: RegistryEvent.Register<Item>) {
+        BLOCKS.entries.stream().map { obj: RegistryObject<Block?> -> obj.get() }
+            .forEach { block: Block ->
+                event.registry.register(
+                    BlockItem(block, Properties().tab(CreativeModeTab.TAB_MISC))
+                        .setRegistryName(block.registryName)
+                )
             }
-        }
-
-        private fun registerResourceManagers(event: AddReloadListenerEvent) {
-            event.addListener(ValkyrienSkiesMod.MASS_DATAPACK_RESOLVER.loader)
-        }
-
-        private fun registerEntityRenderers(event: FMLClientSetupEvent) {
-            RenderingRegistry.registerEntityRenderingHandler(SHIP_MOUNTING_ENTITY_REGISTRY.get(), ::EmptyRenderer)
-        }
-
-        private fun registerBlockItems(event: RegistryEvent.Register<Item>) {
-            BLOCKS.entries.stream().map { obj: RegistryObject<Block?> -> obj.get() }
-                .forEach { block: Block ->
-                    event.registry.register(
-                        BlockItem(block, Properties().tab(CreativeModeTab.TAB_MISC))
-                            .setRegistryName(block.registryName)
-                    )
-                }
-        }
     }
 }
