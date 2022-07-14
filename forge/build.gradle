@@ -13,8 +13,7 @@ loom {
 
     forge {
         mixinConfig "valkyrienskies-common.mixins.json"
-        // Disable forge mixins for a variety of reasons
-        // mixinConfig "valkyrienskies-forge.mixins.json"
+        mixinConfig "valkyrienskies-forge.mixins.json"
         convertAccessWideners.set(true)
         extraAccessWideners.add loom.accessWidenerPath.get().asFile.name
     }
