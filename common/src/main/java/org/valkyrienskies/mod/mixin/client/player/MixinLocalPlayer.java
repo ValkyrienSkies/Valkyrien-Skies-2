@@ -20,7 +20,7 @@ public abstract class MixinLocalPlayer extends LivingEntity {
      *         during rendering. Why it wasn't like this originally is beyond me \(>.<)/
      * @author StewStrong
      */
-    @Overwrite
+    @Overwrite(aliases = "getViewYRot") // Alias because arch can't remap @Overwrite in forge
     public float getViewYRot(final float partialTick) {
         if (this.isPassenger()) {
             return super.getViewYRot(partialTick);

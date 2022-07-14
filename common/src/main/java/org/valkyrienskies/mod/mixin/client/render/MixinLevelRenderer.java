@@ -179,7 +179,7 @@ public abstract class MixinLevelRenderer {
      *
      * @author Rubydesic
      */
-    @Overwrite
+    @Overwrite(aliases = "renderHitOutline") // Alias because arch can't remap @Overwrite in forge
     private void renderHitOutline(final PoseStack matrixStack, final VertexConsumer vertexConsumer,
         final Entity entity, final double camX, final double camY, final double camZ, final BlockPos blockPos,
         final BlockState blockState) {

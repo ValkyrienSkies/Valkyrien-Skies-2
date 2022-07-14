@@ -61,7 +61,7 @@ public abstract class MixinChunkMap {
      * @reason An injector would be safer to use, but it doesn't seem to work properly unless I use an @Overwrite.
      * @author Tri0de
      */
-    @Overwrite
+    @Overwrite(aliases = "readChunk") // Alias because arch can't remap @Overwrite in forge
     @Nullable
     private CompoundTag readChunk(final ChunkPos chunkPos) throws IOException {
         final ChunkMap self = ChunkMap.class.cast(this);
