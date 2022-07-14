@@ -110,6 +110,10 @@ publishing {
             groupId = "org.valkyrienskies"
             version = project.version
             artifactId = rootProject.archives_base_name + "-" + project.name
+            // Publish the dev shadow jar to maven
+            artifact(shadowJar) {
+                classifier "dev-shadow"
+            }
             from components.java
         }
     }
