@@ -134,7 +134,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
      * @author ewoudje
      * @reason unjank mojank, we need to modify distanceTo's so while were at it unjank it
      */
-    @Overwrite(aliases = "distanceTo") // Alias because arch can't remap @Overwrite in forge
+    @Overwrite
     public float distanceTo(final Entity entity) {
         return Mth.sqrt(distanceToSqr(entity));
     }
@@ -143,7 +143,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
      * @author ewoudje
      * @reason unjank mojank, we need to modify distanceTo's so while were at it unjank it
      */
-    @Overwrite(aliases = "distanceToSqr") // Alias because arch can't remap @Overwrite in forge
+    @Overwrite
     public double distanceToSqr(final Vec3 vec) {
         return distanceToSqr(vec.x, vec.y, vec.z);
     }
@@ -152,7 +152,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
      * @author ewoudje
      * @reason it fixes general issues when checking for distance between in world player and ship things
      */
-    @Overwrite(aliases = "distanceToSqr") // Alias because arch can't remap @Overwrite in forge
+    @Overwrite
     public double distanceToSqr(final double x, final double y, final double z) {
         return VSGameUtilsKt.squaredDistanceToInclShips(Entity.class.cast(this), x, y, z);
     }
