@@ -13,7 +13,9 @@ import org.valkyrienskies.mod.common.getShipManagingPos
 
 class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level) : Entity(type, level) {
 
-    var inShipPosition: Vector3dc? = null
+    var inShipPosition: Vector3dc?
+        get() = IN_SHIP_POSITION.get(this)
+        set(value) = IN_SHIP_POSITION.set(this, value)
 
     init {
         // Don't prevent blocks colliding with this entity from being placed
@@ -38,7 +40,9 @@ class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level) : E
         reapplyPosition()
     }
 
-    override fun defineSynchedData() {}
+    override fun defineSynchedData() {
+        registerSynced(IN_SHIP_POSITION, null)
+    }
 
     override fun readAdditionalSaveData(compound: CompoundTag) {
         inShipPosition = compound.getVector3d("inShipPosition")
@@ -63,5 +67,9 @@ class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level) : E
         if (passenger is ServerPlayer) {
             passenger.setPos(this.x, this.y, this.z)
         }
+    }
+
+    companion object {
+        val IN_SHIP_POSITION = defineSynced<ShipMountingEntity, Vector3dc>(VECTOR_3D)
     }
 }
