@@ -70,6 +70,6 @@ class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level) : E
     }
 
     companion object {
-        val IN_SHIP_POSITION = defineSynced<ShipMountingEntity, Vector3dc>(VECTOR_3D)
+        val IN_SHIP_POSITION = defineSynced<ShipMountingEntity, Vector3dc?>(VECTOR_3D_NULLABLE)
     }
 }
