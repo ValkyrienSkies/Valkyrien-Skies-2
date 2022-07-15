@@ -1,13 +1,14 @@
 package org.valkyrienskies.mod.mixin.client.world;
 
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import java.net.SocketAddress;
 import java.util.function.BooleanSupplier;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
-import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -16,10 +17,8 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.core.game.ships.QueryableShipDataImpl;
 import org.valkyrienskies.core.game.ships.ShipObjectClient;
-import org.valkyrienskies.core.game.ships.ShipObjectClientWorld;
-import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
+import org.valkyrienskies.core.networking.VSNetworking;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.EntityDragger;
 
@@ -27,12 +26,31 @@ import org.valkyrienskies.mod.common.util.EntityDragger;
 public abstract class MixinClientLevel {
     @Shadow
     @Final
+    private Minecraft minecraft;
+    @Shadow
+    @Final
     private Int2ObjectMap<Entity> entitiesById;
+
+    @Unique
+    private boolean serverNoUdp = false;
+    @Unique
+    private int tryConnectIn = 100;
 
     @Inject(method = "tick", at = @At("HEAD"))
     private void preTick(final BooleanSupplier shouldKeepTicking, final CallbackInfo ci) {
         // Drag entities
         EntityDragger.Companion.dragEntitiesWithShips(entitiesById.values());
+        if (!VSNetworking.INSTANCE.getUsesUDP() && !serverNoUdp) {
+            tryConnectIn--;
+            if (tryConnectIn <= 0) {
+                final SocketAddress address = this.minecraft.getConnection().getConnection().getRemoteAddress();
+                VSNetworking.INSTANCE.tryUdpClient(address, (boolean supports) -> {
+                    if (!supports) {
+                        serverNoUdp = true;
+                    }
+                });
+            }
+        }
     }
 
     @Inject(
