@@ -19,7 +19,6 @@ import org.valkyrienskies.core.game.ships.QueryableShipDataImpl;
 import org.valkyrienskies.core.game.ships.ShipObjectClientWorld;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
 import org.valkyrienskies.mod.common.PlayerUtil;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.mixinducks.client.MinecraftDuck;
 
 @Mixin(Minecraft.class)
@@ -66,8 +65,7 @@ public class MixinMinecraft implements MinecraftDuck, IShipObjectWorldClientProv
     private InteractionResult wrapInteractBlock(final MultiPlayerGameMode receiver,
         final LocalPlayer player, final ClientLevel world, final InteractionHand hand, final BlockHitResult hitResult) {
 
-        return PlayerUtil.INSTANCE.transformPlayerTemporarily(player,
-            VSGameUtilsKt.getShipObjectManagingPos(world, hitResult.getBlockPos()),
+        return PlayerUtil.transformPlayerTemporarily(player, world, hitResult.getBlockPos(),
             () -> receiver.useItemOn(player, world, hand, (BlockHitResult) originalCrosshairTarget));
     }
 }

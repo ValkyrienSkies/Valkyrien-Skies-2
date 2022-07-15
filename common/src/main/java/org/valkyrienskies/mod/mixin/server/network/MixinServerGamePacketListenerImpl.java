@@ -79,8 +79,7 @@ public abstract class MixinServerGamePacketListenerImpl {
         final ServerPlayer serverPlayerEntity, final Level world, final ItemStack item,
         final InteractionHand hand, final BlockHitResult hitResult) {
 
-        return PlayerUtil.INSTANCE.transformPlayerTemporarily(player,
-            VSGameUtilsKt.getShipObjectManagingPos(world, hitResult.getBlockPos()),
+        return PlayerUtil.transformPlayerTemporarily(player, world, hitResult.getBlockPos(),
             () -> receiver.useItemOn(player, world, item, hand, hitResult));
     }
 
