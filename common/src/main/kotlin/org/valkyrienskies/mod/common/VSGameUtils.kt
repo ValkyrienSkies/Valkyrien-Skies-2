@@ -13,6 +13,7 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.chunk.LevelChunkSection
 import org.joml.Vector3d
+import org.joml.Vector3dc
 import org.joml.Vector3ic
 import org.valkyrienskies.core.game.ChunkAllocator
 import org.valkyrienskies.core.game.DimensionId
@@ -171,6 +172,9 @@ fun Level.getShipManagingPos(chunkX: Int, chunkZ: Int) =
 
 fun Level.getShipManagingPos(blockPos: BlockPos) =
     getShipManagingPos(blockPos.x shr 4, blockPos.z shr 4)
+
+fun Level.getShipManagingPos(pos: Vector3dc) =
+    getShipManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
 
 fun Level.getShipManagingPos(chunkPos: ChunkPos) =
     getShipManagingPos(chunkPos.x, chunkPos.z)

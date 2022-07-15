@@ -8,22 +8,30 @@ import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.level.Level
 import org.joml.Vector3d
+import org.joml.Vector3dc
+import org.valkyrienskies.mod.common.getShipManagingPos
 
 class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level) : Entity(type, level) {
 
-    private lateinit var inShipPosition: Vector3d
+    var inShipPosition: Vector3dc? = null
 
     init {
-        blocksBuilding = true
-    }
-
-    // We discard any position assignments as long we are on a ship
-    override fun setPosRaw(x: Double, y: Double, z: Double) {
-        return
+        blocksBuilding = false
     }
 
     override fun tick() {
         super.tick()
+        val inShipPositionCopy = inShipPosition
+        if (inShipPositionCopy != null) {
+            val shipData = level.getShipManagingPos(inShipPositionCopy)
+            if (shipData != null) {
+                val posInWorld = shipData.shipToWorld.transformPosition(inShipPositionCopy, Vector3d())
+                setPos(posInWorld.x, posInWorld.y, posInWorld.z)
+                passengers.forEach {
+                    it.setPos(posInWorld.x, posInWorld.y, posInWorld.z)
+                }
+            }
+        }
         reapplyPosition()
     }
 
@@ -34,7 +42,9 @@ class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level) : E
     }
 
     override fun addAdditionalSaveData(compound: CompoundTag) {
-        compound.putVector3d("inShipPosition", inShipPosition)
+        val inShipPositionCopy = inShipPosition
+        if (inShipPositionCopy != null)
+            compound.putVector3d("inShipPosition", inShipPositionCopy)
     }
 
     override fun getControllingPassenger(): Entity? {

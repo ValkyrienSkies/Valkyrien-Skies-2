@@ -11,9 +11,18 @@ fun CompoundTag.putVector3d(prefix: String, vector3d: Vector3dc) =
         putDouble(prefix + "z", z())
     }
 
-fun CompoundTag.getVector3d(prefix: String) =
-    Vector3d(
-        this.getDouble(prefix + "x"),
-        this.getDouble(prefix + "y"),
-        this.getDouble(prefix + "z")
-    )
+fun CompoundTag.getVector3d(prefix: String): Vector3d? {
+    return if (
+        !prefix.contains(prefix + "x")
+        || !prefix.contains(prefix + "y")
+        || !prefix.contains(prefix + "z")
+    ) {
+        null
+    } else {
+        Vector3d(
+            this.getDouble(prefix + "x"),
+            this.getDouble(prefix + "y"),
+            this.getDouble(prefix + "z")
+        )
+    }
+}
