@@ -40,7 +40,7 @@ public abstract class MixinClientLevel {
     private void preTick(final BooleanSupplier shouldKeepTicking, final CallbackInfo ci) {
         // Drag entities
         EntityDragger.Companion.dragEntitiesWithShips(entitiesById.values());
-        if (!VSNetworking.INSTANCE.getUsesUDP() && !serverNoUdp) {
+        if (!VSNetworking.INSTANCE.getClientUsesUDP() && !serverNoUdp) {
             tryConnectIn--;
             if (tryConnectIn <= 0) {
                 final SocketAddress address = this.minecraft.getConnection().getConnection().getRemoteAddress();
@@ -49,6 +49,7 @@ public abstract class MixinClientLevel {
                         serverNoUdp = true;
                     }
                 });
+                tryConnectIn = 100;
             }
         }
     }

@@ -57,7 +57,7 @@ public class MixinGui {
             debugText.add(worldPhysicsDebugText);
         }
 
-        debugText.add("Using UDP: " + VSNetworking.INSTANCE.getUsesUDP());
+        debugText.add("Using UDP: " + VSNetworking.INSTANCE.getClientUsesUDP());
 
         for (int i = 0; i < debugText.size(); i++) {
             final String string = debugText.get(i);
