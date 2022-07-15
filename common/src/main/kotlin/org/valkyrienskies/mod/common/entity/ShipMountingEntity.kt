@@ -16,7 +16,10 @@ class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level) : E
     var inShipPosition: Vector3dc? = null
 
     init {
+        // Don't prevent blocks colliding with this entity from being placed
         blocksBuilding = false
+        // Don't collide with terrain
+        noPhysics = true
     }
 
     override fun tick() {

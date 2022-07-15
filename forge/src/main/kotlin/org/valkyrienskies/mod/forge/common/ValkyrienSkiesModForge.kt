@@ -35,9 +35,9 @@ class ValkyrienSkiesModForge {
         BLOCKS.register(MOD_BUS)
         ITEMS.register(MOD_BUS)
         ENTITIES.register(MOD_BUS)
-        FORGE_BUS.addListener(::registerResourceManagers)
-        FORGE_BUS.addListener(::registerEntityRenderers)
+        MOD_BUS.addListener(::registerEntityRenderers)
         MOD_BUS.addListener(::loadComplete)
+        FORGE_BUS.addListener(::registerResourceManagers)
 
         registerBlockAndItem("test_chair") { TestChairBlock }
         ITEMS.register("ship_creator") { ValkyrienSkiesMod.SHIP_CREATOR_ITEM }

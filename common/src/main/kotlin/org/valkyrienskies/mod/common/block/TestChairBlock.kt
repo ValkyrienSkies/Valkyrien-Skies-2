@@ -52,9 +52,9 @@ object TestChairBlock :
             val ship = level.getShipManagingPos(pos)
             if (ship != null) {
                 val posInWorld = ship.shipTransform.shipToWorldMatrix.transformPosition(seatEntityPos, Vector3d())
-                setPos(posInWorld.x, posInWorld.y, posInWorld.z)
+                moveTo(posInWorld.x, posInWorld.y, posInWorld.z)
             } else {
-                setPos(seatEntityPos.x(), seatEntityPos.y(), seatEntityPos.z())
+                moveTo(seatEntityPos.x(), seatEntityPos.y(), seatEntityPos.z())
             }
         }
 
