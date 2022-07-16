@@ -12,6 +12,8 @@ import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.chunk.LevelChunkSection
+import org.joml.Quaterniond
+import org.joml.Quaterniondc
 import org.joml.Vector3d
 import org.joml.Vector3dc
 import org.joml.Vector3ic
@@ -24,6 +26,8 @@ import org.valkyrienskies.core.game.ships.ShipDataCommon
 import org.valkyrienskies.core.game.ships.ShipObject
 import org.valkyrienskies.core.game.ships.ShipObjectClient
 import org.valkyrienskies.core.game.ships.ShipObjectServer
+import org.valkyrienskies.core.game.ships.ShipTransform
+import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.util.toJOMLD
 import org.valkyrienskies.mod.mixin.accessors.resource.ResourceKeyAccessor
@@ -145,8 +149,19 @@ fun ClientLevel.getShipObjectManagingPos(chunkX: Int, chunkZ: Int) =
 fun ClientLevel.getShipObjectManagingPos(blockPos: BlockPos) =
     getShipObjectManagingPos(blockPos.x shr 4, blockPos.z shr 4)
 
+fun ClientLevel.getShipObjectManagingPos(pos: Vector3dc) =
+    getShipObjectManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
+
 fun ClientLevel.getShipObjectManagingPos(chunkPos: ChunkPos) =
     getShipObjectManagingPos(chunkPos.x, chunkPos.z)
+
+fun ClientLevel.getShipObjectEntityMountedTo(entity: Entity): Pair<ShipObjectClient, Vector3dc>? {
+    val vehicle = entity.vehicle
+    if (vehicle !is ShipMountingEntity) return null
+    val inShipPosition = vehicle.inShipPosition ?: return null
+    val shipObject = getShipObjectManagingPos(inShipPosition) ?: return null
+    return Pair(shipObject, inShipPosition)
+}
 
 // ServerWorld
 fun ServerLevel.getShipObjectManagingPos(chunkX: Int, chunkZ: Int) =
@@ -199,6 +214,12 @@ fun LevelChunkSection.toDenseVoxelUpdate(chunkPos: Vector3ic): DenseVoxelShapeUp
         (BlockStateInfo.get(getBlockState(x, y, z))?.second ?: VSBlockType.AIR).toByte()
     }
     return update
+}
+
+fun getQuaternionForRenderingTemp(yaw: Float, pitch: Float, renderTransform: ShipTransform): Quaterniondc {
+    val originalRotation: Quaterniondc = Quaterniond().rotateX(pitch.toDouble()).rotateY(yaw.toDouble())
+    return renderTransform.shipCoordinatesToWorldCoordinatesRotation.mul(originalRotation, Quaterniond())
+        .normalize()
 }
 
 fun LevelChunkSection.addChunkBlocksToShipVoxelAABB(chunkPos: Vector3ic, shipData: ShipData) {

@@ -78,6 +78,9 @@ fun Vec3i.toJOML() = Vector3i().set(this)
 fun Vec3i.toJOMLD() = Vector3d().set(this)
 fun Position.toJOML() = Vector3d().set(this)
 
+fun Quaternion.set(source: Quaterniondc) =
+    set(source.x().toFloat(), source.y().toFloat(), source.z().toFloat(), source.w().toFloat())
+
 fun Matrix4fMC.set(m: Matrix4fc) = also {
     @Suppress("CAST_NEVER_SUCCEEDS")
     this as Matrix4fAccessor

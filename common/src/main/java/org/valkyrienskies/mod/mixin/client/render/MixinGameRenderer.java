@@ -1,12 +1,23 @@
 package org.valkyrienskies.mod.mixin.client.render;
 
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Matrix4f;
+import com.mojang.math.Quaternion;
+import com.mojang.math.Vector3f;
+import kotlin.Pair;
+import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.LightTexture;
+import net.minecraft.util.Mth;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import org.joml.Quaterniond;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Final;
@@ -19,14 +30,16 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.game.ships.ShipObjectClient;
 import org.valkyrienskies.core.game.ships.ShipObjectClientWorld;
+import org.valkyrienskies.mod.client.IVSCamera;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
+import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 import org.valkyrienskies.mod.mixinducks.client.MinecraftDuck;
 
 @Mixin(GameRenderer.class)
-public class MixinGameRenderer {
+public abstract class MixinGameRenderer {
 
     @Shadow
     @Final
@@ -148,4 +161,118 @@ public class MixinGameRenderer {
             }
         }
     }
+
+    // region Mount the camera to the ship
+    @Shadow
+    @Final
+    private LightTexture lightTexture;
+    @Shadow
+    @Final
+    private Camera mainCamera;
+    @Shadow
+    private float renderDistance;
+    @Shadow
+    private int tick;
+    @Shadow
+    private boolean renderHand;
+
+    @Shadow
+    public abstract void pick(float partialTicks);
+
+    @Shadow
+    protected abstract boolean shouldRenderBlockOutline();
+
+    @Shadow
+    public abstract Matrix4f getProjectionMatrix(Camera camera, float f, boolean bl);
+
+    @Shadow
+    protected abstract void bobHurt(PoseStack matrixStack, float partialTicks);
+
+    @Shadow
+    protected abstract void bobView(PoseStack matrixStack, float partialTicks);
+
+    @Shadow
+    public abstract void resetProjectionMatrix(Matrix4f matrix);
+
+    @Shadow
+    protected abstract void renderItemInHand(PoseStack matrixStack, Camera activeRenderInfo, float partialTicks);
+
+    @Inject(method = "renderLevel", at = @At("HEAD"), cancellable = true)
+    private void preRenderLevel(final float partialTicks, final long finishTimeNano, final PoseStack matrixStack,
+        final CallbackInfo ci) {
+        final ClientLevel clientLevel = minecraft.level;
+        final Entity player = minecraft.player;
+        if (clientLevel == null || player == null) {
+            return;
+        }
+        final Pair<ShipObjectClient, Vector3dc> playerShipMountedTo =
+            VSGameUtilsKt.getShipObjectEntityMountedTo(clientLevel, player);
+        if (playerShipMountedTo == null) {
+            return;
+        }
+
+        // Replace the original logic to mount the player camera to the ship
+        ci.cancel();
+
+        this.lightTexture.updateLightTexture(partialTicks);
+        if (this.minecraft.getCameraEntity() == null) {
+            this.minecraft.setCameraEntity(this.minecraft.player);
+        }
+
+        // TODO: Pass [playerShipMountedTo] in to pick()
+        this.pick(partialTicks);
+        this.minecraft.getProfiler().push("center");
+        final boolean bl = this.shouldRenderBlockOutline();
+        this.minecraft.getProfiler().popPush("camera");
+        final Camera camera = this.mainCamera;
+        this.renderDistance = (float) (this.minecraft.options.renderDistance * 16);
+        final PoseStack poseStack = new PoseStack();
+        poseStack.last().pose().multiply(this.getProjectionMatrix(camera, partialTicks, true));
+        this.bobHurt(poseStack, partialTicks);
+        if (this.minecraft.options.bobView) {
+            this.bobView(poseStack, partialTicks);
+        }
+
+        final float f = Mth.lerp(partialTicks, this.minecraft.player.oPortalTime, this.minecraft.player.portalTime)
+            * this.minecraft.options.screenEffectScale
+            * this.minecraft.options.screenEffectScale;
+        if (f > 0.0F) {
+            final int i = this.minecraft.player.hasEffect(MobEffects.CONFUSION) ? 7 : 20;
+            float g = 5.0F / (f * f + 5.0F) - f * 0.04F;
+            g *= g;
+            final Vector3f vector3f = new Vector3f(0.0F, Mth.SQRT_OF_TWO / 2.0F, Mth.SQRT_OF_TWO / 2.0F);
+            poseStack.mulPose(vector3f.rotationDegrees(((float) this.tick + partialTicks) * (float) i));
+            poseStack.scale(1.0F / g, 1.0F, 1.0F);
+            final float h = -((float) this.tick + partialTicks) * (float) i;
+            poseStack.mulPose(vector3f.rotationDegrees(h));
+        }
+
+        final Matrix4f matrix4f = poseStack.last().pose();
+        this.resetProjectionMatrix(matrix4f);
+        ((IVSCamera) camera).setupWithShipMounted(
+            this.minecraft.level,
+            this.minecraft.getCameraEntity() == null ? this.minecraft.player :
+                this.minecraft.getCameraEntity(),
+            !this.minecraft.options.getCameraType().isFirstPerson(),
+            this.minecraft.options.getCameraType().isMirrored(),
+            partialTicks,
+            playerShipMountedTo
+        );
+        final Quaternion invShipRenderRotation = VectorConversionsMCKt.toMinecraft(
+            playerShipMountedTo.getFirst().getRenderTransform().getShipCoordinatesToWorldCoordinatesRotation()
+                .conjugate(new Quaterniond()));
+        matrixStack.mulPose(Vector3f.XP.rotationDegrees(camera.getXRot()));
+        matrixStack.mulPose(Vector3f.YP.rotationDegrees(camera.getYRot() + 180.0F));
+        matrixStack.mulPose(invShipRenderRotation);
+        this.minecraft.levelRenderer.renderLevel(matrixStack, partialTicks, finishTimeNano, bl, camera,
+            GameRenderer.class.cast(this), this.lightTexture, matrix4f);
+        this.minecraft.getProfiler().popPush("hand");
+        if (this.renderHand) {
+            RenderSystem.clear(256, Minecraft.ON_OSX);
+            this.renderItemInHand(matrixStack, camera, partialTicks);
+        }
+
+        this.minecraft.getProfiler().pop();
+    }
+    // endregion
 }
