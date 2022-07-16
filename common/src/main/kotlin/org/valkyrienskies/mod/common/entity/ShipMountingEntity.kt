@@ -26,6 +26,11 @@ class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level) : E
 
     override fun tick() {
         super.tick()
+        if (!level.isClientSide && passengers.isEmpty()) {
+            // Kill this entity if nothing is riding it
+            kill()
+            return
+        }
         val inShipPositionCopy = inShipPosition
         if (inShipPositionCopy != null) {
             val shipData = level.getShipManagingPos(inShipPositionCopy)
