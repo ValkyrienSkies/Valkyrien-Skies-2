@@ -29,13 +29,12 @@ class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level) : E
         val inShipPositionCopy = inShipPosition
         if (inShipPositionCopy != null) {
             val shipData = level.getShipManagingPos(inShipPositionCopy)
-            if (shipData != null) {
-                val posInWorld = shipData.shipToWorld.transformPosition(inShipPositionCopy, Vector3d())
-                setPos(posInWorld.x, posInWorld.y, posInWorld.z)
-                passengers.forEach {
-                    it.setPos(posInWorld.x, posInWorld.y, posInWorld.z)
-                }
+            val posInWorld: Vector3dc = if (shipData != null) {
+                shipData.shipToWorld.transformPosition(inShipPositionCopy, Vector3d())
+            } else {
+                inShipPositionCopy
             }
+            setPos(posInWorld.x(), posInWorld.y(), posInWorld.z())
         }
         reapplyPosition()
     }
