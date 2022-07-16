@@ -51,7 +51,7 @@ fun AABBd.set(v: AABB) = also {
 }
 
 fun Vector3ic.toBlockPos() = BlockPos(x(), y(), z())
-fun Vector3dc.toVec3d() = Vec3(x(), y(), z())
+fun Vector3dc.toMinecraft() = Vec3(x(), y(), z())
 
 fun Quaternionfc.toMinecraft() = Quaternion(x(), y(), z(), w())
 fun Quaterniondc.toMinecraft() = Quaternion(x().toFloat(), y().toFloat(), z().toFloat(), w().toFloat())

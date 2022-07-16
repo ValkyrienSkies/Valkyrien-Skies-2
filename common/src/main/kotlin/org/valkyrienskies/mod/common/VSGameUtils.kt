@@ -229,9 +229,9 @@ fun LevelChunkSection.toDenseVoxelUpdate(chunkPos: Vector3ic): DenseVoxelShapeUp
 
 // TODO: This is just here for quick debugging. Delete this before merging!
 fun getQuaternionForRenderingTemp(yaw: Float, pitch: Float, renderTransform: ShipTransform): Quaterniondc {
-    val originalRotation: Quaterniondc = Quaterniond().rotateX(pitch.toDouble()).rotateY(yaw.toDouble())
-    return renderTransform.shipCoordinatesToWorldCoordinatesRotation.mul(originalRotation, Quaterniond())
-        .normalize()
+    val originalRotation: Quaterniondc =
+        Quaterniond().rotateY(Math.toRadians(yaw.toDouble())).rotateX(Math.toRadians(pitch.toDouble())).normalize()
+    return renderTransform.shipCoordinatesToWorldCoordinatesRotation.mul(originalRotation, Quaterniond()).normalize()
 }
 
 fun LevelChunkSection.addChunkBlocksToShipVoxelAABB(chunkPos: Vector3ic, shipData: ShipData) {
