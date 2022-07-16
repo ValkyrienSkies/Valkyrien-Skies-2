@@ -139,8 +139,19 @@ fun Level.getShipObjectManagingPos(chunkX: Int, chunkZ: Int) =
 fun Level.getShipObjectManagingPos(blockPos: BlockPos) =
     getShipObjectManagingPos(blockPos.x shr 4, blockPos.z shr 4)
 
+fun Level.getShipObjectManagingPos(pos: Vector3dc) =
+    getShipObjectManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
+
 fun Level.getShipObjectManagingPos(chunkPos: ChunkPos) =
     getShipObjectManagingPos(chunkPos.x, chunkPos.z)
+
+fun Level.getShipObjectEntityMountedTo(entity: Entity): Pair<ShipObject, Vector3dc>? {
+    val vehicle = entity.vehicle
+    if (vehicle !is ShipMountingEntity) return null
+    val inShipPosition = vehicle.inShipPosition ?: return null
+    val shipObject = getShipObjectManagingPos(inShipPosition) ?: return null
+    return Pair(shipObject, inShipPosition)
+}
 
 // ClientLevel
 fun ClientLevel.getShipObjectManagingPos(chunkX: Int, chunkZ: Int) =
@@ -216,6 +227,7 @@ fun LevelChunkSection.toDenseVoxelUpdate(chunkPos: Vector3ic): DenseVoxelShapeUp
     return update
 }
 
+// TODO: This is just here for quick debugging. Delete this before merging!
 fun getQuaternionForRenderingTemp(yaw: Float, pitch: Float, renderTransform: ShipTransform): Quaterniondc {
     val originalRotation: Quaterniondc = Quaterniond().rotateX(pitch.toDouble()).rotateY(yaw.toDouble())
     return renderTransform.shipCoordinatesToWorldCoordinatesRotation.mul(originalRotation, Quaterniond())
