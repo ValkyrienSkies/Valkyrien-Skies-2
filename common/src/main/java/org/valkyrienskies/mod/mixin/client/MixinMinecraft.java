@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.mixin.client;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.MultiPlayerGameMode;
+import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -17,6 +18,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.game.ships.QueryableShipDataImpl;
 import org.valkyrienskies.core.game.ships.ShipObjectClientWorld;
+import org.valkyrienskies.core.networking.VSNetworking;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
 import org.valkyrienskies.mod.common.PlayerUtil;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
@@ -69,5 +71,13 @@ public class MixinMinecraft implements MinecraftDuck, IShipObjectWorldClientProv
         return PlayerUtil.INSTANCE.transformPlayerTemporarily(player,
             VSGameUtilsKt.getShipObjectManagingPos(world, hitResult.getBlockPos()),
             () -> receiver.useItemOn(player, world, hand, (BlockHitResult) originalCrosshairTarget));
+    }
+
+    @Inject(
+        method = "setCurrentServer",
+        at = @At("HEAD")
+    )
+    public void preSetCurrentServer(final ServerData serverData, final CallbackInfo ci) {
+        VSNetworking.INSTANCE.setClientUsesUDP(false);
     }
 }
