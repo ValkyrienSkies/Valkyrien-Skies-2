@@ -20,3 +20,8 @@ The Minecraft version dependent code lives in this repository, and the version i
 1. Clone the repo: `git clone --recurse-submodules https://github.com/ValkyrienSkies/Valkyrien-Skies-2`
 2. Open the project in IntelliJ, using Java 17
 3. Import the gradle project, sync gradle
+
+## Troubleshooting
+
+### Running Forge in dev environment
+Occasionally forge will break will strange ways. When this occurs, delete all the `build` folders, delete the `.gradle` folder of the `forge` project, and then refresh gradle.
