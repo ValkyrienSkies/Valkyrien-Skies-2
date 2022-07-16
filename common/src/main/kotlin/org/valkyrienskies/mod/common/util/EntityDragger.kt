@@ -105,6 +105,7 @@ class EntityDragger {
                     // Don't apply it to server players to fix rotation of placed blocks
                     if (addedYRot.isFinite() && entity !is ServerPlayer) {
                         entity.yRot += addedYRot.toFloat()
+                        entity.yHeadRot += addedYRot.toFloat()
                         entityDraggingInformation.addedYawRotLastTick = addedYRot
                     }
                 }
