@@ -29,9 +29,10 @@ class ValkyrienSkiesModForge {
     private val BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, ValkyrienSkiesMod.MOD_ID)
     private val ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, ValkyrienSkiesMod.MOD_ID)
     private val ENTITIES = DeferredRegister.create(ForgeRegistries.ENTITIES, ValkyrienSkiesMod.MOD_ID)
-    private val SHIP_MOUNTING_ENTITY_REGISTRY: RegistryObject<EntityType<ShipMountingEntity>>
+    private val TEST_CHAIR_REGISTRY: RegistryObject<Block>
     private val SHIP_CREATOR_ITEM_REGISTRY: RegistryObject<Item>
     private val SHIP_CREATOR_SMALLER_ITEM_REGISTRY: RegistryObject<Item>
+    private val SHIP_MOUNTING_ENTITY_REGISTRY: RegistryObject<EntityType<ShipMountingEntity>>
 
     init {
         ValkyrienSkiesMod.init()
@@ -43,7 +44,7 @@ class ValkyrienSkiesModForge {
         MOD_BUS.addListener(::loadComplete)
         FORGE_BUS.addListener(::registerResourceManagers)
 
-        registerBlockAndItem("test_chair") { TestChairBlock }
+        TEST_CHAIR_REGISTRY = registerBlockAndItem("test_chair") { TestChairBlock }
         SHIP_CREATOR_ITEM_REGISTRY =
             ITEMS.register("ship_creator") { ShipCreatorItem(Properties().tab(CreativeModeTab.TAB_MISC), 1.0) }
         SHIP_CREATOR_SMALLER_ITEM_REGISTRY =
@@ -65,14 +66,16 @@ class ValkyrienSkiesModForge {
         RenderingRegistry.registerEntityRenderingHandler(SHIP_MOUNTING_ENTITY_REGISTRY.get(), ::EmptyRenderer)
     }
 
-    private fun registerBlockAndItem(registryName: String, blockSupplier: () -> Block) {
+    private fun registerBlockAndItem(registryName: String, blockSupplier: () -> Block): RegistryObject<Block> {
         val blockRegistry = BLOCKS.register(registryName, blockSupplier)
         ITEMS.register(registryName) { BlockItem(blockRegistry.get(), Properties().tab(CreativeModeTab.TAB_MISC)) }
+        return blockRegistry
     }
 
     private fun loadComplete(event: FMLLoadCompleteEvent) {
-        ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE = SHIP_MOUNTING_ENTITY_REGISTRY.get()
+        ValkyrienSkiesMod.TEST_CHAIR = TEST_CHAIR_REGISTRY.get()
         ValkyrienSkiesMod.SHIP_CREATOR_ITEM = SHIP_CREATOR_ITEM_REGISTRY.get()
         ValkyrienSkiesMod.SHIP_CREATOR_ITEM_SMALLER = SHIP_CREATOR_SMALLER_ITEM_REGISTRY.get()
+        ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE = SHIP_MOUNTING_ENTITY_REGISTRY.get()
     }
 }
