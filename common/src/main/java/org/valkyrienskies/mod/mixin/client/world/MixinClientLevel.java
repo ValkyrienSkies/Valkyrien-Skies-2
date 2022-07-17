@@ -1,7 +1,6 @@
 package org.valkyrienskies.mod.mixin.client.world;
 
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import java.net.SocketAddress;
 import java.util.function.BooleanSupplier;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -18,7 +17,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.game.ships.ShipObjectClient;
-import org.valkyrienskies.core.networking.VSNetworking;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.EntityDragger;
 
@@ -40,18 +38,8 @@ public abstract class MixinClientLevel {
     private void preTick(final BooleanSupplier shouldKeepTicking, final CallbackInfo ci) {
         // Drag entities
         EntityDragger.Companion.dragEntitiesWithShips(entitiesById.values());
-        if (!VSNetworking.INSTANCE.getClientUsesUDP() && !serverNoUdp) {
-            tryConnectIn--;
-            if (tryConnectIn <= 0) {
-                final SocketAddress address = this.minecraft.getConnection().getConnection().getRemoteAddress();
-                VSNetworking.INSTANCE.tryUdpClient(address, (boolean supports) -> {
-                    if (!supports) {
-                        serverNoUdp = true;
-                    }
-                });
-                tryConnectIn = 100;
-            }
-        }
+        VSGameUtilsKt.getShipObjectWorld(minecraft).getNetworkManager()
+            .tick(minecraft.getConnection().getConnection().getRemoteAddress());
     }
 
     @Inject(
