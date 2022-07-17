@@ -8,6 +8,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.BlockGetter;
 import org.jetbrains.annotations.NotNull;
+import org.joml.Quaterniond;
 import org.joml.Quaterniondc;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
@@ -18,7 +19,6 @@ import org.spongepowered.asm.mixin.Unique;
 import org.valkyrienskies.core.game.ships.ShipObjectClient;
 import org.valkyrienskies.core.game.ships.ShipTransform;
 import org.valkyrienskies.mod.client.IVSCamera;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(Camera.class)
@@ -94,7 +94,10 @@ public abstract class MixinCamera implements IVSCamera {
 
     @Unique
     private void setRotationWithShipTransform(final float yaw, final float pitch, final ShipTransform renderTransform) {
-        final Quaterniondc newRotation = VSGameUtilsKt.getQuaternionForRenderingTemp(yaw, pitch, renderTransform);
+        final Quaterniondc originalRotation =
+            new Quaterniond().rotateY(Math.toRadians(-yaw)).rotateX(Math.toRadians(pitch)).normalize();
+        final Quaterniondc newRotation =
+            renderTransform.getShipCoordinatesToWorldCoordinatesRotation().mul(originalRotation, new Quaterniond());
         this.xRot = pitch;
         this.yRot = yaw;
         VectorConversionsMCKt.set(this.rotation, newRotation);

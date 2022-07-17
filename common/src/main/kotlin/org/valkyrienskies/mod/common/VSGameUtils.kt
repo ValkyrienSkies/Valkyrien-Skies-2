@@ -12,8 +12,6 @@ import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.chunk.LevelChunkSection
-import org.joml.Quaterniond
-import org.joml.Quaterniondc
 import org.joml.Vector3d
 import org.joml.Vector3dc
 import org.joml.Vector3ic
@@ -26,7 +24,6 @@ import org.valkyrienskies.core.game.ships.ShipDataCommon
 import org.valkyrienskies.core.game.ships.ShipObject
 import org.valkyrienskies.core.game.ships.ShipObjectClient
 import org.valkyrienskies.core.game.ships.ShipObjectServer
-import org.valkyrienskies.core.game.ships.ShipTransform
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.util.toJOMLD
@@ -225,13 +222,6 @@ fun LevelChunkSection.toDenseVoxelUpdate(chunkPos: Vector3ic): DenseVoxelShapeUp
         (BlockStateInfo.get(getBlockState(x, y, z))?.second ?: VSBlockType.AIR).toByte()
     }
     return update
-}
-
-// TODO: This is just here for quick debugging. Delete this before merging!
-fun getQuaternionForRenderingTemp(yaw: Float, pitch: Float, renderTransform: ShipTransform): Quaterniondc {
-    val originalRotation: Quaterniondc =
-        Quaterniond().rotateY(Math.toRadians(yaw.toDouble())).rotateX(Math.toRadians(pitch.toDouble())).normalize()
-    return renderTransform.shipCoordinatesToWorldCoordinatesRotation.mul(originalRotation, Quaterniond()).normalize()
 }
 
 fun LevelChunkSection.addChunkBlocksToShipVoxelAABB(chunkPos: Vector3ic, shipData: ShipData) {
