@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.common.world
 
+import mu.KotlinLogging
 import net.minecraft.network.protocol.Packet
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
@@ -12,6 +13,8 @@ import org.valkyrienskies.mod.common.mcPlayer
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.mixin.accessors.server.world.ChunkMapAccessor
 
+private val logger = KotlinLogging.logger {}
+
 object ChunkManagement {
     @JvmStatic
     fun tickChunkLoading(shipWorld: ShipObjectServerWorld, server: MinecraftServer) {
@@ -20,7 +23,7 @@ object ChunkManagement {
         // Use Spliterator instead of iterators so that we can multi thread the execution of these tasks
         // But for now just do it single threaded
         chunkWatchTasks.forEachRemaining { chunkWatchTask: ChunkWatchTask ->
-            println(
+            logger.debug(
                 "Watch task for dimension " + chunkWatchTask.dimensionId + ": " +
                     chunkWatchTask.getChunkX() + " : " + chunkWatchTask.getChunkZ()
             )
@@ -33,7 +36,7 @@ object ChunkManagement {
             for (player in chunkWatchTask.playersNeedWatching) {
                 val minecraftPlayer = player as MinecraftPlayer
                 if (chunkWatchTask.dimensionId != player.dimension) {
-                    println("WARN: Player received watch task for chunk in dimension that they are not also in!")
+                    logger.warn("Player received watch task for chunk in dimension that they are not also in!")
                 }
                 val serverPlayerEntity =
                     minecraftPlayer.playerEntityReference.get() as ServerPlayer?
@@ -46,7 +49,7 @@ object ChunkManagement {
         }
 
         chunkUnwatchTasks.forEachRemaining { chunkUnwatchTask: ChunkUnwatchTask ->
-            println(
+            logger.debug(
                 "Unwatch task for dimension " + chunkUnwatchTask.dimensionId + ": " +
                     chunkUnwatchTask.getChunkX() + " : " + chunkUnwatchTask.getChunkZ()
             )
