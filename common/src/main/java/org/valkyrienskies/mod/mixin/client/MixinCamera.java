@@ -88,6 +88,7 @@ public abstract class MixinCamera implements IVSCamera {
             if (thirdPersonReverse) {
                 this.setRotationWithShipTransform(this.yRot + 180.0F, -this.xRot, renderTransform);
             }
+            // TODO: Adjust this based on ship size
             this.move(-this.getMaxZoom(4.0), 0.0, 0.0);
         }
     }
