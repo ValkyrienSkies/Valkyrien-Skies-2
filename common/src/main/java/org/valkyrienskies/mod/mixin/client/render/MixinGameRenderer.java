@@ -219,7 +219,6 @@ public abstract class MixinGameRenderer {
             this.minecraft.setCameraEntity(this.minecraft.player);
         }
 
-        // TODO: Pass [playerShipMountedTo] in to pick()
         this.pick(partialTicks);
         this.minecraft.getProfiler().push("center");
         final boolean bl = this.shouldRenderBlockOutline();
