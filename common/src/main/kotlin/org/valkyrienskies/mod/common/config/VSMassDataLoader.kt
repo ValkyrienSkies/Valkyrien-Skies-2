@@ -2,6 +2,7 @@ package org.valkyrienskies.mod.common.config
 
 import com.google.gson.Gson
 import com.google.gson.JsonElement
+import mu.KotlinLogging
 import net.minecraft.core.Registry
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.packs.resources.ResourceManager
@@ -11,10 +12,11 @@ import net.minecraft.tags.Tag
 import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
-import org.apache.logging.log4j.LogManager
 import org.valkyrienskies.core.game.VSBlockType
 import org.valkyrienskies.mod.common.BlockStateInfoProvider
 import org.valkyrienskies.mod.event.RegistryEvents
+
+private val logger = KotlinLogging.logger {}
 
 private data class VSBlockStateInfo(val id: ResourceLocation, val mass: Double, val type: VSBlockType?)
 class MassDatapackResolver : BlockStateInfoProvider {
@@ -49,7 +51,7 @@ class MassDatapackResolver : BlockStateInfoProvider {
                         parse(element, location)
                     } else throw IllegalArgumentException()
                 } catch (e: Exception) {
-                    e.printStackTrace()
+                    logger.catching(e)
                 }
             }
         }
@@ -60,7 +62,7 @@ class MassDatapackResolver : BlockStateInfoProvider {
                     val tag: Tag<Block>? = BlockTags.getAllTags().getTag(tagInfo.id)
 
                     if (tag == null) {
-                        LOGGER.warn("No specified tag '${tagInfo.id}' doesn't exist!")
+                        logger.warn("No specified tag '${tagInfo.id}' doesn't exist!")
                         return@forEach
                     }
 
@@ -93,10 +95,6 @@ class MassDatapackResolver : BlockStateInfoProvider {
 
                 add(VSBlockStateInfo(ResourceLocation(block), weight, null))
             }
-        }
-
-        companion object {
-            val LOGGER = LogManager.getLogger()
         }
     }
 }
