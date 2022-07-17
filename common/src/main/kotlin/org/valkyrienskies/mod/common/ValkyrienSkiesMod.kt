@@ -14,7 +14,6 @@ object ValkyrienSkiesMod {
     val MASS_DATAPACK_RESOLVER = MassDatapackResolver()
 
     fun init() {
-        println("Hello from init")
         VSNetworking.init()
         BlockStateInfo.init()
     }

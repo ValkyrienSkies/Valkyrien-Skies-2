@@ -17,12 +17,9 @@ import org.valkyrienskies.mod.common.util.toJOML
 class ShipCreatorItem(properties: Properties, private val scale: Double) : Item(properties) {
 
     override fun useOn(ctx: UseOnContext): InteractionResult {
-        println(ctx.level.isClientSide)
         val level = ctx.level as? ServerLevel ?: return super.useOn(ctx)
         val blockPos = ctx.clickedPos
         val blockState: BlockState = level.getBlockState(blockPos)
-
-        println("Player right clicked on $blockPos")
 
         if (!level.isClientSide) {
             if (ChunkAllocator.isChunkInShipyard(blockPos.x shr 4, blockPos.z shr 4)) {
@@ -36,6 +33,8 @@ class ShipCreatorItem(properties: Properties, private val scale: Double) : Item(
 
                 // Move the block from the world to a ship
                 level.relocateBlock(blockPos, centerPos, shipData)
+
+                ctx.player?.sendMessage(TextComponent("SHIPIFIED!"), null)
             }
         }
 
