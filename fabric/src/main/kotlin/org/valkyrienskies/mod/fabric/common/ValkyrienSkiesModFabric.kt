@@ -1,20 +1,26 @@
 package org.valkyrienskies.mod.fabric.common
 
+import net.fabricmc.api.EnvType.CLIENT
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper
+import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.core.Registry
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.packs.PackType.SERVER_DATA
 import net.minecraft.server.packs.resources.PreparableReloadListener.PreparationBarrier
 import net.minecraft.server.packs.resources.ResourceManager
 import net.minecraft.util.profiling.ProfilerFiller
+import org.valkyrienskies.core.hooks.VSCoreHooks
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executor
 
 class ValkyrienSkiesModFabric : ModInitializer {
     override fun onInitialize() {
+        VSCoreHooks.isPhysicalClient = FabricLoader.getInstance().environmentType == CLIENT
+        VSCoreHooks.configDir = FabricLoader.getInstance().configDir.resolve(ValkyrienSkiesMod.MOD_ID)
+
         ValkyrienSkiesMod.init()
         Registry.register(
             Registry.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_creator"),

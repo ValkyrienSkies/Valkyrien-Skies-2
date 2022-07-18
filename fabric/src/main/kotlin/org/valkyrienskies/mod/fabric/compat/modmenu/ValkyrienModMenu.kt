@@ -9,7 +9,7 @@ import org.valkyrienskies.mod.compat.clothconfig.createConfigScreenFor
 class ValkyrienModMenu : ModMenuApi {
     override fun getModConfigScreenFactory(): ConfigScreenFactory<*> {
         return ConfigScreenFactory { parent ->
-            createConfigScreenFor(getOrRegisterConfig("vs_core", VSCoreConfig::class.java), parent)
+            createConfigScreenFor(parent, getOrRegisterConfig("vs_core", VSCoreConfig::class.java))
         }
     }
 }

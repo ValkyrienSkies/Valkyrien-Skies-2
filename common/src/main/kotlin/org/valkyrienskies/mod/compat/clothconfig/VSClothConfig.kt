@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
+import com.networknt.schema.ValidationMessage
+import me.shedaniel.clothconfig2.api.AbstractConfigListEntry
 import me.shedaniel.clothconfig2.api.ConfigBuilder
 import me.shedaniel.clothconfig2.api.ConfigCategory
 import me.shedaniel.clothconfig2.api.ConfigEntryBuilder
@@ -12,55 +14,61 @@ import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.TextComponent
 import org.valkyrienskies.core.config.SidedVSConfigClass
 import org.valkyrienskies.core.config.VSConfigClass
+import org.valkyrienskies.core.hooks.VSCoreHooks
 import org.valkyrienskies.core.util.serialization.VSJacksonUtil
-import org.valkyrienskies.core.util.serialization.shallowCopy
-import org.valkyrienskies.core.util.variance
+import org.valkyrienskies.core.util.serialization.shallowCopyWith
 import java.util.Optional
-import java.util.function.Consumer
 
-class VSClothConfig {
-
-}
-
-fun createConfigScreenFor(configClass: VSConfigClass, parent: Screen): Screen {
+fun createConfigScreenFor(parent: Screen, vararg configClasses: VSConfigClass): Screen {
     return ConfigBuilder.create().apply {
         parentScreen = parent
 
-        configClass.sides.forEach { side ->
-            println(side.schemaJson)
-            getOrCreateCategory(TextComponent(side.sideName)).apply {
-                side.schemaJson["properties"]?.fields()?.forEach { (key, value) ->
-                    if (key != "\$schema") {
-                        addEntryForProperty(key, value, ::entryBuilder, side)
-                    }
+        configClasses.forEach { configClass ->
+            configClass.sides.forEach { side ->
+                val name = if (configClasses.size == 1) side.sideName else "${configClass.name} - ${side.sideName}"
+                addEntriesForConfig(getOrCreateCategory(TextComponent(name)), ::entryBuilder, side)
+            }
+        }
+        savingRunnable = Runnable {
+            configClasses.forEach { configClass ->
+                configClass.sides.forEach {
+                    it.saveConfig(VSCoreHooks.configDir)
                 }
-                // side.clazz.declaredFields.forEach { field ->
-                //     addEntryForField(side, field, side.inst, entryBuilder())
-                // }
             }
         }
 
     }.build()
 }
 
-fun ConfigCategory.addEntryForProperty(
-    key: String, schema: JsonNode, entryBuilder: () -> ConfigEntryBuilder, side: SidedVSConfigClass
-) {
-    val configJson = side.instJson
+fun addEntriesForConfig(category: ConfigCategory, entryBuilder: () -> ConfigEntryBuilder, side: SidedVSConfigClass) {
+    val configJson = side.generateInstJson()
+    side.schemaJson["properties"]?.fields()?.forEach { (key, schema) ->
+        if (key != "\$schema") {
+            getEntriesForProperty(key, configJson[key], schema, entryBuilder,
+                save = { newValue -> side.attemptUpdate(side.generateInstJsonWith(key, newValue)) },
+                validate = { newValue -> side.schema.validate(side.generateInstJsonWith(key, newValue)) }
+            ).forEach(category::addEntry)
+        }
+    }
+}
+
+fun getEntriesForProperty(
+    key: String,
+    currentValue: JsonNode,
+    schema: JsonNode,
+    entryBuilder: () -> ConfigEntryBuilder,
+    save: (JsonNode) -> Unit,
+    validate: (JsonNode) -> Set<ValidationMessage>
+): List<AbstractConfigListEntry<*>> {
     val mapper = VSJacksonUtil.configMapper
+    val entries = mutableListOf<AbstractConfigListEntry<*>>()
 
     val description: String? = schema["description"]?.asText()
     val title: String = schema["title"]?.asText(key) ?: key
     val titleComponent = TextComponent(title)
 
-    fun newConfigWithValue(newValue: JsonNode): ObjectNode {
-        val newConfig = configJson.shallowCopy()
-        newConfig.replace(key, newValue)
-        return newConfig
-    }
-
-    fun validate(newValue: JsonNode): Optional<Component> {
-        val errors = side.schema.validate(newConfigWithValue(newValue))
+    fun getValidationMessageComponent(value: JsonNode): Optional<Component> {
+        val errors = validate(value)
         return if (errors.isNotEmpty()) {
             Optional.of(TextComponent(errors.joinToString()))
         } else {
@@ -68,20 +76,25 @@ fun ConfigCategory.addEntryForProperty(
         }
     }
 
-    val defaultErrorSupplier = { value: Any -> validate(mapper.valueToTree(value)) }
-    val defaultSaveConsumer =
-        Consumer { value: Any -> side.attemptUpdate(newConfigWithValue(mapper.valueToTree(value))) }
+    fun <T> defaultError(value: T): Optional<Component> {
+        return getValidationMessageComponent(mapper.valueToTree(value))
+    }
+
+    fun <T> defaultSave(value: T) {
+        save(mapper.valueToTree(value))
+    }
 
     val enum: ArrayNode? = schema["enum"] as? ArrayNode
 
-    when (schema["type"].asText()) {
-        "integer" -> {
-            val value = configJson[key].intValue()
+    val type = schema["type"].asText()
+    when {
+        type == "integer" -> {
+            val value = currentValue.intValue()
 
-            addEntry(entryBuilder().startIntField(titleComponent, value).apply {
+            entries.add(entryBuilder().startIntField(titleComponent, value).apply {
                 if (description != null) setTooltip(TextComponent(description))
-                setSaveConsumer(defaultSaveConsumer.variance())
-                setErrorSupplier(defaultErrorSupplier)
+                setSaveConsumer(::defaultSave)
+                setErrorSupplier(::defaultError)
 
                 schema["minimum"]?.intValue()?.let { setMin(it) }
                 schema["exclusiveMinimum"]?.intValue()?.let { setMin(it + 1) }
@@ -89,12 +102,12 @@ fun ConfigCategory.addEntryForProperty(
                 schema["exclusiveMaximum"]?.intValue()?.let { setMax(it - 1) }
             }.build())
         }
-        "number" -> {
-            val value = configJson[key].doubleValue()
-            addEntry(entryBuilder().startDoubleField(titleComponent, value).apply {
+        type == "number" -> {
+            val value = currentValue.doubleValue()
+            entries.add(entryBuilder().startDoubleField(titleComponent, value).apply {
                 if (description != null) setTooltip(TextComponent(description))
-                setSaveConsumer(defaultSaveConsumer.variance())
-                setErrorSupplier(defaultErrorSupplier)
+                setSaveConsumer(::defaultSave)
+                setErrorSupplier(::defaultError)
 
                 schema["minimum"]?.doubleValue()?.let { setMin(it) }
                 schema["exclusiveMinimum"]?.doubleValue()?.let { setMin(it) }
@@ -102,41 +115,79 @@ fun ConfigCategory.addEntryForProperty(
                 schema["exclusiveMaximum"]?.doubleValue()?.let { setMax(it) }
             }.build())
         }
-        "boolean" -> {
-            val value = configJson[key].booleanValue()
-            addEntry(entryBuilder().startBooleanToggle(titleComponent, value).apply {
+        type == "boolean" -> {
+            val value = currentValue.booleanValue()
+            entries.add(entryBuilder().startBooleanToggle(titleComponent, value).apply {
                 if (description != null) setTooltip(TextComponent(description))
-                setSaveConsumer(defaultSaveConsumer.variance())
-                setErrorSupplier(defaultErrorSupplier)
+                setSaveConsumer(::defaultSave)
+                setErrorSupplier(::defaultError)
             }.build())
         }
-        "string" -> {
-            val value = configJson[key].asText()
+        type == "string" -> {
+            val value = currentValue.asText()
             if (enum == null) {
-                addEntry(entryBuilder().startStrField(titleComponent, value).apply {
+                entries.add(entryBuilder().startStrField(titleComponent, value).apply {
                     if (description != null) setTooltip(TextComponent(description))
-                    setSaveConsumer(defaultSaveConsumer.variance())
-                    setErrorSupplier(defaultErrorSupplier)
+                    setSaveConsumer(::defaultSave)
+                    setErrorSupplier(::defaultError)
                 }.build())
             } else {
-                addEntry(entryBuilder().startStringDropdownMenu(titleComponent, value).apply {
+                entries.add(entryBuilder().startStringDropdownMenu(titleComponent, value).apply {
                     if (description != null) setTooltip(TextComponent(description))
-                    setSaveConsumer(defaultSaveConsumer.variance())
-                    setErrorSupplier(defaultErrorSupplier)
+                    setSaveConsumer(::defaultSave)
+                    setErrorSupplier(::defaultError)
 
                     isSuggestionMode = false
                     setSelections(enum.mapNotNull { it.asText(null) })
                 }.build())
             }
         }
+        type == "object" -> {
+            val obj = currentValue as ObjectNode
+            val properties = schema["properties"] as ObjectNode
+            val subEntries = properties.fields().asSequence().flatMap { (key, schema) ->
+                getEntriesForProperty(key, obj[key], schema, entryBuilder,
+                    save = { newValue -> save(obj.shallowCopyWith(key, newValue)) },
+                    validate = { newValue -> validate(obj.shallowCopyWith(key, newValue)) }
+                )
+            }.toList()
+            entries.add(entryBuilder().startSubCategory(titleComponent, subEntries).build())
+        }
+        type == "array" && schema["items"]["type"].asText() == "string" -> {
+            val arr = currentValue as ArrayNode
+            val textArr = arr.mapNotNull { it.asText(null) }
+            entries.add(entryBuilder().startStrList(titleComponent, textArr).apply {
+                if (description != null) setTooltip(TextComponent(description))
+                setSaveConsumer(::defaultSave)
+                setErrorSupplier(::defaultError)
+            }.build())
+        }
+        type == "array" && schema["items"]["type"].asText() == "integer" -> {
+            val arr = currentValue as ArrayNode
+            val intArr = arr.mapNotNull { it.asInt() }
+            entries.add(entryBuilder().startIntList(titleComponent, intArr).apply {
+                if (description != null) setTooltip(TextComponent(description))
+                setSaveConsumer(::defaultSave)
+                setErrorSupplier(::defaultError)
+            }.build())
+        }
+        type == "array" && schema["items"]["type"].asText() == "number" -> {
+            val arr = currentValue as ArrayNode
+            val doubleArr = arr.mapNotNull { it.asDouble() }
+            entries.add(entryBuilder().startDoubleList(titleComponent, doubleArr).apply {
+                if (description != null) setTooltip(TextComponent(description))
+                setSaveConsumer(::defaultSave)
+                setErrorSupplier(::defaultError)
+            }.build())
+        }
         else -> {
-            val value = configJson[key].toString()
-            addEntry(entryBuilder().startStrField(titleComponent, value).apply {
+            val value = currentValue.toString()
+            entries.add(entryBuilder().startStrField(titleComponent, value).apply {
                 if (description != null) {
                     setTooltip(TextComponent(description))
                 }
                 setSaveConsumer { str ->
-                    side.attemptUpdate(newConfigWithValue(mapper.readTree(str)))
+                    save(mapper.readTree(str))
                 }
                 setErrorSupplier { str ->
                     val newValue = try {
@@ -145,70 +196,11 @@ fun ConfigCategory.addEntryForProperty(
                         return@setErrorSupplier Optional.of(TextComponent(ex.message))
                     }
 
-                    validate(newValue)
+                    getValidationMessageComponent(newValue)
                 }
             }.build())
         }
     }
-}
 
-// fun ConfigCategory.addEntryForField(
-//     side: VSConfigClass.SidedVSConfigClass, field: Field, inst: Any, builder: ConfigEntryBuilder
-// ) {
-//     val mapper = VSJacksonUtil.configMapper
-//
-//     field.isAccessible = true
-//
-//     if (field.name == "INSTANCE") return
-//
-//     val name = TextComponent(field.name)
-//
-//     val constraints = field.getAnnotation(JsonSchema::class.java)
-//
-//     val entryBuilder = when (val type = field.type) {
-//         Boolean::class.java -> {
-//             builder.startBooleanToggle(name, field.getBoolean(inst)).apply {
-//                 setSaveConsumer { field.setBoolean(inst, it) }
-//                 if (constraints == null) return@apply
-//                 setTooltip(TextComponent(constraints.description))
-//             }
-//         }
-//         Double::class.java -> {
-//             builder.startDoubleField(name, field.getDouble(inst)).apply {
-//                 setSaveConsumer { field.setDouble(inst, it) }
-//                 if (constraints == null) return@apply
-//                 setMin(constraints.min)
-//                 setMax(constraints.max)
-//                 setTooltip(TextComponent(constraints.description))
-//             }
-//         }
-//         String::class.java -> {
-//
-//             val value = field.get(inst) as String
-//             builder.startStrField(name, value).apply {
-//                 setSaveConsumer { field.set(inst, it) }
-//
-//                 if (constraints == null) return@apply
-//                 setTooltip(TextComponent(constraints.description))
-//             }
-//         }
-//         else -> {
-//             val value = mapper.writeValueAsString(field.get(inst))
-//             builder.startStrField(name, value).apply {
-//                 setSaveConsumer { s -> field.set(inst, mapper.readValue(s, type)) }
-//                 setErrorSupplier { s ->
-//                     try {
-//                         mapper.readValue(s, type)
-//                         Optional.empty()
-//                     } catch (ex: JsonProcessingException) {
-//                         Optional.of(TextComponent(ex.message))
-//                     }
-//                 }
-//                 if (constraints == null) return@apply
-//                 setTooltip(TextComponent(constraints.description))
-//             }
-//         }
-//     }
-//
-//     addEntry(entryBuilder.build())
-// }
+    return entries
+}

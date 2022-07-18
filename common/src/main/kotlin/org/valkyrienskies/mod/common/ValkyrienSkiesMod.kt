@@ -2,6 +2,7 @@ package org.valkyrienskies.mod.common
 
 import net.minecraft.world.item.CreativeModeTab
 import net.minecraft.world.item.Item
+import org.valkyrienskies.core.hooks.VSCoreHooks
 import org.valkyrienskies.core.networking.VSNetworking
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
@@ -16,6 +17,7 @@ object ValkyrienSkiesMod {
 
     fun init() {
         println("Hello from init")
+        VSCoreHooks.init()
         VSNetworking.init()
         VSGameNetworking.registerHandlers()
         BlockStateInfo.init()
