@@ -31,11 +31,12 @@ dependencies {
     }
 
     // Depend on the fabric kotlin mod
-    modImplementation("net.fabricmc:fabric-language-kotlin:1.7.1+kotlin.1.6.10")
+    modImplementation("net.fabricmc:fabric-language-kotlin:1.8.1+kotlin.1.7.0")
 
     // Depend on the fabric API
     modImplementation("net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}")
-    
+    implementation('org.apache.logging.log4j:log4j-slf4j-impl:2.8.1')
+    shadowCommon('org.apache.logging.log4j:log4j-slf4j-impl:2.8.1')
     implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {
         exclude module: "netty-buffer"
         exclude module: "fastutil"
@@ -116,6 +117,10 @@ publishing {
             groupId = "org.valkyrienskies"
             version = project.version
             artifactId = rootProject.archives_base_name + "-" + project.name
+            // Publish the dev shadow jar to maven
+            artifact(shadowJar) {
+                classifier "dev-shadow"
+            }
             from components.java
         }
     }

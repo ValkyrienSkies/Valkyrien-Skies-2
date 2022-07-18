@@ -2,6 +2,7 @@ package org.valkyrienskies.mod.mixin.entity;
 
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
+import net.minecraft.util.Mth;
 import net.minecraft.util.RewindableStream;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.MoverType;
@@ -13,23 +14,38 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils;
+import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 
 @Mixin(Entity.class)
-public abstract class MixinEntity {
+public abstract class MixinEntity implements IEntityDraggingInformationProvider {
+
+    @Unique
+    private final EntityDraggingInformation draggingInformation = new EntityDraggingInformation();
 
     @Shadow
-    public abstract void setDeltaMovement(Vec3 motion);
+    public abstract double getZ();
+
+    @Shadow
+    public abstract double getY();
+
+    @Shadow
+    public abstract double getX();
 
     @Redirect(
         method = "pick",
@@ -56,7 +72,17 @@ public abstract class MixinEntity {
         final AABB box = this.getBoundingBox();
         movement = EntityShipCollisionUtils.INSTANCE
             .adjustEntityMovementForShipCollisions(entity, movement, box, this.level);
-        return collide(movement);
+        final Vec3 collisionResultWithWorld = collide(movement);
+
+        if (collisionResultWithWorld.distanceToSqr(movement) > 1e-12) {
+            // We collided with the world? Set the dragging ship to null.
+            final EntityDraggingInformation entityDraggingInformation = getDraggingInformation();
+            entityDraggingInformation.setLastShipStoodOn(null);
+            entityDraggingInformation.setAddedMovementLastTick(new Vector3d());
+            entityDraggingInformation.setAddedYawRotLastTick(0.0);
+        }
+
+        return collisionResultWithWorld;
     }
 
     /**
@@ -101,6 +127,36 @@ public abstract class MixinEntity {
         callbackInfo.cancel();
     }
 
+    // This whole part changes distanceTo(sqrt) to use ship locations if needed.
+    // and unjank mojank
+
+    /**
+     * @author ewoudje
+     * @reason unjank mojank, we need to modify distanceTo's so while were at it unjank it
+     */
+    @Overwrite
+    public float distanceTo(final Entity entity) {
+        return Mth.sqrt(distanceToSqr(entity));
+    }
+
+    /**
+     * @author ewoudje
+     * @reason unjank mojank, we need to modify distanceTo's so while were at it unjank it
+     */
+    @Overwrite
+    public double distanceToSqr(final Vec3 vec) {
+        return distanceToSqr(vec.x, vec.y, vec.z);
+    }
+
+    /**
+     * @author ewoudje
+     * @reason it fixes general issues when checking for distance between in world player and ship things
+     */
+    @Overwrite
+    public double distanceToSqr(final double x, final double y, final double z) {
+        return VSGameUtilsKt.squaredDistanceToInclShips(Entity.class.cast(this), x, y, z);
+    }
+
     // region shadow functions and fields
     @Shadow
     public Level level;
@@ -108,6 +164,12 @@ public abstract class MixinEntity {
     protected boolean onGround;
     @Shadow
     public float maxUpStep;
+
+    @Shadow
+    public abstract void setDeltaMovement(Vec3 motion);
+
+    @Shadow
+    public abstract double distanceToSqr(final Entity entity);
 
     @Shadow
     public abstract AABB getBoundingBox();
@@ -128,7 +190,12 @@ public abstract class MixinEntity {
     }
 
     @Shadow
-    abstract Vec3 collide(Vec3 vec3d);
+    protected abstract Vec3 collide(Vec3 vec3d);
     // endregion
 
+    @Override
+    @NotNull
+    public EntityDraggingInformation getDraggingInformation() {
+        return draggingInformation;
+    }
 }

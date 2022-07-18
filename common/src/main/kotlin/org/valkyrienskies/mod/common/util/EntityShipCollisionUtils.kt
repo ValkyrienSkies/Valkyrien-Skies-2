@@ -10,6 +10,7 @@ import org.joml.primitives.AABBdc
 import org.valkyrienskies.core.collision.ConvexPolygonc
 import org.valkyrienskies.core.collision.EntityPolygonCollider
 import org.valkyrienskies.core.collision.TransformedCuboidPolygon.Companion.createFromAABB
+import org.valkyrienskies.core.util.extend
 import org.valkyrienskies.mod.common.shipObjectWorld
 
 object EntityShipCollisionUtils {
@@ -30,9 +31,16 @@ object EntityShipCollisionUtils {
             return movement
         }
         val stepHeight: Double = entity?.maxUpStep?.toDouble() ?: 0.0
-        return EntityPolygonCollider.adjustEntityMovementForPolygonCollisions(
+        val (newMovement, shipCollidingWith) = EntityPolygonCollider.adjustEntityMovementForPolygonCollisions(
             movement.toJOML(), entityBoundingBox.toJOML(), stepHeight, collidingShipPolygons
-        ).toVec3d()
+        )
+        if (entity != null) {
+            if (shipCollidingWith != null) {
+                // Update the [IEntity.lastShipStoodOn]
+                (entity as IEntityDraggingInformationProvider).draggingInformation.lastShipStoodOn = shipCollidingWith
+            }
+        }
+        return newMovement.toVec3d()
     }
 
     private fun getShipPolygonsCollidingWithEntity(
@@ -43,7 +51,8 @@ object EntityShipCollisionUtils {
     ): List<ConvexPolygonc> {
         val entityBoxWithMovement = entityBoundingBox.expandTowards(movement)
         val collidingPolygons: MutableList<ConvexPolygonc> = ArrayList()
-        for (shipObject in world.shipObjectWorld.shipObjects.values) {
+        val entityBoundingBoxExtended = entityBoundingBox.toJOML().extend(movement.toJOML())
+        for (shipObject in world.shipObjectWorld.getShipObjectsIntersecting(entityBoundingBoxExtended)) {
             val shipTransform = shipObject.shipData.shipTransform
             val entityPolyInShipCoordinates: ConvexPolygonc = createFromAABB(
                 entityBoxWithMovement.toJOML(),
@@ -56,7 +65,8 @@ object EntityShipCollisionUtils {
                 voxelShape.forAllBoxes { minX, minY, minZ, maxX, maxY, maxZ ->
                     val shipPolygon: ConvexPolygonc = createFromAABB(
                         AABBd(minX, minY, minZ, maxX, maxY, maxZ),
-                        shipTransform.shipToWorldMatrix
+                        shipTransform.shipToWorldMatrix,
+                        shipObject.shipData.id
                     )
                     collidingPolygons.add(shipPolygon)
                 }

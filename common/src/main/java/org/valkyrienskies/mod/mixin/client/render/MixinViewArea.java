@@ -17,12 +17,13 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.game.ChunkAllocator;
+import org.valkyrienskies.mod.mixinducks.client.render.IVSViewAreaMethods;
 
 /**
  * The purpose of this mixin is to allow {@link ViewArea} to render ship chunks.
  */
 @Mixin(ViewArea.class)
-public class MixinViewArea {
+public class MixinViewArea implements IVSViewAreaMethods {
 
     @Shadow
     @Final
@@ -98,6 +99,19 @@ public class MixinViewArea {
             }
             final ChunkRenderDispatcher.RenderChunk renderChunk = renderChunksArray[chunkY];
             callbackInfoReturnable.setReturnValue(renderChunk);
+        }
+    }
+
+    @Override
+    public void unloadChunk(final int chunkX, final int chunkZ) {
+        if (ChunkAllocator.isChunkInShipyard(chunkX, chunkZ)) {
+            final ChunkRenderDispatcher.RenderChunk[] chunks =
+                vs$shipRenderChunks.remove(ChunkPos.asLong(chunkX, chunkZ));
+            if (chunks != null) {
+                for (final ChunkRenderDispatcher.RenderChunk chunk : chunks) {
+                    chunk.releaseBuffers();
+                }
+            }
         }
     }
 }

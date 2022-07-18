@@ -3,15 +3,6 @@ plugins {
     id "org.jetbrains.kotlin.jvm"
 }
 
-loom {
-    // Include the following mixin configs in the META-INF file for Forge to load
-    forge {
-        mixinConfig "valkyrienskies-common.mixins.json"
-        // Disable forge mixins for a variety of reasons
-        // mixinConfig "valkyrienskies-forge.mixins.json"
-    }
-}
-
 architectury {
     platformSetupLoomIde()
     forge()
@@ -21,8 +12,13 @@ loom {
     accessWidenerPath = project(":common").loom.accessWidenerPath
 
     forge {
-        convertAccessWideners = true
+        mixinConfig "valkyrienskies-common.mixins.json"
+        mixinConfig "valkyrienskies-forge.mixins.json"
+        convertAccessWideners.set(true)
         extraAccessWideners.add loom.accessWidenerPath.get().asFile.name
+    }
+    mixin {
+        defaultRefmapName = "valkyrienskies-refmap.json"
     }
 }
 
@@ -69,14 +65,7 @@ dependencies {
     }
 }
 
-File generatedResourcesDir = file("src/generated/resources")
-tasks.register("copyAccessWidener", Copy) {
-    from(project(":common").file("src/main/resources/valkyrienskies-common.accesswidener"))
-    into(generatedResourcesDir)
-}
-
 processResources {
-    dependsOn("copyAccessWidener") // for some reason, if u want to use this as a dependency in archtectury it needs it...
     inputs.property "version", project.version
 
     filesMatching("META-INF/mods.toml") {
@@ -86,6 +75,7 @@ processResources {
 
 shadowJar {
     exclude "fabric.mod.json"
+    exclude "architectury.common.json"
 
     configurations = [project.configurations.shadowCommon]
     classifier "dev-shadow"
@@ -119,6 +109,10 @@ publishing {
             groupId = "org.valkyrienskies"
             version = project.version
             artifactId = rootProject.archives_base_name + "-" + project.name
+            // Publish the dev shadow jar to maven
+            artifact(shadowJar) {
+                classifier "dev-shadow"
+            }
             from components.java
         }
     }

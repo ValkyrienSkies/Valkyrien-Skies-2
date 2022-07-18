@@ -1,10 +1,14 @@
 package org.valkyrienskies.mod.common
 
+import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
+import net.minecraft.resources.ResourceKey
+import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.entity.Entity
+import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.chunk.LevelChunkSection
@@ -12,13 +16,16 @@ import org.joml.Vector3d
 import org.joml.Vector3ic
 import org.valkyrienskies.core.game.ChunkAllocator
 import org.valkyrienskies.core.game.DimensionId
+import org.valkyrienskies.core.game.IPlayer
 import org.valkyrienskies.core.game.VSBlockType
 import org.valkyrienskies.core.game.ships.ShipData
 import org.valkyrienskies.core.game.ships.ShipDataCommon
 import org.valkyrienskies.core.game.ships.ShipObject
 import org.valkyrienskies.core.game.ships.ShipObjectClient
 import org.valkyrienskies.core.game.ships.ShipObjectServer
+import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.util.toJOMLD
+import org.valkyrienskies.mod.mixin.accessors.resource.ResourceKeyAccessor
 import org.valkyrienskies.physics_api.voxel_updates.DenseVoxelShapeUpdate
 import kotlin.math.min
 
@@ -38,9 +45,32 @@ val ServerLevel.shipObjectWorld
     get() = server.shipObjectWorld
 
 val Level.dimensionId: DimensionId
-    get() = dimension().toString().hashCode()
+    get() {
+        val dim = dimension()
+        dim as ResourceKeyAccessor
 
-val ClientLevel.shipObjectWorld get() = (this as IShipObjectWorldClientProvider).shipObjectWorld
+        return dim.registryName.toString() + ":" + dim.location().toString()
+    }
+
+fun getResourceKey(dimensionId: DimensionId): ResourceKey<Level> {
+    val cached = ResourceKeyAccessor.getValues()[dimensionId] as ResourceKey<Level>?
+    if (cached == null) {
+        val (registryNamespace, registryName, namespace, name) = dimensionId.split(":")
+        return ResourceKeyAccessor.callCreate(
+            ResourceLocation(registryNamespace, registryName), ResourceLocation(namespace, name)
+        )
+    }
+    return cached
+}
+
+fun MinecraftServer.getLevelFromDimensionId(dimensionId: DimensionId): ServerLevel? {
+    return getLevel(getResourceKey(dimensionId))
+}
+
+val Minecraft.shipObjectWorld get() = (this as IShipObjectWorldClientProvider).shipObjectWorld
+val ClientLevel.shipObjectWorld get() = Minecraft.getInstance().shipObjectWorld
+
+val IPlayer.mcPlayer: Player get() = (this as MinecraftPlayer).playerEntityReference.get()!!
 
 /**
  * Like [Entity.squaredDistanceTo] except the destination is transformed into world coordinates if it is a ship
@@ -165,6 +195,23 @@ fun LevelChunkSection.toDenseVoxelUpdate(chunkPos: Vector3ic): DenseVoxelShapeUp
         (BlockStateInfo.get(getBlockState(x, y, z))?.second ?: VSBlockType.AIR).toByte()
     }
     return update
+}
+
+fun LevelChunkSection.addChunkBlocksToShipVoxelAABB(chunkPos: Vector3ic, shipData: ShipData) {
+    // Send the blocks in the chunk to the AABB generator of [shipData]
+    val chunkBaseX = chunkPos.x() shl 4
+    val chunkBaseY = chunkPos.y() shl 4
+    val chunkBaseZ = chunkPos.z() shl 4
+    for (y in 0 until 16) {
+        for (z in 0 until 16) {
+            for (x in 0 until 16) {
+                val blockState: VSBlockType = BlockStateInfo.get(getBlockState(x, y, z))?.second ?: VSBlockType.AIR
+                shipData.updateShipAABBGenerator(
+                    chunkBaseX + x, chunkBaseY + y, chunkBaseZ + z, blockState != VSBlockType.AIR
+                )
+            }
+        }
+    }
 }
 
 object VSGameUtils {

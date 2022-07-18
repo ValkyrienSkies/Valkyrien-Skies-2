@@ -6,7 +6,7 @@ import org.valkyrienskies.core.game.ships.ShipObjectWorld
 import org.valkyrienskies.core.pipelines.VSPipeline
 
 interface IShipObjectWorldProvider {
-    val shipObjectWorld: ShipObjectWorld
+    val shipObjectWorld: ShipObjectWorld<*>
 }
 
 interface IShipObjectWorldServerProvider : IShipObjectWorldProvider {
@@ -16,11 +16,4 @@ interface IShipObjectWorldServerProvider : IShipObjectWorldProvider {
 
 interface IShipObjectWorldClientProvider : IShipObjectWorldProvider {
     override val shipObjectWorld: ShipObjectClientWorld
-}
-
-interface IServerLevelVSFunctions {
-    /**
-     * Load/unload ship chunks based on the location of players.
-     */
-    fun loadShipTerrainBasedOnPlayerLocation()
 }

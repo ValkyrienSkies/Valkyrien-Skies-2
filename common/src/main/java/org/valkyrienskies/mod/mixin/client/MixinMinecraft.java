@@ -8,16 +8,22 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
+import org.jetbrains.annotations.NotNull;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.valkyrienskies.core.game.ships.QueryableShipDataImpl;
+import org.valkyrienskies.core.game.ships.ShipObjectClientWorld;
+import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
 import org.valkyrienskies.mod.common.PlayerUtil;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.mixinducks.client.MinecraftDuck;
 
 @Mixin(Minecraft.class)
-public class MixinMinecraft implements MinecraftDuck {
+public class MixinMinecraft implements MinecraftDuck, IShipObjectWorldClientProvider {
 
     @Unique
     private HitResult originalCrosshairTarget;
@@ -30,6 +36,24 @@ public class MixinMinecraft implements MinecraftDuck {
     @Override
     public HitResult vs$getOriginalCrosshairTarget() {
         return originalCrosshairTarget;
+    }
+
+    @Unique
+    private final ShipObjectClientWorld shipObjectWorld = new ShipObjectClientWorld(new QueryableShipDataImpl<>());
+
+    @NotNull
+    @Override
+    public ShipObjectClientWorld getShipObjectWorld() {
+        return shipObjectWorld;
+    }
+
+    @Inject(
+        method = "tick",
+        at = @At("HEAD")
+    )
+    public void preTick(final CallbackInfo ci) {
+        // Tick the ship world
+        shipObjectWorld.tickShips();
     }
 
     @Redirect(
