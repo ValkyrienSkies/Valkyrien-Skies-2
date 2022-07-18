@@ -32,7 +32,7 @@ public class MixinGui {
      */
     @Inject(method = "renderEffects", at = @At("HEAD"))
     private void preRenderStatusEffectOverlay(final PoseStack matrices, final CallbackInfo ci) {
-        if (!VSCoreConfig.Client.getRenderDebugText()) {
+        if (!VSCoreConfig.CLIENT.getRenderDebugText()) {
             return;
         }
 
