@@ -61,7 +61,7 @@ public abstract class MixinServerGamePacketListenerImpl {
     )
     public double includeShipsInBlockInteractDistanceCheck(
         final ServerPlayer receiver, final double x, final double y, final double z) {
-        if (VSGameConfig.getEnableInteractDistanceChecks()) {
+        if (VSGameConfig.SERVER.getEnableInteractDistanceChecks()) {
             return VSGameUtilsKt.squaredDistanceToInclShips(receiver, x, y, z);
         } else {
             return 0;
@@ -94,11 +94,15 @@ public abstract class MixinServerGamePacketListenerImpl {
     private void transformTeleport(final double x, final double y, final double z, final float yaw, final float pitch,
         final Set<ClientboundPlayerPositionPacket.RelativeArgument> relativeSet, final CallbackInfo ci) {
 
+        if (!VSGameConfig.SERVER.getTransformTeleports()) {
+            return;
+        }
+
         final BlockPos blockPos = new BlockPos(x, y, z);
-        final ShipData ship;
+        final ShipData ship = VSGameUtilsKt.getShipManagingPos((ServerLevel) player.level, blockPos);
 
         // TODO add flag to disable this https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues/30
-        if ((ship = VSGameUtilsKt.getShipManagingPos((ServerLevel) player.level, blockPos)) != null) {
+        if (ship != null) {
             final Vector3d pos = new Vector3d(x, y, z);
             ship.getShipToWorld().transformPosition(pos);
 

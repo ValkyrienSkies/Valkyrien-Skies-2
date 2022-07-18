@@ -35,7 +35,7 @@ public class MixinServerPlayerGameMode {
     public double handleBlockBreakAction(final double g, final BlockPos pos,
         final ServerboundPlayerActionPacket.Action action,
         final Direction direction, final int worldHeight) {
-        if (VSGameConfig.getEnableInteractDistanceChecks()) {
+        if (VSGameConfig.SERVER.getEnableInteractDistanceChecks()) {
             final Vector3d blockCenter = VectorConversionsMCKt.toJOMLD(pos).add(0.5, 0.5, 0.5);
             return VSGameUtils.getWorldCoordinates(level, pos, blockCenter)
                 .distanceSquared(player.getX(), player.getY() + 1.5, player.getZ());
