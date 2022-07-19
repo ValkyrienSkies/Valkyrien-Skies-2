@@ -171,10 +171,10 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     }
 
     @Inject(
-        method = "onServerExit",
+        method = "stopServer",
         at = @At("HEAD")
     )
-    private void preShutdown(final CallbackInfo ci) {
+    private void preStopServer(final CallbackInfo ci) {
         vsPipeline.setDeleteResources(true);
     }
 }
