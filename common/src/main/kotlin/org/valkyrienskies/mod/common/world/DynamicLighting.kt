@@ -35,9 +35,9 @@ import kotlin.math.max
  */
 object DynamicLighting {
 
-    private const val numChunksToRefresh = 1
-    private const val queueRunInterval = 2
-    private const val queueRefreshInterval = 10
+    private val numChunksToRefresh = 1
+    private val queueRunInterval = 2
+    private val queueRefreshInterval = 10
 
     /**
      * Key: chunk section to rerender
@@ -47,7 +47,18 @@ object DynamicLighting {
 
     private var tickNum = 0
 
-    @JvmStatic
+    // Taken from LambDynLights
+    private val maxLightDistance = 7.75
+
+    private val agePriorityFactor = 30.0
+    private val distancePriorityFactor = 0
+    private val frustumPriorityAddition = 1e6
+
+    /**
+     * Queued rerenders older than this threshold will be discorded
+     */
+    private val ageThreshold = 300
+
     fun updateChunkLighting(level: ClientLevel, camera: Camera, frustum: Frustum) {
         tickNum++
 
@@ -63,14 +74,62 @@ object DynamicLighting {
         }
     }
 
-    private const val agePriorityFactor = 30.0
-    private const val distancePriorityFactor = 0
-    private const val frustumPriorityAddition = 1e6
+    fun getLightColor(world: BlockAndTintGetter, state: BlockState, pos: BlockPos, originalLightColor: Int): Int {
+        val level = (world as? RenderChunkRegionAccessor)?.level as ClientLevel? ?: return originalLightColor
+        val temp0 = Vector3d()
 
-    /**
-     * Queued rerenders older than this threshold will be discorded
-     */
-    private const val ageThreshold = 300
+        var additionalLight = 0.0
+
+        if (ChunkAllocator.isBlockInShipyard(pos.x, pos.y, pos.z)) {
+            val ship = level.getShipObjectManagingPos(pos) ?: return originalLightColor
+            val transform = ship.renderTransform
+            val posInWorld = transform.shipToWorldMatrix.transformPosition(temp0.set(pos))
+
+            val chunkXInWorld = posInWorld.x.toInt() shr 4
+            val chunkZInWorld = posInWorld.z.toInt() shr 4
+
+            VSIterationUtils.expand2d(chunkXInWorld, chunkZInWorld) { x, z ->
+                val chunk = level.getChunk(x, z, ChunkStatus.FULL, false) as? LevelChunkDuck
+                chunk?.vs_getLights()?.forEach { (lightPos, luminance) ->
+                    val lightPosInShip = transform.worldToShipMatrix
+                        .transformPosition(temp0.set(lightPos).add(0.5, 0.5, 0.5))
+
+                    additionalLight = addAdditionalLight(pos, lightPosInShip, luminance, additionalLight)
+                }
+            }
+        } else {
+            for (ship in getShipsNear(pos, level)) {
+                val shipToWorld = ship.renderTransform.shipToWorldMatrix
+
+                ship.shipData.shipActiveChunksSet.iterateChunkPos { chunkX, chunkZ ->
+                    val chunk = level.getChunk(chunkX, chunkZ, ChunkStatus.FULL, false) as? LevelChunkDuck
+                    // lightPos is mutable!
+                    chunk?.vs_getLights()?.forEach { (lightPos, luminance) ->
+                        val lightPosInWorld = shipToWorld.transformPosition(temp0.set(lightPos).add(0.5, 0.5, 0.5))
+
+                        additionalLight = addAdditionalLight(pos, lightPosInWorld, luminance, additionalLight)
+                    }
+                }
+            }
+        }
+
+        return getLightmapWithDynamicLight(additionalLight, originalLightColor)
+    }
+
+    fun onSetBlock(level: ClientLevel, pos: BlockPos, prevBlockState: BlockState, newBlockState: BlockState) {
+        val temp0 = Vector3d()
+
+        if (ChunkAllocator.isBlockInShipyard(pos.x, pos.y, pos.z)) {
+            val ship = level.getShipObjectManagingPos(pos) ?: return
+            val posInWorld = ship.renderTransform.shipToWorldMatrix.transformPosition(temp0.set(pos))
+            rerenderNeighborsToBlock(posInWorld)
+        } else {
+            for (ship in getShipsNear(pos, level)) {
+                val posInShip = ship.shipData.shipTransform.shipToWorldMatrix.transformPosition(temp0.set(pos))
+                rerenderNeighborsToBlock(posInShip)
+            }
+        }
+    }
 
     private fun runQueuedRerenders(level: ClientLevel, camera: Camera, frustum: Frustum) {
         val prioritized = Double2ObjectAVLTreeMap<BlockPos>()
@@ -155,52 +214,6 @@ object DynamicLighting {
         }
     }
 
-    // Taken from LambDynLights
-    private const val maxLightDistance = 7.75
-
-    @JvmStatic
-    fun getLightColor(world: BlockAndTintGetter, state: BlockState, pos: BlockPos, originalLightColor: Int): Int {
-        val level = (world as? RenderChunkRegionAccessor)?.level as ClientLevel? ?: return originalLightColor
-        val temp0 = Vector3d()
-
-        var additionalLight = 0.0
-
-        if (ChunkAllocator.isBlockInShipyard(pos.x, pos.y, pos.z)) {
-            val ship = level.getShipObjectManagingPos(pos) ?: return originalLightColor
-            val transform = ship.renderTransform
-            val posInWorld = transform.shipToWorldMatrix.transformPosition(temp0.set(pos))
-
-            val chunkXInWorld = posInWorld.x.toInt() shr 4
-            val chunkZInWorld = posInWorld.z.toInt() shr 4
-
-            VSIterationUtils.expand2d(chunkXInWorld, chunkZInWorld) { x, z ->
-                val chunk = level.getChunk(x, z, ChunkStatus.FULL, false) as? LevelChunkDuck
-                chunk?.vs_getLights()?.forEach { (lightPos, luminance) ->
-                    val lightPosInShip = transform.worldToShipMatrix
-                        .transformPosition(temp0.set(lightPos).add(0.5, 0.5, 0.5))
-
-                    additionalLight = addAdditionalLight(pos, lightPosInShip, luminance, additionalLight)
-                }
-            }
-        } else {
-            for (ship in getShipsNear(pos, level)) {
-                val shipToWorld = ship.renderTransform.shipToWorldMatrix
-
-                ship.shipData.shipActiveChunksSet.iterateChunkPos { chunkX, chunkZ ->
-                    val chunk = level.getChunk(chunkX, chunkZ, ChunkStatus.FULL, false) as? LevelChunkDuck
-                    // lightPos is mutable!
-                    chunk?.vs_getLights()?.forEach { (lightPos, luminance) ->
-                        val lightPosInWorld = shipToWorld.transformPosition(temp0.set(lightPos).add(0.5, 0.5, 0.5))
-
-                        additionalLight = addAdditionalLight(pos, lightPosInWorld, luminance, additionalLight)
-                    }
-                }
-            }
-        }
-
-        return getLightmapWithDynamicLight(additionalLight, originalLightColor)
-    }
-
     private fun getShipsNear(pos: BlockPos, level: ClientLevel): List<ShipObjectClient> {
         val blockAABB = AABBd(
             pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble(),
@@ -208,22 +221,6 @@ object DynamicLighting {
         ).expand(0.5 + maxLightDistance * 2)
 
         return level.shipObjectWorld.getShipObjectsIntersecting(blockAABB)
-    }
-
-    @JvmStatic
-    fun onSetBlock(level: ClientLevel, pos: BlockPos, prevBlockState: BlockState, newBlockState: BlockState) {
-        val temp0 = Vector3d()
-
-        if (ChunkAllocator.isBlockInShipyard(pos.x, pos.y, pos.z)) {
-            val ship = level.getShipObjectManagingPos(pos) ?: return
-            val posInWorld = ship.renderTransform.shipToWorldMatrix.transformPosition(temp0.set(pos))
-            rerenderNeighborsToBlock(posInWorld)
-        } else {
-            for (ship in getShipsNear(pos, level)) {
-                val posInShip = ship.shipData.shipTransform.shipToWorldMatrix.transformPosition(temp0.set(pos))
-                rerenderNeighborsToBlock(posInShip)
-            }
-        }
     }
 
     private fun rerenderNeighborsToBlock(pos: Vector3dc) {

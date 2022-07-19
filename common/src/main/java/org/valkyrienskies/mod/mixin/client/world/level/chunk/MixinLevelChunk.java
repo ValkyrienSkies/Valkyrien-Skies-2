@@ -70,7 +70,7 @@ public abstract class MixinLevelChunk implements LevelChunkDuck {
         if (!(level instanceof ClientLevel)) {
             return;
         }
-        DynamicLighting.onSetBlock((ClientLevel) level, pos, prevState, state);
+        DynamicLighting.INSTANCE.onSetBlock((ClientLevel) level, pos, prevState, state);
         if (prevState.getLightEmission() > 0 && state.getLightEmission() == 0) {
             lights.removeInt(pos);
         } else if (state.getLightEmission() != prevState.getLightEmission()) {

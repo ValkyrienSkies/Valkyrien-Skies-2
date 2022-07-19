@@ -94,7 +94,7 @@ public abstract class MixinLevelRenderer {
         final int frameCount, final boolean playerSpectator, final CallbackInfo ci) {
 
         if (VSConfig.getEnableDynamicLights()) {
-            DynamicLighting.updateChunkLighting(level, activeRenderInfo, camera);
+            DynamicLighting.INSTANCE.updateChunkLighting(level, activeRenderInfo, camera);
         }
     }
 
@@ -124,7 +124,7 @@ public abstract class MixinLevelRenderer {
         final CallbackInfoReturnable<Integer> cir) {
 
         if (VSConfig.getEnableDynamicLights()) {
-            cir.setReturnValue(DynamicLighting.getLightColor(world, state, pos, cir.getReturnValue()));
+            cir.setReturnValue(DynamicLighting.INSTANCE.getLightColor(world, state, pos, cir.getReturnValue()));
         }
 
     }
