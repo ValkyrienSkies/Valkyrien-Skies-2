@@ -5,5 +5,5 @@ import net.minecraft.core.BlockPos;
 
 public interface LevelChunkDuck {
 
-    Object2IntMap<BlockPos> vs$getLights();
+    Object2IntMap<BlockPos> vs_getLights();
 }

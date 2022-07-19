@@ -21,6 +21,7 @@ import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
 import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Vec3i;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.BlockAndTintGetter;
@@ -86,19 +87,31 @@ public abstract class MixinLevelRenderer {
     }
 
     @Inject(
-        method = "renderLevel",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/client/renderer/LevelRenderer;setupRender(Lnet/minecraft/client/Camera;Lnet/minecraft/client/renderer/culling/Frustum;ZIZ)V"
-        )
+        method = "setupRender",
+        at = @At("HEAD")
     )
-    private void onSetupRender(final PoseStack matrixStack, final float partialTicks, final long finishTimeNano,
-        final boolean drawBlockOutline, final Camera activeRenderInfo, final GameRenderer gameRenderer,
-        final LightTexture lightmap, final Matrix4f projection, final CallbackInfo ci) {
+    private void onSetupRender(final Camera activeRenderInfo, final Frustum camera, final boolean debugCamera,
+        final int frameCount, final boolean playerSpectator, final CallbackInfo ci) {
 
         if (VSConfig.getEnableDynamicLights()) {
-            DynamicLighting.updateChunkLighting(level);
+            DynamicLighting.updateChunkLighting(level, activeRenderInfo, camera);
         }
+    }
+
+    /**
+     * Includes nearby ships into the check for nearby chunks so that those nearby renders are prioritized and you don't
+     * see ships without rendered blocks right next to you
+     */
+    @Redirect(
+        method = "setupRender",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/core/BlockPos;distSqr(Lnet/minecraft/core/Vec3i;)D"
+        )
+    )
+    private double includeShipChunksInNearChunks(final BlockPos b, final Vec3i v) {
+        return VSGameUtilsKt.squaredDistanceBetweenInclShips(
+            level, b.getX(), b.getY(), b.getZ(), v.getX(), v.getY(), v.getZ());
     }
 
     @Inject(

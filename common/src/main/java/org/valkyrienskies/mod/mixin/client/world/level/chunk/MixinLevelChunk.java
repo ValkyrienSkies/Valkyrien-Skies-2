@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.mixin.client.world.level.chunk;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import java.util.function.Consumer;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
@@ -22,6 +23,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import org.valkyrienskies.mod.common.world.DynamicLighting;
 import org.valkyrienskies.mod.mixinducks.client.LevelChunkDuck;
 
 @Mixin(LevelChunk.class)
@@ -34,6 +36,9 @@ public abstract class MixinLevelChunk implements LevelChunkDuck {
     @Shadow
     public abstract BlockState getBlockState(BlockPos pos);
 
+    @Shadow
+    @Final
+    private Level level;
     @Unique
     private final Object2IntMap<BlockPos> lights = new Object2IntOpenHashMap<>();
 
@@ -62,6 +67,10 @@ public abstract class MixinLevelChunk implements LevelChunkDuck {
         final CallbackInfoReturnable<BlockState> cir) {
         final BlockState prevState = cir.getReturnValue();
 
+        if (!(level instanceof ClientLevel)) {
+            return;
+        }
+        DynamicLighting.onSetBlock((ClientLevel) level, pos, prevState, state);
         if (prevState.getLightEmission() > 0 && state.getLightEmission() == 0) {
             lights.removeInt(pos);
         } else if (state.getLightEmission() != prevState.getLightEmission()) {
@@ -70,7 +79,7 @@ public abstract class MixinLevelChunk implements LevelChunkDuck {
     }
 
     @Override
-    public Object2IntMap<BlockPos> vs$getLights() {
+    public Object2IntMap<BlockPos> vs_getLights() {
         return lights;
     }
 }
