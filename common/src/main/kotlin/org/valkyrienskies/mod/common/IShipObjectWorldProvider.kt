@@ -17,3 +17,8 @@ interface IShipObjectWorldServerProvider : IShipObjectWorldProvider {
 interface IShipObjectWorldClientProvider : IShipObjectWorldProvider {
     override val shipObjectWorld: ShipObjectClientWorld
 }
+
+interface IShipObjectWorldClientCreator {
+    fun createShipObjectWorldClient()
+    fun deleteShipObjectWorldClient()
+}
