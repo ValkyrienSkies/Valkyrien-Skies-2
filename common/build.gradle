@@ -9,8 +9,6 @@ dependencies {
         exclude module: "netty-buffer"
         exclude module: "fastutil"
     }
-
-    implementation("io.github.microutils:kotlin-logging-jvm:2.1.23")
 }
 
 architectury {
