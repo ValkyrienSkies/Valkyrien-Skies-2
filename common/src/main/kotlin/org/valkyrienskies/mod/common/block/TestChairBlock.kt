@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.common.block
 
+import net.minecraft.commands.arguments.EntityAnchorArgument
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.world.InteractionHand
@@ -18,6 +19,7 @@ import org.joml.Vector3d
 import org.joml.Vector3dc
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.getShipManagingPos
+import org.valkyrienskies.mod.common.util.toDoubles
 
 object TestChairBlock :
     HorizontalDirectionalBlock(
@@ -56,6 +58,7 @@ object TestChairBlock :
             } else {
                 moveTo(seatEntityPos.x(), seatEntityPos.y(), seatEntityPos.z())
             }
+            lookAt(EntityAnchorArgument.Anchor.EYES, state.getValue(FACING).normal.toDoubles())
             isController = true
         }
 

@@ -41,6 +41,8 @@ fun Vector3d.set(v: Position) = also {
     z = v.z()
 }
 
+fun Vec3i.toDoubles() = Vec3(x.toDouble(), y.toDouble(), z.toDouble())
+
 fun AABBd.set(v: AABB) = also {
     minX = v.minX
     minY = v.minY
