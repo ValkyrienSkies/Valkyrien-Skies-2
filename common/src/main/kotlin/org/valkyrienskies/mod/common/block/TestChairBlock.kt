@@ -56,6 +56,7 @@ object TestChairBlock :
             } else {
                 moveTo(seatEntityPos.x(), seatEntityPos.y(), seatEntityPos.z())
             }
+            isController = true
         }
 
         level.addFreshEntity(seatEntity)
