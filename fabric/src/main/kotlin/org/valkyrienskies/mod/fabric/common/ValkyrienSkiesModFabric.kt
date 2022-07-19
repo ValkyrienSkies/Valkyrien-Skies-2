@@ -10,6 +10,7 @@ import net.minecraft.server.packs.resources.PreparableReloadListener.Preparation
 import net.minecraft.server.packs.resources.ResourceManager
 import net.minecraft.util.profiling.ProfilerFiller
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
+import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executor
 
@@ -27,7 +28,7 @@ class ValkyrienSkiesModFabric : ModInitializer {
         VSFabricNetworking.injectFabricPacketSenders()
 
         // registering mass
-        val loader = ValkyrienSkiesMod.MASS_DATAPACK_RESOLVER.loader // the get makes a new instance so get it only once
+        val loader = MassDatapackResolver.loader // the get makes a new instance so get it only once
         ResourceManagerHelper.get(SERVER_DATA)
             .registerReloadListener(object : IdentifiableResourceReloadListener {
                 override fun getFabricId(): ResourceLocation {
