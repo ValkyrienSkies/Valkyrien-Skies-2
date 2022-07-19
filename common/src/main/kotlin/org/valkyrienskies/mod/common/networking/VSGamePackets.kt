@@ -24,7 +24,8 @@ object VSGamePackets {
                 val seat = player.vehicle!! as ShipMountingEntity
                 val ship = seat.level.getShipObjectManagingPos(seat.inShipPosition!!)!! as ShipObjectServer
                 val attachment =
-                    ship.getAttachment() ?: SeatedControllingPlayer(seat.direction).apply { ship.setAttachment(this) }
+                    ship.getAttachment() ?: SeatedControllingPlayer(seat.direction.opposite)
+                        .apply { ship.setAttachment(this) }
 
                 attachment.forwardImpulse = driving.impulse.z
                 attachment.leftImpulse = driving.impulse.x

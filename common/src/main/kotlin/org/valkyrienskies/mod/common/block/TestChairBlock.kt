@@ -58,7 +58,7 @@ object TestChairBlock :
             } else {
                 moveTo(seatEntityPos.x(), seatEntityPos.y(), seatEntityPos.z())
             }
-            lookAt(EntityAnchorArgument.Anchor.EYES, state.getValue(FACING).normal.toDoubles())
+            lookAt(EntityAnchorArgument.Anchor.EYES, state.getValue(FACING).normal.toDoubles().add(position()))
             isController = true
         }
 

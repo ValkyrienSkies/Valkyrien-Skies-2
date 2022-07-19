@@ -10,9 +10,13 @@ import net.minecraft.world.level.Level
 import org.joml.Vector3d
 import org.joml.Vector3dc
 import org.joml.Vector3f
+import org.valkyrienskies.core.api.setAttachment
+import org.valkyrienskies.core.game.ships.ShipObjectServer
 import org.valkyrienskies.core.networking.simple.sendToServer
+import org.valkyrienskies.mod.api.SeatedControllingPlayer
 import org.valkyrienskies.mod.common.config.VSKeyBindings
 import org.valkyrienskies.mod.common.getShipManagingPos
+import org.valkyrienskies.mod.common.getShipObjectManagingPos
 import org.valkyrienskies.mod.common.networking.PacketPlayerDriving
 import org.valkyrienskies.mod.util.VECTOR_3D_NULLABLE
 import org.valkyrienskies.mod.util.defineSynced
@@ -54,6 +58,13 @@ class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level) : E
             setPos(posInWorld.x(), posInWorld.y(), posInWorld.z())
         }
         reapplyPosition()
+    }
+
+    override fun remove() {
+        if (this.isController && !level.isClientSide && inShipPosition != null)
+            (level.getShipObjectManagingPos(inShipPosition!!) as ShipObjectServer?)
+                ?.setAttachment<SeatedControllingPlayer>(null)
+        super.remove()
     }
 
     private fun sendDrivingPacket() {
