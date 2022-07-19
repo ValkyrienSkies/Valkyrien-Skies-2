@@ -5,6 +5,7 @@ import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.registries.DeferredRegister
 import net.minecraftforge.registries.ForgeRegistries
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
+import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import thedarkcolour.kotlinforforge.forge.FORGE_BUS
 import thedarkcolour.kotlinforforge.forge.MOD_BUS
 
@@ -26,7 +27,7 @@ class ValkyrienSkiesModForge {
         }
 
         fun registerResourceManagers(event: AddReloadListenerEvent) {
-            event.addListener(ValkyrienSkiesMod.MASS_DATAPACK_RESOLVER.loader)
+            event.addListener(MassDatapackResolver.loader)
         }
     }
 }

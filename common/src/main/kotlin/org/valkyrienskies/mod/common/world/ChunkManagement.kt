@@ -1,6 +1,5 @@
 package org.valkyrienskies.mod.common.world
 
-import mu.KotlinLogging
 import net.minecraft.network.protocol.Packet
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
@@ -8,12 +7,11 @@ import net.minecraft.world.level.ChunkPos
 import org.valkyrienskies.core.chunk_tracking.ChunkUnwatchTask
 import org.valkyrienskies.core.chunk_tracking.ChunkWatchTask
 import org.valkyrienskies.core.game.ships.ShipObjectServerWorld
+import org.valkyrienskies.core.util.logger
 import org.valkyrienskies.mod.common.getLevelFromDimensionId
 import org.valkyrienskies.mod.common.mcPlayer
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.mixin.accessors.server.world.ChunkMapAccessor
-
-private val logger = KotlinLogging.logger {}
 
 object ChunkManagement {
     @JvmStatic
@@ -67,4 +65,6 @@ object ChunkManagement {
             chunkUnwatchTask.onExecuteChunkUnwatchTask()
         }
     }
+
+    private val logger by logger()
 }

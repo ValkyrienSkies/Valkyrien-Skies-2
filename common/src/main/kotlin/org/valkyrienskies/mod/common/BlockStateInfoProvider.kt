@@ -11,7 +11,7 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
 import org.valkyrienskies.core.game.VSBlockType
-import org.valkyrienskies.mod.common.ValkyrienSkiesMod.MASS_DATAPACK_RESOLVER
+import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.event.RegistryEvents
 
 // Other mods can then provide weights and types based on their added content
@@ -38,7 +38,7 @@ object BlockStateInfo {
 
     // init { doesn't work since the class gets loaded too late
     fun init() {
-        Registry.register(REGISTRY, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "data"), MASS_DATAPACK_RESOLVER)
+        Registry.register(REGISTRY, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "data"), MassDatapackResolver)
         Registry.register(
             REGISTRY, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "default"), DefaultBlockStateInfoProvider
         )
