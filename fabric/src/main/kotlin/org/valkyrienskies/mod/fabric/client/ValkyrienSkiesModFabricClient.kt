@@ -1,10 +1,12 @@
 package org.valkyrienskies.mod.fabric.client
 
 import net.fabricmc.api.ClientModInitializer
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper
 import net.fabricmc.fabric.api.client.rendereregistry.v1.EntityRendererRegistry
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher
 import org.valkyrienskies.mod.client.EmptyRenderer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
+import org.valkyrienskies.mod.common.config.VSKeyBindings
 import org.valkyrienskies.mod.fabric.common.VSFabricNetworking
 
 /**
@@ -21,6 +23,10 @@ class ValkyrienSkiesModFabricClient : ClientModInitializer {
             EmptyRenderer(
                 manager
             )
+        }
+
+        VSKeyBindings.clientSetup {
+            KeyBindingHelper.registerKeyBinding(it)
         }
     }
 }

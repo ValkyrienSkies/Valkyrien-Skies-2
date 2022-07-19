@@ -10,6 +10,7 @@ import net.minecraft.world.item.Item.Properties
 import net.minecraft.world.level.block.Block
 import net.minecraftforge.event.AddReloadListenerEvent
 import net.minecraftforge.fml.RegistryObject
+import net.minecraftforge.fml.client.registry.ClientRegistry
 import net.minecraftforge.fml.client.registry.RenderingRegistry
 import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent
@@ -20,6 +21,7 @@ import org.valkyrienskies.mod.client.EmptyRenderer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.block.TestChairBlock
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
+import org.valkyrienskies.mod.common.config.VSKeyBindings
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
 import thedarkcolour.kotlinforforge.forge.FORGE_BUS
@@ -41,7 +43,7 @@ class ValkyrienSkiesModForge {
         BLOCKS.register(MOD_BUS)
         ITEMS.register(MOD_BUS)
         ENTITIES.register(MOD_BUS)
-        MOD_BUS.addListener(::registerEntityRenderers)
+        MOD_BUS.addListener(::clientSetup)
         MOD_BUS.addListener(::loadComplete)
         FORGE_BUS.addListener(::registerResourceManagers)
 
@@ -63,8 +65,11 @@ class ValkyrienSkiesModForge {
         event.addListener(MassDatapackResolver.loader)
     }
 
-    private fun registerEntityRenderers(event: FMLClientSetupEvent) {
+    private fun clientSetup(event: FMLClientSetupEvent) {
         RenderingRegistry.registerEntityRenderingHandler(SHIP_MOUNTING_ENTITY_REGISTRY.get(), ::EmptyRenderer)
+        VSKeyBindings.clientSetup {
+            ClientRegistry.registerKeyBinding(it)
+        }
     }
 
     private fun registerBlockAndItem(registryName: String, blockSupplier: () -> Block): RegistryObject<Block> {

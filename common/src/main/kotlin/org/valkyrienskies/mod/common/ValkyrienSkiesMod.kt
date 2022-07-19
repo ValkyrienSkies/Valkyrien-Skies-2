@@ -4,9 +4,8 @@ import net.minecraft.world.entity.EntityType
 import net.minecraft.world.item.Item
 import net.minecraft.world.level.block.Block
 import org.valkyrienskies.core.networking.VSNetworking
-import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
-import org.valkyrienskies.mod.common.item.ShipCreatorItem
+import org.valkyrienskies.mod.common.networking.VSGamePackets
 import org.valkyrienskies.mod.common.networking.impl.VSGameNetworking
 
 object ValkyrienSkiesMod {
@@ -21,5 +20,7 @@ object ValkyrienSkiesMod {
         VSNetworking.init()
         VSGameNetworking.registerHandlers()
         BlockStateInfo.init()
+        VSGamePackets.register()
+        VSGamePackets.registerHandlers()
     }
 }
