@@ -22,7 +22,6 @@ import org.valkyrienskies.mod.common.block.TestChairBlock
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
-import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import thedarkcolour.kotlinforforge.forge.FORGE_BUS
 import thedarkcolour.kotlinforforge.forge.MOD_BUS
 

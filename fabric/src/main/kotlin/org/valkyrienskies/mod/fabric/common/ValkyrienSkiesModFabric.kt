@@ -17,9 +17,9 @@ import net.minecraft.world.item.Item.Properties
 import net.minecraft.world.level.block.Block
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.block.TestChairBlock
+import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
-import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executor
 
