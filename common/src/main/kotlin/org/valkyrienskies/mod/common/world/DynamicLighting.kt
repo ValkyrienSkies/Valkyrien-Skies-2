@@ -178,11 +178,21 @@ object DynamicLighting {
 
     private fun queueRerenders(level: ClientLevel) {
         for (ship in level.shipObjectWorld.shipObjects.values) {
-            if (ship.shipData.prevTickShipTransform == ship.shipData.shipTransform)
-                return
+            val prevTransform = ship.shipData.prevTickShipTransform
+            val transform = ship.shipData.shipTransform
+
+            if (prevTransform.shipPositionInWorldCoordinates.equals(
+                    transform.shipPositionInWorldCoordinates, 1e-4
+                ) &&
+                prevTransform.shipCoordinatesToWorldCoordinatesRotation.equals(
+                    transform.shipCoordinatesToWorldCoordinatesRotation, 1e-4
+                ) &&
+                prevTransform.shipCoordinatesToWorldCoordinatesScaling.equals(
+                    transform.shipCoordinatesToWorldCoordinatesScaling, 1e-4
+                )
+            ) return
 
             val temp0 = Vector3d()
-            val transform = ship.shipData.shipTransform
 
             ship.shipData.shipActiveChunksSet.iterateChunkPos { chunkX, chunkZ ->
                 val chunk = level.getChunk(chunkX, chunkZ, ChunkStatus.FULL, false) as? LevelChunkDuck
