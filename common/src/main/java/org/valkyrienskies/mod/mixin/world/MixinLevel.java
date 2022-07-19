@@ -8,7 +8,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.game.ships.ShipDataCommon;
-import org.valkyrienskies.mod.api.BlockEntityShipProvider;
+import org.valkyrienskies.mod.api.ShipBlockEntity;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(Level.class)
@@ -17,8 +17,8 @@ public class MixinLevel {
     @Inject(method = "setBlockEntity", at = @At("HEAD"))
     public void onSetBlockEntity(final BlockPos blockPos, final BlockEntity blockEntity, final CallbackInfo ci) {
         final ShipDataCommon data = VSGameUtilsKt.getShipManagingPos((Level) (Object) this, blockPos);
-        if (data != null && blockEntity instanceof BlockEntityShipProvider) {
-            ((BlockEntityShipProvider) blockEntity).setShip(data);
+        if (data != null && blockEntity instanceof ShipBlockEntity) {
+            ((ShipBlockEntity) blockEntity).setShip(data);
         }
     }
 

@@ -19,8 +19,10 @@ import net.minecraftforge.registries.ForgeRegistries
 import org.valkyrienskies.mod.client.EmptyRenderer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.block.TestChairBlock
+import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
+import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import thedarkcolour.kotlinforforge.forge.FORGE_BUS
 import thedarkcolour.kotlinforforge.forge.MOD_BUS
 
@@ -59,7 +61,7 @@ class ValkyrienSkiesModForge {
     }
 
     private fun registerResourceManagers(event: AddReloadListenerEvent) {
-        event.addListener(ValkyrienSkiesMod.MASS_DATAPACK_RESOLVER.loader)
+        event.addListener(MassDatapackResolver.loader)
     }
 
     private fun registerEntityRenderers(event: FMLClientSetupEvent) {
