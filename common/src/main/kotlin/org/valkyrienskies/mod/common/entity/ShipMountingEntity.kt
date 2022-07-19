@@ -10,6 +10,9 @@ import net.minecraft.world.level.Level
 import org.joml.Vector3d
 import org.joml.Vector3dc
 import org.valkyrienskies.mod.common.getShipManagingPos
+import org.valkyrienskies.mod.util.VECTOR_3D_NULLABLE
+import org.valkyrienskies.mod.util.defineSynced
+import org.valkyrienskies.mod.util.registerSynced
 
 class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level) : Entity(type, level) {
 

@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.common.entity
+package org.valkyrienskies.mod.util
 
 import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.syncher.EntityDataAccessor
