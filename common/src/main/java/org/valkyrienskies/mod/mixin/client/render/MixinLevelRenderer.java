@@ -115,9 +115,8 @@ public abstract class MixinLevelRenderer {
     }
 
     @Inject(
-        method = {
-            "getLightColor(Lnet/minecraft/world/level/BlockAndTintGetter;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;)I"},
-        at = {@At("TAIL")},
+        method = "getLightColor(Lnet/minecraft/world/level/BlockAndTintGetter;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;)I",
+        at = @At("TAIL"),
         cancellable = true
     )
     private static void onGetLightmapCoordinates(final BlockAndTintGetter world, final BlockState state,

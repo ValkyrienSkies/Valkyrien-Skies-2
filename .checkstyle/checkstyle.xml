@@ -325,7 +325,7 @@
             <property name="tokens" value="METHOD_DEF, CTOR_DEF, ANNOTATION_FIELD_DEF, COMPACT_CTOR_DEF"/>
         </module>
         <module name="MethodName">
-            <property name="format" value="^(vs\$)?[a-z][a-zA-Z0-9]*$"/>
+            <property name="format" value="^(vs[\$_])?[a-z][a-zA-Z0-9]*$"/>
             <message key="name.invalidPattern"
                      value="Method name ''{0}'' must match pattern ''{1}''."/>
         </module>
