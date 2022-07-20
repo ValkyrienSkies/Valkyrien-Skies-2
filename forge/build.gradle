@@ -79,6 +79,8 @@ shadowJar {
 
     configurations = [project.configurations.shadowCommon]
     classifier "dev-shadow"
+
+    relocate 'org.apache.commons', 'org.valkyrienskies.relocate.org.apache.commons'
 }
 
 remapJar {

@@ -2,7 +2,6 @@ package org.valkyrienskies.mod.common.config
 
 import com.google.gson.Gson
 import com.google.gson.JsonElement
-import mu.KotlinLogging
 import net.minecraft.core.Registry
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.packs.resources.ResourceManager
@@ -13,15 +12,14 @@ import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
 import org.valkyrienskies.core.game.VSBlockType
+import org.valkyrienskies.core.util.logger
 import org.valkyrienskies.mod.common.BlockStateInfoProvider
 import org.valkyrienskies.mod.event.RegistryEvents
 
-private val logger = KotlinLogging.logger {}
-
 private data class VSBlockStateInfo(val id: ResourceLocation, val mass: Double, val type: VSBlockType?)
-class MassDatapackResolver : BlockStateInfoProvider {
+object MassDatapackResolver : BlockStateInfoProvider {
     private val map = hashMapOf<ResourceLocation, VSBlockStateInfo>()
-    val loader get() = VSMassDataLoader(this)
+    val loader get() = VSMassDataLoader()
 
     override val priority: Int
         get() = 100
@@ -32,7 +30,7 @@ class MassDatapackResolver : BlockStateInfoProvider {
     override fun getBlockStateType(blockState: BlockState): VSBlockType? =
         map[Registry.BLOCK.getKey(blockState.block)]?.type
 
-    class VSMassDataLoader(val resolver: MassDatapackResolver) : SimpleJsonResourceReloadListener(Gson(), "vs_mass") {
+    class VSMassDataLoader : SimpleJsonResourceReloadListener(Gson(), "vs_mass") {
         private val tags = mutableListOf<VSBlockStateInfo>()
 
         override fun apply(
@@ -40,7 +38,7 @@ class MassDatapackResolver : BlockStateInfoProvider {
             resourceManager: ResourceManager?,
             profiler: ProfilerFiller?
         ) {
-            resolver.map.clear()
+            map.clear()
             objects?.forEach { (location, element) ->
                 try {
                     if (element.isJsonArray) {
@@ -51,7 +49,7 @@ class MassDatapackResolver : BlockStateInfoProvider {
                         parse(element, location)
                     } else throw IllegalArgumentException()
                 } catch (e: Exception) {
-                    logger.catching(e)
+                    logger.error(e)
                 }
             }
         }
@@ -79,7 +77,7 @@ class MassDatapackResolver : BlockStateInfoProvider {
         }
 
         private fun add(info: VSBlockStateInfo) {
-            resolver.map[info.id] = info
+            map[info.id] = info
         }
 
         private fun parse(element: JsonElement, origin: ResourceLocation) {
@@ -97,4 +95,6 @@ class MassDatapackResolver : BlockStateInfoProvider {
             }
         }
     }
+
+    private val logger by logger()
 }
