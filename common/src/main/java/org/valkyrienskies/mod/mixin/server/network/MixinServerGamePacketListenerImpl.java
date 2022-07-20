@@ -103,7 +103,7 @@ public abstract class MixinServerGamePacketListenerImpl {
             final Vector3d pos = new Vector3d(x, y, z);
             ship.getShipToWorld().transformPosition(pos);
 
-            this.awaitingPositionFromClient = VectorConversionsMCKt.toVec3d(pos);
+            this.awaitingPositionFromClient = VectorConversionsMCKt.toMinecraft(pos);
             if (++this.awaitingTeleport == Integer.MAX_VALUE) {
                 this.awaitingTeleport = 0;
             }

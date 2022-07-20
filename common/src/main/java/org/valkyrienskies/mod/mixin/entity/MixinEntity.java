@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.entity;
 
+import kotlin.Pair;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
@@ -25,11 +26,16 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
+import org.valkyrienskies.core.game.ships.ShipObject;
+import org.valkyrienskies.core.game.ships.ShipObjectClient;
+import org.valkyrienskies.core.game.ships.ShipTransform;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
+import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 
 @Mixin(Entity.class)
@@ -56,6 +62,74 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     )
     public BlockHitResult addShipsToRaycast(final Level receiver, final ClipContext ctx) {
         return RaycastUtilsKt.clipIncludeShips((ClientLevel) receiver, ctx);
+    }
+
+    @Shadow
+    public double xo;
+    @Shadow
+    public double yo;
+    @Shadow
+    public double zo;
+
+    @Shadow
+    public abstract float getEyeHeight();
+
+    /**
+     * @reason Needed for players to pick blocks correctly when mounted to a ship
+     */
+    @Inject(method = "getEyePosition", at = @At("HEAD"), cancellable = true)
+    private void preGetEyePosition(final float partialTicks, final CallbackInfoReturnable<Vec3> cir) {
+        final Pair<ShipObject, Vector3dc> shipMountedTo =
+            VSGameUtilsKt.getShipObjectEntityMountedTo(level, Entity.class.cast(this));
+        if (shipMountedTo == null) {
+            return;
+        }
+
+        final ShipObject shipObject = shipMountedTo.getFirst();
+        final ShipTransform shipTransform;
+        if (shipObject instanceof ShipObjectClient) {
+            shipTransform = ((ShipObjectClient) shipObject).getRenderTransform();
+        } else {
+            shipTransform = shipObject.getShipData().getShipTransform();
+        }
+        final Vector3dc basePos = shipTransform.getShipToWorldMatrix().transformPosition(
+            shipMountedTo.getSecond(), new Vector3d()
+        );
+        final Vector3dc eyeRelativePos = shipTransform.getShipCoordinatesToWorldCoordinatesRotation().transform(
+            new Vector3d(0.0, getEyeHeight(), 0.0)
+        );
+        final Vec3 newEyePos = VectorConversionsMCKt.toMinecraft(basePos.add(eyeRelativePos, new Vector3d()));
+        cir.setReturnValue(newEyePos);
+    }
+
+    /**
+     * @reason Needed for players to pick blocks correctly when mounted to a ship
+     */
+    @Inject(method = "calculateViewVector", at = @At("HEAD"), cancellable = true)
+    private void preCalculateViewVector(final float xRot, final float yRot, final CallbackInfoReturnable<Vec3> cir) {
+        final Pair<ShipObject, Vector3dc> shipMountedTo =
+            VSGameUtilsKt.getShipObjectEntityMountedTo(level, Entity.class.cast(this));
+        if (shipMountedTo == null) {
+            return;
+        }
+        final float f = xRot * (float) (Math.PI / 180.0);
+        final float g = -yRot * (float) (Math.PI / 180.0);
+        final float h = Mth.cos(g);
+        final float i = Mth.sin(g);
+        final float j = Mth.cos(f);
+        final float k = Mth.sin(f);
+        final Vector3dc originalViewVector = new Vector3d(i * j, -k, h * j);
+
+        final ShipObject shipObject = shipMountedTo.getFirst();
+        final ShipTransform shipTransform;
+        if (shipObject instanceof ShipObjectClient) {
+            shipTransform = ((ShipObjectClient) shipObject).getRenderTransform();
+        } else {
+            shipTransform = shipObject.getShipData().getShipTransform();
+        }
+        final Vec3 newViewVector = VectorConversionsMCKt.toMinecraft(
+            shipTransform.getShipCoordinatesToWorldCoordinatesRotation().transform(originalViewVector, new Vector3d()));
+        cir.setReturnValue(newViewVector);
     }
 
     /**

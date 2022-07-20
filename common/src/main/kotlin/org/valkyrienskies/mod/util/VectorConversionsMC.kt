@@ -41,6 +41,8 @@ fun Vector3d.set(v: Position) = also {
     z = v.z()
 }
 
+fun Vec3i.toDoubles() = Vec3(x.toDouble(), y.toDouble(), z.toDouble())
+
 fun AABBd.set(v: AABB) = also {
     minX = v.minX
     minY = v.minY
@@ -51,7 +53,7 @@ fun AABBd.set(v: AABB) = also {
 }
 
 fun Vector3ic.toBlockPos() = BlockPos(x(), y(), z())
-fun Vector3dc.toVec3d() = Vec3(x(), y(), z())
+fun Vector3dc.toMinecraft() = Vec3(x(), y(), z())
 
 fun Quaternionfc.toMinecraft() = Quaternion(x(), y(), z(), w())
 fun Quaterniondc.toMinecraft() = Quaternion(x().toFloat(), y().toFloat(), z().toFloat(), w().toFloat())
@@ -77,6 +79,9 @@ fun PoseStack.multiply(modelTransform: Matrix4dc, normalTransform: Quaterniondc)
 fun Vec3i.toJOML() = Vector3i().set(this)
 fun Vec3i.toJOMLD() = Vector3d().set(this)
 fun Position.toJOML() = Vector3d().set(this)
+
+fun Quaternion.set(source: Quaterniondc) =
+    set(source.x().toFloat(), source.y().toFloat(), source.z().toFloat(), source.w().toFloat())
 
 fun Matrix4fMC.set(m: Matrix4fc) = also {
     @Suppress("CAST_NEVER_SUCCEEDS")
