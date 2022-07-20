@@ -50,6 +50,7 @@ class ValkyrienSkiesModFabric : ModInitializer {
             ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE
         )
         VSFabricNetworking.injectFabricPacketSenders()
+        VSFabricNetworking.registerServerPacketHandlers()
 
         // registering mass
         val loader = MassDatapackResolver.loader // the get makes a new instance so get it only once

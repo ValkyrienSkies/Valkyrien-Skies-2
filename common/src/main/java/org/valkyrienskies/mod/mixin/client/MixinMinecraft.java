@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.mixin.client;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.MultiPlayerGameMode;
+import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -17,13 +18,15 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.game.ships.QueryableShipDataImpl;
 import org.valkyrienskies.core.game.ships.ShipObjectClientWorld;
+import org.valkyrienskies.core.networking.VSNetworking;
+import org.valkyrienskies.mod.common.IShipObjectWorldClientCreator;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
 import org.valkyrienskies.mod.common.PlayerUtil;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.mixinducks.client.MinecraftDuck;
 
 @Mixin(Minecraft.class)
-public class MixinMinecraft implements MinecraftDuck, IShipObjectWorldClientProvider {
+public class MixinMinecraft implements MinecraftDuck, IShipObjectWorldClientProvider, IShipObjectWorldClientCreator {
 
     @Unique
     private HitResult originalCrosshairTarget;
@@ -39,12 +42,16 @@ public class MixinMinecraft implements MinecraftDuck, IShipObjectWorldClientProv
     }
 
     @Unique
-    private final ShipObjectClientWorld shipObjectWorld = new ShipObjectClientWorld(new QueryableShipDataImpl<>());
+    private ShipObjectClientWorld shipObjectWorld = null;
 
     @NotNull
     @Override
     public ShipObjectClientWorld getShipObjectWorld() {
-        return shipObjectWorld;
+        final ShipObjectClientWorld shipObjectWorldCopy = shipObjectWorld;
+        if (shipObjectWorldCopy == null) {
+            throw new IllegalStateException("Requested getShipObjectWorld() when shipObjectWorld was null!");
+        }
+        return shipObjectWorldCopy;
     }
 
     @Inject(
@@ -53,7 +60,9 @@ public class MixinMinecraft implements MinecraftDuck, IShipObjectWorldClientProv
     )
     public void preTick(final CallbackInfo ci) {
         // Tick the ship world
-        shipObjectWorld.tickShips();
+        if (shipObjectWorld != null) {
+            shipObjectWorld.tickShips();
+        }
     }
 
     @Redirect(
@@ -69,5 +78,31 @@ public class MixinMinecraft implements MinecraftDuck, IShipObjectWorldClientProv
         return PlayerUtil.INSTANCE.transformPlayerTemporarily(player,
             VSGameUtilsKt.getShipObjectManagingPos(world, hitResult.getBlockPos()),
             () -> receiver.useItemOn(player, world, hand, (BlockHitResult) originalCrosshairTarget));
+    }
+
+    @Inject(
+        method = "setCurrentServer",
+        at = @At("HEAD")
+    )
+    public void preSetCurrentServer(final ServerData serverData, final CallbackInfo ci) {
+        VSNetworking.INSTANCE.setClientUsesUDP(false);
+    }
+
+    @Override
+    public void createShipObjectWorldClient() {
+        if (shipObjectWorld != null) {
+            throw new IllegalStateException("shipObjectWorld was not null when it should be null?");
+        }
+        shipObjectWorld = new ShipObjectClientWorld(new QueryableShipDataImpl<>());
+    }
+
+    @Override
+    public void deleteShipObjectWorldClient() {
+        final ShipObjectClientWorld shipObjectWorldCopy = shipObjectWorld;
+        if (shipObjectWorldCopy == null) {
+            throw new IllegalStateException("shipObjectWorld was null when it should be not null?");
+        }
+        shipObjectWorldCopy.destroyWorld();
+        shipObjectWorld = null;
     }
 }

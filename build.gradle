@@ -94,7 +94,7 @@ subprojects {
         // The following line declares the mojmap mappings, you may use other mappings as well
         mappings loom.layered() {
             officialMojangMappings()
-            parchment("org.parchmentmc.data:parchment-1.16.5:2022.03.06@zip")
+            parchment("org.parchmentmc.data:parchment-1.16.5:${rootProject.parchment_mappings}@zip")
         }
     }
 
