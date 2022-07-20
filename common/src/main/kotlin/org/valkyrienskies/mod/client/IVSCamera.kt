@@ -7,7 +7,11 @@ import org.valkyrienskies.core.game.ships.ShipObjectClient
 
 interface IVSCamera {
     fun setupWithShipMounted(
-        level: BlockGetter, renderViewEntity: Entity, thirdPerson: Boolean, thirdPersonReverse: Boolean,
-        partialTicks: Float, shipMountedTo: Pair<ShipObjectClient, Vector3dc>
+        level: BlockGetter,
+        renderViewEntity: Entity,
+        thirdPerson: Boolean,
+        thirdPersonReverse: Boolean,
+        partialTicks: Float,
+        shipMountedTo: Pair<ShipObjectClient, Vector3dc>
     )
 }

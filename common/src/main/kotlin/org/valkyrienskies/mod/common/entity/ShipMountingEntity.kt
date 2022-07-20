@@ -3,7 +3,6 @@ package org.valkyrienskies.mod.common.entity
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
-import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.level.Level
@@ -104,13 +103,6 @@ class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level) : E
 
     override fun getAddEntityPacket(): Packet<*> {
         return ClientboundAddEntityPacket(this)
-    }
-
-    override fun addPassenger(passenger: Entity) {
-        super.addPassenger(passenger)
-        if (passenger is ServerPlayer) {
-            passenger.setPos(this.x, this.y, this.z)
-        }
     }
 
     companion object {
