@@ -121,13 +121,13 @@ publishing {
 
     // See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
     repositories {
-        if (project.hasProperty('vs_maven_username') && project.hasProperty('vs_maven_url')) {
+        if (project.vs_maven_username && project.vs_maven_password) {
             println "Publishing to VS Maven"
             maven {
-                url = project.findProperty('vs_maven_url')
+                url = project.vs_maven_url
                 credentials {
-                    username = project.findProperty('vs_maven_username')
-                    password = project.findProperty('vs_maven_password')
+                    username = project.vs_maven_username
+                    password = project.vs_maven_password
                 }
             }
         }
