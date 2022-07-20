@@ -6,8 +6,6 @@ import net.minecraft.world.level.block.Block
 import org.valkyrienskies.core.networking.VSNetworking
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.networking.VSGamePackets
-import org.valkyrienskies.mod.common.networking.impl.VSGameNetworking
-import org.valkyrienskies.mod.common.item.ShipCreatorItem
 
 object ValkyrienSkiesMod {
     const val MOD_ID = "valkyrienskies"
