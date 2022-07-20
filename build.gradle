@@ -70,10 +70,10 @@ subprojects {
         maven {
             name = "Valkyrien Skies Internal"
             url = project.vs_maven_url ?: 'https://maven.valkyrienskies.org'
-            if (project.vs_maven_username && project.vs_maven_url) {
+            if (project.vs_maven_username && project.vs_maven_password) {
                 credentials {
                     username = project.vs_maven_username
-                    password = project.vs_maven_url
+                    password = project.vs_maven_password
                 }
             }
         }
