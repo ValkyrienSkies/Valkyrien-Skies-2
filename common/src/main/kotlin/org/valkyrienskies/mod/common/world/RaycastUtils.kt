@@ -15,7 +15,7 @@ import org.joml.primitives.AABBd
 import org.joml.primitives.AABBdc
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.toJOML
-import org.valkyrienskies.mod.common.util.toVec3d
+import org.valkyrienskies.mod.common.util.toMinecraft
 import java.util.function.BiFunction
 import java.util.function.Function
 
@@ -34,11 +34,11 @@ fun ClientLevel.clipIncludeShips(ctx: ClipContext, shouldTransformHitPos: Boolea
     for (ship in shipObjectWorld.getShipObjectsIntersecting(clipAABB)) {
         val worldToShip = ship.renderTransform.worldToShipMatrix
         val shipToWorld = ship.renderTransform.shipToWorldMatrix
-        val shipStart = worldToShip.transformPosition(ctx.from.toJOML()).toVec3d()
-        val shipEnd = worldToShip.transformPosition(ctx.to.toJOML()).toVec3d()
+        val shipStart = worldToShip.transformPosition(ctx.from.toJOML()).toMinecraft()
+        val shipEnd = worldToShip.transformPosition(ctx.to.toJOML()).toMinecraft()
 
         val shipHit = clip(ctx, shipStart, shipEnd)
-        val shipHitPos = shipToWorld.transformPosition(shipHit.location.toJOML()).toVec3d()
+        val shipHitPos = shipToWorld.transformPosition(shipHit.location.toJOML()).toMinecraft()
         val shipHitDist = shipHitPos.distanceToSqr(ctx.from)
 
         if (shipHitDist < closestHitDist && shipHit.type != HitResult.Type.MISS) {

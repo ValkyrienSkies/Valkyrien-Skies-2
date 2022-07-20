@@ -37,7 +37,7 @@ public abstract class MixinClientLevel {
     @Inject(method = "tick", at = @At("HEAD"))
     private void preTick(final BooleanSupplier shouldKeepTicking, final CallbackInfo ci) {
         // Drag entities
-        EntityDragger.Companion.dragEntitiesWithShips(entitiesById.values());
+        EntityDragger.INSTANCE.dragEntitiesWithShips(entitiesById.values());
         VSGameUtilsKt.getShipObjectWorld(minecraft).getNetworkManager()
             .tick(minecraft.getConnection().getConnection().getRemoteAddress());
     }

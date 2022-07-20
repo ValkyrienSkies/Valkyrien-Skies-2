@@ -86,7 +86,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
     @Inject(method = "tick", at = @At("HEAD"))
     private void preTick(final BooleanSupplier shouldKeepTicking, final CallbackInfo ci) {
         // Drag entities (Make sure that we run this after ShipObjectWorld.tickShips(), otherwise this won't be correct)
-        EntityDragger.Companion.dragEntitiesWithShips(entitiesById.values());
+        EntityDragger.INSTANCE.dragEntitiesWithShips(entitiesById.values());
     }
 
     @Inject(method = "tick", at = @At("TAIL"))

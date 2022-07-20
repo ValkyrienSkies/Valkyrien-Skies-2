@@ -3,7 +3,7 @@ package org.valkyrienskies.mod.common
 import net.minecraft.world.entity.player.Player
 import org.valkyrienskies.core.game.ships.ShipObject
 import org.valkyrienskies.mod.common.util.toJOML
-import org.valkyrienskies.mod.common.util.toVec3d
+import org.valkyrienskies.mod.common.util.toMinecraft
 import org.valkyrienskies.mod.mixin.accessors.entity.EntityAccessor
 import kotlin.math.asin
 import kotlin.math.atan2
@@ -32,7 +32,7 @@ object PlayerUtil {
             player.yRot = (yaw * (180 / Math.PI)).toFloat() + 180
             player.yHeadRot = player.yRot
             player.xRot = (pitch * (180 / Math.PI)).toFloat()
-            (player as EntityAccessor).setPosNoUpdates(position.toVec3d())
+            (player as EntityAccessor).setPosNoUpdates(position.toMinecraft())
         }
 
         try {

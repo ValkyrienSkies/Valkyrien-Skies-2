@@ -56,7 +56,7 @@ public class MixinBlockEntityRenderDispatcher {
             final Vector3dc tileEntityPosInWorldCoordinates = renderTransform.getShipToWorldMatrix()
                 .transformPosition(new Vector3d(tileEntityPos.x(), tileEntityPos.y(), tileEntityPos.z()));
             final Vec3 tileEntityPosInWorldCoordinatesVec3d =
-                VectorConversionsMCKt.toVec3d(tileEntityPosInWorldCoordinates);
+                VectorConversionsMCKt.toMinecraft(tileEntityPosInWorldCoordinates);
             return tileEntityPosInWorldCoordinatesVec3d.closerThan(cameraPos, radiusSquared);
         }
         return false;

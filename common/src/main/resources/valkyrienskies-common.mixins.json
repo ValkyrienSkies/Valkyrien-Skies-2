@@ -31,6 +31,7 @@
     "accessors.client.render.chunk.RenderChunkAccessor",
     "accessors.client.world.ClientChunkCacheStorageAccessor",
     "client.MixinGame",
+    "client.MixinCamera",
     "client.MixinMinecraft",
     "client.gui.hud.MixinGui",
     "client.multiplayer.MixinClientPacketListener",
