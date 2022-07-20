@@ -19,6 +19,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.game.VSOptions;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.world.DynamicLighting;
 
 @Mixin(Gui.class)
 public class MixinGui {
@@ -53,6 +54,7 @@ public class MixinGui {
                 e.printStackTrace();
             }
             final String worldPhysicsDebugText = "VS PhysTPS: " + physicsTPS;
+            debugText.add("Chunk Rebuild Queue Size: " + DynamicLighting.INSTANCE.getRerenderQueueSize());
             debugText.add(worldPhysicsDebugText);
         }
 

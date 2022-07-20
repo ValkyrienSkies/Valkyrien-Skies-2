@@ -62,6 +62,18 @@ public abstract class MixinLevelChunk implements LevelChunkDuck {
 
     }
 
+    @Inject(
+        method = "runPostLoad",
+        at = @At("TAIL")
+    )
+    public void postLoadChunk(final CallbackInfo ci) {
+        if (!(level instanceof ClientLevel)) {
+            return;
+        }
+
+        DynamicLighting.INSTANCE.onLoadChunk((ClientLevel) level, this.chunkPos, LevelChunk.class.cast(this));
+    }
+
     @Inject(method = "setBlockState", at = @At("TAIL"))
     public void postSetBlockState(final BlockPos pos, final BlockState state, final boolean moved,
         final CallbackInfoReturnable<BlockState> cir) {
