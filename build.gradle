@@ -77,11 +77,10 @@ subprojects {
                     password = project.findProperty('vs_maven_password')
                 }
             }
-
-            content {
-                // this repository *only* contains artifacts with group "org.valkyrienskies"
-                includeGroup("org.valkyrienskies")
-            }
+        }
+        maven {
+            name = "Jitpack"
+            url = "https://jitpack.io"
         }
         maven {
             name = "ParchmentMC"
