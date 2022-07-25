@@ -137,8 +137,8 @@ public abstract class MixinGameRenderer {
                                 entity.zo + entityMovementZ * tickDelta
                             );
 
-                            // Move [entityShouldBeHerePreTransform] with the ship, using the prev transform and the current
-                            // render transform
+                            // Move [entityShouldBeHerePreTransform] with the ship, using the prev transform and the
+                            // current render transform
                             entityShouldBeHere = shipObject.getRenderTransform().getShipToWorldMatrix()
                                 .transformPosition(
                                     shipObject.getShipData().getPrevTickShipTransform().getWorldToShipMatrix()
