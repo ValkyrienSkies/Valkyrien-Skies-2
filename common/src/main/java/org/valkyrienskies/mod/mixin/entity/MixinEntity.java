@@ -19,7 +19,6 @@ import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -208,27 +207,28 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
      * @author ewoudje
      * @reason unjank mojank, we need to modify distanceTo's so while were at it unjank it
      */
-    @Overwrite
-    public float distanceTo(final Entity entity) {
-        return Mth.sqrt(distanceToSqr(entity));
+    @Inject(method = "distanceTo", at = @At("HEAD"), cancellable = true)
+    private void preDistanceTo(final Entity entity, final CallbackInfoReturnable<Float> cir) {
+        cir.setReturnValue(Mth.sqrt(distanceToSqr(entity)));
     }
 
     /**
      * @author ewoudje
      * @reason unjank mojank, we need to modify distanceTo's so while were at it unjank it
      */
-    @Overwrite
-    public double distanceToSqr(final Vec3 vec) {
-        return distanceToSqr(vec.x, vec.y, vec.z);
+    @Inject(method = "distanceToSqr(Lnet/minecraft/world/phys/Vec3;)D", at = @At("HEAD"), cancellable = true)
+    private void preDistanceToSqr(final Vec3 vec, final CallbackInfoReturnable<Double> cir) {
+        cir.setReturnValue(VSGameUtilsKt.squaredDistanceToInclShips(Entity.class.cast(this), vec.x, vec.y, vec.z));
     }
 
     /**
      * @author ewoudje
      * @reason it fixes general issues when checking for distance between in world player and ship things
      */
-    @Overwrite
-    public double distanceToSqr(final double x, final double y, final double z) {
-        return VSGameUtilsKt.squaredDistanceToInclShips(Entity.class.cast(this), x, y, z);
+    @Inject(method = "distanceToSqr(DDD)D", at = @At("HEAD"), cancellable = true)
+    private void preDistanceToSqr(final double x, final double y, final double z,
+        final CallbackInfoReturnable<Double> cir) {
+        cir.setReturnValue(VSGameUtilsKt.squaredDistanceToInclShips(Entity.class.cast(this), x, y, z));
     }
 
     // region shadow functions and fields
