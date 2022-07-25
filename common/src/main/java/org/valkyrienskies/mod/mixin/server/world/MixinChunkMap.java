@@ -20,17 +20,14 @@ import net.minecraft.world.level.chunk.ChunkBiomeContainer;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.storage.ChunkSerializer;
 import net.minecraft.world.level.storage.DimensionDataStorage;
-import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.game.ChunkAllocator;
 import org.valkyrienskies.core.game.IPlayer;
-import org.valkyrienskies.mod.common.IShipObjectWorldProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.MinecraftPlayer;
 
@@ -55,33 +52,31 @@ public abstract class MixinChunkMap {
     /**
      * Force the game to generate empty chunks in the shipyard.
      *
-     * <p>If a chunk already exists do nothing. If it doesn't yet exist but its in the ship yard, then pretend that
+     * <p>If a chunk already exists do nothing. If it doesn't yet exist, but it's in the shipyard, then pretend that
      * chunk already existed and return a new chunk.
      *
-     * @reason An injector would be safer to use, but it doesn't seem to work properly unless I use an @Overwrite.
      * @author Tri0de
      */
-    @Overwrite
-    @Nullable
-    private CompoundTag readChunk(final ChunkPos chunkPos) throws IOException {
+    @Inject(method = "readChunk", at = @At("HEAD"), cancellable = true)
+    private void preReadChunk(final ChunkPos chunkPos, final CallbackInfoReturnable<CompoundTag> cir)
+        throws IOException {
         final ChunkMap self = ChunkMap.class.cast(this);
         final CompoundTag compoundTag = self.read(chunkPos);
         final CompoundTag originalToReturn = compoundTag == null ? null :
             self.upgradeChunkTag(this.level.dimension(), this.overworldDataStorage, compoundTag);
 
         if (originalToReturn == null) {
-            final IShipObjectWorldProvider shipObjectWorldProvider = (IShipObjectWorldProvider) level;
             if (ChunkAllocator.isChunkInShipyard(chunkPos.x, chunkPos.z)) {
                 // The chunk doesn't yet exist and is in the shipyard. Make a new empty chunk
                 // Generate the chunk to be nothing
                 final LevelChunk generatedChunk = new LevelChunk(level, chunkPos,
                     new ChunkBiomeContainer(level.registryAccess().registryOrThrow(Registry.BIOME_REGISTRY), BIOMES));
                 // Its wasteful to serialize just for this to be deserialized, but it will work for now.
-                return ChunkSerializer.write(level, generatedChunk);
+                cir.setReturnValue(ChunkSerializer.write(level, generatedChunk));
             }
+        } else {
+            cir.setReturnValue(originalToReturn);
         }
-
-        return originalToReturn;
     }
 
     /**
