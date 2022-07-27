@@ -29,29 +29,5 @@ publishing {
         }
     }
 
-    // See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
-    repositories {
-        if (project.vs_maven_username && project.vs_maven_password) {
-            println "Publishing to VS Maven"
-            maven {
-                url = project.vs_maven_url
-                credentials {
-                    username = project.vs_maven_username
-                    password = project.vs_maven_password
-                }
-            }
-        }
-        // Add repositories to publish to here.
-        if (System.getenv("GITHUB_ACTOR") != null) {
-            println "Publishing to Github Packages"
-            maven {
-                name = "GitHubPackages"
-                url = uri("https://maven.pkg.github.com/ValkyrienSkies/Valkyrien-Skies-2")
-                credentials {
-                    username = System.getenv("GITHUB_ACTOR")
-                    password = System.getenv("GITHUB_TOKEN")
-                }
-            }
-        }
-    }
+    apply from: '../gradle-scripts/publish-maven-repos.gradle'
 }
