@@ -16,7 +16,6 @@ import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.TextComponent
 import org.valkyrienskies.core.config.SidedVSConfigClass
 import org.valkyrienskies.core.config.VSConfigClass
-import org.valkyrienskies.core.hooks.VSCoreHooks
 import org.valkyrienskies.core.util.serialization.VSJacksonUtil
 import org.valkyrienskies.core.util.serialization.shallowCopyWith
 import org.valkyrienskies.core.util.splitCamelCaseAndCapitalize
@@ -37,9 +36,8 @@ object VSClothConfig {
             }
             savingRunnable = Runnable {
                 configClasses.forEach { configClass ->
-                    configClass.sides.forEach {
-                        it.saveConfig(VSCoreHooks.configDir)
-                    }
+                    configClass.writeToDisk()
+                    configClass.syncToServer()
                 }
             }
 

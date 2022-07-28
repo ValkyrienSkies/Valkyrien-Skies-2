@@ -7,6 +7,7 @@ import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.ChunkPos
@@ -26,6 +27,7 @@ import org.valkyrienskies.core.game.ships.ShipObjectServer
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.util.toJOMLD
 import org.valkyrienskies.mod.mixin.accessors.resource.ResourceKeyAccessor
+import org.valkyrienskies.mod.mixinducks.server.IPlayerProvider
 import org.valkyrienskies.physics_api.voxel_updates.DenseVoxelShapeUpdate
 import kotlin.math.min
 
@@ -71,6 +73,8 @@ val Minecraft.shipObjectWorld get() = (this as IShipObjectWorldClientProvider).s
 val ClientLevel.shipObjectWorld get() = Minecraft.getInstance().shipObjectWorld
 
 val IPlayer.mcPlayer: Player get() = (this as MinecraftPlayer).playerEntityReference.get()!!
+
+val ServerPlayer.playerWrapper get() = (server as IPlayerProvider).getOrCreatePlayer(this)
 
 /**
  * Like [Entity.squaredDistanceTo] except the destination is transformed into world coordinates if it is a ship

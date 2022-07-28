@@ -1,8 +1,8 @@
 package org.valkyrienskies.mod.common
 
+import net.minecraft.server.MinecraftServer
 import net.minecraft.world.item.CreativeModeTab
 import net.minecraft.world.item.Item
-import org.valkyrienskies.core.hooks.VSCoreHooks
 import org.valkyrienskies.core.networking.VSNetworking
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
@@ -15,9 +15,11 @@ object ValkyrienSkiesMod {
     val SHIP_CREATOR_ITEM_SMALLER: Item = ShipCreatorItem(Item.Properties().tab(CreativeModeTab.TAB_MISC), 0.5)
     val MASS_DATAPACK_RESOLVER = MassDatapackResolver()
 
+    @JvmStatic
+    var currentServer: MinecraftServer? = null
+
     fun init() {
         println("Hello from init")
-        VSCoreHooks.init()
         VSNetworking.init()
         VSGameNetworking.registerHandlers()
         BlockStateInfo.init()

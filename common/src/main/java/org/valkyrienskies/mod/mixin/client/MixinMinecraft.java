@@ -17,12 +17,11 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.game.ships.QueryableShipDataImpl;
 import org.valkyrienskies.core.game.ships.ShipObjectClientWorld;
-import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
 import org.valkyrienskies.mod.common.PlayerUtil;
 import org.valkyrienskies.mod.mixinducks.client.MinecraftDuck;
 
 @Mixin(Minecraft.class)
-public class MixinMinecraft implements MinecraftDuck, IShipObjectWorldClientProvider {
+public class MixinMinecraft implements MinecraftDuck {
 
     @Unique
     private HitResult originalCrosshairTarget;
