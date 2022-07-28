@@ -3,8 +3,11 @@ package org.valkyrienskies.mod.common
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.item.CreativeModeTab
 import net.minecraft.world.item.Item
+import org.valkyrienskies.core.config.VSConfigClass
+import org.valkyrienskies.core.config.VSCoreConfig
 import org.valkyrienskies.core.networking.VSNetworking
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
+import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
 import org.valkyrienskies.mod.common.networking.impl.VSGameNetworking
 
@@ -23,5 +26,8 @@ object ValkyrienSkiesMod {
         VSNetworking.init()
         VSGameNetworking.registerHandlers()
         BlockStateInfo.init()
+
+        VSConfigClass.registerConfig("vs_core", VSCoreConfig::class.java)
+        VSConfigClass.registerConfig("vs", VSGameConfig::class.java)
     }
 }

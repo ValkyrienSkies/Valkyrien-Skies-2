@@ -24,7 +24,7 @@ object VSFabricNetworking {
             VSNetworking.TCP.onReceiveClient(buf)
         }
         ServerPlayNetworking.registerGlobalReceiver(VS_PACKET_ID) { server, player, _, buf, _ ->
-            VSNetworking.TCP.onReceiveServer(buf, (server as IPlayerProvider).getPlayer(player.uuid))
+            VSNetworking.TCP.onReceiveServer(buf, (server as IPlayerProvider).getOrCreatePlayer(player))
         }
     }
 

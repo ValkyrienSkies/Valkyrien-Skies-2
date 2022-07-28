@@ -8,6 +8,7 @@ import org.valkyrienskies.core.hooks.PlayState
 import org.valkyrienskies.core.hooks.PlayState.CLIENT_MULTIPLAYER
 import org.valkyrienskies.core.hooks.PlayState.CLIENT_SINGLEPLAYER
 import org.valkyrienskies.core.hooks.PlayState.CLIENT_TITLESCREEN
+import org.valkyrienskies.core.hooks.PlayState.SERVERSIDE
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.shipObjectWorld
 
@@ -15,6 +16,10 @@ abstract class CommonHooksImpl : AbstractCoreHooks() {
 
     override val playState: PlayState
         get() {
+            if (!isPhysicalClient) {
+                return SERVERSIDE
+            }
+
             // Client is not connected to any game
             if (Minecraft.getInstance().connection?.connection?.isConnected != true) {
                 return CLIENT_TITLESCREEN
