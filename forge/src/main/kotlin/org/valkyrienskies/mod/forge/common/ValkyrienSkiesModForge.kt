@@ -11,11 +11,9 @@ import thedarkcolour.kotlinforforge.forge.MOD_BUS
 
 @Mod(ValkyrienSkiesMod.MOD_ID)
 class ValkyrienSkiesModForge {
-
-
+    
     init {
         CoreHooks = ForgeHooksImpl
-        
         ValkyrienSkiesMod.init()
         VSForgeNetworking.registerForgeNetworking()
         ITEMS.register(MOD_BUS)
