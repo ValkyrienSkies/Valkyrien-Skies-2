@@ -42,7 +42,7 @@ jobs:
           name: forge artifacts
           path: |
             forge/build/libs/*.jar
-      
+
       - uses: jwgmeligmeyling/checkstyle-github-action@master # show checkstyle/ktlint report
         with:
           path: |
@@ -51,8 +51,6 @@ jobs:
 
   test-server:
     name: Test Server
-    # Requires build (so that we don't have to rebuild everything)
-    needs: build
     strategy:
       matrix:
         serverType: [ 'fabric', 'forge' ]
@@ -77,8 +75,6 @@ jobs:
     runs-on: ubuntu-latest
     # Run only on main branch
     if: github.ref == 'refs/heads/main'
-    # Requires build (so that we don't have to rebuild everything)
-    needs: build
     steps:
       - name: Shallow Clone (--recurse-submodules)
         uses: actions/checkout@v2
