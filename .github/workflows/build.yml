@@ -91,4 +91,4 @@ jobs:
           ORG_GRADLE_PROJECT_vs_maven_url: ${{ secrets.ORG_GRADLE_PROJECT_VS_MAVEN_URL }}
           ORG_GRADLE_PROJECT_vs_maven_username: ${{ secrets.ORG_GRADLE_PROJECT_VS_MAVEN_USERNAME }}
         run: |
-          ./gradlew publish --stacktrace --no-daemon
+          ./gradlew build publish --stacktrace --no-daemon
