@@ -30,7 +30,7 @@ object VSFabricNetworking {
      */
     internal fun registerServerPacketHandlers() {
         ServerPlayNetworking.registerGlobalReceiver(VS_PACKET_ID) { server, player, _, buf, _ ->
-            VSNetworking.TCP.onReceiveServer(buf, (server as IPlayerProvider).getPlayer(player.uuid))
+            VSNetworking.TCP.onReceiveServer(buf, (server as IPlayerProvider).getOrCreatePlayer(player))
         }
     }
 

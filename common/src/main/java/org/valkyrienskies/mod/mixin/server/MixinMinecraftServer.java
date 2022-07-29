@@ -25,6 +25,7 @@ import org.valkyrienskies.core.pipelines.VSPipeline;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.ShipSavedData;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.util.MinecraftPlayer;
 import org.valkyrienskies.mod.common.world.ChunkManagement;
 import org.valkyrienskies.mod.event.RegistryEvents;
@@ -52,6 +53,19 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     private final Map<UUID, MinecraftPlayer> vsPlayerWrappers = new HashMap<>();
 
     private Set<String> loadedLevels = new HashSet<>();
+
+    @Inject(
+        at = @At(value = "INVOKE", target = "Lnet/minecraft/server/MinecraftServer;initServer()Z"),
+        method = "runServer"
+    )
+    private void beforeInitServer(final CallbackInfo info) {
+        ValkyrienSkiesMod.setCurrentServer(MinecraftServer.class.cast(this));
+    }
+
+    @Inject(at = @At("TAIL"), method = "stopServer")
+    private void afterStopServer(final CallbackInfo ci) {
+        ValkyrienSkiesMod.setCurrentServer(null);
+    }
 
     @Inject(
         at = @At("HEAD"),
@@ -86,6 +100,11 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     @Override
     public IPlayer getPlayer(final UUID uuid) {
         return vsPlayerWrappers.get(uuid);
+    }
+
+    @Override
+    public IPlayer getOrCreatePlayer(final ServerPlayer player) {
+        return vsPlayerWrappers.computeIfAbsent(player.getUUID(), k -> new MinecraftPlayer(player, player.getUUID()));
     }
 
     @NotNull

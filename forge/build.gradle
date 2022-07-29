@@ -39,6 +39,7 @@ repositories {
         name = 'Kotlin for Forge'
         url = 'https://thedarkcolour.github.io/KotlinForForge/'
     }
+    mavenCentral()
 }
 
 dependencies {
@@ -55,8 +56,8 @@ dependencies {
     // Based on their own instructions: https://github.com/thedarkcolour/KotlinForForge/blob/70385f5/thedarkcolour/kotlinforforge/gradle/kff-3.0.0.gradle
     implementation("thedarkcolour:kotlinforforge:1.16.0")
     // Manually specify kotlin version
-    forgeRuntimeLibrary("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.6.10")
-    forgeRuntimeLibrary("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
+    forgeRuntimeLibrary('org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.7.10')
+    forgeRuntimeLibrary('org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.2')
 
     // Shade vs-core
     implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {

@@ -4,6 +4,8 @@ dependencies {
     // Do NOT use other classes from fabric loader
     modImplementation "net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}"
 
+    modApi("me.shedaniel.cloth:cloth-config:4.14.64")
+
     // vs-core
     implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {
         exclude module: "netty-buffer"
@@ -30,4 +32,9 @@ publishing {
     }
 
     apply from: '../gradle-scripts/publish-maven-repos.gradle'
+}
+compileKotlin {
+    kotlinOptions {
+        languageVersion = "1.4"
+    }
 }

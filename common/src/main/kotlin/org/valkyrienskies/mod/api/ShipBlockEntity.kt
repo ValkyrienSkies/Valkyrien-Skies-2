@@ -1,11 +1,22 @@
 package org.valkyrienskies.mod.api
 
+import net.minecraft.core.BlockPos
+import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.entity.BlockEntity
 import org.valkyrienskies.core.api.Ship
-import org.valkyrienskies.core.api.ShipUser
+import org.valkyrienskies.core.api.ShipProvider
+import org.valkyrienskies.core.game.ships.ShipObject
 
-interface ShipBlockEntity : ShipUser {
-    /**
-     * Ship for the block entity, it will be set on creation
-     */
+interface ShipBlockEntity : ShipProvider {
     override var ship: Ship?
+
+    /**
+     * Gets called on block entity creation and relocation
+     *  the actual new [BlockPos], [Ship] and [Level] shall be assigned
+     *  on this [BlockEntity] after this call
+     * @param newPos
+     * @param newLevel
+     * @param newShip
+     */
+    fun onShipChange(newPos: BlockPos, newLevel: Level, newShip: ShipObject) {}
 }

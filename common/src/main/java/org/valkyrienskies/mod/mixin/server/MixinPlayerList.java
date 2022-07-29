@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.mixin.server;
 
 import java.util.List;
+import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
@@ -17,6 +18,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.game.ships.ShipObject;
+import org.valkyrienskies.core.hooks.VSCoreHooksKt;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(PlayerList.class)
@@ -33,6 +35,14 @@ public abstract class MixinPlayerList {
     @Shadow
     public abstract void broadcast(@Nullable Player player, double x, double y, double z, double distance,
         ResourceKey<Level> worldKey, Packet<?> packet);
+
+    @Inject(
+        method = "placeNewPlayer",
+        at = @At("TAIL")
+    )
+    private void afterPlayerJoin(final Connection netManager, final ServerPlayer player, final CallbackInfo ci) {
+        VSCoreHooksKt.getCoreHooks().afterClientJoinServer(VSGameUtilsKt.getPlayerWrapper(player));
+    }
 
     /**
      * Transform x, y, z in sendToAround if they are in ship space.

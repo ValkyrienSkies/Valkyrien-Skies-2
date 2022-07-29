@@ -17,6 +17,7 @@ import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent
 import net.minecraftforge.fml.event.lifecycle.FMLLoadCompleteEvent
 import net.minecraftforge.registries.DeferredRegister
 import net.minecraftforge.registries.ForgeRegistries
+import org.valkyrienskies.core.hooks.CoreHooks
 import org.valkyrienskies.mod.client.EmptyRenderer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.block.TestChairBlock
@@ -38,6 +39,7 @@ class ValkyrienSkiesModForge {
     private val SHIP_MOUNTING_ENTITY_REGISTRY: RegistryObject<EntityType<ShipMountingEntity>>
 
     init {
+        CoreHooks = ForgeHooksImpl
         ValkyrienSkiesMod.init()
         VSForgeNetworking.registerForgeNetworking()
         BLOCKS.register(MOD_BUS)
