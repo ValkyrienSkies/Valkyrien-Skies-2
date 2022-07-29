@@ -133,5 +133,7 @@ publishing {
         }
     }
 
-    apply from: '../gradle-scripts/publish-maven-repos.gradle'
+    repositories {
+        apply from: '../gradle-scripts/publish-maven-repos.gradle', to: it
+    }
 }
