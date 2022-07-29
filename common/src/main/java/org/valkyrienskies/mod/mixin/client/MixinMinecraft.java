@@ -25,7 +25,7 @@ import org.valkyrienskies.mod.common.PlayerUtil;
 import org.valkyrienskies.mod.mixinducks.client.MinecraftDuck;
 
 @Mixin(Minecraft.class)
-public class MixinMinecraft implements MinecraftDuck, IShipObjectWorldClientProvider {
+public class MixinMinecraft implements MinecraftDuck, IShipObjectWorldClientProvider, IShipObjectWorldClientCreator {
 
     @Unique
     private HitResult originalCrosshairTarget;

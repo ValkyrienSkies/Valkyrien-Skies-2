@@ -28,11 +28,6 @@ public abstract class MixinClientLevel {
     @Final
     private Int2ObjectMap<Entity> entitiesById;
 
-    @Unique
-    private boolean serverNoUdp = false;
-    @Unique
-    private int tryConnectIn = 100;
-
     @Inject(method = "tick", at = @At("HEAD"))
     private void preTick(final BooleanSupplier shouldKeepTicking, final CallbackInfo ci) {
         // Drag entities
