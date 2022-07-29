@@ -17,6 +17,8 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.valkyrienskies.core.game.VSOptions;
+import org.valkyrienskies.core.networking.VSNetworking;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 
@@ -55,6 +57,8 @@ public class MixinGui {
             final String worldPhysicsDebugText = "VS PhysTPS: " + physicsTPS;
             debugText.add(worldPhysicsDebugText);
         }
+
+        debugText.add("Using UDP: " + VSNetworking.INSTANCE.getClientUsesUDP());
 
         for (int i = 0; i < debugText.size(); i++) {
             final String string = debugText.get(i);

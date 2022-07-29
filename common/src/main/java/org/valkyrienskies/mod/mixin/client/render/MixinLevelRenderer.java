@@ -35,7 +35,6 @@ import org.joml.Matrix4dc;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -179,11 +178,11 @@ public abstract class MixinLevelRenderer {
      *
      * @author Rubydesic
      */
-    @Overwrite
-    private void renderHitOutline(final PoseStack matrixStack, final VertexConsumer vertexConsumer,
+    @Inject(method = "renderHitOutline", at = @At("HEAD"), cancellable = true)
+    private void preRenderHitOutline(final PoseStack matrixStack, final VertexConsumer vertexConsumer,
         final Entity entity, final double camX, final double camY, final double camZ, final BlockPos blockPos,
-        final BlockState blockState) {
-
+        final BlockState blockState, final CallbackInfo ci) {
+        ci.cancel();
         final ShipObjectClient ship = VSGameUtilsKt.getShipObjectManagingPos(level, blockPos);
         if (ship != null) {
             matrixStack.pushPose();
@@ -201,7 +200,6 @@ public abstract class MixinLevelRenderer {
                 (double) blockPos.getZ() - camZ,
                 0.0F, 0.0F, 0.0F, 0.4F);
         }
-
     }
 
     /**

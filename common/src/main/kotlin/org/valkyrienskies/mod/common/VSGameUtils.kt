@@ -14,6 +14,7 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.chunk.LevelChunkSection
 import org.joml.Vector3d
+import org.joml.Vector3dc
 import org.joml.Vector3ic
 import org.valkyrienskies.core.game.ChunkAllocator
 import org.valkyrienskies.core.game.DimensionId
@@ -24,6 +25,7 @@ import org.valkyrienskies.core.game.ships.ShipDataCommon
 import org.valkyrienskies.core.game.ships.ShipObject
 import org.valkyrienskies.core.game.ships.ShipObjectClient
 import org.valkyrienskies.core.game.ships.ShipObjectServer
+import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.util.toJOMLD
 import org.valkyrienskies.mod.mixin.accessors.resource.ResourceKeyAccessor
@@ -138,8 +140,19 @@ fun Level.getShipObjectManagingPos(chunkX: Int, chunkZ: Int) =
 fun Level.getShipObjectManagingPos(blockPos: BlockPos) =
     getShipObjectManagingPos(blockPos.x shr 4, blockPos.z shr 4)
 
+fun Level.getShipObjectManagingPos(pos: Vector3dc) =
+    getShipObjectManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
+
 fun Level.getShipObjectManagingPos(chunkPos: ChunkPos) =
     getShipObjectManagingPos(chunkPos.x, chunkPos.z)
+
+fun Level.getShipObjectEntityMountedTo(entity: Entity): Pair<ShipObject, Vector3dc>? {
+    val vehicle = entity.vehicle
+    if (vehicle !is ShipMountingEntity) return null
+    val inShipPosition = vehicle.inShipPosition ?: return null
+    val shipObject = getShipObjectManagingPos(inShipPosition) ?: return null
+    return Pair(shipObject, inShipPosition)
+}
 
 // ClientLevel
 fun ClientLevel.getShipObjectManagingPos(chunkX: Int, chunkZ: Int) =
@@ -148,8 +161,19 @@ fun ClientLevel.getShipObjectManagingPos(chunkX: Int, chunkZ: Int) =
 fun ClientLevel.getShipObjectManagingPos(blockPos: BlockPos) =
     getShipObjectManagingPos(blockPos.x shr 4, blockPos.z shr 4)
 
+fun ClientLevel.getShipObjectManagingPos(pos: Vector3dc) =
+    getShipObjectManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
+
 fun ClientLevel.getShipObjectManagingPos(chunkPos: ChunkPos) =
     getShipObjectManagingPos(chunkPos.x, chunkPos.z)
+
+fun ClientLevel.getShipObjectEntityMountedTo(entity: Entity): Pair<ShipObjectClient, Vector3dc>? {
+    val vehicle = entity.vehicle
+    if (vehicle !is ShipMountingEntity) return null
+    val inShipPosition = vehicle.inShipPosition ?: return null
+    val shipObject = getShipObjectManagingPos(inShipPosition) ?: return null
+    return Pair(shipObject, inShipPosition)
+}
 
 // ServerWorld
 fun ServerLevel.getShipObjectManagingPos(chunkX: Int, chunkZ: Int) =
@@ -175,6 +199,9 @@ fun Level.getShipManagingPos(chunkX: Int, chunkZ: Int) =
 
 fun Level.getShipManagingPos(blockPos: BlockPos) =
     getShipManagingPos(blockPos.x shr 4, blockPos.z shr 4)
+
+fun Level.getShipManagingPos(pos: Vector3dc) =
+    getShipManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
 
 fun Level.getShipManagingPos(chunkPos: ChunkPos) =
     getShipManagingPos(chunkPos.x, chunkPos.z)

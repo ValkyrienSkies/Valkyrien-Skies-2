@@ -7,7 +7,7 @@ import org.valkyrienskies.core.api.Ship
 import org.valkyrienskies.core.api.ShipProvider
 import org.valkyrienskies.core.game.ships.ShipObject
 
-interface BlockEntityShipProvider : ShipProvider {
+interface ShipBlockEntity : ShipProvider {
     override var ship: Ship?
 
     /**

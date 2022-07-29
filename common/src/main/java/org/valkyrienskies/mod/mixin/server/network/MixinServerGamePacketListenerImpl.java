@@ -3,8 +3,10 @@ package org.valkyrienskies.mod.mixin.server.network;
 import java.util.Collections;
 import java.util.Set;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.ServerPlayerGameMode;
@@ -16,6 +18,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -26,6 +29,7 @@ import org.valkyrienskies.core.game.ships.ShipData;
 import org.valkyrienskies.mod.common.PlayerUtil;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
+import org.valkyrienskies.mod.common.util.MinecraftPlayer;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(ServerGamePacketListenerImpl.class)
@@ -48,6 +52,10 @@ public abstract class MixinServerGamePacketListenerImpl {
 
     @Shadow
     private int awaitingTeleportTime;
+
+    @Shadow
+    @Final
+    private MinecraftServer server;
 
     /**
      * Include ships in server-side distance check when player interacts with a block.
@@ -106,7 +114,7 @@ public abstract class MixinServerGamePacketListenerImpl {
             final Vector3d pos = new Vector3d(x, y, z);
             ship.getShipToWorld().transformPosition(pos);
 
-            this.awaitingPositionFromClient = VectorConversionsMCKt.toVec3d(pos);
+            this.awaitingPositionFromClient = VectorConversionsMCKt.toMinecraft(pos);
             if (++this.awaitingTeleport == Integer.MAX_VALUE) {
                 this.awaitingTeleport = 0;
             }
@@ -118,6 +126,16 @@ public abstract class MixinServerGamePacketListenerImpl {
                     awaitingTeleport));
             ci.cancel();
         }
+    }
+
+    @Inject(
+        method = "onDisconnect",
+        at = @At("HEAD")
+    )
+    void onDisconnect(final Component reason, final CallbackInfo ci) {
+        VSGameUtilsKt.getShipObjectWorld(this.server).onDisconnect(
+            new MinecraftPlayer(this.player, this.player.getUUID())
+        );
     }
 
 }

@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.common.item
 
+import net.minecraft.Util
 import net.minecraft.network.chat.TextComponent
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.InteractionResult
@@ -17,16 +18,13 @@ import org.valkyrienskies.mod.common.util.toJOML
 class ShipCreatorItem(properties: Properties, private val scale: Double) : Item(properties) {
 
     override fun useOn(ctx: UseOnContext): InteractionResult {
-        println(ctx.level.isClientSide)
         val level = ctx.level as? ServerLevel ?: return super.useOn(ctx)
         val blockPos = ctx.clickedPos
         val blockState: BlockState = level.getBlockState(blockPos)
 
-        println("Player right clicked on $blockPos")
-
         if (!level.isClientSide) {
             if (ChunkAllocator.isChunkInShipyard(blockPos.x shr 4, blockPos.z shr 4)) {
-                ctx.player?.sendMessage(TextComponent("That chunk is already part of a ship!"), null)
+                ctx.player?.sendMessage(TextComponent("That chunk is already part of a ship!"), Util.NIL_UUID)
             } else if (!blockState.isAir) {
                 // Make a ship
                 val dimensionId = level.dimensionId
@@ -36,6 +34,8 @@ class ShipCreatorItem(properties: Properties, private val scale: Double) : Item(
 
                 // Move the block from the world to a ship
                 level.relocateBlock(blockPos, centerPos, shipData)
+
+                ctx.player?.sendMessage(TextComponent("SHIPIFIED!"), Util.NIL_UUID)
             }
         }
 

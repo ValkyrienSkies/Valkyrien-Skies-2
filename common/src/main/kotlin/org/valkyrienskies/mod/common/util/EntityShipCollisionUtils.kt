@@ -40,7 +40,7 @@ object EntityShipCollisionUtils {
                 (entity as IEntityDraggingInformationProvider).draggingInformation.lastShipStoodOn = shipCollidingWith
             }
         }
-        return newMovement.toVec3d()
+        return newMovement.toMinecraft()
     }
 
     private fun getShipPolygonsCollidingWithEntity(

@@ -1,0 +1,42 @@
+// Determine release type
+def vsReleaseType = 'alpha'
+if (project.hasProperty("CustomReleaseVersion")) {
+    def matches = project.property("CustomReleaseVersion") =~ 'release/(?:\\d+\\.){1,2}\\d+-(alpha|beta)\\d+'
+
+    vsReleaseType = matches[0][1] ?: 'release'
+}
+
+def fileDisplayName = "[${project.loader_platform} ${project.minecraft_version}] v${project.version}"
+
+// Publish to CurseForge
+curseforge {
+    if (project.curse_api_key) {
+        apiKey = project.curse_api_key
+        project {
+            id = project.curse_project_id
+            releaseType = vsReleaseType
+            addGameVersion project.minecraft_version
+            addGameVersion project.loader_platform
+
+            mainArtifact(remapJar.archiveFile.get().asFile) {
+                displayName = fileDisplayName
+            }
+        }
+    }
+    options {
+        forgeGradleIntegration = false
+        javaVersionAutoDetect = false
+    }
+}
+
+// Publish to Modrinth
+modrinth {
+    token = project.modrinth_api_key
+    projectId = project.modrinth_project_id
+    versionType = vsReleaseType
+    versionName = fileDisplayName
+    versionNumber = "${project.minecraft_version}-${project.loader_platform.toLowerCase()}-${project.version}"
+    uploadFile = remapJar
+    gameVersions = [project.minecraft_version]
+    loaders = [project.loader_platform.toLowerCase()]
+}

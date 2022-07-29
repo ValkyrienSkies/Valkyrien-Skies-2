@@ -22,11 +22,11 @@ object VSForgeNetworking {
     )
 
     internal fun registerForgeNetworking() {
-        registerClientPacketHandlers()
+        registerPacketHandlers()
         injectForgePacketSenders()
     }
 
-    private fun registerClientPacketHandlers() {
+    private fun registerPacketHandlers() {
         // This gibberish is brought to you by forge
         // seriously forge wtf
         @Suppress("INACCESSIBLE_TYPE")

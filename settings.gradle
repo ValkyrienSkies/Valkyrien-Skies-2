@@ -3,9 +3,10 @@ pluginManagement {
         mavenCentral()
         maven {
             name = "Valkyrien Skies Internal"
-            url = hasProperty('vs_maven_url') ? getProperty('vs_maven_url') : 'https://maven.valkyrienskies.org'
 
-            if (hasProperty('vs_maven_url') && hasProperty('vs_maven_username')) {
+            url = vs_maven_url ?: 'https://maven.valkyrienskies.org'
+
+            if (vs_maven_username && vs_maven_password) {
                 credentials {
                     username = getProperty('vs_maven_username')
                     password = getProperty('vs_maven_password')

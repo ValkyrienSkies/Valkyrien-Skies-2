@@ -23,6 +23,12 @@ object VSFabricNetworking {
         ClientPlayNetworking.registerGlobalReceiver(VS_PACKET_ID) { _, _, buf, _ ->
             VSNetworking.TCP.onReceiveClient(buf)
         }
+    }
+
+    /**
+     * For local server/dedicated server
+     */
+    internal fun registerServerPacketHandlers() {
         ServerPlayNetworking.registerGlobalReceiver(VS_PACKET_ID) { server, player, _, buf, _ ->
             VSNetworking.TCP.onReceiveServer(buf, (server as IPlayerProvider).getOrCreatePlayer(player))
         }

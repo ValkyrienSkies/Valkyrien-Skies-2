@@ -7,6 +7,7 @@ import net.minecraft.world.level.ChunkPos
 import org.valkyrienskies.core.chunk_tracking.ChunkUnwatchTask
 import org.valkyrienskies.core.chunk_tracking.ChunkWatchTask
 import org.valkyrienskies.core.game.ships.ShipObjectServerWorld
+import org.valkyrienskies.core.util.logger
 import org.valkyrienskies.mod.common.getLevelFromDimensionId
 import org.valkyrienskies.mod.common.mcPlayer
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
@@ -20,7 +21,7 @@ object ChunkManagement {
         // Use Spliterator instead of iterators so that we can multi thread the execution of these tasks
         // But for now just do it single threaded
         chunkWatchTasks.forEachRemaining { chunkWatchTask: ChunkWatchTask ->
-            println(
+            logger.debug(
                 "Watch task for dimension " + chunkWatchTask.dimensionId + ": " +
                     chunkWatchTask.getChunkX() + " : " + chunkWatchTask.getChunkZ()
             )
@@ -33,7 +34,7 @@ object ChunkManagement {
             for (player in chunkWatchTask.playersNeedWatching) {
                 val minecraftPlayer = player as MinecraftPlayer
                 if (chunkWatchTask.dimensionId != player.dimension) {
-                    println("WARN: Player received watch task for chunk in dimension that they are not also in!")
+                    logger.warn("Player received watch task for chunk in dimension that they are not also in!")
                 }
                 val serverPlayerEntity =
                     minecraftPlayer.playerEntityReference.get() as ServerPlayer?
@@ -46,7 +47,7 @@ object ChunkManagement {
         }
 
         chunkUnwatchTasks.forEachRemaining { chunkUnwatchTask: ChunkUnwatchTask ->
-            println(
+            logger.debug(
                 "Unwatch task for dimension " + chunkUnwatchTask.dimensionId + ": " +
                     chunkUnwatchTask.getChunkX() + " : " + chunkUnwatchTask.getChunkZ()
             )
@@ -64,4 +65,6 @@ object ChunkManagement {
             chunkUnwatchTask.onExecuteChunkUnwatchTask()
         }
     }
+
+    private val logger by logger()
 }

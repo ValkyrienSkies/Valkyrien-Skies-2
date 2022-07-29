@@ -2,6 +2,7 @@ package org.valkyrienskies.mod.mixin.client.world;
 
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import java.util.function.BooleanSupplier;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
@@ -22,12 +23,22 @@ import org.valkyrienskies.mod.common.util.EntityDragger;
 public abstract class MixinClientLevel {
     @Shadow
     @Final
+    private Minecraft minecraft;
+    @Shadow
+    @Final
     private Int2ObjectMap<Entity> entitiesById;
+
+    @Unique
+    private boolean serverNoUdp = false;
+    @Unique
+    private int tryConnectIn = 100;
 
     @Inject(method = "tick", at = @At("HEAD"))
     private void preTick(final BooleanSupplier shouldKeepTicking, final CallbackInfo ci) {
         // Drag entities
-        EntityDragger.Companion.dragEntitiesWithShips(entitiesById.values());
+        EntityDragger.INSTANCE.dragEntitiesWithShips(entitiesById.values());
+        VSGameUtilsKt.getShipObjectWorld(minecraft).getNetworkManager()
+            .tick(minecraft.getConnection().getConnection().getRemoteAddress());
     }
 
     @Inject(
