@@ -33,6 +33,7 @@ build
 # other
 eclipse
 run
+run_server
 logs
 
 # Files from Forge MDK
