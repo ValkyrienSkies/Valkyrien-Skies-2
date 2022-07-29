@@ -77,6 +77,32 @@ subprojects {
         mavenLocal()
     }
 
+    publishing {
+        repositories {
+            if (project.vs_maven_username && project.vs_maven_password) {
+                println "Publishing to VS Maven"
+                maven {
+                    url = project.vs_maven_url
+                    credentials {
+                        username = project.vs_maven_username
+                        password = project.vs_maven_password
+                    }
+                }
+            }
+            if (System.getenv("GITHUB_ACTOR") != null) {
+                println "Publishing to Github Packages"
+                maven {
+                    name = "GitHubPackages"
+                    url = uri("https://maven.pkg.github.com/ValkyrienSkies/Valkyrien-Skies-2")
+                    credentials {
+                        username = System.getenv("GITHUB_ACTOR")
+                        password = System.getenv("GITHUB_TOKEN")
+                    }
+                }
+            }
+        }
+    }
+
     dependencies {
         minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
         // The following line declares the mojmap mappings, you may use other mappings as well
