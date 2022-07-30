@@ -40,17 +40,20 @@ object VSClothConfig {
                     configClass.syncToServer()
                 }
             }
-
         }.build()
     }
 
     private fun addEntriesForConfig(
-        category: ConfigCategory, entryBuilder: () -> ConfigEntryBuilder, side: SidedVSConfigClass
+        category: ConfigCategory,
+        entryBuilder: () -> ConfigEntryBuilder,
+        side: SidedVSConfigClass
     ) {
         val configJson = side.generateInstJson()
         side.schemaJson["properties"]?.fields()?.forEach { (key, schema) ->
             if (key != "\$schema") {
-                getEntriesForProperty(key, configJson[key], schema, entryBuilder,
+                getEntriesForProperty(
+                    key,
+                    configJson[key], schema, entryBuilder,
                     save = { newValue -> side.attemptUpdate(side.generateInstJsonWith(key, newValue)) },
                     validate = { newValue -> side.schema.validate(side.generateInstJsonWith(key, newValue)) }
                 ).forEach(category::addEntry)
@@ -100,17 +103,20 @@ object VSClothConfig {
             type == "integer" -> {
                 val value = currentValue.intValue()
 
-                entries.add(entryBuilder().startIntField(titleComponent, value).apply {
-                    if (tooltip != null) setTooltip(tooltip)
-                    setSaveConsumer(::defaultSave)
-                    setErrorSupplier(::defaultError)
+                entries.add(
+                    entryBuilder().startIntField(titleComponent, value).apply {
+                        if (tooltip != null) setTooltip(tooltip)
+                        setSaveConsumer(::defaultSave)
+                        setErrorSupplier(::defaultError)
 
-                    schema["minimum"]?.intValue()?.let { setMin(it) }
-                    schema["exclusiveMinimum"]?.intValue()?.let { setMin(it + 1) }
-                    schema["maximum"]?.intValue()?.let { setMax(it) }
-                    schema["exclusiveMaximum"]?.intValue()?.let { setMax(it - 1) }
-                }.build())
+                        schema["minimum"]?.intValue()?.let { setMin(it) }
+                        schema["exclusiveMinimum"]?.intValue()?.let { setMin(it + 1) }
+                        schema["maximum"]?.intValue()?.let { setMax(it) }
+                        schema["exclusiveMaximum"]?.intValue()?.let { setMax(it - 1) }
+                    }.build()
+                )
             }
+
             type == "number" -> {
                 val value = currentValue.doubleValue()
                 entries.add(entryBuilder().startDoubleField(titleComponent, value).apply {
@@ -124,6 +130,7 @@ object VSClothConfig {
                     schema["exclusiveMaximum"]?.doubleValue()?.let { setMax(it) }
                 }.build())
             }
+
             type == "boolean" -> {
                 val value = currentValue.booleanValue()
                 entries.add(entryBuilder().startBooleanToggle(titleComponent, value).apply {
@@ -132,6 +139,7 @@ object VSClothConfig {
                     setErrorSupplier(::defaultError)
                 }.build())
             }
+
             type == "string" -> {
                 val value = currentValue.asText()
                 if (enum == null) {
@@ -151,6 +159,7 @@ object VSClothConfig {
                     }.build())
                 }
             }
+
             type == "object" -> {
                 val obj = currentValue as ObjectNode
                 val properties = schema["properties"] as ObjectNode
@@ -162,6 +171,7 @@ object VSClothConfig {
                 }.toList()
                 entries.add(entryBuilder().startSubCategory(titleComponent, subEntries).build())
             }
+
             type == "array" && schema["items"]["type"].asText() == "string" -> {
                 val arr = currentValue as ArrayNode
                 val textArr = arr.mapNotNull { it.asText(null) }
@@ -171,6 +181,7 @@ object VSClothConfig {
                     setErrorSupplier(::defaultError)
                 }.build())
             }
+
             type == "array" && schema["items"]["type"].asText() == "integer" -> {
                 val arr = currentValue as ArrayNode
                 val intArr = arr.mapNotNull { it.asInt() }
@@ -180,6 +191,7 @@ object VSClothConfig {
                     setErrorSupplier(::defaultError)
                 }.build())
             }
+
             type == "array" && schema["items"]["type"].asText() == "number" -> {
                 val arr = currentValue as ArrayNode
                 val doubleArr = arr.mapNotNull { it.asDouble() }
@@ -189,6 +201,7 @@ object VSClothConfig {
                     setErrorSupplier(::defaultError)
                 }.build())
             }
+
             else -> {
                 val value = currentValue.toString()
                 entries.add(entryBuilder().startStrField(titleComponent, value).apply {
