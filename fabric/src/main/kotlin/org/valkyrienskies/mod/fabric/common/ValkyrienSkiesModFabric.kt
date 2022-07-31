@@ -25,9 +25,12 @@ import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executor
 
 class ValkyrienSkiesModFabric : ModInitializer {
-    override fun onInitialize() {
-        CoreHooks = FabricHooksImpl
 
+    init {
+        CoreHooks = FabricHooksImpl
+    }
+
+    override fun onInitialize() {
         ValkyrienSkiesMod.TEST_CHAIR = TestChairBlock
         ValkyrienSkiesMod.SHIP_CREATOR_ITEM = ShipCreatorItem(Properties().tab(CreativeModeTab.TAB_MISC), 1.0)
         ValkyrienSkiesMod.SHIP_CREATOR_ITEM_SMALLER = ShipCreatorItem(Properties().tab(CreativeModeTab.TAB_MISC), 0.5)
@@ -88,5 +91,10 @@ class ValkyrienSkiesModFabric : ModInitializer {
             Registry.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, registryName),
             BlockItem(block, Properties().tab(CreativeModeTab.TAB_MISC))
         )
+    }
+
+    fun addonInit(name: String) {
+        // do nothing, causes static init to activate
+        // TODO make this api'ish
     }
 }
