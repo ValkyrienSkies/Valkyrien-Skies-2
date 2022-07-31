@@ -119,44 +119,52 @@ object VSClothConfig {
 
             type == "number" -> {
                 val value = currentValue.doubleValue()
-                entries.add(entryBuilder().startDoubleField(titleComponent, value).apply {
-                    if (tooltip != null) setTooltip(tooltip)
-                    setSaveConsumer(::defaultSave)
-                    setErrorSupplier(::defaultError)
+                entries.add(
+                    entryBuilder().startDoubleField(titleComponent, value).apply {
+                        if (tooltip != null) setTooltip(tooltip)
+                        setSaveConsumer(::defaultSave)
+                        setErrorSupplier(::defaultError)
 
-                    schema["minimum"]?.doubleValue()?.let { setMin(it) }
-                    schema["exclusiveMinimum"]?.doubleValue()?.let { setMin(it) }
-                    schema["maximum"]?.doubleValue()?.let { setMax(it) }
-                    schema["exclusiveMaximum"]?.doubleValue()?.let { setMax(it) }
-                }.build())
+                        schema["minimum"]?.doubleValue()?.let { setMin(it) }
+                        schema["exclusiveMinimum"]?.doubleValue()?.let { setMin(it) }
+                        schema["maximum"]?.doubleValue()?.let { setMax(it) }
+                        schema["exclusiveMaximum"]?.doubleValue()?.let { setMax(it) }
+                    }.build()
+                )
             }
 
             type == "boolean" -> {
                 val value = currentValue.booleanValue()
-                entries.add(entryBuilder().startBooleanToggle(titleComponent, value).apply {
-                    if (tooltip != null) setTooltip(tooltip)
-                    setSaveConsumer(::defaultSave)
-                    setErrorSupplier(::defaultError)
-                }.build())
+                entries.add(
+                    entryBuilder().startBooleanToggle(titleComponent, value).apply {
+                        if (tooltip != null) setTooltip(tooltip)
+                        setSaveConsumer(::defaultSave)
+                        setErrorSupplier(::defaultError)
+                    }.build()
+                )
             }
 
             type == "string" -> {
                 val value = currentValue.asText()
                 if (enum == null) {
-                    entries.add(entryBuilder().startStrField(titleComponent, value).apply {
-                        if (tooltip != null) setTooltip(tooltip)
-                        setSaveConsumer(::defaultSave)
-                        setErrorSupplier(::defaultError)
-                    }.build())
+                    entries.add(
+                        entryBuilder().startStrField(titleComponent, value).apply {
+                            if (tooltip != null) setTooltip(tooltip)
+                            setSaveConsumer(::defaultSave)
+                            setErrorSupplier(::defaultError)
+                        }.build()
+                    )
                 } else {
-                    entries.add(entryBuilder().startStringDropdownMenu(titleComponent, value).apply {
-                        if (tooltip != null) setTooltip(tooltip)
-                        setSaveConsumer(::defaultSave)
-                        setErrorSupplier(::defaultError)
+                    entries.add(
+                        entryBuilder().startStringDropdownMenu(titleComponent, value).apply {
+                            if (tooltip != null) setTooltip(tooltip)
+                            setSaveConsumer(::defaultSave)
+                            setErrorSupplier(::defaultError)
 
-                        isSuggestionMode = false
-                        setSelections(enum.mapNotNull { it.asText(null) })
-                    }.build())
+                            isSuggestionMode = false
+                            setSelections(enum.mapNotNull { it.asText(null) })
+                        }.build()
+                    )
                 }
             }
 
@@ -169,56 +177,66 @@ object VSClothConfig {
                         validate = { newValue -> validate(obj.shallowCopyWith(key, newValue)) }
                     )
                 }.toList()
-                entries.add(entryBuilder().startSubCategory(titleComponent, subEntries).build())
+                entries.add(
+                    entryBuilder().startSubCategory(titleComponent, subEntries).build()
+                )
             }
 
             type == "array" && schema["items"]["type"].asText() == "string" -> {
                 val arr = currentValue as ArrayNode
                 val textArr = arr.mapNotNull { it.asText(null) }
-                entries.add(entryBuilder().startStrList(titleComponent, textArr).apply {
-                    if (tooltip != null) setTooltip(tooltip)
-                    setSaveConsumer(::defaultSave)
-                    setErrorSupplier(::defaultError)
-                }.build())
+                entries.add(
+                    entryBuilder().startStrList(titleComponent, textArr).apply {
+                        if (tooltip != null) setTooltip(tooltip)
+                        setSaveConsumer(::defaultSave)
+                        setErrorSupplier(::defaultError)
+                    }.build()
+                )
             }
 
             type == "array" && schema["items"]["type"].asText() == "integer" -> {
                 val arr = currentValue as ArrayNode
                 val intArr = arr.mapNotNull { it.asInt() }
-                entries.add(entryBuilder().startIntList(titleComponent, intArr).apply {
-                    if (tooltip != null) setTooltip(tooltip)
-                    setSaveConsumer(::defaultSave)
-                    setErrorSupplier(::defaultError)
-                }.build())
+                entries.add(
+                    entryBuilder().startIntList(titleComponent, intArr).apply {
+                        if (tooltip != null) setTooltip(tooltip)
+                        setSaveConsumer(::defaultSave)
+                        setErrorSupplier(::defaultError)
+                    }.build()
+                )
             }
 
             type == "array" && schema["items"]["type"].asText() == "number" -> {
                 val arr = currentValue as ArrayNode
                 val doubleArr = arr.mapNotNull { it.asDouble() }
-                entries.add(entryBuilder().startDoubleList(titleComponent, doubleArr).apply {
-                    if (tooltip != null) setTooltip(tooltip)
-                    setSaveConsumer(::defaultSave)
-                    setErrorSupplier(::defaultError)
-                }.build())
+                entries.add(
+                    entryBuilder().startDoubleList(titleComponent, doubleArr).apply {
+                        if (tooltip != null) setTooltip(tooltip)
+                        setSaveConsumer(::defaultSave)
+                        setErrorSupplier(::defaultError)
+                    }.build()
+                )
             }
 
             else -> {
                 val value = currentValue.toString()
-                entries.add(entryBuilder().startStrField(titleComponent, value).apply {
-                    if (tooltip != null) setTooltip(tooltip)
-                    setSaveConsumer { str ->
-                        save(mapper.readTree(str))
-                    }
-                    setErrorSupplier { str ->
-                        val newValue = try {
-                            mapper.readTree(str)
-                        } catch (ex: JsonProcessingException) {
-                            return@setErrorSupplier Optional.of(TextComponent(ex.message))
+                entries.add(
+                    entryBuilder().startStrField(titleComponent, value).apply {
+                        if (tooltip != null) setTooltip(tooltip)
+                        setSaveConsumer { str ->
+                            save(mapper.readTree(str))
                         }
+                        setErrorSupplier { str ->
+                            val newValue = try {
+                                mapper.readTree(str)
+                            } catch (ex: JsonProcessingException) {
+                                return@setErrorSupplier Optional.of(TextComponent(ex.message))
+                            }
 
-                        getValidationMessageComponent(newValue)
-                    }
-                }.build())
+                            getValidationMessageComponent(newValue)
+                        }
+                    }.build()
+                )
             }
         }
 
@@ -229,4 +247,3 @@ object VSClothConfig {
         return entries
     }
 }
-
