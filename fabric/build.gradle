@@ -41,7 +41,7 @@ dependencies {
 
     // Depend on the fabric API
     modImplementation("net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}")
-    modImplementation("me.shedaniel.cloth:cloth-config:4.14.64")
+    modImplementation("me.shedaniel.cloth:cloth-config-fabric:4.14.64")
 
 
     implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {

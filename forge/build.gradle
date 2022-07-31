@@ -60,7 +60,7 @@ dependencies {
     forgeRuntimeLibrary('org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.2')
 
     // Cloth for config
-    modImplementation("me.shedaniel.cloth:cloth-config:4.14.64")
+    modImplementation("me.shedaniel.cloth:cloth-config-forge:4.14.64")
 
     // Shade vs-core
     implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {

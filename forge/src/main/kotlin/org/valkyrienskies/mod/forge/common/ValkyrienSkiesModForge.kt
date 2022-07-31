@@ -9,6 +9,8 @@ import net.minecraft.world.item.Item
 import net.minecraft.world.item.Item.Properties
 import net.minecraft.world.level.block.Block
 import net.minecraftforge.event.AddReloadListenerEvent
+import net.minecraftforge.fml.ExtensionPoint
+import net.minecraftforge.fml.ModLoadingContext
 import net.minecraftforge.fml.RegistryObject
 import net.minecraftforge.fml.client.registry.ClientRegistry
 import net.minecraftforge.fml.client.registry.RenderingRegistry
@@ -17,16 +19,21 @@ import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent
 import net.minecraftforge.fml.event.lifecycle.FMLLoadCompleteEvent
 import net.minecraftforge.registries.DeferredRegister
 import net.minecraftforge.registries.ForgeRegistries
+import org.valkyrienskies.core.config.VSConfigClass
+import org.valkyrienskies.core.config.VSCoreConfig
 import org.valkyrienskies.core.hooks.CoreHooks
 import org.valkyrienskies.mod.client.EmptyRenderer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.block.TestChairBlock
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
+import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.config.VSKeyBindings
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
+import org.valkyrienskies.mod.compat.clothconfig.VSClothConfig
 import thedarkcolour.kotlinforforge.forge.FORGE_BUS
 import thedarkcolour.kotlinforforge.forge.MOD_BUS
+import java.util.function.BiFunction
 
 @Mod(ValkyrienSkiesMod.MOD_ID)
 class ValkyrienSkiesModForge {
@@ -48,6 +55,16 @@ class ValkyrienSkiesModForge {
         MOD_BUS.addListener(::clientSetup)
         MOD_BUS.addListener(::loadComplete)
         FORGE_BUS.addListener(::registerResourceManagers)
+
+        ModLoadingContext.get().registerExtensionPoint(ExtensionPoint.CONFIGGUIFACTORY) {
+            BiFunction { client, parent ->
+                VSClothConfig.createConfigScreenFor(
+                    parent,
+                    VSConfigClass.getRegisteredConfig(VSCoreConfig::class.java),
+                    VSConfigClass.getRegisteredConfig(VSGameConfig::class.java)
+                )
+            }
+        }
 
         TEST_CHAIR_REGISTRY = registerBlockAndItem("test_chair") { TestChairBlock }
         SHIP_CREATOR_ITEM_REGISTRY =
