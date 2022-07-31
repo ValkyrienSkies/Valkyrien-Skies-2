@@ -96,14 +96,14 @@ public abstract class MixinGameRenderer {
 
             // Also update entity last tick positions, so that they interpolate correctly
             for (final Entity entity : clientWorld.entitiesForRendering()) {
-                final Pair<ShipObjectClient, Vector3dc> shipMountedTo =
-                    VSGameUtilsKt.getShipObjectEntityMountedTo(clientWorld, entity);
-
                 // The position we want to render [entity] at for this frame
                 // This is set when an entity is mounted to a ship, or an entity is being dragged by a ship
                 Vector3dc entityShouldBeHere = null;
 
                 // First, try getting [entityShouldBeHere] from [shipMountedTo]
+                final Pair<ShipObjectClient, Vector3dc> shipMountedTo =
+                    VSGameUtilsKt.getShipObjectEntityMountedTo(clientWorld, entity);
+
                 if (shipMountedTo != null) {
                     entityShouldBeHere = shipMountedTo.getFirst().getRenderTransform().getShipToWorldMatrix()
                         .transformPosition(shipMountedTo.getSecond(), new Vector3d());
@@ -148,12 +148,15 @@ public abstract class MixinGameRenderer {
                 }
 
                 // Apply entityShouldBeHere, if its present
-                if (entityShouldBeHere != null) {
+                //
+                // Also, don't run this if [tickDelta] is too small, getting so close to dividing by 0 could mess
+                // something up
+                if (entityShouldBeHere != null && tickDelta < .99999) {
                     // Update the entity last tick positions such that the entity's render position will be
                     // interpolated to be [entityShouldBeHere]
-                    entity.xo = (entityShouldBeHere.x() - (entity.getX() * tickDelta)) / (1 - tickDelta);
-                    entity.yo = (entityShouldBeHere.y() - (entity.getY() * tickDelta)) / (1 - tickDelta);
-                    entity.zo = (entityShouldBeHere.z() - (entity.getZ() * tickDelta)) / (1 - tickDelta);
+                    entity.xo = (entityShouldBeHere.x() - (entity.getX() * tickDelta)) / (1.0 - tickDelta);
+                    entity.yo = (entityShouldBeHere.y() - (entity.getY() * tickDelta)) / (1.0 - tickDelta);
+                    entity.zo = (entityShouldBeHere.z() - (entity.getZ() * tickDelta)) / (1.0 - tickDelta);
                 }
             }
         }
