@@ -172,7 +172,8 @@ object VSClothConfig {
                 val obj = currentValue as ObjectNode
                 val properties = schema["properties"] as ObjectNode
                 val subEntries = properties.fields().asSequence().flatMap { (key, schema) ->
-                    getEntriesForProperty(key, obj[key], schema, entryBuilder,
+                    getEntriesForProperty(
+                        key, obj[key], schema, entryBuilder,
                         save = { newValue -> save(obj.shallowCopyWith(key, newValue)) },
                         validate = { newValue -> validate(obj.shallowCopyWith(key, newValue)) }
                     )
