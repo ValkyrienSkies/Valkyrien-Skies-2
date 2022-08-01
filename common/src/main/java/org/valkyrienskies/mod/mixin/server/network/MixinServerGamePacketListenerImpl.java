@@ -91,6 +91,39 @@ public abstract class MixinServerGamePacketListenerImpl {
             () -> receiver.useItemOn(player, world, item, hand, hitResult));
     }
 
+    @Redirect(
+        method = "handleMovePlayer",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/server/network/ServerGamePacketListenerImpl;isSingleplayerOwner()Z"
+        )
+    )
+    private boolean shouldSkipMoveCheck1(final ServerGamePacketListenerImpl instance) {
+        return !VSGameConfig.SERVER.getEnableMovementChecks();
+    }
+
+    @Redirect(
+        method = "handleMoveVehicle",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/server/network/ServerGamePacketListenerImpl;isSingleplayerOwner()Z"
+        )
+    )
+    private boolean shouldSkipMoveCheck2(final ServerGamePacketListenerImpl instance) {
+        return !VSGameConfig.SERVER.getEnableMovementChecks();
+    }
+
+    @Redirect(
+        method = "handleMovePlayer",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/server/level/ServerPlayerGameMode;isCreative()Z"
+        )
+    )
+    private boolean shouldSkipMoveCheck(final ServerPlayerGameMode instance) {
+        return !VSGameConfig.SERVER.getEnableMovementChecks();
+    }
+
     // Fixes:
     // https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues/87
     // Bed Bug

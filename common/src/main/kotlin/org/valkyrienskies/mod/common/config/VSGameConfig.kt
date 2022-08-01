@@ -30,5 +30,13 @@ object VSGameConfig {
                 "the ship it belongs to instead."
         )
         var transformTeleports = true
+
+        @JsonSchema(
+            description = "By default, the server checks that player movement is legal, and if it isn't, rubber-bands " +
+                "the player with the infamous \"moved too quickly\" message. Since players on VS ships will move " +
+                "illegally, they will be affected by this check frequently. This option disables that check. " +
+                "(it doesn't work very well anyway, don't worry)"
+        )
+        var enableMovementChecks = false
     }
 }
