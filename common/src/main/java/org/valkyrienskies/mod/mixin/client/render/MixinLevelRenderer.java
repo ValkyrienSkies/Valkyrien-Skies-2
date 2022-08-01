@@ -21,6 +21,7 @@ import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
 import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Vec3i;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.BlockAndTintGetter;
@@ -80,6 +81,18 @@ public abstract class MixinLevelRenderer {
         final VoxelShape voxelShape, final double d, final double e, final double f, final float red, final float green,
         final float blue, final float alpha) {
         throw new AssertionError();
+    }
+
+    @Redirect(
+        method = "setupRender",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/core/BlockPos;distSqr(Lnet/minecraft/core/Vec3i;)D"
+        )
+    )
+    private double includeShipChunksInNearChunks(final BlockPos b, final Vec3i v) {
+        return VSGameUtilsKt.squaredDistanceBetweenInclShips(
+            level, b.getX(), b.getY(), b.getZ(), v.getX(), v.getY(), v.getZ());
     }
 
     /**
