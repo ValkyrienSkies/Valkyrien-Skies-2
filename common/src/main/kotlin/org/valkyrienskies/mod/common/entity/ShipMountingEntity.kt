@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.common.entity
 
+import net.minecraft.client.Minecraft
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
@@ -68,11 +69,13 @@ class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level) : E
 
     private fun sendDrivingPacket() {
         if (!level.isClientSide) return
-        val forward = VSKeyBindings.shipForward.get().isDown
-        val backward = VSKeyBindings.shipBack.get().isDown
-        val left = VSKeyBindings.shipLeft.get().isDown
-        val right = VSKeyBindings.shipRight.get().isDown
-        val up = VSKeyBindings.shipUp.get().isDown
+        // todo: custom keybinds for going up down and all around but for now lets just use the mc defaults
+        val opts = Minecraft.getInstance().options
+        val forward = opts.keyUp.isDown
+        val backward = opts.keyDown.isDown
+        val left = opts.keyLeft.isDown
+        val right = opts.keyRight.isDown
+        val up = opts.keyJump.isDown
         val down = VSKeyBindings.shipDown.get().isDown
 
         val impulse = Vector3f()
