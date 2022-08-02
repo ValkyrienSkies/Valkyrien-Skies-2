@@ -11,6 +11,7 @@
     "block.MixinBlock",
     "block.entity.MixinRandomizableContainerBlockEntity",
     "entity.MixinEntity",
+    "entity.item.MixinItemEntity",
     "screen.MixinScreenHandler",
     "server.MixinMinecraftServer",
     "server.MixinPlayerList",
@@ -20,7 +21,8 @@
     "server.world.MixinChunkMap",
     "server.world.MixinServerLevel",
     "world.MixinLevel",
-    "world.chunk.MixinLevelChunk"
+    "world.chunk.MixinLevelChunk",
+    "world.level.MixinExplosion"
   ],
   "client": [
     "accessors.client.multiplayer.ClientLevelAccessor",
@@ -30,8 +32,8 @@
     "accessors.client.render.RenderChunkInfoAccessor",
     "accessors.client.render.chunk.RenderChunkAccessor",
     "accessors.client.world.ClientChunkCacheStorageAccessor",
-    "client.MixinGame",
     "client.MixinCamera",
+    "client.MixinGame",
     "client.MixinMinecraft",
     "client.gui.hud.MixinGui",
     "client.multiplayer.MixinClientPacketListener",
