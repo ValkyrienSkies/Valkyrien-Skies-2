@@ -17,6 +17,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.valkyrienskies.core.game.ChunkAllocator;
 import org.valkyrienskies.core.game.ships.ShipObject;
 import org.valkyrienskies.core.hooks.VSCoreHooksKt;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
@@ -54,6 +55,16 @@ public abstract class MixinPlayerList {
     )
     private void sendToAround(@Nullable final Player player, final double x, final double y, final double z,
         final double distance, final ResourceKey<Level> worldKey, final Packet<?> packet, final CallbackInfo ci) {
+
+        // If something has transformed the player to the shipyard, don't transform
+        if (player != null &&
+            ChunkAllocator.isChunkInShipyard(
+                (int) player.position().x >> 4,
+                (int) player.position().y >> 4)
+        ) {
+            return;
+        }
+
         final Level world = server.getLevel(worldKey);
         if (world == null) {
             return;

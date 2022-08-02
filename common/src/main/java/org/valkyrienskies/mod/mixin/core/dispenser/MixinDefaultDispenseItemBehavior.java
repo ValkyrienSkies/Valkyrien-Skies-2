@@ -26,8 +26,6 @@ public class MixinDefaultDispenseItemBehavior {
         final ShipDataCommon ship = VSGameUtilsKt.getShipManagingPos(level, position);
 
         if (ship != null) {
-            ci.cancel();
-
             final double x = position.x();
             // vanilla code subtracts 0.125 if the dispenser is facing up/down. Don't know what to do with that though
             final double y = position.y() - 0.15625;
@@ -51,6 +49,8 @@ public class MixinDefaultDispenseItemBehavior {
             );
 
             level.addFreshEntity(item);
+
+            ci.cancel();
         }
     }
 

@@ -271,8 +271,10 @@ fun ServerLevel.getShipManagingPos(posX: Double, posY: Double, posZ: Double) =
 fun ServerLevel.getShipManagingPos(chunkPos: ChunkPos) =
     getShipManagingPos(chunkPos.x, chunkPos.z)
 
-fun ShipDataCommon.toWorldCoordinates(pos: BlockPos) = shipTransform.shipToWorldMatrix.transformPosition(pos.toJOMLD())
-fun ShipDataCommon.toWorldCoordinates(x: Double, y: Double, z: Double) =
+fun ShipDataCommon.toWorldCoordinates(pos: BlockPos): Vector3d =
+    shipTransform.shipToWorldMatrix.transformPosition(pos.toJOMLD())
+
+fun ShipDataCommon.toWorldCoordinates(x: Double, y: Double, z: Double): Vector3d =
     shipTransform.shipToWorldMatrix.transformPosition(Vector3d(x, y, z))
 
 fun LevelChunkSection.toDenseVoxelUpdate(chunkPos: Vector3ic): DenseVoxelShapeUpdate {
