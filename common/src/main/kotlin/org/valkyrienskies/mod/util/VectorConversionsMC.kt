@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.common.util
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.math.Quaternion
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
 import net.minecraft.core.Position
 import net.minecraft.core.Vec3i
 import net.minecraft.world.phys.AABB
@@ -65,6 +66,13 @@ fun Matrix4fMC.toJOML() = Matrix4d().set(this)
 
 fun AABBdc.toMinecraft() = AABB(minX(), minY(), minZ(), maxX(), maxY(), maxZ())
 fun AABB.toJOML() = AABBd().set(this)
+
+@JvmOverloads
+fun Matrix4dc.transformDirection(v: Vec3i, dest: Vector3d = Vector3d()) =
+    transformDirection(dest.set(v.x.toDouble(), v.y.toDouble(), v.z.toDouble()))
+
+@JvmOverloads
+fun Matrix4dc.transformDirection(dir: Direction, dest: Vector3d = Vector3d()) = transformDirection(dir.normal, dest)
 
 // endregion
 

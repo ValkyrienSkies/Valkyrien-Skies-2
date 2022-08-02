@@ -10,6 +10,7 @@
     "accessors.util.math.Matrix4fAccessor",
     "block.MixinBlock",
     "block.entity.MixinRandomizableContainerBlockEntity",
+    "core.dispenser.MixinDefaultDispenseItemBehavior",
     "entity.MixinEntity",
     "entity.item.MixinItemEntity",
     "screen.MixinScreenHandler",

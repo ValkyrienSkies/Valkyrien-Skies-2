@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.common
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Position
 import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
@@ -154,7 +155,7 @@ inline fun Level.transformToNearbyShipsAndWorld(
     x: Double, y: Double, z: Double, aabbRadius: Double, cb: (Double, Double, Double) -> Unit
 ) {
     val currentShip = getShipManagingPos(x, y, z)
-    val aabb = AABBd().expand(aabbRadius)
+    val aabb = AABBd(x, y, z, x, y, z).expand(aabbRadius)
 
     val posInWorld = Vector3d(x, y, z)
     val temp0 = Vector3d()
@@ -244,6 +245,9 @@ fun Level.getShipManagingPos(chunkX: Int, chunkZ: Int) =
 
 fun Level.getShipManagingPos(blockPos: BlockPos) =
     getShipManagingPos(blockPos.x shr 4, blockPos.z shr 4)
+
+fun Level.getShipManagingPos(pos: Position) =
+    getShipManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
 
 fun Level.getShipManagingPos(pos: Vector3dc) =
     getShipManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
