@@ -16,6 +16,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.game.ships.ShipObjectClient;
+import org.valkyrienskies.core.hooks.VSCoreHooksKt;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.EntityDragger;
 
@@ -27,6 +28,11 @@ public abstract class MixinClientLevel {
     @Shadow
     @Final
     private Int2ObjectMap<Entity> entitiesById;
+
+    @Inject(method = "disconnect", at = @At("TAIL"))
+    private void afterDisconnect(final CallbackInfo ci) {
+        VSCoreHooksKt.getCoreHooks().afterDisconnect();
+    }
 
     @Inject(method = "tick", at = @At("HEAD"))
     private void preTick(final BooleanSupplier shouldKeepTicking, final CallbackInfo ci) {
