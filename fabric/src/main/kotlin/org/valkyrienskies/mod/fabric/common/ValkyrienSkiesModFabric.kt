@@ -26,10 +26,12 @@ import java.util.concurrent.Executor
 
 class ValkyrienSkiesModFabric : ModInitializer {
 
-    init {
-        CoreHooks = FabricHooksImpl
+    companion object {
+        init {
+            CoreHooks = FabricHooksImpl
+        }
     }
-
+    
     override fun onInitialize() {
         ValkyrienSkiesMod.TEST_CHAIR = TestChairBlock
         ValkyrienSkiesMod.SHIP_CREATOR_ITEM = ShipCreatorItem(Properties().tab(CreativeModeTab.TAB_MISC), 1.0)
