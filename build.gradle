@@ -133,7 +133,7 @@ allprojects {
             if (project.vs_maven_username && project.vs_maven_password) {
                 println "Publishing to VS Maven"
                 maven {
-                    name = "VS Maven"
+                    name = "VSMaven"
                     url = project.vs_maven_url
                     credentials {
                         username = project.vs_maven_username
