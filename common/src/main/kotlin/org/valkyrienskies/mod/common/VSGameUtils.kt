@@ -61,7 +61,7 @@ val Level.dimensionId: DimensionId
     }
 
 fun getResourceKey(dimensionId: DimensionId): ResourceKey<Level> {
-    val cached = ResourceKeyAccessor.getValues()[dimensionId] as ResourceKey<Level>?
+    @Suppress("UNCHECKED_CAST") val cached = ResourceKeyAccessor.getValues()[dimensionId] as ResourceKey<Level>?
     if (cached == null) {
         val (registryNamespace, registryName, namespace, name) = dimensionId.split(":")
         return ResourceKeyAccessor.callCreate(
