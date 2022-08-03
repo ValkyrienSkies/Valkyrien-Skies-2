@@ -1,8 +1,14 @@
 package org.valkyrienskies.mod.mixin.client;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.multiplayer.MultiPlayerGameMode;
 import net.minecraft.client.multiplayer.ServerData;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.server.IntegratedServer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -11,6 +17,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.game.ships.QueryableShipDataImpl;
 import org.valkyrienskies.core.game.ships.ShipObjectClientWorld;
@@ -47,6 +54,21 @@ public abstract class MixinMinecraft
 
     @Unique
     private ShipObjectClientWorld shipObjectWorld = null;
+
+    @Redirect(
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/client/multiplayer/MultiPlayerGameMode;useItemOn(Lnet/minecraft/client/player/LocalPlayer;Lnet/minecraft/client/multiplayer/ClientLevel;Lnet/minecraft/world/InteractionHand;Lnet/minecraft/world/phys/BlockHitResult;)Lnet/minecraft/world/InteractionResult;"
+        ),
+        method = "startUseItem"
+    )
+    private InteractionResult useOriginalCrosshairForBlockPlacement(final MultiPlayerGameMode instance,
+        final LocalPlayer localPlayer, final ClientLevel clientLevel, final InteractionHand interactionHand,
+        final BlockHitResult blockHitResult) {
+
+        return instance.useItemOn(localPlayer, clientLevel, interactionHand,
+            (BlockHitResult) this.originalCrosshairTarget);
+    }
 
     @NotNull
     @Override

@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.common
 import net.minecraft.core.BlockPos
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.Level
+import org.valkyrienskies.core.game.ChunkAllocator
 import org.valkyrienskies.core.game.ships.ShipObject
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toMinecraft
@@ -25,6 +26,11 @@ object PlayerUtil {
      */
     @JvmStatic
     fun <T> transformPlayerTemporarily(player: Player, ship: ShipObject?, inside: () -> T): T {
+        if (ChunkAllocator.isBlockInShipyard(player.x, player.y, player.z)) {
+            // player is already in shipyard
+            return inside()
+        }
+
         val tmpYaw = player.yRot
         val tmpHeadYaw = player.yHeadRot
         val tmpPitch = player.xRot

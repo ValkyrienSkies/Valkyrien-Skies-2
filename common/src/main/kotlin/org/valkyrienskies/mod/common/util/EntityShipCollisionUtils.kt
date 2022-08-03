@@ -15,6 +15,14 @@ import org.valkyrienskies.mod.common.shipObjectWorld
 
 object EntityShipCollisionUtils {
 
+    @JvmStatic
+    fun isCollidingWithUnloadedShips(entity: Entity): Boolean {
+        val shipWorld = entity.level.shipObjectWorld
+        return shipWorld.queryableShipData.getShipDataIntersecting(entity.boundingBox.toJOML())
+            .all { ship -> shipWorld.shipObjects.containsKey(ship.id) }
+            .not()
+    }
+
     /**
      * @return [movement] modified such that the entity collides with ships.
      */
@@ -26,7 +34,7 @@ object EntityShipCollisionUtils {
     ): Vec3 {
         val collidingShipPolygons =
             getShipPolygonsCollidingWithEntity(entity, movement, entityBoundingBox.inflate(1.0), world)
-        // If the entity isn't colliding with any ship polygons, then don't adjust its movement
+
         if (collidingShipPolygons.isEmpty()) {
             return movement
         }

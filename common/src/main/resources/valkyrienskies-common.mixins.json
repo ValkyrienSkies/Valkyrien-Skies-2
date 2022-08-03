@@ -23,6 +23,7 @@
     "server.world.MixinServerLevel",
     "world.MixinLevel",
     "world.chunk.MixinLevelChunk",
+    "world.item.MixinBlockItem",
     "world.item.context.MixinBlockPlaceContext",
     "world.level.MixinExplosion"
   ],

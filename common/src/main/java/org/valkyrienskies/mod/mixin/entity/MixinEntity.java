@@ -132,6 +132,20 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     }
 
     /**
+     * Cancel movement of entities that are colliding with unloaded ships
+     */
+    @Inject(
+        at = @At("HEAD"),
+        method = "move",
+        cancellable = true
+    )
+    private void beforeMove(final MoverType type, final Vec3 pos, final CallbackInfo ci) {
+        if (EntityShipCollisionUtils.isCollidingWithUnloadedShips(Entity.class.cast(this))) {
+            ci.cancel();
+        }
+    }
+
+    /**
      * Allows entities to collide with ships by modifying the movement vector.
      */
     @Redirect(
