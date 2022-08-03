@@ -28,6 +28,15 @@ public abstract class MixinParticle {
     @Shadow
     protected double zd;
 
+    @Shadow
+    protected double xo;
+
+    @Shadow
+    protected double yo;
+
+    @Shadow
+    protected double zo;
+
     /**
      * See also {@link MixinLevelRenderer}
      */
@@ -45,6 +54,9 @@ public abstract class MixinParticle {
         // in-world position
         final Vector3d p = ship.getRenderTransform().getShipToWorldMatrix().transformPosition(new Vector3d(x, y, z));
         this.setPos(p.x, p.y, p.z);
+        this.xo = p.x;
+        this.yo = p.y;
+        this.zo = p.z;
     }
 
     /**
