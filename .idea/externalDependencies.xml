@@ -3,6 +3,7 @@
   <component name="ExternalDependencies">
     <plugin id="com.demonwav.minecraft-dev" />
     <plugin id="com.dubreuia" />
+    <plugin id="kotest-plugin-intellij" />
     <plugin id="org.jetbrains.kotlin" />
     <plugin id="org.toml.lang" />
   </component>
