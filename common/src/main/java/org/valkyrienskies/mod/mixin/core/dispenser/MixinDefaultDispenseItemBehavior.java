@@ -39,14 +39,12 @@ public class MixinDefaultDispenseItemBehavior {
             final Vector3d facingInWorld = VectorConversionsMCKt.transformDirection(ship.getShipToWorld(), facing);
             final Vector3dc speedInWorld = ship.getPhysicsData().getLinearVelocity();
 
-            item.setDeltaMovement(
-                (level.random.nextGaussian() * 0.0075F * (double) speed) + speedInWorld.x() +
-                    (facingInWorld.x() * randomSpeed),
-                (level.random.nextGaussian() * 0.0075F * (double) speed) + speedInWorld.y() +
-                    (facingInWorld.y() * randomSpeed) + 0.2F,
-                (level.random.nextGaussian() * 0.0075F * (double) speed) + speedInWorld.z() +
-                    (facingInWorld.z() * randomSpeed)
-            );
+            item.setDeltaMovement((level.random.nextGaussian() * 0.0075F * (double) speed) + speedInWorld.x()
+                    + (facingInWorld.x() * randomSpeed),
+                (level.random.nextGaussian() * 0.0075F * (double) speed) + speedInWorld.y()
+                    + (facingInWorld.y() * randomSpeed) + 0.2F,
+                (level.random.nextGaussian() * 0.0075F * (double) speed) + speedInWorld.z()
+                    + (facingInWorld.z() * randomSpeed));
 
             level.addFreshEntity(item);
 

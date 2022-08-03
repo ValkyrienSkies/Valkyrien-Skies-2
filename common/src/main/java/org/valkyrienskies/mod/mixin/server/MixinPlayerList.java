@@ -57,10 +57,10 @@ public abstract class MixinPlayerList {
         final double distance, final ResourceKey<Level> worldKey, final Packet<?> packet, final CallbackInfo ci) {
 
         // If something has transformed the player to the shipyard, don't transform
-        if (player != null &&
-            ChunkAllocator.isChunkInShipyard(
-                (int) player.position().x >> 4,
-                (int) player.position().y >> 4)
+        if (player != null
+            && ChunkAllocator.isChunkInShipyard(
+            (int) player.position().x >> 4,
+            (int) player.position().y >> 4)
         ) {
             return;
         }
