@@ -7,13 +7,13 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.level.chunk.LevelChunk.EntityCreationType.CHECK
-import org.valkyrienskies.core.api.Ship
+import org.valkyrienskies.core.api.ServerShip
 import org.valkyrienskies.mod.api.ShipBlockEntity
 
 private val AIR = Blocks.AIR.defaultBlockState()
 
 // the from and the to can be local or global
-fun relocateBlock(fromChunk: LevelChunk, from: BlockPos, toChunk: LevelChunk, to: BlockPos, toShip: Ship) {
+fun relocateBlock(fromChunk: LevelChunk, from: BlockPos, toChunk: LevelChunk, to: BlockPos, toShip: ServerShip) {
     val state = fromChunk.getBlockState(from)
     val entity = fromChunk.getBlockEntity(from)
 
@@ -47,5 +47,5 @@ fun relocateBlock(fromChunk: LevelChunk, from: BlockPos, toChunk: LevelChunk, to
     }
 }
 
-fun Level.relocateBlock(from: BlockPos, to: BlockPos, toShip: Ship) =
+fun Level.relocateBlock(from: BlockPos, to: BlockPos, toShip: ServerShip) =
     relocateBlock(getChunkAt(from), from, getChunkAt(to), to, toShip)
