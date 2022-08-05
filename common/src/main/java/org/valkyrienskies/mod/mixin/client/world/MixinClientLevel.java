@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.core.game.ships.ShipDataCommon;
+import org.valkyrienskies.core.api.Ship;
 import org.valkyrienskies.core.hooks.VSCoreHooksKt;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.EntityDragger;
@@ -50,7 +50,7 @@ public abstract class MixinClientLevel {
         final SoundSource category, final float volume, final float pitch, final boolean distanceDelay,
         final CallbackInfo ci) {
 
-        final ShipDataCommon ship = VSGameUtilsKt.getShipManagingPos(ClientLevel.class.cast(this), x, y, z);
+        final Ship ship = VSGameUtilsKt.getShipManagingPos(ClientLevel.class.cast(this), x, y, z);
         if (ship != null) {
             final Vector3d p = ship.getShipToWorld().transformPosition(new Vector3d(x, y, z));
             playLocalSound(p.x, p.y, p.z, sound, category, volume, pitch, distanceDelay);

@@ -18,12 +18,12 @@ import org.joml.Vector3d
 import org.joml.Vector3dc
 import org.joml.Vector3ic
 import org.joml.primitives.AABBd
+import org.valkyrienskies.core.api.Ship
 import org.valkyrienskies.core.game.ChunkAllocator
 import org.valkyrienskies.core.game.DimensionId
 import org.valkyrienskies.core.game.IPlayer
 import org.valkyrienskies.core.game.VSBlockType
 import org.valkyrienskies.core.game.ships.ShipData
-import org.valkyrienskies.core.game.ships.ShipDataCommon
 import org.valkyrienskies.core.game.ships.ShipObject
 import org.valkyrienskies.core.game.ships.ShipObjectClient
 import org.valkyrienskies.core.game.ships.ShipObjectServer
@@ -231,7 +231,7 @@ fun ServerLevel.getShipObjectManagingPos(chunkPos: ChunkPos) =
 fun ServerLevel.getShipObjectManagingPos(posX: Double, posY: Double, posZ: Double) =
     getShipObjectManagingPos(posX.toInt() shr 4, posZ.toInt() shr 4)
 
-private fun getShipManagingPosImpl(world: Level, x: Int, z: Int): ShipDataCommon? {
+private fun getShipManagingPosImpl(world: Level, x: Int, z: Int): Ship? {
     return if (ChunkAllocator.isChunkInShipyard(x, z)) {
         world.shipObjectWorld.queryableShipData.getShipDataFromChunkPos(x, z, world.dimensionId)
     } else {
@@ -271,10 +271,10 @@ fun ServerLevel.getShipManagingPos(posX: Double, posY: Double, posZ: Double) =
 fun ServerLevel.getShipManagingPos(chunkPos: ChunkPos) =
     getShipManagingPos(chunkPos.x, chunkPos.z)
 
-fun ShipDataCommon.toWorldCoordinates(pos: BlockPos): Vector3d =
+fun Ship.toWorldCoordinates(pos: BlockPos): Vector3d =
     shipTransform.shipToWorldMatrix.transformPosition(pos.toJOMLD())
 
-fun ShipDataCommon.toWorldCoordinates(x: Double, y: Double, z: Double): Vector3d =
+fun Ship.toWorldCoordinates(x: Double, y: Double, z: Double): Vector3d =
     shipTransform.shipToWorldMatrix.transformPosition(Vector3d(x, y, z))
 
 fun LevelChunkSection.toDenseVoxelUpdate(chunkPos: Vector3ic): DenseVoxelShapeUpdate {
