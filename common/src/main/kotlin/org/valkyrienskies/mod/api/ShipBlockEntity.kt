@@ -3,12 +3,13 @@ package org.valkyrienskies.mod.api
 import net.minecraft.core.BlockPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.entity.BlockEntity
+import org.valkyrienskies.core.api.ServerShip
+import org.valkyrienskies.core.api.ServerShipUser
 import org.valkyrienskies.core.api.Ship
-import org.valkyrienskies.core.api.ShipProvider
 import org.valkyrienskies.core.game.ships.ShipObject
 
-interface ShipBlockEntity : ShipProvider {
-    override var ship: Ship?
+interface ShipBlockEntity : ServerShipUser {
+    override var ship: ServerShip?
 
     /**
      * Gets called on block entity creation and relocation

@@ -11,6 +11,7 @@ import org.joml.Vector3d
 import org.joml.Vector3dc
 import org.joml.Vector3f
 import org.valkyrienskies.core.api.setAttachment
+import org.valkyrienskies.core.game.ChunkAllocator
 import org.valkyrienskies.core.game.ships.ShipObjectServer
 import org.valkyrienskies.core.networking.simple.sendToServer
 import org.valkyrienskies.mod.api.SeatedControllingPlayer
@@ -48,7 +49,12 @@ class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level) : E
         }
         val inShipPositionCopy = inShipPosition
         if (inShipPositionCopy != null) {
+            val isInShipPositionInShipyard = ChunkAllocator.isBlockInShipyard(inShipPositionCopy)
             val shipData = level.getShipManagingPos(inShipPositionCopy)
+            if (isInShipPositionInShipyard && shipData == null) {
+                // If [shipData] is null then the ship has been deleted, so don't update the position of this
+                return
+            }
             val posInWorld: Vector3dc = if (shipData != null) {
                 sendDrivingPacket()
                 shipData.shipToWorld.transformPosition(inShipPositionCopy, Vector3d())
