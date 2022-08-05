@@ -142,7 +142,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
             .serializedShipDataModule(new SerializedShipDataModule(
                 shipSavedData.getQueryableShipData(), shipSavedData.getChunkAllocator()))
             .build()
-            .create();
+            .make();
 
         shipWorld = vsPipeline.getShipWorld();
 
