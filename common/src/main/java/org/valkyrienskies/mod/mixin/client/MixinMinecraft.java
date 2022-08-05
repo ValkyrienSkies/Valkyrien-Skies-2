@@ -87,7 +87,7 @@ public abstract class MixinMinecraft
     public void preTick(final CallbackInfo ci) {
         // Tick the ship world
         if (shipObjectWorld != null) {
-            shipObjectWorld.tickShips();
+            shipObjectWorld.preTick();
         }
     }
 

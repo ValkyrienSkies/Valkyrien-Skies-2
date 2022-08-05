@@ -144,6 +144,8 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
             .build()
             .create();
 
+        shipWorld = vsPipeline.getShipWorld();
+
         RegistryEvents.registriesAreComplete();
     }
 
@@ -152,6 +154,20 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         at = @At("HEAD")
     )
     private void preTick(final CallbackInfo ci) {
+
+    }
+
+    /**
+     * Tick the [shipWorld], then send voxel terrain updates for each level
+     */
+    @Inject(
+        method = "tickChildren",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/server/network/ServerConnectionListener;tick()V"
+        )
+    )
+    private void preConnectionTick(final CallbackInfo ci) {
         // region Tell the VS world to load new levels, and unload deleted ones
         final Set<String> newLoadedLevels = new HashSet<>();
         for (final ServerLevel level : getAllLevels()) {
@@ -171,20 +187,6 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         // endregion
 
         vsPipeline.preTickGame();
-    }
-
-    /**
-     * Tick the [shipWorld], then send voxel terrain updates for each level
-     */
-    @Inject(
-        method = "tickChildren",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/server/network/ServerConnectionListener;tick()V"
-        )
-    )
-    private void preConnectionTick(final CallbackInfo ci) {
-        shipWorld.tickShips();
         ChunkManagement.tickChunkLoading(shipWorld, MinecraftServer.class.cast(this));
     }
 
