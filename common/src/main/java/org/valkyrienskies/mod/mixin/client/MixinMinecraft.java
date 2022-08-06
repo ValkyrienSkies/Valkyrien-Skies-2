@@ -19,13 +19,12 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.core.game.ships.DaggerShipObjectClientWorld_Factory;
 import org.valkyrienskies.core.game.ships.ShipObjectClientWorld;
-import org.valkyrienskies.core.networking.VSNetworking;
 import org.valkyrienskies.core.pipelines.VSPipeline;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientCreator;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.mixinducks.client.MinecraftDuck;
 
 @Mixin(Minecraft.class)
@@ -110,7 +109,7 @@ public abstract class MixinMinecraft
         at = @At("HEAD")
     )
     public void preSetCurrentServer(final ServerData serverData, final CallbackInfo ci) {
-        VSNetworking.INSTANCE.setClientUsesUDP(false);
+        ValkyrienSkiesMod.getVsCore().getNetworking().setClientUsesUDP(false);
     }
 
     @Override
@@ -118,7 +117,11 @@ public abstract class MixinMinecraft
         if (shipObjectWorld != null) {
             throw new IllegalStateException("shipObjectWorld was not null when it should be null?");
         }
-        shipObjectWorld = DaggerShipObjectClientWorld_Factory.create().make();
+        shipObjectWorld = ValkyrienSkiesMod
+            .getVsCoreClient()
+            .getShipWorldComponentFactory()
+            .newShipObjectClientWorldComponent()
+            .newWorld();
     }
 
     @Override

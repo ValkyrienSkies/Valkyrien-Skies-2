@@ -22,7 +22,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.game.IPlayer;
 import org.valkyrienskies.core.game.ships.SerializedShipDataModule;
 import org.valkyrienskies.core.game.ships.ShipObjectServerWorld;
-import org.valkyrienskies.core.pipelines.DaggerVSPipeline_Factory;
 import org.valkyrienskies.core.pipelines.VSPipeline;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.ShipSavedData;
@@ -138,11 +137,10 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
 
         // Create ship world and VS Pipeline
 
-        vsPipeline = DaggerVSPipeline_Factory.builder()
-            .serializedShipDataModule(new SerializedShipDataModule(
+        vsPipeline = ValkyrienSkiesMod.getVsCore().getPipelineComponentFactory()
+            .newPipelineComponent(new SerializedShipDataModule(
                 shipSavedData.getQueryableShipData(), shipSavedData.getChunkAllocator()))
-            .build()
-            .make();
+            .newPipeline();
 
         shipWorld = vsPipeline.getShipWorld();
 
