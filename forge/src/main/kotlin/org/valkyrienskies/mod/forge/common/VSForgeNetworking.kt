@@ -6,13 +6,13 @@ import net.minecraft.server.level.ServerPlayer
 import net.minecraftforge.fml.network.NetworkRegistry
 import net.minecraftforge.fml.network.PacketDistributor
 import net.minecraftforge.fml.network.simple.SimpleChannel
-import org.valkyrienskies.core.networking.VSNetworking
+import org.valkyrienskies.core.networking.NetworkChannel
 import org.valkyrienskies.core.networking.VSNetworkingConfigurator
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.mcPlayer
 import org.valkyrienskies.mod.mixinducks.server.IPlayerProvider
 
-class VSForgeNetworking() : VSNetworkingConfigurator {
+class VSForgeNetworking : VSNetworkingConfigurator {
 
     private val protocolVersion = "1"
     private val vsForgeChannel: SimpleChannel = NetworkRegistry.newSimpleChannel(
@@ -22,7 +22,7 @@ class VSForgeNetworking() : VSNetworkingConfigurator {
         protocolVersion::equals
     )
 
-    private fun registerPacketHandlers(networking: VSNetworking) {
+    private fun registerPacketHandlers(channel: NetworkChannel) {
         // This gibberish is brought to you by forge
         // seriously forge wtf
         @Suppress("INACCESSIBLE_TYPE")
@@ -35,29 +35,29 @@ class VSForgeNetworking() : VSNetworkingConfigurator {
                 val sender = ctx.get().sender
                 if (sender != null) {
                     val vsSender = (sender.server as IPlayerProvider).getPlayer(sender.uuid)
-                    networking.TCP.onReceiveServer(vsPacket.buf, vsSender)
+                    channel.onReceiveServer(vsPacket.buf, vsSender)
                 } else {
-                    networking.TCP.onReceiveClient(vsPacket.buf)
+                    channel.onReceiveClient(vsPacket.buf)
                 }
                 ctx.get().packetHandled = true
             }
         )
     }
 
-    private fun injectForgePacketSenders(networking: VSNetworking) {
-        networking.TCP.rawSendToClient = { data, player ->
+    private fun injectForgePacketSenders(channel: NetworkChannel) {
+        channel.rawSendToClient = { data, player ->
             vsForgeChannel.send(
                 PacketDistributor.PLAYER.with { player.mcPlayer as ServerPlayer },
                 MessageVSPacket(data)
             )
         }
-        networking.TCP.rawSendToServer = { data ->
+        channel.rawSendToServer = { data ->
             vsForgeChannel.send(PacketDistributor.SERVER.noArg(), MessageVSPacket(data))
         }
     }
 
-    override fun configure(networking: VSNetworking) {
-        registerPacketHandlers(networking)
-        injectForgePacketSenders(networking)
+    override fun configure(channel: NetworkChannel) {
+        registerPacketHandlers(channel)
+        injectForgePacketSenders(channel)
     }
 }

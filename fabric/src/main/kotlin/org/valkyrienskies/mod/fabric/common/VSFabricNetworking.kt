@@ -5,7 +5,7 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
 import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerPlayer
-import org.valkyrienskies.core.networking.VSNetworking
+import org.valkyrienskies.core.networking.NetworkChannel
 import org.valkyrienskies.core.networking.VSNetworkingConfigurator
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
@@ -19,26 +19,26 @@ class VSFabricNetworking(
 ) : VSNetworkingConfigurator {
     private val VS_PACKET_ID = ResourceLocation(ValkyrienSkiesMod.MOD_ID, "vs_packet")
 
-    fun registerClientNetworking(networking: VSNetworking) {
+    fun registerClientNetworking(channel: NetworkChannel) {
         ClientPlayNetworking.registerGlobalReceiver(VS_PACKET_ID) { _, _, buf, _ ->
-            networking.TCP.onReceiveClient(buf)
+            channel.onReceiveClient(buf)
         }
     }
 
-    override fun configure(networking: VSNetworking) {
+    override fun configure(channel: NetworkChannel) {
         if (isClient) {
-            registerClientNetworking(networking)
+            registerClientNetworking(channel)
         }
 
         ServerPlayNetworking.registerGlobalReceiver(VS_PACKET_ID) { server, player, _, buf, _ ->
-            networking.TCP.onReceiveServer(buf, (server as IPlayerProvider).getOrCreatePlayer(player))
+            channel.onReceiveServer(buf, (server as IPlayerProvider).getOrCreatePlayer(player))
         }
 
-        networking.TCP.rawSendToClient = { data, player ->
+        channel.rawSendToClient = { data, player ->
             val serverPlayer = (player as MinecraftPlayer).player as ServerPlayer
             ServerPlayNetworking.send(serverPlayer, VS_PACKET_ID, FriendlyByteBuf(data))
         }
-        networking.TCP.rawSendToServer = { data ->
+        channel.rawSendToServer = { data ->
             ClientPlayNetworking.send(VS_PACKET_ID, FriendlyByteBuf(data))
         }
     }
