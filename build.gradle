@@ -12,6 +12,7 @@ plugins {
     id 'io.github.juuxel.loom-quiltflower' version '1.7.1' apply false
     // Kotlin
     id "org.jetbrains.kotlin.jvm" version "1.7.10" apply false
+    id "org.jetbrains.kotlin.kapt" version "1.7.10" apply false
     // Kotlin linter
     id "org.jlleitschuh.gradle.ktlint" version "10.3.0"
 
@@ -52,6 +53,7 @@ subprojects {
     apply plugin: "org.jlleitschuh.gradle.ktlint"
     apply plugin: "checkstyle"
     apply plugin: "org.jetbrains.kotlin.jvm"
+    apply plugin: "org.jetbrains.kotlin.kapt"
     apply plugin: "io.github.juuxel.loom-quiltflower"
 
     repositories {

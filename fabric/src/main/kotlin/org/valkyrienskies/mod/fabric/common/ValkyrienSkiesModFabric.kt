@@ -1,8 +1,13 @@
 package org.valkyrienskies.mod.fabric.common
 
+import net.fabricmc.api.EnvType
 import net.fabricmc.api.ModInitializer
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper
+import net.fabricmc.fabric.api.client.rendereregistry.v1.EntityRendererRegistry
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper
+import net.fabricmc.loader.api.FabricLoader
+import net.minecraft.client.renderer.entity.EntityRenderDispatcher
 import net.minecraft.core.Registry
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.packs.PackType.SERVER_DATA
@@ -16,9 +21,14 @@ import net.minecraft.world.item.CreativeModeTab
 import net.minecraft.world.item.Item.Properties
 import net.minecraft.world.level.block.Block
 import org.valkyrienskies.core.hooks.CoreHooks
+import org.valkyrienskies.core.program.DaggerVSCoreClientFactory
+import org.valkyrienskies.core.program.DaggerVSCoreServerFactory
+import org.valkyrienskies.core.program.VSCoreModule
+import org.valkyrienskies.mod.client.EmptyRenderer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.block.TestChairBlock
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
+import org.valkyrienskies.mod.common.config.VSKeyBindings
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
 import java.util.concurrent.CompletableFuture
@@ -42,7 +52,19 @@ class ValkyrienSkiesModFabric : ModInitializer {
         ).sized(.3f, .3f)
             .build(ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_mounting_entity").toString())
 
-        ValkyrienSkiesMod.init()
+        val isClient = FabricLoader.getInstance().environmentType == EnvType.CLIENT
+
+        val module = VSCoreModule(FabricHooksImpl, VSFabricNetworking(isClient))
+
+        val vsCore = if (isClient) {
+            DaggerVSCoreClientFactory.builder().vSCoreModule(module).build().client()
+        } else {
+            DaggerVSCoreServerFactory.builder().vSCoreModule(module).build().server()
+        }
+
+        if (isClient) onInitializeClient()
+
+        ValkyrienSkiesMod.init(vsCore)
 
         registerBlockAndItem("test_chair", ValkyrienSkiesMod.TEST_CHAIR)
         Registry.register(
@@ -57,8 +79,6 @@ class ValkyrienSkiesModFabric : ModInitializer {
             Registry.ENTITY_TYPE, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_mounting_entity"),
             ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE
         )
-        VSFabricNetworking.injectFabricPacketSenders()
-        VSFabricNetworking.registerServerPacketHandlers()
 
         // registering mass
         val loader = MassDatapackResolver.loader // the get makes a new instance so get it only once
@@ -82,6 +102,24 @@ class ValkyrienSkiesModFabric : ModInitializer {
                     )
                 }
             })
+    }
+
+    /**
+     * Only run on client
+     */
+    private fun onInitializeClient() {
+        // Register the ship mounting entity renderer
+        EntityRendererRegistry.INSTANCE.register(
+            ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE
+        ) { manager: EntityRenderDispatcher, _: EntityRendererRegistry.Context ->
+            EmptyRenderer(
+                manager
+            )
+        }
+
+        VSKeyBindings.clientSetup {
+            KeyBindingHelper.registerKeyBinding(it)
+        }
     }
 
     private fun registerBlockAndItem(registryName: String, block: Block) {
