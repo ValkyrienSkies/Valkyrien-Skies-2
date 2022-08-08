@@ -112,7 +112,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                 final LevelChunkSection[] chunkSections = worldChunk.getSections();
 
                 final ShipData shipData =
-                    shipObjectWorld.getQueryableShipData()
+                    shipObjectWorld.getQueryableShips()
                         .getShipDataFromChunkPos(chunkX, chunkZ, VSGameUtilsKt.getDimensionId(self));
 
                 if (shipData != null) {

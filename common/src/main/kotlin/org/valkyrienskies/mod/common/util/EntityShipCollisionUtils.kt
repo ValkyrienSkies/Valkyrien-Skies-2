@@ -18,7 +18,7 @@ object EntityShipCollisionUtils {
     @JvmStatic
     fun isCollidingWithUnloadedShips(entity: Entity): Boolean {
         val shipWorld = entity.level.shipObjectWorld
-        return shipWorld.queryableShipData.getShipDataIntersecting(entity.boundingBox.toJOML())
+        return shipWorld.queryableShips.getShipDataIntersecting(entity.boundingBox.toJOML())
             .all { ship -> shipWorld.shipObjects.containsKey(ship.id) }
             .not()
     }

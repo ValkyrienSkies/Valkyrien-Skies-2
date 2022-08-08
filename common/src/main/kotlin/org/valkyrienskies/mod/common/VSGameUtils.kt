@@ -129,7 +129,7 @@ fun Level.squaredDistanceBetweenInclShips(
 private fun getShipObjectManagingPosImpl(world: Level, chunkX: Int, chunkZ: Int): ShipObject? {
     if (ChunkAllocator.isChunkInShipyard(chunkX, chunkZ)) {
         val shipDataManagingPos =
-            world.shipObjectWorld.queryableShipData.getShipDataFromChunkPos(chunkX, chunkZ, world.dimensionId)
+            world.shipObjectWorld.queryableShips.getShipDataFromChunkPos(chunkX, chunkZ, world.dimensionId)
         if (shipDataManagingPos != null) {
             return world.shipObjectWorld.shipObjects[shipDataManagingPos.id]
         }
@@ -166,7 +166,7 @@ inline fun Level.transformToNearbyShipsAndWorld(
         cb(posInWorld.x(), posInWorld.y(), posInWorld.z())
     }
 
-    for (nearbyShip in shipObjectWorld.queryableShipData.getShipDataIntersecting(aabb)) {
+    for (nearbyShip in shipObjectWorld.queryableShips.getShipDataIntersecting(aabb)) {
         if (nearbyShip == currentShip) continue
         val posInShip = nearbyShip.worldToShip.transformPosition(posInWorld, temp0)
         cb(posInShip.x(), posInShip.y(), posInShip.z())
@@ -233,7 +233,7 @@ fun ServerLevel.getShipObjectManagingPos(posX: Double, posY: Double, posZ: Doubl
 
 private fun getShipManagingPosImpl(world: Level, x: Int, z: Int): Ship? {
     return if (ChunkAllocator.isChunkInShipyard(x, z)) {
-        world.shipObjectWorld.queryableShipData.getShipDataFromChunkPos(x, z, world.dimensionId)
+        world.shipObjectWorld.queryableShips.getShipDataFromChunkPos(x, z, world.dimensionId)
     } else {
         null
     }
