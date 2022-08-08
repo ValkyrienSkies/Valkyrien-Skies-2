@@ -4,11 +4,8 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.item.Item
 import net.minecraft.world.level.block.Block
-import org.valkyrienskies.core.config.VSConfigClass
-import org.valkyrienskies.core.config.VSCoreConfig
 import org.valkyrienskies.core.program.VSCore
 import org.valkyrienskies.core.program.VSCoreClient
-import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.networking.VSGamePackets
 
@@ -36,8 +33,5 @@ object ValkyrienSkiesMod {
         BlockStateInfo.init()
         VSGamePackets.register()
         VSGamePackets.registerHandlers()
-
-        VSConfigClass.registerConfig("vs_core", VSCoreConfig::class.java)
-        VSConfigClass.registerConfig("vs", VSGameConfig::class.java)
     }
 }

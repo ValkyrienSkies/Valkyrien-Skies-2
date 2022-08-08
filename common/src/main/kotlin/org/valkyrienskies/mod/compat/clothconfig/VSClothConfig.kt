@@ -14,8 +14,8 @@ import net.minecraft.ChatFormatting.ITALIC
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.TextComponent
-import org.valkyrienskies.core.config.SidedVSConfigClass
-import org.valkyrienskies.core.config.VSConfigClass
+import org.valkyrienskies.core.config.framework.SingletonConfigInstance
+import org.valkyrienskies.core.config.framework.scopes.single.SingleConfig
 import org.valkyrienskies.core.util.serialization.VSJacksonUtil
 import org.valkyrienskies.core.util.serialization.shallowCopyWith
 import org.valkyrienskies.core.util.splitCamelCaseAndCapitalize
@@ -24,38 +24,43 @@ import java.util.Optional
 object VSClothConfig {
 
     @JvmStatic
-    fun createConfigScreenFor(parent: Screen, vararg configClasses: VSConfigClass): Screen {
+    fun createConfigScreen(parent: Screen): Screen {
+        TODO()
+    }
+
+    @JvmStatic
+    fun createConfigScreenFor(parent: Screen, vararg configClasses: SingleConfig<*>): Screen {
         return ConfigBuilder.create().apply {
             parentScreen = parent
 
-            configClasses.forEach { configClass ->
-                configClass.sides.forEach { side ->
-                    val name = if (configClasses.size == 1) side.sideName else "${configClass.name} - ${side.sideName}"
-                    addEntriesForConfig(getOrCreateCategory(TextComponent(name)), ::entryBuilder, side)
-                }
-            }
-            savingRunnable = Runnable {
-                configClasses.forEach { configClass ->
-                    configClass.writeToDisk()
-                    configClass.syncToServer()
-                }
-            }
+            // configClasses.forEach { configClass ->
+            //     configClass.sides.forEach { side ->
+            //         val name = if (configClasses.size == 1) side.sideName else "${configClass.name} - ${side.sideName}"
+            //         addEntriesForConfig(getOrCreateCategory(TextComponent(name)), ::entryBuilder, side)
+            //     }
+            // }
+            // savingRunnable = Runnable {
+            //     configClasses.forEach { configClass ->
+            //         configClass.writeToDisk()
+            //         configClass.syncToServer()
+            //     }
+            // }
         }.build()
     }
 
     private fun addEntriesForConfig(
         category: ConfigCategory,
         entryBuilder: () -> ConfigEntryBuilder,
-        side: SidedVSConfigClass
+        side: SingletonConfigInstance
     ) {
-        val configJson = side.generateInstJson()
-        side.schemaJson["properties"]?.fields()?.forEach { (key, schema) ->
+        val configJson = side.serialize()
+        side.type.schemaJson["properties"]?.fields()?.forEach { (key, schema) ->
             if (key != "\$schema") {
                 getEntriesForProperty(
                     key,
                     configJson[key], schema, entryBuilder,
-                    save = { newValue -> side.attemptUpdate(side.generateInstJsonWith(key, newValue)) },
-                    validate = { newValue -> side.schema.validate(side.generateInstJsonWith(key, newValue)) }
+                    save = { newValue -> side.attemptUpdate(side.serializeWith(key, newValue), Unit) },
+                    validate = { newValue -> side.type.schemaValidator.validate(side.serializeWith(key, newValue)) }
                 ).forEach(category::addEntry)
             }
         }

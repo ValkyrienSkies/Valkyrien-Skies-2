@@ -21,8 +21,6 @@ import net.minecraftforge.fml.loading.FMLEnvironment
 import net.minecraftforge.registries.DeferredRegister
 import net.minecraftforge.registries.ForgeRegistries
 import org.valkyrienskies.core.api.Ship
-import org.valkyrienskies.core.config.VSConfigClass
-import org.valkyrienskies.core.config.VSCoreConfig
 import org.valkyrienskies.core.hooks.CoreHooks
 import org.valkyrienskies.core.program.DaggerVSCoreClientFactory
 import org.valkyrienskies.core.program.DaggerVSCoreServerFactory
@@ -31,7 +29,6 @@ import org.valkyrienskies.mod.client.EmptyRenderer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.block.TestChairBlock
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
-import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.config.VSKeyBindings
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
@@ -73,13 +70,7 @@ class ValkyrienSkiesModForge {
         FORGE_BUS.addListener(::registerResourceManagers)
 
         ModLoadingContext.get().registerExtensionPoint(ExtensionPoint.CONFIGGUIFACTORY) {
-            BiFunction { client, parent ->
-                VSClothConfig.createConfigScreenFor(
-                    parent,
-                    VSConfigClass.getRegisteredConfig(VSCoreConfig::class.java),
-                    VSConfigClass.getRegisteredConfig(VSGameConfig::class.java)
-                )
-            }
+            BiFunction { _, parent -> VSClothConfig.createConfigScreen(parent) }
         }
 
         TEST_CHAIR_REGISTRY = registerBlockAndItem("test_chair") { TestChairBlock }
