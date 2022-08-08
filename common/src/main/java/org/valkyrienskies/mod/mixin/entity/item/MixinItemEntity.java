@@ -6,7 +6,7 @@ import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
-import org.valkyrienskies.core.game.ships.ShipDataCommon;
+import org.valkyrienskies.core.api.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(ItemEntity.class)
@@ -22,7 +22,7 @@ public class MixinItemEntity {
     private void setPosInWorld(final ItemEntity instance, final double x, final double y, final double z,
         final Level level, final double d, final double e, final double f) {
 
-        final ShipDataCommon ship = VSGameUtilsKt.getShipManagingPos(level, x, y, z);
+        final Ship ship = VSGameUtilsKt.getShipManagingPos(level, x, y, z);
         if (ship == null) {
             instance.setPos(x, y, z);
         } else {

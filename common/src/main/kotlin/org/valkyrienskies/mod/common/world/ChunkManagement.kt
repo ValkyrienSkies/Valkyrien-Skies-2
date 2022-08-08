@@ -16,11 +16,11 @@ import org.valkyrienskies.mod.mixin.accessors.server.world.ChunkMapAccessor
 object ChunkManagement {
     @JvmStatic
     fun tickChunkLoading(shipWorld: ShipObjectServerWorld, server: MinecraftServer) {
-        val (chunkWatchTasks, chunkUnwatchTasks) = shipWorld.getChunkWatchUnwatchTasks()
+        val (chunkWatchTasks, chunkUnwatchTasks) = shipWorld.getChunkWatchTasks()
 
-        // Use Spliterator instead of iterators so that we can multi thread the execution of these tasks
-        // But for now just do it single threaded
-        chunkWatchTasks.forEachRemaining { chunkWatchTask: ChunkWatchTask ->
+        // for now, just do all the watch tasks
+
+        chunkWatchTasks.forEach { chunkWatchTask: ChunkWatchTask ->
             logger.debug(
                 "Watch task for dimension " + chunkWatchTask.dimensionId + ": " +
                     chunkWatchTask.getChunkX() + " : " + chunkWatchTask.getChunkZ()
@@ -43,10 +43,9 @@ object ChunkManagement {
                         .callUpdateChunkTracking(serverPlayerEntity, chunkPos, chunkPacketBuffer, false, true)
                 }
             }
-            chunkWatchTask.onExecuteChunkWatchTask()
         }
 
-        chunkUnwatchTasks.forEachRemaining { chunkUnwatchTask: ChunkUnwatchTask ->
+        chunkUnwatchTasks.forEach { chunkUnwatchTask: ChunkUnwatchTask ->
             logger.debug(
                 "Unwatch task for dimension " + chunkUnwatchTask.dimensionId + ": " +
                     chunkUnwatchTask.getChunkX() + " : " + chunkUnwatchTask.getChunkZ()
@@ -61,9 +60,9 @@ object ChunkManagement {
             for (player in chunkUnwatchTask.playersNeedUnwatching) {
                 (player.mcPlayer as ServerPlayer).untrackChunk(chunkPos)
             }
-
-            chunkUnwatchTask.onExecuteChunkUnwatchTask()
         }
+
+        shipWorld.setExecutedChunkWatchTasks(chunkWatchTasks, chunkUnwatchTasks)
     }
 
     private val logger by logger()

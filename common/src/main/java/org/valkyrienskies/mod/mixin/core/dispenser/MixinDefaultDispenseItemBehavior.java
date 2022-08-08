@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.core.game.ships.ShipDataCommon;
+import org.valkyrienskies.core.api.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
@@ -23,7 +23,7 @@ public class MixinDefaultDispenseItemBehavior {
     private static void beforeSpawnItem(final Level level, final ItemStack stack, final int speed,
         final Direction facing, final Position position, final CallbackInfo ci) {
 
-        final ShipDataCommon ship = VSGameUtilsKt.getShipManagingPos(level, position);
+        final Ship ship = VSGameUtilsKt.getShipManagingPos(level, position);
 
         if (ship != null) {
             final double x = position.x();
@@ -37,7 +37,7 @@ public class MixinDefaultDispenseItemBehavior {
             final double randomSpeed = level.random.nextDouble() * 0.1 + 0.2;
 
             final Vector3d facingInWorld = VectorConversionsMCKt.transformDirection(ship.getShipToWorld(), facing);
-            final Vector3dc speedInWorld = ship.getPhysicsData().getLinearVelocity();
+            final Vector3dc speedInWorld = ship.getVelocity();
 
             item.setDeltaMovement((level.random.nextGaussian() * 0.0075F * (double) speed) + speedInWorld.x()
                     + (facingInWorld.x() * randomSpeed),

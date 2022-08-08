@@ -6,7 +6,8 @@ import net.minecraft.world.item.Item
 import net.minecraft.world.level.block.Block
 import org.valkyrienskies.core.config.VSConfigClass
 import org.valkyrienskies.core.config.VSCoreConfig
-import org.valkyrienskies.core.networking.VSNetworking
+import org.valkyrienskies.core.program.VSCore
+import org.valkyrienskies.core.program.VSCoreClient
 import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.networking.VSGamePackets
@@ -22,8 +23,16 @@ object ValkyrienSkiesMod {
     @JvmStatic
     var currentServer: MinecraftServer? = null
 
-    fun init() {
-        VSNetworking.init()
+    @JvmStatic
+    lateinit var vsCore: VSCore
+
+    @JvmStatic
+    val vsCoreClient get() = vsCore as VSCoreClient
+
+    fun init(core: VSCore) {
+        this.vsCore = core
+
+        this.vsCore.networking.init()
         BlockStateInfo.init()
         VSGamePackets.register()
         VSGamePackets.registerHandlers()

@@ -20,6 +20,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.game.IPlayer;
+import org.valkyrienskies.core.game.ships.SerializedShipDataModule;
 import org.valkyrienskies.core.game.ships.ShipObjectServerWorld;
 import org.valkyrienskies.core.pipelines.VSPipeline;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
@@ -135,8 +136,14 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
             .computeIfAbsent(ShipSavedData.Companion::createEmpty, ShipSavedData.SAVED_DATA_ID);
 
         // Create ship world and VS Pipeline
-        shipWorld = new ShipObjectServerWorld(shipSavedData.getQueryableShipData(), shipSavedData.getChunkAllocator());
-        vsPipeline = new VSPipeline(shipWorld);
+
+        vsPipeline = ValkyrienSkiesMod.getVsCore().getPipelineComponentFactory()
+            .newPipelineComponent(new SerializedShipDataModule(
+                shipSavedData.getQueryableShipData(), shipSavedData.getChunkAllocator()))
+            .newPipeline();
+
+        shipWorld = vsPipeline.getShipWorld();
+
         RegistryEvents.registriesAreComplete();
     }
 
@@ -177,7 +184,6 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         )
     )
     private void preConnectionTick(final CallbackInfo ci) {
-        shipWorld.tickShips();
         ChunkManagement.tickChunkLoading(shipWorld, MinecraftServer.class.cast(this));
     }
 
