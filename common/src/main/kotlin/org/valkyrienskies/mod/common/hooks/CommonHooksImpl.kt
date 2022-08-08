@@ -1,8 +1,8 @@
 package org.valkyrienskies.mod.common.hooks
 
 import net.minecraft.client.Minecraft
-import org.valkyrienskies.core.game.ships.ShipObjectClientWorld
-import org.valkyrienskies.core.game.ships.ShipObjectServerWorld
+import org.valkyrienskies.core.game.ships.VSWorldClient
+import org.valkyrienskies.core.game.ships.VSWorldServer
 import org.valkyrienskies.core.hooks.AbstractCoreHooks
 import org.valkyrienskies.core.hooks.PlayState
 import org.valkyrienskies.core.hooks.PlayState.CLIENT_MULTIPLAYER
@@ -33,9 +33,9 @@ abstract class CommonHooksImpl : AbstractCoreHooks() {
             return CLIENT_MULTIPLAYER
         }
 
-    override val currentShipServerWorld: ShipObjectServerWorld?
+    override val currentShipServerWorld: VSWorldServer?
         get() = ValkyrienSkiesMod.currentServer?.shipObjectWorld
 
-    override val currentShipClientWorld: ShipObjectClientWorld
+    override val currentShipClientWorld: VSWorldClient
         get() = Minecraft.getInstance().shipObjectWorld
 }

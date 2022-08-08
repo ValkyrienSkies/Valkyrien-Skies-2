@@ -46,7 +46,7 @@ val Level.shipObjectWorld
             else -> throw IllegalArgumentException("World is neither ServerWorld nor ClientWorld")
         }
 
-val MinecraftServer.shipObjectWorld get() = (this as IShipObjectWorldServerProvider).shipObjectWorld
+val MinecraftServer.shipObjectWorld get() = (this as IShipObjectWorldServerProvider).VSWorld
 val MinecraftServer.vsPipeline get() = (this as IShipObjectWorldServerProvider).vsPipeline
 
 val ServerLevel.shipObjectWorld
@@ -75,7 +75,7 @@ fun MinecraftServer.getLevelFromDimensionId(dimensionId: DimensionId): ServerLev
     return getLevel(getResourceKey(dimensionId))
 }
 
-val Minecraft.shipObjectWorld get() = (this as IShipObjectWorldClientProvider).shipObjectWorld
+val Minecraft.shipObjectWorld get() = (this as IShipObjectWorldClientProvider).VSWorld
 val ClientLevel.shipObjectWorld get() = Minecraft.getInstance().shipObjectWorld
 
 val IPlayer.mcPlayer: Player get() = (this as MinecraftPlayer).playerEntityReference.get()!!

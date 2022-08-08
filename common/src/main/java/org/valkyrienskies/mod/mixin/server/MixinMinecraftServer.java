@@ -21,7 +21,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.game.IPlayer;
 import org.valkyrienskies.core.game.ships.SerializedShipDataModule;
-import org.valkyrienskies.core.game.ships.ShipObjectServerWorld;
+import org.valkyrienskies.core.game.ships.VSWorldServer;
 import org.valkyrienskies.core.pipelines.VSPipeline;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.ShipSavedData;
@@ -45,7 +45,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     public abstract Iterable<ServerLevel> getAllLevels();
 
     @Unique
-    private ShipObjectServerWorld shipWorld;
+    private VSWorldServer shipWorld;
 
     @Unique
     private VSPipeline vsPipeline;
@@ -110,7 +110,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
 
     @NotNull
     @Override
-    public ShipObjectServerWorld getShipObjectWorld() {
+    public VSWorldServer getVSWorld() {
         return shipWorld;
     }
 

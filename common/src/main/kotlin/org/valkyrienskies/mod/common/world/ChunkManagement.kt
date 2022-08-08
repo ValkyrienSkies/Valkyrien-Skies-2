@@ -6,7 +6,7 @@ import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.level.ChunkPos
 import org.valkyrienskies.core.chunk_tracking.ChunkUnwatchTask
 import org.valkyrienskies.core.chunk_tracking.ChunkWatchTask
-import org.valkyrienskies.core.game.ships.ShipObjectServerWorld
+import org.valkyrienskies.core.game.ships.VSWorldServer
 import org.valkyrienskies.core.util.logger
 import org.valkyrienskies.mod.common.getLevelFromDimensionId
 import org.valkyrienskies.mod.common.mcPlayer
@@ -15,7 +15,7 @@ import org.valkyrienskies.mod.mixin.accessors.server.world.ChunkMapAccessor
 
 object ChunkManagement {
     @JvmStatic
-    fun tickChunkLoading(shipWorld: ShipObjectServerWorld, server: MinecraftServer) {
+    fun tickChunkLoading(shipWorld: VSWorldServer, server: MinecraftServer) {
         val (chunkWatchTasks, chunkUnwatchTasks) = shipWorld.getChunkWatchTasks()
 
         // for now, just do all the watch tasks

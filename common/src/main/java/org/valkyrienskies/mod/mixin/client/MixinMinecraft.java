@@ -19,7 +19,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.core.game.ships.ShipObjectClientWorld;
+import org.valkyrienskies.core.game.ships.VSWorldClient;
 import org.valkyrienskies.core.pipelines.VSPipeline;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientCreator;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
@@ -52,7 +52,7 @@ public abstract class MixinMinecraft
     }
 
     @Unique
-    private ShipObjectClientWorld shipObjectWorld = null;
+    private VSWorldClient shipObjectWorld = null;
 
     @Redirect(
         at = @At(
@@ -71,8 +71,8 @@ public abstract class MixinMinecraft
 
     @NotNull
     @Override
-    public ShipObjectClientWorld getShipObjectWorld() {
-        final ShipObjectClientWorld shipObjectWorldCopy = shipObjectWorld;
+    public VSWorldClient getVSWorld() {
+        final VSWorldClient shipObjectWorldCopy = shipObjectWorld;
         if (shipObjectWorldCopy == null) {
             throw new IllegalStateException("Requested getShipObjectWorld() when shipObjectWorld was null!");
         }
@@ -126,7 +126,7 @@ public abstract class MixinMinecraft
 
     @Override
     public void deleteShipObjectWorldClient() {
-        final ShipObjectClientWorld shipObjectWorldCopy = shipObjectWorld;
+        final VSWorldClient shipObjectWorldCopy = shipObjectWorld;
         if (shipObjectWorldCopy == null) {
             throw new IllegalStateException("shipObjectWorld was null when it should be not null?");
         }

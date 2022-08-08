@@ -18,8 +18,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.game.ships.ShipObjectClient;
-import org.valkyrienskies.core.game.ships.ShipObjectClientWorld;
 import org.valkyrienskies.core.game.ships.ShipTransform;
+import org.valkyrienskies.core.game.ships.VSWorldClient;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
@@ -40,7 +40,7 @@ public class MixinDebugRenderer {
         final MultiBufferSource.BufferSource bufferSource =
             MultiBufferSource.immediate(Tesselator.getInstance().getBuilder());
         final ClientLevel world = Minecraft.getInstance().level;
-        final ShipObjectClientWorld shipObjectClientWorld = VSGameUtilsKt.getShipObjectWorld(world);
+        final VSWorldClient shipObjectClientWorld = VSGameUtilsKt.getShipObjectWorld(world);
 
         if (Minecraft.getInstance().getEntityRenderDispatcher().shouldRenderHitBoxes()) {
             for (final ShipObjectClient shipObjectClient : shipObjectClientWorld.getShipObjects().values()) {
