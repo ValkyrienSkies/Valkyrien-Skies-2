@@ -12,7 +12,9 @@ import java.util.UUID
 /**
  * We use this wrapper around [PlayerEntity] to create [IPlayer] objects used by vs-core.
  */
-class MinecraftPlayer(playerObject: Player, override val uuid: UUID) : IPlayer {
+class MinecraftPlayer(playerObject: Player) : IPlayer {
+
+    override val uuid: UUID = playerObject.uuid
 
     // Hold a weak reference to avoid memory leaks
     val playerEntityReference: WeakReference<Player> = WeakReference(playerObject)

@@ -8,7 +8,6 @@ import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
-import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.ChunkPos
@@ -33,7 +32,7 @@ import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.util.toJOMLD
 import org.valkyrienskies.mod.mixin.accessors.resource.ResourceKeyAccessor
-import org.valkyrienskies.mod.mixinducks.server.IPlayerProvider
+import org.valkyrienskies.mod.mixinducks.world.entity.PlayerDuck
 import org.valkyrienskies.physics_api.voxel_updates.DenseVoxelShapeUpdate
 import kotlin.math.min
 
@@ -80,7 +79,7 @@ val ClientLevel.shipObjectWorld get() = Minecraft.getInstance().shipObjectWorld
 
 val IPlayer.mcPlayer: Player get() = (this as MinecraftPlayer).playerEntityReference.get()!!
 
-val ServerPlayer.playerWrapper get() = (server as IPlayerProvider).getOrCreatePlayer(this)
+val Player.playerWrapper get() = (this as PlayerDuck).vs_getPlayer()
 
 /**
  * Like [Entity.squaredDistanceTo] except the destination is transformed into world coordinates if it is a ship
@@ -302,17 +301,13 @@ fun LevelChunkSection.addChunkBlocksToShipVoxelAABB(chunkPos: Vector3ic, shipDat
     }
 }
 
-object VSGameUtils {
-
-    /**
-     * Transforms [pos] from ship space to world space if a ship exists there.
-     *
-     * Different from [getWorldCoordinates(World, Vector3d)] only in that resolves the ship owning
-     * [blockPos] rather than inferring it from [pos], which might be helpful at the boundaries of ships.
-     */
-    @JvmStatic
-    fun getWorldCoordinates(world: Level, blockPos: BlockPos, pos: Vector3d): Vector3d {
-        return world.getShipObjectManagingPos(blockPos)
-            ?.shipData?.shipTransform?.shipToWorldMatrix?.transformPosition(pos) ?: pos
-    }
+/**
+ * Transforms [pos] from ship space to world space if a ship exists there.
+ *
+ * Different from [getWorldCoordinates(World, Vector3d)] only in that resolves the ship owning
+ * [blockPos] rather than inferring it from [pos], which might be helpful at the boundaries of ships.
+ */
+fun Level.getWorldCoordinates(blockPos: BlockPos, pos: Vector3d): Vector3d {
+    return this.getShipObjectManagingPos(blockPos)
+        ?.shipData?.shipTransform?.shipToWorldMatrix?.transformPosition(pos) ?: pos
 }

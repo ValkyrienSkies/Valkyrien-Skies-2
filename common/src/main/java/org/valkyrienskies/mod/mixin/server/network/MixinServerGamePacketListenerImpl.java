@@ -23,7 +23,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.game.ships.ShipData;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
-import org.valkyrienskies.mod.common.util.MinecraftPlayer;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(ServerGamePacketListenerImpl.class)
@@ -146,7 +145,7 @@ public abstract class MixinServerGamePacketListenerImpl {
     )
     void onDisconnect(final Component reason, final CallbackInfo ci) {
         VSGameUtilsKt.getShipObjectWorld(this.server).onDisconnect(
-            new MinecraftPlayer(this.player, this.player.getUUID())
+            VSGameUtilsKt.getPlayerWrapper(this.player)
         );
     }
 

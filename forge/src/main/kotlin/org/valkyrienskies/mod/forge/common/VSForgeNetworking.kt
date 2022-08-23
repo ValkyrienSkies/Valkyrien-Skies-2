@@ -10,7 +10,7 @@ import org.valkyrienskies.core.networking.NetworkChannel
 import org.valkyrienskies.core.networking.VSNetworkingConfigurator
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.mcPlayer
-import org.valkyrienskies.mod.mixinducks.server.IPlayerProvider
+import org.valkyrienskies.mod.common.playerWrapper
 
 class VSForgeNetworking : VSNetworkingConfigurator {
 
@@ -34,7 +34,7 @@ class VSForgeNetworking : VSNetworkingConfigurator {
             { vsPacket, ctx ->
                 val sender = ctx.get().sender
                 if (sender != null) {
-                    val vsSender = (sender.server as IPlayerProvider).getPlayer(sender.uuid)
+                    val vsSender = sender.playerWrapper
                     channel.onReceiveServer(vsPacket.buf, vsSender)
                 } else {
                     channel.onReceiveClient(vsPacket.buf)

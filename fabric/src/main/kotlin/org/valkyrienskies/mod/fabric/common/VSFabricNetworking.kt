@@ -8,8 +8,8 @@ import net.minecraft.server.level.ServerPlayer
 import org.valkyrienskies.core.networking.NetworkChannel
 import org.valkyrienskies.core.networking.VSNetworkingConfigurator
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
+import org.valkyrienskies.mod.common.playerWrapper
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
-import org.valkyrienskies.mod.mixinducks.server.IPlayerProvider
 
 /**
  * Registers VS with the Fabric networking API.
@@ -30,8 +30,8 @@ class VSFabricNetworking(
             registerClientNetworking(channel)
         }
 
-        ServerPlayNetworking.registerGlobalReceiver(VS_PACKET_ID) { server, player, _, buf, _ ->
-            channel.onReceiveServer(buf, (server as IPlayerProvider).getOrCreatePlayer(player))
+        ServerPlayNetworking.registerGlobalReceiver(VS_PACKET_ID) { _, player, _, buf, _ ->
+            channel.onReceiveServer(buf, player.playerWrapper)
         }
 
         channel.rawSendToClient = { data, player ->

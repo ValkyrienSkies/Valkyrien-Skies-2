@@ -1,16 +1,11 @@
 package org.valkyrienskies.mod.mixin.server;
 
-import com.google.common.collect.ImmutableSet;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.function.BooleanSupplier;
+import java.util.stream.Collectors;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.players.PlayerList;
 import org.jetbrains.annotations.NotNull;
 import org.spongepowered.asm.mixin.Mixin;
@@ -27,14 +22,12 @@ import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.ShipSavedData;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
-import org.valkyrienskies.mod.common.util.MinecraftPlayer;
 import org.valkyrienskies.mod.common.world.ChunkManagement;
 import org.valkyrienskies.mod.event.RegistryEvents;
-import org.valkyrienskies.mod.mixinducks.server.IPlayerProvider;
 import org.valkyrienskies.physics_api_krunch.KrunchBootstrap;
 
 @Mixin(MinecraftServer.class)
-public abstract class MixinMinecraftServer implements IShipObjectWorldServerProvider, IPlayerProvider {
+public abstract class MixinMinecraftServer implements IShipObjectWorldServerProvider {
     @Shadow
     private PlayerList playerList;
 
@@ -49,9 +42,6 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
 
     @Unique
     private VSPipeline vsPipeline;
-
-    @Unique
-    private final Map<UUID, MinecraftPlayer> vsPlayerWrappers = new HashMap<>();
 
     private Set<String> loadedLevels = new HashSet<>();
 
@@ -73,39 +63,10 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         method = "tickServer"
     )
     public void onTick(final BooleanSupplier booleanSupplier, final CallbackInfo ci) {
-        updateVSPlayerWrappers();
-        shipWorld.setPlayers(ImmutableSet.copyOf(vsPlayerWrappers.values()));
-    }
+        final Set<IPlayer> vsPlayers = playerList.getPlayers().stream()
+            .map(VSGameUtilsKt::getPlayerWrapper).collect(Collectors.toSet());
 
-    @Unique
-    private void updateVSPlayerWrappers() {
-        final List<ServerPlayer> players = playerList.getPlayers();
-        // First add new player objects
-        players.forEach(player -> {
-            final UUID playerID = player.getUUID();
-            if (!vsPlayerWrappers.containsKey(playerID)) {
-                final MinecraftPlayer playerWrapper = new MinecraftPlayer(player, playerID);
-                vsPlayerWrappers.put(playerID, playerWrapper);
-            }
-        });
-
-        // Then remove removed player objects
-        // First make a set of all current player IDs, so we can check if a player is online in O(1) time.
-        final Set<UUID> currentPlayerIDs = new HashSet<>();
-        players.forEach(player -> currentPlayerIDs.add(player.getUUID()));
-
-        // Then remove any old player wrappers whose players are no longer here.
-        vsPlayerWrappers.entrySet().removeIf(entry -> !currentPlayerIDs.contains(entry.getKey()));
-    }
-
-    @Override
-    public IPlayer getPlayer(final UUID uuid) {
-        return vsPlayerWrappers.get(uuid);
-    }
-
-    @Override
-    public IPlayer getOrCreatePlayer(final ServerPlayer player) {
-        return vsPlayerWrappers.computeIfAbsent(player.getUUID(), k -> new MinecraftPlayer(player, player.getUUID()));
+        shipWorld.setPlayers(vsPlayers);
     }
 
     @NotNull
