@@ -89,6 +89,9 @@ shadowJar {
     classifier "dev-shadow"
 
     relocate 'org.apache.commons', 'org.valkyrienskies.relocate.org.apache.commons'
+    // Relocate javax/inject and javax/annotation because Forge refuses to load classes in the javax package
+    relocate 'javax.inject', 'org.valkyrienskies.relocate.javax.inject'
+    relocate 'javax.annotation', 'org.valkyrienskies.relocate.javax.annotation'
 }
 
 remapJar {
