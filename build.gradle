@@ -57,6 +57,10 @@ subprojects {
     repositories {
         mavenCentral()
         maven {
+            name = "Central Snapshots" // For dependency dominion
+            url = "https://s01.oss.sonatype.org/content/repositories/snapshots"
+        }
+        maven {
             name = "Valkyrien Skies Internal"
             url = project.vs_maven_url ?: 'https://maven.valkyrienskies.org'
             if (project.vs_maven_username && project.vs_maven_password) {
