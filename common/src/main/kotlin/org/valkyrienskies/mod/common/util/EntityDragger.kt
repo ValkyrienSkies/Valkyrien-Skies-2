@@ -6,10 +6,10 @@ import org.joml.Vector3d
 import org.joml.Vector3dc
 import org.valkyrienskies.mod.common.getShipObjectEntityMountedTo
 import org.valkyrienskies.mod.common.shipObjectWorld
-import kotlin.math.abs
 import kotlin.math.asin
 import kotlin.math.atan2
 import kotlin.math.cos
+import kotlin.math.sin
 
 object EntityDragger {
     // How much we decay the addedMovement each tick after player hasn't collided with a ship for at least 10 ticks.
@@ -52,33 +52,35 @@ object EntityDragger {
                         // endregion
 
                         // region Compute look dragging
-                        if (abs(entity.xRot) < 89.5) {
-                            val newLookIdeal = shipData.shipTransform.shipToWorldMatrix.transformDirection(
-                                shipData.prevTickShipTransform.worldToShipMatrix.transformDirection(
-                                    entity.getViewVector(1.0f).toJOML()
-                                )
+                        val yViewRot = entity.getViewYRot(1.0f).toDouble()
+                        // Get the y-look vector of the entity only using y-rotation, ignore x-rotation
+                        val entityLookYawOnly = Vector3d(sin(-Math.toRadians(yViewRot)), 0.0, cos(-Math.toRadians(yViewRot)))
+
+                        val newLookIdeal = shipData.shipTransform.shipToWorldMatrix.transformDirection(
+                            shipData.prevTickShipTransform.worldToShipMatrix.transformDirection(
+                                entityLookYawOnly
                             )
+                        )
 
-                            // Get the X and Y rotation from [newLookIdeal]
-                            val newXRot = asin(-newLookIdeal.y())
-                            val xRotCos = cos(newXRot)
-                            val newYRot = -atan2(newLookIdeal.x() / xRotCos, newLookIdeal.z() / xRotCos)
+                        // Get the X and Y rotation from [newLookIdeal]
+                        val newXRot = asin(-newLookIdeal.y())
+                        val xRotCos = cos(newXRot)
+                        val newYRot = -atan2(newLookIdeal.x() / xRotCos, newLookIdeal.z() / xRotCos)
 
-                            // The Y rotation of the entity before dragging
-                            var entityYRotCorrected = entity.yRot % 360.0
-                            // Limit [entityYRotCorrected] to be between -180 to 180 degrees
-                            if (entityYRotCorrected < -180.0) entityYRotCorrected += 360.0
-                            if (entityYRotCorrected > 180.0) entityYRotCorrected -= 360.0
+                        // The Y rotation of the entity before dragging
+                        var entityYRotCorrected = entity.yRot % 360.0
+                        // Limit [entityYRotCorrected] to be between -180 to 180 degrees
+                        if (entityYRotCorrected < -180.0) entityYRotCorrected += 360.0
+                        if (entityYRotCorrected > 180.0) entityYRotCorrected -= 360.0
 
-                            // The Y rotation of the entity after dragging
-                            val newYRotAsDegrees = Math.toDegrees(newYRot)
-                            // Limit [addedYRotFromDragging] to be between -180 to 180 degrees
-                            var addedYRotFromDragging = newYRotAsDegrees - entityYRotCorrected
-                            if (addedYRotFromDragging < -180.0) addedYRotFromDragging += 360.0
-                            if (addedYRotFromDragging > 180.0) addedYRotFromDragging -= 360.0
+                        // The Y rotation of the entity after dragging
+                        val newYRotAsDegrees = Math.toDegrees(newYRot)
+                        // Limit [addedYRotFromDragging] to be between -180 to 180 degrees
+                        var addedYRotFromDragging = newYRotAsDegrees - entityYRotCorrected
+                        if (addedYRotFromDragging < -180.0) addedYRotFromDragging += 360.0
+                        if (addedYRotFromDragging > 180.0) addedYRotFromDragging -= 360.0
 
-                            addedYRot = addedYRotFromDragging
-                        }
+                        addedYRot = addedYRotFromDragging
                         // endregion
                     }
                 } else {
