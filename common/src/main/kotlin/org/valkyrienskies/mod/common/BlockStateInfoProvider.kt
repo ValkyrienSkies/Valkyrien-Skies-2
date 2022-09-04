@@ -46,14 +46,17 @@ object BlockStateInfo {
         RegistryEvents.onRegistriesComplete { SORTED_REGISTRY = REGISTRY.sortedByDescending { it.priority } }
     }
 
-    val CACHE = Int2ObjectOpenHashMap<Pair<Double, VSBlockType>>()
+    // This is [ThreadLocal] because in single-player games the Client thread and Server thread will read/write to
+    // [CACHE] simultaneously. This creates a data race that can crash the game (See https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues/126).
+    val CACHE: ThreadLocal<Int2ObjectOpenHashMap<Pair<Double, VSBlockType>>> =
+        ThreadLocal.withInitial { Int2ObjectOpenHashMap<Pair<Double, VSBlockType>>() }
     // NOTE: this caching can get allot better, ex. default just returns constants so it might be more faster
     //  if we store that these values do not need to be cached by double and blocktype but just that they use default impl
 
     // this gets the weight and type provided by providers; or it gets it out of the cache
 
     fun get(blockState: BlockState): Pair<Double, VSBlockType>? =
-        getId(blockState)?.let { CACHE.getOrPut(it) { iterateRegistry(blockState) } }
+        getId(blockState)?.let { CACHE.get().getOrPut(it) { iterateRegistry(blockState) } }
 
     fun getId(blockState: BlockState): Int? {
         val r = Block.getId(blockState)
