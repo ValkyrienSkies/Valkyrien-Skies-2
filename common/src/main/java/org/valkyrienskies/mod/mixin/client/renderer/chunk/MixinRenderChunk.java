@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.client.render.chunk;
+package org.valkyrienskies.mod.mixin.client.renderer.chunk;
 
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;

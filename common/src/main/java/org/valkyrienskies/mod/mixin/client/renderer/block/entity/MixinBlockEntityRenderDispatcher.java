@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.client.render.block.entity;
+package org.valkyrienskies.mod.mixin.client.renderer.block.entity;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.multiplayer.ClientLevel;

@@ -6,3 +6,6 @@ accessible	class	net/minecraft/client/renderer/LevelRenderer$RenderChunkInfo
 
 # For ChunkMap
 accessible	class	net/minecraft/client/multiplayer/ClientChunkCache$Storage
+
+# For including entities on ships getting send to the client
+accessible  class   net/minecraft/server/level/ChunkMap$TrackedEntity
