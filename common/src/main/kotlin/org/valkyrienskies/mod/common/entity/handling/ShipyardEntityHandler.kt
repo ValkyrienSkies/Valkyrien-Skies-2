@@ -4,13 +4,16 @@ import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.entity.EntityRenderer
 import net.minecraft.world.entity.Entity
+import org.joml.Vector3dc
 import org.valkyrienskies.core.api.ClientShip
+import org.valkyrienskies.core.api.Ship
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toMinecraft
 
 object ShipyardEntityHandler : VSEntityHandler {
+    override fun onEntityAppear(entity: Entity, ship: Ship, position: Vector3dc) {}
 
-    override fun <T : Entity> applyTransform(
+    override fun <T : Entity> applyRenderTransform(
         ship: ClientShip, entity: T, entityRenderer: EntityRenderer<T>, x: Double, y: Double, z: Double,
         rotationYaw: Float, partialTicks: Float, matrixStack: PoseStack, buffer: MultiBufferSource, packedLight: Int
     ) {

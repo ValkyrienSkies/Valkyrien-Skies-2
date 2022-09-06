@@ -37,10 +37,11 @@ public class MixinEntityRenderDispatcher {
             // Remove the earlier applied translation
             matrixStack.popPose();
             matrixStack.pushPose();
-            
+
             VSEntityManager.INSTANCE.getHandler(entity.getType())
-                .applyTransform(ship, entity, entityRenderer, x, y, z, rotationYaw, partialTicks, matrixStack, buffer,
-                    packedLight);
+                .applyRenderTransform(ship, entity, entityRenderer, x, y, z,
+                    rotationYaw, partialTicks, matrixStack,
+                    buffer, packedLight);
         }
     }
 
