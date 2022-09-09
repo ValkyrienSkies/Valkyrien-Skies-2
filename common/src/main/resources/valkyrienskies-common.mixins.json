@@ -12,7 +12,6 @@
     "block.entity.MixinRandomizableContainerBlockEntity",
     "core.dispenser.MixinDefaultDispenseItemBehavior",
     "entity.MixinEntity",
-    "entity.item.MixinItemEntity",
     "screen.MixinScreenHandler",
     "server.MixinMinecraftServer",
     "server.MixinPlayerList",
