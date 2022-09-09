@@ -6,6 +6,8 @@ import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.AABB;
+import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -57,8 +59,19 @@ public class MixinEntityRenderDispatcher {
             final ClientShip ship =
                 (ClientShip) VSGameUtilsKt.getShipObjectManagingPos(entity.level, entity.blockPosition());
             if (ship != null) {
-                // TODO actually check
-                cir.setReturnValue(true);
+                AABB aABB = entity.getBoundingBoxForCulling().inflate(0.5);
+                if (aABB.hasNaN() || aABB.getSize() == 0.0) {
+                    aABB = new AABB(entity.getX() - 2.0, entity.getY() - 2.0,
+                        entity.getZ() - 2.0, entity.getX() + 2.0,
+                        entity.getY() + 2.0, entity.getZ() + 2.0);
+                }
+
+                // Get the in world position and do it minus what the aabb already has and then add the offset
+                final Vector3d result = ship.getRenderTransform().getShipToWorldMatrix()
+                    .transformPosition(new Vector3d(entity.getX(), entity.getY(), entity.getZ()));
+                result.sub(entity.getX(), entity.getY(), entity.getZ());
+
+                cir.setReturnValue(frustum.isVisible(aABB.move(result.x, result.y, result.z)));
             }
         }
     }
