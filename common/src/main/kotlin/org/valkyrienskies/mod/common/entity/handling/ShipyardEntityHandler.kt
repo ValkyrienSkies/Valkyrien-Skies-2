@@ -19,7 +19,7 @@ object ShipyardEntityHandler : VSEntityHandler {
     ) {
         val shipTransform = ship.renderTransform
 
-        val entityPosition = entity.getPosition(partialTicks);
+        val entityPosition = entity.getPosition(partialTicks)
         val transformed = shipTransform.shipToWorldMatrix
             .transformPosition(entityPosition.toJOML())
 
