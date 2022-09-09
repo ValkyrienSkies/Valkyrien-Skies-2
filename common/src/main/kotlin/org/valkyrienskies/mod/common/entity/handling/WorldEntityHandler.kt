@@ -16,10 +16,17 @@ object WorldEntityHandler : VSEntityHandler {
         val newPos = ship.shipToWorld.transformPosition(Vector3d(position))
         entity.teleportTo(newPos.x, newPos.y, newPos.z)
 
+        val shipVelocity = Vector3d().add(ship.velocity)
+            .add(
+                newPos.sub(ship.shipTransform.shipPositionInWorldCoordinates, Vector3d())
+                    .cross(ship.omega)
+            ).mul(0.05) // Tick velocity
+
         // TODO doesn't fix anything, delta movement gets applied after tp
         entity.deltaMovement =
             ship.shipTransform.transformDirectionNoScalingFromWorldToShip(entity.deltaMovement.toJOML(), Vector3d())
-                .add(ship.velocity).toMinecraft()
+                .add(shipVelocity)
+                .toMinecraft()
     }
 
     override fun <T : Entity> applyRenderTransform(
