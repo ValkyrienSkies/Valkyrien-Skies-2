@@ -6,6 +6,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RewindableStream;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
@@ -18,6 +19,7 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -27,10 +29,12 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
+import org.valkyrienskies.core.api.Ship;
 import org.valkyrienskies.core.game.ships.ShipObject;
 import org.valkyrienskies.core.game.ships.ShipObjectClient;
 import org.valkyrienskies.core.game.ships.ShipTransform;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.entity.handling.VSEntityManager;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
@@ -245,6 +249,19 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         cir.setReturnValue(VSGameUtilsKt.squaredDistanceToInclShips(Entity.class.cast(this), x, y, z));
     }
 
+    /**
+     * @author ewoudje
+     * @reason send updates to relevant VSEntityHandler
+     */
+    @Inject(method = "setPos", at = @At("TAIL"))
+    private void updateHandler(final double x, final double y, final double z, final CallbackInfo ci) {
+        final Vector3d pos = new Vector3d(x, y, z);
+        final Ship ship = VSGameUtilsKt.getShipObjectManagingPos(this.level, pos);
+        if (ship != null) {
+            VSEntityManager.INSTANCE.getHandler(this.type).updatedPosition(Entity.class.cast(this), ship, pos);
+        }
+    }
+
     // region shadow functions and fields
     @Shadow
     public Level level;
@@ -280,6 +297,10 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     @Shadow
     protected abstract Vec3 collide(Vec3 vec3d);
     // endregion
+
+    @Shadow
+    @Final
+    private EntityType<?> type;
 
     @Override
     @NotNull

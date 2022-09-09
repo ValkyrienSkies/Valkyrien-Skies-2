@@ -9,6 +9,9 @@ object VSEntityManager {
 
     init {
         entityHandler[EntityType.ITEM_FRAME] = ShipyardEntityHandler
+        entityHandler[EntityType.ARMOR_STAND] = ShipyardEntityHandler
+        // small amount of trolling
+        entityHandler[EntityType.PLAYER] = ShipyardEntityHandler
     }
 
     fun getHandler(Type: EntityType<*>): VSEntityHandler {

@@ -11,7 +11,7 @@ import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toMinecraft
 
 object ShipyardEntityHandler : VSEntityHandler {
-    override fun onEntityAppear(entity: Entity, ship: Ship, position: Vector3dc) {}
+    override fun updatedPosition(entity: Entity, ship: Ship, position: Vector3dc) {}
 
     override fun <T : Entity> applyRenderTransform(
         ship: ClientShip, entity: T, entityRenderer: EntityRenderer<T>, x: Double, y: Double, z: Double,

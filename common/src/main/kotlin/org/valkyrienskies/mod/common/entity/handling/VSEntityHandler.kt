@@ -10,7 +10,7 @@ import org.valkyrienskies.core.api.Ship
 
 interface VSEntityHandler {
 
-    fun onEntityAppear(entity: Entity, ship: Ship, position: Vector3dc)
+    fun updatedPosition(entity: Entity, ship: Ship, position: Vector3dc)
 
     // matrixStack is in camera space
     fun <T : Entity> applyRenderTransform(

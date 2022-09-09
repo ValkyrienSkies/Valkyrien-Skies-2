@@ -10,7 +10,7 @@ import org.valkyrienskies.core.api.ClientShip
 import org.valkyrienskies.core.api.Ship
 
 object WorldEntityHandler : VSEntityHandler {
-    override fun onEntityAppear(entity: Entity, ship: Ship, position: Vector3dc) {
+    override fun updatedPosition(entity: Entity, ship: Ship, position: Vector3dc) {
         val newPos = ship.shipToWorld.transformPosition(Vector3d(position))
         entity.teleportTo(newPos.x, newPos.y, newPos.z)
     }
