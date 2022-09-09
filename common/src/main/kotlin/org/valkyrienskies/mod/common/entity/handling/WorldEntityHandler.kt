@@ -8,11 +8,18 @@ import org.joml.Vector3d
 import org.joml.Vector3dc
 import org.valkyrienskies.core.api.ClientShip
 import org.valkyrienskies.core.api.Ship
+import org.valkyrienskies.mod.common.util.toJOML
+import org.valkyrienskies.mod.common.util.toMinecraft
 
 object WorldEntityHandler : VSEntityHandler {
     override fun updatedPosition(entity: Entity, ship: Ship, position: Vector3dc) {
         val newPos = ship.shipToWorld.transformPosition(Vector3d(position))
         entity.teleportTo(newPos.x, newPos.y, newPos.z)
+
+        // TODO doesn't fix anything, delta movement gets applied after tp
+        entity.deltaMovement =
+            ship.shipTransform.transformDirectionNoScalingFromWorldToShip(entity.deltaMovement.toJOML(), Vector3d())
+                .add(ship.velocity).toMinecraft()
     }
 
     override fun <T : Entity> applyRenderTransform(
