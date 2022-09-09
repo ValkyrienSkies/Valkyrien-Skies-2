@@ -10,9 +10,17 @@ import org.valkyrienskies.core.api.Ship
 
 interface VSEntityHandler {
 
-    fun updatedPosition(entity: Entity, ship: Ship, position: Vector3dc)
+    /**
+     * freshEntityInShipyard
+     * Gets called when a new entity gets made in the shipyard
+     */
+    fun freshEntityInShipyard(entity: Entity, ship: Ship, position: Vector3dc)
 
-    // matrixStack is in camera space
+    /**
+     * ApplyRenderTransform
+     * Gets called every render when the entity lives in the shipyard
+     * You need to apply a transform the matrixStack is identity when this is called
+     */
     fun <T : Entity> applyRenderTransform(
         ship: ClientShip, entity: T, entityRenderer: EntityRenderer<T>,
         x: Double, y: Double, z: Double,
