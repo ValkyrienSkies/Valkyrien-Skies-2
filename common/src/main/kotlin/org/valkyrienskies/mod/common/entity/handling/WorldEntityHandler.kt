@@ -17,6 +17,9 @@ object WorldEntityHandler : VSEntityHandler {
     override fun freshEntityInShipyard(entity: Entity, ship: Ship, position: Vector3dc) {
         val newPos = ship.shipToWorld.transformPosition(Vector3d(position))
         entity.teleportTo(newPos.x, newPos.y, newPos.z)
+        entity.xo = entity.x
+        entity.yo = entity.y
+        entity.zo = entity.z
 
         val shipVelocity = Vector3d().add(ship.velocity)
             .add(
