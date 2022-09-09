@@ -31,6 +31,7 @@ import org.valkyrienskies.mod.client.EmptyRenderer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.block.TestChairBlock
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
+import org.valkyrienskies.mod.common.config.VSEntityHandlerDataLoader
 import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.config.VSKeyBindings
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
@@ -98,6 +99,7 @@ class ValkyrienSkiesModForge {
 
     private fun registerResourceManagers(event: AddReloadListenerEvent) {
         event.addListener(MassDatapackResolver.loader)
+        event.addListener(VSEntityHandlerDataLoader)
     }
 
     private fun clientSetup(event: FMLClientSetupEvent) {
