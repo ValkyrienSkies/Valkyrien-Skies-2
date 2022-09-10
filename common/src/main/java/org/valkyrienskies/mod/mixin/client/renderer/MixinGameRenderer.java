@@ -5,6 +5,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Matrix4f;
 import com.mojang.math.Quaternion;
 import com.mojang.math.Vector3f;
+import java.util.function.Predicate;
 import kotlin.Pair;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
@@ -15,8 +16,11 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
@@ -52,13 +56,41 @@ public abstract class MixinGameRenderer {
             target = "Lnet/minecraft/world/entity/Entity;pick(DFZ)Lnet/minecraft/world/phys/HitResult;"
         )
     )
-    public HitResult modifyCrosshairTarget(final Entity receiver, final double maxDistance, final float tickDelta,
+    public HitResult modifyCrosshairTargetBlocks(final Entity receiver, final double maxDistance, final float tickDelta,
         final boolean includeFluids) {
 
         final HitResult original = entityRaycastNoTransform(receiver, maxDistance, tickDelta, includeFluids);
         ((MinecraftDuck) this.minecraft).vs$setOriginalCrosshairTarget(original);
 
         return receiver.pick(maxDistance, tickDelta, includeFluids);
+    }
+
+    @Redirect(
+        method = "pick",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/world/entity/projectile/ProjectileUtil;getEntityHitResult(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/AABB;Ljava/util/function/Predicate;D)Lnet/minecraft/world/phys/EntityHitResult;"
+        )
+    )
+    public @Nullable EntityHitResult modifyCrosshairTargetEntities(
+        final Entity shooter,
+        final Vec3 startVec, final Vec3 endVec,
+        final AABB boundingBox, final Predicate<Entity> filter,
+        final double distance) {
+        return RaycastUtilsKt.raytraceEntities(shooter.level, shooter, startVec, endVec, boundingBox, filter, distance);
+    }
+
+    @Redirect(
+        method = "pick",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/world/phys/Vec3;distanceToSqr(Lnet/minecraft/world/phys/Vec3;)D"
+        )
+    )
+    public double correctDistanceChecks(final Vec3 instance, final Vec3 vec) {
+        return VSGameUtilsKt.squaredDistanceBetweenInclShips(this.minecraft.level,
+            vec.x, vec.y, vec.z,
+            instance.x, instance.y, instance.z);
     }
 
     /**

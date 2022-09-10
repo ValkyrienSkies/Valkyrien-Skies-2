@@ -4,13 +4,17 @@ import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.util.Mth
+import net.minecraft.world.entity.Entity
 import net.minecraft.world.level.ClipContext
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.material.FluidState
+import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.BlockHitResult
+import net.minecraft.world.phys.EntityHitResult
 import net.minecraft.world.phys.HitResult
 import net.minecraft.world.phys.Vec3
+import org.joml.Vector3d
 import org.joml.primitives.AABBd
 import org.joml.primitives.AABBdc
 import org.valkyrienskies.mod.common.shipObjectWorld
@@ -18,6 +22,7 @@ import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toMinecraft
 import java.util.function.BiFunction
 import java.util.function.Function
+import java.util.function.Predicate
 
 @JvmOverloads
 fun ClientLevel.clipIncludeShips(ctx: ClipContext, shouldTransformHitPos: Boolean = true): BlockHitResult {
@@ -146,4 +151,74 @@ private fun <T> clip(
             object2
         }
     }
+}
+
+fun Level.raytraceEntities(
+    shooter: Entity,
+    origStartVecM: Vec3,
+    origEndVecM: Vec3,
+    origBoundingBoxM: AABB,
+    filter: Predicate<Entity>,
+    maxDistance2: Double
+): EntityHitResult? {
+    var distance2 = maxDistance2
+    var resultEntity: Entity? = null
+    var location: Vec3? = null
+
+    fun checkEntities(entities: List<Entity>, startVec: Vec3, endVec: Vec3) =
+        entities.forEach { entity ->
+            val aABB = entity.boundingBox.inflate(entity.pickRadius.toDouble())
+            val clipO = aABB.clip(startVec, endVec)
+
+            if (aABB.contains(startVec)) {
+                if (distance2 < 0.0) return@forEach
+                resultEntity = entity
+                location = clipO.orElse(startVec)
+                distance2 = 0.0
+                return@forEach
+            }
+
+            if (!clipO.isPresent) return@forEach
+
+            val clip = clipO.get()
+            val d = startVec.distanceToSqr(clip)
+
+            if (d >= distance2 && distance2 != 0.0) return@forEach
+
+            if (entity.rootVehicle === shooter.rootVehicle) {
+                if (distance2 != 0.0) return@forEach
+                resultEntity = entity
+                location = clip
+                return@forEach
+            }
+
+            resultEntity = entity
+            location = clip
+            distance2 = d
+        }
+
+
+    checkEntities(getEntities(shooter, origBoundingBoxM, filter), origStartVecM, origEndVecM)
+
+    val origBoundingBox = origBoundingBoxM.toJOML()
+    val origStartVec = origStartVecM.toJOML()
+    val origEndVec = origEndVecM.toJOML()
+
+    val boundingBox = AABBd()
+    val start = Vector3d()
+    val end = Vector3d()
+
+    shipObjectWorld.getShipObjectsIntersecting(origBoundingBox).forEach {
+        origBoundingBox.transform(it.worldToShip, boundingBox)
+        it.worldToShip.transformPosition(origStartVec, start)
+        it.worldToShip.transformPosition(origEndVec, end)
+
+        checkEntities(
+            getEntities(shooter, boundingBox.toMinecraft(), filter), start.toMinecraft(), end.toMinecraft()
+        )
+    }
+
+    return if (resultEntity == null) {
+        null
+    } else EntityHitResult(resultEntity, location)
 }
