@@ -34,4 +34,8 @@ object ShipyardEntityHandler : VSEntityHandler {
         matrixStack.scale(scale.x().toFloat(), scale.y().toFloat(), scale.z().toFloat())
         matrixStack.translate(offset.x, offset.y, offset.z)
     }
+
+    override fun positionSetFromVehicle(self: Entity, vehicle: Entity, x: Double, y: Double, z: Double) {
+        self.setPos(x, y, z)
+    }
 }

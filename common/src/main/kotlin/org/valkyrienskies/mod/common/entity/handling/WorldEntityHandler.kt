@@ -8,6 +8,7 @@ import org.joml.Vector3d
 import org.joml.Vector3dc
 import org.valkyrienskies.core.api.ClientShip
 import org.valkyrienskies.core.api.Ship
+import org.valkyrienskies.mod.common.getShipObjectManagingPos
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toMinecraft
 import kotlin.math.atan2
@@ -50,5 +51,17 @@ object WorldEntityHandler : VSEntityHandler {
     ) {
         val offset = entityRenderer.getRenderOffset(entity, partialTicks)
         matrixStack.translate(x + offset.x, y + offset.y, z + offset.z)
+    }
+
+    override fun positionSetFromVehicle(self: Entity, vehicle: Entity, x: Double, y: Double, z: Double) {
+        val pos = Vector3d(x, y, z)
+        val ship = self.level.getShipObjectManagingPos(pos)
+
+        val worldSet = if (ship != null)
+            ship.shipToWorld.transformPosition(pos)
+        else
+            pos
+
+        self.setPos(worldSet.x, worldSet.y, worldSet.z)
     }
 }

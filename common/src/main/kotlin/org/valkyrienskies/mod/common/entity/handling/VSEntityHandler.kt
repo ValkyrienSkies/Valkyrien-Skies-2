@@ -27,4 +27,12 @@ interface VSEntityHandler {
         rotationYaw: Float, partialTicks: Float,
         matrixStack: PoseStack, buffer: MultiBufferSource, packedLight: Int
     )
+
+    /**
+     * Position set from vehicle,
+     * Gets called everytime the entity is getting set from a vehicle
+     *
+     * Should call self.setPos(x, y, z)
+     */
+    fun positionSetFromVehicle(self: Entity, vehicle: Entity, x: Double, y: Double, z: Double)
 }

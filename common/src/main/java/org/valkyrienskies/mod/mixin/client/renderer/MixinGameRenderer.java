@@ -6,7 +6,6 @@ import com.mojang.math.Matrix4f;
 import com.mojang.math.Quaternion;
 import com.mojang.math.Vector3f;
 import java.util.function.Predicate;
-import kotlin.Pair;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -133,12 +132,13 @@ public abstract class MixinGameRenderer {
                 Vector3dc entityShouldBeHere = null;
 
                 // First, try getting [entityShouldBeHere] from [shipMountedTo]
-                final Pair<ShipObjectClient, Vector3dc> shipMountedTo =
+                final ShipObjectClient shipMountedTo =
                     VSGameUtilsKt.getShipObjectEntityMountedTo(clientWorld, entity);
 
                 if (shipMountedTo != null) {
-                    entityShouldBeHere = shipMountedTo.getFirst().getRenderTransform().getShipToWorldMatrix()
-                        .transformPosition(shipMountedTo.getSecond(), new Vector3d());
+                    entityShouldBeHere = shipMountedTo.getRenderTransform().getShipToWorldMatrix()
+                        .transformPosition(VSGameUtilsKt.getPassengerPos(entity.getVehicle(), tickDelta),
+                            new Vector3d());
                 }
 
                 if (entityShouldBeHere == null) {
@@ -252,6 +252,7 @@ public abstract class MixinGameRenderer {
     @Shadow
     protected abstract void renderItemInHand(PoseStack matrixStack, Camera activeRenderInfo, float partialTicks);
 
+    // FIXME i think this replaces too much, this might make allot of mod compat issues
     @Inject(method = "renderLevel", at = @At("HEAD"), cancellable = true)
     private void preRenderLevel(final float partialTicks, final long finishTimeNano, final PoseStack matrixStack,
         final CallbackInfo ci) {
@@ -260,7 +261,7 @@ public abstract class MixinGameRenderer {
         if (clientLevel == null || player == null) {
             return;
         }
-        final Pair<ShipObjectClient, Vector3dc> playerShipMountedTo =
+        final ShipObjectClient playerShipMountedTo =
             VSGameUtilsKt.getShipObjectEntityMountedTo(clientLevel, player);
         if (playerShipMountedTo == null) {
             return;
@@ -268,6 +269,7 @@ public abstract class MixinGameRenderer {
 
         // Replace the original logic to mount the player camera to the ship
         ci.cancel();
+        final Vector3dc inShipPos = VSGameUtilsKt.getPassengerPos(player.getVehicle(), partialTicks);
 
         this.lightTexture.updateLightTexture(partialTicks);
         if (this.minecraft.getCameraEntity() == null) {
@@ -310,10 +312,11 @@ public abstract class MixinGameRenderer {
             !this.minecraft.options.getCameraType().isFirstPerson(),
             this.minecraft.options.getCameraType().isMirrored(),
             partialTicks,
-            playerShipMountedTo
+            playerShipMountedTo,
+            inShipPos
         );
         final Quaternion invShipRenderRotation = VectorConversionsMCKt.toMinecraft(
-            playerShipMountedTo.getFirst().getRenderTransform().getShipCoordinatesToWorldCoordinatesRotation()
+            playerShipMountedTo.getRenderTransform().getShipCoordinatesToWorldCoordinatesRotation()
                 .conjugate(new Quaterniond()));
         matrixStack.mulPose(Vector3f.XP.rotationDegrees(camera.getXRot()));
         matrixStack.mulPose(Vector3f.YP.rotationDegrees(camera.getYRot() + 180.0F));

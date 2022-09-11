@@ -12,6 +12,7 @@ interface IVSCamera {
         thirdPerson: Boolean,
         thirdPersonReverse: Boolean,
         partialTicks: Float,
-        shipMountedTo: Pair<ShipObjectClient, Vector3dc>
+        shipMountedTo: ShipObjectClient,
+        inShipPlayerPosition: Vector3dc
     )
 }

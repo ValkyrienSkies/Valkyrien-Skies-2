@@ -2,7 +2,6 @@ package org.valkyrienskies.mod.mixin.client;
 
 import com.mojang.math.Quaternion;
 import com.mojang.math.Vector3f;
-import kotlin.Pair;
 import net.minecraft.client.Camera;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
@@ -68,10 +67,10 @@ public abstract class MixinCamera implements IVSCamera {
     @Override
     public void setupWithShipMounted(final @NotNull BlockGetter level, final @NotNull Entity renderViewEntity,
         final boolean thirdPerson, final boolean thirdPersonReverse, final float partialTicks,
-        final @NotNull Pair<ShipObjectClient, ? extends Vector3dc> shipMountedTo) {
-        final ShipTransform renderTransform = shipMountedTo.getFirst().getRenderTransform();
+        final @NotNull ShipObjectClient shipMountedTo, final @NotNull Vector3dc inShipPlayerPosition) {
+        final ShipTransform renderTransform = shipMountedTo.getRenderTransform();
         final Vector3dc playerBasePos =
-            renderTransform.getShipToWorldMatrix().transformPosition(shipMountedTo.getSecond(), new Vector3d());
+            renderTransform.getShipToWorldMatrix().transformPosition(inShipPlayerPosition, new Vector3d());
         final Vector3dc playerEyePos = renderTransform.getShipCoordinatesToWorldCoordinatesRotation()
             .transform(new Vector3d(0.0, Mth.lerp(partialTicks, this.eyeHeightOld, this.eyeHeight), 0.0))
             .add(playerBasePos);
