@@ -7,27 +7,16 @@ import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.level.Level
-import org.joml.Vector3d
-import org.joml.Vector3dc
 import org.joml.Vector3f
 import org.valkyrienskies.core.api.setAttachment
-import org.valkyrienskies.core.game.ChunkAllocator
 import org.valkyrienskies.core.game.ships.ShipObjectServer
 import org.valkyrienskies.core.networking.simple.sendToServer
 import org.valkyrienskies.mod.api.SeatedControllingPlayer
 import org.valkyrienskies.mod.common.config.VSKeyBindings
-import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.getShipObjectManagingPos
 import org.valkyrienskies.mod.common.networking.PacketPlayerDriving
-import org.valkyrienskies.mod.util.VECTOR_3D_NULLABLE
-import org.valkyrienskies.mod.util.defineSynced
-import org.valkyrienskies.mod.util.registerSynced
 
 class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level) : Entity(type, level) {
-
-    var inShipPosition: Vector3dc?
-        get() = IN_SHIP_POSITION.get(this)
-        set(value) = IN_SHIP_POSITION.set(this, value)
 
     // Decides if this entity controlls the ship it is in.
     // Only needs to be set serverside
@@ -47,28 +36,22 @@ class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level) : E
             kill()
             return
         }
-        val inShipPositionCopy = inShipPosition
-        if (inShipPositionCopy != null) {
-            val isInShipPositionInShipyard = ChunkAllocator.isBlockInShipyard(inShipPositionCopy)
-            val shipData = level.getShipManagingPos(inShipPositionCopy)
-            if (isInShipPositionInShipyard && shipData == null) {
-                // If [shipData] is null then the ship has been deleted, so don't update the position of this
-                return
-            }
-            val posInWorld: Vector3dc = if (shipData != null) {
-                sendDrivingPacket()
-                shipData.shipToWorld.transformPosition(inShipPositionCopy, Vector3d())
-            } else {
-                inShipPositionCopy
-            }
-            setPos(posInWorld.x(), posInWorld.y(), posInWorld.z())
-        }
-        reapplyPosition()
+
+        sendDrivingPacket()
+    }
+
+    override fun readAdditionalSaveData(compound: CompoundTag?) {
+    }
+
+    override fun addAdditionalSaveData(compound: CompoundTag?) {
+    }
+
+    override fun defineSynchedData() {
     }
 
     override fun remove() {
-        if (this.isController && !level.isClientSide && inShipPosition != null)
-            (level.getShipObjectManagingPos(inShipPosition!!) as ShipObjectServer?)
+        if (this.isController && !level.isClientSide)
+            (level.getShipObjectManagingPos(blockPosition()!!) as ShipObjectServer?)
                 ?.setAttachment<SeatedControllingPlayer>(null)
         super.remove()
     }
@@ -92,29 +75,11 @@ class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level) : E
         PacketPlayerDriving(impulse).sendToServer()
     }
 
-    override fun defineSynchedData() {
-        registerSynced(IN_SHIP_POSITION, null)
-    }
-
-    override fun readAdditionalSaveData(compound: CompoundTag) {
-        inShipPosition = compound.getVector3d("inShipPosition")
-    }
-
-    override fun addAdditionalSaveData(compound: CompoundTag) {
-        val inShipPositionCopy = inShipPosition
-        if (inShipPositionCopy != null)
-            compound.putVector3d("inShipPosition", inShipPositionCopy)
-    }
-
     override fun getControllingPassenger(): Entity? {
         return if (isController) this.passengers.getOrNull(0) else null
     }
 
     override fun getAddEntityPacket(): Packet<*> {
         return ClientboundAddEntityPacket(this)
-    }
-
-    companion object {
-        val IN_SHIP_POSITION = defineSynced<ShipMountingEntity, Vector3dc?>(VECTOR_3D_NULLABLE)
     }
 }
