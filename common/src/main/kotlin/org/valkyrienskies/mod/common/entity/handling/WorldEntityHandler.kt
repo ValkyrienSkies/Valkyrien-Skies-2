@@ -64,4 +64,9 @@ object WorldEntityHandler : VSEntityHandler {
 
         self.setPos(worldSet.x, worldSet.y, worldSet.z)
     }
+
+    override fun applyRenderOnMountedEntity(
+        ship: ClientShip, self: Entity, passenger: Entity, partialTicks: Float, matrixStack: PoseStack
+    ) {
+    }
 }

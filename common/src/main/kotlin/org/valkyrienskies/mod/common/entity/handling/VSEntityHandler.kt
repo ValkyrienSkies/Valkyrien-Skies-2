@@ -35,4 +35,12 @@ interface VSEntityHandler {
      * Should call self.setPos(x, y, z)
      */
     fun positionSetFromVehicle(self: Entity, vehicle: Entity, x: Double, y: Double, z: Double)
+
+    /**
+     * Gets called every render of a passenger when the vehicle (this handler) lives in the shipyard
+     * The matrix stack is filled with the existing transform
+     */
+    fun applyRenderOnMountedEntity(
+        ship: ClientShip, self: Entity, passenger: Entity, partialTicks: Float, matrixStack: PoseStack
+    )
 }

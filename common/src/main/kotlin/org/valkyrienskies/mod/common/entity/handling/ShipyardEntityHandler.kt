@@ -38,4 +38,10 @@ object ShipyardEntityHandler : VSEntityHandler {
     override fun positionSetFromVehicle(self: Entity, vehicle: Entity, x: Double, y: Double, z: Double) {
         self.setPos(x, y, z)
     }
+
+    override fun applyRenderOnMountedEntity(
+        ship: ClientShip, self: Entity, passenger: Entity, partialTicks: Float, matrixStack: PoseStack
+    ) {
+        matrixStack.mulPose(ship.renderTransform.shipCoordinatesToWorldCoordinatesRotation.toMinecraft())
+    }
 }

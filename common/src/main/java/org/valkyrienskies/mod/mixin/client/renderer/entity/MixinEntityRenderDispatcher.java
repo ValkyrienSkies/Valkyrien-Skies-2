@@ -44,6 +44,15 @@ public class MixinEntityRenderDispatcher {
                 .applyRenderTransform(ship, entity, entityRenderer, x, y, z,
                     rotationYaw, partialTicks, matrixStack,
                     buffer, packedLight);
+        } else if (entity.isPassenger()) {
+            final ClientShip vehicleShip =
+                (ClientShip) VSGameUtilsKt.getShipObjectManagingPos(entity.level,
+                    entity.getVehicle().blockPosition());
+            // If the entity is a passenger and that vehicle is in ship space
+            if (vehicleShip != null) {
+                VSEntityManager.INSTANCE.getHandler(entity.getVehicle().getType())
+                    .applyRenderOnMountedEntity(vehicleShip, entity.getVehicle(), entity, partialTicks, matrixStack);
+            }
         }
     }
 
