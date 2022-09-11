@@ -62,7 +62,7 @@ public class MixinLevel {
     @Inject(
         method = "getLoadedEntitiesOfClass",
         at = @At("HEAD"), cancellable = true)
-    public <T extends Entity> void checkAABB2(final Class<? extends T> class_, final AABB area,
+    public <T extends Entity> void checkAABB2(final Class<? extends T> clazz, final AABB area,
         @Nullable final Predicate<? super T> predicate,
         final CallbackInfoReturnable<List<T>> cir) {
 

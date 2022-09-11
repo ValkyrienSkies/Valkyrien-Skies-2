@@ -250,8 +250,8 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
      * @reason use vs2 handler to handle this method
      */
     @Overwrite
-    public void positionRider(final Entity _passenger) {
-        this.positionRider(_passenger,
+    public void positionRider(final Entity passengerI) {
+        this.positionRider(passengerI,
             (passenger, x, y, z) -> VSEntityManager.INSTANCE.getHandler(passenger.getType())
                 .positionSetFromVehicle(passenger, Entity.class.cast(this), x, y, z));
     }

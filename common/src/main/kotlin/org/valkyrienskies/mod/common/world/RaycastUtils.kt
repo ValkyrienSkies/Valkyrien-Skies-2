@@ -197,7 +197,6 @@ fun Level.raytraceEntities(
             distance2 = d
         }
 
-
     checkEntities(getEntities(shooter, origBoundingBoxM, filter), origStartVecM, origEndVecM)
 
     val origBoundingBox = origBoundingBoxM.toJOML()
