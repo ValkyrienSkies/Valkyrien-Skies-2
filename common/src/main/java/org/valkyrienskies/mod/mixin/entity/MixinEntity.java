@@ -1,6 +1,11 @@
 package org.valkyrienskies.mod.mixin.entity;
 
+import static org.valkyrienskies.mod.common.util.VectorConversionsMCKt.toJOML;
+
 import kotlin.Pair;
+import net.minecraft.CrashReport;
+import net.minecraft.CrashReportCategory;
+import net.minecraft.ReportedException;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
@@ -18,6 +23,7 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
+import org.joml.primitives.AABBd;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -27,6 +33,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
+import org.valkyrienskies.core.api.Ship;
 import org.valkyrienskies.core.game.ships.ShipObject;
 import org.valkyrienskies.core.game.ships.ShipObjectClient;
 import org.valkyrienskies.core.game.ships.ShipTransform;
@@ -72,6 +79,49 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
     @Shadow
     public abstract float getEyeHeight();
+
+    @Inject(
+        at = @At("TAIL"),
+        method = "checkInsideBlocks"
+    )
+    private void afterCheckInside(final CallbackInfo ci) {
+        final AABBd boundingBox = toJOML(getBoundingBox());
+        final AABBd temp = new AABBd();
+        for (final Ship ship : VSGameUtilsKt.getShipsIntersecting(level, boundingBox)) {
+            final AABBd inShipBB = boundingBox.transform(ship.getShipTransform().getWorldToShipMatrix(), temp);
+            originalCheckInside(inShipBB);
+        }
+    }
+
+    @Unique
+    private void originalCheckInside(final AABBd aABB) {
+        final Entity self = Entity.class.cast(this);
+        final BlockPos blockPos = new BlockPos(aABB.minX + 0.001, aABB.minY + 0.001, aABB.minZ + 0.001);
+        final BlockPos blockPos2 = new BlockPos(aABB.maxX - 0.001, aABB.maxY - 0.001, aABB.maxZ - 0.001);
+        final BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos();
+        if (this.level.hasChunksAt(blockPos, blockPos2)) {
+            for (int i = blockPos.getX(); i <= blockPos2.getX(); ++i) {
+                for (int j = blockPos.getY(); j <= blockPos2.getY(); ++j) {
+                    for (int k = blockPos.getZ(); k <= blockPos2.getZ(); ++k) {
+                        mutableBlockPos.set(i, j, k);
+                        final BlockState blockState = this.level.getBlockState(mutableBlockPos);
+
+                        try {
+                            blockState.entityInside(this.level, mutableBlockPos, self);
+                            this.onInsideBlock(blockState);
+                        } catch (final Throwable var12) {
+                            final CrashReport crashReport =
+                                CrashReport.forThrowable(var12, "Colliding entity with block");
+                            final CrashReportCategory crashReportCategory =
+                                crashReport.addCategory("Block being collided with");
+                            CrashReportCategory.populateBlockDetails(crashReportCategory, mutableBlockPos, blockState);
+                            throw new ReportedException(crashReport);
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     /**
      * @reason Needed for players to pick blocks correctly when mounted to a ship
@@ -280,6 +330,9 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     @Shadow
     protected abstract Vec3 collide(Vec3 vec3d);
     // endregion
+
+    @Shadow
+    protected abstract void onInsideBlock(BlockState state);
 
     @Override
     @NotNull
