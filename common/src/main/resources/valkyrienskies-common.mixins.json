@@ -26,7 +26,8 @@
     "world.entity.MixinPlayer",
     "world.item.MixinBlockItem",
     "world.item.context.MixinBlockPlaceContext",
-    "world.level.MixinExplosion"
+    "world.level.MixinExplosion",
+    "world.level.material.MixinFlowingFluid"
   ],
   "client": [
     "accessors.client.multiplayer.ClientLevelAccessor",

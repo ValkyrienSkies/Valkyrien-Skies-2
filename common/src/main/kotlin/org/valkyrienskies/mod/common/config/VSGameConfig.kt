@@ -38,5 +38,10 @@ object VSGameConfig {
                 "check. (it doesn't work very well anyway, don't worry)"
         )
         var enableMovementChecks = false
+
+        @JsonSchema(
+            description = "If true, prevents water and other fluids from flowing out of the ship's bounding box."
+        )
+        var preventFluidEscapingShip = true
     }
 }
