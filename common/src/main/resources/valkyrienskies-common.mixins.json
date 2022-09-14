@@ -50,8 +50,11 @@
     "client.render.block.entity.MixinBlockEntityRenderDispatcher",
     "client.render.chunk.MixinRenderChunk",
     "client.render.debug.MixinDebugRenderer",
+    "client.resources.sounds.MixinSimpleSoundInstance",
     "client.world.MixinClientChunkCache",
-    "client.world.MixinClientLevel"
+    "client.world.MixinClientLevel",
+    "com.mojang.blaze3d.audio.MixinChannel",
+    "com.mojang.blaze3d.audio.MixinSoundEngine"
   ],
   "injectors": {
     "defaultRequire": 1

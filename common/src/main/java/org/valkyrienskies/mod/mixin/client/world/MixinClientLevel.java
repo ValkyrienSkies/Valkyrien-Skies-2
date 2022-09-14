@@ -6,6 +6,7 @@ import java.util.function.BooleanSupplier;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.BlockPos;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
@@ -20,10 +21,12 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.Ship;
 import org.valkyrienskies.core.hooks.VSCoreHooksKt;
 import org.valkyrienskies.core.util.AABBdUtilKt;
+import org.valkyrienskies.mod.client.audio.SimpleSoundInstanceOnShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.EntityDragger;
 
@@ -91,27 +94,22 @@ public abstract class MixinClientLevel {
         }
     }
 
-    @Inject(
-        at = @At("HEAD"),
-        method = "playLocalSound(DDDLnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FFZ)V",
-        cancellable = true
+    @Redirect(
+        at = @At(
+            value = "NEW",
+            target = "net/minecraft/client/resources/sounds/SimpleSoundInstance"
+        ),
+        method = "playLocalSound(DDDLnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FFZ)V"
     )
-    private void beforePlayLocalSound(final double x, final double y, final double z, final SoundEvent sound,
-        final SoundSource category, final float volume, final float pitch, final boolean distanceDelay,
-        final CallbackInfo ci) {
+    private SimpleSoundInstance redirectNewSoundInstance(final SoundEvent soundEvent, final SoundSource soundSource,
+        final float volume, final float pitch, final double x, final double y, final double z) {
 
         final Ship ship = VSGameUtilsKt.getShipManagingPos(ClientLevel.class.cast(this), x, y, z);
         if (ship != null) {
-            final Vector3d p = ship.getShipToWorld().transformPosition(new Vector3d(x, y, z));
-            playLocalSound(p.x, p.y, p.z, sound, category, volume, pitch, distanceDelay);
-
-            ci.cancel();
+            return new SimpleSoundInstanceOnShip(soundEvent, soundSource, pitch, volume, x, y, z,
+                ship);
         }
+
+        return new SimpleSoundInstance(soundEvent, soundSource, volume, pitch, x, y, z);
     }
-
-    @Shadow
-    public abstract void playLocalSound(double x, double y, double z, SoundEvent sound, SoundSource category,
-        float volume,
-        float pitch, boolean bl);
-
 }
