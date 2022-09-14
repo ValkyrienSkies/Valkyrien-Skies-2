@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.common.util
 
 import net.minecraft.world.entity.Entity
+import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.Level
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
@@ -32,6 +33,8 @@ object EntityShipCollisionUtils {
         entityBoundingBox: AABB,
         world: Level
     ): Vec3 {
+        // TODO: For now only do collision with the player, re-enable this for all entities eventually
+        if (entity !is Player) return movement
         val collidingShipPolygons =
             getShipPolygonsCollidingWithEntity(entity, movement, entityBoundingBox.inflate(1.0), world)
 
