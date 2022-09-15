@@ -83,12 +83,6 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
         return posInWorld.distanceSquared(player.getX(), player.getY(), player.getZ()) < distance * distance;
     }
 
-    @Inject(method = "tick", at = @At("HEAD"))
-    private void preTick(final BooleanSupplier shouldKeepTicking, final CallbackInfo ci) {
-        // Drag entities (Make sure that we run this after ShipObjectWorld.tickShips(), otherwise this won't be correct)
-        EntityDragger.INSTANCE.dragEntitiesWithShips(entitiesById.values());
-    }
-
     @Inject(method = "tick", at = @At("TAIL"))
     private void postTick(final BooleanSupplier shouldKeepTicking, final CallbackInfo ci) {
         final ServerLevel self = ServerLevel.class.cast(this);

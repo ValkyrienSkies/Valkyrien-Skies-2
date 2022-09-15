@@ -107,7 +107,7 @@ public abstract class MixinMinecraft
     public void postTick(final CallbackInfo ci) {
         // Tick the ship world and then drag entities
         if (!pause && shipObjectWorld != null) {
-            shipObjectWorld.preTick();
+            shipObjectWorld.postTick();
             EntityDragger.INSTANCE.dragEntitiesWithShips(level.entitiesForRendering());
         }
     }
