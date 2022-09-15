@@ -33,10 +33,11 @@ object EntityShipCollisionUtils {
         entityBoundingBox: AABB,
         world: Level
     ): Vec3 {
-        // TODO: For now only do collision with the player, re-enable this for all entities eventually
-        if (entity !is Player) return movement
+        // Inflate the bounding box more for players than other entities, to give players a better collision result.
+        // Note that this increases the cost of doing collision, so we only do it for the players
+        val inflation = if (entity is Player) 0.5 else 0.1
         val collidingShipPolygons =
-            getShipPolygonsCollidingWithEntity(entity, movement, entityBoundingBox.inflate(1.0), world)
+            getShipPolygonsCollidingWithEntity(entity, movement, entityBoundingBox.inflate(inflation), world)
 
         if (collidingShipPolygons.isEmpty()) {
             return movement
