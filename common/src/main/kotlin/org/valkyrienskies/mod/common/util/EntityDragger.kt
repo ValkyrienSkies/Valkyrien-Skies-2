@@ -95,6 +95,8 @@ object EntityDragger {
                 // TODO: Do collision on [addedMovement], as currently this can push players into
                 //       blocks
                 // Apply [addedMovement]
+                val newBB = entity.boundingBox.move(addedMovement.toMinecraft())
+                entity.boundingBox = newBB
                 entity.setPos(
                     entity.x + addedMovement.x(),
                     entity.y + addedMovement.y(),

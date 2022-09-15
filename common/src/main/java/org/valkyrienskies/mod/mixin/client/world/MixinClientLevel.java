@@ -55,9 +55,17 @@ public abstract class MixinClientLevel {
     @Inject(method = "tick", at = @At("HEAD"))
     private void preTick(final BooleanSupplier shouldKeepTicking, final CallbackInfo ci) {
         // Drag entities
-        EntityDragger.INSTANCE.dragEntitiesWithShips(entitiesById.values());
+        // TODO:
+        // EntityDragger.INSTANCE.dragEntitiesWithShips(entitiesById.values());
         VSGameUtilsKt.getShipObjectWorld(minecraft).getNetworkManager()
             .tick(minecraft.getConnection().getConnection().getRemoteAddress());
+    }
+
+    @Inject(method = "tick", at = @At("TAIL"))
+    private void postTick(final BooleanSupplier shouldKeepTicking, final CallbackInfo ci) {
+        // Drag entities
+        // TODO:
+        // EntityDragger.INSTANCE.dragEntitiesWithShips(entitiesById.values());
     }
 
     // do particle ticks for ships near the player

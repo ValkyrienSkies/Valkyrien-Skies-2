@@ -2,6 +2,7 @@ package org.valkyrienskies.mod.mixin.client;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.MultiPlayerGameMode;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.client.player.LocalPlayer;
@@ -25,6 +26,7 @@ import org.valkyrienskies.mod.common.IShipObjectWorldClientCreator;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
+import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.mixinducks.client.MinecraftDuck;
 
 @Mixin(Minecraft.class)
@@ -37,6 +39,9 @@ public abstract class MixinMinecraft
     @Shadow
     @Nullable
     public abstract IntegratedServer getSingleplayerServer();
+
+    @Shadow
+    public ClientLevel level;
 
     @Unique
     private HitResult originalCrosshairTarget;
@@ -79,6 +84,10 @@ public abstract class MixinMinecraft
         return shipObjectWorldCopy;
     }
 
+    @Shadow
+    public abstract ClientPacketListener getConnection();
+
+    /*
     @Inject(
         method = "tick",
         at = @At("HEAD")
@@ -87,6 +96,19 @@ public abstract class MixinMinecraft
         // Tick the ship world
         if (shipObjectWorld != null) {
             shipObjectWorld.preTick();
+        }
+    }
+     */
+
+    @Inject(
+        method = "tick",
+        at = @At("TAIL")
+    )
+    public void postTick(final CallbackInfo ci) {
+        // Tick the ship world and then drag entities
+        if (!pause && shipObjectWorld != null) {
+            shipObjectWorld.preTick();
+            EntityDragger.INSTANCE.dragEntitiesWithShips(level.entitiesForRendering());
         }
     }
 
