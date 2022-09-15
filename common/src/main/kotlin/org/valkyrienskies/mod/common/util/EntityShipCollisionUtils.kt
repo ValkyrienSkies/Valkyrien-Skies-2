@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.common.util
 
 import net.minecraft.world.entity.Entity
+import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.Level
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
@@ -32,8 +33,11 @@ object EntityShipCollisionUtils {
         entityBoundingBox: AABB,
         world: Level
     ): Vec3 {
+        // Inflate the bounding box more for players than other entities, to give players a better collision result.
+        // Note that this increases the cost of doing collision, so we only do it for the players
+        val inflation = if (entity is Player) 0.5 else 0.1
         val collidingShipPolygons =
-            getShipPolygonsCollidingWithEntity(entity, movement, entityBoundingBox.inflate(1.0), world)
+            getShipPolygonsCollidingWithEntity(entity, movement, entityBoundingBox.inflate(inflation), world)
 
         if (collidingShipPolygons.isEmpty()) {
             return movement
