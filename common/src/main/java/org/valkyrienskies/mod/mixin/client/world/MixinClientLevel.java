@@ -2,7 +2,6 @@ package org.valkyrienskies.mod.mixin.client.world;
 
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import java.util.Random;
-import java.util.function.BooleanSupplier;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.LevelRenderer;
@@ -28,7 +27,6 @@ import org.valkyrienskies.core.hooks.VSCoreHooksKt;
 import org.valkyrienskies.core.util.AABBdUtilKt;
 import org.valkyrienskies.mod.client.audio.SimpleSoundInstanceOnShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.util.EntityDragger;
 
 @Mixin(ClientLevel.class)
 public abstract class MixinClientLevel {
@@ -50,14 +48,6 @@ public abstract class MixinClientLevel {
     @Inject(method = "disconnect", at = @At("TAIL"))
     private void afterDisconnect(final CallbackInfo ci) {
         VSCoreHooksKt.getCoreHooks().afterDisconnect();
-    }
-
-    @Inject(method = "tick", at = @At("HEAD"))
-    private void preTick(final BooleanSupplier shouldKeepTicking, final CallbackInfo ci) {
-        // Drag entities
-        EntityDragger.INSTANCE.dragEntitiesWithShips(entitiesById.values());
-        VSGameUtilsKt.getShipObjectWorld(minecraft).getNetworkManager()
-            .tick(minecraft.getConnection().getConnection().getRemoteAddress());
     }
 
     // do particle ticks for ships near the player
