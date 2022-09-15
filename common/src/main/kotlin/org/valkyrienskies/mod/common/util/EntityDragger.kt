@@ -54,7 +54,8 @@ object EntityDragger {
                         // region Compute look dragging
                         val yViewRot = entity.getViewYRot(1.0f).toDouble()
                         // Get the y-look vector of the entity only using y-rotation, ignore x-rotation
-                        val entityLookYawOnly = Vector3d(sin(-Math.toRadians(yViewRot)), 0.0, cos(-Math.toRadians(yViewRot)))
+                        val entityLookYawOnly =
+                            Vector3d(sin(-Math.toRadians(yViewRot)), 0.0, cos(-Math.toRadians(yViewRot)))
 
                         val newLookIdeal = shipData.shipTransform.shipToWorldMatrix.transformDirection(
                             shipData.prevTickShipTransform.worldToShipMatrix.transformDirection(
