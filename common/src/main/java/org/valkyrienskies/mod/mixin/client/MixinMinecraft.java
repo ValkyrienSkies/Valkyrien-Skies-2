@@ -25,6 +25,7 @@ import org.valkyrienskies.core.pipelines.VSPipeline;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientCreator;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.mixinducks.client.MinecraftDuck;
@@ -87,19 +88,6 @@ public abstract class MixinMinecraft
     @Shadow
     public abstract ClientPacketListener getConnection();
 
-    /*
-    @Inject(
-        method = "tick",
-        at = @At("HEAD")
-    )
-    public void preTick(final CallbackInfo ci) {
-        // Tick the ship world
-        if (shipObjectWorld != null) {
-            shipObjectWorld.preTick();
-        }
-    }
-     */
-
     @Inject(
         method = "tick",
         at = @At("TAIL")
@@ -107,6 +95,8 @@ public abstract class MixinMinecraft
     public void postTick(final CallbackInfo ci) {
         // Tick the ship world and then drag entities
         if (!pause && shipObjectWorld != null) {
+            VSGameUtilsKt.getShipObjectWorld(Minecraft.class.cast(this)).getNetworkManager()
+                .tick(getConnection().getConnection().getRemoteAddress());
             shipObjectWorld.postTick();
             EntityDragger.INSTANCE.dragEntitiesWithShips(level.entitiesForRendering());
         }
