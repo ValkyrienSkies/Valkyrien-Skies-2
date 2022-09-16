@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.common.util
 
 import net.minecraft.world.entity.Entity
+import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.Level
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
@@ -12,6 +13,7 @@ import org.valkyrienskies.core.collision.EntityPolygonCollider
 import org.valkyrienskies.core.collision.TransformedCuboidPolygon.Companion.createFromAABB
 import org.valkyrienskies.core.util.extend
 import org.valkyrienskies.mod.common.shipObjectWorld
+import kotlin.math.max
 
 object EntityShipCollisionUtils {
 
@@ -32,13 +34,21 @@ object EntityShipCollisionUtils {
         entityBoundingBox: AABB,
         world: Level
     ): Vec3 {
+        // Inflate the bounding box more for players than other entities, to give players a better collision result.
+        // Note that this increases the cost of doing collision, so we only do it for the players
+        val inflation = if (entity is Player) 0.5 else 0.1
+        val stepHeight: Double = entity?.maxUpStep?.toDouble() ?: 0.0
+        // Add [max(stepHeight - inflation, 0.0)] to search for polygons we might collide with while stepping
         val collidingShipPolygons =
-            getShipPolygonsCollidingWithEntity(entity, movement, entityBoundingBox.inflate(1.0), world)
+            getShipPolygonsCollidingWithEntity(
+                entity, Vec3(movement.x(), movement.y() + max(stepHeight - inflation, 0.0), movement.z()),
+                entityBoundingBox.inflate(inflation), world
+            )
 
         if (collidingShipPolygons.isEmpty()) {
             return movement
         }
-        val stepHeight: Double = entity?.maxUpStep?.toDouble() ?: 0.0
+
         val (newMovement, shipCollidingWith) = EntityPolygonCollider.adjustEntityMovementForPolygonCollisions(
             movement.toJOML(), entityBoundingBox.toJOML(), stepHeight, collidingShipPolygons
         )

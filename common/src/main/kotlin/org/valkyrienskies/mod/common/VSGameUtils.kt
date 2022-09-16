@@ -13,10 +13,12 @@ import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.chunk.LevelChunkSection
+import net.minecraft.world.phys.AABB
 import org.joml.Vector3d
 import org.joml.Vector3dc
 import org.joml.Vector3ic
 import org.joml.primitives.AABBd
+import org.joml.primitives.AABBdc
 import org.valkyrienskies.core.api.Ship
 import org.valkyrienskies.core.game.ChunkAllocator
 import org.valkyrienskies.core.game.DimensionId
@@ -31,6 +33,7 @@ import org.valkyrienskies.core.util.expand
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toJOMLD
+import org.valkyrienskies.mod.common.util.toMinecraft
 import org.valkyrienskies.mod.mixin.accessors.resource.ResourceKeyAccessor
 import org.valkyrienskies.mod.mixinducks.world.entity.PlayerDuck
 import org.valkyrienskies.physics_api.voxel_updates.DenseVoxelShapeUpdate
@@ -44,6 +47,13 @@ val Level.shipObjectWorld
             is ClientLevel -> shipObjectWorld
             else -> throw IllegalArgumentException("World is neither ServerWorld nor ClientWorld")
         }
+
+val Level.queryableShipData
+    get() = when (this) {
+        is ServerLevel -> server.shipObjectWorld.queryableShipData
+        is ClientLevel -> shipObjectWorld.queryableShipData
+        else -> throw IllegalArgumentException("World is neither ServerWorld nor ClientWorld")
+    }
 
 val MinecraftServer.shipObjectWorld get() = (this as IShipObjectWorldServerProvider).shipObjectWorld
 val MinecraftServer.vsPipeline get() = (this as IShipObjectWorldServerProvider).vsPipeline
@@ -304,6 +314,23 @@ fun LevelChunkSection.addChunkBlocksToShipVoxelAABB(chunkPos: Vector3ic, shipDat
 fun Level.getWorldCoordinates(blockPos: BlockPos, pos: Vector3d): Vector3d {
     return this.getShipObjectManagingPos(blockPos)
         ?.shipData?.shipTransform?.shipToWorldMatrix?.transformPosition(pos) ?: pos
+}
+
+fun Level.getShipsIntersecting(aabb: AABB): Iterable<Ship> = queryableShipData.getShipDataIntersecting(aabb.toJOML())
+fun Level.getShipsIntersecting(aabb: AABBdc): Iterable<Ship> = queryableShipData.getShipDataIntersecting(aabb)
+
+fun Level.transformAabbToWorld(aabb: AABB): AABB = transformAabbToWorld(aabb.toJOML()).toMinecraft()
+fun Level.transformAabbToWorld(aabb: AABBd) = transformAabbToWorld(aabb, aabb)
+fun Level.transformAabbToWorld(aabb: AABBdc, dest: AABBd): AABBd {
+    val ship1 = getShipManagingPos(aabb.minX(), aabb.minY(), aabb.minZ())
+    val ship2 = getShipManagingPos(aabb.maxX(), aabb.maxY(), aabb.maxZ())
+
+    // if both endpoints of the aabb are in the same ship, do the transform
+    if (ship1 == ship2 && ship1 != null) {
+        return aabb.transform(ship1.shipTransform.shipToWorldMatrix, dest)
+    }
+
+    return dest.set(aabb)
 }
 
 fun Entity.getPassengerPos(partialTicks: Float): Vector3dc {

@@ -22,6 +22,7 @@ import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.ShipSavedData;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
+import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.common.world.ChunkManagement;
 import org.valkyrienskies.mod.event.RegistryEvents;
 import org.valkyrienskies.physics_api_krunch.KrunchBootstrap;
@@ -154,6 +155,10 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     )
     private void postTick(final CallbackInfo ci) {
         vsPipeline.postTickGame();
+        // Only drag entities after we have updated the ship positions
+        for (final ServerLevel level : getAllLevels()) {
+            EntityDragger.INSTANCE.dragEntitiesWithShips(level.getAllEntities());
+        }
     }
 
     @Inject(

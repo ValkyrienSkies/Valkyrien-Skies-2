@@ -26,7 +26,8 @@
     "world.entity.MixinPlayer",
     "world.item.MixinBlockItem",
     "world.item.context.MixinBlockPlaceContext",
-    "world.level.MixinExplosion"
+    "world.level.MixinExplosion",
+    "world.level.material.MixinFlowingFluid"
   ],
   "client": [
     "accessors.client.multiplayer.ClientLevelAccessor",
@@ -51,7 +52,9 @@
     "client.renderer.debug.MixinDebugRenderer",
     "client.renderer.entity.MixinEntityRenderDispatcher",
     "client.world.MixinClientChunkCache",
-    "client.world.MixinClientLevel"
+    "client.world.MixinClientLevel",
+    "com.mojang.blaze3d.audio.MixinChannel",
+    "com.mojang.blaze3d.audio.MixinSoundEngine"
   ],
   "injectors": {
     "defaultRequire": 1
