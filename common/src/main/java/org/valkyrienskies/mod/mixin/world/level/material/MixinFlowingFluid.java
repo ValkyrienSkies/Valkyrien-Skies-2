@@ -8,6 +8,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FlowingFluid;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
+import org.joml.primitives.AABBic;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -26,11 +27,15 @@ public class MixinFlowingFluid {
 
         if (VSGameConfig.SERVER.getPreventFluidEscapingShip() && level instanceof Level) {
             final Ship ship = VSGameUtilsKt.getShipManagingPos((Level) level, toPos);
-            if (ship != null &&
-                ship.getShipVoxelAABB() != null &&
-                !ship.getShipVoxelAABB().containsPoint(toPos.getX(), toPos.getY(), toPos.getZ())
-            ) {
-                cir.setReturnValue(false);
+            if (ship != null && ship.getShipVoxelAABB() != null) {
+                final AABBic a = ship.getShipVoxelAABB();
+                final int x = toPos.getX();
+                final int y = toPos.getY();
+                final int z = toPos.getZ();
+
+                if (x <= a.minX() || y < a.minY() || z <= a.minZ() || x >= a.maxX() || y >= a.maxY() || z >= a.maxZ()) {
+                    cir.setReturnValue(false);
+                }
             }
         }
 
