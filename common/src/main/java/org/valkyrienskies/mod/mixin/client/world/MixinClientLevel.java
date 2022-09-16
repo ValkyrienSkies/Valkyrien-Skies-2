@@ -96,7 +96,7 @@ public abstract class MixinClientLevel {
 
         final Ship ship = VSGameUtilsKt.getShipManagingPos(ClientLevel.class.cast(this), x, y, z);
         if (ship != null) {
-            return new SimpleSoundInstanceOnShip(soundEvent, soundSource, pitch, volume, x, y, z,
+            return new SimpleSoundInstanceOnShip(soundEvent, soundSource, volume, pitch, x, y, z,
                 ship);
         }
 
