@@ -7,7 +7,7 @@ import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.AABB;
-import org.joml.Vector3d;
+import org.joml.primitives.AABBd;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -17,6 +17,7 @@ import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 import org.valkyrienskies.core.api.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager;
+import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(EntityRenderDispatcher.class)
 public class MixinEntityRenderDispatcher {
@@ -74,13 +75,11 @@ public class MixinEntityRenderDispatcher {
                         entity.getZ() - 2.0, entity.getX() + 2.0,
                         entity.getY() + 2.0, entity.getZ() + 2.0);
                 }
+                final AABBd aabb = VectorConversionsMCKt.toJOML(aABB);
 
                 // Get the in world position and do it minus what the aabb already has and then add the offset
-                final Vector3d result = ship.getRenderTransform().getShipToWorldMatrix()
-                    .transformPosition(new Vector3d(entity.getX(), entity.getY(), entity.getZ()));
-                result.sub(entity.getX(), entity.getY(), entity.getZ());
-
-                cir.setReturnValue(frustum.isVisible(aABB.move(result.x, result.y, result.z)));
+                aabb.transform(ship.getRenderTransform().getShipToWorldMatrix());
+                cir.setReturnValue(frustum.isVisible(VectorConversionsMCKt.toMinecraft(aabb)));
             }
         }
     }
