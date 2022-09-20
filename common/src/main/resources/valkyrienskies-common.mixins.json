@@ -51,6 +51,7 @@
     "client.renderer.chunk.MixinRenderChunk",
     "client.renderer.debug.MixinDebugRenderer",
     "client.renderer.entity.MixinEntityRenderDispatcher",
+    "client.renderer.entity.MixinMobRenderer",
     "client.world.MixinClientChunkCache",
     "client.world.MixinClientLevel",
     "com.mojang.blaze3d.audio.MixinChannel",
