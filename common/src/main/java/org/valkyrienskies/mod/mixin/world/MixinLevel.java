@@ -196,6 +196,7 @@ public class MixinLevel {
             LOGGER.error("Collision box is too big! " + area + " returning empty list! this might break things");
             cir.setReturnValue(list);
             cir.cancel();
+            return;
         }
         final ChunkSource chunkSource = Level.class.cast(this).getChunkSource();
 
