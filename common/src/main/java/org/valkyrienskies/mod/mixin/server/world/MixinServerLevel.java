@@ -10,12 +10,14 @@ import java.util.Set;
 import java.util.function.BooleanSupplier;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Position;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
+import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3d;
 import org.joml.Vector3i;
 import org.joml.Vector3ic;
@@ -48,7 +50,17 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
     @Final
     private ServerChunkCache chunkSource;
 
+    @Shadow
+    @NotNull
+    public abstract MinecraftServer getServer();
+
     private final Set<Vector3ic> knownChunkRegions = new HashSet<>();
+
+    @NotNull
+    @Override
+    public ShipObjectServerWorld getShipObjectWorld() {
+        return VSGameUtilsKt.getShipObjectWorld(getServer());
+    }
 
     /**
      * Include ships in particle distance check. Seems to only be used by /particle
