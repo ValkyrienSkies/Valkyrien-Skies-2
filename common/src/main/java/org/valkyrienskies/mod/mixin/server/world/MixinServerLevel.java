@@ -59,7 +59,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
     @NotNull
     @Override
     public ShipObjectServerWorld getShipObjectWorld() {
-        return VSGameUtilsKt.getShipObjectWorld(getServer());
+        return ((IShipObjectWorldServerProvider) getServer()).getShipObjectWorld();
     }
 
     /**

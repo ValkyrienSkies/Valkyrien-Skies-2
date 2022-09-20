@@ -49,7 +49,7 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
     @NotNull
     @Override
     public ShipObjectClientWorld getShipObjectWorld() {
-        return VSGameUtilsKt.getShipObjectWorld(minecraft);
+        return ((IShipObjectWorldClientProvider) minecraft).getShipObjectWorld();
     }
 
     @Shadow
