@@ -174,7 +174,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
      * @author ewoudje
      * @reason send updates to relevant VSEntityHandler
      */
-    @Inject(method = "addEntity", at = @At("TAIL"))
+    @Inject(method = "addEntity", at = @At(value = "HEAD"))
     private void updateHandler(final Entity entity, final CallbackInfoReturnable<Boolean> cir) {
         final Vector3d pos = new Vector3d(entity.getX(), entity.getY(), entity.getZ());
         final Ship ship = VSGameUtilsKt.getShipObjectManagingPos(entity.level, pos);
