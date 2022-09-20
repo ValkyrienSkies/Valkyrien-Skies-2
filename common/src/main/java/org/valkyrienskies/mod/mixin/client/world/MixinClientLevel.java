@@ -15,6 +15,7 @@ import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FluidState;
+import org.jetbrains.annotations.NotNull;
 import org.joml.primitives.AABBd;
 import org.joml.primitives.AABBdc;
 import org.joml.primitives.AABBi;
@@ -28,20 +29,28 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.Ship;
+import org.valkyrienskies.core.game.ships.ShipObjectClientWorld;
 import org.valkyrienskies.core.hooks.VSCoreHooksKt;
 import org.valkyrienskies.core.util.AABBdUtilKt;
 import org.valkyrienskies.core.util.VectorConversionsKt;
 import org.valkyrienskies.mod.client.audio.SimpleSoundInstanceOnShip;
+import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(ClientLevel.class)
-public abstract class MixinClientLevel {
+public abstract class MixinClientLevel implements IShipObjectWorldClientProvider {
     @Unique
     private final Random vsRandom = new Random();
 
     @Shadow
     @Final
     private Minecraft minecraft;
+
+    @NotNull
+    @Override
+    public ShipObjectClientWorld getShipObjectWorld() {
+        return VSGameUtilsKt.getShipObjectWorld(minecraft);
+    }
 
     @Shadow
     private void trySpawnDripParticles(final BlockPos blockPos, final BlockState blockState,
