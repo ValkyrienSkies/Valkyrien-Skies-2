@@ -34,6 +34,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.game.ships.ShipObjectClient;
 import org.valkyrienskies.core.game.ships.ShipObjectClientWorld;
 import org.valkyrienskies.mod.client.IVSCamera;
+import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
@@ -119,7 +120,11 @@ public abstract class MixinGameRenderer {
         final ClientLevel clientWorld = minecraft.level;
         if (clientWorld != null) {
             // Update ship render transforms
-            final ShipObjectClientWorld shipWorld = VSGameUtilsKt.getShipObjectWorld(clientWorld);
+            final ShipObjectClientWorld shipWorld =
+                IShipObjectWorldClientProvider.class.cast(this.minecraft).getShipObjectWorld();
+            if (shipWorld == null) {
+                return;
+            }
 
             for (final ShipObjectClient shipObjectClient : shipWorld.getShipObjects().values()) {
                 shipObjectClient.updateRenderShipTransform(tickDelta);

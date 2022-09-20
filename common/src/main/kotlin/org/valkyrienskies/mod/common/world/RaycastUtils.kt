@@ -197,24 +197,21 @@ fun Level.raytraceEntities(
             distance2 = d
         }
 
-    checkEntities(getEntities(shooter, origBoundingBoxM, filter), origStartVecM, origEndVecM)
+    val entities = getEntities(shooter, origBoundingBoxM, filter) // Returns world and ship-space entities (mixins)
 
-    val origBoundingBox = origBoundingBoxM.toJOML()
+    checkEntities(entities, origStartVecM, origEndVecM)
+
     val origStartVec = origStartVecM.toJOML()
     val origEndVec = origEndVecM.toJOML()
 
-    val boundingBox = AABBd()
     val start = Vector3d()
     val end = Vector3d()
 
-    shipObjectWorld.getShipObjectsIntersecting(origBoundingBox).forEach {
-        origBoundingBox.transform(it.worldToShip, boundingBox)
+    shipObjectWorld.getShipObjectsIntersecting(origBoundingBoxM.toJOML()).forEach {
         it.worldToShip.transformPosition(origStartVec, start)
         it.worldToShip.transformPosition(origEndVec, end)
 
-        checkEntities(
-            getEntities(shooter, boundingBox.toMinecraft(), filter), start.toMinecraft(), end.toMinecraft()
-        )
+        checkEntities(entities, start.toMinecraft(), end.toMinecraft())
     }
 
     return if (resultEntity == null) {
