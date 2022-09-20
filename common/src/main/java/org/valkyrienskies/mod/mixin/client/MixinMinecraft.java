@@ -80,7 +80,7 @@ public abstract class MixinMinecraft
     public ShipObjectClientWorld getShipObjectWorld() {
         final ShipObjectClientWorld shipObjectWorldCopy = shipObjectWorld;
         if (shipObjectWorldCopy == null) {
-            throw new IllegalStateException("Requested getShipObjectWorld() when shipObjectWorld was null!");
+            // TODO throw new IllegalStateException("Requested getShipObjectWorld() when shipObjectWorld was null!");
         }
         return shipObjectWorldCopy;
     }
