@@ -3,7 +3,6 @@ package org.valkyrienskies.mod.mixin.entity;
 import static org.valkyrienskies.mod.common.util.VectorConversionsMCKt.toJOML;
 
 import java.util.Random;
-import kotlin.Pair;
 import net.minecraft.CrashReport;
 import net.minecraft.CrashReportCategory;
 import net.minecraft.ReportedException;
@@ -33,7 +32,6 @@ import org.joml.primitives.AABBd;
 import org.joml.primitives.AABBdc;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -307,8 +305,9 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
      * @author ewoudje
      * @reason use vs2 handler to handle this method
      */
-    @Overwrite
-    public void positionRider(final Entity passengerI) {
+    @Redirect(method = "positionRider(Lnet/minecraft/world/entity/Entity;)V", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/world/entity/Entity;positionRider(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/entity/Entity$MoveFunction;)V"))
+    public void positionRider(final Entity instance, final Entity passengerI, final Entity.MoveFunction callback) {
         this.positionRider(passengerI,
             (passenger, x, y, z) -> VSEntityManager.INSTANCE.getHandler(passenger.getType())
                 .positionSetFromVehicle(passenger, Entity.class.cast(this), x, y, z));
