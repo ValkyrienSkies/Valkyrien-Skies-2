@@ -2,18 +2,23 @@ package org.valkyrienskies.mod.mixin.entity;
 
 import static org.valkyrienskies.mod.common.util.VectorConversionsMCKt.toJOML;
 
+import java.util.Random;
 import kotlin.Pair;
 import net.minecraft.CrashReport;
 import net.minecraft.CrashReportCategory;
 import net.minecraft.ReportedException;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.BlockParticleOption;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RewindableStream;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
@@ -25,6 +30,8 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.joml.primitives.AABBd;
+import org.joml.primitives.AABBdc;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
@@ -307,6 +314,99 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
                 .positionSetFromVehicle(passenger, Entity.class.cast(this), x, y, z));
     }
 
+    // region Block standing on friction and particles mixins
+    @Unique
+    private BlockPos getPosStandingOnFromShips(final Vector3dc blockPosInGlobal) {
+        final double radius = 0.5;
+        final AABBdc testAABB = new AABBd(
+            blockPosInGlobal.x() - radius, blockPosInGlobal.y() - radius, blockPosInGlobal.z() - radius,
+            blockPosInGlobal.x() + radius, blockPosInGlobal.y() + radius, blockPosInGlobal.z() + radius
+        );
+        final Iterable<Ship> intersectingShips = VSGameUtilsKt.getShipsIntersecting(level, testAABB);
+        for (final Ship ship : intersectingShips) {
+            final Vector3dc blockPosInLocal =
+                ship.getShipTransform().getWorldToShipMatrix().transformPosition(blockPosInGlobal, new Vector3d());
+            final BlockPos blockPos = new BlockPos(
+                Math.round(blockPosInLocal.x()), Math.round(blockPosInLocal.y()), Math.round(blockPosInLocal.z())
+            );
+            final BlockState blockState = level.getBlockState(blockPos);
+            if (!blockState.isAir()) {
+                return blockPos;
+            } else {
+                // Check the block below as well, in the cases of fences
+                final Vector3dc blockPosInLocal2 = ship.getShipTransform().getWorldToShipMatrix()
+                    .transformPosition(
+                        new Vector3d(blockPosInGlobal.x(), blockPosInGlobal.y() - 1.0, blockPosInGlobal.z()));
+                final BlockPos blockPos2 = new BlockPos(
+                    Math.round(blockPosInLocal2.x()), Math.round(blockPosInLocal2.y()), Math.round(blockPosInLocal2.z())
+                );
+                final BlockState blockState2 = level.getBlockState(blockPos2);
+                if (!blockState2.isAir()) {
+                    return blockPos2;
+                }
+            }
+        }
+        return null;
+    }
+
+    @Inject(method = "getBlockPosBelowThatAffectsMyMovement", at = @At("HEAD"), cancellable = true)
+    private void preGetBlockPosBelowThatAffectsMyMovement(final CallbackInfoReturnable<BlockPos> cir) {
+        final Vector3dc blockPosInGlobal = new Vector3d(
+            Math.floor(position.x) + 0.5,
+            Math.floor(getBoundingBox().minY - 0.5) + 0.5,
+            Math.floor(position.z) + 0.5
+        );
+        final BlockPos blockPosStandingOnFromShip = getPosStandingOnFromShips(blockPosInGlobal);
+        if (blockPosStandingOnFromShip != null) {
+            cir.setReturnValue(blockPosStandingOnFromShip);
+        }
+    }
+
+    /**
+     * @author tri0de
+     * @reason Allows ship blocks to spawn landing particles, running particles, and play step sounds
+     */
+    @Inject(method = "getOnPos", at = @At("HEAD"), cancellable = true)
+    private void preGetOnPos(final CallbackInfoReturnable<BlockPos> cir) {
+        final Vector3dc blockPosInGlobal = new Vector3d(
+            Math.floor(position.x) + 0.5,
+            Math.floor(position.y - 0.2) + 0.5,
+            Math.floor(position.z) + 0.5
+        );
+        final BlockPos blockPosStandingOnFromShip = getPosStandingOnFromShips(blockPosInGlobal);
+        if (blockPosStandingOnFromShip != null) {
+            cir.setReturnValue(blockPosStandingOnFromShip);
+        }
+    }
+
+    @Inject(method = "spawnSprintParticle", at = @At("HEAD"), cancellable = true)
+    private void preSpawnSprintParticle(final CallbackInfo ci) {
+        final Vector3dc blockPosInGlobal = new Vector3d(
+            Math.floor(position.x) + 0.5,
+            Math.floor(position.y - 0.2) + 0.5,
+            Math.floor(position.z) + 0.5
+        );
+        final BlockPos blockPosStandingOnFromShip = getPosStandingOnFromShips(blockPosInGlobal);
+        if (blockPosStandingOnFromShip != null) {
+            final BlockState blockState = this.level.getBlockState(blockPosStandingOnFromShip);
+            if (blockState.getRenderShape() != RenderShape.INVISIBLE) {
+                final Vec3 vec3 = this.getDeltaMovement();
+                this.level
+                    .addParticle(
+                        new BlockParticleOption(ParticleTypes.BLOCK, blockState),
+                        this.getX() + (this.random.nextDouble() - 0.5) * (double) this.dimensions.width,
+                        this.getY() + 0.1,
+                        this.getZ() + (this.random.nextDouble() - 0.5) * (double) this.dimensions.width,
+                        vec3.x * -4.0,
+                        1.5,
+                        vec3.z * -4.0
+                    );
+                ci.cancel();
+            }
+        }
+    }
+    // endregion
+
     // region shadow functions and fields
     @Shadow
     public Level level;
@@ -351,10 +451,23 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     @Shadow
     protected abstract void onInsideBlock(BlockState state);
 
+    @Shadow
+    private Vec3 position;
+
+    @Shadow
+    public abstract Vec3 getDeltaMovement();
+
+    @Shadow
+    @Final
+    protected Random random;
+
+    @Shadow
+    private EntityDimensions dimensions;
+    // endregion
+
     @Override
     @NotNull
     public EntityDraggingInformation getDraggingInformation() {
         return draggingInformation;
     }
-    // endregion
 }
