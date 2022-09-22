@@ -16,7 +16,10 @@ import org.valkyrienskies.core.util.logger
 import org.valkyrienskies.mod.common.BlockStateInfoProvider
 import org.valkyrienskies.mod.event.RegistryEvents
 
-private data class VSBlockStateInfo(val id: ResourceLocation, val mass: Double, val type: VSBlockType?)
+private data class VSBlockStateInfo(
+    val id: ResourceLocation, val priority: Int, val mass: Double, val type: VSBlockType?
+)
+
 object MassDatapackResolver : BlockStateInfoProvider {
     private val map = hashMapOf<ResourceLocation, VSBlockStateInfo>()
     val loader get() = VSMassDataLoader()
@@ -64,7 +67,11 @@ object MassDatapackResolver : BlockStateInfoProvider {
                         return@forEach
                     }
 
-                    tag.values.forEach { add(VSBlockStateInfo(Registry.BLOCK.getKey(it), tagInfo.mass, tagInfo.type)) }
+                    tag.values.forEach {
+                        add(
+                            VSBlockStateInfo(Registry.BLOCK.getKey(it), tagInfo.priority, tagInfo.mass, tagInfo.type)
+                        )
+                    }
                 }
                 tags.clear()
             }
@@ -77,7 +84,13 @@ object MassDatapackResolver : BlockStateInfoProvider {
         }
 
         private fun add(info: VSBlockStateInfo) {
-            map[info.id] = info
+            if (map.containsKey(info.id)) {
+                if (map[info.id]!!.priority < info.priority) {
+                    map[info.id] = info
+                }
+            } else {
+                map[info.id] = info
+            }
         }
 
         private fun parse(element: JsonElement, origin: ResourceLocation) {
@@ -85,13 +98,15 @@ object MassDatapackResolver : BlockStateInfoProvider {
             val weight = element.asJsonObject["mass"]?.asDouble
                 ?: throw IllegalArgumentException("No mass in file $origin")
 
+            val priority = element.asJsonObject["priority"]?.asInt ?: 100
+
             if (tag != null) {
-                addToBeAddedTags(VSBlockStateInfo(ResourceLocation(tag), weight, null))
+                addToBeAddedTags(VSBlockStateInfo(ResourceLocation(tag), priority, weight, null))
             } else {
                 val block = element.asJsonObject["block"]?.asString
                     ?: throw IllegalArgumentException("No block or tag in file $origin")
 
-                add(VSBlockStateInfo(ResourceLocation(block), weight, null))
+                add(VSBlockStateInfo(ResourceLocation(block), priority, weight, null))
             }
         }
     }
