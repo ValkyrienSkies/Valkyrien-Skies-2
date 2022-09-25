@@ -42,6 +42,8 @@ object ShipyardEntityHandler : VSEntityHandler {
     override fun applyRenderOnMountedEntity(
         ship: ClientShip, self: Entity, passenger: Entity, partialTicks: Float, matrixStack: PoseStack
     ) {
+        // TODO: somewhere else position is already applied in the matrix stack
+        // EW: i think it was in entity dragging logic
         matrixStack.mulPose(ship.renderTransform.shipCoordinatesToWorldCoordinatesRotation.toMinecraft())
     }
 }
