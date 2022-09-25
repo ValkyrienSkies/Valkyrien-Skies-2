@@ -42,6 +42,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
             profiler: ProfilerFiller?
         ) {
             map.clear()
+            tags.clear()
             objects?.forEach { (location, element) ->
                 try {
                     if (element.isJsonArray) {
@@ -73,7 +74,6 @@ object MassDatapackResolver : BlockStateInfoProvider {
                         )
                     }
                 }
-                tags.clear()
             }
         }
 
