@@ -182,7 +182,7 @@ fun Level.raytraceEntities(
             if (!clipO.isPresent) return@forEach
 
             val clip = clipO.get()
-            val d = startVec.distanceToSqr(clip) / scale
+            val d = startVec.distanceToSqr(clip) / (scale * scale)
 
             if (d >= distance2 && distance2 != 0.0) return@forEach
 
