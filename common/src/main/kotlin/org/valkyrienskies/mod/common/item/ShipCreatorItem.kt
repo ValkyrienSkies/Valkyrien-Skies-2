@@ -11,9 +11,9 @@ import org.joml.Vector3i
 import org.valkyrienskies.core.game.ChunkAllocator
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.shipObjectWorld
-import org.valkyrienskies.mod.common.util.relocateBlock
 import org.valkyrienskies.mod.common.util.toBlockPos
 import org.valkyrienskies.mod.common.util.toJOML
+import org.valkyrienskies.mod.util.relocateBlock
 
 class ShipCreatorItem(properties: Properties, private val scale: Double) : Item(properties) {
 
