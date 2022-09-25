@@ -39,6 +39,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
             profiler: ProfilerFiller?
         ) {
             map.clear()
+            tags.clear()
             objects?.forEach { (location, element) ->
                 try {
                     if (element.isJsonArray) {
@@ -66,7 +67,6 @@ object MassDatapackResolver : BlockStateInfoProvider {
 
                     tag.values.forEach { add(VSBlockStateInfo(Registry.BLOCK.getKey(it), tagInfo.mass, tagInfo.type)) }
                 }
-                tags.clear()
             }
         }
 

@@ -66,8 +66,8 @@ object BlockStateInfo {
 
     private fun iterateRegistry(blockState: BlockState): Pair<Double, VSBlockType> =
         Pair(
-            SORTED_REGISTRY.mapNotNull { it.getBlockStateMass(blockState) }.first(),
-            SORTED_REGISTRY.mapNotNull { it.getBlockStateType(blockState) }.first(),
+            SORTED_REGISTRY.firstNotNullOf { it.getBlockStateMass(blockState) },
+            SORTED_REGISTRY.firstNotNullOf { it.getBlockStateType(blockState) },
         )
 
     // NOTE: this gets called irrelevant if the block is actually on a ship; so it needs to be changed that
