@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.common.util
+package org.valkyrienskies.mod.util
 
 import net.minecraft.core.BlockPos
 import net.minecraft.nbt.CompoundTag
@@ -13,7 +13,7 @@ import org.valkyrienskies.mod.api.ShipBlockEntity
 private val AIR = Blocks.AIR.defaultBlockState()
 
 // the from and the to can be local or global
-fun relocateBlock(fromChunk: LevelChunk, from: BlockPos, toChunk: LevelChunk, to: BlockPos, toShip: ServerShip) {
+fun relocateBlock(fromChunk: LevelChunk, from: BlockPos, toChunk: LevelChunk, to: BlockPos, toShip: ServerShip?) {
     val state = fromChunk.getBlockState(from)
     val entity = fromChunk.getBlockEntity(from)
 

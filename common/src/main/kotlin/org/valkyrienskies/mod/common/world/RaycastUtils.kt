@@ -20,6 +20,7 @@ import org.joml.primitives.AABBdc
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toMinecraft
+import org.valkyrienskies.mod.util.scale
 import java.util.function.BiFunction
 import java.util.function.Function
 import java.util.function.Predicate
@@ -165,12 +166,12 @@ fun Level.raytraceEntities(
     var resultEntity: Entity? = null
     var location: Vec3? = null
 
-    fun checkEntities(entities: List<Entity>, startVec: Vec3, endVec: Vec3) =
+    fun checkEntities(entities: List<Entity>, startVec: Vec3, endVec: Vec3, scale: Double) =
         entities.forEach { entity ->
-            val aABB = entity.boundingBox.inflate(entity.pickRadius.toDouble())
-            val clipO = aABB.clip(startVec, endVec)
+            val aabb = entity.boundingBox.inflate(entity.pickRadius.toDouble()).scale(scale)
+            val clipO = aabb.clip(startVec, endVec)
 
-            if (aABB.contains(startVec)) {
+            if (aabb.contains(startVec)) {
                 if (distance2 < 0.0) return@forEach
                 resultEntity = entity
                 location = clipO.orElse(startVec)
@@ -181,7 +182,7 @@ fun Level.raytraceEntities(
             if (!clipO.isPresent) return@forEach
 
             val clip = clipO.get()
-            val d = startVec.distanceToSqr(clip)
+            val d = startVec.distanceToSqr(clip) / scale
 
             if (d >= distance2 && distance2 != 0.0) return@forEach
 
@@ -199,7 +200,7 @@ fun Level.raytraceEntities(
 
     val entities = getEntities(shooter, origBoundingBoxM, filter) // Returns world and ship-space entities (mixins)
 
-    checkEntities(entities, origStartVecM, origEndVecM)
+    checkEntities(entities, origStartVecM, origEndVecM, 1.0)
 
     val origStartVec = origStartVecM.toJOML()
     val origEndVec = origEndVecM.toJOML()
@@ -211,7 +212,11 @@ fun Level.raytraceEntities(
         it.worldToShip.transformPosition(origStartVec, start)
         it.worldToShip.transformPosition(origEndVec, end)
 
-        checkEntities(entities, start.toMinecraft(), end.toMinecraft())
+        // Shouldn't we have a double for scale in transform?
+        val scale = it.shipTransform.worldToShipMatrix.getScale(Vector3d())
+        assert(scale.x == scale.y && scale.y == scale.z)
+
+        checkEntities(entities, start.toMinecraft(), end.toMinecraft(), scale.x)
     }
 
     return if (resultEntity == null) {
