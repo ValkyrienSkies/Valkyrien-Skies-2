@@ -180,10 +180,10 @@ public class MixinLevel {
     }
 
     /**
-     * @author ewoudje
-     * <p>
      * Gets called for each type of getEntities of Level It will check if the aabb is to big and return nothing if it is
      * It will also include the ship-space entities in the list
+     *
+     * @author ewoudje
      */
     @Unique
     public <T extends Entity> void getEntitiesInShip(

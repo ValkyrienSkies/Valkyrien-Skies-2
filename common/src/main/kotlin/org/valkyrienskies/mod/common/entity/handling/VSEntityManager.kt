@@ -15,10 +15,23 @@ object VSEntityManager {
         register(ResourceLocation(ValkyrienSkiesMod.MOD_ID, "default"), WorldEntityHandler)
     }
 
+    /**
+     * Register the handler with a name
+     *
+     * @param name The name of the entity handler
+     * @param entityHandler The entity handler
+     */
     fun register(name: ResourceLocation, entityHandler: VSEntityHandler) {
         entityHandlersNamed[name] = entityHandler
     }
 
+    /**
+     * Pair the entity type with the entity handler
+     * Should be preferably configured via datapacks
+     *
+     * @param entityType The entity type
+     * @param entityHandler The entity handler
+     */
     fun pair(entityType: EntityType<*>, entityHandler: VSEntityHandler) {
         entityHandlers[entityType] = entityHandler
     }

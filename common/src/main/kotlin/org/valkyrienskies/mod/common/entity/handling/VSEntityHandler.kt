@@ -12,12 +12,14 @@ interface VSEntityHandler {
 
     /**
      * freshEntityInShipyard
+     *
      * Gets called when a new entity gets made in the shipyard
      */
     fun freshEntityInShipyard(entity: Entity, ship: Ship, position: Vector3dc)
 
     /**
      * ApplyRenderTransform
+     *
      * Gets called every render when the entity lives in the shipyard
      * You need to apply a transform the matrixStack is identity when this is called
      */
@@ -30,6 +32,7 @@ interface VSEntityHandler {
 
     /**
      * Position set from vehicle,
+     *
      * Gets called everytime the entity is getting set from a vehicle
      *
      * Should call self.setPos(x, y, z)

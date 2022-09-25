@@ -390,16 +390,15 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
             final BlockState blockState = this.level.getBlockState(blockPosStandingOnFromShip);
             if (blockState.getRenderShape() != RenderShape.INVISIBLE) {
                 final Vec3 vec3 = this.getDeltaMovement();
-                this.level
-                    .addParticle(
-                        new BlockParticleOption(ParticleTypes.BLOCK, blockState),
-                        this.getX() + (this.random.nextDouble() - 0.5) * (double) this.dimensions.width,
-                        this.getY() + 0.1,
-                        this.getZ() + (this.random.nextDouble() - 0.5) * (double) this.dimensions.width,
-                        vec3.x * -4.0,
-                        1.5,
-                        vec3.z * -4.0
-                    );
+                this.level.addParticle(
+                    new BlockParticleOption(ParticleTypes.BLOCK, blockState),
+                    this.getX() + (this.random.nextDouble() - 0.5) * (double) this.dimensions.width,
+                    this.getY() + 0.1,
+                    this.getZ() + (this.random.nextDouble() - 0.5) * (double) this.dimensions.width,
+                    vec3.x * -4.0,
+                    1.5,
+                    vec3.z * -4.0
+                );
                 ci.cancel();
             }
         }

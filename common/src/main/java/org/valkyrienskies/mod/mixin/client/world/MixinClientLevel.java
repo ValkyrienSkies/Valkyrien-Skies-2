@@ -122,8 +122,8 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
         final double regionBlockProbability,
         final boolean holdingBarrierItem
     ) {
-        final int volume = (region.maxX() - region.minX() + 1) * (region.maxY() - region.minY() + 1) *
-            (region.maxZ() - region.minZ() + 1);
+        final int volume = (region.maxX() - region.minX() + 1) * (region.maxY() - region.minY() + 1)
+            * (region.maxZ() - region.minZ() + 1);
         final double blocksToTickAsDouble = volume * regionBlockProbability;
         int blocksToTick = (int) Math.floor(blocksToTickAsDouble);
         // Handle the case of partial blocks to tick
