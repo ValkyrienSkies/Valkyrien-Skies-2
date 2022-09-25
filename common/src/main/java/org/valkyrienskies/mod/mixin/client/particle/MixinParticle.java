@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.game.ships.ShipObjectClient;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.mixin.client.render.MixinLevelRenderer;
+import org.valkyrienskies.mod.mixin.client.renderer.MixinLevelRenderer;
 
 @Mixin(Particle.class)
 public abstract class MixinParticle {

@@ -5,14 +5,14 @@
   },
   {
     "tag": "minecraft:planks",
-    "mass": 200.0
+    "mass": 700.0
   },
   {
     "tag": "minecraft:wooden_stairs",
-    "mass": 150.0
+    "mass": 525.0
   },
   {
     "tag": "minecraft:wooden_slabs",
-    "mass": 100.0
+    "mass": 350.0
   }
 ]

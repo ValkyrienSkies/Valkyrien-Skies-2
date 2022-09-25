@@ -22,7 +22,7 @@ object VSGamePackets {
             val player = (iPlayer as MinecraftPlayer).player as ServerPlayer
             if (player.vehicle is ShipMountingEntity && (player.vehicle as ShipMountingEntity).isController) {
                 val seat = player.vehicle!! as ShipMountingEntity
-                val ship = seat.level.getShipObjectManagingPos(seat.inShipPosition!!)!! as ShipObjectServer
+                val ship = seat.level.getShipObjectManagingPos(seat.blockPosition())!! as ShipObjectServer
                 val attachment =
                     ship.getAttachment() ?: SeatedControllingPlayer(seat.direction.opposite)
                         .apply { ship.setAttachment(this) }

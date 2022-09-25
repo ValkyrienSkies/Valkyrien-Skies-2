@@ -8,8 +8,8 @@ import org.valkyrienskies.core.game.ships.ShipObject
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toMinecraft
 import org.valkyrienskies.mod.mixin.accessors.entity.EntityAccessor
-import kotlin.math.asin
 import kotlin.math.atan2
+import kotlin.math.sqrt
 
 object PlayerUtil {
     /**
@@ -45,9 +45,9 @@ object PlayerUtil {
             val position = shipMatrix.transformPosition(
                 player.position().toJOML()
             )
-            val yaw = atan2(direction.x, -direction.z) // yaw in radians
-            val pitch = asin(-direction.y)
-            player.yRot = (yaw * (180 / Math.PI)).toFloat() + 180
+            val yaw = -atan2(direction.x, direction.z)
+            val pitch = -atan2(direction.y, sqrt((direction.x * direction.x) + (direction.z * direction.z)))
+            player.yRot = (yaw * (180 / Math.PI)).toFloat()
             player.yHeadRot = player.yRot
             player.xRot = (pitch * (180 / Math.PI)).toFloat()
             (player as EntityAccessor).setPosNoUpdates(position.toMinecraft())

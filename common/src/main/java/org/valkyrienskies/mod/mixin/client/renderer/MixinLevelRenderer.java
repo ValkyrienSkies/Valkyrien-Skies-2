@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.client.render;
+package org.valkyrienskies.mod.mixin.client.renderer;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexBuffer;

@@ -30,7 +30,6 @@ import org.valkyrienskies.core.game.ships.ShipObjectClient
 import org.valkyrienskies.core.game.ships.ShipObjectServer
 import org.valkyrienskies.core.util.DoubleTernaryConsumer
 import org.valkyrienskies.core.util.expand
-import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toJOMLD
@@ -199,12 +198,9 @@ fun Level.getShipObjectManagingPos(posX: Double, posY: Double, posZ: Double) =
 fun Level.getShipObjectManagingPos(chunkPos: ChunkPos) =
     getShipObjectManagingPos(chunkPos.x, chunkPos.z)
 
-fun Level.getShipObjectEntityMountedTo(entity: Entity): Pair<ShipObject, Vector3dc>? {
-    val vehicle = entity.vehicle
-    if (vehicle !is ShipMountingEntity) return null
-    val inShipPosition = vehicle.inShipPosition ?: return null
-    val shipObject = getShipObjectManagingPos(inShipPosition) ?: return null
-    return Pair(shipObject, inShipPosition)
+fun Level.getShipObjectEntityMountedTo(entity: Entity): ShipObject? {
+    val vehicle = entity.vehicle ?: return null
+    return getShipObjectManagingPos(vehicle.position().toJOML())
 }
 
 // ClientLevel
@@ -220,12 +216,9 @@ fun ClientLevel.getShipObjectManagingPos(pos: Vector3dc) =
 fun ClientLevel.getShipObjectManagingPos(chunkPos: ChunkPos) =
     getShipObjectManagingPos(chunkPos.x, chunkPos.z)
 
-fun ClientLevel.getShipObjectEntityMountedTo(entity: Entity): Pair<ShipObjectClient, Vector3dc>? {
-    val vehicle = entity.vehicle
-    if (vehicle !is ShipMountingEntity) return null
-    val inShipPosition = vehicle.inShipPosition ?: return null
-    val shipObject = getShipObjectManagingPos(inShipPosition) ?: return null
-    return Pair(shipObject, inShipPosition)
+fun ClientLevel.getShipObjectEntityMountedTo(entity: Entity): ShipObjectClient? {
+    val vehicle = entity.vehicle ?: return null
+    return getShipObjectManagingPos(vehicle.position().toJOML())
 }
 
 // ServerWorld
@@ -338,4 +331,9 @@ fun Level.transformAabbToWorld(aabb: AABBdc, dest: AABBd): AABBd {
     }
 
     return dest.set(aabb)
+}
+
+fun Entity.getPassengerPos(partialTicks: Float): Vector3dc {
+    return this.getPosition(partialTicks)
+        .add(0.0, this.passengersRidingOffset, 0.0).toJOML()
 }

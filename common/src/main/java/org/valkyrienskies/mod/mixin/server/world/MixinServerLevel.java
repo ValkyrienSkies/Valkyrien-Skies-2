@@ -10,11 +10,14 @@ import java.util.Set;
 import java.util.function.BooleanSupplier;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Position;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
+import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3d;
 import org.joml.Vector3i;
 import org.joml.Vector3ic;
@@ -25,11 +28,14 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import org.valkyrienskies.core.api.Ship;
 import org.valkyrienskies.core.game.ships.ShipData;
 import org.valkyrienskies.core.game.ships.ShipObject;
 import org.valkyrienskies.core.game.ships.ShipObjectServerWorld;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.entity.handling.VSEntityManager;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.mixin.accessors.server.world.ChunkMapAccessor;
 import org.valkyrienskies.physics_api.voxel_updates.DeleteVoxelShapeUpdate;
@@ -44,7 +50,17 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
     @Final
     private ServerChunkCache chunkSource;
 
+    @Shadow
+    @NotNull
+    public abstract MinecraftServer getServer();
+
     private final Set<Vector3ic> knownChunkRegions = new HashSet<>();
+
+    @NotNull
+    @Override
+    public ShipObjectServerWorld getShipObjectWorld() {
+        return ((IShipObjectWorldServerProvider) getServer()).getShipObjectWorld();
+    }
 
     /**
      * Include ships in particle distance check. Seems to only be used by /particle
@@ -152,5 +168,19 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
             VSGameUtilsKt.getDimensionId(self),
             voxelShapeUpdates
         );
+    }
+
+    /**
+     * @author ewoudje
+     * @reason send updates to relevant VSEntityHandler
+     */
+    @Inject(method = "addEntity", at = @At(value = "HEAD"))
+    private void updateHandler(final Entity entity, final CallbackInfoReturnable<Boolean> cir) {
+        final Vector3d pos = new Vector3d(entity.getX(), entity.getY(), entity.getZ());
+        final Ship ship = VSGameUtilsKt.getShipObjectManagingPos(entity.level, pos);
+        if (ship != null) {
+            VSEntityManager.INSTANCE.getHandler(entity.getType())
+                .freshEntityInShipyard(entity, ship, pos);
+        }
     }
 }

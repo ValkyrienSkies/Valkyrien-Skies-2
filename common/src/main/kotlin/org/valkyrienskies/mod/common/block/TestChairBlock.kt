@@ -17,8 +17,10 @@ import net.minecraft.world.level.material.Material
 import net.minecraft.world.phys.BlockHitResult
 import org.joml.Vector3d
 import org.joml.Vector3dc
+import org.valkyrienskies.core.util.x
+import org.valkyrienskies.core.util.y
+import org.valkyrienskies.core.util.z
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
-import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.util.toDoubles
 
 object TestChairBlock :
@@ -50,14 +52,7 @@ object TestChairBlock :
         if (level.isClientSide) return InteractionResult.SUCCESS
         val seatEntity = ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE.create(level)!!.apply {
             val seatEntityPos: Vector3dc = Vector3d(pos.x + .5, pos.y + .5, pos.z + .5)
-            inShipPosition = seatEntityPos
-            val ship = level.getShipManagingPos(pos)
-            if (ship != null) {
-                val posInWorld = ship.shipTransform.shipToWorldMatrix.transformPosition(seatEntityPos, Vector3d())
-                moveTo(posInWorld.x, posInWorld.y, posInWorld.z)
-            } else {
-                moveTo(seatEntityPos.x(), seatEntityPos.y(), seatEntityPos.z())
-            }
+            moveTo(seatEntityPos.x, seatEntityPos.y, seatEntityPos.z)
             lookAt(EntityAnchorArgument.Anchor.EYES, state.getValue(FACING).normal.toDoubles().add(position()))
             isController = true
         }

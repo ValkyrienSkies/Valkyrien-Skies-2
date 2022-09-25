@@ -3,7 +3,6 @@ package org.valkyrienskies.mod.mixin.entity;
 import static org.valkyrienskies.mod.common.util.VectorConversionsMCKt.toJOML;
 
 import java.util.Random;
-import kotlin.Pair;
 import net.minecraft.CrashReport;
 import net.minecraft.CrashReportCategory;
 import net.minecraft.ReportedException;
@@ -26,6 +25,7 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.joml.primitives.AABBd;
@@ -45,6 +45,7 @@ import org.valkyrienskies.core.game.ships.ShipObject;
 import org.valkyrienskies.core.game.ships.ShipObjectClient;
 import org.valkyrienskies.core.game.ships.ShipTransform;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.entity.handling.VSEntityManager;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
@@ -135,22 +136,21 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
      */
     @Inject(method = "getEyePosition", at = @At("HEAD"), cancellable = true)
     private void preGetEyePosition(final float partialTicks, final CallbackInfoReturnable<Vec3> cir) {
-        final Pair<ShipObject, Vector3dc> shipMountedTo =
+        final ShipObject shipMountedTo =
             VSGameUtilsKt.getShipObjectEntityMountedTo(level, Entity.class.cast(this));
         if (shipMountedTo == null) {
             return;
         }
 
-        final ShipObject shipObject = shipMountedTo.getFirst();
+        final ShipObject shipObject = shipMountedTo;
         final ShipTransform shipTransform;
         if (shipObject instanceof ShipObjectClient) {
             shipTransform = ((ShipObjectClient) shipObject).getRenderTransform();
         } else {
             shipTransform = shipObject.getShipData().getShipTransform();
         }
-        final Vector3dc basePos = shipTransform.getShipToWorldMatrix().transformPosition(
-            shipMountedTo.getSecond(), new Vector3d()
-        );
+        final Vector3dc basePos = shipTransform.getShipToWorldMatrix()
+            .transformPosition(VSGameUtilsKt.getPassengerPos(this.vehicle, partialTicks), new Vector3d());
         final Vector3dc eyeRelativePos = shipTransform.getShipCoordinatesToWorldCoordinatesRotation().transform(
             new Vector3d(0.0, getEyeHeight(), 0.0)
         );
@@ -163,8 +163,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
      */
     @Inject(method = "calculateViewVector", at = @At("HEAD"), cancellable = true)
     private void preCalculateViewVector(final float xRot, final float yRot, final CallbackInfoReturnable<Vec3> cir) {
-        final Pair<ShipObject, Vector3dc> shipMountedTo =
-            VSGameUtilsKt.getShipObjectEntityMountedTo(level, Entity.class.cast(this));
+        final ShipObject shipMountedTo = VSGameUtilsKt.getShipObjectEntityMountedTo(level, Entity.class.cast(this));
         if (shipMountedTo == null) {
             return;
         }
@@ -176,7 +175,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         final float k = Mth.sin(f);
         final Vector3dc originalViewVector = new Vector3d(i * j, -k, h * j);
 
-        final ShipObject shipObject = shipMountedTo.getFirst();
+        final ShipObject shipObject = shipMountedTo;
         final ShipTransform shipTransform;
         if (shipObject instanceof ShipObjectClient) {
             shipTransform = ((ShipObjectClient) shipObject).getRenderTransform();
@@ -302,6 +301,18 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         cir.setReturnValue(VSGameUtilsKt.squaredDistanceToInclShips(Entity.class.cast(this), x, y, z));
     }
 
+    /**
+     * @author ewoudje
+     * @reason use vs2 handler to handle this method
+     */
+    @Redirect(method = "positionRider(Lnet/minecraft/world/entity/Entity;)V", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/world/entity/Entity;positionRider(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/entity/Entity$MoveFunction;)V"))
+    public void positionRider(final Entity instance, final Entity passengerI, final Entity.MoveFunction callback) {
+        this.positionRider(passengerI,
+            (passenger, x, y, z) -> VSEntityManager.INSTANCE.getHandler(passenger.getType())
+                .positionSetFromVehicle(passenger, Entity.class.cast(this), x, y, z));
+    }
+
     // region Block standing on friction and particles mixins
     @Unique
     private BlockPos getPosStandingOnFromShips(final Vector3dc blockPosInGlobal) {
@@ -379,16 +390,15 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
             final BlockState blockState = this.level.getBlockState(blockPosStandingOnFromShip);
             if (blockState.getRenderShape() != RenderShape.INVISIBLE) {
                 final Vec3 vec3 = this.getDeltaMovement();
-                this.level
-                    .addParticle(
-                        new BlockParticleOption(ParticleTypes.BLOCK, blockState),
-                        this.getX() + (this.random.nextDouble() - 0.5) * (double) this.dimensions.width,
-                        this.getY() + 0.1,
-                        this.getZ() + (this.random.nextDouble() - 0.5) * (double) this.dimensions.width,
-                        vec3.x * -4.0,
-                        1.5,
-                        vec3.z * -4.0
-                    );
+                this.level.addParticle(
+                    new BlockParticleOption(ParticleTypes.BLOCK, blockState),
+                    this.getX() + (this.random.nextDouble() - 0.5) * (double) this.dimensions.width,
+                    this.getY() + 0.1,
+                    this.getZ() + (this.random.nextDouble() - 0.5) * (double) this.dimensions.width,
+                    vec3.x * -4.0,
+                    1.5,
+                    vec3.z * -4.0
+                );
                 ci.cancel();
             }
         }
@@ -429,7 +439,12 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
     @Shadow
     protected abstract Vec3 collide(Vec3 vec3d);
-    // endregion
+
+    @Shadow
+    protected abstract void positionRider(Entity passenger, Entity.MoveFunction callback);
+
+    @Shadow
+    private @Nullable Entity vehicle;
 
     @Shadow
     protected abstract void onInsideBlock(BlockState state);
@@ -446,6 +461,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
     @Shadow
     private EntityDimensions dimensions;
+    // endregion
 
     @Override
     @NotNull

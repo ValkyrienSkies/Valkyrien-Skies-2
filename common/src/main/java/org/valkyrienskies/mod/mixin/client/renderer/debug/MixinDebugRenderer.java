@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.client.render.debug;
+package org.valkyrienskies.mod.mixin.client.renderer.debug;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;

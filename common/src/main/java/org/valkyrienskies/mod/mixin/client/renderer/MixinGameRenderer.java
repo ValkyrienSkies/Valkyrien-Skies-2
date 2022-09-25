@@ -1,11 +1,11 @@
-package org.valkyrienskies.mod.mixin.client.render;
+package org.valkyrienskies.mod.mixin.client.renderer;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Matrix4f;
 import com.mojang.math.Quaternion;
 import com.mojang.math.Vector3f;
-import kotlin.Pair;
+import java.util.function.Predicate;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -15,8 +15,11 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
@@ -31,6 +34,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.game.ships.ShipObjectClient;
 import org.valkyrienskies.core.game.ships.ShipObjectClientWorld;
 import org.valkyrienskies.mod.client.IVSCamera;
+import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
@@ -52,13 +56,41 @@ public abstract class MixinGameRenderer {
             target = "Lnet/minecraft/world/entity/Entity;pick(DFZ)Lnet/minecraft/world/phys/HitResult;"
         )
     )
-    public HitResult modifyCrosshairTarget(final Entity receiver, final double maxDistance, final float tickDelta,
+    public HitResult modifyCrosshairTargetBlocks(final Entity receiver, final double maxDistance, final float tickDelta,
         final boolean includeFluids) {
 
         final HitResult original = entityRaycastNoTransform(receiver, maxDistance, tickDelta, includeFluids);
         ((MinecraftDuck) this.minecraft).vs$setOriginalCrosshairTarget(original);
 
         return receiver.pick(maxDistance, tickDelta, includeFluids);
+    }
+
+    @Redirect(
+        method = "pick",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/world/entity/projectile/ProjectileUtil;getEntityHitResult(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/AABB;Ljava/util/function/Predicate;D)Lnet/minecraft/world/phys/EntityHitResult;"
+        )
+    )
+    public @Nullable EntityHitResult modifyCrosshairTargetEntities(
+        final Entity shooter,
+        final Vec3 startVec, final Vec3 endVec,
+        final AABB boundingBox, final Predicate<Entity> filter,
+        final double distance) {
+        return RaycastUtilsKt.raytraceEntities(shooter.level, shooter, startVec, endVec, boundingBox, filter, distance);
+    }
+
+    @Redirect(
+        method = "pick",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/world/phys/Vec3;distanceToSqr(Lnet/minecraft/world/phys/Vec3;)D"
+        )
+    )
+    public double correctDistanceChecks(final Vec3 instance, final Vec3 vec) {
+        return VSGameUtilsKt.squaredDistanceBetweenInclShips(this.minecraft.level,
+            vec.x, vec.y, vec.z,
+            instance.x, instance.y, instance.z);
     }
 
     /**
@@ -88,7 +120,11 @@ public abstract class MixinGameRenderer {
         final ClientLevel clientWorld = minecraft.level;
         if (clientWorld != null) {
             // Update ship render transforms
-            final ShipObjectClientWorld shipWorld = VSGameUtilsKt.getShipObjectWorld(clientWorld);
+            final ShipObjectClientWorld shipWorld =
+                IShipObjectWorldClientProvider.class.cast(this.minecraft).getShipObjectWorld();
+            if (shipWorld == null) {
+                return;
+            }
 
             for (final ShipObjectClient shipObjectClient : shipWorld.getShipObjects().values()) {
                 shipObjectClient.updateRenderShipTransform(tickDelta);
@@ -101,12 +137,13 @@ public abstract class MixinGameRenderer {
                 Vector3dc entityShouldBeHere = null;
 
                 // First, try getting [entityShouldBeHere] from [shipMountedTo]
-                final Pair<ShipObjectClient, Vector3dc> shipMountedTo =
+                final ShipObjectClient shipMountedTo =
                     VSGameUtilsKt.getShipObjectEntityMountedTo(clientWorld, entity);
 
                 if (shipMountedTo != null) {
-                    entityShouldBeHere = shipMountedTo.getFirst().getRenderTransform().getShipToWorldMatrix()
-                        .transformPosition(shipMountedTo.getSecond(), new Vector3d());
+                    entityShouldBeHere = shipMountedTo.getRenderTransform().getShipToWorldMatrix()
+                        .transformPosition(VSGameUtilsKt.getPassengerPos(entity.getVehicle(), tickDelta),
+                            new Vector3d());
                 }
 
                 if (entityShouldBeHere == null) {
@@ -220,6 +257,7 @@ public abstract class MixinGameRenderer {
     @Shadow
     protected abstract void renderItemInHand(PoseStack matrixStack, Camera activeRenderInfo, float partialTicks);
 
+    // FIXME i think this replaces too much, this might make allot of mod compat issues
     @Inject(method = "renderLevel", at = @At("HEAD"), cancellable = true)
     private void preRenderLevel(final float partialTicks, final long finishTimeNano, final PoseStack matrixStack,
         final CallbackInfo ci) {
@@ -228,7 +266,7 @@ public abstract class MixinGameRenderer {
         if (clientLevel == null || player == null) {
             return;
         }
-        final Pair<ShipObjectClient, Vector3dc> playerShipMountedTo =
+        final ShipObjectClient playerShipMountedTo =
             VSGameUtilsKt.getShipObjectEntityMountedTo(clientLevel, player);
         if (playerShipMountedTo == null) {
             return;
@@ -236,6 +274,7 @@ public abstract class MixinGameRenderer {
 
         // Replace the original logic to mount the player camera to the ship
         ci.cancel();
+        final Vector3dc inShipPos = VSGameUtilsKt.getPassengerPos(player.getVehicle(), partialTicks);
 
         this.lightTexture.updateLightTexture(partialTicks);
         if (this.minecraft.getCameraEntity() == null) {
@@ -278,10 +317,11 @@ public abstract class MixinGameRenderer {
             !this.minecraft.options.getCameraType().isFirstPerson(),
             this.minecraft.options.getCameraType().isMirrored(),
             partialTicks,
-            playerShipMountedTo
+            playerShipMountedTo,
+            inShipPos
         );
         final Quaternion invShipRenderRotation = VectorConversionsMCKt.toMinecraft(
-            playerShipMountedTo.getFirst().getRenderTransform().getShipCoordinatesToWorldCoordinatesRotation()
+            playerShipMountedTo.getRenderTransform().getShipCoordinatesToWorldCoordinatesRotation()
                 .conjugate(new Quaterniond()));
         matrixStack.mulPose(Vector3f.XP.rotationDegrees(camera.getXRot()));
         matrixStack.mulPose(Vector3f.YP.rotationDegrees(camera.getYRot() + 180.0F));

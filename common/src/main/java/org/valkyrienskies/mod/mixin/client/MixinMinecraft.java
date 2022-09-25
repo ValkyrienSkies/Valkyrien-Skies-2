@@ -78,11 +78,14 @@ public abstract class MixinMinecraft
     @NotNull
     @Override
     public ShipObjectClientWorld getShipObjectWorld() {
-        final ShipObjectClientWorld shipObjectWorldCopy = shipObjectWorld;
+        /*final ShipObjectClientWorld shipObjectWorldCopy = shipObjectWorld;
+
         if (shipObjectWorldCopy == null) {
             throw new IllegalStateException("Requested getShipObjectWorld() when shipObjectWorld was null!");
         }
-        return shipObjectWorldCopy;
+        return shipObjectWorldCopy;*/
+        // I made it kind of nullable, it seems like preRender and getEntities mixins get used before its initialized
+        return shipObjectWorld;
     }
 
     @Shadow

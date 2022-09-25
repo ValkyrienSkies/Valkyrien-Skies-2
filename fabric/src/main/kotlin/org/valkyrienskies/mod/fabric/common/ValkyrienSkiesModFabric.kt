@@ -28,6 +28,7 @@ import org.valkyrienskies.mod.client.EmptyRenderer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.block.TestChairBlock
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
+import org.valkyrienskies.mod.common.config.VSEntityHandlerDataLoader
 import org.valkyrienskies.mod.common.config.VSKeyBindings
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
@@ -80,8 +81,9 @@ class ValkyrienSkiesModFabric : ModInitializer {
             ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE
         )
 
-        // registering mass
-        val loader = MassDatapackResolver.loader // the get makes a new instance so get it only once
+        // registering data loaders
+        val loader1 = MassDatapackResolver.loader // the get makes a new instance so get it only once
+        val loader2 = VSEntityHandlerDataLoader // the get makes a new instance so get it only once
         ResourceManagerHelper.get(SERVER_DATA)
             .registerReloadListener(object : IdentifiableResourceReloadListener {
                 override fun getFabricId(): ResourceLocation {
@@ -96,10 +98,15 @@ class ValkyrienSkiesModFabric : ModInitializer {
                     backgroundExecutor: Executor,
                     gameExecutor: Executor
                 ): CompletableFuture<Void> {
-                    return loader.reload(
+                    return loader1.reload(
                         stage, resourceManager, preparationsProfiler, reloadProfiler,
                         backgroundExecutor, gameExecutor
-                    )
+                    ).thenAcceptBoth(
+                        loader2.reload(
+                            stage, resourceManager, preparationsProfiler, reloadProfiler,
+                            backgroundExecutor, gameExecutor
+                        )
+                    ) { _, _ -> }
                 }
             })
     }
