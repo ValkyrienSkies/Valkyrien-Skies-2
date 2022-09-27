@@ -37,7 +37,8 @@ class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level) : E
             return
         }
 
-        sendDrivingPacket()
+        if (isController && level.getShipObjectManagingPos(blockPosition()!!) != null)
+            sendDrivingPacket()
     }
 
     override fun readAdditionalSaveData(compound: CompoundTag?) {
