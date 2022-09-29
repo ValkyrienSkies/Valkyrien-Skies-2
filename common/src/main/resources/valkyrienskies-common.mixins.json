@@ -25,6 +25,8 @@
     "world.MixinLevel",
     "world.chunk.MixinLevelChunk",
     "world.entity.MixinPlayer",
+    "world.entity.projectile.AbstractArrowMixin",
+    "world.entity.projectile.ProjectileUtilMixin",
     "world.item.MixinBlockItem",
     "world.item.context.MixinBlockPlaceContext",
     "world.level.MixinExplosion",
