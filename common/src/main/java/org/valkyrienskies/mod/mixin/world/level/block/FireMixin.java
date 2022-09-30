@@ -74,8 +74,8 @@ public class FireMixin {
                                     q /= 2;
                                 }
 
-                                if (q > 0 && random.nextInt(o) <= q &&
-                                    (!level.isRaining() || !this.isNearRain(level, mutableBlockPos))) {
+                                if (q > 0 && random.nextInt(o) <= q
+                                    && (!level.isRaining() || !this.isNearRain(level, mutableBlockPos))) {
                                     final int r = Math.min(15, i + random.nextInt(5) / 4);
                                     level.setBlock(mutableBlockPos, this.getStateWithAge(level, mutableBlockPos, r), 3);
                                 }
