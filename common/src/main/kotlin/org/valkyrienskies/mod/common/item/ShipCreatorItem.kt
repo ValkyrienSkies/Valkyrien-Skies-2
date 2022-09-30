@@ -5,6 +5,7 @@ import net.minecraft.network.chat.TextComponent
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.item.Item
+import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.context.UseOnContext
 import net.minecraft.world.level.block.state.BlockState
 import org.joml.Vector3i
@@ -16,6 +17,9 @@ import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.util.relocateBlock
 
 class ShipCreatorItem(properties: Properties, private val scale: Double) : Item(properties) {
+    override fun isFoil(stack: ItemStack?): Boolean {
+        return true
+    }
 
     override fun useOn(ctx: UseOnContext): InteractionResult {
         val level = ctx.level as? ServerLevel ?: return super.useOn(ctx)
