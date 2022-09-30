@@ -27,7 +27,6 @@ public class FireMixin {
     @Final
     public static IntegerProperty AGE;
 
-    //TODO make mixin less intervening
     @Inject(method = "tick", at = @At("TAIL"))
     public void fireTickMixin(final BlockState state, final ServerLevel level, final BlockPos pos, final Random random,
         final CallbackInfo ci) {
