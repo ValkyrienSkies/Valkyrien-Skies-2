@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.world.level.block;
+package org.valkyrienskies.mod.fabric.mixin.world.level.block;
 
 import java.util.Random;
 import net.minecraft.core.BlockPos;

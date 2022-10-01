@@ -28,7 +28,6 @@
     "world.item.MixinBlockItem",
     "world.item.context.MixinBlockPlaceContext",
     "world.level.MixinExplosion",
-    "world.level.block.FireMixin",
     "world.level.material.LavaFluidMixin",
     "world.level.material.MixinFlowingFluid"
   ],

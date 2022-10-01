@@ -3,7 +3,8 @@
   "package": "org.valkyrienskies.mod.forge.mixin",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
-    "client.render.MixinLevelRenderer"
+    "client.render.MixinLevelRenderer",
+    "world.level.block.FireMixin"
   ],
   "client": [
     "ExampleForgeMixin"
