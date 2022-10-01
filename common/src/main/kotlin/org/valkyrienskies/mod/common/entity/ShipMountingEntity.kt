@@ -37,7 +37,7 @@ class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level) : E
             return
         }
 
-        if (isController && level.getShipObjectManagingPos(blockPosition()!!) != null)
+        if (level.getShipObjectManagingPos(blockPosition()!!) != null)
             sendDrivingPacket()
     }
 
