@@ -313,6 +313,40 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
                 .positionSetFromVehicle(passenger, Entity.class.cast(this), x, y, z));
     }
 
+    /**
+     * @author ewoudje
+     * @reason use vs2 entity handler to handle this method
+     */
+    @Redirect(method = "setPos", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/world/entity/Entity;setPosRaw(DDD)V"))
+    public void setPosHandling1(final Entity instance, final double x, final double y, final double z) {
+        final Vector3d pos = new Vector3d(x, y, z);
+        final Ship ship;
+
+        if ((ship = VSGameUtilsKt.getShipObjectManagingPos(level, pos)) != null) {
+            VSEntityManager.INSTANCE.getHandler(instance.getType()).onEntityMove(instance, ship, pos);
+        } else {
+            instance.setPosRaw(x, y, z);
+        }
+    }
+
+    /**
+     * @author ewoudje
+     * @reason use vs2 entity handler to handle this method
+     */
+    @Redirect(method = "setLocationFromBoundingbox", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/world/entity/Entity;setPosRaw(DDD)V"))
+    public void setPosHandling2(final Entity instance, final double x, final double y, final double z) {
+        final Vector3d pos = new Vector3d(x, y, z);
+        final Ship ship;
+
+        if ((ship = VSGameUtilsKt.getShipObjectManagingPos(level, pos)) != null) {
+            VSEntityManager.INSTANCE.getHandler(instance.getType()).onEntityMove(instance, ship, pos);
+        } else {
+            instance.setPosRaw(x, y, z);
+        }
+    }
+
     // region Block standing on friction and particles mixins
     @Unique
     private BlockPos getPosStandingOnFromShips(final Vector3dc blockPosInGlobal) {

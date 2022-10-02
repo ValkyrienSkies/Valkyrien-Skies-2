@@ -12,7 +12,9 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 
 @Mixin(ClientPacketListener.class)
@@ -33,7 +35,9 @@ public class MixinClientPacketListener {
      * Spawn [ShipMountingEntity] on client side
      */
     @Inject(method = "handleAddEntity",
-        at = @At(value = "INVOKE", shift = At.Shift.AFTER, target = "Lnet/minecraft/network/protocol/PacketUtils;ensureRunningOnSameThread(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketListener;Lnet/minecraft/util/thread/BlockableEventLoop;)V"), cancellable = true)
+        at = @At(value = "INVOKE", shift = At.Shift.AFTER,
+            target = "Lnet/minecraft/network/protocol/PacketUtils;ensureRunningOnSameThread(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketListener;Lnet/minecraft/util/thread/BlockableEventLoop;)V"),
+        cancellable = true)
     private void handleShipMountingEntity(final ClientboundAddEntityPacket packet, final CallbackInfo ci) {
         if (packet.getType().equals(ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE)) {
             ci.cancel();
@@ -49,6 +53,25 @@ public class MixinClientPacketListener {
             entity.setId(i);
             entity.setUUID(packet.getUUID());
             this.level.putNonPlayerEntity(i, entity);
+        }
+    }
+
+    /**
+     * When mc receives a tp packet it lerps it between 2 positions in 3 steps, this is bad for ships it gets stuck in a
+     * unloaded chunk clientside and stays there until rejoining the server.
+     */
+    @Redirect(method = "handleTeleportEntity", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/world/entity/Entity;lerpTo(DDDFFIZ)V"))
+    private void teleportingWithNoStep(final Entity instance,
+        final double x, final double y, final double z,
+        final float yRot, final float xRot,
+        final int lerpSteps, final boolean teleport) {
+        if (VSGameUtilsKt.getShipObjectManagingPos(instance.level, instance.getX(), instance.getY(), instance.getZ()) !=
+            null) {
+            instance.setPos(x, y, z);
+            instance.lerpTo(x, y, z, yRot, xRot, 1, teleport);
+        } else {
+            instance.lerpTo(x, y, z, yRot, xRot, lerpSteps, teleport);
         }
     }
 }
