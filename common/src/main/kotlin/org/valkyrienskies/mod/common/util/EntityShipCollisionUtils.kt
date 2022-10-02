@@ -10,7 +10,7 @@ import org.joml.primitives.AABBd
 import org.joml.primitives.AABBdc
 import org.valkyrienskies.core.collision.ConvexPolygonc
 import org.valkyrienskies.core.collision.EntityPolygonCollider
-import org.valkyrienskies.core.collision.TransformedCuboidPolygon.Companion.createFromAABB
+import org.valkyrienskies.core.collision.EntityPolygonCollider.createPolygonFromAABB
 import org.valkyrienskies.core.util.extend
 import org.valkyrienskies.mod.common.shipObjectWorld
 import kotlin.math.max
@@ -72,7 +72,7 @@ object EntityShipCollisionUtils {
         val entityBoundingBoxExtended = entityBoundingBox.toJOML().extend(movement.toJOML())
         for (shipObject in world.shipObjectWorld.getShipObjectsIntersecting(entityBoundingBoxExtended)) {
             val shipTransform = shipObject.shipData.shipTransform
-            val entityPolyInShipCoordinates: ConvexPolygonc = createFromAABB(
+            val entityPolyInShipCoordinates: ConvexPolygonc = createPolygonFromAABB(
                 entityBoxWithMovement.toJOML(),
                 shipTransform.worldToShipMatrix
             )
@@ -81,7 +81,7 @@ object EntityShipCollisionUtils {
                 world.getBlockCollisions(entity, entityBoundingBoxInShipCoordinates.toMinecraft())
             shipBlockCollisionStream.forEach { voxelShape: VoxelShape ->
                 voxelShape.forAllBoxes { minX, minY, minZ, maxX, maxY, maxZ ->
-                    val shipPolygon: ConvexPolygonc = createFromAABB(
+                    val shipPolygon: ConvexPolygonc = createPolygonFromAABB(
                         AABBd(minX, minY, minZ, maxX, maxY, maxZ),
                         shipTransform.shipToWorldMatrix,
                         shipObject.shipData.id
