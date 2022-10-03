@@ -192,7 +192,7 @@
                      value="Type name ''{0}'' must match pattern ''{1}''."/>
         </module>
         <module name="MemberName">
-            <property name="format" value="^(vs\$)?[a-z][a-zA-Z0-9]*$"/>
+            <property name="format" value="^(vs[\$_])?[a-z][a-zA-Z0-9]*$"/>
             <message key="name.invalidPattern"
                      value="Member name ''{0}'' must match pattern ''{1}''."/>
         </module>
