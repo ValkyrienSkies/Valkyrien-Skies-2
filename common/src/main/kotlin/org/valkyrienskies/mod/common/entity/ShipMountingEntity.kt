@@ -66,7 +66,7 @@ class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level) : E
         val left = opts.keyLeft.isDown
         val right = opts.keyRight.isDown
         val up = opts.keyJump.isDown
-        val sprint = this.controllingPassenger!!.isSprinting
+        val sprint = this.controllingPassenger?.isSprinting == true
         val down = VSKeyBindings.shipDown.get().isDown
 
         val impulse = Vector3f()
