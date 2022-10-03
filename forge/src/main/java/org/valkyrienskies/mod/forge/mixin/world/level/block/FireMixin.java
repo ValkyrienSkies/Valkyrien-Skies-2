@@ -45,6 +45,10 @@ public class FireMixin {
 
             final BlockPos newPos = new BlockPos(x, y, z);
 
+            if (level.isWaterAt(newPos)) {
+                level.removeBlock(pos, false);
+            }
+
             final int i = (Integer) state.getValue(this.AGE);
 
             final boolean bl2 = level.isHumidAt(newPos);
@@ -90,6 +94,23 @@ public class FireMixin {
 
     }
 
+    @Inject(method = "onPlace", at = @At("HEAD"))
+    public void onPlaceMixin(final BlockState state, final Level level, final BlockPos pos, final BlockState oldState,
+        final boolean isMoving,
+        final CallbackInfo ci) {
+        final double origX = pos.getX();
+        final double origY = pos.getY();
+        final double origZ = pos.getZ();
+
+        VSGameUtilsKt.transformToNearbyShipsAndWorld(level, origX, origY, origZ, 1, (x, y, z) -> {
+
+            final BlockPos newPos = new BlockPos(x, y, z);
+            if (level.isWaterAt(newPos)) {
+                level.removeBlock(pos, false);
+            }
+        });
+    }
+    
     @Shadow
     private void tryCatchFire(final Level arg, final BlockPos arg2, final int k, final Random random, final int l,
         final Direction face) {

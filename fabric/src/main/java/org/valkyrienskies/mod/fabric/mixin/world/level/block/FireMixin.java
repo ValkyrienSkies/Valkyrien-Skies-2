@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.fabric.mixin.world.level.block;
 import java.util.Random;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
@@ -19,7 +20,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(FireBlock.class)
-public class FireMixin {
+public abstract class FireMixin {
+    @Shadow
+    protected abstract boolean isValidFireLocation(BlockGetter level, BlockPos pos);
+
     @Unique
     private boolean isModifyingFireTick = false;
 
@@ -43,6 +47,10 @@ public class FireMixin {
         VSGameUtilsKt.transformToNearbyShipsAndWorld(level, origX, origY, origZ, 3, (x, y, z) -> {
 
             final BlockPos newPos = new BlockPos(x, y, z);
+
+            if (level.isWaterAt(newPos)) {
+                level.removeBlock(pos, false);
+            }
 
             final int i = (Integer) state.getValue(this.AGE);
 
@@ -87,6 +95,23 @@ public class FireMixin {
 
         isModifyingFireTick = false;
 
+    }
+
+    @Inject(method = "onPlace", at = @At("HEAD"))
+    public void onPlaceMixin(final BlockState state, final Level level, final BlockPos pos, final BlockState oldState,
+        final boolean isMoving,
+        final CallbackInfo ci) {
+        final double origX = pos.getX();
+        final double origY = pos.getY();
+        final double origZ = pos.getZ();
+
+        VSGameUtilsKt.transformToNearbyShipsAndWorld(level, origX, origY, origZ, 1, (x, y, z) -> {
+
+            final BlockPos newPos = new BlockPos(x, y, z);
+            if (level.isWaterAt(newPos)) {
+                level.removeBlock(pos, false);
+            }
+        });
     }
 
     @Shadow
