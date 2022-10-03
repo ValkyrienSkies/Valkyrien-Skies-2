@@ -25,18 +25,23 @@ import org.valkyrienskies.mod.mixin.accessors.client.multiplayer.ClientLevelAcce
 import org.valkyrienskies.mod.mixin.accessors.client.render.LevelRendererAccessor;
 import org.valkyrienskies.mod.mixin.accessors.client.world.ClientChunkCacheStorageAccessor;
 import org.valkyrienskies.mod.mixinducks.client.render.IVSViewAreaMethods;
+import org.valkyrienskies.mod.mixinducks.client.world.ClientChunkCacheDuck;
 
 /**
  * The purpose of this mixin is to allow {@link ClientChunkCache} to store ship chunks.
  */
 @Mixin(ClientChunkCache.class)
-public abstract class MixinClientChunkCache {
+public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
 
     @Shadow
     private volatile ClientChunkCache.Storage storage;
     @Shadow
     @Final
     private ClientLevel level;
+
+    public LongObjectMap<LevelChunk> vs_getShipChunks() {
+        return shipChunks;
+    }
 
     private final LongObjectMap<LevelChunk> shipChunks = new LongObjectHashMap<>();
 

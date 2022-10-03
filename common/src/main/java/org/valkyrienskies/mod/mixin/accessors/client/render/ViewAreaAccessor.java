@@ -7,7 +7,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Invoker;
 
 @Mixin(ViewArea.class)
-public interface BuiltChunkStorageAccessor {
+public interface ViewAreaAccessor {
     @Invoker(value = "getRenderChunkAt")
     ChunkRenderDispatcher.RenderChunk callGetRenderChunkAt(BlockPos pos);
 }

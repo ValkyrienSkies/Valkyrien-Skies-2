@@ -25,6 +25,7 @@ import net.minecraft.core.Vec3i;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.BlockAndTintGetter;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
@@ -51,10 +52,11 @@ import org.valkyrienskies.core.game.ships.ShipObjectClient;
 import org.valkyrienskies.core.game.ships.ShipTransform;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
-import org.valkyrienskies.mod.mixin.accessors.client.render.BuiltChunkStorageAccessor;
 import org.valkyrienskies.mod.mixin.accessors.client.render.OverlayVertexConsumerAccessor;
 import org.valkyrienskies.mod.mixin.accessors.client.render.RenderChunkInfoAccessor;
+import org.valkyrienskies.mod.mixin.accessors.client.render.ViewAreaAccessor;
 import org.valkyrienskies.mod.mixin.client.particle.MixinParticle;
+import org.valkyrienskies.mod.mixinducks.client.world.ClientChunkCacheDuck;
 
 /**
  * This mixin allows {@link LevelRenderer} to render ship chunks.
@@ -150,7 +152,7 @@ public abstract class MixinLevelRenderer {
 
         final LevelRenderer self = LevelRenderer.class.cast(this);
         final BlockPos.MutableBlockPos tempPos = new BlockPos.MutableBlockPos();
-        final BuiltChunkStorageAccessor chunkStorageAccessor = (BuiltChunkStorageAccessor) viewArea;
+        final ViewAreaAccessor chunkStorageAccessor = (ViewAreaAccessor) viewArea;
         for (final ShipObjectClient shipObject : VSGameUtilsKt.getShipObjectWorld(level).getShipObjects().values()) {
             // Don't bother rendering the ship if its AABB isn't visible to the frustum
             if (!frustum.isVisible(VectorConversionsMCKt.toMinecraft(shipObject.getRenderAABB()))) {
@@ -171,6 +173,24 @@ public abstract class MixinLevelRenderer {
                 return null;
             });
         }
+    }
+
+    /**
+     * Prevents ships from disappearing on f3+a
+     */
+    @Inject(
+        method = "allChanged",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/client/renderer/ViewArea;repositionCamera(DD)V"
+        )
+    )
+    private void afterRefresh(final CallbackInfo ci) {
+        ((ClientChunkCacheDuck) this.level.getChunkSource()).vs_getShipChunks().forEach((pos, chunk) -> {
+            for (int y = 0; y < 16; y++) {
+                viewArea.setDirty(ChunkPos.getX(pos), y, ChunkPos.getZ(pos), false);
+            }
+        });
     }
 
     /**

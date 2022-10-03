@@ -33,10 +33,10 @@
   ],
   "client": [
     "accessors.client.multiplayer.ClientLevelAccessor",
-    "accessors.client.render.BuiltChunkStorageAccessor",
     "accessors.client.render.LevelRendererAccessor",
     "accessors.client.render.OverlayVertexConsumerAccessor",
     "accessors.client.render.RenderChunkInfoAccessor",
+    "accessors.client.render.ViewAreaAccessor",
     "accessors.client.render.chunk.RenderChunkAccessor",
     "accessors.client.world.ClientChunkCacheStorageAccessor",
     "client.MixinCamera",
