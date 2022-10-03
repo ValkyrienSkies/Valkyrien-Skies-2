@@ -6,4 +6,5 @@ class SeatedControllingPlayer(val seatInDirection: Direction) {
     var forwardImpulse: Float = 0.0f
     var leftImpulse: Float = 0.0f
     var upImpulse: Float = 0.0f
+    var sprintOn: Boolean = false
 }

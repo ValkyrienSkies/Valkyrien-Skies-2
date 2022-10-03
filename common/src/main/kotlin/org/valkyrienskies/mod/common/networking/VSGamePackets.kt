@@ -30,6 +30,7 @@ object VSGamePackets {
                 attachment.forwardImpulse = driving.impulse.z
                 attachment.leftImpulse = driving.impulse.x
                 attachment.upImpulse = driving.impulse.y
+                attachment.sprintOn = driving.sprint
             }
         }
     }
