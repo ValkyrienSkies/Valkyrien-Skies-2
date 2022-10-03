@@ -155,6 +155,14 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
         while (knownChunkPosIterator.hasNext()) {
             final Vector3ic knownChunkPos = knownChunkPosIterator.next();
             if (!currentTickChunkRegions.contains(knownChunkPos)) {
+                // mark the chunk removed as unloaded in the ShipData
+                final ShipData shipData = shipObjectWorld.getQueryableShipData()
+                    .getShipDataFromChunkPos(knownChunkPos.x(), knownChunkPos.z(), VSGameUtilsKt.getDimensionId(self));
+
+                if (shipData != null) {
+                    shipData.onUnloadChunk(knownChunkPos.x(), knownChunkPos.z());
+                }
+                
                 // Delete this chunk
                 final DeleteVoxelShapeUpdate deleteVoxelShapeUpdate =
                     new DeleteVoxelShapeUpdate(knownChunkPos.x(), knownChunkPos.y(), knownChunkPos.z(), false);
