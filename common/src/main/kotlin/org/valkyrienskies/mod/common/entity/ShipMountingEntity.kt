@@ -16,7 +16,7 @@ import org.valkyrienskies.mod.common.config.VSKeyBindings
 import org.valkyrienskies.mod.common.getShipObjectManagingPos
 import org.valkyrienskies.mod.common.networking.PacketPlayerDriving
 
-class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level) : Entity(type, level) {
+open class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level) : Entity(type, level) {
 
     // Decides if this entity controlls the ship it is in.
     // Only needs to be set serverside
