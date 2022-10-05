@@ -11,14 +11,13 @@ import org.joml.Quaterniond;
 import org.joml.Quaterniondc;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
-import org.joml.primitives.AABBd;
+import org.joml.primitives.AABBi;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.valkyrienskies.core.game.ships.ShipObjectClient;
 import org.valkyrienskies.core.game.ships.ShipTransform;
-import org.valkyrienskies.core.util.AABBdUtilKt;
 import org.valkyrienskies.mod.client.IVSCamera;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
@@ -90,9 +89,9 @@ public abstract class MixinCamera implements IVSCamera {
                 this.setRotationWithShipTransform(this.yRot + 180.0F, -this.xRot, renderTransform);
             }
 
-            final AABBd boundingBox = (AABBd) shipMountedTo.getShipVoxelAABB();
+            final AABBi boundingBox = (AABBi) shipMountedTo.getShipVoxelAABB();
 
-            double dist = AABBdUtilKt.getSize(boundingBox) * 1.5;
+            double dist = ((boundingBox.lengthX() + boundingBox.lengthY() + boundingBox.lengthZ()) / 3.0) * 1.5;
 
             dist = dist > 4 ? dist : 4;
 
