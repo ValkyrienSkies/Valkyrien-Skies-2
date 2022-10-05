@@ -90,7 +90,7 @@ public abstract class MixinCamera implements IVSCamera {
                 this.setRotationWithShipTransform(this.yRot + 180.0F, -this.xRot, renderTransform);
             }
 
-            final AABBd boundingBox = (AABBd) shipMountedTo.getShipAABB();
+            final AABBd boundingBox = (AABBd) shipMountedTo.getDebugShipPhysicsAABB();
 
             double dist = AABBdUtilKt.getSize(boundingBox) * 1.5;
 
