@@ -6,18 +6,19 @@ import net.minecraft.client.Camera;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.BlockGetter;
-import net.minecraft.world.phys.AABB;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Quaterniond;
 import org.joml.Quaterniondc;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
+import org.joml.primitives.AABBd;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.valkyrienskies.core.game.ships.ShipObjectClient;
 import org.valkyrienskies.core.game.ships.ShipTransform;
+import org.valkyrienskies.core.util.AABBdUtilKt;
 import org.valkyrienskies.mod.client.IVSCamera;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
@@ -89,9 +90,9 @@ public abstract class MixinCamera implements IVSCamera {
                 this.setRotationWithShipTransform(this.yRot + 180.0F, -this.xRot, renderTransform);
             }
 
-            final AABB boundingBox = VectorConversionsMCKt.toMinecraft(shipMountedTo.getShipAABB());
+            final AABBd boundingBox = (AABBd) shipMountedTo.getShipAABB();
 
-            double dist = boundingBox.getSize() * 1.5;
+            double dist = AABBdUtilKt.getSize(boundingBox) * 1.5;
 
             dist = dist > 4 ? dist : 4;
 
