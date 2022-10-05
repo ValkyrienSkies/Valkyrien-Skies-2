@@ -6,6 +6,7 @@ import net.minecraft.client.Camera;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.phys.AABB;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Quaterniond;
 import org.joml.Quaterniondc;
@@ -87,8 +88,14 @@ public abstract class MixinCamera implements IVSCamera {
             if (thirdPersonReverse) {
                 this.setRotationWithShipTransform(this.yRot + 180.0F, -this.xRot, renderTransform);
             }
-            // TODO: Adjust this based on ship size
-            this.move(-this.getMaxZoom(4.0), 0.0, 0.0);
+
+            final AABB boundingBox = VectorConversionsMCKt.toMinecraft(shipMountedTo.getShipAABB());
+
+            double dist = boundingBox.getSize() * 1.5;
+
+            dist = dist > 4 ? dist : 4;
+
+            this.move(-this.getMaxZoom(4.0 * (dist / 4.0)), 0.0, 0.0);
         }
     }
 
