@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.common.item
 
 import net.minecraft.Util
+import net.minecraft.core.Direction.NORTH
 import net.minecraft.network.chat.TextComponent
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.InteractionResult
@@ -37,7 +38,7 @@ class ShipCreatorItem(properties: Properties, private val scale: Double) : Item(
                 val centerPos = shipData.chunkClaim.getCenterBlockCoordinates(Vector3i()).toBlockPos()
 
                 // Move the block from the world to a ship
-                level.relocateBlock(blockPos, centerPos, shipData)
+                level.relocateBlock(blockPos, centerPos, shipData, NORTH)
 
                 ctx.player?.sendMessage(TextComponent("SHIPIFIED!"), Util.NIL_UUID)
             }
