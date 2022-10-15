@@ -127,13 +127,12 @@ public abstract class MixinLevelRenderer {
         final Vector3d v = transform
             // Rotate velocity wrt ship transform
             .transformDirection(new Vector3d(velocityX, velocityY, velocityZ))
-            // Tack on the ships linear velocity (no angular velocity param unfortunately)
-            .add(ship.getShipData().getPhysicsData().getLinearVelocity());
+            // Tack on the ships linear velocity (multiplied by 1/20 because particle velocity is given per tick)
+            .fma(0.05, ship.getShipData().getPhysicsData().getLinearVelocity());
 
         // Return and re-call this method with new coords
         cir.setReturnValue(
             addParticleInternal(parameters, alwaysSpawn, canSpawnOnMinimal, p.x, p.y, p.z, v.x, v.y, v.z));
-        cir.cancel();
     }
 
     /**

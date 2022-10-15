@@ -82,8 +82,8 @@ public abstract class MixinParticle {
         final Vector3d v = transform
             // Rotate velocity wrt ship transform
             .transformDirection(new Vector3d(this.xd, this.yd, this.zd))
-            // Tack on the ships linear velocity (no angular velocity param unfortunately)
-            .add(ship.getShipData().getPhysicsData().getLinearVelocity());
+            // Tack on the ships linear velocity (multiplied by 1/20 because particle velocity is given per tick)
+            .fma(0.05, ship.getShipData().getPhysicsData().getLinearVelocity());
 
         this.setPos(p.x, p.y, p.z);
         this.xd = v.x;
