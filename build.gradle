@@ -7,8 +7,8 @@ buildscript {
 
 plugins {
     // Needed for Forge+Fabric
-    id "architectury-plugin" version "3.4.138"
-    id "dev.architectury.loom" version "0.12.0.295" apply false
+    id "architectury-plugin" version "3.4.143"
+    id "dev.architectury.loom" version "0.12.0.301" apply false
     id 'io.github.juuxel.loom-quiltflower' version '1.7.1' apply false
     // Kotlin
     id "org.jetbrains.kotlin.jvm" version "1.7.10" apply false
