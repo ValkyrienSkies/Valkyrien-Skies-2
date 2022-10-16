@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.entity;
+package org.valkyrienskies.mod.mixin.feature.ladders;
 
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
