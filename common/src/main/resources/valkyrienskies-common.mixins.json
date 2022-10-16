@@ -13,6 +13,7 @@
     "feature.block_placement_orientation.MixinBlockPlaceContext",
     "feature.container_distance_check.MixinRandomizableContainerBlockEntity",
     "feature.dispensers.MixinDefaultDispenseItemBehavior",
+    "feature.distance_replace.MixinEntity",
     "feature.explosions.MixinExplosion",
     "feature.fire_between_ship_and_world.LavaFluidMixin",
     "feature.fluid_escaping_ship_config.MixinFlowingFluid",
