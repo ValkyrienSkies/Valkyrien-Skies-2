@@ -8,6 +8,8 @@
         <option value="noActionIfCompileErrors" />
         <option value="organizeImports" />
         <option value="reformat" />
+        <option value="rearrange" />
+        <option value="fieldCanBeFinal" />
         <option value="localCanBeFinal" />
         <option value="localCanBeFinalExceptImplicit" />
         <option value="useBlocks" />

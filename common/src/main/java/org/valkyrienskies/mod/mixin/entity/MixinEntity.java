@@ -57,6 +57,40 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
     @Unique
     private final EntityDraggingInformation draggingInformation = new EntityDraggingInformation();
+    @Shadow
+    public double xo;
+    @Shadow
+    public double yo;
+    @Shadow
+    public double zo;
+    // region shadow functions and fields
+    @Shadow
+    public Level level;
+    @Shadow
+    public float maxUpStep;
+    @Shadow
+    protected boolean onGround;
+    @Shadow
+    @Final
+    protected Random random;
+    @Shadow
+    private @Nullable Entity vehicle;
+    @Shadow
+    private Vec3 position;
+    @Shadow
+    private EntityDimensions dimensions;
+
+    @Shadow
+    public static double getHorizontalDistanceSqr(final Vec3 vector) {
+        throw new AssertionError("Mixin failed to apply");
+    }
+
+    @Shadow
+    public static Vec3 collideBoundingBoxHeuristically(final Entity thisAsEntity, final Vec3 movement, final AABB box,
+        final Level world,
+        final CollisionContext shapeContext, final RewindableStream<VoxelShape> reusableStream) {
+        return null;
+    }
 
     @Shadow
     public abstract double getZ();
@@ -67,6 +101,9 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     @Shadow
     public abstract double getX();
 
+    // This whole part changes distanceTo(sqrt) to use ship locations if needed.
+    // and unjank mojank
+
     @Redirect(
         method = "pick",
         at = @At(
@@ -75,15 +112,8 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         )
     )
     public BlockHitResult addShipsToRaycast(final Level receiver, final ClipContext ctx) {
-        return RaycastUtilsKt.clipIncludeShips((ClientLevel) receiver, ctx);
+        return RaycastUtilsKt.clipIncludeShipsClient((ClientLevel) receiver, ctx);
     }
-
-    @Shadow
-    public double xo;
-    @Shadow
-    public double yo;
-    @Shadow
-    public double zo;
 
     @Shadow
     public abstract float getEyeHeight();
@@ -227,6 +257,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
         return collisionResultWithWorld;
     }
+    // endregion
 
     /**
      * This mixin replaces the following code in Entity.move().
@@ -269,9 +300,6 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         // Cancel the original invocation of Entity.setVelocity(DDD)V to remove vanilla behavior
         callbackInfo.cancel();
     }
-
-    // This whole part changes distanceTo(sqrt) to use ship locations if needed.
-    // and unjank mojank
 
     /**
      * @author ewoudje
@@ -403,18 +431,6 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
             }
         }
     }
-    // endregion
-
-    // region shadow functions and fields
-    @Shadow
-    public Level level;
-    @Shadow
-    protected boolean onGround;
-    @Shadow
-    public float maxUpStep;
-
-    @Shadow
-    public abstract void setDeltaMovement(Vec3 motion);
 
     @Shadow
     public abstract double distanceToSqr(final Entity entity);
@@ -426,41 +442,19 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     public abstract void setDeltaMovement(double x, double y, double z);
 
     @Shadow
-    public static double getHorizontalDistanceSqr(final Vec3 vector) {
-        throw new AssertionError("Mixin failed to apply");
-    }
-
-    @Shadow
-    public static Vec3 collideBoundingBoxHeuristically(final Entity thisAsEntity, final Vec3 movement, final AABB box,
-        final Level world,
-        final CollisionContext shapeContext, final RewindableStream<VoxelShape> reusableStream) {
-        return null;
-    }
-
-    @Shadow
     protected abstract Vec3 collide(Vec3 vec3d);
 
     @Shadow
     protected abstract void positionRider(Entity passenger, Entity.MoveFunction callback);
 
     @Shadow
-    private @Nullable Entity vehicle;
-
-    @Shadow
     protected abstract void onInsideBlock(BlockState state);
-
-    @Shadow
-    private Vec3 position;
 
     @Shadow
     public abstract Vec3 getDeltaMovement();
 
     @Shadow
-    @Final
-    protected Random random;
-
-    @Shadow
-    private EntityDimensions dimensions;
+    public abstract void setDeltaMovement(Vec3 motion);
     // endregion
 
     @Override

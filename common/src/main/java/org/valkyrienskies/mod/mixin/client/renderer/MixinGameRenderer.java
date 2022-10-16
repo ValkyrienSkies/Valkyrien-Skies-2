@@ -48,6 +48,41 @@ public abstract class MixinGameRenderer {
     @Shadow
     @Final
     private Minecraft minecraft;
+    // region Mount the camera to the ship
+    @Shadow
+    @Final
+    private LightTexture lightTexture;
+    @Shadow
+    @Final
+    private Camera mainCamera;
+    @Shadow
+    private float renderDistance;
+    @Shadow
+    private int tick;
+    @Shadow
+    private boolean renderHand;
+
+    /**
+     * {@link Entity#pick(double, float, boolean)} except the hit pos is not transformed
+     */
+    @Unique
+    private static HitResult entityRaycastNoTransform(
+        final Entity entity, final double maxDistance, final float tickDelta, final boolean includeFluids) {
+        final Vec3 vec3d = entity.getEyePosition(tickDelta);
+        final Vec3 vec3d2 = entity.getViewVector(tickDelta);
+        final Vec3 vec3d3 = vec3d.add(vec3d2.x * maxDistance, vec3d2.y * maxDistance, vec3d2.z * maxDistance);
+        return RaycastUtilsKt.clipIncludeShipsClient(
+            (ClientLevel) entity.level,
+            new ClipContext(
+                vec3d,
+                vec3d3,
+                ClipContext.Block.OUTLINE,
+                includeFluids ? ClipContext.Fluid.ANY : ClipContext.Fluid.NONE,
+                entity
+            ),
+            false
+        );
+    }
 
     @Redirect(
         method = "pick",
@@ -91,28 +126,6 @@ public abstract class MixinGameRenderer {
         return VSGameUtilsKt.squaredDistanceBetweenInclShips(this.minecraft.level,
             vec.x, vec.y, vec.z,
             instance.x, instance.y, instance.z);
-    }
-
-    /**
-     * {@link Entity#pick(double, float, boolean)} except the hit pos is not transformed
-     */
-    @Unique
-    private static HitResult entityRaycastNoTransform(
-        final Entity entity, final double maxDistance, final float tickDelta, final boolean includeFluids) {
-        final Vec3 vec3d = entity.getEyePosition(tickDelta);
-        final Vec3 vec3d2 = entity.getViewVector(tickDelta);
-        final Vec3 vec3d3 = vec3d.add(vec3d2.x * maxDistance, vec3d2.y * maxDistance, vec3d2.z * maxDistance);
-        return RaycastUtilsKt.clipIncludeShips(
-            (ClientLevel) entity.level,
-            new ClipContext(
-                vec3d,
-                vec3d3,
-                ClipContext.Block.OUTLINE,
-                includeFluids ? ClipContext.Fluid.ANY : ClipContext.Fluid.NONE,
-                entity
-            ),
-            false
-        );
     }
 
     @Inject(method = "render", at = @At("HEAD"))
@@ -221,20 +234,6 @@ public abstract class MixinGameRenderer {
             }
         }
     }
-
-    // region Mount the camera to the ship
-    @Shadow
-    @Final
-    private LightTexture lightTexture;
-    @Shadow
-    @Final
-    private Camera mainCamera;
-    @Shadow
-    private float renderDistance;
-    @Shadow
-    private int tick;
-    @Shadow
-    private boolean renderHand;
 
     @Shadow
     public abstract void pick(float partialTicks);
