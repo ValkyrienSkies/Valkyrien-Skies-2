@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.world.level.material;
+package org.valkyrienskies.mod.mixin.feature.fire_between_ship_and_world;
 
 import java.util.Random;
 import net.minecraft.core.BlockPos;

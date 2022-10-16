@@ -13,6 +13,9 @@
     "feature.block_placement_orientation.MixinBlockPlaceContext",
     "feature.container_distance_check.MixinRandomizableContainerBlockEntity",
     "feature.dispensers.MixinDefaultDispenseItemBehavior",
+    "feature.explosions.MixinExplosion",
+    "feature.fire_between_ship_and_world.LavaFluidMixin",
+    "feature.fluid_escaping_ship_config.MixinFlowingFluid",
     "feature.ladders.MixinLivingEntity",
     "feature.move_block_items_drops.MixinBlock",
     "feature.screen_distance_check.MixinScreenHandler",
@@ -27,10 +30,7 @@
     "server.world.MixinServerLevel",
     "world.MixinLevel",
     "world.chunk.MixinLevelChunk",
-    "world.entity.MixinPlayer",
-    "world.level.MixinExplosion",
-    "world.level.material.LavaFluidMixin",
-    "world.level.material.MixinFlowingFluid"
+    "world.entity.MixinPlayer"
   ],
   "client": [
     "accessors.client.multiplayer.ClientLevelAccessor",
@@ -43,7 +43,6 @@
     "client.MixinCamera",
     "client.MixinGame",
     "client.MixinMinecraft",
-    "client.gui.hud.MixinGui",
     "client.multiplayer.MixinClientPacketListener",
     "client.player.MixinLocalPlayer",
     "client.renderer.MixinGameRenderer",
@@ -60,7 +59,8 @@
     "feature.sound.client.MixinSimpleSoundInstance",
     "feature.sound.client.MixinSoundEngine",
     "feature.transform_particles.MixinLevelRenderer",
-    "feature.transform_particles.MixinParticle"
+    "feature.transform_particles.MixinParticle",
+    "feature.vs2_alpha_hud.MixinGui"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.world.level.material;
+package org.valkyrienskies.mod.mixin.feature.fluid_escaping_ship_config;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;

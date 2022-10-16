@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.world.level;
+package org.valkyrienskies.mod.mixin.feature.explosions;
 
 import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.Level;

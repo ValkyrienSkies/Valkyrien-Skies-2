@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.client.gui.hud;
+package org.valkyrienskies.mod.mixin.feature.vs2_alpha_hud;
 
 import static net.minecraft.client.gui.GuiComponent.fill;
 
