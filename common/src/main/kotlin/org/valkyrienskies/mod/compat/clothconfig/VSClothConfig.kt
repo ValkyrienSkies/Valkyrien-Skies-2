@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.networknt.schema.ValidationMessage
+import com.rubydesic.jacksonktdsl.obj
 import me.shedaniel.clothconfig2.api.AbstractConfigListEntry
 import me.shedaniel.clothconfig2.api.ConfigBuilder
 import me.shedaniel.clothconfig2.api.ConfigCategory
@@ -17,7 +18,6 @@ import net.minecraft.network.chat.TextComponent
 import org.valkyrienskies.core.config.SidedVSConfigClass
 import org.valkyrienskies.core.config.VSConfigClass
 import org.valkyrienskies.core.util.serialization.VSJacksonUtil
-import org.valkyrienskies.core.util.serialization.shallowCopyWith
 import org.valkyrienskies.core.util.splitCamelCaseAndCapitalize
 import java.util.Optional
 
@@ -54,8 +54,16 @@ object VSClothConfig {
                 getEntriesForProperty(
                     key,
                     configJson[key], schema, entryBuilder,
-                    save = { newValue -> side.attemptUpdate(side.generateInstJsonWith(key, newValue)) },
-                    validate = { newValue -> side.schema.validate(side.generateInstJsonWith(key, newValue)) }
+                    save = { newValueToMerge ->
+                        side.attemptUpdate(
+                            side.generateInstJsonAndMergeWith(key, newValueToMerge)
+                        )
+                    },
+                    validate = { newValueToMerge ->
+                        side.schema.validate(
+                            side.generateInstJsonAndMergeWith(key, newValueToMerge)
+                        )
+                    }
                 ).forEach(category::addEntry)
             }
         }
@@ -169,13 +177,13 @@ object VSClothConfig {
             }
 
             type == "object" -> {
-                val obj = currentValue as ObjectNode
+                currentValue as ObjectNode
                 val properties = schema["properties"] as ObjectNode
-                val subEntries = properties.fields().asSequence().flatMap { (key, schema) ->
+                val subEntries = properties.fields().asSequence().flatMap { (subKey, schema) ->
                     getEntriesForProperty(
-                        key, obj[key], schema, entryBuilder,
-                        save = { newValue -> save(obj.shallowCopyWith(key, newValue)) },
-                        validate = { newValue -> validate(obj.shallowCopyWith(key, newValue)) }
+                        subKey, currentValue[subKey], schema, entryBuilder,
+                        save = { newValue -> save(obj { subKey to newValue }) },
+                        validate = { newValue -> validate(obj { subKey to newValue }) }
                     )
                 }.toList()
                 entries.add(
@@ -224,9 +232,7 @@ object VSClothConfig {
                 entries.add(
                     entryBuilder().startStrField(titleComponent, value).apply {
                         if (tooltip != null) setTooltip(tooltip)
-                        setSaveConsumer { str ->
-                            save(mapper.readTree(str))
-                        }
+                        setSaveConsumer { str -> defaultSave(mapper.readTree(str)) }
                         setErrorSupplier { str ->
                             val newValue = try {
                                 mapper.readTree(str)

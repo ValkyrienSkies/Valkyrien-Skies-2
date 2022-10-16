@@ -49,7 +49,7 @@ public class MixinGui {
             try {
                 // This is dangerous because we have to reach into the Server state from the Client, which can fail.
                 // So, put this in a try/catch block to catch any errors that may occur.
-                physicsTPS = " " + VSGameUtilsKt.getVsPipeline(integratedServer).computePhysTps();
+                physicsTPS = " " + Math.round(VSGameUtilsKt.getVsPipeline(integratedServer).computePhysTps());
             } catch (final Exception e) {
                 e.printStackTrace();
             }
