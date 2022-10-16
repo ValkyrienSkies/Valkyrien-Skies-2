@@ -15,6 +15,7 @@
     "feature.dispensers.MixinDefaultDispenseItemBehavior",
     "feature.move_block_items_drops.MixinBlock",
     "feature.screen_distance_check.MixinScreenHandler",
+    "entity.MixinLivingEntity",
     "resource.MixinServerResources",
     "server.MixinMinecraftServer",
     "server.MixinPlayerList",
