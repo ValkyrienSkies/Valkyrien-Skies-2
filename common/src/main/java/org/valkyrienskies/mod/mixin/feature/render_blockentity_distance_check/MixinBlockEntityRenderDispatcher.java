@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.client.renderer.block.entity;
+package org.valkyrienskies.mod.mixin.feature.render_blockentity_distance_check;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.multiplayer.ClientLevel;
