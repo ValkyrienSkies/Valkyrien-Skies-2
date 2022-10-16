@@ -9,7 +9,6 @@ import it.unimi.dsi.fastutil.objects.ObjectList;
 import it.unimi.dsi.fastutil.objects.ObjectListIterator;
 import net.minecraft.client.Camera;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.particle.Particle;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.LightTexture;
@@ -22,7 +21,6 @@ import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
-import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.ChunkPos;
@@ -31,10 +29,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4d;
 import org.joml.Matrix4dc;
-import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -45,7 +41,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyConstant;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 import org.valkyrienskies.core.game.ChunkAllocator;
 import org.valkyrienskies.core.game.ships.ShipObjectClient;
@@ -55,7 +50,6 @@ import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.mixin.accessors.client.render.OverlayVertexConsumerAccessor;
 import org.valkyrienskies.mod.mixin.accessors.client.render.RenderChunkInfoAccessor;
 import org.valkyrienskies.mod.mixin.accessors.client.render.ViewAreaAccessor;
-import org.valkyrienskies.mod.mixin.client.particle.MixinParticle;
 import org.valkyrienskies.mod.mixinducks.client.world.ClientChunkCacheDuck;
 
 /**
@@ -71,12 +65,6 @@ public abstract class MixinLevelRenderer {
     private ClientLevel level;
     @Shadow
     private ViewArea viewArea;
-
-    @Shadow
-    @Nullable
-    protected abstract Particle addParticleInternal(ParticleOptions parameters, boolean alwaysSpawn,
-        boolean canSpawnOnMinimal,
-        double x, double y, double z, double velocityX, double velocityY, double velocityZ);
 
     @Shadow
     private static void renderShape(final PoseStack matrixStack, final VertexConsumer vertexConsumer,
@@ -95,44 +83,6 @@ public abstract class MixinLevelRenderer {
     private double includeShipChunksInNearChunks(final BlockPos b, final Vec3i v) {
         return VSGameUtilsKt.squaredDistanceBetweenInclShips(
             level, b.getX(), b.getY(), b.getZ(), v.getX(), v.getY(), v.getZ());
-    }
-
-    /**
-     * Render particles in-world. The {@link MixinParticle} is not sufficient because this method includes a distance
-     * check, but this mixin is also not sufficient because not every particle is spawned using this method.
-     */
-    @Inject(
-        method = "addParticleInternal(Lnet/minecraft/core/particles/ParticleOptions;ZZDDDDDD)Lnet/minecraft/client/particle/Particle;",
-        at = @At("HEAD"),
-        cancellable = true
-    )
-    private void spawnParticleInWorld(final ParticleOptions parameters, final boolean alwaysSpawn,
-        final boolean canSpawnOnMinimal,
-        final double x, final double y, final double z, final double velocityX, final double velocityY,
-        final double velocityZ,
-        final CallbackInfoReturnable<Particle> cir
-    ) {
-        final ShipObjectClient ship = VSGameUtilsKt.getShipObjectManagingPos(level, (int) x >> 4, (int) z >> 4);
-
-        if (ship == null) {
-            // vanilla behaviour
-            return;
-        }
-
-        final Matrix4dc transform = ship.getRenderTransform().getShipToWorldMatrix();
-        // in-world position
-        final Vector3d p = transform.transformPosition(new Vector3d(x, y, z));
-
-        // in-world velocity
-        final Vector3d v = transform
-            // Rotate velocity wrt ship transform
-            .transformDirection(new Vector3d(velocityX, velocityY, velocityZ))
-            // Tack on the ships linear velocity (multiplied by 1/20 because particle velocity is given per tick)
-            .fma(0.05, ship.getShipData().getPhysicsData().getLinearVelocity());
-
-        // Return and re-call this method with new coords
-        cir.setReturnValue(
-            addParticleInternal(parameters, alwaysSpawn, canSpawnOnMinimal, p.x, p.y, p.z, v.x, v.y, v.z));
     }
 
     /**

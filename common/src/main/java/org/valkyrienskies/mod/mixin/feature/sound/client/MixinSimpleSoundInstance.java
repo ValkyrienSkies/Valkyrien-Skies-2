@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.client.resources.sounds;
+package org.valkyrienskies.mod.mixin.feature.sound.client;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;

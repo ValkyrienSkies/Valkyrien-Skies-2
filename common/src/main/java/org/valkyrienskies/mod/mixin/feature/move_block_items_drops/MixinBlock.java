@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.block;
+package org.valkyrienskies.mod.mixin.feature.move_block_items_drops;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.item.ItemEntity;

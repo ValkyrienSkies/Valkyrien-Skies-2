@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.client.renderer.chunk;
+package org.valkyrienskies.mod.mixin.feature.fix_render_chunk_sorting;
 
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;

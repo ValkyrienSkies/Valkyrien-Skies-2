@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.client.renderer.entity;
+package org.valkyrienskies.mod.mixin.feature.render_leashes;
 
 import net.minecraft.client.renderer.entity.MobRenderer;
 import net.minecraft.world.entity.Entity;

@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.core.dispenser;
+package org.valkyrienskies.mod.mixin.feature.dispensers;
 
 import net.minecraft.core.Direction;
 import net.minecraft.core.Position;

@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.client.particle;
+package org.valkyrienskies.mod.mixin.feature.transform_particles;
 
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.Particle;

@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.com.mojang.blaze3d.audio;
+package org.valkyrienskies.mod.mixin.feature.sound.client;
 
 import com.mojang.blaze3d.audio.Channel;
 import org.joml.Vector3dc;
