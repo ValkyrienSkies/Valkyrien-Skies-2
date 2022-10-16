@@ -11,6 +11,7 @@
     "entity.MixinEntity",
     "feature.block_placement_orientation.MixinBlockItem",
     "feature.block_placement_orientation.MixinBlockPlaceContext",
+    "feature.clip_replace.MixinBlockGetter",
     "feature.container_distance_check.MixinRandomizableContainerBlockEntity",
     "feature.dispensers.MixinDefaultDispenseItemBehavior",
     "feature.explosions.MixinExplosion",
@@ -30,8 +31,7 @@
     "server.world.MixinServerLevel",
     "world.MixinLevel",
     "world.chunk.MixinLevelChunk",
-    "world.entity.MixinPlayer",
-    "world.level.MixinBlockGetter"
+    "world.entity.MixinPlayer"
   ],
   "client": [
     "accessors.client.multiplayer.ClientLevelAccessor",

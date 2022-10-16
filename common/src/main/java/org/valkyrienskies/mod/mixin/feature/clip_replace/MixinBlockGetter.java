@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.world.level;
+package org.valkyrienskies.mod.mixin.feature.clip_replace;
 
 import java.util.function.BiFunction;
 import java.util.function.Function;
