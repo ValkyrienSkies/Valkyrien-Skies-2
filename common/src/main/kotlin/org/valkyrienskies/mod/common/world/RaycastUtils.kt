@@ -1,6 +1,5 @@
 package org.valkyrienskies.mod.common.world
 
-import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.util.Mth
@@ -18,6 +17,7 @@ import net.minecraft.world.phys.Vec3
 import org.joml.Vector3d
 import org.joml.primitives.AABBd
 import org.joml.primitives.AABBdc
+import org.valkyrienskies.core.game.ships.ShipObjectClient
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toMinecraft
@@ -25,46 +25,6 @@ import org.valkyrienskies.mod.util.scale
 import java.util.function.BiFunction
 import java.util.function.Function
 import java.util.function.Predicate
-
-@JvmOverloads
-fun ClientLevel.clipIncludeShipsClient(ctx: ClipContext, shouldTransformHitPos: Boolean = true): BlockHitResult {
-    val vanillaHit = vanillaClip(ctx)
-
-    var closestHit = vanillaHit
-    var closestHitPos = vanillaHit.location
-    var closestHitDist = closestHitPos.distanceToSqr(ctx.from)
-
-    val clipAABB: AABBdc = AABBd(ctx.from.toJOML(), ctx.to.toJOML()).correctBounds()
-
-    // Iterate every ship, find do the raycast in ship space,
-    // choose the raycast with the lowest distance to the start position.
-    for (ship in shipObjectWorld.getShipObjectsIntersecting(clipAABB)) {
-        val worldToShip = ship.renderTransform.worldToShipMatrix
-        val shipToWorld = ship.renderTransform.shipToWorldMatrix
-        val shipStart = worldToShip.transformPosition(ctx.from.toJOML()).toMinecraft()
-        val shipEnd = worldToShip.transformPosition(ctx.to.toJOML()).toMinecraft()
-
-        val shipHit = clip(ctx, shipStart, shipEnd)
-        val shipHitPos = shipToWorld.transformPosition(shipHit.location.toJOML()).toMinecraft()
-        val shipHitDist = shipHitPos.distanceToSqr(ctx.from)
-
-        if (shipHitDist < closestHitDist && shipHit.type != HitResult.Type.MISS) {
-            closestHit = shipHit
-            closestHitPos = shipHitPos
-            closestHitDist = shipHitDist
-        }
-    }
-
-    if (!shouldTransformHitPos) {
-        closestHitPos = closestHit.location
-    }
-
-    return if (closestHit.type == HitResult.Type.MISS) {
-        BlockHitResult.miss(closestHitPos, closestHit.direction, closestHit.blockPos)
-    } else {
-        BlockHitResult(closestHitPos, closestHit.direction, closestHit.blockPos, closestHit.isInside)
-    }
-}
 
 @JvmOverloads
 fun Level.clipIncludeShips(ctx: ClipContext, shouldTransformHitPos: Boolean = true): BlockHitResult {
@@ -79,8 +39,8 @@ fun Level.clipIncludeShips(ctx: ClipContext, shouldTransformHitPos: Boolean = tr
     // Iterate every ship, find do the raycast in ship space,
     // choose the raycast with the lowest distance to the start position.
     for (ship in shipObjectWorld.getShipObjectsIntersecting(clipAABB)) {
-        val worldToShip = ship.shipTransform.worldToShipMatrix
-        val shipToWorld = ship.shipTransform.shipToWorldMatrix
+        val worldToShip = (ship as? ShipObjectClient)?.renderTransform?.worldToShipMatrix ?: ship.worldToShip
+        val shipToWorld = (ship as? ShipObjectClient)?.renderTransform?.shipToWorldMatrix ?: ship.shipToWorld
         val shipStart = worldToShip.transformPosition(ctx.from.toJOML()).toMinecraft()
         val shipEnd = worldToShip.transformPosition(ctx.to.toJOML()).toMinecraft()
 

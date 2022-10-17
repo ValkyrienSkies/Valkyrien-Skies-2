@@ -71,8 +71,8 @@ public abstract class MixinGameRenderer {
         final Vec3 vec3d = entity.getEyePosition(tickDelta);
         final Vec3 vec3d2 = entity.getViewVector(tickDelta);
         final Vec3 vec3d3 = vec3d.add(vec3d2.x * maxDistance, vec3d2.y * maxDistance, vec3d2.z * maxDistance);
-        return RaycastUtilsKt.clipIncludeShipsClient(
-            (ClientLevel) entity.level,
+        return RaycastUtilsKt.clipIncludeShips(
+            entity.level,
             new ClipContext(
                 vec3d,
                 vec3d3,

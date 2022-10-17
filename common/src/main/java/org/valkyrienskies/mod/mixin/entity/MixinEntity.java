@@ -6,7 +6,6 @@ import java.util.Random;
 import net.minecraft.CrashReport;
 import net.minecraft.CrashReportCategory;
 import net.minecraft.ReportedException;
-import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
@@ -63,7 +62,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         )
     )
     public BlockHitResult addShipsToRaycast(final Level receiver, final ClipContext ctx) {
-        return RaycastUtilsKt.clipIncludeShipsClient((ClientLevel) receiver, ctx);
+        return RaycastUtilsKt.clipIncludeShips(receiver, ctx);
     }
 
     @Inject(
