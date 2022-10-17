@@ -9,10 +9,10 @@ import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
-import org.apache.logging.log4j.LogManager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.valkyrienskies.mod.MixinLoggers;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 
 @Mixin(BlockGetter.class)
@@ -24,7 +24,7 @@ public interface MixinBlockGetter {
     default Object clip(final ClipContext clipContext, final BiFunction<ClipContext, BlockPos, Object> biFunction,
         final Function<ClipContext, Object> function) {
         if (clipContext.getFrom().distanceToSqr(clipContext.getTo()) > (10000 * 10000)) {
-            LogManager.getLogger().warn("Trying to clip from " +
+            MixinLoggers.BLOCK_GETTER.warn("Trying to clip from " +
                 clipContext.getFrom() + " to " + clipContext.getTo() + " wich is too far away!!");
 
             final Vec3 vec3 = clipContext.getFrom().subtract(clipContext.getTo());
