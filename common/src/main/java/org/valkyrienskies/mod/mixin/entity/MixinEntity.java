@@ -11,7 +11,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.util.Mth;
-import net.minecraft.util.RewindableStream;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.MoverType;
@@ -22,8 +21,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
-import net.minecraft.world.phys.shapes.CollisionContext;
-import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
@@ -57,40 +54,6 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
     @Unique
     private final EntityDraggingInformation draggingInformation = new EntityDraggingInformation();
-    @Shadow
-    public double xo;
-    @Shadow
-    public double yo;
-    @Shadow
-    public double zo;
-    // region shadow functions and fields
-    @Shadow
-    public Level level;
-    @Shadow
-    public float maxUpStep;
-    @Shadow
-    protected boolean onGround;
-    @Shadow
-    @Final
-    protected Random random;
-    @Shadow
-    private @Nullable Entity vehicle;
-    @Shadow
-    private Vec3 position;
-    @Shadow
-    private EntityDimensions dimensions;
-
-    @Shadow
-    public static double getHorizontalDistanceSqr(final Vec3 vector) {
-        throw new AssertionError("Mixin failed to apply");
-    }
-
-    @Shadow
-    public static Vec3 collideBoundingBoxHeuristically(final Entity thisAsEntity, final Vec3 movement, final AABB box,
-        final Level world,
-        final CollisionContext shapeContext, final RewindableStream<VoxelShape> reusableStream) {
-        return null;
-    }
 
     @Shadow
     public abstract double getZ();
@@ -100,9 +63,6 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
     @Shadow
     public abstract double getX();
-
-    // This whole part changes distanceTo(sqrt) to use ship locations if needed.
-    // and unjank mojank
 
     @Redirect(
         method = "pick",
@@ -257,7 +217,6 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
         return collisionResultWithWorld;
     }
-    // endregion
 
     /**
      * This mixin replaces the following code in Entity.move().
@@ -299,34 +258,6 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         }
         // Cancel the original invocation of Entity.setVelocity(DDD)V to remove vanilla behavior
         callbackInfo.cancel();
-    }
-
-    /**
-     * @author ewoudje
-     * @reason unjank mojank, we need to modify distanceTo's so while were at it unjank it
-     */
-    @Inject(method = "distanceTo", at = @At("HEAD"), cancellable = true)
-    private void preDistanceTo(final Entity entity, final CallbackInfoReturnable<Float> cir) {
-        cir.setReturnValue(Mth.sqrt(distanceToSqr(entity)));
-    }
-
-    /**
-     * @author ewoudje
-     * @reason unjank mojank, we need to modify distanceTo's so while were at it unjank it
-     */
-    @Inject(method = "distanceToSqr(Lnet/minecraft/world/phys/Vec3;)D", at = @At("HEAD"), cancellable = true)
-    private void preDistanceToSqr(final Vec3 vec, final CallbackInfoReturnable<Double> cir) {
-        cir.setReturnValue(VSGameUtilsKt.squaredDistanceToInclShips(Entity.class.cast(this), vec.x, vec.y, vec.z));
-    }
-
-    /**
-     * @author ewoudje
-     * @reason it fixes general issues when checking for distance between in world player and ship things
-     */
-    @Inject(method = "distanceToSqr(DDD)D", at = @At("HEAD"), cancellable = true)
-    private void preDistanceToSqr(final double x, final double y, final double z,
-        final CallbackInfoReturnable<Double> cir) {
-        cir.setReturnValue(VSGameUtilsKt.squaredDistanceToInclShips(Entity.class.cast(this), x, y, z));
     }
 
     /**
@@ -431,9 +362,11 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
             }
         }
     }
+    // endregion
 
+    // region shadow functions and fields
     @Shadow
-    public abstract double distanceToSqr(final Entity entity);
+    public Level level;
 
     @Shadow
     public abstract AABB getBoundingBox();
