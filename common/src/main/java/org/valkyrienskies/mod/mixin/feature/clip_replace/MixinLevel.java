@@ -1,7 +1,5 @@
 package org.valkyrienskies.mod.mixin.feature.clip_replace;
 
-import java.util.function.BiFunction;
-import java.util.function.Function;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.BlockGetter;
@@ -9,22 +7,23 @@ import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
+import org.apache.logging.log4j.Logger;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
-import org.valkyrienskies.mod.MixinLoggers;
+import org.spongepowered.asm.mixin.Shadow;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 
-@Mixin(BlockGetter.class)
-public interface MixinBlockGetter {
+@Mixin(Level.class)
+public abstract class MixinLevel implements BlockGetter {
 
-    @Redirect(method = "clip",
-        at = @At(value = "INVOKE",
-            target = "Lnet/minecraft/world/level/BlockGetter;traverseBlocks(Lnet/minecraft/world/level/ClipContext;Ljava/util/function/BiFunction;Ljava/util/function/Function;)Ljava/lang/Object;"))
-    default Object clip(final ClipContext clipContext, final BiFunction<ClipContext, BlockPos, Object> biFunction,
-        final Function<ClipContext, Object> function) {
+    @Shadow
+    @Final
+    protected static Logger LOGGER;
+
+    @Override
+    public BlockHitResult clip(final ClipContext clipContext) {
         if (clipContext.getFrom().distanceToSqr(clipContext.getTo()) > (10000 * 10000)) {
-            MixinLoggers.BLOCK_GETTER.warn("Trying to clip from " +
+            LOGGER.warn("Trying to clip from " +
                 clipContext.getFrom() + " to " + clipContext.getTo() + " wich is too far away!!");
 
             final Vec3 vec3 = clipContext.getFrom().subtract(clipContext.getTo());
@@ -36,5 +35,4 @@ public interface MixinBlockGetter {
             return RaycastUtilsKt.clipIncludeShips(Level.class.cast(this), clipContext);
         }
     }
-
 }
