@@ -6,7 +6,6 @@ import java.util.Random;
 import net.minecraft.CrashReport;
 import net.minecraft.CrashReportCategory;
 import net.minecraft.ReportedException;
-import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
@@ -55,15 +54,6 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     @Unique
     private final EntityDraggingInformation draggingInformation = new EntityDraggingInformation();
 
-    @Shadow
-    public abstract double getZ();
-
-    @Shadow
-    public abstract double getY();
-
-    @Shadow
-    public abstract double getX();
-
     @Redirect(
         method = "pick",
         at = @At(
@@ -72,18 +62,8 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         )
     )
     public BlockHitResult addShipsToRaycast(final Level receiver, final ClipContext ctx) {
-        return RaycastUtilsKt.clipIncludeShips((ClientLevel) receiver, ctx);
+        return RaycastUtilsKt.clipIncludeShips(receiver, ctx);
     }
-
-    @Shadow
-    public double xo;
-    @Shadow
-    public double yo;
-    @Shadow
-    public double zo;
-
-    @Shadow
-    public abstract float getEyeHeight();
 
     @Inject(
         at = @At("TAIL"),
@@ -388,20 +368,35 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     protected abstract void positionRider(Entity passenger, Entity.MoveFunction callback);
 
     @Shadow
-    private @Nullable Entity vehicle;
-
-    @Shadow
     protected abstract void onInsideBlock(BlockState state);
-
-    @Shadow
-    private Vec3 position;
 
     @Shadow
     public abstract Vec3 getDeltaMovement();
 
     @Shadow
+    public abstract void setDeltaMovement(Vec3 motion);
+
+    @Shadow
+    public abstract double getZ();
+
+    @Shadow
+    public abstract double getY();
+
+    @Shadow
+    public abstract double getX();
+
+    @Shadow
+    private @Nullable Entity vehicle;
+
+    @Shadow
+    private Vec3 position;
+
+    @Shadow
     @Final
     protected Random random;
+
+    @Shadow
+    public abstract float getEyeHeight();
 
     @Shadow
     private EntityDimensions dimensions;

@@ -12,6 +12,7 @@
     "feature.bed_fix.MixinServerPlayer",
     "feature.block_placement_orientation.MixinBlockItem",
     "feature.block_placement_orientation.MixinBlockPlaceContext",
+    "feature.clip_replace.MixinLevel",
     "feature.container_distance_check.MixinRandomizableContainerBlockEntity",
     "feature.dispensers.MixinDefaultDispenseItemBehavior",
     "feature.distance_replace.MixinEntity",
