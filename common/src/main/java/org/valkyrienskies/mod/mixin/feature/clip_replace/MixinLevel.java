@@ -11,6 +11,7 @@ import org.apache.logging.log4j.Logger;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 
 @Mixin(Level.class)
@@ -22,9 +23,12 @@ public abstract class MixinLevel implements BlockGetter {
 
     @Override
     public BlockHitResult clip(final ClipContext clipContext) {
-        if (clipContext.getFrom().distanceToSqr(clipContext.getTo()) > (10000 * 10000)) {
+
+        if (VSGameUtilsKt.getShipManagingPos(Level.class.cast(this), clipContext.getTo()) !=
+            VSGameUtilsKt.getShipManagingPos(Level.class.cast(this), clipContext.getFrom())) {
             LOGGER.warn("Trying to clip from " +
-                clipContext.getFrom() + " to " + clipContext.getTo() + " wich is too far away!!");
+                clipContext.getFrom() + " to " + clipContext.getTo() +
+                " wich one of them is in a shipyard wich is ... sus!!");
 
             final Vec3 vec3 = clipContext.getFrom().subtract(clipContext.getTo());
             return BlockHitResult.miss(
