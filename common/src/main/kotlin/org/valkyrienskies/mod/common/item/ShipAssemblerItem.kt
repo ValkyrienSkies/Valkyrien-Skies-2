@@ -26,8 +26,8 @@ class ShipAssemblerItem(properties: Properties) : Item(properties) {
                 // Make a ship
                 val dimensionId = level.dimensionId
                 val set = DenseBlockPosSet()
-                for (x in -1..1) {
-                    for (z in -1..1) {
+                for (x in -3..3) {
+                    for (z in -3..3) {
                         set.add(pos.x + x, pos.y, pos.z + z)
                     }
                 }

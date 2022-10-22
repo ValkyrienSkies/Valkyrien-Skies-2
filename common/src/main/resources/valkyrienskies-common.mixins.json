@@ -5,6 +5,7 @@
   "mixins": [
     "accessors.block.BlockBehaviourAccessor",
     "accessors.entity.EntityAccessor",
+    "accessors.network.protocol.game.ClientboundSectionBlocksUpdatePacketAccessor",
     "accessors.resource.ResourceKeyAccessor",
     "accessors.server.world.ChunkMapAccessor",
     "accessors.util.math.Matrix4fAccessor",
@@ -58,6 +59,10 @@
     "feature.render_blockentity_distance_check.MixinBlockEntityRenderDispatcher",
     "feature.render_leashes.MixinMobRenderer",
     "feature.render_ship_debug_bb.MixinDebugRenderer",
+    "feature.seamless_copy.MixinChunkCompileTask",
+    "feature.seamless_copy.MixinChunkRenderDispatcher",
+    "feature.seamless_copy.MixinClientPacketListener",
+    "feature.seamless_copy.MixinLevelRenderer",
     "feature.sound.client.MixinChannel",
     "feature.sound.client.MixinSimpleSoundInstance",
     "feature.sound.client.MixinSoundEngine",
