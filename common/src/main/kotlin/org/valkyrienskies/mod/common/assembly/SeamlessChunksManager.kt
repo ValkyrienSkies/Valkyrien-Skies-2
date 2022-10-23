@@ -49,14 +49,11 @@ class SeamlessChunksManager(private val listener: ClientPacketListener) {
             },
 
             PacketRestartChunkUpdates::class.registerClientHandler { packet ->
-                println("hi!")
                 if (Minecraft.getInstance().shipObjectWorld.queryableShipData.contains(packet.waitForShip)) {
-                    println("a!")
                     Minecraft.getInstance().execute {
                         onRestartUpdates(packet)
                     }
                 } else {
-                    println("b!")
                     ShipLoadEventClient.once({ it.ship.id == packet.waitForShip }) {
                         Minecraft.getInstance().execute {
                             onRestartUpdates(packet)
@@ -70,13 +67,13 @@ class SeamlessChunksManager(private val listener: ClientPacketListener) {
 
     private fun onRestartUpdates(packet: PacketRestartChunkUpdates) {
         val (chunks, linkedChunks) = packet
+        // linkedChunks.forEach { (c1, c2) ->
+        //     linkedRenders[c1] = c2
+        //     println("Linking chunks $c1 and $c2")
+        // }
+
         chunks.forEach { pos ->
             stalledChunks.remove(pos.toLong())
-
-            linkedChunks.forEach { (c1, c2) ->
-                linkedRenders[c1] = c2
-                println("Linking chunks $c1 and $c2")
-            }
 
             queuedUpdates[pos]?.pollUntilEmpty { packet ->
                 logger.info("Executing deferred update at <${pos.x}, ${pos.z}> for ${packet::class}")
@@ -156,6 +153,8 @@ class SeamlessChunksManager(private val listener: ClientPacketListener) {
             queuedUpdates.computeIfAbsent(ChunkPos(chunkX, chunkZ)) { ConcurrentLinkedQueue() }.add(packet)
             return true
         }
+
+        logger.info("Received update at <$chunkX, $chunkZ> for ${packet::class}")
 
         return false
     }

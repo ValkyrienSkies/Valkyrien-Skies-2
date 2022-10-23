@@ -2,6 +2,7 @@ package org.valkyrienskies.mod.util
 
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
+import net.minecraft.core.Direction.NORTH
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.world.Container
 import net.minecraft.world.level.Level
@@ -25,7 +26,8 @@ private val AIR = Blocks.AIR.defaultBlockState()
  * @param direction Direction.NORTH is no change in direction, Direction.EAST is 90 degrees clockwise, etc.
  */
 fun relocateBlock(
-    fromChunk: LevelChunk, from: BlockPos, toChunk: LevelChunk, to: BlockPos, toShip: ServerShip?, direction: Direction
+    fromChunk: LevelChunk, from: BlockPos, toChunk: LevelChunk, to: BlockPos, toShip: ServerShip?,
+    direction: Direction = NORTH
 ) {
     val state = fromChunk.getBlockState(from)
     val entity = fromChunk.getBlockEntity(from)
