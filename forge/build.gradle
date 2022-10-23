@@ -39,6 +39,10 @@ repositories {
         name = 'Kotlin for Forge'
         url = 'https://thedarkcolour.github.io/KotlinForForge/'
     }
+    maven {
+        name "tterrag maven"
+        url "https://maven.tterrag.com/"
+    }
     mavenCentral()
 }
 
@@ -61,6 +65,9 @@ dependencies {
 
     // Cloth for config
     modImplementation("me.shedaniel.cloth:cloth-config-forge:4.14.64")
+    modImplementation("com.simibubi.create:Create:mc${minecraft_version}_${create_version}") { transitive = false }
+    modImplementation("com.jozufozu.flywheel:Flywheel:${flywheel_version}")
+
 
     // Shade vs-core
     implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {

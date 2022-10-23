@@ -20,6 +20,7 @@ import net.minecraftforge.fml.event.lifecycle.FMLLoadCompleteEvent
 import net.minecraftforge.fml.loading.FMLEnvironment
 import net.minecraftforge.registries.DeferredRegister
 import net.minecraftforge.registries.ForgeRegistries
+import org.valkyrienskies.compat.create.CreateCompat
 import org.valkyrienskies.core.api.Ship
 import org.valkyrienskies.core.config.VSConfigClass
 import org.valkyrienskies.core.config.VSCoreConfig
@@ -95,6 +96,8 @@ class ValkyrienSkiesModForge {
             ).sized(.3f, .3f)
                 .build(ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_mounting_entity").toString())
         }
+
+        CreateCompat.init()
     }
 
     private fun registerResourceManagers(event: AddReloadListenerEvent) {
