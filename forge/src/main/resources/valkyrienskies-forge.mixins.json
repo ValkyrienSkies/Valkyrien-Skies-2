@@ -4,6 +4,7 @@
   "compatibilityLevel": "JAVA_8",
   "mixins": [
     "client.render.MixinLevelRenderer",
+    "compat.create.MixinInstanceManager",
     "world.level.block.FireMixin"
   ],
   "client": [

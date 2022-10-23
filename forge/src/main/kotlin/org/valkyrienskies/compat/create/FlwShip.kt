@@ -1,8 +1,8 @@
 package org.valkyrienskies.compat.create
 
 import com.jozufozu.flywheel.backend.Backend
+import com.jozufozu.flywheel.backend.instancing.IInstance
 import com.jozufozu.flywheel.backend.instancing.InstancedRenderRegistry
-import com.jozufozu.flywheel.backend.instancing.tile.TileInstanceManager
 import com.jozufozu.flywheel.backend.model.ModelRenderer
 import com.jozufozu.flywheel.event.BeginFrameEvent
 import com.jozufozu.flywheel.event.RenderLayerEvent
@@ -25,7 +25,7 @@ class FlwShip(val ship: ClientShip, private val level: Level) {
     val materialManager = VSMaterialManager(CreateContexts.CWORLD, this)
     { manager, state -> VSMaterialGroup(this, manager, state) }
 
-    private val kinetics = TileInstanceManager(materialManager)
+    private val kinetics = VSInstanceManager(this)
     private val actors = mutableListOf<ActorInstance>()
 
     private val renderLayers: MutableMap<RenderType, ModelRenderer> = HashMap()
@@ -88,10 +88,18 @@ class FlwShip(val ship: ClientShip, private val level: Level) {
 
     fun addInstancedTile(be: BlockEntity) {
         if (InstancedRenderRegistry.getInstance().canInstance(be.type)) {
-            kinetics.add(be)
+            return kinetics.add(be)
+        }
+    }
+
+    fun removeInstancedTile(be: BlockEntity) {
+        if (InstancedRenderRegistry.getInstance().canInstance(be.type)) {
+            kinetics.remove(be)
         }
     }
 
     fun addActor() {
     }
+
+    fun getIInstance(be: BlockEntity): IInstance? = kinetics.get(be)
 }
