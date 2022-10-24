@@ -9,6 +9,7 @@ import java.util.WeakHashMap;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.joml.Matrix4d;
 import org.joml.Matrix4dc;
+import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -38,14 +39,24 @@ public class MixinInstanceWorld {
             ((MixinTileInstanceManagerDuck) tileEntityInstanceManager).getShipMaterialManagers();
 
         shipManagers.forEach((ship, manager) -> {
+            final Vector3d origin = VectorConversionsMCKt.toJOMLD(manager.getOriginCoordinate());
+
             final Matrix4d viewProjection = VectorConversionsMCKt.toJOML(event.viewProjection);
             final Matrix4dc shipToWorldMatrix = ship.getRenderTransform().getShipToWorldMatrix();
 
-            final Matrix4d finalProjection =
-                new Matrix4d().mul(viewProjection).translate(-event.camX, -event.camY, -event.camZ)
-                    .mul(shipToWorldMatrix).translate(VectorConversionsMCKt.toJOMLD(manager.getOriginCoordinate()));
+            final Matrix4d finalProjection = new Matrix4d()
+                .mul(viewProjection)
+                .translate(-event.camX, -event.camY, -event.camZ)
+                .mul(shipToWorldMatrix)
+                .translate(origin);
 
-            manager.render(event.layer, VectorConversionsMCKt.toMinecraft(finalProjection), 0, 0, 0);
+            final Vector3d camInShipLocal = ship.getRenderTransform().getWorldToShipMatrix()
+                .transformPosition(event.camX, event.camY, event.camZ, new Vector3d())
+                .sub(origin);
+
+            manager.render(event.layer, VectorConversionsMCKt.toMinecraft(finalProjection), camInShipLocal.x,
+                camInShipLocal.y,
+                camInShipLocal.z);
         });
     }
 }
