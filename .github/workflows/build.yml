@@ -12,42 +12,83 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          fetch-depth: 0
           submodules: true # Clone with vs-core submodule
       - uses: gradle/wrapper-validation-action@v1
+
   build:
     name: Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - name: Shallow Clone (--recurse-submodules)
+        uses: actions/checkout@v2
         with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-          submodules: true # Clone with vs-core submodule
-      - name: Set up JDK 17
-        uses: actions/setup-java@v1
-        with:
-          java-version: 17
-      - name: Cache Gradle packages
-        uses: actions/cache@v1
-        with:
-          path: ~/.gradle/caches
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
-          restore-keys: ${{ runner.os }}-gradle
+          submodules: recursive
+
+      - name: Setup Gradle & Caches
+        uses: "./.github/actions/setup-gradle"
+
       - name: Build and analyze
         run: ./gradlew build --info
         continue-on-error: true # still upload checkstyle report even if build fails
+
       - uses: actions/upload-artifact@v3
         with:
           name: fabric artifacts
           path: |
             fabric/build/libs/*.jar
+
       - uses: actions/upload-artifact@v3
         with:
           name: forge artifacts
           path: |
             forge/build/libs/*.jar
+
       - uses: jwgmeligmeyling/checkstyle-github-action@master # show checkstyle/ktlint report
         with:
           path: |
             */build/reports/checkstyle/*.xml
             */build/reports/ktlint/*/*.xml
+
+  test-server:
+    name: Test Server
+    strategy:
+      matrix:
+        serverType: [ 'fabric', 'forge' ]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20 # Fail after 20 minutes
+    steps:
+      - name: Shallow Clone (--recurse-submodules)
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Setup Gradle & Caches
+        uses: "./.github/actions/setup-gradle"
+
+      - name: Test Server
+        uses: ValkyrienSkies/Minecraft-Architectury-Testing@v1.9
+        with:
+          serverType: ${{ matrix.serverType }}
+
+  publish:
+    name: Publish to Maven
+    runs-on: ubuntu-latest
+    # Run only on main branch
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Shallow Clone (--recurse-submodules)
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Setup Gradle & Caches
+        uses: "./.github/actions/setup-gradle"
+
+      - name: Publish with Gradle
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ORG_GRADLE_PROJECT_vs_maven_password: ${{ secrets.ORG_GRADLE_PROJECT_VS_MAVEN_PASSWORD }}
+          ORG_GRADLE_PROJECT_vs_maven_url: ${{ secrets.ORG_GRADLE_PROJECT_VS_MAVEN_URL }}
+          ORG_GRADLE_PROJECT_vs_maven_username: ${{ secrets.ORG_GRADLE_PROJECT_VS_MAVEN_USERNAME }}
+        run: |
+          ./gradlew build publish --stacktrace --no-daemon

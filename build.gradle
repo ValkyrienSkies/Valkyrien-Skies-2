@@ -7,33 +7,29 @@ buildscript {
 
 plugins {
     // Needed for Forge+Fabric
-    id "architectury-plugin" version "3.4.138"
-    id "dev.architectury.loom" version "0.12.0.291" apply false
+    id "architectury-plugin" version "3.4.143"
+    id "dev.architectury.loom" version "0.12.0.301" apply false
     id 'io.github.juuxel.loom-quiltflower' version '1.7.1' apply false
     // Kotlin
-    id "org.jetbrains.kotlin.jvm" version "1.7.0" apply false
+    id "org.jetbrains.kotlin.jvm" version "1.7.10" apply false
     // Kotlin linter
     id "org.jlleitschuh.gradle.ktlint" version "10.3.0"
+
+    id 'com.matthewprenger.cursegradle' version '1.4.0' apply false
+    id "com.modrinth.minotaur" version "2.4.3" apply false
+
     // Java linter
     id "checkstyle"
 }
 
 // Determine the version
 if (project.hasProperty("CustomReleaseVersion")) {
-    version = project.property("CustomReleaseVersion") as String
+    // Remove release/ from the version if present
+    version = project.property("CustomReleaseVersion").replaceFirst("^release/", "")
 } else {
-    // Yes, I know there is a gradle plugin to detect git version.
-    // But its made by Palantir 0_0.
-    Process gitRevisionProcess = Runtime.getRuntime().exec("git rev-parse HEAD", new String[0], projectDir)
-    InputStream processInputStream = gitRevisionProcess.inputStream
+    String gitRevision = "git rev-parse HEAD".execute().text.trim()
 
-    String gitRevision = ""
-    while (true) {
-        int lastReadByte = processInputStream.read()
-        if (lastReadByte == -1) break
-        gitRevision += ((char) lastReadByte)
-    }
-    version = "1.0.0+" + gitRevision.substring(0, 10)
+    version = mod_version + "+" + gitRevision.substring(0, 10)
 }
 
 architectury {
@@ -47,15 +43,8 @@ dependencyLocking {
 }
 
 // Determine the version of vs-core
-Process gitRevisionProcess = Runtime.getRuntime().exec("git rev-parse HEAD", new String[0], gradle.includedBuild("vs-core").projectDir)
-InputStream processInputStream = gitRevisionProcess.inputStream
-String gitRevision = ""
-while (true) {
-    int lastReadByte = processInputStream.read()
-    if (lastReadByte == -1) break
-    gitRevision += ((char) lastReadByte)
-}
-ext.vs_core_version = "1.0.0+" + gitRevision.substring(0, 10)
+String vsCoreGitRevision = "git rev-parse HEAD".execute(null, gradle.includedBuild("vs-core").projectDir).text.trim()
+ext.vs_core_version = "1.0.0+" + vsCoreGitRevision.substring(0, 10)
 
 subprojects {
     apply plugin: "dev.architectury.loom"
@@ -69,12 +58,11 @@ subprojects {
         mavenCentral()
         maven {
             name = "Valkyrien Skies Internal"
-            url = project.findProperty('vs_maven_url') ?: 'https://maven.valkyrienskies.org'
-
-            if (project.hasProperty('vs_maven_username') && project.hasProperty('vs_maven_url')) {
+            url = project.vs_maven_url ?: 'https://maven.valkyrienskies.org'
+            if (project.vs_maven_username && project.vs_maven_password) {
                 credentials {
-                    username = project.findProperty('vs_maven_username')
-                    password = project.findProperty('vs_maven_password')
+                    username = project.vs_maven_username
+                    password = project.vs_maven_password
                 }
             }
         }
@@ -86,15 +74,7 @@ subprojects {
             name = "ParchmentMC"
             url = "https://maven.parchmentmc.org"
         }
-        maven {
-            name = 'Kotlin for Forge'
-            url = 'https://thedarkcolour.github.io/KotlinForForge/'
-        }
-    }
-
-    quiltflower {
-        // Downloads the wanted QF version from the project repositories. (rather than QuiltMC Maven)
-        fromProjectRepositories()
+        mavenLocal()
     }
 
     dependencies {
@@ -102,7 +82,7 @@ subprojects {
         // The following line declares the mojmap mappings, you may use other mappings as well
         mappings loom.layered() {
             officialMojangMappings()
-            parchment("org.parchmentmc.data:parchment-1.16.5:2022.03.06@zip")
+            parchment("org.parchmentmc.data:parchment-1.16.5:${rootProject.parchment_mappings}@zip")
         }
     }
 
@@ -111,7 +91,7 @@ subprojects {
         // configure to use checkstyle v8.41
         toolVersion "8.41"
         // Gradle should fail builds on checkstyle errors (not warnings)
-        ignoreFailures = false
+        ignoreFailures = true
         // Checkstyle config file is in .checkstyle/checkstyle.xml
         configFile = file("${rootDir}/.checkstyle/checkstyle.xml")
     }
@@ -133,6 +113,8 @@ subprojects {
             // configure to output in checkstyle XML format
             reporter "checkstyle"
         }
+        ignoreFailures = true
+        disabledRules = ["parameter-list-wrapping"]
     }
 }
 
@@ -145,6 +127,33 @@ allprojects {
     archivesBaseName = rootProject.archives_base_name
     version = rootProject.version
     group = rootProject.maven_group
+
+    publishing {
+        repositories {
+            if (project.vs_maven_username && project.vs_maven_password) {
+                println "Publishing to VS Maven"
+                maven {
+                    name = "VSMaven"
+                    url = project.vs_maven_url
+                    credentials {
+                        username = project.vs_maven_username
+                        password = project.vs_maven_password
+                    }
+                }
+            }
+            if (System.getenv("GITHUB_ACTOR") != null) {
+                println "Publishing to Github Packages"
+                maven {
+                    name = "GitHubPackages"
+                    url = uri("https://maven.pkg.github.com/ValkyrienSkies/Valkyrien-Skies-2")
+                    credentials {
+                        username = System.getenv("GITHUB_ACTOR")
+                        password = System.getenv("GITHUB_TOKEN")
+                    }
+                }
+            }
+        }
+    }
 
     tasks.withType(JavaCompile) {
         options.encoding = "UTF-8"

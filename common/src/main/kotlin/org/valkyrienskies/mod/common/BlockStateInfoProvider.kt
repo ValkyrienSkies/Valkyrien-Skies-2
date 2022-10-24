@@ -11,7 +11,7 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
 import org.valkyrienskies.core.game.VSBlockType
-import org.valkyrienskies.mod.common.ValkyrienSkiesMod.MASS_DATAPACK_RESOLVER
+import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.event.RegistryEvents
 
 // Other mods can then provide weights and types based on their added content
@@ -38,7 +38,7 @@ object BlockStateInfo {
 
     // init { doesn't work since the class gets loaded too late
     fun init() {
-        Registry.register(REGISTRY, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "data"), MASS_DATAPACK_RESOLVER)
+        Registry.register(REGISTRY, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "data"), MassDatapackResolver)
         Registry.register(
             REGISTRY, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "default"), DefaultBlockStateInfoProvider
         )
@@ -46,14 +46,17 @@ object BlockStateInfo {
         RegistryEvents.onRegistriesComplete { SORTED_REGISTRY = REGISTRY.sortedByDescending { it.priority } }
     }
 
-    val CACHE = Int2ObjectOpenHashMap<Pair<Double, VSBlockType>>()
+    // This is [ThreadLocal] because in single-player games the Client thread and Server thread will read/write to
+    // [CACHE] simultaneously. This creates a data race that can crash the game (See https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues/126).
+    val CACHE: ThreadLocal<Int2ObjectOpenHashMap<Pair<Double, VSBlockType>>> =
+        ThreadLocal.withInitial { Int2ObjectOpenHashMap<Pair<Double, VSBlockType>>() }
     // NOTE: this caching can get allot better, ex. default just returns constants so it might be more faster
     //  if we store that these values do not need to be cached by double and blocktype but just that they use default impl
 
     // this gets the weight and type provided by providers; or it gets it out of the cache
 
     fun get(blockState: BlockState): Pair<Double, VSBlockType>? =
-        getId(blockState)?.let { CACHE.getOrPut(it) { iterateRegistry(blockState) } }
+        getId(blockState)?.let { CACHE.get().getOrPut(it) { iterateRegistry(blockState) } }
 
     fun getId(blockState: BlockState): Int? {
         val r = Block.getId(blockState)
@@ -63,8 +66,8 @@ object BlockStateInfo {
 
     private fun iterateRegistry(blockState: BlockState): Pair<Double, VSBlockType> =
         Pair(
-            SORTED_REGISTRY.mapNotNull { it.getBlockStateMass(blockState) }.first(),
-            SORTED_REGISTRY.mapNotNull { it.getBlockStateType(blockState) }.first(),
+            SORTED_REGISTRY.firstNotNullOf { it.getBlockStateMass(blockState) },
+            SORTED_REGISTRY.firstNotNullOf { it.getBlockStateType(blockState) },
         )
 
     // NOTE: this gets called irrelevant if the block is actually on a ship; so it needs to be changed that

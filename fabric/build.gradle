@@ -1,7 +1,11 @@
 plugins {
     id "com.github.johnrengelman.shadow" version "7.1.2"
     id "org.jetbrains.kotlin.jvm"
+    id "com.matthewprenger.cursegradle"
+    id "com.modrinth.minotaur"
 }
+
+apply from: '../gradle-scripts/publish-curseforge.gradle'
 
 architectury {
     platformSetupLoomIde()
@@ -33,8 +37,12 @@ dependencies {
     // Depend on the fabric kotlin mod
     modImplementation("net.fabricmc:fabric-language-kotlin:1.8.1+kotlin.1.7.0")
 
+    modImplementation("com.terraformersmc:modmenu:1.16.23")
+
     // Depend on the fabric API
     modImplementation("net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}")
+    modImplementation("me.shedaniel.cloth:cloth-config-fabric:4.14.64")
+
 
     implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {
         exclude module: "netty-buffer"
@@ -47,6 +55,9 @@ dependencies {
         exclude module: "fastutil"
         exclude module: "kotlin-stdlib-jdk8" // Don't shade kotlin-stdlib-jdk8, even though vs-core depends on it
     }
+
+    implementation("org.valkyrienskies:valkyrien-dependency-downloader:2.0")
+    shadowCommon("org.valkyrienskies:valkyrien-dependency-downloader:2.0")
 }
 
 // Copy the VS common access widener to the generated resources folder
@@ -110,38 +121,18 @@ components.java {
     }
 }
 
+// Publish to Mavens
 publishing {
     publications {
         mavenFabric(MavenPublication) {
             groupId = "org.valkyrienskies"
             version = project.version
             artifactId = rootProject.archives_base_name + "-" + project.name
+            // Publish the dev shadow jar to maven
+            artifact(shadowJar) {
+                classifier "dev-shadow"
+            }
             from components.java
-        }
-    }
-
-    // See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
-    repositories {
-        if (project.hasProperty('vs_maven_username') && project.hasProperty('vs_maven_url')) {
-            println "Publishing to VS Maven"
-            maven {
-                url = project.findProperty('vs_maven_url')
-                credentials {
-                    username = project.findProperty('vs_maven_username')
-                    password = project.findProperty('vs_maven_password')
-                }
-            }
-        }
-        if (System.getenv("GITHUB_ACTOR") != null) {
-            println "Publishing to Github Packages"
-            maven {
-                name = "GitHubPackages"
-                url = uri("https://maven.pkg.github.com/ValkyrienSkies/Valkyrien-Skies-2")
-                credentials {
-                    username = System.getenv("GITHUB_ACTOR")
-                    password = System.getenv("GITHUB_TOKEN")
-                }
-            }
         }
     }
 }

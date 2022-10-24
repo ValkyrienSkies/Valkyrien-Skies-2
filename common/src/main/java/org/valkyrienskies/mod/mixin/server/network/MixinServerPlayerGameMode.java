@@ -11,8 +11,8 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
-import org.valkyrienskies.mod.common.VSGameUtils;
-import org.valkyrienskies.mod.common.config.VSConfig;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(ServerPlayerGameMode.class)
@@ -35,9 +35,9 @@ public class MixinServerPlayerGameMode {
     public double handleBlockBreakAction(final double g, final BlockPos pos,
         final ServerboundPlayerActionPacket.Action action,
         final Direction direction, final int worldHeight) {
-        if (VSConfig.getEnableInteractDistanceChecks()) {
+        if (VSGameConfig.SERVER.getEnableInteractDistanceChecks()) {
             final Vector3d blockCenter = VectorConversionsMCKt.toJOMLD(pos).add(0.5, 0.5, 0.5);
-            return VSGameUtils.getWorldCoordinates(level, pos, blockCenter)
+            return VSGameUtilsKt.getWorldCoordinates(level, pos, blockCenter)
                 .distanceSquared(player.getX(), player.getY() + 1.5, player.getZ());
         } else {
             return 0;

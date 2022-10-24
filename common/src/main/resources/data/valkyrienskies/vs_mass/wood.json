@@ -1,18 +1,82 @@
 [
   {
+    "tag": "minecraft:wooden_stairs",
+    "mass": 525.0
+  },
+  {
+    "tag": "minecraft:wooden_slabs",
+    "mass": 350.0
+  },
+  {
+    "tag": "minecraft:oak_logs",
+    "mass": 900.0
+  },
+  {
+    "block": "minecraft:oak_planks",
+    "mass": 600.0
+  },
+  {
+    "tag": "minecraft:spruce_logs",
+    "mass": 780.0
+  },
+  {
+    "block": "minecraft:spruce_planks",
+    "mass": 480.0
+  },
+  {
+    "tag": "minecraft:birch_logs",
+    "mass": 770.0
+  },
+  {
+    "block": "minecraft:birch_planks",
+    "mass": 510.0
+  },
+  {
+    "tag": "minecraft:jungle_logs",
+    "mass": 850.0
+  },
+  {
+    "block": "minecraft:jungle_planks",
+    "mass": 500.0
+  },
+  {
+    "tag": "minecraft:acacia_logs",
+    "mass": 770.0
+  },
+  {
+    "block": "minecraft:acacia_planks",
+    "mass": 650.0
+  },
+  {
+    "tag": "minecraft:dark_oak_logs",
+    "mass": 800.0
+  },
+  {
+    "block": "minecraft:dark_oak_planks",
+    "mass": 700.0
+  },
+  {
+    "tag": "minecraft:warped_stems",
+    "mass": 980.0
+  },
+  {
+    "block": "minecraft:warped_planks",
+    "mass": 910.0
+  },
+  {
+    "tag": "minecraft:crimson_stems",
+    "mass": 1000.0
+  },
+  {
+    "block": "minecraft:crimson_planks",
+    "mass": 999.0
+  },
+  {
     "tag": "minecraft:logs",
     "mass": 800.0
   },
   {
     "tag": "minecraft:planks",
-    "mass": 200.0
-  },
-  {
-    "tag": "minecraft:wooden_stairs",
-    "mass": 150.0
-  },
-  {
-    "tag": "minecraft:wooden_slabs",
-    "mass": 100.0
+    "mass": 700.0
   }
 ]

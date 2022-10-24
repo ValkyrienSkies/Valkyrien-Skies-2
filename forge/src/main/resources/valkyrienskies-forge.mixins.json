@@ -6,7 +6,9 @@
     "compat.flywheel.client.MaterialManagerAccessor",
     "compat.flywheel.client.MixinInstanceManager",
     "compat.flywheel.client.MixinInstanceWorld",
-    "compat.flywheel.client.MixinTileInstanceManager"
+    "compat.flywheel.client.MixinTileInstanceManager",
+    "client.render.MixinLevelRenderer",
+    "world.level.block.FireMixin"
   ],
   "client": [
     "ExampleForgeMixin"

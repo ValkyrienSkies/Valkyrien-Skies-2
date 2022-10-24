@@ -1,35 +1,51 @@
 package org.valkyrienskies.mod.mixin.entity;
 
-import net.minecraft.client.multiplayer.ClientLevel;
+import static org.valkyrienskies.mod.common.util.VectorConversionsMCKt.toJOML;
+
+import java.util.Random;
+import net.minecraft.CrashReport;
+import net.minecraft.CrashReportCategory;
+import net.minecraft.ReportedException;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.BlockParticleOption;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.util.Mth;
-import net.minecraft.util.RewindableStream;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
-import net.minecraft.world.phys.shapes.CollisionContext;
-import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
+import org.joml.primitives.AABBd;
+import org.joml.primitives.AABBdc;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
+import org.valkyrienskies.core.api.Ship;
+import org.valkyrienskies.core.game.ships.ShipObject;
+import org.valkyrienskies.core.game.ships.ShipObjectClient;
+import org.valkyrienskies.core.game.ships.ShipTransform;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.entity.handling.VSEntityManager;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
+import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 
 @Mixin(Entity.class)
@@ -37,15 +53,6 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
     @Unique
     private final EntityDraggingInformation draggingInformation = new EntityDraggingInformation();
-
-    @Shadow
-    public abstract double getZ();
-
-    @Shadow
-    public abstract double getY();
-
-    @Shadow
-    public abstract double getX();
 
     @Redirect(
         method = "pick",
@@ -55,7 +62,120 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         )
     )
     public BlockHitResult addShipsToRaycast(final Level receiver, final ClipContext ctx) {
-        return RaycastUtilsKt.clipIncludeShips((ClientLevel) receiver, ctx);
+        return RaycastUtilsKt.clipIncludeShips(receiver, ctx);
+    }
+
+    @Inject(
+        at = @At("TAIL"),
+        method = "checkInsideBlocks"
+    )
+    private void afterCheckInside(final CallbackInfo ci) {
+        final AABBd boundingBox = toJOML(getBoundingBox());
+        final AABBd temp = new AABBd();
+        for (final Ship ship : VSGameUtilsKt.getShipsIntersecting(level, boundingBox)) {
+            final AABBd inShipBB = boundingBox.transform(ship.getShipTransform().getWorldToShipMatrix(), temp);
+            originalCheckInside(inShipBB);
+        }
+    }
+
+    @Unique
+    private void originalCheckInside(final AABBd aABB) {
+        final Entity self = Entity.class.cast(this);
+        final BlockPos blockPos = new BlockPos(aABB.minX + 0.001, aABB.minY + 0.001, aABB.minZ + 0.001);
+        final BlockPos blockPos2 = new BlockPos(aABB.maxX - 0.001, aABB.maxY - 0.001, aABB.maxZ - 0.001);
+        final BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos();
+        if (this.level.hasChunksAt(blockPos, blockPos2)) {
+            for (int i = blockPos.getX(); i <= blockPos2.getX(); ++i) {
+                for (int j = blockPos.getY(); j <= blockPos2.getY(); ++j) {
+                    for (int k = blockPos.getZ(); k <= blockPos2.getZ(); ++k) {
+                        mutableBlockPos.set(i, j, k);
+                        final BlockState blockState = this.level.getBlockState(mutableBlockPos);
+
+                        try {
+                            blockState.entityInside(this.level, mutableBlockPos, self);
+                            this.onInsideBlock(blockState);
+                        } catch (final Throwable var12) {
+                            final CrashReport crashReport =
+                                CrashReport.forThrowable(var12, "Colliding entity with block");
+                            final CrashReportCategory crashReportCategory =
+                                crashReport.addCategory("Block being collided with");
+                            CrashReportCategory.populateBlockDetails(crashReportCategory, mutableBlockPos, blockState);
+                            throw new ReportedException(crashReport);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * @reason Needed for players to pick blocks correctly when mounted to a ship
+     */
+    @Inject(method = "getEyePosition", at = @At("HEAD"), cancellable = true)
+    private void preGetEyePosition(final float partialTicks, final CallbackInfoReturnable<Vec3> cir) {
+        final ShipObject shipMountedTo =
+            VSGameUtilsKt.getShipObjectEntityMountedTo(level, Entity.class.cast(this));
+        if (shipMountedTo == null) {
+            return;
+        }
+
+        final ShipObject shipObject = shipMountedTo;
+        final ShipTransform shipTransform;
+        if (shipObject instanceof ShipObjectClient) {
+            shipTransform = ((ShipObjectClient) shipObject).getRenderTransform();
+        } else {
+            shipTransform = shipObject.getShipData().getShipTransform();
+        }
+        final Vector3dc basePos = shipTransform.getShipToWorldMatrix()
+            .transformPosition(VSGameUtilsKt.getPassengerPos(this.vehicle, partialTicks), new Vector3d());
+        final Vector3dc eyeRelativePos = shipTransform.getShipCoordinatesToWorldCoordinatesRotation().transform(
+            new Vector3d(0.0, getEyeHeight(), 0.0)
+        );
+        final Vec3 newEyePos = VectorConversionsMCKt.toMinecraft(basePos.add(eyeRelativePos, new Vector3d()));
+        cir.setReturnValue(newEyePos);
+    }
+
+    /**
+     * @reason Needed for players to pick blocks correctly when mounted to a ship
+     */
+    @Inject(method = "calculateViewVector", at = @At("HEAD"), cancellable = true)
+    private void preCalculateViewVector(final float xRot, final float yRot, final CallbackInfoReturnable<Vec3> cir) {
+        final ShipObject shipMountedTo = VSGameUtilsKt.getShipObjectEntityMountedTo(level, Entity.class.cast(this));
+        if (shipMountedTo == null) {
+            return;
+        }
+        final float f = xRot * (float) (Math.PI / 180.0);
+        final float g = -yRot * (float) (Math.PI / 180.0);
+        final float h = Mth.cos(g);
+        final float i = Mth.sin(g);
+        final float j = Mth.cos(f);
+        final float k = Mth.sin(f);
+        final Vector3dc originalViewVector = new Vector3d(i * j, -k, h * j);
+
+        final ShipObject shipObject = shipMountedTo;
+        final ShipTransform shipTransform;
+        if (shipObject instanceof ShipObjectClient) {
+            shipTransform = ((ShipObjectClient) shipObject).getRenderTransform();
+        } else {
+            shipTransform = shipObject.getShipData().getShipTransform();
+        }
+        final Vec3 newViewVector = VectorConversionsMCKt.toMinecraft(
+            shipTransform.getShipCoordinatesToWorldCoordinatesRotation().transform(originalViewVector, new Vector3d()));
+        cir.setReturnValue(newViewVector);
+    }
+
+    /**
+     * Cancel movement of entities that are colliding with unloaded ships
+     */
+    @Inject(
+        at = @At("HEAD"),
+        method = "move",
+        cancellable = true
+    )
+    private void beforeMove(final MoverType type, final Vec3 pos, final CallbackInfo ci) {
+        if (EntityShipCollisionUtils.isCollidingWithUnloadedShips(Entity.class.cast(this))) {
+            ci.cancel();
+        }
     }
 
     /**
@@ -127,49 +247,113 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         callbackInfo.cancel();
     }
 
-    // This whole part changes distanceTo(sqrt) to use ship locations if needed.
-    // and unjank mojank
-
     /**
      * @author ewoudje
-     * @reason unjank mojank, we need to modify distanceTo's so while were at it unjank it
+     * @reason use vs2 handler to handle this method
      */
-    @Overwrite
-    public float distanceTo(final Entity entity) {
-        return Mth.sqrt(distanceToSqr(entity));
+    @Redirect(method = "positionRider(Lnet/minecraft/world/entity/Entity;)V", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/world/entity/Entity;positionRider(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/entity/Entity$MoveFunction;)V"))
+    public void positionRider(final Entity instance, final Entity passengerI, final Entity.MoveFunction callback) {
+        this.positionRider(passengerI,
+            (passenger, x, y, z) -> VSEntityManager.INSTANCE.getHandler(passenger.getType())
+                .positionSetFromVehicle(passenger, Entity.class.cast(this), x, y, z));
+    }
+
+    // region Block standing on friction and particles mixins
+    @Unique
+    private BlockPos getPosStandingOnFromShips(final Vector3dc blockPosInGlobal) {
+        final double radius = 0.5;
+        final AABBdc testAABB = new AABBd(
+            blockPosInGlobal.x() - radius, blockPosInGlobal.y() - radius, blockPosInGlobal.z() - radius,
+            blockPosInGlobal.x() + radius, blockPosInGlobal.y() + radius, blockPosInGlobal.z() + radius
+        );
+        final Iterable<Ship> intersectingShips = VSGameUtilsKt.getShipsIntersecting(level, testAABB);
+        for (final Ship ship : intersectingShips) {
+            final Vector3dc blockPosInLocal =
+                ship.getShipTransform().getWorldToShipMatrix().transformPosition(blockPosInGlobal, new Vector3d());
+            final BlockPos blockPos = new BlockPos(
+                Math.round(blockPosInLocal.x()), Math.round(blockPosInLocal.y()), Math.round(blockPosInLocal.z())
+            );
+            final BlockState blockState = level.getBlockState(blockPos);
+            if (!blockState.isAir()) {
+                return blockPos;
+            } else {
+                // Check the block below as well, in the cases of fences
+                final Vector3dc blockPosInLocal2 = ship.getShipTransform().getWorldToShipMatrix()
+                    .transformPosition(
+                        new Vector3d(blockPosInGlobal.x(), blockPosInGlobal.y() - 1.0, blockPosInGlobal.z()));
+                final BlockPos blockPos2 = new BlockPos(
+                    Math.round(blockPosInLocal2.x()), Math.round(blockPosInLocal2.y()), Math.round(blockPosInLocal2.z())
+                );
+                final BlockState blockState2 = level.getBlockState(blockPos2);
+                if (!blockState2.isAir()) {
+                    return blockPos2;
+                }
+            }
+        }
+        return null;
+    }
+
+    @Inject(method = "getBlockPosBelowThatAffectsMyMovement", at = @At("HEAD"), cancellable = true)
+    private void preGetBlockPosBelowThatAffectsMyMovement(final CallbackInfoReturnable<BlockPos> cir) {
+        final Vector3dc blockPosInGlobal = new Vector3d(
+            Math.floor(position.x) + 0.5,
+            Math.floor(getBoundingBox().minY - 0.5) + 0.5,
+            Math.floor(position.z) + 0.5
+        );
+        final BlockPos blockPosStandingOnFromShip = getPosStandingOnFromShips(blockPosInGlobal);
+        if (blockPosStandingOnFromShip != null) {
+            cir.setReturnValue(blockPosStandingOnFromShip);
+        }
     }
 
     /**
-     * @author ewoudje
-     * @reason unjank mojank, we need to modify distanceTo's so while were at it unjank it
+     * @author tri0de
+     * @reason Allows ship blocks to spawn landing particles, running particles, and play step sounds
      */
-    @Overwrite
-    public double distanceToSqr(final Vec3 vec) {
-        return distanceToSqr(vec.x, vec.y, vec.z);
+    @Inject(method = "getOnPos", at = @At("HEAD"), cancellable = true)
+    private void preGetOnPos(final CallbackInfoReturnable<BlockPos> cir) {
+        final Vector3dc blockPosInGlobal = new Vector3d(
+            Math.floor(position.x) + 0.5,
+            Math.floor(position.y - 0.2) + 0.5,
+            Math.floor(position.z) + 0.5
+        );
+        final BlockPos blockPosStandingOnFromShip = getPosStandingOnFromShips(blockPosInGlobal);
+        if (blockPosStandingOnFromShip != null) {
+            cir.setReturnValue(blockPosStandingOnFromShip);
+        }
     }
 
-    /**
-     * @author ewoudje
-     * @reason it fixes general issues when checking for distance between in world player and ship things
-     */
-    @Overwrite
-    public double distanceToSqr(final double x, final double y, final double z) {
-        return VSGameUtilsKt.squaredDistanceToInclShips(Entity.class.cast(this), x, y, z);
+    @Inject(method = "spawnSprintParticle", at = @At("HEAD"), cancellable = true)
+    private void preSpawnSprintParticle(final CallbackInfo ci) {
+        final Vector3dc blockPosInGlobal = new Vector3d(
+            Math.floor(position.x) + 0.5,
+            Math.floor(position.y - 0.2) + 0.5,
+            Math.floor(position.z) + 0.5
+        );
+        final BlockPos blockPosStandingOnFromShip = getPosStandingOnFromShips(blockPosInGlobal);
+        if (blockPosStandingOnFromShip != null) {
+            final BlockState blockState = this.level.getBlockState(blockPosStandingOnFromShip);
+            if (blockState.getRenderShape() != RenderShape.INVISIBLE) {
+                final Vec3 vec3 = this.getDeltaMovement();
+                this.level.addParticle(
+                    new BlockParticleOption(ParticleTypes.BLOCK, blockState),
+                    this.getX() + (this.random.nextDouble() - 0.5) * (double) this.dimensions.width,
+                    this.getY() + 0.1,
+                    this.getZ() + (this.random.nextDouble() - 0.5) * (double) this.dimensions.width,
+                    vec3.x * -4.0,
+                    1.5,
+                    vec3.z * -4.0
+                );
+                ci.cancel();
+            }
+        }
     }
+    // endregion
 
     // region shadow functions and fields
     @Shadow
     public Level level;
-    @Shadow
-    protected boolean onGround;
-    @Shadow
-    public float maxUpStep;
-
-    @Shadow
-    public abstract void setDeltaMovement(Vec3 motion);
-
-    @Shadow
-    public abstract double distanceToSqr(final Entity entity);
 
     @Shadow
     public abstract AABB getBoundingBox();
@@ -178,19 +362,44 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     public abstract void setDeltaMovement(double x, double y, double z);
 
     @Shadow
-    public static double getHorizontalDistanceSqr(final Vec3 vector) {
-        throw new AssertionError("Mixin failed to apply");
-    }
-
-    @Shadow
-    public static Vec3 collideBoundingBoxHeuristically(final Entity thisAsEntity, final Vec3 movement, final AABB box,
-        final Level world,
-        final CollisionContext shapeContext, final RewindableStream<VoxelShape> reusableStream) {
-        return null;
-    }
-
-    @Shadow
     protected abstract Vec3 collide(Vec3 vec3d);
+
+    @Shadow
+    protected abstract void positionRider(Entity passenger, Entity.MoveFunction callback);
+
+    @Shadow
+    protected abstract void onInsideBlock(BlockState state);
+
+    @Shadow
+    public abstract Vec3 getDeltaMovement();
+
+    @Shadow
+    public abstract void setDeltaMovement(Vec3 motion);
+
+    @Shadow
+    public abstract double getZ();
+
+    @Shadow
+    public abstract double getY();
+
+    @Shadow
+    public abstract double getX();
+
+    @Shadow
+    private @Nullable Entity vehicle;
+
+    @Shadow
+    private Vec3 position;
+
+    @Shadow
+    @Final
+    protected Random random;
+
+    @Shadow
+    public abstract float getEyeHeight();
+
+    @Shadow
+    private EntityDimensions dimensions;
     // endregion
 
     @Override

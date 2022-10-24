@@ -1,27 +1,34 @@
 package org.valkyrienskies.mod.common.world
 
-import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.util.Mth
+import net.minecraft.world.entity.Entity
+import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.ClipContext
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.material.FluidState
+import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.BlockHitResult
+import net.minecraft.world.phys.EntityHitResult
 import net.minecraft.world.phys.HitResult
 import net.minecraft.world.phys.Vec3
+import org.joml.Vector3d
 import org.joml.primitives.AABBd
 import org.joml.primitives.AABBdc
+import org.valkyrienskies.core.game.ships.ShipObjectClient
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.toJOML
-import org.valkyrienskies.mod.common.util.toVec3d
+import org.valkyrienskies.mod.common.util.toMinecraft
+import org.valkyrienskies.mod.util.scale
 import java.util.function.BiFunction
 import java.util.function.Function
+import java.util.function.Predicate
 
 @JvmOverloads
-fun ClientLevel.clipIncludeShips(ctx: ClipContext, shouldTransformHitPos: Boolean = true): BlockHitResult {
-    val vanillaHit = clip(ctx)
+fun Level.clipIncludeShips(ctx: ClipContext, shouldTransformHitPos: Boolean = true): BlockHitResult {
+    val vanillaHit = vanillaClip(ctx)
 
     var closestHit = vanillaHit
     var closestHitPos = vanillaHit.location
@@ -32,13 +39,13 @@ fun ClientLevel.clipIncludeShips(ctx: ClipContext, shouldTransformHitPos: Boolea
     // Iterate every ship, find do the raycast in ship space,
     // choose the raycast with the lowest distance to the start position.
     for (ship in shipObjectWorld.getShipObjectsIntersecting(clipAABB)) {
-        val worldToShip = ship.renderTransform.worldToShipMatrix
-        val shipToWorld = ship.renderTransform.shipToWorldMatrix
-        val shipStart = worldToShip.transformPosition(ctx.from.toJOML()).toVec3d()
-        val shipEnd = worldToShip.transformPosition(ctx.to.toJOML()).toVec3d()
+        val worldToShip = (ship as? ShipObjectClient)?.renderTransform?.worldToShipMatrix ?: ship.worldToShip
+        val shipToWorld = (ship as? ShipObjectClient)?.renderTransform?.shipToWorldMatrix ?: ship.shipToWorld
+        val shipStart = worldToShip.transformPosition(ctx.from.toJOML()).toMinecraft()
+        val shipEnd = worldToShip.transformPosition(ctx.to.toJOML()).toMinecraft()
 
         val shipHit = clip(ctx, shipStart, shipEnd)
-        val shipHitPos = shipToWorld.transformPosition(shipHit.location.toJOML()).toVec3d()
+        val shipHitPos = shipToWorld.transformPosition(shipHit.location.toJOML()).toMinecraft()
         val shipHitDist = shipHitPos.distanceToSqr(ctx.from)
 
         if (shipHitDist < closestHitDist && shipHit.type != HitResult.Type.MISS) {
@@ -147,3 +154,107 @@ private fun <T> clip(
         }
     }
 }
+
+fun Level.raytraceEntities(
+    shooter: Entity,
+    origStartVecM: Vec3,
+    origEndVecM: Vec3,
+    origBoundingBoxM: AABB,
+    filter: Predicate<Entity>,
+    maxDistance2: Double
+): EntityHitResult? {
+    var distance2 = maxDistance2
+    var resultEntity: Entity? = null
+    var location: Vec3? = null
+
+    fun checkEntities(entities: List<Entity>, startVec: Vec3, endVec: Vec3, scale: Double) =
+        entities.forEach { entity ->
+            val aabb = entity.boundingBox.inflate(entity.pickRadius.toDouble()).scale(scale)
+            val clipO = aabb.clip(startVec, endVec)
+
+            if (aabb.contains(startVec)) {
+                if (distance2 < 0.0) return@forEach
+                resultEntity = entity
+                location = clipO.orElse(startVec)
+                distance2 = 0.0
+                return@forEach
+            }
+
+            if (!clipO.isPresent) return@forEach
+
+            val clip = clipO.get()
+            val d = startVec.distanceToSqr(clip) / (scale * scale)
+
+            if (d >= distance2 && distance2 != 0.0) return@forEach
+
+            if (entity.rootVehicle === shooter.rootVehicle) {
+                if (distance2 != 0.0) return@forEach
+                resultEntity = entity
+                location = clip
+                return@forEach
+            }
+
+            resultEntity = entity
+            location = clip
+            distance2 = d
+        }
+
+    val entities = getEntities(shooter, origBoundingBoxM, filter) // Returns world and ship-space entities (mixins)
+
+    checkEntities(entities, origStartVecM, origEndVecM, 1.0)
+
+    val origStartVec = origStartVecM.toJOML()
+    val origEndVec = origEndVecM.toJOML()
+
+    val start = Vector3d()
+    val end = Vector3d()
+
+    shipObjectWorld.getShipObjectsIntersecting(origBoundingBoxM.toJOML()).forEach {
+        it.worldToShip.transformPosition(origStartVec, start)
+        it.worldToShip.transformPosition(origEndVec, end)
+
+        // Shouldn't we have a double for scale in transform?
+        val scale = it.shipTransform.worldToShipMatrix.getScale(Vector3d())
+        assert(scale.x == scale.y && scale.y == scale.z)
+
+        checkEntities(entities, start.toMinecraft(), end.toMinecraft(), scale.x)
+    }
+
+    return if (resultEntity == null) {
+        null
+    } else EntityHitResult(resultEntity, location)
+}
+
+fun BlockGetter.vanillaClip(context: ClipContext): BlockHitResult =
+    BlockGetter.traverseBlocks(context,
+        { clipContext: ClipContext, blockPos: BlockPos ->
+            val blockState = getBlockState(blockPos)
+            val fluidState = getFluidState(blockPos)
+            val vec3 = clipContext.from
+            val vec32 = clipContext.to
+            val voxelShape = clipContext.getBlockShape(blockState, this, blockPos)
+            val blockHitResult = clipWithInteractionOverride(vec3, vec32, blockPos, voxelShape, blockState)
+            val voxelShape2 = clipContext.getFluidShape(fluidState, this, blockPos)
+            val blockHitResult2 = voxelShape2.clip(vec3, vec32, blockPos)
+
+            val d = if (blockHitResult == null)
+                Double.MAX_VALUE
+            else
+                clipContext.from.distanceToSqr(blockHitResult.location)
+
+            val e = if (blockHitResult2 == null)
+                Double.MAX_VALUE
+            else
+                clipContext.from.distanceToSqr(blockHitResult2.location)
+
+            if (d <= e)
+                blockHitResult
+            else
+                blockHitResult2
+        }, { ctx ->
+            val vec3 = ctx.from.subtract(ctx.to)
+            BlockHitResult.miss(
+                ctx.to, Direction.getNearest(vec3.x, vec3.y, vec3.z),
+                BlockPos(ctx.to)
+            )
+        })

@@ -6,7 +6,9 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Overwrite;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(LocalPlayer.class)
 public abstract class MixinLocalPlayer extends LivingEntity {
@@ -20,11 +22,12 @@ public abstract class MixinLocalPlayer extends LivingEntity {
      *         during rendering. Why it wasn't like this originally is beyond me \(>.<)/
      * @author StewStrong
      */
-    @Overwrite
-    public float getViewYRot(final float partialTick) {
+    @Inject(method = "getViewYRot", at = @At("HEAD"), cancellable = true)
+    private void preGetViewYRot(final float partialTick, final CallbackInfoReturnable<Float> cir) {
         if (this.isPassenger()) {
-            return super.getViewYRot(partialTick);
+            cir.setReturnValue(super.getViewYRot(partialTick));
+        } else {
+            cir.setReturnValue(Mth.lerp(partialTick, this.yRotO, this.yRot));
         }
-        return Mth.lerp(partialTick, this.yRotO, this.yRot);
     }
 }

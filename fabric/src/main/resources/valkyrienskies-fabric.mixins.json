@@ -3,9 +3,11 @@
   "package": "org.valkyrienskies.mod.fabric.mixin",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
+    "world.level.block.FireMixin"
   ],
   "client": [
-    "ExampleFabricMixin"
+    "ExampleFabricMixin",
+    "client.main.MixinMain"
   ],
   "injectors": {
     "defaultRequire": 1

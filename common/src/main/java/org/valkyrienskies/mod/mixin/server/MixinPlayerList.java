@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.mixin.server;
 
 import java.util.List;
+import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
@@ -16,7 +17,9 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.valkyrienskies.core.game.ChunkAllocator;
 import org.valkyrienskies.core.game.ships.ShipObject;
+import org.valkyrienskies.core.hooks.VSCoreHooksKt;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(PlayerList.class)
@@ -34,6 +37,14 @@ public abstract class MixinPlayerList {
     public abstract void broadcast(@Nullable Player player, double x, double y, double z, double distance,
         ResourceKey<Level> worldKey, Packet<?> packet);
 
+    @Inject(
+        method = "placeNewPlayer",
+        at = @At("TAIL")
+    )
+    private void afterPlayerJoin(final Connection netManager, final ServerPlayer player, final CallbackInfo ci) {
+        VSCoreHooksKt.getCoreHooks().afterClientJoinServer(VSGameUtilsKt.getPlayerWrapper(player));
+    }
+
     /**
      * Transform x, y, z in sendToAround if they are in ship space.
      */
@@ -44,6 +55,16 @@ public abstract class MixinPlayerList {
     )
     private void sendToAround(@Nullable final Player player, final double x, final double y, final double z,
         final double distance, final ResourceKey<Level> worldKey, final Packet<?> packet, final CallbackInfo ci) {
+
+        // If something has transformed the player to the shipyard, don't transform
+        if (player != null
+            && ChunkAllocator.isChunkInShipyard(
+            (int) player.position().x >> 4,
+            (int) player.position().y >> 4)
+        ) {
+            return;
+        }
+
         final Level world = server.getLevel(worldKey);
         if (world == null) {
             return;

@@ -4,6 +4,7 @@ import net.minecraft.world.entity.player.Player
 import org.joml.Vector3d
 import org.valkyrienskies.core.game.DimensionId
 import org.valkyrienskies.core.game.IPlayer
+import org.valkyrienskies.core.hooks.CoreHooks
 import org.valkyrienskies.mod.common.dimensionId
 import java.lang.ref.WeakReference
 import java.util.UUID
@@ -11,12 +12,20 @@ import java.util.UUID
 /**
  * We use this wrapper around [PlayerEntity] to create [IPlayer] objects used by vs-core.
  */
-class MinecraftPlayer(playerObject: Player, override val uuid: UUID) : IPlayer {
+class MinecraftPlayer(playerObject: Player) : IPlayer {
+
+    override val uuid: UUID = playerObject.uuid
 
     // Hold a weak reference to avoid memory leaks
     val playerEntityReference: WeakReference<Player> = WeakReference(playerObject)
 
     val player: Player get() = playerEntityReference.get()!!
+
+    override val isAdmin: Boolean
+        get() = player.hasPermissions(4)
+
+    override val canModifyServerConfig: Boolean
+        get() = CoreHooks.isPhysicalClient || player.hasPermissions(4)
 
     override val dimension: DimensionId
         get() = player.level.dimensionId
