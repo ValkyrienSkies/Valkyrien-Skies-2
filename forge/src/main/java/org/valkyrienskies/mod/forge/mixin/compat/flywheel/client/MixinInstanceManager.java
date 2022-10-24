@@ -18,11 +18,9 @@ public class MixinInstanceManager {
     @Redirect(
         at = @At(
             value = "INVOKE",
-            target = "Lcom/jozufozu/flywheel/backend/instancing/IDynamicInstance;getWorldPosition()Lnet/minecraft/core/BlockPos;",
-            remap = false
+            target = "Lcom/jozufozu/flywheel/backend/instancing/IDynamicInstance;getWorldPosition()Lnet/minecraft/core/BlockPos;"
         ),
-        method = "*",
-        remap = false
+        method = "*"
     )
     private BlockPos redirectGetWorldPos1(final IDynamicInstance receiver) {
         final Vector3d v = VSGameUtilsKt.getWorldCoordinates(
@@ -37,11 +35,9 @@ public class MixinInstanceManager {
     @Redirect(
         at = @At(
             value = "INVOKE",
-            target = "Lcom/jozufozu/flywheel/backend/instancing/ITickableInstance;getWorldPosition()Lnet/minecraft/core/BlockPos;",
-            remap = false
+            target = "Lcom/jozufozu/flywheel/backend/instancing/ITickableInstance;getWorldPosition()Lnet/minecraft/core/BlockPos;"
         ),
-        method = "*",
-        remap = false
+        method = "*"
     )
     private BlockPos redirectGetWorldPos2(final ITickableInstance receiver) {
         final Vector3d v = VSGameUtilsKt.getWorldCoordinates(Minecraft.getInstance().level,
