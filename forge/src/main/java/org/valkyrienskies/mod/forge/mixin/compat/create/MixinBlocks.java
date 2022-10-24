@@ -29,7 +29,7 @@ public class MixinBlocks {
             VSGameUtilsKt.getShipsIntersecting(entity.level, entity.getBoundingBox()).iterator();
         if (ships.hasNext()) {
             final Vector3d pos = ships.next().getWorldToShip()
-                .transformPosition(VectorConversionsMCKt.toJOMLD(entity.blockPosition()));
+                .transformPosition(VectorConversionsMCKt.toJOMLD(entity.blockPosition()).add(0.5, 0.5, 0.5));
             return new BlockPos(Math.floor(pos.x), Math.floor(pos.y), Math.floor(pos.z));
         } else {
             return entity.blockPosition();
