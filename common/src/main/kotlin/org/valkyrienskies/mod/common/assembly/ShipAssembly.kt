@@ -72,7 +72,7 @@ fun createNewShipWithBlocks(
     level.server.executeIf(
         { chunkPoses.all { level.chunkSource.isTickingChunk(BlockPos(it.x shl 4, 0, it.z shl 4)) } }) {
         level.players().forEach { player ->
-            PacketRestartChunkUpdates(chunkPoses, chunkPairs, ship.id).sendToClient(player.playerWrapper)
+            PacketRestartChunkUpdates(chunkPoses).sendToClient(player.playerWrapper)
         }
     }
 

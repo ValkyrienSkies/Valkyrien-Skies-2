@@ -1,28 +1,26 @@
 package org.valkyrienskies.mod.common.assembly
 
-import com.google.common.collect.HashBiMap
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
-import net.minecraft.Util
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientPacketListener
-import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher
-import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher.RenderChunk
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket
 import net.minecraft.network.protocol.game.ClientboundLevelChunkPacket
 import net.minecraft.network.protocol.game.ClientboundLightUpdatePacket
 import net.minecraft.network.protocol.game.ClientboundSectionBlocksUpdatePacket
 import net.minecraft.world.level.ChunkPos
+import org.valkyrienskies.core.api.ClientShip
+import org.valkyrienskies.core.game.ChunkAllocator
+import org.valkyrienskies.core.game.ChunkClaim
 import org.valkyrienskies.core.hooks.VSEvents.ShipLoadEventClient
-import org.valkyrienskies.core.networking.RegisteredHandler
 import org.valkyrienskies.core.networking.simple.registerClientHandler
 import org.valkyrienskies.core.util.logger
 import org.valkyrienskies.core.util.pollUntilEmpty
+import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.networking.PacketRestartChunkUpdates
 import org.valkyrienskies.mod.common.networking.PacketStopChunkUpdates
-import org.valkyrienskies.mod.common.shipObjectWorld
-import org.valkyrienskies.mod.mixinducks.feature.seamless_copy.ChunkRenderDispatcherDuck
 import org.valkyrienskies.mod.mixinducks.feature.seamless_copy.SeamlessCopyClientPacketListenerDuck
+import java.util.Queue
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
 
@@ -35,122 +33,87 @@ class SeamlessChunksManager(private val listener: ClientPacketListener) {
         fun get() = (Minecraft.getInstance().connection as? SeamlessCopyClientPacketListenerDuck)?.chunks
     }
 
-    private val linkedRenders = HashBiMap.create<ChunkPos, ChunkPos>()
-
+    private val shipQueuedUpdates = ConcurrentHashMap<ChunkClaim, ConcurrentLinkedQueue<Packet<*>>>()
     private val queuedUpdates = ConcurrentHashMap<ChunkPos, ConcurrentLinkedQueue<Packet<*>>>()
     private val stalledChunks = LongOpenHashSet()
 
-    private val handlers: Iterable<RegisteredHandler>
-
     init {
-        handlers = mutableListOf(
-            PacketStopChunkUpdates::class.registerClientHandler { (chunks) ->
-                chunks.forEach { stalledChunks.add(it.toLong()) }
-            },
-
-            PacketRestartChunkUpdates::class.registerClientHandler { packet ->
-                if (Minecraft.getInstance().shipObjectWorld.queryableShipData.contains(packet.waitForShip)) {
-                    Minecraft.getInstance().execute {
-                        onRestartUpdates(packet)
-                    }
-                } else {
-                    ShipLoadEventClient.once({ it.ship.id == packet.waitForShip }) {
-                        Minecraft.getInstance().execute {
-                            onRestartUpdates(packet)
-                        }
-                    }
-                }
-
+        PacketStopChunkUpdates::class.registerClientHandler { (chunks) ->
+            chunks.forEach { stalledChunks.add(it.toLong()) }
+        }
+        PacketRestartChunkUpdates::class.registerClientHandler { packet ->
+            Minecraft.getInstance().execute {
+                onRestartUpdates(packet)
             }
-        )
+        }
+
+        ShipLoadEventClient.on { (ship) ->
+            onShipLoad(ship)
+        }
+    }
+
+    private fun onShipLoad(ship: ClientShip) {
+        val packets = shipQueuedUpdates.remove(ship.chunkClaim)
+        if (!packets.isNullOrEmpty()) {
+            logger.info("Executing ${packets.size} deferred updates for ship ID=${ship.id} at ${ship.chunkClaim}")
+            dispatchQueuedPackets(packets)
+        }
     }
 
     private fun onRestartUpdates(packet: PacketRestartChunkUpdates) {
-        val (chunks, linkedChunks) = packet
-        // linkedChunks.forEach { (c1, c2) ->
-        //     linkedRenders[c1] = c2
-        //     println("Linking chunks $c1 and $c2")
-        // }
+        val (chunks) = packet
 
         chunks.forEach { pos ->
             stalledChunks.remove(pos.toLong())
-
-            queuedUpdates[pos]?.pollUntilEmpty { packet ->
-                logger.info("Executing deferred update at <${pos.x}, ${pos.z}> for ${packet::class}")
-                when (packet) {
-                    is ClientboundLevelChunkPacket -> listener.handleLevelChunk(packet)
-                    is ClientboundBlockUpdatePacket -> listener.handleBlockUpdate(packet)
-                    is ClientboundSectionBlocksUpdatePacket -> listener.handleChunkBlocksUpdate(packet)
-                    is ClientboundLightUpdatePacket -> listener.handleLightUpdatePacked(packet)
-                }
+            val packets = queuedUpdates.remove(pos)
+            if (!packets.isNullOrEmpty()) {
+                logger.info("Executing ${packets.size} deferred updates at <${pos.x}, ${pos.z}>")
+                dispatchQueuedPackets(packets)
             }
-
         }
     }
 
-    private val RenderChunk.pos get() = ChunkPos(origin.x shr 4, origin.z shr 4)
-
-    private fun isLinked(c1: RenderChunk, c2: RenderChunk): Boolean =
-        linkedRenders[c1.pos] == c2.pos || linkedRenders[c2.pos] == c1.pos
-
-    private fun unlink(c: RenderChunk) {
-        if (linkedRenders.remove(c.pos) == null) {
-            linkedRenders.inverse().remove(c.pos)
-        }
-    }
-
-    fun scheduleLinkedChunksCompile(
-        finishTimeNano: Long, chunksToCompile: MutableSet<RenderChunk>, dispatcher: ChunkRenderDispatcher
-    ) {
-        val toRemove = mutableSetOf<RenderChunk>()
-        val startTime = Util.getNanos()
-        val iterator = chunksToCompile.iterator()
-        var chunksCompiled = 0
-        while (iterator.hasNext()) {
-            val renderChunk = iterator.next()
-            val linkedChunk = chunksToCompile.find { c2 -> isLinked(renderChunk, c2) }
-            if (linkedChunk != null) {
-                println("Rendering linked chunks together ${linkedChunk.pos} and ${renderChunk.pos}")
-                // modified code
-                val tasks = listOf(renderChunk.createCompileTask(), linkedChunk.createCompileTask())
-                (dispatcher as ChunkRenderDispatcherDuck).vs_scheduleLinked(tasks)
-
-                unlink(renderChunk)
-                toRemove.add(renderChunk)
-                toRemove.add(linkedChunk)
-
-                chunksCompiled += 2
-            } else {
-                // vanilla code
-                if (renderChunk.isDirtyFromPlayer) {
-                    dispatcher.rebuildChunkSync(renderChunk)
-                } else {
-                    renderChunk.rebuildChunkAsync(dispatcher)
-                }
-                renderChunk.setNotDirty()
-                iterator.remove()
-                chunksCompiled++
-            }
-
-            val currentTime = Util.getNanos()
-            val averageTimePerCompile: Long = (currentTime - startTime) / chunksCompiled.toLong()
-            val timeRemaining = finishTimeNano - currentTime
-            if (timeRemaining < averageTimePerCompile) {
-                break
+    private fun dispatchQueuedPackets(queue: Queue<Packet<*>>) {
+        queue.pollUntilEmpty { packet ->
+            when (packet) {
+                is ClientboundLevelChunkPacket -> listener.handleLevelChunk(packet)
+                is ClientboundBlockUpdatePacket -> listener.handleBlockUpdate(packet)
+                is ClientboundSectionBlocksUpdatePacket -> listener.handleChunkBlocksUpdate(packet)
+                is ClientboundLightUpdatePacket -> listener.handleLightUpdatePacked(packet)
             }
         }
-        chunksToCompile.removeAll(toRemove)
     }
 
     fun cleanup() {
         stalledChunks.clear()
         queuedUpdates.clear()
+        shipQueuedUpdates.clear()
     }
 
     fun queue(chunkX: Int, chunkZ: Int, packet: Packet<*>): Boolean {
+        // note, this will get re-called when we're processing the shipQueuedUpdates queue,
+        // so if any updates in there are actually still stalled by a [PacketStopChunkUpdates] it will
+        // be added to the queuedUpdates queue here (and vice versa)
+
+        // The chunk is in the shipyard, but we don't know what ship
+        if (ChunkAllocator.isChunkInShipyard(chunkX, chunkZ) &&
+            Minecraft.getInstance().level?.getShipManagingPos(chunkX, chunkZ) == null
+        ) {
+            logger.info("Deferring ship update at <$chunkX, $chunkZ> for ${packet::class}")
+            shipQueuedUpdates
+                .computeIfAbsent(ChunkClaim.getClaim(chunkX, chunkZ)) { ConcurrentLinkedQueue() }
+                .add(packet)
+
+            return true
+        }
+
+        // The chunk prevented from updating by a [PacketStopChunkUpdates]
         if (stalledChunks.contains(ChunkPos.asLong(chunkX, chunkZ))) {
             logger.info("Deferring update at <$chunkX, $chunkZ> for ${packet::class}")
-            queuedUpdates.computeIfAbsent(ChunkPos(chunkX, chunkZ)) { ConcurrentLinkedQueue() }.add(packet)
+            queuedUpdates
+                .computeIfAbsent(ChunkPos(chunkX, chunkZ)) { ConcurrentLinkedQueue() }
+                .add(packet)
+
             return true
         }
 
