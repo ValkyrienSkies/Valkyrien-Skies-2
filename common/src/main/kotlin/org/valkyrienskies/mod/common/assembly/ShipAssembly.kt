@@ -1,11 +1,13 @@
 package org.valkyrienskies.mod.common.assembly
 
 import net.minecraft.core.BlockPos
+import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.ChunkPos
 import org.joml.Vector3d
 import org.valkyrienskies.core.datastructures.DenseBlockPosSet
 import org.valkyrienskies.core.game.ships.ShipData
+import org.valkyrienskies.core.hooks.VSEvents.TickEndEvent
 import org.valkyrienskies.core.networking.simple.sendToClient
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.networking.PacketRestartChunkUpdates
@@ -43,8 +45,6 @@ fun createNewShipWithBlocks(
     }
 
     blocks.forEachChunk { chunkX, chunkY, chunkZ, chunk ->
-        println("Moving section: $chunkX $chunkY $chunkZ")
-
         val sourceChunk = level.getChunk(chunkX, chunkZ)
         val destChunk = level.getChunk(chunkX - deltaX, chunkZ - deltaZ)
 
@@ -68,14 +68,23 @@ fun createNewShipWithBlocks(
         shipPositionInWorldCoordinates = centerBlockPosInWorld
     )
 
-    level.server.execute {
-        level.server.execute {
-            level.players().forEach { player ->
-                PacketRestartChunkUpdates(chunkPoses, chunkPairs, ship.id).sendToClient(player.playerWrapper)
-            }
+
+    level.server.executeIf(
+        { chunkPoses.all { level.chunkSource.isTickingChunk(BlockPos(it.x shl 4, 0, it.z shl 4)) } }) {
+        level.players().forEach { player ->
+            PacketRestartChunkUpdates(chunkPoses, chunkPairs, ship.id).sendToClient(player.playerWrapper)
         }
     }
 
 
     return ship
+}
+
+private fun MinecraftServer.executeIf(condition: () -> Boolean, toExecute: Runnable) {
+    TickEndEvent.on { (shipWorld), handler ->
+        if (shipWorld == this.shipObjectWorld && condition()) {
+            toExecute.run()
+            handler.unregister()
+        }
+    }
 }
