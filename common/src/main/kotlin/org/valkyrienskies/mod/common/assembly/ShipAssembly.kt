@@ -40,10 +40,13 @@ fun createNewShipWithBlocks(
     val chunkPairs = chunksToBeUpdated.values.toList()
     val chunkPoses = chunkPairs.flatMap { it.toList() }
 
+    // Send a list of all the chunks that we plan on updating to players, so that they
+    // defer all updates until assembly is finished
     level.players().forEach { player ->
         PacketStopChunkUpdates(chunkPoses).sendToClient(player.playerWrapper)
     }
 
+    // Use relocateBlock to copy all the blocks into the ship
     blocks.forEachChunk { chunkX, chunkY, chunkZ, chunk ->
         val sourceChunk = level.getChunk(chunkX, chunkZ)
         val destChunk = level.getChunk(chunkX - deltaX, chunkZ - deltaZ)
@@ -56,21 +59,26 @@ fun createNewShipWithBlocks(
         }
     }
 
+    // Calculate the position of the block that the player clicked after it has been assembled
     val centerInShip = Vector3d(
         ((shipChunkX shl 4) + (centerBlock.x and 15)).toDouble(),
         centerBlock.y.toDouble(),
         ((shipChunkZ shl 4) + (centerBlock.z and 15)).toDouble()
     )
+
+    // The ship's position has shifted from the center block since we assembled the ship, compensate for that
     val centerBlockPosInWorld = ship.inertiaData.getCenterOfMassInShipSpace().sub(centerInShip, Vector3d())
         .add(ship.shipTransform.shipPositionInWorldCoordinates)
 
-    ship.shipTransform = ship.shipTransform.copy(
-        shipPositionInWorldCoordinates = centerBlockPosInWorld
-    )
-
+    // Put the ship into the compensated position, so that all the assembled blocks stay in the same place
+    ship.shipTransform = ship.shipTransform.copy(shipPositionInWorldCoordinates = centerBlockPosInWorld)
 
     level.server.executeIf(
-        { chunkPoses.all { level.chunkSource.isTickingChunk(BlockPos(it.x shl 4, 0, it.z shl 4)) } }) {
+        // This condition will return true if all modified chunks have been both loaded AND
+        // chunk update packets were sent to players
+        { chunkPoses.all { level.chunkSource.isTickingChunk(BlockPos(it.x shl 4, 0, it.z shl 4)) } }
+    ) {
+        // Once all the chunk updates are sent to players, we can tell them to restart chunk updates
         level.players().forEach { player ->
             PacketRestartChunkUpdates(chunkPoses).sendToClient(player.playerWrapper)
         }

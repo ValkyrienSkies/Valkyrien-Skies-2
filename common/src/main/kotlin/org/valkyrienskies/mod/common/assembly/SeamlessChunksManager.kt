@@ -24,6 +24,10 @@ import java.util.Queue
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
 
+/**
+ * @see createNewShipWithBlocks
+ * @see org.valkyrienskies.mod.mixin.feature.seamless_copy.MixinClientPacketListener
+ */
 class SeamlessChunksManager(private val listener: ClientPacketListener) {
 
     companion object {
@@ -90,6 +94,11 @@ class SeamlessChunksManager(private val listener: ClientPacketListener) {
         shipQueuedUpdates.clear()
     }
 
+    /**
+     * Attempt to defer a chunk update
+     *
+     * @return true if the chunk update was deferred, false if otherwise
+     */
     fun queue(chunkX: Int, chunkZ: Int, packet: Packet<*>): Boolean {
         // note, this will get re-called when we're processing the shipQueuedUpdates queue,
         // so if any updates in there are actually still stalled by a [PacketStopChunkUpdates] it will

@@ -16,6 +16,25 @@ import org.valkyrienskies.mod.common.assembly.SeamlessChunksManager;
 import org.valkyrienskies.mod.mixin.accessors.network.protocol.game.ClientboundSectionBlocksUpdatePacketAccessor;
 import org.valkyrienskies.mod.mixinducks.feature.seamless_copy.SeamlessCopyClientPacketListenerDuck;
 
+/**
+ * This mixin enables us to prevent the client from processing chunk/block update packets. This serves two purposes:
+ *
+ * <ol>
+ *     <li>
+ *         We can force ship assembly to happen all at once, by deferring the packets from being processed until the
+ *         ship is fully assembled - players will no longer see flickering (provided the chunks are rerendered
+ *         synchronously), and it will be impossible to fall through them
+ *     </li>
+ *     <li>
+ *         We can prevent chunks without a ship from loading until their ship loads in. This allows us to ensure that
+ *         any chunk in the shipyard on the client has an associated ship.
+ *     </li>
+ * </ol>
+ * <p>
+ * We keep an instance of SeamlessChunksManager in this class because it may get reused across worlds.
+ *
+ * @see SeamlessChunksManager
+ */
 @Mixin(ClientPacketListener.class)
 public class MixinClientPacketListener implements SeamlessCopyClientPacketListenerDuck {
 
