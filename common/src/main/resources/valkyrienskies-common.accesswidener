@@ -9,3 +9,8 @@ accessible	class	net/minecraft/client/multiplayer/ClientChunkCache$Storage
 
 # For including entities on ships getting send to the client
 accessible  class   net/minecraft/server/level/ChunkMap$TrackedEntity
+
+# For seamless chunk copies
+accessible  class   net/minecraft/client/renderer/chunk/ChunkRenderDispatcher$RenderChunk$RebuildTask
+accessible  class   net/minecraft/client/renderer/chunk/ChunkRenderDispatcher$RenderChunk$ChunkCompileTask
+accessible  class   net/minecraft/client/renderer/chunk/ChunkRenderDispatcher$ChunkTaskResult

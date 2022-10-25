@@ -17,6 +17,7 @@ object ValkyrienSkiesMod {
 
     lateinit var TEST_CHAIR: Block
     lateinit var SHIP_CREATOR_ITEM: Item
+    lateinit var SHIP_ASSEMBLER_ITEM: Item
     lateinit var SHIP_CREATOR_ITEM_SMALLER: Item
     lateinit var SHIP_MOUNTING_ENTITY_TYPE: EntityType<ShipMountingEntity>
 
