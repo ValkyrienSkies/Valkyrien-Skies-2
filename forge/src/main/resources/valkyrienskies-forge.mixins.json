@@ -3,11 +3,18 @@
   "package": "org.valkyrienskies.mod.forge.mixin",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
-    "client.render.MixinLevelRenderer",
+    "compat.create.MixinBlocks",
+    "compat.create.MixinBlockBreakingKineticTileEntity",
+    "compat.create.MixinCrushingWheelBlock",
+    "compat.flywheel.client.MaterialManagerAccessor",
+    "compat.flywheel.client.MixinInstanceManager",
+    "compat.flywheel.client.MixinInstanceWorld",
+    "compat.flywheel.client.MixinTileInstanceManager",
     "world.level.block.FireMixin"
   ],
   "client": [
-    "ExampleForgeMixin"
+    "ExampleForgeMixin",
+    "client.render.MixinLevelRenderer"
   ],
   "injectors": {
     "defaultRequire": 1

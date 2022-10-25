@@ -156,8 +156,7 @@ public abstract class MixinLevelRenderer {
     }
 
     /**
-     * mojank developers who wrote this don't quite understand what a matrixstack is apparently
-     *
+     * @reason mojank developers who wrote this don't quite understand what a matrixstack is apparently
      * @author Rubydesic
      */
     @Inject(method = "renderHitOutline", at = @At("HEAD"), cancellable = true)
@@ -312,7 +311,7 @@ public abstract class MixinLevelRenderer {
      * @param camZ            Player camera Z
      */
     @Unique
-    private void transformRenderWithShip(final ShipTransform renderTransform, final PoseStack matrix,
+    private static void transformRenderWithShip(final ShipTransform renderTransform, final PoseStack matrix,
         final BlockPos blockPos,
         final double camX, final double camY, final double camZ) {
 

@@ -4,6 +4,7 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Position
+import net.minecraft.core.Vec3i
 import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
@@ -186,7 +187,7 @@ inline fun Level.transformToNearbyShipsAndWorld(
 fun Level.getShipObjectManagingPos(chunkX: Int, chunkZ: Int) =
     getShipObjectManagingPosImpl(this, chunkX, chunkZ)
 
-fun Level.getShipObjectManagingPos(blockPos: BlockPos) =
+fun Level.getShipObjectManagingPos(blockPos: Vec3i) =
     getShipObjectManagingPos(blockPos.x shr 4, blockPos.z shr 4)
 
 fun Level.getShipObjectManagingPos(pos: Vector3dc) =
@@ -207,7 +208,7 @@ fun Level.getShipObjectEntityMountedTo(entity: Entity): ShipObject? {
 fun ClientLevel.getShipObjectManagingPos(chunkX: Int, chunkZ: Int) =
     getShipObjectManagingPosImpl(this, chunkX, chunkZ) as ShipObjectClient?
 
-fun ClientLevel.getShipObjectManagingPos(blockPos: BlockPos) =
+fun ClientLevel.getShipObjectManagingPos(blockPos: Vec3i) =
     getShipObjectManagingPos(blockPos.x shr 4, blockPos.z shr 4)
 
 fun ClientLevel.getShipObjectManagingPos(pos: Vector3dc) =
@@ -225,7 +226,7 @@ fun ClientLevel.getShipObjectEntityMountedTo(entity: Entity): ShipObjectClient? 
 fun ServerLevel.getShipObjectManagingPos(chunkX: Int, chunkZ: Int) =
     getShipObjectManagingPosImpl(this, chunkX, chunkZ) as ShipObjectServer?
 
-fun ServerLevel.getShipObjectManagingPos(blockPos: BlockPos) =
+fun ServerLevel.getShipObjectManagingPos(blockPos: Vec3i) =
     getShipObjectManagingPos(blockPos.x shr 4, blockPos.z shr 4)
 
 fun ServerLevel.getShipObjectManagingPos(chunkPos: ChunkPos) =
