@@ -76,7 +76,10 @@ object BlockStateInfo {
     // the above issue shall be fixed
     // https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues/25
 
-    fun onSetBlock(level: Level, blockPos: BlockPos, prevBlockState: BlockState, newBlockState: BlockState) {
+    fun onSetBlock(level: Level, blockPos: BlockPos, prevBlockState: BlockState, newBlockState: BlockState) =
+        onSetBlock(level, blockPos.x, blockPos.y, blockPos.z, prevBlockState, newBlockState)
+
+    fun onSetBlock(level: Level, x: Int, y: Int, z: Int, prevBlockState: BlockState, newBlockState: BlockState) {
         if (!::SORTED_REGISTRY.isInitialized) return
 
         val shipObjectWorld = level.shipObjectWorld
@@ -86,7 +89,7 @@ object BlockStateInfo {
         val (newBlockMass, newBlockType) = get(newBlockState) ?: return
 
         shipObjectWorld.onSetBlock(
-            blockPos.x, blockPos.y, blockPos.z, level.dimensionId, prevBlockType, newBlockType, prevBlockMass,
+            x, y, z, level.dimensionId, prevBlockType, newBlockType, prevBlockMass,
             newBlockMass
         )
     }

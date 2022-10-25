@@ -21,7 +21,7 @@ object ChunkManagement {
         // for now, just do all the watch tasks
 
         chunkWatchTasks.forEach { chunkWatchTask: ChunkWatchTask ->
-            println(
+            logger.debug(
                 "Watch task for dimension " + chunkWatchTask.dimensionId + ": " +
                     chunkWatchTask.getChunkX() + " : " + chunkWatchTask.getChunkZ()
             )
@@ -46,7 +46,7 @@ object ChunkManagement {
         }
 
         chunkUnwatchTasks.forEach { chunkUnwatchTask: ChunkUnwatchTask ->
-            println(
+            logger.debug(
                 "Unwatch task for dimension " + chunkUnwatchTask.dimensionId + ": " +
                     chunkUnwatchTask.getChunkX() + " : " + chunkUnwatchTask.getChunkZ()
             )

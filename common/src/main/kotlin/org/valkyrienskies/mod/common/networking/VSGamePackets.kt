@@ -15,6 +15,8 @@ object VSGamePackets {
 
     fun register() {
         PacketPlayerDriving::class.register()
+        PacketStopChunkUpdates::class.register()
+        PacketRestartChunkUpdates::class.register()
     }
 
     fun registerHandlers() {
