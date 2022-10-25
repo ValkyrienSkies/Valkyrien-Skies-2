@@ -59,7 +59,7 @@ class SeamlessChunksManager(private val listener: ClientPacketListener) {
     private fun onShipLoad(ship: ClientShip) {
         val packets = shipQueuedUpdates.remove(ship.chunkClaim)
         if (!packets.isNullOrEmpty()) {
-            logger.info("Executing ${packets.size} deferred updates for ship ID=${ship.id} at ${ship.chunkClaim}")
+            logger.debug("Executing ${packets.size} deferred updates for ship ID=${ship.id} at ${ship.chunkClaim}")
             dispatchQueuedPackets(packets)
         }
     }
@@ -71,7 +71,7 @@ class SeamlessChunksManager(private val listener: ClientPacketListener) {
             stalledChunks.remove(pos.toLong())
             val packets = queuedUpdates.remove(pos)
             if (!packets.isNullOrEmpty()) {
-                logger.info("Executing ${packets.size} deferred updates at <${pos.x}, ${pos.z}>")
+                logger.debug("Executing ${packets.size} deferred updates at <${pos.x}, ${pos.z}>")
                 dispatchQueuedPackets(packets)
             }
         }
@@ -108,7 +108,7 @@ class SeamlessChunksManager(private val listener: ClientPacketListener) {
         if (ChunkAllocator.isChunkInShipyard(chunkX, chunkZ) &&
             Minecraft.getInstance().level?.getShipManagingPos(chunkX, chunkZ) == null
         ) {
-            logger.info("Deferring ship update at <$chunkX, $chunkZ> for ${packet::class}")
+            logger.debug("Deferring ship update at <$chunkX, $chunkZ> for ${packet::class}")
             shipQueuedUpdates
                 .computeIfAbsent(ChunkClaim.getClaim(chunkX, chunkZ)) { ConcurrentLinkedQueue() }
                 .add(packet)
@@ -118,7 +118,7 @@ class SeamlessChunksManager(private val listener: ClientPacketListener) {
 
         // The chunk prevented from updating by a [PacketStopChunkUpdates]
         if (stalledChunks.contains(ChunkPos.asLong(chunkX, chunkZ))) {
-            logger.info("Deferring update at <$chunkX, $chunkZ> for ${packet::class}")
+            logger.debug("Deferring update at <$chunkX, $chunkZ> for ${packet::class}")
             queuedUpdates
                 .computeIfAbsent(ChunkPos(chunkX, chunkZ)) { ConcurrentLinkedQueue() }
                 .add(packet)
@@ -126,7 +126,7 @@ class SeamlessChunksManager(private val listener: ClientPacketListener) {
             return true
         }
 
-        logger.info("Received update at <$chunkX, $chunkZ> for ${packet::class}")
+        logger.trace("Received update at <$chunkX, $chunkZ> for ${packet::class}")
 
         return false
     }
