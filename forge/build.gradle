@@ -52,8 +52,8 @@ dependencies {
         transitive = false
     }
 
-    modImplementation("curse.maven:flywheel-486392:3535459")
-    modImplementation("curse.maven:create-328085:3536025")
+    modCompileOnly("curse.maven:flywheel-486392:3535459")
+    modCompileOnly("curse.maven:create-328085:3536025")
 
     // Add Kotlin for Forge.
     // Based on their own instructions: https://github.com/thedarkcolour/KotlinForForge/blob/70385f5/thedarkcolour/kotlinforforge/gradle/kff-3.0.0.gradle
