@@ -29,6 +29,7 @@ import org.valkyrienskies.core.game.ships.ShipData
 import org.valkyrienskies.core.game.ships.ShipObject
 import org.valkyrienskies.core.game.ships.ShipObjectClient
 import org.valkyrienskies.core.game.ships.ShipObjectServer
+import org.valkyrienskies.core.hooks.VSEvents.TickEndEvent
 import org.valkyrienskies.core.util.DoubleTernaryConsumer
 import org.valkyrienskies.core.util.expand
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
@@ -80,6 +81,18 @@ fun getResourceKey(dimensionId: DimensionId): ResourceKey<Level> {
     }
     return cached
 }
+
+fun MinecraftServer.executeIf(condition: () -> Boolean, toExecute: Runnable) {
+    TickEndEvent.on { (shipWorld), handler ->
+        if (shipWorld == this.shipObjectWorld && condition()) {
+            toExecute.run()
+            handler.unregister()
+        }
+    }
+}
+
+fun Level.isTickingChunk(pos: ChunkPos) = isTickingChunk(pos.x, pos.z)
+fun Level.isTickingChunk(chunkX: Int, chunkZ: Int) = chunkSource.isTickingChunk(BlockPos(chunkX shl 4, 0, chunkZ shl 4))
 
 fun MinecraftServer.getLevelFromDimensionId(dimensionId: DimensionId): ServerLevel? {
     return getLevel(getResourceKey(dimensionId))
@@ -214,6 +227,9 @@ fun ClientLevel.getShipObjectManagingPos(blockPos: Vec3i) =
 fun ClientLevel.getShipObjectManagingPos(pos: Vector3dc) =
     getShipObjectManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
 
+fun ClientLevel.getShipObjectManagingPos(pos: Position) =
+    getShipObjectManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
+
 fun ClientLevel.getShipObjectManagingPos(chunkPos: ChunkPos) =
     getShipObjectManagingPos(chunkPos.x, chunkPos.z)
 
@@ -242,6 +258,16 @@ private fun getShipManagingPosImpl(world: Level, x: Int, z: Int): Ship? {
         null
     }
 }
+
+fun ClientLevel.transformRenderAABBToWorld(pos: Position, aabb: AABB): AABB {
+    val ship = getShipObjectManagingPos(pos)
+    if (ship != null) {
+        return aabb.toJOML().transform(ship.renderTransform.shipToWorldMatrix).toMinecraft()
+    }
+    return aabb
+}
+
+fun Entity.getShipManaging(): Ship? = this.level.getShipManagingPos(this.position())
 
 // Level
 fun Level.getShipManagingPos(chunkX: Int, chunkZ: Int) =

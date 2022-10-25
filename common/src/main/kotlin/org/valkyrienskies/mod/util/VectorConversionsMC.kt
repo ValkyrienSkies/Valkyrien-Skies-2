@@ -91,6 +91,10 @@ fun PoseStack.multiply(modelTransform: Matrix4dc, normalTransform: Quaterniondc)
     last.normal().mul(normalTransform.toMinecraft())
 }
 
+fun Matrix4fMC.multiply(m: Matrix4dc): Matrix4fMC = also {
+    multiply(m.toMinecraft())
+}
+
 fun Vec3i.toJOML() = Vector3i().set(this)
 fun Vec3i.toJOMLD() = Vector3d().set(this)
 fun Vec3i.toJOMLF() = Vector3f().set(this)

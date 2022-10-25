@@ -4,8 +4,9 @@
   "compatibilityLevel": "JAVA_8",
   "mixins": [
     "compat.create.MixinBlocks",
-    "compat.create.MixinBlockBreakingKineticTileEntity",
+    "compat.create.MixinContraptionRenderInfo",
     "compat.create.MixinCrushingWheelBlock",
+    "compat.create.MixinRenderedContraption",
     "compat.flywheel.client.MaterialManagerAccessor",
     "compat.flywheel.client.MixinInstanceManager",
     "compat.flywheel.client.MixinInstanceWorld",
