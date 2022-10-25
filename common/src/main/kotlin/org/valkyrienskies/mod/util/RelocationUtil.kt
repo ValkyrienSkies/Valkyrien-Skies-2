@@ -7,6 +7,7 @@ import net.minecraft.nbt.CompoundTag
 import net.minecraft.world.Container
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.level.chunk.LevelChunk.EntityCreationType.CHECK
@@ -47,10 +48,31 @@ fun relocateBlock(
         tag
     }
 
-    // region BlockState rotation
-    fun addDirection(direction1: Direction, direction2: Direction) =
-        Direction.from2DDataValue((direction1.get2DDataValue() + direction2.get2DDataValue()) and 3)
+    rotateBlockState(state, direction)
 
+    val level = toChunk.level
+
+    fromChunk.setBlockState(from, AIR, false)
+    level.sendBlockUpdated(from, state, AIR, 0)
+    toChunk.setBlockState(to, state, false)
+    level.sendBlockUpdated(to, state, AIR, 0)
+    level.chunkSource.lightEngine.checkBlock(from)
+    level.chunkSource.lightEngine.checkBlock(to)
+
+    tag?.let {
+        val be = toChunk.getBlockEntity(to, CHECK)!!
+        if (be is ShipBlockEntity)
+            be.ship = toShip
+
+        be.load(state, it)
+    }
+}
+
+private fun addDirection(direction1: Direction, direction2: Direction) =
+    Direction.from2DDataValue((direction1.get2DDataValue() + direction2.get2DDataValue()) and 3)
+
+private fun rotateBlockState(state: BlockState, direction: Direction) {
+    if (direction == NORTH) return
     // TODO there are prob more relevant states that need to get modified
     if (state.hasProperty(BlockStateProperties.HORIZONTAL_FACING)) {
         state.setValue(
@@ -80,23 +102,6 @@ fun relocateBlock(
             BlockStateProperties.FACING,
             addDirection(state.getValue(BlockStateProperties.FACING), direction)
         )
-    }
-    // endregion
-
-    val level = toChunk.level
-
-    // TODO review this set code, i might just need to use everywhere level#setBlock
-    fromChunk.setBlockState(from, AIR, false)
-    level.setBlock(to, state, 11)
-    level.sendBlockUpdated(from, state, AIR, 11)
-    level.chunkSource.lightEngine.checkBlock(from)
-
-    tag?.let {
-        val be = toChunk.getBlockEntity(to, CHECK)!!
-        if (be is ShipBlockEntity)
-            be.ship = toShip
-
-        be.load(state, it)
     }
 }
 
