@@ -97,7 +97,7 @@ public class MixinClientPacketListener implements SeamlessCopyClientPacketListen
 
     @NotNull
     @Override
-    public SeamlessChunksManager getChunks() {
+    public SeamlessChunksManager vs_getChunks() {
         return chunks;
     }
 }

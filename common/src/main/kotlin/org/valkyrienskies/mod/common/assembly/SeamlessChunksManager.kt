@@ -34,7 +34,7 @@ class SeamlessChunksManager(private val listener: ClientPacketListener) {
         private val logger by logger()
 
         @JvmStatic
-        fun get() = (Minecraft.getInstance().connection as? SeamlessCopyClientPacketListenerDuck)?.chunks
+        fun get() = (Minecraft.getInstance().connection as? SeamlessCopyClientPacketListenerDuck)?.vs_getChunks()
     }
 
     private val shipQueuedUpdates = ConcurrentHashMap<ChunkClaim, ConcurrentLinkedQueue<Packet<*>>>()
