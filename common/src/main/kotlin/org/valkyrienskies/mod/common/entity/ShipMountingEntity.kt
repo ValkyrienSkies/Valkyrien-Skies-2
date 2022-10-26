@@ -7,6 +7,7 @@ import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.level.Level
+import net.minecraft.world.phys.AABB
 import org.joml.Vector3f
 import org.valkyrienskies.core.api.setAttachment
 import org.valkyrienskies.core.game.ships.ShipObjectServer
@@ -15,6 +16,7 @@ import org.valkyrienskies.mod.api.SeatedControllingPlayer
 import org.valkyrienskies.mod.common.config.VSKeyBindings
 import org.valkyrienskies.mod.common.getShipObjectManagingPos
 import org.valkyrienskies.mod.common.networking.PacketPlayerDriving
+import org.valkyrienskies.mod.common.transformAabbToWorld
 
 open class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level) : Entity(type, level) {
 
@@ -75,6 +77,10 @@ open class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level
         impulse.y = if (up == down) 0.0f else if (up) 1.0f else -1.0f
 
         PacketPlayerDriving(impulse, sprint).sendToServer()
+    }
+
+    override fun getBoundingBox(): AABB {
+        return level.transformAabbToWorld(super.getBoundingBox())
     }
 
     override fun getControllingPassenger(): Entity? {
