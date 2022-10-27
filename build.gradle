@@ -131,7 +131,7 @@ allprojects {
     publishing {
         repositories {
             if (project.vs_maven_username && project.vs_maven_password) {
-                println "Publishing to VS Maven"
+                println "Publishing to VS Maven ($version)"
                 maven {
                     name = "VSMaven"
                     url = project.vs_maven_url
@@ -142,7 +142,7 @@ allprojects {
                 }
             }
             if (System.getenv("GITHUB_ACTOR") != null) {
-                println "Publishing to Github Packages"
+                println "Publishing to Github Packages ($version)"
                 maven {
                     name = "GitHubPackages"
                     url = uri("https://maven.pkg.github.com/ValkyrienSkies/Valkyrien-Skies-2")

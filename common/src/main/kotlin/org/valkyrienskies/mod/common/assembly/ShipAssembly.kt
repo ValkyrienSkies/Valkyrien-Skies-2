@@ -1,15 +1,15 @@
 package org.valkyrienskies.mod.common.assembly
 
 import net.minecraft.core.BlockPos
-import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.ChunkPos
 import org.joml.Vector3d
 import org.valkyrienskies.core.datastructures.DenseBlockPosSet
 import org.valkyrienskies.core.game.ships.ShipData
-import org.valkyrienskies.core.hooks.VSEvents.TickEndEvent
 import org.valkyrienskies.core.networking.simple.sendToClient
 import org.valkyrienskies.mod.common.dimensionId
+import org.valkyrienskies.mod.common.executeIf
+import org.valkyrienskies.mod.common.isTickingChunk
 import org.valkyrienskies.mod.common.networking.PacketRestartChunkUpdates
 import org.valkyrienskies.mod.common.networking.PacketStopChunkUpdates
 import org.valkyrienskies.mod.common.playerWrapper
@@ -76,7 +76,7 @@ fun createNewShipWithBlocks(
     level.server.executeIf(
         // This condition will return true if all modified chunks have been both loaded AND
         // chunk update packets were sent to players
-        { chunkPoses.all { level.chunkSource.isTickingChunk(BlockPos(it.x shl 4, 0, it.z shl 4)) } }
+        { chunkPoses.all(level::isTickingChunk) }
     ) {
         // Once all the chunk updates are sent to players, we can tell them to restart chunk updates
         level.players().forEach { player ->
@@ -84,15 +84,5 @@ fun createNewShipWithBlocks(
         }
     }
 
-
     return ship
-}
-
-private fun MinecraftServer.executeIf(condition: () -> Boolean, toExecute: Runnable) {
-    TickEndEvent.on { (shipWorld), handler ->
-        if (shipWorld == this.shipObjectWorld && condition()) {
-            toExecute.run()
-            handler.unregister()
-        }
-    }
 }
