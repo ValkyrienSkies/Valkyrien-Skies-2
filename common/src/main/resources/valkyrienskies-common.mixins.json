@@ -9,6 +9,7 @@
     "accessors.resource.ResourceKeyAccessor",
     "accessors.server.world.ChunkMapAccessor",
     "accessors.util.math.Matrix4fAccessor",
+    "client.player.MixinPlayer",
     "entity.MixinEntity",
     "feature.bed_fix.MixinServerPlayer",
     "feature.block_placement_orientation.MixinBlockItem",
