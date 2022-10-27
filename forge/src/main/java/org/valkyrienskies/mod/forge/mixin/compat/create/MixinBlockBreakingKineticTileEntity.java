@@ -35,10 +35,11 @@ public abstract class MixinBlockBreakingKineticTileEntity {
 
         if (ship != null) {
             origin = VectorConversionsMCKt.toMinecraft(
-                ship.getShipToWorld().transformPosition(VectorConversionsMCKt.toJOMLD(self.getBlockPos()))
+                ship.getShipToWorld()
+                    .transformPosition(VectorConversionsMCKt.toJOMLD(self.getBlockPos()).add(0.5, 0.5, 0.5))
             );
             target = VectorConversionsMCKt.toMinecraft(
-                ship.getShipToWorld().transformPosition(VectorConversionsMCKt.toJOMLD(orig))
+                ship.getShipToWorld().transformPosition(VectorConversionsMCKt.toJOMLD(orig).add(0.5, 0.5, 0.5))
             );
         } else {
             origin = Vec3.atCenterOf(self.getBlockPos());
@@ -47,7 +48,7 @@ public abstract class MixinBlockBreakingKineticTileEntity {
 
         final Vec3 diff = target.subtract(origin);
         final BlockHitResult result = self.getLevel().clip(new ClipContext(
-            origin.add(diff.scale(0.5)),
+            origin.add(diff.scale(0.6)),
             target,
             ClipContext.Block.COLLIDER,
             ClipContext.Fluid.NONE,
