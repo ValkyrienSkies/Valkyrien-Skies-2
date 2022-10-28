@@ -39,11 +39,12 @@ fun createNewShipWithBlocks(
     }
     val chunkPairs = chunksToBeUpdated.values.toList()
     val chunkPoses = chunkPairs.flatMap { it.toList() }
+    val chunkPosesJOML = chunkPoses.map { it.toJOML() }
 
     // Send a list of all the chunks that we plan on updating to players, so that they
     // defer all updates until assembly is finished
     level.players().forEach { player ->
-        PacketStopChunkUpdates(chunkPoses).sendToClient(player.playerWrapper)
+        PacketStopChunkUpdates(chunkPosesJOML).sendToClient(player.playerWrapper)
     }
 
     // Use relocateBlock to copy all the blocks into the ship
@@ -80,7 +81,7 @@ fun createNewShipWithBlocks(
     ) {
         // Once all the chunk updates are sent to players, we can tell them to restart chunk updates
         level.players().forEach { player ->
-            PacketRestartChunkUpdates(chunkPoses).sendToClient(player.playerWrapper)
+            PacketRestartChunkUpdates(chunkPosesJOML).sendToClient(player.playerWrapper)
         }
     }
 

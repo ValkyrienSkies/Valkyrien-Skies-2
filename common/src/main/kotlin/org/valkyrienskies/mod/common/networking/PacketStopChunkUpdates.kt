@@ -1,7 +1,7 @@
 package org.valkyrienskies.mod.common.networking
 
-import net.minecraft.world.level.ChunkPos
+import org.joml.Vector2i
 import org.valkyrienskies.core.networking.simple.SimplePacket
 
-data class PacketStopChunkUpdates(val chunks: List<ChunkPos>) : SimplePacket
-data class PacketRestartChunkUpdates(val chunks: List<ChunkPos>) : SimplePacket
+data class PacketStopChunkUpdates(val chunks: List<Vector2i>) : SimplePacket
+data class PacketRestartChunkUpdates(val chunks: List<Vector2i>) : SimplePacket

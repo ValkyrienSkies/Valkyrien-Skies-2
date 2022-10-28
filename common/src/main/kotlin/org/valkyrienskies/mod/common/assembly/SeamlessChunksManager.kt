@@ -19,6 +19,7 @@ import org.valkyrienskies.core.util.pollUntilEmpty
 import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.networking.PacketRestartChunkUpdates
 import org.valkyrienskies.mod.common.networking.PacketStopChunkUpdates
+import org.valkyrienskies.mod.common.util.toMinecraft
 import org.valkyrienskies.mod.mixinducks.feature.seamless_copy.SeamlessCopyClientPacketListenerDuck
 import java.util.Queue
 import java.util.concurrent.ConcurrentHashMap
@@ -43,7 +44,7 @@ class SeamlessChunksManager(private val listener: ClientPacketListener) {
 
     init {
         PacketStopChunkUpdates::class.registerClientHandler { (chunks) ->
-            chunks.forEach { stalledChunks.add(it.toLong()) }
+            chunks.forEach { stalledChunks.add(it.toMinecraft().toLong()) }
         }
         PacketRestartChunkUpdates::class.registerClientHandler { packet ->
             Minecraft.getInstance().execute {
@@ -67,7 +68,8 @@ class SeamlessChunksManager(private val listener: ClientPacketListener) {
     private fun onRestartUpdates(packet: PacketRestartChunkUpdates) {
         val (chunks) = packet
 
-        chunks.forEach { pos ->
+        chunks.forEach { p ->
+            val pos = p.toMinecraft()
             stalledChunks.remove(pos.toLong())
             val packets = queuedUpdates.remove(pos)
             if (!packets.isNullOrEmpty()) {

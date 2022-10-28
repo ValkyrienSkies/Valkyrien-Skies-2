@@ -6,6 +6,7 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.Position
 import net.minecraft.core.Vec3i
+import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import org.joml.Matrix4d
@@ -13,6 +14,8 @@ import org.joml.Matrix4dc
 import org.joml.Matrix4fc
 import org.joml.Quaterniondc
 import org.joml.Quaternionfc
+import org.joml.Vector2i
+import org.joml.Vector2ic
 import org.joml.Vector3d
 import org.joml.Vector3dc
 import org.joml.Vector3f
@@ -73,6 +76,14 @@ fun Matrix4fMC.toJOML() = Matrix4d().set(this)
 
 fun AABBdc.toMinecraft() = AABB(minX(), minY(), minZ(), maxX(), maxY(), maxZ())
 fun AABB.toJOML() = AABBd().set(this)
+
+fun Vector2ic.toMinecraft() = ChunkPos(x(), y())
+fun ChunkPos.toJOML() = Vector2i().set(this)
+
+fun Vector2i.set(pos: ChunkPos) = also {
+    x = pos.x
+    y = pos.z
+}
 
 @JvmOverloads
 fun Matrix4dc.transformDirection(v: Vec3i, dest: Vector3d = Vector3d()) =
