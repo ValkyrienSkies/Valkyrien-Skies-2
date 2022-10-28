@@ -1,4 +1,4 @@
-modLoader = "kotlinforforge"
+modLoader = "javafml"
 loaderVersion = "[1.16.0,)"
 issueTrackerURL = "https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues"
 license = "Apache-2.0"

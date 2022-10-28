@@ -74,6 +74,9 @@ dependencies {
         exclude module: "netty-buffer"
         exclude module: "fastutil"
     }
+
+    implementation("org.valkyrienskies:valkyrien-dependency-downloader:3.6")
+    shadowCommon("org.valkyrienskies:valkyrien-dependency-downloader:3.6")
 }
 
 processResources {

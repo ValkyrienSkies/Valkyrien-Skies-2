@@ -1,0 +1,18 @@
+[
+  {
+    "loader": "forge",
+    "name": "Cloth Config API",
+    "modId": "cloth-config",
+    "versionRange": ">=4.14.64",
+    "optional": false,
+    "downloadUrl": "https://maven.valkyrienskies.org/me/shedaniel/cloth/cloth-config-forge/4.16.91/cloth-config-forge-4.16.91.jar"
+  },
+  {
+    "loader": "forge",
+    "name": "Kotlin for Forge",
+    "modId": "kotlinforforge",
+    "versionRange": ">=1.16.0",
+    "optional": false,
+    "downloadUrl": "https://maven.valkyrienskies.org/curse/maven/kotlinforforge-351264/3527736/kotlinforforge-351264-3527736.jar"
+  }
+]

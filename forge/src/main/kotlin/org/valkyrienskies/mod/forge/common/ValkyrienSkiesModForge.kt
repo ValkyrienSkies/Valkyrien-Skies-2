@@ -15,6 +15,7 @@ import net.minecraftforge.fml.RegistryObject
 import net.minecraftforge.fml.client.registry.ClientRegistry
 import net.minecraftforge.fml.client.registry.RenderingRegistry
 import net.minecraftforge.fml.common.Mod
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent
 import net.minecraftforge.fml.event.lifecycle.FMLLoadCompleteEvent
 import net.minecraftforge.fml.loading.FMLEnvironment
@@ -38,8 +39,6 @@ import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.item.ShipAssemblerItem
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
 import org.valkyrienskies.mod.compat.clothconfig.VSClothConfig
-import thedarkcolour.kotlinforforge.forge.FORGE_BUS
-import thedarkcolour.kotlinforforge.forge.MOD_BUS
 import java.util.function.BiFunction
 
 @Mod(ValkyrienSkiesMod.MOD_ID)
@@ -68,12 +67,16 @@ class ValkyrienSkiesModForge {
 
         ValkyrienSkiesMod.init(vsCore)
 
-        BLOCKS.register(MOD_BUS)
-        ITEMS.register(MOD_BUS)
-        ENTITIES.register(MOD_BUS)
-        MOD_BUS.addListener(::clientSetup)
-        MOD_BUS.addListener(::loadComplete)
-        FORGE_BUS.addListener(::registerResourceManagers)
+        val modBus = Bus.MOD.bus().get()
+        val forgeBus = Bus.FORGE.bus().get()
+
+        BLOCKS.register(modBus)
+        ITEMS.register(modBus)
+        ENTITIES.register(modBus)
+        modBus.addListener(::clientSetup)
+        modBus.addListener(::loadComplete)
+
+        forgeBus.addListener(::registerResourceManagers)
 
         ModLoadingContext.get().registerExtensionPoint(ExtensionPoint.CONFIGGUIFACTORY) {
             BiFunction { client, parent ->

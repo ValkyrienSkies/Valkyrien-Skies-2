@@ -2,6 +2,7 @@
   "required": true,
   "package": "org.valkyrienskies.mod.forge.mixin",
   "compatibilityLevel": "JAVA_8",
+  "plugin": "org.valkyrienskies.mod.forge.mixin.ValkyrienForgeMixinConfigPlugin",
   "mixins": [
     "compat.create.MixinBlocks",
     "compat.create.MixinContraptionRenderInfo",

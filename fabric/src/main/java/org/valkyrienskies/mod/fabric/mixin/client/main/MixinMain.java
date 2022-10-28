@@ -15,7 +15,7 @@ public class MixinMain {
         method = "main"
     )
     private static void beforeMain(final String[] args, final CallbackInfo ci) {
-        AutoDependenciesFabric.checkDependencies();
+        AutoDependenciesFabric.runUpdater();
     }
 
 }
