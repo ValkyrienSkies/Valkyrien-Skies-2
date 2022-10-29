@@ -48,8 +48,8 @@ public abstract class MixinBlockBreakingKineticTileEntity {
 
         final Vec3 diff = target.subtract(origin);
         final BlockHitResult result = self.getLevel().clip(new ClipContext(
-            origin.add(diff.scale(0.6)),
-            target,
+            origin.add(diff.scale(0.4)),
+            target.add(diff.scale(0.2)),
             ClipContext.Block.COLLIDER,
             ClipContext.Fluid.NONE,
             null

@@ -4,6 +4,7 @@
   "compatibilityLevel": "JAVA_8",
   "plugin": "org.valkyrienskies.mod.forge.mixin.ValkyrienForgeMixinConfigPlugin",
   "mixins": [
+    "compat.create.MixinBlockBreakingKineticTileEntity",
     "compat.create.MixinBlocks",
     "compat.create.MixinContraptionRenderInfo",
     "compat.create.MixinCrushingWheelBlock",
