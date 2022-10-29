@@ -24,7 +24,7 @@ public class ValkyrienForgeMixinConfigPlugin implements IMixinConfigPlugin {
 
     @Override
     public boolean shouldApplyMixin(final String s, final String s1) {
-        return false;
+        return true;
     }
 
     @Override
