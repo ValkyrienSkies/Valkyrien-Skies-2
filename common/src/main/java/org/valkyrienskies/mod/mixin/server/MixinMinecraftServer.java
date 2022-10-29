@@ -25,6 +25,7 @@ import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.common.world.ChunkManagement;
 import org.valkyrienskies.mod.event.RegistryEvents;
+import org.valkyrienskies.mod.util.KrunchSupport;
 import org.valkyrienskies.physics_api_krunch.KrunchBootstrap;
 
 @Mixin(MinecraftServer.class)
@@ -91,7 +92,13 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         at = @At("TAIL")
     )
     private void postCreateLevels(final CallbackInfo ci) {
-        KrunchBootstrap.INSTANCE.loadNativeBinaries();
+        try {
+            KrunchBootstrap.INSTANCE.loadNativeBinaries();
+            KrunchSupport.INSTANCE.setKrunchSupported(true);
+        } catch (final Exception e) {
+            KrunchSupport.INSTANCE.setKrunchSupported(false);
+            e.printStackTrace();
+        }
 
         // Load ship data from the world storage
         final ShipSavedData shipSavedData = overworld().getDataStorage()
