@@ -8,7 +8,11 @@ import org.valkyrienskies.dependency_downloader.matchers.DependencyMatchResult;
 public class AutoDependenciesFabric {
 
     public static void runUpdater() {
-        System.setProperty("java.awt.headless", "false");
+        final boolean isServer = FabricLoader.getInstance().getEnvironmentType() == EnvType.SERVER;
+        if (!isServer) {
+            System.setProperty("java.awt.headless", "false");
+        }
+
         ValkyrienDependencyDownloader.start(
             FabricLoader.getInstance().getGameDir().resolve("mods"),
             // remove any dependencies that are already loaded by fabric
@@ -17,7 +21,7 @@ public class AutoDependenciesFabric {
                 .noneMatch(loadedMod ->
                     dep.getMatcher().matches(loadedMod.getRoot().getFileSystem()) == DependencyMatchResult.FULFILLED
                 ),
-            FabricLoader.getInstance().getEnvironmentType() == EnvType.SERVER
+            isServer
         );
     }
 
