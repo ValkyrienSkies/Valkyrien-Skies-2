@@ -9,6 +9,7 @@ import net.minecraft.world.item.Item
 import net.minecraft.world.item.Item.Properties
 import net.minecraft.world.level.block.Block
 import net.minecraftforge.event.AddReloadListenerEvent
+import net.minecraftforge.event.RegisterCommandsEvent
 import net.minecraftforge.fml.ExtensionPoint
 import net.minecraftforge.fml.ModLoadingContext
 import net.minecraftforge.fml.RegistryObject
@@ -31,6 +32,7 @@ import org.valkyrienskies.core.program.VSCoreModule
 import org.valkyrienskies.mod.client.EmptyRenderer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.block.TestChairBlock
+import org.valkyrienskies.mod.common.command.VSCommand
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.config.VSEntityHandlerDataLoader
 import org.valkyrienskies.mod.common.config.VSGameConfig
@@ -75,6 +77,7 @@ class ValkyrienSkiesModForge {
         ENTITIES.register(modBus)
         modBus.addListener(::clientSetup)
         modBus.addListener(::loadComplete)
+        modBus.addListener(::registerCommands)
 
         forgeBus.addListener(::registerResourceManagers)
 
@@ -120,6 +123,10 @@ class ValkyrienSkiesModForge {
         val blockRegistry = BLOCKS.register(registryName, blockSupplier)
         ITEMS.register(registryName) { BlockItem(blockRegistry.get(), Properties().tab(CreativeModeTab.TAB_MISC)) }
         return blockRegistry
+    }
+
+    private fun registerCommands(event: RegisterCommandsEvent) {
+        VSCommand.register(event.dispatcher)
     }
 
     private fun loadComplete(event: FMLLoadCompleteEvent) {
