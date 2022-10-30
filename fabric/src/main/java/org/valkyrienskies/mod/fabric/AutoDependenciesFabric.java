@@ -9,10 +9,7 @@ public class AutoDependenciesFabric {
 
     public static void runUpdater() {
         final boolean isServer = FabricLoader.getInstance().getEnvironmentType() == EnvType.SERVER;
-        if (!isServer) {
-            System.setProperty("java.awt.headless", "false");
-        }
-
+        
         ValkyrienDependencyDownloader.start(
             FabricLoader.getInstance().getGameDir().resolve("mods"),
             // remove any dependencies that are already loaded by fabric
