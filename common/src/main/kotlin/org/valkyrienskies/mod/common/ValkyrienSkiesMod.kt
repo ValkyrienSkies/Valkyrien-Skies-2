@@ -4,13 +4,16 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.item.Item
 import net.minecraft.world.level.block.Block
+import org.valkyrienskies.core.api.setAttachment
 import org.valkyrienskies.core.config.VSConfigClass
 import org.valkyrienskies.core.config.VSCoreConfig
+import org.valkyrienskies.core.hooks.VSEvents
 import org.valkyrienskies.core.program.VSCore
 import org.valkyrienskies.core.program.VSCoreClient
 import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.networking.VSGamePackets
+import org.valkyrienskies.mod.common.util.GameTickForceApplier
 
 object ValkyrienSkiesMod {
     const val MOD_ID = "valkyrienskies"
@@ -40,5 +43,8 @@ object ValkyrienSkiesMod {
 
         VSConfigClass.registerConfig("vs_core", VSCoreConfig::class.java)
         VSConfigClass.registerConfig("vs", VSGameConfig::class.java)
+        VSEvents.ShipLoadEvent.on { event, handler ->
+            event.ship.setAttachment(GameTickForceApplier())
+        }
     }
 }

@@ -1,11 +1,19 @@
 package org.valkyrienskies.mod.mixin.feature.explosions;
 
+import com.google.common.collect.Lists;
 import java.util.Collections;
 import java.util.List;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult.Type;
+import net.minecraft.world.phys.Vec3;
+import org.joml.Vector3d;
+import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Mutable;
@@ -15,7 +23,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.valkyrienskies.core.api.ServerShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.util.GameTickForceApplier;
+import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(Explosion.class)
 public abstract class MixinExplosion {
@@ -43,12 +54,53 @@ public abstract class MixinExplosion {
     @Unique
     private boolean isModifyingExplosion = false;
 
+    @Unique
+    private BlockPos originalBlockPos;
+    @Shadow
+    private final List<BlockPos> toBlow = Lists.newArrayList();
+
     @Shadow
     public abstract void explode();
 
     @Inject(at = @At("TAIL"), method = "explode")
     private void afterExplode(final CallbackInfo ci) {
         if (isModifyingExplosion) {
+            // Custom forces
+            final Vector3d originPos = new Vector3d(this.x, this.y, this.z);
+            final BlockPos explodePos = new BlockPos(originPos.x(), originPos.y(), originPos.z());
+            final int radius = (int) Math.ceil(this.radius);
+            for (int x = radius; x >= -radius; x--) {
+                for (int y = radius; y >= -radius; y--) {
+                    for (int z = radius; z >= -radius; z--) {
+                        final BlockHitResult result = level.clip(
+                            new ClipContext(Vec3.atCenterOf(explodePos),
+                                Vec3.atCenterOf(explodePos.offset(x, y, z)),
+                                ClipContext.Block.COLLIDER,
+                                ClipContext.Fluid.NONE, null));
+                        if (result.getType() == Type.BLOCK) {
+                            final BlockPos blockPos = result.getBlockPos();
+                            final Vector3d newOriginPos = VectorConversionsMCKt.toJOML(Vec3.atCenterOf(explodePos));
+                            final Double distanceMult = Math.max(0.5, 1.0 - (this.radius /
+                                newOriginPos.distance(VectorConversionsMCKt.toJOML(Vec3.atCenterOf(blockPos)))));
+                            newOriginPos.sub(VectorConversionsMCKt.toJOML(Vec3.atCenterOf(blockPos)));
+                            newOriginPos.normalize();
+                            newOriginPos.mul(-1000000.0);
+                            newOriginPos.mul(distanceMult);
+                            final ServerShip ship =
+                                (ServerShip) VSGameUtilsKt.getShipObjectManagingPos(this.level, blockPos);
+                            if (ship != null) {
+                                final GameTickForceApplier forceApplier =
+                                    ship.getAttachment(GameTickForceApplier.class);
+                                final Vector3dc shipCoords = ship.getShipTransform().getShipPositionInShipCoordinates();
+                                if (newOriginPos.isFinite()) {
+                                    forceApplier.applyInvariantForceToPos(newOriginPos,
+                                        VectorConversionsMCKt.toJOML(Vec3.atCenterOf(blockPos)).sub(shipCoords));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             return;
         }
 
@@ -57,6 +109,8 @@ public abstract class MixinExplosion {
         final double origX = this.x;
         final double origY = this.y;
         final double origZ = this.z;
+
+        originalBlockPos = new BlockPos(origX, origY, origZ);
 
         VSGameUtilsKt.transformToNearbyShipsAndWorld(this.level, this.x, this.y, this.z, this.radius, (x, y, z) -> {
             this.x = x;
@@ -70,6 +124,14 @@ public abstract class MixinExplosion {
         this.z = origZ;
 
         isModifyingExplosion = false;
+    }
+
+    @Inject(at = @At("TAIL"), method = "finalizeExplosion")
+    private void afterFinalizeExplosion(final boolean spawnParticles, final CallbackInfo ci) {
+        if (this.level.isClientSide) {
+            return;
+        }
+
     }
 
     // Don't raytrace the shipyard
@@ -87,4 +149,5 @@ public abstract class MixinExplosion {
             return instance.getEntities(entity, aabb);
         }
     }
+
 }
