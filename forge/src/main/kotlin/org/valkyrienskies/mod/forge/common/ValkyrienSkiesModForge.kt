@@ -32,7 +32,7 @@ import org.valkyrienskies.core.program.VSCoreModule
 import org.valkyrienskies.mod.client.EmptyRenderer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.block.TestChairBlock
-import org.valkyrienskies.mod.common.command.VSCommand
+import org.valkyrienskies.mod.common.command.VSCommands
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.config.VSEntityHandlerDataLoader
 import org.valkyrienskies.mod.common.config.VSGameConfig
@@ -77,8 +77,8 @@ class ValkyrienSkiesModForge {
         ENTITIES.register(modBus)
         modBus.addListener(::clientSetup)
         modBus.addListener(::loadComplete)
-        modBus.addListener(::registerCommands)
 
+        forgeBus.addListener(::registerCommands)
         forgeBus.addListener(::registerResourceManagers)
 
         ModLoadingContext.get().registerExtensionPoint(ExtensionPoint.CONFIGGUIFACTORY) {
@@ -126,7 +126,7 @@ class ValkyrienSkiesModForge {
     }
 
     private fun registerCommands(event: RegisterCommandsEvent) {
-        VSCommand.register(event.dispatcher)
+        VSCommands.register(event.dispatcher)
     }
 
     private fun loadComplete(event: FMLLoadCompleteEvent) {

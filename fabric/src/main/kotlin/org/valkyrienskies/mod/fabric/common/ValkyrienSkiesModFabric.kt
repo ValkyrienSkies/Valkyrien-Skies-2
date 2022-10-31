@@ -28,7 +28,7 @@ import org.valkyrienskies.core.program.VSCoreModule
 import org.valkyrienskies.mod.client.EmptyRenderer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.block.TestChairBlock
-import org.valkyrienskies.mod.common.command.VSCommand
+import org.valkyrienskies.mod.common.command.VSCommands
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.config.VSEntityHandlerDataLoader
 import org.valkyrienskies.mod.common.config.VSKeyBindings
@@ -90,7 +90,7 @@ class ValkyrienSkiesModFabric : ModInitializer {
         )
 
         CommandRegistrationCallback.EVENT.register { dispatcher, _ ->
-            VSCommand.register(dispatcher)
+            VSCommands.register(dispatcher)
         }
 
         // registering data loaders
