@@ -43,5 +43,10 @@ object VSGameConfig {
             description = "If true, prevents water and other fluids from flowing out of the ship's bounding box."
         )
         var preventFluidEscapingShip = true
+
+        @JsonSchema(
+            description = "Blast force in newtons of a TNT explosion at the center of the explosion."
+        )
+        var explosionBlastForce = 500000.0
     }
 }

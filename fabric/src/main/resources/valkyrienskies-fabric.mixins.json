@@ -4,6 +4,7 @@
   "compatibilityLevel": "JAVA_8",
   "plugin": "org.valkyrienskies.mod.fabric.mixin.ValkyrienFabricMixinConfigPlugin",
   "mixins": [
+    "feature.explosions.ClipContextMixin",
     "world.level.block.FireMixin"
   ],
   "client": [

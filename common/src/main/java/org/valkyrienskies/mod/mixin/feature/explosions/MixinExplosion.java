@@ -1,6 +1,5 @@
 package org.valkyrienskies.mod.mixin.feature.explosions;
 
-import com.google.common.collect.Lists;
 import java.util.Collections;
 import java.util.List;
 import net.minecraft.core.BlockPos;
@@ -25,6 +24,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ServerShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.util.GameTickForceApplier;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
@@ -54,11 +54,6 @@ public abstract class MixinExplosion {
     @Unique
     private boolean isModifyingExplosion = false;
 
-    @Unique
-    private BlockPos originalBlockPos;
-    @Shadow
-    private final List<BlockPos> toBlow = Lists.newArrayList();
-
     @Shadow
     public abstract void explode();
 
@@ -79,21 +74,29 @@ public abstract class MixinExplosion {
                                 ClipContext.Fluid.NONE, null));
                         if (result.getType() == Type.BLOCK) {
                             final BlockPos blockPos = result.getBlockPos();
-                            final Vector3d newOriginPos = VectorConversionsMCKt.toJOML(Vec3.atCenterOf(explodePos));
-                            final Double distanceMult = Math.max(0.5, 1.0 - (this.radius /
-                                newOriginPos.distance(VectorConversionsMCKt.toJOML(Vec3.atCenterOf(blockPos)))));
-                            newOriginPos.sub(VectorConversionsMCKt.toJOML(Vec3.atCenterOf(blockPos)));
-                            newOriginPos.normalize();
-                            newOriginPos.mul(-1000000.0);
-                            newOriginPos.mul(distanceMult);
                             final ServerShip ship =
                                 (ServerShip) VSGameUtilsKt.getShipObjectManagingPos(this.level, blockPos);
                             if (ship != null) {
+                                final Vector3d forceVector =
+                                    VectorConversionsMCKt.toJOML(
+                                        Vec3.atCenterOf(explodePos)); //Start at center position
+                                final Double distanceMult = Math.max(0.5, 1.0 - (this.radius /
+                                    forceVector.distance(VectorConversionsMCKt.toJOML(Vec3.atCenterOf(blockPos)))));
+                                final Double powerMult = Math.max(0.1, this.radius / 4); //TNT blast radius = 4
+
+                                forceVector.sub(VectorConversionsMCKt.toJOML(
+                                    Vec3.atCenterOf(blockPos))); //Subtract hit block pos to get direction
+                                forceVector.normalize();
+                                forceVector.mul(-1 *
+                                    VSGameConfig.SERVER.getExplosionBlastForce()); //Multiply by blast force at center position. Negative because of how we got the direction.
+                                forceVector.mul(distanceMult); //Multiply by distance falloff
+                                forceVector.mul(powerMult); //Multiply by radius, roughly equivalent to power
+
                                 final GameTickForceApplier forceApplier =
                                     ship.getAttachment(GameTickForceApplier.class);
                                 final Vector3dc shipCoords = ship.getShipTransform().getShipPositionInShipCoordinates();
-                                if (newOriginPos.isFinite()) {
-                                    forceApplier.applyInvariantForceToPos(newOriginPos,
+                                if (forceVector.isFinite()) {
+                                    forceApplier.applyInvariantForceToPos(forceVector,
                                         VectorConversionsMCKt.toJOML(Vec3.atCenterOf(blockPos)).sub(shipCoords));
                                 }
                             }
@@ -109,8 +112,6 @@ public abstract class MixinExplosion {
         final double origX = this.x;
         final double origY = this.y;
         final double origZ = this.z;
-
-        originalBlockPos = new BlockPos(origX, origY, origZ);
 
         VSGameUtilsKt.transformToNearbyShipsAndWorld(this.level, this.x, this.y, this.z, this.radius, (x, y, z) -> {
             this.x = x;
