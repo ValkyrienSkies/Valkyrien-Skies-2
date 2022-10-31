@@ -1,26 +1,22 @@
 package org.valkyrienskies.mod.mixin.client.renderer;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexBuffer;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Matrix3f;
 import com.mojang.math.Matrix4f;
 import it.unimi.dsi.fastutil.objects.ObjectList;
-import it.unimi.dsi.fastutil.objects.ObjectListIterator;
 import net.minecraft.client.Camera;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.ViewArea;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
 import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Vec3i;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.ChunkPos;
@@ -41,14 +37,14 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyConstant;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
-import org.valkyrienskies.core.game.ChunkAllocator;
 import org.valkyrienskies.core.game.ships.ShipObjectClient;
 import org.valkyrienskies.core.game.ships.ShipTransform;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
+import org.valkyrienskies.mod.mixin.ValkyrienCommonMixinConfigPlugin;
 import org.valkyrienskies.mod.mixin.accessors.client.render.OverlayVertexConsumerAccessor;
 import org.valkyrienskies.mod.mixin.accessors.client.render.RenderChunkInfoAccessor;
+import org.valkyrienskies.mod.mixin.accessors.client.render.RenderChunkInfoAccessorOptifine;
 import org.valkyrienskies.mod.mixin.accessors.client.render.ViewAreaAccessor;
 import org.valkyrienskies.mod.mixinducks.client.world.ClientChunkCacheDuck;
 
@@ -73,6 +69,8 @@ public abstract class MixinLevelRenderer {
         throw new AssertionError();
     }
 
+    // todo: Disabled for optifine testing
+    /*
     @Redirect(
         method = "setupRender",
         at = @At(
@@ -84,6 +82,7 @@ public abstract class MixinLevelRenderer {
         return VSGameUtilsKt.squaredDistanceBetweenInclShips(
             level, b.getX(), b.getY(), b.getZ(), v.getX(), v.getY(), v.getZ());
     }
+     */
 
     /**
      * This mixin tells the {@link LevelRenderer} to render ship chunks.
@@ -114,8 +113,14 @@ public abstract class MixinLevelRenderer {
                     final ChunkRenderDispatcher.RenderChunk renderChunk =
                         chunkStorageAccessor.callGetRenderChunkAt(tempPos);
                     if (renderChunk != null) {
-                        final LevelRenderer.RenderChunkInfo newChunkInfo =
-                            RenderChunkInfoAccessor.vs$new(self, renderChunk, null, 0);
+                        final LevelRenderer.RenderChunkInfo newChunkInfo;
+                        if (ValkyrienCommonMixinConfigPlugin.hasOptifine()) {
+                            newChunkInfo =
+                                RenderChunkInfoAccessorOptifine.vs$new(renderChunk, null, 0);
+                        } else {
+                            newChunkInfo =
+                                RenderChunkInfoAccessor.vs$new(self, renderChunk, null, 0);
+                        }
                         renderChunks.add(newChunkInfo);
                     }
                 }
@@ -237,6 +242,8 @@ public abstract class MixinLevelRenderer {
     /**
      * This mixin tells the game where to render chunks; which allows us to render ship chunks in arbitrary positions.
      */
+    // todo Disabled for Optifine testing
+    /*
     @Inject(method = "renderChunkLayer",
         at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/VertexBuffer;bind()V"),
         locals = LocalCapture.CAPTURE_FAILHARD)
@@ -266,15 +273,19 @@ public abstract class MixinLevelRenderer {
                 renderChunkOrigin.getZ() - playerCameraZ);
         }
     }
+     */
 
     /**
      * This mixin removes the vanilla code that determines where each chunk renders.
      */
+    // todo Disabled for Optifine testing
+    /*
     @Redirect(method = "renderChunkLayer",
         at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/PoseStack;translate(DDD)V"))
     private void cancelDefaultTransform(final PoseStack matrixStack, final double x, final double y, final double z) {
         // Do nothing
     }
+     */
 
     /**
      * This mixin makes {@link BlockEntity} in the ship render in the correct place.

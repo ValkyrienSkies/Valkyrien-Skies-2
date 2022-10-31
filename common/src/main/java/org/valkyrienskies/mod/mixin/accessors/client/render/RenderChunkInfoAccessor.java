@@ -27,6 +27,6 @@ public interface RenderChunkInfoAccessor {
     static LevelRenderer.RenderChunkInfo vs$new(final LevelRenderer worldRenderer,
         final ChunkRenderDispatcher.RenderChunk chunk,
         @Nullable final Direction direction, final int propagationLevel) {
-        throw new AssertionError("MixinWorldRendererChunkInfo failed to apply");
+        throw new AssertionError("RenderChunkInfoAccessor failed to apply");
     }
 }
