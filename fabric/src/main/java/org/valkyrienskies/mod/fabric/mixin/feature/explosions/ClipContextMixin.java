@@ -15,6 +15,8 @@ public class ClipContextMixin {
     @Final
     private CollisionContext collisionContext;
 
+    //In features like explosion push force, there is not always a relevant entity for a clip to use.
+    //CollisionContext.of in vanilla requires a non-null entity. This mixin makes parity with the Forge implementation of CollisionContext.
     @Redirect(method = "<init>",
         at = @At(
             value = "INVOKE",
