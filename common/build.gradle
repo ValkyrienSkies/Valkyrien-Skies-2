@@ -21,6 +21,11 @@ loom {
     accessWidenerPath = file("src/main/resources/valkyrienskies-common.accesswidener")
 }
 
+jar {
+    // Exclude dummy Optifine classes
+    exclude "net/optifine/render/**"
+}
+
 publishing {
     publications {
         mavenCommon(MavenPublication) {

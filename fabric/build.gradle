@@ -94,6 +94,8 @@ shadowJar {
     dependencies {
         exclude(dependency("org.jetbrains.kotlin:.*:.*")) // Don't shade kotlin!
     }
+    // Exclude dummy Optifine classes
+    exclude "net/optifine/render/**"
 }
 
 remapJar {

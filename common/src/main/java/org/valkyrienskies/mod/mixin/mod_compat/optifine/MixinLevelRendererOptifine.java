@@ -11,6 +11,7 @@ import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.Vec3;
+import net.optifine.render.VboRegion;
 import org.joml.Matrix4d;
 import org.lwjgl.BufferUtils;
 import org.spongepowered.asm.mixin.Mixin;
@@ -90,7 +91,50 @@ public class MixinLevelRendererOptifine {
         method = "renderChunkLayer",
         at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/platform/GlStateManager;_translated(DDD)V")
     )
-    private void cancelDefaultTransform(final double x, final double y, final double z) {
+    private void cancelDefaultTransformInRenderShipChunk(final double x, final double y, final double z) {
         // Do nothing
     }
+
+    // region Fix render regions setting
+    /**
+     * This mixin tells Optifine where to render chunks; which allows us to render ship chunks in arbitrary positions.
+     */
+    @Inject(
+        method = "drawRegion",
+        at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/platform/GlStateManager;_translated(DDD)V")
+    )
+    private void applyShipChunkTransformForRenderRegions(
+        final int regionX, final int regionY, final int regionZ, final double xIn, final double yIn, final double zIn,
+        final VboRegion vboRegion, final CallbackInfo ci
+    ) {
+        final ShipObjectClient shipObject =
+            VSGameUtilsKt.getShipObjectManagingPos(level, new BlockPos(regionX, regionY, regionZ));
+        if (shipObject != null) {
+            final Matrix4d chunkTransformMatrix = new Matrix4d()
+                .translate(-xIn, -yIn, -zIn)
+                .mul(shipObject.getRenderTransform().getShipToWorldMatrix())
+                .translate(regionX, regionY, regionZ);
+            final FloatBuffer chunkTransformMatrixAsFb = chunkTransformMatrix.get(BufferUtils.createFloatBuffer(16));
+            GlStateManager._multMatrix(chunkTransformMatrixAsFb);
+        } else {
+            GlStateManager._translated(
+                regionX - xIn,
+                regionY - yIn,
+                regionZ - zIn
+            );
+        }
+    }
+
+    /**
+     * This mixin removes the Optifine code that determines where each chunk renders.
+     */
+    @Redirect(
+        method = "drawRegion",
+        at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/platform/GlStateManager;_translated(DDD)V"),
+        remap = false
+    )
+    private void cancelDefaultTransformInDrawRegion(final double x, final double y, final double z) {
+        // Do nothing
+    }
+    // endregion
 }
