@@ -56,8 +56,8 @@ dependencies {
         exclude module: "kotlin-stdlib-jdk8" // Don't shade kotlin-stdlib-jdk8, even though vs-core depends on it
     }
 
-    implementation("org.valkyrienskies:valkyrien-dependency-downloader:3.8")
-    shadowCommon("org.valkyrienskies:valkyrien-dependency-downloader:3.8")
+    implementation("org.valkyrienskies:valkyrien-dependency-downloader:4.1")
+    shadowCommon("org.valkyrienskies:valkyrien-dependency-downloader:4.1")
 }
 
 // Copy the VS common access widener to the generated resources folder

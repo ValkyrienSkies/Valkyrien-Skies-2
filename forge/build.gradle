@@ -75,8 +75,8 @@ dependencies {
         exclude module: "fastutil"
     }
 
-    implementation("org.valkyrienskies:valkyrien-dependency-downloader:3.8")
-    shadowCommon("org.valkyrienskies:valkyrien-dependency-downloader:3.8")
+    implementation("org.valkyrienskies:valkyrien-dependency-downloader:4.1")
+    shadowCommon("org.valkyrienskies:valkyrien-dependency-downloader:4.1")
 }
 
 processResources {
