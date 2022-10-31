@@ -57,53 +57,58 @@ public abstract class MixinExplosion {
     @Shadow
     public abstract void explode();
 
-    @Inject(at = @At("TAIL"), method = "explode")
-    private void afterExplode(final CallbackInfo ci) {
-        if (isModifyingExplosion) {
-            // Custom forces
-            final Vector3d originPos = new Vector3d(this.x, this.y, this.z);
-            final BlockPos explodePos = new BlockPos(originPos.x(), originPos.y(), originPos.z());
-            final int radius = (int) Math.ceil(this.radius);
-            for (int x = radius; x >= -radius; x--) {
-                for (int y = radius; y >= -radius; y--) {
-                    for (int z = radius; z >= -radius; z--) {
-                        final BlockHitResult result = level.clip(
-                            new ClipContext(Vec3.atCenterOf(explodePos),
-                                Vec3.atCenterOf(explodePos.offset(x, y, z)),
-                                ClipContext.Block.COLLIDER,
-                                ClipContext.Fluid.NONE, null));
-                        if (result.getType() == Type.BLOCK) {
-                            final BlockPos blockPos = result.getBlockPos();
-                            final ServerShip ship =
-                                (ServerShip) VSGameUtilsKt.getShipObjectManagingPos(this.level, blockPos);
-                            if (ship != null) {
-                                final Vector3d forceVector =
-                                    VectorConversionsMCKt.toJOML(
-                                        Vec3.atCenterOf(explodePos)); //Start at center position
-                                final Double distanceMult = Math.max(0.5, 1.0 - (this.radius /
-                                    forceVector.distance(VectorConversionsMCKt.toJOML(Vec3.atCenterOf(blockPos)))));
-                                final Double powerMult = Math.max(0.1, this.radius / 4); //TNT blast radius = 4
+    @Unique
+    private void doExplodeForce() {
+        // Custom forces
+        final Vector3d originPos = new Vector3d(this.x, this.y, this.z);
+        final BlockPos explodePos = new BlockPos(originPos.x(), originPos.y(), originPos.z());
+        final int radius = (int) Math.ceil(this.radius);
+        for (int x = radius; x >= -radius; x--) {
+            for (int y = radius; y >= -radius; y--) {
+                for (int z = radius; z >= -radius; z--) {
+                    final BlockHitResult result = level.clip(
+                        new ClipContext(Vec3.atCenterOf(explodePos),
+                            Vec3.atCenterOf(explodePos.offset(x, y, z)),
+                            ClipContext.Block.COLLIDER,
+                            ClipContext.Fluid.NONE, null));
+                    if (result.getType() == Type.BLOCK) {
+                        final BlockPos blockPos = result.getBlockPos();
+                        final ServerShip ship =
+                            (ServerShip) VSGameUtilsKt.getShipObjectManagingPos(this.level, blockPos);
+                        if (ship != null) {
+                            final Vector3d forceVector =
+                                VectorConversionsMCKt.toJOML(
+                                    Vec3.atCenterOf(explodePos)); //Start at center position
+                            final Double distanceMult = Math.max(0.5, 1.0 - (this.radius /
+                                forceVector.distance(VectorConversionsMCKt.toJOML(Vec3.atCenterOf(blockPos)))));
+                            final Double powerMult = Math.max(0.1, this.radius / 4); //TNT blast radius = 4
 
-                                forceVector.sub(VectorConversionsMCKt.toJOML(
-                                    Vec3.atCenterOf(blockPos))); //Subtract hit block pos to get direction
-                                forceVector.normalize();
-                                forceVector.mul(-1 *
-                                    VSGameConfig.SERVER.getExplosionBlastForce()); //Multiply by blast force at center position. Negative because of how we got the direction.
-                                forceVector.mul(distanceMult); //Multiply by distance falloff
-                                forceVector.mul(powerMult); //Multiply by radius, roughly equivalent to power
+                            forceVector.sub(VectorConversionsMCKt.toJOML(
+                                Vec3.atCenterOf(blockPos))); //Subtract hit block pos to get direction
+                            forceVector.normalize();
+                            forceVector.mul(-1 *
+                                VSGameConfig.SERVER.getExplosionBlastForce()); //Multiply by blast force at center position. Negative because of how we got the direction.
+                            forceVector.mul(distanceMult); //Multiply by distance falloff
+                            forceVector.mul(powerMult); //Multiply by radius, roughly equivalent to power
 
-                                final GameTickForceApplier forceApplier =
-                                    ship.getAttachment(GameTickForceApplier.class);
-                                final Vector3dc shipCoords = ship.getShipTransform().getShipPositionInShipCoordinates();
-                                if (forceVector.isFinite()) {
-                                    forceApplier.applyInvariantForceToPos(forceVector,
-                                        VectorConversionsMCKt.toJOML(Vec3.atCenterOf(blockPos)).sub(shipCoords));
-                                }
+                            final GameTickForceApplier forceApplier =
+                                ship.getAttachment(GameTickForceApplier.class);
+                            final Vector3dc shipCoords = ship.getShipTransform().getShipPositionInShipCoordinates();
+                            if (forceVector.isFinite()) {
+                                forceApplier.applyInvariantForceToPos(forceVector,
+                                    VectorConversionsMCKt.toJOML(Vec3.atCenterOf(blockPos)).sub(shipCoords));
                             }
                         }
                     }
                 }
             }
+        }
+    }
+
+    @Inject(at = @At("TAIL"), method = "explode")
+    private void afterExplode(final CallbackInfo ci) {
+        if (isModifyingExplosion) {
+            doExplodeForce();
             return;
         }
 
@@ -125,14 +130,6 @@ public abstract class MixinExplosion {
         this.z = origZ;
 
         isModifyingExplosion = false;
-    }
-
-    @Inject(at = @At("TAIL"), method = "finalizeExplosion")
-    private void afterFinalizeExplosion(final boolean spawnParticles, final CallbackInfo ci) {
-        if (this.level.isClientSide) {
-            return;
-        }
-
     }
 
     // Don't raytrace the shipyard
