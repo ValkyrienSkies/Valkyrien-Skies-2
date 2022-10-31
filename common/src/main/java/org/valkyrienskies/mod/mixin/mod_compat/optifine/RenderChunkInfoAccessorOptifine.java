@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.accessors.client.render;
+package org.valkyrienskies.mod.mixin.mod_compat.optifine;
 
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
@@ -15,15 +15,17 @@ public interface RenderChunkInfoAccessorOptifine {
 
     /**
      * This mixin allows us to invoke the private constructor of WorldRenderer.ChunkInfo.
-     *
+     * <p>
      * Optifine changes this constructor from synthetic to static, for seemingly no reason -_-
-     *
+     * <p>
      * Oh well, just add a new Mixin to handle it.
      */
     @Invoker(value = "<init>", remap = false)
     static LevelRenderer.RenderChunkInfo vs$new(
         final ChunkRenderDispatcher.RenderChunk chunk,
-        @Nullable final Direction direction, final int propagationLevel) {
+        @Nullable final Direction direction,
+        final int propagationLevel
+    ) {
         throw new AssertionError("RenderChunkInfoAccessorOptifine failed to apply");
     }
 }

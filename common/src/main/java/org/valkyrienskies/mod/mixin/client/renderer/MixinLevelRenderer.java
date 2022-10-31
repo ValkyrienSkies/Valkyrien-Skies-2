@@ -41,10 +41,11 @@ import org.valkyrienskies.core.game.ships.ShipObjectClient;
 import org.valkyrienskies.core.game.ships.ShipTransform;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
+import org.valkyrienskies.mod.compat.VSRenderer;
 import org.valkyrienskies.mod.mixin.ValkyrienCommonMixinConfigPlugin;
 import org.valkyrienskies.mod.mixin.accessors.client.render.OverlayVertexConsumerAccessor;
-import org.valkyrienskies.mod.mixin.accessors.client.render.RenderChunkInfoAccessor;
-import org.valkyrienskies.mod.mixin.accessors.client.render.RenderChunkInfoAccessorOptifine;
+import org.valkyrienskies.mod.mixin.mod_compat.vanilla_renderer.RenderChunkInfoAccessor;
+import org.valkyrienskies.mod.mixin.mod_compat.optifine.RenderChunkInfoAccessorOptifine;
 import org.valkyrienskies.mod.mixin.accessors.client.render.ViewAreaAccessor;
 import org.valkyrienskies.mod.mixinducks.client.world.ClientChunkCacheDuck;
 
@@ -68,21 +69,6 @@ public abstract class MixinLevelRenderer {
         final float blue, final float alpha) {
         throw new AssertionError();
     }
-
-    // todo: Disabled for optifine testing
-    /*
-    @Redirect(
-        method = "setupRender",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/core/BlockPos;distSqr(Lnet/minecraft/core/Vec3i;)D"
-        )
-    )
-    private double includeShipChunksInNearChunks(final BlockPos b, final Vec3i v) {
-        return VSGameUtilsKt.squaredDistanceBetweenInclShips(
-            level, b.getX(), b.getY(), b.getZ(), v.getX(), v.getY(), v.getZ());
-    }
-     */
 
     /**
      * This mixin tells the {@link LevelRenderer} to render ship chunks.
@@ -114,7 +100,7 @@ public abstract class MixinLevelRenderer {
                         chunkStorageAccessor.callGetRenderChunkAt(tempPos);
                     if (renderChunk != null) {
                         final LevelRenderer.RenderChunkInfo newChunkInfo;
-                        if (ValkyrienCommonMixinConfigPlugin.hasOptifine()) {
+                        if (ValkyrienCommonMixinConfigPlugin.getVSRenderer() == VSRenderer.OPTIFINE) {
                             newChunkInfo =
                                 RenderChunkInfoAccessorOptifine.vs$new(renderChunk, null, 0);
                         } else {

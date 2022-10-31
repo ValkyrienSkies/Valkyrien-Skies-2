@@ -5,28 +5,28 @@ import java.util.Set;
 import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
+import org.valkyrienskies.mod.compat.VSRenderer;
 
 /**
  * Used to detect Optifine and apply/not apply Optifine compatible mixins
  */
 public class ValkyrienCommonMixinConfigPlugin implements IMixinConfigPlugin {
 
-    private static Boolean hasOptifine = null;
+    private static VSRenderer vsRenderer = null;
 
-    public static boolean hasOptifine() {
-        if (hasOptifine == null) {
-            hasOptifine = _hasOptifine();
+    public static VSRenderer getVSRenderer() {
+        if (vsRenderer == null) {
+            vsRenderer = getVSRendererHelper();
         }
-
-        return hasOptifine;
+        return vsRenderer;
     }
 
-    private static boolean _hasOptifine() {
+    private static VSRenderer getVSRendererHelper() {
         try {
             Class.forName("optifine.OptiFineTransformationService");
-            return true;
+            return VSRenderer.OPTIFINE;
         } catch (final ClassNotFoundException e) {
-            return false;
+            return VSRenderer.VANILLA;
         }
     }
 
@@ -42,12 +42,10 @@ public class ValkyrienCommonMixinConfigPlugin implements IMixinConfigPlugin {
 
     @Override
     public boolean shouldApplyMixin(final String s, final String mixinClassName) {
-        if (mixinClassName.equals("org.valkyrienskies.mod.mixin.accessors.client.render.RenderChunkInfoAccessorOptifine")) {
-            return hasOptifine();
-        }
-        if (mixinClassName.equals("org.valkyrienskies.mod.mixin.accessors.client.render.RenderChunkInfoAccessor")) {
-            return !hasOptifine();
-        }
+        if (mixinClassName.contains("org.valkyrienskies.mod.mixin.mod_compat.vanilla_renderer"))
+            return getVSRenderer() == VSRenderer.VANILLA;
+        if (mixinClassName.contains("org.valkyrienskies.mod.mixin.mod_compat.optifine"))
+            return getVSRenderer() == VSRenderer.OPTIFINE;
         return true;
     }
 

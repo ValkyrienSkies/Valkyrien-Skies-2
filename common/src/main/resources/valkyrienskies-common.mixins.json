@@ -43,8 +43,6 @@
     "accessors.client.multiplayer.ClientLevelAccessor",
     "accessors.client.render.LevelRendererAccessor",
     "accessors.client.render.OverlayVertexConsumerAccessor",
-    "accessors.client.render.RenderChunkInfoAccessor",
-    "accessors.client.render.RenderChunkInfoAccessorOptifine",
     "accessors.client.render.ViewAreaAccessor",
     "accessors.client.render.chunk.RenderChunkAccessor",
     "accessors.client.world.ClientChunkCacheStorageAccessor",
@@ -69,7 +67,11 @@
     "feature.sound.client.MixinSoundEngine",
     "feature.transform_particles.MixinLevelRenderer",
     "feature.transform_particles.MixinParticle",
-    "feature.vs2_alpha_hud.MixinGui"
+    "feature.vs2_alpha_hud.MixinGui",
+    "mod_compat.optifine.RenderChunkInfoAccessorOptifine",
+    "mod_compat.optifine.MixinLevelRendererOptifine",
+    "mod_compat.vanilla_renderer.RenderChunkInfoAccessor",
+    "mod_compat.vanilla_renderer.MixinLevelRendererVanilla"
   ],
   "injectors": {
     "defaultRequire": 1
