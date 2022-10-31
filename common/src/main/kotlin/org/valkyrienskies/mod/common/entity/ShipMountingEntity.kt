@@ -68,13 +68,14 @@ open class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level
         val up = opts.keyJump.isDown
         val sprint = this.controllingPassenger?.isSprinting == true
         val down = VSKeyBindings.shipDown.get().isDown
+        val cruise = VSKeyBindings.shipCruise.get().isDown
 
         val impulse = Vector3f()
         impulse.z = if (forward == backward) 0.0f else if (forward) 1.0f else -1.0f
         impulse.x = if (left == right) 0.0f else if (left) 1.0f else -1.0f
         impulse.y = if (up == down) 0.0f else if (up) 1.0f else -1.0f
 
-        PacketPlayerDriving(impulse, sprint).sendToServer()
+        PacketPlayerDriving(impulse, sprint, cruise).sendToServer()
     }
 
     override fun getControllingPassenger(): Entity? {

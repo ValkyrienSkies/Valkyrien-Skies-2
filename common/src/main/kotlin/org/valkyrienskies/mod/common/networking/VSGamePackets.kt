@@ -25,14 +25,15 @@ object VSGamePackets {
             if (player.vehicle is ShipMountingEntity && (player.vehicle as ShipMountingEntity).isController) {
                 val seat = player.vehicle!! as ShipMountingEntity
                 val ship = seat.level.getShipObjectManagingPos(seat.blockPosition())!! as ShipObjectServer
-                val attachment =
-                    ship.getAttachment() ?: SeatedControllingPlayer(seat.direction.opposite)
-                        .apply { ship.setAttachment(this) }
+                val attachment: SeatedControllingPlayer = ship.getAttachment()
+                    ?: SeatedControllingPlayer(seat.direction.opposite).apply { ship.setAttachment(this) }
+
 
                 attachment.forwardImpulse = driving.impulse.z
                 attachment.leftImpulse = driving.impulse.x
                 attachment.upImpulse = driving.impulse.y
                 attachment.sprintOn = driving.sprint
+                attachment.cruise = driving.cruise
             }
         }
     }
