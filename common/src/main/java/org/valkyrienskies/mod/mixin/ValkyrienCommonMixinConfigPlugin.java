@@ -7,7 +7,7 @@ import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 
 /**
- * For now, just using this class as an abusive early entrypoint to run the updater
+ * Used to detect Optifine and apply/not apply Optifine compatible mixins
  */
 public class ValkyrienCommonMixinConfigPlugin implements IMixinConfigPlugin {
 
