@@ -1,17 +1,18 @@
 package org.valkyrienskies.mod.mixin.mod_compat.optifine;
 
-import static org.valkyrienskies.mod.client.McClientMathUtilKt.transformRenderWithShip;
-
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexBuffer;
 import it.unimi.dsi.fastutil.objects.ObjectListIterator;
+import java.nio.FloatBuffer;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.Vec3;
+import org.joml.Matrix4d;
+import org.lwjgl.BufferUtils;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -66,10 +67,12 @@ public class MixinLevelRendererOptifine {
         final BlockPos renderChunkOrigin = builtChunk.getOrigin();
         final ShipObjectClient shipObject = VSGameUtilsKt.getShipObjectManagingPos(level, renderChunkOrigin);
         if (!isPlayerInShipyard && shipObject != null) {
-            // matrixStack.pop(); so while checking for bugs this seems unusual?
-            // matrixStack.push(); but it doesn't fix sadly the bug im searching for
-            transformRenderWithShip(shipObject.getRenderTransform(), matrixStack, renderChunkOrigin,
-                playerCameraX, playerCameraY, playerCameraZ);
+            final Matrix4d chunkTransformMatrix = new Matrix4d()
+                .translate(-playerCameraX, -playerCameraY, -playerCameraZ)
+                .mul(shipObject.getRenderTransform().getShipToWorldMatrix())
+                .translate(renderChunkOrigin.getX(), renderChunkOrigin.getY(), renderChunkOrigin.getZ());
+            final FloatBuffer chunkTransformMatrixAsFb = chunkTransformMatrix.get(BufferUtils.createFloatBuffer(16));
+            GlStateManager._multMatrix(chunkTransformMatrixAsFb);
         } else {
             // Restore Optifine default behavior (that was removed by cancelDefaultTransform())
             GlStateManager._translated(
