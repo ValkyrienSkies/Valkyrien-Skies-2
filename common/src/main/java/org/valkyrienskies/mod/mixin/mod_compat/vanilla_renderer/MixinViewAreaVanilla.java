@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.client.renderer;
+package org.valkyrienskies.mod.mixin.mod_compat.vanilla_renderer;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
@@ -23,7 +23,7 @@ import org.valkyrienskies.mod.mixinducks.client.render.IVSViewAreaMethods;
  * The purpose of this mixin is to allow {@link ViewArea} to render ship chunks.
  */
 @Mixin(ViewArea.class)
-public class MixinViewArea implements IVSViewAreaMethods {
+public class MixinViewAreaVanilla implements IVSViewAreaMethods {
 
     @Shadow
     @Final

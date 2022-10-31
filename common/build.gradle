@@ -23,7 +23,7 @@ loom {
 
 jar {
     // Exclude dummy Optifine classes
-    exclude "net/optifine/render/**"
+    exclude "net/optifine/**"
 }
 
 publishing {
