@@ -119,6 +119,10 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
                 shipSavedData.getQueryableShipData(), shipSavedData.getChunkAllocator()))
             .newPipeline();
 
+        if (vsPipeline.isUsingDummyPhysics()) {
+            KrunchSupport.INSTANCE.setKrunchSupported(false);
+        }
+
         shipWorld = vsPipeline.getShipWorld();
 
         RegistryEvents.registriesAreComplete();
