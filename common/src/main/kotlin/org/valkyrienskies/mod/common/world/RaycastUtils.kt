@@ -14,6 +14,7 @@ import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.EntityHitResult
 import net.minecraft.world.phys.HitResult
 import net.minecraft.world.phys.Vec3
+import org.apache.logging.log4j.LogManager
 import org.joml.Vector3d
 import org.joml.primitives.AABBd
 import org.joml.primitives.AABBdc
@@ -26,9 +27,19 @@ import java.util.function.BiFunction
 import java.util.function.Function
 import java.util.function.Predicate
 
+private val logger = LogManager.getLogger("RaycastUtilsKt")
+
 @JvmOverloads
 fun Level.clipIncludeShips(ctx: ClipContext, shouldTransformHitPos: Boolean = true): BlockHitResult {
     val vanillaHit = vanillaClip(ctx)
+
+    if (shipObjectWorld == null) {
+        logger.error(
+            "shipObjectWorld was empty for level raytrace, this should not be possible! " +
+                "Returning vanilla result."
+        )
+        return vanillaHit
+    }
 
     var closestHit = vanillaHit
     var closestHitPos = vanillaHit.location
