@@ -11,6 +11,8 @@ object VSKeyBindings {
 
     // val shipUp = register("key.valkyrienskies.ship_up", 32, "category.valkyrienskies.driving")
     val shipDown = register("key.valkyrienskies.ship_down", GLFW.GLFW_KEY_V, "category.valkyrienskies.driving")
+    val shipCruise = register("key.valkyrienskies.ship_cruise", GLFW.GLFW_KEY_C, "category.valkyrienskies.driving")
+
     // val shipForward = register("key.valkyrienskies.ship_forward", 87, "category.valkyrienskies.driving")
     // val shipBack = register("key.valkyrienskies.ship_back", 83, "category.valkyrienskies.driving")
     // val shipLeft = register("key.valkyrienskies.ship_left", 65, "category.valkyrienskies.driving")

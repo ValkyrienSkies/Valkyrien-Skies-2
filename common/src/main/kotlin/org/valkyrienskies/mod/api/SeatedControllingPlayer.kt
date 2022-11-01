@@ -7,4 +7,5 @@ class SeatedControllingPlayer(val seatInDirection: Direction) {
     var leftImpulse: Float = 0.0f
     var upImpulse: Float = 0.0f
     var sprintOn: Boolean = false
+    var cruise: Boolean = false
 }

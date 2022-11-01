@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.common
 
+import com.fasterxml.jackson.databind.JsonMappingException
 import com.fasterxml.jackson.module.kotlin.readValue
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.world.level.saveddata.SavedData
@@ -29,8 +30,12 @@ class ShipSavedData : SavedData(SAVED_DATA_ID) {
         }
     }
 
-    private lateinit var queryableShipData: MutableQueryableShipDataServer
-    private lateinit var chunkAllocator: ChunkAllocator
+    lateinit var queryableShipData: MutableQueryableShipDataServer
+        private set
+    lateinit var chunkAllocator: ChunkAllocator
+        private set
+
+    var loadingException: Throwable? = null
 
     override fun load(compoundTag: CompoundTag) {
         // Read bytes from the [CompoundTag]
@@ -38,10 +43,14 @@ class ShipSavedData : SavedData(SAVED_DATA_ID) {
         val chunkAllocatorAsBytes = compoundTag.getByteArray(CHUNK_ALLOCATOR_NBT_KEY)
 
         // Convert bytes to objects
-        val ships: List<ShipData> = VSJacksonUtil.defaultMapper.readValue(queryableShipDataAsBytes)
-
-        queryableShipData = QueryableShipDataImpl(ships)
-        chunkAllocator = VSJacksonUtil.defaultMapper.readValue(chunkAllocatorAsBytes)
+        try {
+            val ships: List<ShipData> = VSJacksonUtil.defaultMapper.readValue(queryableShipDataAsBytes)
+            val chunkAllocator: ChunkAllocator = VSJacksonUtil.defaultMapper.readValue(chunkAllocatorAsBytes)
+            this.queryableShipData = QueryableShipDataImpl(ships)
+            this.chunkAllocator = chunkAllocator
+        } catch (ex: JsonMappingException) {
+            loadingException = ex
+        }
     }
 
     override fun save(compoundTag: CompoundTag): CompoundTag {
@@ -62,7 +71,4 @@ class ShipSavedData : SavedData(SAVED_DATA_ID) {
     override fun isDirty(): Boolean {
         return true
     }
-
-    fun getQueryableShipData() = queryableShipData
-    fun getChunkAllocator() = chunkAllocator
 }

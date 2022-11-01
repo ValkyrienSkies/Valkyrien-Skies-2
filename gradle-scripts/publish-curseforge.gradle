@@ -1,5 +1,5 @@
 // Determine release type
-def vsReleaseType = 'alpha'
+def vsReleaseType = 'beta'
 if (project.hasProperty("CustomReleaseVersion")) {
     def matches = project.property("CustomReleaseVersion") =~ 'release/(?:\\d+\\.){1,2}\\d+-(alpha|beta)\\d+'
 
