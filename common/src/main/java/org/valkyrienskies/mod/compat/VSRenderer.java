@@ -1,5 +1,5 @@
 package org.valkyrienskies.mod.compat;
 
 public enum VSRenderer {
-    VANILLA, OPTIFINE
+    VANILLA, OPTIFINE, SODIUM
 }

@@ -6,6 +6,8 @@ dependencies {
 
     modApi("me.shedaniel.cloth:cloth-config:4.14.64")
 
+    modCompileOnly("curse.maven:sodium-394468:3488820")
+
     // vs-core
     implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {
         exclude module: "netty-buffer"

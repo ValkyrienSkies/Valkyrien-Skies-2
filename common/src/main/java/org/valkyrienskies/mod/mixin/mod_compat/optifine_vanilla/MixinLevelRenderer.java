@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.client.renderer;
+package org.valkyrienskies.mod.mixin.mod_compat.optifine_vanilla;
 
 import static org.valkyrienskies.mod.client.McClientMathUtilKt.transformRenderWithShip;
 

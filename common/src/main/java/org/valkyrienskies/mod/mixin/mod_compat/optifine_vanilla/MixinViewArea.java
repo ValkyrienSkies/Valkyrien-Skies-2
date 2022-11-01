@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.client.renderer;
+package org.valkyrienskies.mod.mixin.mod_compat.optifine_vanilla;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;

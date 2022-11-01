@@ -26,7 +26,13 @@ public class ValkyrienCommonMixinConfigPlugin implements IMixinConfigPlugin {
             Class.forName("optifine.OptiFineTransformationService");
             return VSRenderer.OPTIFINE;
         } catch (final ClassNotFoundException e) {
-            return VSRenderer.VANILLA;
+            try {
+                Class.forName("me.jellysquid.mods.sodium.client.SodiumClientMod");
+                System.out.println("SODIUM RENDER DETECTE");
+                return VSRenderer.SODIUM;
+            } catch (final ClassNotFoundException e2) {
+                return VSRenderer.VANILLA;
+            }
         }
     }
 
@@ -42,10 +48,18 @@ public class ValkyrienCommonMixinConfigPlugin implements IMixinConfigPlugin {
 
     @Override
     public boolean shouldApplyMixin(final String s, final String mixinClassName) {
-        if (mixinClassName.contains("org.valkyrienskies.mod.mixin.mod_compat.vanilla_renderer"))
+        if (mixinClassName.contains("org.valkyrienskies.mod.mixin.mod_compat.sodium")) {
+            return getVSRenderer() == VSRenderer.SODIUM;
+        }
+        if (mixinClassName.contains("org.valkyrienskies.mod.mixin.mod_compat.optifine_vanilla")) {
+            return getVSRenderer() != VSRenderer.SODIUM;
+        }
+        if (mixinClassName.contains("org.valkyrienskies.mod.mixin.mod_compat.vanilla_renderer")) {
             return getVSRenderer() == VSRenderer.VANILLA;
-        if (mixinClassName.contains("org.valkyrienskies.mod.mixin.mod_compat.optifine"))
+        }
+        if (mixinClassName.contains("org.valkyrienskies.mod.mixin.mod_compat.optifine")) {
             return getVSRenderer() == VSRenderer.OPTIFINE;
+        }
         return true;
     }
 
