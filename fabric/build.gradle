@@ -35,6 +35,7 @@ dependencies {
     }
 
     modImplementation("curse.maven:sodium-394468:3488820")
+    modImplementation("curse.maven:iris-455508:4023641")
 
     // Depend on the fabric kotlin mod
     modImplementation("net.fabricmc:fabric-language-kotlin:1.8.1+kotlin.1.7.0")

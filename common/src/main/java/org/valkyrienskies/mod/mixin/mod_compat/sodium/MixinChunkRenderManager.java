@@ -12,6 +12,8 @@ import me.jellysquid.mods.sodium.client.render.chunk.ChunkRenderBackend;
 import me.jellysquid.mods.sodium.client.render.chunk.ChunkRenderColumn;
 import me.jellysquid.mods.sodium.client.render.chunk.ChunkRenderContainer;
 import me.jellysquid.mods.sodium.client.render.chunk.ChunkRenderManager;
+import me.jellysquid.mods.sodium.client.render.chunk.cull.ChunkFaceFlags;
+import me.jellysquid.mods.sodium.client.render.chunk.data.ChunkRenderBounds;
 import me.jellysquid.mods.sodium.client.render.chunk.lists.ChunkRenderList;
 import me.jellysquid.mods.sodium.client.render.chunk.lists.ChunkRenderListIterator;
 import me.jellysquid.mods.sodium.client.render.chunk.passes.BlockRenderPass;
@@ -31,6 +33,7 @@ import org.valkyrienskies.core.game.ChunkAllocator;
 import org.valkyrienskies.core.game.ships.ShipObjectClient;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.compat.IrisCompat;
 
 @Mixin(value = ChunkRenderManager.class, remap = false)
 public abstract class MixinChunkRenderManager<T extends ChunkGraphicsState> {
@@ -62,6 +65,19 @@ public abstract class MixinChunkRenderManager<T extends ChunkGraphicsState> {
 
     @Shadow
     protected abstract void addEntitiesToRenderLists(ChunkRenderContainer<T> render);
+
+    @Shadow
+    @Final
+    private boolean useBlockFaceCulling;
+
+    @Shadow
+    private float cameraX;
+
+    @Shadow
+    private float cameraY;
+
+    @Shadow
+    private float cameraZ;
 
     @Inject(
         at = @At("TAIL"),
@@ -101,7 +117,7 @@ public abstract class MixinChunkRenderManager<T extends ChunkGraphicsState> {
 
         final ChunkRenderList<T> chunkRenderList = this.chunkRenderLists[pass.ordinal()];
         final ChunkRenderListIterator<T> iterator = chunkRenderList.iterator(pass.isTranslucent());
-        this.backend.begin(matrixStack);
+        IrisCompat.tryIrisBegin(backend, matrixStack, pass);
         this.backend.render(commandList, iterator, new ChunkCameraContext(camX, camY, camZ));
         this.backend.end(matrixStack);
 
@@ -111,13 +127,11 @@ public abstract class MixinChunkRenderManager<T extends ChunkGraphicsState> {
 
             final Vector3dc center = ship.getRenderTransform().getShipPositionInShipCoordinates();
             matrixStack.pushPose();
+
             VSClientGameUtils.transformRenderWithShip(ship.getRenderTransform(), matrixStack, center.x(), center.y(),
                 center.z(), camX, camY, camZ);
 
-            final Vector3d camInShip =
-                ship.getRenderTransform().getWorldToShipMatrix().transformPosition(new Vector3d(camX, camY, camZ));
-
-            this.backend.begin(matrixStack);
+            IrisCompat.tryIrisBegin(backend, matrixStack, pass);
             this.backend.render(commandList, shipRenderListIter,
                 new ChunkCameraContext(center.x(), center.y(), center.z()));
             this.backend.end(matrixStack);
@@ -150,18 +164,56 @@ public abstract class MixinChunkRenderManager<T extends ChunkGraphicsState> {
             if (!render.isEmpty()) {
                 final ChunkRenderList<T>[] shipRenderList =
                     shipRenderLists.computeIfAbsent(ship, k -> createShipRenderLists());
+                final Vector3d camInShip = ship.getRenderTransform()
+                    .getWorldToShipMatrix().transformPosition(new Vector3d(cameraX, cameraY, cameraZ));
 
-                addChunkToSpecificRenderList(render, shipRenderList);
+                addChunkToSpecificRenderList(render, shipRenderList, camInShip);
                 addEntitiesToRenderLists(render);
+
             }
         }
 
     }
 
+    @Unique
+    private int computeVisibleFaces(final ChunkRenderContainer<T> render, final Vector3dc cam) {
+        if (!this.useBlockFaceCulling) {
+            return ChunkFaceFlags.ALL;
+        } else {
+            final ChunkRenderBounds bounds = render.getBounds();
+            int visibleFaces = ChunkFaceFlags.UNASSIGNED;
+            if (cam.y() > bounds.y1) {
+                visibleFaces |= ChunkFaceFlags.UP;
+            }
+
+            if (cam.y() < bounds.y2) {
+                visibleFaces |= ChunkFaceFlags.DOWN;
+            }
+
+            if (cam.x() > bounds.x1) {
+                visibleFaces |= ChunkFaceFlags.EAST;
+            }
+
+            if (cam.x() < bounds.x2) {
+                visibleFaces |= ChunkFaceFlags.WEST;
+            }
+
+            if (cam.z() > bounds.z1) {
+                visibleFaces |= ChunkFaceFlags.SOUTH;
+            }
+
+            if (cam.z() < bounds.z2) {
+                visibleFaces |= ChunkFaceFlags.NORTH;
+            }
+
+            return visibleFaces;
+        }
+    }
+
     private void addChunkToSpecificRenderList(final ChunkRenderContainer<T> render,
-        final ChunkRenderList<T>[] renderList) {
+        final ChunkRenderList<T>[] renderList, final Vector3dc camInShip) {
         // todo compute visible faces correctly
-        final int visibleFaces = this.computeVisibleFaces(render) & render.getFacesWithData();
+        final int visibleFaces = this.computeVisibleFaces(render, camInShip) & render.getFacesWithData();
         if (visibleFaces != 0) {
             boolean added = false;
             final T[] states = render.getGraphicsStates();
