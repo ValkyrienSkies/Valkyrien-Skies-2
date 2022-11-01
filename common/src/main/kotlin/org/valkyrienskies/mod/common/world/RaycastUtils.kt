@@ -219,8 +219,9 @@ fun Level.raytraceEntities(
 
     val start = Vector3d()
     val end = Vector3d()
+    if (shipObjectWorld == null) logger.error("rayTraceEntities shipObjectWorld was null! this should never happen!")
 
-    shipObjectWorld.getShipObjectsIntersecting(origBoundingBoxM.toJOML()).forEach {
+    shipObjectWorld?.getShipObjectsIntersecting(origBoundingBoxM.toJOML())?.forEach {
         it.worldToShip.transformPosition(origStartVec, start)
         it.worldToShip.transformPosition(origEndVec, end)
 
