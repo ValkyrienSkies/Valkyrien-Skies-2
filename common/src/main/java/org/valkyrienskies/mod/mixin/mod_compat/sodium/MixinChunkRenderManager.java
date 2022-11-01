@@ -12,6 +12,7 @@ import me.jellysquid.mods.sodium.client.render.chunk.ChunkRenderBackend;
 import me.jellysquid.mods.sodium.client.render.chunk.ChunkRenderColumn;
 import me.jellysquid.mods.sodium.client.render.chunk.ChunkRenderContainer;
 import me.jellysquid.mods.sodium.client.render.chunk.ChunkRenderManager;
+import me.jellysquid.mods.sodium.client.render.chunk.cull.ChunkCuller;
 import me.jellysquid.mods.sodium.client.render.chunk.cull.ChunkFaceFlags;
 import me.jellysquid.mods.sodium.client.render.chunk.data.ChunkRenderBounds;
 import me.jellysquid.mods.sodium.client.render.chunk.lists.ChunkRenderList;
@@ -28,12 +29,14 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.game.ChunkAllocator;
 import org.valkyrienskies.core.game.ships.ShipObjectClient;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.compat.IrisCompat;
+import org.valkyrienskies.mod.mixin.accessors.client.CameraAccessor;
 
 @Mixin(value = ChunkRenderManager.class, remap = false)
 public abstract class MixinChunkRenderManager<T extends ChunkGraphicsState> {
@@ -50,12 +53,6 @@ public abstract class MixinChunkRenderManager<T extends ChunkGraphicsState> {
     @Shadow
     @Final
     private ChunkRenderBackend<T> backend;
-
-    @Shadow
-    protected abstract int computeVisibleFaces(ChunkRenderContainer<T> render);
-
-    @Shadow
-    protected abstract void addChunkToRenderLists(ChunkRenderContainer<T> render);
 
     @Shadow
     protected abstract ChunkRenderColumn<T> getColumn(int x, int z);
@@ -79,6 +76,25 @@ public abstract class MixinChunkRenderManager<T extends ChunkGraphicsState> {
     @Shadow
     private float cameraZ;
 
+    @Shadow
+    @Final
+    private ChunkCuller culler;
+
+    @Redirect(
+        at = @At(
+            value = "INVOKE",
+            target = "Lme/jellysquid/mods/sodium/client/render/chunk/ChunkRenderManager;addChunk(Lme/jellysquid/mods/sodium/client/render/chunk/ChunkRenderContainer;)V"
+        ),
+        method = "iterateChunks"
+    )
+    private void redirectIterateChunks(final ChunkRenderManager instance, final ChunkRenderContainer<T> render) {
+        if (ChunkAllocator.isChunkInShipyard(render.getChunkX(), render.getChunkZ())) {
+            return;
+        }
+
+        addChunk(render);
+    }
+
     @Inject(
         at = @At("TAIL"),
         method = "iterateChunks"
@@ -88,6 +104,11 @@ public abstract class MixinChunkRenderManager<T extends ChunkGraphicsState> {
         final CallbackInfo ci) {
 
         for (final ShipObjectClient ship : VSGameUtilsKt.getShipObjectWorld(Minecraft.getInstance()).getLoadedShips()) {
+            final Vector3d camPosInShip = ship.getRenderTransform().getWorldToShipMatrix()
+                .transformPosition(new Vector3d(cameraX, cameraY, cameraZ));
+            final Camera camInShip = new Camera();
+            ((CameraAccessor) camInShip).callSetPosition(camPosInShip.x, camPosInShip.y, camPosInShip.z);
+
             ship.getShipActiveChunksSet().iterateChunkPos((x, z) -> {
                 final ChunkRenderColumn<T> column = this.getColumn(x, z);
                 if (column != null) {
@@ -218,11 +239,24 @@ public abstract class MixinChunkRenderManager<T extends ChunkGraphicsState> {
             boolean added = false;
             final T[] states = render.getGraphicsStates();
 
+            outer:
             for (int i = 0; i < states.length; ++i) {
                 final T state = states[i];
                 if (state != null) {
                     final ChunkRenderList<T> list = renderList[i];
+
+                    // WARNING!! EXTREMELY QUESTIONABLE!! WHY ARE WE ADDING STATES MULTIPLE TIMES??
+                    final ChunkRenderListIterator<T> iter = list.iterator(false);
+                    while (iter.hasNext()) {
+                        if (iter.getGraphicsState() == state) {
+                            continue outer;
+                        }
+                        iter.advance();
+                    }
+                    // END QUESTIONABLE CODE
+
                     list.add(state, visibleFaces);
+
                     added = true;
                 }
             }

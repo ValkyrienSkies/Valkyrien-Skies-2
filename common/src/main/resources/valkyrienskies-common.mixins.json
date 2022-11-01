@@ -5,6 +5,7 @@
   "plugin": "org.valkyrienskies.mod.mixin.ValkyrienCommonMixinConfigPlugin",
   "mixins": [
     "accessors.block.BlockBehaviourAccessor",
+    "accessors.client.CameraAccessor",
     "accessors.entity.EntityAccessor",
     "accessors.network.protocol.game.ClientboundSectionBlocksUpdatePacketAccessor",
     "accessors.resource.ResourceKeyAccessor",
