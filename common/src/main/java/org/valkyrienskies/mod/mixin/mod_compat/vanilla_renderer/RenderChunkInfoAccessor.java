@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.accessors.client.render;
+package org.valkyrienskies.mod.mixin.mod_compat.vanilla_renderer;
 
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
@@ -24,9 +24,12 @@ public interface RenderChunkInfoAccessor {
      * <p>The easy fix for this problem is to use a wildcard target.
      */
     @Invoker(value = "<init>")
-    static LevelRenderer.RenderChunkInfo vs$new(final LevelRenderer worldRenderer,
+    static LevelRenderer.RenderChunkInfo vs$new(
+        final LevelRenderer worldRenderer,
         final ChunkRenderDispatcher.RenderChunk chunk,
-        @Nullable final Direction direction, final int propagationLevel) {
-        throw new AssertionError("MixinWorldRendererChunkInfo failed to apply");
+        @Nullable final Direction direction,
+        final int propagationLevel
+    ) {
+        throw new AssertionError("RenderChunkInfoAccessor failed to apply");
     }
 }
