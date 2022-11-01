@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.mixin.mod_compat.optifine;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap.Entry;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.ViewArea;
@@ -124,5 +125,18 @@ public abstract class MixinViewAreaOptifine implements IVSViewAreaMethods {
                 }
             }
         }
+    }
+
+    /**
+     * Clear VS ship render chunks so that we don't leak memory
+     */
+    @Inject(method = "releaseAllBuffers", at = @At("HEAD"))
+    private void postReleaseAllBuffers(final CallbackInfo ci) {
+        for (final Entry<ChunkRenderDispatcher.RenderChunk[]> entry : vs$shipRenderChunks.long2ObjectEntrySet()) {
+            for (final ChunkRenderDispatcher.RenderChunk renderChunk: entry.getValue()) {
+                if (renderChunk != null) renderChunk.releaseBuffers();
+            }
+        }
+        vs$shipRenderChunks.clear();
     }
 }
