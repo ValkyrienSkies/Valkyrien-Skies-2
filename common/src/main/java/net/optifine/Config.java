@@ -6,10 +6,14 @@ package net.optifine;
  */
 public class Config {
     public static boolean isVbo() {
-        return false;
+        throw new IllegalStateException();
     }
 
     public static boolean isRenderRegions() {
-        return false;
+        throw new IllegalStateException();
+    }
+
+    public static boolean isFogOn() {
+        throw new IllegalStateException();
     }
 }
