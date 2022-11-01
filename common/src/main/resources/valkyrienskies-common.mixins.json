@@ -26,6 +26,8 @@
     "feature.ladders.MixinLivingEntity",
     "feature.move_block_items_drops.MixinBlock",
     "feature.screen_distance_check.MixinScreenHandler",
+    "mod_compat.sodium.MixinChunkRenderBackendOneshot",
+    "mod_compat.sodium.MixinChunkRenderManager",
     "resource.MixinServerResources",
     "server.MixinMinecraftServer",
     "server.MixinPlayerList",
@@ -70,7 +72,6 @@
     "mod_compat.optifine.RenderChunkInfoAccessorOptifine",
     "mod_compat.optifine_vanilla.MixinLevelRenderer",
     "mod_compat.optifine_vanilla.MixinViewArea",
-    "mod_compat.sodium.MixinSodiumWorldRenderer",
     "mod_compat.vanilla_renderer.MixinLevelRendererVanilla",
     "mod_compat.vanilla_renderer.RenderChunkInfoAccessor"
   ],
