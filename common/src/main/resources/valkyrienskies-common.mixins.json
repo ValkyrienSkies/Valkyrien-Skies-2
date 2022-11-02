@@ -57,6 +57,7 @@
     "client.multiplayer.MixinClientPacketListener",
     "client.player.MixinLocalPlayer",
     "client.renderer.MixinGameRenderer",
+    "client.renderer.MixinLevelRenderer",
     "client.renderer.entity.MixinEntityRenderDispatcher",
     "client.world.MixinClientChunkCache",
     "client.world.MixinClientLevel",
@@ -72,10 +73,11 @@
     "feature.transform_particles.MixinParticle",
     "feature.vs2_alpha_hud.MixinGui",
     "mod_compat.optifine.MixinLevelRendererOptifine",
+    "mod_compat.optifine.MixinViewAreaOptifine",
     "mod_compat.optifine.RenderChunkInfoAccessorOptifine",
     "mod_compat.optifine_vanilla.MixinLevelRenderer",
-    "mod_compat.optifine_vanilla.MixinViewArea",
     "mod_compat.vanilla_renderer.MixinLevelRendererVanilla",
+    "mod_compat.vanilla_renderer.MixinViewAreaVanilla",
     "mod_compat.vanilla_renderer.RenderChunkInfoAccessor"
   ],
   "injectors": {

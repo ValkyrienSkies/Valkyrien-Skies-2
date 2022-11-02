@@ -5,10 +5,14 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexBuffer;
 import it.unimi.dsi.fastutil.objects.ObjectListIterator;
 import java.nio.FloatBuffer;
+import java.util.List;
+import net.minecraft.client.Camera;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.ViewArea;
 import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
+import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.Vec3;
 import net.optifine.render.VboRegion;
@@ -24,6 +28,8 @@ import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 import org.valkyrienskies.core.game.ChunkAllocator;
 import org.valkyrienskies.core.game.ships.ShipObjectClient;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
+import org.valkyrienskies.mod.mixin.accessors.client.render.ViewAreaAccessor;
 
 @Mixin(LevelRenderer.class)
 public class MixinLevelRendererOptifine {
@@ -137,4 +143,49 @@ public class MixinLevelRendererOptifine {
         // Do nothing
     }
     // endregion
+
+    @Shadow
+    private ViewArea viewArea;
+    @Shadow(remap = false)
+    private List<LevelRenderer.RenderChunkInfo> renderInfosEntities;
+    @Shadow(remap = false)
+    private List<LevelRenderer.RenderChunkInfo> renderInfosTileEntities;
+
+    /**
+     * This mixin tells the {@link LevelRenderer} to render ship chunks.
+     */
+    @Inject(
+        method = "setupRender",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/optifine/Config;isFogOn()Z"
+        )
+    )
+    private void addShipVisibleChunksForBlockEntitiesAndEntities(
+        final Camera camera, final Frustum frustum, final boolean hasForcedFrustum, final int frame,
+        final boolean spectator, final CallbackInfo ci) {
+        final BlockPos.MutableBlockPos tempPos = new BlockPos.MutableBlockPos();
+        final ViewAreaAccessor chunkStorageAccessor = (ViewAreaAccessor) viewArea;
+        for (final ShipObjectClient shipObject : VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips()) {
+            // Don't bother rendering the ship if its AABB isn't visible to the frustum
+            if (!frustum.isVisible(VectorConversionsMCKt.toMinecraft(shipObject.getRenderAABB()))) {
+                continue;
+            }
+
+            shipObject.getShipData().getShipActiveChunksSet().iterateChunkPos((x, z) -> {
+                for (int y = 0; y < 16; y++) {
+                    tempPos.set(x << 4, y << 4, z << 4);
+                    final ChunkRenderDispatcher.RenderChunk renderChunk =
+                        chunkStorageAccessor.callGetRenderChunkAt(tempPos);
+                    if (renderChunk != null) {
+                        final LevelRenderer.RenderChunkInfo newChunkInfo =
+                            RenderChunkInfoAccessorOptifine.vs$new(renderChunk, null, 0);
+                        renderInfosEntities.add(newChunkInfo);
+                        renderInfosTileEntities.add(newChunkInfo);
+                    }
+                }
+                return null;
+            });
+        }
+    }
 }
