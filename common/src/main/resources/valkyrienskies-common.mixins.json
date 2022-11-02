@@ -29,6 +29,7 @@
     "feature.mob_spawning.NaturalSpawnerMixin",
     "feature.move_block_items_drops.MixinBlock",
     "feature.screen_distance_check.MixinScreenHandler",
+    "feature.tick_ship_chunks.MixinChunkMap",
     "mod_compat.sodium.MixinChunkRenderContainer",
     "mod_compat.sodium.MixinChunkRenderManager",
     "mod_compat.sodium.MixinSodiumWorldRenderer",
