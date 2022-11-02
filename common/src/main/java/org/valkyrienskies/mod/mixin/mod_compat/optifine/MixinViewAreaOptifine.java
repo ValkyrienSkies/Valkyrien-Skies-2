@@ -71,13 +71,12 @@ public abstract class MixinViewAreaOptifine implements IVSViewAreaMethods {
                 final ChunkRenderDispatcher.RenderChunk builtChunk = vs$chunkBuilder.new RenderChunk();
                 builtChunk.setOrigin(x << 4, y << 4, z << 4);
                 renderChunksArray[y] = builtChunk;
-            }
-            if (Config.isVbo() && Config.isRenderRegions()) {
-                updateVboRegion(renderChunksArray[y]);
+                if (Config.isVbo() && Config.isRenderRegions()) {
+                    updateVboRegion(renderChunksArray[y]);
+                }
             }
 
             renderChunksArray[y].setDirty(important);
-
             callbackInfo.cancel();
         }
     }
