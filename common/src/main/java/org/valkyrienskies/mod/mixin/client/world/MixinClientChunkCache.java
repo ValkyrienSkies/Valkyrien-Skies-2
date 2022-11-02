@@ -89,6 +89,7 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
             ((IVSViewAreaMethods) ((LevelRendererAccessor) ((ClientLevelAccessor) level).getLevelRenderer()).getViewArea())
                 .unloadChunk(chunkX, chunkZ);
         }
+        SodiumCompat.onChunkRemoved(chunkX, chunkZ);
         ci.cancel();
     }
 
