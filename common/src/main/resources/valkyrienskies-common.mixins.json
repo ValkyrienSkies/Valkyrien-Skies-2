@@ -26,6 +26,7 @@
     "feature.fire_between_ship_and_world.LavaFluidMixin",
     "feature.fluid_escaping_ship_config.MixinFlowingFluid",
     "feature.ladders.MixinLivingEntity",
+    "feature.mob_spawning.NaturalSpawnerMixin",
     "feature.move_block_items_drops.MixinBlock",
     "feature.screen_distance_check.MixinScreenHandler",
     "mod_compat.sodium.MixinChunkRenderContainer",
