@@ -14,6 +14,9 @@ import org.valkyrienskies.core.api.ServerShip;
 import org.valkyrienskies.core.game.ChunkAllocator;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
+/**
+ * These methods fix random ticking on ship chunks
+ */
 @Mixin(ChunkMap.class)
 public abstract class MixinChunkMap {
 
