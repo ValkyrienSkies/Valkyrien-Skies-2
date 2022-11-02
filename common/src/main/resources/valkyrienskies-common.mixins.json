@@ -28,6 +28,7 @@
     "feature.ladders.MixinLivingEntity",
     "feature.move_block_items_drops.MixinBlock",
     "feature.screen_distance_check.MixinScreenHandler",
+    "mod_compat.sodium.MixinChunkRenderContainer",
     "mod_compat.sodium.MixinChunkRenderManager",
     "mod_compat.sodium.MixinSodiumWorldRenderer",
     "resource.MixinServerResources",

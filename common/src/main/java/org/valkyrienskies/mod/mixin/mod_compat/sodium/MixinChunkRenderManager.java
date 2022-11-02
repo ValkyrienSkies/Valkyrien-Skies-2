@@ -178,26 +178,6 @@ public abstract class MixinChunkRenderManager<T extends ChunkGraphicsState> {
     }
 
     /**
-     * warn: this is not good This mixin forces sodium to render ship chunks even though they don't have adjacent chunks
-     * sodium developer cortex says this is suboptimal. We should instead give sodium empty adjacent chunks, so it can
-     * calculate the right colors and stuff
-     */
-    @Redirect(
-        at = @At(
-            value = "INVOKE",
-            target = "Lme/jellysquid/mods/sodium/client/render/chunk/ChunkRenderContainer;canRebuild()Z"
-        ),
-        method = "addChunk"
-    )
-    private boolean redirectAddChunk(final ChunkRenderContainer<T> instance) {
-        if (ChunkAllocator.isChunkInShipyard(instance.getChunkX(), instance.getChunkZ())) {
-            return true;
-        }
-
-        return instance.canRebuild();
-    }
-
-    /**
      * This mixin adds ship chunks to a separate ChunkRenderList
      */
     @Inject(
