@@ -21,6 +21,9 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.game.ChunkAllocator;
+import org.valkyrienskies.mod.compat.SodiumCompat;
+import org.valkyrienskies.mod.compat.VSRenderer;
+import org.valkyrienskies.mod.mixin.ValkyrienCommonMixinConfigPlugin;
 import org.valkyrienskies.mod.mixin.accessors.client.multiplayer.ClientLevelAccessor;
 import org.valkyrienskies.mod.mixin.accessors.client.render.LevelRendererAccessor;
 import org.valkyrienskies.mod.mixin.accessors.client.world.ClientChunkCacheStorageAccessor;
@@ -71,6 +74,9 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
                 }
 
                 this.level.onChunkLoaded(x, z);
+
+                SodiumCompat.onChunkAdded(x, z);
+
                 cir.setReturnValue(worldChunk);
             }
         }
@@ -79,8 +85,11 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
     @Inject(method = "drop", at = @At("HEAD"), cancellable = true)
     public void preUnload(final int chunkX, final int chunkZ, final CallbackInfo ci) {
         shipChunks.remove(ChunkPos.asLong(chunkX, chunkZ));
-        ((IVSViewAreaMethods) ((LevelRendererAccessor) ((ClientLevelAccessor) level).getLevelRenderer()).getViewArea())
-            .unloadChunk(chunkX, chunkZ);
+        if (ValkyrienCommonMixinConfigPlugin.getVSRenderer() != VSRenderer.SODIUM) {
+            ((IVSViewAreaMethods) ((LevelRendererAccessor) ((ClientLevelAccessor) level).getLevelRenderer()).getViewArea())
+                .unloadChunk(chunkX, chunkZ);
+        }
+        SodiumCompat.onChunkRemoved(chunkX, chunkZ);
         ci.cancel();
     }
 

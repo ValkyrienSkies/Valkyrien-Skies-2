@@ -90,6 +90,8 @@ processResources {
 shadowJar {
     exclude "fabric.mod.json"
     exclude "architectury.common.json"
+    // Exclude dummy Optifine classes
+    exclude "net/optifine/**"
 
     configurations = [project.configurations.shadowCommon]
     classifier "dev-shadow"
