@@ -14,6 +14,9 @@ Valkyrien Skies 2
 *The physics mod to end all other physics mods. Better compatibility,
 performance, collisions, interactions and physics than anything prior!*
 
+![2022-11-01_21 58 07](https://user-images.githubusercontent.com/26909616/199406363-38e1d032-9c18-4aef-a74a-23f4b268e6ad.png)
+
+
 ## Installation
 
 You can download official releases of Valkyrien Skies from our [website](https://www.valkyrienskies.org/download)
