@@ -1,5 +1,5 @@
 // Determine release type
-def vsReleaseType = 'beta'
+def vsReleaseType = 'alpha'
 if (project.hasProperty("CustomReleaseVersion")) {
     def matches = project.property("CustomReleaseVersion") =~ 'release/(?:\\d+\\.){1,2}\\d+-(alpha|beta)\\d+'
 
@@ -8,13 +8,17 @@ if (project.hasProperty("CustomReleaseVersion")) {
 
 def fileDisplayName = "[${project.loader_platform} ${project.minecraft_version}] v${project.version}"
 
+// upgrade curseforge release type if it's an alpha,
+// because alpha can't be installed from the curseforge app
+def curseForgeReleaseType = vsReleaseType == 'alpha' ? 'beta' : vsReleaseType
+
 // Publish to CurseForge
 curseforge {
     if (project.curse_api_key) {
         apiKey = project.curse_api_key
         project {
             id = project.curse_project_id
-            releaseType = vsReleaseType
+            releaseType = curseForgeReleaseType
             addGameVersion project.minecraft_version
             addGameVersion project.loader_platform
 
