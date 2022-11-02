@@ -1,20 +1,22 @@
-# <img src="vs_logo.png" width="48" height="48">alkyrien Skies 2
 
-[![Discord](https://img.shields.io/discord/244934352092397568.svg)](https://discord.gg/rG3QNDV)
 
-The Airships Mod to end all other Airships Mods. Better compatibility,
-performance, collisions, interactions and physics than anything prior!
+<p align="center">
+<img src="vs_logo.png" width="200" height="200">
+</p>
+<h1 align="center">
+Valkyrien Skies 2
+</h1>
+<p align="center">
+<a href="https://www.valkyrienskies.org/">Website</a> - <a href="https://www.curseforge.com/minecraft/mc-mods/valkyrien-skies">CurseForge</a> - 
+<a href="https://modrinth.com/mod/valkyrien-skies">Modrinth</a> - <a href="https://wiki.valkyrienskies.org/wiki/Main_Page">Wiki</a> - <a href="https://discord.gg/rG3QNDV">Discord</a>
+</p>
+
+*The physics mod to end all other physics mods. Better compatibility,
+performance, collisions, interactions and physics than anything prior!*
 
 ## Installation
 
-### Downloading
-
-There are no official and stable releases yet, but you can currently download
-builds
-from [GitHub Packages](https://github.com/orgs/ValkyrienSkies/packages?repo_name=Valkyrien-Skies-2)
-.
-Make sure to download the file that ends with `.jar`, and that isn't
-the `sources.jar`.
+You can download official releases of Valkyrien Skies from our [website](https://www.valkyrienskies.org/download)
 
 ## Development
 
