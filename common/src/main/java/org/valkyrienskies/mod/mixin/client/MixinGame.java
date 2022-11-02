@@ -17,14 +17,6 @@ public class MixinGame {
     private Minecraft minecraft;
 
     /**
-     * @reason Create a new [ShipObjectClientWorld] when we start a new game session.
-     */
-    @Inject(method = "onStartGameSession", at = @At("HEAD"))
-    private void preOnStartGameSession(final CallbackInfo ci) {
-        ((IShipObjectWorldClientCreator) minecraft).createShipObjectWorldClient();
-    }
-
-    /**
      * @reason Destroy the [ShipObjectClientWorld] when we leave a game session.
      */
     @Inject(method = "onLeaveGameSession", at = @At("HEAD"))
