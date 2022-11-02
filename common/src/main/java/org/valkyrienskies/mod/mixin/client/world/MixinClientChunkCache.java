@@ -2,7 +2,6 @@ package org.valkyrienskies.mod.mixin.client.world;
 
 import io.netty.util.collection.LongObjectHashMap;
 import io.netty.util.collection.LongObjectMap;
-import me.jellysquid.mods.sodium.client.render.SodiumWorldRenderer;
 import net.minecraft.client.multiplayer.ClientChunkCache;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.SectionPos;
@@ -22,6 +21,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.game.ChunkAllocator;
+import org.valkyrienskies.mod.compat.SodiumCompat;
 import org.valkyrienskies.mod.compat.VSRenderer;
 import org.valkyrienskies.mod.mixin.ValkyrienCommonMixinConfigPlugin;
 import org.valkyrienskies.mod.mixin.accessors.client.multiplayer.ClientLevelAccessor;
@@ -75,9 +75,7 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
 
                 this.level.onChunkLoaded(x, z);
 
-                if (ValkyrienCommonMixinConfigPlugin.getVSRenderer() == VSRenderer.SODIUM) {
-                    SodiumWorldRenderer.getInstance().onChunkAdded(x, z);
-                }
+                SodiumCompat.onChunkAdded(x, z);
 
                 cir.setReturnValue(worldChunk);
             }
