@@ -15,6 +15,7 @@ import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.Vec3;
+import net.optifine.Config;
 import net.optifine.render.VboRegion;
 import org.joml.Matrix4d;
 import org.lwjgl.BufferUtils;
@@ -186,6 +187,18 @@ public class MixinLevelRendererOptifine {
                 }
                 return null;
             });
+        }
+    }
+
+    @Shadow
+    private boolean needsUpdate;
+
+    @Inject(method = "setupRender", at = @At(value = "HEAD"))
+    private void addShipVisibleChunks(final Camera activeRenderInfo, final Frustum camera, final boolean debugCamera,
+        final int frameCount, final boolean playerSpectator, final CallbackInfo ci) {
+        // This fixes shadows acting strangely when using shaders
+        if (Config.isShaders()) {
+            needsUpdate = true;
         }
     }
 }

@@ -16,4 +16,8 @@ public class Config {
     public static boolean isFogOn() {
         throw new IllegalStateException();
     }
+
+    public static boolean isShaders() {
+        throw new IllegalStateException();
+    }
 }
