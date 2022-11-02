@@ -42,6 +42,7 @@ object VSGamePackets {
             }
         }
 
+        // Syncs the entity handlers to the client
         PacketSyncVSEntityTypes::class.registerClientHandler { syncEntities ->
             syncEntities.entity2Handler.iterator().withIndex().forEach { (id, handler) ->
                 VSEntityManager.pair(

@@ -50,6 +50,7 @@ object VSEntityManager {
         return entityHandlersNamed[type]
     }
 
+    // Sends a packet with all the entity -> handler pairs to the client
     fun syncHandlers(player: MinecraftPlayer) {
         PacketSyncVSEntityTypes(Array(Registry.ENTITY_TYPE.count()) {
             val handler = getHandler(Registry.ENTITY_TYPE.byId(it))
