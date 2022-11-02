@@ -250,13 +250,11 @@ public abstract class MixinChunkRenderManager<T extends ChunkGraphicsState> {
 
     private void addChunkToSpecificRenderList(final ChunkRenderContainer<T> render,
         final ChunkRenderList<T>[] renderList, final Vector3dc camInShip) {
-        // todo compute visible faces correctly
         final int visibleFaces = this.computeVisibleFaces(render, camInShip) & render.getFacesWithData();
         if (visibleFaces != 0) {
             boolean added = false;
             final T[] states = render.getGraphicsStates();
 
-            outer:
             for (int i = 0; i < states.length; ++i) {
                 final T state = states[i];
                 if (state != null) {
