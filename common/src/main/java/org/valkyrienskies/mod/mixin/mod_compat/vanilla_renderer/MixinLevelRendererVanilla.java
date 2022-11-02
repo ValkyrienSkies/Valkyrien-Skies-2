@@ -4,13 +4,20 @@ import static org.valkyrienskies.mod.client.McClientMathUtilKt.transformRenderWi
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexBuffer;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import it.unimi.dsi.fastutil.objects.ObjectListIterator;
+import net.minecraft.client.Camera;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.client.renderer.LevelRenderer.RenderChunkInfo;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.ViewArea;
 import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
+import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -21,11 +28,23 @@ import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 import org.valkyrienskies.core.game.ChunkAllocator;
 import org.valkyrienskies.core.game.ships.ShipObjectClient;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
+import org.valkyrienskies.mod.compat.VSRenderer;
+import org.valkyrienskies.mod.mixin.ValkyrienCommonMixinConfigPlugin;
+import org.valkyrienskies.mod.mixin.accessors.client.render.ViewAreaAccessor;
+import org.valkyrienskies.mod.mixin.mod_compat.optifine.RenderChunkInfoAccessorOptifine;
 
 @Mixin(LevelRenderer.class)
 public class MixinLevelRendererVanilla {
     @Shadow
     private ClientLevel level;
+    @Shadow
+    @Final
+    private ObjectList<RenderChunkInfo> renderChunks;
+    @Shadow
+    private ViewArea viewArea;
+
+    private ObjectList<RenderChunkInfo> renderChunksGeneratedByVanilla = new ObjectArrayList<>();
 
     /**
      * Fix the distance to render chunks, so that MC doesn't think ship chunks are too far away
@@ -89,4 +108,59 @@ public class MixinLevelRendererVanilla {
         // Do nothing
     }
 
+    /**
+     * Remove the render chunks added to render ships
+     */
+    @Inject(method = "setupRender", at = @At("HEAD"))
+    private void resetRenderChunks(final Camera activeRenderInfo, final Frustum camera, final boolean debugCamera,
+        final int frameCount, final boolean playerSpectator, final CallbackInfo ci) {
+        renderChunks.clear();
+        renderChunks.addAll(renderChunksGeneratedByVanilla);
+    }
+
+    /**
+     * Add ship render chunks to [renderChunks]
+     */
+    @Inject(
+        method = "setupRender",
+        at = @At(
+            value = "INVOKE",
+            target = "Lit/unimi/dsi/fastutil/objects/ObjectList;iterator()Lit/unimi/dsi/fastutil/objects/ObjectListIterator;"
+        )
+    )
+    private void addShipVisibleChunks(
+        final Camera camera, final Frustum frustum, final boolean hasForcedFrustum, final int frame,
+        final boolean spectator, final CallbackInfo ci) {
+        renderChunksGeneratedByVanilla = new ObjectArrayList<>(renderChunks);
+
+        final LevelRenderer self = LevelRenderer.class.cast(this);
+        final BlockPos.MutableBlockPos tempPos = new BlockPos.MutableBlockPos();
+        final ViewAreaAccessor chunkStorageAccessor = (ViewAreaAccessor) viewArea;
+        for (final ShipObjectClient shipObject : VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips()) {
+            // Don't bother rendering the ship if its AABB isn't visible to the frustum
+            if (!frustum.isVisible(VectorConversionsMCKt.toMinecraft(shipObject.getRenderAABB()))) {
+                continue;
+            }
+
+            shipObject.getShipData().getShipActiveChunksSet().iterateChunkPos((x, z) -> {
+                for (int y = 0; y < 16; y++) {
+                    tempPos.set(x << 4, y << 4, z << 4);
+                    final ChunkRenderDispatcher.RenderChunk renderChunk =
+                        chunkStorageAccessor.callGetRenderChunkAt(tempPos);
+                    if (renderChunk != null) {
+                        final LevelRenderer.RenderChunkInfo newChunkInfo;
+                        if (ValkyrienCommonMixinConfigPlugin.getVSRenderer() == VSRenderer.OPTIFINE) {
+                            newChunkInfo =
+                                RenderChunkInfoAccessorOptifine.vs$new(renderChunk, null, 0);
+                        } else {
+                            newChunkInfo =
+                                RenderChunkInfoAccessor.vs$new(self, renderChunk, null, 0);
+                        }
+                        renderChunks.add(newChunkInfo);
+                    }
+                }
+                return null;
+            });
+        }
+    }
 }

@@ -5,7 +5,6 @@ import static org.valkyrienskies.mod.client.McClientMathUtilKt.transformRenderWi
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Matrix4f;
-import it.unimi.dsi.fastutil.objects.ObjectList;
 import net.minecraft.client.Camera;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.GameRenderer;
@@ -14,14 +13,11 @@ import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.ViewArea;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
-import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
-import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -30,12 +26,6 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.game.ships.ShipObjectClient;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
-import org.valkyrienskies.mod.compat.VSRenderer;
-import org.valkyrienskies.mod.mixin.ValkyrienCommonMixinConfigPlugin;
-import org.valkyrienskies.mod.mixin.accessors.client.render.ViewAreaAccessor;
-import org.valkyrienskies.mod.mixin.mod_compat.optifine.RenderChunkInfoAccessorOptifine;
-import org.valkyrienskies.mod.mixin.mod_compat.vanilla_renderer.RenderChunkInfoAccessor;
 import org.valkyrienskies.mod.mixinducks.client.world.ClientChunkCacheDuck;
 
 /**
@@ -44,9 +34,6 @@ import org.valkyrienskies.mod.mixinducks.client.world.ClientChunkCacheDuck;
 @Mixin(LevelRenderer.class)
 public abstract class MixinLevelRenderer {
 
-    @Shadow
-    @Final
-    private ObjectList<LevelRenderer.RenderChunkInfo> renderChunks;
     @Shadow
     private ClientLevel level;
     @Shadow
@@ -57,51 +44,6 @@ public abstract class MixinLevelRenderer {
         final VoxelShape voxelShape, final double d, final double e, final double f, final float red, final float green,
         final float blue, final float alpha) {
         throw new AssertionError();
-    }
-
-    /**
-     * This mixin tells the {@link LevelRenderer} to render ship chunks.
-     */
-    @Inject(
-        method = "setupRender",
-        at = @At(
-            value = "INVOKE",
-            target = "Lit/unimi/dsi/fastutil/objects/ObjectList;iterator()Lit/unimi/dsi/fastutil/objects/ObjectListIterator;"
-        )
-    )
-    private void addShipVisibleChunks(
-        final Camera camera, final Frustum frustum, final boolean hasForcedFrustum, final int frame,
-        final boolean spectator, final CallbackInfo ci) {
-
-        final LevelRenderer self = LevelRenderer.class.cast(this);
-        final BlockPos.MutableBlockPos tempPos = new BlockPos.MutableBlockPos();
-        final ViewAreaAccessor chunkStorageAccessor = (ViewAreaAccessor) viewArea;
-        for (final ShipObjectClient shipObject : VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips()) {
-            // Don't bother rendering the ship if its AABB isn't visible to the frustum
-            if (!frustum.isVisible(VectorConversionsMCKt.toMinecraft(shipObject.getRenderAABB()))) {
-                continue;
-            }
-
-            shipObject.getShipData().getShipActiveChunksSet().iterateChunkPos((x, z) -> {
-                for (int y = 0; y < 16; y++) {
-                    tempPos.set(x << 4, y << 4, z << 4);
-                    final ChunkRenderDispatcher.RenderChunk renderChunk =
-                        chunkStorageAccessor.callGetRenderChunkAt(tempPos);
-                    if (renderChunk != null) {
-                        final LevelRenderer.RenderChunkInfo newChunkInfo;
-                        if (ValkyrienCommonMixinConfigPlugin.getVSRenderer() == VSRenderer.OPTIFINE) {
-                            newChunkInfo =
-                                RenderChunkInfoAccessorOptifine.vs$new(renderChunk, null, 0);
-                        } else {
-                            newChunkInfo =
-                                RenderChunkInfoAccessor.vs$new(self, renderChunk, null, 0);
-                        }
-                        renderChunks.add(newChunkInfo);
-                    }
-                }
-                return null;
-            });
-        }
     }
 
     /**
