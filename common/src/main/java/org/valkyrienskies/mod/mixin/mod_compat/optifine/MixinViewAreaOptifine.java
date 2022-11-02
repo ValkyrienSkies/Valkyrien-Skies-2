@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.mixin.mod_compat.optifine;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap.Entry;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import java.util.Map;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.ViewArea;
 import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
@@ -11,6 +12,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.optifine.Config;
+import net.optifine.render.VboRegion;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -107,6 +109,9 @@ public abstract class MixinViewAreaOptifine implements IVSViewAreaMethods {
         }
     }
 
+    @Shadow(remap = false)
+    private Map<ChunkPos, VboRegion[]> mapVboRegions;
+
     @Override
     public void unloadChunk(final int chunkX, final int chunkZ) {
         if (ChunkAllocator.isChunkInShipyard(chunkX, chunkZ)) {
@@ -115,10 +120,12 @@ public abstract class MixinViewAreaOptifine implements IVSViewAreaMethods {
             if (chunks != null) {
                 for (final ChunkRenderDispatcher.RenderChunk chunk : chunks) {
                     chunk.releaseBuffers();
-                    // TODO: Remove vbo regions when render chunk is unloaded
-                    // if (Config.isVbo() && Config.isRenderRegions()) {
-                    //     removeVboRegion(renderChunksArray[y]);
-                    // }
+                }
+            }
+            final VboRegion[] vboRegions = mapVboRegions.remove(new ChunkPos(chunkX, chunkZ));
+            if (vboRegions != null) {
+                for (final VboRegion vboRegion : vboRegions) {
+                    if (vboRegion != null) vboRegion.deleteGlBuffers();
                 }
             }
         }

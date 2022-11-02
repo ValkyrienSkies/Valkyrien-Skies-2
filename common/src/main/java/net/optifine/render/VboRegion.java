@@ -5,4 +5,7 @@ package net.optifine.render;
  * gradle.
  */
 public class VboRegion {
+    public void deleteGlBuffers() {
+        throw new IllegalStateException();
+    }
 }
