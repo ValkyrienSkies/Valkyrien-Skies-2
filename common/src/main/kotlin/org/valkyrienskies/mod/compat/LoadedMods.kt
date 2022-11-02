@@ -13,12 +13,11 @@ object LoadedMods {
 
         override fun getValue(thisRef: Any?, property: KProperty<*>): Boolean {
             if (isLoaded == null) {
-                try {
+                isLoaded = try {
                     Class.forName(className)
-                    isLoaded = true
+                    true
                 } catch (ex: ClassNotFoundException) {
-                    ex.printStackTrace()
-                    isLoaded = false
+                    false
                 }
             }
             return isLoaded!!

@@ -7,6 +7,9 @@ import net.coderbot.iris.compat.sodium.impl.shader_overrides.ChunkRenderBackendE
 
 public class IrisCompat {
 
+    /**
+     * We need to call a different begin method for sodium when Iris shaders are loaded
+     */
     public static void tryIrisBegin(final ChunkRenderBackend<?> backend, final PoseStack poseStack,
         final BlockRenderPass pass) {
 

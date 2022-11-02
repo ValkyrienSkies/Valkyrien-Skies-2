@@ -12,7 +12,6 @@ import me.jellysquid.mods.sodium.client.render.chunk.ChunkRenderBackend;
 import me.jellysquid.mods.sodium.client.render.chunk.ChunkRenderColumn;
 import me.jellysquid.mods.sodium.client.render.chunk.ChunkRenderContainer;
 import me.jellysquid.mods.sodium.client.render.chunk.ChunkRenderManager;
-import me.jellysquid.mods.sodium.client.render.chunk.cull.ChunkCuller;
 import me.jellysquid.mods.sodium.client.render.chunk.cull.ChunkFaceFlags;
 import me.jellysquid.mods.sodium.client.render.chunk.data.ChunkRenderBounds;
 import me.jellysquid.mods.sodium.client.render.chunk.lists.ChunkRenderList;
@@ -36,7 +35,6 @@ import org.valkyrienskies.core.game.ships.ShipObjectClient;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.compat.IrisCompat;
-import org.valkyrienskies.mod.mixin.accessors.client.CameraAccessor;
 
 @Mixin(value = ChunkRenderManager.class, remap = false)
 public abstract class MixinChunkRenderManager<T extends ChunkGraphicsState> {
@@ -76,10 +74,6 @@ public abstract class MixinChunkRenderManager<T extends ChunkGraphicsState> {
     @Shadow
     private float cameraZ;
 
-    @Shadow
-    @Final
-    private ChunkCuller culler;
-
     @Redirect(
         at = @At(
             value = "INVOKE",
@@ -87,7 +81,7 @@ public abstract class MixinChunkRenderManager<T extends ChunkGraphicsState> {
         ),
         method = "iterateChunks"
     )
-    private void redirectIterateChunks(final ChunkRenderManager instance, final ChunkRenderContainer<T> render) {
+    private void redirectIterateChunks(final ChunkRenderManager<T> instance, final ChunkRenderContainer<T> render) {
         if (ChunkAllocator.isChunkInShipyard(render.getChunkX(), render.getChunkZ())) {
             return;
         }
@@ -95,6 +89,28 @@ public abstract class MixinChunkRenderManager<T extends ChunkGraphicsState> {
         addChunk(render);
     }
 
+    /**
+     * This code resets the ship's ChunkRenderList when normal ChunkRenderList gets reset
+     */
+    @Inject(
+        at = @At(
+            value = "INVOKE",
+            target = "Lme/jellysquid/mods/sodium/client/render/chunk/lists/ChunkRenderList;reset()V"
+        ),
+        method = "reset"
+    )
+    private void injectReset(final CallbackInfo ci) {
+        shipRenderLists.forEach((ship, shipRenderLists) -> {
+            for (final ChunkRenderList<T> list : shipRenderLists) {
+                list.reset();
+            }
+        });
+    }
+
+    /**
+     * Tells sodium to render chunks on the ship. I am not impressed with this code. We should try to figure out how to
+     * use sodium's chunk culler for the ships. Need to transform the camera/frustum into shipspace
+     */
     @Inject(
         at = @At("TAIL"),
         method = "iterateChunks"
@@ -104,11 +120,6 @@ public abstract class MixinChunkRenderManager<T extends ChunkGraphicsState> {
         final CallbackInfo ci) {
 
         for (final ShipObjectClient ship : VSGameUtilsKt.getShipObjectWorld(Minecraft.getInstance()).getLoadedShips()) {
-            final Vector3d camPosInShip = ship.getRenderTransform().getWorldToShipMatrix()
-                .transformPosition(new Vector3d(cameraX, cameraY, cameraZ));
-            final Camera camInShip = new Camera();
-            ((CameraAccessor) camInShip).callSetPosition(camPosInShip.x, camPosInShip.y, camPosInShip.z);
-
             ship.getShipActiveChunksSet().iterateChunkPos((x, z) -> {
                 final ChunkRenderColumn<T> column = this.getColumn(x, z);
                 if (column != null) {
@@ -124,6 +135,9 @@ public abstract class MixinChunkRenderManager<T extends ChunkGraphicsState> {
 
     }
 
+    /**
+     * this mixin renders ship render lists
+     */
     @Inject(
         at = @At("HEAD"),
         method = "renderLayer",
@@ -163,6 +177,29 @@ public abstract class MixinChunkRenderManager<T extends ChunkGraphicsState> {
         commandList.flush();
     }
 
+    /**
+     * warn: this is not good This mixin forces sodium to render ship chunks even though they don't have adjacent chunks
+     * sodium developer cortex says this is suboptimal. We should instead give sodium empty adjacent chunks, so it can
+     * calculate the right colors and stuff
+     */
+    @Redirect(
+        at = @At(
+            value = "INVOKE",
+            target = "Lme/jellysquid/mods/sodium/client/render/chunk/ChunkRenderContainer;canRebuild()Z"
+        ),
+        method = "addChunk"
+    )
+    private boolean redirectAddChunk(final ChunkRenderContainer<T> instance) {
+        if (ChunkAllocator.isChunkInShipyard(instance.getChunkX(), instance.getChunkZ())) {
+            return true;
+        }
+
+        return instance.canRebuild();
+    }
+
+    /**
+     * This mixin adds ship chunks to a separate ChunkRenderList
+     */
     @Inject(
         at = @At(
             value = "FIELD",
@@ -244,16 +281,6 @@ public abstract class MixinChunkRenderManager<T extends ChunkGraphicsState> {
                 final T state = states[i];
                 if (state != null) {
                     final ChunkRenderList<T> list = renderList[i];
-
-                    // WARNING!! EXTREMELY QUESTIONABLE!! WHY ARE WE ADDING STATES MULTIPLE TIMES??
-                    final ChunkRenderListIterator<T> iter = list.iterator(false);
-                    while (iter.hasNext()) {
-                        if (iter.getGraphicsState() == state) {
-                            continue outer;
-                        }
-                        iter.advance();
-                    }
-                    // END QUESTIONABLE CODE
 
                     list.add(state, visibleFaces);
 
