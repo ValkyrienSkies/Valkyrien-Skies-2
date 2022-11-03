@@ -1,3 +1,15 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        // Make sure this version matches the one included in Kotlin for Forge
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.6.10'
+        // OPTIONAL Gradle plugin for Kotlin Serialization
+        classpath 'org.jetbrains.kotlin:kotlin-serialization:1.6.10'
+    }
+}
+
 plugins {
     id "com.github.johnrengelman.shadow" version "7.1.2"
     id "org.jetbrains.kotlin.jvm"
@@ -39,6 +51,7 @@ repositories {
         name = 'Kotlin for Forge'
         url = 'https://thedarkcolour.github.io/KotlinForForge/'
     }
+    maven { url = "https://cursemaven.com" }
     mavenCentral()
 }
 
@@ -52,18 +65,18 @@ dependencies {
         transitive = false
     }
 
-    modImplementation("curse.maven:flywheel-486392:3535459")
-    modImplementation("curse.maven:create-328085:3536025")
+    modCompileOnly("curse.maven:flywheel-486392:3934664")
+    modCompileOnly("curse.maven:create-328085:4007544")
 
     // Add Kotlin for Forge.
     // Based on their own instructions: https://github.com/thedarkcolour/KotlinForForge/blob/70385f5/thedarkcolour/kotlinforforge/gradle/kff-3.0.0.gradle
-    implementation("thedarkcolour:kotlinforforge:1.16.0")
+    implementation("thedarkcolour:kotlinforforge:3.4.0")
     // Manually specify kotlin version
     forgeRuntimeLibrary('org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.7.10')
     forgeRuntimeLibrary('org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4')
 
     // Cloth for config
-    modImplementation("me.shedaniel.cloth:cloth-config-forge:4.14.64")
+    modImplementation("me.shedaniel.cloth:cloth-config-forge:6.3.81")
 
     // Shade vs-core
     implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {

@@ -92,7 +92,9 @@ fun MinecraftServer.executeIf(condition: () -> Boolean, toExecute: Runnable) {
 }
 
 fun Level.isTickingChunk(pos: ChunkPos) = isTickingChunk(pos.x, pos.z)
-fun Level.isTickingChunk(chunkX: Int, chunkZ: Int) = chunkSource.isTickingChunk(BlockPos(chunkX shl 4, 0, chunkZ shl 4))
+fun Level.isTickingChunk(chunkX: Int, chunkZ: Int) = shouldTickBlocksAt(
+    ChunkPos.asLong(chunkX, chunkZ)
+)
 
 fun MinecraftServer.getLevelFromDimensionId(dimensionId: DimensionId): ServerLevel? {
     return getLevel(getResourceKey(dimensionId))

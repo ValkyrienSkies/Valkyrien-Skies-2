@@ -3,7 +3,6 @@ package org.valkyrienskies.mod.mixin.feature.vs2_alpha_hud;
 import static net.minecraft.client.gui.GuiComponent.fill;
 
 import com.google.common.base.Strings;
-import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,7 +36,7 @@ public class MixinGui {
             return;
         }
 
-        RenderSystem.pushMatrix();
+        matrices.pushPose();
 
         final Font fontRenderer = minecraft.font;
         final List<String> debugText = new ArrayList<>();
@@ -73,6 +72,6 @@ public class MixinGui {
             }
         }
 
-        RenderSystem.popMatrix();
+        matrices.popPose();
     }
 }

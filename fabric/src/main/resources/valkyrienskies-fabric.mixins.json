@@ -8,7 +8,6 @@
     "world.level.block.FireMixin"
   ],
   "client": [
-    "ExampleFabricMixin",
     "client.main.MixinMain"
   ],
   "injectors": {

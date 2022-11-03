@@ -8,11 +8,6 @@
     "compat.create.MixinBlocks",
     "compat.create.MixinContraptionRenderInfo",
     "compat.create.MixinCrushingWheelBlock",
-    "compat.create.MixinRenderedContraption",
-    "compat.flywheel.client.MaterialManagerAccessor",
-    "compat.flywheel.client.MixinInstanceManager",
-    "compat.flywheel.client.MixinInstanceWorld",
-    "compat.flywheel.client.MixinTileInstanceManager",
     "world.level.block.FireMixin"
   ],
   "client": [

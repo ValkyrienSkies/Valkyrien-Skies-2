@@ -19,7 +19,7 @@ public abstract class MixinLocalPlayer extends LivingEntity {
 
     /**
      * @reason We need to overwrite this method to force Minecraft to smoothly interpolate the Y rotation of the player
-     *         during rendering. Why it wasn't like this originally is beyond me \(>.<)/
+     * during rendering. Why it wasn't like this originally is beyond me \(>.<)/
      * @author StewStrong
      */
     @Inject(method = "getViewYRot", at = @At("HEAD"), cancellable = true)
@@ -27,7 +27,7 @@ public abstract class MixinLocalPlayer extends LivingEntity {
         if (this.isPassenger()) {
             cir.setReturnValue(super.getViewYRot(partialTick));
         } else {
-            cir.setReturnValue(Mth.lerp(partialTick, this.yRotO, this.yRot));
+            cir.setReturnValue(Mth.lerp(partialTick, this.yRotO, this.getYRot()));
         }
     }
 }

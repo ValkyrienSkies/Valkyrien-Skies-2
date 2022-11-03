@@ -70,8 +70,8 @@ public abstract class MixinViewAreaOptifine implements IVSViewAreaMethods {
                     k -> new ChunkRenderDispatcher.RenderChunk[chunkGridSizeY]);
 
             if (renderChunksArray[y] == null) {
-                final ChunkRenderDispatcher.RenderChunk builtChunk = vs$chunkBuilder.new RenderChunk();
-                builtChunk.setOrigin(x << 4, y << 4, z << 4);
+                final ChunkRenderDispatcher.RenderChunk builtChunk =
+                    vs$chunkBuilder.new RenderChunk(0, x << 4, y << 4, z << 4);
                 renderChunksArray[y] = builtChunk;
                 if (Config.isVbo() && Config.isRenderRegions()) {
                     updateVboRegion(renderChunksArray[y]);
@@ -125,7 +125,9 @@ public abstract class MixinViewAreaOptifine implements IVSViewAreaMethods {
             final VboRegion[] vboRegions = mapVboRegions.remove(new ChunkPos(chunkX, chunkZ));
             if (vboRegions != null) {
                 for (final VboRegion vboRegion : vboRegions) {
-                    if (vboRegion != null) vboRegion.deleteGlBuffers();
+                    if (vboRegion != null) {
+                        vboRegion.deleteGlBuffers();
+                    }
                 }
             }
         }

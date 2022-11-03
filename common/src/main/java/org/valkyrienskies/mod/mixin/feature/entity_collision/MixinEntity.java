@@ -92,9 +92,9 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         target = "Lnet/minecraft/world/entity/Entity;setDeltaMovement(DDD)V"),
         locals = LocalCapture.CAPTURE_FAILHARD, cancellable = true
     )
-    private void redirectSetVelocity(final MoverType type, final Vec3 movement, final CallbackInfo callbackInfo,
-        final Vec3 movementAdjustedForCollisions, final BlockPos landingPos, final BlockState landingBlockState,
-        final Vec3 currentVelocity) {
+    private void redirectSetVelocity(final MoverType moverType, final Vec3 movement, final CallbackInfo callbackInfo,
+        final Vec3 movementAdjustedForCollisions,
+        final boolean d, final boolean bl, final BlockPos blockPos, final BlockState blockState) {
 
         // Compute the collision response horizontal
         final Vector3dc collisionResponseHorizontal =

@@ -24,6 +24,13 @@ loom {
     accessWidenerPath = project(":common").loom.accessWidenerPath
 }
 
+repositories {
+    maven {
+        url = "https://maven.terraformersmc.com/releases/"
+    }
+    maven { url = "https://cursemaven.com" }
+}
+
 dependencies {
     modImplementation("net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}")
 
@@ -34,17 +41,17 @@ dependencies {
         transitive = false
     }
 
-    modImplementation("curse.maven:sodium-394468:3488820")
+//    modImplementation("curse.maven:sodium-394468:3669187")
 //    modImplementation("curse.maven:iris-455508:4023641")
 
     // Depend on the fabric kotlin mod
-    modImplementation("net.fabricmc:fabric-language-kotlin:1.8.1+kotlin.1.7.0")
+    modImplementation("net.fabricmc:fabric-language-kotlin:1.8.5+kotlin.1.7.20")
 
-    modImplementation("com.terraformersmc:modmenu:1.16.23")
+    modImplementation("com.terraformersmc:modmenu:3.2.3")
 
     // Depend on the fabric API
     modImplementation("net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}")
-    modImplementation("me.shedaniel.cloth:cloth-config-fabric:4.14.64")
+    modImplementation("me.shedaniel.cloth:cloth-config-fabric:6.3.81")
 
 
     implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {

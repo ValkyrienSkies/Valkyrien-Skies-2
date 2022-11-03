@@ -2,6 +2,7 @@ package org.valkyrienskies.mod.mixin.server.world;
 
 import net.minecraft.server.level.ChunkMap;
 import net.minecraft.server.level.ServerEntity;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
@@ -39,10 +40,10 @@ public class MixinChunkMap$TrackedEntity {
         }
     }
 
-    @Redirect(method = "updatePlayer", at = @At(value = "FIELD",
-        target = "Lnet/minecraft/world/entity/Entity;forcedLoading:Z"))
-    boolean skipWierdCheck(final Entity instance) {
-        return inCallShip != null || instance.forcedLoading;
+    @Redirect(method = "updatePlayer", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/world/entity/Entity;broadcastToPlayer(Lnet/minecraft/server/level/ServerPlayer;)Z"))
+    boolean skipWierdCheck(final Entity instance, final ServerPlayer serverPlayer) {
+        return inCallShip != null || instance.broadcastToPlayer(serverPlayer);
     }
 
 }

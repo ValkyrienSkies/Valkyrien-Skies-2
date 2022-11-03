@@ -69,7 +69,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
         method = "sendParticles(Lnet/minecraft/server/level/ServerPlayer;ZDDDLnet/minecraft/network/protocol/Packet;)Z",
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/core/BlockPos;closerThan(Lnet/minecraft/core/Position;D)Z"
+            target = "Lnet/minecraft/core/BlockPos;closerToCenterThan(Lnet/minecraft/core/Position;D)Z"
         )
     )
     private boolean includeShipsInParticleDistanceCheck(
@@ -81,7 +81,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
 
         if (ship == null) {
             // vanilla behaviour
-            return player.closerThan(particle, distance);
+            return player.closerToCenterThan(particle, distance);
         }
 
         // in-world position
@@ -130,7 +130,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                     currentTickChunkRegions.add(chunkPos);
 
                     if (!knownChunkRegions.contains(chunkPos)) {
-                        if (chunkSection != null && !chunkSection.isEmpty()) {
+                        if (chunkSection != null && !chunkSection.hasOnlyAir()) {
                             // Add this chunk to the ground rigid body
                             final DenseVoxelShapeUpdate voxelShapeUpdate =
                                 VSGameUtilsKt.toDenseVoxelUpdate(chunkSection, chunkPos);
@@ -162,7 +162,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                 if (shipData != null) {
                     shipData.onUnloadChunk(knownChunkPos.x(), knownChunkPos.z());
                 }
-                
+
                 // Delete this chunk
                 final DeleteVoxelShapeUpdate deleteVoxelShapeUpdate =
                     new DeleteVoxelShapeUpdate(knownChunkPos.x(), knownChunkPos.y(), knownChunkPos.z(), false);

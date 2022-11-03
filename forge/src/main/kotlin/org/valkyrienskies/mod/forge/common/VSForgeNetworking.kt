@@ -3,9 +3,9 @@ package org.valkyrienskies.mod.forge.common
 import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerPlayer
-import net.minecraftforge.fml.network.NetworkRegistry
-import net.minecraftforge.fml.network.PacketDistributor
-import net.minecraftforge.fml.network.simple.SimpleChannel
+import net.minecraftforge.network.NetworkRegistry
+import net.minecraftforge.network.PacketDistributor
+import net.minecraftforge.network.simple.SimpleChannel
 import org.valkyrienskies.core.networking.NetworkChannel
 import org.valkyrienskies.core.networking.VSNetworkingConfigurator
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod

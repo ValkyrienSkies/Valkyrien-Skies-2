@@ -50,11 +50,11 @@ open class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level
     override fun defineSynchedData() {
     }
 
-    override fun remove() {
+    override fun remove(removalReason: RemovalReason) {
         if (this.isController && !level.isClientSide)
             (level.getShipObjectManagingPos(blockPosition()!!) as ShipObjectServer?)
                 ?.setAttachment<SeatedControllingPlayer>(null)
-        super.remove()
+        super.remove(removalReason)
     }
 
     private fun sendDrivingPacket() {

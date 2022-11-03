@@ -34,14 +34,14 @@ public abstract class MixinChunkMap {
         cir.setReturnValue(retValue);
     }
 
-    @Inject(method = "noPlayersCloseForSpawning", at = @At("RETURN"), cancellable = true)
+    @Inject(method = "anyPlayerCloseEnoughForSpawning", at = @At("RETURN"), cancellable = true)
     void noPlayersCloseForSpawning(final ChunkPos chunkPos, final CallbackInfoReturnable<Boolean> cir) {
         if (ChunkAllocator.isChunkInShipyard(chunkPos.x, chunkPos.z)) {
             if (cir.getReturnValue()) {
                 final ServerShip ship = VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips()
                     .getShipDataFromChunkPos(chunkPos.x, chunkPos.z, VSGameUtilsKt.getDimensionId(level));
                 if (ship != null) {
-                    cir.setReturnValue(false);
+                    cir.setReturnValue(true);
                 }
             }
         }

@@ -15,7 +15,7 @@ import org.valkyrienskies.core.util.serialization.VSJacksonUtil
  *
  * This is only a temporary solution, and should be replaced eventually because it is very inefficient.
  */
-class ShipSavedData : SavedData(SAVED_DATA_ID) {
+class ShipSavedData : SavedData() {
 
     companion object {
         const val SAVED_DATA_ID = "vs_ship_data"
@@ -28,6 +28,26 @@ class ShipSavedData : SavedData(SAVED_DATA_ID) {
             shipSavedData.chunkAllocator = ChunkAllocator.create()
             return shipSavedData
         }
+
+        @JvmStatic
+        fun load(compoundTag: CompoundTag): ShipSavedData {
+            // Read bytes from the [CompoundTag]
+            val queryableShipDataAsBytes = compoundTag.getByteArray(QUERYABLE_SHIP_DATA_NBT_KEY)
+            val chunkAllocatorAsBytes = compoundTag.getByteArray(CHUNK_ALLOCATOR_NBT_KEY)
+
+            val data: ShipSavedData = ShipSavedData()
+            // Convert bytes to objects
+            try {
+                val ships: List<ShipData> = VSJacksonUtil.defaultMapper.readValue(queryableShipDataAsBytes)
+                val chunkAllocator: ChunkAllocator = VSJacksonUtil.defaultMapper.readValue(chunkAllocatorAsBytes)
+                data.queryableShipData = QueryableShipDataImpl(ships)
+                data.chunkAllocator = chunkAllocator
+                return data
+            } catch (ex: JsonMappingException) {
+                data.loadingException = ex
+            }
+            return data
+        }
     }
 
     lateinit var queryableShipData: MutableQueryableShipDataServer
@@ -36,22 +56,6 @@ class ShipSavedData : SavedData(SAVED_DATA_ID) {
         private set
 
     var loadingException: Throwable? = null
-
-    override fun load(compoundTag: CompoundTag) {
-        // Read bytes from the [CompoundTag]
-        val queryableShipDataAsBytes = compoundTag.getByteArray(QUERYABLE_SHIP_DATA_NBT_KEY)
-        val chunkAllocatorAsBytes = compoundTag.getByteArray(CHUNK_ALLOCATOR_NBT_KEY)
-
-        // Convert bytes to objects
-        try {
-            val ships: List<ShipData> = VSJacksonUtil.defaultMapper.readValue(queryableShipDataAsBytes)
-            val chunkAllocator: ChunkAllocator = VSJacksonUtil.defaultMapper.readValue(chunkAllocatorAsBytes)
-            this.queryableShipData = QueryableShipDataImpl(ships)
-            this.chunkAllocator = chunkAllocator
-        } catch (ex: JsonMappingException) {
-            loadingException = ex
-        }
-    }
 
     override fun save(compoundTag: CompoundTag): CompoundTag {
         // Convert objects to bytes

@@ -1,12 +1,9 @@
 package org.valkyrienskies.mod.mixin.world;
 
 import java.util.List;
-import java.util.function.Predicate;
-import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.chunk.ChunkSource;
@@ -15,7 +12,6 @@ import net.minecraft.world.phys.AABB;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.util.TriConsumer;
-import org.jetbrains.annotations.Nullable;
 import org.joml.primitives.AABBd;
 import org.joml.primitives.AABBdc;
 import org.spongepowered.asm.mixin.Final;
@@ -27,7 +23,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 import org.valkyrienskies.core.game.ships.ShipObject;
 import org.valkyrienskies.core.game.ships.ShipObjectServer;
 import org.valkyrienskies.core.game.ships.ShipObjectWorld;
@@ -46,9 +41,10 @@ public class MixinLevel {
     public boolean isClientSide;
 
     @Inject(method = "setBlockEntity", at = @At("HEAD"))
-    public void onSetBlockEntity(final BlockPos blockPos, final BlockEntity blockEntity, final CallbackInfo ci) {
+    public void onSetBlockEntity(final BlockEntity blockEntity, final CallbackInfo ci) {
         if (!this.isClientSide) {
-            final ShipObjectServer obj = VSGameUtilsKt.getShipObjectManagingPos(ServerLevel.class.cast(this), blockPos);
+            final ShipObjectServer obj =
+                VSGameUtilsKt.getShipObjectManagingPos(ServerLevel.class.cast(this), blockEntity.getBlockPos());
             if (obj != null && blockEntity instanceof ShipBlockEntity) {
                 ((ShipBlockEntity) blockEntity).setShip(obj);
             }
@@ -65,113 +61,113 @@ public class MixinLevel {
         return VSGameUtilsKt.transformAabbToWorld(Level.class.cast(this), aabb);
     }
 
-    @ModifyVariable(
-        method = "getEntities(Lnet/minecraft/world/entity/EntityType;Lnet/minecraft/world/phys/AABB;Ljava/util/function/Predicate;)Ljava/util/List;",
-        at = @At("HEAD"),
-        argsOnly = true
-    )
-    public AABB moveAABB2(final AABB aabb) {
-        return VSGameUtilsKt.transformAabbToWorld(Level.class.cast(this), aabb);
-    }
-
-    @ModifyVariable(
-        method = "getEntitiesOfClass",
-        at = @At("HEAD"),
-        argsOnly = true
-    )
-    public AABB moveAABB3(final AABB aabb) {
-        return VSGameUtilsKt.transformAabbToWorld(Level.class.cast(this), aabb);
-    }
-
-    @ModifyVariable(
-        method = "getLoadedEntitiesOfClass",
-        at = @At("HEAD"),
-        argsOnly = true
-    )
-    public AABB moveAABB4(final AABB aabb) {
-        return VSGameUtilsKt.transformAabbToWorld(Level.class.cast(this), aabb);
-    }
-
-    @Inject(
-        method = "getEntities(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/phys/AABB;Ljava/util/function/Predicate;)Ljava/util/List;",
-        at = @At(
-            value = "INVOKE_ASSIGN",
-            target = "Lnet/minecraft/world/level/Level;getChunkSource()Lnet/minecraft/world/level/chunk/ChunkSource;",
-            shift = At.Shift.AFTER
-        ),
-        locals = LocalCapture.CAPTURE_FAILHARD,
-        cancellable = true)
-    public void getEntitiesInShip1(@Nullable final Entity entity,
-        final AABB area,
-        @Nullable final Predicate<? super Entity> predicate,
-        final CallbackInfoReturnable<List<Entity>> cir,
-        final List<Entity> list) {
-        getEntitiesInShip(area, list, cir,
-            (a, b, c) -> a.getEntities(entity, b, c, predicate));
-    }
-
-    @Inject(
-        method = "getLoadedEntitiesOfClass",
-        at = @At(
-            value = "INVOKE_ASSIGN",
-            target = "Lnet/minecraft/world/level/Level;getChunkSource()Lnet/minecraft/world/level/chunk/ChunkSource;",
-            shift = At.Shift.AFTER
-        ),
-        locals = LocalCapture.CAPTURE_FAILHARD,
-        cancellable = true)
-    public <T extends Entity> void getEntitiesInShip2(final Class<? extends T> clazz, final AABB area,
-        @Nullable final Predicate<? super T> predicate,
-        final CallbackInfoReturnable<List<T>> cir,
-        final int i1,
-        final int i2,
-        final int i3,
-        final int i4,
-        final List<T> list) {
-        getEntitiesInShip(area, list, cir, (a, b, c) -> a.getEntitiesOfClass(clazz, b, c, predicate));
-    }
-
-    @Inject(
-        method = "getEntitiesOfClass",
-        at = @At(
-            value = "INVOKE_ASSIGN",
-            target = "Lnet/minecraft/world/level/Level;getChunkSource()Lnet/minecraft/world/level/chunk/ChunkSource;",
-            shift = At.Shift.AFTER
-        ),
-        locals = LocalCapture.CAPTURE_FAILHARD,
-        cancellable = true)
-    public <T extends Entity> void getEntitiesInShip3(
-        final Class<? extends T> clazz,
-        final AABB area,
-        @Nullable final Predicate<? super T> predicate,
-        final CallbackInfoReturnable<List<T>> cir,
-        final int i1,
-        final int i2,
-        final int i3,
-        final int i4,
-        final List<T> list) {
-        getEntitiesInShip(area, list, cir, (a, b, c) -> a.getEntitiesOfClass(clazz, b, c, predicate));
-    }
-
-    @Inject(
-        method = "getEntities(Lnet/minecraft/world/entity/EntityType;Lnet/minecraft/world/phys/AABB;Ljava/util/function/Predicate;)Ljava/util/List;",
-        at = @At(
-            value = "INVOKE_ASSIGN",
-            target = "Lnet/minecraft/world/level/Level;getChunkSource()Lnet/minecraft/world/level/chunk/ChunkSource;",
-            shift = At.Shift.AFTER
-        ),
-        locals = LocalCapture.CAPTURE_FAILHARD,
-        cancellable = true)
-    public <T extends Entity> void getEntitiesInShip4(@Nullable final EntityType<T> entityType,
-        final AABB area,
-        final Predicate<? super T> predicate,
-        final CallbackInfoReturnable<List<T>> cir,
-        final int i1,
-        final int i2,
-        final int i3,
-        final int i4,
-        final List<T> list) {
-        getEntitiesInShip(area, list, cir, (a, b, c) -> a.getEntities(entityType, b, c, predicate));
-    }
+//    @ModifyVariable(
+//        method = "getEntities(Lnet/minecraft/world/entity/EntityType;Lnet/minecraft/world/phys/AABB;Ljava/util/function/Predicate;)Ljava/util/List;",
+//        at = @At("HEAD"),
+//        argsOnly = true
+//    )
+//    public AABB moveAABB2(final AABB aabb) {
+//        return VSGameUtilsKt.transformAabbToWorld(Level.class.cast(this), aabb);
+//    }
+//
+//    @ModifyVariable(
+//        method = "getEntitiesOfClass",
+//        at = @At("HEAD"),
+//        argsOnly = true
+//    )
+//    public AABB moveAABB3(final AABB aabb) {
+//        return VSGameUtilsKt.transformAabbToWorld(Level.class.cast(this), aabb);
+//    }
+//
+//    @ModifyVariable(
+//        method = "getLoadedEntitiesOfClass",
+//        at = @At("HEAD"),
+//        argsOnly = true
+//    )
+//    public AABB moveAABB4(final AABB aabb) {
+//        return VSGameUtilsKt.transformAabbToWorld(Level.class.cast(this), aabb);
+//    }
+//
+//    @Inject(
+//        method = "getEntities(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/phys/AABB;Ljava/util/function/Predicate;)Ljava/util/List;",
+//        at = @At(
+//            value = "INVOKE_ASSIGN",
+//            target = "Lnet/minecraft/world/level/Level;getChunkSource()Lnet/minecraft/world/level/chunk/ChunkSource;",
+//            shift = At.Shift.AFTER
+//        ),
+//        locals = LocalCapture.CAPTURE_FAILHARD,
+//        cancellable = true)
+//    public void getEntitiesInShip1(@Nullable final Entity entity,
+//        final AABB area,
+//        @Nullable final Predicate<? super Entity> predicate,
+//        final CallbackInfoReturnable<List<Entity>> cir,
+//        final List<Entity> list) {
+//        getEntitiesInShip(area, list, cir,
+//            (a, b, c) -> a.getEntities(entity, b, c, predicate));
+//    }
+//
+//    @Inject(
+//        method = "getLoadedEntitiesOfClass",
+//        at = @At(
+//            value = "INVOKE_ASSIGN",
+//            target = "Lnet/minecraft/world/level/Level;getChunkSource()Lnet/minecraft/world/level/chunk/ChunkSource;",
+//            shift = At.Shift.AFTER
+//        ),
+//        locals = LocalCapture.CAPTURE_FAILHARD,
+//        cancellable = true)
+//    public <T extends Entity> void getEntitiesInShip2(final Class<? extends T> clazz, final AABB area,
+//        @Nullable final Predicate<? super T> predicate,
+//        final CallbackInfoReturnable<List<T>> cir,
+//        final int i1,
+//        final int i2,
+//        final int i3,
+//        final int i4,
+//        final List<T> list) {
+//        getEntitiesInShip(area, list, cir, (a, b, c) -> a.getEntitiesOfClass(clazz, b, c, predicate));
+//    }
+//
+//    @Inject(
+//        method = "getEntitiesOfClass",
+//        at = @At(
+//            value = "INVOKE_ASSIGN",
+//            target = "Lnet/minecraft/world/level/Level;getChunkSource()Lnet/minecraft/world/level/chunk/ChunkSource;",
+//            shift = At.Shift.AFTER
+//        ),
+//        locals = LocalCapture.CAPTURE_FAILHARD,
+//        cancellable = true)
+//    public <T extends Entity> void getEntitiesInShip3(
+//        final Class<? extends T> clazz,
+//        final AABB area,
+//        @Nullable final Predicate<? super T> predicate,
+//        final CallbackInfoReturnable<List<T>> cir,
+//        final int i1,
+//        final int i2,
+//        final int i3,
+//        final int i4,
+//        final List<T> list) {
+//        getEntitiesInShip(area, list, cir, (a, b, c) -> a.getEntitiesOfClass(clazz, b, c, predicate));
+//    }
+//
+//    @Inject(
+//        method = "getEntities(Lnet/minecraft/world/entity/EntityType;Lnet/minecraft/world/phys/AABB;Ljava/util/function/Predicate;)Ljava/util/List;",
+//        at = @At(
+//            value = "INVOKE_ASSIGN",
+//            target = "Lnet/minecraft/world/level/Level;getChunkSource()Lnet/minecraft/world/level/chunk/ChunkSource;",
+//            shift = At.Shift.AFTER
+//        ),
+//        locals = LocalCapture.CAPTURE_FAILHARD,
+//        cancellable = true)
+//    public <T extends Entity> void getEntitiesInShip4(@Nullable final EntityType<T> entityType,
+//        final AABB area,
+//        final Predicate<? super T> predicate,
+//        final CallbackInfoReturnable<List<T>> cir,
+//        final int i1,
+//        final int i2,
+//        final int i3,
+//        final int i4,
+//        final List<T> list) {
+//        getEntitiesInShip(area, list, cir, (a, b, c) -> a.getEntities(entityType, b, c, predicate));
+//    }
     //endregion
 
     @Unique

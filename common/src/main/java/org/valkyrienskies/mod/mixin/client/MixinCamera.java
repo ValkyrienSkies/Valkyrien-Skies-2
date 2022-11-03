@@ -49,8 +49,6 @@ public abstract class MixinCamera implements IVSCamera {
     @Shadow
     private boolean detached;
     @Shadow
-    private boolean mirror;
-    @Shadow
     private float eyeHeight;
     @Shadow
     private float eyeHeightOld;
@@ -80,7 +78,6 @@ public abstract class MixinCamera implements IVSCamera {
         this.level = level;
         this.entity = renderViewEntity;
         this.detached = thirdPerson;
-        this.mirror = thirdPersonReverse;
         this.setRotationWithShipTransform(renderViewEntity.getViewYRot(partialTicks),
             renderViewEntity.getViewXRot(partialTicks), renderTransform);
         this.setPosition(playerEyePos.x(), playerEyePos.y(), playerEyePos.z());

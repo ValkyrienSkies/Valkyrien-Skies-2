@@ -2,12 +2,12 @@ package org.valkyrienskies.mod.common.config
 
 import com.google.gson.Gson
 import com.google.gson.JsonElement
+import net.minecraft.core.HolderSet
 import net.minecraft.core.Registry
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.packs.resources.ResourceManager
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener
-import net.minecraft.tags.BlockTags
-import net.minecraft.tags.Tag
+import net.minecraft.tags.TagKey
 import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
@@ -15,6 +15,7 @@ import org.valkyrienskies.core.game.VSBlockType
 import org.valkyrienskies.core.util.logger
 import org.valkyrienskies.mod.common.BlockStateInfoProvider
 import org.valkyrienskies.mod.event.RegistryEvents
+import java.util.Optional
 
 private data class VSBlockStateInfo(
     val id: ResourceLocation, val priority: Int, val mass: Double, val type: VSBlockType?
@@ -61,17 +62,22 @@ object MassDatapackResolver : BlockStateInfoProvider {
         init {
             RegistryEvents.onTagsLoaded {
                 tags.forEach { tagInfo ->
-                    val tag: Tag<Block>? = BlockTags.getAllTags().getTag(tagInfo.id)
+                    val tag: Optional<HolderSet.Named<Block>>? =
+                        Registry.BLOCK.getTag(TagKey.create(Registry.BLOCK_REGISTRY, tagInfo.id))
+                    if (tag != null) {
 
-                    if (tag == null) {
-                        logger.warn("No specified tag '${tagInfo.id}' doesn't exist!")
-                        return@forEach
-                    }
+                        if (!tag.isPresent()) {
+                            logger.warn("No specified tag '${tagInfo.id}' doesn't exist!")
+                            return@forEach
+                        }
 
-                    tag.values.forEach {
-                        add(
-                            VSBlockStateInfo(Registry.BLOCK.getKey(it), tagInfo.priority, tagInfo.mass, tagInfo.type)
-                        )
+                        tag.get().forEach {
+                            add(
+                                VSBlockStateInfo(
+                                    Registry.BLOCK.getKey(it.value()), tagInfo.priority, tagInfo.mass, tagInfo.type
+                                )
+                            )
+                        }
                     }
                 }
             }

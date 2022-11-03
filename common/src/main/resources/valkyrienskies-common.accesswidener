@@ -14,3 +14,5 @@ accessible  class   net/minecraft/server/level/ChunkMap$TrackedEntity
 accessible  class   net/minecraft/client/renderer/chunk/ChunkRenderDispatcher$RenderChunk$RebuildTask
 accessible  class   net/minecraft/client/renderer/chunk/ChunkRenderDispatcher$RenderChunk$ChunkCompileTask
 accessible  class   net/minecraft/client/renderer/chunk/ChunkRenderDispatcher$ChunkTaskResult
+
+accessible  class   net/minecraft/client/renderer/LevelRenderer$RenderChunkStorage

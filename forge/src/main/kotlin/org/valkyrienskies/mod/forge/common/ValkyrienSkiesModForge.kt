@@ -8,12 +8,9 @@ import net.minecraft.world.item.CreativeModeTab
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.Item.Properties
 import net.minecraft.world.level.block.Block
+import net.minecraftforge.client.ClientRegistry
+import net.minecraftforge.client.event.EntityRenderersEvent
 import net.minecraftforge.event.AddReloadListenerEvent
-import net.minecraftforge.fml.ExtensionPoint
-import net.minecraftforge.fml.ModLoadingContext
-import net.minecraftforge.fml.RegistryObject
-import net.minecraftforge.fml.client.registry.ClientRegistry
-import net.minecraftforge.fml.client.registry.RenderingRegistry
 import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent
@@ -21,9 +18,8 @@ import net.minecraftforge.fml.event.lifecycle.FMLLoadCompleteEvent
 import net.minecraftforge.fml.loading.FMLEnvironment
 import net.minecraftforge.registries.DeferredRegister
 import net.minecraftforge.registries.ForgeRegistries
+import net.minecraftforge.registries.RegistryObject
 import org.valkyrienskies.core.api.Ship
-import org.valkyrienskies.core.config.VSConfigClass
-import org.valkyrienskies.core.config.VSCoreConfig
 import org.valkyrienskies.core.hooks.CoreHooks
 import org.valkyrienskies.core.program.DaggerVSCoreClientFactory
 import org.valkyrienskies.core.program.DaggerVSCoreServerFactory
@@ -33,13 +29,10 @@ import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.block.TestChairBlock
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.config.VSEntityHandlerDataLoader
-import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.config.VSKeyBindings
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.item.ShipAssemblerItem
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
-import org.valkyrienskies.mod.compat.clothconfig.VSClothConfig
-import java.util.function.BiFunction
 
 @Mod(ValkyrienSkiesMod.MOD_ID)
 class ValkyrienSkiesModForge {
@@ -74,19 +67,20 @@ class ValkyrienSkiesModForge {
         ITEMS.register(modBus)
         ENTITIES.register(modBus)
         modBus.addListener(::clientSetup)
+        modBus.addListener(::entityRenderers)
         modBus.addListener(::loadComplete)
 
         forgeBus.addListener(::registerResourceManagers)
 
-        ModLoadingContext.get().registerExtensionPoint(ExtensionPoint.CONFIGGUIFACTORY) {
-            BiFunction { client, parent ->
-                VSClothConfig.createConfigScreenFor(
-                    parent,
-                    VSConfigClass.getRegisteredConfig(VSCoreConfig::class.java),
-                    VSConfigClass.getRegisteredConfig(VSGameConfig::class.java)
-                )
-            }
-        }
+        // ModLoadingContext.get().registerExtensionPoint(ExtensionPoint.CONFIGGUIFACTORY) {
+        //     BiFunction { client, parent ->
+        //         VSClothConfig.createConfigScreenFor(
+        //             parent,
+        //             VSConfigClass.getRegisteredConfig(VSCoreConfig::class.java),
+        //             VSConfigClass.getRegisteredConfig(VSGameConfig::class.java)
+        //         )
+        //     }
+        // }
 
         TEST_CHAIR_REGISTRY = registerBlockAndItem("test_chair") { TestChairBlock }
         SHIP_CREATOR_ITEM_REGISTRY =
@@ -110,10 +104,13 @@ class ValkyrienSkiesModForge {
     }
 
     private fun clientSetup(event: FMLClientSetupEvent) {
-        RenderingRegistry.registerEntityRenderingHandler(SHIP_MOUNTING_ENTITY_REGISTRY.get(), ::EmptyRenderer)
         VSKeyBindings.clientSetup {
             ClientRegistry.registerKeyBinding(it)
         }
+    }
+
+    private fun entityRenderers(event: EntityRenderersEvent.RegisterRenderers) {
+        event.registerEntityRenderer(SHIP_MOUNTING_ENTITY_REGISTRY.get(), ::EmptyRenderer)
     }
 
     private fun registerBlockAndItem(registryName: String, blockSupplier: () -> Block): RegistryObject<Block> {

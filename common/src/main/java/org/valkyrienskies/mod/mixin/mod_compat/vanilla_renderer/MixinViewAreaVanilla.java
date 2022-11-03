@@ -67,8 +67,8 @@ public class MixinViewAreaVanilla implements IVSViewAreaMethods {
                     k -> new ChunkRenderDispatcher.RenderChunk[chunkGridSizeY]);
 
             if (renderChunksArray[y] == null) {
-                final ChunkRenderDispatcher.RenderChunk builtChunk = vs$chunkBuilder.new RenderChunk();
-                builtChunk.setOrigin(x << 4, y << 4, z << 4);
+                final ChunkRenderDispatcher.RenderChunk builtChunk =
+                    vs$chunkBuilder.new RenderChunk(0, x << 4, y << 4, z << 4);
                 renderChunksArray[y] = builtChunk;
             }
 

@@ -7,11 +7,13 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Matrix4f;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
+import java.util.concurrent.atomic.AtomicReference;
 import net.minecraft.client.Camera;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.LevelRenderer.RenderChunkInfo;
+import net.minecraft.client.renderer.LevelRenderer.RenderChunkStorage;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.ViewArea;
@@ -50,9 +52,6 @@ public abstract class MixinLevelRenderer {
     private ClientLevel level;
     @Shadow
     private ViewArea viewArea;
-    @Shadow
-    @Final
-    private ObjectList<RenderChunkInfo> renderChunks;
 
     private ObjectList<RenderChunkInfo> renderChunksGeneratedByVanilla = new ObjectArrayList<>();
 
@@ -62,6 +61,14 @@ public abstract class MixinLevelRenderer {
         final float blue, final float alpha) {
         throw new AssertionError();
     }
+
+    @Shadow
+    @Final
+    private AtomicReference<RenderChunkStorage> renderChunkStorage;
+
+    @Shadow
+    @Final
+    private ObjectArrayList<RenderChunkInfo> renderChunksInFrustum;
 
     /**
      * Prevents ships from disappearing on f3+a
@@ -111,26 +118,24 @@ public abstract class MixinLevelRenderer {
      * Remove the render chunks added to render ships
      */
     @Inject(method = "setupRender", at = @At("HEAD"))
-    private void resetRenderChunks(final Camera activeRenderInfo, final Frustum camera, final boolean debugCamera,
-        final int frameCount, final boolean playerSpectator, final CallbackInfo ci) {
-        renderChunks.clear();
-        renderChunks.addAll(renderChunksGeneratedByVanilla);
+    private void resetRenderChunks(final Camera camera, final Frustum frustum, final boolean bl, final boolean bl2, final CallbackInfo ci) {
+        renderChunksInFrustum.clear();
+        renderChunksInFrustum.addAll(renderChunksGeneratedByVanilla);
     }
 
     /**
      * Add ship render chunks to [renderChunks]
      */
     @Inject(
-        method = "setupRender",
+        method = "applyFrustum",
         at = @At(
             value = "INVOKE",
-            target = "Lit/unimi/dsi/fastutil/objects/ObjectList;iterator()Lit/unimi/dsi/fastutil/objects/ObjectListIterator;"
+            target = "Ljava/util/LinkedHashSet;iterator()Ljava/util/Iterator;"
         )
     )
     private void addShipVisibleChunks(
-        final Camera camera, final Frustum frustum, final boolean hasForcedFrustum, final int frame,
-        final boolean spectator, final CallbackInfo ci) {
-        renderChunksGeneratedByVanilla = new ObjectArrayList<>(renderChunks);
+        final Frustum frustum, final CallbackInfo ci) {
+        renderChunksGeneratedByVanilla = new ObjectArrayList<>(renderChunksInFrustum);
 
         final LevelRenderer self = LevelRenderer.class.cast(this);
         final BlockPos.MutableBlockPos tempPos = new BlockPos.MutableBlockPos();
@@ -153,9 +158,9 @@ public abstract class MixinLevelRenderer {
                                 RenderChunkInfoAccessorOptifine.vs$new(renderChunk, null, 0);
                         } else {
                             newChunkInfo =
-                                RenderChunkInfoAccessor.vs$new(self, renderChunk, null, 0);
+                                RenderChunkInfoAccessor.vs$new(renderChunk, null, 0);
                         }
-                        renderChunks.add(newChunkInfo);
+                        renderChunksInFrustum.add(newChunkInfo);
                     }
                 }
                 return null;

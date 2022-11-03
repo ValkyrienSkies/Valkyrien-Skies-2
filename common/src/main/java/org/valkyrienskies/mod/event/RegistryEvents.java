@@ -2,6 +2,7 @@ package org.valkyrienskies.mod.event;
 
 import java.util.ArrayList;
 import java.util.List;
+import net.minecraft.core.RegistryAccess;
 
 public class RegistryEvents {
 
@@ -13,7 +14,7 @@ public class RegistryEvents {
         onTagsLoaded.add(event);
     }
 
-    public static void tagsAreLoaded() {
+    public static void tagsAreLoaded(final RegistryAccess registries, final boolean client) {
         onTagsLoaded.forEach(Runnable::run);
     }
 

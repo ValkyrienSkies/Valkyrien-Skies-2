@@ -14,7 +14,7 @@ import org.valkyrienskies.core.api.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
-@Mixin(BlockBreakingKineticTileEntity.class)
+@Mixin(value = BlockBreakingKineticTileEntity.class, remap = false)
 public abstract class MixinBlockBreakingKineticTileEntity {
 
     @Shadow

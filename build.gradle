@@ -44,7 +44,7 @@ dependencyLocking {
 
 // Determine the version of vs-core
 String vsCoreGitRevision = "git rev-parse HEAD".execute(null, gradle.includedBuild("vs-core").projectDir).text.trim()
-ext.vs_core_version = "1.0.0+" + vsCoreGitRevision.substring(0, 10)
+ext.vs_core_version = "1.0.0+" + "aa230d1962"
 
 subprojects {
     apply plugin: "dev.architectury.loom"
@@ -80,10 +80,7 @@ subprojects {
     dependencies {
         minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
         // The following line declares the mojmap mappings, you may use other mappings as well
-        mappings loom.layered() {
-            officialMojangMappings()
-            parchment("org.parchmentmc.data:parchment-1.16.5:${rootProject.parchment_mappings}@zip")
-        }
+        mappings loom.officialMojangMappings()
     }
 
     // configure checkstyle

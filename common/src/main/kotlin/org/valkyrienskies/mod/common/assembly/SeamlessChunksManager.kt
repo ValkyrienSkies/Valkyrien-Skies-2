@@ -5,8 +5,6 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientPacketListener
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket
-import net.minecraft.network.protocol.game.ClientboundLevelChunkPacket
-import net.minecraft.network.protocol.game.ClientboundLightUpdatePacket
 import net.minecraft.network.protocol.game.ClientboundSectionBlocksUpdatePacket
 import net.minecraft.world.level.ChunkPos
 import org.valkyrienskies.core.api.ClientShip
@@ -82,10 +80,10 @@ class SeamlessChunksManager(private val listener: ClientPacketListener) {
     private fun dispatchQueuedPackets(queue: Queue<Packet<*>>) {
         queue.pollUntilEmpty { packet ->
             when (packet) {
-                is ClientboundLevelChunkPacket -> listener.handleLevelChunk(packet)
+                // is ClientboundLevelChunkPacket -> listener.handleLevelChunk(packet)
                 is ClientboundBlockUpdatePacket -> listener.handleBlockUpdate(packet)
                 is ClientboundSectionBlocksUpdatePacket -> listener.handleChunkBlocksUpdate(packet)
-                is ClientboundLightUpdatePacket -> listener.handleLightUpdatePacked(packet)
+                // is ClientboundLightUpdatePacket -> listener.handleLightUpdatePacked(packet)
             }
         }
     }

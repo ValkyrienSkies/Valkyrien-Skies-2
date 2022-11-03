@@ -7,26 +7,20 @@ import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
-import org.apache.logging.log4j.Logger;
-import org.spongepowered.asm.mixin.Final;
+import org.apache.logging.log4j.LogManager;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 
 @Mixin(Level.class)
 public abstract class MixinLevel implements BlockGetter {
 
-    @Shadow
-    @Final
-    protected static Logger LOGGER;
-
     @Override
     public BlockHitResult clip(final ClipContext clipContext) {
 
         if (VSGameUtilsKt.getShipManagingPos(Level.class.cast(this), clipContext.getTo()) !=
             VSGameUtilsKt.getShipManagingPos(Level.class.cast(this), clipContext.getFrom())) {
-            LOGGER.warn("Trying to clip from " +
+            LogManager.getLogger().warn("Trying to clip from " +
                 clipContext.getFrom() + " to " + clipContext.getTo() +
                 " wich one of them is in a shipyard wich is ... sus!!");
 

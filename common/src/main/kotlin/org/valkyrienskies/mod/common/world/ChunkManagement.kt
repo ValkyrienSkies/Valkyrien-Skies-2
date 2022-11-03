@@ -1,9 +1,10 @@
 package org.valkyrienskies.mod.common.world
 
-import net.minecraft.network.protocol.Packet
+import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.level.ChunkPos
+import org.apache.commons.lang3.mutable.MutableObject
 import org.valkyrienskies.core.chunk_tracking.ChunkUnwatchTask
 import org.valkyrienskies.core.chunk_tracking.ChunkWatchTask
 import org.valkyrienskies.core.game.ships.ShipObjectServerWorld
@@ -27,7 +28,8 @@ object ChunkManagement {
                 "Watch task for dimension " + chunkWatchTask.dimensionId + ": " +
                     chunkWatchTask.getChunkX() + " : " + chunkWatchTask.getChunkZ()
             )
-            val chunkPacketBuffer: Array<Packet<*>?> = arrayOfNulls(2)
+            val chunkPacketBuffer: MutableObject<ClientboundLevelChunkWithLightPacket> =
+                MutableObject<ClientboundLevelChunkWithLightPacket>()
             val chunkPos = ChunkPos(chunkWatchTask.getChunkX(), chunkWatchTask.getChunkZ())
 
             val level = server.getLevelFromDimensionId(chunkWatchTask.dimensionId)!!

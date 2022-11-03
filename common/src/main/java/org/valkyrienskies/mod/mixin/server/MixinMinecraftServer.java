@@ -102,7 +102,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
 
         // Load ship data from the world storage
         final ShipSavedData shipSavedData = overworld().getDataStorage()
-            .computeIfAbsent(ShipSavedData.Companion::createEmpty, ShipSavedData.SAVED_DATA_ID);
+            .computeIfAbsent(ShipSavedData::load, ShipSavedData.Companion::createEmpty, ShipSavedData.SAVED_DATA_ID);
 
         // If there was an error deserializing, re-throw it here so that the game actually crashes.
         // We would prefer to crash the game here than allow the player keep playing with everything corrupted.

@@ -92,7 +92,8 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
                                 CrashReport.forThrowable(var12, "Colliding entity with block");
                             final CrashReportCategory crashReportCategory =
                                 crashReport.addCategory("Block being collided with");
-                            CrashReportCategory.populateBlockDetails(crashReportCategory, mutableBlockPos, blockState);
+                            CrashReportCategory.populateBlockDetails(crashReportCategory, this.level, mutableBlockPos,
+                                blockState);
                             throw new ReportedException(crashReport);
                         }
                     }
@@ -104,7 +105,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     /**
      * @reason Needed for players to pick blocks correctly when mounted to a ship
      */
-    @Inject(method = "getEyePosition", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "getEyePosition(F)Lnet/minecraft/world/phys/Vec3;", at = @At("HEAD"), cancellable = true)
     private void preGetEyePosition(final float partialTicks, final CallbackInfoReturnable<Vec3> cir) {
         final ShipObject shipMountedTo =
             VSGameUtilsKt.getShipObjectEntityMountedTo(level, Entity.class.cast(this));

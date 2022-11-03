@@ -3,7 +3,6 @@ package org.valkyrienskies.mod.util
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.Direction.NORTH
-import net.minecraft.nbt.CompoundTag
 import net.minecraft.world.Container
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Blocks
@@ -34,8 +33,7 @@ fun relocateBlock(
     val entity = fromChunk.getBlockEntity(from)
 
     val tag = entity?.let {
-        val tag = CompoundTag()
-        it.save(tag)
+        val tag = it.saveWithFullMetadata()
         tag.putInt("x", to.x)
         tag.putInt("y", to.y)
         tag.putInt("z", to.z)
@@ -64,7 +62,7 @@ fun relocateBlock(
         if (be is ShipBlockEntity)
             be.ship = toShip
 
-        be.load(state, it)
+        be.load(it)
     }
 }
 

@@ -238,7 +238,7 @@ fun Level.raytraceEntities(
 }
 
 fun BlockGetter.vanillaClip(context: ClipContext): BlockHitResult =
-    BlockGetter.traverseBlocks(context,
+    BlockGetter.traverseBlocks(context.from, context.to, context,
         { clipContext: ClipContext, blockPos: BlockPos ->
             val blockState = getBlockState(blockPos)
             val fluidState = getFluidState(blockPos)

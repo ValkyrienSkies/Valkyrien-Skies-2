@@ -25,7 +25,6 @@ public interface RenderChunkInfoAccessor {
      */
     @Invoker(value = "<init>")
     static LevelRenderer.RenderChunkInfo vs$new(
-        final LevelRenderer worldRenderer,
         final ChunkRenderDispatcher.RenderChunk chunk,
         @Nullable final Direction direction,
         final int propagationLevel

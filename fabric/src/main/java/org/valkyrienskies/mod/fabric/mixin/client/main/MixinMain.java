@@ -7,7 +7,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.mod.fabric.AutoDependenciesFabric;
 
-@Mixin(Main.class)
+@Mixin(value = Main.class, remap = false)
 public class MixinMain {
 
     @Inject(

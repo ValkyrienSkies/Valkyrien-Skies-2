@@ -6,6 +6,7 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.sounds.SoundEvent;
@@ -153,12 +154,14 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
             }
 
             if (holdingBarrierItem && blockState.is(Blocks.BARRIER)) {
-                thisAsClientLevel.addParticle(ParticleTypes.BARRIER, (double) posX + 0.5, (double) posY + 0.5,
+                thisAsClientLevel.addParticle(new BlockParticleOption(ParticleTypes.BLOCK_MARKER, blockState),
+                    (double) posX + 0.5, (double) posY + 0.5,
                     (double) posZ + 0.5, 0.0, 0.0, 0.0);
             }
 
             if (!blockState.isCollisionShapeFullBlock(thisAsClientLevel, mutableBlockPos)) {
                 thisAsClientLevel.getBiome(mutableBlockPos)
+                    .value()
                     .getAmbientParticle()
                     .ifPresent(
                         ambientParticleSettings -> {

@@ -60,8 +60,8 @@ public class MixinClientPacketListener {
             final int i = packet.getId();
             entity.setPacketCoordinates(d, e, f);
             entity.moveTo(d, e, f);
-            entity.xRot = (float) (packet.getxRot() * 360) / 256.0f;
-            entity.yRot = (float) (packet.getyRot() * 360) / 256.0f;
+            entity.setXRot((float) (packet.getxRot() * 360) / 256.0f);
+            entity.setYRot((float) (packet.getyRot() * 360) / 256.0f);
             entity.setId(i);
             entity.setUUID(packet.getUUID());
             this.level.putNonPlayerEntity(i, entity);

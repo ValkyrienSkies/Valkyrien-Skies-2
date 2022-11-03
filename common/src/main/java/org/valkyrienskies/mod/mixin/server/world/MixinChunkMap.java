@@ -1,23 +1,21 @@
 package org.valkyrienskies.mod.mixin.server.world;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
-import net.minecraft.Util;
 import net.minecraft.core.Registry;
-import net.minecraft.data.worldgen.biome.Biomes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ChunkMap;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.biome.Biome;
-import net.minecraft.world.level.chunk.ChunkBiomeContainer;
 import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.chunk.ProtoChunk;
+import net.minecraft.world.level.chunk.UpgradeData;
 import net.minecraft.world.level.chunk.storage.ChunkSerializer;
 import net.minecraft.world.level.storage.DimensionDataStorage;
 import org.spongepowered.asm.mixin.Final;
@@ -34,13 +32,6 @@ import org.valkyrienskies.mod.common.util.MinecraftPlayer;
 @Mixin(ChunkMap.class)
 public abstract class MixinChunkMap {
 
-    private static final Biome[] BIOMES;
-
-    static {
-        // Make all ship chunks have the plains biome
-        BIOMES = Util.make(new Biome[ChunkBiomeContainer.BIOMES_SIZE], (biomes) -> Arrays.fill(biomes, Biomes.PLAINS));
-    }
-
     @Shadow
     @Final
     private ServerLevel level;
@@ -48,9 +39,6 @@ public abstract class MixinChunkMap {
     @Shadow
     @Final
     private Supplier<DimensionDataStorage> overworldDataStorage;
-
-    @Shadow
-    abstract boolean noPlayersCloseForSpawning(ChunkPos chunkPos);
 
     /**
      * Force the game to generate empty chunks in the shipyard.
@@ -66,14 +54,15 @@ public abstract class MixinChunkMap {
         final ChunkMap self = ChunkMap.class.cast(this);
         final CompoundTag compoundTag = self.read(chunkPos);
         final CompoundTag originalToReturn = compoundTag == null ? null :
-            self.upgradeChunkTag(this.level.dimension(), this.overworldDataStorage, compoundTag);
+            self.upgradeChunkTag(this.level.dimension(), this.overworldDataStorage, compoundTag, Optional.empty());
 
         if (originalToReturn == null) {
             if (ChunkAllocator.isChunkInShipyard(chunkPos.x, chunkPos.z)) {
                 // The chunk doesn't yet exist and is in the shipyard. Make a new empty chunk
                 // Generate the chunk to be nothing
-                final LevelChunk generatedChunk = new LevelChunk(level, chunkPos,
-                    new ChunkBiomeContainer(level.registryAccess().registryOrThrow(Registry.BIOME_REGISTRY), BIOMES));
+                final LevelChunk generatedChunk = new LevelChunk(level,
+                    new ProtoChunk(chunkPos, UpgradeData.EMPTY, level,
+                        level.registryAccess().registryOrThrow(Registry.BIOME_REGISTRY), null), null);
                 // Its wasteful to serialize just for this to be deserialized, but it will work for now.
                 cir.setReturnValue(ChunkSerializer.write(level, generatedChunk));
             }

@@ -2,13 +2,14 @@ package org.valkyrienskies.mod.mixin.client.world;
 
 import io.netty.util.collection.LongObjectHashMap;
 import io.netty.util.collection.LongObjectMap;
+import java.util.function.Consumer;
 import net.minecraft.client.multiplayer.ClientChunkCache;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.SectionPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData.BlockEntityTagOutput;
 import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.chunk.ChunkBiomeContainer;
 import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
@@ -49,18 +50,18 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
     private final LongObjectMap<LevelChunk> shipChunks = new LongObjectHashMap<>();
 
     @Inject(method = "replaceWithPacketData", at = @At("HEAD"), cancellable = true)
-    private void preLoadChunkFromPacket(final int x, final int z, final ChunkBiomeContainer biomes,
+    private void preLoadChunkFromPacket(final int x, final int z,
         final FriendlyByteBuf buf,
         final CompoundTag tag,
-        final int verticalStripBitmask, final boolean complete, final CallbackInfoReturnable<LevelChunk> cir) {
+        final Consumer<BlockEntityTagOutput> consumer, final CallbackInfoReturnable<LevelChunk> cir) {
         final ClientChunkCacheStorageAccessor clientChunkMapAccessor =
             ClientChunkCacheStorageAccessor.class.cast(storage);
         if (!clientChunkMapAccessor.callInRange(x, z)) {
             if (ChunkAllocator.isChunkInShipyard(x, z)) {
                 final long chunkPosLong = ChunkPos.asLong(x, z);
 
-                final LevelChunk worldChunk = new LevelChunk(this.level, new ChunkPos(x, z), biomes);
-                worldChunk.replaceWithPacketData(biomes, buf, tag, verticalStripBitmask);
+                final LevelChunk worldChunk = new LevelChunk(this.level, new ChunkPos(x, z));
+                worldChunk.replaceWithPacketData(buf, tag, consumer);
                 shipChunks.put(chunkPosLong, worldChunk);
 
                 final LevelChunkSection[] chunkSections = worldChunk.getSections();
@@ -70,10 +71,10 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
                 for (int j = 0; j < chunkSections.length; ++j) {
                     final LevelChunkSection chunkSection = chunkSections[j];
                     lightingProvider
-                        .updateSectionStatus(SectionPos.of(x, j, z), LevelChunkSection.isEmpty(chunkSection));
+                        .updateSectionStatus(SectionPos.of(x, j, z), chunkSection.hasOnlyAir());
                 }
 
-                this.level.onChunkLoaded(x, z);
+                this.level.onChunkLoaded(new ChunkPos(x, z));
 
                 SodiumCompat.onChunkAdded(x, z);
 

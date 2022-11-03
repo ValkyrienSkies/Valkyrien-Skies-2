@@ -2,12 +2,16 @@ package org.valkyrienskies.mod.mixin.mod_compat.vanilla_renderer;
 
 import static org.valkyrienskies.mod.client.McClientMathUtilKt.transformRenderWithShip;
 
+import com.mojang.blaze3d.shaders.Uniform;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexBuffer;
+import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.math.Matrix4f;
 import it.unimi.dsi.fastutil.objects.ObjectListIterator;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
@@ -31,7 +35,7 @@ public class MixinLevelRendererVanilla {
      * Fix the distance to render chunks, so that MC doesn't think ship chunks are too far away
      */
     @Redirect(
-        method = "setupRender",
+        method = "compileChunks",
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/core/BlockPos;distSqr(Lnet/minecraft/core/Vec3i;)D"
@@ -48,15 +52,16 @@ public class MixinLevelRendererVanilla {
      */
     @Inject(
         method = "renderChunkLayer",
-        at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/VertexBuffer;bind()V"),
+        at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/shaders/Uniform;upload()V"),
         locals = LocalCapture.CAPTURE_FAILHARD
     )
     @SuppressWarnings("InvalidInjectorMethodSignature")
     private void renderShipChunk(final RenderType renderLayer, final PoseStack matrixStack,
         final double playerCameraX,
-        final double playerCameraY, final double playerCameraZ, final CallbackInfo ci,
+        final double playerCameraY, final double playerCameraZ, final Matrix4f matrix4f, final CallbackInfo ci,
         final boolean bl, final ObjectListIterator<?> objectListIterator,
-        final LevelRenderer.RenderChunkInfo chunkInfo2,
+        final VertexFormat format, final ShaderInstance shader,
+        final Uniform uniform, final boolean bl2, final LevelRenderer.RenderChunkInfo info,
         final ChunkRenderDispatcher.RenderChunk builtChunk, final VertexBuffer vertexBuffer) {
 
         final int playerChunkX = ((int) playerCameraX) >> 4;
@@ -83,9 +88,9 @@ public class MixinLevelRendererVanilla {
      */
     @Redirect(
         method = "renderChunkLayer",
-        at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/PoseStack;translate(DDD)V")
+        at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/shaders/Uniform;set(FFF)V")
     )
-    private void cancelDefaultTransform(final PoseStack matrixStack, final double x, final double y, final double z) {
+    private void cancelDefaultTransform(final Uniform instance, final float f, final float g, final float h) {
         // Do nothing
     }
 }

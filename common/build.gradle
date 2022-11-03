@@ -1,3 +1,7 @@
+repositories {
+    maven { url = "https://cursemaven.com" }
+}
+
 dependencies {
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
     // We depend on fabric loader here to use the fabric @Environment annotations
@@ -6,7 +10,7 @@ dependencies {
 
     modApi("me.shedaniel.cloth:cloth-config:4.14.64")
 
-    modCompileOnly("curse.maven:sodium-394468:3488820")
+    modCompileOnly("curse.maven:sodium-394468:3669187")
     modCompileOnly("curse.maven:iris-455508:4023641")
 
     // vs-core

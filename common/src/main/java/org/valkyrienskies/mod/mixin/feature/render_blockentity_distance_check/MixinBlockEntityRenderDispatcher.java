@@ -1,11 +1,10 @@
 package org.valkyrienskies.mod.mixin.feature.render_blockentity_distance_check;
 
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.Camera;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Position;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.Vec3;
@@ -29,6 +28,9 @@ public class MixinBlockEntityRenderDispatcher {
     @Shadow
     public Level level;
 
+    @Shadow
+    public Camera camera;
+
     /**
      * This mixin fixes the culling of {@link BlockEntity}s that belong to a ship.
      */
@@ -36,14 +38,14 @@ public class MixinBlockEntityRenderDispatcher {
         method = "render",
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/world/phys/Vec3;closerThan(Lnet/minecraft/core/Position;D)Z"
+            target = "Lnet/minecraft/client/renderer/blockentity/BlockEntityRenderer;shouldRender(Lnet/minecraft/world/level/block/entity/BlockEntity;Lnet/minecraft/world/phys/Vec3;)Z"
         )
     )
-    private boolean isTileEntityInRenderRange(final Vec3 tileEntityPos, final Position cameraPos,
-        final double radiusSquared, final BlockEntity methodBlockEntity, final float methodTickDelta,
-        final PoseStack methodMatrix, final MultiBufferSource methodVertexConsumerProvider) {
+    private <E extends BlockEntity> boolean isTileEntityInRenderRange(final BlockEntityRenderer<E> instance,
+        final E methodBlockEntity,
+        final Vec3 tileEntityPos) {
 
-        final boolean defaultResult = tileEntityPos.closerThan(cameraPos, radiusSquared);
+        final boolean defaultResult = instance.shouldRender(methodBlockEntity, tileEntityPos);
         if (defaultResult) {
             return true;
         }
@@ -57,7 +59,8 @@ public class MixinBlockEntityRenderDispatcher {
                 .transformPosition(new Vector3d(tileEntityPos.x(), tileEntityPos.y(), tileEntityPos.z()));
             final Vec3 tileEntityPosInWorldCoordinatesVec3d =
                 VectorConversionsMCKt.toMinecraft(tileEntityPosInWorldCoordinates);
-            return tileEntityPosInWorldCoordinatesVec3d.closerThan(cameraPos, radiusSquared);
+            return tileEntityPosInWorldCoordinatesVec3d.closerThan(this.camera.getPosition(),
+                instance.getViewDistance());
         }
         return false;
     }

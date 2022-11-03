@@ -7,13 +7,13 @@ public class SodiumCompat {
 
     public static void onChunkAdded(final int x, final int z) {
         if (ValkyrienCommonMixinConfigPlugin.getVSRenderer() == VSRenderer.SODIUM) {
-            SodiumWorldRenderer.getInstance().onChunkAdded(x, z);
+            SodiumWorldRenderer.instance().onChunkAdded(x, z);
         }
     }
 
     public static void onChunkRemoved(final int x, final int z) {
         if (ValkyrienCommonMixinConfigPlugin.getVSRenderer() == VSRenderer.SODIUM) {
-            SodiumWorldRenderer.getInstance().onChunkRemoved(x, z);
+            SodiumWorldRenderer.instance().onChunkRemoved(x, z);
         }
     }
 

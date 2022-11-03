@@ -3,11 +3,12 @@ package org.valkyrienskies.mod.fabric.common
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper
-import net.fabricmc.fabric.api.client.rendereregistry.v1.EntityRendererRegistry
+import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry
+import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper
 import net.fabricmc.loader.api.FabricLoader
-import net.minecraft.client.renderer.entity.EntityRenderDispatcher
+import net.minecraft.client.renderer.entity.EntityRendererProvider.Context
 import net.minecraft.core.Registry
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.packs.PackType.SERVER_DATA
@@ -33,6 +34,7 @@ import org.valkyrienskies.mod.common.config.VSKeyBindings
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.item.ShipAssemblerItem
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
+import org.valkyrienskies.mod.event.RegistryEvents
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executor
 
@@ -115,6 +117,7 @@ class ValkyrienSkiesModFabric : ModInitializer {
                     ) { _, _ -> }
                 }
             })
+        CommonLifecycleEvents.TAGS_LOADED.register(RegistryEvents::tagsAreLoaded)
     }
 
     /**
@@ -122,11 +125,11 @@ class ValkyrienSkiesModFabric : ModInitializer {
      */
     private fun onInitializeClient() {
         // Register the ship mounting entity renderer
-        EntityRendererRegistry.INSTANCE.register(
+        EntityRendererRegistry.register(
             ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE
-        ) { manager: EntityRenderDispatcher, _: EntityRendererRegistry.Context ->
+        ) { context: Context ->
             EmptyRenderer(
-                manager
+                context
             )
         }
 

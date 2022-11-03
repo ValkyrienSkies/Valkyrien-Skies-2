@@ -3,8 +3,7 @@ package org.valkyrienskies.mod.mixin.feature.seamless_copy;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.core.SectionPos;
 import net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket;
-import net.minecraft.network.protocol.game.ClientboundLevelChunkPacket;
-import net.minecraft.network.protocol.game.ClientboundLightUpdatePacket;
+import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket;
 import net.minecraft.network.protocol.game.ClientboundSectionBlocksUpdatePacket;
 import org.jetbrains.annotations.NotNull;
 import org.spongepowered.asm.mixin.Mixin;
@@ -51,10 +50,10 @@ public class MixinClientPacketListener implements SeamlessCopyClientPacketListen
 
     @Inject(
         at = @At("HEAD"),
-        method = "handleLevelChunk",
+        method = "handleLevelChunkWithLight",
         cancellable = true
     )
-    private void beforeHandleLevelChunk(final ClientboundLevelChunkPacket packet, final CallbackInfo ci) {
+    private void beforeHandleLevelChunk(final ClientboundLevelChunkWithLightPacket packet, final CallbackInfo ci) {
         if (chunks.queue(packet.getX(), packet.getZ(), packet)) {
             ci.cancel();
         }
@@ -80,17 +79,6 @@ public class MixinClientPacketListener implements SeamlessCopyClientPacketListen
     )
     private void beforeHandleBlockUpdate(final ClientboundBlockUpdatePacket packet, final CallbackInfo ci) {
         if (chunks.queue(packet.getPos().getX() >> 4, packet.getPos().getZ() >> 4, packet)) {
-            ci.cancel();
-        }
-    }
-
-    @Inject(
-        at = @At("HEAD"),
-        method = "handleLightUpdatePacked",
-        cancellable = true
-    )
-    private void beforeHandleLightUpdatePacked(final ClientboundLightUpdatePacket packet, final CallbackInfo ci) {
-        if (chunks.queue(packet.getX(), packet.getZ(), packet)) {
             ci.cancel();
         }
     }

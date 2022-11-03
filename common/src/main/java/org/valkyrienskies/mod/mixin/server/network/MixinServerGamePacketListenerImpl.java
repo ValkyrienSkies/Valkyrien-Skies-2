@@ -134,7 +134,7 @@ public abstract class MixinServerGamePacketListenerImpl {
 
             this.send(
                 new ClientboundPlayerPositionPacket(pos.x, pos.y, pos.z, yaw, pitch, Collections.emptySet(),
-                    awaitingTeleport));
+                    awaitingTeleport, false));
             ci.cancel();
         }
     }
