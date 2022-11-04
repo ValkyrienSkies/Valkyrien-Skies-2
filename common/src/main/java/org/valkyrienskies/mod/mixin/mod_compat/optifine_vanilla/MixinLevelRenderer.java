@@ -117,8 +117,9 @@ public abstract class MixinLevelRenderer {
     /**
      * Remove the render chunks added to render ships
      */
-    @Inject(method = "setupRender", at = @At("HEAD"))
-    private void resetRenderChunks(final Camera camera, final Frustum frustum, final boolean bl, final boolean bl2, final CallbackInfo ci) {
+//    @Inject(method = "setupRender", at = @At("HEAD"))
+    private void resetRenderChunks(final Camera camera, final Frustum frustum, final boolean bl, final boolean bl2,
+        final CallbackInfo ci) {
         renderChunksInFrustum.clear();
         renderChunksInFrustum.addAll(renderChunksGeneratedByVanilla);
     }

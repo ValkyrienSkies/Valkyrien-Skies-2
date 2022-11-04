@@ -16,7 +16,7 @@ import org.valkyrienskies.mod.common.BlockStateInfo;
 public class MixinLevelChunk {
     @Shadow
     @Final
-    private Level level;
+    Level level;
 
     @Inject(method = "setBlockState", at = @At("TAIL"))
     public void postSetBlockState(final BlockPos pos, final BlockState state, final boolean moved,

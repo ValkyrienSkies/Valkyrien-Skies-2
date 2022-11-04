@@ -1,12 +1,13 @@
 package org.valkyrienskies.mod.mixin.server.world;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 import net.minecraft.core.Registry;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ChunkMap;
@@ -34,7 +35,7 @@ public abstract class MixinChunkMap {
 
     @Shadow
     @Final
-    private ServerLevel level;
+    ServerLevel level;
 
     @Shadow
     @Final
@@ -78,7 +79,7 @@ public abstract class MixinChunkMap {
      */
     @Inject(method = "getPlayers", at = @At("TAIL"), cancellable = true)
     private void postGetPlayersWatchingChunk(final ChunkPos chunkPos, final boolean onlyOnWatchDistanceEdge,
-        final CallbackInfoReturnable<Stream<ServerPlayer>> cir) {
+        final CallbackInfoReturnable<List<ServerPlayer>> cir) {
 
         final Iterator<IPlayer> playersWatchingShipChunk =
             VSGameUtilsKt.getShipObjectWorld(level)
@@ -89,9 +90,8 @@ public abstract class MixinChunkMap {
             return;
         }
 
-        final Stream<ServerPlayer> oldReturnValue = cir.getReturnValue();
-        final Set<ServerPlayer> watchingPlayers = new HashSet<>();
-        oldReturnValue.forEach(watchingPlayers::add);
+        final List<ServerPlayer> oldReturnValue = cir.getReturnValue();
+        final Set<ServerPlayer> watchingPlayers = new HashSet<>(oldReturnValue);
 
         playersWatchingShipChunk.forEachRemaining(
             iPlayer -> {
@@ -103,9 +103,8 @@ public abstract class MixinChunkMap {
                 }
             }
         );
-
-        final Stream<ServerPlayer> newReturnValue = watchingPlayers.stream();
-        cir.setReturnValue(newReturnValue);
+        
+        cir.setReturnValue(new ArrayList<>(watchingPlayers));
     }
 
 }

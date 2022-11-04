@@ -74,12 +74,18 @@ public class MixinLevelRendererVanilla {
         if (!isPlayerInShipyard && shipObject != null) {
             // matrixStack.pop(); so while checking for bugs this seems unusual?
             // matrixStack.push(); but it doesn't fix sadly the bug im searching for
+//            matrixStack.pushPose();
             transformRenderWithShip(shipObject.getRenderTransform(), matrixStack, renderChunkOrigin,
                 playerCameraX, playerCameraY, playerCameraZ);
+            if (shader.PROJECTION_MATRIX != null) {
+                shader.PROJECTION_MATRIX.set(matrixStack.last().pose());
+            }
+//            matrixStack.popPose();
         } else {
             // Restore MC default behavior (that was removed by cancelDefaultTransform())
-            matrixStack.translate(renderChunkOrigin.getX() - playerCameraX, renderChunkOrigin.getY() - playerCameraY,
-                renderChunkOrigin.getZ() - playerCameraZ);
+            uniform.set((float) (renderChunkOrigin.getX() - playerCameraX),
+                (float) (renderChunkOrigin.getY() - playerCameraY),
+                (float) (renderChunkOrigin.getZ() - playerCameraZ));
         }
     }
 

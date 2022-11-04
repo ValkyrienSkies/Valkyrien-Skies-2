@@ -35,7 +35,7 @@ class ShipSavedData : SavedData() {
             val queryableShipDataAsBytes = compoundTag.getByteArray(QUERYABLE_SHIP_DATA_NBT_KEY)
             val chunkAllocatorAsBytes = compoundTag.getByteArray(CHUNK_ALLOCATOR_NBT_KEY)
 
-            val data: ShipSavedData = ShipSavedData()
+            val data = ShipSavedData()
             // Convert bytes to objects
             try {
                 val ships: List<ShipData> = VSJacksonUtil.defaultMapper.readValue(queryableShipDataAsBytes)
