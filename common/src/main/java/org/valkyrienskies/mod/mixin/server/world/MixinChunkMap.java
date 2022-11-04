@@ -49,6 +49,9 @@ public abstract class MixinChunkMap {
     @Final
     private Supplier<DimensionDataStorage> overworldDataStorage;
 
+    @Shadow
+    abstract boolean noPlayersCloseForSpawning(ChunkPos chunkPos);
+
     /**
      * Force the game to generate empty chunks in the shipyard.
      *
@@ -115,4 +118,5 @@ public abstract class MixinChunkMap {
         final Stream<ServerPlayer> newReturnValue = watchingPlayers.stream();
         cir.setReturnValue(newReturnValue);
     }
+
 }

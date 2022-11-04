@@ -25,7 +25,6 @@ import org.valkyrienskies.core.pipelines.VSPipeline;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientCreator;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.mixinducks.client.MinecraftDuck;
@@ -78,14 +77,12 @@ public abstract class MixinMinecraft
     @NotNull
     @Override
     public ShipObjectClientWorld getShipObjectWorld() {
-        /*final ShipObjectClientWorld shipObjectWorldCopy = shipObjectWorld;
+        final ShipObjectClientWorld shipObjectWorldCopy = shipObjectWorld;
 
         if (shipObjectWorldCopy == null) {
             throw new IllegalStateException("Requested getShipObjectWorld() when shipObjectWorld was null!");
         }
-        return shipObjectWorldCopy;*/
-        // I made it kind of nullable, it seems like preRender and getEntities mixins get used before its initialized
-        return shipObjectWorld;
+        return shipObjectWorldCopy;
     }
 
     @Shadow
@@ -97,9 +94,8 @@ public abstract class MixinMinecraft
     )
     public void postTick(final CallbackInfo ci) {
         // Tick the ship world and then drag entities
-        if (!pause && shipObjectWorld != null) {
-            VSGameUtilsKt.getShipObjectWorld(Minecraft.class.cast(this)).getNetworkManager()
-                .tick(getConnection().getConnection().getRemoteAddress());
+        if (!pause && shipObjectWorld != null && level != null && getConnection() != null) {
+            shipObjectWorld.getNetworkManager().tick(getConnection().getConnection().getRemoteAddress());
             shipObjectWorld.postTick();
             EntityDragger.INSTANCE.dragEntitiesWithShips(level.entitiesForRendering());
         }

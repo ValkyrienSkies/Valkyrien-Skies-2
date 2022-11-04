@@ -48,5 +48,10 @@ object VSGameConfig {
             description = "Blast force in newtons of a TNT explosion at the center of the explosion."
         )
         var explosionBlastForce = 500000.0
+
+        @JsonSchema(
+            description = "Allow natural mob spawning on ships"
+        )
+        var allowMobSpawns = false
     }
 }

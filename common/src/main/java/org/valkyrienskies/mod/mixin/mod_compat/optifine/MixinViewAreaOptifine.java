@@ -1,7 +1,9 @@
-package org.valkyrienskies.mod.mixin.client.renderer;
+package org.valkyrienskies.mod.mixin.mod_compat.optifine;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap.Entry;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import java.util.Map;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.ViewArea;
 import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
@@ -9,6 +11,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
+import net.optifine.Config;
+import net.optifine.render.VboRegion;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -23,18 +27,16 @@ import org.valkyrienskies.mod.mixinducks.client.render.IVSViewAreaMethods;
  * The purpose of this mixin is to allow {@link ViewArea} to render ship chunks.
  */
 @Mixin(ViewArea.class)
-public class MixinViewArea implements IVSViewAreaMethods {
-
-    @Shadow
-    @Final
-    protected Level level;
-
-    @Shadow
-    protected int chunkGridSizeY;
+public abstract class MixinViewAreaOptifine implements IVSViewAreaMethods {
 
     // Maps chunk position to an array of BuiltChunk, indexed by the y value.
     private final Long2ObjectMap<ChunkRenderDispatcher.RenderChunk[]> vs$shipRenderChunks =
         new Long2ObjectOpenHashMap<>();
+    @Shadow
+    @Final
+    protected Level level;
+    @Shadow
+    protected int chunkGridSizeY;
     // This creates render chunks
     private ChunkRenderDispatcher vs$chunkBuilder;
 
@@ -47,6 +49,9 @@ public class MixinViewArea implements IVSViewAreaMethods {
 
         this.vs$chunkBuilder = chunkBuilder;
     }
+
+    @Shadow(remap = false)
+    protected abstract void updateVboRegion(ChunkRenderDispatcher.RenderChunk renderChunk);
 
     /**
      * This mixin creates render chunks for ship chunks.
@@ -68,10 +73,12 @@ public class MixinViewArea implements IVSViewAreaMethods {
                 final ChunkRenderDispatcher.RenderChunk builtChunk = vs$chunkBuilder.new RenderChunk();
                 builtChunk.setOrigin(x << 4, y << 4, z << 4);
                 renderChunksArray[y] = builtChunk;
+                if (Config.isVbo() && Config.isRenderRegions()) {
+                    updateVboRegion(renderChunksArray[y]);
+                }
             }
 
             renderChunksArray[y].setDirty(important);
-
             callbackInfo.cancel();
         }
     }
@@ -102,6 +109,9 @@ public class MixinViewArea implements IVSViewAreaMethods {
         }
     }
 
+    @Shadow(remap = false)
+    private Map<ChunkPos, VboRegion[]> mapVboRegions;
+
     @Override
     public void unloadChunk(final int chunkX, final int chunkZ) {
         if (ChunkAllocator.isChunkInShipyard(chunkX, chunkZ)) {
@@ -112,6 +122,27 @@ public class MixinViewArea implements IVSViewAreaMethods {
                     chunk.releaseBuffers();
                 }
             }
+            final VboRegion[] vboRegions = mapVboRegions.remove(new ChunkPos(chunkX, chunkZ));
+            if (vboRegions != null) {
+                for (final VboRegion vboRegion : vboRegions) {
+                    if (vboRegion != null) vboRegion.deleteGlBuffers();
+                }
+            }
         }
+    }
+
+    /**
+     * Clear VS ship render chunks so that we don't leak memory
+     */
+    @Inject(method = "releaseAllBuffers", at = @At("HEAD"))
+    private void postReleaseAllBuffers(final CallbackInfo ci) {
+        for (final Entry<ChunkRenderDispatcher.RenderChunk[]> entry : vs$shipRenderChunks.long2ObjectEntrySet()) {
+            for (final ChunkRenderDispatcher.RenderChunk renderChunk : entry.getValue()) {
+                if (renderChunk != null) {
+                    renderChunk.releaseBuffers();
+                }
+            }
+        }
+        vs$shipRenderChunks.clear();
     }
 }
