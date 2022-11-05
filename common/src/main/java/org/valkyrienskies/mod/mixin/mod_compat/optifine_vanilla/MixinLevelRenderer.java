@@ -18,7 +18,6 @@ import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.ViewArea;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
-import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
@@ -34,12 +33,6 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.game.ships.ShipObjectClient;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
-import org.valkyrienskies.mod.compat.VSRenderer;
-import org.valkyrienskies.mod.mixin.ValkyrienCommonMixinConfigPlugin;
-import org.valkyrienskies.mod.mixin.accessors.client.render.ViewAreaAccessor;
-import org.valkyrienskies.mod.mixin.mod_compat.optifine.RenderChunkInfoAccessorOptifine;
-import org.valkyrienskies.mod.mixin.mod_compat.vanilla_renderer.RenderChunkInfoAccessor;
 import org.valkyrienskies.mod.mixinducks.client.world.ClientChunkCacheDuck;
 
 /**
@@ -124,48 +117,4 @@ public abstract class MixinLevelRenderer {
         renderChunksInFrustum.addAll(renderChunksGeneratedByVanilla);
     }
 
-    /**
-     * Add ship render chunks to [renderChunks]
-     */
-    @Inject(
-        method = "applyFrustum",
-        at = @At(
-            value = "INVOKE",
-            target = "Ljava/util/LinkedHashSet;iterator()Ljava/util/Iterator;"
-        )
-    )
-    private void addShipVisibleChunks(
-        final Frustum frustum, final CallbackInfo ci) {
-        renderChunksGeneratedByVanilla = new ObjectArrayList<>(renderChunksInFrustum);
-
-        final LevelRenderer self = LevelRenderer.class.cast(this);
-        final BlockPos.MutableBlockPos tempPos = new BlockPos.MutableBlockPos();
-        final ViewAreaAccessor chunkStorageAccessor = (ViewAreaAccessor) viewArea;
-        for (final ShipObjectClient shipObject : VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips()) {
-            // Don't bother rendering the ship if its AABB isn't visible to the frustum
-            if (!frustum.isVisible(VectorConversionsMCKt.toMinecraft(shipObject.getRenderAABB()))) {
-                continue;
-            }
-
-            shipObject.getShipData().getShipActiveChunksSet().iterateChunkPos((x, z) -> {
-                for (int y = 0; y < 16; y++) {
-                    tempPos.set(x << 4, y << 4, z << 4);
-                    final ChunkRenderDispatcher.RenderChunk renderChunk =
-                        chunkStorageAccessor.callGetRenderChunkAt(tempPos);
-                    if (renderChunk != null) {
-                        final LevelRenderer.RenderChunkInfo newChunkInfo;
-                        if (ValkyrienCommonMixinConfigPlugin.getVSRenderer() == VSRenderer.OPTIFINE) {
-                            newChunkInfo =
-                                RenderChunkInfoAccessorOptifine.vs$new(renderChunk, null, 0);
-                        } else {
-                            newChunkInfo =
-                                RenderChunkInfoAccessor.vs$new(renderChunk, null, 0);
-                        }
-                        renderChunksInFrustum.add(newChunkInfo);
-                    }
-                }
-                return null;
-            });
-        }
-    }
 }

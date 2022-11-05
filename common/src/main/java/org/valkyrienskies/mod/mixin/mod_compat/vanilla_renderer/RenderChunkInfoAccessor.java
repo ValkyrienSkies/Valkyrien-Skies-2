@@ -5,6 +5,7 @@ import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
 import net.minecraft.core.Direction;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.gen.Invoker;
 
 /**
@@ -12,6 +13,9 @@ import org.spongepowered.asm.mixin.gen.Invoker;
  */
 @Mixin(LevelRenderer.RenderChunkInfo.class)
 public interface RenderChunkInfoAccessor {
+
+    @Accessor
+    ChunkRenderDispatcher.RenderChunk getChunk();
 
     /**
      * This mixin allows us to invoke the private constructor of WorldRenderer.ChunkInfo.
