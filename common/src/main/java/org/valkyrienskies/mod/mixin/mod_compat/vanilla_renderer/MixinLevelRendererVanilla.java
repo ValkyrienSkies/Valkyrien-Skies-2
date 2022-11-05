@@ -162,7 +162,7 @@ public class MixinLevelRendererVanilla {
 
         shipRenderChunks.forEach(
             (ship, chunks) -> renderChunkLayerVanilla(renderType, poseStack, d, e, f, matrix4f, chunks,
-                ship.getShipTransform()));
+                ship.getRenderTransform()));
     }
 
     private void renderChunkLayerVanilla(
