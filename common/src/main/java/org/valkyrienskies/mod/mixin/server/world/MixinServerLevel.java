@@ -123,7 +123,6 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                     shipData.onLoadChunk(chunkX, chunkZ);
                 }
 
-                // For now just assume chunkY goes from 0 to 16
                 for (int sectionY = 0; sectionY < chunkSections.length; sectionY++) {
                     final LevelChunkSection chunkSection = chunkSections[sectionY];
                     final Vector3ic chunkPos =
