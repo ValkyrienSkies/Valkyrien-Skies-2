@@ -40,6 +40,10 @@ publishing {
             version = project.version
             artifactId = rootProject.archives_base_name + "-" + project.name
             from components.java
+
+            artifact(jar) {
+                classifier 'dev'
+            }
         }
     }
 }
