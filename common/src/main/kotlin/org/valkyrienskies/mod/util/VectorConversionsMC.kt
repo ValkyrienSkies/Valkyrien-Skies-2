@@ -80,6 +80,14 @@ fun AABB.toJOML() = AABBd().set(this)
 fun Vector2ic.toMinecraft() = ChunkPos(x(), y())
 fun ChunkPos.toJOML() = Vector2i().set(this)
 
+fun Vec3.toJOML() = Vector3d().set(this)
+
+fun Vector3d.set(v: Vec3) = also {
+    x = v.x
+    y = v.y
+    z = v.z
+}
+
 fun Vector2i.set(pos: ChunkPos) = also {
     x = pos.x
     y = pos.z

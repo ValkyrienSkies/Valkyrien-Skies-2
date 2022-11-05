@@ -11,6 +11,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.ServerPlayerGameMode;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Final;
@@ -49,6 +50,28 @@ public abstract class MixinServerGamePacketListenerImpl {
     @Shadow
     @Final
     private MinecraftServer server;
+
+    @Redirect(
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/world/phys/Vec3;subtract(Lnet/minecraft/world/phys/Vec3;)Lnet/minecraft/world/phys/Vec3;"
+        ),
+        method = "handleUseItemOn"
+    )
+    private Vec3 skipDistanceCheck2(final Vec3 instance, final Vec3 vec3) {
+        return VSGameUtilsKt.toWorldCoordinates(player.level, instance.subtract(vec3));
+    }
+
+    @Redirect(
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/world/level/ChunkPos;getChessboardDistance(Lnet/minecraft/world/level/ChunkPos;)I"
+        ),
+        method = "handleUseItemOn"
+    )
+    private int skipDistanceCheck1(final ChunkPos instance, final ChunkPos chunkPos) {
+        return 0;
+    }
 
     /**
      * Include ships in server-side distance check when player interacts with a block.

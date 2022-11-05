@@ -15,6 +15,7 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.chunk.LevelChunkSection
 import net.minecraft.world.phys.AABB
+import net.minecraft.world.phys.Vec3
 import org.joml.Vector3d
 import org.joml.Vector3dc
 import org.joml.Vector3ic
@@ -305,6 +306,13 @@ fun ServerLevel.getShipManagingPos(chunkPos: ChunkPos) =
 
 fun Ship.toWorldCoordinates(pos: BlockPos): Vector3d =
     shipTransform.shipToWorldMatrix.transformPosition(pos.toJOMLD())
+
+fun Ship.toWorldCoordinates(pos: Vec3): Vec3 =
+    shipTransform.shipToWorldMatrix.transformPosition(pos.toJOML()).toMinecraft()
+
+fun Level.toWorldCoordinates(pos: Vec3): Vec3 {
+    return getShipManagingPos(pos)?.toWorldCoordinates(pos) ?: pos
+}
 
 fun Ship.toWorldCoordinates(x: Double, y: Double, z: Double): Vector3d =
     shipTransform.shipToWorldMatrix.transformPosition(Vector3d(x, y, z))

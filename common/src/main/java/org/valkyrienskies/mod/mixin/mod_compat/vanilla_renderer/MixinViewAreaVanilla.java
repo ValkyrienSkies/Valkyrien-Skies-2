@@ -111,7 +111,9 @@ public class MixinViewAreaVanilla implements IVSViewAreaMethods {
                 vs$shipRenderChunks.remove(ChunkPos.asLong(chunkX, chunkZ));
             if (chunks != null) {
                 for (final ChunkRenderDispatcher.RenderChunk chunk : chunks) {
-                    chunk.releaseBuffers();
+                    if (chunk != null) {
+                        chunk.releaseBuffers();
+                    }
                 }
             }
         }
