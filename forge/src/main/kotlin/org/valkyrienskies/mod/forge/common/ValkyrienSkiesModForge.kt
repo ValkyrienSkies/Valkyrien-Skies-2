@@ -30,7 +30,7 @@ import org.valkyrienskies.core.program.DaggerVSCoreServerFactory
 import org.valkyrienskies.core.program.VSCoreModule
 import org.valkyrienskies.mod.client.EmptyRenderer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
-import org.valkyrienskies.mod.common.block.TestChairBlock
+import org.valkyrienskies.mod.common.block.ClippingTestBlock
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.config.VSEntityHandlerDataLoader
 import org.valkyrienskies.mod.common.config.VSGameConfig
@@ -88,7 +88,7 @@ class ValkyrienSkiesModForge {
             }
         }
 
-        TEST_CHAIR_REGISTRY = registerBlockAndItem("test_chair") { TestChairBlock }
+        TEST_CHAIR_REGISTRY = registerBlockAndItem("test_chair") { ClippingTestBlock }
         SHIP_CREATOR_ITEM_REGISTRY =
             ITEMS.register("ship_creator") { ShipCreatorItem(Properties().tab(CreativeModeTab.TAB_MISC), 1.0) }
         SHIP_CREATOR_SMALLER_ITEM_REGISTRY =
