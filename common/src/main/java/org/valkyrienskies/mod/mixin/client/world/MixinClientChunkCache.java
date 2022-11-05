@@ -94,7 +94,9 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
         ci.cancel();
     }
 
-    @Inject(method = "getChunk", at = @At("HEAD"), cancellable = true)
+    @Inject(
+        method = "getChunk(IILnet/minecraft/world/level/chunk/ChunkStatus;Z)Lnet/minecraft/world/level/chunk/LevelChunk;",
+        at = @At("HEAD"), cancellable = true)
     public void preGetChunk(final int chunkX, final int chunkZ, final ChunkStatus chunkStatus, final boolean bl,
         final CallbackInfoReturnable<LevelChunk> cir) {
         final LevelChunk shipChunk = shipChunks.get(ChunkPos.asLong(chunkX, chunkZ));

@@ -124,9 +124,10 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                 }
 
                 // For now just assume chunkY goes from 0 to 16
-                for (int chunkY = 0; chunkY < 16; chunkY++) {
-                    final LevelChunkSection chunkSection = chunkSections[chunkY];
-                    final Vector3ic chunkPos = new Vector3i(chunkX, chunkY, chunkZ);
+                for (int sectionY = 0; sectionY < chunkSections.length; sectionY++) {
+                    final LevelChunkSection chunkSection = chunkSections[sectionY];
+                    final Vector3ic chunkPos =
+                        new Vector3i(chunkX, worldChunk.getSectionYFromSectionIndex(sectionY), chunkZ);
                     currentTickChunkRegions.add(chunkPos);
 
                     if (!knownChunkRegions.contains(chunkPos)) {
