@@ -44,7 +44,7 @@ dependencyLocking {
 
 // Determine the version of vs-core
 String vsCoreGitRevision = "git rev-parse HEAD".execute(null, gradle.includedBuild("vs-core").projectDir).text.trim()
-ext.vs_core_version = "1.0.0+" + "aa230d1962"
+ext.vs_core_version = "1.0.0+" + vsCoreGitRevision.substring(0, 10)
 
 subprojects {
     apply plugin: "dev.architectury.loom"
