@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.mixin.feature.ai.node_evaluator;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.PathNavigationRegion;
 import net.minecraft.world.level.pathfinder.BlockPathTypes;
@@ -41,8 +42,18 @@ public class WalkNodeEvaluatorMixin {
             VSGameUtilsKt.transformToNearbyShipsAndWorld(((PathNavigationRegionAccessor) blockGetter).getLevel(), origX,
                 origY, origZ, 1,
                 (x, y, z) -> {
-                    cir.setReturnValue(
-                        BlockPathTypes.WALKABLE);//getBlockPathTypeRaw(blockGetter, new BlockPos(x, y, z)));
+                    final BlockPos groundPos = new BlockPos(x, y, z);
+                    BlockPathTypes pathType =
+                        getBlockPathTypeRaw(((PathNavigationRegionAccessor) blockGetter).getLevel(), groundPos);
+                    for (final Direction dir : Direction.values()) {
+                        if (pathType == BlockPathTypes.OPEN || pathType == BlockPathTypes.BLOCKED) {
+                            pathType = getBlockPathTypeRaw(((PathNavigationRegionAccessor) blockGetter).getLevel(),
+                                groundPos.relative(dir));
+                        } else {
+                            break;
+                        }
+                    }
+                    cir.setReturnValue(pathType);
                 });
         }
 

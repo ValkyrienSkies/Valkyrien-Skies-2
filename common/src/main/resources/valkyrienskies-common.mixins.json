@@ -15,7 +15,6 @@
     "client.player.MixinPlayer",
     "client.renderer.MixinLevelRenderer",
     "entity.MixinEntity",
-    "feature.ai.CollisionSpliteratorMixin",
     "feature.ai.node_evaluator.PathNavigationRegionAccessor",
     "feature.ai.node_evaluator.WalkNodeEvaluatorMixin",
     "feature.bed_fix.MixinServerPlayer",
