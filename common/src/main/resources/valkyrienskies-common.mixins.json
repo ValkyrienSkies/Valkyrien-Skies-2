@@ -70,6 +70,7 @@
     "client.world.MixinClientChunkCache",
     "client.world.MixinClientLevel",
     "feature.fix_render_chunk_sorting.MixinRenderChunk",
+    "feature.fluid_camera_fix.MixinCamera",
     "feature.render_blockentity_distance_check.MixinBlockEntityRenderDispatcher",
     "feature.render_leashes.MixinMobRenderer",
     "feature.render_pathfinding.MixinDebugRenderer",
