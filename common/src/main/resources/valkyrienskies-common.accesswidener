@@ -16,3 +16,5 @@ accessible  class   net/minecraft/client/renderer/chunk/ChunkRenderDispatcher$Re
 accessible  class   net/minecraft/client/renderer/chunk/ChunkRenderDispatcher$ChunkTaskResult
 
 accessible  class   net/minecraft/client/renderer/LevelRenderer$RenderChunkStorage
+
+accessible field    net/minecraft/client/renderer/LevelRenderer$RenderChunkInfo  chunk    Lnet/minecraft/client/renderer/chunk/ChunkRenderDispatcher$RenderChunk;

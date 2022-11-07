@@ -38,10 +38,10 @@ import org.valkyrienskies.mod.mixinducks.client.world.ClientChunkCacheDuck;
 public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
 
     @Shadow
-    private volatile ClientChunkCache.Storage storage;
+    volatile ClientChunkCache.Storage storage;
     @Shadow
     @Final
-    private ClientLevel level;
+    ClientLevel level;
 
     public LongObjectMap<LevelChunk> vs_getShipChunks() {
         return shipChunks;

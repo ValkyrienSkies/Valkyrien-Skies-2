@@ -1,6 +1,5 @@
 //package org.valkyrienskies.mod.mixin.mod_compat.sodium;
 //
-//import com.mojang.blaze3d.vertex.PoseStack;
 //import it.unimi.dsi.fastutil.objects.ObjectList;
 //import java.util.WeakHashMap;
 //import kotlin.Unit;
@@ -8,18 +7,19 @@
 //import me.jellysquid.mods.sodium.client.gl.device.RenderDevice;
 //import me.jellysquid.mods.sodium.client.render.chunk.ChunkCameraContext;
 //import me.jellysquid.mods.sodium.client.render.chunk.ChunkGraphicsState;
-//import me.jellysquid.mods.sodium.client.render.chunk.ChunkRenderBackend;
-//import me.jellysquid.mods.sodium.client.render.chunk.ChunkRenderColumn;
-//import me.jellysquid.mods.sodium.client.render.chunk.ChunkRenderContainer;
-//import me.jellysquid.mods.sodium.client.render.chunk.ChunkRenderManager;
+//import me.jellysquid.mods.sodium.client.render.chunk.ChunkRenderList;
+//import me.jellysquid.mods.sodium.client.render.chunk.ChunkRenderMatrices;
+//import me.jellysquid.mods.sodium.client.render.chunk.RenderSection;
+//import me.jellysquid.mods.sodium.client.render.chunk.RenderSectionManager;
 //import me.jellysquid.mods.sodium.client.render.chunk.cull.ChunkFaceFlags;
 //import me.jellysquid.mods.sodium.client.render.chunk.data.ChunkRenderBounds;
-//import me.jellysquid.mods.sodium.client.render.chunk.lists.ChunkRenderList;
+//import me.jellysquid.mods.sodium.client.render.chunk.graph.ChunkGraphIterationQueue;
 //import me.jellysquid.mods.sodium.client.render.chunk.lists.ChunkRenderListIterator;
 //import me.jellysquid.mods.sodium.client.render.chunk.passes.BlockRenderPass;
-//import me.jellysquid.mods.sodium.client.util.math.FrustumExtended;
+//import me.jellysquid.mods.sodium.client.util.frustum.Frustum;
 //import net.minecraft.client.Camera;
 //import net.minecraft.client.Minecraft;
+//import net.minecraft.core.Direction;
 //import org.joml.Vector3d;
 //import org.joml.Vector3dc;
 //import org.spongepowered.asm.mixin.Final;
@@ -36,13 +36,13 @@
 //import org.valkyrienskies.mod.common.VSGameUtilsKt;
 //import org.valkyrienskies.mod.compat.IrisCompat;
 //
-//@Mixin(value = ChunkRenderManager.class, remap = false)
+//@Mixin(value = RenderSectionManager.class, remap = false)
 //public abstract class MixinChunkRenderManager<T extends ChunkGraphicsState> {
 //
-//    private final WeakHashMap<ShipObjectClient, ChunkRenderList<T>[]> shipRenderLists = new WeakHashMap<>();
+//    private final WeakHashMap<ShipObjectClient, ChunkRenderList[]> shipRenderLists = new WeakHashMap<>();
 //    @Shadow
 //    @Final
-//    private ObjectList<ChunkRenderContainer<T>> tickableChunks;
+//    private ObjectList<RenderSection> tickableChunks;
 //    @Shadow
 //    private int visibleChunkCount;
 //    @Shadow
@@ -50,16 +50,16 @@
 //    private ChunkRenderList<T>[] chunkRenderLists;
 //    @Shadow
 //    @Final
-//    private ChunkRenderBackend<T> backend;
+//    private RenderSection backend;
 //
 //    @Shadow
-//    protected abstract ChunkRenderColumn<T> getColumn(int x, int z);
+//    protected abstract RenderSection getRenderSection(int x, int y, int z);
 //
 //    @Shadow
-//    protected abstract void addChunk(ChunkRenderContainer<T> render);
+//    protected abstract void addChunkToVisible(RenderSection render);
 //
 //    @Shadow
-//    protected abstract void addEntitiesToRenderLists(ChunkRenderContainer<T> render);
+//    protected abstract void addEntitiesToRenderLists(RenderSection render);
 //
 //    @Shadow
 //    @Final
@@ -74,19 +74,27 @@
 //    @Shadow
 //    private float cameraZ;
 //
+//    @Shadow
+//    @Final
+//    private ChunkGraphIterationQueue iterationQueue;
+//
+//    @Shadow
+//    protected abstract void addVisible(RenderSection render, Direction flow);
+//
 //    @Redirect(
 //        at = @At(
 //            value = "INVOKE",
-//            target = "Lme/jellysquid/mods/sodium/client/render/chunk/ChunkRenderManager;addChunk(Lme/jellysquid/mods/sodium/client/render/chunk/ChunkRenderContainer;)V"
+//            target = "Lme/jellysquid/mods/sodium/client/render/chunk/RenderSectionManager;addVisible(Lme/jellysquid/mods/sodium/client/render/chunk/RenderSection;Lnet/minecraft/core/Direction;)V"
 //        ),
-//        method = "iterateChunks"
+//        method = "bfsEnqueue"
 //    )
-//    private void redirectIterateChunks(final ChunkRenderManager<T> instance, final ChunkRenderContainer<T> render) {
+//    private void redirectIterateChunks(final RenderSectionManager instance, final RenderSection render,
+//        final Direction flow) {
 //        if (ChunkAllocator.isChunkInShipyard(render.getChunkX(), render.getChunkZ())) {
 //            return;
 //        }
 //
-//        addChunk(render);
+//        addVisible(render, flow);
 //    }
 //
 //    /**
@@ -94,15 +102,14 @@
 //     */
 //    @Inject(
 //        at = @At(
-//            value = "INVOKE",
-//            target = "Lme/jellysquid/mods/sodium/client/render/chunk/lists/ChunkRenderList;reset()V"
+//            value = "TAIL"
 //        ),
-//        method = "reset"
+//        method = "resetLists"
 //    )
 //    private void injectReset(final CallbackInfo ci) {
 //        shipRenderLists.forEach((ship, shipRenderLists) -> {
-//            for (final ChunkRenderList<T> list : shipRenderLists) {
-//                list.reset();
+//            for (final ChunkRenderList list : shipRenderLists) {
+//                list.clear();
 //            }
 //        });
 //    }
@@ -115,17 +122,17 @@
 //        at = @At("TAIL"),
 //        method = "iterateChunks"
 //    )
-//    private void afterIterateChunks(final Camera camera, final FrustumExtended frustum, final int frame,
+//    private void afterIterateChunks(final Camera camera, final Frustum frustum, final int frame,
 //        final boolean spectator,
 //        final CallbackInfo ci) {
-//
+//        final ChunkGraphIterationQueue queue = this.iterationQueue;
 //        for (final ShipObjectClient ship : VSGameUtilsKt.getShipObjectWorld(Minecraft.getInstance()).getLoadedShips()) {
 //            ship.getShipActiveChunksSet().iterateChunkPos((x, z) -> {
-//                final ChunkRenderColumn<T> column = this.getColumn(x, z);
+//                final RenderSection column = this.getRenderSection(x, 0, z);
 //                if (column != null) {
 //                    for (int y = 0; y < 15; y++) {
-//                        if (column.getRender(y) != null) {
-//                            this.addChunk(column.getRender(y));
+//                        if (queue.getRender(y) != null) {
+//                            this.addChunkToVisible(queue.getRender(y));
 //                        }
 //                    }
 //                }
@@ -143,7 +150,7 @@
 //        method = "renderLayer",
 //        cancellable = true
 //    )
-//    private void beforeRenderLayer(final PoseStack matrixStack, final BlockRenderPass pass, final double camX,
+//    private void beforeRenderLayer(final ChunkRenderMatrices matrixStack, final BlockRenderPass pass, final double camX,
 //        final double camY, final double camZ, final CallbackInfo ci) {
 //
 //        ci.cancel();
@@ -183,12 +190,12 @@
 //    @Inject(
 //        at = @At(
 //            value = "FIELD",
-//            target = "Lme/jellysquid/mods/sodium/client/render/chunk/ChunkRenderManager;useFogCulling:Z"
+//            target = "Lme/jellysquid/mods/sodium/client/render/chunk/RenderSectionManager;useFogCulling:Z"
 //        ),
-//        method = "addChunk",
+//        method = "addVisible",
 //        cancellable = true
 //    )
-//    private void beforeAddChunk(final ChunkRenderContainer<T> render, final CallbackInfo ci) {
+//    private void beforeAddChunk(final RenderSection render, final Direction flow, final CallbackInfo ci) {
 //        final ShipObjectClient ship = VSGameUtilsKt.getShipObjectManagingPos(
 //            Minecraft.getInstance().level, render.getChunkX(), render.getChunkZ());
 //
@@ -200,7 +207,7 @@
 //        if (ship != null) {
 //            ci.cancel();
 //            if (!render.isEmpty()) {
-//                final ChunkRenderList<T>[] shipRenderList =
+//                final ChunkRenderList[] shipRenderList =
 //                    shipRenderLists.computeIfAbsent(ship, k -> createShipRenderLists());
 //                final Vector3d camInShip = ship.getRenderTransform()
 //                    .getWorldToShipMatrix().transformPosition(new Vector3d(cameraX, cameraY, cameraZ));
@@ -214,7 +221,7 @@
 //    }
 //
 //    @Unique
-//    private int computeVisibleFaces(final ChunkRenderContainer<T> render, final Vector3dc cam) {
+//    private int computeVisibleFaces(final RenderSection render, final Vector3dc cam) {
 //        if (!this.useBlockFaceCulling) {
 //            return ChunkFaceFlags.ALL;
 //        } else {
@@ -248,8 +255,8 @@
 //        }
 //    }
 //
-//    private void addChunkToSpecificRenderList(final ChunkRenderContainer<T> render,
-//        final ChunkRenderList<T>[] renderList, final Vector3dc camInShip) {
+//    private void addChunkToSpecificRenderList(final RenderSection render,
+//        final ChunkRenderList[] renderList, final Vector3dc camInShip) {
 //        final int visibleFaces = this.computeVisibleFaces(render, camInShip) & render.getFacesWithData();
 //        if (visibleFaces != 0) {
 //            boolean added = false;
@@ -279,11 +286,11 @@
 //
 //    @SuppressWarnings("unchecked")
 //    @Unique
-//    private ChunkRenderList<T>[] createShipRenderLists() {
-//        final ChunkRenderList<T>[] renderLists = new ChunkRenderList[BlockRenderPass.COUNT];
+//    private ChunkRenderList[] createShipRenderLists() {
+//        final ChunkRenderList[] renderLists = new ChunkRenderList[BlockRenderPass.COUNT];
 //
 //        for (int i = 0; i < renderLists.length; ++i) {
-//            renderLists[i] = new ChunkRenderList<>();
+//            renderLists[i] = new ChunkRenderList();
 //        }
 //
 //        return renderLists;

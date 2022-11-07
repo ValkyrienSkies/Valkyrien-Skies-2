@@ -22,7 +22,7 @@ public abstract class MixinChunkMap {
 
     @Shadow
     @Final
-    private ServerLevel level;
+    ServerLevel level;
 
     @Inject(method = "euclideanDistanceSquared", at = @At("HEAD"), cancellable = true)
     private static void preDistanceToSqr(final ChunkPos chunkPos, final Entity entity,

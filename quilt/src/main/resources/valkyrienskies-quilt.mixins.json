@@ -1,0 +1,17 @@
+{
+  "required": true,
+  "package": "org.valkyrienskies.mod.quilt.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "plugin": "org.valkyrienskies.mod.quilt.mixin.ValkyrienFabricMixinConfigPlugin",
+  "mixins": [
+    "feature.explosions.ClipContextMixin",
+    "world.level.block.FireMixin"
+  ],
+  "client": [
+    "client.main.MixinMain"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "minVersion": "0.8"
+}
