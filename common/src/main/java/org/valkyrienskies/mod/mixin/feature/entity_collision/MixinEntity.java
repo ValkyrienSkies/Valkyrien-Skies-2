@@ -94,7 +94,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     )
     private void redirectSetVelocity(final MoverType moverType, final Vec3 movement, final CallbackInfo callbackInfo,
         final Vec3 movementAdjustedForCollisions,
-        final boolean d, final boolean bl, final BlockPos blockPos,
+        final double lengthSqr, final boolean d, final boolean bl, final BlockPos blockPos,
         final BlockState blockState) {
 
         // Compute the collision response horizontal
