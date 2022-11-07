@@ -62,15 +62,15 @@ public abstract class MixinMinecraft
     @Redirect(
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/client/multiplayer/MultiPlayerGameMode;useItemOn(Lnet/minecraft/client/player/LocalPlayer;Lnet/minecraft/client/multiplayer/ClientLevel;Lnet/minecraft/world/InteractionHand;Lnet/minecraft/world/phys/BlockHitResult;)Lnet/minecraft/world/InteractionResult;"
+            target = "Lnet/minecraft/client/multiplayer/MultiPlayerGameMode;useItemOn(Lnet/minecraft/client/player/LocalPlayer;Lnet/minecraft/world/InteractionHand;Lnet/minecraft/world/phys/BlockHitResult;)Lnet/minecraft/world/InteractionResult;"
         ),
         method = "startUseItem"
     )
     private InteractionResult useOriginalCrosshairForBlockPlacement(final MultiPlayerGameMode instance,
-        final LocalPlayer localPlayer, final ClientLevel clientLevel, final InteractionHand interactionHand,
+        final LocalPlayer localPlayer, final InteractionHand interactionHand,
         final BlockHitResult blockHitResult) {
 
-        return instance.useItemOn(localPlayer, clientLevel, interactionHand,
+        return instance.useItemOn(localPlayer, interactionHand,
             (BlockHitResult) this.originalCrosshairTarget);
     }
 

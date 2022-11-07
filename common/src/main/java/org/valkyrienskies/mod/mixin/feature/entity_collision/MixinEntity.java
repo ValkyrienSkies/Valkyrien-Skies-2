@@ -1,9 +1,9 @@
 package org.valkyrienskies.mod.mixin.feature.entity_collision;
 
-import java.util.Random;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.MoverType;
@@ -245,7 +245,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
     @Shadow
     @Final
-    protected Random random;
+    protected RandomSource random;
 
     @Shadow
     private EntityDimensions dimensions;

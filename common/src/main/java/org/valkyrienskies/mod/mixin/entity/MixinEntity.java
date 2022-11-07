@@ -2,12 +2,12 @@ package org.valkyrienskies.mod.mixin.entity;
 
 import static org.valkyrienskies.mod.common.util.VectorConversionsMCKt.toJOML;
 
-import java.util.Random;
 import net.minecraft.CrashReport;
 import net.minecraft.CrashReportCategory;
 import net.minecraft.ReportedException;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.level.ClipContext;
@@ -212,7 +212,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
     @Shadow
     @Final
-    protected Random random;
+    protected RandomSource random;
 
     @Shadow
     public abstract float getEyeHeight();

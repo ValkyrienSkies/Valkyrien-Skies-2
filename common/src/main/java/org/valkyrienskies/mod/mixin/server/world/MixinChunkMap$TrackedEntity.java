@@ -1,7 +1,6 @@
 package org.valkyrienskies.mod.mixin.server.world;
 
 import net.minecraft.server.level.ChunkMap;
-import net.minecraft.server.level.ServerEntity;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
@@ -28,15 +27,15 @@ public class MixinChunkMap$TrackedEntity {
 
     // Changes entity position for tracking into world space if needed
     @Redirect(method = "updatePlayer", at = @At(value = "INVOKE",
-        target = "Lnet/minecraft/server/level/ServerEntity;sentPos()Lnet/minecraft/world/phys/Vec3;"))
-    Vec3 includeShips(final ServerEntity instance) {
-        final Vector3d pos = VectorConversionsMCKt.toJOML(instance.sentPos());
+        target = "Lnet/minecraft/world/entity/Entity;position()Lnet/minecraft/world/phys/Vec3;"))
+    Vec3 includeShips(final Entity instance) {
+        final Vector3d pos = VectorConversionsMCKt.toJOML(instance.position());
         final Ship ship = inCallShip = VSGameUtilsKt.getShipObjectManagingPos(this.entity.level, pos);
         if (ship != null) {
             return VectorConversionsMCKt.toMinecraft(ship.getShipTransform()
                 .getShipToWorldMatrix().transformPosition(pos));
         } else {
-            return instance.sentPos();
+            return instance.position();
         }
     }
 

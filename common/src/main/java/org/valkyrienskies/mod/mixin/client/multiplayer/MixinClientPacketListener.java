@@ -4,7 +4,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.ClientPacketListener;
-import net.minecraft.network.chat.TextComponent;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
 import net.minecraft.network.protocol.game.ClientboundLoginPacket;
 import net.minecraft.world.entity.Entity;
@@ -25,10 +25,9 @@ public class MixinClientPacketListener {
 
     @Inject(method = "handleLogin", at = @At("TAIL"))
     public void afterLogin(final ClientboundLoginPacket packet, final CallbackInfo ci) {
-        Minecraft.getInstance().player.sendMessage(
-            new TextComponent("You are using an ALPHA version of Valkyrien Skies 2, use at your own risk!").withStyle(
-                ChatFormatting.RED, ChatFormatting.BOLD),
-            null);
+        Minecraft.getInstance().player.sendSystemMessage(
+            Component.literal("You are using an ALPHA version of Valkyrien Skies 2, use at your own risk!").withStyle(
+                ChatFormatting.RED, ChatFormatting.BOLD));
     }
 
     @Inject(
@@ -58,10 +57,10 @@ public class MixinClientPacketListener {
             final double f = packet.getZ();
             final Entity entity = ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE.create(level);
             final int i = packet.getId();
-            entity.setPacketCoordinates(d, e, f);
+            entity.syncPacketPositionCodec(d, e, f);
             entity.moveTo(d, e, f);
-            entity.setXRot((float) (packet.getxRot() * 360) / 256.0f);
-            entity.setYRot((float) (packet.getyRot() * 360) / 256.0f);
+            entity.setXRot((packet.getXRot() * 360) / 256.0f);
+            entity.setYRot((packet.getYRot() * 360) / 256.0f);
             entity.setId(i);
             entity.setUUID(packet.getUUID());
             this.level.putNonPlayerEntity(i, entity);

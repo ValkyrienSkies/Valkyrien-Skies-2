@@ -244,7 +244,6 @@ public class MixinLevelRendererVanilla {
         RenderSystem.setupShaderLights(shaderInstance);
         shaderInstance.apply();
         final Uniform uniform = shaderInstance.CHUNK_OFFSET;
-        boolean bl2 = false;
         while (bl ? objectListIterator.hasNext() : objectListIterator.hasPrevious()) {
             final RenderChunkInfo renderChunkInfo2 =
                 bl ? (RenderChunkInfo) objectListIterator.next() : (RenderChunkInfo) objectListIterator.previous();
@@ -262,18 +261,14 @@ public class MixinLevelRendererVanilla {
                     (float) ((double) blockPos.getZ() - center.z()));
                 uniform.upload();
             }
-            vertexBuffer.drawChunkLayer();
-            bl2 = true;
+            vertexBuffer.bind();
+            vertexBuffer.draw();
         }
         if (uniform != null) {
             uniform.set(Vector3f.ZERO);
         }
         shaderInstance.clear();
-        if (bl2) {
-            vertexFormat.clearBufferState();
-        }
         VertexBuffer.unbind();
-        VertexBuffer.unbindVertexArray();
         this.minecraft.getProfiler().pop();
         renderType.clearRenderState();
     }

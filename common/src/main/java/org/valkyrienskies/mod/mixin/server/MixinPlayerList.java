@@ -3,7 +3,7 @@ package org.valkyrienskies.mod.mixin.server;
 import java.util.List;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.Connection;
-import net.minecraft.network.chat.TextComponent;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
@@ -47,11 +47,11 @@ public abstract class MixinPlayerList {
     private void afterPlayerJoin(final Connection netManager, final ServerPlayer player, final CallbackInfo ci) {
         VSCoreHooksKt.getCoreHooks().afterClientJoinServer(VSGameUtilsKt.getPlayerWrapper(player));
         if (!KrunchSupport.INSTANCE.isKrunchSupported()) {
-            player.sendMessage(
-                new TextComponent(
-                    "VS 2 physics are disabled on this server, because Krunch is not supported on this server! Currently only x86-64 Windows and Linux platforms are supported.").withStyle(
-                    ChatFormatting.RED, ChatFormatting.BOLD),
-                null);
+            player.sendSystemMessage(
+                Component.literal(
+                        "VS 2 physics are disabled on this server, because Krunch is not supported on this server! Currently only x86-64 Windows and Linux platforms are supported.")
+                    .withStyle(
+                        ChatFormatting.RED, ChatFormatting.BOLD));
         }
     }
 

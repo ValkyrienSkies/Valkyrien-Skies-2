@@ -1,6 +1,5 @@
 package org.valkyrienskies.mod.mixin.client.world;
 
-import java.util.Random;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
@@ -11,6 +10,7 @@ import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
@@ -41,7 +41,7 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 @Mixin(ClientLevel.class)
 public abstract class MixinClientLevel implements IShipObjectWorldClientProvider {
     @Unique
-    private final Random vsRandom = new Random();
+    private final RandomSource vsRandom = RandomSource.create();
 
     @Shadow
     @Final
@@ -187,17 +187,18 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
             value = "NEW",
             target = "net/minecraft/client/resources/sounds/SimpleSoundInstance"
         ),
-        method = "playLocalSound(DDDLnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FFZ)V"
+        method = "playSound(DDDLnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FFZJ)V"
     )
     private SimpleSoundInstance redirectNewSoundInstance(final SoundEvent soundEvent, final SoundSource soundSource,
-        final float volume, final float pitch, final double x, final double y, final double z) {
+        final float volume, final float pitch, final RandomSource randomSource, final double x, final double y,
+        final double z) {
 
         final Ship ship = VSGameUtilsKt.getShipManagingPos(ClientLevel.class.cast(this), x, y, z);
         if (ship != null) {
-            return new SimpleSoundInstanceOnShip(soundEvent, soundSource, volume, pitch, x, y, z,
+            return new SimpleSoundInstanceOnShip(soundEvent, soundSource, volume, pitch, randomSource, x, y, z,
                 ship);
         }
 
-        return new SimpleSoundInstance(soundEvent, soundSource, volume, pitch, x, y, z);
+        return new SimpleSoundInstance(soundEvent, soundSource, volume, pitch, randomSource, x, y, z);
     }
 }

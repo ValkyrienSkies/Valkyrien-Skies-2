@@ -1,8 +1,7 @@
 package org.valkyrienskies.mod.common.item
 
-import net.minecraft.Util
 import net.minecraft.core.Direction.NORTH
-import net.minecraft.network.chat.TextComponent
+import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.item.Item
@@ -29,7 +28,7 @@ class ShipCreatorItem(properties: Properties, private val scale: Double) : Item(
 
         if (!level.isClientSide) {
             if (ChunkAllocator.isChunkInShipyard(blockPos.x shr 4, blockPos.z shr 4)) {
-                ctx.player?.sendMessage(TextComponent("That chunk is already part of a ship!"), Util.NIL_UUID)
+                ctx.player?.sendSystemMessage(Component.literal("That chunk is already part of a ship!"))
             } else if (!blockState.isAir) {
                 // Make a ship
                 val dimensionId = level.dimensionId
@@ -40,7 +39,7 @@ class ShipCreatorItem(properties: Properties, private val scale: Double) : Item(
                 // Move the block from the world to a ship
                 level.relocateBlock(blockPos, centerPos, shipData, NORTH)
 
-                ctx.player?.sendMessage(TextComponent("SHIPIFIED!"), Util.NIL_UUID)
+                ctx.player?.sendSystemMessage(Component.literal("SHIPIFIED!"))
             }
         }
 

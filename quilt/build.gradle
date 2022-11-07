@@ -48,13 +48,13 @@ dependencies {
     common(project(path: ":common", configuration: "namedElements")) { transitive false }
     shadowCommon(project(path: ":common", configuration: "transformProductionQuilt")) { transitive false }
 
-    modImplementation("com.terraformersmc:modmenu:3.2.3") {
+    modImplementation("com.terraformersmc:modmenu:${rootProject.modmenu_version}") {
         exclude group: "net.fabricmc"
         exclude group: "net.fabricmc.fabric-api"
     }
 
     // Depend on the fabric API
-    modImplementation("me.shedaniel.cloth:cloth-config-fabric:6.3.81") {
+    modImplementation("me.shedaniel.cloth:cloth-config-fabric:${rootProject.cloth_config_version}") {
         exclude group: "net.fabricmc"
         exclude group: "net.fabricmc.fabric-api"
     }

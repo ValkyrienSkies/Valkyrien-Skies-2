@@ -27,7 +27,8 @@ public class MixinSimpleSoundInstance {
         final Ship ship = VSGameUtilsKt.getShipManagingPos(Minecraft.getInstance().level, x, y, z);
         if (ship != null) {
             cir.setReturnValue(new SimpleSoundInstanceOnShip(
-                sound, SoundSource.RECORDS, 4.0F, 1.0F, false, 0, SoundInstance.Attenuation.LINEAR, x, y, z, ship));
+                sound, SoundSource.RECORDS, 4.0F, 1.0F, SoundInstance.createUnseededRandom(), false, 0,
+                SoundInstance.Attenuation.LINEAR, x, y, z, ship));
         }
     }
 
