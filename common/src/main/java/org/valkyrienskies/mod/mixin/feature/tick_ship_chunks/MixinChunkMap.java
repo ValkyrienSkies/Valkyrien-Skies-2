@@ -27,10 +27,13 @@ public abstract class MixinChunkMap {
     @Inject(method = "euclideanDistanceSquared", at = @At("HEAD"), cancellable = true)
     private static void preDistanceToSqr(final ChunkPos chunkPos, final Entity entity,
         final CallbackInfoReturnable<Double> cir) {
+        final double d = chunkPos.x * 16 + 8;
+        final double e = chunkPos.z * 16 + 8;
         final double retValue =
-            VSGameUtilsKt.squaredDistanceBetweenInclShips(entity.level, entity.getX(), 0, entity.getZ(), chunkPos.x,
+            VSGameUtilsKt.squaredDistanceBetweenInclShips(entity.level, entity.getX(), 0, entity.getZ(), d,
                 0,
-                chunkPos.z);
+                e);
+
         cir.setReturnValue(retValue);
     }
 

@@ -241,10 +241,17 @@ public abstract class MixinGameRenderer {
         if (playerShipMountedTo == null) {
             return;
         }
+        final Entity playerVehicle = player.getVehicle();
+        if (playerVehicle == null) {
+            return;
+        }
 
         // Update [matrixStack] to mount the camera to the ship
-        final Vector3dc inShipPos = VSGameUtilsKt.getPassengerPos(player.getVehicle(), partialTicks);
+        final Vector3dc inShipPos = VSGameUtilsKt.getPassengerPos(playerVehicle, partialTicks);
         final Camera camera = this.mainCamera;
+        if (camera == null) {
+            return;
+        }
 
         ((IVSCamera) camera).setupWithShipMounted(
             this.minecraft.level,
