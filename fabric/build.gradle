@@ -25,7 +25,7 @@ loom {
 }
 
 dependencies {
-    shadowCommon(annotationProcessor(implementation("com.github.LlamaLad7:MixinExtras:0.1.1")))
+    include(annotationProcessor(implementation("com.github.LlamaLad7:MixinExtras:0.1.1")))
 
     modImplementation("net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}")
 
