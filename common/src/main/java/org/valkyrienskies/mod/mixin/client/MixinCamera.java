@@ -55,10 +55,6 @@ public abstract class MixinCamera implements IVSCamera {
     private boolean detached;
     @Shadow
     private boolean mirror;
-    @Shadow
-    private float eyeHeight;
-    @Shadow
-    private float eyeHeightOld;
     @Unique
     private boolean cameraSeated = false;
 
