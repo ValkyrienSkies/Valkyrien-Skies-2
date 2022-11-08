@@ -16,9 +16,42 @@ import kotlin.math.atan2
 import kotlin.math.sqrt
 
 object WorldEntityHandler : VSEntityHandler {
-    override fun freshEntityInShipyard(entity: Entity, ship: Ship, position: Vector3dc) {
+    override fun freshEntityInShipyard(entity: Entity, ship: Ship, position: Vector3dc) =
+        moveEntityFromShipyardToWorld(entity, ship, position)
+
+    override fun <T : Entity> applyRenderTransform(
+        ship: ClientShip, entity: T, entityRenderer: EntityRenderer<T>,
+        x: Double, y: Double, z: Double,
+        rotationYaw: Float, partialTicks: Float,
+        matrixStack: PoseStack, buffer: MultiBufferSource, packedLight: Int
+    ) {
+        val offset = entityRenderer.getRenderOffset(entity, partialTicks)
+        matrixStack.translate(x + offset.x, y + offset.y, z + offset.z)
+    }
+
+    override fun positionSetFromVehicle(self: Entity, vehicle: Entity, x: Double, y: Double, z: Double) {
+        val pos = Vector3d(x, y, z)
+        val ship = self.level.getShipObjectManagingPos(pos)
+
+        val worldSet = if (ship != null)
+            ship.shipToWorld.transformPosition(pos)
+        else
+            pos
+
+        self.setPos(worldSet.x, worldSet.y, worldSet.z)
+    }
+
+    override fun applyRenderOnMountedEntity(
+        ship: ClientShip, self: Entity, passenger: Entity, partialTicks: Float, matrixStack: PoseStack
+    ) {
+    }
+
+    override fun onEntityMove(self: Entity, ship: Ship, position: Vector3dc) =
+        moveEntityFromShipyardToWorld(self, ship, position)
+
+    fun moveEntityFromShipyardToWorld(entity: Entity, ship: Ship, position: Vector3dc) {
         val newPos = ship.shipToWorld.transformPosition(Vector3d(position))
-        entity.teleportTo(newPos.x, newPos.y, newPos.z)
+        entity.setPos(newPos.x, newPos.y, newPos.z)
         entity.xo = entity.x
         entity.yo = entity.y
         entity.zo = entity.z
@@ -55,32 +88,5 @@ object WorldEntityHandler : VSEntityHandler {
             entity.yPower = powerJank.y
             entity.zPower = powerJank.z
         }
-    }
-
-    override fun <T : Entity> applyRenderTransform(
-        ship: ClientShip, entity: T, entityRenderer: EntityRenderer<T>,
-        x: Double, y: Double, z: Double,
-        rotationYaw: Float, partialTicks: Float,
-        matrixStack: PoseStack, buffer: MultiBufferSource, packedLight: Int
-    ) {
-        val offset = entityRenderer.getRenderOffset(entity, partialTicks)
-        matrixStack.translate(x + offset.x, y + offset.y, z + offset.z)
-    }
-
-    override fun positionSetFromVehicle(self: Entity, vehicle: Entity, x: Double, y: Double, z: Double) {
-        val pos = Vector3d(x, y, z)
-        val ship = self.level.getShipObjectManagingPos(pos)
-
-        val worldSet = if (ship != null)
-            ship.shipToWorld.transformPosition(pos)
-        else
-            pos
-
-        self.setPos(worldSet.x, worldSet.y, worldSet.z)
-    }
-
-    override fun applyRenderOnMountedEntity(
-        ship: ClientShip, self: Entity, passenger: Entity, partialTicks: Float, matrixStack: PoseStack
-    ) {
     }
 }

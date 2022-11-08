@@ -35,7 +35,6 @@ import org.valkyrienskies.core.game.ships.ShipObject;
 import org.valkyrienskies.core.game.ships.ShipObjectClient;
 import org.valkyrienskies.core.game.ships.ShipTransform;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.entity.handling.VSEntityManager;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
@@ -157,18 +156,6 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         cir.setReturnValue(newViewVector);
     }
 
-    /**
-     * @author ewoudje
-     * @reason use vs2 handler to handle this method
-     */
-    @Redirect(method = "positionRider(Lnet/minecraft/world/entity/Entity;)V", at = @At(value = "INVOKE",
-        target = "Lnet/minecraft/world/entity/Entity;positionRider(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/entity/Entity$MoveFunction;)V"))
-    public void positionRider(final Entity instance, final Entity passengerI, final Entity.MoveFunction callback) {
-        this.positionRider(passengerI,
-            (passenger, x, y, z) -> VSEntityManager.INSTANCE.getHandler(passenger.getType())
-                .positionSetFromVehicle(passenger, Entity.class.cast(this), x, y, z));
-    }
-
     // region shadow functions and fields
     @Shadow
     public Level level;
@@ -181,10 +168,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
     @Shadow
     protected abstract Vec3 collide(Vec3 vec3d);
-
-    @Shadow
-    protected abstract void positionRider(Entity passenger, Entity.MoveFunction callback);
-
+    
     @Shadow
     protected abstract void onInsideBlock(BlockState state);
 
