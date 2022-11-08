@@ -4,7 +4,6 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.item.Item
 import net.minecraft.world.level.block.Block
-import org.slf4j.LoggerFactory
 import org.valkyrienskies.core.api.setAttachment
 import org.valkyrienskies.core.config.VSConfigClass
 import org.valkyrienskies.core.config.VSCoreConfig

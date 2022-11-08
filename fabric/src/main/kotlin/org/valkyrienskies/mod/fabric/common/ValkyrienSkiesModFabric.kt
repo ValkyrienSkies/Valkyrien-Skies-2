@@ -38,6 +38,7 @@ import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executor
 
 class ValkyrienSkiesModFabric : ModInitializer {
+
     companion object {
         init {
             CoreHooks = FabricHooksImpl
