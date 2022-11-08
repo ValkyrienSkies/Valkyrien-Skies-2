@@ -89,8 +89,8 @@ dependencies {
 
     // CC Tweaked
 
-    compileOnly fg.deobf("org.squiddev:cc-tweaked-${minecraft_version}:${cct_version}:api")
-    runtimeOnly fg.deobf("org.squiddev:cc-tweaked-${minecraft_version}:${cct_version}")
+    compileOnly ("org.squiddev:cc-tweaked-${minecraft_version}:${cct_version}:api")
+    runtimeOnly ("org.squiddev:cc-tweaked-${minecraft_version}:${cct_version}")
 }
 
 processResources {
