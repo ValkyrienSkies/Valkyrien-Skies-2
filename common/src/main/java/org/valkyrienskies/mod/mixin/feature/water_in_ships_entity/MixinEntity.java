@@ -73,7 +73,6 @@ public abstract class MixinEntity {
             this.setPos(x, y, z);
             cir.setReturnValue(this.updateFluidHeightAndDoFluidPushing(fluidTag, motionScale));
             this.setPos(origX, origY, origZ);
-
         });
 
         isModifyingWaterState = false;
