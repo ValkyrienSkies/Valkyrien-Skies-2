@@ -13,6 +13,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.config.VSGameConfig;
 
 @Mixin(WalkNodeEvaluator.class)
 public class WalkNodeEvaluatorMixin {
@@ -20,6 +21,8 @@ public class WalkNodeEvaluatorMixin {
     @Unique
     private static boolean isModifyingPathType = false;
 
+    //Several node evaluators use getBlockPathTypeRaw, including WalkNodeEvaluator's specialized getBlockPathTypeStatic.
+    //Mojang should really put this in the base NodeEvaluator.
     @Shadow()
     protected static BlockPathTypes getBlockPathTypeRaw(final BlockGetter blockGetter, final BlockPos blockPos) {
         return null;
@@ -28,7 +31,7 @@ public class WalkNodeEvaluatorMixin {
     @Inject(method = "getBlockPathTypeRaw", at = @At("RETURN"), cancellable = true)
     private static void getBlockPathTypeForShips(final BlockGetter blockGetter, final BlockPos blockPos,
         final CallbackInfoReturnable<BlockPathTypes> cir) {
-        if (isModifyingPathType) {
+        if (isModifyingPathType || !VSGameConfig.SERVER.getAiOnShips()) {
             return;
         }
 
@@ -45,6 +48,7 @@ public class WalkNodeEvaluatorMixin {
                     final BlockPos groundPos = new BlockPos(x, y, z);
                     BlockPathTypes pathType =
                         getBlockPathTypeRaw(((PathNavigationRegionAccessor) blockGetter).getLevel(), groundPos);
+                    //Check block path types all around target for walkable space. Not accurate, but helps with pathfinding on ships.
                     for (final Direction dir : Direction.values()) {
                         if (pathType == BlockPathTypes.OPEN || pathType == BlockPathTypes.BLOCKED) {
                             pathType = getBlockPathTypeRaw(((PathNavigationRegionAccessor) blockGetter).getLevel(),

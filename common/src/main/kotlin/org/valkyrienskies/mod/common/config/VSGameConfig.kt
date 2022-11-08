@@ -52,6 +52,11 @@ object VSGameConfig {
         @JsonSchema(
             description = "Allow natural mob spawning on ships"
         )
-        var allowMobSpawns = false
+        var allowMobSpawns = true
+
+        @JsonSchema(
+            description = "Allow rudimentary pathfinding on ships"
+        )
+        var aiOnShips = true
     }
 }
