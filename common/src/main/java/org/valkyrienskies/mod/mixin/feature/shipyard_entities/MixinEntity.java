@@ -30,6 +30,7 @@ public abstract class MixinEntity {
      * @author ewoudje
      * @reason use vs2 entity handler to handle this method
      */
+    /*
     @Redirect(method = "setPos", at = @At(value = "INVOKE",
         target = "Lnet/minecraft/world/entity/Entity;setPosRaw(DDD)V"))
     public void setPosHandling1(final Entity instance, final double x, final double y, final double z) {
@@ -42,6 +43,7 @@ public abstract class MixinEntity {
             instance.setPosRaw(x, y, z);
         }
     }
+     */
 
     /**
      * @author ewoudje
