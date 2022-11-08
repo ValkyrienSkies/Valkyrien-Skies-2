@@ -16,6 +16,7 @@
     "client.renderer.MixinLevelRenderer",
     "entity.MixinEntity",
     "feature.ai.node_evaluator.PathNavigationRegionAccessor",
+    "feature.ai.node_evaluator.SwimNodeEvaluatorMixin",
     "feature.ai.node_evaluator.WalkNodeEvaluatorMixin",
     "feature.bed_fix.MixinServerPlayer",
     "feature.block_placement_orientation.MixinBlockItem",
