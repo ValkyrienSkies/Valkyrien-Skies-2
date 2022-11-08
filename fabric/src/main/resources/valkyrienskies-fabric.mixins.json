@@ -5,8 +5,9 @@
   "plugin": "org.valkyrienskies.mod.fabric.mixin.ValkyrienFabricMixinConfigPlugin",
   "mixins": [
     "feature.explosions.ClipContextMixin",
-    "world.level.block.FireMixin",
-    "mod_compat.cc_restitched.MixinWirelessNetwork"
+    "mod_compat.cc_restitched.MixinSpeakerPeripheral",
+    "mod_compat.cc_restitched.MixinWirelessNetwork",
+    "world.level.block.FireMixin"
   ],
   "client": [
     "ExampleFabricMixin",
