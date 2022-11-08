@@ -23,6 +23,8 @@ import org.valkyrienskies.core.game.ChunkAllocator;
 import org.valkyrienskies.core.game.ships.ShipObject;
 import org.valkyrienskies.core.hooks.VSCoreHooksKt;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.entity.handling.VSEntityManager;
+import org.valkyrienskies.mod.common.util.MinecraftPlayer;
 import org.valkyrienskies.mod.util.KrunchSupport;
 
 @Mixin(PlayerList.class)
@@ -45,7 +47,8 @@ public abstract class MixinPlayerList {
         at = @At("TAIL")
     )
     private void afterPlayerJoin(final Connection netManager, final ServerPlayer player, final CallbackInfo ci) {
-        VSCoreHooksKt.getCoreHooks().afterClientJoinServer(VSGameUtilsKt.getPlayerWrapper(player));
+        final MinecraftPlayer wrapped = VSGameUtilsKt.getPlayerWrapper(player);
+        VSCoreHooksKt.getCoreHooks().afterClientJoinServer(wrapped);
         if (!KrunchSupport.INSTANCE.isKrunchSupported()) {
             player.sendMessage(
                 new TextComponent(
@@ -53,6 +56,7 @@ public abstract class MixinPlayerList {
                     ChatFormatting.RED, ChatFormatting.BOLD),
                 null);
         }
+        VSEntityManager.INSTANCE.syncHandlers(wrapped);
     }
 
     /**
