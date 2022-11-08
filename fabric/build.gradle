@@ -24,6 +24,12 @@ loom {
     accessWidenerPath = project(":common").loom.accessWidenerPath
 }
 
+repositories {
+    flatDir {
+        dirs "deps"
+    }
+}
+
 dependencies {
     modImplementation("net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}")
 
@@ -61,6 +67,10 @@ dependencies {
 
     implementation("org.valkyrienskies:valkyrien-dependency-downloader:4.2")
     shadowCommon("org.valkyrienskies:valkyrien-dependency-downloader:4.2")
+
+    // CC Restitched
+
+    modImplementation name: "cc"
 }
 
 // Copy the VS common access widener to the generated resources folder
