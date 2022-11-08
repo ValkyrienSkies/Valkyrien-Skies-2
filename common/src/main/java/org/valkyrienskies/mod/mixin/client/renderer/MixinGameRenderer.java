@@ -8,10 +8,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.EntityHitResult;
-import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Quaterniond;
@@ -20,7 +18,6 @@ import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -34,7 +31,6 @@ import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
-import org.valkyrienskies.mod.mixinducks.client.MinecraftDuck;
 
 @Mixin(GameRenderer.class)
 public abstract class MixinGameRenderer {
@@ -46,44 +42,6 @@ public abstract class MixinGameRenderer {
     @Shadow
     @Final
     private Camera mainCamera;
-
-    /**
-     * {@link Entity#pick(double, float, boolean)} except the hit pos is not transformed
-     */
-    @Unique
-    private static HitResult entityRaycastNoTransform(
-        final Entity entity, final double maxDistance, final float tickDelta, final boolean includeFluids) {
-        final Vec3 vec3d = entity.getEyePosition(tickDelta);
-        final Vec3 vec3d2 = entity.getViewVector(tickDelta);
-        final Vec3 vec3d3 = vec3d.add(vec3d2.x * maxDistance, vec3d2.y * maxDistance, vec3d2.z * maxDistance);
-        return RaycastUtilsKt.clipIncludeShips(
-            entity.level,
-            new ClipContext(
-                vec3d,
-                vec3d3,
-                ClipContext.Block.OUTLINE,
-                includeFluids ? ClipContext.Fluid.ANY : ClipContext.Fluid.NONE,
-                entity
-            ),
-            false
-        );
-    }
-
-    @Redirect(
-        method = "pick",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/entity/Entity;pick(DFZ)Lnet/minecraft/world/phys/HitResult;"
-        )
-    )
-    public HitResult modifyCrosshairTargetBlocks(final Entity receiver, final double maxDistance, final float tickDelta,
-        final boolean includeFluids) {
-
-        final HitResult original = entityRaycastNoTransform(receiver, maxDistance, tickDelta, includeFluids);
-        ((MinecraftDuck) this.minecraft).vs$setOriginalCrosshairTarget(original);
-
-        return receiver.pick(maxDistance, tickDelta, includeFluids);
-    }
 
     @Redirect(
         method = "pick",
@@ -241,10 +199,17 @@ public abstract class MixinGameRenderer {
         if (playerShipMountedTo == null) {
             return;
         }
+        final Entity playerVehicle = player.getVehicle();
+        if (playerVehicle == null) {
+            return;
+        }
 
         // Update [matrixStack] to mount the camera to the ship
-        final Vector3dc inShipPos = VSGameUtilsKt.getPassengerPos(player.getVehicle(), partialTicks);
+        final Vector3dc inShipPos = VSGameUtilsKt.getPassengerPos(playerVehicle, partialTicks);
         final Camera camera = this.mainCamera;
+        if (camera == null) {
+            return;
+        }
 
         ((IVSCamera) camera).setupWithShipMounted(
             this.minecraft.level,
