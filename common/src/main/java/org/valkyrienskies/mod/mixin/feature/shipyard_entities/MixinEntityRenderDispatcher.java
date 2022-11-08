@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.client.renderer.entity;
+package org.valkyrienskies.mod.mixin.feature.shipyard_entities;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.MultiBufferSource;

@@ -12,6 +12,7 @@ import net.minecraft.world.phys.Vec3
 import org.joml.Matrix4d
 import org.joml.Matrix4dc
 import org.joml.Matrix4fc
+import org.joml.Quaterniond
 import org.joml.Quaterniondc
 import org.joml.Quaternionfc
 import org.joml.Vector2i
@@ -111,6 +112,8 @@ fun Vec3i.toJOMLD() = Vector3d().set(this)
 fun Vec3i.toJOMLF() = Vector3f().set(this)
 
 fun Position.toJOML() = Vector3d().set(this)
+
+fun Quaternion.toJOML() = Quaterniond(i().toDouble(), j().toDouble(), k().toDouble(), r().toDouble())
 
 fun Quaternion.set(source: Quaterniondc) =
     set(source.x().toFloat(), source.y().toFloat(), source.z().toFloat(), source.w().toFloat())
