@@ -6,6 +6,8 @@ import net.minecraft.client.Camera;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Quaterniond;
 import org.joml.Quaterniondc;
@@ -16,10 +18,13 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.valkyrienskies.core.game.ships.ShipObjectClient;
 import org.valkyrienskies.core.game.ships.ShipTransform;
 import org.valkyrienskies.mod.client.IVSCamera;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
+import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 
 @Mixin(Camera.class)
 public abstract class MixinCamera implements IVSCamera {
@@ -54,9 +59,25 @@ public abstract class MixinCamera implements IVSCamera {
     private float eyeHeight;
     @Shadow
     private float eyeHeightOld;
+    @Unique
+    private boolean cameraSeated = false;
 
     @Shadow
     protected abstract double getMaxZoom(double startingDistance);
+
+    @Redirect(
+        method = "getMaxZoom",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/world/level/BlockGetter;clip(Lnet/minecraft/world/level/ClipContext;)Lnet/minecraft/world/phys/BlockHitResult;"
+        )
+    )
+    protected BlockHitResult clipWhenSeated(final BlockGetter instance, final ClipContext context) {
+        if (cameraSeated) {
+            return RaycastUtilsKt.vanillaClip(instance, context);
+        }
+        return instance.clip(context);
+    }
 
     @Shadow
     protected abstract void move(double distanceOffset, double verticalOffset, double horizontalOffset);
@@ -95,7 +116,9 @@ public abstract class MixinCamera implements IVSCamera {
 
             dist = dist > 4 ? dist : 4;
 
+            cameraSeated = true;
             this.move(-this.getMaxZoom(4.0 * (dist / 4.0)), 0.0, 0.0);
+            cameraSeated = false;
         }
     }
 
