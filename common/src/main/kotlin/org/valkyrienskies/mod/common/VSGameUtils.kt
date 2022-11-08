@@ -39,7 +39,6 @@ import org.valkyrienskies.mod.common.util.toMinecraft
 import org.valkyrienskies.mod.mixin.accessors.resource.ResourceKeyAccessor
 import org.valkyrienskies.mod.mixinducks.world.entity.PlayerDuck
 import org.valkyrienskies.physics_api.voxel_updates.DenseVoxelShapeUpdate
-import kotlin.math.min
 
 val Level.shipObjectWorld
     get() =
@@ -123,30 +122,30 @@ fun Level.squaredDistanceBetweenInclShips(
     y2: Double,
     z2: Double
 ): Double {
-    val origDx = x2 - x1
-    val origDy = y2 - y1
-    val origDz = z2 - z1
-
-    val squareDistWithoutRespectToShips = origDx * origDx + origDy * origDy + origDz * origDz
-
-    // If transform is null, then just return squareDistWithoutRespectToShips
-    val transform = this.getShipManagingPos(x1.toInt() shr 4, z1.toInt() shr 4)?.shipTransform
-        ?: return squareDistWithoutRespectToShips
-
-    val m = transform.shipToWorldMatrix
+    var inWorldX1 = x1
+    var inWorldY1 = y1
+    var inWorldZ1 = z1
+    var inWorldX2 = x2
+    var inWorldY2 = y2
+    var inWorldZ2 = z2
 
     // Do this transform manually to avoid allocation
-    val inWorldX = m.m00() * x1 + m.m10() * y1 + m.m20() * z1 + m.m30()
-    val inWorldY = m.m01() * x1 + m.m11() * y1 + m.m21() * z1 + m.m31()
-    val inWorldZ = m.m02() * x1 + m.m12() * y1 + m.m22() * z1 + m.m32()
+    this.getShipManagingPos(x1.toInt() shr 4, z1.toInt() shr 4)?.shipTransform?.shipToWorldMatrix?.let { m ->
+        inWorldX1 = m.m00() * x1 + m.m10() * y1 + m.m20() * z1 + m.m30()
+        inWorldY1 = m.m01() * x1 + m.m11() * y1 + m.m21() * z1 + m.m31()
+        inWorldZ1 = m.m02() * x1 + m.m12() * y1 + m.m22() * z1 + m.m32()
+    }
+    this.getShipManagingPos(x2.toInt() shr 4, z2.toInt() shr 4)?.shipTransform?.shipToWorldMatrix?.let { m ->
+        inWorldX2 = m.m00() * x2 + m.m10() * y2 + m.m20() * z2 + m.m30()
+        inWorldY2 = m.m01() * x2 + m.m11() * y2 + m.m21() * z2 + m.m31()
+        inWorldZ2 = m.m02() * x2 + m.m12() * y2 + m.m22() * z2 + m.m32()
+    }
 
-    val dx = x2 - inWorldX
-    val dy = y2 - inWorldY
-    val dz = z2 - inWorldZ
+    val dx = inWorldX2 - inWorldX1
+    val dy = inWorldY2 - inWorldY1
+    val dz = inWorldZ2 - inWorldZ1
 
-    val squareDistWithRespectToShips = dx * dx + dy * dy + dz * dz
-
-    return min(squareDistWithRespectToShips, squareDistWithoutRespectToShips)
+    return dx * dx + dy * dy + dz * dz
 }
 
 private fun getShipObjectManagingPosImpl(world: Level, chunkX: Int, chunkZ: Int): ShipObject? {

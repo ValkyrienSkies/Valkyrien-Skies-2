@@ -25,9 +25,13 @@ loom {
 }
 
 repositories {
-    flatDir {
-        dirs "deps"
+    maven {
+        url "https://cursemaven.com"
+        content {
+            includeGroup "curse.maven"
+        }
     }
+    maven { url "https://maven.shedaniel.me/" }
 }
 
 dependencies {
@@ -48,6 +52,11 @@ dependencies {
 
     modImplementation("com.terraformersmc:modmenu:1.16.23")
 
+    // CC Restitched
+    modImplementation("curse.maven:cc-restitched-462672:3622561")
+    modApi "me.shedaniel.cloth.api:cloth-api:1.5.50"
+    include "me.shedaniel.cloth.api:cloth-api:1.5.50"
+
     // Depend on the fabric API
     modImplementation("net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}")
     modImplementation("me.shedaniel.cloth:cloth-config-fabric:4.14.64")
@@ -67,10 +76,6 @@ dependencies {
 
     implementation("org.valkyrienskies:valkyrien-dependency-downloader:4.2")
     shadowCommon("org.valkyrienskies:valkyrien-dependency-downloader:4.2")
-
-    // CC Restitched
-
-    modImplementation name: "cc"
 }
 
 // Copy the VS common access widener to the generated resources folder
