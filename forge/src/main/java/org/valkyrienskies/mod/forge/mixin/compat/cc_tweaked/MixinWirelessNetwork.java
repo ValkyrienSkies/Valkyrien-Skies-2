@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.mod_compat.computercraft;
+package org.valkyrienskies.mod.forge.mixin.compat.cc_tweaked;
 
 import dan200.computercraft.api.network.IPacketReceiver;
 import dan200.computercraft.api.network.IPacketSender;

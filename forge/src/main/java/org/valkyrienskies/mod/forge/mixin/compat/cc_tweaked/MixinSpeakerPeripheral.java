@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.mod_compat.computercraft;
+package org.valkyrienskies.mod.forge.mixin.compat.cc_tweaked;
 
 import dan200.computercraft.shared.peripheral.speaker.SpeakerPeripheral;
 import net.minecraft.world.level.Level;
@@ -15,24 +15,21 @@ import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 @Pseudo
 @Mixin(SpeakerPeripheral.class)
 public abstract class MixinSpeakerPeripheral {
-    @Shadow
-    public abstract Level getWorld();
-
     @Redirect(
-        method = "playSound(Ldan200/computercraft/api/lua/ILuaContext;Lnet/minecraft/resources/ResourceLocation;FFZ)Z",
+        method = "update()V",
         at = @At(
             value = "INVOKE",
-            target = "Ldan200/computercraft/shared/peripheral/speaker/SpeakerPeripheral;getPosition()Lnet/minecraft/world/phys/Vec3;"
+            target = "Ldan200/computercraft/shared/peripheral/speaker/SpeakerPeripheral;getPosition()Ldan200/computercraft/shared/peripheral/speaker/SpeakerPosition;"
         ),
         remap = false
     )
     public Vec3 getPosition(final SpeakerPeripheral instance) {
-        Vec3 pos = instance.getPosition();
-        final Ship ship = VSGameUtilsKt.getShipObjectManagingPos(this.getWorld(), pos.x, pos.y, pos.z);
+        Vec3 pos = instance.getPosition().position();
+        final Ship ship = VSGameUtilsKt.getShipObjectManagingPos(instance.getPosition().level(), pos.x, pos.y, pos.z);
         if (ship != null) {
             pos = VectorConversionsMCKt.toMinecraft(VSGameUtilsKt.toWorldCoordinates(ship, pos.x, pos.y, pos.z));
         }
+
         return pos;
     }
-
 }

@@ -47,9 +47,7 @@
     "server.world.MixinServerLevel",
     "world.MixinLevel",
     "world.chunk.MixinLevelChunk",
-    "world.entity.MixinPlayer",
-    "mod_compat.computercraft.MixinSpeakerPeripheral",
-    "mod_compat.computercraft.MixinWirelessNetwork"
+    "world.entity.MixinPlayer"
   ],
   "client": [
     "accessors.client.multiplayer.ClientLevelAccessor",
@@ -80,9 +78,6 @@
     "feature.transform_particles.MixinLevelRenderer",
     "feature.transform_particles.MixinParticle",
     "feature.vs2_alpha_hud.MixinGui",
-    "mod_compat.optifine.MixinLevelRendererOptifine",
-    "mod_compat.optifine.MixinViewAreaOptifine",
-    "mod_compat.optifine.RenderChunkInfoAccessorOptifine",
     "mod_compat.optifine_vanilla.MixinLevelRenderer",
     "mod_compat.vanilla_renderer.MixinLevelRendererVanilla",
     "mod_compat.vanilla_renderer.MixinViewAreaVanilla",

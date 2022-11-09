@@ -1,22 +1,3 @@
-repositories {
-    maven {
-        url "https://cursemaven.com"
-        content {
-            includeGroup "curse.maven"
-        }
-    }
-    maven { url "https://maven.shedaniel.me/" }
-
-    // CC Tweaked
-
-    maven {
-        url 'https://squiddev.cc/maven/'
-        content {
-            includeGroup 'org.squiddev'
-        }
-    }
-}
-
 dependencies {
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
     // We depend on fabric loader here to use the fabric @Environment annotations
@@ -33,16 +14,6 @@ dependencies {
         exclude module: "netty-buffer"
         exclude module: "fastutil"
     }
-
-    // CC Restitched
-    modImplementation("curse.maven:cc-restitched-462672:3622561")
-    modApi "me.shedaniel.cloth.api:cloth-api:1.5.50"
-    include "me.shedaniel.cloth.api:cloth-api:1.5.50"
-
-    // CC Tweaked
-
-    compileOnly ("org.squiddev:cc-tweaked-${minecraft_version}:${cct_version}:api")
-    runtimeOnly ("org.squiddev:cc-tweaked-${minecraft_version}:${cct_version}")
 }
 
 architectury {

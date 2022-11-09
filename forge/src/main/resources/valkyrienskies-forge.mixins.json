@@ -13,7 +13,9 @@
     "compat.flywheel.client.MixinInstanceManager",
     "compat.flywheel.client.MixinInstanceWorld",
     "compat.flywheel.client.MixinTileInstanceManager",
-    "world.level.block.FireMixin"
+    "world.level.block.FireMixin",
+    "compat.cc_tweaked.MixinWirelessNetwork",
+    "compat.cc_tweaked.MixinSpeakerPosition"
   ],
   "client": [
     "ExampleForgeMixin",
