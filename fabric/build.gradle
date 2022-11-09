@@ -24,18 +24,6 @@ loom {
     accessWidenerPath = project(":common").loom.accessWidenerPath
 }
 
-repositories {
-    // CC Restitched
-
-    maven {
-        url "https://cursemaven.com"
-        content {
-            includeGroup "curse.maven"
-        }
-    }
-    maven { url "https://maven.shedaniel.me/" }
-}
-
 dependencies {
     modImplementation("net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}")
 
@@ -57,12 +45,6 @@ dependencies {
     // Depend on the fabric API
     modImplementation("net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}")
     modImplementation("me.shedaniel.cloth:cloth-config-fabric:4.14.64")
-
-    // CC Restitched
-    /*modImplementation("curse.maven:cc-restitched-462672:3622561")
-    modApi "me.shedaniel.cloth.api:cloth-api:1.5.50"
-    include "me.shedaniel.cloth.api:cloth-api:1.5.50"*/
-
 
     implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {
         exclude module: "netty-buffer"
