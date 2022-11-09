@@ -76,8 +76,8 @@ dependencies {
 
     // CC Tweaked
 
-    modImplementation ("org.squiddev:cc-tweaked-${minecraft_version}:${cct_version}:api")
-    modImplementation ("org.squiddev:cc-tweaked-${minecraft_version}:${cct_version}")
+    modCompileOnly ("org.squiddev:cc-tweaked-${minecraft_version}:${cct_version}:api")
+    modCompileOnly ("org.squiddev:cc-tweaked-${minecraft_version}:${cct_version}")
 
     // Shade vs-core
     implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {

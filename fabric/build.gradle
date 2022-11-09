@@ -59,9 +59,7 @@ dependencies {
     modImplementation("me.shedaniel.cloth:cloth-config-fabric:4.14.64")
 
     // CC Restitched
-    /*modImplementation("curse.maven:cc-restitched-462672:3622561")
-    modApi "me.shedaniel.cloth.api:cloth-api:1.5.50"
-    include "me.shedaniel.cloth.api:cloth-api:1.5.50"*/
+    modCompileOnly("curse.maven:cc-restitched-462672:3622561")
 
 
     implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {
