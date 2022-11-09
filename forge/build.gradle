@@ -40,15 +40,6 @@ repositories {
         url = 'https://thedarkcolour.github.io/KotlinForForge/'
     }
     mavenCentral()
-
-    // CC Tweaked
-
-    maven {
-        url 'https://squiddev.cc/maven/'
-        content {
-            includeGroup 'org.squiddev'
-        }
-    }
 }
 
 dependencies {
@@ -73,7 +64,7 @@ dependencies {
 
     // Cloth for config
     modImplementation("me.shedaniel.cloth:cloth-config-forge:4.14.64")
-
+    
     // CC Tweaked
 
     modCompileOnly ("org.squiddev:cc-tweaked-${minecraft_version}:${cct_version}:api")
