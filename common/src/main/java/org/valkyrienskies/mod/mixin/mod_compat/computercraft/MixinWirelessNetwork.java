@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.fabric.mixin.mod_compat.cc_restitched;
+package org.valkyrienskies.mod.mixin.mod_compat.computercraft;
 
 import dan200.computercraft.api.network.IPacketReceiver;
 import dan200.computercraft.api.network.IPacketSender;

@@ -40,15 +40,6 @@ repositories {
         url = 'https://thedarkcolour.github.io/KotlinForForge/'
     }
     mavenCentral()
-
-    // CC Tweaked
-
-    maven {
-        url 'https://squiddev.cc/maven/'
-        content {
-            includeGroup 'org.squiddev'
-        }
-    }
 }
 
 dependencies {
@@ -86,11 +77,6 @@ dependencies {
 
     implementation("org.valkyrienskies:valkyrien-dependency-downloader:4.2")
     shadowCommon("org.valkyrienskies:valkyrien-dependency-downloader:4.2")
-
-    // CC Tweaked
-
-    compileOnly ("org.squiddev:cc-tweaked-${minecraft_version}:${cct_version}:api")
-    runtimeOnly ("org.squiddev:cc-tweaked-${minecraft_version}:${cct_version}")
 }
 
 processResources {

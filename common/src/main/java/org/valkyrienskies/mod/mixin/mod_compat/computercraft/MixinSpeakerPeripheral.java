@@ -1,9 +1,10 @@
-package org.valkyrienskies.mod.fabric.mixin.mod_compat.cc_restitched;
+package org.valkyrienskies.mod.mixin.mod_compat.computercraft;
 
 import dan200.computercraft.shared.peripheral.speaker.SpeakerPeripheral;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -11,6 +12,7 @@ import org.valkyrienskies.core.api.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
+@Pseudo
 @Mixin(SpeakerPeripheral.class)
 public abstract class MixinSpeakerPeripheral {
     @Shadow

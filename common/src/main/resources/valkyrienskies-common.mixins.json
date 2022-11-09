@@ -47,7 +47,9 @@
     "server.world.MixinServerLevel",
     "world.MixinLevel",
     "world.chunk.MixinLevelChunk",
-    "world.entity.MixinPlayer"
+    "world.entity.MixinPlayer",
+    "mod_compat.computercraft.MixinSpeakerPeripheral",
+    "mod_compat.computercraft.MixinWirelessNetwork"
   ],
   "client": [
     "accessors.client.multiplayer.ClientLevelAccessor",
