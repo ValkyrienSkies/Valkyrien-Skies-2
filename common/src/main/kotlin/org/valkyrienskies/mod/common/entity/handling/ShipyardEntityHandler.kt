@@ -52,13 +52,11 @@ object ShipyardEntityHandler : VSEntityHandler {
         matrixStack.mulPose(ship.renderTransform.shipCoordinatesToWorldCoordinatesRotation.toMinecraft())
     }
 
-    override fun onEntityMove(self: Entity, ship: Ship, position: Vector3dc) {
-        // expand happens bcs containsPoint is exclusive but the AABB is inclusive
-        if (!ship.shipVoxelAABB!!.expand(1).containsPoint(
-                position.x.roundToInt(), position.y.roundToInt(), position.z.roundToInt()
-            )
+    override fun onEntityMove(self: Entity, ship: Ship, position: Vector3dc): Vector3dc =
+        if (!ship.shipVoxelAABB!!.expand(1)// expand happens bcs containsPoint is exclusive but the AABB is inclusive
+                .containsPoint(position.x.roundToInt(), position.y.roundToInt(), position.z.roundToInt())
         ) {
             WorldEntityHandler.moveEntityFromShipyardToWorld(self, ship, position)
-        } else self.setPosRaw(position.x, position.y, position.z)
-    }
+        } else
+            position
 }

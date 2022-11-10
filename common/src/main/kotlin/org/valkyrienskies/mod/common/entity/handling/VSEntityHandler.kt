@@ -52,5 +52,5 @@ interface VSEntityHandler {
      *
      * Should call self.setPosRaw(x, y, z)
      */
-    fun onEntityMove(self: Entity, ship: Ship, position: Vector3dc)
+    fun onEntityMove(self: Entity, ship: Ship, position: Vector3dc): Vector3dc
 }

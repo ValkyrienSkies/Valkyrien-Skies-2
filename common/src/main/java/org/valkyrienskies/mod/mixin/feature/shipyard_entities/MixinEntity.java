@@ -1,18 +1,27 @@
 package org.valkyrienskies.mod.mixin.feature.shipyard_entities;
 
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.Level;
 import org.joml.Vector3d;
+import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager;
 
 @Mixin(Entity.class)
 public abstract class MixinEntity {
+
+    @Shadow
+    public abstract EntityType<?> getType();
 
     /**
      * @author ewoudje
@@ -26,37 +35,49 @@ public abstract class MixinEntity {
                 .positionSetFromVehicle(passenger, Entity.class.cast(this), x, y, z));
     }
 
+    @Unique
+    private static Vector3dc tempVec = null;
+
     /**
      * @author ewoudje
      * @reason use vs2 entity handler to handle this method
      */
-    @Redirect(method = "setPos", at = @At(value = "INVOKE",
-        target = "Lnet/minecraft/world/entity/Entity;setPosRaw(DDD)V"))
-    public void setPosHandling1(final Entity instance, final double x, final double y, final double z) {
+    @Inject(method = "setPosRaw", at = @At(value = "HEAD"))
+    public void handlePosSet(final double x, final double y, final double z, final CallbackInfo ci) {
         final Vector3d pos = new Vector3d(x, y, z);
         final Ship ship;
 
         if ((ship = VSGameUtilsKt.getShipObjectManagingPos(level, pos)) != null) {
-            VSEntityManager.INSTANCE.getHandler(instance.getType()).onEntityMove(instance, ship, pos);
+            tempVec = VSEntityManager.INSTANCE.getHandler(getType()).onEntityMove(Entity.class.cast(this), ship, pos);
         } else {
-            instance.setPosRaw(x, y, z);
+            tempVec = null;
         }
     }
 
-    /**
-     * @author ewoudje
-     * @reason use vs2 entity handler to handle this method
-     */
-    @Redirect(method = "setLocationFromBoundingbox", at = @At(value = "INVOKE",
-        target = "Lnet/minecraft/world/entity/Entity;setPosRaw(DDD)V"))
-    public void setPosHandling2(final Entity instance, final double x, final double y, final double z) {
-        final Vector3d pos = new Vector3d(x, y, z);
-        final Ship ship;
-
-        if ((ship = VSGameUtilsKt.getShipObjectManagingPos(level, pos)) != null) {
-            VSEntityManager.INSTANCE.getHandler(instance.getType()).onEntityMove(instance, ship, pos);
+    @ModifyVariable(method = "setPosRaw", at = @At(value = "HEAD"), ordinal = 0)
+    public double setX(final double x) {
+        if (tempVec != null) {
+            return tempVec.x();
         } else {
-            instance.setPosRaw(x, y, z);
+            return x;
+        }
+    }
+
+    @ModifyVariable(method = "setPosRaw", at = @At(value = "HEAD"), ordinal = 1)
+    public double setY(final double y) {
+        if (tempVec != null) {
+            return tempVec.y();
+        } else {
+            return y;
+        }
+    }
+
+    @ModifyVariable(method = "setPosRaw", at = @At(value = "HEAD"), ordinal = 2)
+    public double setZ(final double z) {
+        if (tempVec != null) {
+            return tempVec.z();
+        } else {
+            return z;
         }
     }
 

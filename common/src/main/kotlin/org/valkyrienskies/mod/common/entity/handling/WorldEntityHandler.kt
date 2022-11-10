@@ -16,8 +16,9 @@ import kotlin.math.atan2
 import kotlin.math.sqrt
 
 object WorldEntityHandler : VSEntityHandler {
-    override fun freshEntityInShipyard(entity: Entity, ship: Ship, position: Vector3dc) =
+    override fun freshEntityInShipyard(entity: Entity, ship: Ship, position: Vector3dc) {
         moveEntityFromShipyardToWorld(entity, ship, position)
+    }
 
     override fun <T : Entity> applyRenderTransform(
         ship: ClientShip, entity: T, entityRenderer: EntityRenderer<T>,
@@ -49,7 +50,7 @@ object WorldEntityHandler : VSEntityHandler {
     override fun onEntityMove(self: Entity, ship: Ship, position: Vector3dc) =
         moveEntityFromShipyardToWorld(self, ship, position)
 
-    fun moveEntityFromShipyardToWorld(entity: Entity, ship: Ship, position: Vector3dc) {
+    fun moveEntityFromShipyardToWorld(entity: Entity, ship: Ship, position: Vector3dc): Vector3dc {
         val newPos = ship.shipToWorld.transformPosition(Vector3d(position))
         entity.setPos(newPos.x, newPos.y, newPos.z)
         entity.xo = entity.x
@@ -88,5 +89,7 @@ object WorldEntityHandler : VSEntityHandler {
             entity.yPower = powerJank.y
             entity.zPower = powerJank.z
         }
+
+        return newPos;
     }
 }

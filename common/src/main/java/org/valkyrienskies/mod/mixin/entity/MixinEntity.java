@@ -2,14 +2,12 @@ package org.valkyrienskies.mod.mixin.entity;
 
 import static org.valkyrienskies.mod.common.util.VectorConversionsMCKt.toJOML;
 
-import java.util.Random;
 import net.minecraft.CrashReport;
 import net.minecraft.CrashReportCategory;
 import net.minecraft.ReportedException;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
@@ -21,7 +19,6 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.joml.primitives.AABBd;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -128,6 +125,9 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         cir.setReturnValue(newEyePos);
     }
 
+    @Shadow
+    private Vec3 position;
+
     /**
      * @reason Needed for players to pick blocks correctly when mounted to a ship
      */
@@ -165,19 +165,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     public abstract AABB getBoundingBox();
 
     @Shadow
-    public abstract void setDeltaMovement(double x, double y, double z);
-
-    @Shadow
-    protected abstract Vec3 collide(Vec3 vec3d);
-    
-    @Shadow
     protected abstract void onInsideBlock(BlockState state);
-
-    @Shadow
-    public abstract Vec3 getDeltaMovement();
-
-    @Shadow
-    public abstract void setDeltaMovement(Vec3 motion);
 
     @Shadow
     public abstract double getZ();
@@ -192,17 +180,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     private @Nullable Entity vehicle;
 
     @Shadow
-    private Vec3 position;
-
-    @Shadow
-    @Final
-    protected Random random;
-
-    @Shadow
     public abstract float getEyeHeight();
-
-    @Shadow
-    private EntityDimensions dimensions;
     // endregion
 
     @Override
