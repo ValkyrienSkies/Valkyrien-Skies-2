@@ -32,11 +32,7 @@ public abstract class MixinLivingEntity extends Entity {
         cancellable = true
     )
     private void onClimbableMixin(final CallbackInfoReturnable<Boolean> cir) {
-        if (!cir.getReturnValue()) {
-            if (isModifyingClimbable) {
-                return;
-            }
-
+        if (!cir.getReturnValue() && !isModifyingClimbable && isSpectator()) {
             isModifyingClimbable = true;
 
             final Vec3 pos = this.position();
@@ -49,7 +45,6 @@ public abstract class MixinLivingEntity extends Entity {
                 this.setPos(x, y, z);
                 cir.setReturnValue(onClimbable());
                 this.setPos(origX, origY, origZ);
-
             });
 
             isModifyingClimbable = false;

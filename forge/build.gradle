@@ -41,9 +41,13 @@ loom {
 configurations {
     common
     shadowCommon // Don't use shadow from the shadow plugin because we don't want IDEA to index this.
+    core
     compileClasspath.extendsFrom common
     runtimeClasspath.extendsFrom common
     developmentForge.extendsFrom common
+    compileClasspath.extendsFrom core
+    forgeRuntimeLibrary.extendsFrom core
+    shadowCommon.extendsFrom core
 }
 
 repositories {
@@ -55,6 +59,10 @@ repositories {
     mavenCentral()
 }
 
+ext.kotlin_version = '1.7.10'
+ext.coroutines_version = '1.6.4'
+ext.serialization_version = '1.3.3'
+
 dependencies {
     forge "net.minecraftforge:forge:${rootProject.forge_version}"
 
@@ -65,31 +73,35 @@ dependencies {
         transitive = false
     }
 
-    modCompileOnly("curse.maven:flywheel-486392:3934664")
-    modCompileOnly("curse.maven:create-328085:4007544")
+    // Create compat
+    //modCompileOnly("curse.maven:flywheel-486392:3934664") TODO this is 1.16 version?
+    //modCompileOnly("curse.maven:create-328085:4007544")
 
     // Add Kotlin for Forge.
-    // Based on their own instructions: https://github.com/thedarkcolour/KotlinForForge/blob/70385f5/thedarkcolour/kotlinforforge/gradle/kff-3.0.0.gradle
-    implementation("thedarkcolour:kotlinforforge:3.4.0")
-    // Manually specify kotlin version
-    forgeRuntimeLibrary('org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.7.10')
-    forgeRuntimeLibrary('org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4')
+    // Based on: https://raw.githubusercontent.com/thedarkcolour/KotlinForForge/site/thedarkcolour/kotlinforforge/gradle/kff-3.7.1.gradle
+    implementation 'thedarkcolour:kotlinforforge:3.7.1'
+
+    groovy.lang.Closure exclude_annotations = { exclude group: 'org.jetbrains', module: 'annotations' }
+
+    // Add everything to the classpath correctly
+    forgeRuntimeLibrary(group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib-jdk8', version: kotlin_version, exclude_annotations)
+    forgeRuntimeLibrary(group: 'org.jetbrains.kotlin', name: 'kotlin-reflect', version: kotlin_version, exclude_annotations)
+    forgeRuntimeLibrary(group: 'org.jetbrains.kotlinx', name: 'kotlinx-coroutines-core', version: coroutines_version, exclude_annotations)
+    forgeRuntimeLibrary(group: 'org.jetbrains.kotlinx', name: 'kotlinx-coroutines-jdk8', version: coroutines_version, exclude_annotations)
+    forgeRuntimeLibrary(group: 'org.jetbrains.kotlinx', name: 'kotlinx-serialization-json', version: serialization_version, exclude_annotations)
+
 
     // Cloth for config
     modImplementation("me.shedaniel.cloth:cloth-config-forge:6.3.81")
 
     // Shade vs-core
-    implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {
-        exclude module: "netty-buffer"
-        exclude module: "fastutil"
-    }
-    shadowCommon("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {
+    core("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {
         exclude module: "netty-buffer"
         exclude module: "fastutil"
     }
 
-    implementation("org.valkyrienskies:valkyrien-dependency-downloader:4.2")
-    shadowCommon("org.valkyrienskies:valkyrien-dependency-downloader:4.2")
+    //implementation("org.valkyrienskies:valkyrien-dependency-downloader:4.2")
+    //shadowCommon("org.valkyrienskies:valkyrien-dependency-downloader:4.2")
 }
 
 processResources {
@@ -119,6 +131,10 @@ remapJar {
     input.set shadowJar.archiveFile
     dependsOn shadowJar
     classifier null
+}
+
+compileKotlin {
+    kotlinOptions.jvmTarget = '17'
 }
 
 jar {

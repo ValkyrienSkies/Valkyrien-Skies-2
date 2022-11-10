@@ -73,25 +73,6 @@ public abstract class MixinServerGamePacketListenerImpl {
         return 0;
     }
 
-    /**
-     * Include ships in server-side distance check when player interacts with a block.
-     */
-    @Redirect(
-        method = "handleUseItemOn",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/server/level/ServerPlayer;distanceToSqr(DDD)D"
-        )
-    )
-    public double includeShipsInBlockInteractDistanceCheck(
-        final ServerPlayer receiver, final double x, final double y, final double z) {
-        if (VSGameConfig.SERVER.getEnableInteractDistanceChecks()) {
-            return VSGameUtilsKt.squaredDistanceToInclShips(receiver, x, y, z);
-        } else {
-            return 0;
-        }
-    }
-
     @Redirect(
         method = "handleMovePlayer",
         at = @At(
