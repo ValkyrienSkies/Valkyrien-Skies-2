@@ -7,8 +7,13 @@ import net.minecraft.world.entity.Entity
 import org.joml.Vector3dc
 import org.valkyrienskies.core.api.ClientShip
 import org.valkyrienskies.core.api.Ship
+import org.valkyrienskies.core.util.expand
+import org.valkyrienskies.core.util.x
+import org.valkyrienskies.core.util.y
+import org.valkyrienskies.core.util.z
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toMinecraft
+import kotlin.math.roundToInt
 
 object ShipyardEntityHandler : VSEntityHandler {
     override fun freshEntityInShipyard(entity: Entity, ship: Ship, position: Vector3dc) {}
@@ -45,5 +50,15 @@ object ShipyardEntityHandler : VSEntityHandler {
         // TODO: somewhere else position is already applied in the matrix stack
         // EW: i think it was in entity dragging logic
         matrixStack.mulPose(ship.renderTransform.shipCoordinatesToWorldCoordinatesRotation.toMinecraft())
+    }
+
+    override fun onEntityMove(self: Entity, ship: Ship, position: Vector3dc) {
+        // expand happens bcs containsPoint is exclusive but the AABB is inclusive
+        if (!ship.shipVoxelAABB!!.expand(1).containsPoint(
+                position.x.roundToInt(), position.y.roundToInt(), position.z.roundToInt()
+            )
+        ) {
+            WorldEntityHandler.moveEntityFromShipyardToWorld(self, ship, position)
+        } else self.setPosRaw(position.x, position.y, position.z)
     }
 }
