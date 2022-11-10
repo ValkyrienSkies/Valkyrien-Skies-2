@@ -28,10 +28,10 @@ public class MixinServerGamePacketListenerImpl {
             final double reach = receiver.getReachDistance() + padding;
             final Vec3 eyes = receiver.getEyePosition();
             return VSGameUtilsKt.squaredDistanceBetweenInclShips(receiver.level,
-                eyes.x, eyes.y, eyes.z,
                 pos.getX() + 0.5,
                 pos.getY() + 0.5,
-                pos.getZ() + 0.5
+                pos.getZ() + 0.5,
+                eyes.x, eyes.y, eyes.z
             ) < reach * reach;
         } else {
             return true;
