@@ -28,8 +28,6 @@ public class MixinTurtleDetectCommand {
 
     @Inject(method = "execute", at = @At("RETURN"), remap = false, cancellable = true)
     public void ValkyrienSkies2$execute(@Nonnull ITurtleAccess turtle, CallbackInfoReturnable cir) {
-        System.err.println("This Mixin was triggered!");
-
         Direction direction = this.direction.toWorldDir(turtle);
         Level world = turtle.getWorld();
         BlockPos newPosition = turtle.getPosition().relative(direction);
