@@ -6,7 +6,8 @@ in the ship.
 
 #### Mixins
 
-* `MixinEntity#handlePosSet` Handles changes to the entity's position.
+* `MixinEntity#setPosHandling1` Handles changes to the entity's position.
+* `MixinEntity#setPosHandling2` Handles changes to the entity's position.
     * This is relevant for detecting if a entity is going out the ship's bounds.
 * `MixinEntity#positionRider` Handles mounted entities on other entities.
     * This is relevant for allowing world entities mounting shipyard entities.
