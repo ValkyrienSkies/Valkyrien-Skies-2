@@ -40,6 +40,15 @@ repositories {
         url = 'https://thedarkcolour.github.io/KotlinForForge/'
     }
     mavenCentral()
+
+
+    // CC Tweaked
+    maven {
+        url 'https://squiddev.cc/maven/'
+        content {
+            includeGroup 'org.squiddev'
+        }
+    }
 }
 
 dependencies {
