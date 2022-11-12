@@ -16,6 +16,7 @@ import org.valkyrienskies.mod.common.playerWrapper
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.util.relocateBlock
+import org.valkyrienskies.mod.util.updateBlock
 
 fun createNewShipWithBlocks(
     centerBlock: BlockPos, blocks: DenseBlockPosSet, level: ServerLevel
@@ -56,7 +57,20 @@ fun createNewShipWithBlocks(
             val fromPos = BlockPos((sourceChunk.pos.x shl 4) + x, (chunkY shl 4) + y, (sourceChunk.pos.z shl 4) + z)
             val toPos = BlockPos((destChunk.pos.x shl 4) + x, (chunkY shl 4) + y, (destChunk.pos.z shl 4) + z)
 
-            relocateBlock(sourceChunk, fromPos, destChunk, toPos, ship)
+            relocateBlock(sourceChunk, fromPos, destChunk, toPos, false, ship)
+        }
+    }
+
+    // Use updateBlock to update blocks after copying
+    blocks.forEachChunk { chunkX, chunkY, chunkZ, chunk ->
+        val sourceChunk = level.getChunk(chunkX, chunkZ)
+        val destChunk = level.getChunk(chunkX - deltaX, chunkZ - deltaZ)
+
+        chunk.forEach { x, y, z ->
+            val fromPos = BlockPos((sourceChunk.pos.x shl 4) + x, (chunkY shl 4) + y, (sourceChunk.pos.z shl 4) + z)
+            val toPos = BlockPos((destChunk.pos.x shl 4) + x, (chunkY shl 4) + y, (destChunk.pos.z shl 4) + z)
+
+            updateBlock(destChunk.level, fromPos, toPos, destChunk.getBlockState(toPos))
         }
     }
 
