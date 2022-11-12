@@ -14,3 +14,11 @@ in the ship.
     * This is relevant for rendering entities on ships.
 * `MixinEntityRenderDispatcher#shouldRender` Handles rendering of entities.
     * This is relevant for rendering entities on ships.
+* `MixinServerLevel/MixinClientLevel#configureEntitySections`
+    * Sets our own level field in EntitySectionManager
+* `MixinEntitySectionStorage#shipSections`
+    * Makes getEntities return the entities in the ship section
+
+#### Extra notes
+
+getEntities is important for entity interaction collision and more.
