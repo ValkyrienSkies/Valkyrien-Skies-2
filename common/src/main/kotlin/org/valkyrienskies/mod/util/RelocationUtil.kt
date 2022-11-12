@@ -8,7 +8,6 @@ import net.minecraft.world.level.block.Rotation
 import net.minecraft.world.level.block.Rotation.NONE
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
-import net.minecraft.world.level.chunk.LevelChunk.EntityCreationType.CHECK
 import org.valkyrienskies.core.api.ships.ServerShip
 
 private val AIR = Blocks.AIR.defaultBlockState()
@@ -57,7 +56,7 @@ fun relocateBlock(
     }
 
     tag?.let {
-        val be = toChunk.getBlockEntity(to, CHECK)!!
+        val be = level.getBlockEntity(to)!!
 
         be.load(it)
     }
