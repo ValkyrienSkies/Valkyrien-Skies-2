@@ -33,7 +33,6 @@ object VSGamePackets {
                 val attachment: SeatedControllingPlayer = ship.getAttachment()
                     ?: SeatedControllingPlayer(seat.direction.opposite).apply { ship.setAttachment(this) }
 
-
                 attachment.forwardImpulse = driving.impulse.z
                 attachment.leftImpulse = driving.impulse.x
                 attachment.upImpulse = driving.impulse.y

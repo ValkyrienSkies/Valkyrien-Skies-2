@@ -76,26 +76,26 @@ fun relocateBlock(
  */
 fun updateBlock(level: Level, fromPos: BlockPos, toPos: BlockPos, toState: BlockState) {
 
-    //75 = flag 1 (block update) & flag 2 (send to clients) + flag 8 (force rerenders) + flag 64 (block is moving)
+    // 75 = flag 1 (block update) & flag 2 (send to clients) + flag 8 (force rerenders) + flag 64 (block is moving)
     val flags = 75
 
-    //updateNeighbourShapes recurses through nearby blocks, recursionLeft is the limit
+    // updateNeighbourShapes recurses through nearby blocks, recursionLeft is the limit
     val recursionLeft = 511
 
     level.setBlocksDirty(fromPos, toState, AIR)
     level.sendBlockUpdated(fromPos, toState, AIR, flags)
-    //This handles the update for neighboring blocks in worldspace
+    // This handles the update for neighboring blocks in worldspace
     AIR.updateNeighbourShapes(level, fromPos, flags, recursionLeft)
     AIR.updateIndirectNeighbourShapes(level, fromPos, flags, recursionLeft)
-    //This updates lighting for blocks in worldspace
+    // This updates lighting for blocks in worldspace
     level.chunkSource.lightEngine.checkBlock(fromPos)
 
     level.setBlocksDirty(toPos, AIR, toState)
     level.sendBlockUpdated(toPos, AIR, toState, flags)
-    //This handles the update for neighboring blocks in shipspace (ladders, redstone)
+    // This handles the update for neighboring blocks in shipspace (ladders, redstone)
     toState.updateNeighbourShapes(level, toPos, flags, recursionLeft)
     toState.updateIndirectNeighbourShapes(level, toPos, flags, recursionLeft)
-    //This updates lighting for blocks in shipspace
+    // This updates lighting for blocks in shipspace
     level.chunkSource.lightEngine.checkBlock(toPos)
 }
 
