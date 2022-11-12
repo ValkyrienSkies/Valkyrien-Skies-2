@@ -1,14 +1,13 @@
 package org.valkyrienskies.mod.util
 
 import net.minecraft.core.BlockPos
-import net.minecraft.core.Direction
-import net.minecraft.core.Direction.NORTH
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.world.Container
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.Rotation
+import net.minecraft.world.level.block.Rotation.NONE
 import net.minecraft.world.level.block.state.BlockState
-import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.level.chunk.LevelChunk.EntityCreationType.CHECK
 import org.valkyrienskies.core.api.ServerShip
@@ -24,13 +23,14 @@ private val AIR = Blocks.AIR.defaultBlockState()
  * @param toChunk
  * @param to coordinate (can be local or global coord)
  * @param toShip should be set when you're relocating to a ship
- * @param direction Direction.NORTH is no change in direction, Direction.EAST is 90 degrees clockwise, etc.
+ * @param rotation Rotation.NONE is no change in direction, Rotation.CLOCKWISE_90 is 90 degrees clockwise, etc.
  */
 fun relocateBlock(
-    fromChunk: LevelChunk, from: BlockPos, toChunk: LevelChunk, to: BlockPos, toShip: ServerShip?,
-    direction: Direction = NORTH
+    fromChunk: LevelChunk, from: BlockPos, toChunk: LevelChunk, to: BlockPos, doUpdate: Boolean, toShip: ServerShip?,
+    rotation: Rotation = NONE
 ) {
-    val state = fromChunk.getBlockState(from)
+    val oldState = fromChunk.getBlockState(from)
+    var state = fromChunk.getBlockState(from)
     val entity = fromChunk.getBlockEntity(from)
 
     val tag = entity?.let {
@@ -48,61 +48,50 @@ fun relocateBlock(
         tag
     }
 
-    rotateBlockState(state, direction)
+    state = state.rotate(rotation)
 
     val level = toChunk.level
 
     fromChunk.setBlockState(from, AIR, false)
-    level.sendBlockUpdated(from, state, AIR, 0)
     toChunk.setBlockState(to, state, false)
-    level.sendBlockUpdated(to, state, AIR, 0)
-    level.chunkSource.lightEngine.checkBlock(from)
-    level.chunkSource.lightEngine.checkBlock(to)
+
+    if (doUpdate) {
+        updateBlock(level, from, to, state)
+    }
 
     tag?.let {
         val be = toChunk.getBlockEntity(to, CHECK)!!
-        if (be is ShipBlockEntity)
-            be.ship = toShip
+        if (be is ShipBlockEntity) be.ship = toShip
 
         be.load(state, it)
     }
 }
 
-private fun addDirection(direction1: Direction, direction2: Direction) =
-    Direction.from2DDataValue((direction1.get2DDataValue() + direction2.get2DDataValue()) and 3)
+/**
+ * Update block after relocate
+ *
+ * @param level
+ * @param fromPos old position coordinate
+ * @param toPos new position coordinate
+ * @param toState new blockstate at toPos
+ */
+fun updateBlock(level: Level, fromPos: BlockPos, toPos: BlockPos, toState: BlockState) {
 
-private fun rotateBlockState(state: BlockState, direction: Direction) {
-    if (direction == NORTH) return
-    // TODO there are prob more relevant states that need to get modified
-    if (state.hasProperty(BlockStateProperties.HORIZONTAL_FACING)) {
-        state.setValue(
-            BlockStateProperties.HORIZONTAL_FACING,
-            addDirection(state.getValue(BlockStateProperties.HORIZONTAL_FACING), direction)
-        )
-    } else if (state.hasProperty(BlockStateProperties.FACING)) {
-        state.setValue(
-            BlockStateProperties.FACING,
-            addDirection(state.getValue(BlockStateProperties.FACING), direction)
-        )
-    } else if (state.hasProperty(BlockStateProperties.AXIS)) {
-        state.setValue(
-            BlockStateProperties.AXIS,
-            if (direction.axis == Direction.Axis.X)
-                if (state.getValue(BlockStateProperties.AXIS) == Direction.Axis.X)
-                    Direction.Axis.Z
-                else if (state.getValue(BlockStateProperties.AXIS) == Direction.Axis.Z)
-                    Direction.Axis.X
-                else
-                    Direction.Axis.Y
-            else
-                state.getValue(BlockStateProperties.AXIS)
-        )
-    } else if (state.hasProperty(BlockStateProperties.FACING_HOPPER)) {
-        state.setValue(
-            BlockStateProperties.FACING,
-            addDirection(state.getValue(BlockStateProperties.FACING), direction)
-        )
-    }
+    level.setBlocksDirty(fromPos, toState, AIR)
+    level.sendBlockUpdated(fromPos, toState, AIR, 75)
+    //This handles the update for neighboring blocks in worldspace
+    AIR.updateNeighbourShapes(level, fromPos, 75 and -0x22, 512 - 1)
+    AIR.updateIndirectNeighbourShapes(level, fromPos, 75 and -0x22, 512 - 1)
+    //This updates lighting for blocks in worldspace
+    level.chunkSource.lightEngine.checkBlock(fromPos)
+
+    level.setBlocksDirty(toPos, AIR, toState)
+    level.sendBlockUpdated(toPos, AIR, toState, 75)
+    //This handles the update for neighboring blocks in shipspace (ladders, redstone)
+    toState.updateNeighbourShapes(level, toPos, 75 and -0x22, 512 - 1)
+    toState.updateIndirectNeighbourShapes(level, toPos, 75 and -0x22, 512 - 1)
+    //This updates lighting for blocks in shipspace
+    level.chunkSource.lightEngine.checkBlock(toPos)
 }
 
 /**
@@ -110,8 +99,9 @@ private fun rotateBlockState(state: BlockState, direction: Direction) {
  *
  * @param from coordinate (can be local or global coord)
  * @param to coordinate (can be local or global coord)
+ * @param doUpdate update blocks after moving
  * @param toShip should be set when you're relocating to a ship
- * @param direction Direction.NORTH is no change in direction, Direction.EAST is 90 degrees clockwise, etc.
+ * @param rotation Rotation.NONE is no change in direction, Rotation.CLOCKWISE_90 is 90 degrees clockwise, etc.
  */
-fun Level.relocateBlock(from: BlockPos, to: BlockPos, toShip: ServerShip?, direction: Direction) =
-    relocateBlock(getChunkAt(from), from, getChunkAt(to), to, toShip, direction)
+fun Level.relocateBlock(from: BlockPos, to: BlockPos, doUpdate: Boolean, toShip: ServerShip?, rotation: Rotation) =
+    relocateBlock(getChunkAt(from), from, getChunkAt(to), to, doUpdate, toShip, rotation)
