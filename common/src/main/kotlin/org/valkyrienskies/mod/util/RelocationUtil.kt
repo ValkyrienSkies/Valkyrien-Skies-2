@@ -72,15 +72,17 @@ fun relocateBlock(
  */
 fun updateBlock(level: Level, fromPos: BlockPos, toPos: BlockPos, toState: BlockState) {
 
-    //75 = flag 1 (block update) & flag 2 (send to clients) + flag 8 (force rerenders) + flag 64 (block is moving)
-    val flags = 75
+    // 75 = flag 1 (block update) & flag 2 (send to clients) + flag 8 (force rerenders)
+    val flags = 11
 
     //updateNeighbourShapes recurses through nearby blocks, recursionLeft is the limit
     val recursionLeft = 511
 
     level.setBlocksDirty(fromPos, toState, AIR)
     level.sendBlockUpdated(fromPos, toState, AIR, flags)
-    //This handles the update for neighboring blocks in worldspace
+    level.blockUpdated(fromPos, AIR.block)
+    // This handles the update for neighboring blocks in worldspace
+    AIR.updateIndirectNeighbourShapes(level, fromPos, flags, recursionLeft - 1);
     AIR.updateNeighbourShapes(level, fromPos, flags, recursionLeft)
     AIR.updateIndirectNeighbourShapes(level, fromPos, flags, recursionLeft)
     //This updates lighting for blocks in worldspace
@@ -88,9 +90,10 @@ fun updateBlock(level: Level, fromPos: BlockPos, toPos: BlockPos, toState: Block
 
     level.setBlocksDirty(toPos, AIR, toState)
     level.sendBlockUpdated(toPos, AIR, toState, flags)
-    //This handles the update for neighboring blocks in shipspace (ladders, redstone)
-    toState.updateNeighbourShapes(level, toPos, flags, recursionLeft)
-    toState.updateIndirectNeighbourShapes(level, toPos, flags, recursionLeft)
+    level.blockUpdated(toPos, toState.block)
+    if (!level.isClientSide && toState.hasAnalogOutputSignal()) {
+        level.updateNeighbourForOutputSignal(toPos, toState.block)
+    }
     //This updates lighting for blocks in shipspace
     level.chunkSource.lightEngine.checkBlock(toPos)
 }
