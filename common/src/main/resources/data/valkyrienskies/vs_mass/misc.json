@@ -1,35 +1,35 @@
 [
   {
     "tag": "minecraft:fire",
-    "mass": 0.0
+    "mass": 0.1
   },
   {
     "tag": "minecraft:portals",
-    "mass": 0.0
+    "mass": 0.1
   },
   {
     "block": "minecraft:bedrock",
-    "mass": 0.0
+    "mass": 100.0
   },
   {
     "block": "minecraft:barrier",
-    "mass": 0.0
+    "mass": 100.0
   },
   {
     "block": "minecraft:command_block",
-    "mass": 0.0
+    "mass": 2329.0
   },
   {
     "block": "minecraft:chain_command_block",
-    "mass": 0.0
+    "mass": 2329.0
   },
   {
     "block": "minecraft:repeating_command_block",
-    "mass": 0.0
+    "mass": 2329.0
   },
   {
     "block": "minecraft:structure_block",
-    "mass": 0.0
+    "mass": 2329.0
   },
   {
     "block": "minecraft:gold_block",
@@ -105,7 +105,7 @@
   },
   {
     "block": "minecraft:cobweb",
-    "mass": 0.0
+    "mass": 100.0
   },
   {
     "block": "minecraft:hay_block",
@@ -125,7 +125,7 @@
   },
   {
     "block": "minecraft:conduit",
-    "mass": 75.0
+    "mass": 100.0
   },
   {
     "block": "minecraft:sponge",
@@ -161,7 +161,7 @@
   },
   {
     "block": "minecraft:end_rod",
-    "mass": 10.0
+    "mass": 100.0
   },
   {
     "block": "minecraft:sea_lantern",
@@ -333,7 +333,7 @@
   },
   {
     "tag": "minecraft:fences",
-    "mass": 40.0
+    "mass": 100.0
   },
   {
     "block": "minecraft:snow",
@@ -365,7 +365,7 @@
   },
   {
     "block": "minecraft:chain",
-    "mass": 50.0
+    "mass": 100.0
   },
   {
     "block": "minecraft:end_portal_frame",
@@ -421,51 +421,51 @@
   },
   {
     "block": "minecraft:skeleton_skull",
-    "mass": 2.0
+    "mass": 100.0
   },
   {
     "block": "minecraft:wither_skeleton_skull",
-    "mass": 2.0
+    "mass": 100.0
   },
   {
     "block": "minecraft:zombie_head",
-    "mass": 5.0
+    "mass": 100.0
   },
   {
     "block": "minecraft:player_head",
-    "mass": 5.0
+    "mass": 100.0
   },
   {
     "block": "minecraft:creeper_head",
-    "mass": 5.0
+    "mass": 100.0
   },
   {
     "block": "minecraft:dragon_head",
-    "mass": 40.0
+    "mass": 350.0
   },
   {
     "block": "minecraft:skeleton_wall_skull",
-    "mass": 2.0
+    "mass": 100.0
   },
   {
     "block": "minecraft:wither_skeleton_wall_skull",
-    "mass": 2.0
+    "mass": 100.0
   },
   {
     "block": "minecraft:zombie_wall_head",
-    "mass": 5.0
+    "mass": 100.0
   },
   {
     "block": "minecraft:player_wall_head",
-    "mass": 5.0
+    "mass": 100.0
   },
   {
     "block": "minecraft:creeper_wall_head",
-    "mass": 5.0
+    "mass": 100.0
   },
   {
     "block": "minecraft:dragon_wall_head",
-    "mass": 40.0
+    "mass": 350.0
   },
   {
     "block": "minecraft:lodestone",
