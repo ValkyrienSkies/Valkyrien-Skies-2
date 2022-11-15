@@ -8,7 +8,10 @@
     "world.level.block.FireMixin",
     "compat.cc_restitched.MixinWirelessNetwork",
     "compat.cc_restitched.MixinSpeakerPeripheral",
-    "compat.cc_restitched.MixinTurtleDetectCommand"
+    "compat.cc_restitched.MixinTurtleDetectCommand",
+    "compat.cc_restitched.MixinTurtleMoveCommand",
+    "compat.cc_restitched.MixinTurtleBrain",
+    "compat.cc_restitched.MixinTurtleAPI"
   ],
   "client": [
     "ExampleFabricMixin",

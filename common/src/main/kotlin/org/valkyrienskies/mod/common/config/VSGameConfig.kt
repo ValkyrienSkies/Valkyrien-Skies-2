@@ -53,5 +53,25 @@ object VSGameConfig {
             description = "Allow natural mob spawning on ships"
         )
         var allowMobSpawns = false
+
+        @JsonSchema(
+            description = "ComputerCraft Support",
+            title = "ComputerCraft"
+        )
+        var COMPUTERCRAFT = ComputerCraft()
+
+        class ComputerCraft {
+            // ComputerCraft Compat
+
+            @JsonSchema(
+                description = "Allow ComputerCraft Turtles to Re-Enter Ships"
+            )
+            var turtlesCanReenterShip = false
+
+            @JsonSchema(
+                description = "Allow ComputerCraft Turtles to Leave Ships that are Scaled Up/Down"
+            )
+            var turtlesCanLeaveScaledShips = false
+        }
     }
 }
