@@ -15,7 +15,11 @@
     "compat.flywheel.client.MixinTileInstanceManager",
     "world.level.block.FireMixin",
     "compat.cc_tweaked.MixinWirelessNetwork",
-    "compat.cc_tweaked.MixinSpeakerPosition"
+    "compat.cc_tweaked.MixinSpeakerPosition",
+    "compat.cc_tweaked.MixinTurtleDetectCommand",
+    "compat.cc_tweaked.MixinTurtleMoveCommand",
+    "compat.cc_tweaked.MixinTurtleBrain",
+    "compat.cc_tweaked.MixinTurtleAPI"
   ],
   "client": [
     "ExampleForgeMixin",

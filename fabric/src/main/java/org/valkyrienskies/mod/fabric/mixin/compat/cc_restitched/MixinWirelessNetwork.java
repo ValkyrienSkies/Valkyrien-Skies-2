@@ -24,7 +24,7 @@ public class MixinWirelessNetwork {
         name = "distanceSq",
         remap = false
     )
-    private static double ValkyrienSkies2$distanceSq(final double original) {
+    private static double ValkyrienSkies2$distanceSq(double original) {
         final Vec3 posOnShip = shipReceiver.getPosition();
         final Vec3 posInWorld = shipSender.getPosition();
 

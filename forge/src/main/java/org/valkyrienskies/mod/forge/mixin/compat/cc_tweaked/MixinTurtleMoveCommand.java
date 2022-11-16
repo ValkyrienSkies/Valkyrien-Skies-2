@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.fabric.mixin.compat.cc_restitched;
+package org.valkyrienskies.mod.forge.mixin.compat.cc_tweaked;
 
 import dan200.computercraft.api.turtle.TurtleCommandResult;
 import dan200.computercraft.shared.turtle.core.TurtleMoveCommand;
