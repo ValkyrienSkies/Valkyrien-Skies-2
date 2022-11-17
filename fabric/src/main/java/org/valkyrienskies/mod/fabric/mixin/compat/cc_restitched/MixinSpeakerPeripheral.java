@@ -24,8 +24,7 @@ public abstract class MixinSpeakerPeripheral {
             value = "INVOKE",
             target = "Ldan200/computercraft/shared/peripheral/speaker/SpeakerPeripheral;getPosition()Lnet/minecraft/world/phys/Vec3;"
 
-        ),
-        remap = false
+        )
     )
     public Vec3 getPosition(final SpeakerPeripheral instance) {
         Vec3 pos = instance.getPosition();
