@@ -77,15 +77,15 @@
   },
   {
     "block": "minecraft:kelp",
-    "mass": 2.0
+    "mass": 1005.0
   },
   {
     "block": "minecraft:kelp_plant",
-    "mass": 5.0
+    "mass": 1005.0
   },
   {
     "block": "minecraft:seagrass",
-    "mass": 5.0
+    "mass": 1002.0
   },
   {
     "block": "minecraft:sea_pickle",
@@ -265,7 +265,7 @@
   },
   {
     "block": "minecraft:chorus_flower",
-    "mass": 50.0
+    "mass": 100.0
   },
   {
     "block": "minecraft:brown_mushroom_block",
