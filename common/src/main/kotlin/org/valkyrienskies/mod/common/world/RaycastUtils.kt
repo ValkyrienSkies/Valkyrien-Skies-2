@@ -238,7 +238,8 @@ fun Level.raytraceEntities(
 }
 
 fun BlockGetter.vanillaClip(context: ClipContext): BlockHitResult =
-    BlockGetter.traverseBlocks(context,
+    BlockGetter.traverseBlocks(
+        context,
         { clipContext: ClipContext, blockPos: BlockPos ->
             val blockState = getBlockState(blockPos)
             val fluidState = getFluidState(blockPos)
@@ -264,9 +265,10 @@ fun BlockGetter.vanillaClip(context: ClipContext): BlockHitResult =
             else
                 blockHitResult2
         }, { ctx ->
-            val vec3 = ctx.from.subtract(ctx.to)
-            BlockHitResult.miss(
-                ctx.to, Direction.getNearest(vec3.x, vec3.y, vec3.z),
-                BlockPos(ctx.to)
-            )
-        })
+        val vec3 = ctx.from.subtract(ctx.to)
+        BlockHitResult.miss(
+            ctx.to, Direction.getNearest(vec3.x, vec3.y, vec3.z),
+            BlockPos(ctx.to)
+        )
+    }
+    )

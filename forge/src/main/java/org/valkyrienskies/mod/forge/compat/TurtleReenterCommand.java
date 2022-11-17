@@ -9,6 +9,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3d;
+import org.spongepowered.asm.mixin.Unique;
 import org.valkyrienskies.core.api.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
@@ -23,13 +24,13 @@ public class TurtleReenterCommand implements ITurtleCommand {
     @NotNull
     @Override
     public TurtleCommandResult execute(@NotNull ITurtleAccess iTurtleAccess) {
-        if (VSGameConfig.SERVER.getCOMPUTERCRAFT().getTurtlesCanReenterShip()) {
+        if (VSGameConfig.SERVER.getComputerCraft().getTurtlesCanReenterShip()) {
             BlockPos currentPos = iTurtleAccess.getPosition();
             BlockPos potentShipPos = currentPos.relative(direction.toWorldDir(iTurtleAccess));
             Level world = iTurtleAccess.getWorld();
 
             Vector3d shipPos = getShipPosFromWorldPos(world, potentShipPos);
-            Ship ship = getShip(world, shipPos);
+            Ship ship = VSGameUtilsKt.getShipManagingPos(world, shipPos);
             if (ship != null) {
                 if (iTurtleAccess.teleportTo(world, new BlockPos(shipPos.x + 0.5, shipPos.y + 0.5, shipPos.z + 0.5))) {
                     Object[] results = new Object[1];
@@ -43,6 +44,7 @@ public class TurtleReenterCommand implements ITurtleCommand {
         return TurtleCommandResult.failure("disabled");
     }
 
+    @Unique
     private static Vector3d getShipPosFromWorldPos(Level world, BlockPos position) {
         List<Vector3d>
             detectedShips = VSGameUtilsKt.transformToNearbyShipsAndWorld(world, position.getX() + 0.5, position.getY() + 0.5, position.getZ() + 0.5, 0.1);
@@ -52,9 +54,5 @@ public class TurtleReenterCommand implements ITurtleCommand {
             }
         }
         return new Vector3d(position.getX(), position.getY(), position.getZ());
-    }
-
-    private static Ship getShip(Level level, Vector3d pos) {
-        return VSGameUtilsKt.getShipManagingPos(level, pos);
     }
 }

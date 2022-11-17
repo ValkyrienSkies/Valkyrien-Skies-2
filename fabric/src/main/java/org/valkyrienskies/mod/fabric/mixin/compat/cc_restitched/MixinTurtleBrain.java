@@ -2,7 +2,6 @@ package org.valkyrienskies.mod.fabric.mixin.compat.cc_restitched;
 
 import dan200.computercraft.shared.turtle.blocks.TileTurtle;
 import dan200.computercraft.shared.turtle.core.TurtleBrain;
-import java.util.List;
 import javax.annotation.Nonnull;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -17,6 +16,7 @@ import org.joml.primitives.AABBic;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.valkyrienskies.core.api.Ship;
@@ -47,7 +47,7 @@ public abstract class MixinTurtleBrain {
         BlockPos oldPos = currentOwner.getBlockPos();
         Level world = getWorld();
 
-        Ship ship = getShip(world, oldPos);
+        Ship ship = VSGameUtilsKt.getShipManagingPos(world, oldPos);
         if (ship != null) {
             // THERE IS A SHIP
             Direction d = getNewDirection(ship, currentOwner.getDirection());
@@ -77,6 +77,7 @@ public abstract class MixinTurtleBrain {
 
     // CUSTOM METHODS
 
+    @Unique
     private static Direction getNewDirection(Ship ship, Direction direction) {
         Matrix4dc matrix = ship.getShipToWorld();
         Vec3i turtleDirectionVector = direction.getNormal();
@@ -85,26 +86,17 @@ public abstract class MixinTurtleBrain {
 
         return dir;
     }
+    @Unique
     private static boolean turtlesLeaveScaledShips() {
-        return VSGameConfig.SERVER.getCOMPUTERCRAFT().getTurtlesCanLeaveScaledShips();
+        return VSGameConfig.SERVER.getComputerCraft().getTurtlesCanLeaveScaledShips();
     }
-    private static boolean turtlesReenterShips() {
-        return VSGameConfig.SERVER.getCOMPUTERCRAFT().getTurtlesCanReenterShip();
-    }
-    private static Vector3d getShipPosFromWorldPos(Level world, BlockPos position) {
-        List<Vector3d> detectedShips = VSGameUtilsKt.transformToNearbyShipsAndWorld(world, position.getX(), position.getY(), position.getZ(), 0.5);
-        for (Vector3d vec : detectedShips) {
-            if (vec != null) {
-                return vec;
-            }
-        }
-        return new Vector3d(position.getX(), position.getY(), position.getZ());
-    }
+    @Unique
     private static boolean isShipScaled(Ship ship) {
         Vector3dc scale = ship.getShipTransform().getShipCoordinatesToWorldCoordinatesScaling();
         Vector3dc normalScale = new Vector3d(1.000E+0, 1.000E+0, 1.000E+0);
         return !scale.equals(normalScale);
     }
+    @Unique
     private static boolean doesShipContainPoint(Ship ship, BlockPos pos) {
         AABBic shipAABB = ship.getShipVoxelAABB();
 
@@ -112,14 +104,12 @@ public abstract class MixinTurtleBrain {
         boolean test = t.intersects(new AABB(pos));
         return test;
     }
+    @Unique
     private static BlockPos getWorldPosFromShipPos(Ship ship, BlockPos pos) {
         Vec3 tPos = VectorConversionsMCKt.toMinecraft(
             VSGameUtilsKt.toWorldCoordinates(ship, pos.getX() + 0.5, pos.getY() + 0.5,
                 pos.getZ() + 0.5));
         BlockPos newPos = new BlockPos(tPos.x, tPos.y, tPos.z);
         return newPos;
-    }
-    private static Ship getShip(Level level, @Nonnull BlockPos pos) {
-        return VSGameUtilsKt.getShipManagingPos(level, pos);
     }
 }

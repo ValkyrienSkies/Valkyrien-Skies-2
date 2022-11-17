@@ -20,7 +20,6 @@ import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.CreativeModeTab
 import net.minecraft.world.item.Item.Properties
 import net.minecraft.world.level.block.Block
-import org.slf4j.LoggerFactory
 import org.valkyrienskies.core.hooks.CoreHooks
 import org.valkyrienskies.core.program.DaggerVSCoreClientFactory
 import org.valkyrienskies.core.program.DaggerVSCoreServerFactory
