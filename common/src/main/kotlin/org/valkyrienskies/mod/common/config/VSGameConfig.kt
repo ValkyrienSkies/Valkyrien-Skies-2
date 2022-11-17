@@ -10,6 +10,9 @@ object VSGameConfig {
     @JvmField
     val SERVER = Server()
 
+    @JvmField
+    val COMMON = Common()
+
     class Client {
         @JsonSchema(description = "Renders the VS2 debug HUD with TPS")
         var renderDebugText = true
@@ -58,5 +61,17 @@ object VSGameConfig {
             description = "Allow rudimentary pathfinding on ships"
         )
         var aiOnShips = true
+    }
+
+    class Common {
+
+        @JvmField
+        @JsonSchema(title = "Advanced")
+        val ADVANCED = Advanced()
+
+        class Advanced { // Debug configs that may be either side
+            @JsonSchema(description = "Renders mob pathfinding nodes. Must be set on client and server to work.")
+            var renderPathfinding = true // Requires ValkyrienCommonMixinConfigPlugin.PATH_FINDING_DEBUG to be true
+        }
     }
 }

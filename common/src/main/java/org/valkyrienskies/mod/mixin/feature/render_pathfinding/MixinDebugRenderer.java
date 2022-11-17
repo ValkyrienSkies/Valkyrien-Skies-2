@@ -10,6 +10,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.valkyrienskies.mod.common.config.VSGameConfig;
 
 @Mixin(DebugRenderer.class)
 public class MixinDebugRenderer {
@@ -24,8 +25,9 @@ public class MixinDebugRenderer {
         final BufferSource buffer,
         final double camX, final double camY, final double camZ,
         final CallbackInfo ci) {
-
-        pathfindingRenderer.render(matrixStack, buffer, camX, camY, camZ);
+        if (VSGameConfig.COMMON.ADVANCED.getRenderPathfinding()) {
+            pathfindingRenderer.render(matrixStack, buffer, camX, camY, camZ);
+        }
     }
 
 }

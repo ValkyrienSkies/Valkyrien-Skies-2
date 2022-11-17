@@ -12,7 +12,7 @@ import org.valkyrienskies.mod.compat.VSRenderer;
  */
 public class ValkyrienCommonMixinConfigPlugin implements IMixinConfigPlugin {
 
-    private static boolean PATH_FINDING_DEBUG = false;
+    private static boolean PATH_FINDING_DEBUG = true;
     private static VSRenderer vsRenderer = null;
 
     public static VSRenderer getVSRenderer() {

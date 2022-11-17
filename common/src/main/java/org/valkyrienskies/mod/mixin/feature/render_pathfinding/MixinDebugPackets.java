@@ -16,6 +16,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.mixin.accessors.world.level.pathfinder.PathAccessor;
 
 @Mixin(DebugPackets.class)
@@ -29,7 +30,7 @@ public class MixinDebugPackets {
         final float maxDistanceToWaypoint,
         final CallbackInfo ci
     ) {
-        if (path == null || level.isClientSide) {
+        if (path == null || level.isClientSide || !VSGameConfig.COMMON.ADVANCED.getRenderPathfinding()) {
             return;
         }
 
