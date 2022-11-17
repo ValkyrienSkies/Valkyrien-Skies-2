@@ -58,7 +58,7 @@ object VSGameConfig {
             description = "ComputerCraft Support",
             title = "ComputerCraft"
         )
-        var COMPUTERCRAFT = ComputerCraft()
+        var computerCraft = ComputerCraft()
 
         class ComputerCraft {
             // ComputerCraft Compat

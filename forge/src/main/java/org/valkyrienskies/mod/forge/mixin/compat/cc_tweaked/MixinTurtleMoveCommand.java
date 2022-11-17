@@ -13,6 +13,7 @@ import org.joml.Vector3dc;
 import org.joml.primitives.AABBic;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
@@ -28,7 +29,7 @@ public abstract class MixinTurtleMoveCommand {
         boolean isOnShip = false;
 
         if (((TurtleCommandResult) cir.getReturnValue()).isSuccess()) {
-            Ship ship = getShip(world, position);
+            Ship ship = VSGameUtilsKt.getShipManagingPos(world, position);
             if (ship != null) {
                 if (!doesShipContainPoint(ship, position)) {
                     if (!turtlesLeaveScaledShips()) {
@@ -41,7 +42,7 @@ public abstract class MixinTurtleMoveCommand {
             }
 
             if (!isOnShip) {
-                Ship iShip = getShip(world, getShipPosFromWorldPos(world, position));
+                Ship iShip = VSGameUtilsKt.getShipManagingPos(world, getShipPosFromWorldPos(world, position));
                 if (iShip != null) {
                     if (turtlesReenterShips()) {
                         cir.setReturnValue(
@@ -57,12 +58,15 @@ public abstract class MixinTurtleMoveCommand {
 
     //CUSTOM METHODS
 
+    @Unique
     private static boolean turtlesLeaveScaledShips() {
-        return VSGameConfig.SERVER.getCOMPUTERCRAFT().getTurtlesCanLeaveScaledShips();
+        return VSGameConfig.SERVER.getComputerCraft().getTurtlesCanLeaveScaledShips();
     }
+    @Unique
     private static boolean turtlesReenterShips() {
-        return VSGameConfig.SERVER.getCOMPUTERCRAFT().getTurtlesCanReenterShip();
+        return VSGameConfig.SERVER.getComputerCraft().getTurtlesCanReenterShip();
     }
+    @Unique
     private static Vector3d getShipPosFromWorldPos(Level world, BlockPos position) {
         List<Vector3d> detectedShips = VSGameUtilsKt.transformToNearbyShipsAndWorld(world, position.getX() + 0.5, position.getY() + 0.5, position.getZ() + 0.5, 0.1);
         for (Vector3d vec : detectedShips) {
@@ -72,22 +76,18 @@ public abstract class MixinTurtleMoveCommand {
         }
         return new Vector3d(position.getX(), position.getY(), position.getZ());
     }
+    @Unique
     private static boolean isShipScaled(Ship ship) {
         Vector3dc scale = ship.getShipTransform().getShipCoordinatesToWorldCoordinatesScaling();
         Vector3dc normalScale = new Vector3d(1.000E+0, 1.000E+0, 1.000E+0);
         return !scale.equals(normalScale);
     }
+    @Unique
     private static boolean doesShipContainPoint(Ship ship, BlockPos pos) {
         AABBic shipAABB = ship.getShipVoxelAABB();
 
         AABB t = new AABB(shipAABB.maxX(), shipAABB.maxY(), shipAABB.maxZ(), shipAABB.minX(), shipAABB.minY(), shipAABB.minZ());
         boolean test = t.intersects(new AABB(pos));
         return test;
-    }
-    private static Ship getShip(Level level, @Nonnull BlockPos pos) {
-        return VSGameUtilsKt.getShipManagingPos(level, pos);
-    }
-    private static Ship getShip(Level level, Vector3d pos) {
-        return VSGameUtilsKt.getShipManagingPos(level, pos);
     }
 }
