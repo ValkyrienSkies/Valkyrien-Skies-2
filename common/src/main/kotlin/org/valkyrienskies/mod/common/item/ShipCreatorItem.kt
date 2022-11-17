@@ -1,13 +1,13 @@
 package org.valkyrienskies.mod.common.item
 
 import net.minecraft.Util
-import net.minecraft.core.Direction.NORTH
 import net.minecraft.network.chat.TextComponent
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.context.UseOnContext
+import net.minecraft.world.level.block.Rotation.NONE
 import net.minecraft.world.level.block.state.BlockState
 import org.joml.Vector3i
 import org.valkyrienskies.core.game.ChunkAllocator
@@ -38,7 +38,7 @@ class ShipCreatorItem(properties: Properties, private val scale: Double) : Item(
                 val centerPos = shipData.chunkClaim.getCenterBlockCoordinates(Vector3i()).toBlockPos()
 
                 // Move the block from the world to a ship
-                level.relocateBlock(blockPos, centerPos, shipData, NORTH)
+                level.relocateBlock(blockPos, centerPos, true, shipData, NONE)
 
                 ctx.player?.sendMessage(TextComponent("SHIPIFIED!"), Util.NIL_UUID)
             }

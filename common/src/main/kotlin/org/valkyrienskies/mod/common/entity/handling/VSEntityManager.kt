@@ -52,9 +52,11 @@ object VSEntityManager {
 
     // Sends a packet with all the entity -> handler pairs to the client
     fun syncHandlers(player: MinecraftPlayer) {
-        PacketSyncVSEntityTypes(Array(Registry.ENTITY_TYPE.count()) {
-            val handler = getHandler(Registry.ENTITY_TYPE.byId(it))
-            namedEntityHandlers[handler].toString()
-        }).sendToClient(player)
+        PacketSyncVSEntityTypes(
+            Array(Registry.ENTITY_TYPE.count()) {
+                val handler = getHandler(Registry.ENTITY_TYPE.byId(it))
+                namedEntityHandlers[handler].toString()
+            }
+        ).sendToClient(player)
     }
 }
