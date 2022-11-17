@@ -43,7 +43,10 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
                     origY, origZ, 1,
                     (x, y, z) -> {
                         final BlockPos groundPos = new BlockPos(x, y, z);
-                        fluidState[0] = finalLevel.getFluidState(groundPos);
+                        final FluidState tempFluidState = finalLevel.getFluidState(groundPos);
+                        if (!tempFluidState.isEmpty()) { // Skip any empty results for the case of intersecting ships
+                            fluidState[0] = tempFluidState;
+                        }
                     });
             }
         }
@@ -67,7 +70,10 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
                 origY, origZ, 1,
                 (x, y, z) -> {
                     final BlockPos groundPos = new BlockPos(x, y, z);
-                    blockState[0] = level.getBlockState(groundPos);
+                    final BlockState tempBlockState = level.getBlockState(groundPos);
+                    if (!tempBlockState.isAir()) { // Skip any empty results for the case of intersecting ships
+                        blockState[0] = tempBlockState;
+                    }
                 });
         }
         return blockState[0];
@@ -98,7 +104,11 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
                     origY, origZ, 1,
                     (x, y, z) -> {
                         final BlockPos groundPos = new BlockPos(x, y, z);
-                        isPathFindable[0] = instance.isPathfindable(finalLevel, groundPos, pathComputationType);
+                        final boolean pathfindable =
+                            instance.isPathfindable(finalLevel, groundPos, pathComputationType);
+                        if (pathfindable) { // Try to give a true result, not 100% accurate but method expects a single result
+                            isPathFindable[0] = true;
+                        }
                     });
             }
         }
@@ -124,7 +134,10 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
                 origY, origZ, 1,
                 (x, y, z) -> {
                     final BlockPos groundPos = new BlockPos(x, y, z);
-                    fluidState[0] = level.getFluidState(groundPos);
+                    final FluidState tempFluidState = level.getFluidState(groundPos);
+                    if (!tempFluidState.isEmpty()) { // Skip any empty results for the case of intersecting ships
+                        fluidState[0] = tempFluidState;
+                    }
                 });
         }
         return fluidState[0];
@@ -147,7 +160,10 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
                 origY, origZ, 1,
                 (x, y, z) -> {
                     final BlockPos groundPos = new BlockPos(x, y, z);
-                    blockState[0] = level.getBlockState(groundPos);
+                    final BlockState tempBlockState = level.getBlockState(groundPos);
+                    if (!tempBlockState.isAir()) { // Skip any empty results for the case of intersecting ships
+                        blockState[0] = tempBlockState;
+                    }
                 });
         }
         return blockState[0];
@@ -178,7 +194,11 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
                     origY, origZ, 1,
                     (x, y, z) -> {
                         final BlockPos groundPos = new BlockPos(x, y, z);
-                        isPathFindable[0] = instance.isPathfindable(finalLevel, groundPos, pathComputationType);
+                        final boolean pathfindable =
+                            instance.isPathfindable(finalLevel, groundPos, pathComputationType);
+                        if (pathfindable) { // Try to give a true result, not 100% accurate but method expects a single result
+                            isPathFindable[0] = true;
+                        }
                     });
             }
         }
