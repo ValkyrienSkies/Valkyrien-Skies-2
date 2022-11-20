@@ -90,18 +90,60 @@ dependencies {
     forgeRuntimeLibrary(group: 'org.jetbrains.kotlinx', name: 'kotlinx-coroutines-jdk8', version: coroutines_version, exclude_annotations)
     forgeRuntimeLibrary(group: 'org.jetbrains.kotlinx', name: 'kotlinx-serialization-json', version: serialization_version, exclude_annotations)
 
-
     // Cloth for config
     modImplementation("me.shedaniel.cloth:cloth-config-forge:6.3.81")
 
     // Shade vs-core
-    core("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {
-        exclude module: "netty-buffer"
-        exclude module: "fastutil"
+    implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}")
+    forgeRuntimeLibrary("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}")
+    shadowCommon("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {
+        transitive = false
     }
 
-    //implementation("org.valkyrienskies:valkyrien-dependency-downloader:4.2")
-    //shadowCommon("org.valkyrienskies:valkyrien-dependency-downloader:4.2")
+    // region Manually include every single dependency of vs-core (total meme)
+
+    shadowCommon("org.valkyrienskies:physics_api_krunch:1.0.0+08a9f6959e") {
+        transitive = false
+    }
+
+    shadowCommon("org.valkyrienskies:physics_api:1.0.0+26dee3aa54") {
+        transitive = false
+    }
+
+    include("javax.inject:javax.inject:1")
+
+    // JOML for Math
+    include("org.joml:joml:1.10.4")
+    include("org.joml:joml-primitives:1.10.0")
+
+    // Apache Commons Math for Linear Programming
+    include("org.apache.commons:commons-math3:3.6.1")
+
+    // Jackson Binary Dataformat for Object Serialization
+    def jacksonVersion = '2.14.0'
+    include("com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion")
+    include("com.fasterxml.jackson.module:jackson-module-parameter-names:$jacksonVersion")
+    include("com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:$jacksonVersion")
+    include("com.fasterxml.jackson.core:jackson-databind:$jacksonVersion")
+    include("com.fasterxml.jackson.core:jackson-annotations:$jacksonVersion")
+    include("com.fasterxml.jackson.core:jackson-core:$jacksonVersion")
+    include("com.github.Rubydesic:jackson-kotlin-dsl:1.2.0")
+
+    include("com.networknt:json-schema-validator:1.0.71")
+    include("com.ethlo.time:itu:1.7.0")
+    include("com.github.imifou:jsonschema-module-addon:1.2.1")
+    include("com.github.victools:jsonschema-module-jackson:4.25.0")
+    include("com.github.victools:jsonschema-generator:4.25.0")
+    include("com.fasterxml:classmate:1.5.1")
+    include("com.flipkart.zjsonpatch:zjsonpatch:0.4.11")
+    include("org.apache.commons:commons-collections4:4.3")
+
+    include("com.google.dagger:dagger:2.43.2")
+
+    // endregion
+
+    implementation("org.valkyrienskies:valkyrien-dependency-downloader:4.2")
+    include("org.valkyrienskies:valkyrien-dependency-downloader:4.2")
 }
 
 processResources {
@@ -120,11 +162,6 @@ shadowJar {
 
     configurations = [project.configurations.shadowCommon]
     classifier "dev-shadow"
-
-    relocate 'org.apache.commons', 'org.valkyrienskies.relocate.org.apache.commons'
-    // Relocate javax/inject and javax/annotation because Forge refuses to load classes in the javax package
-    relocate 'javax.inject', 'org.valkyrienskies.relocate.javax.inject'
-    relocate 'javax.annotation', 'org.valkyrienskies.relocate.javax.annotation'
 }
 
 remapJar {
