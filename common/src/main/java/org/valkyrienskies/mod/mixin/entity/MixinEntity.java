@@ -8,6 +8,7 @@ import net.minecraft.ReportedException;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
@@ -32,6 +33,7 @@ import org.valkyrienskies.core.game.ships.ShipObject;
 import org.valkyrienskies.core.game.ships.ShipObjectClient;
 import org.valkyrienskies.core.game.ships.ShipTransform;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.entity.handling.VSEntityManager;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
@@ -157,12 +159,25 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         cir.setReturnValue(newViewVector);
     }
 
+    @Inject(
+        at = @At("HEAD"),
+        method = "teleportTo",
+        cancellable = true
+    )
+    private void beforeTeleportTo(final double d, final double e, final double f, final CallbackInfo ci) {
+        ci.cancel();
+        VSEntityManager.INSTANCE.getHandler(this.getType()).teleportTo(Entity.class.cast(this), d, e, f);
+    }
+
     // region shadow functions and fields
     @Shadow
     public Level level;
 
     @Shadow
     public abstract AABB getBoundingBox();
+
+    @Shadow
+    protected abstract void positionRider(Entity passenger, Entity.MoveFunction callback);
 
     @Shadow
     protected abstract void onInsideBlock(BlockState state);
@@ -181,7 +196,11 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
     @Shadow
     public abstract float getEyeHeight();
+
     // endregion
+
+    @Shadow
+    public abstract EntityType<?> getType();
 
     @Override
     @NotNull
