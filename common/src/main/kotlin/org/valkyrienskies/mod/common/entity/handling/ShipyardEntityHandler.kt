@@ -39,6 +39,10 @@ object ShipyardEntityHandler : VSEntityHandler {
         self.setPos(x, y, z)
     }
 
+    override fun teleportTo(self: Entity, x: Double, y: Double, z: Double) {
+        self.teleportTo(x, y, z)
+    }
+
     override fun applyRenderOnMountedEntity(
         ship: ClientShip, self: Entity, passenger: Entity, partialTicks: Float, matrixStack: PoseStack
     ) {

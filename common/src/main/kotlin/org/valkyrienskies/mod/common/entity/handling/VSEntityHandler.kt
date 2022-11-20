@@ -40,6 +40,11 @@ interface VSEntityHandler {
     fun positionSetFromVehicle(self: Entity, vehicle: Entity, x: Double, y: Double, z: Double)
 
     /**
+     * Shipyard entities will stay in the shipyard, but world entities are unable to teleport into the shipyard
+     */
+    fun teleportTo(self: Entity, x: Double, y: Double, z: Double)
+
+    /**
      * Gets called every render of a passenger when the vehicle (this handler) lives in the shipyard
      * The matrix stack is filled with the existing transform
      */

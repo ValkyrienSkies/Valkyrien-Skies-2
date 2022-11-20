@@ -2,14 +2,13 @@ package org.valkyrienskies.mod.mixin.entity;
 
 import static org.valkyrienskies.mod.common.util.VectorConversionsMCKt.toJOML;
 
-import java.util.Random;
 import net.minecraft.CrashReport;
 import net.minecraft.CrashReportCategory;
 import net.minecraft.ReportedException;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityDimensions;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
@@ -21,7 +20,6 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.joml.primitives.AABBd;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -170,6 +168,16 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
                 .positionSetFromVehicle(passenger, Entity.class.cast(this), x, y, z));
     }
 
+    @Inject(
+        at = @At("HEAD"),
+        method = "teleportTo",
+        cancellable = true
+    )
+    private void beforeTeleportTo(final double d, final double e, final double f, final CallbackInfo ci) {
+        ci.cancel();
+        VSEntityManager.INSTANCE.getHandler(this.getType()).teleportTo(Entity.class.cast(this), d, e, f);
+    }
+
     // region shadow functions and fields
     @Shadow
     public Level level;
@@ -178,22 +186,10 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     public abstract AABB getBoundingBox();
 
     @Shadow
-    public abstract void setDeltaMovement(double x, double y, double z);
-
-    @Shadow
-    protected abstract Vec3 collide(Vec3 vec3d);
-
-    @Shadow
     protected abstract void positionRider(Entity passenger, Entity.MoveFunction callback);
 
     @Shadow
     protected abstract void onInsideBlock(BlockState state);
-
-    @Shadow
-    public abstract Vec3 getDeltaMovement();
-
-    @Shadow
-    public abstract void setDeltaMovement(Vec3 motion);
 
     @Shadow
     public abstract double getZ();
@@ -208,18 +204,12 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     private @Nullable Entity vehicle;
 
     @Shadow
-    private Vec3 position;
-
-    @Shadow
-    @Final
-    protected Random random;
-
-    @Shadow
     public abstract float getEyeHeight();
 
-    @Shadow
-    private EntityDimensions dimensions;
     // endregion
+
+    @Shadow
+    public abstract EntityType<?> getType();
 
     @Override
     @NotNull

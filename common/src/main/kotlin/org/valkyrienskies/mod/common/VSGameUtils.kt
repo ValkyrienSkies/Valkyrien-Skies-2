@@ -314,8 +314,13 @@ fun Level.toWorldCoordinates(pos: Vec3): Vec3 {
     return getShipManagingPos(pos)?.toWorldCoordinates(pos) ?: pos
 }
 
-fun Ship.toWorldCoordinates(x: Double, y: Double, z: Double): Vector3d =
-    shipTransform.shipToWorldMatrix.transformPosition(Vector3d(x, y, z))
+@JvmOverloads
+fun Level.toWorldCoordinates(x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
+    getShipManagingPos(x, y, z)?.toWorldCoordinates(x, y, z) ?: dest.set(x, y, z)
+
+@JvmOverloads
+fun Ship.toWorldCoordinates(x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
+    shipTransform.shipToWorldMatrix.transformPosition(dest.set(x, y, z))
 
 fun LevelChunkSection.toDenseVoxelUpdate(chunkPos: Vector3ic): DenseVoxelShapeUpdate {
     val update = DenseVoxelShapeUpdate.createDenseVoxelShapeUpdate(chunkPos)
