@@ -34,15 +34,13 @@ object WorldEntityHandler : VSEntityHandler {
     }
 
     override fun positionSetFromVehicle(self: Entity, vehicle: Entity, x: Double, y: Double, z: Double) {
-        val pos = Vector3d(x, y, z)
-        val ship = self.level.getShipObjectManagingPos(pos)
+        val (wx, wy, wz) = self.level.toWorldCoordinates(x, y, z)
+        self.setPos(wx, wy, wz)
+    }
 
-        val worldSet = if (ship != null)
-            ship.shipToWorld.transformPosition(pos)
-        else
-            pos
-
-        self.setPos(worldSet.x, worldSet.y, worldSet.z)
+    override fun teleportTo(self: Entity, x: Double, y: Double, z: Double) {
+        val (wx, wy, wz) = self.level.toWorldCoordinates(x, y, z)
+        self.teleportTo(wx, wy, wz)
     }
 
     override fun applyRenderOnMountedEntity(

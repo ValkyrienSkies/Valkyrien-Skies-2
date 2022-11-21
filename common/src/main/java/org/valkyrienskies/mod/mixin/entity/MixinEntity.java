@@ -158,37 +158,12 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         cir.setReturnValue(newViewVector);
     }
 
-    /**
-     * @author ewoudje
-     * @reason use vs2 handler to handle this method
-     */
-    @Redirect(method = "positionRider(Lnet/minecraft/world/entity/Entity;)V", at = @At(value = "INVOKE",
-        target = "Lnet/minecraft/world/entity/Entity;positionRider(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/entity/Entity$MoveFunction;)V"))
-    public void positionRider(final Entity instance, final Entity passengerI, final Entity.MoveFunction callback) {
-        this.positionRider(passengerI,
-            (passenger, x, y, z) -> VSEntityManager.INSTANCE.getHandler(passenger.getType())
-                .positionSetFromVehicle(passenger, Entity.class.cast(this), x, y, z));
-    }
-
-    @Inject(
-        at = @At("HEAD"),
-        method = "teleportTo",
-        cancellable = true
-    )
-    private void beforeTeleportTo(final double d, final double e, final double f, final CallbackInfo ci) {
-        ci.cancel();
-        VSEntityManager.INSTANCE.getHandler(this.getType()).teleportTo(Entity.class.cast(this), d, e, f);
-    }
-
     // region shadow functions and fields
     @Shadow
     public Level level;
 
     @Shadow
     public abstract AABB getBoundingBox();
-
-    @Shadow
-    protected abstract void positionRider(Entity passenger, Entity.MoveFunction callback);
 
     @Shadow
     protected abstract void onInsideBlock(BlockState state);
