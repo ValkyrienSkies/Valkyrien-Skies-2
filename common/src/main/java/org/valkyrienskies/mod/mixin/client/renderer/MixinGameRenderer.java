@@ -225,8 +225,10 @@ public abstract class MixinGameRenderer {
      */
     @Inject(
         method = "renderLevel",
-        at = @At(value = "INVOKE",
-            target = "Lnet/minecraft/client/renderer/LevelRenderer;renderLevel(Lcom/mojang/blaze3d/vertex/PoseStack;FJZLnet/minecraft/client/Camera;Lnet/minecraft/client/renderer/GameRenderer;Lnet/minecraft/client/renderer/LightTexture;Lcom/mojang/math/Matrix4f;)V")
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/client/renderer/LevelRenderer;prepareCullFrustum(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/world/phys/Vec3;Lcom/mojang/math/Matrix4f;)V"
+        )
     )
     private void preRenderLevelInRenderLevel(final float partialTicks, final long finishTimeNano,
         final PoseStack matrixStack,
