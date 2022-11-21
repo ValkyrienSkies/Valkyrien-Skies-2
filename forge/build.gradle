@@ -121,7 +121,8 @@ dependencies {
 
     // Jackson Binary Dataformat for Object Serialization
     def jacksonVersion = '2.14.0'
-    include("com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion")
+    // forked to remove module-info
+    include("com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion-rubyfork")
     include("com.fasterxml.jackson.module:jackson-module-parameter-names:$jacksonVersion")
     include("com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:$jacksonVersion")
     include("com.fasterxml.jackson.core:jackson-databind:$jacksonVersion")

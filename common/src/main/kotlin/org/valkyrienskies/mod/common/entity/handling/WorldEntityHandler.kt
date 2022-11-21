@@ -9,7 +9,10 @@ import org.joml.Vector3d
 import org.joml.Vector3dc
 import org.valkyrienskies.core.api.ClientShip
 import org.valkyrienskies.core.api.Ship
-import org.valkyrienskies.mod.common.getShipObjectManagingPos
+import org.valkyrienskies.core.util.component1
+import org.valkyrienskies.core.util.component2
+import org.valkyrienskies.core.util.component3
+import org.valkyrienskies.mod.common.toWorldCoordinates
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toMinecraft
 import kotlin.math.atan2
