@@ -33,6 +33,16 @@ object WorldEntityHandler : VSEntityHandler {
         matrixStack.translate(x + offset.x, y + offset.y, z + offset.z)
     }
 
+    override fun positionSetFromVehicle(self: Entity, vehicle: Entity, x: Double, y: Double, z: Double) {
+        val (wx, wy, wz) = self.level.toWorldCoordinates(x, y, z)
+        self.setPos(wx, wy, wz)
+    }
+
+    override fun teleportTo(self: Entity, x: Double, y: Double, z: Double) {
+        val (wx, wy, wz) = self.level.toWorldCoordinates(x, y, z)
+        self.teleportTo(wx, wy, wz)
+    }
+
     override fun applyRenderOnMountedEntity(
         ship: ClientShip, self: Entity, passenger: Entity, partialTicks: Float, matrixStack: PoseStack
     ) {
@@ -82,15 +92,5 @@ object WorldEntityHandler : VSEntityHandler {
         }
 
         return newPos
-    }
-
-    override fun positionSetFromVehicle(self: Entity, vehicle: Entity, x: Double, y: Double, z: Double) {
-        val (wx, wy, wz) = self.level.toWorldCoordinates(x, y, z)
-        self.setPos(wx, wy, wz)
-    }
-
-    override fun teleportTo(self: Entity, x: Double, y: Double, z: Double) {
-        val (wx, wy, wz) = self.level.toWorldCoordinates(x, y, z)
-        self.teleportTo(wx, wy, wz)
     }
 }

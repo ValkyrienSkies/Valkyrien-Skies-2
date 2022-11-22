@@ -33,7 +33,6 @@ import org.valkyrienskies.core.game.ships.ShipObject;
 import org.valkyrienskies.core.game.ships.ShipObjectClient;
 import org.valkyrienskies.core.game.ships.ShipTransform;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.entity.handling.VSEntityManager;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
@@ -157,16 +156,6 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         final Vec3 newViewVector = VectorConversionsMCKt.toMinecraft(
             shipTransform.getShipCoordinatesToWorldCoordinatesRotation().transform(originalViewVector, new Vector3d()));
         cir.setReturnValue(newViewVector);
-    }
-
-    @Inject(
-        at = @At("HEAD"),
-        method = "teleportTo",
-        cancellable = true
-    )
-    private void beforeTeleportTo(final double d, final double e, final double f, final CallbackInfo ci) {
-        ci.cancel();
-        VSEntityManager.INSTANCE.getHandler(this.getType()).teleportTo(Entity.class.cast(this), d, e, f);
     }
 
     // region shadow functions and fields

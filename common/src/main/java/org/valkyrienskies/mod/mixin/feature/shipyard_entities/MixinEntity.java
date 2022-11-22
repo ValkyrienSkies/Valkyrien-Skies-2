@@ -35,6 +35,16 @@ public abstract class MixinEntity {
                 .positionSetFromVehicle(passenger, Entity.class.cast(this), x, y, z));
     }
 
+    @Inject(
+        at = @At("HEAD"),
+        method = "teleportTo",
+        cancellable = true
+    )
+    private void beforeTeleportTo(final double d, final double e, final double f, final CallbackInfo ci) {
+        ci.cancel();
+        VSEntityManager.INSTANCE.getHandler(this.getType()).teleportTo(Entity.class.cast(this), d, e, f);
+    }
+
     @Unique
     private static Vector3dc tempVec = null;
 
