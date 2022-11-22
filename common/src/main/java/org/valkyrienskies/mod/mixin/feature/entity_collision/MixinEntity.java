@@ -93,9 +93,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         locals = LocalCapture.CAPTURE_FAILHARD, cancellable = true
     )
     private void redirectSetVelocity(final MoverType moverType, final Vec3 movement, final CallbackInfo callbackInfo,
-        final Vec3 movementAdjustedForCollisions,
-        final double lengthSqr, final boolean d, final boolean bl, final BlockPos blockPos,
-        final BlockState blockState) {
+        final Vec3 movementAdjustedForCollisions) {
 
         // Compute the collision response horizontal
         final Vector3dc collisionResponseHorizontal =
