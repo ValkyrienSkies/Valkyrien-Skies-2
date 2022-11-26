@@ -54,13 +54,13 @@ dependencies {
     modImplementation("me.shedaniel.cloth:cloth-config-fabric:6.3.81")
 
 
-    implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {
+    implementation("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
         exclude module: "netty-buffer"
         exclude module: "fastutil"
         exclude module: "kotlin-stdlib-jdk8"
     }
     // Shade vs-core
-    shadowCommon("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {
+    shadowCommon("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
         exclude module: "netty-buffer"
         exclude module: "fastutil"
         exclude module: "kotlin-stdlib-jdk8" // Don't shade kotlin-stdlib-jdk8, even though vs-core depends on it

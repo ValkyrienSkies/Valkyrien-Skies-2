@@ -8,7 +8,7 @@ import net.minecraft.sounds.SoundEvent
 import net.minecraft.sounds.SoundSource
 import org.joml.Vector3d
 import org.joml.Vector3dc
-import org.valkyrienskies.core.api.Ship
+import org.valkyrienskies.core.api.ships.Ship
 
 class SimpleSoundInstanceOnShip : SimpleSoundInstance, VelocityTickableSoundInstance {
 

@@ -47,7 +47,6 @@
     "server.world.MixinChunkMap",
     "server.world.MixinChunkMap$TrackedEntity",
     "server.world.MixinServerLevel",
-    "world.MixinLevel",
     "world.chunk.MixinLevelChunk",
     "world.entity.MixinPlayer"
   ],

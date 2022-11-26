@@ -14,7 +14,7 @@ dependencies {
     modCompileOnly("curse.maven:iris-455508:4023641")
 
     // vs-core
-    implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {
+    implementation("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
         exclude module: "netty-buffer"
         exclude module: "fastutil"
     }

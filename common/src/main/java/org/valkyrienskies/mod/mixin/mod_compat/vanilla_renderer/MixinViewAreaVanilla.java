@@ -18,7 +18,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.valkyrienskies.core.game.ChunkAllocator;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.mixinducks.client.render.IVSViewAreaMethods;
 
 /**
@@ -57,22 +57,25 @@ public class MixinViewAreaVanilla implements IVSViewAreaMethods {
     private void preScheduleRebuild(final int x, final int y, final int z, final boolean important,
         final CallbackInfo callbackInfo) {
 
-        if (y < 0 || y >= chunkGridSizeY) {
+        final int yIndex = y - level.getMinSection();
+
+        if (yIndex < 0 || yIndex >= chunkGridSizeY) {
             return; // Weird, but just ignore it
         }
-        if (ChunkAllocator.isChunkInShipyard(x, z)) {
+
+        if (VSGameUtilsKt.isChunkInShipyard(level, x, z)) {
             final long chunkPosAsLong = ChunkPos.asLong(x, z);
             final ChunkRenderDispatcher.RenderChunk[] renderChunksArray =
                 vs$shipRenderChunks.computeIfAbsent(chunkPosAsLong,
                     k -> new ChunkRenderDispatcher.RenderChunk[chunkGridSizeY]);
 
-            if (renderChunksArray[y] == null) {
+            if (renderChunksArray[yIndex] == null) {
                 final ChunkRenderDispatcher.RenderChunk builtChunk =
                     vs$chunkBuilder.new RenderChunk(0, x << 4, y << 4, z << 4);
-                renderChunksArray[y] = builtChunk;
+                renderChunksArray[yIndex] = builtChunk;
             }
 
-            renderChunksArray[y].setDirty(important);
+            renderChunksArray[yIndex].setDirty(important);
 
             callbackInfo.cancel();
         }
@@ -85,14 +88,14 @@ public class MixinViewAreaVanilla implements IVSViewAreaMethods {
     private void preGetRenderedChunk(final BlockPos pos,
         final CallbackInfoReturnable<ChunkRenderDispatcher.RenderChunk> callbackInfoReturnable) {
         final int chunkX = Mth.intFloorDiv(pos.getX(), 16);
-        final int chunkY = Mth.intFloorDiv(pos.getY(), 16);
+        final int chunkY = Mth.intFloorDiv(pos.getY() - level.getMinBuildHeight(), 16);
         final int chunkZ = Mth.intFloorDiv(pos.getZ(), 16);
 
         if (chunkY < 0 || chunkY >= chunkGridSizeY) {
             return; // Weird, but ignore it
         }
 
-        if (ChunkAllocator.isChunkInShipyard(chunkX, chunkZ)) {
+        if (VSGameUtilsKt.isChunkInShipyard(level, chunkX, chunkZ)) {
             final long chunkPosAsLong = ChunkPos.asLong(chunkX, chunkZ);
             final ChunkRenderDispatcher.RenderChunk[] renderChunksArray = vs$shipRenderChunks.get(chunkPosAsLong);
             if (renderChunksArray == null) {
@@ -106,7 +109,7 @@ public class MixinViewAreaVanilla implements IVSViewAreaMethods {
 
     @Override
     public void unloadChunk(final int chunkX, final int chunkZ) {
-        if (ChunkAllocator.isChunkInShipyard(chunkX, chunkZ)) {
+        if (VSGameUtilsKt.isChunkInShipyard(level, chunkX, chunkZ)) {
             final ChunkRenderDispatcher.RenderChunk[] chunks =
                 vs$shipRenderChunks.remove(ChunkPos.asLong(chunkX, chunkZ));
             if (chunks != null) {

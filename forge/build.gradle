@@ -94,9 +94,9 @@ dependencies {
     modImplementation("me.shedaniel.cloth:cloth-config-forge:6.3.81")
 
     // Shade vs-core
-    implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}")
-    forgeRuntimeLibrary("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}")
-    shadowCommon("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {
+    implementation("org.valkyrienskies.core:impl:${rootProject.vs_core_version}")
+    forgeRuntimeLibrary("org.valkyrienskies.core:impl:${rootProject.vs_core_version}")
+    shadowCommon("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
         transitive = false
     }
 

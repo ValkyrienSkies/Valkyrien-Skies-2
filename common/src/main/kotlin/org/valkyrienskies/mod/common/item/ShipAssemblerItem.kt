@@ -8,9 +8,8 @@ import net.minecraft.world.item.Item
 import net.minecraft.world.item.context.UseOnContext
 import net.minecraft.world.level.block.state.BlockState
 import org.valkyrienskies.core.datastructures.DenseBlockPosSet
-import org.valkyrienskies.core.game.ChunkAllocator
 import org.valkyrienskies.mod.common.assembly.createNewShipWithBlocks
-import org.valkyrienskies.mod.common.dimensionId
+import org.valkyrienskies.mod.common.isChunkInShipyard
 
 class ShipAssemblerItem(properties: Properties) : Item(properties) {
 
@@ -20,11 +19,10 @@ class ShipAssemblerItem(properties: Properties) : Item(properties) {
         val blockState: BlockState = level.getBlockState(pos)
 
         if (!level.isClientSide) {
-            if (ChunkAllocator.isChunkInShipyard(pos.x shr 4, pos.z shr 4)) {
+            if (ctx.level.isChunkInShipyard(pos.x shr 4, pos.z shr 4)) {
                 ctx.player?.sendMessage(TextComponent("That chunk is already part of a ship!"), Util.NIL_UUID)
             } else if (!blockState.isAir) {
                 // Make a ship
-                val dimensionId = level.dimensionId
                 val set = DenseBlockPosSet()
                 for (x in -3..3) {
                     for (z in -3..3) {

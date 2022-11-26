@@ -19,7 +19,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
-import org.valkyrienskies.core.game.ships.ShipObjectClient;
+import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(SodiumWorldRenderer.class)
@@ -37,7 +37,7 @@ public class MixinSodiumWorldRenderer {
         final float tickDelta) {
 
         final BlockPos blockEntityPos = blockEntity.getBlockPos();
-        final ShipObjectClient shipObject = VSGameUtilsKt.getShipObjectManagingPos(world, blockEntityPos);
+        final ClientShip shipObject = VSGameUtilsKt.getShipObjectManagingPos(world, blockEntityPos);
         if (shipObject != null) {
             final Vec3 cam = camera.getPosition();
             matrixStack.popPose();

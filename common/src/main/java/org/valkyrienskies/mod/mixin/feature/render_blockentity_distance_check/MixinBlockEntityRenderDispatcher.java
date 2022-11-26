@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
-import org.valkyrienskies.core.game.ships.ShipObjectClient;
+import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 /**
@@ -49,7 +49,7 @@ public class MixinBlockEntityRenderDispatcher {
 
         // If defaultResult was false, then check if this BlockEntity belongs to a ship
         final BlockPos bePos = methodBlockEntity.getBlockPos();
-        final ShipObjectClient shipObject = VSGameUtilsKt.getShipObjectManagingPos((ClientLevel) level, bePos);
+        final ClientShip shipObject = VSGameUtilsKt.getShipObjectManagingPos((ClientLevel) level, bePos);
         if (shipObject != null) {
             final Matrix4dc m = shipObject.getRenderTransform().getShipToWorldMatrix();
 

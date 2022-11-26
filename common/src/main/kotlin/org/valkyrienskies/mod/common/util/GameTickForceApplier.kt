@@ -1,12 +1,11 @@
 package org.valkyrienskies.mod.common.util
 
 import org.joml.Vector3dc
-import org.valkyrienskies.core.api.ForcesApplier
-import org.valkyrienskies.core.api.ShipForcesInducer
-import org.valkyrienskies.core.game.ships.PhysShip
+import org.valkyrienskies.core.api.ships.PhysShip
+import org.valkyrienskies.core.api.ships.attachments.ShipForcesInducer
 import java.util.concurrent.ConcurrentLinkedQueue
 
-class GameTickForceApplier : ShipForcesInducer, ForcesApplier {
+class GameTickForceApplier : ShipForcesInducer {
 
     val invForces = ConcurrentLinkedQueue<Vector3dc>()
     val invTorques = ConcurrentLinkedQueue<Vector3dc>()
@@ -17,16 +16,16 @@ class GameTickForceApplier : ShipForcesInducer, ForcesApplier {
     var toBeStatic = false
     var toBeStaticUpdated = false
 
-    override fun applyForces(forcesApplier: ForcesApplier, physShip: PhysShip) {
-        invForces.forEach { i -> forcesApplier.applyInvariantForce(i) }
-        invTorques.forEach { i -> forcesApplier.applyInvariantTorque(i) }
-        rotForces.forEach { i -> forcesApplier.applyRotDependentForce(i) }
-        rotTorques.forEach { i -> forcesApplier.applyRotDependentTorque(i) }
+    override fun applyForces(physShip: PhysShip) {
+        invForces.forEach { i -> physShip.applyInvariantForce(i) }
+        invTorques.forEach { i -> physShip.applyInvariantTorque(i) }
+        rotForces.forEach { i -> physShip.applyRotDependentForce(i) }
+        rotTorques.forEach { i -> physShip.applyRotDependentTorque(i) }
         for ((index, force) in invPosForces.withIndex()) {
-            forcesApplier.applyInvariantForceToPos(force, invPosPositions.elementAt(index))
+            physShip.applyInvariantForceToPos(force, invPosPositions.elementAt(index))
         }
         if (toBeStaticUpdated) {
-            forcesApplier.setStatic(toBeStatic)
+            physShip.isStatic = toBeStatic
             toBeStaticUpdated = false
         }
 
@@ -38,28 +37,28 @@ class GameTickForceApplier : ShipForcesInducer, ForcesApplier {
         invPosPositions.clear()
     }
 
-    override fun applyInvariantForce(force: Vector3dc) {
+    fun applyInvariantForce(force: Vector3dc) {
         invForces.add(force)
     }
 
-    override fun applyInvariantTorque(torque: Vector3dc) {
+    fun applyInvariantTorque(torque: Vector3dc) {
         invForces.add(torque)
     }
 
-    override fun applyRotDependentForce(force: Vector3dc) {
+    fun applyRotDependentForce(force: Vector3dc) {
         invForces.add(force)
     }
 
-    override fun applyRotDependentTorque(torque: Vector3dc) {
+    fun applyRotDependentTorque(torque: Vector3dc) {
         invForces.add(torque)
     }
 
-    override fun applyInvariantForceToPos(force: Vector3dc, pos: Vector3dc) {
+    fun applyInvariantForceToPos(force: Vector3dc, pos: Vector3dc) {
         invPosForces.add(force)
         invPosPositions.add(pos)
     }
 
-    override fun setStatic(b: Boolean) {
+    fun setStatic(b: Boolean) {
         toBeStatic = b
         toBeStaticUpdated = true
     }

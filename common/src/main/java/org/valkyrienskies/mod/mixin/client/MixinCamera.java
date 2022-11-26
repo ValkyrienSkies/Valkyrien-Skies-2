@@ -16,8 +16,8 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
-import org.valkyrienskies.core.game.ships.ShipObjectClient;
-import org.valkyrienskies.core.game.ships.ShipTransform;
+import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.mod.client.IVSCamera;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
@@ -66,7 +66,7 @@ public abstract class MixinCamera implements IVSCamera {
     @Override
     public void setupWithShipMounted(final @NotNull BlockGetter level, final @NotNull Entity renderViewEntity,
         final boolean thirdPerson, final boolean thirdPersonReverse, final float partialTicks,
-        final @NotNull ShipObjectClient shipMountedTo, final @NotNull Vector3dc inShipPlayerPosition) {
+        final @NotNull ClientShip shipMountedTo, final @NotNull Vector3dc inShipPlayerPosition) {
         final ShipTransform renderTransform = shipMountedTo.getRenderTransform();
         final Vector3dc playerBasePos =
             renderTransform.getShipToWorldMatrix().transformPosition(inShipPlayerPosition, new Vector3d());

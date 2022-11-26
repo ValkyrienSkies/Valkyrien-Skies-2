@@ -1,6 +1,8 @@
 package org.valkyrienskies.mod.mixin.server;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.BooleanSupplier;
 import java.util.stream.Collectors;
@@ -14,10 +16,9 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.core.game.IPlayer;
-import org.valkyrienskies.core.game.ships.SerializedShipDataModule;
-import org.valkyrienskies.core.game.ships.ShipObjectServerWorld;
-import org.valkyrienskies.core.pipelines.VSPipeline;
+import org.valkyrienskies.core.api.world.IPlayer;
+import org.valkyrienskies.core.api.world.ServerShipWorldCore;
+import org.valkyrienskies.core.api.world.VSPipeline;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.ShipSavedData;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
@@ -26,7 +27,6 @@ import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.common.world.ChunkManagement;
 import org.valkyrienskies.mod.event.RegistryEvents;
 import org.valkyrienskies.mod.util.KrunchSupport;
-import org.valkyrienskies.physics_api_krunch.KrunchBootstrap;
 
 @Mixin(MinecraftServer.class)
 public abstract class MixinMinecraftServer implements IShipObjectWorldServerProvider {
@@ -40,7 +40,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     public abstract Iterable<ServerLevel> getAllLevels();
 
     @Unique
-    private ShipObjectServerWorld shipWorld;
+    private ServerShipWorldCore shipWorld;
 
     @Unique
     private VSPipeline vsPipeline;
@@ -73,7 +73,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
 
     @NotNull
     @Override
-    public ShipObjectServerWorld getShipObjectWorld() {
+    public ServerShipWorldCore getShipObjectWorld() {
         return shipWorld;
     }
 
@@ -89,17 +89,12 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
      */
     @Inject(
         method = "createLevels",
-        at = @At("TAIL")
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/server/level/ServerLevel;getDataStorage()Lnet/minecraft/world/level/storage/DimensionDataStorage;"
+        )
     )
     private void postCreateLevels(final CallbackInfo ci) {
-        try {
-            KrunchBootstrap.INSTANCE.loadNativeBinaries();
-            KrunchSupport.INSTANCE.setKrunchSupported(true);
-        } catch (final Exception e) {
-            KrunchSupport.INSTANCE.setKrunchSupported(false);
-            e.printStackTrace();
-        }
-
         // Load ship data from the world storage
         final ShipSavedData shipSavedData = overworld().getDataStorage()
             .computeIfAbsent(ShipSavedData::load, ShipSavedData.Companion::createEmpty, ShipSavedData.SAVED_DATA_ID);
@@ -114,10 +109,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         }
 
         // Create ship world and VS Pipeline
-        vsPipeline = ValkyrienSkiesMod.getVsCore().getPipelineComponentFactory()
-            .newPipelineComponent(new SerializedShipDataModule(
-                shipSavedData.getQueryableShipData(), shipSavedData.getChunkAllocator()))
-            .newPipeline();
+        vsPipeline = shipSavedData.getPipeline();
 
         if (vsPipeline.isUsingDummyPhysics()) {
             KrunchSupport.INSTANCE.setKrunchSupported(false);
@@ -134,21 +126,22 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     )
     private void preTick(final CallbackInfo ci) {
         // region Tell the VS world to load new levels, and unload deleted ones
-        final Set<String> newLoadedLevels = new HashSet<>();
+        final Map<String, ServerLevel> newLoadedLevels = new HashMap<>();
         for (final ServerLevel level : getAllLevels()) {
-            newLoadedLevels.add(VSGameUtilsKt.getDimensionId(level));
+            newLoadedLevels.put(VSGameUtilsKt.getDimensionId(level), level);
         }
-        for (final String loadedLevelId : newLoadedLevels) {
-            if (!loadedLevels.contains(loadedLevelId)) {
-                shipWorld.addDimension(loadedLevelId);
+        for (final var entry : newLoadedLevels.entrySet()) {
+            if (!loadedLevels.contains(entry.getKey())) {
+                final var yRange = VSGameUtilsKt.getYRange(entry.getValue());
+                shipWorld.addDimension(entry.getKey(), yRange);
             }
         }
         for (final String oldLoadedLevelId : loadedLevels) {
-            if (!newLoadedLevels.contains(oldLoadedLevelId)) {
+            if (!newLoadedLevels.containsKey(oldLoadedLevelId)) {
                 shipWorld.removeDimension(oldLoadedLevelId);
             }
         }
-        loadedLevels = newLoadedLevels;
+        loadedLevels = newLoadedLevels.keySet();
         // endregion
 
         vsPipeline.preTickGame();

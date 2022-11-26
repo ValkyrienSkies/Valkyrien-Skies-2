@@ -82,7 +82,7 @@ private fun Level.clip(context: ClipContext, realStart: Vec3, realEnd: Vec3): Bl
     return clip(
         realStart, realEnd, context,
         { raycastContext: ClipContext, blockPos: BlockPos? ->
-            val blockState: BlockState = getBlockState(blockPos)
+            val blockState: BlockState = getBlockState(blockPos!!)
             val fluidState: FluidState = getFluidState(blockPos)
             val vec3d = realStart
             val vec3d2 = realEnd

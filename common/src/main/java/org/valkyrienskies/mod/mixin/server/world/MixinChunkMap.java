@@ -25,8 +25,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.valkyrienskies.core.game.ChunkAllocator;
-import org.valkyrienskies.core.game.IPlayer;
+import org.valkyrienskies.core.api.world.IPlayer;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.MinecraftPlayer;
 
@@ -58,7 +57,7 @@ public abstract class MixinChunkMap {
             self.upgradeChunkTag(this.level.dimension(), this.overworldDataStorage, compoundTag, Optional.empty());
 
         if (originalToReturn == null) {
-            if (ChunkAllocator.isChunkInShipyard(chunkPos.x, chunkPos.z)) {
+            if (VSGameUtilsKt.isChunkInShipyard(level, chunkPos.x, chunkPos.z)) {
                 // The chunk doesn't yet exist and is in the shipyard. Make a new empty chunk
                 // Generate the chunk to be nothing
                 final LevelChunk generatedChunk = new LevelChunk(level,
@@ -103,7 +102,7 @@ public abstract class MixinChunkMap {
                 }
             }
         );
-        
+
         cir.setReturnValue(new ArrayList<>(watchingPlayers));
     }
 

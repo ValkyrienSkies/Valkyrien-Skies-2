@@ -19,7 +19,7 @@
 //import org.spongepowered.asm.mixin.injection.At;
 //import org.spongepowered.asm.mixin.injection.Inject;
 //import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-//import org.valkyrienskies.core.game.ships.ShipObjectClient;
+//import org.valkyrienskies.core.api.ships.ClientShip;
 //import org.valkyrienskies.mod.common.VSGameUtilsKt;
 //import org.valkyrienskies.mod.forge.mixinducks.MixinTileInstanceManagerDuck;
 //
@@ -49,12 +49,12 @@
 //        final Level nullableLevel = blockEntity.getLevel();
 //        if (nullableLevel instanceof ClientLevel) {
 //            final ClientLevel level = (ClientLevel) nullableLevel;
-//            final ShipObjectClient ship = VSGameUtilsKt.getShipObjectManagingPos(
+//            final ClientShip ship = VSGameUtilsKt.getShipObjectManagingPos(
 //                level, blockEntity.getBlockPos());
 //            if (ship != null) {
 //                final MaterialManager<WorldProgram> manager = shipMaterialManagers.computeIfAbsent(ship,
 //                    k -> MaterialManager.builder(Contexts.WORLD).setIgnoreOriginCoordinate(true).build());
-//                final Vector3i c = ship.getShipData().getChunkClaim().getCenterBlockCoordinates(new Vector3i());
+//                final Vector3i c = ship.getChunkClaim().getCenterBlockCoordinates(new Vector3i());
 //                ((MaterialManagerAccessor) manager).setOriginCoordinate(new BlockPos(c.x, c.y, c.z));
 //
 //                cir.setReturnValue(InstancedRenderRegistry.getInstance().create(manager, blockEntity));

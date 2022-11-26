@@ -19,8 +19,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.core.game.ships.ShipObject;
-import org.valkyrienskies.core.game.ships.ShipObjectWorld;
+import org.valkyrienskies.core.api.world.ShipWorld;
 import org.valkyrienskies.mod.common.IShipObjectWorldProvider;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.mixinducks.world.OfLevel;
@@ -55,13 +54,12 @@ public class MixinServerLevel {
         final AABBd transformed = new AABBd();
 
         // Gets accessed before initialization
-        final ShipObjectWorld world = IShipObjectWorldProvider.class.cast(this).getShipObjectWorld();
+        final ShipWorld world = ((IShipObjectWorldProvider) this).getShipObjectWorld();
         if (world == null) {
             return;
         }
 
-        world.getShipObjectsIntersecting(original).forEach((Object shipT) -> {
-            final ShipObject ship = (ShipObject) shipT;
+        world.getLoadedShips().getIntersecting(original).forEach((ship) -> {
             original.transform(ship.getWorldToShip(), transformed);
 
             final int i = Mth.floor((transformed.minX - 2.0) / 16.0);

@@ -20,8 +20,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.core.game.ships.ShipObjectClientWorld;
-import org.valkyrienskies.core.pipelines.VSPipeline;
+import org.valkyrienskies.core.api.world.ClientShipWorldCore;
+import org.valkyrienskies.core.api.world.VSPipeline;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientCreator;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
@@ -57,7 +57,7 @@ public abstract class MixinMinecraft
     }
 
     @Unique
-    private ShipObjectClientWorld shipObjectWorld = null;
+    private ClientShipWorldCore shipObjectWorld = null;
 
     @Redirect(
         at = @At(
@@ -76,8 +76,8 @@ public abstract class MixinMinecraft
 
     @NotNull
     @Override
-    public ShipObjectClientWorld getShipObjectWorld() {
-        final ShipObjectClientWorld shipObjectWorldCopy = shipObjectWorld;
+    public ClientShipWorldCore getShipObjectWorld() {
+        final ClientShipWorldCore shipObjectWorldCopy = shipObjectWorld;
 
         if (shipObjectWorldCopy == null) {
             throw new IllegalStateException("Requested getShipObjectWorld() when shipObjectWorld was null!");
@@ -95,7 +95,7 @@ public abstract class MixinMinecraft
     public void postTick(final CallbackInfo ci) {
         // Tick the ship world and then drag entities
         if (!pause && shipObjectWorld != null && level != null && getConnection() != null) {
-            shipObjectWorld.getNetworkManager().tick(getConnection().getConnection().getRemoteAddress());
+            shipObjectWorld.tickNetworking(getConnection().getConnection().getRemoteAddress());
             shipObjectWorld.postTick();
             EntityDragger.INSTANCE.dragEntitiesWithShips(level.entitiesForRendering());
         }
@@ -120,7 +120,7 @@ public abstract class MixinMinecraft
         at = @At("HEAD")
     )
     public void preSetCurrentServer(final ServerData serverData, final CallbackInfo ci) {
-        ValkyrienSkiesMod.getVsCore().getNetworking().setClientUsesUDP(false);
+        ValkyrienSkiesMod.getVsCore().setClientUsesUDP(false);
     }
 
     @Override
@@ -130,14 +130,12 @@ public abstract class MixinMinecraft
         }
         shipObjectWorld = ValkyrienSkiesMod
             .getVsCoreClient()
-            .getShipWorldComponentFactory()
-            .newShipObjectClientWorldComponent()
-            .newWorld();
+            .newShipWorldClient();
     }
 
     @Override
     public void deleteShipObjectWorldClient() {
-        final ShipObjectClientWorld shipObjectWorldCopy = shipObjectWorld;
+        final ClientShipWorldCore shipObjectWorldCopy = shipObjectWorld;
         if (shipObjectWorldCopy == null) {
             throw new IllegalStateException("shipObjectWorld was null when it should be not null?");
         }

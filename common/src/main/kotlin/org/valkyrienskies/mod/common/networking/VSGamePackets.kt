@@ -3,8 +3,8 @@ package org.valkyrienskies.mod.common.networking
 import net.minecraft.core.Registry
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerPlayer
-import org.valkyrienskies.core.api.getAttachment
-import org.valkyrienskies.core.api.setAttachment
+import org.valkyrienskies.core.api.ships.getAttachment
+import org.valkyrienskies.core.api.ships.setAttachment
 import org.valkyrienskies.core.game.ships.ShipObjectServer
 import org.valkyrienskies.core.networking.simple.register
 import org.valkyrienskies.core.networking.simple.registerClientHandler

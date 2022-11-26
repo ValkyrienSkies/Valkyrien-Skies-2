@@ -7,8 +7,8 @@ import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.projectile.AbstractHurtingProjectile
 import org.joml.Vector3d
 import org.joml.Vector3dc
-import org.valkyrienskies.core.api.ClientShip
-import org.valkyrienskies.core.api.Ship
+import org.valkyrienskies.core.api.ships.ClientShip
+import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.util.component1
 import org.valkyrienskies.core.util.component2
 import org.valkyrienskies.core.util.component3

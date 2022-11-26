@@ -21,10 +21,7 @@ import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.CreativeModeTab
 import net.minecraft.world.item.Item.Properties
 import net.minecraft.world.level.block.Block
-import org.valkyrienskies.core.hooks.CoreHooks
-import org.valkyrienskies.core.program.DaggerVSCoreClientFactory
-import org.valkyrienskies.core.program.DaggerVSCoreServerFactory
-import org.valkyrienskies.core.program.VSCoreModule
+import org.valkyrienskies.core.api.VSCoreFactory
 import org.valkyrienskies.mod.client.EmptyRenderer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.block.TestChairBlock
@@ -40,12 +37,6 @@ import java.util.concurrent.Executor
 
 class ValkyrienSkiesModFabric : ModInitializer {
 
-    companion object {
-        init {
-            CoreHooks = FabricHooksImpl
-        }
-    }
-
     override fun onInitialize() {
         ValkyrienSkiesMod.TEST_CHAIR = TestChairBlock
         ValkyrienSkiesMod.SHIP_CREATOR_ITEM = ShipCreatorItem(Properties().tab(CreativeModeTab.TAB_MISC), 1.0)
@@ -58,14 +49,15 @@ class ValkyrienSkiesModFabric : ModInitializer {
             .build(ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_mounting_entity").toString())
 
         val isClient = FabricLoader.getInstance().environmentType == EnvType.CLIENT
-
-        val module = VSCoreModule(FabricHooksImpl, VSFabricNetworking(isClient))
-
+        val networking = VSFabricNetworking(isClient)
+        val hooks = FabricHooksImpl(networking)
         val vsCore = if (isClient) {
-            DaggerVSCoreClientFactory.builder().vSCoreModule(module).build().client()
+            VSCoreFactory.instance.newVsCoreClient(hooks)
         } else {
-            DaggerVSCoreServerFactory.builder().vSCoreModule(module).build().server()
+            VSCoreFactory.instance.newVsCoreServer(hooks)
         }
+
+        networking.register(vsCore.hooks)
 
         if (isClient) onInitializeClient()
 

@@ -27,7 +27,7 @@
 //import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 //import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 //import org.valkyrienskies.core.game.ChunkAllocator;
-//import org.valkyrienskies.core.game.ships.ShipObjectClient;
+//import org.valkyrienskies.core.api.ships.ClientShip;
 //import org.valkyrienskies.mod.common.VSGameUtilsKt;
 //import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 //import org.valkyrienskies.mod.mixin.accessors.client.render.ViewAreaAccessor;
@@ -73,7 +73,7 @@
 //        final boolean isPlayerInShipyard = ChunkAllocator.isChunkInShipyard(playerChunkX, playerChunkZ);
 //
 //        final BlockPos renderChunkOrigin = builtChunk.getOrigin();
-//        final ShipObjectClient shipObject = VSGameUtilsKt.getShipObjectManagingPos(level, renderChunkOrigin);
+//        final ClientShip shipObject = VSGameUtilsKt.getShipObjectManagingPos(level, renderChunkOrigin);
 //        if (!isPlayerInShipyard && shipObject != null) {
 //            final Matrix4d chunkTransformMatrix = new Matrix4d()
 //                .translate(-playerCameraX, -playerCameraY, -playerCameraZ)
@@ -114,7 +114,7 @@
 //        final int regionX, final int regionY, final int regionZ, final double xIn, final double yIn, final double zIn,
 //        final VboRegion vboRegion, final CallbackInfo ci
 //    ) {
-//        final ShipObjectClient shipObject =
+//        final ClientShip shipObject =
 //            VSGameUtilsKt.getShipObjectManagingPos(level, new BlockPos(regionX, regionY, regionZ));
 //        if (shipObject != null) {
 //            final Matrix4d chunkTransformMatrix = new Matrix4d()
@@ -167,13 +167,13 @@
 //        final boolean spectator, final CallbackInfo ci) {
 //        final BlockPos.MutableBlockPos tempPos = new BlockPos.MutableBlockPos();
 //        final ViewAreaAccessor chunkStorageAccessor = (ViewAreaAccessor) viewArea;
-//        for (final ShipObjectClient shipObject : VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips()) {
+//        for (final ClientShip shipObject : VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips()) {
 //            // Don't bother rendering the ship if its AABB isn't visible to the frustum
 //            if (!frustum.isVisible(VectorConversionsMCKt.toMinecraft(shipObject.getRenderAABB()))) {
 //                continue;
 //            }
 //
-//            shipObject.getShipData().getShipActiveChunksSet().iterateChunkPos((x, z) -> {
+//            shipObject.getShipActiveChunksSet().iterateChunkPos((x, z) -> {
 //                for (int y = 0; y < 16; y++) {
 //                    tempPos.set(x << 4, y << 4, z << 4);
 //                    final ChunkRenderDispatcher.RenderChunk renderChunk =

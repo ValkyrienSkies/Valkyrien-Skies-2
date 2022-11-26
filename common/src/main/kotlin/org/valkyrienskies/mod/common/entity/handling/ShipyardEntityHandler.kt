@@ -5,8 +5,8 @@ import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.entity.EntityRenderer
 import net.minecraft.world.entity.Entity
 import org.joml.Vector3dc
-import org.valkyrienskies.core.api.ClientShip
-import org.valkyrienskies.core.api.Ship
+import org.valkyrienskies.core.api.ships.ClientShip
+import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.util.expand
 import org.valkyrienskies.core.util.x
 import org.valkyrienskies.core.util.y

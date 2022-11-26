@@ -10,8 +10,7 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.level.chunk.LevelChunk.EntityCreationType.CHECK
-import org.valkyrienskies.core.api.ServerShip
-import org.valkyrienskies.mod.api.ShipBlockEntity
+import org.valkyrienskies.core.api.ships.ServerShip
 
 private val AIR = Blocks.AIR.defaultBlockState()
 
@@ -59,8 +58,6 @@ fun relocateBlock(
 
     tag?.let {
         val be = toChunk.getBlockEntity(to, CHECK)!!
-        if (be is ShipBlockEntity)
-            be.ship = toShip
 
         be.load(it)
     }

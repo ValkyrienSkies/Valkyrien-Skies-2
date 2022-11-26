@@ -20,8 +20,8 @@ object EntityShipCollisionUtils {
     @JvmStatic
     fun isCollidingWithUnloadedShips(entity: Entity): Boolean {
         val shipWorld = entity.level.shipObjectWorld
-        return shipWorld.queryableShipData.getShipDataIntersecting(entity.boundingBox.toJOML())
-            .all { ship -> shipWorld.shipObjects.containsKey(ship.id) }
+        return shipWorld.allShips.getIntersecting(entity.boundingBox.toJOML())
+            .all { ship -> shipWorld.loadedShips.contains(ship.id) }
             .not()
     }
 
@@ -70,11 +70,11 @@ object EntityShipCollisionUtils {
         val entityBoxWithMovement = entityBoundingBox.expandTowards(movement)
         val collidingPolygons: MutableList<ConvexPolygonc> = ArrayList()
         val entityBoundingBoxExtended = entityBoundingBox.toJOML().extend(movement.toJOML())
-        for (shipObject in world.shipObjectWorld.getShipObjectsIntersecting(entityBoundingBoxExtended)) {
-            val shipTransform = shipObject.shipData.shipTransform
+        for (shipObject in world.shipObjectWorld.loadedShips.getIntersecting(entityBoundingBoxExtended)) {
+            val shipTransform = shipObject.transform
             val entityPolyInShipCoordinates: ConvexPolygonc = createPolygonFromAABB(
                 entityBoxWithMovement.toJOML(),
-                shipTransform.worldToShipMatrix
+                shipTransform.worldToShip
             )
             val entityBoundingBoxInShipCoordinates: AABBdc = entityPolyInShipCoordinates.getEnclosingAABB(AABBd())
             val shipBlockCollisionStream =
@@ -83,8 +83,8 @@ object EntityShipCollisionUtils {
                 voxelShape.forAllBoxes { minX, minY, minZ, maxX, maxY, maxZ ->
                     val shipPolygon: ConvexPolygonc = createPolygonFromAABB(
                         AABBd(minX, minY, minZ, maxX, maxY, maxZ),
-                        shipTransform.shipToWorldMatrix,
-                        shipObject.shipData.id
+                        shipTransform.shipToWorld,
+                        shipObject.id
                     )
                     collidingPolygons.add(shipPolygon)
                 }

@@ -21,17 +21,16 @@ import org.joml.Vector3dc
 import org.joml.Vector3ic
 import org.joml.primitives.AABBd
 import org.joml.primitives.AABBdc
-import org.valkyrienskies.core.api.Ship
-import org.valkyrienskies.core.game.ChunkAllocator
-import org.valkyrienskies.core.game.DimensionId
-import org.valkyrienskies.core.game.IPlayer
-import org.valkyrienskies.core.game.VSBlockType
-import org.valkyrienskies.core.game.ships.ShipData
-import org.valkyrienskies.core.game.ships.ShipObject
-import org.valkyrienskies.core.game.ships.ShipObjectClient
+import org.valkyrienskies.core.api.ships.ClientShip
+import org.valkyrienskies.core.api.ships.LoadedShip
+import org.valkyrienskies.core.api.ships.ServerShip
+import org.valkyrienskies.core.api.ships.Ship
+import org.valkyrienskies.core.api.util.functions.DoubleTernaryConsumer
+import org.valkyrienskies.core.api.world.IPlayer
+import org.valkyrienskies.core.api.world.chunks.TerrainUpdate
+import org.valkyrienskies.core.api.world.properties.DimensionId
 import org.valkyrienskies.core.game.ships.ShipObjectServer
 import org.valkyrienskies.core.hooks.VSEvents.TickEndEvent
-import org.valkyrienskies.core.util.DoubleTernaryConsumer
 import org.valkyrienskies.core.util.expand
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.util.toJOML
@@ -39,8 +38,9 @@ import org.valkyrienskies.mod.common.util.toJOMLD
 import org.valkyrienskies.mod.common.util.toMinecraft
 import org.valkyrienskies.mod.mixin.accessors.resource.ResourceKeyAccessor
 import org.valkyrienskies.mod.mixinducks.world.entity.PlayerDuck
-import org.valkyrienskies.physics_api.voxel_updates.DenseVoxelShapeUpdate
 import kotlin.math.min
+
+val vsCore get() = ValkyrienSkiesMod.vsCore
 
 val Level.shipObjectWorld
     get() =
@@ -51,10 +51,10 @@ val Level.shipObjectWorld
             else -> throw IllegalArgumentException("World is neither ServerWorld nor ClientWorld")
         }
 
-val Level.queryableShipData
+val Level.allShips
     get() = when (this) {
-        is ServerLevel -> server.shipObjectWorld.queryableShipData
-        is ClientLevel -> shipObjectWorld.queryableShipData
+        is ServerLevel -> server.shipObjectWorld.allShips
+        is ClientLevel -> shipObjectWorld.allShips
         else -> throw IllegalArgumentException("World is neither ServerWorld nor ClientWorld")
     }
 
@@ -84,6 +84,7 @@ fun getResourceKey(dimensionId: DimensionId): ResourceKey<Level> {
 }
 
 fun MinecraftServer.executeIf(condition: () -> Boolean, toExecute: Runnable) {
+    // todo: don't use random vs-core internal stuff
     TickEndEvent.on { (shipWorld), handler ->
         if (shipWorld == this.shipObjectWorld && condition()) {
             toExecute.run()
@@ -91,6 +92,8 @@ fun MinecraftServer.executeIf(condition: () -> Boolean, toExecute: Runnable) {
         }
     }
 }
+
+val Level.yRange get() = minBuildHeight until maxBuildHeight
 
 fun Level.isTickingChunk(pos: ChunkPos) = isTickingChunk(pos.x, pos.z)
 fun Level.isTickingChunk(chunkX: Int, chunkZ: Int) = shouldTickBlocksAt(
@@ -152,12 +155,12 @@ fun Level.squaredDistanceBetweenInclShips(
     return min(squareDistWithRespectToShips, squareDistWithoutRespectToShips)
 }
 
-private fun getShipObjectManagingPosImpl(world: Level, chunkX: Int, chunkZ: Int): ShipObject? {
-    if (ChunkAllocator.isChunkInShipyard(chunkX, chunkZ)) {
+private fun getShipObjectManagingPosImpl(world: Level, chunkX: Int, chunkZ: Int): LoadedShip? {
+    if (world.shipObjectWorld.isChunkInShipyard(chunkX, chunkZ, world.dimensionId)) {
         val shipDataManagingPos =
-            world.shipObjectWorld.queryableShipData.getShipDataFromChunkPos(chunkX, chunkZ, world.dimensionId)
+            world.shipObjectWorld.allShips.getByChunkPos(chunkX, chunkZ, world.dimensionId)
         if (shipDataManagingPos != null) {
-            return world.shipObjectWorld.shipObjects[shipDataManagingPos.id]
+            return world.shipObjectWorld.loadedShips.getById(shipDataManagingPos.id)
         }
     }
     return null
@@ -192,7 +195,7 @@ inline fun Level.transformToNearbyShipsAndWorld(
         cb(posInWorld.x(), posInWorld.y(), posInWorld.z())
     }
 
-    for (nearbyShip in shipObjectWorld.queryableShipData.getShipDataIntersecting(aabb)) {
+    for (nearbyShip in shipObjectWorld.allShips.getIntersecting(aabb)) {
         if (nearbyShip == currentShip) continue
         val posInShip = nearbyShip.worldToShip.transformPosition(posInWorld, temp0)
         cb(posInShip.x(), posInShip.y(), posInShip.z())
@@ -200,6 +203,15 @@ inline fun Level.transformToNearbyShipsAndWorld(
 }
 
 // Level
+fun Level.isChunkInShipyard(chunkX: Int, chunkZ: Int) =
+    shipObjectWorld.isChunkInShipyard(chunkX, chunkZ, dimensionId)
+
+fun Level.isBlockInShipyard(blockX: Int, blockY: Int, blockZ: Int) =
+    shipObjectWorld.isBlockInShipyard(blockX, blockY, blockZ, dimensionId)
+
+fun Level.isBlockInShipyard(x: Double, y: Double, z: Double) =
+    isBlockInShipyard(x.toInt(), y.toInt(), z.toInt())
+
 fun Level.getShipObjectManagingPos(chunkX: Int, chunkZ: Int) =
     getShipObjectManagingPosImpl(this, chunkX, chunkZ)
 
@@ -215,14 +227,14 @@ fun Level.getShipObjectManagingPos(posX: Double, posY: Double, posZ: Double) =
 fun Level.getShipObjectManagingPos(chunkPos: ChunkPos) =
     getShipObjectManagingPos(chunkPos.x, chunkPos.z)
 
-fun Level.getShipObjectEntityMountedTo(entity: Entity): ShipObject? {
+fun Level.getShipObjectEntityMountedTo(entity: Entity): LoadedShip? {
     val vehicle = entity.vehicle ?: return null
     return getShipObjectManagingPos(vehicle.position().toJOML())
 }
 
 // ClientLevel
 fun ClientLevel.getShipObjectManagingPos(chunkX: Int, chunkZ: Int) =
-    getShipObjectManagingPosImpl(this, chunkX, chunkZ) as ShipObjectClient?
+    getShipObjectManagingPosImpl(this, chunkX, chunkZ) as ClientShip?
 
 fun ClientLevel.getShipObjectManagingPos(blockPos: Vec3i) =
     getShipObjectManagingPos(blockPos.x shr 4, blockPos.z shr 4)
@@ -236,7 +248,7 @@ fun ClientLevel.getShipObjectManagingPos(pos: Position) =
 fun ClientLevel.getShipObjectManagingPos(chunkPos: ChunkPos) =
     getShipObjectManagingPos(chunkPos.x, chunkPos.z)
 
-fun ClientLevel.getShipObjectEntityMountedTo(entity: Entity): ShipObjectClient? {
+fun ClientLevel.getShipObjectEntityMountedTo(entity: Entity): ClientShip? {
     val vehicle = entity.vehicle ?: return null
     return getShipObjectManagingPos(vehicle.position().toJOML())
 }
@@ -255,7 +267,7 @@ fun ServerLevel.getShipObjectManagingPos(posX: Double, posY: Double, posZ: Doubl
     getShipObjectManagingPos(posX.toInt() shr 4, posZ.toInt() shr 4)
 
 private fun getShipManagingPosImpl(world: Level, x: Int, z: Int): Ship? {
-    return if (ChunkAllocator.isChunkInShipyard(x, z)) {
+    return if (world.isChunkInShipyard(x, z)) {
         world.shipObjectWorld.queryableShipData.getShipDataFromChunkPos(x, z, world.dimensionId)
     } else {
         null
@@ -293,7 +305,7 @@ fun Level.getShipManagingPos(chunkPos: ChunkPos) =
 
 // ServerLevel
 fun ServerLevel.getShipManagingPos(chunkX: Int, chunkZ: Int) =
-    getShipManagingPosImpl(this, chunkX, chunkZ) as ShipData?
+    getShipManagingPosImpl(this, chunkX, chunkZ) as ServerShip?
 
 fun ServerLevel.getShipManagingPos(blockPos: BlockPos) =
     getShipManagingPos(blockPos.x shr 4, blockPos.z shr 4)
@@ -320,31 +332,18 @@ fun Level.toWorldCoordinates(x: Double, y: Double, z: Double, dest: Vector3d = V
 
 @JvmOverloads
 fun Ship.toWorldCoordinates(x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
-    shipTransform.shipToWorldMatrix.transformPosition(dest.set(x, y, z))
+    transform.shipToWorld.transformPosition(dest.set(x, y, z))
 
-fun LevelChunkSection.toDenseVoxelUpdate(chunkPos: Vector3ic): DenseVoxelShapeUpdate {
-    val update = DenseVoxelShapeUpdate.createDenseVoxelShapeUpdate(chunkPos)
-    update.setData { x: Int, y: Int, z: Int ->
-        (BlockStateInfo.get(getBlockState(x, y, z))?.second ?: VSBlockType.AIR).toByte()
-    }
-    return update
-}
-
-fun LevelChunkSection.addChunkBlocksToShipVoxelAABB(chunkPos: Vector3ic, shipData: ShipData) {
-    // Send the blocks in the chunk to the AABB generator of [shipData]
-    val chunkBaseX = chunkPos.x() shl 4
-    val chunkBaseY = chunkPos.y() shl 4
-    val chunkBaseZ = chunkPos.z() shl 4
-    for (y in 0 until 16) {
-        for (z in 0 until 16) {
-            for (x in 0 until 16) {
-                val blockState: VSBlockType = BlockStateInfo.get(getBlockState(x, y, z))?.second ?: VSBlockType.AIR
-                shipData.updateShipAABBGenerator(
-                    chunkBaseX + x, chunkBaseY + y, chunkBaseZ + z, blockState != VSBlockType.AIR
-                )
+fun LevelChunkSection.toDenseVoxelUpdate(chunkPos: Vector3ic): TerrainUpdate {
+    val update = vsCore.newDenseTerrainUpdateBuilder(chunkPos.x(), chunkPos.y(), chunkPos.z())
+    for (x in 0..15) {
+        for (y in 0..15) {
+            for (z in 0..15) {
+                update.addBlock(x, y, z, BlockStateInfo.get(getBlockState(x, y, z))?.second ?: vsCore.blockTypes.air)
             }
         }
     }
+    return update.build()
 }
 
 /**
@@ -354,12 +353,11 @@ fun LevelChunkSection.addChunkBlocksToShipVoxelAABB(chunkPos: Vector3ic, shipDat
  * [blockPos] rather than inferring it from [pos], which might be helpful at the boundaries of ships.
  */
 fun Level.getWorldCoordinates(blockPos: BlockPos, pos: Vector3d): Vector3d {
-    return this.getShipObjectManagingPos(blockPos)
-        ?.shipData?.shipTransform?.shipToWorldMatrix?.transformPosition(pos) ?: pos
+    return this.getShipObjectManagingPos(blockPos)?.transform?.shipToWorld?.transformPosition(pos) ?: pos
 }
 
-fun Level.getShipsIntersecting(aabb: AABB): Iterable<Ship> = queryableShipData.getShipDataIntersecting(aabb.toJOML())
-fun Level.getShipsIntersecting(aabb: AABBdc): Iterable<Ship> = queryableShipData.getShipDataIntersecting(aabb)
+fun Level.getShipsIntersecting(aabb: AABB): Iterable<Ship> = allShips.getIntersecting(aabb.toJOML())
+fun Level.getShipsIntersecting(aabb: AABBdc): Iterable<Ship> = allShips.getShipDataIntersecting(aabb)
 
 fun Level.transformAabbToWorld(aabb: AABB): AABB = transformAabbToWorld(aabb.toJOML()).toMinecraft()
 fun Level.transformAabbToWorld(aabb: AABBd) = transformAabbToWorld(aabb, aabb)

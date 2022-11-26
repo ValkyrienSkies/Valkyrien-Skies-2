@@ -31,7 +31,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.core.game.ships.ShipObjectClient;
+import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.mixinducks.client.world.ClientChunkCacheDuck;
 
@@ -75,7 +75,7 @@ public abstract class MixinLevelRenderer {
     )
     private void afterRefresh(final CallbackInfo ci) {
         ((ClientChunkCacheDuck) this.level.getChunkSource()).vs_getShipChunks().forEach((pos, chunk) -> {
-            for (int y = 0; y < 16; y++) {
+            for (int y = level.getMinSection(); y < level.getMaxSection(); y++) {
                 viewArea.setDirty(ChunkPos.getX(pos), y, ChunkPos.getZ(pos), false);
             }
         });
@@ -96,7 +96,7 @@ public abstract class MixinLevelRenderer {
         final Matrix4f methodMatrix4f) {
 
         final BlockPos blockEntityPos = blockEntity.getBlockPos();
-        final ShipObjectClient shipObject = VSGameUtilsKt.getShipObjectManagingPos(level, blockEntityPos);
+        final ClientShip shipObject = VSGameUtilsKt.getShipObjectManagingPos(level, blockEntityPos);
         if (shipObject != null) {
             final Vec3 cam = methodCamera.getPosition();
             matrix.popPose();

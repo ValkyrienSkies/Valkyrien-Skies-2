@@ -25,8 +25,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.core.game.ships.ShipObjectClient;
-import org.valkyrienskies.core.game.ships.ShipObjectClientWorld;
+import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.core.api.world.ClientShipWorldCore;
 import org.valkyrienskies.mod.client.IVSCamera;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
@@ -118,15 +118,13 @@ public abstract class MixinGameRenderer {
         final ClientLevel clientWorld = minecraft.level;
         if (clientWorld != null) {
             // Update ship render transforms
-            final ShipObjectClientWorld shipWorld =
+            final ClientShipWorldCore shipWorld =
                 IShipObjectWorldClientProvider.class.cast(this.minecraft).getShipObjectWorld();
             if (shipWorld == null) {
                 return;
             }
 
-            for (final ShipObjectClient shipObjectClient : shipWorld.getShipObjects().values()) {
-                shipObjectClient.updateRenderShipTransform(tickDelta);
-            }
+            shipWorld.updateRenderTransforms(tickDelta);
 
             // Also update entity last tick positions, so that they interpolate correctly
             for (final Entity entity : clientWorld.entitiesForRendering()) {
@@ -135,7 +133,7 @@ public abstract class MixinGameRenderer {
                 Vector3dc entityShouldBeHere = null;
 
                 // First, try getting [entityShouldBeHere] from [shipMountedTo]
-                final ShipObjectClient shipMountedTo =
+                final ClientShip shipMountedTo =
                     VSGameUtilsKt.getShipObjectEntityMountedTo(clientWorld, entity);
 
                 if (shipMountedTo != null) {
@@ -150,8 +148,8 @@ public abstract class MixinGameRenderer {
                     final Long lastShipStoodOn = entityDraggingInformation.getLastShipStoodOn();
                     // Then try getting [entityShouldBeHere] from [entityDraggingInformation]
                     if (lastShipStoodOn != null && entityDraggingInformation.isEntityBeingDraggedByAShip()) {
-                        final ShipObjectClient shipObject =
-                            VSGameUtilsKt.getShipObjectWorld(clientWorld).getShipObjects().get(lastShipStoodOn);
+                        final ClientShip shipObject =
+                            VSGameUtilsKt.getShipObjectWorld(clientWorld).getLoadedShips().getById(lastShipStoodOn);
                         if (shipObject != null) {
                             entityDraggingInformation.setCachedLastPosition(
                                 new Vector3d(entity.xo, entity.yo, entity.zo));
@@ -176,7 +174,7 @@ public abstract class MixinGameRenderer {
                             // current render transform
                             entityShouldBeHere = shipObject.getRenderTransform().getShipToWorldMatrix()
                                 .transformPosition(
-                                    shipObject.getShipData().getPrevTickShipTransform().getWorldToShipMatrix()
+                                    shipObject.getPrevTickShipTransform().getWorldToShipMatrix()
                                         .transformPosition(entityShouldBeHerePreTransform, new Vector3d()));
                         }
                     }
@@ -238,7 +236,7 @@ public abstract class MixinGameRenderer {
         if (clientLevel == null || player == null) {
             return;
         }
-        final ShipObjectClient playerShipMountedTo =
+        final ClientShip playerShipMountedTo =
             VSGameUtilsKt.getShipObjectEntityMountedTo(clientLevel, player);
         if (playerShipMountedTo == null) {
             return;

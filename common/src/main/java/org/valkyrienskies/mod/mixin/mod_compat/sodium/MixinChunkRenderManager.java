@@ -31,7 +31,7 @@
 //import org.spongepowered.asm.mixin.injection.Redirect;
 //import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 //import org.valkyrienskies.core.game.ChunkAllocator;
-//import org.valkyrienskies.core.game.ships.ShipObjectClient;
+//import org.valkyrienskies.core.api.ships.ClientShip;
 //import org.valkyrienskies.mod.common.VSClientGameUtils;
 //import org.valkyrienskies.mod.common.VSGameUtilsKt;
 //import org.valkyrienskies.mod.compat.IrisCompat;
@@ -126,7 +126,7 @@
 //        final boolean spectator,
 //        final CallbackInfo ci) {
 //        final ChunkGraphIterationQueue queue = this.iterationQueue;
-//        for (final ShipObjectClient ship : VSGameUtilsKt.getShipObjectWorld(Minecraft.getInstance()).getLoadedShips()) {
+//        for (final ClientShip ship : VSGameUtilsKt.getShipObjectWorld(Minecraft.getInstance()).getLoadedShips()) {
 //            ship.getShipActiveChunksSet().iterateChunkPos((x, z) -> {
 //                final RenderSection column = this.getRenderSection(x, 0, z);
 //                if (column != null) {
@@ -196,7 +196,7 @@
 //        cancellable = true
 //    )
 //    private void beforeAddChunk(final RenderSection render, final Direction flow, final CallbackInfo ci) {
-//        final ShipObjectClient ship = VSGameUtilsKt.getShipObjectManagingPos(
+//        final ClientShip ship = VSGameUtilsKt.getShipObjectManagingPos(
 //            Minecraft.getInstance().level, render.getChunkX(), render.getChunkZ());
 //
 //        if (ChunkAllocator.isChunkInShipyard(render.getChunkX(), render.getChunkZ()) && ship == null) {
