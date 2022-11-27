@@ -34,6 +34,7 @@ import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
+import org.valkyrienskies.mod.mixinducks.client.MinecraftDuck;
 
 @Mixin(GameRenderer.class)
 public abstract class MixinGameRenderer {
@@ -66,6 +67,22 @@ public abstract class MixinGameRenderer {
             ),
             false
         );
+    }
+
+    @Redirect(
+        method = "pick",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/world/entity/Entity;pick(DFZ)Lnet/minecraft/world/phys/HitResult;"
+        )
+    )
+    public HitResult modifyCrosshairTargetBlocks(final Entity receiver, final double maxDistance, final float tickDelta,
+        final boolean includeFluids) {
+
+        final HitResult original = entityRaycastNoTransform(receiver, maxDistance, tickDelta, includeFluids);
+        ((MinecraftDuck) this.minecraft).vs$setOriginalCrosshairTarget(original);
+
+        return receiver.pick(maxDistance, tickDelta, includeFluids);
     }
 
     @Redirect(
