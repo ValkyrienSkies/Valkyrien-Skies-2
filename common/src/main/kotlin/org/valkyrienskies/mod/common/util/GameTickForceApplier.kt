@@ -1,8 +1,8 @@
 package org.valkyrienskies.mod.common.util
 
 import org.joml.Vector3dc
+import org.valkyrienskies.core.api.ShipForcesInducer
 import org.valkyrienskies.core.api.ships.PhysShip
-import org.valkyrienskies.core.api.ships.attachments.ShipForcesInducer
 import java.util.concurrent.ConcurrentLinkedQueue
 
 class GameTickForceApplier : ShipForcesInducer {
