@@ -34,10 +34,17 @@ import org.valkyrienskies.mod.common.item.ShipCreatorItem
 import org.valkyrienskies.mod.event.RegistryEvents
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executor
+import java.util.concurrent.atomic.AtomicBoolean
 
 class ValkyrienSkiesModFabric : ModInitializer {
 
+    companion object {
+        private val hasInitialized = AtomicBoolean(false)
+    }
+
     override fun onInitialize() {
+        if (hasInitialized.getAndSet(true)) return
+
         ValkyrienSkiesMod.TEST_CHAIR = TestChairBlock
         ValkyrienSkiesMod.SHIP_CREATOR_ITEM = ShipCreatorItem(Properties().tab(CreativeModeTab.TAB_MISC), 1.0)
         ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM = ShipAssemblerItem(Properties().tab(CreativeModeTab.TAB_MISC))
@@ -139,10 +146,5 @@ class ValkyrienSkiesModFabric : ModInitializer {
             Registry.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, registryName),
             BlockItem(block, Properties().tab(CreativeModeTab.TAB_MISC))
         )
-    }
-
-    fun addonInit(name: String) {
-        // do nothing, causes static init to activate
-        // TODO make this api'ish
     }
 }

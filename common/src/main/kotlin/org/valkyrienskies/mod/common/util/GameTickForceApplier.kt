@@ -3,38 +3,34 @@ package org.valkyrienskies.mod.common.util
 import org.joml.Vector3dc
 import org.valkyrienskies.core.api.ShipForcesInducer
 import org.valkyrienskies.core.api.ships.PhysShip
+import org.valkyrienskies.core.util.pollUntilEmpty
 import java.util.concurrent.ConcurrentLinkedQueue
 
 class GameTickForceApplier : ShipForcesInducer {
 
-    val invForces = ConcurrentLinkedQueue<Vector3dc>()
-    val invTorques = ConcurrentLinkedQueue<Vector3dc>()
-    val rotForces = ConcurrentLinkedQueue<Vector3dc>()
-    val rotTorques = ConcurrentLinkedQueue<Vector3dc>()
-    val invPosForces = ConcurrentLinkedQueue<Vector3dc>()
-    val invPosPositions = ConcurrentLinkedQueue<Vector3dc>()
+    private val invForces = ConcurrentLinkedQueue<Vector3dc>()
+    private val invTorques = ConcurrentLinkedQueue<Vector3dc>()
+    private val rotForces = ConcurrentLinkedQueue<Vector3dc>()
+    private val rotTorques = ConcurrentLinkedQueue<Vector3dc>()
+    private val invPosForces = ConcurrentLinkedQueue<InvForceAtPos>()
+
+    @Volatile
     var toBeStatic = false
+
+    @Volatile
     var toBeStaticUpdated = false
 
     override fun applyForces(physShip: PhysShip) {
-        invForces.forEach { i -> physShip.applyInvariantForce(i) }
-        invTorques.forEach { i -> physShip.applyInvariantTorque(i) }
-        rotForces.forEach { i -> physShip.applyRotDependentForce(i) }
-        rotTorques.forEach { i -> physShip.applyRotDependentTorque(i) }
-        for ((index, force) in invPosForces.withIndex()) {
-            physShip.applyInvariantForceToPos(force, invPosPositions.elementAt(index))
-        }
+        invForces.pollUntilEmpty(physShip::applyInvariantForce)
+        invTorques.pollUntilEmpty(physShip::applyInvariantTorque)
+        rotForces.pollUntilEmpty(physShip::applyRotDependentForce)
+        rotTorques.pollUntilEmpty(physShip::applyRotDependentTorque)
+        invPosForces.pollUntilEmpty { (force, pos) -> physShip.applyInvariantForceToPos(force, pos) }
+
         if (toBeStaticUpdated) {
             physShip.isStatic = toBeStatic
             toBeStaticUpdated = false
         }
-
-        invForces.clear()
-        invTorques.clear()
-        rotForces.clear()
-        rotTorques.clear()
-        invPosForces.clear()
-        invPosPositions.clear()
     }
 
     fun applyInvariantForce(force: Vector3dc) {
@@ -54,12 +50,13 @@ class GameTickForceApplier : ShipForcesInducer {
     }
 
     fun applyInvariantForceToPos(force: Vector3dc, pos: Vector3dc) {
-        invPosForces.add(force)
-        invPosPositions.add(pos)
+        invPosForces.add(InvForceAtPos(force, pos))
     }
 
     fun setStatic(b: Boolean) {
         toBeStatic = b
         toBeStaticUpdated = true
     }
+
+    private data class InvForceAtPos(val force: Vector3dc, val pos: Vector3dc)
 }
