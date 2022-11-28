@@ -52,7 +52,7 @@ public abstract class MixinPlayerList {
         if (!KrunchSupport.INSTANCE.isKrunchSupported()) {
             player.sendMessage(
                 new TextComponent(
-                    "VS 2 physics are disabled on this server, because Krunch is not supported on this server! Currently only x86-64 Windows and Linux platforms are supported.").withStyle(
+                    "VS2 physics are disabled on this server, because Krunch is not supported on this server! Current supported platforms are: Windows x86-64, Linux x86-64, Linux aarch64, Macos x86-64, Macos arm64").withStyle(
                     ChatFormatting.RED, ChatFormatting.BOLD),
                 null);
         }
