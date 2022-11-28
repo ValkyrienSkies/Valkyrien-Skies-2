@@ -13,6 +13,7 @@ import it.unimi.dsi.fastutil.objects.ObjectList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.WeakHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.LevelRenderer;
@@ -24,6 +25,7 @@ import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
+import net.minecraft.world.entity.player.Player;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Final;
@@ -45,9 +47,9 @@ import org.valkyrienskies.mod.mixin.mod_compat.optifine.RenderChunkInfoAccessorO
 
 @Mixin(LevelRenderer.class)
 public class MixinLevelRendererVanilla {
+    private final WeakHashMap<ClientShip, ObjectList<RenderChunkInfo>> shipRenderChunks = new WeakHashMap<>();
     @Shadow
     private ClientLevel level;
-
     @Shadow
     @Final
     private ObjectArrayList<RenderChunkInfo> renderChunksInFrustum;
@@ -66,8 +68,6 @@ public class MixinLevelRendererVanilla {
     private @Nullable ChunkRenderDispatcher chunkRenderDispatcher;
     private ObjectList<RenderChunkInfo> renderChunksGeneratedByVanilla = new ObjectArrayList<>();
 
-    private final WeakHashMap<ClientShip, ObjectList<RenderChunkInfo>> shipRenderChunks = new WeakHashMap<>();
-
     /**
      * Fix the distance to render chunks, so that MC doesn't think ship chunks are too far away
      */
@@ -82,6 +82,25 @@ public class MixinLevelRendererVanilla {
         return VSGameUtilsKt.squaredDistanceBetweenInclShips(
             level, b.getX(), b.getY(), b.getZ(), v.getX(), v.getY(), v.getZ()
         );
+    }
+
+    /**
+     * Force frustum update if the ship moves and the camera doesn't
+     */
+    @Redirect(
+        at = @At(
+            value = "INVOKE",
+            target = "Ljava/util/concurrent/atomic/AtomicBoolean;compareAndSet(ZZ)Z"
+        ),
+        method = "setupRender"
+    )
+    private boolean needsFrustumUpdate(final AtomicBoolean needsFrustumUpdate, final boolean expectedValue,
+        final boolean newValue) {
+        final Player player = minecraft.player;
+
+        // force frustum update if default behaviour says to OR if the player is mounted to a ship
+        return (needsFrustumUpdate != null && needsFrustumUpdate.compareAndSet(expectedValue, newValue)) ||
+            (player != null && VSGameUtilsKt.getShipObjectEntityMountedTo(level, player) != null);
     }
 
     /**
