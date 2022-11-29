@@ -38,8 +38,7 @@ public abstract class MixinSoundEngine {
         method = "tickNonPaused"
     )
     private Object redirectGet(final Map instance, final Object obj) {
-        if (obj instanceof VelocityTickableSoundInstance) {
-            final VelocityTickableSoundInstance soundInstance = (VelocityTickableSoundInstance) obj;
+        if (obj instanceof final VelocityTickableSoundInstance soundInstance) {
             final ChannelAccess.ChannelHandle handle = (ChannelAccess.ChannelHandle) instance.get(soundInstance);
             final float f = calculateVolume(soundInstance);
             final float g = calculatePitch(soundInstance);
