@@ -119,7 +119,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
             shipTransform = shipObject.getShipData().getShipTransform();
         }
         final Vector3dc basePos = shipTransform.getShipToWorldMatrix()
-            .transformPosition(VSGameUtilsKt.getPassengerPos(this.vehicle, partialTicks), new Vector3d());
+            .transformPosition(VSGameUtilsKt.getPassengerPos(this.vehicle, getMyRidingOffset(), partialTicks), new Vector3d());
         final Vector3dc eyeRelativePos = shipTransform.getShipCoordinatesToWorldCoordinatesRotation().transform(
             new Vector3d(0.0, getEyeHeight(), 0.0)
         );
@@ -203,6 +203,9 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     @Shadow
     private EntityDimensions dimensions;
     // endregion
+
+    @Shadow
+    public abstract double getMyRidingOffset();
 
     @Override
     @NotNull

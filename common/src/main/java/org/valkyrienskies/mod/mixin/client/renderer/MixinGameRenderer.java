@@ -139,9 +139,13 @@ public abstract class MixinGameRenderer {
                     VSGameUtilsKt.getShipObjectEntityMountedTo(clientWorld, entity);
 
                 if (shipMountedTo != null) {
+                    // If the entity is mounted to a ship then update their position
+                    final Vector3dc passengerPos = VSGameUtilsKt.getPassengerPos(entity.getVehicle(), entity.getMyRidingOffset(), tickDelta);
                     entityShouldBeHere = shipMountedTo.getRenderTransform().getShipToWorldMatrix()
-                        .transformPosition(VSGameUtilsKt.getPassengerPos(entity.getVehicle(), tickDelta),
-                            new Vector3d());
+                        .transformPosition(passengerPos, new Vector3d());
+                    entity.setPosAndOldPos(entityShouldBeHere.x(), entityShouldBeHere.y(), entityShouldBeHere.z());
+                    entity.setPos(entityShouldBeHere.x(), entityShouldBeHere.y(), entityShouldBeHere.z());
+                    continue;
                 }
 
                 if (entityShouldBeHere == null) {
@@ -247,7 +251,7 @@ public abstract class MixinGameRenderer {
         }
 
         // Update [matrixStack] to mount the camera to the ship
-        final Vector3dc inShipPos = VSGameUtilsKt.getPassengerPos(playerVehicle, partialTicks);
+        final Vector3dc inShipPos = VSGameUtilsKt.getPassengerPos(playerVehicle, player.getMyRidingOffset(), partialTicks);
         final Camera camera = this.mainCamera;
         if (camera == null) {
             return;
