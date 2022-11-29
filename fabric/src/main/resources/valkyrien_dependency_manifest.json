@@ -11,16 +11,16 @@
     "loader": "fabric",
     "name": "Mod Menu",
     "modId": "modmenu",
-    "versionRange": ">=1.16.22",
+    "versionRange": ">=3.2.3",
     "optional": true,
-    "downloadUrl": "https://maven.valkyrienskies.org/curse/maven/modmenu-308702/3850092/modmenu-308702-3850092.jar"
+    "downloadUrl": "https://maven.valkyrienskies.org/curse/maven/modmenu-308702/4065495/modmenu-308702-4065495.jar"
   },
   {
     "loader": "fabric",
     "name": "Cloth Config API",
-    "modId": "cloth-config2",
-    "versionRange": ">=4.14.64",
+    "modId": "cloth-config",
+    "versionRange": ">=6.3.81",
     "optional": false,
-    "downloadUrl": "https://maven.valkyrienskies.org/me/shedaniel/cloth/cloth-config-fabric/4.14.64/cloth-config-fabric-4.14.64.jar"
+    "downloadUrl": "https://maven.valkyrienskies.org/me/shedaniel/cloth/cloth-config-fabric/6.3.81/cloth-config-fabric-6.3.81.jar"
   }
 ]

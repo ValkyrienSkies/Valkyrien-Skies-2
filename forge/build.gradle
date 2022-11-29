@@ -79,7 +79,7 @@ dependencies {
 
     // Add Kotlin for Forge.
     // Based on: https://raw.githubusercontent.com/thedarkcolour/KotlinForForge/site/thedarkcolour/kotlinforforge/gradle/kff-3.7.1.gradle
-    implementation 'thedarkcolour:kotlinforforge:3.7.1'
+    implementation 'thedarkcolour:kotlinforforge:3.4.0'
 
     groovy.lang.Closure exclude_annotations = { exclude group: 'org.jetbrains', module: 'annotations' }
 
@@ -100,7 +100,15 @@ dependencies {
         transitive = false
     }
 
+
     // region Manually include every single dependency of vs-core (total meme)
+    shadowCommon("org.valkyrienskies.core:api:${rootProject.vs_core_version}") {
+        transitive = false
+    }
+
+    shadowCommon("org.valkyrienskies.core:api-game:${rootProject.vs_core_version}") {
+        transitive = false
+    }
 
     shadowCommon("org.valkyrienskies:physics_api_krunch:1.0.0+08a9f6959e") {
         transitive = false
@@ -143,8 +151,8 @@ dependencies {
 
     // endregion
 
-    implementation("org.valkyrienskies:valkyrien-dependency-downloader:4.2")
-    include("org.valkyrienskies:valkyrien-dependency-downloader:4.2")
+    implementation("org.valkyrienskies:valkyrien-dependency-downloader:4.5")
+    shadowCommon("org.valkyrienskies:valkyrien-dependency-downloader:4.5:all") { transitive = false }
 }
 
 processResources {
@@ -163,6 +171,8 @@ shadowJar {
 
     configurations = [project.configurations.shadowCommon]
     classifier "dev-shadow"
+
+    relocate "org.valkyrienskies.dependency_downloader", "org.valkyrienskies.mod.relocate.dependency_downloader"
 }
 
 remapJar {
