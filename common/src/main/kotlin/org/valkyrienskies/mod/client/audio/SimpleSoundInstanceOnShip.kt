@@ -49,7 +49,7 @@ class SimpleSoundInstanceOnShip : SimpleSoundInstance, VelocityTickableSoundInst
     override fun isStopped(): Boolean = false
 
     override fun tick() {
-        val newPos = ship.shipTransform.shipToWorldMatrix.transformPosition(originalPos, Vector3d())
+        val newPos = ship.shipToWorld.transformPosition(originalPos, Vector3d())
         this.x = newPos.x
         this.y = newPos.y
         this.z = newPos.z

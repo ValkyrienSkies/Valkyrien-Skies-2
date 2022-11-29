@@ -23,20 +23,19 @@ object ShipyardEntityHandler : VSEntityHandler {
         ship: ClientShip, entity: T, entityRenderer: EntityRenderer<T>, x: Double, y: Double, z: Double,
         rotationYaw: Float, partialTicks: Float, matrixStack: PoseStack, buffer: MultiBufferSource, packedLight: Int
     ) {
-        val shipTransform = ship.renderTransform
+        val transform = ship.renderTransform
 
         val entityPosition = entity.getPosition(partialTicks)
-        val transformed = shipTransform.shipToWorldMatrix
-            .transformPosition(entityPosition.toJOML())
+        val transformed = transform.shipToWorld.transformPosition(entityPosition.toJOML())
 
         val camX = x - entityPosition.x
         val camY = y - entityPosition.y
         val camZ = z - entityPosition.z
         val offset = entityRenderer.getRenderOffset(entity, partialTicks)
-        val scale = shipTransform.shipCoordinatesToWorldCoordinatesScaling
+        val scale = transform.shipToWorldScaling
 
         matrixStack.translate(transformed.x + camX, transformed.y + camY, transformed.z + camZ)
-        matrixStack.mulPose(shipTransform.shipCoordinatesToWorldCoordinatesRotation.toMinecraft())
+        matrixStack.mulPose(transform.shipToWorldRotation.toMinecraft())
         matrixStack.scale(scale.x().toFloat(), scale.y().toFloat(), scale.z().toFloat())
         matrixStack.translate(offset.x, offset.y, offset.z)
     }
@@ -54,11 +53,11 @@ object ShipyardEntityHandler : VSEntityHandler {
     ) {
         // TODO: somewhere else position is already applied in the matrix stack
         // EW: i think it was in entity dragging logic
-        matrixStack.mulPose(ship.renderTransform.shipCoordinatesToWorldCoordinatesRotation.toMinecraft())
+        matrixStack.mulPose(ship.renderTransform.shipToWorldRotation.toMinecraft())
     }
 
     override fun onEntityMove(self: Entity, ship: Ship, position: Vector3dc): Vector3dc =
-        if (!ship.shipVoxelAABB!!.expand(1)// expand happens bcs containsPoint is exclusive but the AABB is inclusive
+        if (!ship.shipAABB!!.expand(1)// expand happens bcs containsPoint is exclusive but the AABB is inclusive
                 .containsPoint(position.x.roundToInt(), position.y.roundToInt(), position.z.roundToInt())
         ) {
             WorldEntityHandler.moveEntityFromShipyardToWorld(self, ship, position)

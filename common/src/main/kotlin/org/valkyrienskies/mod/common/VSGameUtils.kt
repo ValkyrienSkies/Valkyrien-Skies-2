@@ -268,7 +268,7 @@ fun ServerLevel.getShipObjectManagingPos(posX: Double, posY: Double, posZ: Doubl
 
 private fun getShipManagingPosImpl(world: Level, x: Int, z: Int): Ship? {
     return if (world.isChunkInShipyard(x, z)) {
-        world.shipObjectWorld.queryableShipData.getShipDataFromChunkPos(x, z, world.dimensionId)
+        world.shipObjectWorld.allShips.getByChunkPos(x, z, world.dimensionId)
     } else {
         null
     }
@@ -317,10 +317,10 @@ fun ServerLevel.getShipManagingPos(chunkPos: ChunkPos) =
     getShipManagingPos(chunkPos.x, chunkPos.z)
 
 fun Ship.toWorldCoordinates(pos: BlockPos): Vector3d =
-    shipTransform.shipToWorldMatrix.transformPosition(pos.toJOMLD())
+    shipToWorld.transformPosition(pos.toJOMLD())
 
 fun Ship.toWorldCoordinates(pos: Vec3): Vec3 =
-    shipTransform.shipToWorldMatrix.transformPosition(pos.toJOML()).toMinecraft()
+    shipToWorld.transformPosition(pos.toJOML()).toMinecraft()
 
 fun Level.toWorldCoordinates(pos: Vec3): Vec3 {
     return getShipManagingPos(pos)?.toWorldCoordinates(pos) ?: pos
@@ -371,7 +371,7 @@ fun Level.transformAabbToWorld(aabb: AABBdc, dest: AABBd): AABBd {
 
     // if both endpoints of the aabb are in the same ship, do the transform
     if (ship1 == ship2 && ship1 != null) {
-        return aabb.transform(ship1.shipTransform.shipToWorldMatrix, dest)
+        return aabb.transform(ship1.shipToWorld, dest)
     }
 
     return dest.set(aabb)
