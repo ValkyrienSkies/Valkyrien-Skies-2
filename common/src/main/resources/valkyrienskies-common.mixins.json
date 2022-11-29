@@ -74,6 +74,7 @@
     "feature.shipyard_entities.MixinClientLevel",
     "feature.shipyard_entities.MixinEntityRenderDispatcher",
     "feature.sound.client.MixinChannel",
+    "feature.sound.client.MixinListener",
     "feature.sound.client.MixinSimpleSoundInstance",
     "feature.sound.client.MixinSoundEngine",
     "feature.transform_particles.MixinLevelRenderer",
