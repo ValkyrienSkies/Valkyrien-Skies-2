@@ -1,4 +1,4 @@
-name: Public to Maven
+name: Publish
 on:
   push:
     branches:
