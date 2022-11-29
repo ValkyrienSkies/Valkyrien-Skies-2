@@ -111,9 +111,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         // Create ship world and VS Pipeline
         vsPipeline = shipSavedData.getPipeline();
 
-        if (vsPipeline.isUsingDummyPhysics()) {
-            KrunchSupport.INSTANCE.setKrunchSupported(false);
-        }
+        KrunchSupport.INSTANCE.setKrunchSupported(!vsPipeline.isUsingDummyPhysics());
 
         shipWorld = vsPipeline.getShipWorld();
 
