@@ -78,7 +78,7 @@ public class MixinEntityRenderDispatcher {
                 final AABBd aabb = VectorConversionsMCKt.toJOML(aABB);
 
                 // Get the in world position and do it minus what the aabb already has and then add the offset
-                aabb.transform(ship.getRenderTransform().getShipToWorldMatrix());
+                aabb.transform(ship.getRenderTransform().getShipToWorld());
                 cir.setReturnValue(frustum.isVisible(VectorConversionsMCKt.toMinecraft(aabb)));
             }
         }
