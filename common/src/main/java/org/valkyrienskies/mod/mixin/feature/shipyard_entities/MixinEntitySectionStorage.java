@@ -58,7 +58,15 @@ public abstract class MixinEntitySectionStorage implements OfLevel {
                 final var transformedAABB = VectorConversionsMCKt.toMinecraft(
                     VectorConversionsMCKt.toJOML(aABB).transform(ship.getWorldToShip()));
 
-                this.forEachAccessibleNonEmptySection(transformedAABB, consumer);
+                // No idea how this method works or why it throws (subset bounds are messed up)
+                // but let's just catch it for now.
+
+                // java.lang.IllegalArgumentException: Start element (9223367638808264704) is larger than end element (-9223372036854775808)
+                try {
+                    this.forEachAccessibleNonEmptySection(transformedAABB, consumer);
+                } catch (final IllegalArgumentException ex) {
+                    ex.printStackTrace();
+                }
             });
             loopingShips = false;
         }
