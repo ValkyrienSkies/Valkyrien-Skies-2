@@ -28,7 +28,6 @@ public class ValkyrienCommonMixinConfigPlugin implements IMixinConfigPlugin {
         } catch (final ClassNotFoundException e) {
             try {
                 Class.forName("me.jellysquid.mods.sodium.client.SodiumClientMod");
-                System.out.println("SODIUM RENDER DETECTE");
                 return VSRenderer.SODIUM;
             } catch (final ClassNotFoundException e2) {
                 return VSRenderer.VANILLA;
