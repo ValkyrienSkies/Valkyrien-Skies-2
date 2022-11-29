@@ -9,6 +9,7 @@ import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.util.Mth
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.ChunkPos
@@ -360,6 +361,17 @@ fun Level.transformAabbToWorld(aabb: AABBdc, dest: AABBd): AABBd {
 }
 
 fun Entity.getPassengerPos(myRidingOffset: Double, partialTicks: Float): Vector3dc {
-    return this.getPosition(partialTicks)
-        .add(0.0, this.passengersRidingOffset + myRidingOffset, 0.0).toJOML()
+    return this.getPositionSafe(partialTicks)
+        .add(0.0, this.passengersRidingOffset + myRidingOffset, 0.0)
+}
+
+fun Entity.getPositionSafe(partialTicks: Float, dest: Vector3d = Vector3d()): Vector3d {
+    return if (partialTicks == 1.0f) {
+        dest.set(this.x, this.eyeY, this.z)
+    } else {
+        val d = Mth.lerp(partialTicks.toDouble(), xo, this.x)
+        val e = Mth.lerp(partialTicks.toDouble(), yo, this.y)
+        val f = Mth.lerp(partialTicks.toDouble(), zo, this.z)
+        dest.set(d, e, f)
+    }
 }
