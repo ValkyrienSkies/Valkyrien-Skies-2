@@ -5,14 +5,12 @@
   "plugin": "org.valkyrienskies.mod.mixin.ValkyrienCommonMixinConfigPlugin",
   "mixins": [
     "accessors.block.BlockBehaviourAccessor",
-    "accessors.client.CameraAccessor",
     "accessors.entity.EntityAccessor",
     "accessors.network.protocol.game.ClientboundSectionBlocksUpdatePacketAccessor",
     "accessors.resource.ResourceKeyAccessor",
     "accessors.server.world.ChunkMapAccessor",
     "accessors.util.math.Matrix4fAccessor",
     "client.player.MixinPlayer",
-    "client.renderer.MixinLevelRenderer",
     "entity.MixinEntity",
     "feature.bed_fix.MixinServerPlayer",
     "feature.block_placement_orientation.MixinBlockItem",
@@ -50,6 +48,7 @@
     "world.entity.MixinPlayer"
   ],
   "client": [
+    "accessors.client.CameraAccessor",
     "accessors.client.multiplayer.ClientLevelAccessor",
     "accessors.client.render.LevelRendererAccessor",
     "accessors.client.render.OverlayVertexConsumerAccessor",

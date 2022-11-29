@@ -3,11 +3,11 @@ package org.valkyrienskies.mod.mixin.client;
 import com.mojang.math.Quaternion;
 import com.mojang.math.Vector3f;
 import net.minecraft.client.Camera;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Quaterniond;
 import org.joml.Quaterniondc;
@@ -55,6 +55,10 @@ public abstract class MixinCamera implements IVSCamera {
     private boolean detached;
     @Shadow
     private boolean mirror;
+    @Shadow
+    private float eyeHeight;
+    @Shadow
+    private float eyeHeightOld;
     @Unique
     private boolean cameraSeated = false;
 
@@ -80,9 +84,6 @@ public abstract class MixinCamera implements IVSCamera {
 
     @Shadow
     protected abstract void setPosition(double x, double y, double z);
-
-    @Shadow
-    public abstract Vec3 getPosition();
     // endregion
 
     @Override
@@ -92,9 +93,8 @@ public abstract class MixinCamera implements IVSCamera {
         final ShipTransform renderTransform = shipMountedTo.getRenderTransform();
         final Vector3dc playerBasePos =
             renderTransform.getShipToWorldMatrix().transformPosition(inShipPlayerPosition, new Vector3d());
-        final Vector3dc originalEyePos = VectorConversionsMCKt.toJOML(getPosition()).sub(playerBasePos);
         final Vector3dc playerEyePos = renderTransform.getShipCoordinatesToWorldCoordinatesRotation()
-            .transform(originalEyePos, new Vector3d())
+            .transform(new Vector3d(0.0, Mth.lerp(partialTicks, this.eyeHeightOld, this.eyeHeight), 0.0))
             .add(playerBasePos);
 
         this.initialized = true;
@@ -124,7 +124,8 @@ public abstract class MixinCamera implements IVSCamera {
 
     @Unique
     private void setRotationWithShipTransform(final float yaw, final float pitch, final ShipTransform renderTransform) {
-        final Quaterniondc originalRotation = VectorConversionsMCKt.toJOML(this.rotation);
+        final Quaterniondc originalRotation =
+            new Quaterniond().rotateY(Math.toRadians(-yaw)).rotateX(Math.toRadians(pitch)).normalize();
         final Quaterniondc newRotation =
             renderTransform.getShipCoordinatesToWorldCoordinatesRotation().mul(originalRotation, new Quaterniond());
         this.xRot = pitch;
