@@ -377,7 +377,7 @@ fun Level.transformAabbToWorld(aabb: AABBdc, dest: AABBd): AABBd {
     return dest.set(aabb)
 }
 
-fun Entity.getPassengerPos(partialTicks: Float): Vector3dc {
+fun Entity.getPassengerPos(myRidingOffset: Double, partialTicks: Float): Vector3dc {
     return this.getPosition(partialTicks)
-        .add(0.0, this.passengersRidingOffset, 0.0).toJOML()
+        .add(0.0, this.passengersRidingOffset + myRidingOffset, 0.0).toJOML()
 }

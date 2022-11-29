@@ -51,7 +51,7 @@ object TestChairBlock :
     ): InteractionResult {
         if (level.isClientSide) return InteractionResult.SUCCESS
         val seatEntity = ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE.create(level)!!.apply {
-            val seatEntityPos: Vector3dc = Vector3d(pos.x + .5, pos.y + .5, pos.z + .5)
+            val seatEntityPos: Vector3dc = Vector3d(pos.x + .5, pos.y.toDouble(), pos.z + .5)
             moveTo(seatEntityPos.x, seatEntityPos.y, seatEntityPos.z)
             lookAt(EntityAnchorArgument.Anchor.EYES, state.getValue(FACING).normal.toDoubles().add(position()))
             isController = true
