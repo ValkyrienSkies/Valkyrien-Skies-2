@@ -1,5 +1,13 @@
 [
   {
+    "loader": "fabric-api",
+    "name": "Fabric API",
+    "modId": "fabric",
+    "minVersion": "0.59.0",
+    "optional": false,
+    "downloadUrl": "https://maven.valkyrienskies.org/curse/maven/fabric-306612/4006107/fabric-306612-4006107.jar"
+  },
+  {
     "loader": "fabric",
     "name": "Fabric Language Kotlin",
     "modId": "fabric-language-kotlin",
