@@ -4,6 +4,7 @@ import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.entity.EntityRenderer
 import net.minecraft.world.entity.Entity
+import org.joml.Vector3d
 import org.joml.Vector3dc
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.Ship
@@ -44,8 +45,8 @@ object ShipyardEntityHandler : VSEntityHandler {
         self.setPos(x, y, z)
     }
 
-    override fun teleportTo(self: Entity, x: Double, y: Double, z: Double) {
-        self.teleportTo(x, y, z)
+    override fun getTeleportPos(self: Entity, pos: Vector3d): Vector3d {
+        return pos
     }
 
     override fun applyRenderOnMountedEntity(

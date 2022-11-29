@@ -21,6 +21,9 @@ import org.valkyrienskies.mod.common.entity.handling.VSEntityManager;
 public abstract class MixinEntity {
 
     @Shadow
+    public abstract void teleportTo(double d, double e, double f);
+
+    @Shadow
     public abstract EntityType<?> getType();
 
     /**
@@ -35,14 +38,25 @@ public abstract class MixinEntity {
                 .positionSetFromVehicle(passenger, Entity.class.cast(this), x, y, z));
     }
 
+    @Unique
+    private boolean isModifyingTeleport = false;
+
     @Inject(
         at = @At("HEAD"),
         method = "teleportTo",
         cancellable = true
     )
     private void beforeTeleportTo(final double d, final double e, final double f, final CallbackInfo ci) {
+        if (isModifyingTeleport) {
+            return;
+        }
+
         ci.cancel();
-        VSEntityManager.INSTANCE.getHandler(this.getType()).teleportTo(Entity.class.cast(this), d, e, f);
+        isModifyingTeleport = true;
+        final Vector3d pos = VSEntityManager.INSTANCE.getHandler(this.getType())
+            .getTeleportPos(Entity.class.cast(this), new Vector3d(d, e, f));
+        teleportTo(pos.x, pos.y, pos.z);
+        isModifyingTeleport = false;
     }
 
     @Unique

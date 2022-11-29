@@ -326,6 +326,10 @@ fun Level.toWorldCoordinates(pos: Vec3): Vec3 {
     return getShipManagingPos(pos)?.toWorldCoordinates(pos) ?: pos
 }
 
+fun Level.toWorldCoordinates(pos: Vector3d): Vector3d {
+    return getShipManagingPos(pos)?.shipToWorld?.transformPosition(pos) ?: pos
+}
+
 @JvmOverloads
 fun Level.toWorldCoordinates(x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
     getShipManagingPos(x, y, z)?.toWorldCoordinates(x, y, z) ?: dest.set(x, y, z)

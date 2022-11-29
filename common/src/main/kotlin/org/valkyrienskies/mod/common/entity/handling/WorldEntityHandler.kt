@@ -38,9 +38,8 @@ object WorldEntityHandler : VSEntityHandler {
         self.setPos(wx, wy, wz)
     }
 
-    override fun teleportTo(self: Entity, x: Double, y: Double, z: Double) {
-        val (wx, wy, wz) = self.level.toWorldCoordinates(x, y, z)
-        self.teleportTo(wx, wy, wz)
+    override fun getTeleportPos(self: Entity, pos: Vector3d): Vector3d {
+        return self.level.toWorldCoordinates(pos)
     }
 
     override fun applyRenderOnMountedEntity(

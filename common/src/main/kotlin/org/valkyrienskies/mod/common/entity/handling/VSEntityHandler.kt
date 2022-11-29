@@ -4,6 +4,7 @@ import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.entity.EntityRenderer
 import net.minecraft.world.entity.Entity
+import org.joml.Vector3d
 import org.joml.Vector3dc
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.Ship
@@ -42,7 +43,7 @@ interface VSEntityHandler {
     /**
      * Shipyard entities will stay in the shipyard, but world entities are unable to teleport into the shipyard
      */
-    fun teleportTo(self: Entity, x: Double, y: Double, z: Double)
+    fun getTeleportPos(self: Entity, pos: Vector3d): Vector3d
 
     /**
      * Gets called every render of a passenger when the vehicle (this handler) lives in the shipyard
