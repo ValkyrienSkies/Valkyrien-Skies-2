@@ -77,7 +77,7 @@ public abstract class MixinEntity {
 
         final int vehicleChunkX = ((int) originalVehicle.position().x()) >> 4;
         final int vehicleChunkZ = ((int) originalVehicle.position().z()) >> 4;
-        // Don't apply the ship render transform if the player is in the shipyard
+        // Don't store the vehicle's position if the vehicle is in the shipyard
         final boolean isVehicleInShipyard = ChunkAllocator.isChunkInShipyard(vehicleChunkX, vehicleChunkZ);
         if (isVehicleInShipyard) {
             return null;
