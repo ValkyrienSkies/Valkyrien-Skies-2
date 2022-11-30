@@ -49,7 +49,7 @@ fun Level.clipIncludeShips(ctx: ClipContext, shouldTransformHitPos: Boolean = tr
 
     // Iterate every ship, find do the raycast in ship space,
     // choose the raycast with the lowest distance to the start position.
-    for (ship in shipObjectWorld.getShipObjectsIntersecting(clipAABB)) {
+    for (ship in shipObjectWorld.loadedShips.getIntersecting(clipAABB)) {
         val worldToShip = (ship as? ShipObjectClient)?.renderTransform?.worldToShipMatrix ?: ship.worldToShip
         val shipToWorld = (ship as? ShipObjectClient)?.renderTransform?.shipToWorldMatrix ?: ship.shipToWorld
         val shipStart = worldToShip.transformPosition(ctx.from.toJOML()).toMinecraft()
@@ -82,7 +82,7 @@ private fun Level.clip(context: ClipContext, realStart: Vec3, realEnd: Vec3): Bl
     return clip(
         realStart, realEnd, context,
         { raycastContext: ClipContext, blockPos: BlockPos? ->
-            val blockState: BlockState = getBlockState(blockPos)
+            val blockState: BlockState = getBlockState(blockPos!!)
             val fluidState: FluidState = getFluidState(blockPos)
             val vec3d = realStart
             val vec3d2 = realEnd
@@ -221,7 +221,7 @@ fun Level.raytraceEntities(
     val end = Vector3d()
     if (shipObjectWorld == null) logger.error("rayTraceEntities shipObjectWorld was null! this should never happen!")
 
-    shipObjectWorld?.getShipObjectsIntersecting(origBoundingBoxM.toJOML())?.forEach {
+    shipObjectWorld?.loadedShips?.getIntersecting(origBoundingBoxM.toJOML())?.forEach {
         it.worldToShip.transformPosition(origStartVec, start)
         it.worldToShip.transformPosition(origEndVec, end)
 

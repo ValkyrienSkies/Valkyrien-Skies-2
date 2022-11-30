@@ -17,7 +17,7 @@
 //import org.spongepowered.asm.mixin.injection.At;
 //import org.spongepowered.asm.mixin.injection.Inject;
 //import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-//import org.valkyrienskies.core.game.ships.ShipObjectClient;
+//import org.valkyrienskies.core.api.ships.ClientShip;
 //import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 //import org.valkyrienskies.mod.forge.mixinducks.MixinTileInstanceManagerDuck;
 //

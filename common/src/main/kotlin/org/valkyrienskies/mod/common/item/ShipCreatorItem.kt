@@ -8,16 +8,17 @@ import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.context.UseOnContext
 import net.minecraft.world.level.block.state.BlockState
-import org.joml.Vector3i
-import org.valkyrienskies.core.game.ChunkAllocator
 import org.valkyrienskies.mod.common.dimensionId
+import org.valkyrienskies.mod.common.isChunkInShipyard
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.toBlockPos
 import org.valkyrienskies.mod.common.util.toJOML
+import org.valkyrienskies.mod.common.yRange
 import org.valkyrienskies.mod.util.relocateBlock
 
 class ShipCreatorItem(properties: Properties, private val scale: Double) : Item(properties) {
-    override fun isFoil(stack: ItemStack?): Boolean {
+
+    override fun isFoil(stack: ItemStack): Boolean {
         return true
     }
 
@@ -27,14 +28,14 @@ class ShipCreatorItem(properties: Properties, private val scale: Double) : Item(
         val blockState: BlockState = level.getBlockState(blockPos)
 
         if (!level.isClientSide) {
-            if (ChunkAllocator.isChunkInShipyard(blockPos.x shr 4, blockPos.z shr 4)) {
+            if (ctx.level.isChunkInShipyard(blockPos.x shr 4, blockPos.z shr 4)) {
                 ctx.player?.sendSystemMessage(Component.literal("That chunk is already part of a ship!"))
             } else if (!blockState.isAir) {
                 // Make a ship
                 val dimensionId = level.dimensionId
                 val shipData = level.shipObjectWorld.createNewShipAtBlock(blockPos.toJOML(), false, scale, dimensionId)
 
-                val centerPos = shipData.chunkClaim.getCenterBlockCoordinates(Vector3i()).toBlockPos()
+                val centerPos = shipData.chunkClaim.getCenterBlockCoordinates(level.yRange).toBlockPos()
 
                 // Move the block from the world to a ship
                 level.relocateBlock(blockPos, centerPos, shipData, NORTH)

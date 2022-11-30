@@ -5,20 +5,20 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.level.ChunkPos
 import org.apache.commons.lang3.mutable.MutableObject
-import org.valkyrienskies.core.chunk_tracking.ChunkUnwatchTask
-import org.valkyrienskies.core.chunk_tracking.ChunkWatchTask
-import org.valkyrienskies.core.game.ships.ShipObjectServerWorld
-import org.valkyrienskies.core.util.logger
+import org.valkyrienskies.core.api.world.ServerShipWorldCore
+import org.valkyrienskies.core.api.world.chunks.ChunkUnwatchTask
+import org.valkyrienskies.core.api.world.chunks.ChunkWatchTask
 import org.valkyrienskies.mod.common.executeIf
 import org.valkyrienskies.mod.common.getLevelFromDimensionId
 import org.valkyrienskies.mod.common.isTickingChunk
 import org.valkyrienskies.mod.common.mcPlayer
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.mixin.accessors.server.world.ChunkMapAccessor
+import org.valkyrienskies.mod.util.logger
 
 object ChunkManagement {
     @JvmStatic
-    fun tickChunkLoading(shipWorld: ShipObjectServerWorld, server: MinecraftServer) {
+    fun tickChunkLoading(shipWorld: ServerShipWorldCore, server: MinecraftServer) {
         val (chunkWatchTasks, chunkUnwatchTasks) = shipWorld.getChunkWatchTasks()
 
         // for now, just do all the watch tasks
@@ -26,11 +26,11 @@ object ChunkManagement {
         chunkWatchTasks.forEach { chunkWatchTask: ChunkWatchTask ->
             logger.debug(
                 "Watch task for dimension " + chunkWatchTask.dimensionId + ": " +
-                    chunkWatchTask.getChunkX() + " : " + chunkWatchTask.getChunkZ()
+                    chunkWatchTask.chunkX + " : " + chunkWatchTask.chunkZ
             )
             val chunkPacketBuffer: MutableObject<ClientboundLevelChunkWithLightPacket> =
                 MutableObject<ClientboundLevelChunkWithLightPacket>()
-            val chunkPos = ChunkPos(chunkWatchTask.getChunkX(), chunkWatchTask.getChunkZ())
+            val chunkPos = ChunkPos(chunkWatchTask.chunkX, chunkWatchTask.chunkZ)
 
             val level = server.getLevelFromDimensionId(chunkWatchTask.dimensionId)!!
             level.chunkSource.updateChunkForced(chunkPos, true)
@@ -54,9 +54,9 @@ object ChunkManagement {
         chunkUnwatchTasks.forEach { chunkUnwatchTask: ChunkUnwatchTask ->
             logger.debug(
                 "Unwatch task for dimension " + chunkUnwatchTask.dimensionId + ": " +
-                    chunkUnwatchTask.getChunkX() + " : " + chunkUnwatchTask.getChunkZ()
+                    chunkUnwatchTask.chunkX + " : " + chunkUnwatchTask.chunkZ
             )
-            val chunkPos = ChunkPos(chunkUnwatchTask.getChunkX(), chunkUnwatchTask.getChunkZ())
+            val chunkPos = ChunkPos(chunkUnwatchTask.chunkX, chunkUnwatchTask.chunkZ)
 
             if (chunkUnwatchTask.shouldUnload) {
                 val level = server.getLevelFromDimensionId(chunkUnwatchTask.dimensionId)!!

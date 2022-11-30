@@ -28,8 +28,8 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyConstant;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.core.game.ships.ShipObjectClient;
-import org.valkyrienskies.core.game.ships.ShipTransform;
+import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.mixin.accessors.client.render.OverlayVertexConsumerAccessor;
@@ -69,7 +69,7 @@ public abstract class MixinLevelRenderer {
         final Entity entity, final double camX, final double camY, final double camZ, final BlockPos blockPos,
         final BlockState blockState, final CallbackInfo ci) {
         ci.cancel();
-        final ShipObjectClient ship = VSGameUtilsKt.getShipObjectManagingPos(level, blockPos);
+        final ClientShip ship = VSGameUtilsKt.getShipObjectManagingPos(level, blockPos);
         if (ship != null) {
             matrixStack.pushPose();
             transformRenderWithShip(ship.getRenderTransform(), matrixStack, blockPos, camX, camY, camZ);
@@ -102,7 +102,7 @@ public abstract class MixinLevelRenderer {
         final LightTexture methodLightmapTextureManager,
         final Matrix4f methodMatrix4f) {
 
-        final ShipObjectClient ship = VSGameUtilsKt.getShipObjectManagingPos(level, blockPos);
+        final ClientShip ship = VSGameUtilsKt.getShipObjectManagingPos(level, blockPos);
         if (ship != null) {
             // Remove the vanilla render transform
             matrixStack.popPose();

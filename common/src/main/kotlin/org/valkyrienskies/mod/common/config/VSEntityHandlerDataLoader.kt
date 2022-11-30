@@ -7,8 +7,8 @@ import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.packs.resources.ResourceManager
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener
 import net.minecraft.util.profiling.ProfilerFiller
-import org.valkyrienskies.core.util.logger
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager
+import org.valkyrienskies.mod.util.logger
 
 object VSEntityHandlerDataLoader : SimpleJsonResourceReloadListener(Gson(), "vs_entities") {
 

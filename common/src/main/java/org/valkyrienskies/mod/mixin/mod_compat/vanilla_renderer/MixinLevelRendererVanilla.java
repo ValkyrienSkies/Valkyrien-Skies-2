@@ -13,6 +13,7 @@ import it.unimi.dsi.fastutil.objects.ObjectList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.WeakHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.LevelRenderer;
@@ -24,6 +25,7 @@ import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
+import net.minecraft.world.entity.player.Player;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Final;
@@ -33,8 +35,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.core.game.ships.ShipObjectClient;
-import org.valkyrienskies.core.game.ships.ShipTransform;
+import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
@@ -45,9 +47,9 @@ import org.valkyrienskies.mod.mixin.mod_compat.optifine.RenderChunkInfoAccessorO
 
 @Mixin(LevelRenderer.class)
 public class MixinLevelRendererVanilla {
+    private final WeakHashMap<ClientShip, ObjectList<RenderChunkInfo>> shipRenderChunks = new WeakHashMap<>();
     @Shadow
     private ClientLevel level;
-
     @Shadow
     @Final
     private ObjectArrayList<RenderChunkInfo> renderChunksInFrustum;
@@ -56,17 +58,8 @@ public class MixinLevelRendererVanilla {
     @Shadow
     @Final
     private Minecraft minecraft;
-    @Shadow
-    private double xTransparentOld;
-    @Shadow
-    private double yTransparentOld;
-    @Shadow
-    private double zTransparentOld;
-    @Shadow
-    private @Nullable ChunkRenderDispatcher chunkRenderDispatcher;
-    private ObjectList<RenderChunkInfo> renderChunksGeneratedByVanilla = new ObjectArrayList<>();
 
-    private final WeakHashMap<ShipObjectClient, ObjectList<RenderChunkInfo>> shipRenderChunks = new WeakHashMap<>();
+    private ObjectList<RenderChunkInfo> renderChunksGeneratedByVanilla = new ObjectArrayList<>();
 
     /**
      * Fix the distance to render chunks, so that MC doesn't think ship chunks are too far away
@@ -85,6 +78,25 @@ public class MixinLevelRendererVanilla {
     }
 
     /**
+     * Force frustum update if the ship moves and the camera doesn't
+     */
+    @Redirect(
+        at = @At(
+            value = "INVOKE",
+            target = "Ljava/util/concurrent/atomic/AtomicBoolean;compareAndSet(ZZ)Z"
+        ),
+        method = "setupRender"
+    )
+    private boolean needsFrustumUpdate(final AtomicBoolean needsFrustumUpdate, final boolean expectedValue,
+        final boolean newValue) {
+        final Player player = minecraft.player;
+
+        // force frustum update if default behaviour says to OR if the player is mounted to a ship
+        return (needsFrustumUpdate != null && needsFrustumUpdate.compareAndSet(expectedValue, newValue)) ||
+            (player != null && VSGameUtilsKt.getShipObjectEntityMountedTo(level, player) != null);
+    }
+
+    /**
      * Add ship render chunks to [renderChunks]
      */
     @Inject(
@@ -98,17 +110,16 @@ public class MixinLevelRendererVanilla {
         final Frustum frustum, final CallbackInfo ci) {
         renderChunksGeneratedByVanilla = new ObjectArrayList<>(renderChunksInFrustum);
 
-        final LevelRenderer self = LevelRenderer.class.cast(this);
         final BlockPos.MutableBlockPos tempPos = new BlockPos.MutableBlockPos();
         final ViewAreaAccessor chunkStorageAccessor = (ViewAreaAccessor) viewArea;
-        for (final ShipObjectClient shipObject : VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips()) {
+        for (final ClientShip shipObject : VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips()) {
             // Don't bother rendering the ship if its AABB isn't visible to the frustum
             if (!frustum.isVisible(VectorConversionsMCKt.toMinecraft(shipObject.getRenderAABB()))) {
                 continue;
             }
 
-            shipObject.getShipData().getShipActiveChunksSet().iterateChunkPos((x, z) -> {
-                for (int y = 0; y < 16; y++) {
+            shipObject.getShipActiveChunksSet().iterateChunkPos((x, z) -> {
+                for (int y = level.getMinSection(); y < level.getMaxSection(); y++) {
                     tempPos.set(x << 4, y << 4, z << 4);
                     final ChunkRenderDispatcher.RenderChunk renderChunk =
                         chunkStorageAccessor.callGetRenderChunkAt(tempPos);
@@ -296,7 +307,7 @@ public class MixinLevelRendererVanilla {
 //        final boolean isPlayerInShipyard = ChunkAllocator.isChunkInShipyard(playerChunkX, playerChunkZ);
 //
 //        final BlockPos renderChunkOrigin = builtChunk.getOrigin();
-//        final ShipObjectClient shipObject = VSGameUtilsKt.getShipObjectManagingPos(level, renderChunkOrigin);
+//        final ClientShip shipObject = VSGameUtilsKt.getShipObjectManagingPos(level, renderChunkOrigin);
 //        if (!isPlayerInShipyard && shipObject != null) {
 //            // matrixStack.pop(); so while checking for bugs this seems unusual?
 //            // matrixStack.push(); but it doesn't fix sadly the bug im searching for

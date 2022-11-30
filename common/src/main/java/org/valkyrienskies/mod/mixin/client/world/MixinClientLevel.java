@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.mixin.client.world;
 
+import static org.valkyrienskies.mod.common.ValkyrienSkiesMod.getVsCore;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
@@ -29,9 +31,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.core.api.Ship;
-import org.valkyrienskies.core.game.ships.ShipObjectClientWorld;
-import org.valkyrienskies.core.hooks.VSCoreHooksKt;
+import org.valkyrienskies.core.api.ships.Ship;
+import org.valkyrienskies.core.api.world.ClientShipWorldCore;
 import org.valkyrienskies.core.util.AABBdUtilKt;
 import org.valkyrienskies.core.util.VectorConversionsKt;
 import org.valkyrienskies.mod.client.audio.SimpleSoundInstanceOnShip;
@@ -49,7 +50,7 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
 
     @NotNull
     @Override
-    public ShipObjectClientWorld getShipObjectWorld() {
+    public ClientShipWorldCore getShipObjectWorld() {
         return ((IShipObjectWorldClientProvider) minecraft).getShipObjectWorld();
     }
 
@@ -60,7 +61,7 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
 
     @Inject(method = "disconnect", at = @At("TAIL"))
     private void afterDisconnect(final CallbackInfo ci) {
-        VSCoreHooksKt.getCoreHooks().afterDisconnect();
+        getVsCore().getHooks().afterDisconnect();
     }
 
     // do particle ticks for ships near the player

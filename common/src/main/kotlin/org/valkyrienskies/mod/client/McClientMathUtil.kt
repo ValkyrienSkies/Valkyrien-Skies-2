@@ -3,7 +3,7 @@ package org.valkyrienskies.mod.client
 import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.core.BlockPos
 import org.joml.Matrix4d
-import org.valkyrienskies.core.game.ships.ShipTransform
+import org.valkyrienskies.core.api.ships.properties.ShipTransform
 import org.valkyrienskies.mod.common.util.multiply
 
 /**

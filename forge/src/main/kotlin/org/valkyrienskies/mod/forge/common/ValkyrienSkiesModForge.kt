@@ -19,11 +19,7 @@ import net.minecraftforge.fml.loading.FMLEnvironment
 import net.minecraftforge.registries.DeferredRegister
 import net.minecraftforge.registries.ForgeRegistries
 import net.minecraftforge.registries.RegistryObject
-import org.valkyrienskies.core.api.Ship
-import org.valkyrienskies.core.hooks.CoreHooks
-import org.valkyrienskies.core.program.DaggerVSCoreClientFactory
-import org.valkyrienskies.core.program.DaggerVSCoreServerFactory
-import org.valkyrienskies.core.program.VSCoreModule
+import org.valkyrienskies.core.api.VSCoreFactory
 import org.valkyrienskies.mod.client.EmptyRenderer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.block.TestChairBlock
@@ -45,18 +41,15 @@ class ValkyrienSkiesModForge {
     private val SHIP_MOUNTING_ENTITY_REGISTRY: RegistryObject<EntityType<ShipMountingEntity>>
     private val SHIP_ASSEMBLER_ITEM_REGISTRY: RegistryObject<Item>
 
-    lateinit var ship: Ship
-
     init {
-        CoreHooks = ForgeHooksImpl
-
         val isClient = FMLEnvironment.dist.isClient
-        val module = VSCoreModule(ForgeHooksImpl, VSForgeNetworking())
         val vsCore = if (isClient) {
-            DaggerVSCoreClientFactory.builder().vSCoreModule(module).build().client()
+            VSCoreFactory.instance.newVsCoreClient(ForgeHooksImpl)
         } else {
-            DaggerVSCoreServerFactory.builder().vSCoreModule(module).build().server()
+            VSCoreFactory.instance.newVsCoreServer(ForgeHooksImpl)
         }
+
+        VSForgeNetworking.registerPacketHandlers(vsCore.hooks)
 
         ValkyrienSkiesMod.init(vsCore)
 

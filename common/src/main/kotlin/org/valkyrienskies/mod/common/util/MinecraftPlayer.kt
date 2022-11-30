@@ -2,10 +2,10 @@ package org.valkyrienskies.mod.common.util
 
 import net.minecraft.world.entity.player.Player
 import org.joml.Vector3d
-import org.valkyrienskies.core.game.DimensionId
-import org.valkyrienskies.core.game.IPlayer
-import org.valkyrienskies.core.hooks.CoreHooks
+import org.valkyrienskies.core.api.world.IPlayer
+import org.valkyrienskies.core.api.world.properties.DimensionId
 import org.valkyrienskies.mod.common.dimensionId
+import org.valkyrienskies.mod.common.vsCore
 import java.lang.ref.WeakReference
 import java.util.UUID
 
@@ -25,7 +25,7 @@ class MinecraftPlayer(playerObject: Player) : IPlayer {
         get() = player.hasPermissions(4)
 
     override val canModifyServerConfig: Boolean
-        get() = CoreHooks.isPhysicalClient || player.hasPermissions(4)
+        get() = vsCore.hooks.isPhysicalClient || player.hasPermissions(4)
 
     override val dimension: DimensionId
         get() = player.level.dimensionId

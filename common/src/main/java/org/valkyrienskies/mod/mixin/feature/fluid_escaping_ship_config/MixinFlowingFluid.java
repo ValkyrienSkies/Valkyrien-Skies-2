@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.valkyrienskies.core.api.Ship;
+import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 
@@ -38,6 +38,5 @@ public class MixinFlowingFluid {
                 }
             }
         }
-
     }
 }

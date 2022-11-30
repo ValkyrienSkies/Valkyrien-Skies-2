@@ -3,8 +3,7 @@ package org.valkyrienskies.mod.common
 import net.minecraft.core.BlockPos
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.Level
-import org.valkyrienskies.core.game.ChunkAllocator
-import org.valkyrienskies.core.game.ships.ShipObject
+import org.valkyrienskies.core.api.ships.LoadedShip
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toMinecraft
 import org.valkyrienskies.mod.mixin.accessors.entity.EntityAccessor
@@ -25,8 +24,8 @@ object PlayerUtil {
      * is used for emulating the environment when you interact with a block
      */
     @JvmStatic
-    fun <T> transformPlayerTemporarily(player: Player, ship: ShipObject?, inside: () -> T): T {
-        if (ChunkAllocator.isBlockInShipyard(player.x, player.y, player.z)) {
+    fun <T> transformPlayerTemporarily(player: Player, ship: LoadedShip?, inside: () -> T): T {
+        if (player.level.isBlockInShipyard(player.x, player.y, player.z)) {
             // player is already in shipyard
             return inside()
         }
@@ -37,8 +36,7 @@ object PlayerUtil {
         val tmpPos = player.position()
 
         if (ship != null) {
-            val shipMatrix = ship.shipData.shipTransform
-                .worldToShipMatrix
+            val shipMatrix = ship.worldToShip
             val direction = shipMatrix.transformDirection(
                 player.lookAngle.toJOML()
             )

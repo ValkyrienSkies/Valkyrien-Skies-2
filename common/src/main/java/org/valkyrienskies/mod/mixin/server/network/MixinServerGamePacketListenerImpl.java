@@ -20,7 +20,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.core.game.ships.ShipData;
+import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
@@ -68,27 +68,8 @@ public abstract class MixinServerGamePacketListenerImpl {
         ),
         method = "handleUseItemOn"
     )
-    private double skipDistanceCheck1(final Vec3 instance, final Vec3 vec3) {
+    private int skipDistanceCheck(final ChunkPos instance, final ChunkPos chunkPos) {
         return 0;
-    }
-
-    /**
-     * Include ships in server-side distance check when player interacts with a block.
-     */
-    @Redirect(
-        method = "handleUseItemOn",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/server/level/ServerPlayer;distanceToSqr(DDD)D"
-        )
-    )
-    public double includeShipsInBlockInteractDistanceCheck(
-        final ServerPlayer receiver, final double x, final double y, final double z) {
-        if (VSGameConfig.SERVER.getEnableInteractDistanceChecks()) {
-            return VSGameUtilsKt.squaredDistanceToInclShips(receiver, x, y, z);
-        } else {
-            return 0;
-        }
     }
 
     @Redirect(
@@ -140,7 +121,7 @@ public abstract class MixinServerGamePacketListenerImpl {
         }
 
         final BlockPos blockPos = new BlockPos(x, y, z);
-        final ShipData ship = VSGameUtilsKt.getShipManagingPos((ServerLevel) player.level, blockPos);
+        final ServerShip ship = VSGameUtilsKt.getShipManagingPos((ServerLevel) player.level, blockPos);
 
         // TODO add flag to disable this https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues/30
         if (ship != null) {

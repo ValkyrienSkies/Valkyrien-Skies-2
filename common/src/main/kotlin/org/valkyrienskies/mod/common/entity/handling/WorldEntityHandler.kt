@@ -7,9 +7,12 @@ import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.projectile.AbstractHurtingProjectile
 import org.joml.Vector3d
 import org.joml.Vector3dc
-import org.valkyrienskies.core.api.ClientShip
-import org.valkyrienskies.core.api.Ship
-import org.valkyrienskies.mod.common.getShipObjectManagingPos
+import org.valkyrienskies.core.api.ships.ClientShip
+import org.valkyrienskies.core.api.ships.Ship
+import org.valkyrienskies.core.util.component1
+import org.valkyrienskies.core.util.component2
+import org.valkyrienskies.core.util.component3
+import org.valkyrienskies.mod.common.toWorldCoordinates
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toMinecraft
 import kotlin.math.atan2
@@ -17,8 +20,39 @@ import kotlin.math.sqrt
 
 object WorldEntityHandler : VSEntityHandler {
     override fun freshEntityInShipyard(entity: Entity, ship: Ship, position: Vector3dc) {
+        moveEntityFromShipyardToWorld(entity, ship, position)
+    }
+
+    override fun <T : Entity> applyRenderTransform(
+        ship: ClientShip, entity: T, entityRenderer: EntityRenderer<T>,
+        x: Double, y: Double, z: Double,
+        rotationYaw: Float, partialTicks: Float,
+        matrixStack: PoseStack, buffer: MultiBufferSource, packedLight: Int
+    ) {
+        val offset = entityRenderer.getRenderOffset(entity, partialTicks)
+        matrixStack.translate(x + offset.x, y + offset.y, z + offset.z)
+    }
+
+    override fun positionSetFromVehicle(self: Entity, vehicle: Entity, x: Double, y: Double, z: Double) {
+        val (wx, wy, wz) = self.level.toWorldCoordinates(x, y, z)
+        self.setPos(wx, wy, wz)
+    }
+
+    override fun getTeleportPos(self: Entity, pos: Vector3d): Vector3d {
+        return self.level.toWorldCoordinates(pos)
+    }
+
+    override fun applyRenderOnMountedEntity(
+        ship: ClientShip, self: Entity, passenger: Entity, partialTicks: Float, matrixStack: PoseStack
+    ) {
+    }
+
+    override fun onEntityMove(self: Entity, ship: Ship, position: Vector3dc) =
+        moveEntityFromShipyardToWorld(self, ship, position)
+
+    fun moveEntityFromShipyardToWorld(entity: Entity, ship: Ship, position: Vector3dc): Vector3dc {
         val newPos = ship.shipToWorld.transformPosition(Vector3d(position))
-        entity.teleportTo(newPos.x, newPos.y, newPos.z)
+        entity.setPos(newPos.x, newPos.y, newPos.z)
         entity.xo = entity.x
         entity.yo = entity.y
         entity.zo = entity.z
@@ -55,32 +89,7 @@ object WorldEntityHandler : VSEntityHandler {
             entity.yPower = powerJank.y
             entity.zPower = powerJank.z
         }
-    }
 
-    override fun <T : Entity> applyRenderTransform(
-        ship: ClientShip, entity: T, entityRenderer: EntityRenderer<T>,
-        x: Double, y: Double, z: Double,
-        rotationYaw: Float, partialTicks: Float,
-        matrixStack: PoseStack, buffer: MultiBufferSource, packedLight: Int
-    ) {
-        val offset = entityRenderer.getRenderOffset(entity, partialTicks)
-        matrixStack.translate(x + offset.x, y + offset.y, z + offset.z)
-    }
-
-    override fun positionSetFromVehicle(self: Entity, vehicle: Entity, x: Double, y: Double, z: Double) {
-        val pos = Vector3d(x, y, z)
-        val ship = self.level.getShipObjectManagingPos(pos)
-
-        val worldSet = if (ship != null)
-            ship.shipToWorld.transformPosition(pos)
-        else
-            pos
-
-        self.setPos(worldSet.x, worldSet.y, worldSet.z)
-    }
-
-    override fun applyRenderOnMountedEntity(
-        ship: ClientShip, self: Entity, passenger: Entity, partialTicks: Float, matrixStack: PoseStack
-    ) {
+        return newPos
     }
 }

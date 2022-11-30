@@ -3,35 +3,26 @@ package org.valkyrienskies.mod.mixin.mod_compat.optifine_vanilla;
 import static org.valkyrienskies.mod.client.McClientMathUtilKt.transformRenderWithShip;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Matrix4f;
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import it.unimi.dsi.fastutil.objects.ObjectList;
-import java.util.concurrent.atomic.AtomicReference;
 import net.minecraft.client.Camera;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
-import net.minecraft.client.renderer.LevelRenderer.RenderChunkInfo;
-import net.minecraft.client.renderer.LevelRenderer.RenderChunkStorage;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.ViewArea;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
-import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.Vec3;
-import net.minecraft.world.phys.shapes.VoxelShape;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.core.game.ships.ShipObjectClient;
+import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.mixinducks.client.world.ClientChunkCacheDuck;
 
@@ -46,23 +37,6 @@ public abstract class MixinLevelRenderer {
     @Shadow
     private ViewArea viewArea;
 
-    private ObjectList<RenderChunkInfo> renderChunksGeneratedByVanilla = new ObjectArrayList<>();
-
-    @Shadow
-    private static void renderShape(final PoseStack matrixStack, final VertexConsumer vertexConsumer,
-        final VoxelShape voxelShape, final double d, final double e, final double f, final float red, final float green,
-        final float blue, final float alpha) {
-        throw new AssertionError();
-    }
-
-    @Shadow
-    @Final
-    private AtomicReference<RenderChunkStorage> renderChunkStorage;
-
-    @Shadow
-    @Final
-    private ObjectArrayList<RenderChunkInfo> renderChunksInFrustum;
-
     /**
      * Prevents ships from disappearing on f3+a
      */
@@ -75,7 +49,7 @@ public abstract class MixinLevelRenderer {
     )
     private void afterRefresh(final CallbackInfo ci) {
         ((ClientChunkCacheDuck) this.level.getChunkSource()).vs_getShipChunks().forEach((pos, chunk) -> {
-            for (int y = 0; y < 16; y++) {
+            for (int y = level.getMinSection(); y < level.getMaxSection(); y++) {
                 viewArea.setDirty(ChunkPos.getX(pos), y, ChunkPos.getZ(pos), false);
             }
         });
@@ -96,7 +70,7 @@ public abstract class MixinLevelRenderer {
         final Matrix4f methodMatrix4f) {
 
         final BlockPos blockEntityPos = blockEntity.getBlockPos();
-        final ShipObjectClient shipObject = VSGameUtilsKt.getShipObjectManagingPos(level, blockEntityPos);
+        final ClientShip shipObject = VSGameUtilsKt.getShipObjectManagingPos(level, blockEntityPos);
         if (shipObject != null) {
             final Vec3 cam = methodCamera.getPosition();
             matrix.popPose();
@@ -106,15 +80,4 @@ public abstract class MixinLevelRenderer {
         }
         blockEntityRenderDispatcher.render(blockEntity, tickDelta, matrix, vertexConsumerProvider);
     }
-
-    /**
-     * Remove the render chunks added to render ships
-     */
-//    @Inject(method = "setupRender", at = @At("HEAD"))
-    private void resetRenderChunks(final Camera camera, final Frustum frustum, final boolean bl, final boolean bl2,
-        final CallbackInfo ci) {
-        renderChunksInFrustum.clear();
-        renderChunksInFrustum.addAll(renderChunksGeneratedByVanilla);
-    }
-
 }

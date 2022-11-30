@@ -22,7 +22,6 @@ pluginManagement {
 
 include("common")
 include("fabric")
-include("quilt")
 include("forge")
 includeBuild("vs-core")
 

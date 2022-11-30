@@ -41,11 +41,9 @@ dependencies {
         transitive = false
     }
 
-//    modImplementation("curse.maven:sodium-394468:3669187")
-//    modImplementation("curse.maven:iris-455508:4023641")
-
     // Depend on the fabric kotlin mod
     modImplementation("net.fabricmc:fabric-language-kotlin:1.8.5+kotlin.1.7.20")
+    modImplementation("curse.maven:sodium-394468:3669187")
 
     modImplementation("com.terraformersmc:modmenu:${rootProject.modmenu_version}")
 
@@ -54,20 +52,20 @@ dependencies {
     modImplementation("me.shedaniel.cloth:cloth-config-fabric:${rootProject.cloth_config_version}")
 
 
-    implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {
+    implementation("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
         exclude module: "netty-buffer"
         exclude module: "fastutil"
         exclude module: "kotlin-stdlib-jdk8"
     }
     // Shade vs-core
-    shadowCommon("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {
+    shadowCommon("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
         exclude module: "netty-buffer"
         exclude module: "fastutil"
         exclude module: "kotlin-stdlib-jdk8" // Don't shade kotlin-stdlib-jdk8, even though vs-core depends on it
     }
 
-    implementation("org.valkyrienskies:valkyrien-dependency-downloader:4.2")
-    shadowCommon("org.valkyrienskies:valkyrien-dependency-downloader:4.2")
+    implementation("org.valkyrienskies:valkyrien-dependency-downloader:${rootProject.dependency_downloader_version}")
+    shadowCommon("org.valkyrienskies:valkyrien-dependency-downloader:${rootProject.dependency_downloader_version}:all") { transitive = false }
 }
 
 // Copy the VS common access widener to the generated resources folder

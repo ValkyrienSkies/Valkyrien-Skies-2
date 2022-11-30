@@ -2,17 +2,17 @@
   {
     "loader": "forge",
     "name": "Cloth Config API",
-    "modId": "cloth-config",
-    "versionRange": ">=4.14.64",
+    "modId": "cloth_config",
+    "versionRange": ">=6.3.81",
     "optional": false,
-    "downloadUrl": "https://maven.valkyrienskies.org/me/shedaniel/cloth/cloth-config-forge/4.16.91/cloth-config-forge-4.16.91.jar"
+    "downloadUrl": "https://maven.valkyrienskies.org/me/shedaniel/cloth/cloth-config-forge/6.3.81/cloth-config-forge-6.3.81.jar"
   },
   {
-    "loader": "forge",
+    "loader": "forge_lang",
     "name": "Kotlin for Forge",
-    "modId": "kotlinforforge",
-    "versionRange": ">=1.16.0",
+    "modId": "KotlinForForge",
+    "versionRange": ">=3.4.0",
     "optional": false,
-    "downloadUrl": "https://maven.valkyrienskies.org/curse/maven/kotlinforforge-351264/3527736/kotlinforforge-351264-3527736.jar"
+    "downloadUrl": "https://maven.valkyrienskies.org/curse/maven/kotlinforforge-351264/3820307/kotlinforforge-351264-3820307.jar"
   }
 ]

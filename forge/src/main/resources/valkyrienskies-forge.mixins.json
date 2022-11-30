@@ -1,17 +1,14 @@
 {
   "required": true,
   "package": "org.valkyrienskies.mod.forge.mixin",
-  "compatibilityLevel": "JAVA_8",
+  "compatibilityLevel": "JAVA_17",
   "plugin": "org.valkyrienskies.mod.forge.mixin.ValkyrienForgeMixinConfigPlugin",
   "mixins": [
-    "compat.create.MixinBlockBreakingKineticTileEntity",
-    "compat.create.MixinBlocks",
-    "compat.create.MixinContraptionRenderInfo",
-    "compat.create.MixinCrushingWheelBlock",
+    "feature.forge_interact.MixinIForgePlayer",
+    "feature.patch_modules.MixinMain",
     "world.level.block.FireMixin"
   ],
   "client": [
-    "ExampleForgeMixin",
     "client.render.MixinLevelRenderer"
   ],
   "injectors": {

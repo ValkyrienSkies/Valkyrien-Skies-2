@@ -3,7 +3,7 @@ package org.valkyrienskies.mod.client
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.level.BlockGetter
 import org.joml.Vector3dc
-import org.valkyrienskies.core.game.ships.ShipObjectClient
+import org.valkyrienskies.core.api.ships.ClientShip
 
 interface IVSCamera {
     fun setupWithShipMounted(
@@ -12,7 +12,7 @@ interface IVSCamera {
         thirdPerson: Boolean,
         thirdPersonReverse: Boolean,
         partialTicks: Float,
-        shipMountedTo: ShipObjectClient,
+        shipMountedTo: ClientShip,
         inShipPlayerPosition: Vector3dc
     )
 }

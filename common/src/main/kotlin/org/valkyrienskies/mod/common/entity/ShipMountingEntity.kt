@@ -8,8 +8,8 @@ import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.level.Level
 import org.joml.Vector3f
-import org.valkyrienskies.core.api.setAttachment
-import org.valkyrienskies.core.game.ships.ShipObjectServer
+import org.valkyrienskies.core.api.ships.LoadedServerShip
+import org.valkyrienskies.core.api.ships.setAttachment
 import org.valkyrienskies.core.networking.simple.sendToServer
 import org.valkyrienskies.mod.api.SeatedControllingPlayer
 import org.valkyrienskies.mod.common.config.VSKeyBindings
@@ -52,7 +52,7 @@ open class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level
 
     override fun remove(removalReason: RemovalReason) {
         if (this.isController && !level.isClientSide)
-            (level.getShipObjectManagingPos(blockPosition()!!) as ShipObjectServer?)
+            (level.getShipObjectManagingPos(blockPosition()) as LoadedServerShip?)
                 ?.setAttachment<SeatedControllingPlayer>(null)
         super.remove(removalReason)
     }

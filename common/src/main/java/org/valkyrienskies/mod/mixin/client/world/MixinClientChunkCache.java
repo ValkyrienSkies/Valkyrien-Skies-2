@@ -21,7 +21,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.valkyrienskies.core.game.ChunkAllocator;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.compat.SodiumCompat;
 import org.valkyrienskies.mod.compat.VSRenderer;
 import org.valkyrienskies.mod.mixin.ValkyrienCommonMixinConfigPlugin;
@@ -57,7 +57,7 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
         final ClientChunkCacheStorageAccessor clientChunkMapAccessor =
             ClientChunkCacheStorageAccessor.class.cast(storage);
         if (!clientChunkMapAccessor.callInRange(x, z)) {
-            if (ChunkAllocator.isChunkInShipyard(x, z)) {
+            if (VSGameUtilsKt.isChunkInShipyard(level, x, z)) {
                 final long chunkPosLong = ChunkPos.asLong(x, z);
 
                 final LevelChunk worldChunk = new LevelChunk(this.level, new ChunkPos(x, z));

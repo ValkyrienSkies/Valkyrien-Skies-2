@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.feature.seamless_copy;
 
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.core.SectionPos;
 import net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket;
@@ -7,8 +8,10 @@ import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket;
 import net.minecraft.network.protocol.game.ClientboundSectionBlocksUpdatePacket;
 import org.jetbrains.annotations.NotNull;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.At.Shift;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.mod.common.assembly.SeamlessChunksManager;
@@ -37,6 +40,8 @@ import org.valkyrienskies.mod.mixinducks.feature.seamless_copy.SeamlessCopyClien
 @Mixin(ClientPacketListener.class)
 public class MixinClientPacketListener implements SeamlessCopyClientPacketListenerDuck {
 
+    @Shadow
+    private ClientLevel level;
     @Unique
     private final SeamlessChunksManager chunks = new SeamlessChunksManager(ClientPacketListener.class.cast(this));
 
@@ -49,36 +54,48 @@ public class MixinClientPacketListener implements SeamlessCopyClientPacketListen
     }
 
     @Inject(
-        at = @At("HEAD"),
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/network/protocol/PacketUtils;ensureRunningOnSameThread(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketListener;Lnet/minecraft/util/thread/BlockableEventLoop;)V",
+            shift = Shift.AFTER
+        ),
         method = "handleLevelChunkWithLight",
         cancellable = true
     )
     private void beforeHandleLevelChunk(final ClientboundLevelChunkWithLightPacket packet, final CallbackInfo ci) {
-        if (chunks.queue(packet.getX(), packet.getZ(), packet)) {
+        if (chunks.queue(packet.getX(), packet.getZ(), packet, level)) {
             ci.cancel();
         }
     }
 
     @Inject(
-        at = @At("HEAD"),
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/network/protocol/PacketUtils;ensureRunningOnSameThread(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketListener;Lnet/minecraft/util/thread/BlockableEventLoop;)V",
+            shift = Shift.AFTER
+        ),
         method = "handleChunkBlocksUpdate",
         cancellable = true
     )
     private void beforeHandleChunkBlocksUpdate(final ClientboundSectionBlocksUpdatePacket packet,
         final CallbackInfo ci) {
         final SectionPos pos = ((ClientboundSectionBlocksUpdatePacketAccessor) packet).getSectionPos();
-        if (chunks.queue(pos.x(), pos.z(), packet)) {
+        if (chunks.queue(pos.x(), pos.z(), packet, level)) {
             ci.cancel();
         }
     }
 
     @Inject(
-        at = @At("HEAD"),
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/network/protocol/PacketUtils;ensureRunningOnSameThread(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketListener;Lnet/minecraft/util/thread/BlockableEventLoop;)V",
+            shift = Shift.AFTER
+        ),
         method = "handleBlockUpdate",
         cancellable = true
     )
     private void beforeHandleBlockUpdate(final ClientboundBlockUpdatePacket packet, final CallbackInfo ci) {
-        if (chunks.queue(packet.getPos().getX() >> 4, packet.getPos().getZ() >> 4, packet)) {
+        if (chunks.queue(packet.getPos().getX() >> 4, packet.getPos().getZ() >> 4, packet, level)) {
             ci.cancel();
         }
     }

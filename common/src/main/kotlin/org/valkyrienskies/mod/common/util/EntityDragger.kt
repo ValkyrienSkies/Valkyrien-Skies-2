@@ -39,8 +39,8 @@ object EntityDragger {
                         dragTheEntity = true
 
                         // region Compute position dragging
-                        val newPosIdeal = shipData.shipTransform.shipToWorldMatrix.transformPosition(
-                            shipData.prevTickShipTransform.worldToShipMatrix.transformPosition(
+                        val newPosIdeal = shipData.shipToWorld.transformPosition(
+                            shipData.prevTickTransform.worldToShip.transformPosition(
                                 Vector3d(entity.x, entity.y, entity.z)
                             )
                         )
@@ -57,8 +57,8 @@ object EntityDragger {
                         val entityLookYawOnly =
                             Vector3d(sin(-Math.toRadians(yViewRot)), 0.0, cos(-Math.toRadians(yViewRot)))
 
-                        val newLookIdeal = shipData.shipTransform.shipToWorldMatrix.transformDirection(
-                            shipData.prevTickShipTransform.worldToShipMatrix.transformDirection(
+                        val newLookIdeal = shipData.shipToWorld.transformDirection(
+                            shipData.prevTickTransform.worldToShip.transformDirection(
                                 entityLookYawOnly
                             )
                         )

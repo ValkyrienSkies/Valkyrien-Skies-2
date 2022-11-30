@@ -20,7 +20,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.valkyrienskies.core.game.ChunkAllocator;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.mixinducks.client.render.IVSViewAreaMethods;
 
 /**
@@ -63,7 +63,7 @@ public abstract class MixinViewAreaOptifine implements IVSViewAreaMethods {
         if (y < 0 || y >= chunkGridSizeY) {
             return; // Weird, but just ignore it
         }
-        if (ChunkAllocator.isChunkInShipyard(x, z)) {
+        if (VSGameUtilsKt.isChunkInShipyard(level, x, z)) {
             final long chunkPosAsLong = ChunkPos.asLong(x, z);
             final ChunkRenderDispatcher.RenderChunk[] renderChunksArray =
                 vs$shipRenderChunks.computeIfAbsent(chunkPosAsLong,
@@ -97,7 +97,7 @@ public abstract class MixinViewAreaOptifine implements IVSViewAreaMethods {
             return; // Weird, but ignore it
         }
 
-        if (ChunkAllocator.isChunkInShipyard(chunkX, chunkZ)) {
+        if (VSGameUtilsKt.isChunkInShipyard(level, chunkX, chunkZ)) {
             final long chunkPosAsLong = ChunkPos.asLong(chunkX, chunkZ);
             final ChunkRenderDispatcher.RenderChunk[] renderChunksArray = vs$shipRenderChunks.get(chunkPosAsLong);
             if (renderChunksArray == null) {
@@ -114,7 +114,7 @@ public abstract class MixinViewAreaOptifine implements IVSViewAreaMethods {
 
     @Override
     public void unloadChunk(final int chunkX, final int chunkZ) {
-        if (ChunkAllocator.isChunkInShipyard(chunkX, chunkZ)) {
+        if (VSGameUtilsKt.isChunkInShipyard(level, chunkX, chunkZ)) {
             final ChunkRenderDispatcher.RenderChunk[] chunks =
                 vs$shipRenderChunks.remove(ChunkPos.asLong(chunkX, chunkZ));
             if (chunks != null) {

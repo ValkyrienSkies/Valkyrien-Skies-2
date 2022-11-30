@@ -8,16 +8,13 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.Vec3;
-import org.joml.Vector3d;
-import org.joml.Vector3dc;
+import org.joml.Matrix4dc;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
-import org.valkyrienskies.core.game.ships.ShipObjectClient;
-import org.valkyrienskies.core.game.ships.ShipTransform;
+import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 /**
  * This mixin fixes {@link BlockEntity}s belonging to ships not rendering.
@@ -43,24 +40,24 @@ public class MixinBlockEntityRenderDispatcher {
     )
     private <E extends BlockEntity> boolean isTileEntityInRenderRange(final BlockEntityRenderer<E> instance,
         final E methodBlockEntity,
-        final Vec3 tileEntityPos) {
+        final Vec3 cameraPos) {
 
-        final boolean defaultResult = instance.shouldRender(methodBlockEntity, tileEntityPos);
+        final boolean defaultResult = instance.shouldRender(methodBlockEntity, cameraPos);
         if (defaultResult) {
             return true;
         }
+
         // If defaultResult was false, then check if this BlockEntity belongs to a ship
-        final BlockPos blockEntityPos = methodBlockEntity.getBlockPos();
-        final ShipObjectClient shipObject = VSGameUtilsKt.getShipObjectManagingPos((ClientLevel) level, blockEntityPos);
+        final BlockPos bePos = methodBlockEntity.getBlockPos();
+        final ClientShip shipObject = VSGameUtilsKt.getShipObjectManagingPos((ClientLevel) level, bePos);
         if (shipObject != null) {
-            // Transform tileEntityPos to be in world coordinates
-            final ShipTransform renderTransform = shipObject.getRenderTransform();
-            final Vector3dc tileEntityPosInWorldCoordinates = renderTransform.getShipToWorldMatrix()
-                .transformPosition(new Vector3d(tileEntityPos.x(), tileEntityPos.y(), tileEntityPos.z()));
-            final Vec3 tileEntityPosInWorldCoordinatesVec3d =
-                VectorConversionsMCKt.toMinecraft(tileEntityPosInWorldCoordinates);
-            return tileEntityPosInWorldCoordinatesVec3d.closerThan(this.camera.getPosition(),
-                instance.getViewDistance());
+            final Matrix4dc m = shipObject.getRenderTransform().getShipToWorldMatrix();
+
+            return new Vec3(
+                m.m00() * bePos.getX() + m.m10() * bePos.getY() + m.m20() * bePos.getZ() + m.m30(),
+                m.m01() * bePos.getX() + m.m11() * bePos.getY() + m.m21() * bePos.getZ() + m.m31(),
+                m.m02() * bePos.getX() + m.m12() * bePos.getY() + m.m22() * bePos.getZ() + m.m32()
+            ).closerThan(this.camera.getPosition(), instance.getViewDistance());
         }
         return false;
     }

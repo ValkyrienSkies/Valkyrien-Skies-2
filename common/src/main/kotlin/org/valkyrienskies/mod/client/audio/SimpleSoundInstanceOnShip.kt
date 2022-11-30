@@ -9,7 +9,7 @@ import net.minecraft.sounds.SoundSource
 import net.minecraft.util.RandomSource
 import org.joml.Vector3d
 import org.joml.Vector3dc
-import org.valkyrienskies.core.api.Ship
+import org.valkyrienskies.core.api.ships.Ship
 
 class SimpleSoundInstanceOnShip : SimpleSoundInstance, VelocityTickableSoundInstance {
 
@@ -53,7 +53,7 @@ class SimpleSoundInstanceOnShip : SimpleSoundInstance, VelocityTickableSoundInst
     override fun isStopped(): Boolean = false
 
     override fun tick() {
-        val newPos = ship.shipTransform.shipToWorldMatrix.transformPosition(originalPos, Vector3d())
+        val newPos = ship.shipToWorld.transformPosition(originalPos, Vector3d())
         this.x = newPos.x
         this.y = newPos.y
         this.z = newPos.z

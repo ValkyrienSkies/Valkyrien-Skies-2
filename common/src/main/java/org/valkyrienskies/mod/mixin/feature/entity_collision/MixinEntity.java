@@ -26,7 +26,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
-import org.valkyrienskies.core.api.Ship;
+import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils;
@@ -93,9 +93,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         locals = LocalCapture.CAPTURE_FAILHARD, cancellable = true
     )
     private void redirectSetVelocity(final MoverType moverType, final Vec3 movement, final CallbackInfo callbackInfo,
-        final Vec3 movementAdjustedForCollisions,
-        final double lengthSqr, final boolean d, final boolean bl, final BlockPos blockPos,
-        final BlockState blockState) {
+        final Vec3 movementAdjustedForCollisions) {
 
         // Compute the collision response horizontal
         final Vector3dc collisionResponseHorizontal =

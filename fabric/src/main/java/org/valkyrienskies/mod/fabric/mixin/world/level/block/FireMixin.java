@@ -2,8 +2,6 @@ package org.valkyrienskies.mod.fabric.mixin.world.level.block;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.util.RandomSource;
-import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
@@ -21,8 +19,6 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(FireBlock.class)
 public abstract class FireMixin {
-    @Shadow
-    protected abstract boolean isValidFireLocation(BlockGetter level, BlockPos pos);
 
     @Unique
     private boolean isModifyingFireTick = false;
@@ -53,7 +49,7 @@ public abstract class FireMixin {
                 level.removeBlock(pos, false);
             }
 
-            final int i = (Integer) state.getValue(this.AGE);
+            final int i = state.getValue(AGE);
 
             final boolean bl2 = level.isHumidAt(newPos);
             final int k = bl2 ? -50 : 0;

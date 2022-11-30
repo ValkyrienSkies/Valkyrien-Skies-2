@@ -2,7 +2,7 @@ package org.valkyrienskies.mod.common.util
 
 import org.joml.Vector3d
 import org.joml.Vector3dc
-import org.valkyrienskies.core.game.ships.ShipId
+import org.valkyrienskies.core.api.ships.properties.ShipId
 
 /**
  * This stores the information needed to properly drag entities with ships.

@@ -12,9 +12,9 @@ import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
 import org.valkyrienskies.core.game.VSBlockType
-import org.valkyrienskies.core.util.logger
 import org.valkyrienskies.mod.common.BlockStateInfoProvider
 import org.valkyrienskies.mod.event.RegistryEvents
+import org.valkyrienskies.mod.util.logger
 import java.util.Optional
 
 private data class VSBlockStateInfo(
