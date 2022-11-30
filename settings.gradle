@@ -1,6 +1,7 @@
 pluginManagement {
     repositories {
         mavenCentral()
+        gradlePluginPortal()
         maven {
             name = "Valkyrien Skies Internal"
 
@@ -13,10 +14,28 @@ pluginManagement {
                 }
             }
         }
-        maven { url "https://maven.architectury.dev/" }
-        maven { url "https://maven.fabricmc.net/" }
-        maven { url "https://maven.minecraftforge.net/" }
-        gradlePluginPortal()
+        if (use_external_repositories != "true") {
+            maven { url "https://maven.architectury.dev/" }
+            maven { url "https://maven.fabricmc.net/" }
+        }
+    }
+}
+
+dependencyResolutionManagement {
+    repositories {
+        mavenCentral()
+        maven {
+            name = "Valkyrien Skies Internal"
+
+            url = vs_maven_url ?: 'https://maven.valkyrienskies.org'
+
+            if (vs_maven_username && vs_maven_password) {
+                credentials {
+                    username = getProperty('vs_maven_username')
+                    password = getProperty('vs_maven_password')
+                }
+            }
+        }
     }
 }
 

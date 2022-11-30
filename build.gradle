@@ -66,15 +66,29 @@ subprojects {
                 }
             }
         }
-        maven {
-            name = "Jitpack"
-            url = "https://jitpack.io"
-        }
-        maven {
-            name = "ParchmentMC"
-            url = "https://maven.parchmentmc.org"
+        if (project.use_external_repositories != "true") {
+            maven {
+                name = "ParchmentMC"
+                url = "https://maven.parchmentmc.org"
+            }
+            maven { url = "https://cursemaven.com" }
+            maven { url = "https://maven.terraformersmc.com/releases/" }
+            maven {
+                name = 'Kotlin for Forge'
+                url = 'https://thedarkcolour.github.io/KotlinForForge/'
+            }
         }
         mavenLocal()
+    }
+
+    // Remove automatically added repos
+    if (project.use_external_repositories != "true") {
+        repositories.removeIf {
+            def url = it.url.toString()
+            url.contains("maven.minecraftforge.net") ||
+                url.contains("maven.fabricmc.net") ||
+                url.contains("maven.architectury.dev")
+        }
     }
 
     dependencies {
@@ -85,8 +99,8 @@ subprojects {
 
     // configure checkstyle
     checkstyle {
-        // configure to use checkstyle v10.5.0
-        toolVersion "10.5.0"
+        // configure to use checkstyle v8.41
+        toolVersion "8.45.1"
         // Gradle should fail builds on checkstyle errors (not warnings)
         ignoreFailures = true
         // Checkstyle config file is in .checkstyle/checkstyle.xml
