@@ -64,7 +64,7 @@ public abstract class MixinSoundEngine {
         ),
         method = "*"
     )
-    private void injectListenerVelocity(final Listener listener) {
+    private void injectListenerVelocity(final Listener listener, final Vec3 ignore) {
         final Player player = Minecraft.getInstance().player;
         final ClientLevel level = Minecraft.getInstance().level;
         if (level != null && player != null) {
