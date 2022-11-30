@@ -21,9 +21,9 @@ public abstract class MixinServerGamePacketListenerImpl {
     @Shadow
     public abstract void teleport(double d, double e, double f, float g, float h);
 
-    @Shadow
+    @Shadow(remap = false)
     @Final
-    static Logger LOGGER;
+    private static Logger LOGGER;
 
     @Inject(
         at = @At(
