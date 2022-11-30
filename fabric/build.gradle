@@ -41,11 +41,9 @@ dependencies {
         transitive = false
     }
 
-//    modImplementation("curse.maven:sodium-394468:3669187")
-//    modImplementation("curse.maven:iris-455508:4023641")
-
     // Depend on the fabric kotlin mod
     modImplementation("net.fabricmc:fabric-language-kotlin:1.8.5+kotlin.1.7.20")
+    modImplementation("curse.maven:sodium-394468:3669187")
 
     modImplementation("com.terraformersmc:modmenu:3.2.3")
 

@@ -37,6 +37,8 @@
     "feature.shipyard_entities.MixinTransientEntitySectionManager",
     "feature.tick_ship_chunks.MixinChunkMap",
     "mod_compat.sodium.MixinChunkTracker",
+    "mod_compat.sodium.MixinRegionChunkRenderer",
+    "mod_compat.sodium.MixinRenderSectionManager",
     "mod_compat.sodium.MixinSodiumWorldRenderer",
     "server.MixinMinecraftServer",
     "server.MixinPlayerList",
