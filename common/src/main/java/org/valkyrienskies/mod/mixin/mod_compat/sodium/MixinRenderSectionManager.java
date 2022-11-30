@@ -52,12 +52,22 @@ public abstract class MixinRenderSectionManager {
     @Shadow
     @Final
     private Map<ChunkUpdateType, PriorityQueue<RenderSection>> rebuildQueues;
+    @Shadow
+    private float cameraX;
+    @Shadow
+    private float cameraY;
+    @Shadow
+    private float cameraZ;
 
     @Shadow
     protected abstract RenderSection getRenderSection(int x, int y, int z);
 
     @Shadow
     protected abstract void addEntitiesToRenderLists(RenderSection render);
+
+    @Shadow
+    @Final
+    private static double NEARBY_CHUNK_DISTANCE;
 
     @Inject(at = @At("TAIL"), method = "iterateChunks")
     private void afterIterateChunks(final Camera camera, final Frustum frustum, final int frame,
@@ -98,6 +108,19 @@ public abstract class MixinRenderSectionManager {
                 }
             });
         }
+    }
+
+    @Redirect(
+        at = @At(
+            value = "INVOKE",
+            target = "Lme/jellysquid/mods/sodium/client/render/chunk/RenderSectionManager;isChunkPrioritized(Lme/jellysquid/mods/sodium/client/render/chunk/RenderSection;)Z"
+        ),
+        method = "scheduleRebuild"
+    )
+    private boolean redirectIsChunkPrioritized(final RenderSectionManager instance, final RenderSection render) {
+        return VSGameUtilsKt.squaredDistanceBetweenInclShips(world,
+            render.getOriginX() + 8, render.getOriginY() + 8, render.getOriginZ() + 8,
+            this.cameraX, this.cameraY, this.cameraZ) <= NEARBY_CHUNK_DISTANCE;
     }
 
     @Inject(at = @At("TAIL"), method = "resetLists")
