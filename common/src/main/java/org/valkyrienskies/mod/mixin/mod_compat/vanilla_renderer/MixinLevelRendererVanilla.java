@@ -58,14 +58,7 @@ public class MixinLevelRendererVanilla {
     @Shadow
     @Final
     private Minecraft minecraft;
-    @Shadow
-    private double xTransparentOld;
-    @Shadow
-    private double yTransparentOld;
-    @Shadow
-    private double zTransparentOld;
-    @Shadow
-    private @Nullable ChunkRenderDispatcher chunkRenderDispatcher;
+
     private ObjectList<RenderChunkInfo> renderChunksGeneratedByVanilla = new ObjectArrayList<>();
 
     /**
@@ -117,7 +110,6 @@ public class MixinLevelRendererVanilla {
         final Frustum frustum, final CallbackInfo ci) {
         renderChunksGeneratedByVanilla = new ObjectArrayList<>(renderChunksInFrustum);
 
-        final LevelRenderer self = LevelRenderer.class.cast(this);
         final BlockPos.MutableBlockPos tempPos = new BlockPos.MutableBlockPos();
         final ViewAreaAccessor chunkStorageAccessor = (ViewAreaAccessor) viewArea;
         for (final ClientShip shipObject : VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips()) {
