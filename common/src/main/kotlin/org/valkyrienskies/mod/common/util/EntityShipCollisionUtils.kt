@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.common.util
 
+import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.Level
@@ -11,6 +12,7 @@ import org.joml.primitives.AABBdc
 import org.valkyrienskies.core.collision.ConvexPolygonc
 import org.valkyrienskies.core.collision.EntityPolygonCollider
 import org.valkyrienskies.core.collision.EntityPolygonCollider.createPolygonFromAABB
+import org.valkyrienskies.core.game.ships.ShipData
 import org.valkyrienskies.core.util.extend
 import org.valkyrienskies.mod.common.shipObjectWorld
 import kotlin.math.max
@@ -19,9 +21,11 @@ object EntityShipCollisionUtils {
 
     @JvmStatic
     fun isCollidingWithUnloadedShips(entity: Entity): Boolean {
+        if (entity.level is ClientLevel) return false
+
         val shipWorld = entity.level.shipObjectWorld
         return shipWorld.queryableShipData.getShipDataIntersecting(entity.boundingBox.toJOML())
-            .all { ship -> shipWorld.shipObjects.containsKey(ship.id) }
+            .all { (it as ShipData).areVoxelsFullyLoaded() }
             .not()
     }
 
