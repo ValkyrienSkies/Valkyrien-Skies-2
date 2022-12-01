@@ -38,10 +38,10 @@ public class MixinRegionChunkRenderer implements RegionChunkRendererDuck {
         final ClientShip ship = VSGameUtilsKt.getShipObjectManagingPos(Minecraft.getInstance().level,
             section.getChunkX(), section.getChunkZ());
 
-        camInShip.set(camInWorld);
-
         if (ship != null) {
-            ship.getRenderTransform().getWorldToShip().transformPosition(camInShip);
+            ship.getRenderTransform().getWorldToShip().transformPosition(camInWorld, camInShip);
+        } else {
+            camInShip.set(c.posX, c.posY, c.posZ);
         }
 
         return section.getBounds();
