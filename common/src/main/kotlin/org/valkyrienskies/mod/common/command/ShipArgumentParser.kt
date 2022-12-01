@@ -84,7 +84,7 @@ class ShipArgumentParser(private val source: CommandSourceStack?) {
 
     private fun suggestSelectorOrSlug() = suggest { builder, source ->
         builder.suggest("@v")
-        source.shipWorld.queryableShipData
+        source.shipWorld.allShips
             .map { it.slug }
             .filter { it.startsWith(builder.remaining) }
             .forEach { builder.suggest(it) }
@@ -93,7 +93,7 @@ class ShipArgumentParser(private val source: CommandSourceStack?) {
     fun suggestionsOfOption(option: String): Unit = when (option) {
         "slug" ->
             suggest { builder, source ->
-                source.shipWorld.queryableShipData
+                source.shipWorld.allShips
                     .map { it.slug }
                     .filter { it.startsWith(builder.remaining) }
                     .forEach { builder.suggest(it) }
@@ -115,6 +115,7 @@ class ShipArgumentParser(private val source: CommandSourceStack?) {
 
     private fun suggestOpenOptions() = suggest { builder, _ ->
         builder.suggest("[")
+        builder.suggest(" ")
     }
 
     private fun suggestOptionsNextOrClose() = suggest { builder, _ ->
