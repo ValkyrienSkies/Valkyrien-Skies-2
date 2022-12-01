@@ -4,11 +4,11 @@ import com.mojang.brigadier.StringReader
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType
 import com.mojang.brigadier.suggestion.SuggestionsBuilder
-import net.minecraft.commands.CommandSourceStack
 import net.minecraft.network.chat.TranslatableComponent
 import org.valkyrienskies.core.api.ships.properties.ShipId
+import org.valkyrienskies.mod.mixinducks.feature.command.VSCommandSource
 
-class ShipArgumentParser(private val source: CommandSourceStack?) {
+class ShipArgumentParser(private val source: VSCommandSource?, private val selectorOnly: Boolean) {
     var suggestionProvider: (SuggestionsBuilder) -> Unit = {}
     var slug: String? = null
     var limit: Int? = null
@@ -27,8 +27,7 @@ class ShipArgumentParser(private val source: CommandSourceStack?) {
             reader.expect('v')
 
             suggestOpenOptions()
-            if (reader.canRead()) {
-                reader.expect('[')
+            if (reader.canRead() && reader.read() == '[') {
                 suggestOptions()
 
                 // Read the selector arguments ex @v[slug=mogus,limit=1]
@@ -66,7 +65,7 @@ class ShipArgumentParser(private val source: CommandSourceStack?) {
 
                 suggest { _, _ -> }
             }
-        } else {
+        } else if (!selectorOnly) {
             suggestionsOfOption("slug")
             reader.cursor = start
             slug = reader.readUnquotedString()
@@ -84,11 +83,13 @@ class ShipArgumentParser(private val source: CommandSourceStack?) {
 
     private fun suggestSelectorOrSlug() = suggest { builder, source ->
         builder.suggest("@v")
-        source.shipWorld.allShips
-            .map { it.slug }
-            .requireNoNulls()
-            .filter { it.startsWith(builder.remaining) }
-            .forEach { builder.suggest(it) }
+        if (!selectorOnly) {
+            source.shipWorld.allShips
+                .map { it.slug }
+                .requireNoNulls()
+                .filter { it.startsWith(builder.remaining) }
+                .forEach { builder.suggest(it) }
+        }
     }
 
     fun suggestionsOfOption(option: String): Unit = when (option) {
@@ -117,7 +118,6 @@ class ShipArgumentParser(private val source: CommandSourceStack?) {
 
     private fun suggestOpenOptions() = suggest { builder, _ ->
         builder.suggest("[")
-        builder.suggest(" ")
     }
 
     private fun suggestOptionsNextOrClose() = suggest { builder, _ ->
@@ -125,7 +125,7 @@ class ShipArgumentParser(private val source: CommandSourceStack?) {
         builder.suggest("]")
     }
 
-    private fun suggest(builder: (SuggestionsBuilder, CommandSourceStack) -> Unit) {
+    private fun suggest(builder: (SuggestionsBuilder, VSCommandSource) -> Unit) {
         if (source != null) suggestionProvider = { builder(it, source) }
     }
 
