@@ -16,6 +16,11 @@ object VSGameConfig {
     class Client {
         @JsonSchema(description = "Renders the VS2 debug HUD with TPS")
         var renderDebugText = false
+
+        @JsonSchema(
+            description = "Recommend ship slugs in mc commands where player names could be used ex. /tp ship-name wich could pollute user autocomplete"
+        )
+        var recommendSlugsInMcCommands = true
     }
 
     class Server {
