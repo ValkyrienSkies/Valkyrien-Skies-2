@@ -86,6 +86,7 @@ class ShipArgumentParser(private val source: CommandSourceStack?) {
         builder.suggest("@v")
         source.shipWorld.allShips
             .map { it.slug }
+            .requireNoNulls()
             .filter { it.startsWith(builder.remaining) }
             .forEach { builder.suggest(it) }
     }
@@ -95,6 +96,7 @@ class ShipArgumentParser(private val source: CommandSourceStack?) {
             suggest { builder, source ->
                 source.shipWorld.allShips
                     .map { it.slug }
+                    .requireNoNulls()
                     .filter { it.startsWith(builder.remaining) }
                     .forEach { builder.suggest(it) }
             }
