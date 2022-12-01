@@ -6,13 +6,18 @@ import com.mojang.brigadier.exceptions.SimpleCommandExceptionType
 import com.mojang.brigadier.suggestion.SuggestionsBuilder
 import net.minecraft.network.chat.TranslatableComponent
 import org.valkyrienskies.core.api.ships.properties.ShipId
+import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.mixinducks.feature.command.VSCommandSource
 
-class ShipArgumentParser(private val source: VSCommandSource?, private val selectorOnly: Boolean) {
+class ShipArgumentParser(private val source: VSCommandSource?, private var selectorOnly: Boolean) {
     var suggestionProvider: (SuggestionsBuilder) -> Unit = {}
     var slug: String? = null
     var limit: Int? = null
     var id: ShipId? = null
+
+    init {
+        if (VSGameConfig.CLIENT.recommendSlugsInMcCommands) selectorOnly = false
+    }
 
     fun parse(reader: StringReader): ShipSelector {
         val start = reader.cursor
@@ -85,8 +90,7 @@ class ShipArgumentParser(private val source: VSCommandSource?, private val selec
         builder.suggest("@v")
         if (!selectorOnly) {
             source.shipWorld.allShips
-                .map { it.slug }
-                .requireNoNulls()
+                .mapNotNull { it.slug }
                 .filter { it.startsWith(builder.remaining) }
                 .forEach { builder.suggest(it) }
         }
@@ -96,8 +100,7 @@ class ShipArgumentParser(private val source: VSCommandSource?, private val selec
         "slug" ->
             suggest { builder, source ->
                 source.shipWorld.allShips
-                    .map { it.slug }
-                    .requireNoNulls()
+                    .mapNotNull { it.slug }
                     .filter { it.startsWith(builder.remaining) }
                     .forEach { builder.suggest(it) }
             }
