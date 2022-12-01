@@ -10,7 +10,7 @@ import net.minecraft.commands.Commands.literal
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.world.ServerShipWorld
 import org.valkyrienskies.core.api.world.ShipWorld
-import org.valkyrienskies.core.game.VSCoreCommands
+import org.valkyrienskies.mod.common.vsCore
 import org.valkyrienskies.mod.mixinducks.feature.command.VSCommandSource
 import org.valkyrienskies.mod.util.logger
 
@@ -23,7 +23,7 @@ object VSCommands {
                 .then(literal("delete").then(argument("ships", ShipArgument).executes {
                     try {
                         val r = ShipArgument.getShips(it, "ships").toList() as List<ServerShip>
-                        VSCoreCommands.deleteShips(it.source.shipWorld as ServerShipWorld, r)
+                        vsCore.deleteShips(it.source.shipWorld as ServerShipWorld, r)
 
                         r.size
                     } catch (e: Exception) {
@@ -41,7 +41,7 @@ object VSCommands {
                             .then(literal("delete").executes {
 
                                 try {
-                                    VSCoreCommands.deleteShips(
+                                    vsCore.deleteShips(
                                         it.source.shipWorld as ServerShipWorld,
                                         listOf(ShipArgument.getShip(it, "ship") as ServerShip)
                                     )
@@ -58,7 +58,7 @@ object VSCommands {
                                 literal("rename")
                                     .then(argument("newName", StringArgumentType.string())
                                         .executes {
-                                            VSCoreCommands.renameShip(
+                                            vsCore.renameShip(
                                                 ShipArgument.getShip(it, "ship") as ServerShip,
                                                 StringArgumentType.getString(it, "newName")
                                             )
@@ -73,7 +73,7 @@ object VSCommands {
                                     .then(argument("newScale", FloatArgumentType.floatArg(0.001f))
                                         .executes {
                                             try {
-                                                VSCoreCommands.scaleShip(
+                                                vsCore.scaleShip(
                                                     ShipArgument.getShip(it, "ship") as ServerShip,
                                                     FloatArgumentType.getFloat(it, "newScale")
                                                 )
