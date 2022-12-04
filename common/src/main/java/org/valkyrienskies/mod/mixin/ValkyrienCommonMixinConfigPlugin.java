@@ -12,6 +12,7 @@ import org.valkyrienskies.mod.compat.VSRenderer;
  */
 public class ValkyrienCommonMixinConfigPlugin implements IMixinConfigPlugin {
 
+    private static boolean PATH_FINDING_DEBUG = true;
     private static VSRenderer vsRenderer = null;
 
     public static VSRenderer getVSRenderer() {
@@ -60,6 +61,10 @@ public class ValkyrienCommonMixinConfigPlugin implements IMixinConfigPlugin {
         if (mixinClassName.contains("org.valkyrienskies.mod.mixin.mod_compat.optifine")) {
             return getVSRenderer() == VSRenderer.OPTIFINE;
         }
+        if (mixinClassName.contains("org.valkyrienskies.mod.mixin.feature.render_pathfinding")) {
+            return PATH_FINDING_DEBUG;
+        }
+
         return true;
     }
 
