@@ -1,6 +1,6 @@
 package org.valkyrienskies.mod.common.util
 
-import net.minecraft.client.multiplayer.ClientLevel
+import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.Level
@@ -21,7 +21,7 @@ object EntityShipCollisionUtils {
 
     @JvmStatic
     fun isCollidingWithUnloadedShips(entity: Entity): Boolean {
-        if (entity.level is ClientLevel) return false
+        if (entity.level !is ServerLevel) return false
 
         val shipWorld = entity.level.shipObjectWorld
         return shipWorld.queryableShipData.getShipDataIntersecting(entity.boundingBox.toJOML())
