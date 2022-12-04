@@ -44,18 +44,13 @@ import org.valkyrienskies.physics_api.voxel_updates.DenseVoxelShapeUpdate
 val Level.shipObjectWorld
     get() =
         // Call the correct overload
-        when (this) {
-            is ServerLevel -> server.shipObjectWorld
-            is ClientLevel -> shipObjectWorld
+        when {
+            this is ServerLevel -> server.shipObjectWorld
+            this.isClientSide -> (this as ClientLevel).shipObjectWorld
             else -> throw IllegalArgumentException("World is neither ServerWorld nor ClientWorld")
         }
 
-val Level.queryableShipData
-    get() = when (this) {
-        is ServerLevel -> server.shipObjectWorld.queryableShipData
-        is ClientLevel -> shipObjectWorld.queryableShipData
-        else -> throw IllegalArgumentException("World is neither ServerWorld nor ClientWorld")
-    }
+val Level.queryableShipData get() = this.shipObjectWorld.queryableShipData
 
 val MinecraftServer.shipObjectWorld get() = (this as IShipObjectWorldServerProvider).shipObjectWorld
 val MinecraftServer.vsPipeline get() = (this as IShipObjectWorldServerProvider).vsPipeline

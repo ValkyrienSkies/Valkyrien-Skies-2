@@ -14,6 +14,7 @@ import org.valkyrienskies.core.collision.EntityPolygonCollider
 import org.valkyrienskies.core.collision.EntityPolygonCollider.createPolygonFromAABB
 import org.valkyrienskies.core.game.ships.ShipData
 import org.valkyrienskies.core.util.extend
+import org.valkyrienskies.mod.common.getShipsIntersecting
 import org.valkyrienskies.mod.common.shipObjectWorld
 import kotlin.math.max
 
@@ -21,10 +22,11 @@ object EntityShipCollisionUtils {
 
     @JvmStatic
     fun isCollidingWithUnloadedShips(entity: Entity): Boolean {
-        if (entity.level !is ServerLevel) return false
-
-        val shipWorld = entity.level.shipObjectWorld
-        return shipWorld.queryableShipData.getShipDataIntersecting(entity.boundingBox.toJOML())
+        if (entity.level !is ServerLevel) {
+            return false
+        }
+        
+        return entity.level.getShipsIntersecting(entity.boundingBox.toJOML())
             .all { (it as ShipData).areVoxelsFullyLoaded() }
             .not()
     }
