@@ -70,7 +70,10 @@ object VSGameConfig {
         val ADVANCED = Advanced()
 
         class Advanced { // Debug configs that may be either side
-            @JsonSchema(description = "Renders mob pathfinding nodes. Must be set on client and server to work.")
+            @JsonSchema(
+                description = "Renders mob pathfinding nodes. Must be set on client and server to work. " +
+                    "Requires the system property -Dorg.valkyrienskies.render_pathfinding=true"
+            )
             var renderPathfinding = true // Requires ValkyrienCommonMixinConfigPlugin.PATH_FINDING_DEBUG to be true
         }
     }
