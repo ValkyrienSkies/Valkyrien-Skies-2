@@ -10,7 +10,7 @@ import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
-import org.valkyrienskies.core.game.VSBlockType
+import org.valkyrienskies.core.apigame.world.chunks.BlockType
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.event.RegistryEvents
 
@@ -23,7 +23,7 @@ interface BlockStateInfoProvider {
 
     fun getBlockStateMass(blockState: BlockState): Double?
 
-    fun getBlockStateType(blockState: BlockState): VSBlockType?
+    fun getBlockStateType(blockState: BlockState): BlockType?
 }
 
 object BlockStateInfo {
@@ -49,14 +49,14 @@ object BlockStateInfo {
 
     // This is [ThreadLocal] because in single-player games the Client thread and Server thread will read/write to
     // [CACHE] simultaneously. This creates a data race that can crash the game (See https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues/126).
-    val CACHE: ThreadLocal<Int2ObjectOpenHashMap<Pair<Double, VSBlockType>>> =
-        ThreadLocal.withInitial { Int2ObjectOpenHashMap<Pair<Double, VSBlockType>>() }
+    val CACHE: ThreadLocal<Int2ObjectOpenHashMap<Pair<Double, BlockType>>> =
+        ThreadLocal.withInitial { Int2ObjectOpenHashMap<Pair<Double, BlockType>>() }
     // NOTE: this caching can get allot better, ex. default just returns constants so it might be more faster
     //  if we store that these values do not need to be cached by double and blocktype but just that they use default impl
 
     // this gets the weight and type provided by providers; or it gets it out of the cache
 
-    fun get(blockState: BlockState): Pair<Double, VSBlockType>? =
+    fun get(blockState: BlockState): Pair<Double, BlockType>? =
         getId(blockState)?.let { CACHE.get().getOrPut(it) { iterateRegistry(blockState) } }
 
     fun getId(blockState: BlockState): Int? {
@@ -65,7 +65,7 @@ object BlockStateInfo {
         return r
     }
 
-    private fun iterateRegistry(blockState: BlockState): Pair<Double, VSBlockType> =
+    private fun iterateRegistry(blockState: BlockState): Pair<Double, BlockType> =
         Pair(
             SORTED_REGISTRY.firstNotNullOf { it.getBlockStateMass(blockState) },
             SORTED_REGISTRY.firstNotNullOf { it.getBlockStateType(blockState) },

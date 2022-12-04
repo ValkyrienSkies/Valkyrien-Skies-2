@@ -9,11 +9,10 @@ import net.minecraft.world.phys.Vec3
 import net.minecraft.world.phys.shapes.VoxelShape
 import org.joml.primitives.AABBd
 import org.joml.primitives.AABBdc
-import org.valkyrienskies.core.api.ServerShipInternal
-import org.valkyrienskies.core.collision.ConvexPolygonc
-import org.valkyrienskies.core.collision.EntityPolygonCollider
-import org.valkyrienskies.core.collision.EntityPolygonCollider.createPolygonFromAABB
-import org.valkyrienskies.core.util.extend
+import org.valkyrienskies.core.impl.collision.ConvexPolygonc
+import org.valkyrienskies.core.impl.collision.EntityPolygonCollider
+import org.valkyrienskies.core.impl.collision.EntityPolygonCollider.createPolygonFromAABB
+import org.valkyrienskies.core.impl.util.extend
 import org.valkyrienskies.mod.common.shipObjectWorld
 import kotlin.math.max
 
@@ -25,7 +24,7 @@ object EntityShipCollisionUtils {
 
         val shipWorld = entity.level.shipObjectWorld
         return shipWorld.allShips.getIntersecting(entity.boundingBox.toJOML())
-            .all { (it as ServerShipInternal).areVoxelsFullyLoaded() }
+            .all { (it as org.valkyrienskies.core.impl.api.ServerShipInternal).areVoxelsFullyLoaded() }
             .not()
     }
 

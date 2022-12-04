@@ -2,7 +2,7 @@ package org.valkyrienskies.mod.common
 
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.world.level.saveddata.SavedData
-import org.valkyrienskies.core.api.world.VSPipeline
+import org.valkyrienskies.core.apigame.world.VSPipeline
 
 /**
  * This class saves/loads ship data for a world.

@@ -26,7 +26,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
-import org.valkyrienskies.core.api.world.ClientShipWorldCore;
+import org.valkyrienskies.core.apigame.world.ClientShipWorldCore;
 import org.valkyrienskies.mod.client.IVSCamera;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;

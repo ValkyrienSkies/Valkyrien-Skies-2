@@ -3,7 +3,7 @@ package org.valkyrienskies.mod.common.entity.handling
 import net.minecraft.core.Registry
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.entity.EntityType
-import org.valkyrienskies.core.networking.simple.sendToClient
+import org.valkyrienskies.core.impl.networking.simple.sendToClient
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.networking.PacketSyncVSEntityTypes
 import org.valkyrienskies.mod.common.util.MinecraftPlayer

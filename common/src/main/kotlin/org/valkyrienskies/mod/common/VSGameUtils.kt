@@ -26,12 +26,12 @@ import org.valkyrienskies.core.api.ships.LoadedShip
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.api.util.functions.DoubleTernaryConsumer
-import org.valkyrienskies.core.api.world.IPlayer
-import org.valkyrienskies.core.api.world.chunks.TerrainUpdate
-import org.valkyrienskies.core.api.world.properties.DimensionId
+import org.valkyrienskies.core.apigame.world.properties.DimensionId
+import org.valkyrienskies.core.apigame.world.IPlayer
+import org.valkyrienskies.core.apigame.world.chunks.TerrainUpdate
 import org.valkyrienskies.core.game.ships.ShipObjectServer
-import org.valkyrienskies.core.hooks.VSEvents.TickEndEvent
-import org.valkyrienskies.core.util.expand
+import org.valkyrienskies.core.impl.hooks.VSEvents.TickEndEvent
+import org.valkyrienskies.core.impl.util.expand
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toJOMLD
