@@ -9,10 +9,15 @@ public class AutoDependenciesForge {
     public static void runUpdater() {
         final boolean isServer = FMLEnvironment.dist.isDedicatedServer();
 
-        ValkyrienDependencyDownloader.start(
-            FMLPaths.MODSDIR.get(),
-            FMLLoader.getLoadingModList().getModFileById("valkyrienskies").getFile().getFilePath(),
-            isServer
-        );
+        try {
+            ValkyrienDependencyDownloader.start(
+                FMLPaths.MODSDIR.get(),
+                FMLLoader.getLoadingModList().getModFileById("valkyrienskies").getFile().getFilePath(),
+                isServer
+            );
+        } catch (final Exception ex) {
+            ex.printStackTrace();
+        }
+
     }
 }

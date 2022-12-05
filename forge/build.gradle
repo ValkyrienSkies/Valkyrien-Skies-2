@@ -61,8 +61,9 @@ dependencies {
     }
 
     // Create compat
-    modCompileOnly("curse.maven:flywheel-486392:3934664")
-    modCompileOnly("curse.maven:create-328085:4007544")
+    modImplementation("com.simibubi.create:create-${create_minecraft_version}:${create_version}:slim") { transitive = false }
+    modImplementation("com.jozufozu.flywheel:flywheel-forge-${flywheel_minecraft_version}:${flywheel_version}")
+    modImplementation("com.tterrag.registrate:Registrate:${registrate_version}")
 
     // Add Kotlin for Forge.
     forgeRuntimeLibrary('curse.maven:kotlinforforge-351264:3925887')
