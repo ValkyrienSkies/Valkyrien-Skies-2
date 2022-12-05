@@ -1,9 +1,9 @@
 package org.valkyrienskies.mod.common
 
-import org.valkyrienskies.core.apigame.world.ShipWorld
-import org.valkyrienskies.core.apigame.world.VSPipeline
+import org.valkyrienskies.core.api.world.ShipWorld
 import org.valkyrienskies.core.apigame.world.ClientShipWorldCore
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore
+import org.valkyrienskies.core.apigame.world.VSPipeline
 
 interface IShipObjectWorldProvider {
     val shipObjectWorld: ShipWorld

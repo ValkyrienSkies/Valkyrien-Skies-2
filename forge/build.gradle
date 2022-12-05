@@ -50,10 +50,6 @@ configurations {
     shadowCommon.extendsFrom core
 }
 
-ext.kotlin_version = '1.7.10'
-ext.coroutines_version = '1.6.4'
-ext.serialization_version = '1.3.3'
-
 dependencies {
     forge "net.minecraftforge:forge:${rootProject.forge_version}"
 
@@ -65,85 +61,73 @@ dependencies {
     }
 
     // Create compat
-    //modCompileOnly("curse.maven:flywheel-486392:3934664") TODO this is 1.16 version?
-    //modCompileOnly("curse.maven:create-328085:4007544")
+    modCompileOnly("curse.maven:flywheel-486392:3934664")
+    modCompileOnly("curse.maven:create-328085:4007544")
 
     // Add Kotlin for Forge.
-    // Based on: https://raw.githubusercontent.com/thedarkcolour/KotlinForForge/site/thedarkcolour/kotlinforforge/gradle/kff-3.7.1.gradle
-    implementation 'thedarkcolour:kotlinforforge:3.4.0'
-
-    groovy.lang.Closure exclude_annotations = { exclude group: 'org.jetbrains', module: 'annotations' }
-
-    // Add everything to the classpath correctly
-    forgeRuntimeLibrary(group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib-jdk8', version: kotlin_version, exclude_annotations)
-    forgeRuntimeLibrary(group: 'org.jetbrains.kotlin', name: 'kotlin-reflect', version: kotlin_version, exclude_annotations)
-    forgeRuntimeLibrary(group: 'org.jetbrains.kotlinx', name: 'kotlinx-coroutines-core', version: coroutines_version, exclude_annotations)
-    forgeRuntimeLibrary(group: 'org.jetbrains.kotlinx', name: 'kotlinx-coroutines-jdk8', version: coroutines_version, exclude_annotations)
-    forgeRuntimeLibrary(group: 'org.jetbrains.kotlinx', name: 'kotlinx-serialization-json', version: serialization_version, exclude_annotations)
+    forgeRuntimeLibrary('curse.maven:kotlinforforge-351264:3925887')
 
     // Cloth for config
     modImplementation("me.shedaniel.cloth:cloth-config-forge:6.3.81")
 
     // Shade vs-core
     implementation("org.valkyrienskies.core:impl:${rootProject.vs_core_version}")
-    forgeRuntimeLibrary("org.valkyrienskies.core:impl:${rootProject.vs_core_version}")
-    shadowCommon("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
+    forgeRuntimeLibrary shadowCommon("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
         transitive = false
     }
 
 
     // region Manually include every single dependency of vs-core (total meme)
-    shadowCommon("org.valkyrienskies.core:api:${rootProject.vs_core_version}") {
+    forgeRuntimeLibrary include("org.valkyrienskies.core:api:${rootProject.vs_core_version}") {
         transitive = false
     }
 
-    shadowCommon("org.valkyrienskies.core:api-game:${rootProject.vs_core_version}") {
+    forgeRuntimeLibrary shadowCommon("org.valkyrienskies.core:api-game:${rootProject.vs_core_version}") {
         transitive = false
     }
 
-    shadowCommon("org.valkyrienskies:physics_api_krunch:1.0.0+08a9f6959e") {
+    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api_krunch:1.0.0+08a9f6959e") {
         transitive = false
     }
 
-    shadowCommon("org.valkyrienskies:physics_api:1.0.0+26dee3aa54") {
+    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api:1.0.0+26dee3aa54") {
         transitive = false
     }
 
-    include("javax.inject:javax.inject:1")
+    forgeRuntimeLibrary include("javax.inject:javax.inject:1") { transitive = false }
 
     // JOML for Math
-    include("org.joml:joml:1.10.4")
-    include("org.joml:joml-primitives:1.10.0")
+    forgeRuntimeLibrary include("org.joml:joml:1.10.4") { transitive = false }
+    forgeRuntimeLibrary include("org.joml:joml-primitives:1.10.0") { transitive = false }
 
     // Apache Commons Math for Linear Programming
-    include("org.apache.commons:commons-math3:3.6.1")
+    forgeRuntimeLibrary include("org.apache.commons:commons-math3:3.6.1") { transitive = false }
 
     // Jackson Binary Dataformat for Object Serialization
     def jacksonVersion = '2.14.0'
     // forked to remove module-info
-    include("com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion-rubyfork")
-    include("com.fasterxml.jackson.module:jackson-module-parameter-names:$jacksonVersion")
-    include("com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:$jacksonVersion")
-    include("com.fasterxml.jackson.core:jackson-databind:$jacksonVersion")
-    include("com.fasterxml.jackson.core:jackson-annotations:$jacksonVersion")
-    include("com.fasterxml.jackson.core:jackson-core:$jacksonVersion")
-    include("com.github.Rubydesic:jackson-kotlin-dsl:1.2.0")
+    forgeRuntimeLibrary include("com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion-rubyfork") { transitive = false }
+    forgeRuntimeLibrary include("com.fasterxml.jackson.module:jackson-module-parameter-names:$jacksonVersion") { transitive = false }
+    forgeRuntimeLibrary include("com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:$jacksonVersion") { transitive = false }
+    forgeRuntimeLibrary include("com.fasterxml.jackson.core:jackson-databind:$jacksonVersion") { transitive = false }
+    forgeRuntimeLibrary include("com.fasterxml.jackson.core:jackson-annotations:$jacksonVersion") { transitive = false }
+    forgeRuntimeLibrary include("com.fasterxml.jackson.core:jackson-core:$jacksonVersion") { transitive = false }
+    forgeRuntimeLibrary include("com.github.Rubydesic:jackson-kotlin-dsl:1.2.0") { transitive = false }
 
-    include("com.networknt:json-schema-validator:1.0.71")
-    include("com.ethlo.time:itu:1.7.0")
-    include("com.github.imifou:jsonschema-module-addon:1.2.1")
-    include("com.github.victools:jsonschema-module-jackson:4.25.0")
-    include("com.github.victools:jsonschema-generator:4.25.0")
-    include("com.fasterxml:classmate:1.5.1")
-    include("com.flipkart.zjsonpatch:zjsonpatch:0.4.11")
-    include("org.apache.commons:commons-collections4:4.3")
+    forgeRuntimeLibrary include("com.networknt:json-schema-validator:1.0.71") { transitive = false }
+    forgeRuntimeLibrary include("com.ethlo.time:itu:1.7.0") { transitive = false }
+    forgeRuntimeLibrary include("com.github.imifou:jsonschema-module-addon:1.2.1") { transitive = false }
+    forgeRuntimeLibrary include("com.github.victools:jsonschema-module-jackson:4.25.0") { transitive = false }
+    forgeRuntimeLibrary include("com.github.victools:jsonschema-generator:4.25.0") { transitive = false }
+    forgeRuntimeLibrary include("com.fasterxml:classmate:1.5.1") { transitive = false }
+    forgeRuntimeLibrary include("com.flipkart.zjsonpatch:zjsonpatch:0.4.11") { transitive = false }
+    forgeRuntimeLibrary include("org.apache.commons:commons-collections4:4.3") { transitive = false }
 
-    include("com.google.dagger:dagger:2.43.2")
+    forgeRuntimeLibrary include("com.google.dagger:dagger:2.43.2") { transitive = false }
 
     // endregion
 
-    implementation("org.valkyrienskies:valkyrien-dependency-downloader:${rootProject.dependency_downloader_version}")
-    shadowCommon("org.valkyrienskies:valkyrien-dependency-downloader:${rootProject.dependency_downloader_version}:all") { transitive = false }
+    forgeRuntimeLibrary(implementation(shadowCommon("org.valkyrienskies:valkyrien-dependency-downloader:${rootProject.dependency_downloader_version}:all"))) { transitive = false }
 }
 
 processResources {

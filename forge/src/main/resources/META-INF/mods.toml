@@ -16,7 +16,7 @@ logoFile = "icon.png"
 [[dependencies.valkyrienskies]]
 modId = "forge"
 mandatory = true
-versionRange = "[40.1.85,)"
+versionRange = "[40.1.84,)"
 ordering = "NONE"
 side = "BOTH"
 
