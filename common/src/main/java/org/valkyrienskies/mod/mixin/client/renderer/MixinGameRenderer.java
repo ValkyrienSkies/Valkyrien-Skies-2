@@ -1,12 +1,14 @@
 package org.valkyrienskies.mod.mixin.client.renderer;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Matrix4f;
 import com.mojang.math.Quaternion;
 import java.util.function.Predicate;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.AABB;
@@ -46,6 +48,12 @@ public abstract class MixinGameRenderer {
     @Shadow
     @Final
     private Camera mainCamera;
+
+    @Shadow
+    protected abstract double getFov(Camera camera, float f, boolean bl);
+
+    @Shadow
+    public abstract Matrix4f getProjectionMatrix(double d);
 
     /**
      * {@link Entity#pick(double, float, boolean)} except the hit pos is not transformed
@@ -231,43 +239,47 @@ public abstract class MixinGameRenderer {
     /**
      * Mount the player's camera to the ship they are mounted on.
      */
-    @Inject(
+    @Redirect(
         method = "renderLevel",
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/client/renderer/LevelRenderer;prepareCullFrustum(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/world/phys/Vec3;Lcom/mojang/math/Matrix4f;)V"
         )
     )
-    private void preRenderLevelInRenderLevel(final float partialTicks, final long finishTimeNano,
-        final PoseStack matrixStack,
-        final CallbackInfo ci) {
+    private void setupCameraWithMountedShip(final LevelRenderer instance, final PoseStack ignore, final Vec3 vec3,
+        final Matrix4f matrix4f, final float partialTicks, final long finishTimeNano, final PoseStack matrixStack) {
+
         final ClientLevel clientLevel = minecraft.level;
         final Entity player = minecraft.player;
         if (clientLevel == null || player == null) {
+            instance.prepareCullFrustum(matrixStack, vec3, matrix4f);
             return;
         }
         final ClientShip playerShipMountedTo =
             VSGameUtilsKt.getShipObjectEntityMountedTo(clientLevel, player);
         if (playerShipMountedTo == null) {
+            instance.prepareCullFrustum(matrixStack, vec3, matrix4f);
             return;
         }
         final Entity playerVehicle = player.getVehicle();
         if (playerVehicle == null) {
+            instance.prepareCullFrustum(matrixStack, vec3, matrix4f);
             return;
         }
 
         // Update [matrixStack] to mount the camera to the ship
         final Vector3dc inShipPos =
             VSGameUtilsKt.getPassengerPos(playerVehicle, player.getMyRidingOffset(), partialTicks);
+
         final Camera camera = this.mainCamera;
         if (camera == null) {
+            instance.prepareCullFrustum(matrixStack, vec3, matrix4f);
             return;
         }
 
         ((IVSCamera) camera).setupWithShipMounted(
             this.minecraft.level,
-            this.minecraft.getCameraEntity() == null ? this.minecraft.player :
-                this.minecraft.getCameraEntity(),
+            this.minecraft.getCameraEntity() == null ? this.minecraft.player : this.minecraft.getCameraEntity(),
             !this.minecraft.options.getCameraType().isFirstPerson(),
             this.minecraft.options.getCameraType().isMirrored(),
             partialTicks,
@@ -275,9 +287,12 @@ public abstract class MixinGameRenderer {
             inShipPos
         );
         final Quaternion invShipRenderRotation = VectorConversionsMCKt.toMinecraft(
-            playerShipMountedTo.getRenderTransform().getShipCoordinatesToWorldCoordinatesRotation()
-                .conjugate(new Quaterniond()));
+            playerShipMountedTo.getRenderTransform().getShipToWorldRotation().conjugate(new Quaterniond()));
         matrixStack.mulPose(invShipRenderRotation);
+
+        final double d = this.getFov(camera, partialTicks, true);
+        instance.prepareCullFrustum(matrixStack, vec3,
+            this.getProjectionMatrix(Math.max(d, this.minecraft.options.fov)));
     }
     // endregion
 }
