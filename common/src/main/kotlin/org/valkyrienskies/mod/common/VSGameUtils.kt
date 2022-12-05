@@ -26,9 +26,9 @@ import org.valkyrienskies.core.api.ships.LoadedShip
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.api.util.functions.DoubleTernaryConsumer
-import org.valkyrienskies.core.apigame.world.properties.DimensionId
 import org.valkyrienskies.core.apigame.world.IPlayer
 import org.valkyrienskies.core.apigame.world.chunks.TerrainUpdate
+import org.valkyrienskies.core.apigame.world.properties.DimensionId
 import org.valkyrienskies.core.game.ships.ShipObjectServer
 import org.valkyrienskies.core.impl.hooks.VSEvents.TickEndEvent
 import org.valkyrienskies.core.impl.util.expand
@@ -45,18 +45,13 @@ val vsCore get() = ValkyrienSkiesMod.vsCore
 val Level.shipObjectWorld
     get() =
         // Call the correct overload
-        when (this) {
-            is ServerLevel -> server.shipObjectWorld
-            is ClientLevel -> shipObjectWorld
+        when {
+            this is ServerLevel -> server.shipObjectWorld
+            this.isClientSide -> (this as ClientLevel).shipObjectWorld
             else -> throw IllegalArgumentException("World is neither ServerWorld nor ClientWorld")
         }
 
-val Level.allShips
-    get() = when (this) {
-        is ServerLevel -> server.shipObjectWorld.allShips
-        is ClientLevel -> shipObjectWorld.allShips
-        else -> throw IllegalArgumentException("World is neither ServerWorld nor ClientWorld")
-    }
+val Level.allShips get() = this.shipObjectWorld.allShips
 
 val MinecraftServer.shipObjectWorld get() = (this as IShipObjectWorldServerProvider).shipObjectWorld
 val MinecraftServer.vsPipeline get() = (this as IShipObjectWorldServerProvider).vsPipeline
