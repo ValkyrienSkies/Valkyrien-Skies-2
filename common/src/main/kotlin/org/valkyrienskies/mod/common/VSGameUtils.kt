@@ -165,6 +165,10 @@ private fun getShipObjectManagingPosImpl(world: Level, chunkX: Int, chunkZ: Int)
     return null
 }
 
+/**
+ * Get all ships intersecting an AABB in world-space, then call [cb] with the AABB itself,
+ * followed by the AABB in the ship-space of the intersecting ships.
+ */
 fun Level.transformFromWorldToNearbyShipsAndWorld(aabb: AABB, cb: Consumer<AABB>) {
     cb.accept(aabb)
     val tmpAABB = AABBd()
