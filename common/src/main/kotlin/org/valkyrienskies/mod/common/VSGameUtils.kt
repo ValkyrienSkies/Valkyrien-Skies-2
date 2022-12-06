@@ -8,6 +8,7 @@ import net.minecraft.core.Vec3i
 import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
+import net.minecraft.server.level.ServerChunkCache
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.player.Player
@@ -95,9 +96,8 @@ fun MinecraftServer.executeIf(condition: () -> Boolean, toExecute: Runnable) {
 val Level.yRange get() = minBuildHeight until maxBuildHeight
 
 fun Level.isTickingChunk(pos: ChunkPos) = isTickingChunk(pos.x, pos.z)
-fun Level.isTickingChunk(chunkX: Int, chunkZ: Int) = shouldTickBlocksAt(
-    ChunkPos.asLong(chunkX, chunkZ)
-)
+fun Level.isTickingChunk(chunkX: Int, chunkZ: Int) =
+    (chunkSource as ServerChunkCache).isPositionTicking(ChunkPos.asLong(chunkX, chunkZ))
 
 fun MinecraftServer.getLevelFromDimensionId(dimensionId: DimensionId): ServerLevel? {
     return getLevel(getResourceKey(dimensionId))
