@@ -27,6 +27,7 @@ import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.api.util.functions.DoubleTernaryConsumer
 import org.valkyrienskies.core.apigame.world.IPlayer
+import org.valkyrienskies.core.apigame.world.ShipWorldCore
 import org.valkyrienskies.core.apigame.world.chunks.TerrainUpdate
 import org.valkyrienskies.core.apigame.world.properties.DimensionId
 import org.valkyrienskies.core.game.ships.ShipObjectServer
@@ -36,20 +37,22 @@ import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toJOMLD
 import org.valkyrienskies.mod.common.util.toMinecraft
+import org.valkyrienskies.mod.common.world.DummyShipWorld
 import org.valkyrienskies.mod.mixin.accessors.resource.ResourceKeyAccessor
 import org.valkyrienskies.mod.mixinducks.world.entity.PlayerDuck
 import kotlin.math.min
 
 val vsCore get() = ValkyrienSkiesMod.vsCore
 
+val Level.shipWorldNullable: ShipWorldCore?
+    get() = when {
+        this is ServerLevel -> server.shipObjectWorld
+        this.isClientSide && this is ClientLevel -> this.shipObjectWorld
+        else -> null
+    }
+
 val Level.shipObjectWorld
-    get() =
-        // Call the correct overload
-        when {
-            this is ServerLevel -> server.shipObjectWorld
-            this.isClientSide -> (this as ClientLevel).shipObjectWorld
-            else -> throw IllegalArgumentException("World is neither ServerWorld nor ClientWorld")
-        }
+    get() = shipWorldNullable ?: DummyShipWorld
 
 val Level.allShips get() = this.shipObjectWorld.allShips
 
