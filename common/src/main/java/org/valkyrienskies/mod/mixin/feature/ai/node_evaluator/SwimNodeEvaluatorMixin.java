@@ -22,7 +22,7 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
     @Redirect(
         at = @At(value = "INVOKE",
             target = "Lnet/minecraft/world/level/BlockGetter;getFluidState(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/material/FluidState;"),
-        method = "getBlockPathType(Lnet/minecraft/world/level/BlockGetter;III)Lnet/minecraft/world/level/pathfinder/BlockPathTypes;"
+        method = "getBlockPathType(Lnet/minecraft/world/level/BlockGetter;IIILnet/minecraft/world/entity/Mob;IIIZZ)Lnet/minecraft/world/level/pathfinder/BlockPathTypes;"
     )
     private FluidState getFluidStateRedirectPathType(final BlockGetter instance, final BlockPos blockPos) {
         final FluidState[] fluidState = {instance.getFluidState(blockPos)};
@@ -56,7 +56,7 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
     @Redirect(
         at = @At(value = "INVOKE",
             target = "Lnet/minecraft/world/level/BlockGetter;getBlockState(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/block/state/BlockState;"),
-        method = "getBlockPathType(Lnet/minecraft/world/level/BlockGetter;III)Lnet/minecraft/world/level/pathfinder/BlockPathTypes;"
+        method = "getBlockPathType(Lnet/minecraft/world/level/BlockGetter;IIILnet/minecraft/world/entity/Mob;IIIZZ)Lnet/minecraft/world/level/pathfinder/BlockPathTypes;"
     )
     private BlockState getBlockStateRedirectPathType(final BlockGetter instance, final BlockPos blockPos) {
         final BlockState[] blockState = {instance.getBlockState(blockPos)};
@@ -82,7 +82,7 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
     @Redirect(
         at = @At(value = "INVOKE",
             target = "Lnet/minecraft/world/level/block/state/BlockState;isPathfindable(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/pathfinder/PathComputationType;)Z"),
-        method = "getBlockPathType(Lnet/minecraft/world/level/BlockGetter;III)Lnet/minecraft/world/level/pathfinder/BlockPathTypes;"
+        method = "getBlockPathType(Lnet/minecraft/world/level/BlockGetter;IIILnet/minecraft/world/entity/Mob;IIIZZ)Lnet/minecraft/world/level/pathfinder/BlockPathTypes;"
     )
     private boolean isPathFindableRedirectPathType(final BlockState instance, final BlockGetter blockGetter,
         final BlockPos blockPos,
@@ -119,10 +119,10 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
     //region Area obstacle path type
     @Redirect(
         at = @At(value = "INVOKE",
-            target = "Lnet/minecraft/world/level/PathNavigationRegion;getFluidState(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/material/FluidState;"),
-        method = "isFree"
+            target = "Lnet/minecraft/world/level/BlockGetter;getFluidState(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/material/FluidState;"),
+        method = "getBlockPathType(Lnet/minecraft/world/level/BlockGetter;IIILnet/minecraft/world/entity/Mob;IIIZZ)Lnet/minecraft/world/level/pathfinder/BlockPathTypes;"
     )
-    private FluidState getFluidStateRedirectIsFree(final PathNavigationRegion instance, final BlockPos pos) {
+    private FluidState getFluidStateRedirectIsFree(final BlockGetter instance, final BlockPos pos) {
         final FluidState[] fluidState = {instance.getFluidState(pos)};
         if (fluidState[0].isEmpty() && VSGameConfig.SERVER.getAiOnShips()) {
             final Level level = ((PathNavigationRegionAccessor) instance).getLevel();
@@ -145,10 +145,10 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
 
     @Redirect(
         at = @At(value = "INVOKE",
-            target = "Lnet/minecraft/world/level/PathNavigationRegion;getBlockState(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/block/state/BlockState;"),
-        method = "isFree"
+            target = "Lnet/minecraft/world/level/BlockGetter;getBlockState(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/block/state/BlockState;"),
+        method = "getBlockPathType(Lnet/minecraft/world/level/BlockGetter;IIILnet/minecraft/world/entity/Mob;IIIZZ)Lnet/minecraft/world/level/pathfinder/BlockPathTypes;"
     )
-    private BlockState getBlockStateRedirectIsFree(final PathNavigationRegion instance, final BlockPos pos) {
+    private BlockState getBlockStateRedirectIsFree(final BlockGetter instance, final BlockPos pos) {
         final BlockState[] blockState = {instance.getBlockState(pos)};
         if (blockState[0].isAir() && VSGameConfig.SERVER.getAiOnShips()) {
             final Level level = ((PathNavigationRegionAccessor) instance).getLevel();
@@ -172,7 +172,7 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
     @Redirect(
         at = @At(value = "INVOKE",
             target = "Lnet/minecraft/world/level/block/state/BlockState;isPathfindable(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/pathfinder/PathComputationType;)Z"),
-        method = "isFree"
+        method = "getBlockPathType(Lnet/minecraft/world/level/BlockGetter;IIILnet/minecraft/world/entity/Mob;IIIZZ)Lnet/minecraft/world/level/pathfinder/BlockPathTypes;"
     )
     private boolean isPathFindableRedirectIsFree(final BlockState instance, final BlockGetter blockGetter,
         final BlockPos blockPos,

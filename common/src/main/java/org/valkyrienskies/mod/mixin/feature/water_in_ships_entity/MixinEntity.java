@@ -1,8 +1,11 @@
 package org.valkyrienskies.mod.mixin.feature.water_in_ships_entity;
 
+import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
 import net.minecraft.core.BlockPos;
-import net.minecraft.tags.Tag;
+import net.minecraft.tags.TagKey;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.material.Fluid;
@@ -27,9 +30,6 @@ public abstract class MixinEntity {
     @Shadow
     public abstract Vec3 position();
 
-    @Shadow
-    public abstract boolean updateFluidHeightAndDoFluidPushing(Tag<Fluid> fluidTag, double motionScale);
-
     @Unique
     private boolean isModifyingWaterState = false;
 
@@ -47,35 +47,107 @@ public abstract class MixinEntity {
     @Shadow
     public abstract double getZ();
 
+    @Shadow
+    public abstract boolean updateFluidHeightAndDoFluidPushing(TagKey<Fluid> tagKey, double d);
+
+    @Shadow
+    public abstract boolean touchingUnloadedChunk();
+
+    @Shadow
+    public abstract AABB getBoundingBox();
+
+    @Shadow
+    public abstract boolean isPushedByFluid();
+
+    @Shadow
+    public abstract Vec3 getDeltaMovement();
+
+    @Shadow
+    public abstract void setDeltaMovement(Vec3 vec3);
+
+    @Shadow
+    protected Object2DoubleMap<TagKey<Fluid>> fluidHeight;
     @Unique
     private boolean isShipWater = false;
 
     @Inject(
-        at = @At("TAIL"),
+        at = @At("HEAD"),
         method = "updateFluidHeightAndDoFluidPushing",
         cancellable = true
     )
-    private void afterFluidStateUpdate(final Tag<Fluid> fluidTag, final double motionScale,
+    // Overwrite the vanilla method, since it's written in a way that's really hard to precisely mixin into.
+    private void afterFluidStateUpdate(final TagKey<Fluid> tagKey, final double d,
         final CallbackInfoReturnable<Boolean> cir) {
-        if (isModifyingWaterState || cir.getReturnValue()) {
+
+        if (this.touchingUnloadedChunk()) {
+            cir.setReturnValue(false);
             return;
         }
 
-        isModifyingWaterState = true;
+        final Vec3[] vec3ref = {Vec3.ZERO};
+        final int[] oref = {0};
+        final boolean[] bl2ref = {false};
+        final double[] e = {0.0};
 
-        final Vec3 pos = this.position();
-
-        final double origX = pos.x;
-        final double origY = pos.y;
-        final double origZ = pos.z;
-
-        VSGameUtilsKt.transformToNearbyShipsAndWorld(this.level, origX, origY, origZ, this.bb.getSize(), (x, y, z) -> {
-            this.setPos(x, y, z);
-            cir.setReturnValue(this.updateFluidHeightAndDoFluidPushing(fluidTag, motionScale));
-            this.setPos(origX, origY, origZ);
+        // The only change, gather fluid forces from nearby ships as well as the world.
+        VSGameUtilsKt.transformFromWorldToNearbyShipsAndWorld(level, this.getBoundingBox().deflate(0.001), aABB -> {
+            final int i = Mth.floor(aABB.minX);
+            final int j = Mth.ceil(aABB.maxX);
+            final int k = Mth.floor(aABB.minY);
+            final int l = Mth.ceil(aABB.maxY);
+            final int m = Mth.floor(aABB.minZ);
+            final int n = Mth.ceil(aABB.maxZ);
+            final boolean bl = this.isPushedByFluid();
+            final BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos();
+            for (int p = i; p < j; ++p) {
+                for (int q = k; q < l; ++q) {
+                    for (int r = m; r < n; ++r) {
+                        final double f;
+                        mutableBlockPos.set(p, q, r);
+                        final FluidState fluidState = this.level.getFluidState(mutableBlockPos);
+                        if (!fluidState.is(tagKey) ||
+                            !((f = (float) q + fluidState.getHeight(this.level, mutableBlockPos)) >=
+                                aABB.minY)) {
+                            continue;
+                        }
+                        bl2ref[0] = true;
+                        e[0] = Math.max(f - aABB.minY, e[0]);
+                        if (!bl) {
+                            continue;
+                        }
+                        Vec3 vec32 = fluidState.getFlow(this.level, mutableBlockPos);
+                        if (e[0] < 0.4) {
+                            vec32 = vec32.scale(e[0]);
+                        }
+                        vec3ref[0] = vec3ref[0].add(vec32);
+                        ++oref[0];
+                    }
+                }
+            }
         });
 
-        isModifyingWaterState = false;
+        Vec3 vec3 = vec3ref[0];
+        final boolean bl2 = bl2ref[0];
+        final int o = oref[0];
+
+        if (vec3.length() > 0.0) {
+            if (o > 0) {
+                vec3 = vec3.scale(1.0 / (double) o);
+            }
+            if (!Player.class.isInstance(this)) {
+                vec3 = vec3.normalize();
+            }
+            final Vec3 vec33 = this.getDeltaMovement();
+            vec3 = vec3.scale(d);
+            final double g = 0.003;
+            if (Math.abs(vec33.x) < 0.003 && Math.abs(vec33.z) < 0.003 && vec3.length() < 0.0045000000000000005) {
+                vec3 = vec3.normalize().scale(0.0045000000000000005);
+            }
+            this.setDeltaMovement(this.getDeltaMovement().add(vec3));
+        }
+        this.fluidHeight.put(tagKey, e[0]);
+
+        cir.setReturnValue(bl2);
     }
 
     @Redirect(
@@ -121,4 +193,7 @@ public abstract class MixinEntity {
         return instance.getHeight(arg, arg2);
     }
 
+}
+
+record FluidForceData(int o, boolean bl2, Vec3 vec3) {
 }

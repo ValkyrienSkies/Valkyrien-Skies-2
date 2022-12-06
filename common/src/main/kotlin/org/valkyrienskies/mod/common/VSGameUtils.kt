@@ -34,12 +34,14 @@ import org.valkyrienskies.core.game.ships.ShipObjectServer
 import org.valkyrienskies.core.impl.hooks.VSEvents.TickEndEvent
 import org.valkyrienskies.core.impl.util.expand
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
+import org.valkyrienskies.mod.common.util.set
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toJOMLD
 import org.valkyrienskies.mod.common.util.toMinecraft
 import org.valkyrienskies.mod.common.world.DummyShipWorld
 import org.valkyrienskies.mod.mixin.accessors.resource.ResourceKeyAccessor
 import org.valkyrienskies.mod.mixinducks.world.entity.PlayerDuck
+import java.util.function.Consumer
 import kotlin.math.min
 
 val vsCore get() = ValkyrienSkiesMod.vsCore
@@ -162,6 +164,14 @@ private fun getShipObjectManagingPosImpl(world: Level, chunkX: Int, chunkZ: Int)
         }
     }
     return null
+}
+
+fun Level.transformFromWorldToNearbyShipsAndWorld(aabb: AABB, cb: Consumer<AABB>) {
+    cb.accept(aabb)
+    val tmpAABB = AABBd()
+    getShipsIntersecting(aabb).forEach { ship ->
+        cb.accept(tmpAABB.set(aabb).transform(ship.worldToShip).toMinecraft())
+    }
 }
 
 fun Level.transformToNearbyShipsAndWorld(x: Double, y: Double, z: Double, aabbRadius: Double): List<Vector3d> {
