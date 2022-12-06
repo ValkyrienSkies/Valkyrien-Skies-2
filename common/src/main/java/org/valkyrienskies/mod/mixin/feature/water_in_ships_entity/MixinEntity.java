@@ -139,9 +139,8 @@ public abstract class MixinEntity {
             }
             final Vec3 vec33 = this.getDeltaMovement();
             vec3 = vec3.scale(d);
-            final double g = 0.003;
             if (Math.abs(vec33.x) < 0.003 && Math.abs(vec33.z) < 0.003 && vec3.length() < 0.0045000000000000005) {
-                vec3 = vec3.normalize().scale(0.0045000000000000005);
+                vec3 = vec3.normalize().scale(0.0045);
             }
             this.setDeltaMovement(this.getDeltaMovement().add(vec3));
         }
@@ -193,7 +192,4 @@ public abstract class MixinEntity {
         return instance.getHeight(arg, arg2);
     }
 
-}
-
-record FluidForceData(int o, boolean bl2, Vec3 vec3) {
 }

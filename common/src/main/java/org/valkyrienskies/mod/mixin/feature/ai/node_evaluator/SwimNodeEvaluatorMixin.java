@@ -116,31 +116,32 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
     }
     //endregion
 
-    //region Area obstacle path type
     @Redirect(
         at = @At(value = "INVOKE",
             target = "Lnet/minecraft/world/level/PathNavigationRegion;getFluidState(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/material/FluidState;"),
         method = "getNode"
     )
-    private FluidState getFluidStateRedirectGetNode(final PathNavigationRegion instance, final BlockPos pos) {
-        final FluidState[] fluidState = {instance.getFluidState(pos)};
-        if (fluidState[0].isEmpty() && VSGameConfig.SERVER.getAiOnShips()) {
-            final Level level = ((PathNavigationRegionAccessor) instance).getLevel();
-
-            final double origX = pos.getX();
-            final double origY = pos.getY();
-            final double origZ = pos.getZ();
-            VSGameUtilsKt.transformToNearbyShipsAndWorld(level, origX,
-                origY, origZ, 1,
-                (x, y, z) -> {
-                    final BlockPos groundPos = new BlockPos(x, y, z);
-                    final FluidState tempFluidState = level.getFluidState(groundPos);
-                    if (!tempFluidState.isEmpty()) { // Skip any empty results for the case of intersecting ships
-                        fluidState[0] = tempFluidState;
-                    }
-                });
+    private FluidState getFluidStateRedirectGetNode(final PathNavigationRegion instance, final BlockPos blockPos) {
+        final FluidState[] fluidState = {instance.getFluidState(blockPos)};
+        final Level level = ((PathNavigationRegionAccessor) instance).getLevel();
+        if (!VSGameConfig.SERVER.getAiOnShips()) {
+            if (level != null && fluidState[0].isEmpty()) {
+                final double origX = blockPos.getX();
+                final double origY = blockPos.getY();
+                final double origZ = blockPos.getZ();
+                VSGameUtilsKt.transformToNearbyShipsAndWorld(level, origX,
+                    origY, origZ, 1,
+                    (x, y, z) -> {
+                        final BlockPos groundPos = new BlockPos(x, y, z);
+                        final FluidState tempFluidState = level.getFluidState(groundPos);
+                        if (!tempFluidState.isEmpty()) { // Skip any empty results for the case of intersecting ships
+                            fluidState[0] = tempFluidState;
+                        }
+                    });
+            }
         }
         return fluidState[0];
     }
-    //endregion
+
+    // TODO - re-add isFree mixins
 }
