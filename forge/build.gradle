@@ -51,6 +51,9 @@ configurations {
 }
 
 dependencies {
+    shadowCommon(annotationProcessor(implementation("com.github.LlamaLad7:MixinExtras:0.1.1")))
+    
+
     forge "net.minecraftforge:forge:${rootProject.forge_version}"
 
     common(project(path: ":common", configuration: "namedElements")) {

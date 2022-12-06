@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.fabric.mixin;
 
+import com.llamalad7.mixinextras.MixinExtrasBootstrap;
 import java.util.List;
 import java.util.Set;
 import org.objectweb.asm.tree.ClassNode;
@@ -14,6 +15,7 @@ public class ValkyrienFabricMixinConfigPlugin implements IMixinConfigPlugin {
 
     @Override
     public void onLoad(final String s) {
+        MixinExtrasBootstrap.init();
         AutoDependenciesFabric.runUpdater();
     }
 
