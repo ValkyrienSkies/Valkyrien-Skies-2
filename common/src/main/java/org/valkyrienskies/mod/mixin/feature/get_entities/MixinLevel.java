@@ -20,10 +20,11 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(Level.class)
 public class MixinLevel {
-    private static final Logger logger = LogUtils.getLogger();
+    @Unique
+    private static final Logger LOGGER = LogUtils.getLogger();
 
     @Unique
-    private boolean isCollisionBoxToBig(final AABB aabb) {
+    private static boolean isCollisionBoxToBig(final AABB aabb) {
         return aabb.getXsize() > 1000 || aabb.getYsize() > 1000 || aabb.getZsize() > 1000;
     }
 
@@ -54,7 +55,7 @@ public class MixinLevel {
         final Predicate<? super T> predicate, final CallbackInfoReturnable<List<T>> cir) {
 
         if (isCollisionBoxToBig(area)) {
-            logger.error("Collision box is too big! " + area + " returning empty list! this might break things");
+            LOGGER.error("Collision box is too big! " + area + " returning empty list! this might break things");
             cir.setReturnValue(Collections.emptyList());
             cir.cancel();
         }
@@ -69,7 +70,7 @@ public class MixinLevel {
         final Predicate<? super Entity> predicate, final CallbackInfoReturnable<List<Entity>> cir) {
 
         if (isCollisionBoxToBig(area)) {
-            logger.error("Collision box is too big! " + area + " returning empty list! this might break things");
+            LOGGER.error("Collision box is too big! " + area + " returning empty list! this might break things");
             cir.setReturnValue(Collections.emptyList());
             cir.cancel();
         }
