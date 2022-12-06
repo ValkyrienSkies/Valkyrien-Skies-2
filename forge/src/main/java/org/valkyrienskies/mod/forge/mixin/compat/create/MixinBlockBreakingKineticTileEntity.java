@@ -14,7 +14,7 @@ import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
-@Mixin(value = BlockBreakingKineticTileEntity.class, remap = false)
+@Mixin(BlockBreakingKineticTileEntity.class)
 public abstract class MixinBlockBreakingKineticTileEntity {
 
     @Shadow
@@ -25,7 +25,8 @@ public abstract class MixinBlockBreakingKineticTileEntity {
         at = @At(
             value = "INVOKE",
             target = "Lcom/simibubi/create/content/contraptions/components/actors/BlockBreakingKineticTileEntity;getBreakingPos()Lnet/minecraft/core/BlockPos;"
-        )
+        ),
+        remap = false
     )
     private BlockPos getBreakingBlockPos(final BlockBreakingKineticTileEntity self) {
         final BlockPos orig = this.getBreakingPos();

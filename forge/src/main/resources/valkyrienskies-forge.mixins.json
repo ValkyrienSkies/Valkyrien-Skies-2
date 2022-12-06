@@ -6,7 +6,6 @@
   "mixins": [
     "compat.create.MixinBlockBreakingKineticTileEntity",
     "compat.create.MixinBlocks",
-    "compat.create.MixinContraptionMatrices",
     "compat.create.MixinContraptionRenderInfo",
     "compat.create.MixinCrushingWheelBlock",
     "compat.create.MixinFlwContraption",
