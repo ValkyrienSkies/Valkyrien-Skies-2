@@ -5,6 +5,8 @@ on:
       - '1.18.x/*'
   pull_request:
     types: [ opened, synchronize, reopened ]
+    branches:
+      - '1.18.x/*'
 jobs:
   validate-gradle:
     name: "Validate Gradle wrapper"
