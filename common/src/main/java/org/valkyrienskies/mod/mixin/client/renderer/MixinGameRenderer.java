@@ -1,6 +1,8 @@
 package org.valkyrienskies.mod.mixin.client.renderer;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Matrix3f;
 import com.mojang.math.Matrix4f;
 import com.mojang.math.Quaternion;
 import java.util.function.Predicate;
@@ -286,13 +288,28 @@ public abstract class MixinGameRenderer {
             playerShipMountedTo,
             inShipPos
         );
+
+        // Apply the ship render transform to [matrixStack]
         final Quaternion invShipRenderRotation = VectorConversionsMCKt.toMinecraft(
             playerShipMountedTo.getRenderTransform().getShipToWorldRotation().conjugate(new Quaterniond()));
         matrixStack.mulPose(invShipRenderRotation);
 
-        final double d = this.getFov(camera, partialTicks, true);
-        instance.prepareCullFrustum(matrixStack, vec3,
-            this.getProjectionMatrix(Math.max(d, this.minecraft.options.fov)));
+        // We also need to recompute [inverseViewRotationMatrix] after updating [matrixStack]
+        {
+            final Matrix3f matrix3f = matrixStack.last().normal().copy();
+            if (matrix3f.invert()) {
+                RenderSystem.setInverseViewRotationMatrix(matrix3f);
+            }
+        }
+
+        // Camera FOV changes based on the position of the camera, so recompute FOV to account for the change of camera
+        // position.
+        final double fov = this.getFov(camera, partialTicks, true);
+
+        // Use [camera.getPosition()] instead of [vec3] because mounting the player to the ship has changed the camera
+        // position.
+        instance.prepareCullFrustum(matrixStack, camera.getPosition(),
+            this.getProjectionMatrix(Math.max(fov, this.minecraft.options.fov)));
     }
     // endregion
 }
