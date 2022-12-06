@@ -105,6 +105,33 @@ public abstract class MixinEntity {
         }
     }
 
+    /**
+     * Prevent [saveWithoutId] from saving the vehicle's position as passenger's position when that vehicle is in the
+     * shipyard.
+     * <p>
+     * This fixes players falling through the world when they load into the world and were mounting an entity on a
+     * ship.
+     */
+    @Redirect(method = "saveWithoutId", at = @At(value = "FIELD",
+        target = "Lnet/minecraft/world/entity/Entity;vehicle:Lnet/minecraft/world/entity/Entity;"))
+    private Entity preventSavingVehiclePosAsOurPos(final Entity originalVehicle) {
+        // Only check this if [originalVehicle] != null
+        if (originalVehicle == null) {
+            return null;
+        }
+
+        final int vehicleChunkX = ((int) originalVehicle.position().x()) >> 4;
+        final int vehicleChunkZ = ((int) originalVehicle.position().z()) >> 4;
+
+        // Don't store the vehicle's position if the vehicle is in the shipyard
+        final boolean isVehicleInShipyard = VSGameUtilsKt.isChunkInShipyard(level, vehicleChunkX, vehicleChunkZ);
+        if (isVehicleInShipyard) {
+            return null;
+        } else {
+            return originalVehicle;
+        }
+    }
+
     @Shadow
     protected abstract void positionRider(Entity passenger, Entity.MoveFunction callback);
 
