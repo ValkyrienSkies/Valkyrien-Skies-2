@@ -87,7 +87,8 @@ public abstract class MixinRenderSectionManager implements RenderSectionManagerD
                     }
 
                     final ChunkRenderBounds b = section.getBounds();
-                    final AABBd b2 = new AABBd(b.x1, b.y1, b.z1, b.x2, b.y2, b.z2)
+                    final AABBd b2 = new AABBd(b.x1 - 6e-1, b.y1 - 6e-1, b.z1 - 6e-1,
+                        b.x2 + 6e-1, b.y2 + 6e-1, b.z2 + 6e-1)
                         .transform(ship.getRenderTransform().getShipToWorld());
 
                     if (section.isEmpty() ||
