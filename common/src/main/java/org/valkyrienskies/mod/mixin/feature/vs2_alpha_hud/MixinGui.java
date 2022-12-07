@@ -40,7 +40,7 @@ public class MixinGui {
 
         final Font fontRenderer = minecraft.font;
         final List<String> debugText = new ArrayList<>();
-        debugText.add("VS 2 Alpha Build");
+        debugText.add("VS 2 Beta Build");
 
         final IntegratedServer integratedServer = this.minecraft.getSingleplayerServer();
         if (integratedServer != null) {

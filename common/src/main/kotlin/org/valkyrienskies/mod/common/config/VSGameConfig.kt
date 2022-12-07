@@ -15,7 +15,7 @@ object VSGameConfig {
 
     class Client {
         @JsonSchema(description = "Renders the VS2 debug HUD with TPS")
-        var renderDebugText = true
+        var renderDebugText = false
     }
 
     class Server {

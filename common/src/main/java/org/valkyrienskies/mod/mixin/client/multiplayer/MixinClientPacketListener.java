@@ -1,10 +1,8 @@
 package org.valkyrienskies.mod.mixin.client.multiplayer;
 
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.ClientPacketListener;
-import net.minecraft.network.chat.TextComponent;
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
 import net.minecraft.network.protocol.game.ClientboundLoginPacket;
 import net.minecraft.world.entity.Entity;
@@ -15,8 +13,8 @@ import org.spongepowered.asm.mixin.injection.At.Shift;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientCreator;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 
 @Mixin(ClientPacketListener.class)
@@ -24,14 +22,6 @@ public class MixinClientPacketListener {
 
     @Shadow
     private ClientLevel level;
-
-    @Inject(method = "handleLogin", at = @At("TAIL"))
-    public void afterLogin(final ClientboundLoginPacket packet, final CallbackInfo ci) {
-        Minecraft.getInstance().player.sendMessage(
-            new TextComponent("You are using an ALPHA version of Valkyrien Skies 2, use at your own risk!").withStyle(
-                ChatFormatting.RED, ChatFormatting.BOLD),
-            null);
-    }
 
     @Inject(
         at = @At(
