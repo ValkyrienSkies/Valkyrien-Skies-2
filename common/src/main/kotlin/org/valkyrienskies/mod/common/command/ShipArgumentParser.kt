@@ -6,7 +6,6 @@ import com.mojang.brigadier.exceptions.SimpleCommandExceptionType
 import com.mojang.brigadier.suggestion.SuggestionsBuilder
 import net.minecraft.network.chat.TranslatableComponent
 import org.valkyrienskies.core.api.ships.properties.ShipId
-import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.mixinducks.feature.command.VSCommandSource
 
 class ShipArgumentParser(private val source: VSCommandSource?, private var selectorOnly: Boolean) {
@@ -14,10 +13,6 @@ class ShipArgumentParser(private val source: VSCommandSource?, private var selec
     var slug: String? = null
     var limit: Int? = null
     var id: ShipId? = null
-
-    init {
-        if (VSGameConfig.CLIENT.recommendSlugsInMcCommands) selectorOnly = false
-    }
 
     fun parse(reader: StringReader): ShipSelector {
         val start = reader.cursor
@@ -29,24 +24,29 @@ class ShipArgumentParser(private val source: VSCommandSource?, private var selec
 
         // Read the selector type
         if (reader.read() == '@') {
-            reader.expect('v')
+            reader.expectR('v')
 
             suggestOpenOptions()
             if (reader.canRead() && reader.read() == '[') {
-                suggestOptions()
 
                 // Read the selector arguments ex @v[slug=mogus,limit=1]
                 while (reader.canRead() && reader.peek() != ']') {
+                    suggestOptions()
                     reader.skipWhitespace()
 
                     val i = reader.cursor
                     val s = reader.readString()
 
+                    if (!isOption(s)) {
+                        reader.cursor = i
+                        throw ERROR_UNKNOWN_OPTION.createWithContext(reader, s)
+                    }
+
                     reader.skipWhitespace()
 
                     suggestEquals()
+
                     if (!reader.canRead() || reader.peek() != '=') {
-                        reader.cursor = i
                         throw ERROR_EXPECTED_OPTION_VALUE.createWithContext(reader, s)
                     }
 
@@ -79,6 +79,11 @@ class ShipArgumentParser(private val source: VSCommandSource?, private var selec
         return ShipSelector(slug, id, limit ?: Int.MAX_VALUE)
     }
 
+    private fun isOption(s: String): Boolean = when (s) {
+        "slug", "limit", "id" -> true
+        else -> false
+    }
+
     // TODO keep a dynamic list of options...
     private fun suggestOptions() = suggest { builder, source ->
         builder.suggest("slug=")
@@ -92,7 +97,7 @@ class ShipArgumentParser(private val source: VSCommandSource?, private var selec
             source.shipWorld.allShips
                 .mapNotNull { it.slug }
                 .filter { it.startsWith(builder.remaining) }
-                .forEach { builder.suggest(it) }
+                .forEach { builder.suggest(it.substring(builder.remaining.length)) }
         }
     }
 
@@ -102,15 +107,26 @@ class ShipArgumentParser(private val source: VSCommandSource?, private var selec
                 source.shipWorld.allShips
                     .mapNotNull { it.slug }
                     .filter { it.startsWith(builder.remaining) }
-                    .forEach { builder.suggest(it) }
+                    .forEach { builder.suggest(it.substring(builder.remaining.length)) }
             }
 
         "limit" -> {}
         else -> throw ERROR_UNKNOWN_OPTION.create(option)
     }
 
-    fun parseOption(option: String, reader: StringReader) = when (option) {
-        "slug" -> slug = reader.readUnquotedString()
+    fun parseOption(option: String, reader: StringReader): Unit = when (option) {
+        "slug" -> {
+            val start = reader.cursor
+            val slug = reader.readUnquotedString()
+
+            if (source?.shipWorld?.allShips?.any { it.slug == slug } == false) {
+                reader.cursor = start
+                throw ERROR_INVALID_SLUG_OR_ID.create()
+            }
+
+            this.slug = slug
+        }
+
         "limit" -> limit = reader.readInt()
         else -> throw ERROR_UNKNOWN_OPTION.create(option)
     }
@@ -130,6 +146,11 @@ class ShipArgumentParser(private val source: VSCommandSource?, private var selec
 
     private fun suggest(builder: (SuggestionsBuilder, VSCommandSource) -> Unit) {
         if (source != null) suggestionProvider = { builder(it, source) }
+    }
+
+    private fun StringReader.expectR(s: Char) {
+        suggest { builder, source -> builder.suggest(s.toString()) }
+        this.expect(s)
     }
 
     companion object {
