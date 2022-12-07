@@ -13,7 +13,7 @@ import org.valkyrienskies.mod.mixinducks.feature.command.VSCommandSource
 import java.util.concurrent.CompletableFuture
 
 class ShipArgument private constructor(val selectorOnly: Boolean) : ArgumentType<ShipSelector> {
-    private val EXAMPLES = listOf("the-mogus", "@v", "@v[slug=mogus]", "2387623827441")
+    private val EXAMPLES = listOf("the-mogus", "@v", "@v[slug=the-mogus]")
 
     override fun <S : Any> listSuggestions(
         context: CommandContext<S>, builder: SuggestionsBuilder
@@ -61,4 +61,6 @@ class ShipArgument private constructor(val selectorOnly: Boolean) : ArgumentType
         private val ERROR_MANY_SHIP_FOUND =
             CommandRuntimeException(TranslatableComponent("argument.ship.multiple_found"))
     }
+
+    override fun getExamples(): Collection<String> = EXAMPLES
 }
