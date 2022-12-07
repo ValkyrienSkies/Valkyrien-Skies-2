@@ -71,10 +71,10 @@ dependencies {
     modImplementation("com.tterrag.registrate:Registrate:${registrate_version}")
 
     // Add Kotlin for Forge.
-    forgeRuntimeLibrary('curse.maven:kotlinforforge-351264:3925887')
+    include(forgeRuntimeLibrary('curse.maven:kotlinforforge-351264:3925887'))
 
     // Cloth for config
-    modImplementation("me.shedaniel.cloth:cloth-config-forge:6.3.81")
+    include(modImplementation("me.shedaniel.cloth:cloth-config-forge:6.3.81"))
 
     // Shade vs-core
     implementation("org.valkyrienskies.core:impl:${rootProject.vs_core_version}")
