@@ -132,8 +132,6 @@ dependencies {
     forgeRuntimeLibrary include("com.google.dagger:dagger:2.43.2") { transitive = false }
 
     // endregion
-
-    forgeRuntimeLibrary(implementation(shadowCommon("org.valkyrienskies:valkyrien-dependency-downloader:${rootProject.dependency_downloader_version}:all"))) { transitive = false }
 }
 
 processResources {
@@ -152,8 +150,6 @@ shadowJar {
 
     configurations = [project.configurations.shadowCommon]
     classifier "dev-shadow"
-
-    relocate "org.valkyrienskies.dependency_downloader", "org.valkyrienskies.mod.relocate.dependency_downloader"
 }
 
 remapJar {

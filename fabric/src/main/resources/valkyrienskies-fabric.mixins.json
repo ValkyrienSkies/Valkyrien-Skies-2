@@ -8,9 +8,7 @@
     "feature.explosions.ClipContextMixin",
     "world.level.block.FireMixin"
   ],
-  "client": [
-    "client.main.MixinMain"
-  ],
+  "client": [],
   "injectors": {
     "defaultRequire": 1
   },

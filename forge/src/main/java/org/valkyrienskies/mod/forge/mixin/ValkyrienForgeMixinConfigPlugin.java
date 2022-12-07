@@ -6,7 +6,6 @@ import java.util.Set;
 import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
-import org.valkyrienskies.mod.forge.AutoDependenciesForge;
 
 /**
  * For now, just using this class as an abusive early entrypoint to run the updater
@@ -16,7 +15,6 @@ public class ValkyrienForgeMixinConfigPlugin implements IMixinConfigPlugin {
     @Override
     public void onLoad(final String s) {
         MixinExtrasBootstrap.init();
-        AutoDependenciesForge.runUpdater();
     }
 
     @Override
