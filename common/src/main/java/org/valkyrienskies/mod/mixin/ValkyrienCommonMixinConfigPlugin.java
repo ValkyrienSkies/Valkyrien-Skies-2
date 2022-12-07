@@ -26,16 +26,21 @@ public class ValkyrienCommonMixinConfigPlugin implements IMixinConfigPlugin {
     }
 
     private static VSRenderer getVSRendererHelper() {
-        try {
-            Class.forName("optifine.OptiFineTransformationService");
+        if (classExists("optifine.OptiFineTransformationService")) {
             return VSRenderer.OPTIFINE;
-        } catch (final ClassNotFoundException e) {
-            try {
-                Class.forName("me.jellysquid.mods.sodium.client.SodiumClientMod");
-                return VSRenderer.SODIUM;
-            } catch (final ClassNotFoundException e2) {
-                return VSRenderer.VANILLA;
-            }
+        } else if (classExists("me.jellysquid.mods.sodium.client.SodiumClientMod")) {
+            return VSRenderer.SODIUM;
+        } else {
+            return VSRenderer.VANILLA;
+        }
+    }
+
+    private static boolean classExists(final String className) {
+        try {
+            Class.forName(className, false, ValkyrienCommonMixinConfigPlugin.class.getClassLoader());
+            return true;
+        } catch (final ClassNotFoundException ex) {
+            return false;
         }
     }
 
