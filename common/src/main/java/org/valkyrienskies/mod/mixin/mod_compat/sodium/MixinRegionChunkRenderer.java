@@ -41,7 +41,7 @@ public class MixinRegionChunkRenderer implements RegionChunkRendererDuck {
         if (ship != null) {
             ship.getRenderTransform().getWorldToShip().transformPosition(camInWorld, camInShip);
         } else {
-            camInShip.set(c.posX, c.posY, c.posZ);
+            camInShip.set(camInWorld);
         }
 
         return section.getBounds();
