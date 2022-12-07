@@ -16,13 +16,13 @@ logoFile = "icon.png"
 [[dependencies.valkyrienskies]]
 modId = "forge"
 mandatory = true
-versionRange = "[40.1.84,)"
+versionRange = "[40.1.69,)"
 ordering = "NONE"
 side = "BOTH"
 
 [[dependencies.valkyrienskies]]
 modId = "minecraft"
 mandatory = true
-versionRange = "[1.16.5,)"
+versionRange = "[1.18.2,)"
 ordering = "NONE"
 side = "BOTH"
