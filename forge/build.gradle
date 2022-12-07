@@ -71,7 +71,7 @@ dependencies {
     modImplementation("com.tterrag.registrate:Registrate:${registrate_version}")
 
     // Add Kotlin for Forge.
-    include(forgeRuntimeLibrary('curse.maven:kotlinforforge-351264:3925887'))
+    forgeRuntimeLibrary('curse.maven:kotlinforforge-351264:3925887')
 
     // Cloth for config
     include(modImplementation("me.shedaniel.cloth:cloth-config-forge:6.3.81"))
