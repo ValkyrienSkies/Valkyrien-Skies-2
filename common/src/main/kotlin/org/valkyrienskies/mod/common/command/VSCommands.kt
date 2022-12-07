@@ -6,8 +6,11 @@ import com.mojang.brigadier.arguments.FloatArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.builder.RequiredArgumentBuilder
+import com.mojang.brigadier.context.CommandContext
 import net.minecraft.commands.CommandRuntimeException
 import net.minecraft.commands.CommandSourceStack
+import net.minecraft.commands.arguments.EntityArgument
+import net.minecraft.commands.arguments.coordinates.BlockPosArgument
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.world.ServerShipWorld
 import org.valkyrienskies.core.api.world.ShipWorld
@@ -101,15 +104,50 @@ object VSCommands {
                 )
         )
 
-        dispatcher.root.children.first { it.name == "teleport" }.addChild(
-            argument("ship", ShipArgument.selectorOnly()).executes {
-                val ship = ShipArgument.getShip(it, "ship")
-                val source = it.source as CommandSourceStack
-                val shipPos = ship.transform.positionInWorld
+        dispatcher.root.children.first { it.name == "teleport" }.apply {
+            addChild(
+                argument("ship", ShipArgument.selectorOnly()).executes {
+                    val ship = ShipArgument.getShip(it, "ship")
+                    val source = it.source as CommandSourceStack
+                    val shipPos = ship.transform.positionInWorld
 
-                source.entity?.let { it.teleportTo(shipPos.x, shipPos.y, shipPos.z); 1 } ?: 0
-            }.build()
-        )
+                    source.entity?.let { it.teleportTo(shipPos.x, shipPos.y, shipPos.z); 1 } ?: 0
+                }.then(
+                    argument("entity", EntityArgument.entity()).executes {
+                        val ship = ShipArgument.getShip(it, "ship")
+                        it as CommandContext<CommandSourceStack>
+                        val entity = EntityArgument.getEntity(it, "entity")
+
+                        vsCore.teleportShip(ship as ServerShip, entity.x, entity.y, entity.z)
+
+                        1
+                    }
+                ).then(
+                    argument("pos", BlockPosArgument.blockPos()).executes {
+                        val ship = ShipArgument.getShip(it, "ship")
+                        it as CommandContext<CommandSourceStack>
+                        val pos = BlockPosArgument.getSpawnablePos(it, "pos")
+
+                        vsCore.teleportShip(ship as ServerShip, pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
+
+                        1
+                    }
+                ).build()
+            )
+
+            getChild("targets").addChild(
+                argument("ship", ShipArgument.selectorOnly()).executes {
+                    val ship = ShipArgument.getShip(it, "ship")
+                    it as CommandContext<CommandSourceStack>
+                    val entities = EntityArgument.getEntities(it, "targets")
+                    val shipPos = ship.transform.positionInWorld
+
+                    entities.forEach { it.teleportTo(shipPos.x, shipPos.y, shipPos.z) }
+
+                    entities.size
+                }.build()
+            )
+        }
     }
 
     fun registerClientCommands(dispatcher: CommandDispatcher<CommandSourceStack>) {
