@@ -1,8 +1,10 @@
 package org.valkyrienskies.mod.mixin;
 
+import com.llamalad7.mixinextras.MixinExtrasBootstrap;
 import java.util.List;
 import java.util.Set;
 import org.objectweb.asm.tree.ClassNode;
+import org.spongepowered.asm.mixin.Mixins;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 import org.valkyrienskies.mod.compat.VSRenderer;
@@ -12,6 +14,8 @@ import org.valkyrienskies.mod.compat.VSRenderer;
  */
 public class ValkyrienCommonMixinConfigPlugin implements IMixinConfigPlugin {
 
+    private static final boolean PATH_FINDING_DEBUG =
+        "true".equals(System.getProperty("org.valkyrienskies.render_pathfinding"));
     private static VSRenderer vsRenderer = null;
 
     public static VSRenderer getVSRenderer() {
@@ -22,22 +26,28 @@ public class ValkyrienCommonMixinConfigPlugin implements IMixinConfigPlugin {
     }
 
     private static VSRenderer getVSRendererHelper() {
-        try {
-            Class.forName("optifine.OptiFineTransformationService");
+        if (classExists("optifine.OptiFineTransformationService")) {
             return VSRenderer.OPTIFINE;
-        } catch (final ClassNotFoundException e) {
-            try {
-                Class.forName("me.jellysquid.mods.sodium.client.SodiumClientMod");
-                return VSRenderer.SODIUM;
-            } catch (final ClassNotFoundException e2) {
-                return VSRenderer.VANILLA;
-            }
+        } else if (classExists("me.jellysquid.mods.sodium.client.SodiumClientMod")) {
+            return VSRenderer.SODIUM;
+        } else {
+            return VSRenderer.VANILLA;
+        }
+    }
+
+    private static boolean classExists(final String className) {
+        try {
+            Class.forName(className, false, ValkyrienCommonMixinConfigPlugin.class.getClassLoader());
+            return true;
+        } catch (final ClassNotFoundException ex) {
+            return false;
         }
     }
 
     @Override
     public void onLoad(final String s) {
-
+        MixinExtrasBootstrap.init();
+        Mixins.registerErrorHandlerClass("org.valkyrienskies.mod.mixin.ValkyrienMixinErrorHandler");
     }
 
     @Override
@@ -59,6 +69,10 @@ public class ValkyrienCommonMixinConfigPlugin implements IMixinConfigPlugin {
         if (mixinClassName.contains("org.valkyrienskies.mod.mixin.mod_compat.optifine")) {
             return getVSRenderer() == VSRenderer.OPTIFINE;
         }
+        if (mixinClassName.contains("org.valkyrienskies.mod.mixin.feature.render_pathfinding")) {
+            return PATH_FINDING_DEBUG;
+        }
+
         return true;
     }
 

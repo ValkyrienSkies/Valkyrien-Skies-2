@@ -25,6 +25,8 @@ loom {
 }
 
 dependencies {
+    include(annotationProcessor(implementation("com.github.LlamaLad7:MixinExtras:0.1.1")))
+
     modImplementation("net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}")
 
     common(project(path: ":common", configuration: "namedElements")) {
@@ -35,14 +37,14 @@ dependencies {
     }
 
     // Depend on the fabric kotlin mod
-    modImplementation("net.fabricmc:fabric-language-kotlin:1.8.5+kotlin.1.7.20")
-    modImplementation("curse.maven:sodium-394468:3669187")
+    include(modImplementation("net.fabricmc:fabric-language-kotlin:1.8.5+kotlin.1.7.20"))
+    include(modImplementation("me.shedaniel.cloth:cloth-config-fabric:6.3.81"))
 
+    modImplementation("curse.maven:sodium-394468:3669187")
     modImplementation("com.terraformersmc:modmenu:3.2.3")
 
     // Depend on the fabric API
     modImplementation("net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}")
-    modImplementation("me.shedaniel.cloth:cloth-config-fabric:6.3.81")
 
 
     implementation("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
@@ -56,9 +58,6 @@ dependencies {
         exclude module: "fastutil"
         exclude module: "kotlin-stdlib-jdk8" // Don't shade kotlin-stdlib-jdk8, even though vs-core depends on it
     }
-
-    implementation("org.valkyrienskies:valkyrien-dependency-downloader:${rootProject.dependency_downloader_version}")
-    shadowCommon("org.valkyrienskies:valkyrien-dependency-downloader:${rootProject.dependency_downloader_version}:all") { transitive = false }
 }
 
 // Copy the VS common access widener to the generated resources folder

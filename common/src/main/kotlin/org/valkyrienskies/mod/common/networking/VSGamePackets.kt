@@ -6,9 +6,9 @@ import net.minecraft.server.level.ServerPlayer
 import org.valkyrienskies.core.api.ships.getAttachment
 import org.valkyrienskies.core.api.ships.setAttachment
 import org.valkyrienskies.core.game.ships.ShipObjectServer
-import org.valkyrienskies.core.networking.simple.register
-import org.valkyrienskies.core.networking.simple.registerClientHandler
-import org.valkyrienskies.core.networking.simple.registerServerHandler
+import org.valkyrienskies.core.impl.networking.simple.register
+import org.valkyrienskies.core.impl.networking.simple.registerClientHandler
+import org.valkyrienskies.core.impl.networking.simple.registerServerHandler
 import org.valkyrienskies.mod.api.SeatedControllingPlayer
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager

@@ -10,7 +10,7 @@ import net.minecraft.world.level.Level
 import org.joml.Vector3f
 import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.core.api.ships.setAttachment
-import org.valkyrienskies.core.networking.simple.sendToServer
+import org.valkyrienskies.core.impl.networking.simple.sendToServer
 import org.valkyrienskies.mod.api.SeatedControllingPlayer
 import org.valkyrienskies.mod.common.config.VSKeyBindings
 import org.valkyrienskies.mod.common.getShipObjectManagingPos

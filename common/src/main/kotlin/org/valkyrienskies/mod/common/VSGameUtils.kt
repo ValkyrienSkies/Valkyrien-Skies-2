@@ -8,6 +8,7 @@ import net.minecraft.core.Vec3i
 import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
+import net.minecraft.server.level.ServerChunkCache
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.player.Player
@@ -26,37 +27,36 @@ import org.valkyrienskies.core.api.ships.LoadedShip
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.api.util.functions.DoubleTernaryConsumer
-import org.valkyrienskies.core.api.world.IPlayer
-import org.valkyrienskies.core.api.world.chunks.TerrainUpdate
-import org.valkyrienskies.core.api.world.properties.DimensionId
+import org.valkyrienskies.core.apigame.world.IPlayer
+import org.valkyrienskies.core.apigame.world.ShipWorldCore
+import org.valkyrienskies.core.apigame.world.chunks.TerrainUpdate
+import org.valkyrienskies.core.apigame.world.properties.DimensionId
 import org.valkyrienskies.core.game.ships.ShipObjectServer
-import org.valkyrienskies.core.hooks.VSEvents.TickEndEvent
-import org.valkyrienskies.core.util.expand
+import org.valkyrienskies.core.impl.hooks.VSEvents.TickEndEvent
+import org.valkyrienskies.core.impl.util.expand
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
+import org.valkyrienskies.mod.common.util.set
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toJOMLD
 import org.valkyrienskies.mod.common.util.toMinecraft
+import org.valkyrienskies.mod.common.world.DummyShipWorld
 import org.valkyrienskies.mod.mixin.accessors.resource.ResourceKeyAccessor
 import org.valkyrienskies.mod.mixinducks.world.entity.PlayerDuck
-import kotlin.math.min
+import java.util.function.Consumer
 
 val vsCore get() = ValkyrienSkiesMod.vsCore
 
-val Level.shipObjectWorld
-    get() =
-        // Call the correct overload
-        when (this) {
-            is ServerLevel -> server.shipObjectWorld
-            is ClientLevel -> shipObjectWorld
-            else -> throw IllegalArgumentException("World is neither ServerWorld nor ClientWorld")
-        }
-
-val Level.allShips
-    get() = when (this) {
-        is ServerLevel -> server.shipObjectWorld.allShips
-        is ClientLevel -> shipObjectWorld.allShips
-        else -> throw IllegalArgumentException("World is neither ServerWorld nor ClientWorld")
+val Level.shipWorldNullable: ShipWorldCore?
+    get() = when {
+        this is ServerLevel -> server.shipObjectWorld
+        this.isClientSide && this is ClientLevel -> this.shipObjectWorld
+        else -> null
     }
+
+val Level.shipObjectWorld
+    get() = shipWorldNullable ?: DummyShipWorld
+
+val Level.allShips get() = this.shipObjectWorld.allShips
 
 val MinecraftServer.shipObjectWorld get() = (this as IShipObjectWorldServerProvider).shipObjectWorld
 val MinecraftServer.vsPipeline get() = (this as IShipObjectWorldServerProvider).vsPipeline
@@ -96,9 +96,8 @@ fun MinecraftServer.executeIf(condition: () -> Boolean, toExecute: Runnable) {
 val Level.yRange get() = minBuildHeight until maxBuildHeight
 
 fun Level.isTickingChunk(pos: ChunkPos) = isTickingChunk(pos.x, pos.z)
-fun Level.isTickingChunk(chunkX: Int, chunkZ: Int) = shouldTickBlocksAt(
-    ChunkPos.asLong(chunkX, chunkZ)
-)
+fun Level.isTickingChunk(chunkX: Int, chunkZ: Int) =
+    (chunkSource as ServerChunkCache).isPositionTicking(ChunkPos.asLong(chunkX, chunkZ))
 
 fun MinecraftServer.getLevelFromDimensionId(dimensionId: DimensionId): ServerLevel? {
     return getLevel(getResourceKey(dimensionId))
@@ -129,30 +128,30 @@ fun Level.squaredDistanceBetweenInclShips(
     y2: Double,
     z2: Double
 ): Double {
-    val origDx = x2 - x1
-    val origDy = y2 - y1
-    val origDz = z2 - z1
-
-    val squareDistWithoutRespectToShips = origDx * origDx + origDy * origDy + origDz * origDz
-
-    // If transform is null, then just return squareDistWithoutRespectToShips
-    val transform = this.getShipManagingPos(x1.toInt() shr 4, z1.toInt() shr 4)?.shipTransform
-        ?: return squareDistWithoutRespectToShips
-
-    val m = transform.shipToWorldMatrix
+    var inWorldX1 = x1
+    var inWorldY1 = y1
+    var inWorldZ1 = z1
+    var inWorldX2 = x2
+    var inWorldY2 = y2
+    var inWorldZ2 = z2
 
     // Do this transform manually to avoid allocation
-    val inWorldX = m.m00() * x1 + m.m10() * y1 + m.m20() * z1 + m.m30()
-    val inWorldY = m.m01() * x1 + m.m11() * y1 + m.m21() * z1 + m.m31()
-    val inWorldZ = m.m02() * x1 + m.m12() * y1 + m.m22() * z1 + m.m32()
+    this.getShipManagingPos(x1.toInt() shr 4, z1.toInt() shr 4)?.shipToWorld?.let { m ->
+        inWorldX1 = m.m00() * x1 + m.m10() * y1 + m.m20() * z1 + m.m30()
+        inWorldY1 = m.m01() * x1 + m.m11() * y1 + m.m21() * z1 + m.m31()
+        inWorldZ1 = m.m02() * x1 + m.m12() * y1 + m.m22() * z1 + m.m32()
+    }
+    this.getShipManagingPos(x2.toInt() shr 4, z2.toInt() shr 4)?.shipToWorld?.let { m ->
+        inWorldX2 = m.m00() * x2 + m.m10() * y2 + m.m20() * z2 + m.m30()
+        inWorldY2 = m.m01() * x2 + m.m11() * y2 + m.m21() * z2 + m.m31()
+        inWorldZ2 = m.m02() * x2 + m.m12() * y2 + m.m22() * z2 + m.m32()
+    }
 
-    val dx = x2 - inWorldX
-    val dy = y2 - inWorldY
-    val dz = z2 - inWorldZ
+    val dx = inWorldX2 - inWorldX1
+    val dy = inWorldY2 - inWorldY1
+    val dz = inWorldZ2 - inWorldZ1
 
-    val squareDistWithRespectToShips = dx * dx + dy * dy + dz * dz
-
-    return min(squareDistWithRespectToShips, squareDistWithoutRespectToShips)
+    return dx * dx + dy * dy + dz * dz
 }
 
 private fun getShipObjectManagingPosImpl(world: Level, chunkX: Int, chunkZ: Int): LoadedShip? {
@@ -164,6 +163,18 @@ private fun getShipObjectManagingPosImpl(world: Level, chunkX: Int, chunkZ: Int)
         }
     }
     return null
+}
+
+/**
+ * Get all ships intersecting an AABB in world-space, then call [cb] with the AABB itself,
+ * followed by the AABB in the ship-space of the intersecting ships.
+ */
+fun Level.transformFromWorldToNearbyShipsAndWorld(aabb: AABB, cb: Consumer<AABB>) {
+    cb.accept(aabb)
+    val tmpAABB = AABBd()
+    getShipsIntersecting(aabb).forEach { ship ->
+        cb.accept(tmpAABB.set(aabb).transform(ship.worldToShip).toMinecraft())
+    }
 }
 
 fun Level.transformToNearbyShipsAndWorld(x: Double, y: Double, z: Double, aabbRadius: Double): List<Vector3d> {

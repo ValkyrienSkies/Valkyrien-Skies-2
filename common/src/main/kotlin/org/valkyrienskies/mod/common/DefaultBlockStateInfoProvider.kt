@@ -2,7 +2,7 @@ package org.valkyrienskies.mod.common
 
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.material.Material
-import org.valkyrienskies.core.api.world.chunks.BlockType
+import org.valkyrienskies.core.apigame.world.chunks.BlockType
 
 object DefaultBlockStateInfoProvider : BlockStateInfoProvider {
     override val priority: Int

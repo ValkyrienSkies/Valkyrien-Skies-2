@@ -8,10 +8,10 @@ import org.joml.Vector3d
 import org.joml.Vector3dc
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.Ship
-import org.valkyrienskies.core.util.expand
-import org.valkyrienskies.core.util.x
-import org.valkyrienskies.core.util.y
-import org.valkyrienskies.core.util.z
+import org.valkyrienskies.core.impl.util.expand
+import org.valkyrienskies.core.impl.util.x
+import org.valkyrienskies.core.impl.util.y
+import org.valkyrienskies.core.impl.util.z
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toMinecraft
 import kotlin.math.roundToInt

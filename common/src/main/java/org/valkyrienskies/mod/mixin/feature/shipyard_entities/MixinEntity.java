@@ -32,7 +32,7 @@ public abstract class MixinEntity {
      */
     @Redirect(method = "positionRider(Lnet/minecraft/world/entity/Entity;)V", at = @At(value = "INVOKE",
         target = "Lnet/minecraft/world/entity/Entity;positionRider(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/entity/Entity$MoveFunction;)V"))
-    public void positionRider(final Entity instance, final Entity passengerI, final Entity.MoveFunction callback) {
+    private void positionRider(final Entity instance, final Entity passengerI, final Entity.MoveFunction callback) {
         this.positionRider(passengerI,
             (passenger, x, y, z) -> VSEntityManager.INSTANCE.getHandler(passenger.getType())
                 .positionSetFromVehicle(passenger, Entity.class.cast(this), x, y, z));
@@ -67,7 +67,7 @@ public abstract class MixinEntity {
      * @reason use vs2 entity handler to handle this method
      */
     @Inject(method = "setPosRaw", at = @At(value = "HEAD"))
-    public void handlePosSet(final double x, final double y, final double z, final CallbackInfo ci) {
+    private void handlePosSet(final double x, final double y, final double z, final CallbackInfo ci) {
         final Vector3d pos = new Vector3d(x, y, z);
         final Ship ship;
 
@@ -79,7 +79,7 @@ public abstract class MixinEntity {
     }
 
     @ModifyVariable(method = "setPosRaw", at = @At(value = "HEAD"), ordinal = 0)
-    public double setX(final double x) {
+    private double setX(final double x) {
         if (tempVec != null) {
             return tempVec.x();
         } else {
@@ -88,7 +88,7 @@ public abstract class MixinEntity {
     }
 
     @ModifyVariable(method = "setPosRaw", at = @At(value = "HEAD"), ordinal = 1)
-    public double setY(final double y) {
+    private double setY(final double y) {
         if (tempVec != null) {
             return tempVec.y();
         } else {
@@ -97,11 +97,38 @@ public abstract class MixinEntity {
     }
 
     @ModifyVariable(method = "setPosRaw", at = @At(value = "HEAD"), ordinal = 2)
-    public double setZ(final double z) {
+    private double setZ(final double z) {
         if (tempVec != null) {
             return tempVec.z();
         } else {
             return z;
+        }
+    }
+
+    /**
+     * Prevent [saveWithoutId] from saving the vehicle's position as passenger's position when that vehicle is in the
+     * shipyard.
+     * <p>
+     * This fixes players falling through the world when they load into the world and were mounting an entity on a
+     * ship.
+     */
+    @Redirect(method = "saveWithoutId", at = @At(value = "FIELD",
+        target = "Lnet/minecraft/world/entity/Entity;vehicle:Lnet/minecraft/world/entity/Entity;"))
+    private Entity preventSavingVehiclePosAsOurPos(final Entity originalVehicle) {
+        // Only check this if [originalVehicle] != null
+        if (originalVehicle == null) {
+            return null;
+        }
+
+        final int vehicleChunkX = ((int) originalVehicle.position().x()) >> 4;
+        final int vehicleChunkZ = ((int) originalVehicle.position().z()) >> 4;
+
+        // Don't store the vehicle's position if the vehicle is in the shipyard
+        final boolean isVehicleInShipyard = VSGameUtilsKt.isChunkInShipyard(level, vehicleChunkX, vehicleChunkZ);
+        if (isVehicleInShipyard) {
+            return null;
+        } else {
+            return originalVehicle;
         }
     }
 

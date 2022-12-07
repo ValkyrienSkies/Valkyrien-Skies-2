@@ -4,6 +4,18 @@
   "compatibilityLevel": "JAVA_17",
   "plugin": "org.valkyrienskies.mod.forge.mixin.ValkyrienForgeMixinConfigPlugin",
   "mixins": [
+    "compat.create.MixinBlockBreakingKineticTileEntity",
+    "compat.create.MixinBlocks",
+    "compat.create.MixinContraptionRenderInfo",
+    "compat.create.MixinCrushingWheelBlock",
+    "compat.create.MixinFlwContraption",
+    "compat.flywheel.client.InstancingEngineAccessor",
+    "compat.flywheel.client.MixinInstanceManager",
+    "compat.flywheel.client.MixinInstanceWorld",
+    "compat.flywheel.client.MixinInstancingEngine",
+    "compat.flywheel.client.MixinTileInstanceManager",
+    "compat.sodium.MixinRenderSectionManager",
+    "compat.thermalexpansion.MixinTileCoFH",
     "feature.forge_interact.MixinIForgePlayer",
     "feature.patch_modules.MixinMain",
     "world.level.block.FireMixin"

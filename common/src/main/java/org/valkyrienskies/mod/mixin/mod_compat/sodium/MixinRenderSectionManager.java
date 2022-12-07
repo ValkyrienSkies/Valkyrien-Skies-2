@@ -4,23 +4,16 @@ import it.unimi.dsi.fastutil.PriorityQueue;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import java.util.Map;
 import java.util.WeakHashMap;
-import me.jellysquid.mods.sodium.client.gl.device.CommandList;
-import me.jellysquid.mods.sodium.client.gl.device.RenderDevice;
-import me.jellysquid.mods.sodium.client.render.chunk.ChunkCameraContext;
 import me.jellysquid.mods.sodium.client.render.chunk.ChunkRenderList;
-import me.jellysquid.mods.sodium.client.render.chunk.ChunkRenderMatrices;
 import me.jellysquid.mods.sodium.client.render.chunk.ChunkUpdateType;
 import me.jellysquid.mods.sodium.client.render.chunk.RegionChunkRenderer;
 import me.jellysquid.mods.sodium.client.render.chunk.RenderSection;
 import me.jellysquid.mods.sodium.client.render.chunk.RenderSectionManager;
 import me.jellysquid.mods.sodium.client.render.chunk.data.ChunkRenderBounds;
-import me.jellysquid.mods.sodium.client.render.chunk.passes.BlockRenderPass;
 import me.jellysquid.mods.sodium.client.util.frustum.Frustum;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import org.joml.Matrix4f;
-import org.joml.Vector3dc;
 import org.joml.primitives.AABBd;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -31,15 +24,20 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
-import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.mixinducks.mod_compat.sodium.RegionChunkRendererDuck;
+import org.valkyrienskies.mod.mixinducks.mod_compat.sodium.RenderSectionManagerDuck;
 
 @Mixin(value = RenderSectionManager.class, remap = false)
-public abstract class MixinRenderSectionManager {
+public abstract class MixinRenderSectionManager implements RenderSectionManagerDuck {
 
     @Unique
     private final WeakHashMap<ClientShip, ChunkRenderList> shipRenderLists = new WeakHashMap<>();
+
+    @Override
+    public WeakHashMap<ClientShip, ChunkRenderList> getShipRenderLists() {
+        return shipRenderLists;
+    }
+
     @Shadow
     @Final
     private ClientLevel world;
@@ -89,7 +87,8 @@ public abstract class MixinRenderSectionManager {
                     }
 
                     final ChunkRenderBounds b = section.getBounds();
-                    final AABBd b2 = new AABBd(b.x1, b.y1, b.z1, b.x2, b.y2, b.z2)
+                    final AABBd b2 = new AABBd(b.x1 - 6e-1, b.y1 - 6e-1, b.z1 - 6e-1,
+                        b.x2 + 6e-1, b.y2 + 6e-1, b.z2 + 6e-1)
                         .transform(ship.getRenderTransform().getShipToWorld());
 
                     if (section.isEmpty() ||
@@ -126,26 +125,5 @@ public abstract class MixinRenderSectionManager {
     @Inject(at = @At("TAIL"), method = "resetLists")
     private void afterResetLists(final CallbackInfo ci) {
         shipRenderLists.values().forEach(ChunkRenderList::clear);
-    }
-
-    @Redirect(at = @At(value = "INVOKE", target = "Lme/jellysquid/mods/sodium/client/gl/device/CommandList;flush()V"),
-        method = "renderLayer")
-    private void redirectRenderLayer(final CommandList list, final ChunkRenderMatrices matrices,
-        final BlockRenderPass pass, final double camX, final double camY, final double camZ) {
-
-        RenderDevice.INSTANCE.makeActive();
-
-        shipRenderLists.forEach((ship, renderList) -> {
-            final Matrix4f newModelView = new Matrix4f(matrices.modelView());
-            final Vector3dc center = ship.getRenderTransform().getPositionInShip();
-            VSClientGameUtils.transformRenderWithShip(ship.getRenderTransform(), newModelView, center.x(), center.y(),
-                center.z(), camX, camY, camZ);
-
-            final ChunkRenderMatrices newMatrices = new ChunkRenderMatrices(matrices.projection(), newModelView);
-            ((RegionChunkRendererDuck) chunkRenderer).setCameraForCulling(camX, camY, camZ);
-            chunkRenderer.render(newMatrices, list, renderList, pass,
-                new ChunkCameraContext(center.x(), center.y(), center.z()));
-            list.close();
-        });
     }
 }

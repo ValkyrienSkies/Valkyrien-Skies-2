@@ -5,9 +5,9 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.level.ChunkPos
 import org.apache.commons.lang3.mutable.MutableObject
-import org.valkyrienskies.core.api.world.ServerShipWorldCore
-import org.valkyrienskies.core.api.world.chunks.ChunkUnwatchTask
-import org.valkyrienskies.core.api.world.chunks.ChunkWatchTask
+import org.valkyrienskies.core.apigame.world.ServerShipWorldCore
+import org.valkyrienskies.core.apigame.world.chunks.ChunkUnwatchTask
+import org.valkyrienskies.core.apigame.world.chunks.ChunkWatchTask
 import org.valkyrienskies.mod.common.executeIf
 import org.valkyrienskies.mod.common.getLevelFromDimensionId
 import org.valkyrienskies.mod.common.isTickingChunk

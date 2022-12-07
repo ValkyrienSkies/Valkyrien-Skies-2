@@ -9,6 +9,7 @@ import net.minecraft.client.sounds.ChannelAccess;
 import net.minecraft.client.sounds.SoundEngine;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
+import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -64,14 +65,18 @@ public abstract class MixinSoundEngine {
         ),
         method = "*"
     )
-    private void injectListenerVelocity(final Listener listener, final Vec3 ignore) {
+    private void injectListenerVelocity(final Listener listener, final Vec3 position) {
         final Player player = Minecraft.getInstance().player;
         final ClientLevel level = Minecraft.getInstance().level;
+        ((HasOpenALVelocity) listener).setVelocity(new Vector3d());
+        
         if (level != null && player != null) {
             final ClientShip mounted = VSGameUtilsKt.getShipObjectEntityMountedTo(level, player);
             if (mounted != null) {
                 ((HasOpenALVelocity) listener).setVelocity(mounted.getVelocity());
             }
         }
+
+        listener.setListenerPosition(position);
     }
 }

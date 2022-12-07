@@ -20,10 +20,11 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(Level.class)
 public class MixinLevel {
-    private static final Logger logger = LogUtils.getLogger();
+    @Unique
+    private static final Logger LOGGER = LogUtils.getLogger();
 
     @Unique
-    public boolean isCollisionBoxToBig(final AABB aabb) {
+    private static boolean isCollisionBoxToBig(final AABB aabb) {
         return aabb.getXsize() > 1000 || aabb.getYsize() > 1000 || aabb.getZsize() > 1000;
     }
 
@@ -32,7 +33,7 @@ public class MixinLevel {
         at = @At("HEAD"),
         argsOnly = true
     )
-    public AABB moveAABB1(final AABB aabb) {
+    private AABB moveAABB1(final AABB aabb) {
         return VSGameUtilsKt.transformAabbToWorld(Level.class.cast(this), aabb);
     }
 
@@ -41,18 +42,20 @@ public class MixinLevel {
         at = @At("HEAD"),
         argsOnly = true
     )
-    public AABB moveAABB2(final AABB aabb) {
+    private AABB moveAABB2(final AABB aabb) {
         return VSGameUtilsKt.transformAabbToWorld(Level.class.cast(this), aabb);
     }
 
     @Inject(
         method = "getEntities(Lnet/minecraft/world/level/entity/EntityTypeTest;Lnet/minecraft/world/phys/AABB;Ljava/util/function/Predicate;)Ljava/util/List;",
-        at = @At("HEAD"))
-    public <T extends Entity> void check1(final EntityTypeTest<Entity, T> entityTypeTest, final AABB area,
+        at = @At("HEAD"),
+        cancellable = true
+    )
+    private <T extends Entity> void check1(final EntityTypeTest<Entity, T> entityTypeTest, final AABB area,
         final Predicate<? super T> predicate, final CallbackInfoReturnable<List<T>> cir) {
 
         if (isCollisionBoxToBig(area)) {
-            logger.error("Collision box is too big! " + area + " returning empty list! this might break things");
+            LOGGER.error("Collision box is too big! " + area + " returning empty list! this might break things");
             cir.setReturnValue(Collections.emptyList());
             cir.cancel();
         }
@@ -60,12 +63,14 @@ public class MixinLevel {
 
     @Inject(
         method = "getEntities(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/phys/AABB;Ljava/util/function/Predicate;)Ljava/util/List;",
-        at = @At("HEAD"))
-    public <T extends Entity> void check2(@Nullable final Entity entity, final AABB area,
+        at = @At("HEAD"),
+        cancellable = true
+    )
+    private <T extends Entity> void check2(@Nullable final Entity entity, final AABB area,
         final Predicate<? super Entity> predicate, final CallbackInfoReturnable<List<Entity>> cir) {
 
         if (isCollisionBoxToBig(area)) {
-            logger.error("Collision box is too big! " + area + " returning empty list! this might break things");
+            LOGGER.error("Collision box is too big! " + area + " returning empty list! this might break things");
             cir.setReturnValue(Collections.emptyList());
             cir.cancel();
         }

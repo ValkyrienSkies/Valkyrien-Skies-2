@@ -7,8 +7,8 @@ import net.minecraft.server.level.ServerPlayer
 import net.minecraftforge.network.NetworkRegistry
 import net.minecraftforge.network.PacketDistributor
 import net.minecraftforge.network.simple.SimpleChannel
-import org.valkyrienskies.core.api.hooks.CoreHooksIn
-import org.valkyrienskies.core.api.world.IPlayer
+import org.valkyrienskies.core.apigame.hooks.CoreHooksIn
+import org.valkyrienskies.core.apigame.world.IPlayer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.mcPlayer
 import org.valkyrienskies.mod.common.playerWrapper
