@@ -11,9 +11,9 @@ import net.minecraft.commands.CommandSourceStack
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.world.ServerShipWorld
 import org.valkyrienskies.core.api.world.ShipWorld
-import org.valkyrienskies.core.util.x
-import org.valkyrienskies.core.util.y
-import org.valkyrienskies.core.util.z
+import org.valkyrienskies.core.impl.util.x
+import org.valkyrienskies.core.impl.util.y
+import org.valkyrienskies.core.impl.util.z
 import org.valkyrienskies.mod.common.vsCore
 import org.valkyrienskies.mod.mixinducks.feature.command.VSCommandSource
 import org.valkyrienskies.mod.util.logger
