@@ -13,6 +13,7 @@
     "compat.flywheel.client.MixinInstanceManager",
     "compat.flywheel.client.MixinInstanceWorld",
     "compat.flywheel.client.MixinTileInstanceManager",
+    "compat.thermalexpansion.MixinTileCoFH",
     "world.level.block.FireMixin"
   ],
   "client": [
