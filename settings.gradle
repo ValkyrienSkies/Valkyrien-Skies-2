@@ -14,7 +14,7 @@ pluginManagement {
                 }
             }
         }
-        if (use_external_repositories != "true") {
+        if (!block_external_repositories) {
             maven { url "https://maven.architectury.dev/" }
             maven { url "https://maven.fabricmc.net/" }
         }
