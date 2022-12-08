@@ -96,10 +96,8 @@ workflows:
           requires:
             - publish_to_maven
           filters:
-            branches: 
-              ignore: /.*/
             tags:
-              only: /playtest\/.*/
+              only: /^playtest.*/
           context:
             - discord_webhooks
       - publish_to_maven:
