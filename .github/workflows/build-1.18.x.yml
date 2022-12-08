@@ -1,16 +1,14 @@
-name: Build 1.18.x
+name: Build
 on:
   push:
     branches:
       - '1.18.x/*'
   pull_request:
     types: [ opened, synchronize, reopened ]
-    branches:
-      - '1.18.x/*'
 jobs:
   validate-gradle:
     name: "Validate Gradle wrapper"
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
         with:
@@ -19,7 +17,7 @@ jobs:
 
   build:
     name: Build
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - name: Shallow Clone (--recurse-submodules)
         uses: actions/checkout@v2
@@ -56,7 +54,7 @@ jobs:
     strategy:
       matrix:
         serverType: [ 'fabric', 'forge' ]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     timeout-minutes: 20 # Fail after 20 minutes
     steps:
       - name: Shallow Clone (--recurse-submodules)
@@ -71,3 +69,26 @@ jobs:
         uses: ValkyrienSkies/Minecraft-Architectury-Testing@v1.9
         with:
           serverType: ${{ matrix.serverType }}
+
+  publish:
+    name: Publish to Maven
+    runs-on: ubuntu-latest
+    # Run only on pushes to main branches
+    if: ${{ endsWith(github.ref, '/main') && github.event_name == 'push' }}
+    steps:
+      - name: Shallow Clone (--recurse-submodules)
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Setup Gradle & Caches
+        uses: "./.github/actions/setup-gradle"
+
+      - name: Publish with Gradle
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ORG_GRADLE_PROJECT_vs_maven_password: ${{ secrets.ORG_GRADLE_PROJECT_VS_MAVEN_PASSWORD }}
+          ORG_GRADLE_PROJECT_vs_maven_url: ${{ secrets.ORG_GRADLE_PROJECT_VS_MAVEN_URL }}
+          ORG_GRADLE_PROJECT_vs_maven_username: ${{ secrets.ORG_GRADLE_PROJECT_VS_MAVEN_USERNAME }}
+        run: |
+          ./gradlew build publish --stacktrace --no-daemon
