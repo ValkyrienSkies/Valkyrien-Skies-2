@@ -52,4 +52,6 @@ jobs:
 workflows:
   build:
     jobs:
-      - build
+      - build:
+          context:
+            - valkyrien_maven
