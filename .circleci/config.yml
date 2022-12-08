@@ -43,11 +43,9 @@ jobs:
       - store_artifacts:
           path: "forge.jar"
 
-      - steps:
-          - discord/notify:
-              message: "this is a message sent from circleci"
-              webhook: https://discord.com/api/webhooks/1050266595596959744/BvFL039u_ctGSQpRYpY5vlxwTy2Utd5jq_qWyH_W5A1BA2R9V3hqz9ZuwQ0xYoPWPz_C?thread_id=1050267870170451978
-
+      - discord/notify:
+          message: "this is a message sent from circleci"
+          webhook: https://discord.com/api/webhooks/1050266595596959744/BvFL039u_ctGSQpRYpY5vlxwTy2Utd5jq_qWyH_W5A1BA2R9V3hqz9ZuwQ0xYoPWPz_C?thread_id=1050267870170451978
       - save_cache:
           key: v1-gradle-home-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
           paths:
