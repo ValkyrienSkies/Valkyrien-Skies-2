@@ -53,18 +53,16 @@ commands:
         default: valkyrienskies
       version:
         type: string
-        default: ${CIRCLE_TAG}
+        default: ${CIRCLE_SHA1}
     steps:
-      ## Replace '/' in the version with '-'
-      - run: echo 'export TAG_VERSION=$(echo << parameters.version >> | tr / -))' >> "$BASH_ENV"
       - save_artifacts:
           artifact_name: << parameters.artifact_name >>
-          version: ${TAG_VERSION}
+          version: << parameters.version >>
       - run: >-
           echo 'export DISCORD_MSG="
           New version, **${CIRCLE_TAG}** |
-          [Download Forge](https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/artifacts/<< parameters.artifact_name >>-forge-${TAG_VERSION}.jar) |
-          [Download Fabric](https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/artifacts/<< parameters.artifact_name >>-fabric-${TAG_VERSION}.jar)
+          [Download Forge](https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/artifacts/<< parameters.artifact_name >>-forge-<< parameters.version >>.jar) |
+          [Download Fabric](https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/artifacts/<< parameters.artifact_name >>-fabric-<< parameters.version >>.jar)
           "' >> "$BASH_ENV"
   save_gradle_cache:
     steps:
