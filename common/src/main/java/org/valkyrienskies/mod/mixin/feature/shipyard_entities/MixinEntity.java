@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.feature.shipyard_entities;
 
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.Level;
@@ -78,7 +79,7 @@ public abstract class MixinEntity {
         }
     }
 
-    @ModifyVariable(method = "setPosRaw", at = @At(value = "HEAD"), ordinal = 0)
+    @ModifyVariable(method = "setPosRaw", at = @At(value = "HEAD"), ordinal = 0, argsOnly = true)
     private double setX(final double x) {
         if (tempVec != null) {
             return tempVec.x();
@@ -87,7 +88,7 @@ public abstract class MixinEntity {
         }
     }
 
-    @ModifyVariable(method = "setPosRaw", at = @At(value = "HEAD"), ordinal = 1)
+    @ModifyVariable(method = "setPosRaw", at = @At(value = "HEAD"), ordinal = 1, argsOnly = true)
     private double setY(final double y) {
         if (tempVec != null) {
             return tempVec.y();
@@ -96,7 +97,7 @@ public abstract class MixinEntity {
         }
     }
 
-    @ModifyVariable(method = "setPosRaw", at = @At(value = "HEAD"), ordinal = 2)
+    @ModifyVariable(method = "setPosRaw", at = @At(value = "HEAD"), ordinal = 2, argsOnly = true)
     private double setZ(final double z) {
         if (tempVec != null) {
             return tempVec.z();
@@ -112,7 +113,7 @@ public abstract class MixinEntity {
      * This fixes players falling through the world when they load into the world and were mounting an entity on a
      * ship.
      */
-    @Redirect(method = "saveWithoutId", at = @At(value = "FIELD",
+    @ModifyExpressionValue(method = "saveWithoutId", at = @At(value = "FIELD",
         target = "Lnet/minecraft/world/entity/Entity;vehicle:Lnet/minecraft/world/entity/Entity;"))
     private Entity preventSavingVehiclePosAsOurPos(final Entity originalVehicle) {
         // Only check this if [originalVehicle] != null

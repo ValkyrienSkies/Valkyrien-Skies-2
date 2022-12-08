@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.mixin.feature.render_blockentity_distance_check;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.client.Camera;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
@@ -12,7 +14,6 @@ import org.joml.Matrix4dc;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
@@ -31,7 +32,7 @@ public class MixinBlockEntityRenderDispatcher {
     /**
      * This mixin fixes the culling of {@link BlockEntity}s that belong to a ship.
      */
-    @Redirect(
+    @WrapOperation(
         method = "render",
         at = @At(
             value = "INVOKE",
@@ -39,16 +40,14 @@ public class MixinBlockEntityRenderDispatcher {
         )
     )
     private <E extends BlockEntity> boolean isTileEntityInRenderRange(final BlockEntityRenderer<E> instance,
-        final E methodBlockEntity,
-        final Vec3 cameraPos) {
+        final E blockEntity, final Vec3 cameraPos, final Operation<Boolean> operation) {
 
-        final boolean defaultResult = instance.shouldRender(methodBlockEntity, cameraPos);
-        if (defaultResult) {
+        if (operation.call(instance, blockEntity, cameraPos)) {
             return true;
         }
 
-        // If defaultResult was false, then check if this BlockEntity belongs to a ship
-        final BlockPos bePos = methodBlockEntity.getBlockPos();
+        // If by default was false, then check if this BlockEntity belongs to a ship
+        final BlockPos bePos = blockEntity.getBlockPos();
         final ClientShip shipObject = VSGameUtilsKt.getShipObjectManagingPos((ClientLevel) level, bePos);
         if (shipObject != null) {
             final Matrix4dc m = shipObject.getRenderTransform().getShipToWorldMatrix();
@@ -59,6 +58,7 @@ public class MixinBlockEntityRenderDispatcher {
                 m.m02() * bePos.getX() + m.m12() * bePos.getY() + m.m22() * bePos.getZ() + m.m32()
             ).closerThan(this.camera.getPosition(), instance.getViewDistance());
         }
+
         return false;
     }
 }
