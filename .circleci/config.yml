@@ -101,6 +101,9 @@ jobs:
       - run:
           name: "Build"
           command: "./gradlew build publish --stacktrace"
+          environment:
+            ORG_GRADLE_PROJECT_CustomReleaseVersion: ${CIRCLE_TAG}
+
 
   notify_playtesters:
     executor: java_large
