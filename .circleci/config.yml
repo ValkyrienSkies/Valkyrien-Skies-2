@@ -6,6 +6,7 @@ version: 2.1
 # See: https://circleci.com/docs/2.0/configuration-reference/#jobs
 jobs:
   build:
+    resource_class: xlarge
     docker:
       - image: cimg/openjdk:17.0
     steps:
