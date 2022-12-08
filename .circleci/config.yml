@@ -39,14 +39,14 @@ commands:
         default: ${CIRCLE_SHA1}
     steps:
       # Rename artifacts to "forge.jar" and "fabric.jar"
-      - run: find ./forge/build/libs -regextype posix-extended -regex ".*/<< parameters.artifact_name >>(-[^-]+){3}.jar" -exec bash -c 'cp $0 ./<< parameters.artifact_name >>-forge-<< parameters.version >>.jar' {} \;
-      - run: find ./fabric/build/libs -regextype posix-extended -regex ".*/<< parameters.artifact_name >>(-[^-]+){3}.jar" -exec bash -c 'cp $0 ./<< parameters.artifact_name >>-fabric-<< parameters.version >>.jar' {} \;
+      - run: mkdir artifacts
+      - run: find ./forge/build/libs -regextype posix-extended -regex ".*/<< parameters.artifact_name >>(-[^-]+){3}.jar" -exec bash -c 'cp $0 ./artifacts/<< parameters.artifact_name >>-forge-<< parameters.version >>.jar' {} \;
+      - run: find ./fabric/build/libs -regextype posix-extended -regex ".*/<< parameters.artifact_name >>(-[^-]+){3}.jar" -exec bash -c 'cp $0 ./artifacts/<< parameters.artifact_name >>-fabric-<< parameters.version >>.jar' {} \;
 
       # Store artifacts
       - store_artifacts:
-          path: "<< parameters.artifact_name >>-fabric-<< parameters.version >>.jar"
-      - store_artifacts:
-          path: "<< parameters.artifact_name >>-forge-<< parameters.version >>.jar"
+          path: artifacts
+          destination: ""
   save_artifacts_and_generate_discord:
     parameters:
       artifact_name:
