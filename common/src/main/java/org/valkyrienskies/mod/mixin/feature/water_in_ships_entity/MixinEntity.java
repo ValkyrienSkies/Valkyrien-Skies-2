@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.mixin.feature.water_in_ships_entity;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.tags.TagKey;
@@ -17,7 +19,6 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
@@ -149,13 +150,14 @@ public abstract class MixinEntity {
         cir.setReturnValue(bl2);
     }
 
-    @Redirect(
+    @WrapOperation(
         at = @At(value = "INVOKE",
             target = "Lnet/minecraft/world/level/Level;getFluidState(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/material/FluidState;"),
         method = "updateFluidOnEyes"
     )
-    private FluidState getFluidStateRedirect(final Level level, final BlockPos blockPos) {
-        final FluidState[] fluidState = {level.getFluidState(blockPos)};
+    private FluidState getFluidStateRedirect(final Level level, final BlockPos blockPos,
+        final Operation<FluidState> getFluidState) {
+        final FluidState[] fluidState = {getFluidState.call(level, blockPos)};
         isShipWater = false;
         if (fluidState[0].isEmpty()) {
 
@@ -167,19 +169,20 @@ public abstract class MixinEntity {
 
             VSGameUtilsKt.transformToNearbyShipsAndWorld(this.level, origX, origY, origZ, this.bb.getSize(),
                 (x, y, z) -> {
-                    fluidState[0] = level.getFluidState(new BlockPos(x, y, z));
+                    fluidState[0] = getFluidState.call(level, new BlockPos(x, y, z));
                 });
             isShipWater = true;
         }
         return fluidState[0];
     }
 
-    @Redirect(
+    @WrapOperation(
         at = @At(value = "INVOKE",
             target = "Lnet/minecraft/world/level/material/FluidState;getHeight(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;)F"),
         method = "updateFluidOnEyes"
     )
-    private float fluidHeightOverride(final FluidState instance, final BlockGetter arg, final BlockPos arg2) {
+    private float fluidHeightOverride(final FluidState instance, final BlockGetter arg, final BlockPos arg2,
+        final Operation<Float> getHeight) {
         if (!instance.isEmpty() && this.level instanceof Level) {
 
             if (isShipWater) {
@@ -189,7 +192,7 @@ public abstract class MixinEntity {
             }
 
         }
-        return instance.getHeight(arg, arg2);
+        return getHeight.call(instance, arg, arg2);
     }
 
 }

@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.mixin.feature.sound.client;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.audio.Listener;
 import java.util.Map;
 import net.minecraft.client.Minecraft;
@@ -14,7 +16,6 @@ import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.client.audio.VelocityTickableSoundInstance;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
@@ -30,7 +31,7 @@ public abstract class MixinSoundEngine {
     protected abstract float calculatePitch(SoundInstance sound);
 
     // Applies the velocity provided by a VelocityTickableSoundInstance
-    @Redirect(
+    @WrapOperation(
         at = @At(
             value = "INVOKE",
             target = "Ljava/util/Map;get(Ljava/lang/Object;)Ljava/lang/Object;",
@@ -38,7 +39,7 @@ public abstract class MixinSoundEngine {
         ),
         method = "tickNonPaused"
     )
-    private Object redirectGet(final Map instance, final Object obj) {
+    private Object redirectGet(final Map instance, final Object obj, final Operation<Object> get) {
         if (obj instanceof final VelocityTickableSoundInstance soundInstance) {
             final ChannelAccess.ChannelHandle handle = (ChannelAccess.ChannelHandle) instance.get(soundInstance);
             final float f = calculateVolume(soundInstance);
@@ -55,21 +56,22 @@ public abstract class MixinSoundEngine {
             return null;
         }
 
-        return instance.get(obj);
+        return get.call(instance, obj);
     }
 
-    @Redirect(
+    @WrapOperation(
         at = @At(
             value = "INVOKE",
             target = "Lcom/mojang/blaze3d/audio/Listener;setListenerPosition(Lnet/minecraft/world/phys/Vec3;)V"
         ),
         method = "*"
     )
-    private void injectListenerVelocity(final Listener listener, final Vec3 position) {
+    private void injectListenerVelocity(final Listener listener, final Vec3 position,
+        final Operation<Void> setListenerPosition) {
         final Player player = Minecraft.getInstance().player;
         final ClientLevel level = Minecraft.getInstance().level;
         ((HasOpenALVelocity) listener).setVelocity(new Vector3d());
-        
+
         if (level != null && player != null) {
             final ClientShip mounted = VSGameUtilsKt.getShipObjectEntityMountedTo(level, player);
             if (mounted != null) {
@@ -77,6 +79,6 @@ public abstract class MixinSoundEngine {
             }
         }
 
-        listener.setListenerPosition(position);
+        setListenerPosition.call(listener, position);
     }
 }

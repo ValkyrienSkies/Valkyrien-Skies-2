@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.mixin.feature.explosions;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import java.util.Collections;
 import java.util.List;
 import net.minecraft.core.BlockPos;
@@ -20,7 +22,6 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
@@ -134,17 +135,18 @@ public abstract class MixinExplosion {
 
     // Don't raytrace the shipyard
     // getEntities already gives shipyard entities
-    @Redirect(method = "explode",
+    @WrapOperation(method = "explode",
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/world/level/Level;getEntities(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/phys/AABB;)Ljava/util/List;"
         )
     )
-    private List<Entity> noRayTrace(final Level instance, final Entity entity, final AABB aabb) {
+    private List<Entity> noRayTrace(final Level instance, final Entity entity, final AABB aabb,
+        final Operation<List<Entity>> getEntities) {
         if (isModifyingExplosion) {
             return Collections.emptyList();
         } else {
-            return instance.getEntities(entity, aabb);
+            return getEntities.call(instance, entity, aabb);
         }
     }
 

@@ -16,7 +16,8 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 @Mixin(ConduitBlockEntity.class)
 public class ConduitMixin extends BlockEntity {
 
-    public ConduitMixin(final BlockEntityType<?> blockEntityType, final BlockPos blockPos, final BlockState blockState) {
+    public ConduitMixin(final BlockEntityType<?> blockEntityType, final BlockPos blockPos,
+        final BlockState blockState) {
         super(blockEntityType, blockPos, blockState);
     }
 
@@ -25,7 +26,8 @@ public class ConduitMixin extends BlockEntity {
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/core/BlockPos;closerThan(Lnet/minecraft/core/Vec3i;D)Z"
-        )
+        ),
+        require = 0
     )
     private static boolean closerThan(final BlockPos instance, final Vec3i vec3i, final double distance,
         final Level level, final BlockPos blockPos, final List<BlockPos> list) {
@@ -42,7 +44,8 @@ public class ConduitMixin extends BlockEntity {
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/core/BlockPos;closerThan(Lnet/minecraft/core/Vec3i;D)Z"
-        )
+        ),
+        require = 0
     )
     private static boolean closerThan2(final BlockPos instance, final Vec3i vec3i, final double distance,
         final Level level,

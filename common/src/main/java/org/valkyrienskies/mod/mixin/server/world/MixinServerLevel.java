@@ -3,6 +3,8 @@ package org.valkyrienskies.mod.mixin.server.world;
 import static org.valkyrienskies.mod.common.ValkyrienSkiesMod.getVsCore;
 
 import com.google.common.collect.Lists;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -28,7 +30,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.LoadedServerShip;
@@ -63,7 +64,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
     /**
      * Include ships in particle distance check. Seems to only be used by /particle
      */
-    @Redirect(
+    @WrapOperation(
         method = "sendParticles(Lnet/minecraft/server/level/ServerPlayer;ZDDDLnet/minecraft/network/protocol/Packet;)Z",
         at = @At(
             value = "INVOKE",
@@ -71,7 +72,8 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
         )
     )
     private boolean includeShipsInParticleDistanceCheck(
-        final BlockPos player, final Position particle, final double distance) {
+        final BlockPos player, final Position particle, final double distance,
+        final Operation<Boolean> closerToCenterThan) {
 
         final ServerLevel self = ServerLevel.class.cast(this);
         final LoadedServerShip ship = VSGameUtilsKt.getShipObjectManagingPos(
@@ -79,12 +81,11 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
 
         if (ship == null) {
             // vanilla behaviour
-            return player.closerToCenterThan(particle, distance);
+            return closerToCenterThan.call(player, particle, distance);
         }
 
         // in-world position
-        final Vector3d posInWorld = ship.getShipTransform().getShipToWorldMatrix()
-            .transformPosition(VectorConversionsMCKt.toJOML(particle));
+        final Vector3d posInWorld = ship.getShipToWorld().transformPosition(VectorConversionsMCKt.toJOML(particle));
 
         return posInWorld.distanceSquared(player.getX(), player.getY(), player.getZ()) < distance * distance;
     }

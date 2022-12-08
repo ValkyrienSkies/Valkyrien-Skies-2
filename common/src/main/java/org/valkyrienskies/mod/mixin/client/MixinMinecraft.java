@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.mixin.client;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.ClientPacketListener;
@@ -18,7 +20,6 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.apigame.world.ClientShipWorldCore;
 import org.valkyrienskies.core.apigame.world.VSPipeline;
@@ -59,7 +60,7 @@ public abstract class MixinMinecraft
     @Unique
     private ClientShipWorldCore shipObjectWorld = null;
 
-    @Redirect(
+    @WrapOperation(
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/client/multiplayer/MultiPlayerGameMode;useItemOn(Lnet/minecraft/client/player/LocalPlayer;Lnet/minecraft/client/multiplayer/ClientLevel;Lnet/minecraft/world/InteractionHand;Lnet/minecraft/world/phys/BlockHitResult;)Lnet/minecraft/world/InteractionResult;"
@@ -68,10 +69,10 @@ public abstract class MixinMinecraft
     )
     private InteractionResult useOriginalCrosshairForBlockPlacement(final MultiPlayerGameMode instance,
         final LocalPlayer localPlayer, final ClientLevel clientLevel, final InteractionHand interactionHand,
-        final BlockHitResult blockHitResult) {
+        final BlockHitResult blockHitResult, final Operation<InteractionResult> useItemOn) {
 
-        return instance.useItemOn(localPlayer, clientLevel, interactionHand,
-            (BlockHitResult) this.originalCrosshairTarget);
+        return useItemOn.call(instance, localPlayer, clientLevel, interactionHand,
+            this.originalCrosshairTarget);
     }
 
     @NotNull

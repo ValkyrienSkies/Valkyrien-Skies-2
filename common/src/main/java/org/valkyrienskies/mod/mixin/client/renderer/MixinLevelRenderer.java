@@ -2,7 +2,10 @@ package org.valkyrienskies.mod.mixin.client.renderer;
 
 import static org.valkyrienskies.mod.client.McClientMathUtilKt.transformRenderWithShip;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.SheetedDecalTextureGenerator;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Matrix3f;
 import com.mojang.math.Matrix4f;
@@ -19,19 +22,16 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import org.joml.Matrix4d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Constant;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyConstant;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.mixin.accessors.client.render.OverlayVertexConsumerAccessor;
 
 @Mixin(LevelRenderer.class)
@@ -91,16 +91,14 @@ public abstract class MixinLevelRenderer {
     /**
      * This mixin makes block damage render on ships.
      */
-    @Redirect(method = "renderLevel", at = @At(value = "INVOKE",
+    @WrapOperation(method = "renderLevel", at = @At(value = "INVOKE",
         target = "Lnet/minecraft/client/renderer/block/BlockRenderDispatcher;renderBreakingTexture(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/BlockAndTintGetter;Lcom/mojang/blaze3d/vertex/PoseStack;Lcom/mojang/blaze3d/vertex/VertexConsumer;)V"))
     private void renderBlockDamage(final BlockRenderDispatcher blockRenderManager, final BlockState state,
-        final BlockPos blockPos,
-        final BlockAndTintGetter blockRenderWorld, final PoseStack matrix, final VertexConsumer vertexConsumer,
-        final PoseStack matrixStack, final float methodTickDelta, final long methodLimitTime,
-        final boolean methodRenderBlockOutline,
+        final BlockPos blockPos, final BlockAndTintGetter blockRenderWorld, final PoseStack matrix,
+        final VertexConsumer vertexConsumer, final Operation<Void> renderBreakingTexture, final PoseStack matrixStack,
+        final float methodTickDelta, final long methodLimitTime, final boolean methodRenderBlockOutline,
         final Camera methodCamera, final GameRenderer methodGameRenderer,
-        final LightTexture methodLightmapTextureManager,
-        final Matrix4f methodMatrix4f) {
+        final LightTexture methodLightmapTextureManager, final Matrix4f methodMatrix4f) {
 
         final ClientShip ship = VSGameUtilsKt.getShipObjectManagingPos(level, blockPos);
         if (ship != null) {
@@ -115,27 +113,21 @@ public abstract class MixinLevelRenderer {
 
             transformRenderWithShip(renderTransform, matrixStack, blockPos, cameraPos.x, cameraPos.y, cameraPos.z);
 
+            final Matrix3f newNormalMatrix = matrixStack.last().normal().copy();
+            final Matrix4f newModelMatrix = matrixStack.last().pose().copy();
+
             // Then update the matrices in vertexConsumer (I'm guessing vertexConsumer is responsible for mapping
             // textures, so we need to update its matrices otherwise the block damage texture looks wrong)
-            final OverlayVertexConsumerAccessor vertexConsumerAccessor = (OverlayVertexConsumerAccessor) vertexConsumer;
-
-            final Matrix3f newNormalMatrix = matrixStack.last().normal().copy();
-            newNormalMatrix.invert();
-
-            final Matrix4f newModelMatrix = matrixStack.last().pose().copy();
-            // newModelMatrix.invert(); // DISABLED because Matrix4f.invert() doesn't work! Mojang code SMH >.<
-            final Matrix4d newModelMatrixAsJoml = VectorConversionsMCKt.toJOML(newModelMatrix);
-            newModelMatrixAsJoml.invert();
-            VectorConversionsMCKt.set(newModelMatrix, newModelMatrixAsJoml);
-
-            vertexConsumerAccessor.setNormalMatrix(newNormalMatrix);
-            vertexConsumerAccessor.setTextureMatrix(newModelMatrix);
+            final SheetedDecalTextureGenerator newVertexConsumer =
+                new SheetedDecalTextureGenerator(((OverlayVertexConsumerAccessor) vertexConsumer).getDelegate(),
+                    newModelMatrix, newNormalMatrix);
 
             // Finally, invoke the render damage function.
-            blockRenderManager.renderBreakingTexture(state, blockPos, blockRenderWorld, matrix, vertexConsumer);
+            renderBreakingTexture.call(blockRenderManager, state, blockPos, blockRenderWorld, matrix,
+                newVertexConsumer);
         } else {
             // Vanilla behavior
-            blockRenderManager.renderBreakingTexture(state, blockPos, blockRenderWorld, matrix, vertexConsumer);
+            renderBreakingTexture.call(blockRenderManager, state, blockPos, blockRenderWorld, matrix, vertexConsumer);
         }
     }
 

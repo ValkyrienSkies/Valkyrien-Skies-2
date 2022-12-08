@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.mixin.client.renderer;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Matrix3f;
@@ -23,7 +25,6 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.apigame.world.ClientShipWorldCore;
@@ -75,7 +76,7 @@ public abstract class MixinGameRenderer {
         );
     }
 
-    @Redirect(
+    @WrapOperation(
         method = "pick",
         at = @At(
             value = "INVOKE",
@@ -83,22 +84,22 @@ public abstract class MixinGameRenderer {
         )
     )
     public HitResult modifyCrosshairTargetBlocks(final Entity receiver, final double maxDistance, final float tickDelta,
-        final boolean includeFluids) {
+        final boolean includeFluids, final Operation<HitResult> pick) {
 
         final HitResult original = entityRaycastNoTransform(receiver, maxDistance, tickDelta, includeFluids);
         ((MinecraftDuck) this.minecraft).vs$setOriginalCrosshairTarget(original);
 
-        return receiver.pick(maxDistance, tickDelta, includeFluids);
+        return pick.call(receiver, maxDistance, tickDelta, includeFluids);
     }
 
-    @Redirect(
+    @WrapOperation(
         method = "pick",
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/world/phys/Vec3;distanceToSqr(Lnet/minecraft/world/phys/Vec3;)D"
         )
     )
-    public double correctDistanceChecks(final Vec3 instance, final Vec3 vec) {
+    public double correctDistanceChecks(final Vec3 instance, final Vec3 vec, final Operation<Vec3> distanceToSqr) {
         return VSGameUtilsKt.squaredDistanceBetweenInclShips(this.minecraft.level,
             vec.x, vec.y, vec.z,
             instance.x, instance.y, instance.z);
@@ -222,7 +223,7 @@ public abstract class MixinGameRenderer {
     /**
      * Mount the player's camera to the ship they are mounted on.
      */
-    @Redirect(
+    @WrapOperation(
         method = "renderLevel",
         at = @At(
             value = "INVOKE",
@@ -230,23 +231,24 @@ public abstract class MixinGameRenderer {
         )
     )
     private void setupCameraWithMountedShip(final LevelRenderer instance, final PoseStack ignore, final Vec3 vec3,
-        final Matrix4f matrix4f, final float partialTicks, final long finishTimeNano, final PoseStack matrixStack) {
+        final Matrix4f matrix4f, final Operation<Void> prepareCullFrustum, final float partialTicks,
+        final long finishTimeNano, final PoseStack matrixStack) {
 
         final ClientLevel clientLevel = minecraft.level;
         final Entity player = minecraft.player;
         if (clientLevel == null || player == null) {
-            instance.prepareCullFrustum(matrixStack, vec3, matrix4f);
+            prepareCullFrustum.call(instance, matrixStack, vec3, matrix4f);
             return;
         }
         final ClientShip playerShipMountedTo =
             VSGameUtilsKt.getShipObjectEntityMountedTo(clientLevel, player);
         if (playerShipMountedTo == null) {
-            instance.prepareCullFrustum(matrixStack, vec3, matrix4f);
+            prepareCullFrustum.call(instance, matrixStack, vec3, matrix4f);
             return;
         }
         final Entity playerVehicle = player.getVehicle();
         if (playerVehicle == null) {
-            instance.prepareCullFrustum(matrixStack, vec3, matrix4f);
+            prepareCullFrustum.call(instance, matrixStack, vec3, matrix4f);
             return;
         }
 
@@ -256,7 +258,7 @@ public abstract class MixinGameRenderer {
 
         final Camera camera = this.mainCamera;
         if (camera == null) {
-            instance.prepareCullFrustum(matrixStack, vec3, matrix4f);
+            prepareCullFrustum.call(instance, matrixStack, vec3, matrix4f);
             return;
         }
 
@@ -289,7 +291,7 @@ public abstract class MixinGameRenderer {
 
         // Use [camera.getPosition()] instead of [vec3] because mounting the player to the ship has changed the camera
         // position.
-        instance.prepareCullFrustum(matrixStack, camera.getPosition(),
+        prepareCullFrustum.call(instance, matrixStack, camera.getPosition(),
             this.getProjectionMatrix(Math.max(fov, this.minecraft.options.fov)));
     }
     // endregion

@@ -1,6 +1,8 @@
 package org.valkyrienskies.mod.mixin.feature.shipyard_entities;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.Level;
@@ -12,7 +14,6 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
@@ -20,6 +21,9 @@ import org.valkyrienskies.mod.common.entity.handling.VSEntityManager;
 
 @Mixin(Entity.class)
 public abstract class MixinEntity {
+
+    @Shadow
+    public abstract void positionRider(Entity entity);
 
     @Shadow
     public abstract void teleportTo(double d, double e, double f);
@@ -31,11 +35,12 @@ public abstract class MixinEntity {
      * @author ewoudje
      * @reason use vs2 handler to handle this method
      */
-    @Redirect(method = "positionRider(Lnet/minecraft/world/entity/Entity;)V", at = @At(value = "INVOKE",
+    @WrapOperation(method = "positionRider(Lnet/minecraft/world/entity/Entity;)V", at = @At(value = "INVOKE",
         target = "Lnet/minecraft/world/entity/Entity;positionRider(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/entity/Entity$MoveFunction;)V"))
-    private void positionRider(final Entity instance, final Entity passengerI, final Entity.MoveFunction callback) {
-        this.positionRider(passengerI,
-            (passenger, x, y, z) -> VSEntityManager.INSTANCE.getHandler(passenger.getType())
+    private void positionRider(final Entity instance, final Entity passengerI, final Entity.MoveFunction callback,
+        final Operation<Void> positionRider) {
+        positionRider.call(instance, passengerI,
+            (Entity.MoveFunction) (passenger, x, y, z) -> VSEntityManager.INSTANCE.getHandler(passenger.getType())
                 .positionSetFromVehicle(passenger, Entity.class.cast(this), x, y, z));
     }
 
