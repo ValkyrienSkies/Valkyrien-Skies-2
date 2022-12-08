@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.mixin.mod_compat.sodium;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import java.util.List;
 import me.jellysquid.mods.sodium.client.render.chunk.ChunkCameraContext;
 import me.jellysquid.mods.sodium.client.render.chunk.RegionChunkRenderer;
@@ -50,14 +52,14 @@ public class MixinRegionChunkRenderer implements RegionChunkRendererDuck {
         }
     }
 
-    @Redirect(
+    @WrapOperation(
         at = @At(
             value = "FIELD",
             target = "Lme/jellysquid/mods/sodium/client/render/chunk/RegionChunkRenderer;isBlockFaceCullingEnabled:Z"
         ),
         method = "buildDrawBatches"
     )
-    private boolean redirectEnabledCulling(final RegionChunkRenderer instance) {
+    private boolean redirectEnabledCulling(final RegionChunkRenderer instance, final Operation<Boolean> operation) {
         return false;
     }
 
