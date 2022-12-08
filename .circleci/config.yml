@@ -98,6 +98,8 @@ workflows:
           filters:
             tags:
               only: /^playtest.*/
+            branches: 
+              ignore: /.*/
           context:
             - discord_webhooks
       - publish_to_maven:
