@@ -82,6 +82,11 @@ jobs:
       - run:
           name: "Build"
           command: "./gradlew build publish --stacktrace"
+  deploy_curse:
+    executor: java_large
+    steps:
+      - checkout_and_cache
+      - run: "./gradlew modrinth curseforge --stacktrace --continue"
   notify_playtesters:
     executor: java_large
     steps:
@@ -120,6 +125,14 @@ workflows:
           context:
             - discord_webhooks
             - valkyrien_maven
+      - deploy_curse:
+          filters:
+            tags:
+              only: /^release.*/
+            branches: 
+              ignore: /.*/
+          context:
+            curse_publishing
       - publish_to_maven:
           filters:
             branches:
