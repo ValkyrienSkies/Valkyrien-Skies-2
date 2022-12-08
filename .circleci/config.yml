@@ -92,12 +92,26 @@ jobs:
       - discord/notify:
           message: ${DISCORD_MSG}
           webhook: ${VS2_118_WEBHOOK}
-
+  test_notify:
+    executor: java_large
+    steps:
+      - run: >-
+          echo 'export DISCORD_MSG="
+          New version released! 
+          [Download Forge](https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/forge.jar) 
+          [Download Fabric](https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/fabric.jar)
+          "' >> "$BASH_ENV"
+      - discord/notify:
+          message: ${DISCORD_MSG}
+          webhook: ${VS2_118_WEBHOOK}
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
   build:
     jobs:
+      - test_notify:
+          context:
+            - discord_webhooks
       - gradle_build:
           context:
             - valkyrien_maven
