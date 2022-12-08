@@ -6,7 +6,7 @@ orbs:
   discord: teka23/discord@0.0.1
 
 commands:
-  checkout-and-cache:
+  checkout_and_cache:
     steps:
       - checkout
       - run: git submodule sync
@@ -19,24 +19,8 @@ commands:
           keys:
             - v1-gradle-home-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
             - v1-gradle-home
-
-# Define a job to be invoked later in a workflow.
-# See: https://circleci.com/docs/2.0/configuration-reference/#jobs
-jobs:
-  build:
-    resource_class: large
-    docker:
-      - image: cimg/openjdk:17.0
+  save_cache_and_artifacts:
     steps:
-      # Checkout repo
-      - checkout-and-cache
-      # Run build
-      - run:
-          name: "Build"
-          command: "./gradlew build"
-          environment:
-            ORG_GRADLE_PROJECT_block_external_repositories: "true"
-
       # Rename artifacts to "forge.jar" and "fabric.jar"
       - run: find ./forge/build/libs -regextype posix-extended -regex ".*/valkyrienskies(-[^-]+){3}.jar" -exec bash -c 'cp $0 ./forge.jar' {} \;
       - run: find ./fabric/build/libs -regextype posix-extended -regex ".*/valkyrienskies(-[^-]+){3}.jar" -exec bash -c 'cp $0 ./fabric.jar' {} \;
@@ -46,10 +30,6 @@ jobs:
           path: "fabric.jar"
       - store_artifacts:
           path: "forge.jar"
-
-      - discord/notify:
-          message: "this is a message sent from circleci"
-          webhook: https://discord.com/api/webhooks/1050266595596959744/BvFL039u_ctGSQpRYpY5vlxwTy2Utd5jq_qWyH_W5A1BA2R9V3hqz9ZuwQ0xYoPWPz_C?thread_id=1050267870170451978
       - save_cache:
           key: v1-gradle-home-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
           paths:
@@ -59,11 +39,50 @@ jobs:
           paths:
             - .gradle
 
+# Define a job to be invoked later in a workflow.
+# See: https://circleci.com/docs/2.0/configuration-reference/#jobs
+jobs:
+  gradle_build:
+    resource_class: large
+    docker:
+      - image: cimg/openjdk:17.0
+    environment:
+        ORG_GRADLE_PROJECT_block_external_repositories: "true"
+    steps:
+      # Checkout repo
+      - checkout_and_cache
+      # Run build
+      - run:
+          name: "Build"
+          command: "./gradlew build --stacktrace"
+      - save_cache_and_artifacts
+  publish_to_maven:
+    resource_class: large
+    docker:
+      - image: cimg/openjdk:17.0
+    environment:
+        ORG_GRADLE_PROJECT_block_external_repositories: "true"
+    steps:
+      # Checkout repo
+      - checkout_and_cache
+      # Run build
+      - run:
+          name: "Build"
+          command: "./gradlew build publish --stacktrace"
+      - save_cache_and_artifacts
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
   build:
     jobs:
-      - build:
+      - gradle_build:
           context:
             - valkyrien_maven
+      - publish_to_maven:
+          filters:
+            branches:
+              only: 
+                - /.*\/(main|ci-trolling)/
+          context:
+            - valkyrien_maven
+            - github_maven
