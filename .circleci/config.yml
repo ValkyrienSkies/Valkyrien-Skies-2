@@ -30,17 +30,41 @@ commands:
             - v1-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
 
   save_artifacts:
+    parameters:
+      artifact_name:
+        type: string
+        default: valkyrienskies
+      version:
+        type: string
+        default: ${CIRCLE_SHA1}
     steps:
       # Rename artifacts to "forge.jar" and "fabric.jar"
-      - run: find ./forge/build/libs -regextype posix-extended -regex ".*/valkyrienskies(-[^-]+){3}.jar" -exec bash -c 'cp $0 ./forge.jar' {} \;
-      - run: find ./fabric/build/libs -regextype posix-extended -regex ".*/valkyrienskies(-[^-]+){3}.jar" -exec bash -c 'cp $0 ./fabric.jar' {} \;
+      - run: find ./forge/build/libs -regextype posix-extended -regex ".*/<< parameters.artifact_name >>(-[^-]+){3}.jar" -exec bash -c 'cp $0 ./<< parameters.artifact_name >>-forge-<< parameters.version >>.jar' {} \;
+      - run: find ./fabric/build/libs -regextype posix-extended -regex ".*/<< parameters.artifact_name >>(-[^-]+){3}.jar" -exec bash -c 'cp $0 ./<< parameters.artifact_name >>-fabric-<< parameters.version >>.jar' {} \;
 
       # Store artifacts
       - store_artifacts:
           path: "fabric.jar"
       - store_artifacts:
           path: "forge.jar"
-
+  save_artifacts_and_generate_discord:
+    parameters:
+      artifact_name:
+        type: string
+        default: valkyrienskies
+      version:
+        type: string
+        default: ${CIRCLE_TAG}
+    steps:
+      - save_artifacts:
+          artifact_name: << parameters.artifact_name >>
+          version: << parameters.version >>
+      - run: >-
+          echo 'export DISCORD_MSG="
+          New version, **${CIRCLE_TAG}** |
+          [Download Forge](https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/forge.jar) |
+          [Download Fabric](https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/fabric.jar)
+          "' >> "$BASH_ENV"
   save_gradle_cache:
     steps:
       - save_cache:
@@ -86,13 +110,7 @@ jobs:
       - run:
           name: "Build"
           command: "./gradlew build --stacktrace"
-      - save_artifacts
-      - run: >-
-          echo 'export DISCORD_MSG="
-          New version, **${CIRCLE_TAG}** |
-          [Download Forge](https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/forge.jar) |
-          [Download Fabric](https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/fabric.jar)
-          "' >> "$BASH_ENV"
+      - save_artifacts_and_generate_discord
       - discord/status:
           success_message: ${DISCORD_MSG}
           success_only: true
