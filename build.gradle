@@ -32,6 +32,10 @@ if (project.hasProperty("CustomReleaseVersion")) {
     version = mod_version + "+" + gitRevision.substring(0, 10)
 }
 
+tasks.register('saveVersionToFile') {
+    file('current_version.txt').append(version)
+}
+
 architectury {
     minecraft = rootProject.minecraft_version
 }
