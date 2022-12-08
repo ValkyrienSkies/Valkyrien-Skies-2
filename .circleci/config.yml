@@ -3,10 +3,19 @@
 version: 2.1
 
 orbs:
-  discord: teka23/discord@0.0.1
+  discord: antonioned/discord@0.1.0
+
+executors:
+  java_large:
+    resource_class: large
+    docker:
+      - image: cimg/openjdk:17.0
+    environment:
+        ORG_GRADLE_PROJECT_block_external_repositories: "true"
+
 
 commands:
-  checkout-and-cache:
+  checkout_and_cache:
     steps:
       - checkout
       - run: git submodule sync
@@ -14,29 +23,14 @@ commands:
 
       - restore_cache:
           keys:
-            - v1-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
-      - restore_cache:
-          keys:
             - v1-gradle-home-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
             - v1-gradle-home
+      - restore_cache:
+          keys:
+            - v1-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
 
-# Define a job to be invoked later in a workflow.
-# See: https://circleci.com/docs/2.0/configuration-reference/#jobs
-jobs:
-  build:
-    resource_class: large
-    docker:
-      - image: cimg/openjdk:17.0
+  save_artifacts:
     steps:
-      # Checkout repo
-      - checkout-and-cache
-      # Run build
-      - run:
-          name: "Build"
-          command: "./gradlew build"
-          environment:
-            ORG_GRADLE_PROJECT_block_external_repositories: "true"
-
       # Rename artifacts to "forge.jar" and "fabric.jar"
       - run: find ./forge/build/libs -regextype posix-extended -regex ".*/valkyrienskies(-[^-]+){3}.jar" -exec bash -c 'cp $0 ./forge.jar' {} \;
       - run: find ./fabric/build/libs -regextype posix-extended -regex ".*/valkyrienskies(-[^-]+){3}.jar" -exec bash -c 'cp $0 ./fabric.jar' {} \;
@@ -47,9 +41,8 @@ jobs:
       - store_artifacts:
           path: "forge.jar"
 
-      - discord/notify:
-          message: "this is a message sent from circleci"
-          webhook: https://discord.com/api/webhooks/1050266595596959744/BvFL039u_ctGSQpRYpY5vlxwTy2Utd5jq_qWyH_W5A1BA2R9V3hqz9ZuwQ0xYoPWPz_C?thread_id=1050267870170451978
+  save_gradle_cache:
+    steps:
       - save_cache:
           key: v1-gradle-home-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
           paths:
@@ -59,11 +52,76 @@ jobs:
           paths:
             - .gradle
 
+# Define a job to be invoked later in a workflow.
+# See: https://circleci.com/docs/2.0/configuration-reference/#jobs
+jobs:
+  gradle_build:
+    executor: java_large
+    steps:
+      # Checkout repo
+      - checkout_and_cache
+      # Run build
+      - run:
+          name: "Build"
+          command: "./gradlew build --stacktrace"
+      - save_artifacts
+      - save_gradle_cache
+
+  publish_to_maven:
+    executor: java_large
+    steps:
+      # Checkout repo
+      - checkout_and_cache
+      # Run build
+      - run:
+          name: "Build"
+          command: "./gradlew build publish --stacktrace"
+
+  notify_playtesters:
+    executor: java_large
+    steps:
+      # Checkout repo
+      - checkout_and_cache
+      # Run build
+      - run:
+          name: "Build"
+          command: "./gradlew build --stacktrace"
+      - save_artifacts
+      - run: >-
+          echo 'export DISCORD_MSG="
+          New version, **${CIRCLE_TAG}** |
+          [Download Forge](https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/forge.jar) |
+          [Download Fabric](https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/fabric.jar)
+          "' >> "$BASH_ENV"
+      - discord/status:
+          success_message: ${DISCORD_MSG}
+          success_only: true
+          webhook: ${VS2_118_WEBHOOK}
+    
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
   build:
     jobs:
-      - build:
+      - gradle_build:
           context:
             - valkyrien_maven
+
+      - notify_playtesters:
+          filters:
+            tags:
+              only: /^playtest.*/
+            branches: 
+              ignore: /.*/
+          context:
+            - discord_webhooks
+            - valkyrien_maven
+            
+      - publish_to_maven:
+          filters:
+            branches:
+              only: 
+                - /.*\/main/
+          context:
+            - valkyrien_maven
+            - github_maven
