@@ -5,6 +5,15 @@ version: 2.1
 orbs:
   discord: teka23/discord@0.0.1
 
+executors:
+  java_large:
+    resource_class: large
+    docker:
+      - image: cimg/openjdk:17.0
+    environment:
+        ORG_GRADLE_PROJECT_block_external_repositories: "true"
+
+
 commands:
   checkout_and_cache:
     steps:
@@ -19,7 +28,7 @@ commands:
           keys:
             - v1-gradle-home-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
             - v1-gradle-home
-  save_cache_and_artifacts:
+  save_artifacts:
     steps:
       # Rename artifacts to "forge.jar" and "fabric.jar"
       - run: find ./forge/build/libs -regextype posix-extended -regex ".*/valkyrienskies(-[^-]+){3}.jar" -exec bash -c 'cp $0 ./forge.jar' {} \;
@@ -30,6 +39,8 @@ commands:
           path: "fabric.jar"
       - store_artifacts:
           path: "forge.jar"
+  save_gradle_cache:
+    steps:
       - save_cache:
           key: v1-gradle-home-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
           paths:
@@ -43,11 +54,7 @@ commands:
 # See: https://circleci.com/docs/2.0/configuration-reference/#jobs
 jobs:
   gradle_build:
-    resource_class: large
-    docker:
-      - image: cimg/openjdk:17.0
-    environment:
-        ORG_GRADLE_PROJECT_block_external_repositories: "true"
+    executor: java_large
     steps:
       # Checkout repo
       - checkout_and_cache
@@ -55,13 +62,10 @@ jobs:
       - run:
           name: "Build"
           command: "./gradlew build --stacktrace"
-      - save_cache_and_artifacts
+      - save_artifacts
+      - save_gradle_cache
   publish_to_maven:
-    resource_class: large
-    docker:
-      - image: cimg/openjdk:17.0
-    environment:
-        ORG_GRADLE_PROJECT_block_external_repositories: "true"
+    executor: java_large
     steps:
       # Checkout repo
       - checkout_and_cache
@@ -69,21 +73,23 @@ jobs:
       - run:
           name: "Build"
           command: "./gradlew build publish --stacktrace"
-      - save_cache_and_artifacts
   notify_playtesters:
-    resource_class: small
-    docker:
-      - image: cimg/openjdk:17.0
+    executor: java_large
     steps:
+      # Checkout repo
       - checkout_and_cache
-      - run: "./gradlew saveVersionToFile"
-      - run: echo 'export VS_VERSION="$(cat current_version.txt)"' >> "$BASH_ENV"
+      # Run build
+      - run:
+          name: "Build"
+          command: "./gradlew build --stacktrace"
+      - save_artifacts
       - discord/notify:
           message: |
-            New version released! ${VS_VERSION}
-            [Download Forge](https://maven.valkyrienskies.org/org/valkyrienskies/valkyrienskies-118-forge/${VS_VERSION}/valkyrienskies-118-fabric-${VS_VERSION}.jar)
-            [Download Fabric](https://maven.valkyrienskies.org/org/valkyrienskies/valkyrienskies-118-fabric/${VS_VERSION}/valkyrienskies-118-fabric-${VS_VERSION}.jar)
-          webhook: VS2_118_WEBHOOK
+            New version released!
+            [Download Forge](https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/forge.jar)
+            [Download Fabric](https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/fabric.jar)
+          webhook: ${VS2_118_WEBHOOK}
+
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
@@ -93,8 +99,6 @@ workflows:
           context:
             - valkyrien_maven
       - notify_playtesters:
-          requires:
-            - publish_to_maven
           filters:
             tags:
               only: /^playtest.*/
@@ -102,6 +106,7 @@ workflows:
               ignore: /.*/
           context:
             - discord_webhooks
+            - valkyrien_maven
       - publish_to_maven:
           filters:
             branches:
