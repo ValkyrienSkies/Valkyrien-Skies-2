@@ -28,7 +28,6 @@ commands:
       - restore_cache:
           keys:
             - v1-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
-
   save_artifacts:
     parameters:
       artifact_name:
@@ -99,10 +98,13 @@ jobs:
       - run:
           name: "Build"
           command: "./gradlew build publish --stacktrace"
-          environment:
-            ORG_GRADLE_PROJECT_CustomReleaseVersion: ${CIRCLE_TAG}
-
-
+  deploy_to_curse:
+    executor: java_large
+    steps:
+      - checkout_and_cache
+      - run: echo 'export ORG_GRADLE_PROJECT_CustomReleaseVersion=${CIRCLE_TAG}' >> "$BASH_ENV"
+      - run: 
+          command: "./gradlew modrinth curseforge --stacktrace --continue"
   notify_playtesters:
     executor: java_large
     steps:
@@ -136,7 +138,15 @@ workflows:
           context:
             - discord_webhooks
             - valkyrien_maven
-            
+      - deploy_to_curse:
+          filters:
+            tags:
+              only: /^release.*/
+            branches: 
+              ignore: /.*/
+          context:
+            - curse_publishing
+            - valkyrien_maven
       - publish_to_maven:
           filters:
             branches:
