@@ -1,0 +1,20 @@
+name: "Setup Gradle"
+description: "Installs java and restores gradle and build cache"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install JDK 17 (Temurin)
+      uses: actions/setup-java@v2
+      with:
+        java-version: 17
+        distribution: 'temurin'
+
+    - name: Cache local .gradle and gradle packages
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.gradle/caches
+          **/.gradle
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle', '**/gradle.properties') }}
+        restore-keys: ${{ runner.os }}-gradle
