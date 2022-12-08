@@ -3,17 +3,11 @@
 version: 2.1
 
 orbs:
-  discord: antonioned/discord@0.1.0
+  discord: teka23/discord@0.0.1
 
-# Define a job to be invoked later in a workflow.
-# See: https://circleci.com/docs/2.0/configuration-reference/#jobs
-jobs:
-  build:
-    resource_class: large
-    docker:
-      - image: cimg/openjdk:17.0
+commands:
+  checkout-and-cache:
     steps:
-      # Checkout repo
       - checkout
       - run: git submodule sync
       - run: git submodule update --init
@@ -26,6 +20,16 @@ jobs:
             - v1-gradle-home-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
             - v1-gradle-home
 
+# Define a job to be invoked later in a workflow.
+# See: https://circleci.com/docs/2.0/configuration-reference/#jobs
+jobs:
+  build:
+    resource_class: large
+    docker:
+      - image: cimg/openjdk:17.0
+    steps:
+      # Checkout repo
+      - checkout-and-cache
       # Run build
       - run:
           name: "Build"
