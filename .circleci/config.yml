@@ -3,7 +3,7 @@
 version: 2.1
 
 orbs:
-  discord: teka23/discord@0.0.1
+  discord: antonioned/discord@0.1.0
 
 executors:
   java_large:
@@ -53,6 +53,19 @@ commands:
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/2.0/configuration-reference/#jobs
 jobs:
+  test_notify:
+    executor: java_large
+    steps:
+      - run: >-
+          echo 'export DISCORD_MSG="
+          <@&1036397344540852287> New version, **${CIRCLE_TAG}** |
+          [Download Forge](https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/forge.jar) |
+          [Download Fabric](https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/fabric.jar)
+          "' >> "$BASH_ENV"
+      - discord/status:
+          success_message: ${DISCORD_MSG}
+          success_only: true
+          webhook: ${VS2_118_WEBHOOK}
   gradle_build:
     executor: java_large
     steps:
@@ -85,25 +98,15 @@ jobs:
       - save_artifacts
       - run: >-
           echo 'export DISCORD_MSG="
-          New version released! 
-          [Download Forge](https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/forge.jar) 
+          <@&1036397344540852287> New version, **${CIRCLE_TAG}** |
+          [Download Forge](https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/forge.jar) |
           [Download Fabric](https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/fabric.jar)
           "' >> "$BASH_ENV"
-      - discord/notify:
-          message: ${DISCORD_MSG}
+      - discord/status:
+          success_message: ${DISCORD_MSG}
+          success_only: true
           webhook: ${VS2_118_WEBHOOK}
-  test_notify:
-    executor: java_large
-    steps:
-      - run: >-
-          echo 'export DISCORD_MSG="
-          New version released! 
-          [Download Forge](https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/forge.jar) 
-          [Download Fabric](https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/fabric.jar)
-          "' >> "$BASH_ENV"
-      - discord/notify:
-          message: ${DISCORD_MSG}
-          webhook: ${VS2_118_WEBHOOK}
+    
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
@@ -111,7 +114,7 @@ workflows:
     jobs:
       - test_notify:
           context:
-            - discord_webhooks
+              - discord_webhooks
       - gradle_build:
           context:
             - valkyrien_maven
@@ -128,7 +131,7 @@ workflows:
           filters:
             branches:
               only: 
-                - /.*\/(main|ci-trolling)/
+                - /.*\/main/
           context:
             - valkyrien_maven
             - github_maven
