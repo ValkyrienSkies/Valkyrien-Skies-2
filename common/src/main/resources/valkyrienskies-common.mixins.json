@@ -29,7 +29,6 @@
     "feature.get_entities.MixinLevel",
     "feature.ladders.MixinLivingEntity",
     "feature.mob_spawning.NaturalSpawnerMixin",
-    "feature.move_block_items_drops.MixinBlock",
     "feature.render_pathfinding.MixinDebugPackets",
     "feature.screen_distance_check.MixinScreenHandler",
     "feature.shipyard_entities.MixinEntity",
