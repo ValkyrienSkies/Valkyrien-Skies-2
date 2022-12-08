@@ -44,9 +44,9 @@ commands:
 
       # Store artifacts
       - store_artifacts:
-          path: "fabric.jar"
+          path: "<< parameters.artifact_name >>-fabric-<< parameters.version >>.jar"
       - store_artifacts:
-          path: "forge.jar"
+          path: "<< parameters.artifact_name >>-forge-<< parameters.version >>.jar"
   save_artifacts_and_generate_discord:
     parameters:
       artifact_name:
