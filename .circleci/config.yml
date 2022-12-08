@@ -15,10 +15,20 @@ jobs:
       - run: git submodule sync
       - run: git submodule update --init
 
+      - restore_cache:
+          keys:
+            - v1-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
+      - restore_cache:
+          keys:
+            - v1-gradle-home-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
+            - v1-gradle-home
+
       # Run build
       - run:
           name: "Build"
           command: "./gradlew build"
+          environment:
+            ORG_GRADLE_PROJECT_block_external_repositories: "true"
 
       # Store artifacts
       - store_artifacts:
@@ -27,6 +37,15 @@ jobs:
       - store_artifacts:
           path: "fabric/build/libs"
           destination: "fabric"
+
+      - save_cache:
+          key: v1-gradle-home-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
+          paths:
+            - ~/.gradle
+      - save_cache:
+          key: v1-gradle-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
+          paths:
+            - .gradle
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
