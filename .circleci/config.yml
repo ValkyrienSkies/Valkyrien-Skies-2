@@ -83,11 +83,14 @@ jobs:
           name: "Build"
           command: "./gradlew build --stacktrace"
       - save_artifacts
+      - run: >-
+          echo 'export DISCORD_MSG="
+          New version released! 
+          [Download Forge](https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/forge.jar) 
+          [Download Fabric](https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/fabric.jar)
+          "' >> "$BASH_ENV"
       - discord/notify:
-          message: |
-            New version released!
-            [Download Forge](https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/forge.jar)
-            [Download Fabric](https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/fabric.jar)
+          message: ${DISCORD_MSG}
           webhook: ${VS2_118_WEBHOOK}
 
 # Invoke jobs via workflows
