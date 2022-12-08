@@ -23,11 +23,16 @@ commands:
 
       - restore_cache:
           keys:
+            - v1-gradle-home-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
+            - v1-gradle-home
+
+      - restore_cache:
+          keys:
             - v1-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
       - restore_cache:
           keys:
-            - v1-gradle-home-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
-            - v1-gradle-home
+            - v1-core-gradle-{{ checksum "vs-core/build.gradle.kts" }}
+
   save_artifacts:
     steps:
       # Rename artifacts to "forge.jar" and "fabric.jar"
@@ -49,23 +54,14 @@ commands:
           key: v1-gradle-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
           paths:
             - .gradle
+      - save_cache:
+          key: v1-core-gradle-{{ checksum "vs-core/build.gradle.kts" }}
+          paths:
+            - vs-core/.gradle
 
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/2.0/configuration-reference/#jobs
 jobs:
-  test_notify:
-    executor: java_large
-    steps:
-      - run: >-
-          echo 'export DISCORD_MSG="
-          <@&1036397344540852287> New version, **${CIRCLE_TAG}** |
-          [Download Forge](https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/forge.jar) |
-          [Download Fabric](https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/fabric.jar)
-          "' >> "$BASH_ENV"
-      - discord/status:
-          success_message: ${DISCORD_MSG}
-          success_only: true
-          webhook: ${VS2_118_WEBHOOK}
   gradle_build:
     executor: java_large
     steps:
@@ -98,7 +94,7 @@ jobs:
       - save_artifacts
       - run: >-
           echo 'export DISCORD_MSG="
-          <@&1036397344540852287> New version, **${CIRCLE_TAG}** |
+          New version, **${CIRCLE_TAG}** |
           [Download Forge](https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/forge.jar) |
           [Download Fabric](https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/fabric.jar)
           "' >> "$BASH_ENV"
@@ -112,9 +108,6 @@ jobs:
 workflows:
   build:
     jobs:
-      - test_notify:
-          context:
-              - discord_webhooks
       - gradle_build:
           context:
             - valkyrien_maven
