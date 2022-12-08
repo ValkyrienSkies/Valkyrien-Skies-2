@@ -30,13 +30,20 @@ jobs:
           environment:
             ORG_GRADLE_PROJECT_block_external_repositories: "true"
 
+      # Rename artifacts to "forge.jar" and "fabric.jar"
+      - run: find ./forge/build/libs -regextype posix-extended -regex ".*/valkyrienskies(-[^-]+){3}.jar" -exec bash -c 'cp $0 ./forge.jar' {} \;
+      - run: find ./fabric/build/libs -regextype posix-extended -regex ".*/valkyrienskies(-[^-]+){3}.jar" -exec bash -c 'cp $0 ./fabric.jar' {} \;
+
       # Store artifacts
       - store_artifacts:
-          path: "forge/build/libs"
-          destination: "forge"
+          path: "fabric.jar"
       - store_artifacts:
-          path: "fabric/build/libs"
-          destination: "fabric"
+          path: "forge.jar"
+
+      - steps:
+          - discord/notify:
+              message: "this is a message sent from circleci"
+              webhook: https://discord.com/api/webhooks/1050266595596959744/BvFL039u_ctGSQpRYpY5vlxwTy2Utd5jq_qWyH_W5A1BA2R9V3hqz9ZuwQ0xYoPWPz_C?thread_id=1050267870170451978
 
       - save_cache:
           key: v1-gradle-home-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
