@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.mixin.feature.entity_collision;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import java.util.Random;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
@@ -22,7 +24,6 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
@@ -54,18 +55,18 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     /**
      * Allows entities to collide with ships by modifying the movement vector.
      */
-    @Redirect(
+    @WrapOperation(
         method = "move",
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/world/entity/Entity;collide(Lnet/minecraft/world/phys/Vec3;)Lnet/minecraft/world/phys/Vec3;"
         )
     )
-    public Vec3 collideWithShips(final Entity entity, Vec3 movement) {
+    public Vec3 collideWithShips(final Entity entity, Vec3 movement, final Operation<Vec3> collide) {
         final AABB box = this.getBoundingBox();
         movement = EntityShipCollisionUtils.INSTANCE
             .adjustEntityMovementForShipCollisions(entity, movement, box, this.level);
-        final Vec3 collisionResultWithWorld = collide(movement);
+        final Vec3 collisionResultWithWorld = collide.call(entity, movement);
 
         if (collisionResultWithWorld.distanceToSqr(movement) > 1e-12) {
             // We collided with the world? Set the dragging ship to null.
