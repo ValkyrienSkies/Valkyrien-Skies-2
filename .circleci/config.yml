@@ -25,13 +25,9 @@ commands:
           keys:
             - v1-gradle-home-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
             - v1-gradle-home
-
       - restore_cache:
           keys:
             - v1-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
-      - restore_cache:
-          keys:
-            - v1-core-gradle-{{ checksum "vs-core/build.gradle.kts" }}
 
   save_artifacts:
     steps:
@@ -44,6 +40,7 @@ commands:
           path: "fabric.jar"
       - store_artifacts:
           path: "forge.jar"
+
   save_gradle_cache:
     steps:
       - save_cache:
@@ -54,10 +51,6 @@ commands:
           key: v1-gradle-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
           paths:
             - .gradle
-      - save_cache:
-          key: v1-core-gradle-{{ checksum "vs-core/build.gradle.kts" }}
-          paths:
-            - vs-core/.gradle
 
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/2.0/configuration-reference/#jobs
@@ -73,6 +66,7 @@ jobs:
           command: "./gradlew build --stacktrace"
       - save_artifacts
       - save_gradle_cache
+
   publish_to_maven:
     executor: java_large
     steps:
@@ -82,11 +76,7 @@ jobs:
       - run:
           name: "Build"
           command: "./gradlew build publish --stacktrace"
-  deploy_curse:
-    executor: java_large
-    steps:
-      - checkout_and_cache
-      - run: "./gradlew modrinth curseforge --stacktrace --continue"
+
   notify_playtesters:
     executor: java_large
     steps:
@@ -116,6 +106,7 @@ workflows:
       - gradle_build:
           context:
             - valkyrien_maven
+
       - notify_playtesters:
           filters:
             tags:
@@ -125,14 +116,7 @@ workflows:
           context:
             - discord_webhooks
             - valkyrien_maven
-      - deploy_curse:
-          filters:
-            tags:
-              only: /^release.*/
-            branches: 
-              ignore: /.*/
-          context:
-            curse_publishing
+            
       - publish_to_maven:
           filters:
             branches:
