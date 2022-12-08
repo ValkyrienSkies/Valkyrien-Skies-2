@@ -5,7 +5,6 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Matrix3f;
 import com.mojang.math.Matrix4f;
 import com.mojang.math.Quaternion;
-import java.util.function.Predicate;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -13,11 +12,8 @@ import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ClipContext;
-import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-import org.jetbrains.annotations.Nullable;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
@@ -93,21 +89,6 @@ public abstract class MixinGameRenderer {
         ((MinecraftDuck) this.minecraft).vs$setOriginalCrosshairTarget(original);
 
         return receiver.pick(maxDistance, tickDelta, includeFluids);
-    }
-
-    @Redirect(
-        method = "pick",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/entity/projectile/ProjectileUtil;getEntityHitResult(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/AABB;Ljava/util/function/Predicate;D)Lnet/minecraft/world/phys/EntityHitResult;"
-        )
-    )
-    public @Nullable EntityHitResult modifyCrosshairTargetEntities(
-        final Entity shooter,
-        final Vec3 startVec, final Vec3 endVec,
-        final AABB boundingBox, final Predicate<Entity> filter,
-        final double distance) {
-        return RaycastUtilsKt.raytraceEntities(shooter.level, shooter, startVec, endVec, boundingBox, filter, distance);
     }
 
     @Redirect(

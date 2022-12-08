@@ -55,7 +55,8 @@
     "server.world.MixinChunkMap$TrackedEntity",
     "server.world.MixinServerLevel",
     "world.chunk.MixinLevelChunk",
-    "world.entity.MixinPlayer"
+    "world.entity.MixinPlayer",
+    "world.entity.projectile.ProjectileUtilMixin"
   ],
   "client": [
     "accessors.client.multiplayer.ClientLevelAccessor",
