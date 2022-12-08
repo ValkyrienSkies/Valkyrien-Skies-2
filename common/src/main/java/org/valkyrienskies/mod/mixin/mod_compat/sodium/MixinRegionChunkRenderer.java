@@ -53,6 +53,17 @@ public class MixinRegionChunkRenderer implements RegionChunkRendererDuck {
     @Redirect(
         at = @At(
             value = "FIELD",
+            target = "Lme/jellysquid/mods/sodium/client/render/chunk/RegionChunkRenderer;isBlockFaceCullingEnabled:Z"
+        ),
+        method = "buildDrawBatches"
+    )
+    private boolean redirectEnabledCulling(final RegionChunkRenderer instance) {
+        return false;
+    }
+
+    @Redirect(
+        at = @At(
+            value = "FIELD",
             target = "Lme/jellysquid/mods/sodium/client/render/chunk/ChunkCameraContext;posX:F"
         ),
         method = "buildDrawBatches"
