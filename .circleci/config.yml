@@ -70,6 +70,20 @@ jobs:
           name: "Build"
           command: "./gradlew build publish --stacktrace"
       - save_cache_and_artifacts
+  notify_playtesters:
+    resource_class: small
+    docker:
+      - image: cimg/openjdk:17.0
+    steps:
+      - checkout_and_cache
+      - run: "./gradlew saveVersionToFile"
+      - run: echo 'export VS_VERSION="$(cat current_version.txt)"' >> "$BASH_ENV"
+      - discord/notify:
+          message: |
+            New version released! ${VS_VERSION}
+            [Download Forge](https://maven.valkyrienskies.org/org/valkyrienskies/valkyrienskies-118-forge/${VS_VERSION}/valkyrienskies-118-fabric-${VS_VERSION}.jar)
+            [Download Fabric](https://maven.valkyrienskies.org/org/valkyrienskies/valkyrienskies-118-fabric/${VS_VERSION}/valkyrienskies-118-fabric-${VS_VERSION}.jar)
+          webhook: VS2_118_WEBHOOK
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
@@ -78,6 +92,16 @@ workflows:
       - gradle_build:
           context:
             - valkyrien_maven
+      - notify_playtesters:
+          requires:
+            - publish_to_maven
+          filters:
+            branches: 
+              ignore: /.*/
+            tags:
+              only: /playtest\/.*/
+          context:
+            - discord_webhooks
       - publish_to_maven:
           filters:
             branches:
