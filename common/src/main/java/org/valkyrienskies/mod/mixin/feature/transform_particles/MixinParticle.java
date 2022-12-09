@@ -52,7 +52,7 @@ public abstract class MixinParticle {
         }
 
         // in-world position
-        final Vector3d p = ship.getRenderTransform().getShipToWorldMatrix().transformPosition(new Vector3d(x, y, z));
+        final Vector3d p = ship.getRenderTransform().getShipToWorld().transformPosition(new Vector3d(x, y, z));
         this.setPos(p.x, p.y, p.z);
         this.xo = p.x;
         this.yo = p.y;
@@ -75,7 +75,7 @@ public abstract class MixinParticle {
             return;
         }
 
-        final Matrix4dc transform = ship.getRenderTransform().getShipToWorldMatrix();
+        final Matrix4dc transform = ship.getRenderTransform().getShipToWorld();
         // in-world position
         final Vector3d p = transform.transformPosition(new Vector3d(x, y, z));
         // in-world velocity
