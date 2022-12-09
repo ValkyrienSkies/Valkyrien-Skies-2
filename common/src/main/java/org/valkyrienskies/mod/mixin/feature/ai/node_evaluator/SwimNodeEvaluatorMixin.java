@@ -90,7 +90,7 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
     private boolean isPathFindableRedirectPathType(final BlockState instance, final BlockGetter blockGetter,
         final BlockPos blockPos, final PathComputationType pathComputationType,
         final Operation<Boolean> isPathfindable) {
-        final boolean[] isPathFindable = {isPathfindable.call(blockGetter, blockPos, pathComputationType)};
+        final boolean[] isPathFindable = {isPathfindable.call(instance, blockGetter, blockPos, pathComputationType)};
         if (!isPathFindable[0] && VSGameConfig.SERVER.getAiOnShips()) {
             Level level = null;
             if (blockGetter instanceof PathNavigationRegion) {

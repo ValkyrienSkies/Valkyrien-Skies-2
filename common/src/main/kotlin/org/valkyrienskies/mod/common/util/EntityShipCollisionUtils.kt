@@ -1,6 +1,8 @@
 package org.valkyrienskies.mod.common.util
 
+import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.util.Mth
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.Level
@@ -9,11 +11,12 @@ import net.minecraft.world.phys.Vec3
 import net.minecraft.world.phys.shapes.VoxelShape
 import org.joml.primitives.AABBd
 import org.joml.primitives.AABBdc
-import org.valkyrienskies.core.impl.api.ServerShipInternal
+import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.impl.collision.ConvexPolygonc
 import org.valkyrienskies.core.impl.collision.EntityPolygonCollider
 import org.valkyrienskies.core.impl.collision.EntityPolygonCollider.createPolygonFromAABB
 import org.valkyrienskies.core.impl.util.extend
+import org.valkyrienskies.mod.common.getShipsIntersecting
 import org.valkyrienskies.mod.common.shipObjectWorld
 import kotlin.math.max
 
@@ -21,12 +24,42 @@ object EntityShipCollisionUtils {
 
     @JvmStatic
     fun isCollidingWithUnloadedShips(entity: Entity): Boolean {
-        if (entity.level !is ServerLevel) return false
+        val level = entity.level
 
-        val shipWorld = entity.level.shipObjectWorld
-        return shipWorld.allShips.getIntersecting(entity.boundingBox.toJOML())
-            .all { (it as ServerShipInternal).areVoxelsFullyLoaded() }
-            .not()
+        if (level is ServerLevel || (level.isClientSide && level is ClientLevel)) {
+            if (level.isClientSide && level is ClientLevel && !level.shipObjectWorld.isSyncedWithServer) {
+                return true
+            }
+
+            val aabb = entity.boundingBox.toJOML()
+            return level.getShipsIntersecting(aabb)
+                .all { ship ->
+                    val aabbInShip = AABBd(aabb).transform(ship.worldToShip)
+                    areAllChunksLoaded(ship, aabbInShip, level)
+                }
+                .not()
+        }
+
+        return false
+    }
+
+    private fun areAllChunksLoaded(ship: Ship, aABB: AABBdc, level: Level): Boolean {
+        val minX = (Mth.floor(aABB.minX() - 1.0E-7) - 1) shr 4
+        val maxX = (Mth.floor(aABB.maxX() + 1.0E-7) + 1) shr 4
+        val minZ = (Mth.floor(aABB.minZ() - 1.0E-7) - 1) shr 4
+        val maxZ = (Mth.floor(aABB.maxZ() + 1.0E-7) + 1) shr 4
+
+        for (chunkX in minX..maxX) {
+            for (chunkZ in minZ..maxZ) {
+                if (ship.activeChunksSet.contains(chunkX, chunkZ) &&
+                    level.getChunkForCollisions(chunkX, chunkZ) == null
+                ) {
+                    return false
+                }
+            }
+        }
+
+        return true
     }
 
     /**

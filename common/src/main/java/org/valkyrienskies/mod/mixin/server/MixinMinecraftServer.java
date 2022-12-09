@@ -14,6 +14,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.At.Shift;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.apigame.world.IPlayer;
@@ -152,7 +153,8 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         method = "tickChildren",
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/server/network/ServerConnectionListener;tick()V"
+            target = "Lnet/minecraft/server/network/ServerConnectionListener;tick()V",
+            shift = Shift.AFTER
         )
     )
     private void preConnectionTick(final CallbackInfo ci) {

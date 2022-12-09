@@ -113,7 +113,7 @@ class SeamlessChunksManager(private val listener: ClientPacketListener) {
         ) {
             logger.debug("Deferring ship update at <$chunkX, $chunkZ> for ${packet::class}")
             shipQueuedUpdates
-                .computeIfAbsent(vsCore.newChunkClaim(chunkX, chunkZ)) { ConcurrentLinkedQueue() }
+                .computeIfAbsent(vsCore.newChunkClaimFromChunkPos(chunkX, chunkZ)) { ConcurrentLinkedQueue() }
                 .add(packet)
 
             return true
