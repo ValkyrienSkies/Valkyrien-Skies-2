@@ -9,8 +9,10 @@ import net.minecraft.world.item.Item
 import net.minecraft.world.item.Item.Properties
 import net.minecraft.world.level.block.Block
 import net.minecraftforge.client.ClientRegistry
+import net.minecraftforge.client.ConfigGuiHandler.ConfigGuiFactory
 import net.minecraftforge.client.event.EntityRenderersEvent
 import net.minecraftforge.event.AddReloadListenerEvent
+import net.minecraftforge.fml.ModLoadingContext
 import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent
@@ -20,15 +22,19 @@ import net.minecraftforge.registries.DeferredRegister
 import net.minecraftforge.registries.ForgeRegistries
 import net.minecraftforge.registries.RegistryObject
 import org.valkyrienskies.core.apigame.VSCoreFactory
+import org.valkyrienskies.core.impl.config.VSConfigClass
+import org.valkyrienskies.core.impl.config.VSCoreConfig
 import org.valkyrienskies.mod.client.EmptyRenderer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.block.TestChairBlock
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.config.VSEntityHandlerDataLoader
+import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.config.VSKeyBindings
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.item.ShipAssemblerItem
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
+import org.valkyrienskies.mod.compat.clothconfig.VSClothConfig
 
 @Mod(ValkyrienSkiesMod.MOD_ID)
 class ValkyrienSkiesModForge {
@@ -44,7 +50,7 @@ class ValkyrienSkiesModForge {
     init {
         val isClient = FMLEnvironment.dist.isClient
         val vsCore = if (isClient) {
-            org.valkyrienskies.core.apigame.VSCoreFactory.instance.newVsCoreClient(ForgeHooksImpl)
+            VSCoreFactory.instance.newVsCoreClient(ForgeHooksImpl)
         } else {
             org.valkyrienskies.core.apigame.VSCoreFactory.instance.newVsCoreServer(ForgeHooksImpl)
         }
@@ -65,15 +71,15 @@ class ValkyrienSkiesModForge {
 
         forgeBus.addListener(::registerResourceManagers)
 
-        // ModLoadingContext.get().registerExtensionPoint(ExtensionPoint.CONFIGGUIFACTORY) {
-        //     BiFunction { client, parent ->
-        //         VSClothConfig.createConfigScreenFor(
-        //             parent,
-        //             VSConfigClass.getRegisteredConfig(VSCoreConfig::class.java),
-        //             VSConfigClass.getRegisteredConfig(VSGameConfig::class.java)
-        //         )
-        //     }
-        // }
+        ModLoadingContext.get().registerExtensionPoint(ConfigGuiFactory::class.java) {
+            ConfigGuiFactory { _, parent ->
+                VSClothConfig.createConfigScreenFor(
+                    parent,
+                    VSConfigClass.getRegisteredConfig(VSCoreConfig::class.java),
+                    VSConfigClass.getRegisteredConfig(VSGameConfig::class.java)
+                )
+            }
+        }
 
         TEST_CHAIR_REGISTRY = registerBlockAndItem("test_chair") { TestChairBlock }
         SHIP_CREATOR_ITEM_REGISTRY =
