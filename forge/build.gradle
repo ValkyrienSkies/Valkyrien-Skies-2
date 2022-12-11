@@ -96,7 +96,7 @@ dependencies {
         transitive = false
     }
 
-    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api:1.0.0+26dee3aa54") {
+    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api:1.0.0+31f658785e") {
         transitive = false
     }
 
