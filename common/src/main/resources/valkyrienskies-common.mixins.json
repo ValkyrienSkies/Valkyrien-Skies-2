@@ -43,6 +43,7 @@
     "mod_compat.sodium.MixinRegionChunkRenderer",
     "mod_compat.sodium.MixinRenderSectionManager",
     "mod_compat.sodium.MixinSodiumWorldRenderer",
+    "mod_compat.sound_physics_remastered.MixinSoundPhysics",
     "server.MixinMinecraftServer",
     "server.MixinPlayerList",
     "server.command.MixinCommands",
