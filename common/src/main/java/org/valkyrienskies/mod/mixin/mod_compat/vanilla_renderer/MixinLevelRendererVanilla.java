@@ -3,16 +3,24 @@ package org.valkyrienskies.mod.mixin.mod_compat.vanilla_renderer;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.mojang.blaze3d.shaders.Uniform;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.BufferUploader;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexBuffer;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.math.Matrix4f;
+import com.mojang.math.Vector3f;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
+import java.util.ListIterator;
 import java.util.WeakHashMap;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.LevelRenderer.RenderChunkInfo;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.client.renderer.ViewArea;
 import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
 import net.minecraft.client.renderer.culling.Frustum;
@@ -54,11 +62,6 @@ public abstract class MixinLevelRendererVanilla {
 
     @Unique
     private ObjectList<RenderChunkInfo> renderChunksGeneratedByVanilla = new ObjectArrayList<>();
-    @Unique
-    private ObjectList<RenderChunkInfo> renderChunksToUse = new ObjectArrayList<>();
-
-    @Unique
-    private boolean isRenderingShip = true;
 
     /**
      * Fix the distance to render chunks, so that MC doesn't think ship chunks are too far away
@@ -161,23 +164,17 @@ public abstract class MixinLevelRendererVanilla {
         final RenderType renderType, final PoseStack poseStack, final double camX, final double camY, final double camZ,
         final Matrix4f matrix4f, final Operation<Void> renderChunkLayer) {
 
-        this.renderChunksToUse = this.renderChunksGeneratedByVanilla;
         renderChunkLayer.call(receiver, renderType, poseStack, camX, camY, camZ, matrix4f);
 
         shipRenderChunks.forEach((ship, chunks) -> {
-            this.renderChunksToUse = chunks;
-            this.isRenderingShip = true;
-
             poseStack.pushPose();
             final Vector3dc center = ship.getRenderTransform().getPositionInShip();
             VSClientGameUtils.transformRenderWithShip(ship.getRenderTransform(), poseStack,
                 center.x(), center.y(), center.z(),
                 camX, camY, camZ);
 
-            renderChunkLayer.call(receiver, renderType, poseStack, center.x(), center.y(), center.z(), matrix4f);
+            renderChunkLayer(renderType, poseStack, center.x(), center.y(), center.z(), matrix4f, chunks);
             poseStack.popPose();
-
-            this.isRenderingShip = false;
         });
     }
 
@@ -189,21 +186,84 @@ public abstract class MixinLevelRendererVanilla {
         method = "renderChunkLayer"
     )
     private ObjectArrayList<RenderChunkInfo> redirectRenderChunksInFrustum(final LevelRenderer instance) {
-        return (ObjectArrayList<RenderChunkInfo>) renderChunksToUse;
+        return (ObjectArrayList<RenderChunkInfo>) renderChunksGeneratedByVanilla;
     }
 
-    @ModifyExpressionValue(
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/client/renderer/RenderType;translucent()Lnet/minecraft/client/renderer/RenderType;"
-        ),
-        method = "renderChunkLayer"
-    )
-    private RenderType redirectRenderChunkLayer(final RenderType original) {
-        if (isRenderingShip) {
-            return null;
+    private void renderChunkLayer(final RenderType renderType, final PoseStack poseStack, final double d,
+        final double e, final double f,
+        final Matrix4f matrix4f, final ObjectList<RenderChunkInfo> chunksToRender) {
+        RenderSystem.assertOnRenderThread();
+        renderType.setupRenderState();
+        this.minecraft.getProfiler().push("filterempty");
+        this.minecraft.getProfiler().popPush(() -> "render_" + renderType);
+        final boolean bl = renderType != RenderType.translucent();
+        final ListIterator objectListIterator = chunksToRender.listIterator(bl ? 0 : chunksToRender.size());
+        final VertexFormat vertexFormat = renderType.format();
+        final ShaderInstance shaderInstance = RenderSystem.getShader();
+        BufferUploader.reset();
+        for (int k = 0; k < 12; ++k) {
+            final int l = RenderSystem.getShaderTexture(k);
+            shaderInstance.setSampler("Sampler" + k, l);
         }
-
-        return original;
+        if (shaderInstance.MODEL_VIEW_MATRIX != null) {
+            shaderInstance.MODEL_VIEW_MATRIX.set(poseStack.last().pose());
+        }
+        if (shaderInstance.PROJECTION_MATRIX != null) {
+            shaderInstance.PROJECTION_MATRIX.set(matrix4f);
+        }
+        if (shaderInstance.COLOR_MODULATOR != null) {
+            shaderInstance.COLOR_MODULATOR.set(RenderSystem.getShaderColor());
+        }
+        if (shaderInstance.FOG_START != null) {
+            shaderInstance.FOG_START.set(RenderSystem.getShaderFogStart());
+        }
+        if (shaderInstance.FOG_END != null) {
+            shaderInstance.FOG_END.set(RenderSystem.getShaderFogEnd());
+        }
+        if (shaderInstance.FOG_COLOR != null) {
+            shaderInstance.FOG_COLOR.set(RenderSystem.getShaderFogColor());
+        }
+        if (shaderInstance.FOG_SHAPE != null) {
+            shaderInstance.FOG_SHAPE.set(RenderSystem.getShaderFogShape().getIndex());
+        }
+        if (shaderInstance.TEXTURE_MATRIX != null) {
+            shaderInstance.TEXTURE_MATRIX.set(RenderSystem.getTextureMatrix());
+        }
+        if (shaderInstance.GAME_TIME != null) {
+            shaderInstance.GAME_TIME.set(RenderSystem.getShaderGameTime());
+        }
+        RenderSystem.setupShaderLights(shaderInstance);
+        shaderInstance.apply();
+        final Uniform uniform = shaderInstance.CHUNK_OFFSET;
+        boolean bl2 = false;
+        while (bl ? objectListIterator.hasNext() : objectListIterator.hasPrevious()) {
+            final RenderChunkInfo renderChunkInfo2 =
+                bl ? (RenderChunkInfo) objectListIterator.next() : (RenderChunkInfo) objectListIterator.previous();
+            final ChunkRenderDispatcher.RenderChunk renderChunk = renderChunkInfo2.chunk;
+            if (renderChunk.getCompiledChunk().isEmpty(renderType)) {
+                continue;
+            }
+            final VertexBuffer vertexBuffer = renderChunk.getBuffer(renderType);
+            final BlockPos blockPos = renderChunk.getOrigin();
+            if (uniform != null) {
+                uniform.set((float) ((double) blockPos.getX() - d), (float) ((double) blockPos.getY() - e),
+                    (float) ((double) blockPos.getZ() - f));
+                uniform.upload();
+            }
+            vertexBuffer.drawChunkLayer();
+            bl2 = true;
+        }
+        if (uniform != null) {
+            uniform.set(Vector3f.ZERO);
+        }
+        shaderInstance.clear();
+        if (bl2) {
+            vertexFormat.clearBufferState();
+        }
+        VertexBuffer.unbind();
+        VertexBuffer.unbindVertexArray();
+        this.minecraft.getProfiler().pop();
+        renderType.clearRenderState();
     }
+
 }
