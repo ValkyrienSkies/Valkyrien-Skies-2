@@ -24,20 +24,20 @@ curseforge {
             addGameVersion project.loader_platform
 
             mainArtifact(remapJar.archiveFile.get().asFile) {
+                relations {
+                    if (project.loader_platform == 'Forge') {
+                        requiredDependency 'kotlin-for-forge'
+                        embeddedLibrary 'cloth-config'
+                    }
+
+                    if (project.loader_platform == 'Fabric') {
+                        requiredDependency 'fabric-api'
+                        embeddedLibrary 'cloth-config'
+                        embeddedLibrary 'fabric-language-kotlin'
+                        optionalDependency 'modmenu'
+                    }
+                }
                 displayName = fileDisplayName
-
-                if (project.loader_platform == 'Forge') {
-                    requiredDependency 'kotlin-for-forge'
-                    embeddedLibrary 'cloth-config'
-                }
-
-                if (project.loader_platform == 'Fabric') {
-                    requiredDependency 'fabric-api'
-                    embeddedLibrary 'cloth-config'
-                    embeddedLibrary 'fabric-language-kotlin'
-                    optionalDependency 'modmenu'
-                }
-
             }
         }
     }
