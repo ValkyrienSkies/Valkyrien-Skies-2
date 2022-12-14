@@ -8,7 +8,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
 
 @Mixin(ValueBox.class)
-public class MixinOutlineRenderers {
+public class MixinValueBox {
 
     @Redirect(
         method = "render",

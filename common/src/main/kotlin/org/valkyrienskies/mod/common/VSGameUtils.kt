@@ -343,6 +343,13 @@ fun Level?.toWorldCoordinates(pos: Vec3): Vec3 {
     return this?.getShipManagingPos(pos)?.toWorldCoordinates(pos) ?: pos
 }
 
+fun ClientLevel?.toShipRenderCoordinates(shipPos: Vec3, pos: Vec3): Vec3 =
+    this?.getShipObjectManagingPos(shipPos)
+        ?.renderTransform
+        ?.worldToShip
+        ?.transformPosition(pos.toJOML())
+        ?.toMinecraft() ?: pos
+
 fun Level?.toWorldCoordinates(pos: Vector3d): Vector3d {
     return this?.getShipManagingPos(pos)?.shipToWorld?.transformPosition(pos) ?: pos
 }

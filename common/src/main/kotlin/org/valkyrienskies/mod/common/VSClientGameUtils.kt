@@ -16,14 +16,11 @@ object VSClientGameUtils {
 
         if (ship != null) {
             val transform = ship.renderTransform
-            val cam = Minecraft.getInstance().gameRenderer.mainCamera.position
             val renderMatrix = Matrix4d()
-                .translate(-cam.x, -cam.y, -cam.z)
                 .mul(transform.shipToWorld)
                 .translate(offsetX, offsetY, offsetZ)
-                .translate(cam.x, cam.y, cam.z)
 
-            poseStack.multiply(renderMatrix, transform.shipToWorldRotation)
+            poseStack.multiply(renderMatrix)
         } else {
             poseStack.translate(offsetX, offsetY, offsetZ)
         }

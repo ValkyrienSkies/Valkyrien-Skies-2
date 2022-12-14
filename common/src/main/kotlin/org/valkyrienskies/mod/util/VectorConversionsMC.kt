@@ -123,6 +123,10 @@ fun PoseStack.multiply(modelTransform: Matrix4dc, normalTransform: Quaterniondc)
     last.normal().mul(normalTransform.toMinecraft())
 }
 
+fun PoseStack.multiply(modelTransform: Matrix4dc) = also {
+    last().pose().multiply(modelTransform.toMinecraft())
+}
+
 fun Matrix4fMC.multiply(m: Matrix4dc): Matrix4fMC = also {
     multiply(m.toMinecraft())
 }
