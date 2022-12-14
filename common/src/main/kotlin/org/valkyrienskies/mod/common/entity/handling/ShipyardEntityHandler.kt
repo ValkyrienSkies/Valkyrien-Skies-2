@@ -8,13 +8,8 @@ import org.joml.Vector3d
 import org.joml.Vector3dc
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.Ship
-import org.valkyrienskies.core.impl.util.expand
-import org.valkyrienskies.core.impl.util.x
-import org.valkyrienskies.core.impl.util.y
-import org.valkyrienskies.core.impl.util.z
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toMinecraft
-import kotlin.math.roundToInt
 
 object ShipyardEntityHandler : VSEntityHandler {
     override fun freshEntityInShipyard(entity: Entity, ship: Ship, position: Vector3dc) {}
@@ -56,11 +51,5 @@ object ShipyardEntityHandler : VSEntityHandler {
         matrixStack.mulPose(ship.renderTransform.shipToWorldRotation.toMinecraft())
     }
 
-    override fun onEntityMove(self: Entity, ship: Ship, position: Vector3dc): Vector3dc =
-        if (!ship.shipAABB!!.expand(1)// expand happens bcs containsPoint is exclusive but the AABB is inclusive
-                .containsPoint(position.x.roundToInt(), position.y.roundToInt(), position.z.roundToInt())
-        ) {
-            WorldEntityHandler.moveEntityFromShipyardToWorld(self, ship, position)
-        } else
-            position
+    override fun onEntityMove(self: Entity, ship: Ship, position: Vector3dc): Vector3dc = position
 }
