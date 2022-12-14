@@ -2,11 +2,13 @@ package org.valkyrienskies.mod.common.entity.handling
 
 import net.minecraft.core.Registry
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
 import org.valkyrienskies.core.impl.networking.simple.sendToClient
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.networking.PacketSyncVSEntityTypes
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
+import org.valkyrienskies.mod.compat.CreateCompat
 
 // TODO if needed initialize the handler with certain settings
 object VSEntityManager {
@@ -42,8 +44,16 @@ object VSEntityManager {
         entityHandlers[entityType] = entityHandler
     }
 
-    fun getHandler(type: EntityType<*>): VSEntityHandler {
-        return entityHandlers[type] ?: default
+    fun getHandler(entity: Entity): VSEntityHandler {
+        return entityHandlers[entity.type] ?: getDefaultHandler(entity)
+    }
+
+    private fun getDefaultHandler(entity: Entity): VSEntityHandler {
+        if (CreateCompat.isContraption(entity)) {
+            return ShipyardEntityHandler
+        }
+
+        return default
     }
 
     fun getHandler(type: ResourceLocation): VSEntityHandler? {
@@ -52,9 +62,15 @@ object VSEntityManager {
 
     // Sends a packet with all the entity -> handler pairs to the client
     fun syncHandlers(player: MinecraftPlayer) {
-        PacketSyncVSEntityTypes(Array(Registry.ENTITY_TYPE.count()) {
-            val handler = getHandler(Registry.ENTITY_TYPE.byId(it))
-            namedEntityHandlers[handler].toString()
-        }).sendToClient(player)
+        val entityTypes: Map<Int, String> =
+            (0 until Registry.ENTITY_TYPE.count())
+                .asSequence()
+                .mapNotNull { i ->
+                    val handler = entityHandlers[Registry.ENTITY_TYPE.byId(i)] ?: return@mapNotNull null
+                    i to namedEntityHandlers[handler].toString()
+                }
+                .toMap()
+
+        PacketSyncVSEntityTypes(entityTypes).sendToClient(player)
     }
 }

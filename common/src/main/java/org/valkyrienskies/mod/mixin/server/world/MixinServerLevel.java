@@ -165,7 +165,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
         final Vector3d pos = new Vector3d(entity.getX(), entity.getY(), entity.getZ());
         final Ship ship = VSGameUtilsKt.getShipObjectManagingPos(entity.level, pos);
         if (ship != null) {
-            VSEntityManager.INSTANCE.getHandler(entity.getType())
+            VSEntityManager.INSTANCE.getHandler(entity)
                 .freshEntityInShipyard(entity, ship, pos);
         }
     }

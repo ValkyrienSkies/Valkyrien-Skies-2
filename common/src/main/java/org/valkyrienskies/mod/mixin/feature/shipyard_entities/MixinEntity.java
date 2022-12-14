@@ -40,7 +40,7 @@ public abstract class MixinEntity {
     private void positionRider(final Entity instance, final Entity passengerI, final Entity.MoveFunction callback,
         final Operation<Void> positionRider) {
         positionRider.call(instance, passengerI,
-            (Entity.MoveFunction) (passenger, x, y, z) -> VSEntityManager.INSTANCE.getHandler(passenger.getType())
+            (Entity.MoveFunction) (passenger, x, y, z) -> VSEntityManager.INSTANCE.getHandler(passenger)
                 .positionSetFromVehicle(passenger, Entity.class.cast(this), x, y, z));
     }
 
@@ -59,7 +59,7 @@ public abstract class MixinEntity {
 
         ci.cancel();
         isModifyingTeleport = true;
-        final Vector3d pos = VSEntityManager.INSTANCE.getHandler(this.getType())
+        final Vector3d pos = VSEntityManager.INSTANCE.getHandler(Entity.class.cast(this))
             .getTeleportPos(Entity.class.cast(this), new Vector3d(d, e, f));
         teleportTo(pos.x, pos.y, pos.z);
         isModifyingTeleport = false;
@@ -78,7 +78,8 @@ public abstract class MixinEntity {
         final Ship ship;
 
         if ((ship = VSGameUtilsKt.getShipObjectManagingPos(level, pos)) != null) {
-            tempVec = VSEntityManager.INSTANCE.getHandler(getType()).onEntityMove(Entity.class.cast(this), ship, pos);
+            tempVec = VSEntityManager.INSTANCE.getHandler(Entity.class.cast(this))
+                .onEntityMove(Entity.class.cast(this), ship, pos);
         } else {
             tempVec = null;
         }

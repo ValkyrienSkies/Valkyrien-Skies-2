@@ -41,7 +41,7 @@ public class MixinEntityRenderDispatcher {
             matrixStack.popPose();
             matrixStack.pushPose();
 
-            VSEntityManager.INSTANCE.getHandler(entity.getType())
+            VSEntityManager.INSTANCE.getHandler(entity)
                 .applyRenderTransform(ship, entity, entityRenderer, x, y, z,
                     rotationYaw, partialTicks, matrixStack,
                     buffer, packedLight);
@@ -51,7 +51,7 @@ public class MixinEntityRenderDispatcher {
                     entity.getVehicle().blockPosition());
             // If the entity is a passenger and that vehicle is in ship space
             if (vehicleShip != null) {
-                VSEntityManager.INSTANCE.getHandler(entity.getVehicle().getType())
+                VSEntityManager.INSTANCE.getHandler(entity.getVehicle())
                     .applyRenderOnMountedEntity(vehicleShip, entity.getVehicle(), entity, partialTicks, matrixStack);
             }
         }

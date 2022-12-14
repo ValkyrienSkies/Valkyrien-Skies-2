@@ -44,7 +44,7 @@ object VSGamePackets {
 
         // Syncs the entity handlers to the client
         PacketSyncVSEntityTypes::class.registerClientHandler { syncEntities ->
-            syncEntities.entity2Handler.iterator().withIndex().forEach { (id, handler) ->
+            syncEntities.entity2Handler.forEach { (id, handler) ->
                 VSEntityManager.pair(
                     Registry.ENTITY_TYPE.byId(id),
                     ResourceLocation.tryParse(handler)?.let { VSEntityManager.getHandler(it) }
