@@ -250,6 +250,9 @@ fun ClientLevel.getShipObjectManagingPos(chunkX: Int, chunkZ: Int) =
 fun ClientLevel.getShipObjectManagingPos(blockPos: Vec3i) =
     getShipObjectManagingPos(blockPos.x shr 4, blockPos.z shr 4)
 
+fun ClientLevel.getShipObjectManagingPos(posX: Double, posY: Double, posZ: Double) =
+    getShipObjectManagingPos(posX.toInt() shr 4, posZ.toInt() shr 4)
+
 fun ClientLevel.getShipObjectManagingPos(pos: Vector3dc) =
     getShipObjectManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
 
@@ -311,6 +314,9 @@ fun Level.getShipManagingPos(pos: Vector3dc) =
 fun Level.getShipManagingPos(posX: Double, posY: Double, posZ: Double) =
     getShipManagingPos(posX.toInt() shr 4, posZ.toInt() shr 4)
 
+fun Level.getShipManagingPos(posX: Float, posY: Float, posZ: Float) =
+    getShipManagingPos(posX.toInt() shr 4, posZ.toInt() shr 4)
+
 fun Level.getShipManagingPos(chunkPos: ChunkPos) =
     getShipManagingPos(chunkPos.x, chunkPos.z)
 
@@ -333,12 +339,12 @@ fun Ship.toWorldCoordinates(pos: BlockPos): Vector3d =
 fun Ship.toWorldCoordinates(pos: Vec3): Vec3 =
     shipToWorld.transformPosition(pos.toJOML()).toMinecraft()
 
-fun Level.toWorldCoordinates(pos: Vec3): Vec3 {
-    return getShipManagingPos(pos)?.toWorldCoordinates(pos) ?: pos
+fun Level?.toWorldCoordinates(pos: Vec3): Vec3 {
+    return this?.getShipManagingPos(pos)?.toWorldCoordinates(pos) ?: pos
 }
 
-fun Level.toWorldCoordinates(pos: Vector3d): Vector3d {
-    return getShipManagingPos(pos)?.shipToWorld?.transformPosition(pos) ?: pos
+fun Level?.toWorldCoordinates(pos: Vector3d): Vector3d {
+    return this?.getShipManagingPos(pos)?.shipToWorld?.transformPosition(pos) ?: pos
 }
 
 @JvmOverloads

@@ -2,6 +2,7 @@ package org.valkyrienskies.mod.common.util
 
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.math.Quaternion
+import com.mojang.math.Vector4f
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.Position
@@ -102,6 +103,15 @@ fun Matrix4dc.transformDirection(v: Vec3i, dest: Vector3d = Vector3d()) =
 
 @JvmOverloads
 fun Matrix4dc.transformDirection(dir: Direction, dest: Vector3d = Vector3d()) = transformDirection(dir.normal, dest)
+
+fun Matrix4dc.transform(v: Vector4f) = v.also {
+    it.set(
+        (m00() * v.x() + m01() * v.y() + m02() * v.z() + m03() * v.w()).toFloat(),
+        (m10() * v.x() + m11() * v.y() + m12() * v.z() + m13() * v.w()).toFloat(),
+        (m20() * v.x() + m21() * v.y() + m22() * v.z() + m23() * v.w()).toFloat(),
+        (m30() * v.x() + m31() * v.y() + m32() * v.z() + m33() * v.w()).toFloat()
+    )
+}
 
 // endregion
 
