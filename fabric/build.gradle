@@ -24,6 +24,17 @@ loom {
     accessWidenerPath = project(":common").loom.accessWidenerPath
 }
 
+repositories {
+    // CC Restitched
+    maven {
+        url "https://cursemaven.com"
+        content {
+            includeGroup "curse.maven"
+        }
+    }
+    maven { url "https://maven.shedaniel.me/" }
+}
+
 dependencies {
     shadowCommon(annotationProcessor(implementation("com.github.LlamaLad7:MixinExtras:0.1.1")))
 
@@ -63,6 +74,9 @@ dependencies {
 
     implementation("org.valkyrienskies:valkyrien-dependency-downloader:4.2")
     shadowCommon("org.valkyrienskies:valkyrien-dependency-downloader:4.2")
+
+    // CC Restitched
+    modCompileOnly("curse.maven:cc-restitched-462672:3622561")
 }
 
 // Copy the VS common access widener to the generated resources folder

@@ -40,11 +40,19 @@ repositories {
         url = 'https://thedarkcolour.github.io/KotlinForForge/'
     }
     mavenCentral()
+
+    // CC Tweaked
+    maven {
+        url "https://cursemaven.com"
+        content {
+            includeGroup "curse.maven"
+        }
+    }
 }
 
 dependencies {
     shadowCommon(annotationProcessor(implementation("com.github.LlamaLad7:MixinExtras:0.1.1")))
-    
+
 
     forge "net.minecraftforge:forge:${rootProject.forge_version}"
 
@@ -80,6 +88,9 @@ dependencies {
 
     implementation("org.valkyrienskies:valkyrien-dependency-downloader:4.2")
     shadowCommon("org.valkyrienskies:valkyrien-dependency-downloader:4.2")
+
+    // CC Tweaked
+    modCompileOnly("curse.maven:cctweaked-282001:4061944")
 }
 
 processResources {
