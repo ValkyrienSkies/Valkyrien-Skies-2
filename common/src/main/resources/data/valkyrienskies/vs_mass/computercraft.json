@@ -1,0 +1,18 @@
+[
+  {
+    "block": "computercraft:computer_advanced",
+    "mass": 15395.0
+  },
+  {
+    "block": "computercraft:turtle_advanced",
+    "mass": 15395.0
+  },
+  {
+    "block": "computercraft:monitor_advanced",
+    "mass": 15245.0
+  },
+  {
+    "block": "computercraft:modem_advanced",
+    "mass": 15395.0
+  }
+]
