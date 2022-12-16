@@ -19,6 +19,16 @@ object VSGameConfig {
     }
 
     class Server {
+        val ComputerCraft = COMPUTERCRAFT()
+
+        class COMPUTERCRAFT {
+            @JsonSchema(
+                description = "Turtles leaving scaled up/down ship may cause issues" +
+                    "Enable/Disable Turtles Leaving Scaled Ships?"
+            )
+            var canTurtlesLeaveScaledShips = false
+        }
+
         @JsonSchema(
             description = "By default, the vanilla server prevents block interacts past a certain distance " +
                 "to prevent cheat clients from breaking blocks halfway across the map. " +
