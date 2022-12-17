@@ -4,6 +4,10 @@
   "compatibilityLevel": "JAVA_17",
   "plugin": "org.valkyrienskies.mod.forge.mixin.ValkyrienForgeMixinConfigPlugin",
   "mixins": [
+    "compat.cc_tweaked.MixinSpeakerPosition",
+    "compat.cc_tweaked.MixinTurtleBrain",
+    "compat.cc_tweaked.MixinTurtleMoveCommand",
+    "compat.cc_tweaked.MixinWirelessNetwork",
     "compat.create.MixinBlockBreakingKineticTileEntity",
     "compat.create.MixinBlocks",
     "compat.create.MixinContraptionRenderInfo",

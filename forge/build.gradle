@@ -80,6 +80,9 @@ dependencies {
     modImplementation("com.jozufozu.flywheel:flywheel-forge-${flywheel_minecraft_version}:${flywheel_version}")
     modImplementation("com.tterrag.registrate:Registrate:${registrate_version}")
 
+    // CC Tweaked
+    modCompileOnly("curse.maven:cc-tweaked-282001:4061947")
+
     // Add Kotlin for Forge.
     forgeRuntimeLibrary('curse.maven:kotlinforforge-351264:3925887')
 
@@ -142,9 +145,6 @@ dependencies {
     forgeRuntimeLibrary include("com.google.dagger:dagger:2.43.2") { transitive = false }
 
     // endregion
-
-    // CC Tweaked
-    modCompileOnly("curse.maven:cc-tweaked-282001:4061944")
 }
 
 processResources {
