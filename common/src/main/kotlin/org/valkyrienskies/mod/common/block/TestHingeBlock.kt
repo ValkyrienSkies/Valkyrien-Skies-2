@@ -29,6 +29,10 @@ import org.joml.Vector3d
 import org.joml.Vector3dc
 import org.valkyrienskies.core.apigame.constraints.VSAttachmentConstraint
 import org.valkyrienskies.core.apigame.constraints.VSHingeOrientationConstraint
+import org.valkyrienskies.core.apigame.constraints.VSPosDampingConstraint
+import org.valkyrienskies.core.apigame.constraints.VSRotDampingConstraint
+import org.valkyrienskies.core.impl.game.ships.ShipDataCommon
+import org.valkyrienskies.core.impl.game.ships.ShipTransformImpl
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
 import org.valkyrienskies.mod.common.dimensionId
@@ -70,13 +74,15 @@ object TestHingeBlock :
         hand: InteractionHand,
         blockHitResult: BlockHitResult
     ): InteractionResult {
-        println("test")
         if (level.isClientSide) return InteractionResult.SUCCESS
 
         val blockEntity = level.getBlockEntity(pos, ValkyrienSkiesMod.TEST_HINGE_BLOCK_ENTITY_TYPE)
 
         if (blockEntity.isPresent) {
             if (blockEntity.get().otherHingePos == null) {
+                // The ship that owns [pos]
+                val shipThisIsIn = level.getShipManagingPos(pos)
+
                 val ship = (level as ServerLevel).shipObjectWorld.createNewShipAtBlock(
                     pos.offset(0, 1, 0).toJOML(), false, 1.0, level.dimensionId
                 )
@@ -85,21 +91,51 @@ object TestHingeBlock :
                     (ship.transform.positionInShip.y() - 0.5).roundToInt(),
                     (ship.transform.positionInShip.z() - 0.5).roundToInt()
                 )
-                // println("shipCenterPos is $shipCenterPos")
+
+                // Extra height added to the hinge to keep the top ship slightly above the bottom ship
+                val extraHeight = 0.1
+
+                var attachmentLocalPos0: Vector3dc = Vector3d(pos.x + 0.5, pos.y + 1.5 + extraHeight, pos.z + .5)
+                val attachmentLocalPos1: Vector3dc =
+                    Vector3d(shipCenterPos.x.toDouble(), shipCenterPos.y.toDouble(), shipCenterPos.z.toDouble())
+
+                // Move [ship] if we are on a ship
+                if (shipThisIsIn != null) {
+                    // Put the new ship where the old ship is
+                    val newPos = shipThisIsIn.transform.shipToWorld.transformPosition(attachmentLocalPos0, Vector3d())
+                    val newTransform = ShipTransformImpl(
+                        newPos,
+                        ship.transform.positionInShip,
+                        shipThisIsIn.transform.shipToWorldRotation, // Copy source ship rotation
+                        ship.transform.shipToWorldScaling
+                    )
+                    // Update the ship transform
+                    (ship as ShipDataCommon).transform = newTransform
+
+                    // TODO: I'm not entirely sure why I have to subtract this yet. I think it might be because ground
+                    //       rigid bodies have this offset, so we have to remove it?
+                    attachmentLocalPos0 = attachmentLocalPos0.sub(0.5, 0.5, 0.5, Vector3d())
+                } else {
+                    // Move ship up by [extraHeight]
+                    val newTransform = ShipTransformImpl(
+                        ship.transform.positionInWorld.add(0.0, extraHeight, 0.0, Vector3d()),
+                        ship.transform.positionInShip,
+                        ship.transform.shipToWorldRotation,
+                        ship.transform.shipToWorldScaling
+                    )
+                    // Update the ship transform
+                    (ship as ShipDataCommon).transform = newTransform
+                }
+
                 level.setBlockAndUpdate(shipCenterPos, Blocks.IRON_BLOCK.defaultBlockState())
                 blockEntity.get().otherHingePos = shipCenterPos
-
-                val shipThisIsIn = level.getShipManagingPos(pos)
 
                 val shipId0 = shipThisIsIn?.id ?: level.shipObjectWorld.dimensionToGroundBodyIdImmutable[level.dimensionId]!!
                 val shipId1 = ship.id
 
                 // Attachment constraint
                 run {
-                    val attachmentCompliance = 1e-8
-                    val attachmentLocalPos0: Vector3dc = Vector3d(pos.x + .5, pos.y + 1.5, pos.z + .5)
-                    val attachmentLocalPos1: Vector3dc =
-                        Vector3d(shipCenterPos.x.toDouble(), shipCenterPos.y.toDouble(), shipCenterPos.z.toDouble())
+                    val attachmentCompliance = 1e-10
                     val attachmentMaxForce = 1e8
                     val attachmentFixedDistance = 0.0
                     val attachmentConstraint = VSAttachmentConstraint(
@@ -111,7 +147,7 @@ object TestHingeBlock :
 
                 // Hinge orientation constraint
                 run {
-                    val hingeMaxTorque = 1e10
+                    val hingeMaxTorque = 1e8
                     // Hinge constraints will attempt to align the X-axes of both bodies, so to align the Y axis we
                     // apply this rotation to the X-axis
                     // TODO: Logically this should be Quaterniond(AxisAngle4d(Math.toRadians(90.0), 0.0, 0.0, 1.0))
@@ -124,12 +160,12 @@ object TestHingeBlock :
                 }
 
                 // Pos damping constraint
-                // val posDampingConstraint = VSPosDampingConstraint(shipId0, shipId1, compliance, localPos0, localPos1, maxForce, 1e-3)
-                // blockEntity.get().constraintId = level.shipObjectWorld.createNewConstraint(posDampingConstraint)
+                val posDampingConstraint = VSPosDampingConstraint(shipId0, shipId1, 1e-8, attachmentLocalPos0, attachmentLocalPos1, 1e8, 1e-2)
+                blockEntity.get().constraintId = level.shipObjectWorld.createNewConstraint(posDampingConstraint)
 
                 // Rot damping constraint
-                // val rotDampingConstraint = VSRotDampingConstraint(shipId0, shipId1, compliance, Quaterniond(), Quaterniond(), maxTorque, 1e-2)
-                // blockEntity.get().constraintId = level.shipObjectWorld.createNewConstraint(rotDampingConstraint)
+                val rotDampingConstraint = VSRotDampingConstraint(shipId0, shipId1, 1e-8, Quaterniond(), Quaterniond(), 1e8, 1e-2)
+                blockEntity.get().constraintId = level.shipObjectWorld.createNewConstraint(rotDampingConstraint)
             }
         }
         return InteractionResult.CONSUME
