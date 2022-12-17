@@ -5,6 +5,7 @@ import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry
 import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents
+import net.fabricmc.fabric.api.`object`.builder.v1.block.entity.FabricBlockEntityTypeBuilder
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper
 import net.fabricmc.loader.api.FabricLoader
@@ -26,6 +27,7 @@ import org.valkyrienskies.mod.client.EmptyRenderer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.block.TestChairBlock
 import org.valkyrienskies.mod.common.block.TestHingeBlock
+import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.config.VSEntityHandlerDataLoader
 import org.valkyrienskies.mod.common.config.VSKeyBindings
@@ -56,6 +58,8 @@ class ValkyrienSkiesModFabric : ModInitializer {
             MobCategory.MISC
         ).sized(.3f, .3f)
             .build(ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_mounting_entity").toString())
+        ValkyrienSkiesMod.TEST_HINGE_BLOCK_ENTITY_TYPE =
+            FabricBlockEntityTypeBuilder.create(::TestHingeBlockEntity, ValkyrienSkiesMod.TEST_HINGE).build()
 
         val isClient = FabricLoader.getInstance().environmentType == EnvType.CLIENT
         val networking = VSFabricNetworking(isClient)
@@ -89,6 +93,10 @@ class ValkyrienSkiesModFabric : ModInitializer {
         Registry.register(
             Registry.ENTITY_TYPE, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_mounting_entity"),
             ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE
+        )
+        Registry.register(
+            Registry.BLOCK_ENTITY_TYPE, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "test_hinge_block_entity"),
+            ValkyrienSkiesMod.TEST_HINGE_BLOCK_ENTITY_TYPE
         )
 
         // registering data loaders
