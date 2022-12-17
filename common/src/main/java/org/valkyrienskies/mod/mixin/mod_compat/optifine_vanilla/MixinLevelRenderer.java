@@ -1,6 +1,6 @@
 package org.valkyrienskies.mod.mixin.mod_compat.optifine_vanilla;
 
-import static org.valkyrienskies.mod.client.McClientMathUtilKt.transformRenderWithShip;
+import static org.valkyrienskies.mod.common.VSClientGameUtils.transformRenderWithShip;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Matrix4f;
