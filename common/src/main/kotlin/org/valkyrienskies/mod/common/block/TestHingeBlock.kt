@@ -135,7 +135,7 @@ object TestHingeBlock :
 
                 // Attachment constraint
                 run {
-                    val attachmentCompliance = 1e-10
+                    val attachmentCompliance = 1e-8
                     val attachmentMaxForce = 1e8
                     val attachmentFixedDistance = 0.0
                     val attachmentConstraint = VSAttachmentConstraint(
@@ -150,11 +150,9 @@ object TestHingeBlock :
                     val hingeMaxTorque = 1e8
                     // Hinge constraints will attempt to align the X-axes of both bodies, so to align the Y axis we
                     // apply this rotation to the X-axis
-                    // TODO: Logically this should be Quaterniond(AxisAngle4d(Math.toRadians(90.0), 0.0, 0.0, 1.0))
-                    //       instead, maybe the physics api is broken?
-                    val hingeOrientation = Quaterniond(AxisAngle4d(Math.toRadians(90.0), 1.0, 0.0, 0.0))
+                    val hingeOrientation = Quaterniond(AxisAngle4d(Math.toRadians(90.0), 0.0, 0.0, 1.0))
                     val hingeConstraint = VSHingeOrientationConstraint(
-                        shipId0, shipId1, 1e-10, hingeOrientation, hingeOrientation, hingeMaxTorque
+                        shipId0, shipId1, 1e-8, hingeOrientation, hingeOrientation, hingeMaxTorque
                     )
                     blockEntity.get().constraintId = level.shipObjectWorld.createNewConstraint(hingeConstraint)
                 }
