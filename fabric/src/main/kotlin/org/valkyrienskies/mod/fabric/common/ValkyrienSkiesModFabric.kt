@@ -25,6 +25,7 @@ import org.valkyrienskies.core.apigame.VSCoreFactory
 import org.valkyrienskies.mod.client.EmptyRenderer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.block.TestChairBlock
+import org.valkyrienskies.mod.common.block.TestHingeBlock
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.config.VSEntityHandlerDataLoader
 import org.valkyrienskies.mod.common.config.VSKeyBindings
@@ -46,6 +47,7 @@ class ValkyrienSkiesModFabric : ModInitializer {
         if (hasInitialized.getAndSet(true)) return
 
         ValkyrienSkiesMod.TEST_CHAIR = TestChairBlock
+        ValkyrienSkiesMod.TEST_HINGE = TestHingeBlock
         ValkyrienSkiesMod.SHIP_CREATOR_ITEM = ShipCreatorItem(Properties().tab(CreativeModeTab.TAB_MISC), 1.0)
         ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM = ShipAssemblerItem(Properties().tab(CreativeModeTab.TAB_MISC))
         ValkyrienSkiesMod.SHIP_CREATOR_ITEM_SMALLER = ShipCreatorItem(Properties().tab(CreativeModeTab.TAB_MISC), 0.5)
@@ -71,6 +73,7 @@ class ValkyrienSkiesModFabric : ModInitializer {
         ValkyrienSkiesMod.init(vsCore)
 
         registerBlockAndItem("test_chair", ValkyrienSkiesMod.TEST_CHAIR)
+        registerBlockAndItem("test_hinge", ValkyrienSkiesMod.TEST_HINGE)
         Registry.register(
             Registry.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_assembler"),
             ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM

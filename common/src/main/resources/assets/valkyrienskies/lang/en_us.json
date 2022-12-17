@@ -2,6 +2,7 @@
   "key.valkyrienskies.ship_down": "Descend",
   "category.valkyrienskies.driving": "Driving",
   "block.valkyrienskies.test_chair": "Debug Chair",
+  "block.valkyrienskies.test_hinge": "Debug Hinge",
   "item.valkyrienskies.ship_creator": "Ship Creator",
   "item.valkyrienskies.ship_creator_smaller": "Mini Ship Creator"
 }

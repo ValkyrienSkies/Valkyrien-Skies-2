@@ -27,6 +27,7 @@ import org.valkyrienskies.core.impl.config.VSCoreConfig
 import org.valkyrienskies.mod.client.EmptyRenderer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.block.TestChairBlock
+import org.valkyrienskies.mod.common.block.TestHingeBlock
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.config.VSEntityHandlerDataLoader
 import org.valkyrienskies.mod.common.config.VSGameConfig
@@ -42,6 +43,7 @@ class ValkyrienSkiesModForge {
     private val ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, ValkyrienSkiesMod.MOD_ID)
     private val ENTITIES = DeferredRegister.create(ForgeRegistries.ENTITIES, ValkyrienSkiesMod.MOD_ID)
     private val TEST_CHAIR_REGISTRY: RegistryObject<Block>
+    private val TEST_HINGE_REGISTRY: RegistryObject<Block>
     private val SHIP_CREATOR_ITEM_REGISTRY: RegistryObject<Item>
     private val SHIP_CREATOR_SMALLER_ITEM_REGISTRY: RegistryObject<Item>
     private val SHIP_MOUNTING_ENTITY_REGISTRY: RegistryObject<EntityType<ShipMountingEntity>>
@@ -82,6 +84,7 @@ class ValkyrienSkiesModForge {
         }
 
         TEST_CHAIR_REGISTRY = registerBlockAndItem("test_chair") { TestChairBlock }
+        TEST_HINGE_REGISTRY = registerBlockAndItem("test_hinge") { TestHingeBlock }
         SHIP_CREATOR_ITEM_REGISTRY =
             ITEMS.register("ship_creator") { ShipCreatorItem(Properties().tab(CreativeModeTab.TAB_MISC), 1.0) }
         SHIP_CREATOR_SMALLER_ITEM_REGISTRY =
@@ -120,6 +123,7 @@ class ValkyrienSkiesModForge {
 
     private fun loadComplete(event: FMLLoadCompleteEvent) {
         ValkyrienSkiesMod.TEST_CHAIR = TEST_CHAIR_REGISTRY.get()
+        ValkyrienSkiesMod.TEST_HINGE = TEST_HINGE_REGISTRY.get()
         ValkyrienSkiesMod.SHIP_CREATOR_ITEM = SHIP_CREATOR_ITEM_REGISTRY.get()
         ValkyrienSkiesMod.SHIP_CREATOR_ITEM_SMALLER = SHIP_CREATOR_SMALLER_ITEM_REGISTRY.get()
         ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE = SHIP_MOUNTING_ENTITY_REGISTRY.get()
