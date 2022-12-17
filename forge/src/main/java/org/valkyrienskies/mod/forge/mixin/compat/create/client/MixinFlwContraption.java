@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.forge.mixin.compat.create;
+package org.valkyrienskies.mod.forge.mixin.compat.create.client;
 
 import com.jozufozu.flywheel.core.virtual.VirtualRenderWorld;
 import com.mojang.math.Matrix4f;

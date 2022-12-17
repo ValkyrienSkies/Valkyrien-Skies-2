@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.forge.mixin.compat.create;
+package org.valkyrienskies.mod.forge.mixin.compat.create.client;
 
 import com.simibubi.create.foundation.tileEntity.behaviour.scrollvalue.ScrollValueBehaviour;
 import net.minecraft.client.Minecraft;
