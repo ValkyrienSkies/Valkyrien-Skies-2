@@ -20,7 +20,6 @@
     "compat.sodium.MixinRenderSectionManager",
     "compat.thermalexpansion.MixinTileCoFH",
     "feature.forge_interact.MixinIForgePlayer",
-    "feature.patch_modules.MixinMain",
     "world.level.block.FireMixin"
   ],
   "client": [
