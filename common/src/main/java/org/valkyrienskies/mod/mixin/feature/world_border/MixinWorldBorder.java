@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.mixin.feature.world_border;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
+import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
@@ -17,6 +18,7 @@ import org.valkyrienskies.mod.mixinducks.world.OfLevel;
 public class MixinWorldBorder implements OfLevel {
 
     @Unique
+    @Nullable
     private Level level;
 
     @ModifyReturnValue(
@@ -59,8 +61,8 @@ public class MixinWorldBorder implements OfLevel {
         at = @At("RETURN")
     )
     public boolean shipsWithinBounds(final boolean isWithinBounds, final AABB aabb) {
-        if (isWithinBounds) {
-            return true;
+        if (isWithinBounds || level == null) {
+            return isWithinBounds;
         }
 
         final Ship s1 = VSGameUtilsKt.getShipManagingPos(level, (int) aabb.minX >> 4, (int) aabb.minZ >> 4);
@@ -70,12 +72,13 @@ public class MixinWorldBorder implements OfLevel {
     }
 
     @Override
+    @Nullable
     public Level getLevel() {
         return level;
     }
 
     @Override
-    public void setLevel(final Level level) {
+    public void setLevel(@Nullable final Level level) {
         this.level = level;
     }
 }
