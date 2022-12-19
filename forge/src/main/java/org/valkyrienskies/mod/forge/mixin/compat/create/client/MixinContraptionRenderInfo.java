@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.forge.mixin.compat.create;
+package org.valkyrienskies.mod.forge.mixin.compat.create.client;
 
 import com.simibubi.create.content.contraptions.components.structureMovement.AbstractContraptionEntity;
 import com.simibubi.create.content.contraptions.components.structureMovement.render.ContraptionRenderInfo;

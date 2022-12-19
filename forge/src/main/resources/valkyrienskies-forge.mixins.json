@@ -6,25 +6,24 @@
   "mixins": [
     "compat.create.MixinBlockBreakingKineticTileEntity",
     "compat.create.MixinBlocks",
-    "compat.create.MixinContraptionRenderInfo",
     "compat.create.MixinCrushingWheelBlock",
-    "compat.create.MixinFlwContraption",
-    "compat.create.MixinScrollValueBehaviour",
-    "compat.create.MixinValueBox",
+    "compat.immersivengineering.MixinBlockEntityInventory",
+    "compat.thermalexpansion.MixinTileCoFH",
+    "feature.forge_interact.MixinIForgePlayer",
+    "world.level.block.FireMixin"
+  ],
+  "client": [
+    "client.render.MixinLevelRenderer",
+    "compat.create.client.MixinContraptionRenderInfo",
+    "compat.create.client.MixinFlwContraption",
+    "compat.create.client.MixinScrollValueBehaviour",
+    "compat.create.client.MixinValueBox",
     "compat.flywheel.client.InstancingEngineAccessor",
     "compat.flywheel.client.MixinInstanceManager",
     "compat.flywheel.client.MixinInstanceWorld",
     "compat.flywheel.client.MixinInstancingEngine",
     "compat.flywheel.client.MixinTileInstanceManager",
-    "compat.immersivengineering.MixinBlockEntityInventory",
-    "compat.sodium.MixinRenderSectionManager",
-    "compat.thermalexpansion.MixinTileCoFH",
-    "feature.forge_interact.MixinIForgePlayer",
-    "feature.patch_modules.MixinMain",
-    "world.level.block.FireMixin"
-  ],
-  "client": [
-    "client.render.MixinLevelRenderer"
+    "compat.sodium.MixinRenderSectionManager"
   ],
   "injectors": {
     "defaultRequire": 1

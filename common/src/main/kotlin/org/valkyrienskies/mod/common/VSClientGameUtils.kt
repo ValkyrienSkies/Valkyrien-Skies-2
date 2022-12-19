@@ -2,6 +2,7 @@ package org.valkyrienskies.mod.common
 
 import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.Minecraft
+import net.minecraft.core.BlockPos
 import org.joml.Matrix4d
 import org.joml.Matrix4f
 import org.valkyrienskies.core.api.ships.properties.ShipTransform
@@ -99,4 +100,30 @@ object VSClientGameUtils {
         // Multiply the last transform of [poseStack] by [shipToWorldMatrix]
         matrix.mul(Matrix4f(renderMatrix))
     }
+
+    /**
+     * @param renderTransform The ship's render transform
+     * @param matrix          The {@link PoseStack} we are multiplying
+     * @param blockPos        The position of the block in question
+     * @param camX            Player camera X
+     * @param camY            Player camera Y
+     * @param camZ            Player camera Z
+     */
+    @JvmStatic
+    fun transformRenderWithShip(
+        renderTransform: ShipTransform,
+        matrix: PoseStack,
+        blockPos: BlockPos,
+        camX: Double,
+        camY: Double,
+        camZ: Double
+    ) {
+        transformRenderWithShip(
+            renderTransform,
+            matrix,
+            blockPos.x.toDouble(), blockPos.y.toDouble(), blockPos.z.toDouble(),
+            camX, camY, camZ
+        )
+    }
 }
+

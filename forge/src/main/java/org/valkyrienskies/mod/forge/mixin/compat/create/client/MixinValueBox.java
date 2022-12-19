@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.forge.mixin.compat.create;
+package org.valkyrienskies.mod.forge.mixin.compat.create.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.simibubi.create.foundation.tileEntity.behaviour.ValueBox;
