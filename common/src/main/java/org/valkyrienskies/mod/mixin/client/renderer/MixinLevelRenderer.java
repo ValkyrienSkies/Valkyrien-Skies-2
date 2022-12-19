@@ -1,6 +1,6 @@
 package org.valkyrienskies.mod.mixin.client.renderer;
 
-import static org.valkyrienskies.mod.client.McClientMathUtilKt.transformRenderWithShip;
+import static org.valkyrienskies.mod.common.VSClientGameUtils.transformRenderWithShip;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;

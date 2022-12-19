@@ -1,6 +1,6 @@
 package org.valkyrienskies.mod.mixin.mod_compat.sodium;
 
-import static org.valkyrienskies.mod.client.McClientMathUtilKt.transformRenderWithShip;
+import static org.valkyrienskies.mod.common.VSClientGameUtils.transformRenderWithShip;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
