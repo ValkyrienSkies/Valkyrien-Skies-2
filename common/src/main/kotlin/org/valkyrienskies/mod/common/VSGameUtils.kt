@@ -33,6 +33,7 @@ import org.valkyrienskies.core.game.ships.ShipObjectServer
 import org.valkyrienskies.core.hooks.VSEvents.TickEndEvent
 import org.valkyrienskies.core.util.DoubleTernaryConsumer
 import org.valkyrienskies.core.util.expand
+import org.valkyrienskies.mod.common.util.DimensionIdProvider
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toJOMLD
@@ -60,10 +61,8 @@ val ServerLevel.shipObjectWorld
 
 val Level.dimensionId: DimensionId
     get() {
-        val dim = dimension()
-        dim as ResourceKeyAccessor
-
-        return dim.registryName.toString() + ":" + dim.location().toString()
+        this as DimensionIdProvider
+        return dimensionId
     }
 
 fun getResourceKey(dimensionId: DimensionId): ResourceKey<Level> {
