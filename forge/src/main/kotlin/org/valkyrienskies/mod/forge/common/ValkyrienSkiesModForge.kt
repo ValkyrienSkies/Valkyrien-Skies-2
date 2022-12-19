@@ -19,6 +19,7 @@ import net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent
 import net.minecraftforge.fml.event.lifecycle.FMLLoadCompleteEvent
 import net.minecraftforge.fml.loading.FMLEnvironment
+import net.minecraftforge.fml.loading.FMLLoader
 import net.minecraftforge.registries.DeferredRegister
 import net.minecraftforge.registries.ForgeRegistries
 import org.valkyrienskies.core.api.Ship
@@ -39,6 +40,7 @@ import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.item.ShipAssemblerItem
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
 import org.valkyrienskies.mod.compat.clothconfig.VSClothConfig
+import org.valkyrienskies.mod.forge.integrations.cc_tweaked.ValkyrienSkiesPeripheralProviders
 import java.util.function.BiFunction
 
 @Mod(ValkyrienSkiesMod.MOD_ID)
@@ -86,6 +88,12 @@ class ValkyrienSkiesModForge {
                     VSConfigClass.getRegisteredConfig(VSGameConfig::class.java)
                 )
             }
+        }
+
+        if (FMLLoader.getLoadingModList()
+                .getModFileById("computercraft") != null && !VSGameConfig.SERVER.ComputerCraft.disableComputerCraft
+        ) {
+            ValkyrienSkiesPeripheralProviders.registerPeripheralProviders()
         }
 
         TEST_CHAIR_REGISTRY = registerBlockAndItem("test_chair") { TestChairBlock }
