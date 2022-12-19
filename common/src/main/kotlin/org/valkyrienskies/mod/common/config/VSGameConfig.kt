@@ -23,6 +23,11 @@ object VSGameConfig {
 
         class COMPUTERCRAFT {
             @JsonSchema(
+                description = "Disable/Enable ComputerCraft Integration"
+            )
+            val disableComputerCraft = false
+
+            @JsonSchema(
                 description = "Turtles leaving scaled up/down ship may cause issues" +
                     "Enable/Disable Turtles Leaving Scaled Ships?"
             )

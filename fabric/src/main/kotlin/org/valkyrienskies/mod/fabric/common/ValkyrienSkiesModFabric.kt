@@ -27,11 +27,13 @@ import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.block.TestChairBlock
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.config.VSEntityHandlerDataLoader
+import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.config.VSKeyBindings
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.item.ShipAssemblerItem
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
 import org.valkyrienskies.mod.event.RegistryEvents
+import org.valkyrienskies.mod.fabric.integration.cc_restitched.ValkyrienSkiesPeripheralProviders
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executor
 import java.util.concurrent.atomic.AtomicBoolean
@@ -65,6 +67,12 @@ class ValkyrienSkiesModFabric : ModInitializer {
         }
 
         networking.register(vsCore.hooks)
+
+        if (FabricLoader.getInstance()
+                .isModLoaded("computercraft") && !VSGameConfig.SERVER.ComputerCraft.disableComputerCraft
+        ) {
+            ValkyrienSkiesPeripheralProviders.registerPeripheralProviders()
+        }
 
         if (isClient) onInitializeClient()
 
