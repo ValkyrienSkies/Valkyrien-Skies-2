@@ -57,7 +57,8 @@
     "server.world.MixinServerLevel",
     "world.chunk.MixinLevelChunk",
     "world.entity.MixinPlayer",
-    "world.entity.projectile.ProjectileUtilMixin"
+    "world.entity.projectile.ProjectileUtilMixin",
+    "world.level.MixinLevel"
   ],
   "client": [
     "accessors.client.multiplayer.ClientLevelAccessor",
