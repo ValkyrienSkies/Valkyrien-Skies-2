@@ -97,14 +97,14 @@ object TestHingeBlock :
                 // Extra height added to the hinge to keep the top ship slightly above the bottom ship
                 val extraHeight = 0.1
 
-                var attachmentLocalPos0: Vector3dc = Vector3d(pos.x + 0.5, pos.y + 1.5 + extraHeight, pos.z + .5)
+                val attachmentLocalPos0: Vector3dc = Vector3d(pos.x.toDouble(), pos.y + 1.0 + extraHeight, pos.z.toDouble())
                 val attachmentLocalPos1: Vector3dc =
                     Vector3d(shipCenterPos.x.toDouble(), shipCenterPos.y.toDouble(), shipCenterPos.z.toDouble())
 
                 // Move [ship] if we are on a ship
                 if (shipThisIsIn != null) {
                     // Put the new ship where the old ship is
-                    val newPos = shipThisIsIn.transform.shipToWorld.transformPosition(attachmentLocalPos0, Vector3d())
+                    val newPos = shipThisIsIn.transform.shipToWorld.transformPosition(attachmentLocalPos0.add(0.5, 0.5, 0.5, Vector3d()))
                     val newTransform = ShipTransformImpl(
                         newPos,
                         ship.transform.positionInShip,
@@ -113,10 +113,6 @@ object TestHingeBlock :
                     )
                     // Update the ship transform
                     (ship as ShipDataCommon).transform = newTransform
-
-                    // TODO: I'm not entirely sure why I have to subtract this yet. I think it might be because ground
-                    //       rigid bodies have this offset, so we have to remove it?
-                    attachmentLocalPos0 = attachmentLocalPos0.sub(0.5, 0.5, 0.5, Vector3d())
                 } else {
                     // Move ship up by [extraHeight]
                     val newTransform = ShipTransformImpl(
