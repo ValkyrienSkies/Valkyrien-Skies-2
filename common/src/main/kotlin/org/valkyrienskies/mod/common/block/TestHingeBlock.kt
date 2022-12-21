@@ -30,6 +30,8 @@ import org.joml.Vector3dc
 import org.valkyrienskies.core.apigame.constraints.VSAttachmentConstraint
 import org.valkyrienskies.core.apigame.constraints.VSHingeOrientationConstraint
 import org.valkyrienskies.core.apigame.constraints.VSPosDampingConstraint
+import org.valkyrienskies.core.apigame.constraints.VSRotDampingAxes.PARALLEL
+import org.valkyrienskies.core.apigame.constraints.VSRotDampingAxes.PERPENDICULAR
 import org.valkyrienskies.core.apigame.constraints.VSRotDampingConstraint
 import org.valkyrienskies.core.impl.game.ships.ShipDataCommon
 import org.valkyrienskies.core.impl.game.ships.ShipTransformImpl
@@ -135,7 +137,9 @@ object TestHingeBlock :
 
                 // Attachment constraint
                 run {
-                    val attachmentCompliance = 1e-8
+                    // I don't recommend setting compliance lower than 1e-10 because it tends to cause instability
+                    // TODO: Investigate why small compliance cause instability
+                    val attachmentCompliance = 1e-9
                     val attachmentMaxForce = 1e8
                     val attachmentFixedDistance = 0.0
                     val attachmentConstraint = VSAttachmentConstraint(
@@ -145,25 +149,32 @@ object TestHingeBlock :
                     blockEntity.get().constraintId = level.shipObjectWorld.createNewConstraint(attachmentConstraint)
                 }
 
+                // Hinge constraints will attempt to align the X-axes of both bodies, so to align the Y axis we
+                // apply this rotation to the X-axis
+                val hingeOrientation = Quaterniond(AxisAngle4d(Math.toRadians(90.0), 0.0, 0.0, 1.0))
+
                 // Hinge orientation constraint
                 run {
+                    // I don't recommend setting compliance lower than 1e-10 because it tends to cause instability
+                    val hingeOrientationCompliance = 1e-9
                     val hingeMaxTorque = 1e8
-                    // Hinge constraints will attempt to align the X-axes of both bodies, so to align the Y axis we
-                    // apply this rotation to the X-axis
-                    val hingeOrientation = Quaterniond(AxisAngle4d(Math.toRadians(90.0), 0.0, 0.0, 1.0))
                     val hingeConstraint = VSHingeOrientationConstraint(
-                        shipId0, shipId1, 1e-8, hingeOrientation, hingeOrientation, hingeMaxTorque
+                        shipId0, shipId1, hingeOrientationCompliance, hingeOrientation, hingeOrientation, hingeMaxTorque
                     )
                     blockEntity.get().constraintId = level.shipObjectWorld.createNewConstraint(hingeConstraint)
                 }
 
-                // Pos damping constraint
-                val posDampingConstraint = VSPosDampingConstraint(shipId0, shipId1, 1e-8, attachmentLocalPos0, attachmentLocalPos1, 1e8, 1e-2)
+                // Add position damping to make the hinge more stable
+                val posDampingConstraint = VSPosDampingConstraint(shipId0, shipId1, 0.0, attachmentLocalPos0, attachmentLocalPos1, 1e10, 1e3)
                 blockEntity.get().constraintId = level.shipObjectWorld.createNewConstraint(posDampingConstraint)
 
-                // Rot damping constraint
-                val rotDampingConstraint = VSRotDampingConstraint(shipId0, shipId1, 1e-8, Quaterniond(), Quaterniond(), 1e8, 1e-2)
-                blockEntity.get().constraintId = level.shipObjectWorld.createNewConstraint(rotDampingConstraint)
+                // Add perpendicular rotation damping to make the hinge more stable
+                val perpendicularRotDampingConstraint = VSRotDampingConstraint(shipId0, shipId1, 0.0, hingeOrientation, hingeOrientation, 1e10, 1e3, PERPENDICULAR)
+                blockEntity.get().constraintId = level.shipObjectWorld.createNewConstraint(perpendicularRotDampingConstraint)
+
+                // Add parallel rotation damping to prevent the hinge from spinning forever
+                val parallelRotDampingConstraint = VSRotDampingConstraint(shipId0, shipId1, 0.0, hingeOrientation, hingeOrientation, 1e10, 1e-1, PARALLEL)
+                blockEntity.get().constraintId = level.shipObjectWorld.createNewConstraint(parallelRotDampingConstraint)
             }
         }
         return InteractionResult.CONSUME
