@@ -97,14 +97,14 @@ object TestHingeBlock :
                 // Extra height added to the hinge to keep the top ship slightly above the bottom ship
                 val extraHeight = 0.1
 
-                val attachmentLocalPos0: Vector3dc = Vector3d(pos.x.toDouble(), pos.y + 1.0 + extraHeight, pos.z.toDouble())
+                val attachmentLocalPos0: Vector3dc = Vector3d(pos.x + 0.5, pos.y + 1.5 + extraHeight, pos.z + 0.5)
                 val attachmentLocalPos1: Vector3dc =
-                    Vector3d(shipCenterPos.x.toDouble(), shipCenterPos.y.toDouble(), shipCenterPos.z.toDouble())
+                    Vector3d(shipCenterPos.x + 0.5, shipCenterPos.y + 0.5, shipCenterPos.z + 0.5)
 
                 // Move [ship] if we are on a ship
                 if (shipThisIsIn != null) {
                     // Put the new ship where the old ship is
-                    val newPos = shipThisIsIn.transform.shipToWorld.transformPosition(attachmentLocalPos0.add(0.5, 0.5, 0.5, Vector3d()))
+                    val newPos = shipThisIsIn.transform.shipToWorld.transformPosition(attachmentLocalPos0, Vector3d())
                     val newTransform = ShipTransformImpl(
                         newPos,
                         ship.transform.positionInShip,
