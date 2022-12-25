@@ -1,7 +1,30 @@
 {
   "variants": {
-    "": {
+    "facing=up": {
       "model": "valkyrienskies:block/test_hinge"
+    },
+    "facing=down": {
+      "model": "valkyrienskies:block/test_hinge",
+      "x": 180
+    },
+    "facing=north": {
+      "model": "valkyrienskies:block/test_hinge",
+      "x": 90
+    },
+    "facing=east": {
+      "model": "valkyrienskies:block/test_hinge",
+      "x": 90,
+      "y": 90
+    },
+    "facing=south": {
+      "model": "valkyrienskies:block/test_hinge",
+      "x": 90,
+      "y": 180
+    },
+    "facing=west": {
+      "model": "valkyrienskies:block/test_hinge",
+      "x": 90,
+      "y": 270
     }
   }
 }
