@@ -162,18 +162,19 @@ object TestHingeBlock :
                     }
                 }
 
+                // The positions the hinge attaches relative to the center of mass
                 val attachmentOffset0: Vector3dc = rotationQuaternion.transform(Vector3d(0.0, 0.5 + extraHeight, 0.0))
-                val attachmentOffset1: Vector3dc = rotationQuaternion.transform(Vector3d(0.0, 0.5, 0.0))
+                val attachmentOffset1: Vector3dc = rotationQuaternion.transform(Vector3d(0.0, -0.5, 0.0))
 
                 val attachmentLocalPos0: Vector3dc = Vector3d(pos.x + 0.5, pos.y + 0.5, pos.z + 0.5).add(attachmentOffset0)
                 val attachmentLocalPos1: Vector3dc =
-                    Vector3d(shipCenterPos.x + 0.5, shipCenterPos.y + 0.5, shipCenterPos.z + 0.5).sub(attachmentOffset1)
+                    Vector3d(shipCenterPos.x + 0.5, shipCenterPos.y + 0.5, shipCenterPos.z + 0.5).add(attachmentOffset1)
 
                 // Move [ship] if we are on a ship
                 if (shipThisIsIn != null) {
                     // Put the new ship where the old ship is
                     val newPos = shipThisIsIn.transform.shipToWorld.transformPosition(attachmentLocalPos0, Vector3d())
-                    newPos.add(shipThisIsIn.transform.shipToWorldRotation.transform(attachmentOffset1, Vector3d()))
+                    newPos.sub(shipThisIsIn.transform.shipToWorldRotation.transform(attachmentOffset1, Vector3d()))
                     val newTransform = ShipTransformImpl(
                         newPos,
                         ship.transform.positionInShip,
@@ -184,7 +185,7 @@ object TestHingeBlock :
                     (ship as ShipDataCommon).transform = newTransform
                 } else {
                     val newPos = Vector3d(attachmentLocalPos0)
-                    newPos.add(attachmentOffset1)
+                    newPos.sub(attachmentOffset1)
                     val newTransform = ShipTransformImpl(
                         newPos,
                         ship.transform.positionInShip,
