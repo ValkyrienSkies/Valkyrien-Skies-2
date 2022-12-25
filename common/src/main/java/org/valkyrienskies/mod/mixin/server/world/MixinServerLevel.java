@@ -11,16 +11,23 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Executor;
 import java.util.function.BooleanSupplier;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
 import net.minecraft.core.Position;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.progress.ChunkProgressListener;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
+import net.minecraft.world.level.storage.LevelStorageSource.LevelStorageAccess;
+import net.minecraft.world.level.storage.ServerLevelData;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3d;
 import org.joml.Vector3i;
@@ -59,6 +66,21 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
     @Override
     public ServerShipWorldCore getShipObjectWorld() {
         return ((IShipObjectWorldServerProvider) getServer()).getShipObjectWorld();
+    }
+
+    @Inject(method = "<init>", at = @At("RETURN"))
+    void onInit(final MinecraftServer minecraftServer, final Executor executor,
+        final LevelStorageAccess levelStorageAccess,
+        final ServerLevelData serverLevelData, final ResourceKey levelId, final Holder holder,
+        final ChunkProgressListener chunkProgressListener, final ChunkGenerator chunkGenerator, final boolean bl,
+        final long l, final List list,
+        final boolean bl2, final CallbackInfo ci) {
+
+        // This only happens when overworld gets loaded on startup, we have a mixin in MixinMinecraftServer for this specific case
+        if (getShipObjectWorld() != null) {
+            getShipObjectWorld().addDimension(VSGameUtilsKt.getDimensionId((ServerLevel) (Object) this),
+                VSGameUtilsKt.getYRange((ServerLevel) (Object) this));
+        }
     }
 
     /**
