@@ -117,6 +117,11 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         shipWorld = vsPipeline.getShipWorld();
 
         RegistryEvents.registriesAreComplete();
+        
+        getShipObjectWorld().addDimension(
+            VSGameUtilsKt.getDimensionId(overworld()),
+            VSGameUtilsKt.getYRange(overworld())
+        );
     }
 
     @Inject(
@@ -129,12 +134,15 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         for (final ServerLevel level : getAllLevels()) {
             newLoadedLevels.put(VSGameUtilsKt.getDimensionId(level), level);
         }
+        /*
         for (final var entry : newLoadedLevels.entrySet()) {
             if (!loadedLevels.contains(entry.getKey())) {
                 final var yRange = VSGameUtilsKt.getYRange(entry.getValue());
                 shipWorld.addDimension(entry.getKey(), yRange);
             }
         }
+        */
+
         for (final String oldLoadedLevelId : loadedLevels) {
             if (!newLoadedLevels.containsKey(oldLoadedLevelId)) {
                 shipWorld.removeDimension(oldLoadedLevelId);
