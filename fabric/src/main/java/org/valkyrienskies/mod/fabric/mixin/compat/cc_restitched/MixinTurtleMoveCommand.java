@@ -25,17 +25,19 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 @Mixin(TurtleMoveCommand.class)
 public abstract class MixinTurtleMoveCommand {
     @Inject(method = "canEnter", at = @At("RETURN"), cancellable = true)
-    private static void ValkyrienSkies2$canEnter(TurtlePlayer turtlePlayer, Level world, @Nonnull BlockPos position, CallbackInfoReturnable<TurtleCommandResult> cir) {
+    private static void ValkyrienSkies2$canEnter(
+        final TurtlePlayer turtlePlayer, final Level world, @Nonnull final BlockPos position,
+        final CallbackInfoReturnable<TurtleCommandResult> cir) {
         if (((TurtleCommandResult) cir.getReturnValue()).isSuccess()) {
-            Ship ship = VSGameUtilsKt.getShipManagingPos(world, position);
+            final Ship ship = VSGameUtilsKt.getShipManagingPos(world, position);
             if (ship == null) {
-                Ship iShip = VSGameUtilsKt.getShipManagingPos(world, getShipPosFromWorldPos(world, position));
+                final Ship iShip = VSGameUtilsKt.getShipManagingPos(world, getShipPosFromWorldPos(world, position));
                 if (iShip != null) {
                     cir.setReturnValue(TurtleCommandResult.failure("ship"));
                 }
             } else {
-                ChunkPos chunk = world.getChunkAt(position).getPos();
-                if (!ship.getShipActiveChunksSet().containsChunkPos(chunk.x, chunk.z)) {
+                final ChunkPos chunk = world.getChunkAt(position).getPos();
+                if (!ship.getChunkClaim().contains(chunk.x, chunk.z)) {
                     cir.setReturnValue(TurtleCommandResult.failure("out of ship"));
                 }
             }
@@ -44,27 +46,32 @@ public abstract class MixinTurtleMoveCommand {
 
     //CUSTOM METHODS
     @Unique
-    private static Vector3d getShipPosFromWorldPos(Level world, BlockPos position) {
-        List<Vector3d> detectedShips = VSGameUtilsKt.transformToNearbyShipsAndWorld(world, position.getX() + 0.5, position.getY() + 0.5, position.getZ() + 0.5, 0.1);
-        for (Vector3d vec : detectedShips) {
+    private static Vector3d getShipPosFromWorldPos(final Level world, final BlockPos position) {
+        final List<Vector3d> detectedShips =
+            VSGameUtilsKt.transformToNearbyShipsAndWorld(world, position.getX() + 0.5, position.getY() + 0.5,
+                position.getZ() + 0.5, 0.1);
+        for (final Vector3d vec : detectedShips) {
             if (vec != null) {
                 return vec;
             }
         }
         return new Vector3d(position.getX(), position.getY(), position.getZ());
     }
+
     @Unique
-    private static boolean isShipScaled(Ship ship) {
-        Vector3dc scale = ship.getShipTransform().getShipCoordinatesToWorldCoordinatesScaling();
-        Vector3dc normalScale = new Vector3d(1.000E+0, 1.000E+0, 1.000E+0);
+    private static boolean isShipScaled(final Ship ship) {
+        final Vector3dc scale = ship.getShipTransform().getShipCoordinatesToWorldCoordinatesScaling();
+        final Vector3dc normalScale = new Vector3d(1.000E+0, 1.000E+0, 1.000E+0);
         return !scale.equals(normalScale);
     }
-    @Unique
-    private static boolean doesShipContainPoint(Ship ship, BlockPos pos) {
-        AABBic shipAABB = ship.getShipVoxelAABB();
 
-        AABB t = new AABB(shipAABB.maxX(), shipAABB.maxY(), shipAABB.maxZ(), shipAABB.minX(), shipAABB.minY(), shipAABB.minZ());
-        boolean test = t.intersects(new AABB(pos));
+    @Unique
+    private static boolean doesShipContainPoint(final Ship ship, final BlockPos pos) {
+        final AABBic shipAABB = ship.getShipVoxelAABB();
+
+        final AABB t = new AABB(shipAABB.maxX(), shipAABB.maxY(), shipAABB.maxZ(), shipAABB.minX(), shipAABB.minY(),
+            shipAABB.minZ());
+        final boolean test = t.intersects(new AABB(pos));
         return test;
     }
 }

@@ -28,7 +28,7 @@ public abstract class MixinTurtleMoveCommand {
     private static void ValkyrienSkies2$canEnter(
         final TurtlePlayer turtlePlayer, final Level world, @Nonnull final BlockPos position,
         final CallbackInfoReturnable<TurtleCommandResult> cir) {
-        if (((TurtleCommandResult) cir.getReturnValue()).isSuccess()) {
+        if (cir.getReturnValue().isSuccess()) {
             final Ship ship = VSGameUtilsKt.getShipManagingPos(world, position);
             if (ship == null) {
                 final Ship iShip = VSGameUtilsKt.getShipManagingPos(world, getShipPosFromWorldPos(world, position));
@@ -37,7 +37,7 @@ public abstract class MixinTurtleMoveCommand {
                 }
             } else {
                 final ChunkPos chunk = world.getChunkAt(position).getPos();
-                if (!ship.getShipActiveChunksSet().containsChunkPos(chunk.x, chunk.z)) {
+                if (!ship.getChunkClaim().contains(chunk.x, chunk.z)) {
                     cir.setReturnValue(TurtleCommandResult.failure("out of ship"));
                 }
             }

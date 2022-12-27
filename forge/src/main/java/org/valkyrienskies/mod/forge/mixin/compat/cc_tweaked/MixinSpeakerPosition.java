@@ -19,12 +19,13 @@ public abstract class MixinSpeakerPosition {
     @Shadow
     public abstract Level level();
 
-    @Inject(method = "position", at = @At("RETURN"), remap = false, cancellable = false)
-    public void ValkyrienSkies2$getPosition(CallbackInfoReturnable cir) {
-        Vec3 pos = (Vec3) cir.getReturnValue();
+    @Inject(method = "position", at = @At("RETURN"), remap = false, cancellable = true)
+    public void ValkyrienSkies2$getPosition(final CallbackInfoReturnable<Vec3> cir) {
+        final Vec3 pos = cir.getReturnValue();
         final Ship ship = VSGameUtilsKt.getShipObjectManagingPos(this.level(), pos.x, pos.y, pos.z);
         if (ship != null) {
-            cir.setReturnValue(VectorConversionsMCKt.toMinecraft(VSGameUtilsKt.toWorldCoordinates(ship, pos.x, pos.y, pos.z)));
+            cir.setReturnValue(
+                VectorConversionsMCKt.toMinecraft(VSGameUtilsKt.toWorldCoordinates(ship, pos.x, pos.y, pos.z)));
         }
     }
 }
