@@ -37,7 +37,7 @@ public abstract class MixinTurtleMoveCommand {
                 }
             } else {
                 final ChunkPos chunk = world.getChunkAt(position).getPos();
-                if (!ship.getActiveChunksSet().contains(chunk.x, chunk.z)) {
+                if (!ship.getChunkClaim().contains(chunk.x, chunk.z)) {
                     cir.setReturnValue(TurtleCommandResult.failure("out of ship"));
                 }
             }
