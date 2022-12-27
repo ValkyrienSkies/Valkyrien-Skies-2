@@ -97,7 +97,7 @@ public abstract class MixinTurtleBrain {
 
     @Unique
     private static boolean doesShipContainPoint(final Ship ship, final BlockPos pos) {
-        final AABBic shipAABB = ship.getShipVoxelAABB();
+        final AABBic shipAABB = ship.getShipAABB();
 
         final AABB t = new AABB(shipAABB.maxX(), shipAABB.maxY(), shipAABB.maxZ(), shipAABB.minX(), shipAABB.minY(),
             shipAABB.minZ());
