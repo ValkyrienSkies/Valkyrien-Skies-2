@@ -8,10 +8,7 @@ import javax.annotation.Nonnull;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.phys.AABB;
 import org.joml.Vector3d;
-import org.joml.Vector3dc;
-import org.joml.primitives.AABBic;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.Unique;
@@ -56,22 +53,5 @@ public abstract class MixinTurtleMoveCommand {
             }
         }
         return new Vector3d(position.getX(), position.getY(), position.getZ());
-    }
-
-    @Unique
-    private static boolean isShipScaled(final Ship ship) {
-        final Vector3dc scale = ship.getShipTransform().getShipCoordinatesToWorldCoordinatesScaling();
-        final Vector3dc normalScale = new Vector3d(1.000E+0, 1.000E+0, 1.000E+0);
-        return !scale.equals(normalScale);
-    }
-
-    @Unique
-    private static boolean doesShipContainPoint(final Ship ship, final BlockPos pos) {
-        final AABBic shipAABB = ship.getShipVoxelAABB();
-
-        final AABB t = new AABB(shipAABB.maxX(), shipAABB.maxY(), shipAABB.maxZ(), shipAABB.minX(), shipAABB.minY(),
-            shipAABB.minZ());
-        final boolean test = t.intersects(new AABB(pos));
-        return test;
     }
 }

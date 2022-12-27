@@ -91,7 +91,7 @@ public abstract class MixinTurtleBrain {
 
     @Unique
     private static boolean isShipScaled(final Ship ship) {
-        final Vector3dc scale = ship.getShipTransform().getShipCoordinatesToWorldCoordinatesScaling();
+        final Vector3dc scale = ship.getTransform().getShipToWorldScaling();
         final Vector3dc normalScale = new Vector3d(1.000E+0, 1.000E+0, 1.000E+0);
         return !scale.equals(normalScale);
     }
