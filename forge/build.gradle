@@ -50,6 +50,16 @@ configurations {
     shadowCommon.extendsFrom core
 }
 
+repositories {
+    // CC Tweaked
+    maven {
+        url "https://cursemaven.com"
+        content {
+            includeGroup "curse.maven"
+        }
+    }
+}
+
 dependencies {
     include(forgeRuntimeLibrary(annotationProcessor(implementation("com.github.LlamaLad7:MixinExtras:0.1.1"))))
 
@@ -69,6 +79,9 @@ dependencies {
     modImplementation("com.simibubi.create:create-${create_minecraft_version}:${create_version}:slim") { transitive = false }
     modImplementation("com.jozufozu.flywheel:flywheel-forge-${flywheel_minecraft_version}:${flywheel_version}")
     modImplementation("com.tterrag.registrate:Registrate:${registrate_version}")
+
+    // CC Tweaked
+    modCompileOnly("curse.maven:cc-tweaked-282001:4061947")
 
     // Add Kotlin for Forge.
     forgeRuntimeLibrary('curse.maven:kotlinforforge-351264:3925887')
