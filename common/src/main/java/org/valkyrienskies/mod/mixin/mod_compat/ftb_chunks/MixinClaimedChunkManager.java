@@ -6,7 +6,6 @@ import dev.ftb.mods.ftblibrary.math.ChunkDimPos;
 import java.util.Map;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
@@ -27,6 +26,8 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 public abstract class MixinClaimedChunkManager {
     @Unique
     private Entity entity = null;
+    @Unique
+    private BlockPos pos = null;
 
     @Shadow
     public abstract @Nullable ClaimedChunk getChunk(ChunkDimPos pos);
@@ -41,12 +42,15 @@ public abstract class MixinClaimedChunkManager {
         return entity;
     }
 
+    @ModifyVariable(method = "protect", at = @At("HEAD"), name = "pos", remap = false)
+    private BlockPos ValkyrienSkies$entity(final BlockPos instance) {
+        this.pos = instance;
+        return pos;
+    }
+
     @Inject(method = "getChunk", at = @At("RETURN"), cancellable = true, remap = false)
     public void ValkyrienSkies$getChunk(final ChunkDimPos dimPos, final CallbackInfoReturnable<ClaimedChunk> cir) {
         if (entity != null) {
-            final ChunkPos chunk = dimPos.getChunkPos();
-            final BlockPos pos =
-                new BlockPos(chunk.getMiddleBlockX(), chunk.getWorldPosition().getY(), chunk.getMiddleBlockZ());
             final Level level = entity.level;
             final Ship ship = VSGameUtilsKt.getShipManagingPos(level, pos);
             if (ship != null && pos.getY() < level.getMaxBuildHeight() && pos.getY() > level.getMinBuildHeight()) {
