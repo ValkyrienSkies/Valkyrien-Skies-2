@@ -7,6 +7,7 @@ import java.util.Map;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Final;
@@ -46,11 +47,12 @@ public abstract class MixinClaimedChunkManager {
             final ChunkPos chunk = dimPos.getChunkPos();
             final BlockPos pos =
                 new BlockPos(chunk.getMiddleBlockX(), chunk.getWorldPosition().getY(), chunk.getMiddleBlockZ());
-            final Ship ship = VSGameUtilsKt.getShipManagingPos(entity.level, pos);
-            if (ship != null) {
+            final Level level = entity.level;
+            final Ship ship = VSGameUtilsKt.getShipManagingPos(level, pos);
+            if (ship != null && pos.getY() < level.getMaxBuildHeight() && pos.getY() > level.getMinBuildHeight()) {
                 final Vector3d vec =
                     ship.getShipToWorld().transformPosition(new Vector3d(pos.getX(), pos.getY(), pos.getZ()));
-                cir.setReturnValue(getChunk(new ChunkDimPos(entity.level, new BlockPos(vec.x, vec.y, vec.z))));
+                cir.setReturnValue(getChunk(new ChunkDimPos(level, new BlockPos(vec.x, vec.y, vec.z))));
             }
         }
     }
