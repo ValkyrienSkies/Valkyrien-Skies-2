@@ -1,3 +1,12 @@
+repositories {
+    maven {
+        url "https://cursemaven.com"
+        content {
+            includeGroup "curse.maven"
+        }
+    }
+}
+
 dependencies {
     annotationProcessor(implementation("com.github.LlamaLad7:MixinExtras:0.1.1"))
 
@@ -15,6 +24,11 @@ dependencies {
         exclude module: "netty-buffer"
         exclude module: "fastutil"
     }
+
+    // FTB Stuffs
+    modCompileOnly("curse.maven:ftb-util-404465:4210935")
+    modCompileOnly("curse.maven:ftb-teams-404468:4229138")
+    modCompileOnly("curse.maven:ftb-chunks-314906:4229120")
 }
 
 architectury {
