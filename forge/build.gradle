@@ -50,16 +50,6 @@ configurations {
     shadowCommon.extendsFrom core
 }
 
-repositories {
-    // CC Tweaked
-    maven {
-        url "https://cursemaven.com"
-        content {
-            includeGroup "curse.maven"
-        }
-    }
-}
-
 dependencies {
     include(forgeRuntimeLibrary(annotationProcessor(implementation("com.github.LlamaLad7:MixinExtras:0.1.1"))))
 
