@@ -40,14 +40,6 @@ repositories {
         url = 'https://thedarkcolour.github.io/KotlinForForge/'
     }
     mavenCentral()
-
-    // CC Tweaked
-    maven {
-        url "https://cursemaven.com"
-        content {
-            includeGroup "curse.maven"
-        }
-    }
 }
 
 dependencies {
