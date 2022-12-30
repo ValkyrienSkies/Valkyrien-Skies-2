@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.mixin.mod_compat.ftb_chunks;
 import dev.ftb.mods.ftbchunks.data.ClaimedChunkManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.Level;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
@@ -38,12 +39,20 @@ public abstract class MixinClaimedChunkManager {
             return pos;
         }
 
-        final Ship ship = VSGameUtilsKt.getShipManagingPos(entity.level, pos);
+        Level level = entity.level;
+
+        final Ship ship = VSGameUtilsKt.getShipManagingPos(level, pos);
         if (ship == null) {
             return pos;
         }
 
         final Vector3d vec = ship.getShipToWorld().transformPosition(new Vector3d(pos.getX(), pos.getY(), pos.getZ()));
-        return new BlockPos(VectorConversionsMCKt.toMinecraft(vec));
+        BlockPos newPos = new BlockPos(VectorConversionsMCKt.toMinecraft(vec));
+
+        if (newPos.getY() > level.getMaxBuildHeight() || newPos.getY() < level.getMinBuildHeight()) {
+            return pos;
+        }
+        
+        return newPos;
     }
 }
