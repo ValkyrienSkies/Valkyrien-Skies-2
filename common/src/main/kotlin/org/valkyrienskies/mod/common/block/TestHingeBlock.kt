@@ -33,11 +33,12 @@ import org.joml.Quaterniond
 import org.joml.Quaterniondc
 import org.joml.Vector3d
 import org.joml.Vector3dc
-import org.valkyrienskies.core.apigame.constraints.VSAttachmentConstraint
-import org.valkyrienskies.core.apigame.constraints.VSHingeOrientationConstraint
-import org.valkyrienskies.core.apigame.constraints.VSPosDampingConstraint
-import org.valkyrienskies.core.apigame.constraints.VSRotDampingAxes.PERPENDICULAR
-import org.valkyrienskies.core.apigame.constraints.VSRotDampingConstraint
+import org.valkyrienskies.core.api.VSBeta
+import org.valkyrienskies.core.api.physics.constraints.AttachmentConstraint
+import org.valkyrienskies.core.api.physics.constraints.HingeOrientationConstraint
+import org.valkyrienskies.core.api.physics.constraints.PosDampingConstraint
+import org.valkyrienskies.core.api.physics.constraints.RotDampingConstraint
+import org.valkyrienskies.core.api.physics.constraints.VSRotDampingAxes.PERPENDICULAR
 import org.valkyrienskies.core.impl.game.ships.ShipDataCommon
 import org.valkyrienskies.core.impl.game.ships.ShipTransformImpl
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
@@ -102,6 +103,7 @@ object TestHingeBlock :
         }
     }
 
+    @OptIn(VSBeta::class)
     @Deprecated("Deprecated in Java")
     override fun use(
         state: BlockState,
@@ -209,7 +211,7 @@ object TestHingeBlock :
                     val attachmentCompliance = 1e-10
                     val attachmentMaxForce = 1e10
                     val attachmentFixedDistance = 0.0
-                    val attachmentConstraint = VSAttachmentConstraint(
+                    val attachmentConstraint = AttachmentConstraint(
                         shipId0, shipId1, attachmentCompliance, attachmentLocalPos0, attachmentLocalPos1,
                         attachmentMaxForce, attachmentFixedDistance
                     )
@@ -225,18 +227,18 @@ object TestHingeBlock :
                     // I don't recommend setting compliance lower than 1e-10 because it tends to cause instability
                     val hingeOrientationCompliance = 1e-10
                     val hingeMaxTorque = 1e10
-                    val hingeConstraint = VSHingeOrientationConstraint(
+                    val hingeConstraint = HingeOrientationConstraint(
                         shipId0, shipId1, hingeOrientationCompliance, hingeOrientation, hingeOrientation, hingeMaxTorque
                     )
                     blockEntity.get().constraintId = level.shipObjectWorld.createNewConstraint(hingeConstraint)
                 }
 
                 // Add position damping to make the hinge more stable
-                val posDampingConstraint = VSPosDampingConstraint(shipId0, shipId1, 1e-10, attachmentLocalPos0, attachmentLocalPos1, 1e10, 1e3)
+                val posDampingConstraint = PosDampingConstraint(shipId0, shipId1, 1e-10, attachmentLocalPos0, attachmentLocalPos1, 1e10, 1e3)
                 blockEntity.get().constraintId = level.shipObjectWorld.createNewConstraint(posDampingConstraint)
 
                 // Add perpendicular rotation damping to make the hinge more stable
-                val perpendicularRotDampingConstraint = VSRotDampingConstraint(shipId0, shipId1, 1e-10, hingeOrientation, hingeOrientation, 1e10, 1e3, PERPENDICULAR)
+                val perpendicularRotDampingConstraint = RotDampingConstraint(shipId0, shipId1, 1e-10, hingeOrientation, hingeOrientation, 1e10, 1e3, PERPENDICULAR)
                 blockEntity.get().constraintId = level.shipObjectWorld.createNewConstraint(perpendicularRotDampingConstraint)
 
                 // Add parallel rotation damping to prevent the hinge from spinning forever
