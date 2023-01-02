@@ -13,6 +13,7 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Pseudo
@@ -35,11 +36,11 @@ public abstract class MixinClaimedChunkManager {
         )
     )
     private BlockPos ValkyrienSkies$newChunkDimPos(final BlockPos pos) {
-        if (entity == null) {
+        if (entity == null && !VSGameConfig.SERVER.getFTBChunks().getShipsProtectedByClaims()) {
             return pos;
         }
 
-        Level level = entity.level;
+        final Level level = entity.level;
 
         final Ship ship = VSGameUtilsKt.getShipManagingPos(level, pos);
         if (ship == null) {
@@ -47,12 +48,15 @@ public abstract class MixinClaimedChunkManager {
         }
 
         final Vector3d vec = ship.getShipToWorld().transformPosition(new Vector3d(pos.getX(), pos.getY(), pos.getZ()));
-        BlockPos newPos = new BlockPos(VectorConversionsMCKt.toMinecraft(vec));
+        final BlockPos newPos = new BlockPos(VectorConversionsMCKt.toMinecraft(vec));
 
-        if (newPos.getY() > level.getMaxBuildHeight() || newPos.getY() < level.getMinBuildHeight()) {
+        if (
+            (newPos.getY() > level.getMaxBuildHeight() || newPos.getY() < level.getMinBuildHeight()) &&
+                !VSGameConfig.SERVER.getFTBChunks().getShipsProtectionOutOfBuildHeight()
+        ) {
             return pos;
         }
-        
+
         return newPos;
     }
 }

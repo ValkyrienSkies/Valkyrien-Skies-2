@@ -19,6 +19,20 @@ object VSGameConfig {
     }
 
     class Server {
+        val FTBChunks = FTBCHUNKS()
+
+        class FTBCHUNKS {
+            @JsonSchema(
+                description = "Are Ships protected by FTB Chunk Claims?"
+            )
+            var shipsProtectedByClaims = true
+            
+            @JsonSchema(
+                description = "Are ships protected outside of build height (max and min)?"
+            )
+            var shipsProtectionOutOfBuildHeight = false
+        }
+
         val ComputerCraft = COMPUTERCRAFT()
 
         class COMPUTERCRAFT {
