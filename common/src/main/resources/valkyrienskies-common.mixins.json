@@ -41,6 +41,7 @@
     "feature.water_in_ships_entity.MixinEntity",
     "feature.world_border.MixinLevel",
     "feature.world_border.MixinWorldBorder",
+    "mod_compat.ftb_chunks.MixinClaimedChunkManager",
     "mod_compat.sodium.MixinChunkTracker",
     "mod_compat.sodium.MixinRegionChunkRenderer",
     "mod_compat.sodium.MixinRenderSectionManager",
