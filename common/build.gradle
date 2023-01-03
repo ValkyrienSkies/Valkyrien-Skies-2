@@ -1,12 +1,3 @@
-repositories {
-    maven {
-        url "https://cursemaven.com"
-        content {
-            includeGroup "curse.maven"
-        }
-    }
-}
-
 dependencies {
     annotationProcessor(implementation("com.github.LlamaLad7:MixinExtras:0.1.1"))
 
