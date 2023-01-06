@@ -1,4 +1,5 @@
 // Determine release type
+// alpha, beta, or release
 def vsReleaseType = 'alpha'
 if (project.hasProperty("CustomReleaseVersion")) {
     def matches = project.property("CustomReleaseVersion") =~ 'release/(?:\\d+\\.){1,2}\\d+-(alpha|beta)\\d+'
@@ -24,6 +25,19 @@ curseforge {
 
             mainArtifact(remapJar.archiveFile.get().asFile) {
                 displayName = fileDisplayName
+
+                if (project.loader_platform == 'Forge') {
+                    requiredDependency 'kotlin-for-forge'
+                    embeddedLibrary 'cloth-config'
+                }
+
+                if (project.loader_platform == 'Fabric') {
+                    requiredDependency 'fabric-api'
+                    embeddedLibrary 'cloth-config'
+                    embeddedLibrary 'fabric-language-kotlin'
+                    optionalDependency 'modmenu'
+                }
+
             }
         }
     }
@@ -43,4 +57,18 @@ modrinth {
     uploadFile = remapJar
     gameVersions = [project.minecraft_version]
     loaders = [project.loader_platform.toLowerCase()]
+
+    dependencies {
+        if (project.loader_platform == 'Forge') {
+            required.project 'kotlin-for-forge'
+            embedded.project 'cloth-config'
+        }
+
+        if (project.loader_platform == 'Fabric') {
+            required.project 'fabric-api'
+            embedded.project 'cloth-config'
+            embedded.project 'fabric-language-kotlin'
+            optional.project 'modmenu'
+        }
+    }
 }

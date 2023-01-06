@@ -1,13 +1,12 @@
 package org.valkyrienskies.mod.common.world
 
-import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.level.ChunkPos
 import org.apache.commons.lang3.mutable.MutableObject
-import org.valkyrienskies.core.api.world.ServerShipWorldCore
-import org.valkyrienskies.core.api.world.chunks.ChunkUnwatchTask
-import org.valkyrienskies.core.api.world.chunks.ChunkWatchTask
+import org.valkyrienskies.core.apigame.world.ServerShipWorldCore
+import org.valkyrienskies.core.apigame.world.chunks.ChunkUnwatchTask
+import org.valkyrienskies.core.apigame.world.chunks.ChunkWatchTask
 import org.valkyrienskies.mod.common.executeIf
 import org.valkyrienskies.mod.common.getLevelFromDimensionId
 import org.valkyrienskies.mod.common.isTickingChunk
@@ -28,8 +27,7 @@ object ChunkManagement {
                 "Watch task for dimension " + chunkWatchTask.dimensionId + ": " +
                     chunkWatchTask.chunkX + " : " + chunkWatchTask.chunkZ
             )
-            val chunkPacketBuffer: MutableObject<ClientboundLevelChunkWithLightPacket> =
-                MutableObject<ClientboundLevelChunkWithLightPacket>()
+
             val chunkPos = ChunkPos(chunkWatchTask.chunkX, chunkWatchTask.chunkZ)
 
             val level = server.getLevelFromDimensionId(chunkWatchTask.dimensionId)!!
@@ -41,11 +39,10 @@ object ChunkManagement {
                     if (chunkWatchTask.dimensionId != player.dimension) {
                         logger.warn("Player received watch task for chunk in dimension that they are not also in!")
                     }
-                    val serverPlayerEntity =
-                        minecraftPlayer.playerEntityReference.get() as ServerPlayer?
-                    if (serverPlayerEntity != null) {
-                        (level.chunkSource.chunkMap as ChunkMapAccessor)
-                            .callUpdateChunkTracking(serverPlayerEntity, chunkPos, chunkPacketBuffer, false, true)
+                    val serverPlayer = minecraftPlayer.playerEntityReference.get() as ServerPlayer?
+                    if (serverPlayer != null) {
+                        val map = level.chunkSource.chunkMap as ChunkMapAccessor
+                        map.callUpdateChunkTracking(serverPlayer, chunkPos, MutableObject(), false, true)
                     }
                 }
             }

@@ -20,7 +20,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(FireBlock.class)
-public class FireMixin {
+public abstract class FireMixin {
+
     @Unique
     private boolean isModifyingFireTick = false;
 
@@ -43,14 +44,13 @@ public class FireMixin {
         final double origZ = pos.getZ();
 
         VSGameUtilsKt.transformToNearbyShipsAndWorld(level, origX, origY, origZ, 3, (x, y, z) -> {
-
             final BlockPos newPos = new BlockPos(x, y, z);
 
             if (level.isWaterAt(newPos)) {
                 level.removeBlock(pos, false);
             }
 
-            final int i = (Integer) state.getValue(this.AGE);
+            final int i = state.getValue(AGE);
 
             final boolean bl2 = level.isHumidAt(newPos);
             final int k = bl2 ? -50 : 0;
@@ -118,17 +118,11 @@ public class FireMixin {
     }
 
     @Shadow
-    protected boolean isNearRain(final Level level, final BlockPos pos) {
-        return isNearRain(level, pos);
-    }
+    protected abstract BlockState getStateWithAge(LevelAccessor levelAccessor, BlockPos blockPos, int i);
 
     @Shadow
-    private int getIgniteOdds(final LevelReader level, final BlockPos pos) {
-        return getIgniteOdds(level, pos);
-    }
+    protected abstract boolean isNearRain(Level level, BlockPos blockPos);
 
     @Shadow
-    private BlockState getStateWithAge(final LevelAccessor level, final BlockPos pos, final int age) {
-        return getStateWithAge(level, pos, age);
-    }
+    protected abstract int getFireOdds(LevelReader levelReader, BlockPos blockPos);
 }

@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.mixin.mod_compat.sodium;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import java.util.List;
 import me.jellysquid.mods.sodium.client.render.chunk.ChunkCameraContext;
 import me.jellysquid.mods.sodium.client.render.chunk.RegionChunkRenderer;
@@ -38,13 +40,27 @@ public class MixinRegionChunkRenderer implements RegionChunkRendererDuck {
         final ClientShip ship = VSGameUtilsKt.getShipObjectManagingPos(Minecraft.getInstance().level,
             section.getChunkX(), section.getChunkZ());
 
-        camInShip.set(camInWorld);
-
         if (ship != null) {
-            ship.getRenderTransform().getWorldToShip().transformPosition(camInShip);
+            ship.getRenderTransform().getWorldToShip().transformPosition(camInWorld, camInShip);
+            final ChunkRenderBounds originalBounds = section.getBounds();
+            return new ChunkRenderBounds(originalBounds.x1 - 1.9f, originalBounds.y1 - 1.9f,
+                originalBounds.z1 - 1.9f, originalBounds.x2 + 1.9f, originalBounds.y2 + 1.9f,
+                originalBounds.z2 + 1.9f);
+        } else {
+            camInShip.set(camInWorld);
+            return section.getBounds();
         }
+    }
 
-        return section.getBounds();
+    @WrapOperation(
+        at = @At(
+            value = "FIELD",
+            target = "Lme/jellysquid/mods/sodium/client/render/chunk/RegionChunkRenderer;isBlockFaceCullingEnabled:Z"
+        ),
+        method = "buildDrawBatches"
+    )
+    private boolean redirectEnabledCulling(final RegionChunkRenderer instance, final Operation<Boolean> operation) {
+        return false;
     }
 
     @Redirect(

@@ -1,11 +1,11 @@
 package org.valkyrienskies.mod.fabric.mixin;
 
+import com.llamalad7.mixinextras.MixinExtrasBootstrap;
 import java.util.List;
 import java.util.Set;
 import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
-import org.valkyrienskies.mod.fabric.AutoDependenciesFabric;
 
 /**
  * For now, just using this class as an abusive early entrypoint to run the updater
@@ -14,7 +14,7 @@ public class ValkyrienFabricMixinConfigPlugin implements IMixinConfigPlugin {
 
     @Override
     public void onLoad(final String s) {
-        AutoDependenciesFabric.runUpdater();
+        MixinExtrasBootstrap.init();
     }
 
     @Override

@@ -6,8 +6,8 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
 import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerPlayer
-import org.valkyrienskies.core.api.hooks.CoreHooksIn
-import org.valkyrienskies.core.api.world.IPlayer
+import org.valkyrienskies.core.apigame.hooks.CoreHooksIn
+import org.valkyrienskies.core.apigame.world.IPlayer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.playerWrapper
 import org.valkyrienskies.mod.common.util.MinecraftPlayer

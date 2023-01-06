@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.feature.shipyard_entities;
 
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.culling.Frustum;
@@ -12,7 +13,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
@@ -57,15 +57,14 @@ public class MixinEntityRenderDispatcher {
         }
     }
 
-    @Inject(
+    @ModifyReturnValue(
         method = "shouldRender",
-        at = @At("TAIL"),
-        cancellable = true
+        at = @At("RETURN")
     )
-    void shouldRender(final Entity entity, final Frustum frustum,
-        final double camX, final double camY, final double camZ,
-        final CallbackInfoReturnable<Boolean> cir) {
-        if (!cir.getReturnValue()) {
+    boolean shouldRender(final boolean returns, final Entity entity, final Frustum frustum,
+        final double camX, final double camY, final double camZ) {
+
+        if (!returns) {
             final ClientShip ship =
                 (ClientShip) VSGameUtilsKt.getShipObjectManagingPos(entity.level, entity.blockPosition());
             if (ship != null) {
@@ -79,9 +78,11 @@ public class MixinEntityRenderDispatcher {
 
                 // Get the in world position and do it minus what the aabb already has and then add the offset
                 aabb.transform(ship.getRenderTransform().getShipToWorld());
-                cir.setReturnValue(frustum.isVisible(VectorConversionsMCKt.toMinecraft(aabb)));
+                return frustum.isVisible(VectorConversionsMCKt.toMinecraft(aabb));
             }
         }
+
+        return returns;
     }
 
 }

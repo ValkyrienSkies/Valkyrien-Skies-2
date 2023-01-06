@@ -1,10 +1,10 @@
 package org.valkyrienskies.mod.mixin.client.multiplayer;
 
-import net.minecraft.ChatFormatting;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.ClientPacketListener;
-import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
 import net.minecraft.network.protocol.game.ClientboundLoginPacket;
 import net.minecraft.world.entity.Entity;
@@ -13,10 +13,9 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.At.Shift;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientCreator;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 
 @Mixin(ClientPacketListener.class)
@@ -24,13 +23,6 @@ public class MixinClientPacketListener {
 
     @Shadow
     private ClientLevel level;
-
-    @Inject(method = "handleLogin", at = @At("TAIL"))
-    public void afterLogin(final ClientboundLoginPacket packet, final CallbackInfo ci) {
-        Minecraft.getInstance().player.sendSystemMessage(
-            Component.literal("You are using an ALPHA version of Valkyrien Skies 2, use at your own risk!").withStyle(
-                ChatFormatting.RED, ChatFormatting.BOLD));
-    }
 
     @Inject(
         at = @At(
@@ -73,18 +65,18 @@ public class MixinClientPacketListener {
      * When mc receives a tp packet it lerps it between 2 positions in 3 steps, this is bad for ships it gets stuck in a
      * unloaded chunk clientside and stays there until rejoining the server.
      */
-    @Redirect(method = "handleTeleportEntity", at = @At(value = "INVOKE",
+    @WrapOperation(method = "handleTeleportEntity", at = @At(value = "INVOKE",
         target = "Lnet/minecraft/world/entity/Entity;lerpTo(DDDFFIZ)V"))
     private void teleportingWithNoStep(final Entity instance,
         final double x, final double y, final double z,
         final float yRot, final float xRot,
-        final int lerpSteps, final boolean teleport) {
+        final int lerpSteps, final boolean teleport, final Operation<Void> lerpTo) {
         if (VSGameUtilsKt.getShipObjectManagingPos(instance.level, instance.getX(), instance.getY(), instance.getZ()) !=
             null) {
             instance.setPos(x, y, z);
-            instance.lerpTo(x, y, z, yRot, xRot, 1, teleport);
+            lerpTo.call(instance, x, y, z, yRot, xRot, 1, teleport);
         } else {
-            instance.lerpTo(x, y, z, yRot, xRot, lerpSteps, teleport);
+            lerpTo.call(instance, x, y, z, yRot, xRot, lerpSteps, teleport);
         }
     }
 }

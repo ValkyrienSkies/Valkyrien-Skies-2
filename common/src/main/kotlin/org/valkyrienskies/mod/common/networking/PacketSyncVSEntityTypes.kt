@@ -1,6 +1,6 @@
 package org.valkyrienskies.mod.common.networking
 
-import org.valkyrienskies.core.networking.simple.SimplePacket
+import org.valkyrienskies.core.impl.networking.simple.SimplePacket
 
 /**
  * A packet that is sent to the client to configure the entity handlers,

@@ -72,6 +72,9 @@ fun Quaterniondc.toMinecraft() = Quaternion(x().toFloat(), y().toFloat(), z().to
 fun Matrix4fc.toMinecraft() = Matrix4fMC().set(this)
 fun Matrix4dc.toMinecraft() = Matrix4fMC().set(this)
 
+fun Matrix4d.mul(m: Matrix4fMC): Matrix4d = mul(m.toJOML(), this)
+fun Matrix4dc.mul(m: Matrix4fMC, dest: Matrix4d): Matrix4d = mul(m.toJOML(), dest)
+
 fun Matrix4fMC.toJOML() = Matrix4d().set(this)
 
 fun AABBdc.toMinecraft() = AABB(minX(), minY(), minZ(), maxX(), maxY(), maxZ())

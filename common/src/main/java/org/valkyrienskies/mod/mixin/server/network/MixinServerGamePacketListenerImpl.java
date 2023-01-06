@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.mixin.server.network;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import java.util.Collections;
 import java.util.Set;
 import net.minecraft.core.BlockPos;
@@ -18,7 +20,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
@@ -50,58 +51,65 @@ public abstract class MixinServerGamePacketListenerImpl {
     @Final
     private MinecraftServer server;
 
-    @Redirect(
+    @WrapOperation(
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/world/phys/Vec3;subtract(Lnet/minecraft/world/phys/Vec3;)Lnet/minecraft/world/phys/Vec3;"
         ),
         method = "handleUseItemOn"
     )
-    private Vec3 skipDistanceCheck2(final Vec3 instance, final Vec3 vec3) {
-        return VSGameUtilsKt.toWorldCoordinates(player.level, instance.subtract(vec3));
+    private Vec3 skipDistanceCheck2(final Vec3 instance, final Vec3 vec3, final Operation<Vec3> subtract) {
+        return VSGameUtilsKt.toWorldCoordinates(player.level, subtract.call(instance, vec3));
     }
 
-    @Redirect(
+    @WrapOperation(
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/world/phys/Vec3;distanceToSqr(Lnet/minecraft/world/phys/Vec3;)D"
         ),
         method = "handleUseItemOn"
     )
-    private double skipDistanceCheck1(final Vec3 instance, final Vec3 vec3) {
+    private int skipDistanceCheck(final ChunkPos instance, final ChunkPos chunkPos,
+        final Operation<Integer> getChessboardDistance) {
         return 0;
     }
 
-    @Redirect(
+    @WrapOperation(
         method = "handleMovePlayer",
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/server/network/ServerGamePacketListenerImpl;isSingleplayerOwner()Z"
-        )
+        ),
+        require = 0
     )
-    private boolean shouldSkipMoveCheck1(final ServerGamePacketListenerImpl instance) {
+    private boolean shouldSkipMoveCheck1(final ServerGamePacketListenerImpl instance,
+        final Operation<Boolean> isSinglePlayerOwner) {
         return !VSGameConfig.SERVER.getEnableMovementChecks();
     }
 
-    @Redirect(
+    @WrapOperation(
         method = "handleMoveVehicle",
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/server/network/ServerGamePacketListenerImpl;isSingleplayerOwner()Z"
-        )
+        ),
+        require = 0
     )
-    private boolean shouldSkipMoveCheck2(final ServerGamePacketListenerImpl instance) {
+    private boolean shouldSkipMoveCheck2(final ServerGamePacketListenerImpl instance,
+        final Operation<Boolean> isSinglePlayerOwner) {
         return !VSGameConfig.SERVER.getEnableMovementChecks();
     }
 
-    @Redirect(
+    @WrapOperation(
         method = "handleMovePlayer",
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/server/level/ServerPlayerGameMode;isCreative()Z"
-        )
+        ),
+        require = 0
     )
-    private boolean shouldSkipMoveCheck(final ServerPlayerGameMode instance) {
+    private boolean shouldSkipMoveCheck(final ServerPlayerGameMode instance,
+        final Operation<Boolean> isSinglePlayerOwner) {
         return !VSGameConfig.SERVER.getEnableMovementChecks();
     }
 

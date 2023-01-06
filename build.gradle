@@ -44,7 +44,7 @@ dependencyLocking {
 
 // Determine the version of vs-core
 String vsCoreGitRevision = "git rev-parse HEAD".execute(null, gradle.includedBuild("vs-core").projectDir).text.trim()
-ext.vs_core_version = "1.0.0+" + vsCoreGitRevision.substring(0, 10)
+ext.vs_core_version = "1.1.0+" + vsCoreGitRevision.substring(0, 10)
 
 subprojects {
     apply plugin: "dev.architectury.loom"
@@ -66,15 +66,33 @@ subprojects {
                 }
             }
         }
-        maven {
-            name = "Jitpack"
-            url = "https://jitpack.io"
+        if (!project.block_external_repositories) {
+            mavenLocal()
+            maven {
+                name = "ParchmentMC"
+                url = "https://maven.parchmentmc.org"
+            }
+            maven { url = "https://cursemaven.com" }
+            maven { url = "https://maven.terraformersmc.com/releases/" }
+            maven {
+                name = 'Kotlin for Forge'
+                url = 'https://thedarkcolour.github.io/KotlinForForge/'
+            }
+            maven {
+                name = 'tterrag maven'
+                url = 'https://maven.tterrag.com/'
+            }
         }
-        maven {
-            name = "ParchmentMC"
-            url = "https://maven.parchmentmc.org"
+    }
+
+    // Remove automatically added repos
+    if (project.block_external_repositories) {
+        repositories.removeIf {
+            def url = it.url.toString()
+            url.contains("maven.minecraftforge.net") ||
+                url.contains("maven.fabricmc.net") ||
+                url.contains("maven.architectury.dev")
         }
-        mavenLocal()
     }
 
     dependencies {
@@ -86,7 +104,7 @@ subprojects {
     // configure checkstyle
     checkstyle {
         // configure to use checkstyle v8.41
-        toolVersion "8.41"
+        toolVersion "8.45.1"
         // Gradle should fail builds on checkstyle errors (not warnings)
         ignoreFailures = true
         // Checkstyle config file is in .checkstyle/checkstyle.xml

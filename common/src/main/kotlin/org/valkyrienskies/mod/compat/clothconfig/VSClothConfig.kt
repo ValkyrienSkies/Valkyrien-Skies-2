@@ -14,10 +14,10 @@ import net.minecraft.ChatFormatting.GRAY
 import net.minecraft.ChatFormatting.ITALIC
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
-import org.valkyrienskies.core.config.SidedVSConfigClass
-import org.valkyrienskies.core.config.VSConfigClass
-import org.valkyrienskies.core.util.serialization.VSJacksonUtil
-import org.valkyrienskies.core.util.splitCamelCaseAndCapitalize
+import org.valkyrienskies.core.impl.config.SidedVSConfigClass
+import org.valkyrienskies.core.impl.config.VSConfigClass
+import org.valkyrienskies.core.impl.util.serialization.VSJacksonUtil
+import org.valkyrienskies.core.impl.util.splitCamelCaseAndCapitalize
 import java.util.Optional
 
 object VSClothConfig {

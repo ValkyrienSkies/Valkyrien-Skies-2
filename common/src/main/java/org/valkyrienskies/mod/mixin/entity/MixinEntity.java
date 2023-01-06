@@ -33,7 +33,7 @@ import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.api.ships.LoadedShip;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
-import org.valkyrienskies.core.game.ships.ShipObjectClient;
+import org.valkyrienskies.core.impl.game.ships.ShipObjectClient;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
@@ -119,7 +119,8 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
             shipTransform = shipMountedTo.getShipTransform();
         }
         final Vector3dc basePos = shipTransform.getShipToWorldMatrix()
-            .transformPosition(VSGameUtilsKt.getPassengerPos(this.vehicle, getMyRidingOffset(), partialTicks), new Vector3d());
+            .transformPosition(VSGameUtilsKt.getPassengerPos(this.vehicle, getMyRidingOffset(), partialTicks),
+                new Vector3d());
         final Vector3dc eyeRelativePos = shipTransform.getShipCoordinatesToWorldCoordinatesRotation().transform(
             new Vector3d(0.0, getEyeHeight(), 0.0)
         );
