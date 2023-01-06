@@ -8,14 +8,13 @@ import net.minecraft.world.item.CreativeModeTab
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.Item.Properties
 import net.minecraft.world.level.block.Block
-import net.minecraftforge.client.ClientRegistry
-import net.minecraftforge.client.ConfigGuiHandler.ConfigGuiFactory
+import net.minecraftforge.client.ConfigScreenHandler
 import net.minecraftforge.client.event.EntityRenderersEvent
+import net.minecraftforge.client.event.RegisterKeyMappingsEvent
 import net.minecraftforge.event.AddReloadListenerEvent
 import net.minecraftforge.fml.ModLoadingContext
 import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent
 import net.minecraftforge.fml.event.lifecycle.FMLLoadCompleteEvent
 import net.minecraftforge.fml.loading.FMLEnvironment
 import net.minecraftforge.registries.DeferredRegister
@@ -40,7 +39,7 @@ import org.valkyrienskies.mod.compat.clothconfig.VSClothConfig
 class ValkyrienSkiesModForge {
     private val BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, ValkyrienSkiesMod.MOD_ID)
     private val ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, ValkyrienSkiesMod.MOD_ID)
-    private val ENTITIES = DeferredRegister.create(ForgeRegistries.ENTITIES, ValkyrienSkiesMod.MOD_ID)
+    private val ENTITIES = DeferredRegister.create(ForgeRegistries.ENTITY_TYPES, ValkyrienSkiesMod.MOD_ID)
     private val TEST_CHAIR_REGISTRY: RegistryObject<Block>
     private val SHIP_CREATOR_ITEM_REGISTRY: RegistryObject<Item>
     private val SHIP_CREATOR_SMALLER_ITEM_REGISTRY: RegistryObject<Item>
@@ -65,14 +64,14 @@ class ValkyrienSkiesModForge {
         BLOCKS.register(modBus)
         ITEMS.register(modBus)
         ENTITIES.register(modBus)
-        modBus.addListener(::clientSetup)
+        modBus.addListener(::registerKeyBindings)
         modBus.addListener(::entityRenderers)
         modBus.addListener(::loadComplete)
 
         forgeBus.addListener(::registerResourceManagers)
 
-        ModLoadingContext.get().registerExtensionPoint(ConfigGuiFactory::class.java) {
-            ConfigGuiFactory { _, parent ->
+        ModLoadingContext.get().registerExtensionPoint(ConfigScreenHandler.ConfigScreenFactory::class.java) {
+            ConfigScreenHandler.ConfigScreenFactory { _, parent ->
                 VSClothConfig.createConfigScreenFor(
                     parent,
                     VSConfigClass.getRegisteredConfig(VSCoreConfig::class.java),
@@ -102,9 +101,9 @@ class ValkyrienSkiesModForge {
         event.addListener(VSEntityHandlerDataLoader)
     }
 
-    private fun clientSetup(event: FMLClientSetupEvent) {
+    private fun registerKeyBindings(event: RegisterKeyMappingsEvent) {
         VSKeyBindings.clientSetup {
-            ClientRegistry.registerKeyBinding(it)
+            event.register(it)
         }
     }
 

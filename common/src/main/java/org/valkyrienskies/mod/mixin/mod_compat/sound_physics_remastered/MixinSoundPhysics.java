@@ -13,7 +13,7 @@ import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Pseudo
-@Mixin(targets = "com.sonicether.soundphysics.SoundPhysics")
+@Mixin(targets = "com.sonicether.soundphysics.SoundPhysics", remap = false)
 public abstract class MixinSoundPhysics {
 
     @Shadow

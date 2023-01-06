@@ -124,5 +124,5 @@ public abstract class FireMixin {
     protected abstract boolean isNearRain(Level level, BlockPos blockPos);
 
     @Shadow
-    protected abstract int getFireOdds(LevelReader levelReader, BlockPos blockPos);
+    protected abstract int getIgniteOdds(LevelReader levelReader, BlockPos blockPos);
 }

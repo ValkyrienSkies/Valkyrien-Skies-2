@@ -69,8 +69,8 @@ public abstract class MixinServerGamePacketListenerImpl {
         ),
         method = "handleUseItemOn"
     )
-    private int skipDistanceCheck(final ChunkPos instance, final ChunkPos chunkPos,
-        final Operation<Integer> getChessboardDistance) {
+    private double skipDistanceCheck(final Vec3 instance, final Vec3 chunkPos,
+        final Operation<Double> getChessboardDistance) {
         return 0;
     }
 
