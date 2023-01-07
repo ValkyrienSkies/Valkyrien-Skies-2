@@ -3,7 +3,6 @@ package org.valkyrienskies.mod.mixin.feature.render_blockentity_distance_check;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.client.Camera;
-import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.core.BlockPos;
@@ -15,6 +14,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 /**
@@ -48,9 +48,9 @@ public class MixinBlockEntityRenderDispatcher {
 
         // If by default was false, then check if this BlockEntity belongs to a ship
         final BlockPos bePos = blockEntity.getBlockPos();
-        final ClientShip shipObject = VSGameUtilsKt.getShipObjectManagingPos((ClientLevel) level, bePos);
-        if (shipObject != null) {
-            final Matrix4dc m = shipObject.getRenderTransform().getShipToWorldMatrix();
+        final Ship nullableShip = VSGameUtilsKt.getShipObjectManagingPos(level, bePos);
+        if (nullableShip instanceof ClientShip ship) {
+            final Matrix4dc m = ship.getRenderTransform().getShipToWorld();
 
             return new Vec3(
                 m.m00() * bePos.getX() + m.m10() * bePos.getY() + m.m20() * bePos.getZ() + m.m30(),
