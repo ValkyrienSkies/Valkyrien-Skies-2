@@ -36,7 +36,7 @@ public abstract class MixinClaimedChunkManager {
         )
     )
     private BlockPos ValkyrienSkies$newChunkDimPos(final BlockPos pos) {
-        if (entity == null && !VSGameConfig.SERVER.getFTBChunks().getShipsProtectedByClaims()) {
+        if (entity == null || !VSGameConfig.SERVER.getFTBChunks().getShipsProtectedByClaims()) {
             return pos;
         }
 
