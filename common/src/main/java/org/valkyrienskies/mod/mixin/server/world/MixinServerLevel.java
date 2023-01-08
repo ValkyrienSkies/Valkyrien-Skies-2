@@ -22,7 +22,6 @@ import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.progress.ChunkProgressListener;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
@@ -38,14 +37,11 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.LoadedServerShip;
-import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
 import org.valkyrienskies.core.apigame.world.chunks.TerrainUpdate;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.entity.handling.VSEntityManager;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.mixin.accessors.server.world.ChunkMapAccessor;
 
@@ -177,18 +173,5 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
             voxelShapeUpdates
         );
     }
-
-    /**
-     * @author ewoudje
-     * @reason send updates to relevant VSEntityHandler
-     */
-    @Inject(method = "addEntity", at = @At(value = "HEAD"))
-    private void updateHandler(final Entity entity, final CallbackInfoReturnable<Boolean> cir) {
-        final Vector3d pos = new Vector3d(entity.getX(), entity.getY(), entity.getZ());
-        final Ship ship = VSGameUtilsKt.getShipObjectManagingPos(entity.level, pos);
-        if (ship != null) {
-            VSEntityManager.INSTANCE.getHandler(entity)
-                .freshEntityInShipyard(entity, ship, pos);
-        }
-    }
+    
 }

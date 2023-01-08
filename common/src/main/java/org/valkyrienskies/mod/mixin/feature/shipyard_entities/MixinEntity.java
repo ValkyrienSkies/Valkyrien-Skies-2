@@ -13,7 +13,6 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager;
 
@@ -64,33 +63,6 @@ public abstract class MixinEntity {
             .getTeleportPos(Entity.class.cast(this), new Vector3d(d, e, f));
         teleportTo(pos.x, pos.y, pos.z);
         isModifyingTeleport = false;
-    }
-
-    @Unique
-    private boolean isModifyingSetPos = false;
-
-    /**
-     * @author ewoudje
-     * @reason use vs2 entity handler to handle this method
-     */
-    @Inject(method = "setPosRaw", at = @At(value = "HEAD"), cancellable = true)
-    private void handlePosSet(final double x, final double y, final double z, final CallbackInfo ci) {
-        if (isModifyingSetPos) {
-            return;
-        }
-
-        final Vector3d pos = new Vector3d(x, y, z);
-        final Ship ship;
-
-        if ((ship = VSGameUtilsKt.getShipObjectManagingPos(level, pos)) != null) {
-            final var result = VSEntityManager.INSTANCE.getHandler(Entity.class.cast(this))
-                .onEntityMove(Entity.class.cast(this), ship, pos);
-
-            isModifyingSetPos = true;
-            setPosRaw(result.x(), result.y(), result.z());
-            isModifyingSetPos = false;
-            ci.cancel();
-        }
     }
 
     /**
