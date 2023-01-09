@@ -22,6 +22,8 @@ import org.valkyrienskies.mod.util.relocateBlock
 fun createNewShipWithBlocks(
     centerBlock: BlockPos, blocks: DenseBlockPosSet, level: ServerLevel
 ): ServerShip {
+    if (blocks.isEmpty()) throw IllegalArgumentException()
+
     val ship = level.shipObjectWorld.createNewShipAtBlock(centerBlock.toJOML(), false, 1.0, level.dimensionId)
 
     val shipChunkX = ship.chunkClaim.xMiddle
