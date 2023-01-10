@@ -73,7 +73,7 @@ subprojects {
                 url = "https://maven.parchmentmc.org"
             }
             maven { url = "https://cursemaven.com" }
-            maven { url = "https://maven.terraformersmc.com/releases/" }
+            maven { url = "https://maven.terraformersmc.com/releases/" } // Mod Menu
             maven {
                 name = 'Kotlin for Forge'
                 url = 'https://thedarkcolour.github.io/KotlinForForge/'
@@ -82,6 +82,13 @@ subprojects {
                 name = 'tterrag maven'
                 url = 'https://maven.tterrag.com/'
             }
+            maven { url = "https://api.modrinth.com/maven" } // LazyDFU, Suggestion Tweaker
+            maven { url = "https://maven.shedaniel.me/" } // Cloth Config, REI
+            maven { url = "https://mvn.devos.one/snapshots/" } // Fabric Create, Porting Lib, Forge Tags, Milk Lib
+            maven { url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/" } // Forge Config API Port
+            maven { url = "https://maven.tterrag.com/" } // Registrate, Forge Create and Flywheel
+            maven { url = "https://maven.cafeteria.dev/releases" } // Fake Player API
+            maven { url = "https://maven.jamieswhiteshirt.com/libs-release" } // Reach Entity Attributes
         }
     }
 
@@ -99,7 +106,7 @@ subprojects {
         minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
         // The following line declares the mojmap mappings, you may use other mappings as well
         mappings loom.officialMojangMappings()
-        
+
         compileOnly("com.google.code.findbugs:jsr305:3.0.2")
     }
 

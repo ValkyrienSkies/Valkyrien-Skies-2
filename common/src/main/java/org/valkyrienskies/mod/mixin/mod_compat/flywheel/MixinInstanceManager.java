@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.forge.mixin.compat.flywheel.client;
+package org.valkyrienskies.mod.mixin.mod_compat.flywheel;
 
 import com.jozufozu.flywheel.api.instance.DynamicInstance;
 import com.jozufozu.flywheel.api.instance.TickableInstance;
@@ -7,11 +7,13 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
+@Pseudo
 @Mixin(InstanceManager.class)
 public class MixinInstanceManager {
 

@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.forge.mixinducks;
+package org.valkyrienskies.mod.mixinducks;
 
 import com.jozufozu.flywheel.backend.instancing.instancing.InstancingEngine;
 import com.jozufozu.flywheel.core.shader.WorldProgram;

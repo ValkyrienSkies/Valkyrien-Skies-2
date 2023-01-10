@@ -66,8 +66,8 @@ dependencies {
     modCompileOnly("curse.maven:rubidium-574856:4024781")
 
     // Create compat
-    modImplementation("com.simibubi.create:create-${create_minecraft_version}:${create_version}:slim") { transitive = false }
-    modImplementation("com.jozufozu.flywheel:flywheel-forge-${flywheel_minecraft_version}:${flywheel_version}")
+    modImplementation("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") { transitive = false }
+    modImplementation("com.jozufozu.flywheel:flywheel-forge-${minecraft_version}:${flywheel_version}")
     modImplementation("com.tterrag.registrate:Registrate:${registrate_version}")
 
     // CC Tweaked

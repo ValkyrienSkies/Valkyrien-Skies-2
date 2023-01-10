@@ -22,11 +22,6 @@
     "compat.create.client.MixinFlwContraption",
     "compat.create.client.MixinScrollValueBehaviour",
     "compat.create.client.MixinValueBox",
-    "compat.flywheel.client.InstancingEngineAccessor",
-    "compat.flywheel.client.MixinInstanceManager",
-    "compat.flywheel.client.MixinInstanceWorld",
-    "compat.flywheel.client.MixinInstancingEngine",
-    "compat.flywheel.client.MixinTileInstanceManager",
     "compat.sodium.MixinRenderSectionManager"
   ],
   "injectors": {

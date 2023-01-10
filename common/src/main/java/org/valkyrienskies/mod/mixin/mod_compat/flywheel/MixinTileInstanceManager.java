@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.forge.mixin.compat.flywheel.client;
+package org.valkyrienskies.mod.mixin.mod_compat.flywheel;
 
 import com.jozufozu.flywheel.api.instance.Instance;
 import com.jozufozu.flywheel.backend.instancing.InstanceManager;
@@ -16,15 +16,17 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.joml.Vector3i;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.forge.mixinducks.MixinTileInstanceManagerDuck;
+import org.valkyrienskies.mod.mixinducks.MixinTileInstanceManagerDuck;
 
-@Mixin(value = BlockEntityInstanceManager.class, remap = false)
+@Pseudo
+@Mixin(value = BlockEntityInstanceManager.class)
 @ParametersAreNonnullByDefault
 public abstract class MixinTileInstanceManager extends InstanceManager<BlockEntity> implements
     MixinTileInstanceManagerDuck {
