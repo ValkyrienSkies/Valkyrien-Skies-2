@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.mixin.feature.ladders;
 
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -12,6 +14,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.mixin.accessors.entity.EntityAccessor;
 
 @Mixin(LivingEntity.class)
 public abstract class MixinLivingEntity extends Entity {
@@ -45,17 +48,25 @@ public abstract class MixinLivingEntity extends Entity {
             final double origY = pos.y;
             final double origZ = pos.z;
 
-            VSGameUtilsKt.transformToNearbyShipsAndWorld(this.level, origX, origY, origZ, 1, (x, y, z) -> {
-                this.setPosRaw(x, y, z);
+            final EntityAccessor thisAsAccessor = (EntityAccessor) this;
+            final BlockPos originalBlockPosition = thisAsAccessor.getBlockPosition();
 
-                if (onClimbable()) {
-                    cir.setReturnValue(true);
+            VSGameUtilsKt.transformToNearbyShipsAndWorld(this.level, origX, origY, origZ, 1, (x, y, z) -> {
+
+                // Only run this if we haven't modified cir yet
+                if (cir.getReturnValue() != Boolean.TRUE) {
+                    // Modify the block position, then check if we can climb ladders
+                    thisAsAccessor.setBlockPosition(new BlockPos(Mth.floor(x), Mth.floor(y), Mth.floor(z)));
+                    thisAsAccessor.setFeetBlockState(null);
+                    if (onClimbable()) {
+                        cir.setReturnValue(true);
+                    }
                 }
 
-                this.setPosRaw(origX, origY, origZ);
-
             });
-
+            // Restore the original block position
+            thisAsAccessor.setBlockPosition(originalBlockPosition);
+            thisAsAccessor.setFeetBlockState(null);
             isModifyingClimbable = false;
         }
     }
