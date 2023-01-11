@@ -10,7 +10,6 @@
     "compat.cc_tweaked.MixinWirelessNetwork",
     "compat.create.MixinBlockBreakingKineticTileEntity",
     "compat.create.MixinBlocks",
-    "compat.create.MixinCrushingWheelBlock",
     "compat.immersivengineering.MixinBlockEntityInventory",
     "compat.thermalexpansion.MixinTileCoFH",
     "feature.forge_interact.MixinIForgePlayer",
