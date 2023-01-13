@@ -3,6 +3,7 @@
   "category.valkyrienskies.driving": "Driving",
   "block.valkyrienskies.test_chair": "Debug Chair",
   "block.valkyrienskies.test_hinge": "Debug Hinge",
+  "block.valkyrienskies.test_wing": "Debug Wing",
   "item.valkyrienskies.ship_creator": "Ship Creator",
   "item.valkyrienskies.ship_creator_smaller": "Mini Ship Creator"
 }

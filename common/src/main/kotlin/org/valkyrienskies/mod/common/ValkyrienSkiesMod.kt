@@ -22,6 +22,7 @@ object ValkyrienSkiesMod {
 
     lateinit var TEST_CHAIR: Block
     lateinit var TEST_HINGE: Block
+    lateinit var TEST_WING: Block
     lateinit var SHIP_CREATOR_ITEM: Item
     lateinit var SHIP_ASSEMBLER_ITEM: Item
     lateinit var SHIP_CREATOR_ITEM_SMALLER: Item
