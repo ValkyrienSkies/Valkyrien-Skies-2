@@ -7,7 +7,6 @@ import net.minecraft.core.Direction.NORTH
 import net.minecraft.core.Direction.SOUTH
 import net.minecraft.core.Direction.UP
 import net.minecraft.core.Direction.WEST
-import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.item.context.BlockPlaceContext
 import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.Level
@@ -20,7 +19,6 @@ import net.minecraft.world.level.material.Material
 import net.minecraft.world.phys.shapes.CollisionContext
 import net.minecraft.world.phys.shapes.VoxelShape
 import org.valkyrienskies.core.api.ships.Wing
-import org.valkyrienskies.mod.common.getShipObjectManagingPos
 import org.valkyrienskies.mod.common.util.toJOMLD
 
 object TestWingBlock :
@@ -82,28 +80,5 @@ object TestWingBlock :
         val wingDrag = 150.0
         val wingBreakingForce = null
         return Wing(blockState.getValue(FACING).normal.toJOMLD(), wingPower, wingDrag, wingBreakingForce)
-    }
-
-    @Deprecated("Deprecated in Java")
-    override fun onPlace(state: BlockState, level: Level, pos: BlockPos, oldState: BlockState, isMoving: Boolean) {
-        super.onPlace(state, level, pos, oldState, isMoving)
-
-        if (level.isClientSide) return
-        level as ServerLevel
-
-        val ship = level.getShipObjectManagingPos(pos) ?: return
-        val wing = getWing(level, pos, state)
-        ship.setWing(ship.getFirstWingGroupId(),pos.x, pos.y, pos.z, wing)
-    }
-
-    @Deprecated("Deprecated in Java")
-    override fun onRemove(state: BlockState, level: Level, pos: BlockPos, newState: BlockState, isMoving: Boolean) {
-        super.onRemove(state, level, pos, newState, isMoving)
-
-        if (level.isClientSide) return
-        level as ServerLevel
-
-        val ship = level.getShipObjectManagingPos(pos) ?: return
-        ship.setWing(ship.getFirstWingGroupId(),pos.x, pos.y, pos.z, null)
     }
 }
