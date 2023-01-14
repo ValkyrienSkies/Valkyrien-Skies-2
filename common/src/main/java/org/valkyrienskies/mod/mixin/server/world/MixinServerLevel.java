@@ -41,6 +41,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.core.api.ships.Wing;
+import org.valkyrienskies.core.api.ships.WingManager;
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
 import org.valkyrienskies.core.apigame.world.chunks.TerrainUpdate;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
@@ -153,6 +154,8 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                             final LoadedServerShip
                                 ship = VSGameUtilsKt.getShipObjectManagingPos(thisAsLevel, chunkX, chunkZ);
                             if (ship != null) {
+                                // Sussy cast, but I don't want to expose this directly through the vs-core api
+                                final WingManager shipAsWingManager = ship.getAttachment(WingManager.class);
                                 final MutableBlockPos mutableBlockPos = new MutableBlockPos();
                                 for (int x = 0; x < 16; x++) {
                                     for (int y = 0; y < 16; y++) {
@@ -166,7 +169,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                                                 final Wing wing =
                                                     ((WingBlock) blockState.getBlock()).getWing(thisAsLevel,
                                                         mutableBlockPos, blockState);
-                                                ship.setWing(ship.getFirstWingGroupId(), posX, posY, posZ, wing);
+                                                shipAsWingManager.setWing(shipAsWingManager.getFirstWingGroupId(), posX, posY, posZ, wing);
                                             }
                                         }
                                     }
