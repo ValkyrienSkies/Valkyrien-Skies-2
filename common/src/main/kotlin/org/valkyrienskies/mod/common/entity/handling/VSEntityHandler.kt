@@ -17,6 +17,8 @@ interface VSEntityHandler {
      */
     fun freshEntityInShipyard(entity: Entity, ship: Ship)
 
+    fun entityRemovedFromShipyard(entity: Entity, ship: Ship)
+
     /**
      * ApplyRenderTransform
      *
