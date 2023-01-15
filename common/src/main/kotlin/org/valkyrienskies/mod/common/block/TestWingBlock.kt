@@ -77,7 +77,7 @@ object TestWingBlock :
 
     override fun getWing(level: Level, pos: BlockPos, blockState: BlockState): Wing {
         val wingPower = 150.0
-        val wingDrag = 150.0
+        val wingDrag = 15.0
         val wingBreakingForce = null
         return Wing(blockState.getValue(FACING).normal.toJOMLD(), wingPower, wingDrag, wingBreakingForce)
     }
