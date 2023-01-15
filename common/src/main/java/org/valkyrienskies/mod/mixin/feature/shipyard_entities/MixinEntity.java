@@ -4,6 +4,7 @@ import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.Entity.RemovalReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.Level;
 import org.joml.Vector3d;
@@ -94,7 +95,7 @@ public abstract class MixinEntity {
     }
 
     @Inject(method = "setRemoved", at = @At("HEAD"))
-    private void preSetRemoved() {
+    private void preSetRemoved(final RemovalReason removalReason, final CallbackInfo ci) {
         final Entity thisAsEntity = Entity.class.cast(this);
         final Ship ship = VSGameUtilsKt.getShipManaging(thisAsEntity);
         if (ship != null) {
