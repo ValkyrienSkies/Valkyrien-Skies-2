@@ -6,5 +6,5 @@ import net.minecraft.world.level.block.state.BlockState
 import org.valkyrienskies.core.api.ships.Wing
 
 interface WingBlock {
-    fun getWing(level: Level, pos: BlockPos, blockState: BlockState): Wing
+    fun getWing(level: Level, pos: BlockPos, blockState: BlockState): Wing?
 }

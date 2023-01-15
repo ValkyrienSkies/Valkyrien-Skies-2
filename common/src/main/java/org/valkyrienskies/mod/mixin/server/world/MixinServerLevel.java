@@ -169,7 +169,8 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                                                 final Wing wing =
                                                     ((WingBlock) blockState.getBlock()).getWing(thisAsLevel,
                                                         mutableBlockPos, blockState);
-                                                shipAsWingManager.setWing(shipAsWingManager.getFirstWingGroupId(), posX, posY, posZ, wing);
+                                                if (wing != null)
+                                                    shipAsWingManager.setWing(shipAsWingManager.getFirstWingGroupId(), posX, posY, posZ, wing);
                                             }
                                         }
                                     }
