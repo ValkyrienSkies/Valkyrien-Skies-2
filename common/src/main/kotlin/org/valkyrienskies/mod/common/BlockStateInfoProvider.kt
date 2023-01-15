@@ -7,10 +7,14 @@ import net.minecraft.core.MappedRegistry
 import net.minecraft.core.Registry
 import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
+import org.valkyrienskies.core.api.ships.Wing
+import org.valkyrienskies.core.api.ships.WingManager
 import org.valkyrienskies.core.apigame.world.chunks.BlockType
+import org.valkyrienskies.mod.common.block.WingBlock
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.event.RegistryEvents
 
@@ -88,6 +92,27 @@ object BlockStateInfo {
         val (prevBlockMass, prevBlockType) = get(prevBlockState) ?: return
 
         val (newBlockMass, newBlockType) = get(newBlockState) ?: return
+
+        // region Inject wings
+        if (level is ServerLevel) {
+            val loadedShip = level.getShipObjectManagingPos(x shr 4, z shr 4)
+            if (loadedShip != null) {
+                val wingManager = loadedShip.getAttachment(WingManager::class.java)!!
+                val wasOldBlockWing = prevBlockState is WingBlock
+                val newWing: Wing? =
+                    if (newBlockState is WingBlock) newBlockState.getWing(
+                        level, BlockPos(x, y, z), newBlockState
+                    ) else null
+                if (newWing != null) {
+                    // Place the new wing
+                    wingManager.setWing(wingManager.getFirstWingGroupId(), x, y, z, newWing)
+                } else if (wasOldBlockWing) {
+                    // Delete the old wing
+                    wingManager.setWing(wingManager.getFirstWingGroupId(), x, y, z, null)
+                }
+            }
+        }
+        // endregion
 
         shipObjectWorld.onSetBlock(
             x, y, z, level.dimensionId, prevBlockType, newBlockType, prevBlockMass,

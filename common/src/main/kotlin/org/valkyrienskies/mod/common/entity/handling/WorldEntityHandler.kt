@@ -23,6 +23,10 @@ object WorldEntityHandler : VSEntityHandler {
         moveEntityFromShipyardToWorld(entity, ship)
     }
 
+    override fun entityRemovedFromShipyard(entity: Entity, ship: Ship) {
+        // Do nothing
+    }
+
     override fun <T : Entity> applyRenderTransform(
         ship: ClientShip, entity: T, entityRenderer: EntityRenderer<T>,
         x: Double, y: Double, z: Double,

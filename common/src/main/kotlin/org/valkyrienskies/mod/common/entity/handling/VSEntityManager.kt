@@ -16,9 +16,10 @@ object VSEntityManager {
     private val namedEntityHandlers = HashMap<VSEntityHandler, ResourceLocation>()
     private val entityHandlers = HashMap<EntityType<*>, VSEntityHandler>()
     private val default = WorldEntityHandler
+    private var contraptionHandler: VSEntityHandler = DefaultShipyardEntityHandler
 
     init {
-        register(ResourceLocation(ValkyrienSkiesMod.MOD_ID, "shipyard"), ShipyardEntityHandler)
+        register(ResourceLocation(ValkyrienSkiesMod.MOD_ID, "shipyard"), DefaultShipyardEntityHandler)
         register(ResourceLocation(ValkyrienSkiesMod.MOD_ID, "default"), WorldEntityHandler)
     }
 
@@ -31,6 +32,10 @@ object VSEntityManager {
     fun register(name: ResourceLocation, entityHandler: VSEntityHandler) {
         entityHandlersNamed[name] = entityHandler
         namedEntityHandlers[entityHandler] = name
+    }
+
+    fun registerContraptionHandler(contraptionHandler: VSEntityHandler) {
+        this.contraptionHandler = contraptionHandler
     }
 
     /**
@@ -50,7 +55,7 @@ object VSEntityManager {
 
     private fun getDefaultHandler(entity: Entity): VSEntityHandler {
         if (CreateCompat.isContraption(entity)) {
-            return ShipyardEntityHandler
+            return contraptionHandler
         }
 
         return default
