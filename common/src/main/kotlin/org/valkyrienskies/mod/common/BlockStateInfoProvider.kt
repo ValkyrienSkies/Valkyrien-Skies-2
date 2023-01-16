@@ -98,9 +98,10 @@ object BlockStateInfo {
             val loadedShip = level.getShipObjectManagingPos(x shr 4, z shr 4)
             if (loadedShip != null) {
                 val wingManager = loadedShip.getAttachment(WingManager::class.java)!!
-                val wasOldBlockWing = prevBlockState is WingBlock
+                val wasOldBlockWing = prevBlockState.block is WingBlock
+                val newBlockStateBlock = newBlockState.block
                 val newWing: Wing? =
-                    if (newBlockState is WingBlock) newBlockState.getWing(
+                    if (newBlockStateBlock is WingBlock) newBlockStateBlock.getWing(
                         level, BlockPos(x, y, z), newBlockState
                     ) else null
                 if (newWing != null) {

@@ -282,6 +282,9 @@ fun ServerLevel.getShipObjectManagingPos(chunkPos: ChunkPos) =
 fun ServerLevel.getShipObjectManagingPos(posX: Double, posY: Double, posZ: Double) =
     getShipObjectManagingPos(posX.toInt() shr 4, posZ.toInt() shr 4)
 
+fun ServerLevel.getShipObjectManagingPos(pos: Vector3dc) =
+    getShipObjectManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
+
 private fun getShipManagingPosImpl(world: Level, x: Int, z: Int): Ship? {
     return if (world.isChunkInShipyard(x, z)) {
         world.shipObjectWorld.allShips.getByChunkPos(x, z, world.dimensionId)
@@ -328,6 +331,9 @@ fun ServerLevel.getShipManagingPos(chunkX: Int, chunkZ: Int) =
 
 fun ServerLevel.getShipManagingPos(blockPos: BlockPos) =
     getShipManagingPos(blockPos.x shr 4, blockPos.z shr 4)
+
+fun ServerLevel.getShipManagingPos(pos: Vector3dc) =
+    getShipManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
 
 fun ServerLevel.getShipManagingPos(posX: Double, posY: Double, posZ: Double) =
     getShipManagingPos(posX.toInt() shr 4, posZ.toInt() shr 4)

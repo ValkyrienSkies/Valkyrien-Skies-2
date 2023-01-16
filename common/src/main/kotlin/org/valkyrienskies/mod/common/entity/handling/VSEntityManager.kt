@@ -50,14 +50,13 @@ object VSEntityManager {
     }
 
     fun getHandler(entity: Entity): VSEntityHandler {
+        if (CreateCompat.isContraption(entity)) {
+            return contraptionHandler
+        }
         return entityHandlers[entity.type] ?: getDefaultHandler(entity)
     }
 
     private fun getDefaultHandler(entity: Entity): VSEntityHandler {
-        if (CreateCompat.isContraption(entity)) {
-            return contraptionHandler
-        }
-
         return default
     }
 

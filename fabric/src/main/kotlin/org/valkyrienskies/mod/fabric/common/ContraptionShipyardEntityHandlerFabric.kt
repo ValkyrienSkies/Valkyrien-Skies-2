@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.forge.common
+package org.valkyrienskies.mod.fabric.common
 
 import com.simibubi.create.content.contraptions.components.structureMovement.AbstractContraptionEntity
 import net.minecraft.core.BlockPos
@@ -11,7 +11,7 @@ import org.valkyrienskies.core.api.ships.WingManager
 import org.valkyrienskies.mod.common.block.WingBlock
 import org.valkyrienskies.mod.common.entity.handling.AbstractShipyardEntityHandler
 
-object ContraptionShipyardEntityHandlerForge: AbstractShipyardEntityHandler() {
+object ContraptionShipyardEntityHandlerFabric: AbstractShipyardEntityHandler() {
     override fun freshEntityInShipyard(entity: Entity, ship: Ship) {
         if (entity is AbstractContraptionEntity && ship is LoadedServerShip) {
             entity as ContraptionWingProvider
