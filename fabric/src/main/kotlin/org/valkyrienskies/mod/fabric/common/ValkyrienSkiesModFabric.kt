@@ -33,6 +33,7 @@ import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.config.VSEntityHandlerDataLoader
 import org.valkyrienskies.mod.common.config.VSKeyBindings
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
+import org.valkyrienskies.mod.common.entity.handling.VSEntityManager
 import org.valkyrienskies.mod.common.item.ShipAssemblerItem
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
 import org.valkyrienskies.mod.event.RegistryEvents
@@ -77,6 +78,7 @@ class ValkyrienSkiesModFabric : ModInitializer {
         if (isClient) onInitializeClient()
 
         ValkyrienSkiesMod.init(vsCore)
+        VSEntityManager.registerContraptionHandler(ContraptionShipyardEntityHandlerFabric)
 
         registerBlockAndItem("test_chair", ValkyrienSkiesMod.TEST_CHAIR)
         registerBlockAndItem("test_hinge", ValkyrienSkiesMod.TEST_HINGE)

@@ -14,9 +14,10 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.core.api.ships.Ship;
+import org.valkyrienskies.core.api.ships.LoadedShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager;
+import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(Entity.class)
 public abstract class MixinEntity {
@@ -97,7 +98,7 @@ public abstract class MixinEntity {
     @Inject(method = "setRemoved", at = @At("HEAD"))
     private void preSetRemoved(final RemovalReason removalReason, final CallbackInfo ci) {
         final Entity thisAsEntity = Entity.class.cast(this);
-        final Ship ship = VSGameUtilsKt.getShipManaging(thisAsEntity);
+        final LoadedShip ship = VSGameUtilsKt.getShipObjectManagingPos(thisAsEntity.level, VectorConversionsMCKt.toJOML(thisAsEntity.position()));
         if (ship != null) {
             VSEntityManager.INSTANCE.getHandler(thisAsEntity).entityRemovedFromShipyard(thisAsEntity, ship);
         }

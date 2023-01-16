@@ -36,6 +36,7 @@ import org.valkyrienskies.mod.common.config.VSEntityHandlerDataLoader
 import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.config.VSKeyBindings
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
+import org.valkyrienskies.mod.common.entity.handling.VSEntityManager
 import org.valkyrienskies.mod.common.item.ShipAssemblerItem
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
 import org.valkyrienskies.mod.compat.clothconfig.VSClothConfig
@@ -66,6 +67,7 @@ class ValkyrienSkiesModForge {
         VSForgeNetworking.registerPacketHandlers(vsCore.hooks)
 
         ValkyrienSkiesMod.init(vsCore)
+        VSEntityManager.registerContraptionHandler(ContraptionShipyardEntityHandlerForge)
 
         val modBus = Bus.MOD.bus().get()
         val forgeBus = Bus.FORGE.bus().get()

@@ -75,7 +75,7 @@ object TestWingBlock :
         }
     }
 
-    override fun getWing(level: Level, pos: BlockPos, blockState: BlockState): Wing {
+    override fun getWing(level: Level?, pos: BlockPos?, blockState: BlockState): Wing {
         val wingPower = 150.0
         val wingDrag = 30.0
         val wingBreakingForce = null
