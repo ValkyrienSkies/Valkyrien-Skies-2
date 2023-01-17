@@ -21,7 +21,7 @@ import net.minecraft.world.phys.shapes.VoxelShape
 import org.valkyrienskies.core.api.ships.Wing
 import org.valkyrienskies.mod.common.util.toJOMLD
 
-object TestWingBlock :
+object TestFlapBlock :
     DirectionalBlock(
         Properties.of(Material.METAL).strength(10.0f, 1200.0f).sound(SoundType.METAL)
     ), WingBlock {
@@ -79,10 +79,7 @@ object TestWingBlock :
         val wingPower = 150.0
         val wingDrag = 30.0
         val wingBreakingForce = null
-        val wingCamberAttackAngleBias = 10.0
-        return Wing(
-            blockState.getValue(FACING).normal.toJOMLD(), wingPower, wingDrag, wingBreakingForce,
-            wingCamberAttackAngleBias
-        )
+        val wingCamberAttackAngleBias = 0.0
+        return Wing(blockState.getValue(FACING).normal.toJOMLD(), wingPower, wingDrag, wingBreakingForce, wingCamberAttackAngleBias)
     }
 }
