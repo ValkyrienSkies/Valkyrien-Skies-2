@@ -42,9 +42,13 @@ public abstract class MixinAbstractContraptionEntity implements ContraptionWingP
     private void postTick(final CallbackInfo ci) {
         final AbstractContraptionEntity thisAsAbstractContraptionEntity = AbstractContraptionEntity.class.cast(this);
         final Level level = thisAsAbstractContraptionEntity.level;
-        if (wingGroupId != -1 && !level.isClientSide) {
-            final LoadedServerShip ship = VSGameUtilsKt.getShipObjectManagingPos((ServerLevel) level, VectorConversionsMCKt.toJOML(thisAsAbstractContraptionEntity.position()));
-            ship.getAttachment(WingManager.class).setWingGroupTransform(wingGroupId, computeContraptionWingTransform());
+        if (wingGroupId != -1 && level instanceof ServerLevel serverLevel) {
+            final LoadedServerShip ship = VSGameUtilsKt.getShipObjectManagingPos(serverLevel,
+                VectorConversionsMCKt.toJOML(thisAsAbstractContraptionEntity.position()));
+            if (ship != null) {
+                ship.getAttachment(WingManager.class)
+                    .setWingGroupTransform(wingGroupId, computeContraptionWingTransform());
+            }
         }
     }
 
@@ -52,7 +56,8 @@ public abstract class MixinAbstractContraptionEntity implements ContraptionWingP
     @Override
     public Matrix4dc computeContraptionWingTransform() {
         final AbstractContraptionEntity thisAsAbstractContraptionEntity = AbstractContraptionEntity.class.cast(this);
-        final Matrix3d rotationMatrix = CreateConversionsKt.toJOML(thisAsAbstractContraptionEntity.getRotationState().asMatrix());
+        final Matrix3d rotationMatrix =
+            CreateConversionsKt.toJOML(thisAsAbstractContraptionEntity.getRotationState().asMatrix());
         final Vector3d pos = VectorConversionsMCKt.toJOML(thisAsAbstractContraptionEntity.position());
         return new Matrix4d(rotationMatrix).setTranslation(pos);
     }
