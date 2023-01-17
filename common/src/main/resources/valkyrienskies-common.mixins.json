@@ -99,7 +99,7 @@
     "mod_compat.flywheel.MixinInstanceManager",
     "mod_compat.flywheel.MixinInstanceWorld",
     "mod_compat.flywheel.MixinInstancingEngine",
-    "mod_compat.flywheel.MixinTileInstanceManager",
+    "mod_compat.flywheel.MixinBlockEntityInstanceManager",
     "mod_compat.optifine.MixinViewAreaOptifine",
     "mod_compat.optifine.RenderChunkInfoAccessorOptifine",
     "mod_compat.optifine_vanilla.MixinLevelRenderer",
