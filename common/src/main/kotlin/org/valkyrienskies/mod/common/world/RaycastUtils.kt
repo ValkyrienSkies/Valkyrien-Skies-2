@@ -18,6 +18,7 @@ import org.apache.logging.log4j.LogManager
 import org.joml.Vector3d
 import org.joml.primitives.AABBd
 import org.joml.primitives.AABBdc
+import org.valkyrienskies.core.api.ships.properties.ShipId
 import org.valkyrienskies.core.game.ships.ShipObjectClient
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.toJOML
@@ -30,7 +31,9 @@ import java.util.function.Predicate
 private val logger = LogManager.getLogger("RaycastUtilsKt")
 
 @JvmOverloads
-fun Level.clipIncludeShips(ctx: ClipContext, shouldTransformHitPos: Boolean = true): BlockHitResult {
+fun Level.clipIncludeShips(
+    ctx: ClipContext, shouldTransformHitPos: Boolean = true, skipShip: ShipId? = null
+): BlockHitResult {
     val vanillaHit = vanillaClip(ctx)
 
     if (shipObjectWorld == null) {
@@ -50,6 +53,10 @@ fun Level.clipIncludeShips(ctx: ClipContext, shouldTransformHitPos: Boolean = tr
     // Iterate every ship, find do the raycast in ship space,
     // choose the raycast with the lowest distance to the start position.
     for (ship in shipObjectWorld.loadedShips.getIntersecting(clipAABB)) {
+        // Skip skipShip
+        if (ship.id == skipShip) {
+            continue
+        }
         val worldToShip = (ship as? ShipObjectClient)?.renderTransform?.worldToShipMatrix ?: ship.worldToShip
         val shipToWorld = (ship as? ShipObjectClient)?.renderTransform?.shipToWorldMatrix ?: ship.shipToWorld
         val shipStart = worldToShip.transformPosition(ctx.from.toJOML()).toMinecraft()
