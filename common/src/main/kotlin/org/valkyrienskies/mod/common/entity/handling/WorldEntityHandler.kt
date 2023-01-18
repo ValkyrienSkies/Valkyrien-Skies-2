@@ -6,7 +6,6 @@ import net.minecraft.client.renderer.entity.EntityRenderer
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.projectile.AbstractHurtingProjectile
 import org.joml.Vector3d
-import org.joml.Vector3dc
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.impl.util.component1
@@ -51,8 +50,13 @@ object WorldEntityHandler : VSEntityHandler {
     ) {
     }
 
-    private fun moveEntityFromShipyardToWorld(entity: Entity, ship: Ship): Vector3dc {
-        val newPos = ship.shipToWorld.transformPosition(entity.position().toJOML())
+    fun moveEntityFromShipyardToWorld(entity: Entity, ship: Ship) =
+        moveEntityFromShipyardToWorld(entity, ship, entity.x, entity.y, entity.z)
+
+    fun moveEntityFromShipyardToWorld(
+        entity: Entity, ship: Ship, entityX: Double, entityY: Double, entityZ: Double
+    ) {
+        val newPos = ship.shipToWorld.transformPosition(Vector3d(entityX, entityY, entityZ))
         entity.setPos(newPos.x, newPos.y, newPos.z)
         entity.xo = entity.x
         entity.yo = entity.y
@@ -86,7 +90,5 @@ object WorldEntityHandler : VSEntityHandler {
             entity.yPower = power.y
             entity.zPower = power.z
         }
-
-        return newPos
     }
 }
