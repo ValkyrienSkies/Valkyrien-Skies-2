@@ -24,6 +24,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ServerShip;
+import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
@@ -170,9 +171,10 @@ public abstract class MixinServerGamePacketListenerImpl {
         at = @At("HEAD")
     )
     void onDisconnect(final Component reason, final CallbackInfo ci) {
-        VSGameUtilsKt.getShipObjectWorld(this.server).onDisconnect(
-            VSGameUtilsKt.getPlayerWrapper(this.player)
-        );
+        final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(this.server);
+        if (world != null) {
+            world.onDisconnect(VSGameUtilsKt.getPlayerWrapper(this.player));
+        }
     }
 
 }
