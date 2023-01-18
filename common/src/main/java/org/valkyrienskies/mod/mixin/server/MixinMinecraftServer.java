@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BooleanSupplier;
 import java.util.stream.Collectors;
+import kotlin.Unit;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.players.PlayerList;
@@ -116,7 +117,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
 
         shipWorld = vsPipeline.getShipWorld();
 
-        VSGameEvents.INSTANCE.getRegistriesCompleted().emit(null);
+        VSGameEvents.INSTANCE.getRegistriesCompleted().emit(Unit.INSTANCE);
 
         getShipObjectWorld().addDimension(
             VSGameUtilsKt.getDimensionId(overworld()),
