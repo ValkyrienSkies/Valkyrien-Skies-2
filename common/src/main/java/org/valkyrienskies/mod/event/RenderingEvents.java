@@ -10,6 +10,8 @@ import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.LevelRenderer.RenderChunkInfo;
 import net.minecraft.client.renderer.RenderType;
 import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.mod.compat.VSRenderer;
+import org.valkyrienskies.mod.mixin.ValkyrienCommonMixinConfigPlugin;
 
 public class RenderingEvents {
 
@@ -39,6 +41,10 @@ public class RenderingEvents {
 
     public static void afterShipRendered(final ShipRender event) {
         afterShipRender.forEach((consumer) -> consumer.accept(event));
+    }
+
+    public static boolean eventsAreWorking() {
+        return ValkyrienCommonMixinConfigPlugin.getVSRenderer() == VSRenderer.VANILLA;
     }
 
     public record ShipStartRenderEvent(
