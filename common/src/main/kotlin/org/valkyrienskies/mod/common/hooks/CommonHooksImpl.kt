@@ -36,5 +36,5 @@ abstract class CommonHooksImpl : CoreHooksOut {
         get() = ValkyrienSkiesMod.currentServer?.shipObjectWorld
 
     override val currentShipClientWorld: ShipWorld
-        get() = Minecraft.getInstance().shipObjectWorld
+        get() = Minecraft.getInstance().shipObjectWorld!!
 }
