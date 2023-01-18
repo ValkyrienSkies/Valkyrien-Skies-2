@@ -24,9 +24,9 @@ import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.ShipSavedData;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
+import org.valkyrienskies.mod.common.hooks.VSGameEvents;
 import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.common.world.ChunkManagement;
-import org.valkyrienskies.mod.event.RegistryEvents;
 import org.valkyrienskies.mod.util.KrunchSupport;
 
 @Mixin(MinecraftServer.class)
@@ -116,7 +116,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
 
         shipWorld = vsPipeline.getShipWorld();
 
-        RegistryEvents.registriesAreComplete();
+        VSGameEvents.INSTANCE.getRegistriesCompleted().emit(null);
 
         getShipObjectWorld().addDimension(
             VSGameUtilsKt.getDimensionId(overworld()),

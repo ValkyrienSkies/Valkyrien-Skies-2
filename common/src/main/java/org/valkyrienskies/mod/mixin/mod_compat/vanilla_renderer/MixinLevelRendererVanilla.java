@@ -40,10 +40,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.hooks.VSGameEvents;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.compat.VSRenderer;
-import org.valkyrienskies.mod.event.RenderingEvents;
-import org.valkyrienskies.mod.event.RenderingEvents.ShipRenderEvent;
 import org.valkyrienskies.mod.mixin.ValkyrienCommonMixinConfigPlugin;
 import org.valkyrienskies.mod.mixin.accessors.client.render.ViewAreaAccessor;
 import org.valkyrienskies.mod.mixin.mod_compat.optifine.RenderChunkInfoAccessorOptifine;
@@ -168,7 +167,7 @@ public abstract class MixinLevelRendererVanilla {
 
         renderChunkLayer.call(receiver, renderType, poseStack, camX, camY, camZ, matrix4f);
 
-        RenderingEvents.shipsStartRendering(new RenderingEvents.ShipStartRenderEvent(
+        VSGameEvents.INSTANCE.getShipsStartRendering().emit(new VSGameEvents.ShipStartRenderEvent(
             receiver, renderType, poseStack, camX, camY, camZ, matrix4f
         ));
 
@@ -179,13 +178,13 @@ public abstract class MixinLevelRendererVanilla {
                 center.x(), center.y(), center.z(),
                 camX, camY, camZ);
 
-            final var event = new ShipRenderEvent(
+            final var event = new VSGameEvents.ShipRenderEvent(
                 receiver, renderType, poseStack, camX, camY, camZ, matrix4f, ship, chunks
             );
 
-            RenderingEvents.shipRendering(event);
+            VSGameEvents.INSTANCE.getRenderShip().emit(event);
             renderChunkLayer(renderType, poseStack, center.x(), center.y(), center.z(), matrix4f, chunks);
-            RenderingEvents.afterShipRendered(event);
+            VSGameEvents.INSTANCE.getPostRenderShip().emit(event);
 
             poseStack.popPose();
         });

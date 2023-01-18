@@ -13,6 +13,7 @@ import net.minecraftforge.client.ClientRegistry
 import net.minecraftforge.client.ConfigGuiHandler.ConfigGuiFactory
 import net.minecraftforge.client.event.EntityRenderersEvent
 import net.minecraftforge.event.AddReloadListenerEvent
+import net.minecraftforge.event.TagsUpdatedEvent
 import net.minecraftforge.fml.ModLoadingContext
 import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus
@@ -28,8 +29,8 @@ import org.valkyrienskies.core.impl.config.VSCoreConfig
 import org.valkyrienskies.mod.client.EmptyRenderer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.block.TestChairBlock
-import org.valkyrienskies.mod.common.block.TestHingeBlock
 import org.valkyrienskies.mod.common.block.TestFlapBlock
+import org.valkyrienskies.mod.common.block.TestHingeBlock
 import org.valkyrienskies.mod.common.block.TestWingBlock
 import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
@@ -38,6 +39,7 @@ import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.config.VSKeyBindings
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager
+import org.valkyrienskies.mod.common.hooks.VSGameEvents
 import org.valkyrienskies.mod.common.item.ShipAssemblerItem
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
 import org.valkyrienskies.mod.compat.clothconfig.VSClothConfig
@@ -82,6 +84,7 @@ class ValkyrienSkiesModForge {
         modBus.addListener(::entityRenderers)
         modBus.addListener(::loadComplete)
 
+        forgeBus.addListener(::tagsUpdated)
         forgeBus.addListener(::registerResourceManagers)
 
         ModLoadingContext.get().registerExtensionPoint(ConfigGuiFactory::class.java) {
@@ -135,6 +138,10 @@ class ValkyrienSkiesModForge {
         val blockRegistry = BLOCKS.register(registryName, blockSupplier)
         ITEMS.register(registryName) { BlockItem(blockRegistry.get(), Properties().tab(CreativeModeTab.TAB_MISC)) }
         return blockRegistry
+    }
+
+    private fun tagsUpdated(event: TagsUpdatedEvent) {
+        VSGameEvents.tagsAreLoaded.emit(Unit)
     }
 
     private fun loadComplete(event: FMLLoadCompleteEvent) {

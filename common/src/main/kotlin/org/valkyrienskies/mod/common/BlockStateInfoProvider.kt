@@ -16,7 +16,7 @@ import org.valkyrienskies.core.api.ships.WingManager
 import org.valkyrienskies.core.apigame.world.chunks.BlockType
 import org.valkyrienskies.mod.common.block.WingBlock
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
-import org.valkyrienskies.mod.event.RegistryEvents
+import org.valkyrienskies.mod.common.hooks.VSGameEvents
 
 // Other mods can then provide weights and types based on their added content
 // NOTE: if we have block's in vs-core we should ask getVSBlock(blockstate: BlockStat): VSBlock since thatd be more handy
@@ -48,7 +48,7 @@ object BlockStateInfo {
             REGISTRY, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "default"), DefaultBlockStateInfoProvider
         )
 
-        RegistryEvents.onRegistriesComplete { SORTED_REGISTRY = REGISTRY.sortedByDescending { it.priority } }
+        VSGameEvents.registriesCompleted.on { _, _ -> SORTED_REGISTRY = REGISTRY.sortedByDescending { it.priority } }
     }
 
     // This is [ThreadLocal] because in single-player games the Client thread and Server thread will read/write to
