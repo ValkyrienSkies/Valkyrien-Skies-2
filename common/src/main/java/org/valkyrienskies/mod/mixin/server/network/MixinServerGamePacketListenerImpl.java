@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.server.network;
 
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import java.util.Collections;
@@ -51,6 +52,19 @@ public abstract class MixinServerGamePacketListenerImpl {
     @Shadow
     @Final
     private MinecraftServer server;
+
+    @ModifyExpressionValue(
+        at = @At(value = "FIELD",
+            target = "Lnet/minecraft/server/network/ServerGamePacketListenerImpl;aboveGroundTickCount:I", ordinal = 0),
+        method = "tick"
+    )
+    private int noFlyKick(final int original) {
+        if (VSGameConfig.SERVER.getEnableMovementChecks()) {
+            return original;
+        } else {
+            return 0;
+        }
+    }
 
     @WrapOperation(
         at = @At(
