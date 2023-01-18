@@ -43,6 +43,7 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.compat.VSRenderer;
 import org.valkyrienskies.mod.event.RenderingEvents;
+import org.valkyrienskies.mod.event.RenderingEvents.ShipRenderEvent;
 import org.valkyrienskies.mod.mixin.ValkyrienCommonMixinConfigPlugin;
 import org.valkyrienskies.mod.mixin.accessors.client.render.ViewAreaAccessor;
 import org.valkyrienskies.mod.mixin.mod_compat.optifine.RenderChunkInfoAccessorOptifine;
@@ -178,7 +179,7 @@ public abstract class MixinLevelRendererVanilla {
                 center.x(), center.y(), center.z(),
                 camX, camY, camZ);
 
-            final var event = new RenderingEvents.ShipRender(
+            final var event = new ShipRenderEvent(
                 receiver, renderType, poseStack, camX, camY, camZ, matrix4f, ship, chunks
             );
 

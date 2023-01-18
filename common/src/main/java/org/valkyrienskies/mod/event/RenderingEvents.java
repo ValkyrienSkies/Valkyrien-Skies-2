@@ -16,18 +16,18 @@ import org.valkyrienskies.mod.mixin.ValkyrienCommonMixinConfigPlugin;
 public class RenderingEvents {
 
     private static List<Consumer<ShipStartRenderEvent>> onShipsStartRendering = new ArrayList<>();
-    private static List<Consumer<ShipRender>> onShipRender = new ArrayList<>();
-    private static List<Consumer<ShipRender>> afterShipRender = new ArrayList<>();
+    private static List<Consumer<ShipRenderEvent>> onShipRender = new ArrayList<>();
+    private static List<Consumer<ShipRenderEvent>> afterShipRender = new ArrayList<>();
 
     public static void onShipsStartRendering(final Consumer<ShipStartRenderEvent> event) {
         onShipsStartRendering.add(event);
     }
 
-    public static void onShipRender(final Consumer<ShipRender> event) {
+    public static void onShipRender(final Consumer<ShipRenderEvent> event) {
         onShipRender.add(event);
     }
 
-    public static void afterShipRender(final Consumer<ShipRender> event) {
+    public static void afterShipRender(final Consumer<ShipRenderEvent> event) {
         afterShipRender.add(event);
     }
 
@@ -35,11 +35,11 @@ public class RenderingEvents {
         onShipsStartRendering.forEach((consumer) -> consumer.accept(event));
     }
 
-    public static void shipRendering(final ShipRender event) {
+    public static void shipRendering(final ShipRenderEvent event) {
         onShipRender.forEach((consumer) -> consumer.accept(event));
     }
 
-    public static void afterShipRendered(final ShipRender event) {
+    public static void afterShipRendered(final ShipRenderEvent event) {
         afterShipRender.forEach((consumer) -> consumer.accept(event));
     }
 
@@ -55,7 +55,7 @@ public class RenderingEvents {
         Matrix4f projectionMatrix) {
     }
 
-    public record ShipRender(
+    public record ShipRenderEvent(
         LevelRenderer renderer,
         RenderType renderType,
         PoseStack poseStack,
