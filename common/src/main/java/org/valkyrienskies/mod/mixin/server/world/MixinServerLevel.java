@@ -30,6 +30,7 @@ import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.storage.LevelStorageSource.LevelStorageAccess;
 import net.minecraft.world.level.storage.ServerLevelData;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
 import org.joml.Vector3i;
 import org.joml.Vector3ic;
@@ -63,7 +64,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
 
     private final Set<Vector3ic> knownChunkRegions = new HashSet<>();
 
-    @NotNull
+    @Nullable
     @Override
     public ServerShipWorldCore getShipObjectWorld() {
         return ((IShipObjectWorldServerProvider) getServer()).getShipObjectWorld();
@@ -169,8 +170,10 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                                                 final Wing wing =
                                                     ((WingBlock) blockState.getBlock()).getWing(thisAsLevel,
                                                         mutableBlockPos, blockState);
-                                                if (wing != null)
-                                                    shipAsWingManager.setWing(shipAsWingManager.getFirstWingGroupId(), posX, posY, posZ, wing);
+                                                if (wing != null) {
+                                                    shipAsWingManager.setWing(shipAsWingManager.getFirstWingGroupId(),
+                                                        posX, posY, posZ, wing);
+                                                }
                                             }
                                         }
                                     }
@@ -207,5 +210,5 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
             voxelShapeUpdates
         );
     }
-    
+
 }

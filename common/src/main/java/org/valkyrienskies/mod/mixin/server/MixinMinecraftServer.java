@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.players.PlayerList;
-import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -72,13 +72,13 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         shipWorld.setPlayers(vsPlayers);
     }
 
-    @NotNull
+    @Nullable
     @Override
     public ServerShipWorldCore getShipObjectWorld() {
         return shipWorld;
     }
 
-    @NotNull
+    @Nullable
     @Override
     public VSPipeline getVsPipeline() {
         return vsPipeline;
@@ -117,7 +117,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         shipWorld = vsPipeline.getShipWorld();
 
         RegistryEvents.registriesAreComplete();
-        
+
         getShipObjectWorld().addDimension(
             VSGameUtilsKt.getDimensionId(overworld()),
             VSGameUtilsKt.getYRange(overworld())

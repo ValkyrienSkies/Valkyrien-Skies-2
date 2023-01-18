@@ -41,7 +41,7 @@ import org.valkyrienskies.mod.common.util.set
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toJOMLD
 import org.valkyrienskies.mod.common.util.toMinecraft
-import org.valkyrienskies.mod.common.world.DummyShipWorld
+import org.valkyrienskies.mod.common.world.DummyShipWorldClient
 import org.valkyrienskies.mod.mixin.accessors.resource.ResourceKeyAccessor
 import org.valkyrienskies.mod.mixinducks.world.entity.PlayerDuck
 import java.util.function.Consumer
@@ -56,12 +56,12 @@ val Level.shipWorldNullable: ShipWorldCore?
     }
 
 val Level.shipObjectWorld
-    get() = shipWorldNullable ?: DummyShipWorld
+    get() = shipWorldNullable ?: DummyShipWorldClient
 
 val Level.allShips get() = this.shipObjectWorld.allShips
 
 val MinecraftServer.shipObjectWorld get() = (this as IShipObjectWorldServerProvider).shipObjectWorld
-val MinecraftServer.vsPipeline get() = (this as IShipObjectWorldServerProvider).vsPipeline
+val MinecraftServer.vsPipeline get() = (this as IShipObjectWorldServerProvider).vsPipeline!!
 
 val ServerLevel.shipObjectWorld
     get() = server.shipObjectWorld
