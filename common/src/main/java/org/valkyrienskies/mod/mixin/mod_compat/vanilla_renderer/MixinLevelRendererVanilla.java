@@ -42,6 +42,7 @@ import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.compat.VSRenderer;
+import org.valkyrienskies.mod.event.RenderingEvents;
 import org.valkyrienskies.mod.mixin.ValkyrienCommonMixinConfigPlugin;
 import org.valkyrienskies.mod.mixin.accessors.client.render.ViewAreaAccessor;
 import org.valkyrienskies.mod.mixin.mod_compat.optifine.RenderChunkInfoAccessorOptifine;
@@ -166,6 +167,10 @@ public abstract class MixinLevelRendererVanilla {
 
         renderChunkLayer.call(receiver, renderType, poseStack, camX, camY, camZ, matrix4f);
 
+        RenderingEvents.shipsStartRendering(new RenderingEvents.ShipStartRenderEvent(
+            receiver, renderType, poseStack, camX, camY, camZ, matrix4f
+        ));
+
         shipRenderChunks.forEach((ship, chunks) -> {
             poseStack.pushPose();
             final Vector3dc center = ship.getRenderTransform().getPositionInShip();
@@ -173,7 +178,14 @@ public abstract class MixinLevelRendererVanilla {
                 center.x(), center.y(), center.z(),
                 camX, camY, camZ);
 
+            final var event = new RenderingEvents.ShipRender(
+                receiver, renderType, poseStack, camX, camY, camZ, matrix4f, ship, chunks
+            );
+
+            RenderingEvents.shipRendering(event);
             renderChunkLayer(renderType, poseStack, center.x(), center.y(), center.z(), matrix4f, chunks);
+            RenderingEvents.afterShipRendered(event);
+
             poseStack.popPose();
         });
     }
