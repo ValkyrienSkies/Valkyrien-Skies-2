@@ -47,7 +47,6 @@
     "mod_compat.sodium.MixinRegionChunkRenderer",
     "mod_compat.sodium.MixinRenderSectionManager",
     "mod_compat.sodium.MixinSodiumWorldRenderer",
-    "mod_compat.sound_physics_remastered.MixinSoundPhysics",
     "server.MixinMinecraftServer",
     "server.MixinPlayerList",
     "server.command.MixinCommands",
@@ -103,6 +102,7 @@
     "mod_compat.optifine.MixinViewAreaOptifine",
     "mod_compat.optifine.RenderChunkInfoAccessorOptifine",
     "mod_compat.optifine_vanilla.MixinLevelRenderer",
+    "mod_compat.sound_physics_remastered.MixinSoundPhysics",
     "mod_compat.vanilla_renderer.MixinLevelRendererVanilla",
     "mod_compat.vanilla_renderer.MixinViewAreaVanilla",
     "mod_compat.vanilla_renderer.RenderChunkInfoAccessor"
