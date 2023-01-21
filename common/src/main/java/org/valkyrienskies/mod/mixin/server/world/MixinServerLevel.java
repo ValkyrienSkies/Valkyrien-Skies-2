@@ -6,11 +6,8 @@ import com.google.common.collect.Lists;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.function.BooleanSupplier;
 import net.minecraft.core.BlockPos;
@@ -45,6 +42,7 @@ import org.valkyrienskies.core.api.ships.Wing;
 import org.valkyrienskies.core.api.ships.WingManager;
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
 import org.valkyrienskies.core.apigame.world.chunks.TerrainUpdate;
+import org.valkyrienskies.core.impl.datastructures.DenseBlockPosSet;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.block.WingBlock;
@@ -62,7 +60,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
     @NotNull
     public abstract MinecraftServer getServer();
 
-    private final Set<Vector3ic> knownChunkRegions = new HashSet<>();
+    private final DenseBlockPosSet knownChunkRegions = new DenseBlockPosSet();
 
     @Nullable
     @Override
@@ -125,7 +123,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
         // Create DenseVoxelShapeUpdate for new loaded chunks
         // Also mark the chunks as loaded in the ship objects
         final List<TerrainUpdate> voxelShapeUpdates = new ArrayList<>();
-        final Set<Vector3ic> currentTickChunkRegions = new HashSet<>();
+        final DenseBlockPosSet currentTickChunkRegions = new DenseBlockPosSet();
 
         for (final ChunkHolder chunkHolder : loadedChunksList) {
             final Optional<LevelChunk> worldChunkOptional =
@@ -192,17 +190,16 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
             }
         }
 
-        final Iterator<Vector3ic> knownChunkPosIterator = knownChunkRegions.iterator();
-        while (knownChunkPosIterator.hasNext()) {
-            final Vector3ic knownChunkPos = knownChunkPosIterator.next();
-            if (!currentTickChunkRegions.contains(knownChunkPos)) {
+        knownChunkRegions.forEach((x, y, z) -> {
+            if (!currentTickChunkRegions.contains(x, y, z)) {
                 // Delete this chunk
-                final TerrainUpdate deleteVoxelShapeUpdate =
-                    getVsCore().newDeleteTerrainUpdate(knownChunkPos.x(), knownChunkPos.y(), knownChunkPos.z());
+                final TerrainUpdate deleteVoxelShapeUpdate = getVsCore().newDeleteTerrainUpdate(x, y, z);
                 voxelShapeUpdates.add(deleteVoxelShapeUpdate);
-                knownChunkPosIterator.remove();
+
+                // DenseBlockPosSet doesn't throw ConcurrentModificationException
+                knownChunkRegions.remove(x, y, z);
             }
-        }
+        });
 
         // Send new loaded chunks updates to the ship world
         shipObjectWorld.addTerrainUpdates(
