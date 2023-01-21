@@ -375,10 +375,11 @@ fun Ship.toWorldCoordinates(x: Double, y: Double, z: Double, dest: Vector3d = Ve
 
 fun LevelChunkSection.toDenseVoxelUpdate(chunkPos: Vector3ic): TerrainUpdate {
     val update = vsCore.newDenseTerrainUpdateBuilder(chunkPos.x(), chunkPos.y(), chunkPos.z())
+    val info = BlockStateInfo.cache
     for (x in 0..15) {
         for (y in 0..15) {
             for (z in 0..15) {
-                update.addBlock(x, y, z, BlockStateInfo.get(getBlockState(x, y, z))?.second ?: vsCore.blockTypes.air)
+                update.addBlock(x, y, z, info.get(getBlockState(x, y, z))?.second ?: vsCore.blockTypes.air)
             }
         }
     }
