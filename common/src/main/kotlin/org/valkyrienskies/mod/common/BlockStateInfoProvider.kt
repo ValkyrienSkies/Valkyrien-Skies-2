@@ -17,6 +17,7 @@ import org.valkyrienskies.core.apigame.world.chunks.BlockType
 import org.valkyrienskies.mod.common.block.WingBlock
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.hooks.VSGameEvents
+import java.util.function.IntFunction
 
 // Other mods can then provide weights and types based on their added content
 // NOTE: if we have block's in vs-core we should ask getVSBlock(blockstate: BlockStat): VSBlock since thatd be more handy
@@ -53,20 +54,33 @@ object BlockStateInfo {
 
     // This is [ThreadLocal] because in single-player games the Client thread and Server thread will read/write to
     // [CACHE] simultaneously. This creates a data race that can crash the game (See https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues/126).
-    val CACHE: ThreadLocal<Int2ObjectOpenHashMap<Pair<Double, BlockType>>> =
-        ThreadLocal.withInitial { Int2ObjectOpenHashMap<Pair<Double, BlockType>>() }
+
+    class Cache {
+        // Use a load factor of 0.5f because this map is hit very often
+        private val blockStateCache: Int2ObjectOpenHashMap<Pair<Double, BlockType>> =
+            Int2ObjectOpenHashMap<Pair<Double, BlockType>>(2048, 0.5f)
+
+        fun get(blockState: BlockState): Pair<Double, BlockType>? {
+            val blockId = Block.getId(blockState)
+
+            if (blockId == -1) {
+                return null
+            }
+
+            return blockStateCache.computeIfAbsent(blockId, IntFunction { iterateRegistry(blockState) })
+        }
+    }
+
+    private val _cache = ThreadLocal.withInitial { Cache() }
+    val cache: Cache get() = _cache.get()
+
     // NOTE: this caching can get allot better, ex. default just returns constants so it might be more faster
     //  if we store that these values do not need to be cached by double and blocktype but just that they use default impl
 
     // this gets the weight and type provided by providers; or it gets it out of the cache
 
-    fun get(blockState: BlockState): Pair<Double, BlockType>? =
-        getId(blockState)?.let { CACHE.get().getOrPut(it) { iterateRegistry(blockState) } }
-
-    fun getId(blockState: BlockState): Int? {
-        val r = Block.getId(blockState)
-        if (r == -1) return null
-        return r
+    fun get(blockState: BlockState): Pair<Double, BlockType>? {
+        return cache.get(blockState)
     }
 
     private fun iterateRegistry(blockState: BlockState): Pair<Double, BlockType> =
