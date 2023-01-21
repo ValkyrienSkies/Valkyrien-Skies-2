@@ -1,13 +1,13 @@
 package org.valkyrienskies.mod.common.item
 
 import net.minecraft.Util
-import net.minecraft.core.Direction.NORTH
 import net.minecraft.network.chat.TextComponent
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.context.UseOnContext
+import net.minecraft.world.level.block.Rotation.NONE
 import net.minecraft.world.level.block.state.BlockState
 import org.joml.Vector3d
 import org.valkyrienskies.core.impl.game.ships.ShipDataCommon
@@ -43,7 +43,8 @@ class ShipCreatorItem(properties: Properties, private val scale: Double, private
                 val centerPos = serverShip.chunkClaim.getCenterBlockCoordinates(level.yRange).toBlockPos()
 
                 // Move the block from the world to a ship
-                level.relocateBlock(blockPos, centerPos, serverShip, NORTH)
+                level.relocateBlock(blockPos, centerPos, true, serverShip, NONE)
+
                 ctx.player?.sendMessage(TextComponent("SHIPIFIED!"), Util.NIL_UUID)
                 if (parentShip != null) {
                     // Compute the ship transform
