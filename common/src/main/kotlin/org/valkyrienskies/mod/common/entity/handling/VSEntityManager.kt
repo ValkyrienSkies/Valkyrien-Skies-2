@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.common.entity.handling
 
+import com.google.common.cache.CacheBuilder
 import net.minecraft.core.Registry
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.entity.Entity
@@ -9,6 +10,8 @@ import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.networking.PacketSyncVSEntityTypes
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.compat.CreateCompat
+import java.time.Duration
+import kotlin.text.RegexOption.IGNORE_CASE
 
 // TODO if needed initialize the handler with certain settings
 object VSEntityManager {
@@ -17,6 +20,9 @@ object VSEntityManager {
     private val entityHandlers = HashMap<EntityType<*>, VSEntityHandler>()
     private val default = WorldEntityHandler
     private var contraptionHandler: VSEntityHandler = DefaultShipyardEntityHandler
+
+    private val defaultHandlersCache =
+        CacheBuilder.newBuilder().expireAfterAccess(Duration.ofMinutes(5)).build<EntityType<*>, VSEntityHandler>()
 
     init {
         register(ResourceLocation(ValkyrienSkiesMod.MOD_ID, "shipyard"), DefaultShipyardEntityHandler)
@@ -56,7 +62,25 @@ object VSEntityManager {
         return entityHandlers[entity.type] ?: getDefaultHandler(entity)
     }
 
+    // Uses some heuristics to try to figure out which VSEntityHandler we should use for an entity
     private fun getDefaultHandler(entity: Entity): VSEntityHandler {
+        return defaultHandlersCache.get(entity.type) { determineDefaultHandler(entity) }
+    }
+
+    private val seatRegistryName = "(?<![a-z])(seat|chair)(?![a-z])".toRegex(IGNORE_CASE)
+
+    private fun determineDefaultHandler(entity: Entity): VSEntityHandler {
+        try {
+            val className = entity::class.java.simpleName
+            val registryName = Registry.ENTITY_TYPE.getKey(entity.type)
+
+            if (className.contains("SeatEntity", true) || registryName.path.contains(seatRegistryName)) {
+                return DefaultShipyardEntityHandler
+            }
+        } catch (ex: Exception) {
+            ex.printStackTrace()
+        }
+
         return default
     }
 
