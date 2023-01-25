@@ -15,6 +15,15 @@ dependencies {
         exclude module: "netty-buffer"
         exclude module: "fastutil"
     }
+
+    // FTB Stuffs
+    modCompileOnly("curse.maven:ftb-util-404465:4210935")
+    modCompileOnly("curse.maven:ftb-teams-404468:4229138")
+    modCompileOnly("curse.maven:ftb-chunks-314906:4229120")
+
+    //Common create compat,
+    //We just use a version from a platform and hope the classes exist on both versions and mixins apply correctly
+    modCompileOnly("com.jozufozu.flywheel:flywheel-fabric-${minecraft_version}:0.6.8-33")
 }
 
 architectury {

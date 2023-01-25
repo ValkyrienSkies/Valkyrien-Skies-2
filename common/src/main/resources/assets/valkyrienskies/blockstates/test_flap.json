@@ -1,0 +1,28 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "valkyrienskies:block/test_wing",
+      "y": 180
+    },
+    "facing=east": {
+      "model": "valkyrienskies:block/test_wing",
+      "y": 270
+    },
+    "facing=south": {
+      "model": "valkyrienskies:block/test_wing",
+      "y": 0
+    },
+    "facing=west": {
+      "model": "valkyrienskies:block/test_wing",
+      "y": 90
+    },
+    "facing=up": {
+      "model": "valkyrienskies:block/test_wing",
+      "x": 90
+    },
+    "facing=down": {
+      "model": "valkyrienskies:block/test_wing",
+      "x": 270
+    }
+  }
+}

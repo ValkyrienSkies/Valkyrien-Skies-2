@@ -6,10 +6,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BooleanSupplier;
 import java.util.stream.Collectors;
+import kotlin.Unit;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.players.PlayerList;
-import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -24,9 +25,9 @@ import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.ShipSavedData;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
+import org.valkyrienskies.mod.common.hooks.VSGameEvents;
 import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.common.world.ChunkManagement;
-import org.valkyrienskies.mod.event.RegistryEvents;
 import org.valkyrienskies.mod.util.KrunchSupport;
 
 @Mixin(MinecraftServer.class)
@@ -72,13 +73,13 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         shipWorld.setPlayers(vsPlayers);
     }
 
-    @NotNull
+    @Nullable
     @Override
     public ServerShipWorldCore getShipObjectWorld() {
         return shipWorld;
     }
 
-    @NotNull
+    @Nullable
     @Override
     public VSPipeline getVsPipeline() {
         return vsPipeline;
@@ -116,7 +117,12 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
 
         shipWorld = vsPipeline.getShipWorld();
 
-        RegistryEvents.registriesAreComplete();
+        VSGameEvents.INSTANCE.getRegistriesCompleted().emit(Unit.INSTANCE);
+
+        getShipObjectWorld().addDimension(
+            VSGameUtilsKt.getDimensionId(overworld()),
+            VSGameUtilsKt.getYRange(overworld())
+        );
     }
 
     @Inject(
@@ -129,12 +135,15 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         for (final ServerLevel level : getAllLevels()) {
             newLoadedLevels.put(VSGameUtilsKt.getDimensionId(level), level);
         }
+        /*
         for (final var entry : newLoadedLevels.entrySet()) {
             if (!loadedLevels.contains(entry.getKey())) {
                 final var yRange = VSGameUtilsKt.getYRange(entry.getValue());
                 shipWorld.addDimension(entry.getKey(), yRange);
             }
         }
+        */
+
         for (final String oldLoadedLevelId : loadedLevels) {
             if (!newLoadedLevels.containsKey(oldLoadedLevelId)) {
                 shipWorld.removeDimension(oldLoadedLevelId);
@@ -178,7 +187,9 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         at = @At("HEAD")
     )
     private void preStopServer(final CallbackInfo ci) {
-        vsPipeline.setDeleteResources(true);
+        if (vsPipeline != null) {
+            vsPipeline.setDeleteResources(true);
+        }
         shipWorld = null;
     }
 }

@@ -13,6 +13,8 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
@@ -28,11 +30,15 @@ import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.util.EntityDragger;
+import org.valkyrienskies.mod.common.world.DummyShipWorldClient;
 import org.valkyrienskies.mod.mixinducks.client.MinecraftDuck;
 
 @Mixin(Minecraft.class)
 public abstract class MixinMinecraft
     implements MinecraftDuck, IShipObjectWorldClientProvider, IShipObjectWorldClientCreator {
+
+    @Unique
+    private static final Logger log = LogManager.getLogger("VS2 MixinMinecraft");
 
     @Shadow
     private boolean pause;
@@ -81,7 +87,8 @@ public abstract class MixinMinecraft
         final ClientShipWorldCore shipObjectWorldCopy = shipObjectWorld;
 
         if (shipObjectWorldCopy == null) {
-            throw new IllegalStateException("Requested getShipObjectWorld() when shipObjectWorld was null!");
+            log.warn("Requested getShipObjectWorld() when shipObjectWorld was null!");
+            return DummyShipWorldClient.INSTANCE;
         }
         return shipObjectWorldCopy;
     }

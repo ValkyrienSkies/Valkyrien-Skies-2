@@ -1,23 +1,26 @@
 package org.valkyrienskies.mod.common.item
 
-import net.minecraft.core.Direction.NORTH
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.context.UseOnContext
+import net.minecraft.world.level.block.Rotation.NONE
 import net.minecraft.world.level.block.state.BlockState
+import org.joml.Vector3d
+import org.valkyrienskies.core.impl.game.ships.ShipDataCommon
+import org.valkyrienskies.core.impl.game.ships.ShipTransformImpl
 import org.valkyrienskies.mod.common.dimensionId
-import org.valkyrienskies.mod.common.isChunkInShipyard
+import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.toBlockPos
 import org.valkyrienskies.mod.common.util.toJOML
+import org.valkyrienskies.mod.common.util.toJOMLD
 import org.valkyrienskies.mod.common.yRange
 import org.valkyrienskies.mod.util.relocateBlock
 
-class ShipCreatorItem(properties: Properties, private val scale: Double) : Item(properties) {
-
+class ShipCreatorItem(properties: Properties, private val scale: Double, private val minScaling: Double = 0.25) : Item(properties) {
     override fun isFoil(stack: ItemStack): Boolean {
         return true
     }
@@ -28,19 +31,34 @@ class ShipCreatorItem(properties: Properties, private val scale: Double) : Item(
         val blockState: BlockState = level.getBlockState(blockPos)
 
         if (!level.isClientSide) {
-            if (ctx.level.isChunkInShipyard(blockPos.x shr 4, blockPos.z shr 4)) {
-                ctx.player?.sendSystemMessage(Component.literal("That chunk is already part of a ship!"))
-            } else if (!blockState.isAir) {
+            val parentShip = ctx.level.getShipManagingPos(blockPos)
+            if (!blockState.isAir) {
                 // Make a ship
                 val dimensionId = level.dimensionId
-                val shipData = level.shipObjectWorld.createNewShipAtBlock(blockPos.toJOML(), false, scale, dimensionId)
+                val serverShip =
+                    level.shipObjectWorld.createNewShipAtBlock(blockPos.toJOML(), false, scale, dimensionId)
 
-                val centerPos = shipData.chunkClaim.getCenterBlockCoordinates(level.yRange).toBlockPos()
+                val centerPos = serverShip.chunkClaim.getCenterBlockCoordinates(level.yRange).toBlockPos()
 
                 // Move the block from the world to a ship
-                level.relocateBlock(blockPos, centerPos, shipData, NORTH)
+                level.relocateBlock(blockPos, centerPos, true, serverShip, NONE)
 
                 ctx.player?.sendSystemMessage(Component.literal("SHIPIFIED!"))
+                if (parentShip != null) {
+                    // Compute the ship transform
+                    val newShipPosInWorld =
+                        parentShip.shipToWorld.transformPosition(blockPos.toJOMLD().add(0.5, 0.5, 0.5))
+                    val newShipPosInShipyard = blockPos.toJOMLD().add(0.5, 0.5, 0.5)
+                    val newShipRotation = parentShip.transform.shipToWorldRotation
+                    var newShipScaling = parentShip.transform.shipToWorldScaling.mul(scale, Vector3d())
+                    if (newShipScaling.x() < scale) {
+                        // Do not allow scaling to go below minScaling
+                        newShipScaling = Vector3d(minScaling, minScaling, minScaling)
+                    }
+                    val shipTransform =
+                        ShipTransformImpl(newShipPosInWorld, newShipPosInShipyard, newShipRotation, newShipScaling)
+                    (serverShip as ShipDataCommon).transform = shipTransform
+                }
             }
         }
 

@@ -27,19 +27,23 @@ import org.valkyrienskies.core.api.ships.LoadedShip
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.api.util.functions.DoubleTernaryConsumer
+import org.valkyrienskies.core.api.world.LevelYRange
 import org.valkyrienskies.core.apigame.world.IPlayer
+import org.valkyrienskies.core.apigame.world.ServerShipWorldCore
 import org.valkyrienskies.core.apigame.world.ShipWorldCore
 import org.valkyrienskies.core.apigame.world.chunks.TerrainUpdate
 import org.valkyrienskies.core.apigame.world.properties.DimensionId
 import org.valkyrienskies.core.game.ships.ShipObjectServer
 import org.valkyrienskies.core.impl.hooks.VSEvents.TickEndEvent
 import org.valkyrienskies.core.impl.util.expand
+import org.valkyrienskies.mod.common.util.DimensionIdProvider
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.util.set
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toJOMLD
 import org.valkyrienskies.mod.common.util.toMinecraft
-import org.valkyrienskies.mod.common.world.DummyShipWorld
+import org.valkyrienskies.mod.common.world.DummyShipWorldClient
+import org.valkyrienskies.mod.common.world.DummyShipWorldServer
 import org.valkyrienskies.mod.mixin.accessors.resource.ResourceKeyAccessor
 import org.valkyrienskies.mod.mixinducks.world.entity.PlayerDuck
 import java.util.function.Consumer
@@ -54,22 +58,21 @@ val Level.shipWorldNullable: ShipWorldCore?
     }
 
 val Level.shipObjectWorld
-    get() = shipWorldNullable ?: DummyShipWorld
+    get() = shipWorldNullable ?: DummyShipWorldClient
 
 val Level.allShips get() = this.shipObjectWorld.allShips
 
-val MinecraftServer.shipObjectWorld get() = (this as IShipObjectWorldServerProvider).shipObjectWorld
-val MinecraftServer.vsPipeline get() = (this as IShipObjectWorldServerProvider).vsPipeline
+val MinecraftServer.shipObjectWorld: ServerShipWorldCore
+    get() = (this as IShipObjectWorldServerProvider).shipObjectWorld ?: DummyShipWorldServer
+val MinecraftServer.vsPipeline get() = (this as IShipObjectWorldServerProvider).vsPipeline!!
 
 val ServerLevel.shipObjectWorld
     get() = server.shipObjectWorld
 
 val Level.dimensionId: DimensionId
     get() {
-        val dim = dimension()
-        dim as ResourceKeyAccessor
-
-        return dim.registryName.toString() + ":" + dim.location().toString()
+        this as DimensionIdProvider
+        return dimensionId
     }
 
 fun getResourceKey(dimensionId: DimensionId): ResourceKey<Level> {
@@ -93,7 +96,7 @@ fun MinecraftServer.executeIf(condition: () -> Boolean, toExecute: Runnable) {
     }
 }
 
-val Level.yRange get() = minBuildHeight until maxBuildHeight
+val Level.yRange get() = LevelYRange(minBuildHeight, maxBuildHeight)
 
 fun Level.isTickingChunk(pos: ChunkPos) = isTickingChunk(pos.x, pos.z)
 fun Level.isTickingChunk(chunkX: Int, chunkZ: Int) =
@@ -103,7 +106,7 @@ fun MinecraftServer.getLevelFromDimensionId(dimensionId: DimensionId): ServerLev
     return getLevel(getResourceKey(dimensionId))
 }
 
-val Minecraft.shipObjectWorld get() = (this as IShipObjectWorldClientProvider).shipObjectWorld
+val Minecraft.shipObjectWorld get() = (this as IShipObjectWorldClientProvider).shipObjectWorld ?: DummyShipWorldClient
 val ClientLevel.shipObjectWorld get() = Minecraft.getInstance().shipObjectWorld
 
 val IPlayer.mcPlayer: Player get() = (this as MinecraftPlayer).playerEntityReference.get()!!
@@ -220,6 +223,8 @@ fun Level.isChunkInShipyard(chunkX: Int, chunkZ: Int) =
 fun Level.isBlockInShipyard(blockX: Int, blockY: Int, blockZ: Int) =
     shipObjectWorld.isBlockInShipyard(blockX, blockY, blockZ, dimensionId)
 
+fun Level.isBlockInShipyard(pos: BlockPos) = isBlockInShipyard(pos.x, pos.y, pos.z)
+
 fun Level.isBlockInShipyard(x: Double, y: Double, z: Double) =
     isBlockInShipyard(x.toInt(), y.toInt(), z.toInt())
 
@@ -250,6 +255,9 @@ fun ClientLevel.getShipObjectManagingPos(chunkX: Int, chunkZ: Int) =
 fun ClientLevel.getShipObjectManagingPos(blockPos: Vec3i) =
     getShipObjectManagingPos(blockPos.x shr 4, blockPos.z shr 4)
 
+fun ClientLevel.getShipObjectManagingPos(posX: Double, posY: Double, posZ: Double) =
+    getShipObjectManagingPos(posX.toInt() shr 4, posZ.toInt() shr 4)
+
 fun ClientLevel.getShipObjectManagingPos(pos: Vector3dc) =
     getShipObjectManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
 
@@ -276,6 +284,9 @@ fun ServerLevel.getShipObjectManagingPos(chunkPos: ChunkPos) =
 
 fun ServerLevel.getShipObjectManagingPos(posX: Double, posY: Double, posZ: Double) =
     getShipObjectManagingPos(posX.toInt() shr 4, posZ.toInt() shr 4)
+
+fun ServerLevel.getShipObjectManagingPos(pos: Vector3dc) =
+    getShipObjectManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
 
 private fun getShipManagingPosImpl(world: Level, x: Int, z: Int): Ship? {
     return if (world.isChunkInShipyard(x, z)) {
@@ -311,6 +322,9 @@ fun Level.getShipManagingPos(pos: Vector3dc) =
 fun Level.getShipManagingPos(posX: Double, posY: Double, posZ: Double) =
     getShipManagingPos(posX.toInt() shr 4, posZ.toInt() shr 4)
 
+fun Level.getShipManagingPos(posX: Float, posY: Float, posZ: Float) =
+    getShipManagingPos(posX.toInt() shr 4, posZ.toInt() shr 4)
+
 fun Level.getShipManagingPos(chunkPos: ChunkPos) =
     getShipManagingPos(chunkPos.x, chunkPos.z)
 
@@ -320,6 +334,9 @@ fun ServerLevel.getShipManagingPos(chunkX: Int, chunkZ: Int) =
 
 fun ServerLevel.getShipManagingPos(blockPos: BlockPos) =
     getShipManagingPos(blockPos.x shr 4, blockPos.z shr 4)
+
+fun ServerLevel.getShipManagingPos(pos: Vector3dc) =
+    getShipManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
 
 fun ServerLevel.getShipManagingPos(posX: Double, posY: Double, posZ: Double) =
     getShipManagingPos(posX.toInt() shr 4, posZ.toInt() shr 4)
@@ -333,12 +350,19 @@ fun Ship.toWorldCoordinates(pos: BlockPos): Vector3d =
 fun Ship.toWorldCoordinates(pos: Vec3): Vec3 =
     shipToWorld.transformPosition(pos.toJOML()).toMinecraft()
 
-fun Level.toWorldCoordinates(pos: Vec3): Vec3 {
-    return getShipManagingPos(pos)?.toWorldCoordinates(pos) ?: pos
+fun Level?.toWorldCoordinates(pos: Vec3): Vec3 {
+    return this?.getShipManagingPos(pos)?.toWorldCoordinates(pos) ?: pos
 }
 
-fun Level.toWorldCoordinates(pos: Vector3d): Vector3d {
-    return getShipManagingPos(pos)?.shipToWorld?.transformPosition(pos) ?: pos
+fun ClientLevel?.toShipRenderCoordinates(shipPos: Vec3, pos: Vec3): Vec3 =
+    this?.getShipObjectManagingPos(shipPos)
+        ?.renderTransform
+        ?.worldToShip
+        ?.transformPosition(pos.toJOML())
+        ?.toMinecraft() ?: pos
+
+fun Level?.toWorldCoordinates(pos: Vector3d): Vector3d {
+    return this?.getShipManagingPos(pos)?.shipToWorld?.transformPosition(pos) ?: pos
 }
 
 @JvmOverloads
@@ -351,10 +375,11 @@ fun Ship.toWorldCoordinates(x: Double, y: Double, z: Double, dest: Vector3d = Ve
 
 fun LevelChunkSection.toDenseVoxelUpdate(chunkPos: Vector3ic): TerrainUpdate {
     val update = vsCore.newDenseTerrainUpdateBuilder(chunkPos.x(), chunkPos.y(), chunkPos.z())
+    val info = BlockStateInfo.cache
     for (x in 0..15) {
         for (y in 0..15) {
             for (z in 0..15) {
-                update.addBlock(x, y, z, BlockStateInfo.get(getBlockState(x, y, z))?.second ?: vsCore.blockTypes.air)
+                update.addBlock(x, y, z, info.get(getBlockState(x, y, z))?.second ?: vsCore.blockTypes.air)
             }
         }
     }

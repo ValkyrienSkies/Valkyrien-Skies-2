@@ -28,7 +28,7 @@ public class MixinBlocks {
             value = "INVOKE",
             target = "Lnet/minecraft/world/entity/Entity;blockPosition()Lnet/minecraft/core/BlockPos;"
         ),
-        require = 0
+        require = 0, remap = false
     )
     protected BlockPos redirectBlockPosition(final Entity entity) {
         final Iterator<Ship> ships =
@@ -48,9 +48,9 @@ public class MixinBlocks {
             value = "INVOKE",
             target = "Lnet/minecraft/world/entity/Entity;position()Lnet/minecraft/world/phys/Vec3;"
         ),
-        require = 0
+        require = 0, remap = false
     )
-    protected Vec3 redirectPosition(final Entity entity) {
+    Vec3 redirectPosition(final Entity entity) {
         final Iterator<Ship> ships =
             VSGameUtilsKt.getShipsIntersecting(entity.level, entity.getBoundingBox()).iterator();
         if (ships.hasNext()) {

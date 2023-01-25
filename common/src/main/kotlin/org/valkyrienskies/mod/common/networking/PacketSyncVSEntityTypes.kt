@@ -8,5 +8,5 @@ import org.valkyrienskies.core.impl.networking.simple.SimplePacket
  */
 data class PacketSyncVSEntityTypes(
     // Mc entity type id -> VSEntityHandler name
-    val entity2Handler: Array<String>
+    val entity2Handler: Map<Int, String>
 ) : SimplePacket

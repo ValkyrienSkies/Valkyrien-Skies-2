@@ -5,6 +5,7 @@ import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry
 import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents
+import net.fabricmc.fabric.api.`object`.builder.v1.block.entity.FabricBlockEntityTypeBuilder
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper
 import net.fabricmc.loader.api.FabricLoader
@@ -25,13 +26,18 @@ import org.valkyrienskies.core.apigame.VSCoreFactory
 import org.valkyrienskies.mod.client.EmptyRenderer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.block.TestChairBlock
+import org.valkyrienskies.mod.common.block.TestFlapBlock
+import org.valkyrienskies.mod.common.block.TestHingeBlock
+import org.valkyrienskies.mod.common.block.TestWingBlock
+import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.config.VSEntityHandlerDataLoader
 import org.valkyrienskies.mod.common.config.VSKeyBindings
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
+import org.valkyrienskies.mod.common.entity.handling.VSEntityManager
+import org.valkyrienskies.mod.common.hooks.VSGameEvents
 import org.valkyrienskies.mod.common.item.ShipAssemblerItem
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
-import org.valkyrienskies.mod.event.RegistryEvents
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executor
 import java.util.concurrent.atomic.AtomicBoolean
@@ -46,6 +52,9 @@ class ValkyrienSkiesModFabric : ModInitializer {
         if (hasInitialized.getAndSet(true)) return
 
         ValkyrienSkiesMod.TEST_CHAIR = TestChairBlock
+        ValkyrienSkiesMod.TEST_HINGE = TestHingeBlock
+        ValkyrienSkiesMod.TEST_FLAP = TestFlapBlock
+        ValkyrienSkiesMod.TEST_WING = TestWingBlock
         ValkyrienSkiesMod.SHIP_CREATOR_ITEM = ShipCreatorItem(Properties().tab(CreativeModeTab.TAB_MISC), 1.0)
         ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM = ShipAssemblerItem(Properties().tab(CreativeModeTab.TAB_MISC))
         ValkyrienSkiesMod.SHIP_CREATOR_ITEM_SMALLER = ShipCreatorItem(Properties().tab(CreativeModeTab.TAB_MISC), 0.5)
@@ -54,6 +63,8 @@ class ValkyrienSkiesModFabric : ModInitializer {
             MobCategory.MISC
         ).sized(.3f, .3f)
             .build(ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_mounting_entity").toString())
+        ValkyrienSkiesMod.TEST_HINGE_BLOCK_ENTITY_TYPE =
+            FabricBlockEntityTypeBuilder.create(::TestHingeBlockEntity, ValkyrienSkiesMod.TEST_HINGE).build()
 
         val isClient = FabricLoader.getInstance().environmentType == EnvType.CLIENT
         val networking = VSFabricNetworking(isClient)
@@ -69,8 +80,12 @@ class ValkyrienSkiesModFabric : ModInitializer {
         if (isClient) onInitializeClient()
 
         ValkyrienSkiesMod.init(vsCore)
+        VSEntityManager.registerContraptionHandler(ContraptionShipyardEntityHandlerFabric)
 
         registerBlockAndItem("test_chair", ValkyrienSkiesMod.TEST_CHAIR)
+        registerBlockAndItem("test_hinge", ValkyrienSkiesMod.TEST_HINGE)
+        registerBlockAndItem("test_flap", ValkyrienSkiesMod.TEST_FLAP)
+        registerBlockAndItem("test_wing", ValkyrienSkiesMod.TEST_WING)
         Registry.register(
             Registry.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_assembler"),
             ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM
@@ -86,6 +101,10 @@ class ValkyrienSkiesModFabric : ModInitializer {
         Registry.register(
             Registry.ENTITY_TYPE, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_mounting_entity"),
             ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE
+        )
+        Registry.register(
+            Registry.BLOCK_ENTITY_TYPE, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "test_hinge_block_entity"),
+            ValkyrienSkiesMod.TEST_HINGE_BLOCK_ENTITY_TYPE
         )
 
         // registering data loaders
@@ -116,7 +135,9 @@ class ValkyrienSkiesModFabric : ModInitializer {
                     ) { _, _ -> }
                 }
             })
-        CommonLifecycleEvents.TAGS_LOADED.register(RegistryEvents::tagsAreLoaded)
+        CommonLifecycleEvents.TAGS_LOADED.register { _, _ ->
+            VSGameEvents.tagsAreLoaded.emit(Unit)
+        }
     }
 
     /**

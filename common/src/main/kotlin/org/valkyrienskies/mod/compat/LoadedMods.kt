@@ -14,7 +14,7 @@ object LoadedMods {
         override fun getValue(thisRef: Any?, property: KProperty<*>): Boolean {
             if (isLoaded == null) {
                 isLoaded = try {
-                    Class.forName(className)
+                    Class.forName(className, false, LoadedMods::class.java.classLoader)
                     true
                 } catch (ex: ClassNotFoundException) {
                     false

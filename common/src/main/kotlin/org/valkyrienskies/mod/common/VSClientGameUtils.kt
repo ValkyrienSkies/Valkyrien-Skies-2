@@ -1,13 +1,38 @@
 package org.valkyrienskies.mod.common
 
 import com.mojang.blaze3d.vertex.PoseStack
+import net.minecraft.client.Minecraft
+import net.minecraft.core.BlockPos
 import org.joml.Matrix4d
 import org.joml.Matrix4f
+import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.properties.ShipTransform
 import org.valkyrienskies.mod.common.util.multiply
 import com.mojang.math.Matrix4f as Matrix4fMC
 
 object VSClientGameUtils {
+
+    @JvmStatic
+    fun multiplyWithShipToWorld(poseStack: PoseStack, ship: ClientShip) {
+        poseStack.multiply(ship.renderTransform.shipToWorld, ship.renderTransform.shipToWorldRotation)
+    }
+
+    @JvmStatic
+    fun transformRenderIfInShipyard(poseStack: PoseStack, offsetX: Double, offsetY: Double, offsetZ: Double) {
+        val ship = Minecraft.getInstance().level?.getShipObjectManagingPos(offsetX, offsetY, offsetZ)
+
+        if (ship != null) {
+            val transform = ship.renderTransform
+            val renderMatrix = Matrix4d()
+                .mul(transform.shipToWorld)
+                .translate(offsetX, offsetY, offsetZ)
+
+            poseStack.multiply(renderMatrix)
+        } else {
+            poseStack.translate(offsetX, offsetY, offsetZ)
+        }
+    }
+
     /**
      * Modify the last transform of [poseStack] to be the following:
      *
@@ -81,4 +106,30 @@ object VSClientGameUtils {
         // Multiply the last transform of [poseStack] by [shipToWorldMatrix]
         matrix.mul(Matrix4f(renderMatrix))
     }
+
+    /**
+     * @param renderTransform The ship's render transform
+     * @param matrix          The {@link PoseStack} we are multiplying
+     * @param blockPos        The position of the block in question
+     * @param camX            Player camera X
+     * @param camY            Player camera Y
+     * @param camZ            Player camera Z
+     */
+    @JvmStatic
+    fun transformRenderWithShip(
+        renderTransform: ShipTransform,
+        matrix: PoseStack,
+        blockPos: BlockPos,
+        camX: Double,
+        camY: Double,
+        camZ: Double
+    ) {
+        transformRenderWithShip(
+            renderTransform,
+            matrix,
+            blockPos.x.toDouble(), blockPos.y.toDouble(), blockPos.z.toDouble(),
+            camX, camY, camZ
+        )
+    }
 }
+

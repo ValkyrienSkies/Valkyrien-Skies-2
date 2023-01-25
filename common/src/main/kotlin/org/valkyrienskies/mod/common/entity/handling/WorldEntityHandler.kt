@@ -6,7 +6,6 @@ import net.minecraft.client.renderer.entity.EntityRenderer
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.projectile.AbstractHurtingProjectile
 import org.joml.Vector3d
-import org.joml.Vector3dc
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.impl.util.component1
@@ -19,8 +18,12 @@ import kotlin.math.atan2
 import kotlin.math.sqrt
 
 object WorldEntityHandler : VSEntityHandler {
-    override fun freshEntityInShipyard(entity: Entity, ship: Ship, position: Vector3dc) {
-        moveEntityFromShipyardToWorld(entity, ship, position)
+    override fun freshEntityInShipyard(entity: Entity, ship: Ship) {
+        moveEntityFromShipyardToWorld(entity, ship)
+    }
+
+    override fun entityRemovedFromShipyard(entity: Entity, ship: Ship) {
+        // Do nothing
     }
 
     override fun <T : Entity> applyRenderTransform(
@@ -47,29 +50,30 @@ object WorldEntityHandler : VSEntityHandler {
     ) {
     }
 
-    override fun onEntityMove(self: Entity, ship: Ship, position: Vector3dc) =
-        moveEntityFromShipyardToWorld(self, ship, position)
+    fun moveEntityFromShipyardToWorld(entity: Entity, ship: Ship) =
+        moveEntityFromShipyardToWorld(entity, ship, entity.x, entity.y, entity.z)
 
-    fun moveEntityFromShipyardToWorld(entity: Entity, ship: Ship, position: Vector3dc): Vector3dc {
-        val newPos = ship.shipToWorld.transformPosition(Vector3d(position))
+    fun moveEntityFromShipyardToWorld(
+        entity: Entity, ship: Ship, entityX: Double, entityY: Double, entityZ: Double
+    ) {
+        val newPos = ship.shipToWorld.transformPosition(Vector3d(entityX, entityY, entityZ))
         entity.setPos(newPos.x, newPos.y, newPos.z)
         entity.xo = entity.x
         entity.yo = entity.y
         entity.zo = entity.z
 
-        val shipVelocity = Vector3d().add(ship.velocity)
-            .add(
-                newPos.sub(ship.shipTransform.shipPositionInWorldCoordinates, Vector3d())
-                    .cross(ship.omega)
-            ).mul(0.05) // Tick velocity
+        val newPosInShipLocal = Vector3d(newPos).sub(ship.transform.positionInWorld)
+        val shipVelocity = Vector3d(ship.velocity) // ship linear velocity
+            .add(Vector3d(ship.omega).cross(newPosInShipLocal)) // angular velocity
+            .mul(0.05) // Tick velocity
 
-        entity.deltaMovement =
-            ship.shipTransform.transformDirectionNoScalingFromShipToWorld(entity.deltaMovement.toJOML(), Vector3d())
-                .add(shipVelocity)
-                .toMinecraft()
+        val entityVelocity = ship.transform.shipToWorldRotation.transform(entity.deltaMovement.toJOML())
 
-        val direction =
-            ship.shipTransform.transformDirectionNoScalingFromShipToWorld(entity.lookAngle.toJOML(), Vector3d())
+        entity.deltaMovement = Vector3d(entityVelocity)
+            .add(shipVelocity)
+            .toMinecraft()
+
+        val direction = ship.transform.shipToWorldRotation.transform(entity.lookAngle.toJOML())
         val yaw = -atan2(direction.x, direction.z)
         val pitch = -atan2(direction.y, sqrt((direction.x * direction.x) + (direction.z * direction.z)))
         entity.yRot = (yaw * (180 / Math.PI)).toFloat()
@@ -78,18 +82,13 @@ object WorldEntityHandler : VSEntityHandler {
         entity.xRotO = entity.xRot
 
         if (entity is AbstractHurtingProjectile) {
-            val powerJank = Vector3d(entity.xPower, entity.yPower, entity.zPower)
+            val power = Vector3d(entity.xPower, entity.yPower, entity.zPower)
 
-            ship.shipTransform.transformDirectionNoScalingFromShipToWorld(
-                powerJank,
-                powerJank
-            )
+            ship.transform.shipToWorldRotation.transform(power)
 
-            entity.xPower = powerJank.x
-            entity.yPower = powerJank.y
-            entity.zPower = powerJank.z
+            entity.xPower = power.x
+            entity.yPower = power.y
+            entity.zPower = power.z
         }
-
-        return newPos
     }
 }

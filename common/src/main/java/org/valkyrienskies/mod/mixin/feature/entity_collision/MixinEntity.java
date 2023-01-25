@@ -134,7 +134,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         final Iterable<Ship> intersectingShips = VSGameUtilsKt.getShipsIntersecting(level, testAABB);
         for (final Ship ship : intersectingShips) {
             final Vector3dc blockPosInLocal =
-                ship.getShipTransform().getWorldToShipMatrix().transformPosition(blockPosInGlobal, new Vector3d());
+                ship.getTransform().getWorldToShip().transformPosition(blockPosInGlobal, new Vector3d());
             final BlockPos blockPos = new BlockPos(
                 Math.floor(blockPosInLocal.x()), Math.floor(blockPosInLocal.y()), Math.floor(blockPosInLocal.z())
             );
@@ -143,7 +143,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
                 return blockPos;
             } else {
                 // Check the block below as well, in the cases of fences
-                final Vector3dc blockPosInLocal2 = ship.getShipTransform().getWorldToShipMatrix()
+                final Vector3dc blockPosInLocal2 = ship.getTransform().getWorldToShip()
                     .transformPosition(
                         new Vector3d(blockPosInGlobal.x(), blockPosInGlobal.y() - 1.0, blockPosInGlobal.z()));
                 final BlockPos blockPos2 = new BlockPos(
@@ -161,9 +161,9 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     @Inject(method = "getBlockPosBelowThatAffectsMyMovement", at = @At("HEAD"), cancellable = true)
     private void preGetBlockPosBelowThatAffectsMyMovement(final CallbackInfoReturnable<BlockPos> cir) {
         final Vector3dc blockPosInGlobal = new Vector3d(
-            Math.floor(position.x) + 0.5,
-            Math.floor(getBoundingBox().minY - 0.5) + 0.5,
-            Math.floor(position.z) + 0.5
+            position.x,
+            getBoundingBox().minY - 0.5,
+            position.z
         );
         final BlockPos blockPosStandingOnFromShip = getPosStandingOnFromShips(blockPosInGlobal);
         if (blockPosStandingOnFromShip != null) {
@@ -178,9 +178,9 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     @Inject(method = "getOnPos", at = @At("HEAD"), cancellable = true)
     private void preGetOnPos(final CallbackInfoReturnable<BlockPos> cir) {
         final Vector3dc blockPosInGlobal = new Vector3d(
-            Math.floor(position.x) + 0.5,
-            Math.floor(position.y - 0.2) + 0.5,
-            Math.floor(position.z) + 0.5
+            position.x,
+            position.y - 0.2,
+            position.z
         );
         final BlockPos blockPosStandingOnFromShip = getPosStandingOnFromShips(blockPosInGlobal);
         if (blockPosStandingOnFromShip != null) {
@@ -191,9 +191,9 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     @Inject(method = "spawnSprintParticle", at = @At("HEAD"), cancellable = true)
     private void preSpawnSprintParticle(final CallbackInfo ci) {
         final Vector3dc blockPosInGlobal = new Vector3d(
-            Math.floor(position.x) + 0.5,
-            Math.floor(position.y - 0.2) + 0.5,
-            Math.floor(position.z) + 0.5
+            position.x,
+            position.y - 0.2,
+            position.z
         );
         final BlockPos blockPosStandingOnFromShip = getPosStandingOnFromShips(blockPosInGlobal);
         if (blockPosStandingOnFromShip != null) {
