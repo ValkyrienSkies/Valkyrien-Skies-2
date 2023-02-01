@@ -102,9 +102,19 @@ class ValkyrienSkiesModForge {
         TEST_FLAP_REGISTRY = registerBlockAndItem("test_flap") { TestFlapBlock }
         TEST_WING_REGISTRY = registerBlockAndItem("test_wing") { TestWingBlock }
         SHIP_CREATOR_ITEM_REGISTRY =
-            ITEMS.register("ship_creator") { ShipCreatorItem(Properties().tab(CreativeModeTab.TAB_MISC), 1.0) }
+            ITEMS.register("ship_creator") {
+                ShipCreatorItem(Properties().tab(CreativeModeTab.TAB_MISC),
+                    { 1.0 },
+                    { VSGameConfig.SERVER.minScaling })
+            }
         SHIP_CREATOR_SMALLER_ITEM_REGISTRY =
-            ITEMS.register("ship_creator_smaller") { ShipCreatorItem(Properties().tab(CreativeModeTab.TAB_MISC), 0.5) }
+            ITEMS.register("ship_creator_smaller") {
+                ShipCreatorItem(
+                    Properties().tab(CreativeModeTab.TAB_MISC),
+                    { VSGameConfig.SERVER.miniShipSize },
+                    { VSGameConfig.SERVER.minScaling }
+                )
+            }
         SHIP_MOUNTING_ENTITY_REGISTRY = ENTITIES.register("ship_mounting_entity") {
             EntityType.Builder.of(
                 ::ShipMountingEntity,

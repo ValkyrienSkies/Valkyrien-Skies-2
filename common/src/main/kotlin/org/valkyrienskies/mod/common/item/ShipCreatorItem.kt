@@ -20,8 +20,11 @@ import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toJOMLD
 import org.valkyrienskies.mod.common.yRange
 import org.valkyrienskies.mod.util.relocateBlock
+import java.util.function.DoubleSupplier
 
-class ShipCreatorItem(properties: Properties, private val scale: Double, private val minScaling: Double = 0.25) : Item(properties) {
+class ShipCreatorItem(
+    properties: Properties, private val scale: DoubleSupplier, private val minScaling: DoubleSupplier
+) : Item(properties) {
 
     override fun isFoil(stack: ItemStack): Boolean {
         return true
@@ -37,6 +40,10 @@ class ShipCreatorItem(properties: Properties, private val scale: Double, private
             if (!blockState.isAir) {
                 // Make a ship
                 val dimensionId = level.dimensionId
+
+                val scale = scale.asDouble
+                val minScaling = minScaling.asDouble
+
                 val serverShip =
                     level.shipObjectWorld.createNewShipAtBlock(blockPos.toJOML(), false, scale, dimensionId)
 
