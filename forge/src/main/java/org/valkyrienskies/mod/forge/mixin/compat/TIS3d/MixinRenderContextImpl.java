@@ -20,7 +20,9 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 public abstract class MixinRenderContextImpl {
     @WrapOperation(
         method = "closeEnoughForDetails(Lnet/minecraft/core/BlockPos;)Z",
+        remap = false,
         at = @At(value = "INVOKE",
+            remap = true,
             target = "Lnet/minecraft/core/BlockPos;closerToCenterThan(Lnet/minecraft/core/Position;F)Z"
         )
     )
