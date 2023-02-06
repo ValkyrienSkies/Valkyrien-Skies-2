@@ -17,7 +17,7 @@ public abstract class MixinRenderContextImpl {
     @WrapOperation(
         method = "closeEnoughForDetails(Lnet/minecraft/core/BlockPos;)Z",
         at = @At(value = "INVOKE",
-            target = "Lnet/minecraft/core/BlockPos;closerToCenterThan(Lnet/minecraft/core/Position;F;)Z"
+            target = "Lnet/minecraft/core/BlockPos;closerToCenterThan(Lnet/minecraft/core/Position;F)Z"
         )
     )
     private boolean ValkyrienSkies$closerToCenterThan(final BlockPos instance, final Position pos, final float dist,
