@@ -32,6 +32,7 @@ import org.valkyrienskies.mod.common.block.TestWingBlock
 import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.config.VSEntityHandlerDataLoader
+import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.config.VSKeyBindings
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager
@@ -55,9 +56,18 @@ class ValkyrienSkiesModFabric : ModInitializer {
         ValkyrienSkiesMod.TEST_HINGE = TestHingeBlock
         ValkyrienSkiesMod.TEST_FLAP = TestFlapBlock
         ValkyrienSkiesMod.TEST_WING = TestWingBlock
-        ValkyrienSkiesMod.SHIP_CREATOR_ITEM = ShipCreatorItem(Properties().tab(CreativeModeTab.TAB_MISC), 1.0)
+        ValkyrienSkiesMod.SHIP_CREATOR_ITEM = ShipCreatorItem(
+            Properties().tab(CreativeModeTab.TAB_MISC),
+            { 1.0 },
+            { VSGameConfig.SERVER.minScaling }
+        )
         ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM = ShipAssemblerItem(Properties().tab(CreativeModeTab.TAB_MISC))
-        ValkyrienSkiesMod.SHIP_CREATOR_ITEM_SMALLER = ShipCreatorItem(Properties().tab(CreativeModeTab.TAB_MISC), 0.5)
+        ValkyrienSkiesMod.SHIP_CREATOR_ITEM_SMALLER = ShipCreatorItem(
+            Properties().tab(CreativeModeTab.TAB_MISC),
+            { VSGameConfig.SERVER.miniShipSize },
+            { VSGameConfig.SERVER.minScaling }
+        )
+        
         ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE = EntityType.Builder.of(
             ::ShipMountingEntity,
             MobCategory.MISC
