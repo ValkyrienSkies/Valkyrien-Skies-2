@@ -9,9 +9,9 @@
     "compat.cc_tweaked.MixinTurtleMoveCommand",
     "compat.cc_tweaked.MixinWirelessNetwork",
     "compat.create.Matrix3dAccessor",
+    "compat.create.MixinAbstractContraptionEntity",
     "compat.create.MixinBlockBreakingKineticTileEntity",
     "compat.create.MixinBlocks",
-    "compat.create.MixinAbstractContraptionEntity",
     "compat.immersivengineering.MixinBlockEntityInventory",
     "compat.thermalexpansion.MixinTileCoFH",
     "feature.forge_interact.MixinIForgePlayer",
@@ -24,7 +24,7 @@
     "compat.create.client.MixinScrollValueBehaviour",
     "compat.create.client.MixinValueBox",
     "compat.sodium.MixinRenderSectionManager",
-    "compat.TIS3d.MixinCasingBockEntityRender",
+    "compat.TIS3d.MixinCasingTileEntityRender",
     "compat.TIS3d.MixinRenderContextImpl"
   ],
   "injectors": {

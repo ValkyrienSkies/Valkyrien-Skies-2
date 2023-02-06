@@ -4,7 +4,6 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import li.cil.tis3d.client.renderer.RenderContextImpl;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Position;
 import net.minecraft.world.phys.Vec3;
@@ -29,8 +28,7 @@ public abstract class MixinRenderContextImpl {
     private boolean ValkyrienSkies$closerToCenterThan(final BlockPos instance, final Position pos, final double dist,
         final Operation<Boolean> orig) {
         // this code has been deemed better by those at the forge discord (since it calls the og function)
-        final ClientLevel lvl = Minecraft.getInstance().level;
-        final ClientShip ship = VSGameUtilsKt.getShipObjectManagingPos(lvl, instance);
+        final ClientShip ship = VSGameUtilsKt.getShipObjectManagingPos(Minecraft.getInstance().level, instance);
         if (ship != null) {
             final Vector3d spos = ship.getTransform().getWorldToShip().transformPosition(
                 new Vector3d(pos.x(), pos.y(), pos.z())
