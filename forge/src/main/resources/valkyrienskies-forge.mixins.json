@@ -23,7 +23,9 @@
     "compat.create.client.MixinFlwContraption",
     "compat.create.client.MixinScrollValueBehaviour",
     "compat.create.client.MixinValueBox",
-    "compat.sodium.MixinRenderSectionManager"
+    "compat.sodium.MixinRenderSectionManager",
+    "compat.TIS3d.MixinCasingBockEntityRender",
+    "compat.TIS3d.MixinRenderContextImpl"
   ],
   "injectors": {
     "defaultRequire": 1
