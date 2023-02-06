@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.forge.mixin.compat.TIS3d;
+package org.valkyrienskies.mod.forge.mixin.compat.tis3d;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
@@ -25,7 +25,7 @@ public abstract class MixinRenderContextImpl {
             target = "Lnet/minecraft/core/BlockPos;closerToCenterThan(Lnet/minecraft/core/Position;D)Z"
         )
     )
-    private boolean ValkyrienSkies$closerToCenterThan(final BlockPos instance, final Position pos, final double dist,
+    private boolean vs$closerToCenterThan(final BlockPos instance, final Position pos, final double dist,
         final Operation<Boolean> orig) {
         // this code has been deemed better by those at the forge discord (since it calls the og function)
         final ClientShip ship = VSGameUtilsKt.getShipObjectManagingPos(Minecraft.getInstance().level, instance);
