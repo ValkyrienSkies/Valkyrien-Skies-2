@@ -26,7 +26,7 @@ public abstract class MixinRenderContextImpl {
             target = "Lnet/minecraft/core/BlockPos;closerToCenterThan(Lnet/minecraft/core/Position;D)Z"
         )
     )
-    private boolean ValkyrienSkies$closerToCenterThan(final BlockPos instance, final Position pos, final float dist,
+    private boolean ValkyrienSkies$closerToCenterThan(final BlockPos instance, final Position pos, final double dist,
         final Operation<Boolean> orig) {
         // this code has been deemed better by those at the forge discord (since it calls the og function)
         final ClientLevel lvl = Minecraft.getInstance().level;
