@@ -12,6 +12,8 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
+import li.cil.tis3d.common.entity.InfraredPacketEntity;
+
 @Pseudo
 @Mixin(CasingTileEntityRenderer.class)
 public abstract class MixinCasingTileEntityRender {

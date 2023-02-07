@@ -74,8 +74,9 @@ dependencies {
     modCompileOnly("curse.maven:cc-tweaked-282001:4061947")
 
     // TIS-3d
-    modCompileOnly("curse.maven:tis3d-238603:3738437")
-
+    //modCompileOnly("curse.maven:tis3d-238603:3738437")
+    modImplementation("curse.maven:tis3d-238603:3738437")
+    modImplementation("curse.maven:markdownmanual-502485:3738124")
 
     // Add Kotlin for Forge.
     forgeRuntimeLibrary('curse.maven:kotlinforforge-351264:3925887')
