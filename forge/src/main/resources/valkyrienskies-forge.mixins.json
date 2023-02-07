@@ -25,6 +25,7 @@
     "compat.create.client.MixinValueBox",
     "compat.sodium.MixinRenderSectionManager",
     "compat.tis3d.MixinCasingTileEntityRender",
+    "compat.tis3d.MixinRaytracing",
     "compat.tis3d.MixinRenderContextImpl"
   ],
   "injectors": {

@@ -21,6 +21,7 @@ public class MixinBlockEntityInventory {
         ),
         method = "isValidForPlayer"
     )
+
     private static double redirectDistanceCheck(final Vec3 b, final Vec3 p, final Operation<Double> distanceToSqr,
         final BlockEntity entity, final Player player) {
         if (entity.getLevel() != null) {
