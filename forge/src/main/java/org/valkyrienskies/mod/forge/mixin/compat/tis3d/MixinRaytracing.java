@@ -16,7 +16,6 @@ import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.forge.TempBreakpoint;
 
 @Pseudo
 @Mixin(Raytracing.class)
@@ -33,7 +32,7 @@ public class MixinRaytracing {
         //System.out.println("Called mixin for raytrace");
         final Iterable<Ship> ships = VSGameUtilsKt.getShipsIntersecting(level, new AABB(start, end));
         HitResult output = original.call(cd, level, position, start, end);
-        Double lowest_distance = output.getLocation().distanceTo(start);
+        Double lowest_distance = output != null ? output.getLocation().distanceTo(start) : Double.MAX_VALUE;
         for (final Ship ship : ships) {
 
             //translate World cordinates to intersecting ship cordinates
@@ -50,8 +49,6 @@ public class MixinRaytracing {
             final Vec3 stop = new Vec3(stop_joml.x, stop_joml.y, stop_joml.z);
 
             final HitResult translatedRes = original.call(cd, level, pos, star, stop);
-
-            TempBreakpoint.breakpoint();
             if (translatedRes != null) {
                 if (translatedRes.getType() != Type.MISS) {
                     if (translatedRes.getLocation().distanceTo(star) < lowest_distance) {
