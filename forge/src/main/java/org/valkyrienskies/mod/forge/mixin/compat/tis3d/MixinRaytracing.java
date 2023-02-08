@@ -32,7 +32,7 @@ public class MixinRaytracing {
         //System.out.println("Called mixin for raytrace");
         final Iterable<Ship> ships = VSGameUtilsKt.getShipsIntersecting(level, new AABB(start, end));
         HitResult output = original.call(cd, level, position, start, end);
-        Double lowest_distance = output != null ? output.getLocation().distanceTo(start) : Double.MAX_VALUE;
+        Double lowestDistance = output != null ? output.getLocation().distanceTo(start) : Double.MAX_VALUE;
         for (final Ship ship : ships) {
 
             //translate World cordinates to intersecting ship cordinates
@@ -51,8 +51,8 @@ public class MixinRaytracing {
             final HitResult translatedRes = original.call(cd, level, pos, star, stop);
             if (translatedRes != null) {
                 if (translatedRes.getType() != Type.MISS) {
-                    if (translatedRes.getLocation().distanceTo(star) < lowest_distance) {
-                        lowest_distance = translatedRes.getLocation().distanceTo(star);
+                    if (translatedRes.getLocation().distanceTo(star) < lowestDistance) {
+                        lowestDistance = translatedRes.getLocation().distanceTo(star);
                         output = translatedRes;
                     }
                 }
