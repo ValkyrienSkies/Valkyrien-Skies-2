@@ -14,6 +14,7 @@
     "compat.create.MixinBlocks",
     "compat.immersivengineering.MixinBlockEntityInventory",
     "compat.thermalexpansion.MixinTileCoFH",
+    "compat.tis3d.MixinRaytracing",
     "feature.forge_interact.MixinIForgePlayer",
     "world.level.block.FireMixin"
   ],
@@ -25,7 +26,6 @@
     "compat.create.client.MixinValueBox",
     "compat.sodium.MixinRenderSectionManager",
     "compat.tis3d.MixinCasingTileEntityRender",
-    "compat.tis3d.MixinRaytracing",
     "compat.tis3d.MixinRenderContextImpl"
   ],
   "injectors": {

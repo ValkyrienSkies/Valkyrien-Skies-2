@@ -23,7 +23,7 @@ public class MixinRaytracing {
     @WrapOperation(
         remap = false,
         method = "raytrace(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;Lli/cil/tis3d/util/Raytracing$CollisionDetector;)Lnet/minecraft/world/phys/HitResult;",
-        at = @At(value = "INVOKE",
+        at = @At(value = "INVOKE", remap = true,
             target = "li/cil/tis3d/util/Raytracing$CollisionDetector.intersect (Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;)Lnet/minecraft/world/phys/HitResult;")
     )
     private static HitResult vs$raytrace(final CollisionDetector cd, final Level level, final BlockPos position,
