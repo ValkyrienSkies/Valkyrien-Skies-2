@@ -20,11 +20,12 @@ import org.valkyrienskies.mod.forge.compat.tis3d.Tis3dClipContext;
 public class MixinInfraredPacketEntity {
     @WrapOperation(
         remap = false,
-        method = "checkCollision()Lnet/minecraft/world/phys/HitResult",
+        method = "checkCollision()Lnet/minecraft/world/phys/HitResult;",
         at = @At(value = "INVOKE", remap = true,
             target = "li/cil/tis3d/util/Raytracing.raytrace (Lnet/minecraft/world/level/Level;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;Lli/cil/tis3d/util/Raytracing$CollisionDetector;)Lnet/minecraft/world/phys/HitResult;")
     )
-    private HitResult vs$raytrace(final Level level, final Vec3 start, final Vec3 target, final Raytracing.CollisionDetector collisionDetector,
+    private HitResult vs$raytrace(final Level level, final Vec3 start, final Vec3 target,
+        final Raytracing.CollisionDetector collisionDetector,
         final Operation<HitResult> orig) {
         return RaycastUtilsKt.clipIncludeShips(level,
             new Tis3dClipContext(start, target, Block.VISUAL, Fluid.ANY, null));
