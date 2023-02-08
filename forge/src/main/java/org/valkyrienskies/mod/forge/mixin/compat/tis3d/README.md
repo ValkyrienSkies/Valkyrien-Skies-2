@@ -5,6 +5,6 @@ Minimal TIS-3d Compatibility Mixins
       (when they are actually facing the player)
 - MixinRenderContextImpl
     - Fixes distance culling checks on blocks that are in the shipyard
-- MixinRaytracing
+- MixinInfaredPacketEntity
     - Fixes Infrared packets to/from ship to world/world to ship/ship to
-      ship/ship within ship
+      ship/ship within ship raycast
