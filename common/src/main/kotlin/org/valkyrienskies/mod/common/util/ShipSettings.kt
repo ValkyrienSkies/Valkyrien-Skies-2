@@ -4,9 +4,14 @@ import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.ships.getAttachment
 import org.valkyrienskies.core.api.ships.saveAttachment
 
+/**
+ * A attachment that stores ship specific settings.
+ */
 data class ShipSettings(
-    // Should the ship chunks try to generate? If true it will generate chunks in the shipyard.
-    // You normally don't want this EVER
+    /**
+     * Should the ship chunks try to generate? If true it will generate chunks in the shipyard.
+     * You normally don't want this EVER
+     */
     val shouldGenerateChunks: Boolean = false
 )
 

@@ -61,7 +61,9 @@ public abstract class MixinChunkMap {
         cir.setReturnValue(originalToReturn);
         if (originalToReturn == null) {
             final ServerShip ship = VSGameUtilsKt.getShipManagingPos(level, chunkPos.x, chunkPos.z);
-            if (ship != null && !ShipSettingsKt.getSettings(ship).getShouldGenerateChunks()) {
+            // If its in a ship and it shouldn't generate chunks OR if there is no ship but its happening in the shipyard
+            if ((ship == null && VSGameUtilsKt.isChunkInShipyard(level, chunkPos.x, chunkPos.z)) ||
+                (ship != null && !ShipSettingsKt.getSettings(ship).getShouldGenerateChunks())) {
                 // The chunk doesn't yet exist and is in the shipyard. Make a new empty chunk
                 // Generate the chunk to be nothing
                 final LevelChunk generatedChunk = new LevelChunk(level,
