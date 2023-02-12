@@ -92,12 +92,12 @@
     "mass": 15.0
   },
   {
-    "block": "minecraft:cut_copper",
-    "mass": 2240.0
-  },
-  {
     "block": "minecraft:lightning_rod",
     "mass": 1800.0
+  },
+  {
+    "block": "minecraft:copper_block",
+    "mass": 8960.0
   },
   {
     "block": "minecraft:exposed_copper",
