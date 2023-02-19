@@ -1,6 +1,5 @@
 package org.valkyrienskies.mod.mixin.server.world;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -9,7 +8,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
-import net.minecraft.Util;
 import net.minecraft.core.Registry;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ChunkMap;
@@ -57,28 +55,27 @@ public abstract class MixinChunkMap {
      */
     @Inject(method = "readChunk", at = @At("HEAD"), cancellable = true)
     private void preReadChunk(final ChunkPos chunkPos,
-        final CallbackInfoReturnable<CompletableFuture<Optional<CompoundTag>>> cir)
-        throws IOException {
+        final CallbackInfoReturnable<CompletableFuture<Optional<CompoundTag>>> cir) {
         final ChunkMap self = ChunkMap.class.cast(this);
-        final CompoundTag compoundTag = self.read(chunkPos);
-        final CompoundTag originalToReturn = compoundTag == null ? null :
-            self.upgradeChunkTag(this.level.dimension(), this.overworldDataStorage, compoundTag, Optional.empty());
 
-        cir.setReturnValue(originalToReturn);
-        if (originalToReturn == null) {
-            final ServerShip ship = VSGameUtilsKt.getShipManagingPos(level, chunkPos.x, chunkPos.z);
-            // If its in a ship and it shouldn't generate chunks OR if there is no ship but its happening in the shipyard
-            if ((ship == null && VSGameUtilsKt.isChunkInShipyard(level, chunkPos.x, chunkPos.z)) ||
-                (ship != null && !ShipSettingsKt.getSettings(ship).getShouldGenerateChunks())) {
-                // The chunk doesn't yet exist and is in the shipyard. Make a new empty chunk
-                // Generate the chunk to be nothing
-                final LevelChunk generatedChunk = new LevelChunk(level,
-                    new ProtoChunk(chunkPos, UpgradeData.EMPTY, level,
-                        level.registryAccess().registryOrThrow(Registry.BIOME_REGISTRY), null), null);
-                // Its wasteful to serialize just for this to be deserialized, but it will work for now.
-                cir.setReturnValue(ChunkSerializer.write(level, generatedChunk));
+        cir.setReturnValue(self.read(chunkPos).thenApplyAsync(compoundTag -> {
+            if (compoundTag.isEmpty()) {
+                final ServerShip ship = VSGameUtilsKt.getShipManagingPos(level, chunkPos.x, chunkPos.z);
+                // If its in a ship and it shouldn't generate chunks OR if there is no ship but its happening in the shipyard
+                if ((ship == null && VSGameUtilsKt.isChunkInShipyard(level, chunkPos.x, chunkPos.z)) ||
+                    (ship != null && !ShipSettingsKt.getSettings(ship).getShouldGenerateChunks())) {
+                    // The chunk doesn't yet exist and is in the shipyard. Make a new empty chunk
+                    // Generate the chunk to be nothing
+                    final LevelChunk generatedChunk = new LevelChunk(level,
+                        new ProtoChunk(chunkPos, UpgradeData.EMPTY, level,
+                            level.registryAccess().registryOrThrow(Registry.BIOME_REGISTRY), null), null);
+                    // Its wasteful to serialize just for this to be deserialized, but it will work for now.
+                    return Optional.of(ChunkSerializer.write(level, generatedChunk));
+                }
             }
-        }
+            return compoundTag.map(this::upgradeChunkTag);
+        }));
+
     }
 
     /**
