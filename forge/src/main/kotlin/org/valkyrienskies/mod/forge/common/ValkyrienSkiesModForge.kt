@@ -48,7 +48,7 @@ class ValkyrienSkiesModForge {
     private val BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, ValkyrienSkiesMod.MOD_ID)
     private val ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, ValkyrienSkiesMod.MOD_ID)
     private val ENTITIES = DeferredRegister.create(ForgeRegistries.ENTITY_TYPES, ValkyrienSkiesMod.MOD_ID)
-    private val BLOCK_ENTITIES = DeferredRegister.create(ForgeRegistries.BLOCK_ENTITIES, ValkyrienSkiesMod.MOD_ID)
+    private val BLOCK_ENTITIES = DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES, ValkyrienSkiesMod.MOD_ID)
     private val TEST_CHAIR_REGISTRY: RegistryObject<Block>
     private val TEST_HINGE_REGISTRY: RegistryObject<Block>
     private val TEST_FLAP_REGISTRY: RegistryObject<Block>
