@@ -23,7 +23,7 @@ dependencies {
 
     //Common create compat,
     //We just use a version from a platform and hope the classes exist on both versions and mixins apply correctly
-    modCompileOnly("com.jozufozu.flywheel:flywheel-fabric-${minecraft_version}:0.6.8-33")
+    modCompileOnly("com.jozufozu.flywheel:flywheel-fabric-${minecraft_version}:0.6.8.a-4")
 }
 
 architectury {

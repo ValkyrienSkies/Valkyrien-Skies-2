@@ -262,7 +262,8 @@ public abstract class MixinLevelRendererVanilla {
                     (float) ((double) blockPos.getZ() - f));
                 uniform.upload();
             }
-            vertexBuffer.drawChunkLayer();
+            vertexBuffer.bind();
+            vertexBuffer.draw();
             bl2 = true;
         }
         if (uniform != null) {
@@ -273,7 +274,6 @@ public abstract class MixinLevelRendererVanilla {
             vertexFormat.clearBufferState();
         }
         VertexBuffer.unbind();
-        VertexBuffer.unbindVertexArray();
         this.minecraft.getProfiler().pop();
         renderType.clearRenderState();
     }
