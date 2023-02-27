@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.server.network;
 
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import java.util.Collections;
@@ -13,7 +14,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.ServerPlayerGameMode;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
-import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Final;
@@ -23,6 +23,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ServerShip;
+import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
@@ -52,6 +53,19 @@ public abstract class MixinServerGamePacketListenerImpl {
     @Final
     private MinecraftServer server;
 
+    @ModifyExpressionValue(
+        at = @At(value = "FIELD",
+            target = "Lnet/minecraft/server/network/ServerGamePacketListenerImpl;aboveGroundTickCount:I", ordinal = 0),
+        method = "tick"
+    )
+    private int noFlyKick(final int original) {
+        if (VSGameConfig.SERVER.getEnableMovementChecks()) {
+            return original;
+        } else {
+            return 0;
+        }
+    }
+
     @WrapOperation(
         at = @At(
             value = "INVOKE",
@@ -66,12 +80,12 @@ public abstract class MixinServerGamePacketListenerImpl {
     @WrapOperation(
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/world/level/ChunkPos;getChessboardDistance(Lnet/minecraft/world/level/ChunkPos;)I"
+            target = "Lnet/minecraft/world/phys/Vec3;distanceToSqr(Lnet/minecraft/world/phys/Vec3;)D"
         ),
         method = "handleUseItemOn"
     )
-    private int skipDistanceCheck(final ChunkPos instance, final ChunkPos chunkPos,
-        final Operation<Integer> getChessboardDistance) {
+    private double skipDistanceCheck(final Vec3 instance, final Vec3 chunkPos,
+        final Operation<Double> getChessboardDistance) {
         return 0;
     }
 
@@ -156,9 +170,10 @@ public abstract class MixinServerGamePacketListenerImpl {
         at = @At("HEAD")
     )
     void onDisconnect(final Component reason, final CallbackInfo ci) {
-        VSGameUtilsKt.getShipObjectWorld(this.server).onDisconnect(
-            VSGameUtilsKt.getPlayerWrapper(this.player)
-        );
+        final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(this.server);
+        if (world != null) {
+            world.onDisconnect(VSGameUtilsKt.getPlayerWrapper(this.player));
+        }
     }
 
 }

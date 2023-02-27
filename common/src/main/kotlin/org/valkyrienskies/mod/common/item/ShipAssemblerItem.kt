@@ -1,7 +1,6 @@
 package org.valkyrienskies.mod.common.item
 
-import net.minecraft.Util
-import net.minecraft.network.chat.TextComponent
+import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.item.Item
@@ -20,7 +19,7 @@ class ShipAssemblerItem(properties: Properties) : Item(properties) {
 
         if (!level.isClientSide) {
             if (ctx.level.isChunkInShipyard(pos.x shr 4, pos.z shr 4)) {
-                ctx.player?.sendMessage(TextComponent("That chunk is already part of a ship!"), Util.NIL_UUID)
+                ctx.player?.sendSystemMessage(Component.literal("That chunk is already part of a ship!"))
             } else if (!blockState.isAir) {
                 // Make a ship
                 val set = DenseBlockPosSet()
@@ -32,7 +31,7 @@ class ShipAssemblerItem(properties: Properties) : Item(properties) {
 
                 val shipData = createNewShipWithBlocks(pos, set, level)
 
-                ctx.player?.sendMessage(TextComponent("SHIPIFIED!"), Util.NIL_UUID)
+                ctx.player?.sendSystemMessage(Component.literal("SHIPIFIED!"))
             }
         }
 

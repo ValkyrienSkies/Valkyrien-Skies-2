@@ -4,23 +4,32 @@ import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.Entity.RemovalReason;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import org.joml.Vector3d;
-import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.valkyrienskies.core.api.ships.LoadedShip;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager;
+import org.valkyrienskies.mod.common.entity.handling.WorldEntityHandler;
+import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(Entity.class)
 public abstract class MixinEntity {
+
+    @Shadow
+    public abstract Level getLevel();
+
+    @Shadow
+    public abstract void setPosRaw(double d, double e, double f);
 
     @Shadow
     public abstract void positionRider(Entity entity);
@@ -45,6 +54,31 @@ public abstract class MixinEntity {
     }
 
     @Unique
+    private boolean isModifyingSetPos = false;
+
+    /**
+     * @author ewoudje
+     * @reason use vs2 entity handler to handle this method
+     */
+    @Inject(method = "setPosRaw", at = @At(value = "HEAD"), cancellable = true)
+    private void handlePosSet(final double x, final double y, final double z, final CallbackInfo ci) {
+        final Level level = getLevel();
+        //noinspection ConstantValue
+        if (!Player.class.isInstance(this) || level == null || isModifyingSetPos ||
+            !VSGameUtilsKt.isBlockInShipyard(level, x, y, z)) {
+            return;
+        }
+
+        final Ship ship = VSGameUtilsKt.getShipManagingPos(level, x, y, z);
+        if (ship != null) {
+            isModifyingSetPos = true;
+            WorldEntityHandler.INSTANCE.moveEntityFromShipyardToWorld(Entity.class.cast(this), ship, x, y, z);
+            isModifyingSetPos = false;
+            ci.cancel();
+        }
+    }
+
+    @Unique
     private boolean isModifyingTeleport = false;
 
     @Inject(
@@ -63,53 +97,6 @@ public abstract class MixinEntity {
             .getTeleportPos(Entity.class.cast(this), new Vector3d(d, e, f));
         teleportTo(pos.x, pos.y, pos.z);
         isModifyingTeleport = false;
-    }
-
-    @Unique
-    private static Vector3dc tempVec = null;
-
-    /**
-     * @author ewoudje
-     * @reason use vs2 entity handler to handle this method
-     */
-    @Inject(method = "setPosRaw", at = @At(value = "HEAD"))
-    private void handlePosSet(final double x, final double y, final double z, final CallbackInfo ci) {
-        final Vector3d pos = new Vector3d(x, y, z);
-        final Ship ship;
-
-        if ((ship = VSGameUtilsKt.getShipObjectManagingPos(level, pos)) != null) {
-            tempVec = VSEntityManager.INSTANCE.getHandler(Entity.class.cast(this))
-                .onEntityMove(Entity.class.cast(this), ship, pos);
-        } else {
-            tempVec = null;
-        }
-    }
-
-    @ModifyVariable(method = "setPosRaw", at = @At(value = "HEAD"), ordinal = 0, argsOnly = true)
-    private double setX(final double x) {
-        if (tempVec != null) {
-            return tempVec.x();
-        } else {
-            return x;
-        }
-    }
-
-    @ModifyVariable(method = "setPosRaw", at = @At(value = "HEAD"), ordinal = 1, argsOnly = true)
-    private double setY(final double y) {
-        if (tempVec != null) {
-            return tempVec.y();
-        } else {
-            return y;
-        }
-    }
-
-    @ModifyVariable(method = "setPosRaw", at = @At(value = "HEAD"), ordinal = 2, argsOnly = true)
-    private double setZ(final double z) {
-        if (tempVec != null) {
-            return tempVec.z();
-        } else {
-            return z;
-        }
     }
 
     /**
@@ -136,6 +123,16 @@ public abstract class MixinEntity {
             return null;
         } else {
             return originalVehicle;
+        }
+    }
+
+    @Inject(method = "setRemoved", at = @At("HEAD"))
+    private void preSetRemoved(final RemovalReason removalReason, final CallbackInfo ci) {
+        final Entity thisAsEntity = Entity.class.cast(this);
+        final LoadedShip ship = VSGameUtilsKt.getShipObjectManagingPos(thisAsEntity.level,
+            VectorConversionsMCKt.toJOML(thisAsEntity.position()));
+        if (ship != null) {
+            VSEntityManager.INSTANCE.getHandler(thisAsEntity).entityRemovedFromShipyard(thisAsEntity, ship);
         }
     }
 

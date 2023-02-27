@@ -25,8 +25,7 @@ public abstract class MixinBlockBreakingKineticTileEntity {
         at = @At(
             value = "INVOKE",
             target = "Lcom/simibubi/create/content/contraptions/components/actors/BlockBreakingKineticTileEntity;getBreakingPos()Lnet/minecraft/core/BlockPos;"
-        ),
-        remap = false
+        ), remap = false
     )
     private BlockPos getBreakingBlockPos(final BlockBreakingKineticTileEntity self) {
         final BlockPos orig = this.getBreakingPos();

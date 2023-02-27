@@ -39,4 +39,4 @@ independent code lives in [vs-core](https://github.com/ValkyrienSkies/vs-core).
 ## Troubleshooting
 
 ### Running Forge in dev environment
-Occasionally forge will break will strange ways. When this occurs, delete all the `build` folders, delete the `.gradle` folder of the `forge` project, and then refresh gradle.
+Occasionally forge will break in strange ways. When this occurs, delete all the `build` folders, delete the `.gradle` folder of the `forge` project, and then refresh gradle.

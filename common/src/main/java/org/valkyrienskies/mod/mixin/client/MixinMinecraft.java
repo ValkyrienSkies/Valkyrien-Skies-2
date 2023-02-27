@@ -13,6 +13,8 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
@@ -28,11 +30,15 @@ import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.util.EntityDragger;
+import org.valkyrienskies.mod.common.world.DummyShipWorldClient;
 import org.valkyrienskies.mod.mixinducks.client.MinecraftDuck;
 
 @Mixin(Minecraft.class)
 public abstract class MixinMinecraft
     implements MinecraftDuck, IShipObjectWorldClientProvider, IShipObjectWorldClientCreator {
+
+    @Unique
+    private static final Logger log = LogManager.getLogger("VS2 MixinMinecraft");
 
     @Shadow
     private boolean pause;
@@ -63,15 +69,15 @@ public abstract class MixinMinecraft
     @WrapOperation(
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/client/multiplayer/MultiPlayerGameMode;useItemOn(Lnet/minecraft/client/player/LocalPlayer;Lnet/minecraft/client/multiplayer/ClientLevel;Lnet/minecraft/world/InteractionHand;Lnet/minecraft/world/phys/BlockHitResult;)Lnet/minecraft/world/InteractionResult;"
+            target = "Lnet/minecraft/client/multiplayer/MultiPlayerGameMode;useItemOn(Lnet/minecraft/client/player/LocalPlayer;Lnet/minecraft/world/InteractionHand;Lnet/minecraft/world/phys/BlockHitResult;)Lnet/minecraft/world/InteractionResult;"
         ),
         method = "startUseItem"
     )
     private InteractionResult useOriginalCrosshairForBlockPlacement(final MultiPlayerGameMode instance,
-        final LocalPlayer localPlayer, final ClientLevel clientLevel, final InteractionHand interactionHand,
+        final LocalPlayer localPlayer, final InteractionHand interactionHand,
         final BlockHitResult blockHitResult, final Operation<InteractionResult> useItemOn) {
 
-        return useItemOn.call(instance, localPlayer, clientLevel, interactionHand,
+        return useItemOn.call(instance, localPlayer, interactionHand,
             this.originalCrosshairTarget);
     }
 
@@ -81,7 +87,8 @@ public abstract class MixinMinecraft
         final ClientShipWorldCore shipObjectWorldCopy = shipObjectWorld;
 
         if (shipObjectWorldCopy == null) {
-            throw new IllegalStateException("Requested getShipObjectWorld() when shipObjectWorld was null!");
+            log.warn("Requested getShipObjectWorld() when shipObjectWorld was null!");
+            return DummyShipWorldClient.INSTANCE;
         }
         return shipObjectWorldCopy;
     }

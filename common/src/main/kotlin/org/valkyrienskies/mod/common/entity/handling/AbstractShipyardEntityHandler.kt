@@ -5,14 +5,19 @@ import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.entity.EntityRenderer
 import net.minecraft.world.entity.Entity
 import org.joml.Vector3d
-import org.joml.Vector3dc
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toMinecraft
 
-object ShipyardEntityHandler : VSEntityHandler {
-    override fun freshEntityInShipyard(entity: Entity, ship: Ship, position: Vector3dc) {}
+abstract class AbstractShipyardEntityHandler : VSEntityHandler {
+    override fun freshEntityInShipyard(entity: Entity, ship: Ship) {
+        // do nothing
+    }
+
+    override fun entityRemovedFromShipyard(entity: Entity, ship: Ship) {
+        // do nothing
+    }
 
     override fun <T : Entity> applyRenderTransform(
         ship: ClientShip, entity: T, entityRenderer: EntityRenderer<T>, x: Double, y: Double, z: Double,
@@ -50,6 +55,4 @@ object ShipyardEntityHandler : VSEntityHandler {
         // EW: i think it was in entity dragging logic
         matrixStack.mulPose(ship.renderTransform.shipToWorldRotation.toMinecraft())
     }
-
-    override fun onEntityMove(self: Entity, ship: Ship, position: Vector3dc): Vector3dc = position
 }

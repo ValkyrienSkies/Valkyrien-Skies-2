@@ -40,6 +40,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.hooks.VSGameEvents;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.compat.VSRenderer;
 import org.valkyrienskies.mod.mixin.ValkyrienCommonMixinConfigPlugin;
@@ -166,6 +167,10 @@ public abstract class MixinLevelRendererVanilla {
 
         renderChunkLayer.call(receiver, renderType, poseStack, camX, camY, camZ, matrix4f);
 
+        VSGameEvents.INSTANCE.getShipsStartRendering().emit(new VSGameEvents.ShipStartRenderEvent(
+            receiver, renderType, poseStack, camX, camY, camZ, matrix4f
+        ));
+
         shipRenderChunks.forEach((ship, chunks) -> {
             poseStack.pushPose();
             final Vector3dc center = ship.getRenderTransform().getPositionInShip();
@@ -173,7 +178,14 @@ public abstract class MixinLevelRendererVanilla {
                 center.x(), center.y(), center.z(),
                 camX, camY, camZ);
 
+            final var event = new VSGameEvents.ShipRenderEvent(
+                receiver, renderType, poseStack, camX, camY, camZ, matrix4f, ship, chunks
+            );
+
+            VSGameEvents.INSTANCE.getRenderShip().emit(event);
             renderChunkLayer(renderType, poseStack, center.x(), center.y(), center.z(), matrix4f, chunks);
+            VSGameEvents.INSTANCE.getPostRenderShip().emit(event);
+
             poseStack.popPose();
         });
     }
@@ -250,7 +262,8 @@ public abstract class MixinLevelRendererVanilla {
                     (float) ((double) blockPos.getZ() - f));
                 uniform.upload();
             }
-            vertexBuffer.drawChunkLayer();
+            vertexBuffer.bind();
+            vertexBuffer.draw();
             bl2 = true;
         }
         if (uniform != null) {
@@ -261,7 +274,6 @@ public abstract class MixinLevelRendererVanilla {
             vertexFormat.clearBufferState();
         }
         VertexBuffer.unbind();
-        VertexBuffer.unbindVertexArray();
         this.minecraft.getProfiler().pop();
         renderType.clearRenderState();
     }

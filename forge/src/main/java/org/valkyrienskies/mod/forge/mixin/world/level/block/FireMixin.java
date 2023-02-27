@@ -1,9 +1,9 @@
 package org.valkyrienskies.mod.forge.mixin.world.level.block;
 
-import java.util.Random;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
@@ -30,7 +30,8 @@ public abstract class FireMixin {
     public static IntegerProperty AGE;
 
     @Inject(method = "tick", at = @At("TAIL"))
-    public void fireTickMixin(final BlockState state, final ServerLevel level, final BlockPos pos, final Random random,
+    public void fireTickMixin(final BlockState state, final ServerLevel level, final BlockPos pos,
+        final RandomSource random,
         final CallbackInfo ci) {
         if (isModifyingFireTick) {
             return;
@@ -71,7 +72,7 @@ public abstract class FireMixin {
                             }
 
                             mutableBlockPos.setWithOffset(newPos, l, n, m);
-                            final int p = this.getFireOdds(level, mutableBlockPos);
+                            final int p = this.getIgniteOdds(level, mutableBlockPos);
                             if (p > 0) {
                                 int q = (p + 40 + level.getDifficulty().getId() * 7) / (i + 30);
                                 if (bl2) {
@@ -112,7 +113,7 @@ public abstract class FireMixin {
     }
 
     @Shadow
-    private void tryCatchFire(final Level arg, final BlockPos arg2, final int k, final Random random, final int l,
+    private void tryCatchFire(final Level arg, final BlockPos arg2, final int k, final RandomSource random, final int l,
         final Direction face) {
     }
 
@@ -123,5 +124,5 @@ public abstract class FireMixin {
     protected abstract boolean isNearRain(Level level, BlockPos blockPos);
 
     @Shadow
-    protected abstract int getFireOdds(LevelReader levelReader, BlockPos blockPos);
+    protected abstract int getIgniteOdds(LevelReader levelReader, BlockPos blockPos);
 }

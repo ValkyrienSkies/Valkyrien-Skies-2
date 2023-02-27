@@ -5,7 +5,7 @@ import static org.valkyrienskies.mod.common.ValkyrienSkiesMod.getVsCore;
 import java.util.List;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.Connection;
-import net.minecraft.network.chat.TextComponent;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
@@ -50,13 +50,12 @@ public abstract class MixinPlayerList {
         final MinecraftPlayer wrapped = VSGameUtilsKt.getPlayerWrapper(player);
         getVsCore().getHooks().afterClientJoinServer(wrapped);
         if (!KrunchSupport.INSTANCE.isKrunchSupported()) {
-            player.sendMessage(
-                new TextComponent(
-                    "VS2 physics are disabled on this server, because Krunch is not supported on this server!" +
+            player.sendSystemMessage(
+                Component.literal(
+                        "VS 2 physics are disabled on this server, because Krunch is not supported on this server! " +
                         " Current supported platforms are:" +
                         " Windows x86-64, Linux x86-64, Linux aarch64, Macos x86-64, Macos arm64")
-                    .withStyle(ChatFormatting.RED, ChatFormatting.BOLD),
-                null);
+                        .withStyle(ChatFormatting.RED, ChatFormatting.BOLD));
         }
         VSEntityManager.INSTANCE.syncHandlers(wrapped);
     }

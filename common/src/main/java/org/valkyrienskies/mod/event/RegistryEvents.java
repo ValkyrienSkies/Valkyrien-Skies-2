@@ -1,29 +1,41 @@
 package org.valkyrienskies.mod.event;
 
-import java.util.ArrayList;
-import java.util.List;
+import kotlin.Unit;
 import net.minecraft.core.RegistryAccess;
+import org.valkyrienskies.mod.common.hooks.VSGameEvents;
 
 public class RegistryEvents {
 
-    private static List<Runnable> onTagsLoaded = new ArrayList<>();
-    private static List<Runnable> onRegistriesComplete = new ArrayList<>();
-
-    // this can be beter...
+    /**
+     * @deprecated Use VSGameEvents
+     */
+    @Deprecated(forRemoval = true)
     public static void onTagsLoaded(final Runnable event) {
-        onTagsLoaded.add(event);
+        VSGameEvents.INSTANCE.getTagsAreLoaded().on(x -> event.run());
     }
 
+    /**
+     * @deprecated Use VSGameEvents
+     */
+    @Deprecated(forRemoval = true)
     public static void tagsAreLoaded(final RegistryAccess registries, final boolean client) {
-        onTagsLoaded.forEach(Runnable::run);
+        VSGameEvents.INSTANCE.getTagsAreLoaded().emit(Unit.INSTANCE);
     }
 
+    /**
+     * @deprecated Use VSGameEvents
+     */
+    @Deprecated(forRemoval = true)
     public static void onRegistriesComplete(final Runnable event) {
-        onRegistriesComplete.add(event);
+        VSGameEvents.INSTANCE.getRegistriesCompleted().on(x -> event.run());
     }
 
+    /**
+     * @deprecated Use VSGameEvents
+     */
+    @Deprecated(forRemoval = true)
     public static void registriesAreComplete() {
-        onRegistriesComplete.forEach(Runnable::run);
+        VSGameEvents.INSTANCE.getRegistriesCompleted().emit(Unit.INSTANCE);
     }
 
 }

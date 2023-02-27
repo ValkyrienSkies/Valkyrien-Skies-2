@@ -5,7 +5,6 @@ import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.entity.EntityRenderer
 import net.minecraft.world.entity.Entity
 import org.joml.Vector3d
-import org.joml.Vector3dc
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.Ship
 
@@ -16,7 +15,9 @@ interface VSEntityHandler {
      *
      * Gets called when a new entity gets made in the shipyard
      */
-    fun freshEntityInShipyard(entity: Entity, ship: Ship, position: Vector3dc)
+    fun freshEntityInShipyard(entity: Entity, ship: Ship)
+
+    fun entityRemovedFromShipyard(entity: Entity, ship: Ship)
 
     /**
      * ApplyRenderTransform
@@ -52,11 +53,4 @@ interface VSEntityHandler {
     fun applyRenderOnMountedEntity(
         ship: ClientShip, self: Entity, passenger: Entity, partialTicks: Float, matrixStack: PoseStack
     )
-
-    /**
-     * Gets called every move of a entity that lives in the shipyard
-     *
-     * Should call self.setPosRaw(x, y, z)
-     */
-    fun onEntityMove(self: Entity, ship: Ship, position: Vector3dc): Vector3dc
 }

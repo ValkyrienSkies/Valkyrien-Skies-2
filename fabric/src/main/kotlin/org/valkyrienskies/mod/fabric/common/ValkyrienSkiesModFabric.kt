@@ -26,15 +26,19 @@ import org.valkyrienskies.core.apigame.VSCoreFactory
 import org.valkyrienskies.mod.client.EmptyRenderer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.block.TestChairBlock
+import org.valkyrienskies.mod.common.block.TestFlapBlock
 import org.valkyrienskies.mod.common.block.TestHingeBlock
+import org.valkyrienskies.mod.common.block.TestWingBlock
 import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.config.VSEntityHandlerDataLoader
+import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.config.VSKeyBindings
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
+import org.valkyrienskies.mod.common.entity.handling.VSEntityManager
+import org.valkyrienskies.mod.common.hooks.VSGameEvents
 import org.valkyrienskies.mod.common.item.ShipAssemblerItem
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
-import org.valkyrienskies.mod.event.RegistryEvents
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executor
 import java.util.concurrent.atomic.AtomicBoolean
@@ -50,9 +54,20 @@ class ValkyrienSkiesModFabric : ModInitializer {
 
         ValkyrienSkiesMod.TEST_CHAIR = TestChairBlock
         ValkyrienSkiesMod.TEST_HINGE = TestHingeBlock
-        ValkyrienSkiesMod.SHIP_CREATOR_ITEM = ShipCreatorItem(Properties().tab(CreativeModeTab.TAB_MISC), 1.0)
+        ValkyrienSkiesMod.TEST_FLAP = TestFlapBlock
+        ValkyrienSkiesMod.TEST_WING = TestWingBlock
+        ValkyrienSkiesMod.SHIP_CREATOR_ITEM = ShipCreatorItem(
+            Properties().tab(CreativeModeTab.TAB_MISC),
+            { 1.0 },
+            { VSGameConfig.SERVER.minScaling }
+        )
         ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM = ShipAssemblerItem(Properties().tab(CreativeModeTab.TAB_MISC))
-        ValkyrienSkiesMod.SHIP_CREATOR_ITEM_SMALLER = ShipCreatorItem(Properties().tab(CreativeModeTab.TAB_MISC), 0.5)
+        ValkyrienSkiesMod.SHIP_CREATOR_ITEM_SMALLER = ShipCreatorItem(
+            Properties().tab(CreativeModeTab.TAB_MISC),
+            { VSGameConfig.SERVER.miniShipSize },
+            { VSGameConfig.SERVER.minScaling }
+        )
+        
         ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE = EntityType.Builder.of(
             ::ShipMountingEntity,
             MobCategory.MISC
@@ -75,9 +90,12 @@ class ValkyrienSkiesModFabric : ModInitializer {
         if (isClient) onInitializeClient()
 
         ValkyrienSkiesMod.init(vsCore)
+        VSEntityManager.registerContraptionHandler(ContraptionShipyardEntityHandlerFabric)
 
         registerBlockAndItem("test_chair", ValkyrienSkiesMod.TEST_CHAIR)
         registerBlockAndItem("test_hinge", ValkyrienSkiesMod.TEST_HINGE)
+        registerBlockAndItem("test_flap", ValkyrienSkiesMod.TEST_FLAP)
+        registerBlockAndItem("test_wing", ValkyrienSkiesMod.TEST_WING)
         Registry.register(
             Registry.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_assembler"),
             ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM
@@ -127,7 +145,9 @@ class ValkyrienSkiesModFabric : ModInitializer {
                     ) { _, _ -> }
                 }
             })
-        CommonLifecycleEvents.TAGS_LOADED.register(RegistryEvents::tagsAreLoaded)
+        CommonLifecycleEvents.TAGS_LOADED.register { _, _ ->
+            VSGameEvents.tagsAreLoaded.emit(Unit)
+        }
     }
 
     /**

@@ -5,11 +5,17 @@ import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
 import org.joml.Matrix4d
 import org.joml.Matrix4f
+import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.properties.ShipTransform
 import org.valkyrienskies.mod.common.util.multiply
 import com.mojang.math.Matrix4f as Matrix4fMC
 
 object VSClientGameUtils {
+
+    @JvmStatic
+    fun multiplyWithShipToWorld(poseStack: PoseStack, ship: ClientShip) {
+        poseStack.multiply(ship.renderTransform.shipToWorld, ship.renderTransform.shipToWorldRotation)
+    }
 
     @JvmStatic
     fun transformRenderIfInShipyard(poseStack: PoseStack, offsetX: Double, offsetY: Double, offsetZ: Double) {

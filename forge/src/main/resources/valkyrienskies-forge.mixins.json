@@ -4,11 +4,17 @@
   "compatibilityLevel": "JAVA_17",
   "plugin": "org.valkyrienskies.mod.forge.mixin.ValkyrienForgeMixinConfigPlugin",
   "mixins": [
+    "compat.cc_tweaked.MixinSpeakerPosition",
+    "compat.cc_tweaked.MixinTurtleBrain",
+    "compat.cc_tweaked.MixinTurtleMoveCommand",
+    "compat.cc_tweaked.MixinWirelessNetwork",
+    "compat.create.Matrix3dAccessor",
+    "compat.create.MixinAbstractContraptionEntity",
     "compat.create.MixinBlockBreakingKineticTileEntity",
     "compat.create.MixinBlocks",
-    "compat.create.MixinCrushingWheelBlock",
     "compat.immersivengineering.MixinBlockEntityInventory",
     "compat.thermalexpansion.MixinTileCoFH",
+    "compat.tis3d.MixinInfraredPacketEntity",
     "feature.forge_interact.MixinIForgePlayer",
     "world.level.block.FireMixin"
   ],
@@ -18,12 +24,9 @@
     "compat.create.client.MixinFlwContraption",
     "compat.create.client.MixinScrollValueBehaviour",
     "compat.create.client.MixinValueBox",
-    "compat.flywheel.client.InstancingEngineAccessor",
-    "compat.flywheel.client.MixinInstanceManager",
-    "compat.flywheel.client.MixinInstanceWorld",
-    "compat.flywheel.client.MixinInstancingEngine",
-    "compat.flywheel.client.MixinTileInstanceManager",
-    "compat.sodium.MixinRenderSectionManager"
+    "compat.sodium.MixinRenderSectionManager",
+    "compat.tis3d.MixinCasingTileEntityRender",
+    "compat.tis3d.MixinRenderContextImpl"
   ],
   "injectors": {
     "defaultRequire": 1

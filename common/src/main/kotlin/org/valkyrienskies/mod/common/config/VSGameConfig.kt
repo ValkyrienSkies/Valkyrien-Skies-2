@@ -19,6 +19,30 @@ object VSGameConfig {
     }
 
     class Server {
+        val FTBChunks = FTBCHUNKS()
+
+        class FTBCHUNKS {
+            @JsonSchema(
+                description = "Are Ships protected by FTB Chunk Claims?"
+            )
+            var shipsProtectedByClaims = true
+
+            @JsonSchema(
+                description = "Are ships protected outside of build height (max and min)?"
+            )
+            var shipsProtectionOutOfBuildHeight = false
+        }
+
+        val ComputerCraft = COMPUTERCRAFT()
+
+        class COMPUTERCRAFT {
+            @JsonSchema(
+                description = "Turtles leaving scaled up/down ship may cause issues" +
+                    "Enable/Disable Turtles Leaving Scaled Ships?"
+            )
+            var canTurtlesLeaveScaledShips = false
+        }
+
         @JsonSchema(
             description = "By default, the vanilla server prevents block interacts past a certain distance " +
                 "to prevent cheat clients from breaking blocks halfway across the map. " +
@@ -61,6 +85,16 @@ object VSGameConfig {
             description = "Allow rudimentary pathfinding on ships"
         )
         var aiOnShips = true
+
+        @JsonSchema(
+            description = "Scale of the mini ship creator"
+        )
+        var miniShipSize = 0.5
+
+        @JsonSchema(
+            description = "Minimum scale of ships"
+        )
+        var minScaling = 0.25
     }
 
     class Common {

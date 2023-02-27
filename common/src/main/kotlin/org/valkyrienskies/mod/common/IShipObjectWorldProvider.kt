@@ -6,16 +6,16 @@ import org.valkyrienskies.core.apigame.world.ServerShipWorldCore
 import org.valkyrienskies.core.apigame.world.VSPipeline
 
 interface IShipObjectWorldProvider {
-    val shipObjectWorld: ShipWorld
+    val shipObjectWorld: ShipWorld?
 }
 
 interface IShipObjectWorldServerProvider : IShipObjectWorldProvider {
-    override val shipObjectWorld: ServerShipWorldCore
-    val vsPipeline: VSPipeline
+    override val shipObjectWorld: ServerShipWorldCore?
+    val vsPipeline: VSPipeline?
 }
 
 interface IShipObjectWorldClientProvider : IShipObjectWorldProvider {
-    override val shipObjectWorld: ClientShipWorldCore
+    override val shipObjectWorld: ClientShipWorldCore?
 }
 
 interface IShipObjectWorldClientCreator {

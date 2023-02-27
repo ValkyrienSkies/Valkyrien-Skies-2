@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.forge.mixinducks;
+package org.valkyrienskies.mod.mixinducks;
 
 import com.jozufozu.flywheel.backend.RenderLayer;
 import com.mojang.math.Matrix4f;
