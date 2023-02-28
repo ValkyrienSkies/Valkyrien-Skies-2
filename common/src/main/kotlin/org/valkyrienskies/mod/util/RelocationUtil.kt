@@ -1,7 +1,7 @@
 package org.valkyrienskies.mod.util
 
 import net.minecraft.core.BlockPos
-import net.minecraft.world.Container
+import net.minecraft.world.Clearable
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.Rotation
@@ -26,7 +26,6 @@ fun relocateBlock(
     fromChunk: LevelChunk, from: BlockPos, toChunk: LevelChunk, to: BlockPos, doUpdate: Boolean, toShip: ServerShip?,
     rotation: Rotation = NONE
 ) {
-    val oldState = fromChunk.getBlockState(from)
     var state = fromChunk.getBlockState(from)
     val entity = fromChunk.getBlockEntity(from)
 
@@ -37,7 +36,7 @@ fun relocateBlock(
         tag.putInt("z", to.z)
 
         // so that it won't drop its contents
-        if (it is Container) {
+        if (it is Clearable) {
             it.clearContent()
         }
 
@@ -82,7 +81,7 @@ fun updateBlock(level: Level, fromPos: BlockPos, toPos: BlockPos, toState: Block
     level.sendBlockUpdated(fromPos, toState, AIR, flags)
     level.blockUpdated(fromPos, AIR.block)
     // This handles the update for neighboring blocks in worldspace
-    AIR.updateIndirectNeighbourShapes(level, fromPos, flags, recursionLeft - 1);
+    AIR.updateIndirectNeighbourShapes(level, fromPos, flags, recursionLeft - 1)
     AIR.updateNeighbourShapes(level, fromPos, flags, recursionLeft)
     AIR.updateIndirectNeighbourShapes(level, fromPos, flags, recursionLeft)
     //This updates lighting for blocks in worldspace
