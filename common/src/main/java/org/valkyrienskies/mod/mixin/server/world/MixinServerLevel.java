@@ -7,7 +7,6 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -125,7 +124,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
         // Create DenseVoxelShapeUpdate for new loaded chunks
         // Also mark the chunks as loaded in the ship objects
         final List<TerrainUpdate> voxelShapeUpdates = new ArrayList<>();
-        final Set<Vector3ic> currentTickChunkRegions = new HashSet<>();
+        final Set<Vector3ic> unloadedChunks = new HashSet<>(knownChunkRegions);
 
         for (final ChunkHolder chunkHolder : loadedChunksList) {
             final Optional<LevelChunk> worldChunkOptional =
@@ -141,7 +140,6 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                     final LevelChunkSection chunkSection = chunkSections[sectionY];
                     final Vector3ic chunkPos =
                         new Vector3i(chunkX, worldChunk.getSectionYFromSectionIndex(sectionY), chunkZ);
-                    currentTickChunkRegions.add(chunkPos);
 
                     if (!knownChunkRegions.contains(chunkPos)) {
                         if (chunkSection != null && !chunkSection.hasOnlyAir()) {
@@ -187,21 +185,19 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                         }
 
                         knownChunkRegions.add(chunkPos);
+                    } else {
+                        unloadedChunks.remove(chunkPos);
                     }
                 }
             }
         }
 
-        final Iterator<Vector3ic> knownChunkPosIterator = knownChunkRegions.iterator();
-        while (knownChunkPosIterator.hasNext()) {
-            final Vector3ic knownChunkPos = knownChunkPosIterator.next();
-            if (!currentTickChunkRegions.contains(knownChunkPos)) {
-                // Delete this chunk
-                final TerrainUpdate deleteVoxelShapeUpdate =
-                    getVsCore().newDeleteTerrainUpdate(knownChunkPos.x(), knownChunkPos.y(), knownChunkPos.z());
-                voxelShapeUpdates.add(deleteVoxelShapeUpdate);
-                knownChunkPosIterator.remove();
-            }
+        for (final Vector3ic unloadedChunk : unloadedChunks) {
+            // Delete this chunk
+            final TerrainUpdate deleteVoxelShapeUpdate =
+                getVsCore().newDeleteTerrainUpdate(unloadedChunk.x(), unloadedChunk.y(), unloadedChunk.z());
+            voxelShapeUpdates.add(deleteVoxelShapeUpdate);
+            knownChunkRegions.remove(unloadedChunk);
         }
 
         // Send new loaded chunks updates to the ship world
