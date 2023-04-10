@@ -44,4 +44,4 @@ Occasionally forge will break in strange ways. When this occurs, delete all the 
 ### Change JVM arguments for small computers
 `Error occurred during initialization of VM
 Could not reserve enough space for 4194304KB object heap`
-For patch the problem go to gradle.properties and change `org.gradle.jvmargs=-Xmx4G -XX:MaxMetaspaceSize=1G` to `org.gradle.jvmargs=-Xmx1G -XX:MaxMetaspaceSize=1G`
+For patch the problem go to gradle.properties and change `org.gradle.jvmargs=-Xmx4096M` to `org.gradle.jvmargs=-Xmx1024` or `org.gradle.jvmargs=-Xmx4G -XX:MaxMetaspaceSize=1G` to `org.gradle.jvmargs=-Xmx1G -XX:MaxMetaspaceSize=1G`
