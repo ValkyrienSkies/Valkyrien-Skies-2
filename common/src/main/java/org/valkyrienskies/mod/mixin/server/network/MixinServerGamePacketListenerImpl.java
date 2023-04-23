@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.server.network;
 
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import java.util.Collections;
@@ -23,6 +24,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ServerShip;
+import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
@@ -51,6 +53,19 @@ public abstract class MixinServerGamePacketListenerImpl {
     @Shadow
     @Final
     private MinecraftServer server;
+
+    @ModifyExpressionValue(
+        at = @At(value = "FIELD",
+            target = "Lnet/minecraft/server/network/ServerGamePacketListenerImpl;aboveGroundTickCount:I", ordinal = 0),
+        method = "tick"
+    )
+    private int noFlyKick(final int original) {
+        if (VSGameConfig.SERVER.getEnableMovementChecks()) {
+            return original;
+        } else {
+            return 0;
+        }
+    }
 
     @WrapOperation(
         at = @At(
@@ -156,9 +171,10 @@ public abstract class MixinServerGamePacketListenerImpl {
         at = @At("HEAD")
     )
     void onDisconnect(final Component reason, final CallbackInfo ci) {
-        VSGameUtilsKt.getShipObjectWorld(this.server).onDisconnect(
-            VSGameUtilsKt.getPlayerWrapper(this.player)
-        );
+        final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(this.server);
+        if (world != null) {
+            world.onDisconnect(VSGameUtilsKt.getPlayerWrapper(this.player));
+        }
     }
 
 }

@@ -4,7 +4,9 @@ import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.Entity.RemovalReason;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
@@ -13,11 +15,18 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.valkyrienskies.core.api.ships.LoadedShip;
+import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager;
+import org.valkyrienskies.mod.common.entity.handling.WorldEntityHandler;
+import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(Entity.class)
 public abstract class MixinEntity {
+
+    @Shadow
+    public abstract Level getLevel();
 
     @Shadow
     public abstract void setPosRaw(double d, double e, double f);
@@ -42,6 +51,31 @@ public abstract class MixinEntity {
         positionRider.call(instance, passengerI,
             (Entity.MoveFunction) (passenger, x, y, z) -> VSEntityManager.INSTANCE.getHandler(passenger)
                 .positionSetFromVehicle(passenger, Entity.class.cast(this), x, y, z));
+    }
+
+    @Unique
+    private boolean isModifyingSetPos = false;
+
+    /**
+     * @author ewoudje
+     * @reason use vs2 entity handler to handle this method
+     */
+    @Inject(method = "setPosRaw", at = @At(value = "HEAD"), cancellable = true)
+    private void handlePosSet(final double x, final double y, final double z, final CallbackInfo ci) {
+        final Level level = getLevel();
+        //noinspection ConstantValue
+        if (!Player.class.isInstance(this) || level == null || isModifyingSetPos ||
+            !VSGameUtilsKt.isBlockInShipyard(level, x, y, z)) {
+            return;
+        }
+
+        final Ship ship = VSGameUtilsKt.getShipManagingPos(level, x, y, z);
+        if (ship != null) {
+            isModifyingSetPos = true;
+            WorldEntityHandler.INSTANCE.moveEntityFromShipyardToWorld(Entity.class.cast(this), ship, x, y, z);
+            isModifyingSetPos = false;
+            ci.cancel();
+        }
     }
 
     @Unique
@@ -89,6 +123,16 @@ public abstract class MixinEntity {
             return null;
         } else {
             return originalVehicle;
+        }
+    }
+
+    @Inject(method = "setRemoved", at = @At("HEAD"))
+    private void preSetRemoved(final RemovalReason removalReason, final CallbackInfo ci) {
+        final Entity thisAsEntity = Entity.class.cast(this);
+        final LoadedShip ship = VSGameUtilsKt.getShipObjectManagingPos(thisAsEntity.level,
+            VectorConversionsMCKt.toJOML(thisAsEntity.position()));
+        if (ship != null) {
+            VSEntityManager.INSTANCE.getHandler(thisAsEntity).entityRemovedFromShipyard(thisAsEntity, ship);
         }
     }
 

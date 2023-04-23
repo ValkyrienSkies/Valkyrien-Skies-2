@@ -10,8 +10,12 @@ import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toMinecraft
 
-object ShipyardEntityHandler : VSEntityHandler {
+abstract class AbstractShipyardEntityHandler : VSEntityHandler {
     override fun freshEntityInShipyard(entity: Entity, ship: Ship) {
+        // do nothing
+    }
+
+    override fun entityRemovedFromShipyard(entity: Entity, ship: Ship) {
         // do nothing
     }
 

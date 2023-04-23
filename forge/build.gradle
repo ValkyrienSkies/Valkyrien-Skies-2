@@ -73,6 +73,11 @@ dependencies {
     // CC Tweaked
     modCompileOnly("curse.maven:cc-tweaked-282001:4061947")
 
+    // TIS-3d
+    modCompileOnly("curse.maven:tis3d-238603:3738437")
+    //modImplementation("curse.maven:tis3d-238603:3738437")
+    //modImplementation("curse.maven:markdownmanual-502485:3738124")
+
     // Add Kotlin for Forge.
     forgeRuntimeLibrary('curse.maven:kotlinforforge-351264:3925887')
 
@@ -95,11 +100,11 @@ dependencies {
         transitive = false
     }
 
-    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api_krunch:1.0.0+622fabeb30") {
+    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api_krunch:1.0.0+eb3ae45554") {
         transitive = false
     }
 
-    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api:1.0.0+0734c463f8") {
+    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api:1.0.0+0b6f5db802") {
         transitive = false
     }
 

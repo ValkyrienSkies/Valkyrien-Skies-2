@@ -26,7 +26,7 @@ object VSGameConfig {
                 description = "Are Ships protected by FTB Chunk Claims?"
             )
             var shipsProtectedByClaims = true
-            
+
             @JsonSchema(
                 description = "Are ships protected outside of build height (max and min)?"
             )
@@ -85,6 +85,16 @@ object VSGameConfig {
             description = "Allow rudimentary pathfinding on ships"
         )
         var aiOnShips = true
+
+        @JsonSchema(
+            description = "Scale of the mini ship creator"
+        )
+        var miniShipSize = 0.5
+
+        @JsonSchema(
+            description = "Minimum scale of ships"
+        )
+        var minScaling = 0.25
     }
 
     class Common {

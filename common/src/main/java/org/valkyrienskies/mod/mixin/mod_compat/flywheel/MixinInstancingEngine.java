@@ -27,12 +27,8 @@ public abstract class MixinInstancingEngine<P extends WorldProgram> implements M
     @Override
     public void render(final Matrix4f viewProjection, final double camX, final double camY, final double camZ,
         final RenderLayer layer) {
-        //LOGGER.warn("step1");
         this.getGroupsToRender(layer).forEach(g -> {
-            //LOGGER.warn("step2");
             g.render(viewProjection, camX, camY, camZ, layer);
-            //LOGGER.warn("step3");
         });
-        //LOGGER.warn("step4");
     }
 }
