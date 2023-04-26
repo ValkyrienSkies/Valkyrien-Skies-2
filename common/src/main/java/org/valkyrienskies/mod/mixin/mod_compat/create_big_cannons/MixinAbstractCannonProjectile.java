@@ -1,9 +1,11 @@
 package org.valkyrienskies.mod.mixin.mod_compat.create_big_cannons;
 
+import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.phys.Vec3;
 import org.joml.primitives.AABBd;
 import org.joml.primitives.AABBdc;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -12,9 +14,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
-import rbasamoyai.createbigcannons.munitions.AbstractCannonProjectile;
 
-@Mixin(AbstractCannonProjectile.class)
+/**
+ * Make this pseudo so that we don't need CBC as a compile-dependency
+ */
+@Pseudo
+@Mixin(targets = "rbasamoyai.createbigcannons.munitions.AbstractCannonProjectile")
 public abstract class MixinAbstractCannonProjectile {
     
     @Shadow
@@ -22,7 +27,7 @@ public abstract class MixinAbstractCannonProjectile {
 
     @Unique
     private void shipClipAndDamage(final Vec3 startInWorld, final Vec3 endInWorld,
-        final AbstractCannonProjectile projectile) {
+        final Projectile projectile) {
         final AABBdc pathAABB = new AABBd(VectorConversionsMCKt.toJOML(startInWorld),
             VectorConversionsMCKt.toJOML(endInWorld)).correctBounds();
 
@@ -37,6 +42,6 @@ public abstract class MixinAbstractCannonProjectile {
 
     @Inject(method = "clipAndDamage", at = @At("HEAD"), remap = false)
     protected void vsClipAndDamage(final Vec3 start, final Vec3 end, final CallbackInfo ci) {
-        shipClipAndDamage(start, end, (AbstractCannonProjectile) (Object) this);
+        shipClipAndDamage(start, end, Projectile.class.cast(this));
     }
 }
