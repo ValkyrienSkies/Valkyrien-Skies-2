@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.common.world
 
+import org.joml.Quaterniondc
+import org.joml.Vector3dc
 import org.joml.Vector3ic
 import org.joml.primitives.AABBdc
 import org.valkyrienskies.core.api.ships.LoadedServerShip
@@ -71,6 +73,10 @@ object DummyShipWorldServer : ServerShipWorldCore {
     }
 
     override fun deleteShip(ship: ServerShip) {
+        TODO("Not yet implemented")
+    }
+
+    override fun teleportShip(ship: ServerShip, positionInWorld: Vector3dc, shipToWorldRotation: Quaterniondc) {
         TODO("Not yet implemented")
     }
 
