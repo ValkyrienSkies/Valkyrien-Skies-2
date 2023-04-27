@@ -2,7 +2,6 @@ package org.valkyrienskies.mod.common.command
 
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.arguments.ArgumentType
-import com.mojang.brigadier.arguments.FloatArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.builder.RequiredArgumentBuilder
@@ -85,6 +84,7 @@ object VSCommands {
                                         })
                             )
 
+                            /* DISABLED UNTIL VS-BODIES IS READY
                             // Scale a ship
                             .then(
                                 literal("scale")
@@ -102,6 +102,7 @@ object VSCommands {
                                             }
                                         })
                             )
+                             */
                     )
                 )
         )
