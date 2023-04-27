@@ -70,6 +70,10 @@ object DummyShipWorldServer : ServerShipWorldCore {
     override fun onDisconnect(player: IPlayer) {
     }
 
+    override fun deleteShip(ship: ServerShip) {
+        TODO("Not yet implemented")
+    }
+
     override val dimensionToGroundBodyIdImmutable: Map<DimensionId, ShipId>
         get() = TODO("Not yet implemented")
 
