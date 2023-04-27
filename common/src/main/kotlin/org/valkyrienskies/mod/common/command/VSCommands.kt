@@ -11,6 +11,7 @@ import net.minecraft.commands.CommandRuntimeException
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.arguments.EntityArgument
 import net.minecraft.commands.arguments.coordinates.BlockPosArgument
+import net.minecraft.network.chat.TextComponent
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.world.ServerShipWorld
 import org.valkyrienskies.core.api.world.ShipWorld
@@ -39,7 +40,7 @@ object VSCommands {
                     try {
                         val r = ShipArgument.getShips(it, "ships").toList() as List<ServerShip>
                         vsCore.deleteShips(it.source.shipWorld as ServerShipWorld, r)
-
+                        it.source.sendVSMessage(TextComponent("Deleted ${r.size} ships!"))
                         r.size
                     } catch (e: Exception) {
                         if (e !is CommandRuntimeException) LOGGER.throwing(e)
@@ -54,18 +55,16 @@ object VSCommands {
 
                             // Delete a ship
                             .then(literal("delete").executes {
-
                                 try {
                                     vsCore.deleteShips(
                                         it.source.shipWorld as ServerShipWorld,
                                         listOf(ShipArgument.getShip(it, "ship") as ServerShip)
                                     )
+                                    1
                                 } catch (e: Exception) {
                                     if (e !is CommandRuntimeException) LOGGER.throwing(e)
                                     throw e
                                 }
-
-                                1
                             })
 
                             // Rename a ship
@@ -73,12 +72,16 @@ object VSCommands {
                                 literal("rename")
                                     .then(argument("newName", StringArgumentType.string())
                                         .executes {
-                                            vsCore.renameShip(
-                                                ShipArgument.getShip(it, "ship") as ServerShip,
-                                                StringArgumentType.getString(it, "newName")
-                                            )
-
-                                            1
+                                            try {
+                                                vsCore.renameShip(
+                                                    ShipArgument.getShip(it, "ship") as ServerShip,
+                                                    StringArgumentType.getString(it, "newName")
+                                                )
+                                                1
+                                            } catch (e: Exception) {
+                                                if (e !is CommandRuntimeException) LOGGER.throwing(e)
+                                                throw e
+                                            }
                                         })
                             )
 
@@ -92,12 +95,11 @@ object VSCommands {
                                                     ShipArgument.getShip(it, "ship") as ServerShip,
                                                     FloatArgumentType.getFloat(it, "newScale")
                                                 )
+                                                1
                                             } catch (e: Exception) {
                                                 if (e !is CommandRuntimeException) LOGGER.throwing(e)
                                                 throw e
                                             }
-
-                                            1
                                         })
                             )
                     )
@@ -118,7 +120,9 @@ object VSCommands {
                         it as CommandContext<CommandSourceStack>
                         val entity = EntityArgument.getEntity(it, "entity")
 
-                        vsCore.teleportShip(ship as ServerShip, entity.x, entity.y, entity.z)
+                        vsCore.teleportShip(
+                            it.source.shipWorld as ServerShipWorld, ship as ServerShip, entity.x, entity.y, entity.z
+                        )
 
                         1
                     }
@@ -128,7 +132,10 @@ object VSCommands {
                         it as CommandContext<CommandSourceStack>
                         val pos = BlockPosArgument.getSpawnablePos(it, "pos")
 
-                        vsCore.teleportShip(ship as ServerShip, pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
+                        vsCore.teleportShip(
+                            it.source.shipWorld as ServerShipWorld, ship as ServerShip, pos.x.toDouble(),
+                            pos.y.toDouble(), pos.z.toDouble()
+                        )
 
                         1
                     }

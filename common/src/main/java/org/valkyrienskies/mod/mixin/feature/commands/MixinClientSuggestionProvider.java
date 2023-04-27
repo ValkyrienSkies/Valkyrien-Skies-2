@@ -1,7 +1,9 @@
 package org.valkyrienskies.mod.mixin.feature.commands;
 
+import java.util.UUID;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientSuggestionProvider;
+import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -21,5 +23,10 @@ public class MixinClientSuggestionProvider implements VSCommandSource {
     public ShipWorld getShipWorld() {
         assert this.minecraft.level != null;
         return VSGameUtilsKt.getShipObjectWorld(this.minecraft.level);
+    }
+
+    @Override
+    public void sendVSMessage(final Component component, final UUID uUID) {
+        minecraft.player.sendMessage(component, uUID);
     }
 }
