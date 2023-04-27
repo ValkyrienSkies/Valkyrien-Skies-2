@@ -43,16 +43,33 @@ class ShipArgument private constructor(val selectorOnly: Boolean) : ArgumentType
         fun selectorOnly(): ShipArgument = ShipArgument(true)
         fun ships(): ShipArgument = ShipArgument(false)
 
+        /**
+         * @return Can return either a loaded ship or an unloaded ship
+         */
         fun <S : VSCommandSource> getShips(context: CommandContext<S>, argName: String): Set<Ship> {
             val selector = context.getArgument(argName, ShipSelector::class.java)
 
-            return selector.select(context.source.shipWorld.allShips)
+            val fromLoadedShips = selector.select(context.source.shipWorld.loadedShips)
+            val fromLoadedShipIds = fromLoadedShips.map { it.id }.toSet()
+
+            val fromUnloadedShips = selector.select(context.source.shipWorld.allShips)
+
+            // Return loaded ships and unloaded ships, do not return a loaded ship twice
+            return fromLoadedShips + (fromUnloadedShips.filter { !fromLoadedShipIds.contains(it.id) })
         }
 
+        /**
+         * @return Can return either a loaded ship or an unloaded ship
+         */
         fun <S : VSCommandSource> getShip(context: CommandContext<S>, argName: String): Ship {
             val selector = context.getArgument(argName, ShipSelector::class.java)
-            val r = selector.select(context.source.shipWorld.allShips)
 
+            // First attempt to return a loaded ship
+            val loadedShips = selector.select(context.source.shipWorld.loadedShips)
+            if (loadedShips.size == 1) return loadedShips.first()
+
+            // Then try to return an unloaded ship
+            val r = selector.select(context.source.shipWorld.allShips)
             if (r.isEmpty()) throw ERROR_NO_SHIP_FOUND
             if (r.size == 1) return r.first() else throw ERROR_MANY_SHIP_FOUND
         }
