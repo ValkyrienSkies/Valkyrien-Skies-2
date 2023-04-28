@@ -70,9 +70,6 @@ dependencies {
     modImplementation("com.jozufozu.flywheel:flywheel-forge-${minecraft_version}:${flywheel_version}")
     modImplementation("com.tterrag.registrate:Registrate:${registrate_version}")
 
-    // Create : Big Cannons
-    modImplementation("com.rbasamoyai:createbigcannons-forge-${minecraft_version}:${createbigcannons_version}") { transitive = false }
-
     // CC Tweaked
     modCompileOnly("curse.maven:cc-tweaked-282001:4061947")
 
