@@ -1,7 +1,5 @@
 package org.valkyrienskies.mod.common.world
 
-import org.joml.Quaterniondc
-import org.joml.Vector3dc
 import org.joml.Vector3ic
 import org.joml.primitives.AABBdc
 import org.valkyrienskies.core.api.ships.LoadedServerShip
@@ -9,6 +7,7 @@ import org.valkyrienskies.core.api.ships.QueryableShipData
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.ships.properties.ShipId
 import org.valkyrienskies.core.api.world.LevelYRange
+import org.valkyrienskies.core.apigame.ShipTeleportData
 import org.valkyrienskies.core.apigame.constraints.VSConstraint
 import org.valkyrienskies.core.apigame.constraints.VSConstraintId
 import org.valkyrienskies.core.apigame.world.IPlayer
@@ -76,7 +75,7 @@ object DummyShipWorldServer : ServerShipWorldCore {
         TODO("Not yet implemented")
     }
 
-    override fun teleportShip(ship: ServerShip, positionInWorld: Vector3dc, shipToWorldRotation: Quaterniondc) {
+    override fun teleportShip(ship: ServerShip, teleportData: ShipTeleportData) {
         TODO("Not yet implemented")
     }
 

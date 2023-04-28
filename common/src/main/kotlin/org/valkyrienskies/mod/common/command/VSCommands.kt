@@ -11,12 +11,15 @@ import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.arguments.EntityArgument
 import net.minecraft.commands.arguments.coordinates.BlockPosArgument
 import net.minecraft.network.chat.TextComponent
+import org.joml.Vector3d
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.world.ServerShipWorld
 import org.valkyrienskies.core.api.world.ShipWorld
+import org.valkyrienskies.core.impl.game.ShipTeleportDataImpl
 import org.valkyrienskies.core.impl.util.x
 import org.valkyrienskies.core.impl.util.y
 import org.valkyrienskies.core.impl.util.z
+import org.valkyrienskies.mod.common.util.toJOMLD
 import org.valkyrienskies.mod.common.vsCore
 import org.valkyrienskies.mod.mixinducks.feature.command.VSCommandSource
 import org.valkyrienskies.mod.util.logger
@@ -84,25 +87,25 @@ object VSCommands {
                                         })
                             )
 
-                            /* DISABLED UNTIL VS-BODIES IS READY
-                            // Scale a ship
-                            .then(
-                                literal("scale")
-                                    .then(argument("newScale", FloatArgumentType.floatArg(0.001f))
-                                        .executes {
-                                            try {
-                                                vsCore.scaleShip(
-                                                    ShipArgument.getShip(it, "ship") as ServerShip,
-                                                    FloatArgumentType.getFloat(it, "newScale")
-                                                )
-                                                1
-                                            } catch (e: Exception) {
-                                                if (e !is CommandRuntimeException) LOGGER.throwing(e)
-                                                throw e
-                                            }
-                                        })
-                            )
-                             */
+                        /* DISABLED UNTIL VS-BODIES IS READY
+                        // Scale a ship
+                        .then(
+                            literal("scale")
+                                .then(argument("newScale", FloatArgumentType.floatArg(0.001f))
+                                    .executes {
+                                        try {
+                                            vsCore.scaleShip(
+                                                ShipArgument.getShip(it, "ship") as ServerShip,
+                                                FloatArgumentType.getFloat(it, "newScale")
+                                            )
+                                            1
+                                        } catch (e: Exception) {
+                                            if (e !is CommandRuntimeException) LOGGER.throwing(e)
+                                            throw e
+                                        }
+                                    })
+                        )
+                         */
                     )
                 )
         )
@@ -114,7 +117,7 @@ object VSCommands {
                     val source = it.source as CommandSourceStack
                     val shipPos = ship.transform.positionInWorld
 
-                    source.entity?.let { it.teleportTo(shipPos.x, shipPos.y, shipPos.z); 1 } ?: 0
+                    source.entity?.let { entity -> entity.teleportTo(shipPos.x, shipPos.y, shipPos.z); 1 } ?: 0
                 }.then(
                     argument("entity", EntityArgument.entity()).executes {
                         val ship = ShipArgument.getShip(it, "ship")
@@ -122,7 +125,8 @@ object VSCommands {
                         val entity = EntityArgument.getEntity(it, "entity")
 
                         vsCore.teleportShip(
-                            it.source.shipWorld as ServerShipWorld, ship as ServerShip, entity.x, entity.y, entity.z
+                            it.source.shipWorld as ServerShipWorld, ship as ServerShip,
+                            ShipTeleportDataImpl(newPos = Vector3d(entity.x, entity.y, entity.z))
                         )
 
                         1
@@ -134,8 +138,8 @@ object VSCommands {
                         val pos = BlockPosArgument.getSpawnablePos(it, "pos")
 
                         vsCore.teleportShip(
-                            it.source.shipWorld as ServerShipWorld, ship as ServerShip, pos.x.toDouble(),
-                            pos.y.toDouble(), pos.z.toDouble()
+                            it.source.shipWorld as ServerShipWorld, ship as ServerShip,
+                            ShipTeleportDataImpl(newPos = pos.toJOMLD())
                         )
 
                         1
@@ -150,7 +154,7 @@ object VSCommands {
                     val entities = EntityArgument.getEntities(it, "targets")
                     val shipPos = ship.transform.positionInWorld
 
-                    entities.forEach { it.teleportTo(shipPos.x, shipPos.y, shipPos.z) }
+                    entities.forEach { entity -> entity.teleportTo(shipPos.x, shipPos.y, shipPos.z) }
 
                     entities.size
                 }.build()
