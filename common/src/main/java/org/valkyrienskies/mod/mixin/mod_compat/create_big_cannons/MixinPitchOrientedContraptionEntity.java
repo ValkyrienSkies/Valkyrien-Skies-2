@@ -17,7 +17,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
-import rbasamoyai.createbigcannons.cannon_control.ControlPitchContraption;
+
 
 @Pseudo
 @Mixin(targets = "rbasamoyai.createbigcannons.cannon_control.contraption.PitchOrientedContraptionEntity")
@@ -25,9 +25,6 @@ public abstract class MixinPitchOrientedContraptionEntity extends OrientedContra
 
     @Shadow
     private BlockPos controllerPos;
-
-    @Shadow
-    protected abstract ControlPitchContraption getController();
 
     public MixinPitchOrientedContraptionEntity(final EntityType<?> type,
         final Level world) {
