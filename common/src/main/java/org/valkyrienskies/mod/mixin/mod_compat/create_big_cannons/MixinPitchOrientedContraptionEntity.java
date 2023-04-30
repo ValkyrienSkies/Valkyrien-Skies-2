@@ -18,6 +18,7 @@ import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
+
 @Pseudo
 @Mixin(targets = "rbasamoyai.createbigcannons.cannon_control.contraption.PitchOrientedContraptionEntity")
 public abstract class MixinPitchOrientedContraptionEntity extends OrientedContraptionEntity {
