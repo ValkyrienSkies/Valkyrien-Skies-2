@@ -72,8 +72,8 @@ class ShipArgumentParser(private val source: VSCommandSource?, private var selec
             }
         } else if (!selectorOnly) {
             suggestionsOfOption("slug")
-            reader.cursor = start
             slug = reader.readUnquotedString()
+            reader.cursor = start
         }
 
         return ShipSelector(slug, id, limit ?: Int.MAX_VALUE)
@@ -97,7 +97,7 @@ class ShipArgumentParser(private val source: VSCommandSource?, private var selec
             source.shipWorld.allShips
                 .mapNotNull { it.slug }
                 .filter { it.startsWith(builder.remaining) }
-                .forEach { builder.suggest(it.substring(builder.remaining.length)) }
+                .forEach { builder.suggest(it) }
         }
     }
 
@@ -107,7 +107,7 @@ class ShipArgumentParser(private val source: VSCommandSource?, private var selec
                 source.shipWorld.allShips
                     .mapNotNull { it.slug }
                     .filter { it.startsWith(builder.remaining) }
-                    .forEach { builder.suggest(it.substring(builder.remaining.length)) }
+                    .forEach { builder.suggest(it) }
             }
 
         "limit" -> {}
