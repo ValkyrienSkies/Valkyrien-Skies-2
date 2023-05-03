@@ -2,6 +2,7 @@ package org.valkyrienskies.mod.common.command
 
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.arguments.ArgumentType
+import com.mojang.brigadier.arguments.BoolArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.builder.RequiredArgumentBuilder
@@ -16,6 +17,8 @@ import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.world.ServerShipWorld
 import org.valkyrienskies.core.api.world.ShipWorld
 import org.valkyrienskies.core.impl.game.ShipTeleportDataImpl
+import org.valkyrienskies.core.impl.game.ships.ShipData
+import org.valkyrienskies.core.impl.game.ships.ShipObject
 import org.valkyrienskies.core.impl.util.x
 import org.valkyrienskies.core.impl.util.y
 import org.valkyrienskies.core.impl.util.z
@@ -49,6 +52,34 @@ object VSCommands {
                         throw e
                     }
                 }))
+                .then(
+                    literal("set-static").then(
+                        argument("ships", ShipArgument.ships()).then(
+                            argument("is-static", BoolArgumentType.bool()).executes {
+                                try {
+                                    val r = ShipArgument.getShips(it, "ships").toList() as List<ServerShip>
+                                    val isStatic = BoolArgumentType.getBool(it, "is-static")
+                                    r.forEach { ship ->
+                                        if (ship is ShipObject) {
+                                            // TODO: AAAAAAAAA THIS IS HORRIBLE how can the API support this?
+                                            (ship.shipData as ShipData).isStatic = isStatic
+                                        } else if (ship is ShipData) {
+                                            // TODO: AAAAAAAAA THIS IS HORRIBLE how can the API support this?
+                                            ship.isStatic = isStatic
+                                        }
+
+                                    }
+                                    it.source.sendVSMessage(
+                                        TextComponent("Set ${r.size} ships to be is-static=$isStatic!")
+                                    )
+                                    r.size
+                                } catch (e: Exception) {
+                                    if (e !is CommandRuntimeException) LOGGER.throwing(e)
+                                    throw e
+                                }
+                            })
+                    )
+                )
 
                 // Single ship commands
                 .then(
