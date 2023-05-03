@@ -21,12 +21,19 @@ class ShipArgument private constructor(val selectorOnly: Boolean) : ArgumentType
         val reader = StringReader(builder.input)
         reader.cursor = builder.start
 
+        val startsWithAt = reader.canRead() && reader.peek() == '@'
+
         val parser = ShipArgumentParser(context.source as VSCommandSource, selectorOnly)
 
         try {
             parser.parse(reader)
         } catch (_: CommandSyntaxException) {
 
+        }
+
+        // Reset cursor to fix suggestions
+        if (!startsWithAt) {
+            reader.cursor = builder.start
         }
 
         val nBuilder = builder.createOffset(reader.cursor)

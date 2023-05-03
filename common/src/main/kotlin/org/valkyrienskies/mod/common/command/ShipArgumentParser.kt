@@ -72,8 +72,9 @@ class ShipArgumentParser(private val source: VSCommandSource?, private var selec
             }
         } else if (!selectorOnly) {
             suggestionsOfOption("slug")
-            slug = reader.readUnquotedString()
+            // Reset cursor
             reader.cursor = start
+            slug = reader.readUnquotedString()
         }
 
         return ShipSelector(slug, id, limit ?: Int.MAX_VALUE)
