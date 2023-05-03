@@ -143,37 +143,47 @@ object VSCommands {
 
         dispatcher.root.children.first { it.name == "teleport" }.apply {
             addChild(
-                argument("ship", ShipArgument.selectorOnly()).executes {
-                    val ship = ShipArgument.getShip(it, "ship")
+                argument("ships", ShipArgument.selectorOnly()).executes {
+                    val serverShips = ShipArgument.getShips(it, "ships").toList() as List<ServerShip>
+                    val serverShip = serverShips.singleOrNull() ?: throw CommandRuntimeException(
+                        TextComponent("Can only accept 1 ship as input")
+                    )
                     val source = it.source as CommandSourceStack
-                    val shipPos = ship.transform.positionInWorld
+                    val shipPos = serverShip.transform.positionInWorld
 
                     source.entity?.let { entity -> entity.teleportTo(shipPos.x, shipPos.y, shipPos.z); 1 } ?: 0
                 }.then(
                     argument("entity", EntityArgument.entity()).executes {
-                        val ship = ShipArgument.getShip(it, "ship")
-                        it as CommandContext<CommandSourceStack>
-                        val entity = EntityArgument.getEntity(it, "entity")
+                        val serverShips = ShipArgument.getShips(it, "ships").toList() as List<ServerShip>
+                        val entity = EntityArgument.getEntity(it as CommandContext<CommandSourceStack>, "entity")
 
-                        vsCore.teleportShip(
-                            it.source.shipWorld as ServerShipWorld, ship as ServerShip,
-                            ShipTeleportDataImpl(newPos = Vector3d(entity.x, entity.y, entity.z))
+                        serverShips.forEach { serverShip ->
+                            vsCore.teleportShip(
+                                it.source.shipWorld as ServerShipWorld, serverShip,
+                                ShipTeleportDataImpl(newPos = Vector3d(entity.x, entity.y, entity.z))
+                            )
+                        }
+                        (it as CommandContext<VSCommandSource>).source.sendVSMessage(
+                            TextComponent("Teleported ${serverShips.size} ships!")
                         )
-
-                        1
+                        serverShips.size
                     }
                 ).then(
                     argument("pos", BlockPosArgument.blockPos()).executes {
-                        val ship = ShipArgument.getShip(it, "ship")
+                        val serverShips = ShipArgument.getShips(it, "ships").toList() as List<ServerShip>
                         it as CommandContext<CommandSourceStack>
                         val pos = BlockPosArgument.getSpawnablePos(it, "pos")
 
-                        vsCore.teleportShip(
-                            it.source.shipWorld as ServerShipWorld, ship as ServerShip,
-                            ShipTeleportDataImpl(newPos = pos.toJOMLD())
+                        serverShips.forEach { serverShip ->
+                            vsCore.teleportShip(
+                                it.source.shipWorld as ServerShipWorld, serverShip,
+                                ShipTeleportDataImpl(newPos = pos.toJOMLD())
+                            )
+                        }
+                        (it as CommandContext<VSCommandSource>).source.sendVSMessage(
+                            TextComponent("Teleported ${serverShips.size} ships!")
                         )
-
-                        1
+                        serverShips.size
                     }
                 ).build()
             )
