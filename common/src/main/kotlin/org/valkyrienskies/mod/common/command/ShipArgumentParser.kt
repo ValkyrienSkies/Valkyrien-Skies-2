@@ -14,7 +14,7 @@ class ShipArgumentParser(private val source: VSCommandSource?, private var selec
     var limit: Int? = null
     var id: ShipId? = null
 
-    fun parse(reader: StringReader): ShipSelector {
+    fun parse(reader: StringReader, isForSuggestion: Boolean): ShipSelector {
         val start = reader.cursor
 
         suggestSelectorOrSlug()
@@ -38,8 +38,13 @@ class ShipArgumentParser(private val source: VSCommandSource?, private var selec
                     val s = reader.readString()
 
                     if (!isOption(s)) {
-                        reader.cursor = i
-                        throw ERROR_UNKNOWN_OPTION.createWithContext(reader, s)
+                        if (isForSuggestion) {
+                            reader.cursor = i
+                            throw ERROR_UNKNOWN_OPTION.createWithContext(reader, s)
+                        }
+                        // If not for suggestion then we cannot throw an exception
+                        // otherwise MC won't generate suggestions for this argument
+                        return ShipSelector(null, null, 0)
                     }
 
                     reader.skipWhitespace()
@@ -66,12 +71,19 @@ class ShipArgumentParser(private val source: VSCommandSource?, private var selec
                 }
 
                 if (!reader.canRead() || reader.read() != ']')
-                    throw ERROR_EXPECTED_END_OF_OPTIONS.createWithContext(reader)
+                    if (isForSuggestion) {
+                        throw ERROR_EXPECTED_END_OF_OPTIONS.createWithContext(reader)
+                    }else {
+                        // If not for suggestion then we cannot throw an exception
+                        // otherwise MC won't generate suggestions for this argument
+                        return ShipSelector(null, null, 0)
+                    }
 
                 suggest { _, _ -> }
             }
         } else if (!selectorOnly) {
             suggestionsOfOption("slug")
+            // Reset cursor
             reader.cursor = start
             slug = reader.readUnquotedString()
         }
@@ -97,7 +109,7 @@ class ShipArgumentParser(private val source: VSCommandSource?, private var selec
             source.shipWorld.allShips
                 .mapNotNull { it.slug }
                 .filter { it.startsWith(builder.remaining) }
-                .forEach { builder.suggest(it.substring(builder.remaining.length)) }
+                .forEach { builder.suggest(it) }
         }
     }
 
@@ -107,7 +119,7 @@ class ShipArgumentParser(private val source: VSCommandSource?, private var selec
                 source.shipWorld.allShips
                     .mapNotNull { it.slug }
                     .filter { it.startsWith(builder.remaining) }
-                    .forEach { builder.suggest(it.substring(builder.remaining.length)) }
+                    .forEach { builder.suggest(it) }
             }
 
         "limit" -> {}
