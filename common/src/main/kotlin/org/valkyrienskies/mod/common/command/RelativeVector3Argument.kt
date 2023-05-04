@@ -13,8 +13,8 @@ import net.minecraft.commands.arguments.coordinates.WorldCoordinate
 import net.minecraft.network.chat.TranslatableComponent
 import java.util.concurrent.CompletableFuture
 
-class EulerAnglesArgument : ArgumentType<EulerAngles> {
-    override fun parse(reader: StringReader): EulerAngles = EulerAnglesArgumentParser().parse(reader, false)
+class RelativeVector3Argument : ArgumentType<RelativeVector3> {
+    override fun parse(reader: StringReader): RelativeVector3 = RelativeVector3ArgumentParser().parse(reader, false)
 
     override fun <S> listSuggestions(
         context: CommandContext<S>?, builder: SuggestionsBuilder
@@ -22,19 +22,14 @@ class EulerAnglesArgument : ArgumentType<EulerAngles> {
         val reader = StringReader(builder.input)
         reader.cursor = builder.start
 
-        val startsWithAt = reader.canRead() && reader.peek() == '@'
-
-        val parser = EulerAnglesArgumentParser()
-
+        val parser = RelativeVector3ArgumentParser()
         try {
             parser.parse(reader, true)
         } catch (_: CommandSyntaxException) {
         }
 
         // Reset cursor to fix suggestions
-        if (!startsWithAt) {
-            reader.cursor = builder.start
-        }
+        reader.cursor = builder.start
 
         val nBuilder = builder.createOffset(reader.cursor)
         parser.suggestionProvider(nBuilder)
@@ -47,25 +42,24 @@ class EulerAnglesArgument : ArgumentType<EulerAngles> {
     }
 
     companion object {
-        private val EXAMPLES: Collection<String> =
-            listOf("(0 0 0)", "(~ ~ ~)", "(~0.5 ~1 ~-5)")
+        private val EXAMPLES: Collection<String> = listOf("(0 0 0)", "(~ ~ ~)", "(~0.5 ~1 ~-5)")
 
         private val DUMMY_EULER_ANGLES =
-            EulerAngles(EulerAngle(0.0, false), EulerAngle(0.0, false), EulerAngle(0.0, false))
+            RelativeVector3(RelativeValue(0.0, false), RelativeValue(0.0, false), RelativeValue(0.0, false))
 
-        fun eulerAngles() = EulerAnglesArgument()
+        fun relativeVector3() = RelativeVector3Argument()
 
-        fun getEulerAngles(commandContext: CommandContext<CommandSourceStack?>, string: String?): EulerAngles {
+        fun getRelativeVector3(commandContext: CommandContext<CommandSourceStack?>, string: String?): RelativeVector3 {
             return commandContext.getArgument(
                 string,
-                EulerAngles::class.java
-            ) as EulerAngles
+                RelativeVector3::class.java
+            ) as RelativeVector3
         }
 
-        private class EulerAnglesArgumentParser {
+        private class RelativeVector3ArgumentParser {
             var suggestionProvider: (SuggestionsBuilder) -> Unit = {}
 
-            fun parse(reader: StringReader, invokedByListSuggestions: Boolean): EulerAngles {
+            fun parse(reader: StringReader, invokedByListSuggestions: Boolean): RelativeVector3 {
                 val i: Int = reader.cursor
                 if (!reader.canRead()) {
                     throw RotationArgument.ERROR_NOT_COMPLETE.createWithContext(reader)
@@ -152,16 +146,16 @@ class EulerAnglesArgument : ArgumentType<EulerAngles> {
                                     if (reader.peek() == ')') {
                                         reader.skip()
                                         val pitchEulerAngle =
-                                            EulerAngle(worldCoordinate.get(0.0), worldCoordinate.isRelative)
+                                            RelativeValue(worldCoordinate.get(0.0), worldCoordinate.isRelative)
                                         val yawEulerAngle =
-                                            EulerAngle(worldCoordinate2.get(0.0), worldCoordinate2.isRelative)
+                                            RelativeValue(worldCoordinate2.get(0.0), worldCoordinate2.isRelative)
                                         val rollEulerAngle =
-                                            EulerAngle(worldCoordinate3.get(0.0), worldCoordinate3.isRelative)
+                                            RelativeValue(worldCoordinate3.get(0.0), worldCoordinate3.isRelative)
 
                                         suggest { builder ->
                                             builder.suggest(builder.remaining)
                                         }
-                                        return EulerAngles(pitchEulerAngle, yawEulerAngle, rollEulerAngle)
+                                        return RelativeVector3(pitchEulerAngle, yawEulerAngle, rollEulerAngle)
                                     }
                                 } else {
                                     if (invokedByListSuggestions) {

@@ -109,14 +109,14 @@ object VSCommands {
                                     throw e
                                 }
                             }.then(
-                                argument("euler-angles", EulerAnglesArgument.eulerAngles()).executes {
+                                argument("euler-angles", RelativeVector3Argument.relativeVector3()).executes {
                                     // If only position is present then we execute this code
                                     try {
                                         val r = ShipArgument.getShips(it, "ships").toList() as List<ServerShip>
                                         val position =
                                             Vec3Argument.getVec3(it as CommandContext<CommandSourceStack>, "position")
                                         val eulerAngles =
-                                            EulerAnglesArgument.getEulerAngles(
+                                            RelativeVector3Argument.getRelativeVector3(
                                                 it as CommandContext<CommandSourceStack?>, "euler-angles"
                                             )
 
@@ -124,7 +124,7 @@ object VSCommands {
                                         val shipTeleportData: ShipTeleportData =
                                             ShipTeleportDataImpl(
                                                 newPos = position.toJOML(),
-                                                newRot = eulerAngles.toRotationFromMCEntity(
+                                                newRot = eulerAngles.toEulerRotationFromMCEntity(
                                                     source.rotation.x.toDouble(), source.rotation.y.toDouble(),
                                                 )
                                             )
@@ -142,7 +142,95 @@ object VSCommands {
                                         if (e !is CommandRuntimeException) LOGGER.throwing(e)
                                         throw e
                                     }
-                                }
+                                }.then(
+                                    argument("velocity", RelativeVector3Argument.relativeVector3()).executes {
+                                        // If only position is present then we execute this code
+                                        try {
+                                            val r = ShipArgument.getShips(it, "ships").toList() as List<ServerShip>
+                                            val position =
+                                                Vec3Argument.getVec3(
+                                                    it as CommandContext<CommandSourceStack>, "position"
+                                                )
+                                            val eulerAngles =
+                                                RelativeVector3Argument.getRelativeVector3(
+                                                    it as CommandContext<CommandSourceStack?>, "euler-angles"
+                                                )
+                                            val velocity = RelativeVector3Argument.getRelativeVector3(
+                                                it as CommandContext<CommandSourceStack?>, "velocity"
+                                            )
+
+                                            val source = it.source as CommandSourceStack
+                                            val shipTeleportData: ShipTeleportData =
+                                                ShipTeleportDataImpl(
+                                                    newPos = position.toJOML(),
+                                                    newRot = eulerAngles.toEulerRotationFromMCEntity(
+                                                        source.rotation.x.toDouble(), source.rotation.y.toDouble(),
+                                                    ),
+                                                    newVel = velocity.toVector3d(0.0, 0.0, 0.0)
+                                                )
+                                            r.forEach { ship ->
+                                                vsCore.teleportShip(
+                                                    (it as CommandContext<VSCommandSource>).source.shipWorld as ServerShipWorld,
+                                                    ship, shipTeleportData
+                                                )
+                                            }
+                                            (it as CommandContext<VSCommandSource>).source.sendVSMessage(
+                                                TextComponent("Teleported ${r.size} ships to $shipTeleportData!")
+                                            )
+                                            r.size
+                                        } catch (e: Exception) {
+                                            if (e !is CommandRuntimeException) LOGGER.throwing(e)
+                                            throw e
+                                        }
+                                    }.then(
+                                        argument(
+                                            "angular-velocity", RelativeVector3Argument.relativeVector3()
+                                        ).executes {
+                                            // If only position is present then we execute this code
+                                            try {
+                                                val r = ShipArgument.getShips(it, "ships").toList() as List<ServerShip>
+                                                val position =
+                                                    Vec3Argument.getVec3(
+                                                        it as CommandContext<CommandSourceStack>, "position"
+                                                    )
+                                                val eulerAngles =
+                                                    RelativeVector3Argument.getRelativeVector3(
+                                                        it as CommandContext<CommandSourceStack?>, "euler-angles"
+                                                    )
+                                                val velocity = RelativeVector3Argument.getRelativeVector3(
+                                                    it as CommandContext<CommandSourceStack?>, "velocity"
+                                                )
+                                                val angularVelocity = RelativeVector3Argument.getRelativeVector3(
+                                                    it as CommandContext<CommandSourceStack?>, "angular-velocity"
+                                                )
+
+                                                val source = it.source as CommandSourceStack
+                                                val shipTeleportData: ShipTeleportData =
+                                                    ShipTeleportDataImpl(
+                                                        newPos = position.toJOML(),
+                                                        newRot = eulerAngles.toEulerRotationFromMCEntity(
+                                                            source.rotation.x.toDouble(), source.rotation.y.toDouble(),
+                                                        ),
+                                                        newVel = velocity.toVector3d(0.0, 0.0, 0.0),
+                                                        newOmega = angularVelocity.toVector3d(0.0, 0.0, 0.0)
+                                                    )
+                                                r.forEach { ship ->
+                                                    vsCore.teleportShip(
+                                                        (it as CommandContext<VSCommandSource>).source.shipWorld as ServerShipWorld,
+                                                        ship, shipTeleportData
+                                                    )
+                                                }
+                                                (it as CommandContext<VSCommandSource>).source.sendVSMessage(
+                                                    TextComponent("Teleported ${r.size} ships to $shipTeleportData!")
+                                                )
+                                                r.size
+                                            } catch (e: Exception) {
+                                                if (e !is CommandRuntimeException) LOGGER.throwing(e)
+                                                throw e
+                                            }
+                                        }
+                                    )
+                                )
                             )
                         )
                     )
