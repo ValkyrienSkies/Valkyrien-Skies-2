@@ -11,17 +11,20 @@ import net.minecraft.commands.CommandRuntimeException
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.arguments.EntityArgument
 import net.minecraft.commands.arguments.coordinates.BlockPosArgument
+import net.minecraft.commands.arguments.coordinates.Vec3Argument
 import net.minecraft.network.chat.TextComponent
 import org.joml.Vector3d
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.world.ServerShipWorld
 import org.valkyrienskies.core.api.world.ShipWorld
+import org.valkyrienskies.core.apigame.ShipTeleportData
 import org.valkyrienskies.core.impl.game.ShipTeleportDataImpl
 import org.valkyrienskies.core.impl.game.ships.ShipData
 import org.valkyrienskies.core.impl.game.ships.ShipObject
 import org.valkyrienskies.core.impl.util.x
 import org.valkyrienskies.core.impl.util.y
 import org.valkyrienskies.core.impl.util.z
+import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toJOMLD
 import org.valkyrienskies.mod.common.vsCore
 import org.valkyrienskies.mod.mixinducks.feature.command.VSCommandSource
@@ -78,6 +81,70 @@ object VSCommands {
                                     throw e
                                 }
                             })
+                    )
+                )
+                .then(
+                    literal("teleport").then(
+                        argument("ships", ShipArgument.ships()).then(
+                            argument("position", Vec3Argument.vec3()).executes {
+                                // If only position is present then we execute this code
+                                try {
+                                    val r = ShipArgument.getShips(it, "ships").toList() as List<ServerShip>
+                                    val position =
+                                        Vec3Argument.getVec3(it as CommandContext<CommandSourceStack>, "position")
+                                    val shipTeleportData: ShipTeleportData =
+                                        ShipTeleportDataImpl(newPos = position.toJOML())
+                                    r.forEach { ship ->
+                                        vsCore.teleportShip(
+                                            (it as CommandContext<VSCommandSource>).source.shipWorld as ServerShipWorld,
+                                            ship, shipTeleportData
+                                        )
+                                    }
+                                    (it as CommandContext<VSCommandSource>).source.sendVSMessage(
+                                        TextComponent("Teleported ${r.size} ships to $shipTeleportData!")
+                                    )
+                                    r.size
+                                } catch (e: Exception) {
+                                    if (e !is CommandRuntimeException) LOGGER.throwing(e)
+                                    throw e
+                                }
+                            }.then(
+                                argument("euler-angles", EulerAnglesArgument.eulerAngles()).executes {
+                                    // If only position is present then we execute this code
+                                    try {
+                                        val r = ShipArgument.getShips(it, "ships").toList() as List<ServerShip>
+                                        val position =
+                                            Vec3Argument.getVec3(it as CommandContext<CommandSourceStack>, "position")
+                                        val eulerAngles =
+                                            EulerAnglesArgument.getEulerAngles(
+                                                it as CommandContext<CommandSourceStack?>, "euler-angles"
+                                            )
+
+                                        val source = it.source as CommandSourceStack
+                                        val shipTeleportData: ShipTeleportData =
+                                            ShipTeleportDataImpl(
+                                                newPos = position.toJOML(),
+                                                newRot = eulerAngles.toRotationFromMCEntity(
+                                                    source.rotation.x.toDouble(), source.rotation.y.toDouble(),
+                                                )
+                                            )
+                                        r.forEach { ship ->
+                                            vsCore.teleportShip(
+                                                (it as CommandContext<VSCommandSource>).source.shipWorld as ServerShipWorld,
+                                                ship, shipTeleportData
+                                            )
+                                        }
+                                        (it as CommandContext<VSCommandSource>).source.sendVSMessage(
+                                            TextComponent("Teleported ${r.size} ships to $shipTeleportData!")
+                                        )
+                                        r.size
+                                    } catch (e: Exception) {
+                                        if (e !is CommandRuntimeException) LOGGER.throwing(e)
+                                        throw e
+                                    }
+                                }
+                            )
+                        )
                     )
                 )
 
