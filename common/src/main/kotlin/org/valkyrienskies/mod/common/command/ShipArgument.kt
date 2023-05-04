@@ -26,7 +26,7 @@ class ShipArgument private constructor(val selectorOnly: Boolean) : ArgumentType
         val parser = ShipArgumentParser(context.source as VSCommandSource, selectorOnly)
 
         try {
-            parser.parse(reader)
+            parser.parse(reader, true)
         } catch (_: CommandSyntaxException) {
 
         }
@@ -43,7 +43,7 @@ class ShipArgument private constructor(val selectorOnly: Boolean) : ArgumentType
     } else super.listSuggestions(context, builder)
 
     override fun parse(reader: StringReader): ShipSelector =
-        ShipArgumentParser(null, selectorOnly).parse(reader)
+        ShipArgumentParser(null, selectorOnly).parse(reader, false)
 
     companion object {
 
