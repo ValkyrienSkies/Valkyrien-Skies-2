@@ -35,7 +35,7 @@ public abstract class MixinPitchOrientedContraptionEntity extends OrientedContra
     protected void vsProcesssRiderPositionHook(
         final Entity passenger, @Nullable Vec3 original, final CallbackInfoReturnable<Vec3> ci) {
 
-        if (original != null) {
+        if (original != null && controllerPos != null) {
             final Vector3d editOriginal = VectorConversionsMCKt.toJOML(original);
 
             final Ship ship = VSGameUtilsKt.getShipObjectManagingPos(level, controllerPos);
