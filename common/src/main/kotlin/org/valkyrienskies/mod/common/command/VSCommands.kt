@@ -13,6 +13,8 @@ import net.minecraft.commands.arguments.EntityArgument
 import net.minecraft.commands.arguments.coordinates.BlockPosArgument
 import net.minecraft.commands.arguments.coordinates.Vec3Argument
 import net.minecraft.network.chat.TextComponent
+import net.minecraft.world.entity.Entity
+import net.minecraft.world.phys.BlockHitResult
 import org.joml.Vector3d
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.world.ServerShipWorld
@@ -24,6 +26,7 @@ import org.valkyrienskies.core.impl.game.ships.ShipObject
 import org.valkyrienskies.core.impl.util.x
 import org.valkyrienskies.core.impl.util.y
 import org.valkyrienskies.core.impl.util.z
+import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toJOMLD
 import org.valkyrienskies.mod.common.vsCore
@@ -235,6 +238,40 @@ object VSCommands {
                         )
                     )
                 )
+                .then(literal("get-ship").executes {
+                    try {
+                        val mcCommandContext = it as CommandContext<CommandSourceStack>
+
+                        var success = false
+                        val sourceEntity: Entity? = mcCommandContext.source.entity
+                        if (sourceEntity != null) {
+                            val rayTrace = sourceEntity.pick(10.0, 1.0.toFloat(), false)
+                            if (rayTrace is BlockHitResult) {
+                                val ship = sourceEntity.level.getShipManagingPos(rayTrace.blockPos)
+                                if (ship != null) {
+                                    (it.source as VSCommandSource).sendVSMessage(
+                                        TextComponent("Found ship with slug ${ship.slug}")
+                                    )
+                                    success = true
+                                }
+                            }
+                            if (success) {
+                                1
+                            } else {
+                                (it.source as VSCommandSource).sendVSMessage(TextComponent("No ship found!"))
+                                0
+                            }
+                        } else {
+                            (it.source as VSCommandSource).sendVSMessage(
+                                TextComponent("/vs get-ship can only be run by entities!")
+                            )
+                            0
+                        }
+                    } catch (e: Exception) {
+                        if (e !is CommandRuntimeException) LOGGER.throwing(e)
+                        throw e
+                    }
+                })
 
                 // Single ship commands
                 .then(
