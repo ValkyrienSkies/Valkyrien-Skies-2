@@ -81,9 +81,9 @@ class ShipArgument private constructor(val selectorOnly: Boolean) : ArgumentType
             if (r.size == 1) return r.first() else throw ERROR_MANY_SHIP_FOUND
         }
 
-        private val ERROR_NO_SHIP_FOUND = CommandRuntimeException(TranslatableComponent("argument.ship.no_found"))
+        private val ERROR_NO_SHIP_FOUND = CommandRuntimeException(TranslatableComponent("argument.valkyrienskies.ship.no_found"))
         private val ERROR_MANY_SHIP_FOUND =
-            CommandRuntimeException(TranslatableComponent("argument.ship.multiple_found"))
+            CommandRuntimeException(TranslatableComponent("argument.valkyrienskies.ship.multiple_found"))
     }
 
     override fun getExamples(): Collection<String> = EXAMPLES

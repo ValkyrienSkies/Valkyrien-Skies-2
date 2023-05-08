@@ -12,7 +12,7 @@ import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.arguments.EntityArgument
 import net.minecraft.commands.arguments.coordinates.BlockPosArgument
 import net.minecraft.commands.arguments.coordinates.Vec3Argument
-import net.minecraft.network.chat.TextComponent
+import net.minecraft.network.chat.TranslatableComponent
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.phys.BlockHitResult
 import org.joml.Vector3d
@@ -35,6 +35,14 @@ import org.valkyrienskies.mod.util.logger
 
 object VSCommands {
     private val LOGGER by logger()
+    private const val DELETED_SHIPS_MESSAGE = "command.valkyrienskies.delete.success"
+    private const val SET_SHIP_STATIC_SUCCESS_MESSAGE = "command.valkyrienskies.set_static.success"
+    private const val TELEPORT_SHIP_SUCCESS_MESSAGE = "command.valkyrienskies.teleport.success"
+    private const val GET_SHIP_SUCCESS_MESSAGE = "command.valkyrienskies.get_ship.success"
+    private const val GET_SHIP_FAIL_MESSAGE = "command.valkyrienskies.get_ship.fail"
+    private const val GET_SHIP_ONLY_USABLE_BY_ENTITIES_MESSAGE = "command.valkyrienskies.get_ship.only_usable_by_entities"
+    private const val TELEPORTED_MULTIPLE_SHIPS_SUCCESS = "command.valkyrienskies.teleport.multiple_ship_success"
+    private const val TELEPORT_FIRST_ARG_CAN_ONLY_INPUT_1_SHIP = "command.valkyrienskies.mc_teleport.can_only_teleport_to_one_ship"
 
     private fun literal(name: String) =
         LiteralArgumentBuilder.literal<VSCommandSource>(name)
@@ -51,7 +59,7 @@ object VSCommands {
                     try {
                         val r = ShipArgument.getShips(it, "ships").toList() as List<ServerShip>
                         vsCore.deleteShips(it.source.shipWorld as ServerShipWorld, r)
-                        it.source.sendVSMessage(TextComponent("Deleted ${r.size} ships!"))
+                        it.source.sendVSMessage(TranslatableComponent(DELETED_SHIPS_MESSAGE, r.size))
                         r.size
                     } catch (e: Exception) {
                         if (e !is CommandRuntimeException) LOGGER.throwing(e)
@@ -76,7 +84,9 @@ object VSCommands {
 
                                     }
                                     it.source.sendVSMessage(
-                                        TextComponent("Set ${r.size} ships to be is-static=$isStatic!")
+                                        TranslatableComponent(
+                                            SET_SHIP_STATIC_SUCCESS_MESSAGE, r.size, if (isStatic) "true" else "false"
+                                        )
                                     )
                                     r.size
                                 } catch (e: Exception) {
@@ -104,7 +114,7 @@ object VSCommands {
                                         )
                                     }
                                     (it as CommandContext<VSCommandSource>).source.sendVSMessage(
-                                        TextComponent("Teleported ${r.size} ships to $shipTeleportData!")
+                                        TranslatableComponent(TELEPORT_SHIP_SUCCESS_MESSAGE, r.size, shipTeleportData.toString())
                                     )
                                     r.size
                                 } catch (e: Exception) {
@@ -138,7 +148,7 @@ object VSCommands {
                                             )
                                         }
                                         (it as CommandContext<VSCommandSource>).source.sendVSMessage(
-                                            TextComponent("Teleported ${r.size} ships to $shipTeleportData!")
+                                            TranslatableComponent(TELEPORT_SHIP_SUCCESS_MESSAGE, r.size, shipTeleportData.toString())
                                         )
                                         r.size
                                     } catch (e: Exception) {
@@ -178,7 +188,7 @@ object VSCommands {
                                                 )
                                             }
                                             (it as CommandContext<VSCommandSource>).source.sendVSMessage(
-                                                TextComponent("Teleported ${r.size} ships to $shipTeleportData!")
+                                                TranslatableComponent(TELEPORT_SHIP_SUCCESS_MESSAGE, r.size, shipTeleportData.toString())
                                             )
                                             r.size
                                         } catch (e: Exception) {
@@ -224,7 +234,7 @@ object VSCommands {
                                                     )
                                                 }
                                                 (it as CommandContext<VSCommandSource>).source.sendVSMessage(
-                                                    TextComponent("Teleported ${r.size} ships to $shipTeleportData!")
+                                                    TranslatableComponent(TELEPORT_SHIP_SUCCESS_MESSAGE, r.size, shipTeleportData.toString())
                                                 )
                                                 r.size
                                             } catch (e: Exception) {
@@ -250,7 +260,7 @@ object VSCommands {
                                 val ship = sourceEntity.level.getShipManagingPos(rayTrace.blockPos)
                                 if (ship != null) {
                                     (it.source as VSCommandSource).sendVSMessage(
-                                        TextComponent("Found ship with slug ${ship.slug}")
+                                        TranslatableComponent(GET_SHIP_SUCCESS_MESSAGE, ship.slug)
                                     )
                                     success = true
                                 }
@@ -258,12 +268,12 @@ object VSCommands {
                             if (success) {
                                 1
                             } else {
-                                (it.source as VSCommandSource).sendVSMessage(TextComponent("No ship found!"))
+                                (it.source as VSCommandSource).sendVSMessage(TranslatableComponent(GET_SHIP_FAIL_MESSAGE))
                                 0
                             }
                         } else {
                             (it.source as VSCommandSource).sendVSMessage(
-                                TextComponent("/vs get-ship can only be run by entities!")
+                                TranslatableComponent(GET_SHIP_ONLY_USABLE_BY_ENTITIES_MESSAGE)
                             )
                             0
                         }
@@ -338,7 +348,7 @@ object VSCommands {
                 argument("ships", ShipArgument.selectorOnly()).executes {
                     val serverShips = ShipArgument.getShips(it, "ships").toList() as List<ServerShip>
                     val serverShip = serverShips.singleOrNull() ?: throw CommandRuntimeException(
-                        TextComponent("Can only accept 1 ship as input")
+                        TranslatableComponent(TELEPORT_FIRST_ARG_CAN_ONLY_INPUT_1_SHIP)
                     )
                     val source = it.source as CommandSourceStack
                     val shipPos = serverShip.transform.positionInWorld
@@ -356,7 +366,7 @@ object VSCommands {
                             )
                         }
                         (it as CommandContext<VSCommandSource>).source.sendVSMessage(
-                            TextComponent("Teleported ${serverShips.size} ships!")
+                            TranslatableComponent(TELEPORTED_MULTIPLE_SHIPS_SUCCESS, serverShips.size)
                         )
                         serverShips.size
                     }
@@ -373,7 +383,7 @@ object VSCommands {
                             )
                         }
                         (it as CommandContext<VSCommandSource>).source.sendVSMessage(
-                            TextComponent("Teleported ${serverShips.size} ships!")
+                            TranslatableComponent(TELEPORTED_MULTIPLE_SHIPS_SUCCESS, serverShips.size)
                         )
                         serverShips.size
                     }
