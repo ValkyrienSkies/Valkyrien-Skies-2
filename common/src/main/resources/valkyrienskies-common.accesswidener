@@ -18,3 +18,9 @@ accessible  class   net/minecraft/client/renderer/chunk/ChunkRenderDispatcher$Ch
 accessible  class   net/minecraft/client/renderer/LevelRenderer$RenderChunkStorage
 
 accessible field    net/minecraft/client/renderer/LevelRenderer$RenderChunkInfo  chunk    Lnet/minecraft/client/renderer/chunk/ChunkRenderDispatcher$RenderChunk;
+
+# For modifying BlockHitResult.location
+# Remove final
+mutable field    net/minecraft/world/phys/HitResult  location    Lnet/minecraft/world/phys/Vec3;
+# Make the field public
+accessible field    net/minecraft/world/phys/HitResult  location    Lnet/minecraft/world/phys/Vec3;

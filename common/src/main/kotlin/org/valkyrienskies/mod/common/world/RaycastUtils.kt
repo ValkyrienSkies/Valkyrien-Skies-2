@@ -73,15 +73,11 @@ fun Level.clipIncludeShips(
         }
     }
 
-    if (!shouldTransformHitPos) {
-        closestHitPos = closestHit.location
+    if (shouldTransformHitPos) {
+        closestHit.location = closestHitPos
     }
 
-    return if (closestHit.type == HitResult.Type.MISS) {
-        BlockHitResult.miss(closestHitPos, closestHit.direction, closestHit.blockPos)
-    } else {
-        BlockHitResult(closestHitPos, closestHit.direction, closestHit.blockPos, closestHit.isInside)
-    }
+    return closestHit
 }
 
 // copy paste of vanilla raycast with the option to specify a custom start/end
