@@ -77,6 +77,7 @@ public abstract class MixinServerGamePacketListenerImpl {
         return VSGameUtilsKt.toWorldCoordinates(player.level, subtract.call(instance, vec3));
     }
 
+    /*
     @WrapOperation(
         at = @At(
             value = "INVOKE",
@@ -88,6 +89,7 @@ public abstract class MixinServerGamePacketListenerImpl {
         final Operation<Double> getChessboardDistance) {
         return 0;
     }
+     */
 
     @WrapOperation(
         method = "handleMovePlayer",
