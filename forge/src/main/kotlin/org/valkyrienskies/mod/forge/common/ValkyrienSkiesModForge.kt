@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.forge.common
 
+import net.minecraft.commands.Commands.CommandSelection.*
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MobCategory
@@ -14,6 +15,7 @@ import net.minecraftforge.client.event.EntityRenderersEvent
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent
 import net.minecraftforge.event.AddReloadListenerEvent
 import net.minecraftforge.event.TagsUpdatedEvent
+import net.minecraftforge.event.RegisterCommandsEvent
 import net.minecraftforge.fml.ModLoadingContext
 import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus
@@ -32,6 +34,7 @@ import org.valkyrienskies.mod.common.block.TestFlapBlock
 import org.valkyrienskies.mod.common.block.TestHingeBlock
 import org.valkyrienskies.mod.common.block.TestWingBlock
 import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
+import org.valkyrienskies.mod.common.command.VSCommands
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.config.VSEntityHandlerDataLoader
 import org.valkyrienskies.mod.common.config.VSGameConfig
@@ -83,6 +86,7 @@ class ValkyrienSkiesModForge {
         modBus.addListener(::entityRenderers)
         modBus.addListener(::loadComplete)
 
+        forgeBus.addListener(::registerCommands)
         forgeBus.addListener(::tagsUpdated)
         forgeBus.addListener(::registerResourceManagers)
 
@@ -147,6 +151,14 @@ class ValkyrienSkiesModForge {
         val blockRegistry = BLOCKS.register(registryName, blockSupplier)
         ITEMS.register(registryName) { BlockItem(blockRegistry.get(), Properties().tab(CreativeModeTab.TAB_MISC)) }
         return blockRegistry
+    }
+
+    private fun registerCommands(event: RegisterCommandsEvent) {
+        VSCommands.registerServerCommands(event.dispatcher)
+
+        if (event.environment == ALL || event.environment == INTEGRATED) {
+            VSCommands.registerClientCommands(event.dispatcher)
+        }
     }
 
     private fun tagsUpdated(event: TagsUpdatedEvent) {

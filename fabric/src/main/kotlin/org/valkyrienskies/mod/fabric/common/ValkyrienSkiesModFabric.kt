@@ -4,6 +4,7 @@ import net.fabricmc.api.EnvType
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents
 import net.fabricmc.fabric.api.`object`.builder.v1.block.entity.FabricBlockEntityTypeBuilder
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener
@@ -30,6 +31,7 @@ import org.valkyrienskies.mod.common.block.TestFlapBlock
 import org.valkyrienskies.mod.common.block.TestHingeBlock
 import org.valkyrienskies.mod.common.block.TestWingBlock
 import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
+import org.valkyrienskies.mod.common.command.VSCommands
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.config.VSEntityHandlerDataLoader
 import org.valkyrienskies.mod.common.config.VSGameConfig
@@ -67,7 +69,7 @@ class ValkyrienSkiesModFabric : ModInitializer {
             { VSGameConfig.SERVER.miniShipSize },
             { VSGameConfig.SERVER.minScaling }
         )
-        
+
         ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE = EntityType.Builder.of(
             ::ShipMountingEntity,
             MobCategory.MISC
@@ -116,6 +118,10 @@ class ValkyrienSkiesModFabric : ModInitializer {
             Registry.BLOCK_ENTITY_TYPE, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "test_hinge_block_entity"),
             ValkyrienSkiesMod.TEST_HINGE_BLOCK_ENTITY_TYPE
         )
+
+        CommandRegistrationCallback.EVENT.register { dispatcher, _, _ ->
+            VSCommands.registerServerCommands(dispatcher)
+        }
 
         // registering data loaders
         val loader1 = MassDatapackResolver.loader // the get makes a new instance so get it only once

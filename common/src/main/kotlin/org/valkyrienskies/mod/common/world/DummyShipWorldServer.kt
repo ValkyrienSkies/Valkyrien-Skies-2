@@ -7,6 +7,7 @@ import org.valkyrienskies.core.api.ships.QueryableShipData
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.ships.properties.ShipId
 import org.valkyrienskies.core.api.world.LevelYRange
+import org.valkyrienskies.core.apigame.ShipTeleportData
 import org.valkyrienskies.core.apigame.constraints.VSConstraint
 import org.valkyrienskies.core.apigame.constraints.VSConstraintId
 import org.valkyrienskies.core.apigame.world.IPlayer
@@ -68,6 +69,14 @@ object DummyShipWorldServer : ServerShipWorldCore {
     }
 
     override fun onDisconnect(player: IPlayer) {
+    }
+
+    override fun deleteShip(ship: ServerShip) {
+        TODO("Not yet implemented")
+    }
+
+    override fun teleportShip(ship: ServerShip, teleportData: ShipTeleportData) {
+        TODO("Not yet implemented")
     }
 
     override val dimensionToGroundBodyIdImmutable: Map<DimensionId, ShipId>

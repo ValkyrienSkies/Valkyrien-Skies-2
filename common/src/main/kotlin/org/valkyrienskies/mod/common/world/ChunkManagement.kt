@@ -36,11 +36,11 @@ object ChunkManagement {
             level.server.executeIf({ level.isTickingChunk(chunkPos) }) {
                 for (player in chunkWatchTask.playersNeedWatching) {
                     val minecraftPlayer = player as MinecraftPlayer
-                    if (chunkWatchTask.dimensionId != player.dimension) {
-                        logger.warn("Player received watch task for chunk in dimension that they are not also in!")
-                    }
                     val serverPlayer = minecraftPlayer.playerEntityReference.get() as ServerPlayer?
                     if (serverPlayer != null) {
+                        if (chunkWatchTask.dimensionId != player.dimension) {
+                            logger.warn("Player received watch task for chunk in dimension that they are not also in!")
+                        }
                         val map = level.chunkSource.chunkMap as ChunkMapAccessor
                         map.callUpdateChunkTracking(serverPlayer, chunkPos, MutableObject(), false, true)
                     }

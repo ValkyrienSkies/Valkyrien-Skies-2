@@ -2,15 +2,15 @@ package org.valkyrienskies.mod.mixin.server.world;
 
 import static org.valkyrienskies.mod.common.ValkyrienSkiesMod.getVsCore;
 
-import com.google.common.collect.Lists;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.function.BooleanSupplier;
 import net.minecraft.core.BlockPos;
@@ -22,6 +22,7 @@ import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.progress.ChunkProgressListener;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.CustomSpawner;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
@@ -63,7 +64,8 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
     @NotNull
     public abstract MinecraftServer getServer();
 
-    private final Set<Vector3ic> knownChunkRegions = new HashSet<>();
+    // Map from ChunkPos to the list of voxel chunks that chunk owns
+    private final Map<ChunkPos, List<Vector3ic>> knownChunks = new HashMap<>();
 
     @Nullable
     @Override
@@ -120,31 +122,31 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
         final ServerLevel self = ServerLevel.class.cast(this);
         final ServerShipWorldCore shipObjectWorld = VSGameUtilsKt.getShipObjectWorld(self);
         // Find newly loaded chunks
-        final List<ChunkHolder> loadedChunksList = Lists.newArrayList(
-            ((ChunkMapAccessor) chunkSource.chunkMap).callGetChunks());
+        final ChunkMapAccessor chunkMapAccessor = (ChunkMapAccessor) chunkSource.chunkMap;
 
         // Create DenseVoxelShapeUpdate for new loaded chunks
         // Also mark the chunks as loaded in the ship objects
         final List<TerrainUpdate> voxelShapeUpdates = new ArrayList<>();
-        final Set<Vector3ic> currentTickChunkRegions = new HashSet<>();
 
-        for (final ChunkHolder chunkHolder : loadedChunksList) {
+        for (final ChunkHolder chunkHolder : chunkMapAccessor.callGetChunks()) {
             final Optional<LevelChunk> worldChunkOptional =
                 chunkHolder.getTickingChunkFuture().getNow(ChunkHolder.UNLOADED_LEVEL_CHUNK).left();
             if (worldChunkOptional.isPresent()) {
                 final LevelChunk worldChunk = worldChunkOptional.get();
-                final int chunkX = worldChunk.getPos().x;
-                final int chunkZ = worldChunk.getPos().z;
+                if (!knownChunks.containsKey(worldChunk.getPos())) {
+                    final List<Vector3ic> voxelChunkPositions = new ArrayList<>();
 
-                final LevelChunkSection[] chunkSections = worldChunk.getSections();
+                    final int chunkX = worldChunk.getPos().x;
+                    final int chunkZ = worldChunk.getPos().z;
 
-                for (int sectionY = 0; sectionY < chunkSections.length; sectionY++) {
-                    final LevelChunkSection chunkSection = chunkSections[sectionY];
-                    final Vector3ic chunkPos =
-                        new Vector3i(chunkX, worldChunk.getSectionYFromSectionIndex(sectionY), chunkZ);
-                    currentTickChunkRegions.add(chunkPos);
+                    final LevelChunkSection[] chunkSections = worldChunk.getSections();
 
-                    if (!knownChunkRegions.contains(chunkPos)) {
+                    for (int sectionY = 0; sectionY < chunkSections.length; sectionY++) {
+                        final LevelChunkSection chunkSection = chunkSections[sectionY];
+                        final Vector3ic chunkPos =
+                            new Vector3i(chunkX, worldChunk.getSectionYFromSectionIndex(sectionY), chunkZ);
+                        voxelChunkPositions.add(chunkPos);
+
                         if (chunkSection != null && !chunkSection.hasOnlyAir()) {
                             // Add this chunk to the ground rigid body
                             final TerrainUpdate voxelShapeUpdate =
@@ -186,21 +188,22 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                                 .newEmptyVoxelShapeUpdate(chunkPos.x(), chunkPos.y(), chunkPos.z(), true);
                             voxelShapeUpdates.add(emptyVoxelShapeUpdate);
                         }
-
-                        knownChunkRegions.add(chunkPos);
                     }
+                    knownChunks.put(worldChunk.getPos(), voxelChunkPositions);
                 }
             }
         }
 
-        final Iterator<Vector3ic> knownChunkPosIterator = knownChunkRegions.iterator();
+        final Iterator<Entry<ChunkPos, List<Vector3ic>>> knownChunkPosIterator = knownChunks.entrySet().iterator();
         while (knownChunkPosIterator.hasNext()) {
-            final Vector3ic knownChunkPos = knownChunkPosIterator.next();
-            if (!currentTickChunkRegions.contains(knownChunkPos)) {
+            final Entry<ChunkPos, List<Vector3ic>> knownChunkPosEntry = knownChunkPosIterator.next();
+            if (chunkMapAccessor.callGetVisibleChunkIfPresent(knownChunkPosEntry.getKey().toLong()) == null) {
                 // Delete this chunk
-                final TerrainUpdate deleteVoxelShapeUpdate =
-                    getVsCore().newDeleteTerrainUpdate(knownChunkPos.x(), knownChunkPos.y(), knownChunkPos.z());
-                voxelShapeUpdates.add(deleteVoxelShapeUpdate);
+                for (final Vector3ic unloadedChunk : knownChunkPosEntry.getValue()) {
+                    final TerrainUpdate deleteVoxelShapeUpdate =
+                        getVsCore().newDeleteTerrainUpdate(unloadedChunk.x(), unloadedChunk.y(), unloadedChunk.z());
+                    voxelShapeUpdates.add(deleteVoxelShapeUpdate);
+                }
                 knownChunkPosIterator.remove();
             }
         }

@@ -35,9 +35,6 @@ import org.joml.Vector3d
 import org.joml.Vector3dc
 import org.valkyrienskies.core.apigame.constraints.VSAttachmentConstraint
 import org.valkyrienskies.core.apigame.constraints.VSHingeOrientationConstraint
-import org.valkyrienskies.core.apigame.constraints.VSPosDampingConstraint
-import org.valkyrienskies.core.apigame.constraints.VSRotDampingAxes.PERPENDICULAR
-import org.valkyrienskies.core.apigame.constraints.VSRotDampingConstraint
 import org.valkyrienskies.core.impl.game.ships.ShipDataCommon
 import org.valkyrienskies.core.impl.game.ships.ShipTransformImpl
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
@@ -232,12 +229,12 @@ object TestHingeBlock :
                 }
 
                 // Add position damping to make the hinge more stable
-                val posDampingConstraint = VSPosDampingConstraint(shipId0, shipId1, 1e-10, attachmentLocalPos0, attachmentLocalPos1, 1e10, 1e3)
-                blockEntity.get().constraintId = level.shipObjectWorld.createNewConstraint(posDampingConstraint)
+                // val posDampingConstraint = VSPosDampingConstraint(shipId0, shipId1, 1e-10, attachmentLocalPos0, attachmentLocalPos1, 1e10, 1e-2)
+                // blockEntity.get().constraintId = level.shipObjectWorld.createNewConstraint(posDampingConstraint)
 
                 // Add perpendicular rotation damping to make the hinge more stable
-                val perpendicularRotDampingConstraint = VSRotDampingConstraint(shipId0, shipId1, 1e-10, hingeOrientation, hingeOrientation, 1e10, 1e3, PERPENDICULAR)
-                blockEntity.get().constraintId = level.shipObjectWorld.createNewConstraint(perpendicularRotDampingConstraint)
+                // val perpendicularRotDampingConstraint = VSRotDampingConstraint(shipId0, shipId1, 1e-10, hingeOrientation, hingeOrientation, 1e10, 1e-2, ALL_AXES)
+                // blockEntity.get().constraintId = level.shipObjectWorld.createNewConstraint(perpendicularRotDampingConstraint)
 
                 // Add parallel rotation damping to prevent the hinge from spinning forever
                 // val parallelRotDampingConstraint = VSRotDampingConstraint(shipId0, shipId1, 0.0, hingeOrientation, hingeOrientation, 1e10, 1e-1, PARALLEL)

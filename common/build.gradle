@@ -23,6 +23,8 @@ dependencies {
 
     //Common create compat,
     //We just use a version from a platform and hope the classes exist on both versions and mixins apply correctly
+    modCompileOnly("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}")
+        { exclude group: 'com.github.AlphaMode', module: 'fakeconfigtoml' }
     modCompileOnly("com.jozufozu.flywheel:flywheel-fabric-${minecraft_version}:0.6.8.a-4")
 }
 
@@ -32,11 +34,6 @@ architectury {
 
 loom {
     accessWidenerPath = file("src/main/resources/valkyrienskies-common.accesswidener")
-}
-
-tasks.withType(JavaCompile).configureEach {
-    // Minecraft 1.18 (1.18-pre2) upwards uses Java 17.
-    it.options.release = 17
 }
 
 jar {

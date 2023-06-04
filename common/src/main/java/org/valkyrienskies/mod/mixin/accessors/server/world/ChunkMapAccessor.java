@@ -19,4 +19,6 @@ public interface ChunkMapAccessor {
     @Invoker("getChunks")
     Iterable<ChunkHolder> callGetChunks();
 
+    @Invoker("getVisibleChunkIfPresent")
+    ChunkHolder callGetVisibleChunkIfPresent(long l);
 }
