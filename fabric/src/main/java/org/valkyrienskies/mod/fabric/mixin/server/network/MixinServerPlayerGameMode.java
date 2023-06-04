@@ -1,11 +1,19 @@
-package org.valkyrienskies.mod.mixin.server.network;
+package org.valkyrienskies.mod.fabric.mixin.server.network;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.ServerPlayerGameMode;
+import net.minecraft.world.phys.Vec3;
+import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Redirect;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.config.VSGameConfig;
+import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(ServerPlayerGameMode.class)
 public class MixinServerPlayerGameMode {
@@ -20,7 +28,6 @@ public class MixinServerPlayerGameMode {
     /**
      * Includes ships in server-side distance check when player breaks a block.
      */
-    /*
     @Redirect(
         method = "handleBlockBreakAction",
         at = @At(value = "INVOKE",
@@ -36,5 +43,4 @@ public class MixinServerPlayerGameMode {
             return instance.distanceToSqr(vec3);
         }
     }
-     */
 }

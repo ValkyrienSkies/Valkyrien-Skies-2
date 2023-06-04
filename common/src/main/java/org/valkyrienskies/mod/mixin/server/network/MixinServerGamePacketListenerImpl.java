@@ -77,20 +77,6 @@ public abstract class MixinServerGamePacketListenerImpl {
         return VSGameUtilsKt.toWorldCoordinates(player.level, subtract.call(instance, vec3));
     }
 
-    /*
-    @WrapOperation(
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/phys/Vec3;distanceToSqr(Lnet/minecraft/world/phys/Vec3;)D"
-        ),
-        method = "handleUseItemOn"
-    )
-    private double skipDistanceCheck(final Vec3 instance, final Vec3 chunkPos,
-        final Operation<Double> getChessboardDistance) {
-        return 0;
-    }
-     */
-
     @WrapOperation(
         method = "handleMovePlayer",
         at = @At(
