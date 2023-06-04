@@ -156,7 +156,7 @@ class ValkyrienSkiesModForge {
     private fun registerCommands(event: RegisterCommandsEvent) {
         VSCommands.registerServerCommands(event.dispatcher)
 
-        if (event.environment == ALL || event.environment == INTEGRATED) {
+        if (event.commandSelection == ALL || event.commandSelection == INTEGRATED) {
             VSCommands.registerClientCommands(event.dispatcher)
         }
     }
