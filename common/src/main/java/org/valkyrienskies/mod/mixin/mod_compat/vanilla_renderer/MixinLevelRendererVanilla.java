@@ -5,10 +5,8 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.shaders.Uniform;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.BufferUploader;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexBuffer;
-import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.math.Matrix4f;
 import com.mojang.math.Vector3f;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
@@ -207,72 +205,87 @@ public abstract class MixinLevelRendererVanilla {
         RenderSystem.assertOnRenderThread();
         renderType.setupRenderState();
         this.minecraft.getProfiler().push("filterempty");
-        this.minecraft.getProfiler().popPush(() -> "render_" + renderType);
-        final boolean bl = renderType != RenderType.translucent();
+        this.minecraft.getProfiler().popPush(() -> {
+            return "render_" + renderType;
+        });
+        boolean bl = renderType != RenderType.translucent();
         final ListIterator objectListIterator = chunksToRender.listIterator(bl ? 0 : chunksToRender.size());
-        final VertexFormat vertexFormat = renderType.format();
-        final ShaderInstance shaderInstance = RenderSystem.getShader();
-        BufferUploader.reset();
-        for (int k = 0; k < 12; ++k) {
-            final int l = RenderSystem.getShaderTexture(k);
+        ShaderInstance shaderInstance = RenderSystem.getShader();
+
+        for(int k = 0; k < 12; ++k) {
+            int l = RenderSystem.getShaderTexture(k);
             shaderInstance.setSampler("Sampler" + k, l);
         }
+
         if (shaderInstance.MODEL_VIEW_MATRIX != null) {
             shaderInstance.MODEL_VIEW_MATRIX.set(poseStack.last().pose());
         }
+
         if (shaderInstance.PROJECTION_MATRIX != null) {
             shaderInstance.PROJECTION_MATRIX.set(matrix4f);
         }
+
         if (shaderInstance.COLOR_MODULATOR != null) {
             shaderInstance.COLOR_MODULATOR.set(RenderSystem.getShaderColor());
         }
+
         if (shaderInstance.FOG_START != null) {
             shaderInstance.FOG_START.set(RenderSystem.getShaderFogStart());
         }
+
         if (shaderInstance.FOG_END != null) {
             shaderInstance.FOG_END.set(RenderSystem.getShaderFogEnd());
         }
+
         if (shaderInstance.FOG_COLOR != null) {
             shaderInstance.FOG_COLOR.set(RenderSystem.getShaderFogColor());
         }
+
         if (shaderInstance.FOG_SHAPE != null) {
             shaderInstance.FOG_SHAPE.set(RenderSystem.getShaderFogShape().getIndex());
         }
+
         if (shaderInstance.TEXTURE_MATRIX != null) {
             shaderInstance.TEXTURE_MATRIX.set(RenderSystem.getTextureMatrix());
         }
+
         if (shaderInstance.GAME_TIME != null) {
             shaderInstance.GAME_TIME.set(RenderSystem.getShaderGameTime());
         }
+
         RenderSystem.setupShaderLights(shaderInstance);
         shaderInstance.apply();
-        final Uniform uniform = shaderInstance.CHUNK_OFFSET;
-        boolean bl2 = false;
-        while (bl ? objectListIterator.hasNext() : objectListIterator.hasPrevious()) {
-            final RenderChunkInfo renderChunkInfo2 =
-                bl ? (RenderChunkInfo) objectListIterator.next() : (RenderChunkInfo) objectListIterator.previous();
-            final ChunkRenderDispatcher.RenderChunk renderChunk = renderChunkInfo2.chunk;
-            if (renderChunk.getCompiledChunk().isEmpty(renderType)) {
-                continue;
+        Uniform uniform = shaderInstance.CHUNK_OFFSET;
+
+        while(true) {
+            if (bl) {
+                if (!objectListIterator.hasNext()) {
+                    break;
+                }
+            } else if (!objectListIterator.hasPrevious()) {
+                break;
             }
-            final VertexBuffer vertexBuffer = renderChunk.getBuffer(renderType);
-            final BlockPos blockPos = renderChunk.getOrigin();
-            if (uniform != null) {
-                uniform.set((float) ((double) blockPos.getX() - d), (float) ((double) blockPos.getY() - e),
-                    (float) ((double) blockPos.getZ() - f));
-                uniform.upload();
+
+            RenderChunkInfo renderChunkInfo2 = bl ? (RenderChunkInfo)objectListIterator.next() : (RenderChunkInfo)objectListIterator.previous();
+            ChunkRenderDispatcher.RenderChunk renderChunk = renderChunkInfo2.chunk;
+            if (!renderChunk.getCompiledChunk().isEmpty(renderType)) {
+                VertexBuffer vertexBuffer = renderChunk.getBuffer(renderType);
+                BlockPos blockPos = renderChunk.getOrigin();
+                if (uniform != null) {
+                    uniform.set((float)((double)blockPos.getX() - d), (float)((double)blockPos.getY() - e), (float)((double)blockPos.getZ() - f));
+                    uniform.upload();
+                }
+
+                vertexBuffer.bind();
+                vertexBuffer.draw();
             }
-            vertexBuffer.bind();
-            vertexBuffer.draw();
-            bl2 = true;
         }
+
         if (uniform != null) {
             uniform.set(Vector3f.ZERO);
         }
+
         shaderInstance.clear();
-        if (bl2) {
-            vertexFormat.clearBufferState();
-        }
         VertexBuffer.unbind();
         this.minecraft.getProfiler().pop();
         renderType.clearRenderState();
