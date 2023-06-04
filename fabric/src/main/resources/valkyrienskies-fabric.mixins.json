@@ -14,7 +14,9 @@
     "feature.explosions.ClipContextMixin",
     "world.level.block.FireMixin"
   ],
-  "client": [],
+  "client": [
+    "client.render.MixinLevelRenderer"
+  ],
   "injectors": {
     "defaultRequire": 1
   },
