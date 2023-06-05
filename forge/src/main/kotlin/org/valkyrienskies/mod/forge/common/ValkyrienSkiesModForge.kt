@@ -82,8 +82,13 @@ class ValkyrienSkiesModForge {
         ITEMS.register(modBus)
         ENTITIES.register(modBus)
         BLOCK_ENTITIES.register(modBus)
-        modBus.addListener(::registerKeyBindings)
-        modBus.addListener(::entityRenderers)
+
+        // Only run these on client to prevent loading client classes on server
+        if (isClient) {
+            modBus.addListener(::registerKeyBindings)
+            modBus.addListener(::entityRenderers)
+        }
+
         modBus.addListener(::loadComplete)
 
         forgeBus.addListener(::registerCommands)
