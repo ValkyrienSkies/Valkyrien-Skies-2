@@ -1,8 +1,8 @@
 name: Bug report
-about: Let us know about a bug that occurs without other mods
-title: ''
+description: Let us know about a bug that occurs without other mods
+title: '<title>
 labels: bug
-assignees: ''
+assignees: []
 body:
 - type: checkboxes
   attributes:
