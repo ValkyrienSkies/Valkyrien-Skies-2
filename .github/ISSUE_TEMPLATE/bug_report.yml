@@ -1,6 +1,6 @@
 name: Bug report
 description: Let us know about a bug that occurs without other mods
-title: '<title>
+title: '<title>'
 labels: bug
 assignees: []
 body:
