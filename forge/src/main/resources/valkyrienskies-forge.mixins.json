@@ -16,6 +16,7 @@
     "compat.thermalexpansion.MixinTileCoFH",
     "compat.tis3d.MixinInfraredPacketEntity",
     "feature.forge_interact.MixinIForgePlayer",
+    "feature.water_in_ships_entity.MixinEntity",
     "world.level.block.FireMixin"
   ],
   "client": [
