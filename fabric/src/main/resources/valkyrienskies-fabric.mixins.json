@@ -17,7 +17,9 @@
     "world.level.block.FireMixin"
   ],
   "client": [
-    "client.render.MixinLevelRenderer"
+    "client.render.MixinLevelRenderer",
+    "feature.duplicate_keybindings.KeyMappingAccessor",
+    "feature.duplicate_keybindings.MixinKeyMapping"
   ],
   "injectors": {
     "defaultRequire": 1
