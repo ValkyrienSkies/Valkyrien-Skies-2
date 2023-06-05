@@ -41,3 +41,7 @@ body:
     description: Describe how to reproduce your issue
   validations:
     required: true
+- type: textarea
+  attributes:
+    label: Logs
+    description: Go to `.minecraft/logs` and drag and drop the `latest.log` and `debug.log` file into this text field
