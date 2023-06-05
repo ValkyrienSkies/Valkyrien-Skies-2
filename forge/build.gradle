@@ -88,24 +88,29 @@ dependencies {
     implementation("org.valkyrienskies.core:impl:${rootProject.vs_core_version}")
     forgeRuntimeLibrary shadowCommon("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
         transitive = false
+        exclude group: "com.google.guava"
     }
 
 
     // region Manually include every single dependency of vs-core (total meme)
     forgeRuntimeLibrary include("org.valkyrienskies.core:api:${rootProject.vs_core_version}") {
         transitive = false
+        exclude group: "com.google.guava"
     }
 
     forgeRuntimeLibrary shadowCommon("org.valkyrienskies.core:api-game:${rootProject.vs_core_version}") {
         transitive = false
+        exclude group: "com.google.guava"
     }
 
     forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api_krunch:1.0.0+eb3ae45554") {
         transitive = false
+        exclude group: "com.google.guava"
     }
 
     forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api:1.0.0+0b6f5db802") {
         transitive = false
+        exclude group: "com.google.guava"
     }
 
     forgeRuntimeLibrary include("javax.inject:javax.inject:1") { transitive = false }

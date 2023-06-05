@@ -14,6 +14,7 @@ dependencies {
     implementation("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
         exclude module: "netty-buffer"
         exclude module: "fastutil"
+        exclude group: "com.google.guava"
     }
 
     // FTB Stuffs

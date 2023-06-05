@@ -51,12 +51,14 @@ dependencies {
         exclude module: "netty-buffer"
         exclude module: "fastutil"
         exclude module: "kotlin-stdlib-jdk8"
+        exclude group: "com.google.guava"
     }
     // Shade vs-core
     shadowCommon("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
         exclude module: "netty-buffer"
         exclude module: "fastutil"
         exclude module: "kotlin-stdlib-jdk8" // Don't shade kotlin-stdlib-jdk8, even though vs-core depends on it
+        exclude group: "com.google.guava"
     }
 
     // CC Restitched
