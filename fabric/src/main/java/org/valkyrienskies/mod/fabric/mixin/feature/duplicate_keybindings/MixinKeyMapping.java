@@ -64,14 +64,8 @@ public class MixinKeyMapping {
         }
     }
 
-    @Inject(method = "<init>(Ljava/lang/String;Lcom/mojang/blaze3d/platform/InputConstants$Type;ILjava/lang/String;)V", at = @At("RETURN"), remap = false)
-    private void postInit(
-        final String string,
-        final InputConstants.Type type,
-        final int i,
-        final String string2,
-        final CallbackInfo callbackInfo
-    ) {
+    @Inject(method = "<init>", at = @At("RETURN"), remap = false)
+    private void postInit(final CallbackInfo callbackInfo) {
         final KeyMapping thisAsKeyMapping = KeyMapping.class.cast(this);
         if (VSKeyBindings.INSTANCE.isKeyMappingFromVS2(thisAsKeyMapping)) {
             VS2_KEYMAP.put(this.key, thisAsKeyMapping);
