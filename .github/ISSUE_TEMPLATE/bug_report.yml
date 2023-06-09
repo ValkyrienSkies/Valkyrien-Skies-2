@@ -9,6 +9,7 @@ body:
     label: This issue occurs when only Valkyrien Skies and addons are installed and no other mods
     options:
       - label: I have tested this issue and it occurs when no other mods are installed
+        required: true
 - type: dropdown
   attributes:
     label: Minecraft Version
