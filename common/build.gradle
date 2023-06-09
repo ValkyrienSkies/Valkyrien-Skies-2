@@ -8,7 +8,7 @@ dependencies {
 
     modApi("me.shedaniel.cloth:cloth-config:4.14.64")
 
-    modCompileOnly("curse.maven:sodium-394468:3669187")
+    modCompileOnly("com.github.CaffeineMC:sodium-fabric:mc1.18.2-0.4.1")
 
     // vs-core
     implementation("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
