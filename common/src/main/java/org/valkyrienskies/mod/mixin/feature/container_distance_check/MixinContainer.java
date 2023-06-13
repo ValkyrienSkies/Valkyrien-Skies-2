@@ -16,7 +16,7 @@ public interface MixinContainer {
             target = "Lnet/minecraft/world/entity/player/Player;distanceToSqr(DDD)D"
         )
     )
-    static double includeShipsInDistanceCheck(
+    private static double includeShipsInDistanceCheck(
         final Player receiver, final double x, final double y, final double z) {
         return VSGameUtilsKt.squaredDistanceToInclShips(receiver, x, y, z);
     }

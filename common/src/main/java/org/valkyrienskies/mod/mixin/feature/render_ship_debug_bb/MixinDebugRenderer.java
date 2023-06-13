@@ -33,10 +33,8 @@ public class MixinDebugRenderer {
      * <p>They get rendered in the same pass as entities.
      */
     @Inject(method = "render", at = @At("HEAD"))
-    private void postRender(final PoseStack matricesIgnore, final MultiBufferSource.BufferSource vertexConsumersIgnore,
+    private void postRender(final PoseStack matrices, final MultiBufferSource.BufferSource vertexConsumersIgnore,
         final double cameraX, final double cameraY, final double cameraZ, final CallbackInfo ci) {
-        // Ignore the matrix/buffer inputs to this, we're really just using this mixin as a place to run our render code
-        final PoseStack matrices = new PoseStack();
         final MultiBufferSource.BufferSource bufferSource =
             MultiBufferSource.immediate(Tesselator.getInstance().getBuilder());
         final ClientLevel world = Minecraft.getInstance().level;
