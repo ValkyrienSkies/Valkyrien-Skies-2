@@ -6,7 +6,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.MultiPlayerGameMode;
-import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.world.InteractionHand;
@@ -123,14 +122,6 @@ public abstract class MixinMinecraft
         }
     }
 
-    @Inject(
-        method = "setCurrentServer",
-        at = @At("HEAD")
-    )
-    public void preSetCurrentServer(final ServerData serverData, final CallbackInfo ci) {
-        ValkyrienSkiesMod.getVsCore().setClientUsesUDP(false);
-    }
-
     @Override
     public void createShipObjectWorldClient() {
         if (shipObjectWorld != null) {
@@ -145,7 +136,7 @@ public abstract class MixinMinecraft
     public void deleteShipObjectWorldClient() {
         final ClientShipWorldCore shipObjectWorldCopy = shipObjectWorld;
         if (shipObjectWorldCopy == null) {
-            throw new IllegalStateException("shipObjectWorld was null when it should be not null?");
+            return; // throw new IllegalStateException("shipObjectWorld was null when it should be not null?");
         }
         shipObjectWorldCopy.destroyWorld();
         shipObjectWorld = null;

@@ -5,6 +5,7 @@ import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Position
 import net.minecraft.core.Vec3i
+import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceKey.InternKey
 import net.minecraft.resources.ResourceLocation
@@ -76,9 +77,19 @@ val Level.dimensionId: DimensionId
         return dimensionId
     }
 
+private val levelResourceKeyMap: MutableMap<DimensionId, ResourceKey<Level>> = HashMap()
+
 fun getResourceKey(dimensionId: DimensionId): ResourceKey<Level> {
-    @Suppress("UNCHECKED_CAST") val cached = ResourceKeyAccessor.getValues()[dimensionId as InternKey] as ResourceKey<Level>?
-    return cached!!
+    val cached =levelResourceKeyMap[dimensionId]
+    if (cached == null) {
+        val (registryNamespace, registryName, namespace, name) = dimensionId.split(":")
+        val toReturn: ResourceKey<Level> = ResourceKeyAccessor.callCreate(
+            ResourceLocation(registryNamespace, registryName), ResourceLocation(namespace, name)
+        )
+        levelResourceKeyMap[dimensionId] = toReturn
+        return toReturn
+    }
+    return cached
 }
 
 fun MinecraftServer.executeIf(condition: () -> Boolean, toExecute: Runnable) {

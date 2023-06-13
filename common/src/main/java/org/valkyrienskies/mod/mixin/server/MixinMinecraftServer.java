@@ -47,7 +47,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     @Unique
     private VSPipeline vsPipeline;
 
-    private Set<Object> loadedLevels = new HashSet<>();
+    private Set<String> loadedLevels = new HashSet<>();
 
     @Inject(
         at = @At(value = "INVOKE", target = "Lnet/minecraft/server/MinecraftServer;initServer()Z"),
@@ -131,7 +131,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     )
     private void preTick(final CallbackInfo ci) {
         // region Tell the VS world to load new levels, and unload deleted ones
-        final Map<Object, ServerLevel> newLoadedLevels = new HashMap<>();
+        final Map<String, ServerLevel> newLoadedLevels = new HashMap<>();
         for (final ServerLevel level : getAllLevels()) {
             newLoadedLevels.put(VSGameUtilsKt.getDimensionId(level), level);
         }
@@ -144,7 +144,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         }
         */
 
-        for (final Object oldLoadedLevelId : loadedLevels) {
+        for (final String oldLoadedLevelId : loadedLevels) {
             if (!newLoadedLevels.containsKey(oldLoadedLevelId)) {
                 shipWorld.removeDimension(oldLoadedLevelId);
             }

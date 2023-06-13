@@ -47,9 +47,9 @@ public class MixinClientPacketListener implements SeamlessCopyClientPacketListen
 
     @Inject(
         at = @At("HEAD"),
-        method = "cleanup"
+        method = "close"
     )
-    private void beforeCleanup(final CallbackInfo ci) {
+    private void beforeClose(final CallbackInfo ci) {
         chunks.cleanup();
     }
 

@@ -3,9 +3,12 @@ package org.valkyrienskies.mod.mixin.feature.shipyard_entities;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import java.util.Set;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Entity.RemovalReason;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.RelativeMovement;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import org.joml.Vector3d;
@@ -15,6 +18,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.LoadedShip;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
@@ -26,7 +30,7 @@ import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 public abstract class MixinEntity {
 
     @Shadow
-    public abstract Level getLevel();
+    public abstract Level level();
 
     @Shadow
     public abstract void setPosRaw(double d, double e, double f);
@@ -36,6 +40,9 @@ public abstract class MixinEntity {
 
     @Shadow
     public abstract void teleportTo(double d, double e, double f);
+
+    @Shadow
+    public abstract boolean teleportTo(ServerLevel serverLevel, double d, double e, double f, Set<RelativeMovement> set, float g, float h);
 
     @Shadow
     public abstract EntityType<?> getType();
@@ -62,7 +69,7 @@ public abstract class MixinEntity {
      */
     @Inject(method = "setPosRaw", at = @At(value = "HEAD"), cancellable = true)
     private void handlePosSet(final double x, final double y, final double z, final CallbackInfo ci) {
-        final Level level = getLevel();
+        final Level level = level();
         //noinspection ConstantValue
         if (!Player.class.isInstance(this) || level == null || isModifyingSetPos ||
             !VSGameUtilsKt.isBlockInShipyard(level, x, y, z)) {
@@ -83,7 +90,7 @@ public abstract class MixinEntity {
 
     @Inject(
         at = @At("HEAD"),
-        method = "teleportTo",
+        method = "teleportTo(DDD)V",
         cancellable = true
     )
     private void beforeTeleportTo(final double d, final double e, final double f, final CallbackInfo ci) {
@@ -96,6 +103,24 @@ public abstract class MixinEntity {
         final Vector3d pos = VSEntityManager.INSTANCE.getHandler(Entity.class.cast(this))
             .getTeleportPos(Entity.class.cast(this), new Vector3d(d, e, f));
         teleportTo(pos.x, pos.y, pos.z);
+        isModifyingTeleport = false;
+    }
+
+    @Inject(
+        at = @At("HEAD"),
+        method = "teleportTo(Lnet/minecraft/server/level/ServerLevel;DDDLjava/util/Set;FF)Z",
+        cancellable = true
+    )
+    private void beforeTeleportTo(ServerLevel serverLevel, double d, double e, double f, Set<RelativeMovement> set, float g, float h, final CallbackInfoReturnable<Boolean> ci) {
+        if (isModifyingTeleport) {
+            return;
+        }
+
+        ci.cancel();
+        isModifyingTeleport = true;
+        final Vector3d pos = VSEntityManager.INSTANCE.getHandler(Entity.class.cast(this))
+            .getTeleportPos(Entity.class.cast(this), new Vector3d(d, e, f));
+        teleportTo(serverLevel, pos.x, pos.y, pos.z, set, g, h);
         isModifyingTeleport = false;
     }
 

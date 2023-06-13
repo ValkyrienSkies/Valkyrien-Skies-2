@@ -7,6 +7,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.valkyrienskies.mod.common.util.DimensionIdProvider;
+import org.valkyrienskies.mod.mixin.accessors.resource.ResourceKeyAccessor;
 
 /**
  * This mixin isn't entirely necessary, but it optimizes [Level.dimensionId] in [VSGameUtils.kt] by caching this value
@@ -15,13 +16,15 @@ import org.valkyrienskies.mod.common.util.DimensionIdProvider;
 @Mixin(Level.class)
 public abstract class MixinLevel implements DimensionIdProvider {
     @Unique
-    private Object vsDimensionIdCached = null;
+    private String vsDimensionIdCached = null;
 
     @NotNull
     @Override
-    public Object getDimensionId() {
+    public String getDimensionId() {
         if (vsDimensionIdCached == null) {
-            vsDimensionIdCached = dimension();
+            final ResourceKey<Level> dim = dimension();
+            vsDimensionIdCached =
+                ((ResourceKeyAccessor) dim).getRegistryName().toString() + ":" + dim.location();
         }
         return vsDimensionIdCached;
     }

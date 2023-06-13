@@ -1,7 +1,7 @@
 package org.valkyrienskies.mod.mixin.feature.shipyard_entities;
 
-import java.util.function.Consumer;
 import net.minecraft.core.SectionPos;
+import net.minecraft.util.AbortableIterationConsumer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.entity.EntitySection;
@@ -23,7 +23,7 @@ import org.valkyrienskies.mod.mixinducks.world.OfShip;
 public abstract class MixinEntitySectionStorage implements OfLevel {
 
     @Shadow
-    public abstract void forEachAccessibleNonEmptySection(AABB aABB, Consumer<EntitySection<Entity>> consumer);
+    public abstract void forEachAccessibleNonEmptySection(AABB aABB, AbortableIterationConsumer<EntitySection<?>> abortableIterationConsumer);
 
     @Unique
     private Level level;
@@ -49,7 +49,7 @@ public abstract class MixinEntitySectionStorage implements OfLevel {
     }
 
     @Inject(method = "forEachAccessibleNonEmptySection", at = @At("HEAD"))
-    void shipSections(final AABB aABB, final Consumer<EntitySection<Entity>> consumer,
+    void shipSections(final AABB aABB, final AbortableIterationConsumer<EntitySection<?>> abortableIterationConsumer,
         final CallbackInfo ci) {
 
         if (level != null && !loopingShips) {
@@ -63,7 +63,7 @@ public abstract class MixinEntitySectionStorage implements OfLevel {
 
                 // java.lang.IllegalArgumentException: Start element (9223367638808264704) is larger than end element (-9223372036854775808)
                 try {
-                    this.forEachAccessibleNonEmptySection(transformedAABB, consumer);
+                    this.forEachAccessibleNonEmptySection(transformedAABB, abortableIterationConsumer);
                 } catch (final IllegalArgumentException ex) {
                     ex.printStackTrace();
                 }

@@ -20,7 +20,7 @@
     "feature.commands.MixinArgumentTypeInfos",
     "feature.commands.MixinCommandSourceStack",
     "feature.conduit_fix.ConduitMixin",
-    "feature.container_distance_check.MixinRandomizableContainerBlockEntity",
+    "feature.container_distance_check.MixinContainer",
     "feature.dispensers.MixinDefaultDispenseItemBehavior",
     "feature.distance_replace.MixinEntity",
     "feature.entity_collision.MixinEntity",
@@ -66,6 +66,7 @@
     "accessors.client.render.ViewAreaAccessor",
     "accessors.client.render.chunk.RenderChunkAccessor",
     "accessors.client.world.ClientChunkCacheStorageAccessor",
+    "client.gui.screens.MixinConnectScreen",
     "client.MixinCamera",
     "client.MixinMinecraft",
     "client.multiplayer.MixinClientPacketListener",
@@ -98,7 +99,8 @@
     "mod_compat.sound_physics_remastered.MixinSoundPhysics",
     "mod_compat.vanilla_renderer.MixinLevelRendererVanilla",
     "mod_compat.vanilla_renderer.MixinViewAreaVanilla",
-    "mod_compat.vanilla_renderer.RenderChunkInfoAccessor"
+    "mod_compat.vanilla_renderer.RenderChunkInfoAccessor",
+    "realms.MixinRealmsConnect"
   ],
   "injectors": {
     "defaultRequire": 1
