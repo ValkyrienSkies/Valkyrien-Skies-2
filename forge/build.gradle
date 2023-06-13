@@ -66,20 +66,20 @@ dependencies {
     modCompileOnly("curse.maven:rubidium-574856:4024781")
 
     // Create compat
-    modImplementation("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") { transitive = false }
-    modImplementation("com.jozufozu.flywheel:flywheel-forge-${minecraft_version}:${flywheel_version}")
-    modImplementation("com.tterrag.registrate:Registrate:${registrate_version}")
+    // modImplementation("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") { transitive = false }
+    // modImplementation("com.jozufozu.flywheel:flywheel-forge-${minecraft_version}:${flywheel_version}")
+    // modImplementation("com.tterrag.registrate:Registrate:${registrate_version}")
 
     // CC Tweaked
-    modCompileOnly("curse.maven:cc-tweaked-282001:4061947")
+    // modCompileOnly("curse.maven:cc-tweaked-282001:4061947")
 
     // TIS-3d
-    modCompileOnly("curse.maven:tis3d-238603:3738437")
+    // modCompileOnly("curse.maven:tis3d-238603:3738437")
     //modImplementation("curse.maven:tis3d-238603:3738437")
     //modImplementation("curse.maven:markdownmanual-502485:3738124")
 
     // Add Kotlin for Forge.
-    forgeRuntimeLibrary('curse.maven:kotlinforforge-351264:3925887')
+    forgeRuntimeLibrary('curse.maven:kotlinforforge-351264:4578885')
 
     // Cloth for config
     include(modImplementation("me.shedaniel.cloth:cloth-config-forge:8.2.88"))

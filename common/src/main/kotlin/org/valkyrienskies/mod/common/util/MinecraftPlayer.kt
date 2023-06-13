@@ -28,7 +28,7 @@ class MinecraftPlayer(playerObject: Player) : IPlayer {
         get() = vsCore.hooks.isPhysicalClient || player.hasPermissions(4)
 
     override val dimension: DimensionId
-        get() = player.level.dimensionId
+        get() = player.level().dimensionId
 
     override fun getPosition(dest: Vector3d): Vector3d {
         return dest.set(player.x, player.y, player.z)

@@ -3,9 +3,11 @@ package org.valkyrienskies.mod.common.entity
 import net.minecraft.client.Minecraft
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.network.protocol.Packet
+import net.minecraft.network.protocol.game.ClientGamePacketListener
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
+import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.level.Level
 import org.joml.Vector3f
 import org.valkyrienskies.core.api.ships.LoadedServerShip
@@ -31,34 +33,34 @@ open class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level
 
     override fun tick() {
         super.tick()
-        if (!level.isClientSide && passengers.isEmpty()) {
+        if (!level().isClientSide && passengers.isEmpty()) {
             // Kill this entity if nothing is riding it
             kill()
             return
         }
 
-        if (level.getShipObjectManagingPos(blockPosition()!!) != null)
+        if (level().getShipObjectManagingPos(blockPosition()) != null)
             sendDrivingPacket()
     }
 
-    override fun readAdditionalSaveData(compound: CompoundTag?) {
+    override fun readAdditionalSaveData(compoundTag: CompoundTag) {
     }
 
-    override fun addAdditionalSaveData(compound: CompoundTag?) {
+    override fun addAdditionalSaveData(compoundTag: CompoundTag) {
     }
 
     override fun defineSynchedData() {
     }
 
     override fun remove(removalReason: RemovalReason) {
-        if (this.isController && !level.isClientSide)
-            (level.getShipObjectManagingPos(blockPosition()) as LoadedServerShip?)
+        if (this.isController && !level().isClientSide)
+            (level().getShipObjectManagingPos(blockPosition()) as LoadedServerShip?)
                 ?.setAttachment<SeatedControllingPlayer>(null)
         super.remove(removalReason)
     }
 
     private fun sendDrivingPacket() {
-        if (!level.isClientSide) return
+        if (!level().isClientSide) return
         // todo: custom keybinds for going up down and all around but for now lets just use the mc defaults
         val opts = Minecraft.getInstance().options
         val forward = opts.keyUp.isDown
@@ -78,11 +80,15 @@ open class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level
         PacketPlayerDriving(impulse, sprint, cruise).sendToServer()
     }
 
-    override fun getControllingPassenger(): Entity? {
-        return if (isController) this.passengers.getOrNull(0) else null
+    override fun getControllingPassenger(): LivingEntity? {
+        return if (isController) {
+             this.passengers.getOrNull(0) as? LivingEntity
+        } else {
+            null
+        }
     }
 
-    override fun getAddEntityPacket(): Packet<*> {
+    override fun getAddEntityPacket(): Packet<ClientGamePacketListener> {
         return ClientboundAddEntityPacket(this)
     }
 }

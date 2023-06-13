@@ -37,7 +37,7 @@ object BlockStateInfo {
     val REGISTRY = MappedRegistry<BlockStateInfoProvider>(
         ResourceKey.createRegistryKey(ResourceLocation(ValkyrienSkiesMod.MOD_ID, "blockstate_providers")),
         Lifecycle.experimental(),
-        null
+        false
     )
 
     private lateinit var SORTED_REGISTRY: List<BlockStateInfoProvider>

@@ -150,4 +150,12 @@ public abstract class MixinMinecraft
         shipObjectWorldCopy.destroyWorld();
         shipObjectWorld = null;
     }
+
+    @Inject(
+        method = "clearLevel",
+        at = @At("TAIL")
+    )
+    private void postClearLevel(final CallbackInfo ci) {
+        deleteShipObjectWorldClient();
+    }
 }

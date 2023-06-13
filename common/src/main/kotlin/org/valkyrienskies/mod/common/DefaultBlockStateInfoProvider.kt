@@ -1,7 +1,8 @@
 package org.valkyrienskies.mod.common
 
+import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.LiquidBlock
 import net.minecraft.world.level.block.state.BlockState
-import net.minecraft.world.level.material.Material
 import org.valkyrienskies.core.apigame.world.chunks.BlockType
 
 object DefaultBlockStateInfoProvider : BlockStateInfoProvider {
@@ -16,9 +17,14 @@ object DefaultBlockStateInfoProvider : BlockStateInfoProvider {
     override fun getBlockStateType(blockState: BlockState): BlockType {
         if (blockState.isAir) return vsCore.blockTypes.air
 
-        val blockMaterial = blockState.material
-        if (blockMaterial.isLiquid)
-            return if (blockMaterial == Material.LAVA) vsCore.blockTypes.lava else vsCore.blockTypes.water
-        return if (blockMaterial.isSolid) vsCore.blockTypes.solid else vsCore.blockTypes.air
+        val block = blockState.block
+        if (block is LiquidBlock) {
+            return if (block == Blocks.LAVA) {
+                vsCore.blockTypes.lava
+            } else {
+                vsCore.blockTypes.water
+            }
+        }
+        return if (blockState.isSolid) vsCore.blockTypes.solid else vsCore.blockTypes.air
     }
 }

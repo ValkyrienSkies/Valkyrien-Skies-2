@@ -2,7 +2,7 @@ package org.valkyrienskies.mod.common.config
 
 import com.google.gson.Gson
 import com.google.gson.JsonElement
-import net.minecraft.core.Registry
+import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.packs.resources.ResourceManager
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener
@@ -20,7 +20,7 @@ object VSEntityHandlerDataLoader : SimpleJsonResourceReloadListener(Gson(), "vs_
 
         list.forEach { (l, v) ->
             try {
-                val type = Registry.ENTITY_TYPE.getOptional(l).orElse(null) ?: return@forEach
+                val type = BuiltInRegistries.ENTITY_TYPE.getOptional(l).orElse(null) ?: return@forEach
                 val handler = VSEntityManager.getHandler(ResourceLocation(v.asJsonObject.get("handler").asString))
                     ?: throw Exception("Handler not found")
 

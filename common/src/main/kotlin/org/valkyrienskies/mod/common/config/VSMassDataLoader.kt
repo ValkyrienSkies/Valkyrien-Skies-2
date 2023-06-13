@@ -3,7 +3,8 @@ package org.valkyrienskies.mod.common.config
 import com.google.gson.Gson
 import com.google.gson.JsonElement
 import net.minecraft.core.HolderSet
-import net.minecraft.core.Registry
+import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.packs.resources.ResourceManager
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener
@@ -29,18 +30,18 @@ object MassDatapackResolver : BlockStateInfoProvider {
         get() = 100
 
     override fun getBlockStateMass(blockState: BlockState): Double? =
-        map[Registry.BLOCK.getKey(blockState.block)]?.mass
+        map[BuiltInRegistries.BLOCK.getKey(blockState.block)]?.mass
 
     override fun getBlockStateType(blockState: BlockState): VSBlockType? =
-        map[Registry.BLOCK.getKey(blockState.block)]?.type
+        map[BuiltInRegistries.BLOCK.getKey(blockState.block)]?.type
 
     class VSMassDataLoader : SimpleJsonResourceReloadListener(Gson(), "vs_mass") {
         private val tags = mutableListOf<VSBlockStateInfo>()
 
         override fun apply(
-            objects: MutableMap<ResourceLocation, JsonElement>?,
-            resourceManager: ResourceManager?,
-            profiler: ProfilerFiller?
+            objects: MutableMap<ResourceLocation, JsonElement>,
+            resourceManager: ResourceManager,
+            profiler: ProfilerFiller
         ) {
             map.clear()
             tags.clear()
@@ -63,7 +64,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
             VSGameEvents.tagsAreLoaded.on { _, _ ->
                 tags.forEach { tagInfo ->
                     val tag: Optional<HolderSet.Named<Block>>? =
-                        Registry.BLOCK.getTag(TagKey.create(Registry.BLOCK_REGISTRY, tagInfo.id))
+                        BuiltInRegistries.BLOCK.getTag(TagKey.create(Registries.BLOCK, tagInfo.id))
                     if (tag != null) {
 
                         if (!tag.isPresent()) {
@@ -74,7 +75,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
                         tag.get().forEach {
                             add(
                                 VSBlockStateInfo(
-                                    Registry.BLOCK.getKey(it.value()), tagInfo.priority, tagInfo.mass, tagInfo.type
+                                    BuiltInRegistries.BLOCK.getKey(it.value()), tagInfo.priority, tagInfo.mass, tagInfo.type
                                 )
                             )
                         }

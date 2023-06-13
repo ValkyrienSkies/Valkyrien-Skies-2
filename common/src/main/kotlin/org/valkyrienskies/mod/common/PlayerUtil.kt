@@ -25,7 +25,7 @@ object PlayerUtil {
 
     @JvmStatic
     fun transformPlayerTemporarily(player: Player, ship: LoadedShip?) {
-        if (player.level.isBlockInShipyard(player.x, player.y, player.z)) {
+        if (player.level().isBlockInShipyard(player.x, player.y, player.z)) {
             // player is already in shipyard
             return
         }

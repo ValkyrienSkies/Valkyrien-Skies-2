@@ -37,12 +37,12 @@ object WorldEntityHandler : VSEntityHandler {
     }
 
     override fun positionSetFromVehicle(self: Entity, vehicle: Entity, x: Double, y: Double, z: Double) {
-        val (wx, wy, wz) = self.level.toWorldCoordinates(x, y, z)
+        val (wx, wy, wz) = self.level().toWorldCoordinates(x, y, z)
         self.setPos(wx, wy, wz)
     }
 
     override fun getTeleportPos(self: Entity, pos: Vector3d): Vector3d {
-        return self.level.toWorldCoordinates(pos)
+        return self.level().toWorldCoordinates(pos)
     }
 
     override fun applyRenderOnMountedEntity(

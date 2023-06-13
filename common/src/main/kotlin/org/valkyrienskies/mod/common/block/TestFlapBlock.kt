@@ -15,7 +15,7 @@ import net.minecraft.world.level.block.DirectionalBlock
 import net.minecraft.world.level.block.SoundType
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
-import net.minecraft.world.level.material.Material
+import net.minecraft.world.level.material.MapColor
 import net.minecraft.world.phys.shapes.CollisionContext
 import net.minecraft.world.phys.shapes.VoxelShape
 import org.valkyrienskies.core.api.ships.Wing
@@ -23,7 +23,7 @@ import org.valkyrienskies.mod.common.util.toJOMLD
 
 object TestFlapBlock :
     DirectionalBlock(
-        Properties.of(Material.METAL).strength(10.0f, 1200.0f).sound(SoundType.METAL)
+        Properties.of().mapColor(MapColor.METAL).strength(10.0f, 1200.0f).sound(SoundType.METAL).requiresCorrectToolForDrops()
     ), WingBlock {
 
     private val EAST_AABB = box(4.0, 0.0, 0.0, 12.0, 16.0, 16.0)

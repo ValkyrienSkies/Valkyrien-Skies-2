@@ -257,7 +257,7 @@ object VSCommands {
                         if (sourceEntity != null) {
                             val rayTrace = sourceEntity.pick(10.0, 1.0.toFloat(), false)
                             if (rayTrace is BlockHitResult) {
-                                val ship = sourceEntity.level.getShipManagingPos(rayTrace.blockPos)
+                                val ship = sourceEntity.level().getShipManagingPos(rayTrace.blockPos)
                                 if (ship != null) {
                                     (it.source as VSCommandSource).sendVSMessage(
                                         Component.translatable(GET_SHIP_SUCCESS_MESSAGE, ship.slug)
