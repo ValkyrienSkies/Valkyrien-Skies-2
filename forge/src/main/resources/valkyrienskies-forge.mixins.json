@@ -4,30 +4,15 @@
   "compatibilityLevel": "JAVA_17",
   "plugin": "org.valkyrienskies.mod.forge.mixin.ValkyrienForgeMixinConfigPlugin",
   "mixins": [
-    "compat.cc_tweaked.MixinSpeakerPosition",
-    "compat.cc_tweaked.MixinTurtleBrain",
-    "compat.cc_tweaked.MixinTurtleMoveCommand",
-    "compat.cc_tweaked.MixinWirelessNetwork",
-    "compat.create.Matrix3dAccessor",
-    "compat.create.MixinAbstractContraptionEntity",
-    "compat.create.MixinBlockBreakingKineticTileEntity",
-    "compat.create.MixinBlocks",
     "compat.immersivengineering.MixinBlockEntityInventory",
     "compat.thermalexpansion.MixinTileCoFH",
-    "compat.tis3d.MixinInfraredPacketEntity",
     "feature.forge_interact.MixinIForgePlayer",
     "feature.water_in_ships_entity.MixinEntity",
     "world.level.block.FireMixin"
   ],
   "client": [
     "client.render.MixinLevelRenderer",
-    "compat.create.client.MixinContraptionRenderInfo",
-    "compat.create.client.MixinFlwContraption",
-    "compat.create.client.MixinScrollValueBehaviour",
-    "compat.create.client.MixinValueBox",
-    "compat.sodium.MixinRenderSectionManager",
-    "compat.tis3d.MixinCasingTileEntityRender",
-    "compat.tis3d.MixinRenderContextImpl"
+    "compat.sodium.MixinRenderSectionManager"
   ],
   "injectors": {
     "defaultRequire": 1

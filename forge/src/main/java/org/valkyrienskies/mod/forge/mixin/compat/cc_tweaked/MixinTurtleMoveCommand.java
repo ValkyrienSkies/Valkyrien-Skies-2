@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.forge.mixin.compat.cc_tweaked;
 
+/*
 import dan200.computercraft.api.turtle.TurtleCommandResult;
 import dan200.computercraft.shared.turtle.core.TurtleMoveCommand;
 import dan200.computercraft.shared.turtle.core.TurtlePlayer;
@@ -55,3 +56,4 @@ public abstract class MixinTurtleMoveCommand {
         return new Vector3d(position.getX(), position.getY(), position.getZ());
     }
 }
+*/

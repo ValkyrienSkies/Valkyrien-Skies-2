@@ -7,8 +7,6 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.SheetedDecalTextureGenerator;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.math.Matrix3f;
-import com.mojang.math.Matrix4f;
 import net.minecraft.client.Camera;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.GameRenderer;
@@ -22,6 +20,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.client.model.data.ModelData;
+import org.joml.Matrix3f;
+import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -67,14 +67,14 @@ public class MixinLevelRenderer {
 
             transformRenderWithShip(renderTransform, matrixStack, blockPos, cameraPos.x, cameraPos.y, cameraPos.z);
 
-            final Matrix3f newNormalMatrix = matrixStack.last().normal().copy();
-            final Matrix4f newModelMatrix = matrixStack.last().pose().copy();
+            final Matrix3f newNormalMatrix = new Matrix3f(matrixStack.last().normal());
+            final Matrix4f newModelMatrix = new Matrix4f(matrixStack.last().pose());
 
             // Then update the matrices in vertexConsumer (I'm guessing vertexConsumer is responsible for mapping
             // textures, so we need to update its matrices otherwise the block damage texture looks wrong)
             final SheetedDecalTextureGenerator newVertexConsumer =
                 new SheetedDecalTextureGenerator(((OverlayVertexConsumerAccessor) vertexConsumer).getDelegate(),
-                    newModelMatrix, newNormalMatrix);
+                    newModelMatrix, newNormalMatrix, 1.0f);
 
             // Finally, invoke the render damage function.
             renderBreakingTexture.call(blockRenderManager, state, blockPos, blockRenderWorld, matrix,

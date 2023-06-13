@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.forge.mixin.compat.create.client;
 
+/*
 import com.simibubi.create.foundation.tileEntity.behaviour.scrollvalue.ScrollValueBehaviour;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.phys.Vec3;
@@ -24,3 +25,4 @@ public class MixinScrollValueBehaviour {
     }
 
 }
+*/

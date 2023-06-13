@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.forge.mixin.compat.cc_tweaked;
 
+/*
 import dan200.computercraft.shared.turtle.blocks.TileTurtle;
 import dan200.computercraft.shared.turtle.core.TurtleBrain;
 import net.minecraft.core.BlockPos;
@@ -114,3 +115,4 @@ public abstract class MixinTurtleBrain {
         return newPos;
     }
 }
+*/

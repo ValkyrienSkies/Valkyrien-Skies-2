@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.forge.mixin.compat.tis3d;
 
+/*
 import li.cil.tis3d.client.renderer.tileentity.CasingTileEntityRenderer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
@@ -28,4 +29,4 @@ public abstract class MixinCasingTileEntityRender {
         }
     }
 }
-
+*/

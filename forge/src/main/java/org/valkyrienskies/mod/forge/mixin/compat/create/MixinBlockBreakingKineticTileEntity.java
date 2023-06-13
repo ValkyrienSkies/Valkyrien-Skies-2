@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.forge.mixin.compat.create;
 
+/*
 import com.simibubi.create.content.contraptions.components.actors.BlockBreakingKineticTileEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ClipContext;
@@ -63,4 +64,4 @@ public abstract class MixinBlockBreakingKineticTileEntity {
     }
 
 }
-
+*/

@@ -5,7 +5,6 @@ import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MobCategory
 import net.minecraft.world.item.BlockItem
-import net.minecraft.world.item.CreativeModeTab
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.Item.Properties
 import net.minecraft.world.level.block.Block
@@ -73,7 +72,7 @@ class ValkyrienSkiesModForge {
         VSForgeNetworking.registerPacketHandlers(vsCore.hooks)
 
         ValkyrienSkiesMod.init(vsCore)
-        VSEntityManager.registerContraptionHandler(ContraptionShipyardEntityHandlerForge)
+        // VSEntityManager.registerContraptionHandler(ContraptionShipyardEntityHandlerForge)
 
         val modBus = Bus.MOD.bus().get()
         val forgeBus = Bus.FORGE.bus().get()
@@ -111,14 +110,14 @@ class ValkyrienSkiesModForge {
         TEST_WING_REGISTRY = registerBlockAndItem("test_wing") { TestWingBlock }
         SHIP_CREATOR_ITEM_REGISTRY =
             ITEMS.register("ship_creator") {
-                ShipCreatorItem(Properties().tab(CreativeModeTab.TAB_MISC),
+                ShipCreatorItem(Properties(),
                     { 1.0 },
                     { VSGameConfig.SERVER.minScaling })
             }
         SHIP_CREATOR_SMALLER_ITEM_REGISTRY =
             ITEMS.register("ship_creator_smaller") {
                 ShipCreatorItem(
-                    Properties().tab(CreativeModeTab.TAB_MISC),
+                    Properties(),
                     { VSGameConfig.SERVER.miniShipSize },
                     { VSGameConfig.SERVER.minScaling }
                 )
@@ -131,7 +130,7 @@ class ValkyrienSkiesModForge {
                 .build(ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_mounting_entity").toString())
         }
         SHIP_ASSEMBLER_ITEM_REGISTRY =
-            ITEMS.register("ship_assembler") { ShipAssemblerItem(Properties().tab(CreativeModeTab.TAB_MISC)) }
+            ITEMS.register("ship_assembler") { ShipAssemblerItem(Properties()) }
         TEST_HINGE_BLOCK_ENTITY_TYPE_REGISTRY = BLOCK_ENTITIES.register("test_hinge_block_entity") {
             BlockEntityType.Builder.of(::TestHingeBlockEntity, TestHingeBlock).build(null)
         }
@@ -154,7 +153,7 @@ class ValkyrienSkiesModForge {
 
     private fun registerBlockAndItem(registryName: String, blockSupplier: () -> Block): RegistryObject<Block> {
         val blockRegistry = BLOCKS.register(registryName, blockSupplier)
-        ITEMS.register(registryName) { BlockItem(blockRegistry.get(), Properties().tab(CreativeModeTab.TAB_MISC)) }
+        ITEMS.register(registryName) { BlockItem(blockRegistry.get(), Properties()) }
         return blockRegistry
     }
 

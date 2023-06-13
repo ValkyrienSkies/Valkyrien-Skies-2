@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.forge.mixin.compat.cc_tweaked;
 
+/*
 import dan200.computercraft.shared.peripheral.speaker.SpeakerPosition;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
@@ -45,3 +46,4 @@ public abstract class MixinSpeakerPosition {
         return instance.distanceToSqr(d);
     }
 }
+*/

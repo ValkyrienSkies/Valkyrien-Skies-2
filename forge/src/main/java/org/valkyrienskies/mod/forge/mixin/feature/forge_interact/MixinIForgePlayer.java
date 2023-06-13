@@ -22,11 +22,11 @@ public interface MixinIForgePlayer {
      * Include ships in server-side distance check when player interacts with a block.
      */
     @Overwrite(remap = false)
-    default boolean canInteractWith(final BlockPos pos, final double padding) {
+    default boolean canReach(final BlockPos pos, final double padding) {
         if (VSGameConfig.SERVER.getEnableInteractDistanceChecks()) {
-            final double reach = this.self().getReachDistance() + padding;
+            final double reach = this.self().getEntityReach() + padding;
             final Vec3 eyes = this.self().getEyePosition();
-            return VSGameUtilsKt.squaredDistanceBetweenInclShips(this.self().level,
+            return VSGameUtilsKt.squaredDistanceBetweenInclShips(this.self().level(),
                 pos.getX() + 0.5,
                 pos.getY() + 0.5,
                 pos.getZ() + 0.5,
@@ -44,7 +44,7 @@ public interface MixinIForgePlayer {
             final Vec3 targetCenter = entity.getPosition(1.0F).add(0.0, (double) (entity.getBbHeight() / 2.0F), 0.0);
             final Optional<Vec3> hit = entity.getBoundingBox().clip(eye, targetCenter);
             return (hit.isPresent() ?
-                VSGameUtilsKt.squaredDistanceBetweenInclShips(this.self().level,
+                VSGameUtilsKt.squaredDistanceBetweenInclShips(this.self().level(),
                     hit.get().x, hit.get().y, hit.get().z, eye.x, eye.y, eye.z)
                 : this.self().distanceToSqr(entity)) < distance * distance;
         } else {
