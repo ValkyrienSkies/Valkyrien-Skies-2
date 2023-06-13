@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.fabric.mixin.compat.create;
 
+/*
 import com.simibubi.create.content.contraptions.components.structureMovement.AbstractContraptionEntity;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
@@ -62,3 +63,4 @@ public abstract class MixinAbstractContraptionEntity implements ContraptionWingP
         return new Matrix4d(rotationMatrix).setTranslation(pos);
     }
 }
+*/

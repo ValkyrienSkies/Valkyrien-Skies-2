@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.mod_compat.flywheel;
 
+/*
 import com.jozufozu.flywheel.api.MaterialManager;
 import com.jozufozu.flywheel.backend.gl.GlStateTracker;
 import com.jozufozu.flywheel.backend.instancing.InstanceManager;
@@ -93,3 +94,4 @@ public class MixinInstanceWorld {
         }
     }
 }
+*/

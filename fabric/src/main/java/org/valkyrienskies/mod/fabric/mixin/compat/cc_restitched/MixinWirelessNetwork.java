@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.fabric.mixin.compat.cc_restitched;
 
+/*
 import dan200.computercraft.api.network.IPacketReceiver;
 import dan200.computercraft.api.network.IPacketSender;
 import dan200.computercraft.api.network.Packet;
@@ -44,3 +45,4 @@ public class MixinWirelessNetwork {
         shipSender = packet.sender();
     }
 }
+*/

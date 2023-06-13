@@ -45,7 +45,7 @@ public class WalkNodeEvaluatorMixin {
             VSGameUtilsKt.transformToNearbyShipsAndWorld(((PathNavigationRegionAccessor) blockGetter).getLevel(), origX,
                 origY, origZ, 1,
                 (x, y, z) -> {
-                    final BlockPos groundPos = new BlockPos(x, y, z);
+                    final BlockPos groundPos = BlockPos.containing(x, y, z);
                     BlockPathTypes pathType =
                         getBlockPathTypeRaw(((PathNavigationRegionAccessor) blockGetter).getLevel(), groundPos);
                     //Check block path types all around target for walkable space. Not accurate, but helps with pathfinding on ships.

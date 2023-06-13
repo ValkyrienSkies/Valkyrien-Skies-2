@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.mod_compat.flywheel;
 
+/*
 import com.jozufozu.flywheel.backend.instancing.instancing.InstancingEngine;
 import net.minecraft.core.BlockPos;
 import org.spongepowered.asm.mixin.Mixin;
@@ -13,3 +14,4 @@ public interface InstancingEngineAccessor {
     void setOriginCoordinate(BlockPos pos);
 
 }
+*/

@@ -26,11 +26,11 @@ public class ProjectileUtilMixin {
         final Entity entity, final Vec3 vec3, final Vec3 vec32, final AABB aABB, final Predicate<Entity> predicate,
         final double d, final CallbackInfoReturnable<@Nullable EntityHitResult> cir) {
 
-        if (!VSGameUtilsKt.getShipsIntersecting(entity.level, aABB).iterator().hasNext()) {
+        if (!VSGameUtilsKt.getShipsIntersecting(entity.level(), aABB).iterator().hasNext()) {
             return;
         }
 
-        cir.setReturnValue(RaycastUtilsKt.raytraceEntities(entity.level, entity, vec3, vec32, aABB, predicate, d));
+        cir.setReturnValue(RaycastUtilsKt.raytraceEntities(entity.level(), entity, vec3, vec32, aABB, predicate, d));
     }
 
 }

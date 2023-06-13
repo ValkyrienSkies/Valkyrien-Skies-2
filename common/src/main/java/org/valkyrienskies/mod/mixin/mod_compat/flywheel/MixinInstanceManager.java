@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.mod_compat.flywheel;
 
+/*
 import com.jozufozu.flywheel.api.instance.DynamicInstance;
 import com.jozufozu.flywheel.api.instance.TickableInstance;
 import com.jozufozu.flywheel.backend.instancing.InstanceManager;
@@ -50,3 +51,4 @@ public class MixinInstanceManager {
     }
 
 }
+*/

@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.mod_compat.ftb_chunks;
 
+/*
 import dev.ftb.mods.ftbchunks.data.ClaimedChunkManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
@@ -60,3 +61,4 @@ public abstract class MixinClaimedChunkManager {
         return newPos;
     }
 }
+*/

@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.mod_compat.flywheel;
 
+/*
 import com.jozufozu.flywheel.api.MaterialManager;
 import com.jozufozu.flywheel.api.instance.Instance;
 import com.jozufozu.flywheel.backend.Backend;
@@ -79,3 +80,4 @@ public abstract class MixinBlockEntityInstanceManager extends InstanceManager<Bl
         }
     }
 }
+*/

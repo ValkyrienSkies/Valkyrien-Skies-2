@@ -6,6 +6,7 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.Position
 import net.minecraft.core.Vec3i
 import net.minecraft.resources.ResourceKey
+import net.minecraft.resources.ResourceKey.InternKey
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerChunkCache
@@ -76,14 +77,8 @@ val Level.dimensionId: DimensionId
     }
 
 fun getResourceKey(dimensionId: DimensionId): ResourceKey<Level> {
-    @Suppress("UNCHECKED_CAST") val cached = ResourceKeyAccessor.getValues()[dimensionId] as ResourceKey<Level>?
-    if (cached == null) {
-        val (registryNamespace, registryName, namespace, name) = dimensionId.split(":")
-        return ResourceKeyAccessor.callCreate(
-            ResourceLocation(registryNamespace, registryName), ResourceLocation(namespace, name)
-        )
-    }
-    return cached
+    @Suppress("UNCHECKED_CAST") val cached = ResourceKeyAccessor.getValues()[dimensionId as InternKey] as ResourceKey<Level>?
+    return cached!!
 }
 
 fun MinecraftServer.executeIf(condition: () -> Boolean, toExecute: Runnable) {

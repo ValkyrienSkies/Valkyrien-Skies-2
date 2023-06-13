@@ -35,7 +35,7 @@ public class MixinEntityRenderDispatcher {
         final EntityRenderer<T> entityRenderer) {
 
         final ClientShip ship =
-            (ClientShip) VSGameUtilsKt.getShipObjectManagingPos(entity.level, entity.blockPosition());
+            (ClientShip) VSGameUtilsKt.getShipObjectManagingPos(entity.level(), entity.blockPosition());
         if (ship != null) {
             // Remove the earlier applied translation
             matrixStack.popPose();
@@ -47,7 +47,7 @@ public class MixinEntityRenderDispatcher {
                     buffer, packedLight);
         } else if (entity.isPassenger()) {
             final ClientShip vehicleShip =
-                (ClientShip) VSGameUtilsKt.getShipObjectManagingPos(entity.level,
+                (ClientShip) VSGameUtilsKt.getShipObjectManagingPos(entity.level(),
                     entity.getVehicle().blockPosition());
             // If the entity is a passenger and that vehicle is in ship space
             if (vehicleShip != null) {
@@ -66,7 +66,7 @@ public class MixinEntityRenderDispatcher {
 
         if (!returns) {
             final ClientShip ship =
-                (ClientShip) VSGameUtilsKt.getShipObjectManagingPos(entity.level, entity.blockPosition());
+                (ClientShip) VSGameUtilsKt.getShipObjectManagingPos(entity.level(), entity.blockPosition());
             if (ship != null) {
                 AABB aABB = entity.getBoundingBoxForCulling().inflate(0.5);
                 if (aABB.hasNaN() || aABB.getSize() == 0.0) {

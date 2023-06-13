@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.mod_compat.create_big_cannons;
 
+/*
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.phys.Vec3;
 import org.joml.primitives.AABBd;
@@ -18,6 +19,7 @@ import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 /**
  * Make this pseudo so that we don't need CBC as a compile-dependency
  */
+/*
 @Pseudo
 @Mixin(targets = "rbasamoyai.createbigcannons.munitions.AbstractCannonProjectile")
 public abstract class MixinAbstractCannonProjectile {
@@ -45,3 +47,4 @@ public abstract class MixinAbstractCannonProjectile {
         shipClipAndDamage(start, end, Projectile.class.cast(this));
     }
 }
+*/

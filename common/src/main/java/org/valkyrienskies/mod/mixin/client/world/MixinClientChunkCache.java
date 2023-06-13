@@ -66,7 +66,7 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
 
                 final LevelChunkSection[] chunkSections = worldChunk.getSections();
                 final LevelLightEngine lightingProvider = this.getLightEngine();
-                lightingProvider.enableLightSources(new ChunkPos(x, z), true);
+                lightingProvider.setLightEnabled(new ChunkPos(x, z), true);
 
                 for (int j = 0; j < chunkSections.length; ++j) {
                     final LevelChunkSection chunkSection = chunkSections[j];

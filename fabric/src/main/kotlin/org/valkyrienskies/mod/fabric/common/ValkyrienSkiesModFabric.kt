@@ -12,6 +12,7 @@ import net.fabricmc.fabric.api.resource.ResourceManagerHelper
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.client.renderer.entity.EntityRendererProvider.Context
 import net.minecraft.core.Registry
+import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.packs.PackType.SERVER_DATA
 import net.minecraft.server.packs.resources.PreparableReloadListener.PreparationBarrier
@@ -59,13 +60,13 @@ class ValkyrienSkiesModFabric : ModInitializer {
         ValkyrienSkiesMod.TEST_FLAP = TestFlapBlock
         ValkyrienSkiesMod.TEST_WING = TestWingBlock
         ValkyrienSkiesMod.SHIP_CREATOR_ITEM = ShipCreatorItem(
-            Properties().tab(CreativeModeTab.TAB_MISC),
+            Properties(),
             { 1.0 },
             { VSGameConfig.SERVER.minScaling }
         )
-        ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM = ShipAssemblerItem(Properties().tab(CreativeModeTab.TAB_MISC))
+        ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM = ShipAssemblerItem(Properties())
         ValkyrienSkiesMod.SHIP_CREATOR_ITEM_SMALLER = ShipCreatorItem(
-            Properties().tab(CreativeModeTab.TAB_MISC),
+            Properties(),
             { VSGameConfig.SERVER.miniShipSize },
             { VSGameConfig.SERVER.minScaling }
         )
@@ -92,30 +93,30 @@ class ValkyrienSkiesModFabric : ModInitializer {
         if (isClient) onInitializeClient()
 
         ValkyrienSkiesMod.init(vsCore)
-        VSEntityManager.registerContraptionHandler(ContraptionShipyardEntityHandlerFabric)
+        // VSEntityManager.registerContraptionHandler(ContraptionShipyardEntityHandlerFabric)
 
         registerBlockAndItem("test_chair", ValkyrienSkiesMod.TEST_CHAIR)
         registerBlockAndItem("test_hinge", ValkyrienSkiesMod.TEST_HINGE)
         registerBlockAndItem("test_flap", ValkyrienSkiesMod.TEST_FLAP)
         registerBlockAndItem("test_wing", ValkyrienSkiesMod.TEST_WING)
         Registry.register(
-            Registry.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_assembler"),
+            BuiltInRegistries.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_assembler"),
             ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM
         )
         Registry.register(
-            Registry.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_creator"),
+            BuiltInRegistries.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_creator"),
             ValkyrienSkiesMod.SHIP_CREATOR_ITEM
         )
         Registry.register(
-            Registry.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_creator_smaller"),
+            BuiltInRegistries.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_creator_smaller"),
             ValkyrienSkiesMod.SHIP_CREATOR_ITEM_SMALLER
         )
         Registry.register(
-            Registry.ENTITY_TYPE, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_mounting_entity"),
+            BuiltInRegistries.ENTITY_TYPE, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_mounting_entity"),
             ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE
         )
         Registry.register(
-            Registry.BLOCK_ENTITY_TYPE, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "test_hinge_block_entity"),
+            BuiltInRegistries.BLOCK_ENTITY_TYPE, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "test_hinge_block_entity"),
             ValkyrienSkiesMod.TEST_HINGE_BLOCK_ENTITY_TYPE
         )
 
@@ -176,12 +177,12 @@ class ValkyrienSkiesModFabric : ModInitializer {
 
     private fun registerBlockAndItem(registryName: String, block: Block) {
         Registry.register(
-            Registry.BLOCK, ResourceLocation(ValkyrienSkiesMod.MOD_ID, registryName),
+            BuiltInRegistries.BLOCK, ResourceLocation(ValkyrienSkiesMod.MOD_ID, registryName),
             block
         )
         Registry.register(
-            Registry.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, registryName),
-            BlockItem(block, Properties().tab(CreativeModeTab.TAB_MISC))
+            BuiltInRegistries.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, registryName),
+            BlockItem(block, Properties())
         )
     }
 }

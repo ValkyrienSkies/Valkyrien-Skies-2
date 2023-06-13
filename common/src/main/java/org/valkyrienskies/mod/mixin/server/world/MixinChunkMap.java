@@ -8,7 +8,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
-import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ChunkMap;
 import net.minecraft.server.level.ServerLevel;
@@ -68,7 +68,7 @@ public abstract class MixinChunkMap {
                     // Generate the chunk to be nothing
                     final LevelChunk generatedChunk = new LevelChunk(level,
                         new ProtoChunk(chunkPos, UpgradeData.EMPTY, level,
-                            level.registryAccess().registryOrThrow(Registry.BIOME_REGISTRY), null), null);
+                            level.registryAccess().registryOrThrow(Registries.BIOME), null), null);
                     // Its wasteful to serialize just for this to be deserialized, but it will work for now.
                     return Optional.of(ChunkSerializer.write(level, generatedChunk));
                 }
