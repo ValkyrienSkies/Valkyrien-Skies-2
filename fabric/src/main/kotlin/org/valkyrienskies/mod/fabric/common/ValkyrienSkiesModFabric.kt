@@ -21,7 +21,7 @@ import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MobCategory
 import net.minecraft.world.item.BlockItem
-import net.minecraft.world.item.CreativeModeTab
+import net.minecraft.world.item.Item
 import net.minecraft.world.item.Item.Properties
 import net.minecraft.world.level.block.Block
 import org.valkyrienskies.core.apigame.VSCoreFactory
@@ -38,7 +38,6 @@ import org.valkyrienskies.mod.common.config.VSEntityHandlerDataLoader
 import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.config.VSKeyBindings
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
-import org.valkyrienskies.mod.common.entity.handling.VSEntityManager
 import org.valkyrienskies.mod.common.hooks.VSGameEvents
 import org.valkyrienskies.mod.common.item.ShipAssemblerItem
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
@@ -95,10 +94,10 @@ class ValkyrienSkiesModFabric : ModInitializer {
         ValkyrienSkiesMod.init(vsCore)
         // VSEntityManager.registerContraptionHandler(ContraptionShipyardEntityHandlerFabric)
 
-        registerBlockAndItem("test_chair", ValkyrienSkiesMod.TEST_CHAIR)
-        registerBlockAndItem("test_hinge", ValkyrienSkiesMod.TEST_HINGE)
-        registerBlockAndItem("test_flap", ValkyrienSkiesMod.TEST_FLAP)
-        registerBlockAndItem("test_wing", ValkyrienSkiesMod.TEST_WING)
+        ValkyrienSkiesMod.TEST_CHAIR_ITEM = registerBlockAndItem("test_chair", ValkyrienSkiesMod.TEST_CHAIR)
+        ValkyrienSkiesMod.TEST_HINGE_ITEM =registerBlockAndItem("test_hinge", ValkyrienSkiesMod.TEST_HINGE)
+        ValkyrienSkiesMod.TEST_FLAP_ITEM = registerBlockAndItem("test_flap", ValkyrienSkiesMod.TEST_FLAP)
+        ValkyrienSkiesMod.TEST_WING_ITEM = registerBlockAndItem("test_wing", ValkyrienSkiesMod.TEST_WING)
         Registry.register(
             BuiltInRegistries.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_assembler"),
             ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM
@@ -119,6 +118,8 @@ class ValkyrienSkiesModFabric : ModInitializer {
             BuiltInRegistries.BLOCK_ENTITY_TYPE, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "test_hinge_block_entity"),
             ValkyrienSkiesMod.TEST_HINGE_BLOCK_ENTITY_TYPE
         )
+
+        ValkyrienSkiesMod.registerCreativeTab()
 
         CommandRegistrationCallback.EVENT.register { dispatcher, _, _ ->
             VSCommands.registerServerCommands(dispatcher)
@@ -175,14 +176,13 @@ class ValkyrienSkiesModFabric : ModInitializer {
         }
     }
 
-    private fun registerBlockAndItem(registryName: String, block: Block) {
+    private fun registerBlockAndItem(registryName: String, block: Block): Item {
         Registry.register(
             BuiltInRegistries.BLOCK, ResourceLocation(ValkyrienSkiesMod.MOD_ID, registryName),
             block
         )
-        Registry.register(
-            BuiltInRegistries.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, registryName),
-            BlockItem(block, Properties())
-        )
+        val item = BlockItem(block, Properties())
+        Registry.register(BuiltInRegistries.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, registryName), item)
+        return item
     }
 }

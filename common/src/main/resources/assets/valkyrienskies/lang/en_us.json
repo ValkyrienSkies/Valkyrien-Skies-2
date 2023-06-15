@@ -7,6 +7,7 @@
   "block.valkyrienskies.test_wing": "Debug Wing",
   "item.valkyrienskies.ship_creator": "Ship Creator",
   "item.valkyrienskies.ship_creator_smaller": "Mini Ship Creator",
+  "itemGroup.valkyrienSkies": "Valkyrien Skies",
   "argument.valkyrienskies.ship.no_found": "Ship not found",
   "argument.valkyrienskies.ship.multiple_found": "Multiple ships found",
   "command.valkyrienskies.delete.success": "Deleted %d ships!",
