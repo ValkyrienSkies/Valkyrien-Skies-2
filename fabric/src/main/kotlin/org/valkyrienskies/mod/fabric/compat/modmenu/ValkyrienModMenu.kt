@@ -1,6 +1,5 @@
 package org.valkyrienskies.mod.fabric.compat.modmenu
 
-/*
 import com.terraformersmc.modmenu.api.ConfigScreenFactory
 import com.terraformersmc.modmenu.api.ModMenuApi
 import org.valkyrienskies.core.impl.config.VSConfigClass.Companion.getRegisteredConfig
@@ -19,4 +18,3 @@ class ValkyrienModMenu : ModMenuApi {
         }
     }
 }
-*/
