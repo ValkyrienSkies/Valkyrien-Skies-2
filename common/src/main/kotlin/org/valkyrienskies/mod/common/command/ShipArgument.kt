@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.common.command
 
+import com.google.gson.JsonObject
 import com.mojang.brigadier.StringReader
 import com.mojang.brigadier.arguments.ArgumentType
 import com.mojang.brigadier.context.CommandContext
@@ -7,6 +8,8 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException
 import com.mojang.brigadier.suggestion.Suggestions
 import com.mojang.brigadier.suggestion.SuggestionsBuilder
 import net.minecraft.commands.CommandRuntimeException
+import net.minecraft.commands.synchronization.ArgumentSerializer
+import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.chat.TranslatableComponent
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.mod.mixinducks.feature.command.VSCommandSource
@@ -87,4 +90,18 @@ class ShipArgument private constructor(val selectorOnly: Boolean) : ArgumentType
     }
 
     override fun getExamples(): Collection<String> = EXAMPLES
+
+    object Serializer : ArgumentSerializer<ShipArgument> {
+        override fun serializeToNetwork(arg: ShipArgument, buf: FriendlyByteBuf) {
+            buf.writeBoolean(arg.selectorOnly)
+        }
+
+        override fun deserializeFromNetwork(buf: FriendlyByteBuf): ShipArgument {
+            return ShipArgument(buf.readBoolean())
+        }
+
+        override fun serializeToJson(arg: ShipArgument, json: JsonObject) {
+            json.addProperty("selectorOnly", arg.selectorOnly)
+        }
+    }
 }
