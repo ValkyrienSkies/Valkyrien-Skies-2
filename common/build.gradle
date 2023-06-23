@@ -6,7 +6,7 @@ dependencies {
     // Do NOT use other classes from fabric loader
     modImplementation "net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}"
 
-    modApi("me.shedaniel.cloth:cloth-config:4.14.64")
+    modApi("me.shedaniel.cloth:cloth-config:11.0.99")
 
     modCompileOnly("maven.modrinth:sodium:mc1.20-0.4.10")
 
