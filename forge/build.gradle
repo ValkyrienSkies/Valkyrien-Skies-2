@@ -82,7 +82,7 @@ dependencies {
     forgeRuntimeLibrary('curse.maven:kotlinforforge-351264:4578885')
 
     // Cloth for config
-    include(modImplementation("me.shedaniel.cloth:cloth-config-forge:8.2.88"))
+    include(modImplementation("me.shedaniel.cloth:cloth-config-forge:11.0.99"))
 
     // Shade vs-core
     implementation("org.valkyrienskies.core:impl:${rootProject.vs_core_version}")
