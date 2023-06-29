@@ -23,7 +23,7 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
     @WrapOperation(
         at = @At(value = "INVOKE",
             target = "Lnet/minecraft/world/level/BlockGetter;getFluidState(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/material/FluidState;"),
-        method = "getBlockPathType(Lnet/minecraft/world/level/BlockGetter;IIILnet/minecraft/world/entity/Mob;IIIZZ)Lnet/minecraft/world/level/pathfinder/BlockPathTypes;"
+        method = "getBlockPathType(Lnet/minecraft/world/level/BlockGetter;IIILnet/minecraft/world/entity/Mob;)Lnet/minecraft/world/level/pathfinder/BlockPathTypes;"
     )
     private FluidState getFluidStateRedirectPathType(final BlockGetter instance, final BlockPos blockPos,
         final Operation<FluidState> getFluidState) {
@@ -58,7 +58,7 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
     @WrapOperation(
         at = @At(value = "INVOKE",
             target = "Lnet/minecraft/world/level/BlockGetter;getBlockState(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/block/state/BlockState;"),
-        method = "getBlockPathType(Lnet/minecraft/world/level/BlockGetter;IIILnet/minecraft/world/entity/Mob;IIIZZ)Lnet/minecraft/world/level/pathfinder/BlockPathTypes;"
+        method = "getBlockPathType(Lnet/minecraft/world/level/BlockGetter;IIILnet/minecraft/world/entity/Mob;)Lnet/minecraft/world/level/pathfinder/BlockPathTypes;"
     )
     private BlockState getBlockStateRedirectPathType(final BlockGetter instance, final BlockPos blockPos,
         final Operation<BlockState> getBlockState) {
@@ -85,7 +85,7 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
     @WrapOperation(
         at = @At(value = "INVOKE",
             target = "Lnet/minecraft/world/level/block/state/BlockState;isPathfindable(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/pathfinder/PathComputationType;)Z"),
-        method = "getBlockPathType(Lnet/minecraft/world/level/BlockGetter;IIILnet/minecraft/world/entity/Mob;IIIZZ)Lnet/minecraft/world/level/pathfinder/BlockPathTypes;"
+        method = "getBlockPathType(Lnet/minecraft/world/level/BlockGetter;IIILnet/minecraft/world/entity/Mob;)Lnet/minecraft/world/level/pathfinder/BlockPathTypes;"
     )
     private boolean isPathFindableRedirectPathType(final BlockState instance, final BlockGetter blockGetter,
         final BlockPos blockPos, final PathComputationType pathComputationType,
@@ -122,7 +122,7 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
     @WrapOperation(
         at = @At(value = "INVOKE",
             target = "Lnet/minecraft/world/level/PathNavigationRegion;getFluidState(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/material/FluidState;"),
-        method = "getNode"
+        method = "findAcceptedNode"
     )
     private FluidState getFluidStateRedirectGetNode(final PathNavigationRegion instance, final BlockPos blockPos,
         final Operation<FluidState> getFluidState) {
