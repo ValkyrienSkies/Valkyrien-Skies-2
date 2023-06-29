@@ -236,6 +236,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                             centerPos = breakage.getSecond();
                         }
                         ShipAssemblyKt.createNewShipWithBlocks(VectorConversionsMCKt.toBlockPos(centerPos), toRemove, self);
+                        forest.getBreakages().remove(breakage);
                     }
                 }
             }
