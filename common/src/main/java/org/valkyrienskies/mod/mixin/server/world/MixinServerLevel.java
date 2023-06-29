@@ -46,6 +46,7 @@ import org.valkyrienskies.core.api.ships.Wing;
 import org.valkyrienskies.core.api.ships.WingManager;
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
 import org.valkyrienskies.core.apigame.world.chunks.TerrainUpdate;
+import org.valkyrienskies.core.impl.game.ships.ConnectivityForest;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.block.WingBlock;
@@ -160,6 +161,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                                 // Sussy cast, but I don't want to expose this directly through the vs-core api
                                 final WingManager shipAsWingManager = ship.getAttachment(WingManager.class);
                                 final MutableBlockPos mutableBlockPos = new MutableBlockPos();
+                                final ConnectivityForest shipAsConnectivityForest = ship.getAttachment(ConnectivityForest.class);
                                 for (int x = 0; x < 16; x++) {
                                     for (int y = 0; y < 16; y++) {
                                         for (int z = 0; z < 16; z++) {
@@ -167,6 +169,9 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                                             final int posX = (chunkX << 4) + x;
                                             final int posY = chunkSection.bottomBlockY() + y;
                                             final int posZ = (chunkZ << 4) + z;
+                                            if (!blockState.isAir()) {
+                                                shipAsConnectivityForest.newVertex(posX, posY, posZ);
+                                            }
                                             if (blockState.getBlock() instanceof WingBlock) {
                                                 mutableBlockPos.set(posX, posY, posZ);
                                                 final Wing wing =
