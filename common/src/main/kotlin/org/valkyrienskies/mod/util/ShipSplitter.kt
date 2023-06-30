@@ -22,57 +22,57 @@ object ShipSplitter {
                     val forest : ConnectivityForestImpl = ship.getAttachment<ConnectivityForest>(ConnectivityForest::class.java) as ConnectivityForestImpl
                     if (forest.breakages.isNotEmpty()) {
                         val logger by logger("ShipSplitter")
+
                         for (breakage in forest.breakages) {
 
-                            val (shipToSplit, isShipTwo) = forest.split(breakage.first, breakage.second)
-                            val toRemove = DenseBlockPosSet()
-                            for (vertex in shipToSplit.values.toList()) {
-                                if (vertex != null) {
-                                    toRemove.add(vertex.posX, vertex.posY, vertex.posZ)
+                            val shipsToSplit = forest.split(breakage)
+                            for (snap in shipsToSplit) {
+                                val toRemove = DenseBlockPosSet()
+                                for (vertex in snap.first.values.toList()) {
+                                    if (vertex != null) {
+                                        toRemove.add(vertex.posX, vertex.posY, vertex.posZ)
+                                    }
                                 }
+                                val centerPos = snap.second
+                                if (!toRemove.contains(centerPos)) {
+                                    logger.warn("Center position is not in the set of blocks to assemble... huh?!")
+                                }
+                                if (toRemove.isEmpty()) {
+                                    logger.error("List of blocks to assemble is empty... how did we get here? Aborting.")
+                                    forest.breakages.remove(breakage)
+                                    return
+                                }
+
+                                val newShip : ServerShip = createNewShipWithBlocks(centerPos.toBlockPos(), toRemove, self)
+
+                                val centerPosCentered = Vector3d(centerPos).add(0.5, 0.5, 0.5)
+
+                                logger.debug("Split a segment of a ship with ID ${ship.id} into new ship with ID ${newShip.id} and slug ${newShip.slug}!")
+
+                                val shipChunkX = ship.chunkClaim.xMiddle
+                                val shipChunkZ = ship.chunkClaim.zMiddle
+
+                                val centerInShip: Vector3dc = Vector3d(
+                                    ((shipChunkX shl 4).toDouble() + 7.5).toDouble(),
+                                    centerPos.y().toDouble(),
+                                    ((shipChunkZ shl 4).toDouble() + 7.5).toDouble()
+                                )
+
+                                val scaling = ship.transform.shipToWorldScaling
+                                //val offset: Vector3dc = newShip.inertiaData.centerOfMassInShip.sub(centerInShip, Vector3d())
+                                val offset: Vector3dc = Vector3d()
+                                val posInWorld = ship.transform.shipToWorld.transformPosition(centerPosCentered.add(offset, Vector3d()), Vector3d())
+                                val rotInWorld = ship.transform.shipToWorldRotation
+
+                                val velVec = Vector3d(ship.velocity)
+                                val omegaVec = Vector3d(ship.omega)
+
+                                val newShipTransform = ShipTransformImpl(posInWorld, newShip.inertiaData.centerOfMassInShip, rotInWorld, scaling)
+
+                                (newShip as ShipDataCommon).transform = newShipTransform
+                                (newShip as ShipDataCommon).physicsData.linearVelocity = velVec
+                                (newShip as ShipDataCommon).physicsData.angularVelocity = omegaVec
                             }
-                            var centerPos = breakage.first
-                            if (isShipTwo) {
-                                centerPos = breakage.second
-                            }
-                            if (!toRemove.contains(centerPos)) {
-                                logger.warn("Center position is not in the set of blocks to assemble... huh?!")
-                            }
-                            if (toRemove.isEmpty()) {
-                                logger.error("List of blocks to assemble is empty... how did we get here? Aborting.")
-                                return
-                            }
-
-                            val newShip : ServerShip = createNewShipWithBlocks(centerPos.toBlockPos(), toRemove, self)
-
-                            val centerPosCentered = Vector3d(centerPos).add(0.5, 0.5, 0.5)
-
-                            logger.debug("Split a segment of a ship with ID ${ship.id} into new ship with ID ${newShip.id} and slug ${newShip.slug}!")
-
-                            val shipChunkX = ship.chunkClaim.xMiddle;
-                            val shipChunkZ = ship.chunkClaim.zMiddle;
-
-                            val centerInShip: Vector3dc = Vector3d(
-                                ((shipChunkX shl 4).toDouble() + 7.5).toDouble(),
-                                centerPos.y().toDouble(),
-                                ((shipChunkZ shl 4).toDouble() + 7.5).toDouble()
-                            )
-
-                            val scaling = ship.transform.shipToWorldScaling
-                            //val offset: Vector3dc = newShip.inertiaData.centerOfMassInShip.sub(centerInShip, Vector3d())
-                            val offset: Vector3dc = Vector3d()
-                            val posInWorld = ship.transform.shipToWorld.transformPosition(centerPosCentered.add(offset, Vector3d()), Vector3d())
-                            val rotInWorld = ship.transform.shipToWorldRotation
-
-                            val velVec = Vector3d(ship.velocity)
-                            val omegaVec = Vector3d(ship.omega)
-
-                            val newShipTransform = ShipTransformImpl(posInWorld, newShip.inertiaData.centerOfMassInShip, rotInWorld, scaling)
-
-                            (newShip as ShipDataCommon).transform = newShipTransform
-                            (newShip as ShipDataCommon).physicsData.linearVelocity = velVec
-                            (newShip as ShipDataCommon).physicsData.angularVelocity = omegaVec
-
                             forest.breakages.remove(breakage)
                         }
                     }
