@@ -13,7 +13,6 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.concurrent.Executor;
 import java.util.function.BooleanSupplier;
-import kotlin.Pair;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.BlockPos.MutableBlockPos;
 import net.minecraft.core.Holder;
@@ -47,17 +46,13 @@ import org.valkyrienskies.core.api.ships.Wing;
 import org.valkyrienskies.core.api.ships.WingManager;
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
 import org.valkyrienskies.core.apigame.world.chunks.TerrainUpdate;
-import org.valkyrienskies.core.impl.datastructures.BlockPos2ObjectOpenHashMap;
-import org.valkyrienskies.core.impl.datastructures.DenseBlockPosSet;
-import org.valkyrienskies.core.impl.datastructures.dynconn.BlockPosVertex;
 import org.valkyrienskies.core.impl.game.ships.ConnectivityForest;
-import org.valkyrienskies.core.impl.game.ships.ConnectivityForestImpl;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.assembly.ShipAssemblyKt;
 import org.valkyrienskies.mod.common.block.WingBlock;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.mixin.accessors.server.world.ChunkMapAccessor;
+import org.valkyrienskies.mod.util.ShipSplitter;
 
 @Mixin(ServerLevel.class)
 public abstract class MixinServerLevel implements IShipObjectWorldServerProvider {
@@ -218,29 +213,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
             }
         }
 
-        for (LoadedServerShip ship : shipObjectWorld.getLoadedShips()) {
-            if (ship.getAttachment(ConnectivityForest.class) != null) {
-                ConnectivityForestImpl forest = (ConnectivityForestImpl) ship.getAttachment(ConnectivityForest.class);
-                if (forest != null && !forest.getBreakages().isEmpty()) {
-                    for (Pair<Vector3ic, Vector3ic> breakage : forest.getBreakages()) {
-                        Pair<BlockPos2ObjectOpenHashMap<BlockPosVertex>, Boolean> pair = forest.split(breakage.getFirst(), breakage.getSecond());
-                        BlockPos2ObjectOpenHashMap<BlockPosVertex> shipToSplit = pair.getFirst();
-                        boolean isShipTwo = pair.getSecond();
-                        DenseBlockPosSet toRemove = new DenseBlockPosSet();
-
-                        for (BlockPosVertex vertex : shipToSplit.getValues()) {
-                            toRemove.add(vertex.getPosX(), vertex.getPosY(), vertex.getPosZ());
-                        }
-                        Vector3ic centerPos = breakage.getFirst();
-                        if (isShipTwo) {
-                            centerPos = breakage.getSecond();
-                        }
-                        ShipAssemblyKt.createNewShipWithBlocks(VectorConversionsMCKt.toBlockPos(centerPos), toRemove, self);
-                        forest.getBreakages().remove(breakage);
-                    }
-                }
-            }
-        }
+        ShipSplitter.INSTANCE.splitShips(shipObjectWorld, self);
 
         // Send new loaded chunks updates to the ship world
         shipObjectWorld.addTerrainUpdates(
