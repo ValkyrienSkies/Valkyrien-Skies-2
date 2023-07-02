@@ -1,8 +1,12 @@
 package org.valkyrienskies.mod.util
 
+import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.world.level.block.Rotation
 import org.joml.Vector3d
 import org.joml.Vector3dc
+import org.joml.Vector3i
+import org.joml.Vector3ic
 import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore
@@ -13,6 +17,7 @@ import org.valkyrienskies.core.impl.game.ships.ShipDataCommon
 import org.valkyrienskies.core.impl.game.ships.ShipTransformImpl
 import org.valkyrienskies.mod.common.assembly.createNewShipWithBlocks
 import org.valkyrienskies.mod.common.util.toBlockPos
+import org.valkyrienskies.mod.common.util.toJOML
 
 object ShipSplitter {
     fun splitShips(shipObjectWorld: ServerShipWorldCore, self: ServerLevel) {
@@ -31,9 +36,12 @@ object ShipSplitter {
                                 val toRemove = DenseBlockPosSet()
                                 for (vertex in snap.first.values.toList()) {
                                     if (vertex != null) {
-                                        toRemove.add(vertex.posX, vertex.posY, vertex.posZ)
+                                        if (!self.getBlockState(BlockPos(vertex.posX, vertex.posY, vertex.posZ)).isAir) {
+                                            toRemove.add(vertex.posX, vertex.posY, vertex.posZ)
+                                        }
                                     }
                                 }
+
                                 val centerPos = snap.second
                                 if (!toRemove.contains(centerPos)) {
                                     logger.warn("Center position is not in the set of blocks to assemble... huh?!")
@@ -41,6 +49,7 @@ object ShipSplitter {
                                 if (toRemove.isEmpty()) {
                                     logger.error("List of blocks to assemble is empty... how did we get here? Aborting.")
                                     forest.removeFromBreakQueue(breakage)
+                                    forest.verifyIntactOnLoad()
                                     return
                                 }
 
@@ -48,7 +57,7 @@ object ShipSplitter {
 
                                 val centerPosCentered = Vector3d(centerPos).add(0.5, 0.5, 0.5)
 
-                                logger.debug("Split a segment of a ship with ID ${ship.id} into new ship with ID ${newShip.id} and slug ${newShip.slug}!")
+                                logger.info("Split a segment of a ship with ID ${ship.id} into new ship with ID ${newShip.id} and slug ${newShip.slug}!")
 
                                 val shipChunkX = newShip.chunkClaim.xMiddle
                                 val shipChunkZ = newShip.chunkClaim.zMiddle
@@ -85,5 +94,23 @@ object ShipSplitter {
                 }
             }
         }
+    }
+
+    fun fuseShips(level: ServerLevel, baseShip: LoadedServerShip, shipToFuse: LoadedServerShip, fuseTo: Vector3ic, fuseFrom: Vector3ic) {
+        val fuseForest: ConnectivityForestImpl = shipToFuse.getAttachment<ConnectivityForest>(ConnectivityForest::class.java) as ConnectivityForestImpl
+        val logger by logger("ShipFuser")
+
+        logger.info("Fusing ship ${shipToFuse.id} into ship ${baseShip.id} at point ${fuseTo}.")
+
+        fuseForest.vertices.values.forEach { vertex ->
+            val pos = BlockPos(vertex.posX, vertex.posY, vertex.posZ)
+
+            val newPos = (fuseFrom.sub(pos.toJOML(), Vector3i()).add(fuseTo, Vector3i())).toBlockPos()
+            val oldChunk = level.getChunkAt(pos)
+            val newChunk = level.getChunkAt(newPos)
+
+            relocateBlock(oldChunk, pos, newChunk, newPos, true, baseShip, Rotation.NONE)
+        }
+
     }
 }
