@@ -186,6 +186,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                                         }
                                     }
                                 }
+                                shipAsConnectivityForest.getGraph().optimize();
                             }
                             // endregion
                         } else {

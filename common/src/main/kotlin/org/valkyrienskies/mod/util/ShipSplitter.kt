@@ -20,10 +20,11 @@ object ShipSplitter {
             if (ship != null) {
                 if (ship.getAttachment<ConnectivityForest>(ConnectivityForest::class.java) != null) {
                     val forest : ConnectivityForestImpl = ship.getAttachment<ConnectivityForest>(ConnectivityForest::class.java) as ConnectivityForestImpl
-                    if (forest.breakages.isNotEmpty()) {
+                    forest.gameTick()
+                    if (forest.getBreakQueue().isNotEmpty()) {
                         val logger by logger("ShipSplitter")
 
-                        for (breakage in forest.breakages) {
+                        for (breakage in forest.getBreakQueue()) {
 
                             val shipsToSplit = forest.split(breakage)
                             for (snap in shipsToSplit) {
@@ -39,7 +40,7 @@ object ShipSplitter {
                                 }
                                 if (toRemove.isEmpty()) {
                                     logger.error("List of blocks to assemble is empty... how did we get here? Aborting.")
-                                    forest.breakages.remove(breakage)
+                                    forest.removeFromBreakQueue(breakage)
                                     return
                                 }
 
@@ -49,19 +50,24 @@ object ShipSplitter {
 
                                 logger.debug("Split a segment of a ship with ID ${ship.id} into new ship with ID ${newShip.id} and slug ${newShip.slug}!")
 
-                                val shipChunkX = ship.chunkClaim.xMiddle
-                                val shipChunkZ = ship.chunkClaim.zMiddle
+                                val shipChunkX = newShip.chunkClaim.xMiddle
+                                val shipChunkZ = newShip.chunkClaim.zMiddle
 
                                 val centerInShip: Vector3dc = Vector3d(
-                                    ((shipChunkX shl 4).toDouble() + 7.5).toDouble(),
+                                    ((shipChunkX shl 4) + (centerPos.x() and 15).toDouble()),
                                     centerPos.y().toDouble(),
-                                    ((shipChunkZ shl 4).toDouble() + 7.5).toDouble()
+                                    (shipChunkZ shl 4) + (centerPos.z() and 15).toDouble()
                                 )
 
                                 val scaling = ship.transform.shipToWorldScaling
-                                //val offset: Vector3dc = newShip.inertiaData.centerOfMassInShip.sub(centerInShip, Vector3d())
-                                val offset: Vector3dc = Vector3d()
+                                val offset: Vector3dc =
+                                    newShip.inertiaData.centerOfMassInShip.sub(centerInShip, Vector3d())
+
                                 val posInWorld = ship.transform.shipToWorld.transformPosition(centerPosCentered.add(offset, Vector3d()), Vector3d())
+                                // val offset = newShip.inertiaData.centerOfMassInShip.sub(oldPosInWorld , Vector3d())
+                                // val posInWorld = ship.transform.shipToWorld.transformPosition(centerPosCentered.add(offset, Vector3d()), Vector3d())
+
+
                                 val rotInWorld = ship.transform.shipToWorldRotation
 
                                 val velVec = Vector3d(ship.velocity)
@@ -73,7 +79,7 @@ object ShipSplitter {
                                 (newShip as ShipDataCommon).physicsData.linearVelocity = velVec
                                 (newShip as ShipDataCommon).physicsData.angularVelocity = omegaVec
                             }
-                            forest.breakages.remove(breakage)
+                            forest.removeFromBreakQueue(breakage)
                         }
                     }
                 }
