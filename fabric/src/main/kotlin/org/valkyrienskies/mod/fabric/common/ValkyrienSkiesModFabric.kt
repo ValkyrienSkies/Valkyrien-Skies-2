@@ -41,6 +41,7 @@ import org.valkyrienskies.mod.common.entity.handling.VSEntityManager
 import org.valkyrienskies.mod.common.hooks.VSGameEvents
 import org.valkyrienskies.mod.common.item.ShipAssemblerItem
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
+import org.valkyrienskies.mod.common.item.ShipWelderItem
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executor
 import java.util.concurrent.atomic.AtomicBoolean
@@ -69,7 +70,7 @@ class ValkyrienSkiesModFabric : ModInitializer {
             { VSGameConfig.SERVER.miniShipSize },
             { VSGameConfig.SERVER.minScaling }
         )
-
+        ValkyrienSkiesMod.SHIP_WELDER_ITEM = ShipWelderItem(Properties().tab(CreativeModeTab.TAB_MISC))
         ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE = EntityType.Builder.of(
             ::ShipMountingEntity,
             MobCategory.MISC
@@ -77,6 +78,7 @@ class ValkyrienSkiesModFabric : ModInitializer {
             .build(ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_mounting_entity").toString())
         ValkyrienSkiesMod.TEST_HINGE_BLOCK_ENTITY_TYPE =
             FabricBlockEntityTypeBuilder.create(::TestHingeBlockEntity, ValkyrienSkiesMod.TEST_HINGE).build()
+
 
         val isClient = FabricLoader.getInstance().environmentType == EnvType.CLIENT
         val networking = VSFabricNetworking(isClient)
@@ -109,6 +111,10 @@ class ValkyrienSkiesModFabric : ModInitializer {
         Registry.register(
             Registry.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_creator_smaller"),
             ValkyrienSkiesMod.SHIP_CREATOR_ITEM_SMALLER
+        )
+        Registry.register(
+            Registry.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_welder"),
+            ValkyrienSkiesMod.SHIP_WELDER_ITEM
         )
         Registry.register(
             Registry.ENTITY_TYPE, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_mounting_entity"),
