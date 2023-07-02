@@ -50,6 +50,7 @@ import org.valkyrienskies.mod.common.hooks.VSGameEvents
 import org.valkyrienskies.mod.common.item.PhysicsEntityCreatorItem
 import org.valkyrienskies.mod.common.item.ShipAssemblerItem
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
+import org.valkyrienskies.mod.common.item.ShipWelderItem
 import org.valkyrienskies.mod.compat.clothconfig.VSClothConfig
 
 @Mod(ValkyrienSkiesMod.MOD_ID)
@@ -66,10 +67,12 @@ class ValkyrienSkiesModForge {
     private val SHIP_CREATOR_ITEM_REGISTRY: RegistryObject<Item>
     private val SHIP_CREATOR_SMALLER_ITEM_REGISTRY: RegistryObject<Item>
     private val PHYSICS_ENTITY_CREATOR_ITEM_REGISTRY: RegistryObject<Item>
+    private val SHIP_WELDER_ITEM_REGISTRY: RegistryObject<Item>
     private val SHIP_MOUNTING_ENTITY_REGISTRY: RegistryObject<EntityType<ShipMountingEntity>>
     private val PHYSICS_ENTITY_TYPE_REGISTRY: RegistryObject<EntityType<VSPhysicsEntity>>
     private val SHIP_ASSEMBLER_ITEM_REGISTRY: RegistryObject<Item>
     private val TEST_HINGE_BLOCK_ENTITY_TYPE_REGISTRY: RegistryObject<BlockEntityType<TestHingeBlockEntity>>
+
 
     init {
         val isClient = FMLEnvironment.dist.isClient
@@ -128,14 +131,16 @@ class ValkyrienSkiesModForge {
                     { VSGameConfig.SERVER.minScaling }
                 )
             }
-
         PHYSICS_ENTITY_CREATOR_ITEM_REGISTRY =
             ITEMS.register("physics_entity_creator") {
                 PhysicsEntityCreatorItem(
                     Properties().tab(CreativeModeTab.TAB_MISC),
                 )
             }
-
+        SHIP_WELDER_ITEM_REGISTRY =
+            ITEMS.register("ship_welder") {
+                ShipWelderItem(Properties().tab(CreativeModeTab.TAB_MISC))
+            }
         SHIP_MOUNTING_ENTITY_REGISTRY = ENTITIES.register("ship_mounting_entity") {
             EntityType.Builder.of(
                 ::ShipMountingEntity,

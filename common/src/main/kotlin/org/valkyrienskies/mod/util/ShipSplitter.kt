@@ -96,13 +96,15 @@ object ShipSplitter {
         }
     }
 
-    fun fuseShips(level: ServerLevel, baseShip: LoadedServerShip, shipToFuse: LoadedServerShip, fuseTo: Vector3ic, fuseFrom: Vector3ic) {
+    fun fuseShips(level: ServerLevel, baseShip: LoadedServerShip, shipToFuse: LoadedServerShip, fuseTo: Vector3ic, fuseFrom: Vector3ic): Boolean {
         val fuseForest: ConnectivityForestImpl = shipToFuse.getAttachment<ConnectivityForest>(ConnectivityForest::class.java) as ConnectivityForestImpl
         val logger by logger("ShipFuser")
 
         logger.info("Fusing ship ${shipToFuse.id} into ship ${baseShip.id} at point ${fuseTo}.")
 
-        fuseForest.vertices.values.forEach { vertex ->
+        val verticesSafe = fuseForest.vertices.values.toList()
+
+        verticesSafe.forEach { vertex ->
             val pos = BlockPos(vertex.posX, vertex.posY, vertex.posZ)
 
             val newPos = (fuseFrom.sub(pos.toJOML(), Vector3i()).add(fuseTo, Vector3i())).toBlockPos()
@@ -111,6 +113,6 @@ object ShipSplitter {
 
             relocateBlock(oldChunk, pos, newChunk, newPos, true, baseShip, Rotation.NONE)
         }
-
+        return true
     }
 }

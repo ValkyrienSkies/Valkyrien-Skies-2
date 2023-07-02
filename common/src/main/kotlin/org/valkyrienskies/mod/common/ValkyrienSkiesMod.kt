@@ -33,6 +33,7 @@ object ValkyrienSkiesMod {
     lateinit var SHIP_MOUNTING_ENTITY_TYPE: EntityType<ShipMountingEntity>
     lateinit var PHYSICS_ENTITY_TYPE: EntityType<VSPhysicsEntity>
     lateinit var TEST_HINGE_BLOCK_ENTITY_TYPE: BlockEntityType<TestHingeBlockEntity>
+    lateinit var SHIP_WELDER_ITEM: Item
 
     @JvmStatic
     var currentServer: MinecraftServer? = null
