@@ -2,16 +2,20 @@ package org.valkyrienskies.mod.mixin.entity;
 
 import static org.valkyrienskies.mod.common.util.VectorConversionsMCKt.toJOML;
 
+import java.util.Set;
 import net.minecraft.CrashReport;
 import net.minecraft.CrashReportCategory;
 import net.minecraft.ReportedException;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.TagKey;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
@@ -19,8 +23,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
+import org.joml.Vector3i;
 import org.joml.primitives.AABBd;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -29,9 +36,13 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.core.api.ships.LoadedShip;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
+import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
+import org.valkyrienskies.core.impl.game.ships.AirPocketForest;
+import org.valkyrienskies.core.impl.game.ships.AirPocketForestImpl;
 import org.valkyrienskies.core.impl.game.ships.ShipObjectClient;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
@@ -198,5 +209,81 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     @NotNull
     public EntityDraggingInformation getDraggingInformation() {
         return draggingInformation;
+    }
+
+    @Shadow
+    @Final
+    private Set<TagKey<Fluid>> fluidOnEyes;
+
+    @Shadow
+    public abstract Vec3 getEyePosition();
+
+    @Shadow
+    protected boolean wasTouchingWater;
+
+    /**
+     * @author Potato
+     * @reason Needed to prevent le drowning in le air pocket
+     */
+    @Overwrite
+    public boolean isEyeInFluid(TagKey<Fluid> tagKey) {
+        if (!level.isClientSide()) {
+            ServerLevel serverLevel = (ServerLevel) level;
+
+            ServerShipWorldCore shipObjectWorld = VSGameUtilsKt.getShipObjectWorld(serverLevel);
+
+            Iterable<LoadedServerShip> ships = shipObjectWorld.getLoadedShips().getIntersecting(VectorConversionsMCKt.toJOML(this.getBoundingBox()));
+
+            for (LoadedServerShip ship : ships) {
+                Vector3d shipyardHeadPosition = ship.getWorldToShip().transformPosition(VectorConversionsMCKt.toJOML(this.getEyePosition()));
+
+                Vector3d shipyardHeadBlockPositionD = shipyardHeadPosition.add(0.5, 0.5, 0.5).round();
+
+                Vector3i shipyardHeadBlockPosition = new Vector3i((int) shipyardHeadBlockPositionD.x, (int) shipyardHeadBlockPositionD.y, (int) shipyardHeadBlockPositionD.z);
+
+                if (ship.getAttachment(AirPocketForest.class) != null) {
+                    AirPocketForestImpl airPocketForest = (AirPocketForestImpl) ship.getAttachment(AirPocketForest.class);
+
+                    if (airPocketForest.isInAirPocket(shipyardHeadBlockPosition.x, shipyardHeadBlockPosition.y, shipyardHeadBlockPosition.z)) {
+                        return false;
+                    }
+
+                }
+            }
+        }
+        return this.fluidOnEyes.contains(tagKey);
+    }
+
+    /**
+     * @author Potato
+     * @reason Needed to prevent le swimming in le submarine
+     */
+    @Overwrite
+    public boolean isInWater() {
+        if (!level.isClientSide()) {
+            ServerLevel serverLevel = (ServerLevel) level;
+
+            ServerShipWorldCore shipObjectWorld = VSGameUtilsKt.getShipObjectWorld(serverLevel);
+
+            Iterable<LoadedServerShip> ships = shipObjectWorld.getLoadedShips().getIntersecting(VectorConversionsMCKt.toJOML(this.getBoundingBox()));
+
+            for (LoadedServerShip ship : ships) {
+                Vector3d shipyardPosition = ship.getWorldToShip().transformPosition(new Vector3d(this.getX(), this.getY(), this.getZ()));
+
+                Vector3d shipyardBlockPositionD = shipyardPosition.add(0.5, 0.5, 0.5).round();
+
+                Vector3i shipyardBlockPosition = new Vector3i((int) shipyardBlockPositionD.x, (int) shipyardBlockPositionD.y, (int) shipyardBlockPositionD.z);
+
+                if (ship.getAttachment(AirPocketForest.class) != null) {
+                    AirPocketForestImpl airPocketForest = (AirPocketForestImpl) ship.getAttachment(AirPocketForest.class);
+
+                    if (airPocketForest.isInAirPocket(shipyardBlockPosition.x, shipyardBlockPosition.y, shipyardBlockPosition.z)) {
+                        return false;
+                    }
+
+                }
+            }
+        }
+        return this.wasTouchingWater;
     }
 }
