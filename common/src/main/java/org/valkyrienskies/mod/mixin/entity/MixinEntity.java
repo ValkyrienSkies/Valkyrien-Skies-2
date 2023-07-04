@@ -19,6 +19,7 @@ import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
+import org.apache.logging.log4j.LogManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
@@ -227,29 +228,8 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
      */
     @Overwrite
     public boolean isEyeInFluid(TagKey<Fluid> tagKey) {
-        if (!level.isClientSide()) {
-            ServerLevel serverLevel = (ServerLevel) level;
-
-            ServerShipWorldCore shipObjectWorld = VSGameUtilsKt.getShipObjectWorld(serverLevel);
-
-            Iterable<LoadedServerShip> ships = shipObjectWorld.getLoadedShips().getIntersecting(VectorConversionsMCKt.toJOML(this.getBoundingBox()));
-
-            for (LoadedServerShip ship : ships) {
-                Vector3d shipyardHeadPosition = ship.getWorldToShip().transformPosition(VectorConversionsMCKt.toJOML(this.getEyePosition()));
-
-                Vector3d shipyardHeadBlockPositionD = shipyardHeadPosition.add(0.5, 0.5, 0.5).round();
-
-                Vector3i shipyardHeadBlockPosition = new Vector3i((int) shipyardHeadBlockPositionD.x, (int) shipyardHeadBlockPositionD.y, (int) shipyardHeadBlockPositionD.z);
-
-                if (ship.getAttachment(AirPocketForest.class) != null) {
-                    AirPocketForestImpl airPocketForest = (AirPocketForestImpl) ship.getAttachment(AirPocketForest.class);
-
-                    if (airPocketForest.isInAirPocket(shipyardHeadBlockPosition.x, shipyardHeadBlockPosition.y, shipyardHeadBlockPosition.z)) {
-                        return false;
-                    }
-
-                }
-            }
+        if (isInSealedShip(true)) {
+            return false;
         }
         return this.fluidOnEyes.contains(tagKey);
     }
@@ -260,30 +240,47 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
      */
     @Overwrite
     public boolean isInWater() {
-        if (!level.isClientSide()) {
-            ServerLevel serverLevel = (ServerLevel) level;
-
-            ServerShipWorldCore shipObjectWorld = VSGameUtilsKt.getShipObjectWorld(serverLevel);
-
-            Iterable<LoadedServerShip> ships = shipObjectWorld.getLoadedShips().getIntersecting(VectorConversionsMCKt.toJOML(this.getBoundingBox()));
-
-            for (LoadedServerShip ship : ships) {
-                Vector3d shipyardPosition = ship.getWorldToShip().transformPosition(new Vector3d(this.getX(), this.getY(), this.getZ()));
-
-                Vector3d shipyardBlockPositionD = shipyardPosition.add(0.5, 0.5, 0.5).round();
-
-                Vector3i shipyardBlockPosition = new Vector3i((int) shipyardBlockPositionD.x, (int) shipyardBlockPositionD.y, (int) shipyardBlockPositionD.z);
-
-                if (ship.getAttachment(AirPocketForest.class) != null) {
-                    AirPocketForestImpl airPocketForest = (AirPocketForestImpl) ship.getAttachment(AirPocketForest.class);
-
-                    if (airPocketForest.isInAirPocket(shipyardBlockPosition.x, shipyardBlockPosition.y, shipyardBlockPosition.z)) {
-                        return false;
-                    }
-
-                }
-            }
+        if (isInSealedShip(false)) {
+            return false;
         }
         return this.wasTouchingWater;
+    }
+
+    @Unique
+    private boolean isInSealedShip(boolean head) {
+        if (level.isClientSide) {
+            return false;
+        }
+
+        ServerLevel serverLevel = (ServerLevel) level;
+
+        ServerShipWorldCore shipObjectWorld = VSGameUtilsKt.getShipObjectWorld(serverLevel);
+
+        Iterable<LoadedServerShip> ships = shipObjectWorld.getLoadedShips().getIntersecting(VectorConversionsMCKt.toJOML(this.getBoundingBox()));
+
+        for (LoadedServerShip ship : ships) {
+
+            Vector3d shipyardPosition;
+            if (head) {
+                shipyardPosition = ship.getWorldToShip().transformPosition(VectorConversionsMCKt.toJOML(this.getEyePosition()));
+            } else {
+                shipyardPosition = ship.getWorldToShip().transformPosition(new Vector3d(this.getX(), this.getY(), this.getZ()));
+            }
+
+            Vector3d shipyardBlockPositionD = shipyardPosition.add(0.5, 0.5, 0.5).round();
+
+            Vector3i shipyardBlockPosition = new Vector3i((int) shipyardBlockPositionD.x, (int) shipyardBlockPositionD.y, (int) shipyardBlockPositionD.z);
+
+            if (ship.getAttachment(AirPocketForest.class) != null) {
+                AirPocketForestImpl airPocketForest = (AirPocketForestImpl) ship.getAttachment(AirPocketForest.class);
+
+                if (airPocketForest.isInAirPocket(shipyardBlockPosition.x, shipyardBlockPosition.y, shipyardBlockPosition.z)) {
+                    LogManager.getLogger("Air Pocket").info("Entity is in air pocket " + shipyardBlockPosition);
+                    return true;
+                }
+
+            }
+        }
+        return false;
     }
 }
