@@ -256,7 +256,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
         ServerShipWorldCore shipObjectWorld = VSGameUtilsKt.getShipObjectWorld(serverLevel);
 
-        Iterable<LoadedServerShip> ships = shipObjectWorld.getLoadedShips().getIntersecting(VectorConversionsMCKt.toJOML(this.getBoundingBox()));
+        Iterable<LoadedServerShip> ships = shipObjectWorld.getLoadedShips().getIntersecting(VectorConversionsMCKt.toJOML(this.getBoundingBox().inflate(2)));
 
         for (LoadedServerShip ship : ships) {
 

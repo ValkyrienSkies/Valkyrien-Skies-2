@@ -7,14 +7,19 @@ import org.joml.Vector3d
 import org.joml.Vector3dc
 import org.joml.Vector3i
 import org.joml.Vector3ic
+import org.joml.primitives.AABBi
+import org.joml.primitives.AABBic
 import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore
 import org.valkyrienskies.core.impl.datastructures.DenseBlockPosSet
+import org.valkyrienskies.core.impl.game.ships.AirPocketForest
+import org.valkyrienskies.core.impl.game.ships.AirPocketForestImpl
 import org.valkyrienskies.core.impl.game.ships.ConnectivityForest
 import org.valkyrienskies.core.impl.game.ships.ConnectivityForestImpl
 import org.valkyrienskies.core.impl.game.ships.ShipDataCommon
 import org.valkyrienskies.core.impl.game.ships.ShipTransformImpl
+import org.valkyrienskies.core.impl.util.expand
 import org.valkyrienskies.mod.common.assembly.createNewShipWithBlocks
 import org.valkyrienskies.mod.common.util.toBlockPos
 import org.valkyrienskies.mod.common.util.toJOML
@@ -114,5 +119,34 @@ object ShipSplitter {
             relocateBlock(oldChunk, pos, newChunk, newPos, true, baseShip, Rotation.NONE)
         }
         return true
+    }
+
+    fun airHandle(shipObjectWorld: ServerShipWorldCore, self: ServerLevel) {
+
+        // todo: Better check, I think this is pretty inefficient...
+        for (loadedShip in shipObjectWorld.loadedShips) {
+            if (loadedShip.getAttachment(AirPocketForest::class.java) == null) {
+                val airPocketForest : AirPocketForestImpl = loadedShip.getAttachment(AirPocketForest::class.java) as AirPocketForestImpl
+                if (airPocketForest.toUpdateOutsideAir()) {
+                    if (loadedShip.shipAABB != null) {
+                        val airAABB: AABBic = loadedShip.shipAABB!!.expand(1, AABBi())
+                        val airBlocks: MutableSet<Vector3ic> = HashSet()
+                        for (x in airAABB.minX()..airAABB.maxX()) {
+                            for (y in airAABB.minY()..airAABB.maxY()) {
+                                for (z in airAABB.minZ()..airAABB.maxZ()) {
+                                    if (loadedShip.shipAABB!!.containsPoint(x, y, z)) {
+                                        continue
+                                    }
+                                    airPocketForest!!.newVertex(x, y, z, false)
+                                    airBlocks.add(Vector3i(x, y, z))
+                                }
+                            }
+                        }
+                        airPocketForest!!.updateOutsideAirVertices(airBlocks)
+                        airPocketForest!!.shouldUpdateOutsideAir = false
+                    }
+                }
+            }
+        }
     }
 }
