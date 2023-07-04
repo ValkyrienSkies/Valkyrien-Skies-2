@@ -38,6 +38,7 @@ import org.joml.Vector3d;
 import org.joml.Vector3i;
 import org.joml.Vector3ic;
 import org.joml.primitives.AABBi;
+import org.joml.primitives.AABBic;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -49,7 +50,6 @@ import org.valkyrienskies.core.api.ships.Wing;
 import org.valkyrienskies.core.api.ships.WingManager;
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
 import org.valkyrienskies.core.apigame.world.chunks.TerrainUpdate;
-import org.valkyrienskies.core.impl.datastructures.dynconn.BlockPosVertex;
 import org.valkyrienskies.core.impl.game.ships.AirPocketForest;
 import org.valkyrienskies.core.impl.game.ships.AirPocketForestImpl;
 import org.valkyrienskies.core.impl.game.ships.ConnectivityForest;
@@ -181,7 +181,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                                             if (!blockState.isAir()) {
                                                 shipAsConnectivityForest.newVertex(posX, posY, posZ);
                                             } else {
-                                                shipAsAirPocketForest.newVertex(posX, posY, posZ);
+                                                shipAsAirPocketForest.newVertex(posX, posY, posZ, false);
                                             }
                                             if (blockState.getBlock() instanceof WingBlock) {
                                                 mutableBlockPos.set(posX, posY, posZ);
@@ -228,18 +228,16 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
 
         ShipSplitter.INSTANCE.splitShips(shipObjectWorld, self);
 
-        //todo: Better check, I think this is pretty inefficient...
+        // todo: Better check, I think this is pretty inefficient...
         for (LoadedServerShip loadedShip : shipObjectWorld.getLoadedShips()) {
             if (loadedShip.getAttachment(AirPocketForest.class) == null) {
                 AirPocketForestImpl airPocketForest = (AirPocketForestImpl) loadedShip.getAttachment(AirPocketForest.class);
-
+                assert airPocketForest != null;
                 if (airPocketForest.toUpdateOutsideAir()) {
                     if (loadedShip.getShipAABB() != null) {
-                        AABBi airAABB = new AABBi();
+                        final AABBic airAABB = VectorConversionsKt.expand(loadedShip.getShipAABB(), 1, new AABBi());
 
-                        VectorConversionsKt.expand(loadedShip.getShipAABB(), 1, airAABB);
-
-                        Set<BlockPosVertex> airBlocks = new HashSet<>();
+                        Set<Vector3ic> airBlocks = new HashSet<>();
 
                         for (int x = airAABB.minX(); x <= airAABB.maxX(); x++) {
                             for (int y = airAABB.minY(); y <= airAABB.maxY(); y++) {
@@ -248,8 +246,8 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                                         continue;
                                     }
 
-                                    airPocketForest.newVertex(x, y, z);
-                                    airBlocks.add(new BlockPosVertex(x, y, z));
+                                    airPocketForest.newVertex(x, y, z, false);
+                                    airBlocks.add(new Vector3i(x, y, z));
 
                                 }
                             }
