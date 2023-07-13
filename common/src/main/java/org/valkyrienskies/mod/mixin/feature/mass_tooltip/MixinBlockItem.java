@@ -25,7 +25,7 @@ public class MixinBlockItem {
             final Double mass = Objects.requireNonNull(BlockStateInfo.INSTANCE.get(item.getBlock().defaultBlockState()))
                 .getFirst();
             list.add(new TranslatableComponent("tooltip.valkyrienskies.mass").append(
-                ": " + mass).withStyle(ChatFormatting.DARK_GRAY));
+                ": " + mass + "kg").withStyle(ChatFormatting.DARK_GRAY));
         } catch (final Exception ignored) {
 
         }
