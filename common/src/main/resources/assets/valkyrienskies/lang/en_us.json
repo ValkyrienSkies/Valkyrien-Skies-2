@@ -16,5 +16,6 @@
   "command.valkyrienskies.mc_teleport.can_only_teleport_to_one_ship": "Can only teleport to exactly 1 ship",
   "command.valkyrienskies.get_ship.success": "Found ship with slug %s",
   "command.valkyrienskies.get_ship.fail": "No ship found",
-  "command.valkyrienskies.get_ship.only_usable_by_entities": "/vs get-ship can only be run by entities!"
+  "command.valkyrienskies.get_ship.only_usable_by_entities": "/vs get-ship can only be run by entities!",
+  "tooltip.valkyrienskies.mass": "Mass"
 }

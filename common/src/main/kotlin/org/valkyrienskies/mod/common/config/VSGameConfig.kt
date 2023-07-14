@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.common.config
 
 import com.github.imifou.jsonschema.module.addon.annotation.JsonSchema
+import org.valkyrienskies.mod.mixinducks.feature.mass_tooltip.MassTooltipVisibility
 
 object VSGameConfig {
 
@@ -14,6 +15,8 @@ object VSGameConfig {
     val COMMON = Common()
 
     class Client {
+        val Tooltip = TOOLTIP()
+
         @JsonSchema(description = "Renders the VS2 debug HUD with TPS")
         var renderDebugText = false
 
@@ -21,6 +24,18 @@ object VSGameConfig {
             description = "Recommend ship slugs in mc commands where player names could be used ex. /tp ship-name wich could pollute user autocomplete"
         )
         var recommendSlugsInMcCommands = true
+
+        class TOOLTIP {
+            @JsonSchema(
+                description = "Set when the Mass Tooltip is Visible"
+            )
+            var massTooltipVisibility = MassTooltipVisibility.ADVANCED
+
+            @JsonSchema(
+                description = "Use Imperial Units to show Mass"
+            )
+            var useImperialUnits = false
+        }
     }
 
     class Server {

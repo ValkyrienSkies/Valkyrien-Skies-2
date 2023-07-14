@@ -30,6 +30,7 @@
     "feature.fluid_escaping_ship_config.MixinFlowingFluid",
     "feature.get_entities.MixinLevel",
     "feature.ladders.MixinLivingEntity",
+    "feature.mass_tooltip.MixinBlockItem",
     "feature.mob_spawning.NaturalSpawnerMixin",
     "feature.render_pathfinding.MixinDebugPackets",
     "feature.screen_distance_check.MixinScreenHandler",
