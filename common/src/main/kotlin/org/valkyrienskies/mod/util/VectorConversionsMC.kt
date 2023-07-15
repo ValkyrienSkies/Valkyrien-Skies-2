@@ -66,7 +66,6 @@ fun Vector3ic.toBlockPos() = BlockPos(x(), y(), z())
 fun Vector3dc.toMinecraft() = Vec3(x(), y(), z())
 
 fun Matrix4d.mul(m: Matrix4fc): Matrix4d = mul(m, this)
-fun Matrix4dc.mul(m: Matrix4fc, dest: Matrix4d): Matrix4d = mul(m, dest)
 
 fun AABBdc.toMinecraft() = AABB(minX(), minY(), minZ(), maxX(), maxY(), maxZ())
 fun AABB.toJOML() = AABBd().set(this)
