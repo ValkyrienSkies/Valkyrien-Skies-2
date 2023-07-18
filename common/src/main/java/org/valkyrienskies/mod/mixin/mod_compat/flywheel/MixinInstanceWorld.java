@@ -1,6 +1,5 @@
 package org.valkyrienskies.mod.mixin.mod_compat.flywheel;
 
-/*
 import com.jozufozu.flywheel.api.MaterialManager;
 import com.jozufozu.flywheel.backend.gl.GlStateTracker;
 import com.jozufozu.flywheel.backend.instancing.InstanceManager;
@@ -9,9 +8,9 @@ import com.jozufozu.flywheel.backend.instancing.ParallelTaskEngine;
 import com.jozufozu.flywheel.backend.instancing.batching.BatchingEngine;
 import com.jozufozu.flywheel.backend.instancing.instancing.InstancingEngine;
 import com.jozufozu.flywheel.event.RenderLayerEvent;
-import com.mojang.math.Matrix4f;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.joml.Matrix4d;
+import org.joml.Matrix4f;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -63,7 +62,7 @@ public class MixinInstanceWorld {
         if (manager instanceof InstancingEngine<?> engine) {
             final Vector3d origin = VectorConversionsMCKt.toJOMLD(engine.getOriginCoordinate());
 
-            final Matrix4d viewProjection = VectorConversionsMCKt.toJOML(event.viewProjection);
+            final Matrix4d viewProjection = new Matrix4d(event.viewProjection);
 
             final Matrix4d finalProjection = new Matrix4d()
                 .mul(viewProjection)
@@ -75,7 +74,7 @@ public class MixinInstanceWorld {
                 .transformPosition(event.camX, event.camY, event.camZ, new Vector3d())
                 .sub(origin);
 
-            final Matrix4f fnlProj = VectorConversionsMCKt.toMinecraft(finalProjection);
+            final Matrix4f fnlProj = new Matrix4f(finalProjection);
 
             ((MixinInstancingEngineDuck) engine).render(
                 fnlProj,
@@ -94,4 +93,3 @@ public class MixinInstanceWorld {
         }
     }
 }
-*/

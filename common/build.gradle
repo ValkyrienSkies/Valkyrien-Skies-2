@@ -1,5 +1,5 @@
 dependencies {
-    annotationProcessor(implementation("com.github.LlamaLad7:MixinExtras:0.1.1"))
+    annotationProcessor(implementation("com.github.llamalad7.mixinextras:mixinextras-common:0.2.0-beta.8"))
 
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
     // We depend on fabric loader here to use the fabric @Environment annotations
@@ -24,9 +24,9 @@ dependencies {
 
     //Common create compat,
     //We just use a version from a platform and hope the classes exist on both versions and mixins apply correctly
-    // modCompileOnly("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}")
-    //     { exclude group: 'com.github.AlphaMode', module: 'fakeconfigtoml' }
-    // modCompileOnly("com.jozufozu.flywheel:flywheel-fabric-${minecraft_version}:0.6.8.a-4")
+    modCompileOnly("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}")
+        { exclude group: 'com.github.AlphaMode', module: 'fakeconfigtoml' }
+    modCompileOnly("com.jozufozu.flywheel:flywheel-fabric-${minecraft_version}:0.6.9-4")
 }
 
 architectury {

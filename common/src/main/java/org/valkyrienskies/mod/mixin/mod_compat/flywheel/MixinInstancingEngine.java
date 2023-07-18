@@ -1,15 +1,14 @@
 package org.valkyrienskies.mod.mixin.mod_compat.flywheel;
 
-/*
 import com.jozufozu.flywheel.backend.RenderLayer;
 import com.jozufozu.flywheel.backend.instancing.instancing.InstancedMaterialGroup;
 import com.jozufozu.flywheel.backend.instancing.instancing.InstancingEngine;
 import com.jozufozu.flywheel.core.shader.WorldProgram;
-import com.mojang.math.Matrix4f;
 import java.util.stream.Stream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.Shadow;
@@ -33,4 +32,3 @@ public abstract class MixinInstancingEngine<P extends WorldProgram> implements M
         });
     }
 }
-*/

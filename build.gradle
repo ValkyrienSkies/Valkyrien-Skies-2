@@ -89,6 +89,11 @@ subprojects {
             maven { url = "https://maven.tterrag.com/" } // Registrate, Forge Create and Flywheel
             maven { url = "https://maven.cafeteria.dev/releases" } // Fake Player API
             maven { url = "https://maven.jamieswhiteshirt.com/libs-release" } // Reach Entity Attributes
+            maven { url = "https://mvn.devos.one/#/snapshots/" } // Create Fabric
+            maven {
+                url = "https://jitpack.io"
+                content { includeGroup("com.github.llamalad7.mixinextras") }
+            } // MixinExtras smh my head
         }
     }
 

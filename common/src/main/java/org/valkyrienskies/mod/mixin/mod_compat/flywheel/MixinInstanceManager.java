@@ -1,6 +1,5 @@
 package org.valkyrienskies.mod.mixin.mod_compat.flywheel;
 
-/*
 import com.jozufozu.flywheel.api.instance.DynamicInstance;
 import com.jozufozu.flywheel.api.instance.TickableInstance;
 import com.jozufozu.flywheel.backend.instancing.InstanceManager;
@@ -32,7 +31,7 @@ public class MixinInstanceManager {
             VectorConversionsMCKt.toJOMLD(receiver.getWorldPosition())
         );
 
-        return new BlockPos(v.x, v.y, v.z);
+        return BlockPos.containing(v.x, v.y, v.z);
     }
 
     @Redirect(
@@ -47,8 +46,7 @@ public class MixinInstanceManager {
             receiver.getWorldPosition(),
             VectorConversionsMCKt.toJOMLD(receiver.getWorldPosition()));
 
-        return new BlockPos(v.x, v.y, v.z);
+        return BlockPos.containing(v.x, v.y, v.z);
     }
 
 }
-*/
