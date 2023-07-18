@@ -1,7 +1,5 @@
 package org.valkyrienskies.mod.common
 
-import net.minecraft.core.Registry
-import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceKey
@@ -12,7 +10,6 @@ import net.minecraft.world.item.CreativeModeTab
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.block.Block
-import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.entity.BlockEntityType
 import org.valkyrienskies.core.api.ships.setAttachment
 import org.valkyrienskies.core.apigame.VSCore
@@ -68,23 +65,19 @@ object ValkyrienSkiesMod {
         }
     }
 
-    fun registerCreativeTab() {
-        Registry.register(
-            BuiltInRegistries.CREATIVE_MODE_TAB,
-            VS_CREATIVE_TAB,
-            CreativeModeTab.builder(CreativeModeTab.Row.TOP, 0)
-                .title(Component.translatable("itemGroup.valkyrienSkies"))
-                .icon { ItemStack(SHIP_CREATOR_ITEM) }
-                .displayItems { _, output ->
-                    output.accept(TEST_CHAIR_ITEM)
-                    output.accept(TEST_HINGE_ITEM)
-                    output.accept(TEST_FLAP_ITEM)
-                    output.accept(TEST_WING_ITEM)
-                    output.accept(SHIP_CREATOR_ITEM)
-                    output.accept(SHIP_ASSEMBLER_ITEM)
-                    output.accept(SHIP_CREATOR_ITEM_SMALLER)
-                }
-                .build()
-        )
+    fun createCreativeTab(): CreativeModeTab {
+        return CreativeModeTab.builder(CreativeModeTab.Row.TOP, 0)
+            .title(Component.translatable("itemGroup.valkyrienSkies"))
+            .icon { ItemStack(SHIP_CREATOR_ITEM) }
+            .displayItems { _, output ->
+                output.accept(TEST_CHAIR_ITEM)
+                output.accept(TEST_HINGE_ITEM)
+                output.accept(TEST_FLAP_ITEM)
+                output.accept(TEST_WING_ITEM)
+                output.accept(SHIP_CREATOR_ITEM)
+                output.accept(SHIP_ASSEMBLER_ITEM)
+                output.accept(SHIP_CREATOR_ITEM_SMALLER)
+            }
+            .build()
     }
 }

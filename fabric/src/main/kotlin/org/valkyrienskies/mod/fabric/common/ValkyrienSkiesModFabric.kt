@@ -119,7 +119,11 @@ class ValkyrienSkiesModFabric : ModInitializer {
             ValkyrienSkiesMod.TEST_HINGE_BLOCK_ENTITY_TYPE
         )
 
-        ValkyrienSkiesMod.registerCreativeTab()
+        Registry.register(
+            BuiltInRegistries.CREATIVE_MODE_TAB,
+            ValkyrienSkiesMod.VS_CREATIVE_TAB,
+            ValkyrienSkiesMod.createCreativeTab()
+        )
 
         CommandRegistrationCallback.EVENT.register { dispatcher, _, _ ->
             VSCommands.registerServerCommands(dispatcher)
