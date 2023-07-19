@@ -1,0 +1,59 @@
+name: Compatibility issue
+description: Let us know about a bug that occurs when another mod is installed
+title: '<title>'
+labels: compat
+assignees: []
+body:
+- type: markdown
+  attributes:
+    value: |
+      **Note:** do not report issues with the following mods:
+      - Optifine
+      - Magma Server (maybe try Arclight?)
+- type: input
+  attributes:
+    label: Mod Name
+    description: The name of the mod that causes the compatibility issue
+  validations:
+    required: true
+- type: checkboxes
+  attributes:
+    label: This issue occurs when only Valkyrien Skies, addons, and the mod I have specified are installed and no other mods
+    options:
+      - label: I have tested this issue and it occurs with only Valkyrien Skies, addons, and the mod I have specified
+- type: dropdown
+  attributes:
+    label: Minecraft Version
+    description: What Minecraft version does this issue occur on?
+    options:
+      - 1.16
+      - 1.18
+      - 1.19
+  validations:
+    required: true
+- type: dropdown
+  attributes:
+    label: Mod Loader
+    description: What mod loader does this issue occur on?
+    options:
+      - Forge
+      - Fabric
+      - Quilt
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Issue description
+    description: Describe what happens, and what you expect to happen instead
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Issue reproduction
+    description: Describe how to reproduce your issue
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Logs
+    description: Go to `.minecraft/logs` and drag and drop the `latest.log` and `debug.log` file into this text field

@@ -1,0 +1,48 @@
+name: Bug report
+description: Let us know about a bug that occurs without other mods
+title: '<title>'
+labels: bug
+assignees: []
+body:
+- type: checkboxes
+  attributes:
+    label: This issue occurs when only Valkyrien Skies and addons are installed and no other mods
+    options:
+      - label: I have tested this issue and it occurs when no other mods are installed
+        required: true
+- type: dropdown
+  attributes:
+    label: Minecraft Version
+    description: What Minecraft version does this issue occur on?
+    options:
+      - 1.16
+      - 1.18
+      - 1.19
+  validations:
+    required: true
+- type: dropdown
+  attributes:
+    label: Mod Loader
+    description: What mod loader does this issue occur on?
+    options:
+      - Forge
+      - Fabric
+      - Quilt
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Issue description
+    description: Describe what happens, and what you expect to happen instead
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Issue reproduction
+    description: Describe how to reproduce your issue
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Logs
+    description: Go to `.minecraft/logs` and drag and drop the `latest.log` and `debug.log` file into this text field
