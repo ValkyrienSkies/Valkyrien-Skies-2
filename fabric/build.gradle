@@ -65,7 +65,8 @@ dependencies {
     // modImplementation("curse.maven:cc-restitched-462672:3908334")
 
     // Create compat
-    modImplementation("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}") {  }
+    modImplementation("curse.maven:forge-config-api-port-fabric-547434:4583000") // Gradle shenanigans
+    modImplementation("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}")
     // modImplementation("com.jozufozu.flywheel:flywheel-fabric-${minecraft_version}:0.6.9-4")
     modImplementation("com.tterrag.registrate_fabric:Registrate:${registrate_version}")
     // modImplementation("io.github.fabricators_of_create.Porting-Lib:porting-lib:${port_lib_version}")
