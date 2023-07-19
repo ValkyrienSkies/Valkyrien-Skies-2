@@ -18,7 +18,6 @@
     "feature.block_placement_orientation.MixinBlockItem",
     "feature.block_placement_orientation.MixinBlockPlaceContext",
     "feature.clip_replace.MixinLevel",
-    "feature.commands.MixinArgumentTypes",
     "feature.commands.MixinArgumentTypeInfos",
     "feature.commands.MixinCommandSourceStack",
     "feature.conduit_fix.ConduitMixin",

@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Objects;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
@@ -31,7 +30,7 @@ public class MixinBlockItem {
                 final Double mass =
                     Objects.requireNonNull(BlockStateInfo.INSTANCE.get(item.getBlock().defaultBlockState()))
                         .getFirst();
-                list.add(new TranslatableComponent("tooltip.valkyrienskies.mass")
+                list.add(Component.translatable("tooltip.valkyrienskies.mass")
                     .append(VSGameConfig.CLIENT.getTooltip().getUseImperialUnits() ?
                         getImperialText(mass) : ": " + mass + "kg").withStyle(ChatFormatting.DARK_GRAY));
             } catch (final Exception ignored) {

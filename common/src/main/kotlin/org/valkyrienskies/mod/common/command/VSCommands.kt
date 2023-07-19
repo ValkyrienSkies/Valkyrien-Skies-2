@@ -12,7 +12,7 @@ import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.arguments.EntityArgument
 import net.minecraft.commands.arguments.coordinates.BlockPosArgument
 import net.minecraft.commands.arguments.coordinates.Vec3Argument
-import net.minecraft.network.chat.TranslatableComponent
+import net.minecraft.network.chat.Component
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.phys.BlockHitResult
 import org.joml.Vector3d
@@ -43,16 +43,6 @@ object VSCommands {
     private const val GET_SHIP_ONLY_USABLE_BY_ENTITIES_MESSAGE = "command.valkyrienskies.get_ship.only_usable_by_entities"
     private const val TELEPORTED_MULTIPLE_SHIPS_SUCCESS = "command.valkyrienskies.teleport.multiple_ship_success"
     private const val TELEPORT_FIRST_ARG_CAN_ONLY_INPUT_1_SHIP = "command.valkyrienskies.mc_teleport.can_only_teleport_to_one_ship"
-
-    fun bootstrap() {
-        ArgumentTypes.register("valkyrienskies:ship",
-            ShipArgument::class.java,
-            ShipArgument.Serializer)
-
-        ArgumentTypes.register("valkyrienskies:relative_vector",
-            RelativeVector3Argument::class.java,
-            EmptyArgumentSerializer(::RelativeVector3Argument))
-    }
 
     private fun literal(name: String) =
         LiteralArgumentBuilder.literal<VSCommandSource>(name)
