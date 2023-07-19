@@ -25,6 +25,7 @@
     "feature.dispensers.MixinDefaultDispenseItemBehavior",
     "feature.distance_replace.MixinEntity",
     "feature.entity_collision.MixinEntity",
+    "feature.entity_collision.MixinPlayer",
     "feature.explosions.MixinExplosion",
     "feature.fire_between_ship_and_world.LavaFluidMixin",
     "feature.fluid_escaping_ship_config.MixinFlowingFluid",
