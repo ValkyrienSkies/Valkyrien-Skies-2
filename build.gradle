@@ -56,16 +56,6 @@ subprojects {
 
     repositories {
         mavenCentral()
-        maven {
-            name = "Valkyrien Skies Internal"
-            url = project.vs_maven_url ?: 'https://maven.valkyrienskies.org'
-            if (project.vs_maven_username && project.vs_maven_password) {
-                credentials {
-                    username = project.vs_maven_username
-                    password = project.vs_maven_password
-                }
-            }
-        }
         if (!project.block_external_repositories) {
             mavenLocal()
             maven {
@@ -94,6 +84,16 @@ subprojects {
                 url = "https://jitpack.io"
                 content { includeGroup("com.github.llamalad7.mixinextras") }
             } // MixinExtras smh my head
+        }
+        maven {
+            name = "Valkyrien Skies Internal"
+            url = project.vs_maven_url ?: 'https://maven.valkyrienskies.org'
+            if (project.vs_maven_username && project.vs_maven_password) {
+                credentials {
+                    username = project.vs_maven_username
+                    password = project.vs_maven_password
+                }
+            }
         }
     }
 
