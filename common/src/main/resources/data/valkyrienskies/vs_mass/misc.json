@@ -49,7 +49,7 @@
   },
   {
     "block": "minecraft:coal_block",
-    "mass": 140
+    "mass": 1400.0
   },
   {
     "block": "minecraft:netherite_block",
