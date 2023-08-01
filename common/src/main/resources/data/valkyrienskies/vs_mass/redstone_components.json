@@ -41,11 +41,11 @@
   },
   {
     "block": "minecraft:piston_head",
-    "mass": 0.0
+    "mass": 0.1
   },
   {
     "block": "minecraft:moving_piston",
-    "mass": 0.0
+    "mass": 0.1
   },
   {
     "block": "minecraft:tnt",
@@ -97,7 +97,7 @@
   },
   {
     "block": "minecraft:tripwire",
-    "mass": 0.0
+    "mass": 0.1
   },
   {
     "block": "minecraft:daylight_detector",
