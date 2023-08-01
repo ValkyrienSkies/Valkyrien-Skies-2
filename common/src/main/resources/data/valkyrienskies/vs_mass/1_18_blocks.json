@@ -1,7 +1,7 @@
 [
   {
     "block": "minecraft:light",
-    "mass": 0.0
+    "mass": 0.1
   },
   {
     "block": "minecraft:rooted_dirt",
