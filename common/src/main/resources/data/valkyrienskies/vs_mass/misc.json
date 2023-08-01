@@ -1,35 +1,35 @@
 [
   {
     "tag": "minecraft:fire",
-    "mass": 0.0
+    "mass": 0.1
   },
   {
     "tag": "minecraft:portals",
-    "mass": 0.0
+    "mass": 0.1
   },
   {
     "block": "minecraft:bedrock",
-    "mass": 0.0
+    "mass": 3000.0
   },
   {
     "block": "minecraft:barrier",
-    "mass": 0.0
+    "mass": 0.1
   },
   {
     "block": "minecraft:command_block",
-    "mass": 0.0
+    "mass": 0.1
   },
   {
     "block": "minecraft:chain_command_block",
-    "mass": 0.0
+    "mass": 0.1
   },
   {
     "block": "minecraft:repeating_command_block",
-    "mass": 0.0
+    "mass": 0.1
   },
   {
     "block": "minecraft:structure_block",
-    "mass": 0.0
+    "mass": 0.1
   },
   {
     "block": "minecraft:gold_block",
@@ -105,7 +105,7 @@
   },
   {
     "block": "minecraft:cobweb",
-    "mass": 0.0
+    "mass": 0.1
   },
   {
     "block": "minecraft:hay_block",
