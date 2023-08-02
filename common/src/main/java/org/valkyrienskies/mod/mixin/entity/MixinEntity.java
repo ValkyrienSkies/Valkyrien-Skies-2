@@ -2,7 +2,6 @@ package org.valkyrienskies.mod.mixin.entity;
 
 import static org.valkyrienskies.mod.common.util.VectorConversionsMCKt.toJOML;
 
-import java.util.Set;
 import net.minecraft.CrashReport;
 import net.minecraft.CrashReportCategory;
 import net.minecraft.ReportedException;
@@ -19,16 +18,14 @@ import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
-import org.apache.logging.log4j.LogManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.joml.Vector3i;
+import org.joml.Vector3ic;
 import org.joml.primitives.AABBd;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -39,9 +36,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.core.api.ships.LoadedShip;
+import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
-import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
 import org.valkyrienskies.core.impl.game.ships.AirPocketForest;
 import org.valkyrienskies.core.impl.game.ships.AirPocketForestImpl;
 import org.valkyrienskies.core.impl.game.ships.ShipObjectClient;
@@ -213,72 +210,41 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     }
 
     @Shadow
-    @Final
-    private Set<TagKey<Fluid>> fluidOnEyes;
-
-    @Shadow
     public abstract Vec3 getEyePosition();
 
     @Shadow
-    protected boolean wasTouchingWater;
+    public abstract Vec3 getPosition(float f);
 
-    /**
-     * @author Potato
-     * @reason Needed to prevent le drowning in le air pocket
-     */
-    @Overwrite
-    public boolean isEyeInFluid(TagKey<Fluid> tagKey) {
-        if (isInSealedShip(true)) {
-            return false;
-        }
-        return this.fluidOnEyes.contains(tagKey);
+    @Inject(method = "isUnderWater", at = @At(value = "RETURN"), cancellable = true)
+    private void isUnderWaterInAirPocket(CallbackInfoReturnable<Boolean> cir) {
+        cir.setReturnValue(cir.getReturnValue() && !isInAirPocket());
     }
 
-    /**
-     * @author Potato
-     * @reason Needed to prevent le swimming in le submarine
-     */
-    @Overwrite
-    public boolean isInWater() {
-        if (isInSealedShip(false)) {
-            return false;
+    @Inject(method = "isEyeInFluid", at = @At(value = "RETURN"), cancellable = true)
+    private void isEyeInFluidInAirPocket(TagKey<Fluid> tagKey, CallbackInfoReturnable<Boolean> cir) {
+        if (isInAirPocket()) {
+            cir.setReturnValue(false);
         }
-        return this.wasTouchingWater;
     }
 
     @Unique
-    private boolean isInSealedShip(boolean head) {
-        if (level.isClientSide) {
-            return false;
-        }
-
-        ServerLevel serverLevel = (ServerLevel) level;
-
-        ServerShipWorldCore shipObjectWorld = VSGameUtilsKt.getShipObjectWorld(serverLevel);
-
-        Iterable<LoadedServerShip> ships = shipObjectWorld.getLoadedShips().getIntersecting(VectorConversionsMCKt.toJOML(this.getBoundingBox().inflate(2)));
-
-        for (LoadedServerShip ship : ships) {
-
-            Vector3d shipyardPosition;
-            if (head) {
-                shipyardPosition = ship.getWorldToShip().transformPosition(VectorConversionsMCKt.toJOML(this.getEyePosition()));
-            } else {
-                shipyardPosition = ship.getWorldToShip().transformPosition(new Vector3d(this.getX(), this.getY(), this.getZ()));
-            }
-
-            Vector3d shipyardBlockPositionD = shipyardPosition.add(0.5, 0.5, 0.5).round();
-
-            Vector3i shipyardBlockPosition = new Vector3i((int) shipyardBlockPositionD.x, (int) shipyardBlockPositionD.y, (int) shipyardBlockPositionD.z);
-
-            if (ship.getAttachment(AirPocketForest.class) != null) {
-                AirPocketForestImpl airPocketForest = (AirPocketForestImpl) ship.getAttachment(AirPocketForest.class);
-
-                if (airPocketForest.isInAirPocket(shipyardBlockPosition.x, shipyardBlockPosition.y, shipyardBlockPosition.z)) {
-                    LogManager.getLogger("Air Pocket").info("Entity is in air pocket " + shipyardBlockPosition);
-                    return true;
+    private boolean isInAirPocket() {
+        if (level.isClientSide) return false;
+        if (this.getEyePosition() != null) {
+            VSGameUtilsKt.getShipsIntersecting(((ServerLevel) level), this.getBoundingBox());
+            Iterable<ServerShip> ships = VSGameUtilsKt.getShipsIntersecting(((ServerLevel) level), this.getBoundingBox());
+            for (ServerShip ship : ships) {
+                if (ship instanceof LoadedServerShip loadedShip) {
+                    if (loadedShip.getAttachment(AirPocketForest.class) != null) {
+                        AirPocketForestImpl airForest = (AirPocketForestImpl) loadedShip.getAttachment(AirPocketForest.class);
+                        assert airForest != null;
+                        Vector3dc eyeTransformedPos = loadedShip.getTransform().getWorldToShip().transformPosition(VectorConversionsMCKt.toJOML(getEyePosition())).round();
+                        Vector3ic eyeTransformedBlockPos = new Vector3i((int) eyeTransformedPos.x(), (int) eyeTransformedPos.y(), (int) eyeTransformedPos.z());
+                        if (airForest.isInAirPocket(eyeTransformedBlockPos.x(), eyeTransformedBlockPos.y(), eyeTransformedBlockPos.z())) {
+                            return true;
+                        }
+                    }
                 }
-
             }
         }
         return false;

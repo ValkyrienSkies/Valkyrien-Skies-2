@@ -128,23 +128,46 @@ object ShipSplitter {
             if (loadedShip.getAttachment(AirPocketForest::class.java) == null) {
                 val airPocketForest : AirPocketForestImpl = loadedShip.getAttachment(AirPocketForest::class.java) as AirPocketForestImpl
                 if (airPocketForest.toUpdateOutsideAir()) {
-                    if (loadedShip.shipAABB != null) {
-                        val airAABB: AABBic = loadedShip.shipAABB!!.expand(1, AABBi())
-                        val airBlocks: MutableSet<Vector3ic> = HashSet()
-                        for (x in airAABB.minX()..airAABB.maxX()) {
-                            for (y in airAABB.minY()..airAABB.maxY()) {
-                                for (z in airAABB.minZ()..airAABB.maxZ()) {
-                                    if (loadedShip.shipAABB!!.containsPoint(x, y, z)) {
-                                        continue
-                                    }
-                                    airPocketForest!!.newVertex(x, y, z, false)
-                                    airBlocks.add(Vector3i(x, y, z))
+                    val exclusion: AABBic = loadedShip.shipAABB?.expand(-1, AABBi()) ?: continue
+                    val borderAABB: AABBic = AABBi(loadedShip.shipAABB)
+                    val airBlocks: MutableSet<Vector3ic> = HashSet()
+
+                    for (x in borderAABB.minX()..borderAABB.maxX()) {
+                        for (y in borderAABB.minY()..borderAABB.maxY()) {
+                            for (z in borderAABB.minZ()..borderAABB.maxZ()) {
+                                if (exclusion.containsPoint(x, y, z)) {
+                                    continue
                                 }
+                                if (!self.getBlockState(BlockPos(x,y,z)).isAir) {
+                                    continue
+                                }
+                                airPocketForest.newVertex(x, y, z, false)
+                                airBlocks.add(Vector3i(x, y, z))
                             }
                         }
-                        airPocketForest!!.updateOutsideAirVertices(airBlocks)
-                        airPocketForest!!.shouldUpdateOutsideAir = false
                     }
+
+                    airPocketForest.updateOutsideAirVertices(airBlocks)
+                    airPocketForest.shouldUpdateOutsideAir = false
+
+
+                    // if (loadedShip.shipAABB != null) {
+                    //     val airAABB: AABBic = loadedShip.shipAABB!!.expand(1, AABBi())
+                    //     val airBlocks: MutableSet<Vector3ic> = HashSet()
+                    //     for (x in airAABB.minX()..airAABB.maxX()) {
+                    //         for (y in airAABB.minY()..airAABB.maxY()) {
+                    //             for (z in airAABB.minZ()..airAABB.maxZ()) {
+                    //                 if (loadedShip.shipAABB!!.containsPoint(x, y, z)) {
+                    //                     continue
+                    //                 }
+                    //                 airPocketForest!!.newVertex(x, y, z, false)
+                    //                 airBlocks.add(Vector3i(x, y, z))
+                    //             }
+                    //         }
+                    //     }
+                    //     airPocketForest!!.updateOutsideAirVertices(airBlocks)
+                    //     airPocketForest!!.shouldUpdateOutsideAir = false
+                    // }
                 }
             }
         }

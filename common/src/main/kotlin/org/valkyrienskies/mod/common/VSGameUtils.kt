@@ -400,6 +400,8 @@ fun Level?.getWorldCoordinates(blockPos: BlockPos, pos: Vector3d): Vector3d {
 fun Level?.getShipsIntersecting(aabb: AABB): Iterable<Ship> = allShips.getIntersecting(aabb.toJOML())
 fun Level?.getShipsIntersecting(aabb: AABBdc): Iterable<Ship> = allShips.getShipDataIntersecting(aabb)
 
+fun ServerLevel?.getShipsIntersecting(aabb: AABB): Iterable<ServerShip> = shipObjectWorld.loadedShips.getIntersecting(aabb.toJOML())
+
 fun Level?.transformAabbToWorld(aabb: AABB): AABB = transformAabbToWorld(aabb.toJOML()).toMinecraft()
 fun Level?.transformAabbToWorld(aabb: AABBd) = this?.transformAabbToWorld(aabb, aabb) ?: aabb
 fun Level.transformAabbToWorld(aabb: AABBdc, dest: AABBd): AABBd {
