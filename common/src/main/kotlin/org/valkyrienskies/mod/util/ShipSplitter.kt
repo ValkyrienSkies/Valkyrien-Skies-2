@@ -149,8 +149,6 @@ object ShipSplitter {
 
                     airPocketForest.updateOutsideAirVertices(airBlocks)
                     airPocketForest.shouldUpdateOutsideAir = false
-
-
                     // if (loadedShip.shipAABB != null) {
                     //     val airAABB: AABBic = loadedShip.shipAABB!!.expand(1, AABBi())
                     //     val airBlocks: MutableSet<Vector3ic> = HashSet()
