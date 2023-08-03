@@ -125,11 +125,21 @@ object ShipSplitter {
 
         // todo: Better check, I think this is pretty inefficient...
         for (loadedShip in shipObjectWorld.loadedShips) {
-            if (loadedShip.getAttachment(AirPocketForest::class.java) == null) {
+            if (loadedShip.getAttachment(AirPocketForest::class.java) != null) {
                 val airPocketForest : AirPocketForestImpl = loadedShip.getAttachment(AirPocketForest::class.java) as AirPocketForestImpl
+
+                for (vertex in airPocketForest.sealedAirBlocks.keys) {
+                    if (!airPocketForest.currentShipAABB.containsPoint(vertex)) {
+                        airPocketForest.delVertex(vertex.x(), vertex.y(), vertex.z(), true)
+                    }
+                }
+
                 if (airPocketForest.toUpdateOutsideAir()) {
-                    val exclusion: AABBic = loadedShip.shipAABB?.expand(-1, AABBi()) ?: continue
+                    var exclusion: AABBic = loadedShip.shipAABB?.expand(-1, AABBi()) ?: continue
                     val borderAABB: AABBic = AABBi(loadedShip.shipAABB)
+                    if (borderAABB.maxX() - borderAABB.minX() < 2 || borderAABB.maxY() - borderAABB.minY() < 2 || borderAABB.maxZ() - borderAABB.minZ() < 2) {
+                        exclusion = AABBi()
+                    }
                     val airBlocks: MutableSet<Vector3ic> = HashSet()
 
                     for (x in borderAABB.minX()..borderAABB.maxX()) {
@@ -141,7 +151,6 @@ object ShipSplitter {
                                 if (!self.getBlockState(BlockPos(x,y,z)).isAir) {
                                     continue
                                 }
-                                airPocketForest.newVertex(x, y, z, false)
                                 airBlocks.add(Vector3i(x, y, z))
                             }
                         }
