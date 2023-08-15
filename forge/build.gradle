@@ -100,11 +100,11 @@ dependencies {
         transitive = false
     }
 
-    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api_krunch:1.0.0+eb3ae45554") {
+    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api_krunch:1.0.0+dfd312c52f") {
         transitive = false
     }
 
-    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api:1.0.0+0b6f5db802") {
+    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api:1.0.0+afc0ffa218") {
         transitive = false
     }
 
