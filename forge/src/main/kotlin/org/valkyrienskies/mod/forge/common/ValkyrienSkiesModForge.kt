@@ -29,6 +29,7 @@ import org.valkyrienskies.core.apigame.VSCoreFactory
 import org.valkyrienskies.core.impl.config.VSConfigClass
 import org.valkyrienskies.core.impl.config.VSCoreConfig
 import org.valkyrienskies.mod.client.EmptyRenderer
+import org.valkyrienskies.mod.client.PhysicsEmptyRenderer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.block.TestChairBlock
 import org.valkyrienskies.mod.common.block.TestFlapBlock
@@ -167,8 +168,7 @@ class ValkyrienSkiesModForge {
 
     private fun entityRenderers(event: EntityRenderersEvent.RegisterRenderers) {
         event.registerEntityRenderer(SHIP_MOUNTING_ENTITY_REGISTRY.get(), ::EmptyRenderer)
-        // TODO: Add a renderer for physics entity
-        event.registerEntityRenderer(PHYSICS_ENTITY_TYPE_REGISTRY.get(), ::EmptyRenderer)
+        event.registerEntityRenderer(PHYSICS_ENTITY_TYPE_REGISTRY.get(), ::PhysicsEmptyRenderer)
     }
 
     private fun registerBlockAndItem(registryName: String, blockSupplier: () -> Block): RegistryObject<Block> {
