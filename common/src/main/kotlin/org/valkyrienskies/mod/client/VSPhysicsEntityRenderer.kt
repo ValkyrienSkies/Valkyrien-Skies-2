@@ -7,16 +7,17 @@ import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.entity.EntityRenderer
 import net.minecraft.client.renderer.entity.EntityRendererProvider
 import net.minecraft.client.renderer.texture.OverlayTexture
-import net.minecraft.client.renderer.texture.TextureAtlas
 import net.minecraft.core.BlockPos
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.world.inventory.InventoryMenu
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.RenderShape.INVISIBLE
 import net.minecraft.world.level.block.RenderShape.MODEL
 import org.valkyrienskies.mod.common.entity.VSPhysicsEntity
+import org.valkyrienskies.mod.common.util.toMinecraft
 import java.util.Random
 
-class PhysicsEmptyRenderer(context: EntityRendererProvider.Context) : EntityRenderer<VSPhysicsEntity>(context) {
+class VSPhysicsEntityRenderer(context: EntityRendererProvider.Context) : EntityRenderer<VSPhysicsEntity>(context) {
     override fun render(
         fallingBlockEntity: VSPhysicsEntity, f: Float, g: Float, poseStack: PoseStack,
         multiBufferSource: MultiBufferSource, i: Int
@@ -34,6 +35,7 @@ class PhysicsEmptyRenderer(context: EntityRendererProvider.Context) : EntityRend
         }
         poseStack.pushPose()
         val blockPos = BlockPos(fallingBlockEntity.x, fallingBlockEntity.boundingBox.maxY, fallingBlockEntity.z)
+        poseStack.mulPose(fallingBlockEntity.rotation.toMinecraft())
         poseStack.translate(-0.5, 0.0, -0.5)
         val blockRenderDispatcher = Minecraft.getInstance().blockRenderer
         blockRenderDispatcher.modelRenderer.tesselateBlock(
@@ -47,6 +49,6 @@ class PhysicsEmptyRenderer(context: EntityRendererProvider.Context) : EntityRend
     }
 
     override fun getTextureLocation(entity: VSPhysicsEntity): ResourceLocation {
-        return TextureAtlas.LOCATION_BLOCKS
+        return InventoryMenu.BLOCK_ATLAS
     }
 }
