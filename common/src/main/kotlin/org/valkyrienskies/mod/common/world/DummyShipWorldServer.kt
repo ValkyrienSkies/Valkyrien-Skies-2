@@ -48,6 +48,10 @@ object DummyShipWorldServer : ServerShipWorldCore {
         TODO("Not yet implemented")
     }
 
+    override fun allocateShipId(dimensionId: DimensionId): ShipId {
+        TODO("Not yet implemented")
+    }
+
     override fun createNewConstraint(vsConstraint: VSConstraint): VSConstraintId? {
         TODO("Not yet implemented")
     }

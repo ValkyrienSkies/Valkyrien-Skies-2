@@ -25,7 +25,7 @@ import net.minecraft.world.item.Item.Properties
 import net.minecraft.world.level.block.Block
 import org.valkyrienskies.core.apigame.VSCoreFactory
 import org.valkyrienskies.mod.client.EmptyRenderer
-import org.valkyrienskies.mod.client.PhysicsEmptyRenderer
+import org.valkyrienskies.mod.client.VSPhysicsEntityRenderer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.block.TestChairBlock
 import org.valkyrienskies.mod.common.block.TestFlapBlock
@@ -191,7 +191,7 @@ class ValkyrienSkiesModFabric : ModInitializer {
         EntityRendererRegistry.register(
             ValkyrienSkiesMod.PHYSICS_ENTITY_TYPE
         ) { context: Context ->
-            PhysicsEmptyRenderer(
+            VSPhysicsEntityRenderer(
                 context
             )
         }
