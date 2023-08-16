@@ -189,6 +189,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     private void preStopServer(final CallbackInfo ci) {
         if (vsPipeline != null) {
             vsPipeline.setDeleteResources(true);
+            vsPipeline.setArePhysicsRunning(true);
         }
         shipWorld = null;
     }
