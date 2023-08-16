@@ -37,8 +37,10 @@ import org.valkyrienskies.mod.common.config.VSEntityHandlerDataLoader
 import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.config.VSKeyBindings
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
+import org.valkyrienskies.mod.common.entity.VSPhysicsEntity
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager
 import org.valkyrienskies.mod.common.hooks.VSGameEvents
+import org.valkyrienskies.mod.common.item.PhysicsEntityCreatorItem
 import org.valkyrienskies.mod.common.item.ShipAssemblerItem
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
 import java.util.concurrent.CompletableFuture
@@ -69,12 +71,20 @@ class ValkyrienSkiesModFabric : ModInitializer {
             { VSGameConfig.SERVER.miniShipSize },
             { VSGameConfig.SERVER.minScaling }
         )
+        ValkyrienSkiesMod.PHYSICS_ENTITY_CREATOR_ITEM = PhysicsEntityCreatorItem(Properties().tab(CreativeModeTab.TAB_MISC))
 
         ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE = EntityType.Builder.of(
             ::ShipMountingEntity,
             MobCategory.MISC
         ).sized(.3f, .3f)
             .build(ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_mounting_entity").toString())
+
+        ValkyrienSkiesMod.PHYSICS_ENTITY_TYPE = EntityType.Builder.of(
+            ::VSPhysicsEntity,
+            MobCategory.MISC
+        ).sized(.3f, .3f)
+            .build(ResourceLocation(ValkyrienSkiesMod.MOD_ID, "vs_physics_entity").toString())
+
         ValkyrienSkiesMod.TEST_HINGE_BLOCK_ENTITY_TYPE =
             FabricBlockEntityTypeBuilder.create(::TestHingeBlockEntity, ValkyrienSkiesMod.TEST_HINGE).build()
 
@@ -111,8 +121,16 @@ class ValkyrienSkiesModFabric : ModInitializer {
             ValkyrienSkiesMod.SHIP_CREATOR_ITEM_SMALLER
         )
         Registry.register(
+            Registry.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "physics_entity_creator"),
+            ValkyrienSkiesMod.PHYSICS_ENTITY_CREATOR_ITEM
+        )
+        Registry.register(
             Registry.ENTITY_TYPE, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_mounting_entity"),
             ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE
+        )
+        Registry.register(
+            Registry.ENTITY_TYPE, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "vs_physics_entity"),
+            ValkyrienSkiesMod.PHYSICS_ENTITY_TYPE
         )
         Registry.register(
             Registry.BLOCK_ENTITY_TYPE, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "test_hinge_block_entity"),
@@ -163,6 +181,15 @@ class ValkyrienSkiesModFabric : ModInitializer {
         // Register the ship mounting entity renderer
         EntityRendererRegistry.register(
             ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE
+        ) { context: Context ->
+            EmptyRenderer(
+                context
+            )
+        }
+
+        // TODO: Add a proper debug renderer
+        EntityRendererRegistry.register(
+            ValkyrienSkiesMod.PHYSICS_ENTITY_TYPE
         ) { context: Context ->
             EmptyRenderer(
                 context
