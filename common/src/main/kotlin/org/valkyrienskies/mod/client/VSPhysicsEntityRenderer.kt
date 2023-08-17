@@ -19,7 +19,7 @@ import java.util.Random
 
 class VSPhysicsEntityRenderer(context: EntityRendererProvider.Context) : EntityRenderer<VSPhysicsEntity>(context) {
     override fun render(
-        fallingBlockEntity: VSPhysicsEntity, f: Float, g: Float, poseStack: PoseStack,
+        fallingBlockEntity: VSPhysicsEntity, f: Float, partialTick: Float, poseStack: PoseStack,
         multiBufferSource: MultiBufferSource, i: Int
     ) {
         val blockState = ValkyrienSkiesMod.TEST_SPHERE.defaultBlockState()
@@ -35,7 +35,7 @@ class VSPhysicsEntityRenderer(context: EntityRendererProvider.Context) : EntityR
         }
         poseStack.pushPose()
         val blockPos = BlockPos(fallingBlockEntity.x, fallingBlockEntity.boundingBox.maxY, fallingBlockEntity.z)
-        poseStack.mulPose(fallingBlockEntity.rotation.toMinecraft())
+        poseStack.mulPose(fallingBlockEntity.getRenderRotation(partialTick).toMinecraft())
         poseStack.translate(-0.5, -0.5, -0.5)
         val blockRenderDispatcher = Minecraft.getInstance().blockRenderer
         blockRenderDispatcher.modelRenderer.tesselateBlock(
@@ -45,7 +45,7 @@ class VSPhysicsEntityRenderer(context: EntityRendererProvider.Context) : EntityR
             ), false, Random(), blockState.getSeed(BlockPos.ZERO), OverlayTexture.NO_OVERLAY
         )
         poseStack.popPose()
-        super.render(fallingBlockEntity, f, g, poseStack, multiBufferSource, i)
+        super.render(fallingBlockEntity, f, partialTick, poseStack, multiBufferSource, i)
     }
 
     override fun getTextureLocation(entity: VSPhysicsEntity): ResourceLocation {
