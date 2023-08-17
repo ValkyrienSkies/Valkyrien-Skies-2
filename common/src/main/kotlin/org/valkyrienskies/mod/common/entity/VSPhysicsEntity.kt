@@ -28,11 +28,13 @@ import org.valkyrienskies.core.apigame.world.ServerShipWorldCore
 import org.valkyrienskies.core.impl.game.ShipTeleportDataImpl
 import org.valkyrienskies.core.impl.game.ships.ShipInertiaDataImpl
 import org.valkyrienskies.core.impl.game.ships.ShipObjectServerWorld
+import org.valkyrienskies.core.impl.game.ships.ShipTransformImpl
 import org.valkyrienskies.core.impl.util.serialization.VSJacksonUtil
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toMinecraft
+import org.valkyrienskies.mod.mixin.accessors.entity.EntityAccessor
 
 class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : Entity(type, level) {
     // Physics data, persistent
@@ -90,6 +92,7 @@ class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : Entity(
                 rotation = Quaternionf(transform.shipToWorldRotation)
                 this.physicsEntityData!!.transform = transform
             }
+            this.tryCheckInsideBlocks()
         } else {
             tickLerp()
         }
@@ -134,14 +137,9 @@ class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : Entity(
     }
 
     override fun readAdditionalSaveData(compoundTag: CompoundTag) {
-        val physicsEntityDataAsBytes: ByteArray = compoundTag.getByteArray(PHYS_DATA_NBT_KEY)
-        val physicsEntityData = getMapper().readValue<PhysicsEntityData>(physicsEntityDataAsBytes)
-        setPhysicsEntityData(physicsEntityData)
     }
 
     override fun addAdditionalSaveData(compoundTag: CompoundTag) {
-        val physicsEntityDataAsBytes = getMapper().writeValueAsBytes(physicsEntityData)
-        compoundTag.putByteArray(PHYS_DATA_NBT_KEY, physicsEntityDataAsBytes)
     }
 
     override fun getAddEntityPacket(): Packet<*> {
@@ -152,6 +150,29 @@ class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : Entity(
         val physicsEntityDataAsBytes = getMapper().writeValueAsBytes(physicsEntityData)
         compoundTag.putByteArray(PHYS_DATA_NBT_KEY, physicsEntityDataAsBytes)
         return super.saveWithoutId(compoundTag)
+    }
+
+    // Used when teleporting through nether portals to create a new entity that's almost the same as this one
+    // Note how a new shipId is generated, since this is meant to be a new copy not the exact same one
+    private fun loadForTeleport(compoundTag: CompoundTag) {
+        if (!this.level.isClientSide && physicsEntityData != null) {
+            throw IllegalStateException("This entity is already loaded!")
+        }
+        val physicsEntityDataAsBytes: ByteArray = compoundTag.getByteArray(PHYS_DATA_NBT_KEY)
+        val oldPhysicsEntityData = getMapper().readValue<PhysicsEntityData>(physicsEntityDataAsBytes)
+        val newShipId = (level.shipObjectWorld as ShipObjectServerWorld).allocateShipId(level.dimensionId)
+        val newPhysicsEntityData = PhysicsEntityData(
+            shipId = newShipId,
+            transform = oldPhysicsEntityData.transform,
+            inertiaData = oldPhysicsEntityData.inertiaData,
+            linearVelocity = oldPhysicsEntityData.linearVelocity,
+            angularVelocity = oldPhysicsEntityData.angularVelocity,
+            collisionShapeData = oldPhysicsEntityData.collisionShapeData,
+            isStatic = oldPhysicsEntityData.isStatic,
+        )
+        // Change the shipId to be something new
+        setPhysicsEntityData(newPhysicsEntityData)
+        super.load(compoundTag)
     }
 
     override fun load(compoundTag: CompoundTag) {
@@ -209,8 +230,23 @@ class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : Entity(
                 val teleportData = ShipTeleportDataImpl(newPos = newPos)
                 rotation = Quaternionf()
                 (this.level.shipObjectWorld as ShipObjectServerWorld).teleportPhysicsEntity(this.physicsEntityServer!!, teleportData)
+            } else {
+                physicsEntityData!!.transform = ShipTransformImpl.create(
+                    Vector3d(d, e, f),
+                    Vector3d(),
+                    physicsEntityData!!.transform.shipToWorldRotation,
+                )
             }
         }
+    }
+
+    // Used when teleporting through nether portals to create a new entity that's almost the same as this one
+    override fun restoreFrom(entity: Entity) {
+        val compoundTag = entity.saveWithoutId(CompoundTag())
+        compoundTag.remove("Dimension")
+        loadForTeleport(compoundTag)
+        ((this as EntityAccessor).portalCooldown) = (entity as EntityAccessor).portalCooldown
+        portalEntrancePos = entity.portalEntrancePos
     }
 
     companion object {
