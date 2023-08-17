@@ -55,7 +55,7 @@ object DummyShipWorldServer : ServerShipWorldCore {
     }
 
     override fun deletePhysicsEntity(id: ShipId) {
-        TODO("Not yet implemented")
+        // This is implemented because physics entities get deleted after the vs pipeline?
     }
 
     override fun allocateShipId(dimensionId: DimensionId): ShipId {
