@@ -93,6 +93,10 @@ object DummyShipWorldServer : ServerShipWorldCore {
         TODO("Not yet implemented")
     }
 
+    override fun teleportPhysicsEntity(physicsEntityServer: PhysicsEntityServer, teleportData: ShipTeleportData) {
+        TODO("Not yet implemented")
+    }
+
     override val dimensionToGroundBodyIdImmutable: Map<DimensionId, ShipId>
         get() = TODO("Not yet implemented")
 
