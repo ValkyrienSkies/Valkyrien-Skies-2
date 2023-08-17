@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.forge.common
 
-import net.minecraft.commands.Commands.CommandSelection.*
+import net.minecraft.commands.Commands.CommandSelection.ALL
+import net.minecraft.commands.Commands.CommandSelection.INTEGRATED
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MobCategory
@@ -10,14 +11,12 @@ import net.minecraft.world.item.Item
 import net.minecraft.world.item.Item.Properties
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.entity.BlockEntityType
-import net.minecraft.world.level.block.state.BlockBehaviour
-import net.minecraft.world.level.material.Material
 import net.minecraftforge.client.ClientRegistry
 import net.minecraftforge.client.ConfigGuiHandler.ConfigGuiFactory
 import net.minecraftforge.client.event.EntityRenderersEvent
 import net.minecraftforge.event.AddReloadListenerEvent
-import net.minecraftforge.event.TagsUpdatedEvent
 import net.minecraftforge.event.RegisterCommandsEvent
+import net.minecraftforge.event.TagsUpdatedEvent
 import net.minecraftforge.fml.ModLoadingContext
 import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus
@@ -36,6 +35,7 @@ import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.block.TestChairBlock
 import org.valkyrienskies.mod.common.block.TestFlapBlock
 import org.valkyrienskies.mod.common.block.TestHingeBlock
+import org.valkyrienskies.mod.common.block.TestSphereBlock
 import org.valkyrienskies.mod.common.block.TestWingBlock
 import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
 import org.valkyrienskies.mod.common.command.VSCommands
@@ -113,7 +113,7 @@ class ValkyrienSkiesModForge {
         TEST_HINGE_REGISTRY = registerBlockAndItem("test_hinge") { TestHingeBlock }
         TEST_FLAP_REGISTRY = registerBlockAndItem("test_flap") { TestFlapBlock }
         TEST_WING_REGISTRY = registerBlockAndItem("test_wing") { TestWingBlock }
-        TEST_SPHERE_REGISTRY = registerBlockAndItem("test_sphere") { Block(BlockBehaviour.Properties.of(Material.STONE)) }
+        TEST_SPHERE_REGISTRY = registerBlockAndItem("test_sphere") { TestSphereBlock }
         SHIP_CREATOR_ITEM_REGISTRY =
             ITEMS.register("ship_creator") {
                 ShipCreatorItem(Properties().tab(CreativeModeTab.TAB_MISC),
@@ -150,6 +150,7 @@ class ValkyrienSkiesModForge {
                 MobCategory.MISC
             ).sized(.3f, .3f)
                 .setUpdateInterval(1)
+                .clientTrackingRange(10)
                 .build(ResourceLocation(ValkyrienSkiesMod.MOD_ID, "vs_physics_entity").toString())
         }
 

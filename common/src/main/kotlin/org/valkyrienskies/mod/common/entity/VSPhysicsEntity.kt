@@ -29,6 +29,7 @@ import org.valkyrienskies.core.impl.game.ships.ShipInertiaDataImpl
 import org.valkyrienskies.core.impl.util.serialization.VSJacksonUtil
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.shipObjectWorld
+import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toMinecraft
 
 class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : Entity(type, level) {
@@ -38,10 +39,14 @@ class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : Entity(
     // The physics entity, transient, only exists server side after this entity has been added to a world
     private var physicsEntityServer: PhysicsEntityServer? = null
 
-    private var clientPos: Vector3dc? = null
-    private var clientRotation: Quaternionfc? = null
+    private var lastTickRotation: Quaternionfc? = null
+    private var rotation: Quaternionfc? = null
 
-    val rotation: Quaternionfc
+    private var lerpPos: Vector3dc? = null
+    private var lerpRot: Quaternionfc? = null
+    private var lerpSteps = 0
+
+    private val serverRotation: Quaternionfc
         get() {
             val rotationRaw = entityData.get(ROTATION_DATA)
             return Quaternionf().rotateXYZ(rotationRaw.x, rotationRaw.y, rotationRaw.z)
@@ -52,20 +57,74 @@ class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : Entity(
             throw IllegalStateException("Cannot define physicsEntityData, its already defined!")
         }
         this.physicsEntityData = physicsEntityData
+        if (!this.level.isClientSide) {
+            var defaultRot = Rotations(0.0f, 0.0f, 0.0f)
+            if (!this.level.isClientSide) {
+                val eulerAngles = physicsEntityData.transform.shipToWorldRotation.getEulerAnglesXYZ(Vector3d())
+                defaultRot = Rotations(eulerAngles.x.toFloat(), eulerAngles.y.toFloat(), eulerAngles.z.toFloat())
+            }
+            this.entityData.set(ROTATION_DATA, defaultRot)
+        }
+        lastTickRotation = Quaternionf(physicsEntityData.transform.shipToWorldRotation)
+        rotation = lastTickRotation
     }
 
     override fun tick() {
+        if (lerpPos == null) {
+            lerpPos = position().toJOML()
+            lerpRot = serverRotation
+            rotation = serverRotation
+        }
+        lastTickRotation = rotation
         if (!this.level.isClientSide) {
             val physicsEntityServerCopy = physicsEntityServer
             if (physicsEntityServerCopy != null) {
-                this.setPos(physicsEntityServerCopy.shipTransform.positionInWorld.toMinecraft())
-                val eulerAngles = physicsEntityServerCopy.shipTransform.shipToWorldRotation.getEulerAnglesXYZ(Vector3d())
+                val transform = physicsEntityServerCopy.shipTransform
+                this.setPos(transform.positionInWorld.toMinecraft())
+                val eulerAngles = transform.shipToWorldRotation.getEulerAnglesXYZ(Vector3d())
                 this.entityData.set(
                     ROTATION_DATA, Rotations(eulerAngles.x.toFloat(), eulerAngles.y.toFloat(), eulerAngles.z.toFloat())
                 )
+                rotation = Quaternionf(transform.shipToWorldRotation)
+                this.physicsEntityData!!.transform = transform
             }
+        } else {
+            tickLerp()
         }
         super.tick()
+    }
+
+    override fun lerpTo(d: Double, e: Double, f: Double, g: Float, h: Float, i: Int, bl: Boolean) {
+        this.lerpPos = Vector3d(d, e, f)
+        this.lerpRot = serverRotation
+        this.lerpSteps = CLIENT_INTERP_STEPS
+    }
+
+    private fun tickLerp() {
+        if (this.lerpSteps <= 0) {
+            return
+        } else if (this.lerpSteps == 1) {
+            setPos(lerpPos!!.x(), lerpPos!!.y(), lerpPos!!.z())
+            rotation = lerpRot
+            lerpSteps = 0
+            return
+        }
+
+        val d: Double = this.x + (this.lerpPos!!.x() - this.x) / this.lerpSteps.toDouble()
+        val e: Double = this.y + (this.lerpPos!!.y() - this.y) / this.lerpSteps.toDouble()
+        val f: Double = this.z + (this.lerpPos!!.z() - this.z) / this.lerpSteps.toDouble()
+
+        rotation = rotation!!.slerp(this.lerpRot, (1.0 - (1.0 / this.lerpSteps.toDouble())).toFloat(), Quaternionf())
+
+        --this.lerpSteps
+        this.setPos(d, e, f)
+    }
+
+    fun getRenderRotation(partialTick: Float): Quaternionfc {
+        if (lastTickRotation == null) {
+            return serverRotation
+        }
+        return lastTickRotation!!.slerp(rotation!!, partialTick, Quaternionf())
     }
 
     override fun defineSynchedData() {
@@ -127,8 +186,18 @@ class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : Entity(
         }
     }
 
+    override fun shouldRenderAtSqrDistance(d: Double): Boolean {
+        var e = this.boundingBox.size
+        if (java.lang.Double.isNaN(e)) {
+            e = 1.0
+        }
+        e *= 1024.0
+        return d < e * e
+    }
+
     companion object {
         private const val PHYS_DATA_NBT_KEY = "phys_entity_data"
+        private const val CLIENT_INTERP_STEPS = 3
 
         private val ROTATION_DATA: EntityDataAccessor<Rotations> =
             SynchedEntityData.defineId(VSPhysicsEntity::class.java, EntityDataSerializers.ROTATIONS)
