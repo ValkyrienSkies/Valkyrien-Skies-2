@@ -25,7 +25,9 @@ import org.valkyrienskies.core.apigame.physics.PhysicsEntityData
 import org.valkyrienskies.core.apigame.physics.PhysicsEntityServer
 import org.valkyrienskies.core.apigame.physics.VSSphereCollisionShapeData
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore
+import org.valkyrienskies.core.impl.game.ShipTeleportDataImpl
 import org.valkyrienskies.core.impl.game.ships.ShipInertiaDataImpl
+import org.valkyrienskies.core.impl.game.ships.ShipObjectServerWorld
 import org.valkyrienskies.core.impl.util.serialization.VSJacksonUtil
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.shipObjectWorld
@@ -193,6 +195,22 @@ class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : Entity(
         }
         e *= 1024.0
         return d < e * e
+    }
+
+    override fun moveTo(d: Double, e: Double, f: Double, g: Float, h: Float) {
+        super.moveTo(d, e, f, g, h)
+        if (!this.level.isClientSide) {
+            val physicsEntityServerCopy = physicsEntityServer
+            if (physicsEntityServerCopy != null) {
+                val newPos = Vector3d(d, e, f)
+                this.entityData.set(
+                    ROTATION_DATA, Rotations(0.0f, 0.0f, 0.0f)
+                )
+                val teleportData = ShipTeleportDataImpl(newPos = newPos)
+                rotation = Quaternionf()
+                (this.level.shipObjectWorld as ShipObjectServerWorld).teleportPhysicsEntity(this.physicsEntityServer!!, teleportData)
+            }
+        }
     }
 
     companion object {
