@@ -145,6 +145,7 @@ class ValkyrienSkiesModForge {
                 ::VSPhysicsEntity,
                 MobCategory.MISC
             ).sized(.3f, .3f)
+                .setUpdateInterval(1)
                 .build(ResourceLocation(ValkyrienSkiesMod.MOD_ID, "vs_physics_entity").toString())
         }
 

@@ -2,16 +2,20 @@ package org.valkyrienskies.mod.common.entity
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import net.minecraft.core.Rotations
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
+import net.minecraft.network.syncher.EntityDataAccessor
+import net.minecraft.network.syncher.EntityDataSerializers
+import net.minecraft.network.syncher.SynchedEntityData
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.entity.EntityInLevelCallback
 import org.joml.Matrix3d
-import org.joml.Quaterniond
-import org.joml.Quaterniondc
+import org.joml.Quaternionf
+import org.joml.Quaternionfc
 import org.joml.Vector3d
 import org.valkyrienskies.core.api.ships.properties.ShipId
 import org.valkyrienskies.core.api.ships.properties.ShipInertiaData
@@ -33,7 +37,11 @@ class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : Entity(
     // The physics entity, transient, only exists server side after this entity has been added to a world
     private var physicsEntityServer: PhysicsEntityServer? = null
 
-    var rotation: Quaterniondc = Quaterniond()
+    val rotation: Quaternionfc
+        get() {
+            val rotationRaw = entityData.get(ROTATION_DATA)
+            return Quaternionf().rotateXYZ(rotationRaw.x, rotationRaw.y, rotationRaw.z)
+        }
 
     fun setPhysicsEntityData(physicsEntityData: PhysicsEntityData) {
         if (this.physicsEntityData != null) {
@@ -47,14 +55,17 @@ class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : Entity(
             val physicsEntityServerCopy = physicsEntityServer
             if (physicsEntityServerCopy != null) {
                 this.setPos(physicsEntityServerCopy.shipTransform.positionInWorld.toMinecraft())
-                rotation = physicsEntityServerCopy.shipTransform.shipToWorldRotation
+                val eulerAngles = physicsEntityServerCopy.shipTransform.shipToWorldRotation.getEulerAnglesXYZ(Vector3d())
+                this.entityData.set(
+                    ROTATION_DATA, Rotations(eulerAngles.x.toFloat(), eulerAngles.y.toFloat(), eulerAngles.z.toFloat())
+                )
             }
         }
         super.tick()
     }
 
     override fun defineSynchedData() {
-        // TODO: Send rotation
+        entityData.define(ROTATION_DATA, Rotations(0.0f, 0.0f, 0.0f))
     }
 
     override fun readAdditionalSaveData(compoundTag: CompoundTag) {
@@ -91,7 +102,7 @@ class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : Entity(
     override fun setLevelCallback(callback: EntityInLevelCallback?) {
         super.setLevelCallback(callback)
         if (!this.level.isClientSide) {
-            if (callback != null) {
+            if (callback != null && callback != EntityInLevelCallback.NULL) {
                 // Try adding the rigid body of this entity from the world
                 if (physicsEntityServer != null) {
                     throw IllegalStateException("Rigid body is already in the world!")
@@ -112,6 +123,9 @@ class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : Entity(
 
     companion object {
         private const val PHYS_DATA_NBT_KEY = "phys_entity_data"
+
+        private val ROTATION_DATA: EntityDataAccessor<Rotations> =
+            SynchedEntityData.defineId(VSPhysicsEntity::class.java, EntityDataSerializers.ROTATIONS)
 
         private fun getMapper(): ObjectMapper {
             return VSJacksonUtil.defaultMapper

@@ -84,6 +84,7 @@ class ValkyrienSkiesModFabric : ModInitializer {
             ::VSPhysicsEntity,
             MobCategory.MISC
         ).sized(.3f, .3f)
+            .updateInterval(1)
             .build(ResourceLocation(ValkyrienSkiesMod.MOD_ID, "vs_physics_entity").toString())
 
         ValkyrienSkiesMod.TEST_HINGE_BLOCK_ENTITY_TYPE =
