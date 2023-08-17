@@ -36,7 +36,7 @@ class VSPhysicsEntityRenderer(context: EntityRendererProvider.Context) : EntityR
         poseStack.pushPose()
         val blockPos = BlockPos(fallingBlockEntity.x, fallingBlockEntity.boundingBox.maxY, fallingBlockEntity.z)
         poseStack.mulPose(fallingBlockEntity.rotation.toMinecraft())
-        poseStack.translate(-0.5, 0.0, -0.5)
+        poseStack.translate(-0.5, -0.5, -0.5)
         val blockRenderDispatcher = Minecraft.getInstance().blockRenderer
         blockRenderDispatcher.modelRenderer.tesselateBlock(
             level, blockRenderDispatcher.getBlockModel(blockState), blockState, blockPos, poseStack,

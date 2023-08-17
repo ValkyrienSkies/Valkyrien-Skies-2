@@ -10,6 +10,8 @@ import org.valkyrienskies.core.api.world.LevelYRange
 import org.valkyrienskies.core.apigame.ShipTeleportData
 import org.valkyrienskies.core.apigame.constraints.VSConstraint
 import org.valkyrienskies.core.apigame.constraints.VSConstraintId
+import org.valkyrienskies.core.apigame.physics.PhysicsEntityData
+import org.valkyrienskies.core.apigame.physics.PhysicsEntityServer
 import org.valkyrienskies.core.apigame.world.IPlayer
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore
 import org.valkyrienskies.core.apigame.world.chunks.BlockType
@@ -45,6 +47,14 @@ object DummyShipWorldServer : ServerShipWorldCore {
         blockPosInWorldCoordinates: Vector3ic, createShipObjectImmediately: Boolean, scaling: Double,
         dimensionId: DimensionId
     ): ServerShip {
+        TODO("Not yet implemented")
+    }
+
+    override fun createPhysicsEntity(physicsEntityData: PhysicsEntityData, dimensionId: DimensionId): PhysicsEntityServer {
+        TODO("Not yet implemented")
+    }
+
+    override fun deletePhysicsEntity(id: ShipId) {
         TODO("Not yet implemented")
     }
 
