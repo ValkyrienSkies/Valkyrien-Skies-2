@@ -23,6 +23,8 @@ import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.CreativeModeTab
 import net.minecraft.world.item.Item.Properties
 import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.state.BlockBehaviour
+import net.minecraft.world.level.material.Material
 import org.valkyrienskies.core.apigame.VSCoreFactory
 import org.valkyrienskies.mod.client.EmptyRenderer
 import org.valkyrienskies.mod.client.VSPhysicsEntityRenderer
@@ -61,6 +63,7 @@ class ValkyrienSkiesModFabric : ModInitializer {
         ValkyrienSkiesMod.TEST_HINGE = TestHingeBlock
         ValkyrienSkiesMod.TEST_FLAP = TestFlapBlock
         ValkyrienSkiesMod.TEST_WING = TestWingBlock
+        ValkyrienSkiesMod.TEST_SPHERE = Block(BlockBehaviour.Properties.of(Material.STONE))
         ValkyrienSkiesMod.SHIP_CREATOR_ITEM = ShipCreatorItem(
             Properties().tab(CreativeModeTab.TAB_MISC),
             { 1.0 },
@@ -110,6 +113,7 @@ class ValkyrienSkiesModFabric : ModInitializer {
         registerBlockAndItem("test_hinge", ValkyrienSkiesMod.TEST_HINGE)
         registerBlockAndItem("test_flap", ValkyrienSkiesMod.TEST_FLAP)
         registerBlockAndItem("test_wing", ValkyrienSkiesMod.TEST_WING)
+        registerBlockAndItem("test_sphere", ValkyrienSkiesMod.TEST_SPHERE)
         Registry.register(
             Registry.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_assembler"),
             ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM
