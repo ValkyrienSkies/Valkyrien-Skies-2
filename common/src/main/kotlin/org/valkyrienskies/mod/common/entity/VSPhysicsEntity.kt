@@ -17,6 +17,7 @@ import org.joml.Matrix3d
 import org.joml.Quaternionf
 import org.joml.Quaternionfc
 import org.joml.Vector3d
+import org.joml.Vector3dc
 import org.valkyrienskies.core.api.ships.properties.ShipId
 import org.valkyrienskies.core.api.ships.properties.ShipInertiaData
 import org.valkyrienskies.core.api.ships.properties.ShipTransform
@@ -36,6 +37,9 @@ class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : Entity(
 
     // The physics entity, transient, only exists server side after this entity has been added to a world
     private var physicsEntityServer: PhysicsEntityServer? = null
+
+    private var clientPos: Vector3dc? = null
+    private var clientRotation: Quaternionfc? = null
 
     val rotation: Quaternionfc
         get() {
@@ -102,7 +106,8 @@ class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : Entity(
     override fun setLevelCallback(callback: EntityInLevelCallback?) {
         super.setLevelCallback(callback)
         if (!this.level.isClientSide) {
-            if (callback != null && callback != EntityInLevelCallback.NULL) {
+            val isNull = (callback == null) || callback == EntityInLevelCallback.NULL
+            if (!isNull) {
                 // Try adding the rigid body of this entity from the world
                 if (physicsEntityServer != null) {
                     throw IllegalStateException("Rigid body is already in the world!")
@@ -113,7 +118,8 @@ class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : Entity(
             } else {
                 // Try removing the rigid body of this entity from the world
                 if (physicsEntityServer == null) {
-                    throw IllegalStateException("Rigid body does not exist in the world!")
+                    return
+                    // throw IllegalStateException("Rigid body does not exist in the world!")
                 }
                 (level.shipObjectWorld as ServerShipWorldCore).deletePhysicsEntity(physicsEntityData!!.shipId)
                 physicsEntityServer = null
