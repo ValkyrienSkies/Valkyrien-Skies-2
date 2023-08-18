@@ -222,17 +222,14 @@ fun Level.raytraceEntities(
 
     val start = Vector3d()
     val end = Vector3d()
-    if (shipObjectWorld == null) logger.error("rayTraceEntities shipObjectWorld was null! this should never happen!")
 
-    shipObjectWorld?.loadedShips?.getIntersecting(origBoundingBoxM.toJOML())?.forEach {
+    shipObjectWorld.loadedShips.getIntersecting(origBoundingBoxM.toJOML()).forEach {
         it.worldToShip.transformPosition(origStartVec, start)
         it.worldToShip.transformPosition(origEndVec, end)
 
-        // Shouldn't we have a double for scale in transform?
-        val scale = it.shipTransform.worldToShipMatrix.getScale(Vector3d())
-        assert(scale.x == scale.y && scale.y == scale.z)
+        val scale = 1.0 / it.transform.shipToWorldScaling.x()
 
-        checkEntities(entities, start.toMinecraft(), end.toMinecraft(), scale.x)
+        checkEntities(entities, start.toMinecraft(), end.toMinecraft(), scale)
     }
 
     return if (resultEntity == null) {
