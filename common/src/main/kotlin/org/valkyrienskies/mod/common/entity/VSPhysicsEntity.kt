@@ -119,7 +119,12 @@ class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : Entity(
         val e: Double = this.y + (this.lerpPos!!.y() - this.y) / this.lerpSteps.toDouble()
         val f: Double = this.z + (this.lerpPos!!.z() - this.z) / this.lerpSteps.toDouble()
 
-        rotation = rotation!!.slerp(this.lerpRot, (1.0 - (1.0 / this.lerpSteps.toDouble())).toFloat(), Quaternionf())
+        if (rotation != null) {
+            rotation = rotation!!.slerp(this.lerpRot, (1.0 - (1.0 / this.lerpSteps.toDouble())).toFloat(), Quaternionf())
+        } else {
+            rotation = serverRotation
+            lastTickRotation = rotation
+        }
 
         --this.lerpSteps
         this.setPos(d, e, f)
