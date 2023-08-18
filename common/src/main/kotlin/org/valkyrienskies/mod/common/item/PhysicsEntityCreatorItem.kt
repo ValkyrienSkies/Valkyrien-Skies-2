@@ -12,6 +12,7 @@ import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.entity.VSPhysicsEntity
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.toJOML
+import org.valkyrienskies.mod.common.util.toJOMLD
 
 class PhysicsEntityCreatorItem(
     properties: Properties
@@ -26,10 +27,13 @@ class PhysicsEntityCreatorItem(
         if (!level.isClientSide) {
             val entity = ValkyrienSkiesMod.PHYSICS_ENTITY_TYPE.create(level)!!
             val shipId = level.shipObjectWorld.allocateShipId(level.dimensionId)
-            val transform = Companion.create(ctx.clickLocation.toJOML(), Vector3d())
-            val physicsEntityData = VSPhysicsEntity.createBasicSphereData(shipId, transform)
+            val sphereRadius = 0.5
+            val offset = ctx.clickedFace.normal.toJOMLD().mul(sphereRadius)
+            val entityPos = ctx.clickLocation.toJOML().add(offset)
+            val transform = Companion.create(entityPos, Vector3d())
+            val physicsEntityData = VSPhysicsEntity.createBasicSphereData(shipId, transform, sphereRadius)
             entity.setPhysicsEntityData(physicsEntityData)
-            entity.setPos(ctx.clickLocation)
+            entity.setPos(entityPos.x, entityPos.y, entityPos.z)
             level.addFreshEntity(entity)
         }
 
