@@ -5,6 +5,7 @@ import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.ChunkMap;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.chunk.ChunkAccess;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Invoker;
@@ -21,4 +22,7 @@ public interface ChunkMapAccessor {
 
     @Invoker("getVisibleChunkIfPresent")
     ChunkHolder callGetVisibleChunkIfPresent(long l);
+
+    @Invoker("save")
+    boolean callSave(ChunkAccess chunkAccess);
 }

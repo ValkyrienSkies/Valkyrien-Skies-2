@@ -10,6 +10,8 @@ import kotlin.Unit;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.players.PlayerList;
+import net.minecraft.world.level.chunk.LevelChunk;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -18,6 +20,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.At.Shift;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.valkyrienskies.core.api.ships.properties.IShipActiveChunksSet;
+import org.valkyrienskies.core.apigame.GameServer;
 import org.valkyrienskies.core.apigame.world.IPlayer;
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
 import org.valkyrienskies.core.apigame.world.VSPipeline;
@@ -28,10 +32,11 @@ import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.hooks.VSGameEvents;
 import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.common.world.ChunkManagement;
+import org.valkyrienskies.mod.mixin.accessors.server.world.ChunkMapAccessor;
 import org.valkyrienskies.mod.util.KrunchSupport;
 
 @Mixin(MinecraftServer.class)
-public abstract class MixinMinecraftServer implements IShipObjectWorldServerProvider {
+public abstract class MixinMinecraftServer implements IShipObjectWorldServerProvider, GameServer {
     @Shadow
     private PlayerList playerList;
 
@@ -47,7 +52,11 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     @Unique
     private VSPipeline vsPipeline;
 
+    @Unique
     private Set<String> loadedLevels = new HashSet<>();
+
+    @Unique
+    private final Map<String, ServerLevel> dimensionToLevelMap = new HashMap<>();
 
     @Inject(
         at = @At(value = "INVOKE", target = "Lnet/minecraft/server/MinecraftServer;initServer()Z"),
@@ -116,6 +125,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         KrunchSupport.INSTANCE.setKrunchSupported(!vsPipeline.isUsingDummyPhysics());
 
         shipWorld = vsPipeline.getShipWorld();
+        shipWorld.setGameServer(this);
 
         VSGameEvents.INSTANCE.getRegistriesCompleted().emit(Unit.INSTANCE);
 
@@ -133,7 +143,9 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         // region Tell the VS world to load new levels, and unload deleted ones
         final Map<String, ServerLevel> newLoadedLevels = new HashMap<>();
         for (final ServerLevel level : getAllLevels()) {
-            newLoadedLevels.put(VSGameUtilsKt.getDimensionId(level), level);
+            final String dimensionId = VSGameUtilsKt.getDimensionId(level);
+            newLoadedLevels.put(dimensionId, level);
+            dimensionToLevelMap.put(dimensionId, level);
         }
         /*
         for (final var entry : newLoadedLevels.entrySet()) {
@@ -147,6 +159,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         for (final String oldLoadedLevelId : loadedLevels) {
             if (!newLoadedLevels.containsKey(oldLoadedLevelId)) {
                 shipWorld.removeDimension(oldLoadedLevelId);
+                dimensionToLevelMap.remove(oldLoadedLevelId);
             }
         }
         loadedLevels = newLoadedLevels.keySet();
@@ -191,6 +204,29 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
             vsPipeline.setDeleteResources(true);
             vsPipeline.setArePhysicsRunning(true);
         }
+        dimensionToLevelMap.clear();
+        shipWorld.setGameServer(null);
         shipWorld = null;
+    }
+
+    @NotNull
+    private ServerLevel getLevelFromDimensionId(@NotNull final String dimensionId) {
+        return dimensionToLevelMap.get(dimensionId);
+    }
+
+    @Override
+    public void moveTerrainAcrossDimensions(
+        @NotNull final IShipActiveChunksSet shipChunks,
+        @NotNull final String srcDimension,
+        @NotNull final String destDimension
+    ) {
+        final ServerLevel srcLevel = getLevelFromDimensionId(srcDimension);
+        final ServerLevel destLevel = getLevelFromDimensionId(destDimension);
+        // TODO: We can run this async, so run it async!
+        shipChunks.forEach((final int x, final int z) -> {
+            final LevelChunk srcChunk = srcLevel.getChunk(x, z);
+            // Save the ship chunks to dest level
+            ((ChunkMapAccessor) destLevel.getChunkSource().chunkMap).callSave(srcChunk);
+        });
     }
 }
