@@ -48,11 +48,8 @@ object ShipSplitter {
                                 }
 
                                 val centerPos = snap.second
-                                if (!toRemove.contains(centerPos)) {
-                                    logger.warn("Center position is not in the set of blocks to assemble... huh?!")
-                                }
                                 if (toRemove.isEmpty()) {
-                                    logger.error("List of blocks to assemble is empty... how did we get here? Aborting.")
+                                    // logger.error("List of blocks to assemble is empty... how did we get here? Aborting.")
                                     forest.removeFromBreakQueue(breakage)
                                     forest.verifyIntactOnLoad()
                                     return
