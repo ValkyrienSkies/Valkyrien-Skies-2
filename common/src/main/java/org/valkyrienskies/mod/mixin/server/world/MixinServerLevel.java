@@ -46,6 +46,7 @@ import org.valkyrienskies.core.api.ships.Wing;
 import org.valkyrienskies.core.api.ships.WingManager;
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
 import org.valkyrienskies.core.apigame.world.chunks.TerrainUpdate;
+import org.valkyrienskies.core.impl.datastructures.dynconn.BlockPosVertex;
 import org.valkyrienskies.core.impl.game.ships.ConnectivityForest;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
@@ -194,7 +195,10 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                                 shipAsConnectivityForest.getGraph().optimize();
 //                                shipAsAirPocketForest.setShouldUpdateOutsideAir(true);
 //                                shipAsAirPocketForest.getGraph().optimize();
-                                shipAsConnectivityForest.verifyIntactOnLoad(shipAsConnectivityForest.getVertices().values().iterator().next());
+                                BlockPosVertex vertexToCheck = shipAsConnectivityForest.getVertices().values().iterator().next();
+                                if (!self.getBlockState(new BlockPos(vertexToCheck.getPosX(), vertexToCheck.getPosY(), vertexToCheck.getPosZ())).isAir()) {
+                                    shipAsConnectivityForest.verifyIntactOnLoad(vertexToCheck);
+                                }
                             }
                             // endregion
                         } else {
