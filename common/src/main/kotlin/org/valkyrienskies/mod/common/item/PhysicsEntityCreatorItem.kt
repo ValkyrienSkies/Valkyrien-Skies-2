@@ -32,6 +32,9 @@ class PhysicsEntityCreatorItem(
             val entityPos = ctx.clickLocation.toJOML().add(offset)
             val transform = Companion.create(entityPos, Vector3d())
             val physicsEntityData = VSPhysicsEntity.createBasicSphereData(shipId, transform, sphereRadius)
+            physicsEntityData.dynamicFrictionCoefficient = 1.0
+            physicsEntityData.staticFrictionCoefficient = 1.0
+            physicsEntityData.restitutionCoefficient = 0.0
             entity.setPhysicsEntityData(physicsEntityData)
             entity.setPos(entityPos.x, entityPos.y, entityPos.z)
             level.addFreshEntity(entity)

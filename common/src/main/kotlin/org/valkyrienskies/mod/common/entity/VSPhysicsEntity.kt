@@ -166,15 +166,7 @@ class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : Entity(
         val physicsEntityDataAsBytes: ByteArray = compoundTag.getByteArray(PHYS_DATA_NBT_KEY)
         val oldPhysicsEntityData = getMapper().readValue<PhysicsEntityData>(physicsEntityDataAsBytes)
         val newShipId = (level.shipObjectWorld as ShipObjectServerWorld).allocateShipId(level.dimensionId)
-        val newPhysicsEntityData = PhysicsEntityData(
-            shipId = newShipId,
-            transform = oldPhysicsEntityData.transform,
-            inertiaData = oldPhysicsEntityData.inertiaData,
-            linearVelocity = oldPhysicsEntityData.linearVelocity,
-            angularVelocity = oldPhysicsEntityData.angularVelocity,
-            collisionShapeData = oldPhysicsEntityData.collisionShapeData,
-            isStatic = oldPhysicsEntityData.isStatic,
-        )
+        val newPhysicsEntityData = oldPhysicsEntityData.copyPhysicsEntityDataWithNewId(newShipId)
         // Change the shipId to be something new
         setPhysicsEntityData(newPhysicsEntityData)
         super.load(compoundTag)
