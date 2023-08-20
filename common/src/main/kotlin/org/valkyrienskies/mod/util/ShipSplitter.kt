@@ -51,7 +51,6 @@ object ShipSplitter {
                                 if (toRemove.isEmpty()) {
                                     // logger.error("List of blocks to assemble is empty... how did we get here? Aborting.")
                                     forest.removeFromBreakQueue(breakage)
-                                    forest.verifyIntactOnLoad()
                                     return
                                 }
 
