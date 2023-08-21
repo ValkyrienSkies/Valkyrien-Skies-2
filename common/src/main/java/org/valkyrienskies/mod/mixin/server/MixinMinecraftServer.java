@@ -12,17 +12,22 @@ import net.minecraft.BlockUtil;
 import net.minecraft.BlockUtil.FoundRectangle;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ChunkMap;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.players.PlayerList;
 import net.minecraft.world.entity.EntityDimensions;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.border.WorldBorder;
+import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.chunk.storage.ChunkSerializer;
 import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.portal.PortalInfo;
@@ -52,10 +57,13 @@ import org.valkyrienskies.mod.common.ShipSavedData;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.hooks.VSGameEvents;
+import org.valkyrienskies.mod.common.util.ChunkRemover;
 import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.common.world.ChunkManagement;
-import org.valkyrienskies.mod.mixin.accessors.server.world.ChunkMapAccessor;
+import org.valkyrienskies.mod.mixin.accessors.server.level.ChunkMapAccessor;
+import org.valkyrienskies.mod.mixin.accessors.server.level.DistanceManagerAccessor;
+import org.valkyrienskies.mod.mixin.accessors.server.level.ServerChunkCacheAccessor;
 import org.valkyrienskies.mod.util.KrunchSupport;
 
 @Mixin(MinecraftServer.class)
@@ -364,12 +372,50 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     ) {
         final ServerLevel srcLevel = getLevelFromDimensionId(srcDimension);
         final ServerLevel destLevel = getLevelFromDimensionId(destDimension);
-        // TODO: We can run this async, so run it async!
+
+        // Copy ship chunks from srcLevel to destLevel
         shipChunks.forEach((final int x, final int z) -> {
             final LevelChunk srcChunk = srcLevel.getChunk(x, z);
             // Save the ship chunks to dest level
-            ((ChunkMapAccessor) destLevel.getChunkSource().chunkMap).callSave(srcChunk);
+
+            final ChunkMap chunkMapRaw = destLevel.getChunkSource().chunkMap;
+            final ChunkMapAccessor srcChunkMap = (ChunkMapAccessor) chunkMapRaw;
+            srcChunkMap.getPoiManager().flush(srcChunk.getPos());
+            final ChunkPos chunkPos = srcChunk.getPos();
+            final ChunkStatus chunkStatus = srcChunk.getStatus();
+            srcLevel.getProfiler().incrementCounter("chunkSave");
+
+            final CompoundTag compoundTag = ChunkSerializer.write(srcLevel, srcChunk);
+
+            // Write the chunk compoundTag to the map files
+            chunkMapRaw.write(chunkPos, compoundTag);
+            srcChunkMap.callMarkPosition(chunkPos, chunkStatus.getChunkType());
         });
-        // TODO: Delete old terrain
+
+        // Unload ship chunks from srcLevel
+        shipChunks.forEach((final int x, final int z) -> {
+            final LevelChunk srcChunk = srcLevel.getChunk(x, z);
+
+            final ChunkPos chunkPos = srcChunk.getPos();
+            srcLevel.unload(srcChunk);
+            ((ChunkMapAccessor) srcLevel.getChunkSource().chunkMap).getToDrop().add(chunkPos.toLong());
+        });
+        ((ChunkMapAccessor) srcLevel.getChunkSource().chunkMap).callProcessUnloads(() -> true);
+
+        // Delete ship chunks from srcLevel
+        shipChunks.forEach((final int x, final int z) -> {
+            final ChunkPos chunkPos = new ChunkPos(x, z);
+            srcLevel.getChunkSource().chunkMap.write(chunkPos, null);
+            // Remove old tickets
+            // ((DistanceManagerAccessor) ((ChunkMapAccessor) srcLevel.getChunkSource().chunkMap).getDistanceManager()).getTickets().remove(chunkPos.toLong());
+            // Stop tracking chunks in VS2 code
+            ((ChunkRemover) srcLevel).removeChunk(x, z);
+        });
+
+        // Clear cache to remove the deleted chunks
+        ((ServerChunkCacheAccessor) srcLevel.getChunkSource()).callClearCache();
+
+        // Save the chunk deletions
+        srcLevel.getChunkSource().chunkMap.flushWorker();
     }
 }

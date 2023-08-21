@@ -38,6 +38,7 @@ import org.joml.Vector3ic;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -49,11 +50,12 @@ import org.valkyrienskies.core.apigame.world.chunks.TerrainUpdate;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.block.WingBlock;
+import org.valkyrienskies.mod.common.util.ChunkRemover;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
-import org.valkyrienskies.mod.mixin.accessors.server.world.ChunkMapAccessor;
+import org.valkyrienskies.mod.mixin.accessors.server.level.ChunkMapAccessor;
 
 @Mixin(ServerLevel.class)
-public abstract class MixinServerLevel implements IShipObjectWorldServerProvider {
+public abstract class MixinServerLevel implements IShipObjectWorldServerProvider, ChunkRemover {
 
     @Shadow
     @Final
@@ -64,6 +66,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
     public abstract MinecraftServer getServer();
 
     // Map from ChunkPos to the list of voxel chunks that chunk owns
+    @Unique
     private final Map<ChunkPos, List<Vector3ic>> knownChunks = new HashMap<>();
 
     @Nullable
@@ -214,4 +217,9 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
         );
     }
 
+    @Override
+    public void removeChunk(final int chunkX, final int chunkZ) {
+        final ChunkPos chunkPos = new ChunkPos(chunkX, chunkZ);
+        knownChunks.remove(chunkPos);
+    }
 }
