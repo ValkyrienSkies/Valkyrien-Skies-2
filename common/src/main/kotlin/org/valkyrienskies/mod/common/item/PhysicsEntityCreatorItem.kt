@@ -10,6 +10,7 @@ import org.valkyrienskies.core.impl.game.ships.ShipTransformImpl.Companion
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.entity.VSPhysicsEntity
+import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toJOMLD
@@ -30,6 +31,10 @@ class PhysicsEntityCreatorItem(
             val sphereRadius = 0.5
             val offset = ctx.clickedFace.normal.toJOMLD().mul(sphereRadius)
             val entityPos = ctx.clickLocation.toJOML().add(offset)
+
+            val shipOn = ctx.level.getShipManagingPos(ctx.clickedPos)
+            shipOn?.transform?.shipToWorld?.transformPosition(entityPos)
+
             val transform = Companion.create(entityPos, Vector3d())
             val physicsEntityData = VSPhysicsEntity.createBasicSphereData(shipId, transform, sphereRadius)
             entity.setPhysicsEntityData(physicsEntityData)
