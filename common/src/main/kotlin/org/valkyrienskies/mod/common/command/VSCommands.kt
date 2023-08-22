@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.common.command
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.arguments.ArgumentType
 import com.mojang.brigadier.arguments.BoolArgumentType
+import com.mojang.brigadier.arguments.DoubleArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.builder.RequiredArgumentBuilder
@@ -46,6 +47,7 @@ object VSCommands {
     private const val GET_SHIP_ONLY_USABLE_BY_ENTITIES_MESSAGE = "command.valkyrienskies.get_ship.only_usable_by_entities"
     private const val TELEPORTED_MULTIPLE_SHIPS_SUCCESS = "command.valkyrienskies.teleport.multiple_ship_success"
     private const val TELEPORT_FIRST_ARG_CAN_ONLY_INPUT_1_SHIP = "command.valkyrienskies.mc_teleport.can_only_teleport_to_one_ship"
+    private const val SCALED_SHIPS_MESSAGE = "command.valkyrienskies.scale.success"
 
     fun bootstrap() {
         ArgumentTypes.register("valkyrienskies:ship",
@@ -302,7 +304,25 @@ object VSCommands {
                         throw e
                     }
                 })
-
+                .then(
+                    literal("scale").then(
+                        argument("ships", ShipArgument.ships()).then(
+                            argument("newScale", DoubleArgumentType.doubleArg(0.1, 10.0)).executes {
+                                try {
+                                    val world =
+                                        (it as CommandContext<VSCommandSource>).source.shipWorld as ServerShipWorld
+                                    val newScale = DoubleArgumentType.getDouble(it, "newScale")
+                                    val r = ShipArgument.getShips(it, "ships").toList() as List<ServerShip>
+                                    r.forEach { ship -> vsCore.scaleShip(world, ship, newScale) }
+                                    it.source.sendVSMessage(TranslatableComponent(SCALED_SHIPS_MESSAGE, r.size))
+                                    r.size
+                                } catch (e: Exception) {
+                                    if (e !is CommandRuntimeException) LOGGER.throwing(e)
+                                    throw e
+                                }
+                            })
+                    )
+                )
                 // Single ship commands
                 .then(
                     literal("ship").then(
@@ -339,26 +359,6 @@ object VSCommands {
                                             }
                                         })
                             )
-
-                        /* DISABLED UNTIL VS-BODIES IS READY
-                        // Scale a ship
-                        .then(
-                            literal("scale")
-                                .then(argument("newScale", FloatArgumentType.floatArg(0.001f))
-                                    .executes {
-                                        try {
-                                            vsCore.scaleShip(
-                                                ShipArgument.getShip(it, "ship") as ServerShip,
-                                                FloatArgumentType.getFloat(it, "newScale")
-                                            )
-                                            1
-                                        } catch (e: Exception) {
-                                            if (e !is CommandRuntimeException) LOGGER.throwing(e)
-                                            throw e
-                                        }
-                                    })
-                        )
-                         */
                     )
                 )
         )
