@@ -50,12 +50,12 @@ import org.valkyrienskies.core.apigame.world.chunks.TerrainUpdate;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.block.WingBlock;
-import org.valkyrienskies.mod.common.util.ChunkRemover;
+import org.valkyrienskies.mod.common.util.VSServerLevel;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.mixin.accessors.server.level.ChunkMapAccessor;
 
 @Mixin(ServerLevel.class)
-public abstract class MixinServerLevel implements IShipObjectWorldServerProvider, ChunkRemover {
+public abstract class MixinServerLevel implements IShipObjectWorldServerProvider, VSServerLevel {
 
     @Shadow
     @Final
