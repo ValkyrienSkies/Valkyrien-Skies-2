@@ -11,6 +11,8 @@
     "accessors.server.level.DistanceManagerAccessor",
     "accessors.server.level.ServerChunkCacheAccessor",
     "accessors.util.math.Matrix4fAccessor",
+    "accessors.world.level.block.SlabBlockAccessor",
+    "accessors.world.level.block.StairBlockAccessor",
     "accessors.world.level.pathfinder.PathAccessor",
     "entity.MixinEntity",
     "feature.ai.node_evaluator.PathNavigationRegionAccessor",

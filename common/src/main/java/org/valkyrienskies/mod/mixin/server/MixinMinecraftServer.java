@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.mixin.server;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -19,6 +20,7 @@ import net.minecraft.server.players.PlayerList;
 import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
@@ -48,6 +50,7 @@ import org.valkyrienskies.core.apigame.world.IPlayer;
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
 import org.valkyrienskies.core.apigame.world.VSPipeline;
 import org.valkyrienskies.core.impl.game.ShipTeleportDataImpl;
+import org.valkyrienskies.mod.common.DefaultBlockStateInfoProvider;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.ShipSavedData;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
@@ -135,6 +138,18 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
 
         // Create ship world and VS Pipeline
         vsPipeline = shipSavedData.getPipeline();
+
+        // Register blocks
+        if (!DefaultBlockStateInfoProvider.INSTANCE.getRegisteredBlocks()) {
+            final List<BlockState> blockStateList = new ArrayList<>(Block.BLOCK_STATE_REGISTRY.size());
+            Block.BLOCK_STATE_REGISTRY.forEach((blockStateList::add));
+            DefaultBlockStateInfoProvider.INSTANCE.registerAllBlockStates(blockStateList);
+        }
+        vsPipeline.registerBlocks(
+            DefaultBlockStateInfoProvider.INSTANCE.getSolidBlockStates(),
+            DefaultBlockStateInfoProvider.INSTANCE.getLiquidBlockStates(),
+            DefaultBlockStateInfoProvider.INSTANCE.getBlockStateData()
+        );
 
         KrunchSupport.INSTANCE.setKrunchSupported(!vsPipeline.isUsingDummyPhysics());
 
