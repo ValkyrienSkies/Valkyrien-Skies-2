@@ -95,6 +95,9 @@ object ShipSplitter {
                             // }
 
                             for (it in breakage) {
+                                if (it == null) {
+                                    continue
+                                }
                                 if (!self.getBlockState(it!!.toBlockPos()).isAir) {
                                     if (forest.vertices[it] != null) {
                                         forest.verifyIntactOnLoad(forest.vertices[it]!!)
