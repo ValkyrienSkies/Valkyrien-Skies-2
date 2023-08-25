@@ -2,6 +2,7 @@ package org.valkyrienskies.mod.common.entity
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import net.minecraft.client.Minecraft
 import net.minecraft.core.Rotations
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.network.protocol.Packet
@@ -27,9 +28,11 @@ import org.valkyrienskies.core.apigame.physics.VSSphereCollisionShapeData
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore
 import org.valkyrienskies.core.impl.game.ShipTeleportDataImpl
 import org.valkyrienskies.core.impl.game.ships.ShipInertiaDataImpl
+import org.valkyrienskies.core.impl.game.ships.ShipObjectClientWorld
 import org.valkyrienskies.core.impl.game.ships.ShipObjectServerWorld
 import org.valkyrienskies.core.impl.game.ships.ShipTransformImpl
 import org.valkyrienskies.core.impl.util.serialization.VSJacksonUtil
+import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.toJOML
@@ -68,6 +71,7 @@ open class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : En
                 defaultRot = Rotations(eulerAngles.x.toFloat(), eulerAngles.y.toFloat(), eulerAngles.z.toFloat())
             }
             this.entityData.set(ROTATION_DATA, defaultRot)
+            this.entityData.set(SHIP_ID_DATA, physicsEntityData.shipId.toString())
         }
         lastTickRotation = Quaternionf(physicsEntityData.transform.shipToWorldRotation)
         rotation = lastTickRotation
@@ -131,14 +135,20 @@ open class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : En
     }
 
     fun getRenderRotation(partialTick: Float): Quaternionfc {
-        if (lastTickRotation == null) {
-            return serverRotation
+        val shipIdString = entityData.get(SHIP_ID_DATA)
+        if (shipIdString == "") {
+            return Quaternionf()
         }
-        return lastTickRotation!!.slerp(rotation!!, partialTick, Quaternionf())
+        val shipIdLong = shipIdString.toLong()
+        val physEntityClient =
+            ((Minecraft.getInstance() as IShipObjectWorldClientProvider).shipObjectWorld as ShipObjectClientWorld).physicsEntities[shipIdLong]
+                ?: return Quaternionf()
+        return Quaternionf(physEntityClient.renderTransform.shipToWorldRotation)
     }
 
     override fun defineSynchedData() {
         entityData.define(ROTATION_DATA, Rotations(0.0f, 0.0f, 0.0f))
+        entityData.define(SHIP_ID_DATA, "")
     }
 
     override fun readAdditionalSaveData(compoundTag: CompoundTag) {
@@ -252,6 +262,10 @@ open class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : En
 
         private val ROTATION_DATA: EntityDataAccessor<Rotations> =
             SynchedEntityData.defineId(VSPhysicsEntity::class.java, EntityDataSerializers.ROTATIONS)
+
+        // Use string because there is no LONG serializer by default SMH my head!
+        private val SHIP_ID_DATA: EntityDataAccessor<String> =
+            SynchedEntityData.defineId(VSPhysicsEntity::class.java, EntityDataSerializers.STRING)
 
         private fun getMapper(): ObjectMapper {
             return VSJacksonUtil.defaultMapper
