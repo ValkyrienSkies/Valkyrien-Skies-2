@@ -37,7 +37,7 @@ object ShipSplitter {
                         for (breakage in forest.getBreakQueue()) {
 
                             val shipsToSplit = forest.split(breakage)
-                            for (snap in shipsToSplit.first) {
+                            for (snap in shipsToSplit) {
                                 val toRemove = DenseBlockPosSet()
                                 for (vertex in snap.first.values.toList()) {
                                     if (vertex != null) {
@@ -50,6 +50,7 @@ object ShipSplitter {
                                 val centerPos = snap.second
                                 if (toRemove.isEmpty()) {
                                     // logger.error("List of blocks to assemble is empty... how did we get here? Aborting.")
+
                                     forest.removeFromBreakQueue(breakage)
                                     return
                                 }
@@ -89,9 +90,23 @@ object ShipSplitter {
                                 (newShip as ShipDataCommon).physicsData.linearVelocity = velVec
                                 (newShip as ShipDataCommon).physicsData.angularVelocity = omegaVec
                             }
-                            if (forest.vertices[shipsToSplit.second] != null) {
-                                forest.verifyIntactOnLoad(forest.vertices[shipsToSplit.second]!!)
+                            // if (forest.vertices[shipsToSplit.second] != null) {
+                            //     forest.verifyIntactOnLoad(forest.vertices[shipsToSplit.second]!!)
+                            // }
+
+                            for (it in breakage) {
+                                if (!self.getBlockState(it!!.toBlockPos()).isAir) {
+                                    if (forest.vertices[it] != null) {
+                                        forest.verifyIntactOnLoad(forest.vertices[it]!!)
+                                        break
+                                    } else {
+                                        continue
+                                    }
+                                } else {
+                                    continue
+                                }
                             }
+
                             forest.removeFromBreakQueue(breakage)
                         }
                     }
