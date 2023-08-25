@@ -37,7 +37,7 @@ object ShipSplitter {
                         for (breakage in forest.getBreakQueue()) {
 
                             val shipsToSplit = forest.split(breakage)
-                            for (snap in shipsToSplit) {
+                            for (snap in shipsToSplit.first) {
                                 val toRemove = DenseBlockPosSet()
                                 for (vertex in snap.first.values.toList()) {
                                     if (vertex != null) {
@@ -88,6 +88,9 @@ object ShipSplitter {
                                 (newShip as ShipDataCommon).transform = newShipTransform
                                 (newShip as ShipDataCommon).physicsData.linearVelocity = velVec
                                 (newShip as ShipDataCommon).physicsData.angularVelocity = omegaVec
+                            }
+                            if (forest.vertices[shipsToSplit.second] != null) {
+                                forest.verifyIntactOnLoad(forest.vertices[shipsToSplit.second]!!)
                             }
                             forest.removeFromBreakQueue(breakage)
                         }
