@@ -12,6 +12,8 @@ import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.inventory.InventoryMenu
 import net.minecraft.world.level.block.RenderShape.INVISIBLE
 import net.minecraft.world.level.block.RenderShape.MODEL
+import org.valkyrienskies.core.impl.game.ships.ShipObjectClientWorld
+import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.entity.VSPhysicsEntity
 import org.valkyrienskies.mod.common.util.toMinecraft
@@ -33,9 +35,25 @@ class VSPhysicsEntityRenderer(context: EntityRendererProvider.Context) : EntityR
         ) {
             return
         }
+
+        val renderTransform = fallingBlockEntity.getRenderTransform(
+            ((Minecraft.getInstance() as IShipObjectWorldClientProvider).shipObjectWorld as ShipObjectClientWorld)
+        ) ?: return
+
+        val expectedX = fallingBlockEntity.xo + (fallingBlockEntity.x - fallingBlockEntity.xo) * partialTick
+        val expectedY = fallingBlockEntity.yo + (fallingBlockEntity.y - fallingBlockEntity.yo) * partialTick
+        val expectedZ = fallingBlockEntity.zo + (fallingBlockEntity.z - fallingBlockEntity.zo) * partialTick
+
+        // Replace the default transform applied by mc with these offsets
+        val offsetX = renderTransform.positionInWorld.x() - expectedX
+        val offsetY = renderTransform.positionInWorld.y() - expectedY
+        val offsetZ = renderTransform.positionInWorld.z() - expectedZ
+
         poseStack.pushPose()
         val blockPos = BlockPos(fallingBlockEntity.x, fallingBlockEntity.boundingBox.maxY, fallingBlockEntity.z)
-        poseStack.mulPose(fallingBlockEntity.getRenderRotation(partialTick).toMinecraft())
+
+        poseStack.translate(offsetX, offsetY, offsetZ)
+        poseStack.mulPose(renderTransform.shipToWorldRotation.toMinecraft())
         poseStack.translate(-0.5, -0.5, -0.5)
         val blockRenderDispatcher = Minecraft.getInstance().blockRenderer
         blockRenderDispatcher.modelRenderer.tesselateBlock(
