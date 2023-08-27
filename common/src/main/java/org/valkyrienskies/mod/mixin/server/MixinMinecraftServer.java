@@ -50,11 +50,11 @@ import org.valkyrienskies.core.apigame.world.IPlayer;
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
 import org.valkyrienskies.core.apigame.world.VSPipeline;
 import org.valkyrienskies.core.impl.game.ShipTeleportDataImpl;
-import org.valkyrienskies.mod.common.DefaultBlockStateInfoProvider;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.ShipSavedData;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
+import org.valkyrienskies.mod.common.config.MassDatapackResolver;
 import org.valkyrienskies.mod.common.hooks.VSGameEvents;
 import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.common.util.VSLevelChunk;
@@ -140,15 +140,15 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         vsPipeline = shipSavedData.getPipeline();
 
         // Register blocks
-        if (!DefaultBlockStateInfoProvider.INSTANCE.getRegisteredBlocks()) {
+        if (!MassDatapackResolver.INSTANCE.getRegisteredBlocks()) {
             final List<BlockState> blockStateList = new ArrayList<>(Block.BLOCK_STATE_REGISTRY.size());
             Block.BLOCK_STATE_REGISTRY.forEach((blockStateList::add));
-            DefaultBlockStateInfoProvider.INSTANCE.registerAllBlockStates(blockStateList);
+            MassDatapackResolver.INSTANCE.registerAllBlockStates(blockStateList);
         }
         vsPipeline.registerBlocks(
-            DefaultBlockStateInfoProvider.INSTANCE.getSolidBlockStates(),
-            DefaultBlockStateInfoProvider.INSTANCE.getLiquidBlockStates(),
-            DefaultBlockStateInfoProvider.INSTANCE.getBlockStateData()
+            MassDatapackResolver.INSTANCE.getSolidBlockStates(),
+            MassDatapackResolver.INSTANCE.getLiquidBlockStates(),
+            MassDatapackResolver.INSTANCE.getBlockStateData()
         );
 
         KrunchSupport.INSTANCE.setKrunchSupported(!vsPipeline.isUsingDummyPhysics());
