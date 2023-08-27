@@ -23,12 +23,20 @@ import org.valkyrienskies.physics_api.voxel.Lod1SolidBlockState
 import java.util.Optional
 
 private data class VSBlockStateInfo(
-    val id: ResourceLocation, val priority: Int, val mass: Double, val type: VSBlockType?
+    val id: ResourceLocation,
+    val priority: Int,
+    val mass: Double,
+    val friction: Double,
+    val elasticity: Double,
+    val type: VSBlockType?,
 )
 
 object MassDatapackResolver : BlockStateInfoProvider {
     private val map = hashMapOf<ResourceLocation, VSBlockStateInfo>()
     val loader get() = VSMassDataLoader()
+
+    private const val DEFAULT_FRICTION = 1.0
+    private const val DEFAULT_ELASTICITY = 0.3
 
     override val priority: Int
         get() = 100
@@ -86,7 +94,8 @@ object MassDatapackResolver : BlockStateInfoProvider {
                         tag.get().forEach {
                             add(
                                 VSBlockStateInfo(
-                                    Registry.BLOCK.getKey(it.value()), tagInfo.priority, tagInfo.mass, tagInfo.type
+                                    Registry.BLOCK.getKey(it.value()), tagInfo.priority, tagInfo.mass, tagInfo.friction,
+                                    tagInfo.elasticity, tagInfo.type
                                 )
                             )
                         }
@@ -115,16 +124,18 @@ object MassDatapackResolver : BlockStateInfoProvider {
             val tag = element.asJsonObject["tag"]?.asString
             val weight = element.asJsonObject["mass"]?.asDouble
                 ?: throw IllegalArgumentException("No mass in file $origin")
+            val friction = element.asJsonObject["friction"]?.asDouble ?: DEFAULT_FRICTION
+            val elasticity = element.asJsonObject["elasticity"]?.asDouble ?: DEFAULT_ELASTICITY
 
             val priority = element.asJsonObject["priority"]?.asInt ?: 100
 
             if (tag != null) {
-                addToBeAddedTags(VSBlockStateInfo(ResourceLocation(tag), priority, weight, null))
+                addToBeAddedTags(VSBlockStateInfo(ResourceLocation(tag), priority, weight, friction, elasticity, null))
             } else {
                 val block = element.asJsonObject["block"]?.asString
                     ?: throw IllegalArgumentException("No block or tag in file $origin")
 
-                add(VSBlockStateInfo(ResourceLocation(block), priority, weight, null))
+                add(VSBlockStateInfo(ResourceLocation(block), priority, weight, friction, elasticity, null))
             }
         }
     }

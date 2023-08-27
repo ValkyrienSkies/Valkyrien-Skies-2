@@ -144,58 +144,16 @@ object DefaultBlockStateInfoProvider : BlockStateInfoProvider {
             CollisionPoint(Vector3f(.75f, .75f, .25f), .25f),
             CollisionPoint(Vector3f(.75f, .75f, .75f), .25f),
         )
-
-        val solidBlockState = Lod1SolidBlockState(
-            collisionShape = Lod1SolidBoxesCollisionShape(
-                overallBoundingBox = fullLodBoundingBox,
-                collisionPoints = fullBlockCollisionPoints,
-                solidBoxes = listOf(fullLodBoundingBox),
-                negativeBoxes = listOf(),
-            ),
-            elasticity = 0.3f,
-            friction = 1.0f,
-            hardness = 1.0f,
-            lod1SolidBlockStateId = BlockTypeImpl.SOLID.toInt(),
+        val fullBlockCollisionShape = Lod1SolidBoxesCollisionShape(
+            overallBoundingBox = fullLodBoundingBox,
+            collisionPoints = fullBlockCollisionPoints,
+            solidBoxes = listOf(fullLodBoundingBox),
+            negativeBoxes = listOf(),
         )
 
-        /*
-        val botHalfLodBoundingBox = LodBlockBoundingBox.createVSBoundingBox(0, 0, 0, 15, 7, 15)
-        val botHalfBlockCollisionPoints = listOf(
-            CollisionPoint(Vector3f(.25f, .25f, .25f), .25f),
-            CollisionPoint(Vector3f(.25f, .25f, .75f), .25f),
-            CollisionPoint(Vector3f(.75f, .25f, .25f), .25f),
-            CollisionPoint(Vector3f(.75f, .25f, .75f), .25f),
-        )
-
-        val topHalfLodBoundingBox = LodBlockBoundingBox.createVSBoundingBox(0, 8, 0, 15, 15, 15)
-        val topHalfBlockCollisionPoints = listOf(
-            CollisionPoint(Vector3f(.25f, .75f, .25f), .25f),
-            CollisionPoint(Vector3f(.25f, .75f, .75f), .25f),
-            CollisionPoint(Vector3f(.75f, .75f, .25f), .25f),
-            CollisionPoint(Vector3f(.75f, .75f, .75f), .25f),
-        )
-         */
-
-        val moreCollisionShapes = generateStairCollisionShapes(
+        val voxelShapeToCollisionShapeMap = generateStairCollisionShapes(
             StairBlockAccessor.getTopShapes() + StairBlockAccessor.getBottomShapes() + SlabBlockAccessor.getBottomAABB() + SlabBlockAccessor.getTopAABB()
         )
-
-        var nextSolidId = 4
-
-        val voxelShapeToSolidIdMap: MutableMap<VoxelShape, BlockType> = HashMap()
-        moreCollisionShapes.forEach { (voxelShape, lod1SolidCollisionShape) ->
-            val id = nextSolidId++
-            val newSolidBlockState = Lod1SolidBlockState(
-                collisionShape = lod1SolidCollisionShape,
-                elasticity = 0.3f,
-                friction = 1.0f,
-                hardness = 1.0f,
-                lod1SolidBlockStateId = id,
-            )
-            _solidBlockStates.add(newSolidBlockState)
-            _blockStateData.add(Triple(id, BlockTypeImpl.AIR.toInt(), id))
-            voxelShapeToSolidIdMap[voxelShape] = BlockTypeImpl(id)
-        }
 
         val waterBlockState = Lod1LiquidBlockState(
             boundingBox = fullLodBoundingBox,
@@ -213,17 +171,17 @@ object DefaultBlockStateInfoProvider : BlockStateInfoProvider {
             lod1LiquidBlockStateId = BlockTypeImpl.LAVA.toInt(),
         )
 
-        _solidBlockStates.add(solidBlockState)
-
-
-
+        // Add water/lava block states
         _liquidBlockStates.add(waterBlockState)
         _liquidBlockStates.add(lavaBlockState)
 
-        _blockStateData.add(Triple(BlockTypeImpl.SOLID.toInt(), BlockTypeImpl.AIR.toInt(), BlockTypeImpl.SOLID.toInt()))
         _blockStateData.add(Triple(BlockTypeImpl.AIR.toInt(), BlockTypeImpl.WATER.toInt(), BlockTypeImpl.WATER.toInt()))
         _blockStateData.add(Triple(BlockTypeImpl.AIR.toInt(), BlockTypeImpl.LAVA.toInt(), BlockTypeImpl.LAVA.toInt()))
 
+        // Setup initial conditions for future ids
+        var nextSolidId = 1
+        var nextFluidId = 4
+        var nextVoxelStateId = 4
 
         val dummyBlockGetter = object: BlockGetter {
             override fun getHeight(): Int = 255
@@ -253,7 +211,27 @@ object DefaultBlockStateInfoProvider : BlockStateInfoProvider {
                     }
                 } else if (blockMaterial.isSolid) {
                     val voxelShape = blockState.getShape(dummyBlockGetter, BlockPos.ZERO)
-                    voxelShapeToSolidIdMap[voxelShape] ?: vsCore.blockTypes.solid
+
+                    val collisionShape: Lod1SolidCollisionShape = if (voxelShapeToCollisionShapeMap.contains(voxelShape)) {
+                        voxelShapeToCollisionShapeMap[voxelShape]!!
+                    } else {
+                        fullBlockCollisionShape
+                    }
+
+                    val solidStateId = nextSolidId++
+                    val newSolidBlockState = Lod1SolidBlockState(
+                        collisionShape = collisionShape,
+                        elasticity = 0.3f,
+                        friction = 1.0f,
+                        hardness = 1.0f,
+                        lod1SolidBlockStateId = solidStateId,
+                    )
+                    _solidBlockStates.add(newSolidBlockState)
+
+                    val blockStateId = nextVoxelStateId++
+                    // TODO: For now don't waterlog, in the future add the fluid state id here
+                    _blockStateData.add(Triple(solidStateId, BlockTypeImpl.AIR.toInt(), blockStateId))
+                    BlockTypeImpl(blockStateId)
                 } else {
                     vsCore.blockTypes.air
                 }
