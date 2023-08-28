@@ -21,6 +21,7 @@ import net.minecraft.world.level.material.Material
 import net.minecraft.world.phys.shapes.VoxelShape
 import org.joml.Vector3f
 import org.joml.Vector3i
+import org.joml.primitives.AABBi
 import org.valkyrienskies.core.apigame.world.chunks.BlockType
 import org.valkyrienskies.core.game.VSBlockType
 import org.valkyrienskies.core.impl.game.BlockTypeImpl
@@ -39,9 +40,11 @@ import org.valkyrienskies.physics_api.voxel.Lod1SolidBlockState
 import org.valkyrienskies.physics_api.voxel.Lod1SolidBoxesCollisionShape
 import org.valkyrienskies.physics_api.voxel.Lod1SolidCollisionShape
 import org.valkyrienskies.physics_api.voxel.LodBlockBoundingBox
+import org.valkyrienskies.physics_api.voxel.LodBlockBoundingBox.Companion
 import java.util.Optional
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 private data class VSBlockStateInfo(
     val id: ResourceLocation,
@@ -175,6 +178,315 @@ object MassDatapackResolver : BlockStateInfoProvider {
         }
     }
 
+    private fun mergeBoxes(boxes: MutableList<LodBlockBoundingBox>): MutableList<LodBlockBoundingBox> {
+        fun tryMerging(box0: LodBlockBoundingBox, box1: LodBlockBoundingBox): LodBlockBoundingBox? {
+            // Check x-axis
+            if (box0.minY == box1.minY && box0.maxY == box1.maxY && box0.minZ == box1.minZ && box0.maxZ == box1.maxZ) {
+                val box0MinX = box0.minX
+                val box0MaxX = box0.maxX + 1
+                val box1MinX = box1.minX
+                val box1MaxX = box1.maxX + 1
+
+                if (box0MinX <= box1MaxX && box0MaxX >= box1MinX) {
+                    return LodBlockBoundingBox.createVSBoundingBox(
+                        min(box0.minX.toInt(), box1.minX.toInt()).toByte(),
+                        box0.minY,
+                        box0.minZ,
+                        max(box0.maxX.toInt(), box1.maxX.toInt()).toByte(),
+                        box0.maxY,
+                        box0.maxZ,
+                    )
+                }
+            }
+
+            // Check y-axis
+            if (box0.minX == box1.minX && box0.maxX == box1.maxX && box0.minZ == box1.minZ && box0.maxZ == box1.maxZ) {
+                val box0MinY = box0.minY
+                val box0MaxY = box0.maxY + 1
+                val box1MinY = box1.minY
+                val box1MaxY = box1.maxY + 1
+
+                if (box0MinY <= box1MaxY && box0MaxY >= box1MinY) {
+                    return LodBlockBoundingBox.createVSBoundingBox(
+                        box0.minX,
+                        min(box0.minY.toInt(), box1.minY.toInt()).toByte(),
+                        box0.minZ,
+                        box0.maxX,
+                        max(box0.maxY.toInt(), box1.maxY.toInt()).toByte(),
+                        box0.maxZ,
+                    )
+                }
+            }
+
+            // Check z-axis
+            if (box0.minX == box1.minX && box0.maxX == box1.maxX && box0.minY == box1.minY && box0.maxY == box1.maxY) {
+                val box0MinZ = box0.minZ
+                val box0MaxZ = box0.maxZ + 1
+                val box1MinZ = box1.minZ
+                val box1MaxZ = box1.maxZ + 1
+
+                if (box0MinZ <= box1MaxZ && box0MaxZ >= box1MinZ) {
+                    return LodBlockBoundingBox.createVSBoundingBox(
+                        box0.minX,
+                        box0.minY,
+                        min(box0.minZ.toInt(), box1.minZ.toInt()).toByte(),
+                        box0.maxX,
+                        box0.maxY,
+                        max(box0.maxZ.toInt(), box1.maxZ.toInt()).toByte(),
+                    )
+                }
+            }
+
+            return null
+        }
+
+        if (boxes.size < 2) return boxes
+        var done = false
+        loop@while (!done) {
+            for (i in 0 until boxes.size) {
+                for (j in i + 1 until boxes.size) {
+                    val merged = tryMerging(boxes[i], boxes[j])
+                    if (merged != null) {
+                        boxes.removeAt(j)
+                        boxes.removeAt(i)
+                        boxes.add(merged)
+                        continue@loop
+                    }
+                }
+            }
+            done = true
+        }
+        return boxes
+    }
+
+    private fun cutBoxes(boxes: MutableList<LodBlockBoundingBox>, cut: LodBlockBoundingBox): MutableList<LodBlockBoundingBox> {
+        val box0BB = AABBi()
+        val box1BB = AABBi()
+
+        fun intersects(box0: LodBlockBoundingBox, box1: LodBlockBoundingBox): Boolean {
+            box0BB.setMin(box0.minX.toInt(), box0.minY.toInt(), box0.minZ.toInt())
+            box0BB.setMax(box0.maxX.toInt(), box0.maxY.toInt(), box0.maxZ.toInt())
+            box1BB.setMin(box1.minX.toInt(), box1.minY.toInt(), box1.minZ.toInt())
+            box1BB.setMax(box1.maxX.toInt(), box1.maxY.toInt(), box1.maxZ.toInt())
+            return box0BB.intersectsAABB(box1BB)
+        }
+
+        fun cutBox(box: LodBlockBoundingBox, cut: LodBlockBoundingBox, dest: MutableList<LodBlockBoundingBox>) {
+            // Make bottom-x box
+            if (box.minX < cut.minX) {
+                dest.add(Companion.createVSBoundingBox(box.minX, box.minY, box.minZ, (cut.minX - 1).toByte(), box.maxY, box.maxZ))
+            }
+            // Make top-x box
+            if (box.maxX > cut.maxX) {
+                dest.add(Companion.createVSBoundingBox((cut.maxX + 1).toByte(), box.minY, box.minZ, box.maxX, box.maxY, box.maxZ))
+            }
+
+            // All boxes generated from this point will get minX/maxX from [cut]
+
+            // Make bottom-y box
+            if (box.minY < cut.minY) {
+                dest.add(Companion.createVSBoundingBox(cut.minX, box.minY, box.minZ, cut.maxX, (cut.minY - 1).toByte(), box.maxZ))
+            }
+            // Make top-y box
+            if (box.maxY > cut.maxY) {
+                dest.add(Companion.createVSBoundingBox(cut.minX, (cut.maxY + 1).toByte(), box.minZ, cut.maxX, box.maxY, box.maxZ))
+            }
+
+            // All boxes generated from this point will get minX/maxX/minY/maxY from [cut]
+            // Make bottom-z box
+            if (box.minZ < cut.minZ) {
+                dest.add(Companion.createVSBoundingBox(cut.minX, cut.minY, box.minZ, cut.maxX, cut.maxY, (cut.minZ - 1).toByte()))
+            }
+            // Make top-z box
+            if (box.maxZ > cut.maxZ) {
+                dest.add(Companion.createVSBoundingBox(cut.minX, cut.minY, (cut.maxZ + 1).toByte(), cut.maxX, cut.maxY, box.maxZ))
+            }
+        }
+
+        if (boxes.isEmpty()) return boxes
+
+        var done = false
+        loop@while (!done) {
+            for (i in 0 until boxes.size) {
+                val box = boxes[i]
+                if (intersects(box, cut)) {
+                    boxes.removeAt(i)
+                    cutBox(box, cut, boxes)
+                    continue@loop
+                }
+            }
+            done = true
+        }
+
+        return boxes
+    }
+
+    private fun generateCollisionPointsForBoxes(boxes: List<LodBlockBoundingBox>): List<CollisionPoint> {
+        // Near flat: 4 points
+        // Near post: 4 points
+        // Near cube: 1 points
+
+        val collisionPoints = ArrayList<CollisionPoint>()
+        for (box in boxes) {
+            val xLen = box.maxX + 1 - box.minX
+            val yLen = box.maxY + 1 - box.minY
+            val zLen = box.maxZ + 1 - box.minZ
+
+            if (xLen * 2 <= yLen && xLen * 2 <= zLen) {
+                // flat like along X
+                val radius = xLen / 2.0f
+                val xPos = (box.maxX + 1 + box.minX) / 2.0f
+                val minY = box.minY + radius
+                val minZ = box.minZ + radius
+                val maxY = box.maxY + 1 - radius
+                val maxZ = box.maxZ + 1 - radius
+                collisionPoints.add(CollisionPoint(Vector3f(xPos / 16.0f, minY / 16.0f, minZ / 16.0f), radius / 16.0f))
+                collisionPoints.add(CollisionPoint(Vector3f(xPos / 16.0f, minY / 16.0f, maxZ / 16.0f), radius / 16.0f))
+                collisionPoints.add(CollisionPoint(Vector3f(xPos / 16.0f, maxY / 16.0f, minZ / 16.0f), radius / 16.0f))
+                collisionPoints.add(CollisionPoint(Vector3f(xPos / 16.0f, maxY / 16.0f, maxZ / 16.0f), radius / 16.0f))
+            } else if (yLen * 2 <= xLen && yLen * 2 <= zLen) {
+                // flat like along Y
+                val radius = yLen / 2.0f
+                val yPos = (box.maxY + 1 + box.minY) / 2.0f
+                val minX = box.minX + radius
+                val minZ = box.minZ + radius
+                val maxX = box.maxX + 1 - radius
+                val maxZ = box.maxZ + 1 - radius
+                collisionPoints.add(CollisionPoint(Vector3f(minX / 16.0f, yPos / 16.0f, minZ / 16.0f), radius / 16.0f))
+                collisionPoints.add(CollisionPoint(Vector3f(minX / 16.0f, yPos / 16.0f, maxZ / 16.0f), radius / 16.0f))
+                collisionPoints.add(CollisionPoint(Vector3f(maxX / 16.0f, yPos / 16.0f, minZ / 16.0f), radius / 16.0f))
+                collisionPoints.add(CollisionPoint(Vector3f(maxX / 16.0f, yPos / 16.0f, maxZ / 16.0f), radius / 16.0f))
+            } else if (zLen * 2 <= xLen && zLen * 2 <= yLen) {
+                // fence like along Z
+                val radius = zLen / 2.0f
+                val zPos = (box.maxZ + 1 + box.minZ) / 2.0f
+                val minX = box.minX + radius
+                val minY = box.minY + radius
+                val maxX = box.maxX + 1 - radius
+                val maxY = box.maxY + 1 - radius
+                collisionPoints.add(CollisionPoint(Vector3f(minX / 16.0f, minY / 16.0f, zPos / 16.0f), radius / 16.0f))
+                collisionPoints.add(CollisionPoint(Vector3f(minX / 16.0f, maxY / 16.0f, zPos / 16.0f), radius / 16.0f))
+                collisionPoints.add(CollisionPoint(Vector3f(maxX / 16.0f, minY / 16.0f, zPos / 16.0f), radius / 16.0f))
+                collisionPoints.add(CollisionPoint(Vector3f(maxX / 16.0f, maxY / 16.0f, zPos / 16.0f), radius / 16.0f))
+            } else if (xLen >= 2 * yLen && xLen >= 2 * zLen) {
+                // post like along X
+                val radius = min(yLen, zLen) / 2.0f
+                val yPos = (box.maxY + 1 + box.minY) / 2.0f
+                val zPos = (box.maxZ + 1 + box.minZ) / 2.0f
+                collisionPoints.add(CollisionPoint(Vector3f((box.minX + radius) / 16.0f, yPos / 16.0f, zPos / 16.0f), radius / 16.0f))
+                collisionPoints.add(CollisionPoint(Vector3f(((box.maxX + 1 + box.minX) / 2.0f) / 16.0f, yPos / 16.0f, zPos / 16.0f), radius / 16.0f))
+                collisionPoints.add(CollisionPoint(Vector3f((box.maxX + 1 - radius) / 16.0f, yPos / 16.0f, zPos / 16.0f), radius / 16.0f))
+            } else if (yLen >= 2 * xLen && yLen >= 2 * zLen) {
+                // post like along Y
+                val radius = min(xLen, zLen) / 2.0f
+                val xPos = (box.maxX + 1 + box.minX) / 2.0f
+                val zPos = (box.maxZ + 1 + box.minZ) / 2.0f
+                collisionPoints.add(CollisionPoint(Vector3f(xPos / 16.0f, (box.minY + radius) / 16.0f, zPos / 16.0f), radius / 16.0f))
+                collisionPoints.add(CollisionPoint(Vector3f(xPos / 16.0f, ((box.maxY + 1 + box.minY) / 2.0f) / 16.0f, zPos / 16.0f), radius / 16.0f))
+                collisionPoints.add(CollisionPoint(Vector3f(xPos / 16.0f, (box.maxY + 1 - radius) / 16.0f, zPos / 16.0f), radius / 16.0f))
+            } else if (zLen >= 2 * xLen && zLen >= 2 * yLen) {
+                // post like along Z
+                val radius = min(xLen, yLen) / 2.0f
+                val xPos = (box.maxX + 1 + box.minX) / 2.0f
+                val yPos = (box.maxY + 1 + box.minY) / 2.0f
+                collisionPoints.add(CollisionPoint(Vector3f(xPos / 16.0f, yPos / 16.0f, (box.minZ + radius) / 16.0f), radius / 16.0f))
+                collisionPoints.add(CollisionPoint(Vector3f(xPos / 16.0f, yPos / 16.0f, ((box.maxZ + 1 + box.minZ) / 2.0f) / 16.0f), radius / 16.0f))
+                collisionPoints.add(CollisionPoint(Vector3f(xPos / 16.0f, yPos / 16.0f, (box.maxZ + 1 - radius) / 16.0f), radius / 16.0f))
+            } else {
+                // box
+                val radius = min(xLen, min(yLen, zLen)) / 2.0f
+                val centerX = (box.maxX + 1 + box.minX) / 2.0f
+                val centerY = (box.maxY + 1 + box.minY) / 2.0f
+                val centerZ = (box.maxZ + 1 + box.minZ) / 2.0f
+                collisionPoints.add(CollisionPoint(Vector3f(centerX / 16.0f, centerY / 16.0f, centerZ / 16.0f), radius / 16.0f))
+            }
+        }
+        return collisionPoints
+    }
+
+    private fun generateShapeFromVoxel(voxelShape: VoxelShape): Lod1SolidBoxesCollisionShape? {
+        val posBoxes = ArrayList<LodBlockBoundingBox>()
+        var failed = false
+        var maxBoxesToTest = 20
+        voxelShape.forAllBoxes { minX, minY, minZ, maxX, maxY, maxZ ->
+            if (failed) {
+                return@forAllBoxes
+            }
+            val lodMinX = (minX * 16).roundToInt().toByte()
+            val lodMinY = (minY * 16).roundToInt().toByte()
+            val lodMinZ = (minZ * 16).roundToInt().toByte()
+            val lodMaxX = ((maxX * 16).roundToInt() - 1).toByte()
+            val lodMaxY = ((maxY * 16).roundToInt() - 1).toByte()
+            val lodMaxZ = ((maxZ * 16).roundToInt() - 1).toByte()
+            if (lodMinX !in 0..15 || lodMinY !in 0..15 || lodMinZ !in 0..15 || lodMaxX !in 0..15|| lodMaxY !in 0..15|| lodMaxZ !in 0..15) {
+                // Out of range
+                failed = true
+                return@forAllBoxes
+            } else {
+                posBoxes.add(Companion.createVSBoundingBox(lodMinX, lodMinY, lodMinZ, lodMaxX, lodMaxY, lodMaxZ))
+            }
+            if (maxBoxesToTest == 0) {
+                failed = true
+            } else {
+                maxBoxesToTest--
+            }
+        }
+
+        if (failed) {
+            return null
+        }
+
+        if (posBoxes.isEmpty()) {
+            // No boxes? It's the empty shape
+            return Lod1SolidBoxesCollisionShape(Companion.createEmptyVSBoundingBox(), emptyList(), emptyList(), listOf(Companion.createFullVSBoundingBox()))
+        }
+
+        mergeBoxes(posBoxes)
+
+        if (posBoxes.size > 10) {
+            return null
+        }
+
+        var negBoxes = mutableListOf(Companion.createFullVSBoundingBox())
+        for (posBox in posBoxes) {
+            negBoxes = cutBoxes(negBoxes, posBox)
+        }
+
+        mergeBoxes(negBoxes)
+
+        if (negBoxes.size > 10) {
+            return null
+        }
+
+        val collisionPoints = generateCollisionPointsForBoxes(posBoxes)
+
+        if (collisionPoints.size > 20) {
+            return null
+        }
+
+        val minTotalAABB = Vector3i(posBoxes[0].minX.toInt(), posBoxes[0].minY.toInt(), posBoxes[0].minZ.toInt())
+        val maxTotalAABB = Vector3i(posBoxes[0].maxX.toInt(), posBoxes[0].maxY.toInt(), posBoxes[0].maxZ.toInt())
+        for (i in 1 until posBoxes.size) {
+            minTotalAABB.x = min(minTotalAABB.x, posBoxes[i].minX.toInt())
+            minTotalAABB.y = min(minTotalAABB.y, posBoxes[i].minY.toInt())
+            minTotalAABB.z = min(minTotalAABB.z, posBoxes[i].minZ.toInt())
+            maxTotalAABB.x = max(maxTotalAABB.x, posBoxes[i].maxX.toInt())
+            maxTotalAABB.y = max(maxTotalAABB.y, posBoxes[i].maxY.toInt())
+            maxTotalAABB.z = max(maxTotalAABB.z, posBoxes[i].maxZ.toInt())
+        }
+        val overallBox = LodBlockBoundingBox.createVSBoundingBox(
+            minTotalAABB.x.toByte(), minTotalAABB.y.toByte(), minTotalAABB.z.toByte(), maxTotalAABB.x.toByte(),
+            maxTotalAABB.y.toByte(), maxTotalAABB.z.toByte()
+        )
+
+        return Lod1SolidBoxesCollisionShape(
+            overallBox,
+            collisionPoints,
+            posBoxes,
+            negBoxes,
+        )
+    }
+
     private fun generateStairCollisionShapes(stairShapes: Array<VoxelShape>): Map<VoxelShape, Lod1SolidCollisionShape> {
         val testPoints = listOf(
             CollisionPoint(Vector3f(.25f, .25f, .25f), .25f),
@@ -236,8 +548,8 @@ object MassDatapackResolver : BlockStateInfoProvider {
             val collisionShape = Lod1SolidBoxesCollisionShape(
                 overallBoundingBox = overallBox,
                 collisionPoints = points,
-                solidBoxes = positiveBoxes,
-                negativeBoxes = negativeBoxes,
+                solidBoxes = mergeBoxes(positiveBoxes),
+                negativeBoxes = mergeBoxes(negativeBoxes),
             )
             map[stairShape] = collisionShape
         }
@@ -324,6 +636,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
         var nextFluidId = 4
         var nextVoxelStateId = 4
 
+        val generatedCollisionShapesMap = HashMap<VoxelShape, Lod1SolidCollisionShape?>()
         blockStates.forEach { blockState: BlockState ->
             val blockType: BlockType
             if (blockState.isAir) {
@@ -341,8 +654,16 @@ object MassDatapackResolver : BlockStateInfoProvider {
 
                     val collisionShape: Lod1SolidCollisionShape = if (voxelShapeToCollisionShapeMap.contains(voxelShape)) {
                         voxelShapeToCollisionShapeMap[voxelShape]!!
+                    } else if (generatedCollisionShapesMap.contains(voxelShape)) {
+                        if (generatedCollisionShapesMap[voxelShape] != null) {
+                            generatedCollisionShapesMap[voxelShape]!!
+                        } else {
+                            fullBlockCollisionShape
+                        }
                     } else {
-                        fullBlockCollisionShape
+                        val generated = generateShapeFromVoxel(voxelShape)
+                        generatedCollisionShapesMap[voxelShape] = generated
+                        generated ?: fullBlockCollisionShape
                     }
 
                     val vsBlockStateInfo = map[Registry.BLOCK.getKey(blockState.block)]
