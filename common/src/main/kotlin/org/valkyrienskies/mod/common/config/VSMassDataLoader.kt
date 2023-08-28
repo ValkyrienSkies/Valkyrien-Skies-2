@@ -69,6 +69,10 @@ object MassDatapackResolver : BlockStateInfoProvider {
     // Unused for now, placeholder for later
     private const val DEFAULT_HARDNESS = 1.0
 
+    // Limits set by Krunch
+    private const val MAX_BOXES = 10
+    private const val MAX_POINTS = 20
+
     override val priority: Int
         get() = 100
 
@@ -443,7 +447,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
 
         mergeBoxes(posBoxes)
 
-        if (posBoxes.size > 10) {
+        if (posBoxes.size > MAX_BOXES) {
             return null
         }
 
@@ -454,13 +458,13 @@ object MassDatapackResolver : BlockStateInfoProvider {
 
         mergeBoxes(negBoxes)
 
-        if (negBoxes.size > 10) {
+        if (negBoxes.size > MAX_BOXES) {
             return null
         }
 
         val collisionPoints = generateCollisionPointsForBoxes(posBoxes)
 
-        if (collisionPoints.size > 20) {
+        if (collisionPoints.size > MAX_POINTS) {
             return null
         }
 
@@ -544,7 +548,6 @@ object MassDatapackResolver : BlockStateInfoProvider {
                 minTotalAABB.x.toByte(), minTotalAABB.y.toByte(), minTotalAABB.z.toByte(), maxTotalAABB.x.toByte(),
                 maxTotalAABB.y.toByte(), maxTotalAABB.z.toByte()
             )
-            // TODO: Merge boxes (later)
             val collisionShape = Lod1SolidBoxesCollisionShape(
                 overallBoundingBox = overallBox,
                 collisionPoints = points,
