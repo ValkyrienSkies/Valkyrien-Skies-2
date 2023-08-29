@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.mixin.server;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -19,6 +20,7 @@ import net.minecraft.server.players.PlayerList;
 import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
@@ -52,6 +54,7 @@ import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.ShipSavedData;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
+import org.valkyrienskies.mod.common.config.MassDatapackResolver;
 import org.valkyrienskies.mod.common.hooks.VSGameEvents;
 import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.common.util.VSLevelChunk;
@@ -135,6 +138,18 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
 
         // Create ship world and VS Pipeline
         vsPipeline = shipSavedData.getPipeline();
+
+        // Register blocks
+        if (!MassDatapackResolver.INSTANCE.getRegisteredBlocks()) {
+            final List<BlockState> blockStateList = new ArrayList<>(Block.BLOCK_STATE_REGISTRY.size());
+            Block.BLOCK_STATE_REGISTRY.forEach((blockStateList::add));
+            MassDatapackResolver.INSTANCE.registerAllBlockStates(blockStateList);
+        }
+        vsPipeline.registerBlocks(
+            MassDatapackResolver.INSTANCE.getSolidBlockStates(),
+            MassDatapackResolver.INSTANCE.getLiquidBlockStates(),
+            MassDatapackResolver.INSTANCE.getBlockStateData()
+        );
 
         KrunchSupport.INSTANCE.setKrunchSupported(!vsPipeline.isUsingDummyPhysics());
 

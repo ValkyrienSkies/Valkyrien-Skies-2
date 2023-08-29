@@ -53,7 +53,7 @@
   },
   {
     "block": "minecraft:netherite_block",
-    "mass": 19280.0
+    "mass": 89680.0
   },
   {
     "block": "minecraft:lapis_block",
@@ -345,15 +345,21 @@
   },
   {
     "block": "minecraft:ice",
-    "mass": 830.0
+    "mass": 830.0,
+    "friction": 0.0,
+    "elasticity": 0.3
   },
   {
     "block": "minecraft:packed_ice",
-    "mass": 875.0
+    "mass": 875.0,
+    "friction": 0.0,
+    "elasticity": 0.3
   },
   {
     "block": "minecraft:blue_ice",
-    "mass": 920.0
+    "mass": 920.0,
+    "friction": 0.0,
+    "elasticity": 0.3
   },
   {
     "block": "minecraft:jukebox",
@@ -377,7 +383,9 @@
   },
   {
     "block": "minecraft:slime_block",
-    "mass": 1100.0
+    "mass": 1100.0,
+    "friction": 1.0,
+    "elasticity": 1.0
   },
   {
     "block": "minecraft:honey_block",

@@ -1,7 +1,9 @@
 [
   {
     "block": "minecraft:dirt",
-    "mass": 1220.0
+    "mass": 1220.0,
+    "friction": 1.0,
+    "elasticity": 0.3
   },
   {
     "block": "minecraft:coarse_dirt",
