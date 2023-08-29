@@ -158,10 +158,6 @@ object MassDatapackResolver : BlockStateInfoProvider {
             val weight = element.asJsonObject["mass"]?.asDouble
                 ?: throw IllegalArgumentException("No mass in file $origin")
             val friction = element.asJsonObject["friction"]?.asDouble ?: DEFAULT_FRICTION
-            val elasticityOriginal = element.asJsonObject["elasticity"]
-            if (elasticityOriginal != null) {
-                println("amogus")
-            }
             val elasticity = element.asJsonObject["elasticity"]?.asDouble ?: DEFAULT_ELASTICITY
 
             val priority = element.asJsonObject["priority"]?.asInt ?: 100
@@ -326,7 +322,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
             val lavaBlockState = Lod1LiquidBlockState(
                 boundingBox = fullLodBoundingBox,
                 density = 10000.0f,
-                dragCoefficient = 0.3f,
+                dragCoefficient = 1.0f,
                 fluidVel = Vector3f(),
                 lod1LiquidBlockStateId = BlockTypeImpl.LAVA.toInt(),
             )
@@ -362,6 +358,37 @@ object MassDatapackResolver : BlockStateInfoProvider {
         var nextVoxelStateId = 4
 
         val generatedCollisionShapesMap = HashMap<VoxelShape, Lod1SolidCollisionShape?>()
+        val liquidMaterialToDensityMap = mapOf(Fluids.WATER to Pair(1000.0f, 0.3f), Fluids.LAVA to Pair(10000.0f, 1.0f), Fluids.FLOWING_WATER to Pair(1000.0f, 0.3f), Fluids.FLOWING_LAVA to Pair(10000.0f, 1.0f))
+
+        val fluidStateToBlockTypeMap = HashMap<FluidState, Pair<Lod1LiquidBlockStateId, BlockType>>()
+
+        // Get the id of the fluid state/create a new fluid state if necessary
+        fun getFluidState(fluidState: FluidState): Pair<Lod1LiquidBlockStateId, BlockType> {
+            val cached = fluidStateToBlockTypeMap[fluidState]
+            if (cached != null) return cached
+            val maxY = ((fluidState.ownHeight * 16.0).roundToInt() - 1).coerceIn(0, 15).toByte()
+            val fluidBox = LodBlockBoundingBox.createVSBoundingBox(0, 0, 0, 15, maxY, 15)
+            if (fluidState.type in liquidMaterialToDensityMap) {
+                val (density, dragCoefficient) = liquidMaterialToDensityMap[fluidState.type]!!
+                val newFluidBlockState = Lod1LiquidBlockState(
+                    boundingBox = fluidBox,
+                    density = density,
+                    dragCoefficient = dragCoefficient,
+                    fluidVel = Vector3f(),
+                    lod1LiquidBlockStateId = nextFluidId++,
+                )
+                val stateId = nextVoxelStateId++
+                _liquidBlockStates.add(newFluidBlockState)
+                _blockStateData.add(Triple(BlockTypeImpl.AIR.toInt(), newFluidBlockState.lod1LiquidBlockStateId, stateId))
+                val blockTypeNew = BlockTypeImpl(stateId)
+                fluidStateToBlockTypeMap[fluidState] = newFluidBlockState.lod1LiquidBlockStateId to blockTypeNew
+                return newFluidBlockState.lod1LiquidBlockStateId to blockTypeNew
+            } else {
+                // Default
+                return BlockTypeImpl.WATER.toInt() to BlockTypeImpl.WATER
+            }
+        }
+
         blockStates.forEach { blockState: BlockState ->
             val blockType: BlockType
             if (blockState.isAir) {
@@ -369,11 +396,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
             } else {
                 val blockMaterial = blockState.material
                 blockType = if (blockMaterial.isLiquid) {
-                    if (blockMaterial == Material.LAVA) {
-                        vsCore.blockTypes.lava
-                    } else {
-                        vsCore.blockTypes.water
-                    }
+                    getFluidState(blockState.fluidState).second
                 } else if (blockMaterial.isSolid) {
                     val voxelShape = blockState.getShape(dummyBlockGetter, BlockPos.ZERO)
 
@@ -406,8 +429,13 @@ object MassDatapackResolver : BlockStateInfoProvider {
 
                     // Create new voxel state
                     val blockStateId = nextVoxelStateId++
-                    // TODO: For now don't waterlog, in the future add the fluid state id here
-                    _blockStateData.add(Triple(solidStateId, BlockTypeImpl.AIR.toInt(), blockStateId))
+
+                    var fluidId = BlockTypeImpl.AIR.toInt()
+                    if (!blockState.fluidState.isEmpty) {
+                        fluidId = getFluidState(blockState.fluidState).first
+                    }
+
+                    _blockStateData.add(Triple(solidStateId, fluidId, blockStateId))
                     BlockTypeImpl(blockStateId)
                 } else {
                     vsCore.blockTypes.air
