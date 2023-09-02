@@ -69,6 +69,9 @@
     "world.chunk.MixinLevelChunk",
     "world.entity.MixinPlayer",
     "world.entity.projectile.ProjectileUtilMixin",
+    "world.level.chunk.MixinChunkGenerator",
+    "world.level.levelgen.MixinFlatLevelSource",
+    "world.level.levelgen.MixinNoiseBasedChunkGenerator",
     "world.level.MixinLevel"
   ],
   "client": [
