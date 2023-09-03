@@ -1,3 +1,4 @@
+
 dependencies {
     annotationProcessor(implementation("com.github.LlamaLad7:MixinExtras:0.1.1"))
 
@@ -26,6 +27,7 @@ dependencies {
     modCompileOnly("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}")
         { exclude group: 'com.github.AlphaMode', module: 'fakeconfigtoml' }
     modCompileOnly("com.jozufozu.flywheel:flywheel-fabric-${minecraft_version}:0.6.8-33")
+    modCompileOnly("io.github.fabricators_of_create:Porting-Lib:${port_lib_version}+${minecraft_version}")
 }
 
 architectury {
