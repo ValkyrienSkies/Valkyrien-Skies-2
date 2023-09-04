@@ -12,14 +12,8 @@ plugins {
     id 'io.github.juuxel.loom-quiltflower' version '1.8.0' apply false
     // Kotlin
     id "org.jetbrains.kotlin.jvm" version "1.9.10" apply false
-    // Kotlin linter
-    id "org.jlleitschuh.gradle.ktlint" version "10.3.0"
-
     id 'com.matthewprenger.cursegradle' version '1.4.0' apply false
     id "com.modrinth.minotaur" version "2.4.3" apply false
-
-    // Java linter
-    id "checkstyle"
 }
 
 // Determine the version
@@ -69,8 +63,6 @@ tasks.register("updateVsCore") {
 subprojects {
     apply plugin: "dev.architectury.loom"
     // Apply checkstyle and ktlint to check the code style of every sub project
-    apply plugin: "org.jlleitschuh.gradle.ktlint"
-    apply plugin: "checkstyle"
     apply plugin: "org.jetbrains.kotlin.jvm"
     apply plugin: "io.github.juuxel.loom-quiltflower"
 
@@ -143,37 +135,6 @@ subprojects {
         mappings loom.officialMojangMappings()
 
         compileOnly("com.google.code.findbugs:jsr305:3.0.2")
-    }
-
-    // configure checkstyle
-    checkstyle {
-        // configure to use checkstyle v8.41
-        toolVersion "8.45.1"
-        // Gradle should fail builds on checkstyle errors (not warnings)
-        ignoreFailures = true
-        // Checkstyle config file is in .checkstyle/checkstyle.xml
-        configFile = file("${rootDir}/.checkstyle/checkstyle.xml")
-    }
-
-    // configure checkstyle, but different
-    // https://docs.gradle.org/current/userguide/checkstyle_plugin.html
-    tasks.withType(Checkstyle) {
-        reports {
-            // Do not output html reports
-            html.required.set(false)
-            // Output xml reports
-            xml.required.set(true)
-        }
-    }
-
-    // configure ktlint
-    ktlint {
-        reporters {
-            // configure to output in checkstyle XML format
-            reporter "checkstyle"
-        }
-        ignoreFailures = true
-        disabledRules = ["parameter-list-wrapping"]
     }
 }
 
