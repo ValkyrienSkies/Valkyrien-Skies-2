@@ -7,11 +7,11 @@ buildscript {
 
 plugins {
     // Needed for Forge+Fabric
-    id "architectury-plugin" version "3.4.143"
-    id "dev.architectury.loom" version "1.0.306" apply false
+    id "architectury-plugin" version "3.4.146"
+    id "dev.architectury.loom" version "1.3.355" apply false
     id 'io.github.juuxel.loom-quiltflower' version '1.8.0' apply false
     // Kotlin
-    id "org.jetbrains.kotlin.jvm" version "1.7.10" apply false
+    id "org.jetbrains.kotlin.jvm" version "1.9.10" apply false
     // Kotlin linter
     id "org.jlleitschuh.gradle.ktlint" version "10.3.0"
 
@@ -42,9 +42,29 @@ dependencyLocking {
     lockAllConfigurations()
 }
 
-// Determine the version of vs-core
-String vsCoreGitRevision = "git rev-parse HEAD".execute(null, gradle.includedBuild("vs-core").projectDir).text.trim()
-ext.vs_core_version = "1.1.0+" + vsCoreGitRevision.substring(0, 10)
+tasks.register("updateVsCore") {
+    File versionFile = null
+    File gradleProperties = file("gradle.properties")
+
+    try {
+        def vsCoreBuild = gradle.includedBuild("vs-core")
+        versionFile = new File(vsCoreBuild.projectDir, "api-game/build/version.txt")
+
+        inputs.file(versionFile)
+        outputs.file(gradleProperties)
+        dependsOn(vsCoreBuild.task(":api-game:writeVersion"))
+    } catch (UnknownDomainObjectException ignore) {}
+
+    onlyIf {
+        versionFile != null
+    }
+
+    doLast {
+        def vsCoreVersion = versionFile.text
+        def newGradleProperties = gradleProperties.text.replaceFirst("(?m)^vs_core_version=.*", "vs_core_version=" + vsCoreVersion)
+        gradleProperties.write(newGradleProperties)
+    }
+}
 
 subprojects {
     apply plugin: "dev.architectury.loom"
@@ -54,7 +74,22 @@ subprojects {
     apply plugin: "org.jetbrains.kotlin.jvm"
     apply plugin: "io.github.juuxel.loom-quiltflower"
 
+    configurations.each { it.resolutionStrategy.useGlobalDependencySubstitutionRules.set(false) }
+
     repositories {
+        try {
+            def vsCoreBuild = gradle.includedBuild("vs-core")
+            mavenLocal {
+                content {
+                    includeGroup("org.valkyrienskies.core")
+                }
+            }
+
+            [':impl', ':api', ':api-game'].each {
+                compileJava.dependsOn(vsCoreBuild.task("${it}:publishToMavenLocal"))
+            }
+        } catch (UnknownDomainObjectException ignore) {}
+
         mavenCentral()
         maven {
             name = "Valkyrien Skies Internal"
@@ -125,9 +160,9 @@ subprojects {
     tasks.withType(Checkstyle) {
         reports {
             // Do not output html reports
-            html.enabled = false
+            html.required.set(false)
             // Output xml reports
-            xml.enabled = true
+            xml.required.set(true)
         }
     }
 

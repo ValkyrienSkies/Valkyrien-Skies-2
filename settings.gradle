@@ -42,6 +42,12 @@ dependencyResolutionManagement {
 include("common")
 include("fabric")
 include("forge")
-includeBuild("vs-core")
+
+try {
+    def core = file("../vs-core")
+    if (core.isDirectory()) {
+        includeBuild(core)
+    }
+} catch (SecurityException ignore) {}
 
 rootProject.name = "valkyrienskies"

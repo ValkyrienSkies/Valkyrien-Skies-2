@@ -17,6 +17,11 @@ import org.valkyrienskies.core.apigame.world.chunks.BlockType
 import org.valkyrienskies.mod.common.block.WingBlock
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.hooks.VSGameEvents
+import org.valkyrienskies.physics_api.Lod1BlockStateId
+import org.valkyrienskies.physics_api.Lod1LiquidBlockStateId
+import org.valkyrienskies.physics_api.Lod1SolidBlockStateId
+import org.valkyrienskies.physics_api.voxel.Lod1LiquidBlockState
+import org.valkyrienskies.physics_api.voxel.Lod1SolidBlockState
 import java.util.function.IntFunction
 
 // Other mods can then provide weights and types based on their added content
@@ -28,7 +33,12 @@ interface BlockStateInfoProvider {
 
     fun getBlockStateMass(blockState: BlockState): Double?
 
+    // Get the id of the block state
     fun getBlockStateType(blockState: BlockState): BlockType?
+
+    val solidBlockStates: List<Lod1SolidBlockState>
+    val liquidBlockStates: List<Lod1LiquidBlockState>
+    val blockStateData: List<Triple<Lod1SolidBlockStateId, Lod1LiquidBlockStateId, Lod1BlockStateId>>
 }
 
 object BlockStateInfo {

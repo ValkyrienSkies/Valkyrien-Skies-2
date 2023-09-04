@@ -100,7 +100,7 @@ dependencies {
         transitive = false
     }
 
-    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api_krunch:1.0.0+61e725b93e") {
+    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api_krunch:1.0.0+2bfb3f8968") {
         transitive = false
     }
 
@@ -157,13 +157,13 @@ shadowJar {
     exclude "net/optifine/**"
 
     configurations = [project.configurations.shadowCommon]
-    classifier "dev-shadow"
+    archiveClassifier.set "dev-shadow"
 }
 
 remapJar {
     input.set shadowJar.archiveFile
     dependsOn shadowJar
-    classifier null
+    archiveClassifier.set null
 }
 
 compileKotlin {
@@ -171,7 +171,7 @@ compileKotlin {
 }
 
 jar {
-    classifier "dev"
+    archiveClassifier.set "dev"
 }
 
 sourcesJar {

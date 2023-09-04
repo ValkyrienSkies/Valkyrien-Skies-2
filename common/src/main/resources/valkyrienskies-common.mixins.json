@@ -7,8 +7,12 @@
     "accessors.entity.EntityAccessor",
     "accessors.network.protocol.game.ClientboundSectionBlocksUpdatePacketAccessor",
     "accessors.resource.ResourceKeyAccessor",
-    "accessors.server.world.ChunkMapAccessor",
+    "accessors.server.level.ChunkMapAccessor",
+    "accessors.server.level.DistanceManagerAccessor",
+    "accessors.server.level.ServerChunkCacheAccessor",
     "accessors.util.math.Matrix4fAccessor",
+    "accessors.world.level.block.SlabBlockAccessor",
+    "accessors.world.level.block.StairBlockAccessor",
     "accessors.world.level.pathfinder.PathAccessor",
     "entity.MixinEntity",
     "feature.ai.node_evaluator.PathNavigationRegionAccessor",
@@ -65,6 +69,9 @@
     "world.chunk.MixinLevelChunk",
     "world.entity.MixinPlayer",
     "world.entity.projectile.ProjectileUtilMixin",
+    "world.level.chunk.MixinChunkGenerator",
+    "world.level.levelgen.MixinFlatLevelSource",
+    "world.level.levelgen.MixinNoiseBasedChunkGenerator",
     "world.level.MixinLevel"
   ],
   "client": [

@@ -7,6 +7,7 @@ import org.valkyrienskies.core.api.ships.QueryableShipData
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.ships.properties.ShipId
 import org.valkyrienskies.core.api.world.LevelYRange
+import org.valkyrienskies.core.apigame.GameServer
 import org.valkyrienskies.core.apigame.ShipTeleportData
 import org.valkyrienskies.core.apigame.constraints.VSConstraint
 import org.valkyrienskies.core.apigame.constraints.VSConstraintId
@@ -24,6 +25,9 @@ import org.valkyrienskies.core.impl.game.ships.QueryableShipDataImpl
 
 object DummyShipWorldServer : ServerShipWorldCore {
     override var players: Set<IPlayer> = emptySet()
+    override fun setGameServer(gameServer: GameServer?) {
+        TODO("Not yet implemented")
+    }
 
     override fun addTerrainUpdates(dimensionId: DimensionId, terrainUpdates: List<TerrainUpdate>) {
         TODO("Not yet implemented")
