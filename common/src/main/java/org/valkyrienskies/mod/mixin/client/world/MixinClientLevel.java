@@ -2,10 +2,8 @@ package org.valkyrienskies.mod.mixin.client.world;
 
 import static org.valkyrienskies.mod.common.ValkyrienSkiesMod.getVsCore;
 
-import it.unimi.dsi.fastutil.objects.Object2ObjectArrayMap;
 import java.util.Random;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.color.block.BlockTintCache;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.BlockPos;
@@ -16,29 +14,21 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.ColorResolver;
 import net.minecraft.world.level.GameType;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FluidState;
 import org.jetbrains.annotations.NotNull;
-import org.joml.Vector3d;
 import org.joml.primitives.AABBd;
 import org.joml.primitives.AABBdc;
 import org.joml.primitives.AABBi;
 import org.joml.primitives.AABBic;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
-import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Desc;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyArg;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.Ship;
@@ -210,29 +200,6 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
         }
 
         return new SimpleSoundInstance(soundEvent, soundSource, volume, pitch, x, y, z);
-    }
-
-
-    @ModifyVariable(
-        method = "calculateBlockTint(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/ColorResolver;)I",
-        ordinal = 0,
-        at = @At("HEAD")
-    )
-    private BlockPos fixBlockPos(BlockPos old) {
-        final Vector3d newPos = VSGameUtilsKt.toWorldCoordinates(ClientLevel.class.cast(this), new Vector3d(old.getX(), old.getY(), old.getZ()));
-        return new BlockPos(newPos.x, newPos.y, newPos.z);
-    }
-
-    @Accessor("tintCaches")
-    public abstract Object2ObjectArrayMap<ColorResolver, BlockTintCache> getTintCaches();
-
-    @Overwrite
-    public int getBlockTint(BlockPos blockPos, ColorResolver colorResolver) {
-        if (VSGameUtilsKt.isBlockInShipyard(ClientLevel.class.cast(this), blockPos)) {
-            return ClientLevel.class.cast(this).calculateBlockTint(blockPos, colorResolver);
-        }
-        final BlockTintCache blockTintCache = getTintCaches().get(colorResolver);
-        return blockTintCache.getColor(blockPos);
     }
 
 }

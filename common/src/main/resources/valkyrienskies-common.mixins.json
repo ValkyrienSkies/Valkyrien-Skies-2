@@ -69,10 +69,10 @@
     "world.chunk.MixinLevelChunk",
     "world.entity.MixinPlayer",
     "world.entity.projectile.ProjectileUtilMixin",
+    "world.level.MixinLevel",
     "world.level.chunk.MixinChunkGenerator",
     "world.level.levelgen.MixinFlatLevelSource",
-    "world.level.levelgen.MixinNoiseBasedChunkGenerator",
-    "world.level.MixinLevel"
+    "world.level.levelgen.MixinNoiseBasedChunkGenerator"
   ],
   "client": [
     "accessors.client.multiplayer.ClientLevelAccessor",
@@ -91,6 +91,7 @@
     "client.renderer.MixinLevelRenderer",
     "client.world.MixinClientChunkCache",
     "client.world.MixinClientLevel",
+    "feature.block_tint.MixinClientLevel",
     "feature.commands.MixinClientSuggestionProvider",
     "feature.fix_render_chunk_sorting.MixinRenderChunk",
     "feature.fluid_camera_fix.MixinCamera",
