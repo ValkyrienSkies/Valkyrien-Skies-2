@@ -1,16 +1,14 @@
 package org.valkyrienskies.mod.mixin.feature.block_tint;
 
-import it.unimi.dsi.fastutil.objects.Object2ObjectArrayMap;
-import net.minecraft.client.color.block.BlockTintCache;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ColorResolver;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Overwrite;
-import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 
@@ -44,24 +42,22 @@ public abstract class MixinClientLevel {
         );
     }
 
-    @Accessor(
-        "tintCaches"
+    @Inject(
+        method = "getBlockTint(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/ColorResolver;)I",
+        at = @At("HEAD"),
+        cancellable = true
     )
-    public abstract Object2ObjectArrayMap<ColorResolver, BlockTintCache> getTintCaches();
-
-    /**
-     * @author SuperCraftAlex
-     * @reason Fix block tinting for ships
-     */
-    @Overwrite
-    public int getBlockTint(BlockPos blockPos, ColorResolver colorResolver) {
+    public void getBlockTint(
+        final BlockPos blockPos,
+        final ColorResolver colorResolver,
+        final CallbackInfoReturnable<Integer> cir
+    ) {
         if (VSGameConfig.CLIENT.getBlockTinting().getFixBlockTinting() &&
             VSGameUtilsKt.isBlockInShipyard(ClientLevel.class.cast(this), blockPos)
         ) {
-            return ClientLevel.class.cast(this).calculateBlockTint(blockPos, colorResolver);
+            cir.setReturnValue(ClientLevel.class.cast(this)
+                .calculateBlockTint(blockPos, colorResolver));
         }
-        final BlockTintCache blockTintCache = getTintCaches().get(colorResolver);
-        return blockTintCache.getColor(blockPos);
     }
 
 
