@@ -17,6 +17,8 @@ object VSGameConfig {
     class Client {
         val Tooltip = TOOLTIP()
 
+        val BlockTinting = BLOCKTINT()
+
         @JsonSchema(description = "Renders the VS2 debug HUD with TPS")
         var renderDebugText = false
 
@@ -35,6 +37,13 @@ object VSGameConfig {
                 description = "Use Imperial Units to show Mass"
             )
             var useImperialUnits = false
+        }
+
+        class BLOCKTINT {
+            @JsonSchema(
+                description = "Partly fixes the block tinting issue with blocks on ships"
+            )
+            var fixBlockTinting = false
         }
     }
 
