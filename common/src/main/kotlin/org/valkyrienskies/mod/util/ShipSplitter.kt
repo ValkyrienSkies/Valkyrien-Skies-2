@@ -13,6 +13,7 @@ import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore
 import org.valkyrienskies.core.impl.datastructures.DenseBlockPosSet
+import org.valkyrienskies.core.impl.datastructures.dynconn.BlockPosVertex
 import org.valkyrienskies.core.impl.game.ships.AirPocketForest
 import org.valkyrienskies.core.impl.game.ships.AirPocketForestImpl
 import org.valkyrienskies.core.impl.game.ships.ConnectivityForest
@@ -21,6 +22,7 @@ import org.valkyrienskies.core.impl.game.ships.ShipDataCommon
 import org.valkyrienskies.core.impl.game.ships.ShipTransformImpl
 import org.valkyrienskies.core.impl.util.expand
 import org.valkyrienskies.mod.common.assembly.createNewShipWithBlocks
+import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.toBlockPos
 import org.valkyrienskies.mod.common.util.toJOML
 
@@ -37,7 +39,7 @@ object ShipSplitter {
                         for (breakage in forest.getBreakQueue()) {
 
                             val shipsToSplit = forest.split(breakage)
-                            for (snap in shipsToSplit) {
+                            for (snap in shipsToSplit.first) {
                                 val toRemove = DenseBlockPosSet()
                                 for (vertex in snap.first.values.toList()) {
                                     if (vertex != null) {
@@ -89,31 +91,50 @@ object ShipSplitter {
                                 (newShip as ShipDataCommon).transform = newShipTransform
                                 (newShip as ShipDataCommon).physicsData.linearVelocity = velVec
                                 (newShip as ShipDataCommon).physicsData.angularVelocity = omegaVec
+                                verifyShip(self, newShip, centerPos)
                             }
+                            verifyShip(self, ship, shipsToSplit.second)
                             // if (forest.vertices[shipsToSplit.second] != null) {
                             //     forest.verifyIntactOnLoad(forest.vertices[shipsToSplit.second]!!)
                             // }
 
-                            for (it in breakage) {
-                                if (it == null) {
-                                    continue
-                                }
-                                if (!self.getBlockState(it!!.toBlockPos()).isAir) {
-                                    if (forest.vertices[it] != null) {
-                                        forest.verifyIntactOnLoad(forest.vertices[it]!!)
-                                        break
-                                    } else {
-                                        continue
-                                    }
-                                } else {
-                                    continue
-                                }
-                            }
+                            // for (it in breakage) {
+                            //     if (it == null) {
+                            //         continue
+                            //     }
+                            //     if (!self.getBlockState(it!!.toBlockPos()).isAir) {
+                            //         if (forest.vertices[it] != null) {
+                            //             forest.verifyIntactOnLoad(forest.vertices[it]!!)
+                            //             break
+                            //         } else {
+                            //             continue
+                            //         }
+                            //     } else {
+                            //         continue
+                            //     }
+                            // }
 
                             forest.removeFromBreakQueue(breakage)
                         }
                     }
                 }
+            }
+        }
+    }
+
+    fun verifyShip(level: ServerLevel, newShip: ServerShip, centerPos: Vector3ic) {
+        val newLoadedShip: LoadedServerShip = level.shipObjectWorld.loadedShips.getById(newShip.id) ?: return
+
+        val forest: ConnectivityForestImpl = newLoadedShip.getAttachment<ConnectivityForest>(ConnectivityForest::class.java) as ConnectivityForestImpl ?: return
+
+        val root: BlockPosVertex = forest.vertices[centerPos] ?: return
+
+        forest.vertices.values.forEach {
+            if (!forest.graph.connected(it, root)) {
+                val list: ArrayList<Vector3ic?> = ArrayList()
+                list.add(it.toJOML())
+                list.add(root.toJOML())
+                forest.addToBreakQueue(list)
             }
         }
     }
