@@ -12,15 +12,17 @@ import net.minecraft.world.phys.shapes.VoxelShape
 import org.joml.primitives.AABBd
 import org.joml.primitives.AABBdc
 import org.valkyrienskies.core.api.ships.Ship
-import org.valkyrienskies.core.impl.collision.ConvexPolygonc
-import org.valkyrienskies.core.impl.collision.EntityPolygonCollider
-import org.valkyrienskies.core.impl.collision.EntityPolygonCollider.createPolygonFromAABB
-import org.valkyrienskies.core.impl.util.extend
+import org.valkyrienskies.core.apigame.collision.ConvexPolygonc
+import org.valkyrienskies.core.impl.collision.k.createPolygonFromAABB
+import org.valkyrienskies.core.util.extend
 import org.valkyrienskies.mod.common.getShipsIntersecting
 import org.valkyrienskies.mod.common.shipObjectWorld
+import org.valkyrienskies.mod.common.vsCore
 import kotlin.math.max
 
 object EntityShipCollisionUtils {
+
+    private val collider = vsCore.entityPolygonCollider
 
     @JvmStatic
     fun isCollidingWithUnloadedShips(entity: Entity): Boolean {
@@ -86,7 +88,7 @@ object EntityShipCollisionUtils {
             return movement
         }
 
-        val (newMovement, shipCollidingWith) = EntityPolygonCollider.adjustEntityMovementForPolygonCollisions(
+        val (newMovement, shipCollidingWith) = collider.adjustEntityMovementForPolygonCollisions(
             movement.toJOML(), entityBoundingBox.toJOML(), stepHeight, collidingShipPolygons
         )
         if (entity != null) {
@@ -109,7 +111,7 @@ object EntityShipCollisionUtils {
         val entityBoundingBoxExtended = entityBoundingBox.toJOML().extend(movement.toJOML())
         for (shipObject in world.shipObjectWorld.loadedShips.getIntersecting(entityBoundingBoxExtended)) {
             val shipTransform = shipObject.transform
-            val entityPolyInShipCoordinates: ConvexPolygonc = createPolygonFromAABB(
+            val entityPolyInShipCoordinates: ConvexPolygonc = collider.createPolygonFromAABB(
                 entityBoxWithMovement.toJOML(),
                 shipTransform.worldToShip
             )

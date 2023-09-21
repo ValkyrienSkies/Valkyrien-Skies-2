@@ -20,9 +20,9 @@ import net.minecraft.world.phys.shapes.CollisionContext
 import net.minecraft.world.phys.shapes.VoxelShape
 import org.joml.Vector3d
 import org.joml.Vector3dc
-import org.valkyrienskies.core.impl.util.x
-import org.valkyrienskies.core.impl.util.y
-import org.valkyrienskies.core.impl.util.z
+import org.valkyrienskies.core.util.x
+import org.valkyrienskies.core.util.y
+import org.valkyrienskies.core.util.z
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.util.toDoubles
 

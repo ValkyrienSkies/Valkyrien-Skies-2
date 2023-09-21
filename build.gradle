@@ -9,7 +9,7 @@ plugins {
     // Needed for Forge+Fabric
     id "architectury-plugin" version "3.4.146"
     id "dev.architectury.loom" version "1.3.355" apply false
-    id 'io.github.juuxel.loom-quiltflower' version '1.8.0' apply false
+    id 'io.github.juuxel.loom-vineflower' version '1.11.0' apply false
     // Kotlin
     id "org.jetbrains.kotlin.jvm" version "1.9.10" apply false
     id 'com.matthewprenger.cursegradle' version '1.4.0' apply false
@@ -47,6 +47,10 @@ tasks.register("updateVsCore") {
         inputs.file(versionFile)
         outputs.file(gradleProperties)
         dependsOn(vsCoreBuild.task(":api-game:writeVersion"))
+
+        [':impl', ':api', ':api-game', ':util'].each {
+            dependsOn(vsCoreBuild.task("${it}:publishToMavenLocal"))
+        }
     } catch (UnknownDomainObjectException ignore) {}
 
     onlyIf {
@@ -64,7 +68,7 @@ subprojects {
     apply plugin: "dev.architectury.loom"
     // Apply checkstyle and ktlint to check the code style of every sub project
     apply plugin: "org.jetbrains.kotlin.jvm"
-    apply plugin: "io.github.juuxel.loom-quiltflower"
+    apply plugin: "io.github.juuxel.loom-vineflower"
 
     configurations.each { it.resolutionStrategy.useGlobalDependencySubstitutionRules.set(false) }
 

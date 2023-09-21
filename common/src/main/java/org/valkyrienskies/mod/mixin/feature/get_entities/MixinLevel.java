@@ -17,7 +17,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.valkyrienskies.core.impl.util.RateLimiter;
+import org.valkyrienskies.core.util.RateLimiter;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(Level.class)

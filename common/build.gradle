@@ -17,6 +17,8 @@ dependencies {
         exclude module: "fastutil"
     }
 
+    implementation("org.valkyrienskies.core:util:${rootProject.vs_core_version}")
+
     // FTB Stuffs
     modCompileOnly("curse.maven:ftb-util-404465:4210935")
     modCompileOnly("curse.maven:ftb-teams-404468:4229138")

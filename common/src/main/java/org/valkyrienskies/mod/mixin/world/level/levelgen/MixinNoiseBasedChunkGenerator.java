@@ -23,7 +23,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.valkyrienskies.core.impl.game.ChunkAllocator;
 import org.valkyrienskies.mod.common.VS2ChunkAllocator;
 
 @Mixin(NoiseBasedChunkGenerator.class)

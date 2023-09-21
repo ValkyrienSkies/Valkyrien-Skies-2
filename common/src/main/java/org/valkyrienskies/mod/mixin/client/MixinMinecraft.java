@@ -30,7 +30,6 @@ import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.util.EntityDragger;
-import org.valkyrienskies.mod.common.world.DummyShipWorldClient;
 import org.valkyrienskies.mod.mixinducks.client.MinecraftDuck;
 
 @Mixin(Minecraft.class)
@@ -88,7 +87,7 @@ public abstract class MixinMinecraft
 
         if (shipObjectWorldCopy == null) {
             log.warn("Requested getShipObjectWorld() when shipObjectWorld was null!");
-            return DummyShipWorldClient.INSTANCE;
+            return ValkyrienSkiesMod.getVsCore().getDummyShipWorldClient();
         }
         return shipObjectWorldCopy;
     }
