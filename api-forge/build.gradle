@@ -1,0 +1,56 @@
+plugins {
+    id "com.github.johnrengelman.shadow" version "7.1.2"
+}
+
+configurations {
+    common
+    shadowCommon // Don't use shadow from the shadow plugin because we don't want IDEA to index this.
+    core
+    compileClasspath.extendsFrom common
+    runtimeClasspath.extendsFrom common
+    developmentForge.extendsFrom common
+    compileClasspath.extendsFrom core
+    forgeRuntimeLibrary.extendsFrom core
+    shadowCommon.extendsFrom core
+}
+
+dependencies {
+    common(project(path: ":api-common", configuration: "namedElements")) {
+        transitive = false
+    }
+    shadowCommon(project(path: ":api-common", configuration: "transformProductionForge")) {
+        transitive = false
+    }
+}
+
+architectury {
+    platformSetupLoomIde()
+    forge()
+}
+
+shadowJar {
+    exclude "fabric.mod.json"
+    exclude "architectury.common.json"
+    // Exclude dummy Optifine classes
+    exclude "net/optifine/**"
+
+    configurations = [project.configurations.shadowCommon]
+    archiveClassifier.set "dev-shadow"
+}
+
+remapJar {
+    input.set shadowJar.archiveFile
+    dependsOn shadowJar
+    archiveClassifier.set null
+}
+
+publishing {
+    publications {
+        mavenForge(MavenPublication) {
+            groupId = "org.valkyrienskies"
+            version = project.version
+            artifactId = rootProject.archives_base_name + "-" + project.name
+            from components.java
+        }
+    }
+}

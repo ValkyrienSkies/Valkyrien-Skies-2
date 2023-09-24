@@ -38,6 +38,7 @@ interface BlockStateInfoProvider {
 
     val solidBlockStates: List<Lod1SolidBlockState>
     val liquidBlockStates: List<Lod1LiquidBlockState>
+
     val blockStateData: List<Triple<Lod1SolidBlockStateId, Lod1LiquidBlockStateId, Lod1BlockStateId>>
 }
 

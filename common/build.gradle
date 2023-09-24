@@ -17,6 +17,10 @@ dependencies {
         exclude module: "fastutil"
     }
 
+    implementation(project(path: ":api-common", configuration: "namedElements")) {
+        transitive = false
+    }
+
     implementation("org.valkyrienskies.core:util:${rootProject.vs_core_version}")
 
     // FTB Stuffs

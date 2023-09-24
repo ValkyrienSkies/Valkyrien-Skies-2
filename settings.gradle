@@ -39,9 +39,7 @@ dependencyResolutionManagement {
     }
 }
 
-include("common")
-include("fabric")
-include("forge")
+include("common", "fabric", "forge", "api-common", "api-fabric", "api-forge")
 
 try {
     def core = file("../vs-core")

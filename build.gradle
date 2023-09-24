@@ -65,10 +65,27 @@ tasks.register("updateVsCore") {
 }
 
 subprojects {
+    apply plugin: "java"
     apply plugin: "dev.architectury.loom"
     // Apply checkstyle and ktlint to check the code style of every sub project
     apply plugin: "org.jetbrains.kotlin.jvm"
     apply plugin: "io.github.juuxel.loom-vineflower"
+
+    // Set the base name, version, and group to the values in the gradle.properties
+    archivesBaseName = rootProject.archives_base_name
+    version = rootProject.version
+    group = rootProject.maven_group
+
+
+    tasks.withType(JavaCompile) {
+        options.encoding = "UTF-8"
+
+        options.release = 17
+    }
+
+    java {
+        withSourcesJar()
+    }
 
     configurations.each { it.resolutionStrategy.useGlobalDependencySubstitutionRules.set(false) }
 
@@ -155,14 +172,8 @@ subprojects {
 }
 
 allprojects {
-    apply plugin: "java"
     apply plugin: "architectury-plugin"
     apply plugin: "maven-publish"
-
-    // Set the base name, version, and group to the values in the gradle.properties
-    archivesBaseName = rootProject.archives_base_name
-    version = rootProject.version
-    group = rootProject.maven_group
 
     publishing {
         repositories {
@@ -189,15 +200,5 @@ allprojects {
                 }
             }
         }
-    }
-
-    tasks.withType(JavaCompile) {
-        options.encoding = "UTF-8"
-
-        options.release = 17
-    }
-
-    java {
-        withSourcesJar()
     }
 }

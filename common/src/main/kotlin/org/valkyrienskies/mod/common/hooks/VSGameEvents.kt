@@ -22,7 +22,9 @@ object VSGameEvents {
         val renderer: LevelRenderer,
         val renderType: RenderType,
         val poseStack: PoseStack,
-        val camX: Double, val camY: Double, val camZ: Double,
+        val camX: Double,
+        val camY: Double,
+        val camZ: Double,
         val projectionMatrix: Matrix4f
     )
 

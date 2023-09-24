@@ -52,7 +52,7 @@ configurations {
 
 dependencies {
     include(forgeRuntimeLibrary(annotationProcessor(implementation("com.github.LlamaLad7:MixinExtras:0.1.1"))))
-
+    include(project(path: ":api-forge", configuration: "namedElements"))
 
     forge "net.minecraftforge:forge:${rootProject.forge_version}"
 
@@ -87,6 +87,9 @@ dependencies {
     // Shade vs-core
     implementation("org.valkyrienskies.core:impl:${rootProject.vs_core_version}")
     forgeRuntimeLibrary shadowCommon("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
+        transitive = false
+    }
+    forgeRuntimeLibrary("org.valkyrienskies.core:util:${rootProject.vs_core_version}") {
         transitive = false
     }
 
