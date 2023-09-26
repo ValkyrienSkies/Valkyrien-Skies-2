@@ -3,7 +3,7 @@ package org.valkyrienskies
 plugins {
     id("org.valkyrienskies.minecraft-platform-conventions")
 }
-private val commonProject: String by extraProperty("common_project")
+private val commonProject: String = property("common_project") as String
 
 dependencies {
     val shade by configurations

@@ -20,7 +20,7 @@ plugins {
     id("com.github.johnrengelman.shadow")
 }
 
-private val commonProject: String by extraProperty("common_project")
+private val commonProject: String = property("common_project") as String
 
 // Set the version to the same as the common project
 version = project(commonProject).version

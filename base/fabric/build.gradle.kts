@@ -45,8 +45,8 @@ dependencies {
     modImplementation("dev.cafeteria", "fake-player-api", fakePlayerApiVersion)
     modImplementation("io.github.tropheusj", "milk-lib", milkLibVersion)
     
-    implementation(project(":api-fabric", "namedElements")) { isTransitive = false }
-    include(project(":api-fabric"))
+    implementation(project(":api:fabric", "namedElements")) { isTransitive = false }
+    include(project(":api:fabric"))
 
     implementation(vsCoreImpl)
     shade(vsCoreImpl) { isTransitive = false }

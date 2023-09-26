@@ -1,3 +1,9 @@
+import java.nio.file.Files
+import kotlin.io.path.absolute
+import kotlin.io.path.isDirectory
+import kotlin.io.path.listDirectoryEntries
+import kotlin.io.path.name
+
 pluginManagement {
     val vsMavenUsername = extra["vs_maven_username"] as String?
     val vsMavenPassword  = extra["vs_maven_password"] as String?
@@ -28,11 +34,12 @@ pluginManagement {
 }
 
 include(
-    "api-common",
-    "api-fabric",
-    "api-forge",
-    "common",
-    "fabric",
-    "forge")
+    "api:common",
+    "api:fabric",
+    "api:forge",
+    "base:common",
+    "base:fabric",
+    "base:forge"
+)
 
 rootProject.name = "valkyrienskies"

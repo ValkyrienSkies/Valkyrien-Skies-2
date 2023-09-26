@@ -1,4 +1,5 @@
 import org.valkyrienskies.extraProperty
+import org.valkyrienskies.vsCoreApi
 import org.valkyrienskies.vsCoreApiGame
 import org.valkyrienskies.vsCoreImpl
 import org.valkyrienskies.vsCoreUtil
@@ -20,21 +21,24 @@ loom {
 dependencies {
     val shade by configurations
 
-    implementation(project(":common", "namedElements")) { isTransitive = false }
-
     implementation(kotlin("stdlib"))
 
-    implementation(vsCoreImpl)
-    shade(vsCoreImpl)
-    forgeRuntimeLibrary(vsCoreImpl)
 
-    implementation(vsCoreApiGame)
-    shade(vsCoreApiGame)
-    forgeRuntimeLibrary(vsCoreApiGame)
+    compileOnly(vsCoreImpl)
+    shade(vsCoreImpl) { isTransitive = false }
+    forgeRuntimeLibrary(vsCoreImpl) { isTransitive = false }
 
-    implementation(vsCoreUtil)
-    shade(vsCoreUtil)
-    forgeRuntimeLibrary(vsCoreUtil)
+    implementation(vsCoreApiGame) { isTransitive = false }
+    shade(vsCoreApiGame) { isTransitive = false }
+    forgeRuntimeLibrary(vsCoreApiGame) { isTransitive = false }
+
+    implementation(vsCoreApi) { isTransitive = false }
+    shade(vsCoreApi) { isTransitive = false }
+    forgeRuntimeLibrary(vsCoreApi) { isTransitive = false }
+
+    implementation(vsCoreUtil) { isTransitive = false }
+    shade(vsCoreUtil) { isTransitive = false }
+    forgeRuntimeLibrary(vsCoreUtil) { isTransitive = false }
 
     forgeRuntimeLibrary(shade("org.valkyrienskies:physics_api_krunch:1.0.0+2bfb3f8968") {
         isTransitive = false
@@ -51,8 +55,8 @@ dependencies {
     annotationProcessor(mixinExtras)
     implementation(mixinExtras)
 
-    // implementation(project(":api-forge"))
-    // include(project(":api-forge"))
+    implementation(project(":api:forge"))
+    include(project(":api:forge"))
 
 
     val minecraftVersion: String by extraProperty("minecraft_version")
