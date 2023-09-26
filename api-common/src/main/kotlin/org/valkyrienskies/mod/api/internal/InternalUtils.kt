@@ -4,6 +4,8 @@ package org.valkyrienskies.mod.api.internal
 import org.jetbrains.annotations.ApiStatus.Internal
 import org.joml.primitives.AABBic
 
+// todo remove this
+
 @JvmSynthetic
 internal fun require4bits(name: String, aabb: AABBic) {
     require4bits("$name.minX", aabb.minX())

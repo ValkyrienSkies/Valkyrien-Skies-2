@@ -4,6 +4,7 @@ import org.joml.primitives.AABBi
 import org.joml.primitives.AABBic
 import org.valkyrienskies.mod.api.internal.require4bits
 
+// todo extract interface
 class SolidState private constructor(
     val elasticity: Double,
     val friction: Double,

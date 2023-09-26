@@ -1,4 +1,3 @@
-@file:JvmName("LiquidState")
 package org.valkyrienskies.mod.api.registration
 
 import org.joml.Vector3d
@@ -7,9 +6,7 @@ import org.joml.primitives.AABBi
 import org.joml.primitives.AABBic
 import org.valkyrienskies.mod.api.internal.require4bits
 
-fun buildLiquidState(block: LiquidState.Builder.() -> Unit): LiquidState =
-    LiquidState.Builder().apply(block).build()
-
+// todo extract interface
 class LiquidState private constructor(
     val boundingBox: AABBic,
     val density: Float,

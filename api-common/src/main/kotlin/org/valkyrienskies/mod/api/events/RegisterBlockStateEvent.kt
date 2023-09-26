@@ -6,6 +6,11 @@ import org.valkyrienskies.mod.api.registration.SolidState
 
 interface RegisterBlockStateEvent {
 
+    fun newLiquidStateBuilder(): LiquidState.Builder
+    fun buildLiquidState(block: LiquidState.Builder.() -> Unit): LiquidState
+    fun newSolidStateBuilder(): SolidState.Builder
+
+
     fun register(state: BlockState, solidState: SolidState)
     fun register(state: BlockState, liquidState: LiquidState)
 
