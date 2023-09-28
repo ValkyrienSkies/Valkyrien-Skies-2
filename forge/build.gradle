@@ -100,6 +100,10 @@ dependencies {
         transitive = false
     }
 
+    forgeRuntimeLibrary include("org.valkyrienskies.core:util:${rootProject.vs_core_version}") {
+        transitive = false
+    }
+
     forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api_krunch:1.0.0+c56602855f") {
         transitive = false
     }
