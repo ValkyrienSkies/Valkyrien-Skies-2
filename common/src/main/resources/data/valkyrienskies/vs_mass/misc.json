@@ -450,6 +450,11 @@
     "friction": 0.7
   },
   {
+    "block": "minecraft:dragon_egg",
+    "mass": 1400.0,
+    "friction": 0.8
+  },
+  {
     "block": "minecraft:end_portal_frame",
     "mass": 3000.0,
     "friction": 0.4
