@@ -24,7 +24,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.ClientShip;
-import org.valkyrienskies.core.api.world.LevelYRange;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.mixinducks.MixinBlockEntityInstanceManagerDuck;
 
@@ -60,7 +59,7 @@ public abstract class MixinBlockEntityInstanceManager extends InstanceManager<Bl
                 final MaterialManager manager =
                     shipMaterialManagers.computeIfAbsent(ship, k -> createMaterialManager());
                 final Vector3i c =
-                    ship.getChunkClaim().getCenterBlockCoordinates(new LevelYRange(0, 0), new Vector3i());
+                    ship.getChunkClaim().getCenterBlockCoordinates(VSGameUtilsKt.getYRange(nullableLevel), new Vector3i());
                 ((InstancingEngineAccessor) manager).setOriginCoordinate(new BlockPos(c.x, c.y, c.z));
 
                 cir.setReturnValue(InstancedRenderRegistry.createInstance(manager, blockEntity));
