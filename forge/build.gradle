@@ -134,7 +134,6 @@ dependencies {
 
     forgeRuntimeLibrary include("com.networknt:json-schema-validator:1.0.71") { transitive = false }
     forgeRuntimeLibrary include("com.ethlo.time:itu:1.7.0") { transitive = false }
-    forgeRuntimeLibrary include("com.github.imifou:jsonschema-module-addon:1.2.1") { transitive = false }
     forgeRuntimeLibrary include("com.github.victools:jsonschema-module-jackson:4.25.0") { transitive = false }
     forgeRuntimeLibrary include("com.github.victools:jsonschema-generator:4.25.0") { transitive = false }
     forgeRuntimeLibrary include("com.fasterxml:classmate:1.5.1") { transitive = false }

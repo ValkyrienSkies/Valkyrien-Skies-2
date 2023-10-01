@@ -57,6 +57,7 @@ dependencies {
         exclude module: "netty-buffer"
         exclude module: "fastutil"
         exclude module: "kotlin-stdlib-jdk8" // Don't shade kotlin-stdlib-jdk8, even though vs-core depends on it
+        exclude module: "jsonschema.module.addon"
     }
 
     // CC Restitched
