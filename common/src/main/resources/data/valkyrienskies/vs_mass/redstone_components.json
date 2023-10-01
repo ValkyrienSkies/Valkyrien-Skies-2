@@ -169,7 +169,7 @@
   },
   {
     "tag": "minecraft:wooden_doors",
-    "mass": 25.0,
+    "mass": 25.0
   },
   {
     "block": "minecraft:iron_door",
@@ -182,7 +182,7 @@
   },
   {
     "block": "minecraft:iron_trapdoor",
-    "mass": 1000.0
+    "mass": 1000.0,
     "friction": 0.35
   }
 ]

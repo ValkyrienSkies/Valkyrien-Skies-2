@@ -182,11 +182,11 @@
   },
   {
     "block": "minecraft:lantern",
-    "mass": 25.0,
+    "mass": 25.0
   },
   {
     "block": "minecraft:soul_lantern",
-    "mass": 25.0,
+    "mass": 25.0
   },
   {
     "block": "minecraft:end_rod",
