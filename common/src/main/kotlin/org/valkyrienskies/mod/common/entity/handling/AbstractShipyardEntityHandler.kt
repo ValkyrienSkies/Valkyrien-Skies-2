@@ -7,6 +7,7 @@ import net.minecraft.world.entity.Entity
 import org.joml.Vector3d
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.Ship
+import org.valkyrienskies.mod.common.hooks.VSGameEvents
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toMinecraft
 
@@ -38,6 +39,15 @@ abstract class AbstractShipyardEntityHandler : VSEntityHandler {
         matrixStack.mulPose(transform.shipToWorldRotation.toMinecraft())
         matrixStack.scale(scale.x().toFloat(), scale.y().toFloat(), scale.z().toFloat())
         matrixStack.translate(offset.x, offset.y, offset.z)
+
+        VSGameEvents.shipyardEntityRenderTransform.emit(
+            VSGameEvents.PostShipyardEntityRenderTransformEvent(
+                ship, entity, entityRenderer,
+                x, y, z,
+                rotationYaw, partialTicks,
+                matrixStack, buffer, packedLight
+            )
+        )
     }
 
     override fun positionSetFromVehicle(self: Entity, vehicle: Entity, x: Double, y: Double, z: Double) {
