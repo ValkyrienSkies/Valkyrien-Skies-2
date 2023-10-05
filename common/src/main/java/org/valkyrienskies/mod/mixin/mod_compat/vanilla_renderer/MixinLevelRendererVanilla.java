@@ -15,6 +15,7 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import java.util.ListIterator;
 import java.util.WeakHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.LevelRenderer;
@@ -178,12 +179,25 @@ public abstract class MixinLevelRendererVanilla {
                 center.x(), center.y(), center.z(),
                 camX, camY, camZ);
 
+            final AtomicReference<Matrix4f> matrix4fNew = new AtomicReference<>(matrix4f);
+            final AtomicReference<Vector3dc> centerAtomic = new AtomicReference<>(center);
+
             final var event = new VSGameEvents.ShipRenderEvent(
                 receiver, renderType, poseStack, camX, camY, camZ, matrix4f, ship, chunks
             );
 
             VSGameEvents.INSTANCE.getRenderShip().emit(event);
-            renderChunkLayer(renderType, poseStack, center.x(), center.y(), center.z(), matrix4f, chunks);
+            VSGameEvents.INSTANCE.getRenderShipModifiable().emit(
+                new VSGameEvents.ModifiableShipRenderEvent(
+                    receiver, renderType, poseStack,
+                    camX, camY, camZ,
+                    matrix4fNew, centerAtomic, ship, chunks
+                )
+            );
+            final Vector3dc centerNew = centerAtomic.get();
+            renderChunkLayer(renderType, poseStack,
+                centerNew.x(), centerNew.y(), centerNew.z(),
+                matrix4fNew.get(), chunks);
             VSGameEvents.INSTANCE.getPostRenderShip().emit(event);
 
             poseStack.popPose();
