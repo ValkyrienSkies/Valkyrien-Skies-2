@@ -5,7 +5,8 @@
   },
   {
     "tag": "minecraft:leaves",
-    "mass": 200.0
+    "mass": 200.0,
+    "elasticity": 0.15
   },
   {
     "tag": "minecraft:small_flowers",
@@ -89,95 +90,118 @@
   },
   {
     "block": "minecraft:sea_pickle",
-    "mass": 2.0
+    "mass": 2.0,
+    "elasticity": 0.1
   },
   {
     "tag": "minecraft:coral_blocks",
-    "mass": 1500.0
+    "mass": 1500.0,
+    "friction": 0.7
   },
   {
     "block": "minecraft:dead_tube_coral_block",
-    "mass": 1500.0
+    "mass": 1500.0,
+    "friction": 0.7
   },
   {
     "block": "minecraft:dead_brain_coral_block",
-    "mass": 1500.0
+    "mass": 1500.0,
+    "friction": 0.7
   },
   {
     "block": "minecraft:dead_bubble_coral_block",
-    "mass": 1500.0
+    "mass": 1500.0,
+    "friction": 0.7
   },
   {
     "block": "minecraft:dead_fire_coral_block",
-    "mass": 1500.0
+    "mass": 1500.0,
+    "friction": 0.7
   },
   {
     "block": "minecraft:dead_horn_coral_block",
-    "mass": 1500.0
+    "mass": 1500.0,
+    "friction": 0.7
   },
   {
     "tag": "minecraft:corals",
-    "mass": 5.0
+    "mass": 5.0,
+    "friction": 0.7
   },
   {
     "block": "minecraft:dead_tube_coral",
-    "mass": 5.0
+    "mass": 5.0,
+    "friction": 0.7
   },
   {
     "block": "minecraft:dead_brain_coral",
-    "mass": 5.0
+    "mass": 5.0,
+    "friction": 0.7
   },
   {
     "block": "minecraft:dead_bubble_coral",
-    "mass": 5.0
+    "mass": 5.0,
+    "friction": 0.7
   },
   {
     "block": "minecraft:dead_fire_coral",
-    "mass": 5.0
+    "mass": 5.0,
+    "friction": 0.7
   },
   {
     "block": "minecraft:dead_horn_coral",
-    "mass": 5.0
+    "mass": 5.0,
+    "friction": 0.7
   },
   {
     "block": "minecraft:dead_tube_coral_fan",
-    "mass": 5.0
+    "mass": 5.0,
+    "friction": 0.7
   },
   {
     "block": "minecraft:dead_brain_coral_fan",
-    "mass": 5.0
+    "mass": 5.0,
+    "friction": 0.7
   },
   {
     "block": "minecraft:dead_bubble_coral_fan",
-    "mass": 5.0
+    "mass": 5.0,
+    "friction": 0.7
   },
   {
     "block": "minecraft:dead_fire_coral_fan",
-    "mass": 5.0
+    "mass": 5.0,
+    "friction": 0.7
   },
   {
     "block": "minecraft:dead_horn_coral_fan",
-    "mass": 5.0
+    "mass": 5.0,
+    "friction": 0.7
   },
   {
     "block": "minecraft:dead_tube_coral_wall_fan",
-    "mass": 5.0
+    "mass": 5.0,
+    "friction": 0.7
   },
   {
     "block": "minecraft:dead_brain_coral_wall_fan",
-    "mass": 5.0
+    "mass": 5.0,
+    "friction": 0.7
   },
   {
     "block": "minecraft:dead_bubble_coral_wall_fan",
-    "mass": 5.0
+    "mass": 5.0,
+    "friction": 0.7
   },
   {
     "block": "minecraft:dead_fire_coral_wall_fan",
-    "mass": 5.0
+    "mass": 5.0,
+    "friction": 0.7
   },
   {
     "block": "minecraft:dead_horn_coral_wall_fan",
-    "mass": 5.0
+    "mass": 5.0,
+    "friction": 0.7
   },
   {
     "block": "minecraft:dead_bush",
@@ -197,7 +221,8 @@
   },
   {
     "block": "minecraft:melon",
-    "mass": 600.0
+    "mass": 600.0,
+    "friction": 0.2
   },
   {
     "block": "minecraft:pumpkin_stem",
@@ -209,7 +234,8 @@
   },
   {
     "block": "minecraft:pumpkin",
-    "mass": 600.0
+    "mass": 600.0,
+    "friction": 0.3
   },
   {
     "block": "minecraft:warped_fungus",
@@ -253,7 +279,8 @@
   },
   {
     "tag": "minecraft:wart_blocks",
-    "mass": 600.0
+    "mass": 600.0,
+    "elasticity": 0.1
   },
   {
     "block": "minecraft:shroomlight",
@@ -261,23 +288,31 @@
   },
   {
     "block": "minecraft:chorus_plant",
-    "mass": 30.0
+    "mass": 30.0,
+    "friction": 0.6
   },
   {
     "block": "minecraft:chorus_flower",
-    "mass": 50.0
+    "mass": 50.0,
+    "friction": 0.4
   },
   {
     "block": "minecraft:brown_mushroom_block",
-    "mass": 400.0
+    "mass": 400.0,
+    "friction": 0.2,
+    "elasticity": 0.1
   },
   {
     "block": "minecraft:red_mushroom_block",
-    "mass": 400.0
+    "mass": 400.0,
+    "friction": 0.2,
+    "elasticity": 0.1
   },
   {
     "block": "minecraft:mushroom_stem",
-    "mass": 600.0
+    "mass": 600.0,
+    "friction": 0.2
+    "elasticity": 0.1
   },
   {
     "block": "minecraft:brown_mushroom",
