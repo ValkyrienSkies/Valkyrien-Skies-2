@@ -311,7 +311,7 @@
   {
     "block": "minecraft:mushroom_stem",
     "mass": 600.0,
-    "friction": 0.2
+    "friction": 0.2,
     "elasticity": 0.1
   },
   {
