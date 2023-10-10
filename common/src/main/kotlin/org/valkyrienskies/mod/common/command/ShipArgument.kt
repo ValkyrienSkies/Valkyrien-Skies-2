@@ -24,9 +24,13 @@ class ShipArgument private constructor(val selectorOnly: Boolean) : ArgumentType
         val reader = StringReader(builder.input)
         reader.cursor = builder.start
 
-        var startsWithAtV = reader.canRead() && reader.peek() == '@'
+        // This can be a valid ship argument in the following cases:
+        // * The reader is empty, so we can suggest @v
+        // * The reader is only 1 character long, and is "@", so we can suggest @v
+        // * The reader is 2 characters long, and is "@v", so we can suggest @v
+        var canThisBeShipArgument = !reader.canRead() || (reader.canRead() && reader.peek() == '@')
         if (reader.canRead(2)) {
-            startsWithAtV = startsWithAtV && reader.peek(1) == 'v'
+            canThisBeShipArgument = canThisBeShipArgument && reader.peek(1) == 'v'
         }
 
         val parser = ShipArgumentParser(context.source as VSCommandSource, selectorOnly)
@@ -38,8 +42,8 @@ class ShipArgument private constructor(val selectorOnly: Boolean) : ArgumentType
         }
 
         // Reset cursor to fix suggestions
-        if (!startsWithAtV) {
-            // Don't suggest @v if this doesn't start with @ or @v
+        if (!canThisBeShipArgument) {
+            // Don't suggest a ship argument if the contents of reader cannot be a ship argument
             reader.cursor = builder.start
             super.listSuggestions(context, builder)
         } else {
