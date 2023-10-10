@@ -24,8 +24,6 @@ import org.valkyrienskies.core.api.world.ServerShipWorld
 import org.valkyrienskies.core.api.world.ShipWorld
 import org.valkyrienskies.core.apigame.ShipTeleportData
 import org.valkyrienskies.core.impl.game.ShipTeleportDataImpl
-import org.valkyrienskies.core.impl.game.ships.ShipData
-import org.valkyrienskies.core.impl.game.ships.ShipObject
 import org.valkyrienskies.core.util.x
 import org.valkyrienskies.core.util.y
 import org.valkyrienskies.core.util.z
@@ -48,6 +46,7 @@ object VSCommands {
     private const val TELEPORTED_MULTIPLE_SHIPS_SUCCESS = "command.valkyrienskies.teleport.multiple_ship_success"
     private const val TELEPORT_FIRST_ARG_CAN_ONLY_INPUT_1_SHIP = "command.valkyrienskies.mc_teleport.can_only_teleport_to_one_ship"
     private const val SCALED_SHIPS_MESSAGE = "command.valkyrienskies.scale.success"
+    private const val REQUIRED_PERMISSION = 2
 
     fun bootstrap() {
         ArgumentTypes.register("valkyrienskies:ship",
@@ -80,7 +79,7 @@ object VSCommands {
                         if (e !is CommandRuntimeException) LOGGER.throwing(e)
                         throw e
                     }
-                }))
+                })).requires { (it as CommandSourceStack).hasPermission(REQUIRED_PERMISSION) }
                 .then(
                     literal("set-static").then(
                         argument("ships", ShipArgument.ships()).then(
@@ -88,16 +87,7 @@ object VSCommands {
                                 try {
                                     val r = ShipArgument.getShips(it, "ships").toList() as List<ServerShip>
                                     val isStatic = BoolArgumentType.getBool(it, "is-static")
-                                    r.forEach { ship ->
-                                        if (ship is ShipObject) {
-                                            // TODO: AAAAAAAAA THIS IS HORRIBLE how can the API support this?
-                                            (ship.shipData as ShipData).isStatic = isStatic
-                                        } else if (ship is ShipData) {
-                                            // TODO: AAAAAAAAA THIS IS HORRIBLE how can the API support this?
-                                            ship.isStatic = isStatic
-                                        }
-
-                                    }
+                                    r.forEach { ship -> ship.isStatic = isStatic }
                                     it.source.sendVSMessage(
                                         TranslatableComponent(
                                             SET_SHIP_STATIC_SUCCESS_MESSAGE, r.size, if (isStatic) "true" else "false"
@@ -110,7 +100,7 @@ object VSCommands {
                                 }
                             })
                     )
-                )
+                ).requires { (it as CommandSourceStack).hasPermission(REQUIRED_PERMISSION) }
                 .then(
                     literal("teleport").then(
                         argument("ships", ShipArgument.ships()).then(
@@ -269,7 +259,7 @@ object VSCommands {
                             )
                         )
                     )
-                )
+                ).requires { (it as CommandSourceStack).hasPermission(REQUIRED_PERMISSION) }
                 .then(literal("get-ship").executes {
                     try {
                         val mcCommandContext = it as CommandContext<CommandSourceStack>
@@ -322,7 +312,7 @@ object VSCommands {
                                 }
                             })
                     )
-                )
+                ).requires { (it as CommandSourceStack).hasPermission(REQUIRED_PERMISSION) }
                 // Single ship commands
                 .then(
                     literal("ship").then(
@@ -360,7 +350,7 @@ object VSCommands {
                                         })
                             )
                     )
-                )
+                ).requires { (it as CommandSourceStack).hasPermission(REQUIRED_PERMISSION) }
         )
 
         dispatcher.root.children.first { it.name == "teleport" }.apply {
