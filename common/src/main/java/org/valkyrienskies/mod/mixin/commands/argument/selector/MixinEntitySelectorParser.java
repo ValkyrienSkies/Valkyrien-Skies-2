@@ -26,7 +26,7 @@ public class MixinEntitySelectorParser {
 
     @Shadow
     public EntitySelector getSelector() {
-        return null;
+        throw new IllegalStateException();
     }
 
     @Inject(method = "parse", at = @At("HEAD"), cancellable = true)
