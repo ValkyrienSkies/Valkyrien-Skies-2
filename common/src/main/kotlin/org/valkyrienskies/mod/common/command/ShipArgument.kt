@@ -24,7 +24,10 @@ class ShipArgument private constructor(val selectorOnly: Boolean) : ArgumentType
         val reader = StringReader(builder.input)
         reader.cursor = builder.start
 
-        val startsWithAt = reader.canRead() && reader.peek() == '@'
+        var startsWithAtV = reader.canRead() && reader.peek() == '@'
+        if (reader.canRead(2)) {
+            startsWithAtV = startsWithAtV && reader.peek(1) == 'v'
+        }
 
         val parser = ShipArgumentParser(context.source as VSCommandSource, selectorOnly)
 
@@ -35,14 +38,15 @@ class ShipArgument private constructor(val selectorOnly: Boolean) : ArgumentType
         }
 
         // Reset cursor to fix suggestions
-        if (!startsWithAt) {
+        if (!startsWithAtV) {
+            // Don't suggest @v if this doesn't start with @ or @v
             reader.cursor = builder.start
+            super.listSuggestions(context, builder)
+        } else {
+            val nBuilder = builder.createOffset(reader.cursor)
+            parser.suggestionProvider(nBuilder)
+            nBuilder.buildFuture()
         }
-
-        val nBuilder = builder.createOffset(reader.cursor)
-        parser.suggestionProvider(nBuilder)
-
-        nBuilder.buildFuture()
     } else super.listSuggestions(context, builder)
 
     override fun parse(reader: StringReader): ShipSelector =
