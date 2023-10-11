@@ -79,7 +79,7 @@ dependencies {
     //modImplementation("curse.maven:markdownmanual-502485:3738124")
 
     // Add Kotlin for Forge.
-    forgeRuntimeLibrary('curse.maven:kotlinforforge-351264:3925887')
+    forgeRuntimeLibrary("thedarkcolour:kotlinforforge:3.12.0")
 
     // Cloth for config
     include(modImplementation("me.shedaniel.cloth:cloth-config-forge:6.3.81"))
