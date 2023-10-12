@@ -1,6 +1,8 @@
 import org.valkyrienskies.minecraftVersion
+import org.valkyrienskies.vsCoreApiGame
 import org.valkyrienskies.vsCoreImpl
 import org.valkyrienskies.vsCoreUtil
+import org.valkyrienskies.vsCoreVersion
 
 plugins {
     id("org.valkyrienskies.minecraft-common-conventions")
@@ -18,6 +20,7 @@ dependencies {
 
     // vs-core
     implementation(vsCoreImpl)
+    implementation(vsCoreApiGame)
 
     // implementation(project(path = ":api-common", configuration = "namedElements")) {
     //     isTransitive = false

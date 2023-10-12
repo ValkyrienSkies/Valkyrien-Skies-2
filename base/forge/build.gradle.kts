@@ -11,7 +11,7 @@ plugins {
 loom {
     forge {
         mixinConfig(
-            // "valkyrienskies-common.mixins.json",
+            "valkyrienskies-common.mixins.json",
             "valkyrienskies-forge.mixins.json"
         )
     }
@@ -26,25 +26,15 @@ dependencies {
 
     compileOnly(vsCoreImpl)
     shade(vsCoreImpl) { isTransitive = false }
-    forgeRuntimeLibrary(vsCoreImpl) { isTransitive = false }
-
-    implementation(vsCoreApiGame) { isTransitive = false }
     shade(vsCoreApiGame) { isTransitive = false }
-    forgeRuntimeLibrary(vsCoreApiGame) { isTransitive = false }
-
-    implementation(vsCoreApi) { isTransitive = false }
     shade(vsCoreApi) { isTransitive = false }
-    forgeRuntimeLibrary(vsCoreApi) { isTransitive = false }
-
-    implementation(vsCoreUtil) { isTransitive = false }
     shade(vsCoreUtil) { isTransitive = false }
-    forgeRuntimeLibrary(vsCoreUtil) { isTransitive = false }
 
-    forgeRuntimeLibrary(shade("org.valkyrienskies:physics_api_krunch:1.0.0+2bfb3f8968") {
+    forgeRuntimeLibrary(shade("org.valkyrienskies:physics_api_krunch:1.0.0+14214f4ff8") {
         isTransitive = false
     })
 
-    forgeRuntimeLibrary(shade("org.valkyrienskies:physics_api:1.0.0+63b53cc647") {
+    forgeRuntimeLibrary(shade("org.valkyrienskies:physics_api:1.0.0+216620077e") {
         isTransitive = false
     })
 
@@ -99,24 +89,35 @@ dependencies {
 
     val jacksonVersion = "2.14.0"
     // forked to remove module-info
-    forgeRuntimeLibrary(include("com.fasterxml.jackson.module", "jackson-module-kotlin", "$jacksonVersion-rubyfork") { isTransitive = false} )
-    forgeRuntimeLibrary(include("com.fasterxml.jackson.module", "jackson-module-parameter-names", jacksonVersion) { isTransitive = false} )
-    forgeRuntimeLibrary(include("com.fasterxml.jackson.dataformat", "jackson-dataformat-cbor", jacksonVersion) { isTransitive = false} )
-    forgeRuntimeLibrary(include("com.fasterxml.jackson.core", "jackson-databind", jacksonVersion) { isTransitive = false} )
-    forgeRuntimeLibrary(include("com.fasterxml.jackson.core", "jackson-annotations", jacksonVersion) { isTransitive = false} )
-    forgeRuntimeLibrary(include("com.fasterxml.jackson.core", "jackson-core", jacksonVersion) { isTransitive = false} )
-    forgeRuntimeLibrary(include("com.github.Rubydesic", "jackson-kotlin-dsl", "1.2.0") { isTransitive = false} )
+    forgeRuntimeLibrary(include("com.fasterxml.jackson.module", "jackson-module-kotlin", "$jacksonVersion-rubyfork") { isTransitive = false } )
+    forgeRuntimeLibrary(include("com.fasterxml.jackson.module", "jackson-module-parameter-names", jacksonVersion) { isTransitive = false })
+    forgeRuntimeLibrary(include("com.fasterxml.jackson.dataformat", "jackson-dataformat-cbor", jacksonVersion) { isTransitive = false })
+    forgeRuntimeLibrary(include("com.fasterxml.jackson.core", "jackson-databind", jacksonVersion) { isTransitive = false })
+    forgeRuntimeLibrary(include("com.fasterxml.jackson.core", "jackson-annotations", jacksonVersion) { isTransitive = false })
+    forgeRuntimeLibrary(include("com.fasterxml.jackson.core", "jackson-core", jacksonVersion) { isTransitive = false })
+    forgeRuntimeLibrary(include("com.github.Rubydesic", "jackson-kotlin-dsl", "1.2.0") { isTransitive = false })
 
     forgeRuntimeLibrary(include("com.networknt", "json-schema-validator", "1.0.71") { isTransitive = false})
     forgeRuntimeLibrary(include("com.ethlo.time", "itu", "1.7.0") { isTransitive = false})
-    forgeRuntimeLibrary(include("com.github.imifou", "jsonschema-module-addon", "1.2.1") { isTransitive = false} )
-    forgeRuntimeLibrary(include("com.github.victools", "jsonschema-module-jackson", "4.25.0") { isTransitive = false} )
-    forgeRuntimeLibrary(include("com.github.victools", "jsonschema-generator", "4.25.0") { isTransitive = false} )
-    forgeRuntimeLibrary(include("com.fasterxml", "classmate", "1.5.1") { isTransitive = false} )
-    forgeRuntimeLibrary(include("com.flipkart.zjsonpatch", "zjsonpatch", "0.4.11") { isTransitive = false} )
-    forgeRuntimeLibrary(include("org.apache.commons", "commons-collections4", "4.3") { isTransitive = false} )
+    // forgeRuntimeLibrary(include("com.github.imifou", "jsonschema-module-addon", "1.2.1") { isTransitive = false })
+    forgeRuntimeLibrary(include("com.github.victools", "jsonschema-module-jackson", "4.25.0") { isTransitive = false })
+    forgeRuntimeLibrary(include("com.github.victools", "jsonschema-generator", "4.25.0") { isTransitive = false })
+    forgeRuntimeLibrary(include("com.fasterxml", "classmate", "1.5.1") { isTransitive = false })
+    forgeRuntimeLibrary(include("com.flipkart.zjsonpatch", "zjsonpatch", "0.4.11") { isTransitive = false })
+    forgeRuntimeLibrary(include("org.apache.commons", "commons-collections4", "4.3") { isTransitive = false })
 
     forgeRuntimeLibrary(include("com.google.dagger", "dagger", "2.43.2") { isTransitive = false})
+
+    forgeRuntimeLibrary(vsCoreImpl) {
+        isTransitive = false
+        // exclude(group = "org.jetbrains.kotlin")
+        // exclude(group = "org.jetbrains.kotlinx")
+        // exclude(module = "jackson-module-kotlin")
+    }
+    forgeRuntimeLibrary(vsCoreApiGame) { isTransitive = false }
+    forgeRuntimeLibrary(vsCoreUtil) { isTransitive = false }
+    forgeRuntimeLibrary(vsCoreApi) { isTransitive = false }
+
 }
 
 

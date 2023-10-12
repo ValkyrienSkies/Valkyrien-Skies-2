@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.common
 
+import me.shedaniel.math.api.Executor.runIf
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
@@ -23,6 +24,7 @@ import org.joml.Vector3ic
 import org.joml.primitives.AABBd
 import org.joml.primitives.AABBdc
 import org.valkyrienskies.core.api.ships.ClientShip
+import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.core.api.ships.LoadedShip
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.ships.Ship
@@ -33,7 +35,6 @@ import org.valkyrienskies.core.apigame.world.ServerShipWorldCore
 import org.valkyrienskies.core.apigame.world.ShipWorldCore
 import org.valkyrienskies.core.apigame.world.chunks.TerrainUpdate
 import org.valkyrienskies.core.apigame.world.properties.DimensionId
-import org.valkyrienskies.core.game.ships.ShipObjectServer
 import org.valkyrienskies.core.impl.hooks.VSEvents.TickEndEvent
 import org.valkyrienskies.core.util.expand
 import org.valkyrienskies.mod.common.util.DimensionIdProvider
@@ -273,7 +274,7 @@ fun ClientLevel?.getShipObjectEntityMountedTo(entity: Entity): ClientShip? {
 
 // ServerWorld
 fun ServerLevel?.getShipObjectManagingPos(chunkX: Int, chunkZ: Int) =
-    getShipObjectManagingPosImpl(this, chunkX, chunkZ) as ShipObjectServer?
+    getShipObjectManagingPosImpl(this, chunkX, chunkZ) as LoadedServerShip?
 
 fun ServerLevel?.getShipObjectManagingPos(blockPos: Vec3i) =
     getShipObjectManagingPos(blockPos.x shr 4, blockPos.z shr 4)
@@ -303,7 +304,7 @@ private fun getShipManagingPosImpl(world: Level?, x: Int, z: Int): Ship? {
 fun ClientLevel?.transformRenderAABBToWorld(pos: Position, aabb: AABB): AABB {
     val ship = getShipObjectManagingPos(pos)
     if (ship != null) {
-        return aabb.toJOML().transform(ship.renderTransform.shipToWorldMatrix).toMinecraft()
+        return aabb.toJOML().transform(ship.renderTransform.shipToWorld).toMinecraft()
     }
     return aabb
 }

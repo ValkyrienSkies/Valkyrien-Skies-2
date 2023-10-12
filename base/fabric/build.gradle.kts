@@ -1,4 +1,5 @@
 import org.valkyrienskies.extraProperty
+import org.valkyrienskies.vsCoreApiGame
 import org.valkyrienskies.vsCoreImpl
 
 plugins {
@@ -49,5 +50,6 @@ dependencies {
     include(project(":api:fabric"))
 
     implementation(vsCoreImpl)
+    implementation(vsCoreApiGame)
     shade(vsCoreImpl) { isTransitive = false }
 }

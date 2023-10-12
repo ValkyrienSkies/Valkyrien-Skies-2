@@ -7,7 +7,7 @@ import net.minecraft.client.renderer.LevelRenderer
 import net.minecraft.client.renderer.LevelRenderer.RenderChunkInfo
 import net.minecraft.client.renderer.RenderType
 import org.valkyrienskies.core.api.ships.ClientShip
-import org.valkyrienskies.core.impl.util.events.EventEmitterImpl
+import org.valkyrienskies.core.util.events.EventEmitterImpl
 
 object VSGameEvents {
 

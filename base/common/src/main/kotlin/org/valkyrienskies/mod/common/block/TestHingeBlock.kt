@@ -35,9 +35,8 @@ import org.joml.Vector3d
 import org.joml.Vector3dc
 import org.valkyrienskies.core.apigame.constraints.VSAttachmentConstraint
 import org.valkyrienskies.core.apigame.constraints.VSHingeOrientationConstraint
-import org.valkyrienskies.core.impl.game.ships.ShipDataCommon
-import org.valkyrienskies.core.impl.game.ships.ShipTransformImpl
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.vsCore
 import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getShipManagingPos
@@ -172,25 +171,25 @@ object TestHingeBlock :
                     // Put the new ship where the old ship is
                     val newPos = shipThisIsIn.transform.shipToWorld.transformPosition(attachmentLocalPos0, Vector3d())
                     newPos.sub(shipThisIsIn.transform.shipToWorldRotation.transform(attachmentOffset1, Vector3d()))
-                    val newTransform = ShipTransformImpl(
+                    val newTransform = vsCore.newShipTransform(
                         newPos,
                         ship.transform.positionInShip,
                         shipThisIsIn.transform.shipToWorldRotation, // Copy source ship rotation
                         ship.transform.shipToWorldScaling
                     )
                     // Update the ship transform
-                    (ship as ShipDataCommon).transform = newTransform
+                    ship.unsafeSetTransform(newTransform)
                 } else {
                     val newPos = Vector3d(attachmentLocalPos0)
                     newPos.sub(attachmentOffset1)
-                    val newTransform = ShipTransformImpl(
+                    val newTransform = vsCore.newShipTransform(
                         newPos,
                         ship.transform.positionInShip,
                         ship.transform.shipToWorldRotation,
                         ship.transform.shipToWorldScaling
                     )
                     // Update the ship transform
-                    (ship as ShipDataCommon).transform = newTransform
+                    ship.unsafeSetTransform(newTransform)
                 }
 
                 level.setBlockAndUpdate(shipCenterPos, Blocks.IRON_BLOCK.defaultBlockState())

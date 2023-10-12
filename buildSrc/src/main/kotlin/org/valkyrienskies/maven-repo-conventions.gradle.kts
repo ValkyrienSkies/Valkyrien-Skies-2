@@ -1,7 +1,7 @@
 package org.valkyrienskies
 
 repositories {
-    mavenLocal() {
+    mavenLocal {
         content {
             includeGroup("org.valkyrienskies.core")
         }

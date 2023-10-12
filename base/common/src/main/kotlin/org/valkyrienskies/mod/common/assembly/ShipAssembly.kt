@@ -17,6 +17,7 @@ import org.valkyrienskies.mod.common.networking.PacketStopChunkUpdates
 import org.valkyrienskies.mod.common.playerWrapper
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.toJOML
+import org.valkyrienskies.mod.common.world.ChunkManagement
 import org.valkyrienskies.mod.util.relocateBlock
 import org.valkyrienskies.mod.util.updateBlock
 
@@ -91,7 +92,8 @@ fun createNewShipWithBlocks(
 
     // Put the ship into the compensated position, so that all the assembled blocks stay in the same place
     // TODO: AAAAAAAAA THIS IS HORRIBLE how can the API support this?
-    (ship as ShipData).transform = (ship.transform as ShipTransformImpl).copy(positionInWorld = centerBlockPosInWorld)
+    ship.unsafeSetTransform(ship.transform.copy(positionInWorld = centerBlockPosInWorld))
+
 
     level.server.executeIf(
         // This condition will return true if all modified chunks have been both loaded AND

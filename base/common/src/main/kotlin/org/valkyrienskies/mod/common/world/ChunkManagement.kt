@@ -7,7 +7,6 @@ import org.apache.commons.lang3.mutable.MutableObject
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore
 import org.valkyrienskies.core.apigame.world.chunks.ChunkUnwatchTask
 import org.valkyrienskies.core.apigame.world.chunks.ChunkWatchTask
-import org.valkyrienskies.mod.common.executeIf
 import org.valkyrienskies.mod.common.getLevelFromDimensionId
 import org.valkyrienskies.mod.common.isTickingChunk
 import org.valkyrienskies.mod.common.mcPlayer
@@ -33,19 +32,22 @@ object ChunkManagement {
             val level = server.getLevelFromDimensionId(chunkWatchTask.dimensionId)!!
             level.chunkSource.updateChunkForced(chunkPos, true)
 
-            level.server.executeIf({ level.isTickingChunk(chunkPos) }) {
-                for (player in chunkWatchTask.playersNeedWatching) {
-                    val minecraftPlayer = player as MinecraftPlayer
-                    val serverPlayer = minecraftPlayer.playerEntityReference.get() as ServerPlayer?
-                    if (serverPlayer != null) {
-                        if (chunkWatchTask.dimensionId != player.dimension) {
-                            logger.warn("Player received watch task for chunk in dimension that they are not also in!")
-                        }
-                        val map = level.chunkSource.chunkMap as ChunkMapAccessor
-                        map.callUpdateChunkTracking(serverPlayer, chunkPos, MutableObject(), false, true)
+            // level.server.executeIf({ level.isTickingChunk(chunkPos) }) {
+            if (!level.isTickingChunk(chunkPos))
+                logger.error("chunk $chunkPos is not ticking!!")
+
+            for (player in chunkWatchTask.playersNeedWatching) {
+                val minecraftPlayer = player as MinecraftPlayer
+                val serverPlayer = minecraftPlayer.playerEntityReference.get() as ServerPlayer?
+                if (serverPlayer != null) {
+                    if (chunkWatchTask.dimensionId != player.dimension) {
+                        logger.warn("Player received watch task for chunk in dimension that they are not also in!")
                     }
+                    val map = level.chunkSource.chunkMap as ChunkMapAccessor
+                    map.callUpdateChunkTracking(serverPlayer, chunkPos, MutableObject(), false, true)
                 }
             }
+            // }
         }
 
         chunkUnwatchTasks.forEach { chunkUnwatchTask: ChunkUnwatchTask ->

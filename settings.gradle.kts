@@ -42,4 +42,17 @@ include(
     "base:forge"
 )
 
+try {
+    val core = file("../vs-core")
+    if (core.isDirectory) {
+        includeBuild(core) {
+            dependencySubstitution {
+                listOf("api", "api-game", "util").forEach {
+                    substitute(module("org.valkyrienskies.core:$it")).using(project(":$it"))
+                }
+            }
+        }
+    }
+} catch (ignore: SecurityException) {}
+
 rootProject.name = "valkyrienskies"

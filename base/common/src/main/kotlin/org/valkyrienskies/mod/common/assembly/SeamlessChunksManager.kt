@@ -11,7 +11,7 @@ import net.minecraft.network.protocol.game.ClientboundSectionBlocksUpdatePacket
 import net.minecraft.world.level.ChunkPos
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.properties.ChunkClaim
-import org.valkyrienskies.core.impl.hooks.VSEvents.ShipLoadEventClient
+import org.valkyrienskies.core.impl.hooks.VSEvents
 import org.valkyrienskies.core.impl.networking.simple.registerClientHandler
 import org.valkyrienskies.core.util.pollUntilEmpty
 import org.valkyrienskies.mod.common.getShipManagingPos
@@ -52,10 +52,10 @@ class SeamlessChunksManager(private val listener: ClientPacketListener) {
                 onRestartUpdates(packet)
             }
         }
-
-        ShipLoadEventClient.on { (ship) ->
-            onShipLoad(ship)
-        }
+        //
+        // VSEvents.shipLoadEventClient.on { (ship) ->
+        //     onShipLoad(ship)
+        // }
     }
 
     private fun onShipLoad(ship: ClientShip) {
