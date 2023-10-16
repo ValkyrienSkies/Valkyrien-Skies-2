@@ -10,7 +10,7 @@ import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
-@Mixin(targets = "com.simibubi.create.foundation.blockEntity.behaviour.scrollValue.ScrollValueBehaviour")
+@Mixin(ScrollValueBehaviour.class)
 public class MixinScrollValueBehaviour {
 
     @Redirect(

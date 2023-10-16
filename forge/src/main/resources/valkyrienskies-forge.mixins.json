@@ -22,7 +22,6 @@
     "client.render.MixinLevelRenderer",
     "compat.create.client.MixinContraptionRenderInfo",
     "compat.create.client.MixinFlwContraption",
-    "compat.create.client.MixinScrollValueBehaviour",
     "compat.create.client.MixinValueBox",
     "compat.sodium.MixinRenderSectionManager",
     "compat.tis3d.MixinCasingTileEntityRender",

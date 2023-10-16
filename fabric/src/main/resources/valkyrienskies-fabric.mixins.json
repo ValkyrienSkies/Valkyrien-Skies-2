@@ -21,7 +21,6 @@
     "compat.create.client.MixinContraptionRenderInfo",
     "compat.create.client.MixinCullingBlockEntityIterator",
     "compat.create.client.MixinFlwContraption",
-    "compat.create.client.MixinScrollValueBehaviour",
     "compat.create.client.MixinSuperGlueSelectionHandler",
     "compat.create.client.MixinValueBox"
   ],
