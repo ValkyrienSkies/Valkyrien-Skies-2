@@ -126,6 +126,12 @@ subprojects {
             maven { url = "https://maven.tterrag.com/" } // Registrate, Forge Create and Flywheel
             maven { url = "https://maven.cafeteria.dev/releases" } // Fake Player API
             maven { url = "https://maven.jamieswhiteshirt.com/libs-release" } // Reach Entity Attributes
+            maven {
+                url = "https://maven.realrobotix.me/createbigcannons/" // Create Big Cannons
+                content {
+                    includeGroup "com.rbasamoyai"
+                }
+            }
         }
     }
 
