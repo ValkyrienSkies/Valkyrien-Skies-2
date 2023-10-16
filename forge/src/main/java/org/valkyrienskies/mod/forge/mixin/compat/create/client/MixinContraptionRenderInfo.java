@@ -1,7 +1,7 @@
 package org.valkyrienskies.mod.forge.mixin.compat.create.client;
 
-import com.simibubi.create.content.contraptions.components.structureMovement.AbstractContraptionEntity;
-import com.simibubi.create.content.contraptions.components.structureMovement.render.ContraptionRenderInfo;
+import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
+import com.simibubi.create.content.contraptions.render.ContraptionRenderInfo;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.world.phys.AABB;
 import org.spongepowered.asm.mixin.Mixin;
@@ -11,11 +11,10 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(ContraptionRenderInfo.class)
 public class MixinContraptionRenderInfo {
-
     @Redirect(
         at = @At(
             value = "INVOKE",
-            target = "Lcom/simibubi/create/content/contraptions/components/structureMovement/AbstractContraptionEntity;getBoundingBoxForCulling()Lnet/minecraft/world/phys/AABB;"
+            target = "Lcom/simibubi/create/content/contraptions/AbstractContraptionEntity;getBoundingBoxForCulling()Lnet/minecraft/world/phys/AABB;"
         ),
         method = "beginFrame"
     )
@@ -24,4 +23,3 @@ public class MixinContraptionRenderInfo {
             receiver.getBoundingBoxForCulling());
     }
 }
-
