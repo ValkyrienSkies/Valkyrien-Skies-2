@@ -64,8 +64,10 @@ dependencies {
     modImplementation("curse.maven:cc-restitched-462672:3838648")
 
     // Create compat
-    modImplementation("com.simibubi.create:create-fabric-${minecraft_version}:${create_version}+${minecraft_version}") { transitive = false }
-    modImplementation("com.jozufozu.flywheel:flywheel-fabric-${minecraft_version}:${flywheel_version}")
+    modImplementation("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}") {
+        exclude group: 'com.github.AlphaMode', module: 'fakeconfigtoml'
+    }
+    modImplementation("com.jozufozu.flywheel:flywheel-fabric-${minecraft_version}:${flywheel_version_fabric}")
     modImplementation("com.tterrag.registrate_fabric:Registrate:${registrate_version}")
     modImplementation("io.github.fabricators_of_create:Porting-Lib:${port_lib_version}+${minecraft_version}")
     modImplementation("me.alphamode:ForgeTags:${forge_tags_version}")

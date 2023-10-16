@@ -1,8 +1,8 @@
 package org.valkyrienskies.mod.forge.mixin.compat.create;
 
-import com.simibubi.create.content.contraptions.components.millstone.MillstoneBlock;
-import com.simibubi.create.content.contraptions.processing.BasinBlock;
-import com.simibubi.create.content.logistics.block.chute.AbstractChuteBlock;
+import com.simibubi.create.content.kinetics.millstone.MillstoneBlock;
+import com.simibubi.create.content.logistics.chute.AbstractChuteBlock;
+import com.simibubi.create.content.processing.basin.BasinBlock;
 import java.util.Iterator;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;

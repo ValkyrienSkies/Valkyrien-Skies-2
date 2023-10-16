@@ -2,10 +2,10 @@ package org.valkyrienskies.mod.forge.mixin.compat.create.client;
 
 import com.jozufozu.flywheel.core.virtual.VirtualRenderWorld;
 import com.mojang.math.Matrix4f;
-import com.simibubi.create.content.contraptions.components.structureMovement.AbstractContraptionEntity;
-import com.simibubi.create.content.contraptions.components.structureMovement.Contraption;
-import com.simibubi.create.content.contraptions.components.structureMovement.render.ContraptionRenderInfo;
-import com.simibubi.create.content.contraptions.components.structureMovement.render.FlwContraption;
+import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
+import com.simibubi.create.content.contraptions.Contraption;
+import com.simibubi.create.content.contraptions.render.ContraptionRenderInfo;
+import com.simibubi.create.content.contraptions.render.FlwContraption;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.AABB;
 import org.spongepowered.asm.mixin.Mixin;

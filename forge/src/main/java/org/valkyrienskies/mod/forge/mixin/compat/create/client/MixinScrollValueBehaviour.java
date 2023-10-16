@@ -1,6 +1,6 @@
 package org.valkyrienskies.mod.forge.mixin.compat.create.client;
 
-import com.simibubi.create.foundation.tileEntity.behaviour.scrollvalue.ScrollValueBehaviour;
+import com.simibubi.create.foundation.blockEntity.behaviour.scrollValue.ScrollValueBehaviour;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
@@ -22,5 +22,4 @@ public class MixinScrollValueBehaviour {
         final Vec3 inShipHit = VSGameUtilsKt.toShipRenderCoordinates(Minecraft.getInstance().level, blockPos, hitPos);
         return inShipHit.subtract(blockPos);
     }
-
 }

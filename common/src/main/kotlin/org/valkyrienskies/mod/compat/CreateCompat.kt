@@ -5,7 +5,7 @@ import net.minecraft.world.entity.Entity
 object CreateCompat {
 
     private val contraptionClass = runCatching {
-        Class.forName("com.simibubi.create.content.contraptions.components.structureMovement.AbstractContraptionEntity")
+        Class.forName("com.simibubi.create.content.contraptions.AbstractContraptionEntity")
     }.getOrNull()
 
     @JvmStatic
