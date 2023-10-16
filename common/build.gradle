@@ -28,7 +28,7 @@ dependencies {
     //We just use a version from a platform and hope the classes exist on both versions and mixins apply correctly
     modCompileOnly("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}")
         { exclude group: 'com.github.AlphaMode', module: 'fakeconfigtoml' }
-    modCompileOnly("com.jozufozu.flywheel:flywheel-fabric-${minecraft_version}:0.6.8-33")
+    modCompileOnly("com.jozufozu.flywheel:flywheel-fabric-${minecraft_version}:${flywheel_version_fabric}")
     modCompileOnly("io.github.fabricators_of_create:Porting-Lib:${port_lib_version}+${minecraft_version}")
 }
 

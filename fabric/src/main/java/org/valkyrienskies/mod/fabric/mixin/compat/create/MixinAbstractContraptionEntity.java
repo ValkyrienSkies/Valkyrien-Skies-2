@@ -1,6 +1,6 @@
 package org.valkyrienskies.mod.fabric.mixin.compat.create;
 
-import com.simibubi.create.content.contraptions.components.structureMovement.AbstractContraptionEntity;
+import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NotNull;
@@ -42,7 +42,7 @@ public abstract class MixinAbstractContraptionEntity implements ContraptionWingP
     private void postTick(final CallbackInfo ci) {
         final AbstractContraptionEntity thisAsAbstractContraptionEntity = AbstractContraptionEntity.class.cast(this);
         final Level level = thisAsAbstractContraptionEntity.level;
-        if (wingGroupId != -1 && level instanceof ServerLevel serverLevel) {
+        if (wingGroupId != -1 && level instanceof final ServerLevel serverLevel) {
             final LoadedServerShip ship = VSGameUtilsKt.getShipObjectManagingPos(serverLevel,
                 VectorConversionsMCKt.toJOML(thisAsAbstractContraptionEntity.position()));
             if (ship != null) {
