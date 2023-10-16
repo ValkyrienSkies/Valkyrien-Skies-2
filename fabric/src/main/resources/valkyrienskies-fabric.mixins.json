@@ -10,11 +10,21 @@
     "compat.cc_restitched.MixinWirelessNetwork",
     "compat.create.Matrix3dAccessor",
     "compat.create.MixinAbstractContraptionEntity",
+    "compat.create.MixinBlockBreakingKineticTileEntity",
+    "compat.create.MixinBlocks",
+    "compat.create.MixinControlledContraptionEntity",
     "compat.sodium.MixinRenderSectionManager",
     "feature.explosions.ClipContextMixin",
     "world.level.block.FireMixin"
   ],
-  "client": [],
+  "client": [
+    "compat.create.client.MixinContraptionRenderInfo",
+    "compat.create.client.MixinCullingBlockEntityIterator",
+    "compat.create.client.MixinFlwContraption",
+    "compat.create.client.MixinScrollValueBehaviour",
+    "compat.create.client.MixinSuperGlueSelectionHandler",
+    "compat.create.client.MixinValueBox"
+  ],
   "injectors": {
     "defaultRequire": 1
   },
