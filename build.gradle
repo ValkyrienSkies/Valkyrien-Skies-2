@@ -72,6 +72,10 @@ subprojects {
 
     configurations.each { it.resolutionStrategy.useGlobalDependencySubstitutionRules.set(false) }
 
+    kotlin {
+        jvmToolchain(17)
+    }
+
     repositories {
         try {
             def vsCoreBuild = gradle.includedBuild("vs-core")

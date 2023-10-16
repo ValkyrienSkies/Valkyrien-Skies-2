@@ -15,6 +15,9 @@ object VSGameConfig {
     val COMMON = Common()
 
     class Client {
+        @JsonSchema(title = "Compat Settings")
+        val COMPAT = Compat()
+
         val Tooltip = TOOLTIP()
 
         val BlockTinting = BLOCKTINT()
@@ -44,6 +47,13 @@ object VSGameConfig {
                 description = "Partly fixes the block tinting issue with blocks on ships"
             )
             var fixBlockTinting = false
+        }
+
+        class Compat {
+            @JsonSchema(
+                description = "Show the harvesting zone for create harvesters"
+            )
+            var showHarvestingZone = true
         }
     }
 
@@ -132,12 +142,29 @@ object VSGameConfig {
         @JsonSchema(title = "Advanced")
         val ADVANCED = Advanced()
 
+        @JvmField
+        @JsonSchema(title = "Compat Settings")
+        val COMPAT = Compat()
+
         class Advanced { // Debug configs that may be either side
             @JsonSchema(
                 description = "Renders mob pathfinding nodes. Must be set on client and server to work. " +
                     "Requires the system property -Dorg.valkyrienskies.render_pathfinding=true"
             )
             var renderPathfinding = true // Requires ValkyrienCommonMixinConfigPlugin.PATH_FINDING_DEBUG to be true
+        }
+
+        class Compat {
+            @JsonSchema(
+                description =  "Enable a zone where create drills and more can harvest blocks from ships" +
+                    "Instead of having a line of sight"
+            )
+            var enableHarvestingZone = false
+
+            @JsonSchema(
+                description =  "The total width (and height) of the harvesting zone in blocks"
+            )
+            var harvestingZoneSize = 1.5
         }
     }
 }
