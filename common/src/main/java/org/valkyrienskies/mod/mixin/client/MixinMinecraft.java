@@ -38,6 +38,8 @@ public abstract class MixinMinecraft
 
     @Unique
     private static final Logger log = LogManager.getLogger("VS2 MixinMinecraft");
+    @Unique
+    private static long lastLog = System.currentTimeMillis();
 
     @Shadow
     private boolean pause;
@@ -86,9 +88,15 @@ public abstract class MixinMinecraft
         final ClientShipWorldCore shipObjectWorldCopy = shipObjectWorld;
 
         if (shipObjectWorldCopy == null) {
-            log.warn("Requested getShipObjectWorld() when shipObjectWorld was null!");
+            if (lastLog + 5000 < System.currentTimeMillis()) {
+                lastLog = System.currentTimeMillis();
+                log.warn("Requested getShipObjectWorld() but failed returning dummy world",
+                    new IllegalStateException("shipObjectWorld is null"));
+            }
+
             return ValkyrienSkiesMod.getVsCore().getDummyShipWorldClient();
         }
+
         return shipObjectWorldCopy;
     }
 
