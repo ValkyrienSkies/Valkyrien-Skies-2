@@ -43,7 +43,10 @@ public abstract class MixinAbstractContraptionEntity implements ContraptionWingP
         if (wingGroupId != -1 && level instanceof final ServerLevel serverLevel) {
             final LoadedServerShip ship = VSGameUtilsKt.getShipObjectManagingPos(serverLevel,
                 VectorConversionsMCKt.toJOML(thisAsAbstractContraptionEntity.position()));
-            ship.getAttachment(WingManager.class).setWingGroupTransform(wingGroupId, computeContraptionWingTransform());
+            if (ship != null) {
+                // This can happen if a player moves a train contraption from ship to world using a wrench
+                ship.getAttachment(WingManager.class).setWingGroupTransform(wingGroupId, computeContraptionWingTransform());
+            }
         }
     }
 
