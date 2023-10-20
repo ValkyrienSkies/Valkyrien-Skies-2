@@ -6,9 +6,6 @@ import net.minecraft.world.level.ChunkPos
 import org.joml.Vector3d
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.util.datastructures.DenseBlockPosSet
-import org.valkyrienskies.core.impl.game.ships.ShipData
-import org.valkyrienskies.core.impl.game.ships.ShipTransformImpl
-import org.valkyrienskies.core.impl.networking.simple.sendToClient
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.executeIf
 import org.valkyrienskies.mod.common.isTickingChunk
@@ -17,7 +14,7 @@ import org.valkyrienskies.mod.common.networking.PacketStopChunkUpdates
 import org.valkyrienskies.mod.common.playerWrapper
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.toJOML
-import org.valkyrienskies.mod.common.world.ChunkManagement
+import org.valkyrienskies.mod.common.vsCore
 import org.valkyrienskies.mod.util.relocateBlock
 import org.valkyrienskies.mod.util.updateBlock
 
@@ -50,7 +47,9 @@ fun createNewShipWithBlocks(
     // Send a list of all the chunks that we plan on updating to players, so that they
     // defer all updates until assembly is finished
     level.players().forEach { player ->
-        PacketStopChunkUpdates(chunkPosesJOML).sendToClient(player.playerWrapper)
+        with(vsCore.simplePacketNetworking) {
+            PacketStopChunkUpdates(chunkPosesJOML).sendToClient(player.playerWrapper)
+        }
     }
 
     // Use relocateBlock to copy all the blocks into the ship
@@ -102,7 +101,9 @@ fun createNewShipWithBlocks(
     ) {
         // Once all the chunk updates are sent to players, we can tell them to restart chunk updates
         level.players().forEach { player ->
-            PacketRestartChunkUpdates(chunkPosesJOML).sendToClient(player.playerWrapper)
+            with(vsCore.simplePacketNetworking) {
+                PacketRestartChunkUpdates(chunkPosesJOML).sendToClient(player.playerWrapper)
+            }
         }
     }
 

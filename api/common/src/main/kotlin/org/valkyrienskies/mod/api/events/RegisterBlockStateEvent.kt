@@ -1,15 +1,15 @@
 package org.valkyrienskies.mod.api.events
 
 import net.minecraft.world.level.block.state.BlockState
-import org.valkyrienskies.mod.api.registration.LiquidState
-import org.valkyrienskies.mod.api.registration.SolidState
+import org.valkyrienskies.core.api.physics.blockstates.LiquidState
+import org.valkyrienskies.core.api.physics.blockstates.SolidState
 
 interface RegisterBlockStateEvent {
 
     fun newLiquidStateBuilder(): LiquidState.Builder
     fun buildLiquidState(block: LiquidState.Builder.() -> Unit): LiquidState
     fun newSolidStateBuilder(): SolidState.Builder
-
+    fun buildSolidState(block: SolidState.Builder.() -> Unit): SolidState
 
     fun register(state: BlockState, solidState: SolidState)
     fun register(state: BlockState, liquidState: LiquidState)

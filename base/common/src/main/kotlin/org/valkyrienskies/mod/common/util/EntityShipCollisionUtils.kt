@@ -13,7 +13,6 @@ import org.joml.primitives.AABBd
 import org.joml.primitives.AABBdc
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.apigame.collision.ConvexPolygonc
-import org.valkyrienskies.core.impl.collision.k.createPolygonFromAABB
 import org.valkyrienskies.core.util.extend
 import org.valkyrienskies.mod.common.getShipsIntersecting
 import org.valkyrienskies.mod.common.shipObjectWorld
@@ -125,7 +124,7 @@ object EntityShipCollisionUtils {
                 world.getBlockCollisions(entity, entityBoundingBoxInShipCoordinates.toMinecraft())
             shipBlockCollisionStream.forEach { voxelShape: VoxelShape ->
                 voxelShape.forAllBoxes { minX, minY, minZ, maxX, maxY, maxZ ->
-                    val shipPolygon: ConvexPolygonc = createPolygonFromAABB(
+                    val shipPolygon: ConvexPolygonc = vsCore.entityPolygonCollider.createPolygonFromAABB(
                         AABBd(minX, minY, minZ, maxX, maxY, maxZ),
                         shipTransform.shipToWorld,
                         shipObject.id

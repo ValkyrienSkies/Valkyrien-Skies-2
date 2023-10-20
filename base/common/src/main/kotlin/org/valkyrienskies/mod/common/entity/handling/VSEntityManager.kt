@@ -5,10 +5,10 @@ import net.minecraft.core.Registry
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
-import org.valkyrienskies.core.impl.networking.simple.sendToClient
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.networking.PacketSyncVSEntityTypes
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
+import org.valkyrienskies.mod.common.vsCore
 import org.valkyrienskies.mod.compat.CreateCompat
 import java.time.Duration
 import kotlin.text.RegexOption.IGNORE_CASE
@@ -99,6 +99,8 @@ object VSEntityManager {
                 }
                 .toMap()
 
-        PacketSyncVSEntityTypes(entityTypes).sendToClient(player)
+        with(vsCore.simplePacketNetworking) {
+            PacketSyncVSEntityTypes(entityTypes).sendToClient(player)
+        }
     }
 }

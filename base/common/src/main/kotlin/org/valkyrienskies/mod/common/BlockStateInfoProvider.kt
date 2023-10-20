@@ -11,17 +11,15 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
+import org.valkyrienskies.core.api.physics.blockstates.LiquidState
+import org.valkyrienskies.core.api.physics.blockstates.SolidState
 import org.valkyrienskies.core.api.ships.Wing
 import org.valkyrienskies.core.api.ships.WingManager
+import org.valkyrienskies.core.apigame.physics.blockstates.VsBlockState
 import org.valkyrienskies.core.apigame.world.chunks.BlockType
 import org.valkyrienskies.mod.common.block.WingBlock
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.hooks.VSGameEvents
-import org.valkyrienskies.physics_api.Lod1BlockStateId
-import org.valkyrienskies.physics_api.Lod1LiquidBlockStateId
-import org.valkyrienskies.physics_api.Lod1SolidBlockStateId
-import org.valkyrienskies.physics_api.voxel.Lod1LiquidBlockState
-import org.valkyrienskies.physics_api.voxel.Lod1SolidBlockState
 import java.util.function.IntFunction
 
 // Other mods can then provide weights and types based on their added content
@@ -36,10 +34,10 @@ interface BlockStateInfoProvider {
     // Get the id of the block state
     fun getBlockStateType(blockState: BlockState): BlockType?
 
-    val solidBlockStates: List<Lod1SolidBlockState>
-    val liquidBlockStates: List<Lod1LiquidBlockState>
+    val solidBlockStates: List<SolidState>
+    val liquidBlockStates: List<LiquidState>
 
-    val blockStateData: List<Triple<Lod1SolidBlockStateId, Lod1LiquidBlockStateId, Lod1BlockStateId>>
+    val blockStateData: List<VsBlockState>
 }
 
 object BlockStateInfo {
@@ -63,9 +61,6 @@ object BlockStateInfo {
         VSGameEvents.registriesCompleted.on { _, _ -> SORTED_REGISTRY = REGISTRY.sortedByDescending { it.priority } }
     }
 
-    // This is [ThreadLocal] because in single-player games the Client thread and Server thread will read/write to
-    // [CACHE] simultaneously. This creates a data race that can crash the game (See https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues/126).
-
     class Cache {
         // Use a load factor of 0.5f because this map is hit very often
         private val blockStateCache: Int2ObjectOpenHashMap<Pair<Double, BlockType>> =
@@ -82,6 +77,8 @@ object BlockStateInfo {
         }
     }
 
+    // This is [ThreadLocal] because in single-player games the Client thread and Server thread will read/write to
+    // [_cache] simultaneously. This creates a data race that can crash the game (See https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues/126).
     private val _cache = ThreadLocal.withInitial { Cache() }
     val cache: Cache get() = _cache.get()
 

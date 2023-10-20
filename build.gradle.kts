@@ -17,7 +17,7 @@ subprojects {
     if (vsCoreBuild != null) {
         configurations.configureEach {
             resolutionStrategy {
-                useGlobalDependencySubstitutionRules.set(false)
+                useGlobalDependencySubstitutionRules.set(true)
             }
         }
     }

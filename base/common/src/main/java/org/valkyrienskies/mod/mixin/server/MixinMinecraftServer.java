@@ -146,11 +146,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
             Block.BLOCK_STATE_REGISTRY.forEach((blockStateList::add));
             MassDatapackResolver.INSTANCE.registerAllBlockStates(blockStateList);
         }
-        vsPipeline.registerBlocks(
-            MassDatapackResolver.INSTANCE.getSolidBlockStates(),
-            MassDatapackResolver.INSTANCE.getLiquidBlockStates(),
-            MassDatapackResolver.INSTANCE.getBlockStateData()
-        );
+        vsPipeline.registerBlocks(MassDatapackResolver.INSTANCE.getBlockStateData());
 
         KrunchSupport.INSTANCE.setKrunchSupported(!vsPipeline.isUsingDummyPhysics());
 

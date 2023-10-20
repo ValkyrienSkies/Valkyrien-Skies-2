@@ -11,8 +11,6 @@ import net.minecraft.network.protocol.game.ClientboundSectionBlocksUpdatePacket
 import net.minecraft.world.level.ChunkPos
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.properties.ChunkClaim
-import org.valkyrienskies.core.impl.hooks.VSEvents
-import org.valkyrienskies.core.impl.networking.simple.registerClientHandler
 import org.valkyrienskies.core.util.pollUntilEmpty
 import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.isChunkInShipyard
@@ -44,12 +42,14 @@ class SeamlessChunksManager(private val listener: ClientPacketListener) {
     private val stalledChunks = LongOpenHashSet()
 
     init {
-        PacketStopChunkUpdates::class.registerClientHandler { (chunks) ->
-            chunks.forEach { stalledChunks.add(it.toMinecraft().toLong()) }
-        }
-        PacketRestartChunkUpdates::class.registerClientHandler { packet ->
-            Minecraft.getInstance().execute {
-                onRestartUpdates(packet)
+        with(vsCore.simplePacketNetworking) {
+            PacketStopChunkUpdates::class.registerClientHandler { (chunks) ->
+                chunks.forEach { stalledChunks.add(it.toMinecraft().toLong()) }
+            }
+            PacketRestartChunkUpdates::class.registerClientHandler { packet ->
+                Minecraft.getInstance().execute {
+                    onRestartUpdates(packet)
+                }
             }
         }
         //
