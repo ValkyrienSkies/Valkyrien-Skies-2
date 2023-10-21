@@ -22,6 +22,8 @@ import org.valkyrienskies.core.impl.game.ships.ShipDataCommon
 import org.valkyrienskies.core.impl.game.ships.ShipTransformImpl
 import org.valkyrienskies.core.impl.util.expand
 import org.valkyrienskies.mod.common.assembly.createNewShipWithBlocks
+import org.valkyrienskies.mod.common.hooks.VSGameEvents
+import org.valkyrienskies.mod.common.hooks.VSGameEvents.ShipSplitEvent
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.toBlockPos
 import org.valkyrienskies.mod.common.util.toJOML
@@ -91,28 +93,14 @@ object ShipSplitter {
                                 (newShip as ShipDataCommon).transform = newShipTransform
                                 (newShip as ShipDataCommon).physicsData.linearVelocity = velVec
                                 (newShip as ShipDataCommon).physicsData.angularVelocity = omegaVec
-                                verifyShip(self, newShip, centerPos)
-                            }
-                            verifyShip(self, ship, shipsToSplit.second)
-                            // if (forest.vertices[shipsToSplit.second] != null) {
-                            //     forest.verifyIntactOnLoad(forest.vertices[shipsToSplit.second]!!)
-                            // }
 
-                            // for (it in breakage) {
-                            //     if (it == null) {
-                            //         continue
-                            //     }
-                            //     if (!self.getBlockState(it!!.toBlockPos()).isAir) {
-                            //         if (forest.vertices[it] != null) {
-                            //             forest.verifyIntactOnLoad(forest.vertices[it]!!)
-                            //             break
-                            //         } else {
-                            //             continue
-                            //         }
-                            //     } else {
-                            //         continue
-                            //     }
-                            // }
+                                verifyShip(self, newShip, centerPos)
+
+                                val event = ShipSplitEvent(ship, newShip, shipsToSplit.second, snap.second)
+                                VSGameEvents.shipSplit.emit(event)
+                            }
+
+                            verifyShip(self, ship, shipsToSplit.second)
 
                             forest.removeFromBreakQueue(breakage)
                         }
@@ -160,59 +148,33 @@ object ShipSplitter {
     }
 
     fun airHandle(shipObjectWorld: ServerShipWorldCore, self: ServerLevel) {
-
-        // todo: Better check, I think this is pretty inefficient...
         for (loadedShip in shipObjectWorld.loadedShips) {
             if (loadedShip.getAttachment(AirPocketForest::class.java) != null) {
                 val airPocketForest : AirPocketForestImpl = loadedShip.getAttachment(AirPocketForest::class.java) as AirPocketForestImpl
 
-                for (vertex in airPocketForest.sealedAirBlocks.keys) {
-                    if (!airPocketForest.currentShipAABB.containsPoint(vertex)) {
+                for (vertex in airPocketForest.airVertices.keys) {
+                    if (!loadedShip.shipAABB!!.containsPoint(vertex)) {
                         airPocketForest.delVertex(vertex.x(), vertex.y(), vertex.z(), true)
                     }
                 }
 
-                if (airPocketForest.toUpdateOutsideAir()) {
-                    var exclusion: AABBic = loadedShip.shipAABB?.expand(-1, AABBi()) ?: continue
-                    val borderAABB: AABBic = AABBi(loadedShip.shipAABB)
-                    if (borderAABB.maxX() - borderAABB.minX() < 2 || borderAABB.maxY() - borderAABB.minY() < 2 || borderAABB.maxZ() - borderAABB.minZ() < 2) {
-                        exclusion = AABBi()
-                    }
-                    val airBlocks: MutableSet<Vector3ic> = HashSet()
+                if (airPocketForest.shouldUpdateOutsideAir) {
+                    val aabbToCheck: AABBic = loadedShip.shipAABB!!.expand(1, AABBi())
+                    val exclusion: AABBic = loadedShip.shipAABB!!
 
-                    for (x in borderAABB.minX()..borderAABB.maxX()) {
-                        for (y in borderAABB.minY()..borderAABB.maxY()) {
-                            for (z in borderAABB.minZ()..borderAABB.maxZ()) {
-                                if (exclusion.containsPoint(x, y, z)) {
-                                    continue
+                    val newOutsideAirVertices: HashSet<Vector3ic> = HashSet()
+
+                    for (x in aabbToCheck.minX()..aabbToCheck.maxX()) {
+                        for (y in aabbToCheck.minY()..aabbToCheck.maxY()) {
+                            for (z in aabbToCheck.minZ()..aabbToCheck.maxZ()) {
+                                val pos = Vector3i(x, y, z)
+                                if (!exclusion.containsPoint(pos)) {
+                                    newOutsideAirVertices.add(pos)
                                 }
-                                if (!self.getBlockState(BlockPos(x,y,z)).isAir) {
-                                    continue
-                                }
-                                airBlocks.add(Vector3i(x, y, z))
                             }
                         }
                     }
-
-                    airPocketForest.updateOutsideAirVertices(airBlocks)
-                    airPocketForest.shouldUpdateOutsideAir = false
-                    // if (loadedShip.shipAABB != null) {
-                    //     val airAABB: AABBic = loadedShip.shipAABB!!.expand(1, AABBi())
-                    //     val airBlocks: MutableSet<Vector3ic> = HashSet()
-                    //     for (x in airAABB.minX()..airAABB.maxX()) {
-                    //         for (y in airAABB.minY()..airAABB.maxY()) {
-                    //             for (z in airAABB.minZ()..airAABB.maxZ()) {
-                    //                 if (loadedShip.shipAABB!!.containsPoint(x, y, z)) {
-                    //                     continue
-                    //                 }
-                    //                 airPocketForest!!.newVertex(x, y, z, false)
-                    //                 airBlocks.add(Vector3i(x, y, z))
-                    //             }
-                    //         }
-                    //     }
-                    //     airPocketForest!!.updateOutsideAirVertices(airBlocks)
-                    //     airPocketForest!!.shouldUpdateOutsideAir = false
-                    // }
+                    airPocketForest.updateOutsideAirVertices(newOutsideAirVertices)
                 }
             }
         }

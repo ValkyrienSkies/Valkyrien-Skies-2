@@ -47,6 +47,7 @@ import org.valkyrienskies.core.api.ships.WingManager;
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
 import org.valkyrienskies.core.apigame.world.chunks.TerrainUpdate;
 import org.valkyrienskies.core.impl.datastructures.dynconn.BlockPosVertex;
+import org.valkyrienskies.core.impl.game.ships.AirPocketForest;
 import org.valkyrienskies.core.impl.game.ships.ConnectivityForest;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
@@ -164,7 +165,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                                 final WingManager shipAsWingManager = ship.getAttachment(WingManager.class);
                                 final MutableBlockPos mutableBlockPos = new MutableBlockPos();
                                 final ConnectivityForest shipAsConnectivityForest = ship.getAttachment(ConnectivityForest.class);
-//                                final AirPocketForest shipAsAirPocketForest = ship.getAttachment(AirPocketForest.class);
+                                final AirPocketForest shipAsAirPocketForest = ship.getAttachment(AirPocketForest.class);
                                 for (int x = 0; x < 16; x++) {
                                     for (int y = 0; y < 16; y++) {
                                         for (int z = 0; z < 16; z++) {
@@ -175,9 +176,9 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                                             if (!blockState.isAir()) {
                                                 shipAsConnectivityForest.newVertex(posX, posY, posZ);
                                             } else {
-//                                                if (ship.getShipAABB().containsPoint(posX, posY, posZ)) {
-//                                                    shipAsAirPocketForest.newVertex(posX, posY, posZ, false);
-//                                                }
+                                                if (ship.getShipAABB().containsPoint(posX, posY, posZ)) {
+                                                    shipAsAirPocketForest.newVertex(posX, posY, posZ, false);
+                                                }
                                             }
                                             if (blockState.getBlock() instanceof WingBlock) {
                                                 mutableBlockPos.set(posX, posY, posZ);
@@ -193,8 +194,8 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                                     }
                                 }
                                 shipAsConnectivityForest.getGraph().optimize();
-//                                shipAsAirPocketForest.setShouldUpdateOutsideAir(true);
-//                                shipAsAirPocketForest.getGraph().optimize();
+                                shipAsAirPocketForest.setShouldUpdateOutsideAir(true);
+                                shipAsAirPocketForest.getGraph().optimize();
                                 boolean foundChecker = false;
                                 while (!foundChecker) {
                                     BlockPosVertex vertexToCheck = shipAsConnectivityForest.getVertices().values().iterator().next();

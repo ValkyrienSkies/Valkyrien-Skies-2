@@ -6,15 +6,12 @@ import net.minecraft.CrashReport;
 import net.minecraft.CrashReportCategory;
 import net.minecraft.ReportedException;
 import net.minecraft.core.BlockPos;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.tags.TagKey;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
@@ -22,8 +19,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
-import org.joml.Vector3i;
-import org.joml.Vector3ic;
 import org.joml.primitives.AABBd;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -34,13 +29,9 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.ClientShip;
-import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.core.api.ships.LoadedShip;
-import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
-import org.valkyrienskies.core.impl.game.ships.AirPocketForest;
-import org.valkyrienskies.core.impl.game.ships.AirPocketForestImpl;
 import org.valkyrienskies.core.impl.game.ships.ShipObjectClient;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
@@ -210,43 +201,6 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     }
 
     @Shadow
-    public abstract Vec3 getEyePosition();
-
-    @Shadow
     public abstract Vec3 getPosition(float f);
 
-    @Inject(method = "isUnderWater", at = @At(value = "RETURN"), cancellable = true)
-    private void isUnderWaterInAirPocket(CallbackInfoReturnable<Boolean> cir) {
-        cir.setReturnValue(cir.getReturnValue() && !isInAirPocket());
-    }
-
-    @Inject(method = "isEyeInFluid", at = @At(value = "RETURN"), cancellable = true)
-    private void isEyeInFluidInAirPocket(TagKey<Fluid> tagKey, CallbackInfoReturnable<Boolean> cir) {
-        if (isInAirPocket()) {
-            cir.setReturnValue(false);
-        }
-    }
-
-    @Unique
-    private boolean isInAirPocket() {
-        if (level.isClientSide) return false;
-        if (this.getEyePosition() != null) {
-            VSGameUtilsKt.getShipsIntersecting(((ServerLevel) level), this.getBoundingBox());
-            Iterable<ServerShip> ships = VSGameUtilsKt.getShipsIntersecting(((ServerLevel) level), this.getBoundingBox());
-            for (ServerShip ship : ships) {
-                if (ship instanceof LoadedServerShip loadedShip) {
-                    if (loadedShip.getAttachment(AirPocketForest.class) != null) {
-                        AirPocketForestImpl airForest = (AirPocketForestImpl) loadedShip.getAttachment(AirPocketForest.class);
-                        assert airForest != null;
-                        Vector3dc eyeTransformedPos = loadedShip.getTransform().getWorldToShip().transformPosition(VectorConversionsMCKt.toJOML(getEyePosition())).round();
-                        Vector3ic eyeTransformedBlockPos = new Vector3i((int) eyeTransformedPos.x(), (int) eyeTransformedPos.y(), (int) eyeTransformedPos.z());
-                        if (airForest.isInAirPocket(eyeTransformedBlockPos.x(), eyeTransformedBlockPos.y(), eyeTransformedBlockPos.z())) {
-                            return true;
-                        }
-                    }
-                }
-            }
-        }
-        return false;
-    }
 }
