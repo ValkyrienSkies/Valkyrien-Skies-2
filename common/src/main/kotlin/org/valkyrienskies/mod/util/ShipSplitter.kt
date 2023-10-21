@@ -7,8 +7,6 @@ import org.joml.Vector3d
 import org.joml.Vector3dc
 import org.joml.Vector3i
 import org.joml.Vector3ic
-import org.joml.primitives.AABBi
-import org.joml.primitives.AABBic
 import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore
@@ -20,7 +18,6 @@ import org.valkyrienskies.core.impl.game.ships.ConnectivityForest
 import org.valkyrienskies.core.impl.game.ships.ConnectivityForestImpl
 import org.valkyrienskies.core.impl.game.ships.ShipDataCommon
 import org.valkyrienskies.core.impl.game.ships.ShipTransformImpl
-import org.valkyrienskies.core.impl.util.expand
 import org.valkyrienskies.mod.common.assembly.createNewShipWithBlocks
 import org.valkyrienskies.mod.common.hooks.VSGameEvents
 import org.valkyrienskies.mod.common.hooks.VSGameEvents.ShipSplitEvent
@@ -152,29 +149,8 @@ object ShipSplitter {
             if (loadedShip.getAttachment(AirPocketForest::class.java) != null) {
                 val airPocketForest : AirPocketForestImpl = loadedShip.getAttachment(AirPocketForest::class.java) as AirPocketForestImpl
 
-                for (vertex in airPocketForest.airVertices.keys) {
-                    if (!loadedShip.shipAABB!!.containsPoint(vertex)) {
-                        airPocketForest.delVertex(vertex.x(), vertex.y(), vertex.z(), true)
-                    }
-                }
-
                 if (airPocketForest.shouldUpdateOutsideAir) {
-                    val aabbToCheck: AABBic = loadedShip.shipAABB!!.expand(1, AABBi())
-                    val exclusion: AABBic = loadedShip.shipAABB!!
 
-                    val newOutsideAirVertices: HashSet<Vector3ic> = HashSet()
-
-                    for (x in aabbToCheck.minX()..aabbToCheck.maxX()) {
-                        for (y in aabbToCheck.minY()..aabbToCheck.maxY()) {
-                            for (z in aabbToCheck.minZ()..aabbToCheck.maxZ()) {
-                                val pos = Vector3i(x, y, z)
-                                if (!exclusion.containsPoint(pos)) {
-                                    newOutsideAirVertices.add(pos)
-                                }
-                            }
-                        }
-                    }
-                    airPocketForest.updateOutsideAirVertices(newOutsideAirVertices)
                 }
             }
         }

@@ -194,7 +194,6 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                                     }
                                 }
                                 shipAsConnectivityForest.getGraph().optimize();
-                                shipAsAirPocketForest.setShouldUpdateOutsideAir(true);
                                 shipAsAirPocketForest.getGraph().optimize();
                                 boolean foundChecker = false;
                                 while (!foundChecker) {
