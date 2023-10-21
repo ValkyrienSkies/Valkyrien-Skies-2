@@ -19,6 +19,7 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.util.RateLimiter;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.util.BugFixUtil;
 
 @Mixin(Level.class)
 public class MixinLevel {
@@ -27,11 +28,6 @@ public class MixinLevel {
 
     @Unique
     private static final RateLimiter LIMITER = new RateLimiter(Duration.ofSeconds(5));
-
-    @Unique
-    private static boolean isCollisionBoxToBig(final AABB aabb) {
-        return aabb.getXsize() > 1000 || aabb.getYsize() > 1000 || aabb.getZsize() > 1000;
-    }
 
     @ModifyVariable(
         method = "getEntities(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/phys/AABB;Ljava/util/function/Predicate;)Ljava/util/List;",
@@ -59,7 +55,7 @@ public class MixinLevel {
     private <T extends Entity> void check1(final EntityTypeTest<Entity, T> entityTypeTest, final AABB area,
         final Predicate<? super T> predicate, final CallbackInfoReturnable<List<T>> cir) {
 
-        if (isCollisionBoxToBig(area)) {
+        if (BugFixUtil.INSTANCE.isCollisionBoxToBig(area)) {
             LIMITER.maybeRun(() ->
                 LOGGER.error(new Exception(
                     "Collision box is too big! " + area + " returning empty list! this might break things")));
@@ -76,7 +72,7 @@ public class MixinLevel {
     private <T extends Entity> void check2(@Nullable final Entity entity, final AABB area,
         final Predicate<? super Entity> predicate, final CallbackInfoReturnable<List<Entity>> cir) {
 
-        if (isCollisionBoxToBig(area)) {
+        if (BugFixUtil.INSTANCE.isCollisionBoxToBig(area)) {
             LIMITER.maybeRun(() ->
                 LOGGER.error(new Exception(
                     "Collision box is too big! " + area + " returning empty list! this might break things")));

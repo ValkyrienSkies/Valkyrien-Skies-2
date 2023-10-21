@@ -103,6 +103,7 @@
     "world.chunk.MixinLevelChunk",
     "world.entity.MixinPlayer",
     "world.entity.projectile.ProjectileUtilMixin",
+    "world.level.MixinBlockCollisions",
     "world.level.MixinLevel",
     "world.level.chunk.MixinChunkGenerator",
     "world.level.levelgen.MixinFlatLevelSource",

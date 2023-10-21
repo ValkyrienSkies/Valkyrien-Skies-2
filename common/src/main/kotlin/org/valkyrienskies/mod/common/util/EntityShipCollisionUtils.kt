@@ -18,6 +18,7 @@ import org.valkyrienskies.core.util.extend
 import org.valkyrienskies.mod.common.getShipsIntersecting
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.vsCore
+import org.valkyrienskies.mod.util.BugFixUtil
 import kotlin.math.max
 
 object EntityShipCollisionUtils {
@@ -116,6 +117,10 @@ object EntityShipCollisionUtils {
                 shipTransform.worldToShip
             )
             val entityBoundingBoxInShipCoordinates: AABBdc = entityPolyInShipCoordinates.getEnclosingAABB(AABBd())
+            if (BugFixUtil.isCollisionBoxToBig(entityBoundingBoxInShipCoordinates.toMinecraft())) {
+                // Box too large, skip it
+                continue
+            }
             val shipBlockCollisionStream =
                 world.getBlockCollisions(entity, entityBoundingBoxInShipCoordinates.toMinecraft())
             shipBlockCollisionStream.forEach { voxelShape: VoxelShape ->
