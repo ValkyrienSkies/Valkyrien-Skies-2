@@ -405,7 +405,7 @@ fun Level.transformAabbToWorld(aabb: AABBdc, dest: AABBd): AABBd {
     val ship2 = getShipManagingPos(aabb.maxX(), aabb.maxY(), aabb.maxZ())
 
     // if both endpoints of the aabb are in the same ship, do the transform
-    if (ship1 == ship2 && ship1 != null) {
+    if (ship1 == ship2 && ship1 != null && ship1.chunkClaimDimension == dimensionId) {
         return aabb.transform(ship1.shipToWorld, dest)
     }
 
