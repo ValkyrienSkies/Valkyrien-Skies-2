@@ -24,6 +24,7 @@ import org.valkyrienskies.core.apigame.physics.PhysicsEntityServer
 import org.valkyrienskies.core.apigame.physics.VSSphereCollisionShapeData
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore
 import org.valkyrienskies.core.impl.game.ShipTeleportDataImpl
+import org.valkyrienskies.core.impl.game.phys_entities.PhysicsEntityClient
 import org.valkyrienskies.core.impl.game.ships.ShipInertiaDataImpl
 import org.valkyrienskies.core.impl.game.ships.ShipObjectClientWorld
 import org.valkyrienskies.core.impl.util.serialization.VSJacksonUtil
@@ -106,7 +107,7 @@ open class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : En
             return null
         }
         val shipIdLong = shipIdString.toLong()
-        val physEntityClient = shipObjectClientWorld.physicsEntities[shipIdLong]
+        val physEntityClient: PhysicsEntityClient? = shipObjectClientWorld.physicsEntities[shipIdLong]
         return physEntityClient?.renderTransform
     }
 

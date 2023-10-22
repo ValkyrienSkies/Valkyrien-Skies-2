@@ -24,19 +24,13 @@ dependencies {
     implementation(kotlin("stdlib"))
 
 
+
+
     compileOnly(vsCoreImpl)
     shade(vsCoreImpl) { isTransitive = false }
     shade(vsCoreApiGame) { isTransitive = false }
     shade(vsCoreApi) { isTransitive = false }
     shade(vsCoreUtil) { isTransitive = false }
-
-    forgeRuntimeLibrary(shade("org.valkyrienskies:physics_api_krunch:1.0.0+14214f4ff8") {
-        isTransitive = false
-    })
-
-    forgeRuntimeLibrary(shade("org.valkyrienskies:physics_api:1.0.0+216620077e") {
-        isTransitive = false
-    })
 
     val mixinExtras = create("com.github.LlamaLad7", "MixinExtras", "0.1.1")
 
@@ -45,7 +39,8 @@ dependencies {
     annotationProcessor(mixinExtras)
     implementation(mixinExtras)
 
-    implementation(project(":api:forge"))
+    implementation(project(":api:forge", "namedElements")) { isTransitive = false }
+    implementation(project(":api:common", "namedElements")) { isTransitive = false }
     include(project(":api:forge"))
 
 

@@ -1,9 +1,11 @@
 package org.valkyrienskies.mod.api.events
 
 import net.minecraft.world.level.block.state.BlockState
+import org.jetbrains.annotations.ApiStatus.Experimental
 import org.valkyrienskies.core.api.physics.blockstates.LiquidState
 import org.valkyrienskies.core.api.physics.blockstates.SolidState
 
+@Experimental
 interface RegisterBlockStateEvent {
 
     fun newLiquidStateBuilder(): LiquidState.Builder

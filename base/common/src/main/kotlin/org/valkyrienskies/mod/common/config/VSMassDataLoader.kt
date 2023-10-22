@@ -20,14 +20,18 @@ import net.minecraft.world.level.material.Fluids
 import net.minecraft.world.phys.shapes.VoxelShape
 import org.joml.Vector3d
 import org.joml.primitives.AABBi
+import org.joml.primitives.AABBic
 import org.valkyrienskies.core.api.physics.blockstates.CollisionPoint
 import org.valkyrienskies.core.api.physics.blockstates.LiquidState
 import org.valkyrienskies.core.api.physics.blockstates.SolidState
-import org.valkyrienskies.core.api.physics.blockstates.SolidStateBoxesShape
-import org.valkyrienskies.core.api.physics.blockstates.SolidStateShape
+import org.valkyrienskies.core.api.physics.blockstates.BoxesBlockShape
+import org.valkyrienskies.core.api.physics.blockstates.SolidBlockShape
 import org.valkyrienskies.core.apigame.physics.blockstates.VsBlockState
 import org.valkyrienskies.core.apigame.world.chunks.BlockType
+import org.valkyrienskies.mod.api_impl.events.RegisterBlockStateEventImpl
+import org.valkyrienskies.mod.api_impl.events.VsApiImpl
 import org.valkyrienskies.mod.common.BlockStateInfoProvider
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.hooks.VSGameEvents
 import org.valkyrienskies.mod.common.vsCore
 import org.valkyrienskies.mod.mixin.accessors.world.level.block.SlabBlockAccessor
@@ -47,10 +51,9 @@ private data class VSBlockStateInfo(
 
 object MassDatapackResolver : BlockStateInfoProvider {
     private val map = hashMapOf<ResourceLocation, VSBlockStateInfo>()
-    private val _solidBlockStates: MutableList<SolidState> = ArrayList()
-    private val _liquidBlockStates: MutableList<LiquidState> = ArrayList()
-    private val _blockStateData: MutableList<VsBlockState> = ArrayList()
     private val mcBlockStateToVs: MutableMap<BlockState, VsBlockState> = HashMap()
+
+    val blockStateData: Collection<VsBlockState> = mcBlockStateToVs.values
 
     val loader get() = VSMassDataLoader()
 
@@ -72,13 +75,6 @@ object MassDatapackResolver : BlockStateInfoProvider {
 
     var registeredBlocks = false
         private set
-
-    override val solidBlockStates: List<SolidState>
-        get() = _solidBlockStates
-    override val liquidBlockStates: List<LiquidState>
-        get() = _liquidBlockStates
-    override val blockStateData: List<VsBlockState>
-        get() = _blockStateData
 
     class VSMassDataLoader : SimpleJsonResourceReloadListener(Gson(), "vs_mass") {
         private val tags = mutableListOf<VSBlockStateInfo>()
@@ -166,7 +162,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
         }
     }
 
-    private fun generateStairCollisionShapes(stairShapes: Array<VoxelShape>): Map<VoxelShape, SolidStateShape> {
+    private fun generateStairCollisionShapes(stairShapes: Array<VoxelShape>): Map<VoxelShape, SolidBlockShape> {
         val testPoints = listOf(
             CollisionPoint(.25f, .25f, .25f, .25f),
             CollisionPoint(.25f, .25f, .75f, .25f),
@@ -189,11 +185,11 @@ object MassDatapackResolver : BlockStateInfoProvider {
             AABBi(8, 8, 8, 15, 15, 15),
         )
 
-        val map: MutableMap<VoxelShape, SolidStateShape> = HashMap()
+        val map: MutableMap<VoxelShape, SolidBlockShape> = HashMap()
         stairShapes.forEach { stairShape ->
             val points: MutableList<CollisionPoint> = ArrayList()
-            val positiveBoxes: MutableList<AABBi> = ArrayList()
-            val negativeBoxes: MutableList<AABBi> = ArrayList()
+            val positiveBoxes: MutableList<AABBic> = ArrayList()
+            val negativeBoxes: MutableList<AABBic> = ArrayList()
 
             testPoints.forEachIndexed { index, testPoint ->
                 var added = false
@@ -222,8 +218,8 @@ object MassDatapackResolver : BlockStateInfoProvider {
         return map
     }
 
-    private fun generateShapeFromVoxel(voxelShape: VoxelShape): SolidStateBoxesShape? {
-        val posBoxes = ArrayList<AABBi>()
+    private fun generateShapeFromVoxel(voxelShape: VoxelShape): BoxesBlockShape? {
+        val posBoxes = ArrayList<AABBic>()
         var failed = false
         var maxBoxesToTest = 20
         voxelShape.forAllBoxes { minX, minY, minZ, maxX, maxY, maxZ ->
@@ -298,7 +294,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
             StairBlockAccessor.getTopShapes() + StairBlockAccessor.getBottomShapes() + SlabBlockAccessor.getBottomAABB() + SlabBlockAccessor.getTopAABB()
         )
 
-        val generatedCollisionShapesMap = HashMap<VoxelShape, SolidStateShape?>()
+        val generatedCollisionShapesMap = HashMap<VoxelShape, SolidBlockShape?>()
         val liquidMaterialToDensityMap = mapOf(Fluids.WATER to Pair(1000.0, 0.3), Fluids.LAVA to Pair(10000.0, 1.0), Fluids.FLOWING_WATER to Pair(1000.0, 0.3), Fluids.FLOWING_LAVA to Pair(10000.0, 1.0))
 
         val fluidStateToBlockTypeMap = HashMap<FluidState, LiquidState>()
@@ -312,13 +308,12 @@ object MassDatapackResolver : BlockStateInfoProvider {
             return if (fluidState.type in liquidMaterialToDensityMap) {
                 val (density, dragCoefficient) = liquidMaterialToDensityMap[fluidState.type]!!
                 val newFluidBlockState = vsCore.newLiquidStateBuilder()
-                    .boundingBox(fluidBox)
+                    .boxShape(fluidBox)
                     .density(density)
                     .dragCoefficient(dragCoefficient)
-                    .fluidVel(Vector3d())
+                    .velocity(Vector3d())
                     .build()
 
-                _blockStateData.add(VsBlockState(null, newFluidBlockState))
                 newFluidBlockState
             } else {
                 // Default
@@ -337,7 +332,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
                 } else if (blockMaterial.isSolid) {
                     val voxelShape = blockState.getShape(dummyBlockGetter, BlockPos.ZERO)
 
-                    val collisionShape: SolidStateShape = if (voxelShapeToCollisionShapeMap.contains(voxelShape)) {
+                    val collisionShape: SolidBlockShape = if (voxelShapeToCollisionShapeMap.contains(voxelShape)) {
                         voxelShapeToCollisionShapeMap[voxelShape]!!
                     } else if (generatedCollisionShapesMap.contains(voxelShape)) {
                         if (generatedCollisionShapesMap[voxelShape] != null) {
@@ -367,10 +362,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
                         null
                     }
 
-                    val statePair = VsBlockState(solidState, fluidState)
-                    _blockStateData.add(statePair)
-
-                    statePair
+                    VsBlockState(solidState, fluidState)
                 } else {
                     vsCore.blockTypes.airState
                 }
@@ -379,6 +371,12 @@ object MassDatapackResolver : BlockStateInfoProvider {
         }
 
         registeredBlocks = true
+    }
+
+    private fun runRegisterBlockStateEvent() {
+        val event = RegisterBlockStateEventImpl()
+        ValkyrienSkiesMod.api.registerBlockStateEvent.emit(event)
+        mcBlockStateToVs.putAll(event.toRegister)
     }
 
     private val logger by logger()

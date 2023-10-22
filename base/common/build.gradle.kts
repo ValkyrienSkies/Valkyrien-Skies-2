@@ -37,12 +37,19 @@ dependencies {
     // We just use a version from a platform and hope the classes exist on both versions and mixins apply correctly
     val createFabricVersion = project.extra["create_fabric_version"] as String
     val portLibVersion = project.extra["port_lib_version"] as String
+    val fabric_api_version = project.extra["fabric_api_version"] as String
+    val minecraft_version = project.extra["minecraft_version"] as String
+    val createbigcannons_version = project.extra["createbigcannons_version"] as String
+
     modCompileOnly("com.simibubi.create", "create-fabric-${minecraftVersion}", createFabricVersion) {
         exclude(group = "com.github.AlphaMode", module = "fakeconfigtoml")
     }
-
+    modCompileOnly("net.fabricmc.fabric-api:fabric-api:${fabric_api_version}")
+    modCompileOnly("com.rbasamoyai:createbigcannons-fabric-${minecraft_version}:${createbigcannons_version}")
     modCompileOnly("com.jozufozu.flywheel", "flywheel-fabric-${minecraftVersion}", "0.6.8-33")
     modCompileOnly("io.github.fabricators_of_create", "Porting-Lib", "${portLibVersion}+${minecraftVersion}")
+
+    implementation(project(":api:common", "namedElements")) { isTransitive = false }
 }
 
 loom {

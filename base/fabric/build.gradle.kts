@@ -25,10 +25,9 @@ dependencies {
 
 
     val minecraftVersion: String by extraProperty("minecraft_version")
-    val createVersion: String by extraProperty("create_version")
-    val flywheelVersion: String by extraProperty("flywheel_version")
+    val createVersion: String by extraProperty("create_fabric_version")
+    val flywheelVersion: String by extraProperty("flywheel_version_fabric")
     val registrateVersion: String by extraProperty("registrate_version")
-    val portLibVersion: String by extraProperty("port_lib_version")
     val forgeTagsVersion: String by extraProperty("forge_tags_version")
     val forgeConfigApiPortVersion: String by extraProperty("forge_config_api_port_version")
     val reachEntityAttributesVersion: String by extraProperty("reach_entity_attributes_version")
@@ -36,16 +35,18 @@ dependencies {
     val milkLibVersion: String by extraProperty("milk_lib_version")
 
     // Create compat
-    modImplementation("com.simibubi.create", "create-fabric-${minecraftVersion}", "${createVersion}+${minecraftVersion}") { isTransitive = false }
+    modImplementation("com.simibubi.create", "create-fabric-${minecraftVersion}", createVersion) {
+        exclude(group = "com.github.AlphaMode", module = "fakeconfigtoml" )
+    }
     modImplementation("com.jozufozu.flywheel", "flywheel-fabric-${minecraftVersion}", flywheelVersion)
     modImplementation("com.tterrag.registrate_fabric", "Registrate", registrateVersion)
-    modImplementation("io.github.fabricators_of_create", "Porting-Lib", "${portLibVersion}+${minecraftVersion}")
     modImplementation("me.alphamode", "ForgeTags", forgeTagsVersion)
     modImplementation("net.minecraftforge", "forgeconfigapiport-fabric", forgeConfigApiPortVersion)
     modImplementation("com.jamieswhiteshirt", "reach-entity-attributes", reachEntityAttributesVersion)
     modImplementation("dev.cafeteria", "fake-player-api", fakePlayerApiVersion)
     modImplementation("io.github.tropheusj", "milk-lib", milkLibVersion)
-    
+
+    implementation(project(":api:common", "namedElements")) { isTransitive = false }
     implementation(project(":api:fabric", "namedElements")) { isTransitive = false }
     include(project(":api:fabric"))
 

@@ -27,8 +27,6 @@ import net.minecraftforge.registries.DeferredRegister
 import net.minecraftforge.registries.ForgeRegistries
 import net.minecraftforge.registries.RegistryObject
 import org.valkyrienskies.core.apigame.VSCoreFactory
-import org.valkyrienskies.core.impl.config.VSConfigClass
-import org.valkyrienskies.core.impl.config.VSCoreConfig
 import org.valkyrienskies.mod.client.EmptyRenderer
 import org.valkyrienskies.mod.client.VSPhysicsEntityRenderer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
@@ -101,10 +99,10 @@ class ValkyrienSkiesModForge {
 
         ModLoadingContext.get().registerExtensionPoint(ConfigGuiFactory::class.java) {
             ConfigGuiFactory { _, parent ->
-                VSClothConfig.createConfigScreenFor(
+                ValkyrienSkiesMod.api.createConfigScreenLegacy(
                     parent,
-                    VSConfigClass.getRegisteredConfig(VSCoreConfig::class.java),
-                    VSConfigClass.getRegisteredConfig(VSGameConfig::class.java)
+                    ValkyrienSkiesMod.vsCore.legacyCoreConfigClass,
+                    VSGameConfig::class.java
                 )
             }
         }

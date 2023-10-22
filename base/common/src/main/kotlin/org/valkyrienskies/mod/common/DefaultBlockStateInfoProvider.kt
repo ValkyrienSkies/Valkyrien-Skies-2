@@ -10,13 +10,6 @@ object DefaultBlockStateInfoProvider : BlockStateInfoProvider {
     override val priority: Int
         get() = Int.MIN_VALUE
 
-    override val solidBlockStates: List<SolidState>
-        get() = TODO("Not yet implemented")
-    override val liquidBlockStates: List<LiquidState>
-        get() = TODO("Not yet implemented")
-    override val blockStateData: List<VsBlockState>
-        get() = TODO("Not yet implemented")
-
     override fun getBlockStateMass(blockState: BlockState): Double {
         if (blockState.isAir) return 0.0
         // By default make blocks weight 1000 kg

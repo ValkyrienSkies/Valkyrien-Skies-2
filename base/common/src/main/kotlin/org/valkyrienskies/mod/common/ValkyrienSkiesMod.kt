@@ -8,9 +8,8 @@ import net.minecraft.world.level.block.entity.BlockEntityType
 import org.valkyrienskies.core.api.ships.setAttachment
 import org.valkyrienskies.core.apigame.VSCore
 import org.valkyrienskies.core.apigame.VSCoreClient
-import org.valkyrienskies.core.impl.config.VSConfigClass
-import org.valkyrienskies.core.impl.config.VSCoreConfig
 import org.valkyrienskies.core.impl.hooks.VSEvents
+import org.valkyrienskies.mod.api_impl.events.VsApiImpl
 import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
 import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
@@ -43,6 +42,9 @@ object ValkyrienSkiesMod {
     @JvmStatic
     val vsCoreClient get() = vsCore as VSCoreClient
 
+    @JvmStatic
+    val api = VsApiImpl()
+
     fun init(core: VSCore) {
         this.vsCore = core
 
@@ -50,7 +52,6 @@ object ValkyrienSkiesMod {
         VSGamePackets.register()
         VSGamePackets.registerHandlers()
 
-        core.registerConfigLegacy("vs_core", VSCoreConfig::class.java)
         core.registerConfigLegacy("vs", VSGameConfig::class.java)
         VSEvents.shipLoadEvent.on { event ->
             event.ship.setAttachment(GameTickForceApplier())

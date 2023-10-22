@@ -24,8 +24,9 @@ interface VsApi {
     }
 
     /**
-     * This event gets called when it's time to register physics block states for Minecraft block states.
+     * This event gets called when its time to register physics block states for Minecraft block states.
      */
+    @get:Experimental
     val registerBlockStateEvent: ListenableEvent<RegisterBlockStateEvent>
 
     @get:Experimental

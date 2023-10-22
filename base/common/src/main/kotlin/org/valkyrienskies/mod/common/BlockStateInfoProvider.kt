@@ -33,11 +33,6 @@ interface BlockStateInfoProvider {
 
     // Get the id of the block state
     fun getBlockStateType(blockState: BlockState): BlockType?
-
-    val solidBlockStates: List<SolidState>
-    val liquidBlockStates: List<LiquidState>
-
-    val blockStateData: List<VsBlockState>
 }
 
 object BlockStateInfo {
