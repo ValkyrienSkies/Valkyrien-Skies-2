@@ -289,7 +289,12 @@ fun ServerLevel?.getShipObjectManagingPos(pos: Vector3dc) =
 
 private fun getShipManagingPosImpl(world: Level?, x: Int, z: Int): Ship? {
     return if (world != null && world.isChunkInShipyard(x, z)) {
-        world.shipObjectWorld.allShips.getByChunkPos(x, z, world.dimensionId)
+        val ship = world.shipObjectWorld.allShips.getByChunkPos(x, z, world.dimensionId)
+        if (ship != null && ship.chunkClaimDimension == world.dimensionId) {
+            ship
+        } else {
+            null
+        }
     } else {
         null
     }
