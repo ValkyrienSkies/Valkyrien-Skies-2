@@ -57,6 +57,7 @@ import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.config.MassDatapackResolver;
 import org.valkyrienskies.mod.common.hooks.VSGameEvents;
 import org.valkyrienskies.mod.common.util.EntityDragger;
+import org.valkyrienskies.mod.common.util.ShipSettingsKt;
 import org.valkyrienskies.mod.common.util.VSLevelChunk;
 import org.valkyrienskies.mod.common.util.VSServerLevel;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
@@ -242,6 +243,10 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         // Teleport ships that touch portals
         final ArrayList<LoadedServerShip> loadedShipsCopy = new ArrayList<>(shipWorld.getLoadedShips());
         for (final LoadedServerShip shipObject : loadedShipsCopy) {
+            if (!ShipSettingsKt.getSettings(shipObject).getChangeDimensionOnTouchPortals()) {
+                // Only send ships through portals if it's enabled in settings
+                continue;
+            }
             final ServerLevel level = dimensionToLevelMap.get(shipObject.getChunkClaimDimension());
             final Vector3dc shipPos = shipObject.getTransform().getPositionInWorld();
             final double bbRadius = 0.5;
