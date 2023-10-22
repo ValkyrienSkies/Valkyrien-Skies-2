@@ -23,11 +23,11 @@ commands:
 
       - restore_cache:
           keys:
-            - v1-gradle-home-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
+            - v1-gradle-home-{{ checksum "build.gradle.kts" }}-{{ checksum "gradle.properties" }}
             - v1-gradle-home
       - restore_cache:
           keys:
-            - v1-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
+            - v1-{{ checksum "build.gradle.kts" }}-{{ checksum "gradle.properties" }}
   save_artifacts:
     parameters:
       artifact_name:
@@ -66,11 +66,11 @@ commands:
   save_gradle_cache:
     steps:
       - save_cache:
-          key: v1-gradle-home-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
+          key: v1-gradle-home-{{ checksum "build.gradle.kts" }}-{{ checksum "gradle.properties" }}
           paths:
             - ~/.gradle
       - save_cache:
-          key: v1-gradle-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
+          key: v1-gradle-{{ checksum "build.gradle.kts" }}-{{ checksum "gradle.properties" }}
           paths:
             - .gradle
 
