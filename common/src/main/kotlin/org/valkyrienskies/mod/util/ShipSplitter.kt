@@ -149,7 +149,7 @@ object ShipSplitter {
             if (loadedShip.getAttachment(AirPocketForest::class.java) != null) {
                 val airPocketForest : AirPocketForestImpl = loadedShip.getAttachment(AirPocketForest::class.java) as AirPocketForestImpl
 
-                if (airPocketForest.toUpdateOutsideAir()) {
+                if (airPocketForest.toUpdateOutsideAir() && loadedShip.shipAABB != null) {
                     val toAdd: HashSet<Vector3ic> = HashSet()
                     for (x in loadedShip.shipAABB!!.minX()..loadedShip.shipAABB!!.maxX()) {
                         for (y in loadedShip.shipAABB!!.minY()..loadedShip.shipAABB!!.maxY()) {
