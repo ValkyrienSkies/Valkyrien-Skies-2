@@ -6,6 +6,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,8 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
 import org.joml.Vector3i;
 import org.joml.Vector3ic;
+import org.joml.primitives.AABBi;
+import org.joml.primitives.AABBic;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -49,6 +52,11 @@ import org.valkyrienskies.core.api.ships.Wing;
 import org.valkyrienskies.core.api.ships.WingManager;
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
 import org.valkyrienskies.core.apigame.world.chunks.TerrainUpdate;
+import org.valkyrienskies.core.impl.config.VSCoreConfig;
+import org.valkyrienskies.core.impl.datastructures.dynconn.BlockPosVertex;
+import org.valkyrienskies.core.impl.game.ships.AirPocketForest;
+import org.valkyrienskies.core.impl.game.ships.ConnectivityForest;
+import org.valkyrienskies.core.util.VectorConversionsKt;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.block.WingBlock;
@@ -56,6 +64,7 @@ import org.valkyrienskies.mod.common.util.VSServerLevel;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.mixin.accessors.server.level.ChunkMapAccessor;
 import org.valkyrienskies.mod.mixin.accessors.server.level.DistanceManagerAccessor;
+import org.valkyrienskies.mod.util.ShipSplitter;
 
 @Mixin(ServerLevel.class)
 public abstract class MixinServerLevel implements IShipObjectWorldServerProvider, VSServerLevel {
@@ -130,6 +139,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
     private void loadChunk(@NotNull final ChunkAccess worldChunk, final List<TerrainUpdate> voxelShapeUpdates) {
         if (!knownChunks.containsKey(worldChunk.getPos())) {
             final List<Vector3ic> voxelChunkPositions = new ArrayList<>();
+            final ServerLevel self = ServerLevel.class.cast(this);
 
             final int chunkX = worldChunk.getPos().x;
             final int chunkZ = worldChunk.getPos().z;
@@ -156,6 +166,8 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                         // Sussy cast, but I don't want to expose this directly through the vs-core api
                         final WingManager shipAsWingManager = ship.getAttachment(WingManager.class);
                         final MutableBlockPos mutableBlockPos = new MutableBlockPos();
+                        final ConnectivityForest shipAsConnectivityForest = ship.getAttachment(ConnectivityForest.class);
+                        final AirPocketForest shipAsAirPocketForest = ship.getAttachment(AirPocketForest.class);
                         for (int x = 0; x < 16; x++) {
                             for (int y = 0; y < 16; y++) {
                                 for (int z = 0; z < 16; z++) {
@@ -163,6 +175,13 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                                     final int posX = (chunkX << 4) + x;
                                     final int posY = chunkSection.bottomBlockY() + y;
                                     final int posZ = (chunkZ << 4) + z;
+                                    if (!blockState.isAir()) {
+                                        shipAsConnectivityForest.newVertex(posX, posY, posZ);
+                                    } else {
+                                        if (VectorConversionsKt.expand(ship.getShipAABB(), 1, new AABBi()).containsPoint(posX, posY, posZ)) {
+                                            shipAsAirPocketForest.newVertex(posX, posY, posZ, false);
+                                        }
+                                    }
                                     if (blockState.getBlock() instanceof WingBlock) {
                                         mutableBlockPos.set(posX, posY, posZ);
                                         final Wing wing =
@@ -174,6 +193,66 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                                         }
                                     }
                                 }
+                            }
+                        }
+                        if (ship.getShipAABB() != null) {
+                            final AABBic aabbToCheck = VectorConversionsKt.expand(ship.getShipAABB(), 1, new AABBi());
+
+                            final HashSet<Vector3ic> newOutsideAirVertices = new HashSet<Vector3ic>();
+                            for (int direction = 1 ; direction <= 6 ; direction++) {
+
+                                int minX = switch (direction) {
+                                    case 1, 2, 3, 4 -> aabbToCheck.minX();
+                                    default -> aabbToCheck.minZ();
+                                };
+                                int maxX = switch (direction) {
+                                    case 1, 2, 3, 4 -> aabbToCheck.maxX();
+                                    default -> aabbToCheck.maxZ();
+                                };
+
+                                int minY = switch (direction) {
+                                    case 1, 2 -> aabbToCheck.minZ();
+                                    default -> aabbToCheck.minY();
+                                };
+
+                                int maxY = switch (direction) {
+                                    case 1, 2 -> aabbToCheck.maxZ();
+                                    default -> aabbToCheck.maxY();
+                                };
+
+                                int offset = switch (direction) {
+                                    case 1 -> aabbToCheck.maxY();
+                                    case 2 -> aabbToCheck.minY();
+                                    case 3 -> aabbToCheck.minZ();
+                                    case 4 -> aabbToCheck.maxZ();
+                                    case 5 -> aabbToCheck.maxX();
+                                    default -> aabbToCheck.minX();
+                                };
+
+                                for (int x = minX; x <= maxX; x++) {
+                                    for (int y = minY; y <= maxY; y++) {
+                                        Vector3i pos = new Vector3i();
+                                        switch (direction) {
+                                            case 1, 2 -> pos.set(x, offset, y);
+                                            case 3, 4 -> pos.set(x, y, offset);
+                                            default -> pos.set(offset, x, y);
+                                        }
+                                        newOutsideAirVertices.add(pos);
+                                    }
+                                }
+                            }
+                            shipAsAirPocketForest.updateOutsideAirVertices(newOutsideAirVertices);
+                        }
+
+                        shipAsConnectivityForest.getGraph().optimize();
+                        shipAsAirPocketForest.getGraph().optimize();
+                        boolean foundChecker = false;
+                        while (!foundChecker) {
+                            final BlockPosVertex
+                                vertexToCheck = shipAsConnectivityForest.getVertices().values().iterator().next();
+                            if (!self.getBlockState(new BlockPos(vertexToCheck.getPosX(), vertexToCheck.getPosY(), vertexToCheck.getPosZ())).isAir()) {
+                                shipAsConnectivityForest.verifyIntactOnLoad(vertexToCheck);
+                                foundChecker = true;
                             }
                         }
                     }
@@ -224,6 +303,12 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                 }
                 knownChunkPosIterator.remove();
             }
+        }
+        if (VSCoreConfig.SERVER.getShouldDoShipSplitting()) {
+            ShipSplitter.INSTANCE.splitShips(shipObjectWorld, self);
+        }
+        if (VSCoreConfig.SERVER.getShouldDetectAirPockets()) {
+            ShipSplitter.INSTANCE.airHandle(shipObjectWorld, self);
         }
 
         // Send new loaded chunks updates to the ship world

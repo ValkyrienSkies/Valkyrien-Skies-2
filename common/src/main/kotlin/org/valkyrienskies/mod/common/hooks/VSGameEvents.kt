@@ -6,7 +6,10 @@ import it.unimi.dsi.fastutil.objects.ObjectList
 import net.minecraft.client.renderer.LevelRenderer
 import net.minecraft.client.renderer.LevelRenderer.RenderChunkInfo
 import net.minecraft.client.renderer.RenderType
+import org.joml.Vector3ic
 import org.valkyrienskies.core.api.ships.ClientShip
+import org.valkyrienskies.core.api.ships.LoadedServerShip
+import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.impl.util.events.EventEmitterImpl
 
 object VSGameEvents {
@@ -17,6 +20,8 @@ object VSGameEvents {
     val renderShip = EventEmitterImpl<ShipRenderEvent>()
     val postRenderShip = EventEmitterImpl<ShipRenderEvent>()
     val shipsStartRendering = EventEmitterImpl<ShipStartRenderEvent>()
+
+    val shipSplit = EventEmitterImpl<ShipSplitEvent>()
 
     data class ShipStartRenderEvent(
         val renderer: LevelRenderer,
@@ -34,6 +39,13 @@ object VSGameEvents {
         val projectionMatrix: Matrix4f,
         val ship: ClientShip,
         val chunks: ObjectList<RenderChunkInfo>
+    )
+
+    data class ShipSplitEvent(
+        val baseShip: LoadedServerShip,
+        val newShip: ServerShip,
+        val splitPoint: Vector3ic,
+        val newShipSplitPoint: Vector3ic
     )
 }
 
