@@ -354,7 +354,7 @@ object VSCommands {
                 ).requires { (it as CommandSourceStack).hasPermission(REQUIRED_PERMISSION) }
         )
 
-        dispatcher.root.children.first { it.name == "teleport" }.apply {
+        dispatcher.root.children.firstOrNull { it.name == "teleport" }?.apply {
             addChild(
                 argument("ships", ShipArgument.selectorOnly()).executes {
                     val serverShips = ShipArgument.getShips(it, "ships").toList() as List<ServerShip>
