@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.mod_compat.create.client;
+package org.valkyrienskies.mod.forge.mixin.compat.create.client;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
@@ -17,7 +17,7 @@ import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 @Mixin(ContraptionHandlerClient.class)
 public class MixinContraptionHandlerClient {
     // Fixes raytracing contraptions on ships
-    @WrapOperation(method = "rayTraceContraption", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/contraptions/AbstractContraptionEntity;toLocalVector(Lnet/minecraft/world/phys/Vec3;F)Lnet/minecraft/world/phys/Vec3;"))
+    @WrapOperation(method = "rayTraceContraption", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/contraptions/AbstractContraptionEntity;toLocalVector(Lnet/minecraft/world/phys/Vec3;F)Lnet/minecraft/world/phys/Vec3;"), remap = false)
     private static Vec3 wrapRayTraceContraptionToLocalVector(
         final AbstractContraptionEntity instance, final Vec3 localVec, final float partialTicks, final Operation<Vec3> toLocalVector
     ) {

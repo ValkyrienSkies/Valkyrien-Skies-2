@@ -18,6 +18,7 @@
     "world.level.block.FireMixin"
   ],
   "client": [
+    "compat.create.client.MixinContraptionHandlerClient",
     "compat.create.client.MixinContraptionRenderInfo",
     "compat.create.client.MixinCullingBlockEntityIterator",
     "compat.create.client.MixinFlwContraption",

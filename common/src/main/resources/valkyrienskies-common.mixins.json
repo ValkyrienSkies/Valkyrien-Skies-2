@@ -149,7 +149,6 @@
     "mod_compat.create.client.MixinCarriageContraptionInstance",
     "mod_compat.create.client.MixinCogwheelBlockItem",
     "mod_compat.create.client.MixinCogwheelBlockItemHitOnShaft",
-    "mod_compat.create.client.MixinContraptionHandlerClient",
     "mod_compat.create.client.MixinContraptionRenderDispatcher",
     "mod_compat.create.client.MixinContraptionRenderInfo",
     "mod_compat.create.client.MixinElevatorControlsHandler",
