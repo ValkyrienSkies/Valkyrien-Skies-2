@@ -27,8 +27,6 @@ import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.chunk.LevelChunkSection;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Final;
@@ -124,13 +122,7 @@ public abstract class MixinLevelRendererVanilla {
             }
 
             shipObject.getActiveChunksSet().forEach((x, z) -> {
-                final ChunkAccess chunk = level.getChunk(x, z);
                 for (int y = level.getMinSection(); y < level.getMaxSection(); y++) {
-                    final LevelChunkSection levelChunkSection = chunk.getSection(y - level.getMinSection());
-                    if (levelChunkSection.hasOnlyAir()) {
-                        // Skip air sections
-                        continue;
-                    }
                     tempPos.set(x << 4, y << 4, z << 4);
                     final ChunkRenderDispatcher.RenderChunk renderChunk =
                         chunkStorageAccessor.callGetRenderChunkAt(tempPos);
