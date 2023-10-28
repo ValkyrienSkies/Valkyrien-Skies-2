@@ -56,7 +56,7 @@ public abstract class MixinAbstractContraptionEntity implements ContraptionWingP
         final AbstractContraptionEntity thisAsAbstractContraptionEntity = AbstractContraptionEntity.class.cast(this);
         final Matrix3d rotationMatrix =
             CreateConversionsKt.toJOML(thisAsAbstractContraptionEntity.getRotationState().asMatrix());
-        final Vector3d pos = VectorConversionsMCKt.toJOML(thisAsAbstractContraptionEntity.position());
+        final Vector3d pos = VectorConversionsMCKt.toJOML(thisAsAbstractContraptionEntity.getAnchorVec());
         return new Matrix4d(rotationMatrix).setTranslation(pos);
     }
 }
