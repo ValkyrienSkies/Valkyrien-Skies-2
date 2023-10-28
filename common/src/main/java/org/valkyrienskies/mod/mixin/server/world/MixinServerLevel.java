@@ -4,6 +4,7 @@ import static org.valkyrienskies.mod.common.ValkyrienSkiesMod.getVsCore;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -22,7 +23,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.progress.ChunkProgressListener;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.state.BlockState;
@@ -59,14 +59,9 @@ import org.valkyrienskies.mod.mixin.accessors.server.level.DistanceManagerAccess
 
 @Mixin(ServerLevel.class)
 public abstract class MixinServerLevel implements IShipObjectWorldServerProvider, VSServerLevel {
-
     @Shadow
     @Final
     private ServerChunkCache chunkSource;
-
-    @Shadow
-    @Final
-    List<ServerPlayer> players;
 
     @Shadow
     @NotNull
@@ -74,7 +69,15 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
 
     // Map from ChunkPos to the list of voxel chunks that chunk owns
     @Unique
-    private final Map<ChunkPos, List<Vector3ic>> knownChunks = new HashMap<>();
+    private final Map<ChunkPos, List<Vector3ic>> vs$knownChunks = new HashMap<>();
+
+    // Maps chunk pos to number of ticks we have considered unloading the chunk
+    @Unique
+    private final Long2LongOpenHashMap vs$chunksToUnload = new Long2LongOpenHashMap();
+
+    // How many ticks we wait before unloading a chunk
+    @Unique
+    private static final long VS$CHUNK_UNLOAD_THRESHOLD = 100;
 
     @Nullable
     @Override
@@ -127,8 +130,10 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
     }
 
     @Unique
-    private void loadChunk(@NotNull final ChunkAccess worldChunk, final List<TerrainUpdate> voxelShapeUpdates) {
-        if (!knownChunks.containsKey(worldChunk.getPos())) {
+    private void vs$loadChunk(@NotNull final ChunkAccess worldChunk, final List<TerrainUpdate> voxelShapeUpdates) {
+        // Remove the chunk pos from vs$chunksToUnload if its present
+        vs$chunksToUnload.remove(worldChunk.getPos().toLong());
+        if (!vs$knownChunks.containsKey(worldChunk.getPos())) {
             final List<Vector3ic> voxelChunkPositions = new ArrayList<>();
 
             final int chunkX = worldChunk.getPos().x;
@@ -184,7 +189,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                     voxelShapeUpdates.add(emptyVoxelShapeUpdate);
                 }
             }
-            knownChunks.put(worldChunk.getPos(), voxelChunkPositions);
+            vs$knownChunks.put(worldChunk.getPos(), voxelChunkPositions);
         }
     }
 
@@ -207,22 +212,29 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
             if (worldChunkOptional.isPresent() && distanceManagerAccessor.getTickets().containsKey(chunkHolder.getPos().toLong())) {
                 // Only load chunks that have a ticket
                 final LevelChunk worldChunk = worldChunkOptional.get();
-                loadChunk(worldChunk, voxelShapeUpdates);
+                vs$loadChunk(worldChunk, voxelShapeUpdates);
             }
         }
 
-        final Iterator<Entry<ChunkPos, List<Vector3ic>>> knownChunkPosIterator = knownChunks.entrySet().iterator();
+        final Iterator<Entry<ChunkPos, List<Vector3ic>>> knownChunkPosIterator = vs$knownChunks.entrySet().iterator();
         while (knownChunkPosIterator.hasNext()) {
             final Entry<ChunkPos, List<Vector3ic>> knownChunkPosEntry = knownChunkPosIterator.next();
+            final long chunkPos = knownChunkPosEntry.getKey().toLong();
             // Unload chunks if they don't have tickets or if they're not in the visible chunks
-            if ((!distanceManagerAccessor.getTickets().containsKey(knownChunkPosEntry.getKey().toLong()) || chunkMapAccessor.callGetVisibleChunkIfPresent(knownChunkPosEntry.getKey().toLong()) == null)) {
-                // Delete this chunk
-                for (final Vector3ic unloadedChunk : knownChunkPosEntry.getValue()) {
-                    final TerrainUpdate deleteVoxelShapeUpdate =
-                        getVsCore().newDeleteTerrainUpdate(unloadedChunk.x(), unloadedChunk.y(), unloadedChunk.z());
-                    voxelShapeUpdates.add(deleteVoxelShapeUpdate);
+            if ((!distanceManagerAccessor.getTickets().containsKey(chunkPos) || chunkMapAccessor.callGetVisibleChunkIfPresent(chunkPos) == null)) {
+                final long ticksWaitingToUnload = vs$chunksToUnload.getOrDefault(chunkPos, 0L);
+                if (ticksWaitingToUnload > VS$CHUNK_UNLOAD_THRESHOLD) {
+                    // Unload this chunk
+                    for (final Vector3ic unloadedChunk : knownChunkPosEntry.getValue()) {
+                        final TerrainUpdate deleteVoxelShapeUpdate =
+                            getVsCore().newDeleteTerrainUpdate(unloadedChunk.x(), unloadedChunk.y(), unloadedChunk.z());
+                        voxelShapeUpdates.add(deleteVoxelShapeUpdate);
+                    }
+                    knownChunkPosIterator.remove();
+                    vs$chunksToUnload.remove(chunkPos);
+                } else {
+                    vs$chunksToUnload.put(chunkPos, ticksWaitingToUnload + 1);
                 }
-                knownChunkPosIterator.remove();
             }
         }
 
@@ -236,6 +248,6 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
     @Override
     public void removeChunk(final int chunkX, final int chunkZ) {
         final ChunkPos chunkPos = new ChunkPos(chunkX, chunkZ);
-        knownChunks.remove(chunkPos);
+        vs$knownChunks.remove(chunkPos);
     }
 }
