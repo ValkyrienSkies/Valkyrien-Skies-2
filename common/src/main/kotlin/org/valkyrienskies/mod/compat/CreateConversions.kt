@@ -1,7 +1,7 @@
-package org.valkyrienskies.mod.fabric.common
+package org.valkyrienskies.mod.compat
 
 import org.joml.Matrix3d
-import org.valkyrienskies.mod.fabric.mixin.compat.create.Matrix3dAccessor
+import org.valkyrienskies.mod.mixin.mod_compat.create.accessors.Matrix3dAccessor
 
 fun com.simibubi.create.foundation.collision.Matrix3d.toJOML(): Matrix3d {
     val accessor = this as Matrix3dAccessor

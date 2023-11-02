@@ -61,6 +61,7 @@
     "mod_compat.create.MixinEntityLauncher",
     "mod_compat.create.MixinRedstoneLinkNetworkHandler",
     "mod_compat.create.MixinSharedDepotBlockMethods",
+    "mod_compat.create.accessors.Matrix3dAccessor",
     "mod_compat.create.accessors.OutlineParamsAccessor",
     "mod_compat.create.behaviour.MixinBlockBreakingMovementBehaviour",
     "mod_compat.create.behaviour.MixinFilteringBehaviour",

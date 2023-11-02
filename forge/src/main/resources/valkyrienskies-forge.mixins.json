@@ -8,8 +8,6 @@
     "compat.cc_tweaked.MixinTurtleBrain",
     "compat.cc_tweaked.MixinTurtleMoveCommand",
     "compat.cc_tweaked.MixinWirelessNetwork",
-    "compat.create.Matrix3dAccessor",
-    "compat.create.MixinAbstractContraptionEntity",
     "compat.create.MixinBlockBreakingKineticTileEntity",
     "compat.create.MixinBlocks",
     "compat.create.MixinControlledContraptionEntity",

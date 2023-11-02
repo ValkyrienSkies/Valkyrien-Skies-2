@@ -19,6 +19,7 @@ import com.simibubi.create.content.kinetics.deployer.DeployerMovementBehaviour;
 import com.simibubi.create.foundation.utility.VecHelper;
 import java.util.Iterator;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -36,6 +37,9 @@ import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.joml.Matrix3d;
+import org.joml.Matrix4d;
+import org.joml.Matrix4dc;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -46,15 +50,21 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
+import org.valkyrienskies.core.api.ships.ContraptionWingProvider;
+import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.core.api.ships.Ship;
+import org.valkyrienskies.core.api.ships.WingManager;
 import org.valkyrienskies.mod.common.CompatUtil;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
+import org.valkyrienskies.mod.compat.CreateConversionsKt;
 import org.valkyrienskies.mod.mixin.mod_compat.create.IMixinDeployerHandler;
 import org.valkyrienskies.mod.mixin.mod_compat.create.IMixinDeployerMovementBehaviour;
 import org.valkyrienskies.mod.mixinducks.mod_compat.create.MixinAbstractContraptionEntityDuck;
 
 @Mixin(AbstractContraptionEntity.class)
-public abstract class MixinAbstractContraptionEntity extends Entity implements MixinAbstractContraptionEntityDuck {
+public abstract class MixinAbstractContraptionEntity extends Entity implements MixinAbstractContraptionEntityDuck,
+    ContraptionWingProvider {
 
     public MixinAbstractContraptionEntity(EntityType<?> entityType, Level level) {
         super(entityType, level);
@@ -62,6 +72,9 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
 
     @Unique
     private static final Logger LOGGER = LogManager.getLogger("Clockwork.MixinAbstractContraptionEntity");
+
+    @Unique
+    private int wingGroupId = -1;
 
     @Shadow(remap = false)
     protected Contraption contraption;
@@ -255,5 +268,39 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
     @Override
     public StructureTransform getStructureTransform() {
         return makeStructureTransform();
+    }
+
+    @Override
+    public int getWingGroupId() {
+        return wingGroupId;
+    }
+
+    @Override
+    public void setWingGroupId(final int wingGroupId) {
+        this.wingGroupId = wingGroupId;
+    }
+
+    @Inject(method = "tick", at = @At("HEAD"))
+    private void postTick(final CallbackInfo ci) {
+        final AbstractContraptionEntity thisAsAbstractContraptionEntity = AbstractContraptionEntity.class.cast(this);
+        final Level level = thisAsAbstractContraptionEntity.level;
+        if (wingGroupId != -1 && level instanceof final ServerLevel serverLevel) {
+            final LoadedServerShip ship = VSGameUtilsKt.getShipObjectManagingPos(serverLevel,
+                VectorConversionsMCKt.toJOML(thisAsAbstractContraptionEntity.position()));
+            if (ship != null) {
+                // This can happen if a player moves a train contraption from ship to world using a wrench
+                ship.getAttachment(WingManager.class).setWingGroupTransform(wingGroupId, computeContraptionWingTransform());
+            }
+        }
+    }
+
+    @NotNull
+    @Override
+    public Matrix4dc computeContraptionWingTransform() {
+        final AbstractContraptionEntity thisAsAbstractContraptionEntity = AbstractContraptionEntity.class.cast(this);
+        final Matrix3d rotationMatrix =
+            CreateConversionsKt.toJOML(thisAsAbstractContraptionEntity.getRotationState().asMatrix());
+        final Vector3d pos = VectorConversionsMCKt.toJOML(thisAsAbstractContraptionEntity.getAnchorVec());
+        return new Matrix4d(rotationMatrix).setTranslation(pos);
     }
 }
