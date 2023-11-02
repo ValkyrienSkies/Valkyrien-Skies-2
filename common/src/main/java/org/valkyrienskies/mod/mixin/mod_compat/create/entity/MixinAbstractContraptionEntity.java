@@ -3,35 +3,26 @@ package org.valkyrienskies.mod.mixin.mod_compat.create.entity;
 import static org.valkyrienskies.mod.common.util.VectorConversionsMCKt.toJOML;
 import static org.valkyrienskies.mod.common.util.VectorConversionsMCKt.toMinecraft;
 
-import com.simibubi.create.CreateClient;
+import com.simibubi.create.AllMovementBehaviours;
 import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
 import com.simibubi.create.content.contraptions.Contraption;
 import com.simibubi.create.content.contraptions.OrientedContraptionEntity;
-import com.simibubi.create.content.contraptions.StructureTransform;
 import com.simibubi.create.content.contraptions.actors.harvester.HarvesterMovementBehaviour;
-import com.simibubi.create.content.contraptions.actors.plough.PloughMovementBehaviour;
 import com.simibubi.create.content.contraptions.actors.seat.SeatEntity;
 import com.simibubi.create.content.contraptions.behaviour.MovementBehaviour;
 import com.simibubi.create.content.contraptions.behaviour.MovementContext;
 import com.simibubi.create.content.kinetics.base.BlockBreakingMovementBehaviour;
-import com.simibubi.create.content.kinetics.deployer.DeployerFakePlayer;
 import com.simibubi.create.content.kinetics.deployer.DeployerMovementBehaviour;
 import com.simibubi.create.foundation.utility.VecHelper;
-import java.util.Iterator;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.vehicle.AbstractMinecart;
-import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.CocoaBlock;
-import net.minecraft.world.level.block.CropBlock;
-import net.minecraft.world.level.block.DirectionalBlock;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
-import net.minecraft.world.phys.AABB;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate.StructureBlockInfo;
 import net.minecraft.world.phys.Vec3;
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.logging.log4j.LogManager;
@@ -41,6 +32,8 @@ import org.joml.Matrix3d;
 import org.joml.Matrix4d;
 import org.joml.Matrix4dc;
 import org.joml.Vector3d;
+import org.joml.Vector3dc;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -49,7 +42,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 import org.valkyrienskies.core.api.ships.ContraptionWingProvider;
 import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.core.api.ships.Ship;
@@ -58,8 +50,6 @@ import org.valkyrienskies.mod.common.CompatUtil;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.compat.CreateConversionsKt;
-import org.valkyrienskies.mod.mixin.mod_compat.create.IMixinDeployerHandler;
-import org.valkyrienskies.mod.mixin.mod_compat.create.IMixinDeployerMovementBehaviour;
 import org.valkyrienskies.mod.mixinducks.mod_compat.create.MixinAbstractContraptionEntityDuck;
 
 @Mixin(AbstractContraptionEntity.class)
@@ -161,92 +151,120 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
     @Shadow
     public abstract Vec3 getPrevPositionVec();
 
-    @Shadow
-    protected abstract StructureTransform makeStructureTransform();
-
     @Unique
-    private static Boolean isValidBlock(Level world, BlockPos colliderPos, MovementBehaviour movementBehaviour, MovementContext context) {
-        BlockState worldBlockState = world.getBlockState(colliderPos);
-        if (worldBlockState.getBlock() instanceof CocoaBlock)
-            return false;
-        if (movementBehaviour != null) {
-            if (movementBehaviour instanceof DeployerMovementBehaviour && context.temporaryData instanceof DeployerFakePlayer player) {
-                ((IMixinDeployerMovementBehaviour) movementBehaviour).invokeTryGrabbingItem(context);
-                if ((player.getMainHandItem().getItem() instanceof BlockItem blockItem) && (blockItem.getBlock() instanceof CropBlock)) {
-                    return IMixinDeployerHandler.invokeShouldActivate(player.getMainHandItem(), context.world, colliderPos, null);
-                } else
-                    return false;
-            }
-            if (movementBehaviour instanceof PloughMovementBehaviour behaviour) {
-                return worldBlockState.isAir() || behaviour.canBreak(world, colliderPos, worldBlockState);
-            }
-            if (movementBehaviour instanceof HarvesterMovementBehaviour harvesterMovementBehaviour) {
-                return harvesterMovementBehaviour.isValidCrop(world, colliderPos, worldBlockState)
-                        || harvesterMovementBehaviour.isValidOther(world, colliderPos, worldBlockState);
-            }
-            if (movementBehaviour instanceof BlockBreakingMovementBehaviour behaviour) {
-                return behaviour.canBreak(world, colliderPos, worldBlockState);
-            }
-        }
-        return !worldBlockState.isAir();
-    }
-
-    @Unique
-    private boolean shouldMod(MovementBehaviour moveBehaviour) {
+    private boolean vs$shouldMod(final MovementBehaviour moveBehaviour) {
         return ((moveBehaviour instanceof BlockBreakingMovementBehaviour) || (moveBehaviour instanceof HarvesterMovementBehaviour) || (moveBehaviour instanceof DeployerMovementBehaviour));
     }
 
     @Unique
-    private StructureTemplate.StructureBlockInfo structureBlockInfo;
-
-    @Inject(method = "tickActors", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/AllMovementBehaviours;getBehaviour(Lnet/minecraft/world/level/block/state/BlockState;)Lcom/simibubi/create/content/contraptions/behaviour/MovementBehaviour;"), locals = LocalCapture.CAPTURE_FAILHARD)
-    private void injectTickActors(CallbackInfo ci, boolean stalledPreviously, Iterator<MutablePair<StructureTemplate.StructureBlockInfo, MovementContext>> var2, MutablePair<StructureTemplate.StructureBlockInfo, MovementContext> pair, MovementContext context, StructureTemplate.StructureBlockInfo blockInfo) {
-        structureBlockInfo = blockInfo;
-    }
-
-    @Unique
-    private BlockPos getTargetPos(MovementBehaviour instance, MovementContext context, BlockPos pos, StructureTemplate.StructureBlockInfo blockInfo) {
-        if (shouldMod(instance) && context.world.getBlockState(pos).isAir() && VSGameUtilsKt.isBlockInShipyard(context.world, pos)) {
-            Ship ship = VSGameUtilsKt.getShipManagingPos(context.world, pos);
+    private BlockPos vs$getTargetPos(final MovementBehaviour instance, final MovementContext context, final BlockPos pos, final Vec3 actorPosition) {
+        if (vs$shouldMod(instance) && context.world.getBlockState(pos).isAir() && VSGameUtilsKt.isBlockInShipyard(context.world, pos)) {
+            final Ship ship = VSGameUtilsKt.getShipManagingPos(context.world, pos);
             if (ship != null) {
-                Vector3d searchPos = toJOML(toGlobalVector(VecHelper.getCenterOf(blockInfo.pos)
-                        .add(instance.getActiveAreaOffset(context)), 1));
-                Vector3d searchPos2 = new Vector3d(searchPos);
-
-                Vec3 transformedSearchPos = toMinecraft(ship.getShipToWorld().transformPosition(searchPos));
-                if (blockInfo.state.hasProperty(DirectionalBlock.FACING)) {
-                    searchPos2.add(toJOML(
-                            Vec3.atLowerCornerOf(blockInfo.state.getValue(DirectionalBlock.FACING).getNormal())
-                    ));
-                } else {
-                    searchPos2.add(0, 0, 1);
-                }
-                Vec3 transformedSearchPos2 = toMinecraft(ship.getShipToWorld().transformPosition(searchPos2));
-                BlockPos blockPos = new BlockPos(transformedSearchPos);
-                boolean check = isValidBlock(context.world, blockPos, instance, context);
-                if (level.isClientSide) {
-                    //Debug helper for future mixin work
-                    //boolean debugView = Minecraft.getInstance().options.renderDebug;
-                    if (false) {
-                        int ttl = 100;
-                        CreateClient.OUTLINER.showLine("actorPosDebugLine-" + context.localPos + "-" + context.contraption.anchor, transformedSearchPos, transformedSearchPos2)
-                                .colored(0x0070ff)
-                                .lineWidth(2 / 32f);
-                        CreateClient.OUTLINER.showAABB("actorPosDebug-" + context.localPos + "-" + context.contraption.anchor, new AABB(blockPos.getX(), blockPos.getY(), blockPos.getZ(), blockPos.getX() + 1, blockPos.getY() + 1, blockPos.getZ() + 1), ttl)
-                                .colored(check ? 0xff7000 : 0x70ff00)
-                                .lineWidth(2 / 16f);
-                    }
-                }
-                if (check)
-                    pos = blockPos;
+                final Vector3dc actorPosInWorld = ship.getTransform().getShipToWorld().transformPosition(toJOML(actorPosition));
+                return new BlockPos(actorPosInWorld.x(), actorPosInWorld.y(), actorPosInWorld.z());
             }
         }
         return pos;
     }
 
-    @Redirect(method = "tickActors", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/contraptions/behaviour/MovementBehaviour;visitNewPosition(Lcom/simibubi/create/content/contraptions/behaviour/MovementContext;Lnet/minecraft/core/BlockPos;)V"))
-    private void redirectVisitNewPosition(MovementBehaviour instance, MovementContext context, BlockPos pos) {
-        instance.visitNewPosition(context, getTargetPos(instance, context, pos, structureBlockInfo));
+    @Unique
+    private boolean vs$forceStall = false;
+
+    @Shadow
+    private boolean skipActorStop;
+
+    @Shadow
+    @Final
+    private static EntityDataAccessor<Boolean> STALLED;
+
+    @Shadow
+    public abstract boolean isStalled();
+
+    @Shadow
+    protected abstract boolean shouldActorTrigger(MovementContext context, StructureBlockInfo blockInfo, MovementBehaviour actor, Vec3 actorPosition, BlockPos gridPosition);
+
+    @Shadow
+    protected abstract boolean isActorActive(MovementContext context, MovementBehaviour actor);
+
+    @Shadow
+    protected abstract void onContraptionStalled();
+
+    @Inject(method = "tickActors", at = @At("HEAD"), cancellable = true, remap = false)
+    private void preTickActors(final CallbackInfo ci) {
+        ci.cancel();
+
+        final boolean stalledPreviously = contraption.stalled;
+
+        if (!level.isClientSide)
+            contraption.stalled = vs$forceStall;
+
+        skipActorStop = true;
+        for (final MutablePair<StructureBlockInfo, MovementContext> pair : contraption.getActors()) {
+            final MovementContext context = pair.right;
+            final StructureBlockInfo blockInfo = pair.left;
+            final MovementBehaviour actor = AllMovementBehaviours.getBehaviour(blockInfo.state);
+
+            if (actor == null)
+                continue;
+
+            final Vec3 oldMotion = context.motion;
+            final Vec3 actorPosition = toGlobalVector(VecHelper.getCenterOf(blockInfo.pos)
+                .add(actor.getActiveAreaOffset(context)), 1);
+            final BlockPos gridPosition = vs$getTargetPos(actor, context, new BlockPos(actorPosition), actorPosition); // new BlockPos(actorPosition);
+            final boolean newPosVisited =
+                !context.stall && shouldActorTrigger(context, blockInfo, actor, actorPosition, gridPosition);
+
+            context.rotation = v -> applyRotation(v, 1);
+            context.position = actorPosition;
+            if (!isActorActive(context, actor) && !actor.mustTickWhileDisabled())
+                continue;
+            if (newPosVisited && !context.stall) {
+                actor.visitNewPosition(context, gridPosition);
+                if (!isAlive())
+                    break;
+                context.firstMovement = false;
+            }
+            if (!oldMotion.equals(context.motion)) {
+                actor.onSpeedChanged(context, oldMotion, context.motion);
+                if (!isAlive())
+                    break;
+            }
+            actor.tick(context);
+            if (!isAlive())
+                break;
+            contraption.stalled |= context.stall;
+        }
+        if (!isAlive()) {
+            contraption.stop(level);
+            return;
+        }
+        skipActorStop = false;
+
+        for (final Entity entity : getPassengers()) {
+            if (!(entity instanceof final OrientedContraptionEntity orientedCE))
+                continue;
+            if (contraption.getBearingPosOf(entity.getUUID()) == null)
+                continue;
+            if (orientedCE.getContraption() != null && orientedCE.getContraption().stalled) {
+                contraption.stalled = true;
+                break;
+            }
+        }
+
+        if (!level.isClientSide) {
+            if (!stalledPreviously && contraption.stalled)
+                onContraptionStalled();
+            entityData.set(STALLED, contraption.stalled);
+            return;
+        }
+
+        contraption.stalled = isStalled();
+    }
+
+    @Override
+    public void vs$setForceStall(final boolean forceStall) {
+        this.vs$forceStall = forceStall;
     }
 
     //Region end
@@ -264,11 +282,6 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
         }
     }
     //Region end
-
-    @Override
-    public StructureTransform getStructureTransform() {
-        return makeStructureTransform();
-    }
 
     @Override
     public int getWingGroupId() {
