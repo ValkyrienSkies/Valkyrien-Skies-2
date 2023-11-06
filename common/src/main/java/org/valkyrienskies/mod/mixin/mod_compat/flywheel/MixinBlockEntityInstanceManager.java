@@ -33,12 +33,8 @@ import org.valkyrienskies.mod.mixinducks.MixinBlockEntityInstanceManagerDuck;
 public abstract class MixinBlockEntityInstanceManager extends InstanceManager<BlockEntity> implements
     MixinBlockEntityInstanceManagerDuck {
 
-    public WeakHashMap<ClientShip, MaterialManager> getShipMaterialManagers() {
-        return shipMaterialManagers;
-    }
-
     @Unique
-    private final WeakHashMap<ClientShip, MaterialManager> shipMaterialManagers =
+    private final WeakHashMap<ClientShip, MaterialManager> vs$shipMaterialManagers =
         new WeakHashMap<>();
 
     public MixinBlockEntityInstanceManager(final MaterialManager materialManager) {
@@ -57,7 +53,7 @@ public abstract class MixinBlockEntityInstanceManager extends InstanceManager<Bl
                 level, blockEntity.getBlockPos());
             if (ship != null) {
                 final MaterialManager manager =
-                    shipMaterialManagers.computeIfAbsent(ship, k -> createMaterialManager());
+                    vs$shipMaterialManagers.computeIfAbsent(ship, k -> vs$createMaterialManager());
                 final Vector3i c =
                     ship.getChunkClaim().getCenterBlockCoordinates(VSGameUtilsKt.getYRange(nullableLevel), new Vector3i());
                 ((InstancingEngineAccessor) manager).setOriginCoordinate(new BlockPos(c.x, c.y, c.z));
@@ -67,8 +63,18 @@ public abstract class MixinBlockEntityInstanceManager extends InstanceManager<Bl
         }
     }
 
+    @Override
+    public WeakHashMap<ClientShip, MaterialManager> vs$getShipMaterialManagers() {
+        return vs$shipMaterialManagers;
+    }
+
+    @Override
+    public void vs$removeShipManager(final ClientShip clientShip) {
+        vs$shipMaterialManagers.remove(clientShip);
+    }
+
     @Unique
-    private MaterialManager createMaterialManager() {
+    private MaterialManager vs$createMaterialManager() {
         if (Backend.getBackendType() == BackendType.INSTANCING) {
             return InstancingEngine.builder(Contexts.WORLD).build();
         } else if (Backend.getBackendType() == BackendType.BATCHING) {
