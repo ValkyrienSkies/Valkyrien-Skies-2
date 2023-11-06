@@ -18,7 +18,9 @@ import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
@@ -48,4 +50,13 @@ public class MixinSodiumWorldRenderer {
         instance.render(blockEntity, tickDelta, matrixStack, buffer);
     }
 
+    /**
+     * Fix entities in ships not rendering when Sodium is installed
+     */
+    @Inject(method = "doesChunkHaveFlag", at = @At("HEAD"), cancellable = true, remap = false)
+    private void preDoesChunkHaveFlag(final int x, final int z, final int status, final CallbackInfoReturnable<Boolean> cir) {
+        if (VSGameUtilsKt.isChunkInShipyard(world, x, z)) {
+            cir.setReturnValue(true);
+        }
+    }
 }
