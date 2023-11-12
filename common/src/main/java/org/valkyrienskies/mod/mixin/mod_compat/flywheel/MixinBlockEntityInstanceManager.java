@@ -5,6 +5,7 @@ import com.jozufozu.flywheel.api.instance.Instance;
 import com.jozufozu.flywheel.backend.Backend;
 import com.jozufozu.flywheel.backend.instancing.InstanceManager;
 import com.jozufozu.flywheel.backend.instancing.InstancedRenderRegistry;
+import com.jozufozu.flywheel.backend.instancing.RenderDispatcher;
 import com.jozufozu.flywheel.backend.instancing.batching.BatchingEngine;
 import com.jozufozu.flywheel.backend.instancing.blockentity.BlockEntityInstanceManager;
 import com.jozufozu.flywheel.backend.instancing.instancing.InstancingEngine;
@@ -70,7 +71,10 @@ public abstract class MixinBlockEntityInstanceManager extends InstanceManager<Bl
 
     @Override
     public void vs$removeShipManager(final ClientShip clientShip) {
-        vs$shipMaterialManagers.remove(clientShip);
+        final MaterialManager removed = vs$shipMaterialManagers.remove(clientShip);
+        if (removed instanceof final RenderDispatcher removedRenderer) {
+            removedRenderer.delete();
+        }
     }
 
     @Unique

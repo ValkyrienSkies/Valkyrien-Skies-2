@@ -48,7 +48,7 @@ public abstract class MixinLevelRenderer {
         )
     )
     private void afterRefresh(final CallbackInfo ci) {
-        ((ClientChunkCacheDuck) this.level.getChunkSource()).vs_getShipChunks().forEach((pos, chunk) -> {
+        ((ClientChunkCacheDuck) this.level.getChunkSource()).vs$getShipChunks().forEach((pos, chunk) -> {
             for (int y = level.getMinSection(); y < level.getMaxSection(); y++) {
                 viewArea.setDirty(ChunkPos.getX(pos), y, ChunkPos.getZ(pos), false);
             }
