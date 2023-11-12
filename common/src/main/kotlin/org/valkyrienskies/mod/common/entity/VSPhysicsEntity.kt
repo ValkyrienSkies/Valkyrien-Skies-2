@@ -38,9 +38,11 @@ import org.valkyrienskies.mod.mixin.accessors.entity.EntityAccessor
 open class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : Entity(type, level) {
     // Physics data, persistent
     protected var physicsEntityData: PhysicsEntityData? = null
+        private set
 
     // The physics entity, transient, only exists server side after this entity has been added to a world
     protected var physicsEntityServer: PhysicsEntityServer? = null
+        private set
 
     private var lerpPos: Vector3dc? = null
     private var lerpSteps = 0
