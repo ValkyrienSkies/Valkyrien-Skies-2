@@ -106,14 +106,14 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
     //Region end
     //Region start - fix entity rider position on ship contraptions
     @Override
-    public void positionRider(@NotNull Entity passenger) {
+    public void positionRider(@NotNull Entity passenger, MoveFunction callback) {
         if (!hasPassenger(passenger))
             return;
         Vec3 riderPos = getPassengerPosition(passenger, 1);
         if (riderPos == null)
             return;
         if (!(passenger instanceof OrientedContraptionEntity)) {
-            Ship ship = VSGameUtilsKt.getShipManagingPos(passenger.level, riderPos.x, riderPos.y, riderPos.z);
+            Ship ship = VSGameUtilsKt.getShipManagingPos(passenger.level(), riderPos.x, riderPos.y, riderPos.z);
             riderPos.add(0, SeatEntity.getCustomEntitySeatOffset(passenger) - 1 / 8f, 0);
             if (ship != null) {
                 riderPos = toMinecraft(ship.getShipToWorld().transformPosition(toJOML(riderPos)));
@@ -162,7 +162,7 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
             final Ship ship = VSGameUtilsKt.getShipManagingPos(context.world, pos);
             if (ship != null) {
                 final Vector3dc actorPosInWorld = ship.getTransform().getShipToWorld().transformPosition(toJOML(actorPosition));
-                return new BlockPos(actorPosInWorld.x(), actorPosInWorld.y(), actorPosInWorld.z());
+                return BlockPos.containing(actorPosInWorld.x(), actorPosInWorld.y(), actorPosInWorld.z());
             }
         }
         return pos;
@@ -196,22 +196,22 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
 
         final boolean stalledPreviously = contraption.stalled;
 
-        if (!level.isClientSide)
+        if (!level().isClientSide)
             contraption.stalled = vs$forceStall;
 
         skipActorStop = true;
         for (final MutablePair<StructureBlockInfo, MovementContext> pair : contraption.getActors()) {
             final MovementContext context = pair.right;
             final StructureBlockInfo blockInfo = pair.left;
-            final MovementBehaviour actor = AllMovementBehaviours.getBehaviour(blockInfo.state);
+            final MovementBehaviour actor = AllMovementBehaviours.getBehaviour(blockInfo.state());
 
             if (actor == null)
                 continue;
 
             final Vec3 oldMotion = context.motion;
-            final Vec3 actorPosition = toGlobalVector(VecHelper.getCenterOf(blockInfo.pos)
+            final Vec3 actorPosition = toGlobalVector(VecHelper.getCenterOf(blockInfo.pos())
                 .add(actor.getActiveAreaOffset(context)), 1);
-            final BlockPos gridPosition = vs$getTargetPos(actor, context, new BlockPos(actorPosition), actorPosition); // new BlockPos(actorPosition);
+            final BlockPos gridPosition = vs$getTargetPos(actor, context, BlockPos.containing(actorPosition), actorPosition); // BlockPos.containing(actorPosition);
             final boolean newPosVisited =
                 !context.stall && shouldActorTrigger(context, blockInfo, actor, actorPosition, gridPosition);
 
@@ -236,7 +236,7 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
             contraption.stalled |= context.stall;
         }
         if (!isAlive()) {
-            contraption.stop(level);
+            contraption.stop(level());
             return;
         }
         skipActorStop = false;
@@ -252,7 +252,7 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
             }
         }
 
-        if (!level.isClientSide) {
+        if (!level().isClientSide) {
             if (!stalledPreviously && contraption.stalled)
                 onContraptionStalled();
             entityData.set(STALLED, contraption.stalled);
@@ -271,8 +271,8 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
     //Region start - Contraption Entity Collision
     @Inject(method = "getContactPointMotion", at = @At("HEAD"))
     private void modGetContactPointMotion(Vec3 globalContactPoint, CallbackInfoReturnable<Vec3> cir) {
-        if (VSGameUtilsKt.isBlockInShipyard(level, getAnchorVec().x, getAnchorVec().y, getAnchorVec().z) != VSGameUtilsKt.isBlockInShipyard(level, getPrevAnchorVec().x, getPrevAnchorVec().y, getPrevAnchorVec().z)) {
-            Ship ship = VSGameUtilsKt.getShipManagingPos(level, getAnchorVec());
+        if (VSGameUtilsKt.isBlockInShipyard(level(), getAnchorVec().x, getAnchorVec().y, getAnchorVec().z) != VSGameUtilsKt.isBlockInShipyard(level(), getPrevAnchorVec().x, getPrevAnchorVec().y, getPrevAnchorVec().z)) {
+            Ship ship = VSGameUtilsKt.getShipManagingPos(level(), getAnchorVec());
             if (ship != null) {
                 Vec3 result = toMinecraft(ship.getWorldToShip().transformPosition(toJOML(getPrevPositionVec())));
                 xo = result.x;
@@ -296,7 +296,7 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
     @Inject(method = "tick", at = @At("HEAD"))
     private void postTick(final CallbackInfo ci) {
         final AbstractContraptionEntity thisAsAbstractContraptionEntity = AbstractContraptionEntity.class.cast(this);
-        final Level level = thisAsAbstractContraptionEntity.level;
+        final Level level = thisAsAbstractContraptionEntity.level();
         if (wingGroupId != -1 && level instanceof final ServerLevel serverLevel) {
             final LoadedServerShip ship = VSGameUtilsKt.getShipObjectManagingPos(serverLevel,
                 VectorConversionsMCKt.toJOML(thisAsAbstractContraptionEntity.position()));

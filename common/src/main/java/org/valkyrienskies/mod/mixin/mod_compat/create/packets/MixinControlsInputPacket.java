@@ -27,7 +27,7 @@ public abstract class MixinControlsInputPacket {
     )
     private boolean redirectCloserThan(final Vec3 instance, final Position arg, final double d) {
         Vec3 newVec3 = instance;
-        if (VSGameUtilsKt.isBlockInShipyard(this.level, new BlockPos(instance.x, instance.y, instance.z))) {
+        if (VSGameUtilsKt.isBlockInShipyard(this.level, BlockPos.containing(instance.x, instance.y, instance.z))) {
             final Ship ship = VSGameUtilsKt.getShipManagingPos(this.level, instance);
             newVec3 = VSGameUtilsKt.toWorldCoordinates(ship, instance);
         }

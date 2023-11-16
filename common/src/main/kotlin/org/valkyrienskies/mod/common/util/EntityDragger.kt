@@ -20,7 +20,7 @@ object EntityDragger {
      */
     fun dragEntitiesWithShips(entities: Iterable<Entity>) {
         entities.forEach { entity ->
-            val shipMountedTo = entity.level.getShipObjectEntityMountedTo(entity)
+            val shipMountedTo = entity.level().getShipObjectEntityMountedTo(entity)
             // Don't drag entities that are already mounted to a ship
             if (shipMountedTo != null) return@forEach
 
@@ -34,7 +34,7 @@ object EntityDragger {
             if (shipDraggingEntity != null) {
                 if (entityDraggingInformation.isEntityBeingDraggedByAShip()) {
                     // Compute how much we should drag the entity
-                    val shipData = entity.level.shipObjectWorld.queryableShipData.getById(shipDraggingEntity)
+                    val shipData = entity.level().shipObjectWorld.queryableShipData.getById(shipDraggingEntity)
                     if (shipData != null) {
                         dragTheEntity = true
 

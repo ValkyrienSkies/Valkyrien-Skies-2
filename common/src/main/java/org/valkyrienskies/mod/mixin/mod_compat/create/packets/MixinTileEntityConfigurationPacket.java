@@ -29,7 +29,7 @@ public abstract class MixinTileEntityConfigurationPacket {
         if (VSGameUtilsKt.isBlockInShipyard(this._clockworkLevel, instance)) {
             final Ship ship = VSGameUtilsKt.getShipManagingPos(this._clockworkLevel, instance);
             final Vector3d tempVec = VSGameUtilsKt.toWorldCoordinates(ship, instance);
-            blockPos = new BlockPos(tempVec.x, tempVec.y, tempVec.z);
+            blockPos = BlockPos.containing(tempVec.x, tempVec.y, tempVec.z);
         }
         return blockPos.closerThan(vec3i, v);
     }

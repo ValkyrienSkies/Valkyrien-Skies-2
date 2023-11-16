@@ -35,7 +35,7 @@ public class MixinOrientedContraptionEntity {
         if (ship != null) {
             Quaterniond quaternion = new Quaterniond();
             ship.getRenderTransform().getShipToWorld().getNormalizedRotation(quaternion);
-            TransformStack.cast(matrixStack).rotateCentered(VectorConversionsMCKt.toMinecraft(quaternion));
+            TransformStack.cast(matrixStack).rotateCentered(VectorConversionsMCKt.toFloat(quaternion));
         }
     }
 
@@ -47,7 +47,7 @@ public class MixinOrientedContraptionEntity {
         if (ship != null) {
             Quaterniond quaternion = new Quaterniond();
             ship.getRenderTransform().getShipToWorld().getNormalizedRotation(quaternion);
-            TransformStack.cast(instance).rotateCentered(VectorConversionsMCKt.toMinecraft(quaternion));
+            TransformStack.cast(instance).rotateCentered(VectorConversionsMCKt.toFloat(quaternion));
         }
     }
 

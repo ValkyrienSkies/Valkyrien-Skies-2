@@ -36,7 +36,7 @@ public class MixinServerLevel {
         )
     )
     void preAddEntity(final Entity entity, final CallbackInfoReturnable<Boolean> cir) {
-        final LoadedShip ship = VSGameUtilsKt.getShipObjectManagingPos(entity.level, VectorConversionsMCKt.toJOML(entity.position()));
+        final LoadedShip ship = VSGameUtilsKt.getShipObjectManagingPos(entity.level(), VectorConversionsMCKt.toJOML(entity.position()));
         if (ship != null) {
             VSEntityManager.INSTANCE.getHandler(entity).freshEntityInShipyard(entity, ship);
         }

@@ -17,8 +17,8 @@ public abstract class MixinSuperGlueRemovalPacket {
     @Redirect(method = "lambda$handle$0", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerPlayer;distanceToSqr(Lnet/minecraft/world/phys/Vec3;)D"))
     private double redirectPlayerDistanceToSqr(final ServerPlayer instance, final Vec3 vec3) {
         Vec3 newVec3 = vec3;
-        if (VSGameUtilsKt.isBlockInShipyard(instance.level, new BlockPos(vec3.x, vec3.y, vec3.z))) {
-            final Ship ship = VSGameUtilsKt.getShipManagingPos(instance.level, vec3);
+        if (VSGameUtilsKt.isBlockInShipyard(instance.level(), BlockPos.containing(vec3.x, vec3.y, vec3.z))) {
+            final Ship ship = VSGameUtilsKt.getShipManagingPos(instance.level(), vec3);
             if (ship != null) {
                 newVec3 = VectorConversionsMCKt.toMinecraft(ship.getShipToWorld().transformPosition(new Vector3d(vec3.x, vec3.y, vec3.z)));
             }

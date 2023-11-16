@@ -17,11 +17,11 @@ public abstract class MixinSharedDepotBlockMethods {
     ))
     private static BlockPos redirectBlockPosition(Entity instance) {
         BlockPos result = instance.blockPosition();
-        Ship ship = VSGameUtilsKt.getShipObjectManagingPos(instance.level, instance.getOnPos());
+        Ship ship = VSGameUtilsKt.getShipObjectManagingPos(instance.level(), instance.getOnPos());
         if (ship != null) {
             Vector3d tempVec = new Vector3d(instance.position().x, instance.position().y, instance.position().z);
             ship.getWorldToShip().transformPosition(tempVec, tempVec);
-            result = new BlockPos(Math.floor(tempVec.x), Math.floor(tempVec.y), Math.floor(tempVec.z));
+            result = BlockPos.containing(Math.floor(tempVec.x), Math.floor(tempVec.y), Math.floor(tempVec.z));
         }
         return result;
     }

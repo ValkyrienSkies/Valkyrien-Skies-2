@@ -12,6 +12,7 @@ import net.fabricmc.fabric.api.resource.ResourceManagerHelper
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.client.renderer.entity.EntityRendererProvider.Context
 import net.minecraft.core.Registry
+import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.packs.PackType.SERVER_DATA
 import net.minecraft.server.packs.resources.PreparableReloadListener.PreparationBarrier
@@ -21,6 +22,7 @@ import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MobCategory
 import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.CreativeModeTab
+import net.minecraft.world.item.Item
 import net.minecraft.world.item.Item.Properties
 import net.minecraft.world.level.block.Block
 import org.valkyrienskies.core.apigame.VSCoreFactory
@@ -64,17 +66,17 @@ class ValkyrienSkiesModFabric : ModInitializer {
         ValkyrienSkiesMod.TEST_WING = TestWingBlock
         ValkyrienSkiesMod.TEST_SPHERE = TestSphereBlock
         ValkyrienSkiesMod.SHIP_CREATOR_ITEM = ShipCreatorItem(
-            Properties().tab(CreativeModeTab.TAB_MISC),
+            Properties(),
             { 1.0 },
             { VSGameConfig.SERVER.minScaling }
         )
-        ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM = ShipAssemblerItem(Properties().tab(CreativeModeTab.TAB_MISC))
+        ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM = ShipAssemblerItem(Properties())
         ValkyrienSkiesMod.SHIP_CREATOR_ITEM_SMALLER = ShipCreatorItem(
-            Properties().tab(CreativeModeTab.TAB_MISC),
+            Properties(),
             { VSGameConfig.SERVER.miniShipSize },
             { VSGameConfig.SERVER.minScaling }
         )
-        ValkyrienSkiesMod.PHYSICS_ENTITY_CREATOR_ITEM = PhysicsEntityCreatorItem(Properties().tab(CreativeModeTab.TAB_MISC))
+        ValkyrienSkiesMod.PHYSICS_ENTITY_CREATOR_ITEM = PhysicsEntityCreatorItem(Properties())
 
         ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE = EntityType.Builder.of(
             ::ShipMountingEntity,
@@ -115,32 +117,38 @@ class ValkyrienSkiesModFabric : ModInitializer {
         registerBlockAndItem("test_wing", ValkyrienSkiesMod.TEST_WING)
         registerBlockAndItem("test_sphere", ValkyrienSkiesMod.TEST_SPHERE)
         Registry.register(
-            Registry.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_assembler"),
+            BuiltInRegistries.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_assembler"),
             ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM
         )
         Registry.register(
-            Registry.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_creator"),
+            BuiltInRegistries.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_creator"),
             ValkyrienSkiesMod.SHIP_CREATOR_ITEM
         )
         Registry.register(
-            Registry.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_creator_smaller"),
+            BuiltInRegistries.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_creator_smaller"),
             ValkyrienSkiesMod.SHIP_CREATOR_ITEM_SMALLER
         )
         Registry.register(
-            Registry.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "physics_entity_creator"),
+            BuiltInRegistries.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "physics_entity_creator"),
             ValkyrienSkiesMod.PHYSICS_ENTITY_CREATOR_ITEM
         )
         Registry.register(
-            Registry.ENTITY_TYPE, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_mounting_entity"),
+            BuiltInRegistries.ENTITY_TYPE, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_mounting_entity"),
             ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE
         )
         Registry.register(
-            Registry.ENTITY_TYPE, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "vs_physics_entity"),
+            BuiltInRegistries.ENTITY_TYPE, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "vs_physics_entity"),
             ValkyrienSkiesMod.PHYSICS_ENTITY_TYPE
         )
         Registry.register(
-            Registry.BLOCK_ENTITY_TYPE, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "test_hinge_block_entity"),
+            BuiltInRegistries.BLOCK_ENTITY_TYPE, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "test_hinge_block_entity"),
             ValkyrienSkiesMod.TEST_HINGE_BLOCK_ENTITY_TYPE
+        )
+
+        Registry.register(
+            BuiltInRegistries.CREATIVE_MODE_TAB,
+            ValkyrienSkiesMod.VS_CREATIVE_TAB,
+            ValkyrienSkiesMod.createCreativeTab()
         )
 
         CommandRegistrationCallback.EVENT.register { dispatcher ,d, _ ->
@@ -206,14 +214,13 @@ class ValkyrienSkiesModFabric : ModInitializer {
         }
     }
 
-    private fun registerBlockAndItem(registryName: String, block: Block) {
+    private fun registerBlockAndItem(registryName: String, block: Block): Item {
         Registry.register(
-            Registry.BLOCK, ResourceLocation(ValkyrienSkiesMod.MOD_ID, registryName),
+            BuiltInRegistries.BLOCK, ResourceLocation(ValkyrienSkiesMod.MOD_ID, registryName),
             block
         )
-        Registry.register(
-            Registry.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, registryName),
-            BlockItem(block, Properties().tab(CreativeModeTab.TAB_MISC))
-        )
+        val item = BlockItem(block, Properties())
+        Registry.register(BuiltInRegistries.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, registryName), item)
+        return item
     }
 }

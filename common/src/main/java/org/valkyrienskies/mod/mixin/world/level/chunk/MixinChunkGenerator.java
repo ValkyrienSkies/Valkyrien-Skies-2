@@ -11,9 +11,8 @@ import net.minecraft.world.level.StructureManager;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkGenerator;
-import net.minecraft.world.level.levelgen.RandomState;
+import net.minecraft.world.level.chunk.ChunkGeneratorStructureState;
 import net.minecraft.world.level.levelgen.structure.Structure;
-import net.minecraft.world.level.levelgen.structure.StructureSet;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -39,6 +38,8 @@ public class MixinChunkGenerator {
         }
     }
 
+    //TODO
+    /*
     @Inject(method = "hasStructureChunkInRange", at = @At("HEAD"), cancellable = true)
     private void preHasFeatureChunkInRange(Holder<StructureSet> holder, RandomState randomState, long l, int chunkX, int chunkZ, int k, CallbackInfoReturnable<Boolean> cir) {
         if (VS2ChunkAllocator.INSTANCE.isChunkInShipyardCompanion(chunkX, chunkZ)) {
@@ -46,8 +47,12 @@ public class MixinChunkGenerator {
         }
     }
 
+     */
+
     @Inject(method = "createStructures", at = @At("HEAD"), cancellable = true)
-    private void preCreateStructures(RegistryAccess registryAccess, RandomState randomState, StructureManager structureManager, ChunkAccess chunkAccess, StructureTemplateManager structureTemplateManager, long l, CallbackInfo callbackInfo) {
+    private void preCreateStructures(RegistryAccess registryAccess,
+        ChunkGeneratorStructureState chunkGeneratorStructureState, StructureManager structureManager,
+        ChunkAccess chunkAccess, StructureTemplateManager structureTemplateManager, CallbackInfo callbackInfo) {
         final ChunkPos chunkPos = chunkAccess.getPos();
         if (VS2ChunkAllocator.INSTANCE.isChunkInShipyardCompanion(chunkPos.x, chunkPos.z)) {
             callbackInfo.cancel();

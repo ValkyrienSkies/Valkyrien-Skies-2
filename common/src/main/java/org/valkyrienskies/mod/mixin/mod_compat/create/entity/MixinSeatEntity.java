@@ -26,15 +26,15 @@ public abstract class MixinSeatEntity extends Entity {
     }
 
     @Override
-    public void positionRider(@NotNull Entity passenger) {
+    public void positionRider(@NotNull Entity passenger, MoveFunction moveFunction) {
         if (!this.hasPassenger(passenger))
             return;
 
         double d0 = this.getY() + this.getPassengersRidingOffset() + passenger.getMyRidingOffset();
         Vec3 riderPos = new Vec3(this.getX(), d0 + getCustomEntitySeatOffset(passenger), this.getZ());
 
-        Ship ship = VSGameUtilsKt.getShipManagingPos(passenger.level, riderPos.x, riderPos.y, riderPos.z);
-        if (VSGameUtilsKt.isBlockInShipyard(passenger.level, riderPos.x, riderPos.y, riderPos.z) && ship != null) {
+        Ship ship = VSGameUtilsKt.getShipManagingPos(passenger.level(), riderPos.x, riderPos.y, riderPos.z);
+        if (VSGameUtilsKt.isBlockInShipyard(passenger.level(), riderPos.x, riderPos.y, riderPos.z) && ship != null) {
             Vector3d tempVec = VectorConversionsMCKt.toJOML(riderPos);
             ship.getShipToWorld().transformPosition(tempVec, tempVec);
             riderPos = VectorConversionsMCKt.toMinecraft(tempVec);

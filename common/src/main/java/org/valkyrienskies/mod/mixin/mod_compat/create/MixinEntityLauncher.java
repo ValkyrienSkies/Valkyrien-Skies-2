@@ -40,7 +40,7 @@ public abstract class MixinEntityLauncher {
 
     @Unique
     private Vec3 outMotion(Entity entity, Vec3 motion) {
-        Ship ship = VSGameUtilsKt.getShipManagingPos(entity.level, entity.getOnPos());
+        Ship ship = VSGameUtilsKt.getShipManagingPos(entity.level(), entity.getOnPos());
         if (ship != null) {
             Vector3d tempVec = VectorConversionsMCKt.toJOML(motion);
             ship.getTransform().getShipToWorld().transformDirection(tempVec);

@@ -2,8 +2,6 @@ package org.valkyrienskies.mod.mixin.mod_compat.create.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.math.Vector3f;
-import com.mojang.math.Vector4f;
 import com.simibubi.create.AllSpecialTextures;
 import com.simibubi.create.foundation.outliner.BlockClusterOutline;
 import com.simibubi.create.foundation.outliner.Outline;
@@ -17,6 +15,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
+import org.joml.Vector3f;
+import org.joml.Vector4f;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -76,7 +76,7 @@ public abstract class MixinBlockClusterOutline extends Outline {
                 ms.pushPose();
                 ms.translate(renderTransform.getPositionInWorld().x() - camera.x, renderTransform.getPositionInWorld().y() - camera.y, renderTransform.getPositionInWorld().z() - camera.z);
                 ms.scale((float) renderTransform.getShipToWorldScaling().x(), (float) renderTransform.getShipToWorldScaling().y(), (float) renderTransform.getShipToWorldScaling().z());
-                ms.mulPose(VectorConversionsMCKt.toMinecraft(renderTransform.getShipToWorldRotation()));
+                ms.mulPose(VectorConversionsMCKt.toFloat(renderTransform.getShipToWorldRotation()));
                 ms.translate(
                         cw$cluster.anchor.getX() - renderTransform.getPositionInShip().x(),
                         cw$cluster.anchor.getY() - renderTransform.getPositionInShip().y(),
@@ -124,7 +124,7 @@ public abstract class MixinBlockClusterOutline extends Outline {
                 ms.pushPose();
                 ms.translate(renderTransform.getPositionInWorld().x() - camera.x, renderTransform.getPositionInWorld().y() - camera.y, renderTransform.getPositionInWorld().z() - camera.z);
                 ms.scale((float) renderTransform.getShipToWorldScaling().x(), (float) renderTransform.getShipToWorldScaling().y(), (float) renderTransform.getShipToWorldScaling().z());
-                ms.mulPose(VectorConversionsMCKt.toMinecraft(renderTransform.getShipToWorldRotation()));
+                ms.mulPose(VectorConversionsMCKt.toFloat(renderTransform.getShipToWorldRotation()));
                 ms.translate(
                         cw$cluster.anchor.getX() - renderTransform.getPositionInShip().x(),
                         cw$cluster.anchor.getY() - renderTransform.getPositionInShip().y(),

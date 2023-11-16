@@ -32,7 +32,7 @@ public abstract class MixinServerPlayer extends Entity {
             final double origY = vec3.y;
             final double origZ = vec3.z;
 
-            VSGameUtilsKt.transformToNearbyShipsAndWorld(this.level, origX, origY, origZ, 1, (x, y, z) -> {
+            VSGameUtilsKt.transformToNearbyShipsAndWorld(this.level(), origX, origY, origZ, 1, (x, y, z) -> {
                 cir.setReturnValue(Math.abs(this.getX() - x) <= 3.0 && Math.abs(this.getY() - y) <= 2.0
                     && Math.abs(this.getZ() - z) <= 3.0);
             });

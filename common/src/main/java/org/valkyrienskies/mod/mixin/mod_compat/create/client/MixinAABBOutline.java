@@ -2,8 +2,6 @@ package org.valkyrienskies.mod.mixin.mod_compat.create.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.math.Vector3f;
-import com.mojang.math.Vector4f;
 import com.simibubi.create.foundation.outliner.AABBOutline;
 import com.simibubi.create.foundation.outliner.Outline;
 import com.simibubi.create.foundation.render.RenderTypes;
@@ -14,6 +12,8 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3dc;
+import org.joml.Vector3f;
+import org.joml.Vector4f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -58,7 +58,7 @@ public abstract class MixinAABBOutline extends Outline {
                 ms.pushPose();
                 ms.translate(renderTransform.getPositionInWorld().x() - camera.x, renderTransform.getPositionInWorld().y() - camera.y, renderTransform.getPositionInWorld().z() - camera.z);
                 ms.scale((float) renderTransform.getShipToWorldScaling().x(), (float) renderTransform.getShipToWorldScaling().y(), (float) renderTransform.getShipToWorldScaling().z());
-                ms.mulPose(VectorConversionsMCKt.toMinecraft(renderTransform.getShipToWorldRotation()));
+                ms.mulPose(VectorConversionsMCKt.toFloat(renderTransform.getShipToWorldRotation()));
                 renderBoxFaces(ms, buffer, cull, params.getHighlightedFace(), minPos, maxPos, color, lightmap);
 
                 float lineWidth = params.getLineWidth();

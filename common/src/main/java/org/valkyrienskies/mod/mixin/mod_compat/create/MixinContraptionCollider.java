@@ -46,7 +46,7 @@ public abstract class MixinContraptionCollider {
     @Unique
     private static AABB entityGetBoundingBox(AbstractContraptionEntity abstractContraptionEntity, Entity instance) {
         AABB tempAabb = instance.getBoundingBox();
-        if (!VSGameUtilsKt.isBlockInShipyard(instance.getCommandSenderWorld(), instance.blockPosition()) && VSGameUtilsKt.isBlockInShipyard(contraptionEnt.getCommandSenderWorld(), new BlockPos(contraptionEnt.getAnchorVec()))) {
+        if (!VSGameUtilsKt.isBlockInShipyard(instance.getCommandSenderWorld(), instance.blockPosition()) && VSGameUtilsKt.isBlockInShipyard(contraptionEnt.getCommandSenderWorld(), BlockPos.containing(contraptionEnt.getAnchorVec()))) {
             Ship ship = VSGameUtilsKt.getShipManagingPos(instance.getCommandSenderWorld(), contraptionEnt.getAnchorVec());
             if (ship != null) {
                 AABBd temp = new AABBd();
@@ -60,7 +60,7 @@ public abstract class MixinContraptionCollider {
     @Unique
     private static Vec3 entityPosition(AbstractContraptionEntity abstractContraptionEntity, Entity instance, boolean old) {
         Vec3 tempVec = old ? new Vec3(instance.xo, instance.yo, instance.zo) : instance.position();
-        if (!VSGameUtilsKt.isBlockInShipyard(instance.getCommandSenderWorld(), instance.blockPosition()) && VSGameUtilsKt.isBlockInShipyard(abstractContraptionEntity.getCommandSenderWorld(), new BlockPos(abstractContraptionEntity.getAnchorVec()))) {
+        if (!VSGameUtilsKt.isBlockInShipyard(instance.getCommandSenderWorld(), instance.blockPosition()) && VSGameUtilsKt.isBlockInShipyard(abstractContraptionEntity.getCommandSenderWorld(), BlockPos.containing(abstractContraptionEntity.getAnchorVec()))) {
             Ship ship = VSGameUtilsKt.getShipManagingPos(abstractContraptionEntity.getCommandSenderWorld(), abstractContraptionEntity.getContraption().anchor);
             if (ship != null) {
                 Vector3d translatedPos = ship.getTransform().getWorldToShip().transformPosition(toJOML(tempVec));
@@ -77,7 +77,7 @@ public abstract class MixinContraptionCollider {
             Ship ship = VSGameUtilsKt.getShipManagingPos(instance.getCommandSenderWorld(), abstractContraptionEntity.getContraption().anchor);
             if (ship != null) {
                 if (motion != null) {
-                    if (!VSGameUtilsKt.isBlockInShipyard(abstractContraptionEntity.getCommandSenderWorld(), new BlockPos(abstractContraptionEntity.getAnchorVec()))) {
+                    if (!VSGameUtilsKt.isBlockInShipyard(abstractContraptionEntity.getCommandSenderWorld(), BlockPos.containing(abstractContraptionEntity.getAnchorVec()))) {
                         motion = toMinecraft(ship.getWorldToShip().transformDirection(toJOML(motion)));
                     } else {
                         motion = toMinecraft(ship.getShipToWorld().transformDirection(toJOML(motion)));
@@ -108,7 +108,7 @@ public abstract class MixinContraptionCollider {
     }
 
     private static void setOfPos(AbstractContraptionEntity abstractContraptionEntity, Entity instance, double x, double y, double z) {
-        if (VSGameUtilsKt.isBlockInShipyard(instance.getCommandSenderWorld(), new BlockPos(x, y, z)) &&
+        if (VSGameUtilsKt.isBlockInShipyard(instance.getCommandSenderWorld(), BlockPos.containing(x, y, z)) &&
                 !VSGameUtilsKt.isBlockInShipyard(instance.getCommandSenderWorld(), instance.blockPosition())) {
             Ship ship = VSGameUtilsKt.getShipManagingPos(instance.getCommandSenderWorld(), abstractContraptionEntity.getContraption().anchor);
             if (ship != null) {
@@ -222,8 +222,8 @@ public abstract class MixinContraptionCollider {
 
         Vec3 prevPos = instance.getPrevPositionVec();
 
-        if (VSGameUtilsKt.isBlockInShipyard(instance.level, new BlockPos(instance.getAnchorVec())) && !VSGameUtilsKt.isBlockInShipyard(instance.level, new BlockPos(instance.getPrevAnchorVec()))) {
-            Ship ship = VSGameUtilsKt.getShipManagingPos(instance.level, instance.getAnchorVec());
+        if (VSGameUtilsKt.isBlockInShipyard(instance.level(), BlockPos.containing(instance.getAnchorVec())) && !VSGameUtilsKt.isBlockInShipyard(instance.level(), BlockPos.containing(instance.getPrevAnchorVec()))) {
+            Ship ship = VSGameUtilsKt.getShipManagingPos(instance.level(), instance.getAnchorVec());
             if (ship != null) {
                 Vec3 result = toMinecraft(ship.getWorldToShip().transformPosition(toJOML(instance.getPrevPositionVec())));
                 instance.xo = result.x;
@@ -234,7 +234,7 @@ public abstract class MixinContraptionCollider {
         }
 
 
-        if (!VSGameUtilsKt.isBlockInShipyard(instance.getCommandSenderWorld(), new BlockPos(prevPos)) && VSGameUtilsKt.isBlockInShipyard(instance.getCommandSenderWorld(), new BlockPos(instance.position()))) {
+        if (!VSGameUtilsKt.isBlockInShipyard(instance.getCommandSenderWorld(), BlockPos.containing(prevPos)) && VSGameUtilsKt.isBlockInShipyard(instance.getCommandSenderWorld(), BlockPos.containing(instance.position()))) {
             //instance.setOldPosAndRot();
             //prevPos = instance.position();
             /*
@@ -295,7 +295,7 @@ public abstract class MixinContraptionCollider {
     @Inject(method = "worldToLocalPos(Lnet/minecraft/world/phys/Vec3;Lcom/simibubi/create/content/contraptions/AbstractContraptionEntity;)Lnet/minecraft/world/phys/Vec3;", at = @At("HEAD"), cancellable = true)
     private static void modPosition(Vec3 entity, AbstractContraptionEntity contraptionEntity, CallbackInfoReturnable<Vec3> cir) {
         if (VSGameUtilsKt.isBlockInShipyard(contraptionEntity.getCommandSenderWorld(), new BlockPos(contraptionEntity.getContraption().anchor))
-                && !VSGameUtilsKt.isBlockInShipyard(contraptionEntity.getCommandSenderWorld(), new BlockPos(entity))) {
+                && !VSGameUtilsKt.isBlockInShipyard(contraptionEntity.getCommandSenderWorld(), BlockPos.containing(entity))) {
 
             Ship ship = VSGameUtilsKt.getShipManagingPos(contraptionEntity.getCommandSenderWorld(), contraptionEntity.getContraption().anchor);
             if (ship != null) {

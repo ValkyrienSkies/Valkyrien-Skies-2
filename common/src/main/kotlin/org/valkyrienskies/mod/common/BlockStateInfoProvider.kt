@@ -46,8 +46,7 @@ object BlockStateInfo {
     // registry for mods to add their weights
     val REGISTRY = MappedRegistry<BlockStateInfoProvider>(
         ResourceKey.createRegistryKey(ResourceLocation(ValkyrienSkiesMod.MOD_ID, "blockstate_providers")),
-        Lifecycle.experimental(),
-        null
+        Lifecycle.experimental()
     )
 
     private lateinit var SORTED_REGISTRY: List<BlockStateInfoProvider>

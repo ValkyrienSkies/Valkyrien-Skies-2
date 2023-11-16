@@ -134,7 +134,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         for (final Ship ship : intersectingShips) {
             final Vector3dc blockPosInLocal =
                 ship.getTransform().getWorldToShip().transformPosition(blockPosInGlobal, new Vector3d());
-            final BlockPos blockPos = new BlockPos(
+            final BlockPos blockPos = BlockPos.containing(
                 Math.floor(blockPosInLocal.x()), Math.floor(blockPosInLocal.y()), Math.floor(blockPosInLocal.z())
             );
             final BlockState blockState = level.getBlockState(blockPos);
@@ -145,7 +145,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
                 final Vector3dc blockPosInLocal2 = ship.getTransform().getWorldToShip()
                     .transformPosition(
                         new Vector3d(blockPosInGlobal.x(), blockPosInGlobal.y() - 1.0, blockPosInGlobal.z()));
-                final BlockPos blockPos2 = new BlockPos(
+                final BlockPos blockPos2 = BlockPos.containing(
                     Math.round(blockPosInLocal2.x()), Math.round(blockPosInLocal2.y()), Math.round(blockPosInLocal2.z())
                 );
                 final BlockState blockState2 = level.getBlockState(blockPos2);

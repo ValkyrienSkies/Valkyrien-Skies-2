@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Set;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
@@ -81,10 +82,11 @@ public abstract class MixinLevelChunk extends ChunkAccess implements VSLevelChun
         // Set terrain to empty
         heightmaps.clear();
         Arrays.fill(sections, null);
-        final Registry<Biome> registry = level.registryAccess().registryOrThrow(Registry.BIOME_REGISTRY);
+        final Registry<Biome> registry = level.registryAccess().registryOrThrow(Registries.BIOME);
         for (int i = 0; i < sections.length; ++i) {
             if (sections[i] != null) continue;
-            sections[i] = new LevelChunkSection(levelHeightAccessor.getSectionYFromSectionIndex(i), registry);
+            //new LevelChunkSection(registry);
+            sections[i] = new LevelChunkSection(registry);
         }
         this.setLightCorrect(false);
 
@@ -118,10 +120,10 @@ public abstract class MixinLevelChunk extends ChunkAccess implements VSLevelChun
         for (int i = 0; i < sections.length; i++) {
             sections[i] = protoChunk.getSection(i);
         }
-        final Registry<Biome> registry = level.registryAccess().registryOrThrow(Registry.BIOME_REGISTRY);
+        final Registry<Biome> registry = level.registryAccess().registryOrThrow(Registries.BIOME);
         for (int i = 0; i < sections.length; ++i) {
             if (sections[i] != null) continue;
-            sections[i] = new LevelChunkSection(levelHeightAccessor.getSectionYFromSectionIndex(i), registry);
+            sections[i] = new LevelChunkSection(registry);
         }
 
         // this.inhabitedTime = l;

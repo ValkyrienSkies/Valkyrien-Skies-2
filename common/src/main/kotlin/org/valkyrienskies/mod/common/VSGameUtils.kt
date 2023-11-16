@@ -73,13 +73,17 @@ val Level.dimensionId: DimensionId
         return dimensionId
     }
 
+private val levelResourceKeyMap: MutableMap<DimensionId, ResourceKey<Level>> = HashMap()
+
 fun getResourceKey(dimensionId: DimensionId): ResourceKey<Level> {
-    @Suppress("UNCHECKED_CAST") val cached = ResourceKeyAccessor.getValues()[dimensionId] as ResourceKey<Level>?
+    val cached =levelResourceKeyMap[dimensionId]
     if (cached == null) {
         val (registryNamespace, registryName, namespace, name) = dimensionId.split(":")
-        return ResourceKeyAccessor.callCreate(
+        val toReturn: ResourceKey<Level> = ResourceKeyAccessor.callCreate(
             ResourceLocation(registryNamespace, registryName), ResourceLocation(namespace, name)
         )
+        levelResourceKeyMap[dimensionId] = toReturn
+        return toReturn
     }
     return cached
 }
@@ -115,7 +119,7 @@ val Player.playerWrapper get() = (this as PlayerDuck).vs_getPlayer()
  * Like [Entity.squaredDistanceTo] except the destination is transformed into world coordinates if it is a ship
  */
 fun Entity.squaredDistanceToInclShips(x: Double, y: Double, z: Double) =
-    level.squaredDistanceBetweenInclShips(x, y, z, this.x, this.y, this.z)
+    level().squaredDistanceBetweenInclShips(x, y, z, this.x, this.y, this.z)
 
 /**
  * Calculates the squared distance between to points.
@@ -308,7 +312,7 @@ fun ClientLevel?.transformRenderAABBToWorld(pos: Position, aabb: AABB): AABB {
     return aabb
 }
 
-fun Entity.getShipManaging(): Ship? = this.level.getShipManagingPos(this.position())
+fun Entity.getShipManaging(): Ship? = this.level().getShipManagingPos(this.position())
 
 // Level
 fun Level?.getShipManagingPos(chunkX: Int, chunkZ: Int) =

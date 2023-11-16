@@ -1,8 +1,8 @@
 package org.valkyrienskies.mod.fabric.mixin.compat.cc_restitched;
 
-import dan200.computercraft.api.network.IPacketReceiver;
-import dan200.computercraft.api.network.IPacketSender;
 import dan200.computercraft.api.network.Packet;
+import dan200.computercraft.api.network.PacketReceiver;
+import dan200.computercraft.api.network.PacketSender;
 import dan200.computercraft.shared.peripheral.modem.wireless.WirelessNetwork;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
@@ -16,8 +16,8 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 @Pseudo
 @Mixin(WirelessNetwork.class)
 public class MixinWirelessNetwork {
-    private static IPacketReceiver shipReceiver;
-    private static IPacketSender shipSender;
+    private static PacketReceiver shipReceiver;
+    private static PacketSender shipSender;
 
     @ModifyVariable(method = "tryTransmit",
         at = @At(value = "STORE"),
@@ -37,9 +37,8 @@ public class MixinWirelessNetwork {
     }
 
     @Inject(at = @At("HEAD"), method = "tryTransmit", remap = false)
-    private static void ValkyrienSkies2$tryTransmit(final IPacketReceiver receiver, final Packet packet,
-        final double range,
-        final boolean interdimensional, final CallbackInfo ci) {
+    private static void ValkyrienSkies2$tryTransmit(PacketReceiver receiver, Packet packet, double range,
+        boolean interdimensional, CallbackInfo ci) {
         shipReceiver = receiver;
         shipSender = packet.sender();
     }

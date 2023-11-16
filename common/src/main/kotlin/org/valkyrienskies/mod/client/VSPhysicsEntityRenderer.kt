@@ -13,6 +13,8 @@ import net.minecraft.util.RandomSource
 import net.minecraft.world.inventory.InventoryMenu
 import net.minecraft.world.level.block.RenderShape.INVISIBLE
 import net.minecraft.world.level.block.RenderShape.MODEL
+import org.joml.Quaterniondc
+import org.joml.Quaternionf
 import org.valkyrienskies.core.impl.game.ships.ShipObjectClientWorld
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
@@ -29,7 +31,7 @@ class VSPhysicsEntityRenderer(context: EntityRendererProvider.Context) : EntityR
         if (blockState.renderShape != MODEL) {
             return
         }
-        val level = fallingBlockEntity.getLevel()
+        val level = fallingBlockEntity.level()
         if (blockState === level.getBlockState(
                 fallingBlockEntity.blockPosition()
             ) || blockState.renderShape == INVISIBLE
@@ -51,10 +53,10 @@ class VSPhysicsEntityRenderer(context: EntityRendererProvider.Context) : EntityR
         val offsetZ = renderTransform.positionInWorld.z() - expectedZ
 
         poseStack.pushPose()
-        val blockPos = BlockPos(fallingBlockEntity.x, fallingBlockEntity.boundingBox.maxY, fallingBlockEntity.z)
+        val blockPos = BlockPos.containing(fallingBlockEntity.x, fallingBlockEntity.boundingBox.maxY, fallingBlockEntity.z)
 
         poseStack.translate(offsetX, offsetY, offsetZ)
-        poseStack.mulPose(renderTransform.shipToWorldRotation.toMinecraft())
+        poseStack.mulPose(Quaternionf(renderTransform.shipToWorldRotation))
         poseStack.translate(-0.5, -0.5, -0.5)
         val blockRenderDispatcher = Minecraft.getInstance().blockRenderer
         blockRenderDispatcher.modelRenderer.tesselateBlock(

@@ -2,16 +2,17 @@ package org.valkyrienskies.mod.mixin.mod_compat.create.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.math.Vector3f;
-import com.mojang.math.Vector4f;
 import com.simibubi.create.foundation.outliner.Outline;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
+import org.joml.Matrix4d;
 import org.joml.Matrix4dc;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
+import org.joml.Vector3f;
+import org.joml.Vector4f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -20,18 +21,17 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(Outline.class)
 public abstract class MixinOutline {
     @Shadow
-    public abstract void bufferCuboidLine(PoseStack poseStack, VertexConsumer consumer, Vec3 camera, com.mojang.math.Vector3d start, com.mojang.math.Vector3d end, float width, Vector4f color, int lightmap, boolean disableNormals);
+    public abstract void bufferCuboidLine(PoseStack poseStack, VertexConsumer consumer, Vec3 camera, Vector3d start, Vector3d end, float width, Vector4f color, int lightmap, boolean disableNormals);
 
     @Shadow
     public abstract void bufferQuad(PoseStack.Pose pose, VertexConsumer consumer, Vector3f pos0, Vector3f pos1, Vector3f pos2, Vector3f pos3, Vector4f color, float minU, float minV, float maxU, float maxV, int lightmap, Vector3f normal);
 
-    @Inject(method = "bufferCuboidLine(Lcom/mojang/blaze3d/vertex/PoseStack;Lcom/mojang/blaze3d/vertex/VertexConsumer;Lnet/minecraft/world/phys/Vec3;Lcom/mojang/math/Vector3d;Lcom/mojang/math/Vector3d;FLcom/mojang/math/Vector4f;IZ)V", at = @At("HEAD"), cancellable = true)
-    private void preBufferCuboidLine0(PoseStack poseStack, VertexConsumer consumer, Vec3 camera, com.mojang.math.Vector3d start, com.mojang.math.Vector3d end, float width, Vector4f color, int lightmap, boolean disableNormals, CallbackInfo ci) {
+    @Inject(method = "bufferCuboidLine(Lcom/mojang/blaze3d/vertex/PoseStack;Lcom/mojang/blaze3d/vertex/VertexConsumer;Lnet/minecraft/world/phys/Vec3;Lorg/joml/Vector3d;Lorg/joml/Vector3d;FLorg/joml/Vector4f;IZ)V", at = @At("HEAD"), cancellable = true)
+    private void preBufferCuboidLine0(PoseStack poseStack, VertexConsumer consumer, Vec3 camera, Vector3d start, Vector3d end, float width, Vector4f color, int lightmap, boolean disableNormals, CallbackInfo ci) {
         final Level level = Minecraft.getInstance().level;
         if (level != null) {
             final Vector3dc average = new Vector3d((start.x + end.x) / 2.0, (start.y + end.y) / 2.0, (start.z + end.z) / 2.0);
@@ -41,7 +41,7 @@ public abstract class MixinOutline {
                 final Vector3dc startTransformed = transform.getShipToWorld().transformPosition(new Vector3d(start.x, start.y, start.z));
                 final Vector3dc endTransformed = transform.getShipToWorld().transformPosition(new Vector3d(end.x, end.y, end.z));
                 float scaledWidth = (float) (width * transform.getShipToWorldScaling().x());
-                bufferCuboidLine(poseStack, consumer, camera, new com.mojang.math.Vector3d(startTransformed.x(), startTransformed.y(), startTransformed.z()), new com.mojang.math.Vector3d(endTransformed.x(), endTransformed.y(), endTransformed.z()), scaledWidth, color, lightmap, disableNormals);
+                bufferCuboidLine(poseStack, consumer, camera, new Vector3d(startTransformed.x(), startTransformed.y(), startTransformed.z()), new Vector3d(endTransformed.x(), endTransformed.y(), endTransformed.z()), scaledWidth, color, lightmap, disableNormals);
                 ci.cancel();
             }
         }
@@ -65,7 +65,7 @@ public abstract class MixinOutline {
                 float maxY = maxPos.y();
                 float maxZ = maxPos.z();
 
-                final Matrix4dc newPosMatrix = VectorConversionsMCKt.toJOML(pose.pose()).mul(transform.getShipToWorld());
+                final Matrix4dc newPosMatrix = new Matrix4d(pose.pose()).mul(transform.getShipToWorld());// VectorConversionsMCKt.toJOML(pose.pose()).mul(transform.getShipToWorld());
 
                 temp.set(minX, minY, maxZ);
                 newPosMatrix.transformPosition(temp);
@@ -386,7 +386,7 @@ public abstract class MixinOutline {
         }
     }
 
-    @Inject(method = "bufferQuad(Lcom/mojang/blaze3d/vertex/PoseStack$Pose;Lcom/mojang/blaze3d/vertex/VertexConsumer;Lcom/mojang/math/Vector3f;Lcom/mojang/math/Vector3f;Lcom/mojang/math/Vector3f;Lcom/mojang/math/Vector3f;Lcom/mojang/math/Vector4f;FFFFILcom/mojang/math/Vector3f;)V", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "bufferQuad(Lcom/mojang/blaze3d/vertex/PoseStack$Pose;Lcom/mojang/blaze3d/vertex/VertexConsumer;Lorg/joml/Vector3f;Lorg/joml/Vector3f;Lorg/joml/Vector3f;Lorg/joml/Vector3f;Lorg/joml/Vector4f;FFFFILorg/joml/Vector3f;)V", at = @At("HEAD"), cancellable = true)
     private void preBufferQuad(PoseStack.Pose pose, VertexConsumer consumer, Vector3f pos0, Vector3f pos1, Vector3f pos2, Vector3f pos3, Vector4f color, float minU, float minV, float maxU, float maxV, int lightmap, Vector3f normal, CallbackInfo ci) {
         final Level level = Minecraft.getInstance().level;
         if (level != null) {

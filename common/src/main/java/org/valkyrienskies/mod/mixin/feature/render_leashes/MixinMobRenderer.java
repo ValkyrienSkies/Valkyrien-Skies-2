@@ -23,7 +23,7 @@ public class MixinMobRenderer {
         final Vec3 origVec = getRopeHoldPosition.call(instance, partialTicks);
         final Vector3d vec = VectorConversionsMCKt.toJOML(origVec);
 
-        final LoadedShip ship = VSGameUtilsKt.getShipObjectManagingPos(instance.level, vec);
+        final LoadedShip ship = VSGameUtilsKt.getShipObjectManagingPos(instance.level(), vec);
         if (ship != null) {
             ship.getShipToWorld().transformPosition(vec);
             return VectorConversionsMCKt.toMinecraft(vec);

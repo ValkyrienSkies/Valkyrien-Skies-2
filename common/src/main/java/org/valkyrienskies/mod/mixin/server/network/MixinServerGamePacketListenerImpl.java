@@ -14,6 +14,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.ServerPlayerGameMode;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
+import net.minecraft.world.entity.RelativeMovement;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Final;
@@ -74,7 +75,7 @@ public abstract class MixinServerGamePacketListenerImpl {
         method = "handleUseItemOn"
     )
     private Vec3 skipDistanceCheck2(final Vec3 instance, final Vec3 vec3, final Operation<Vec3> subtract) {
-        return VSGameUtilsKt.toWorldCoordinates(player.level, subtract.call(instance, vec3));
+        return VSGameUtilsKt.toWorldCoordinates(player.level(), subtract.call(instance, vec3));
     }
 
     /*
@@ -139,14 +140,14 @@ public abstract class MixinServerGamePacketListenerImpl {
         cancellable = true
     )
     private void transformTeleport(final double x, final double y, final double z, final float yaw, final float pitch,
-        final Set<ClientboundPlayerPositionPacket.RelativeArgument> relativeSet, final CallbackInfo ci) {
+        final Set<RelativeMovement> relativeSet, final CallbackInfo ci) {
 
         if (!VSGameConfig.SERVER.getTransformTeleports()) {
             return;
         }
 
-        final BlockPos blockPos = new BlockPos(x, y, z);
-        final ServerShip ship = VSGameUtilsKt.getShipManagingPos((ServerLevel) player.level, blockPos);
+        final BlockPos blockPos = BlockPos.containing(x, y, z);
+        final ServerShip ship = VSGameUtilsKt.getShipManagingPos((ServerLevel) player.level(), blockPos);
 
         // TODO add flag to disable this https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues/30
         if (ship != null) {
@@ -162,7 +163,7 @@ public abstract class MixinServerGamePacketListenerImpl {
 
             this.send(
                 new ClientboundPlayerPositionPacket(pos.x, pos.y, pos.z, yaw, pitch, Collections.emptySet(),
-                    awaitingTeleport, false));
+                    awaitingTeleport));
             ci.cancel();
         }
     }

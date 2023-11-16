@@ -23,15 +23,15 @@ public interface MixinEnvironmentalTemperatureProvider {
     static boolean calculateEnclosure(final Player player, final int radius) {
         // VS: Use player.blockPosition() instead of getOnPos() if getOnPos() is in a ship.
         BlockPos pos = player.getOnPos();
-        if (VSGameUtilsKt.isBlockInShipyard(player.level, pos)) {
+        if (VSGameUtilsKt.isBlockInShipyard(player.level(), pos)) {
             pos = player.blockPosition();
         }
 
         // Original method
         final PathNavigationRegion
-            region = new PathNavigationRegion(player.level, pos.above().offset(-radius, -radius, -radius),
+            region = new PathNavigationRegion(player.level(), pos.above().offset(-radius, -radius, -radius),
             pos.above().offset(radius, 400, radius));
-        final Bee guineaPig = new Bee(EntityType.BEE, player.level);
+        final Bee guineaPig = new Bee(EntityType.BEE, player.level());
         guineaPig.setPos(player.getPosition(0.0F));
         guineaPig.setBaby(true);
         final FlyNodeEvaluator evaluator = new FlyNodeEvaluator();

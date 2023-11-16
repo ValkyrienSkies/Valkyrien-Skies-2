@@ -34,7 +34,7 @@ public abstract class MixinCurvedTrackDestroyPacket {
         if (VSGameUtilsKt.isBlockInShipyard(this.world, instance)) {
             final Ship ship = VSGameUtilsKt.getShipManagingPos(this.world, instance);
             final Vector3d tempVec = VSGameUtilsKt.toWorldCoordinates(ship, instance);
-            blockPos = new BlockPos(tempVec.x, tempVec.y, tempVec.z);
+            blockPos = BlockPos.containing(tempVec.x, tempVec.y, tempVec.z);
         }
         return blockPos.closerThan(vec3i, v);
     }
@@ -44,6 +44,6 @@ public abstract class MixinCurvedTrackDestroyPacket {
             at = @At("HEAD"), locals = LocalCapture.CAPTURE_FAILHARD
     )
     private void injectCaptureLevel(final ServerPlayer player, final TrackBlockEntity te, final CallbackInfo ci) {
-        this.world = player.level;
+        this.world = player.level();
     }
 }

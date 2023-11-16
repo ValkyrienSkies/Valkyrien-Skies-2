@@ -37,7 +37,7 @@ public abstract class MixinPitchOrientedContraptionEntity extends OrientedContra
         if (original != null && controllerPos != null) {
             final Vector3d editOriginal = VectorConversionsMCKt.toJOML(original);
 
-            final Ship ship = VSGameUtilsKt.getShipObjectManagingPos(level, controllerPos);
+            final Ship ship = VSGameUtilsKt.getShipObjectManagingPos(level(), controllerPos);
 
             if (ship != null) {
                 ship.getShipToWorld().transformPosition(editOriginal);

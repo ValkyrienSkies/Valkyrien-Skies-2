@@ -31,7 +31,7 @@ public class MixinInstanceManager {
             VectorConversionsMCKt.toJOMLD(receiver.getWorldPosition())
         );
 
-        return new BlockPos(v.x, v.y, v.z);
+        return BlockPos.containing(v.x, v.y, v.z);
     }
 
     @Redirect(
@@ -46,7 +46,7 @@ public class MixinInstanceManager {
             receiver.getWorldPosition(),
             VectorConversionsMCKt.toJOMLD(receiver.getWorldPosition()));
 
-        return new BlockPos(v.x, v.y, v.z);
+        return BlockPos.containing(v.x, v.y, v.z);
     }
 
 }

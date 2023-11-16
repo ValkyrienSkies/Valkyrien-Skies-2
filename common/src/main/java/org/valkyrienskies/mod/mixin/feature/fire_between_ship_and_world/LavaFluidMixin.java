@@ -32,7 +32,7 @@ public abstract class LavaFluidMixin extends FlowingFluid {
         final double origZ = pos.getZ();
 
         VSGameUtilsKt.transformToNearbyShipsAndWorld(level, origX, origY, origZ, 3, (x, y, z) -> {
-            randomTick(level, new BlockPos(x, y, z), state, random);
+            randomTick(level, BlockPos.containing(x, y, z), state, random);
         });
 
         isModifyingFireTick = false;

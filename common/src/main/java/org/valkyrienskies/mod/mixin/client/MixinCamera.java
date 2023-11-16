@@ -1,7 +1,5 @@
 package org.valkyrienskies.mod.mixin.client;
 
-import com.mojang.math.Quaternion;
-import com.mojang.math.Vector3f;
 import net.minecraft.client.Camera;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
@@ -16,6 +14,7 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Quaterniond;
 import org.joml.Quaterniondc;
+import org.joml.Quaternionf;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.joml.primitives.AABBi;
@@ -26,8 +25,8 @@ import org.spongepowered.asm.mixin.Unique;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.mod.client.IVSCamera;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
+import org.joml.Vector3f;
 
 @Mixin(Camera.class)
 public abstract class MixinCamera implements IVSCamera {
@@ -53,7 +52,7 @@ public abstract class MixinCamera implements IVSCamera {
     private float yRot;
     @Shadow
     @Final
-    private Quaternion rotation;
+    private Quaternionf rotation;
     @Shadow
     private boolean detached;
     @Shadow
@@ -119,13 +118,13 @@ public abstract class MixinCamera implements IVSCamera {
             renderTransform.getShipCoordinatesToWorldCoordinatesRotation().mul(originalRotation, new Quaterniond());
         this.xRot = pitch;
         this.yRot = yaw;
-        VectorConversionsMCKt.set(this.rotation, newRotation);
+        this.rotation.set(newRotation);
         this.forwards.set(0.0F, 0.0F, 1.0F);
-        this.forwards.transform(this.rotation);
+        this.rotation.transform(this.forwards);
         this.up.set(0.0F, 1.0F, 0.0F);
-        this.up.transform(this.rotation);
+        this.rotation.transform(this.up);
         this.left.set(1.0F, 0.0F, 0.0F);
-        this.left.transform(this.rotation);
+        this.rotation.transform(this.left);
     }
 
     /**

@@ -74,7 +74,7 @@ public abstract class MixinRedstoneContactBlock extends WrenchableDirectionalBlo
 
     @Unique
     private static boolean hasContact(Level world, Ship ship, Vector3d searchPos, Direction direction, Ship shipItr) {
-        BlockState blockState = world.getBlockState(new BlockPos(VectorConversionsMCKt.toMinecraft(searchPos)));
+        BlockState blockState = world.getBlockState(BlockPos.containing(VectorConversionsMCKt.toMinecraft(searchPos)));
         if (AllBlocks.REDSTONE_CONTACT.has(blockState)) {
             Vector3d worldDirection = toJOML(Vec3.atLowerCornerOf(direction.getNormal()));
             Vector3d targetDirection = toJOML(Vec3.atLowerCornerOf(blockState.getValue(FACING).getNormal()));
@@ -123,8 +123,8 @@ public abstract class MixinRedstoneContactBlock extends WrenchableDirectionalBlo
                 } while (ships.hasNext() && !result);
             }
             if (result) {
-                contactCache.put(Pair.of(worldLevel, pos), new BlockPos(VectorConversionsMCKt.toMinecraft(searchPos)));
-                world.scheduleTick(new BlockPos(VectorConversionsMCKt.toMinecraft(searchPos)), AllBlocks.REDSTONE_CONTACT.get(), 2, TickPriority.NORMAL);
+                contactCache.put(Pair.of(worldLevel, pos), BlockPos.containing(VectorConversionsMCKt.toMinecraft(searchPos)));
+                world.scheduleTick(BlockPos.containing(VectorConversionsMCKt.toMinecraft(searchPos)), AllBlocks.REDSTONE_CONTACT.get(), 2, TickPriority.NORMAL);
             }
             cir.setReturnValue(result);
         }

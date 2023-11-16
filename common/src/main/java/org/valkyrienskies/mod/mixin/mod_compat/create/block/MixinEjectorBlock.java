@@ -26,8 +26,8 @@ public abstract class MixinEjectorBlock {
     ))
     private Vec3 redirectEntityPosition(Entity instance) {
         Vec3 result = instance.position();
-        if (VSGameUtilsKt.getShipManagingPos(instance.level, instance.position()) == null) {
-            Ship ship = VSGameUtilsKt.getShipManagingPos(instance.level, instance.getOnPos());
+        if (VSGameUtilsKt.getShipManagingPos(instance.level(), instance.position()) == null) {
+            Ship ship = VSGameUtilsKt.getShipManagingPos(instance.level(), instance.getOnPos());
             if (ship != null) {
                 Vector3d tempVec = VectorConversionsMCKt.toJOML(result);
                 ship.getWorldToShip().transformPosition(tempVec, tempVec);
@@ -41,7 +41,7 @@ public abstract class MixinEjectorBlock {
             value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;setPos(DDD)V"
     ))
     private void redirectSetPos(Entity instance, double x, double y, double z) {
-        Ship ship = VSGameUtilsKt.getShipManagingPos(instance.level, instance.getOnPos());
+        Ship ship = VSGameUtilsKt.getShipManagingPos(instance.level(), instance.getOnPos());
         if (ship != null) {
             Vector3d tempVec = new Vector3d();
             ship.getTransform().getShipToWorld().transformPosition(x, y, z, tempVec);

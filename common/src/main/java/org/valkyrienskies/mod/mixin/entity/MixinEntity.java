@@ -72,8 +72,8 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     @Unique
     private void originalCheckInside(final AABBd aABB) {
         final Entity self = Entity.class.cast(this);
-        final BlockPos blockPos = new BlockPos(aABB.minX + 0.001, aABB.minY + 0.001, aABB.minZ + 0.001);
-        final BlockPos blockPos2 = new BlockPos(aABB.maxX - 0.001, aABB.maxY - 0.001, aABB.maxZ - 0.001);
+        final BlockPos blockPos = BlockPos.containing(aABB.minX + 0.001, aABB.minY + 0.001, aABB.minZ + 0.001);
+        final BlockPos blockPos2 = BlockPos.containing(aABB.maxX - 0.001, aABB.maxY - 0.001, aABB.maxZ - 0.001);
         final BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos();
         if (this.level.hasChunksAt(blockPos, blockPos2)) {
             for (int i = blockPos.getX(); i <= blockPos2.getX(); ++i) {

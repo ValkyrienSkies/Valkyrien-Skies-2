@@ -100,7 +100,7 @@ private fun Level.clip(context: ClipContext, realStart: Vec3, realEnd: Vec3): Bl
         }
     ) { raycastContext: ClipContext ->
         val vec3d = realStart.subtract(realEnd)
-        BlockHitResult.miss(realEnd, Direction.getNearest(vec3d.x, vec3d.y, vec3d.z), BlockPos(realEnd))
+        BlockHitResult.miss(realEnd, Direction.getNearest(vec3d.x, vec3d.y, vec3d.z), BlockPos.containing(realEnd))
     } as BlockHitResult
 }
 
@@ -267,6 +267,6 @@ fun BlockGetter.vanillaClip(context: ClipContext): BlockHitResult =
             val vec3 = ctx.from.subtract(ctx.to)
             BlockHitResult.miss(
                 ctx.to, Direction.getNearest(vec3.x, vec3.y, vec3.z),
-                BlockPos(ctx.to)
+                BlockPos.containing(ctx.to)
             )
         })

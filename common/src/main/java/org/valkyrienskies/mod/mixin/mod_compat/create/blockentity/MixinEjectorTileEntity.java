@@ -56,7 +56,7 @@ public abstract class MixinEjectorTileEntity {
             value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;setPos(DDD)V"
     ))
     private void redirectSetPos(Entity instance, double x, double y, double z) {
-        Ship ship = VSGameUtilsKt.getShipManagingPos(instance.level, ((EjectorBlockEntity) (Object) this).getBlockPos());
+        Ship ship = VSGameUtilsKt.getShipManagingPos(instance.level(), ((EjectorBlockEntity) (Object) this).getBlockPos());
         if (ship != null) {
             BlockPos temp = ((EjectorBlockEntity) (Object) this).getBlockPos();
             Vector3d tempVec = new Vector3d(temp.getX() + .5, temp.getY() + 1, temp.getZ() + .5);

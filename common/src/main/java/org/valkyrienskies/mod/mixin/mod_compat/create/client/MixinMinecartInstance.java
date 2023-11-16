@@ -6,11 +6,11 @@ import com.jozufozu.flywheel.util.AnimationTickHolder;
 import com.jozufozu.flywheel.util.transform.TransformStack;
 import com.jozufozu.flywheel.vanilla.MinecartInstance;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.math.Matrix4f;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4d;
+import org.joml.Matrix4f;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -49,8 +49,8 @@ public abstract class MixinMinecartInstance extends EntityInstance {
                     .translate(origin.mul(-1))
                     .mul(transform.getShipToWorld())
                     .translate(newPosition);
-            Matrix4f mat4f = VectorConversionsMCKt.toMinecraft(renderMatrix);
-            ((PoseStack) instance).last().pose().multiply(mat4f);
+            Matrix4f mat4f = new Matrix4f(renderMatrix);
+            ((PoseStack) instance).last().pose().mul(mat4f);
         } else {
             instance.translate(x, y, z);
         }

@@ -34,7 +34,7 @@ public abstract class MixinSuperGlueSelectionHandler {
 
 
         AABB searchAABB = new AABB(origin, target).inflate(0.25, 2, 0.25);
-        final Iterator<Ship> ships = VSGameUtilsKt.getShipsIntersecting(playerIn.level, searchAABB).iterator();
+        final Iterator<Ship> ships = VSGameUtilsKt.getShipsIntersecting(playerIn.level(), searchAABB).iterator();
 
         if (ships.hasNext()) {
             Ship ship = ships.next();

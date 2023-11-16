@@ -4,8 +4,8 @@ import dan200.computercraft.api.turtle.TurtleCommandResult;
 import dan200.computercraft.shared.turtle.core.TurtleMoveCommand;
 import dan200.computercraft.shared.turtle.core.TurtlePlayer;
 import java.util.List;
-import javax.annotation.Nonnull;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import org.joml.Vector3d;
@@ -23,8 +23,8 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 public abstract class MixinTurtleMoveCommand {
     @Inject(method = "canEnter", at = @At("RETURN"), cancellable = true)
     private static void ValkyrienSkies2$canEnter(
-        final TurtlePlayer turtlePlayer, final Level world, @Nonnull final BlockPos position,
-        final CallbackInfoReturnable<TurtleCommandResult> cir) {
+        TurtlePlayer turtlePlayer, ServerLevel world, BlockPos position,
+        CallbackInfoReturnable<TurtleCommandResult> cir) {
         if (cir.getReturnValue().isSuccess()) {
             final Ship ship = VSGameUtilsKt.getShipManagingPos(world, position);
             if (ship == null) {

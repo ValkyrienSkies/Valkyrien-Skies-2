@@ -1,14 +1,12 @@
 package org.valkyrienskies.mod.mixin.feature.vs2_alpha_hud;
 
-import static net.minecraft.client.gui.GuiComponent.fill;
-
 import com.google.common.base.Strings;
-import com.mojang.blaze3d.vertex.PoseStack;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.Gui;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.server.IntegratedServer;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -31,12 +29,10 @@ public class MixinGui {
      * Render the "VS 2 Alpha" text
      */
     @Inject(method = "renderEffects", at = @At("HEAD"))
-    private void preRenderStatusEffectOverlay(final PoseStack matrices, final CallbackInfo ci) {
+    private void preRenderStatusEffectOverlay(final GuiGraphics guiGraphics, final CallbackInfo ci) {
         if (!VSGameConfig.CLIENT.getRenderDebugText()) {
             return;
         }
-
-        matrices.pushPose();
 
         final Font fontRenderer = minecraft.font;
         final List<String> debugText = new ArrayList<>();
@@ -71,11 +67,9 @@ public class MixinGui {
 
                 final int posX = 1;
 
-                fill(matrices, posX, posY - 1, 2 + textLength + posX, posY + textHeight - 1, -1873784752);
-                fontRenderer.draw(matrices, string, 2.0F, (float) posY, 14737632);
+                guiGraphics.fill(posX, posY - 1, 2 + textLength + posX, posY + textHeight - 1, -1873784752);
+                guiGraphics.drawString(fontRenderer, string, 2, posY, 14737632);
             }
         }
-
-        matrices.popPose();
     }
 }

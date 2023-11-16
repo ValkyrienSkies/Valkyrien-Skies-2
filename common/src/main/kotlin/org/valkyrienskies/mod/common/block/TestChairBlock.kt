@@ -14,7 +14,6 @@ import net.minecraft.world.level.block.HorizontalDirectionalBlock
 import net.minecraft.world.level.block.SoundType
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
-import net.minecraft.world.level.material.Material
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.shapes.CollisionContext
 import net.minecraft.world.phys.shapes.VoxelShape
@@ -28,7 +27,7 @@ import org.valkyrienskies.mod.common.util.toDoubles
 
 object TestChairBlock :
     HorizontalDirectionalBlock(
-        Properties.of(Material.WOOL).strength(1.0f, 120.0f).sound(SoundType.WOOL)
+        Properties.of().strength(1.0f, 120.0f).sound(SoundType.WOOL)
     ) {
     private val SEAT_AABB: VoxelShape = box(0.0, 0.0, 0.0, 16.0, 8.0, 16.0)
 

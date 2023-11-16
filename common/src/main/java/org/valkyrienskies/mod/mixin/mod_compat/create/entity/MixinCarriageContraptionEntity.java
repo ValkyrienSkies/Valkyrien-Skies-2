@@ -30,7 +30,7 @@ public abstract class MixinCarriageContraptionEntity {
     private void injectCaptureLevel(
             final BlockPos controlsLocalPos, final Collection<Integer> heldControls, final Player player,
             final CallbackInfoReturnable<Boolean> cir) {
-        this.vs$world = player.level;
+        this.vs$world = player.level();
     }
 
     @WrapOperation(
@@ -42,7 +42,7 @@ public abstract class MixinCarriageContraptionEntity {
     )
     private boolean wrapCloserThan(final Vec3 instance, final Position arg, final double d, final Operation<Boolean> closerThan) {
         Vec3 newVec3 = instance;
-        if (VSGameUtilsKt.isBlockInShipyard(this.vs$world, new BlockPos(instance.x, instance.y, instance.z))) {
+        if (VSGameUtilsKt.isBlockInShipyard(this.vs$world, BlockPos.containing(instance.x, instance.y, instance.z))) {
             final Ship ship = VSGameUtilsKt.getShipManagingPos(this.vs$world, instance);
             newVec3 = VSGameUtilsKt.toWorldCoordinates(ship, instance);
         }

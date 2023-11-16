@@ -71,7 +71,7 @@ public class MixinClientPacketListener {
         final double x, final double y, final double z,
         final float yRot, final float xRot,
         final int lerpSteps, final boolean teleport, final Operation<Void> lerpTo) {
-        if (VSGameUtilsKt.getShipObjectManagingPos(instance.level, instance.getX(), instance.getY(), instance.getZ()) !=
+        if (VSGameUtilsKt.getShipObjectManagingPos(instance.level(), instance.getX(), instance.getY(), instance.getZ()) !=
             null) {
             instance.setPos(x, y, z);
             lerpTo.call(instance, x, y, z, yRot, xRot, 1, teleport);

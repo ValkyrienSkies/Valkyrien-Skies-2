@@ -26,7 +26,7 @@ import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 public abstract class MixinEntity {
 
     @Shadow
-    public abstract Level getLevel();
+    public abstract Level level();
 
     @Shadow
     public abstract void setPosRaw(double d, double e, double f);
@@ -62,7 +62,7 @@ public abstract class MixinEntity {
      */
     @Inject(method = "setPosRaw", at = @At(value = "HEAD"), cancellable = true)
     private void handlePosSet(final double x, final double y, final double z, final CallbackInfo ci) {
-        final Level level = getLevel();
+        final Level level = level();
         //noinspection ConstantValue
         if (!Player.class.isInstance(this) || level == null || isModifyingSetPos ||
             !VSGameUtilsKt.isBlockInShipyard(level, x, y, z)) {
@@ -83,7 +83,7 @@ public abstract class MixinEntity {
 
     @Inject(
         at = @At("HEAD"),
-        method = "teleportTo",
+        method = "teleportTo(DDD)V",
         cancellable = true
     )
     private void beforeTeleportTo(final double d, final double e, final double f, final CallbackInfo ci) {
@@ -129,7 +129,7 @@ public abstract class MixinEntity {
     @Inject(method = "setRemoved", at = @At("HEAD"))
     private void preSetRemoved(final RemovalReason removalReason, final CallbackInfo ci) {
         final Entity thisAsEntity = Entity.class.cast(this);
-        final LoadedShip ship = VSGameUtilsKt.getShipObjectManagingPos(thisAsEntity.level,
+        final LoadedShip ship = VSGameUtilsKt.getShipObjectManagingPos(thisAsEntity.level(),
             VectorConversionsMCKt.toJOML(thisAsEntity.position()));
         if (ship != null) {
             VSEntityManager.INSTANCE.getHandler(thisAsEntity).entityRemovedFromShipyard(thisAsEntity, ship);

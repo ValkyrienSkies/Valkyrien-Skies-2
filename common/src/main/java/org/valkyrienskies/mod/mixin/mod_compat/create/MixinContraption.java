@@ -16,7 +16,7 @@ public class MixinContraption {
         // movedContraption.setPos(anchor.getX() + .5f, anchor.getY(), anchor.getZ() + .5f);
         //
         // Derive anchor from the code above
-        final BlockPos anchor = new BlockPos((int) Math.floor(entity.getX()), (int) Math.floor(entity.getY()), (int) Math.floor(entity.getZ()));
+        final BlockPos anchor = BlockPos.containing((int) Math.floor(entity.getX()), (int) Math.floor(entity.getY()), (int) Math.floor(entity.getZ()));
         boolean added = level.addFreshEntity(entity);
         if (added) {
             entity.moveTo(anchor.getX() + .5, anchor.getY(), anchor.getZ() + .5);

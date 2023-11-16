@@ -29,7 +29,7 @@ public abstract class MixinChunkMap {
         final double d = chunkPos.x * 16 + 8;
         final double e = chunkPos.z * 16 + 8;
         final double retValue =
-            VSGameUtilsKt.squaredDistanceBetweenInclShips(entity.level, entity.getX(), 0, entity.getZ(), d,
+            VSGameUtilsKt.squaredDistanceBetweenInclShips(entity.level(), entity.getX(), 0, entity.getZ(), d,
                 0,
                 e);
 

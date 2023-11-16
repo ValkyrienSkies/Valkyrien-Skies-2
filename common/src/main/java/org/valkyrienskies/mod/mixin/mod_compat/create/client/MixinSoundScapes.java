@@ -20,7 +20,7 @@ public abstract class MixinSoundScapes {
     @Redirect(method = "outOfRange", at = @At(value = "INVOKE", target = "Lnet/minecraft/core/BlockPos;closerThan(Lnet/minecraft/core/Vec3i;D)Z"))
     private static boolean redirectCloserThan(BlockPos instance, Vec3i vec3i, double v) {
         Vec3 newVec3 = new Vec3(vec3i.getX(), vec3i.getY(), vec3i.getZ());
-        Level world = Minecraft.getInstance().player.level;
+        Level world = Minecraft.getInstance().player.level();
         final Ship ship = VSGameUtilsKt.getShipManagingPos(world, newVec3);
         if (ship != null) {
             newVec3 = VSGameUtilsKt.toWorldCoordinates(ship, newVec3);
@@ -31,12 +31,12 @@ public abstract class MixinSoundScapes {
     @ModifyVariable(method = "play", at = @At("HEAD"), index = 1, argsOnly = true)
     private static BlockPos modBlockPos(BlockPos value) {
         BlockPos result = value;
-        Level world = Minecraft.getInstance().player.level;
+        Level world = Minecraft.getInstance().player.level();
         final Ship ship = VSGameUtilsKt.getShipManagingPos(world, value);
         if (ship != null) {
             Vector3d tempVec = new Vector3d();
             ship.getTransform().getShipToWorld().transformPosition(value.getX(), value.getY(), value.getZ(), tempVec);
-            result = new BlockPos(tempVec.x, tempVec.y, tempVec.z);
+            result = BlockPos.containing(tempVec.x, tempVec.y, tempVec.z);
         }
         return result;
     }

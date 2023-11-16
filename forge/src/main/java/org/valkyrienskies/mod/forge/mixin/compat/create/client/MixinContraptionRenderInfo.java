@@ -19,7 +19,7 @@ public class MixinContraptionRenderInfo {
         method = "beginFrame"
     )
     private AABB redirectGetAABBForCulling(final AbstractContraptionEntity receiver) {
-        return VSGameUtilsKt.transformRenderAABBToWorld(((ClientLevel) receiver.level), receiver.position(),
+        return VSGameUtilsKt.transformRenderAABBToWorld(((ClientLevel) receiver.level()), receiver.position(),
             receiver.getBoundingBoxForCulling());
     }
 }

@@ -2,8 +2,8 @@ package org.valkyrienskies.mod.forge.common
 
 import net.minecraft.commands.Commands.CommandSelection.ALL
 import net.minecraft.commands.Commands.CommandSelection.INTEGRATED
+import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceLocation
-import net.minecraft.server.level.ServerPlayerGameMode
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MobCategory
 import net.minecraft.world.item.BlockItem
@@ -18,12 +18,9 @@ import net.minecraftforge.client.event.RegisterKeyMappingsEvent
 import net.minecraftforge.event.AddReloadListenerEvent
 import net.minecraftforge.event.RegisterCommandsEvent
 import net.minecraftforge.event.TagsUpdatedEvent
-import net.minecraftforge.event.entity.player.PlayerInteractEvent
-import net.minecraftforge.event.entity.player.PlayerInteractEvent.LeftClickBlock
 import net.minecraftforge.fml.ModLoadingContext
 import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent
 import net.minecraftforge.fml.event.lifecycle.FMLLoadCompleteEvent
 import net.minecraftforge.fml.loading.FMLEnvironment
 import net.minecraftforge.registries.DeferredRegister
@@ -35,6 +32,7 @@ import org.valkyrienskies.core.impl.config.VSCoreConfig
 import org.valkyrienskies.mod.client.EmptyRenderer
 import org.valkyrienskies.mod.client.VSPhysicsEntityRenderer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.MOD_ID
 import org.valkyrienskies.mod.common.block.TestChairBlock
 import org.valkyrienskies.mod.common.block.TestFlapBlock
 import org.valkyrienskies.mod.common.block.TestHingeBlock
@@ -79,7 +77,7 @@ class ValkyrienSkiesModForge {
         val vsCore = if (isClient) {
             VSCoreFactory.instance.newVsCoreClient(ForgeHooksImpl)
         } else {
-            org.valkyrienskies.core.apigame.VSCoreFactory.instance.newVsCoreServer(ForgeHooksImpl)
+            VSCoreFactory.instance.newVsCoreServer(ForgeHooksImpl)
         }
 
         VSForgeNetworking.registerPacketHandlers(vsCore.hooks)
@@ -121,14 +119,14 @@ class ValkyrienSkiesModForge {
         TEST_SPHERE_REGISTRY = registerBlockAndItem("test_sphere") { TestSphereBlock }
         SHIP_CREATOR_ITEM_REGISTRY =
             ITEMS.register("ship_creator") {
-                ShipCreatorItem(Properties().tab(CreativeModeTab.TAB_MISC),
+                ShipCreatorItem(Properties(),
                     { 1.0 },
                     { VSGameConfig.SERVER.minScaling })
             }
         SHIP_CREATOR_SMALLER_ITEM_REGISTRY =
             ITEMS.register("ship_creator_smaller") {
                 ShipCreatorItem(
-                    Properties().tab(CreativeModeTab.TAB_MISC),
+                    Properties(),
                     { VSGameConfig.SERVER.miniShipSize },
                     { VSGameConfig.SERVER.minScaling }
                 )
@@ -137,7 +135,7 @@ class ValkyrienSkiesModForge {
         PHYSICS_ENTITY_CREATOR_ITEM_REGISTRY =
             ITEMS.register("physics_entity_creator") {
                 PhysicsEntityCreatorItem(
-                    Properties().tab(CreativeModeTab.TAB_MISC),
+                    Properties(),
                 )
             }
 
@@ -160,10 +158,16 @@ class ValkyrienSkiesModForge {
         }
 
         SHIP_ASSEMBLER_ITEM_REGISTRY =
-            ITEMS.register("ship_assembler") { ShipAssemblerItem(Properties().tab(CreativeModeTab.TAB_MISC)) }
+            ITEMS.register("ship_assembler") { ShipAssemblerItem(Properties()) }
         TEST_HINGE_BLOCK_ENTITY_TYPE_REGISTRY = BLOCK_ENTITIES.register("test_hinge_block_entity") {
             BlockEntityType.Builder.of(::TestHingeBlockEntity, TestHingeBlock).build(null)
         }
+
+        val deferredRegister = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MOD_ID);
+        deferredRegister.register("general") {
+            ValkyrienSkiesMod.createCreativeTab()
+        }
+        deferredRegister.register(modBus)
     }
 
     private fun registerResourceManagers(event: AddReloadListenerEvent) {
@@ -184,7 +188,7 @@ class ValkyrienSkiesModForge {
 
     private fun registerBlockAndItem(registryName: String, blockSupplier: () -> Block): RegistryObject<Block> {
         val blockRegistry = BLOCKS.register(registryName, blockSupplier)
-        ITEMS.register(registryName) { BlockItem(blockRegistry.get(), Properties().tab(CreativeModeTab.TAB_MISC)) }
+        ITEMS.register(registryName) { BlockItem(blockRegistry.get(), Properties()) }
         return blockRegistry
     }
 

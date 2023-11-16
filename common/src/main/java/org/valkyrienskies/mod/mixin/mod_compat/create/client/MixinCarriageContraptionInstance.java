@@ -4,9 +4,9 @@ import com.jozufozu.flywheel.api.MaterialManager;
 import com.jozufozu.flywheel.backend.instancing.entity.EntityInstance;
 import com.jozufozu.flywheel.util.AnimationTickHolder;
 import com.jozufozu.flywheel.util.transform.TransformStack;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.math.Matrix4f;
-import com.mojang.math.Vector3f;
 import com.simibubi.create.content.trains.entity.CarriageContraptionEntity;
 import com.simibubi.create.content.trains.entity.CarriageContraptionInstance;
 import net.minecraft.util.Mth;
@@ -14,10 +14,11 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4d;
+import org.joml.Matrix4f;
 import org.joml.Vector3d;
+import org.joml.Vector3f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
@@ -30,11 +31,11 @@ public abstract class MixinCarriageContraptionInstance extends EntityInstance {
         super(materialManager, entity);
     }
 
-    @Redirect(
+    @WrapOperation(remap = false,
             method = "beginFrame", at = @At(value = "INVOKE",
-            target = "Lcom/jozufozu/flywheel/util/transform/TransformStack;translate(Lcom/mojang/math/Vector3f;)Ljava/lang/Object;")
+            target = "Lcom/jozufozu/flywheel/util/transform/TransformStack;translate(Lorg/joml/Vector3f;)Ljava/lang/Object;")
     )
-    private Object redirectTranslate(final TransformStack instance, final Vector3f vector3f) {
+    private Object redirectTranslate(final TransformStack instance, final Vector3f vector3f, Operation<Object> operation) {
 
         final float partialTicks = AnimationTickHolder.getPartialTicks();
         final Level level = this.world;
@@ -56,10 +57,11 @@ public abstract class MixinCarriageContraptionInstance extends EntityInstance {
                     .translate(origin.mul(-1))
                     .mul(transform.getShipToWorld())
                     .translate(newPosition);
-            Matrix4f mat4f = VectorConversionsMCKt.toMinecraft(renderMatrix);
-            ((PoseStack) instance).last().pose().multiply(mat4f);
+            Matrix4f mat4f = new Matrix4f(renderMatrix);
+            ((PoseStack) instance).last().pose().mul(mat4f);
         } else {
-            instance.translate(vector3f);
+            operation.call(instance, vector3f);
+            //instance.translate(vector3f);
         }
         return null;
     }

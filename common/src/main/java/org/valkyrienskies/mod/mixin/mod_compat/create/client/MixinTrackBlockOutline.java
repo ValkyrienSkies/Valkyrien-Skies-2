@@ -56,7 +56,7 @@ public class MixinTrackBlockOutline {
         final Vec3 eyePos = instance.getEyePosition(v);
         if (isShip) {
             final List<Vector3d>
-                    ships = VSGameUtilsKt.transformToNearbyShipsAndWorld(instance.level, eyePos.x, eyePos.y, eyePos.z, 10);
+                    ships = VSGameUtilsKt.transformToNearbyShipsAndWorld(instance.level(), eyePos.x, eyePos.y, eyePos.z, 10);
             if (ships.isEmpty()) {
                 return eyePos;
             }

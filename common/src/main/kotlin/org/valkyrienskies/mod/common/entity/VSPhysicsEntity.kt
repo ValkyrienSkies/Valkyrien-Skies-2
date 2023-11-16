@@ -5,6 +5,7 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import net.minecraft.core.Rotations
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.network.protocol.Packet
+import net.minecraft.network.protocol.game.ClientGamePacketListener
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
 import net.minecraft.network.syncher.EntityDataAccessor
 import net.minecraft.network.syncher.EntityDataSerializers
@@ -52,9 +53,9 @@ open class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : En
             throw IllegalStateException("Cannot define physicsEntityData, its already defined!")
         }
         this.physicsEntityData = physicsEntityData
-        if (!this.level.isClientSide) {
+        if (!this.level().isClientSide) {
             var defaultRot = Rotations(0.0f, 0.0f, 0.0f)
-            if (!this.level.isClientSide) {
+            if (!this.level().isClientSide) {
                 val eulerAngles = physicsEntityData.transform.shipToWorldRotation.getEulerAnglesXYZ(Vector3d())
                 defaultRot = Rotations(eulerAngles.x.toFloat(), eulerAngles.y.toFloat(), eulerAngles.z.toFloat())
             }
@@ -66,7 +67,7 @@ open class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : En
         if (lerpPos == null) {
             lerpPos = position().toJOML()
         }
-        if (!this.level.isClientSide) {
+        if (!this.level().isClientSide) {
             val physicsEntityServerCopy = physicsEntityServer
             if (physicsEntityServerCopy != null) {
                 val transform = physicsEntityServerCopy.shipTransform
@@ -123,7 +124,7 @@ open class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : En
     override fun addAdditionalSaveData(compoundTag: CompoundTag) {
     }
 
-    override fun getAddEntityPacket(): Packet<*> {
+    override fun getAddEntityPacket(): Packet<ClientGamePacketListener> {
         return ClientboundAddEntityPacket(this)
     }
 
@@ -136,12 +137,12 @@ open class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : En
     // Used when teleporting through nether portals to create a new entity that's almost the same as this one
     // Note how a new shipId is generated, since this is meant to be a new copy not the exact same one
     private fun loadForTeleport(compoundTag: CompoundTag) {
-        if (!this.level.isClientSide && physicsEntityData != null) {
+        if (!this.level().isClientSide && physicsEntityData != null) {
             throw IllegalStateException("This entity is already loaded!")
         }
         val physicsEntityDataAsBytes: ByteArray = compoundTag.getByteArray(PHYS_DATA_NBT_KEY)
         val oldPhysicsEntityData = getMapper().readValue<PhysicsEntityData>(physicsEntityDataAsBytes)
-        val newShipId = (level.shipObjectWorld as ShipObjectServerWorld).allocateShipId(level.dimensionId)
+        val newShipId = (level().shipObjectWorld as ShipObjectServerWorld).allocateShipId(level().dimensionId)
         val newPhysicsEntityData = oldPhysicsEntityData.copyPhysicsEntityDataWithNewId(newShipId)
         // Change the shipId to be something new
         setPhysicsEntityData(newPhysicsEntityData)
@@ -149,7 +150,7 @@ open class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : En
     }
 
     override fun load(compoundTag: CompoundTag) {
-        if (!this.level.isClientSide && physicsEntityData != null) {
+        if (!this.level().isClientSide && physicsEntityData != null) {
             throw IllegalStateException("This entity is already loaded!")
         }
         val physicsEntityDataAsBytes: ByteArray = compoundTag.getByteArray(PHYS_DATA_NBT_KEY)
@@ -160,15 +161,15 @@ open class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : En
 
     override fun setLevelCallback(callback: EntityInLevelCallback?) {
         super.setLevelCallback(callback)
-        if (!this.level.isClientSide) {
+        if (!this.level().isClientSide) {
             val isNull = (callback == null) || callback == EntityInLevelCallback.NULL
             if (!isNull) {
                 // Try adding the rigid body of this entity from the world
                 if (physicsEntityServer != null) {
                     throw IllegalStateException("Rigid body is already in the world!")
                 }
-                physicsEntityServer = (level.shipObjectWorld as ServerShipWorldCore).createPhysicsEntity(
-                    physicsEntityData!!, level.dimensionId
+                physicsEntityServer = (level().shipObjectWorld as ServerShipWorldCore).createPhysicsEntity(
+                    physicsEntityData!!, level().dimensionId
                 )
             } else {
                 // Try removing the rigid body of this entity from the world
@@ -176,7 +177,7 @@ open class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : En
                     return
                     // throw IllegalStateException("Rigid body does not exist in the world!")
                 }
-                (level.shipObjectWorld as ServerShipWorldCore).deletePhysicsEntity(physicsEntityData!!.shipId)
+                (level().shipObjectWorld as ServerShipWorldCore).deletePhysicsEntity(physicsEntityData!!.shipId)
                 physicsEntityServer = null
             }
         }
@@ -193,12 +194,12 @@ open class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : En
 
     override fun moveTo(d: Double, e: Double, f: Double, g: Float, h: Float) {
         super.moveTo(d, e, f, g, h)
-        if (!this.level.isClientSide) {
+        if (!this.level().isClientSide) {
             val physicsEntityServerCopy = physicsEntityServer
             if (physicsEntityServerCopy != null) {
                 val newPos = Vector3d(d, e, f)
                 val teleportData = ShipTeleportDataImpl(newPos = newPos)
-                (this.level.shipObjectWorld as ShipObjectServerWorld).teleportPhysicsEntity(this.physicsEntityServer!!, teleportData)
+                (this.level().shipObjectWorld as ShipObjectServerWorld).teleportPhysicsEntity(this.physicsEntityServer!!, teleportData)
             } else {
                 physicsEntityData!!.transform = ShipTransformImpl.create(
                     Vector3d(d, e, f),

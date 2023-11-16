@@ -2,6 +2,7 @@ package org.valkyrienskies.mod.fabric.mixin.world.level.block;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.BiomeTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
@@ -43,7 +44,7 @@ public abstract class FireMixin {
 
         VSGameUtilsKt.transformToNearbyShipsAndWorld(level, origX, origY, origZ, 3, (x, y, z) -> {
 
-            final BlockPos newPos = new BlockPos(x, y, z);
+            final BlockPos newPos = BlockPos.containing(x, y, z);
 
             if (level.isWaterAt(newPos)) {
                 level.removeBlock(pos, false);
@@ -51,7 +52,7 @@ public abstract class FireMixin {
 
             final int i = state.getValue(AGE);
 
-            final boolean bl2 = level.isHumidAt(newPos);
+            final boolean bl2 = level.getBiome(newPos).is(BiomeTags.INCREASED_FIRE_BURNOUT);
             final int k = bl2 ? -50 : 0;
             this.checkBurnOut(level, newPos.east(), 300 + k, random, i);
             this.checkBurnOut(level, newPos.west(), 300 + k, random, i);
@@ -104,7 +105,7 @@ public abstract class FireMixin {
 
         VSGameUtilsKt.transformToNearbyShipsAndWorld(level, origX, origY, origZ, 1, (x, y, z) -> {
 
-            final BlockPos newPos = new BlockPos(x, y, z);
+            final BlockPos newPos = BlockPos.containing(x, y, z);
             if (level.isWaterAt(newPos)) {
                 level.removeBlock(pos, false);
             }

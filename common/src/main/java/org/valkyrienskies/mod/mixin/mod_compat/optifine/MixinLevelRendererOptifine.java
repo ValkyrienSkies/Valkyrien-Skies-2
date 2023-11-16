@@ -115,7 +115,7 @@
 //        final VboRegion vboRegion, final CallbackInfo ci
 //    ) {
 //        final ClientShip shipObject =
-//            VSGameUtilsKt.getShipObjectManagingPos(level, new BlockPos(regionX, regionY, regionZ));
+//            VSGameUtilsKt.getShipObjectManagingPos(level, BlockPos.containing(regionX, regionY, regionZ));
 //        if (shipObject != null) {
 //            final Matrix4d chunkTransformMatrix = new Matrix4d()
 //                .translate(-xIn, -yIn, -zIn)
@@ -165,7 +165,7 @@
 //    private void addShipVisibleChunksForBlockEntitiesAndEntities(
 //        final Camera camera, final Frustum frustum, final boolean hasForcedFrustum, final int frame,
 //        final boolean spectator, final CallbackInfo ci) {
-//        final BlockPos.MutableBlockPos tempPos = new BlockPos.MutableBlockPos();
+//        final BlockPos.MutableBlockPos tempPos = BlockPos.containing.MutableBlockPos();
 //        final ViewAreaAccessor chunkStorageAccessor = (ViewAreaAccessor) viewArea;
 //        for (final ClientShip shipObject : VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips()) {
 //            // Don't bother rendering the ship if its AABB isn't visible to the frustum

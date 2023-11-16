@@ -6,7 +6,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.MultiPlayerGameMode;
-import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.world.InteractionHand;
@@ -130,6 +129,7 @@ public abstract class MixinMinecraft
         }
     }
 
+    /* TODO no longer needed
     @Inject(
         method = "setCurrentServer",
         at = @At("HEAD")
@@ -137,6 +137,8 @@ public abstract class MixinMinecraft
     public void preSetCurrentServer(final ServerData serverData, final CallbackInfo ci) {
         ValkyrienSkiesMod.getVsCore().setClientUsesUDP(false);
     }
+
+     */
 
     @Override
     public void createShipObjectWorldClient() {

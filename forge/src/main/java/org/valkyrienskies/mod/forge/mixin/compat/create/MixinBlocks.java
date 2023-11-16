@@ -32,11 +32,11 @@ public class MixinBlocks {
     )
     protected BlockPos redirectBlockPosition(final Entity entity) {
         final Iterator<Ship> ships =
-            VSGameUtilsKt.getShipsIntersecting(entity.level, entity.getBoundingBox()).iterator();
+            VSGameUtilsKt.getShipsIntersecting(entity.level(), entity.getBoundingBox()).iterator();
         if (ships.hasNext()) {
             final Vector3d pos = ships.next().getWorldToShip()
                 .transformPosition(VectorConversionsMCKt.toJOML(entity.position()));
-            return new BlockPos(Math.floor(pos.x), Math.floor(pos.y), Math.floor(pos.z));
+            return BlockPos.containing(Math.floor(pos.x), Math.floor(pos.y), Math.floor(pos.z));
         } else {
             return entity.blockPosition();
         }
@@ -52,7 +52,7 @@ public class MixinBlocks {
     )
     Vec3 redirectPosition(final Entity entity) {
         final Iterator<Ship> ships =
-            VSGameUtilsKt.getShipsIntersecting(entity.level, entity.getBoundingBox()).iterator();
+            VSGameUtilsKt.getShipsIntersecting(entity.level(), entity.getBoundingBox()).iterator();
         if (ships.hasNext()) {
             return VectorConversionsMCKt.toMinecraft(ships.next().getWorldToShip()
                 .transformPosition(VectorConversionsMCKt.toJOML(entity.position())));

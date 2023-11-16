@@ -51,12 +51,12 @@ public abstract class MixinLivingEntity extends Entity {
             final EntityAccessor thisAsAccessor = (EntityAccessor) this;
             final BlockPos originalBlockPosition = thisAsAccessor.getBlockPosition();
 
-            VSGameUtilsKt.transformToNearbyShipsAndWorld(this.level, origX, origY, origZ, 1, (x, y, z) -> {
+            VSGameUtilsKt.transformToNearbyShipsAndWorld(this.level(), origX, origY, origZ, 1, (x, y, z) -> {
 
                 // Only run this if we haven't modified cir yet
                 if (cir.getReturnValue() != Boolean.TRUE) {
                     // Modify the block position, then check if we can climb ladders
-                    thisAsAccessor.setBlockPosition(new BlockPos(Mth.floor(x), Mth.floor(y), Mth.floor(z)));
+                    thisAsAccessor.setBlockPosition(BlockPos.containing(Mth.floor(x), Mth.floor(y), Mth.floor(z)));
                     thisAsAccessor.setFeetBlockState(null);
                     if (onClimbable()) {
                         cir.setReturnValue(true);

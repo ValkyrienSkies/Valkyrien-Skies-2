@@ -1,6 +1,6 @@
 package org.valkyrienskies.mod.fabric.mixin.compat.cc_restitched;
 
-import dan200.computercraft.shared.turtle.blocks.TileTurtle;
+import dan200.computercraft.shared.turtle.blocks.TurtleBlockEntity;
 import dan200.computercraft.shared.turtle.core.TurtleBrain;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -27,10 +27,10 @@ import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 @Mixin(TurtleBrain.class)
 public abstract class MixinTurtleBrain {
     @Shadow
-    public abstract TileTurtle getOwner();
+    public abstract TurtleBlockEntity getOwner();
 
     @Shadow
-    public abstract void setOwner(TileTurtle owner);
+    public abstract void setOwner(TurtleBlockEntity owner);
 
     @Shadow
     public abstract Level getLevel();
@@ -41,7 +41,7 @@ public abstract class MixinTurtleBrain {
         index = 2
     )
     private BlockPos ValkyrienSkies2$teleportToBlockPos(final BlockPos pos) {
-        final TileTurtle currentOwner = getOwner();
+        final TurtleBlockEntity currentOwner = getOwner();
         final BlockPos oldPos = currentOwner.getBlockPos();
         final Level world = getLevel();
 
@@ -109,7 +109,7 @@ public abstract class MixinTurtleBrain {
         final Vec3 tPos = VectorConversionsMCKt.toMinecraft(
             VSGameUtilsKt.toWorldCoordinates(ship, pos.getX() + 0.5, pos.getY() + 0.5,
                 pos.getZ() + 0.5));
-        final BlockPos newPos = new BlockPos(tPos.x, tPos.y, tPos.z);
+        final BlockPos newPos = BlockPos.containing(tPos.x, tPos.y, tPos.z);
         return newPos;
     }
 }

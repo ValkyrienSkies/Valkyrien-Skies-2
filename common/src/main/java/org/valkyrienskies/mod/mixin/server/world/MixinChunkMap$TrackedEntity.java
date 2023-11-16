@@ -32,7 +32,7 @@ public class MixinChunkMap$TrackedEntity {
         target = "Lnet/minecraft/world/entity/Entity;position()Lnet/minecraft/world/phys/Vec3;"))
     Vec3 includeShips(final Vec3 original) {
         final Vector3d pos = VectorConversionsMCKt.toJOML(original);
-        final Ship ship = inCallShip = VSGameUtilsKt.getShipObjectManagingPos(this.entity.level, pos);
+        final Ship ship = inCallShip = VSGameUtilsKt.getShipObjectManagingPos(this.entity.level(), pos);
         if (ship != null) {
             return VectorConversionsMCKt.toMinecraft(ship.getShipToWorld().transformPosition(pos));
         } else {

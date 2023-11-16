@@ -4,7 +4,8 @@ import com.google.gson.Gson
 import com.google.gson.JsonElement
 import net.minecraft.core.BlockPos
 import net.minecraft.core.HolderSet
-import net.minecraft.core.Registry
+import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.packs.resources.ResourceManager
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener
@@ -17,7 +18,6 @@ import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.material.FluidState
 import net.minecraft.world.level.material.Fluids
-import net.minecraft.world.level.material.Material
 import net.minecraft.world.phys.shapes.VoxelShape
 import org.joml.Vector3f
 import org.joml.Vector3i
@@ -72,7 +72,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
         get() = 100
 
     override fun getBlockStateMass(blockState: BlockState): Double? =
-        map[Registry.BLOCK.getKey(blockState.block)]?.mass
+        map[BuiltInRegistries.BLOCK.getKey(blockState.block)]?.mass
 
     override fun getBlockStateType(blockState: BlockState): VSBlockType? =
         blockStateToId[blockState]!!
@@ -116,7 +116,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
             VSGameEvents.tagsAreLoaded.on { _, _ ->
                 tags.forEach { tagInfo ->
                     val tag: Optional<HolderSet.Named<Block>>? =
-                        Registry.BLOCK.getTag(TagKey.create(Registry.BLOCK_REGISTRY, tagInfo.id))
+                        BuiltInRegistries.BLOCK.getTag(TagKey.create(Registries.BLOCK, tagInfo.id))
                     if (tag != null) {
 
                         if (!tag.isPresent()) {
@@ -127,7 +127,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
                         tag.get().forEach {
                             add(
                                 VSBlockStateInfo(
-                                    Registry.BLOCK.getKey(it.value()), tagInfo.priority, tagInfo.mass, tagInfo.friction,
+                                    BuiltInRegistries.BLOCK.getKey(it.value()), tagInfo.priority, tagInfo.mass, tagInfo.friction,
                                     tagInfo.elasticity, tagInfo.type
                                 )
                             )
@@ -394,10 +394,9 @@ object MassDatapackResolver : BlockStateInfoProvider {
             if (blockState.isAir) {
                 blockType = vsCore.blockTypes.air
             } else {
-                val blockMaterial = blockState.material
-                blockType = if (blockMaterial.isLiquid) {
+                blockType = if (blockState.liquid()) {
                     getFluidState(blockState.fluidState).second
-                } else if (blockMaterial.isSolid) {
+                } else if (blockState.isSolid) {
                     val voxelShape = blockState.getShape(dummyBlockGetter, BlockPos.ZERO)
 
                     val collisionShape: Lod1SolidCollisionShape = if (voxelShapeToCollisionShapeMap.contains(voxelShape)) {
@@ -414,7 +413,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
                         generated ?: fullBlockCollisionShape
                     }
 
-                    val vsBlockStateInfo = map[Registry.BLOCK.getKey(blockState.block)]
+                    val vsBlockStateInfo = map[BuiltInRegistries.BLOCK.getKey(blockState.block)]
 
                     // Create new solid block state
                     val solidStateId = nextSolidId++

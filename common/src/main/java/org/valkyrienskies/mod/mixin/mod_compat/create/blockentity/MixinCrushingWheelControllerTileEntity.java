@@ -92,7 +92,7 @@ public abstract class MixinCrushingWheelControllerTileEntity {
 
     private Vec3 getTransformedPosition(Entity instance) {
         Vec3 result = instance.position();
-        Ship ship = VSGameUtilsKt.getShipManagingPos(instance.level, ((CrushingWheelControllerBlockEntity) (Object) this).getBlockPos());
+        Ship ship = VSGameUtilsKt.getShipManagingPos(instance.level(), ((CrushingWheelControllerBlockEntity) (Object) this).getBlockPos());
         if (ship != null) {
             Vector3d tempVec = new Vector3d();
             ship.getTransform().getWorldToShip().transformPosition(result.x, result.y, result.z, tempVec);
@@ -103,7 +103,7 @@ public abstract class MixinCrushingWheelControllerTileEntity {
 
     private Vec3 directionShip2World(Entity instance, Vec3 direction) {
         Vec3 result = direction;
-        Ship ship = VSGameUtilsKt.getShipManagingPos(instance.level, ((CrushingWheelControllerBlockEntity) (Object) this).getBlockPos());
+        Ship ship = VSGameUtilsKt.getShipManagingPos(instance.level(), ((CrushingWheelControllerBlockEntity) (Object) this).getBlockPos());
         if (ship != null) {
             Vector3d tempVec = new Vector3d();
             ship.getTransform().getShipToWorld().transformDirection(result.x, result.y, result.z, tempVec);
