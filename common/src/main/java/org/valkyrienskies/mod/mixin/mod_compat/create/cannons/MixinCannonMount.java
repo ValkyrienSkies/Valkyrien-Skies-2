@@ -33,11 +33,13 @@ public abstract class MixinCannonMount extends KineticBlockEntity implements Con
     public MixinCannonMount(BlockEntityType<?> typeIn, BlockPos pos, BlockState state) {
         super(typeIn, pos, state);
     }
-
+/* TODO
     @Override
     public void cacheRecoilVector(Vec3 vector, AbstractContraptionEntity cannon) {
         recoilVec = VectorConversionsMCKt.toJOML(vector);
     }
+
+ */
 
     @Unique
     private void handleAssembly() {

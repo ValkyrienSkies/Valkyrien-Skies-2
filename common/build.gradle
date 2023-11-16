@@ -1,15 +1,16 @@
 
 dependencies {
-    annotationProcessor(implementation("com.github.LlamaLad7:MixinExtras:0.1.1"))
+    implementation(annotationProcessor("io.github.llamalad7:mixinextras-common:0.2.0"))
 
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
     // We depend on fabric loader here to use the fabric @Environment annotations
     // Do NOT use other classes from fabric loader
     modImplementation "net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}"
 
-    modApi("me.shedaniel.cloth:cloth-config:4.14.64")
+    modApi("me.shedaniel.cloth:cloth-config:8.3.103")
+    //modApi "me.shedaniel.cloth:cloth-config-fabric:8.3.103"
 
-    modCompileOnly("curse.maven:sodium-394468:3669187")
+    modCompileOnly("maven.modrinth:sodium:mc1.19.2-0.4.4")
 
     // vs-core
     implementation("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
@@ -30,8 +31,11 @@ dependencies {
         { exclude group: 'com.github.AlphaMode', module: 'fakeconfigtoml' }
     modCompileOnly("net.fabricmc.fabric-api:fabric-api:${fabric_api_version}")
     modCompileOnly("com.jozufozu.flywheel:flywheel-fabric-${minecraft_version}:${flywheel_version_fabric}")
-    modCompileOnly("io.github.fabricators_of_create:Porting-Lib:${port_lib_version}+${minecraft_version}")
-    modCompileOnly("com.rbasamoyai:createbigcannons-fabric-${minecraft_version}:${createbigcannons_version}")
+    for (String module in port_lib_modules.split(",")) {
+        implementation("io.github.fabricators_of_create.Porting-Lib:$module:$port_lib_version+$minecraft_version")
+    }
+    //modCompileOnly("io.github.fabricators_of_create:Porting-Lib:Porting-Lib:${port_lib_version}+${minecraft_version}")
+    modCompileOnly("maven.modrinth:create-big-cannons:${createbigcannons_version}")
 }
 
 architectury {

@@ -1,7 +1,7 @@
 package org.valkyrienskies.mod.common.item
 
 import net.minecraft.Util
-import net.minecraft.network.chat.TextComponent
+import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.item.Item
@@ -52,7 +52,7 @@ class ShipCreatorItem(
                 // Move the block from the world to a ship
                 level.relocateBlock(blockPos, centerPos, true, serverShip, NONE)
 
-                ctx.player?.sendMessage(TextComponent("SHIPIFIED!"), Util.NIL_UUID)
+                ctx.player?.sendSystemMessage(Component.literal("SHIPIFIED!"))
                 if (parentShip != null) {
                     // Compute the ship transform
                     val newShipPosInWorld =

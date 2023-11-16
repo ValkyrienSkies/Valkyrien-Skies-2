@@ -51,7 +51,7 @@ configurations {
 }
 
 dependencies {
-    include(forgeRuntimeLibrary(annotationProcessor(implementation("com.github.LlamaLad7:MixinExtras:0.1.1"))))
+    implementation(include("io.github.llamalad7:mixinextras-forge:0.2.0"))
 
 
     forge "net.minecraftforge:forge:${rootProject.forge_version}"

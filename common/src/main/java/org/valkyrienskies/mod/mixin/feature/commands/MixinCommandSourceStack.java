@@ -30,6 +30,6 @@ public abstract class MixinCommandSourceStack implements VSCommandSource {
 
     @Override
     public void sendVSMessage(final Component component, final UUID uUID) {
-        source.sendMessage(component, uUID);
+        source.sendSystemMessage(component);
     }
 }

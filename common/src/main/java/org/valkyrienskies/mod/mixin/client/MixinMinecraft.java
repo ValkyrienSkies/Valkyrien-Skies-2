@@ -70,15 +70,15 @@ public abstract class MixinMinecraft
     @WrapOperation(
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/client/multiplayer/MultiPlayerGameMode;useItemOn(Lnet/minecraft/client/player/LocalPlayer;Lnet/minecraft/client/multiplayer/ClientLevel;Lnet/minecraft/world/InteractionHand;Lnet/minecraft/world/phys/BlockHitResult;)Lnet/minecraft/world/InteractionResult;"
+            target = "Lnet/minecraft/client/multiplayer/MultiPlayerGameMode;useItemOn(Lnet/minecraft/client/player/LocalPlayer;Lnet/minecraft/world/InteractionHand;Lnet/minecraft/world/phys/BlockHitResult;)Lnet/minecraft/world/InteractionResult;"
         ),
         method = "startUseItem"
     )
     private InteractionResult useOriginalCrosshairForBlockPlacement(final MultiPlayerGameMode instance,
-        final LocalPlayer localPlayer, final ClientLevel clientLevel, final InteractionHand interactionHand,
+        final LocalPlayer localPlayer, final InteractionHand interactionHand,
         final BlockHitResult blockHitResult, final Operation<InteractionResult> useItemOn) {
 
-        return useItemOn.call(instance, localPlayer, clientLevel, interactionHand,
+        return useItemOn.call(instance, localPlayer, interactionHand,
             this.originalCrosshairTarget);
     }
 

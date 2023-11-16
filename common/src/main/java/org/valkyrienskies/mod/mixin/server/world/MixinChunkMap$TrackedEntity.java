@@ -29,7 +29,7 @@ public class MixinChunkMap$TrackedEntity {
 
     // Changes entity position for tracking into world space if needed
     @ModifyExpressionValue(method = "updatePlayer", at = @At(value = "INVOKE",
-        target = "Lnet/minecraft/server/level/ServerEntity;sentPos()Lnet/minecraft/world/phys/Vec3;"))
+        target = "Lnet/minecraft/world/entity/Entity;position()Lnet/minecraft/world/phys/Vec3;"))
     Vec3 includeShips(final Vec3 original) {
         final Vector3d pos = VectorConversionsMCKt.toJOML(original);
         final Ship ship = inCallShip = VSGameUtilsKt.getShipObjectManagingPos(this.entity.level, pos);

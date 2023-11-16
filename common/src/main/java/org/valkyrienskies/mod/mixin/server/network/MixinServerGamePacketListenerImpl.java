@@ -14,7 +14,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.ServerPlayerGameMode;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
-import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Final;
@@ -78,6 +77,7 @@ public abstract class MixinServerGamePacketListenerImpl {
         return VSGameUtilsKt.toWorldCoordinates(player.level, subtract.call(instance, vec3));
     }
 
+    /*
     @WrapOperation(
         at = @At(
             value = "INVOKE",
@@ -85,10 +85,11 @@ public abstract class MixinServerGamePacketListenerImpl {
         ),
         method = "handleUseItemOn"
     )
-    private int skipDistanceCheck(final ChunkPos instance, final ChunkPos chunkPos,
-        final Operation<Integer> getChessboardDistance) {
+    private int skipDistanceCheck(final ChunkPos instance, final ChunkPos chunkPos, final Operation<Integer> getChessboardDistance) {
         return 0;
     }
+
+     */
 
     @WrapOperation(
         method = "handleMovePlayer",

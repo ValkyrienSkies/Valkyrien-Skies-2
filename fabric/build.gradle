@@ -25,7 +25,7 @@ loom {
 }
 
 dependencies {
-    include(annotationProcessor(implementation("com.github.LlamaLad7:MixinExtras:0.1.1")))
+    include(implementation(annotationProcessor("io.github.llamalad7:mixinextras-fabric:0.2.0")))
 
     modImplementation("net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}")
 
@@ -40,8 +40,8 @@ dependencies {
     include(modImplementation("net.fabricmc:fabric-language-kotlin:1.10.10+kotlin.1.9.10"))
     include(modImplementation("me.shedaniel.cloth:cloth-config-fabric:6.3.81"))
 
-    modImplementation("curse.maven:sodium-394468:3669187")
-    modImplementation("com.terraformersmc:modmenu:3.2.3")
+    modImplementation("maven.modrinth:sodium:mc1.19.2-0.4.4")
+    modImplementation("maven.modrinth:modmenu:4.2.0-beta.2")
 
     // Depend on the fabric API
     modImplementation("net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}")
@@ -61,7 +61,7 @@ dependencies {
     }
 
     // CC Restitched
-    modImplementation("curse.maven:cc-restitched-462672:3838648")
+    //modImplementation("curse.maven:cc-restitched-462672:3838648")
 
     // Create compat
     modImplementation("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}") {
@@ -69,7 +69,15 @@ dependencies {
     }
     modImplementation("com.jozufozu.flywheel:flywheel-fabric-${minecraft_version}:${flywheel_version_fabric}")
     modImplementation("com.tterrag.registrate_fabric:Registrate:${registrate_version}")
-    modImplementation("io.github.fabricators_of_create:Porting-Lib:${port_lib_version}+${minecraft_version}")
+
+    //https://mvn.devos.one/snapshots/io/github/fabricators_of_create/Porting-Lib/2.1.1096+1.19.2/Porting-Lib-2.1.1096+1.19.2.pom
+    //https://mvn.devos.one/snapshots/io/github/fabricators_of_create/Porting-Lib/Porting-Lib/2.1.1096+1.19.2/Porting-Lib-2.1.1096+1.19.2.pom
+
+    for (String module in port_lib_modules.split(",")) {
+        modImplementation("io.github.fabricators_of_create.Porting-Lib:$module:$port_lib_version+$minecraft_version")
+    }
+
+    //modImplementation("io.github.fabricators_of_create:Porting-Lib:Porting-Lib:${port_lib_version}+${minecraft_version}")
     modImplementation("me.alphamode:ForgeTags:${forge_tags_version}")
     modImplementation("net.minecraftforge:forgeconfigapiport-fabric:${forge_config_api_port_version}")
     modImplementation("com.jamieswhiteshirt:reach-entity-attributes:${reach_entity_attributes_version}")

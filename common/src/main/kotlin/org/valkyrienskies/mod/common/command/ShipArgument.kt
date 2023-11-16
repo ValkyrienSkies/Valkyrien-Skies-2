@@ -10,7 +10,7 @@ import com.mojang.brigadier.suggestion.SuggestionsBuilder
 import net.minecraft.commands.CommandRuntimeException
 import net.minecraft.commands.synchronization.ArgumentSerializer
 import net.minecraft.network.FriendlyByteBuf
-import net.minecraft.network.chat.TranslatableComponent
+import net.minecraft.network.chat.Component.translatable
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.mod.mixinducks.feature.command.VSCommandSource
 import java.util.concurrent.CompletableFuture
@@ -92,9 +92,9 @@ class ShipArgument private constructor(val selectorOnly: Boolean) : ArgumentType
             if (r.size == 1) return r.first() else throw ERROR_MANY_SHIP_FOUND
         }
 
-        private val ERROR_NO_SHIP_FOUND = CommandRuntimeException(TranslatableComponent("argument.valkyrienskies.ship.no_found"))
+        private val ERROR_NO_SHIP_FOUND = CommandRuntimeException(Component.translatable("argument.valkyrienskies.ship.no_found"))
         private val ERROR_MANY_SHIP_FOUND =
-            CommandRuntimeException(TranslatableComponent("argument.valkyrienskies.ship.multiple_found"))
+            CommandRuntimeException(Component.translatable("argument.valkyrienskies.ship.multiple_found"))
     }
 
     override fun getExamples(): Collection<String> = EXAMPLES

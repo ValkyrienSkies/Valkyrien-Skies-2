@@ -15,7 +15,7 @@ import net.minecraft.commands.arguments.coordinates.BlockPosArgument
 import net.minecraft.commands.arguments.coordinates.Vec3Argument
 import net.minecraft.commands.synchronization.ArgumentTypes
 import net.minecraft.commands.synchronization.EmptyArgumentSerializer
-import net.minecraft.network.chat.TranslatableComponent
+import net.minecraft.network.chat.Component.translatable
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.phys.BlockHitResult
 import org.joml.Vector3d
@@ -73,7 +73,7 @@ object VSCommands {
                     try {
                         val r = ShipArgument.getShips(it, "ships").toList() as List<ServerShip>
                         vsCore.deleteShips(it.source.shipWorld as ServerShipWorld, r)
-                        it.source.sendVSMessage(TranslatableComponent(DELETED_SHIPS_MESSAGE, r.size))
+                        it.source.sendVSMessage(Component.translatable(DELETED_SHIPS_MESSAGE, r.size))
                         r.size
                     } catch (e: Exception) {
                         if (e !is CommandRuntimeException) LOGGER.throwing(e)
@@ -89,7 +89,7 @@ object VSCommands {
                                     val isStatic = BoolArgumentType.getBool(it, "is-static")
                                     r.forEach { ship -> ship.isStatic = isStatic }
                                     it.source.sendVSMessage(
-                                        TranslatableComponent(
+                                        Component.translatable(
                                             SET_SHIP_STATIC_SUCCESS_MESSAGE, r.size, if (isStatic) "true" else "false"
                                         )
                                     )
@@ -120,7 +120,7 @@ object VSCommands {
                                         )
                                     }
                                     (it as CommandContext<VSCommandSource>).source.sendVSMessage(
-                                        TranslatableComponent(TELEPORT_SHIP_SUCCESS_MESSAGE, r.size, shipTeleportData.toString())
+                                        Component.translatable(TELEPORT_SHIP_SUCCESS_MESSAGE, r.size, shipTeleportData.toString())
                                     )
                                     r.size
                                 } catch (e: Exception) {
@@ -156,7 +156,7 @@ object VSCommands {
                                             )
                                         }
                                         (it as CommandContext<VSCommandSource>).source.sendVSMessage(
-                                            TranslatableComponent(TELEPORT_SHIP_SUCCESS_MESSAGE, r.size, shipTeleportData.toString())
+                                            Component.translatable(TELEPORT_SHIP_SUCCESS_MESSAGE, r.size, shipTeleportData.toString())
                                         )
                                         r.size
                                     } catch (e: Exception) {
@@ -198,7 +198,7 @@ object VSCommands {
                                                 )
                                             }
                                             (it as CommandContext<VSCommandSource>).source.sendVSMessage(
-                                                TranslatableComponent(TELEPORT_SHIP_SUCCESS_MESSAGE, r.size, shipTeleportData.toString())
+                                                Component.translatable(TELEPORT_SHIP_SUCCESS_MESSAGE, r.size, shipTeleportData.toString())
                                             )
                                             r.size
                                         } catch (e: Exception) {
@@ -246,7 +246,7 @@ object VSCommands {
                                                     )
                                                 }
                                                 (it as CommandContext<VSCommandSource>).source.sendVSMessage(
-                                                    TranslatableComponent(TELEPORT_SHIP_SUCCESS_MESSAGE, r.size, shipTeleportData.toString())
+                                                    Component.translatable(TELEPORT_SHIP_SUCCESS_MESSAGE, r.size, shipTeleportData.toString())
                                                 )
                                                 r.size
                                             } catch (e: Exception) {
@@ -272,7 +272,7 @@ object VSCommands {
                                 val ship = sourceEntity.level.getShipManagingPos(rayTrace.blockPos)
                                 if (ship != null) {
                                     (it.source as VSCommandSource).sendVSMessage(
-                                        TranslatableComponent(GET_SHIP_SUCCESS_MESSAGE, ship.slug)
+                                        Component.translatable(GET_SHIP_SUCCESS_MESSAGE, ship.slug)
                                     )
                                     success = true
                                 }
@@ -280,12 +280,12 @@ object VSCommands {
                             if (success) {
                                 1
                             } else {
-                                (it.source as VSCommandSource).sendVSMessage(TranslatableComponent(GET_SHIP_FAIL_MESSAGE))
+                                (it.source as VSCommandSource).sendVSMessage(Component.translatable(GET_SHIP_FAIL_MESSAGE))
                                 0
                             }
                         } else {
                             (it.source as VSCommandSource).sendVSMessage(
-                                TranslatableComponent(GET_SHIP_ONLY_USABLE_BY_ENTITIES_MESSAGE)
+                                Component.translatable(GET_SHIP_ONLY_USABLE_BY_ENTITIES_MESSAGE)
                             )
                             0
                         }
@@ -304,7 +304,7 @@ object VSCommands {
                                     val newScale = DoubleArgumentType.getDouble(it, "newScale")
                                     val r = ShipArgument.getShips(it, "ships").toList() as List<ServerShip>
                                     r.forEach { ship -> vsCore.scaleShip(world, ship, newScale) }
-                                    it.source.sendVSMessage(TranslatableComponent(SCALED_SHIPS_MESSAGE, r.size))
+                                    it.source.sendVSMessage(Component.translatable(SCALED_SHIPS_MESSAGE, r.size))
                                     r.size
                                 } catch (e: Exception) {
                                     if (e !is CommandRuntimeException) LOGGER.throwing(e)
@@ -358,7 +358,7 @@ object VSCommands {
                 argument("ships", ShipArgument.selectorOnly()).executes {
                     val serverShips = ShipArgument.getShips(it, "ships").toList() as List<ServerShip>
                     val serverShip = serverShips.singleOrNull() ?: throw CommandRuntimeException(
-                        TranslatableComponent(TELEPORT_FIRST_ARG_CAN_ONLY_INPUT_1_SHIP)
+                        Component.translatable(TELEPORT_FIRST_ARG_CAN_ONLY_INPUT_1_SHIP)
                     )
                     val source = it.source as CommandSourceStack
                     val shipPos = serverShip.transform.positionInWorld
@@ -377,7 +377,7 @@ object VSCommands {
                             )
                         }
                         (it as CommandContext<VSCommandSource>).source.sendVSMessage(
-                            TranslatableComponent(TELEPORTED_MULTIPLE_SHIPS_SUCCESS, serverShips.size)
+                            Component.translatable(TELEPORTED_MULTIPLE_SHIPS_SUCCESS, serverShips.size)
                         )
                         serverShips.size
                     }
@@ -395,7 +395,7 @@ object VSCommands {
                             )
                         }
                         (it as CommandContext<VSCommandSource>).source.sendVSMessage(
-                            TranslatableComponent(TELEPORTED_MULTIPLE_SHIPS_SUCCESS, serverShips.size)
+                            Component.translatable(TELEPORTED_MULTIPLE_SHIPS_SUCCESS, serverShips.size)
                         )
                         serverShips.size
                     }

@@ -51,10 +51,10 @@ public class MixinClientPacketListener {
             final double f = packet.getZ();
             final Entity entity = ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE.create(level);
             final int i = packet.getId();
-            entity.setPacketCoordinates(d, e, f);
+            entity.syncPacketPositionCodec(d, e, f);
             entity.moveTo(d, e, f);
-            entity.setXRot((float) (packet.getxRot() * 360) / 256.0f);
-            entity.setYRot((float) (packet.getyRot() * 360) / 256.0f);
+            entity.setXRot((float) (packet.getXRot() * 360) / 256.0f);
+            entity.setYRot((float) (packet.getYRot() * 360) / 256.0f);
             entity.setId(i);
             entity.setUUID(packet.getUUID());
             this.level.putNonPlayerEntity(i, entity);

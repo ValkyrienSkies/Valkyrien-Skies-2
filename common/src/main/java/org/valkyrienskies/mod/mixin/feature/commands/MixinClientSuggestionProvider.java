@@ -27,6 +27,6 @@ public class MixinClientSuggestionProvider implements VSCommandSource {
 
     @Override
     public void sendVSMessage(final Component component, final UUID uUID) {
-        minecraft.player.sendMessage(component, uUID);
+        minecraft.player.sendSystemMessage(component);
     }
 }

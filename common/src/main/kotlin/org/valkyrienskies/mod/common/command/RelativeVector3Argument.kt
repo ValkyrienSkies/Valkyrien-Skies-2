@@ -10,7 +10,8 @@ import com.mojang.brigadier.suggestion.SuggestionsBuilder
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.arguments.coordinates.RotationArgument
 import net.minecraft.commands.arguments.coordinates.WorldCoordinate
-import net.minecraft.network.chat.TranslatableComponent
+import net.minecraft.network.chat.Component
+import net.minecraft.network.chat.Component.translatable
 import java.util.concurrent.CompletableFuture
 
 class RelativeVector3Argument : ArgumentType<RelativeVector3> {
@@ -164,7 +165,7 @@ class RelativeVector3Argument : ArgumentType<RelativeVector3> {
                                             builder.suggest("${builder.remaining})")
                                         }
                                         throw SimpleCommandExceptionType(
-                                            TranslatableComponent("Expected )")
+                                            Component.translatable("Expected )")
                                         ).createWithContext(reader)
                                     } else {
                                         return DUMMY_EULER_ANGLES

@@ -16,7 +16,6 @@ import java.util.concurrent.Executor;
 import java.util.function.BooleanSupplier;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.BlockPos.MutableBlockPos;
-import net.minecraft.core.Holder;
 import net.minecraft.core.Position;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
@@ -25,11 +24,13 @@ import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.progress.ChunkProgressListener;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.CustomSpawner;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
+import net.minecraft.world.level.dimension.LevelStem;
 import net.minecraft.world.level.storage.LevelStorageSource.LevelStorageAccess;
 import net.minecraft.world.level.storage.ServerLevelData;
 import org.jetbrains.annotations.NotNull;
@@ -88,9 +89,9 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
     @Inject(method = "<init>", at = @At("RETURN"))
     void onInit(final MinecraftServer minecraftServer, final Executor executor,
         final LevelStorageAccess levelStorageAccess,
-        final ServerLevelData serverLevelData, final ResourceKey levelId, final Holder holder,
-        final ChunkProgressListener chunkProgressListener, final ChunkGenerator chunkGenerator, final boolean bl,
-        final long l, final List list,
+        final ServerLevelData serverLevelData, final ResourceKey<Level> levelId, final LevelStem levelStem,
+        final ChunkProgressListener chunkProgressListener, final boolean bl,
+        final long l, final List<CustomSpawner> customSpawners,
         final boolean bl2, final CallbackInfo ci) {
 
         // This only happens when overworld gets loaded on startup, we have a mixin in MixinMinecraftServer for this specific case

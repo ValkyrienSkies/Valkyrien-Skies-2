@@ -9,6 +9,7 @@ import net.minecraft.client.renderer.entity.EntityRendererProvider
 import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.core.BlockPos
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.util.RandomSource
 import net.minecraft.world.inventory.InventoryMenu
 import net.minecraft.world.level.block.RenderShape.INVISIBLE
 import net.minecraft.world.level.block.RenderShape.MODEL
@@ -60,7 +61,7 @@ class VSPhysicsEntityRenderer(context: EntityRendererProvider.Context) : EntityR
             level, blockRenderDispatcher.getBlockModel(blockState), blockState, blockPos, poseStack,
             multiBufferSource.getBuffer(
                 ItemBlockRenderTypes.getMovingBlockRenderType(blockState)
-            ), false, Random(), blockState.getSeed(BlockPos.ZERO), OverlayTexture.NO_OVERLAY
+            ), false, RandomSource.create(), blockState.getSeed(BlockPos.ZERO), OverlayTexture.NO_OVERLAY
         )
         poseStack.popPose()
         super.render(fallingBlockEntity, f, partialTick, poseStack, multiBufferSource, i)

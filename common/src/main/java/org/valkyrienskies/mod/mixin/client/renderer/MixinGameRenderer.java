@@ -292,7 +292,7 @@ public abstract class MixinGameRenderer {
         // Use [camera.getPosition()] instead of [vec3] because mounting the player to the ship has changed the camera
         // position.
         prepareCullFrustum.call(instance, matrixStack, camera.getPosition(),
-            this.getProjectionMatrix(Math.max(fov, this.minecraft.options.fov)));
+            this.getProjectionMatrix(Math.max(fov, this.minecraft.options.fov().get())));
     }
     // endregion
 }

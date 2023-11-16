@@ -9,10 +9,10 @@ import com.simibubi.create.foundation.block.WrenchableDirectionalBlock;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Random;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.state.BlockState;
@@ -61,7 +61,7 @@ public abstract class MixinRedstoneContactBlock extends WrenchableDirectionalBlo
     }
 
     @Inject(method = "tick", at = @At(value = "INVOKE_ASSIGN", shift = At.Shift.BY, by = 2, target = "Lcom/simibubi/create/content/redstone/contact/RedstoneContactBlock;hasValidContact(Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;)Z"), locals = LocalCapture.CAPTURE_FAILHARD)
-    private void injectTick(BlockState state, ServerLevel worldIn, BlockPos pos, Random random, CallbackInfo ci, boolean hasValidContact) {
+    private void injectTick(BlockState state, ServerLevel worldIn, BlockPos pos, RandomSource random, CallbackInfo ci, boolean hasValidContact) {
         if (VSGameUtilsKt.isBlockInShipyard(worldIn, pos)) {
             Pair<Level, BlockPos> key = Pair.of(worldIn, pos);
             if (!hasValidContact && state.getValue(POWERED) && contactCache.containsKey(key)) {

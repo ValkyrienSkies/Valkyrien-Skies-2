@@ -4,7 +4,7 @@ import com.mojang.brigadier.StringReader
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType
 import com.mojang.brigadier.suggestion.SuggestionsBuilder
-import net.minecraft.network.chat.TranslatableComponent
+import net.minecraft.network.chat.Component
 import org.valkyrienskies.core.api.ships.properties.ShipId
 import org.valkyrienskies.mod.mixinducks.feature.command.VSCommandSource
 
@@ -184,14 +184,14 @@ class ShipArgumentParser(private val source: VSCommandSource?, private var selec
 
     companion object {
         val ERROR_MISSING_SELECTOR_TYPE =
-            SimpleCommandExceptionType(TranslatableComponent("argument.ship.selector.missing"))
+            SimpleCommandExceptionType(Component.translatable("argument.ship.selector.missing"))
         val ERROR_INVALID_SLUG_OR_ID =
-            SimpleCommandExceptionType(TranslatableComponent("argument.ship.invalid"))
+            SimpleCommandExceptionType(Component.translatable("argument.ship.invalid"))
         val ERROR_EXPECTED_END_OF_OPTIONS =
-            SimpleCommandExceptionType(TranslatableComponent("argument.ship.options.unterminated"))
+            SimpleCommandExceptionType(Component.translatable("argument.ship.options.unterminated"))
         val ERROR_EXPECTED_OPTION_VALUE =
-            DynamicCommandExceptionType { TranslatableComponent("argument.ship.options.valueless", it) }
+            DynamicCommandExceptionType { Component.translatable("argument.ship.options.valueless", it) }
         val ERROR_UNKNOWN_OPTION =
-            DynamicCommandExceptionType { TranslatableComponent("argument.entity.options.unknown", it) }
+            DynamicCommandExceptionType { Component.translatable("argument.entity.options.unknown", it) }
     }
 }
