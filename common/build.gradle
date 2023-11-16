@@ -31,10 +31,9 @@ dependencies {
         { exclude group: 'com.github.AlphaMode', module: 'fakeconfigtoml' }
     modCompileOnly("net.fabricmc.fabric-api:fabric-api:${fabric_api_version}")
     modCompileOnly("com.jozufozu.flywheel:flywheel-fabric-${minecraft_version}:${flywheel_version_fabric}")
-    for (String module in port_lib_modules.split(",")) {
-        implementation("io.github.fabricators_of_create.Porting-Lib:$module:$port_lib_version+$minecraft_version")
-    }
-    //modCompileOnly("io.github.fabricators_of_create:Porting-Lib:Porting-Lib:${port_lib_version}+${minecraft_version}")
+
+    //implementation("io.github.fabricators_of_create.Porting-Lib:Porting-Lib:$port_lib_version+$minecraft_version")
+
     modCompileOnly("maven.modrinth:create-big-cannons:${createbigcannons_version}")
 }
 

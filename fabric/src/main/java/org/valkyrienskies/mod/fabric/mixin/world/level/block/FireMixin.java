@@ -1,8 +1,8 @@
 package org.valkyrienskies.mod.fabric.mixin.world.level.block;
 
-import java.util.Random;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
@@ -29,8 +29,8 @@ public abstract class FireMixin {
     public static IntegerProperty AGE;
 
     @Inject(method = "tick", at = @At("TAIL"))
-    public void fireTickMixin(final BlockState state, final ServerLevel level, final BlockPos pos, final Random random,
-        final CallbackInfo ci) {
+    public void fireTickMixin(BlockState state, ServerLevel level, BlockPos pos,
+        RandomSource random, CallbackInfo ci) {
         if (isModifyingFireTick) {
             return;
         }
@@ -71,7 +71,7 @@ public abstract class FireMixin {
                             }
 
                             mutableBlockPos.setWithOffset(newPos, l, n, m);
-                            final int p = this.getFireOdds(level, mutableBlockPos);
+                            final int p = this.getIgniteOdds(level, mutableBlockPos);
                             if (p > 0) {
                                 int q = (p + 40 + level.getDifficulty().getId() * 7) / (i + 30);
                                 if (bl2) {
@@ -112,7 +112,7 @@ public abstract class FireMixin {
     }
 
     @Shadow
-    private void checkBurnOut(final Level level, final BlockPos pos, final int chance, final Random random,
+    private void checkBurnOut(final Level level, final BlockPos pos, final int chance, final RandomSource random,
         final int age) {
     }
 
@@ -122,8 +122,8 @@ public abstract class FireMixin {
     }
 
     @Shadow
-    private int getFireOdds(final LevelReader level, final BlockPos pos) {
-        return getFireOdds(level, pos);
+    private int getIgniteOdds(final LevelReader level, final BlockPos pos) {
+        return getIgniteOdds(level, pos);
     }
 
     @Shadow

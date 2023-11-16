@@ -13,8 +13,7 @@ import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.arguments.EntityArgument
 import net.minecraft.commands.arguments.coordinates.BlockPosArgument
 import net.minecraft.commands.arguments.coordinates.Vec3Argument
-import net.minecraft.commands.synchronization.ArgumentTypes
-import net.minecraft.commands.synchronization.EmptyArgumentSerializer
+import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.Component.translatable
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.phys.BlockHitResult
@@ -24,6 +23,8 @@ import org.valkyrienskies.core.api.world.ServerShipWorld
 import org.valkyrienskies.core.api.world.ShipWorld
 import org.valkyrienskies.core.apigame.ShipTeleportData
 import org.valkyrienskies.core.impl.game.ShipTeleportDataImpl
+import org.valkyrienskies.core.impl.game.ships.ShipData
+import org.valkyrienskies.core.impl.game.ships.ShipObject
 import org.valkyrienskies.core.util.x
 import org.valkyrienskies.core.util.y
 import org.valkyrienskies.core.util.z
@@ -45,18 +46,6 @@ object VSCommands {
     private const val GET_SHIP_ONLY_USABLE_BY_ENTITIES_MESSAGE = "command.valkyrienskies.get_ship.only_usable_by_entities"
     private const val TELEPORTED_MULTIPLE_SHIPS_SUCCESS = "command.valkyrienskies.teleport.multiple_ship_success"
     private const val TELEPORT_FIRST_ARG_CAN_ONLY_INPUT_1_SHIP = "command.valkyrienskies.mc_teleport.can_only_teleport_to_one_ship"
-    private const val SCALED_SHIPS_MESSAGE = "command.valkyrienskies.scale.success"
-    private const val REQUIRED_PERMISSION = 2
-
-    fun bootstrap() {
-        ArgumentTypes.register("valkyrienskies:ship",
-            ShipArgument::class.java,
-            ShipArgument.Serializer)
-
-        ArgumentTypes.register("valkyrienskies:relative_vector",
-            RelativeVector3Argument::class.java,
-            EmptyArgumentSerializer(::RelativeVector3Argument))
-    }
 
     private fun literal(name: String) =
         LiteralArgumentBuilder.literal<VSCommandSource>(name)
@@ -79,7 +68,7 @@ object VSCommands {
                         if (e !is CommandRuntimeException) LOGGER.throwing(e)
                         throw e
                     }
-                })).requires { (it as CommandSourceStack).hasPermission(REQUIRED_PERMISSION) }
+                }))
                 .then(
                     literal("set-static").then(
                         argument("ships", ShipArgument.ships()).then(
@@ -87,7 +76,16 @@ object VSCommands {
                                 try {
                                     val r = ShipArgument.getShips(it, "ships").toList() as List<ServerShip>
                                     val isStatic = BoolArgumentType.getBool(it, "is-static")
-                                    r.forEach { ship -> ship.isStatic = isStatic }
+                                    r.forEach { ship ->
+                                        if (ship is ShipObject) {
+                                            // TODO: AAAAAAAAA THIS IS HORRIBLE how can the API support this?
+                                            (ship.shipData as ShipData).isStatic = isStatic
+                                        } else if (ship is ShipData) {
+                                            // TODO: AAAAAAAAA THIS IS HORRIBLE how can the API support this?
+                                            ship.isStatic = isStatic
+                                        }
+
+                                    }
                                     it.source.sendVSMessage(
                                         Component.translatable(
                                             SET_SHIP_STATIC_SUCCESS_MESSAGE, r.size, if (isStatic) "true" else "false"
@@ -100,7 +98,7 @@ object VSCommands {
                                 }
                             })
                     )
-                ).requires { (it as CommandSourceStack).hasPermission(REQUIRED_PERMISSION) }
+                )
                 .then(
                     literal("teleport").then(
                         argument("ships", ShipArgument.ships()).then(
@@ -110,9 +108,8 @@ object VSCommands {
                                     val r = ShipArgument.getShips(it, "ships").toList() as List<ServerShip>
                                     val position =
                                         Vec3Argument.getVec3(it as CommandContext<CommandSourceStack>, "position")
-                                    val dimensionId = (it.source as CommandSourceStack).level.dimensionId
                                     val shipTeleportData: ShipTeleportData =
-                                        ShipTeleportDataImpl(newPos = position.toJOML(), newDimension = dimensionId)
+                                        ShipTeleportDataImpl(newPos = position.toJOML())
                                     r.forEach { ship ->
                                         vsCore.teleportShip(
                                             (it as CommandContext<VSCommandSource>).source.shipWorld as ServerShipWorld,
@@ -140,14 +137,12 @@ object VSCommands {
                                             )
 
                                         val source = it.source as CommandSourceStack
-                                        val dimensionId = (it.source as CommandSourceStack).level.dimensionId
                                         val shipTeleportData: ShipTeleportData =
                                             ShipTeleportDataImpl(
                                                 newPos = position.toJOML(),
                                                 newRot = eulerAngles.toEulerRotationFromMCEntity(
                                                     source.rotation.x.toDouble(), source.rotation.y.toDouble(),
-                                                ),
-                                                newDimension = dimensionId,
+                                                )
                                             )
                                         r.forEach { ship ->
                                             vsCore.teleportShip(
@@ -181,15 +176,13 @@ object VSCommands {
                                             )
 
                                             val source = it.source as CommandSourceStack
-                                            val dimensionId = (it.source as CommandSourceStack).level.dimensionId
                                             val shipTeleportData: ShipTeleportData =
                                                 ShipTeleportDataImpl(
                                                     newPos = position.toJOML(),
                                                     newRot = eulerAngles.toEulerRotationFromMCEntity(
                                                         source.rotation.x.toDouble(), source.rotation.y.toDouble(),
                                                     ),
-                                                    newVel = velocity.toVector3d(0.0, 0.0, 0.0),
-                                                    newDimension = dimensionId,
+                                                    newVel = velocity.toVector3d(0.0, 0.0, 0.0)
                                                 )
                                             r.forEach { ship ->
                                                 vsCore.teleportShip(
@@ -228,7 +221,6 @@ object VSCommands {
                                                 )
 
                                                 val source = it.source as CommandSourceStack
-                                                val dimensionId = (it.source as CommandSourceStack).level.dimensionId
                                                 val shipTeleportData: ShipTeleportData =
                                                     ShipTeleportDataImpl(
                                                         newPos = position.toJOML(),
@@ -236,8 +228,7 @@ object VSCommands {
                                                             source.rotation.x.toDouble(), source.rotation.y.toDouble(),
                                                         ),
                                                         newVel = velocity.toVector3d(0.0, 0.0, 0.0),
-                                                        newOmega = angularVelocity.toVector3d(0.0, 0.0, 0.0),
-                                                        newDimension = dimensionId,
+                                                        newOmega = angularVelocity.toVector3d(0.0, 0.0, 0.0)
                                                     )
                                                 r.forEach { ship ->
                                                     vsCore.teleportShip(
@@ -259,7 +250,7 @@ object VSCommands {
                             )
                         )
                     )
-                ).requires { (it as CommandSourceStack).hasPermission(REQUIRED_PERMISSION) }
+                )
                 .then(literal("get-ship").executes {
                     try {
                         val mcCommandContext = it as CommandContext<CommandSourceStack>
@@ -294,25 +285,7 @@ object VSCommands {
                         throw e
                     }
                 })
-                .then(
-                    literal("scale").then(
-                        argument("ships", ShipArgument.ships()).then(
-                            argument("newScale", DoubleArgumentType.doubleArg(0.1, 10.0)).executes {
-                                try {
-                                    val world =
-                                        (it as CommandContext<VSCommandSource>).source.shipWorld as ServerShipWorld
-                                    val newScale = DoubleArgumentType.getDouble(it, "newScale")
-                                    val r = ShipArgument.getShips(it, "ships").toList() as List<ServerShip>
-                                    r.forEach { ship -> vsCore.scaleShip(world, ship, newScale) }
-                                    it.source.sendVSMessage(Component.translatable(SCALED_SHIPS_MESSAGE, r.size))
-                                    r.size
-                                } catch (e: Exception) {
-                                    if (e !is CommandRuntimeException) LOGGER.throwing(e)
-                                    throw e
-                                }
-                            })
-                    )
-                ).requires { (it as CommandSourceStack).hasPermission(REQUIRED_PERMISSION) }
+
                 // Single ship commands
                 .then(
                     literal("ship").then(
@@ -349,8 +322,28 @@ object VSCommands {
                                             }
                                         })
                             )
+
+                        /* DISABLED UNTIL VS-BODIES IS READY
+                        // Scale a ship
+                        .then(
+                            literal("scale")
+                                .then(argument("newScale", FloatArgumentType.floatArg(0.001f))
+                                    .executes {
+                                        try {
+                                            vsCore.scaleShip(
+                                                ShipArgument.getShip(it, "ship") as ServerShip,
+                                                FloatArgumentType.getFloat(it, "newScale")
+                                            )
+                                            1
+                                        } catch (e: Exception) {
+                                            if (e !is CommandRuntimeException) LOGGER.throwing(e)
+                                            throw e
+                                        }
+                                    })
+                        )
+                         */
                     )
-                ).requires { (it as CommandSourceStack).hasPermission(REQUIRED_PERMISSION) }
+                )
         )
 
         dispatcher.root.children.first { it.name == "teleport" }.apply {
@@ -370,10 +363,9 @@ object VSCommands {
                         val entity = EntityArgument.getEntity(it as CommandContext<CommandSourceStack>, "entity")
 
                         serverShips.forEach { serverShip ->
-                            val dimensionId = (it.source as CommandSourceStack).level.dimensionId
                             vsCore.teleportShip(
                                 it.source.shipWorld as ServerShipWorld, serverShip,
-                                ShipTeleportDataImpl(newPos = Vector3d(entity.x, entity.y, entity.z), newDimension = dimensionId)
+                                ShipTeleportDataImpl(newPos = Vector3d(entity.x, entity.y, entity.z))
                             )
                         }
                         (it as CommandContext<VSCommandSource>).source.sendVSMessage(
@@ -388,10 +380,9 @@ object VSCommands {
                         val pos = BlockPosArgument.getSpawnablePos(it, "pos")
 
                         serverShips.forEach { serverShip ->
-                            val dimensionId = (it.source as CommandSourceStack).level.dimensionId
                             vsCore.teleportShip(
                                 it.source.shipWorld as ServerShipWorld, serverShip,
-                                ShipTeleportDataImpl(newPos = pos.toJOMLD(), newDimension = dimensionId)
+                                ShipTeleportDataImpl(newPos = pos.toJOMLD())
                             )
                         }
                         (it as CommandContext<VSCommandSource>).source.sendVSMessage(

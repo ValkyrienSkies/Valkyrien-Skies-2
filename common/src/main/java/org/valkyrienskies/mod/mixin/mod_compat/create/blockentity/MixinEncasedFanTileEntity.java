@@ -32,4 +32,6 @@ public abstract class MixinEncasedFanTileEntity extends KineticBlockEntity imple
     public Ship getShip() {
         return ship;
     }
+
+
 }

@@ -38,12 +38,12 @@ public class MixinNoiseBasedChunkGenerator {
         if (VS2ChunkAllocator.INSTANCE.isChunkInShipyardCompanion(i, j)) {
             final NoiseSettings noiseSettings = this.settings.value().noiseSettings();
             final int k = Math.max(noiseSettings.minY(), levelHeightAccessor.getMinBuildHeight());
-            cir.setReturnValue(new NoiseColumn(k, EMPTY_COLUMN));
+            cir.setReturnValue(new NoiseColumn(k, new BlockState[0]));
         }
     }
 
-    @Inject(method = "buildSurface", at = @At("HEAD"), cancellable = true)
-    private void preBuildSurface(WorldGenRegion worldGenRegion, StructureManager structureFeatureManager, ChunkAccess chunkAccess, CallbackInfo ci) {
+    @Inject(method = "buildSurface(Lnet/minecraft/server/level/WorldGenRegion;Lnet/minecraft/world/level/StructureManager;Lnet/minecraft/world/level/levelgen/RandomState;Lnet/minecraft/world/level/chunk/ChunkAccess;)V", at = @At("HEAD"), cancellable = true)
+    private void preBuildSurface(WorldGenRegion worldGenRegion, StructureManager structureManager, RandomState randomState, ChunkAccess chunkAccess, CallbackInfo ci) {
         final ChunkPos chunkPos = chunkAccess.getPos();
         if (VS2ChunkAllocator.INSTANCE.isChunkInShipyardCompanion(chunkPos.x, chunkPos.z)) {
             ci.cancel();

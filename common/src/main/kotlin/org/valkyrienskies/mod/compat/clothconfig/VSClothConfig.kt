@@ -14,7 +14,6 @@ import net.minecraft.ChatFormatting.GRAY
 import net.minecraft.ChatFormatting.ITALIC
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
-import net.minecraft.network.chat.TextComponent
 import org.apache.commons.lang3.StringUtils
 import org.valkyrienskies.core.impl.config.SidedVSConfigClass
 import org.valkyrienskies.core.impl.config.VSConfigClass
@@ -31,7 +30,7 @@ object VSClothConfig {
             configClasses.forEach { configClass ->
                 configClass.sides.forEach { side ->
                     val name = if (configClasses.size == 1) side.sideName else "${configClass.name} - ${side.sideName}"
-                    addEntriesForConfig(getOrCreateCategory(TextComponent(name)), ::entryBuilder, side)
+                    addEntriesForConfig(getOrCreateCategory(Component.literal(name)), ::entryBuilder, side)
                 }
             }
             savingRunnable = Runnable {
@@ -87,12 +86,12 @@ object VSClothConfig {
         val description: String? = schema["description"]?.asText()
         val title: String = schema["title"]?.asText(null) ?: key.splitCamelCaseAndCapitalize()
 
-        val titleComponent = TextComponent(title)
+        val titleComponent = Component.literal(title)
 
         fun getValidationMessageComponent(value: JsonNode): Optional<Component> {
             val errors = validate(value)
             return if (errors.isNotEmpty()) {
-                Optional.of(TextComponent(errors.joinToString()))
+                Optional.of(Component.literal(errors.joinToString()))
             } else {
                 Optional.empty()
             }
@@ -109,7 +108,7 @@ object VSClothConfig {
         val enum: ArrayNode? = schema["enum"] as? ArrayNode
 
         val type = schema["type"].asText()
-        val tooltip: TextComponent? = null
+        val tooltip: Component? = null
 
         when {
             type == "integer" -> {
@@ -241,7 +240,7 @@ object VSClothConfig {
                             val newValue = try {
                                 mapper.readTree(str)
                             } catch (ex: JsonProcessingException) {
-                                return@setErrorSupplier Optional.of(TextComponent(ex.message))
+                                return@setErrorSupplier Optional.of(Component.literal(ex.message))
                             }
 
                             getValidationMessageComponent(newValue)
@@ -252,7 +251,7 @@ object VSClothConfig {
         }
 
         if (description != null) {
-            entries.add(entryBuilder().startTextDescription(TextComponent(description).withStyle(GRAY, ITALIC)).build())
+            entries.add(entryBuilder().startTextDescription(Component.literal(description).withStyle(GRAY, ITALIC)).build())
         }
 
         return entries

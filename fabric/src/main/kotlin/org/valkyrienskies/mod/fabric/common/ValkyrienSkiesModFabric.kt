@@ -4,7 +4,7 @@ import net.fabricmc.api.EnvType
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry
-import net.fabricmc.fabric.api.command.v1.CommandRegistrationCallback
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents
 import net.fabricmc.fabric.api.`object`.builder.v1.block.entity.FabricBlockEntityTypeBuilder
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener
@@ -143,7 +143,7 @@ class ValkyrienSkiesModFabric : ModInitializer {
             ValkyrienSkiesMod.TEST_HINGE_BLOCK_ENTITY_TYPE
         )
 
-        CommandRegistrationCallback.EVENT.register { dispatcher, _ ->
+        CommandRegistrationCallback.EVENT.register { dispatcher ,d, _ ->
             VSCommands.registerServerCommands(dispatcher)
         }
 

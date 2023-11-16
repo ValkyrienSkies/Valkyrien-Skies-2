@@ -1,13 +1,11 @@
 package org.valkyrienskies.mod.mixin.mod_compat.create.cannons;
 
-import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Mixin;
@@ -33,13 +31,13 @@ public abstract class MixinCannonMount extends KineticBlockEntity implements Con
     public MixinCannonMount(BlockEntityType<?> typeIn, BlockPos pos, BlockState state) {
         super(typeIn, pos, state);
     }
-/* TODO
+
+    /*TODO?
     @Override
     public void cacheRecoilVector(Vec3 vector, AbstractContraptionEntity cannon) {
         recoilVec = VectorConversionsMCKt.toJOML(vector);
     }
-
- */
+     */
 
     @Unique
     private void handleAssembly() {
@@ -151,3 +149,4 @@ public abstract class MixinCannonMount extends KineticBlockEntity implements Con
     }
 
 }
+

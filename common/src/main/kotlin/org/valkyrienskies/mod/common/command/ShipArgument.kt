@@ -8,8 +8,8 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException
 import com.mojang.brigadier.suggestion.Suggestions
 import com.mojang.brigadier.suggestion.SuggestionsBuilder
 import net.minecraft.commands.CommandRuntimeException
-import net.minecraft.commands.synchronization.ArgumentSerializer
 import net.minecraft.network.FriendlyByteBuf
+import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.Component.translatable
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.mod.mixinducks.feature.command.VSCommandSource
@@ -24,14 +24,7 @@ class ShipArgument private constructor(val selectorOnly: Boolean) : ArgumentType
         val reader = StringReader(builder.input)
         reader.cursor = builder.start
 
-        // This can be a valid ship argument in the following cases:
-        // * The reader is empty, so we can suggest @v
-        // * The reader is only 1 character long, and is "@", so we can suggest @v
-        // * The reader is 2 characters long, and is "@v", so we can suggest @v
-        var canThisBeShipArgument = !reader.canRead() || (reader.canRead() && reader.peek() == '@')
-        if (reader.canRead(2)) {
-            canThisBeShipArgument = canThisBeShipArgument && reader.peek(1) == 'v'
-        }
+        val startsWithAt = reader.canRead() && reader.peek() == '@'
 
         val parser = ShipArgumentParser(context.source as VSCommandSource, selectorOnly)
 
@@ -42,15 +35,14 @@ class ShipArgument private constructor(val selectorOnly: Boolean) : ArgumentType
         }
 
         // Reset cursor to fix suggestions
-        if (!canThisBeShipArgument) {
-            // Don't suggest a ship argument if the contents of reader cannot be a ship argument
+        if (!startsWithAt) {
             reader.cursor = builder.start
-            super.listSuggestions(context, builder)
-        } else {
-            val nBuilder = builder.createOffset(reader.cursor)
-            parser.suggestionProvider(nBuilder)
-            nBuilder.buildFuture()
         }
+
+        val nBuilder = builder.createOffset(reader.cursor)
+        parser.suggestionProvider(nBuilder)
+
+        nBuilder.buildFuture()
     } else super.listSuggestions(context, builder)
 
     override fun parse(reader: StringReader): ShipSelector =
@@ -98,18 +90,4 @@ class ShipArgument private constructor(val selectorOnly: Boolean) : ArgumentType
     }
 
     override fun getExamples(): Collection<String> = EXAMPLES
-
-    object Serializer : ArgumentSerializer<ShipArgument> {
-        override fun serializeToNetwork(arg: ShipArgument, buf: FriendlyByteBuf) {
-            buf.writeBoolean(arg.selectorOnly)
-        }
-
-        override fun deserializeFromNetwork(buf: FriendlyByteBuf): ShipArgument {
-            return ShipArgument(buf.readBoolean())
-        }
-
-        override fun serializeToJson(arg: ShipArgument, json: JsonObject) {
-            json.addProperty("selectorOnly", arg.selectorOnly)
-        }
-    }
 }

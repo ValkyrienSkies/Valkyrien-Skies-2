@@ -41,6 +41,7 @@ dependencies {
     include(modImplementation("me.shedaniel.cloth:cloth-config-fabric:6.3.81"))
 
     modImplementation("maven.modrinth:sodium:mc1.19.2-0.4.4")
+    modRuntimeOnly("maven.modrinth:indium:1.0.9+mc1.19.2")
     modImplementation("maven.modrinth:modmenu:4.2.0-beta.2")
 
     // Depend on the fabric API
@@ -61,7 +62,7 @@ dependencies {
     }
 
     // CC Restitched
-    //modImplementation("curse.maven:cc-restitched-462672:3838648")
+    modImplementation("maven.modrinth:cc-restitched:1.101.2+1.19.1")
 
     // Create compat
     modImplementation("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}") {
@@ -70,14 +71,8 @@ dependencies {
     modImplementation("com.jozufozu.flywheel:flywheel-fabric-${minecraft_version}:${flywheel_version_fabric}")
     modImplementation("com.tterrag.registrate_fabric:Registrate:${registrate_version}")
 
-    //https://mvn.devos.one/snapshots/io/github/fabricators_of_create/Porting-Lib/2.1.1096+1.19.2/Porting-Lib-2.1.1096+1.19.2.pom
-    //https://mvn.devos.one/snapshots/io/github/fabricators_of_create/Porting-Lib/Porting-Lib/2.1.1096+1.19.2/Porting-Lib-2.1.1096+1.19.2.pom
+    modImplementation("io.github.fabricators_of_create.Porting-Lib:Porting-Lib:$port_lib_version+$minecraft_version")
 
-    for (String module in port_lib_modules.split(",")) {
-        modImplementation("io.github.fabricators_of_create.Porting-Lib:$module:$port_lib_version+$minecraft_version")
-    }
-
-    //modImplementation("io.github.fabricators_of_create:Porting-Lib:Porting-Lib:${port_lib_version}+${minecraft_version}")
     modImplementation("me.alphamode:ForgeTags:${forge_tags_version}")
     modImplementation("net.minecraftforge:forgeconfigapiport-fabric:${forge_config_api_port_version}")
     modImplementation("com.jamieswhiteshirt:reach-entity-attributes:${reach_entity_attributes_version}")
