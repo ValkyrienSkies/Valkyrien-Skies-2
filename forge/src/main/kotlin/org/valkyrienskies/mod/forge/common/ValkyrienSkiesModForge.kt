@@ -11,9 +11,9 @@ import net.minecraft.world.item.Item
 import net.minecraft.world.item.Item.Properties
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.entity.BlockEntityType
-import net.minecraftforge.client.ClientRegistry
-import net.minecraftforge.client.ConfigGuiHandler.ConfigGuiFactory
+import net.minecraftforge.client.ConfigScreenHandler
 import net.minecraftforge.client.event.EntityRenderersEvent
+import net.minecraftforge.client.event.RegisterKeyMappingsEvent
 import net.minecraftforge.event.AddReloadListenerEvent
 import net.minecraftforge.event.RegisterCommandsEvent
 import net.minecraftforge.event.TagsUpdatedEvent
@@ -56,8 +56,8 @@ import org.valkyrienskies.mod.compat.clothconfig.VSClothConfig
 class ValkyrienSkiesModForge {
     private val BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, ValkyrienSkiesMod.MOD_ID)
     private val ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, ValkyrienSkiesMod.MOD_ID)
-    private val ENTITIES = DeferredRegister.create(ForgeRegistries.ENTITIES, ValkyrienSkiesMod.MOD_ID)
-    private val BLOCK_ENTITIES = DeferredRegister.create(ForgeRegistries.BLOCK_ENTITIES, ValkyrienSkiesMod.MOD_ID)
+    private val ENTITIES = DeferredRegister.create(ForgeRegistries.ENTITY_TYPES, ValkyrienSkiesMod.MOD_ID)
+    private val BLOCK_ENTITIES = DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES, ValkyrienSkiesMod.MOD_ID)
     private val TEST_CHAIR_REGISTRY: RegistryObject<Block>
     private val TEST_HINGE_REGISTRY: RegistryObject<Block>
     private val TEST_FLAP_REGISTRY: RegistryObject<Block>
@@ -91,16 +91,18 @@ class ValkyrienSkiesModForge {
         ITEMS.register(modBus)
         ENTITIES.register(modBus)
         BLOCK_ENTITIES.register(modBus)
-        modBus.addListener(::clientSetup)
-        modBus.addListener(::entityRenderers)
+        if (isClient) {
+            modBus.addListener(::registerKeyBindings)
+            modBus.addListener(::entityRenderers)
+        }
         modBus.addListener(::loadComplete)
 
         forgeBus.addListener(::registerCommands)
         forgeBus.addListener(::tagsUpdated)
         forgeBus.addListener(::registerResourceManagers)
 
-        ModLoadingContext.get().registerExtensionPoint(ConfigGuiFactory::class.java) {
-            ConfigGuiFactory { _, parent ->
+        ModLoadingContext.get().registerExtensionPoint(ConfigScreenHandler.ConfigScreenFactory::class.java) {
+            ConfigScreenHandler.ConfigScreenFactory { _, parent ->
                 VSClothConfig.createConfigScreenFor(
                     parent,
                     VSConfigClass.getRegisteredConfig(VSCoreConfig::class.java),
@@ -166,9 +168,9 @@ class ValkyrienSkiesModForge {
         event.addListener(VSEntityHandlerDataLoader)
     }
 
-    private fun clientSetup(event: FMLClientSetupEvent) {
+    private fun registerKeyBindings(event: RegisterKeyMappingsEvent) {
         VSKeyBindings.clientSetup {
-            ClientRegistry.registerKeyBinding(it)
+            event.register(it)
         }
     }
 
@@ -186,7 +188,7 @@ class ValkyrienSkiesModForge {
     private fun registerCommands(event: RegisterCommandsEvent) {
         VSCommands.registerServerCommands(event.dispatcher)
 
-        if (event.environment == ALL || event.environment == INTEGRATED) {
+        if (event.commandSelection == ALL || event.commandSelection == INTEGRATED) {
             VSCommands.registerClientCommands(event.dispatcher)
         }
     }

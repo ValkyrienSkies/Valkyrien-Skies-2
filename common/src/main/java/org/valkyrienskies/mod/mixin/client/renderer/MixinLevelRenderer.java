@@ -2,43 +2,35 @@ package org.valkyrienskies.mod.mixin.client.renderer;
 
 import static org.valkyrienskies.mod.common.VSClientGameUtils.transformRenderWithShip;
 
-import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
-import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.SheetedDecalTextureGenerator;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.math.Matrix3f;
-import com.mojang.math.Matrix4f;
-import net.minecraft.client.Camera;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
-import net.minecraft.client.renderer.LightTexture;
-import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Constant;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyConstant;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
-import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.mixin.accessors.client.render.OverlayVertexConsumerAccessor;
 
 @Mixin(LevelRenderer.class)
 public abstract class MixinLevelRenderer {
 
     @Shadow
     private ClientLevel level;
+
+    @Unique private PoseStack matrixStack;
+    @Unique private Vec3 camera;
 
     @Shadow
     private static void renderShape(final PoseStack matrixStack, final VertexConsumer vertexConsumer,
@@ -88,17 +80,17 @@ public abstract class MixinLevelRenderer {
         }
     }
 
+
     /**
      * This mixin makes block damage render on ships.
      */
+    /*
     @WrapOperation(method = "renderLevel", at = @At(value = "INVOKE",
         target = "Lnet/minecraft/client/renderer/block/BlockRenderDispatcher;renderBreakingTexture(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/BlockAndTintGetter;Lcom/mojang/blaze3d/vertex/PoseStack;Lcom/mojang/blaze3d/vertex/VertexConsumer;)V"))
     private void renderBlockDamage(final BlockRenderDispatcher blockRenderManager, final BlockState state,
         final BlockPos blockPos, final BlockAndTintGetter blockRenderWorld, final PoseStack matrix,
-        final VertexConsumer vertexConsumer, final Operation<Void> renderBreakingTexture, final PoseStack matrixStack,
-        final float methodTickDelta, final long methodLimitTime, final boolean methodRenderBlockOutline,
-        final Camera methodCamera, final GameRenderer methodGameRenderer,
-        final LightTexture methodLightmapTextureManager, final Matrix4f methodMatrix4f) {
+        final VertexConsumer vertexConsumer, final Operation<Void> renderBreakingTexture) {
+
 
         final ClientShip ship = VSGameUtilsKt.getShipObjectManagingPos(level, blockPos);
         if (ship != null) {
@@ -130,5 +122,7 @@ public abstract class MixinLevelRenderer {
             renderBreakingTexture.call(blockRenderManager, state, blockPos, blockRenderWorld, matrix, vertexConsumer);
         }
     }
+
+     */
 
 }
