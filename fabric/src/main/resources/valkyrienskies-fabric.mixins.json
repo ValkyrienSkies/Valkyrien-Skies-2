@@ -12,7 +12,8 @@
     "compat.create.MixinControlledContraptionEntity",
     "compat.sodium.MixinRenderSectionManager",
     "feature.explosions.ClipContextMixin",
-    "world.level.block.FireMixin"
+    "world.level.block.FireMixin",
+    "server.network.MixinServerPlayerGameMode"
   ],
   "client": [
     "compat.create.client.MixinContraptionHandlerClient",

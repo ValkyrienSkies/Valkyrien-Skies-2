@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.forge.common
 import net.minecraft.commands.Commands.CommandSelection.ALL
 import net.minecraft.commands.Commands.CommandSelection.INTEGRATED
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.server.level.ServerPlayerGameMode
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MobCategory
 import net.minecraft.world.item.BlockItem
@@ -17,6 +18,8 @@ import net.minecraftforge.client.event.RegisterKeyMappingsEvent
 import net.minecraftforge.event.AddReloadListenerEvent
 import net.minecraftforge.event.RegisterCommandsEvent
 import net.minecraftforge.event.TagsUpdatedEvent
+import net.minecraftforge.event.entity.player.PlayerInteractEvent
+import net.minecraftforge.event.entity.player.PlayerInteractEvent.LeftClickBlock
 import net.minecraftforge.fml.ModLoadingContext
 import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus
@@ -99,6 +102,7 @@ class ValkyrienSkiesModForge {
 
         forgeBus.addListener(::registerCommands)
         forgeBus.addListener(::tagsUpdated)
+        forgeBus.addListener(::leftClickEvent)
         forgeBus.addListener(::registerResourceManagers)
 
         ModLoadingContext.get().registerExtensionPoint(ConfigScreenHandler.ConfigScreenFactory::class.java) {
@@ -195,6 +199,10 @@ class ValkyrienSkiesModForge {
 
     private fun tagsUpdated(event: TagsUpdatedEvent) {
         VSGameEvents.tagsAreLoaded.emit(Unit)
+    }
+
+    private fun leftClickEvent(event: PlayerInteractEvent.LeftClickBlock){
+
     }
 
     private fun loadComplete(event: FMLLoadCompleteEvent) {

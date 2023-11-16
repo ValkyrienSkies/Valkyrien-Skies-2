@@ -94,7 +94,6 @@
     "server.command.MixinCommands",
     "server.command.level.MixinServerPlayer",
     "server.network.MixinServerGamePacketListenerImpl",
-    "server.network.MixinServerPlayerGameMode",
     "server.world.MixinChunkMap",
     "server.world.MixinChunkMap$TrackedEntity",
     "server.world.MixinServerLevel",
