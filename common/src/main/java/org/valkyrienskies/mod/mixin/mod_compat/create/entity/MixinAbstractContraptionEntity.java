@@ -7,6 +7,7 @@ import com.simibubi.create.AllMovementBehaviours;
 import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
 import com.simibubi.create.content.contraptions.Contraption;
 import com.simibubi.create.content.contraptions.OrientedContraptionEntity;
+import com.simibubi.create.content.contraptions.StructureTransform;
 import com.simibubi.create.content.contraptions.actors.harvester.HarvesterMovementBehaviour;
 import com.simibubi.create.content.contraptions.actors.seat.SeatEntity;
 import com.simibubi.create.content.contraptions.behaviour.MovementBehaviour;
@@ -58,6 +59,11 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
 
     public MixinAbstractContraptionEntity(EntityType<?> entityType, Level level) {
         super(entityType, level);
+    }
+
+    @Override
+    public StructureTransform getStructureTransform() {
+        return makeStructureTransform();
     }
 
     @Unique
@@ -189,6 +195,9 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
 
     @Shadow
     protected abstract void onContraptionStalled();
+
+    @Shadow
+    protected abstract StructureTransform makeStructureTransform();
 
     @Inject(method = "tickActors", at = @At("HEAD"), cancellable = true, remap = false)
     private void preTickActors(final CallbackInfo ci) {
