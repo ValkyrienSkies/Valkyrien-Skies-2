@@ -7,6 +7,7 @@ import com.simibubi.create.AllMovementBehaviours;
 import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
 import com.simibubi.create.content.contraptions.Contraption;
 import com.simibubi.create.content.contraptions.OrientedContraptionEntity;
+import com.simibubi.create.content.contraptions.StructureTransform;
 import com.simibubi.create.content.contraptions.actors.harvester.HarvesterMovementBehaviour;
 import com.simibubi.create.content.contraptions.actors.seat.SeatEntity;
 import com.simibubi.create.content.contraptions.behaviour.MovementBehaviour;
@@ -58,6 +59,13 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
 
     public MixinAbstractContraptionEntity(EntityType<?> entityType, Level level) {
         super(entityType, level);
+    }
+
+    @Shadow
+    protected abstract StructureTransform makeStructureTransform();
+
+    public StructureTransform getStructureTransform() {
+        return this.makeStructureTransform();
     }
 
     @Unique
