@@ -64,7 +64,7 @@ dependencies {
         transitive = false
     }
 
-    modCompileOnly("curse.maven:rubidium-574856:4024781")
+    modCompileOnly("maven.modrinth:rubidium:${rubidium_version}")
 
     // Create compat
     modImplementation("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") { transitive = false }
@@ -72,18 +72,16 @@ dependencies {
     modImplementation("com.tterrag.registrate:Registrate:${registrate_version}")
 
     // CC Tweaked
-    modCompileOnly("curse.maven:cc-tweaked-282001:4061947")
+    modCompileOnly("maven.modrinth:cc-tweaked:${cc_tweaked_version}")
 
     // TIS-3d
-    modCompileOnly("curse.maven:tis3d-238603:3738437")
-    //modImplementation("curse.maven:tis3d-238603:3738437")
-    //modImplementation("curse.maven:markdownmanual-502485:3738124")
+    modCompileOnly("maven.modrinth:tis3d:${tis3d_version}")
 
     // Add Kotlin for Forge (3.12.0)
-    forgeRuntimeLibrary('curse.maven:kotlinforforge-351264:4513187')
+    forgeRuntimeLibrary("maven.modrinth:kotlin-for-forge:${kotlin_version}")
 
     // Cloth for config
-    include(modImplementation("me.shedaniel.cloth:cloth-config-forge:8.3.103"))
+    include(modImplementation("me.shedaniel.cloth:cloth-config-forge:${cloth_config_version}"))
 
     // Shade vs-core
     implementation("org.valkyrienskies.core:impl:${rootProject.vs_core_version}")

@@ -37,12 +37,12 @@ dependencies {
     }
 
     // Depend on the fabric kotlin mod
-    include(modImplementation("net.fabricmc:fabric-language-kotlin:1.10.10+kotlin.1.9.10"))
-    include(modImplementation("me.shedaniel.cloth:cloth-config-fabric:6.3.81"))
+    include(modImplementation("net.fabricmc:fabric-language-kotlin:${kotlin_fabric_version}"))
+    include(modImplementation("me.shedaniel.cloth:cloth-config-fabric:${cloth_config_version}"))
 
-    modImplementation("maven.modrinth:sodium:mc1.19.2-0.4.4")
-    modRuntimeOnly("maven.modrinth:indium:1.0.9+mc1.19.2")
-    modImplementation("maven.modrinth:modmenu:4.2.0-beta.2")
+    modImplementation("maven.modrinth:sodium:${sodium_version}")
+    modRuntimeOnly("maven.modrinth:indium:${indium_version}")
+    modImplementation("maven.modrinth:modmenu:${modmenu_version}")
 
     // Depend on the fabric API
     modImplementation("net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}")
@@ -62,7 +62,7 @@ dependencies {
     }
 
     // CC Restitched
-    modImplementation("maven.modrinth:cc-restitched:1.101.2+1.19.1")
+    modImplementation("maven.modrinth:cc-restitched:${cc_restitched_version}")
 
     // Create compat
     modImplementation("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}") {

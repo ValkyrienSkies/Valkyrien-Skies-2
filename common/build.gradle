@@ -7,10 +7,9 @@ dependencies {
     // Do NOT use other classes from fabric loader
     modImplementation "net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}"
 
-    modApi("me.shedaniel.cloth:cloth-config:8.3.103")
-    //modApi "me.shedaniel.cloth:cloth-config-fabric:8.3.103"
+    modApi("me.shedaniel.cloth:cloth-config:${cloth_config_version}")
 
-    modCompileOnly("maven.modrinth:sodium:mc1.19.2-0.4.4")
+    modCompileOnly("maven.modrinth:sodium:${sodium_version}")
 
     // vs-core
     implementation("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {

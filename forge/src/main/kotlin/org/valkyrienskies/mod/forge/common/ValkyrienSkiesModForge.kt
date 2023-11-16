@@ -102,7 +102,6 @@ class ValkyrienSkiesModForge {
 
         forgeBus.addListener(::registerCommands)
         forgeBus.addListener(::tagsUpdated)
-        forgeBus.addListener(::leftClickEvent)
         forgeBus.addListener(::registerResourceManagers)
 
         ModLoadingContext.get().registerExtensionPoint(ConfigScreenHandler.ConfigScreenFactory::class.java) {
@@ -199,10 +198,6 @@ class ValkyrienSkiesModForge {
 
     private fun tagsUpdated(event: TagsUpdatedEvent) {
         VSGameEvents.tagsAreLoaded.emit(Unit)
-    }
-
-    private fun leftClickEvent(event: PlayerInteractEvent.LeftClickBlock){
-
     }
 
     private fun loadComplete(event: FMLLoadCompleteEvent) {
