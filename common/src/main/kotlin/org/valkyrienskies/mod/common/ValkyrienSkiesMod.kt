@@ -28,13 +28,9 @@ object ValkyrienSkiesMod {
     const val MOD_ID = "valkyrienskies"
 
     lateinit var TEST_CHAIR: Block
-    lateinit var TEST_CHAIR_ITEM: Item
     lateinit var TEST_HINGE: Block
-    lateinit var TEST_HINGE_ITEM: Item
     lateinit var TEST_FLAP: Block
-    lateinit var TEST_FLAP_ITEM: Item
     lateinit var TEST_WING: Block
-    lateinit var TEST_WING_ITEM: Item
     lateinit var TEST_SPHERE: Block
     lateinit var SHIP_CREATOR_ITEM: Item
     lateinit var SHIP_ASSEMBLER_ITEM: Item
@@ -74,10 +70,10 @@ object ValkyrienSkiesMod {
             .title(Component.translatable("itemGroup.valkyrienSkies"))
             .icon { ItemStack(SHIP_CREATOR_ITEM) }
             .displayItems { _, output ->
-                output.accept(TEST_CHAIR_ITEM)
-                output.accept(TEST_HINGE_ITEM)
-                output.accept(TEST_FLAP_ITEM)
-                output.accept(TEST_WING_ITEM)
+                output.accept(TEST_CHAIR.asItem())
+                output.accept(TEST_HINGE.asItem())
+                output.accept(TEST_FLAP.asItem())
+                output.accept(TEST_WING.asItem())
                 output.accept(SHIP_CREATOR_ITEM)
                 output.accept(SHIP_ASSEMBLER_ITEM)
                 output.accept(SHIP_CREATOR_ITEM_SMALLER)
