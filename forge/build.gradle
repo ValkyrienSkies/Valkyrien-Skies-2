@@ -64,7 +64,8 @@ dependencies {
         transitive = false
     }
 
-    modCompileOnly("maven.modrinth:rubidium:${rubidium_version}")
+    //modCompileOnly("curse.maven:rubidium-574856:4024781")
+    modCompileOnly("maven.modrinth:embeddium:${embeddium_version}")
 
     // Create compat
     modImplementation("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") { transitive = false }

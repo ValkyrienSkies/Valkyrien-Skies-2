@@ -13,7 +13,8 @@
     "compat.sodium.MixinRenderSectionManager",
     "feature.explosions.ClipContextMixin",
     "world.level.block.FireMixin",
-    "server.network.MixinServerPlayerGameMode"
+    "server.network.MixinServerPlayerGameMode",
+    "server.network.MixinServerGamePacketListenerImpl"
   ],
   "client": [
     "compat.create.client.MixinContraptionHandlerClient",
