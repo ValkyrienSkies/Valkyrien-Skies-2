@@ -33,4 +33,8 @@ object VSKeyBindings {
     fun clientSetup(registerar: Consumer<KeyMapping>) {
         toBeRegistered.forEach { it.accept(registerar) }
     }
+
+    fun isKeyMappingFromVS2(keyMapping: KeyMapping): Boolean {
+        return keyMapping.name.startsWith("key.valkyrienskies")
+    }
 }

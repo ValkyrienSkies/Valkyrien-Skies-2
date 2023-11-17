@@ -27,13 +27,13 @@ public class MixinFlowingFluid {
 
         if (VSGameConfig.SERVER.getPreventFluidEscapingShip() && level instanceof Level) {
             final Ship ship = VSGameUtilsKt.getShipManagingPos((Level) level, toPos);
-            if (ship != null && ship.getShipVoxelAABB() != null) {
-                final AABBic a = ship.getShipVoxelAABB();
+            if (ship != null && ship.getShipAABB() != null) {
+                final AABBic a = ship.getShipAABB();
                 final int x = toPos.getX();
                 final int y = toPos.getY();
                 final int z = toPos.getZ();
 
-                if (x <= a.minX() || y < a.minY() || z <= a.minZ() || x >= a.maxX() || y >= a.maxY() || z >= a.maxZ()) {
+                if (x < a.minX() || y < a.minY() || z < a.minZ() || x >= a.maxX() || y >= a.maxY() || z >= a.maxZ()) {
                     cir.setReturnValue(false);
                 }
             }

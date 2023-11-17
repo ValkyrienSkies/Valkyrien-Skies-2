@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.forge.mixin.compat.create.client;
 
+/*
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.simibubi.create.foundation.blockEntity.behaviour.ValueBox;
 import org.spongepowered.asm.mixin.Mixin;
@@ -21,3 +22,4 @@ public class MixinValueBox {
         VSClientGameUtils.transformRenderIfInShipyard(instance, x, y, z);
     }
 }
+*/

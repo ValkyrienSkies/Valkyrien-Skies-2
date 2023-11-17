@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.feature.water_in_ships_entity;
+package org.valkyrienskies.mod.fabric.mixin.feature.water_in_ships_entity;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;

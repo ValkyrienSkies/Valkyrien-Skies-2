@@ -24,7 +24,7 @@ public abstract class MixinLevel implements DimensionIdProvider {
         if (vsDimensionIdCached == null) {
             final ResourceKey<Level> dim = dimension();
             vsDimensionIdCached =
-                ((ResourceKeyAccessor) dim).getRegistryName().toString() + ":" + dim.location().toString();
+                ((ResourceKeyAccessor) dim).getRegistryName().toString() + ":" + dim.location();
         }
         return vsDimensionIdCached;
     }
