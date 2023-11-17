@@ -115,6 +115,7 @@ dependencies {
     forgeRuntimeLibrary include("javax.inject:javax.inject:1") { transitive = false }
 
     // JOML for Math
+    forgeRuntimeLibrary include("org.joml:joml:1.10.4") { transitive = false }
     forgeRuntimeLibrary include("org.joml:joml-primitives:1.10.0") { transitive = false }
 
     // Apache Commons Math for Linear Programming
