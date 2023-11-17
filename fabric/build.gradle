@@ -62,7 +62,7 @@ dependencies {
     }
 
     // CC Restitched
-    modImplementation("maven.modrinth:cc-tweaked:${cc_tweaked_version}")
+    //modImplementation("curse.maven:cc-tweaked-282001:${cc_tweaked_version}")
 
     // Create compat
     modImplementation("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}") {
@@ -71,9 +71,12 @@ dependencies {
     modImplementation("com.jozufozu.flywheel:flywheel-fabric-${minecraft_version}:${flywheel_version_fabric}")
     modImplementation("com.tterrag.registrate_fabric:Registrate:${registrate_version}")
 
-    modImplementation("io.github.fabricators_of_create.Porting-Lib:Porting-Lib:$port_lib_version")
+    //modImplementation("io.github.fabricators_of_create.Porting-Lib:Porting-Lib:$port_lib_version")
+    for (String module in port_lib_modules.split(",")) {
+        modImplementation("io.github.fabricators_of_create.Porting-Lib:$module:$port_lib_version")
+    }
 
-    modImplementation("me.alphamode:ForgeTags:${forge_tags_version}")
+    //modImplementation("me.alphamode:ForgeTags:${forge_tags_version}")
     modImplementation("net.minecraftforge:forgeconfigapiport-fabric:${forge_config_api_port_version}")
     modImplementation("com.jamieswhiteshirt:reach-entity-attributes:${reach_entity_attributes_version}")
     modImplementation("dev.cafeteria:fake-player-api:${fake_player_api_version}")
