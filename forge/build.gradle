@@ -85,37 +85,45 @@ dependencies {
     include(modImplementation("me.shedaniel.cloth:cloth-config-forge:${cloth_config_version}"))
 
     // Shade vs-core
-    implementation("org.valkyrienskies.core:impl:${rootProject.vs_core_version}")
+    implementation("org.valkyrienskies.core:impl:${rootProject.vs_core_version}"){
+        exclude group: 'org.joml', module: 'joml'
+    }
     forgeRuntimeLibrary shadowCommon("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
+        exclude group: 'org.joml', module: 'joml'
         transitive = false
     }
 
 
     // region Manually include every single dependency of vs-core (total meme)
     forgeRuntimeLibrary include("org.valkyrienskies.core:api:${rootProject.vs_core_version}") {
+        exclude group: 'org.joml', module: 'joml'
         transitive = false
     }
 
     forgeRuntimeLibrary shadowCommon("org.valkyrienskies.core:api-game:${rootProject.vs_core_version}") {
+        exclude group: 'org.joml', module: 'joml'
         transitive = false
     }
 
     forgeRuntimeLibrary include("org.valkyrienskies.core:util:${rootProject.vs_core_version}") {
+        exclude group: 'org.joml', module: 'joml'
         transitive = false
     }
 
     forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api_krunch:1.0.0+10c94b01e2") {
+        exclude group: 'org.joml', module: 'joml'
         transitive = false
     }
 
     forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api:1.0.0+94304c13aa") {
+        exclude group: 'org.joml', module: 'joml'
         transitive = false
     }
 
     forgeRuntimeLibrary include("javax.inject:javax.inject:1") { transitive = false }
 
     // JOML for Math
-    forgeRuntimeLibrary include("org.joml:joml-primitives:1.10.0") { transitive = false }
+    forgeRuntimeLibrary include("org.joml:joml-primitives:1.10.0")
 
     // Apache Commons Math for Linear Programming
     forgeRuntimeLibrary include("org.apache.commons:commons-math3:3.6.1") { transitive = false }
