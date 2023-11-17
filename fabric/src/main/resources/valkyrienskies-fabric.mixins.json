@@ -12,17 +12,20 @@
     "compat.create.MixinControlledContraptionEntity",
     "compat.sodium.MixinRenderSectionManager",
     "feature.explosions.ClipContextMixin",
-    "world.level.block.FireMixin",
+    "server.network.MixinServerGamePacketListenerImpl",
     "server.network.MixinServerPlayerGameMode",
-    "server.network.MixinServerGamePacketListenerImpl"
+    "world.level.block.FireMixin"
   ],
   "client": [
+    "client.render.MixinLevelRenderer",
     "compat.create.client.MixinContraptionHandlerClient",
     "compat.create.client.MixinContraptionRenderInfo",
     "compat.create.client.MixinCullingBlockEntityIterator",
     "compat.create.client.MixinFlwContraption",
     "compat.create.client.MixinSuperGlueSelectionHandler",
-    "compat.create.client.MixinValueBox"
+    "compat.create.client.MixinValueBox",
+    "feature.duplicate_keybindings.KeyMappingAccessor",
+    "feature.duplicate_keybindings.MixinKeyMapping"
   ],
   "injectors": {
     "defaultRequire": 1

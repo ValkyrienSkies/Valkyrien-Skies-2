@@ -113,6 +113,7 @@
     "accessors.client.world.ClientChunkCacheStorageAccessor",
     "client.MixinCamera",
     "client.MixinMinecraft",
+    "client.gui.screens.MixinConnectScreen",
     "client.multiplayer.MixinClientPacketListener",
     "client.player.MixinLocalPlayer",
     "client.player.MixinPlayer",
@@ -172,7 +173,8 @@
     "mod_compat.sound_physics_remastered.MixinSoundPhysics",
     "mod_compat.vanilla_renderer.MixinLevelRendererVanilla",
     "mod_compat.vanilla_renderer.MixinViewAreaVanilla",
-    "mod_compat.vanilla_renderer.RenderChunkInfoAccessor"
+    "mod_compat.vanilla_renderer.RenderChunkInfoAccessor",
+    "realms.MixinRealmsConnect"
   ],
   "injectors": {
     "defaultRequire": 1
