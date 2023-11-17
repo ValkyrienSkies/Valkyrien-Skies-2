@@ -61,7 +61,7 @@ dependencies {
         exclude module: "jsonschema.module.addon"
     }
 
-    // CC Restitched
+    // CC Restitchedget
     modImplementation("maven.modrinth:cc-restitched:${cc_restitched_version}")
 
     // Create compat
@@ -73,7 +73,7 @@ dependencies {
 
     modImplementation("io.github.fabricators_of_create.Porting-Lib:Porting-Lib:$port_lib_version+$minecraft_version")
 
-    modImplementation("me.alphamode:ForgeTags:${forge_tags_version}")
+    //modImplementation("me.alphamode:ForgeTags:${forge_tags_version}")
     modImplementation("net.minecraftforge:forgeconfigapiport-fabric:${forge_config_api_port_version}")
     modImplementation("com.jamieswhiteshirt:reach-entity-attributes:${reach_entity_attributes_version}")
     modImplementation("dev.cafeteria:fake-player-api:${fake_player_api_version}")
