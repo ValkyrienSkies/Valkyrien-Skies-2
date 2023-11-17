@@ -1,6 +1,6 @@
 package org.valkyrienskies.mod.forge.mixin.compat.tis3d;
 
-/*
+
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import li.cil.tis3d.common.entity.InfraredPacketEntity;
@@ -32,4 +32,4 @@ public class MixinInfraredPacketEntity {
             new Tis3dClipContext(start, target, Block.VISUAL, Fluid.ANY, null));
     }
 }
-*/
+
