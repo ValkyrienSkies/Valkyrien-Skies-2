@@ -51,4 +51,17 @@ public class MixinRenderChunk {
             cir.setReturnValue(relDistanceSq);
         }
     }
+
+    // This fixes ship blocks not rendering for some reason...
+    @Inject(method = "hasAllNeighbors", at = @At("HEAD"), cancellable = true)
+    private void preHasAllNeighbors(final CallbackInfoReturnable<Boolean> cir) {
+        final ClientLevel world = Minecraft.getInstance().level;
+        if (world == null) {
+            return;
+        }
+
+        if (VSGameUtilsKt.isBlockInShipyard(world, origin)) {
+            cir.setReturnValue(true);
+        }
+    }
 }

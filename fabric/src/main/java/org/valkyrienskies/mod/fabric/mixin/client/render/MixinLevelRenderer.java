@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.forge.mixin.client.render;
+package org.valkyrienskies.mod.fabric.mixin.client.render;
 
 import static org.valkyrienskies.mod.common.VSClientGameUtils.transformRenderWithShip;
 
@@ -15,41 +15,31 @@ import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
-import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.client.model.data.ModelData;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.mixin.accessors.client.render.OverlayVertexConsumerAccessor;
 
 @Mixin(LevelRenderer.class)
-public class MixinLevelRenderer {
+public abstract class MixinLevelRenderer {
     @Shadow
     private ClientLevel level;
-
-    @Redirect(method = "renderLevel", at = @At(value = "INVOKE",
-        target = "Lnet/minecraft/client/renderer/culling/Frustum;isVisible(Lnet/minecraft/world/phys/AABB;)Z"))
-    public boolean dontClipTileEntities(final Frustum receiver, final AABB aabb) {
-        return true;
-    }
 
     /**
      * This mixin makes block damage render on ships.
      */
     @WrapOperation(method = "renderLevel", at = @At(value = "INVOKE",
-        target = "Lnet/minecraft/client/renderer/block/BlockRenderDispatcher;renderBreakingTexture(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/BlockAndTintGetter;Lcom/mojang/blaze3d/vertex/PoseStack;Lcom/mojang/blaze3d/vertex/VertexConsumer;Lnet/minecraftforge/client/model/data/ModelData;)V"))
+        target = "Lnet/minecraft/client/renderer/block/BlockRenderDispatcher;renderBreakingTexture(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/BlockAndTintGetter;Lcom/mojang/blaze3d/vertex/PoseStack;Lcom/mojang/blaze3d/vertex/VertexConsumer;)V"))
     private void renderBlockDamage(final BlockRenderDispatcher blockRenderManager, final BlockState state,
         final BlockPos blockPos, final BlockAndTintGetter blockRenderWorld, final PoseStack matrix,
-        final VertexConsumer vertexConsumer, final ModelData modelData, final Operation<Void> renderBreakingTexture, final PoseStack matrixStack,
+        final VertexConsumer vertexConsumer, final Operation<Void> renderBreakingTexture, final PoseStack matrixStack,
         final float methodTickDelta, final long methodLimitTime, final boolean methodRenderBlockOutline,
         final Camera methodCamera, final GameRenderer methodGameRenderer,
         final LightTexture methodLightmapTextureManager, final Matrix4f methodMatrix4f) {
@@ -78,10 +68,10 @@ public class MixinLevelRenderer {
 
             // Finally, invoke the render damage function.
             renderBreakingTexture.call(blockRenderManager, state, blockPos, blockRenderWorld, matrix,
-                newVertexConsumer, modelData);
+                newVertexConsumer);
         } else {
             // Vanilla behavior
-            renderBreakingTexture.call(blockRenderManager, state, blockPos, blockRenderWorld, matrix, vertexConsumer, modelData);
+            renderBreakingTexture.call(blockRenderManager, state, blockPos, blockRenderWorld, matrix, vertexConsumer);
         }
     }
 }

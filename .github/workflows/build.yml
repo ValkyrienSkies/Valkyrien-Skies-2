@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - '1.18.x/*'
+      - '1.19.2/*'
   pull_request:
     types: [ opened, synchronize, reopened ]
 jobs:

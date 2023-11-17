@@ -18,7 +18,7 @@ import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.mixinducks.mod_compat.sodium.RegionChunkRendererDuck;
 
-@Mixin(value = RegionChunkRenderer.class, remap = false)
+@Mixin(value = RegionChunkRenderer.class, remap = false, priority = 1101)
 public class MixinRegionChunkRenderer implements RegionChunkRendererDuck {
 
     @Unique
@@ -27,28 +27,29 @@ public class MixinRegionChunkRenderer implements RegionChunkRendererDuck {
     @Unique
     private final Vector3d camInShip = new Vector3d();
 
-    @Redirect(
+    @WrapOperation(
         at = @At(
             value = "INVOKE",
             target = "Lme/jellysquid/mods/sodium/client/render/chunk/RenderSection;getBounds()Lme/jellysquid/mods/sodium/client/render/chunk/data/ChunkRenderBounds;"
         ),
         method = "buildDrawBatches"
     )
-    private ChunkRenderBounds injectBuildDrawBatches(final RenderSection section, final List<RenderSection> sections,
-        final BlockRenderPass pass, final ChunkCameraContext c) {
-
+    private ChunkRenderBounds injectBuildDrawBatches(
+        final RenderSection section, final Operation<ChunkRenderBounds> getBounds, final List<RenderSection> sections,
+        final BlockRenderPass pass, final ChunkCameraContext c
+    ) {
         final ClientShip ship = VSGameUtilsKt.getShipObjectManagingPos(Minecraft.getInstance().level,
             section.getChunkX(), section.getChunkZ());
 
         if (ship != null) {
             ship.getRenderTransform().getWorldToShip().transformPosition(camInWorld, camInShip);
-            final ChunkRenderBounds originalBounds = section.getBounds();
+            final ChunkRenderBounds originalBounds = getBounds.call(section);
             return new ChunkRenderBounds(originalBounds.x1 - 1.9f, originalBounds.y1 - 1.9f,
                 originalBounds.z1 - 1.9f, originalBounds.x2 + 1.9f, originalBounds.y2 + 1.9f,
                 originalBounds.z2 + 1.9f);
         } else {
             camInShip.set(camInWorld);
-            return section.getBounds();
+            return getBounds.call(section);
         }
     }
 

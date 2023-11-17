@@ -143,7 +143,7 @@ class ValkyrienSkiesModFabric : ModInitializer {
             ValkyrienSkiesMod.TEST_HINGE_BLOCK_ENTITY_TYPE
         )
 
-        CommandRegistrationCallback.EVENT.register { dispatcher ,d, _ ->
+        CommandRegistrationCallback.EVENT.register { dispatcher, _, _ ->
             VSCommands.registerServerCommands(dispatcher)
         }
 
