@@ -14,6 +14,7 @@
     "compat.immersivengineering.MixinBlockEntityInventory",
     "compat.thermalexpansion.MixinTileCoFH",
     "compat.tis3d.MixinInfraredPacketEntity",
+    "compat.modular_routers.MixinContainerModularRouter",
     "feature.forge_interact.MixinIForgePlayer",
     "world.level.block.FireMixin"
   ],
