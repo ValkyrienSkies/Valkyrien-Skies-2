@@ -12,7 +12,7 @@ import org.valkyrienskies.mod.common.getLevelFromDimensionId
 import org.valkyrienskies.mod.common.isTickingChunk
 import org.valkyrienskies.mod.common.mcPlayer
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
-import org.valkyrienskies.mod.mixin.accessors.server.world.ChunkMapAccessor
+import org.valkyrienskies.mod.mixin.accessors.server.level.ChunkMapAccessor
 import org.valkyrienskies.mod.util.logger
 
 object ChunkManagement {

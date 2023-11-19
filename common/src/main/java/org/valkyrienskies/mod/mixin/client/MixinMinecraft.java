@@ -30,7 +30,6 @@ import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.util.EntityDragger;
-import org.valkyrienskies.mod.common.world.DummyShipWorldClient;
 import org.valkyrienskies.mod.mixinducks.client.MinecraftDuck;
 
 @Mixin(Minecraft.class)
@@ -39,6 +38,8 @@ public abstract class MixinMinecraft
 
     @Unique
     private static final Logger log = LogManager.getLogger("VS2 MixinMinecraft");
+    @Unique
+    private static long lastLog = System.currentTimeMillis();
 
     @Shadow
     private boolean pause;
@@ -87,9 +88,15 @@ public abstract class MixinMinecraft
         final ClientShipWorldCore shipObjectWorldCopy = shipObjectWorld;
 
         if (shipObjectWorldCopy == null) {
-            log.warn("Requested getShipObjectWorld() when shipObjectWorld was null!");
-            return DummyShipWorldClient.INSTANCE;
+            if (lastLog + 5000 < System.currentTimeMillis()) {
+                lastLog = System.currentTimeMillis();
+                log.warn("Requested getShipObjectWorld() but failed returning dummy world",
+                    new IllegalStateException("shipObjectWorld is null"));
+            }
+
+            return ValkyrienSkiesMod.getVsCore().getDummyShipWorldClient();
         }
+
         return shipObjectWorldCopy;
     }
 

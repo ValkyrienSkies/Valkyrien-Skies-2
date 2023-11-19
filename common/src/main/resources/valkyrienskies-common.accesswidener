@@ -24,3 +24,5 @@ accessible field    net/minecraft/client/renderer/LevelRenderer$RenderChunkInfo 
 mutable field    net/minecraft/world/phys/HitResult  location    Lnet/minecraft/world/phys/Vec3;
 # Make the field public
 accessible field    net/minecraft/world/phys/HitResult  location    Lnet/minecraft/world/phys/Vec3;
+
+accessible  class   net/minecraft/server/level/ChunkMap$DistanceManager

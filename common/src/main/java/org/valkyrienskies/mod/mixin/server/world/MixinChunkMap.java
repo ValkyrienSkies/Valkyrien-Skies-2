@@ -4,20 +4,13 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
-import net.minecraft.core.Registry;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ChunkMap;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.chunk.LevelChunk;
-import net.minecraft.world.level.chunk.ProtoChunk;
-import net.minecraft.world.level.chunk.UpgradeData;
-import net.minecraft.world.level.chunk.storage.ChunkSerializer;
 import net.minecraft.world.level.storage.DimensionDataStorage;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -25,11 +18,9 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.core.apigame.world.IPlayer;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.MinecraftPlayer;
-import org.valkyrienskies.mod.common.util.ShipSettingsKt;
 
 @Mixin(ChunkMap.class)
 public abstract class MixinChunkMap {
@@ -53,6 +44,7 @@ public abstract class MixinChunkMap {
      *
      * @author Tri0de
      */
+    /*
     @Inject(method = "readChunk", at = @At("HEAD"), cancellable = true)
     private void preReadChunk(final ChunkPos chunkPos,
         final CallbackInfoReturnable<CompletableFuture<Optional<CompoundTag>>> cir) {
@@ -77,6 +69,7 @@ public abstract class MixinChunkMap {
         }));
 
     }
+     */
 
     /**
      * Force the game send chunk update packets to players watching ship chunks.

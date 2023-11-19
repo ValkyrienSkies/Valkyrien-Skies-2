@@ -6,6 +6,7 @@ import org.valkyrienskies.core.api.ships.ClientShip;
 
 public interface MixinBlockEntityInstanceManagerDuck {
 
-    WeakHashMap<ClientShip, MaterialManager> getShipMaterialManagers();
+    WeakHashMap<ClientShip, MaterialManager> vs$getShipMaterialManagers();
 
+    void vs$removeShipManager(ClientShip clientShip);
 }

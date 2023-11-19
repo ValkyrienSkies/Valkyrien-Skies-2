@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.common.command
 
+import com.google.gson.JsonObject
 import com.mojang.brigadier.StringReader
 import com.mojang.brigadier.arguments.ArgumentType
 import com.mojang.brigadier.context.CommandContext
@@ -7,7 +8,9 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException
 import com.mojang.brigadier.suggestion.Suggestions
 import com.mojang.brigadier.suggestion.SuggestionsBuilder
 import net.minecraft.commands.CommandRuntimeException
+import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.chat.Component
+import net.minecraft.network.chat.Component.translatable
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.mod.mixinducks.feature.command.VSCommandSource
 import java.util.concurrent.CompletableFuture

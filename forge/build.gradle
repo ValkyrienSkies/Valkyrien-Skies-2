@@ -51,7 +51,8 @@ configurations {
 }
 
 dependencies {
-    include(forgeRuntimeLibrary(annotationProcessor(implementation("com.github.LlamaLad7:MixinExtras:0.1.1"))))
+    implementation(annotationProcessor("io.github.llamalad7:mixinextras-common:0.2.0"))
+    implementation(include("io.github.llamalad7:mixinextras-forge:0.2.0"))
 
 
     forge "net.minecraftforge:forge:${rootProject.forge_version}"
@@ -63,7 +64,8 @@ dependencies {
         transitive = false
     }
 
-    modCompileOnly("curse.maven:rubidium-574856:4024781")
+    //modCompileOnly("curse.maven:rubidium-574856:4024781")
+    modCompileOnly("maven.modrinth:embeddium:${embeddium_version}")
 
     // Create compat
     modImplementation("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") { transitive = false }
@@ -71,46 +73,43 @@ dependencies {
     modImplementation("com.tterrag.registrate:Registrate:${registrate_version}")
 
     // CC Tweaked
-    modCompileOnly("curse.maven:cc-tweaked-282001:4061947")
+    modCompileOnly("maven.modrinth:cc-tweaked:${cc_tweaked_version}")
 
     // TIS-3d
-    modCompileOnly("curse.maven:tis3d-238603:3738437")
-    //modImplementation("curse.maven:tis3d-238603:3738437")
-    //modImplementation("curse.maven:markdownmanual-502485:3738124")
+    modCompileOnly("maven.modrinth:tis3d:${tis3d_version}")
 
-    // Add Kotlin for Forge.
-    forgeRuntimeLibrary('curse.maven:kotlinforforge-351264:3925887')
+    // Add Kotlin for Forge (3.12.0)
+    forgeRuntimeLibrary("maven.modrinth:kotlin-for-forge:${kotlin_version}")
 
     // Cloth for config
-    include(modImplementation("me.shedaniel.cloth:cloth-config-forge:8.2.88"))
+    include(modImplementation("me.shedaniel.cloth:cloth-config-forge:${cloth_config_version}"))
 
     // Shade vs-core
     implementation("org.valkyrienskies.core:impl:${rootProject.vs_core_version}")
     forgeRuntimeLibrary shadowCommon("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
         transitive = false
-        exclude group: "com.google.guava"
     }
 
 
     // region Manually include every single dependency of vs-core (total meme)
     forgeRuntimeLibrary include("org.valkyrienskies.core:api:${rootProject.vs_core_version}") {
         transitive = false
-        exclude group: "com.google.guava"
     }
 
     forgeRuntimeLibrary shadowCommon("org.valkyrienskies.core:api-game:${rootProject.vs_core_version}") {
         transitive = false
-        exclude group: "com.google.guava"
     }
 
-    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api_krunch:1.0.0+eb3ae45554") {
+    forgeRuntimeLibrary include("org.valkyrienskies.core:util:${rootProject.vs_core_version}") {
         transitive = false
-        exclude group: "com.google.guava"
     }
 
-    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api:1.0.0+0b6f5db802") {
+    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api_krunch:1.0.0+10c94b01e2") {
         transitive = false
-        exclude group: "com.google.guava"
+    }
+
+    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api:1.0.0+94304c13aa") {
+        transitive = false
     }
 
     forgeRuntimeLibrary include("javax.inject:javax.inject:1") { transitive = false }
@@ -135,7 +134,6 @@ dependencies {
 
     forgeRuntimeLibrary include("com.networknt:json-schema-validator:1.0.71") { transitive = false }
     forgeRuntimeLibrary include("com.ethlo.time:itu:1.7.0") { transitive = false }
-    forgeRuntimeLibrary include("com.github.imifou:jsonschema-module-addon:1.2.1") { transitive = false }
     forgeRuntimeLibrary include("com.github.victools:jsonschema-module-jackson:4.25.0") { transitive = false }
     forgeRuntimeLibrary include("com.github.victools:jsonschema-generator:4.25.0") { transitive = false }
     forgeRuntimeLibrary include("com.fasterxml:classmate:1.5.1") { transitive = false }
@@ -162,13 +160,13 @@ shadowJar {
     exclude "net/optifine/**"
 
     configurations = [project.configurations.shadowCommon]
-    classifier "dev-shadow"
+    archiveClassifier.set "dev-shadow"
 }
 
 remapJar {
     input.set shadowJar.archiveFile
     dependsOn shadowJar
-    classifier null
+    archiveClassifier.set null
 }
 
 compileKotlin {
@@ -176,7 +174,7 @@ compileKotlin {
 }
 
 jar {
-    classifier "dev"
+    archiveClassifier.set "dev"
 }
 
 sourcesJar {

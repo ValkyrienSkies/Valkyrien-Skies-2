@@ -53,8 +53,8 @@ public class MixinClientPacketListener {
             final int i = packet.getId();
             entity.syncPacketPositionCodec(d, e, f);
             entity.moveTo(d, e, f);
-            entity.setXRot((packet.getXRot() * 360) / 256.0f);
-            entity.setYRot((packet.getYRot() * 360) / 256.0f);
+            entity.setXRot((float) (packet.getXRot() * 360) / 256.0f);
+            entity.setYRot((float) (packet.getYRot() * 360) / 256.0f);
             entity.setId(i);
             entity.setUUID(packet.getUUID());
             this.level.putNonPlayerEntity(i, entity);

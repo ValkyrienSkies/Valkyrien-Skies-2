@@ -23,6 +23,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
+import org.valkyrienskies.mod.compat.FlywheelEvents;
 import org.valkyrienskies.mod.mixinducks.MixinBlockEntityInstanceManagerDuck;
 import org.valkyrienskies.mod.mixinducks.MixinInstancingEngineDuck;
 
@@ -49,17 +50,15 @@ public class MixinInstanceWorld {
         //not sure if restoreState stuff should be here or in the ((MixinInstancingEngineDuck) manager).render() method
         final GlStateTracker.State restoreState = GlStateTracker.getRestoreState();
         final var shipManagers =
-            ((MixinBlockEntityInstanceManagerDuck) blockEntityInstanceManager).getShipMaterialManagers();
+            ((MixinBlockEntityInstanceManagerDuck) blockEntityInstanceManager).vs$getShipMaterialManagers();
 
-        shipManagers.forEach((ship, manager) -> {
-            render(ship, manager, event);
-        });
+        shipManagers.forEach((ship, manager) -> vs$render(ship, manager, event));
         restoreState.restore();
     }
 
     @Unique
-    void render(final ClientShip ship, final MaterialManager manager, final RenderLayerEvent event) {
-        if (manager instanceof InstancingEngine<?> engine) {
+    private void vs$render(final ClientShip ship, final MaterialManager manager, final RenderLayerEvent event) {
+        if (manager instanceof final InstancingEngine<?> engine) {
             final Vector3d origin = VectorConversionsMCKt.toJOMLD(engine.getOriginCoordinate());
 
             final Matrix4d viewProjection = VectorConversionsMCKt.toJOML(event.viewProjection);
@@ -76,14 +75,14 @@ public class MixinInstanceWorld {
 
             final Matrix4f fnlProj = VectorConversionsMCKt.toMinecraft(finalProjection);
 
-            ((MixinInstancingEngineDuck) engine).render(
+            ((MixinInstancingEngineDuck) engine).vs$render(
                 fnlProj,
                 camInShipLocal.x,
                 camInShipLocal.y,
                 camInShipLocal.z,
                 event.layer
             );
-        } else if (manager instanceof BatchingEngine engine) {
+        } else if (manager instanceof final BatchingEngine engine) {
             event.stack.pushPose();
             VSClientGameUtils.multiplyWithShipToWorld(event.stack, ship);
             engine.render(taskEngine, event);
@@ -91,5 +90,15 @@ public class MixinInstanceWorld {
         } else {
             throw new IllegalArgumentException("unrecognized engine");
         }
+    }
+
+    @Inject(method = "<init>", at = @At("RETURN"))
+    private void postInit(final CallbackInfo ci) {
+        FlywheelEvents.onInstanceWorldLoad(InstanceWorld.class.cast(this));
+    }
+
+    @Inject(method = "delete", at = @At("RETURN"))
+    private void postDelete(final CallbackInfo ci) {
+        FlywheelEvents.onInstanceWorldUnload(InstanceWorld.class.cast(this));
     }
 }

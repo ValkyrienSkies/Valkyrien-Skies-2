@@ -8,9 +8,9 @@ import net.minecraft.world.entity.projectile.AbstractHurtingProjectile
 import org.joml.Vector3d
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.Ship
-import org.valkyrienskies.core.impl.util.component1
-import org.valkyrienskies.core.impl.util.component2
-import org.valkyrienskies.core.impl.util.component3
+import org.valkyrienskies.core.util.component1
+import org.valkyrienskies.core.util.component2
+import org.valkyrienskies.core.util.component3
 import org.valkyrienskies.mod.common.toWorldCoordinates
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toMinecraft

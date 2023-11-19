@@ -2,25 +2,27 @@
   "required": true,
   "package": "org.valkyrienskies.mod.fabric.mixin",
   "compatibilityLevel": "JAVA_8",
-  "plugin": "org.valkyrienskies.mod.fabric.mixin.ValkyrienFabricMixinConfigPlugin",
   "mixins": [
     "compat.cc_restitched.MixinSpeakerPosition",
     "compat.cc_restitched.MixinTurtleBrain",
     "compat.cc_restitched.MixinTurtleMoveCommand",
     "compat.cc_restitched.MixinWirelessNetwork",
-    "compat.create.Matrix3dAccessor",
-    "compat.create.MixinAbstractContraptionEntity",
+    "compat.create.MixinBlockBreakingKineticTileEntity",
+    "compat.create.MixinBlocks",
+    "compat.create.MixinControlledContraptionEntity",
     "compat.sodium.MixinRenderSectionManager",
     "feature.explosions.ClipContextMixin",
-    "feature.water_in_ships_entity.MixinEntity",
-    "server.network.MixinServerGamePacketListenerImpl",
+    "world.level.block.FireMixin",
     "server.network.MixinServerPlayerGameMode",
-    "world.level.block.FireMixin"
+    "server.network.MixinServerGamePacketListenerImpl"
   ],
   "client": [
-    "client.render.MixinLevelRenderer",
-    "feature.duplicate_keybindings.KeyMappingAccessor",
-    "feature.duplicate_keybindings.MixinKeyMapping"
+    "compat.create.client.MixinContraptionHandlerClient",
+    "compat.create.client.MixinContraptionRenderInfo",
+    "compat.create.client.MixinCullingBlockEntityIterator",
+    "compat.create.client.MixinFlwContraption",
+    "compat.create.client.MixinSuperGlueSelectionHandler",
+    "compat.create.client.MixinValueBox"
   ],
   "injectors": {
     "defaultRequire": 1

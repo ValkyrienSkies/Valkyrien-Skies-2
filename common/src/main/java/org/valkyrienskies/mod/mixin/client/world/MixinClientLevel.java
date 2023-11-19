@@ -33,8 +33,8 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.apigame.world.ClientShipWorldCore;
-import org.valkyrienskies.core.impl.util.AABBdUtilKt;
-import org.valkyrienskies.core.impl.util.VectorConversionsKt;
+import org.valkyrienskies.core.util.AABBdUtilKt;
+import org.valkyrienskies.core.util.VectorConversionsKt;
 import org.valkyrienskies.mod.client.audio.SimpleSoundInstanceOnShip;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
@@ -186,7 +186,7 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
     @Redirect(
         at = @At(
             value = "NEW",
-            target = "net/minecraft/client/resources/sounds/SimpleSoundInstance"
+            target = "(Lnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FFLnet/minecraft/util/RandomSource;DDD)Lnet/minecraft/client/resources/sounds/SimpleSoundInstance;"
         ),
         method = "playSound(DDDLnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FFZJ)V"
     )
@@ -202,4 +202,5 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
 
         return new SimpleSoundInstance(soundEvent, soundSource, volume, pitch, randomSource, x, y, z);
     }
+
 }
