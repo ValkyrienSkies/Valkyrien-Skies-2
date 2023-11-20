@@ -23,7 +23,7 @@ public abstract class MixinSeatEntity extends Entity {
      */
     @Overwrite
     public @NotNull Vec3 getDismountLocationForPassenger(final @NotNull LivingEntity livingEntity) {
-        if (VSGameUtilsKt.isBlockInShipyard(level(), position()) && VSGameUtilsKt.getShipManagingPos(level, position()) == null) {
+        if (VSGameUtilsKt.isBlockInShipyard(level(), position()) && VSGameUtilsKt.getShipManagingPos(level(), position()) == null) {
             // Don't teleport to the ship if we can't find the ship
             return livingEntity.position();
         }
