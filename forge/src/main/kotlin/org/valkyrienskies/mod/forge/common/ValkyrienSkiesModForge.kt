@@ -20,6 +20,7 @@ import net.minecraftforge.event.TagsUpdatedEvent
 import net.minecraftforge.fml.ModLoadingContext
 import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus
+import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent
 import net.minecraftforge.fml.event.lifecycle.FMLLoadCompleteEvent
 import net.minecraftforge.fml.loading.FMLEnvironment
 import net.minecraftforge.registries.DeferredRegister

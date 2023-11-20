@@ -61,9 +61,11 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
         super(entityType, level);
     }
 
-    @Override
+    @Shadow
+    protected abstract StructureTransform makeStructureTransform();
+
     public StructureTransform getStructureTransform() {
-        return makeStructureTransform();
+        return this.makeStructureTransform();
     }
 
     @Unique
@@ -195,9 +197,6 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
 
     @Shadow
     protected abstract void onContraptionStalled();
-
-    @Shadow
-    protected abstract StructureTransform makeStructureTransform();
 
     @Inject(method = "tickActors", at = @At("HEAD"), cancellable = true, remap = false)
     private void preTickActors(final CallbackInfo ci) {

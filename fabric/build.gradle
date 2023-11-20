@@ -58,6 +58,13 @@ dependencies {
         exclude module: "netty-buffer"
         exclude module: "fastutil"
         exclude module: "kotlin-stdlib-jdk8" // Don't shade kotlin-stdlib-jdk8, even though vs-core depends on it
+<<<<<<<<< Temporary merge branch 1
+        exclude group: "com.google.guava"
+    }
+
+    // CC Restitched
+    modImplementation("curse.maven:cc-restitched-462672:3908334")
+=========
         exclude module: "jsonschema.module.addon"
     }
 

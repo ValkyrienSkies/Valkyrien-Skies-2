@@ -27,6 +27,8 @@
     "feature.commands.MixinCommandSourceStack",
     "feature.conduit_fix.ConduitMixin",
     "feature.container_distance_check.MixinContainer",
+    "feature.container_distance_check.MixinRandomizableContainerBlockEntity",
+    "feature.dismount_dead_entities.MixinLivingEntity",
     "feature.dispensers.MixinDefaultDispenseItemBehavior",
     "feature.distance_replace.MixinEntity",
     "feature.entity_collision.MixinEntity",
