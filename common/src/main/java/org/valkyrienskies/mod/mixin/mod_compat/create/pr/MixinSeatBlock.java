@@ -6,13 +6,11 @@ import com.simibubi.create.content.contraptions.actors.seat.SeatBlock;
 import com.simibubi.create.content.contraptions.actors.seat.SeatEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
@@ -26,21 +24,11 @@ public abstract class MixinSeatBlock extends Block {
     }
 
     /**
-     * @author ewoudje
-     * @reason Floating point additions help
+     * Use doubles instead of floats when invoking setPos()
      */
-    @Overwrite(remap = false)
-    public static void sitDown(final Level world, final BlockPos pos, final Entity entity) {
-        if (world.isClientSide) {
-            return;
-        }
-        final SeatEntity seat = new SeatEntity(world, pos);
-        seat.setPos(pos.getX() + .5, pos.getY(), pos.getZ() + .5);
-        world.addFreshEntity(seat);
-        entity.startRiding(seat, true);
-        if (entity instanceof final TamableAnimal ta) {
-            ta.setInSittingPose(true);
-        }
+    @WrapOperation(method = "sitDown", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/contraptions/actors/seat/SeatEntity;setPos(DDD)V"))
+    private static void wrapSitDownSetPos(final SeatEntity seatEntity, final double origX, final double origY, final double origZ, final Operation<Void> setPosOperation, final Level world, final BlockPos pos, final Entity entity) {
+        setPosOperation.call(seatEntity, pos.getX() + .5, (double) pos.getY(), pos.getZ() + .5);
     }
 
     /**
