@@ -7,16 +7,20 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
 import net.minecraft.network.protocol.game.ClientboundLoginPacket;
+import net.minecraft.network.protocol.game.ClientboundMoveEntityPacket;
 import net.minecraft.world.entity.Entity;
+import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.At.Shift;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientCreator;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
+import org.valkyrienskies.mod.mixinducks.feature.fix_entity_rubberband.ClientboundMoveEntityPacketDuck;
 
 @Mixin(ClientPacketListener.class)
 public class MixinClientPacketListener {
@@ -58,6 +62,22 @@ public class MixinClientPacketListener {
             entity.setId(i);
             entity.setUUID(packet.getUUID());
             this.level.putNonPlayerEntity(i, entity);
+        }
+    }
+
+    /**
+     * stop that sussy jitter of entities
+     * @param packet
+     * @param ci
+     */
+    @Inject(method = "handleMoveEntity", at = @At(value = "INVOKE", target = "Lnet/minecraft/network/protocol/game/ClientboundMoveEntityPacket;getEntity(Lnet/minecraft/world/level/Level;)Lnet/minecraft/world/entity/Entity;", shift = Shift.AFTER))
+    private void relerpEntity(final ClientboundMoveEntityPacket packet, final CallbackInfo ci) {
+        if (((ClientboundMoveEntityPacketDuck) packet).valkyrienskies$getShipId() != null) {
+            Ship ship = VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips().getById(((ClientboundMoveEntityPacketDuck) packet).valkyrienskies$getShipId());
+            Vector3d newPos = ship.getTransform().getShipToWorld().transformPosition(new Vector3d(packet.getXa() / 4096.0, packet.getYa() / 4096.0, packet.getZa() / 4096.0));
+            ((ClientboundMoveEntityPacketDuck) packet).valkyrienskies$setXa((short) (newPos.x * 4096));
+            ((ClientboundMoveEntityPacketDuck) packet).valkyrienskies$setYa((short) (newPos.y * 4096));
+            ((ClientboundMoveEntityPacketDuck) packet).valkyrienskies$setZa((short) (newPos.z * 4096));
         }
     }
 
