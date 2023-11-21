@@ -78,6 +78,9 @@ dependencies {
     //modImplementation("curse.maven:tis3d-238603:3738437")
     //modImplementation("curse.maven:markdownmanual-502485:3738124")
 
+    // Modular Routers
+    modCompileOnly("curse.maven:mr-250294:3776175")
+
     // Add Kotlin for Forge (3.12.0)
     forgeRuntimeLibrary('curse.maven:kotlinforforge-351264:4513187')
 
