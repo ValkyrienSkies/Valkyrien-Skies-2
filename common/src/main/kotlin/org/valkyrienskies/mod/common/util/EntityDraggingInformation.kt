@@ -16,13 +16,14 @@ class EntityDraggingInformation {
             field = value
         }
     var ticksSinceStoodOnShip: Int = 0
+    var mountedToEntity: Boolean = false
 
     // Used by the client rendering code only
     var cachedLastPosition: Vector3dc? = null
     var restoreCachedLastPosition = false
 
     fun isEntityBeingDraggedByAShip(): Boolean {
-        return (lastShipStoodOn != null) && (ticksSinceStoodOnShip < 10)
+        return (lastShipStoodOn != null) && (ticksSinceStoodOnShip < 10) && !mountedToEntity
     }
 }
 

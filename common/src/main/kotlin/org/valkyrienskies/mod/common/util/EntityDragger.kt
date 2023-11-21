@@ -34,7 +34,7 @@ object EntityDragger {
             if (shipDraggingEntity != null) {
                 if (entityDraggingInformation.isEntityBeingDraggedByAShip()) {
                     // Compute how much we should drag the entity
-                    val shipData = entity.level.shipObjectWorld.queryableShipData.getById(shipDraggingEntity)
+                    val shipData = entity.level.shipObjectWorld.allShips.getById(shipDraggingEntity)
                     if (shipData != null) {
                         dragTheEntity = true
 
@@ -114,6 +114,7 @@ object EntityDragger {
                 }
             }
             entityDraggingInformation.ticksSinceStoodOnShip++
+            entityDraggingInformation.mountedToEntity = entity.vehicle != null
         }
     }
 }
