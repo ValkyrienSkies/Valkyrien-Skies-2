@@ -199,4 +199,9 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     public EntityDraggingInformation getDraggingInformation() {
         return draggingInformation;
     }
+
+    @Override
+    public boolean vs$shouldDrag() {
+        return true;
+    }
 }

@@ -29,4 +29,6 @@ class EntityDraggingInformation {
 
 interface IEntityDraggingInformationProvider {
     val draggingInformation: EntityDraggingInformation
+
+    fun `vs$shouldDrag`(): Boolean
 }

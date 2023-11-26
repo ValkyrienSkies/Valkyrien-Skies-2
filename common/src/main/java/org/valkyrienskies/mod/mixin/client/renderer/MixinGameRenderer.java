@@ -25,6 +25,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.apigame.world.ClientShipWorldCore;
@@ -92,17 +93,23 @@ public abstract class MixinGameRenderer {
         return pick.call(receiver, maxDistance, tickDelta, includeFluids);
     }
 
-    @WrapOperation(
+    @Redirect(
         method = "pick",
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/world/phys/Vec3;distanceToSqr(Lnet/minecraft/world/phys/Vec3;)D"
         )
     )
-    public double correctDistanceChecks(final Vec3 instance, final Vec3 vec, final Operation<Vec3> distanceToSqr) {
-        return VSGameUtilsKt.squaredDistanceBetweenInclShips(this.minecraft.level,
-            vec.x, vec.y, vec.z,
-            instance.x, instance.y, instance.z);
+    public double correctDistanceChecks(final Vec3 instance, final Vec3 vec) {
+        return VSGameUtilsKt.squaredDistanceBetweenInclShips(
+            this.minecraft.level,
+            vec.x,
+            vec.y,
+            vec.z,
+            instance.x,
+            instance.y,
+            instance.z
+        );
     }
 
     @Inject(method = "render", at = @At("HEAD"))
@@ -120,6 +127,9 @@ public abstract class MixinGameRenderer {
 
             // Also update entity last tick positions, so that they interpolate correctly
             for (final Entity entity : clientWorld.entitiesForRendering()) {
+                if (!((IEntityDraggingInformationProvider) entity).vs$shouldDrag()) {
+                    continue;
+                }
                 // The position we want to render [entity] at for this frame
                 // This is set when an entity is mounted to a ship, or an entity is being dragged by a ship
                 Vector3dc entityShouldBeHere = null;
