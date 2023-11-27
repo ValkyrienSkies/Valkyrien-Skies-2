@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.network;
+package org.valkyrienskies.mod.mixin.feature.entity_rubberband_fix;
 
 import net.minecraft.network.protocol.game.ClientboundMoveEntityPacket;
 import org.spongepowered.asm.mixin.Final;

@@ -92,7 +92,7 @@
     "mod_compat.sodium.MixinRegionChunkRenderer",
     "mod_compat.sodium.MixinRenderSectionManager",
     "mod_compat.sodium.MixinSodiumWorldRenderer",
-    "network.MixinClientboundMovePacket",
+    "feature.entity_rubberband_fix.MixinClientboundMovePacket",
     "server.MixinMinecraftServer",
     "server.MixinPlayerList",
     "server.command.MixinCommands",
