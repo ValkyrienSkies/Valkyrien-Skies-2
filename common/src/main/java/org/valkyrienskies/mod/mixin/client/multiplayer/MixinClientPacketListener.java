@@ -67,8 +67,7 @@ public class MixinClientPacketListener {
 
     /**
      * stop that sussy jitter of entities
-     * @param packet
-     * @param ci
+     * stop it
      */
     @Inject(method = "handleMoveEntity", at = @At(value = "INVOKE", target = "Lnet/minecraft/network/protocol/game/ClientboundMoveEntityPacket;getEntity(Lnet/minecraft/world/level/Level;)Lnet/minecraft/world/entity/Entity;", shift = Shift.AFTER))
     private void relerpEntity(final ClientboundMoveEntityPacket packet, final CallbackInfo ci) {
