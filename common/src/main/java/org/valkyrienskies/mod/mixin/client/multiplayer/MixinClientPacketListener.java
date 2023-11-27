@@ -73,7 +73,7 @@ public class MixinClientPacketListener {
     private void relerpEntity(final ClientboundMoveEntityPacket packet, final CallbackInfo ci) {
         if (((ClientboundMoveEntityPacketDuck) packet).valkyrienskies$getShipId() != null) {
             Ship ship = VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips().getById(((ClientboundMoveEntityPacketDuck) packet).valkyrienskies$getShipId());
-            Vector3d newPos = ship.getTransform().getShipToWorld().transformPosition(new Vector3d(packet.getXa() / 4096.0, packet.getYa() / 4096.0, packet.getZa() / 4096.0));
+            Vector3d newPos = ship.getTransform().getShipToWorld().transformDirection(new Vector3d(packet.getXa() / 4096.0, packet.getYa() / 4096.0, packet.getZa() / 4096.0));
             ((ClientboundMoveEntityPacketDuck) packet).valkyrienskies$setXa((short) (newPos.x * 4096));
             ((ClientboundMoveEntityPacketDuck) packet).valkyrienskies$setYa((short) (newPos.y * 4096));
             ((ClientboundMoveEntityPacketDuck) packet).valkyrienskies$setZa((short) (newPos.z * 4096));
