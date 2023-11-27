@@ -1,0 +1,133 @@
+[
+  {
+    "tag": "minecraft:all_hanging_signs",
+    "mass": 20.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:bamboo_block",
+    "mass": 150.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:stripped_bamboo_block",
+    "mass": 150.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:bamboo_planks",
+    "mass": 100.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:bamboo_mosaic",
+    "mass": 100.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:bamboo_mosaic_slab",
+    "mass": 50.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:bamboo_slab",
+    "mass": 50.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:bamboo_stairs",
+    "mass": 75.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:bamboo_mosaic_stairs",
+    "mass": 75.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:calibrated_sculk_sensor",
+    "mass": 230.0,
+    "friction": 0.9,
+    "elasticity": 0.3
+  },
+  {
+    "block": "minecraft:cherry_wood",
+    "mass": 640.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:cherry_log",
+    "mass": 640.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:stripped_cherry_wood",
+    "mass": 640.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:stripped_cherry_log",
+    "mass": 640.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:cherry_planks",
+    "mass": 425.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:cherry_slab",
+    "mass": 210.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:cherry_stairs",
+    "mass": 315.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:chiseled_bookshelf",
+    "mass": 650.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:decorated_pot",
+    "mass": 250.0,
+    "friction": 0.35
+  },
+  {
+    "block": "minecraft:piglin_head",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:piglin_wall_head",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:pink_petals",
+    "mass": 1.0
+  },
+  {
+    "block": "minecraft:sniffer_egg",
+    "mass": 980.0,
+    "friction": 0.1
+  },
+  {
+    "block": "minecraft:suspicious_sand",
+    "mass": 1565.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:suspicious_gravel",
+    "mass": 1685.0,
+    "friction": 0.7
+  },
+  {
+    "block": "minecraft:torchflower_crop",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:pitcher_crop",
+    "mass": 2.0
+  }
+]
