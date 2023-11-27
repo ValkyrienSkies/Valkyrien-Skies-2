@@ -15,8 +15,7 @@ public class MixinCommands {
         at = @At("TAIL"),
         method = "<init>"
     )
-    public void onInit(
-        final CommandSelection commandSelection, final CommandBuildContext commandBuildContext, final CallbackInfo ci) {
+    public void onInit(CommandSelection commandSelection, CommandBuildContext commandBuildContext, CallbackInfo ci) {
 
     }
 }

@@ -9,10 +9,12 @@ import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Constant;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -26,6 +28,9 @@ public abstract class MixinLevelRenderer {
 
     @Shadow
     private ClientLevel level;
+
+    @Unique private PoseStack matrixStack;
+    @Unique private Vec3 camera;
 
     @Shadow
     private static void renderShape(final PoseStack matrixStack, final VertexConsumer vertexConsumer,
@@ -74,4 +79,50 @@ public abstract class MixinLevelRenderer {
                 0.0F, 0.0F, 0.0F, 0.4F);
         }
     }
+
+
+    /**
+     * This mixin makes block damage render on ships.
+     */
+    /*
+    @WrapOperation(method = "renderLevel", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/client/renderer/block/BlockRenderDispatcher;renderBreakingTexture(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/BlockAndTintGetter;Lcom/mojang/blaze3d/vertex/PoseStack;Lcom/mojang/blaze3d/vertex/VertexConsumer;)V"))
+    private void renderBlockDamage(final BlockRenderDispatcher blockRenderManager, final BlockState state,
+        final BlockPos blockPos, final BlockAndTintGetter blockRenderWorld, final PoseStack matrix,
+        final VertexConsumer vertexConsumer, final Operation<Void> renderBreakingTexture) {
+
+
+        final ClientShip ship = VSGameUtilsKt.getShipObjectManagingPos(level, blockPos);
+        if (ship != null) {
+            // Remove the vanilla render transform
+            matrixStack.popPose();
+
+            // Add the VS render transform
+            matrixStack.pushPose();
+
+            final ShipTransform renderTransform = ship.getRenderTransform();
+            final Vec3 cameraPos = methodCamera.getPosition();
+
+            transformRenderWithShip(renderTransform, matrixStack, blockPos, cameraPos.x, cameraPos.y, cameraPos.z);
+
+            final Matrix3f newNormalMatrix = matrixStack.last().normal().copy();
+            final Matrix4f newModelMatrix = matrixStack.last().pose().copy();
+
+            // Then update the matrices in vertexConsumer (I'm guessing vertexConsumer is responsible for mapping
+            // textures, so we need to update its matrices otherwise the block damage texture looks wrong)
+            final SheetedDecalTextureGenerator newVertexConsumer =
+                new SheetedDecalTextureGenerator(((OverlayVertexConsumerAccessor) vertexConsumer).getDelegate(),
+                    newModelMatrix, newNormalMatrix);
+
+            // Finally, invoke the render damage function.
+            renderBreakingTexture.call(blockRenderManager, state, blockPos, blockRenderWorld, matrix,
+                newVertexConsumer);
+        } else {
+            // Vanilla behavior
+            renderBreakingTexture.call(blockRenderManager, state, blockPos, blockRenderWorld, matrix, vertexConsumer);
+        }
+    }
+
+     */
+
 }

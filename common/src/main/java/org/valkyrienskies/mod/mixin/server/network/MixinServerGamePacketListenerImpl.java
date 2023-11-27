@@ -78,6 +78,20 @@ public abstract class MixinServerGamePacketListenerImpl {
         return VSGameUtilsKt.toWorldCoordinates(player.level(), subtract.call(instance, vec3));
     }
 
+    /*
+    @WrapOperation(
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/world/level/ChunkPos;getChessboardDistance(Lnet/minecraft/world/level/ChunkPos;)I"
+        ),
+        method = "handleUseItemOn"
+    )
+    private int skipDistanceCheck(final ChunkPos instance, final ChunkPos chunkPos, final Operation<Integer> getChessboardDistance) {
+        return 0;
+    }
+
+     */
+
     @WrapOperation(
         method = "handleMovePlayer",
         at = @At(

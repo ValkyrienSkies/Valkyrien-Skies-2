@@ -56,7 +56,7 @@ public abstract class MixinLivingEntity extends Entity {
                 // Only run this if we haven't modified cir yet
                 if (cir.getReturnValue() != Boolean.TRUE) {
                     // Modify the block position, then check if we can climb ladders
-                    thisAsAccessor.setBlockPosition(new BlockPos(Mth.floor(x), Mth.floor(y), Mth.floor(z)));
+                    thisAsAccessor.setBlockPosition(BlockPos.containing(Mth.floor(x), Mth.floor(y), Mth.floor(z)));
                     thisAsAccessor.setFeetBlockState(null);
                     if (onClimbable()) {
                         cir.setReturnValue(true);

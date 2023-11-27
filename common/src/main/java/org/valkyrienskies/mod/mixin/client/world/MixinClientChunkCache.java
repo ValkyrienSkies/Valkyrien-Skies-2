@@ -5,18 +5,16 @@ import io.netty.util.collection.LongObjectMap;
 import java.util.function.Consumer;
 import net.minecraft.client.multiplayer.ClientChunkCache;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.core.SectionPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData.BlockEntityTagOutput;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunk;
-import net.minecraft.world.level.chunk.LevelChunkSection;
-import net.minecraft.world.level.lighting.LevelLightEngine;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -43,11 +41,12 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
     @Final
     ClientLevel level;
 
-    public LongObjectMap<LevelChunk> vs_getShipChunks() {
-        return shipChunks;
+    public LongObjectMap<LevelChunk> vs$getShipChunks() {
+        return vs$shipChunks;
     }
 
-    private final LongObjectMap<LevelChunk> shipChunks = new LongObjectHashMap<>();
+    @Unique
+    private final LongObjectMap<LevelChunk> vs$shipChunks = new LongObjectHashMap<>();
 
     @Inject(method = "replaceWithPacketData", at = @At("HEAD"), cancellable = true)
     private void preLoadChunkFromPacket(final int x, final int z,
@@ -60,25 +59,19 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
             if (VSGameUtilsKt.isChunkInShipyard(level, x, z)) {
                 final long chunkPosLong = ChunkPos.asLong(x, z);
 
-                final LevelChunk worldChunk = new LevelChunk(this.level, new ChunkPos(x, z));
-                worldChunk.replaceWithPacketData(buf, tag, consumer);
-                shipChunks.put(chunkPosLong, worldChunk);
-
-                final LevelChunkSection[] chunkSections = worldChunk.getSections();
-                final LevelLightEngine lightingProvider = this.getLightEngine();
-                lightingProvider.setLightEnabled(new ChunkPos(x, z), true);
-
-                for (int j = 0; j < chunkSections.length; ++j) {
-                    final LevelChunkSection chunkSection = chunkSections[j];
-                    lightingProvider
-                        .updateSectionStatus(SectionPos.of(x, level.getSectionYFromSectionIndex(j), z),
-                            chunkSection.hasOnlyAir());
+                final LevelChunk oldChunk = vs$shipChunks.get(chunkPosLong);
+                final LevelChunk worldChunk;
+                if (oldChunk != null) {
+                    worldChunk = oldChunk;
+                    oldChunk.replaceWithPacketData(buf, tag, consumer);
+                } else {
+                    worldChunk = new LevelChunk(this.level, new ChunkPos(x, z));
+                    worldChunk.replaceWithPacketData(buf, tag, consumer);
+                    vs$shipChunks.put(chunkPosLong, worldChunk);
                 }
 
                 this.level.onChunkLoaded(new ChunkPos(x, z));
-
                 SodiumCompat.onChunkAdded(x, z);
-
                 cir.setReturnValue(worldChunk);
             }
         }
@@ -86,7 +79,7 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
 
     @Inject(method = "drop", at = @At("HEAD"), cancellable = true)
     public void preUnload(final int chunkX, final int chunkZ, final CallbackInfo ci) {
-        shipChunks.remove(ChunkPos.asLong(chunkX, chunkZ));
+        vs$shipChunks.remove(ChunkPos.asLong(chunkX, chunkZ));
         if (ValkyrienCommonMixinConfigPlugin.getVSRenderer() != VSRenderer.SODIUM) {
             ((IVSViewAreaMethods) ((LevelRendererAccessor) ((ClientLevelAccessor) level).getLevelRenderer()).getViewArea())
                 .unloadChunk(chunkX, chunkZ);
@@ -100,12 +93,9 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
         at = @At("HEAD"), cancellable = true)
     public void preGetChunk(final int chunkX, final int chunkZ, final ChunkStatus chunkStatus, final boolean bl,
         final CallbackInfoReturnable<LevelChunk> cir) {
-        final LevelChunk shipChunk = shipChunks.get(ChunkPos.asLong(chunkX, chunkZ));
+        final LevelChunk shipChunk = vs$shipChunks.get(ChunkPos.asLong(chunkX, chunkZ));
         if (shipChunk != null) {
             cir.setReturnValue(shipChunk);
         }
     }
-
-    @Shadow
-    public abstract LevelLightEngine getLightEngine();
 }

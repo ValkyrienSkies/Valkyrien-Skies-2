@@ -30,9 +30,8 @@ public abstract class FireMixin {
     public static IntegerProperty AGE;
 
     @Inject(method = "tick", at = @At("TAIL"))
-    public void fireTickMixin(final BlockState state, final ServerLevel level, final BlockPos pos,
-        final RandomSource random,
-        final CallbackInfo ci) {
+    public void fireTickMixin(BlockState state, ServerLevel level, BlockPos pos,
+        RandomSource random, CallbackInfo ci) {
         if (isModifyingFireTick) {
             return;
         }

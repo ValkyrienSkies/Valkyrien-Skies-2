@@ -1,14 +1,14 @@
 package org.valkyrienskies.mod.forge.mixin.compat.create.client;
 
-/*
+
 import com.jozufozu.flywheel.core.virtual.VirtualRenderWorld;
-import com.mojang.math.Matrix4f;
-import com.simibubi.create.content.contraptions.components.structureMovement.AbstractContraptionEntity;
-import com.simibubi.create.content.contraptions.components.structureMovement.Contraption;
-import com.simibubi.create.content.contraptions.components.structureMovement.render.ContraptionRenderInfo;
-import com.simibubi.create.content.contraptions.components.structureMovement.render.FlwContraption;
+import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
+import com.simibubi.create.content.contraptions.Contraption;
+import com.simibubi.create.content.contraptions.render.ContraptionRenderInfo;
+import com.simibubi.create.content.contraptions.render.FlwContraption;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.AABB;
+import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -43,7 +43,7 @@ public class MixinFlwContraption extends ContraptionRenderInfo {
                 camZ
             );
 
-            matrix.multiply(modelMatrix);
+            matrix.mul(modelMatrix);
             ci.cancel();
         }
     }
@@ -57,7 +57,7 @@ public class MixinFlwContraption extends ContraptionRenderInfo {
     )
     private AABB transformLightboxToWorld(final AABB aabb, final double negCamX, final double negCamY,
         final double negCamZ) {
-        return VSGameUtilsKt.transformAabbToWorld(this.contraption.entity.level, aabb).move(negCamX, negCamY, negCamZ);
+        return VSGameUtilsKt.transformAabbToWorld(this.contraption.entity.level(), aabb).move(negCamX, negCamY, negCamZ);
     }
 }
-*/
+

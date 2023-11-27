@@ -5,6 +5,7 @@ import com.jozufozu.flywheel.api.instance.Instance;
 import com.jozufozu.flywheel.backend.Backend;
 import com.jozufozu.flywheel.backend.instancing.InstanceManager;
 import com.jozufozu.flywheel.backend.instancing.InstancedRenderRegistry;
+import com.jozufozu.flywheel.backend.instancing.RenderDispatcher;
 import com.jozufozu.flywheel.backend.instancing.batching.BatchingEngine;
 import com.jozufozu.flywheel.backend.instancing.blockentity.BlockEntityInstanceManager;
 import com.jozufozu.flywheel.backend.instancing.instancing.InstancingEngine;
@@ -24,7 +25,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.ClientShip;
-import org.valkyrienskies.core.api.world.LevelYRange;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.mixinducks.MixinBlockEntityInstanceManagerDuck;
 
@@ -34,12 +34,8 @@ import org.valkyrienskies.mod.mixinducks.MixinBlockEntityInstanceManagerDuck;
 public abstract class MixinBlockEntityInstanceManager extends InstanceManager<BlockEntity> implements
     MixinBlockEntityInstanceManagerDuck {
 
-    public WeakHashMap<ClientShip, MaterialManager> getShipMaterialManagers() {
-        return shipMaterialManagers;
-    }
-
     @Unique
-    private final WeakHashMap<ClientShip, MaterialManager> shipMaterialManagers =
+    private final WeakHashMap<ClientShip, MaterialManager> vs$shipMaterialManagers =
         new WeakHashMap<>();
 
     public MixinBlockEntityInstanceManager(final MaterialManager materialManager) {
@@ -58,18 +54,31 @@ public abstract class MixinBlockEntityInstanceManager extends InstanceManager<Bl
                 level, blockEntity.getBlockPos());
             if (ship != null) {
                 final MaterialManager manager =
-                    shipMaterialManagers.computeIfAbsent(ship, k -> createMaterialManager());
+                    vs$shipMaterialManagers.computeIfAbsent(ship, k -> vs$createMaterialManager());
                 final Vector3i c =
-                    ship.getChunkClaim().getCenterBlockCoordinates(new LevelYRange(0, 0), new Vector3i());
-                ((InstancingEngineAccessor) manager).setOriginCoordinate(new BlockPos(c.x, c.y, c.z));
+                    ship.getChunkClaim().getCenterBlockCoordinates(VSGameUtilsKt.getYRange(nullableLevel), new Vector3i());
+                ((InstancingEngineAccessor) manager).setOriginCoordinate(BlockPos.containing(c.x, c.y, c.z));
 
                 cir.setReturnValue(InstancedRenderRegistry.createInstance(manager, blockEntity));
             }
         }
     }
 
+    @Override
+    public WeakHashMap<ClientShip, MaterialManager> vs$getShipMaterialManagers() {
+        return vs$shipMaterialManagers;
+    }
+
+    @Override
+    public void vs$removeShipManager(final ClientShip clientShip) {
+        final MaterialManager removed = vs$shipMaterialManagers.remove(clientShip);
+        if (removed instanceof final RenderDispatcher removedRenderer) {
+            removedRenderer.delete();
+        }
+    }
+
     @Unique
-    private MaterialManager createMaterialManager() {
+    private MaterialManager vs$createMaterialManager() {
         if (Backend.getBackendType() == BackendType.INSTANCING) {
             return InstancingEngine.builder(Contexts.WORLD).build();
         } else if (Backend.getBackendType() == BackendType.BATCHING) {

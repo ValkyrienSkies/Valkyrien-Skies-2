@@ -14,21 +14,20 @@ import net.minecraft.world.level.block.HorizontalDirectionalBlock
 import net.minecraft.world.level.block.SoundType
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
-import net.minecraft.world.level.material.MapColor
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.shapes.CollisionContext
 import net.minecraft.world.phys.shapes.VoxelShape
 import org.joml.Vector3d
 import org.joml.Vector3dc
-import org.valkyrienskies.core.impl.util.x
-import org.valkyrienskies.core.impl.util.y
-import org.valkyrienskies.core.impl.util.z
+import org.valkyrienskies.core.util.x
+import org.valkyrienskies.core.util.y
+import org.valkyrienskies.core.util.z
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.util.toDoubles
 
 object TestChairBlock :
     HorizontalDirectionalBlock(
-        Properties.of().mapColor(MapColor.WOOL).strength(1.0f, 120.0f).sound(SoundType.WOOL).requiresCorrectToolForDrops()
+        Properties.of().strength(1.0f, 120.0f).sound(SoundType.WOOL)
     ) {
     private val SEAT_AABB: VoxelShape = box(0.0, 0.0, 0.0, 16.0, 8.0, 16.0)
 
@@ -47,7 +46,7 @@ object TestChairBlock :
 
     @Deprecated("Deprecated in Java")
     override fun getShape(
-        state: BlockState, level: BlockGetter, pos: BlockPos, context: CollisionContext
+        state: BlockState, level: BlockGetter?, pos: BlockPos?, context: CollisionContext?
     ): VoxelShape = SEAT_AABB
 
     @Deprecated("Deprecated in Java")

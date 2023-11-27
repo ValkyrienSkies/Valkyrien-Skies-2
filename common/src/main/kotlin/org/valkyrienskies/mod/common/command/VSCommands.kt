@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.common.command
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.arguments.ArgumentType
 import com.mojang.brigadier.arguments.BoolArgumentType
+import com.mojang.brigadier.arguments.DoubleArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.builder.RequiredArgumentBuilder
@@ -13,6 +14,7 @@ import net.minecraft.commands.arguments.EntityArgument
 import net.minecraft.commands.arguments.coordinates.BlockPosArgument
 import net.minecraft.commands.arguments.coordinates.Vec3Argument
 import net.minecraft.network.chat.Component
+import net.minecraft.network.chat.Component.translatable
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.phys.BlockHitResult
 import org.joml.Vector3d
@@ -23,9 +25,10 @@ import org.valkyrienskies.core.apigame.ShipTeleportData
 import org.valkyrienskies.core.impl.game.ShipTeleportDataImpl
 import org.valkyrienskies.core.impl.game.ships.ShipData
 import org.valkyrienskies.core.impl.game.ships.ShipObject
-import org.valkyrienskies.core.impl.util.x
-import org.valkyrienskies.core.impl.util.y
-import org.valkyrienskies.core.impl.util.z
+import org.valkyrienskies.core.util.x
+import org.valkyrienskies.core.util.y
+import org.valkyrienskies.core.util.z
+import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toJOMLD

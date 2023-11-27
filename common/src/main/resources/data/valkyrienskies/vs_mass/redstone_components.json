@@ -5,47 +5,58 @@
   },
   {
     "block": "minecraft:dispenser",
-    "mass": 2800.0
+    "mass": 2800.0,
+    "friction": 0.5
   },
   {
     "block": "minecraft:dropper",
-    "mass": 2800.0
+    "mass": 2800.0,
+    "friction": 0.5
   },
   {
     "block": "minecraft:note_block",
-    "mass": 1200.0
+    "mass": 1200.0,
+    "friction": 0.6
   },
   {
     "block": "minecraft:detector_rail",
-    "mass": 380.0
+    "mass": 380.0,
+    "friction": 0.7
   },
   {
     "block": "minecraft:powered_rail",
-    "mass": 800.0
+    "mass": 800.0,
+    "friction": 0.7
   },
   {
     "block": "minecraft:rail",
-    "mass": 330.0
+    "mass": 330.0,
+    "friction": 0.7
   },
   {
     "block": "minecraft:activator_rail",
-    "mass": 330.0
+    "mass": 330.0,
+    "friction": 0.7
   },
   {
     "block": "minecraft:piston",
-    "mass": 2800.0
+    "mass": 2800.0,
+    "friction": 0.5
   },
   {
     "block": "minecraft:sticky_piston",
-    "mass": 2800.0
+    "mass": 2800.0,
+    "friction": 0.5
   },
   {
     "block": "minecraft:piston_head",
-    "mass": 0.0
+    "mass": 0.1,
+    "friction": 0.5
   },
   {
     "block": "minecraft:moving_piston",
-    "mass": 0.0
+    "mass": 0.1,
+    "friction": 0.5
   },
   {
     "block": "minecraft:tnt",
@@ -97,23 +108,27 @@
   },
   {
     "block": "minecraft:tripwire",
-    "mass": 0.0
+    "mass": 0.1
   },
   {
     "block": "minecraft:daylight_detector",
-    "mass": 1200.0
+    "mass": 1200.0,
+    "friction": 0.2
   },
   {
     "block": "minecraft:redstone_block",
-    "mass": 1350.0
+    "mass": 1350.0,
+    "friction": 0.4
   },
   {
     "block": "minecraft:observer",
-    "mass": 2800.0
+    "mass": 2800.0,
+    "friction": 0.5
   },
   {
     "block": "minecraft:target",
-    "mass": 200.0
+    "mass": 200.0,
+    "elasticity": 0.3
   },
   {
     "block": "minecraft:lectern",
@@ -125,23 +140,28 @@
   },
   {
     "block": "minecraft:redstone_lamp",
-    "mass": 1200.0
+    "mass": 1200.0,
+    "friction": 0.2
   },
   {
     "block": "minecraft:comparator",
-    "mass": 250.0
+    "mass": 250.0,
+    "friction": 0.3
   },
   {
     "block": "minecraft:repeater",
-    "mass": 250.0
+    "mass": 250.0,
+    "friction": 0.3
   },
   {
     "block": "minecraft:hopper",
-    "mass": 3800.0
+    "mass": 3800.0,
+    "friction": 0.3
   },
   {
     "tag": "minecraft:shulker_boxes",
-    "mass": 800.0
+    "mass": 800.0,
+    "friction": 0.1
   },
   {
     "tag": "minecraft:fence_gates",
@@ -153,7 +173,8 @@
   },
   {
     "block": "minecraft:iron_door",
-    "mass": 1000.0
+    "mass": 1000.0,
+    "friction": 0.35
   },
   {
     "tag": "minecraft:wooden_trapdoors",
@@ -161,6 +182,7 @@
   },
   {
     "block": "minecraft:iron_trapdoor",
-    "mass": 1000.0
+    "mass": 1000.0,
+    "friction": 0.35
   }
 ]

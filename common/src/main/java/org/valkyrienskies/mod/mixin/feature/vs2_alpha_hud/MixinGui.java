@@ -41,15 +41,19 @@ public class MixinGui {
         final IntegratedServer integratedServer = this.minecraft.getSingleplayerServer();
         if (integratedServer != null) {
             String physicsTPS = "Error";
+            String loadedVoxelChunks = "Error";
             try {
                 // This is dangerous because we have to reach into the Server state from the Client, which can fail.
                 // So, put this in a try/catch block to catch any errors that may occur.
                 physicsTPS = " " + Math.round(VSGameUtilsKt.getVsPipeline(integratedServer).computePhysTps());
+                loadedVoxelChunks = " " + VSGameUtilsKt.getVsPipeline(integratedServer).getLoadedVoxelChunks();
             } catch (final Exception e) {
                 e.printStackTrace();
             }
             final String worldPhysicsDebugText = "VS PhysTPS: " + physicsTPS;
             debugText.add(worldPhysicsDebugText);
+            final String loadedVoxelChunkDebugText = "VS VoxelChunks: " + loadedVoxelChunks;
+            debugText.add(loadedVoxelChunkDebugText);
         }
 
         debugText.add("Using UDP: " + ValkyrienSkiesMod.getVsCore().getClientUsesUDP());

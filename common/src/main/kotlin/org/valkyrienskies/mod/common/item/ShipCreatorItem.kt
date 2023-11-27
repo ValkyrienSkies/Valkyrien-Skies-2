@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.common.item
 
+import net.minecraft.Util
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.InteractionResult
@@ -24,6 +25,7 @@ import java.util.function.DoubleSupplier
 class ShipCreatorItem(
     properties: Properties, private val scale: DoubleSupplier, private val minScaling: DoubleSupplier
 ) : Item(properties) {
+
     override fun isFoil(stack: ItemStack): Boolean {
         return true
     }
@@ -58,7 +60,7 @@ class ShipCreatorItem(
                     val newShipPosInShipyard = blockPos.toJOMLD().add(0.5, 0.5, 0.5)
                     val newShipRotation = parentShip.transform.shipToWorldRotation
                     var newShipScaling = parentShip.transform.shipToWorldScaling.mul(scale, Vector3d())
-                    if (newShipScaling.x() < scale) {
+                    if (newShipScaling.x() < minScaling) {
                         // Do not allow scaling to go below minScaling
                         newShipScaling = Vector3d(minScaling, minScaling, minScaling)
                     }

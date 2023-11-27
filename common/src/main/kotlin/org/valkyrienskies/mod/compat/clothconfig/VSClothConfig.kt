@@ -14,10 +14,10 @@ import net.minecraft.ChatFormatting.GRAY
 import net.minecraft.ChatFormatting.ITALIC
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
+import org.apache.commons.lang3.StringUtils
 import org.valkyrienskies.core.impl.config.SidedVSConfigClass
 import org.valkyrienskies.core.impl.config.VSConfigClass
 import org.valkyrienskies.core.impl.util.serialization.VSJacksonUtil
-import org.valkyrienskies.core.impl.util.splitCamelCaseAndCapitalize
 import java.util.Optional
 
 object VSClothConfig {
@@ -66,6 +66,10 @@ object VSClothConfig {
                 ).forEach(category::addEntry)
             }
         }
+    }
+
+    private fun String.splitCamelCaseAndCapitalize(): String {
+        return StringUtils.capitalize(StringUtils.join(StringUtils.splitByCharacterTypeCamelCase(this), " "))
     }
 
     private fun getEntriesForProperty(
@@ -247,9 +251,7 @@ object VSClothConfig {
         }
 
         if (description != null) {
-            entries.add(
-                entryBuilder().startTextDescription(Component.literal(description).withStyle(GRAY, ITALIC)).build()
-            )
+            entries.add(entryBuilder().startTextDescription(Component.literal(description).withStyle(GRAY, ITALIC)).build())
         }
 
         return entries

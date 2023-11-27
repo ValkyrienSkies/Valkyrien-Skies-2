@@ -5,7 +5,7 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.ChunkPos
 import org.joml.Vector3d
 import org.valkyrienskies.core.api.ships.ServerShip
-import org.valkyrienskies.core.impl.datastructures.DenseBlockPosSet
+import org.valkyrienskies.core.util.datastructures.DenseBlockPosSet
 import org.valkyrienskies.core.impl.game.ships.ShipData
 import org.valkyrienskies.core.impl.game.ships.ShipTransformImpl
 import org.valkyrienskies.core.impl.networking.simple.sendToClient

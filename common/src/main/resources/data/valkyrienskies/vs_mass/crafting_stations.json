@@ -1,23 +1,28 @@
 [
   {
     "block": "minecraft:crafting_table",
-    "mass": 800.0
+    "mass": 800.0,
+    "friction": 0.6
   },
   {
     "block": "minecraft:furnace",
-    "mass": 2800.0
+    "mass": 2800.0,
+    "friction": 0.5
   },
   {
     "block": "minecraft:blast_furnace",
-    "mass": 3000.0
+    "mass": 3000.0,
+    "friction": 0.5
   },
   {
     "block": "minecraft:smoker",
-    "mass": 2800.0
+    "mass": 2800.0,
+    "friction": 0.5
   },
   {
     "block": "minecraft:stonecutter",
-    "mass": 2000.0
+    "mass": 2000.0,
+    "friction": 0.5
   },
   {
     "tag": "minecraft:campfires",
@@ -29,15 +34,18 @@
   },
   {
     "tag": "minecraft:anvil",
-    "mass": 7000.0
+    "mass": 7000.0,
+    "friction": 0.2
   },
   {
     "block": "minecraft:cauldron",
-    "mass": 5400.0
+    "mass": 5400.0,
+    "friction": 0.2
   },
   {
     "block": "minecraft:water_cauldron",
-    "mass": 5900.0
+    "mass": 5900.0,
+    "friction": 0.2
   },
   {
     "block": "minecraft:brewing_stand",
@@ -45,15 +53,18 @@
   },
   {
     "block": "minecraft:grindstone",
-    "mass": 1500.0
+    "mass": 1500.0,
+    "friction": 0.2
   },
   {
     "block": "minecraft:fletching_table",
-    "mass": 900.0
+    "mass": 900.0,
+    "friction": 0.6
   },
   {
     "block": "minecraft:smithing_table",
-    "mass": 1800.0
+    "mass": 1800.0,
+    "friction": 0.6
   },
   {
     "block": "minecraft:loom",
@@ -61,10 +72,12 @@
   },
   {
     "block": "minecraft:cartography_table",
-    "mass": 800.0
+    "mass": 800.0,
+    "friction": 0.5
   },
   {
     "block": "minecraft:composter",
-    "mass": 700.0
+    "mass": 700.0,
+    "friction": 0.5
   }
 ]

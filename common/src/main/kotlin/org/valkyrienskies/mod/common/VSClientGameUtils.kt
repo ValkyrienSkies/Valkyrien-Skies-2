@@ -108,4 +108,3 @@ object VSClientGameUtils {
         )
     }
 }
-

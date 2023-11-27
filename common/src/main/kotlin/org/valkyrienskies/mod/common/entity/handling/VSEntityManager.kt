@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.common.entity.handling
 
 import com.google.common.cache.CacheBuilder
+import net.minecraft.core.Registry
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.entity.Entity

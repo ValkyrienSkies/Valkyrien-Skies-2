@@ -1,5 +1,4 @@
 package org.valkyrienskies.mod.common.util
-
 import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction

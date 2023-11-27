@@ -2,11 +2,12 @@ package org.valkyrienskies.mod.forge.mixin.compat.sodium;
 
 import me.jellysquid.mods.sodium.client.gl.device.CommandList;
 import me.jellysquid.mods.sodium.client.gl.device.RenderDevice;
-import me.jellysquid.mods.sodium.client.render.chunk.ChunkCameraContext;
 import me.jellysquid.mods.sodium.client.render.chunk.ChunkRenderMatrices;
-import me.jellysquid.mods.sodium.client.render.chunk.RegionChunkRenderer;
+import me.jellysquid.mods.sodium.client.render.chunk.ChunkRenderer;
 import me.jellysquid.mods.sodium.client.render.chunk.RenderSectionManager;
-import me.jellysquid.mods.sodium.client.render.chunk.passes.BlockRenderPass;
+import me.jellysquid.mods.sodium.client.render.chunk.lists.SortedRenderLists;
+import me.jellysquid.mods.sodium.client.render.chunk.terrain.TerrainRenderPass;
+import me.jellysquid.mods.sodium.client.render.viewport.CameraTransform;
 import org.joml.Matrix4d;
 import org.joml.Matrix4f;
 import org.joml.Vector3dc;
@@ -16,18 +17,21 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.valkyrienskies.mod.mixinducks.mod_compat.sodium.RegionChunkRendererDuck;
-import org.valkyrienskies.mod.mixinducks.mod_compat.sodium.RenderSectionManagerDuck;
 
 @Mixin(value = RenderSectionManager.class, remap = false)
 public class MixinRenderSectionManager {
+
     @Shadow
     @Final
-    private RegionChunkRenderer chunkRenderer;
+    private ChunkRenderer chunkRenderer;
+
+    @Shadow
+    private SortedRenderLists renderLists;
 
     @Redirect(at = @At(value = "INVOKE", target = "Lme/jellysquid/mods/sodium/client/gl/device/CommandList;flush()V"),
         method = "renderLayer")
     private void redirectRenderLayer(final CommandList list, final ChunkRenderMatrices matrices,
-        final BlockRenderPass pass, final double camX, final double camY, final double camZ) {
+        final TerrainRenderPass pass, final double camX, final double camY, final double camZ) {
 
         RenderDevice.INSTANCE.makeActive();
 
@@ -44,7 +48,7 @@ public class MixinRenderSectionManager {
                 new ChunkRenderMatrices(matrices.projection(), new Matrix4f(newModelView));
             ((RegionChunkRendererDuck) chunkRenderer).setCameraForCulling(camX, camY, camZ);
             chunkRenderer.render(newMatrices, list, renderList, pass,
-                new ChunkCameraContext(center.x(), center.y(), center.z()));
+                new CameraTransform(center.x(), center.y(), center.z()));
             list.close();
         });
     }

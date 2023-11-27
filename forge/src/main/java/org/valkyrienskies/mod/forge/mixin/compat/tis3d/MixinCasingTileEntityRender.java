@@ -1,7 +1,6 @@
 package org.valkyrienskies.mod.forge.mixin.compat.tis3d;
 
-/*
-import li.cil.tis3d.client.renderer.tileentity.CasingTileEntityRenderer;
+import li.cil.tis3d.client.renderer.block.entity.CasingBlockEntityRenderer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.Vec3;
@@ -14,9 +13,9 @@ import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Pseudo
-@Mixin(CasingTileEntityRenderer.class)
+@Mixin(CasingBlockEntityRenderer.class)
 public abstract class MixinCasingTileEntityRender {
-    @ModifyVariable(remap = false, method = "isBackFace(Lnet/minecraft/core/BlockPos;Lli/cil/tis3d/api/machine/Face;)Z",
+    @ModifyVariable(remap = false, method = "isBackFace",
         at = @At("STORE"), ordinal = 0)
     private Vec3 vs$isBackFace(final Vec3 original, final BlockPos position) {
         final ClientShip ship = VSGameUtilsKt.getShipObjectManagingPos(Minecraft.getInstance().level, position);
@@ -29,4 +28,4 @@ public abstract class MixinCasingTileEntityRender {
         }
     }
 }
-*/
+

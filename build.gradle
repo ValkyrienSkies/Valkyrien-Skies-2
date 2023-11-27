@@ -8,18 +8,12 @@ buildscript {
 plugins {
     // Needed for Forge+Fabric
     id "architectury-plugin" version "3.4.146"
-    id "dev.architectury.loom" version "1.1.346" apply false
-    id 'io.github.juuxel.loom-quiltflower' version '1.8.0' apply false
+    id "dev.architectury.loom" version "1.3.355" apply false
+    id 'io.github.juuxel.loom-vineflower' version '1.11.0' apply false
     // Kotlin
-    id "org.jetbrains.kotlin.jvm" version "1.7.10" apply false
-    // Kotlin linter
-    id "org.jlleitschuh.gradle.ktlint" version "10.3.0"
-
+    id "org.jetbrains.kotlin.jvm" version "1.9.10" apply false
     id 'com.matthewprenger.cursegradle' version '1.4.0' apply false
     id "com.modrinth.minotaur" version "2.4.3" apply false
-
-    // Java linter
-    id "checkstyle"
 }
 
 // Determine the version
@@ -42,20 +36,73 @@ dependencyLocking {
     lockAllConfigurations()
 }
 
-// Determine the version of vs-core
-String vsCoreGitRevision = "git rev-parse HEAD".execute(null, gradle.includedBuild("vs-core").projectDir).text.trim()
-ext.vs_core_version = "1.1.0+" + vsCoreGitRevision.substring(0, 10)
+tasks.register("updateVsCore") {
+    File versionFile = null
+    File gradleProperties = file("gradle.properties")
+
+    try {
+        def vsCoreBuild = gradle.includedBuild("vs-core")
+        versionFile = new File(vsCoreBuild.projectDir, "api-game/build/version.txt")
+
+        inputs.file(versionFile)
+        outputs.file(gradleProperties)
+        dependsOn(vsCoreBuild.task(":api-game:writeVersion"))
+
+        [':impl', ':api', ':api-game', ':util'].each {
+            dependsOn(vsCoreBuild.task("${it}:publishToMavenLocal"))
+        }
+    } catch (UnknownDomainObjectException ignore) {}
+
+    onlyIf {
+        versionFile != null
+    }
+
+    doLast {
+        def vsCoreVersion = versionFile.text
+        def newGradleProperties = gradleProperties.text.replaceFirst("(?m)^vs_core_version=.*", "vs_core_version=" + vsCoreVersion)
+        gradleProperties.write(newGradleProperties)
+    }
+}
 
 subprojects {
     apply plugin: "dev.architectury.loom"
     // Apply checkstyle and ktlint to check the code style of every sub project
-    apply plugin: "org.jlleitschuh.gradle.ktlint"
-    apply plugin: "checkstyle"
     apply plugin: "org.jetbrains.kotlin.jvm"
-    apply plugin: "io.github.juuxel.loom-quiltflower"
+    apply plugin: "io.github.juuxel.loom-vineflower"
+
+    configurations.each { it.resolutionStrategy.useGlobalDependencySubstitutionRules.set(false) }
 
     repositories {
+        try {
+            def vsCoreBuild = gradle.includedBuild("vs-core")
+            mavenLocal {
+                content {
+                    includeGroup("org.valkyrienskies.core")
+                }
+            }
+
+            [':impl', ':api', ':api-game'].each {
+                compileJava.dependsOn(vsCoreBuild.task("${it}:publishToMavenLocal"))
+            }
+        } catch (UnknownDomainObjectException ignore) {}
+
         mavenCentral()
+        maven {
+            url "https://cursemaven.com"
+            content {
+                includeModule "curse.maven", "kotlinforforge-351264"
+            }
+        }
+        maven {
+            name = "Valkyrien Skies Internal"
+            url = project.vs_maven_url ?: 'https://maven.valkyrienskies.org'
+            if (project.vs_maven_username && project.vs_maven_password) {
+                credentials {
+                    username = project.vs_maven_username
+                    password = project.vs_maven_password
+                }
+            }
+        }
         if (!project.block_external_repositories) {
             mavenLocal()
             maven {
@@ -72,28 +119,14 @@ subprojects {
                 name = 'tterrag maven'
                 url = 'https://maven.tterrag.com/'
             }
-            maven { url = "https://api.modrinth.com/maven" } // LazyDFU, Suggestion Tweaker
+            maven { url = "https://api.modrinth.com/maven" } // LazyDFU, Suggestion Tweaker, Create Big Cannons
             maven { url = "https://maven.shedaniel.me/" } // Cloth Config, REI
+            maven { url "https://maven.architectury.dev/" }
             maven { url = "https://mvn.devos.one/snapshots/" } // Fabric Create, Porting Lib, Forge Tags, Milk Lib
             maven { url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/" } // Forge Config API Port
             maven { url = "https://maven.tterrag.com/" } // Registrate, Forge Create and Flywheel
             maven { url = "https://maven.cafeteria.dev/releases" } // Fake Player API
             maven { url = "https://maven.jamieswhiteshirt.com/libs-release" } // Reach Entity Attributes
-            maven { url = "https://mvn.devos.one/#/snapshots/" } // Create Fabric
-            maven {
-                url = "https://jitpack.io"
-                content { includeGroup("com.github.llamalad7.mixinextras") }
-            } // MixinExtras smh my head
-        }
-        maven {
-            name = "Valkyrien Skies Internal"
-            url = project.vs_maven_url ?: 'https://maven.valkyrienskies.org'
-            if (project.vs_maven_username && project.vs_maven_password) {
-                credentials {
-                    username = project.vs_maven_username
-                    password = project.vs_maven_password
-                }
-            }
         }
     }
 
@@ -113,37 +146,6 @@ subprojects {
         mappings loom.officialMojangMappings()
 
         compileOnly("com.google.code.findbugs:jsr305:3.0.2")
-    }
-
-    // configure checkstyle
-    checkstyle {
-        // configure to use checkstyle v8.41
-        toolVersion "8.45.1"
-        // Gradle should fail builds on checkstyle errors (not warnings)
-        ignoreFailures = true
-        // Checkstyle config file is in .checkstyle/checkstyle.xml
-        configFile = file("${rootDir}/.checkstyle/checkstyle.xml")
-    }
-
-    // configure checkstyle, but different
-    // https://docs.gradle.org/current/userguide/checkstyle_plugin.html
-    tasks.withType(Checkstyle) {
-        reports {
-            // Do not output html reports
-            html.enabled = false
-            // Output xml reports
-            xml.enabled = true
-        }
-    }
-
-    // configure ktlint
-    ktlint {
-        reporters {
-            // configure to output in checkstyle XML format
-            reporter "checkstyle"
-        }
-        ignoreFailures = true
-        disabledRules = ["parameter-list-wrapping"]
     }
 }
 

@@ -11,6 +11,7 @@ import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.arguments.coordinates.RotationArgument
 import net.minecraft.commands.arguments.coordinates.WorldCoordinate
 import net.minecraft.network.chat.Component
+import net.minecraft.network.chat.Component.translatable
 import java.util.concurrent.CompletableFuture
 
 class RelativeVector3Argument : ArgumentType<RelativeVector3> {

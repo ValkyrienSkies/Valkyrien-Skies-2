@@ -35,15 +35,13 @@ import org.valkyrienskies.core.apigame.world.chunks.TerrainUpdate
 import org.valkyrienskies.core.apigame.world.properties.DimensionId
 import org.valkyrienskies.core.game.ships.ShipObjectServer
 import org.valkyrienskies.core.impl.hooks.VSEvents.TickEndEvent
-import org.valkyrienskies.core.impl.util.expand
+import org.valkyrienskies.core.util.expand
 import org.valkyrienskies.mod.common.util.DimensionIdProvider
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.util.set
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toJOMLD
 import org.valkyrienskies.mod.common.util.toMinecraft
-import org.valkyrienskies.mod.common.world.DummyShipWorldClient
-import org.valkyrienskies.mod.common.world.DummyShipWorldServer
 import org.valkyrienskies.mod.mixin.accessors.resource.ResourceKeyAccessor
 import org.valkyrienskies.mod.mixinducks.world.entity.PlayerDuck
 import java.util.function.Consumer
@@ -59,15 +57,15 @@ val Level?.shipWorldNullable: ShipWorldCore?
     }
 
 val Level?.shipObjectWorld
-    get() = shipWorldNullable ?: DummyShipWorldClient
+    get() = shipWorldNullable ?: vsCore.dummyShipWorldClient
 
 val Level?.allShips get() = this.shipObjectWorld.allShips
 
 val MinecraftServer.shipObjectWorld: ServerShipWorldCore
-    get() = (this as IShipObjectWorldServerProvider).shipObjectWorld ?: DummyShipWorldServer
+    get() = (this as IShipObjectWorldServerProvider).shipObjectWorld ?: vsCore.dummyShipWorldServer
 val MinecraftServer.vsPipeline get() = (this as IShipObjectWorldServerProvider).vsPipeline!!
 
-val ServerLevel?.shipObjectWorld: ServerShipWorldCore get() = this?.server?.shipObjectWorld ?: DummyShipWorldServer
+val ServerLevel?.shipObjectWorld: ServerShipWorldCore get() = this?.server?.shipObjectWorld ?: vsCore.dummyShipWorldServer
 
 val Level.dimensionId: DimensionId
     get() {
@@ -100,7 +98,7 @@ fun MinecraftServer.executeIf(condition: () -> Boolean, toExecute: Runnable) {
     }
 }
 
-val Level.yRange get() = LevelYRange(minBuildHeight, maxBuildHeight)
+val Level.yRange get() = LevelYRange(minBuildHeight, maxBuildHeight - 1)
 
 fun Level.isTickingChunk(pos: ChunkPos) = isTickingChunk(pos.x, pos.z)
 fun Level.isTickingChunk(chunkX: Int, chunkZ: Int) =
@@ -110,7 +108,7 @@ fun MinecraftServer.getLevelFromDimensionId(dimensionId: DimensionId): ServerLev
     return getLevel(getResourceKey(dimensionId))
 }
 
-val Minecraft.shipObjectWorld get() = (this as IShipObjectWorldClientProvider).shipObjectWorld ?: DummyShipWorldClient
+val Minecraft.shipObjectWorld get() = (this as IShipObjectWorldClientProvider).shipObjectWorld ?: vsCore.dummyShipWorldClient
 val ClientLevel?.shipObjectWorld get() = Minecraft.getInstance().shipObjectWorld
 
 val IPlayer.mcPlayer: Player get() = (this as MinecraftPlayer).playerEntityReference.get()!!
@@ -175,7 +173,7 @@ private fun getShipObjectManagingPosImpl(world: Level?, chunkX: Int, chunkZ: Int
  * Get all ships intersecting an AABB in world-space, then call [cb] with the AABB itself,
  * followed by the AABB in the ship-space of the intersecting ships.
  */
-fun Level?.transformFromWorldToNearbyShipsAndWorld(aabb: AABB, cb: Consumer<AABB>) {
+fun Level.transformFromWorldToNearbyShipsAndWorld(aabb: AABB, cb: Consumer<AABB>) {
     cb.accept(aabb)
     val tmpAABB = AABBd()
     getShipsIntersecting(aabb).forEach { ship ->
@@ -295,7 +293,12 @@ fun ServerLevel?.getShipObjectManagingPos(pos: Vector3dc) =
 
 private fun getShipManagingPosImpl(world: Level?, x: Int, z: Int): Ship? {
     return if (world != null && world.isChunkInShipyard(x, z)) {
-        world.shipObjectWorld.allShips.getByChunkPos(x, z, world.dimensionId)
+        val ship = world.shipObjectWorld.allShips.getByChunkPos(x, z, world.dimensionId)
+        if (ship != null && ship.chunkClaimDimension == world.dimensionId) {
+            ship
+        } else {
+            null
+        }
     } else {
         null
     }
@@ -401,8 +404,8 @@ fun Level?.getWorldCoordinates(blockPos: BlockPos, pos: Vector3d): Vector3d {
     return this.getShipObjectManagingPos(blockPos)?.transform?.shipToWorld?.transformPosition(pos) ?: pos
 }
 
-fun Level?.getShipsIntersecting(aabb: AABB): Iterable<Ship> = allShips.getIntersecting(aabb.toJOML())
-fun Level?.getShipsIntersecting(aabb: AABBdc): Iterable<Ship> = allShips.getShipDataIntersecting(aabb)
+fun Level.getShipsIntersecting(aabb: AABB): Iterable<Ship> = getShipsIntersecting(aabb.toJOML())
+fun Level.getShipsIntersecting(aabb: AABBdc): Iterable<Ship> = allShips.getIntersecting(aabb).filter { it.chunkClaimDimension == dimensionId }
 
 fun Level?.transformAabbToWorld(aabb: AABB): AABB = transformAabbToWorld(aabb.toJOML()).toMinecraft()
 fun Level?.transformAabbToWorld(aabb: AABBd) = this?.transformAabbToWorld(aabb, aabb) ?: aabb
@@ -411,7 +414,7 @@ fun Level.transformAabbToWorld(aabb: AABBdc, dest: AABBd): AABBd {
     val ship2 = getShipManagingPos(aabb.maxX(), aabb.maxY(), aabb.maxZ())
 
     // if both endpoints of the aabb are in the same ship, do the transform
-    if (ship1 == ship2 && ship1 != null) {
+    if (ship1 == ship2 && ship1 != null && ship1.chunkClaimDimension == dimensionId) {
         return aabb.transform(ship1.shipToWorld, dest)
     }
 

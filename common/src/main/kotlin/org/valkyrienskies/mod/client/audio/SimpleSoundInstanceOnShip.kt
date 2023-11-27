@@ -2,14 +2,14 @@ package org.valkyrienskies.mod.client.audio
 
 import net.minecraft.client.resources.sounds.SimpleSoundInstance
 import net.minecraft.client.resources.sounds.SoundInstance.Attenuation
-import net.minecraft.client.resources.sounds.SoundInstance.Attenuation.LINEAR
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.sounds.SoundEvent
 import net.minecraft.sounds.SoundSource
 import net.minecraft.util.RandomSource
+import org.valkyrienskies.core.api.ships.Ship
 import org.joml.Vector3d
 import org.joml.Vector3dc
-import org.valkyrienskies.core.api.ships.Ship
+import net.minecraft.client.resources.sounds.SoundInstance.Attenuation.LINEAR
 
 class SimpleSoundInstanceOnShip : SimpleSoundInstance, VelocityTickableSoundInstance {
 

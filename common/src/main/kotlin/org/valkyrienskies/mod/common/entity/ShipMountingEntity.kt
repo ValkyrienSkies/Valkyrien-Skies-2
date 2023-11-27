@@ -9,18 +9,20 @@ import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.level.Level
+import net.minecraft.world.phys.Vec3
 import org.joml.Vector3f
 import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.core.api.ships.setAttachment
 import org.valkyrienskies.core.impl.networking.simple.sendToServer
 import org.valkyrienskies.mod.api.SeatedControllingPlayer
 import org.valkyrienskies.mod.common.config.VSKeyBindings
+import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.getShipObjectManagingPos
+import org.valkyrienskies.mod.common.isBlockInShipyard
 import org.valkyrienskies.mod.common.networking.PacketPlayerDriving
 
 open class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level) : Entity(type, level) {
-
-    // Decides if this entity controlls the ship it is in.
+    // Decides if this entity controls the ship it is in.
     // Only needs to be set serverside
     var isController = false
 
@@ -43,14 +45,35 @@ open class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level
             sendDrivingPacket()
     }
 
-    override fun readAdditionalSaveData(compoundTag: CompoundTag) {
+    // This is a partial fix for mounting ships that have been deleted
+    // TODO: Make a full fix eventually
+    /*
+    override fun positionRider(entity: Entity) {
+        if (level().isBlockInShipyard(position()) && level().getShipManagingPos(position()) == null) {
+            // Stop rider positioning if we can't find the ship
+            entity.removeVehicle()
+            return
+        }
+        super.positionRider(entity)
     }
 
-    override fun addAdditionalSaveData(compoundTag: CompoundTag) {
+     */
+
+    // This is a partial fix for mounting ships that have been deleted
+    // TODO: Make a full fix eventually
+    override fun getDismountLocationForPassenger(livingEntity: LivingEntity): Vec3 {
+        if (level().isBlockInShipyard(position()) && level().getShipManagingPos(position()) == null) {
+            // Don't teleport to the ship if we can't find the ship
+            return livingEntity.position()
+        }
+        return super.getDismountLocationForPassenger(livingEntity)
     }
 
-    override fun defineSynchedData() {
-    }
+    override fun readAdditionalSaveData(compound: CompoundTag) {}
+
+    override fun addAdditionalSaveData(compound: CompoundTag) {}
+
+    override fun defineSynchedData() {}
 
     override fun remove(removalReason: RemovalReason) {
         if (this.isController && !level().isClientSide)
@@ -82,7 +105,7 @@ open class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level
 
     override fun getControllingPassenger(): LivingEntity? {
         return if (isController) {
-             this.passengers.getOrNull(0) as? LivingEntity
+            this.passengers.getOrNull(0) as? LivingEntity
         } else {
             null
         }

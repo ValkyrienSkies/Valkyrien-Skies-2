@@ -1,7 +1,6 @@
 package org.valkyrienskies.mod.forge.mixin.compat.create;
 
-/*
-import com.simibubi.create.content.contraptions.components.actors.BlockBreakingKineticTileEntity;
+import com.simibubi.create.content.kinetics.base.BlockBreakingKineticBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.BlockHitResult;
@@ -15,7 +14,7 @@ import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
-@Mixin(BlockBreakingKineticTileEntity.class)
+@Mixin(BlockBreakingKineticBlockEntity.class)
 public abstract class MixinBlockBreakingKineticTileEntity {
 
     @Shadow
@@ -25,10 +24,10 @@ public abstract class MixinBlockBreakingKineticTileEntity {
         method = "tick",
         at = @At(
             value = "INVOKE",
-            target = "Lcom/simibubi/create/content/contraptions/components/actors/BlockBreakingKineticTileEntity;getBreakingPos()Lnet/minecraft/core/BlockPos;"
+            target = "Lcom/simibubi/create/content/kinetics/base/BlockBreakingKineticBlockEntity;getBreakingPos()Lnet/minecraft/core/BlockPos;"
         ), remap = false
     )
-    private BlockPos getBreakingBlockPos(final BlockBreakingKineticTileEntity self) {
+    private BlockPos getBreakingBlockPos(final BlockBreakingKineticBlockEntity self) {
         final BlockPos orig = this.getBreakingPos();
         final Vec3 origin;
         final Vec3 target;
@@ -64,4 +63,4 @@ public abstract class MixinBlockBreakingKineticTileEntity {
     }
 
 }
-*/
+

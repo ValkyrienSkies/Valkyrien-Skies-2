@@ -21,5 +21,13 @@ public interface EntityAccessor {
 
     @Accessor("feetBlockState")
     void setFeetBlockState(BlockState feetBlockState);
-        
+
+    @Accessor("portalCooldown")
+    void setPortalCooldown(int portalCooldown);
+
+    @Accessor("portalCooldown")
+    int getPortalCooldown();
+
+    @Accessor("portalEntrancePos")
+    BlockPos getPortalEntrancePos();
 }
