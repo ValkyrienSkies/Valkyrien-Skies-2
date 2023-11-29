@@ -24,6 +24,9 @@ import org.valkyrienskies.mod.common.VS2ChunkAllocator;
 
 @Mixin(ChunkGenerator.class)
 public class MixinChunkGenerator {
+    // TODO its pretty standard to extend this class, if they do super.whatever, these mixins will not work correctly
+    // tfc in forge part of the mod has a bandaid solution, if this is fixed please remove that
+
     @Inject(method = "findNearestMapFeature", at = @At("HEAD"), cancellable = true)
     private void preFindNearestMapFeature(ServerLevel serverLevel, HolderSet<ConfiguredStructureFeature<?, ?>> holderSet, BlockPos blockPos, int i, boolean bl, final CallbackInfoReturnable<Pair<BlockPos, Holder<ConfiguredStructureFeature<?, ?>>>> cir) {
         if (VS2ChunkAllocator.INSTANCE.isChunkInShipyardCompanion(blockPos.getX() >> 4, blockPos.getZ() >> 4)) {
