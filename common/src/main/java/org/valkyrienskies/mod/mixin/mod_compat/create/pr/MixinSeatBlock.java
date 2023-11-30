@@ -51,11 +51,11 @@ public abstract class MixinSeatBlock extends Block {
         if (draggingInformation.isEntityBeingDraggedByAShip()) {
             final Long shipStandingOnId = draggingInformation.getLastShipStoodOn();
             if (shipStandingOnId != null) {
-                final Ship ship = VSGameUtilsKt.getShipObjectWorld(entity.level).getLoadedShips().getById(shipStandingOnId);
+                final Ship ship = VSGameUtilsKt.getShipObjectWorld(entity.level()).getLoadedShips().getById(shipStandingOnId);
                 if (ship != null) {
                     final Vector3dc posInShip = ship.getTransform().getWorldToShip()
                         .transformPosition(entity.getX(), entity.getY(), entity.getZ(), new Vector3d());
-                    return new BlockPos(posInShip.x(), posInShip.y(), posInShip.z());
+                    return BlockPos.containing(posInShip.x(), posInShip.y(), posInShip.z());
                 }
             }
         }
