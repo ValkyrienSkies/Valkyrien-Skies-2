@@ -32,6 +32,11 @@ object VSClientGameUtils {
         }
     }
 
+    @JvmStatic
+    fun getClientShip(offsetX: Double, offsetY: Double, offsetZ: Double): ClientShip? {
+        return Minecraft.getInstance().level?.getShipObjectManagingPos(offsetX, offsetY, offsetZ)
+    }
+
     /**
      * Modify the last transform of [poseStack] to be the following:
      *
