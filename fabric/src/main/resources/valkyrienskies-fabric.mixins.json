@@ -19,7 +19,6 @@
     "compat.create.client.MixinCullingBlockEntityIterator",
     "compat.create.client.MixinFlwContraption",
     "compat.create.client.MixinSuperGlueSelectionHandler",
-    "compat.create.client.MixinValueBox",
     "feature.duplicate_keybindings.KeyMappingAccessor",
     "feature.duplicate_keybindings.MixinKeyMapping"
   ],
