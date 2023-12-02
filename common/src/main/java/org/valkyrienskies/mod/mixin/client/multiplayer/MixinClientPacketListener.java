@@ -8,6 +8,7 @@ import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
 import net.minecraft.network.protocol.game.ClientboundLoginPacket;
 import net.minecraft.network.protocol.game.ClientboundMoveEntityPacket;
+import net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket;
 import net.minecraft.world.entity.Entity;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
@@ -21,6 +22,7 @@ import org.valkyrienskies.mod.common.IShipObjectWorldClientCreator;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.mixinducks.feature.fix_entity_rubberband.ClientboundMoveEntityPacketDuck;
+import org.valkyrienskies.mod.mixinducks.feature.fix_entity_rubberband.ClientboundTeleportEntityPacketDuck;
 
 @Mixin(ClientPacketListener.class)
 public class MixinClientPacketListener {
@@ -73,10 +75,31 @@ public class MixinClientPacketListener {
     private void relerpEntity(final ClientboundMoveEntityPacket packet, final CallbackInfo ci) {
         if (((ClientboundMoveEntityPacketDuck) packet).valkyrienskies$getShipId() != null) {
             Ship ship = VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips().getById(((ClientboundMoveEntityPacketDuck) packet).valkyrienskies$getShipId());
+
+
             Vector3d newPos = ship.getTransform().getShipToWorld().transformDirection(new Vector3d(packet.getXa() / 4096.0, packet.getYa() / 4096.0, packet.getZa() / 4096.0));
             ((ClientboundMoveEntityPacketDuck) packet).valkyrienskies$setXa((short) (newPos.x * 4096));
             ((ClientboundMoveEntityPacketDuck) packet).valkyrienskies$setYa((short) (newPos.y * 4096));
             ((ClientboundMoveEntityPacketDuck) packet).valkyrienskies$setZa((short) (newPos.z * 4096));
+        }
+    }
+
+    /**
+     * relerp entity 2 electric boogaloo
+     */
+    @Inject(method = "handleTeleportEntity", at = @At(value = "INVOKE", target = "Lnet/minecraft/network/protocol/game/ClientboundTeleportEntityPacket;getId()I", shift = Shift.AFTER))
+    private void relerpTeleportedEntity(ClientboundTeleportEntityPacket clientboundTeleportEntityPacket, CallbackInfo ci) {
+        Entity entity = level.getEntity(clientboundTeleportEntityPacket.getId());
+        if (entity != null) {
+            if (((ClientboundTeleportEntityPacketDuck) clientboundTeleportEntityPacket).valkyrienskies$getShipId() != null) {
+                Ship ship = VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips().getById(((ClientboundTeleportEntityPacketDuck) clientboundTeleportEntityPacket).valkyrienskies$getShipId());
+
+                Vector3d newPos = ship.getTransform().getShipToWorld().transformPosition(new Vector3d(clientboundTeleportEntityPacket.getX(), clientboundTeleportEntityPacket.getY(), clientboundTeleportEntityPacket.getZ()));
+                ((ClientboundTeleportEntityPacketDuck) clientboundTeleportEntityPacket).valkyrienskies$setX(newPos.x);
+                ((ClientboundTeleportEntityPacketDuck) clientboundTeleportEntityPacket).valkyrienskies$setY(newPos.y);
+                ((ClientboundTeleportEntityPacketDuck) clientboundTeleportEntityPacket).valkyrienskies$setZ(newPos.z);
+
+            }
         }
     }
 
