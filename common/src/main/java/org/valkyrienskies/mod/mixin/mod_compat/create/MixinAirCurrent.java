@@ -112,7 +112,7 @@ public abstract class MixinAirCurrent {
                 value = "INVOKE",
                 target = "Lnet/minecraft/world/entity/Entity;getDeltaMovement()Lnet/minecraft/world/phys/Vec3;"
         ),
-        locals = LocalCapture.CAPTURE_FAILHARD,
+        locals = LocalCapture.CAPTURE_FAILSOFT,
         require = 0
     )
     private void harvester(Level world, Direction facing, CallbackInfo ci, Iterator<Entity> iterator, Entity entity, Vec3 center, Vec3i flow, float sneakModifier, float speed, double entityDistance, float acceleration) {
