@@ -51,7 +51,7 @@ import org.valkyrienskies.core.api.ships.WingManager;
 import org.valkyrienskies.core.api.ships.datastructures.ShipConnDataAttachment;
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
 import org.valkyrienskies.core.apigame.world.chunks.TerrainUpdate;
-import org.valkyrienskies.core.util.datastructures.DenseBlockPosSet;
+import org.valkyrienskies.core.util.datastructures.Breakage;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.assembly.SubShipAssemblyKt;
@@ -255,11 +255,12 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                 assert connData != null;
                 HashSet<Object> shipBreakages = (HashSet<Object>) connData.getBreakages();
                 for (Object breakage : shipBreakages) {
-                    if (breakage instanceof DenseBlockPosSet breaking) {
-                        SubShipAssemblyKt.splitShip(VectorConversionsMCKt.toBlockPos(breaking.stream().iterator().next()), breaking, self, loadedShip);
+                    if (breakage instanceof Breakage breaking) {
+                        SubShipAssemblyKt.splitShip(VectorConversionsMCKt.toBlockPos(breaking.component1()), breaking.component2(), self, loadedShip);
+                        connData.getBreakages().remove(breakage);
                     }
                 }
-                connData.getBreakages().clear();
+
 
             }
         }
