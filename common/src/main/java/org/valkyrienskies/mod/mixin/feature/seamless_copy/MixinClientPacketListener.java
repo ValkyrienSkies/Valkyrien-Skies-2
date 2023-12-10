@@ -63,7 +63,7 @@ public class MixinClientPacketListener implements SeamlessCopyClientPacketListen
         cancellable = true
     )
     private void beforeHandleLevelChunk(final ClientboundLevelChunkWithLightPacket packet, final CallbackInfo ci) {
-        if (chunks.queue(packet.getX(), packet.getZ(), packet, level)) {
+        if (level != null && chunks.queue(packet.getX(), packet.getZ(), packet, level)) {
             ci.cancel();
         }
     }

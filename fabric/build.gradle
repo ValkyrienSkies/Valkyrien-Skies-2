@@ -63,9 +63,9 @@ dependencies {
     }
 
     // CC Restitched
-    modImplementation("curse.maven:cc-restitched-462672:3908334"){
-        exclude module: "jsonschema.module.addon"
-    }
+    //modImplementation("curse.maven:cc-restitched-462672:3908334"){
+    //    exclude module: "jsonschema.module.addon"
+    //}
 
     // CC Restitched
     //modImplementation("curse.maven:cc-tweaked-282001:${cc_tweaked_version}")

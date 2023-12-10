@@ -165,6 +165,8 @@ public abstract class MixinMinecraft
         at = @At("TAIL")
     )
     private void postClearLevel(final CallbackInfo ci) {
-        deleteShipObjectWorldClient();
+        if (shipObjectWorld != null) {
+            deleteShipObjectWorldClient();
+        }
     }
 }
