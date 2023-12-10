@@ -128,6 +128,24 @@ public abstract class MixinCamera implements IVSCamera {
         this.left.transform(this.rotation);
     }
 
+    @Unique
+    public void shipGravityEffect() {
+
+    }
+
+    @Unique
+    public void addRotation(final Quaterniondc quaterniondc) {
+        this.xRot += (float) quaterniondc.x();
+        this.yRot += (float) quaterniondc.y();
+        VectorConversionsMCKt.set(this.rotation, quaterniondc);
+        this.forwards.set(0.0F, 0.0F, 1.0F);
+        this.forwards.transform(this.rotation);
+        this.up.set(0.0F, 1.0F, 0.0F);
+        this.up.transform(this.rotation);
+        this.left.set(1.0F, 0.0F, 0.0F);
+        this.left.transform(this.rotation);
+    }
+
     /**
      * When in third person, do not block the camera on the ship the player is mounted to
      */
