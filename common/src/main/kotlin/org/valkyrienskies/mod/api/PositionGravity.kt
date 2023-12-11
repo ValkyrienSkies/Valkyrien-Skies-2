@@ -13,11 +13,17 @@ import org.valkyrienskies.mod.common.entity.MobWeights
 
 class PositionGravity {
     private lateinit var instances: Map<Vector3dc?, Double>
-    fun newGravityPos(
+    fun PositionGravity(
         pos: Vector3dc,
         mass: Double
     ) {
         instances + Pair(pos, mass)
+    }
+
+    fun removePosition(
+        pos: Vector3dc
+    ) {
+        instances - pos
     }
 
     fun entityEffect(
