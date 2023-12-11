@@ -29,6 +29,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.apigame.world.ClientShipWorldCore;
+import org.valkyrienskies.mod.api.PositionGravity;
 import org.valkyrienskies.mod.client.IVSCamera;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
@@ -238,69 +239,98 @@ public abstract class MixinGameRenderer {
             target = "Lnet/minecraft/client/renderer/LevelRenderer;prepareCullFrustum(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/world/phys/Vec3;Lcom/mojang/math/Matrix4f;)V"
         )
     )
-    private void setupCameraWithMountedShip(final LevelRenderer instance, final PoseStack ignore, final Vec3 vec3,
+    private void moveCamera( final LevelRenderer instance, final PoseStack ignore, final Vec3 vec3,
         final Matrix4f matrix4f, final Operation<Void> prepareCullFrustum, final float partialTicks,
-        final long finishTimeNano, final PoseStack matrixStack) {
+        final long finishTimeNano, final PoseStack matrixStack){
 
         final ClientLevel clientLevel = minecraft.level;
         final Entity player = minecraft.player;
-        if (clientLevel == null || player == null) {
-            prepareCullFrustum.call(instance, matrixStack, vec3, matrix4f);
-            return;
-        }
+        final Camera camera = this.mainCamera;
         final ClientShip playerShipMountedTo =
             VSGameUtilsKt.getShipObjectEntityMountedTo(clientLevel, player);
+
+        if (clientLevel == null || player == null || camera == null) {
+            prepareCullFrustum.call(instance, matrixStack, vec3, matrix4f);
+            return;
+        }
+
         if (playerShipMountedTo == null) {
-            prepareCullFrustum.call(instance, matrixStack, vec3, matrix4f);
-            return;
-        }
-        final Entity playerVehicle = player.getVehicle();
-        if (playerVehicle == null) {
-            prepareCullFrustum.call(instance, matrixStack, vec3, matrix4f);
-            return;
-        }
+            // if you aren't mounted on a ship
+            final Vector3d force = new PositionGravity().playerEffect(minecraft.player);
+            if (force.length() >= 10){
+                final Quaternion forceDirection =
+                    new Quaternion(0.0F, (float) force.x, (float) force.y, (float) force.z);
 
-        // Update [matrixStack] to mount the camera to the ship
-        final Vector3dc inShipPos =
-            VSGameUtilsKt.getPassengerPos(playerVehicle, player.getMyRidingOffset(), partialTicks);
+                ((IVSCamera) camera).moveCamera(
+                    this.minecraft.level,
+                    this.minecraft.getCameraEntity() == null ? this.minecraft.player : this.minecraft.getCameraEntity(),
+                    !this.minecraft.options.getCameraType().isFirstPerson(),
+                    this.minecraft.options.getCameraType().isMirrored(),
+                    partialTicks
+                );
 
-        final Camera camera = this.mainCamera;
-        if (camera == null) {
-            prepareCullFrustum.call(instance, matrixStack, vec3, matrix4f);
-            return;
-        }
+                // Apply the ship render transform to [matrixStack]
+                final Quaternion invShipRenderRotation = VectorConversionsMCKt.toMinecraft(
+                    playerShipMountedTo.getRenderTransform().getShipToWorldRotation().conjugate(new Quaterniond()));
+                matrixStack.mulPose(invShipRenderRotation);
 
-        ((IVSCamera) camera).setupWithShipMounted(
-            this.minecraft.level,
-            this.minecraft.getCameraEntity() == null ? this.minecraft.player : this.minecraft.getCameraEntity(),
-            !this.minecraft.options.getCameraType().isFirstPerson(),
-            this.minecraft.options.getCameraType().isMirrored(),
-            partialTicks,
-            playerShipMountedTo,
-            inShipPos
-        );
+                // We also need to recompute [inverseViewRotationMatrix] after updating [matrixStack]
+                {
+                    final Matrix3f matrix3f = matrixStack.last().normal().copy();
+                    if (matrix3f.invert()) {
+                        RenderSystem.setInverseViewRotationMatrix(matrix3f);
+                    }
+                }
 
-        // Apply the ship render transform to [matrixStack]
-        final Quaternion invShipRenderRotation = VectorConversionsMCKt.toMinecraft(
-            playerShipMountedTo.getRenderTransform().getShipToWorldRotation().conjugate(new Quaterniond()));
-        matrixStack.mulPose(invShipRenderRotation);
+                final double fov = this.getFov(camera, partialTicks, true);
 
-        // We also need to recompute [inverseViewRotationMatrix] after updating [matrixStack]
-        {
-            final Matrix3f matrix3f = matrixStack.last().normal().copy();
-            if (matrix3f.invert()) {
-                RenderSystem.setInverseViewRotationMatrix(matrix3f);
+                prepareCullFrustum.call(instance, matrixStack, camera.getPosition(),
+                    this.getProjectionMatrix(Math.max(fov, this.minecraft.options.fov)));
             }
+        } else {
+            // if you're mounted on a ship
+            final Entity playerVehicle = player.getVehicle();
+            if (playerVehicle == null) {
+                prepareCullFrustum.call(instance, matrixStack, vec3, matrix4f);
+                return;
+            }
+
+            // Update [matrixStack] to mount the camera to the ship
+            final Vector3dc inShipPos =
+                VSGameUtilsKt.getPassengerPos(playerVehicle, player.getMyRidingOffset(), partialTicks);
+
+            ((IVSCamera) camera).setupWithShipMounted(
+                this.minecraft.level,
+                this.minecraft.getCameraEntity() == null ? this.minecraft.player : this.minecraft.getCameraEntity(),
+                !this.minecraft.options.getCameraType().isFirstPerson(),
+                this.minecraft.options.getCameraType().isMirrored(),
+                partialTicks,
+                playerShipMountedTo,
+                inShipPos
+            );
+
+            // Apply the ship render transform to [matrixStack]
+            final Quaternion invShipRenderRotation = VectorConversionsMCKt.toMinecraft(
+                playerShipMountedTo.getRenderTransform().getShipToWorldRotation().conjugate(new Quaterniond()));
+            matrixStack.mulPose(invShipRenderRotation);
+
+            // We also need to recompute [inverseViewRotationMatrix] after updating [matrixStack]
+            {
+                final Matrix3f matrix3f = matrixStack.last().normal().copy();
+                if (matrix3f.invert()) {
+                    RenderSystem.setInverseViewRotationMatrix(matrix3f);
+                }
+            }
+
+            // Camera FOV changes based on the position of the camera, so recompute FOV to account for the change of camera
+            // position.
+            final double fov = this.getFov(camera, partialTicks, true);
+
+            // Use [camera.getPosition()] instead of [vec3] because mounting the player to the ship has changed the camera
+            // position.
+            prepareCullFrustum.call(instance, matrixStack, camera.getPosition(),
+                this.getProjectionMatrix(Math.max(fov, this.minecraft.options.fov)));
         }
-
-        // Camera FOV changes based on the position of the camera, so recompute FOV to account for the change of camera
-        // position.
-        final double fov = this.getFov(camera, partialTicks, true);
-
-        // Use [camera.getPosition()] instead of [vec3] because mounting the player to the ship has changed the camera
-        // position.
-        prepareCullFrustum.call(instance, matrixStack, camera.getPosition(),
-            this.getProjectionMatrix(Math.max(fov, this.minecraft.options.fov)));
     }
     // endregion
 }

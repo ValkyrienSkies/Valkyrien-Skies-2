@@ -1,20 +1,15 @@
 package org.valkyrienskies.mod.api
 
-import net.minecraft.client.Camera
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.phys.Vec3
 import org.joml.Vector3d
 import org.joml.Vector3dc
-import org.lwjgl.system.CallbackI.V
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.util.x
 import org.valkyrienskies.core.util.y
 import org.valkyrienskies.core.util.z
-import org.valkyrienskies.mod.client.IVSCamera
 import org.valkyrienskies.mod.common.entity.MobWeights
-import org.valkyrienskies.mod.mixin.client.MixinCamera
-import org.valkyrienskies.mod.mixin.client.player.MixinPlayer
 
 class PositionGravity {
     private lateinit var instances: Map<Vector3dc?, Double>
