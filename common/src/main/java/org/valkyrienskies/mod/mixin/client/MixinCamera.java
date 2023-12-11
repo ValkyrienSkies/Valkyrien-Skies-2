@@ -129,11 +129,6 @@ public abstract class MixinCamera implements IVSCamera {
     }
 
     @Unique
-    public void shipGravityEffect() {
-
-    }
-
-    @Unique
     public void addRotation(final Quaterniondc quaterniondc) {
         this.xRot += (float) quaterniondc.x();
         this.yRot += (float) quaterniondc.y();

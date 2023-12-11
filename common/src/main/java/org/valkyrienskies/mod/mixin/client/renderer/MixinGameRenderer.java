@@ -268,11 +268,8 @@ public abstract class MixinGameRenderer {
                     this.minecraft.options.getCameraType().isMirrored(),
                     partialTicks
                 );
-
-                // Apply the ship render transform to [matrixStack]
-                final Quaternion invShipRenderRotation = VectorConversionsMCKt.toMinecraft(
-                    playerShipMountedTo.getRenderTransform().getShipToWorldRotation().conjugate(new Quaterniond()));
-                matrixStack.mulPose(invShipRenderRotation);
+                
+                matrixStack.mulPose(forceDirection);
 
                 // We also need to recompute [inverseViewRotationMatrix] after updating [matrixStack]
                 {
