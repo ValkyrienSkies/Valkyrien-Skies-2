@@ -73,49 +73,6 @@ subprojects {
     configurations.each { it.resolutionStrategy.useGlobalDependencySubstitutionRules.set(false) }
 
     repositories {
-        mavenCentral()
-        mavenLocal()
-        maven {
-            url "https://cursemaven.com"
-            content {
-                includeModule "curse.maven", "kotlinforforge-351264"
-            }
-        }
-
-        maven {
-            name = "ParchmentMC"
-            url = "https://maven.parchmentmc.org"
-        }
-        maven { url = "https://cursemaven.com" }
-        maven { url = "https://maven.terraformersmc.com/releases/" } // Mod Menu
-        maven {
-            name = 'Kotlin for Forge'
-            url = 'https://thedarkcolour.github.io/KotlinForForge/'
-        }
-        maven {
-            name = 'tterrag maven'
-            url = 'https://maven.tterrag.com/'
-        }
-        maven { url = "https://api.modrinth.com/maven" } // LazyDFU, Suggestion Tweaker, Create Big Cannons
-        maven { url = "https://maven.shedaniel.me/" } // Cloth Config, REI
-        maven { url "https://maven.architectury.dev/" }
-        maven { url = "https://mvn.devos.one/snapshots/" } // Fabric Create, Porting Lib, Forge Tags, Milk Lib
-        maven { url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/" } // Forge Config API Port
-        maven { url = "https://maven.tterrag.com/" } // Registrate, Forge Create and Flywheel
-        maven { url = "https://maven.cafeteria.dev/releases" } // Fake Player API
-        maven { url = "https://maven.jamieswhiteshirt.com/libs-release" } // Reach Entity Attributes
-
-        maven {
-            name = "Valkyrien Skies Internal"
-            url = project.vs_maven_url ?: 'https://maven.valkyrienskies.org'
-            if (project.vs_maven_username && project.vs_maven_password) {
-                credentials {
-                    username = project.vs_maven_username
-                    password = project.vs_maven_password
-                }
-            }
-        }
-
         try {
             def vsCoreBuild = gradle.includedBuild("vs-core")
             mavenLocal {
@@ -128,6 +85,59 @@ subprojects {
                 compileJava.dependsOn(vsCoreBuild.task("${it}:publishToMavenLocal"))
             }
         } catch (UnknownDomainObjectException ignore) {}
+
+        mavenCentral()
+        maven {
+            url "https://cursemaven.com"
+            content {
+                includeModule "curse.maven", "kotlinforforge-351264"
+            }
+        }
+        maven {
+            name = "Valkyrien Skies Internal"
+            url = project.vs_maven_url ?: 'https://maven.valkyrienskies.org'
+            if (project.vs_maven_username && project.vs_maven_password) {
+                credentials {
+                    username = project.vs_maven_username
+                    password = project.vs_maven_password
+                }
+            }
+        }
+        if (!project.block_external_repositories) {
+            mavenLocal()
+            maven {
+                name = "ParchmentMC"
+                url = "https://maven.parchmentmc.org"
+            }
+            maven { url = "https://cursemaven.com" }
+            maven { url = "https://maven.terraformersmc.com/releases/" } // Mod Menu
+            maven {
+                name = 'Kotlin for Forge'
+                url = 'https://thedarkcolour.github.io/KotlinForForge/'
+            }
+            maven {
+                name = 'tterrag maven'
+                url = 'https://maven.tterrag.com/'
+            }
+            maven { url = "https://api.modrinth.com/maven" } // LazyDFU, Suggestion Tweaker, Create Big Cannons
+            maven { url = "https://maven.shedaniel.me/" } // Cloth Config, REI
+            maven { url "https://maven.architectury.dev/" }
+            maven { url = "https://mvn.devos.one/snapshots/" } // Fabric Create, Porting Lib, Forge Tags, Milk Lib
+            maven { url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/" } // Forge Config API Port
+            maven { url = "https://maven.tterrag.com/" } // Registrate, Forge Create and Flywheel
+            maven { url = "https://maven.cafeteria.dev/releases" } // Fake Player API
+            maven { url = "https://maven.jamieswhiteshirt.com/libs-release" } // Reach Entity Attributes
+        }
+    }
+
+    // Remove automatically added repos
+    if (project.block_external_repositories) {
+        repositories.removeIf {
+            def url = it.url.toString()
+            url.contains("maven.minecraftforge.net") ||
+                url.contains("maven.fabricmc.net") ||
+                url.contains("maven.architectury.dev")
+        }
     }
 
     dependencies {
