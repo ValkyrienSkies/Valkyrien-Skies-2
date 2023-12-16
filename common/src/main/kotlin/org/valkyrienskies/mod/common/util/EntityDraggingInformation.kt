@@ -23,7 +23,12 @@ class EntityDraggingInformation {
     var restoreCachedLastPosition = false
 
     fun isEntityBeingDraggedByAShip(): Boolean {
-        return (lastShipStoodOn != null) && (ticksSinceStoodOnShip < 10) && !mountedToEntity
+        return (lastShipStoodOn != null) && (ticksSinceStoodOnShip < TICKS_TO_DRAG_ENTITIES) && !mountedToEntity
+    }
+
+    companion object {
+        // Max number of ticks we will drag an entity after the entity has jumped off the ship
+        private const val TICKS_TO_DRAG_ENTITIES = 20
     }
 }
 
