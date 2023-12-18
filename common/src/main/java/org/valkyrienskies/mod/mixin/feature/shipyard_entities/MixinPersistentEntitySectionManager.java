@@ -3,7 +3,6 @@ package org.valkyrienskies.mod.mixin.feature.shipyard_entities;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
-import java.util.function.LongPredicate;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.entity.EntitySectionStorage;
@@ -14,7 +13,8 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.mod.mixinducks.world.OfLevel;
 
 @Mixin(PersistentEntitySectionManager.class)
@@ -53,14 +53,10 @@ public abstract class MixinPersistentEntitySectionManager implements OfLevel {
     /**
      * This fixes this function randomly crashing. I'm not sure why but the removeIf() function is buggy
      */
-    @Redirect(
-        method = "processUnloads",
-        at = @At(
-            value = "INVOKE",
-            target = "Lit/unimi/dsi/fastutil/longs/LongSet;removeIf(Ljava/util/function/LongPredicate;)Z"
-        )
+    @Inject(
+        method = "processUnloads", at = @At(value = "HEAD"), cancellable = true
     )
-    private boolean replaceProcessUnloads(final LongSet instance, final LongPredicate longPredicate) {
+    private void replaceProcessUnloads(final CallbackInfo ci) {
         final LongSet toRemove = new LongOpenHashSet();
         for (final long key : this.chunksToUnload) {
             if (this.chunkVisibility.get(key) != Visibility.HIDDEN) {
@@ -70,6 +66,6 @@ public abstract class MixinPersistentEntitySectionManager implements OfLevel {
             }
         }
         chunksToUnload.removeAll(toRemove);
-        return !toRemove.isEmpty();
+        ci.cancel();
     }
 }
