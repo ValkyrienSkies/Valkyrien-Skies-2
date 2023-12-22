@@ -57,15 +57,20 @@ public abstract class MixinPersistentEntitySectionManager implements OfLevel {
         method = "processUnloads", at = @At(value = "HEAD"), cancellable = true
     )
     private void replaceProcessUnloads(final CallbackInfo ci) {
-        final LongSet toRemove = new LongOpenHashSet();
-        for (final long key : this.chunksToUnload) {
-            if (this.chunkVisibility.get(key) != Visibility.HIDDEN) {
-                toRemove.add(key);
-            } else if (this.processChunkUnload(key)) {
-                toRemove.add(key);
+        // I don't know why this crashes, try-catch please help me!
+        try {
+            final LongSet toRemove = new LongOpenHashSet();
+            for (final long key : this.chunksToUnload) {
+                if (this.chunkVisibility.get(key) != Visibility.HIDDEN) {
+                    toRemove.add(key);
+                } else if (this.processChunkUnload(key)) {
+                    toRemove.add(key);
+                }
             }
+            chunksToUnload.removeAll(toRemove);
+        } catch (final Exception e) {
+            e.printStackTrace();
         }
-        chunksToUnload.removeAll(toRemove);
         ci.cancel();
     }
 }
