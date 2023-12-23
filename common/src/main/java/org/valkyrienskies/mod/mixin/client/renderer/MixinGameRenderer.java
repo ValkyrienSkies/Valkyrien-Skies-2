@@ -25,6 +25,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.apigame.world.ClientShipWorldCore;
@@ -92,17 +93,23 @@ public abstract class MixinGameRenderer {
         return pick.call(receiver, maxDistance, tickDelta, includeFluids);
     }
 
-    @WrapOperation(
+    @Redirect(
         method = "pick",
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/world/phys/Vec3;distanceToSqr(Lnet/minecraft/world/phys/Vec3;)D"
         )
     )
-    public double correctDistanceChecks(final Vec3 instance, final Vec3 vec, final Operation<Vec3> distanceToSqr) {
-        return VSGameUtilsKt.squaredDistanceBetweenInclShips(this.minecraft.level,
-            vec.x, vec.y, vec.z,
-            instance.x, instance.y, instance.z);
+    public double correctDistanceChecks(final Vec3 instance, final Vec3 vec) {
+        return VSGameUtilsKt.squaredDistanceBetweenInclShips(
+            this.minecraft.level,
+            vec.x,
+            vec.y,
+            vec.z,
+            instance.x,
+            instance.y,
+            instance.z
+        );
     }
 
     @Inject(method = "render", at = @At("HEAD"))
@@ -120,6 +127,9 @@ public abstract class MixinGameRenderer {
 
             // Also update entity last tick positions, so that they interpolate correctly
             for (final Entity entity : clientWorld.entitiesForRendering()) {
+                if (!((IEntityDraggingInformationProvider) entity).vs$shouldDrag()) {
+                    continue;
+                }
                 // The position we want to render [entity] at for this frame
                 // This is set when an entity is mounted to a ship, or an entity is being dragged by a ship
                 Vector3dc entityShouldBeHere = null;
@@ -144,41 +154,39 @@ public abstract class MixinGameRenderer {
                     continue;
                 }
 
-                if (entityShouldBeHere == null) {
-                    final EntityDraggingInformation entityDraggingInformation =
-                        ((IEntityDraggingInformationProvider) entity).getDraggingInformation();
-                    final Long lastShipStoodOn = entityDraggingInformation.getLastShipStoodOn();
-                    // Then try getting [entityShouldBeHere] from [entityDraggingInformation]
-                    if (lastShipStoodOn != null && entityDraggingInformation.isEntityBeingDraggedByAShip()) {
-                        final ClientShip shipObject =
-                            VSGameUtilsKt.getShipObjectWorld(clientWorld).getLoadedShips().getById(lastShipStoodOn);
-                        if (shipObject != null) {
-                            entityDraggingInformation.setCachedLastPosition(
-                                new Vector3d(entity.xo, entity.yo, entity.zo));
-                            entityDraggingInformation.setRestoreCachedLastPosition(true);
+                final EntityDraggingInformation entityDraggingInformation =
+                    ((IEntityDraggingInformationProvider) entity).getDraggingInformation();
+                final Long lastShipStoodOn = entityDraggingInformation.getLastShipStoodOn();
+                // Then try getting [entityShouldBeHere] from [entityDraggingInformation]
+                if (lastShipStoodOn != null && entityDraggingInformation.isEntityBeingDraggedByAShip()) {
+                    final ClientShip shipObject =
+                        VSGameUtilsKt.getShipObjectWorld(clientWorld).getLoadedShips().getById(lastShipStoodOn);
+                    if (shipObject != null) {
+                        entityDraggingInformation.setCachedLastPosition(
+                            new Vector3d(entity.xo, entity.yo, entity.zo));
+                        entityDraggingInformation.setRestoreCachedLastPosition(true);
 
-                            // The velocity added to the entity by ship dragging
-                            final Vector3dc entityAddedVelocity = entityDraggingInformation.getAddedMovementLastTick();
+                        // The velocity added to the entity by ship dragging
+                        final Vector3dc entityAddedVelocity = entityDraggingInformation.getAddedMovementLastTick();
 
-                            // The velocity of the entity before we added ship dragging
-                            final double entityMovementX = entity.getX() - entityAddedVelocity.x() - entity.xo;
-                            final double entityMovementY = entity.getY() - entityAddedVelocity.y() - entity.yo;
-                            final double entityMovementZ = entity.getZ() - entityAddedVelocity.z() - entity.zo;
+                        // The velocity of the entity before we added ship dragging
+                        final double entityMovementX = entity.getX() - entityAddedVelocity.x() - entity.xo;
+                        final double entityMovementY = entity.getY() - entityAddedVelocity.y() - entity.yo;
+                        final double entityMovementZ = entity.getZ() - entityAddedVelocity.z() - entity.zo;
 
-                            // Without ship dragging, the entity would've been here
-                            final Vector3dc entityShouldBeHerePreTransform = new Vector3d(
-                                entity.xo + entityMovementX * tickDelta,
-                                entity.yo + entityMovementY * tickDelta,
-                                entity.zo + entityMovementZ * tickDelta
-                            );
+                        // Without ship dragging, the entity would've been here
+                        final Vector3dc entityShouldBeHerePreTransform = new Vector3d(
+                            entity.xo + entityMovementX * tickDelta,
+                            entity.yo + entityMovementY * tickDelta,
+                            entity.zo + entityMovementZ * tickDelta
+                        );
 
-                            // Move [entityShouldBeHerePreTransform] with the ship, using the prev transform and the
-                            // current render transform
-                            entityShouldBeHere = shipObject.getRenderTransform().getShipToWorldMatrix()
-                                .transformPosition(
-                                    shipObject.getPrevTickShipTransform().getWorldToShipMatrix()
-                                        .transformPosition(entityShouldBeHerePreTransform, new Vector3d()));
-                        }
+                        // Move [entityShouldBeHerePreTransform] with the ship, using the prev transform and the
+                        // current render transform
+                        entityShouldBeHere = shipObject.getRenderTransform().getShipToWorldMatrix()
+                            .transformPosition(
+                                shipObject.getPrevTickShipTransform().getWorldToShipMatrix()
+                                    .transformPosition(entityShouldBeHerePreTransform, new Vector3d()));
                     }
                 }
 

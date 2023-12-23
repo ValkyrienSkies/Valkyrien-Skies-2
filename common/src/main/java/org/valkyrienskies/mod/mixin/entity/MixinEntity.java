@@ -7,7 +7,6 @@ import net.minecraft.CrashReportCategory;
 import net.minecraft.ReportedException;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
-import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.ClipContext;
@@ -199,5 +198,10 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     @NotNull
     public EntityDraggingInformation getDraggingInformation() {
         return draggingInformation;
+    }
+
+    @Override
+    public boolean vs$shouldDrag() {
+        return true;
     }
 }

@@ -78,6 +78,9 @@ dependencies {
     // TIS-3d
     modCompileOnly("maven.modrinth:tis3d:${tis3d_version}")
 
+    // Modular Routers
+    modCompileOnly("curse.maven:mr-250294:4695682")
+
     // Add Kotlin for Forge (3.12.0)
     forgeRuntimeLibrary("maven.modrinth:kotlin-for-forge:${kotlin_version}")
 
@@ -104,11 +107,11 @@ dependencies {
         transitive = false
     }
 
-    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api_krunch:1.0.0+10c94b01e2") {
+    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api_krunch:1.0.0+7db6a103f1") {
         transitive = false
     }
 
-    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api:1.0.0+94304c13aa") {
+    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api:1.0.0+0ba0cc41e1") {
         transitive = false
     }
 

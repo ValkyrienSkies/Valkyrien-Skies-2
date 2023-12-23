@@ -49,13 +49,14 @@ import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.api.ships.WingManager;
 import org.valkyrienskies.mod.common.CompatUtil;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.compat.CreateConversionsKt;
 import org.valkyrienskies.mod.mixinducks.mod_compat.create.MixinAbstractContraptionEntityDuck;
 
 @Mixin(AbstractContraptionEntity.class)
 public abstract class MixinAbstractContraptionEntity extends Entity implements MixinAbstractContraptionEntityDuck,
-    ContraptionWingProvider {
+    ContraptionWingProvider, IEntityDraggingInformationProvider {
 
     public MixinAbstractContraptionEntity(EntityType<?> entityType, Level level) {
         super(entityType, level);
@@ -323,5 +324,10 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
             CreateConversionsKt.toJOML(thisAsAbstractContraptionEntity.getRotationState().asMatrix());
         final Vector3d pos = VectorConversionsMCKt.toJOML(thisAsAbstractContraptionEntity.getAnchorVec());
         return new Matrix4d(rotationMatrix).setTranslation(pos);
+    }
+
+    @Override
+    public boolean vs$shouldDrag() {
+        return false;
     }
 }
