@@ -77,7 +77,7 @@ public abstract class MixinSoundEngine {
         ((HasOpenALVelocity) listener).setVelocity(new Vector3d());
 
         if (level != null && player != null) {
-            final ClientShip mounted = VSGameUtilsKt.getShipObjectEntityMountedTo(level, player);
+            final ClientShip mounted = (ClientShip) VSGameUtilsKt.getShipMountedTo(player);
             if (mounted != null) {
                 ((HasOpenALVelocity) listener).setVelocity(mounted.getVelocity());
             } else {
