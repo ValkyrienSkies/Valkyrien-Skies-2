@@ -12,7 +12,7 @@ import kotlin.math.sin
 
 object EntityDragger {
     // How much we decay the addedMovement each tick after player hasn't collided with a ship for at least 10 ticks.
-    private const val addedMovementDecay = 0.9
+    private const val ADDED_MOVEMENT_DECAY = 0.9
 
     /**
      * Drag these entities with the ship they're standing on.
@@ -26,7 +26,9 @@ object EntityDragger {
             var addedYRot = 0.0
 
             val shipDraggingEntity = entityDraggingInformation.lastShipStoodOn
-            if (shipDraggingEntity != null) {
+
+            // Only drag entities that aren't mounted to vehicles
+            if (shipDraggingEntity != null && entity.vehicle == null) {
                 if (entityDraggingInformation.isEntityBeingDraggedByAShip()) {
                     // Compute how much we should drag the entity
                     val shipData = entity.level.shipObjectWorld.allShips.getById(shipDraggingEntity)
@@ -82,8 +84,8 @@ object EntityDragger {
                 } else {
                     dragTheEntity = true
                     addedMovement = entityDraggingInformation.addedMovementLastTick
-                        .mul(addedMovementDecay, Vector3d())
-                    addedYRot = entityDraggingInformation.addedYawRotLastTick * addedMovementDecay
+                        .mul(ADDED_MOVEMENT_DECAY, Vector3d())
+                    addedYRot = entityDraggingInformation.addedYawRotLastTick * ADDED_MOVEMENT_DECAY
                 }
             }
 
