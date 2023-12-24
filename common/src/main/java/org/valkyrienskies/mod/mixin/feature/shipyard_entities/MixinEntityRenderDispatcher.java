@@ -42,6 +42,10 @@ public class MixinEntityRenderDispatcher {
         final ShipMountedToData shipMountedToData = VSGameUtilsKt.getShipMountedToData(entity, partialTicks);
 
         if (shipMountedToData != null) {
+            // Remove the earlier applied translation
+            matrixStack.popPose();
+            matrixStack.pushPose();
+
             final ShipTransform renderTransform = ((ClientShip) shipMountedToData.getShipMountedTo()).getRenderTransform();
 
             final Vec3 entityPosition = entity.getPosition(partialTicks);
