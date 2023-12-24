@@ -136,7 +136,7 @@ public abstract class MixinGameRenderer {
                 Vector3dc entityShouldBeHere = null;
 
                 // First, try getting the ship the entity is mounted to, if one exists
-                final ShipMountedToData shipMountedToData = VSGameUtilsKt.getMountedShipAndPositionMountedTo(entity, tickDelta);
+                final ShipMountedToData shipMountedToData = VSGameUtilsKt.getShipMountedToData(entity, tickDelta);
 
                 if (shipMountedToData != null) {
                     final ClientShip shipMountedTo = (ClientShip) shipMountedToData.getShipMountedTo();
@@ -249,7 +249,7 @@ public abstract class MixinGameRenderer {
             return;
         }
 
-        final ShipMountedToData shipMountedToData = VSGameUtilsKt.getMountedShipAndPositionMountedTo(player, partialTicks);
+        final ShipMountedToData shipMountedToData = VSGameUtilsKt.getShipMountedToData(player, partialTicks);
         if (shipMountedToData == null) {
             prepareCullFrustum.call(instance, matrixStack, vec3, matrix4f);
             return;

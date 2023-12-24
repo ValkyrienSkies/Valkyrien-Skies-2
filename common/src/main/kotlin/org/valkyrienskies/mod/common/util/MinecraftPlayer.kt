@@ -6,7 +6,7 @@ import org.valkyrienskies.core.apigame.world.IPlayer
 import org.valkyrienskies.core.apigame.world.PlayerState
 import org.valkyrienskies.core.apigame.world.properties.DimensionId
 import org.valkyrienskies.mod.common.dimensionId
-import org.valkyrienskies.mod.common.getMountedShipAndPositionMountedTo
+import org.valkyrienskies.mod.common.getShipMountedToData
 import org.valkyrienskies.mod.common.vsCore
 import java.lang.ref.WeakReference
 import java.util.UUID
@@ -37,7 +37,7 @@ class MinecraftPlayer(playerObject: Player) : IPlayer {
     }
 
     override fun getPlayerState(): PlayerState {
-        val mountedShipAndPos = getMountedShipAndPositionMountedTo(player)
+        val mountedShipAndPos = getShipMountedToData(player)
         return PlayerState(
             Vector3d(player.x, player.y, player.z),
             Vector3d(Vector3d(player.x - player.xo, player.y - player.yo, player.z - player.zo)),

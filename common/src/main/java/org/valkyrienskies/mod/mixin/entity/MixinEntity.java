@@ -105,7 +105,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
      */
     @Inject(method = "getEyePosition(F)Lnet/minecraft/world/phys/Vec3;", at = @At("HEAD"), cancellable = true)
     private void preGetEyePosition(final float partialTicks, final CallbackInfoReturnable<Vec3> cir) {
-        final ShipMountedToData shipMountedToData = VSGameUtilsKt.getMountedShipAndPositionMountedTo(Entity.class.cast(this), partialTicks);
+        final ShipMountedToData shipMountedToData = VSGameUtilsKt.getShipMountedToData(Entity.class.cast(this), partialTicks);
         if (shipMountedToData == null) {
             return;
         }
@@ -131,7 +131,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
      */
     @Inject(method = "calculateViewVector", at = @At("HEAD"), cancellable = true)
     private void preCalculateViewVector(final float xRot, final float yRot, final CallbackInfoReturnable<Vec3> cir) {
-        final LoadedShip shipMountedTo = VSGameUtilsKt.getShipObjectEntityMountedTo(Entity.class.cast(this));
+        final LoadedShip shipMountedTo = VSGameUtilsKt.getShipMountedTo(Entity.class.cast(this));
         if (shipMountedTo == null) {
             return;
         }

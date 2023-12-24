@@ -407,20 +407,20 @@ fun Level.transformAabbToWorld(aabb: AABBdc, dest: AABBd): AABBd {
     return dest.set(aabb)
 }
 
-fun getShipObjectEntityMountedTo(entity: Entity): LoadedShip? {
-    return getMountedShipAndPositionMountedTo(entity)?.shipMountedTo
-}
-
 data class ShipMountedToData(
     val shipMountedTo: LoadedShip,
     val mountPosInShip: Vector3dc,
 )
 
-fun getMountedShipAndPositionMountedTo(passenger: Entity, partialTicks: Float? = null): ShipMountedToData? {
+fun getShipMountedToData(passenger: Entity, partialTicks: Float? = null): ShipMountedToData? {
     val vehicle = passenger.vehicle ?: return null
     val shipObjectEntityMountedTo = passenger.level.getShipObjectManagingPos(vehicle.position().toJOML()) ?: return null
     val mountedPosInShip: Vector3dc = vehicle.getPosition(partialTicks ?: 0.0f)
         .add(0.0, vehicle.passengersRidingOffset + passenger.myRidingOffset, 0.0).toJOML()
 
     return ShipMountedToData(shipObjectEntityMountedTo, mountedPosInShip)
+}
+
+fun getShipMountedTo(entity: Entity): LoadedShip? {
+    return getShipMountedToData(entity)?.shipMountedTo
 }
