@@ -140,20 +140,18 @@ public abstract class MixinGameRenderer {
 
                 if (shipMountedToData != null) {
                     final ClientShip shipMountedTo = (ClientShip) shipMountedToData.getShipMountedTo();
-                    if (shipMountedTo != null) {
-                        // If the entity is mounted to a ship then update their position
-                        final Vector3dc passengerPos = shipMountedToData.getMountPosInShip();
-                        entityShouldBeHere = shipMountedTo.getRenderTransform().getShipToWorld()
-                            .transformPosition(passengerPos, new Vector3d());
-                        entity.setPos(entityShouldBeHere.x(), entityShouldBeHere.y(), entityShouldBeHere.z());
-                        entity.xo = entityShouldBeHere.x();
-                        entity.yo = entityShouldBeHere.y();
-                        entity.zo = entityShouldBeHere.z();
-                        entity.xOld = entityShouldBeHere.x();
-                        entity.yOld = entityShouldBeHere.y();
-                        entity.zOld = entityShouldBeHere.z();
-                        continue;
-                    }
+                    // If the entity is mounted to a ship then update their position
+                    final Vector3dc passengerPos = shipMountedToData.getMountPosInShip();
+                    entityShouldBeHere = shipMountedTo.getRenderTransform().getShipToWorld()
+                        .transformPosition(passengerPos, new Vector3d());
+                    entity.setPos(entityShouldBeHere.x(), entityShouldBeHere.y(), entityShouldBeHere.z());
+                    entity.xo = entityShouldBeHere.x();
+                    entity.yo = entityShouldBeHere.y();
+                    entity.zo = entityShouldBeHere.z();
+                    entity.xOld = entityShouldBeHere.x();
+                    entity.yOld = entityShouldBeHere.y();
+                    entity.zOld = entityShouldBeHere.z();
+                    continue;
                 }
 
                 final EntityDraggingInformation entityDraggingInformation =
@@ -250,17 +248,13 @@ public abstract class MixinGameRenderer {
             prepareCullFrustum.call(instance, matrixStack, vec3, matrix4f);
             return;
         }
+
         final ShipMountedToData shipMountedToData = VSGameUtilsKt.getMountedShipAndPositionMountedTo(player, partialTicks);
-        final ClientShip playerShipMountedTo;
-        if (shipMountedToData != null) {
-            playerShipMountedTo = (ClientShip) shipMountedToData.getShipMountedTo();
-        } else {
-            playerShipMountedTo = null;
-        }
-        if (playerShipMountedTo == null) {
+        if (shipMountedToData == null) {
             prepareCullFrustum.call(instance, matrixStack, vec3, matrix4f);
             return;
         }
+
         final Entity playerVehicle = player.getVehicle();
         if (playerVehicle == null) {
             prepareCullFrustum.call(instance, matrixStack, vec3, matrix4f);
@@ -268,7 +262,6 @@ public abstract class MixinGameRenderer {
         }
 
         // Update [matrixStack] to mount the camera to the ship
-        final Vector3dc inShipPos = shipMountedToData.getMountPosInShip();
 
         final Camera camera = this.mainCamera;
         if (camera == null) {
@@ -276,19 +269,22 @@ public abstract class MixinGameRenderer {
             return;
         }
 
+        final ClientShip clientShip = (ClientShip) shipMountedToData.getShipMountedTo();
+
         ((IVSCamera) camera).setupWithShipMounted(
             this.minecraft.level,
             this.minecraft.getCameraEntity() == null ? this.minecraft.player : this.minecraft.getCameraEntity(),
             !this.minecraft.options.getCameraType().isFirstPerson(),
             this.minecraft.options.getCameraType().isMirrored(),
             partialTicks,
-            playerShipMountedTo,
-            inShipPos
+            clientShip,
+            shipMountedToData.getMountPosInShip()
         );
 
         // Apply the ship render transform to [matrixStack]
         final Quaternion invShipRenderRotation = VectorConversionsMCKt.toMinecraft(
-            playerShipMountedTo.getRenderTransform().getShipToWorldRotation().conjugate(new Quaterniond()));
+            clientShip.getRenderTransform().getShipToWorldRotation().conjugate(new Quaterniond())
+        );
         matrixStack.mulPose(invShipRenderRotation);
 
         // We also need to recompute [inverseViewRotationMatrix] after updating [matrixStack]

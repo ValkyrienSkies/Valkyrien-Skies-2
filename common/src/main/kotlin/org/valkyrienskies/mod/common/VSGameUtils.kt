@@ -411,15 +411,14 @@ fun getShipObjectEntityMountedTo(entity: Entity): LoadedShip? {
     return getMountedShipAndPositionMountedTo(entity)?.shipMountedTo
 }
 
-// TODO: Should shipMountedTo be nullable? Maybe not?
 data class ShipMountedToData(
-    val shipMountedTo: LoadedShip?,
+    val shipMountedTo: LoadedShip,
     val mountPosInShip: Vector3dc,
 )
 
 fun getMountedShipAndPositionMountedTo(passenger: Entity, partialTicks: Float? = null): ShipMountedToData? {
     val vehicle = passenger.vehicle ?: return null
-    val shipObjectEntityMountedTo = passenger.level.getShipObjectManagingPos(vehicle.position().toJOML())
+    val shipObjectEntityMountedTo = passenger.level.getShipObjectManagingPos(vehicle.position().toJOML()) ?: return null
     val mountedPosInShip: Vector3dc = vehicle.getPosition(partialTicks ?: 0.0f)
         .add(0.0, vehicle.passengersRidingOffset + passenger.myRidingOffset, 0.0).toJOML()
 

@@ -110,9 +110,6 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
             return;
         }
         final LoadedShip shipMountedTo = shipMountedToData.getShipMountedTo();
-        if (shipMountedTo == null) {
-            return;
-        }
 
         final ShipTransform shipTransform;
         if (shipMountedTo instanceof ShipObjectClient) {
