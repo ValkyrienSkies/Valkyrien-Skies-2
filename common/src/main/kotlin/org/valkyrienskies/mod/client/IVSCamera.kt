@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.client
 
+import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.level.BlockGetter
 import org.joml.Vector3dc
@@ -14,5 +15,13 @@ interface IVSCamera {
         partialTicks: Float,
         shipMountedTo: ClientShip,
         inShipPlayerPosition: Vector3dc
+    )
+
+    fun moveCamera(
+        level: ClientLevel,
+        renderViewEntity: Entity,
+        thirdPerson: Boolean,
+        thirdPersonReverse: Boolean,
+        partialTicks: Float,
     )
 }

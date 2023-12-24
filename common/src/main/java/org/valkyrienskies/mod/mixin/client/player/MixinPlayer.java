@@ -12,6 +12,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity;
 
@@ -39,5 +40,19 @@ public abstract class MixinPlayer extends LivingEntity {
         }
 
         return getEntities.call(instance, entity, aabb);
+    }
+
+    @Unique
+    public void setPostion(float x, float y, float z) {
+        this.xo = x;
+        this.yo = y;
+        this.zo = z;
+    }
+
+    @Unique
+    public void offsetPostion(float x, float y, float z) {
+        this.xo += x;
+        this.yo += y;
+        this.zo += z;
     }
 }
