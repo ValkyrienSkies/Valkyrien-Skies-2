@@ -2,14 +2,12 @@ package org.valkyrienskies.mod.mixin.mod_compat.create.entity;
 
 import static org.valkyrienskies.mod.common.util.VectorConversionsMCKt.toJOML;
 import static org.valkyrienskies.mod.common.util.VectorConversionsMCKt.toMinecraft;
-import static org.valkyrienskies.mod.mixinducks.mod_compat.create.MixinAbstractContraptionEntityDuckFlags.ENABLE_DEFAULT_VS_CONTRAPTION_FIX;
 
 import com.simibubi.create.AllMovementBehaviours;
 import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
 import com.simibubi.create.content.contraptions.Contraption;
 import com.simibubi.create.content.contraptions.OrientedContraptionEntity;
 import com.simibubi.create.content.contraptions.actors.harvester.HarvesterMovementBehaviour;
-import com.simibubi.create.content.contraptions.actors.seat.SeatEntity;
 import com.simibubi.create.content.contraptions.behaviour.MovementBehaviour;
 import com.simibubi.create.content.contraptions.behaviour.MovementContext;
 import com.simibubi.create.content.kinetics.base.BlockBreakingMovementBehaviour;
@@ -102,28 +100,6 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
             instance.teleportTo(result.x, result.y, result.z);
         } else {
             LOGGER.warn("Warning distance too high ignoring teleportTo request");
-        }
-    }
-
-    //Region end
-    //Region start - fix entity rider position on ship contraptions
-    @Inject(method = "positionRider", at = @At("HEAD"), cancellable = true)
-    public void prePositionRider(final Entity passenger, final MoveFunction callback, final CallbackInfo ci) {
-        if (ENABLE_DEFAULT_VS_CONTRAPTION_FIX) {
-            ci.cancel();
-            if (!hasPassenger(passenger))
-                return;
-            Vec3 riderPos = getPassengerPosition(passenger, 1);
-            if (riderPos == null)
-                return;
-            if (!(passenger instanceof OrientedContraptionEntity)) {
-                final Ship ship = VSGameUtilsKt.getShipManagingPos(passenger.level, riderPos.x, riderPos.y, riderPos.z);
-                riderPos.add(0, SeatEntity.getCustomEntitySeatOffset(passenger) - 1 / 8f, 0);
-                if (ship != null) {
-                    riderPos = toMinecraft(ship.getShipToWorld().transformPosition(toJOML(riderPos)));
-                }
-            }
-            passenger.setPos(riderPos);
         }
     }
 
