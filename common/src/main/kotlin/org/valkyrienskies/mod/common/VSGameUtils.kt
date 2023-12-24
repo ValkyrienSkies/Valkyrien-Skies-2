@@ -36,6 +36,8 @@ import org.valkyrienskies.core.apigame.world.properties.DimensionId
 import org.valkyrienskies.core.game.ships.ShipObjectServer
 import org.valkyrienskies.core.impl.hooks.VSEvents.TickEndEvent
 import org.valkyrienskies.core.util.expand
+import org.valkyrienskies.mod.common.entity.ShipMountedToData
+import org.valkyrienskies.mod.common.entity.ShipMountedToDataProvider
 import org.valkyrienskies.mod.common.util.DimensionIdProvider
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.util.set
@@ -407,13 +409,11 @@ fun Level.transformAabbToWorld(aabb: AABBdc, dest: AABBd): AABBd {
     return dest.set(aabb)
 }
 
-data class ShipMountedToData(
-    val shipMountedTo: LoadedShip,
-    val mountPosInShip: Vector3dc,
-)
-
 fun getShipMountedToData(passenger: Entity, partialTicks: Float? = null): ShipMountedToData? {
     val vehicle = passenger.vehicle ?: return null
+    if (vehicle is ShipMountedToDataProvider) {
+        return vehicle.provideShipMountedToData(passenger)
+    }
     val shipObjectEntityMountedTo = passenger.level.getShipObjectManagingPos(vehicle.position().toJOML()) ?: return null
     val mountedPosInShip: Vector3dc = vehicle.getPosition(partialTicks ?: 0.0f)
         .add(0.0, vehicle.passengersRidingOffset + passenger.myRidingOffset, 0.0).toJOML()
