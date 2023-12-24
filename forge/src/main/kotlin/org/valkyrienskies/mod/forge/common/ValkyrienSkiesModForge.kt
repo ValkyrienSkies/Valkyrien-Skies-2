@@ -76,7 +76,7 @@ class ValkyrienSkiesModForge {
         val vsCore = if (isClient) {
             VSCoreFactory.instance.newVsCoreClient(ForgeHooksImpl)
         } else {
-            org.valkyrienskies.core.apigame.VSCoreFactory.instance.newVsCoreServer(ForgeHooksImpl)
+            VSCoreFactory.instance.newVsCoreServer(ForgeHooksImpl)
         }
 
         VSForgeNetworking.registerPacketHandlers(vsCore.hooks)

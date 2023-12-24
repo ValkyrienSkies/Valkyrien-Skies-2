@@ -4,7 +4,6 @@ import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.Entity
 import org.joml.Vector3d
 import org.joml.Vector3dc
-import org.valkyrienskies.mod.common.getShipObjectEntityMountedTo
 import org.valkyrienskies.mod.common.shipObjectWorld
 import kotlin.math.asin
 import kotlin.math.atan2
@@ -20,10 +19,6 @@ object EntityDragger {
      */
     fun dragEntitiesWithShips(entities: Iterable<Entity>) {
         entities.forEach { entity ->
-            val shipMountedTo = entity.level.getShipObjectEntityMountedTo(entity)
-            // Don't drag entities that are already mounted to a ship
-            if (shipMountedTo != null) return@forEach
-
             val entityDraggingInformation = (entity as IEntityDraggingInformationProvider).draggingInformation
 
             var dragTheEntity = false

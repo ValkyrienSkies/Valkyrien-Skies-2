@@ -2,14 +2,11 @@ package org.valkyrienskies.mod.common.util
 
 import net.minecraft.world.entity.player.Player
 import org.joml.Vector3d
-import org.joml.Vector3dc
-import org.valkyrienskies.core.api.ships.properties.ShipId
 import org.valkyrienskies.core.apigame.world.IPlayer
 import org.valkyrienskies.core.apigame.world.PlayerState
 import org.valkyrienskies.core.apigame.world.properties.DimensionId
 import org.valkyrienskies.mod.common.dimensionId
-import org.valkyrienskies.mod.common.getPassengerPos
-import org.valkyrienskies.mod.common.getShipObjectEntityMountedTo
+import org.valkyrienskies.mod.common.getMountedShipAndPositionMountedTo
 import org.valkyrienskies.mod.common.vsCore
 import java.lang.ref.WeakReference
 import java.util.UUID
@@ -40,18 +37,13 @@ class MinecraftPlayer(playerObject: Player) : IPlayer {
     }
 
     override fun getPlayerState(): PlayerState {
-        var mountedShip: ShipId? = null
-        var mountedPos: Vector3dc? = null
-        player.level.getShipObjectEntityMountedTo(player)?.let {
-            mountedShip = it.id
-            mountedPos = player.vehicle!!.getPassengerPos(player.myRidingOffset, 0.0f)
-        }
+        val mountedShipAndPos = getMountedShipAndPositionMountedTo(player)
         return PlayerState(
             Vector3d(player.x, player.y, player.z),
             Vector3d(Vector3d(player.x - player.xo, player.y - player.yo, player.z - player.zo)),
             dimension,
-            mountedShip,
-            mountedPos,
+            mountedShipAndPos?.shipMountedTo?.id,
+            mountedShipAndPos?.mountPosInShip,
         )
     }
 
