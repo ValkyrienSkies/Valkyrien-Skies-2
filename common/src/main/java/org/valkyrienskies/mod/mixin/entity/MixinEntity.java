@@ -16,7 +16,6 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.joml.primitives.AABBd;
@@ -33,6 +32,7 @@ import org.valkyrienskies.core.api.ships.LoadedShip;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.core.impl.game.ships.ShipObjectClient;
+import org.valkyrienskies.mod.common.entity.ShipMountedToData;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
@@ -105,11 +105,11 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
      */
     @Inject(method = "getEyePosition(F)Lnet/minecraft/world/phys/Vec3;", at = @At("HEAD"), cancellable = true)
     private void preGetEyePosition(final float partialTicks, final CallbackInfoReturnable<Vec3> cir) {
-        final LoadedShip shipMountedTo =
-            VSGameUtilsKt.getShipObjectEntityMountedTo(level, Entity.class.cast(this));
-        if (shipMountedTo == null) {
+        final ShipMountedToData shipMountedToData = VSGameUtilsKt.getShipMountedToData(Entity.class.cast(this), partialTicks);
+        if (shipMountedToData == null) {
             return;
         }
+        final LoadedShip shipMountedTo = shipMountedToData.getShipMountedTo();
 
         final ShipTransform shipTransform;
         if (shipMountedTo instanceof ShipObjectClient) {
@@ -118,8 +118,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
             shipTransform = shipMountedTo.getShipTransform();
         }
         final Vector3dc basePos = shipTransform.getShipToWorldMatrix()
-            .transformPosition(VSGameUtilsKt.getPassengerPos(this.vehicle, getMyRidingOffset(), partialTicks),
-                new Vector3d());
+            .transformPosition(shipMountedToData.getMountPosInShip(), new Vector3d());
         final Vector3dc eyeRelativePos = shipTransform.getShipCoordinatesToWorldCoordinatesRotation().transform(
             new Vector3d(0.0, getEyeHeight(), 0.0)
         );
@@ -127,15 +126,12 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         cir.setReturnValue(newEyePos);
     }
 
-    @Shadow
-    private Vec3 position;
-
     /**
      * @reason Needed for players to pick blocks correctly when mounted to a ship
      */
     @Inject(method = "calculateViewVector", at = @At("HEAD"), cancellable = true)
     private void preCalculateViewVector(final float xRot, final float yRot, final CallbackInfoReturnable<Vec3> cir) {
-        final LoadedShip shipMountedTo = VSGameUtilsKt.getShipObjectEntityMountedTo(level, Entity.class.cast(this));
+        final LoadedShip shipMountedTo = VSGameUtilsKt.getShipMountedTo(Entity.class.cast(this));
         if (shipMountedTo == null) {
             return;
         }
@@ -181,18 +177,12 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     public abstract double getX();
 
     @Shadow
-    private @Nullable Entity vehicle;
-
-    @Shadow
     public abstract float getEyeHeight();
 
     // endregion
 
     @Shadow
     public abstract EntityType<?> getType();
-
-    @Shadow
-    public abstract double getMyRidingOffset();
 
     @Override
     @NotNull

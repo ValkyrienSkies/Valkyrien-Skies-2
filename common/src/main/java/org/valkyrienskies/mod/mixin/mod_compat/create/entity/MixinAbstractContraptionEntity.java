@@ -9,7 +9,6 @@ import com.simibubi.create.content.contraptions.Contraption;
 import com.simibubi.create.content.contraptions.OrientedContraptionEntity;
 import com.simibubi.create.content.contraptions.StructureTransform;
 import com.simibubi.create.content.contraptions.actors.harvester.HarvesterMovementBehaviour;
-import com.simibubi.create.content.contraptions.actors.seat.SeatEntity;
 import com.simibubi.create.content.contraptions.behaviour.MovementBehaviour;
 import com.simibubi.create.content.contraptions.behaviour.MovementContext;
 import com.simibubi.create.content.kinetics.base.BlockBreakingMovementBehaviour;
@@ -110,25 +109,6 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
         } else {
             LOGGER.warn("Warning distance too high ignoring teleportTo request");
         }
-    }
-
-    //Region end
-    //Region start - fix entity rider position on ship contraptions
-    @Override
-    public void positionRider(@NotNull Entity passenger) {
-        if (!hasPassenger(passenger))
-            return;
-        Vec3 riderPos = getPassengerPosition(passenger, 1);
-        if (riderPos == null)
-            return;
-        if (!(passenger instanceof OrientedContraptionEntity)) {
-            Ship ship = VSGameUtilsKt.getShipManagingPos(passenger.level, riderPos.x, riderPos.y, riderPos.z);
-            riderPos.add(0, SeatEntity.getCustomEntitySeatOffset(passenger) - 1 / 8f, 0);
-            if (ship != null) {
-                riderPos = toMinecraft(ship.getShipToWorld().transformPosition(toJOML(riderPos)));
-            }
-        }
-        passenger.setPos(riderPos);
     }
 
     @Inject(method = "toGlobalVector(Lnet/minecraft/world/phys/Vec3;FZ)Lnet/minecraft/world/phys/Vec3;",
