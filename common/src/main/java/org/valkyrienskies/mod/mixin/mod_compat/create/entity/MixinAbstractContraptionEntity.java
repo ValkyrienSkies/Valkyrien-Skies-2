@@ -282,8 +282,14 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
             final LoadedServerShip ship = VSGameUtilsKt.getShipObjectManagingPos(serverLevel,
                 VectorConversionsMCKt.toJOML(thisAsAbstractContraptionEntity.position()));
             if (ship != null) {
-                // This can happen if a player moves a train contraption from ship to world using a wrench
-                ship.getAttachment(WingManager.class).setWingGroupTransform(wingGroupId, computeContraptionWingTransform());
+                try {
+                    // This can happen if a player moves a train contraption from ship to world using a wrench
+                    ship.getAttachment(WingManager.class)
+                        .setWingGroupTransform(wingGroupId, computeContraptionWingTransform());
+                } catch (final Exception e) {
+                    // I'm not sure why, but this fails sometimes. For now just catch the error and print it
+                    e.printStackTrace();
+                }
             }
         }
     }
