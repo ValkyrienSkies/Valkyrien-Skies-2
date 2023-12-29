@@ -254,14 +254,15 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                 ShipConnDataAttachment connData = loadedShip.getAttachment(ShipConnDataAttachment.class);
                 assert connData != null;
                 HashSet<Object> shipBreakages = (HashSet<Object>) connData.getBreakages();
-                for (Object breakage : shipBreakages) {
+                Iterator<Object> breakageIterator = shipBreakages.iterator();
+
+                while (breakageIterator.hasNext()) {
+                    Object breakage = breakageIterator.next();
                     if (breakage instanceof Breakage breaking) {
                         SubShipAssemblyKt.splitShip(VectorConversionsMCKt.toBlockPos(breaking.component1()), breaking.component2(), self, loadedShip);
-                        connData.getBreakages().remove(breakage);
+                        breakageIterator.remove();
                     }
                 }
-
-
             }
         }
     }
