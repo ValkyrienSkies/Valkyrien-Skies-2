@@ -39,3 +39,4 @@ forge*changelog.txt
 
 # Files generated for Fabric
 /fabric/src/generated/
+/.architectury-transformer/debug.log
