@@ -59,7 +59,6 @@ fun relocateBlock(
     toChunk.setBlockState(to, state, false)
 
     if (doUpdate) {
-        println("Update")
         updateBlock(level, from, to, state)
     }
 
