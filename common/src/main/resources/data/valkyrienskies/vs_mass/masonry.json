@@ -5,6 +5,16 @@
     "friction": 0.6
   },
   {
+    "block": "minecraft:cut_red_sandstone",
+    "mass": 2300.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:cut_sandstone",
+    "mass": 2300.0,
+    "friction": 0.6
+  },
+  {
     "block": "minecraft:smooth_stone_slab",
     "mass": 1300.0,
     "friction": 0.4

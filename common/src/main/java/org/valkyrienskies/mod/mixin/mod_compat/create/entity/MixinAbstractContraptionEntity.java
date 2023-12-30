@@ -9,7 +9,6 @@ import com.simibubi.create.content.contraptions.Contraption;
 import com.simibubi.create.content.contraptions.OrientedContraptionEntity;
 import com.simibubi.create.content.contraptions.StructureTransform;
 import com.simibubi.create.content.contraptions.actors.harvester.HarvesterMovementBehaviour;
-import com.simibubi.create.content.contraptions.actors.seat.SeatEntity;
 import com.simibubi.create.content.contraptions.behaviour.MovementBehaviour;
 import com.simibubi.create.content.contraptions.behaviour.MovementContext;
 import com.simibubi.create.content.kinetics.base.BlockBreakingMovementBehaviour;
@@ -49,13 +48,14 @@ import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.api.ships.WingManager;
 import org.valkyrienskies.mod.common.CompatUtil;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.compat.CreateConversionsKt;
 import org.valkyrienskies.mod.mixinducks.mod_compat.create.MixinAbstractContraptionEntityDuck;
 
 @Mixin(AbstractContraptionEntity.class)
 public abstract class MixinAbstractContraptionEntity extends Entity implements MixinAbstractContraptionEntityDuck,
-    ContraptionWingProvider {
+    ContraptionWingProvider, IEntityDraggingInformationProvider {
 
     public MixinAbstractContraptionEntity(EntityType<?> entityType, Level level) {
         super(entityType, level);
@@ -109,25 +109,6 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
         } else {
             LOGGER.warn("Warning distance too high ignoring teleportTo request");
         }
-    }
-
-    //Region end
-    //Region start - fix entity rider position on ship contraptions
-    @Override
-    public void positionRider(@NotNull Entity passenger) {
-        if (!hasPassenger(passenger))
-            return;
-        Vec3 riderPos = getPassengerPosition(passenger, 1);
-        if (riderPos == null)
-            return;
-        if (!(passenger instanceof OrientedContraptionEntity)) {
-            Ship ship = VSGameUtilsKt.getShipManagingPos(passenger.level, riderPos.x, riderPos.y, riderPos.z);
-            riderPos.add(0, SeatEntity.getCustomEntitySeatOffset(passenger) - 1 / 8f, 0);
-            if (ship != null) {
-                riderPos = toMinecraft(ship.getShipToWorld().transformPosition(toJOML(riderPos)));
-            }
-        }
-        passenger.setPos(riderPos);
     }
 
     @Inject(method = "toGlobalVector(Lnet/minecraft/world/phys/Vec3;FZ)Lnet/minecraft/world/phys/Vec3;",
@@ -309,8 +290,14 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
             final LoadedServerShip ship = VSGameUtilsKt.getShipObjectManagingPos(serverLevel,
                 VectorConversionsMCKt.toJOML(thisAsAbstractContraptionEntity.position()));
             if (ship != null) {
-                // This can happen if a player moves a train contraption from ship to world using a wrench
-                ship.getAttachment(WingManager.class).setWingGroupTransform(wingGroupId, computeContraptionWingTransform());
+                try {
+                    // This can happen if a player moves a train contraption from ship to world using a wrench
+                    ship.getAttachment(WingManager.class)
+                        .setWingGroupTransform(wingGroupId, computeContraptionWingTransform());
+                } catch (final Exception e) {
+                    // I'm not sure why, but this fails sometimes. For now just catch the error and print it
+                    e.printStackTrace();
+                }
             }
         }
     }
@@ -323,5 +310,10 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
             CreateConversionsKt.toJOML(thisAsAbstractContraptionEntity.getRotationState().asMatrix());
         final Vector3d pos = VectorConversionsMCKt.toJOML(thisAsAbstractContraptionEntity.getAnchorVec());
         return new Matrix4d(rotationMatrix).setTranslation(pos);
+    }
+
+    @Override
+    public boolean vs$shouldDrag() {
+        return false;
     }
 }

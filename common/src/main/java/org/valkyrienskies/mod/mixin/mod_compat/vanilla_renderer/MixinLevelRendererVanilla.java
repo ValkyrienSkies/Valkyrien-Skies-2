@@ -94,7 +94,7 @@ public abstract class MixinLevelRendererVanilla {
 
         // force frustum update if default behaviour says to OR if the player is mounted to a ship
         return needsFrustumUpdate ||
-            (player != null && VSGameUtilsKt.getShipObjectEntityMountedTo(level, player) != null);
+            (player != null && VSGameUtilsKt.getShipMountedTo(player) != null);
     }
 
     /**

@@ -93,16 +93,6 @@ subprojects {
                 includeModule "curse.maven", "kotlinforforge-351264"
             }
         }
-        maven {
-            name = "Valkyrien Skies Internal"
-            url = project.vs_maven_url ?: 'https://maven.valkyrienskies.org'
-            if (project.vs_maven_username && project.vs_maven_password) {
-                credentials {
-                    username = project.vs_maven_username
-                    password = project.vs_maven_password
-                }
-            }
-        }
         if (!project.block_external_repositories) {
             mavenLocal()
             maven {
@@ -127,6 +117,16 @@ subprojects {
             maven { url = "https://maven.tterrag.com/" } // Registrate, Forge Create and Flywheel
             maven { url = "https://maven.cafeteria.dev/releases" } // Fake Player API
             maven { url = "https://maven.jamieswhiteshirt.com/libs-release" } // Reach Entity Attributes
+        }
+        maven {
+            name = "Valkyrien Skies Internal"
+            url = project.vs_maven_url ?: 'https://maven.valkyrienskies.org'
+            if (project.vs_maven_username && project.vs_maven_password) {
+                credentials {
+                    username = project.vs_maven_username
+                    password = project.vs_maven_password
+                }
+            }
         }
     }
 

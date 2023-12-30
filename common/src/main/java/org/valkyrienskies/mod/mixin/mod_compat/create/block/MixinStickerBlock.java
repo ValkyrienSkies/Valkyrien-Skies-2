@@ -18,23 +18,42 @@ import org.valkyrienskies.mod.mixinducks.mod_compat.create.IMixinStickerTileEnti
 @Mixin(StickerBlock.class)
 public abstract class MixinStickerBlock extends WrenchableDirectionalBlock implements IBE<StickerBlockEntity> {
 
-    public MixinStickerBlock(Properties properties) {
+    public MixinStickerBlock(final Properties properties) {
         super(properties);
     }
 
     @Override
-    public void onRemove(@NotNull BlockState state, @NotNull Level world, @NotNull BlockPos pos, @NotNull BlockState newState, boolean isMoving) {
+    public void onRemove(
+        @NotNull final BlockState state,
+        @NotNull final Level world,
+        @NotNull final BlockPos pos,
+        @NotNull final BlockState newState,
+        final boolean isMoving
+    ) {
         IBE.onRemove(state, world, pos, newState);
     }
 
-    @Inject(method = "neighborChanged", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/block/state/BlockState;getValue(Lnet/minecraft/world/level/block/state/properties/Property;)Ljava/lang/Comparable;", ordinal = 0), cancellable = true)
-    private void injectNeighbourChanged(BlockState state, Level worldIn, BlockPos pos, Block blockIn, BlockPos fromPos, boolean isMoving, CallbackInfo ci) {
-        StickerBlockEntity ste = getBlockEntity(worldIn, pos);
-        if (ste != null && ((IMixinStickerTileEntity) ste).isAlreadyPowered(false)) {
+    @Inject(
+        method = "neighborChanged",
+        at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/block/state/BlockState;getValue(Lnet/minecraft/world/level/block/state/properties/Property;)Ljava/lang/Comparable;", ordinal = 0),
+        cancellable = true
+    )
+    private void injectNeighbourChanged(
+        final BlockState state,
+        final Level worldIn,
+        final BlockPos pos,
+        final Block blockIn,
+        final BlockPos fromPos,
+        final boolean isMoving,
+        final CallbackInfo ci
+    ) {
+        final StickerBlockEntity ste = getBlockEntity(worldIn, pos);
+        // By checking `instanceof IMixinStickerTileEntity` we only run this code if Clockwork is installed
+        if (ste instanceof final IMixinStickerTileEntity iMixinStickerTileEntity && iMixinStickerTileEntity.isAlreadyPowered(false)) {
             if (!worldIn.hasNeighborSignal(pos)) {
                 ci.cancel();
             } else {
-                ((IMixinStickerTileEntity) ste).isAlreadyPowered(true);
+                iMixinStickerTileEntity.isAlreadyPowered(true);
             }
         }
     }
