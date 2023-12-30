@@ -2,10 +2,13 @@ package org.valkyrienskies.mod.util
 
 import net.minecraft.core.BlockPos
 import net.minecraft.world.Clearable
+import net.minecraft.world.Container
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.Rotation
 import net.minecraft.world.level.block.Rotation.NONE
+import net.minecraft.world.level.block.entity.ChestBlockEntity
+import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
 import org.valkyrienskies.core.api.ships.ServerShip
@@ -40,6 +43,11 @@ fun relocateBlock(
             it.clearContent()
         }
 
+        // so loot containers dont drop its content
+        if (it is RandomizableContainerBlockEntity) {
+            it.setLootTable(null, 0)
+        }
+
         tag
     }
 
@@ -51,6 +59,7 @@ fun relocateBlock(
     toChunk.setBlockState(to, state, false)
 
     if (doUpdate) {
+        println("Update")
         updateBlock(level, from, to, state)
     }
 
