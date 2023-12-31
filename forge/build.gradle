@@ -81,6 +81,9 @@ dependencies {
     // Modular Routers
     modCompileOnly("curse.maven:mr-250294:3776175")
 
+    // Mekanism
+    modCompileOnly ("curse.maven:mekanism-268560:3875976")
+
     // Add Kotlin for Forge (3.12.0)
     forgeRuntimeLibrary('curse.maven:kotlinforforge-351264:4513187')
 
