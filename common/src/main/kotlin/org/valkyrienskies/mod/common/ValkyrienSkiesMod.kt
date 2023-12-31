@@ -77,6 +77,7 @@ object ValkyrienSkiesMod {
                 output.accept(SHIP_CREATOR_ITEM)
                 output.accept(SHIP_ASSEMBLER_ITEM)
                 output.accept(SHIP_CREATOR_ITEM_SMALLER)
+                output.accept(PHYSICS_ENTITY_CREATOR_ITEM)
             }
             .build()
     }

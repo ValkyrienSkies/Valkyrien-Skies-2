@@ -1,6 +1,5 @@
 package org.valkyrienskies.mod.common.item
 
-import net.minecraft.Util
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.InteractionResult
