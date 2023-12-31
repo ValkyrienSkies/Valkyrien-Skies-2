@@ -7,8 +7,10 @@
     "compat.create.MixinBlocks",
     "compat.create.MixinControlledContraptionEntity",
     "compat.immersivengineering.MixinBlockEntityInventory",
+    "compat.tfc.MixinTFCChunkGenerator",
     "compat.thermalexpansion.MixinTileCoFH",
     "compat.tis3d.MixinInfraredPacketEntity",
+    "compat.modular_routers.MixinRouterMenu",
     "feature.forge_interact.MixinIForgePlayer",
     "feature.water_in_ships_entity.MixinEntity",
     "world.level.block.FireMixin"

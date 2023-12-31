@@ -6,10 +6,10 @@ import java.lang.Math.toRadians
 
 data class RelativeVector3(val x: RelativeValue, val y: RelativeValue, val z: RelativeValue) {
     fun toEulerRotation(sourcePitchDegrees: Double, sourceYawDegrees: Double, sourceRollDegrees: Double): Quaterniond =
-        Quaterniond().rotateXYZ(
-            toRadians(x.getRelativeValue(sourcePitchDegrees)),
-            toRadians(y.getRelativeValue(sourceYawDegrees)),
+        Quaterniond().rotateZYX(
             toRadians(z.getRelativeValue(sourceRollDegrees)),
+            toRadians(y.getRelativeValue(sourceYawDegrees)),
+            toRadians(x.getRelativeValue(sourcePitchDegrees)),
         )
 
     fun toEulerRotationFromMCEntity(mcEntityPitch: Double, mcEntityYaw: Double) =

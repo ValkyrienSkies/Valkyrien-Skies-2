@@ -154,7 +154,6 @@
     "mod_compat.create.client.MixinLinkRenderer",
     "mod_compat.create.client.MixinMinecartInstance",
     "mod_compat.create.client.MixinMultiplePlacementHelpers",
-    "mod_compat.create.client.MixinOrientedContraptionEntity",
     "mod_compat.create.client.MixinOutline",
     "mod_compat.create.client.MixinPlacementHelpers",
     "mod_compat.create.client.MixinSoundScapes",

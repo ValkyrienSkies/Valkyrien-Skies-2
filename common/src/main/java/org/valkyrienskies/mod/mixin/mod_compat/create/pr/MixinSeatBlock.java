@@ -40,8 +40,7 @@ public abstract class MixinSeatBlock extends Block {
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/world/entity/Entity;blockPosition()Lnet/minecraft/core/BlockPos;"
-        ),
-        remap = false
+        )
     )
     private BlockPos wrapBlockPosInUpdateEntityAfterFallOn(
         final Entity entity,

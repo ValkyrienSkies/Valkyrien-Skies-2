@@ -94,7 +94,8 @@ public abstract class MixinAirCurrent {
         }
     }
 
-    @Redirect(method = "tickAffectedEntities", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/AABB;intersects(Lnet/minecraft/world/phys/AABB;)Z"))
+    // Require 0 because this mixin doesn't work in create 0.5.1f
+    @Redirect(method = "tickAffectedEntities", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/AABB;intersects(Lnet/minecraft/world/phys/AABB;)Z"), require = 0)
     private boolean redirectIntersects(AABB instance, AABB other) {
         Ship ship = getShip();
         if (ship != null) {
@@ -104,13 +105,15 @@ public abstract class MixinAirCurrent {
         } else return instance.intersects(other);
     }
 
+    // Require 0 because this mixin doesn't work in create 0.5.1f
     @Inject(
-            method = "tickAffectedEntities",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/world/entity/Entity;getDeltaMovement()Lnet/minecraft/world/phys/Vec3;"
-            ),
-            locals = LocalCapture.CAPTURE_FAILHARD
+        method = "tickAffectedEntities",
+        at = @At(
+                value = "INVOKE",
+                target = "Lnet/minecraft/world/entity/Entity;getDeltaMovement()Lnet/minecraft/world/phys/Vec3;"
+        ),
+        locals = LocalCapture.CAPTURE_FAILSOFT,
+        require = 0
     )
     private void harvester(Level world, Direction facing, CallbackInfo ci, Iterator<Entity> iterator, Entity entity, Vec3 center, Vec3i flow, float sneakModifier, float speed, double entityDistance, float acceleration) {
         Ship ship = getShip();
@@ -122,8 +125,9 @@ public abstract class MixinAirCurrent {
         this.acceleration = acceleration;
     }
 
+    // Require 0 because this mixin doesn't work in create 0.5.1f
     @Redirect(method = "tickAffectedEntities",
-            at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;setDeltaMovement(Lnet/minecraft/world/phys/Vec3;)V")
+        at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;setDeltaMovement(Lnet/minecraft/world/phys/Vec3;)V"), require = 0
     )
     private void redirectSetDeltaMovement(Entity instance, Vec3 motion) {
         Ship ship = getShip();
@@ -138,7 +142,8 @@ public abstract class MixinAirCurrent {
         }
     }
 
-    @Redirect(method = "tickAffectedEntities", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/foundation/utility/VecHelper;getCenterOf(Lnet/minecraft/core/Vec3i;)Lnet/minecraft/world/phys/Vec3;"), allow = 1)
+    // Require 0 because this mixin doesn't work in create 0.5.1f
+    @Redirect(method = "tickAffectedEntities", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/foundation/utility/VecHelper;getCenterOf(Lnet/minecraft/core/Vec3i;)Lnet/minecraft/world/phys/Vec3;"), allow = 1, require = 0)
     private Vec3 redirectGetCenterOf(Vec3i pos) {
         Ship ship = getShip();
         Vec3 result = VecHelper.getCenterOf(pos);

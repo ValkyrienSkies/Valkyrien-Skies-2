@@ -19,6 +19,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.client.audio.VelocityTickableSoundInstance;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
+import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 import org.valkyrienskies.mod.mixinducks.com.mojang.blaze3d.audio.HasOpenALVelocity;
 
 @Mixin(SoundEngine.class)
@@ -31,6 +33,7 @@ public abstract class MixinSoundEngine {
     protected abstract float calculatePitch(SoundInstance sound);
 
     // Applies the velocity provided by a VelocityTickableSoundInstance
+    @SuppressWarnings("unused")
     @WrapOperation(
         at = @At(
             value = "INVOKE",
@@ -39,7 +42,7 @@ public abstract class MixinSoundEngine {
         ),
         method = "tickNonPaused"
     )
-    private Object redirectGet(final Map instance, final Object obj, final Operation<Object> get) {
+    private Object redirectGet(final Map<?, ?> instance, final Object obj, final Operation<Object> get) {
         if (obj instanceof final VelocityTickableSoundInstance soundInstance) {
             final ChannelAccess.ChannelHandle handle = (ChannelAccess.ChannelHandle) instance.get(soundInstance);
             final float f = calculateVolume(soundInstance);
@@ -59,6 +62,7 @@ public abstract class MixinSoundEngine {
         return get.call(instance, obj);
     }
 
+    @SuppressWarnings("unused")
     @WrapOperation(
         at = @At(
             value = "INVOKE",
@@ -73,9 +77,15 @@ public abstract class MixinSoundEngine {
         ((HasOpenALVelocity) listener).setVelocity(new Vector3d());
 
         if (level != null && player != null) {
-            final ClientShip mounted = VSGameUtilsKt.getShipObjectEntityMountedTo(level, player);
+            final ClientShip mounted = (ClientShip) VSGameUtilsKt.getShipMountedTo(player);
             if (mounted != null) {
                 ((HasOpenALVelocity) listener).setVelocity(mounted.getVelocity());
+            } else {
+                final EntityDraggingInformation dragInfo = ((IEntityDraggingInformationProvider) player).getDraggingInformation();
+                if (dragInfo.isEntityBeingDraggedByAShip()) {
+                    final Vector3dc playerVel = dragInfo.getAddedMovementLastTick();
+                    ((HasOpenALVelocity) listener).setVelocity(playerVel);
+                }
             }
         }
 
