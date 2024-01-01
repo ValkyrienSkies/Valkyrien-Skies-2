@@ -83,7 +83,7 @@ dependencies {
         modImplementation("io.github.fabricators_of_create.Porting-Lib:$module:$port_lib_version")
     }
 
-    modImplementation("net.minecraftforge:forgeconfigapiport-fabric:${forge_config_api_port_version}")
+    modImplementation("curse.maven:forge-config-api-port-fabric-547434:$config_api_id")
     modImplementation("com.jamieswhiteshirt:reach-entity-attributes:${reach_entity_attributes_version}")
     modImplementation("dev.cafeteria:fake-player-api:${fake_player_api_version}")
     modImplementation("io.github.tropheusj:milk-lib:${milk_lib_version}")
