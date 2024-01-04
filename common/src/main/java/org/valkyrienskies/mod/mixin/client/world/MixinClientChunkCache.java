@@ -71,7 +71,7 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
                 }
 
                 this.level.onChunkLoaded(new ChunkPos(x, z));
-                SodiumCompat.onChunkAdded(x, z);
+                SodiumCompat.onChunkAdded(this.level, x, z);
                 cir.setReturnValue(worldChunk);
             }
         }
@@ -84,7 +84,7 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
             ((IVSViewAreaMethods) ((LevelRendererAccessor) ((ClientLevelAccessor) level).getLevelRenderer()).getViewArea())
                 .unloadChunk(chunkX, chunkZ);
         }
-        SodiumCompat.onChunkRemoved(chunkX, chunkZ);
+        SodiumCompat.onChunkRemoved(this.level, chunkX, chunkZ);
         ci.cancel();
     }
 
