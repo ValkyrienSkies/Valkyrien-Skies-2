@@ -45,3 +45,11 @@ Occasionally forge will break in strange ways. When this occurs, delete all the 
 `Error occurred during initialization of VM
 Could not reserve enough space for 4194304KB object heap`
 For patch the problem go to gradle.properties and change `org.gradle.jvmargs=-Xmx4096M` to `org.gradle.jvmargs=-Xmx1024` or `org.gradle.jvmargs=-Xmx4G -XX:MaxMetaspaceSize=1G` to `org.gradle.jvmargs=-Xmx1G -XX:MaxMetaspaceSize=1G`
+
+## Attributions
+
+Valkyrien Skies 2 was originally created by Triode and Rubydesic. You can check
+other contributors by viewing the git history.
+
+The Create compatibility code was originally and largely written by [FluffyJenkins](https://github.com/FluffyJenkins/), 
+but the git history was clobbered when we transferred the code from Clockwork
