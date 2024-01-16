@@ -142,6 +142,7 @@
     "feature.transform_particles.MixinParticle",
     "feature.vs2_alpha_hud.MixinGui",
     "mod_compat.create.client.MixinAABBOutline",
+    "mod_compat.create.client.MixinBigOutlines",
     "mod_compat.create.client.MixinBlockClusterOutline",
     "mod_compat.create.client.MixinCarriageContraptionInstance",
     "mod_compat.create.client.MixinCogwheelBlockItem",
