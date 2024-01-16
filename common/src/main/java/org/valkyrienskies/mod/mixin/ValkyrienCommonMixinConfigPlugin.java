@@ -72,6 +72,10 @@ public class ValkyrienCommonMixinConfigPlugin implements IMixinConfigPlugin {
         if (mixinClassName.contains("org.valkyrienskies.mod.mixin.feature.render_pathfinding")) {
             return PATH_FINDING_DEBUG;
         }
+        if (mixinClassName.contains("org.valkyrienskies.mod.mixin.mod_compat.create.client.trackOutlines")) {
+            //interactive has its own track outline stuff so disable fixed version of VS2's track outline stuff
+            return !classExists("org.valkyrienskies.create_interactive.mixin.client.MixinTrackBlockOutline");
+        }
 
         return true;
     }
