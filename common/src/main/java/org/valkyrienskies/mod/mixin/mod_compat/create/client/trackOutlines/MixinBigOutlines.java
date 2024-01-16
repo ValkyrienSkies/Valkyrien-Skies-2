@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.mod_compat.create.client;
+package org.valkyrienskies.mod.mixin.mod_compat.create.client.trackOutlines;
 
 import com.simibubi.create.foundation.block.BigOutlines;
 import com.simibubi.create.foundation.utility.RaycastHelper;
