@@ -7,6 +7,7 @@ import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.Mixins;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
+import org.spongepowered.asm.service.MixinService;
 import org.valkyrienskies.mod.compat.VSRenderer;
 
 /**
@@ -74,7 +75,12 @@ public class ValkyrienCommonMixinConfigPlugin implements IMixinConfigPlugin {
         }
         if (mixinClassName.contains("org.valkyrienskies.mod.mixin.mod_compat.create.client.trackOutlines")) {
             //interactive has its own track outline stuff so disable fixed version of VS2's track outline stuff
-            return !classExists("org.valkyrienskies.create_interactive.mixin.client.MixinTrackBlockOutline");
+            if (classExists("org.valkyrienskies.create_interactive.mixin.client.MixinTrackBlockOutline")) {
+                MixinService.getService().getLogger("mixin")
+                    .info("[VS2] found Interactive, disabling VS2's trackOutline Compat - " +
+                        mixinClassName.substring(mixinClassName.lastIndexOf(".") + 1));
+                return false;
+            }
         }
 
         return true;
