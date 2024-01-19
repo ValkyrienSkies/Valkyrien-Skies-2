@@ -16,6 +16,7 @@
     "compat.thermalexpansion.MixinTileCoFH",
     "compat.tis3d.MixinInfraredPacketEntity",
     "compat.modular_routers.MixinContainerModularRouter",
+    "compat.mekanism.MixinRadiationManager",
     "feature.forge_interact.MixinIForgePlayer",
     "world.level.block.FireMixin"
   ],
@@ -25,7 +26,6 @@
     "compat.create.client.MixinContraptionRenderInfo",
     "compat.create.client.MixinFlwContraption",
     "compat.create.client.MixinSuperGlueSelectionHandler",
-    "compat.create.client.MixinValueBox",
     "compat.sodium.MixinRenderSectionManager",
     "compat.tis3d.MixinCasingTileEntityRender",
     "compat.tis3d.MixinRenderContextImpl"
