@@ -4,7 +4,6 @@ import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.Entity
 import org.joml.Vector3d
 import org.joml.Vector3dc
-import org.valkyrienskies.mod.common.getShipObjectEntityMountedTo
 import org.valkyrienskies.mod.common.shipObjectWorld
 import kotlin.math.asin
 import kotlin.math.atan2
@@ -13,17 +12,13 @@ import kotlin.math.sin
 
 object EntityDragger {
     // How much we decay the addedMovement each tick after player hasn't collided with a ship for at least 10 ticks.
-    private const val addedMovementDecay = 0.9
+    private const val ADDED_MOVEMENT_DECAY = 0.9
 
     /**
      * Drag these entities with the ship they're standing on.
      */
     fun dragEntitiesWithShips(entities: Iterable<Entity>) {
         entities.forEach { entity ->
-            val shipMountedTo = entity.level.getShipObjectEntityMountedTo(entity)
-            // Don't drag entities that are already mounted to a ship
-            if (shipMountedTo != null) return@forEach
-
             val entityDraggingInformation = (entity as IEntityDraggingInformationProvider).draggingInformation
 
             var dragTheEntity = false
@@ -31,7 +26,9 @@ object EntityDragger {
             var addedYRot = 0.0
 
             val shipDraggingEntity = entityDraggingInformation.lastShipStoodOn
-            if (shipDraggingEntity != null) {
+
+            // Only drag entities that aren't mounted to vehicles
+            if (shipDraggingEntity != null && entity.vehicle == null) {
                 if (entityDraggingInformation.isEntityBeingDraggedByAShip()) {
                     // Compute how much we should drag the entity
                     val shipData = entity.level.shipObjectWorld.allShips.getById(shipDraggingEntity)
@@ -87,8 +84,8 @@ object EntityDragger {
                 } else {
                     dragTheEntity = true
                     addedMovement = entityDraggingInformation.addedMovementLastTick
-                        .mul(addedMovementDecay, Vector3d())
-                    addedYRot = entityDraggingInformation.addedYawRotLastTick * addedMovementDecay
+                        .mul(ADDED_MOVEMENT_DECAY, Vector3d())
+                    addedYRot = entityDraggingInformation.addedYawRotLastTick * ADDED_MOVEMENT_DECAY
                 }
             }
 

@@ -36,6 +36,8 @@ import org.valkyrienskies.core.apigame.world.properties.DimensionId
 import org.valkyrienskies.core.game.ships.ShipObjectServer
 import org.valkyrienskies.core.impl.hooks.VSEvents.TickEndEvent
 import org.valkyrienskies.core.util.expand
+import org.valkyrienskies.mod.common.entity.ShipMountedToData
+import org.valkyrienskies.mod.common.entity.ShipMountedToDataProvider
 import org.valkyrienskies.mod.common.util.DimensionIdProvider
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.util.set
@@ -242,11 +244,6 @@ fun Level?.getShipObjectManagingPos(posX: Double, posY: Double, posZ: Double) =
 fun Level?.getShipObjectManagingPos(chunkPos: ChunkPos) =
     getShipObjectManagingPos(chunkPos.x, chunkPos.z)
 
-fun Level.getShipObjectEntityMountedTo(entity: Entity): LoadedShip? {
-    val vehicle = entity.vehicle ?: return null
-    return getShipObjectManagingPos(vehicle.position().toJOML())
-}
-
 // ClientLevel
 fun ClientLevel?.getShipObjectManagingPos(chunkX: Int, chunkZ: Int) =
     getShipObjectManagingPosImpl(this, chunkX, chunkZ) as ClientShip?
@@ -265,11 +262,6 @@ fun ClientLevel?.getShipObjectManagingPos(pos: Position) =
 
 fun ClientLevel?.getShipObjectManagingPos(chunkPos: ChunkPos) =
     getShipObjectManagingPos(chunkPos.x, chunkPos.z)
-
-fun ClientLevel?.getShipObjectEntityMountedTo(entity: Entity): ClientShip? {
-    val vehicle = entity.vehicle ?: return null
-    return getShipObjectManagingPos(vehicle.position().toJOML())
-}
 
 // ServerWorld
 fun ServerLevel?.getShipObjectManagingPos(chunkX: Int, chunkZ: Int) =
@@ -417,7 +409,18 @@ fun Level.transformAabbToWorld(aabb: AABBdc, dest: AABBd): AABBd {
     return dest.set(aabb)
 }
 
-fun Entity.getPassengerPos(myRidingOffset: Double, partialTicks: Float): Vector3dc {
-    return this.getPosition(partialTicks)
-        .add(0.0, this.passengersRidingOffset + myRidingOffset, 0.0).toJOML()
+fun getShipMountedToData(passenger: Entity, partialTicks: Float? = null): ShipMountedToData? {
+    val vehicle = passenger.vehicle ?: return null
+    if (vehicle is ShipMountedToDataProvider) {
+        return vehicle.provideShipMountedToData(passenger, partialTicks)
+    }
+    val shipObjectEntityMountedTo = passenger.level.getShipObjectManagingPos(vehicle.position().toJOML()) ?: return null
+    val mountedPosInShip: Vector3dc = vehicle.getPosition(partialTicks ?: 0.0f)
+        .add(0.0, vehicle.passengersRidingOffset + passenger.myRidingOffset, 0.0).toJOML()
+
+    return ShipMountedToData(shipObjectEntityMountedTo, mountedPosInShip)
+}
+
+fun getShipMountedTo(entity: Entity): LoadedShip? {
+    return getShipMountedToData(entity)?.shipMountedTo
 }
