@@ -16,6 +16,12 @@ import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
+/**
+ * SchematicTransformation is responsible for the render transform of the schematic preview
+ * <p>
+ * Create applies both the camera and schematic positions in the same operation, the latter of which does not respect ship-space.
+ * This mixin redirects the operation to the fix and extracts the position components from the argument.
+ */
 @Mixin(value = {SchematicTransformation.class}, remap = false)
 public class MixinSchematicTransformation {
     public MixinSchematicTransformation() {

@@ -8,18 +8,25 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
+/**
+ * SchematicToolBase is responsible for the placement position of the schematic.
+ * <p>
+ * Create uses HitResult::getLocation to get the schematic placement position, which doesn't respect ship-space.
+ * This mixin redirects it to BlockHitResult::getBlockPos instead which *does* respect ship-space.
+ * The original behaviour is otherwise not changed.
+ */
 @Mixin(value={SchematicToolBase.class})
 public abstract class MixinSchematicToolBase {
     @Redirect(
-            method = "Lcom/simibubi/create/content/schematics/client/tools/SchematicToolBase;updateTargetPos()V",
+            method = "updateTargetPos()V",
             at = @At(
                     value = "INVOKE",
                     target = "Lnet/minecraft/world/phys/BlockHitResult;getLocation()Lnet/minecraft/world/phys/Vec3;",
                     ordinal = 0
             )
     )
-    public Vec3 injectgetLocation(BlockHitResult instance) {
+    public Vec3 redirectGetLocation(BlockHitResult instance) {
         BlockPos b = instance.getBlockPos();
-        return new Vec3(b.getX() + 0.5, b.getY() + 0.5, b.getZ() + 0.5);
+        return Vec3.atLowerCornerOf(b);
     }
 }

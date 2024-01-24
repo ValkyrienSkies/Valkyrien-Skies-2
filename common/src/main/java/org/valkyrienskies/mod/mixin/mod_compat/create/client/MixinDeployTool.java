@@ -19,10 +19,17 @@ import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
+/**
+ * DeployTool is responsible for the render transform of the placement bounding box (not the preview)
+ * <p>
+ * Create applies both the camera and bounding-box position in the same PoseStack operation,
+ * the latter of which does not respect ship-space.
+ * This mixin cancels the aforementioned operation and injects the fix in front.
+ */
 @Mixin(value={DeployTool.class})
 public class MixinDeployTool extends SchematicToolBase {
     @Redirect(
-        method = "Lcom/simibubi/create/content/schematics/client/tools/DeployTool;renderTool(Lcom/mojang/blaze3d/vertex/PoseStack;Lcom/simibubi/create/foundation/render/SuperRenderTypeBuffer;Lnet/minecraft/world/phys/Vec3;)V",
+        method = "renderTool(Lcom/mojang/blaze3d/vertex/PoseStack;Lcom/simibubi/create/foundation/render/SuperRenderTypeBuffer;Lnet/minecraft/world/phys/Vec3;)V",
         at = @At(
             value = "INVOKE",
             target = "Lcom/mojang/blaze3d/vertex/PoseStack;translate(DDD)V",
@@ -33,7 +40,7 @@ public class MixinDeployTool extends SchematicToolBase {
     }
 
     @Inject(
-        method = "Lcom/simibubi/create/content/schematics/client/tools/DeployTool;renderTool(Lcom/mojang/blaze3d/vertex/PoseStack;Lcom/simibubi/create/foundation/render/SuperRenderTypeBuffer;Lnet/minecraft/world/phys/Vec3;)V",
+        method = "renderTool(Lcom/mojang/blaze3d/vertex/PoseStack;Lcom/simibubi/create/foundation/render/SuperRenderTypeBuffer;Lnet/minecraft/world/phys/Vec3;)V",
         at = @At(
             value = "INVOKE",
             target = "Lcom/mojang/blaze3d/vertex/PoseStack;translate(DDD)V",
@@ -59,6 +66,7 @@ public class MixinDeployTool extends SchematicToolBase {
         }
     }
 
+    // To fufill the class extension requirements
     @Unique
     @Override
     public boolean handleRightClick() {
