@@ -32,6 +32,9 @@ dependencies {
     modCompileOnly("com.jozufozu.flywheel:flywheel-fabric-${minecraft_version}:${flywheel_version_fabric}")
     modCompileOnly("io.github.fabricators_of_create:Porting-Lib:${port_lib_version}+${minecraft_version}")
     modCompileOnly("com.rbasamoyai:createbigcannons-fabric-${minecraft_version}:${createbigcannons_version}")
+
+    //Bluemap fabric 1.18
+    modCompileOnly("curse.maven:bluemap-406463:4950063")
 }
 
 architectury {
