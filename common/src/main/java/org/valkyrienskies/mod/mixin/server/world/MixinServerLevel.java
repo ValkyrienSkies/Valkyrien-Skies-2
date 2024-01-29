@@ -7,6 +7,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -47,10 +48,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.core.api.ships.Wing;
 import org.valkyrienskies.core.api.ships.WingManager;
+import org.valkyrienskies.core.api.ships.datastructures.ShipConnDataAttachment;
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
 import org.valkyrienskies.core.apigame.world.chunks.TerrainUpdate;
+import org.valkyrienskies.core.util.datastructures.Breakage;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.assembly.SubShipAssemblyKt;
 import org.valkyrienskies.mod.common.block.WingBlock;
 import org.valkyrienskies.mod.common.util.VSServerLevel;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
@@ -243,6 +247,24 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
             VSGameUtilsKt.getDimensionId(self),
             voxelShapeUpdates
         );
+
+        // Process pending ship breakages
+        for (final LoadedServerShip loadedShip : shipObjectWorld.getLoadedShips()) {
+            if (loadedShip.getAttachment(ShipConnDataAttachment.class) instanceof ShipConnDataAttachment) {
+                ShipConnDataAttachment connData = loadedShip.getAttachment(ShipConnDataAttachment.class);
+                assert connData != null;
+                HashSet<Object> shipBreakages = (HashSet<Object>) connData.getBreakages();
+                Iterator<Object> breakageIterator = shipBreakages.iterator();
+
+                while (breakageIterator.hasNext()) {
+                    Object breakage = breakageIterator.next();
+                    if (breakage instanceof Breakage breaking) {
+                        SubShipAssemblyKt.splitShip(VectorConversionsMCKt.toBlockPos(breaking.component1()), breaking.component2(), self, loadedShip);
+                        breakageIterator.remove();
+                    }
+                }
+            }
+        }
     }
 
     @Override
