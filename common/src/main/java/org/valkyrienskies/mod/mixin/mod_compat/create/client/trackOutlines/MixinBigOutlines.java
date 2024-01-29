@@ -1,16 +1,15 @@
-package org.valkyrienskies.mod.mixin.mod_compat.create.client;
+package org.valkyrienskies.mod.mixin.mod_compat.create.client.trackOutlines;
 
-import com.simibubi.create.content.trains.track.TrackBlockOutline;
-import com.simibubi.create.content.trains.track.TrackBlockOutline.BezierPointSelection;
+import com.simibubi.create.foundation.block.BigOutlines;
 import com.simibubi.create.foundation.utility.RaycastHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult.Type;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -21,27 +20,25 @@ import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
-@Mixin(TrackBlockOutline.class)
-public class MixinTrackBlockOutline {
-
-    @Shadow
-    public static BezierPointSelection result;
+@Mixin(BigOutlines.class)
+public class MixinBigOutlines {
     @Unique
     private static boolean valkyrienskies$toShip = false;
+
     @Unique
     private static Ship valkyrienskies$ship;
     @Unique
     private static Vec3 valkyrienskies$originalOrigin;
 
     @Inject(
-        method = "pickCurves",
+        method = "pick",
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/client/player/LocalPlayer;getEyePosition(F)Lnet/minecraft/world/phys/Vec3;"
         ), locals = LocalCapture.CAPTURE_FAILHARD
     )
     private static void stuff(final CallbackInfo ci, final Minecraft mc) {
-        if (mc.hitResult != null && mc.level != null && mc.player != null) {
+        if (mc.hitResult != null && mc.level != null && mc.player != null && mc.hitResult.getType() == Type.BLOCK) {
             valkyrienskies$toShip = false;
             final boolean playerOnShip = VSGameUtilsKt.isBlockInShipyard(mc.level, mc.player.getOnPos());
             final boolean hitResultOnShip =
@@ -59,7 +56,7 @@ public class MixinTrackBlockOutline {
     }
 
     @Redirect(
-        method = "pickCurves",
+        method = "pick",
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/client/player/LocalPlayer;getEyePosition(F)Lnet/minecraft/world/phys/Vec3;"
@@ -77,7 +74,7 @@ public class MixinTrackBlockOutline {
     }
 
     @Redirect(
-        method = "pickCurves",
+        method = "pick",
         at = @At(
             value = "INVOKE",
             target = "Lcom/simibubi/create/foundation/utility/RaycastHelper;getTraceTarget(Lnet/minecraft/world/entity/player/Player;DLnet/minecraft/world/phys/Vec3;)Lnet/minecraft/world/phys/Vec3;"
