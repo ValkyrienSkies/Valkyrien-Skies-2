@@ -46,7 +46,7 @@ public class MixinBigOutlines {
             if (playerOnShip && !hitResultOnShip) {
                 valkyrienskies$ship = VSGameUtilsKt.getShipManagingPos(mc.level, mc.player.getOnPos());
                 //if blockstate is air then transform to ship
-                valkyrienskies$toShip = mc.level.getBlockState(BlockPos.containing(mc.hitResult.location)).isAir();
+                valkyrienskies$toShip = mc.level.getBlockState(new BlockPos(mc.hitResult.location)).isAir();
             } else if (hitResultOnShip) {
                 valkyrienskies$toShip = true;
                 valkyrienskies$ship =
