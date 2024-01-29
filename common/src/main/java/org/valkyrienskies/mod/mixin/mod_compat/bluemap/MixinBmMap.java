@@ -30,7 +30,8 @@ public class MixinBmMap {
         at = @At(
             value = "INVOKE",
             target = "Ljava/util/function/Predicate;test(Ljava/lang/Object;)Z"
-        )
+        ),
+        remap = false
     )
     boolean skipShipyard(final Predicate<Object> predicate, final Object object) {
         final Vector2i tilePos = (Vector2i) object;
