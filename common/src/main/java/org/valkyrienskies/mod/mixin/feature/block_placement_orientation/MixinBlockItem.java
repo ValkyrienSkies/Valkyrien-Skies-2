@@ -19,7 +19,10 @@ public abstract class MixinBlockItem {
         ),
         method = "place"
     )
-    private BlockState transformPlayerWhenPlacing(BlockItem _instance, BlockPlaceContext _ctx, Operation<BlockState> original, final BlockPlaceContext ctx) {
+    private BlockState transformPlayerWhenPlacing(
+        final BlockItem _instance, final BlockPlaceContext _ctx,
+        final Operation<BlockState> original, final BlockPlaceContext ctx
+    ) {
         if (ctx == null || ctx.getPlayer() == null) {
             return null;
         }
@@ -28,7 +31,7 @@ public abstract class MixinBlockItem {
             ctx.getPlayer(),
             ctx.getLevel(),
             ctx.getClickedPos(),
-            original::call
+            () -> original.call(this, ctx)
         );
     }
 }

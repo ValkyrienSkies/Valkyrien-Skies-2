@@ -25,28 +25,23 @@ object PlayerUtil {
 
     @JvmStatic
     fun transformPlayerTemporarily(player: Player, ship: LoadedShip?) {
-        if (player.level.isBlockInShipyard(player.x, player.y, player.z)) {
-            // player is already in shipyard
-            return
-        }
+        if (ship == null) return
+        // player is already in shipyard
+        if (player.level.isBlockInShipyard(player.x, player.y, player.z)) return
 
         prevPosInfo[player] = TempPlayerPosInfo(player.yRot, player.yHeadRot, player.xRot, player.position())
 
-        if (ship != null) {
-            val shipMatrix = ship.worldToShip
-            val direction = shipMatrix.transformDirection(
-                player.lookAngle.toJOML()
-            )
-            val position = shipMatrix.transformPosition(
-                player.position().toJOML()
-            )
-            val yaw = -atan2(direction.x, direction.z)
-            val pitch = -atan2(direction.y, sqrt((direction.x * direction.x) + (direction.z * direction.z)))
-            player.yRot = (yaw * (180 / Math.PI)).toFloat()
-            player.yHeadRot = player.yRot
-            player.xRot = (pitch * (180 / Math.PI)).toFloat()
-            (player as EntityAccessor).setPosNoUpdates(position.toMinecraft())
-        }
+        val shipMatrix = ship.worldToShip
+
+        val direction = shipMatrix.transformDirection(player.lookAngle.toJOML())
+        val position = shipMatrix.transformPosition(player.position().toJOML())
+        val yaw = -atan2(direction.x, direction.z)
+        val pitch = -atan2(direction.y, sqrt((direction.x * direction.x) + (direction.z * direction.z)))
+
+        player.yRot = (yaw * (180 / Math.PI)).toFloat()
+        player.yHeadRot = player.yRot
+        player.xRot = (pitch * (180 / Math.PI)).toFloat()
+        (player as EntityAccessor).setPosNoUpdates(position.toMinecraft())
     }
 
     @JvmStatic
