@@ -18,13 +18,16 @@ public interface MixinIForgePlayer {
     @Shadow
     Player self();
 
+    @Shadow
+    double getBlockReach();
+
     /**
      * Include ships in server-side distance check when player interacts with a block.
      */
     @Overwrite(remap = false)
     default boolean canReach(final BlockPos pos, final double padding) {
         if (VSGameConfig.SERVER.getEnableInteractDistanceChecks()) {
-            final double reach = this.self().getEntityReach() + padding;
+            final double reach = this.getBlockReach() + padding;
             final Vec3 eyes = this.self().getEyePosition();
             return VSGameUtilsKt.squaredDistanceBetweenInclShips(this.self().level(),
                 pos.getX() + 0.5,
