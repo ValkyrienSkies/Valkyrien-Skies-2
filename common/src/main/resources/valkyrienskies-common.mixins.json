@@ -157,7 +157,6 @@
     "mod_compat.create.client.MixinPlacementHelpers",
     "mod_compat.create.client.MixinSoundScapes",
     "mod_compat.create.client.MixinTileEntityRenderHelper",
-    "mod_compat.create.client.MixinTrackBlockOutline",
     "mod_compat.create.client.MixinTrainRelocator",
     "mod_compat.create.client.trackOutlines.MixinBigOutlines",
     "mod_compat.create.client.trackOutlines.MixinTrackBlockOutline",
