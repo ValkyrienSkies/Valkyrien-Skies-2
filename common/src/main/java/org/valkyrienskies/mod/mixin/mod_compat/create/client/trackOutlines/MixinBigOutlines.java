@@ -37,7 +37,7 @@ public class MixinBigOutlines {
             target = "Lnet/minecraft/client/player/LocalPlayer;getEyePosition(F)Lnet/minecraft/world/phys/Vec3;"
         ), locals = LocalCapture.CAPTURE_FAILHARD
     )
-    private static void stuff(final CallbackInfo ci, final Minecraft mc) {
+    private static void injectPick(final CallbackInfo ci, final Minecraft mc) {
         if (mc.hitResult != null && mc.level != null && mc.player != null && mc.hitResult.getType() == Type.BLOCK) {
             valkyrienskies$toShip = false;
             final boolean playerOnShip = VSGameUtilsKt.isBlockInShipyard(mc.level, mc.player.getOnPos());
