@@ -32,6 +32,9 @@ dependencies {
     modCompileOnly("com.jozufozu.flywheel:flywheel-fabric-${minecraft_version}:${flywheel_version_fabric}")
 
     modCompileOnly("maven.modrinth:create-big-cannons:${createbigcannons_version}")
+
+    modImplementation("maven.modrinth:create-utilities:${create_utilities_version}")
+    modImplementation("teamreborn:energy:${energy_version}")
 }
 
 architectury {
