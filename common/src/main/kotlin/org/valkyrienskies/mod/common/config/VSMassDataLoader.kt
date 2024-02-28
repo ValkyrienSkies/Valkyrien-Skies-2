@@ -17,7 +17,6 @@ import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.material.FluidState
 import net.minecraft.world.level.material.Fluids
-import net.minecraft.world.level.material.Material
 import net.minecraft.world.phys.shapes.VoxelShape
 import org.joml.Vector3f
 import org.joml.Vector3i
@@ -26,6 +25,7 @@ import org.valkyrienskies.core.game.VSBlockType
 import org.valkyrienskies.core.impl.collision.Lod1SolidShapeUtils
 import org.valkyrienskies.core.impl.game.BlockTypeImpl
 import org.valkyrienskies.mod.common.BlockStateInfoProvider
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.hooks.VSGameEvents
 import org.valkyrienskies.mod.common.vsCore
 import org.valkyrienskies.mod.mixin.accessors.world.level.block.SlabBlockAccessor
@@ -160,7 +160,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
             val friction = element.asJsonObject["friction"]?.asDouble ?: DEFAULT_FRICTION
             val elasticity = element.asJsonObject["elasticity"]?.asDouble ?: DEFAULT_ELASTICITY
 
-            val priority = element.asJsonObject["priority"]?.asInt ?: 100
+            val priority = element.asJsonObject["priority"]?.asInt ?: decideDefaultPriority(origin)
 
             if (tag != null) {
                 addToBeAddedTags(VSBlockStateInfo(ResourceLocation(tag), priority, weight, friction, elasticity, null))
@@ -172,6 +172,13 @@ object MassDatapackResolver : BlockStateInfoProvider {
             }
         }
     }
+
+    fun decideDefaultPriority(resourceLocation: ResourceLocation) = when {
+        resourceLocation.namespace.equals(ValkyrienSkiesMod.MOD_ID) -> 1000
+        resourceLocation.namespace.equals("custom") -> 50
+        else -> 100
+    }
+
 
     private fun generateStairCollisionShapes(stairShapes: Array<VoxelShape>): Map<VoxelShape, Lod1SolidCollisionShape> {
         val testPoints = listOf(
