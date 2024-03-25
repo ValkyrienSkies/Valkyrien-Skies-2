@@ -28,7 +28,8 @@
     "compat.create.client.MixinSuperGlueSelectionHandler",
     "compat.sodium.MixinRenderSectionManager",
     "compat.tis3d.MixinCasingTileEntityRender",
-    "compat.tis3d.MixinRenderContextImpl"
+    "compat.tis3d.MixinRenderContextImpl",
+    "compat.create.client.MixinTrackBlockOutline"
   ],
   "injectors": {
     "defaultRequire": 1
