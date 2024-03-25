@@ -21,8 +21,8 @@ object DefaultBlockStateInfoProvider : BlockStateInfoProvider {
 
     override fun getBlockStateMass(blockState: BlockState): Double {
         if (blockState.isAir) return 0.0
-        // By default make blocks weight 1000 kg
-        return 1000.0
+        // By default make blocks weight 100 kg
+        return 100.0
     }
 
     override fun getBlockStateType(blockState: BlockState): BlockType {
