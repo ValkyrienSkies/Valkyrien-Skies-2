@@ -1,837 +1,837 @@
 [
   {
     "block": "minecraft:stone_slab",
-    "mass": 1300.0,
+    "mass": 125.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:cut_red_sandstone",
-    "mass": 2300.0,
+    "mass": 250.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:cut_sandstone",
-    "mass": 2300.0,
+    "mass": 250.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:smooth_stone_slab",
-    "mass": 1300.0,
+    "mass": 125.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:granite_slab",
-    "mass": 1350.0,
+    "mass": 125.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:polished_granite_slab",
-    "mass": 1350.0,
+    "mass": 125.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:diorite_slab",
-    "mass": 1450.0,
+    "mass": 125.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:polished_diorite_slab",
-    "mass": 1450.0,
+    "mass": 125.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:andesite_slab",
-    "mass": 1385.0,
+    "mass": 125.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:polished_andesite_slab",
-    "mass": 1385.0,
+    "mass": 125.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:cobblestone_slab",
-    "mass": 1240.0,
+    "mass": 125.0,
     "friction": 0.8
   },
   {
     "block": "minecraft:mossy_cobblestone_slab",
-    "mass": 1300.0,
+    "mass": 125.0,
     "friction": 0.8
   },
   {
     "block": "minecraft:stone_brick_slab",
-    "mass": 1300.0,
+    "mass": 125.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:mossy_stone_brick_slab",
-    "mass": 1300.0,
+    "mass": 125.0,
     "friction": 0.3
   },
   {
     "block": "minecraft:brick_slab",
-    "mass": 950.0,
+    "mass": 125.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:end_stone_brick_slab",
-    "mass": 1400.0,
+    "mass": 50.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:nether_brick_slab",
-    "mass": 950.0,
+    "mass": 50.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:red_nether_brick_slab",
-    "mass": 950.0,
+    "mass": 50.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:sandstone_slab",
-    "mass": 1150.0,
+    "mass": 125.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:cut_sandstone_slab",
-    "mass": 1150.0,
+    "mass": 125.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:smooth_sandstone_slab",
-    "mass": 1150.0,
+    "mass": 125.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:red_sandstone_slab",
-    "mass": 1150.0,
+    "mass": 125.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:cut_red_sandstone_slab",
-    "mass": 1150.0,
+    "mass": 125.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:smooth_red_sandstone_slab",
-    "mass": 1150.0,
+    "mass": 125.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:quartz_slab",
-    "mass": 1160.0,
+    "mass": 150.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:smooth_quartz_slab",
-    "mass": 1160.0,
+    "mass": 150.0,
     "friction": 0.3
   },
   {
     "block": "minecraft:purpur_slab",
-    "mass": 60.0,
+    "mass": 50.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:prismarine_slab",
-    "mass": 1000.0,
+    "mass": 150.0,
     "friction": 0.8
   },
   {
     "block": "minecraft:prismarine_brick_slab",
-    "mass": 1600.0,
+    "mass": 150.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:dark_prismarine_slab",
-    "mass": 1600.0,
+    "mass": 150.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:blackstone_slab",
-    "mass": 1700.0,
+    "mass": 175.0,
     "friction": 0.7
   },
   {
     "block": "minecraft:polished_blackstone_slab",
-    "mass": 1700.0,
+    "mass": 175.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:polished_blackstone_brick_slab",
-    "mass": 1700.0,
+    "mass": 175.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:stone_stairs",
-    "mass": 1950.0,
+    "mass": 187.5,
     "friction": 0.6
   },
   {
     "block": "minecraft:granite_stairs",
-    "mass": 2025.0,
+    "mass": 187.5,
     "friction": 0.6
   },
   {
     "block": "minecraft:polished_granite_stairs",
-    "mass": 2025.0,
+    "mass": 187.5,
     "friction": 0.5
   },
   {
     "block": "minecraft:diorite_stairs",
-    "mass": 2175.0,
+    "mass": 187.5,
     "friction": 0.6
   },
   {
     "block": "minecraft:polished_diorite_stairs",
-    "mass": 2175.0,
+    "mass": 187.5,
     "friction": 0.5
   },
   {
     "block": "minecraft:andesite_stairs",
-    "mass": 2080.0,
+    "mass": 187.5,
     "friction": 0.6
   },
   {
     "block": "minecraft:polished_andesite_stairs",
-    "mass": 2080.0,
+    "mass": 187.5,
     "friction": 0.5
   },
   {
     "block": "minecraft:cobblestone_stairs",
-    "mass": 1860.0,
+    "mass": 187.5,
     "friction": 0.8
   },
   {
     "block": "minecraft:mossy_cobblestone_stairs",
-    "mass": 1950.0,
+    "mass": 187.5,
     "friction": 0.8
   },
   {
     "block": "minecraft:stone_brick_stairs",
-    "mass": 1950.0,
+    "mass": 187.5,
     "friction": 0.5
   },
   {
     "block": "minecraft:mossy_stone_brick_stairs",
-    "mass": 1950.0,
+    "mass": 187.5,
     "friction": 0.3
   },
   {
     "block": "minecraft:brick_stairs",
-    "mass": 1425.0,
+    "mass": 187.5,
     "friction": 0.6
   },
   {
     "block": "minecraft:end_stone_brick_stairs",
-    "mass": 2100.0,
+    "mass": 75.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:nether_brick_stairs",
-    "mass": 1425.0,
+    "mass": 75.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:red_nether_brick_stairs",
-    "mass": 1425.0,
+    "mass": 75.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:sandstone_stairs",
-    "mass": 1725.0,
+    "mass": 187.5,
     "friction": 0.6
   },
   {
     "block": "minecraft:smooth_sandstone_stairs",
-    "mass": 1725.0,
+    "mass": 187.5,
     "friction": 0.5
   },
   {
     "block": "minecraft:red_sandstone_stairs",
-    "mass": 1725.0,
+    "mass": 187.5,
     "friction": 0.6
   },
   {
     "block": "minecraft:smooth_red_sandstone_stairs",
-    "mass": 1725.0,
+    "mass": 187.5,
     "friction": 0.5
   },
   {
     "block": "minecraft:quartz_stairs",
-    "mass": 1740.0,
+    "mass": 225.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:smooth_quartz_stairs",
-    "mass": 1740.0,
+    "mass": 225.0,
     "friction": 0.3
   },
   {
     "block": "minecraft:purpur_stairs",
-    "mass": 90.0,
+    "mass": 75.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:prismarine_stairs",
-    "mass": 1500.0,
+    "mass": 225.0,
     "friction": 0.8
   },
   {
     "block": "minecraft:prismarine_brick_stairs",
-    "mass": 2400.0,
+    "mass": 225.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:dark_prismarine_stairs",
-    "mass": 2400.0,
+    "mass": 225.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:blackstone_stairs",
-    "mass": 2550.0,
+    "mass": 262.5,
     "friction": 0.7
   },
   {
     "block": "minecraft:polished_blackstone_stairs",
-    "mass": 2550.0,
+    "mass": 262.5,
     "friction": 0.5
   },
   {
     "block": "minecraft:polished_blackstone_brick_stairs",
-    "mass": 2550.0,
+    "mass": 262.5,
     "friction": 0.4
   },
   {
     "block": "minecraft:granite_wall",
-    "mass": 1350.0,
+    "mass": 125.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:diorite_wall",
-    "mass": 1450.0,
+    "mass": 125.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:andesite_wall",
-    "mass": 1385.0,
+    "mass": 125.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:cobblestone_wall",
-    "mass": 1240.0,
+    "mass": 125.0,
     "friction": 0.8
   },
   {
     "block": "minecraft:mossy_cobblestone_wall",
-    "mass": 1300.0,
+    "mass": 125.0,
     "friction": 0.8
   },
   {
     "block": "minecraft:stone_brick_wall",
-    "mass": 1300.0,
+    "mass": 125.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:mossy_stone_brick_wall",
-    "mass": 1300.0,
+    "mass": 125.0,
     "friction": 0.3
   },
   {
     "block": "minecraft:brick_wall",
-    "mass": 950.0,
+    "mass": 125.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:end_stone_brick_wall",
-    "mass": 1400.0,
+    "mass": 75.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:nether_brick_wall",
-    "mass": 950.0,
+    "mass": 75.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:red_nether_brick_wall",
-    "mass": 950.0,
+    "mass": 75.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:sandstone_wall",
-    "mass": 1150.0,
+    "mass": 125.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:red_sandstone_wall",
-    "mass": 1150.0,
+    "mass": 125.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:prismarine_wall",
-    "mass": 1000.0,
+    "mass": 100.0,
     "friction": 0.8
   },
   {
     "block": "minecraft:blackstone_wall",
-    "mass": 1700.0,
+    "mass": 125.0,
     "friction": 0.7
   },
   {
     "block": "minecraft:polished_blackstone_wall",
-    "mass": 1700.0,
+    "mass": 125.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:polished_blackstone_brick_wall",
-    "mass": 1700.0,
+    "mass": 125.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:polished_granite",
-    "mass": 2700.0,
+    "mass": 250.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:polished_diorite",
-    "mass": 2900.0,
+    "mass": 250.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:polished_andesite",
-    "mass": 2770.0,
+    "mass": 250.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:polished_basalt",
-    "mass": 3010.0,
+    "mass": 250.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:polished_blackstone",
-    "mass": 3400.0,
+    "mass": 250.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:polished_blackstone_bricks",
-    "mass": 3400.0,
+    "mass": 250.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:smooth_quartz",
-    "mass": 2320.0,
+    "mass": 300.0,
     "friction": 0.3
   },
   {
     "block": "minecraft:smooth_sandstone",
-    "mass": 2300.0,
+    "mass": 250.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:smooth_red_sandstone",
-    "mass": 2300.0,
+    "mass": 250.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:smooth_stone",
-    "mass": 2600.0,
+    "mass": 250.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:cracked_stone_bricks",
-    "mass": 2600.0,
+    "mass": 250.0,
     "friction": 0.7
   },
   {
     "block": "minecraft:cracked_nether_bricks",
-    "mass": 1900.0,
+    "mass": 100.0,
     "friction": 0.7
   },
   {
     "block": "minecraft:cracked_polished_blackstone_bricks",
-    "mass": 3400.0,
+    "mass": 250.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:chiseled_sandstone",
-    "mass": 2300.0,
+    "mass": 250.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:chiseled_stone_bricks",
-    "mass": 2600.0,
+    "mass": 250.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:chiseled_nether_bricks",
-    "mass": 1900.0,
+    "mass": 100.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:chiseled_quartz_block",
-    "mass": 2320.0,
+    "mass": 300.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:chiseled_red_sandstone",
-    "mass": 2300.0,
+    "mass": 250.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:chiseled_polished_blackstone",
-    "mass": 3400.0,
+    "mass": 250.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:quartz_pillar",
-    "mass": 2320.0,
+    "mass": 300.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:purpur_pillar",
-    "mass": 120.0,
+    "mass": 100.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:purpur_block",
-    "mass": 120.0,
+    "mass": 100.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:quartz_block",
-    "mass": 2320.0,
+    "mass": 300.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:mossy_stone_bricks",
-    "mass": 2600.0,
+    "mass": 250.0,
     "friction": 0.3
   },
   {
     "block": "minecraft:gilded_blackstone",
-    "mass": 3800.0,
+    "mass": 300.0,
     "friction": 0.7
   },
   {
     "block": "minecraft:nether_brick_fence",
-    "mass": 380.0,
+    "mass": 50.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:bricks",
-    "mass": 1900.0,
+    "mass": 250.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:stone_bricks",
-    "mass": 2600.0,
+    "mass": 250.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:nether_bricks",
-    "mass": 1900.0,
+    "mass": 100.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:red_nether_bricks",
-    "mass": 1900.0,
+    "mass": 100.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:end_stone_bricks",
-    "mass": 2800.0,
+    "mass": 100.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:quartz_bricks",
-    "mass": 2320.0,
+    "mass": 300.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:prismarine",
-    "mass": 2000.0,
+    "mass": 300.0,
     "friction": 0.8
   },
   {
     "block": "minecraft:prismarine_bricks",
-    "mass": 3200.0,
+    "mass": 300.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:dark_prismarine",
-    "mass": 3200.0,
+    "mass": 300.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:white_glazed_terracotta",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:orange_glazed_terracotta",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:magenta_glazed_terracotta",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:light_blue_glazed_terracotta",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:yellow_glazed_terracotta",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:lime_glazed_terracotta",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:pink_glazed_terracotta",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:gray_glazed_terracotta",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:light_gray_glazed_terracotta",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:cyan_glazed_terracotta",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:purple_glazed_terracotta",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:blue_glazed_terracotta",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:brown_glazed_terracotta",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:green_glazed_terracotta",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:red_glazed_terracotta",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:black_glazed_terracotta",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:white_concrete_powder",
-    "mass": 2360.0,
+    "mass": 300.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:orange_concrete_powder",
-    "mass": 2360.0,
+    "mass": 300.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:magenta_concrete_powder",
-    "mass": 2360.0,
+    "mass": 300.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:light_blue_concrete_powder",
-    "mass": 2360.0,
+    "mass": 300.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:yellow_concrete_powder",
-    "mass": 2360.0,
+    "mass": 300.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:lime_concrete_powder",
-    "mass": 2360.0,
+    "mass": 300.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:pink_concrete_powder",
-    "mass": 2360.0,
+    "mass": 300.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:gray_concrete_powder",
-    "mass": 2360.0,
+    "mass": 300.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:light_gray_concrete_powder",
-    "mass": 2360.0,
+    "mass": 300.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:cyan_concrete_powder",
-    "mass": 2360.0,
+    "mass": 300.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:purple_concrete_powder",
-    "mass": 2360.0,
+    "mass": 300.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:blue_concrete_powder",
-    "mass": 2360.0,
+    "mass": 300.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:brown_concrete_powder",
-    "mass": 2360.0,
+    "mass": 300.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:green_concrete_powder",
-    "mass": 2360.0,
+    "mass": 300.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:red_concrete_powder",
-    "mass": 2360.0,
+    "mass": 300.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:black_concrete_powder",
-    "mass": 2360.0,
+    "mass": 300.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:white_concrete",
-    "mass": 2360.0,
+    "mass": 400.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:orange_concrete",
-    "mass": 2360.0,
+    "mass": 400.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:magenta_concrete",
-    "mass": 2360.0,
+    "mass": 400.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:light_blue_concrete",
-    "mass": 2360.0,
+    "mass": 400.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:yellow_concrete",
-    "mass": 2360.0,
+    "mass": 400.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:lime_concrete",
-    "mass": 2360.0,
+    "mass": 400.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:pink_concrete",
-    "mass": 2360.0,
+    "mass": 400.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:gray_concrete",
-    "mass": 2360.0,
+    "mass": 400.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:light_gray_concrete",
-    "mass": 2360.0,
+    "mass": 400.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:cyan_concrete",
-    "mass": 2360.0,
+    "mass": 400.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:purple_concrete",
-    "mass": 2360.0,
+    "mass": 400.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:blue_concrete",
-    "mass": 2360.0,
+    "mass": 400.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:brown_concrete",
-    "mass": 2360.0,
+    "mass": 400.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:green_concrete",
-    "mass": 2360.0,
+    "mass": 400.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:red_concrete",
-    "mass": 2360.0,
+    "mass": 400.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:black_concrete",
-    "mass": 2360.0,
+    "mass": 400.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:infested_stone",
-    "mass": 2600.0,
+    "mass": 300.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:infested_cobblestone",
-    "mass": 2600.0,
+    "mass": 300.0,
     "friction": 0.8
   },
   {
     "block": "minecraft:infested_stone_bricks",
-    "mass": 2600.0,
+    "mass": 300.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:infested_cracked_stone_bricks",
-    "mass": 2600.0,
+    "mass": 300.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:infested_mossy_stone_bricks",
-    "mass": 2600.0,
+    "mass": 300.0,
     "friction": 0.3
   },
   {
     "block": "minecraft:infested_chiseled_stone_bricks",
-    "mass": 2600.0,
+    "mass": 300.0,
     "friction": 0.6
   }
 ]

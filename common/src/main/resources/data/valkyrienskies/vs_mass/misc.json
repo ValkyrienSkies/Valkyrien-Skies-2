@@ -34,92 +34,92 @@
   },
   {
     "block": "minecraft:gold_block",
-    "mass": 19280.0,
+    "mass": 1930.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:iron_block",
-    "mass": 7840.0,
+    "mass": 785.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:diamond_block",
-    "mass": 3520.0,
+    "mass": 300.0,
     "friction": 0.1
   },
   {
     "block": "minecraft:emerald_block",
-    "mass": 2670.0,
+    "mass": 250.0,
     "friction": 0.1
   },
   {
     "block": "minecraft:coal_block",
-    "mass": 1400.0,
+    "mass": 150.0,
     "friction": 0.7
   },
   {
     "block": "minecraft:netherite_block",
-    "mass": 89680.0,
+    "mass": 8968.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:lapis_block",
-    "mass": 2750.0,
+    "mass": 275.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:coal_ore",
-    "mass": 2465.0,
+    "mass": 245.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:diamond_ore",
-    "mass": 2700.0,
+    "mass": 270.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:emerald_ore",
-    "mass": 2605.0,
+    "mass": 260.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:ancient_debris",
-    "mass": 3140.0,
+    "mass": 315.0,
     "friction": 0.8
   },
   {
     "block": "minecraft:iron_ore",
-    "mass": 3180.0,
+    "mass": 315.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:gold_ore",
-    "mass": 4450.0,
+    "mass": 445.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:lapis_ore",
-    "mass": 2700.0,
+    "mass": 270.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:redstone_ore",
-    "mass": 1975.0,
+    "mass": 195.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:nether_quartz_ore",
-    "mass": 1405.0,
+    "mass": 150.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:nether_gold_ore",
-    "mass": 2210.0,
+    "mass": 225.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:bone_block",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.2
   },
   {
@@ -129,23 +129,23 @@
   },
   {
     "block": "minecraft:hay_block",
-    "mass": 200.0,
+    "mass": 20.0,
     "friction": 0.6,
     "elasticity": 0.3
   },
   {
     "block": "minecraft:carved_pumpkin",
-    "mass": 100.0,
+    "mass": 10.0,
     "friction": 0.3
   },
   {
     "block": "minecraft:jack_o_lantern",
-    "mass": 105.0,
+    "mass": 10.0,
     "friction": 0.3
   },
   {
     "block": "minecraft:beacon",
-    "mass": 930.0,
+    "mass": 400.0,
     "friction": 0.2
   },
   {
@@ -154,39 +154,39 @@
   },
   {
     "block": "minecraft:sponge",
-    "mass": 170.0,
+    "mass": 175.0,
     "friction": 0.6,
     "elasticity": 0.2
   },
   {
     "block": "minecraft:wet_sponge",
-    "mass": 1050.0,
+    "mass": 200.0,
     "friction": 0.3,
     "elasticity": 0.6
   },
   {
     "block": "minecraft:torch",
-    "mass": 5.0
+    "mass": 0.5
   },
   {
     "block": "minecraft:wall_torch",
-    "mass": 5.0
+    "mass": 0.5
   },
   {
     "block": "minecraft:soul_torch",
-    "mass": 5.0
+    "mass": 0.5
   },
   {
     "block": "minecraft:soul_wall_torch",
-    "mass": 5.0
+    "mass": 0.5
   },
   {
     "block": "minecraft:lantern",
-    "mass": 25.0
+    "mass": 2.5
   },
   {
     "block": "minecraft:soul_lantern",
-    "mass": 25.0
+    "mass": 2.5
   },
   {
     "block": "minecraft:end_rod",
@@ -195,210 +195,210 @@
   },
   {
     "block": "minecraft:sea_lantern",
-    "mass": 2500.0,
+    "mass": 250.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:glass",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:white_stained_glass",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:orange_stained_glass",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:magenta_stained_glass",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:light_blue_stained_glass",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:yellow_stained_glass",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:lime_stained_glass",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:pink_stained_glass",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:gray_stained_glass",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:light_gray_stained_glass",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:cyan_stained_glass",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:purple_stained_glass",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:blue_stained_glass",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:brown_stained_glass",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:green_stained_glass",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:red_stained_glass",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:black_stained_glass",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:glass_pane",
-    "mass": 250.0,
+    "mass": 25.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:white_stained_glass_pane",
-    "mass": 250.0,
+    "mass": 25.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:orange_stained_glass_pane",
-    "mass": 250.0,
+    "mass": 25.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:magenta_stained_glass_pane",
-    "mass": 250.0,
+    "mass": 25.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:light_blue_stained_glass_pane",
-    "mass": 250.0,
+    "mass": 25.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:yellow_stained_glass_pane",
-    "mass": 250.0,
+    "mass": 25.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:lime_stained_glass_pane",
-    "mass": 250.0,
+    "mass": 25.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:pink_stained_glass_pane",
-    "mass": 250.0,
+    "mass": 25.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:gray_stained_glass_pane",
-    "mass": 250.0,
+    "mass": 25.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:light_gray_stained_glass_pane",
-    "mass": 250.0,
+    "mass": 25.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:cyan_stained_glass_pane",
-    "mass": 250.0,
+    "mass": 25.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:purple_stained_glass_pane",
-    "mass": 250.0,
+    "mass": 25.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:blue_stained_glass_pane",
-    "mass": 250.0,
+    "mass": 25.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:brown_stained_glass_pane",
-    "mass": 250.0,
+    "mass": 25.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:green_stained_glass_pane",
-    "mass": 250.0,
+    "mass": 25.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:red_stained_glass_pane",
-    "mass": 250.0,
+    "mass": 25.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:black_stained_glass_pane",
-    "mass": 250.0,
+    "mass": 25.0,
     "friction": 0.2
   },
   {
     "tag": "minecraft:beds",
-    "mass": 125.0,
+    "mass": 25.0,
     "friction": 0.6,
     "elasticity": 0.5
   },
   {
     "tag": "minecraft:carpets",
-    "mass": 20.0,
+    "mass": 2.0,
     "friction": 0.6,
     "elasticity": 0.05
   },
   {
     "tag": "minecraft:wool",
-    "mass": 450.0,
+    "mass": 50.0,
     "friction": 0.6,
     "elasticity": 0.5
   },
   {
     "block": "minecraft:bookshelf",
-    "mass": 650.0,
+    "mass": 150.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:chest",
-    "mass": 400.0,
+    "mass": 100.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:barrel",
-    "mass": 375.0,
+    "mass": 125.0,
     "friction": 0.4
   },
   {
@@ -407,87 +407,87 @@
   },
   {
     "tag": "minecraft:fences",
-    "mass": 40.0
+    "mass": 50.0
   },
   {
     "block": "minecraft:snow",
-    "mass": 25.0,
+    "mass": 2.5,
     "friction": 0.2
   },
   {
     "block": "minecraft:snow_block",
-    "mass": 250.0,
+    "mass": 25.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:ice",
-    "mass": 830.0,
+    "mass": 125.0,
     "friction": 0.05
   },
   {
     "block": "minecraft:packed_ice",
-    "mass": 875.0,
+    "mass": 250.0,
     "friction": 0.02
   },
   {
     "block": "minecraft:blue_ice",
-    "mass": 920.0,
+    "mass": 400.0,
     "friction": 0.0
   },
   {
     "block": "minecraft:jukebox",
-    "mass": 800.0,
+    "mass": 80.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:iron_bars",
-    "mass": 250.0,
+    "mass": 25.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:chain",
-    "mass": 50.0,
+    "mass": 5.0,
     "friction": 0.7
   },
   {
     "block": "minecraft:dragon_egg",
-    "mass": 1400.0,
+    "mass": 500.0,
     "friction": 0.8
   },
   {
     "block": "minecraft:end_portal_frame",
-    "mass": 3000.0,
+    "mass": 300.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:ender_chest",
-    "mass": 800.0,
+    "mass": 100.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:slime_block",
-    "mass": 1100.0,
+    "mass": 200.0,
     "friction": 1.0,
     "elasticity": 1.0
   },
   {
     "block": "minecraft:honey_block",
-    "mass": 1400.0,
+    "mass": 200.0,
     "friction": 1.0
   },
   {
     "block": "minecraft:honeycomb_block",
-    "mass": 900.0,
+    "mass": 150.0,
     "friction": 0.8
   },
   {
     "block": "minecraft:bee_nest",
-    "mass": 400.0,
+    "mass": 150.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:beehive",
-    "mass": 450.0,
+    "mass": 150.0,
     "friction": 0.4
   },
   {
@@ -500,31 +500,31 @@
   },
   {
     "block": "minecraft:dried_kelp_block",
-    "mass": 1000.0,
+    "mass": 100.0,
     "friction": 0.6,
     "elasticity": 0.3
   },
   {
     "tag": "minecraft:signs",
-    "mass": 10.0
+    "mass": 5.0
   },
   {
     "tag": "minecraft:flower_pots",
-    "mass": 30.0
+    "mass": 5.0
   },
   {
     "block": "minecraft:cake",
-    "mass": 700.0,
+    "mass": 5.0,
     "friction": 0.1
   },
   {
     "block": "minecraft:skeleton_skull",
-    "mass": 2.0,
+    "mass": 2.5,
     "friction": 0.2
   },
   {
     "block": "minecraft:wither_skeleton_skull",
-    "mass": 2.0,
+    "mass": 2.5,
     "friction": 0.2
   },
   {
@@ -541,16 +541,16 @@
   },
   {
     "block": "minecraft:dragon_head",
-    "mass": 40.0
+    "mass": 7.5
   },
   {
     "block": "minecraft:skeleton_wall_skull",
-    "mass": 2.0,
+    "mass": 2.5,
     "friction": 0.2
   },
   {
     "block": "minecraft:wither_skeleton_wall_skull",
-    "mass": 2.0,
+    "mass": 2.5,
     "friction": 0.2
   },
   {
@@ -567,25 +567,25 @@
   },
   {
     "block": "minecraft:dragon_wall_head",
-    "mass": 40.0
+    "mass": 7.5
   },
   {
     "block": "minecraft:lodestone",
-    "mass": 4450.0,
+    "mass": 445.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:bell",
-    "mass": 1000.0,
+    "mass": 100.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:respawn_anchor",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.7
   },
   {
     "tag": "minecraft:banners",
-    "mass": 30.0
+    "mass": 3.0
   }
 ]
