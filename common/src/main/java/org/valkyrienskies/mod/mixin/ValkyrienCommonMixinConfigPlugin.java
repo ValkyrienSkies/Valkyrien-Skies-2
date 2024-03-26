@@ -58,17 +58,18 @@ public class ValkyrienCommonMixinConfigPlugin implements IMixinConfigPlugin {
 
     @Override
     public boolean shouldApplyMixin(final String s, final String mixinClassName) {
+        final VSRenderer renderer = getVSRenderer();
         if (mixinClassName.contains("org.valkyrienskies.mod.mixin.mod_compat.sodium")) {
-            return getVSRenderer() == VSRenderer.SODIUM;
+            return renderer == VSRenderer.SODIUM;
         }
         if (mixinClassName.contains("org.valkyrienskies.mod.mixin.mod_compat.optifine_vanilla")) {
-            return getVSRenderer() != VSRenderer.SODIUM;
+            return renderer == VSRenderer.VANILLA || renderer == VSRenderer.OPTIFINE;
         }
         if (mixinClassName.contains("org.valkyrienskies.mod.mixin.mod_compat.vanilla_renderer")) {
-            return getVSRenderer() == VSRenderer.VANILLA;
+            return renderer == VSRenderer.VANILLA;
         }
         if (mixinClassName.contains("org.valkyrienskies.mod.mixin.mod_compat.optifine")) {
-            return getVSRenderer() == VSRenderer.OPTIFINE;
+            return renderer == VSRenderer.OPTIFINE;
         }
         if (mixinClassName.contains("org.valkyrienskies.mod.mixin.feature.render_pathfinding")) {
             return PATH_FINDING_DEBUG;
