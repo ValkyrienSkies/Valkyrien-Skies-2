@@ -7,7 +7,9 @@ import net.minecraft.client.renderer.LevelRenderer.RenderChunkInfo
 import net.minecraft.client.renderer.RenderType
 import org.joml.Matrix4f
 import org.valkyrienskies.core.api.ships.ClientShip
+import org.valkyrienskies.core.api.ships.properties.ShipId
 import org.valkyrienskies.core.impl.util.events.EventEmitterImpl
+import org.valkyrienskies.core.util.datastructures.DenseBlockPosSet
 
 object VSGameEvents {
 
@@ -17,6 +19,8 @@ object VSGameEvents {
     val renderShip = EventEmitterImpl<ShipRenderEvent>()
     val postRenderShip = EventEmitterImpl<ShipRenderEvent>()
     val shipsStartRendering = EventEmitterImpl<ShipStartRenderEvent>()
+
+    val shipSplit = EventEmitterImpl<ShipSplitEvent>()
 
     data class ShipStartRenderEvent(
         val renderer: LevelRenderer,
@@ -34,6 +38,12 @@ object VSGameEvents {
         val projectionMatrix: Matrix4f,
         val ship: ClientShip,
         val chunks: ObjectList<RenderChunkInfo>
+    )
+
+    data class ShipSplitEvent(
+        val ship: ShipId,
+        val newShip: ShipId,
+        val blocks: DenseBlockPosSet
     )
 }
 

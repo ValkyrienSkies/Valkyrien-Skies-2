@@ -32,6 +32,6 @@ object DefaultBlockStateInfoProvider : BlockStateInfoProvider {
         val block = blockState.block
         if (block is LiquidBlock)
             return if (block == Blocks.LAVA) vsCore.blockTypes.lava else vsCore.blockTypes.water
-        return if (blockState.isSolid) vsCore.blockTypes.solid else vsCore.blockTypes.air
+        return if (blockState.isSolid) vsCore.blockTypes.solid else vsCore.blockTypes.noCollision
     }
 }
