@@ -6,11 +6,12 @@
     "compat.create.MixinBlockBreakingKineticTileEntity",
     "compat.create.MixinBlocks",
     "compat.create.MixinControlledContraptionEntity",
+    "compat.create.client.trackOutlines.MixinTrackBlockOutline",
     "compat.immersivengineering.MixinBlockEntityInventory",
+    "compat.modular_routers.MixinRouterMenu",
     "compat.tfc.MixinTFCChunkGenerator",
     "compat.thermalexpansion.MixinTileCoFH",
     "compat.tis3d.MixinInfraredPacketEntity",
-    "compat.modular_routers.MixinRouterMenu",
     "feature.forge_interact.MixinIForgePlayer",
     "feature.water_in_ships_entity.MixinEntity",
     "world.level.block.FireMixin"

@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.mod_compat.create.client.trackOutlines;
+package org.valkyrienskies.mod.forge.mixin.compat.create.client.trackOutlines;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -6,13 +6,12 @@ import com.simibubi.create.content.trains.track.TrackBlockOutline;
 import com.simibubi.create.content.trains.track.TrackBlockOutline.BezierPointSelection;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.client.event.RenderHighlightEvent.Block;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
@@ -22,7 +21,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.impl.game.ships.ShipObjectClient;
@@ -30,7 +28,7 @@ import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
-@Mixin(TrackBlockOutline.class)
+@Mixin(value = TrackBlockOutline.class, remap = false)
 public class MixinTrackBlockOutline {
     @Unique
     private static Vec3 valkyrienskies$cameraVec3;
@@ -39,18 +37,20 @@ public class MixinTrackBlockOutline {
     @Unique
     private static Vec3 valkyrienskies$angles;
 
-    @Inject(method = "drawCurveSelection",
+    @Inject(method = "drawCurveSelection(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;Lnet/minecraft/world/phys/Vec3;)V",
         at = @At(value = "INVOKE",
             target = "Lcom/simibubi/create/content/trains/track/TrackBlockOutline$BezierPointSelection;angles()Lnet/minecraft/world/phys/Vec3;"),
         locals = LocalCapture.CAPTURE_FAILHARD)
     private static void harvestDrawCurveSelection(final PoseStack ms, final MultiBufferSource buffer, final Vec3 camera,
         final CallbackInfo ci, final Minecraft mc,
         final BezierPointSelection result, final VertexConsumer vb, final Vec3 vec) {
+
         valkyrienskies$cameraVec3 = camera;
         valkyrienskies$vec = result.vec();
         valkyrienskies$angles = result.angles();
     }
-    @ModifyArg(method = "drawCurveSelection",
+
+    @ModifyArg(method = "drawCurveSelection(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;Lnet/minecraft/world/phys/Vec3;)V",
         at = @At(value = "INVOKE",
             target = "Lcom/simibubi/create/content/trains/track/TrackBlockOutline;renderShape(Lnet/minecraft/world/phys/shapes/VoxelShape;Lcom/mojang/blaze3d/vertex/PoseStack;Lcom/mojang/blaze3d/vertex/VertexConsumer;Ljava/lang/Boolean;)V"),
         index = 1)
@@ -105,11 +105,9 @@ public class MixinTrackBlockOutline {
 
     @Inject(method = "drawCustomBlockSelection",
         at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/PoseStack;translate(DDD)V"))
-    private static void harvest(final LevelRenderer context, final Camera info, final HitResult hitResult,
-        final float partialTicks,
-        final PoseStack ms, final MultiBufferSource buffers, final CallbackInfoReturnable<Boolean> cir) {
-        valkyrienskies$info = info;
-        valkyrienskies$hitResult = (BlockHitResult) hitResult;
+    private static void harvest(Block event, CallbackInfo ci) {
+        valkyrienskies$info = event.getCamera();
+        valkyrienskies$hitResult = (BlockHitResult) event.getTarget();
     }
 
     @Redirect(method = "drawCustomBlockSelection",
