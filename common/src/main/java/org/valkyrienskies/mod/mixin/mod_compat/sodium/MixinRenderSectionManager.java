@@ -1,76 +1,66 @@
 package org.valkyrienskies.mod.mixin.mod_compat.sodium;
 
-import it.unimi.dsi.fastutil.PriorityQueue;
-import it.unimi.dsi.fastutil.objects.ObjectList;
+import java.util.ArrayDeque;
 import java.util.Map;
 import java.util.WeakHashMap;
-import me.jellysquid.mods.sodium.client.render.chunk.ChunkRenderList;
 import me.jellysquid.mods.sodium.client.render.chunk.ChunkUpdateType;
-import me.jellysquid.mods.sodium.client.render.chunk.RegionChunkRenderer;
 import me.jellysquid.mods.sodium.client.render.chunk.RenderSection;
 import me.jellysquid.mods.sodium.client.render.chunk.RenderSectionManager;
-import me.jellysquid.mods.sodium.client.render.chunk.data.ChunkRenderBounds;
-import me.jellysquid.mods.sodium.client.util.frustum.Frustum;
+import me.jellysquid.mods.sodium.client.render.chunk.lists.SortedRenderLists;
+import me.jellysquid.mods.sodium.client.render.chunk.lists.VisibleChunkCollector;
+import me.jellysquid.mods.sodium.client.render.viewport.Viewport;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import org.joml.primitives.AABBd;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.mixinducks.mod_compat.sodium.RenderSectionManagerDuck;
 
+/**
+ * Hi! Not many people read Valkyrien Skies' code, and even fewer will read this particular file. If you're
+ * here because you're contributing to VS, thank you so much! This is complex stuff, and your work is appreciated by
+ * all of our users.
+ * <p>
+ * If you're here because you develop a competitor mod, we can't stop you from using this code - but at least have
+ * the decency to give credit to us, the original authors, and abide by the terms of our open source license. Don't
+ * pretend that you wrote this code. That's not cool.
+ *
+ * @author Rubydesic
+ */
 @Mixin(value = RenderSectionManager.class, remap = false)
 public abstract class MixinRenderSectionManager implements RenderSectionManagerDuck {
 
     @Unique
-    private final WeakHashMap<ClientShip, ChunkRenderList> shipRenderLists = new WeakHashMap<>();
+    private final WeakHashMap<ClientShip, SortedRenderLists> shipRenderLists = new WeakHashMap<>();
 
     @Override
-    public WeakHashMap<ClientShip, ChunkRenderList> getShipRenderLists() {
+    public WeakHashMap<ClientShip, SortedRenderLists> vs_getShipRenderLists() {
         return shipRenderLists;
     }
 
     @Shadow
     @Final
     private ClientLevel world;
-    @Shadow
-    @Final
-    private ObjectList<RenderSection> tickableChunks;
-    @Shadow
-    @Final
-    private RegionChunkRenderer chunkRenderer;
-    @Shadow
-    @Final
-    private Map<ChunkUpdateType, PriorityQueue<RenderSection>> rebuildQueues;
-    @Shadow
-    private float cameraX;
-    @Shadow
-    private float cameraY;
-    @Shadow
-    private float cameraZ;
 
     @Shadow
     protected abstract RenderSection getRenderSection(int x, int y, int z);
 
     @Shadow
-    protected abstract void addEntitiesToRenderLists(RenderSection render);
+    private Map<ChunkUpdateType, ArrayDeque<RenderSection>> rebuildLists;
 
-    @Shadow
-    @Final
-    private static double NEARBY_CHUNK_DISTANCE;
-
-    @Inject(at = @At("TAIL"), method = "iterateChunks")
-    private void afterIterateChunks(final Camera camera, final Frustum frustum, final int frame,
+    @Inject(at = @At("TAIL"), method = "createTerrainRenderList")
+    private void afterIterateChunks(final Camera camera, final Viewport viewport, final int frame,
         final boolean spectator, final CallbackInfo ci) {
         for (final ClientShip ship : VSGameUtilsKt.getShipObjectWorld(Minecraft.getInstance()).getLoadedShips()) {
+            final VisibleChunkCollector collector = new VisibleChunkCollector(frame);
+
             ship.getActiveChunksSet().forEach((x, z) -> {
                 for (int y = world.getMinSection(); y < world.getMaxSection(); y++) {
                     final RenderSection section = getRenderSection(x, y, z);
@@ -79,51 +69,21 @@ public abstract class MixinRenderSectionManager implements RenderSectionManagerD
                         continue;
                     }
 
-                    if (section.getPendingUpdate() != null) {
-                        final PriorityQueue<RenderSection> queue = this.rebuildQueues.get(section.getPendingUpdate());
-                        if (queue.size() < (2 << 4) - 1) {
-                            queue.enqueue(section);
-                        }
-                    }
-
-                    final ChunkRenderBounds b = section.getBounds();
-                    final AABBd b2 = new AABBd(b.x1 - 6e-1, b.y1 - 6e-1, b.z1 - 6e-1,
-                        b.x2 + 6e-1, b.y2 + 6e-1, b.z2 + 6e-1)
-                        .transform(ship.getRenderTransform().getShipToWorld());
-
-                    if (section.isEmpty() ||
-                        !frustum.isBoxVisible((float) b2.minX, (float) b2.minY, (float) b2.minZ,
-                            (float) b2.maxX, (float) b2.maxY, (float) b2.maxZ)) {
-                        continue;
-                    }
-
-                    shipRenderLists.computeIfAbsent(ship, k -> new ChunkRenderList()).add(section);
-
-                    if (section.isTickable()) {
-                        tickableChunks.add(section);
-                    }
-
-                    addEntitiesToRenderLists(section);
+                    collector.visit(section, true);
                 }
             });
+
+            shipRenderLists.put(ship, collector.createRenderLists());
+
+            // merge rebuild lists
+            for (final var entry : collector.getRebuildLists().entrySet()) {
+                this.rebuildLists.get(entry.getKey()).addAll(entry.getValue());
+            }
         }
     }
 
-    @Redirect(
-        at = @At(
-            value = "INVOKE",
-            target = "Lme/jellysquid/mods/sodium/client/render/chunk/RenderSectionManager;isChunkPrioritized(Lme/jellysquid/mods/sodium/client/render/chunk/RenderSection;)Z"
-        ),
-        method = "scheduleRebuild"
-    )
-    private boolean redirectIsChunkPrioritized(final RenderSectionManager instance, final RenderSection render) {
-        return VSGameUtilsKt.squaredDistanceBetweenInclShips(world,
-            render.getOriginX() + 8, render.getOriginY() + 8, render.getOriginZ() + 8,
-            this.cameraX, this.cameraY, this.cameraZ) <= NEARBY_CHUNK_DISTANCE;
-    }
-
-    @Inject(at = @At("TAIL"), method = "resetLists")
+    @Inject(at = @At("TAIL"), method = "resetRenderLists")
     private void afterResetLists(final CallbackInfo ci) {
-        shipRenderLists.values().forEach(ChunkRenderList::clear);
+        shipRenderLists.clear();
     }
 }

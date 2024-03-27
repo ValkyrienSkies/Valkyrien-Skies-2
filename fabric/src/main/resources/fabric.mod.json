@@ -34,6 +34,7 @@
     "fabric-api": "*"
   },
   "breaks": {
-    "sodium": ">=0.5.0"
+    "sodium": "<0.5.8",
+    "nvidium": "*"
   }
 }
