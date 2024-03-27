@@ -40,7 +40,7 @@ dependencies {
     include(modImplementation("net.fabricmc:fabric-language-kotlin:${kotlin_fabric_version}"))
     include(modImplementation("me.shedaniel.cloth:cloth-config-fabric:${cloth_config_version}"))
 
-    modImplementation("maven.modrinth:create-utilities:${create_utilities_version}")
+    modCompileOnly("maven.modrinth:create-utilities:${create_utilities_version}")
     modImplementation("maven.modrinth:sodium:${sodium_version}")
     // Disable indium until we update sodium to newer versions
     // modRuntimeOnly("maven.modrinth:indium:${indium_version}")

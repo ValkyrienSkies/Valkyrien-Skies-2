@@ -33,7 +33,7 @@ dependencies {
 
     modCompileOnly("maven.modrinth:create-big-cannons:${createbigcannons_version}")
 
-    modImplementation("maven.modrinth:create-utilities:${create_utilities_version}")
+    modCompileOnly("maven.modrinth:create-utilities:${create_utilities_version}")
     modImplementation("teamreborn:energy:${energy_version}")
 }
 

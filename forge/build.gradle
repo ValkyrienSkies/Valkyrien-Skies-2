@@ -75,7 +75,7 @@ dependencies {
     // CC Tweaked
     modCompileOnly("maven.modrinth:cc-tweaked:${cc_tweaked_version}")
 
-    modImplementation("maven.modrinth:create-utilities:${create_utilities_version}")
+    modCompileOnly("maven.modrinth:create-utilities:0.2.0+1.20.1")
     modImplementation("teamreborn:energy:${energy_version}") {
         transitive = false
     }

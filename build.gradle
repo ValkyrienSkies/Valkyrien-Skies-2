@@ -113,6 +113,7 @@ subprojects {
             maven { url = "https://maven.shedaniel.me/" } // Cloth Config, REI
             maven { url "https://maven.architectury.dev/" }
             maven { url = "https://mvn.devos.one/snapshots/" } // Fabric Create, Porting Lib, Forge Tags, Milk Lib
+            maven { url = "https://mvn.devos.one/releases/" }
             maven { url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/" } // Forge Config API Port
             maven { url = "https://maven.tterrag.com/" } // Registrate, Forge Create and Flywheel
             maven { url = "https://maven.cafeteria.dev/releases" } // Fake Player API
