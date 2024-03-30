@@ -40,6 +40,7 @@ dependencies {
     include(modImplementation("net.fabricmc:fabric-language-kotlin:${kotlin_fabric_version}"))
     include(modImplementation("me.shedaniel.cloth:cloth-config-fabric:${cloth_config_version}"))
 
+    modCompileOnly("maven.modrinth:create-utilities:${create_utilities_version}")
     modImplementation("maven.modrinth:sodium:${sodium_version}")
     // Disable indium until we update sodium to newer versions
     // modRuntimeOnly("maven.modrinth:indium:${indium_version}")
@@ -48,6 +49,9 @@ dependencies {
     // Depend on the fabric API
     modImplementation("net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}")
 
+    modImplementation("teamreborn:energy:${energy_version}") {
+        transitive = false
+    }
 
     implementation("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
         exclude module: "netty-buffer"

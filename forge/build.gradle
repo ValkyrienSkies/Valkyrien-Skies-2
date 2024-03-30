@@ -75,6 +75,10 @@ dependencies {
     // CC Tweaked
     modCompileOnly("maven.modrinth:cc-tweaked:${cc_tweaked_version}")
 
+    modCompileOnly("maven.modrinth:create-utilities:0.2.0+1.20.1")
+    modImplementation("teamreborn:energy:${energy_version}") {
+        transitive = false
+    }
     // TIS-3d
     modCompileOnly("maven.modrinth:tis3d:${tis3d_version}")
 
