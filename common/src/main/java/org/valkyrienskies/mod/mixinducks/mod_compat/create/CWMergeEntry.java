@@ -4,7 +4,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 
 /**
- * This class only exists because Creates MergeEntry class is private, and I can't get an access widener to work on it >.<
+ * This class only exists because Creates MergeEntry class is private
  */
 public class CWMergeEntry {
     public final Direction.Axis axis;

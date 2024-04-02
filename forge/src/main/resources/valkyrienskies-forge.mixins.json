@@ -3,6 +3,7 @@
   "package": "org.valkyrienskies.mod.forge.mixin",
   "compatibilityLevel": "JAVA_17",
   "plugin": "org.valkyrienskies.mod.forge.mixin.ValkyrienForgeMixinConfigPlugin",
+  "refmap": "${mod_id}.refmap.json",
   "mixins": [
     "compat.cc_tweaked.MixinSpeakerPosition",
     "compat.cc_tweaked.MixinTurtleBrain",

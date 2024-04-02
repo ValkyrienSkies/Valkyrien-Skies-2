@@ -34,5 +34,6 @@
     "fabric-api": "*"
   },
   "breaks": {
+    "optifabric": "*"
   }
 }

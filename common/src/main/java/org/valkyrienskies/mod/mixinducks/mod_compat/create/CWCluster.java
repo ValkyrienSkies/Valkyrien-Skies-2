@@ -9,7 +9,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 
 /**
- * This class only exists because Creates Cluster class is private, and I can't get an access widener to work on it >.<
+ * This class only exists because Creates Cluster class is private, and I can't get an access widener to work on it
+ * NOTE to the above: access wideners don't work on non mc classes
  */
 public class CWCluster {
     public BlockPos anchor;

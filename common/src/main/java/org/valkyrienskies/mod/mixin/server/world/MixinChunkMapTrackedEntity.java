@@ -18,7 +18,7 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(ChunkMap.TrackedEntity.class)
-public class MixinChunkMap$TrackedEntity {
+public class MixinChunkMapTrackedEntity {
 
     @Shadow
     @Final
