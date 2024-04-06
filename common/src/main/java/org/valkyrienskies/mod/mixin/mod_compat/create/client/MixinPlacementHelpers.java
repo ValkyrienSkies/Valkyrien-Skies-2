@@ -16,7 +16,7 @@ import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(PlacementHelpers.class)
 public class MixinPlacementHelpers {
-    @Redirect(method = "drawDirectionIndicator", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/foundation/utility/VecHelper;getCenterOf(Lnet/minecraft/core/Vec3i;)Lnet/minecraft/world/phys/Vec3;"))
+    @Redirect(method = "drawDirectionIndicator", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/foundation/utility/VecHelper;getCenterOf(Lnet/minecraft/core/Vec3i;)Lnet/minecraft/world/phys/Vec3;"), remap = false)
     private static Vec3 redirectGetCenterOf(Vec3i pos) {
         Vec3 result = VecHelper.getCenterOf(pos);
         Level world = Minecraft.getInstance().level;

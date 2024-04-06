@@ -29,12 +29,12 @@ public class MixinMultiplePlacementHelpers {
     @Unique
     private Level world;
 
-    @Inject(method = "getOffset", at = @At("HEAD"))
+    @Inject(method = "getOffset", at = @At("HEAD"), remap = false)
     private void harvestWorld(Player player, Level world, BlockState state, BlockPos pos, BlockHitResult ray, CallbackInfoReturnable<PlacementOffset> cir) {
         this.world = world;
     }
 
-    @Redirect(method = "getOffset", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/BlockHitResult;getLocation()Lnet/minecraft/world/phys/Vec3;"))
+    @Redirect(method = "getOffset", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/BlockHitResult;getLocation()Lnet/minecraft/world/phys/Vec3;"), remap = false)
     private Vec3 redirectGetLocation(BlockHitResult instance) {
         Vec3 result = instance.getLocation();
         Ship ship = VSGameUtilsKt.getShipManagingPos(world, instance.getBlockPos());

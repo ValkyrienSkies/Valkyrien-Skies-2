@@ -3,6 +3,7 @@
   "package": "org.valkyrienskies.mod.fabric.mixin",
   "compatibilityLevel": "JAVA_8",
   "plugin": "org.valkyrienskies.mod.fabric.mixin.ValkyrienFabricMixinConfigPlugin",
+  "refmap": "${mod_id}.refmap.json",
   "mixins": [
     "compat.cc_restitched.MixinSpeakerPosition",
     "compat.cc_restitched.MixinTurtleBrain",
@@ -12,6 +13,7 @@
     "compat.create.MixinBlocks",
     "compat.create.MixinControlledContraptionEntity",
     "compat.create.client.MixinTrackBlockOutline",
+    "compat.reachentityattributes.MixinReachEntityAttributes",
     "compat.sodium.MixinRenderSectionManager",
     "feature.explosions.ClipContextMixin",
     "world.level.block.FireMixin"

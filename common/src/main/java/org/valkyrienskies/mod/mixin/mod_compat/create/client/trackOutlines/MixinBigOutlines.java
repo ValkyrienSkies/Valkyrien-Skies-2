@@ -46,7 +46,7 @@ public class MixinBigOutlines {
             if (playerOnShip && !hitResultOnShip) {
                 valkyrienskies$ship = VSGameUtilsKt.getShipManagingPos(mc.level, mc.player.getOnPos());
                 //if blockstate is air then transform to ship
-                valkyrienskies$toShip = mc.level.getBlockState(new BlockPos(mc.hitResult.location)).isAir();
+                valkyrienskies$toShip = mc.level.getBlockState(new BlockPos(mc.hitResult.getLocation())).isAir();
             } else if (hitResultOnShip) {
                 valkyrienskies$toShip = true;
                 valkyrienskies$ship =
@@ -78,7 +78,7 @@ public class MixinBigOutlines {
         at = @At(
             value = "INVOKE",
             target = "Lcom/simibubi/create/foundation/utility/RaycastHelper;getTraceTarget(Lnet/minecraft/world/entity/player/Player;DLnet/minecraft/world/phys/Vec3;)Lnet/minecraft/world/phys/Vec3;"
-        )
+        ), remap = false
     )
     private static Vec3 redirectedTarget(final Player playerIn, final double range, final Vec3 origin) {
         if (valkyrienskies$toShip) {

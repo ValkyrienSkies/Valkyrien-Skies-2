@@ -45,7 +45,6 @@ import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.compat.VSRenderer;
 import org.valkyrienskies.mod.mixin.ValkyrienCommonMixinConfigPlugin;
 import org.valkyrienskies.mod.mixin.accessors.client.render.ViewAreaAccessor;
-import org.valkyrienskies.mod.mixin.mod_compat.optifine.RenderChunkInfoAccessorOptifine;
 
 @Mixin(LevelRenderer.class)
 public abstract class MixinLevelRendererVanilla {
@@ -129,8 +128,7 @@ public abstract class MixinLevelRendererVanilla {
                     if (renderChunk != null) {
                         final LevelRenderer.RenderChunkInfo newChunkInfo;
                         if (ValkyrienCommonMixinConfigPlugin.getVSRenderer() == VSRenderer.OPTIFINE) {
-                            newChunkInfo =
-                                RenderChunkInfoAccessorOptifine.vs$new(renderChunk, null, 0);
+                            throw new UnsupportedOperationException("OPTIFINE SUCKS!!");
                         } else {
                             newChunkInfo =
                                 RenderChunkInfoAccessor.vs$new(renderChunk, null, 0);
@@ -251,7 +249,7 @@ public abstract class MixinLevelRendererVanilla {
         while (bl ? objectListIterator.hasNext() : objectListIterator.hasPrevious()) {
             final RenderChunkInfo renderChunkInfo2 =
                 bl ? (RenderChunkInfo) objectListIterator.next() : (RenderChunkInfo) objectListIterator.previous();
-            final ChunkRenderDispatcher.RenderChunk renderChunk = renderChunkInfo2.chunk;
+            final ChunkRenderDispatcher.RenderChunk renderChunk = ((RenderChunkInfoAccessor) renderChunkInfo2).getChunk();
             if (renderChunk.getCompiledChunk().isEmpty(renderType)) {
                 continue;
             }

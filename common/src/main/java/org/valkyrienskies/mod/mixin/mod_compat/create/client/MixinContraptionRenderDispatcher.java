@@ -17,7 +17,7 @@ public abstract class MixinContraptionRenderDispatcher {
             at = @At(
                     value = "INVOKE",
                     target = "Lcom/jozufozu/flywheel/util/transform/TransformStack;translate(Lnet/minecraft/core/Vec3i;)Ljava/lang/Object;"
-            )
+            ), remap = false
     )
     private static Object redirectTranslate(final TransformStack instance, final Vec3i vec3i) {
         VSClientGameUtils.transformRenderIfInShipyard((PoseStack) instance, vec3i.getX(), vec3i.getY(), vec3i.getZ());

@@ -44,7 +44,7 @@ public abstract class MixinRedstoneLinkNetworkHandler {
         return pos1.closerThan(pos2, v);
     }
 
-    @Inject(method = "updateNetworkOf", at = @At("HEAD"))
+    @Inject(method = "updateNetworkOf", at = @At("HEAD"), remap = false)
     private void harvestLevel(LevelAccessor world, IRedstoneLinkable actor, CallbackInfo ci) {
         harvestedWorld = (Level) world;
     }

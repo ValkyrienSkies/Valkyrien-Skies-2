@@ -55,7 +55,7 @@ public abstract class MixinAirCurrent {
             return null;
     }
 
-    @Inject(method = "getFlowLimit", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "getFlowLimit", at = @At("HEAD"), cancellable = true, remap = false)
     private static void clipFlowLimit(Level level, BlockPos start, float max, Direction facing, CallbackInfoReturnable<Float> cir) {
         Ship ship = VSGameUtilsKt.getShipManagingPos(level, start);
         if (ship != null) {
@@ -143,7 +143,7 @@ public abstract class MixinAirCurrent {
     }
 
     // Require 0 because this mixin doesn't work in create 0.5.1f
-    @Redirect(method = "tickAffectedEntities", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/foundation/utility/VecHelper;getCenterOf(Lnet/minecraft/core/Vec3i;)Lnet/minecraft/world/phys/Vec3;"), allow = 1, require = 0)
+    @Redirect(method = "tickAffectedEntities", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/foundation/utility/VecHelper;getCenterOf(Lnet/minecraft/core/Vec3i;)Lnet/minecraft/world/phys/Vec3;"), allow = 1, require = 0, remap = false)
     private Vec3 redirectGetCenterOf(Vec3i pos) {
         Ship ship = getShip();
         Vec3 result = VecHelper.getCenterOf(pos);

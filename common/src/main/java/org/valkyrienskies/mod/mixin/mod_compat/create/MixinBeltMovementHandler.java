@@ -51,7 +51,7 @@ public abstract class MixinBeltMovementHandler {
         }
     }
 
-    @ModifyVariable(method = "transportEntity", at = @At(value = "STORE"), name = "axis")
+    @ModifyVariable(method = "transportEntity", at = @At(value = "STORE"), name = "axis", remap = false)
     private static Direction.Axis injectHarvestAxis(Direction.Axis value) {
         axis = value;
         return value;
@@ -91,7 +91,7 @@ public abstract class MixinBeltMovementHandler {
         return instance.choose(x, y, z);
     }
 
-    @ModifyVariable(method = "transportEntity", at = @At(value = "STORE"), name = "diffCenter")
+    @ModifyVariable(method = "transportEntity", at = @At(value = "STORE"), name = "diffCenter", remap = false)
     private static double modDiffCenter(double value) {
         //if (ship != null) value = value + Math.copySign(value) );
         return axis == Direction.Axis.Z ? (blockPos.x + .5 - getPos(entity).x) : (blockPos.z + .5 - getPos(entity).z);

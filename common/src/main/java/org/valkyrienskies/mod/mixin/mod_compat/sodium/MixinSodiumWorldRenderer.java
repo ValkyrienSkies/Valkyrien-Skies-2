@@ -44,7 +44,7 @@ public class MixinSodiumWorldRenderer {
      * @reason Fix ship ghosts when ships are deleted and camera hasn't moved, and ships not rendering when teleported
      * and camera hasn't moved
      */
-    @Inject(method = "updateChunks", at = @At("HEAD"))
+    @Inject(method = "updateChunks", at = @At("HEAD"), remap = false)
     private void preUpdateChunks(final CallbackInfo callbackInfo) {
         final boolean curFrameHasShips =
             !VSGameUtilsKt.getShipObjectWorld(Minecraft.getInstance()).getLoadedShips().isEmpty();

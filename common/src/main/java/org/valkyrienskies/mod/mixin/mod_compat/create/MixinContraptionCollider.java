@@ -217,7 +217,7 @@ public abstract class MixinContraptionCollider {
         return ContraptionCollider.getWorldToLocalTranslation(entity, anchorVec, rotationMatrix, yawOffset);
     }
 
-    @Redirect(method = "collideEntities", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/contraptions/AbstractContraptionEntity;getPrevPositionVec()Lnet/minecraft/world/phys/Vec3;"))
+    @Redirect(method = "collideEntities", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/contraptions/AbstractContraptionEntity;getPrevPositionVec()Lnet/minecraft/world/phys/Vec3;"), remap = false)
     private static Vec3 redirectGetPrevPositionVec(AbstractContraptionEntity instance) {
 
         Vec3 prevPos = instance.getPrevPositionVec();
@@ -247,7 +247,7 @@ public abstract class MixinContraptionCollider {
         return prevPos;
     }
 
-    @Redirect(method = "collideEntities", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/contraptions/ContraptionCollider;getWorldToLocalTranslation(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/phys/Vec3;Lcom/simibubi/create/foundation/collision/Matrix3d;F)Lnet/minecraft/world/phys/Vec3;"))
+    @Redirect(method = "collideEntities", remap = false, at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/contraptions/ContraptionCollider;getWorldToLocalTranslation(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/phys/Vec3;Lcom/simibubi/create/foundation/collision/Matrix3d;F)Lnet/minecraft/world/phys/Vec3;"))
     private static Vec3 redirectGetWorldToLocalTranslation(Entity entity, Vec3 anchorVec, Matrix3d rotationMatrix, float yawOffset) {
         return aaaaaaaaaaaaaa(contraptionEnt, entity, anchorVec, rotationMatrix, yawOffset);
     }
@@ -277,7 +277,7 @@ public abstract class MixinContraptionCollider {
         return result;
     }
 
-    @Redirect(method = "collideEntities", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/contraptions/ContraptionCollider;collide(Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/entity/Entity;)Lnet/minecraft/world/phys/Vec3;"))
+    @Redirect(method = "collideEntities", remap = false, at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/contraptions/ContraptionCollider;collide(Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/entity/Entity;)Lnet/minecraft/world/phys/Vec3;"))
     private static Vec3 redirectEntityGetBoundingBoxCollide(Vec3 contactPoint, Entity entity) {
         return adjustCollide(contactPoint, entity);
     }
@@ -292,7 +292,7 @@ public abstract class MixinContraptionCollider {
         return entityPosition(contraptionEnt, instance, false);
     }
 
-    @Inject(method = "worldToLocalPos(Lnet/minecraft/world/phys/Vec3;Lcom/simibubi/create/content/contraptions/AbstractContraptionEntity;)Lnet/minecraft/world/phys/Vec3;", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "worldToLocalPos(Lnet/minecraft/world/phys/Vec3;Lcom/simibubi/create/content/contraptions/AbstractContraptionEntity;)Lnet/minecraft/world/phys/Vec3;", at = @At("HEAD"), cancellable = true, remap = false)
     private static void modPosition(Vec3 entity, AbstractContraptionEntity contraptionEntity, CallbackInfoReturnable<Vec3> cir) {
         if (VSGameUtilsKt.isBlockInShipyard(contraptionEntity.getCommandSenderWorld(), new BlockPos(contraptionEntity.getContraption().anchor))
                 && !VSGameUtilsKt.isBlockInShipyard(contraptionEntity.getCommandSenderWorld(), new BlockPos(entity))) {
@@ -307,12 +307,12 @@ public abstract class MixinContraptionCollider {
     @Unique
     private static AbstractContraptionEntity hDFTContraptionEntity;
 
-    @ModifyVariable(method = "handleDamageFromTrain", at = @At("HEAD"), argsOnly = true)
+    @ModifyVariable(method = "handleDamageFromTrain", remap = false, at = @At("HEAD"), argsOnly = true)
     private static AbstractContraptionEntity injectHandleDamageFromTrain(AbstractContraptionEntity abstractContraptionEntity) {
         return hDFTContraptionEntity = abstractContraptionEntity;
     }
 
-    @Redirect(method = "handleDamageFromTrain", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;getDeltaMovement()Lnet/minecraft/world/phys/Vec3;"))
+    @Redirect(method = "handleDamageFromTrain", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;getDeltaMovement()Lnet/minecraft/world/phys/Vec3;"), remap = false)
     private static Vec3 redirectEntityGetDeltaMovementFromTrain(Entity instance) {
         return getSetEntityDeltaMovement(hDFTContraptionEntity, instance, null);
     }
@@ -320,7 +320,7 @@ public abstract class MixinContraptionCollider {
     @Unique
     private static AbstractContraptionEntity bounceEntityContraptionEntity;
 
-    @ModifyVariable(method = "bounceEntity", at = @At("HEAD"), argsOnly = true)
+    @ModifyVariable(method = "bounceEntity", at = @At("HEAD"), argsOnly = true, remap = false)
     private static AbstractContraptionEntity injectBounceEntity(AbstractContraptionEntity abstractContraptionEntity) {
         return bounceEntityContraptionEntity = abstractContraptionEntity;
     }
