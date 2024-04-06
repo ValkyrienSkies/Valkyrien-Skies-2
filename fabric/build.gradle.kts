@@ -26,6 +26,7 @@ val forge_config_api_port_version: String by project
 val reach_entity_attributes_version: String by project
 val fake_player_api_version: String by project
 val milk_lib_version: String by project
+val mixin_extras_version: String by project
 
 val commonMain = project(":common").sourceSets.main.get()
 val shade by configurations.creating
@@ -40,6 +41,7 @@ dependencies {
         officialMojangMappings()
         parchment("org.parchmentmc.data:parchment-${minecraft_version}:${parchment_version}@zip")
     })
+    annotationProcessor(implementation("io.github.llamalad7:mixinextras-fabric:$mixin_extras_version") {})
     modImplementation("net.fabricmc:fabric-loader:$fabric_loader_version")
     modImplementation("net.fabricmc.fabric-api:fabric-api:$fabric_api_version")
     implementation("com.google.code.findbugs:jsr305:3.0.1")

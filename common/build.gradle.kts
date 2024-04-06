@@ -17,6 +17,8 @@ val flywheel_fabric_version: String by project
 val port_lib_version: String by project
 val createbigcannons_version: String by project
 val fabric_api_version: String by project
+val fabric_loader_version: String by project
+val mixin_extras_version: String by project
 
 base {
     archivesName = "${mod_id}-common-${minecraft_version}"
@@ -28,13 +30,15 @@ dependencies {
         officialMojangMappings()
         parchment("org.parchmentmc.data:parchment-${minecraft_version}:${parchment_version}@zip")
     })
-
-    annotationProcessor(implementation("com.github.LlamaLad7:MixinExtras:0.1.1")!!)
-
+    annotationProcessor(implementation("io.github.llamalad7:mixinextras-common:$mixin_extras_version")!!)
+    modImplementation("net.fabricmc:fabric-loader:$fabric_loader_version")//TODO get this out of here?
     compileOnly("org.spongepowered:mixin:0.8.5")
     implementation("com.google.code.findbugs:jsr305:3.0.1")
 
-    modApi("me.shedaniel.cloth:cloth-config:4.14.64")
+    // This depends on thier own version of fabric-loader !!
+    modApi("me.shedaniel.cloth:cloth-config:4.14.64") {
+        isTransitive = false
+    }
 
     modCompileOnly("curse.maven:sodium-394468:3669187")
 

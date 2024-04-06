@@ -12,6 +12,7 @@ import com.simibubi.create.foundation.render.SuperRenderTypeBuffer;
 import java.util.Iterator;
 import java.util.Optional;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -57,7 +58,7 @@ public abstract class MixinBlockClusterOutline extends Outline {
         }
     }
 
-    @Inject(method = "renderFaces", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "renderFaces", at = @At("HEAD"), cancellable = true, remap = false)
     private void preRenderFaces(PoseStack ms, SuperRenderTypeBuffer buffer, Vec3 camera, float pt, Vector4f color, int lightmap, CallbackInfo ci) {
         if (cw$cluster != null) {
             final BlockPos anchorPos = cw$cluster.anchor;
@@ -103,7 +104,7 @@ public abstract class MixinBlockClusterOutline extends Outline {
         }
     }
 
-    @Inject(method = "renderEdges", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "renderEdges", at = @At("HEAD"), cancellable = true, remap = false)
     private void preRenderEdges(PoseStack ms, SuperRenderTypeBuffer buffer, Vec3 camera, float pt, Vector4f color, int lightmap, boolean disableNormals, CallbackInfo ci) {
         if (cw$cluster != null) {
             final BlockPos anchorPos = cw$cluster.anchor;
@@ -132,7 +133,7 @@ public abstract class MixinBlockClusterOutline extends Outline {
                 );
 
                 PoseStack.Pose pose = ms.last();
-                VertexConsumer consumer = buffer.getBuffer(RenderTypes.getOutlineSolid());
+                VertexConsumer consumer = ((MultiBufferSource) buffer).getBuffer(RenderTypes.getOutlineSolid());
 
                 cw$cluster.visibleEdges.forEach(edge -> {
                     BlockPos pos = edge.pos;

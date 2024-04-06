@@ -249,7 +249,7 @@ public abstract class MixinLevelRendererVanilla {
         while (bl ? objectListIterator.hasNext() : objectListIterator.hasPrevious()) {
             final RenderChunkInfo renderChunkInfo2 =
                 bl ? (RenderChunkInfo) objectListIterator.next() : (RenderChunkInfo) objectListIterator.previous();
-            final ChunkRenderDispatcher.RenderChunk renderChunk = renderChunkInfo2.chunk;
+            final ChunkRenderDispatcher.RenderChunk renderChunk = ((RenderChunkInfoAccessor) renderChunkInfo2).getChunk();
             if (renderChunk.getCompiledChunk().isEmpty(renderType)) {
                 continue;
             }

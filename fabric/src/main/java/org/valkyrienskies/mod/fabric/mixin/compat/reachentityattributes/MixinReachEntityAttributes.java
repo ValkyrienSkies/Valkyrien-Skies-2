@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.mod_compat.reachentityattributes;
+package org.valkyrienskies.mod.fabric.mixin.compat.reachentityattributes;
 
 import com.jamieswhiteshirt.reachentityattributes.ReachEntityAttributes;
 import java.util.ArrayList;

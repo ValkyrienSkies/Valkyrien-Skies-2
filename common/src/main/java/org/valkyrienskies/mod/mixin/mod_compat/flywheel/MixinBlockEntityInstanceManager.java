@@ -45,7 +45,7 @@ public abstract class MixinBlockEntityInstanceManager extends InstanceManager<Bl
     @Inject(
         method = "createRaw(Lnet/minecraft/world/level/block/entity/BlockEntity;)Lcom/jozufozu/flywheel/backend/instancing/AbstractInstance;",
         at = @At("HEAD"),
-        cancellable = true
+        cancellable = true, remap = false
     )
     void preCreateRaw(final BlockEntity blockEntity, final CallbackInfoReturnable<Instance> cir) {
         final Level nullableLevel = blockEntity.getLevel();

@@ -43,12 +43,12 @@ public class MixinBlockBreakingMovementBehaviour {
     @Unique
     private MovementContext movementContext;
 
-    @Inject(method = "throwEntity", at = @At("HEAD"))
+    @Inject(method = "throwEntity", at = @At("HEAD"), remap = false)
     private void injectThrowEntity(final MovementContext context, final Entity entity, final CallbackInfo ci) {
         movementContext = context;
     }
 
-    @Redirect(method = "throwEntity", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;setDeltaMovement(Lnet/minecraft/world/phys/Vec3;)V"))
+    @Redirect(method = "throwEntity", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;setDeltaMovement(Lnet/minecraft/world/phys/Vec3;)V"), remap = false)
     private void redirectSetDeltaMovement(final Entity instance, Vec3 motion) {
         if (movementContext != null && VSGameUtilsKt.isBlockInShipyard(movementContext.world, movementContext.contraption.anchor)) {
             Ship ship = VSGameUtilsKt.getShipManagingPos(movementContext.world, movementContext.contraption.anchor);

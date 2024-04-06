@@ -104,7 +104,7 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
     }
 
     @Inject(method = "toGlobalVector(Lnet/minecraft/world/phys/Vec3;FZ)Lnet/minecraft/world/phys/Vec3;",
-            at = @At("HEAD"), cancellable = true)
+            at = @At("HEAD"), cancellable = true, remap = false)
     private void redirectToGlobalVector(Vec3 localVec, final float partialTicks, final boolean prevAnchor, final CallbackInfoReturnable<Vec3> cir) {
         if (partialTicks != 1 && !prevAnchor) {
             final Vec3 anchor = getAnchorVec();
@@ -250,7 +250,7 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
 
     //Region end
     //Region start - Contraption Entity Collision
-    @Inject(method = "getContactPointMotion", at = @At("HEAD"))
+    @Inject(method = "getContactPointMotion", at = @At("HEAD"), remap = false)
     private void modGetContactPointMotion(Vec3 globalContactPoint, CallbackInfoReturnable<Vec3> cir) {
         if (VSGameUtilsKt.isBlockInShipyard(level, getAnchorVec().x, getAnchorVec().y, getAnchorVec().z) != VSGameUtilsKt.isBlockInShipyard(level, getPrevAnchorVec().x, getPrevAnchorVec().y, getPrevAnchorVec().z)) {
             Ship ship = VSGameUtilsKt.getShipManagingPos(level, getAnchorVec());

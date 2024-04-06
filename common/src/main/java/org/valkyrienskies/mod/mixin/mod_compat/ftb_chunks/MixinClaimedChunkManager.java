@@ -33,7 +33,7 @@ public abstract class MixinClaimedChunkManager {
         at = @At(
             value = "INVOKE",
             target = "Ldev/ftb/mods/ftblibrary/math/ChunkDimPos;<init>(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;)V"
-        )
+        ), remap = false
     )
     private BlockPos ValkyrienSkies$newChunkDimPos(final BlockPos pos) {
         if (entity == null || !VSGameConfig.SERVER.getFTBChunks().getShipsProtectedByClaims()) {

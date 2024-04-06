@@ -9,6 +9,7 @@ import com.simibubi.create.foundation.outliner.Outline;
 import com.simibubi.create.foundation.render.RenderTypes;
 import com.simibubi.create.foundation.render.SuperRenderTypeBuffer;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
@@ -33,7 +34,7 @@ public abstract class MixinAABBOutline extends Outline {
     @Shadow
     protected abstract void renderBoxEdges(PoseStack ms, VertexConsumer consumer, Vector3f minPos, Vector3f maxPos, float lineWidth, Vector4f color, int lightmap, boolean disableNormals);
 
-    @Inject(method = "renderBox", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "renderBox", at = @At("HEAD"), cancellable = true, remap = false)
     private void preRenderBox(PoseStack ms, SuperRenderTypeBuffer buffer, Vec3 camera, AABB box, Vector4f color, int lightmap, boolean disableLineNormals, CallbackInfo ci) {
         final Level level = Minecraft.getInstance().level;
         if (level != null) {
@@ -65,7 +66,7 @@ public abstract class MixinAABBOutline extends Outline {
                 if (lineWidth == 0)
                     return;
 
-                VertexConsumer consumer = buffer.getBuffer(RenderTypes.getOutlineSolid());
+                VertexConsumer consumer = ((MultiBufferSource) buffer).getBuffer(RenderTypes.getOutlineSolid());
                 renderBoxEdges(ms, consumer, minPos, maxPos, lineWidth, color, lightmap, disableLineNormals);
 
                 ms.popPose();

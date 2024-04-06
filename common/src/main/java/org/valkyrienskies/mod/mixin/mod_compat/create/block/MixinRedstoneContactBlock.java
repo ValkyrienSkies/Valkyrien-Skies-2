@@ -90,7 +90,7 @@ public abstract class MixinRedstoneContactBlock extends WrenchableDirectionalBlo
         return false;
     }
 
-    @Inject(method = "hasValidContact", at = @At("RETURN"), cancellable = true)
+    @Inject(method = "hasValidContact", at = @At("RETURN"), cancellable = true, remap = false)
     private static void injectHasValidContact(LevelAccessor world, BlockPos pos, Direction direction, CallbackInfoReturnable<Boolean> cir) {
         boolean result = false;
         Level worldLevel = (Level) world;

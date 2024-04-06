@@ -1,3 +1,5 @@
+import org.valkyrienskies.aw2at.AW2ATTask
+
 plugins {
     idea
     `maven-publish`
@@ -14,6 +16,7 @@ val vs_core_version: String by project
 val create_forge_version: String by project
 val flywheel_forge_version: String by project
 val registrate_version: String by project
+val mixin_extras_version: String by project
 
 base {
     archivesName.set("${mod_id}-forge-${minecraft_version}")
@@ -21,8 +24,8 @@ base {
 
 mixin {
     add(sourceSets.main.get(), "$mod_id.refmap.json")
-    config("$mod_id.mixins.json")
-    config("$mod_id.forge.mixins.json")
+    config("$mod_id-common.mixins.json")
+    config("$mod_id-forge.mixins.json")
 }
 
 minecraft {
@@ -94,6 +97,10 @@ dependencies {
     minecraft("net.minecraftforge:forge:${minecraft_version}-${forge_version}")
     minecraftLibrary(project(":common", "namedElements")) { isTransitive = false }
     annotationProcessor("org.spongepowered:mixin:0.8.5-SNAPSHOT:processor")
+    compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:$mixin_extras_version") {})
+    implementation(jarJar("io.github.llamalad7:mixinextras-forge:$mixin_extras_version")) {
+        jarJar.ranged(this, "[$mixin_extras_version,)")
+    }
 
 
     compileOnly(fg.deobf("curse.maven:rubidium-574856:4024781"))
@@ -179,16 +186,34 @@ dependencies {
     minecraftLibrary("com.google.dagger:dagger:2.43.2") { isTransitive = false }
 
     // endregion
+
+    //Bluemap forge 1.18
+    compileOnly("curse.maven:bluemap-406463:4950067")
+
+    //CBC forge
+    compileOnly("curse.maven:create-big-cannons-646668:5000111")
+
+    // FTB CHUNKS MY BELOVED
+    compileOnly("curse.maven:ftb-chunks-forge-314906:4494633")
 }
 
 tasks {
+
+    register<AW2ATTask>("aw2at") {
+        accessWidener = project(":common").file("src/main/resources/valkyrienskies-common.accesswidener")
+        accessTransformer = project.file("src/main/resources/META-INF/accesstransformer.cfg")
+    }
+
     withType<JavaCompile> { source(project(":common").sourceSets.main.get().allSource) }
 
     //javadoc { source(project(":common").sourceSets.main.get().allJava) }
 
     named("sourcesJar", Jar::class) { from(project(":common").sourceSets.main.get().allSource) }
 
-    processResources { from(project(":common").sourceSets.main.get().resources) }
+    processResources {
+        from(project(":common").sourceSets.main.get().resources)
+        dependsOn("aw2at")
+    }
 
     jar { finalizedBy("reobfJar") }
 }

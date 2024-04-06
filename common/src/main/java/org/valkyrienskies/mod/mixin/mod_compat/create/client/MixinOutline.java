@@ -30,7 +30,7 @@ public abstract class MixinOutline {
     @Shadow
     public abstract void bufferQuad(PoseStack.Pose pose, VertexConsumer consumer, Vector3f pos0, Vector3f pos1, Vector3f pos2, Vector3f pos3, Vector4f color, float minU, float minV, float maxU, float maxV, int lightmap, Vector3f normal);
 
-    @Inject(method = "bufferCuboidLine(Lcom/mojang/blaze3d/vertex/PoseStack;Lcom/mojang/blaze3d/vertex/VertexConsumer;Lnet/minecraft/world/phys/Vec3;Lcom/mojang/math/Vector3d;Lcom/mojang/math/Vector3d;FLcom/mojang/math/Vector4f;IZ)V", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "bufferCuboidLine(Lcom/mojang/blaze3d/vertex/PoseStack;Lcom/mojang/blaze3d/vertex/VertexConsumer;Lnet/minecraft/world/phys/Vec3;Lcom/mojang/math/Vector3d;Lcom/mojang/math/Vector3d;FLcom/mojang/math/Vector4f;IZ)V", at = @At("HEAD"), cancellable = true, remap = false)
     private void preBufferCuboidLine0(PoseStack poseStack, VertexConsumer consumer, Vec3 camera, com.mojang.math.Vector3d start, com.mojang.math.Vector3d end, float width, Vector4f color, int lightmap, boolean disableNormals, CallbackInfo ci) {
         final Level level = Minecraft.getInstance().level;
         if (level != null) {
@@ -47,7 +47,7 @@ public abstract class MixinOutline {
         }
     }
 
-    @Inject(method = "bufferCuboid", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "bufferCuboid", at = @At("HEAD"), cancellable = true, remap = false)
     private void preBufferCuboid(PoseStack.Pose pose, VertexConsumer consumer, Vector3f minPos, Vector3f maxPos, Vector4f color, int lightmap, boolean disableNormals, CallbackInfo ci) {
         final Level level = Minecraft.getInstance().level;
         if (level != null) {
@@ -386,7 +386,7 @@ public abstract class MixinOutline {
         }
     }
 
-    @Inject(method = "bufferQuad(Lcom/mojang/blaze3d/vertex/PoseStack$Pose;Lcom/mojang/blaze3d/vertex/VertexConsumer;Lcom/mojang/math/Vector3f;Lcom/mojang/math/Vector3f;Lcom/mojang/math/Vector3f;Lcom/mojang/math/Vector3f;Lcom/mojang/math/Vector4f;FFFFILcom/mojang/math/Vector3f;)V", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "bufferQuad(Lcom/mojang/blaze3d/vertex/PoseStack$Pose;Lcom/mojang/blaze3d/vertex/VertexConsumer;Lcom/mojang/math/Vector3f;Lcom/mojang/math/Vector3f;Lcom/mojang/math/Vector3f;Lcom/mojang/math/Vector3f;Lcom/mojang/math/Vector4f;FFFFILcom/mojang/math/Vector3f;)V", at = @At("HEAD"), cancellable = true, remap = false)
     private void preBufferQuad(PoseStack.Pose pose, VertexConsumer consumer, Vector3f pos0, Vector3f pos1, Vector3f pos2, Vector3f pos3, Vector4f color, float minU, float minV, float maxU, float maxV, int lightmap, Vector3f normal, CallbackInfo ci) {
         final Level level = Minecraft.getInstance().level;
         if (level != null) {
