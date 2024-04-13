@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.util
 import net.minecraft.core.BlockPos
 import net.minecraft.world.Clearable
 import net.minecraft.world.Container
+import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.Rotation
@@ -12,6 +13,7 @@ import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
 import org.valkyrienskies.core.api.ships.ServerShip
+import org.valkyrienskies.mod.mixin.mod_compat.create.accessors.CopycatBlockEntityAccessor
 
 private val AIR = Blocks.AIR.defaultBlockState()
 
@@ -46,6 +48,10 @@ fun relocateBlock(
         // so loot containers dont drop its content
         if (it is RandomizableContainerBlockEntity) {
             it.setLootTable(null, 0)
+        }
+
+        if (it is CopycatBlockEntityAccessor) {
+            it.setCoItem(ItemStack.EMPTY)
         }
 
         tag
