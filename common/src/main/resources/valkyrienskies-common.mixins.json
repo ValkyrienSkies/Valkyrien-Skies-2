@@ -171,7 +171,6 @@
     "mod_compat.create.client.MixinTrainRelocator",
     "mod_compat.create.client.MixinValueBox",
     "mod_compat.create.client.trackOutlines.MixinBigOutlines",
-    "mod_compat.create.client.trackOutlines.MixinTrackBlockOutline",
     "mod_compat.flywheel.InstancingEngineAccessor",
     "mod_compat.flywheel.MixinBlockEntityInstanceManager",
     "mod_compat.flywheel.MixinInstanceManager",
