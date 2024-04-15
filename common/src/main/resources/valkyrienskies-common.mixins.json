@@ -75,7 +75,6 @@
     "mod_compat.create.block.MixinRedstoneContactBlock",
     "mod_compat.create.block.MixinStickerBlock",
     "mod_compat.create.blockentity.IMixinMechanicalBearingTileEntity",
-    "mod_compat.create.blockentity.MixinChuteBlockEntity",
     "mod_compat.create.blockentity.MixinCrushingWheelControllerTileEntity",
     "mod_compat.create.blockentity.MixinEjectorTileEntity",
     "mod_compat.create.blockentity.MixinEncasedFanTileEntity",

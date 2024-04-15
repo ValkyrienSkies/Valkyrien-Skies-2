@@ -10,6 +10,7 @@
     "compat.cc_restitched.MixinWirelessNetwork",
     "compat.create.MixinBlockBreakingKineticTileEntity",
     "compat.create.MixinBlocks",
+    "compat.create.MixinChuteBlockEntity",
     "compat.create.MixinControlledContraptionEntity",
     "compat.sodium.MixinRenderSectionManager",
     "feature.explosions.ClipContextMixin",
