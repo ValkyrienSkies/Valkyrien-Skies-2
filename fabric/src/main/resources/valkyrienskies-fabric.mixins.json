@@ -12,6 +12,7 @@
     "compat.create.MixinBlocks",
     "compat.create.MixinChuteBlockEntity",
     "compat.create.MixinControlledContraptionEntity",
+    "compat.create.client.MixinTrackBlockOutline",
     "compat.sodium.MixinRenderSectionManager",
     "feature.explosions.ClipContextMixin",
     "world.level.block.FireMixin"
