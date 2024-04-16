@@ -1,5 +1,6 @@
-package org.valkyrienskies.mod.mixin.mod_compat.create.blockentity;
+package org.valkyrienskies.mod.forge.mixin.compat.create;
 
+import com.llamalad7.mixinextras.sugar.Local;
 import com.simibubi.create.content.logistics.chute.ChuteBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -13,20 +14,21 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.At.Shift;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.mixin.mod_compat.create.accessors.ChuteBlockEntityAccessor;
 
-@Mixin(ChuteBlockEntity.class)
+@Mixin(value = ChuteBlockEntity.class, remap = false)
 public class MixinChuteBlockEntity {
-    @Inject(method = "findEntities", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/AABB;<init>(Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;)V", shift = Shift.AFTER), locals = LocalCapture.CAPTURE_FAILHARD, cancellable = true, remap = false)
-    private void preFindEntities(float itemSpeed, CallbackInfo ci, Vec3 center) {
-        if (((ChuteBlockEntity) (Object) this).getLevel() != null) {
 
-            final ChuteBlockEntity be = (ChuteBlockEntity) (Object) this;
+    @Inject(method = "findEntities", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/AABB;<init>(Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;)V", shift = Shift.AFTER), cancellable = true)
+    private void preFindEntities(float itemSpeed, CallbackInfo ci, @Local Vec3 center) {
+        ChuteBlockEntity be = ChuteBlockEntity.class.cast(this);
+
+        if (be.getLevel() != null) {
+
             final ChuteBlockEntityAccessor bea = (ChuteBlockEntityAccessor) be;
-            Level level = ((ChuteBlockEntity) (Object) this).getLevel();
+            Level level = be.getLevel();
 
             BlockPos pos = be.getBlockPos();
 
