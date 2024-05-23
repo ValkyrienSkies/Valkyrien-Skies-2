@@ -43,11 +43,11 @@ include("common")
 include("fabric")
 include("forge")
 
-try {
-    def core = file("../vs-core")
-    if (core.isDirectory()) {
-        includeBuild(core)
-    }
-} catch (SecurityException ignore) {}
+//try {
+//    def core = file("../vs-core")
+//    if (core.isDirectory()) {
+//        includeBuild(core)
+//    }
+//} catch (SecurityException ignore) {}
 
 rootProject.name = "valkyrienskies"

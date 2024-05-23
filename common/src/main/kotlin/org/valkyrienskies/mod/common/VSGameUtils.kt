@@ -304,7 +304,7 @@ fun ClientLevel?.transformRenderAABBToWorld(pos: Position, aabb: AABB): AABB {
     return aabb
 }
 
-fun Entity.getShipManaging(): Ship? = this.level().getShipManagingPos(this.position())
+fun Entity?.getShipManaging(): Ship? = this?.let { this.level().getShipManagingPos(this.position()) }
 
 // Level
 fun Level?.getShipManagingPos(chunkX: Int, chunkZ: Int) =
