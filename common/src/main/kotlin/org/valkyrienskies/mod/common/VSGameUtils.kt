@@ -197,7 +197,7 @@ fun Level?.transformToNearbyShipsAndWorld(
     this?.transformToNearbyShipsAndWorld(x, y, z, aabbRadius, cb::accept)
 }
 
-inline fun Level?.transformToNearbyShipsAndWorld(
+inline fun Level.transformToNearbyShipsAndWorld(
     x: Double, y: Double, z: Double, aabbRadius: Double, cb: (Double, Double, Double) -> Unit
 ) {
     val currentShip = getShipManagingPos(x, y, z)
@@ -212,7 +212,7 @@ inline fun Level?.transformToNearbyShipsAndWorld(
         cb(posInWorld.x(), posInWorld.y(), posInWorld.z())
     }
 
-    for (nearbyShip in shipObjectWorld.allShips.getIntersecting(aabb)) {
+    for (nearbyShip in shipObjectWorld.allShips.getIntersecting(aabb, dimensionId)) {
         if (nearbyShip == currentShip) continue
         val posInShip = nearbyShip.worldToShip.transformPosition(posInWorld, temp0)
         cb(posInShip.x(), posInShip.y(), posInShip.z())
