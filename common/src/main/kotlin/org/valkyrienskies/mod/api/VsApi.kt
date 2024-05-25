@@ -9,6 +9,7 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.entity.Entity
 
 import org.jetbrains.annotations.ApiStatus.*
+import org.valkyrienskies.core.api.VsCoreApi
 import org.valkyrienskies.core.api.event.ListenableEvent
 import org.valkyrienskies.core.api.ships.*
 import org.valkyrienskies.mod.api.events.PostRenderShipEvent
@@ -16,12 +17,7 @@ import org.valkyrienskies.mod.api.events.PreRenderShipEvent
 import org.valkyrienskies.mod.api.events.RegisterBlockStateEvent
 
 @NonExtendable
-interface VsApi {
-
-    companion object {
-        @get:JvmStatic
-        val instance: VsApi get() = TODO()
-    }
+interface VsApi : VsCoreApi {
 
     /**
      * This event gets called when it's time to register physics block states for Minecraft block states.
@@ -55,4 +51,6 @@ interface VsApi {
     fun getShipManagingBlock(level: Level?, pos: BlockPos?): Ship?
 
     fun getShipManagingChunk(level: Level?, pos: ChunkPos?): Ship?
+
+    fun getShipManagingChunk(level: Level?, chunkX: Int, chunkZ: Int): Ship?
 }

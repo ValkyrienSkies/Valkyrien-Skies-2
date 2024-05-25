@@ -285,12 +285,7 @@ fun ServerLevel?.getShipObjectManagingPos(pos: Vector3dc) =
 
 private fun getShipManagingPosImpl(world: Level?, x: Int, z: Int): Ship? {
     return if (world != null && world.isChunkInShipyard(x, z)) {
-        val ship = world.shipObjectWorld.allShips.getByChunkPos(x, z, world.dimensionId)
-        if (ship != null && ship.chunkClaimDimension == world.dimensionId) {
-            ship
-        } else {
-            null
-        }
+        world.shipObjectWorld.allShips.getByChunkPos(x, z, world.dimensionId)
     } else {
         null
     }
@@ -397,7 +392,7 @@ fun Level?.getWorldCoordinates(blockPos: BlockPos, pos: Vector3d): Vector3d {
 }
 
 fun Level.getShipsIntersecting(aabb: AABB): Iterable<Ship> = getShipsIntersecting(aabb.toJOML())
-fun Level.getShipsIntersecting(aabb: AABBdc): Iterable<Ship> = allShips.getIntersecting(aabb).filter { it.chunkClaimDimension == dimensionId }
+fun Level.getShipsIntersecting(aabb: AABBdc): Iterable<Ship> = allShips.getIntersecting(aabb, dimensionId)
 
 fun Level?.transformAabbToWorld(aabb: AABB): AABB = transformAabbToWorld(aabb.toJOML()).toMinecraft()
 fun Level?.transformAabbToWorld(aabb: AABBd) = this?.transformAabbToWorld(aabb, aabb) ?: aabb
@@ -406,7 +401,7 @@ fun Level.transformAabbToWorld(aabb: AABBdc, dest: AABBd): AABBd {
     val ship2 = getShipManagingPos(aabb.maxX(), aabb.maxY(), aabb.maxZ())
 
     // if both endpoints of the aabb are in the same ship, do the transform
-    if (ship1 == ship2 && ship1 != null && ship1.chunkClaimDimension == dimensionId) {
+    if (ship1 == ship2 && ship1 != null) {
         return aabb.transform(ship1.shipToWorld, dest)
     }
 
