@@ -8,6 +8,7 @@
     "compat.create.MixinControlledContraptionEntity",
     "compat.create.client.trackOutlines.MixinTrackBlockOutline",
     "compat.immersivengineering.MixinBlockEntityInventory",
+    "compat.integrateddynamics.MixinVoxelShapeComponents",
     "compat.modular_routers.MixinRouterMenu",
     "compat.tfc.MixinTFCChunkGenerator",
     "compat.thermalexpansion.MixinTileCoFH",
