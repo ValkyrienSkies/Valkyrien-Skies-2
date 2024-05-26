@@ -28,11 +28,11 @@ import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.api.util.functions.DoubleTernaryConsumer
 import org.valkyrienskies.core.api.world.LevelYRange
+import org.valkyrienskies.core.api.world.properties.DimensionId
 import org.valkyrienskies.core.apigame.world.IPlayer
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore
 import org.valkyrienskies.core.apigame.world.ShipWorldCore
 import org.valkyrienskies.core.apigame.world.chunks.TerrainUpdate
-import org.valkyrienskies.core.apigame.world.properties.DimensionId
 import org.valkyrienskies.core.game.ships.ShipObjectServer
 import org.valkyrienskies.core.impl.hooks.VSEvents.TickEndEvent
 import org.valkyrienskies.core.util.expand

@@ -37,4 +37,8 @@ class VsApiImpl : VsApi {
     override fun getShipManagingChunk(level: Level?, pos: ChunkPos?): Ship? {
         return pos?.let { level?.getShipManagingPos(it) }
     }
+
+    override fun getShipManagingChunk(level: Level?, chunkX: Int, chunkZ: Int): Ship? {
+        return level?.getShipManagingPos(chunkX, chunkZ)
+    }
 }
