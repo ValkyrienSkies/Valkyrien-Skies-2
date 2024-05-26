@@ -159,10 +159,10 @@ open class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : En
         super.load(compoundTag)
     }
 
-    override fun setLevelCallback(callback: EntityInLevelCallback?) {
+    override fun setLevelCallback(callback: EntityInLevelCallback) {
         super.setLevelCallback(callback)
         if (!this.level().isClientSide) {
-            val isNull = (callback == null) || callback == EntityInLevelCallback.NULL
+            val isNull = callback == EntityInLevelCallback.NULL
             if (!isNull) {
                 // Try adding the rigid body of this entity from the world
                 if (physicsEntityServer != null) {

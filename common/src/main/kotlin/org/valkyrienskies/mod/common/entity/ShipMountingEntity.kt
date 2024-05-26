@@ -13,13 +13,13 @@ import net.minecraft.world.phys.Vec3
 import org.joml.Vector3f
 import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.core.api.ships.setAttachment
-import org.valkyrienskies.core.impl.networking.simple.sendToServer
 import org.valkyrienskies.mod.api.SeatedControllingPlayer
 import org.valkyrienskies.mod.common.config.VSKeyBindings
 import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.getShipObjectManagingPos
 import org.valkyrienskies.mod.common.isBlockInShipyard
 import org.valkyrienskies.mod.common.networking.PacketPlayerDriving
+import org.valkyrienskies.mod.common.vsCore
 
 open class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level) : Entity(type, level) {
     // Decides if this entity controls the ship it is in.
@@ -100,7 +100,9 @@ open class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level
         impulse.x = if (left == right) 0.0f else if (left) 1.0f else -1.0f
         impulse.y = if (up == down) 0.0f else if (up) 1.0f else -1.0f
 
-        PacketPlayerDriving(impulse, sprint, cruise).sendToServer()
+        with(vsCore.simplePacketNetworking) {
+            PacketPlayerDriving(impulse, sprint, cruise).sendToServer()
+        }
     }
 
     override fun getControllingPassenger(): LivingEntity? {

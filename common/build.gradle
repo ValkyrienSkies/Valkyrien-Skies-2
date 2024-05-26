@@ -16,7 +16,8 @@ dependencies {
         exclude module: "netty-buffer"
         exclude module: "fastutil"
     }
-
+    implementation("org.valkyrienskies.core:api:${rootProject.vs_core_version}")
+    implementation("org.valkyrienskies.core:api-game:${rootProject.vs_core_version}")
     implementation("org.valkyrienskies.core:util:${rootProject.vs_core_version}")
 
     // FTB Stuffs

@@ -15,8 +15,10 @@ import org.valkyrienskies.core.api.ships.setAttachment
 import org.valkyrienskies.core.apigame.VSCore
 import org.valkyrienskies.core.apigame.VSCoreClient
 import org.valkyrienskies.core.impl.config.VSConfigClass
-import org.valkyrienskies.core.impl.config.VSCoreConfig
+import org.valkyrienskies.core.impl.config_impl.VSCoreConfig
 import org.valkyrienskies.core.impl.hooks.VSEvents
+import org.valkyrienskies.mod.api.VsApi
+import org.valkyrienskies.mod.api_impl.events.VsApiImpl
 import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
 import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
@@ -51,6 +53,9 @@ object ValkyrienSkiesMod {
     @JvmStatic
     val vsCoreClient get() = vsCore as VSCoreClient
 
+    @JvmStatic
+    val api = VsApiImpl()
+
     fun init(core: VSCore) {
         this.vsCore = core
 
@@ -58,9 +63,8 @@ object ValkyrienSkiesMod {
         VSGamePackets.register()
         VSGamePackets.registerHandlers()
 
-        VSConfigClass.registerConfig("vs_core", VSCoreConfig::class.java)
-        VSConfigClass.registerConfig("vs", VSGameConfig::class.java)
-        VSEvents.ShipLoadEvent.on { event ->
+        core.registerConfigLegacy("vs", VSGameConfig::class.java)
+        VSEvents.shipLoadEvent.on { event ->
             event.ship.setAttachment(GameTickForceApplier())
         }
     }
