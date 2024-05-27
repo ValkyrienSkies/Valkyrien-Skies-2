@@ -6,6 +6,7 @@ import net.minecraft.CrashReport;
 import net.minecraft.CrashReportCategory;
 import net.minecraft.ReportedException;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -154,6 +155,16 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         cir.setReturnValue(newViewVector);
     }
 
+    @Inject(method = "touchingUnloadedChunk", at = @At("HEAD"), cancellable = true, remap = false)
+    private void isTouchingUnloadedChunkOrShip(CallbackInfoReturnable<Boolean> cir) {
+        if (!level.isClientSide) {
+            ServerLevel slevel = (ServerLevel) level;
+            if (VSGameUtilsKt.getShipsIntersecting(slevel, getBoundingBox()).iterator().hasNext()) {
+                cir.setReturnValue(true);
+            }
+        }
+    }
+
     // region shadow functions and fields
     @Shadow
     public Level level;
@@ -183,6 +194,9 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
     @Shadow
     public abstract EntityType<?> getType();
+
+    @Shadow
+    public abstract Vec3 getPosition(float f);
 
     @Override
     @NotNull
