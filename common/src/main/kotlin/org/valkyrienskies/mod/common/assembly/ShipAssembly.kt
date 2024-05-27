@@ -20,6 +20,7 @@ import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.util.relocateBlock
 import org.valkyrienskies.mod.util.updateBlock
 
+@Deprecated("Use ShipAssembler.assembleToShip instead")
 fun createNewShipWithBlocks(
     centerBlock: BlockPos, blocks: DenseBlockPosSet, level: ServerLevel
 ): ServerShip {

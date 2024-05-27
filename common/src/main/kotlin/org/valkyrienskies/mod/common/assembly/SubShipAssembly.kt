@@ -25,6 +25,7 @@ import org.valkyrienskies.mod.common.util.toJOMLD
 import org.valkyrienskies.mod.util.relocateBlock
 import org.valkyrienskies.mod.util.updateBlock
 
+@Deprecated("Use ShipAssembler.assembleToShip instead")
 fun splitShip(centerBlock: BlockPos, blocks: DenseBlockPosSet, level: ServerLevel, originalShip: ServerShip): ServerShip {
     if (blocks.isEmpty()) throw IllegalArgumentException()
 
