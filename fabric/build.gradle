@@ -67,6 +67,11 @@ dependencies {
         exclude group: "com.google.guava"
     }
 
+    def jacksonVersion = '2.14.0'
+
+
+    include("com.fasterxml:classmate:1.5.1")
+    implementation("com.fasterxml:classmate:1.5.1")
     // CC Restitched
     //modImplementation("curse.maven:cc-restitched-462672:3908334"){
     //    exclude module: "jsonschema.module.addon"

@@ -14,10 +14,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType
 import org.valkyrienskies.core.api.ships.setAttachment
 import org.valkyrienskies.core.apigame.VSCore
 import org.valkyrienskies.core.apigame.VSCoreClient
-import org.valkyrienskies.core.impl.config.VSConfigClass
-import org.valkyrienskies.core.impl.config_impl.VSCoreConfig
 import org.valkyrienskies.core.impl.hooks.VSEvents
-import org.valkyrienskies.mod.api.VsApi
 import org.valkyrienskies.mod.api_impl.events.VsApiImpl
 import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
 import org.valkyrienskies.mod.common.config.VSGameConfig
