@@ -31,14 +31,14 @@ object ShipAssembler {
     }
 
 
-    fun assembleToShip(level: Level, blocks: List<BlockPos>, removeOriginal: Boolean, scale: Double): Boolean {
+    fun assembleToShip(level: Level, blocks: List<BlockPos>, removeOriginal: Boolean, scale: Double): ServerShip {
         assert(level is ServerLevel) { "Can't manage contraptions on client side!" }
         val sLevel: ServerLevel = level as ServerLevel
         if (blocks.isEmpty()) {
-            return false
+            throw IllegalArgumentException()
         }
 
-        val existingShip = sLevel.getShipObjectManagingPos(blocks.find { !sLevel.getBlockState(it).isAir } ?: return false)
+        val existingShip = sLevel.getShipObjectManagingPos(blocks.find { !sLevel.getBlockState(it).isAir } ?: throw IllegalArgumentException())
 
         var structureCornerMin: BlockPos = blocks[0]
         var structureCornerMax: BlockPos = blocks[0]
@@ -52,7 +52,7 @@ object ShipAssembler {
                 hasSolids = true
             }
         }
-        if (!hasSolids) return false
+        if (!hasSolids) throw IllegalArgumentException("No solid blocks found in the structure")
         val contraptionOGPos: Vector3ic = AssemblyUtil.getMiddle(structureCornerMin, structureCornerMax)
         // Create new contraption at center of bounds
         val contraptionWorldPos: Vector3i = if (existingShip != null) {
@@ -108,7 +108,7 @@ object ShipAssembler {
         sLevel.server.shipObjectWorld
             .teleportShip(newShip as ServerShip, ShipTeleportDataImpl(Vector3d(contraptionWorldPos.x.toDouble(),contraptionWorldPos.y.toDouble(),contraptionWorldPos.z.toDouble())))
 
-        return true
+        return newShip as ServerShip
     }
 
 
