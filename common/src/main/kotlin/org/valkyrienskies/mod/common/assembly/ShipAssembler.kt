@@ -1,7 +1,5 @@
 package org.valkyrienskies.mod.common.assembly
 
-
-
 import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.Level
@@ -9,6 +7,7 @@ import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import org.joml.Vector3d
 import org.joml.Vector3i
+import org.joml.Vector3ic
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.impl.game.ShipTeleportDataImpl
@@ -26,6 +25,7 @@ object ShipAssembler {
     fun isValidShipBlock(state: BlockState?): Boolean {
         if (state != null) {
             //return !state.tags.anyMatch { it== VsShipAssemblerTags.FORBIDDEN_ASSEMBLE }
+            return !state.isAir
         }
         return true
     }
@@ -37,6 +37,8 @@ object ShipAssembler {
         if (blocks.isEmpty()) {
             return false
         }
+
+        val existingShip = sLevel.getShipObjectManagingPos(blocks.find { !sLevel.getBlockState(it).isAir } ?: return false)
 
         var structureCornerMin: BlockPos = blocks[0]
         var structureCornerMax: BlockPos = blocks[0]
@@ -51,9 +53,14 @@ object ShipAssembler {
             }
         }
         if (!hasSolids) return false
-
+        val contraptionOGPos: Vector3ic = AssemblyUtil.getMiddle(structureCornerMin, structureCornerMax)
         // Create new contraption at center of bounds
-        val contraptionWorldPos: Vector3i = AssemblyUtil.getMiddle(structureCornerMin, structureCornerMax)
+        val contraptionWorldPos: Vector3i = if (existingShip != null) {
+            val doubleVer = existingShip.shipToWorld.transformPosition(Vector3d(contraptionOGPos)).floor()
+            Vector3i(doubleVer.x.toInt(), doubleVer.y.toInt(), doubleVer.z.toInt())
+        } else {
+            Vector3i(contraptionOGPos)
+        }
         //val contraptionPosition = ContraptionPosition(Quaterniond(Vec3d(0.0, 1.0, 1.0), 0.0), contraptionWorldPos, null)
 
         val newShip: Ship = (level as ServerLevel).server.shipObjectWorld
@@ -69,7 +76,7 @@ object ShipAssembler {
         var centerBlockReplaced = false
         for (itPos in blocks) {
             if (isValidShipBlock(level.getBlockState(itPos))) {
-                val relative: BlockPos = itPos.subtract( BlockPos(contraptionWorldPos.x,contraptionWorldPos.y,contraptionWorldPos.z))
+                val relative: BlockPos = itPos.subtract( BlockPos(contraptionOGPos.x(),contraptionOGPos.y(),contraptionOGPos.z()))
                 val shipPos: BlockPos = contraptionBlockPos.offset(relative)
                 AssemblyUtil.copyBlock(level, itPos, shipPos)
                 if (relative == BlockPos.ZERO) centerBlockReplaced = true
@@ -92,7 +99,7 @@ object ShipAssembler {
 
         // Trigger updates on both contraptions
         for (itPos in blocks) {
-            val relative: BlockPos = itPos.subtract(BlockPos(contraptionWorldPos.x,contraptionWorldPos.y,contraptionWorldPos.z))
+            val relative: BlockPos = itPos.subtract(BlockPos(contraptionOGPos.x(),contraptionOGPos.y(),contraptionOGPos.z()))
             val shipPos: BlockPos = contraptionBlockPos.offset(relative)
             AssemblyUtil.updateBlock(level,itPos,shipPos,level.getBlockState(shipPos))
         }

@@ -1,6 +1,5 @@
 package org.valkyrienskies.mod.common.assembly
 
-
 import com.mojang.math.Vector3d
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
