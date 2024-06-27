@@ -124,6 +124,14 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         )
     )
     private void postCreateLevels(final CallbackInfo ci) {
+        // Register blocks
+        if (!MassDatapackResolver.INSTANCE.getRegisteredBlocks()) {
+            final List<BlockState> blockStateList = new ArrayList<>(Block.BLOCK_STATE_REGISTRY.size());
+            Block.BLOCK_STATE_REGISTRY.forEach((blockStateList::add));
+            MassDatapackResolver.INSTANCE.registerAllBlockStates(blockStateList);
+            ValkyrienSkiesMod.getVsCore().registerBlockStates(MassDatapackResolver.INSTANCE.getBlockStateData());
+        }
+
         // Load ship data from the world storage
         final ShipSavedData shipSavedData = overworld().getDataStorage()
             .computeIfAbsent(ShipSavedData::load, ShipSavedData.Companion::createEmpty, ShipSavedData.SAVED_DATA_ID);
@@ -139,18 +147,6 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
 
         // Create ship world and VS Pipeline
         vsPipeline = shipSavedData.getPipeline();
-
-        // Register blocks
-        if (!MassDatapackResolver.INSTANCE.getRegisteredBlocks()) {
-            final List<BlockState> blockStateList = new ArrayList<>(Block.BLOCK_STATE_REGISTRY.size());
-            Block.BLOCK_STATE_REGISTRY.forEach((blockStateList::add));
-            MassDatapackResolver.INSTANCE.registerAllBlockStates(blockStateList);
-        }
-        vsPipeline.registerBlocks(
-            MassDatapackResolver.INSTANCE.getSolidBlockStates(),
-            MassDatapackResolver.INSTANCE.getLiquidBlockStates(),
-            MassDatapackResolver.INSTANCE.getBlockStateData()
-        );
 
         KrunchSupport.INSTANCE.setKrunchSupported(!vsPipeline.isUsingDummyPhysics());
 

@@ -17,14 +17,16 @@ import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.TextComponent
 import org.apache.commons.lang3.StringUtils
 import org.valkyrienskies.core.impl.config.SidedVSConfigClass
-import org.valkyrienskies.core.impl.config.VSConfigClass
 import org.valkyrienskies.core.impl.util.serialization.VSJacksonUtil
+import org.valkyrienskies.mod.common.vsCore
+
 import java.util.Optional
 
 object VSClothConfig {
 
     @JvmStatic
-    fun createConfigScreenFor(parent: Screen, vararg configClasses: VSConfigClass): Screen {
+    fun createConfigScreenFor(parent: Screen, vararg configClassesJ: Class<*>): Screen {
+        val configClasses = configClassesJ.map(vsCore::getRegisteredConfigLegacy)
         return ConfigBuilder.create().apply {
             parentScreen = parent
 
