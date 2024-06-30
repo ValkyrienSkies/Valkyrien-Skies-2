@@ -17,7 +17,7 @@ import org.valkyrienskies.mod.api.events.PreRenderShipEvent
 import org.valkyrienskies.mod.api.events.RegisterBlockStateEvent
 
 @NonExtendable
-interface VsApi : VSCoreApi {
+interface VsApi : VsCoreApi {
 
     /**
      * This event gets called when it's time to register physics block states for Minecraft block states.
