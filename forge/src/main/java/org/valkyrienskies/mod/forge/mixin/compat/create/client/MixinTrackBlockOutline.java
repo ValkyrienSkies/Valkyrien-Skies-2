@@ -6,7 +6,6 @@ import com.simibubi.create.content.trains.track.TrackBlockOutline;
 import com.simibubi.create.content.trains.track.TrackBlockOutline.BezierPointSelection;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
@@ -110,8 +109,8 @@ public class MixinTrackBlockOutline {
     private static void redirectTranslate(final PoseStack instance, final double d, final double e, final double f) {
         final Level level = Minecraft.getInstance().level;
         if (level != null) {
-            final ShipObjectClient ship;
-            if ((ship = (ShipObjectClient) VSGameUtilsKt.getShipManagingPos(level,
+            final ClientShip ship;
+            if ((ship = (ClientShip) VSGameUtilsKt.getShipManagingPos(level,
                 valkyrienskies$hitResult.getBlockPos())) != null) {
                 final Vec3 camPos = valkyrienskies$info.getPosition();
                 VSClientGameUtils.transformRenderWithShip(ship.getRenderTransform(), instance,
