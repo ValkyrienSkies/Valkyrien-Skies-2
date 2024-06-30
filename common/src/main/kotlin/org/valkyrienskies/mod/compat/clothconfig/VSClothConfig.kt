@@ -19,7 +19,6 @@ import org.apache.commons.lang3.StringUtils
 import org.valkyrienskies.core.impl.config.SidedVSConfigClass
 import org.valkyrienskies.core.impl.util.serialization.VSJacksonUtil
 import org.valkyrienskies.mod.common.vsCore
-
 import java.util.Optional
 
 object VSClothConfig {
@@ -27,6 +26,7 @@ object VSClothConfig {
     @JvmStatic
     fun createConfigScreenFor(parent: Screen, vararg configClassesJ: Class<*>): Screen {
         val configClasses = configClassesJ.map(vsCore::getRegisteredConfigLegacy)
+
         return ConfigBuilder.create().apply {
             parentScreen = parent
 
@@ -111,7 +111,7 @@ object VSClothConfig {
         val enum: ArrayNode? = schema["enum"] as? ArrayNode
 
         val type = schema["type"].asText()
-        val tooltip: TextComponent? = null
+        val tooltip: Component? = null
 
         when {
             type == "integer" -> {
@@ -243,7 +243,7 @@ object VSClothConfig {
                             val newValue = try {
                                 mapper.readTree(str)
                             } catch (ex: JsonProcessingException) {
-                                return@setErrorSupplier Optional.of(TextComponent(ex.message))
+                                return@setErrorSupplier Optional.of(TextComponent(ex.message ?: ""))
                             }
 
                             getValidationMessageComponent(newValue)
