@@ -208,7 +208,7 @@ inline fun Level?.transformToNearbyShipsAndWorld(
         cb(posInWorld.x(), posInWorld.y(), posInWorld.z())
     }
 
-    for (nearbyShip in shipObjectWorld.allShips.getIntersecting(aabb)) {
+    for (nearbyShip in shipObjectWorld.allShips.getIntersecting(aabb, this!!.dimensionId)) {
         if (nearbyShip == currentShip) continue
         val posInShip = nearbyShip.worldToShip.transformPosition(posInWorld, temp0)
         cb(posInShip.x(), posInShip.y(), posInShip.z())
@@ -393,8 +393,7 @@ fun Level?.getWorldCoordinates(blockPos: BlockPos, pos: Vector3d): Vector3d {
 }
 
 fun Level.getShipsIntersecting(aabb: AABB): Iterable<Ship> = getShipsIntersecting(aabb.toJOML())
-fun Level.getShipsIntersecting(aabb: AABBdc): Iterable<Ship> = allShips.getIntersecting(aabb).filter { it.chunkClaimDimension == dimensionId }
-
+fun Level.getShipsIntersecting(aabb: AABBdc): Iterable<Ship> = allShips.getIntersecting(aabb, dimensionId)
 fun Level?.transformAabbToWorld(aabb: AABB): AABB = transformAabbToWorld(aabb.toJOML()).toMinecraft()
 fun Level?.transformAabbToWorld(aabb: AABBd) = this?.transformAabbToWorld(aabb, aabb) ?: aabb
 fun Level.transformAabbToWorld(aabb: AABBdc, dest: AABBd): AABBd {
