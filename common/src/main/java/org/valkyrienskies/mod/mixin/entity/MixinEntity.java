@@ -31,7 +31,6 @@ import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.api.ships.LoadedShip;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
-import org.valkyrienskies.core.impl.game.ships.ShipObjectClient;
 import org.valkyrienskies.mod.common.entity.ShipMountedToData;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
@@ -112,8 +111,8 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         final LoadedShip shipMountedTo = shipMountedToData.getShipMountedTo();
 
         final ShipTransform shipTransform;
-        if (shipMountedTo instanceof ShipObjectClient) {
-            shipTransform = ((ShipObjectClient) shipMountedTo).getRenderTransform();
+        if (shipMountedTo instanceof ClientShip) {
+            shipTransform = ((ClientShip) shipMountedTo).getRenderTransform();
         } else {
             shipTransform = shipMountedTo.getShipTransform();
         }

@@ -26,7 +26,6 @@ import org.valkyrienskies.core.apigame.world.ServerShipWorldCore
 import org.valkyrienskies.core.impl.game.ShipTeleportDataImpl
 import org.valkyrienskies.core.impl.game.ships.ShipInertiaDataImpl
 import org.valkyrienskies.core.impl.game.ships.ShipObjectClientWorld
-import org.valkyrienskies.core.impl.game.ships.ShipObjectServerWorld
 import org.valkyrienskies.core.impl.game.ships.ShipTransformImpl
 import org.valkyrienskies.core.impl.util.serialization.VSJacksonUtil
 import org.valkyrienskies.mod.common.dimensionId
@@ -141,7 +140,7 @@ open class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : En
         }
         val physicsEntityDataAsBytes: ByteArray = compoundTag.getByteArray(PHYS_DATA_NBT_KEY)
         val oldPhysicsEntityData = getMapper().readValue<PhysicsEntityData>(physicsEntityDataAsBytes)
-        val newShipId = (level.shipObjectWorld as ShipObjectServerWorld).allocateShipId(level.dimensionId)
+        val newShipId = (level.shipObjectWorld as ServerShipWorldCore).allocateShipId(level.dimensionId)
         val newPhysicsEntityData = oldPhysicsEntityData.copyPhysicsEntityDataWithNewId(newShipId)
         // Change the shipId to be something new
         setPhysicsEntityData(newPhysicsEntityData)
@@ -198,7 +197,7 @@ open class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : En
             if (physicsEntityServerCopy != null) {
                 val newPos = Vector3d(d, e, f)
                 val teleportData = ShipTeleportDataImpl(newPos = newPos)
-                (this.level.shipObjectWorld as ShipObjectServerWorld).teleportPhysicsEntity(this.physicsEntityServer!!, teleportData)
+                (this.level.shipObjectWorld as ServerShipWorldCore).teleportPhysicsEntity(this.physicsEntityServer!!, teleportData)
             } else {
                 physicsEntityData!!.transform = ShipTransformImpl.create(
                     Vector3d(d, e, f),
