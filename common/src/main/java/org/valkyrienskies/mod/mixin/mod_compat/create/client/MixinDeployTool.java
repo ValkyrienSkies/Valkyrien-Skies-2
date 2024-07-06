@@ -10,7 +10,6 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -27,7 +26,7 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
  * This mixin cancels the aforementioned operation and injects the fix in front.
  */
 @Mixin(value={DeployTool.class})
-public class MixinDeployTool extends SchematicToolBase {
+public abstract class MixinDeployTool extends SchematicToolBase {
     @Redirect(
         method = "renderTool(Lcom/mojang/blaze3d/vertex/PoseStack;Lcom/simibubi/create/foundation/render/SuperRenderTypeBuffer;Lnet/minecraft/world/phys/Vec3;)V",
         at = @At(
@@ -36,7 +35,7 @@ public class MixinDeployTool extends SchematicToolBase {
             ordinal = 0
         )
     )
-    public void redirectTranslate(PoseStack ms, double _x, double _y, double _z) {
+    private void redirectTranslate(PoseStack ms, double _x, double _y, double _z) {
     }
 
     @Inject(
@@ -47,7 +46,7 @@ public class MixinDeployTool extends SchematicToolBase {
             ordinal = 0
         )
     )
-    public void mixinRenderTool(PoseStack ms, SuperRenderTypeBuffer buffer, Vec3 camera, CallbackInfo ci) {
+    private void mixinRenderTool(PoseStack ms, SuperRenderTypeBuffer buffer, Vec3 camera, CallbackInfo ci) {
         float pt = AnimationTickHolder.getPartialTicks();
         double x = Mth.lerp(pt, lastChasingSelectedPos.x, chasingSelectedPos.x);
         double y = Mth.lerp(pt, lastChasingSelectedPos.y, chasingSelectedPos.y);
@@ -64,18 +63,5 @@ public class MixinDeployTool extends SchematicToolBase {
         } else {
             ms.translate(x - centerX - camera.x, y - camera.y, z - centerZ - camera.z);
         }
-    }
-
-    // To fufill the class extension requirements
-    @Unique
-    @Override
-    public boolean handleRightClick() {
-        return false;
-    }
-
-    @Unique
-    @Override
-    public boolean handleMouseWheel(double delta) {
-        return false;
     }
 }
