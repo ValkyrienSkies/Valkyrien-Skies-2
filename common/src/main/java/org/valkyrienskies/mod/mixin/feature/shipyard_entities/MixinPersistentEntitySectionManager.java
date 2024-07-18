@@ -61,7 +61,7 @@ public abstract class MixinPersistentEntitySectionManager implements OfLevel {
 					value="INVOKE"
 			)
 	)
-	private LongPredicate foo(LongPredicate par1) {
+	private LongPredicate processUnloads_catchException(LongPredicate par1) {
 		return (l) -> {
 			try {
 				return par1.test(l);
