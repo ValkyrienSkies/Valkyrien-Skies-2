@@ -3,7 +3,6 @@ package org.valkyrienskies.mod.mixin.feature.shipyard_entities;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
-import it.unimi.dsi.fastutil.longs.LongPredicate;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.entity.EntitySectionStorage;
@@ -54,21 +53,24 @@ public abstract class MixinPersistentEntitySectionManager implements OfLevel {
     /**
      * This fixes this function randomly crashing. I'm not sure why but the removeIf() function is buggy
      */
-    @ModifyArg(
-			method="processUnloads",
-			at=@At(
-					target="Lit/unimi/dsi/fastutil/longs/LongSet;removeIf(Lit/unimi/dsi/fastutil/longs/LongPredicate;)Z",
-					value="INVOKE"
-			)
-	)
-	private LongPredicate processUnloads_catchException(LongPredicate par1) {
-		return (l) -> {
-			try {
-				return par1.test(l);
-			} catch (Exception e) {
-				e.printStackTrace();
-				return false;
-			}
-		};
-	}
+    @Inject(
+        method = "processUnloads", at = @At(value = "HEAD"), cancellable = true
+    )
+    private void replaceProcessUnloads(final CallbackInfo ci) {
+        // I don't know why this crashes, try-catch please help me!
+        try {
+            final LongSet toRemove = new LongOpenHashSet();
+            for (final long key : this.chunksToUnload) {
+                if (this.chunkVisibility.get(key) != Visibility.HIDDEN) {
+                    toRemove.add(key);
+                } else if (this.processChunkUnload(key)) {
+                    toRemove.add(key);
+                }
+            }
+            chunksToUnload.removeAll(toRemove);
+        } catch (final Exception e) {
+            e.printStackTrace();
+        }
+        ci.cancel();
+    }
 }
