@@ -4,7 +4,6 @@
   "compatibilityLevel": "JAVA_8",
   "plugin": "org.valkyrienskies.mod.fabric.mixin.ValkyrienFabricMixinConfigPlugin",
   "mixins": [
-    "compat.cc_restitched.MixinSpeakerPosition",
     "compat.cc_restitched.MixinTurtleBrain",
     "compat.cc_restitched.MixinTurtleMoveCommand",
     "compat.cc_restitched.MixinWirelessNetwork",
@@ -18,6 +17,7 @@
     "world.level.block.FireMixin"
   ],
   "client": [
+    "compat.cc_restitched.MixinSpeakerSound",
     "compat.create.client.MixinContraptionHandlerClient",
     "compat.create.client.MixinContraptionRenderInfo",
     "compat.create.client.MixinCullingBlockEntityIterator",
