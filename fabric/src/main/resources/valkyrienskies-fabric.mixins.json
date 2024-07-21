@@ -14,6 +14,7 @@
     "compat.create.client.MixinTrackBlockOutline",
     "compat.sodium.MixinRenderSectionManager",
     "feature.explosions.ClipContextMixin",
+    "feature.shipyard_entities.MixinPersistentEntitySectionManager",
     "world.level.block.FireMixin"
   ],
   "client": [

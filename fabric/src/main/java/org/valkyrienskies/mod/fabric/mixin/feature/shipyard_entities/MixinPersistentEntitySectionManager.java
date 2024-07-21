@@ -1,5 +1,6 @@
-package org.valkyrienskies.mod.mixin.feature.shipyard_entities;
+package org.valkyrienskies.mod.fabric.mixin.feature.shipyard_entities;
 
+import java.util.function.LongPredicate;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.entity.EntitySectionStorage;
@@ -42,8 +43,9 @@ public abstract class MixinPersistentEntitySectionManager implements OfLevel {
             value = "INVOKE"
         )
     )
-    private java.util.function.LongPredicate processUnloads_catchException(
-        final java.util.function.LongPredicate par1) {
+    private LongPredicate processUnloads_catchException(
+        final LongPredicate par1
+    ) {
         return (l) -> {
             try {
                 return par1.test(l);

@@ -44,7 +44,6 @@
     "feature.shipyard_entities.MixinEntity",
     "feature.shipyard_entities.MixinEntitySection",
     "feature.shipyard_entities.MixinEntitySectionStorage",
-    "feature.shipyard_entities.MixinPersistentEntitySectionManager",
     "feature.shipyard_entities.MixinServerLevel",
     "feature.shipyard_entities.MixinTransientEntitySectionManager",
     "feature.spawn_player_on_ship.MixinServerGamePacketListenerImpl",

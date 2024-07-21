@@ -18,6 +18,7 @@
     "compat.thermalexpansion.MixinTileCoFH",
     "compat.tis3d.MixinInfraredPacketEntity",
     "feature.forge_interact.MixinIForgePlayer",
+    "feature.shipyard_entities.MixinPersistentEntitySectionManager",
     "world.level.block.FireMixin"
   ],
   "client": [
