@@ -27,16 +27,16 @@ object VSGameConfig {
         )
         var recommendSlugsInMcCommands = true
 
+        @JsonSchema(
+            description = "Use Imperial Units to show Mass"
+        )
+        var useImperialUnits = false
+
         class TOOLTIP {
             @JsonSchema(
                 description = "Set when the Mass Tooltip is Visible"
             )
             var massTooltipVisibility = MassTooltipVisibility.ADVANCED
-
-            @JsonSchema(
-                description = "Use Imperial Units to show Mass"
-            )
-            var useImperialUnits = false
         }
 
         class BLOCKTINT {
