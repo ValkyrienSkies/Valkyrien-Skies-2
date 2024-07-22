@@ -12,9 +12,6 @@ import weather2.weathersystem.storm.StormObject
 
 object Weather2Compat {
     fun tick(level: ServerLevel) {
-        if (!LoadedMods.weather2)
-            return
-
         val mgr = ServerTickHandler
             .getWeatherManagerFor(level.dimension())
 
