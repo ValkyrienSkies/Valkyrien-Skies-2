@@ -62,6 +62,8 @@ import org.valkyrienskies.mod.common.util.VSLevelChunk;
 import org.valkyrienskies.mod.common.util.VSServerLevel;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.common.world.ChunkManagement;
+import org.valkyrienskies.mod.compat.LoadedMods;
+import org.valkyrienskies.mod.compat.Weather2Compat;
 import org.valkyrienskies.mod.util.KrunchSupport;
 
 @Mixin(MinecraftServer.class)
@@ -229,6 +231,8 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         // Only drag entities after we have updated the ship positions
         for (final ServerLevel level : getAllLevels()) {
             EntityDragger.INSTANCE.dragEntitiesWithShips(level.getAllEntities());
+            if (LoadedMods.getWeather2())
+                Weather2Compat.INSTANCE.tick(level);
         }
 
         handleShipPortals();
