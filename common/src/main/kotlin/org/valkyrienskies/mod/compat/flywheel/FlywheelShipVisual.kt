@@ -97,7 +97,7 @@ class FlywheelShipVisual(val effect: ShipEffect, val visualContext: Visualizatio
     }
 
     override fun updateLight(partialTick: Float) {
-        manager.gpuLightSections()
+
     }
 
     override fun planTick(): Plan<TickableVisual.Context> =
