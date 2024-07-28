@@ -30,7 +30,7 @@ dependencies {
     modCompileOnly("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}")
         { exclude group: 'com.github.AlphaMode', module: 'fakeconfigtoml' }
     modCompileOnly("net.fabricmc.fabric-api:fabric-api:${fabric_api_version}")
-    modCompileOnly("com.jozufozu.flywheel:flywheel-fabric-${minecraft_version}:${flywheel_version_fabric}")
+    modCompileOnly("dev.engine_room.flywheel:flywheel-fabric-${minecraft_version}:${flywheel_version_fabric}")
 
     modCompileOnly("maven.modrinth:create-big-cannons:${createbigcannons_version}")
 

@@ -21,7 +21,6 @@ import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MobCategory
 import net.minecraft.world.item.BlockItem
-import net.minecraft.world.item.CreativeModeTab
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.Item.Properties
 import net.minecraft.world.level.block.Block
@@ -47,6 +46,7 @@ import org.valkyrienskies.mod.common.hooks.VSGameEvents
 import org.valkyrienskies.mod.common.item.PhysicsEntityCreatorItem
 import org.valkyrienskies.mod.common.item.ShipAssemblerItem
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
+import org.valkyrienskies.mod.compat.flywheel.FlywheelCompat
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executor
 import java.util.concurrent.atomic.AtomicBoolean
@@ -212,6 +212,8 @@ class ValkyrienSkiesModFabric : ModInitializer {
         VSKeyBindings.clientSetup {
             KeyBindingHelper.registerKeyBinding(it)
         }
+
+        FlywheelCompat.initClient()
     }
 
     private fun registerBlockAndItem(registryName: String, block: Block): Item {
