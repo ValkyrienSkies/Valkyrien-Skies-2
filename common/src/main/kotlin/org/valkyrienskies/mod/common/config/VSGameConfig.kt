@@ -45,6 +45,11 @@ object VSGameConfig {
             )
             var fixBlockTinting = false
         }
+
+        @JsonSchema(
+            description = "The way ships are rendered by default"
+        )
+        var defaultRenderer = ShipRenderer.VANILLA
     }
 
     class Server {

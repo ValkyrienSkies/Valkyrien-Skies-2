@@ -4,76 +4,35 @@ import dev.engine_room.flywheel.api.task.Plan
 import dev.engine_room.flywheel.api.visual.DistanceUpdateLimiter
 import dev.engine_room.flywheel.api.visual.DynamicVisual
 import dev.engine_room.flywheel.api.visual.DynamicVisual.Context
-import dev.engine_room.flywheel.api.visual.Effect
 import dev.engine_room.flywheel.api.visual.EffectVisual
 import dev.engine_room.flywheel.api.visual.LightUpdatedVisual
 import dev.engine_room.flywheel.api.visual.SectionTrackedVisual.SectionCollector
 import dev.engine_room.flywheel.api.visual.ShaderLightVisual
 import dev.engine_room.flywheel.api.visual.TickableVisual
-import dev.engine_room.flywheel.api.visualization.VisualManager
 import dev.engine_room.flywheel.api.visualization.VisualizationContext
+import dev.engine_room.flywheel.impl.task.TaskExecutorImpl
 import dev.engine_room.flywheel.impl.visualization.VisualManagerImpl
+import dev.engine_room.flywheel.lib.task.ForEachPlan
+import dev.engine_room.flywheel.lib.task.IfElsePlan
 import dev.engine_room.flywheel.lib.task.MapContextPlan
 import dev.engine_room.flywheel.lib.task.NestedPlan
 import dev.engine_room.flywheel.lib.task.RunnablePlan
-import dev.engine_room.flywheel.lib.visualization.VisualizationHelper
 import it.unimi.dsi.fastutil.longs.LongArraySet
 import it.unimi.dsi.fastutil.longs.LongSet
 import net.minecraft.client.Camera
-import net.minecraft.client.Minecraft
 import net.minecraft.core.SectionPos
 import net.minecraft.util.Mth
-import net.minecraft.world.level.LevelAccessor
-import net.minecraft.world.level.block.entity.BlockEntity
 import org.joml.FrustumIntersection
 import org.joml.Matrix3f
 import org.joml.Matrix4f
-import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.world.LevelYRange
+import org.valkyrienskies.mod.common.config.ShipRenderer.FLYWHEEL
+import org.valkyrienskies.mod.common.config.shipRenderer
 import org.valkyrienskies.mod.common.util.toBlockPos
 import org.valkyrienskies.mod.common.util.toFloat
 import org.valkyrienskies.mod.common.util.toJOMLD
-import org.valkyrienskies.mod.util.logger
-import java.util.WeakHashMap
 
-class ShipEffect(val ship: ClientShip, val level: LevelAccessor) : Effect {
-    init {
-        map[ship] = this
-    }
-
-    internal var manager: VisualManager<BlockEntity>? = null
-
-    fun queueAddition(blockEntity: BlockEntity) {
-        manager?.queueAdd(blockEntity)
-    }
-
-    fun queueUpdate(blockEntity: BlockEntity) {
-        manager?.queueUpdate(blockEntity)
-    }
-
-    fun queueRemoval(blockEntity: BlockEntity) {
-        manager?.queueRemove(blockEntity)
-    }
-
-    override fun level(): LevelAccessor = level
-
-    override fun visualize(ctx: VisualizationContext, partialTick: Float): EffectVisual<ShipEffect> =
-        FlywheelShipVisual(this, ctx)
-
-    companion object {
-        private val map = WeakHashMap<ClientShip, ShipEffect>()
-        private val logger by logger("ShipEffect-Flywheel")
-
-        fun getShipEffect(ship: ClientShip): ShipEffect = map.getOrPut(ship) {
-            ShipEffect(ship, Minecraft.getInstance().level!!).apply {
-                logger.warn("Added dynamically a ship effect, shouldn't happen.")
-                VisualizationHelper.queueAdd(this)
-            }
-        }
-    }
-}
-
-class FlywheelShipVisual(val effect: ShipEffect, val visualContext: VisualizationContext) :
+class EmbeddingShipVisual(val effect: ShipEffect, val visualContext: VisualizationContext) :
     EffectVisual<ShipEffect>, DynamicVisual, TickableVisual, ShaderLightVisual, LightUpdatedVisual
 {
     val ship get() = effect.ship
@@ -92,8 +51,19 @@ class FlywheelShipVisual(val effect: ShipEffect, val visualContext: Visualizatio
     var minSection: Long = 0
     var maxSection: Long = 0
 
-    override fun update(partialTick: Float) {
+    var renderingShipVisual: RenderingShipVisual? = null
 
+    override fun update(partialTick: Float) {
+        if (renderingShipVisual == null && ship.shipRenderer == FLYWHEEL) {
+            renderingShipVisual = RenderingShipVisual(effect, embedding)
+        } else if (renderingShipVisual != null) {
+            if (ship.shipRenderer != FLYWHEEL) {
+                renderingShipVisual!!.delete()
+                renderingShipVisual = null;
+            } else {
+                renderingShipVisual!!.update(partialTick)
+            }
+        }
     }
 
     override fun updateLight(partialTick: Float) {
@@ -107,7 +77,8 @@ class FlywheelShipVisual(val effect: ShipEffect, val visualContext: Visualizatio
         NestedPlan.of(
             RunnablePlan.of(::updateEmbedding),
             RunnablePlan.of(::updateSections),
-            MapContextPlan.map(::newContext).to(manager.framePlan())
+            MapContextPlan.map(::newContext).to(manager.framePlan()),
+            IfNotNullPlan({renderingShipVisual}, RenderingShipVisual::planFrame)
         )
 
     private fun newContext(ctx: Context): Context {
@@ -209,6 +180,7 @@ class FlywheelShipVisual(val effect: ShipEffect, val visualContext: Visualizatio
     override fun delete() {
         manager.invalidate()
         storage.invalidate()
+        renderingShipVisual?.delete()
         embedding.delete()
     }
 

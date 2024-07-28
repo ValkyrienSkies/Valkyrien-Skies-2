@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.mod_compat.flywheel_renderer;
+package org.valkyrienskies.mod.mixin.mod_compat.flywheel;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Camera;

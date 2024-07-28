@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.mod_compat.flywheel_renderer;
+package org.valkyrienskies.mod.mixin.mod_compat.flywheel;
 
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.chunk.LevelChunk;

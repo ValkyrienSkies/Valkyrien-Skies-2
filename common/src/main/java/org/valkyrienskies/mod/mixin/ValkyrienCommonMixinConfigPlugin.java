@@ -27,6 +27,7 @@ public class ValkyrienCommonMixinConfigPlugin implements IMixinConfigPlugin {
     }
 
     private static VSRenderer getVSRendererHelper() {
+        //TODO remove?
         if (classExists("optifine.OptiFineTransformationService")) {
             return VSRenderer.OPTIFINE;
         } else if (classExists("me.jellysquid.mods.sodium.client.SodiumClientMod")) {

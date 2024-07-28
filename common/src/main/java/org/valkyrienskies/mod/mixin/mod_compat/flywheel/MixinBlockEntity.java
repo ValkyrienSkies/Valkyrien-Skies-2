@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.mod_compat.flywheel_renderer;
+package org.valkyrienskies.mod.mixin.mod_compat.flywheel;
 
 import dev.engine_room.flywheel.api.visualization.VisualizationManager;
 import dev.engine_room.flywheel.lib.visualization.VisualizationHelper;
