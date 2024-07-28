@@ -86,6 +86,8 @@
     "mod_compat.create.packets.MixinTileEntityConfigurationPacket",
     "mod_compat.create.packets.MixinTrainRelocationPacket",
     "mod_compat.create.pr.MixinSeatBlock",
+    "mod_compat.create_big_cannons.MixinAbstractCannonProjectile",
+    "mod_compat.create_big_cannons.MixinCBCUtils",
     "mod_compat.create_big_cannons.MixinPitchOrientedContraptionEntity",
     "mod_compat.create_utilities.MixinVoidLinkBehaviour",
     "mod_compat.reachentityattributes.MixinReachEntityAttributes",
