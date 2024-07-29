@@ -1,6 +1,5 @@
 package org.valkyrienskies.mod.compat.flywheel
 
-import dev.engine_room.flywheel.api.instance.Instance
 import dev.engine_room.flywheel.api.instance.Instancer
 import dev.engine_room.flywheel.api.model.Model
 import dev.engine_room.flywheel.api.task.Plan
@@ -15,7 +14,10 @@ import dev.engine_room.flywheel.lib.task.MapContextPlan
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import net.minecraft.core.SectionPos
 import net.minecraft.core.Vec3i
-import org.valkyrienskies.mod.compat.flywheel.ShipSectionFlywheelModels.BuildingContext
+import org.valkyrienskies.mod.compat.flywheel.model.FlywheelSectionModelBuilder
+import org.valkyrienskies.mod.compat.flywheel.model.FlywheelSectionModelBuilder.BuildingContext
+import org.valkyrienskies.mod.compat.flywheel.model.MultiBlockModelSectionBuilder
+import org.valkyrienskies.mod.compat.flywheel.model.TestModelBuilder
 
 class RenderingShipVisual(val effect: ShipEffect, val ctx: VisualizationContext) : Visual, DynamicVisual {
     private val instances = Long2ObjectOpenHashMap<TransformedInstance>()
@@ -24,7 +26,7 @@ class RenderingShipVisual(val effect: ShipEffect, val ctx: VisualizationContext)
         effect.level.getSectionYFromSectionIndex(effect.level.sectionsCount - 1) / 2 - 1,
         effect.ship.chunkClaim.zMiddle
     )
-    private val models = ShipSectionFlywheelModels(::newModel)
+    private val models: FlywheelSectionModelBuilder = MultiBlockModelSectionBuilder()
 
     private fun newModel(pos: SectionPos, model: Model?) {
         if (model == null) {
@@ -61,7 +63,7 @@ class RenderingShipVisual(val effect: ShipEffect, val ctx: VisualizationContext)
 
     override fun planFrame(): Plan<Context> =
         IfElsePlan.on<Context>(effect::areSectionsDirty)
-            .ifTrue(MapContextPlan.map { c: Context -> makeBuildingContext() }.to(models.createBuildingPlan()))
+            .ifTrue(MapContextPlan.map { c: Context -> makeBuildingContext() }.to(models.createBuildingPlan(::newModel)))
             .plan()
 
     private fun makeBuildingContext() =

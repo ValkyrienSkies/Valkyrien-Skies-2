@@ -1,14 +1,9 @@
-package org.valkyrienskies.mod.compat.flywheel
+package org.valkyrienskies.mod.compat.flywheel.model
 
-import dev.engine_room.flywheel.api.instance.Instance
 import dev.engine_room.flywheel.api.model.Model
 import dev.engine_room.flywheel.api.task.Plan
 import dev.engine_room.flywheel.lib.model.baked.MultiBlockModelBuilder
 import dev.engine_room.flywheel.lib.task.ForEachPlan
-import it.unimi.dsi.fastutil.longs.Long2ObjectMap
-import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
-
-import it.unimi.dsi.fastutil.longs.LongSet
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
 import net.minecraft.core.BlockPos.MutableBlockPos
@@ -21,25 +16,28 @@ import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.lighting.LevelLightEngine
 import net.minecraft.world.level.material.FluidState
+import org.valkyrienskies.mod.compat.flywheel.model.FlywheelSectionModelBuilder.BuildingContext
 import java.util.NoSuchElementException
 
-class ShipSectionFlywheelModels(val newModel: (SectionPos, Model?) -> Unit) {
-    fun createBuildingPlan(): Plan<BuildingContext> =
+class MultiBlockModelSectionBuilder : FlywheelSectionModelBuilder {
+    override fun createBuildingPlan(newModel: (SectionPos, Model?) -> Unit): Plan<BuildingContext> =
         ForEachPlan.of(
             {x: BuildingContext -> x.updates.map(SectionPos::of)},
-            ::buildChunk
+            buildChunk(newModel)
         )
 
-    fun buildChunk(pos: SectionPos, ctx: BuildingContext) = newModel(pos, run {
-        val chunk = ctx.level.getChunk(pos.x, pos.z);
-        val section = chunk.getSection(ctx.level.getSectionIndexFromSectionY(pos.y))
+    fun buildChunk(newModel: (SectionPos, Model?) -> Unit) = { pos: SectionPos, ctx: BuildingContext ->
+        newModel(pos, run {
+            val chunk = ctx.level.getChunk(pos.x, pos.z);
+            val section = chunk.getSection(ctx.level.getSectionIndexFromSectionY(pos.y))
 
-        if (section.hasOnlyAir()) return@run null
+            if (section.hasOnlyAir()) return@run null
 
-        MultiBlockModelBuilder.create(wrapLevel(ctx.level, pos.origin()), AllSectionPositions).apply {
-            enableFluidRendering()
-        }.build()
-    })
+            MultiBlockModelBuilder.create(wrapLevel(ctx.level, pos.origin()), AllSectionPositions).apply {
+                enableFluidRendering()
+            }.build()
+        })
+    }
 
     private fun wrapLevel(lvl: ClientLevel, origin: Vec3i) = object : BlockAndTintGetter {
         override fun getHeight(): Int = lvl.height
@@ -53,8 +51,7 @@ class ShipSectionFlywheelModels(val newModel: (SectionPos, Model?) -> Unit) {
         override fun getFluidState(blockPos: BlockPos): FluidState =
             lvl.getFluidState(blockPos.offset(origin))
 
-        override fun getShade(direction: Direction, bl: Boolean): Float =
-            lvl.getShade(direction, bl)
+        override fun getShade(direction: Direction, bl: Boolean): Float = 1f
 
         override fun getLightEngine(): LevelLightEngine =
             lvl.lightEngine
@@ -62,11 +59,6 @@ class ShipSectionFlywheelModels(val newModel: (SectionPos, Model?) -> Unit) {
         override fun getBlockTint(blockPos: BlockPos, colorResolver: ColorResolver): Int =
             lvl.getBlockTint(blockPos.offset(origin), colorResolver)
     }
-
-    data class BuildingContext(
-        val level: ClientLevel,
-        val updates: LongSet
-    )
 
     private object AllSectionPositions : Iterable<BlockPos> {
         override fun iterator(): Iterator<BlockPos> = MyIterator()
