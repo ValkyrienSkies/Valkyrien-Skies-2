@@ -103,16 +103,18 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
         // Remove the component of [movementAdjustedForCollisions] that is parallel to [collisionResponseHorizontal]
         if (collisionResponseHorizontal.lengthSquared() > 1e-6) {
+            final Vec3 deltaMovement = getDeltaMovement();
+
             final Vector3dc collisionResponseHorizontalNormal = collisionResponseHorizontal.normalize(new Vector3d());
             final double parallelHorizontalVelocityComponent =
                 collisionResponseHorizontalNormal
-                    .dot(movementAdjustedForCollisions.x, 0.0, movementAdjustedForCollisions.z);
+                    .dot(deltaMovement.x, 0.0, deltaMovement.z);
 
             setDeltaMovement(
-                movementAdjustedForCollisions.x
+                deltaMovement.x
                     - collisionResponseHorizontalNormal.x() * parallelHorizontalVelocityComponent,
-                movementAdjustedForCollisions.y,
-                movementAdjustedForCollisions.z
+                deltaMovement.y,
+                deltaMovement.z
                     - collisionResponseHorizontalNormal.z() * parallelHorizontalVelocityComponent
             );
         }
