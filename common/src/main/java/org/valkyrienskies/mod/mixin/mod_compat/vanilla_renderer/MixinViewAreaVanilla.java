@@ -14,6 +14,7 @@ import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -38,9 +39,11 @@ public class MixinViewAreaVanilla implements IVSViewAreaMethods {
     protected int chunkGridSizeY;
 
     // Maps chunk position to an array of BuiltChunk, indexed by the y value.
+    @Unique
     private final Long2ObjectMap<ChunkRenderDispatcher.RenderChunk[]> vs$shipRenderChunks =
         new Long2ObjectOpenHashMap<>();
     // This creates render chunks
+    @Unique
     private ChunkRenderDispatcher vs$chunkBuilder;
 
     /**

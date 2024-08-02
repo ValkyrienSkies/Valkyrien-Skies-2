@@ -26,3 +26,6 @@ mutable field    net/minecraft/world/phys/HitResult  location    Lnet/minecraft/
 accessible field    net/minecraft/world/phys/HitResult  location    Lnet/minecraft/world/phys/Vec3;
 
 accessible  class   net/minecraft/server/level/ChunkMap$DistanceManager
+
+# For flywheel lighting engine
+mutable field   net/minecraft/world/level/lighting/LevelLightEngine   blockEngine    Lnet/minecraft/world/level/lighting/LightEngine;

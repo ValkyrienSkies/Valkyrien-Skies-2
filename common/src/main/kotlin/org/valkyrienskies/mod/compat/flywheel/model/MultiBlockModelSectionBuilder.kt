@@ -15,6 +15,7 @@ import net.minecraft.world.level.ColorResolver
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.lighting.LevelLightEngine
+import net.minecraft.world.level.lighting.LightEngine
 import net.minecraft.world.level.material.FluidState
 import org.valkyrienskies.mod.compat.flywheel.model.FlywheelSectionModelBuilder.BuildingContext
 import java.util.NoSuchElementException
@@ -33,13 +34,15 @@ class MultiBlockModelSectionBuilder : FlywheelSectionModelBuilder {
 
             if (section.hasOnlyAir()) return@run null
 
-            MultiBlockModelBuilder.create(wrapLevel(ctx.level, pos.origin()), AllSectionPositions).apply {
+            //ctx.level.lightEngine.queueSectionData()
+
+            MultiBlockModelBuilder.create(wrapLevel(ctx.level, ctx.lightEngine, pos.origin()), AllSectionPositions).apply {
                 enableFluidRendering()
             }.build()
         })
     }
 
-    private fun wrapLevel(lvl: ClientLevel, origin: Vec3i) = object : BlockAndTintGetter {
+    private fun wrapLevel(lvl: ClientLevel, lightEngine: LevelLightEngine, origin: Vec3i) = object : BlockAndTintGetter {
         override fun getHeight(): Int = lvl.height
         override fun getMinBuildHeight(): Int = lvl.minBuildHeight
         override fun getBlockEntity(blockPos: BlockPos): BlockEntity? =
@@ -53,8 +56,7 @@ class MultiBlockModelSectionBuilder : FlywheelSectionModelBuilder {
 
         override fun getShade(direction: Direction, bl: Boolean): Float = 1f
 
-        override fun getLightEngine(): LevelLightEngine =
-            lvl.lightEngine
+        override fun getLightEngine(): LevelLightEngine = lightEngine
 
         override fun getBlockTint(blockPos: BlockPos, colorResolver: ColorResolver): Int =
             lvl.getBlockTint(blockPos.offset(origin), colorResolver)

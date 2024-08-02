@@ -90,6 +90,7 @@
     "mod_compat.create_utilities.MixinVoidLinkBehaviour",
     "mod_compat.flywheel.MixinBlockEntity",
     "mod_compat.flywheel.MixinLevelChunk",
+    "mod_compat.flywheel_renderer.LevelLightEngineAccessor",
     "mod_compat.reachentityattributes.MixinReachEntityAttributes",
     "server.MixinMinecraftServer",
     "server.MixinPlayerList",
