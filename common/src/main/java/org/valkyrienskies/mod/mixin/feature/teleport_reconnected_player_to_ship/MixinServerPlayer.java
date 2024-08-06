@@ -37,11 +37,8 @@ public abstract class MixinServerPlayer extends Player {
             return; // Player did not disconnect off of any ship
 
         final long lastShipId = compoundTag.getLong("LastShipId");
-        System.out.println("Last ship id is: " + lastShipId);
 
         final Ship ship = VSGameUtilsKt.getShipObjectWorld(serverLevel()).getAllShips().getById(lastShipId);
-        System.out.println("Should teleport to: " + ship);
-
         // If ship doesn't exist, don't bother
         if (ship == null)
             return;
@@ -65,15 +62,12 @@ public abstract class MixinServerPlayer extends Player {
             return;
 
         @Nullable final Long lastShipId = draggingInformation.getLastShipStoodOn();
-
         if (lastShipId == null)
             return;
 
         compoundTag.putLong("LastShipId", lastShipId);
-        System.out.println("Saved as: " + lastShipId);
 
         final Ship ship = VSGameUtilsKt.getShipObjectWorld(serverLevel()).getAllShips().getById(lastShipId);
-
         if (ship == null)
             return;
 
