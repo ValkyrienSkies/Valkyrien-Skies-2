@@ -11,6 +11,7 @@ import net.minecraft.world.level.Level;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -24,6 +25,11 @@ public abstract class MixinServerPlayer extends Player {
 
     @Shadow
     public abstract ServerLevel serverLevel();
+
+    // The maximum number of ticks before the player is no longer considered aboard a ship
+    // if they are no longer directly touching it
+    @Unique
+    private static final int MAX_ONBOARD_TICKS = 4;
 
     public MixinServerPlayer(final Level level, final BlockPos blockPos, final float f,
         final GameProfile gameProfile) {
@@ -39,7 +45,7 @@ public abstract class MixinServerPlayer extends Player {
         final long lastShipId = compoundTag.getLong("LastShipId");
 
         final Ship ship = VSGameUtilsKt.getShipObjectWorld(serverLevel()).getAllShips().getById(lastShipId);
-        // If ship doesn't exist, don't bother
+        // Don't teleport if the ship doesn't exist anymore
         if (ship == null)
             return;
 
@@ -58,18 +64,18 @@ public abstract class MixinServerPlayer extends Player {
     void rememberLastShip(final CompoundTag compoundTag, final CallbackInfo ci) {
         final EntityDraggingInformation draggingInformation = ((IEntityDraggingInformationProvider) this).getDraggingInformation();
 
-        if (draggingInformation.getTicksSinceStoodOnShip() > 4)
+        if (draggingInformation.getTicksSinceStoodOnShip() > MAX_ONBOARD_TICKS)
             return;
 
         @Nullable final Long lastShipId = draggingInformation.getLastShipStoodOn();
         if (lastShipId == null)
             return;
 
-        compoundTag.putLong("LastShipId", lastShipId);
-
         final Ship ship = VSGameUtilsKt.getShipObjectWorld(serverLevel()).getAllShips().getById(lastShipId);
         if (ship == null)
             return;
+
+        compoundTag.putLong("LastShipId", lastShipId);
 
         // Get position relative to ship
         // (Technically, this grabs the position in the shipyard, but it works well enough...)
