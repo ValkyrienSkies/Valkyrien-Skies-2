@@ -11,12 +11,12 @@ import net.minecraft.world.level.Level;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 
@@ -26,11 +26,6 @@ public abstract class MixinServerPlayer extends Player {
     @Shadow
     public abstract ServerLevel serverLevel();
 
-    // The maximum number of ticks before the player is no longer considered aboard a ship
-    // if they are no longer directly touching it
-    @Unique
-    private static final int MAX_ONBOARD_TICKS = 4;
-
     public MixinServerPlayer(final Level level, final BlockPos blockPos, final float f,
         final GameProfile gameProfile) {
         super(level, blockPos, f, gameProfile);
@@ -39,6 +34,9 @@ public abstract class MixinServerPlayer extends Player {
 
     @Inject(method = "readAdditionalSaveData", at = @At("RETURN"))
     void teleportToShip(final CompoundTag compoundTag, final CallbackInfo ci) {
+        if (!VSGameConfig.SERVER.getTeleportReconnectedPlayers())
+            return;
+
         if (!compoundTag.contains("LastShipId"))
             return; // Player did not disconnect off of any ship
 
@@ -64,7 +62,7 @@ public abstract class MixinServerPlayer extends Player {
     void rememberLastShip(final CompoundTag compoundTag, final CallbackInfo ci) {
         final EntityDraggingInformation draggingInformation = ((IEntityDraggingInformationProvider) this).getDraggingInformation();
 
-        if (draggingInformation.getTicksSinceStoodOnShip() > MAX_ONBOARD_TICKS)
+        if (draggingInformation.getTicksSinceStoodOnShip() > VSGameConfig.SERVER.getMaxAirborneTicksForReconnectedPlayerTeleport())
             return;
 
         @Nullable final Long lastShipId = draggingInformation.getLastShipStoodOn();

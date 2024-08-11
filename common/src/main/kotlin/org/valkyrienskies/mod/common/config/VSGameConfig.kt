@@ -96,6 +96,20 @@ object VSGameConfig {
         var enableMovementChecks = false
 
         @JsonSchema(
+            description = "If true, when a player disconnects, their position on the ship is saved such that " +
+                "if the ship is moved, when they reconnect they will be teleported to the same position in the ship " +
+                "as they left, instead of being left behind."
+        )
+        var teleportReconnectedPlayers = true
+
+        @JsonSchema(
+            description = "Determines how many airborne ticks after a player leaves the ground of a" +
+                "ship that they are still considered part of it when they disconnect, such that they will" +
+                "be teleported back to it after reconnecnting."
+        )
+        var maxAirborneTicksForReconnectedPlayerTeleport = 4
+
+        @JsonSchema(
             description = "If true, prevents water and other fluids from flowing out of the ship's bounding box."
         )
         var preventFluidEscapingShip = true
