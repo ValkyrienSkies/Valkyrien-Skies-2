@@ -48,6 +48,7 @@
     "feature.shipyard_entities.MixinServerLevel",
     "feature.shipyard_entities.MixinTransientEntitySectionManager",
     "feature.spawn_player_on_ship.MixinServerGamePacketListenerImpl",
+    "feature.teleport_reconnected_player_to_ship.MixinServerPlayer",
     "feature.tick_ship_chunks.MixinChunkMap",
     "feature.world_border.MixinLevel",
     "feature.world_border.MixinWorldBorder",
