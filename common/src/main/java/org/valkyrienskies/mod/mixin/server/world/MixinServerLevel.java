@@ -154,7 +154,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                                 for (int z = 0; z < 16; z++) {
                                     final BlockState blockState = chunkSection.getBlockState(x, y, z);
                                     final int posX = (chunkX << 4) + x;
-                                    final int posY = worldChunk.getMinBuildHeight() + y;
+                                    final int posY = worldChunk.getMinBuildHeight() + (sectionY << 4) + y;
                                     final int posZ = (chunkZ << 4) + z;
                                     if (blockState.getBlock() instanceof WingBlock) {
                                         mutableBlockPos.set(posX, posY, posZ);
