@@ -34,6 +34,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.BlockStateInfo;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VSLevelChunk;
 
 @Mixin(LevelChunk.class)
@@ -62,7 +63,10 @@ public abstract class MixinLevelChunk extends ChunkAccess implements VSLevelChun
     public void postSetBlockState(final BlockPos pos, final BlockState state, final boolean moved,
         final CallbackInfoReturnable<BlockState> cir) {
         final BlockState prevState = cir.getReturnValue();
-        BlockStateInfo.INSTANCE.onSetBlock(level, pos, prevState, state);
+        // This function is getting invoked by non-game threads for some reason. So use executeOrSchedule() to schedule
+        // onSetBlock() to be run on the next tick when this function is invoked by a non-game thread.
+        // See https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues/913 for more info.
+        VSGameUtilsKt.executeOrSchedule(level, () -> BlockStateInfo.INSTANCE.onSetBlock(level, pos, prevState, state));
     }
 
     @Shadow
