@@ -10,6 +10,7 @@ import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerChunkCache
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.util.thread.BlockableEventLoop
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.ChunkPos
@@ -406,6 +407,25 @@ fun Level.transformAabbToWorld(aabb: AABBdc, dest: AABBd): AABBd {
     }
 
     return dest.set(aabb)
+}
+
+/**
+ * Execute [runnable] immediately iff the thread invoking this is the same as the game thread.
+ * Otherwise, schedule [runnable] to run on the next tick.
+ */
+fun Level.executeOrSchedule(runnable: Runnable) {
+    val blockableEventLoop: BlockableEventLoop<Runnable> = if (!this.isClientSide) {
+        this.server!! as BlockableEventLoop<Runnable>
+    } else {
+        Minecraft.getInstance()
+    }
+    if (blockableEventLoop.isSameThread) {
+        // For some reason MinecraftServer wants to schedule even when it's the same thread, so we need to add our own
+        // logic
+        runnable.run()
+    } else {
+        blockableEventLoop.execute(runnable)
+    }
 }
 
 fun getShipMountedToData(passenger: Entity, partialTicks: Float? = null): ShipMountedToData? {
