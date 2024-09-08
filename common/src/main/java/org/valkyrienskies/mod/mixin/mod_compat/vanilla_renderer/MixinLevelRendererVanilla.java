@@ -128,7 +128,6 @@ public abstract class MixinLevelRendererVanilla {
         assert viewArea != null;
         final ViewAreaAccessor chunkStorageAccessor = (ViewAreaAccessor) viewArea;
         final VsViewArea vsViewArea = (VsViewArea) viewArea;
-        vsViewArea.vs$clearExtra();
 
         for (final ClientShip shipObject : VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips()) {
             // Don't bother rendering the ship if its AABB isn't visible to the frustum
@@ -187,6 +186,11 @@ public abstract class MixinLevelRendererVanilla {
         )
     )
     private void clearShipChunks(final CallbackInfo ci) {
+        if (viewArea != null) {
+            final VsViewArea vsViewArea = (VsViewArea) viewArea;
+            vsViewArea.vs$clearExtra();
+        }
+
         shipRenderChunks.forEach((ship, chunks) -> chunks.clear());
     }
 
