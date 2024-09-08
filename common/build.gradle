@@ -26,6 +26,9 @@ dependencies {
     modCompileOnly("curse.maven:ftb-teams-404468:4229138")
     modCompileOnly("curse.maven:ftb-chunks-314906:4229120")
 
+    // DH
+    modCompileOnly("curse.maven:distant-horizons-508933:5689266")
+
     // Weather2 1.18
     modCompileOnly("curse.maven:weather-storms-tornadoes-237746:4426524")
 

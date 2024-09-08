@@ -11,6 +11,9 @@ object LoadedMods {
     @JvmStatic
     val weather2 by CompatInfo("weather2.Weather")
 
+    @JvmStatic
+    val dh by CompatInfo("com.seibel.distanthorizons.core.api.internal.SharedApi")
+
     class CompatInfo(private val className: String) : ReadOnlyProperty<Any?, Boolean> {
         private var isLoaded: Boolean? = null
 

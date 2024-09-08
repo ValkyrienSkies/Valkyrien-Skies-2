@@ -4,6 +4,7 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Position
+import net.minecraft.core.SectionPos
 import net.minecraft.core.Vec3i
 import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
@@ -346,6 +347,25 @@ fun Ship.toWorldCoordinates(pos: BlockPos): Vector3d =
 
 fun Ship.toWorldCoordinates(pos: Vec3): Vec3 =
     shipToWorld.transformPosition(pos.toJOML()).toMinecraft()
+
+fun Level?.centeredBlockPosToWorldChunkPos(bx: Int, bz: Int): ChunkPos {
+    val worldPos = toWorldCoordinates(bx.toDouble(), 0.0, bz.toDouble())
+
+    val rcx = SectionPos.blockToSectionCoord(worldPos.x.toInt())
+    val rcz = SectionPos.blockToSectionCoord(worldPos.z.toInt())
+
+    return ChunkPos(rcx, rcz)
+}
+
+fun Level?.toWorldCoordinates(cx: Int, cz: Int): ChunkPos {
+    val bx = SectionPos.sectionToBlockCoord(cx) + 8
+    val bz = SectionPos.sectionToBlockCoord(cz) + 8
+
+    return centeredBlockPosToWorldChunkPos(bx, bz)
+}
+
+fun Level?.toWorldCoordinates(cp: ChunkPos): ChunkPos =
+    toWorldCoordinates(cp.x, cp.z)
 
 fun Level?.toWorldCoordinates(pos: Vec3): Vec3 {
     return this?.getShipManagingPos(pos)?.toWorldCoordinates(pos) ?: pos

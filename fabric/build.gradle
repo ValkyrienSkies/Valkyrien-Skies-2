@@ -40,7 +40,7 @@ dependencies {
     include(modImplementation("net.fabricmc:fabric-language-kotlin:1.10.10+kotlin.1.9.10"))
     include(modImplementation("me.shedaniel.cloth:cloth-config-fabric:6.3.81"))
 
-    modImplementation("curse.maven:sodium-394468:3669187")
+    modCompileOnly("curse.maven:sodium-394468:3669187")
     modImplementation("com.terraformersmc:modmenu:3.2.3")
 
     // Depend on the fabric API
@@ -72,10 +72,10 @@ dependencies {
     modImplementation("curse.maven:cc-restitched-462672:3838648")
 
     // Create compat
-    modImplementation("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}") {
+    modCompileOnly("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}") {
         exclude group: 'com.github.AlphaMode', module: 'fakeconfigtoml'
     }
-    modImplementation("com.jozufozu.flywheel:flywheel-fabric-${minecraft_version}:${flywheel_version_fabric}")
+    modCompileOnly("com.jozufozu.flywheel:flywheel-fabric-${minecraft_version}:${flywheel_version_fabric}")
     modImplementation("com.tterrag.registrate_fabric:Registrate:${registrate_version}")
     modImplementation("io.github.fabricators_of_create:Porting-Lib:${port_lib_version}+${minecraft_version}")
     modImplementation("me.alphamode:ForgeTags:${forge_tags_version}")
