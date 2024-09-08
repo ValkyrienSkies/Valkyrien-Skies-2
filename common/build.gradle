@@ -25,6 +25,10 @@ dependencies {
     modCompileOnly("curse.maven:ftb-teams-404468:4229138")
     modCompileOnly("curse.maven:ftb-chunks-314906:4229120")
 
+    // EMF compat
+    modCompileOnly("curse.maven:entity-model-features-844662:5696901")
+    modCompileOnly("curse.maven:entity-texture-features-fabric-568563:5697084")
+
     //Common create compat,
     //We just use a version from a platform and hope the classes exist on both versions and mixins apply correctly
     modCompileOnly("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}")
