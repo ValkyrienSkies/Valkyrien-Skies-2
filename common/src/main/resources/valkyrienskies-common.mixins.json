@@ -89,8 +89,6 @@
     "mod_compat.create.pr.MixinSeatBlock",
     "mod_compat.create_big_cannons.MixinPitchOrientedContraptionEntity",
     "mod_compat.create_utilities.MixinVoidLinkBehaviour",
-    "mod_compat.emf.MixinEMFAnimationEntityContext",
-    "mod_compat.etf.MixinBlockEntity",
     "mod_compat.reachentityattributes.MixinReachEntityAttributes",
     "server.MixinMinecraftServer",
     "server.MixinPlayerList",
@@ -179,6 +177,8 @@
     "mod_compat.vanilla_renderer.MixinLevelRendererVanilla",
     "mod_compat.vanilla_renderer.MixinViewAreaVanilla",
     "mod_compat.vanilla_renderer.RenderChunkInfoAccessor",
+    "mod_compat.emf.MixinEMFAnimationEntityContext",
+    "mod_compat.etf.MixinBlockEntity",
     "realms.MixinRealmsConnect"
   ],
   "injectors": {
