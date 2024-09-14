@@ -130,14 +130,14 @@ public abstract class MixinViewArea implements VsViewArea {
 
     @Inject(at = @At("HEAD"), method = "repositionCamera")
     void repositionCamera(double d, double e, final CallbackInfo ci) {
-        if (vs$extraChunks == null) return;
-
         vs$camX = d;
         vs$camZ = e;
         vs$didSetCam = true;
 
-        for (final var chunk : vs$extraChunks) {
-            vs$repositionCameraFor(chunk);
+        if (vs$extraChunks != null) {
+            for (final var chunk : vs$extraChunks) {
+                vs$repositionCameraFor(chunk);
+            }
         }
     }
 
@@ -181,14 +181,28 @@ public abstract class MixinViewArea implements VsViewArea {
 
     @Override
     @Nullable
-    public ChunkRenderDispatcher.RenderChunk vs$addExtra(final int cx, final int cy, final int cz) {
-        if (cx >= getChunkGridSizeX() || cy >= getChunkGridSizeY() || cz >= getChunkGridSizeZ()) {
+    public ChunkRenderDispatcher.RenderChunk vs$addExtra(final BlockPos pos) {
+        final var simpleChunk = getRenderChunkAt(pos);
+        if (simpleChunk != null) return simpleChunk;
+
+        final int x = Mth.intFloorDiv(pos.getX(), 16);
+        final int y = Mth.intFloorDiv(pos.getY() - getLevel().getMinBuildHeight(), 16);
+        final int z = Mth.intFloorDiv(pos.getZ(), 16);
+
+        if (y < 0) return null;
+
+        if (x < 0 || z < 0 || x >= getChunkGridSizeX() || y >= getChunkGridSizeY() || z >= getChunkGridSizeZ()) {
             if (vs$extraChunks == null) {
                 vs$extraChunks = new ObjectArrayList<>();
+            } else {
+                final int idx = vs$findChunk(x, y, z);
+                if (idx != -1) {
+                    return vs$extraChunks.get(idx).chunk();
+                }
             }
 
-            final var chunk = vs$createRenderChunk(cx, cy, cz);
-            final var extra = new VsViewArea.ExtraChunk(cx, cy, cz, chunk);
+            final var chunk = vs$createRenderChunk(x, y, z);
+            final var extra = new VsViewArea.ExtraChunk(x, y, z, chunk);
             vs$extraChunks.add(extra);
 
             if (vs$didSetCam) {
@@ -198,7 +212,7 @@ public abstract class MixinViewArea implements VsViewArea {
             return chunk;
         }
 
-        return getRenderChunkAt(new BlockPos(cx << 4, cy << 4, cz << 4));
+        return null;
     }
 
     @Override

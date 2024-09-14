@@ -119,6 +119,8 @@ public abstract class MixinLevelRendererVanilla {
     private void addShipVisibleChunks(
         final Frustum frustum, final CallbackInfo ci) {
 
+        vs$clearChunks();
+
         final boolean dh = LoadedMods.getDh();
 
         renderChunksGeneratedByVanilla = new ObjectArrayList<>(renderChunksInFrustum);
@@ -129,20 +131,22 @@ public abstract class MixinLevelRendererVanilla {
         final ViewAreaAccessor chunkStorageAccessor = (ViewAreaAccessor) viewArea;
         final VsViewArea vsViewArea = (VsViewArea) viewArea;
 
-        for (final ClientShip shipObject : VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips()) {
-            // Don't bother rendering the ship if its AABB isn't visible to the frustum
-            if (!frustum.isVisible(VectorConversionsMCKt.toMinecraft(shipObject.getRenderAABB()))) {
+        for (final ClientShip shipObject : VSGameUtilsKt.getShipObjectWorld(level).getAllShips()) {
+            final var renderAABB = shipObject.getRenderAABB();
+
+            // TODO: for dh: use furstum too (but with extended render distance)
+            if (!dh && !frustum.isVisible(VectorConversionsMCKt.toMinecraft(renderAABB))) {
                 continue;
             }
 
             shipObject.getActiveChunksSet().forEach((x, z) -> {
                 final LevelChunk levelChunk = level.getChunk(x, z);
                 for (int y = level.getMinSection(); y < level.getMaxSection(); y++) {
+                    tempPos.set(x << 4, y << 4, z << 4);
                     final ChunkRenderDispatcher.RenderChunk renderChunk;
                     if (dh) {
-                        renderChunk = vsViewArea.vs$addExtra(x, y, z);
+                        renderChunk = vsViewArea.vs$addExtra(tempPos);
                     } else {
-                        tempPos.set(x << 4, y << 4, z << 4);
                         renderChunk = chunkStorageAccessor.callGetRenderChunkAt(tempPos);
                     }
 
@@ -158,7 +162,8 @@ public abstract class MixinLevelRendererVanilla {
                             (x << 4) + 15.6, (y << 4) + 15.6, (z << 4) + 15.6)
                             .transform(shipObject.getRenderTransform().getShipToWorld());
 
-                        if (!frustum.isVisible(VectorConversionsMCKt.toMinecraft(b2))) {
+                        // TODO: for dh: use furstum too (but with extended render distance)
+                        if (!dh && !frustum.isVisible(VectorConversionsMCKt.toMinecraft(b2))) {
                             continue;
                         }
 
@@ -178,20 +183,40 @@ public abstract class MixinLevelRendererVanilla {
         }
     }
 
-    @Inject(
-        method = "*",
-        at = @At(
-            value = "INVOKE",
-            target = "Lit/unimi/dsi/fastutil/objects/ObjectArrayList;clear()V"
-        )
-    )
-    private void clearShipChunks(final CallbackInfo ci) {
+    @Unique
+    private void vs$clearChunks() {
+        if (vs$chunksOverwrite != null)
+            throw new RuntimeException("wtf");
+
         if (viewArea != null) {
             final VsViewArea vsViewArea = (VsViewArea) viewArea;
             vsViewArea.vs$clearExtra();
         }
 
         shipRenderChunks.forEach((ship, chunks) -> chunks.clear());
+    }
+
+    @Inject(method = "setLevel", at = @At("TAIL"))
+    private void setLevel(final ClientLevel clientLevel, final CallbackInfo ci) {
+        if (clientLevel == null) {
+            vs$clearChunks();
+        }
+    }
+
+    @Inject(method = "allChanged", at = @At("TAIL"))
+    private void allChanged(final CallbackInfo ci) {
+        if (level != null) {
+            vs$clearChunks();
+        }
+    }
+
+    @Unique
+    private int vs$getViewDistance() {
+        if (LoadedMods.getDh()) {
+            return DhCompat.dhViewDistance() << 4;
+        } else {
+            return Minecraft.getInstance().options.getEffectiveRenderDistance();
+        }
     }
 
     @Unique
@@ -220,24 +245,17 @@ public abstract class MixinLevelRendererVanilla {
 
         vs$chunksOverwrite = new ObjectArrayList<>();
 
-        final boolean dh = LoadedMods.getDh();
-
-        int viewDistance;
-        if (dh) {
-            viewDistance = DhCompat.dhViewDistance() << 4;
-        } else {
-            viewDistance = -1;
-        }
+        final int viewDistance = vs$getViewDistance();
 
         shipRenderChunks.forEach((ship, chunks) -> {
-            if (dh) {
-                final var dist2cam = ship.getRenderTransform()
-                    .getPositionInWorld()
-                    .distance(camX, camY, camZ);
+            if (chunks.isEmpty()) return; // TODO: should this even happen?
 
-                if ((int) dist2cam > viewDistance) {
-                    return;
-                }
+            final var dist2cam = ship.getRenderTransform()
+                .getPositionInWorld()
+                .distance(camX, camY, camZ);
+
+            if ((int) dist2cam > viewDistance) {
+                return;
             }
 
             poseStack.pushPose();
@@ -254,7 +272,7 @@ public abstract class MixinLevelRendererVanilla {
 
             vs$chunksOverwrite.clear();
             vs$chunksOverwrite.addAll(chunks);
-            renderChunkLayer.call(receiver, renderType, poseStack, center.x(), center.y(), center.z(), matrix4f, chunks);
+            renderChunkLayer.call(receiver, renderType, poseStack, center.x(), center.y(), center.z(), matrix4f);
 
             VSGameEvents.INSTANCE.getPostRenderShip().emit(event);
 
