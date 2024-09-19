@@ -109,6 +109,7 @@ subprojects {
                 name = 'tterrag maven'
                 url = 'https://maven.tterrag.com/'
             }
+            maven { url = "https://modmaven.dev/" } // Twilight Forest
             maven { url = "https://api.modrinth.com/maven" } // LazyDFU, Suggestion Tweaker, Create Big Cannons
             maven { url = "https://maven.shedaniel.me/" } // Cloth Config, REI
             maven { url "https://maven.architectury.dev/" }

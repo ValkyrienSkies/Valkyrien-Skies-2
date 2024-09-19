@@ -67,6 +67,9 @@ dependencies {
     //modCompileOnly("curse.maven:rubidium-574856:4024781")
     modCompileOnly("maven.modrinth:embeddium:${embeddium_version}")
 
+    // Twilight Forest
+    modImplementation("teamtwilight:twilightforest:${twilightforest_version}:universal")
+
     // Create compat
     modImplementation("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") { transitive = false }
     modImplementation("com.jozufozu.flywheel:flywheel-forge-${minecraft_version}:${flywheel_version}")
