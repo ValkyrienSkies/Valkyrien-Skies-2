@@ -177,6 +177,8 @@
     "mod_compat.vanilla_renderer.MixinLevelRendererVanilla",
     "mod_compat.vanilla_renderer.MixinViewAreaVanilla",
     "mod_compat.vanilla_renderer.RenderChunkInfoAccessor",
+    "mod_compat.emf.MixinEMFAnimationEntityContext",
+    "mod_compat.etf.MixinBlockEntity",
     "realms.MixinRealmsConnect"
   ],
   "injectors": {
