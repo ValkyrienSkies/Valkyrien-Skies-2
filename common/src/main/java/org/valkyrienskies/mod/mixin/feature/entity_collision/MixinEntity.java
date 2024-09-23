@@ -116,6 +116,8 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
                     - collisionResponseHorizontalNormal.z() * parallelHorizontalVelocityComponent
             );
         }
+        // The rest of the move function (including tryCheckInsideBlocks) is skipped, so calling it here
+        tryCheckInsideBlocks();
         // Cancel the original invocation of Entity.setVelocity(DDD)V to remove vanilla behavior
         callbackInfo.cancel();
     }
@@ -223,6 +225,9 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
     @Shadow
     public abstract void setDeltaMovement(double x, double y, double z);
+
+    @Shadow
+    protected abstract void tryCheckInsideBlocks();
 
     @Shadow
     protected abstract Vec3 collide(Vec3 vec3d);
