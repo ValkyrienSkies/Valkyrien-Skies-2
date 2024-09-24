@@ -65,6 +65,7 @@ import org.valkyrienskies.mod.common.world.ChunkManagement;
 import org.valkyrienskies.mod.compat.LoadedMods;
 import org.valkyrienskies.mod.compat.Weather2Compat;
 import org.valkyrienskies.mod.util.KrunchSupport;
+import org.valkyrienskies.mod.util.McMathUtilKt;
 
 @Mixin(MinecraftServer.class)
 public abstract class MixinMinecraftServer implements IShipObjectWorldServerProvider, GameServer {
@@ -159,7 +160,8 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
 
         getShipObjectWorld().addDimension(
             VSGameUtilsKt.getDimensionId(overworld()),
-            VSGameUtilsKt.getYRange(overworld())
+            VSGameUtilsKt.getYRange(overworld()),
+            McMathUtilKt.getDEFAULT_WORLD_GRAVITY()
         );
     }
 
