@@ -1,237 +1,237 @@
 [
   {
     "block": "minecraft:dirt",
-    "mass": 1220.0,
+    "mass": 125.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:coarse_dirt",
-    "mass": 1500.0,
+    "mass": 150.0,
     "friction": 0.7
   },
   {
     "block": "minecraft:dirt_path",
-    "mass": 1200.0,
+    "mass": 100.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:farmland",
-    "mass": 1220.0,
+    "mass": 125.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:grass",
-    "mass": 1300.0,
+    "mass": 125.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:clay",
-    "mass": 1700.0,
+    "mass": 150.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:gravel",
-    "mass": 1680.0,
+    "mass": 150.0,
     "friction": 0.7
   },
   {
     "block": "minecraft:mycelium",
-    "mass": 1300.0,
+    "mass": 125.0,
     "friction": 0.5
   },
   {
     "tag": "minecraft:nylium",
-    "mass": 1180.0,
+    "mass": 125.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:podzol",
-    "mass": 1300.0,
+    "mass": 125.0,
     "friction": 0.6
   },
   {
     "tag": "minecraft:sand",
-    "mass": 1560.0,
+    "mass": 150.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:soul_sand",
-    "mass": 1000.0,
+    "mass": 100.0,
     "friction": 0.9
   },
   {
     "block": "minecraft:soul_soil",
-    "mass": 900.0,
+    "mass": 100.0,
     "friction": 0.8
   },
   {
     "block": "minecraft:andesite",
-    "mass": 2770.0,
+    "mass": 275.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:basalt",
-    "mass": 3010.0,
+    "mass": 300.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:smooth_basalt",
-    "mass": 3010.0,
+    "mass": 300.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:blackstone",
-    "mass": 3400.0,
+    "mass": 350.0,
     "friction": 0.7
   },
   {
     "block": "minecraft:cobblestone",
-    "mass": 2480.0,
+    "mass": 250.0,
     "friction": 0.8
   },
   {
     "block": "minecraft:mossy_cobblestone",
-    "mass": 2600.0,
+    "mass": 250.0,
     "friction": 0.8
   },
   {
     "block": "minecraft:diorite",
-    "mass": 2900.0,
+    "mass": 250.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:end_stone",
-    "mass": 2800.0,
+    "mass": 100.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:glowstone",
-    "mass": 1000.0,
+    "mass": 100.0,
     "friction": 0.7
   },
   {
     "block": "minecraft:granite",
-    "mass": 2700.0,
+    "mass": 250.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:magma_block",
-    "mass": 3200.0,
+    "mass": 300.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:netherrack",
-    "mass": 1100.0,
+    "mass": 100.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:obsidian",
-    "mass": 2350.0,
+    "mass": 500.0,
     "friction": 0.8
   },
   {
     "block": "minecraft:crying_obsidian",
-    "mass": 2350.0,
+    "mass": 500.0,
     "friction": 0.8
   },
   {
     "block": "minecraft:sandstone",
-    "mass": 2300.0,
+    "mass": 250.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:red_sandstone",
-    "mass": 2300.0,
+    "mass": 250.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:stone",
-    "mass": 2600.0,
+    "mass": 250.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:terracotta",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:white_terracotta",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:orange_terracotta",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:magenta_terracotta",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:light_blue_terracotta",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:yellow_terracotta",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:lime_terracotta",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:pink_terracotta",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:gray_terracotta",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:light_gray_terracotta",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:cyan_terracotta",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:purple_terracotta",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:blue_terracotta",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:brown_terracotta",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:green_terracotta",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:red_terracotta",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:black_terracotta",
-    "mass": 2000.0,
+    "mass": 200.0,
     "friction": 0.6
   }
 ]

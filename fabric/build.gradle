@@ -59,7 +59,15 @@ dependencies {
         exclude module: "fastutil"
         exclude module: "kotlin-stdlib-jdk8" // Don't shade kotlin-stdlib-jdk8, even though vs-core depends on it
         exclude module: "jsonschema.module.addon"
+
+        exclude group: "com.google.guava"
     }
+
+    def jacksonVersion = '2.14.0'
+
+
+    include("com.fasterxml:classmate:1.5.1")
+    implementation("com.fasterxml:classmate:1.5.1")
 
     // CC Restitchedget
     modImplementation("maven.modrinth:cc-restitched:${cc_restitched_version}")

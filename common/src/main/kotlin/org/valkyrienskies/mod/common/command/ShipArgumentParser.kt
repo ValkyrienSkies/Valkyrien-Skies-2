@@ -138,8 +138,14 @@ class ShipArgumentParser(private val source: VSCommandSource?, private var selec
                     .filter { it.startsWith(builder.remaining) }
                     .forEach { builder.suggest(it) }
             }
-
         "limit" -> {}
+        "id" ->
+            suggest { builder, source ->
+                source.shipWorld.allShips
+                    .map { it.id.toString() }
+                    .filter { it.startsWith(builder.remaining) }
+                    .forEach { builder.suggest(it) }
+            }
         else -> throw ERROR_UNKNOWN_OPTION.create(option)
     }
 
@@ -155,7 +161,7 @@ class ShipArgumentParser(private val source: VSCommandSource?, private var selec
 
             this.slug = slug
         }
-
+        "id" -> id = reader.readLong()
         "limit" -> limit = reader.readInt()
         else -> throw ERROR_UNKNOWN_OPTION.create(option)
     }
