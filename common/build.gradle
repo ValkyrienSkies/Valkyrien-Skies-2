@@ -17,12 +17,17 @@ dependencies {
         exclude module: "fastutil"
     }
 
+    implementation("org.valkyrienskies.core:api:${rootProject.vs_core_version}")
+    implementation("org.valkyrienskies.core:api-game:${rootProject.vs_core_version}")
     implementation("org.valkyrienskies.core:util:${rootProject.vs_core_version}")
 
     // FTB Stuffs
     modCompileOnly("curse.maven:ftb-util-404465:4210935")
     modCompileOnly("curse.maven:ftb-teams-404468:4229138")
     modCompileOnly("curse.maven:ftb-chunks-314906:4229120")
+
+    // Weather2 1.18
+    // modCompileOnly("curse.maven:weather-storms-tornadoes-237746:4426524")
 
     //Common create compat,
     //We just use a version from a platform and hope the classes exist on both versions and mixins apply correctly
@@ -34,6 +39,11 @@ dependencies {
     //implementation("io.github.fabricators_of_create.Porting-Lib:Porting-Lib:$port_lib_version+$minecraft_version")
 
     modCompileOnly("maven.modrinth:create-big-cannons:${createbigcannons_version}")
+    modCompileOnly("io.github.fabricators_of_create:Porting-Lib:${port_lib_version}+${minecraft_version}")
+    modCompileOnly("com.rbasamoyai:createbigcannons-fabric-${minecraft_version}:${createbigcannons_version}")
+
+    //Bluemap fabric 1.19
+    modCompileOnly("curse.maven:bluemap-406463:4474497")
 }
 
 architectury {

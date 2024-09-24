@@ -10,6 +10,7 @@ import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerChunkCache
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.util.thread.BlockableEventLoop
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.ChunkPos
@@ -208,7 +209,7 @@ inline fun Level?.transformToNearbyShipsAndWorld(
         cb(posInWorld.x(), posInWorld.y(), posInWorld.z())
     }
 
-    for (nearbyShip in shipObjectWorld.allShips.getIntersecting(aabb)) {
+    for (nearbyShip in shipObjectWorld.allShips.getIntersecting(aabb, this!!.dimensionId)) {
         if (nearbyShip == currentShip) continue
         val posInShip = nearbyShip.worldToShip.transformPosition(posInWorld, temp0)
         cb(posInShip.x(), posInShip.y(), posInShip.z())
@@ -393,8 +394,7 @@ fun Level?.getWorldCoordinates(blockPos: BlockPos, pos: Vector3d): Vector3d {
 }
 
 fun Level.getShipsIntersecting(aabb: AABB): Iterable<Ship> = getShipsIntersecting(aabb.toJOML())
-fun Level.getShipsIntersecting(aabb: AABBdc): Iterable<Ship> = allShips.getIntersecting(aabb).filter { it.chunkClaimDimension == dimensionId }
-
+fun Level.getShipsIntersecting(aabb: AABBdc): Iterable<Ship> = allShips.getIntersecting(aabb, dimensionId)
 fun Level?.transformAabbToWorld(aabb: AABB): AABB = transformAabbToWorld(aabb.toJOML()).toMinecraft()
 fun Level?.transformAabbToWorld(aabb: AABBd) = this?.transformAabbToWorld(aabb, aabb) ?: aabb
 fun Level.transformAabbToWorld(aabb: AABBdc, dest: AABBd): AABBd {
@@ -407,6 +407,25 @@ fun Level.transformAabbToWorld(aabb: AABBdc, dest: AABBd): AABBd {
     }
 
     return dest.set(aabb)
+}
+
+/**
+ * Execute [runnable] immediately iff the thread invoking this is the same as the game thread.
+ * Otherwise, schedule [runnable] to run on the next tick.
+ */
+fun Level.executeOrSchedule(runnable: Runnable) {
+    val blockableEventLoop: BlockableEventLoop<Runnable> = if (!this.isClientSide) {
+        this.server!! as BlockableEventLoop<Runnable>
+    } else {
+        Minecraft.getInstance()
+    }
+    if (blockableEventLoop.isSameThread) {
+        // For some reason MinecraftServer wants to schedule even when it's the same thread, so we need to add our own
+        // logic
+        runnable.run()
+    } else {
+        blockableEventLoop.execute(runnable)
+    }
 }
 
 fun getShipMountedToData(passenger: Entity, partialTicks: Float? = null): ShipMountedToData? {

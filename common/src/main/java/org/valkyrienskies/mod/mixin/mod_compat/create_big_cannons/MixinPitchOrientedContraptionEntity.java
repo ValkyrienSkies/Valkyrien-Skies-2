@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.mixin.mod_compat.create_big_cannons;
 
+import static org.valkyrienskies.mod.common.util.VectorConversionsMCKt.toJOML;
+
 import com.simibubi.create.content.contraptions.OrientedContraptionEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
@@ -46,6 +48,13 @@ public abstract class MixinPitchOrientedContraptionEntity extends OrientedContra
                     .subtract(0, passenger.getEyeHeight(), 0);
                 ci.setReturnValue(original);
             }
+        }
+    }
+
+    @Inject(method="getPassengerPosition", at = @At("RETURN"), cancellable = true, remap = false)
+    protected void vsGetPassengerPosition(Entity passenger, float partialTicks, CallbackInfoReturnable<Vec3> cir) {
+        if (VSGameUtilsKt.getShipObjectManagingPos(passenger.level, toJOML(this.position())) != null) {
+            cir.setReturnValue(cir.getReturnValue().add(0,0.1,0));
         }
     }
 }

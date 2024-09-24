@@ -1,6 +1,8 @@
 package org.valkyrienskies.mod.util
 
 import net.minecraft.world.phys.AABB
+import org.joml.Vector3d
+import org.joml.Vector3dc
 
 fun AABB.scale(scale: Double): AABB {
     val sizeX = (this.xsize * scale) / 2
@@ -15,3 +17,5 @@ fun AABB.scale(scale: Double): AABB {
         this.center.z + sizeZ
     )
 }
+
+val DEFAULT_WORLD_GRAVITY: Vector3dc = Vector3d(0.0, -10.0, 0.0)

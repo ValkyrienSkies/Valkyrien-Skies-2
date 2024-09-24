@@ -23,12 +23,6 @@ You can download official releases of Valkyrien Skies from our [website](https:/
 
 ## Development
 
-Valkyrien Skies 2 source code is split between the code in this repository, and
-the code in [vs-core](https://github.com/ValkyrienSkies/vs-core).
-
-The Minecraft version dependent code lives in this repository, and the version
-independent code lives in [vs-core](https://github.com/ValkyrienSkies/vs-core).
-
 ### IntelliJ
 
 1. Clone the

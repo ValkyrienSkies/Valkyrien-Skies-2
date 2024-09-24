@@ -1,51 +1,51 @@
 [
   {
     "block": "minecraft:redstone_wire",
-    "mass": 5.0
+    "mass": 0.5
   },
   {
     "block": "minecraft:dispenser",
-    "mass": 2800.0,
+    "mass": 250.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:dropper",
-    "mass": 2800.0,
+    "mass": 250.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:note_block",
-    "mass": 1200.0,
+    "mass": 100.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:detector_rail",
-    "mass": 380.0,
+    "mass": 100.0,
     "friction": 0.7
   },
   {
     "block": "minecraft:powered_rail",
-    "mass": 800.0,
+    "mass": 150.0,
     "friction": 0.7
   },
   {
     "block": "minecraft:rail",
-    "mass": 330.0,
+    "mass": 100.0,
     "friction": 0.7
   },
   {
     "block": "minecraft:activator_rail",
-    "mass": 330.0,
+    "mass": 100.0,
     "friction": 0.7
   },
   {
     "block": "minecraft:piston",
-    "mass": 2800.0,
+    "mass": 250.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:sticky_piston",
-    "mass": 2800.0,
+    "mass": 250.0,
     "friction": 0.5
   },
   {
@@ -60,51 +60,51 @@
   },
   {
     "block": "minecraft:tnt",
-    "mass": 1200.0
+    "mass": 125.0
   },
   {
     "block": "minecraft:lever",
-    "mass": 10.0
-  },
-  {
-    "tag": "minecraft:wooden_pressure_plates",
-    "mass": 10.0
-  },
-  {
-    "block": "minecraft:stone_pressure_plate",
-    "mass": 130.0
-  },
-  {
-    "block": "minecraft:polished_blackstone_pressure_plate",
-    "mass": 170.0
-  },
-  {
-    "block": "minecraft:light_weighted_pressure_plate",
-    "mass": 800.0
-  },
-  {
-    "block": "minecraft:heavy_weighted_pressure_plate",
-    "mass": 350.0
-  },
-  {
-    "block": "minecraft:redstone_torch",
     "mass": 5.0
   },
   {
+    "tag": "minecraft:wooden_pressure_plates",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:stone_pressure_plate",
+    "mass": 10.0
+  },
+  {
+    "block": "minecraft:polished_blackstone_pressure_plate",
+    "mass": 10.0
+  },
+  {
+    "block": "minecraft:light_weighted_pressure_plate",
+    "mass": 50.0
+  },
+  {
+    "block": "minecraft:heavy_weighted_pressure_plate",
+    "mass": 100.0
+  },
+  {
+    "block": "minecraft:redstone_torch",
+    "mass": 0.5
+  },
+  {
     "tag": "minecraft:wooden_buttons",
-    "mass": 2.0
+    "mass": 0.25
   },
   {
     "block": "minecraft:stone_button",
-    "mass": 26.0
+    "mass": 0.5
   },
   {
     "block": "minecraft:polished_blackstone_button",
-    "mass": 34.0
+    "mass": 0.5
   },
   {
     "block": "minecraft:tripwire_hook",
-    "mass": 80.0
+    "mass": 0.5
   },
   {
     "block": "minecraft:tripwire",
@@ -112,22 +112,22 @@
   },
   {
     "block": "minecraft:daylight_detector",
-    "mass": 1200.0,
+    "mass": 125.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:redstone_block",
-    "mass": 1350.0,
+    "mass": 250.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:observer",
-    "mass": 2800.0,
+    "mass": 250.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:target",
-    "mass": 200.0,
+    "mass": 100.0,
     "elasticity": 0.3
   },
   {
@@ -136,36 +136,36 @@
   },
   {
     "block": "minecraft:trapped_chest",
-    "mass": 480.0
+    "mass": 150.0
   },
   {
     "block": "minecraft:redstone_lamp",
-    "mass": 1200.0,
+    "mass": 100.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:comparator",
-    "mass": 250.0,
+    "mass": 25.0,
     "friction": 0.3
   },
   {
     "block": "minecraft:repeater",
-    "mass": 250.0,
+    "mass": 25.0,
     "friction": 0.3
   },
   {
     "block": "minecraft:hopper",
-    "mass": 3800.0,
+    "mass": 100.0,
     "friction": 0.3
   },
   {
     "tag": "minecraft:shulker_boxes",
-    "mass": 800.0,
+    "mass": 50.0,
     "friction": 0.1
   },
   {
     "tag": "minecraft:fence_gates",
-    "mass": 20.0
+    "mass": 5.0
   },
   {
     "tag": "minecraft:wooden_doors",
@@ -173,16 +173,16 @@
   },
   {
     "block": "minecraft:iron_door",
-    "mass": 1000.0,
+    "mass": 75.0,
     "friction": 0.35
   },
   {
     "tag": "minecraft:wooden_trapdoors",
-    "mass": 25.0
+    "mass": 50.0
   },
   {
     "block": "minecraft:iron_trapdoor",
-    "mass": 1000.0,
+    "mass": 100.0,
     "friction": 0.35
   }
 ]

@@ -28,6 +28,7 @@ import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix3d;
 import org.joml.Matrix4d;
 import org.joml.Matrix4dc;
@@ -44,10 +45,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.ContraptionWingProvider;
 import org.valkyrienskies.core.api.ships.LoadedServerShip;
+import org.valkyrienskies.core.api.ships.LoadedShip;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.api.ships.WingManager;
 import org.valkyrienskies.mod.common.CompatUtil;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.entity.ShipMountedToData;
+import org.valkyrienskies.mod.common.entity.ShipMountedToDataProvider;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.compat.CreateConversionsKt;
@@ -55,7 +59,7 @@ import org.valkyrienskies.mod.mixinducks.mod_compat.create.MixinAbstractContrapt
 
 @Mixin(AbstractContraptionEntity.class)
 public abstract class MixinAbstractContraptionEntity extends Entity implements MixinAbstractContraptionEntityDuck,
-    ContraptionWingProvider, IEntityDraggingInformationProvider {
+    ContraptionWingProvider, IEntityDraggingInformationProvider, ShipMountedToDataProvider {
 
     public MixinAbstractContraptionEntity(EntityType<?> entityType, Level level) {
         super(entityType, level);
@@ -88,6 +92,16 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
 
     @Shadow
     public abstract Vec3 getPrevAnchorVec();
+
+    @Nullable
+    @Override
+    public ShipMountedToData provideShipMountedToData(@NotNull final Entity passenger, @Nullable final Float partialTicks) {
+        final LoadedShip shipObjectEntityMountedTo = VSGameUtilsKt.getShipObjectManagingPos(passenger.level, toJOML(this.position()));
+        if (shipObjectEntityMountedTo == null) return null;
+
+        final Vector3dc mountedPosInShip = toJOML(this.getPassengerPosition(passenger, partialTicks == null ? 1 : partialTicks));
+        return new ShipMountedToData(shipObjectEntityMountedTo, mountedPosInShip);
+    }
 
     //Region start - fix being sent to the  ̶s̶h̶a̶d̶o̶w̶r̶e̶a̶l̶m̶ shipyard on ship contraption disassembly
     @Redirect(method = "moveCollidedEntitiesOnDisassembly", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;setPos(DDD)V"))

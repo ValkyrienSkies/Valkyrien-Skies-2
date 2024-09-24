@@ -57,6 +57,7 @@ import org.valkyrienskies.mod.common.util.VSServerLevel;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.mixin.accessors.server.level.ChunkMapAccessor;
 import org.valkyrienskies.mod.mixin.accessors.server.level.DistanceManagerAccessor;
+import org.valkyrienskies.mod.util.McMathUtilKt;
 
 @Mixin(ServerLevel.class)
 public abstract class MixinServerLevel implements IShipObjectWorldServerProvider, VSServerLevel {
@@ -96,8 +97,11 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
 
         // This only happens when overworld gets loaded on startup, we have a mixin in MixinMinecraftServer for this specific case
         if (getShipObjectWorld() != null) {
-            getShipObjectWorld().addDimension(VSGameUtilsKt.getDimensionId((ServerLevel) (Object) this),
-                VSGameUtilsKt.getYRange((ServerLevel) (Object) this));
+            getShipObjectWorld().addDimension(
+                VSGameUtilsKt.getDimensionId((ServerLevel) (Object) this),
+                VSGameUtilsKt.getYRange((ServerLevel) (Object) this),
+                McMathUtilKt.getDEFAULT_WORLD_GRAVITY()
+            );
         }
     }
 
@@ -244,6 +248,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
             VSGameUtilsKt.getDimensionId(self),
             voxelShapeUpdates
         );
+
     }
 
     @Override
