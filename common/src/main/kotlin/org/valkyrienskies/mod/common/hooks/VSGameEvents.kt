@@ -6,6 +6,10 @@ import it.unimi.dsi.fastutil.objects.ObjectList
 import net.minecraft.client.renderer.LevelRenderer
 import net.minecraft.client.renderer.LevelRenderer.RenderChunkInfo
 import net.minecraft.client.renderer.RenderType
+import net.minecraft.network.chat.Component
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.item.TooltipFlag
+import net.minecraft.world.level.Level
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.properties.ShipId
 import org.valkyrienskies.core.util.events.EventEmitterImpl
@@ -21,6 +25,8 @@ object VSGameEvents {
     val shipsStartRendering = EventEmitterImpl<ShipStartRenderEvent>()
 
     val shipSplit = EventEmitterImpl<ShipSplitEvent>()
+
+    val itemTooltips = EventEmitterImpl<ItemTooltipsEvent>()
 
     data class ShipStartRenderEvent(
         val renderer: LevelRenderer,
@@ -44,6 +50,13 @@ object VSGameEvents {
         val ship: ShipId,
         val newShip: ShipId,
         val blocks: DenseBlockPosSet
+    )
+
+    data class ItemTooltipsEvent(
+        val itemStack: ItemStack,
+        val level: Level,
+        val list: MutableList<Component>,
+        val tooltipFlag: TooltipFlag,
     )
 }
 
