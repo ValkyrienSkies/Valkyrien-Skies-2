@@ -12,7 +12,6 @@
     "compat.create.MixinControlledContraptionEntity",
     "compat.immersivengineering.MixinBlockEntityInventory",
     "compat.mekanism.MixinRadiationManager",
-    "compat.modular_routers.MixinContainerModularRouter",
     "compat.tfc.MixinTFCChunkGenerator",
     "compat.thermalexpansion.MixinTileCoFH",
     "compat.tis3d.MixinInfraredPacketEntity",
