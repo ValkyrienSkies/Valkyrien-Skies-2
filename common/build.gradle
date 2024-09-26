@@ -39,8 +39,7 @@ dependencies {
     //implementation("io.github.fabricators_of_create.Porting-Lib:Porting-Lib:$port_lib_version+$minecraft_version")
 
     modCompileOnly("maven.modrinth:create-big-cannons:${createbigcannons_version}")
-    modCompileOnly("io.github.fabricators_of_create:Porting-Lib:${port_lib_version}+${minecraft_version}")
-    modCompileOnly("com.rbasamoyai:createbigcannons-fabric-${minecraft_version}:${createbigcannons_version}")
+    // modCompileOnly("io.github.fabricators_of_create:Porting-Lib:${port_lib_version}+${minecraft_version}")
 
     //Bluemap fabric 1.19
     modCompileOnly("curse.maven:bluemap-406463:4474497")
