@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.compat
 
 import net.minecraft.server.level.ServerLevel
+/*
 import org.joml.Vector3d
 import org.valkyrienskies.core.api.ships.getAttachment
 import org.valkyrienskies.mod.common.config.VSGameConfig
@@ -8,10 +9,13 @@ import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.GameTickForceApplier
 import org.valkyrienskies.mod.common.util.toMinecraft
 import weather2.ServerTickHandler
-import weather2.weathersystem.storm.StormObject
+import weather2.weathersystem.storm.StormObject=
+ */
 
 object Weather2Compat {
+    // Weather mod is not on 1.19.2, so it must be disabled!
     fun tick(level: ServerLevel) {
+        /*
         val mgr = ServerTickHandler
             .getWeatherManagerFor(level.dimension())
 
@@ -69,5 +73,6 @@ object Weather2Compat {
                 }
             }
         }
+         */
     }
 }
