@@ -1,6 +1,6 @@
 package org.valkyrienskies.mod.mixin.mod_compat.bluemap;
 
-import de.bluecolored.bluemap.core.mca.MCAWorld;
+import de.bluecolored.bluemap.core.world.mca.MCAWorld;
 import java.nio.file.Path;
 import java.util.Objects;
 import net.minecraft.world.level.Level;

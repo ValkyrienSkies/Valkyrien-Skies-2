@@ -72,7 +72,7 @@ public class MixinTrackBlockOutline {
                 ms.translate(worldVec.x - valkyrienskies$cameraVec3.x,
                     worldVec.y - valkyrienskies$cameraVec3.y,
                     worldVec.z - valkyrienskies$cameraVec3.z);
-                ms.mulPose(VectorConversionsMCKt.toMinecraft(rotation));
+                ms.mulPose(VectorConversionsMCKt.toFloat(rotation));
                 ms.translate(-.5, -.125f, -.5);
             }
         }
@@ -91,7 +91,7 @@ public class MixinTrackBlockOutline {
         if (level != null) {
             final Ship ship;
             if ((ship = VSGameUtilsKt.getShipManagingPos(level, blockPos)) != null) {
-                return new BlockPos(VectorConversionsMCKt.toMinecraft(ship.getShipToWorld()
+                return BlockPos.containing(VectorConversionsMCKt.toMinecraft(ship.getShipToWorld()
                     .transformPosition(VectorConversionsMCKt.toJOMLD(blockPos))));
             }
         }

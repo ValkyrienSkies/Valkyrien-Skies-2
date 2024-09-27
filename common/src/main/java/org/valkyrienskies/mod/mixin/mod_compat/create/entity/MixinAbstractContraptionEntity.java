@@ -96,7 +96,7 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
     @Nullable
     @Override
     public ShipMountedToData provideShipMountedToData(@NotNull final Entity passenger, @Nullable final Float partialTicks) {
-        final LoadedShip shipObjectEntityMountedTo = VSGameUtilsKt.getShipObjectManagingPos(passenger.level, toJOML(this.position()));
+        final LoadedShip shipObjectEntityMountedTo = VSGameUtilsKt.getShipObjectManagingPos(passenger.level(), toJOML(this.position()));
         if (shipObjectEntityMountedTo == null) return null;
 
         final Vector3dc mountedPosInShip = toJOML(this.getPassengerPosition(passenger, partialTicks == null ? 1 : partialTicks));

@@ -53,7 +53,7 @@ public abstract class MixinPitchOrientedContraptionEntity extends OrientedContra
 
     @Inject(method="getPassengerPosition", at = @At("RETURN"), cancellable = true, remap = false)
     protected void vsGetPassengerPosition(Entity passenger, float partialTicks, CallbackInfoReturnable<Vec3> cir) {
-        if (VSGameUtilsKt.getShipObjectManagingPos(passenger.level, toJOML(this.position())) != null) {
+        if (VSGameUtilsKt.getShipObjectManagingPos(passenger.level(), toJOML(this.position())) != null) {
             cir.setReturnValue(cir.getReturnValue().add(0,0.1,0));
         }
     }

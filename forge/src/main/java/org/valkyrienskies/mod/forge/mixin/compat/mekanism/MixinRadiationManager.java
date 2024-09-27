@@ -24,7 +24,7 @@ public class MixinRadiationManager  {
         if (ship == null){
             return coord4D;
         }else{
-            return new Coord4D(new BlockPos(
+            return new Coord4D(BlockPos.containing(
                 VectorConversionsMCKt.toMinecraft(VSGameUtilsKt.toWorldCoordinates(ship, coord4D.getPos()))), coord4D.dimension);
         }
     }

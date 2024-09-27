@@ -4,7 +4,7 @@ import com.flowpowered.math.vector.Vector3i;
 import de.bluecolored.bluemap.core.map.TileMetaConsumer;
 import de.bluecolored.bluemap.core.map.hires.HiresModelManager;
 import de.bluecolored.bluemap.core.map.hires.HiresModelRenderer;
-import de.bluecolored.bluemap.core.map.hires.HiresTileModel;
+import de.bluecolored.bluemap.core.map.hires.TileModel;
 import de.bluecolored.bluemap.core.world.World;
 import org.joml.Matrix4dc;
 import org.joml.Vector3d;
@@ -26,11 +26,11 @@ public class MixinHiresModelManager {
     @Redirect(
         remap = false,
         method = "render",
-        at = @At(value = "INVOKE", target = "Lde/bluecolored/bluemap/core/map/hires/HiresModelRenderer;render(Lde/bluecolored/bluemap/core/world/World;Lcom/flowpowered/math/vector/Vector3i;Lcom/flowpowered/math/vector/Vector3i;Lde/bluecolored/bluemap/core/map/hires/HiresTileModel;Lde/bluecolored/bluemap/core/map/TileMetaConsumer;)V")
+        at = @At(value = "INVOKE", target = "Lde/bluecolored/bluemap/core/map/hires/HiresModelRenderer;render(Lde/bluecolored/bluemap/core/world/World;Lcom/flowpowered/math/vector/Vector3i;Lcom/flowpowered/math/vector/Vector3i;Lde/bluecolored/bluemap/core/map/hires/TileModel;Lde/bluecolored/bluemap/core/map/TileMetaConsumer;)V")
     )
     void renderModel(final HiresModelRenderer instance, final World world,
         final Vector3i min, final Vector3i max,
-        final HiresTileModel model, final TileMetaConsumer tmc
+        final TileModel model, final TileMetaConsumer tmc
     ) {
         final var aabb = new AABBd(
             min.getX(), min.getY(), min.getZ(),
@@ -82,18 +82,23 @@ public class MixinHiresModelManager {
     }
 
     @Unique
-    private void valkyrienskies$transformModel(final int start, final int end, final HiresTileModel model, final Vector3dc preTranslation, final Vector3dc postTranslation, final Matrix4dc transform) {
+    private void valkyrienskies$transformModel(final int start, final int end, final TileModel model, final Vector3dc preTranslation, final Vector3dc postTranslation, final Matrix4dc transform) {
         final var positions = ((HiresTileModelAccessor) model).getPositions();
 
         for(int face = start; face < end; ++face) {
             for(int i = 0; i < 3; ++i) {
                 final int index = face * 9 + i * 3;
-                final double x = positions[index]     + preTranslation.x();
-                final double y = positions[index + 1] + preTranslation.y();
-                final double z = positions[index + 2] + preTranslation.z();
-                positions[index]     = (x * transform.m00()) + (y * transform.m10()) + (z * transform.m20()) + transform.m30() + postTranslation.x();
-                positions[index + 1] = (x * transform.m01()) + (y * transform.m11()) + (z * transform.m21()) + transform.m31() + postTranslation.y();
-                positions[index + 2] = (x * transform.m02()) + (y * transform.m12()) + (z * transform.m22()) + transform.m32() + postTranslation.z();
+                final double x = ((double) positions[index])     + preTranslation.x();
+                final double y = ((double) positions[index + 1]) + preTranslation.y();
+                final double z = ((double) positions[index + 2]) + preTranslation.z();
+
+                final double newX = (x * transform.m00()) + (y * transform.m10()) + (z * transform.m20()) + transform.m30() + postTranslation.x();
+                final double newY = (x * transform.m01()) + (y * transform.m11()) + (z * transform.m21()) + transform.m31() + postTranslation.y();
+                final double newZ = (x * transform.m02()) + (y * transform.m12()) + (z * transform.m22()) + transform.m32() + postTranslation.z();
+
+                positions[index]     = (float) newX;
+                positions[index + 1] = (float) newY;
+                positions[index + 2] = (float) newZ;
             }
         }
     }
