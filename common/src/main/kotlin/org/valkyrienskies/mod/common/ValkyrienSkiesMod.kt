@@ -61,7 +61,7 @@ object ValkyrienSkiesMod {
         VSGamePackets.registerHandlers()
 
         core.registerConfigLegacy("vs", VSGameConfig::class.java)
-        VSEvents.shipLoadEvent.on { event ->
+        VSEvents.ShipLoadEvent.on { event ->
             event.ship.setAttachment(GameTickForceApplier())
         }
     }

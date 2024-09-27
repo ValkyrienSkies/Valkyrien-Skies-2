@@ -72,6 +72,30 @@ object VSGameConfig {
             var canTurtlesLeaveScaledShips = false
         }
 
+        val Weather2 = WEATHER2()
+
+        class WEATHER2 {
+            @JsonSchema(
+                description = "How much Weather 2's wind affects VS ships"
+            )
+            var windMultiplier = 0.0001f
+
+            @JsonSchema(
+                description = "The maximum velocity a VS ship can travel because of wind"
+            )
+            var windMaxVel = 20.0f
+
+            @JsonSchema(
+                description = "In what range storms affect VS ships"
+            )
+            var stormRange = 150.0
+
+            @JsonSchema(
+                description = "Storm effect dampening on VS ships"
+            )
+            var stormDampening = 0.0f
+        }
+
         @JsonSchema(
             description = "By default, the vanilla server prevents block interacts past a certain distance " +
                 "to prevent cheat clients from breaking blocks halfway across the map. " +

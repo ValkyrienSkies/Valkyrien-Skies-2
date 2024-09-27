@@ -1,6 +1,6 @@
 Minimal ComputerCraft Compatibility Mixins
 
-- MixinSpeakerPosition
+- MixinSpeakerSound
     - Fixes Speakers on Ships not playing sounds in worldspace but in Shipyard
 - MixinTurtleBrain
     - Fails Movement if the turtle is in worldspace and the target position is a

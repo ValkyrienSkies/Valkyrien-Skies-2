@@ -5,16 +5,21 @@
   "mixins": [
     "compat.create.MixinBlockBreakingKineticTileEntity",
     "compat.create.MixinBlocks",
+    "compat.create.MixinChuteBlockEntity",
     "compat.create.MixinControlledContraptionEntity",
     "compat.create.client.trackOutlines.MixinTrackBlockOutline",
+    "compat.create.client.MixinTrackBlockOutline",
     "compat.sodium.MixinRenderSectionManager",
     "feature.explosions.ClipContextMixin",
     "server.network.MixinServerGamePacketListenerImpl",
+    "feature.shipyard_entities.MixinPersistentEntitySectionManager",
+    "world.level.block.FireMixin",
     "server.network.MixinServerPlayerGameMode",
     "world.level.block.FireMixin"
   ],
   "client": [
     "client.render.MixinLevelRenderer",
+    "compat.cc_restitched.MixinSpeakerSound",
     "compat.create.client.MixinContraptionHandlerClient",
     "compat.create.client.MixinContraptionRenderInfo",
     "compat.create.client.MixinCullingBlockEntityIterator",
