@@ -83,6 +83,12 @@ public class ValkyrienCommonMixinConfigPlugin implements IMixinConfigPlugin {
                 return false;
             }
         }
+        // Only load this mixin when ETF is installed
+        if (mixinClassName.equals("org.valkyrienskies.mod.mixin.mod_compat.etf.MixinBlockEntity")) {
+            if (!classExists("traben.entity_texture_features.utils.ETFEntity")) {
+                return false;
+            }
+        }
 
         return true;
     }

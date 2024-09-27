@@ -80,8 +80,8 @@ dependencies {
     modCompileOnly("maven.modrinth:cc-tweaked:${cc_tweaked_version}")
 
     // EMF compat
-    modImplementation("curse.maven:entity-model-features-844662:5696899")
-    modImplementation("curse.maven:entity-texture-features-fabric-568563:5697083")
+    modCompileOnly("curse.maven:entity-model-features-844662:5696899")
+    modCompileOnly("curse.maven:entity-texture-features-fabric-568563:5697083")
 
     modCompileOnly("maven.modrinth:create-utilities:0.2.0+1.20.1")
     modImplementation("teamreborn:energy:${energy_version}") {
