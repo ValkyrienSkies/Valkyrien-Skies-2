@@ -74,10 +74,14 @@ dependencies {
 
     // Weather2 1.20.1
     modImplementation("curse.maven:weather-storms-tornadoes-237746:5244118")
-    modImplementation("curse.maven:coroutil-237749:5010129")
+    modImplementation("curse.maven:coroutil-237749:5096038")
 
     // CC Tweaked
     modCompileOnly("maven.modrinth:cc-tweaked:${cc_tweaked_version}")
+
+    // EMF compat
+    modImplementation("curse.maven:entity-model-features-844662:5696899")
+    modImplementation("curse.maven:entity-texture-features-fabric-568563:5697083")
 
     modCompileOnly("maven.modrinth:create-utilities:0.2.0+1.20.1")
     modImplementation("teamreborn:energy:${energy_version}") {

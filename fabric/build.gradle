@@ -72,13 +72,13 @@ dependencies {
 
     include("com.fasterxml:classmate:1.5.1")
     implementation("com.fasterxml:classmate:1.5.1")
-    // CC Restitched
-    //modImplementation("curse.maven:cc-restitched-462672:3908334"){
-    //    exclude module: "jsonschema.module.addon"
-    //}
 
     // CC Restitched
-    modImplementation("maven.modrinth:cc-tweaked:${cc_tweaked_version}")
+    modCompileOnly("maven.modrinth:cc-tweaked:${cc_tweaked_version}")
+
+    // EMF compat
+    modImplementation("curse.maven:entity-model-features-844662:5696901")
+    modImplementation("curse.maven:entity-texture-features-fabric-568563:5697084")
 
     // Create compat
     modCompileOnly("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}") {
