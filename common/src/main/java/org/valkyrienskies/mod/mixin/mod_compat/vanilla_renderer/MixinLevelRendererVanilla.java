@@ -23,10 +23,13 @@ import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.chunk.LevelChunkSection;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Vector3dc;
 import org.joml.Vector3f;
+import org.joml.primitives.AABBd;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -47,6 +50,7 @@ import org.valkyrienskies.mod.mixin.mod_compat.optifine.RenderChunkInfoAccessorO
 
 @Mixin(LevelRenderer.class)
 public abstract class MixinLevelRendererVanilla {
+    @Unique
     private final WeakHashMap<ClientShip, ObjectList<RenderChunkInfo>> shipRenderChunks = new WeakHashMap<>();
     @Shadow
     private ClientLevel level;
@@ -120,11 +124,27 @@ public abstract class MixinLevelRendererVanilla {
             }
 
             shipObject.getActiveChunksSet().forEach((x, z) -> {
+                final LevelChunk levelChunk = level.getChunk(x, z);
                 for (int y = level.getMinSection(); y < level.getMaxSection(); y++) {
                     tempPos.set(x << 4, y << 4, z << 4);
                     final ChunkRenderDispatcher.RenderChunk renderChunk =
                         chunkStorageAccessor.callGetRenderChunkAt(tempPos);
                     if (renderChunk != null) {
+                        // If the chunk section is empty then skip it
+                        final LevelChunkSection levelChunkSection = levelChunk.getSection(y - level.getMinSection());
+                        if (levelChunkSection.hasOnlyAir()) {
+                            continue;
+                        }
+
+                        // If the chunk isn't in the frustum then skip it
+                        final AABBd b2 = new AABBd((x << 4) - 6e-1, (y << 4) - 6e-1, (z << 4) - 6e-1,
+                            (x << 4) + 15.6, (y << 4) + 15.6, (z << 4) + 15.6)
+                            .transform(shipObject.getRenderTransform().getShipToWorld());
+
+                        if (!frustum.isVisible(VectorConversionsMCKt.toMinecraft(b2))) {
+                            continue;
+                        }
+
                         final LevelRenderer.RenderChunkInfo newChunkInfo;
                         if (ValkyrienCommonMixinConfigPlugin.getVSRenderer() == VSRenderer.OPTIFINE) {
                             newChunkInfo =
@@ -199,6 +219,7 @@ public abstract class MixinLevelRendererVanilla {
         return (ObjectArrayList<RenderChunkInfo>) renderChunksGeneratedByVanilla;
     }
 
+    @Unique
     private void renderChunkLayer(final RenderType renderType, final PoseStack poseStack, final double d,
         final double e, final double f,
         final Matrix4f matrix4f, final ObjectList<RenderChunkInfo> chunksToRender) {

@@ -63,8 +63,8 @@ dependencies {
         exclude module: "netty-buffer"
         exclude module: "fastutil"
         exclude module: "kotlin-stdlib-jdk8" // Don't shade kotlin-stdlib-jdk8, even though vs-core depends on it
-
         exclude group: "com.google.guava"
+        exclude module: "jsonschema.module.addon"
     }
 
     def jacksonVersion = '2.14.0'
@@ -72,13 +72,13 @@ dependencies {
 
     include("com.fasterxml:classmate:1.5.1")
     implementation("com.fasterxml:classmate:1.5.1")
-    // CC Restitched
-    //modImplementation("curse.maven:cc-restitched-462672:3908334"){
-    //    exclude module: "jsonschema.module.addon"
-    //}
 
     // CC Restitched
-    //modImplementation("curse.maven:cc-tweaked-282001:${cc_tweaked_version}")
+    modCompileOnly("maven.modrinth:cc-tweaked:${cc_tweaked_version}")
+
+    // EMF compat
+    modImplementation("curse.maven:entity-model-features-844662:5696901")
+    modImplementation("curse.maven:entity-texture-features-fabric-568563:5697084")
 
     // Create compat
     modCompileOnly("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}") {

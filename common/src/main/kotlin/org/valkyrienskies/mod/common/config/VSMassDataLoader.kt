@@ -4,7 +4,6 @@ import com.google.gson.Gson
 import com.google.gson.JsonElement
 import net.minecraft.core.BlockPos
 import net.minecraft.core.HolderSet
-import net.minecraft.core.Registry
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceLocation
@@ -23,14 +22,13 @@ import net.minecraft.world.phys.shapes.VoxelShape
 import org.joml.Vector3d
 import org.joml.primitives.AABBi
 import org.joml.primitives.AABBic
+import org.valkyrienskies.core.api.physics.blockstates.BoxesBlockShape
 import org.valkyrienskies.core.api.physics.blockstates.CollisionPoint
 import org.valkyrienskies.core.api.physics.blockstates.LiquidState
-import org.valkyrienskies.core.api.physics.blockstates.BoxesBlockShape
 import org.valkyrienskies.core.api.physics.blockstates.SolidBlockShape
 import org.valkyrienskies.core.apigame.physics.blockstates.VsBlockState
 import org.valkyrienskies.core.apigame.world.chunks.BlockType
 import org.valkyrienskies.mod.api_impl.events.RegisterBlockStateEventImpl
-import org.valkyrienskies.mod.api_impl.events.VsApiImpl
 import org.valkyrienskies.mod.common.BlockStateInfoProvider
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.hooks.VSGameEvents
@@ -150,7 +148,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
             val friction = element.asJsonObject["friction"]?.asDouble ?: DEFAULT_FRICTION
             val elasticity = element.asJsonObject["elasticity"]?.asDouble ?: DEFAULT_ELASTICITY
 
-            val priority = element.asJsonObject["priority"]?.asInt ?: 100
+            val priority = element.asJsonObject["priority"]?.asInt ?: decideDefaultPriority(origin)
 
             if (tag != null) {
                 addToBeAddedTags(VSBlockStateInfo(ResourceLocation(tag), priority, weight, friction, elasticity, null))
@@ -162,6 +160,13 @@ object MassDatapackResolver : BlockStateInfoProvider {
             }
         }
     }
+
+    fun decideDefaultPriority(resourceLocation: ResourceLocation) = when {
+        resourceLocation.namespace.equals(ValkyrienSkiesMod.MOD_ID) -> 1000
+        resourceLocation.namespace.equals("custom") -> 50
+        else -> 100
+    }
+
 
     private fun generateStairCollisionShapes(stairShapes: Array<VoxelShape>): Map<VoxelShape, SolidBlockShape> {
         val testPoints = listOf(
