@@ -87,12 +87,6 @@ subprojects {
         } catch (UnknownDomainObjectException ignore) {}
 
         mavenCentral()
-        maven {
-            url "https://cursemaven.com"
-            content {
-                includeModule "curse.maven", "kotlinforforge-351264"
-            }
-        }
         if (!project.block_external_repositories) {
             mavenLocal()
             maven {
