@@ -79,13 +79,15 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
 
     @Inject(method = "drop", at = @At("HEAD"), cancellable = true)
     public void preUnload(final int chunkX, final int chunkZ, final CallbackInfo ci) {
-        vs$shipChunks.remove(ChunkPos.asLong(chunkX, chunkZ));
-        if (ValkyrienCommonMixinConfigPlugin.getVSRenderer() != VSRenderer.SODIUM) {
-            ((IVSViewAreaMethods) ((LevelRendererAccessor) ((ClientLevelAccessor) level).getLevelRenderer()).getViewArea())
-                .unloadChunk(chunkX, chunkZ);
+        if (VSGameUtilsKt.isChunkInShipyard(level, chunkX, chunkZ)) {
+            vs$shipChunks.remove(ChunkPos.asLong(chunkX, chunkZ));
+            if (ValkyrienCommonMixinConfigPlugin.getVSRenderer() != VSRenderer.SODIUM) {
+                ((IVSViewAreaMethods) ((LevelRendererAccessor) ((ClientLevelAccessor) level).getLevelRenderer()).getViewArea())
+                    .unloadChunk(chunkX, chunkZ);
+            }
+            SodiumCompat.onChunkRemoved(this.level, chunkX, chunkZ);
+            ci.cancel();
         }
-        SodiumCompat.onChunkRemoved(this.level, chunkX, chunkZ);
-        ci.cancel();
     }
 
     @Inject(

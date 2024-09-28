@@ -2,6 +2,7 @@
   "required": true,
   "package": "org.valkyrienskies.mod.forge.mixin",
   "compatibilityLevel": "JAVA_17",
+  "plugin": "org.valkyrienskies.mod.forge.mixin.ValkyrienSkiesForgeMixinPlugin",
   "mixins": [
     "compat.create.MixinBlockBreakingKineticTileEntity",
     "compat.create.MixinBlocks",
@@ -9,15 +10,16 @@
     "compat.create.MixinControlledContraptionEntity",
     "compat.immersivengineering.MixinBlockEntityInventory",
     "compat.integrateddynamics.MixinVoxelShapeComponents",
-    "compat.modular_routers.MixinRouterMenu",
     "compat.mekanism.MixinRadiationManager",
+    "compat.mixinbooster.MixinIForgePlayer",
+    "compat.modular_routers.MixinRouterMenu",
     "compat.tfc.MixinTFCChunkGenerator",
     "compat.thermalexpansion.MixinTileCoFH",
     "compat.tis3d.MixinInfraredPacketEntity",
     "compat.twilightforest.ChunkGeneratorTwilightMixin",
     "feature.forge_interact.MixinIForgePlayer",
-    "feature.water_in_ships_entity.MixinEntity",
     "feature.shipyard_entities.MixinPersistentEntitySectionManager",
+    "feature.water_in_ships_entity.MixinEntity",
     "world.level.block.FireMixin"
   ],
   "client": [

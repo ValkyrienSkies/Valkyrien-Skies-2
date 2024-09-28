@@ -47,6 +47,10 @@ dependencies {
 
     //Bluemap fabric 1.20.1
     modCompileOnly("curse.maven:bluemap-406463:5555756")
+
+    modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:imm_ptl_core:${immptl_version}")
+    modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:q_misc_util:${immptl_version}")
+    modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:build:${immptl_version}")
 }
 
 architectury {
