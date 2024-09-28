@@ -56,20 +56,18 @@ object Weather2Compat {
             applyForcePlusMotion()
 
             mgr.getStormsAround(pos, stormRange).forEach {
-                if (it is StormObject) {
-                    runCatching { // prevent Cannot read field "listLayers" because "this.tornadoFunnelSimple" is null    at weather2.weathersystem.storm.StormObject.spinObject(StormObject.java:2503)
-                        forcePlusMotion = it.spinObject(
-                            pos,
-                            forcePlusMotion,
-                            false,
-                            stormDampen,
-                            stormDampen,
-                            false,
-                            0.0f,
-                        )
+                if (it is StormObject && it.tornadoFunnelSimple != null) {
+                    forcePlusMotion = it.spinObject(
+                        pos,
+                        forcePlusMotion,
+                        false,
+                        stormDampen,
+                        stormDampen,
+                        true,
+                        0.0f,
+                    )
 
-                        applyForcePlusMotion()
-                    }
+                    applyForcePlusMotion()
                 }
             }
         }
