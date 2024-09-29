@@ -3,6 +3,10 @@
   "package": "org.valkyrienskies.mod.fabric.mixin",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
+    "compat.cc_restitched.MixinTurtleBrain",
+    "compat.cc_restitched.MixinTurtleMoveCommand",
+    "compat.cc_restitched.MixinWirelessModemPeripheral",
+    "compat.cc_restitched.MixinWirelessNetwork",
     "compat.create.MixinBlockBreakingKineticTileEntity",
     "compat.create.MixinBlocks",
     "compat.create.MixinChuteBlockEntity",
@@ -10,9 +14,8 @@
     "compat.create.client.MixinTrackBlockOutline",
     "compat.sodium.MixinRenderSectionManager",
     "feature.explosions.ClipContextMixin",
-    "server.network.MixinServerGamePacketListenerImpl",
     "feature.shipyard_entities.MixinPersistentEntitySectionManager",
-    "world.level.block.FireMixin",
+    "server.network.MixinServerGamePacketListenerImpl",
     "server.network.MixinServerPlayerGameMode",
     "world.level.block.FireMixin"
   ],
