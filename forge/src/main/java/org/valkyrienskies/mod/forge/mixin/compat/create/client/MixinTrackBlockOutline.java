@@ -85,7 +85,8 @@ public class MixinTrackBlockOutline {
     private static BlockHitResult valkyrienskies$hitResult;
 
     @ModifyArg(method = "drawCustomBlockSelection", at = @At(value = "INVOKE",
-        target = "Lnet/minecraft/world/level/border/WorldBorder;isWithinBounds(Lnet/minecraft/core/BlockPos;)Z"))
+        target = "Lnet/minecraft/world/level/border/WorldBorder;isWithinBounds(Lnet/minecraft/core/BlockPos;)Z"),
+        remap = true)
     private static BlockPos modIsWithinBounds(final BlockPos blockPos) {
         final Level level = Minecraft.getInstance().level;
         if (level != null) {
@@ -98,7 +99,7 @@ public class MixinTrackBlockOutline {
         return blockPos;
     }
 
-    @Inject(method = "drawCustomBlockSelection", at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/PoseStack;translate(DDD)V"))
+    @Inject(method = "drawCustomBlockSelection", at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/PoseStack;translate(DDD)V"), remap = true)
     private static void harvest(RenderHighlightEvent.Block event, CallbackInfo ci) {
         valkyrienskies$info = event.getCamera();
         valkyrienskies$hitResult = (BlockHitResult) event.getTarget();
