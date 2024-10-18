@@ -63,7 +63,8 @@ public abstract class MixinEntity {
     @Inject(
         at = @At("HEAD"),
         method = "updateFluidHeightAndDoFluidPushing()V",
-        remap = false
+        remap = false,
+        cancellable = true
     )
     // Overwrite the forge method, since it's written in a way that's really hard to precisely mixin into.
     private void afterFluidStateUpdate(final CallbackInfo callbackInfo) {
@@ -131,6 +132,7 @@ public abstract class MixinEntity {
                 this.setFluidTypeHeight((FluidType) fluidType, (Double) interim.getLeft());
             });
         });
+        callbackInfo.cancel();
     }
 
     @WrapOperation(
