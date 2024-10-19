@@ -79,7 +79,7 @@ object ShipAssembler {
                 val relative: BlockPos = itPos.subtract( BlockPos(contraptionOGPos.x(),contraptionOGPos.y(),contraptionOGPos.z()))
                 val shipPos: BlockPos = contraptionBlockPos.offset(relative)
                 AssemblyUtil.copyBlock(level, itPos, shipPos)
-                if (relative == BlockPos.ZERO) centerBlockReplaced = true
+                if (relative.equals(BlockPos.ZERO)) centerBlockReplaced = true
             }
         }
 

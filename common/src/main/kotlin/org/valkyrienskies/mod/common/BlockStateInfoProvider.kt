@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.common
 import com.mojang.serialization.Lifecycle
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
 import net.minecraft.core.MappedRegistry
 import net.minecraft.core.Registry
 import net.minecraft.resources.ResourceKey
@@ -134,5 +135,25 @@ object BlockStateInfo {
             x, y, z, level.dimensionId, prevBlockType, newBlockType, prevBlockMass,
             newBlockMass
         )
+
+        if (level is ServerLevel) {
+            if (!prevBlockState.isAir && newBlockState.isAir){
+                val blockNeighbors: HashSet<BlockPos> = HashSet()
+                for (dir in Direction.entries) {
+                    val neighborPos = BlockPos(x, y, z).relative(dir)
+                    val neighborState = level.getBlockState(neighborPos)
+                    if (!neighborState.isAir) {
+                        blockNeighbors.add(neighborPos)
+                    }
+                }
+                for (neighborPos in blockNeighbors) {
+                    for (otherNeighborPos in blockNeighbors) {
+                        if (neighborPos != otherNeighborPos) {
+
+                        }
+                    }
+                }
+            }
+        }
     }
 }

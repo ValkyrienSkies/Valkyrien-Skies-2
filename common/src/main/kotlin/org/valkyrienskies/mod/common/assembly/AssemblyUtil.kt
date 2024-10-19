@@ -16,7 +16,7 @@ import org.joml.Vector3i
 private val AIR = Blocks.AIR.defaultBlockState()
 object AssemblyUtil {
 
-    fun setBlock(level: Level, pos: BlockPos, state: BlockState?) {
+    fun setBlock(level: Level, pos: BlockPos, state: BlockState) {
         val chunk = level.getChunk(pos) as LevelChunk
         val section = chunk.getSection(chunk.getSectionIndex(pos.y))
         val oldState = level.getBlockState(pos)
@@ -29,7 +29,7 @@ object AssemblyUtil {
         setBlock(level, pos, Blocks.AIR.defaultBlockState())
     }
 
-    fun copyBlock(level: Level, from: BlockPos?, to: BlockPos) {
+    fun copyBlock(level: Level, from: BlockPos, to: BlockPos) {
         val state = level.getBlockState(from)
         val blockentity = level.getBlockEntity(from)
         setBlock(level, to, state)
