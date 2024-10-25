@@ -24,6 +24,7 @@ object ValkyrienSkiesMod {
     lateinit var TEST_FLAP: Block
     lateinit var TEST_WING: Block
     lateinit var TEST_SPHERE: Block
+    lateinit var CONNECTION_CHECKER_ITEM: Item
     lateinit var SHIP_CREATOR_ITEM: Item
     lateinit var SHIP_ASSEMBLER_ITEM: Item
     lateinit var SHIP_CREATOR_ITEM_SMALLER: Item

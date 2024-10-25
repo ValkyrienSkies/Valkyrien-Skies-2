@@ -46,6 +46,7 @@ import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.entity.VSPhysicsEntity
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager
 import org.valkyrienskies.mod.common.hooks.VSGameEvents
+import org.valkyrienskies.mod.common.item.ConnectionCheckerItem
 import org.valkyrienskies.mod.common.item.PhysicsEntityCreatorItem
 import org.valkyrienskies.mod.common.item.ShipAssemblerItem
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
@@ -62,6 +63,7 @@ class ValkyrienSkiesModForge {
     private val TEST_FLAP_REGISTRY: RegistryObject<Block>
     private val TEST_WING_REGISTRY: RegistryObject<Block>
     private val TEST_SPHERE_REGISTRY: RegistryObject<Block>
+    private val CONNECTION_CHECKER_ITEM_REGISTRY: RegistryObject<Item>
     private val SHIP_CREATOR_ITEM_REGISTRY: RegistryObject<Item>
     private val SHIP_CREATOR_SMALLER_ITEM_REGISTRY: RegistryObject<Item>
     private val PHYSICS_ENTITY_CREATOR_ITEM_REGISTRY: RegistryObject<Item>
@@ -118,6 +120,14 @@ class ValkyrienSkiesModForge {
                 ShipCreatorItem(Properties().tab(CreativeModeTab.TAB_MISC),
                     { 1.0 },
                     { VSGameConfig.SERVER.minScaling })
+            }
+        CONNECTION_CHECKER_ITEM_REGISTRY =
+            ITEMS.register("connection_checker") {
+                ConnectionCheckerItem(
+                    Properties().tab(CreativeModeTab.TAB_MISC),
+                    { 1.0 },
+                    { VSGameConfig.SERVER.minScaling }
+                )
             }
         SHIP_CREATOR_SMALLER_ITEM_REGISTRY =
             ITEMS.register("ship_creator_smaller") {
@@ -206,5 +216,6 @@ class ValkyrienSkiesModForge {
         ValkyrienSkiesMod.PHYSICS_ENTITY_TYPE = PHYSICS_ENTITY_TYPE_REGISTRY.get()
         ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM = SHIP_ASSEMBLER_ITEM_REGISTRY.get()
         ValkyrienSkiesMod.TEST_HINGE_BLOCK_ENTITY_TYPE = TEST_HINGE_BLOCK_ENTITY_TYPE_REGISTRY.get()
+        ValkyrienSkiesMod.CONNECTION_CHECKER_ITEM = CONNECTION_CHECKER_ITEM_REGISTRY.get()
     }
 }
