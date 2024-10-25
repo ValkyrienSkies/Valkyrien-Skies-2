@@ -3,10 +3,8 @@ package org.valkyrienskies.mod.common
 import com.mojang.serialization.Lifecycle
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
 import net.minecraft.core.BlockPos
-import net.minecraft.core.Direction
 import net.minecraft.core.MappedRegistry
 import net.minecraft.core.Registry
-import net.minecraft.core.Vec3i
 import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerLevel
@@ -15,15 +13,10 @@ import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
 import org.valkyrienskies.core.api.ships.Wing
 import org.valkyrienskies.core.api.ships.WingManager
-import org.valkyrienskies.core.api.world.connectivity.ConnectionStatus.CONNECTED
-import org.valkyrienskies.core.api.world.connectivity.ConnectionStatus.DISCONNECTED
 import org.valkyrienskies.core.apigame.world.chunks.BlockType
-import org.valkyrienskies.core.util.expand
-import org.valkyrienskies.mod.common.assembly.ShipAssembler
 import org.valkyrienskies.mod.common.block.WingBlock
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.hooks.VSGameEvents
-import org.valkyrienskies.mod.common.util.toJOML
 import java.util.function.IntFunction
 
 // Other mods can then provide weights and types based on their added content
@@ -142,172 +135,9 @@ object BlockStateInfo {
             newBlockMass
         )
 
-        if (level is ServerLevel) {
-            val loadedShip = level.getShipObjectManagingPos(x shr 4, z shr 4)
-            if (loadedShip != null) {
-                if (!prevBlockState.isAir && newBlockState.isAir){
-                    val blockNeighbors: HashSet<BlockPos> = HashSet()
-                    for (dir in Direction.entries) {
-                        val shipBox = loadedShip.shipAABB?.expand(1) ?: continue
-                        val neighborPos = BlockPos(x, y, z).relative(dir)
-                        val neighborState = level.getBlockState(neighborPos)
-                        if (!neighborState.isAir && neighborPos != BlockPos(x, y, z) && shipBox.containsPoint(neighborPos.toJOML())) {
-                            blockNeighbors.add(neighborPos)
-                        }
-                        if (true) { //later: check block edge connectivity config
-                            for (secondDir in Direction.entries) {
-                                if (dir.axis != secondDir.axis) {
-                                    val secondNeighborPos = neighborPos.relative(secondDir)
-                                    val secondNeighborState = level.getBlockState(secondNeighborPos)
-                                    if (!secondNeighborState.isAir && secondNeighborPos != BlockPos(x, y, z) && shipBox.containsPoint(neighborPos.toJOML())) {
-                                        blockNeighbors.add(secondNeighborPos)
-                                    }
-                                    if (true) { //later: check block corner connectivity config
-                                        for (thirdDir in Direction.entries) {
-                                            if (dir.axis != secondDir.axis && dir.axis != thirdDir.axis && secondDir.axis != thirdDir.axis) {
-                                                val thirdNeighborPos = secondNeighborPos.relative(thirdDir)
-                                                val thirdNeighborState = level.getBlockState(thirdNeighborPos)
-                                                if (!thirdNeighborState.isAir && thirdNeighborPos != BlockPos(x, y, z) && shipBox.containsPoint(neighborPos.toJOML())) {
-                                                    blockNeighbors.add(thirdNeighborPos)
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    if (blockNeighbors.isNotEmpty()) {
-                        //find largest remaining component
-                        var largestComponentNode: BlockPos = blockNeighbors.first()
-                        var largestComponentSize: Long = -1
-
-                        for (neighborPos in blockNeighbors) {
-                            print(level.shipObjectWorld.isIsolatedSolid(neighborPos.x, neighborPos.y, neighborPos.z, level.dimensionId))
-                            if (level.shipObjectWorld.isIsolatedSolid(neighborPos.x, neighborPos.y, neighborPos.z, level.dimensionId) == DISCONNECTED) {
-                                val size = level.shipObjectWorld.getSolidComponentSize(neighborPos.x, neighborPos.y, neighborPos.z, level.dimensionId)
-                                if (size > largestComponentSize) {
-                                    largestComponentNode = neighborPos
-                                    largestComponentSize = size
-                                }
-                            }
-                        }
-
-                        if (largestComponentSize == -1L) {
-                            return
-                        }
-
-                        blockNeighbors.remove(largestComponentNode)
-
-                        // use largest as base
-
-                        //find all disconnected components
-
-                        val disconnected = HashSet<BlockPos>()
-                        for (neighborPos in blockNeighbors) {
-                            if (level.shipObjectWorld.isIsolatedSolid(neighborPos.x, neighborPos.y, neighborPos.z, level.dimensionId) == DISCONNECTED) {
-                                if (neighborPos != largestComponentNode) {
-                                    if (level.shipObjectWorld.isConnectedBySolid(largestComponentNode.x, largestComponentNode.y, largestComponentNode.z, neighborPos.x, neighborPos.y, neighborPos.z, level.dimensionId) == DISCONNECTED) {
-                                        val component = HashSet<BlockPos>()
-                                        disconnected.add(neighborPos)
-                                    }
-                                    println("this is " + level.shipObjectWorld.isConnectedBySolid(largestComponentNode.x, largestComponentNode.y, largestComponentNode.z, neighborPos.x, neighborPos.y, neighborPos.z, level.dimensionId).toString())
-                                }
-                            }
-                        }
-
-                        //check if any disconnected components are connected
-                        val toIgnore: HashSet<BlockPos> = HashSet()
-                        for (component in disconnected) {
-                            for (otherComponent in disconnected) {
-                                if (component == otherComponent) {
-                                    continue
-                                }
-                                if (level.shipObjectWorld.isConnectedBySolid(component.x, component.y, component.z, otherComponent.x, otherComponent.y, otherComponent.z, level.dimensionId) == CONNECTED) {
-                                    if (!toIgnore.contains(otherComponent) && !toIgnore.contains(component)) {
-                                        toIgnore.add(component)
-                                    }
-                                }
-                            }
-                        }
-
-                        disconnected.removeAll(toIgnore)
-
-                        if (disconnected.isEmpty()) {
-                            return
-                        }
-
-                        //begin the DFSing
-
-                        val offsetsToCheck: ArrayList<Vec3i> = arrayListOf(
-                            Vec3i(1, 0, 0),
-                            Vec3i(-1, 0, 0),
-                            Vec3i(0, 1, 0),
-                            Vec3i(0, -1, 0),
-                            Vec3i(0, 0, 1),
-                            Vec3i(0, 0, -1)
-                        )
-                        if (true) { //later: check block edge connectivity config
-                            offsetsToCheck.add(Vec3i(1, 1, 0))
-                            offsetsToCheck.add(Vec3i(1, -1, 0))
-                            offsetsToCheck.add(Vec3i(-1, 1, 0))
-                            offsetsToCheck.add(Vec3i(-1, -1, 0))
-                            offsetsToCheck.add(Vec3i(1, 0, 1))
-                            offsetsToCheck.add(Vec3i(1, 0, -1))
-                            offsetsToCheck.add(Vec3i(-1, 0, 1))
-                            offsetsToCheck.add(Vec3i(-1, 0, -1))
-                            offsetsToCheck.add(Vec3i(0, 1, 1))
-                            offsetsToCheck.add(Vec3i(0, 1, -1))
-                            offsetsToCheck.add(Vec3i(0, -1, 1))
-                            offsetsToCheck.add(Vec3i(0, -1, -1))
-                        }
-                        if (true) { //later: check block corner connectivity config
-                            offsetsToCheck.add(Vec3i(1, 1, 1))
-                            offsetsToCheck.add(Vec3i(1, 1, -1))
-                            offsetsToCheck.add(Vec3i(1, -1, 1))
-                            offsetsToCheck.add(Vec3i(1, -1, -1))
-                            offsetsToCheck.add(Vec3i(-1, 1, 1))
-                            offsetsToCheck.add(Vec3i(-1, 1, -1))
-                            offsetsToCheck.add(Vec3i(-1, -1, 1))
-                            offsetsToCheck.add(Vec3i(-1, -1, -1))
-                        }
-
-                        val toAssemble = HashSet<List<BlockPos>>()
-
-                        for (starter in disconnected) {
-                            val visited = HashSet<BlockPos>()
-                            val queuedPositions = HashSet<BlockPos>()
-                            queuedPositions.add(starter)
-
-                            while (queuedPositions.isNotEmpty()) {
-                                val current = queuedPositions.first()
-                                queuedPositions.remove(current)
-                                visited.add(current)
-                                val toCheck = HashSet<BlockPos>()
-                                for (offset in offsetsToCheck) {
-                                    toCheck.add(BlockPos(current.x + offset.x, current.y + offset.y, current.z + offset.z))
-                                }
-                                for (check in toCheck) {
-                                    if (!visited.contains(check) && !level.getBlockState(check).isAir) {
-                                        queuedPositions.add(check)
-                                    }
-                                }
-                            }
-                            //if we have visited all blocks in the component, we can split it
-                            toAssemble.add(visited.toList())
-                        }
-
-                        if (toAssemble.isEmpty()) {
-                            return
-                        }
-
-                        for (component in toAssemble) {
-                            ShipAssembler.assembleToShip(level, component, true, 1.0)
-                        }
-                    }
-                }
-            }
+        // todo check if splitting is enabled, dolt
+        if (true) {
+            ValkyrienSkiesMod.splitHandler.split(level, x, y, z, prevBlockState, newBlockState)
         }
     }
 }

@@ -53,7 +53,7 @@ class ConnectionCheckerItem(
                             putInt("firstPosY", blockPos.y)
                             putInt("firstPosZ", blockPos.z)
                         }
-                        ctx.player?.sendMessage(TextComponent("First block selected: (${blockPos.x}, ${blockPos.y}, ${blockPos.z}"), Util.NIL_UUID)
+                        ctx.player?.sendMessage(TextComponent("First block selected: (${blockPos.x}, ${blockPos.y}, ${blockPos.z})"), Util.NIL_UUID)
                     }
                 }
             }

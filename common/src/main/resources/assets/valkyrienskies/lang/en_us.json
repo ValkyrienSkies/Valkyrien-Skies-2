@@ -7,6 +7,7 @@
   "block.valkyrienskies.test_flap": "Debug Flap",
   "block.valkyrienskies.test_wing": "Debug Wing",
   "item.valkyrienskies.ship_creator": "Ship Creator",
+  "item.valkyrienskies.area_assembler": "Area Assembler",
   "item.valkyrienskies.connection_checker": "Connection Checker",
   "item.valkyrienskies.ship_creator_smaller": "Mini Ship Creator",
   "item.valkyrienskies.physics_entity_creator": "Physics Entity Creator",
