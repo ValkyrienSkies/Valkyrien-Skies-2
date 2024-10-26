@@ -135,8 +135,7 @@ object BlockStateInfo {
             newBlockMass
         )
 
-        // todo check if splitting is enabled, dolt
-        if (true) {
+        if (ValkyrienSkiesMod.vsCore.hooks.enableConnectivity) {
             ValkyrienSkiesMod.splitHandler.split(level, x, y, z, prevBlockState, newBlockState)
         }
     }
