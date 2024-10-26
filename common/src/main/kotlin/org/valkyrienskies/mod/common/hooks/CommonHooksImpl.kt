@@ -10,8 +10,25 @@ import org.valkyrienskies.core.apigame.hooks.PlayState.CLIENT_TITLESCREEN
 import org.valkyrienskies.core.apigame.hooks.PlayState.SERVERSIDE
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.shipObjectWorld
+import org.valkyrienskies.mod.common.vsCore
 
 abstract class CommonHooksImpl : CoreHooksOut {
+
+    override var enableBlockEdgeConnectivity: Boolean
+        get() = vsCore.hooks.enableBlockEdgeConnectivity
+        set(value) {}
+
+    override var enableBlockCornerConnectivity: Boolean
+        get() = vsCore.hooks.enableBlockCornerConnectivity
+        set(value) {}
+
+    override var enableConnectivity: Boolean
+        get() = vsCore.hooks.enableConnectivity
+        set(value) {}
+
+    override var enableWorldConnectivity: Boolean
+        get() = vsCore.hooks.enableWorldConnectivity
+        set(value) {}
 
     override val playState: PlayState
         get() {
