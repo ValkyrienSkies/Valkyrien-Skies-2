@@ -28,7 +28,7 @@ import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
-@Mixin(value = TrackBlockOutline.class, remap = false)
+@Mixin(value = TrackBlockOutline.class)
 public class MixinTrackBlockOutline {
     @Unique
     private static Vec3 valkyrienskies$cameraVec3;
@@ -37,7 +37,7 @@ public class MixinTrackBlockOutline {
     @Unique
     private static Vec3 valkyrienskies$angles;
 
-    @Inject(method = "drawCurveSelection", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/trains/track/TrackBlockOutline$BezierPointSelection;angles()Lnet/minecraft/world/phys/Vec3;"), locals = LocalCapture.CAPTURE_FAILHARD)
+    @Inject(method = "drawCurveSelection", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/trains/track/TrackBlockOutline$BezierPointSelection;angles()Lnet/minecraft/world/phys/Vec3;"), locals = LocalCapture.CAPTURE_FAILHARD, remap = false)
     private static void harvestDrawCurveSelection(final PoseStack ms, final MultiBufferSource buffer, final Vec3 camera,
         final CallbackInfo ci, final Minecraft mc,
         final BezierPointSelection result, final VertexConsumer vb, final Vec3 vec) {
@@ -48,7 +48,9 @@ public class MixinTrackBlockOutline {
     @ModifyArg(method = "drawCurveSelection",
         at = @At(value = "INVOKE",
             target = "Lcom/simibubi/create/content/trains/track/TrackBlockOutline;renderShape(Lnet/minecraft/world/phys/shapes/VoxelShape;Lcom/mojang/blaze3d/vertex/PoseStack;Lcom/mojang/blaze3d/vertex/VertexConsumer;Ljava/lang/Boolean;)V"),
-        index = 1)
+        index = 1,
+        remap = false
+    )
     private static PoseStack redirectTransformStackTranslate(final PoseStack ms) {
 
         final Level level = Minecraft.getInstance().level;
