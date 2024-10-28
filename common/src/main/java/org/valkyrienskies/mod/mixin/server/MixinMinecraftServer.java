@@ -296,6 +296,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
             new Vector3d(),
             new Vector3d(),
             VSGameUtilsKt.getDimensionId(destLevel),
+            null,
             null
         );
         shipWorld.teleportShip(shipObject, shipTeleportData);
