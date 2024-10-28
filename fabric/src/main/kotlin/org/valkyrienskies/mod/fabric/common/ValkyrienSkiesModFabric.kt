@@ -42,6 +42,8 @@ import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.entity.VSPhysicsEntity
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager
 import org.valkyrienskies.mod.common.hooks.VSGameEvents
+import org.valkyrienskies.mod.common.item.AreaAssemblerItem
+import org.valkyrienskies.mod.common.item.ConnectionCheckerItem
 import org.valkyrienskies.mod.common.item.PhysicsEntityCreatorItem
 import org.valkyrienskies.mod.common.item.ShipAssemblerItem
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
@@ -63,12 +65,22 @@ class ValkyrienSkiesModFabric : ModInitializer {
         ValkyrienSkiesMod.TEST_FLAP = TestFlapBlock
         ValkyrienSkiesMod.TEST_WING = TestWingBlock
         ValkyrienSkiesMod.TEST_SPHERE = TestSphereBlock
+        ValkyrienSkiesMod.CONNECTION_CHECKER_ITEM = ConnectionCheckerItem(
+            Properties().tab(CreativeModeTab.TAB_MISC),
+            { 1.0 },
+            { VSGameConfig.SERVER.minScaling }
+        )
         ValkyrienSkiesMod.SHIP_CREATOR_ITEM = ShipCreatorItem(
             Properties().tab(CreativeModeTab.TAB_MISC),
             { 1.0 },
             { VSGameConfig.SERVER.minScaling }
         )
         ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM = ShipAssemblerItem(Properties().tab(CreativeModeTab.TAB_MISC))
+        ValkyrienSkiesMod.AREA_ASSEMBLER_ITEM = AreaAssemblerItem(
+            Properties().tab(CreativeModeTab.TAB_MISC),
+            { 1.0 },
+            { VSGameConfig.SERVER.minScaling }
+        )
         ValkyrienSkiesMod.SHIP_CREATOR_ITEM_SMALLER = ShipCreatorItem(
             Properties().tab(CreativeModeTab.TAB_MISC),
             { VSGameConfig.SERVER.miniShipSize },
@@ -114,6 +126,14 @@ class ValkyrienSkiesModFabric : ModInitializer {
         registerBlockAndItem("test_flap", ValkyrienSkiesMod.TEST_FLAP)
         registerBlockAndItem("test_wing", ValkyrienSkiesMod.TEST_WING)
         registerBlockAndItem("test_sphere", ValkyrienSkiesMod.TEST_SPHERE)
+        Registry.register(
+            Registry.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "connection_checker"),
+            ValkyrienSkiesMod.CONNECTION_CHECKER_ITEM
+        )
+        Registry.register(
+            Registry.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "area_assembler"),
+            ValkyrienSkiesMod.AREA_ASSEMBLER_ITEM
+        )
         Registry.register(
             Registry.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_assembler"),
             ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM
