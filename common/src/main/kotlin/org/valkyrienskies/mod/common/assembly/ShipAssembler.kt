@@ -3,10 +3,8 @@ package org.valkyrienskies.mod.common.assembly
 import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.Level
-import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import org.joml.Vector3d
-import org.joml.Vector3dc
 import org.joml.Vector3i
 import org.joml.Vector3ic
 import org.valkyrienskies.core.api.ships.ServerShip
@@ -18,8 +16,6 @@ import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getShipObjectManagingPos
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.SplittingDisablerAttachment
-import org.valkyrienskies.mod.common.util.toJOMLD
-import org.valkyrienskies.mod.util.logger
 
 object ShipAssembler {
 
@@ -45,20 +41,25 @@ object ShipAssembler {
 
         val existingShip = sLevel.getShipObjectManagingPos(blocks.find { !sLevel.getBlockState(it).isAir } ?: throw IllegalArgumentException())
 
-        var structureCornerMin: BlockPos = blocks[0]
-        var structureCornerMax: BlockPos = blocks[0]
+        var structureCornerMin: BlockPos? = null
+        var structureCornerMax: BlockPos? = null
         var hasSolids = false
 
         // Calculate bounds of the area containing all blocks adn check for solids and invalid blocks
         for (itPos in blocks) {
             if (isValidShipBlock(level.getBlockState(itPos))) {
-                structureCornerMin = AssemblyUtil.getMinCorner(structureCornerMin, itPos)
-                structureCornerMax = AssemblyUtil.getMaxCorner(structureCornerMax, itPos)
+                if (structureCornerMin == null) {
+                    structureCornerMin = itPos
+                    structureCornerMax = itPos
+                } else {
+                    structureCornerMin = AssemblyUtil.getMinCorner(structureCornerMin!!, itPos)
+                    structureCornerMax = AssemblyUtil.getMaxCorner(structureCornerMax!!, itPos)
+                }
                 hasSolids = true
             }
         }
         if (!hasSolids) throw IllegalArgumentException("No solid blocks found in the structure")
-        val contraptionOGPos: Vector3ic = AssemblyUtil.getMiddle(structureCornerMin, structureCornerMax)
+        val contraptionOGPos: Vector3ic = AssemblyUtil.getMiddle(structureCornerMin!!, structureCornerMax!!)
         // Create new contraption at center of bounds
         val contraptionWorldPos: Vector3i = if (existingShip != null) {
             val doubleVer = existingShip.shipToWorld.transformPosition(Vector3d(contraptionOGPos)).floor()
@@ -112,15 +113,16 @@ object ShipAssembler {
             AssemblyUtil.updateBlock(level,itPos,shipPos,level.getBlockState(shipPos))
         }
 
-        val spawnWorldPos: Vector3dc = AssemblyUtil.getMiddle(structureCornerMin.toJOMLD(), structureCornerMax.toJOMLD()).add(0.5, 0.5, 0.5)
-
+        val shipCenterPos = ((newShip as ServerShip).inertiaData.centerOfMassInShip).add(0.5, 0.5, 0.5, Vector3d())
+        // This is giga sus, but whatever
+        val shipPos = Vector3d(contraptionOGPos).add(0.5, 0.5, 0.5)
         if (existingShip != null) {
             sLevel.server.shipObjectWorld
-                .teleportShip(newShip as ServerShip, ShipTeleportDataImpl(existingShip.shipToWorld.transformPosition(spawnWorldPos, Vector3d()), existingShip.transform.shipToWorldRotation, existingShip.velocity, existingShip.omega, existingShip.chunkClaimDimension))
+                .teleportShip(newShip as ServerShip, ShipTeleportDataImpl(existingShip.shipToWorld.transformPosition(shipPos, Vector3d()), existingShip.transform.shipToWorldRotation, existingShip.velocity, existingShip.omega, existingShip.chunkClaimDimension, newScale = existingShip.transform.shipToWorldScaling.x(), newPosInShip = shipCenterPos))
 
         } else {
             sLevel.server.shipObjectWorld
-                .teleportShip(newShip as ServerShip, ShipTeleportDataImpl(spawnWorldPos))
+                .teleportShip(newShip as ServerShip, ShipTeleportDataImpl(newPos = shipPos, newPosInShip = shipCenterPos))
         }
         if (shouldDisableSplitting) {
             level.shipObjectWorld.loadedShips.getById(newShip.id)?.getAttachment<SplittingDisablerAttachment>()?.enableSplitting()
