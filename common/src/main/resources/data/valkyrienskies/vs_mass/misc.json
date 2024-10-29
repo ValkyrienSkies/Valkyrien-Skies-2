@@ -375,7 +375,7 @@
     "elasticity": 0.5
   },
   {
-    "tag": "minecraft:carpets",
+    "tag": "minecraft:wool_carpets",
     "mass": 2.0,
     "friction": 0.6,
     "elasticity": 0.05
