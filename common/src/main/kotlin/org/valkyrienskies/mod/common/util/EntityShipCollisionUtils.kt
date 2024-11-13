@@ -9,6 +9,10 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import net.minecraft.world.phys.shapes.VoxelShape
+import org.joml.Matrix4d
+import org.joml.Quaterniond
+import org.joml.Quaterniondc
+import org.joml.Vector3d
 import org.joml.primitives.AABBd
 import org.joml.primitives.AABBdc
 import org.valkyrienskies.core.api.ships.Ship
@@ -78,19 +82,22 @@ object EntityShipCollisionUtils {
         // Note that this increases the cost of doing collision, so we only do it for the players
         val inflation = if (entity is Player) 0.5 else 0.1
         val stepHeight: Double = entity?.maxUpStep()?.toDouble() ?: 0.0
+
         // Add [max(stepHeight - inflation, 0.0)] to search for polygons we might collide with while stepping
         val collidingShipPolygons =
             getShipPolygonsCollidingWithEntity(
                 entity, Vec3(movement.x(), movement.y() + max(stepHeight - inflation, 0.0), movement.z()),
-                entityBoundingBox.inflate(inflation), world
+                entityBoundingBox.inflate(inflation), null, world
             )
 
         if (collidingShipPolygons.isEmpty()) {
             return movement
         }
 
+        val isSneaking = entity is Player && entity.isCrouching
+
         val (newMovement, shipCollidingWith) = collider.adjustEntityMovementForPolygonCollisions(
-            movement.toJOML(), entityBoundingBox.toJOML(), stepHeight, collidingShipPolygons
+            movement.toJOML(), entityBoundingBox.toJOML(), stepHeight, isSneaking, collidingShipPolygons
         )
         if (entity != null) {
             if (shipCollidingWith != null) {
@@ -105,13 +112,27 @@ object EntityShipCollisionUtils {
         entity: Entity?,
         movement: Vec3,
         entityBoundingBox: AABB,
+        entityOrientation: Quaterniondc?,
         world: Level
     ): List<ConvexPolygonc> {
         val entityBoxWithMovement = entityBoundingBox.expandTowards(movement)
         val collidingPolygons: MutableList<ConvexPolygonc> = ArrayList()
         val entityBoundingBoxExtended = entityBoundingBox.toJOML().extend(movement.toJOML())
+
+
         for (shipObject in world.shipObjectWorld.loadedShips.getIntersecting(entityBoundingBoxExtended, world.dimensionId)) {
             val shipTransform = shipObject.transform
+            val shipToWorld = Matrix4d(shipTransform.shipToWorld)
+
+            // todo: untested
+            if (entityOrientation != null) {
+                val center = entityBoundingBox.toJOML().center(Vector3d())
+                val inverseOrientation = entityOrientation.invert(Quaterniond())
+
+                // Rotate the world around the entity's AABB
+                shipToWorld.rotateAroundLocal(inverseOrientation, center.x, center.y, center.z)
+            }
+
             val entityPolyInShipCoordinates: ConvexPolygonc = collider.createPolygonFromAABB(
                 entityBoxWithMovement.toJOML(),
                 shipTransform.worldToShip

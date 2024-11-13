@@ -70,20 +70,25 @@ subprojects {
     apply plugin: "org.jetbrains.kotlin.jvm"
     apply plugin: "io.github.juuxel.loom-vineflower"
 
-    configurations.each { it.resolutionStrategy.useGlobalDependencySubstitutionRules.set(false) }
-
     repositories {
         try {
             def vsCoreBuild = gradle.includedBuild("vs-core")
-            mavenLocal {
-                content {
-                    includeGroup("org.valkyrienskies.core")
+
+            tasks.register('removeIncludedClasses') {
+                // IntelliJ bug: IntelliJ always adds the build/classes folder in composite builds to the classpath,
+                // even though we want the shadowJar stuff on the classpath rather than build/classes
+                //
+                // To fix this, we just delete it. Very reliable and supported and not cursed at all.
+                doLast {
+                    new File(vsCoreBuild.projectDir, "build/classes").deleteDir()
                 }
             }
 
-            [':impl', ':api', ':api-game'].each {
-                compileJava.dependsOn(vsCoreBuild.task("${it}:publishToMavenLocal"))
+            tasks.named('classes') {
+                finalizedBy tasks.named('removeIncludedClasses')
+                dependsOn vsCoreBuild.task(":shadowJar")
             }
+
         } catch (UnknownDomainObjectException ignore) {}
 
         mavenCentral()
