@@ -184,6 +184,7 @@
     "mod_compat.optifine.RenderChunkInfoAccessorOptifine",
     "mod_compat.optifine_vanilla.MixinLevelRenderer",
     "mod_compat.sodium.MixinChunkTracker",
+    "mod_compat.sodium.MixinDefaultChunkRenderer",
     "mod_compat.sodium.MixinRenderSectionManager",
     "mod_compat.sodium.MixinSodiumWorldRenderer",
     "mod_compat.sound_physics_remastered.MixinSoundPhysics",
