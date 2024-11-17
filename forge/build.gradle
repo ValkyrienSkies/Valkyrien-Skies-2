@@ -77,8 +77,8 @@ dependencies {
     modImplementation("com.tterrag.registrate:Registrate:${registrate_version}")
 
 
-    // Mekanism
-    modRuntimeOnly("curse.maven:mekanism-268560:${mekanism_version_id}") { transitive = false }
+    // Mekanism compat
+    modImplementation("curse.maven:mekanism-268560:${mekanism_version_id}") { transitive = false }
 
     // Weather2 1.20.1
     modImplementation("curse.maven:weather-storms-tornadoes-237746:5244118")
@@ -106,9 +106,6 @@ dependencies {
     modCompileOnly("curse.maven:integrated-dynamics-236307:5297722")
     modCompileOnly("curse.maven:cyclops-core-232758:5262063")
     modCompileOnly("curse.maven:common-capabilities-247007:4987207")
-
-    // Mekanism
-    modCompileOnly ("curse.maven:mekanism-268560:4644795")
 
     // Add Kotlin for Forge (3.12.0)
     forgeRuntimeLibrary("maven.modrinth:kotlin-for-forge:${kotlin_version}")
