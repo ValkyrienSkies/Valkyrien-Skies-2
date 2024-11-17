@@ -16,7 +16,6 @@ import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
 import org.apache.commons.lang3.StringUtils
 import org.valkyrienskies.core.impl.config.SidedVSConfigClass
-import org.valkyrienskies.core.impl.config.VSConfigClass
 import org.valkyrienskies.core.impl.util.serialization.VSJacksonUtil
 import org.valkyrienskies.mod.common.vsCore
 import java.util.Optional

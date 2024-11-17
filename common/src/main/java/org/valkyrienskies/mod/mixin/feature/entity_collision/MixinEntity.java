@@ -103,19 +103,23 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
         // Remove the component of [movementAdjustedForCollisions] that is parallel to [collisionResponseHorizontal]
         if (collisionResponseHorizontal.lengthSquared() > 1e-6) {
+            final Vec3 deltaMovement = getDeltaMovement();
+
             final Vector3dc collisionResponseHorizontalNormal = collisionResponseHorizontal.normalize(new Vector3d());
             final double parallelHorizontalVelocityComponent =
                 collisionResponseHorizontalNormal
-                    .dot(movementAdjustedForCollisions.x, 0.0, movementAdjustedForCollisions.z);
+                    .dot(deltaMovement.x, 0.0, deltaMovement.z);
 
             setDeltaMovement(
-                movementAdjustedForCollisions.x
+                deltaMovement.x
                     - collisionResponseHorizontalNormal.x() * parallelHorizontalVelocityComponent,
-                movementAdjustedForCollisions.y,
-                movementAdjustedForCollisions.z
+                deltaMovement.y,
+                deltaMovement.z
                     - collisionResponseHorizontalNormal.z() * parallelHorizontalVelocityComponent
             );
         }
+        // The rest of the move function (including tryCheckInsideBlocks) is skipped, so calling it here
+        tryCheckInsideBlocks();
         // Cancel the original invocation of Entity.setVelocity(DDD)V to remove vanilla behavior
         callbackInfo.cancel();
     }
@@ -223,6 +227,9 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
     @Shadow
     public abstract void setDeltaMovement(double x, double y, double z);
+
+    @Shadow
+    protected abstract void tryCheckInsideBlocks();
 
     @Shadow
     protected abstract Vec3 collide(Vec3 vec3d);

@@ -24,6 +24,7 @@ import org.valkyrienskies.core.impl.game.ShipTeleportDataImpl
 import org.valkyrienskies.core.util.x
 import org.valkyrienskies.core.util.y
 import org.valkyrienskies.core.util.z
+import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toJOMLD
@@ -96,8 +97,12 @@ object VSCommands {
                                     val r = ShipArgument.getShips(it, "ships").toList() as List<ServerShip>
                                     val position =
                                         Vec3Argument.getVec3(it as CommandContext<CommandSourceStack>, "position")
+                                    val dimensionId = (it.source as CommandSourceStack).level.dimensionId
                                     val shipTeleportData: ShipTeleportData =
-                                        ShipTeleportDataImpl(newPos = position.toJOML())
+                                        ShipTeleportDataImpl(
+                                            newPos = position.toJOML(),
+                                            newDimension = dimensionId
+                                        )
                                     r.forEach { ship ->
                                         vsCore.teleportShip(
                                             (it as CommandContext<VSCommandSource>).source.shipWorld as ServerShipWorld,
@@ -125,12 +130,14 @@ object VSCommands {
                                             )
 
                                         val source = it.source as CommandSourceStack
+                                        val dimensionId = (it.source as CommandSourceStack).level.dimensionId
                                         val shipTeleportData: ShipTeleportData =
                                             ShipTeleportDataImpl(
                                                 newPos = position.toJOML(),
                                                 newRot = eulerAngles.toEulerRotationFromMCEntity(
                                                     source.rotation.x.toDouble(), source.rotation.y.toDouble(),
-                                                )
+                                                ),
+                                                newDimension = dimensionId
                                             )
                                         r.forEach { ship ->
                                             vsCore.teleportShip(
@@ -164,13 +171,15 @@ object VSCommands {
                                             )
 
                                             val source = it.source as CommandSourceStack
+                                            val dimensionId = (it.source as CommandSourceStack).level.dimensionId
                                             val shipTeleportData: ShipTeleportData =
                                                 ShipTeleportDataImpl(
                                                     newPos = position.toJOML(),
                                                     newRot = eulerAngles.toEulerRotationFromMCEntity(
                                                         source.rotation.x.toDouble(), source.rotation.y.toDouble(),
                                                     ),
-                                                    newVel = velocity.toVector3d(0.0, 0.0, 0.0)
+                                                    newVel = velocity.toVector3d(0.0, 0.0, 0.0),
+                                                    newDimension = dimensionId
                                                 )
                                             r.forEach { ship ->
                                                 vsCore.teleportShip(
@@ -209,6 +218,7 @@ object VSCommands {
                                                 )
 
                                                 val source = it.source as CommandSourceStack
+                                                val dimensionId = (it.source as CommandSourceStack).level.dimensionId
                                                 val shipTeleportData: ShipTeleportData =
                                                     ShipTeleportDataImpl(
                                                         newPos = position.toJOML(),
@@ -216,7 +226,8 @@ object VSCommands {
                                                             source.rotation.x.toDouble(), source.rotation.y.toDouble(),
                                                         ),
                                                         newVel = velocity.toVector3d(0.0, 0.0, 0.0),
-                                                        newOmega = angularVelocity.toVector3d(0.0, 0.0, 0.0)
+                                                        newOmega = angularVelocity.toVector3d(0.0, 0.0, 0.0),
+                                                        newDimension = dimensionId
                                                     )
                                                 r.forEach { ship ->
                                                     vsCore.teleportShip(

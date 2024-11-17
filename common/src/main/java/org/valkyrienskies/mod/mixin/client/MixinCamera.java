@@ -27,7 +27,6 @@ import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.mod.client.IVSCamera;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
-import org.joml.Vector3f;
 
 @Mixin(Camera.class)
 public abstract class MixinCamera implements IVSCamera {

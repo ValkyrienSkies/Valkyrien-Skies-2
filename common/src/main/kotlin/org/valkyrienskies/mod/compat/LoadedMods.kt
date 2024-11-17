@@ -8,6 +8,12 @@ object LoadedMods {
     @JvmStatic
     val iris by CompatInfo("net.coderbot.iris.Iris")
 
+    @JvmStatic
+    val weather2 by CompatInfo("weather2.Weather")
+
+    @JvmStatic
+    val immersivePortals by CompatInfo("qouteall.imm_ptl.core.IPModMain")
+
     class CompatInfo(private val className: String) : ReadOnlyProperty<Any?, Boolean> {
         private var isLoaded: Boolean? = null
 

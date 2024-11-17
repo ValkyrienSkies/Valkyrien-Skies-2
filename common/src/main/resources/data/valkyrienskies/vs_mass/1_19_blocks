@@ -1,19 +1,19 @@
 [
   {
     "block": "minecraft:pearlescent_froglight",
-    "mass": 3200.0,
+    "mass": 320.0,
     "friction": 0.07,
     "elasticity": 0.8
   },
   {
     "block": "minecraft:verdant_froglight",
-    "mass": 3200.0,
+    "mass": 320.0,
     "friction": 0.07,
     "elasticity": 0.8
   },
   {
     "block": "minecraft:ochre_froglight",
-    "mass": 3200.0,
+    "mass": 320.0,
     "friction": 0.07,
     "elasticity": 0.8
   },
@@ -24,37 +24,37 @@
   },
   {
     "block": "minecraft:mangrove_log",
-    "mass": 900.0,
+    "mass": 400.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:stripped_mangrove_log",
-    "mass": 900.0,
+    "mass": 400.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:mangrove_wood",
-    "mass": 900.0,
+    "mass": 400.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:stripped_mangrove_wood",
-    "mass": 900.0,
+    "mass": 400.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:mangrove_planks",
-    "mass": 600.0,
+    "mass": 100.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:mangrove_slab",
-    "mass": 300.0,
+    "mass": 50.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:mangrove_stairs",
-    "mass": 450.0,
+    "mass": 75.0,
     "friction": 0.5
   },
   {
@@ -68,64 +68,64 @@
   },
   {
     "block": "minecraft:muddy_mangrove_roots",
-    "mass": 1800.0,
+    "mass": 150.0,
     "friction": 0.8
   },
   {
     "block": "minecraft:mud",
-    "mass": 1800.0,
+    "mass": 100.0,
     "friction": 0.9
   },
   {
     "block": "minecraft:packed_mud",
-    "mass": 1450.0,
+    "mass": 150.0,
     "friction": 0.7
   },
   {
     "block": "minecraft:mud_bricks",
-    "mass": 1450.0,
+    "mass": 150.0,
     "friction": 0.7
   },
   {
     "block": "minecraft:mud_brick_wall",
-    "mass": 725.0,
+    "mass": 125.0,
     "friction": 0.7
   },
   {
     "block": "minecraft:mud_brick_slab",
-    "mass": 725.0,
+    "mass": 75.0,
     "friction": 0.7
   },
   {
     "block": "minecraft:mud_brick_stairs",
-    "mass": 1035.0,
+    "mass": 112.5,
     "friction": 0.7
   },
   {
     "block": "minecraft:reinforced_deepslate",
-    "mass": 3400.0,
+    "mass": 400.0,
     "friction": 0.7
   },
   {
     "block": "minecraft:sculk",
-    "mass": 400.0,
+    "mass": 25.0,
     "friction": 0.2,
     "elasticity": 0.3
   },
   {
     "block": "minecraft:sculk_catalyst",
-    "mass": 600.0,
+    "mass": 50.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:sculk_shrieker",
-    "mass": 200.0,
+    "mass": 50.0,
     "friction": 0.2,
     "elasticity": 0.3
   },
   {
     "block": "minecraft:sculk_vein",
-    "mass": 8.0,
+    "mass": 5.0,
     "friction": 0.2,
     "elasticity": 0.03
   }

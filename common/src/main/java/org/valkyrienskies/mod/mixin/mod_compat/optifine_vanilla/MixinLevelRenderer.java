@@ -49,7 +49,10 @@ public abstract class MixinLevelRenderer {
         )
     )
     private void afterRefresh(final CallbackInfo ci) {
-        ((ClientChunkCacheDuck) this.level.getChunkSource()).vs$getShipChunks().forEach((pos, chunk) -> {
+        // This can happen when immersive portals is installed
+        if (!(this.level.getChunkSource() instanceof final ClientChunkCacheDuck chunks)) return;
+
+        chunks.vs$getShipChunks().forEach((pos, chunk) -> {
             for (int y = level.getMinSection(); y < level.getMaxSection(); y++) {
                 viewArea.setDirty(ChunkPos.getX(pos), y, ChunkPos.getZ(pos), false);
             }

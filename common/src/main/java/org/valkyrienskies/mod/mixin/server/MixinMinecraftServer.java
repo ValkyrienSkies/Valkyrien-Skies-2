@@ -50,7 +50,10 @@ import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.common.util.VSLevelChunk;
 import org.valkyrienskies.mod.common.util.VSServerLevel;
 import org.valkyrienskies.mod.common.world.ChunkManagement;
+import org.valkyrienskies.mod.compat.LoadedMods;
+import org.valkyrienskies.mod.compat.Weather2Compat;
 import org.valkyrienskies.mod.util.KrunchSupport;
+import org.valkyrienskies.mod.util.McMathUtilKt;
 
 @Mixin(MinecraftServer.class)
 public abstract class MixinMinecraftServer implements IShipObjectWorldServerProvider, GameServer {
@@ -145,7 +148,8 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
 
         getShipObjectWorld().addDimension(
             VSGameUtilsKt.getDimensionId(overworld()),
-            VSGameUtilsKt.getYRange(overworld())
+            VSGameUtilsKt.getYRange(overworld()),
+            McMathUtilKt.getDEFAULT_WORLD_GRAVITY()
         );
     }
 
@@ -217,6 +221,8 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         // Only drag entities after we have updated the ship positions
         for (final ServerLevel level : getAllLevels()) {
             EntityDragger.INSTANCE.dragEntitiesWithShips(level.getAllEntities());
+            if (LoadedMods.getWeather2())
+                Weather2Compat.INSTANCE.tick(level);
         }
 
         //TODO must reimplement
@@ -290,6 +296,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
             new Vector3d(),
             new Vector3d(),
             VSGameUtilsKt.getDimensionId(destLevel),
+            null,
             null
         );
         shipWorld.teleportShip(shipObject, shipTeleportData);

@@ -133,5 +133,9 @@ object BlockStateInfo {
             x, y, z, level.dimensionId, prevBlockType, newBlockType, prevBlockMass,
             newBlockMass
         )
+
+        if (ValkyrienSkiesMod.vsCore.hooks.enableConnectivity) {
+            ValkyrienSkiesMod.splitHandler.split(level, x, y, z, prevBlockState, newBlockState)
+        }
     }
 }

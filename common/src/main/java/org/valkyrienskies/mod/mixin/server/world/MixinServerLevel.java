@@ -49,6 +49,7 @@ import org.valkyrienskies.mod.common.util.VSServerLevel;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.mixin.accessors.server.level.ChunkMapAccessor;
 import org.valkyrienskies.mod.mixin.accessors.server.level.DistanceManagerAccessor;
+import org.valkyrienskies.mod.util.McMathUtilKt;
 
 @Mixin(ServerLevel.class)
 public abstract class MixinServerLevel implements IShipObjectWorldServerProvider, VSServerLevel {
@@ -83,8 +84,11 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
 
         // This only happens when overworld gets loaded on startup, we have a mixin in MixinMinecraftServer for this specific case
         if (getShipObjectWorld() != null) {
-            getShipObjectWorld().addDimension(VSGameUtilsKt.getDimensionId((ServerLevel) (Object) this),
-                VSGameUtilsKt.getYRange((ServerLevel) (Object) this));
+            getShipObjectWorld().addDimension(
+                VSGameUtilsKt.getDimensionId((ServerLevel) (Object) this),
+                VSGameUtilsKt.getYRange((ServerLevel) (Object) this),
+                McMathUtilKt.getDEFAULT_WORLD_GRAVITY()
+            );
         }
     }
 
@@ -154,7 +158,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                                 for (int z = 0; z < 16; z++) {
                                     final BlockState blockState = chunkSection.getBlockState(x, y, z);
                                     final int posX = (chunkX << 4) + x;
-                                    final int posY = worldChunk.getMinBuildHeight() + y;
+                                    final int posY = worldChunk.getMinBuildHeight() + (sectionY << 4) + y;
                                     final int posZ = (chunkZ << 4) + z;
                                     if (blockState.getBlock() instanceof WingBlock) {
                                         mutableBlockPos.set(posX, posY, posZ);
@@ -231,6 +235,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
             VSGameUtilsKt.getDimensionId(self),
             voxelShapeUpdates
         );
+
     }
 
     @Override

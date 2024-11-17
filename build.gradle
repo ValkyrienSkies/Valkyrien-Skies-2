@@ -87,12 +87,6 @@ subprojects {
         } catch (UnknownDomainObjectException ignore) {}
 
         mavenCentral()
-        maven {
-            url "https://cursemaven.com"
-            content {
-                includeModule "curse.maven", "kotlinforforge-351264"
-            }
-        }
         if (!project.block_external_repositories) {
             mavenLocal()
             maven {
@@ -109,6 +103,7 @@ subprojects {
                 name = 'tterrag maven'
                 url = 'https://maven.tterrag.com/'
             }
+            maven { url = "https://modmaven.dev/" } // Twilight Forest
             maven { url = "https://api.modrinth.com/maven" } // LazyDFU, Suggestion Tweaker, Create Big Cannons
             maven { url = "https://maven.shedaniel.me/" } // Cloth Config, REI
             maven { url "https://maven.architectury.dev/" }
@@ -118,6 +113,7 @@ subprojects {
             maven { url = "https://maven.tterrag.com/" } // Registrate, Forge Create and Flywheel
             maven { url = "https://maven.cafeteria.dev/releases" } // Fake Player API
             maven { url = "https://maven.jamieswhiteshirt.com/libs-release" } // Reach Entity Attributes
+            maven { url = "https://jitpack.io"}
         }
         maven {
             name = "Valkyrien Skies Internal"

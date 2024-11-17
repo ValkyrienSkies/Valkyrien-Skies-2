@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.common
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
@@ -10,6 +11,7 @@ import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerChunkCache
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.util.thread.BlockableEventLoop
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.ChunkPos
@@ -28,11 +30,11 @@ import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.api.util.functions.DoubleTernaryConsumer
 import org.valkyrienskies.core.api.world.LevelYRange
-import org.valkyrienskies.core.api.world.properties.DimensionId
 import org.valkyrienskies.core.apigame.world.IPlayer
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore
 import org.valkyrienskies.core.apigame.world.ShipWorldCore
 import org.valkyrienskies.core.apigame.world.chunks.TerrainUpdate
+import org.valkyrienskies.core.apigame.world.properties.DimensionId
 import org.valkyrienskies.core.game.ships.ShipObjectServer
 import org.valkyrienskies.core.impl.hooks.VSEvents.TickEndEvent
 import org.valkyrienskies.core.util.expand
@@ -124,6 +126,24 @@ fun Entity.squaredDistanceToInclShips(x: Double, y: Double, z: Double) =
     level().squaredDistanceBetweenInclShips(x, y, z, this.x, this.y, this.z)
 
 /**
+ * Meant to be used with @WrapOperation to replace distance checks in a compatible way
+ */
+fun Level?.squaredDistanceBetweenInclShips(
+    v1: Vec3,
+    v2: Vec3,
+    originalDistance: Operation<Double>?
+): Double {
+    if (originalDistance == null) {
+        return squaredDistanceBetweenInclShips(v1.x, v1.y, v1.z, v2.x, v2.y, v2.z) // fast path
+    }
+
+    val inWorldV1 = toWorldCoordinates(v1)
+    val inWorldV2 = toWorldCoordinates(v2)
+
+    return originalDistance.call(inWorldV1, inWorldV2)
+}
+
+/**
  * Calculates the squared distance between to points.
  * x1/y1/z1 are transformed into world coordinates if they are on a ship
  */
@@ -212,7 +232,7 @@ inline fun Level.transformToNearbyShipsAndWorld(
         cb(posInWorld.x(), posInWorld.y(), posInWorld.z())
     }
 
-    for (nearbyShip in shipObjectWorld.allShips.getIntersecting(aabb, dimensionId)) {
+    for (nearbyShip in shipObjectWorld.allShips.getIntersecting(aabb, this!!.dimensionId)) {
         if (nearbyShip == currentShip) continue
         val posInShip = nearbyShip.worldToShip.transformPosition(posInWorld, temp0)
         cb(posInShip.x(), posInShip.y(), posInShip.z())
@@ -393,7 +413,6 @@ fun Level?.getWorldCoordinates(blockPos: BlockPos, pos: Vector3d): Vector3d {
 
 fun Level.getShipsIntersecting(aabb: AABB): Iterable<Ship> = getShipsIntersecting(aabb.toJOML())
 fun Level.getShipsIntersecting(aabb: AABBdc): Iterable<Ship> = allShips.getIntersecting(aabb, dimensionId)
-
 fun Level?.transformAabbToWorld(aabb: AABB): AABB = transformAabbToWorld(aabb.toJOML()).toMinecraft()
 fun Level?.transformAabbToWorld(aabb: AABBd) = this?.transformAabbToWorld(aabb, aabb) ?: aabb
 fun Level.transformAabbToWorld(aabb: AABBdc, dest: AABBd): AABBd {
@@ -406,6 +425,25 @@ fun Level.transformAabbToWorld(aabb: AABBdc, dest: AABBd): AABBd {
     }
 
     return dest.set(aabb)
+}
+
+/**
+ * Execute [runnable] immediately iff the thread invoking this is the same as the game thread.
+ * Otherwise, schedule [runnable] to run on the next tick.
+ */
+fun Level.executeOrSchedule(runnable: Runnable) {
+    val blockableEventLoop: BlockableEventLoop<Runnable> = if (!this.isClientSide) {
+        this.server!! as BlockableEventLoop<Runnable>
+    } else {
+        Minecraft.getInstance()
+    }
+    if (blockableEventLoop.isSameThread) {
+        // For some reason MinecraftServer wants to schedule even when it's the same thread, so we need to add our own
+        // logic
+        runnable.run()
+    } else {
+        blockableEventLoop.execute(runnable)
+    }
 }
 
 fun getShipMountedToData(passenger: Entity, partialTicks: Float? = null): ShipMountedToData? {

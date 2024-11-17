@@ -223,7 +223,7 @@ open class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : En
         private const val CLIENT_INTERP_STEPS = 3
 
         // Use string because there is no LONG serializer by default SMH my head!
-        private val SHIP_ID_DATA: EntityDataAccessor<String> =
+        val SHIP_ID_DATA: EntityDataAccessor<String> =
             SynchedEntityData.defineId(VSPhysicsEntity::class.java, EntityDataSerializers.STRING)
 
         private fun getMapper(): ObjectMapper {
