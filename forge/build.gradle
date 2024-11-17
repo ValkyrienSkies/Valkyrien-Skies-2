@@ -72,6 +72,9 @@ dependencies {
     modImplementation("com.jozufozu.flywheel:flywheel-forge-${minecraft_version}:${flywheel_version}")
     modImplementation("com.tterrag.registrate:Registrate:${registrate_version}")
 
+    // Mekanism
+    modRuntimeOnly("curse.maven:mekanism-268560:${mekanism_version_id}") { transitive = false }
+
     // CC Tweaked
     modCompileOnly("maven.modrinth:cc-tweaked:${cc_tweaked_version}")
 

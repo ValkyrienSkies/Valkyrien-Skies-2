@@ -187,13 +187,10 @@ allprojects {
         }
     }
 
-    tasks.withType(JavaCompile) {
-        options.encoding = "UTF-8"
-
-        options.release = 17
-    }
-
     java {
         withSourcesJar()
+        toolchain {
+            languageVersion.set(JavaLanguageVersion.of(17))
+        }
     }
 }

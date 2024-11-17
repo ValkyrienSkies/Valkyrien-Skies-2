@@ -11,6 +11,7 @@ import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.ViewArea;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -78,6 +79,11 @@ public abstract class MixinLevelRenderer {
             transformRenderWithShip(shipObject.getRenderTransform(), matrix, blockEntityPos,
                 cam.x(), cam.y(), cam.z());
         }
-        blockEntityRenderDispatcher.render(blockEntity, tickDelta, matrix, vertexConsumerProvider);
+
+        final BlockEntityRenderer<BlockEntity> blockEntityRenderer = blockEntityRenderDispatcher.getRenderer(blockEntity);
+        if (blockEntityRenderer != null && blockEntityRenderer.shouldRender(blockEntity, methodCamera.getPosition()))
+        {
+            blockEntityRenderDispatcher.render(blockEntity, tickDelta, matrix, vertexConsumerProvider);
+        }
     }
 }
