@@ -34,7 +34,7 @@ public class MixinServerPlayerGameMode {
             target = "Lnet/minecraft/world/phys/Vec3;distanceToSqr(Lnet/minecraft/world/phys/Vec3;)D")
     )
     public double handleBlockBreakAction(final Vec3 instance, final Vec3 vec3) {
-        final BlockPos pos = new BlockPos(vec3.subtract(0.5, 0.5, 0.5));
+        final BlockPos pos = BlockPos.containing(vec3.subtract(0.5, 0.5, 0.5));
         if (VSGameConfig.SERVER.getEnableInteractDistanceChecks()) {
             final Vector3d blockCenter = VectorConversionsMCKt.toJOMLD(pos).add(0.5, 0.5, 0.5);
             return VSGameUtilsKt.getWorldCoordinates(level, pos, blockCenter)

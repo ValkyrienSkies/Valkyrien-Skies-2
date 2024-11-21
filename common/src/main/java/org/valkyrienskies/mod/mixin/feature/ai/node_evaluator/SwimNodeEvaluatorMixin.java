@@ -44,7 +44,7 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
                 VSGameUtilsKt.transformToNearbyShipsAndWorld(level, origX,
                     origY, origZ, 1,
                     (x, y, z) -> {
-                        final BlockPos groundPos = new BlockPos(x, y, z);
+                        final BlockPos groundPos = BlockPos.containing(x, y, z);
                         final FluidState tempFluidState = getFluidState.call(finalLevel, groundPos);
                         if (!tempFluidState.isEmpty()) { // Skip any empty results for the case of intersecting ships
                             fluidState[0] = tempFluidState;
@@ -72,7 +72,7 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
             VSGameUtilsKt.transformToNearbyShipsAndWorld(level, origX,
                 origY, origZ, 1,
                 (x, y, z) -> {
-                    final BlockPos groundPos = new BlockPos(x, y, z);
+                    final BlockPos groundPos = BlockPos.containing(x, y, z);
                     final BlockState tempBlockState = getBlockState.call(level, groundPos);
                     if (!tempBlockState.isAir()) { // Skip any empty results for the case of intersecting ships
                         blockState[0] = tempBlockState;
@@ -106,7 +106,7 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
                 VSGameUtilsKt.transformToNearbyShipsAndWorld(level, origX,
                     origY, origZ, 1,
                     (x, y, z) -> {
-                        final BlockPos groundPos = new BlockPos(x, y, z);
+                        final BlockPos groundPos = BlockPos.containing(x, y, z);
                         final boolean pathfindable =
                             isPathfindable.call(instance, finalLevel, groundPos, pathComputationType);
                         if (pathfindable) { // Try to give a true result, not 100% accurate but method expects a single result
@@ -136,7 +136,7 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
                 VSGameUtilsKt.transformToNearbyShipsAndWorld(level, origX,
                     origY, origZ, 1,
                     (x, y, z) -> {
-                        final BlockPos groundPos = new BlockPos(x, y, z);
+                        final BlockPos groundPos = BlockPos.containing(x, y, z);
                         final FluidState tempFluidState = getFluidState.call(instance, groundPos);
                         if (!tempFluidState.isEmpty()) { // Skip any empty results for the case of intersecting ships
                             fluidState[0] = tempFluidState;

@@ -27,7 +27,7 @@ public abstract class MixinLevel implements BlockGetter {
             final Vec3 vec3 = clipContext.getFrom().subtract(clipContext.getTo());
             return BlockHitResult.miss(
                 clipContext.getTo(), Direction.getNearest(vec3.x, vec3.y, vec3.z),
-                new BlockPos(clipContext.getTo())
+                BlockPos.containing(clipContext.getTo())
             );
         } else {
             return RaycastUtilsKt.clipIncludeShips(Level.class.cast(this), clipContext);

@@ -39,7 +39,7 @@ public abstract class MixinCamera {
 
             VSGameUtilsKt.transformToNearbyShipsAndWorld(level, origX, origY, origZ, 1,
                 (x, y, z) -> {
-                    fluidState[0] = instance.getBlockState(new BlockPos(x, y, z))
+                    fluidState[0] = instance.getBlockState(BlockPos.containing(x, y, z))
                         .getFluidState();
                     if (!fluidState[0].isEmpty()) {
                         isShipWater = true;

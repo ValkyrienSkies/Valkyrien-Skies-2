@@ -4,7 +4,8 @@ import com.google.gson.Gson
 import com.google.gson.JsonElement
 import net.minecraft.core.BlockPos
 import net.minecraft.core.HolderSet
-import net.minecraft.core.Registry
+import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.packs.resources.ResourceManager
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener
@@ -64,7 +65,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
         get() = 100
 
     override fun getBlockStateMass(blockState: BlockState): Double? =
-        map[Registry.BLOCK.getKey(blockState.block)]?.mass
+        map[BuiltInRegistries.BLOCK.getKey(blockState.block)]?.mass
 
     override fun getBlockStateType(blockState: BlockState): BlockType? {
         val vsState = mcBlockStateToVs[blockState] ?: return null
@@ -103,7 +104,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
             VSGameEvents.tagsAreLoaded.on { _, _ ->
                 tags.forEach { tagInfo ->
                     val tag: Optional<HolderSet.Named<Block>>? =
-                        Registry.BLOCK.getTag(TagKey.create(Registry.BLOCK_REGISTRY, tagInfo.id))
+                        BuiltInRegistries.BLOCK.getTag(TagKey.create(Registries.BLOCK, tagInfo.id))
                     if (tag != null) {
 
                         if (!tag.isPresent()) {
@@ -114,7 +115,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
                         tag.get().forEach {
                             add(
                                 VSBlockStateInfo(
-                                    Registry.BLOCK.getKey(it.value()), tagInfo.priority, tagInfo.mass, tagInfo.friction,
+                                    BuiltInRegistries.BLOCK.getKey(it.value()), tagInfo.priority, tagInfo.mass, tagInfo.friction,
                                     tagInfo.elasticity, tagInfo.type
                                 )
                             )
@@ -351,7 +352,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
                         generated ?: fullBlockCollisionShape
                     }
 
-                    val vsBlockStateInfo = map[Registry.BLOCK.getKey(blockState.block)]
+                    val vsBlockStateInfo = map[BuiltInRegistries.BLOCK.getKey(blockState.block)]
 
                     // Create new solid block state
                     val solidState = vsCore.newSolidStateBuilder()

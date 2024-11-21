@@ -62,7 +62,7 @@ public abstract class MixinExplosion {
     private void doExplodeForce() {
         // Custom forces
         final Vector3d originPos = new Vector3d(this.x, this.y, this.z);
-        final BlockPos explodePos = new BlockPos(originPos.x(), originPos.y(), originPos.z());
+        final BlockPos explodePos = BlockPos.containing(originPos.x(), originPos.y(), originPos.z());
         final int radius = (int) Math.ceil(this.radius);
         for (int x = radius; x >= -radius; x--) {
             for (int y = radius; y >= -radius; y--) {

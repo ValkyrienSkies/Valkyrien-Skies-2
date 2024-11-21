@@ -118,7 +118,7 @@ jobs:
       - discord/status:
           success_message: ${DISCORD_MSG}
           success_only: true
-          webhook: ${VS2_1192_WEBHOOK}
+          webhook: ${VS2_1194_WEBHOOK}
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows

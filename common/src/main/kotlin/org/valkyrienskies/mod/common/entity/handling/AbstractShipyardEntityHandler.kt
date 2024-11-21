@@ -7,6 +7,7 @@ import net.minecraft.world.entity.Entity
 import org.joml.Vector3d
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.Ship
+import org.valkyrienskies.mod.common.util.toFloat
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toMinecraft
 
@@ -35,7 +36,7 @@ abstract class AbstractShipyardEntityHandler : VSEntityHandler {
         val scale = transform.shipToWorldScaling
 
         matrixStack.translate(transformed.x + camX, transformed.y + camY, transformed.z + camZ)
-        matrixStack.mulPose(transform.shipToWorldRotation.toMinecraft())
+        matrixStack.mulPose(transform.shipToWorldRotation.toFloat())
         matrixStack.scale(scale.x().toFloat(), scale.y().toFloat(), scale.z().toFloat())
         matrixStack.translate(offset.x, offset.y, offset.z)
     }
@@ -53,6 +54,6 @@ abstract class AbstractShipyardEntityHandler : VSEntityHandler {
     ) {
         // TODO: somewhere else position is already applied in the matrix stack
         // EW: i think it was in entity dragging logic
-        matrixStack.mulPose(ship.renderTransform.shipToWorldRotation.toMinecraft())
+        matrixStack.mulPose(ship.renderTransform.shipToWorldRotation.toFloat())
     }
 }

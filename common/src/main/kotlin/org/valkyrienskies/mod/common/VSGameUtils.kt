@@ -76,8 +76,10 @@ val Level.dimensionId: DimensionId
         return dimensionId
     }
 
+private val levelResourceKeyMap: MutableMap<DimensionId, ResourceKey<Level>> = HashMap()
+
 fun getResourceKey(dimensionId: DimensionId): ResourceKey<Level> {
-    @Suppress("UNCHECKED_CAST") val cached = ResourceKeyAccessor.getValues()[dimensionId] as ResourceKey<Level>?
+    val cached = levelResourceKeyMap[dimensionId]
     if (cached == null) {
         val (registryNamespace, registryName, namespace, name) = dimensionId.split(":")
         return ResourceKeyAccessor.callCreate(

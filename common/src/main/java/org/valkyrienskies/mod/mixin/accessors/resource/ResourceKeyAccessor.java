@@ -10,11 +10,6 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 @Mixin(ResourceKey.class)
 public interface ResourceKeyAccessor {
 
-    @Accessor("VALUES")
-    static Map<String, ResourceKey<?>> getValues() {
-        throw new AssertionError();
-    }
-
     @Accessor
     ResourceLocation getRegistryName();
 

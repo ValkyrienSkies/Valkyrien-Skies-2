@@ -92,7 +92,7 @@ public class MixinTrackBlockOutline {
         if (level != null) {
             final Ship ship;
             if ((ship = VSGameUtilsKt.getShipManagingPos(level, blockPos)) != null) {
-                return new BlockPos(VectorConversionsMCKt.toMinecraft(ship.getShipToWorld()
+                return BlockPos.containing(VectorConversionsMCKt.toMinecraft(ship.getShipToWorld()
                     .transformPosition(VectorConversionsMCKt.toJOMLD(blockPos))));
             }
         }

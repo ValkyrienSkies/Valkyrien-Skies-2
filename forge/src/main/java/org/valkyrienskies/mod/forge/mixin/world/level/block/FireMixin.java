@@ -43,7 +43,7 @@ public abstract class FireMixin {
         final double origZ = pos.getZ();
 
         VSGameUtilsKt.transformToNearbyShipsAndWorld(level, origX, origY, origZ, 3, (x, y, z) -> {
-            final BlockPos newPos = new BlockPos(x, y, z);
+            final BlockPos newPos = BlockPos.containing(x, y, z);
 
             if (level.isWaterAt(newPos)) {
                 level.removeBlock(pos, false);
@@ -51,7 +51,7 @@ public abstract class FireMixin {
 
             final int i = state.getValue(AGE);
 
-            final boolean bl2 = level.isHumidAt(newPos);
+            final boolean bl2 = level.isRainingAt(newPos);
             final int k = bl2 ? -50 : 0;
             this.tryCatchFire(level, pos.east(), 300 + k, random, i, Direction.WEST);
             this.tryCatchFire(level, pos.west(), 300 + k, random, i, Direction.EAST);
@@ -104,7 +104,7 @@ public abstract class FireMixin {
 
         VSGameUtilsKt.transformToNearbyShipsAndWorld(level, origX, origY, origZ, 1, (x, y, z) -> {
 
-            final BlockPos newPos = new BlockPos(x, y, z);
+            final BlockPos newPos = BlockPos.containing(x, y, z);
             if (level.isWaterAt(newPos)) {
                 level.removeBlock(pos, false);
             }

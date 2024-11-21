@@ -36,7 +36,7 @@ public class MixinBlocks {
         if (ships.hasNext()) {
             final Vector3d pos = ships.next().getWorldToShip()
                     .transformPosition(VectorConversionsMCKt.toJOML(entity.position()));
-            return new BlockPos(Math.floor(pos.x), Math.floor(pos.y), Math.floor(pos.z));
+            return BlockPos.containing(Math.floor(pos.x), Math.floor(pos.y), Math.floor(pos.z));
         } else {
             return entity.blockPosition();
         }

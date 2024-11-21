@@ -252,8 +252,8 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
             final ServerLevel level = dimensionToLevelMap.get(shipObject.getChunkClaimDimension());
             final Vector3dc shipPos = shipObject.getTransform().getPositionInWorld();
             final double bbRadius = 0.5;
-            final BlockPos blockPos = new BlockPos(shipPos.x() - bbRadius, shipPos.y() - bbRadius, shipPos.z() - bbRadius);
-            final BlockPos blockPos2 = new BlockPos(shipPos.x() + bbRadius, shipPos.y() + bbRadius, shipPos.z() + bbRadius);
+            final BlockPos blockPos = BlockPos.containing(shipPos.x() - bbRadius, shipPos.y() - bbRadius, shipPos.z() - bbRadius);
+            final BlockPos blockPos2 = BlockPos.containing(shipPos.x() + bbRadius, shipPos.y() + bbRadius, shipPos.z() + bbRadius);
             // Only run this code if the chunks between blockPos and blockPos2 are loaded
             if (level.hasChunksAt(blockPos, blockPos2)) {
                 shipObject.decayPortalCoolDown();
