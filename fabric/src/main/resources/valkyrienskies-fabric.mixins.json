@@ -6,11 +6,6 @@
     "compat.cc_restitched.MixinTurtleBrain",
     "compat.cc_restitched.MixinTurtleMoveCommand",
     "compat.cc_restitched.MixinWirelessNetwork",
-    "compat.create.MixinBlockBreakingKineticTileEntity",
-    "compat.create.MixinBlocks",
-    "compat.create.MixinChuteBlockEntity",
-    "compat.create.MixinControlledContraptionEntity",
-    "compat.create.client.MixinTrackBlockOutline",
     "compat.sodium.MixinRenderSectionManager",
     "feature.explosions.ClipContextMixin",
     "feature.shipyard_entities.MixinPersistentEntitySectionManager",
@@ -20,11 +15,6 @@
   ],
   "client": [
     "compat.cc_restitched.MixinSpeakerSound",
-    "compat.create.client.MixinContraptionHandlerClient",
-    "compat.create.client.MixinContraptionRenderInfo",
-    "compat.create.client.MixinCullingBlockEntityIterator",
-    "compat.create.client.MixinFlwContraption",
-    "compat.create.client.MixinSuperGlueSelectionHandler"
   ],
   "injectors": {
     "defaultRequire": 1
