@@ -14,7 +14,7 @@
     "server.network.MixinServerGamePacketListenerImpl"
   ],
   "client": [
-    "compat.cc_restitched.MixinSpeakerSound",
+    "compat.cc_restitched.MixinSpeakerSound"
   ],
   "injectors": {
     "defaultRequire": 1
