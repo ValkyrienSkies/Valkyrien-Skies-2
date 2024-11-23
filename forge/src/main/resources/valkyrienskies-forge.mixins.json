@@ -5,7 +5,6 @@
   "mixins": [
     "compat.immersivengineering.MixinBlockEntityInventory",
     "compat.mekanism.MixinRadiationManager",
-    "compat.tfc.MixinTFCChunkGenerator",
     "compat.thermalexpansion.MixinTileCoFH",
     "compat.modular_routers.MixinRouterMenu",
     "feature.forge_interact.MixinIForgePlayer",

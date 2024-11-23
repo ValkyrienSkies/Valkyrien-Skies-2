@@ -27,7 +27,7 @@ public class MixinEntitySection implements OfShip {
     }
 
     @ModifyVariable(
-        method = "getEntities(Lnet/minecraft/world/phys/AABB;Ljava/util/function/Consumer;)V",
+        method = "getEntities(Lnet/minecraft/world/phys/AABB;Ljava/util/function/;)V",
         at = @At("HEAD"),
         ordinal = 0,
         argsOnly = true)
