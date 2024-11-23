@@ -1,7 +1,7 @@
 package org.valkyrienskies.mod.common.entity.handling
 
 import com.google.common.cache.CacheBuilder
-import net.minecraft.core.Registry
+import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
@@ -9,7 +9,6 @@ import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.networking.PacketSyncVSEntityTypes
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.vsCore
-import org.valkyrienskies.mod.compat.CreateCompat
 import java.time.Duration
 import kotlin.text.RegexOption.IGNORE_CASE
 
@@ -56,9 +55,6 @@ object VSEntityManager {
     }
 
     fun getHandler(entity: Entity): VSEntityHandler {
-        if (CreateCompat.isContraption(entity)) {
-            return contraptionHandler
-        }
         return entityHandlers[entity.type] ?: getDefaultHandler(entity)
     }
 
@@ -72,7 +68,7 @@ object VSEntityManager {
     private fun determineDefaultHandler(entity: Entity): VSEntityHandler {
         try {
             val className = entity::class.java.simpleName
-            val registryName = Registry.ENTITY_TYPE.getKey(entity.type)
+            val registryName = BuiltInRegistries.ENTITY_TYPE.getKey(entity.type)
 
             if (className.contains("SeatEntity", true) || registryName.path.contains(seatRegistryName)) {
                 return DefaultShipyardEntityHandler
@@ -91,10 +87,10 @@ object VSEntityManager {
     // Sends a packet with all the entity -> handler pairs to the client
     fun syncHandlers(player: MinecraftPlayer) {
         val entityTypes: Map<Int, String> =
-            (0 until Registry.ENTITY_TYPE.count())
+            (0 until BuiltInRegistries.ENTITY_TYPE.count())
                 .asSequence()
                 .mapNotNull { i ->
-                    val handler = entityHandlers[Registry.ENTITY_TYPE.byId(i)] ?: return@mapNotNull null
+                    val handler = entityHandlers[BuiltInRegistries.ENTITY_TYPE.byId(i)] ?: return@mapNotNull null
                     i to namedEntityHandlers[handler].toString()
                 }
                 .toMap()

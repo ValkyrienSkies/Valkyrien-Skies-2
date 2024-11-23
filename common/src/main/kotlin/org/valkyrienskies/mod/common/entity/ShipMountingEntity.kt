@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.common.entity
 import net.minecraft.client.Minecraft
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.network.protocol.Packet
+import net.minecraft.network.protocol.game.ClientGamePacketListener
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
@@ -101,11 +102,15 @@ open class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level
         }
     }
 
-    override fun getControllingPassenger(): Entity? {
-        return if (isController) this.passengers.getOrNull(0) else null
+    override fun getControllingPassenger(): LivingEntity? {
+        return if (isController) {
+            this.passengers.getOrNull(0) as? LivingEntity
+        } else {
+            null
+        }
     }
 
-    override fun getAddEntityPacket(): Packet<*> {
+    override fun getAddEntityPacket(): Packet<ClientGamePacketListener> {
         return ClientboundAddEntityPacket(this)
     }
 }

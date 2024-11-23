@@ -48,7 +48,7 @@ public abstract class MixinClaimedChunkManager {
         }
 
         final Vector3d vec = ship.getShipToWorld().transformPosition(new Vector3d(pos.getX(), pos.getY(), pos.getZ()));
-        final BlockPos newPos = new BlockPos(VectorConversionsMCKt.toMinecraft(vec));
+        final BlockPos newPos = BlockPos.containing(VectorConversionsMCKt.toMinecraft(vec));
 
         if (
             (newPos.getY() > level.getMaxBuildHeight() || newPos.getY() < level.getMinBuildHeight()) &&

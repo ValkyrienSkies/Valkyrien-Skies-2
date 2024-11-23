@@ -10,9 +10,7 @@ import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 public class ValkyrienMixinErrorHandler implements IMixinErrorHandler {
 
     private final Set<String> warnList = new HashSet<>(Arrays.asList(
-        "org.valkyrienskies.mod.mixin.feature.water_in_ships_entity.MixinEntity",
-        "org.valkyrienskies.mod.mixin.mod_compat.create_big_cannons.MixinAbstractCannonProjectile",
-        "org.valkyrienskies.mod.mixin.mod_compat.create_big_cannons.MixinPitchOrientedContraptionEntity"
+        "org.valkyrienskies.mod.mixin.feature.water_in_ships_entity.MixinEntity"
     ));
 
     @Override

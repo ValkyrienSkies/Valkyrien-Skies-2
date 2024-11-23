@@ -35,7 +35,7 @@ public abstract class MixinClientLevel {
                 )
             );
 
-        return new BlockPos(
+        return BlockPos.containing(
             newPos.x,
             newPos.y,
             newPos.z

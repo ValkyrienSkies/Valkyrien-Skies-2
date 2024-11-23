@@ -4,9 +4,6 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.math.Matrix3f;
-import com.mojang.math.Matrix4f;
-import com.mojang.math.Quaternion;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -16,7 +13,10 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import org.joml.Matrix3f;
+import org.joml.Matrix4f;
 import org.joml.Quaterniond;
+import org.joml.Quaternionf;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Final;
@@ -25,17 +25,15 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.apigame.world.ClientShipWorldCore;
 import org.valkyrienskies.mod.client.IVSCamera;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
-import org.valkyrienskies.mod.common.entity.ShipMountedToData;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.entity.ShipMountedToData;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 import org.valkyrienskies.mod.mixinducks.client.MinecraftDuck;
 
@@ -94,23 +92,17 @@ public abstract class MixinGameRenderer {
         return pick.call(receiver, maxDistance, tickDelta, includeFluids);
     }
 
-    @Redirect(
+    @WrapOperation(
         method = "pick",
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/world/phys/Vec3;distanceToSqr(Lnet/minecraft/world/phys/Vec3;)D"
         )
     )
-    public double correctDistanceChecks(final Vec3 instance, final Vec3 vec) {
-        return VSGameUtilsKt.squaredDistanceBetweenInclShips(
-            this.minecraft.level,
-            vec.x,
-            vec.y,
-            vec.z,
-            instance.x,
-            instance.y,
-            instance.z
-        );
+    public double correctDistanceChecks(final Vec3 instance, final Vec3 vec, final Operation<Vec3> distanceToSqr) {
+        return VSGameUtilsKt.squaredDistanceBetweenInclShips(this.minecraft.level,
+            vec.x, vec.y, vec.z,
+            instance.x, instance.y, instance.z);
     }
 
     @Inject(method = "render", at = @At("HEAD"))
@@ -235,7 +227,7 @@ public abstract class MixinGameRenderer {
         method = "renderLevel",
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/client/renderer/LevelRenderer;prepareCullFrustum(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/world/phys/Vec3;Lcom/mojang/math/Matrix4f;)V"
+            target = "Lnet/minecraft/client/renderer/LevelRenderer;prepareCullFrustum(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/world/phys/Vec3;Lorg/joml/Matrix4f;)V"
         )
     )
     private void setupCameraWithMountedShip(final LevelRenderer instance, final PoseStack ignore, final Vec3 vec3,
@@ -282,17 +274,14 @@ public abstract class MixinGameRenderer {
         );
 
         // Apply the ship render transform to [matrixStack]
-        final Quaternion invShipRenderRotation = VectorConversionsMCKt.toMinecraft(
-            clientShip.getRenderTransform().getShipToWorldRotation().conjugate(new Quaterniond())
-        );
-        matrixStack.mulPose(invShipRenderRotation);
+        final Quaterniond invShipRenderRotation = clientShip.getRenderTransform().getShipToWorldRotation().conjugate(new Quaterniond());
+        matrixStack.mulPose(new Quaternionf().set(invShipRenderRotation));
 
         // We also need to recompute [inverseViewRotationMatrix] after updating [matrixStack]
         {
-            final Matrix3f matrix3f = matrixStack.last().normal().copy();
-            if (matrix3f.invert()) {
-                RenderSystem.setInverseViewRotationMatrix(matrix3f);
-            }
+            final Matrix3f matrix3f = new Matrix3f(matrixStack.last().normal());
+            matrix3f.invert();
+            RenderSystem.setInverseViewRotationMatrix(matrix3f);
         }
 
         // Camera FOV changes based on the position of the camera, so recompute FOV to account for the change of camera

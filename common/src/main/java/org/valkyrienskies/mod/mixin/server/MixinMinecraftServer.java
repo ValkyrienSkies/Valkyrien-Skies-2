@@ -13,6 +13,7 @@ import net.minecraft.BlockUtil;
 import net.minecraft.BlockUtil.FoundRectangle;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.Direction.Axis;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -30,7 +31,10 @@ import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.portal.PortalInfo;
 import net.minecraft.world.level.portal.PortalShape;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
@@ -252,8 +256,8 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
             final ServerLevel level = dimensionToLevelMap.get(shipObject.getChunkClaimDimension());
             final Vector3dc shipPos = shipObject.getTransform().getPositionInWorld();
             final double bbRadius = 0.5;
-            final BlockPos blockPos = new BlockPos(shipPos.x() - bbRadius, shipPos.y() - bbRadius, shipPos.z() - bbRadius);
-            final BlockPos blockPos2 = new BlockPos(shipPos.x() + bbRadius, shipPos.y() + bbRadius, shipPos.z() + bbRadius);
+            final BlockPos blockPos = BlockPos.containing(shipPos.x() - bbRadius, shipPos.y() - bbRadius, shipPos.z() - bbRadius);
+            final BlockPos blockPos2 = BlockPos.containing(shipPos.x() + bbRadius, shipPos.y() + bbRadius, shipPos.z() + bbRadius);
             // Only run this code if the chunks between blockPos and blockPos2 are loaded
             if (level.hasChunksAt(blockPos, blockPos2)) {
                 shipObject.decayPortalCoolDown();
@@ -349,8 +353,46 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
                 axis = Direction.Axis.X;
                 vec3 = new Vec3(0.5, 0.0, 0.0);
             }
-            return PortalShape.createPortalInfo(destLevel, foundRectangle, axis, vec3, entityDimensions, deltaMovement, 0.0f, 0.0f);
+            // originally PortalShape.createPortalInfo
+            return createPortalInfo(destLevel, foundRectangle, axis, vec3, entityDimensions, deltaMovement);
         }).orElse(null);
+    }
+
+    @Unique
+    private static PortalInfo createPortalInfo(final ServerLevel serverLevel, final BlockUtil.FoundRectangle foundRectangle, final Direction.Axis axis, final Vec3 vec3, final EntityDimensions entityDimensions, final Vec3 vec32) {
+        final BlockPos blockPos = foundRectangle.minCorner;
+        final BlockState blockState = serverLevel.getBlockState(blockPos);
+        final Direction.Axis axis2 = blockState.getOptionalValue(BlockStateProperties.HORIZONTAL_AXIS).orElse(
+            Axis.X);
+        final double d = foundRectangle.axis1Size;
+        final double e = foundRectangle.axis2Size;
+        final int i = axis == axis2 ? 0 : 90;
+        final Vec3 vec33 = axis == axis2 ? vec32 : new Vec3(vec32.z, vec32.y, -vec32.x);
+        final double h = (double)entityDimensions.width / 2.0 + (d - (double)entityDimensions.width) * vec3.x();
+        final double j = (e - (double)entityDimensions.height) * vec3.y();
+        final double k = 0.5 + vec3.z();
+        final boolean bl = axis2 == Axis.X;
+        final Vec3 vec34 = new Vec3((double)blockPos.getX() + (bl ? h : k), (double)blockPos.getY() + j, (double)blockPos.getZ() + (bl ? k : h));
+        final Vec3 vec35 = findCollisionFreePosition(vec34, serverLevel,  entityDimensions);
+        return new PortalInfo(vec35, vec33,  (float)i, 0);
+    }
+
+    @Unique
+    private static Vec3 findCollisionFreePosition(final Vec3 vec3, final ServerLevel serverLevel, final EntityDimensions entityDimensions) {
+        if (!(entityDimensions.width > 4.0F) && !(entityDimensions.height > 4.0F)) {
+            double d = (double)entityDimensions.height / 2.0;
+            final Vec3 vec32 = vec3.add(0.0, d, 0.0);
+            final VoxelShape voxelShape = Shapes.create(
+                AABB.ofSize(vec32, entityDimensions.width, 0.0, entityDimensions.width).expandTowards(0.0, 1.0, 0.0).inflate(1.0E-6));
+            final Optional<Vec3> optional = serverLevel.findFreePosition(null, voxelShape, vec32, entityDimensions.width, entityDimensions.height,
+                entityDimensions.width);
+            final Optional<Vec3> optional2 = optional.map((vec3x) -> {
+                return vec3x.subtract(0.0, d, 0.0);
+            });
+            return optional2.orElse(vec3);
+        } else {
+            return vec3;
+        }
     }
 
     @Unique

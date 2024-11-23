@@ -17,7 +17,8 @@ body:
     options:
       - 1.16
       - 1.18
-      - 1.19
+      - 1.19.2
+      - 1.19.4
       - 1.20.x
   validations:
     required: true

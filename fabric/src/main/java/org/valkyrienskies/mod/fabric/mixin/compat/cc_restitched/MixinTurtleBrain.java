@@ -109,7 +109,7 @@ public abstract class MixinTurtleBrain {
         final Vec3 tPos = VectorConversionsMCKt.toMinecraft(
             VSGameUtilsKt.toWorldCoordinates(ship, pos.getX() + 0.5, pos.getY() + 0.5,
                 pos.getZ() + 0.5));
-        final BlockPos newPos = new BlockPos(tPos.x, tPos.y, tPos.z);
+        final BlockPos newPos = BlockPos.containing(tPos.x, tPos.y, tPos.z);
         return newPos;
     }
 }

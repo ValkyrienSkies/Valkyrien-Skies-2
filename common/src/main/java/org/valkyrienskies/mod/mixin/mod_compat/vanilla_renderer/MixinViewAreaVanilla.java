@@ -87,9 +87,9 @@ public class MixinViewAreaVanilla implements IVSViewAreaMethods {
     @Inject(method = "getRenderChunkAt", at = @At("HEAD"), cancellable = true)
     private void preGetRenderedChunk(final BlockPos pos,
         final CallbackInfoReturnable<ChunkRenderDispatcher.RenderChunk> callbackInfoReturnable) {
-        final int chunkX = Mth.intFloorDiv(pos.getX(), 16);
-        final int chunkY = Mth.intFloorDiv(pos.getY() - level.getMinBuildHeight(), 16);
-        final int chunkZ = Mth.intFloorDiv(pos.getZ(), 16);
+        final int chunkX = Mth.floorDiv(pos.getX(), 16);
+        final int chunkY = Mth.floorDiv(pos.getY() - level.getMinBuildHeight(), 16);
+        final int chunkZ = Mth.floorDiv(pos.getZ(), 16);
 
         if (chunkY < 0 || chunkY >= chunkGridSizeY) {
             return; // Weird, but ignore it

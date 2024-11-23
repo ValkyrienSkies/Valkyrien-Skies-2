@@ -17,6 +17,7 @@ import org.valkyrienskies.core.impl.game.ships.ShipObjectClientWorld
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.entity.VSPhysicsEntity
+import org.valkyrienskies.mod.common.util.toFloat
 import org.valkyrienskies.mod.common.util.toMinecraft
 import java.util.Random
 
@@ -51,10 +52,10 @@ class VSPhysicsEntityRenderer(context: EntityRendererProvider.Context) : EntityR
         val offsetZ = renderTransform.positionInWorld.z() - expectedZ
 
         poseStack.pushPose()
-        val blockPos = BlockPos(fallingBlockEntity.x, fallingBlockEntity.boundingBox.maxY, fallingBlockEntity.z)
+        val blockPos = BlockPos(fallingBlockEntity.x.toInt(), fallingBlockEntity.boundingBox.maxY.toInt(), fallingBlockEntity.z.toInt())
 
         poseStack.translate(offsetX, offsetY, offsetZ)
-        poseStack.mulPose(renderTransform.shipToWorldRotation.toMinecraft())
+        poseStack.mulPose(renderTransform.shipToWorldRotation.toFloat())
         poseStack.translate(-0.5, -0.5, -0.5)
         val blockRenderDispatcher = Minecraft.getInstance().blockRenderer
         blockRenderDispatcher.modelRenderer.tesselateBlock(

@@ -76,7 +76,8 @@ object EntityShipCollisionUtils {
         // Inflate the bounding box more for players than other entities, to give players a better collision result.
         // Note that this increases the cost of doing collision, so we only do it for the players
         val inflation = if (entity is Player) 0.5 else 0.1
-        val stepHeight: Double = entity?.maxUpStep?.toDouble() ?: 0.0
+        //val stepHeight: Double = entity?.maxUpStep?.toDouble() ?: 0.0
+        val stepHeight: Double = 0.0
         // Add [max(stepHeight - inflation, 0.0)] to search for polygons we might collide with while stepping
         val collidingShipPolygons =
             getShipPolygonsCollidingWithEntity(

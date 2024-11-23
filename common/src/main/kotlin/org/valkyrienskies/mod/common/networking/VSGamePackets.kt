@@ -1,6 +1,6 @@
 package org.valkyrienskies.mod.common.networking
 
-import net.minecraft.core.Registry
+import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerPlayer
 import org.valkyrienskies.core.api.ships.LoadedServerShip
@@ -46,7 +46,7 @@ object VSGamePackets {
         PacketSyncVSEntityTypes::class.registerClientHandler { syncEntities ->
             syncEntities.entity2Handler.forEach { (id, handler) ->
                 VSEntityManager.pair(
-                    Registry.ENTITY_TYPE.byId(id),
+                    BuiltInRegistries.ENTITY_TYPE.byId(id),
                     ResourceLocation.tryParse(handler)?.let { VSEntityManager.getHandler(it) }
                         ?: throw IllegalStateException("No handler: $handler")
                 )

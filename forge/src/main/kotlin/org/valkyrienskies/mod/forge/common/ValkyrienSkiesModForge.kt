@@ -84,7 +84,6 @@ class ValkyrienSkiesModForge {
         VSForgeNetworking.registerPacketHandlers(vsCore.hooks)
 
         ValkyrienSkiesMod.init(vsCore)
-        VSEntityManager.registerContraptionHandler(ContraptionShipyardEntityHandlerForge)
 
         val modBus = Bus.MOD.bus().get()
         val forgeBus = Bus.FORGE.bus().get()
@@ -120,14 +119,14 @@ class ValkyrienSkiesModForge {
         TEST_SPHERE_REGISTRY = registerBlockAndItem("test_sphere") { TestSphereBlock }
         SHIP_CREATOR_ITEM_REGISTRY =
             ITEMS.register("ship_creator") {
-                ShipCreatorItem(Properties().tab(CreativeModeTab.TAB_MISC),
+                ShipCreatorItem(Properties(),
                     { 1.0 },
                     { VSGameConfig.SERVER.minScaling })
             }
         CONNECTION_CHECKER_ITEM_REGISTRY =
             ITEMS.register("connection_checker") {
                 ConnectionCheckerItem(
-                    Properties().tab(CreativeModeTab.TAB_MISC),
+                    Properties(),
                     { 1.0 },
                     { VSGameConfig.SERVER.minScaling }
                 )
@@ -135,14 +134,14 @@ class ValkyrienSkiesModForge {
         SHIP_CREATOR_SMALLER_ITEM_REGISTRY =
             ITEMS.register("ship_creator_smaller") {
                 ShipCreatorItem(
-                    Properties().tab(CreativeModeTab.TAB_MISC),
+                    Properties(),
                     { VSGameConfig.SERVER.miniShipSize },
                     { VSGameConfig.SERVER.minScaling }
                 )
             }
         AREA_ASSEMBLER_ITEM_REGISTRY = ITEMS.register("area_assembler") {
             AreaAssemblerItem(
-                Properties().tab(CreativeModeTab.TAB_MISC),
+                Properties(),
                 { 1.0 },
                 { VSGameConfig.SERVER.minScaling }
             )
@@ -150,7 +149,7 @@ class ValkyrienSkiesModForge {
         PHYSICS_ENTITY_CREATOR_ITEM_REGISTRY =
             ITEMS.register("physics_entity_creator") {
                 PhysicsEntityCreatorItem(
-                    Properties().tab(CreativeModeTab.TAB_MISC),
+                    Properties(),
                 )
             }
 
@@ -173,7 +172,7 @@ class ValkyrienSkiesModForge {
         }
 
         SHIP_ASSEMBLER_ITEM_REGISTRY =
-            ITEMS.register("ship_assembler") { ShipAssemblerItem(Properties().tab(CreativeModeTab.TAB_MISC)) }
+            ITEMS.register("ship_assembler") { ShipAssemblerItem(Properties()) }
         TEST_HINGE_BLOCK_ENTITY_TYPE_REGISTRY = BLOCK_ENTITIES.register("test_hinge_block_entity") {
             BlockEntityType.Builder.of(::TestHingeBlockEntity, TestHingeBlock).build(null)
         }
@@ -197,7 +196,7 @@ class ValkyrienSkiesModForge {
 
     private fun registerBlockAndItem(registryName: String, blockSupplier: () -> Block): RegistryObject<Block> {
         val blockRegistry = BLOCKS.register(registryName, blockSupplier)
-        ITEMS.register(registryName) { BlockItem(blockRegistry.get(), Properties().tab(CreativeModeTab.TAB_MISC)) }
+        ITEMS.register(registryName) { BlockItem(blockRegistry.get(), Properties()) }
         return blockRegistry
     }
 

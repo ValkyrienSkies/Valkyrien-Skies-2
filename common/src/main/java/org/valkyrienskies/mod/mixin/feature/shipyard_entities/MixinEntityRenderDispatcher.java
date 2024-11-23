@@ -59,7 +59,7 @@ public class MixinEntityRenderDispatcher {
             final Vector3dc scale = renderTransform.getShipToWorldScaling();
 
             matrixStack.translate(transformed.x() + camX, transformed.y() + camY, transformed.z() + camZ);
-            matrixStack.mulPose(VectorConversionsMCKt.toMinecraft(renderTransform.getShipToWorldRotation()));
+            matrixStack.mulPose(VectorConversionsMCKt.toFloat(renderTransform.getShipToWorldRotation()));
             matrixStack.scale((float) scale.x(), (float) scale.y(), (float) scale.z());
             matrixStack.translate(offset.x, offset.y, offset.z);
         } else {
