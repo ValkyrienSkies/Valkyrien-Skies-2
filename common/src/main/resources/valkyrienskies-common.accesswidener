@@ -26,3 +26,10 @@ mutable field    net/minecraft/world/phys/HitResult  location    Lnet/minecraft/
 accessible field    net/minecraft/world/phys/HitResult  location    Lnet/minecraft/world/phys/Vec3;
 
 accessible  class   net/minecraft/server/level/ChunkMap$DistanceManager
+
+mutable field   net/minecraft/client/renderer/chunk/ChunkRenderDispatcher$RenderChunk index I
+accessible field    net/minecraft/client/renderer/chunk/ChunkRenderDispatcher$RenderChunk relativeOrigins [Lnet/minecraft/core/BlockPos$MutableBlockPos;
+accessible field    net/minecraft/client/renderer/chunk/ChunkRenderDispatcher$RenderChunk dirty Z
+accessible field    net/minecraft/client/renderer/chunk/ChunkRenderDispatcher$RenderChunk buffers Ljava/util/Map;
+accessible field    net/minecraft/client/renderer/chunk/ChunkRenderDispatcher$RenderChunk globalBlockEntities Ljava/util/Set;
+accessible field    net/minecraft/client/renderer/chunk/ChunkRenderDispatcher$RenderChunk initialCompilationCancelCount Ljava/util/concurrent/atomic/AtomicInteger;
