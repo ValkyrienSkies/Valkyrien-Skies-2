@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.entity;
+package org.valkyrienskies.mod.mixin.feature.save_mob_location_on_ship;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.Mob;

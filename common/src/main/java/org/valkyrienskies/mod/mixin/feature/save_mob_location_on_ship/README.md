@@ -1,0 +1,1 @@
+When a mob on a ship gets unloaded, these mixins save the mobs shipyard position, then teleport the mob to the shipyard position when the mob loads back in. This prevents mobs from falling off ships due to being unloaded while the ship is moving.
