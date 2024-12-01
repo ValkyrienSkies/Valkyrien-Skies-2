@@ -21,6 +21,7 @@ import org.valkyrienskies.core.apigame.world.IPlayer;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.MinecraftPlayer;
 
+
 @Mixin(ChunkMap.class)
 public abstract class MixinChunkMap {
 
@@ -101,5 +102,6 @@ public abstract class MixinChunkMap {
 
         cir.setReturnValue(new ArrayList<>(watchingPlayers));
     }
+
 
 }

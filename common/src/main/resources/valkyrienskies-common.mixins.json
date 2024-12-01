@@ -40,6 +40,8 @@
     "feature.mass_tooltip.MixinBlockItem",
     "feature.mob_spawning.NaturalSpawnerMixin",
     "feature.render_pathfinding.MixinDebugPackets",
+    "feature.save_mob_location_on_ship.MixinChunkMap",
+    "feature.save_mob_location_on_ship.MixinMob",
     "feature.screen_distance_check.MixinScreenHandler",
     "feature.shipyard_entities.MixinEntity",
     "feature.shipyard_entities.MixinEntitySection",

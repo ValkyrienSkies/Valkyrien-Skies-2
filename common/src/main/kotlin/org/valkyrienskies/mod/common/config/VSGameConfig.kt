@@ -134,6 +134,13 @@ object VSGameConfig {
         var maxAirborneTicksForReconnectedPlayerTeleport = 4
 
         @JsonSchema(
+            description = "If true, when a mob gets unloaded, its position on a ship is saved such that " +
+                "if the ship is moved, when the mob loads back in it will be teleported to the same position in the ship." +
+                " This helps prevent mobs from falling off of ships."
+        )
+        var saveMobsPositionOnShip = true
+
+        @JsonSchema(
             description = "If true, prevents water and other fluids from flowing out of the ship's bounding box."
         )
         var preventFluidEscapingShip = true
