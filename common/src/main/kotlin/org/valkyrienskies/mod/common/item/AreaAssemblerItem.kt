@@ -66,7 +66,7 @@ class AreaAssemblerItem(
                             }
                         }
                         ctx.player?.sendMessage(TextComponent("Assembling (${blockPos.x}, ${blockPos.y}, ${blockPos.z}) to ($firstPosX, $firstPosY, $firstPosZ)!"), Util.NIL_UUID)
-                        ShipAssembler.assembleToShip(level, blocks, true, scale.asDouble)
+                        ShipAssembler.assembleToShip(level, blocks, true, scale.asDouble, true)
                     }
                     item.tag!!.remove("firstPosX")
                     item.tag!!.remove("firstPosY")

@@ -59,43 +59,39 @@ object ShipAssembler {
             }
         }
         if (!hasSolids) throw IllegalArgumentException("No solid blocks found in the structure")
-        val contraptionOGPos: Vector3ic = AssemblyUtil.getMiddle(structureCornerMin!!, structureCornerMax!!)
-        // Create new contraption at center of bounds
-        val contraptionWorldPos: Vector3i = if (existingShip != null) {
-            val doubleVer = existingShip.shipToWorld.transformPosition(Vector3d(contraptionOGPos)).floor()
+        val shipOGPos: Vector3ic = AssemblyUtil.getMiddle(structureCornerMin!!, structureCornerMax!!)
+        // Create new ship at center of bounds
+        val shipWorldPos: Vector3i = if (existingShip != null) {
+            val doubleVer = existingShip.shipToWorld.transformPosition(Vector3d(shipOGPos)).floor()
             Vector3i(doubleVer.x.toInt(), doubleVer.y.toInt(), doubleVer.z.toInt())
         } else {
-            Vector3i(contraptionOGPos)
+            Vector3i(shipOGPos)
         }
-        //val contraptionPosition = ContraptionPosition(Quaterniond(Vec3d(0.0, 1.0, 1.0), 0.0), contraptionWorldPos, null)
 
         val newShip: Ship = (level as ServerLevel).server.shipObjectWorld
-            .createNewShipAtBlock(contraptionWorldPos, false, scale, level.dimensionId)
+            .createNewShipAtBlock(shipWorldPos, false, scale, level.dimensionId)
 
         if (shouldDisableSplitting) {
             level.shipObjectWorld.loadedShips.getById(newShip.id)?.getAttachment<SplittingDisablerAttachment>()?.disableSplitting()
-
+            if (existingShip != null) {
+                level.shipObjectWorld.loadedShips.getById(existingShip.id)?.getAttachment<SplittingDisablerAttachment>()?.disableSplitting()
+            }
         }
 
-        val contraptionShipPos = newShip.worldToShip.transformPosition(Vector3d(contraptionWorldPos.x.toDouble(),contraptionWorldPos.y.toDouble(),contraptionWorldPos.z.toDouble()))
-        val contraptionBlockPos = BlockPos(contraptionShipPos.x.toInt(),contraptionShipPos.y.toInt(),contraptionShipPos.z.toInt())
+        val shipspacePos = newShip.worldToShip.transformPosition(Vector3d(shipWorldPos.x.toDouble(),shipWorldPos.y.toDouble(),shipWorldPos.z.toDouble()))
+        val shipBlockPos = BlockPos(shipspacePos.x.toInt(),shipspacePos.y.toInt(),shipspacePos.z.toInt())
 
 
         // Copy blocks and check if the center block got replaced (is default a stone block)
         var centerBlockReplaced = false
         for (itPos in blocks) {
             if (isValidShipBlock(level.getBlockState(itPos))) {
-                val relative: BlockPos = itPos.subtract( BlockPos(contraptionOGPos.x(),contraptionOGPos.y(),contraptionOGPos.z()))
-                val shipPos: BlockPos = contraptionBlockPos.offset(relative)
+                val relative: BlockPos = itPos.subtract( BlockPos(shipOGPos.x(),shipOGPos.y(),shipOGPos.z()))
+                val shipPos: BlockPos = shipBlockPos.offset(relative)
                 AssemblyUtil.copyBlock(level, itPos, shipPos)
                 if (relative.equals(BlockPos.ZERO)) centerBlockReplaced = true
             }
         }
-
-        // If center block got not replaced, remove the stone block
-        // if (!centerBlockReplaced) {
-        //     level.setBlock(contraptionBlockPos, Blocks.AIR.defaultBlockState(), 3)
-        // }
 
         // Remove original blocks
         if (removeOriginal) {
@@ -106,16 +102,16 @@ object ShipAssembler {
             }
         }
 
-        // Trigger updates on both contraptions
+        // Trigger updates on both ships
         for (itPos in blocks) {
-            val relative: BlockPos = itPos.subtract(BlockPos(contraptionOGPos.x(),contraptionOGPos.y(),contraptionOGPos.z()))
-            val shipPos: BlockPos = contraptionBlockPos.offset(relative)
+            val relative: BlockPos = itPos.subtract(BlockPos(shipOGPos.x(),shipOGPos.y(),shipOGPos.z()))
+            val shipPos: BlockPos = shipBlockPos.offset(relative)
             AssemblyUtil.updateBlock(level,itPos,shipPos,level.getBlockState(shipPos))
         }
 
         val shipCenterPos = ((newShip as ServerShip).inertiaData.centerOfMassInShip).add(0.5, 0.5, 0.5, Vector3d())
         // This is giga sus, but whatever
-        val shipPos = Vector3d(contraptionOGPos).add(0.5, 0.5, 0.5)
+        val shipPos = Vector3d(shipOGPos).add(0.5, 0.5, 0.5)
         if (existingShip != null) {
             sLevel.server.shipObjectWorld
                 .teleportShip(newShip as ServerShip, ShipTeleportDataImpl(existingShip.shipToWorld.transformPosition(shipPos, Vector3d()), existingShip.transform.shipToWorldRotation, existingShip.velocity, existingShip.omega, existingShip.chunkClaimDimension, newScale = existingShip.transform.shipToWorldScaling.x(), newPosInShip = shipCenterPos))
@@ -126,6 +122,9 @@ object ShipAssembler {
         }
         if (shouldDisableSplitting) {
             level.shipObjectWorld.loadedShips.getById(newShip.id)?.getAttachment<SplittingDisablerAttachment>()?.enableSplitting()
+            if (existingShip != null) {
+                level.shipObjectWorld.loadedShips.getById(existingShip.id)?.getAttachment<SplittingDisablerAttachment>()?.enableSplitting()
+            }
         }
 
         return newShip as ServerShip
