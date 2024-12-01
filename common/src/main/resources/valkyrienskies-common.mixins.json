@@ -16,6 +16,7 @@
     "accessors.world.level.pathfinder.PathAccessor",
     "commands.argument.selector.MixinEntitySelectorParser",
     "entity.MixinEntity",
+    "entity.MixinMob",
     "feature.ai.node_evaluator.PathNavigationRegionAccessor",
     "feature.ai.node_evaluator.SwimNodeEvaluatorMixin",
     "feature.ai.node_evaluator.WalkNodeEvaluatorMixin",
