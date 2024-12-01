@@ -41,6 +41,7 @@ object ShipAssembler {
 
         val existingShip = sLevel.getShipObjectManagingPos(blocks.find { !sLevel.getBlockState(it).isAir } ?: throw IllegalArgumentException())
 
+        var existingShipCouldSplit = true
         var structureCornerMin: BlockPos? = null
         var structureCornerMax: BlockPos? = null
         var hasSolids = false
@@ -74,6 +75,7 @@ object ShipAssembler {
         if (shouldDisableSplitting) {
             level.shipObjectWorld.loadedShips.getById(newShip.id)?.getAttachment<SplittingDisablerAttachment>()?.disableSplitting()
             if (existingShip != null) {
+                existingShipCouldSplit = level.shipObjectWorld.loadedShips.getById(existingShip.id)?.getAttachment<SplittingDisablerAttachment>()?.canSplit() ?: true
                 level.shipObjectWorld.loadedShips.getById(existingShip.id)?.getAttachment<SplittingDisablerAttachment>()?.disableSplitting()
             }
         }
@@ -123,7 +125,9 @@ object ShipAssembler {
         if (shouldDisableSplitting) {
             level.shipObjectWorld.loadedShips.getById(newShip.id)?.getAttachment<SplittingDisablerAttachment>()?.enableSplitting()
             if (existingShip != null) {
-                level.shipObjectWorld.loadedShips.getById(existingShip.id)?.getAttachment<SplittingDisablerAttachment>()?.enableSplitting()
+                if (existingShipCouldSplit){
+                    level.shipObjectWorld.loadedShips.getById(existingShip.id)?.getAttachment<SplittingDisablerAttachment>()?.enableSplitting()
+                } else {level.shipObjectWorld.loadedShips.getById(existingShip.id)?.getAttachment<SplittingDisablerAttachment>()?.disableSplitting()}
             }
         }
 
