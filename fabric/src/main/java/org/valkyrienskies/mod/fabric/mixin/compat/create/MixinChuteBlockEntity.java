@@ -18,7 +18,7 @@ import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.mixin.mod_compat.create.accessors.ChuteBlockEntityAccessor;
 
-@Mixin(value = ChuteBlockEntity.class, remap = false)
+@Mixin(value = ChuteBlockEntity.class)
 public class MixinChuteBlockEntity {
 
     @Inject(method = "findEntities", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/AABB;<init>(Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;)V", shift = Shift.AFTER), cancellable = true)

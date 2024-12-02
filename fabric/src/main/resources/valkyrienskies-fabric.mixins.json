@@ -23,7 +23,8 @@
     "compat.create.client.MixinContraptionRenderInfo",
     "compat.create.client.MixinCullingBlockEntityIterator",
     "compat.create.client.MixinFlwContraption",
-    "compat.create.client.MixinSuperGlueSelectionHandler"
+    "compat.create.client.MixinSuperGlueSelectionHandler",
+    "compat.create.client.MixinSchematicTransformation"
   ],
   "injectors": {
     "defaultRequire": 1

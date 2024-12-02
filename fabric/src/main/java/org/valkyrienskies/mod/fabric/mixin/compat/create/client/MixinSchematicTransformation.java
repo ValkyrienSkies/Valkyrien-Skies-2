@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.mod_compat.create.client;
+package org.valkyrienskies.mod.fabric.mixin.compat.create.client;
 
 import com.jozufozu.flywheel.util.transform.TransformStack;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -23,7 +23,7 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
  * This mixin redirects the operation and fixes it by extracting the position components from the argument.
  * I can't think of a better way to get around it.
  */
-@Mixin(value = {SchematicTransformation.class}, remap = false)
+@Mixin(value = {SchematicTransformation.class})
 public abstract class MixinSchematicTransformation {
     @Shadow
     private BlockPos target;

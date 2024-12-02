@@ -168,7 +168,6 @@
     "mod_compat.create.client.MixinTrainRelocator",
     "mod_compat.create.client.MixinDeployTool",
     "mod_compat.create.client.MixinSchematicToolBase",
-    "mod_compat.create.client.MixinSchematicTransformation",
     "mod_compat.create.client.trackOutlines.MixinBigOutlines",
     "mod_compat.create.client.MixinValueBox",
     "mod_compat.flywheel.InstancingEngineAccessor",
