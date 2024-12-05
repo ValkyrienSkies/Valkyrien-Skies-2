@@ -13,9 +13,9 @@ fun CompoundTag.putVector3d(prefix: String, vector3d: Vector3dc) =
 
 fun CompoundTag.getVector3d(prefix: String): Vector3d? {
     return if (
-        !prefix.contains(prefix + "x") ||
-        !prefix.contains(prefix + "y") ||
-        !prefix.contains(prefix + "z")
+        !this.contains(prefix + "x") ||
+        !this.contains(prefix + "y") ||
+        !this.contains(prefix + "z")
     ) {
         null
     } else {
