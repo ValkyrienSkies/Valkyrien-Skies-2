@@ -1,7 +1,6 @@
 package org.valkyrienskies.mod.mixin.mod_compat.create;
 
 import com.simibubi.create.content.contraptions.Contraption;
-import com.simibubi.create.content.contraptions.StructureTransform;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
@@ -40,7 +39,6 @@ public class MixinContraption {
                 SplittingDisablerAttachment attachment = ship.getAttachment(SplittingDisablerAttachment.class);
                 if (attachment != null) {
                     attachment.disableSplitting();
-                    SplitHandler.Companion.getSPLITLOGGER().info("@[Contraption.removedBlocksFromWorld] Disabled splitting on ship " + ship.getSlug());
                 }
             }
         }
@@ -54,7 +52,6 @@ public class MixinContraption {
                 SplittingDisablerAttachment attachment = ship.getAttachment(SplittingDisablerAttachment.class);
                 if (attachment != null) {
                     attachment.enableSplitting();
-                    SplitHandler.Companion.getSPLITLOGGER().info("@[Contraption.removedBlocksFromWorld] Re-enabled splitting on ship " + ship.getSlug());
                 }
             }
         }
