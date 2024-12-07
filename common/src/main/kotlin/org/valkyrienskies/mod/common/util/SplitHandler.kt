@@ -14,6 +14,7 @@ import org.valkyrienskies.mod.common.assembly.ShipAssembler
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getShipObjectManagingPos
 import org.valkyrienskies.mod.common.shipObjectWorld
+import org.valkyrienskies.mod.util.logger
 
 class SplitHandler(private val doEdges: Boolean, private val doCorners: Boolean) {
 
@@ -140,6 +141,9 @@ class SplitHandler(private val doEdges: Boolean, private val doCorners: Boolean)
     }
 
     companion object {
+
+        val SPLITLOGGER = logger("kitkat factory")
+
         val offsetsToCheck: ArrayList<Vec3i> = arrayListOf(
             Vec3i(1, 0, 0),
             Vec3i(-1, 0, 0),
