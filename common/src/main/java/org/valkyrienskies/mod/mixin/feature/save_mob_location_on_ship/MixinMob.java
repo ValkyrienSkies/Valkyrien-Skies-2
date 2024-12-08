@@ -8,6 +8,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.entity.ShipyardPosSavable;
 
 @Mixin(Mob.class)
@@ -35,7 +36,7 @@ public class MixinMob implements ShipyardPosSavable {
     @Inject(method = "addAdditionalSaveData", at = @At("RETURN"))
     public void addAdditionalSaveDataMixin(CompoundTag nbt, CallbackInfo info) {
         Vector3d position = this.valkyrienskies$getUnloadedShipyardPos();
-        if (position != null) {
+        if (position != null && VSGameConfig.SERVER.getSaveMobsPositionOnShip()) {
             nbt.putDouble("valkyrienskies$unloadedX",position.x);
             nbt.putDouble("valkyrienskies$unloadedY",position.y);
             nbt.putDouble("valkyrienskies$unloadedZ", position.z);

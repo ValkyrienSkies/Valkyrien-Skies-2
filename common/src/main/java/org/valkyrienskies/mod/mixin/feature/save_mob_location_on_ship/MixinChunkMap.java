@@ -14,6 +14,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.entity.ShipyardPosSavable;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
@@ -55,10 +56,9 @@ public class MixinChunkMap {
         if (entity instanceof Mob mob) {
             Vector3d shipyardPos = ((ShipyardPosSavable)mob).valkyrienskies$getUnloadedShipyardPos();
             if(shipyardPos != null) {
-                mob.teleportTo(shipyardPos.x,
-                    shipyardPos.y,
-                    shipyardPos.z);
-
+                if (VSGameConfig.SERVER.getSaveMobsPositionOnShip()){
+                    mob.teleportTo(shipyardPos.x, shipyardPos.y, shipyardPos.z);
+                }
                 ((ShipyardPosSavable) mob).valkyrienskies$setUnloadedShipyardPos(null);
             }
         }
