@@ -125,6 +125,29 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         cir.setReturnValue(newEyePos);
     }
 
+    @Inject(method = "getEyePosition()Lnet/minecraft/world/phys/Vec3;", at = @At("HEAD"), cancellable = true)
+    private void preGetEyePosition2(final CallbackInfoReturnable<Vec3> cir) {
+        final ShipMountedToData shipMountedToData = VSGameUtilsKt.getShipMountedToData(Entity.class.cast(this), null);
+        if (shipMountedToData == null) {
+            return;
+        }
+        final LoadedShip shipMountedTo = shipMountedToData.getShipMountedTo();
+
+        final ShipTransform shipTransform;
+        if (shipMountedTo instanceof ShipObjectClient) {
+            shipTransform = ((ShipObjectClient) shipMountedTo).getRenderTransform();
+        } else {
+            shipTransform = shipMountedTo.getShipTransform();
+        }
+        final Vector3dc basePos = shipTransform.getShipToWorldMatrix()
+            .transformPosition(shipMountedToData.getMountPosInShip(), new Vector3d());
+        final Vector3dc eyeRelativePos = shipTransform.getShipCoordinatesToWorldCoordinatesRotation().transform(
+            new Vector3d(0.0, getEyeHeight(), 0.0)
+        );
+        final Vec3 newEyePos = VectorConversionsMCKt.toMinecraft(basePos.add(eyeRelativePos, new Vector3d()));
+        cir.setReturnValue(newEyePos);
+    }
+
     /**
      * @reason Needed for players to pick blocks correctly when mounted to a ship
      */

@@ -117,8 +117,11 @@ val Player.playerWrapper get() = (this as PlayerDuck).vs_getPlayer()
 /**
  * Like [Entity.squaredDistanceTo] except the destination is transformed into world coordinates if it is a ship
  */
-fun Entity.squaredDistanceToInclShips(x: Double, y: Double, z: Double) =
-    level.squaredDistanceBetweenInclShips(x, y, z, this.x, this.y, this.z)
+fun Entity.squaredDistanceToInclShips(x: Double, y: Double, z: Double): Double {
+    var p = this.position()
+    getShipMountedToData(this, null)?.mountPosInShip?.toMinecraft()?.let{ p = it }
+    return level().squaredDistanceBetweenInclShips(x, y, z, p.x, p.y, p.z)
+}
 
 /**
  * Calculates the squared distance between to points.
