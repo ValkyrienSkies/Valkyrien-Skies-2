@@ -1,8 +1,26 @@
 {
+  "key.valkyrienskies.ship_cruise": "Set Sail",
   "key.valkyrienskies.ship_down": "Sink",
   "category.valkyrienskies.driving": "Sailin'",
   "block.valkyrienskies.test_chair": "Davy Jones' Chair",
   "block.valkyrienskies.test_hinge": "Spinner Mount",
+  "block.valkyrienskies.test_flap": "Debug Flapper",
+  "block.valkyrienskies.test_wing": "Debug Wing",
   "item.valkyrienskies.ship_creator": "Ship Maker",
-  "item.valkyrienskies.ship_creator_smaller": "Rowboat Maker"
+  "item.valkyrienskies.area_assembler": "Plank Assembler",
+  "item.valkyrienskies.connection_checker": "Rigging Checker",
+  "item.valkyrienskies.ship_creator_smaller": "Rowboat Maker",
+  "item.valkyrienskies.physics_entity_creator": "Ghostly Hull Maker",
+  "argument.valkyrienskies.ship.no_found": "No ship in sight, matey!",
+  "argument.valkyrienskies.ship.multiple_found": "Too many ships in the waters!",
+  "command.valkyrienskies.delete.success": "Scuttled %d ships!",
+  "command.valkyrienskies.set_static.success": "Anchored %d ships to be is-static=%s!",
+  "command.valkyrienskies.teleport.success": "Warped %d ships to %s!",
+  "command.valkyrienskies.teleport.multiple_ship_success": "Warped %d ships!",
+  "command.valkyrienskies.mc_teleport.can_only_teleport_to_one_ship": "Can only teleport to one ship, ya scurvy dog!",
+  "command.valkyrienskies.get_ship.success": "Spotted ship with slug %s",
+  "command.valkyrienskies.get_ship.fail": "No ship found in these seas",
+  "command.valkyrienskies.get_ship.only_usable_by_entities": "/vs get-ship be only fer entities!",
+  "tooltip.valkyrienskies.mass": "Tonnage",
+  "command.valkyrienskies.scale.success": "Scaled %d ships fer the high seas!"
 }
