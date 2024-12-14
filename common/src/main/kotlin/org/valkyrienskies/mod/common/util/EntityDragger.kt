@@ -2,8 +2,12 @@ package org.valkyrienskies.mod.common.util
 
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.Entity
+import net.minecraft.world.entity.player.Player
 import org.joml.Vector3d
 import org.joml.Vector3dc
+import org.valkyrienskies.core.api.ships.ClientShip
+import org.valkyrienskies.mod.common.getShipMountedTo
+import org.valkyrienskies.mod.common.getShipObjectManagingPos
 import org.valkyrienskies.mod.common.shipObjectWorld
 import kotlin.math.asin
 import kotlin.math.atan2
@@ -17,8 +21,8 @@ object EntityDragger {
     /**
      * Drag these entities with the ship they're standing on.
      */
-    fun dragEntitiesWithShips(entities: Iterable<Entity>) {
-        entities.forEach { entity ->
+    fun dragEntitiesWithShips(entities: Iterable<Entity>, preTick: Boolean = false) {
+        for (entity in entities) {
             val entityDraggingInformation = (entity as IEntityDraggingInformationProvider).draggingInformation
 
             var dragTheEntity = false
@@ -35,26 +39,35 @@ object EntityDragger {
                     if (shipData != null) {
                         dragTheEntity = true
 
+                        val entityReferencePos: Vector3dc = if (preTick) {
+                            Vector3d(entity.x, entity.y, entity.z)
+                        } else {
+                            Vector3d(entity.xo, entity.yo, entity.zo)
+                        }
+
+                        val referenceTransform = if (shipData is ClientShip) shipData.transform else shipData.transform
+
                         // region Compute position dragging
-                        val newPosIdeal = shipData.shipToWorld.transformPosition(
+                        val newPosIdeal: Vector3dc = referenceTransform.shipToWorld.transformPosition(
                             shipData.prevTickTransform.worldToShip.transformPosition(
-                                Vector3d(entity.x, entity.y, entity.z)
+                                Vector3d(entityReferencePos)
                             )
                         )
-                        addedMovement = Vector3d(
-                            newPosIdeal.x - entity.x,
-                            newPosIdeal.y - entity.y,
-                            newPosIdeal.z - entity.z
-                        )
+                        addedMovement = newPosIdeal.sub(entityReferencePos, Vector3d())
                         // endregion
 
                         // region Compute look dragging
-                        val yViewRot = entity.getViewYRot(1.0f).toDouble()
+                        val yViewRot = if (preTick) {
+                            entity.yRot
+                        } else {
+                            entity.yRotO
+                        }.toDouble()
+
                         // Get the y-look vector of the entity only using y-rotation, ignore x-rotation
                         val entityLookYawOnly =
                             Vector3d(sin(-Math.toRadians(yViewRot)), 0.0, cos(-Math.toRadians(yViewRot)))
 
-                        val newLookIdeal = shipData.shipToWorld.transformDirection(
+                        val newLookIdeal = referenceTransform.shipToWorld.transformDirection(
                             shipData.prevTickTransform.worldToShip.transformDirection(
                                 entityLookYawOnly
                             )
@@ -104,7 +117,7 @@ object EntityDragger {
 
                 // Apply [addedYRot]
                 // Don't apply it to server players to fix rotation of placed blocks
-                if (addedYRot.isFinite() && entity !is ServerPlayer) {
+                if (addedYRot.isFinite()) {
                     entity.yRot += addedYRot.toFloat()
                     entity.yHeadRot += addedYRot.toFloat()
                     entityDraggingInformation.addedYawRotLastTick = addedYRot
