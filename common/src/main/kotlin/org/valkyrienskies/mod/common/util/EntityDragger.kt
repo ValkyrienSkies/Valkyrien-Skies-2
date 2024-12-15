@@ -57,11 +57,7 @@ object EntityDragger {
                         // endregion
 
                         // region Compute look dragging
-                        val yViewRot = if (preTick) {
-                            entity.yRot
-                        } else {
-                            entity.yRotO
-                        }.toDouble()
+                        val yViewRot = entity.getViewYRot(if (preTick) 0f else 1f).toDouble()
 
                         // Get the y-look vector of the entity only using y-rotation, ignore x-rotation
                         val entityLookYawOnly =

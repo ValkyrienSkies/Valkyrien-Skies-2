@@ -96,6 +96,10 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         if (collisionResultWithWorld.distanceToSqr(movement) > 1e-12) {
             // We collided with the world? Set the dragging ship to null.
             final EntityDraggingInformation entityDraggingInformation = getDraggingInformation();
+            if (entityDraggingInformation.getIgnoreNextGroundStand()) {
+                entityDraggingInformation.setIgnoreNextGroundStand(false);
+                return collisionResultWithWorld;
+            }
             entityDraggingInformation.setLastShipStoodOn(null);
             entityDraggingInformation.setAddedMovementLastTick(new Vector3d());
             entityDraggingInformation.setAddedYawRotLastTick(0.0);
@@ -266,12 +270,17 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
                 });
             } else {
                 if (!level.getBlockState(getOnPos()).isAir()) {
-                    entityDraggingInformation.setLastShipStoodOn(null);
-                    getIndirectPassengers().forEach(entity -> {
-                        final EntityDraggingInformation passengerDraggingInformation =
-                            ((IEntityDraggingInformationProvider) entity).getDraggingInformation();
-                        passengerDraggingInformation.setLastShipStoodOn(null);
-                    });
+                    if (entityDraggingInformation.getIgnoreNextGroundStand()) {
+                        entityDraggingInformation.setIgnoreNextGroundStand(false);
+                    } else {
+                        entityDraggingInformation.setLastShipStoodOn(null);
+                        getIndirectPassengers().forEach(entity -> {
+                            final EntityDraggingInformation passengerDraggingInformation =
+                                ((IEntityDraggingInformationProvider) entity).getDraggingInformation();
+                            passengerDraggingInformation.setLastShipStoodOn(null);
+                        });
+                    }
+
                 }
             }
         }

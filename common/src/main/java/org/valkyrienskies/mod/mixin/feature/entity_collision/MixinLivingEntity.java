@@ -36,7 +36,8 @@ public abstract class MixinLivingEntity extends Entity {
             if (dragInfo != null && dragInfo.getLastShipStoodOn() != null) {
                 final ClientShip ship = VSGameUtilsKt.getShipObjectWorld((ClientLevel) level).getAllShips().getById(dragInfo.getLastShipStoodOn());
                 if (ship != null) {
-                    //EntityLerper.INSTANCE.lerpStep(dragInfo, ship, (LivingEntity) (Object) this);
+                    EntityLerper.INSTANCE.lerpStep(dragInfo, ship, (LivingEntity) (Object) this);
+                    EntityLerper.INSTANCE.lerpHeadStep(dragInfo, ship, (LivingEntity) (Object) this);
                 }
             }
         }

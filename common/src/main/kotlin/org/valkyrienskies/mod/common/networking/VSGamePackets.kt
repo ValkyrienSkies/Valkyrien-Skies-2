@@ -14,11 +14,10 @@ import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager
 import org.valkyrienskies.mod.common.getShipObjectManagingPos
 import org.valkyrienskies.mod.common.shipObjectWorld
+import org.valkyrienskies.mod.common.util.EntityLerper
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.vsCore
-import kotlin.math.cos
-import kotlin.math.sin
 
 object VSGamePackets {
 
@@ -28,6 +27,7 @@ object VSGamePackets {
         PacketRestartChunkUpdates::class.register()
         PacketSyncVSEntityTypes::class.register()
         PacketEntityShipMotion::class.register()
+        PacketMobShipRotation::class.register()
     }
 
     fun registerHandlers() = with(vsCore.simplePacketNetworking) {
@@ -72,16 +72,23 @@ object VSGamePackets {
                 ?: return@registerClientHandler
 
             if (entity is IEntityDraggingInformationProvider) {
-                entity.draggingInformation.previousRelativePositionOnShip = entity.draggingInformation.relativePositionOnShip
+                if (entity.draggingInformation.lastShipStoodOn == null || entity.draggingInformation.lastShipStoodOn != setMotion.shipID) {
+                    entity.draggingInformation.lastShipStoodOn = setMotion.shipID
+                    entity.draggingInformation.ignoreNextGroundStand = true
+                }
+
+                entity.draggingInformation.relativePositionOnShip = ship.worldToShip.transformPosition(
+                    Vector3d(entity.x, entity.y, entity.z)
+                );
                 entity.draggingInformation.previousRelativeVelocityOnShip = entity.draggingInformation.relativeVelocityOnShip
-                entity.draggingInformation.previousRelativeYawOnShip = entity.draggingInformation.relativeYawOnShip
+                entity.draggingInformation.relativeYawOnShip = EntityLerper.yawToShip(ship, entity.yRot.toDouble())
 
-                entity.draggingInformation.relativePositionOnShip = Vector3d(setMotion.z, setMotion.y, setMotion.z)
-                entity.draggingInformation.relativeVelocityOnShip = Vector3d(setMotion.zVel, setMotion.yVel, setMotion.zVel)
-                entity.draggingInformation.relativeYawOnShip = setMotion.yRot
+                entity.draggingInformation.lerpPositionOnShip = Vector3d(setMotion.x, setMotion.y, setMotion.z)
+                entity.draggingInformation.relativeVelocityOnShip = Vector3d(setMotion.xVel, setMotion.yVel, setMotion.zVel)
+                entity.draggingInformation.lerpYawOnShip = setMotion.yRot
 
-                val previousWorldPosition = if (entity.draggingInformation.previousRelativePositionOnShip != null) {
-                    ship.renderTransform.shipToWorld.transformPosition(Vector3d(entity.draggingInformation.previousRelativePositionOnShip))
+                val previousWorldPosition = if (entity.draggingInformation.relativePositionOnShip != null) {
+                    ship.renderTransform.shipToWorld.transformPosition(Vector3d(entity.draggingInformation.relativePositionOnShip))
                 } else {
                     Vector3d(entity.x, entity.y, entity.z)
                 }
@@ -89,11 +96,32 @@ object VSGamePackets {
                 entity.setPacketCoordinates(worldPosition.x, worldPosition.y, worldPosition.z)
                 val worldVelocity = ship.renderTransform.shipToWorld.transformDirection(Vector3d(setMotion.xVel, setMotion.yVel, setMotion.zVel))
                 entity.setDeltaMovement(worldVelocity.x, worldVelocity.y, worldVelocity.z)
-                entity.xRot = Math.toDegrees(setMotion.xRot).toFloat()
+                entity.xRot = setMotion.xRot.toFloat()
                 entity.draggingInformation.lerpSteps = 3
 
-                entity.setPos(previousWorldPosition.x, previousWorldPosition.y, previousWorldPosition.z)
-                entity.lerpTo(worldPosition.x, worldPosition.y, worldPosition.z, Math.toDegrees(setMotion.yRot).toFloat(), Math.toDegrees(setMotion.xRot).toFloat(), 3, true)
+                // entity.setPos(previousWorldPosition.x, previousWorldPosition.y, previousWorldPosition.z)
+                // entity.lerpTo(worldPosition.x, worldPosition.y, worldPosition.z, Math.toDegrees(setMotion.yRot).toFloat(), Math.toDegrees(setMotion.xRot).toFloat(), 3, true)
+            }
+        }
+
+        PacketMobShipRotation::class.registerClientHandler { setRotation ->
+            val mc = Minecraft.getInstance()
+            val level = mc.level ?: return@registerClientHandler
+            val entity = level.getEntity(setRotation.entityID) ?: return@registerClientHandler
+
+            if (entity is LocalPlayer && entity.isLocalPlayer) return@registerClientHandler
+
+            val ship = level.shipObjectWorld.allShips.getById(setRotation.shipID)
+                ?: return@registerClientHandler
+
+            if (entity is IEntityDraggingInformationProvider) {
+                if (entity.draggingInformation.lastShipStoodOn == null || entity.draggingInformation.lastShipStoodOn != setRotation.shipID) {
+                    entity.draggingInformation.lastShipStoodOn = setRotation.shipID
+                    entity.draggingInformation.ignoreNextGroundStand = true
+                }
+                entity.draggingInformation.relativeHeadYawOnShip = EntityLerper.yawToShip(ship, entity.yHeadRot.toDouble())
+                entity.draggingInformation.lerpHeadYawOnShip = setRotation.yaw
+                entity.draggingInformation.headLerpSteps = 3
             }
         }
     }

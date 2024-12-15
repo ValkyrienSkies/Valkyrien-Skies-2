@@ -16,17 +16,21 @@ class EntityDraggingInformation {
             field = value
         }
     var ticksSinceStoodOnShip: Int = 0
+    var ignoreNextGroundStand = false
     var mountedToEntity: Boolean = false
 
-    var relativePositionOnShip: Vector3dc? = null
+    var lerpPositionOnShip: Vector3dc? = null
     var relativeVelocityOnShip: Vector3dc? = null
-    var relativeYawOnShip: Double? = null
+    var lerpYawOnShip: Double? = null
+    var lerpHeadYawOnShip: Double? = null
 
-    var previousRelativePositionOnShip: Vector3dc? = null
+    var relativePositionOnShip: Vector3dc? = null
     var previousRelativeVelocityOnShip: Vector3dc? = null
-    var previousRelativeYawOnShip: Double? = null
+    var relativeYawOnShip: Double? = null
+    var relativeHeadYawOnShip: Double? = null
 
     var lerpSteps: Int = 0
+    var headLerpSteps: Int = 0
 
     // Used by the client rendering code only
     var cachedLastPosition: Vector3dc? = null
