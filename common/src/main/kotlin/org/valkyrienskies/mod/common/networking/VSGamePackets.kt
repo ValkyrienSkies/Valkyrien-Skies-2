@@ -28,6 +28,7 @@ object VSGamePackets {
         PacketSyncVSEntityTypes::class.register()
         PacketEntityShipMotion::class.register()
         PacketMobShipRotation::class.register()
+        PacketPlayerShipMotion::class.register()
     }
 
     fun registerHandlers() = with(vsCore.simplePacketNetworking) {
@@ -122,6 +123,15 @@ object VSGamePackets {
                 entity.draggingInformation.relativeHeadYawOnShip = EntityLerper.yawToShip(ship, entity.yHeadRot.toDouble())
                 entity.draggingInformation.lerpHeadYawOnShip = setRotation.yaw
                 entity.draggingInformation.headLerpSteps = 3
+            }
+        }
+
+        PacketPlayerShipMotion::class.registerServerHandler { motion, iPlayer ->
+            val player = (iPlayer as MinecraftPlayer).player as ServerPlayer
+
+            if (player is IEntityDraggingInformationProvider) {
+                player.draggingInformation.relativePositionOnShip = Vector3d(motion.x, motion.y, motion.z)
+                player.draggingInformation.relativeYawOnShip = motion.yRot
             }
         }
     }

@@ -36,6 +36,9 @@ class EntityDraggingInformation {
     var cachedLastPosition: Vector3dc? = null
     var restoreCachedLastPosition = false
 
+    var serverRelativePlayerPosition: Vector3dc? = null
+    var serverRelativePlayerYaw: Double? = null
+
     fun isEntityBeingDraggedByAShip(): Boolean {
         return (lastShipStoodOn != null) && (ticksSinceStoodOnShip < TICKS_TO_DRAG_ENTITIES) && !mountedToEntity
     }

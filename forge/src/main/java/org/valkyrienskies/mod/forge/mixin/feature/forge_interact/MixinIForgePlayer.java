@@ -11,6 +11,8 @@ import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
+import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
+import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(IForgePlayer.class)
 public interface MixinIForgePlayer {
@@ -25,7 +27,12 @@ public interface MixinIForgePlayer {
     default boolean canInteractWith(final BlockPos pos, final double padding) {
         if (VSGameConfig.SERVER.getEnableInteractDistanceChecks()) {
             final double reach = this.self().getReachDistance() + padding;
-            final Vec3 eyes = this.self().getEyePosition();
+            Vec3 eyes = this.self().getEyePosition();
+            if (this.self() instanceof IEntityDraggingInformationProvider dragProvider && dragProvider.getDraggingInformation().isEntityBeingDraggedByAShip()) {
+                if (dragProvider.getDraggingInformation().getServerRelativePlayerPosition() != null) {
+                    eyes = VectorConversionsMCKt.toMinecraft(dragProvider.getDraggingInformation().getServerRelativePlayerPosition());
+                }
+            }
             return VSGameUtilsKt.squaredDistanceBetweenInclShips(this.self().level,
                 pos.getX() + 0.5,
                 pos.getY() + 0.5,
@@ -40,7 +47,12 @@ public interface MixinIForgePlayer {
     @Overwrite(remap = false)
     default boolean isCloseEnough(final Entity entity, final double distance) {
         if (VSGameConfig.SERVER.getEnableInteractDistanceChecks()) {
-            final Vec3 eye = this.self().getEyePosition();
+            Vec3 eye = this.self().getEyePosition();
+            if (this.self() instanceof IEntityDraggingInformationProvider dragProvider && dragProvider.getDraggingInformation().isEntityBeingDraggedByAShip()) {
+                if (dragProvider.getDraggingInformation().getServerRelativePlayerPosition() != null) {
+                    eye = VectorConversionsMCKt.toMinecraft(dragProvider.getDraggingInformation().getServerRelativePlayerPosition());
+                }
+            }
             final Vec3 targetCenter = entity.getPosition(1.0F).add(0.0, (double) (entity.getBbHeight() / 2.0F), 0.0);
             final Optional<Vec3> hit = entity.getBoundingBox().clip(eye, targetCenter);
             return (hit.isPresent() ?

@@ -7,11 +7,14 @@ import java.util.function.Predicate;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.Shadow;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
+import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Pseudo
 @Mixin(ReachEntityAttributes.class)
@@ -31,7 +34,13 @@ public class MixinReachEntityAttributes {
         for (final Player player : world.players()) {
             if (viewerPredicate.test(player)) {
                 final var reach = getReachDistance(player, baseReachDistance);
-                if (VSGameUtilsKt.squaredDistanceBetweenInclShips(world, x + 0.5, y + 0.5, z + 0.5, player.getX(), player.getEyeY(), player.getZ()) <= (reach * reach)) {
+                Vec3 eye = player.getEyePosition();
+                if (player instanceof IEntityDraggingInformationProvider dragProvider && dragProvider.getDraggingInformation().isEntityBeingDraggedByAShip()) {
+                    if (dragProvider.getDraggingInformation().getServerRelativePlayerPosition() != null) {
+                        eye = VectorConversionsMCKt.toMinecraft(dragProvider.getDraggingInformation().getServerRelativePlayerPosition());
+                    }
+                }
+                if (VSGameUtilsKt.squaredDistanceBetweenInclShips(world, x + 0.5, y + 0.5, z + 0.5, eye.x, eye.y, eye.z) <= (reach * reach)) {
                     playersWithinReach.add(player);
                 }
             }
