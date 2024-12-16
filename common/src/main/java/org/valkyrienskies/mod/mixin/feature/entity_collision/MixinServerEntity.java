@@ -1,7 +1,5 @@
 package org.valkyrienskies.mod.mixin.feature.entity_collision;
 
-import static org.valkyrienskies.mod.common.util.VectorConversionsMCKt.toJOML;
-
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import java.util.function.Consumer;
@@ -12,7 +10,6 @@ import net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket;
 import net.minecraft.server.level.ServerEntity;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.player.Player;
 import org.joml.Vector3d;
 import org.slf4j.Logger;
 import org.spongepowered.asm.mixin.Final;
@@ -44,6 +41,10 @@ public class MixinServerEntity {
     @Final
     private static Logger LOGGER;
 
+    /**
+     * @author Tomato
+     * @reason Intercept entity motion packets to send our own data, then cancel the original packet.
+     */
     @WrapOperation(
         method = "sendChanges",
         at = @At(
@@ -62,14 +63,6 @@ public class MixinServerEntity {
 
                         Vector3d position = ship.getWorldToShip().transformPosition(new Vector3d(entity.getX(), entity.getY(), entity.getZ()));
                         Vector3d motion = ship.getTransform().transformDirectionNoScalingFromWorldToShip(new Vector3d(entity.getDeltaMovement().x(), entity.getDeltaMovement().y(), entity.getDeltaMovement().z()), new Vector3d());
-
-//                        Vector3d entityLookYawOnly = new Vector3d(Math.sin(-Math.toRadians(entity.getYRot())), 0.0, Math.cos(-Math.toRadians(entity.getYRot())));
-//                        Vector3d newLookIdeal = ship.getTransform().getShipToWorld().transformDirection(entityLookYawOnly);
-//
-////                         Get the X and Y rotation from [newLookIdeal]
-//                        double newXRot = Math.asin(-newLookIdeal.y());
-//                        double xRotCos = Math.cos(newXRot);
-//                        double newYRot = -Math.atan2(newLookIdeal.x() / xRotCos, newLookIdeal.z() / xRotCos);
 
                         double yaw;
                         if (!(t instanceof ClientboundRotateHeadPacket)) {

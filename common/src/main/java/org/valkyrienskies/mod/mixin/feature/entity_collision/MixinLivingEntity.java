@@ -15,7 +15,6 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.EntityLerper;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
-import org.valkyrienskies.mod.util.LoggingKt;
 
 @Mixin(LivingEntity.class)
 public abstract class MixinLivingEntity extends Entity {
@@ -24,6 +23,10 @@ public abstract class MixinLivingEntity extends Entity {
         super(entityType, level);
     }
 
+    /**
+     * @author Tomato
+     * @reason Adjusted lerping for entities being dragged by ships.
+     */
     @Inject(
         method = "aiStep",
         at = @At(value = "HEAD")

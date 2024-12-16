@@ -4,6 +4,7 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.player.LocalPlayer
 import net.minecraft.core.Registry
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import org.joml.Vector3d
 import org.valkyrienskies.core.api.ships.LoadedServerShip
@@ -17,6 +18,7 @@ import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.EntityLerper
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
+import org.valkyrienskies.mod.common.util.toMinecraft
 import org.valkyrienskies.mod.common.vsCore
 
 object VSGamePackets {
@@ -130,8 +132,18 @@ object VSGamePackets {
             val player = (iPlayer as MinecraftPlayer).player as ServerPlayer
 
             if (player is IEntityDraggingInformationProvider) {
-                player.draggingInformation.relativePositionOnShip = Vector3d(motion.x, motion.y, motion.z)
-                player.draggingInformation.relativeYawOnShip = motion.yRot
+                if (player.draggingInformation.lastShipStoodOn == null || player.draggingInformation.lastShipStoodOn != motion.shipID) {
+                    player.draggingInformation.lastShipStoodOn = motion.shipID
+                }
+                player.draggingInformation.serverRelativePlayerPosition = Vector3d(motion.x, motion.y, motion.z)
+                if (player.level != null) {
+                    val sLevel = (player.level as ServerLevel)
+                    val ship = sLevel.shipObjectWorld.allShips.getById(motion.shipID)
+                    if (ship != null) {
+                        player.setPos(ship.shipToWorld.transformPosition(Vector3d(motion.x, motion.y, motion.z), Vector3d()).toMinecraft())
+                    }
+                }
+                player.draggingInformation.serverRelativePlayerYaw = motion.yRot
             }
         }
     }

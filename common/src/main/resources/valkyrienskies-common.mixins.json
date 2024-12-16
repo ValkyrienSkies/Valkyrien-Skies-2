@@ -134,6 +134,7 @@
     "client.world.MixinClientLevel",
     "feature.block_tint.MixinClientLevel",
     "feature.commands.MixinClientSuggestionProvider",
+    "feature.entity_collision.MixinLocalPlayer",
     "feature.fix_render_chunk_sorting.MixinRenderChunk",
     "feature.fluid_camera_fix.MixinCamera",
     "feature.render_blockentity_distance_check.MixinBlockEntityRenderDispatcher",

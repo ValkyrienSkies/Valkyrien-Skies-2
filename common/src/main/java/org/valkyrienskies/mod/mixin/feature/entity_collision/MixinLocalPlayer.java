@@ -12,6 +12,7 @@ import net.minecraft.world.level.Level;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
@@ -23,10 +24,17 @@ import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(LocalPlayer.class)
 public abstract class MixinLocalPlayer extends Entity implements IEntityDraggingInformationProvider {
+    @Shadow
+    public abstract float getViewYRot(float f);
+
     public MixinLocalPlayer(EntityType<?> entityType, Level level) {
         super(entityType, level);
     }
 
+    /**
+     * @author Tomato
+     * @reason Intercept client -> server player position sending to send our own data.
+     */
     @WrapOperation(method = "sendPosition", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientPacketListener;send(Lnet/minecraft/network/protocol/Packet;)V"))
     private void wrapSendPosition(ClientPacketListener instance, Packet<?> arg, Operation<Void> original) {
         if (getDraggingInformation().isEntityBeingDraggedByAShip()) {
@@ -36,9 +44,9 @@ public abstract class MixinLocalPlayer extends Entity implements IEntityDragging
                     Vector3dc relativePosition = ship.getWorldToShip().transformPosition(
                         VectorConversionsMCKt.toJOML(getEyePosition()), new Vector3d());
 
-                    double relativeYaw = EntityLerper.INSTANCE.yawToShip(ship, getYHeadRot());
+                    double relativeYaw = EntityLerper.INSTANCE.yawToShip(ship, getViewYRot(1f));
 
-                    PacketPlayerShipMotion packet = new PacketPlayerShipMotion(getId(), relativePosition.x(), relativePosition.y(), relativePosition.z(), relativeYaw);
+                    PacketPlayerShipMotion packet = new PacketPlayerShipMotion(ship.getId(), relativePosition.x(), relativePosition.y(), relativePosition.z(), relativeYaw);
                     ValkyrienSkiesMod.getVsCore().getSimplePacketNetworking().sendToServer(packet);
                 }
             }

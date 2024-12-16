@@ -1,14 +1,18 @@
 package org.valkyrienskies.mod.common.util
 
+import net.minecraft.client.player.LocalPlayer
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.util.Mth
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.player.Player
+import net.minecraft.world.phys.Vec3
 import org.joml.Vector3d
 import org.joml.Vector3dc
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.mod.common.getShipMountedTo
 import org.valkyrienskies.mod.common.getShipObjectManagingPos
 import org.valkyrienskies.mod.common.shipObjectWorld
+import kotlin.math.abs
 import kotlin.math.asin
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -57,7 +61,7 @@ object EntityDragger {
                         // endregion
 
                         // region Compute look dragging
-                        val yViewRot = entity.getViewYRot(if (preTick) 0f else 1f).toDouble()
+                        val yViewRot = entity.yRot.toDouble()
 
                         // Get the y-look vector of the entity only using y-rotation, ignore x-rotation
                         val entityLookYawOnly =
@@ -77,15 +81,15 @@ object EntityDragger {
                         // The Y rotation of the entity before dragging
                         var entityYRotCorrected = entity.yRot % 360.0
                         // Limit [entityYRotCorrected] to be between -180 to 180 degrees
-                        if (entityYRotCorrected < -180.0) entityYRotCorrected += 360.0
-                        if (entityYRotCorrected > 180.0) entityYRotCorrected -= 360.0
+                        if (entityYRotCorrected <= -180.0) entityYRotCorrected += 360.0
+                        if (entityYRotCorrected >= 180.0) entityYRotCorrected -= 360.0
 
                         // The Y rotation of the entity after dragging
                         val newYRotAsDegrees = Math.toDegrees(newYRot)
                         // Limit [addedYRotFromDragging] to be between -180 to 180 degrees
                         var addedYRotFromDragging = newYRotAsDegrees - entityYRotCorrected
-                        if (addedYRotFromDragging < -180.0) addedYRotFromDragging += 360.0
-                        if (addedYRotFromDragging > 180.0) addedYRotFromDragging -= 360.0
+                        if (addedYRotFromDragging <= -180.0) addedYRotFromDragging += 360.0
+                        if (addedYRotFromDragging >= 180.0) addedYRotFromDragging -= 360.0
 
                         addedYRot = addedYRotFromDragging
                         // endregion
@@ -112,15 +116,78 @@ object EntityDragger {
                 entityDraggingInformation.addedMovementLastTick = addedMovement
 
                 // Apply [addedYRot]
-                // Don't apply it to server players to fix rotation of placed blocks
                 if (addedYRot.isFinite()) {
-                    entity.yRot += addedYRot.toFloat()
-                    entity.yHeadRot += addedYRot.toFloat()
+                    if (!entity.level.isClientSide()) {
+                        if (entity !is ServerPlayer) {
+                            entity.yRot = ((entity.yRot + addedYRot.toFloat()) + 360f) % 360f
+                            entity.yHeadRot = ((entity.yHeadRot + addedYRot.toFloat()) + 360f) % 360f
+                        } else {
+                            entity.yRot = Mth.wrapDegrees(entity.yRot + addedYRot.toFloat())
+                            entity.yHeadRot = Mth.wrapDegrees(entity.yHeadRot + addedYRot.toFloat())
+                        }
+                    } else {
+                        if (entity !is LocalPlayer) {
+                            entity.yRot = Mth.wrapDegrees(entity.yRot + addedYRot.toFloat())
+                            entity.yHeadRot = Mth.wrapDegrees(entity.yHeadRot + addedYRot.toFloat())
+                        } else {
+                            entity.yRot = (entity.yRot + addedYRot.toFloat())
+                            entity.yHeadRot = (entity.yHeadRot + addedYRot.toFloat())
+                        }
+                    }
+
                     entityDraggingInformation.addedYawRotLastTick = addedYRot
                 }
             }
             entityDraggingInformation.ticksSinceStoodOnShip++
             entityDraggingInformation.mountedToEntity = entity.vehicle != null
         }
+    }
+
+    /**
+     * Checks if the entity is a ServerPlayer and has a [serverRelativePlayerPosition] set. If it does, returns that, which is in ship space; otherwise, returns worldspace eye position.
+     */
+    fun Entity.serversideEyePosition(): Vec3 {
+        if (this is ServerPlayer && this is IEntityDraggingInformationProvider && this.draggingInformation.isEntityBeingDraggedByAShip()) {
+            if (this.draggingInformation.serverRelativePlayerPosition != null) {
+                return this.draggingInformation.serverRelativePlayerPosition!!.toMinecraft()
+            }
+        }
+        return this.eyePosition
+    }
+
+    /**
+     * Checks if the entity is a ServerPlayer and has a [serverRelativePlayerYaw] set. If it does, returns that, which is in ship space; otherwise, returns worldspace eye rotation.
+     */
+    fun Entity.serversideEyeRotation(): Double {
+        if (this is ServerPlayer && this is IEntityDraggingInformationProvider && this.draggingInformation.isEntityBeingDraggedByAShip()) {
+            if (this.draggingInformation.serverRelativePlayerYaw != null) {
+                return this.draggingInformation.serverRelativePlayerYaw!! * 180.0 / Math.PI
+            }
+        }
+        return this.yRot.toDouble()
+    }
+
+    /**
+     * Checks if the entity is a ServerPlayer and has a [serverRelativePlayerPosition] set. If it does, returns that, which is in ship space; otherwise, returns a default value.
+     */
+    fun Entity.serversideEyePositionOrDefault(default: Vec3): Vec3 {
+        if (this is ServerPlayer && this is IEntityDraggingInformationProvider && this.draggingInformation.isEntityBeingDraggedByAShip()) {
+            if (this.draggingInformation.serverRelativePlayerPosition != null) {
+                return this.draggingInformation.serverRelativePlayerPosition!!.toMinecraft()
+            }
+        }
+        return default
+    }
+
+    /**
+     * Checks if the entity is a ServerPlayer and has a [serverRelativePlayerYaw] set. If it does, returns that, which is in ship space; otherwise, returns a default value.
+     */
+    fun Entity.serversideEyeRotationOrDefault(default: Double): Double {
+        if (this is ServerPlayer && this is IEntityDraggingInformationProvider && this.draggingInformation.isEntityBeingDraggedByAShip()) {
+            if (this.draggingInformation.serverRelativePlayerYaw != null) {
+                return Math.toDegrees(this.draggingInformation.serverRelativePlayerYaw!!)
+            }
+        }
+        return default
     }
 }

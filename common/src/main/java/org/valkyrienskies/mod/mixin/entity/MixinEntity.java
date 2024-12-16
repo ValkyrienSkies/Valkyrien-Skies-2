@@ -6,6 +6,7 @@ import net.minecraft.CrashReport;
 import net.minecraft.CrashReportCategory;
 import net.minecraft.ReportedException;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -33,6 +34,7 @@ import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.mod.common.entity.ShipMountedToData;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
@@ -106,6 +108,50 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     private void preGetEyePosition(final float partialTicks, final CallbackInfoReturnable<Vec3> cir) {
         final ShipMountedToData shipMountedToData = VSGameUtilsKt.getShipMountedToData(Entity.class.cast(this), partialTicks);
         if (shipMountedToData == null) {
+            if (Entity.class.cast(this) instanceof final ServerPlayer sPlayer && sPlayer instanceof final IEntityDraggingInformationProvider dragProvider) {
+                if (dragProvider.getDraggingInformation().isEntityBeingDraggedByAShip() && dragProvider.getDraggingInformation().getServerRelativePlayerPosition() != null) {
+                    final Ship shipDraggedBy = VSGameUtilsKt.getAllShips(level).getById(dragProvider.getDraggingInformation().getLastShipStoodOn());
+                    if (shipDraggedBy != null) {
+                        final Vector3dc worldPos = shipDraggedBy.getShipToWorld().transformPosition(dragProvider.getDraggingInformation().getServerRelativePlayerPosition(), new Vector3d());
+                        cir.setReturnValue(new Vec3(worldPos.x(), worldPos.y(), worldPos.z()));
+                    }
+                }
+            }
+            return;
+        }
+        final LoadedShip shipMountedTo = shipMountedToData.getShipMountedTo();
+
+        final ShipTransform shipTransform;
+        if (shipMountedTo instanceof ClientShip) {
+            shipTransform = ((ClientShip) shipMountedTo).getRenderTransform();
+        } else {
+            shipTransform = shipMountedTo.getShipTransform();
+        }
+        final Vector3dc basePos = shipTransform.getShipToWorldMatrix()
+            .transformPosition(shipMountedToData.getMountPosInShip(), new Vector3d());
+        final Vector3dc eyeRelativePos = shipTransform.getShipCoordinatesToWorldCoordinatesRotation().transform(
+            new Vector3d(0.0, getEyeHeight(), 0.0)
+        );
+        final Vec3 newEyePos = VectorConversionsMCKt.toMinecraft(basePos.add(eyeRelativePos, new Vector3d()));
+        cir.setReturnValue(newEyePos);
+    }
+
+    /**
+     * @reason Needed for players to pick blocks correctly when mounted to a ship
+     */
+    @Inject(method = "getEyePosition()Lnet/minecraft/world/phys/Vec3;", at = @At("HEAD"), cancellable = true)
+    private void preGetEyePositionServer(final CallbackInfoReturnable<Vec3> cir) {
+        final ShipMountedToData shipMountedToData = VSGameUtilsKt.getShipMountedToData(Entity.class.cast(this), null);
+        if (shipMountedToData == null) {
+            if (Entity.class.cast(this) instanceof final ServerPlayer sPlayer && sPlayer instanceof final IEntityDraggingInformationProvider dragProvider) {
+                if (dragProvider.getDraggingInformation().isEntityBeingDraggedByAShip() && dragProvider.getDraggingInformation().getServerRelativePlayerPosition() != null) {
+                    final Ship shipDraggedBy = VSGameUtilsKt.getAllShips(level).getById(dragProvider.getDraggingInformation().getLastShipStoodOn());
+                    if (shipDraggedBy != null) {
+                        final Vector3dc worldPos = shipDraggedBy.getShipToWorld().transformPosition(dragProvider.getDraggingInformation().getServerRelativePlayerPosition(), new Vector3d());
+                        cir.setReturnValue(new Vec3(worldPos.x(), worldPos.y(), worldPos.z()));
+                    }
+                }
+            }
             return;
         }
         final LoadedShip shipMountedTo = shipMountedToData.getShipMountedTo();
@@ -132,6 +178,31 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     private void preCalculateViewVector(final float xRot, final float yRot, final CallbackInfoReturnable<Vec3> cir) {
         final LoadedShip shipMountedTo = VSGameUtilsKt.getShipMountedTo(Entity.class.cast(this));
         if (shipMountedTo == null) {
+            if (Entity.class.cast(this) instanceof final ServerPlayer sPlayer && sPlayer instanceof final IEntityDraggingInformationProvider dragProvider) {
+                if (dragProvider.getDraggingInformation().isEntityBeingDraggedByAShip() && dragProvider.getDraggingInformation().getServerRelativePlayerYaw() != null) {
+                    final Ship shipDraggedBy = VSGameUtilsKt.getAllShips(level).getById(dragProvider.getDraggingInformation().getLastShipStoodOn());
+                    if (shipDraggedBy != null) {
+                        final float realYRot = (float) EntityDragger.INSTANCE.serversideEyeRotationOrDefault(sPlayer, yRot);
+                        final float f = xRot * (float) (Math.PI / 180.0);
+                        final float g = -realYRot * (float) (Math.PI / 180.0);
+                        final float h = Mth.cos(g);
+                        final float i = Mth.sin(g);
+                        final float j = Mth.cos(f);
+                        final float k = Mth.sin(f);
+                        final Vector3dc originalViewVector = new Vector3d(i * j, -k, h * j);
+
+                        final ShipTransform shipTransform;
+                        if (shipDraggedBy instanceof ClientShip) {
+                            shipTransform = ((ClientShip) shipDraggedBy).getRenderTransform();
+                        } else {
+                            shipTransform = shipDraggedBy.getShipTransform();
+                        }
+                        final Vec3 newViewVector = VectorConversionsMCKt.toMinecraft(
+                            shipTransform.getShipCoordinatesToWorldCoordinatesRotation().transform(originalViewVector, new Vector3d()));
+                        cir.setReturnValue(newViewVector);
+                    }
+                }
+            }
             return;
         }
         final float f = xRot * (float) (Math.PI / 180.0);
@@ -182,6 +253,9 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
     @Shadow
     public abstract EntityType<?> getType();
+
+    @Shadow
+    private float yRot;
 
     @Override
     @NotNull
