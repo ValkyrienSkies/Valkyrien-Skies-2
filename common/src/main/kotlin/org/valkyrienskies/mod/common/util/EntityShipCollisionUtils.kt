@@ -117,7 +117,7 @@ object EntityShipCollisionUtils {
                 shipTransform.worldToShip
             )
             val entityBoundingBoxInShipCoordinates: AABBdc = entityPolyInShipCoordinates.getEnclosingAABB(AABBd())
-            if (BugFixUtil.isCollisionBoxToBig(entityBoundingBoxInShipCoordinates.toMinecraft())) {
+            if (BugFixUtil.isCollisionBoxTooBig(entityBoundingBoxInShipCoordinates.toMinecraft())) {
                 // Box too large, skip it
                 continue
             }
