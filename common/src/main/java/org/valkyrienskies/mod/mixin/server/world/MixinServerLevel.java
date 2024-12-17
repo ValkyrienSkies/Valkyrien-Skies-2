@@ -24,6 +24,7 @@ import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.progress.ChunkProgressListener;
+import net.minecraft.world.entity.ai.village.poi.PoiManager;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
@@ -44,6 +45,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.core.api.ships.Wing;
 import org.valkyrienskies.core.api.ships.WingManager;
@@ -56,6 +58,7 @@ import org.valkyrienskies.mod.common.util.VSServerLevel;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.mixin.accessors.server.level.ChunkMapAccessor;
 import org.valkyrienskies.mod.mixin.accessors.server.level.DistanceManagerAccessor;
+import org.valkyrienskies.mod.mixinducks.world.OfLevel;
 import org.valkyrienskies.mod.util.McMathUtilKt;
 
 @Mixin(ServerLevel.class)
@@ -101,6 +104,13 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                 VSGameUtilsKt.getYRange((ServerLevel) (Object) this),
                 McMathUtilKt.getDEFAULT_WORLD_GRAVITY()
             );
+        }
+    }
+
+    @Inject(method = "getPoiManager", at = @At("HEAD"))
+    void onGetPoiManager(CallbackInfoReturnable<PoiManager> cir) {
+        if (chunkSource.getPoiManager() instanceof final OfLevel levelProvider) {
+            levelProvider.setLevel((ServerLevel) (Object) this);
         }
     }
 
