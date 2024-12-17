@@ -15,6 +15,7 @@ import org.valkyrienskies.core.impl.chunk_tracking.ShipActiveChunksSet
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getShipObjectManagingPos
 import org.valkyrienskies.mod.common.shipObjectWorld
+import org.valkyrienskies.mod.common.toWorldCoordinates
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toMinecraft
 
@@ -34,14 +35,6 @@ object POIChunkSearcher {
     }
 
     fun PoiRecord.getWorldPos(level: Level): Vec3 {
-        val blockPos = this.pos
-        val vecPos = Vec3(blockPos.x.toDouble(), blockPos.y.toDouble(), blockPos.z.toDouble())
-        if (level.shipObjectWorld.isBlockInShipyard(blockPos.x, blockPos.y, blockPos.z, level.dimensionId)) {
-            val ship = level.getShipObjectManagingPos(blockPos)
-            if (ship != null) {
-                return ship.shipToWorld.transformPosition(vecPos.toJOML()).toMinecraft()
-            }
-        }
-        return vecPos
+        return level.toWorldCoordinates(Vec3(this.pos.x.toDouble(), this.pos.y.toDouble(), this.pos.z.toDouble()))
     }
 }

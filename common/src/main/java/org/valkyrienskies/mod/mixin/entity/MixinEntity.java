@@ -108,15 +108,6 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     private void preGetEyePosition(final float partialTicks, final CallbackInfoReturnable<Vec3> cir) {
         final ShipMountedToData shipMountedToData = VSGameUtilsKt.getShipMountedToData(Entity.class.cast(this), partialTicks);
         if (shipMountedToData == null) {
-            if (Entity.class.cast(this) instanceof final ServerPlayer sPlayer && sPlayer instanceof final IEntityDraggingInformationProvider dragProvider) {
-                if (dragProvider.getDraggingInformation().isEntityBeingDraggedByAShip() && dragProvider.getDraggingInformation().getServerRelativePlayerPosition() != null) {
-                    final Ship shipDraggedBy = VSGameUtilsKt.getAllShips(level).getById(dragProvider.getDraggingInformation().getLastShipStoodOn());
-                    if (shipDraggedBy != null) {
-                        final Vector3dc worldPos = shipDraggedBy.getShipToWorld().transformPosition(dragProvider.getDraggingInformation().getServerRelativePlayerPosition(), new Vector3d());
-                        cir.setReturnValue(new Vec3(worldPos.x(), worldPos.y(), worldPos.z()));
-                    }
-                }
-            }
             return;
         }
         final LoadedShip shipMountedTo = shipMountedToData.getShipMountedTo();
@@ -143,15 +134,6 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     private void preGetEyePositionServer(final CallbackInfoReturnable<Vec3> cir) {
         final ShipMountedToData shipMountedToData = VSGameUtilsKt.getShipMountedToData(Entity.class.cast(this), null);
         if (shipMountedToData == null) {
-            if (Entity.class.cast(this) instanceof final ServerPlayer sPlayer && sPlayer instanceof final IEntityDraggingInformationProvider dragProvider) {
-                if (dragProvider.getDraggingInformation().isEntityBeingDraggedByAShip() && dragProvider.getDraggingInformation().getServerRelativePlayerPosition() != null) {
-                    final Ship shipDraggedBy = VSGameUtilsKt.getAllShips(level).getById(dragProvider.getDraggingInformation().getLastShipStoodOn());
-                    if (shipDraggedBy != null) {
-                        final Vector3dc worldPos = shipDraggedBy.getShipToWorld().transformPosition(dragProvider.getDraggingInformation().getServerRelativePlayerPosition(), new Vector3d());
-                        cir.setReturnValue(new Vec3(worldPos.x(), worldPos.y(), worldPos.z()));
-                    }
-                }
-            }
             return;
         }
         final LoadedShip shipMountedTo = shipMountedToData.getShipMountedTo();
