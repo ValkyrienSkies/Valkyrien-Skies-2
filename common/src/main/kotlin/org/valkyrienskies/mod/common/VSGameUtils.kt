@@ -121,7 +121,7 @@ val Player.playerWrapper get() = (this as PlayerDuck).vs_getPlayer()
  * Like [Entity.squaredDistanceTo] except the destination is transformed into world coordinates if it is a ship
  */
 fun Entity.squaredDistanceToInclShips(x: Double, y: Double, z: Double): Double {
-    val eyePos = this.serversideEyePosition()
+    val eyePos = if (getShipMountedTo(this) != null) getShipMountedToData(this, null)!!.mountPosInShip.toMinecraft() else this.serversideEyePosition()
     return level.squaredDistanceBetweenInclShips(x, y, z, eyePos.x, eyePos.y - 1.0, eyePos.z)
 }
 
