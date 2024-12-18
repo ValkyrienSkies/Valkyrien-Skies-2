@@ -55,7 +55,7 @@ public abstract class MixinLocalPlayer extends Entity implements IEntityDragging
                 }
             }
             if (realArg instanceof ServerboundMovePlayerPacket movePacket) {
-                final boolean isOnGround = movePacket.isOnGround() || getDraggingInformation().getTicksSinceStoodOnShip() < 4;
+                final boolean isOnGround = movePacket.isOnGround() || getDraggingInformation().isEntityBeingDraggedByAShip();
                 if (movePacket.hasPosition() && movePacket.hasRotation()) {
                     //posrot
                     realArg = new ServerboundMovePlayerPacket.PosRot(movePacket.getX(0.0), movePacket.getY(0.0), movePacket.getZ(0.0), movePacket.getYRot(0.0f), movePacket.getXRot(0.0f), isOnGround);

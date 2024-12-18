@@ -23,11 +23,13 @@ class EntityDraggingInformation {
     var relativeVelocityOnShip: Vector3dc? = null
     var lerpYawOnShip: Double? = null
     var lerpHeadYawOnShip: Double? = null
+    var lerpPitchOnShip: Double? = null
 
     var relativePositionOnShip: Vector3dc? = null
     var previousRelativeVelocityOnShip: Vector3dc? = null
     var relativeYawOnShip: Double? = null
     var relativeHeadYawOnShip: Double? = null
+    var relativePitchOnShip: Double? = null
 
     var lerpSteps: Int = 0
     var headLerpSteps: Int = 0

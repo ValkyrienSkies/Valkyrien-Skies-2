@@ -62,8 +62,8 @@ object EntityLerper {
             val currentHeadYawWorld = yawToWorld(ship, currentHeadYaw)
             val lerpHeadYawWorld = yawToWorld(ship, lerpHeadYaw)
 
-            val newHeadYaw = currentHeadYawWorld + Mth.wrapDegrees(lerpHeadYawWorld - currentHeadYawWorld) / dragInfo.headLerpSteps
-
+            val newHeadYaw = currentHeadYawWorld + Mth.wrapDegrees(lerpHeadYawWorld - currentHeadYawWorld) / dragInfo.headLerpSteps.toFloat()
+            entity.xRot += (dragInfo.lerpPitchOnShip!!.toFloat() - entity.xRot) / dragInfo.headLerpSteps.toFloat()
             entity.yHeadRot = newHeadYaw.toFloat()
             dragInfo.relativeHeadYawOnShip = yawToShip(ship, newHeadYaw.toDouble())
 

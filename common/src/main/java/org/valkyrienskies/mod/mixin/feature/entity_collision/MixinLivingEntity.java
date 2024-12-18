@@ -1,7 +1,7 @@
 package org.valkyrienskies.mod.mixin.feature.entity_collision;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -28,13 +28,13 @@ public abstract class MixinLivingEntity extends Entity {
      * @reason Adjusted lerping for entities being dragged by ships.
      */
     @Inject(
-        method = "aiStep",
-        at = @At(value = "HEAD")
+        method = "tick",
+        at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/LivingEntity;aiStep()V", shift = At.Shift.BEFORE)
     )
     private void preAiStep(CallbackInfo ci) {
         // fake lerp movement gaming
         if (this.level != null && this.level.isClientSide() && !firstTick) {
-            if (this.isControlledByLocalInstance() || (Minecraft.getInstance().player != null && Minecraft.getInstance().player.is(this))) return;
+            if (this.isControlledByLocalInstance() || ((Entity) this instanceof LocalPlayer)) return;
             EntityDraggingInformation dragInfo = ((IEntityDraggingInformationProvider) this).getDraggingInformation();
             if (dragInfo != null && dragInfo.getLastShipStoodOn() != null) {
                 final ClientShip ship = VSGameUtilsKt.getShipObjectWorld((ClientLevel) level).getAllShips().getById(dragInfo.getLastShipStoodOn());

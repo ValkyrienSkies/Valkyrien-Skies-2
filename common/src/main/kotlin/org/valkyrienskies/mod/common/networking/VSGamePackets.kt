@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.common.networking
 
 import net.minecraft.client.Minecraft
+import net.minecraft.client.player.LocalPlayer
 import net.minecraft.core.Registry
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerLevel
@@ -72,7 +73,7 @@ object VSGamePackets {
             val level = mc.level ?: return@registerClientHandler
             val entity = level.getEntity(setMotion.entityID) ?: return@registerClientHandler
 
-            if (entity.isControlledByLocalInstance || (mc.player != null && mc.player!!.`is`(entity))) return@registerClientHandler
+            if (entity.isControlledByLocalInstance || mc.player?.id == entity.id) return@registerClientHandler
 
             val ship = level.shipObjectWorld.allShips.getById(setMotion.shipID)
                 ?: return@registerClientHandler
@@ -102,7 +103,6 @@ object VSGamePackets {
                 entity.setPacketCoordinates(worldPosition.x, worldPosition.y, worldPosition.z)
                 val worldVelocity = ship.renderTransform.shipToWorld.transformDirection(Vector3d(setMotion.xVel, setMotion.yVel, setMotion.zVel))
                 entity.setDeltaMovement(worldVelocity.x, worldVelocity.y, worldVelocity.z)
-                entity.xRot = setMotion.xRot.toFloat()
                 entity.draggingInformation.lerpSteps = 3
 
                 // entity.setPos(previousWorldPosition.x, previousWorldPosition.y, previousWorldPosition.z)
@@ -115,7 +115,7 @@ object VSGamePackets {
             val level = mc.level ?: return@registerClientHandler
             val entity = level.getEntity(setRotation.entityID) ?: return@registerClientHandler
 
-            if (entity.isControlledByLocalInstance || (entity is Player && entity.isLocalPlayer)) return@registerClientHandler
+            if (entity.isControlledByLocalInstance || entity is LocalPlayer) return@registerClientHandler
 
             val ship = level.shipObjectWorld.allShips.getById(setRotation.shipID)
                 ?: return@registerClientHandler
@@ -127,6 +127,8 @@ object VSGamePackets {
                 }
                 entity.draggingInformation.relativeHeadYawOnShip = EntityLerper.yawToShip(ship, entity.yHeadRot.toDouble())
                 entity.draggingInformation.lerpHeadYawOnShip = setRotation.yaw
+                entity.draggingInformation.relativePitchOnShip = entity.xRot.toDouble()
+                entity.draggingInformation.lerpPitchOnShip = setRotation.pitch
                 entity.draggingInformation.headLerpSteps = 3
             }
         }

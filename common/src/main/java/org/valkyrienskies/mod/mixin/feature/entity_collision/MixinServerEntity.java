@@ -11,7 +11,6 @@ import net.minecraft.server.level.ServerEntity;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import org.joml.Vector3d;
-import org.slf4j.Logger;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -37,10 +36,6 @@ public class MixinServerEntity {
     @Final
     private ServerLevel level;
 
-    @Shadow
-    @Final
-    private static Logger LOGGER;
-
     /**
      * @author Tomato
      * @reason Intercept entity motion packets to send our own data, then cancel the original packet.
@@ -59,9 +54,11 @@ public class MixinServerEntity {
                 if (dragInfo != null && dragInfo.isEntityBeingDraggedByAShip() && dragInfo.getLastShipStoodOn() != null) {
                     ServerShip ship = VSGameUtilsKt.getShipObjectWorld(level).getAllShips().getById(dragInfo.getLastShipStoodOn());
                     if (ship != null) {
-//                        if (!(entity instanceof Player)) LOGGER.info("Entity is rotated {}", entity.getYRot());
 
                         Vector3d position = ship.getWorldToShip().transformPosition(new Vector3d(entity.getX(), entity.getY(), entity.getZ()));
+                        if (dragInfo.getServerRelativePlayerPosition() != null) {
+                            position = new Vector3d(dragInfo.getServerRelativePlayerPosition());
+                        }
                         Vector3d motion = ship.getTransform().transformDirectionNoScalingFromWorldToShip(new Vector3d(entity.getDeltaMovement().x(), entity.getDeltaMovement().y(), entity.getDeltaMovement().z()), new Vector3d());
 
                         double yaw;
@@ -78,7 +75,7 @@ public class MixinServerEntity {
                                 motion.x, motion.y, motion.z,
                                 yaw, pitch);
                         } else {
-                            vsPacket = new PacketMobShipRotation(entity.getId(), ship.getId(), yaw);
+                            vsPacket = new PacketMobShipRotation(entity.getId(), ship.getId(), yaw, pitch);
                         }
 
                         ValkyrienSkiesMod.getVsCore().getSimplePacketNetworking().sendToAllClients(vsPacket);
