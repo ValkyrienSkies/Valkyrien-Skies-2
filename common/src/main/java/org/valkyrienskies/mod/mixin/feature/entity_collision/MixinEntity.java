@@ -10,7 +10,6 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MoverType;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.state.BlockState;
@@ -257,7 +256,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     private void postBaseTick(final CallbackInfo ci) {
         final EntityDraggingInformation entityDraggingInformation = getDraggingInformation();
 
-        if (level != null && level.isClientSide && !firstTick && !isControlledByLocalInstance() && !(Entity.class.cast(this) instanceof Player player && player.isLocalPlayer())) {
+        if (level != null && level.isClientSide && !firstTick) {
             final Ship ship = VSGameUtilsKt.getShipObjectManagingPos(level, getOnPos());
             if (ship != null) {
                 entityDraggingInformation.setLastShipStoodOn(ship.getId());

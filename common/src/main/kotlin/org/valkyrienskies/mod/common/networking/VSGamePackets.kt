@@ -72,7 +72,7 @@ object VSGamePackets {
             val level = mc.level ?: return@registerClientHandler
             val entity = level.getEntity(setMotion.entityID) ?: return@registerClientHandler
 
-            if (entity.isControlledByLocalInstance || (entity is Player && entity.isLocalPlayer)) return@registerClientHandler
+            if (entity.isControlledByLocalInstance || (mc.player != null && mc.player!!.`is`(entity))) return@registerClientHandler
 
             val ship = level.shipObjectWorld.allShips.getById(setMotion.shipID)
                 ?: return@registerClientHandler

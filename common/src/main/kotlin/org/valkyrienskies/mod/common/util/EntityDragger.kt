@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.common.util
 
+import net.minecraft.client.Minecraft
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.util.Mth
 import net.minecraft.world.entity.Entity
@@ -122,7 +123,7 @@ object EntityDragger {
                             entity.yHeadRot = Mth.wrapDegrees(entity.yHeadRot + addedYRot.toFloat())
                         }
                     } else {
-                        if (!entity.isControlledByLocalInstance && !(entity is Player && entity.isLocalPlayer)) {
+                        if (!entity.isControlledByLocalInstance && !(Minecraft.getInstance().player != null && Minecraft.getInstance().player!!.`is`(entity))) {
                             entity.yRot = Mth.wrapDegrees(entity.yRot + addedYRot.toFloat())
                             entity.yHeadRot = Mth.wrapDegrees(entity.yHeadRot + addedYRot.toFloat())
                         } else {
