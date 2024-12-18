@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.common.util
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.util.Mth
 import net.minecraft.world.entity.Entity
+import net.minecraft.world.entity.player.Player
 import net.minecraft.world.phys.Vec3
 import org.joml.Vector3d
 import org.joml.Vector3dc
@@ -121,7 +122,7 @@ object EntityDragger {
                             entity.yHeadRot = Mth.wrapDegrees(entity.yHeadRot + addedYRot.toFloat())
                         }
                     } else {
-                        if (!entity.isControlledByLocalInstance) {
+                        if (!entity.isControlledByLocalInstance && !(entity is Player && entity.isLocalPlayer)) {
                             entity.yRot = Mth.wrapDegrees(entity.yRot + addedYRot.toFloat())
                             entity.yHeadRot = Mth.wrapDegrees(entity.yHeadRot + addedYRot.toFloat())
                         } else {
