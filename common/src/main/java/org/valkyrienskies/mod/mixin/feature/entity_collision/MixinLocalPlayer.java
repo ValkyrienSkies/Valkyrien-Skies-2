@@ -7,6 +7,7 @@ import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
+import net.minecraft.network.protocol.game.ServerboundMoveVehiclePacket;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.Level;
@@ -18,6 +19,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
+import org.valkyrienskies.mod.common.networking.PacketEntityShipMotion;
 import org.valkyrienskies.mod.common.networking.PacketPlayerShipMotion;
 import org.valkyrienskies.mod.common.util.EntityLerper;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
@@ -71,4 +73,27 @@ public abstract class MixinLocalPlayer extends Entity implements IEntityDragging
         }
         original.call(instance, realArg);
     }
+
+    @WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientPacketListener;send(Lnet/minecraft/network/protocol/Packet;)V"))
+    private void wrapSendVehiclePosition(ClientPacketListener instance, Packet<?> arg, Operation<Void> original) {
+        if (arg instanceof ServerboundMoveVehiclePacket vehiclePacket && getRootVehicle() instanceof IEntityDraggingInformationProvider dragProvider) {
+            if (dragProvider.getDraggingInformation().isEntityBeingDraggedByAShip()) {
+                if (dragProvider.getDraggingInformation().getLastShipStoodOn() != null) {
+                    ClientShip ship = VSGameUtilsKt.getShipObjectWorld(Minecraft.getInstance().level).getAllShips().getById(
+                        getDraggingInformation().getLastShipStoodOn());
+                    if (ship != null) {
+                        Vector3dc relativePosition = ship.getWorldToShip().transformPosition(
+                            VectorConversionsMCKt.toJOML(getRootVehicle().getPosition(1f)), new Vector3d());
+
+                        double relativeYaw = EntityLerper.INSTANCE.yawToShip(ship, getRootVehicle().getYRot());
+
+                        PacketEntityShipMotion packet = new PacketEntityShipMotion(getRootVehicle().getId(), ship.getId(), relativePosition.x(), relativePosition.y(), relativePosition.z(), 0.0, 0.0, 0.0, relativeYaw, 0.0);
+                        ValkyrienSkiesMod.getVsCore().getSimplePacketNetworking().sendToServer(packet);
+                    }
+                }
+            }
+        }
+        original.call(instance, arg);
+    }
+
 }

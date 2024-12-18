@@ -1,11 +1,11 @@
 package org.valkyrienskies.mod.common.networking
 
 import net.minecraft.client.Minecraft
-import net.minecraft.client.player.LocalPlayer
 import net.minecraft.core.Registry
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.phys.Vec3
 import org.joml.Vector3d
 import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.core.api.ships.getAttachment
@@ -15,6 +15,7 @@ import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager
 import org.valkyrienskies.mod.common.getShipObjectManagingPos
 import org.valkyrienskies.mod.common.shipObjectWorld
+import org.valkyrienskies.mod.common.toWorldCoordinates
 import org.valkyrienskies.mod.common.util.EntityLerper
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
@@ -70,7 +71,7 @@ object VSGamePackets {
             val level = mc.level ?: return@registerClientHandler
             val entity = level.getEntity(setMotion.entityID) ?: return@registerClientHandler
 
-            if (entity is LocalPlayer && entity.isLocalPlayer) return@registerClientHandler
+            if (entity.isControlledByLocalInstance) return@registerClientHandler
 
             val ship = level.shipObjectWorld.allShips.getById(setMotion.shipID)
                 ?: return@registerClientHandler
@@ -113,7 +114,7 @@ object VSGamePackets {
             val level = mc.level ?: return@registerClientHandler
             val entity = level.getEntity(setRotation.entityID) ?: return@registerClientHandler
 
-            if (entity is LocalPlayer && entity.isLocalPlayer) return@registerClientHandler
+            if (entity.isControlledByLocalInstance) return@registerClientHandler
 
             val ship = level.shipObjectWorld.allShips.getById(setRotation.shipID)
                 ?: return@registerClientHandler
@@ -151,6 +152,25 @@ object VSGamePackets {
                     }
                 }
                 player.draggingInformation.serverRelativePlayerYaw = motion.yRot
+            }
+        }
+
+        PacketEntityShipMotion::class.registerServerHandler { motion, iPlayer ->
+            val player = (iPlayer as MinecraftPlayer).player as ServerPlayer
+            val entity = player.level.getEntity(motion.entityID) ?: return@registerServerHandler
+
+            if (entity is IEntityDraggingInformationProvider) {
+                if (entity.draggingInformation.lastShipStoodOn == null || entity.draggingInformation.lastShipStoodOn != motion.shipID) {
+                    entity.draggingInformation.lastShipStoodOn = motion.shipID
+                    entity.draggingInformation.ignoreNextGroundStand = true
+                }
+
+                entity.draggingInformation.relativePositionOnShip = Vector3d(motion.x, motion.y, motion.z)
+                entity.draggingInformation.relativeYawOnShip = motion.yRot
+
+                if ((player.level as ServerLevel).shipObjectWorld.allShips.getById(motion.shipID) != null) {
+                    entity.setPos(player.level.toWorldCoordinates(Vec3(motion.x, motion.y, motion.z)))
+                }
             }
         }
     }

@@ -1,7 +1,6 @@
 package org.valkyrienskies.mod.mixin.feature.entity_collision;
 
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -34,7 +33,7 @@ public abstract class MixinLivingEntity extends Entity {
     private void preAiStep(CallbackInfo ci) {
         // fake lerp movement gaming
         if (this.level != null && this.level.isClientSide() && !firstTick) {
-            if (((Object) this) instanceof LocalPlayer) return;
+            if (this.isControlledByLocalInstance()) return;
             EntityDraggingInformation dragInfo = ((IEntityDraggingInformationProvider) this).getDraggingInformation();
             if (dragInfo != null && dragInfo.getLastShipStoodOn() != null) {
                 final ClientShip ship = VSGameUtilsKt.getShipObjectWorld((ClientLevel) level).getAllShips().getById(dragInfo.getLastShipStoodOn());
