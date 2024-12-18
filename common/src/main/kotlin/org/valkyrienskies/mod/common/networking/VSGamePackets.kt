@@ -5,6 +5,7 @@ import net.minecraft.core.Registry
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.entity.player.Player
 import net.minecraft.world.phys.Vec3
 import org.joml.Vector3d
 import org.valkyrienskies.core.api.ships.LoadedServerShip
@@ -71,7 +72,7 @@ object VSGamePackets {
             val level = mc.level ?: return@registerClientHandler
             val entity = level.getEntity(setMotion.entityID) ?: return@registerClientHandler
 
-            if (entity.isControlledByLocalInstance) return@registerClientHandler
+            if (entity.isControlledByLocalInstance || (entity is Player && entity.isLocalPlayer)) return@registerClientHandler
 
             val ship = level.shipObjectWorld.allShips.getById(setMotion.shipID)
                 ?: return@registerClientHandler
@@ -114,7 +115,7 @@ object VSGamePackets {
             val level = mc.level ?: return@registerClientHandler
             val entity = level.getEntity(setRotation.entityID) ?: return@registerClientHandler
 
-            if (entity.isControlledByLocalInstance) return@registerClientHandler
+            if (entity.isControlledByLocalInstance || (entity is Player && entity.isLocalPlayer)) return@registerClientHandler
 
             val ship = level.shipObjectWorld.allShips.getById(setRotation.shipID)
                 ?: return@registerClientHandler
