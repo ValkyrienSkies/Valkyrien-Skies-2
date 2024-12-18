@@ -9,6 +9,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket;
+import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -17,6 +18,7 @@ import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
+import org.slf4j.Logger;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -28,6 +30,7 @@ import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
+import org.valkyrienskies.mod.mixinducks.world.entity.PlayerDuck;
 
 @Mixin(ServerGamePacketListenerImpl.class)
 public abstract class MixinServerGamePacketListenerImpl {
@@ -53,6 +56,10 @@ public abstract class MixinServerGamePacketListenerImpl {
     @Shadow
     @Final
     private MinecraftServer server;
+
+    @Shadow
+    @Final
+    private static Logger LOGGER;
 
     @ModifyExpressionValue(
         at = @At(value = "FIELD",
@@ -174,6 +181,20 @@ public abstract class MixinServerGamePacketListenerImpl {
         final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(this.server);
         if (world != null) {
             world.onDisconnect(VSGameUtilsKt.getPlayerWrapper(this.player));
+        }
+    }
+
+    @Inject(
+        method = "handleMovePlayer",
+        at = @At("TAIL")
+    )
+    void afterHandleMovePlayer(ServerboundMovePlayerPacket serverboundMovePlayerPacket, CallbackInfo ci) {
+        if (this.player instanceof PlayerDuck duck) {
+            duck.setHandledMovePacket(true);
+            if (duck.getQueuedPositionUpdate() != null) {
+                this.player.setPos(duck.getQueuedPositionUpdate());
+                duck.setQueuedPositionUpdate(null);
+            }
         }
     }
 

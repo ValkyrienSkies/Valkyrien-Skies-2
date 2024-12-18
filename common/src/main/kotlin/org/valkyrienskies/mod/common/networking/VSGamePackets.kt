@@ -20,6 +20,7 @@ import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.util.toMinecraft
 import org.valkyrienskies.mod.common.vsCore
+import org.valkyrienskies.mod.mixinducks.world.entity.PlayerDuck
 
 object VSGamePackets {
 
@@ -82,7 +83,7 @@ object VSGamePackets {
 
                 entity.draggingInformation.relativePositionOnShip = ship.worldToShip.transformPosition(
                     Vector3d(entity.x, entity.y, entity.z)
-                );
+                )
                 entity.draggingInformation.previousRelativeVelocityOnShip = entity.draggingInformation.relativeVelocityOnShip
                 entity.draggingInformation.relativeYawOnShip = EntityLerper.yawToShip(ship, entity.yRot.toDouble())
 
@@ -140,7 +141,13 @@ object VSGamePackets {
                     val sLevel = (player.level as ServerLevel)
                     val ship = sLevel.shipObjectWorld.allShips.getById(motion.shipID)
                     if (ship != null) {
-                        player.setPos(ship.shipToWorld.transformPosition(Vector3d(motion.x, motion.y, motion.z), Vector3d()).toMinecraft())
+                        val posUpdate = ship.shipToWorld.transformPosition(Vector3d(motion.x, motion.y, motion.z), Vector3d()).toMinecraft()
+                        if ((player as PlayerDuck).handledMovePacket()) {
+                            player.setPos(posUpdate.x, posUpdate.y, posUpdate.z)
+                            player.setHandledMovePacket(false)
+                        } else {
+                            player.queuedPositionUpdate = posUpdate
+                        }
                     }
                 }
                 player.draggingInformation.serverRelativePlayerYaw = motion.yRot

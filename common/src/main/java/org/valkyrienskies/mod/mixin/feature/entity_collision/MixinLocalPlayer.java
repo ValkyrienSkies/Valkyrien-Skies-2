@@ -6,6 +6,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.Level;
@@ -37,12 +38,13 @@ public abstract class MixinLocalPlayer extends Entity implements IEntityDragging
      */
     @WrapOperation(method = "sendPosition", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientPacketListener;send(Lnet/minecraft/network/protocol/Packet;)V"))
     private void wrapSendPosition(ClientPacketListener instance, Packet<?> arg, Operation<Void> original) {
+        Packet<?> realArg = arg;
         if (getDraggingInformation().isEntityBeingDraggedByAShip()) {
             if (getDraggingInformation().getLastShipStoodOn() != null) {
                 ClientShip ship = VSGameUtilsKt.getShipObjectWorld(Minecraft.getInstance().level).getAllShips().getById(getDraggingInformation().getLastShipStoodOn());
                 if (ship != null) {
                     Vector3dc relativePosition = ship.getWorldToShip().transformPosition(
-                        VectorConversionsMCKt.toJOML(getEyePosition()), new Vector3d());
+                        VectorConversionsMCKt.toJOML(getPosition(1f)), new Vector3d());
 
                     double relativeYaw = EntityLerper.INSTANCE.yawToShip(ship, getViewYRot(1f));
 
@@ -50,7 +52,23 @@ public abstract class MixinLocalPlayer extends Entity implements IEntityDragging
                     ValkyrienSkiesMod.getVsCore().getSimplePacketNetworking().sendToServer(packet);
                 }
             }
+            if (realArg instanceof ServerboundMovePlayerPacket movePacket) {
+                final boolean isOnGround = movePacket.isOnGround() || getDraggingInformation().getTicksSinceStoodOnShip() < 4;
+                if (movePacket.hasPosition() && movePacket.hasRotation()) {
+                    //posrot
+                    realArg = new ServerboundMovePlayerPacket.PosRot(movePacket.getX(0.0), movePacket.getY(0.0), movePacket.getZ(0.0), movePacket.getYRot(0.0f), movePacket.getXRot(0.0f), isOnGround);
+                } else if (movePacket.hasPosition()) {
+                    //pos
+                    realArg = new ServerboundMovePlayerPacket.Pos(movePacket.getX(0.0), movePacket.getY(0.0), movePacket.getZ(0.0), isOnGround);
+                } else if (movePacket.hasRotation()) {
+                    //rot
+                    realArg = new ServerboundMovePlayerPacket.Rot(movePacket.getYRot(0.0f), movePacket.getXRot(0.0f), isOnGround);
+                } else {
+                    //status only
+                    realArg = new ServerboundMovePlayerPacket.StatusOnly(isOnGround());
+                }
+            }
         }
-        original.call(instance, arg);
+        original.call(instance, realArg);
     }
 }
