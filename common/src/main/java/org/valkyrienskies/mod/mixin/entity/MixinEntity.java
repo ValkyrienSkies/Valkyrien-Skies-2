@@ -5,6 +5,7 @@ import static org.valkyrienskies.mod.common.util.VectorConversionsMCKt.toJOML;
 import net.minecraft.CrashReport;
 import net.minecraft.CrashReportCategory;
 import net.minecraft.ReportedException;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
@@ -206,6 +207,24 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         cir.setReturnValue(newViewVector);
     }
 
+    @Inject(method = "shouldRender", at = @At("HEAD"), cancellable = true)
+    private void onShouldRender(double d, double e, double f, CallbackInfoReturnable<Boolean> cir) {
+        if (this.draggingInformation.isEntityBeingDraggedByAShip() && this.level.isClientSide) {
+            final ClientShip ship = VSGameUtilsKt.getShipObjectWorld((ClientLevel) this.level).getAllShips().getById(this.draggingInformation.getLastShipStoodOn());
+            if (ship != null) {
+                final ShipTransform shipTransform = ship.getRenderTransform();
+                if (this.draggingInformation.getRelativePositionOnShip() != null) {
+                    Vector3dc redir = shipTransform.getShipToWorld().transformPosition(this.draggingInformation.getRelativePositionOnShip(), new Vector3d());
+                    double distX = redir.x() - d;
+                    double distY = redir.y() - e;
+                    double distZ = redir.z() - f;
+                    double sqrDist = distX * distX + distY * distY + distZ * distZ;
+                    cir.setReturnValue(shouldRenderAtSqrDistance(sqrDist));
+                }
+            }
+        }
+    }
+
     // region shadow functions and fields
     @Shadow
     public Level level;
@@ -238,6 +257,9 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
     @Shadow
     private float yRot;
+
+    @Shadow
+    public abstract boolean shouldRenderAtSqrDistance(double d);
 
     @Override
     @NotNull

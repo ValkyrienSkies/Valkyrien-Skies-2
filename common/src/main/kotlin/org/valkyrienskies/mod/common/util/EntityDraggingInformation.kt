@@ -45,6 +45,16 @@ class EntityDraggingInformation {
         return (lastShipStoodOn != null) && (ticksSinceStoodOnShip < TICKS_TO_DRAG_ENTITIES) && !mountedToEntity
     }
 
+    fun bestRelativeEntityPosition(): Vector3dc? {
+        return if (serverRelativePlayerPosition != null) {
+            serverRelativePlayerPosition!!
+        } else if (relativePositionOnShip != null) {
+            relativePositionOnShip!!
+        } else {
+            null
+        }
+    }
+
     companion object {
         // Max number of ticks we will drag an entity after the entity has jumped off the ship
         private const val TICKS_TO_DRAG_ENTITIES = 20

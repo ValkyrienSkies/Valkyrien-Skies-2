@@ -150,6 +150,7 @@
     "client.multiplayer.MixinClientPacketListener",
     "client.player.MixinLocalPlayer",
     "client.player.MixinPlayer",
+    "client.renderer.MixinEntityRenderer",
     "client.renderer.MixinGameRenderer",
     "client.renderer.MixinLevelRenderer",
     "client.world.MixinClientChunkCache",
