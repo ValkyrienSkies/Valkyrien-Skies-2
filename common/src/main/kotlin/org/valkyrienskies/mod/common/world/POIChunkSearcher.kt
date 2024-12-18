@@ -18,23 +18,31 @@ import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.toWorldCoordinates
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toMinecraft
+import kotlin.math.max
+import kotlin.math.min
 
 object POIChunkSearcher {
-    fun shipChunkBounds(chunkSet: IShipActiveChunksSet): Vector4ic {
-        var minChunkX = Integer.MIN_VALUE
-        var minChunkZ = Integer.MIN_VALUE
-        var maxChunkX = Integer.MAX_VALUE
-        var maxChunkZ = Integer.MAX_VALUE
+    fun shipChunkBounds(chunkSet: IShipActiveChunksSet): Vector4ic? {
+        if (chunkSet.size == 0) {
+            return null
+        }
+        var minChunkX = Int.MAX_VALUE
+        var minChunkZ = Int.MAX_VALUE
+        var maxChunkX = Int.MIN_VALUE
+        var maxChunkZ = Int.MIN_VALUE
         chunkSet.forEach { chunkX, chunkZ ->
-            minChunkX = minChunkX.coerceAtLeast(chunkX)
-            minChunkZ = minChunkZ.coerceAtLeast(chunkZ)
-            maxChunkX = maxChunkX.coerceAtMost(chunkX)
-            maxChunkZ = maxChunkZ.coerceAtMost(chunkZ)
+            minChunkX = min(minChunkX, chunkX)
+            minChunkZ = min(minChunkZ, chunkZ)
+            maxChunkX = max(maxChunkX, chunkX)
+            maxChunkZ = max(maxChunkZ, chunkZ)
+        }
+        if (minChunkX == Int.MAX_VALUE || minChunkZ == Int.MAX_VALUE || maxChunkX == Int.MIN_VALUE || maxChunkZ == Int.MIN_VALUE) {
+            return null
         }
         return Vector4i(minChunkX, minChunkZ, maxChunkX, maxChunkZ)
     }
 
     fun PoiRecord.getWorldPos(level: Level): Vec3 {
-        return level.toWorldCoordinates(Vec3(this.pos.x.toDouble(), this.pos.y.toDouble(), this.pos.z.toDouble()))
+        return level.toWorldCoordinates(this.pos)
     }
 }

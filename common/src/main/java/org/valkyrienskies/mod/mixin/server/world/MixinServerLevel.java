@@ -18,6 +18,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.BlockPos.MutableBlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Position;
+import net.minecraft.core.SectionPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ChunkHolder;
@@ -71,6 +72,9 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
     @NotNull
     public abstract MinecraftServer getServer();
 
+    @Shadow
+    public abstract int sectionsToVillage(SectionPos arg);
+
     // Map from ChunkPos to the list of voxel chunks that chunk owns
     @Unique
     private final Map<ChunkPos, List<Vector3ic>> vs$knownChunks = new HashMap<>();
@@ -111,6 +115,19 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
     void onGetPoiManager(CallbackInfoReturnable<PoiManager> cir) {
         if (chunkSource.getPoiManager() instanceof final OfLevel levelProvider) {
             levelProvider.setLevel((ServerLevel) (Object) this);
+        }
+    }
+
+    @Inject(method = "isCloseToVillage", at = @At("HEAD"), cancellable = true)
+    void preIsCloseToVillage(BlockPos blockPos, int i, CallbackInfoReturnable<Boolean> cir) {
+        if (i <= 6) {
+            final boolean[] found = {false};
+            VSGameUtilsKt.transformToNearbyShipsAndWorld(ServerLevel.class.cast(this), blockPos.getX(), blockPos.getY(), blockPos.getZ(), i * 100.0, (double x, double y, double z) -> {
+                found[0] = found[0] || this.sectionsToVillage(SectionPos.of(new BlockPos(x, y, z))) <= i;
+            });
+            if (found[0]) {
+                cir.setReturnValue(true);
+            }
         }
     }
 

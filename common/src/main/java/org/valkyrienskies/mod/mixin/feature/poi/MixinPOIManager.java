@@ -1,8 +1,12 @@
-package org.valkyrienskies.mod.mixin.feature.ai;
+package org.valkyrienskies.mod.mixin.feature.poi;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.sugar.Local;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.ai.village.poi.PoiManager;
 import net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy;
 import net.minecraft.world.entity.ai.village.poi.PoiRecord;
@@ -16,7 +20,8 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
-import org.valkyrienskies.core.api.ships.LoadedShip;
+import org.spongepowered.asm.mixin.injection.At;
+import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.common.world.POIChunkSearcher;
@@ -42,27 +47,30 @@ public abstract class MixinPOIManager implements OfLevel {
     @Overwrite
     public Stream<PoiRecord> getInSquare(Predicate<PoiType> predicate, BlockPos blockPos, int i, Occupancy occupancy) {
         int j = Math.floorDiv(i, 16) + 1;
-        final AABB aABB = new AABB(blockPos).inflate((double) j +1);
+        final AABB aABB = new AABB(blockPos).inflate((double) i + 1);
         Stream<ChunkPos> chunkRange = ChunkPos.rangeClosed(new ChunkPos(blockPos), j);
-        Stream<PoiRecord> shipPOIs = Stream.empty();
-        if (this.valkyrienskies$sLevel != null) {
-            for (LoadedShip ship : VSGameUtilsKt.getShipObjectWorld(this.valkyrienskies$sLevel).getLoadedShips().getIntersecting(
-                VectorConversionsMCKt.toJOML(aABB), VSGameUtilsKt.getDimensionId(this.valkyrienskies$sLevel))) {
+        if (this.valkyrienskies$sLevel instanceof ServerLevel sLevel) {
+            for (LoadedServerShip ship : VSGameUtilsKt.getShipObjectWorld(sLevel).getLoadedShips().getIntersecting(
+                VectorConversionsMCKt.toJOML(aABB), VSGameUtilsKt.getDimensionId(sLevel))) {
                 Vector4ic chunkRangeBounds = POIChunkSearcher.INSTANCE.shipChunkBounds(ship.getActiveChunksSet());
-                ChunkPos.rangeClosed(new ChunkPos(chunkRangeBounds.x(), chunkRangeBounds.z()),
-                        new ChunkPos(chunkRangeBounds.y(), chunkRangeBounds.w())).flatMap((chunkPos) -> this.getInChunk(predicate, chunkPos, occupancy)).filter((poiRecord) -> {
-                    BlockPos blockPos2 = poiRecord.getPos();
-                    Vec3 vecPos = new Vec3(blockPos2.getX(), blockPos2.getY(), blockPos2.getZ());
-                    VSGameUtilsKt.toWorldCoordinates(this.valkyrienskies$sLevel, vecPos);
-                    return Math.abs(vecPos.x() - blockPos.getX()) <= i && Math.abs(vecPos.z() - blockPos.getZ()) <= i;
-                });;
+                if (chunkRangeBounds == null) {
+                    continue;
+                }
+                chunkRange = Stream.concat(chunkRange, ChunkPos.rangeClosed(new ChunkPos(chunkRangeBounds.x(), chunkRangeBounds.y()),
+                        new ChunkPos(chunkRangeBounds.z(), chunkRangeBounds.w())));
             }
         }
-        final Stream<PoiRecord> worldPOIs = chunkRange.flatMap((chunkPos) -> this.getInChunk(predicate, chunkPos, occupancy)).filter((poiRecord) -> {
-                BlockPos blockPos2 = poiRecord.getPos();
-                return Math.abs(blockPos2.getX() - blockPos.getX()) <= i && Math.abs(blockPos2.getZ() - blockPos.getZ()) <= i;
-            });
-        return Stream.concat(worldPOIs, shipPOIs);
+        return chunkRange.flatMap((chunkPos) -> this.getInChunk(predicate, chunkPos, occupancy)).filter((poiRecord) -> {
+            BlockPos blockPos2 = poiRecord.getPos();
+            Vec3 vecPos = VSGameUtilsKt.toWorldCoordinates(valkyrienskies$sLevel, new Vec3(blockPos2.getX(), blockPos2.getY(), blockPos2.getZ()));
+            return Math.abs(vecPos.x() - blockPos.getX()) <= i && Math.abs(vecPos.z() - blockPos.getZ()) <= i;
+        });
+    }
+
+    @WrapOperation(method = "getInRange", at = @At(value = "INVOKE", target = "Ljava/util/stream/Stream;filter(Ljava/util/function/Predicate;)Ljava/util/stream/Stream;"))
+    private Stream<PoiRecord> onGetInRange(Stream<PoiRecord> instance, Predicate<PoiType> predicate, Operation<Stream<PoiRecord>> original, @Local(argsOnly = true) BlockPos arg, @Local(argsOnly = true) int i) {
+        final int k = i * i;
+        return instance.filter(poiRecord -> POIChunkSearcher.INSTANCE.getWorldPos(poiRecord, this.valkyrienskies$sLevel).distanceToSqr(Vec3.atLowerCornerOf(arg)) <= (double)k);
     }
 
     @Override
