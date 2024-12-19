@@ -111,7 +111,7 @@ object VSGamePackets {
         }
 
         PacketMobShipRotation::class.registerClientHandler { setRotation ->
-            val mc = Minecraft.getInstance()
+            val mc = Minecraft.getInstance() ?: return@registerClientHandler
             val level = mc.level ?: return@registerClientHandler
             val entity = level.getEntity(setRotation.entityID) ?: return@registerClientHandler
 
@@ -134,7 +134,8 @@ object VSGamePackets {
         }
 
         PacketPlayerShipMotion::class.registerServerHandler { motion, iPlayer ->
-            val player = (iPlayer as MinecraftPlayer).player as ServerPlayer
+            val player = (iPlayer as MinecraftPlayer).player as ServerPlayer?
+                ?: return@registerServerHandler
 
             if (player is IEntityDraggingInformationProvider) {
                 if (player.draggingInformation.lastShipStoodOn == null || player.draggingInformation.lastShipStoodOn != motion.shipID) {
