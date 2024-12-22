@@ -11,9 +11,5 @@ fun createNewShipWithBlocks(
     centerBlock: BlockPos, blocks: DenseBlockPosSet, level: ServerLevel
 ): ServerShip {
     if (blocks.isEmpty()) throw IllegalArgumentException()
-
-    val blockList: MutableList<BlockPos> = mutableListOf()
-
-    blocks.toList().forEach { blockList.add(it.toBlockPos()) }
-    return ShipAssembler.assembleToShip(level, blockList, true, 1.0)
+    return ShipAssembler.assembleToShip(level, blocks, true, 1.0)
 }

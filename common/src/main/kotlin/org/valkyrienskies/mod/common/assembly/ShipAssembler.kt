@@ -11,11 +11,13 @@ import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.api.ships.getAttachment
 import org.valkyrienskies.core.impl.game.ShipTeleportDataImpl
+import org.valkyrienskies.core.util.datastructures.DenseBlockPosSet
 import org.valkyrienskies.mod.common.BlockStateInfo.onSetBlock
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getShipObjectManagingPos
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.SplittingDisablerAttachment
+import org.valkyrienskies.mod.common.util.toBlockPos
 
 object ShipAssembler {
 
@@ -32,14 +34,14 @@ object ShipAssembler {
     }
 
 
-    fun assembleToShip(level: Level, blocks: List<BlockPos>, removeOriginal: Boolean, scale: Double = 1.0, shouldDisableSplitting: Boolean = false): ServerShip {
+    fun assembleToShip(level: Level, blocks: DenseBlockPosSet, removeOriginal: Boolean, scale: Double = 1.0, shouldDisableSplitting: Boolean = false): ServerShip {
         assert(level is ServerLevel) { "Can't create ships clientside!" }
         val sLevel: ServerLevel = level as ServerLevel
         if (blocks.isEmpty()) {
             throw IllegalArgumentException("No blocks to assemble.")
         }
 
-        val existingShip = sLevel.getShipObjectManagingPos(blocks.find { !sLevel.getBlockState(it).isAir } ?: throw IllegalArgumentException())
+        val existingShip = sLevel.getShipObjectManagingPos(blocks.find { !sLevel.getBlockState(it.toBlockPos()).isAir }?.toBlockPos() ?: throw IllegalArgumentException())
 
         var existingShipCouldSplit = true
         var structureCornerMin: BlockPos? = null
@@ -48,13 +50,13 @@ object ShipAssembler {
 
         // Calculate bounds of the area containing all blocks adn check for solids and invalid blocks
         for (itPos in blocks) {
-            if (isValidShipBlock(level.getBlockState(itPos))) {
+            if (isValidShipBlock(level.getBlockState(itPos.toBlockPos()))) {
                 if (structureCornerMin == null) {
-                    structureCornerMin = itPos
-                    structureCornerMax = itPos
+                    structureCornerMin = itPos.toBlockPos()
+                    structureCornerMax = itPos.toBlockPos()
                 } else {
-                    structureCornerMin = AssemblyUtil.getMinCorner(structureCornerMin!!, itPos)
-                    structureCornerMax = AssemblyUtil.getMaxCorner(structureCornerMax!!, itPos)
+                    structureCornerMin = AssemblyUtil.getMinCorner(structureCornerMin!!, itPos.toBlockPos())
+                    structureCornerMax = AssemblyUtil.getMaxCorner(structureCornerMax!!, itPos.toBlockPos())
                 }
                 hasSolids = true
             }
@@ -87,10 +89,10 @@ object ShipAssembler {
         // Copy blocks and check if the center block got replaced (is default a stone block)
         var centerBlockReplaced = false
         for (itPos in blocks) {
-            if (isValidShipBlock(level.getBlockState(itPos))) {
-                val relative: BlockPos = itPos.subtract( BlockPos(shipOGPos.x(),shipOGPos.y(),shipOGPos.z()))
+            if (isValidShipBlock(level.getBlockState(itPos.toBlockPos()))) {
+                val relative: BlockPos = itPos.toBlockPos().subtract( BlockPos(shipOGPos.x(),shipOGPos.y(),shipOGPos.z()))
                 val shipPos: BlockPos = shipBlockPos.offset(relative)
-                AssemblyUtil.copyBlock(level, itPos, shipPos)
+                AssemblyUtil.copyBlock(level, itPos.toBlockPos(), shipPos)
                 if (relative.equals(BlockPos.ZERO)) centerBlockReplaced = true
             }
         }
@@ -98,17 +100,17 @@ object ShipAssembler {
         // Remove original blocks
         if (removeOriginal) {
             for (itPos in blocks) {
-                if (isValidShipBlock(level.getBlockState(itPos))) {
-                    AssemblyUtil.removeBlock(level, itPos)
+                if (isValidShipBlock(level.getBlockState(itPos.toBlockPos()))) {
+                    AssemblyUtil.removeBlock(level, itPos.toBlockPos())
                 }
             }
         }
 
         // Trigger updates on both ships
         for (itPos in blocks) {
-            val relative: BlockPos = itPos.subtract(BlockPos(shipOGPos.x(),shipOGPos.y(),shipOGPos.z()))
+            val relative: BlockPos = itPos.toBlockPos().subtract(BlockPos(shipOGPos.x(),shipOGPos.y(),shipOGPos.z()))
             val shipPos: BlockPos = shipBlockPos.offset(relative)
-            AssemblyUtil.updateBlock(level,itPos,shipPos,level.getBlockState(shipPos))
+            AssemblyUtil.updateBlock(level,itPos.toBlockPos(),shipPos,level.getBlockState(shipPos))
         }
 
         val shipCenterPos = ((newShip as ServerShip).inertiaData.centerOfMassInShip).add(0.5, 0.5, 0.5, Vector3d())

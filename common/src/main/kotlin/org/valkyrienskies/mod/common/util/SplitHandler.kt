@@ -9,6 +9,7 @@ import org.joml.primitives.AABBi
 import org.valkyrienskies.core.api.ships.getAttachment
 import org.valkyrienskies.core.api.world.connectivity.ConnectionStatus.CONNECTED
 import org.valkyrienskies.core.api.world.connectivity.ConnectionStatus.DISCONNECTED
+import org.valkyrienskies.core.util.datastructures.DenseBlockPosSet
 import org.valkyrienskies.core.util.expand
 import org.valkyrienskies.mod.common.assembly.ShipAssembler
 import org.valkyrienskies.mod.common.dimensionId
@@ -97,17 +98,17 @@ class SplitHandler(private val doEdges: Boolean, private val doCorners: Boolean)
 
                         //begin the DFSing
 
-                        val toAssemble = HashSet<List<BlockPos>>()
+                        val toAssemble = HashSet<DenseBlockPosSet>()
 
                         for (starter in disconnected) {
-                            val visited = HashSet<BlockPos>()
+                            val visited = DenseBlockPosSet()
                             val queuedPositions = HashSet<BlockPos>()
                             queuedPositions.add(starter)
 
                             while (queuedPositions.isNotEmpty()) {
                                 val current = queuedPositions.first()
                                 queuedPositions.remove(current)
-                                visited.add(current)
+                                visited.add(current.toJOML())
                                 val toCheck = HashSet<BlockPos>()
                                 for (offset in getOffsets(doEdges, doCorners)) {
                                     toCheck.add(
@@ -115,13 +116,13 @@ class SplitHandler(private val doEdges: Boolean, private val doCorners: Boolean)
                                     )
                                 }
                                 for (check in toCheck) {
-                                    if (!visited.contains(check) && !level.getBlockState(check).isAir) {
+                                    if (!visited.contains(check.toJOML()) && !level.getBlockState(check).isAir) {
                                         queuedPositions.add(check)
                                     }
                                 }
                             }
                             //if we have visited all blocks in the component, we can split it
-                            toAssemble.add(visited.toList())
+                            toAssemble.add(visited)
                         }
 
                         if (toAssemble.isEmpty()) {
