@@ -28,14 +28,19 @@ public abstract class MixinTurtleMoveCommand {
         if (cir.getReturnValue().isSuccess()) {
             final Ship ship = VSGameUtilsKt.getShipManagingPos(world, position);
             if (ship == null) {
-                final Ship iShip = VSGameUtilsKt.getShipManagingPos(world, getShipPosFromWorldPos(world, position));
-                if (iShip != null) {
-                    cir.setReturnValue(TurtleCommandResult.failure("ship"));
+                final boolean notInAir = VSGameUtilsKt.transformToNearbyShipsAndWorld(world, position.getX() + 0.5, position.getY() + 0.5, position.getZ() + 0.5, 0.1)
+                    .stream()
+                    .map(pos -> VSGameUtilsKt.getShipManagingPos(world, pos))
+                    .map(s -> s.getWorldToShip().transformPosition(new Vector3d(position.getX() + 0.5, position.getY() + 0.5, position.getZ() + 0.5)))
+                    .map(pos -> world.getBlockState(new BlockPos(pos.x, pos.y, pos.z)))
+                    .anyMatch(block -> !block.isAir());
+                if (notInAir) {
+                    cir.setReturnValue(TurtleCommandResult.failure("Movement obstructed by ship"));
                 }
             } else {
                 final ChunkPos chunk = world.getChunkAt(position).getPos();
                 if (!ship.getChunkClaim().contains(chunk.x, chunk.z)) {
-                    cir.setReturnValue(TurtleCommandResult.failure("out of ship"));
+                    cir.setReturnValue(TurtleCommandResult.failure("Out of ship chunk"));
                 }
             }
         }
