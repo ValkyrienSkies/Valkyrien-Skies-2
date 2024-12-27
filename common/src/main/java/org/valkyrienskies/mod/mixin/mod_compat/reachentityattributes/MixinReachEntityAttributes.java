@@ -26,6 +26,8 @@ public class MixinReachEntityAttributes {
     /**
      * @author Triode
      * @reason Fix getting players within reach of ship blocks
+     * Additionally, we use the custom serversideEyePosition method from EntityDragger because otherwise we'd be invasively changing
+     * the eye position of the player, which many mods use and would absolutely undoubtedly break things.
      */
     @Overwrite
     public static List<Player> getPlayersWithinReach(final Predicate<Player> viewerPredicate, final Level world, final int x, final int y, final int z, final double baseReachDistance) {

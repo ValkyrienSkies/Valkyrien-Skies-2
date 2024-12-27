@@ -145,11 +145,11 @@ object VSGamePackets {
                     val ship = sLevel.shipObjectWorld.allShips.getById(motion.shipID)
                     if (ship != null) {
                         val posUpdate = ship.shipToWorld.transformPosition(Vector3d(motion.x, motion.y, motion.z), Vector3d()).toMinecraft()
-                        if ((player as PlayerDuck).handledMovePacket()) {
+                        if ((player as PlayerDuck).vs_handledMovePacket()) {
                             player.setPos(posUpdate.x, posUpdate.y, posUpdate.z)
-                            player.setHandledMovePacket(false)
+                            player.vs_setHandledMovePacket(false)
                         } else {
-                            player.queuedPositionUpdate = posUpdate
+                            player.vs_setQueuedPositionUpdate(posUpdate)
                         }
                     }
                 }

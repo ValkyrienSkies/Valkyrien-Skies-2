@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.feature.entity_collision;
+package org.valkyrienskies.mod.mixin.feature.entity_movement_packets;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;

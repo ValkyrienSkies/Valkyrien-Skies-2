@@ -190,10 +190,10 @@ public abstract class MixinServerGamePacketListenerImpl {
     )
     void afterHandleMovePlayer(ServerboundMovePlayerPacket serverboundMovePlayerPacket, CallbackInfo ci) {
         if (this.player instanceof PlayerDuck duck) {
-            duck.setHandledMovePacket(true);
-            if (duck.getQueuedPositionUpdate() != null) {
-                this.player.setPos(duck.getQueuedPositionUpdate());
-                duck.setQueuedPositionUpdate(null);
+            duck.vs_setHandledMovePacket(true);
+            if (duck.vs_getQueuedPositionUpdate() != null) {
+                this.player.setPos(duck.vs_getQueuedPositionUpdate());
+                duck.vs_setQueuedPositionUpdate(null);
             }
         }
     }

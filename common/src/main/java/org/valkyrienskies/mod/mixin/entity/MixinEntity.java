@@ -130,6 +130,8 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
     /**
      * @reason Needed for players to pick blocks correctly when mounted to a ship
+     *
+     * Needed, because before we only fixed the clientside one.
      */
     @Inject(method = "getEyePosition()Lnet/minecraft/world/phys/Vec3;", at = @At("HEAD"), cancellable = true)
     private void preGetEyePositionServer(final CallbackInfoReturnable<Vec3> cir) {
@@ -156,6 +158,9 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
     /**
      * @reason Needed for players to pick blocks correctly when mounted to a ship
+     *
+     * Additionally, this has to have dragging information included or it breaks. This is because of reasons that I literally
+     * do not know or understand, but minecraft's rendering pipeline is like that.
      */
     @Inject(method = "calculateViewVector", at = @At("HEAD"), cancellable = true)
     private void preCalculateViewVector(final float xRot, final float yRot, final CallbackInfoReturnable<Vec3> cir) {
@@ -207,6 +212,10 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         cir.setReturnValue(newViewVector);
     }
 
+    /**
+     * @reason Without this and that other mixin, things don't render correctly at high speeds.
+     * @see org.valkyrienskies.mod.mixin.client.renderer.MixinEntityRenderer
+     */
     @Inject(method = "shouldRender", at = @At("HEAD"), cancellable = true)
     private void onShouldRender(double d, double e, double f, CallbackInfoReturnable<Boolean> cir) {
         if (this.draggingInformation.isEntityBeingDraggedByAShip() && this.level.isClientSide) {

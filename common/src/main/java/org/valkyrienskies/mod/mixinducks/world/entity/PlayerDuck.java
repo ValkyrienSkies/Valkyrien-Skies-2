@@ -7,9 +7,9 @@ public interface PlayerDuck {
 
     MinecraftPlayer vs_getPlayer();
 
-    Vec3 getQueuedPositionUpdate();
-    void setQueuedPositionUpdate(Vec3 queuedPositionUpdate);
+    Vec3 vs_getQueuedPositionUpdate();
+    void vs_setQueuedPositionUpdate(Vec3 queuedPositionUpdate);
 
-    boolean handledMovePacket();
-    void setHandledMovePacket(boolean handledMovePacket);
+    boolean vs_handledMovePacket();
+    void vs_setHandledMovePacket(boolean handledMovePacket);
 }

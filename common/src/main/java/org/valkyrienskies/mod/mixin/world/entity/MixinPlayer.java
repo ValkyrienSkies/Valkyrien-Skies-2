@@ -25,22 +25,22 @@ public class MixinPlayer implements PlayerDuck {
     }
 
     @Override
-    public Vec3 getQueuedPositionUpdate() {
+    public Vec3 vs_getQueuedPositionUpdate() {
         return this.queuedPositionUpdate;
     }
 
     @Override
-    public void setQueuedPositionUpdate(Vec3 queuedPositionUpdate) {
+    public void vs_setQueuedPositionUpdate(Vec3 queuedPositionUpdate) {
         this.queuedPositionUpdate = queuedPositionUpdate;
     }
 
     @Override
-    public boolean handledMovePacket() {
+    public boolean vs_handledMovePacket() {
         return this.handledMovePacket;
     }
 
     @Override
-    public void setHandledMovePacket(boolean handledMovePacket) {
+    public void vs_setHandledMovePacket(boolean handledMovePacket) {
         this.handledMovePacket = handledMovePacket;
     }
 }
