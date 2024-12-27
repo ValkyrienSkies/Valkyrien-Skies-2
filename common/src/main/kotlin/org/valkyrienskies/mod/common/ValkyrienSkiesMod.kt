@@ -49,7 +49,7 @@ object ValkyrienSkiesMod {
         get() {
             return currentServers.lastOrNull()
         }
-        set(value) {}
+        set(value) { currentServer = value }
 
     @JvmStatic
     lateinit var vsCore: VSCore
