@@ -160,7 +160,7 @@ fun Level?.getShipManagingBlock(v: Position?): Ship? =
  * @see getShipManagingBlock
  */
 fun Entity?.getShipManagingEntity(): Ship? =
-    this?.level()?.getShipManagingBlock(position())
+    this?.level?.getShipManagingBlock(position())
 
 /**
  * If both endpoints of the given [aabb] are in the same ship, transform them
