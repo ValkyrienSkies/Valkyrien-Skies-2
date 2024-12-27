@@ -1,8 +1,7 @@
 package org.valkyrienskies.mod.common.util
 
-import org.valkyrienskies.core.api.ships.ServerShip
-import org.valkyrienskies.core.api.ships.getAttachment
-import org.valkyrienskies.core.api.ships.saveAttachment
+import org.valkyrienskies.core.api.attachment.getAttachment
+import org.valkyrienskies.core.api.ships.LoadedServerShip
 
 /**
  * A attachment that stores ship specific settings.
@@ -20,5 +19,5 @@ data class ShipSettings(
     var changeDimensionOnTouchPortals: Boolean = true
 )
 
-val ServerShip.settings: ShipSettings
-    get() = getAttachment<ShipSettings>() ?: ShipSettings().also { saveAttachment(it) }
+val LoadedServerShip.settings: ShipSettings
+    get() = getAttachment<ShipSettings>() ?: ShipSettings().also { setAttachment(it) }

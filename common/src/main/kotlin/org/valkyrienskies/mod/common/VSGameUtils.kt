@@ -24,16 +24,17 @@ import org.joml.Vector3ic
 import org.joml.primitives.AABBd
 import org.joml.primitives.AABBdc
 import org.valkyrienskies.core.api.ships.ClientShip
+import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.core.api.ships.LoadedShip
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.api.util.functions.DoubleTernaryConsumer
 import org.valkyrienskies.core.api.world.LevelYRange
+import org.valkyrienskies.core.api.world.properties.DimensionId
 import org.valkyrienskies.core.apigame.world.IPlayer
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore
 import org.valkyrienskies.core.apigame.world.ShipWorldCore
 import org.valkyrienskies.core.apigame.world.chunks.TerrainUpdate
-import org.valkyrienskies.core.apigame.world.properties.DimensionId
 import org.valkyrienskies.core.game.ships.ShipObjectServer
 import org.valkyrienskies.core.impl.hooks.VSEvents.TickEndEvent
 import org.valkyrienskies.core.util.expand
@@ -266,7 +267,7 @@ fun ClientLevel?.getShipObjectManagingPos(chunkPos: ChunkPos) =
 
 // ServerWorld
 fun ServerLevel?.getShipObjectManagingPos(chunkX: Int, chunkZ: Int) =
-    getShipObjectManagingPosImpl(this, chunkX, chunkZ) as ShipObjectServer?
+    getShipObjectManagingPosImpl(this, chunkX, chunkZ) as LoadedServerShip?
 
 fun ServerLevel?.getShipObjectManagingPos(blockPos: Vec3i) =
     getShipObjectManagingPos(blockPos.x shr 4, blockPos.z shr 4)

@@ -5,12 +5,14 @@ import net.minecraft.core.Vec3i
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
-import org.joml.primitives.AABBi
-import org.valkyrienskies.core.api.ships.getAttachment
+import org.valkyrienskies.core.api.attachment.getAttachment
+import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.core.api.world.connectivity.ConnectionStatus.CONNECTED
 import org.valkyrienskies.core.api.world.connectivity.ConnectionStatus.DISCONNECTED
-import org.valkyrienskies.core.util.expand
+import org.valkyrienskies.core.api.world.properties.DimensionId
+import org.valkyrienskies.core.util.datastructures.DenseBlockPosSet
 import org.valkyrienskies.mod.common.assembly.ShipAssembler
+import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getShipObjectManagingPos
 import org.valkyrienskies.mod.common.shipObjectWorld
@@ -18,19 +20,44 @@ import org.valkyrienskies.mod.util.logger
 
 class SplitHandler(private val doEdges: Boolean, private val doCorners: Boolean) {
 
-    fun split(level: Level, x: Int, y: Int, z: Int, prevBlockState: BlockState, newBlockState: BlockState) {
+    private val splitQueue: HashMap<DimensionId, HashMap<BlockPos, Int>> = hashMapOf()
+
+    fun queueSplit(level: Level, x: Int, y: Int, z: Int) {
+        splitQueue[level.dimensionId]?.put(BlockPos(x, y, z), VSGameConfig.SERVER.defaultSplitGraceTimer) ?: run {
+            splitQueue[level.dimensionId] = hashMapOf(BlockPos(x, y, z) to VSGameConfig.SERVER.defaultSplitGraceTimer)
+        }
+    }
+
+    fun tick(level: ServerLevel) {
+        if (splitQueue[level.dimensionId] != null && splitQueue[level.dimensionId]!!.isNotEmpty()) {
+            val splitsToProcess = HashSet<BlockPos>()
+            for (splitIndex in splitQueue[level.dimensionId]!!.keys) {
+                if (splitQueue[level.dimensionId]!![splitIndex]!! <= 0) {
+                    splitsToProcess.add(splitIndex)
+                } else {
+                    splitQueue[level.dimensionId]!![splitIndex] = splitQueue[level.dimensionId]!![splitIndex]!! - 1
+                }
+            }
+            splitsToProcess.forEach {
+                splitQueue[level.dimensionId]!!.remove(it)
+                split(level, it.x, it.y, it.z, level.getBlockState(it))
+            }
+        }
+    }
+
+    fun split(level: Level, x: Int, y: Int, z: Int, newBlockState: BlockState) {
         if (level is ServerLevel) {
-            val loadedShip = level.getShipObjectManagingPos(x shr 4, z shr 4)
-            if (loadedShip != null && loadedShip.getAttachment<SplittingDisablerAttachment>()?.canSplit() != false) {
-                if (!prevBlockState.isAir && newBlockState.isAir) {
+            val loadedShip : LoadedServerShip? = level.getShipObjectManagingPos(x shr 4, z shr 4)
+            if ((loadedShip != null && loadedShip.getAttachment<SplittingDisablerAttachment>()?.canSplit() != false) || (loadedShip == null && VSGameConfig.SERVER.enableWorldSplitting)) {
+                if (newBlockState.isAir) {
                     val blockNeighbors: HashSet<BlockPos> = HashSet()
 
-                    val shipBox = loadedShip.shipAABB?.expand(1, AABBi()) ?: return
+                    //val shipBox = loadedShip.shipAABB?.expand(1, AABBi()) ?: return
 
                     for (neighborOffset in getOffsets(doEdges, doCorners)) {
                         val neighborPos = BlockPos(x + neighborOffset.x, y + neighborOffset.y, z + neighborOffset.z)
                         val neighborState = level.getBlockState(neighborPos)
-                        if (!neighborState.isAir && neighborPos != BlockPos(x, y, z) && shipBox.containsPoint(neighborPos.toJOML())) {
+                        if (!neighborState.isAir && neighborPos != BlockPos(x, y, z)) {
                             blockNeighbors.add(neighborPos)
                         }
                     }
@@ -84,6 +111,11 @@ class SplitHandler(private val doEdges: Boolean, private val doCorners: Boolean)
                                         toIgnore.add(component)
                                     }
                                 }
+                                if (level.shipObjectWorld.isIsolatedSolid(otherComponent.x, otherComponent.y, otherComponent.z, level.dimensionId) == CONNECTED) {
+                                    if (!toIgnore.contains(otherComponent) && !toIgnore.contains(component)) {
+                                        toIgnore.add(component)
+                                    }
+                                }
                             }
                         }
 
@@ -92,22 +124,22 @@ class SplitHandler(private val doEdges: Boolean, private val doCorners: Boolean)
                         if (disconnected.isEmpty()) {
                             return
                         } else {
-                            loadedShip.getAttachment(SplittingDisablerAttachment::class.java)?.disableSplitting()
+                            loadedShip?.getAttachment(SplittingDisablerAttachment::class.java)?.disableSplitting()
                         }
 
                         //begin the DFSing
 
-                        val toAssemble = HashSet<List<BlockPos>>()
+                        val toAssemble = HashSet<DenseBlockPosSet>()
 
                         for (starter in disconnected) {
-                            val visited = HashSet<BlockPos>()
+                            val visited = DenseBlockPosSet()
                             val queuedPositions = HashSet<BlockPos>()
                             queuedPositions.add(starter)
 
                             while (queuedPositions.isNotEmpty()) {
                                 val current = queuedPositions.first()
                                 queuedPositions.remove(current)
-                                visited.add(current)
+                                visited.add(current.toJOML())
                                 val toCheck = HashSet<BlockPos>()
                                 for (offset in getOffsets(doEdges, doCorners)) {
                                     toCheck.add(
@@ -115,25 +147,26 @@ class SplitHandler(private val doEdges: Boolean, private val doCorners: Boolean)
                                     )
                                 }
                                 for (check in toCheck) {
-                                    if (!visited.contains(check) && !level.getBlockState(check).isAir) {
+                                    if (!visited.contains(check.toJOML()) && !level.getBlockState(check).isAir) {
                                         queuedPositions.add(check)
                                     }
                                 }
                             }
                             //if we have visited all blocks in the component, we can split it
-                            toAssemble.add(visited.toList())
+                            toAssemble.add(visited)
                         }
 
                         if (toAssemble.isEmpty()) {
-                            loadedShip.getAttachment(SplittingDisablerAttachment::class.java)?.enableSplitting()
+                            loadedShip?.getAttachment(SplittingDisablerAttachment::class.java)?.enableSplitting()
                             return
                         }
 
                         for (component in toAssemble) {
-                            ShipAssembler.assembleToShip(level, component, true, 1.0, true)
+                            ShipAssembler.assembleToShip(level, component.toSet().map { it.toBlockPos() }, true, 1.0, true)
+                            //createNewShipWithBlocks(component.first().toBlockPos(), component, level)
                         }
 
-                        loadedShip.getAttachment(SplittingDisablerAttachment::class.java)?.enableSplitting()
+                        loadedShip?.getAttachment(SplittingDisablerAttachment::class.java)?.enableSplitting()
                     }
                 }
             }

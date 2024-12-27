@@ -233,6 +233,7 @@ open class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : En
             shipId: ShipId, transform: ShipTransform, radius: Double = 0.5, mass: Double = 10000.0
         ): PhysicsEntityData {
             val inertia = 0.4 * mass * radius * radius
+            // todo: fix physics entities for some reason using ship inertia data??? what?? ruby pls
             val inertiaData: ShipInertiaData = ShipInertiaDataImpl(Vector3d(), mass, Matrix3d().scale(inertia))
             val collisionShapeData = VSSphereCollisionShapeData(radius)
             return PhysicsEntityData(

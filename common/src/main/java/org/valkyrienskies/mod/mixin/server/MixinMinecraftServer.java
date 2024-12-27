@@ -46,6 +46,7 @@ import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.core.api.ships.properties.IShipActiveChunksSet;
 import org.valkyrienskies.core.apigame.GameServer;
 import org.valkyrienskies.core.apigame.ShipTeleportData;
+import org.valkyrienskies.core.apigame.ships.LoadedServerShipCore;
 import org.valkyrienskies.core.apigame.world.IPlayer;
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
 import org.valkyrienskies.core.apigame.world.VSPipeline;
@@ -256,7 +257,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
             final BlockPos blockPos2 = new BlockPos(shipPos.x() + bbRadius, shipPos.y() + bbRadius, shipPos.z() + bbRadius);
             // Only run this code if the chunks between blockPos and blockPos2 are loaded
             if (level.hasChunksAt(blockPos, blockPos2)) {
-                shipObject.decayPortalCoolDown();
+                ((LoadedServerShipCore) shipObject).decayPortalCoolDown();
 
                 final BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos();
                 for (int i = blockPos.getX(); i <= blockPos2.getX(); ++i) {
@@ -266,7 +267,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
                             final BlockState blockState = level.getBlockState(mutableBlockPos);
                             if (blockState.getBlock() == Blocks.NETHER_PORTAL) {
                                 // Handle nether portal teleport
-                                if (!shipObject.isOnPortalCoolDown()) {
+                                if (!((LoadedServerShipCore) shipObject).isOnPortalCoolDown()) {
                                     // Move the ship between dimensions
                                     final ServerLevel destLevel = getLevel(level.dimension() == Level.NETHER ? Level.OVERWORLD : Level.NETHER);
                                     // TODO: Do we want portal time?
@@ -276,7 +277,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
                                         level.getProfiler().pop();
                                     }
                                 }
-                                shipObject.handleInsidePortal();
+                                ((LoadedServerShipCore) shipObject).handleInsidePortal();
                             } else if (blockState.getBlock() == Blocks.END_PORTAL) {
                                 // Handle end portal teleport
                                 final ServerLevel destLevel = level.getServer().getLevel(level.dimension() == Level.END ? Level.OVERWORLD : Level.END);

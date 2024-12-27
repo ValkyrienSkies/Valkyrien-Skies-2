@@ -3,9 +3,8 @@ package org.valkyrienskies.mod.common.networking
 import net.minecraft.core.Registry
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerPlayer
+import org.valkyrienskies.core.api.attachment.getAttachment
 import org.valkyrienskies.core.api.ships.LoadedServerShip
-import org.valkyrienskies.core.api.ships.getAttachment
-import org.valkyrienskies.core.api.ships.setAttachment
 import org.valkyrienskies.mod.api.SeatedControllingPlayer
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager
@@ -31,7 +30,7 @@ object VSGamePackets {
                 val ship = seat.level.getShipObjectManagingPos(seat.blockPosition()) as? LoadedServerShip
                     ?: return@registerServerHandler
 
-                val attachment: SeatedControllingPlayer = ship.getAttachment()
+                val attachment: SeatedControllingPlayer = ship.getAttachment<SeatedControllingPlayer>()
                     ?: SeatedControllingPlayer(seat.direction.opposite).apply { ship.setAttachment(this) }
 
                 attachment.forwardImpulse = driving.impulse.z
