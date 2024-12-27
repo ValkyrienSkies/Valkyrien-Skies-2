@@ -47,13 +47,11 @@ public abstract class MixinClaimedChunkManager {
             return pos;
         }
 
-        final Vector3d vec = ship.getShipToWorld().transformPosition(new Vector3d(pos.getX(), pos.getY(), pos.getZ()));
+        final Vector3d vec = ship.getShipToWorld().transformPosition(VectorConversionsMCKt.toJOMLD(pos));
         final BlockPos newPos = new BlockPos(VectorConversionsMCKt.toMinecraft(vec));
 
-        if (
-            (newPos.getY() > level.getMaxBuildHeight() || newPos.getY() < level.getMinBuildHeight()) &&
-                !VSGameConfig.SERVER.getFTBChunks().getShipsProtectionOutOfBuildHeight()
-        ) {
+        if ((newPos.getY() > level.getMaxBuildHeight() || newPos.getY() < level.getMinBuildHeight()) &&
+            !VSGameConfig.SERVER.getFTBChunks().getShipsProtectionOutOfBuildHeight()) {
             return pos;
         }
 
