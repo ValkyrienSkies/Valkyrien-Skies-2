@@ -158,7 +158,7 @@ public abstract class MixinGameRenderer {
                     ((IEntityDraggingInformationProvider) entity).getDraggingInformation();
                 final Long lastShipStoodOn = entityDraggingInformation.getLastShipStoodOn();
                 // Then try getting [entityShouldBeHere] from [entityDraggingInformation]
-                if (lastShipStoodOn != null && entityDraggingInformation.isEntityBeingDraggedByAShip()) {
+                if (lastShipStoodOn != null && entityDraggingInformation.isEntityBeingDraggedByAShip()) { //for testing
                     final ClientShip shipObject =
                         VSGameUtilsKt.getShipObjectWorld(clientWorld).getLoadedShips().getById(lastShipStoodOn);
                     if (shipObject != null) {
@@ -200,6 +200,10 @@ public abstract class MixinGameRenderer {
                     entity.xo = (entityShouldBeHere.x() - (entity.getX() * tickDelta)) / (1.0 - tickDelta);
                     entity.yo = (entityShouldBeHere.y() - (entity.getY() * tickDelta)) / (1.0 - tickDelta);
                     entity.zo = (entityShouldBeHere.z() - (entity.getZ() * tickDelta)) / (1.0 - tickDelta);
+                    //why the fuck do we do this
+
+                    //what if i just...
+                    //dont
                 }
             }
         }

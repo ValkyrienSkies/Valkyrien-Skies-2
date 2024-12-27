@@ -202,6 +202,9 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         // endregion
 
         vsPipeline.preTickGame();
+        for (final ServerLevel level : getAllLevels()) {
+            //EntityDragger.INSTANCE.dragEntitiesWithShips(level.getAllEntities(), true);
+        }
     }
 
     /**
@@ -233,7 +236,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         vsPipeline.postTickGame();
         // Only drag entities after we have updated the ship positions
         for (final ServerLevel level : getAllLevels()) {
-            EntityDragger.INSTANCE.dragEntitiesWithShips(level.getAllEntities());
+            EntityDragger.INSTANCE.dragEntitiesWithShips(level.getAllEntities(), false);
             if (LoadedMods.getWeather2())
                 Weather2Compat.INSTANCE.tick(level);
         }

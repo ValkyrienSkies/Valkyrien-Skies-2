@@ -96,6 +96,9 @@ object EntityShipCollisionUtils {
             if (shipCollidingWith != null) {
                 // Update the [IEntity.lastShipStoodOn]
                 (entity as IEntityDraggingInformationProvider).draggingInformation.lastShipStoodOn = shipCollidingWith
+                for (entityRiding in entity.indirectPassengers) {
+                    (entityRiding as IEntityDraggingInformationProvider).draggingInformation.lastShipStoodOn = shipCollidingWith
+                }
             }
         }
         return newMovement.toMinecraft()

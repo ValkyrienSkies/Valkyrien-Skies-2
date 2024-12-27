@@ -42,7 +42,7 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
                 final double origZ = blockPos.getZ();
                 final Level finalLevel = level;
                 VSGameUtilsKt.transformToNearbyShipsAndWorld(level, origX,
-                    origY, origZ, 1,
+                    origY, origZ, 2,
                     (x, y, z) -> {
                         final BlockPos groundPos = new BlockPos(x, y, z);
                         final FluidState tempFluidState = getFluidState.call(finalLevel, groundPos);

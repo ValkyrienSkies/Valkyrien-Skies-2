@@ -8,6 +8,7 @@ import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityDimensions;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.RenderShape;
@@ -37,6 +38,27 @@ import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 public abstract class MixinEntity implements IEntityDraggingInformationProvider {
 
     // region collision
+
+    @Shadow
+    public abstract void setPos(Vec3 arg);
+
+    @Shadow
+    public abstract boolean is(Entity arg);
+
+    @Shadow
+    public abstract boolean isControlledByLocalInstance();
+
+    @Shadow
+    public abstract EntityType<?> getType();
+
+    @Shadow
+    protected boolean firstTick;
+
+    @Shadow
+    public abstract Iterable<Entity> getIndirectPassengers();
+
+    @Shadow
+    public abstract BlockPos getOnPos();
 
     /**
      * Cancel movement of entities that are colliding with unloaded ships
@@ -71,9 +93,21 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         if (collisionResultWithWorld.distanceToSqr(movement) > 1e-12) {
             // We collided with the world? Set the dragging ship to null.
             final EntityDraggingInformation entityDraggingInformation = getDraggingInformation();
+            if (entityDraggingInformation.getIgnoreNextGroundStand()) {
+                entityDraggingInformation.setIgnoreNextGroundStand(false);
+                return collisionResultWithWorld;
+            }
             entityDraggingInformation.setLastShipStoodOn(null);
             entityDraggingInformation.setAddedMovementLastTick(new Vector3d());
             entityDraggingInformation.setAddedYawRotLastTick(0.0);
+
+            for (Entity entityRiding : entity.getIndirectPassengers()) {
+                final EntityDraggingInformation passengerDraggingInformation =
+                    ((IEntityDraggingInformationProvider) entityRiding).getDraggingInformation();
+                passengerDraggingInformation.setLastShipStoodOn(null);
+                passengerDraggingInformation.setAddedMovementLastTick(new Vector3d());
+                passengerDraggingInformation.setAddedYawRotLastTick(0.0);
+            }
         }
 
         return collisionResultWithWorld;
@@ -214,6 +248,41 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
             }
         }
     }
+
+    @Inject(
+        method = "baseTick",
+        at = @At("TAIL")
+    )
+    private void postBaseTick(final CallbackInfo ci) {
+        final EntityDraggingInformation entityDraggingInformation = getDraggingInformation();
+
+        if (level != null && level.isClientSide && !firstTick) {
+            final Ship ship = VSGameUtilsKt.getShipObjectManagingPos(level, getOnPos());
+            if (ship != null) {
+                entityDraggingInformation.setLastShipStoodOn(ship.getId());
+                getIndirectPassengers().forEach(entity -> {
+                    final EntityDraggingInformation passengerDraggingInformation =
+                        ((IEntityDraggingInformationProvider) entity).getDraggingInformation();
+                    passengerDraggingInformation.setLastShipStoodOn(ship.getId());
+                });
+            } else {
+                if (!level.getBlockState(getOnPos()).isAir()) {
+                    if (entityDraggingInformation.getIgnoreNextGroundStand()) {
+                        entityDraggingInformation.setIgnoreNextGroundStand(false);
+                    } else {
+                        entityDraggingInformation.setLastShipStoodOn(null);
+                        getIndirectPassengers().forEach(entity -> {
+                            final EntityDraggingInformation passengerDraggingInformation =
+                                ((IEntityDraggingInformationProvider) entity).getDraggingInformation();
+                            passengerDraggingInformation.setLastShipStoodOn(null);
+                        });
+                    }
+
+                }
+            }
+        }
+    }
+
     // endregion
 
     // region shadow functions and fields

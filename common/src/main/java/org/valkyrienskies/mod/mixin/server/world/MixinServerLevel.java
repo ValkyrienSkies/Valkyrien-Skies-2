@@ -18,12 +18,14 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.BlockPos.MutableBlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Position;
+import net.minecraft.core.SectionPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.progress.ChunkProgressListener;
+import net.minecraft.world.entity.ai.village.poi.PoiManager;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
@@ -44,6 +46,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.core.api.ships.Wing;
 import org.valkyrienskies.core.api.ships.WingManager;
@@ -57,6 +60,7 @@ import org.valkyrienskies.mod.common.util.VSServerLevel;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.mixin.accessors.server.level.ChunkMapAccessor;
 import org.valkyrienskies.mod.mixin.accessors.server.level.DistanceManagerAccessor;
+import org.valkyrienskies.mod.mixinducks.world.OfLevel;
 import org.valkyrienskies.mod.util.McMathUtilKt;
 
 @Mixin(ServerLevel.class)
@@ -68,6 +72,9 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
     @Shadow
     @NotNull
     public abstract MinecraftServer getServer();
+
+    @Shadow
+    public abstract int sectionsToVillage(SectionPos arg);
 
     // Map from ChunkPos to the list of voxel chunks that chunk owns
     @Unique
@@ -102,6 +109,26 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                 VSGameUtilsKt.getYRange((ServerLevel) (Object) this),
                 McMathUtilKt.getDEFAULT_WORLD_GRAVITY()
             );
+        }
+    }
+
+    @Inject(method = "getPoiManager", at = @At("HEAD"))
+    void onGetPoiManager(CallbackInfoReturnable<PoiManager> cir) {
+        if (chunkSource.getPoiManager() instanceof final OfLevel levelProvider) {
+            levelProvider.setLevel((ServerLevel) (Object) this);
+        }
+    }
+
+    @Inject(method = "isCloseToVillage", at = @At("HEAD"), cancellable = true)
+    void preIsCloseToVillage(BlockPos blockPos, int i, CallbackInfoReturnable<Boolean> cir) {
+        if (i <= 6) {
+            final boolean[] found = {false};
+            VSGameUtilsKt.transformToNearbyShipsAndWorld(ServerLevel.class.cast(this), blockPos.getX(), blockPos.getY(), blockPos.getZ(), i * 100.0, (double x, double y, double z) -> {
+                found[0] = found[0] || this.sectionsToVillage(SectionPos.of(new BlockPos(x, y, z))) <= i;
+            });
+            if (found[0]) {
+                cir.setReturnValue(true);
+            }
         }
     }
 
