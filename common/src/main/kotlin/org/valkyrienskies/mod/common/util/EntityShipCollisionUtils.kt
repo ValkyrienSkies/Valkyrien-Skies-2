@@ -14,6 +14,7 @@ import org.joml.primitives.AABBdc
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.apigame.collision.ConvexPolygonc
 import org.valkyrienskies.core.util.extend
+import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getShipsIntersecting
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.vsCore
@@ -112,7 +113,7 @@ object EntityShipCollisionUtils {
         val entityBoxWithMovement = entityBoundingBox.expandTowards(movement)
         val collidingPolygons: MutableList<ConvexPolygonc> = ArrayList()
         val entityBoundingBoxExtended = entityBoundingBox.toJOML().extend(movement.toJOML())
-        for (shipObject in world.shipObjectWorld.loadedShips.getIntersecting(entityBoundingBoxExtended)) {
+        for (shipObject in world.shipObjectWorld.loadedShips.getIntersecting(entityBoundingBoxExtended, world.dimensionId)) {
             val shipTransform = shipObject.transform
             val entityPolyInShipCoordinates: ConvexPolygonc = collider.createPolygonFromAABB(
                 entityBoxWithMovement.toJOML(),

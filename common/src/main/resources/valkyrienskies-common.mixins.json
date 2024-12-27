@@ -62,6 +62,7 @@
     "feature.poi.MixinPOIManager",
     "feature.render_pathfinding.MixinDebugPackets",
     "feature.screen_distance_check.MixinScreenHandler",
+    "feature.sealed_air_sync.MixinSectionBlocksUpdatePacket",
     "feature.shipyard_entities.MixinEntity",
     "feature.shipyard_entities.MixinEntitySection",
     "feature.shipyard_entities.MixinEntitySectionStorage",
