@@ -16,7 +16,11 @@ object EntityLerper {
     /**
      * Called from preAiStep. This function lerps the entity's movement while keeping it locked relative to the ship.
      */
-    fun lerpStep(dragInfo: EntityDraggingInformation, ship: ClientShip, entity: Entity) {
+    fun lerpStep(dragInfo: EntityDraggingInformation, refship: Ship, entity: Entity) {
+        if (refship !is ClientShip) {
+            return
+        }
+        val ship = refship as ClientShip
         if (dragInfo.lerpSteps > 0) {
             val currentX: Double = dragInfo.relativePositionOnShip?.x() ?: return
             val currentY: Double = dragInfo.relativePositionOnShip!!.y()
@@ -54,7 +58,11 @@ object EntityLerper {
     /**
      * Additional function to lerp head separately, as it's a separate packet.
      */
-    fun lerpHeadStep(dragInfo: EntityDraggingInformation, ship: ClientShip, entity: Entity) {
+    fun lerpHeadStep(dragInfo: EntityDraggingInformation, refship: Ship, entity: Entity) {
+        if (refship !is ClientShip) {
+            return
+        }
+        val ship = refship as ClientShip
         if (dragInfo.headLerpSteps > 0) {
             val currentHeadYaw: Double = dragInfo.relativeHeadYawOnShip ?: return
             val lerpHeadYaw: Double = dragInfo.lerpHeadYawOnShip ?: return

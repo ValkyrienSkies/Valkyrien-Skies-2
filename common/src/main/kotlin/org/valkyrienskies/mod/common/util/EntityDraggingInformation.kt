@@ -57,7 +57,7 @@ class EntityDraggingInformation {
 
     companion object {
         // Max number of ticks we will drag an entity after the entity has jumped off the ship
-        private const val TICKS_TO_DRAG_ENTITIES = 20
+        private const val TICKS_TO_DRAG_ENTITIES = 40
     }
 }
 

@@ -1,6 +1,5 @@
 package org.valkyrienskies.mod.mixin.feature.entity_collision;
 
-import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -10,7 +9,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.EntityLerper;
@@ -37,7 +36,7 @@ public abstract class MixinLivingEntity extends Entity {
             if (this.isControlledByLocalInstance() || (((Entity) this instanceof Player player) && player.isLocalPlayer())) return;
             EntityDraggingInformation dragInfo = ((IEntityDraggingInformationProvider) this).getDraggingInformation();
             if (dragInfo != null && dragInfo.getLastShipStoodOn() != null) {
-                final ClientShip ship = VSGameUtilsKt.getShipObjectWorld((ClientLevel) level).getAllShips().getById(dragInfo.getLastShipStoodOn());
+                final Ship ship = VSGameUtilsKt.getShipObjectWorld(level).getAllShips().getById(dragInfo.getLastShipStoodOn());
                 if (ship != null) {
                     EntityLerper.INSTANCE.lerpStep(dragInfo, ship, (LivingEntity) (Object) this);
                     EntityLerper.INSTANCE.lerpHeadStep(dragInfo, ship, (LivingEntity) (Object) this);
