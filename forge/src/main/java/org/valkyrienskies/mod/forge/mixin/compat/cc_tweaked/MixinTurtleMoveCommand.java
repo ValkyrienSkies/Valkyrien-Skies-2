@@ -42,6 +42,7 @@ public abstract class MixinTurtleMoveCommand {
     }
 
     //CUSTOM METHODS
+
     @Unique
     private static Vector3d getShipPosFromWorldPos(final Level world, final BlockPos position) {
         final List<Vector3d> detectedShips =

@@ -76,7 +76,7 @@ dependencies {
     modImplementation("curse.maven:coroutil-237749:5008370")
 
     // CC Tweaked
-    modCompileOnly("curse.maven:cc-tweaked-282001:4061947")
+    modCompileOnly("curse.maven:cc-tweaked-282001:4630521")
 
     // TIS-3d
     modCompileOnly("curse.maven:tis3d-238603:3738437")
