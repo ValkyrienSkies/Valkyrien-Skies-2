@@ -20,7 +20,7 @@ import org.valkyrienskies.mod.util.logger
 
 class SplitHandler(private val doEdges: Boolean, private val doCorners: Boolean) {
 
-    val splitQueue: HashMap<DimensionId, HashMap<BlockPos, Int>> = hashMapOf()
+    private val splitQueue: HashMap<DimensionId, HashMap<BlockPos, Int>> = hashMapOf()
 
     fun queueSplit(level: Level, x: Int, y: Int, z: Int) {
         splitQueue[level.dimensionId]?.put(BlockPos(x, y, z), VSGameConfig.SERVER.defaultSplitGraceTimer) ?: run {

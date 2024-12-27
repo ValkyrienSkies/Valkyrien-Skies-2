@@ -31,6 +31,9 @@ class VsApiImpl : VsApi {
         return entity is ShipMountingEntity
     }
 
+    @Deprecated(
+        "The legacy VS config system will be replaced soon. Migrate to another config library, or the new system when it's released. "
+    )
     override fun createConfigScreenLegacy(parent: Screen, vararg configs: Class<*>): Screen {
         return VSClothConfig.createConfigScreenFor(parent, *configs)
     }
