@@ -11,6 +11,7 @@ import org.valkyrienskies.core.api.world.connectivity.ConnectionStatus.CONNECTED
 import org.valkyrienskies.core.api.world.connectivity.ConnectionStatus.DISCONNECTED
 import org.valkyrienskies.core.util.datastructures.DenseBlockPosSet
 import org.valkyrienskies.core.util.expand
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.assembly.createNewShipWithBlocks
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getShipObjectManagingPos
@@ -22,16 +23,16 @@ class SplitHandler(private val doEdges: Boolean, private val doCorners: Boolean)
     fun split(level: Level, x: Int, y: Int, z: Int, prevBlockState: BlockState, newBlockState: BlockState) {
         if (level is ServerLevel) {
             val loadedShip = level.getShipObjectManagingPos(x shr 4, z shr 4)
-            if (loadedShip != null && loadedShip.getAttachment<SplittingDisablerAttachment>()?.canSplit() != false) {
+            if ((loadedShip != null && loadedShip.getAttachment<SplittingDisablerAttachment>()?.canSplit() != false)) {
                 if (!prevBlockState.isAir && newBlockState.isAir) {
                     val blockNeighbors: HashSet<BlockPos> = HashSet()
 
-                    val shipBox = loadedShip.shipAABB?.expand(1, AABBi()) ?: return
+                    //val shipBox = loadedShip.shipAABB?.expand(1, AABBi()) ?: return
 
                     for (neighborOffset in getOffsets(doEdges, doCorners)) {
                         val neighborPos = BlockPos(x + neighborOffset.x, y + neighborOffset.y, z + neighborOffset.z)
                         val neighborState = level.getBlockState(neighborPos)
-                        if (!neighborState.isAir && neighborPos != BlockPos(x, y, z) && shipBox.containsPoint(neighborPos.toJOML())) {
+                        if (!neighborState.isAir && neighborPos != BlockPos(x, y, z)) {
                             blockNeighbors.add(neighborPos)
                         }
                     }
@@ -85,6 +86,11 @@ class SplitHandler(private val doEdges: Boolean, private val doCorners: Boolean)
                                         toIgnore.add(component)
                                     }
                                 }
+                                if (level.shipObjectWorld.isIsolatedSolid(otherComponent.x, otherComponent.y, otherComponent.z, level.dimensionId) == CONNECTED) {
+                                    if (!toIgnore.contains(otherComponent) && !toIgnore.contains(component)) {
+                                        toIgnore.add(component)
+                                    }
+                                }
                             }
                         }
 
@@ -93,7 +99,7 @@ class SplitHandler(private val doEdges: Boolean, private val doCorners: Boolean)
                         if (disconnected.isEmpty()) {
                             return
                         } else {
-                            loadedShip.getAttachment(SplittingDisablerAttachment::class.java)?.disableSplitting()
+                            loadedShip?.getAttachment(SplittingDisablerAttachment::class.java)?.disableSplitting()
                         }
 
                         //begin the DFSing
@@ -126,7 +132,7 @@ class SplitHandler(private val doEdges: Boolean, private val doCorners: Boolean)
                         }
 
                         if (toAssemble.isEmpty()) {
-                            loadedShip.getAttachment(SplittingDisablerAttachment::class.java)?.enableSplitting()
+                            loadedShip?.getAttachment(SplittingDisablerAttachment::class.java)?.enableSplitting()
                             return
                         }
 
@@ -135,7 +141,7 @@ class SplitHandler(private val doEdges: Boolean, private val doCorners: Boolean)
                             createNewShipWithBlocks(component.first().toBlockPos(), component, level)
                         }
 
-                        loadedShip.getAttachment(SplittingDisablerAttachment::class.java)?.enableSplitting()
+                        loadedShip?.getAttachment(SplittingDisablerAttachment::class.java)?.enableSplitting()
                     }
                 }
             }

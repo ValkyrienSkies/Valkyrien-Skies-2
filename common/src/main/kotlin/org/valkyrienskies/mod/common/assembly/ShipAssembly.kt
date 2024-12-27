@@ -125,16 +125,16 @@ fun createNewShipWithStructure(
     blocks.placeInWorld(level, BlockPos(lowerCornerInShip.toMinecraft()), BlockPos(lowerCornerInShip.toMinecraft()), StructurePlaceSettings(), level.random, Block.UPDATE_ALL)
 
     val diff = higherCorner.subtract(lowerCorner)
-    val centerPos = lowerCorner.offset(diff.x / 2, diff.y / 2, diff.z / 2)
+    val centerPos = lowerCorner.toJOMLD().add(diff.x / 2.0, diff.y / 2.0, diff.z / 2.0)
 
     // The ship's position has shifted from the center block since we assembled the ship, compensate for that
-    val centerBlockPosInWorld = ship.inertiaData.centerOfMassInShip.sub(lowerCornerInShip, Vector3d())
+    val centerBlockPosInWorld = ship.inertiaData.centerOfMassInShip.sub(centerPos, Vector3d())
         .add(ship.transform.positionInWorld)
     // Put the ship into the compensated position, so that all the assembled blocks stay in the same place
     // TODO: AAAAAAAAA THIS IS HORRIBLE how can the API support this?
     //(ship as ShipData).transform = (ship.transform as ShipTransformImpl).copy(positionInWorld = centerBlockPosInWorld)
     level.shipObjectWorld
-        .teleportShip(ship, ShipTeleportDataImpl(newPos = centerBlockPosInWorld.add(0.0, (128.0 - lowerCorner.y.toDouble() + 0.5), 0.0, Vector3d()), newPosInShip = ship.inertiaData.centerOfMassInShip))
+        .teleportShip(ship, ShipTeleportDataImpl(newPos = centerBlockPosInWorld.add(0.0, 0.0, 0.0, Vector3d()), newPosInShip = ship.inertiaData.centerOfMassInShip))
 
 
     for (x in lowerCorner.x..higherCorner.x) {
