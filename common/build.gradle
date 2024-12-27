@@ -11,14 +11,23 @@ dependencies {
 
     modCompileOnly("maven.modrinth:sodium:${sodium_version}")
 
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.1.0")
+
     // vs-core
     implementation("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
         exclude module: "netty-buffer"
         exclude module: "fastutil"
+        exclude module: "kotlin-stdlib"
     }
-    implementation("org.valkyrienskies.core:api:${rootProject.vs_core_version}")
-    implementation("org.valkyrienskies.core:api-game:${rootProject.vs_core_version}")
-    implementation("org.valkyrienskies.core:util:${rootProject.vs_core_version}")
+    implementation("org.valkyrienskies.core:api:${rootProject.vs_core_version}") {
+        exclude module: "kotlin-stdlib"
+    }
+    implementation("org.valkyrienskies.core:api-game:${rootProject.vs_core_version}") {
+        exclude module: "kotlin-stdlib"
+    }
+    implementation("org.valkyrienskies.core:util:${rootProject.vs_core_version}") {
+        exclude module: "kotlin-stdlib"
+    }
 
     // FTB Stuffs
     modCompileOnly("curse.maven:ftb-util-404465:4210935")

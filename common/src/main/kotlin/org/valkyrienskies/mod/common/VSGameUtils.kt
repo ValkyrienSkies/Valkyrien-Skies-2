@@ -38,6 +38,8 @@ import org.valkyrienskies.core.apigame.world.properties.DimensionId
 import org.valkyrienskies.core.game.ships.ShipObjectServer
 import org.valkyrienskies.core.impl.hooks.VSEvents.TickEndEvent
 import org.valkyrienskies.core.util.expand
+import org.valkyrienskies.mod.api.getShipsIntersecting
+import org.valkyrienskies.mod.api.toWorld
 import org.valkyrienskies.mod.common.entity.ShipMountedToData
 import org.valkyrienskies.mod.common.entity.ShipMountedToDataProvider
 import org.valkyrienskies.mod.common.util.DimensionIdProvider
@@ -322,24 +324,73 @@ fun ClientLevel?.transformRenderAABBToWorld(pos: Position, aabb: AABB): AABB {
 fun Entity?.getShipManaging(): Ship? = this?.let { this.level().getShipManagingPos(this.position()) }
 
 // Level
+@Deprecated(
+    message = "Java: use ValkyrienSkies.getShipManagingChunk",
+    replaceWith = ReplaceWith(
+        "this.getShipManagingChunk(chunkX, chunkZ)",
+        "org.valkyrienskies.mod.api.getShipManagingChunk"
+    )
+)
 fun Level?.getShipManagingPos(chunkX: Int, chunkZ: Int) =
     getShipManagingPosImpl(this, chunkX, chunkZ)
 
+@Deprecated(
+    message = "Java: use ValkyrienSkies.getShipManagingBlock",
+    replaceWith = ReplaceWith(
+        "this.getShipManagingBlock(blockPos)",
+        "org.valkyrienskies.mod.api.getShipManagingBlock"
+    )
+)
 fun Level?.getShipManagingPos(blockPos: BlockPos) =
     getShipManagingPos(blockPos.x shr 4, blockPos.z shr 4)
 
+@Deprecated(
+    message = "Java: use ValkyrienSkies.getShipManagingBlock",
+    replaceWith = ReplaceWith(
+        "this.getShipManagingBlock(pos)",
+        "org.valkyrienskies.mod.api.getShipManagingBlock"
+    )
+)
 fun Level?.getShipManagingPos(pos: Position) =
     getShipManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
 
+@Deprecated(
+    message = "Java: use ValkyrienSkies.getShipManagingBlock",
+    replaceWith = ReplaceWith(
+        "this.getShipManagingBlock(pos)",
+        "org.valkyrienskies.mod.api.getShipManagingBlock"
+    )
+)
 fun Level?.getShipManagingPos(pos: Vector3dc) =
     getShipManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
 
+@Deprecated(
+    message = "Java: use ValkyrienSkies.getShipManagingBlock",
+    replaceWith = ReplaceWith(
+        "this.getShipManagingBlock(posX, posY, posZ)",
+        "org.valkyrienskies.mod.api.getShipManagingBlock"
+    )
+)
 fun Level?.getShipManagingPos(posX: Double, posY: Double, posZ: Double) =
     getShipManagingPos(posX.toInt() shr 4, posZ.toInt() shr 4)
 
+@Deprecated(
+    message = "Java: use ValkyrienSkies.getShipManagingBlock",
+    replaceWith = ReplaceWith(
+        "this.getShipManagingBlock(chunkPos)",
+        "org.valkyrienskies.mod.api.getShipManagingBlock"
+    )
+)
 fun Level?.getShipManagingPos(posX: Float, posY: Float, posZ: Float) =
     getShipManagingPos(posX.toInt() shr 4, posZ.toInt() shr 4)
 
+@Deprecated(
+    message = "Java: use ValkyrienSkies.getShipManagingChunk",
+    replaceWith = ReplaceWith(
+        "this.getShipManagingChunk(chunkPos)",
+        "org.valkyrienskies.mod.api.getShipManagingChunk"
+    )
+)
 fun Level?.getShipManagingPos(chunkPos: ChunkPos) =
     getShipManagingPos(chunkPos.x, chunkPos.z)
 
@@ -415,19 +466,7 @@ fun Level.getShipsIntersecting(aabb: AABB): Iterable<Ship> = getShipsIntersectin
 fun Level.getShipsIntersecting(aabb: AABBdc): Iterable<Ship> = allShips.getIntersecting(aabb, dimensionId)
 fun Level?.transformAabbToWorld(aabb: AABB): AABB = transformAabbToWorld(aabb.toJOML()).toMinecraft()
 fun Level?.transformAabbToWorld(aabb: AABBd) = this?.transformAabbToWorld(aabb, aabb) ?: aabb
-fun Level?.transformAabbToWorld(aabb: AABBdc, dest: AABBd): AABBd {
-    val ship1 = getShipManagingPos(aabb.minX(), aabb.minY(), aabb.minZ())
-        ?: return dest.set(aabb)
-    val ship2 = getShipManagingPos(aabb.maxX(), aabb.maxY(), aabb.maxZ())
-        ?: return dest.set(aabb)
-
-    // if both endpoints of the aabb are in the same ship, do the transform
-    if (ship1.id == ship2.id) {
-        return aabb.transform(ship1.shipToWorld, dest)
-    }
-
-    return dest.set(aabb)
-}
+fun Level?.transformAabbToWorld(aabb: AABBdc, dest: AABBd): AABBd = this.toWorld(aabb, dest)
 
 /**
  * Execute [runnable] immediately iff the thread invoking this is the same as the game thread.

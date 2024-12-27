@@ -45,8 +45,14 @@ object ValkyrienSkiesMod {
 
     val VS_CREATIVE_TAB = ResourceKey.create(Registries.CREATIVE_MODE_TAB, ResourceLocation("valkyrienskies"))
 
+    /**
+     * Keeps track of the MinecraftServers which have been created and run. Hopefully this contains at most one
+     * server...
+     */
+    private val currentServers = mutableListOf<MinecraftServer>()
+
     @JvmStatic
-    var currentServer: MinecraftServer? = null
+    val currentServer: MinecraftServer? get() = currentServers.lastOrNull()
 
     @JvmStatic
     lateinit var vsCore: VSCore
@@ -55,10 +61,26 @@ object ValkyrienSkiesMod {
     val vsCoreClient get() = vsCore as VSCoreClient
 
     @JvmStatic
-    val api = VsApiImpl()
+    val api by lazy {
+        VsApiImpl(vsCore)
+    }
 
     @JvmStatic
     lateinit var splitHandler: SplitHandler
+
+    @JvmStatic
+    fun addServer(server: MinecraftServer?) {
+        if (server != null) {
+            currentServers.add(server)
+        }
+    }
+
+    @JvmStatic
+    fun removeServer(server: MinecraftServer?) {
+        if (server != null) {
+            currentServers.remove(server)
+        }
+    }
 
     fun init(core: VSCore) {
         this.vsCore = core
@@ -68,6 +90,12 @@ object ValkyrienSkiesMod {
         VSGamePackets.registerHandlers()
 
         core.registerConfigLegacy("vs", VSGameConfig::class.java)
+        core.registerAttachment(GameTickForceApplier::class.java) {
+            useLegacySerializer()
+        }
+        core.registerAttachment(SplittingDisablerAttachment::class.java) {
+            useLegacySerializer()
+        }
 
         splitHandler = SplitHandler(this.vsCore.hooks.enableBlockEdgeConnectivity, this.vsCore.hooks.enableBlockCornerConnectivity)
 

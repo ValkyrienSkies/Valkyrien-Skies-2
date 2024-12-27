@@ -53,6 +53,15 @@ import org.valkyrienskies.mod.util.McMathUtilKt;
 
 @Mixin(ServerLevel.class)
 public abstract class MixinServerLevel implements IShipObjectWorldServerProvider, VSServerLevel {
+    // How many ticks we wait before unloading a chunk
+    @Unique
+    private static final long VS$CHUNK_UNLOAD_THRESHOLD = 100;
+    // Map from ChunkPos to the list of voxel chunks that chunk owns
+    @Unique
+    private final Map<ChunkPos, List<Vector3ic>> vs$knownChunks = new HashMap<>();
+    // Maps chunk pos to number of ticks we have considered unloading the chunk
+    @Unique
+    private final Long2LongOpenHashMap vs$chunksToUnload = new Long2LongOpenHashMap();
     @Shadow
     @Final
     private ServerChunkCache chunkSource;
@@ -60,18 +69,6 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
     @Shadow
     @NotNull
     public abstract MinecraftServer getServer();
-
-    // Map from ChunkPos to the list of voxel chunks that chunk owns
-    @Unique
-    private final Map<ChunkPos, List<Vector3ic>> vs$knownChunks = new HashMap<>();
-
-    // Maps chunk pos to number of ticks we have considered unloading the chunk
-    @Unique
-    private final Long2LongOpenHashMap vs$chunksToUnload = new Long2LongOpenHashMap();
-
-    // How many ticks we wait before unloading a chunk
-    @Unique
-    private static final long VS$CHUNK_UNLOAD_THRESHOLD = 100;
 
     @Nullable
     @Override
@@ -150,24 +147,25 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                     final LoadedServerShip
                         ship = VSGameUtilsKt.getShipObjectManagingPos(thisAsLevel, chunkX, chunkZ);
                     if (ship != null) {
-                        // Sussy cast, but I don't want to expose this directly through the vs-core api
-                        final WingManager shipAsWingManager = ship.getAttachment(WingManager.class);
-                        final MutableBlockPos mutableBlockPos = new MutableBlockPos();
-                        for (int x = 0; x < 16; x++) {
-                            for (int y = 0; y < 16; y++) {
-                                for (int z = 0; z < 16; z++) {
-                                    final BlockState blockState = chunkSection.getBlockState(x, y, z);
-                                    final int posX = (chunkX << 4) + x;
-                                    final int posY = worldChunk.getMinBuildHeight() + (sectionY << 4) + y;
-                                    final int posZ = (chunkZ << 4) + z;
-                                    if (blockState.getBlock() instanceof WingBlock) {
-                                        mutableBlockPos.set(posX, posY, posZ);
-                                        final Wing wing =
-                                            ((WingBlock) blockState.getBlock()).getWing(thisAsLevel,
-                                                mutableBlockPos, blockState);
-                                        if (wing != null) {
-                                            shipAsWingManager.setWing(shipAsWingManager.getFirstWingGroupId(),
-                                                posX, posY, posZ, wing);
+                        final WingManager shipAsWingManager = ship.getWingManager();
+                        if (shipAsWingManager != null) {
+                            final MutableBlockPos mutableBlockPos = new MutableBlockPos();
+                            for (int x = 0; x < 16; x++) {
+                                for (int y = 0; y < 16; y++) {
+                                    for (int z = 0; z < 16; z++) {
+                                        final BlockState blockState = chunkSection.getBlockState(x, y, z);
+                                        final int posX = (chunkX << 4) + x;
+                                        final int posY = worldChunk.getMinBuildHeight() + (sectionY << 4) + y;
+                                        final int posZ = (chunkZ << 4) + z;
+                                        if (blockState.getBlock() instanceof WingBlock) {
+                                            mutableBlockPos.set(posX, posY, posZ);
+                                            final Wing wing =
+                                                ((WingBlock) blockState.getBlock()).getWing(thisAsLevel,
+                                                    mutableBlockPos, blockState);
+                                            if (wing != null) {
+                                                shipAsWingManager.setWing(shipAsWingManager.getFirstWingGroupId(),
+                                                    posX, posY, posZ, wing);
+                                            }
                                         }
                                     }
                                 }
@@ -195,13 +193,15 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
         // Create DenseVoxelShapeUpdate for new loaded chunks
         // Also mark the chunks as loaded in the ship objects
         final List<TerrainUpdate> voxelShapeUpdates = new ArrayList<>();
-        final DistanceManagerAccessor distanceManagerAccessor = (DistanceManagerAccessor) chunkSource.chunkMap.getDistanceManager();
+        final DistanceManagerAccessor distanceManagerAccessor =
+            (DistanceManagerAccessor) chunkSource.chunkMap.getDistanceManager();
 
         for (final ChunkHolder chunkHolder : chunkMapAccessor.callGetChunks()) {
             final Optional<LevelChunk> worldChunkOptional =
                 chunkHolder.getTickingChunkFuture().getNow(ChunkHolder.UNLOADED_LEVEL_CHUNK).left();
             // Only load chunks that are present and that have tickets
-            if (worldChunkOptional.isPresent() && distanceManagerAccessor.getTickets().containsKey(chunkHolder.getPos().toLong())) {
+            if (worldChunkOptional.isPresent() &&
+                distanceManagerAccessor.getTickets().containsKey(chunkHolder.getPos().toLong())) {
                 // Only load chunks that have a ticket
                 final LevelChunk worldChunk = worldChunkOptional.get();
                 vs$loadChunk(worldChunk, voxelShapeUpdates);
@@ -213,7 +213,8 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
             final Entry<ChunkPos, List<Vector3ic>> knownChunkPosEntry = knownChunkPosIterator.next();
             final long chunkPos = knownChunkPosEntry.getKey().toLong();
             // Unload chunks if they don't have tickets or if they're not in the visible chunks
-            if ((!distanceManagerAccessor.getTickets().containsKey(chunkPos) || chunkMapAccessor.callGetVisibleChunkIfPresent(chunkPos) == null)) {
+            if ((!distanceManagerAccessor.getTickets().containsKey(chunkPos) ||
+                chunkMapAccessor.callGetVisibleChunkIfPresent(chunkPos) == null)) {
                 final long ticksWaitingToUnload = vs$chunksToUnload.getOrDefault(chunkPos, 0L);
                 if (ticksWaitingToUnload > VS$CHUNK_UNLOAD_THRESHOLD) {
                     // Unload this chunk

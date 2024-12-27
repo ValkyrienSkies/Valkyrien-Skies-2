@@ -15,7 +15,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.Ship;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
@@ -42,7 +42,7 @@ public abstract class MixinServerPlayer extends Player {
 
         final long lastShipId = compoundTag.getLong("LastShipId");
 
-        final Ship ship = VSGameUtilsKt.getShipObjectWorld(serverLevel()).getAllShips().getById(lastShipId);
+        final Ship ship = ValkyrienSkies.getShipById(serverLevel(), lastShipId);
         // Don't teleport if the ship doesn't exist anymore
         if (ship == null)
             return;
@@ -69,7 +69,7 @@ public abstract class MixinServerPlayer extends Player {
         if (lastShipId == null)
             return;
 
-        final Ship ship = VSGameUtilsKt.getShipObjectWorld(serverLevel()).getAllShips().getById(lastShipId);
+        final Ship ship = ValkyrienSkies.getShipById(serverLevel(), lastShipId);
         if (ship == null)
             return;
 

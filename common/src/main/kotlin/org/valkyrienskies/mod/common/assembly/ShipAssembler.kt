@@ -7,9 +7,9 @@ import net.minecraft.world.level.block.state.BlockState
 import org.joml.Vector3d
 import org.joml.Vector3i
 import org.joml.Vector3ic
+import org.valkyrienskies.core.api.attachment.getAttachment
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.ships.Ship
-import org.valkyrienskies.core.api.ships.getAttachment
 import org.valkyrienskies.core.impl.game.ShipTeleportDataImpl
 import org.valkyrienskies.mod.common.BlockStateInfo.onSetBlock
 import org.valkyrienskies.mod.common.dimensionId
@@ -74,7 +74,6 @@ object ShipAssembler {
 
         if (shouldDisableSplitting) {
             level.shipObjectWorld.loadedShips.getById(newShip.id)?.getAttachment<SplittingDisablerAttachment>()?.disableSplitting()
-
         }
 
         val contraptionShipPos = newShip.worldToShip.transformPosition(Vector3d(contraptionWorldPos.x.toDouble(),contraptionWorldPos.y.toDouble(),contraptionWorldPos.z.toDouble()))

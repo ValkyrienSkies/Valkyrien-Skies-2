@@ -13,12 +13,11 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.Ship;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.entity.ShipyardPosSavable;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(ChunkMap.class)
 public class MixinChunkMap {
@@ -35,12 +34,13 @@ public class MixinChunkMap {
 
     @Inject(method = "removeEntity", at = @At("HEAD"))
     protected void unloadEntityMixin(Entity entity, CallbackInfo info) {
-        if (entity instanceof Mob mob) {
+        if (entity instanceof Mob mob && entity instanceof ShipyardPosSavable savable) {
             Vector3d shipyardPos = valkyrienskies$getShipyardPos(mob);
             if (shipyardPos != null &&
-                VSGameUtilsKt.getShipManagingPos(this.level, shipyardPos) != null &&
-                ((ShipyardPosSavable)mob).valkyrienskies$getUnloadedShipyardPos() == null) {
-                ((ShipyardPosSavable)mob).valkyrienskies$setUnloadedShipyardPos(shipyardPos);
+                ValkyrienSkies.getShipManagingBlock(this.level, shipyardPos) != null &&
+                savable.valkyrienskies$getUnloadedShipyardPos() == null
+            ) {
+                savable.valkyrienskies$setUnloadedShipyardPos(shipyardPos);
             }
         }
     }
@@ -53,13 +53,13 @@ public class MixinChunkMap {
 
     @Inject(method = "addEntity", at = @At("RETURN"))
     protected void loadEntityMixin(Entity entity, CallbackInfo info) {
-        if (entity instanceof Mob mob) {
-            Vector3d shipyardPos = ((ShipyardPosSavable)mob).valkyrienskies$getUnloadedShipyardPos();
-            if(shipyardPos != null) {
+        if (entity instanceof Mob mob && entity instanceof ShipyardPosSavable savable) {
+            Vector3d shipyardPos = savable.valkyrienskies$getUnloadedShipyardPos();
+            if (shipyardPos != null) {
                 if (VSGameConfig.SERVER.getSaveMobsPositionOnShip()){
                     mob.teleportTo(shipyardPos.x, shipyardPos.y, shipyardPos.z);
                 }
-                ((ShipyardPosSavable) mob).valkyrienskies$setUnloadedShipyardPos(null);
+                savable.valkyrienskies$setUnloadedShipyardPos(null);
             }
         }
     }
@@ -75,9 +75,9 @@ public class MixinChunkMap {
         EntityDraggingInformation dragInfo = ((IEntityDraggingInformationProvider) entity).getDraggingInformation();
 
         if (dragInfo.getLastShipStoodOn() != null) {
-            Ship ship = VSGameUtilsKt.getAllShips(this.level).getById(dragInfo.getLastShipStoodOn());
-            if (ship != null && ship.getWorldAABB().containsPoint(VectorConversionsMCKt.toJOML(entity.position()))) {
-                return ship.getWorldToShip().transformPosition(VectorConversionsMCKt.toJOML(entity.position()));
+            Ship ship = ValkyrienSkies.getShipById(this.level, dragInfo.getLastShipStoodOn());
+            if (ship != null && ship.getWorldAABB().containsPoint(ValkyrienSkies.toJOML(entity.position()))) {
+                return ship.getWorldToShip().transformPosition(ValkyrienSkies.toJOML(entity.position()));
             }
         }
 

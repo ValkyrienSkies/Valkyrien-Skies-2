@@ -83,12 +83,12 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         method = "runServer"
     )
     private void beforeInitServer(final CallbackInfo info) {
-        ValkyrienSkiesMod.setCurrentServer(MinecraftServer.class.cast(this));
+        ValkyrienSkiesMod.addServer(MinecraftServer.class.cast(this));
     }
 
     @Inject(at = @At("TAIL"), method = "stopServer")
     private void afterStopServer(final CallbackInfo ci) {
-        ValkyrienSkiesMod.setCurrentServer(null);
+        ValkyrienSkiesMod.removeServer(MinecraftServer.class.cast(this));
     }
 
     @Nullable

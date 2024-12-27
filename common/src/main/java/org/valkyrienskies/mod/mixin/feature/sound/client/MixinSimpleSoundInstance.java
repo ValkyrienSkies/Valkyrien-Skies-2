@@ -11,8 +11,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.Ship;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 import org.valkyrienskies.mod.client.audio.SimpleSoundInstanceOnShip;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(SimpleSoundInstance.class)
 public class MixinSimpleSoundInstance {
@@ -25,7 +25,7 @@ public class MixinSimpleSoundInstance {
     private static void forRecord(final SoundEvent sound, final Vec3 pos,
         final CallbackInfoReturnable<SimpleSoundInstance> cir) {
 
-        final Ship ship = VSGameUtilsKt.getShipManagingPos(Minecraft.getInstance().level, pos.x(), pos.y(), pos.z());
+        final Ship ship = ValkyrienSkies.getShipManagingBlock(Minecraft.getInstance().level, pos.x(), pos.y(), pos.z());
         if (ship != null) {
             cir.setReturnValue(new SimpleSoundInstanceOnShip(
                 sound, SoundSource.RECORDS, 4.0F, 1.0F, SoundInstance.createUnseededRandom(), false, 0,

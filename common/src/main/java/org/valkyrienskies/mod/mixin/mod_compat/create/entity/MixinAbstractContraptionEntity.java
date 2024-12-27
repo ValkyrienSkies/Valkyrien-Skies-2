@@ -306,7 +306,7 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
             if (ship != null) {
                 try {
                     // This can happen if a player moves a train contraption from ship to world using a wrench
-                    ship.getAttachment(WingManager.class)
+                    ship.getWingManager()
                         .setWingGroupTransform(wingGroupId, computeContraptionWingTransform());
                 } catch (final Exception e) {
                     // I'm not sure why, but this fails sometimes. For now just catch the error and print it

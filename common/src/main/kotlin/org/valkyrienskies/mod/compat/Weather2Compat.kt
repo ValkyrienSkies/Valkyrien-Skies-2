@@ -2,7 +2,7 @@ package org.valkyrienskies.mod.compat
 
 import net.minecraft.server.level.ServerLevel
 import org.joml.Vector3d
-import org.valkyrienskies.core.api.ships.getAttachment
+import org.valkyrienskies.core.api.attachment.getAttachment
 import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.GameTickForceApplier
@@ -22,7 +22,7 @@ object Weather2Compat {
 
         val vec = Vector3d()
         level.shipObjectWorld.loadedShips.forEach { ship ->
-            val forces = ship.getAttachment<GameTickForceApplier>()!!
+            val forces = ship.getAttachment<GameTickForceApplier>() ?: return@forEach
 
             val com = ship.inertiaData.centerOfMassInShip
 

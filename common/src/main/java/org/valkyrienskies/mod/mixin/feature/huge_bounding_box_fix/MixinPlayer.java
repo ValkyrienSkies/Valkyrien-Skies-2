@@ -8,7 +8,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 
 /**
  * Transform the player's vehicle's bounding box to the shipyard, preventing the 'collision box too big' error.
@@ -29,6 +29,6 @@ public abstract class MixinPlayer extends LivingEntity {
         )
     )
     private AABB transformBoundingBoxToWorld(final AABB aabb) {
-        return VSGameUtilsKt.transformAabbToWorld(this.level(), aabb);
+        return ValkyrienSkies.toWorld(this.level(), aabb);
     }
 }

@@ -14,6 +14,7 @@ import org.joml.Vector3f
 import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.core.api.ships.setAttachment
 import org.valkyrienskies.mod.api.SeatedControllingPlayer
+import org.valkyrienskies.mod.api.getShipManagingBlock
 import org.valkyrienskies.mod.common.config.VSKeyBindings
 import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.getShipObjectManagingPos
@@ -62,7 +63,7 @@ open class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level
     // This is a partial fix for mounting ships that have been deleted
     // TODO: Make a full fix eventually
     override fun getDismountLocationForPassenger(livingEntity: LivingEntity): Vec3 {
-        if (level().isBlockInShipyard(position()) && level().getShipManagingPos(position()) == null) {
+        if (level().isBlockInShipyard(position()) && level().getShipManagingBlock(position()) == null) {
             // Don't teleport to the ship if we can't find the ship
             return livingEntity.position()
         }
