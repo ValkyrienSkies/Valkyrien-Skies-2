@@ -12,6 +12,7 @@ import org.valkyrienskies.core.api.world.connectivity.ConnectionStatus.DISCONNEC
 import org.valkyrienskies.core.util.datastructures.DenseBlockPosSet
 import org.valkyrienskies.core.util.expand
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
+import org.valkyrienskies.mod.common.assembly.ShipAssembler
 import org.valkyrienskies.mod.common.assembly.createNewShipWithBlocks
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getShipObjectManagingPos
@@ -137,8 +138,8 @@ class SplitHandler(private val doEdges: Boolean, private val doCorners: Boolean)
                         }
 
                         for (component in toAssemble) {
-                            //ShipAssembler.assembleToShip(level, component, true, 1.0, true)
-                            createNewShipWithBlocks(component.first().toBlockPos(), component, level)
+                            ShipAssembler.assembleToShip(level, component.toSet().map { it.toBlockPos() }, true, 1.0, true)
+                            //createNewShipWithBlocks(component.first().toBlockPos(), component, level)
                         }
 
                         loadedShip?.getAttachment(SplittingDisablerAttachment::class.java)?.enableSplitting()
