@@ -5,7 +5,6 @@ import net.minecraft.world.entity.EntityType
 import net.minecraft.world.item.Item
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.entity.BlockEntityType
-import org.valkyrienskies.core.api.ships.setAttachment
 import org.valkyrienskies.core.apigame.VSCore
 import org.valkyrienskies.core.apigame.VSCoreClient
 import org.valkyrienskies.core.impl.hooks.VSEvents
@@ -58,6 +57,9 @@ object ValkyrienSkiesMod {
         core.registerConfigLegacy("vs", VSGameConfig::class.java)
 
         splitHandler = SplitHandler(this.vsCore.hooks.enableBlockEdgeConnectivity, this.vsCore.hooks.enableBlockCornerConnectivity)
+
+        vsCore.registerAttachment(GameTickForceApplier::class.java)
+        vsCore.registerAttachment(SplittingDisablerAttachment::class.java)
 
         VSEvents.ShipLoadEvent.on { event ->
             event.ship.setAttachment(GameTickForceApplier())

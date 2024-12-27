@@ -10,10 +10,13 @@ import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate
 import org.joml.Vector3d
+import org.valkyrienskies.core.api.VsBeta
 import org.valkyrienskies.core.api.ships.ServerShip
+import org.valkyrienskies.core.api.ships.properties.ShipTransformVelocity
 import org.valkyrienskies.core.apigame.ShipTeleportData
 import org.valkyrienskies.core.impl.game.ShipTeleportDataImpl
 import org.valkyrienskies.core.impl.game.ships.ShipData
+import org.valkyrienskies.core.impl.game.ships.ShipDataCommon
 import org.valkyrienskies.core.impl.game.ships.ShipTransformImpl
 import org.valkyrienskies.core.util.datastructures.DenseBlockPosSet
 import org.valkyrienskies.mod.common.dimensionId
@@ -26,6 +29,7 @@ import org.valkyrienskies.mod.common.util.toMinecraft
 import org.valkyrienskies.mod.util.relocateBlock
 import org.valkyrienskies.mod.util.updateBlock
 
+@OptIn(VsBeta::class)
 @Deprecated("Use [ShipAssembler.assembleToShip] instead")
 fun createNewShipWithBlocks(
     centerBlock: BlockPos, blocks: DenseBlockPosSet, level: ServerLevel
@@ -82,11 +86,14 @@ fun createNewShipWithBlocks(
         ((shipChunkZ shl 4) + (centerBlock.z and 15)).toDouble()
     )
     // The ship's position has shifted from the center block since we assembled the ship, compensate for that
-    val centerBlockPosInWorld = ship.inertiaData.centerOfMassInShip.sub(centerInShip, Vector3d())
+    val centerBlockPosInWorld = ship.inertiaData.centerOfMass.sub(centerInShip, Vector3d())
         .add(ship.transform.positionInWorld)
     // Put the ship into the compensated position, so that all the assembled blocks stay in the same place
     // TODO: AAAAAAAAA THIS IS HORRIBLE how can the API support this?
-    (ship as ShipData).transform = (ship.transform as ShipTransformImpl).copy(positionInWorld = centerBlockPosInWorld)
+    // well now it doesnt kekw
+    //(ship as ShipDataCommon).transform = (ship.transform).withTransformFrom(positionInWorld = centerBlockPosInWorld)
+
+    (ship as ShipDataCommon).setFromTransform(ship.transform.copy(position = centerBlockPosInWorld))
     level.server.executeIf(
         // This condition will return true if all modified chunks have been both loaded AND
         // chunk update packets were sent to players
@@ -128,13 +135,11 @@ fun createNewShipWithStructure(
     val centerPos = lowerCorner.toJOMLD().add(diff.x / 2.0, diff.y / 2.0, diff.z / 2.0)
 
     // The ship's position has shifted from the center block since we assembled the ship, compensate for that
-    val centerBlockPosInWorld = ship.inertiaData.centerOfMassInShip.sub(centerPos, Vector3d())
+    val centerBlockPosInWorld = ship.inertiaData.centerOfMass.sub(centerPos, Vector3d())
         .add(ship.transform.positionInWorld)
     // Put the ship into the compensated position, so that all the assembled blocks stay in the same place
-    // TODO: AAAAAAAAA THIS IS HORRIBLE how can the API support this?
-    //(ship as ShipData).transform = (ship.transform as ShipTransformImpl).copy(positionInWorld = centerBlockPosInWorld)
     level.shipObjectWorld
-        .teleportShip(ship, ShipTeleportDataImpl(newPos = centerBlockPosInWorld.add(0.0, 0.0, 0.0, Vector3d()), newPosInShip = ship.inertiaData.centerOfMassInShip))
+        .teleportShip(ship, ShipTeleportDataImpl(newPos = centerBlockPosInWorld.add(0.0, 0.0, 0.0, Vector3d()), newPosInShip = ship.inertiaData.centerOfMass))
 
 
     for (x in lowerCorner.x..higherCorner.x) {

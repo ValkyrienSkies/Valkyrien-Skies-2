@@ -5,15 +5,14 @@ import net.minecraft.core.Vec3i
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
-import org.joml.primitives.AABBi
-import org.valkyrienskies.core.api.ships.getAttachment
+import org.valkyrienskies.core.api.attachment.getAttachment
+import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.core.api.world.connectivity.ConnectionStatus.CONNECTED
 import org.valkyrienskies.core.api.world.connectivity.ConnectionStatus.DISCONNECTED
+import org.valkyrienskies.core.api.world.properties.DimensionId
 import org.valkyrienskies.core.util.datastructures.DenseBlockPosSet
-import org.valkyrienskies.core.util.expand
-import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.assembly.ShipAssembler
-import org.valkyrienskies.mod.common.assembly.createNewShipWithBlocks
+import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getShipObjectManagingPos
 import org.valkyrienskies.mod.common.shipObjectWorld
@@ -21,11 +20,36 @@ import org.valkyrienskies.mod.util.logger
 
 class SplitHandler(private val doEdges: Boolean, private val doCorners: Boolean) {
 
-    fun split(level: Level, x: Int, y: Int, z: Int, prevBlockState: BlockState, newBlockState: BlockState) {
+    val splitQueue: HashMap<DimensionId, HashMap<BlockPos, Int>> = hashMapOf()
+
+    fun queueSplit(level: Level, x: Int, y: Int, z: Int) {
+        splitQueue[level.dimensionId]?.put(BlockPos(x, y, z), VSGameConfig.SERVER.defaultSplitGraceTimer) ?: run {
+            splitQueue[level.dimensionId] = hashMapOf(BlockPos(x, y, z) to VSGameConfig.SERVER.defaultSplitGraceTimer)
+        }
+    }
+
+    fun tick(level: ServerLevel) {
+        if (splitQueue[level.dimensionId] != null && splitQueue[level.dimensionId]!!.isNotEmpty()) {
+            val splitsToProcess = HashSet<BlockPos>()
+            for (splitIndex in splitQueue[level.dimensionId]!!.keys) {
+                if (splitQueue[level.dimensionId]!![splitIndex]!! <= 0) {
+                    splitsToProcess.add(splitIndex)
+                } else {
+                    splitQueue[level.dimensionId]!![splitIndex] = splitQueue[level.dimensionId]!![splitIndex]!! - 1
+                }
+            }
+            splitsToProcess.forEach {
+                splitQueue[level.dimensionId]!!.remove(it)
+                split(level, it.x, it.y, it.z, level.getBlockState(it))
+            }
+        }
+    }
+
+    fun split(level: Level, x: Int, y: Int, z: Int, newBlockState: BlockState) {
         if (level is ServerLevel) {
-            val loadedShip = level.getShipObjectManagingPos(x shr 4, z shr 4)
-            if ((loadedShip != null && loadedShip.getAttachment<SplittingDisablerAttachment>()?.canSplit() != false)) {
-                if (!prevBlockState.isAir && newBlockState.isAir) {
+            val loadedShip : LoadedServerShip? = level.getShipObjectManagingPos(x shr 4, z shr 4)
+            if ((loadedShip != null && loadedShip.getAttachment<SplittingDisablerAttachment>()?.canSplit() != false) || (loadedShip == null && VSGameConfig.SERVER.enableWorldSplitting)) {
+                if (newBlockState.isAir) {
                     val blockNeighbors: HashSet<BlockPos> = HashSet()
 
                     //val shipBox = loadedShip.shipAABB?.expand(1, AABBi()) ?: return

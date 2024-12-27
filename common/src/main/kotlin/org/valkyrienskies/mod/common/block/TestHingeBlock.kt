@@ -36,8 +36,8 @@ import org.joml.Vector3dc
 import org.valkyrienskies.core.apigame.joints.VSJointMaxForceTorque
 import org.valkyrienskies.core.apigame.joints.VSJointPose
 import org.valkyrienskies.core.apigame.joints.VSRevoluteJoint
+import org.valkyrienskies.core.impl.bodies.properties.BodyTransformVelocityImpl
 import org.valkyrienskies.core.impl.game.ships.ShipDataCommon
-import org.valkyrienskies.core.impl.game.ships.ShipTransformImpl
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
 import org.valkyrienskies.mod.common.dimensionId
@@ -173,22 +173,26 @@ object TestHingeBlock :
                     // Put the new ship where the old ship is
                     val newPos = shipThisIsIn.transform.shipToWorld.transformPosition(attachmentLocalPos0, Vector3d())
                     newPos.sub(shipThisIsIn.transform.shipToWorldRotation.transform(attachmentOffset1, Vector3d()))
-                    val newTransform = ShipTransformImpl(
+                    val newTransform = BodyTransformVelocityImpl(
                         newPos,
                         ship.transform.positionInShip,
                         shipThisIsIn.transform.shipToWorldRotation, // Copy source ship rotation
-                        ship.transform.shipToWorldScaling
+                        ship.transform.shipToWorldScaling,
+                        velocity = shipThisIsIn.velocity,
+                        angularVelocity = shipThisIsIn.angularVelocity
                     )
                     // Update the ship transform
                     (ship as ShipDataCommon).transform = newTransform
                 } else {
                     val newPos = Vector3d(attachmentLocalPos0)
                     newPos.sub(attachmentOffset1)
-                    val newTransform = ShipTransformImpl(
+                    val newTransform = BodyTransformVelocityImpl(
                         newPos,
                         ship.transform.positionInShip,
                         ship.transform.shipToWorldRotation,
-                        ship.transform.shipToWorldScaling
+                        ship.transform.shipToWorldScaling,
+                        velocity = ship.velocity,
+                        angularVelocity = ship.angularVelocity
                     )
                     // Update the ship transform
                     (ship as ShipDataCommon).transform = newTransform
