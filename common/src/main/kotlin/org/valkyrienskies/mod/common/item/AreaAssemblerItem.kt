@@ -3,17 +3,23 @@ package org.valkyrienskies.mod.common.item
 import net.minecraft.Util
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Vec3i
+import net.minecraft.gametest.framework.StructureUtils
 import net.minecraft.network.chat.TextComponent
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.context.UseOnContext
+import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate
 import org.joml.primitives.AABBi
+import org.valkyrienskies.core.util.datastructures.DenseBlockPosSet
 import org.valkyrienskies.mod.common.assembly.ShipAssembler
+import org.valkyrienskies.mod.common.assembly.createNewShipWithBlocks
+import org.valkyrienskies.mod.common.assembly.createNewShipWithStructure
 import org.valkyrienskies.mod.common.dimensionId
-import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.getShipObjectManagingPos
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.toJOML
@@ -53,20 +59,15 @@ class AreaAssemblerItem(
                     } else {
                         val blockAABB = AABBi(blockPos.toJOML(), Vec3i(firstPosX, firstPosY, firstPosZ).toJOML())
                         blockAABB.correctBounds()
-                        val blocks = ArrayList<BlockPos>()
+                        val lowerCorner = BlockPos(blockAABB.minX, blockAABB.minY, blockAABB.minZ)
+                        val upperCorner = BlockPos(blockAABB.maxX, blockAABB.maxY, blockAABB.maxZ)
 
-                        for (x in blockAABB.minX..blockAABB.maxX) {
-                            for (y in blockAABB.minY..blockAABB.maxY) {
-                                for (z in blockAABB.minZ..blockAABB.maxZ) {
-                                    if (level.getBlockState(BlockPos(x, y, z)).isAir) {
-                                        continue
-                                    }
-                                    blocks.add(BlockPos(x, y, z))
-                                }
-                            }
-                        }
+                        val structure = StructureTemplate()
+                        structure.fillFromWorld(level, lowerCorner, upperCorner.offset(1, 1, 1).subtract(lowerCorner), true, Blocks.STRUCTURE_VOID)
+
                         ctx.player?.sendMessage(TextComponent("Assembling (${blockPos.x}, ${blockPos.y}, ${blockPos.z}) to ($firstPosX, $firstPosY, $firstPosZ)!"), Util.NIL_UUID)
-                        ShipAssembler.assembleToShip(level, blocks, true, scale.asDouble, true)
+                        //ShipAssembler.assembleToShip(level, blocks, true, scale.asDouble, true)
+                        createNewShipWithStructure(lowerCorner, upperCorner, structure, level)
                     }
                     item.tag!!.remove("firstPosX")
                     item.tag!!.remove("firstPosY")

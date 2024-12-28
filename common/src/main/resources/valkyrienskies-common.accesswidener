@@ -26,3 +26,11 @@ mutable field    net/minecraft/world/phys/HitResult  location    Lnet/minecraft/
 accessible field    net/minecraft/world/phys/HitResult  location    Lnet/minecraft/world/phys/Vec3;
 
 accessible  class   net/minecraft/server/level/ChunkMap$DistanceManager
+
+accessible  class   net/minecraft/world/entity/ai/behavior/AcquirePoi$JitteredLinearRetry
+
+accessible  class   net/minecraft/world/entity/animal/Bee$BeePollinateGoal
+accessible  class   net/minecraft/world/entity/animal/Bee$BeeEnterHiveGoal
+accessible  class   net/minecraft/world/entity/animal/Bee$BeeLocateHiveGoal
+accessible  class   net/minecraft/world/entity/animal/Bee$BeeGrowCropGoal
+accessible  class   net/minecraft/world/entity/animal/Bee$BaseBeeGoal

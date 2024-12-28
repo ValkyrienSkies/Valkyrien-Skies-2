@@ -2,9 +2,9 @@ package org.valkyrienskies.mod.common.util
 
 import net.minecraft.world.entity.player.Player
 import org.joml.Vector3d
+import org.valkyrienskies.core.api.world.properties.DimensionId
 import org.valkyrienskies.core.apigame.world.IPlayer
 import org.valkyrienskies.core.apigame.world.PlayerState
-import org.valkyrienskies.core.apigame.world.properties.DimensionId
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getShipMountedToData
 import org.valkyrienskies.mod.common.vsCore

@@ -1,14 +1,20 @@
 package org.valkyrienskies.mod.mixin.server.world;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.sugar.Local;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ChunkMap;
+import net.minecraft.server.level.ChunkMap.DistanceManager;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.storage.DimensionDataStorage;
 import org.spongepowered.asm.mixin.Final;
@@ -102,4 +108,13 @@ public abstract class MixinChunkMap {
         cir.setReturnValue(new ArrayList<>(watchingPlayers));
     }
 
+    @WrapOperation(method = "anyPlayerCloseEnoughForSpawning", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ChunkMap$DistanceManager;hasPlayersNearby(J)Z"))
+    private boolean onHasPlayersNearby(DistanceManager instance, long l, Operation<Boolean> original, @Local(argsOnly = true) ChunkPos arg) {
+        return original.call(instance, new ChunkPos(new BlockPos(VSGameUtilsKt.toWorldCoordinates(level, arg.getMiddleBlockPosition(63)))).toLong());
+    }
+
+    @WrapOperation(method = "playerIsCloseEnoughForSpawning", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ChunkMap;euclideanDistanceSquared(Lnet/minecraft/world/level/ChunkPos;Lnet/minecraft/world/entity/Entity;)D"))
+    private double onEuclideanDistanceSquared(ChunkPos d0, Entity d1, Operation<Double> original) {
+        return original.call(new ChunkPos(new BlockPos(VSGameUtilsKt.toWorldCoordinates(level, d0.getMiddleBlockPosition(63)))), d1);
+    }
 }
