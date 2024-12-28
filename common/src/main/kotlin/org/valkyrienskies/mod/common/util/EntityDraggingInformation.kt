@@ -14,7 +14,7 @@ class EntityDraggingInformation {
     var lastShipStoodOn: ShipId? = null
         set(value) {
             ticksSinceStoodOnShip = 0
-            changedShipLastTick = field != value && field != null
+            changedShipLastTick = field != value && field != null && value != null
             field = value
         }
     var ticksSinceStoodOnShip: Int = 0

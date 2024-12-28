@@ -23,8 +23,17 @@ object EntityLerper {
         val ship = refship as ClientShip
         if (dragInfo.lerpSteps > 0) {
             if (dragInfo.changedShipLastTick) {
-                dragInfo.lerpSteps = 1
+                dragInfo.lerpSteps = 0
                 dragInfo.changedShipLastTick = false
+                val transformed = if (dragInfo.lerpPositionOnShip != null) {
+                     ship.transform.shipToWorld.transformPosition(dragInfo.lerpPositionOnShip, Vector3d())
+                } else entity.position().toJOML()
+                val transformedYaw = if (dragInfo.lerpYawOnShip != null) {
+                    yawToWorld(ship, dragInfo.lerpYawOnShip!!)
+                } else entity.yRot.toDouble()
+                entity.setPos(transformed.x, transformed.y, transformed.z)
+                entity.yRot = transformedYaw.toFloat()
+                return
             }
             val currentX: Double = dragInfo.relativePositionOnShip?.x() ?: return
             val currentY: Double = dragInfo.relativePositionOnShip!!.y()
