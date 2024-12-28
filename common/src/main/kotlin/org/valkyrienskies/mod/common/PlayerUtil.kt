@@ -6,6 +6,7 @@ import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.Level
 import net.minecraft.world.phys.Vec3
 import org.valkyrienskies.core.api.ships.LoadedShip
+import org.valkyrienskies.mod.common.util.EntityDragger.serversideEyeRotationOrDefault
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toMinecraft
 import org.valkyrienskies.mod.mixin.accessors.entity.EntityAccessor
@@ -38,8 +39,9 @@ object PlayerUtil {
         val yaw = -atan2(direction.x, direction.z)
         val pitch = -atan2(direction.y, sqrt((direction.x * direction.x) + (direction.z * direction.z)))
 
-        player.yRot = (yaw * (180 / Math.PI)).toFloat()
+        player.yRot = player.serversideEyeRotationOrDefault(yaw * (180 / Math.PI)).toFloat()
         player.yHeadRot = player.yRot
+
         player.xRot = (pitch * (180 / Math.PI)).toFloat()
         (player as EntityAccessor).setPosNoUpdates(position.toMinecraft())
     }

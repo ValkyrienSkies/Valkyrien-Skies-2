@@ -13,7 +13,6 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.util.SplitHandler;
 import org.valkyrienskies.mod.common.util.SplittingDisablerAttachment;
 
 @Mixin(Contraption.class)

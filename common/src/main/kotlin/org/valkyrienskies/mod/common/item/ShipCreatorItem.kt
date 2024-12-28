@@ -10,6 +10,9 @@ import net.minecraft.world.item.context.UseOnContext
 import net.minecraft.world.level.block.Rotation.NONE
 import net.minecraft.world.level.block.state.BlockState
 import org.joml.Vector3d
+import org.valkyrienskies.core.api.ships.properties.ShipTransformVelocity
+import org.valkyrienskies.core.impl.bodies.properties.BodyTransformImpl
+import org.valkyrienskies.core.impl.bodies.properties.BodyTransformVelocityImpl
 import org.valkyrienskies.core.impl.game.ships.ShipDataCommon
 import org.valkyrienskies.core.impl.game.ships.ShipTransformImpl
 import org.valkyrienskies.mod.common.dimensionId
@@ -65,7 +68,7 @@ class ShipCreatorItem(
                         newShipScaling = Vector3d(minScaling, minScaling, minScaling)
                     }
                     val shipTransform =
-                        ShipTransformImpl(newShipPosInWorld, newShipPosInShipyard, newShipRotation, newShipScaling)
+                        BodyTransformVelocityImpl(newShipPosInWorld, newShipPosInShipyard, newShipRotation, newShipScaling, Vector3d(), Vector3d())
                     (serverShip as ShipDataCommon).transform = shipTransform
                 }
             }

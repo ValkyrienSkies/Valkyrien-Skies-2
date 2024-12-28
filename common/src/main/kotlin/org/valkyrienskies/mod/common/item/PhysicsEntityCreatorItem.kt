@@ -8,10 +8,6 @@ import net.minecraft.world.item.context.UseOnContext
 import org.joml.Quaterniond
 import org.joml.Vector3d
 import org.joml.Vector3dc
-import org.valkyrienskies.core.apigame.constraints.VSAttachmentConstraint
-import org.valkyrienskies.core.apigame.constraints.VSPosDampingConstraint
-import org.valkyrienskies.core.apigame.constraints.VSRotDampingAxes
-import org.valkyrienskies.core.apigame.constraints.VSRotDampingConstraint
 import org.valkyrienskies.core.impl.game.ships.ShipTransformImpl.Companion
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.dimensionId
@@ -61,23 +57,23 @@ class PhysicsEntityCreatorItem(
                 val attachCompliance = 1e-8
                 val attachMaxForce = 1e10
                 // Attach the click position of the ship to the surface of the physics entity
-                val attachConstraint = VSAttachmentConstraint(
-                    shipOn.id, physicsEntityData.shipId, attachCompliance, ctx.clickLocation.toJOML(), offsetInGlobal.mul(-1.0, Vector3d()),
-                    attachMaxForce, 0.0
-                )
-                val posDampingConstraint = VSPosDampingConstraint(
-                    shipOn.id, physicsEntityData.shipId, attachCompliance, ctx.clickLocation.toJOML(), offsetInGlobal.mul(-1.0, Vector3d()),
-                    attachMaxForce, 0.1
-                )
-                val rotDampingConstraint = VSRotDampingConstraint(
-                    shipOn.id, physicsEntityData.shipId, attachCompliance, shipOn.transform.shipToWorldRotation.invert(
-                        Quaterniond()
-                    ),
-                    Quaterniond(), 1e10, 0.1, VSRotDampingAxes.ALL_AXES
-                )
-                level.shipObjectWorld.createNewConstraint(attachConstraint)
-                level.shipObjectWorld.createNewConstraint(posDampingConstraint)
-                level.shipObjectWorld.createNewConstraint(rotDampingConstraint)
+                // val attachConstraint = VSAttachmentConstraint(
+                //     shipOn.id, physicsEntityData.shipId, attachCompliance, ctx.clickLocation.toJOML(), offsetInGlobal.mul(-1.0, Vector3d()),
+                //     attachMaxForce, 0.0
+                // )
+                // val posDampingConstraint = VSPosDampingConstraint(
+                //     shipOn.id, physicsEntityData.shipId, attachCompliance, ctx.clickLocation.toJOML(), offsetInGlobal.mul(-1.0, Vector3d()),
+                //     attachMaxForce, 0.1
+                // )
+                // val rotDampingConstraint = VSRotDampingConstraint(
+                //     shipOn.id, physicsEntityData.shipId, attachCompliance, shipOn.transform.shipToWorldRotation.invert(
+                //         Quaterniond()
+                //     ),
+                //     Quaterniond(), 1e10, 0.1, VSRotDampingAxes.ALL_AXES
+                // )
+                // level.shipObjectWorld.createNewConstraint(attachConstraint)
+                // level.shipObjectWorld.createNewConstraint(posDampingConstraint)
+                // level.shipObjectWorld.createNewConstraint(rotDampingConstraint)
             }
         }
 
