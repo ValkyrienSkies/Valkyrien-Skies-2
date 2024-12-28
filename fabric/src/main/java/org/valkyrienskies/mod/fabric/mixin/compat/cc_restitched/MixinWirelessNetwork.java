@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 
 @Pseudo
 @Mixin(WirelessNetwork.class)
@@ -28,12 +28,8 @@ public class MixinWirelessNetwork {
         final Vec3 posOnShip = shipReceiver.getPosition();
         final Vec3 posInWorld = shipSender.getPosition();
 
-        final double distance =
-            VSGameUtilsKt.squaredDistanceBetweenInclShips(shipReceiver.getLevel(),
-                posOnShip.x, posOnShip.y, posOnShip.z,
-                posInWorld.x, posInWorld.y, posInWorld.z);
-
-        return distance;
+        return ValkyrienSkies.distanceSquared(shipReceiver.getLevel(),
+            posOnShip.x, posOnShip.y, posOnShip.z, posInWorld.x, posInWorld.y, posInWorld.z);
     }
 
     @Inject(at = @At("HEAD"), method = "tryTransmit", remap = false)

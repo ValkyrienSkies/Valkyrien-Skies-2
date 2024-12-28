@@ -5,14 +5,15 @@ import dan200.computercraft.shared.turtle.core.TurtleBrain;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
-import org.valkyrienskies.core.api.ships.LoadedShip;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.core.api.ships.Ship;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
@@ -38,7 +39,7 @@ public abstract class MixinTurtleBrain {
         final BlockPos oldPos = currentOwner.getBlockPos();
         final Level world = getLevel();
 
-        final LoadedShip ship = VSGameUtilsKt.getShipObjectManagingPos(world, oldPos);
+        final Ship ship = ValkyrienSkies.getShipManagingBlock(world, oldPos);
         if (ship != null) {
             // THERE IS A SHIP
             final Vector3d transformedDirection = ship.getShipToWorld().transformDirection(
@@ -55,8 +56,7 @@ public abstract class MixinTurtleBrain {
                     VSGameConfig.SERVER.getComputerCraft().getCanTurtlesLeaveScaledShips()) {
                     // SHIP IS SCALED AND TURTLES CAN LEAVE SCALED SHIPS
 
-                    return new BlockPos(VectorConversionsMCKt.toMinecraft(
-                        ship.getShipToWorld().transformPosition(VectorConversionsMCKt.toJOMLD(pos))));
+                    return new BlockPos(ValkyrienSkies.positionToWorld(ship, Vec3.atCenterOf(pos)));
                 }
             }
         }
