@@ -22,6 +22,10 @@ object EntityLerper {
         }
         val ship = refship as ClientShip
         if (dragInfo.lerpSteps > 0) {
+            if (dragInfo.changedShipLastTick) {
+                dragInfo.lerpSteps = 1
+                dragInfo.changedShipLastTick = false
+            }
             val currentX: Double = dragInfo.relativePositionOnShip?.x() ?: return
             val currentY: Double = dragInfo.relativePositionOnShip!!.y()
             val currentZ: Double = dragInfo.relativePositionOnShip!!.z()

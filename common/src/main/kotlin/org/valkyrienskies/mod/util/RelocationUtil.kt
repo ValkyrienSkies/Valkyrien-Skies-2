@@ -13,7 +13,7 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
 import org.valkyrienskies.core.api.ships.ServerShip
 
-private val AIR = Blocks.AIR.defaultBlockState()
+val AIR = Blocks.AIR.defaultBlockState()
 
 /**
  * Relocate block

@@ -19,6 +19,7 @@ import org.valkyrienskies.core.impl.game.ships.ShipData
 import org.valkyrienskies.core.impl.game.ships.ShipDataCommon
 import org.valkyrienskies.core.impl.game.ships.ShipTransformImpl
 import org.valkyrienskies.core.util.datastructures.DenseBlockPosSet
+import org.valkyrienskies.mod.api.vsApi
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.executeIf
 import org.valkyrienskies.mod.common.isTickingChunk
@@ -93,7 +94,7 @@ fun createNewShipWithBlocks(
     // well now it doesnt kekw
     //(ship as ShipDataCommon).transform = (ship.transform).withTransformFrom(positionInWorld = centerBlockPosInWorld)
 
-    (ship as ShipDataCommon).setFromTransform(ship.transform.copy(position = centerBlockPosInWorld))
+    (ship as ShipDataCommon).setFromTransform(vsApi.transformFactory.create(centerBlockPosInWorld, ship.transform.rotation, ship.transform.scaling, ship.transform.positionInShip))
     level.server.executeIf(
         // This condition will return true if all modified chunks have been both loaded AND
         // chunk update packets were sent to players
@@ -132,14 +133,14 @@ fun createNewShipWithStructure(
     blocks.placeInWorld(level, BlockPos(lowerCornerInShip.toMinecraft()), BlockPos(lowerCornerInShip.toMinecraft()), StructurePlaceSettings(), level.random, Block.UPDATE_ALL)
 
     val diff = higherCorner.subtract(lowerCorner)
-    val centerPos = lowerCorner.toJOMLD().add(diff.x / 2.0, diff.y / 2.0, diff.z / 2.0)
+    val centerPos = lowerCorner.toJOMLD().add(diff.x + 1 / 2.0, diff.y + 1 / 2.0, diff.z + 1 / 2.0)
 
     // The ship's position has shifted from the center block since we assembled the ship, compensate for that
     val centerBlockPosInWorld = ship.inertiaData.centerOfMass.sub(centerPos, Vector3d())
         .add(ship.transform.positionInWorld)
     // Put the ship into the compensated position, so that all the assembled blocks stay in the same place
     level.shipObjectWorld
-        .teleportShip(ship, ShipTeleportDataImpl(newPos = centerBlockPosInWorld.add(0.0, 0.0, 0.0, Vector3d()), newPosInShip = ship.inertiaData.centerOfMass))
+        .teleportShip(ship, ShipTeleportDataImpl(newPos = centerBlockPosInWorld.add(0.5, 128.5 - centerBlockPosInWorld.y, 0.5, Vector3d()), newPosInShip = ship.inertiaData.centerOfMass))
 
 
     for (x in lowerCorner.x..higherCorner.x) {
@@ -149,7 +150,7 @@ fun createNewShipWithStructure(
                     val blockEntity: BlockEntity? = level.getBlockEntity(BlockPos(x, y, z))
                     Clearable.tryClear(blockEntity)
                     level.removeBlockEntity(BlockPos(x, y, z))
-                    level.setBlock(BlockPos(x, y, z), Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS)
+                    level.getChunk(x,z).setBlockState(BlockPos(x,y,z), org.valkyrienskies.mod.util.AIR, false)
 
                     //level.getChunk(BlockPos(x, y, z)).setBlockState(BlockPos(x, y, z), Blocks.AIR.defaultBlockState(), false)
                 }
