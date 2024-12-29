@@ -10,20 +10,22 @@ import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.Ship;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 import org.valkyrienskies.mod.client.audio.VelocityTickableSoundInstance;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
+@Pseudo
 @Mixin(SpeakerSound.class)
 public abstract class MixinSpeakerSound extends AbstractSoundInstance implements VelocityTickableSoundInstance {
     @Unique private SpeakerPosition speakerPosition;
     @Unique private Ship ship;
 
-    protected MixinSpeakerSound(ResourceLocation arg, SoundSource arg2) {
+    protected MixinSpeakerSound(final ResourceLocation arg, final SoundSource arg2) {
         super(arg, arg2);
     }
 
@@ -32,11 +34,11 @@ public abstract class MixinSpeakerSound extends AbstractSoundInstance implements
         at = @At("RETURN"),
         remap = false
     )
-    private void isOnShip(SpeakerPosition position, CallbackInfo ci) {
+    private void isOnShip(final SpeakerPosition position, final CallbackInfo ci) {
         this.speakerPosition = position;
-        this.ship = VSGameUtilsKt.getShipManagingPos(position.level(), position.position());
+        this.ship = ValkyrienSkies.getShipManagingBlock(position.level(), position.position());
         if (this.ship != null) {
-            Vec3 worldPos = VSGameUtilsKt.toWorldCoordinates(speakerPosition.level(), speakerPosition.position());
+            final Vec3 worldPos = ValkyrienSkies.positionToWorld(speakerPosition.level(), speakerPosition.position());
             x = worldPos.x;
             y = worldPos.y;
             z = worldPos.z;
@@ -47,9 +49,9 @@ public abstract class MixinSpeakerSound extends AbstractSoundInstance implements
         method = "tick",
         at = @At("HEAD")
     )
-    private void updateWorldPos(CallbackInfo ci) {
+    private void updateWorldPos(final CallbackInfo ci) {
         if (this.ship != null) {
-            Vec3 worldPos = VSGameUtilsKt.toWorldCoordinates(speakerPosition.level(), speakerPosition.position());
+            final Vec3 worldPos = ValkyrienSkies.positionToWorld(speakerPosition.level(), speakerPosition.position());
             x = worldPos.x;
             y = worldPos.y;
             z = worldPos.z;
