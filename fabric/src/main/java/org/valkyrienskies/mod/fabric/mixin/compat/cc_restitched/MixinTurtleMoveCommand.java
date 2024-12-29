@@ -51,20 +51,4 @@ public abstract class MixinTurtleMoveCommand {
             }
         }
     }
-
-    //CUSTOM METHODS
-
-    @Unique
-    private static Vector3d getShipPosFromWorldPos(final Level world, final BlockPos position) {
-        final Iterable<Vector3d> detectedShips =
-            ValkyrienSkies.positionToNearbyShipsAndWorld(world, position.getX() + 0.5, position.getY() + 0.5,
-                position.getZ() + 0.5, 0.1);
-        for (final Vector3d vec : detectedShips) {
-            if (vec != null) {
-                return vec;
-            }
-        }
-
-        return ValkyrienSkies.toJOMLd(position);
-    }
 }
