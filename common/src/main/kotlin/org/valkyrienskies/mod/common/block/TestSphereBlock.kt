@@ -10,19 +10,19 @@ import net.minecraft.world.phys.shapes.Shapes
 import net.minecraft.world.phys.shapes.VoxelShape
 
 object TestSphereBlock : Block(Properties.of(Material.STONE)) {
+    @Deprecated("Deprecated in Java")
     override fun getVisualShape(
-        blockState: BlockState?, blockGetter: BlockGetter?, blockPos: BlockPos?, collisionContext: CollisionContext?
+        blockState: BlockState, blockGetter: BlockGetter, blockPos: BlockPos, collisionContext: CollisionContext
     ): VoxelShape {
         return Shapes.empty()
     }
 
-    override fun getShadeBrightness(blockState: BlockState?, blockGetter: BlockGetter?, blockPos: BlockPos?): Float {
+    @Deprecated("Deprecated in Java")
+    override fun getShadeBrightness(blockState: BlockState, blockGetter: BlockGetter, blockPos: BlockPos): Float {
         return 1.0f
     }
 
-    override fun propagatesSkylightDown(
-        blockState: BlockState?, blockGetter: BlockGetter?, blockPos: BlockPos?
-    ): Boolean {
+    override fun propagatesSkylightDown(blockState: BlockState, blockGetter: BlockGetter, blockPos: BlockPos): Boolean {
         return true
     }
 }

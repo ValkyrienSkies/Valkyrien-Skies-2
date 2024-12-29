@@ -1,6 +1,6 @@
 
 dependencies {
-    annotationProcessor(implementation("com.github.LlamaLad7:MixinExtras:0.1.1"))
+    annotationProcessor(implementation("io.github.llamalad7:mixinextras-common:0.3.5"))
 
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
     // We depend on fabric loader here to use the fabric @Environment annotations
@@ -11,20 +11,27 @@ dependencies {
 
     modCompileOnly("curse.maven:sodium-394468:3669187")
 
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.1.0")
+
     // vs-core
     implementation("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
         exclude module: "netty-buffer"
         exclude module: "fastutil"
+        exclude module: "kotlin-stdlib"
     }
 
-    implementation("org.valkyrienskies.core:api:${rootProject.vs_core_version}")
-    implementation("org.valkyrienskies.core:api-game:${rootProject.vs_core_version}")
-    implementation("org.valkyrienskies.core:util:${rootProject.vs_core_version}")
+    implementation("org.valkyrienskies.core:api:${rootProject.vs_core_version}") {
+        exclude module: "kotlin-stdlib"
+    }
+    implementation("org.valkyrienskies.core:api-game:${rootProject.vs_core_version}") {
+        exclude module: "kotlin-stdlib"
+    }
+    implementation("org.valkyrienskies.core:util:${rootProject.vs_core_version}") {
+        exclude module: "kotlin-stdlib"
+    }
 
     // FTB Stuffs
-    modCompileOnly("curse.maven:ftb-util-404465:4210935")
-    modCompileOnly("curse.maven:ftb-teams-404468:4229138")
-    modCompileOnly("curse.maven:ftb-chunks-314906:4229120")
+    modCompileOnly("dev.ftb.mods:ftb-chunks:1802.3.19-build.362") { transitive = false }
 
     // Weather2 1.18
     modCompileOnly("curse.maven:weather-storms-tornadoes-237746:4426524")

@@ -105,6 +105,17 @@ public abstract class MixinMinecraft
 
     @Inject(
         method = "tick",
+        at = @At("HEAD")
+    )
+    public void preTick(final CallbackInfo ci) {
+        // Tick the ship world and then drag entities
+        if (!pause && shipObjectWorld != null && level != null && getConnection() != null) {
+            //EntityDragger.INSTANCE.dragEntitiesWithShips(level.entitiesForRendering(), true);
+        }
+    }
+
+    @Inject(
+        method = "tick",
         at = @At("TAIL")
     )
     public void postTick(final CallbackInfo ci) {
@@ -112,7 +123,8 @@ public abstract class MixinMinecraft
         if (!pause && shipObjectWorld != null && level != null && getConnection() != null) {
             shipObjectWorld.tickNetworking(getConnection().getConnection().getRemoteAddress());
             shipObjectWorld.postTick();
-            EntityDragger.INSTANCE.dragEntitiesWithShips(level.entitiesForRendering());
+            //EntityDragger.INSTANCE.dragEntitiesWithShips(level.entitiesForRendering());
+            EntityDragger.INSTANCE.dragEntitiesWithShips(level.entitiesForRendering(), false);
         }
     }
 

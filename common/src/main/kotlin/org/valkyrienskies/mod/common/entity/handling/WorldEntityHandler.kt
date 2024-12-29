@@ -64,7 +64,7 @@ object WorldEntityHandler : VSEntityHandler {
 
         val newPosInShipLocal = Vector3d(newPos).sub(ship.transform.positionInWorld)
         val shipVelocity = Vector3d(ship.velocity) // ship linear velocity
-            .add(Vector3d(ship.omega).cross(newPosInShipLocal)) // angular velocity
+            .add(Vector3d(ship.angularVelocity).cross(newPosInShipLocal)) // angular velocity
             .mul(0.05) // Tick velocity
 
         val entityVelocity = ship.transform.shipToWorldRotation.transform(entity.deltaMovement.toJOML())

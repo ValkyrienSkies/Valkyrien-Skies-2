@@ -43,7 +43,7 @@ public class WalkNodeEvaluatorMixin {
 
         if (blockGetter instanceof PathNavigationRegion) {
             VSGameUtilsKt.transformToNearbyShipsAndWorld(((PathNavigationRegionAccessor) blockGetter).getLevel(), origX,
-                origY, origZ, 1,
+                origY, origZ, 2,
                 (x, y, z) -> {
                     final BlockPos groundPos = new BlockPos(x, y, z);
                     BlockPathTypes pathType =

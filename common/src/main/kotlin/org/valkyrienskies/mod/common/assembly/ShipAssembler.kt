@@ -7,9 +7,9 @@ import net.minecraft.world.level.block.state.BlockState
 import org.joml.Vector3d
 import org.joml.Vector3i
 import org.joml.Vector3ic
+import org.valkyrienskies.core.api.attachment.getAttachment
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.ships.Ship
-import org.valkyrienskies.core.api.ships.getAttachment
 import org.valkyrienskies.core.impl.game.ShipTeleportDataImpl
 import org.valkyrienskies.mod.common.BlockStateInfo.onSetBlock
 import org.valkyrienskies.mod.common.dimensionId
@@ -111,7 +111,7 @@ object ShipAssembler {
             AssemblyUtil.updateBlock(level,itPos,shipPos,level.getBlockState(shipPos))
         }
 
-        val shipCenterPos = ((newShip as ServerShip).inertiaData.centerOfMassInShip).add(0.5, 0.5, 0.5, Vector3d())
+        val shipCenterPos = ((newShip as ServerShip).inertiaData.centerOfMass).add(0.5, 0.5, 0.5, Vector3d())
         // This is giga sus, but whatever
         val shipPos = Vector3d(shipOGPos).add(0.5, 0.5, 0.5)
         if (existingShip != null) {

@@ -27,7 +27,7 @@ import org.valkyrienskies.core.api.physics.blockstates.LiquidState
 import org.valkyrienskies.core.api.physics.blockstates.SolidBlockShape
 import org.valkyrienskies.core.apigame.physics.blockstates.VsBlockState
 import org.valkyrienskies.core.apigame.world.chunks.BlockType
-import org.valkyrienskies.core.game.VSBlockType
+import org.valkyrienskies.mod.api_impl.events.RegisterBlockStateEventImpl
 import org.valkyrienskies.mod.common.BlockStateInfoProvider
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.hooks.VSGameEvents
@@ -44,7 +44,7 @@ private data class VSBlockStateInfo(
     val mass: Double,
     val friction: Double,
     val elasticity: Double,
-    val type: VSBlockType?,
+    val type: BlockType?,
 )
 
 object MassDatapackResolver : BlockStateInfoProvider {
@@ -375,7 +375,14 @@ object MassDatapackResolver : BlockStateInfoProvider {
             mcBlockStateToVs[blockState] = vsBlockState
         }
 
+        runRegisterBlockStateEvent()
+
         registeredBlocks = true
+    }
+
+    private fun runRegisterBlockStateEvent() {
+        val event = RegisterBlockStateEventImpl()
+        ValkyrienSkiesMod.api.registerBlockStateEvent.emit(event)
     }
 
     private val logger by logger()

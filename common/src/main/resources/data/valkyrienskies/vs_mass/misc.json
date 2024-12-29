@@ -422,12 +422,12 @@
   {
     "block": "minecraft:ice",
     "mass": 125.0,
-    "friction": 0.05
+    "friction": 0.0
   },
   {
     "block": "minecraft:packed_ice",
     "mass": 250.0,
-    "friction": 0.02
+    "friction": 0.0
   },
   {
     "block": "minecraft:blue_ice",

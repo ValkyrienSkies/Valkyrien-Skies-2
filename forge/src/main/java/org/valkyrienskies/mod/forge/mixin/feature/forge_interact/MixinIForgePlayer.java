@@ -11,6 +11,7 @@ import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
+import org.valkyrienskies.mod.common.util.EntityDragger;
 
 @Mixin(IForgePlayer.class)
 public interface MixinIForgePlayer {
@@ -19,13 +20,15 @@ public interface MixinIForgePlayer {
     Player self();
 
     /**
-     * Include ships in server-side distance check when player interacts with a block.
+     * @author Ewoudje
+     * @reason Include ships in server-side distance check when player interacts with a block.
+     * Modified by Tomato to use the serversided player reference position.
      */
     @Overwrite(remap = false)
     default boolean canInteractWith(final BlockPos pos, final double padding) {
         if (VSGameConfig.SERVER.getEnableInteractDistanceChecks()) {
             final double reach = this.self().getReachDistance() + padding;
-            final Vec3 eyes = this.self().getEyePosition();
+            final Vec3 eyes = EntityDragger.INSTANCE.serversideEyePosition(this.self());
             return VSGameUtilsKt.squaredDistanceBetweenInclShips(this.self().level,
                 pos.getX() + 0.5,
                 pos.getY() + 0.5,
@@ -37,10 +40,15 @@ public interface MixinIForgePlayer {
         }
     }
 
+    /**
+     * @author Ewoudje
+     * @reason Include ships in server-side distance check when player interacts with an entity.
+     * Modified by Tomato to use the serversided player reference position.
+     */
     @Overwrite(remap = false)
     default boolean isCloseEnough(final Entity entity, final double distance) {
         if (VSGameConfig.SERVER.getEnableInteractDistanceChecks()) {
-            final Vec3 eye = this.self().getEyePosition();
+            final Vec3 eye = EntityDragger.INSTANCE.serversideEyePosition(this.self());
             final Vec3 targetCenter = entity.getPosition(1.0F).add(0.0, (double) (entity.getBbHeight() / 2.0F), 0.0);
             final Optional<Vec3> hit = entity.getBoundingBox().clip(eye, targetCenter);
             return (hit.isPresent() ?

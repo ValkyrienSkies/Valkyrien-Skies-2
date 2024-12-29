@@ -135,7 +135,7 @@ object VSGameConfig {
         var allowMobSpawns = true
 
         @JsonSchema(
-            description = "Allow rudimentary pathfinding on ships"
+            description = "Allow pathfinding on ships"
         )
         var aiOnShips = true
 
@@ -148,6 +148,16 @@ object VSGameConfig {
             description = "Minimum scale of ships"
         )
         var minScaling = 0.25
+
+        @JsonSchema(
+            description = "Enable splitting in worldspace. (Experimental!)"
+        )
+        var enableWorldSplitting = false
+
+        @JsonSchema(
+            description = "The default grace timer for splitting. A split won't occur after a block break at a position until this many ticks have passed. Note that setting this too high may prevent things like explosions from properly launching split ships. (in ticks)"
+        )
+        var defaultSplitGraceTimer = 1
     }
 
     class Common {

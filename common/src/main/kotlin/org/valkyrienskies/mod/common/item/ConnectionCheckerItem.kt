@@ -8,6 +8,8 @@ import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.context.UseOnContext
 import net.minecraft.world.level.block.state.BlockState
+import org.valkyrienskies.core.impl.config_impl.VSCoreConfig
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.shipObjectWorld
@@ -36,9 +38,11 @@ class ConnectionCheckerItem(
             if (!blockState.isAir) {
                 // Make a ship
                 val dimensionId = level.dimensionId
-
-                if (parentShip != null) {
+                println("tested")
+                if (parentShip != null || ValkyrienSkiesMod.vsCore.hooks.enableWorldConnectivity) {
+                    println("can we get much")
                     if (item.tag != null && item.tag!!.contains("firstPosX")) {
+                        println("so high")
                         val firstPosX = item.tag!!.getInt("firstPosX")
                         val firstPosY = item.tag!!.getInt("firstPosY")
                         val firstPosZ = item.tag!!.getInt("firstPosZ")
@@ -48,6 +52,7 @@ class ConnectionCheckerItem(
                         item.tag!!.remove("firstPosY")
                         item.tag!!.remove("firstPosZ")
                     } else {
+                        println("higher")
                         item.tag = item.orCreateTag.apply {
                             putInt("firstPosX", blockPos.x)
                             putInt("firstPosY", blockPos.y)
