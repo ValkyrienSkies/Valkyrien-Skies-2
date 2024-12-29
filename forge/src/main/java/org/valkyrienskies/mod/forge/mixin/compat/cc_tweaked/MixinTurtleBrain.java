@@ -12,10 +12,8 @@ import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
-import org.valkyrienskies.core.api.ships.LoadedShip;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.api.ValkyrienSkies;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
@@ -45,7 +43,7 @@ public abstract class MixinTurtleBrain {
         if (ship != null) {
             // THERE IS A SHIP
             final Vector3d transformedDirection = ship.getShipToWorld().transformDirection(
-                VectorConversionsMCKt.toJOMLD(currentOwner.getDirection().getNormal())
+                ValkyrienSkies.toJOMLd(currentOwner.getDirection().getNormal())
             );
             if (!ship.getShipAABB().containsPoint(VectorConversionsMCKt.toJOML(pos))) {
                 // POSITION IS OUTSIDE THE SHIP'S AABB

@@ -43,7 +43,7 @@ public abstract class MixinTurtleBrain {
         if (ship != null) {
             // THERE IS A SHIP
             final Vector3d transformedDirection = ship.getShipToWorld().transformDirection(
-                VectorConversionsMCKt.toJOMLD(currentOwner.getDirection().getNormal())
+                ValkyrienSkies.toJOMLd(currentOwner.getDirection().getNormal())
             );
             if (!ship.getShipAABB().containsPoint(VectorConversionsMCKt.toJOML(pos))) {
                 // POSITION IS OUTSIDE THE SHIP'S AABB
