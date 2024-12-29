@@ -119,6 +119,20 @@ subprojects {
             maven { url = "https://maven.cafeteria.dev/releases" } // Fake Player API
             maven { url = "https://maven.jamieswhiteshirt.com/libs-release" } // Reach Entity Attributes
             maven { url = "https://jitpack.io"}
+            maven { // FTB Stuffs
+                url "https://maven.saps.dev/releases"
+                content {
+                    includeGroup "dev.latvian.mods"
+                    includeGroup "dev.ftb.mods"
+                }
+            }
+            maven { // FTB Stuffs
+                url "https://maven.saps.dev/snapshots"
+                content {
+                    includeGroup "dev.latvian.mods"
+                    includeGroup "dev.ftb.mods"
+                }
+            }
         }
         maven {
             name = "Valkyrien Skies Internal"
