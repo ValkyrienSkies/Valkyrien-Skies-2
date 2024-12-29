@@ -48,7 +48,7 @@ public class MixinServerEntity {
     )
     private void wrapBroadcastAccept(Consumer instance, Object t, Operation<Void> original) {
         if (t instanceof ClientboundSetEntityMotionPacket || t instanceof ClientboundTeleportEntityPacket || t instanceof ClientboundMoveEntityPacket || t instanceof ClientboundRotateHeadPacket) {
-            if (entity instanceof IEntityDraggingInformationProvider draggedEntity) {
+            if (entity instanceof IEntityDraggingInformationProvider draggedEntity && draggedEntity.vs$shouldDrag()) {
                 EntityDraggingInformation dragInfo = draggedEntity.getDraggingInformation();
 
                 if (dragInfo != null && dragInfo.isEntityBeingDraggedByAShip() && dragInfo.getLastShipStoodOn() != null) {

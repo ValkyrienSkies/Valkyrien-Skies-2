@@ -10,9 +10,11 @@ import org.valkyrienskies.core.api.ships.properties.ShipId
 class EntityDraggingInformation {
     var addedMovementLastTick: Vector3dc = Vector3d()
     var addedYawRotLastTick: Double = 0.0
+    var changedShipLastTick = false
     var lastShipStoodOn: ShipId? = null
         set(value) {
             ticksSinceStoodOnShip = 0
+            changedShipLastTick = field != value && field != null && value != null
             field = value
         }
     var ticksSinceStoodOnShip: Int = 0
@@ -57,7 +59,7 @@ class EntityDraggingInformation {
 
     companion object {
         // Max number of ticks we will drag an entity after the entity has jumped off the ship
-        private const val TICKS_TO_DRAG_ENTITIES = 40
+        private const val TICKS_TO_DRAG_ENTITIES = 25
     }
 }
 
