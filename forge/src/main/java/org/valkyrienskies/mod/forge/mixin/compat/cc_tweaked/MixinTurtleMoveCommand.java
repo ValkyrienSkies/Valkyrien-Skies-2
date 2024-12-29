@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.forge.mixin.compat.cc_tweaked;
 
+import com.google.common.collect.Streams;
 import dan200.computercraft.api.turtle.TurtleCommandResult;
 import dan200.computercraft.shared.turtle.core.TurtleMoveCommand;
 import dan200.computercraft.shared.turtle.core.TurtlePlayer;
@@ -30,11 +31,8 @@ public abstract class MixinTurtleMoveCommand {
         if (cir.getReturnValue().isSuccess()) {
             final Ship ship = ValkyrienSkies.getShipManagingBlock(world, position);
             if (ship == null) {
-                final Iterable<Vector3d> nearbyPositions = ValkyrienSkies.positionToNearbyShipsAndWorld(world, position.getX() + 0.5, position.getY() + 0.5, position.getZ() + 0.5, 0.1);
-                final List<Vector3d> nearbyBlocks = new ArrayList<>();
-                nearbyPositions.forEach(nearbyBlocks::add);
-
-                final boolean notInAir = nearbyBlocks.stream()
+                final boolean notInAir = Streams
+                    .stream(ValkyrienSkies.positionToNearbyShipsAndWorld(world, position.getX() + 0.5, position.getY() + 0.5, position.getZ() + 0.5, 0.1))
                     .map(pos -> ValkyrienSkies.getShipManagingBlock(world, pos))
                     .map(s -> ValkyrienSkies.positionToShip(s, new Vector3d(position.getX() + 0.5, position.getY() + 0.5, position.getZ() + 0.5)))
                     .map(pos -> world.getBlockState(new BlockPos(ValkyrienSkies.toMinecraft(pos))))
