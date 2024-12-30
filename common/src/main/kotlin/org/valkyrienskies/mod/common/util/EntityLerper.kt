@@ -7,6 +7,8 @@ import org.joml.Vector3d
 import org.joml.Vector3dc
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.Ship
+import org.valkyrienskies.mod.common.getShipObjectManagingPos
+import org.valkyrienskies.mod.common.toWorldCoordinates
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
@@ -17,24 +19,48 @@ object EntityLerper {
      * Called from preAiStep. This function lerps the entity's movement while keeping it locked relative to the ship.
      */
     fun lerpStep(dragInfo: EntityDraggingInformation, refship: Ship, entity: Entity) {
-        if (refship !is ClientShip) {
+        if (refship !is ClientShip || !dragInfo.isEntityBeingDraggedByAShip()) {
             return
         }
         val ship = refship as ClientShip
         if (dragInfo.lerpSteps > 0) {
             if (dragInfo.changedShipLastTick) {
-                dragInfo.lerpSteps = 0
+                //dragInfo.lerpSteps = 0
                 dragInfo.changedShipLastTick = false
-                val transformed = if (dragInfo.lerpPositionOnShip != null) {
-                     ship.transform.shipToWorld.transformPosition(dragInfo.lerpPositionOnShip, Vector3d())
-                } else entity.position().toJOML()
-                val transformedYaw = if (dragInfo.lerpYawOnShip != null) {
-                    yawToWorld(ship, dragInfo.lerpYawOnShip!!)
-                } else entity.yRot.toDouble()
-                entity.setPos(transformed.x, transformed.y, transformed.z)
-                entity.yRot = transformedYaw.toFloat()
-                return
+
+
+                // val transformed = if (dragInfo.lerpPositionOnShip != null) {
+                //      entity.level.toWorldCoordinates(Vector3d(dragInfo.lerpPositionOnShip))
+                // } else entity.position().toJOML()
+                // val transformedYaw = if (dragInfo.lerpYawOnShip != null) {
+                //     yawToWorld(ship, dragInfo.lerpYawOnShip!!)
+                // } else entity.yRot.toDouble()
+                //
+                // if (dragInfo.relativePositionOnShip != null) {
+                //     val newX: Double = dragInfo.relativePositionOnShip!!.x() + (dragInfo.lerpPositionOnShip - currentX) / dragInfo.lerpSteps
+                //     val newY: Double = currentY + (lerpY - currentY) / dragInfo.lerpSteps
+                //     val newZ: Double = currentZ + (lerpZ - currentZ) / dragInfo.lerpSteps
+                //
+                //     entity.setPos(transformed.x, transformed.y, transformed.z)
+                //     entity.yRot = transformedYaw.toFloat()
+                // }
+                //dragInfo.lerpSteps--
+                //return
             }
+
+            val lerpship = entity.level.getShipObjectManagingPos(dragInfo.lerpPositionOnShip!!)
+            val posship = entity.level.getShipObjectManagingPos(dragInfo.relativePositionOnShip!!)
+            if (dragInfo.lerpPositionOnShip != null && lerpship != null && lerpship.id != ship.id) {
+                //transform it to the new ship
+                val worldPos = lerpship.transform.shipToWorld.transformPosition(Vector3d(dragInfo.lerpPositionOnShip), Vector3d())
+                dragInfo.lerpPositionOnShip = ship.transform.worldToShip.transformPosition(worldPos, Vector3d())
+
+            }
+            if (dragInfo.relativePositionOnShip != null && posship != null && posship.id != ship.id) {
+                val worldRelativePos = posship.shipToWorld.transformPosition(Vector3d(dragInfo.relativePositionOnShip), Vector3d())
+                dragInfo.relativePositionOnShip = ship.transform.worldToShip.transformPosition(worldRelativePos, Vector3d())
+            }
+
             val currentX: Double = dragInfo.relativePositionOnShip?.x() ?: return
             val currentY: Double = dragInfo.relativePositionOnShip!!.y()
             val currentZ: Double = dragInfo.relativePositionOnShip!!.z()
@@ -50,7 +76,7 @@ object EntityLerper {
             val newY: Double = currentY + (lerpY - currentY) / dragInfo.lerpSteps
             val newZ: Double = currentZ + (lerpZ - currentZ) / dragInfo.lerpSteps
 
-            val newPos = ship.shipToWorld.transformPosition(newX, newY, newZ, Vector3d())
+            val newPos = entity.level.toWorldCoordinates(newX, newY, newZ, Vector3d())
 
             val currentYawWorld = yawToWorld(ship, currentYaw)
             val lerpYawWorld = yawToWorld(ship, lerpYaw)
