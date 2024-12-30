@@ -30,9 +30,10 @@ public abstract class MixinTurtleBrain {
     public abstract Level getLevel();
 
     @ModifyVariable(
-        method = "teleportTo(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;)Z",
+        method = "teleportTo",
         at = @At(value = "HEAD"),
-        index = 2
+        index = 2,
+        remap = false
     )
     private BlockPos ValkyrienSkies2$teleportToBlockPos(final BlockPos pos) {
         final TileTurtle currentOwner = getOwner();
