@@ -4,10 +4,6 @@
   "compatibilityLevel": "JAVA_17",
   "plugin": "org.valkyrienskies.mod.forge.mixin.ValkyrienSkiesForgeMixinPlugin",
   "mixins": [
-    "compat.cc_tweaked.MixinTurtleBrain",
-    "compat.cc_tweaked.MixinTurtleMoveCommand",
-    "compat.cc_tweaked.MixinWirelessModemPeripheral",
-    "compat.cc_tweaked.MixinWirelessNetwork",
     "compat.create.MixinBlockBreakingKineticTileEntity",
     "compat.create.MixinBlocks",
     "compat.create.MixinChuteBlockEntity",
@@ -28,7 +24,6 @@
   ],
   "client": [
     "client.render.MixinLevelRenderer",
-    "compat.cc_tweaked.MixinSpeakerSound",
     "compat.create.client.MixinContraptionHandlerClient",
     "compat.create.client.MixinContraptionRenderInfo",
     "compat.create.client.MixinFlwContraption",
