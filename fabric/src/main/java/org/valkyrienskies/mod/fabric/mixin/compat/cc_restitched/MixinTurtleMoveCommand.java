@@ -36,7 +36,12 @@ public abstract class MixinTurtleMoveCommand {
                     .stream(ValkyrienSkies.positionToNearbyShipsAndWorld(world, position.getX() + 0.5, position.getY() + 0.5, position.getZ() + 0.5, 0.1))
                     .map(pos -> ValkyrienSkies.getShipManagingBlock(world, pos))
                     .map(s -> ValkyrienSkies.positionToShip(s, new Vector3d(position.getX() + 0.5, position.getY() + 0.5, position.getZ() + 0.5)))
-                    .map(pos -> world.getBlockState(new BlockPos(ValkyrienSkies.toMinecraft(pos))))
+                    .map(pos -> new BlockPos(ValkyrienSkies.toMinecraft(pos)))
+                    // Ignore turtle itself
+                    .filter(pos -> !pos.equals(turtlePlayer.blockPosition()))
+                    .map(pos -> world.getBlockState(pos))
+                    // We want to check if any block is not air, then we prevent turtle to move.
+                    // We don't want to see if there are any air.
                     .anyMatch(BlockState::isAir);
 
                 if (notInAir) {
