@@ -42,7 +42,7 @@ public abstract class MixinTurtleMoveCommand {
                     .map(pos -> world.getBlockState(pos))
                     // We want to check if any block is not air, then we prevent turtle to move.
                     // We don't want to see if there are any air.
-                    .anyMatch(BlockState::isAir);
+                    .anyMatch(block -> !block.isAir());
 
                 if (notInAir) {
                     cir.setReturnValue(TurtleCommandResult.failure("Movement obstructed by ship"));
