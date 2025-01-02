@@ -12,7 +12,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
-import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.Unique;
@@ -34,8 +33,6 @@ public abstract class MixinTurtleMoveCommand {
             if (ship == null) {
                 final boolean notInAir = Streams
                     .stream(ValkyrienSkies.positionToNearbyShipsAndWorld(world, position.getX() + 0.5, position.getY() + 0.5, position.getZ() + 0.5, 0.1))
-                    .map(pos -> ValkyrienSkies.getShipManagingBlock(world, pos))
-                    .map(s -> ValkyrienSkies.positionToShip(s, new Vector3d(position.getX() + 0.5, position.getY() + 0.5, position.getZ() + 0.5)))
                     .map(pos -> new BlockPos(ValkyrienSkies.toMinecraft(pos)))
                     // Ignore turtle itself
                     .filter(pos -> !pos.equals(turtlePlayer.blockPosition()))
