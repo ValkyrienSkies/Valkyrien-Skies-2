@@ -33,10 +33,11 @@ import org.joml.Quaterniond
 import org.joml.Quaterniondc
 import org.joml.Vector3d
 import org.joml.Vector3dc
+import org.valkyrienskies.core.api.VsBeta
 import org.valkyrienskies.core.apigame.joints.VSJointMaxForceTorque
 import org.valkyrienskies.core.apigame.joints.VSJointPose
 import org.valkyrienskies.core.apigame.joints.VSRevoluteJoint
-import org.valkyrienskies.core.impl.bodies.properties.BodyTransformVelocityImpl
+import org.valkyrienskies.core.impl.bodies.properties.BodyKinematicsFactory
 import org.valkyrienskies.core.impl.game.ships.ShipDataCommon
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
@@ -100,6 +101,7 @@ object TestHingeBlock :
         }
     }
 
+    @OptIn(VsBeta::class)
     @Deprecated("Deprecated in Java")
     override fun use(
         state: BlockState,
@@ -173,29 +175,29 @@ object TestHingeBlock :
                     // Put the new ship where the old ship is
                     val newPos = shipThisIsIn.transform.shipToWorld.transformPosition(attachmentLocalPos0, Vector3d())
                     newPos.sub(shipThisIsIn.transform.shipToWorldRotation.transform(attachmentOffset1, Vector3d()))
-                    val newTransform = BodyTransformVelocityImpl(
+                    val newKinematics = BodyKinematicsFactory.create(
+                        shipThisIsIn.velocity,
+                        shipThisIsIn.angularVelocity,
                         newPos,
-                        ship.transform.positionInShip,
                         shipThisIsIn.transform.shipToWorldRotation, // Copy source ship rotation
                         ship.transform.shipToWorldScaling,
-                        velocity = shipThisIsIn.velocity,
-                        angularVelocity = shipThisIsIn.angularVelocity
+                        ship.transform.positionInShip,
                     )
                     // Update the ship transform
-                    (ship as ShipDataCommon).transform = newTransform
+                    (ship as ShipDataCommon).kinematics = newKinematics
                 } else {
                     val newPos = Vector3d(attachmentLocalPos0)
                     newPos.sub(attachmentOffset1)
-                    val newTransform = BodyTransformVelocityImpl(
+                    val newKinematics = BodyKinematicsFactory.create(
+                        ship.velocity,
+                        ship.angularVelocity,
                         newPos,
-                        ship.transform.positionInShip,
                         ship.transform.shipToWorldRotation,
                         ship.transform.shipToWorldScaling,
-                        velocity = ship.velocity,
-                        angularVelocity = ship.angularVelocity
+                        ship.transform.positionInShip,
                     )
                     // Update the ship transform
-                    (ship as ShipDataCommon).transform = newTransform
+                    (ship as ShipDataCommon).kinematics = newKinematics
                 }
 
                 level.setBlockAndUpdate(shipCenterPos, Blocks.IRON_BLOCK.defaultBlockState())

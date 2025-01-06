@@ -10,11 +10,9 @@ import net.minecraft.world.item.context.UseOnContext
 import net.minecraft.world.level.block.Rotation.NONE
 import net.minecraft.world.level.block.state.BlockState
 import org.joml.Vector3d
-import org.valkyrienskies.core.api.ships.properties.ShipTransformVelocity
-import org.valkyrienskies.core.impl.bodies.properties.BodyTransformImpl
-import org.valkyrienskies.core.impl.bodies.properties.BodyTransformVelocityImpl
+import org.valkyrienskies.core.api.VsBeta
+import org.valkyrienskies.core.impl.bodies.properties.BodyKinematicsFactory
 import org.valkyrienskies.core.impl.game.ships.ShipDataCommon
-import org.valkyrienskies.core.impl.game.ships.ShipTransformImpl
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.shipObjectWorld
@@ -33,6 +31,7 @@ class ShipCreatorItem(
         return true
     }
 
+    @OptIn(VsBeta::class)
     override fun useOn(ctx: UseOnContext): InteractionResult {
         val level = ctx.level as? ServerLevel ?: return super.useOn(ctx)
         val blockPos = ctx.clickedPos
@@ -67,9 +66,15 @@ class ShipCreatorItem(
                         // Do not allow scaling to go below minScaling
                         newShipScaling = Vector3d(minScaling, minScaling, minScaling)
                     }
-                    val shipTransform =
-                        BodyTransformVelocityImpl(newShipPosInWorld, newShipPosInShipyard, newShipRotation, newShipScaling, Vector3d(), Vector3d())
-                    (serverShip as ShipDataCommon).transform = shipTransform
+                    val newKinematics = BodyKinematicsFactory.create(
+                        Vector3d(),
+                        Vector3d(),
+                        newShipPosInWorld,
+                        newShipRotation,
+                        newShipScaling,
+                        newShipPosInShipyard,
+                    )
+                    (serverShip as ShipDataCommon).kinematics = newKinematics
                 }
             }
         }
