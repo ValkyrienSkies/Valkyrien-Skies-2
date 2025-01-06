@@ -170,7 +170,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
                 if (dragProvider.getDraggingInformation().isEntityBeingDraggedByAShip() && dragProvider.getDraggingInformation().getServerRelativePlayerYaw() != null) {
                     final Ship shipDraggedBy = VSGameUtilsKt.getAllShips(level).getById(dragProvider.getDraggingInformation().getLastShipStoodOn());
                     if (shipDraggedBy != null) {
-                        final float realYRot = (float) EntityDragger.INSTANCE.serversideEyeRotationOrDefault(sPlayer, yRot);
+                        final float realYRot = (float) EntityDragger.INSTANCE.serversideWorldEyeRotationOrDefault(sPlayer, shipDraggedBy, yRot);
                         final float f = xRot * (float) (Math.PI / 180.0);
                         final float g = -realYRot * (float) (Math.PI / 180.0);
                         final float h = Mth.cos(g);

@@ -10,7 +10,10 @@ import net.minecraft.world.phys.Vec3
 import org.joml.Vector3d
 import org.joml.Vector3dc
 import org.valkyrienskies.core.api.ships.ClientShip
+import org.valkyrienskies.core.api.ships.ServerShip
+import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.mod.common.shipObjectWorld
+import org.valkyrienskies.mod.common.util.EntityLerper.yawToWorld
 import kotlin.math.asin
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -184,6 +187,16 @@ object EntityDragger {
         if (this is ServerPlayer && this is IEntityDraggingInformationProvider && this.draggingInformation.isEntityBeingDraggedByAShip()) {
             if (this.draggingInformation.serverRelativePlayerYaw != null) {
                 return Math.toDegrees(this.draggingInformation.serverRelativePlayerYaw!!)
+            }
+        }
+        return default
+    }
+
+
+    fun Entity.serversideWorldEyeRotationOrDefault(ship: Ship, default: Double): Double {
+        if (this is ServerPlayer && this is IEntityDraggingInformationProvider && this.draggingInformation.isEntityBeingDraggedByAShip()) {
+            if (this.draggingInformation.serverRelativePlayerYaw != null) {
+                return yawToWorld(ship, this.draggingInformation.serverRelativePlayerYaw!!)
             }
         }
         return default
