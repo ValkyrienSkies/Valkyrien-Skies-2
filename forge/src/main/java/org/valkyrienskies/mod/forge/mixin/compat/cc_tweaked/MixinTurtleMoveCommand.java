@@ -10,11 +10,10 @@ import javax.annotation.Nonnull;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
@@ -30,22 +29,30 @@ public abstract class MixinTurtleMoveCommand {
         final CallbackInfoReturnable<TurtleCommandResult> cir) {
         if (cir.getReturnValue().isSuccess()) {
             final Ship ship = ValkyrienSkies.getShipManagingBlock(world, position);
-            if (ship == null) {
-                final boolean notInAir = Streams
-                    .stream(ValkyrienSkies.positionToNearbyShipsAndWorld(world, position.getX() + 0.5, position.getY() + 0.5, position.getZ() + 0.5, 0.1))
-                    .map(pos -> ValkyrienSkies.getShipManagingBlock(world, pos))
-                    .map(s -> ValkyrienSkies.positionToShip(s, new Vector3d(position.getX() + 0.5, position.getY() + 0.5, position.getZ() + 0.5)))
-                    .map(pos -> world.getBlockState(new BlockPos(ValkyrienSkies.toMinecraft(pos))))
-                    .anyMatch(BlockState::isAir);
+            Vector3d testPosition = ValkyrienSkies.toJOML(new Vec3(position.getX() + 0.5, position.getY() + 0.5, position.getZ() + 0.5));
 
-                if (notInAir) {
-                    cir.setReturnValue(TurtleCommandResult.failure("Movement obstructed by ship"));
-                }
-            } else {
+            if (ship != null) {
                 final ChunkPos chunk = world.getChunkAt(position).getPos();
                 if (!ship.getChunkClaim().contains(chunk.x, chunk.z)) {
                     cir.setReturnValue(TurtleCommandResult.failure("Out of ship chunk"));
                 }
+
+                testPosition = ValkyrienSkies.positionToWorld(ship, testPosition);
+            }
+
+            final List<Vector3d> nearbyShips =
+                new ArrayList<>(Streams.stream(ValkyrienSkies.positionToNearbyShips(world,
+                    testPosition.x, testPosition.y, testPosition.z, 0.1)).toList());
+
+            final boolean notInAir = !nearbyShips.isEmpty() && nearbyShips
+                .stream()
+                .map(ValkyrienSkies::toMinecraft)
+                .map(BlockPos::new)
+                .map(world::getBlockState)
+                .anyMatch(state -> !state.isAir());
+
+            if (notInAir) {
+                cir.setReturnValue(TurtleCommandResult.failure("Movement obstructed by ship"));
             }
         }
     }

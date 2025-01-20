@@ -53,9 +53,18 @@ public abstract class MixinTurtleBrain {
                     Direction.getNearest(transformedDirection.x, transformedDirection.y, transformedDirection.z));
                 setOwner(currentOwner);
 
-                if (ship.getTransform().getShipToWorldScaling().equals(1.000E+0, 1.000E+0, 1.000E+0) &&
-                    VSGameConfig.SERVER.getComputerCraft().getCanTurtlesLeaveScaledShips()) {
-                    // SHIP IS SCALED AND TURTLES CAN LEAVE SCALED SHIPS
+                final boolean isShipScaled = !ship.getTransform().getShipToWorldScaling().equals(1.000E+0, 1.000E+0, 1.000E+0);
+
+                if (isShipScaled) {
+                    // SHIP IS SCALED
+
+                    if (VSGameConfig.SERVER.getComputerCraft().getCanTurtlesLeaveScaledShips()) {
+                        // TURTLES CAN LEAVE SCALED SHIPS
+
+                        return new BlockPos(ValkyrienSkies.positionToWorld(ship, Vec3.atCenterOf(pos)));
+                    }
+                } else {
+                    // SHIP ISNT SCALED
 
                     return new BlockPos(ValkyrienSkies.positionToWorld(ship, Vec3.atCenterOf(pos)));
                 }
