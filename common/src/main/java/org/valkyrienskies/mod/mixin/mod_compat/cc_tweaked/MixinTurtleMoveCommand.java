@@ -4,6 +4,7 @@ import com.google.common.collect.Streams;
 import dan200.computercraft.api.turtle.TurtleCommandResult;
 import dan200.computercraft.shared.turtle.core.TurtleMoveCommand;
 import dan200.computercraft.shared.turtle.core.TurtlePlayer;
+import java.util.List;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
@@ -27,14 +28,17 @@ public abstract class MixinTurtleMoveCommand {
         if (cir.getReturnValue().isSuccess()) {
             final Ship ship = ValkyrienSkies.getShipManagingBlock(world, position);
             if (ship == null) {
-                final boolean notInAir = Streams
-                    .stream(ValkyrienSkies.positionToNearbyShipsAndWorld(world, position.getX() + 0.5, position.getY() + 0.5, position.getZ() + 0.5, 0.1))
-                    .map(pos -> ValkyrienSkies.getShipManagingBlock(world, pos))
-                    .map(s -> ValkyrienSkies.positionToShip(s, new Vector3d(position.getX() + 0.5, position.getY() + 0.5, position.getZ() + 0.5)))
-                    .map(pos -> world.getBlockState(BlockPos.containing(ValkyrienSkies.toMinecraft(pos))))
+                final List<Vector3d> nearbyShips = Streams.stream(ValkyrienSkies.positionToNearbyShips(world,
+                    position.getCenter().x, position.getCenter().y, position.getCenter().z, 0.1)).toList();
+
+                final boolean inAir = nearbyShips.isEmpty() || nearbyShips
+                    .stream()
+                    .map(ValkyrienSkies::toMinecraft)
+                    .map(BlockPos::containing)
+                    .map(world::getBlockState)
                     .anyMatch(BlockState::isAir);
 
-                if (notInAir) {
+                if (!inAir) {
                     cir.setReturnValue(TurtleCommandResult.failure("Movement obstructed by ship"));
                 }
             } else {

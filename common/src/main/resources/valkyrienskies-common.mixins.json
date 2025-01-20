@@ -61,6 +61,7 @@
     "mod_compat.cc_tweaked.MixinTurtleMoveCommand",
     "mod_compat.cc_tweaked.MixinWirelessModemPeripheral",
     "mod_compat.cc_tweaked.MixinWirelessNetwork",
+    "mod_compat.cc_tweaked.MixinSpeakerSound",
     "mod_compat.create.IMixinDeployerHandler",
     "mod_compat.create.IMixinDeployerMovementBehaviour",
     "mod_compat.create.MixinAirCurrent",

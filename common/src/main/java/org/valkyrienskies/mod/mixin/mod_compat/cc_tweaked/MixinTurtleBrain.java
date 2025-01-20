@@ -15,7 +15,6 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.api.ValkyrienSkies;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Pseudo
 @Mixin(TurtleBrain.class)
@@ -44,19 +43,29 @@ public abstract class MixinTurtleBrain {
         final Ship ship = ValkyrienSkies.getShipManagingBlock(world, oldPos);
         if (ship != null) {
             // THERE IS A SHIP
+
             final Vector3d transformedDirection = ship.getShipToWorld().transformDirection(
                 ValkyrienSkies.toJOMLd(currentOwner.getDirection().getNormal())
             );
-            if (!ship.getShipAABB().containsPoint(VectorConversionsMCKt.toJOML(pos))) {
+            if (!ship.getShipAABB().containsPoint(ValkyrienSkies.toJOML(pos))) {
                 // POSITION IS OUTSIDE THE SHIP'S AABB
 
                 currentOwner.setDirection(
                     Direction.getNearest(transformedDirection.x, transformedDirection.y, transformedDirection.z));
                 setOwner(currentOwner);
 
-                if (ship.getTransform().getShipToWorldScaling().equals(1.000E+0, 1.000E+0, 1.000E+0) &&
-                    VSGameConfig.SERVER.getComputerCraft().getCanTurtlesLeaveScaledShips()) {
-                    // SHIP IS SCALED AND TURTLES CAN LEAVE SCALED SHIPS
+                final boolean isShipScaled = !ship.getTransform().getShipToWorldScaling().equals(1.000E+0, 1.000E+0, 1.000E+0);
+
+                if (isShipScaled) {
+                    // SHIP IS SCALED
+
+                    if (VSGameConfig.SERVER.getComputerCraft().getCanTurtlesLeaveScaledShips()) {
+                        // TURTLES CAN LEAVE SCALED SHIPS
+
+                        return BlockPos.containing(ValkyrienSkies.positionToWorld(ship, Vec3.atCenterOf(pos)));
+                    }
+                } else {
+                    // SHIP ISNT SCALED
 
                     return BlockPos.containing(ValkyrienSkies.positionToWorld(ship, Vec3.atCenterOf(pos)));
                 }
