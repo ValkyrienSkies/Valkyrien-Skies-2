@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.forge.mixin.compat.cc_tweaked;
+package org.valkyrienskies.mod.mixin.mod_compat.cc_tweaked;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
@@ -7,7 +7,7 @@ import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 
 @Pseudo
 @Mixin(WirelessModemPeripheral.class)
@@ -20,6 +20,6 @@ public abstract class MixinWirelessModemPeripheral {
             )
     )
     public Vec3 ValkyrienSkies$getPosition(WirelessModemPeripheral instance, Operation<Vec3> original){
-        return VSGameUtilsKt.toWorldCoordinates(instance.getLevel(), original.call(instance));
+        return ValkyrienSkies.positionToWorld(instance.getLevel(), original.call(instance));
     }
 }

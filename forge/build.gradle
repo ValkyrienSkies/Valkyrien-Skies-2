@@ -80,9 +80,6 @@ dependencies {
     modImplementation("curse.maven:weather-storms-tornadoes-237746:5244118")
     modImplementation("curse.maven:coroutil-237749:5096038")
 
-    // CC Tweaked
-    modCompileOnly("maven.modrinth:cc-tweaked:${cc_tweaked_version}")
-
     // EMF compat
     modCompileOnly("curse.maven:entity-model-features-844662:5696899")
     modCompileOnly("curse.maven:entity-texture-features-fabric-568563:5697083")

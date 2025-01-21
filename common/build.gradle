@@ -38,6 +38,9 @@ dependencies {
     // Weather2 1.20.1
     modCompileOnly("curse.maven:weather-storms-tornadoes-237746:5244118")
 
+    // CC: Tweaked
+    modCompileOnly("maven.modrinth:cc-tweaked:${cc_tweaked_version}")
+
     //Common create compat,
     //We just use a version from a platform and hope the classes exist on both versions and mixins apply correctly
     modCompileOnly("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}")

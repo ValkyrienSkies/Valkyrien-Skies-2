@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.forge.mixin.compat.cc_tweaked;
+package org.valkyrienskies.mod.mixin.mod_compat.cc_tweaked;
 
 import dan200.computercraft.client.sound.SpeakerSound;
 import dan200.computercraft.shared.peripheral.speaker.SpeakerPosition;
@@ -16,8 +16,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.Ship;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 import org.valkyrienskies.mod.client.audio.VelocityTickableSoundInstance;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(SpeakerSound.class)
 public abstract class MixinSpeakerSound extends AbstractSoundInstance implements VelocityTickableSoundInstance {
@@ -35,9 +35,9 @@ public abstract class MixinSpeakerSound extends AbstractSoundInstance implements
     )
     private void isOnShip(SpeakerPosition position, CallbackInfo ci) {
         this.speakerPosition = position;
-        this.ship = VSGameUtilsKt.getShipManagingPos(position.level(), position.position());
+        this.ship = ValkyrienSkies.getShipManagingBlock(position.level(), position.position());
         if (this.ship != null) {
-            Vec3 worldPos = VSGameUtilsKt.toWorldCoordinates(speakerPosition.level(), speakerPosition.position());
+            Vec3 worldPos = ValkyrienSkies.positionToWorld(speakerPosition.level(), speakerPosition.position());
             x = worldPos.x;
             y = worldPos.y;
             z = worldPos.z;
@@ -50,7 +50,7 @@ public abstract class MixinSpeakerSound extends AbstractSoundInstance implements
     )
     private void updateWorldPos(CallbackInfo ci) {
         if (this.ship != null) {
-            Vec3 worldPos = VSGameUtilsKt.toWorldCoordinates(speakerPosition.level(), speakerPosition.position());
+            Vec3 worldPos = ValkyrienSkies.positionToWorld(speakerPosition.level(), speakerPosition.position());
             x = worldPos.x;
             y = worldPos.y;
             z = worldPos.z;
