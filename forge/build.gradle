@@ -88,8 +88,6 @@ dependencies {
     modImplementation("teamreborn:energy:${energy_version}") {
         transitive = false
     }
-    // TIS-3d
-    modCompileOnly("maven.modrinth:tis3d:${tis3d_version}")
 
     // Modular Routers
     modCompileOnly("curse.maven:mr-250294:4696089")

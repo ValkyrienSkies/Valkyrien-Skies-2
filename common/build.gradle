@@ -41,6 +41,9 @@ dependencies {
     // CC: Tweaked
     modCompileOnly("maven.modrinth:cc-tweaked:${cc_tweaked_version}")
 
+    // TIS-3D
+    modCompileOnly("maven.modrinth:tis3d:${tis3d_version}")
+
     //Common create compat,
     //We just use a version from a platform and hope the classes exist on both versions and mixins apply correctly
     modCompileOnly("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}")
