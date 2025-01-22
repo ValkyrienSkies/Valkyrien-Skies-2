@@ -2,6 +2,7 @@ package org.valkyrienskies.mod.forge.common
 
 import net.minecraft.commands.Commands.CommandSelection.ALL
 import net.minecraft.commands.Commands.CommandSelection.INTEGRATED
+import net.minecraft.core.Registry
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.entity.EntityType
@@ -17,10 +18,13 @@ import net.minecraftforge.client.event.RegisterKeyMappingsEvent
 import net.minecraftforge.event.AddReloadListenerEvent
 import net.minecraftforge.event.RegisterCommandsEvent
 import net.minecraftforge.event.TagsUpdatedEvent
+import net.minecraftforge.fml.ModList
 import net.minecraftforge.fml.ModLoadingContext
 import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus
 import net.minecraftforge.fml.event.lifecycle.FMLLoadCompleteEvent
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext
+import net.minecraftforge.fml.javafmlmod.FMLModContainer
 import net.minecraftforge.fml.loading.FMLEnvironment
 import net.minecraftforge.registries.DeferredRegister
 import net.minecraftforge.registries.ForgeRegistries
@@ -29,6 +33,7 @@ import org.valkyrienskies.core.apigame.VSCoreFactory
 import org.valkyrienskies.core.impl.config_impl.VSCoreConfig
 import org.valkyrienskies.mod.client.EmptyRenderer
 import org.valkyrienskies.mod.client.VSPhysicsEntityRenderer
+import org.valkyrienskies.mod.common.BlockStateInfo
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod.MOD_ID
 import org.valkyrienskies.mod.common.block.TestChairBlock
@@ -52,6 +57,8 @@ import org.valkyrienskies.mod.common.item.PhysicsEntityCreatorItem
 import org.valkyrienskies.mod.common.item.ShipAssemblerItem
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
 import org.valkyrienskies.mod.compat.clothconfig.VSClothConfig
+import org.valkyrienskies.mod.forge.compat.epicfight.FracturedBlockStateInfoProvider
+import kotlin.reflect.jvm.internal.impl.platform.PlatformUtilKt
 
 @Mod(MOD_ID)
 class ValkyrienSkiesModForge {
@@ -184,6 +191,10 @@ class ValkyrienSkiesModForge {
             ValkyrienSkiesMod.createCreativeTab()
         }
         deferredRegister.register(modBus)
+
+        if (ModList.get().isLoaded("epicfight")) {
+            FracturedBlockStateInfoProvider.register()
+        }
     }
 
     private fun registerResourceManagers(event: AddReloadListenerEvent) {
