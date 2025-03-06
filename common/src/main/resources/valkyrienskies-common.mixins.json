@@ -170,6 +170,7 @@
     "mod_compat.sodium.MixinRenderSectionManager",
     "mod_compat.sodium.MixinSodiumWorldRenderer",
     "mod_compat.sodium.MixinChunkTracker",
+    "mod_compat.sodium.MixinDefaultChunkRenderer",
     "mod_compat.sound_physics_remastered.MixinSoundPhysics",
     "mod_compat.vanilla_renderer.MixinLevelRendererVanilla",
     "mod_compat.vanilla_renderer.MixinViewAreaVanilla",
