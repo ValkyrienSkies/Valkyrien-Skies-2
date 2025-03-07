@@ -32,7 +32,7 @@ public abstract class MixinLivingEntity extends Entity {
      */
     @Inject(method = "dismountVehicle", at = @At("HEAD"), cancellable = true)
     private void preDismountVehicle(final Entity entity, final CallbackInfo ci) {
-        if (!this.isRemoved() && entity.isRemoved() || this.level.getBlockState(entity.blockPosition()).is(BlockTags.PORTALS)) {
+        if ((!this.isRemoved() && entity.isRemoved()) || (this.level.isLoaded(entity.blockPosition()) && this.level.getBlockState(entity.blockPosition()).is(BlockTags.PORTALS))) {
             if (VSGameUtilsKt.isBlockInShipyard(level, entity.position())) {
                 final Ship ship = VSGameUtilsKt.getShipManagingPos(level, entity.position());
                 if (ship != null) {
