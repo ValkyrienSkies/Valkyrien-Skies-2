@@ -34,23 +34,21 @@ dependencies {
 
     //Common create compat,
     //We just use a version from a platform and hope the classes exist on both versions and mixins apply correctly
-    modCompileOnly("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}")
-        { exclude group: 'com.github.AlphaMode', module: 'fakeconfigtoml' }
+    // modCompileOnly("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}")
+    //     { exclude group: 'com.github.AlphaMode', module: 'fakeconfigtoml' }
     modCompileOnly("net.fabricmc.fabric-api:fabric-api:${fabric_api_version}")
-    modCompileOnly("com.jozufozu.flywheel:flywheel-fabric-${minecraft_version}:${flywheel_version_fabric}")
+    // modCompileOnly("com.jozufozu.flywheel:flywheel-fabric-${minecraft_version}:${flywheel_version_fabric}")
 
-    modCompileOnly("maven.modrinth:create-big-cannons:${createbigcannons_version}")
+    // modCompileOnly("maven.modrinth:create-big-cannons:${createbigcannons_version}")
 
-    modCompileOnly("maven.modrinth:create-utilities:${create_utilities_version}")
+    // modCompileOnly("maven.modrinth:create-utilities:${create_utilities_version}")
     modImplementation("teamreborn:energy:${energy_version}")
     // modCompileOnly("io.github.fabricators_of_create:Porting-Lib:${port_lib_version}+${minecraft_version}")
 
     //Bluemap fabric 1.20.1
     modCompileOnly("curse.maven:bluemap-406463:5555756")
 
-    modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:imm_ptl_core:${immptl_version}")
-    modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:q_misc_util:${immptl_version}")
-    modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:build:${immptl_version}")
+    modCompileOnly("com.github.iPortalTeam:ImmersivePortalsMod:${immptl_version}")
 }
 
 architectury {

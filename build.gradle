@@ -7,11 +7,14 @@ buildscript {
 
 plugins {
     // Needed for Forge+Fabric
-    id "architectury-plugin" version "3.4.146"
-    id "dev.architectury.loom" version "1.3.355" apply false
+    // Get latest architectury configs from https://generate.architectury.dev/
+    // https://maven.architectury.dev/architectury-plugin/architectury-plugin.gradle.plugin/3.4.161/
+    id "architectury-plugin" version "3.4.161"
+    // https://maven.architectury.dev/dev/architectury/architectury-loom/1.9.428/
+    id "dev.architectury.loom" version "1.9.428" apply false
     id 'io.github.juuxel.loom-vineflower' version '1.11.0' apply false
     // Kotlin
-    id "org.jetbrains.kotlin.jvm" version "1.9.10" apply false
+    id "org.jetbrains.kotlin.jvm" version "2.0.0" apply false
     id 'com.matthewprenger.cursegradle' version '1.4.0' apply false
     id "com.modrinth.minotaur" version "2.4.3" apply false
 }
@@ -68,7 +71,6 @@ subprojects {
     apply plugin: "dev.architectury.loom"
     // Apply checkstyle and ktlint to check the code style of every sub project
     apply plugin: "org.jetbrains.kotlin.jvm"
-    apply plugin: "io.github.juuxel.loom-vineflower"
 
     configurations.each { it.resolutionStrategy.useGlobalDependencySubstitutionRules.set(false) }
 
@@ -106,13 +108,16 @@ subprojects {
             maven { url = "https://modmaven.dev/" } // Twilight Forest
             maven { url = "https://api.modrinth.com/maven" } // LazyDFU, Suggestion Tweaker, Create Big Cannons
             maven { url = "https://maven.shedaniel.me/" } // Cloth Config, REI
-            maven { url "https://maven.architectury.dev/" }
+            maven { url = "https://maven.architectury.dev/" }
+            maven { url = "https://maven.createmod.net"} // https://wiki.createmod.net/developers/depend-on-create/neoforge-1.21.1
             maven { url = "https://mvn.devos.one/snapshots/" } // Fabric Create, Porting Lib, Forge Tags, Milk Lib
             maven { url = "https://mvn.devos.one/releases/" }
             maven { url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/" } // Forge Config API Port
             maven { url = "https://maven.tterrag.com/" } // Registrate, Forge Create and Flywheel
             maven { url = "https://maven.cafeteria.dev/releases" } // Fake Player API
             maven { url = "https://maven.jamieswhiteshirt.com/libs-release" } // Reach Entity Attributes
+
+            // Jitpack is last because its slow and bad  \(T_T)/
             maven { url = "https://jitpack.io"}
         }
         maven {
@@ -186,7 +191,7 @@ allprojects {
     tasks.withType(JavaCompile) {
         options.encoding = "UTF-8"
 
-        options.release = 17
+        options.release = 21
     }
 
     java {

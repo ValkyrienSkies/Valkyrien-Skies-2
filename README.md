@@ -27,7 +27,7 @@ You can download official releases of Valkyrien Skies from our [website](https:/
 
 1. Clone the
    repo: `git clone --recurse-submodules https://github.com/ValkyrienSkies/Valkyrien-Skies-2`
-2. Open the project in IntelliJ, using Java 17
+2. Open the project in IntelliJ, using Java 21
 3. Import the gradle project, sync gradle
 
 ## Troubleshooting

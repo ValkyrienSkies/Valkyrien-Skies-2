@@ -69,25 +69,31 @@ dependencies {
     modCompileOnly("maven.modrinth:embeddium:${embeddium_version}")
 
     // Twilight Forest
-    modImplementation("teamtwilight:twilightforest:${twilightforest_version}:universal")
+    // modImplementation("teamtwilight:twilightforest:${twilightforest_version}:universal")
 
-    // Create compat
-    modImplementation("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") { transitive = false }
-    modImplementation("com.jozufozu.flywheel:flywheel-forge-${minecraft_version}:${flywheel_version}")
-    modImplementation("com.tterrag.registrate:Registrate:${registrate_version}")
+    // Create Mod, see https://wiki.createmod.net/developers/depend-on-create/neoforge-1.21.1
+    implementation("com.simibubi.create:create-${property("minecraft_version")}:${property("create_version")}:slim") { transitive = false }
+    implementation("net.createmod.ponder:Ponder-NeoForge-${property("minecraft_version")}:${property("ponder_version")}")
+    compileOnly("dev.engine-room.flywheel:flywheel-neoforge-api-${property("minecraft_version")}:${property("flywheel_version")}")
+    runtimeOnly("dev.engine-room.flywheel:flywheel-neoforge-${property("minecraft_version")}:${property("flywheel_version")}")
+    implementation("com.tterrag.registrate:Registrate:${property("registrate_version")}")
 
     // Weather2 1.20.1
-    modImplementation("curse.maven:weather-storms-tornadoes-237746:5244118")
-    modImplementation("curse.maven:coroutil-237749:5096038")
+    // Not on 1.21.1 yet
+    // modImplementation("curse.maven:weather-storms-tornadoes-237746:5244118")
+    // modImplementation("curse.maven:coroutil-237749:5096038")
 
     // CC Tweaked
     modCompileOnly("maven.modrinth:cc-tweaked:${cc_tweaked_version}")
 
     // EMF compat
-    modCompileOnly("curse.maven:entity-model-features-844662:5696899")
-    modCompileOnly("curse.maven:entity-texture-features-fabric-568563:5697083")
+    // https://www.curseforge.com/minecraft/mc-mods/entity-model-features/files/all?page=1&pageSize=20&version=1.21.1
+    modCompileOnly("curse.maven:entity-model-features-844662:6001147")
+    // https://www.curseforge.com/minecraft/mc-mods/entity-texture-features-fabric/files/all?page=1&pageSize=20&version=1.21.1
+    modCompileOnly("curse.maven:entity-texture-features-fabric-568563:5982151")
 
-    modCompileOnly("maven.modrinth:create-utilities:0.2.0+1.20.1")
+    // Not on 1.21.1 yet
+    // modCompileOnly("maven.modrinth:create-utilities:0.2.0+1.20.1")
     modImplementation("teamreborn:energy:${energy_version}") {
         transitive = false
     }
@@ -95,17 +101,19 @@ dependencies {
     modCompileOnly("maven.modrinth:tis3d:${tis3d_version}")
 
     // Modular Routers
-    modCompileOnly("curse.maven:mr-250294:4696089")
+    // https://www.curseforge.com/minecraft/mc-mods/modular-routers/files/all?page=1&pageSize=20&version=1.21.1
+    modCompileOnly("curse.maven:modular-routers-250294:6130459")
 
     // Integrated Dynamics
-    modCompileOnly("curse.maven:integrated-dynamics-236307:5297722")
-    modCompileOnly("curse.maven:cyclops-core-232758:5262063")
-    modCompileOnly("curse.maven:common-capabilities-247007:4987207")
+    // https://www.curseforge.com/minecraft/mc-mods/integrated-dynamics/files/all?page=1&pageSize=20&version=1.21.1
+    modCompileOnly("curse.maven:integrated-dynamics-236307:6250036")
+    modCompileOnly("curse.maven:cyclops-core-232758:6230091")
+    modCompileOnly("curse.maven:common-capabilities-247007:5980086")
 
     // Mekanism
-    modCompileOnly ("curse.maven:mekanism-268560:4644795")
+    modCompileOnly ("curse.maven:mekanism-268560:6242484")
 
-    // Add Kotlin for Forge (3.12.0)
+    // Kotlin for Forge
     forgeRuntimeLibrary("maven.modrinth:kotlin-for-forge:${kotlin_version}")
 
     // Cloth for config
@@ -204,7 +212,7 @@ remapJar {
 }
 
 compileKotlin {
-    kotlinOptions.jvmTarget = '17'
+    kotlinOptions.jvmTarget = '21'
 }
 
 jar {
