@@ -1,7 +1,7 @@
 package org.valkyrienskies.mod.mixin.mod_compat.sodium;
 
-import me.jellysquid.mods.sodium.client.model.quad.properties.ModelQuadFacing;
-import me.jellysquid.mods.sodium.client.render.chunk.DefaultChunkRenderer;
+import net.caffeinemc.mods.sodium.client.model.quad.properties.ModelQuadFacing;
+import net.caffeinemc.mods.sodium.client.render.chunk.DefaultChunkRenderer;
 import net.minecraft.client.Minecraft;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;

@@ -13,6 +13,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult.Type;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.CollisionContext;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Final;
@@ -71,7 +72,7 @@ public abstract class MixinExplosion {
                         new ClipContext(Vec3.atCenterOf(explodePos),
                             Vec3.atCenterOf(explodePos.offset(x, y, z)),
                             ClipContext.Block.COLLIDER,
-                            ClipContext.Fluid.NONE, null));
+                            ClipContext.Fluid.NONE, CollisionContext.empty()));
                     if (result.getType() == Type.BLOCK) {
                         final BlockPos blockPos = result.getBlockPos();
                         final ServerShip ship =

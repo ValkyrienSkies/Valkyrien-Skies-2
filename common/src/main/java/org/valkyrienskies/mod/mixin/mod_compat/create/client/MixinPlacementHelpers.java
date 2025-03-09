@@ -1,7 +1,7 @@
 package org.valkyrienskies.mod.mixin.mod_compat.create.client;
 
-import com.simibubi.create.foundation.placement.PlacementHelpers;
-import com.simibubi.create.foundation.utility.VecHelper;
+import net.createmod.catnip.math.VecHelper;
+import net.createmod.catnip.placement.IPlacementHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.Vec3i;
 import net.minecraft.world.level.Level;
@@ -14,9 +14,9 @@ import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
-@Mixin(PlacementHelpers.class)
+@Mixin(IPlacementHelper.class)
 public class MixinPlacementHelpers {
-    @Redirect(method = "drawDirectionIndicator", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/foundation/utility/VecHelper;getCenterOf(Lnet/minecraft/core/Vec3i;)Lnet/minecraft/world/phys/Vec3;"))
+    @Redirect(method = "orderedByDistance(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/phys/Vec3;Ljava/util/Collection;)Ljava/util/List;", at = @At(value = "INVOKE", target = "Lnet/createmod/catnip/math/VecHelper;getCenterOf(Lnet/minecraft/core/Vec3i;)Lnet/minecraft/world/phys/Vec3;"))
     private static Vec3 redirectGetCenterOf(Vec3i pos) {
         Vec3 result = VecHelper.getCenterOf(pos);
         Level world = Minecraft.getInstance().level;

@@ -1,6 +1,6 @@
 package org.valkyrienskies.mod.mixinducks;
 
-import com.jozufozu.flywheel.backend.RenderLayer;
+import net.minecraft.client.renderer.entity.layers.RenderLayer;
 import org.joml.Matrix4f;
 
 public interface MixinInstancingEngineDuck {

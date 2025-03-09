@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.mod_compat.optifine_vanilla;
 
+/*
 import static org.valkyrienskies.mod.common.VSClientGameUtils.transformRenderWithShip;
 
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -29,6 +30,7 @@ import org.valkyrienskies.mod.mixinducks.client.world.ClientChunkCacheDuck;
 /**
  * This mixin allows {@link LevelRenderer} to render ship chunks.
  */
+/*
 @Mixin(LevelRenderer.class)
 public abstract class MixinLevelRenderer {
 
@@ -40,6 +42,7 @@ public abstract class MixinLevelRenderer {
     /**
      * Prevents ships from disappearing on f3+a
      */
+/*
     @Inject(
         method = "allChanged",
         at = @At(
@@ -57,10 +60,12 @@ public abstract class MixinLevelRenderer {
             }
         });
     }
+ */
 
     /**
      * This mixin makes {@link BlockEntity} in the ship render in the correct place.
      */
+    /*
     @Redirect(method = "renderLevel", at = @At(value = "INVOKE",
         target = "Lnet/minecraft/client/renderer/blockentity/BlockEntityRenderDispatcher;render(Lnet/minecraft/world/level/block/entity/BlockEntity;FLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;)V"))
     private void renderShipChunkBlockEntity(final BlockEntityRenderDispatcher blockEntityRenderDispatcher,
@@ -84,3 +89,4 @@ public abstract class MixinLevelRenderer {
         blockEntityRenderDispatcher.render(blockEntity, tickDelta, matrix, vertexConsumerProvider);
     }
 }
+ */

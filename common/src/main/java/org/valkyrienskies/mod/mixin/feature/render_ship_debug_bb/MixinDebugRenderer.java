@@ -1,7 +1,6 @@
 package org.valkyrienskies.mod.mixin.feature.render_ship_debug_bb;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.Tesselator;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.LevelRenderer;
@@ -33,10 +32,8 @@ public class MixinDebugRenderer {
      * <p>They get rendered in the same pass as entities.
      */
     @Inject(method = "render", at = @At("HEAD"))
-    private void postRender(final PoseStack matrices, final MultiBufferSource.BufferSource vertexConsumersIgnore,
+    private void postRender(final PoseStack matrices, final MultiBufferSource.BufferSource bufferSource,
         final double cameraX, final double cameraY, final double cameraZ, final CallbackInfo ci) {
-        final MultiBufferSource.BufferSource bufferSource =
-            MultiBufferSource.immediate(Tesselator.getInstance().getBuilder());
         final ClientLevel world = Minecraft.getInstance().level;
         final ClientShipWorldCore shipObjectClientWorld = VSGameUtilsKt.getShipObjectWorld(world);
 

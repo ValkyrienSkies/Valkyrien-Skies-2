@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.mod_compat.create_utilities;
 
+/*
 import me.duquee.createutilities.blocks.voidtypes.VoidLinkBehaviour;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
@@ -14,9 +15,11 @@ import org.valkyrienskies.mod.mixin.mod_compat.create.behaviour.MixinLinkBehavio
 @Mixin(VoidLinkBehaviour.class)
 public class MixinVoidLinkBehaviour {
 
+    */
     /**
      * Identical to {@link MixinLinkBehaviour} but for Create: Utilities Void link
      */
+    /*
     @Redirect(
             method = "testHit",
             at = @At(
@@ -47,3 +50,4 @@ public class MixinVoidLinkBehaviour {
     }
 
 }
+ */

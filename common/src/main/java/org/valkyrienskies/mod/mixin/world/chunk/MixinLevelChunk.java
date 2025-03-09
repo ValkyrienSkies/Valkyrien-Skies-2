@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Set;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
@@ -14,11 +15,11 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.chunk.ProtoChunk;
 import net.minecraft.world.level.chunk.storage.ChunkSerializer;
+import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.Heightmap.Types;
 import net.minecraft.world.level.material.Fluid;
@@ -111,8 +112,9 @@ public abstract class MixinLevelChunk extends ChunkAccess implements VSLevelChun
         final LevelChunk srcChunk = (LevelChunk) srcChunkVS;
         final CompoundTag compoundTag = ChunkSerializer.write((ServerLevel) srcChunk.getLevel(), srcChunk);
         // Set status to be ProtoChunk to fix block entities not saving
-        compoundTag.putString("Status", ChunkStatus.ChunkType.PROTOCHUNK.name());
-        final ProtoChunk protoChunk = ChunkSerializer.read((ServerLevel) level, ((ServerLevel) level).getPoiManager(), chunkPos, compoundTag);
+        compoundTag.putString("Status", BuiltInRegistries.CHUNK_STATUS.getKey(this.getPersistedStatus()).toString());
+        final RegionStorageInfo dummyInfo = new RegionStorageInfo("dummy", level.dimension(), "dummy");
+        final ProtoChunk protoChunk = ChunkSerializer.read((ServerLevel) level, ((ServerLevel) level).getPoiManager(), dummyInfo, chunkPos, compoundTag);
 
         this.blockTicks = protoChunk.unpackBlockTicks();
         this.fluidTicks = protoChunk.unpackFluidTicks();

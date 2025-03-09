@@ -3,18 +3,17 @@ package org.valkyrienskies.mod.mixin.mod_compat.sodium;
 import java.util.ArrayDeque;
 import java.util.Map;
 import java.util.WeakHashMap;
-import me.jellysquid.mods.sodium.client.render.chunk.ChunkUpdateType;
-import me.jellysquid.mods.sodium.client.render.chunk.RenderSection;
-import me.jellysquid.mods.sodium.client.render.chunk.RenderSectionManager;
-import me.jellysquid.mods.sodium.client.render.chunk.lists.SortedRenderLists;
-import me.jellysquid.mods.sodium.client.render.chunk.lists.VisibleChunkCollector;
-import me.jellysquid.mods.sodium.client.render.viewport.Viewport;
+import net.caffeinemc.mods.sodium.client.render.chunk.ChunkUpdateType;
+import net.caffeinemc.mods.sodium.client.render.chunk.RenderSection;
+import net.caffeinemc.mods.sodium.client.render.chunk.RenderSectionManager;
+import net.caffeinemc.mods.sodium.client.render.chunk.lists.SortedRenderLists;
+import net.caffeinemc.mods.sodium.client.render.chunk.lists.VisibleChunkCollector;
+import net.caffeinemc.mods.sodium.client.render.viewport.Viewport;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
-import org.joml.primitives.AABBd;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -50,25 +49,24 @@ public abstract class MixinRenderSectionManager implements RenderSectionManagerD
 
     @Shadow
     @Final
-    private ClientLevel world;
+    private ClientLevel level;
 
     @Shadow
     protected abstract RenderSection getRenderSection(int x, int y, int z);
 
     @Shadow
-    private Map<ChunkUpdateType, ArrayDeque<RenderSection>> rebuildLists;
+    private Map<ChunkUpdateType, ArrayDeque<RenderSection>> taskLists;
 
     @Inject(at = @At("TAIL"), method = "createTerrainRenderList")
-    private void afterIterateChunks(final Camera camera, final Viewport viewport, final int frame,
-        final boolean spectator, final CallbackInfo ci) {
+    private void afterIterateChunks(Camera camera, Viewport viewport, int frame, boolean spectator, CallbackInfo ci) {
         for (final ClientShip ship : VSGameUtilsKt.getShipObjectWorld(Minecraft.getInstance()).getLoadedShips()) {
             final VisibleChunkCollector collector = new VisibleChunkCollector(frame);
 
             ship.getActiveChunksSet().forEach((x, z) -> {
-                final LevelChunk levelChunk = world.getChunk(x, z);
-                for (int y = world.getMinSection(); y < world.getMaxSection(); y++) {
+                final LevelChunk levelChunk = level.getChunk(x, z);
+                for (int y = level.getMinSection(); y < level.getMaxSection(); y++) {
                     // If the chunk section is empty then skip it
-                    final LevelChunkSection levelChunkSection = levelChunk.getSection(y - world.getMinSection());
+                    final LevelChunkSection levelChunkSection = levelChunk.getSection(y - level.getMinSection());
                     if (levelChunkSection.hasOnlyAir()) {
                         continue;
                     }
@@ -80,15 +78,15 @@ public abstract class MixinRenderSectionManager implements RenderSectionManagerD
                         continue;
                     }
 
-                    collector.visit(section, true);
+                    collector.visit(section);
                 }
             });
 
-            shipRenderLists.put(ship, collector.createRenderLists());
+            shipRenderLists.put(ship, collector.createRenderLists(viewport));
 
             // merge rebuild lists
             for (final var entry : collector.getRebuildLists().entrySet()) {
-                this.rebuildLists.get(entry.getKey()).addAll(entry.getValue());
+                this.taskLists.get(entry.getKey()).addAll(entry.getValue());
             }
         }
     }

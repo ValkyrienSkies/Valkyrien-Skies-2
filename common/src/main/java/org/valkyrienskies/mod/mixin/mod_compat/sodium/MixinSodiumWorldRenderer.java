@@ -1,15 +1,16 @@
 package org.valkyrienskies.mod.mixin.mod_compat.sodium;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import com.llamalad7.mixinextras.sugar.ref.LocalBooleanRef;
 import com.mojang.blaze3d.vertex.PoseStack;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import java.util.SortedSet;
-import me.jellysquid.mods.sodium.client.render.SodiumWorldRenderer;
-import me.jellysquid.mods.sodium.client.render.chunk.RenderSectionManager;
-import me.jellysquid.mods.sodium.client.render.chunk.lists.SortedRenderLists;
+import net.caffeinemc.mods.sodium.client.render.SodiumWorldRenderer;
+import net.caffeinemc.mods.sodium.client.render.chunk.RenderSectionManager;
+import net.caffeinemc.mods.sodium.client.render.chunk.lists.SortedRenderLists;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.MultiBufferSource.BufferSource;
 import net.minecraft.client.renderer.RenderBuffers;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
 import net.minecraft.core.BlockPos;
@@ -32,7 +33,7 @@ import org.valkyrienskies.mod.mixinducks.mod_compat.sodium.RenderSectionManagerD
 public abstract class MixinSodiumWorldRenderer {
 
     @Shadow
-    private ClientLevel world;
+    private ClientLevel level;
 
     @Shadow
     private RenderSectionManager renderSectionManager;
@@ -65,35 +66,31 @@ public abstract class MixinSodiumWorldRenderer {
     }
 
     @Shadow
-    protected abstract void renderBlockEntities(PoseStack matrices, RenderBuffers bufferBuilders,
-        Long2ObjectMap<SortedSet<BlockDestructionProgress>> blockBreakingProgressions, float tickDelta,
-        BufferSource immediate, double x, double y, double z, BlockEntityRenderDispatcher blockEntityRenderer);
+    protected abstract void renderBlockEntities(PoseStack matrices, RenderBuffers bufferBuilders, Long2ObjectMap<SortedSet<BlockDestructionProgress>> blockBreakingProgressions, float tickDelta, MultiBufferSource.BufferSource immediate, double x, double y, double z, BlockEntityRenderDispatcher blockEntityRenderer, LocalPlayer player, LocalBooleanRef isGlowing);
 
     @Redirect(
-        method = "renderBlockEntities(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/RenderBuffers;Lit/unimi/dsi/fastutil/longs/Long2ObjectMap;Lnet/minecraft/client/Camera;F)V",
-        at = @At(value = "INVOKE", target = "Lme/jellysquid/mods/sodium/client/render/SodiumWorldRenderer;renderBlockEntities(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/RenderBuffers;Lit/unimi/dsi/fastutil/longs/Long2ObjectMap;FLnet/minecraft/client/renderer/MultiBufferSource$BufferSource;DDDLnet/minecraft/client/renderer/blockentity/BlockEntityRenderDispatcher;)V")
+        method = "renderBlockEntities(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/RenderBuffers;Lit/unimi/dsi/fastutil/longs/Long2ObjectMap;Lnet/minecraft/client/Camera;FLcom/llamalad7/mixinextras/sugar/ref/LocalBooleanRef;)V",
+        at = @At(value = "INVOKE", target = "Lnet/caffeinemc/mods/sodium/client/render/SodiumWorldRenderer;renderBlockEntities(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/RenderBuffers;Lit/unimi/dsi/fastutil/longs/Long2ObjectMap;FLnet/minecraft/client/renderer/MultiBufferSource$BufferSource;DDDLnet/minecraft/client/renderer/blockentity/BlockEntityRenderDispatcher;Lnet/minecraft/client/player/LocalPlayer;Lcom/llamalad7/mixinextras/sugar/ref/LocalBooleanRef;)V")
     )
-    public void renderShipBlockEntities(final SodiumWorldRenderer instance, final PoseStack matrices,
-        final RenderBuffers bufferBuilders,
-        final Long2ObjectMap<SortedSet<BlockDestructionProgress>> blockBreakingProgressions, final float tickDelta,
-        final MultiBufferSource.BufferSource immediate, final double x, final double y, final double z,
-        final BlockEntityRenderDispatcher blockEntityRenderer) {
+    public void renderShipBlockEntities(SodiumWorldRenderer instance, PoseStack matrices,
+        RenderBuffers bufferBuilders, Long2ObjectMap<SortedSet<BlockDestructionProgress>> blockBreakingProgressions,
+        float tickDelta, MultiBufferSource.BufferSource immediate, double x, double y, double z,
+        BlockEntityRenderDispatcher blockEntityRenderer, LocalPlayer player, LocalBooleanRef isGlowing) {
 
-
-        renderBlockEntities(matrices, bufferBuilders, blockBreakingProgressions, tickDelta, immediate, x, y, z, blockEntityRenderer);
+        renderBlockEntities(matrices, bufferBuilders, blockBreakingProgressions, tickDelta, immediate, x, y, z, blockEntityRenderer, player, isGlowing);
 
         for (final SortedRenderLists renderLists : ((RenderSectionManagerDuck) this.renderSectionManager).vs_getShipRenderLists().values()) {
             this.currentRenderLists = renderLists;
-            renderBlockEntities(matrices, bufferBuilders, blockBreakingProgressions, tickDelta, immediate, x, y, z, blockEntityRenderer);
+            renderBlockEntities(matrices, bufferBuilders, blockBreakingProgressions, tickDelta, immediate, x, y, z, blockEntityRenderer, player, isGlowing);
         }
 
         this.currentRenderLists = null;
     }
 
     @ModifyExpressionValue(
-        method = "renderBlockEntities(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/RenderBuffers;Lit/unimi/dsi/fastutil/longs/Long2ObjectMap;FLnet/minecraft/client/renderer/MultiBufferSource$BufferSource;DDDLnet/minecraft/client/renderer/blockentity/BlockEntityRenderDispatcher;)V",
+        method = "renderBlockEntities(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/RenderBuffers;Lit/unimi/dsi/fastutil/longs/Long2ObjectMap;FLnet/minecraft/client/renderer/MultiBufferSource$BufferSource;DDDLnet/minecraft/client/renderer/blockentity/BlockEntityRenderDispatcher;Lnet/minecraft/client/player/LocalPlayer;Lcom/llamalad7/mixinextras/sugar/ref/LocalBooleanRef;)V",
         at = @At(value = "INVOKE",
-            target = "Lme/jellysquid/mods/sodium/client/render/chunk/RenderSectionManager;getRenderLists()Lme/jellysquid/mods/sodium/client/render/chunk/lists/SortedRenderLists;")
+            target = "Lnet/caffeinemc/mods/sodium/client/render/chunk/RenderSectionManager;getRenderLists()Lnet/caffeinemc/mods/sodium/client/render/chunk/lists/SortedRenderLists;")
     )
     private SortedRenderLists redirectGetRenderLists(final SortedRenderLists original) {
         if (currentRenderLists != null) {
@@ -123,7 +120,7 @@ public abstract class MixinSodiumWorldRenderer {
      */
     @Inject(method = "isEntityVisible", at = @At("HEAD"), cancellable = true)
     private void isEntityVisible(final Entity entity, final CallbackInfoReturnable<Boolean> cir) {
-        if (VSGameUtilsKt.isBlockInShipyard(world, entity.position())) {
+        if (VSGameUtilsKt.isBlockInShipyard(level, entity.position())) {
             cir.setReturnValue(true);
         }
     }

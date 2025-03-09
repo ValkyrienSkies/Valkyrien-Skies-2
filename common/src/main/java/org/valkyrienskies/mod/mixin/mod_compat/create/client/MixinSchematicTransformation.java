@@ -1,10 +1,11 @@
 package org.valkyrienskies.mod.mixin.mod_compat.create.client;
 
-import com.jozufozu.flywheel.util.transform.TransformStack;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.simibubi.create.content.schematics.client.SchematicTransformation;
-import com.simibubi.create.foundation.utility.AnimationTickHolder;
-import com.simibubi.create.foundation.utility.VecHelper;
+import dev.engine_room.flywheel.lib.transform.PoseTransformStack;
+import dev.engine_room.flywheel.lib.transform.Translate;
+import net.createmod.catnip.animation.AnimationTickHolder;
+import net.createmod.catnip.math.VecHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.Vec3;
@@ -36,12 +37,12 @@ public abstract class MixinSchematicTransformation {
             method = {"applyTransformations(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/world/phys/Vec3;)V"},
             at = @At(
                     value = "INVOKE",
-                    target = "Lcom/jozufozu/flywheel/util/transform/TransformStack;translate(Lnet/minecraft/world/phys/Vec3;)Ljava/lang/Object;",
+                    target = "Ldev/engine_room/flywheel/lib/transform/PoseTransformStack;translate(Lnet/minecraft/world/phys/Vec3;)Ldev/engine_room/flywheel/lib/transform/Translate;",
                     ordinal = 0
             )
     )
-    private Object redirectTranslate(TransformStack instance, Vec3 orig) {
-        PoseStack ms = (PoseStack)instance;
+    private Translate redirectTranslate(PoseTransformStack instance, Vec3 orig) {
+        PoseStack ms = instance.unwrap();
         Ship ship = VSGameUtilsKt.getShipObjectManagingPos(Minecraft.getInstance().level, target.getX(), target.getY(), target.getZ());
 
         if (ship != null) {
