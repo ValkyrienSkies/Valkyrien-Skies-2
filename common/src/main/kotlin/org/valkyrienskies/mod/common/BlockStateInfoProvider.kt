@@ -36,7 +36,7 @@ object BlockStateInfo {
 
     // registry for mods to add their weights
     val REGISTRY = MappedRegistry<BlockStateInfoProvider>(
-        ResourceKey.createRegistryKey(ResourceLocation(ValkyrienSkiesMod.MOD_ID, "blockstate_providers")),
+        ResourceKey.createRegistryKey(ResourceLocation.fromNamespaceAndPath(ValkyrienSkiesMod.MOD_ID, "blockstate_providers")),
         Lifecycle.experimental()
     )
 
@@ -44,9 +44,9 @@ object BlockStateInfo {
 
     // init { doesn't work since the class gets loaded too late
     fun init() {
-        Registry.register(REGISTRY, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "data"), MassDatapackResolver)
+        Registry.register(REGISTRY, ResourceLocation.fromNamespaceAndPath(ValkyrienSkiesMod.MOD_ID, "data"), MassDatapackResolver)
         Registry.register(
-            REGISTRY, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "default"), DefaultBlockStateInfoProvider
+            REGISTRY, ResourceLocation.fromNamespaceAndPath(ValkyrienSkiesMod.MOD_ID, "default"), DefaultBlockStateInfoProvider
         )
 
         VSGameEvents.registriesCompleted.on { _, _ -> SORTED_REGISTRY = REGISTRY.sortedByDescending { it.priority } }

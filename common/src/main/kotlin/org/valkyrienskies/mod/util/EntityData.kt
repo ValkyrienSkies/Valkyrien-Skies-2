@@ -9,9 +9,6 @@ import kotlin.reflect.KProperty
 inline fun <reified T : Entity, R> defineSynced(serializer: EntityDataSerializer<R>) =
     EntityDataDelegate(SynchedEntityData.defineId(T::class.java, serializer))
 
-fun <T> Entity.registerSynced(property: EntityDataDelegate<T>, default: T) =
-    this.entityData.define(property.data, default)
-
 class EntityDataDelegate<T>(val data: EntityDataAccessor<T>) {
 
     fun get(thisRef: Entity?): T? {

@@ -84,7 +84,7 @@ fun getResourceKey(dimensionId: DimensionId): ResourceKey<Level> {
     if (cached == null) {
         val (registryNamespace, registryName, namespace, name) = dimensionId.split(":")
         val toReturn: ResourceKey<Level> = ResourceKeyAccessor.callCreate(
-            ResourceLocation(registryNamespace, registryName), ResourceLocation(namespace, name)
+            ResourceLocation.fromNamespaceAndPath(registryNamespace, registryName), ResourceLocation.fromNamespaceAndPath(namespace, name)
         )
         levelResourceKeyMap[dimensionId] = toReturn
         return toReturn
@@ -454,8 +454,10 @@ fun getShipMountedToData(passenger: Entity, partialTicks: Float? = null): ShipMo
         return vehicle.provideShipMountedToData(passenger, partialTicks)
     }
     val shipObjectEntityMountedTo = passenger.level().getShipObjectManagingPos(vehicle.position().toJOML()) ?: return null
-    val mountedPosInShip: Vector3dc = vehicle.getPosition(partialTicks ?: 0.0f)
-        .add(0.0, vehicle.passengersRidingOffset + passenger.myRidingOffset, 0.0).toJOML()
+
+    val mountedPosInShip: Vector3dc = vehicle.getPassengerRidingPosition(passenger)
+        .subtract(passenger.getVehicleAttachmentPoint(vehicle))
+        .toJOML()
 
     return ShipMountedToData(shipObjectEntityMountedTo, mountedPosInShip)
 }

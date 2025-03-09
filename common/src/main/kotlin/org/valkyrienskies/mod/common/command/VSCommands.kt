@@ -7,7 +7,8 @@ import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.builder.RequiredArgumentBuilder
 import com.mojang.brigadier.context.CommandContext
-import net.minecraft.commands.CommandRuntimeException
+import com.mojang.brigadier.exceptions.CommandSyntaxException
+import com.mojang.brigadier.exceptions.SimpleCommandExceptionType
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.arguments.EntityArgument
 import net.minecraft.commands.arguments.coordinates.BlockPosArgument
@@ -49,6 +50,8 @@ object VSCommands {
     private fun <T> argument(name: String, type: ArgumentType<T>) =
         RequiredArgumentBuilder.argument<VSCommandSource, T>(name, type)
 
+    // TODO: Re-enable
+    /*
     fun registerServerCommands(dispatcher: CommandDispatcher<CommandSourceStack>) {
         dispatcher as CommandDispatcher<VSCommandSource>
 
@@ -61,7 +64,7 @@ object VSCommands {
                         it.source.sendVSMessage(translatable(DELETED_SHIPS_MESSAGE, r.size))
                         r.size
                     } catch (e: Exception) {
-                        if (e !is CommandRuntimeException) LOGGER.throwing(e)
+                        if (e !is CommandSyntaxException) LOGGER.throwing(e)
                         throw e
                     }
                 }))
@@ -82,7 +85,7 @@ object VSCommands {
                                     )
                                     r.size
                                 } catch (e: Exception) {
-                                    if (e !is CommandRuntimeException) LOGGER.throwing(e)
+                                    if (e !is CommandSyntaxException) LOGGER.throwing(e)
                                     throw e
                                 }
                             })
@@ -114,7 +117,7 @@ object VSCommands {
                                     )
                                     r.size
                                 } catch (e: Exception) {
-                                    if (e !is CommandRuntimeException) LOGGER.throwing(e)
+                                    if (e !is CommandSyntaxException) LOGGER.throwing(e)
                                     throw e
                                 }
                             }.then(
@@ -150,7 +153,7 @@ object VSCommands {
                                         )
                                         r.size
                                     } catch (e: Exception) {
-                                        if (e !is CommandRuntimeException) LOGGER.throwing(e)
+                                        if (e !is CommandSyntaxException) LOGGER.throwing(e)
                                         throw e
                                     }
                                 }.then(
@@ -192,7 +195,7 @@ object VSCommands {
                                             )
                                             r.size
                                         } catch (e: Exception) {
-                                            if (e !is CommandRuntimeException) LOGGER.throwing(e)
+                                            if (e !is CommandSyntaxException) LOGGER.throwing(e)
                                             throw e
                                         }
                                     }.then(
@@ -240,7 +243,7 @@ object VSCommands {
                                                 )
                                                 r.size
                                             } catch (e: Exception) {
-                                                if (e !is CommandRuntimeException) LOGGER.throwing(e)
+                                                if (e !is CommandSyntaxException) LOGGER.throwing(e)
                                                 throw e
                                             }
                                         }
@@ -280,7 +283,7 @@ object VSCommands {
                             0
                         }
                     } catch (e: Exception) {
-                        if (e !is CommandRuntimeException) LOGGER.throwing(e)
+                        if (e !is CommandSyntaxException) LOGGER.throwing(e)
                         throw e
                     }
                 })
@@ -299,7 +302,7 @@ object VSCommands {
                                     )
                                     1
                                 } catch (e: Exception) {
-                                    if (e !is CommandRuntimeException) LOGGER.throwing(e)
+                                    if (e !is CommandSyntaxException) LOGGER.throwing(e)
                                     throw e
                                 }
                             })
@@ -316,7 +319,7 @@ object VSCommands {
                                                 )
                                                 1
                                             } catch (e: Exception) {
-                                                if (e !is CommandRuntimeException) LOGGER.throwing(e)
+                                                if (e !is CommandSyntaxException) LOGGER.throwing(e)
                                                 throw e
                                             }
                                         })
@@ -335,7 +338,7 @@ object VSCommands {
                                             )
                                             1
                                         } catch (e: Exception) {
-                                            if (e !is CommandRuntimeException) LOGGER.throwing(e)
+                                            if (e !is CommandSyntaxException) LOGGER.throwing(e)
                                             throw e
                                         }
                                     })
@@ -349,7 +352,8 @@ object VSCommands {
             addChild(
                 argument("ships", ShipArgument.selectorOnly()).executes {
                     val serverShips = ShipArgument.getShips(it, "ships").toList() as List<ServerShip>
-                    val serverShip = serverShips.singleOrNull() ?: throw CommandRuntimeException(
+                    val serverShip = serverShips.singleOrNull() ?: throw CommandSyntaxException(
+                        SimpleCommandExceptionType(translatable(TELEPORT_FIRST_ARG_CAN_ONLY_INPUT_1_SHIP)),
                         translatable(TELEPORT_FIRST_ARG_CAN_ONLY_INPUT_1_SHIP)
                     )
                     val source = it.source as CommandSourceStack
@@ -406,6 +410,7 @@ object VSCommands {
             )
         }
     }
+    */
 
     fun registerClientCommands(dispatcher: CommandDispatcher<CommandSourceStack>) {
         // TODO implement client commands

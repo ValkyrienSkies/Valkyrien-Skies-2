@@ -108,7 +108,7 @@ public class MixinMyBuiltChunkStorage extends ViewArea implements IVSViewAreaMet
     }
 
     @Override
-    public void unloadChunk(final int chunkX, final int chunkZ) {
+    public void valkyrienskies$unloadChunk(final int chunkX, final int chunkZ) {
         if (VSGameUtilsKt.isChunkInShipyard(level, chunkX, chunkZ)) {
             final ChunkRenderDispatcher.RenderChunk[] chunks =
                 vs$shipRenderChunks.remove(ChunkPos.asLong(chunkX, chunkZ));

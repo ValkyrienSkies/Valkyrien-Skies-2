@@ -83,7 +83,7 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
             vs$shipChunks.remove(ChunkPos.asLong(chunkX, chunkZ));
             if (ValkyrienCommonMixinConfigPlugin.getVSRenderer() != VSRenderer.SODIUM) {
                 ((IVSViewAreaMethods) ((LevelRendererAccessor) ((ClientLevelAccessor) level).getLevelRenderer()).getViewArea())
-                    .unloadChunk(chunkX, chunkZ);
+                    .valkyrienskies$unloadChunk(chunkX, chunkZ);
             }
             SodiumCompat.onChunkRemoved(this.level, chunkX, chunkZ);
             ci.cancel();

@@ -1,8 +1,6 @@
 accessWidener	v1	named
 
 # Only put classes in here. For everything else use Accessor mixins
-# For Rendering
-accessible	class	net/minecraft/client/renderer/LevelRenderer$RenderChunkInfo
 
 # For ChunkMap
 accessible	class	net/minecraft/client/multiplayer/ClientChunkCache$Storage
@@ -11,13 +9,7 @@ accessible	class	net/minecraft/client/multiplayer/ClientChunkCache$Storage
 accessible  class   net/minecraft/server/level/ChunkMap$TrackedEntity
 
 # For seamless chunk copies
-accessible  class   net/minecraft/client/renderer/chunk/ChunkRenderDispatcher$RenderChunk$RebuildTask
-accessible  class   net/minecraft/client/renderer/chunk/ChunkRenderDispatcher$RenderChunk$ChunkCompileTask
-accessible  class   net/minecraft/client/renderer/chunk/ChunkRenderDispatcher$ChunkTaskResult
-
-accessible  class   net/minecraft/client/renderer/LevelRenderer$RenderChunkStorage
-
-accessible field    net/minecraft/client/renderer/LevelRenderer$RenderChunkInfo  chunk    Lnet/minecraft/client/renderer/chunk/ChunkRenderDispatcher$RenderChunk;
+accessible  class   net/minecraft/client/renderer/chunk/SectionRenderDispatcher$RenderSection$RebuildTask
 
 # For modifying BlockHitResult.location
 # Remove final

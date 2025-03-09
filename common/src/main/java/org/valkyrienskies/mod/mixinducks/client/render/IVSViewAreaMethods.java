@@ -1,5 +1,5 @@
 package org.valkyrienskies.mod.mixinducks.client.render;
 
 public interface IVSViewAreaMethods {
-    void unloadChunk(int chunkX, int chunkZ);
+    void valkyrienskies$unloadChunk(int chunkX, int chunkZ);
 }

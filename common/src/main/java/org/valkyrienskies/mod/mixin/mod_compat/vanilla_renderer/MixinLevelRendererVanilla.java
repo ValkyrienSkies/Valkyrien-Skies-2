@@ -15,11 +15,10 @@ import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.LevelRenderer;
-import net.minecraft.client.renderer.LevelRenderer.RenderChunkInfo;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.client.renderer.ViewArea;
-import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
+import net.minecraft.client.renderer.chunk.SectionRenderDispatcher;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
@@ -45,23 +44,20 @@ import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.hooks.VSGameEvents;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
-import org.valkyrienskies.mod.compat.VSRenderer;
-import org.valkyrienskies.mod.mixin.ValkyrienCommonMixinConfigPlugin;
 import org.valkyrienskies.mod.mixin.accessors.client.render.ViewAreaAccessor;
-import org.valkyrienskies.mod.mixin.mod_compat.optifine.RenderChunkInfoAccessorOptifine;
 import org.valkyrienskies.mod.mixinducks.client.render.LevelRendererVanillaDuck;
 
 @Mixin(value = LevelRenderer.class, priority = 999)
 public abstract class MixinLevelRendererVanilla implements LevelRendererVanillaDuck {
     @Unique
-    private final WeakHashMap<ClientShip, ObjectArrayList<RenderChunkInfo>> shipRenderChunks = new WeakHashMap<>();
+    private final WeakHashMap<ClientShip, ObjectArrayList<SectionRenderDispatcher.RenderSection>> vs$shipRenderChunks = new WeakHashMap<>();
     @Shadow
     private ClientLevel level;
 
     @Shadow
     @Final
     @Mutable
-    private ObjectArrayList<RenderChunkInfo> renderChunksInFrustum;
+    private ObjectArrayList<SectionRenderDispatcher.RenderSection> visibleSections;
 
     @Shadow
     private @Nullable ViewArea viewArea;
@@ -70,13 +66,13 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererVanillaD
     private Minecraft minecraft;
 
     @Unique
-    private ObjectArrayList<RenderChunkInfo> renderChunksGeneratedByVanilla = new ObjectArrayList<>();
+    private ObjectArrayList<SectionRenderDispatcher.RenderSection> vs$renderChunksGeneratedByVanilla = new ObjectArrayList<>();
 
     /**
      * Fix the distance to render chunks, so that MC doesn't think ship chunks are too far away
      */
     @Redirect(
-        method = "compileChunks",
+        method = "compileSections",
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/core/BlockPos;distSqr(Lnet/minecraft/core/Vec3i;)D"
@@ -95,7 +91,7 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererVanillaD
     @ModifyExpressionValue(
         at = @At(
             value = "INVOKE",
-            target = "Ljava/util/concurrent/atomic/AtomicBoolean;compareAndSet(ZZ)Z"
+            target = "Lnet/minecraft/client/renderer/SectionOcclusionGraph;consumeFrustumUpdate()Z"
         ),
         method = "setupRender"
     )
@@ -121,7 +117,7 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererVanillaD
 
     @Override
     public void vs$addShipVisibleChunks(final Frustum frustum) {
-        renderChunksGeneratedByVanilla = new ObjectArrayList<>(renderChunksInFrustum);
+        vs$renderChunksGeneratedByVanilla = new ObjectArrayList<>(visibleSections);
 
         final BlockPos.MutableBlockPos tempPos = new BlockPos.MutableBlockPos();
         final ViewAreaAccessor chunkStorageAccessor = (ViewAreaAccessor) viewArea;
@@ -135,8 +131,8 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererVanillaD
                 final LevelChunk levelChunk = level.getChunk(x, z);
                 for (int y = level.getMinSection(); y < level.getMaxSection(); y++) {
                     tempPos.set(x << 4, y << 4, z << 4);
-                    final ChunkRenderDispatcher.RenderChunk renderChunk =
-                        chunkStorageAccessor.callGetRenderChunkAt(tempPos);
+                    final SectionRenderDispatcher.RenderSection renderChunk =
+                        chunkStorageAccessor.callGetRenderSectionAt(tempPos);
                     if (renderChunk != null) {
                         // If the chunk section is empty then skip it
                         final LevelChunkSection levelChunkSection = levelChunk.getSection(y - level.getMinSection());
@@ -153,16 +149,8 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererVanillaD
                             continue;
                         }
 
-                        final LevelRenderer.RenderChunkInfo newChunkInfo;
-                        if (ValkyrienCommonMixinConfigPlugin.getVSRenderer() == VSRenderer.OPTIFINE) {
-                            newChunkInfo =
-                                RenderChunkInfoAccessorOptifine.vs$new(renderChunk, null, 0);
-                        } else {
-                            newChunkInfo =
-                                RenderChunkInfoAccessor.vs$new(renderChunk, null, 0);
-                        }
-                        shipRenderChunks.computeIfAbsent(shipObject, k -> new ObjectArrayList<>()).add(newChunkInfo);
-                        renderChunksInFrustum.add(newChunkInfo);
+                        vs$shipRenderChunks.computeIfAbsent(shipObject, k -> new ObjectArrayList<>()).add(renderChunk);
+                        visibleSections.add(renderChunk);
                     }
                 }
             });
@@ -177,30 +165,39 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererVanillaD
         )
     )
     private void clearShipChunks(final CallbackInfo ci) {
-        shipRenderChunks.forEach((ship, chunks) -> chunks.clear());
+        vs$shipRenderChunks.forEach((ship, chunks) -> chunks.clear());
     }
 
     @WrapOperation(
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/client/renderer/LevelRenderer;renderChunkLayer(Lnet/minecraft/client/renderer/RenderType;Lcom/mojang/blaze3d/vertex/PoseStack;DDDLorg/joml/Matrix4f;)V"
+            target = "Lnet/minecraft/client/renderer/LevelRenderer;renderSectionLayer(Lnet/minecraft/client/renderer/RenderType;DDDLorg/joml/Matrix4f;Lorg/joml/Matrix4f;)V"
         ),
         method = "renderLevel"
     )
-    private void redirectRenderChunkLayer(final LevelRenderer receiver,
-        final RenderType renderType, final PoseStack poseStack, final double camX, final double camY, final double camZ,
-        final Matrix4f matrix4f, final Operation<Void> renderChunkLayer) {
-
-        final var originalRenderChunks = renderChunksInFrustum;
-        renderChunksInFrustum = renderChunksGeneratedByVanilla;
-        renderChunkLayer.call(receiver, renderType, poseStack, camX, camY, camZ, matrix4f);
-        renderChunksInFrustum = originalRenderChunks;
+    private void redirectRenderChunkLayer(
+        final LevelRenderer receiver,
+        final RenderType renderType,
+        final double camX,
+        final double camY,
+        final double camZ,
+        final Matrix4f poseMatrix,
+        final Matrix4f projectionMatrix,
+        final Operation<Void> renderChunkLayer
+    ) {
+        final var originalRenderChunks = visibleSections;
+        visibleSections = vs$renderChunksGeneratedByVanilla;
+        renderChunkLayer.call(receiver, renderType, camX, camY, camZ, poseMatrix, projectionMatrix);
+        visibleSections = originalRenderChunks;
 
         VSGameEvents.INSTANCE.getShipsStartRendering().emit(new VSGameEvents.ShipStartRenderEvent(
-            receiver, renderType, poseStack, camX, camY, camZ, matrix4f
+            receiver, renderType, camX, camY, camZ, poseMatrix, projectionMatrix
         ));
 
-        shipRenderChunks.forEach((ship, chunks) -> {
+        PoseStack poseStack = new PoseStack();
+        poseStack.mulPose(poseMatrix);
+
+        vs$shipRenderChunks.forEach((ship, chunks) -> {
             poseStack.pushPose();
             final Vector3dc center = ship.getRenderTransform().getPositionInShip();
             VSClientGameUtils.transformRenderWithShip(ship.getRenderTransform(), poseStack,
@@ -208,11 +205,11 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererVanillaD
                 camX, camY, camZ);
 
             final var event = new VSGameEvents.ShipRenderEvent(
-                receiver, renderType, poseStack, camX, camY, camZ, matrix4f, ship, chunks
+                receiver, renderType, camX, camY, camZ, poseMatrix, projectionMatrix, ship, chunks
             );
 
             VSGameEvents.INSTANCE.getRenderShip().emit(event);
-            renderChunkLayer(renderType, poseStack, center.x(), center.y(), center.z(), matrix4f, chunks);
+            renderChunkLayer(renderType, poseStack, center.x(), center.y(), center.z(), poseMatrix, chunks);
             VSGameEvents.INSTANCE.getPostRenderShip().emit(event);
 
             poseStack.popPose();
@@ -223,7 +220,7 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererVanillaD
     @Unique
     private void renderChunkLayer(final RenderType renderType, final PoseStack poseStack, final double d,
         final double e, final double f,
-        final Matrix4f matrix4f, final ObjectList<RenderChunkInfo> chunksToRender) {
+        final Matrix4f matrix4f, final ObjectList<SectionRenderDispatcher.RenderSection> chunksToRender) {
         RenderSystem.assertOnRenderThread();
         renderType.setupRenderState();
         this.minecraft.getProfiler().push("filterempty");
@@ -288,9 +285,9 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererVanillaD
                 break;
             }
 
-            RenderChunkInfo renderChunkInfo2 = bl ? (RenderChunkInfo)objectListIterator.next() : (RenderChunkInfo)objectListIterator.previous();
-            ChunkRenderDispatcher.RenderChunk renderChunk = renderChunkInfo2.chunk;
-            if (!renderChunk.getCompiledChunk().isEmpty(renderType)) {
+            final SectionRenderDispatcher.RenderSection renderChunk = bl ? (SectionRenderDispatcher.RenderSection)objectListIterator.next() : (SectionRenderDispatcher.RenderSection)objectListIterator.previous();
+            final SectionRenderDispatcher.CompiledSection compiledSection = renderChunk.getCompiled();
+            if (!compiledSection.isEmpty(renderType)) {
                 VertexBuffer vertexBuffer = renderChunk.getBuffer(renderType);
                 BlockPos blockPos = renderChunk.getOrigin();
                 if (uniform != null) {

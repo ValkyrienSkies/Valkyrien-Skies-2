@@ -1,10 +1,9 @@
 package org.valkyrienskies.mod.common.hooks
 
-import com.mojang.blaze3d.vertex.PoseStack
 import it.unimi.dsi.fastutil.objects.ObjectList
 import net.minecraft.client.renderer.LevelRenderer
-import net.minecraft.client.renderer.LevelRenderer.RenderChunkInfo
 import net.minecraft.client.renderer.RenderType
+import net.minecraft.client.renderer.chunk.SectionRenderDispatcher
 import org.joml.Matrix4f
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.properties.ShipId
@@ -25,19 +24,23 @@ object VSGameEvents {
     data class ShipStartRenderEvent(
         val renderer: LevelRenderer,
         val renderType: RenderType,
-        val poseStack: PoseStack,
-        val camX: Double, val camY: Double, val camZ: Double,
-        val projectionMatrix: Matrix4f
+        val camX: Double,
+        val camY: Double,
+        val camZ: Double,
+        val poseMatrix: Matrix4f,
+        val projectionMatrix: Matrix4f,
     )
 
     data class ShipRenderEvent(
         val renderer: LevelRenderer,
         val renderType: RenderType,
-        val poseStack: PoseStack,
-        val camX: Double, val camY: Double, val camZ: Double,
+        val camX: Double,
+        val camY: Double,
+        val camZ: Double,
+        val poseMatrix: Matrix4f,
         val projectionMatrix: Matrix4f,
         val ship: ClientShip,
-        val chunks: ObjectList<RenderChunkInfo>
+        val chunks: ObjectList<SectionRenderDispatcher.RenderSection>
     )
 
     data class ShipSplitEvent(

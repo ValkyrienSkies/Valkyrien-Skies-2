@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.common
 
+import net.minecraft.core.HolderLookup
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.world.level.saveddata.SavedData
 import org.valkyrienskies.core.apigame.world.VSPipeline
@@ -50,7 +51,7 @@ class ShipSavedData : SavedData() {
     var loadingException: Throwable? = null
         private set
 
-    override fun save(compoundTag: CompoundTag): CompoundTag {
+    override fun save(compoundTag: CompoundTag, provider: HolderLookup.Provider): CompoundTag {
         compoundTag.putByteArray(PIPELINE_NBT_KEY, vsCore.serializePipeline(pipeline))
 
         return compoundTag
