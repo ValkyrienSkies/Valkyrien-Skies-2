@@ -11,13 +11,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.function.BooleanSupplier;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.BlockPos.MutableBlockPos;
 import net.minecraft.core.Position;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ChunkHolder;
+import net.minecraft.server.level.ChunkResult;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
@@ -198,14 +198,14 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
         final DistanceManagerAccessor distanceManagerAccessor = (DistanceManagerAccessor) chunkSource.chunkMap.getDistanceManager();
 
         for (final ChunkHolder chunkHolder : chunkMapAccessor.callGetChunks()) {
-            final Optional<LevelChunk> worldChunkOptional =
-                chunkHolder.getTickingChunkFuture().getNow(ChunkHolder.UNLOADED_LEVEL_CHUNK).left();
+            final ChunkResult<LevelChunk> worldChunkResult =
+                chunkHolder.getTickingChunkFuture().getNow(ChunkHolder.UNLOADED_LEVEL_CHUNK);
             // Only load chunks that are present and that have tickets
-            if (worldChunkOptional.isPresent() && distanceManagerAccessor.getTickets().containsKey(chunkHolder.getPos().toLong())) {
-                // Only load chunks that have a ticket
-                final LevelChunk worldChunk = worldChunkOptional.get();
-                vs$loadChunk(worldChunk, voxelShapeUpdates);
-            }
+            worldChunkResult.ifSuccess((chunk) -> {
+                if (distanceManagerAccessor.getTickets().containsKey(chunkHolder.getPos().toLong())) {
+                    vs$loadChunk(chunk, voxelShapeUpdates);
+                }
+            });
         }
 
         final Iterator<Entry<ChunkPos, List<Vector3ic>>> knownChunkPosIterator = vs$knownChunks.entrySet().iterator();

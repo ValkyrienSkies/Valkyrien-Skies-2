@@ -2,9 +2,8 @@ package org.valkyrienskies.mod.mixin.client.renderer;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Camera;
+import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.GameRenderer;
@@ -13,7 +12,6 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.joml.Quaterniond;
 import org.joml.Quaternionf;
@@ -25,7 +23,6 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.apigame.world.ClientShipWorldCore;
@@ -35,7 +32,6 @@ import org.valkyrienskies.mod.common.entity.ShipMountedToData;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 import org.valkyrienskies.mod.mixinducks.client.MinecraftDuck;
 
@@ -79,7 +75,7 @@ public abstract class MixinGameRenderer {
     }
 
     @WrapOperation(
-        method = "pick",
+        method = "pick(Lnet/minecraft/world/entity/Entity;DDF)Lnet/minecraft/world/phys/HitResult;",
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/world/entity/Entity;pick(DFZ)Lnet/minecraft/world/phys/HitResult;"
@@ -95,7 +91,7 @@ public abstract class MixinGameRenderer {
     }
 
     @WrapOperation(
-        method = "pick",
+        method = "pick(Lnet/minecraft/world/entity/Entity;DDF)Lnet/minecraft/world/phys/HitResult;",
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/world/phys/Vec3;distanceToSqr(Lnet/minecraft/world/phys/Vec3;)D"
@@ -106,7 +102,7 @@ public abstract class MixinGameRenderer {
     }
 
     @Inject(method = "render", at = @At("HEAD"))
-    private void preRender(final float tickDelta, final long startTime, final boolean tick, final CallbackInfo ci) {
+    private void preRender(DeltaTracker deltaTracker, boolean bl, CallbackInfo ci) {
         final ClientLevel clientWorld = minecraft.level;
         if (clientWorld != null) {
             // Update ship render transforms
@@ -116,7 +112,8 @@ public abstract class MixinGameRenderer {
                 return;
             }
 
-            shipWorld.updateRenderTransforms(tickDelta);
+            final float partialTick = deltaTracker.getGameTimeDeltaPartialTick(true);
+            shipWorld.updateRenderTransforms(partialTick);
 
             // Also update entity last tick positions, so that they interpolate correctly
             for (final Entity entity : clientWorld.entitiesForRendering()) {
@@ -128,7 +125,7 @@ public abstract class MixinGameRenderer {
                 Vector3dc entityShouldBeHere = null;
 
                 // First, try getting the ship the entity is mounted to, if one exists
-                final ShipMountedToData shipMountedToData = VSGameUtilsKt.getShipMountedToData(entity, tickDelta);
+                final ShipMountedToData shipMountedToData = VSGameUtilsKt.getShipMountedToData(entity, partialTick);
 
                 if (shipMountedToData != null) {
                     final ClientShip shipMountedTo = (ClientShip) shipMountedToData.getShipMountedTo();
@@ -168,9 +165,9 @@ public abstract class MixinGameRenderer {
 
                         // Without ship dragging, the entity would've been here
                         final Vector3dc entityShouldBeHerePreTransform = new Vector3d(
-                            entity.xo + entityMovementX * tickDelta,
-                            entity.yo + entityMovementY * tickDelta,
-                            entity.zo + entityMovementZ * tickDelta
+                            entity.xo + entityMovementX * partialTick,
+                            entity.yo + entityMovementY * partialTick,
+                            entity.zo + entityMovementZ * partialTick
                         );
 
                         // Move [entityShouldBeHerePreTransform] with the ship, using the prev transform and the
@@ -186,19 +183,19 @@ public abstract class MixinGameRenderer {
                 //
                 // Also, don't run this if [tickDelta] is too small, getting so close to dividing by 0 could mess
                 // something up
-                if (entityShouldBeHere != null && tickDelta < .99999) {
+                if (entityShouldBeHere != null && partialTick < .99999) {
                     // Update the entity last tick positions such that the entity's render position will be
                     // interpolated to be [entityShouldBeHere]
-                    entity.xo = (entityShouldBeHere.x() - (entity.getX() * tickDelta)) / (1.0 - tickDelta);
-                    entity.yo = (entityShouldBeHere.y() - (entity.getY() * tickDelta)) / (1.0 - tickDelta);
-                    entity.zo = (entityShouldBeHere.z() - (entity.getZ() * tickDelta)) / (1.0 - tickDelta);
+                    entity.xo = (entityShouldBeHere.x() - (entity.getX() * partialTick)) / (1.0 - partialTick);
+                    entity.yo = (entityShouldBeHere.y() - (entity.getY() * partialTick)) / (1.0 - partialTick);
+                    entity.zo = (entityShouldBeHere.z() - (entity.getZ() * partialTick)) / (1.0 - partialTick);
                 }
             }
         }
     }
 
     @Inject(method = "render", at = @At("TAIL"))
-    private void postRender(final float tickDelta, final long startTime, final boolean tick, final CallbackInfo ci) {
+    private void postRender(DeltaTracker deltaTracker, boolean bl, CallbackInfo ci) {
         final ClientLevel clientWorld = minecraft.level;
         if (clientWorld != null) {
             // Restore the entity last tick positions that were replaced during this frame
@@ -227,37 +224,35 @@ public abstract class MixinGameRenderer {
         method = "renderLevel",
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/client/renderer/LevelRenderer;prepareCullFrustum(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/world/phys/Vec3;Lorg/joml/Matrix4f;)V"
+            target = "Lnet/minecraft/client/renderer/LevelRenderer;prepareCullFrustum(Lnet/minecraft/world/phys/Vec3;Lorg/joml/Matrix4f;Lorg/joml/Matrix4f;)V"
         )
     )
-    private void setupCameraWithMountedShip(final LevelRenderer instance, final PoseStack ignore, final Vec3 vec3,
-        final Matrix4f matrix4f, final Operation<Void> prepareCullFrustum, final float partialTicks,
-        final long finishTimeNano, final PoseStack matrixStack) {
+    private void setupCameraWithMountedShip(LevelRenderer instance, Vec3 vec3, Matrix4f rotationMatrix, Matrix4f matrix4f2,
+        Operation<Void> prepareCullFrustum, final DeltaTracker deltaTracker) {
 
         final ClientLevel clientLevel = minecraft.level;
         final Entity player = minecraft.player;
         if (clientLevel == null || player == null) {
-            prepareCullFrustum.call(instance, matrixStack, vec3, matrix4f);
+            prepareCullFrustum.call(instance, vec3, rotationMatrix, matrix4f2);
             return;
         }
 
+        final float partialTicks = deltaTracker.getGameTimeDeltaPartialTick(true);
         final ShipMountedToData shipMountedToData = VSGameUtilsKt.getShipMountedToData(player, partialTicks);
         if (shipMountedToData == null) {
-            prepareCullFrustum.call(instance, matrixStack, vec3, matrix4f);
+            prepareCullFrustum.call(instance, vec3, rotationMatrix, matrix4f2);
             return;
         }
 
         final Entity playerVehicle = player.getVehicle();
         if (playerVehicle == null) {
-            prepareCullFrustum.call(instance, matrixStack, vec3, matrix4f);
+            prepareCullFrustum.call(instance, vec3, rotationMatrix, matrix4f2);
             return;
         }
 
-        // Update [matrixStack] to mount the camera to the ship
-
         final Camera camera = this.mainCamera;
         if (camera == null) {
-            prepareCullFrustum.call(instance, matrixStack, vec3, matrix4f);
+            prepareCullFrustum.call(instance, vec3, rotationMatrix, matrix4f2);
             return;
         }
 
@@ -277,23 +272,14 @@ public abstract class MixinGameRenderer {
         final Quaternionf invShipRenderRotation = new Quaternionf(
             clientShip.getRenderTransform().getShipToWorldRotation().conjugate(new Quaterniond())
         );
-        matrixStack.mulPose(invShipRenderRotation);
-
-        // We also need to recompute [inverseViewRotationMatrix] after updating [matrixStack]
-        {
-            final Matrix3f matrix3f = new Matrix3f(matrixStack.last().normal());
-            matrix3f.invert();
-            RenderSystem.setInverseViewRotationMatrix(matrix3f);
-        }
+        // TODO: This is probably wrong
+        rotationMatrix.mul(new Matrix4f().rotation(invShipRenderRotation));
 
         // Camera FOV changes based on the position of the camera, so recompute FOV to account for the change of camera
         // position.
         final double fov = this.getFov(camera, partialTicks, true);
-
-        // Use [camera.getPosition()] instead of [vec3] because mounting the player to the ship has changed the camera
-        // position.
-        prepareCullFrustum.call(instance, matrixStack, camera.getPosition(),
-            this.getProjectionMatrix(Math.max(fov, this.minecraft.options.fov().get())));
+        final Matrix4f projectionMatrixNew = this.getProjectionMatrix(Math.max(fov, (double) this.minecraft.options.fov().get()));
+        prepareCullFrustum.call(instance, vec3, rotationMatrix, projectionMatrixNew);
     }
     // endregion
 }

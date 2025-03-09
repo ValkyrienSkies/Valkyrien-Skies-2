@@ -57,7 +57,7 @@ public abstract class MixinLivingEntity extends Entity {
                 if (cir.getReturnValue() != Boolean.TRUE) {
                     // Modify the block position, then check if we can climb ladders
                     thisAsAccessor.setBlockPosition(BlockPos.containing(Mth.floor(x), Mth.floor(y), Mth.floor(z)));
-                    thisAsAccessor.setFeetBlockState(null);
+                    thisAsAccessor.setInBlockState(null);
                     if (onClimbable()) {
                         cir.setReturnValue(true);
                     }
@@ -66,7 +66,7 @@ public abstract class MixinLivingEntity extends Entity {
             });
             // Restore the original block position
             thisAsAccessor.setBlockPosition(originalBlockPosition);
-            thisAsAccessor.setFeetBlockState(null);
+            thisAsAccessor.setInBlockState(null);
             isModifyingClimbable = false;
         }
     }

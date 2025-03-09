@@ -63,10 +63,12 @@ public abstract class MixinCamera implements IVSCamera {
     private Vec3 position;
 
     @Shadow
-    protected abstract double getMaxZoom(double startingDistance);
+    private float getMaxZoom(float startingDistance) {
+        return 0.0f;
+    }
 
     @Shadow
-    protected abstract void move(double distanceOffset, double verticalOffset, double horizontalOffset);
+    protected abstract void move(float distanceOffset, float verticalOffset, float horizontalOffset);
 
     @Shadow
     protected abstract void setPosition(double x, double y, double z);
@@ -87,12 +89,12 @@ public abstract class MixinCamera implements IVSCamera {
         this.level = level;
         this.entity = renderViewEntity;
         this.detached = thirdPerson;
-        this.setRotationWithShipTransform(renderViewEntity.getViewYRot(partialTicks),
+        this.valkyrienskies$setRotationWithShipTransform(renderViewEntity.getViewYRot(partialTicks),
             renderViewEntity.getViewXRot(partialTicks), renderTransform);
         this.setPosition(playerEyePos.x(), playerEyePos.y(), playerEyePos.z());
         if (thirdPerson) {
             if (thirdPersonReverse) {
-                this.setRotationWithShipTransform(this.yRot + 180.0F, -this.xRot, renderTransform);
+                this.valkyrienskies$setRotationWithShipTransform(this.yRot + 180.0F, -this.xRot, renderTransform);
             }
 
             final AABBi boundingBox = (AABBi) shipMountedTo.getShipVoxelAABB();
@@ -102,16 +104,16 @@ public abstract class MixinCamera implements IVSCamera {
             dist = dist > 4 ? dist : 4;
 
             if (this.level instanceof Level) {
-                this.move(-this.getMaxZoomIgnoringMountedShip((Level) this.level, 4.0 * (dist / 4.0), shipMountedTo),
-                    0.0, 0.0);
+                this.move((float) -this.valkyrienskies$getMaxZoomIgnoringMountedShip((Level) this.level, 4.0 * (dist / 4.0), shipMountedTo),
+                    0.0f, 0.0f);
             } else {
-                this.move(-this.getMaxZoom(4.0 * (dist / 4.0)), 0.0, 0.0);
+                this.move(-this.getMaxZoom((float) (4.0 * (dist / 4.0))), 0.0f, 0.0f);
             }
         }
     }
 
     @Unique
-    private void setRotationWithShipTransform(final float yaw, final float pitch, final ShipTransform renderTransform) {
+    private void valkyrienskies$setRotationWithShipTransform(final float yaw, final float pitch, final ShipTransform renderTransform) {
         final Quaterniondc originalRotation =
             new Quaterniond().rotateY(Math.toRadians(-yaw)).rotateX(Math.toRadians(pitch)).normalize();
         final Quaterniondc newRotation =
@@ -131,7 +133,7 @@ public abstract class MixinCamera implements IVSCamera {
      * When in third person, do not block the camera on the ship the player is mounted to
      */
     @Unique
-    private double getMaxZoomIgnoringMountedShip(final Level level, double maxZoom,
+    private double valkyrienskies$getMaxZoomIgnoringMountedShip(final Level level, double maxZoom,
         final @NotNull ClientShip toIgnore) {
         for (int i = 0; i < 8; ++i) {
             float f = (float) ((i & 1) * 2 - 1);

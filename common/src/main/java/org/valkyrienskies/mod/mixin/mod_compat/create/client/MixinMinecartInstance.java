@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.mod_compat.create.client;
 
+/*
 import com.jozufozu.flywheel.api.MaterialManager;
 import com.jozufozu.flywheel.backend.instancing.entity.EntityInstance;
 import com.jozufozu.flywheel.util.AnimationTickHolder;
@@ -57,3 +58,4 @@ public abstract class MixinMinecartInstance extends EntityInstance {
         return null;
     }
 }
+ */

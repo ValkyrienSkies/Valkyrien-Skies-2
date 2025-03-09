@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.compat;
 
+/*
 import com.jozufozu.flywheel.backend.instancing.InstanceWorld;
 import java.util.Collections;
 import java.util.Set;
@@ -32,3 +33,4 @@ public class FlywheelEvents {
         weakLoadedInstanceWorlds.remove(instanceWorld);
     }
 }
+ */

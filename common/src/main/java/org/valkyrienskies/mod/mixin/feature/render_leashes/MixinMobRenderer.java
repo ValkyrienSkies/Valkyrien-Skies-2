@@ -2,7 +2,7 @@ package org.valkyrienskies.mod.mixin.feature.render_leashes;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import net.minecraft.client.renderer.entity.MobRenderer;
+import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
@@ -12,7 +12,7 @@ import org.valkyrienskies.core.api.ships.LoadedShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
-@Mixin(MobRenderer.class)
+@Mixin(EntityRenderer.class)
 public class MixinMobRenderer {
 
     // For leashes rendering

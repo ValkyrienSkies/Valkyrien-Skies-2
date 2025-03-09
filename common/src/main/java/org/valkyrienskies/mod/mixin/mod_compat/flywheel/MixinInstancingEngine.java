@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.mod_compat.flywheel;
 
+/*
 import com.jozufozu.flywheel.backend.RenderLayer;
 import com.jozufozu.flywheel.backend.instancing.instancing.InstancedMaterialGroup;
 import com.jozufozu.flywheel.backend.instancing.instancing.InstancingEngine;
@@ -24,3 +25,4 @@ public abstract class MixinInstancingEngine<P extends WorldProgram> implements M
         this.getGroupsToRender(layer).forEach(g -> g.render(viewProjection, camX, camY, camZ, layer));
     }
 }
+ */

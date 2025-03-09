@@ -1,24 +1,18 @@
 package org.valkyrienskies.mod.mixin.mod_compat.flywheel;
 
-import com.jozufozu.flywheel.api.MaterialManager;
-import com.jozufozu.flywheel.backend.gl.GlStateTracker;
-import com.jozufozu.flywheel.backend.instancing.InstanceManager;
-import com.jozufozu.flywheel.backend.instancing.InstanceWorld;
-import com.jozufozu.flywheel.backend.instancing.ParallelTaskEngine;
-import com.jozufozu.flywheel.backend.instancing.batching.BatchingEngine;
-import com.jozufozu.flywheel.backend.instancing.instancing.InstancingEngine;
-import com.jozufozu.flywheel.event.RenderLayerEvent;
+/*
+import dev.engine_room.flywheel.backend.gl.GlStateTracker;
+import dev.engine_room.flywheel.impl.task.TaskExecutorImpl;
+import dev.engine_room.flywheel.impl.visualization.VisualManagerImpl;
+import dev.engine_room.flywheel.impl.visualization.VisualizationManagerImpl;
+import dev.engine_room.flywheel.impl.visualization.storage.BlockEntityStorage;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import org.joml.Matrix4d;
-import org.joml.Matrix4f;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
@@ -28,16 +22,20 @@ import org.valkyrienskies.mod.mixinducks.MixinBlockEntityInstanceManagerDuck;
 import org.valkyrienskies.mod.mixinducks.MixinInstancingEngineDuck;
 
 @Pseudo
-@Mixin(value = InstanceWorld.class, remap = false)
+@Mixin(value = VisualizationManagerImpl.class, remap = false)
 public class MixinInstanceWorld {
 
+    // TODO: Probably make new VisualManagerImpl for each ship in the world and run them here
+    // 	private final VisualManagerImpl<BlockEntity, BlockEntityStorage> blockEntities;
+    //	private final VisualManagerImpl<Entity, EntityStorage> entities;
+    //	private final VisualManagerImpl<Effect, EffectStorage> effects;
     @Shadow
     @Final
-    protected InstanceManager<BlockEntity> blockEntityInstanceManager;
+    private VisualManagerImpl<BlockEntity, BlockEntityStorage> blockEntities;
 
     @Shadow
     @Final
-    public ParallelTaskEngine taskEngine;
+    private TaskExecutorImpl taskExecutor;
 
     @Inject(
         method = "renderLayer",
@@ -50,7 +48,7 @@ public class MixinInstanceWorld {
         //not sure if restoreState stuff should be here or in the ((MixinInstancingEngineDuck) manager).render() method
         final GlStateTracker.State restoreState = GlStateTracker.getRestoreState();
         final var shipManagers =
-            ((MixinBlockEntityInstanceManagerDuck) blockEntityInstanceManager).vs$getShipMaterialManagers();
+            ((MixinBlockEntityInstanceManagerDuck) blockEntities).vs$getShipMaterialManagers();
 
         shipManagers.forEach((ship, manager) -> vs$render(ship, manager, event));
         restoreState.restore();
@@ -102,3 +100,4 @@ public class MixinInstanceWorld {
         FlywheelEvents.onInstanceWorldUnload(InstanceWorld.class.cast(this));
     }
 }
+ */

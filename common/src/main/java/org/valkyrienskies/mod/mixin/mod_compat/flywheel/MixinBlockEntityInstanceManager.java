@@ -1,16 +1,7 @@
 package org.valkyrienskies.mod.mixin.mod_compat.flywheel;
 
-import com.jozufozu.flywheel.api.MaterialManager;
-import com.jozufozu.flywheel.api.instance.Instance;
-import com.jozufozu.flywheel.backend.Backend;
-import com.jozufozu.flywheel.backend.instancing.InstanceManager;
-import com.jozufozu.flywheel.backend.instancing.InstancedRenderRegistry;
-import com.jozufozu.flywheel.backend.instancing.RenderDispatcher;
-import com.jozufozu.flywheel.backend.instancing.batching.BatchingEngine;
-import com.jozufozu.flywheel.backend.instancing.blockentity.BlockEntityInstanceManager;
-import com.jozufozu.flywheel.backend.instancing.instancing.InstancingEngine;
-import com.jozufozu.flywheel.config.BackendType;
-import com.jozufozu.flywheel.core.Contexts;
+/*
+import dev.engine_room.flywheel.api.visualization.VisualizationManager.RenderDispatcher;
 import java.util.WeakHashMap;
 import javax.annotation.ParametersAreNonnullByDefault;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -88,3 +79,4 @@ public abstract class MixinBlockEntityInstanceManager extends InstanceManager<Bl
         }
     }
 }
+ */

@@ -57,7 +57,7 @@ public class MixinClientPacketListener {
             entity.setYRot((float) (packet.getYRot() * 360) / 256.0f);
             entity.setId(i);
             entity.setUUID(packet.getUUID());
-            this.level.putNonPlayerEntity(i, entity);
+            this.level.addEntity(entity);
         }
     }
 
@@ -66,17 +66,17 @@ public class MixinClientPacketListener {
      * unloaded chunk clientside and stays there until rejoining the server.
      */
     @WrapOperation(method = "handleTeleportEntity", at = @At(value = "INVOKE",
-        target = "Lnet/minecraft/world/entity/Entity;lerpTo(DDDFFIZ)V"))
+        target = "Lnet/minecraft/world/entity/Entity;lerpTo(DDDFFI)V"))
     private void teleportingWithNoStep(final Entity instance,
         final double x, final double y, final double z,
         final float yRot, final float xRot,
-        final int lerpSteps, final boolean teleport, final Operation<Void> lerpTo) {
+        final int lerpSteps, final Operation<Void> lerpTo) {
         if (VSGameUtilsKt.getShipObjectManagingPos(instance.level(), instance.getX(), instance.getY(), instance.getZ()) !=
             null) {
             instance.setPos(x, y, z);
-            lerpTo.call(instance, x, y, z, yRot, xRot, 1, teleport);
+            lerpTo.call(instance, x, y, z, yRot, xRot, 1);
         } else {
-            lerpTo.call(instance, x, y, z, yRot, xRot, lerpSteps, teleport);
+            lerpTo.call(instance, x, y, z, yRot, xRot, lerpSteps);
         }
     }
 }

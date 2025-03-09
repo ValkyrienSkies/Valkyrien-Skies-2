@@ -39,6 +39,7 @@ dependencies {
     modCompileOnly("com.simibubi.create:create-${property("minecraft_version")}:${property("forge_create_version")}:slim") { transitive = false }
     modCompileOnly("net.createmod.ponder:Ponder-NeoForge-${property("minecraft_version")}:${property("forge_ponder_version")}")
     modCompileOnly("dev.engine-room.flywheel:flywheel-neoforge-api-${property("minecraft_version")}:${property("forge_flywheel_version")}")
+    modCompileOnly("dev.engine-room.flywheel:flywheel-neoforge-${property("minecraft_version")}:${property("forge_flywheel_version")}")
     modCompileOnly("com.tterrag.registrate:Registrate:${property("forge_registrate_version")}")
 
     // modCompileOnly("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}")

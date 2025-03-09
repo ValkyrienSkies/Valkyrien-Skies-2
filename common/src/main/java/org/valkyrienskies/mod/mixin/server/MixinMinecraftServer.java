@@ -5,26 +5,24 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import kotlin.Unit;
 import net.minecraft.BlockUtil;
-import net.minecraft.BlockUtil.FoundRectangle;
-import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.players.PlayerList;
+import net.minecraft.util.datafix.DataFixTypes;
 import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.border.WorldBorder;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.portal.PortalShape;
+import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -123,9 +121,12 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
             ValkyrienSkiesMod.getVsCore().registerBlockStates(MassDatapackResolver.INSTANCE.getBlockStateData());
         }
 
+        final SavedData.Factory<ShipSavedData> factory =
+            new SavedData.Factory<>(ShipSavedData.Companion::createEmpty, (tag, provider) -> ShipSavedData.load(tag),
+                DataFixTypes.LEVEL);
         // Load ship data from the world storage
         final ShipSavedData shipSavedData = overworld().getDataStorage()
-            .computeIfAbsent(ShipSavedData::load, ShipSavedData.Companion::createEmpty, ShipSavedData.SAVED_DATA_ID);
+            .computeIfAbsent(factory, ShipSavedData.SAVED_DATA_ID);
 
         // If there was an error deserializing, re-throw it here so that the game actually crashes.
         // We would prefer to crash the game here than allow the player keep playing with everything corrupted.
@@ -208,9 +209,6 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
 
     @Shadow
     public abstract ServerLevel getLevel(ResourceKey<Level> resourceKey);
-
-    @Shadow
-    public abstract boolean isNetherEnabled();
 
     @Inject(
         method = "tickServer",
@@ -351,10 +349,12 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         return PortalShape.getRelativePosition(foundRectangle, axis, position, entityDimensions);
     }
 
+    /*
     @Unique
     private Optional<FoundRectangle> getExitPortal(final ServerLevel serverLevel, final BlockPos blockPos, final boolean bl, final WorldBorder worldBorder) {
         return serverLevel.getPortalForcer().findPortalAround(blockPos, bl, worldBorder);
     }
+     */
 
     @Inject(
         method = "stopServer",

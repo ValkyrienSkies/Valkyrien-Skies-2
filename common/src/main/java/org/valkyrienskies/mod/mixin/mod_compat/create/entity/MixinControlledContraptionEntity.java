@@ -1,10 +1,7 @@
 package org.valkyrienskies.mod.mixin.mod_compat.create.entity;
 
-import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
 import com.simibubi.create.content.contraptions.ControlledContraptionEntity;
 import com.simibubi.create.content.contraptions.IControlContraption;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -13,13 +10,8 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.valkyrienskies.mod.mixinducks.mod_compat.create.IMixinControlledContraptionEntity;
 
 @Mixin(ControlledContraptionEntity.class)
-public abstract class MixinControlledContraptionEntity extends AbstractContraptionEntity implements
-    IMixinControlledContraptionEntity {
+public abstract class MixinControlledContraptionEntity implements IMixinControlledContraptionEntity {
     @Shadow protected abstract IControlContraption getController();
-
-    public MixinControlledContraptionEntity(EntityType<?> entityTypeIn, Level worldIn) {
-        super(entityTypeIn, worldIn);
-    }
 
     //Region start - fix equals -0 != 0
     private Vec3 flatten(Vec3 vec3) {

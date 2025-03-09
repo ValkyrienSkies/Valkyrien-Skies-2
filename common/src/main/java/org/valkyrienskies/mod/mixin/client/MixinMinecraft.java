@@ -161,10 +161,10 @@ public abstract class MixinMinecraft
     }
 
     @Inject(
-        method = "clearLevel",
+        method = "clearClientLevel",
         at = @At("TAIL")
     )
-    private void postClearLevel(final CallbackInfo ci) {
+    private void postClearClientLevel(final CallbackInfo ci) {
         if (shipObjectWorld != null) {
             deleteShipObjectWorldClient();
         }

@@ -5,7 +5,6 @@ import static org.valkyrienskies.mod.common.util.VectorConversionsMCKt.toJOML;
 import com.mojang.datafixers.util.Pair;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.content.redstone.contact.RedstoneContactBlock;
-import com.simibubi.create.foundation.block.WrenchableDirectionalBlock;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -35,7 +34,7 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(RedstoneContactBlock.class)
-public abstract class MixinRedstoneContactBlock extends WrenchableDirectionalBlock {
+public abstract class MixinRedstoneContactBlock {
 
     private static Map<Pair<Level, BlockPos>, BlockPos> contactCache = new HashMap<>();
 
@@ -45,13 +44,9 @@ public abstract class MixinRedstoneContactBlock extends WrenchableDirectionalBlo
     @Unique
     private static final double MAX_ALIGNMENT_ANGLE = -0.93972176; //Mth.cos(20*(Mth.DEG_TO_RAD))
 
-    public MixinRedstoneContactBlock(Properties properties) {
-        super(properties);
-    }
-
     @Inject(method = "onRemove", at = @At("HEAD"))
     private void injectOnRemove(BlockState state, Level worldIn, BlockPos pos, BlockState newState, boolean isMoving, CallbackInfo ci) {
-        if (state.getBlock() == this && newState.isAir()) {
+        if (state.getBlock() == RedstoneContactBlock.class.cast(this) && newState.isAir()) {
             Pair<Level, BlockPos> key = Pair.of(worldIn, pos);
             if (state.getValue(POWERED) && contactCache.containsKey(key)) {
                 worldIn.scheduleTick(contactCache.get(key), AllBlocks.REDSTONE_CONTACT.get(), 2, TickPriority.NORMAL);
@@ -77,7 +72,7 @@ public abstract class MixinRedstoneContactBlock extends WrenchableDirectionalBlo
         BlockState blockState = world.getBlockState(BlockPos.containing(VectorConversionsMCKt.toMinecraft(searchPos)));
         if (AllBlocks.REDSTONE_CONTACT.has(blockState)) {
             Vector3d worldDirection = toJOML(Vec3.atLowerCornerOf(direction.getNormal()));
-            Vector3d targetDirection = toJOML(Vec3.atLowerCornerOf(blockState.getValue(FACING).getNormal()));
+            Vector3d targetDirection = toJOML(Vec3.atLowerCornerOf(blockState.getValue(RedstoneContactBlock.FACING).getNormal()));
             if (ship != null) {
                 ship.getShipToWorld().transformDirection(worldDirection, worldDirection);
             }
@@ -96,7 +91,7 @@ public abstract class MixinRedstoneContactBlock extends WrenchableDirectionalBlo
         Level worldLevel = (Level) world;
         BlockState blockState = world.getBlockState(pos.relative(direction));
         if (AllBlocks.REDSTONE_CONTACT.has(blockState)) {
-            cir.setReturnValue(blockState.getValue(FACING) == direction.getOpposite());
+            cir.setReturnValue(blockState.getValue(RedstoneContactBlock.FACING) == direction.getOpposite());
         } else {
 
             AABB searchAABB = new AABB(pos.relative(direction));

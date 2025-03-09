@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.accessors.world.level.pathfinder;
 
+/*
 import java.util.Set;
 import net.minecraft.world.level.pathfinder.Path;
 import net.minecraft.world.level.pathfinder.Target;
@@ -13,3 +14,4 @@ public interface PathAccessor {
     Set<Target> getTargetNodes();
 
 }
+ */

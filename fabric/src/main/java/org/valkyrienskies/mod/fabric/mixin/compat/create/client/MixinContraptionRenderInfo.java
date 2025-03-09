@@ -1,7 +1,6 @@
 package org.valkyrienskies.mod.fabric.mixin.compat.create.client;
 
-import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
-import com.simibubi.create.content.contraptions.render.ContraptionRenderInfo;
+/*
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.world.phys.AABB;
 import org.spongepowered.asm.mixin.Mixin;
@@ -24,3 +23,4 @@ public class MixinContraptionRenderInfo {
                 receiver.getBoundingBoxForCulling());
     }
 }
+ */
