@@ -10,13 +10,13 @@ import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import qouteall.imm_ptl.core.chunk_loading.ChunkLoader;
 import qouteall.imm_ptl.core.chunk_loading.ChunkLoader.ChunkPosConsumer;
-import qouteall.imm_ptl.core.chunk_loading.NewChunkTrackingGraph;
+import qouteall.imm_ptl.core.chunk_loading.ImmPtlChunkTracking;
 
 /**
  * This mixin ensures that ship chunks are sent to players
  */
-@Mixin(NewChunkTrackingGraph.class)
-public class MixinIpNewChunkTrackingGraph {
+@Mixin(ImmPtlChunkTracking.class)
+public class MixinImmPtlChunkTracking {
 
     @Redirect(
         method = "updateForPlayer",
@@ -25,12 +25,12 @@ public class MixinIpNewChunkTrackingGraph {
     )
     private static void addShipChunks(final ChunkLoader instance, final ChunkPosConsumer func, @Local final ServerLevel world) {
         // region original function
-        for (int dx = -instance.radius; dx <= instance.radius; dx++) {
-            for (int dz = -instance.radius; dz <= instance.radius; dz++) {
+        for (int dx = -instance.radius(); dx <= instance.radius(); dx++) {
+            for (int dz = -instance.radius(); dz <= instance.radius(); dz++) {
                 func.consume(
-                    instance.center.dimension,
-                    instance.center.x + dx,
-                    instance.center.z + dz,
+                    instance.getCenter().dimension,
+                    instance.getCenter().x + dx,
+                    instance.getCenter().z + dz,
                     Math.max(Math.abs(dx), Math.abs(dz))
                 );
             }
@@ -39,17 +39,17 @@ public class MixinIpNewChunkTrackingGraph {
 
         // region inject ships
         final AABBd box = new AABBd(
-            (instance.center.x - instance.radius) << 4,
+            (instance.getCenter().x - instance.radius()) << 4,
             world.getMinBuildHeight(),
-            (instance.center.z - instance.radius) << 4,
-            (instance.center.x + instance.radius) << 4,
+            (instance.getCenter().z - instance.radius()) << 4,
+            (instance.getCenter().x + instance.radius()) << 4,
             world.getMaxBuildHeight(),
-            (instance.center.z + instance.radius) << 4
+            (instance.getCenter().z + instance.radius()) << 4
         );
         for (final Ship ship : VSGameUtilsKt.getShipsIntersecting(world, box)) {
             ship.getActiveChunksSet().forEach((x, z) -> {
                 func.consume(
-                    instance.center.dimension,
+                    instance.getCenter().dimension,
                     x,
                     z,
                     1 // todo: change this?

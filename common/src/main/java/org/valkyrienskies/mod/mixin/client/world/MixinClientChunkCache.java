@@ -9,8 +9,8 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData.BlockEntityTagOutput;
 import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -78,7 +78,9 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
     }
 
     @Inject(method = "drop", at = @At("HEAD"), cancellable = true)
-    public void preUnload(final int chunkX, final int chunkZ, final CallbackInfo ci) {
+    public void preUnload(final ChunkPos chunkPos, final CallbackInfo ci) {
+        final int chunkX = chunkPos.x;
+        final int chunkZ = chunkPos.z;
         if (VSGameUtilsKt.isChunkInShipyard(level, chunkX, chunkZ)) {
             vs$shipChunks.remove(ChunkPos.asLong(chunkX, chunkZ));
             if (ValkyrienCommonMixinConfigPlugin.getVSRenderer() != VSRenderer.SODIUM) {
@@ -91,7 +93,7 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
     }
 
     @Inject(
-        method = "getChunk(IILnet/minecraft/world/level/chunk/ChunkStatus;Z)Lnet/minecraft/world/level/chunk/LevelChunk;",
+        method = "getChunk(IILnet/minecraft/world/level/chunk/status/ChunkStatus;Z)Lnet/minecraft/world/level/chunk/LevelChunk;",
         at = @At("HEAD"), cancellable = true)
     public void preGetChunk(final int chunkX, final int chunkZ, final ChunkStatus chunkStatus, final boolean bl,
         final CallbackInfoReturnable<LevelChunk> cir) {

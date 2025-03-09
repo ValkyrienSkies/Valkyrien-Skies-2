@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.feature.ai.node_evaluator;
 
+/*
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.core.BlockPos;
@@ -149,3 +150,4 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
 
     // TODO - re-add isFree mixins
 }
+ */

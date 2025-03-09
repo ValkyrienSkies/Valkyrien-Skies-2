@@ -115,7 +115,7 @@ open class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : En
     }
 
     override fun defineSynchedData(builder: SynchedEntityData.Builder) {
-        entityData.set(SHIP_ID_DATA, "")
+        builder.define(SHIP_ID_DATA, "")
     }
 
     override fun readAdditionalSaveData(compoundTag: CompoundTag) {

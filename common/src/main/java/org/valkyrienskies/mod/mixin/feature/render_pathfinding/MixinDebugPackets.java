@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.feature.render_pathfinding;
 
+/*
 import io.netty.buffer.Unpooled;
 import java.util.Set;
 import net.minecraft.network.FriendlyByteBuf;
@@ -87,7 +88,8 @@ public class MixinDebugPackets {
         }
          */
 
-        buffer.writeInt(0);
+/*
+import net.minecraft.network.FriendlyByteBuf;buffer.writeInt(0);
         /*
         var6 = path.debugSecondNodes;
         var7 = var6.length;
@@ -97,7 +99,9 @@ public class MixinDebugPackets {
             pathNode2.toBuffer(buffer);
         }
         */
-    }
+
+/*
+import net.minecraft.network.FriendlyByteBuf;}
 
     private static void writeNode(final FriendlyByteBuf buffer, final Node node) {
         buffer.writeInt(node.x);
@@ -110,3 +114,4 @@ public class MixinDebugPackets {
         buffer.writeFloat(node.f);
     }
 }
+ */

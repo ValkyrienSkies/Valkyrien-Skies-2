@@ -1,8 +1,7 @@
 package org.valkyrienskies.mod.mixin.mod_compat.create.accessors;
 
-import com.simibubi.create.AllSpecialTextures;
-import com.simibubi.create.foundation.outliner.Outline;
-import java.util.Optional;
+import net.createmod.catnip.outliner.Outline;
+import net.createmod.catnip.render.BindableTexture;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
@@ -18,5 +17,5 @@ public interface OutlineParamsAccessor {
     boolean getDisableCull();
 
     @Accessor
-    Optional<AllSpecialTextures> getFaceTexture();
+    BindableTexture getFaceTexture();
 }

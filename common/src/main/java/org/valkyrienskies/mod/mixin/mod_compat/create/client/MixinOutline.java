@@ -2,7 +2,7 @@ package org.valkyrienskies.mod.mixin.mod_compat.create.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.simibubi.create.foundation.outliner.Outline;
+import net.createmod.catnip.outliner.Outline;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.world.level.Level;
@@ -133,37 +133,37 @@ public abstract class MixinOutline {
                 float ny0 = (float) temp.y();
                 float nz0 = (float) temp.z();
 
-                consumer.vertex(x0, y0, z0)
-                        .color(r, g, b, a)
-                        .uv(0, 0)
-                        .overlayCoords(OverlayTexture.NO_OVERLAY)
-                        .uv2(lightmap)
-                        .normal(nx0, ny0, nz0)
-                        .endVertex();
+                consumer.addVertex((float) x0, (float) y0, (float) z0)
+                        .setColor(r, g, b, a)
+                        .setUv(0, 0)
+                        .setOverlay(OverlayTexture.NO_OVERLAY)
+                        .setLight(lightmap)
+                        .setNormal(nx0, ny0, nz0)
+                ;
 
-                consumer.vertex(x1, y1, z1)
-                        .color(r, g, b, a)
-                        .uv(0, 1)
-                        .overlayCoords(OverlayTexture.NO_OVERLAY)
-                        .uv2(lightmap)
-                        .normal(nx0, ny0, nz0)
-                        .endVertex();
+                consumer.addVertex((float) x1, (float) y1, (float) z1)
+                        .setColor(r, g, b, a)
+                        .setUv(0, 1)
+                        .setOverlay(OverlayTexture.NO_OVERLAY)
+                        .setLight(lightmap)
+                        .setNormal(nx0, ny0, nz0)
+                ;
 
-                consumer.vertex(x2, y2, z2)
-                        .color(r, g, b, a)
-                        .uv(1, 1)
-                        .overlayCoords(OverlayTexture.NO_OVERLAY)
-                        .uv2(lightmap)
-                        .normal(nx0, ny0, nz0)
-                        .endVertex();
+                consumer.addVertex((float) x2, (float) y2, (float) z2)
+                        .setColor(r, g, b, a)
+                        .setUv(1, 1)
+                        .setOverlay(OverlayTexture.NO_OVERLAY)
+                        .setLight(lightmap)
+                        .setNormal(nx0, ny0, nz0)
+                ;
 
-                consumer.vertex(x3, y3, z3)
-                        .color(r, g, b, a)
-                        .uv(1, 0)
-                        .overlayCoords(OverlayTexture.NO_OVERLAY)
-                        .uv2(lightmap)
-                        .normal(nx0, ny0, nz0)
-                        .endVertex();
+                consumer.addVertex((float) x3, (float) y3, (float) z3)
+                        .setColor(r, g, b, a)
+                        .setUv(1, 0)
+                        .setOverlay(OverlayTexture.NO_OVERLAY)
+                        .setLight(lightmap)
+                        .setNormal(nx0, ny0, nz0)
+                ;
 
                 // up
 
@@ -173,37 +173,37 @@ public abstract class MixinOutline {
                 float ny1 = (float) temp.y();
                 float nz1 = (float) temp.z();
 
-                consumer.vertex(x4, y4, z4)
-                        .color(r, g, b, a)
-                        .uv(0, 0)
-                        .overlayCoords(OverlayTexture.NO_OVERLAY)
-                        .uv2(lightmap)
-                        .normal(nx1, ny1, nz1)
-                        .endVertex();
+                consumer.addVertex((float) x4, (float) y4, (float) z4)
+                        .setColor(r, g, b, a)
+                        .setUv(0, 0)
+                        .setOverlay(OverlayTexture.NO_OVERLAY)
+                        .setLight(lightmap)
+                        .setNormal(nx1, ny1, nz1)
+                ;
 
-                consumer.vertex(x5, y5, z5)
-                        .color(r, g, b, a)
-                        .uv(0, 1)
-                        .overlayCoords(OverlayTexture.NO_OVERLAY)
-                        .uv2(lightmap)
-                        .normal(nx1, ny1, nz1)
-                        .endVertex();
+                consumer.addVertex((float) x5, (float) y5, (float) z5)
+                        .setColor(r, g, b, a)
+                        .setUv(0, 1)
+                        .setOverlay(OverlayTexture.NO_OVERLAY)
+                        .setLight(lightmap)
+                        .setNormal(nx1, ny1, nz1)
+                ;
 
-                consumer.vertex(x6, y6, z6)
-                        .color(r, g, b, a)
-                        .uv(1, 1)
-                        .overlayCoords(OverlayTexture.NO_OVERLAY)
-                        .uv2(lightmap)
-                        .normal(nx1, ny1, nz1)
-                        .endVertex();
+                consumer.addVertex((float) x6, (float) y6, (float) z6)
+                        .setColor(r, g, b, a)
+                        .setUv(1, 1)
+                        .setOverlay(OverlayTexture.NO_OVERLAY)
+                        .setLight(lightmap)
+                        .setNormal(nx1, ny1, nz1)
+                ;
 
-                consumer.vertex(x7, y7, z7)
-                        .color(r, g, b, a)
-                        .uv(1, 0)
-                        .overlayCoords(OverlayTexture.NO_OVERLAY)
-                        .uv2(lightmap)
-                        .normal(nx1, ny1, nz1)
-                        .endVertex();
+                consumer.addVertex((float) x7, (float) y7, (float) z7)
+                        .setColor(r, g, b, a)
+                        .setUv(1, 0)
+                        .setOverlay(OverlayTexture.NO_OVERLAY)
+                        .setLight(lightmap)
+                        .setNormal(nx1, ny1, nz1)
+                ;
 
                 // north
 
@@ -217,37 +217,37 @@ public abstract class MixinOutline {
                 float ny2 = (float) temp.y();
                 float nz2 = (float) temp.z();
 
-                consumer.vertex(x7, y7, z7)
-                        .color(r, g, b, a)
-                        .uv(0, 0)
-                        .overlayCoords(OverlayTexture.NO_OVERLAY)
-                        .uv2(lightmap)
-                        .normal(nx2, ny2, nz2)
-                        .endVertex();
+                consumer.addVertex((float) x7, (float) y7, (float) z7)
+                        .setColor(r, g, b, a)
+                        .setUv(0, 0)
+                        .setOverlay(OverlayTexture.NO_OVERLAY)
+                        .setLight(lightmap)
+                        .setNormal(nx2, ny2, nz2)
+                ;
 
-                consumer.vertex(x2, y2, z2)
-                        .color(r, g, b, a)
-                        .uv(0, 1)
-                        .overlayCoords(OverlayTexture.NO_OVERLAY)
-                        .uv2(lightmap)
-                        .normal(nx2, ny2, nz2)
-                        .endVertex();
+                consumer.addVertex((float) x2, (float) y2, (float) z2)
+                        .setColor(r, g, b, a)
+                        .setUv(0, 1)
+                        .setOverlay(OverlayTexture.NO_OVERLAY)
+                        .setLight(lightmap)
+                        .setNormal(nx2, ny2, nz2)
+                ;
 
-                consumer.vertex(x1, y1, z1)
-                        .color(r, g, b, a)
-                        .uv(1, 1)
-                        .overlayCoords(OverlayTexture.NO_OVERLAY)
-                        .uv2(lightmap)
-                        .normal(nx2, ny2, nz2)
-                        .endVertex();
+                consumer.addVertex((float) x1, (float) y1, (float) z1)
+                        .setColor(r, g, b, a)
+                        .setUv(1, 1)
+                        .setOverlay(OverlayTexture.NO_OVERLAY)
+                        .setLight(lightmap)
+                        .setNormal(nx2, ny2, nz2)
+                ;
 
-                consumer.vertex(x4, y4, z4)
-                        .color(r, g, b, a)
-                        .uv(1, 0)
-                        .overlayCoords(OverlayTexture.NO_OVERLAY)
-                        .uv2(lightmap)
-                        .normal(nx2, ny2, nz2)
-                        .endVertex();
+                consumer.addVertex((float) x4, (float) y4, (float) z4)
+                        .setColor(r, g, b, a)
+                        .setUv(1, 0)
+                        .setOverlay(OverlayTexture.NO_OVERLAY)
+                        .setLight(lightmap)
+                        .setNormal(nx2, ny2, nz2)
+                ;
 
                 // south
 
@@ -261,37 +261,37 @@ public abstract class MixinOutline {
                 float ny3 = (float) temp.y();
                 float nz3 = (float) temp.z();
 
-                consumer.vertex(x5, y5, z5)
-                        .color(r, g, b, a)
-                        .uv(0, 0)
-                        .overlayCoords(OverlayTexture.NO_OVERLAY)
-                        .uv2(lightmap)
-                        .normal(nx3, ny3, nz3)
-                        .endVertex();
+                consumer.addVertex((float) x5, (float) y5, (float) z5)
+                        .setColor(r, g, b, a)
+                        .setUv(0, 0)
+                        .setOverlay(OverlayTexture.NO_OVERLAY)
+                        .setLight(lightmap)
+                        .setNormal(nx3, ny3, nz3)
+                ;
 
-                consumer.vertex(x0, y0, z0)
-                        .color(r, g, b, a)
-                        .uv(0, 1)
-                        .overlayCoords(OverlayTexture.NO_OVERLAY)
-                        .uv2(lightmap)
-                        .normal(nx3, ny3, nz3)
-                        .endVertex();
+                consumer.addVertex((float) x0, (float) y0, (float) z0)
+                        .setColor(r, g, b, a)
+                        .setUv(0, 1)
+                        .setOverlay(OverlayTexture.NO_OVERLAY)
+                        .setLight(lightmap)
+                        .setNormal(nx3, ny3, nz3)
+                ;
 
-                consumer.vertex(x3, y3, z3)
-                        .color(r, g, b, a)
-                        .uv(1, 1)
-                        .overlayCoords(OverlayTexture.NO_OVERLAY)
-                        .uv2(lightmap)
-                        .normal(nx3, ny3, nz3)
-                        .endVertex();
+                consumer.addVertex((float) x3, (float) y3, (float) z3)
+                        .setColor(r, g, b, a)
+                        .setUv(1, 1)
+                        .setOverlay(OverlayTexture.NO_OVERLAY)
+                        .setLight(lightmap)
+                        .setNormal(nx3, ny3, nz3)
+                ;
 
-                consumer.vertex(x6, y6, z6)
-                        .color(r, g, b, a)
-                        .uv(1, 0)
-                        .overlayCoords(OverlayTexture.NO_OVERLAY)
-                        .uv2(lightmap)
-                        .normal(nx3, ny3, nz3)
-                        .endVertex();
+                consumer.addVertex((float) x6, (float) y6, (float) z6)
+                        .setColor(r, g, b, a)
+                        .setUv(1, 0)
+                        .setOverlay(OverlayTexture.NO_OVERLAY)
+                        .setLight(lightmap)
+                        .setNormal(nx3, ny3, nz3)
+                ;
 
                 // west
 
@@ -305,37 +305,37 @@ public abstract class MixinOutline {
                 float ny4 = (float) temp.y();
                 float nz4 = (float) temp.z();
 
-                consumer.vertex(x4, y4, z4)
-                        .color(r, g, b, a)
-                        .uv(0, 0)
-                        .overlayCoords(OverlayTexture.NO_OVERLAY)
-                        .uv2(lightmap)
-                        .normal(nx4, ny4, nz4)
-                        .endVertex();
+                consumer.addVertex((float) x4, (float) y4, (float) z4)
+                        .setColor(r, g, b, a)
+                        .setUv(0, 0)
+                        .setOverlay(OverlayTexture.NO_OVERLAY)
+                        .setLight(lightmap)
+                        .setNormal(nx4, ny4, nz4)
+                ;
 
-                consumer.vertex(x1, y1, z1)
-                        .color(r, g, b, a)
-                        .uv(0, 1)
-                        .overlayCoords(OverlayTexture.NO_OVERLAY)
-                        .uv2(lightmap)
-                        .normal(nx4, ny4, nz4)
-                        .endVertex();
+                consumer.addVertex((float) x1, (float) y1, (float) z1)
+                        .setColor(r, g, b, a)
+                        .setUv(0, 1)
+                        .setOverlay(OverlayTexture.NO_OVERLAY)
+                        .setLight(lightmap)
+                        .setNormal(nx4, ny4, nz4)
+                ;
 
-                consumer.vertex(x0, y0, z0)
-                        .color(r, g, b, a)
-                        .uv(1, 1)
-                        .overlayCoords(OverlayTexture.NO_OVERLAY)
-                        .uv2(lightmap)
-                        .normal(nx4, ny4, nz4)
-                        .endVertex();
+                consumer.addVertex((float) x0, (float) y0, (float) z0)
+                        .setColor(r, g, b, a)
+                        .setUv(1, 1)
+                        .setOverlay(OverlayTexture.NO_OVERLAY)
+                        .setLight(lightmap)
+                        .setNormal(nx4, ny4, nz4)
+                ;
 
-                consumer.vertex(x5, y5, z5)
-                        .color(r, g, b, a)
-                        .uv(1, 0)
-                        .overlayCoords(OverlayTexture.NO_OVERLAY)
-                        .uv2(lightmap)
-                        .normal(nx4, ny4, nz4)
-                        .endVertex();
+                consumer.addVertex((float) x5, (float) y5, (float) z5)
+                        .setColor(r, g, b, a)
+                        .setUv(1, 0)
+                        .setOverlay(OverlayTexture.NO_OVERLAY)
+                        .setLight(lightmap)
+                        .setNormal(nx4, ny4, nz4)
+                ;
 
                 // east
 
@@ -349,37 +349,37 @@ public abstract class MixinOutline {
                 float ny5 = (float) temp.y();
                 float nz5 = (float) temp.z();
 
-                consumer.vertex(x6, y6, z6)
-                        .color(r, g, b, a)
-                        .uv(0, 0)
-                        .overlayCoords(OverlayTexture.NO_OVERLAY)
-                        .uv2(lightmap)
-                        .normal(nx5, ny5, nz5)
-                        .endVertex();
+                consumer.addVertex((float) x6, (float) y6, (float) z6)
+                        .setColor(r, g, b, a)
+                        .setUv(0, 0)
+                        .setOverlay(OverlayTexture.NO_OVERLAY)
+                        .setLight(lightmap)
+                        .setNormal(nx5, ny5, nz5)
+                ;
 
-                consumer.vertex(x3, y3, z3)
-                        .color(r, g, b, a)
-                        .uv(0, 1)
-                        .overlayCoords(OverlayTexture.NO_OVERLAY)
-                        .uv2(lightmap)
-                        .normal(nx5, ny5, nz5)
-                        .endVertex();
+                consumer.addVertex((float) x3, (float) y3, (float) z3)
+                        .setColor(r, g, b, a)
+                        .setUv(0, 1)
+                        .setOverlay(OverlayTexture.NO_OVERLAY)
+                        .setLight(lightmap)
+                        .setNormal(nx5, ny5, nz5)
+                ;
 
-                consumer.vertex(x2, y2, z2)
-                        .color(r, g, b, a)
-                        .uv(1, 1)
-                        .overlayCoords(OverlayTexture.NO_OVERLAY)
-                        .uv2(lightmap)
-                        .normal(nx5, ny5, nz5)
-                        .endVertex();
+                consumer.addVertex((float) x2, (float) y2, (float) z2)
+                        .setColor(r, g, b, a)
+                        .setUv(1, 1)
+                        .setOverlay(OverlayTexture.NO_OVERLAY)
+                        .setLight(lightmap)
+                        .setNormal(nx5, ny5, nz5)
+                ;
 
-                consumer.vertex(x7, y7, z7)
-                        .color(r, g, b, a)
-                        .uv(1, 0)
-                        .overlayCoords(OverlayTexture.NO_OVERLAY)
-                        .uv2(lightmap)
-                        .normal(nx5, ny5, nz5)
-                        .endVertex();
+                consumer.addVertex((float) x7, (float) y7, (float) z7)
+                        .setColor(r, g, b, a)
+                        .setUv(1, 0)
+                        .setOverlay(OverlayTexture.NO_OVERLAY)
+                        .setLight(lightmap)
+                        .setNormal(nx5, ny5, nz5)
+                ;
 
                 ci.cancel();
             }

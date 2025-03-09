@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.mod_compat.reachentityattributes;
 
+/*
 import com.jamieswhiteshirt.reachentityattributes.ReachEntityAttributes;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,11 +21,12 @@ public class MixinReachEntityAttributes {
     public static double getReachDistance(final LivingEntity entity, final double baseReachDistance) {
         return 0.0;
     }
-
+ */
     /**
      * @author Triode
      * @reason Fix getting players within reach of ship blocks
      */
+    /*
     @Overwrite
     public static List<Player> getPlayersWithinReach(final Predicate<Player> viewerPredicate, final Level world, final int x, final int y, final int z, final double baseReachDistance) {
         final List<Player> playersWithinReach = new ArrayList<>(0);
@@ -39,3 +41,4 @@ public class MixinReachEntityAttributes {
         return playersWithinReach;
     }
 }
+ */

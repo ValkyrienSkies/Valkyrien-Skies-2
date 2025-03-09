@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.feature.ai.node_evaluator;
 
+/*
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.BlockGetter;
@@ -64,3 +65,4 @@ public class WalkNodeEvaluatorMixin {
         isModifyingPathType = false;
     }
 }
+ */

@@ -72,11 +72,11 @@ dependencies {
     // modImplementation("teamtwilight:twilightforest:${twilightforest_version}:universal")
 
     // Create Mod, see https://wiki.createmod.net/developers/depend-on-create/neoforge-1.21.1
-    implementation("com.simibubi.create:create-${property("minecraft_version")}:${property("create_version")}:slim") { transitive = false }
-    implementation("net.createmod.ponder:Ponder-NeoForge-${property("minecraft_version")}:${property("ponder_version")}")
-    compileOnly("dev.engine-room.flywheel:flywheel-neoforge-api-${property("minecraft_version")}:${property("flywheel_version")}")
-    runtimeOnly("dev.engine-room.flywheel:flywheel-neoforge-${property("minecraft_version")}:${property("flywheel_version")}")
-    implementation("com.tterrag.registrate:Registrate:${property("registrate_version")}")
+    modImplementation("com.simibubi.create:create-${property("minecraft_version")}:${property("forge_create_version")}:slim") { transitive = false }
+    modImplementation("net.createmod.ponder:Ponder-NeoForge-${property("minecraft_version")}:${property("forge_ponder_version")}")
+    modCompileOnly("dev.engine-room.flywheel:flywheel-neoforge-api-${property("minecraft_version")}:${property("forge_flywheel_version")}")
+    modRuntimeOnly("dev.engine-room.flywheel:flywheel-neoforge-${property("minecraft_version")}:${property("forge_flywheel_version")}")
+    modImplementation("com.tterrag.registrate:Registrate:${property("forge_registrate_version")}")
 
     // Weather2 1.20.1
     // Not on 1.21.1 yet

@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.mod_compat.create.cannons;
 
+/*
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -39,7 +40,17 @@ public abstract class MixinCannonMount extends KineticBlockEntity implements Con
     }
      */
 
-    @Unique
+/*
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.level.ServerLevel;
+import org.joml.Vector3dc;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.valkyrienskies.core.api.ships.LoadedServerShip;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
+
+@Unique
     private void handleAssembly() {
         LoadedServerShip ship = null;
         if (!level.isClientSide) {
@@ -149,4 +160,4 @@ public abstract class MixinCannonMount extends KineticBlockEntity implements Con
     }
 
 }
-
+ */

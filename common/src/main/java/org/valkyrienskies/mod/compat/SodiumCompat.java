@@ -1,7 +1,7 @@
 package org.valkyrienskies.mod.compat;
 
-import me.jellysquid.mods.sodium.client.render.chunk.map.ChunkStatus;
-import me.jellysquid.mods.sodium.client.render.chunk.map.ChunkTrackerHolder;
+import net.caffeinemc.mods.sodium.client.render.chunk.map.ChunkStatus;
+import net.caffeinemc.mods.sodium.client.render.chunk.map.ChunkTrackerHolder;
 import net.minecraft.client.multiplayer.ClientLevel;
 import org.valkyrienskies.mod.mixin.ValkyrienCommonMixinConfigPlugin;
 

@@ -2,10 +2,10 @@ package org.valkyrienskies.mod.mixin.mod_compat.create.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.simibubi.create.foundation.outliner.AABBOutline;
-import com.simibubi.create.foundation.outliner.Outline;
-import com.simibubi.create.foundation.render.RenderTypes;
-import com.simibubi.create.foundation.render.SuperRenderTypeBuffer;
+import net.createmod.catnip.outliner.AABBOutline;
+import net.createmod.catnip.outliner.Outline;
+import net.createmod.catnip.render.PonderRenderTypes;
+import net.createmod.catnip.render.SuperRenderTypeBuffer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
@@ -65,7 +65,7 @@ public abstract class MixinAABBOutline extends Outline {
                 if (lineWidth == 0)
                     return;
 
-                VertexConsumer consumer = buffer.getBuffer(RenderTypes.getOutlineSolid());
+                VertexConsumer consumer = buffer.getBuffer(PonderRenderTypes.outlineSolid());
                 renderBoxEdges(ms, consumer, minPos, maxPos, lineWidth, color, lightmap, disableLineNormals);
 
                 ms.popPose();
