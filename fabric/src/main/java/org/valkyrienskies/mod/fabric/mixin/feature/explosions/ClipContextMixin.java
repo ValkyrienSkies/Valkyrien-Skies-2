@@ -13,12 +13,12 @@ public class ClipContextMixin {
 
     //In features like explosion push force, there is not always a relevant entity for a clip to use.
     //CollisionContext.of in vanilla requires a non-null entity. This mixin makes parity with the Forge implementation of CollisionContext.
-    @WrapOperation(method = "<init>",
+    @WrapOperation(method = "<init>(Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/level/ClipContext$Block;Lnet/minecraft/world/level/ClipContext$Fluid;Lnet/minecraft/world/entity/Entity;)V",
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/world/phys/shapes/CollisionContext;of(Lnet/minecraft/world/entity/Entity;)Lnet/minecraft/world/phys/shapes/CollisionContext;"
         ))
-    public CollisionContext collisionContextRedirect(final Entity entity, final Operation<CollisionContext> operation) {
+    private static CollisionContext collisionContextRedirect(Entity entity, final Operation<CollisionContext> operation) {
         if (entity == null) {
             return CollisionContext.empty();
         }

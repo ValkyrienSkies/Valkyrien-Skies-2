@@ -77,8 +77,14 @@ public abstract class MixinMinecraft
         final LocalPlayer localPlayer, final InteractionHand interactionHand,
         final BlockHitResult blockHitResult, final Operation<InteractionResult> useItemOn) {
 
-        return useItemOn.call(instance, localPlayer, interactionHand,
-            this.originalCrosshairTarget);
+        final HitResult originalCrosshairTargetCopy = originalCrosshairTarget;
+        if (originalCrosshairTargetCopy instanceof BlockHitResult) {
+            return useItemOn.call(instance, localPlayer, interactionHand,
+                originalCrosshairTargetCopy);
+        } else {
+            return useItemOn.call(instance, localPlayer, interactionHand,
+                blockHitResult);
+        }
     }
 
     @NotNull
