@@ -43,8 +43,7 @@ object ValkyrienSkiesMod {
     lateinit var PHYSICS_ENTITY_TYPE: EntityType<VSPhysicsEntity>
     lateinit var TEST_HINGE_BLOCK_ENTITY_TYPE: BlockEntityType<TestHingeBlockEntity>
 
-    // TODO: Is this right?
-    val VS_CREATIVE_TAB = ResourceKey.create(Registries.CREATIVE_MODE_TAB, ResourceLocation.fromNamespaceAndPath("valkyrienskies", "creativetab"))
+    val VS_CREATIVE_TAB = ResourceKey.create(Registries.CREATIVE_MODE_TAB, ResourceLocation.parse("valkyrienskies"))
 
     @JvmStatic
     var currentServer: MinecraftServer? = null

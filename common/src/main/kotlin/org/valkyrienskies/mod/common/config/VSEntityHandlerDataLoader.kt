@@ -21,7 +21,7 @@ object VSEntityHandlerDataLoader : SimpleJsonResourceReloadListener(Gson(), "vs_
         list.forEach { (l, v) ->
             try {
                 val type = BuiltInRegistries.ENTITY_TYPE.getOptional(l).orElse(null) ?: return@forEach
-                val handler = VSEntityManager.getHandler(ResourceLocation(v.asJsonObject.get("handler").asString))
+                val handler = VSEntityManager.getHandler(ResourceLocation.parse(v.asJsonObject.get("handler").asString))
                     ?: throw Exception("Handler not found")
 
                 VSEntityManager.pair(type, handler)

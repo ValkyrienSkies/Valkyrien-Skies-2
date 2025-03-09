@@ -1,16 +1,13 @@
 package org.valkyrienskies.mod.common.command
 
-import com.google.gson.JsonObject
 import com.mojang.brigadier.StringReader
 import com.mojang.brigadier.arguments.ArgumentType
 import com.mojang.brigadier.context.CommandContext
 import com.mojang.brigadier.exceptions.CommandSyntaxException
+import com.mojang.brigadier.exceptions.SimpleCommandExceptionType
 import com.mojang.brigadier.suggestion.Suggestions
 import com.mojang.brigadier.suggestion.SuggestionsBuilder
-import net.minecraft.commands.CommandRuntimeException
-import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.chat.Component
-import net.minecraft.network.chat.Component.translatable
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.mod.mixinducks.feature.command.VSCommandSource
 import java.util.concurrent.CompletableFuture
@@ -80,13 +77,13 @@ class ShipArgument private constructor(val selectorOnly: Boolean) : ArgumentType
 
             // Then try to return an unloaded ship
             val r = selector.select(context.source.shipWorld.allShips)
-            if (r.isEmpty()) throw ERROR_NO_SHIP_FOUND
-            if (r.size == 1) return r.first() else throw ERROR_MANY_SHIP_FOUND
+            if (r.isEmpty()) throw ERROR_NO_SHIP_FOUND.create()
+            if (r.size == 1) return r.first() else throw ERROR_MANY_SHIP_FOUND.create()
         }
 
-        private val ERROR_NO_SHIP_FOUND = CommandRuntimeException(Component.translatable("argument.valkyrienskies.ship.no_found"))
+        private val ERROR_NO_SHIP_FOUND = SimpleCommandExceptionType(Component.translatable("argument.valkyrienskies.ship.no_found"))
         private val ERROR_MANY_SHIP_FOUND =
-            CommandRuntimeException(Component.translatable("argument.valkyrienskies.ship.multiple_found"))
+            SimpleCommandExceptionType(Component.translatable("argument.valkyrienskies.ship.multiple_found"))
     }
 
     override fun getExamples(): Collection<String> = EXAMPLES

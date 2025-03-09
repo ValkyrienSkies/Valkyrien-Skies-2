@@ -4,7 +4,6 @@ import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.entity.EntityRenderer
 import net.minecraft.world.entity.Entity
-import net.minecraft.world.entity.projectile.AbstractHurtingProjectile
 import org.joml.Vector3d
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.Ship
@@ -80,15 +79,5 @@ object WorldEntityHandler : VSEntityHandler {
         entity.xRot = (pitch * (180 / Math.PI)).toFloat()
         entity.yRotO = entity.yRot
         entity.xRotO = entity.xRot
-
-        if (entity is AbstractHurtingProjectile) {
-            val power = Vector3d(entity.xPower, entity.yPower, entity.zPower)
-
-            ship.transform.shipToWorldRotation.transform(power)
-
-            entity.xPower = power.x
-            entity.yPower = power.y
-            entity.zPower = power.z
-        }
     }
 }

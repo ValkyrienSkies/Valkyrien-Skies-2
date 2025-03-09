@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.common.block
 
+import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction.DOWN
 import net.minecraft.core.Direction.EAST
@@ -8,7 +9,6 @@ import net.minecraft.core.Direction.SOUTH
 import net.minecraft.core.Direction.UP
 import net.minecraft.core.Direction.WEST
 import net.minecraft.server.level.ServerLevel
-import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.context.BlockPlaceContext
@@ -44,7 +44,7 @@ import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.toJOML
 import kotlin.math.roundToInt
 
-object TestHingeBlock :
+class TestHingeBlock() :
     DirectionalBlock(
         Properties.of().strength(10.0f, 1200.0f).sound(SoundType.METAL)
     ), EntityBlock {
@@ -98,14 +98,8 @@ object TestHingeBlock :
         }
     }
 
-    @Deprecated("Deprecated in Java")
-    override fun use(
-        state: BlockState,
-        level: Level,
-        pos: BlockPos,
-        player: Player,
-        hand: InteractionHand,
-        blockHitResult: BlockHitResult
+    override fun useWithoutItem(
+        state: BlockState, level: Level, pos: BlockPos, player: Player, blockHitResult: BlockHitResult
     ): InteractionResult {
         if (level.isClientSide) return InteractionResult.SUCCESS
 
@@ -255,5 +249,11 @@ object TestHingeBlock :
         if (blockEntity is TestHingeBlockEntity) {
             blockEntity.tick()
         }
+    }
+
+    override fun codec() = CODEC
+
+    companion object {
+        val CODEC: MapCodec<TestHingeBlock> = simpleCodec { TestHingeBlock() }
     }
 }

@@ -3,7 +3,7 @@ package org.valkyrienskies.mod.mixin.feature.fix_render_chunk_sorting;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
+import net.minecraft.client.renderer.chunk.SectionRenderDispatcher;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.AABB;
 import org.joml.Vector3d;
@@ -17,14 +17,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
-@Mixin(ChunkRenderDispatcher.RenderChunk.class)
+@Mixin(SectionRenderDispatcher.RenderSection.class)
 public class MixinRenderChunk {
 
     @Shadow
-    public AABB bb;
+    private AABB bb;
     @Shadow
     @Final
-    private BlockPos.MutableBlockPos origin;
+    BlockPos.MutableBlockPos origin;
 
     /**
      * This mixin fixes chunk render sorting. Vanilla MC behavior is to render the chunks closest to the player first,

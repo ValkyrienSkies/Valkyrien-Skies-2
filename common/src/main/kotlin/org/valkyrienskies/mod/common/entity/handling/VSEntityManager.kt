@@ -25,8 +25,8 @@ object VSEntityManager {
         CacheBuilder.newBuilder().expireAfterAccess(Duration.ofMinutes(5)).build<EntityType<*>, VSEntityHandler>()
 
     init {
-        register(ResourceLocation(ValkyrienSkiesMod.MOD_ID, "shipyard"), DefaultShipyardEntityHandler)
-        register(ResourceLocation(ValkyrienSkiesMod.MOD_ID, "default"), WorldEntityHandler)
+        register(ResourceLocation.fromNamespaceAndPath(ValkyrienSkiesMod.MOD_ID, "shipyard"), DefaultShipyardEntityHandler)
+        register(ResourceLocation.fromNamespaceAndPath(ValkyrienSkiesMod.MOD_ID, "default"), WorldEntityHandler)
     }
 
     /**

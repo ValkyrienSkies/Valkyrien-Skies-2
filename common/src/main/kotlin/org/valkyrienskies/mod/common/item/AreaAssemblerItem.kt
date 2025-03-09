@@ -43,6 +43,8 @@ class AreaAssemblerItem(
                 // Make a ship
                 val dimensionId = level.dimensionId
 
+                // TODO: Fix and re-enable
+                /*
                 if (item.tag != null && item.tag!!.contains("firstPosX")) {
                     val firstPosX = item.tag!!.getInt("firstPosX")
                     val firstPosY = item.tag!!.getInt("firstPosY")
@@ -82,6 +84,8 @@ class AreaAssemblerItem(
                     ctx.player?.sendSystemMessage(
                         Component.translatable("First block selected: (${blockPos.x}, ${blockPos.y}, ${blockPos.z})"))
                 }
+
+                 */
             }
         }
 

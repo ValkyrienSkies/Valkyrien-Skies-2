@@ -194,7 +194,7 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererVanillaD
             receiver, renderType, camX, camY, camZ, poseMatrix, projectionMatrix
         ));
 
-        PoseStack poseStack = new PoseStack();
+        final PoseStack poseStack = new PoseStack();
         poseStack.mulPose(poseMatrix);
 
         vs$shipRenderChunks.forEach((ship, chunks) -> {

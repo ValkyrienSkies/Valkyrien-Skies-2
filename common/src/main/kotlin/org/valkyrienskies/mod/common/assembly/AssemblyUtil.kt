@@ -41,10 +41,11 @@ object AssemblyUtil {
 
         // Transfer block-entity data
         if (state.hasBlockEntity() && blockentity != null) {
-            val data: CompoundTag = blockentity.saveWithId()
+            val data: CompoundTag = blockentity.saveWithId(level.registryAccess())
             level.setBlockEntity(blockentity)
             val newBlockentity = level.getBlockEntity(to)
-            newBlockentity?.load(data)
+            // TODO: Do we invoke LevelChunk.promotePendingBlockEntity()?
+            newBlockentity?.loadWithComponents(data, level.registryAccess())
         }
     }
 

@@ -151,12 +151,12 @@ object MassDatapackResolver : BlockStateInfoProvider {
             val priority = element.asJsonObject["priority"]?.asInt ?: decideDefaultPriority(origin)
 
             if (tag != null) {
-                addToBeAddedTags(VSBlockStateInfo(ResourceLocation(tag), priority, weight, friction, elasticity, null))
+                addToBeAddedTags(VSBlockStateInfo(ResourceLocation.parse(tag), priority, weight, friction, elasticity, null))
             } else {
                 val block = element.asJsonObject["block"]?.asString
                     ?: throw IllegalArgumentException("No block or tag in file $origin")
 
-                add(VSBlockStateInfo(ResourceLocation(block), priority, weight, friction, elasticity, null))
+                add(VSBlockStateInfo(ResourceLocation.parse(block), priority, weight, friction, elasticity, null))
             }
         }
     }

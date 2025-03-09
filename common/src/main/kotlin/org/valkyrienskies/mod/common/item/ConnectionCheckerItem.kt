@@ -38,6 +38,8 @@ class ConnectionCheckerItem(
                 // Make a ship
                 val dimensionId = level.dimensionId
 
+                // TODO: Fix this later
+                /*
                 if (parentShip != null) {
                     if (item.tag != null && item.tag!!.contains("firstPosX")) {
                         val firstPosX = item.tag!!.getInt("firstPosX")
@@ -58,6 +60,7 @@ class ConnectionCheckerItem(
                             Component.translatable("First block selected: (${blockPos.x}, ${blockPos.y}, ${blockPos.z})"))
                     }
                 }
+                 */
             }
         }
 

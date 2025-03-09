@@ -3,7 +3,6 @@ package org.valkyrienskies.mod.common.world
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.level.ChunkPos
-import org.apache.commons.lang3.mutable.MutableObject
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore
 import org.valkyrienskies.core.apigame.world.chunks.ChunkUnwatchTask
 import org.valkyrienskies.core.apigame.world.chunks.ChunkWatchTask
@@ -13,6 +12,7 @@ import org.valkyrienskies.mod.common.isTickingChunk
 import org.valkyrienskies.mod.common.mcPlayer
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.mixin.accessors.server.level.ChunkMapAccessor
+import org.valkyrienskies.mod.util.DelegateLogger.provideDelegate
 import org.valkyrienskies.mod.util.logger
 
 object ChunkManagement {
@@ -34,6 +34,7 @@ object ChunkManagement {
             level.chunkSource.updateChunkForced(chunkPos, true)
 
             level.server.executeIf({ level.isTickingChunk(chunkPos) }) {
+                val map = level.chunkSource.chunkMap as ChunkMapAccessor
                 for (player in chunkWatchTask.playersNeedWatching) {
                     val minecraftPlayer = player as MinecraftPlayer
                     val serverPlayer = minecraftPlayer.playerEntityReference.get() as ServerPlayer?
@@ -41,8 +42,7 @@ object ChunkManagement {
                         if (chunkWatchTask.dimensionId != player.dimension) {
                             logger.warn("Player received watch task for chunk in dimension that they are not also in!")
                         }
-                        val map = level.chunkSource.chunkMap as ChunkMapAccessor
-                        map.callUpdateChunkTracking(serverPlayer, chunkPos, MutableObject(), false, true)
+                        map.callMarkChunkPendingToSend(serverPlayer, chunkPos)
                     }
                 }
             }
@@ -60,8 +60,10 @@ object ChunkManagement {
                 level.chunkSource.updateChunkForced(chunkPos, false)
             }
 
+            val level = server.getLevelFromDimensionId(chunkUnwatchTask.dimensionId)!!
+            val map = level.chunkSource.chunkMap as ChunkMapAccessor
             for (player in chunkUnwatchTask.playersNeedUnwatching) {
-                (player.mcPlayer as ServerPlayer).untrackChunk(chunkPos)
+                map.callDropChunk(player.mcPlayer as ServerPlayer, chunkPos)
             }
         }
 

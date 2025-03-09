@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.common.block
 
+import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction.DOWN
 import net.minecraft.core.Direction.EAST
@@ -20,7 +21,7 @@ import net.minecraft.world.phys.shapes.VoxelShape
 import org.valkyrienskies.core.api.ships.Wing
 import org.valkyrienskies.mod.common.util.toJOMLD
 
-object TestWingBlock :
+class TestWingBlock() :
     DirectionalBlock(
         Properties.of().strength(10.0f, 1200.0f).sound(SoundType.METAL)
     ), WingBlock {
@@ -83,5 +84,11 @@ object TestWingBlock :
             blockState.getValue(FACING).normal.toJOMLD(), wingPower, wingDrag, wingBreakingForce,
             wingCamberAttackAngleBias
         )
+    }
+
+    override fun codec() = CODEC
+
+    companion object {
+        val CODEC: MapCodec<TestWingBlock> = simpleCodec { TestWingBlock() }
     }
 }

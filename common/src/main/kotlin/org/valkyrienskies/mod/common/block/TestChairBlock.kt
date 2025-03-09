@@ -1,9 +1,9 @@
 package org.valkyrienskies.mod.common.block
 
+import com.mojang.serialization.MapCodec
 import net.minecraft.commands.arguments.EntityAnchorArgument
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
-import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.context.BlockPlaceContext
@@ -25,10 +25,9 @@ import org.valkyrienskies.core.util.z
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.util.toDoubles
 
-object TestChairBlock :
-    HorizontalDirectionalBlock(
-        Properties.of().strength(1.0f, 120.0f).sound(SoundType.WOOL)
-    ) {
+class TestChairBlock() : HorizontalDirectionalBlock(
+    Properties.of().strength(1.0f, 120.0f).sound(SoundType.WOOL)
+) {
     private val SEAT_AABB: VoxelShape = box(0.0, 0.0, 0.0, 16.0, 8.0, 16.0)
 
     init {
@@ -44,19 +43,12 @@ object TestChairBlock :
             .setValue(FACING, ctx.horizontalDirection.opposite)
     }
 
-    @Deprecated("Deprecated in Java")
     override fun getShape(
-        state: BlockState, level: BlockGetter?, pos: BlockPos?, context: CollisionContext?
+        state: BlockState, level: BlockGetter, pos: BlockPos, context: CollisionContext
     ): VoxelShape = SEAT_AABB
 
-    @Deprecated("Deprecated in Java")
-    override fun use(
-        state: BlockState,
-        level: Level,
-        pos: BlockPos,
-        player: Player,
-        hand: InteractionHand,
-        blockHitResult: BlockHitResult
+    override fun useWithoutItem(
+        state: BlockState, level: Level, pos: BlockPos, player: Player, blockHitResult: BlockHitResult
     ): InteractionResult {
         if (level.isClientSide) return InteractionResult.SUCCESS
         val seatEntity = ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE.create(level)!!.apply {
@@ -69,5 +61,11 @@ object TestChairBlock :
         level.addFreshEntity(seatEntity)
         player.startRiding(seatEntity)
         return InteractionResult.CONSUME
+    }
+
+    override fun codec() = CODEC
+
+    companion object {
+        val CODEC: MapCodec<TestChairBlock> = simpleCodec { TestChairBlock() }
     }
 }

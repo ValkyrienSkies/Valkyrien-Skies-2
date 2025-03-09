@@ -5,6 +5,8 @@ import net.minecraft.nbt.CompoundTag
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.ClientGamePacketListener
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
+import net.minecraft.network.syncher.SynchedEntityData
+import net.minecraft.server.level.ServerEntity
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.LivingEntity
@@ -73,7 +75,7 @@ open class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level
 
     override fun addAdditionalSaveData(compound: CompoundTag) {}
 
-    override fun defineSynchedData() {}
+    override fun defineSynchedData(builder: SynchedEntityData.Builder) {}
 
     override fun remove(removalReason: RemovalReason) {
         if (this.isController && !level().isClientSide)
@@ -113,7 +115,7 @@ open class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level
         }
     }
 
-    override fun getAddEntityPacket(): Packet<ClientGamePacketListener> {
-        return ClientboundAddEntityPacket(this)
+    override fun getAddEntityPacket(serverEntity: ServerEntity): Packet<ClientGamePacketListener> {
+        return ClientboundAddEntityPacket(this, serverEntity)
     }
 }

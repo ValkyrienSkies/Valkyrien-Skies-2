@@ -10,6 +10,7 @@ import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
 import net.minecraft.network.syncher.EntityDataAccessor
 import net.minecraft.network.syncher.EntityDataSerializers
 import net.minecraft.network.syncher.SynchedEntityData
+import net.minecraft.server.level.ServerEntity
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.level.Level
@@ -81,7 +82,7 @@ open class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : En
         super.tick()
     }
 
-    override fun lerpTo(d: Double, e: Double, f: Double, g: Float, h: Float, i: Int, bl: Boolean) {
+    override fun lerpTo(d: Double, e: Double, f: Double, g: Float, h: Float, i: Int) {
         this.lerpPos = Vector3d(d, e, f)
         this.lerpSteps = CLIENT_INTERP_STEPS
     }
@@ -113,8 +114,8 @@ open class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : En
         return physEntityClient?.renderTransform
     }
 
-    override fun defineSynchedData() {
-        entityData.define(SHIP_ID_DATA, "")
+    override fun defineSynchedData(builder: SynchedEntityData.Builder) {
+        entityData.set(SHIP_ID_DATA, "")
     }
 
     override fun readAdditionalSaveData(compoundTag: CompoundTag) {
@@ -123,8 +124,8 @@ open class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : En
     override fun addAdditionalSaveData(compoundTag: CompoundTag) {
     }
 
-    override fun getAddEntityPacket(): Packet<ClientGamePacketListener> {
-        return ClientboundAddEntityPacket(this)
+    override fun getAddEntityPacket(serverEntity: ServerEntity): Packet<ClientGamePacketListener> {
+        return ClientboundAddEntityPacket(this, serverEntity)
     }
 
     override fun saveWithoutId(compoundTag: CompoundTag): CompoundTag {
@@ -214,8 +215,8 @@ open class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : En
         val compoundTag = entity.saveWithoutId(CompoundTag())
         compoundTag.remove("Dimension")
         loadForTeleport(compoundTag)
-        ((this as EntityAccessor).portalCooldown) = (entity as EntityAccessor).portalCooldown
-        portalEntrancePos = entity.portalEntrancePos
+        (this as EntityAccessor).portalCooldown = (entity as EntityAccessor).portalCooldown
+        portalProcess = entity.portalProcess
     }
 
     companion object {

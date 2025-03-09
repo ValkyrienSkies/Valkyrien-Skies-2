@@ -31,7 +31,7 @@ fun relocateBlock(
     val entity = fromChunk.getBlockEntity(from)
 
     val tag = entity?.let {
-        val tag = it.saveWithFullMetadata()
+        val tag = it.saveWithFullMetadata(fromChunk.level.registryAccess())
         tag.putInt("x", to.x)
         tag.putInt("y", to.y)
         tag.putInt("z", to.z)
@@ -63,7 +63,7 @@ fun relocateBlock(
     tag?.let {
         val be = level.getBlockEntity(to)!!
 
-        be.load(it)
+        be.loadWithComponents(it, toChunk.level.registryAccess())
     }
 }
 
