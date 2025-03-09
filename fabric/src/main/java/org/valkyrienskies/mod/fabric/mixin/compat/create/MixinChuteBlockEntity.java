@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.fabric.mixin.compat.create;
 
+/*
 import com.llamalad7.mixinextras.sugar.Local;
 import com.simibubi.create.content.logistics.chute.ChuteBlockEntity;
 import net.minecraft.core.BlockPos;
@@ -61,3 +62,4 @@ public class MixinChuteBlockEntity {
         }
     }
 }
+ */

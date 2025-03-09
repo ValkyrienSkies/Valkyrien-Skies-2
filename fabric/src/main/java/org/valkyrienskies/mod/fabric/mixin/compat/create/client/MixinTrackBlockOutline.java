@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.fabric.mixin.compat.create.client;
 
+/*
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.simibubi.create.content.trains.track.TrackBlockOutline;
@@ -132,3 +133,4 @@ public class MixinTrackBlockOutline {
         }
     }
 }
+ */

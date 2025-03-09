@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.fabric.mixin.compat.create;
 
+/*
 import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
 import com.simibubi.create.content.contraptions.ControlledContraptionEntity;
 import com.simibubi.create.content.contraptions.bearing.BearingContraption;
@@ -38,3 +39,4 @@ public abstract class MixinControlledContraptionEntity extends AbstractContrapti
     }
     //Region end
 }
+ */

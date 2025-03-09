@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.fabric.mixin.compat.create.client;
 
+/*
 import io.github.fabricators_of_create.porting_lib.block.CullingBlockEntityIterator;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.culling.Frustum;
@@ -24,3 +25,4 @@ public abstract class MixinCullingBlockEntityIterator {
         return instance.isVisible(newAABB);
     }
 }
+ */

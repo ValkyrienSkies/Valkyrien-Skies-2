@@ -1,7 +1,6 @@
 package org.valkyrienskies.mod.mixin.world.level.levelgen;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 import net.minecraft.core.Holder;
 import net.minecraft.server.level.WorldGenRegion;
 import net.minecraft.world.level.ChunkPos;
@@ -59,7 +58,8 @@ public class MixinNoiseBasedChunkGenerator {
     }
 
     @Inject(method = "fillFromNoise", at = @At("HEAD"), cancellable = true)
-    private void preFillFromNoise(Executor executor, Blender blender, RandomState randomState, StructureManager structureManager, ChunkAccess chunkAccess, CallbackInfoReturnable<CompletableFuture<ChunkAccess>> cir) {
+    private void preFillFromNoise(Blender blender, RandomState randomState, StructureManager structureManager,
+        ChunkAccess chunkAccess, CallbackInfoReturnable<CompletableFuture<ChunkAccess>> cir) {
         final ChunkPos chunkPos = chunkAccess.getPos();
         if (VS2ChunkAllocator.INSTANCE.isChunkInShipyardCompanion(chunkPos.x, chunkPos.z)) {
             cir.setReturnValue(CompletableFuture.completedFuture(chunkAccess));

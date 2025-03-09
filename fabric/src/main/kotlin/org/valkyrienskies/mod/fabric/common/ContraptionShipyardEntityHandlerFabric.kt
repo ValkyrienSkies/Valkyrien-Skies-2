@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.fabric.common
 
+/*
 import com.simibubi.create.content.contraptions.AbstractContraptionEntity
 import net.minecraft.core.BlockPos
 import net.minecraft.world.entity.Entity
@@ -38,3 +39,4 @@ object ContraptionShipyardEntityHandlerFabric: AbstractShipyardEntityHandler() {
         }
     }
 }
+ */

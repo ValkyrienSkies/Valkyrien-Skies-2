@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.fabric.mixin.compat.create.client;
 
+/*
 import com.jamieswhiteshirt.reachentityattributes.ReachEntityAttributes;
 import com.simibubi.create.content.contraptions.glue.SuperGlueSelectionHandler;
 import com.simibubi.create.foundation.utility.RaycastHelper;
@@ -66,3 +67,4 @@ public abstract class MixinSuperGlueSelectionHandler {
         return newTarget;
     }
 }
+ */

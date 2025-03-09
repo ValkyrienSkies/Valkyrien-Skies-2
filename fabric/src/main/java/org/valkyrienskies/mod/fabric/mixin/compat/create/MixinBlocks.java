@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.fabric.mixin.compat.create;
 
+/*
 import com.simibubi.create.content.kinetics.millstone.MillstoneBlock;
 import com.simibubi.create.content.logistics.chute.AbstractChuteBlock;
 import com.simibubi.create.content.processing.basin.BasinBlock;
@@ -60,3 +61,4 @@ public class MixinBlocks {
     }
 
 }
+ */

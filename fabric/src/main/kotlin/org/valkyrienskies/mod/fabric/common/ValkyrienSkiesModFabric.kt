@@ -62,10 +62,10 @@ class ValkyrienSkiesModFabric : ModInitializer {
     override fun onInitialize() {
         if (hasInitialized.getAndSet(true)) return
 
-        ValkyrienSkiesMod.TEST_CHAIR = TestChairBlock
-        ValkyrienSkiesMod.TEST_HINGE = TestHingeBlock
-        ValkyrienSkiesMod.TEST_FLAP = TestFlapBlock
-        ValkyrienSkiesMod.TEST_WING = TestWingBlock
+        ValkyrienSkiesMod.TEST_CHAIR = TestChairBlock()
+        ValkyrienSkiesMod.TEST_HINGE = TestHingeBlock()
+        ValkyrienSkiesMod.TEST_FLAP = TestFlapBlock()
+        ValkyrienSkiesMod.TEST_WING = TestWingBlock()
         ValkyrienSkiesMod.TEST_SPHERE = TestSphereBlock
         ValkyrienSkiesMod.CONNECTION_CHECKER_ITEM = ConnectionCheckerItem(
             Properties(),
@@ -94,7 +94,7 @@ class ValkyrienSkiesModFabric : ModInitializer {
             ::ShipMountingEntity,
             MobCategory.MISC
         ).sized(.3f, .3f)
-            .build(ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_mounting_entity").toString())
+            .build(ResourceLocation.fromNamespaceAndPath(ValkyrienSkiesMod.MOD_ID, "ship_mounting_entity").toString())
 
         ValkyrienSkiesMod.PHYSICS_ENTITY_TYPE = EntityType.Builder.of(
             ::VSPhysicsEntity,
@@ -102,7 +102,7 @@ class ValkyrienSkiesModFabric : ModInitializer {
         ).sized(.3f, .3f)
             .updateInterval(1)
             .clientTrackingRange(10)
-            .build(ResourceLocation(ValkyrienSkiesMod.MOD_ID, "vs_physics_entity").toString())
+            .build(ResourceLocation.fromNamespaceAndPath(ValkyrienSkiesMod.MOD_ID, "vs_physics_entity").toString())
 
         ValkyrienSkiesMod.TEST_HINGE_BLOCK_ENTITY_TYPE =
             FabricBlockEntityTypeBuilder.create(::TestHingeBlockEntity, ValkyrienSkiesMod.TEST_HINGE).build()
@@ -121,7 +121,7 @@ class ValkyrienSkiesModFabric : ModInitializer {
         if (isClient) onInitializeClient()
 
         ValkyrienSkiesMod.init(vsCore)
-        VSEntityManager.registerContraptionHandler(ContraptionShipyardEntityHandlerFabric)
+        // VSEntityManager.registerContraptionHandler(ContraptionShipyardEntityHandlerFabric)
 
         registerBlockAndItem("test_chair", ValkyrienSkiesMod.TEST_CHAIR)
         registerBlockAndItem("test_hinge", ValkyrienSkiesMod.TEST_HINGE)
@@ -129,39 +129,39 @@ class ValkyrienSkiesModFabric : ModInitializer {
         registerBlockAndItem("test_wing", ValkyrienSkiesMod.TEST_WING)
         registerBlockAndItem("test_sphere", ValkyrienSkiesMod.TEST_SPHERE)
         Registry.register(
-            BuiltInRegistries.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "connection_checker"),
+            BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath(ValkyrienSkiesMod.MOD_ID, "connection_checker"),
             ValkyrienSkiesMod.CONNECTION_CHECKER_ITEM
         )
         Registry.register(
-            BuiltInRegistries.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "area_assembler"),
+            BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath(ValkyrienSkiesMod.MOD_ID, "area_assembler"),
             ValkyrienSkiesMod.AREA_ASSEMBLER_ITEM
         )
         Registry.register(
-            BuiltInRegistries.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_assembler"),
+            BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath(ValkyrienSkiesMod.MOD_ID, "ship_assembler"),
             ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM
         )
         Registry.register(
-            BuiltInRegistries.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_creator"),
+            BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath(ValkyrienSkiesMod.MOD_ID, "ship_creator"),
             ValkyrienSkiesMod.SHIP_CREATOR_ITEM
         )
         Registry.register(
-            BuiltInRegistries.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_creator_smaller"),
+            BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath(ValkyrienSkiesMod.MOD_ID, "ship_creator_smaller"),
             ValkyrienSkiesMod.SHIP_CREATOR_ITEM_SMALLER
         )
         Registry.register(
-            BuiltInRegistries.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "physics_entity_creator"),
+            BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath(ValkyrienSkiesMod.MOD_ID, "physics_entity_creator"),
             ValkyrienSkiesMod.PHYSICS_ENTITY_CREATOR_ITEM
         )
         Registry.register(
-            BuiltInRegistries.ENTITY_TYPE, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_mounting_entity"),
+            BuiltInRegistries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath(ValkyrienSkiesMod.MOD_ID, "ship_mounting_entity"),
             ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE
         )
         Registry.register(
-            BuiltInRegistries.ENTITY_TYPE, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "vs_physics_entity"),
+            BuiltInRegistries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath(ValkyrienSkiesMod.MOD_ID, "vs_physics_entity"),
             ValkyrienSkiesMod.PHYSICS_ENTITY_TYPE
         )
         Registry.register(
-            BuiltInRegistries.BLOCK_ENTITY_TYPE, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "test_hinge_block_entity"),
+            BuiltInRegistries.BLOCK_ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath(ValkyrienSkiesMod.MOD_ID, "test_hinge_block_entity"),
             ValkyrienSkiesMod.TEST_HINGE_BLOCK_ENTITY_TYPE
         )
 
@@ -171,9 +171,10 @@ class ValkyrienSkiesModFabric : ModInitializer {
             ValkyrienSkiesMod.createCreativeTab()
         )
 
-        CommandRegistrationCallback.EVENT.register { dispatcher ,d, _ ->
-            VSCommands.registerServerCommands(dispatcher)
-        }
+        // TODO: Re-enable
+        // CommandRegistrationCallback.EVENT.register { dispatcher ,d, _ ->
+        //     VSCommands.registerServerCommands(dispatcher)
+        // }
 
         // registering data loaders
         val loader1 = MassDatapackResolver.loader // the get makes a new instance so get it only once
@@ -181,7 +182,7 @@ class ValkyrienSkiesModFabric : ModInitializer {
         ResourceManagerHelper.get(SERVER_DATA)
             .registerReloadListener(object : IdentifiableResourceReloadListener {
                 override fun getFabricId(): ResourceLocation {
-                    return ResourceLocation(ValkyrienSkiesMod.MOD_ID, "vs_mass")
+                    return ResourceLocation.fromNamespaceAndPath(ValkyrienSkiesMod.MOD_ID, "vs_mass")
                 }
 
                 override fun reload(
@@ -236,11 +237,11 @@ class ValkyrienSkiesModFabric : ModInitializer {
 
     private fun registerBlockAndItem(registryName: String, block: Block): Item {
         Registry.register(
-            BuiltInRegistries.BLOCK, ResourceLocation(ValkyrienSkiesMod.MOD_ID, registryName),
+            BuiltInRegistries.BLOCK, ResourceLocation.fromNamespaceAndPath(ValkyrienSkiesMod.MOD_ID, registryName),
             block
         )
         val item = BlockItem(block, Properties())
-        Registry.register(BuiltInRegistries.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, registryName), item)
+        Registry.register(BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath(ValkyrienSkiesMod.MOD_ID, registryName), item)
         return item
     }
 }

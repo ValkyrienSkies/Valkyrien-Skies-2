@@ -5,9 +5,9 @@ import java.util.Objects;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item.TooltipContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -21,8 +21,8 @@ import oshi.util.tuples.Pair;
 @Mixin(BlockItem.class)
 public class MixinBlockItem {
     @Inject(method = "appendHoverText", at = @At("HEAD"))
-    private void ValkyrienSkies$addMassToTooltip(final ItemStack itemStack, final Level level,
-        final List<Component> list, final TooltipFlag tooltipFlag, final CallbackInfo ci) {
+    private void ValkyrienSkies$addMassToTooltip(ItemStack itemStack, TooltipContext tooltipContext,
+        List<Component> list, TooltipFlag tooltipFlag, CallbackInfo ci) {
         final MassTooltipVisibility visibility = VSGameConfig.CLIENT.getTooltip().getMassTooltipVisibility();
         if (visibility.isVisible(tooltipFlag)) {
             try {
