@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.mixin.client;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.MultiPlayerGameMode;
@@ -167,10 +168,10 @@ public abstract class MixinMinecraft
     }
 
     @Inject(
-        method = "clearClientLevel",
-        at = @At("TAIL")
+        method = "disconnect(Lnet/minecraft/client/gui/screens/Screen;Z)V",
+        at = @At("RETURN")
     )
-    private void postClearClientLevel(final CallbackInfo ci) {
+    private void postDisconnect(final Screen screen, final boolean bl, final CallbackInfo ci) {
         if (shipObjectWorld != null) {
             deleteShipObjectWorldClient();
         }
