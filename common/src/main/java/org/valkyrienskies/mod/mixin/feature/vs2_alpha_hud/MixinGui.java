@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.mixin.feature.vs2_alpha_hud;
 import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.List;
+import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.Gui;
@@ -29,7 +30,7 @@ public class MixinGui {
      * Render the "VS 2 Alpha" text
      */
     @Inject(method = "renderEffects", at = @At("HEAD"))
-    private void preRenderStatusEffectOverlay(final GuiGraphics guiGraphics, final CallbackInfo ci) {
+    private void preRenderStatusEffectOverlay(GuiGraphics guiGraphics, DeltaTracker deltaTracker, CallbackInfo ci) {
         if (!VSGameConfig.CLIENT.getRenderDebugText()) {
             return;
         }

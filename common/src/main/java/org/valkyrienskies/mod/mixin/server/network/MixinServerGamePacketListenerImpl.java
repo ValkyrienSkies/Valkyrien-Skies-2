@@ -6,18 +6,19 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import java.util.Collections;
 import java.util.Set;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.Connection;
+import net.minecraft.network.DisconnectionDetails;
 import net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.ServerPlayerGameMode;
+import net.minecraft.server.network.CommonListenerCookie;
+import net.minecraft.server.network.ServerCommonPacketListenerImpl;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import net.minecraft.world.entity.RelativeMovement;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -30,13 +31,14 @@ import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(ServerGamePacketListenerImpl.class)
-public abstract class MixinServerGamePacketListenerImpl {
+public abstract class MixinServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl {
+    public MixinServerGamePacketListenerImpl(MinecraftServer minecraftServer, Connection connection,
+        CommonListenerCookie commonListenerCookie) {
+        super(minecraftServer, connection, commonListenerCookie);
+    }
 
     @Shadow
     public ServerPlayer player;
-
-    @Shadow
-    public abstract void send(Packet<?> arg);
 
     @Shadow
     private int awaitingTeleport;
@@ -49,10 +51,6 @@ public abstract class MixinServerGamePacketListenerImpl {
 
     @Shadow
     private int awaitingTeleportTime;
-
-    @Shadow
-    @Final
-    private MinecraftServer server;
 
     @ModifyExpressionValue(
         at = @At(value = "FIELD",
@@ -172,7 +170,7 @@ public abstract class MixinServerGamePacketListenerImpl {
         method = "onDisconnect",
         at = @At("HEAD")
     )
-    void onDisconnect(final Component reason, final CallbackInfo ci) {
+    void onDisconnect(DisconnectionDetails disconnectionDetails, CallbackInfo ci) {
         final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(this.server);
         if (world != null) {
             world.onDisconnect(VSGameUtilsKt.getPlayerWrapper(this.player));

@@ -27,21 +27,25 @@ class VSFabricNetworking(
 ) {
     private fun registerClientNetworking(hooks: CoreHooksIn) {
         ClientPlayNetworking.registerGlobalReceiver(VS_PACKET_TYPE) { packet, context ->
-            hooks.onReceiveClient(Unpooled.wrappedBuffer(packet.data))
+            context.client().execute {
+                hooks.onReceiveClient(Unpooled.wrappedBuffer(packet.data))
+            }
         }
     }
 
     fun register(hooks: CoreHooksIn) {
+        PayloadTypeRegistry.playC2S().register(VS_PACKET_TYPE, VS_PACKET_CODEC)
+        PayloadTypeRegistry.playS2C().register(VS_PACKET_TYPE, VS_PACKET_CODEC)
+
         if (isClient) {
             registerClientNetworking(hooks)
         }
 
         ServerPlayNetworking.registerGlobalReceiver(VS_PACKET_TYPE) { packet, context ->
-            hooks.onReceiveServer(Unpooled.wrappedBuffer(packet.data), context.player().playerWrapper)
+            context.server().execute {
+                hooks.onReceiveServer(Unpooled.wrappedBuffer(packet.data), context.player().playerWrapper)
+            }
         }
-
-        PayloadTypeRegistry.configurationC2S()
-            .register(VS_PACKET_TYPE, VS_PACKET_CODEC)
     }
 
     fun sendToClient(data: ByteBuf, player: IPlayer) {

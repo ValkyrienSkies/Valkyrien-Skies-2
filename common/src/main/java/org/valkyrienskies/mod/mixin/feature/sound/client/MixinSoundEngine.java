@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.mixin.feature.sound.client;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.audio.Listener;
+import com.mojang.blaze3d.audio.ListenerTransform;
 import java.util.Map;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -66,12 +67,12 @@ public abstract class MixinSoundEngine {
     @WrapOperation(
         at = @At(
             value = "INVOKE",
-            target = "Lcom/mojang/blaze3d/audio/Listener;setListenerPosition(Lnet/minecraft/world/phys/Vec3;)V"
+            target = "Lcom/mojang/blaze3d/audio/Listener;setTransform(Lcom/mojang/blaze3d/audio/ListenerTransform;)V"
         ),
         method = "*"
     )
-    private void injectListenerVelocity(final Listener listener, final Vec3 position,
-        final Operation<Void> setListenerPosition) {
+    private void injectListenerVelocity(final Listener listener, ListenerTransform listenerTransform,
+        final Operation<Void> setTransform) {
         final Player player = Minecraft.getInstance().player;
         final ClientLevel level = Minecraft.getInstance().level;
         ((HasOpenALVelocity) listener).setVelocity(new Vector3d());
@@ -89,6 +90,6 @@ public abstract class MixinSoundEngine {
             }
         }
 
-        setListenerPosition.call(listener, position);
+        setTransform.call(listener, listenerTransform);
     }
 }

@@ -10,6 +10,7 @@ import net.minecraft.network.protocol.Packet;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.network.CommonListenerCookie;
 import net.minecraft.server.players.PlayerList;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
@@ -46,7 +47,8 @@ public abstract class MixinPlayerList {
         method = "placeNewPlayer",
         at = @At("TAIL")
     )
-    private void afterPlayerJoin(final Connection netManager, final ServerPlayer player, final CallbackInfo ci) {
+    private void afterPlayerJoin(Connection connection, ServerPlayer player,
+        CommonListenerCookie commonListenerCookie, CallbackInfo ci) {
         final MinecraftPlayer wrapped = VSGameUtilsKt.getPlayerWrapper(player);
         getVsCore().getHooks().afterClientJoinServer(wrapped);
         if (!KrunchSupport.INSTANCE.isKrunchSupported()) {

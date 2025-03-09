@@ -1,6 +1,5 @@
 package org.valkyrienskies.mod.mixin.mod_compat.vanilla_renderer;
 
-import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.shaders.Uniform;
@@ -22,7 +21,6 @@ import net.minecraft.client.renderer.chunk.SectionRenderDispatcher;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import org.jetbrains.annotations.Nullable;
@@ -83,24 +81,6 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererVanillaD
         return VSGameUtilsKt.squaredDistanceBetweenInclShips(
             level, b.getX(), b.getY(), b.getZ(), v.getX(), v.getY(), v.getZ()
         );
-    }
-
-    /**
-     * Force frustum update if the ship moves and the camera doesn't
-     */
-    @ModifyExpressionValue(
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/client/renderer/SectionOcclusionGraph;consumeFrustumUpdate()Z"
-        ),
-        method = "setupRender"
-    )
-    private boolean needsFrustumUpdate(final boolean needsFrustumUpdate) {
-        final Player player = minecraft.player;
-
-        // force frustum update if default behaviour says to OR if the player is mounted to a ship
-        return needsFrustumUpdate ||
-            (player != null && VSGameUtilsKt.getShipMountedTo(player) != null);
     }
 
     /**

@@ -19,10 +19,10 @@ public class MixinSimpleSoundInstance {
 
     @Inject(
         at = @At("HEAD"),
-        method = "forRecord",
+        method = "forJukeboxSong",
         cancellable = true
     )
-    private static void forRecord(final SoundEvent sound, final Vec3 pos,
+    private static void forJukeboxSong(final SoundEvent sound, final Vec3 pos,
         final CallbackInfoReturnable<SimpleSoundInstance> cir) {
 
         final Ship ship = VSGameUtilsKt.getShipManagingPos(Minecraft.getInstance().level, pos.x(), pos.y(), pos.z());
