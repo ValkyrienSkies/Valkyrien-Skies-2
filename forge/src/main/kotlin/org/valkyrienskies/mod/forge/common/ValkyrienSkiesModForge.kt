@@ -209,8 +209,7 @@ class ValkyrienSkiesModForge {
     }
 
     private fun registerCommands(event: RegisterCommandsEvent) {
-        // TODO: Re-enable
-        // VSCommands.registerServerCommands(event.dispatcher)
+        VSCommands.registerServerCommands(event.dispatcher)
 
         if (event.commandSelection == ALL || event.commandSelection == INTEGRATED) {
             VSCommands.registerClientCommands(event.dispatcher)

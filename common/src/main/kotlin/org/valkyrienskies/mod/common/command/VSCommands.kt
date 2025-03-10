@@ -50,8 +50,6 @@ object VSCommands {
     private fun <T> argument(name: String, type: ArgumentType<T>) =
         RequiredArgumentBuilder.argument<VSCommandSource, T>(name, type)
 
-    // TODO: Re-enable
-    /*
     fun registerServerCommands(dispatcher: CommandDispatcher<CommandSourceStack>) {
         dispatcher as CommandDispatcher<VSCommandSource>
 
@@ -124,16 +122,17 @@ object VSCommands {
                                 argument("euler-angles", RelativeVector3Argument.relativeVector3()).executes {
                                     // If only position is present then we execute this code
                                     try {
+                                        val commandContext = it as CommandContext<CommandSourceStack?>
                                         val r = ShipArgument.getShips(it, "ships").toList() as List<ServerShip>
                                         val position =
-                                            Vec3Argument.getVec3(it as CommandContext<CommandSourceStack>, "position")
+                                            Vec3Argument.getVec3(commandContext, "position")
                                         val eulerAngles =
                                             RelativeVector3Argument.getRelativeVector3(
-                                                it as CommandContext<CommandSourceStack?>, "euler-angles"
+                                                commandContext, "euler-angles"
                                             )
+                                        val source = it.source
 
-                                        val source = it.source as CommandSourceStack
-                                        val dimensionId = (it.source as CommandSourceStack).level.dimensionId
+                                        val dimensionId = source.level.dimensionId
                                         val shipTeleportData: ShipTeleportData =
                                             ShipTeleportDataImpl(
                                                 newPos = position.toJOML(),
@@ -160,21 +159,22 @@ object VSCommands {
                                     argument("velocity", RelativeVector3Argument.relativeVector3()).executes {
                                         // If only position is present then we execute this code
                                         try {
+                                            val commandContext = it as CommandContext<CommandSourceStack?>
                                             val r = ShipArgument.getShips(it, "ships").toList() as List<ServerShip>
                                             val position =
                                                 Vec3Argument.getVec3(
-                                                    it as CommandContext<CommandSourceStack>, "position"
+                                                    commandContext, "position"
                                                 )
                                             val eulerAngles =
                                                 RelativeVector3Argument.getRelativeVector3(
-                                                    it as CommandContext<CommandSourceStack?>, "euler-angles"
+                                                    commandContext, "euler-angles"
                                                 )
                                             val velocity = RelativeVector3Argument.getRelativeVector3(
-                                                it as CommandContext<CommandSourceStack?>, "velocity"
+                                                commandContext, "velocity"
                                             )
 
-                                            val source = it.source as CommandSourceStack
-                                            val dimensionId = (it.source as CommandSourceStack).level.dimensionId
+                                            val source = it.source
+                                            val dimensionId = source.level.dimensionId
                                             val shipTeleportData: ShipTeleportData =
                                                 ShipTeleportDataImpl(
                                                     newPos = position.toJOML(),
@@ -204,24 +204,25 @@ object VSCommands {
                                         ).executes {
                                             // If only position is present then we execute this code
                                             try {
+                                                val commandContext = it as CommandContext<CommandSourceStack?>
                                                 val r = ShipArgument.getShips(it, "ships").toList() as List<ServerShip>
                                                 val position =
                                                     Vec3Argument.getVec3(
-                                                        it as CommandContext<CommandSourceStack>, "position"
+                                                        commandContext, "position"
                                                     )
                                                 val eulerAngles =
                                                     RelativeVector3Argument.getRelativeVector3(
-                                                        it as CommandContext<CommandSourceStack?>, "euler-angles"
+                                                        commandContext, "euler-angles"
                                                     )
                                                 val velocity = RelativeVector3Argument.getRelativeVector3(
-                                                    it as CommandContext<CommandSourceStack?>, "velocity"
+                                                    commandContext, "velocity"
                                                 )
                                                 val angularVelocity = RelativeVector3Argument.getRelativeVector3(
-                                                    it as CommandContext<CommandSourceStack?>, "angular-velocity"
+                                                    commandContext, "angular-velocity"
                                                 )
 
-                                                val source = it.source as CommandSourceStack
-                                                val dimensionId = (it.source as CommandSourceStack).level.dimensionId
+                                                val source = it.source
+                                                val dimensionId = source.level.dimensionId
                                                 val shipTeleportData: ShipTeleportData =
                                                     ShipTeleportDataImpl(
                                                         newPos = position.toJOML(),
@@ -410,7 +411,6 @@ object VSCommands {
             )
         }
     }
-    */
 
     fun registerClientCommands(dispatcher: CommandDispatcher<CommandSourceStack>) {
         // TODO implement client commands
