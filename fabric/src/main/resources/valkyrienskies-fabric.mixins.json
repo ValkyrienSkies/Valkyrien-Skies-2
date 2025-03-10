@@ -13,7 +13,6 @@
     "world.level.block.FireMixin"
   ],
   "client": [
-    "client.render.MixinLevelRenderer",
     "compat.cc_restitched.MixinSpeakerSound",
     "feature.duplicate_keybindings.KeyMappingAccessor",
     "feature.duplicate_keybindings.MixinKeyMapping"

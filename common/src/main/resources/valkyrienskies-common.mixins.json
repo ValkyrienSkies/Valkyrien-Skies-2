@@ -120,7 +120,6 @@
     "client.player.MixinLocalPlayer",
     "client.renderer.MixinGameRenderer",
     "client.renderer.MixinLevelRenderer",
-    "client.renderer.SheetedDecalTextureGeneratorAccessor",
     "client.world.MixinClientChunkCache",
     "client.world.MixinClientLevel",
     "feature.block_tint.MixinClientLevel",
