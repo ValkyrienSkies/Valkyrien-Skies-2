@@ -11,9 +11,12 @@ import it.unimi.dsi.fastutil.objects.ObjectList;
 import java.util.ListIterator;
 import java.util.WeakHashMap;
 import net.minecraft.client.Camera;
+import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.client.renderer.ViewArea;
@@ -23,6 +26,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Vector3dc;
@@ -38,6 +42,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.hooks.VSGameEvents;
@@ -148,6 +153,36 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererVanillaD
         vs$shipRenderChunks.forEach((ship, chunks) -> chunks.clear());
     }
 
+    // Fixes Block Entities not rendering on ships
+    @WrapOperation(
+        at = @At(
+            value = "INVOKE",
+            target = "Lcom/mojang/blaze3d/vertex/PoseStack;translate(DDD)V"
+        ),
+        method = "renderLevel"
+    )
+    private void fixRenderTransforms(PoseStack instance, double renderX, double renderY, double renderZ, Operation<Void> original, DeltaTracker deltaTracker, boolean bl, Camera camera, GameRenderer gameRenderer, LightTexture lightTexture, Matrix4f matrix4f, Matrix4f matrix4f2) {
+        final Vec3 camPos = camera.getPosition();
+        final double blockPosX = renderX + camPos.x;
+        final double blockPosY = renderY + camPos.y;
+        final double blockPosZ = renderZ + camPos.z;
+        final Ship ship = VSGameUtilsKt.getShipManagingPos(level, blockPosX, blockPosY, blockPosZ);
+        if (ship != null) {
+            VSClientGameUtils.transformRenderWithShip(
+                ((ClientShip) ship).getRenderTransform(),
+                instance,
+                blockPosX,
+                blockPosY,
+                blockPosZ,
+                camPos.x,
+                camPos.y,
+                camPos.z
+            );
+        } else {
+            original.call(instance, renderX, renderY, renderZ);
+        }
+    }
+
     @WrapOperation(
         at = @At(
             value = "INVOKE",
@@ -185,7 +220,7 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererVanillaD
                 camX, camY, camZ);
 
             final var event = new VSGameEvents.ShipRenderEvent(
-                receiver, renderType, camX, camY, camZ, poseMatrix, projectionMatrix, ship, chunks
+                receiver, renderType, camX, camY, camZ, poseStack.last().pose(), projectionMatrix, ship, chunks
             );
 
             VSGameEvents.INSTANCE.getRenderShip().emit(event);
