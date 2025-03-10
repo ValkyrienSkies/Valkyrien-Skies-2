@@ -189,7 +189,7 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererVanillaD
             );
 
             VSGameEvents.INSTANCE.getRenderShip().emit(event);
-            renderChunkLayer(renderType, poseStack, center.x(), center.y(), center.z(), poseMatrix, chunks);
+            renderChunkLayer(renderType, poseStack, center.x(), center.y(), center.z(), projectionMatrix, chunks);
             VSGameEvents.INSTANCE.getPostRenderShip().emit(event);
 
             poseStack.popPose();
