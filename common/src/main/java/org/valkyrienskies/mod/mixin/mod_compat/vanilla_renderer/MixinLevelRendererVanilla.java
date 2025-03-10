@@ -43,6 +43,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.api.ships.Ship;
+import org.valkyrienskies.core.util.datastructures.BlockPos2ByteOpenHashMap;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.hooks.VSGameEvents;
@@ -69,7 +70,7 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererVanillaD
     private Minecraft minecraft;
 
     @Unique
-    private ObjectArrayList<SectionRenderDispatcher.RenderSection> vs$renderChunksGeneratedByVanilla = new ObjectArrayList<>();
+    private BlockPos2ByteOpenHashMap vs$visibileShipChunks = new BlockPos2ByteOpenHashMap();
 
     /**
      * Fix the distance to render chunks, so that MC doesn't think ship chunks are too far away
@@ -102,8 +103,6 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererVanillaD
 
     @Override
     public void vs$addShipVisibleChunks(final Frustum frustum) {
-        vs$renderChunksGeneratedByVanilla = new ObjectArrayList<>(visibleSections);
-
         final BlockPos.MutableBlockPos tempPos = new BlockPos.MutableBlockPos();
         final ViewAreaAccessor chunkStorageAccessor = (ViewAreaAccessor) viewArea;
         for (final ClientShip shipObject : VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips()) {
@@ -115,6 +114,10 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererVanillaD
             shipObject.getActiveChunksSet().forEach((x, z) -> {
                 final LevelChunk levelChunk = level.getChunk(x, z);
                 for (int y = level.getMinSection(); y < level.getMaxSection(); y++) {
+                    // Don't add ship chunks more than once
+                    if (vs$visibileShipChunks.contains(x, y, z)) {
+                        continue;
+                    }
                     tempPos.set(x << 4, y << 4, z << 4);
                     final SectionRenderDispatcher.RenderSection renderChunk =
                         chunkStorageAccessor.callGetRenderSectionAt(tempPos);
@@ -135,6 +138,7 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererVanillaD
                         }
 
                         vs$shipRenderChunks.computeIfAbsent(shipObject, k -> new ObjectArrayList<>()).add(renderChunk);
+                        vs$visibileShipChunks.put(x, y, z, (byte) 1);
                         visibleSections.add(renderChunk);
                     }
                 }
@@ -151,6 +155,7 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererVanillaD
     )
     private void clearShipChunks(final CallbackInfo ci) {
         vs$shipRenderChunks.forEach((ship, chunks) -> chunks.clear());
+        vs$visibileShipChunks = new BlockPos2ByteOpenHashMap();
     }
 
     // Fixes Block Entities not rendering on ships
@@ -200,10 +205,7 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererVanillaD
         final Matrix4f projectionMatrix,
         final Operation<Void> renderChunkLayer
     ) {
-        final var originalRenderChunks = visibleSections;
-        visibleSections = vs$renderChunksGeneratedByVanilla;
         renderChunkLayer.call(receiver, renderType, camX, camY, camZ, poseMatrix, projectionMatrix);
-        visibleSections = originalRenderChunks;
 
         VSGameEvents.INSTANCE.getShipsStartRendering().emit(new VSGameEvents.ShipStartRenderEvent(
             receiver, renderType, camX, camY, camZ, poseMatrix, projectionMatrix
@@ -324,5 +326,4 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererVanillaD
         this.minecraft.getProfiler().pop();
         renderType.clearRenderState();
     }
-
 }
