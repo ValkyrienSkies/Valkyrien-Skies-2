@@ -167,6 +167,7 @@
     "mod_compat.etf.MixinBlockEntity",
     "mod_compat.immersive_portals.MixinMyBuiltChunkStorage",
     "mod_compat.immersive_portals.MixinVisibleSectionDiscovery",
+    "mod_compat.optifine_vanilla.MixinLevelRenderer",
     "mod_compat.sodium.MixinChunkTracker",
     "mod_compat.sodium.MixinDefaultChunkRenderer",
     "mod_compat.sodium.MixinRenderSectionManager",
