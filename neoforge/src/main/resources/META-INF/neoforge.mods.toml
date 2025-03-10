@@ -1,0 +1,28 @@
+modLoader = "javafml"
+loaderVersion = "[40,)"
+issueTrackerURL = "https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues"
+license = "Apache-2.0"
+
+[[mods]]
+modId = "valkyrienskies"
+version = "${version}"
+displayName = "Valkyrien Skies 2"
+authors = ["Tri0de", "Rubydesic"]
+description = '''
+Moving blocks with physics :)
+'''
+logoFile = "icon.png"
+
+[[dependencies.valkyrienskies]]
+modId = "forge"
+mandatory = true
+versionRange = "[40.2.4,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.valkyrienskies]]
+modId = "minecraft"
+mandatory = true
+versionRange = "[1.20.1]"
+ordering = "NONE"
+side = "BOTH"

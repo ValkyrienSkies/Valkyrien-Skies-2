@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.fabric.mixin.client.render;
+package org.valkyrienskies.mod.mixin.client.renderer;
 
 import com.mojang.blaze3d.vertex.SheetedDecalTextureGenerator;
 import com.mojang.blaze3d.vertex.VertexConsumer;

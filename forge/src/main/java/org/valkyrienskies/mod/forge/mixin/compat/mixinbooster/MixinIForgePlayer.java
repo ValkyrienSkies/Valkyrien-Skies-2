@@ -1,6 +1,5 @@
 package org.valkyrienskies.mod.forge.mixin.compat.mixinbooster;
 
-import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import java.util.Optional;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
@@ -25,20 +24,6 @@ public interface MixinIForgePlayer {
 
     @Shadow
     Player self();
-
-    /**
-     * Include ships in server-side distance check when player interacts with a block.
-     *
-     * @return
-     */
-    @ModifyExpressionValue(
-        method = "canReach(Lnet/minecraft/core/BlockPos;D)Z",
-        at = @At(value = "INVOKE",
-            target = "Lnet/minecraft/world/phys/Vec3;atCenterOf(Lnet/minecraft/core/Vec3i;)Lnet/minecraft/world/phys/Vec3;")
-    )
-    default Vec3 replacePosition(final Vec3 original) {
-        return VSGameUtilsKt.toWorldCoordinates(self().level(), original);
-    }
 
     @Inject(
         method = "isCloseEnough(Lnet/minecraft/world/entity/Entity;D)Z",

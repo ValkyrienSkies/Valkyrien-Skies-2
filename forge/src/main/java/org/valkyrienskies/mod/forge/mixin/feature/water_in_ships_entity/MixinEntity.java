@@ -62,7 +62,7 @@ public abstract class MixinEntity {
 
     @Inject(
         at = @At("HEAD"),
-        method = "updateFluidHeightAndDoFluidPushing()V",
+        method = "updateFluidHeightAndDoFluidPushing(Ljava/util/function/Predicate;)V",
         remap = false,
         cancellable = true
     )

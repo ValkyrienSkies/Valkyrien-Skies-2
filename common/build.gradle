@@ -7,6 +7,9 @@ dependencies {
     // Do NOT use other classes from fabric loader
     modImplementation "net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}"
 
+    // Add NeoForge to the compile classpath
+    compileOnly("net.neoforged:neoforge:$rootProject.neoforge_version")
+
     modApi("me.shedaniel.cloth:cloth-config:${cloth_config_version}")
 
     modCompileOnly("maven.modrinth:sodium:${sodium_version}")

@@ -114,10 +114,10 @@ class ValkyrienSkiesModForge {
             }
         }
 
-        TEST_CHAIR_REGISTRY = registerBlockAndItem("test_chair") { TestChairBlock }
-        TEST_HINGE_REGISTRY = registerBlockAndItem("test_hinge") { TestHingeBlock }
-        TEST_FLAP_REGISTRY = registerBlockAndItem("test_flap") { TestFlapBlock }
-        TEST_WING_REGISTRY = registerBlockAndItem("test_wing") { TestWingBlock }
+        TEST_CHAIR_REGISTRY = registerBlockAndItem("test_chair") { TestChairBlock() }
+        TEST_HINGE_REGISTRY = registerBlockAndItem("test_hinge") { TestHingeBlock() }
+        TEST_FLAP_REGISTRY = registerBlockAndItem("test_flap") { TestFlapBlock() }
+        TEST_WING_REGISTRY = registerBlockAndItem("test_wing") { TestWingBlock() }
         TEST_SPHERE_REGISTRY = registerBlockAndItem("test_sphere") { TestSphereBlock }
         SHIP_CREATOR_ITEM_REGISTRY =
             ITEMS.register("ship_creator") {
@@ -160,7 +160,7 @@ class ValkyrienSkiesModForge {
                 ::ShipMountingEntity,
                 MobCategory.MISC
             ).sized(.3f, .3f)
-                .build(ResourceLocation(MOD_ID, "ship_mounting_entity").toString())
+                .build(ResourceLocation.fromNamespaceAndPath(MOD_ID, "ship_mounting_entity").toString())
         }
 
         PHYSICS_ENTITY_TYPE_REGISTRY = ENTITIES.register("vs_physics_entity") {
@@ -170,13 +170,13 @@ class ValkyrienSkiesModForge {
             ).sized(.3f, .3f)
                 .setUpdateInterval(1)
                 .clientTrackingRange(10)
-                .build(ResourceLocation(MOD_ID, "vs_physics_entity").toString())
+                .build(ResourceLocation.fromNamespaceAndPath(MOD_ID, "vs_physics_entity").toString())
         }
 
         SHIP_ASSEMBLER_ITEM_REGISTRY =
             ITEMS.register("ship_assembler") { ShipAssemblerItem(Properties()) }
         TEST_HINGE_BLOCK_ENTITY_TYPE_REGISTRY = BLOCK_ENTITIES.register("test_hinge_block_entity") {
-            BlockEntityType.Builder.of(::TestHingeBlockEntity, TestHingeBlock).build(null)
+            BlockEntityType.Builder.of(::TestHingeBlockEntity, TEST_HINGE_REGISTRY.get()).build(null)
         }
 
         val deferredRegister = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MOD_ID)
@@ -209,7 +209,8 @@ class ValkyrienSkiesModForge {
     }
 
     private fun registerCommands(event: RegisterCommandsEvent) {
-        VSCommands.registerServerCommands(event.dispatcher)
+        // TODO: Re-enable
+        // VSCommands.registerServerCommands(event.dispatcher)
 
         if (event.commandSelection == ALL || event.commandSelection == INTEGRATED) {
             VSCommands.registerClientCommands(event.dispatcher)

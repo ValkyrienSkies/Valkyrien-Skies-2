@@ -11,8 +11,10 @@ import org.valkyrienskies.core.api.ships.WingManager
 import org.valkyrienskies.mod.common.block.WingBlock
 import org.valkyrienskies.mod.common.entity.handling.AbstractShipyardEntityHandler
 
+
 object ContraptionShipyardEntityHandlerForge: AbstractShipyardEntityHandler() {
     override fun freshEntityInShipyard(entity: Entity, ship: Ship) {
+        /*
         if (entity is AbstractContraptionEntity && ship is LoadedServerShip) {
             entity as ContraptionWingProvider
             val attachment = ship.getAttachment(WingManager::class.java)!!
@@ -27,14 +29,17 @@ object ContraptionShipyardEntityHandlerForge: AbstractShipyardEntityHandler() {
             val transform = entity.computeContraptionWingTransform()
             attachment.setWingGroupTransform(entity.wingGroupId, transform)
         }
+         */
     }
 
     override fun entityRemovedFromShipyard(entity: Entity, ship: Ship) {
+        /*
         if (entity is AbstractContraptionEntity && ship is LoadedServerShip) {
             entity as ContraptionWingProvider
             val attachment = ship.getAttachment(WingManager::class.java)!!
             attachment.deleteWingGroup(entity.wingGroupId)
             entity.wingGroupId = -1
         }
+         */
     }
 }

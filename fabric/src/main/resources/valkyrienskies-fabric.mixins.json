@@ -14,7 +14,6 @@
   ],
   "client": [
     "client.render.MixinLevelRenderer",
-    "client.render.SheetedDecalTextureGeneratorAccessor",
     "compat.cc_restitched.MixinSpeakerSound",
     "feature.duplicate_keybindings.KeyMappingAccessor",
     "feature.duplicate_keybindings.MixinKeyMapping"

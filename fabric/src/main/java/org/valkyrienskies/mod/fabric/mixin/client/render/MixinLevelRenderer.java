@@ -22,6 +22,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.mixin.client.renderer.SheetedDecalTextureGeneratorAccessor;
 
 @Mixin(LevelRenderer.class)
 public abstract class MixinLevelRenderer {

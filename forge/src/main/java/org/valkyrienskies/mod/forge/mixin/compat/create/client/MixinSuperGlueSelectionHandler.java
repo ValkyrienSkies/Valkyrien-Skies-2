@@ -4,10 +4,10 @@ import com.simibubi.create.content.contraptions.glue.SuperGlueSelectionHandler;
 import com.simibubi.create.foundation.utility.RaycastHelper;
 import java.util.Iterator;
 import net.minecraft.client.Minecraft;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.common.ForgeMod;
 import org.joml.Matrix4d;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
@@ -28,7 +28,7 @@ public abstract class MixinSuperGlueSelectionHandler {
     @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/foundation/utility/RaycastHelper;getTraceOrigin(Lnet/minecraft/world/entity/player/Player;)Lnet/minecraft/world/phys/Vec3;"), remap = false)
     private Vec3 redirectGetTraceOrigin(Player playerIn) {
         Minecraft mc = Minecraft.getInstance();
-        double range = playerIn.getAttribute(ForgeMod.ENTITY_REACH.get()).getValue() + 1;
+        double range = playerIn.getAttribute(Attributes.BLOCK_INTERACTION_RANGE).getValue() + 1;
         Vec3 origin = RaycastHelper.getTraceOrigin(playerIn);
         Vec3 target = RaycastHelper.getTraceTarget(playerIn, range, origin);
 

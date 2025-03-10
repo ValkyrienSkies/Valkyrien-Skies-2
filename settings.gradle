@@ -42,6 +42,7 @@ dependencyResolutionManagement {
 include("common")
 include("fabric")
 include("forge")
+include("neoforge")
 
 //try {
 //    def core = file("../vs-core")
