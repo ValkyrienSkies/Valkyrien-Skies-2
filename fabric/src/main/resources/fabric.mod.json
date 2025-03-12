@@ -35,6 +35,7 @@
   },
   "breaks": {
     "sodium": "<0.5.8",
-    "nvidium": "*"
+    "nvidium": "*",
+    "create": ">=6.0
   }
 }
