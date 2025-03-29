@@ -94,23 +94,15 @@ public abstract class MixinGameRenderer {
         return pick.call(receiver, maxDistance, tickDelta, includeFluids);
     }
 
-    @Redirect(
+    @WrapOperation(
         method = "pick",
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/world/phys/Vec3;distanceToSqr(Lnet/minecraft/world/phys/Vec3;)D"
         )
     )
-    public double correctDistanceChecks(final Vec3 instance, final Vec3 vec) {
-        return VSGameUtilsKt.squaredDistanceBetweenInclShips(
-            this.minecraft.level,
-            vec.x,
-            vec.y,
-            vec.z,
-            instance.x,
-            instance.y,
-            instance.z
-        );
+    public double correctDistanceChecks(final Vec3 instance, final Vec3 vec3, final Operation<Double> original) {
+        return VSGameUtilsKt.squaredDistanceBetweenInclShips(this.minecraft.level, instance, vec3, original);
     }
 
     @Inject(method = "render", at = @At("HEAD"))
