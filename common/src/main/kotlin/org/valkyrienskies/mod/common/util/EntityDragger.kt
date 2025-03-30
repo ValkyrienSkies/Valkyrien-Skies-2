@@ -39,7 +39,9 @@ object EntityDragger {
 
 
             // Only drag entities that aren't mounted to vehicles
+
             if (shipDraggingEntity != null && entity.vehicle == null && !VSEntityManager.isShipyardEntity(entity) && (entity as IEntityDraggingInformationProvider).`vs$shouldDrag`()) {
+
                 if (entityDraggingInformation.isEntityBeingDraggedByAShip()) {
                     // Compute how much we should drag the entity
                     val shipData = entity.level.shipObjectWorld.allShips.getById(shipDraggingEntity)
