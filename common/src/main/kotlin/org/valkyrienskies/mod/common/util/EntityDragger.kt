@@ -205,7 +205,8 @@ object EntityDragger {
     /**
      * Check if the given entity should be dragged. Shipyard entities and ones marked as non-draggable return false.
      */
+    @JvmStatic
     fun isDraggable(entity: Entity): Boolean {
-        return  !VSEntityManager.isShipyardEntity(entity) && entity is IEntityDraggingInformationProvider && (entity as IEntityDraggingInformationProvider).`vs$shouldDrag`()
+        return !VSEntityManager.isShipyardEntity(entity) && entity is IEntityDraggingInformationProvider && (entity as IEntityDraggingInformationProvider).`vs$shouldDrag`()
     }
 }

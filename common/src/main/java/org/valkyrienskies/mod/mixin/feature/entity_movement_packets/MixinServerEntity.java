@@ -49,7 +49,7 @@ public class MixinServerEntity {
     )
     private void wrapBroadcastAccept(Consumer instance, Object t, Operation<Void> original) {
         if (t instanceof ClientboundSetEntityMotionPacket || t instanceof ClientboundTeleportEntityPacket || t instanceof ClientboundMoveEntityPacket || t instanceof ClientboundRotateHeadPacket) {
-            if (EntityDragger.INSTANCE.isDraggable(entity)) {
+            if (EntityDragger.isDraggable(entity)) {
                 IEntityDraggingInformationProvider draggedEntity = (IEntityDraggingInformationProvider) entity;
                 EntityDraggingInformation dragInfo = draggedEntity.getDraggingInformation();
 

@@ -129,7 +129,7 @@ public abstract class MixinGameRenderer {
 
             // Also update entity last tick positions, so that they interpolate correctly
             for (final Entity entity : clientWorld.entitiesForRendering()) {
-                if (EntityDragger.INSTANCE.isDraggable(entity)) {
+                if (EntityDragger.isDraggable(entity)) {
                     continue;
                 }
                 // The position we want to render [entity] at for this frame
