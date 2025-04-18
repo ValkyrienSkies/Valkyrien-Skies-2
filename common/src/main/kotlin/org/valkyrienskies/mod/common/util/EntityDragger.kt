@@ -1,17 +1,15 @@
 package org.valkyrienskies.mod.common.util
 
-import net.minecraft.client.Minecraft
 import net.minecraft.client.player.LocalPlayer
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.util.Mth
 import net.minecraft.world.entity.Entity
-import net.minecraft.world.entity.player.Player
 import net.minecraft.world.phys.Vec3
 import org.joml.Vector3d
 import org.joml.Vector3dc
 import org.valkyrienskies.core.api.ships.ClientShip
-import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.ships.Ship
+import org.valkyrienskies.mod.common.entity.handling.VSEntityManager
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.EntityLerper.yawToWorld
 import kotlin.math.asin
@@ -22,6 +20,7 @@ import kotlin.math.sin
 object EntityDragger {
     // How much we decay the addedMovement each tick after player hasn't collided with a ship for at least 10 ticks.
     private const val ADDED_MOVEMENT_DECAY = 0.9
+
 
     /**
      * Drag these entities with the ship they're standing on.
@@ -36,8 +35,9 @@ object EntityDragger {
 
             val shipDraggingEntity = entityDraggingInformation.lastShipStoodOn
 
+
             // Only drag entities that aren't mounted to vehicles
-            if (shipDraggingEntity != null && entity.vehicle == null && (entity as IEntityDraggingInformationProvider).`vs$shouldDrag`()) {
+            if (shipDraggingEntity != null && entity.vehicle == null && isDraggable(entity)) {
                 if (entityDraggingInformation.isEntityBeingDraggedByAShip()) {
                     // Compute how much we should drag the entity
                     val shipData = entity.level.shipObjectWorld.allShips.getById(shipDraggingEntity)
@@ -200,5 +200,13 @@ object EntityDragger {
             }
         }
         return default
+    }
+
+    /**
+     * Check if the given entity should be dragged. Shipyard entities and ones marked as non-draggable return false.
+     */
+    @JvmStatic
+    fun isDraggable(entity: Entity): Boolean {
+        return !VSEntityManager.isShipyardEntity(entity) && entity is IEntityDraggingInformationProvider && (entity as IEntityDraggingInformationProvider).`vs$shouldDrag`()
     }
 }

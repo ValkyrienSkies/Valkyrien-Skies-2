@@ -21,6 +21,7 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.networking.PacketEntityShipMotion;
 import org.valkyrienskies.mod.common.networking.PacketMobShipRotation;
+import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.EntityLerper;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
@@ -48,7 +49,8 @@ public class MixinServerEntity {
     )
     private void wrapBroadcastAccept(Consumer instance, Object t, Operation<Void> original) {
         if (t instanceof ClientboundSetEntityMotionPacket || t instanceof ClientboundTeleportEntityPacket || t instanceof ClientboundMoveEntityPacket || t instanceof ClientboundRotateHeadPacket) {
-            if (entity instanceof IEntityDraggingInformationProvider draggedEntity && draggedEntity.vs$shouldDrag()) {
+            if (EntityDragger.isDraggable(entity)) {
+                IEntityDraggingInformationProvider draggedEntity = (IEntityDraggingInformationProvider) entity;
                 EntityDraggingInformation dragInfo = draggedEntity.getDraggingInformation();
 
                 if (dragInfo != null && dragInfo.isEntityBeingDraggedByAShip() && dragInfo.getLastShipStoodOn() != null) {
