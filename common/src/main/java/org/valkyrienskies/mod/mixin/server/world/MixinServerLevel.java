@@ -255,7 +255,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
         final Ship ship = VSGameUtilsKt.getShipManagingPos(level, blockPos);
         if (ship != null) {
             final Vector3d vPosWorld = ship.getShipToWorld().transformPosition(VectorConversionsMCKt.toJOMLD(blockPos));
-            final BlockPos blockPosWorld = new BlockPos(vPosWorld.x, vPosWorld.y, vPosWorld.z);
+            final BlockPos blockPosWorld = BlockPos.containing(vPosWorld.x, vPosWorld.y, vPosWorld.z);
             return level.getBiome(blockPosWorld);
         }
 
