@@ -1,11 +1,14 @@
 package org.valkyrienskies.mod.util
 
 import net.minecraft.core.BlockPos
+import net.minecraft.nbt.CompoundTag
 import net.minecraft.world.Clearable
 import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.Rotation
 import net.minecraft.world.level.block.Rotation.NONE
+import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
@@ -29,7 +32,8 @@ fun relocateBlock(
 ) {
     var state = fromChunk.getBlockState(from)
     val entity = fromChunk.getBlockEntity(from)
-
+	val level = toChunk.level
+	
     val tag = entity?.let {
         val tag = it.saveWithFullMetadata()
         tag.putInt("x", to.x)
@@ -38,20 +42,22 @@ fun relocateBlock(
 
         // so that it won't drop its contents
         if (it is Clearable) {
-            it.clearContent()
+			val blockEntity = it as BlockEntity
+			val emptyTag = CompoundTag()
+            blockEntity.load(emptyTag)
+			
+            //it.clearContent()
         }
 
         // so loot containers dont drop its content
         if (it is RandomizableContainerBlockEntity) {
             it.setLootTable(null, 0)
         }
-
+		level.removeBlockEntity(from)
         tag
     }
 
     state = state.rotate(rotation)
-
-    val level = toChunk.level
 
     fromChunk.setBlockState(from, AIR, false)
     toChunk.setBlockState(to, state, false)
@@ -78,7 +84,7 @@ fun relocateBlock(
 fun updateBlock(level: Level, fromPos: BlockPos, toPos: BlockPos, toState: BlockState) {
 
     // 75 = flag 1 (block update) & flag 2 (send to clients) + flag 8 (force rerenders)
-    val flags = 11
+    val flags = 11 or Block.UPDATE_MOVE_BY_PISTON or Block.UPDATE_SUPPRESS_DROPS 
 
     //updateNeighbourShapes recurses through nearby blocks, recursionLeft is the limit
     val recursionLeft = 511

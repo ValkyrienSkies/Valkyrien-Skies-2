@@ -48,6 +48,7 @@ public abstract class MixinBlockEntityInstanceManager extends InstanceManager<Bl
         cancellable = true
     )
     void preCreateRaw(final BlockEntity blockEntity, final CallbackInfoReturnable<Instance> cir) {
+
         final Level nullableLevel = blockEntity.getLevel();
         if (nullableLevel instanceof final ClientLevel level) {
             final ClientShip ship = VSGameUtilsKt.getShipObjectManagingPos(
@@ -57,7 +58,8 @@ public abstract class MixinBlockEntityInstanceManager extends InstanceManager<Bl
                     vs$shipMaterialManagers.computeIfAbsent(ship, k -> vs$createMaterialManager());
                 final Vector3i c =
                     ship.getChunkClaim().getCenterBlockCoordinates(VSGameUtilsKt.getYRange(nullableLevel), new Vector3i());
-                ((InstancingEngineAccessor) manager).setOriginCoordinate(BlockPos.containing(c.x, c.y, c.z));
+                if (manager instanceof InstancingEngineAccessor)
+                    ((InstancingEngineAccessor) manager).setOriginCoordinate(new BlockPos(c.x, c.y, c.z));
 
                 cir.setReturnValue(InstancedRenderRegistry.createInstance(manager, blockEntity));
             }
