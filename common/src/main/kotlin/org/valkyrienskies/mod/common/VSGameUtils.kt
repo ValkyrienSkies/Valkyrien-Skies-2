@@ -1,6 +1,5 @@
 package org.valkyrienskies.mod.common
 
-import com.llamalad7.mixinextras.injector.wrapoperation.Operation
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
@@ -123,24 +122,6 @@ val Player.playerWrapper get() = (this as PlayerDuck).vs_getPlayer()
  */
 fun Entity.squaredDistanceToInclShips(x: Double, y: Double, z: Double) =
     level().squaredDistanceBetweenInclShips(x, y, z, this.x, this.y, this.z)
-
-/**
- * Meant to be used with @WrapOperation to replace distance checks in a compatible way
- */
-fun Level?.squaredDistanceBetweenInclShips(
-    v1: Vec3,
-    v2: Vec3,
-    originalDistance: Operation<Double>?
-): Double {
-    if (originalDistance == null) {
-        return squaredDistanceBetweenInclShips(v1.x, v1.y, v1.z, v2.x, v2.y, v2.z) // fast path
-    }
-
-    val inWorldV1 = toWorldCoordinates(v1)
-    val inWorldV2 = toWorldCoordinates(v2)
-
-    return originalDistance.call(inWorldV1, inWorldV2)
-}
 
 /**
  * Calculates the squared distance between to points.
