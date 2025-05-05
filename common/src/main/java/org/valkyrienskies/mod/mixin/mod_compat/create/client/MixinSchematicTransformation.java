@@ -38,7 +38,8 @@ public abstract class MixinSchematicTransformation {
             value = "INVOKE",
             target = "Lcom/jozufozu/flywheel/util/transform/TransformStack;translate(Lnet/minecraft/world/phys/Vec3;)Ljava/lang/Object;",
             ordinal = 0
-        )
+        ),
+        require = 0
     )
     private Object redirectTranslate(TransformStack instance, Vec3 orig) {
         PoseStack ms = (PoseStack)instance;
