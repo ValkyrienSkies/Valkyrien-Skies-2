@@ -122,6 +122,7 @@ shadowJar {
     duplicatesStrategy DuplicatesStrategy.EXCLUDE // Ignore duplicate valkyrienskies-common.accesswidener files
     dependencies {
         exclude(dependency("org.jetbrains.kotlin:.*:.*")) // Don't shade kotlin!
+        exclude(dependency("org.apache.commons:commons-lang3:.*")) // Don't apache-commons, see #617
     }
     // Exclude dummy Optifine classes
     exclude "net/optifine/**"
