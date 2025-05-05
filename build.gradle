@@ -23,7 +23,7 @@ if (project.hasProperty("CustomReleaseVersion")) {
 } else {
     String gitRevision = "git rev-parse HEAD".execute().text.trim()
 
-    version = "2.3.0-beta.5"
+    version = mod_version + "+" + gitRevision.substring(0, 10)
 }
 
 architectury {
