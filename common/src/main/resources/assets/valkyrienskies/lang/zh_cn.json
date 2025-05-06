@@ -17,10 +17,10 @@
   "command.valkyrienskies.set_static.success": "已将%d个物理结构的静态状态参数设为%s！",
   "command.valkyrienskies.teleport.success": "已将%d个物理结构传送至%s！",
   "command.valkyrienskies.teleport.multiple_ship_success": "传送了%d个物理结构！",
-  "command.valkyrienskies.mc_teleport.can_only_teleport_to_one_ship": "只能选择一个物理结构进行传送",
+  "command.valkyrienskies.mc_teleport.can_only_teleport_to_one_ship": "只能传送到一个物理结构",
   "command.valkyrienskies.get_ship.success": "已找到名为%s的物理结构",
   "command.valkyrienskies.get_ship.fail": "未找到物理结构",
-  "command.valkyrienskies.get_ship.only_usable_by_entities": "指令“/vs get-ship”只能被实体执行！",
+  "command.valkyrienskies.get_ship.only_usable_by_entities": "指令 /vs get-ship 只能被实体执行！",
   "tooltip.valkyrienskies.mass": "质量",
   "command.valkyrienskies.scale.success": "调整了%d个物理结构的尺寸！",
   "itemGroup.valkyrienSkies": "瓦尔基里天空"
