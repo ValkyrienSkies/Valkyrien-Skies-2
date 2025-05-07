@@ -250,7 +250,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
 
     //Replace the biome check in tick chunk for one that transforms ship positions to world-space.
     @Redirect(method = "tickChunk", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerLevel;getBiome(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/core/Holder;"))
-    private Holder<Biome> adjustForWorldPosition(final ServerLevel instance,final BlockPos blockPos) {
+    private Holder<Biome> adjustForWorldPosition(final ServerLevel instance, final BlockPos blockPos) {
         final ServerLevel level = ServerLevel.class.cast(this);
         final Ship ship = VSGameUtilsKt.getShipManagingPos(level, blockPos);
         if (ship != null) {
