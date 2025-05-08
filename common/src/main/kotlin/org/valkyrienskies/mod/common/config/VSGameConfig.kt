@@ -160,6 +160,11 @@ object VSGameConfig {
             description = "Minimum scale of ships"
         )
         var minScaling = 0.25
+
+        @JsonSchema(
+            description = "The permission level required to use the /vs command. Must be 0 <= x <= 4"
+        )
+        var vsCommandPerms = 2
     }
 
     class Common {

@@ -28,6 +28,7 @@ import org.valkyrienskies.core.impl.game.ships.ShipObject
 import org.valkyrienskies.core.util.x
 import org.valkyrienskies.core.util.y
 import org.valkyrienskies.core.util.z
+import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.util.toJOML
@@ -58,6 +59,7 @@ object VSCommands {
 
         dispatcher.register(
             literal("vs")
+                .requires{(it as CommandSourceStack).hasPermission(VSGameConfig.SERVER.vsCommandPerms)}
                 .then(literal("delete").then(argument("ships", ShipArgument.ships()).executes {
                     try {
                         val r = ShipArgument.getShips(it, "ships").toList() as List<ServerShip>
