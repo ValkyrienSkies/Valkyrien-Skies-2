@@ -99,8 +99,10 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
         final LoadedShip shipObjectEntityMountedTo = VSGameUtilsKt.getShipObjectManagingPos(passenger.level(), toJOML(this.position()));
         if (shipObjectEntityMountedTo == null) return null;
 
-        final Vector3dc mountedPosInShip = toJOML(this.getPassengerPosition(passenger, partialTicks == null ? 1 : partialTicks));
-        return new ShipMountedToData(shipObjectEntityMountedTo, mountedPosInShip);
+        Vec3 transformedPos = this.getPassengerPosition(passenger, partialTicks == null ? 1 : partialTicks);
+        if (transformedPos == null) transformedPos = this.getPosition(partialTicks == null ? 0.0f : partialTicks);
+
+        return new ShipMountedToData(shipObjectEntityMountedTo, toJOML(transformedPos));
     }
 
     //Region start - fix being sent to the  ̶s̶h̶a̶d̶o̶w̶r̶e̶a̶l̶m̶ shipyard on ship contraption disassembly
