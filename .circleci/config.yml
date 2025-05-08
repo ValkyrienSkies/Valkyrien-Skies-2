@@ -104,7 +104,7 @@ jobs:
       - checkout_and_cache
       - run: echo 'export ORG_GRADLE_PROJECT_CustomReleaseVersion=${CIRCLE_TAG}' >> "$BASH_ENV"
       - run:
-          command: "./gradlew build modrinth curseforge --no-daemon --stacktrace --continue"
+          command: "./gradlew build modrinth curseforge publish --no-daemon --stacktrace --continue"
   notify_playtesters:
     executor: java_large
     steps:
