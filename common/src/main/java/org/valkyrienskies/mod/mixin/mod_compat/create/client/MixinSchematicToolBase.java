@@ -28,12 +28,12 @@ public abstract class MixinSchematicToolBase {
      * The original behaviour is otherwise not changed.
      */
     @Redirect(
-        method = "updateTargetPos()V",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/phys/BlockHitResult;getLocation()Lnet/minecraft/world/phys/Vec3;",
-            ordinal = 0
-        )
+            method = "updateTargetPos()V",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/world/phys/BlockHitResult;getLocation()Lnet/minecraft/world/phys/Vec3;",
+                    ordinal = 0
+            )
     )
     public Vec3 redirectGetLocation(BlockHitResult instance) {
         BlockPos b = instance.getBlockPos();

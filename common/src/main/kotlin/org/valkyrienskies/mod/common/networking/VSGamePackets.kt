@@ -1,31 +1,27 @@
 package org.valkyrienskies.mod.common.networking
 
-import net.minecraft.core.Registry
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerPlayer
+import org.valkyrienskies.core.api.attachment.getAttachment
 import org.valkyrienskies.core.api.ships.LoadedServerShip
-import org.valkyrienskies.core.api.ships.getAttachment
-import org.valkyrienskies.core.api.ships.setAttachment
-import org.valkyrienskies.core.impl.networking.simple.register
-import org.valkyrienskies.core.impl.networking.simple.registerClientHandler
-import org.valkyrienskies.core.impl.networking.simple.registerServerHandler
 import org.valkyrienskies.mod.api.SeatedControllingPlayer
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager
 import org.valkyrienskies.mod.common.getShipObjectManagingPos
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
+import org.valkyrienskies.mod.common.vsCore
 
 object VSGamePackets {
 
-    fun register() {
+    fun register() = with(vsCore.simplePacketNetworking) {
         PacketPlayerDriving::class.register()
         PacketStopChunkUpdates::class.register()
         PacketRestartChunkUpdates::class.register()
         PacketSyncVSEntityTypes::class.register()
     }
 
-    fun registerHandlers() {
+    fun registerHandlers() = with(vsCore.simplePacketNetworking) {
         PacketPlayerDriving::class.registerServerHandler { driving, iPlayer ->
             val player = (iPlayer as MinecraftPlayer).player as ServerPlayer
             val seat = player.vehicle as? ShipMountingEntity

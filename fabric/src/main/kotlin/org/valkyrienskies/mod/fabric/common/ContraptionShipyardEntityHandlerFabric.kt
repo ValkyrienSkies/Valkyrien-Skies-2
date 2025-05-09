@@ -4,6 +4,7 @@ import com.simibubi.create.content.contraptions.AbstractContraptionEntity
 import net.minecraft.core.BlockPos
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate
+import org.valkyrienskies.core.api.VsBeta
 import org.valkyrienskies.core.api.ships.ContraptionWingProvider
 import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.core.api.ships.Ship
@@ -12,10 +13,11 @@ import org.valkyrienskies.mod.common.block.WingBlock
 import org.valkyrienskies.mod.common.entity.handling.AbstractShipyardEntityHandler
 
 object ContraptionShipyardEntityHandlerFabric: AbstractShipyardEntityHandler() {
+    @OptIn(VsBeta::class)
     override fun freshEntityInShipyard(entity: Entity, ship: Ship) {
         if (entity is AbstractContraptionEntity && ship is LoadedServerShip) {
             entity as ContraptionWingProvider
-            val attachment = ship.getAttachment(WingManager::class.java)!!
+            val attachment = ship.wingManager ?: return
             entity.wingGroupId = attachment.createWingGroup()
             entity.contraption.blocks.forEach { (pos: BlockPos, blockInfo: StructureTemplate.StructureBlockInfo) ->
                 val block = blockInfo.state.block
@@ -29,10 +31,11 @@ object ContraptionShipyardEntityHandlerFabric: AbstractShipyardEntityHandler() {
         }
     }
 
+    @OptIn(VsBeta::class)
     override fun entityRemovedFromShipyard(entity: Entity, ship: Ship) {
         if (entity is AbstractContraptionEntity && ship is LoadedServerShip) {
             entity as ContraptionWingProvider
-            val attachment = ship.getAttachment(WingManager::class.java)!!
+            val attachment = ship.wingManager ?: return
             attachment.deleteWingGroup(entity.wingGroupId)
             entity.wingGroupId = -1
         }

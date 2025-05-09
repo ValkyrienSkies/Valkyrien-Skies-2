@@ -11,17 +11,12 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
+import org.valkyrienskies.core.api.VsBeta
 import org.valkyrienskies.core.api.ships.Wing
-import org.valkyrienskies.core.api.ships.WingManager
 import org.valkyrienskies.core.apigame.world.chunks.BlockType
 import org.valkyrienskies.mod.common.block.WingBlock
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.hooks.VSGameEvents
-import org.valkyrienskies.physics_api.Lod1BlockStateId
-import org.valkyrienskies.physics_api.Lod1LiquidBlockStateId
-import org.valkyrienskies.physics_api.Lod1SolidBlockStateId
-import org.valkyrienskies.physics_api.voxel.Lod1LiquidBlockState
-import org.valkyrienskies.physics_api.voxel.Lod1SolidBlockState
 import java.util.function.IntFunction
 
 // Other mods can then provide weights and types based on their added content
@@ -35,10 +30,6 @@ interface BlockStateInfoProvider {
 
     // Get the id of the block state
     fun getBlockStateType(blockState: BlockState): BlockType?
-
-    val solidBlockStates: List<Lod1SolidBlockState>
-    val liquidBlockStates: List<Lod1LiquidBlockState>
-    val blockStateData: List<Triple<Lod1SolidBlockStateId, Lod1LiquidBlockStateId, Lod1BlockStateId>>
 }
 
 object BlockStateInfo {
@@ -107,6 +98,7 @@ object BlockStateInfo {
     fun onSetBlock(level: Level, blockPos: BlockPos, prevBlockState: BlockState, newBlockState: BlockState) =
         onSetBlock(level, blockPos.x, blockPos.y, blockPos.z, prevBlockState, newBlockState)
 
+    @OptIn(VsBeta::class)
     fun onSetBlock(level: Level, x: Int, y: Int, z: Int, prevBlockState: BlockState, newBlockState: BlockState) {
         if (!::SORTED_REGISTRY.isInitialized) return
 
@@ -119,8 +111,8 @@ object BlockStateInfo {
         // region Inject wings
         if (level is ServerLevel) {
             val loadedShip = level.getShipObjectManagingPos(x shr 4, z shr 4)
-            if (loadedShip != null) {
-                val wingManager = loadedShip.getAttachment(WingManager::class.java)!!
+            val wingManager = loadedShip?.wingManager
+            if (loadedShip != null && wingManager != null) {
                 val wasOldBlockWing = prevBlockState.block is WingBlock
                 val newBlockStateBlock = newBlockState.block
                 val newWing: Wing? =
@@ -142,5 +134,9 @@ object BlockStateInfo {
             x, y, z, level.dimensionId, prevBlockType, newBlockType, prevBlockMass,
             newBlockMass
         )
+
+        if (ValkyrienSkiesMod.vsCore.hooks.enableConnectivity) {
+            ValkyrienSkiesMod.splitHandler.split(level, x, y, z, prevBlockState, newBlockState)
+        }
     }
 }

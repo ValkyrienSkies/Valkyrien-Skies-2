@@ -55,7 +55,7 @@ public class MixinLevel {
     private <T extends Entity> void check1(final EntityTypeTest<Entity, T> entityTypeTest, final AABB area,
         final Predicate<? super T> predicate, final CallbackInfoReturnable<List<T>> cir) {
 
-        if (BugFixUtil.INSTANCE.isCollisionBoxToBig(area)) {
+        if (BugFixUtil.INSTANCE.isCollisionBoxTooBig(area)) {
             LIMITER.maybeRun(() ->
                 LOGGER.error(new Exception(
                     "Collision box is too big! " + area + " returning empty list! this might break things")));
@@ -72,7 +72,7 @@ public class MixinLevel {
     private <T extends Entity> void check2(@Nullable final Entity entity, final AABB area,
         final Predicate<? super Entity> predicate, final CallbackInfoReturnable<List<Entity>> cir) {
 
-        if (BugFixUtil.INSTANCE.isCollisionBoxToBig(area)) {
+        if (BugFixUtil.INSTANCE.isCollisionBoxTooBig(area)) {
             LIMITER.maybeRun(() ->
                 LOGGER.error(new Exception(
                     "Collision box is too big! " + area + " returning empty list! this might break things")));

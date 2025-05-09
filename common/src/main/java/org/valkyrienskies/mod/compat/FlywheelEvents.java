@@ -4,8 +4,6 @@ import com.jozufozu.flywheel.backend.instancing.InstanceWorld;
 import java.util.Collections;
 import java.util.Set;
 import java.util.WeakHashMap;
-import org.valkyrienskies.core.impl.hooks.VSEvents.ShipUnloadEventClient;
-import org.valkyrienskies.mod.mixinducks.MixinBlockEntityInstanceManagerDuck;
 
 public class FlywheelEvents {
     static {
@@ -18,11 +16,12 @@ public class FlywheelEvents {
         );
 
     private static synchronized void registerEvents() {
-        ShipUnloadEventClient.Companion.on(event -> {
-            for (final InstanceWorld instanceWorld : weakLoadedInstanceWorlds) {
-                ((MixinBlockEntityInstanceManagerDuck) instanceWorld.getBlockEntityInstanceManager()).vs$removeShipManager(event.getShip());
-            }
-        });
+        // TODO api fix
+//        ShipUnloadEventClient.Companion.on(event -> {
+//            for (final InstanceWorld instanceWorld : weakLoadedInstanceWorlds) {
+//                ((MixinBlockEntityInstanceManagerDuck) instanceWorld.getBlockEntityInstanceManager()).vs$removeShipManager(event.getShip());
+//            }
+//        });
     }
 
     public static void onInstanceWorldLoad(final InstanceWorld instanceWorld) {

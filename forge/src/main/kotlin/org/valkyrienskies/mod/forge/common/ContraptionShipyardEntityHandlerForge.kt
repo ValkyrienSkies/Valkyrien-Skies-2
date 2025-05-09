@@ -15,7 +15,7 @@ object ContraptionShipyardEntityHandlerForge: AbstractShipyardEntityHandler() {
     override fun freshEntityInShipyard(entity: Entity, ship: Ship) {
         if (entity is AbstractContraptionEntity && ship is LoadedServerShip) {
             entity as ContraptionWingProvider
-            val attachment = ship.getAttachment(WingManager::class.java)!!
+            val attachment = ship.wingManager ?: return
             entity.wingGroupId = attachment.createWingGroup()
             entity.contraption.blocks.forEach { (pos: BlockPos, blockInfo: StructureTemplate.StructureBlockInfo) ->
                 val block = blockInfo.state.block
@@ -32,7 +32,7 @@ object ContraptionShipyardEntityHandlerForge: AbstractShipyardEntityHandler() {
     override fun entityRemovedFromShipyard(entity: Entity, ship: Ship) {
         if (entity is AbstractContraptionEntity && ship is LoadedServerShip) {
             entity as ContraptionWingProvider
-            val attachment = ship.getAttachment(WingManager::class.java)!!
+            val attachment = ship.wingManager ?: return
             attachment.deleteWingGroup(entity.wingGroupId)
             entity.wingGroupId = -1
         }

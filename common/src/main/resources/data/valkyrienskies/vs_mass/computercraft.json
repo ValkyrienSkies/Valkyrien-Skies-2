@@ -1,50 +1,50 @@
 [
   {
     "block": "computercraft:computer_advanced",
-    "mass": 15395.0
+    "mass": 1535.0
   },
   {
     "block": "computercraft:turtle_advanced",
-    "mass": 15795.0
+    "mass": 1575.0
   },
   {
     "block": "computercraft:monitor_advanced",
-    "mass": 15245.0
+    "mass": 1525.0
   },
   {
     "block": "computercraft:wireless_modem_advanced",
-    "mass": 15250.0
+    "mass": 1525.0
   },
   {
     "block": "computercraft:computer_normal",
-    "mass": 3150
+    "mass": 315.0
   },
   {
     "block": "computercraft:turtle_normal",
-    "mass": 3600.0
+    "mass": 360.0
   },
   {
     "block": "computercraft:monitor_normal",
-    "mass": 3200.0
+    "mass": 320.0
   },
   {
     "block": "computercraft:wired_modem_full",
-    "mass": 3300.0
+    "mass": 330.0
   },
   {
     "block": "computercraft:cable",
-    "mass": 160.0
+    "mass": 15.0
   },
   {
     "block": "computercraft:printer",
-    "mass": 3150.0
+    "mass": 315.0
   },
   {
     "block": "computercraft:speaker",
-    "mass": 4350.0
+    "mass": 435.0
   },
   {
     "block": "computercraft:disk_drive",
-    "mass": 3300.0
+    "mass": 330.0
   }
 ]

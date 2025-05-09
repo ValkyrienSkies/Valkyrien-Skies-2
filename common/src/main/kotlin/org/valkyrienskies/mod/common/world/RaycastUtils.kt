@@ -18,11 +18,14 @@ import org.apache.logging.log4j.LogManager
 import org.joml.Vector3d
 import org.joml.primitives.AABBd
 import org.joml.primitives.AABBdc
+import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.properties.ShipId
-import org.valkyrienskies.core.game.ships.ShipObjectClient
+import org.valkyrienskies.mod.api.ShipBlockHitResult
+import org.valkyrienskies.mod.api.toJOML
+import org.valkyrienskies.mod.api.toMinecraft
+import org.valkyrienskies.mod.api.transformPosition
+import org.valkyrienskies.mod.common.getShipsIntersecting
 import org.valkyrienskies.mod.common.shipObjectWorld
-import org.valkyrienskies.mod.common.util.toJOML
-import org.valkyrienskies.mod.common.util.toMinecraft
 import org.valkyrienskies.mod.util.scale
 import java.util.function.BiFunction
 import java.util.function.Function
@@ -47,34 +50,48 @@ fun Level.clipIncludeShips(
     var closestHit = vanillaHit
     var closestHitPos = vanillaHit.location
     var closestHitDist = closestHitPos.distanceToSqr(ctx.from)
-
+    var closestHitIsInShip: Boolean = false
+    
     val clipAABB: AABBdc = AABBd(ctx.from.toJOML(), ctx.to.toJOML()).correctBounds()
 
     // Iterate every ship, find do the raycast in ship space,
     // choose the raycast with the lowest distance to the start position.
-    for (ship in shipObjectWorld.loadedShips.getIntersecting(clipAABB)) {
+    for (ship in getShipsIntersecting(clipAABB)) {
         // Skip skipShip
         if (ship.id == skipShip) {
             continue
         }
-        val worldToShip = (ship as? ShipObjectClient)?.renderTransform?.worldToShipMatrix ?: ship.worldToShip
-        val shipToWorld = (ship as? ShipObjectClient)?.renderTransform?.shipToWorldMatrix ?: ship.shipToWorld
-        val shipStart = worldToShip.transformPosition(ctx.from.toJOML()).toMinecraft()
-        val shipEnd = worldToShip.transformPosition(ctx.to.toJOML()).toMinecraft()
+        val worldToShip = (ship as? ClientShip)?.renderTransform?.worldToShip ?: ship.worldToShip
+        val shipToWorld = (ship as? ClientShip)?.renderTransform?.shipToWorld ?: ship.shipToWorld
+        val shipStart = worldToShip.transformPosition(ctx.from)
+        val shipEnd = worldToShip.transformPosition(ctx.to)
 
         val shipHit = clip(ctx, shipStart, shipEnd)
-        val shipHitPos = shipToWorld.transformPosition(shipHit.location.toJOML()).toMinecraft()
+        val shipHitPos = shipToWorld.transformPosition(shipHit.location)
         val shipHitDist = shipHitPos.distanceToSqr(ctx.from)
 
         if (shipHitDist < closestHitDist && shipHit.type != HitResult.Type.MISS) {
             closestHit = shipHit
             closestHitPos = shipHitPos
             closestHitDist = shipHitDist
+            closestHitIsInShip = true
         }
     }
 
-    if (shouldTransformHitPos) {
-        closestHit.location = closestHitPos
+    if (closestHitIsInShip) {
+        val shipBlockHitResult = ShipBlockHitResult.create(
+            hitResult = closestHit,
+            locationInShip = closestHit.location,
+            locationInWorld = closestHitPos
+        )
+
+        if (shouldTransformHitPos) {
+            shipBlockHitResult.useLocationInWorld()
+        } else {
+            shipBlockHitResult.useLocationInShip()
+        }
+
+        closestHit = shipBlockHitResult
     }
 
     return closestHit
@@ -223,7 +240,7 @@ fun Level.raytraceEntities(
     val start = Vector3d()
     val end = Vector3d()
 
-    shipObjectWorld.loadedShips.getIntersecting(origBoundingBoxM.toJOML()).forEach {
+    getShipsIntersecting(origBoundingBoxM.toJOML()).forEach {
         it.worldToShip.transformPosition(origStartVec, start)
         it.worldToShip.transformPosition(origEndVec, end)
 

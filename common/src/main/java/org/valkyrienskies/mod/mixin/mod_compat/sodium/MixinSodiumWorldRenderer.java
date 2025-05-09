@@ -50,6 +50,10 @@ public abstract class MixinSodiumWorldRenderer {
         final double camZ, final BlockEntityRenderDispatcher dispatcher, final BlockEntity entity) {
 
         final BlockPos pos = entity.getBlockPos();
+
+        // fix for https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues/818
+        if(!(dispatcher.level instanceof ClientLevel)) return;
+
         final ClientLevel level = (ClientLevel) dispatcher.level;
         final ClientShip ship = VSGameUtilsKt.getShipObjectManagingPos(level, pos);
 

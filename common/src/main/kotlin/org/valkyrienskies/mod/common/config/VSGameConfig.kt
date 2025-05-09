@@ -72,6 +72,30 @@ object VSGameConfig {
             var canTurtlesLeaveScaledShips = false
         }
 
+        val Weather2 = WEATHER2()
+
+        class WEATHER2 {
+            @JsonSchema(
+                description = "How much Weather 2's wind affects VS ships"
+            )
+            var windMultiplier = 0.0001f
+
+            @JsonSchema(
+                description = "The maximum velocity a VS ship can travel because of wind"
+            )
+            var windMaxVel = 20.0f
+
+            @JsonSchema(
+                description = "In what range storms affect VS ships"
+            )
+            var stormRange = 150.0
+
+            @JsonSchema(
+                description = "Storm effect dampening on VS ships"
+            )
+            var stormDampening = 0.0f
+        }
+
         @JsonSchema(
             description = "By default, the vanilla server prevents block interacts past a certain distance " +
                 "to prevent cheat clients from breaking blocks halfway across the map. " +
@@ -96,40 +120,25 @@ object VSGameConfig {
         var enableMovementChecks = false
 
         @JsonSchema(
-
-
             description = "If true, when a player disconnects, their position on the ship is saved such that " +
-
-
                 "if the ship is moved, when they reconnect they will be teleported to the same position in the ship " +
-
-
                 "as they left, instead of being left behind."
-
-
         )
-
-
         var teleportReconnectedPlayers = true
 
         @JsonSchema(
-
-
             description = "Determines how many airborne ticks after a player leaves the ground of a" +
-
-
                 "ship that they are still considered part of it when they disconnect, such that they will" +
-
-
                 "be teleported back to it after reconnecnting."
-
-
         )
-
-
         var maxAirborneTicksForReconnectedPlayerTeleport = 4
 
-
+        @JsonSchema(
+            description = "If true, when a mob gets unloaded, its position on a ship is saved such that " +
+                "if the ship is moved, when the mob loads back in it will be teleported to the same position in the ship." +
+                " This helps prevent mobs from falling off of ships."
+        )
+        var saveMobsPositionOnShip = true
 
         @JsonSchema(
             description = "If true, prevents water and other fluids from flowing out of the ship's bounding box."
@@ -160,11 +169,6 @@ object VSGameConfig {
             description = "Minimum scale of ships"
         )
         var minScaling = 0.25
-
-        @JsonSchema(
-            description = "The permission level required to use the /vs command. Must be 0 <= x <= 4"
-        )
-        var vsCommandPerms = 2
     }
 
     class Common {

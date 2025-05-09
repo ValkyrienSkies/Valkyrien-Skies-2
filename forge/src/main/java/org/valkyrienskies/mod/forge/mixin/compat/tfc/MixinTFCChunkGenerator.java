@@ -59,7 +59,7 @@ public class MixinTFCChunkGenerator {
     }
 
     @Inject(method = "m_214184_", at = @At("HEAD"), cancellable = true)
-    private void preGetBaseColumn(int i, int j, LevelHeightAccessor levelHeightAccessor, CallbackInfoReturnable<NoiseColumn> cir) {
+    private void preGetBaseColumn(int i, int j, LevelHeightAccessor levelHeightAccessor, RandomState randomState, CallbackInfoReturnable<NoiseColumn> cir) {
         if (VS2ChunkAllocator.INSTANCE.isChunkInShipyardCompanion(i, j)) {
             cir.setReturnValue(new NoiseColumn(0, new BlockState[0]));
         }
