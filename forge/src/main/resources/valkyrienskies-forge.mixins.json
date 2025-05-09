@@ -17,6 +17,7 @@
     "compat.thermalexpansion.MixinTileCoFH",
     "compat.tis3d.MixinInfraredPacketEntity",
     "compat.twilightforest.ChunkGeneratorTwilightMixin",
+    "compat.mffs.MixinClientPacketHandler",
     "feature.forge_interact.MixinIForgePlayer",
     "feature.shipyard_entities.MixinPersistentEntitySectionManager",
     "feature.water_in_ships_entity.MixinEntity",
