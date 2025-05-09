@@ -40,6 +40,7 @@ dependencies {
     include(modImplementation("net.fabricmc:fabric-language-kotlin:${kotlin_fabric_version}"))
     include(modImplementation("me.shedaniel.cloth:cloth-config-fabric:${cloth_config_version}"))
 
+    modCompileOnly("maven.modrinth:create-utilities:${create_utilities_version}")
     modImplementation("maven.modrinth:sodium:${sodium_version}")
     // Disable indium until we update sodium to newer versions
     // modRuntimeOnly("maven.modrinth:indium:${indium_version}")
@@ -48,6 +49,9 @@ dependencies {
     // Depend on the fabric API
     modImplementation("net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}")
 
+    modImplementation("teamreborn:energy:${energy_version}") {
+        transitive = false
+    }
 
     implementation("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
         exclude module: "netty-buffer"
@@ -59,17 +63,19 @@ dependencies {
         exclude module: "netty-buffer"
         exclude module: "fastutil"
         exclude module: "kotlin-stdlib-jdk8" // Don't shade kotlin-stdlib-jdk8, even though vs-core depends on it
-
         exclude group: "com.google.guava"
+        exclude module: "jsonschema.module.addon"
     }
 
-    // CC Restitched
-    //modImplementation("curse.maven:cc-restitched-462672:3908334"){
-    //    exclude module: "jsonschema.module.addon"
-    //}
+    def jacksonVersion = '2.14.0'
 
-    // CC Restitched
-    //modImplementation("curse.maven:cc-tweaked-282001:${cc_tweaked_version}")
+
+    include("com.fasterxml:classmate:1.5.1")
+    implementation("com.fasterxml:classmate:1.5.1")
+
+    // EMF compat
+    modCompileOnly("curse.maven:entity-model-features-844662:5696901")
+    modCompileOnly("curse.maven:entity-texture-features-fabric-568563:5697084")
 
     // Create compat
     modCompileOnly("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}") {
@@ -87,6 +93,10 @@ dependencies {
     modCompileOnly("com.jamieswhiteshirt:reach-entity-attributes:${reach_entity_attributes_version}")
     modCompileOnly("dev.cafeteria:fake-player-api:${fake_player_api_version}")
     modCompileOnly("io.github.tropheusj:milk-lib:${milk_lib_version}")
+
+    modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:imm_ptl_core:${immptl_version}")
+    modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:q_misc_util:${immptl_version}")
+    modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:build:${immptl_version}")
 }
 
 // Copy the VS common access widener to the generated resources folder

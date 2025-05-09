@@ -13,8 +13,8 @@ import org.joml.primitives.AABBd
 import org.joml.primitives.AABBdc
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.apigame.collision.ConvexPolygonc
-import org.valkyrienskies.core.impl.collision.k.createPolygonFromAABB
 import org.valkyrienskies.core.util.extend
+import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getShipsIntersecting
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.vsCore
@@ -110,14 +110,14 @@ object EntityShipCollisionUtils {
         val entityBoxWithMovement = entityBoundingBox.expandTowards(movement)
         val collidingPolygons: MutableList<ConvexPolygonc> = ArrayList()
         val entityBoundingBoxExtended = entityBoundingBox.toJOML().extend(movement.toJOML())
-        for (shipObject in world.shipObjectWorld.loadedShips.getIntersecting(entityBoundingBoxExtended)) {
+        for (shipObject in world.shipObjectWorld.loadedShips.getIntersecting(entityBoundingBoxExtended, world.dimensionId)) {
             val shipTransform = shipObject.transform
             val entityPolyInShipCoordinates: ConvexPolygonc = collider.createPolygonFromAABB(
                 entityBoxWithMovement.toJOML(),
                 shipTransform.worldToShip
             )
             val entityBoundingBoxInShipCoordinates: AABBdc = entityPolyInShipCoordinates.getEnclosingAABB(AABBd())
-            if (BugFixUtil.isCollisionBoxToBig(entityBoundingBoxInShipCoordinates.toMinecraft())) {
+            if (BugFixUtil.isCollisionBoxTooBig(entityBoundingBoxInShipCoordinates.toMinecraft())) {
                 // Box too large, skip it
                 continue
             }
@@ -125,7 +125,7 @@ object EntityShipCollisionUtils {
                 world.getBlockCollisions(entity, entityBoundingBoxInShipCoordinates.toMinecraft())
             shipBlockCollisionStream.forEach { voxelShape: VoxelShape ->
                 voxelShape.forAllBoxes { minX, minY, minZ, maxX, maxY, maxZ ->
-                    val shipPolygon: ConvexPolygonc = createPolygonFromAABB(
+                    val shipPolygon: ConvexPolygonc = vsCore.entityPolygonCollider.createPolygonFromAABB(
                         AABBd(minX, minY, minZ, maxX, maxY, maxZ),
                         shipTransform.shipToWorld,
                         shipObject.id

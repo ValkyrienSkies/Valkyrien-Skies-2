@@ -23,7 +23,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.core.api.ships.ServerShip;
+import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.util.GameTickForceApplier;
@@ -74,8 +74,8 @@ public abstract class MixinExplosion {
                             ClipContext.Fluid.NONE, null));
                     if (result.getType() == Type.BLOCK) {
                         final BlockPos blockPos = result.getBlockPos();
-                        final ServerShip ship =
-                            (ServerShip) VSGameUtilsKt.getShipObjectManagingPos(this.level, blockPos);
+                        final LoadedServerShip ship =
+                            (LoadedServerShip) VSGameUtilsKt.getShipObjectManagingPos(this.level, blockPos);
                         if (ship != null) {
                             final Vector3d forceVector =
                                 VectorConversionsMCKt.toJOML(

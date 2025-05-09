@@ -11,7 +11,7 @@ plugins {
     id "dev.architectury.loom" version "1.3.355" apply false
     id 'io.github.juuxel.loom-vineflower' version '1.11.0' apply false
     // Kotlin
-    id "org.jetbrains.kotlin.jvm" version "1.9.10" apply false
+    id "org.jetbrains.kotlin.jvm" version "2.1.0" apply false
     id 'com.matthewprenger.cursegradle' version '1.4.0' apply false
     id "com.modrinth.minotaur" version "2.4.3" apply false
 }
@@ -70,29 +70,28 @@ subprojects {
     apply plugin: "org.jetbrains.kotlin.jvm"
     apply plugin: "io.github.juuxel.loom-vineflower"
 
-    configurations.each { it.resolutionStrategy.useGlobalDependencySubstitutionRules.set(false) }
-
     repositories {
         try {
             def vsCoreBuild = gradle.includedBuild("vs-core")
-            mavenLocal {
-                content {
-                    includeGroup("org.valkyrienskies.core")
+
+            tasks.register('removeIncludedClasses') {
+                // IntelliJ bug: IntelliJ always adds the build/classes folder in composite builds to the classpath,
+                // even though we want the shadowJar stuff on the classpath rather than build/classes
+                //
+                // To fix this, we just delete it. Very reliable and supported and not cursed at all.
+                doLast {
+                    new File(vsCoreBuild.projectDir, "build/classes").deleteDir()
                 }
             }
 
-            [':impl', ':api', ':api-game'].each {
-                compileJava.dependsOn(vsCoreBuild.task("${it}:publishToMavenLocal"))
+            tasks.named('classes') {
+                finalizedBy tasks.named('removeIncludedClasses')
+                dependsOn vsCoreBuild.task(":shadowJar")
             }
+
         } catch (UnknownDomainObjectException ignore) {}
 
         mavenCentral()
-        maven {
-            url "https://cursemaven.com"
-            content {
-                includeModule "curse.maven", "kotlinforforge-351264"
-            }
-        }
         if (!project.block_external_repositories) {
             mavenLocal()
             maven {
@@ -109,14 +108,31 @@ subprojects {
                 name = 'tterrag maven'
                 url = 'https://maven.tterrag.com/'
             }
+            maven { url = "https://modmaven.dev/" } // Twilight Forest
             maven { url = "https://api.modrinth.com/maven" } // LazyDFU, Suggestion Tweaker, Create Big Cannons
             maven { url = "https://maven.shedaniel.me/" } // Cloth Config, REI
             maven { url "https://maven.architectury.dev/" }
             maven { url = "https://mvn.devos.one/snapshots/" } // Fabric Create, Porting Lib, Forge Tags, Milk Lib
+            maven { url = "https://mvn.devos.one/releases/" }
             maven { url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/" } // Forge Config API Port
             maven { url = "https://maven.tterrag.com/" } // Registrate, Forge Create and Flywheel
             maven { url = "https://maven.cafeteria.dev/releases" } // Fake Player API
             maven { url = "https://maven.jamieswhiteshirt.com/libs-release" } // Reach Entity Attributes
+            maven { url = "https://jitpack.io"}
+            maven { // FTB Stuffs
+                url "https://maven.saps.dev/releases"
+                content {
+                    includeGroup "dev.latvian.mods"
+                    includeGroup "dev.ftb.mods"
+                }
+            }
+            maven { // FTB Stuffs
+                url "https://maven.saps.dev/snapshots"
+                content {
+                    includeGroup "dev.latvian.mods"
+                    includeGroup "dev.ftb.mods"
+                }
+            }
         }
         maven {
             name = "Valkyrien Skies Internal"

@@ -38,7 +38,7 @@ public class MixinBlockCollisions {
 
     @Inject(method = "<init>", at = @At("RETURN"))
     private void postInit(CollisionGetter collisionGetter, Entity entity, AABB aabb, boolean bl, BiFunction biFunction, CallbackInfo ci) {
-        if (BugFixUtil.INSTANCE.isCollisionBoxToBig(aabb)) {
+        if (BugFixUtil.INSTANCE.isCollisionBoxTooBig(aabb)) {
             final AABB newBox = new AABB(aabb.minX, aabb.minY, aabb.minZ, aabb.minX, aabb.minY, aabb.minZ);
             this.entityShape = Shapes.create(newBox);
             this.box = newBox;

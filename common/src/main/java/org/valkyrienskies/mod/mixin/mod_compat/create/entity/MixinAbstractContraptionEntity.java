@@ -99,10 +99,8 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
         final LoadedShip shipObjectEntityMountedTo = VSGameUtilsKt.getShipObjectManagingPos(passenger.level(), toJOML(this.position()));
         if (shipObjectEntityMountedTo == null) return null;
 
-        Vec3 transformedPos = this.getPassengerPosition(passenger, partialTicks == null ? 1 : partialTicks);
-        if (transformedPos == null) transformedPos = this.getPosition(partialTicks == null ? 0.0f : partialTicks);
-
-        return new ShipMountedToData(shipObjectEntityMountedTo, toJOML(transformedPos));
+        final Vector3dc mountedPosInShip = toJOML(this.getPassengerPosition(passenger, partialTicks == null ? 1 : partialTicks));
+        return new ShipMountedToData(shipObjectEntityMountedTo, mountedPosInShip);
     }
 
     //Region start - fix being sent to the  ̶s̶h̶a̶d̶o̶w̶r̶e̶a̶l̶m̶ shipyard on ship contraption disassembly
@@ -308,7 +306,7 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
             if (ship != null) {
                 try {
                     // This can happen if a player moves a train contraption from ship to world using a wrench
-                    ship.getAttachment(WingManager.class)
+                    ship.getWingManager()
                         .setWingGroupTransform(wingGroupId, computeContraptionWingTransform());
                 } catch (final Exception e) {
                     // I'm not sure why, but this fails sometimes. For now just catch the error and print it

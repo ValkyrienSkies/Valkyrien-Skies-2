@@ -15,7 +15,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.api.ships.Ship;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 
 /**
  * This mixin fixes {@link BlockEntity}s belonging to ships not rendering.
@@ -48,7 +48,7 @@ public class MixinBlockEntityRenderDispatcher {
 
         // If by default was false, then check if this BlockEntity belongs to a ship
         final BlockPos bePos = blockEntity.getBlockPos();
-        final Ship nullableShip = VSGameUtilsKt.getShipObjectManagingPos(level, bePos);
+        final Ship nullableShip = ValkyrienSkies.getShipManagingBlock(level, bePos);
         if (nullableShip instanceof ClientShip ship) {
             final Matrix4dc m = ship.getRenderTransform().getShipToWorld();
 

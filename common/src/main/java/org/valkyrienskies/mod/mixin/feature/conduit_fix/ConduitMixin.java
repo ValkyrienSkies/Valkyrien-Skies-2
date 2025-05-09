@@ -11,7 +11,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 
 @Mixin(ConduitBlockEntity.class)
 public class ConduitMixin extends BlockEntity {
@@ -31,12 +31,7 @@ public class ConduitMixin extends BlockEntity {
     )
     private static boolean closerThan(final BlockPos instance, final Vec3i vec3i, final double distance,
         final Level level, final BlockPos blockPos, final List<BlockPos> list) {
-        final double retValue =
-            VSGameUtilsKt.squaredDistanceBetweenInclShips(level, instance.getX(), instance.getY(), instance.getZ(),
-                vec3i.getX(),
-                vec3i.getY(),
-                vec3i.getZ());
-        return retValue < distance * distance;
+        return ValkyrienSkies.closerThan(level, instance, vec3i, distance);
     }
 
     @Redirect(

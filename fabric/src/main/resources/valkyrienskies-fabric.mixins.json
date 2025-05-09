@@ -5,9 +5,12 @@
   "mixins": [
     "compat.create.MixinBlockBreakingKineticTileEntity",
     "compat.create.MixinBlocks",
+    "compat.create.MixinChuteBlockEntity",
     "compat.create.MixinControlledContraptionEntity",
+    "compat.create.client.MixinTrackBlockOutline",
     "compat.sodium.MixinRenderSectionManager",
     "feature.explosions.ClipContextMixin",
+    "feature.shipyard_entities.MixinPersistentEntitySectionManager",
     "server.network.MixinServerGamePacketListenerImpl",
     "server.network.MixinServerPlayerGameMode",
     "world.level.block.FireMixin"

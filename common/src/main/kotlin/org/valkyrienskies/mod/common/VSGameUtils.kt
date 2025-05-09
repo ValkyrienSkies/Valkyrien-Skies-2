@@ -11,6 +11,7 @@ import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerChunkCache
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.util.thread.BlockableEventLoop
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.ChunkPos
@@ -37,6 +38,8 @@ import org.valkyrienskies.core.apigame.world.properties.DimensionId
 import org.valkyrienskies.core.game.ships.ShipObjectServer
 import org.valkyrienskies.core.impl.hooks.VSEvents.TickEndEvent
 import org.valkyrienskies.core.util.expand
+import org.valkyrienskies.mod.api.getShipsIntersecting
+import org.valkyrienskies.mod.api.toWorld
 import org.valkyrienskies.mod.common.entity.ShipMountedToData
 import org.valkyrienskies.mod.common.entity.ShipMountedToDataProvider
 import org.valkyrienskies.mod.common.util.DimensionIdProvider
@@ -216,7 +219,7 @@ fun Level?.transformToNearbyShipsAndWorld(
     this?.transformToNearbyShipsAndWorld(x, y, z, aabbRadius, cb::accept)
 }
 
-inline fun Level?.transformToNearbyShipsAndWorld(
+inline fun Level.transformToNearbyShipsAndWorld(
     x: Double, y: Double, z: Double, aabbRadius: Double, cb: (Double, Double, Double) -> Unit
 ) {
     val currentShip = getShipManagingPos(x, y, z)
@@ -231,7 +234,7 @@ inline fun Level?.transformToNearbyShipsAndWorld(
         cb(posInWorld.x(), posInWorld.y(), posInWorld.z())
     }
 
-    for (nearbyShip in shipObjectWorld.allShips.getIntersecting(aabb)) {
+    for (nearbyShip in shipObjectWorld.allShips.getIntersecting(aabb, this!!.dimensionId)) {
         if (nearbyShip == currentShip) continue
         val posInShip = nearbyShip.worldToShip.transformPosition(posInWorld, temp0)
         cb(posInShip.x(), posInShip.y(), posInShip.z())
@@ -304,12 +307,7 @@ fun ServerLevel?.getShipObjectManagingPos(pos: Vector3dc) =
 
 private fun getShipManagingPosImpl(world: Level?, x: Int, z: Int): Ship? {
     return if (world != null && world.isChunkInShipyard(x, z)) {
-        val ship = world.shipObjectWorld.allShips.getByChunkPos(x, z, world.dimensionId)
-        if (ship != null && ship.chunkClaimDimension == world.dimensionId) {
-            ship
-        } else {
-            null
-        }
+        world.shipObjectWorld.allShips.getByChunkPos(x, z, world.dimensionId)
     } else {
         null
     }
@@ -323,27 +321,76 @@ fun ClientLevel?.transformRenderAABBToWorld(pos: Position, aabb: AABB): AABB {
     return aabb
 }
 
-fun Entity.getShipManaging(): Ship? = this.level().getShipManagingPos(this.position())
+fun Entity?.getShipManaging(): Ship? = this?.let { this.level().getShipManagingPos(this.position()) }
 
 // Level
+@Deprecated(
+    message = "Java: use ValkyrienSkies.getShipManagingChunk",
+    replaceWith = ReplaceWith(
+        "this.getShipManagingChunk(chunkX, chunkZ)",
+        "org.valkyrienskies.mod.api.getShipManagingChunk"
+    )
+)
 fun Level?.getShipManagingPos(chunkX: Int, chunkZ: Int) =
     getShipManagingPosImpl(this, chunkX, chunkZ)
 
+@Deprecated(
+    message = "Java: use ValkyrienSkies.getShipManagingBlock",
+    replaceWith = ReplaceWith(
+        "this.getShipManagingBlock(blockPos)",
+        "org.valkyrienskies.mod.api.getShipManagingBlock"
+    )
+)
 fun Level?.getShipManagingPos(blockPos: BlockPos) =
     getShipManagingPos(blockPos.x shr 4, blockPos.z shr 4)
 
+@Deprecated(
+    message = "Java: use ValkyrienSkies.getShipManagingBlock",
+    replaceWith = ReplaceWith(
+        "this.getShipManagingBlock(pos)",
+        "org.valkyrienskies.mod.api.getShipManagingBlock"
+    )
+)
 fun Level?.getShipManagingPos(pos: Position) =
     getShipManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
 
+@Deprecated(
+    message = "Java: use ValkyrienSkies.getShipManagingBlock",
+    replaceWith = ReplaceWith(
+        "this.getShipManagingBlock(pos)",
+        "org.valkyrienskies.mod.api.getShipManagingBlock"
+    )
+)
 fun Level?.getShipManagingPos(pos: Vector3dc) =
     getShipManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
 
+@Deprecated(
+    message = "Java: use ValkyrienSkies.getShipManagingBlock",
+    replaceWith = ReplaceWith(
+        "this.getShipManagingBlock(posX, posY, posZ)",
+        "org.valkyrienskies.mod.api.getShipManagingBlock"
+    )
+)
 fun Level?.getShipManagingPos(posX: Double, posY: Double, posZ: Double) =
     getShipManagingPos(posX.toInt() shr 4, posZ.toInt() shr 4)
 
+@Deprecated(
+    message = "Java: use ValkyrienSkies.getShipManagingBlock",
+    replaceWith = ReplaceWith(
+        "this.getShipManagingBlock(chunkPos)",
+        "org.valkyrienskies.mod.api.getShipManagingBlock"
+    )
+)
 fun Level?.getShipManagingPos(posX: Float, posY: Float, posZ: Float) =
     getShipManagingPos(posX.toInt() shr 4, posZ.toInt() shr 4)
 
+@Deprecated(
+    message = "Java: use ValkyrienSkies.getShipManagingChunk",
+    replaceWith = ReplaceWith(
+        "this.getShipManagingChunk(chunkPos)",
+        "org.valkyrienskies.mod.api.getShipManagingChunk"
+    )
+)
 fun Level?.getShipManagingPos(chunkPos: ChunkPos) =
     getShipManagingPos(chunkPos.x, chunkPos.z)
 
@@ -416,20 +463,28 @@ fun Level?.getWorldCoordinates(blockPos: BlockPos, pos: Vector3d): Vector3d {
 }
 
 fun Level.getShipsIntersecting(aabb: AABB): Iterable<Ship> = getShipsIntersecting(aabb.toJOML())
-fun Level.getShipsIntersecting(aabb: AABBdc): Iterable<Ship> = allShips.getIntersecting(aabb).filter { it.chunkClaimDimension == dimensionId }
-
+fun Level.getShipsIntersecting(aabb: AABBdc): Iterable<Ship> = allShips.getIntersecting(aabb, dimensionId)
 fun Level?.transformAabbToWorld(aabb: AABB): AABB = transformAabbToWorld(aabb.toJOML()).toMinecraft()
 fun Level?.transformAabbToWorld(aabb: AABBd) = this?.transformAabbToWorld(aabb, aabb) ?: aabb
-fun Level.transformAabbToWorld(aabb: AABBdc, dest: AABBd): AABBd {
-    val ship1 = getShipManagingPos(aabb.minX(), aabb.minY(), aabb.minZ())
-    val ship2 = getShipManagingPos(aabb.maxX(), aabb.maxY(), aabb.maxZ())
+fun Level?.transformAabbToWorld(aabb: AABBdc, dest: AABBd): AABBd = this.toWorld(aabb, dest)
 
-    // if both endpoints of the aabb are in the same ship, do the transform
-    if (ship1 == ship2 && ship1 != null && ship1.chunkClaimDimension == dimensionId) {
-        return aabb.transform(ship1.shipToWorld, dest)
+/**
+ * Execute [runnable] immediately iff the thread invoking this is the same as the game thread.
+ * Otherwise, schedule [runnable] to run on the next tick.
+ */
+fun Level.executeOrSchedule(runnable: Runnable) {
+    val blockableEventLoop: BlockableEventLoop<Runnable> = if (!this.isClientSide) {
+        this.server!! as BlockableEventLoop<Runnable>
+    } else {
+        Minecraft.getInstance()
     }
-
-    return dest.set(aabb)
+    if (blockableEventLoop.isSameThread) {
+        // For some reason MinecraftServer wants to schedule even when it's the same thread, so we need to add our own
+        // logic
+        runnable.run()
+    } else {
+        blockableEventLoop.execute(runnable)
+    }
 }
 
 fun getShipMountedToData(passenger: Entity, partialTicks: Float? = null): ShipMountedToData? {

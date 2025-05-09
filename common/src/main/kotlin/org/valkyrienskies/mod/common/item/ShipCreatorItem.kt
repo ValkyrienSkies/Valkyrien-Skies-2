@@ -17,6 +17,7 @@ import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.toBlockPos
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toJOMLD
+import org.valkyrienskies.mod.common.vsCore
 import org.valkyrienskies.mod.common.yRange
 import org.valkyrienskies.mod.util.relocateBlock
 import java.util.function.DoubleSupplier
@@ -63,9 +64,8 @@ class ShipCreatorItem(
                         // Do not allow scaling to go below minScaling
                         newShipScaling = Vector3d(minScaling, minScaling, minScaling)
                     }
-                    val shipTransform =
-                        ShipTransformImpl(newShipPosInWorld, newShipPosInShipyard, newShipRotation, newShipScaling)
-                    (serverShip as ShipDataCommon).transform = shipTransform
+                    val shipTransform = vsCore.newShipTransform(newShipPosInWorld, newShipPosInShipyard, newShipRotation, newShipScaling)
+                    (serverShip as ShipDataCommon).setFromTransform(shipTransform)
                 }
             }
         }
