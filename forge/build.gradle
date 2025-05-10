@@ -75,9 +75,6 @@ dependencies {
     // CC Tweaked
     modCompileOnly("maven.modrinth:cc-tweaked:${cc_tweaked_version}")
 
-    // TIS-3d
-    modCompileOnly("maven.modrinth:tis3d:${tis3d_version}")
-
     // Modular Routers
     modCompileOnly("curse.maven:mr-250294:4696089")
 

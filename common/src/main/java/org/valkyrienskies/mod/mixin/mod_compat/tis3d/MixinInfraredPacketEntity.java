@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.forge.mixin.compat.tis3d;
+package org.valkyrienskies.mod.mixin.mod_compat.tis3d;
 
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
-import org.valkyrienskies.mod.forge.compat.tis3d.Tis3dClipContext;
+import org.valkyrienskies.mod.compat.tis3d.Tis3dClipContext;
 
 @Pseudo
 @Mixin(InfraredPacketEntity.class)

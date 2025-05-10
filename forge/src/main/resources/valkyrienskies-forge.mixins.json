@@ -9,7 +9,6 @@
     "compat.immersivengineering.MixinBlockEntityInventory",
     "compat.tfc.MixinTFCChunkGenerator",
     "compat.thermalexpansion.MixinTileCoFH",
-    "compat.tis3d.MixinInfraredPacketEntity",
     "compat.modular_routers.MixinRouterMenu",
     "feature.forge_interact.MixinIForgePlayer",
     "feature.water_in_ships_entity.MixinEntity",
@@ -21,9 +20,7 @@
     "compat.create.client.MixinContraptionRenderInfo",
     "compat.create.client.MixinFlwContraption",
     "compat.create.client.MixinSuperGlueSelectionHandler",
-    "compat.sodium.MixinRenderSectionManager",
-    "compat.tis3d.MixinCasingTileEntityRender",
-    "compat.tis3d.MixinRenderContextImpl"
+    "compat.sodium.MixinRenderSectionManager"
   ],
   "injectors": {
     "defaultRequire": 1
