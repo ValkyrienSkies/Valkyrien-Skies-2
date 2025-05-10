@@ -95,6 +95,7 @@
     "mod_compat.create.packets.MixinTrainRelocationPacket",
     "mod_compat.create.pr.MixinSeatBlock",
     "mod_compat.create_big_cannons.MixinPitchOrientedContraptionEntity",
+    "mod_compat.ftb_chunks.MixinClaimedChunkManagerImpl",
     "mod_compat.reachentityattributes.MixinReachEntityAttributes",
     "server.MixinMinecraftServer",
     "server.MixinPlayerList",
