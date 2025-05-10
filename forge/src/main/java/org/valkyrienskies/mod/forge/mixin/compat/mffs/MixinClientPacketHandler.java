@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.valkyrienskies.core.api.ships.Ship;
-import org.valkyrienskies.mod.api.ValkyrienSkies;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Pseudo
 @Mixin(ClientPacketHandler.class)
@@ -19,16 +19,16 @@ public class MixinClientPacketHandler {
         value = "INVOKE",
         target = "Lnet/minecraft/client/multiplayer/ClientLevel;addParticle(Lnet/minecraft/core/particles/ParticleOptions;DDDDDD)V"
     ))
-    private static void valkyrienskies$handleBeamsOnShips(ClientLevel instance, ParticleOptions arg, double d, double e, double f, double g, double h, double i) {
-        if (!(arg instanceof BeamParticleOptions beam)) {
+    private static void valkyrienskies$handleBeamsOnShips(final ClientLevel instance, final ParticleOptions arg, final double d, final double e, final double f, final double g, final double h, final double i) {
+        if (!(arg instanceof final BeamParticleOptions beam)) {
             instance.addParticle(arg, d, e, f, g, h, i);
             return;
         }
 
         Vec3 target = beam.target();
-        final Ship ship = ValkyrienSkies.getShipManagingBlock(instance, ((BeamParticleOptions) arg).target());
+        final Ship ship = VSGameUtilsKt.getShipObjectManagingPos(instance, ((BeamParticleOptions) arg).target());
         if (ship != null) {
-            target = ValkyrienSkies.positionToWorld(ship, target);
+            target = VSGameUtilsKt.toWorldCoordinates(ship, target);
         }
 
         instance.addParticle(new BeamParticleOptions(target, beam.color(), beam.lifetime()), d, e, f, g, h, i);
