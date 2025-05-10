@@ -22,7 +22,7 @@ public abstract class MixinFrequencyGrid {
     private static Level valkyrienskies$fortonLevel = null;
 
     @WrapOperation(
-        method = "lambda$get$2(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/Vec3i;ILdev/su5ed/mffs/api/fortron/FortronStorage;)Z",
+        method = "lambda$get$2",
         remap = false,
         at = @At(value = "HEAD")
     )
@@ -31,11 +31,10 @@ public abstract class MixinFrequencyGrid {
     }
 
     @WrapOperation(
-        method = "lambda$get$2(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/Vec3i;ILdev/su5ed/mffs/api/fortron/FortronStorage;)Z",
+        method = "lambda$get$2",
         remap = false,
         at = @At(
-            value = "INVOKE_ASSIGN",
-            remap = true,
+            value = "INVOKE",
             target = "Lnet/minecraft/core/Vec3i;closerThan(Lnet/minecraft/core/Vec3i;D)Z"
         )
     )
