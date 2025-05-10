@@ -23,7 +23,6 @@ public abstract class MixinFrequencyGrid {
 
     @WrapOperation(
         method = "lambda$get$2",
-        remap = false,
         at = @At(value = "HEAD")
     )
     private static void vs$filter(final int idx, final FortronStorage storage) {
@@ -32,9 +31,9 @@ public abstract class MixinFrequencyGrid {
 
     @WrapOperation(
         method = "lambda$get$2",
-        remap = false,
         at = @At(
             value = "INVOKE",
+            remap = true,
             target = "Lnet/minecraft/core/Vec3i;closerThan(Lnet/minecraft/core/Vec3i;D)Z"
         )
     )
