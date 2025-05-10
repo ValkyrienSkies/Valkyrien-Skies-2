@@ -17,10 +17,8 @@ import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 @Mixin(RenderContextImpl.class)
 public abstract class MixinRenderContextImpl {
     @WrapOperation(
-        remap = false,
         method = "closeEnoughForDetails(Lnet/minecraft/core/BlockPos;)Z",
         at = @At(value = "INVOKE",
-            remap = true,
             target = "Lnet/minecraft/core/BlockPos;closerToCenterThan(Lnet/minecraft/core/Position;D)Z"
         )
     )
