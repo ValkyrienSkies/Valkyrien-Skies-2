@@ -10,6 +10,7 @@
     "compat.tfc.MixinTFCChunkGenerator",
     "compat.thermalexpansion.MixinTileCoFH",
     "compat.tis3d.MixinInfraredPacketEntity",
+    "compat.mffs.MixinClientPacketHandler",
     "compat.modular_routers.MixinRouterMenu",
     "feature.forge_interact.MixinIForgePlayer",
     "feature.water_in_ships_entity.MixinEntity",
