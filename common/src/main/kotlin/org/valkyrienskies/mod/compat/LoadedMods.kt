@@ -8,6 +8,9 @@ object LoadedMods {
     @JvmStatic
     val iris by CompatInfo("net.coderbot.iris.Iris")
 
+    @JvmStatic
+    val weather2 by CompatInfo("weather2.Weather")
+
     class CompatInfo(private val className: String) : ReadOnlyProperty<Any?, Boolean> {
         private var isLoaded: Boolean? = null
 
