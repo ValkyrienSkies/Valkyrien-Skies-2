@@ -72,6 +72,10 @@ dependencies {
     modImplementation("com.jozufozu.flywheel:flywheel-forge-${minecraft_version}:${flywheel_version}")
     modImplementation("com.tterrag.registrate:Registrate:${registrate_version}")
 
+    // Weather2 1.20.1
+    modImplementation("curse.maven:weather-storms-tornadoes-237746:5244118")
+    modImplementation("curse.maven:coroutil-237749:5096038")
+
     // CC Tweaked
     modCompileOnly("maven.modrinth:cc-tweaked:${cc_tweaked_version}")
 
