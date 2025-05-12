@@ -1,0 +1,33 @@
+[
+  {
+    "block": "mffs:force_field",
+    "mass": 0,
+    "friction": 0.8,
+    "elasticity": 0.8
+  },
+  {
+    "block": "mffs:projector",
+    "mass": 3920,
+    "friction": 0.2
+  },
+  {
+    "block": "mffs:forton_capacitor",
+    "mass": 3920,
+    "friction": 0.2
+  },
+  {
+    "block": "mffs:interdiction_matrix",
+    "mass": 3920,
+    "friction": 0.2
+  },
+  {
+    "block": "mffs:coercion_deriver",
+    "mass": 3920,
+    "friction": 0.2
+  },
+  {
+    "block": "mffs:biometric_identifier",
+    "mass": 3920,
+    "friction": 0.2
+  }
+]

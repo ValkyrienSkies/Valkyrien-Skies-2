@@ -79,11 +79,14 @@ dependencies {
     // CC Tweaked
     modCompileOnly("maven.modrinth:cc-tweaked:${cc_tweaked_version}")
 
-    // TIS-3d
-    modCompileOnly("maven.modrinth:tis3d:${tis3d_version}")
-
     // Modular Routers
     modCompileOnly("curse.maven:mr-250294:4696089")
+
+    // Modular Force Field System
+    modCompileOnly("maven.modrinth:mffs:5.1.18")
+
+    // Epic Fight
+    modCompileOnly("maven.modrinth:epic-fight:20.10.3")
 
     // Add Kotlin for Forge (3.12.0)
     forgeRuntimeLibrary("maven.modrinth:kotlin-for-forge:${kotlin_version}")
