@@ -22,7 +22,7 @@ public abstract class MixinClaimedChunkManagerImpl {
     @Unique
     private Entity entity = null;
 
-    @ModifyVariable(method = "shouldPreventInteraction", at = @At("HEAD"), name = "entity", remap = false)
+    @ModifyVariable(method = "shouldPreventInteraction", at = @At("HEAD"), name = "actor", remap = false)
     private Entity ValkyrienSkies$entity(final Entity entity) {
         this.entity = entity;
         return entity;
