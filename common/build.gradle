@@ -22,9 +22,6 @@ dependencies {
     // FTB Stuffs
     modCompileOnly("dev.ftb.mods:ftb-chunks-forge:2001.3.6") { transitive = false }
 
-    // TIS-3d
-    modCompileOnly("maven.modrinth:tis3d:${tis3d_version}")
-
     //Common create compat,
     //We just use a version from a platform and hope the classes exist on both versions and mixins apply correctly
     modCompileOnly("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}")
