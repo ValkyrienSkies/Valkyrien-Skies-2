@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.forge.compat.tis3d;
+package org.valkyrienskies.mod.compat.tis3d;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
@@ -10,6 +10,7 @@ import net.minecraft.world.phys.shapes.BooleanOp;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class Tis3dClipContext extends ClipContext {
@@ -22,7 +23,7 @@ public class Tis3dClipContext extends ClipContext {
     }
 
     @Override
-    public VoxelShape getBlockShape(final BlockState bs, final BlockGetter bg, final BlockPos bp) {
+    public @NotNull VoxelShape getBlockShape(final @NotNull BlockState bs, final @NotNull BlockGetter bg, final @NotNull BlockPos bp) {
         final VoxelShape collider = Block.COLLIDER.get(bs, bg, bp, this.collisionContext);
         final VoxelShape visual = Block.VISUAL.get(bs, bg, bp, this.collisionContext);
         return Shapes.join(collider, visual, BooleanOp.AND);
