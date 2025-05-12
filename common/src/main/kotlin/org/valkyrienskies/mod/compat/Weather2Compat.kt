@@ -20,8 +20,9 @@ object Weather2Compat {
         val stormDampen = 1.0f - VSGameConfig.SERVER.Weather2.stormDampening
         val stormRange = VSGameConfig.SERVER.Weather2.stormRange
 
-        val vec = Vector3d()
+
         level.shipObjectWorld.loadedShips.forEach { ship ->
+            val vec = Vector3d()
             val forces = ship.getAttachment<GameTickForceApplier>()!!
 
             val com = ship.inertiaData.centerOfMassInShip
