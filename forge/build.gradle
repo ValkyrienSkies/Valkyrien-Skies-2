@@ -78,6 +78,9 @@ dependencies {
     // Modular Routers
     modCompileOnly("curse.maven:mr-250294:4696089")
 
+    // Modular Force Field System
+    modCompileOnly("maven.modrinth:mffs:5.1.18")
+
     // Epic Fight
     modCompileOnly("maven.modrinth:epic-fight:20.10.3")
 
