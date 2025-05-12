@@ -78,6 +78,9 @@ dependencies {
     // Modular Routers
     modCompileOnly("curse.maven:mr-250294:4696089")
 
+    // Modular Force Field System
+    modCompileOnly("maven.modrinth:mffs:5.1.18")
+
     // Add Kotlin for Forge (3.12.0)
     forgeRuntimeLibrary("maven.modrinth:kotlin-for-forge:${kotlin_version}")
 
