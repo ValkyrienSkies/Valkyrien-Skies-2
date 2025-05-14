@@ -63,7 +63,7 @@ public abstract class MixinTurtleMoveCommand {
             return newPosition;
         }
         final AABBic box = ship.getShipAABB();;
-        if (box.minX() <= newPosition.getX() && newPosition.getX() <= box.maxX() && box.minY() <= newPosition.getY() && newPosition.getY() <= box.maxY() && box.minZ() <= newPosition.getZ() && newPosition.getZ() <= box.maxZ()) {
+        if (box.minX() <= newPosition.getX() && newPosition.getX() < box.maxX() && box.minY() <= newPosition.getY() && newPosition.getY() < box.maxY() && box.minZ() <= newPosition.getZ() && newPosition.getZ() < box.maxZ()) {
             return newPosition;
         }
         if (!ship.getTransform().getShipToWorldScaling().equals(1, 1, 1) && !VSGameConfig.SERVER.getComputerCraft().getCanTurtlesLeaveScaledShips()) {
