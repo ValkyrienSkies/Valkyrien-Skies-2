@@ -4,6 +4,7 @@ import dan200.computercraft.api.turtle.ITurtleAccess;
 import dan200.computercraft.api.turtle.TurtleCommandResult;
 import dan200.computercraft.shared.turtle.core.TurtleMoveCommand;
 import dan200.computercraft.shared.turtle.core.TurtlePlayer;
+import dan200.computercraft.shared.util.WorldUtil;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -25,6 +26,7 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.List;
+import java.util.function.Predicate;
 
 @Pseudo
 @Mixin(TurtleMoveCommand.class)
@@ -69,7 +71,7 @@ public abstract class MixinTurtleMoveCommand {
             .map(BlockPos::containing)
             .filter(pos -> VSGameUtilsKt.getShipManagingPos(world, pos) != ship)
             .map(world::getBlockState)
-            .allMatch(BlockState::isAir);
+            .allMatch(((Predicate<BlockState>) WorldUtil::isEmptyBlock).or(BlockState::canBeReplaced));
 
         if (!isAir) {
             cir.setReturnValue(TurtleCommandResult.failure("Movement obstructed by ship"));
