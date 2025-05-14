@@ -9,14 +9,15 @@ import net.minecraft.core.Position;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
+import org.valkyrienskies.core.api.ships.Ship;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
+
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.valkyrienskies.core.api.ships.Ship;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Pseudo
 @Mixin(CustomLecternRenderer.class)
