@@ -24,16 +24,17 @@ dependencies {
     modCompileOnly("curse.maven:ftb-teams-404468:4229138")
     modCompileOnly("curse.maven:ftb-chunks-314906:4229120")
 
-
     // Weather2 1.20.1
     modCompileOnly("curse.maven:weather-storms-tornadoes-237746:5244118")
 
     // TIS 3D
     modCompileOnly("maven.modrinth:tis3d:${tis3d_version}")
 
+    // CC-Tweaked
+    modCompileOnly("cc.tweaked:cc-tweaked-${minecraft_version}-common:${cc_tweaked_version}")
 
-    //Common create compat,
-    //We just use a version from a platform and hope the classes exist on both versions and mixins apply correctly
+    // Common create compat,
+    // We just use a version from a platform and hope the classes exist on both versions and mixins apply correctly
     modCompileOnly("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}")
         { exclude group: 'com.github.AlphaMode', module: 'fakeconfigtoml' }
     modCompileOnly("net.fabricmc.fabric-api:fabric-api:${fabric_api_version}")
