@@ -29,7 +29,7 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 @Pseudo
 @Mixin(TurtleBrain.class)
 public abstract class MixinTurtleBrain {
-    @Shadow
+    @Shadow(remap = false)
     public abstract TurtleBlockEntity getOwner();
 
     @Shadow
@@ -41,8 +41,8 @@ public abstract class MixinTurtleBrain {
        index = 2
     )
     private BlockPos ValkyrienSkies2$teleportToBlockPos(final BlockPos pos) {
-        final TurtleBlockEntity currentOwner = getOwner();
-        final BlockPos oldPos = currentOwner.getBlockPos();
+        final TurtleBlockEntity owner = getOwner();
+        final BlockPos oldPos = owner.getBlockPos();
         final Level world = getLevel();
 
         final Ship ship = VSGameUtilsKt.getShipManagingPos(world, oldPos);
@@ -54,7 +54,7 @@ public abstract class MixinTurtleBrain {
             return pos;
         }
         
-        currentOwner.setDirection(getNewDirection(ship, currentOwner.getDirection()));
+        owner.setDirection(getNewDirection(ship, owner.getDirection()));
         if (!ship.getTransform().getShipToWorldScaling().equals(1, 1, 1) && !VSGameConfig.SERVER.getComputerCraft().getCanTurtlesLeaveScaledShips()) {
             return pos;
         }
