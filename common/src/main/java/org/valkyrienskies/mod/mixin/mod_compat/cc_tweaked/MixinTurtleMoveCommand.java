@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.function.Predicate;
 
 @Pseudo
-@Mixin(TurtleMoveCommand.class)
+@Mixin(value = TurtleMoveCommand.class, priority = 2000)
 public abstract class MixinTurtleMoveCommand {
     @Shadow(remap = false)
     @Final

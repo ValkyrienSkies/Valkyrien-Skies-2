@@ -17,7 +17,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Pseudo
-@Mixin(SpeakerPosition.class)
+@Mixin(value = SpeakerPosition.class, priority = 2000)
 public abstract class MixinSpeakerPosition {
     @Shadow
     public abstract Level level();

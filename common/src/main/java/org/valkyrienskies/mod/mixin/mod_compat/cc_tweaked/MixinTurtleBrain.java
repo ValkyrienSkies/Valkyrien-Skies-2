@@ -27,7 +27,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
 @Pseudo
-@Mixin(TurtleBrain.class)
+@Mixin(value = TurtleBrain.class, priority = 2000)
 public abstract class MixinTurtleBrain {
     @Shadow(remap = false)
     public abstract TurtleBlockEntity getOwner();
@@ -40,7 +40,7 @@ public abstract class MixinTurtleBrain {
        at = @At(value = "HEAD"),
        index = 2
     )
-    private BlockPos ValkyrienSkies2$teleportToBlockPos(final BlockPos pos) {
+    private BlockPos teleportTo$modify$blockPos(final BlockPos pos) {
         final TurtleBlockEntity owner = getOwner();
         final BlockPos oldPos = owner.getBlockPos();
         final Level world = getLevel();
@@ -53,21 +53,14 @@ public abstract class MixinTurtleBrain {
         if (box.minX() <= pos.getX() && pos.getX() < box.maxX() && box.minY() <= pos.getY() && pos.getY() < box.maxY() && box.minZ() <= pos.getZ() && pos.getZ() < box.maxZ()) {
             return pos;
         }
-        
-        owner.setDirection(getNewDirection(ship, owner.getDirection()));
+
+        final Vec3i dirVec = owner.getDirection().getNormal();
+        final Vector3d directionVec = ship.getShipToWorld().transformDirection(dirVec.getX(), dirVec.getY(), dirVec.getZ(), new Vector3d());
+        owner.setDirection(Direction.getNearest(directionVec.x, directionVec.y, directionVec.z));
         if (!ship.getTransform().getShipToWorldScaling().equals(1, 1, 1) && !VSGameConfig.SERVER.getComputerCraft().getCanTurtlesLeaveScaledShips()) {
             return pos;
         }
         final Vector3d worldPos = VSGameUtilsKt.toWorldCoordinates(world, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
         return BlockPos.containing(worldPos.x, worldPos.y, worldPos.z);
-    }
-
-    // CUSTOM METHODS
-
-    @Unique
-    private static Direction getNewDirection(final Ship ship, final Direction direction) {
-        final Vec3i dirVec = direction.getNormal();
-        final Vector3d directionVec = ship.getShipToWorld().transformDirection(dirVec.getX(), dirVec.getY(), dirVec.getZ(), new Vector3d());
-        return Direction.getNearest(directionVec.x, directionVec.y, directionVec.z);
     }
 }

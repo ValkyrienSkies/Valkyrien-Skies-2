@@ -16,7 +16,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Pseudo
-@Mixin(WirelessNetwork.class)
+@Mixin(value = WirelessNetwork.class, priority = 2000)
 public class MixinWirelessNetwork {
     @Redirect(
         method = "tryTransmit",
@@ -25,11 +25,11 @@ public class MixinWirelessNetwork {
             target = "Lnet/minecraft/world/phys/Vec3;distanceToSqr(Lnet/minecraft/world/phys/Vec3;)D"
         )
     )
-    private static double tryTransmit$distanceToSqr(final Vec3 instance, final Vec3 d, final PacketReceiver receiver) {
+    private static double tryTransmit$distanceToSqr(final Vec3 origin, final Vec3 pos, final PacketReceiver receiver) {
         return VSGameUtilsKt.squaredDistanceBetweenInclShips(
             receiver.getLevel(),
-            instance.x, instance.y, instance.z,
-            d.x, d.y, d.z
+            origin.x, origin.y, origin.z,
+            pos.x, pos.y, pos.z
         );
     }
 }
