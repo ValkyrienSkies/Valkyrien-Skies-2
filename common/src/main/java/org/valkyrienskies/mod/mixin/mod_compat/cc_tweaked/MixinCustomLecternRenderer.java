@@ -7,6 +7,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.core.Position;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.Vec3;
 
 import org.valkyrienskies.core.api.ships.Ship;
@@ -28,7 +29,7 @@ public class MixinCustomLecternRenderer {
         final CustomLecternBlockEntity lectern
     ) {
         final double distSqr = VSGameUtilsKt.squaredDistanceBetweenInclShips(
-            lectern.getLevel(),
+            ((BlockEntity) (lectern)).getLevel(),
             origin.x,
             origin.y,
             origin.z,
