@@ -5,6 +5,7 @@ import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.entity.EntityAccess;
 import net.minecraft.world.level.entity.EntitySectionStorage;
 import net.minecraft.world.level.entity.PersistentEntitySectionManager;
 import net.minecraft.world.level.entity.Visibility;
@@ -15,6 +16,11 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import org.valkyrienskies.core.api.ships.LoadedShip;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.entity.handling.VSEntityManager;
+import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.mixinducks.world.OfLevel;
 
 @Mixin(PersistentEntitySectionManager.class)
@@ -72,5 +78,21 @@ public abstract class MixinPersistentEntitySectionManager implements OfLevel {
             e.printStackTrace();
         }
         ci.cancel();
+    }
+
+    @Inject(
+        method = "addEntity",
+        at = @At(
+            value = "RETURN"
+        )
+    )
+    <T extends EntityAccess> void preAddEntity(T entityAccess, boolean bl, CallbackInfoReturnable<Boolean> cir) {
+        if (cir.getReturnValue() && entityAccess instanceof final Entity entity) {
+            final LoadedShip ship =
+                VSGameUtilsKt.getShipObjectManagingPos(entity.level(), VectorConversionsMCKt.toJOML(entity.position()));
+            if (ship != null) {
+                VSEntityManager.INSTANCE.getHandler(entity).freshEntityInShipyard(entity, ship);
+            }
+        }
     }
 }
