@@ -1,6 +1,5 @@
 package org.valkyrienskies.mod.common.item
 
-import net.minecraft.Util
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Vec3i
 import net.minecraft.network.chat.Component
@@ -11,13 +10,12 @@ import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.context.UseOnContext
 import net.minecraft.world.level.block.state.BlockState
 import org.joml.primitives.AABBi
+import org.valkyrienskies.mod.VSDataComponents
 import org.valkyrienskies.mod.common.assembly.ShipAssembler
 import org.valkyrienskies.mod.common.dimensionId
-import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.getShipObjectManagingPos
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.toJOML
-import java.awt.TextComponent
 import java.util.function.DoubleSupplier
 
 class AreaAssemblerItem(
@@ -43,12 +41,12 @@ class AreaAssemblerItem(
                 // Make a ship
                 val dimensionId = level.dimensionId
 
-                // TODO: Fix and re-enable
-                /*
-                if (item.tag != null && item.tag!!.contains("firstPosX")) {
-                    val firstPosX = item.tag!!.getInt("firstPosX")
-                    val firstPosY = item.tag!!.getInt("firstPosY")
-                    val firstPosZ = item.tag!!.getInt("firstPosZ")
+                val firstPos: BlockPos? = item.get(VSDataComponents.BLOCK_POS_COMPONENT)
+
+                if (firstPos != null) {
+                    val firstPosX = firstPos.x
+                    val firstPosY = firstPos.y
+                    val firstPosZ = firstPos.z
                     if (level.shipObjectWorld.isBlockInShipyard(blockPos.x, blockPos.y, blockPos.z, dimensionId) != level.shipObjectWorld.isBlockInShipyard(firstPosX, firstPosY, firstPosZ, dimensionId)) {
                         ctx.player?.sendSystemMessage(Component.translatable("Cannot assemble between ship and world!"))
                     } else if (level.getShipObjectManagingPos(blockPos) != level.getShipObjectManagingPos(Vec3i(firstPosX, firstPosY, firstPosZ))) {
@@ -72,20 +70,12 @@ class AreaAssemblerItem(
                             Component.translatable("Assembling (${blockPos.x}, ${blockPos.y}, ${blockPos.z}) to ($firstPosX, $firstPosY, $firstPosZ)!"))
                         ShipAssembler.assembleToShip(level, blocks, true, scale.asDouble)
                     }
-                    item.tag!!.remove("firstPosX")
-                    item.tag!!.remove("firstPosY")
-                    item.tag!!.remove("firstPosZ")
+                    item.remove(VSDataComponents.BLOCK_POS_COMPONENT)
                 } else {
-                    item.tag = item.orCreateTag.apply {
-                        putInt("firstPosX", blockPos.x)
-                        putInt("firstPosY", blockPos.y)
-                        putInt("firstPosZ", blockPos.z)
-                    }
+                    item.set(VSDataComponents.BLOCK_POS_COMPONENT, blockPos)
                     ctx.player?.sendSystemMessage(
                         Component.translatable("First block selected: (${blockPos.x}, ${blockPos.y}, ${blockPos.z})"))
                 }
-
-                 */
             }
         }
 

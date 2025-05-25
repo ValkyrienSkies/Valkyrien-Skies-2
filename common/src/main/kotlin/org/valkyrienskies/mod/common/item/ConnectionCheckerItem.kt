@@ -1,6 +1,6 @@
 package org.valkyrienskies.mod.common.item
 
-import net.minecraft.Util
+import net.minecraft.core.BlockPos
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.InteractionResult
@@ -8,10 +8,10 @@ import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.context.UseOnContext
 import net.minecraft.world.level.block.state.BlockState
+import org.valkyrienskies.mod.VSDataComponents
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.shipObjectWorld
-import java.awt.TextComponent
 import java.util.function.DoubleSupplier
 
 class ConnectionCheckerItem(
@@ -38,29 +38,21 @@ class ConnectionCheckerItem(
                 // Make a ship
                 val dimensionId = level.dimensionId
 
-                // TODO: Fix this later
-                /*
                 if (parentShip != null) {
-                    if (item.tag != null && item.tag!!.contains("firstPosX")) {
-                        val firstPosX = item.tag!!.getInt("firstPosX")
-                        val firstPosY = item.tag!!.getInt("firstPosY")
-                        val firstPosZ = item.tag!!.getInt("firstPosZ")
+                    val firstPos: BlockPos? = item.get(VSDataComponents.BLOCK_POS_COMPONENT)
+                    if (firstPos != null) {
+                        val firstPosX = firstPos.x
+                        val firstPosY = firstPos.y
+                        val firstPosZ = firstPos.z
                         val connected = level.shipObjectWorld.isConnectedBySolid(blockPos.x, blockPos.y, blockPos.z, firstPosX, firstPosY, firstPosZ, dimensionId)
                         ctx.player?.sendSystemMessage(Component.translatable("Connected: $connected"))
-                        item.tag!!.remove("firstPosX")
-                        item.tag!!.remove("firstPosY")
-                        item.tag!!.remove("firstPosZ")
+                        item.remove(VSDataComponents.BLOCK_POS_COMPONENT)
                     } else {
-                        item.tag = item.orCreateTag.apply {
-                            putInt("firstPosX", blockPos.x)
-                            putInt("firstPosY", blockPos.y)
-                            putInt("firstPosZ", blockPos.z)
-                        }
+                        item.set(VSDataComponents.BLOCK_POS_COMPONENT, blockPos)
                         ctx.player?.sendSystemMessage(
                             Component.translatable("First block selected: (${blockPos.x}, ${blockPos.y}, ${blockPos.z})"))
                     }
                 }
-                 */
             }
         }
 

@@ -15,6 +15,7 @@ import org.valkyrienskies.core.api.ships.setAttachment
 import org.valkyrienskies.core.apigame.VSCore
 import org.valkyrienskies.core.apigame.VSCoreClient
 import org.valkyrienskies.core.impl.hooks.VSEvents
+import org.valkyrienskies.mod.VSDataComponents
 import org.valkyrienskies.mod.api_impl.events.VsApiImpl
 import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
 import org.valkyrienskies.mod.common.config.VSGameConfig
@@ -63,6 +64,7 @@ object ValkyrienSkiesMod {
     fun init(core: VSCore) {
         this.vsCore = core
 
+        VSDataComponents.registerDataComponents()
         BlockStateInfo.init()
         VSGamePackets.register()
         VSGamePackets.registerHandlers()
