@@ -21,7 +21,6 @@ import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MobCategory
 import net.minecraft.world.item.BlockItem
-import net.minecraft.world.item.CreativeModeTab
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.Item.Properties
 import net.minecraft.world.level.block.Block
@@ -42,7 +41,6 @@ import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.config.VSKeyBindings
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.entity.VSPhysicsEntity
-import org.valkyrienskies.mod.common.entity.handling.VSEntityManager
 import org.valkyrienskies.mod.common.hooks.VSGameEvents
 import org.valkyrienskies.mod.common.item.AreaAssemblerItem
 import org.valkyrienskies.mod.common.item.ConnectionCheckerItem
@@ -206,6 +204,8 @@ class ValkyrienSkiesModFabric : ModInitializer {
         CommonLifecycleEvents.TAGS_LOADED.register { _, _ ->
             VSGameEvents.tagsAreLoaded.emit(Unit)
         }
+
+        VSDataComponents.registerDataComponents()
     }
 
     /**

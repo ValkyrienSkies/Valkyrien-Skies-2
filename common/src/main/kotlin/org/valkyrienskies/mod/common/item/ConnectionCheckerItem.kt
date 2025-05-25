@@ -8,7 +8,7 @@ import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.context.UseOnContext
 import net.minecraft.world.level.block.state.BlockState
-import org.valkyrienskies.mod.VSDataComponents
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.BLOCK_POS_COMPONENT
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.shipObjectWorld
@@ -39,16 +39,16 @@ class ConnectionCheckerItem(
                 val dimensionId = level.dimensionId
 
                 if (parentShip != null) {
-                    val firstPos: BlockPos? = item.get(VSDataComponents.BLOCK_POS_COMPONENT)
+                    val firstPos: BlockPos? = item.get(BLOCK_POS_COMPONENT)
                     if (firstPos != null) {
                         val firstPosX = firstPos.x
                         val firstPosY = firstPos.y
                         val firstPosZ = firstPos.z
                         val connected = level.shipObjectWorld.isConnectedBySolid(blockPos.x, blockPos.y, blockPos.z, firstPosX, firstPosY, firstPosZ, dimensionId)
                         ctx.player?.sendSystemMessage(Component.translatable("Connected: $connected"))
-                        item.remove(VSDataComponents.BLOCK_POS_COMPONENT)
+                        item.remove(BLOCK_POS_COMPONENT)
                     } else {
-                        item.set(VSDataComponents.BLOCK_POS_COMPONENT, blockPos)
+                        item.set(BLOCK_POS_COMPONENT, blockPos)
                         ctx.player?.sendSystemMessage(
                             Component.translatable("First block selected: (${blockPos.x}, ${blockPos.y}, ${blockPos.z})"))
                     }

@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.common
 
+import net.minecraft.core.BlockPos
+import net.minecraft.core.component.DataComponentType
 import net.minecraft.core.registries.Registries
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceKey
@@ -15,7 +17,6 @@ import org.valkyrienskies.core.api.ships.setAttachment
 import org.valkyrienskies.core.apigame.VSCore
 import org.valkyrienskies.core.apigame.VSCoreClient
 import org.valkyrienskies.core.impl.hooks.VSEvents
-import org.valkyrienskies.mod.VSDataComponents
 import org.valkyrienskies.mod.api_impl.events.VsApiImpl
 import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
 import org.valkyrienskies.mod.common.config.VSGameConfig
@@ -43,6 +44,7 @@ object ValkyrienSkiesMod {
     lateinit var SHIP_MOUNTING_ENTITY_TYPE: EntityType<ShipMountingEntity>
     lateinit var PHYSICS_ENTITY_TYPE: EntityType<VSPhysicsEntity>
     lateinit var TEST_HINGE_BLOCK_ENTITY_TYPE: BlockEntityType<TestHingeBlockEntity>
+    lateinit var BLOCK_POS_COMPONENT: DataComponentType<BlockPos>
 
     val VS_CREATIVE_TAB = ResourceKey.create(Registries.CREATIVE_MODE_TAB, ResourceLocation.parse("valkyrienskies"))
 
@@ -64,7 +66,6 @@ object ValkyrienSkiesMod {
     fun init(core: VSCore) {
         this.vsCore = core
 
-        VSDataComponents.registerDataComponents()
         BlockStateInfo.init()
         VSGamePackets.register()
         VSGamePackets.registerHandlers()

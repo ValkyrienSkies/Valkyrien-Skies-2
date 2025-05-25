@@ -10,7 +10,7 @@ import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.context.UseOnContext
 import net.minecraft.world.level.block.state.BlockState
 import org.joml.primitives.AABBi
-import org.valkyrienskies.mod.VSDataComponents
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.BLOCK_POS_COMPONENT
 import org.valkyrienskies.mod.common.assembly.ShipAssembler
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getShipObjectManagingPos
@@ -41,7 +41,7 @@ class AreaAssemblerItem(
                 // Make a ship
                 val dimensionId = level.dimensionId
 
-                val firstPos: BlockPos? = item.get(VSDataComponents.BLOCK_POS_COMPONENT)
+                val firstPos: BlockPos? = item.get(BLOCK_POS_COMPONENT)
 
                 if (firstPos != null) {
                     val firstPosX = firstPos.x
@@ -70,9 +70,9 @@ class AreaAssemblerItem(
                             Component.translatable("Assembling (${blockPos.x}, ${blockPos.y}, ${blockPos.z}) to ($firstPosX, $firstPosY, $firstPosZ)!"))
                         ShipAssembler.assembleToShip(level, blocks, true, scale.asDouble)
                     }
-                    item.remove(VSDataComponents.BLOCK_POS_COMPONENT)
+                    item.remove(BLOCK_POS_COMPONENT)
                 } else {
-                    item.set(VSDataComponents.BLOCK_POS_COMPONENT, blockPos)
+                    item.set(BLOCK_POS_COMPONENT, blockPos)
                     ctx.player?.sendSystemMessage(
                         Component.translatable("First block selected: (${blockPos.x}, ${blockPos.y}, ${blockPos.z})"))
                 }

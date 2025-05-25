@@ -4,9 +4,9 @@ buildscript {
     }
     dependencies {
         // Make sure this version matches the one included in Kotlin for Forge
-        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.6.10'
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.10'
         // OPTIONAL Gradle plugin for Kotlin Serialization
-        classpath 'org.jetbrains.kotlin:kotlin-serialization:1.6.10'
+        classpath 'org.jetbrains.kotlin:kotlin-serialization:2.1.10'
     }
 }
 
@@ -108,7 +108,9 @@ dependencies {
     modCompileOnly ("curse.maven:mekanism-268560:6242484")
 
     // Kotlin for Forge
-    forgeRuntimeLibrary("maven.modrinth:kotlin-for-forge:${kotlin_version}")
+    implementation("thedarkcolour:kotlinforforge-neoforge:${kotlin_for_forge_version}")
+    // modCompileOnly("thedarkcolour:kotlinforforge-neoforge:${kotlin_for_forge_version}")
+    forgeRuntimeLibrary("thedarkcolour:kotlinforforge-neoforge:${kotlin_for_forge_version}")
 
     // Cloth for config
     include(modImplementation("me.shedaniel.cloth:cloth-config-forge:${cloth_config_version}"))

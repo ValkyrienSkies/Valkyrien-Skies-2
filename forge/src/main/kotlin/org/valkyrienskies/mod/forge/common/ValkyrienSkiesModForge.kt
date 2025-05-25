@@ -2,6 +2,8 @@ package org.valkyrienskies.mod.forge.common
 
 import net.minecraft.commands.Commands.CommandSelection.ALL
 import net.minecraft.commands.Commands.CommandSelection.INTEGRATED
+import net.minecraft.core.BlockPos
+import net.minecraft.core.component.DataComponentType
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.entity.EntityType
@@ -11,8 +13,6 @@ import net.minecraft.world.item.Item
 import net.minecraft.world.item.Item.Properties
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.entity.BlockEntityType
-import net.neoforged.bus.api.IEventBus
-import net.neoforged.fml.ModContainer
 import net.neoforged.fml.ModLoadingContext
 import net.neoforged.fml.common.Mod
 import net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent
@@ -20,7 +20,6 @@ import net.neoforged.fml.loading.FMLEnvironment
 import net.neoforged.neoforge.client.event.EntityRenderersEvent
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory
-import net.neoforged.neoforge.common.NeoForge
 import net.neoforged.neoforge.event.AddReloadListenerEvent
 import net.neoforged.neoforge.event.RegisterCommandsEvent
 import net.neoforged.neoforge.event.TagsUpdatedEvent
@@ -55,14 +54,17 @@ import org.valkyrienskies.mod.common.item.PhysicsEntityCreatorItem
 import org.valkyrienskies.mod.common.item.ShipAssemblerItem
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
 import org.valkyrienskies.mod.compat.clothconfig.VSClothConfig
+import thedarkcolour.kotlinforforge.neoforge.forge.FORGE_BUS
+import thedarkcolour.kotlinforforge.neoforge.forge.MOD_BUS
 import kotlin.jvm.java
 
 @Mod(MOD_ID)
-class ValkyrienSkiesModForge(modEventBus: IEventBus, modContainer: ModContainer) {
+object ValkyrienSkiesModForge {
     private val BLOCKS = DeferredRegister.Blocks.createBlocks(MOD_ID)
     private val ITEMS = DeferredRegister.Items.createItems(MOD_ID)
     private val ENTITIES = DeferredRegister.create(Registries.ENTITY_TYPE, MOD_ID)
     private val BLOCK_ENTITIES = DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, MOD_ID)
+    private val DATA_COMPONENTS = DeferredRegister.DataComponents.createDataComponents(Registries.DATA_COMPONENT_TYPE, MOD_ID)
     private val TEST_CHAIR_REGISTRY: DeferredBlock<Block>
     private val TEST_HINGE_REGISTRY: DeferredBlock<Block>
     private val TEST_FLAP_REGISTRY: DeferredBlock<Block>
@@ -77,6 +79,7 @@ class ValkyrienSkiesModForge(modEventBus: IEventBus, modContainer: ModContainer)
     private val PHYSICS_ENTITY_TYPE_REGISTRY: DeferredHolder<EntityType<*>, EntityType<VSPhysicsEntity>>
     private val SHIP_ASSEMBLER_ITEM_REGISTRY: DeferredItem<Item>
     private val TEST_HINGE_BLOCK_ENTITY_TYPE_REGISTRY: DeferredHolder<BlockEntityType<*>, BlockEntityType<TestHingeBlockEntity>>
+    private val BLOCK_POS_COMPONENT: DeferredHolder<DataComponentType<*>, DataComponentType<BlockPos>>
 
     init {
         val isClient = FMLEnvironment.dist.isClient
@@ -91,8 +94,8 @@ class ValkyrienSkiesModForge(modEventBus: IEventBus, modContainer: ModContainer)
         ValkyrienSkiesMod.init(vsCore)
         VSEntityManager.registerContraptionHandler(ContraptionShipyardEntityHandlerForge)
 
-        val modBus = modEventBus
-        val forgeBus = NeoForge.EVENT_BUS
+        val modBus = MOD_BUS
+        val forgeBus = FORGE_BUS
 
         BLOCKS.register(modBus)
         ITEMS.register(modBus)
@@ -107,7 +110,8 @@ class ValkyrienSkiesModForge(modEventBus: IEventBus, modContainer: ModContainer)
         forgeBus.addListener(::registerCommands)
         forgeBus.addListener(::tagsUpdated)
         forgeBus.addListener(::registerResourceManagers)
-        forgeBus.addListener(VSForgeNetworking::register)
+        modBus.addListener(VSForgeNetworking::register)
+        DATA_COMPONENTS.register(modBus)
 
         ModLoadingContext.get().registerExtensionPoint(IConfigScreenFactory::class.java) {
             IConfigScreenFactory { _, parent ->
@@ -185,6 +189,10 @@ class ValkyrienSkiesModForge(modEventBus: IEventBus, modContainer: ModContainer)
             BlockEntityType.Builder.of(::TestHingeBlockEntity, TEST_HINGE_REGISTRY.get()).build(null)
         }
 
+        BLOCK_POS_COMPONENT = DATA_COMPONENTS.register("coordinate") { ->
+            DataComponentType.builder<BlockPos>().persistent(BlockPos.CODEC).build()
+        }
+
         val deferredRegister = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MOD_ID)
         deferredRegister.register("general") { ->
             ValkyrienSkiesMod.createCreativeTab()
@@ -241,5 +249,6 @@ class ValkyrienSkiesModForge(modEventBus: IEventBus, modContainer: ModContainer)
         ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE = SHIP_MOUNTING_ENTITY_REGISTRY.get()
         ValkyrienSkiesMod.PHYSICS_ENTITY_TYPE = PHYSICS_ENTITY_TYPE_REGISTRY.get()
         ValkyrienSkiesMod.TEST_HINGE_BLOCK_ENTITY_TYPE = TEST_HINGE_BLOCK_ENTITY_TYPE_REGISTRY.get()
+        ValkyrienSkiesMod.BLOCK_POS_COMPONENT = BLOCK_POS_COMPONENT.get()
     }
 }
