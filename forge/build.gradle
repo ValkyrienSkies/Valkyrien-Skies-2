@@ -88,7 +88,7 @@ dependencies {
 
     // Not on 1.21.1 yet
     // modCompileOnly("maven.modrinth:create-utilities:0.2.0+1.20.1")
-    modImplementation("teamreborn:energy:${energy_version}") {
+    modCompileOnly("teamreborn:energy:${energy_version}") {
         transitive = false
     }
     // TIS-3d
@@ -109,11 +109,10 @@ dependencies {
 
     // Kotlin for Forge
     implementation("thedarkcolour:kotlinforforge-neoforge:${kotlin_for_forge_version}")
-    // modCompileOnly("thedarkcolour:kotlinforforge-neoforge:${kotlin_for_forge_version}")
     forgeRuntimeLibrary("thedarkcolour:kotlinforforge-neoforge:${kotlin_for_forge_version}")
 
     // Cloth for config
-    include(modImplementation("me.shedaniel.cloth:cloth-config-forge:${cloth_config_version}"))
+    include(modImplementation("me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"))
 
     // Shade vs-core
     implementation("org.valkyrienskies.core:impl:${rootProject.vs_core_version}"){

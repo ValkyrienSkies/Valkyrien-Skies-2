@@ -2,6 +2,8 @@ package org.valkyrienskies.mod.forge.common
 
 import net.minecraft.commands.Commands.CommandSelection.ALL
 import net.minecraft.commands.Commands.CommandSelection.INTEGRATED
+import net.minecraft.commands.synchronization.ArgumentTypeInfos
+import net.minecraft.commands.synchronization.SingletonArgumentInfo
 import net.minecraft.core.BlockPos
 import net.minecraft.core.component.DataComponentType
 import net.minecraft.core.registries.Registries
@@ -39,6 +41,8 @@ import org.valkyrienskies.mod.common.block.TestHingeBlock
 import org.valkyrienskies.mod.common.block.TestSphereBlock
 import org.valkyrienskies.mod.common.block.TestWingBlock
 import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
+import org.valkyrienskies.mod.common.command.RelativeVector3Argument
+import org.valkyrienskies.mod.common.command.ShipArgument
 import org.valkyrienskies.mod.common.command.VSCommands
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.config.VSEntityHandlerDataLoader
@@ -65,6 +69,7 @@ object ValkyrienSkiesModForge {
     private val ENTITIES = DeferredRegister.create(Registries.ENTITY_TYPE, MOD_ID)
     private val BLOCK_ENTITIES = DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, MOD_ID)
     private val DATA_COMPONENTS = DeferredRegister.DataComponents.createDataComponents(Registries.DATA_COMPONENT_TYPE, MOD_ID)
+    private val COMMAND_ARGUMENT_TYPES = DeferredRegister.create(Registries.COMMAND_ARGUMENT_TYPE, MOD_ID)
     private val TEST_CHAIR_REGISTRY: DeferredBlock<Block>
     private val TEST_HINGE_REGISTRY: DeferredBlock<Block>
     private val TEST_FLAP_REGISTRY: DeferredBlock<Block>
@@ -112,6 +117,7 @@ object ValkyrienSkiesModForge {
         forgeBus.addListener(::registerResourceManagers)
         modBus.addListener(VSForgeNetworking::register)
         DATA_COMPONENTS.register(modBus)
+        COMMAND_ARGUMENT_TYPES.register(modBus)
 
         ModLoadingContext.get().registerExtensionPoint(IConfigScreenFactory::class.java) {
             IConfigScreenFactory { _, parent ->
@@ -191,6 +197,20 @@ object ValkyrienSkiesModForge {
 
         BLOCK_POS_COMPONENT = DATA_COMPONENTS.register("coordinate") { ->
             DataComponentType.builder<BlockPos>().persistent(BlockPos.CODEC).build()
+        }
+
+        COMMAND_ARGUMENT_TYPES.register("ship_argument") { ->
+            ArgumentTypeInfos.registerByClass(
+                ShipArgument::class.java,
+                SingletonArgumentInfo.contextFree(ShipArgument::selectorOnly),
+            )
+        }
+
+        COMMAND_ARGUMENT_TYPES.register("relative_vector_3") { ->
+            ArgumentTypeInfos.registerByClass(
+                RelativeVector3Argument::class.java,
+                SingletonArgumentInfo.contextFree(RelativeVector3Argument::relativeVector3),
+            )
         }
 
         val deferredRegister = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MOD_ID)
