@@ -17,7 +17,8 @@ public abstract class MixinWirelessModemPeripheral {
             at = @At(
                     value = "INVOKE",
                     target = "Ldan200/computercraft/shared/peripheral/modem/wireless/WirelessModemPeripheral;getPosition()Lnet/minecraft/world/phys/Vec3;"
-            )
+            ),
+        remap = false
     )
     public Vec3 ValkyrienSkies$getPosition(WirelessModemPeripheral instance, Operation<Vec3> original){
         return VSGameUtilsKt.toWorldCoordinates(instance.getLevel(), original.call(instance));

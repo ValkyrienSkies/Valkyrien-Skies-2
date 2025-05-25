@@ -1,5 +1,5 @@
 modLoader = "javafml"
-loaderVersion = "[40,)"
+loaderVersion = "[4.0.37,)"
 issueTrackerURL = "https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues"
 license = "Apache-2.0"
 
@@ -14,15 +14,15 @@ Moving blocks with physics :)
 logoFile = "icon.png"
 
 [[dependencies.valkyrienskies]]
-modId = "forge"
+modId = "neoforge"
 mandatory = true
-versionRange = "[40.2.4,)"
+versionRange = "[21.1.125,)"
 ordering = "NONE"
 side = "BOTH"
 
 [[dependencies.valkyrienskies]]
 modId = "minecraft"
 mandatory = true
-versionRange = "[1.20.1]"
+versionRange = "[1.21.1]"
 ordering = "NONE"
 side = "BOTH"

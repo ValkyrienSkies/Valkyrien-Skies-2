@@ -12,8 +12,8 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.common.extensions.IForgeEntity;
-import net.minecraftforge.fluids.FluidType;
+import net.neoforged.neoforge.common.extensions.IEntityExtension;
+import net.neoforged.neoforge.fluids.FluidType;
 import org.apache.commons.lang3.tuple.MutableTriple;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -62,7 +62,7 @@ public abstract class MixinEntity {
 
     @Inject(
         at = @At("HEAD"),
-        method = "updateFluidHeightAndDoFluidPushing(Ljava/util/function/Predicate;)V",
+        method = "updateFluidHeightAndDoFluidPushing()V",
         remap = false,
         cancellable = true
     )
@@ -100,7 +100,7 @@ public abstract class MixinEntity {
                         MutableTriple interim2 =
                             interimCalcs.computeIfAbsent(fluidType2, t -> MutableTriple.of(0.0, Vec3.ZERO, 0));
                         interim2.setLeft(Math.max(d1 - aabb.minY, (Double) interim2.getLeft()));
-                        if (!((IForgeEntity) this).isPushedByFluid(fluidType2)) continue;
+                        if (!((IEntityExtension) this).isPushedByFluid(fluidType2)) continue;
                         Vec3 vec31 = fluidstate.getFlow(this.level, blockpos$mutableblockpos);
                         if ((Double) interim2.getLeft() < 0.4) {
                             vec31 = vec31.scale((Double) interim2.getLeft());
@@ -121,7 +121,7 @@ public abstract class MixinEntity {
                     }
                     Vec3 vec32 = this.getDeltaMovement();
                     interim.setMiddle(((Vec3) interim.getMiddle()).scale(
-                        ((IForgeEntity) this).getFluidMotionScale((FluidType) fluidType)));
+                        ((IEntityExtension) this).getFluidMotionScale((FluidType) fluidType)));
                     double d2 = 0.003;
                     if (Math.abs(vec32.x) < 0.003 && Math.abs(vec32.z) < 0.003 &&
                         ((Vec3) interim.getMiddle()).length() < 0.0045000000000000005) {

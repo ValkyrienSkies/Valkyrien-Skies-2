@@ -11,7 +11,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.client.event.RenderHighlightEvent;
+import net.neoforged.neoforge.client.event.RenderHighlightEvent.Block;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
@@ -88,7 +88,7 @@ public class MixinTrackBlockOutline {
 
     @ModifyArg(method = "drawCustomBlockSelection", at = @At(value = "INVOKE",
         target = "Lnet/minecraft/world/level/border/WorldBorder;isWithinBounds(Lnet/minecraft/core/BlockPos;)Z"),
-        remap = true)
+        remap = false)
     private static BlockPos modIsWithinBounds(final BlockPos blockPos) {
         final Level level = Minecraft.getInstance().level;
         if (level != null) {
@@ -101,14 +101,14 @@ public class MixinTrackBlockOutline {
         return blockPos;
     }
 
-    @Inject(method = "drawCustomBlockSelection", at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/PoseStack;translate(DDD)V"), remap = true)
-    private static void harvest(RenderHighlightEvent.Block event, CallbackInfo ci) {
+    @Inject(method = "drawCustomBlockSelection", at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/PoseStack;translate(DDD)V"), remap = false)
+    private static void harvest(Block event, CallbackInfo ci) {
         valkyrienskies$info = event.getCamera();
         valkyrienskies$hitResult = (BlockHitResult) event.getTarget();
     }
 
     @Redirect(method = "drawCustomBlockSelection",
-        at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/PoseStack;translate(DDD)V"))
+        at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/PoseStack;translate(DDD)V"), remap = false)
     private static void redirectTranslate(final PoseStack instance, final double d, final double e, final double f) {
         final Level level = Minecraft.getInstance().level;
         if (level != null) {

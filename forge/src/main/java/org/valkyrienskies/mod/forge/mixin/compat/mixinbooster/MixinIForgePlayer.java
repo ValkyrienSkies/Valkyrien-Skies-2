@@ -4,7 +4,7 @@ import java.util.Optional;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.common.extensions.IForgePlayer;
+import net.neoforged.neoforge.common.extensions.IPlayerExtension;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.Shadow;
@@ -18,7 +18,7 @@ import org.valkyrienskies.mod.common.config.VSGameConfig;
  * A variant of {@link org.valkyrienskies.mod.forge.mixin.feature.forge_interact.MixinIForgePlayer} that uses
  * injectors to be more compatible with other mods
  */
-@Mixin(IForgePlayer.class)
+@Mixin(IPlayerExtension.class)
 @Pseudo
 public interface MixinIForgePlayer {
 

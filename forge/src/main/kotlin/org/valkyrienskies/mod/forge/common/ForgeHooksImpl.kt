@@ -1,8 +1,8 @@
 package org.valkyrienskies.mod.forge.common
 
 import io.netty.buffer.ByteBuf
-import net.minecraftforge.fml.loading.FMLEnvironment
-import net.minecraftforge.fml.loading.FMLPaths
+import net.neoforged.fml.loading.FMLEnvironment
+import net.neoforged.fml.loading.FMLPaths
 import org.valkyrienskies.core.apigame.world.IPlayer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.hooks.CommonHooksImpl

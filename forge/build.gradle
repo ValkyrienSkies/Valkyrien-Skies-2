@@ -21,19 +21,14 @@ apply from: '../gradle-scripts/publish-curseforge.gradle'
 
 architectury {
     platformSetupLoomIde()
-    forge()
+    neoForge()
 }
 
 loom {
     accessWidenerPath = project(":common").loom.accessWidenerPath
 
-    forge {
-        mixinConfig "valkyrienskies-common.mixins.json"
-        mixinConfig "valkyrienskies-forge.mixins.json"
-        convertAccessWideners.set(true)
-        extraAccessWideners.add loom.accessWidenerPath.get().asFile.name
-    }
     mixin {
+        useLegacyMixinAp = true
         defaultRefmapName = "valkyrienskies-refmap.json"
     }
 }
@@ -44,7 +39,7 @@ configurations {
     core
     compileClasspath.extendsFrom common
     runtimeClasspath.extendsFrom common
-    developmentForge.extendsFrom common
+    developmentNeoForge.extendsFrom common
     compileClasspath.extendsFrom core
     forgeRuntimeLibrary.extendsFrom core
     shadowCommon.extendsFrom core
@@ -52,16 +47,15 @@ configurations {
 
 dependencies {
     implementation(annotationProcessor("io.github.llamalad7:mixinextras-common:0.3.5"))
-    implementation(include("io.github.llamalad7:mixinextras-forge:0.3.5"))
+    // implementation(include("io.github.llamalad7:mixinextras-forge:0.3.5"))
     annotationProcessor("net.fabricmc:sponge-mixin:0.12.5+mixin.0.8.5") // use fabric mixin so we can write interface injectors (conditionally loaded if mixinbooster is enabled)
 
-
-    forge "net.minecraftforge:forge:${rootProject.forge_version}"
+    neoForge "net.neoforged:neoforge:$rootProject.neoforge_version"
 
     common(project(path: ":common", configuration: "namedElements")) {
         transitive = false
     }
-    shadowCommon(project(path: ":common", configuration: "transformProductionForge")) {
+    shadowCommon(project(path: ":common", configuration: "transformProductionNeoForge")) {
         transitive = false
     }
 
@@ -190,7 +184,8 @@ dependencies {
 processResources {
     inputs.property "version", project.version
 
-    filesMatching("META-INF/mods.toml") {
+    // TODO: Change this?
+    filesMatching('META-INF/neoforge.mods.toml') {
         expand "version": project.version
     }
 }
