@@ -9,7 +9,7 @@ executors:
   java_large:
     resource_class: large
     docker:
-      - image: cimg/openjdk:17.0
+      - image: cimg/openjdk:21.0
     environment:
       ORG_GRADLE_PROJECT_block_external_repositories: "true"
 
@@ -39,7 +39,7 @@ commands:
     steps:
       # Rename artifacts to "forge.jar" and "fabric.jar"
       - run: mkdir artifacts
-      - run: find ./forge/build/libs -regextype posix-extended -regex ".*/<< parameters.artifact_name >>(-[^-]+){3}.jar" -exec bash -c 'cp $0 ./artifacts/<< parameters.artifact_name >>-forge-<< parameters.version >>.jar' {} \;
+      - run: find ./forge/build/libs -regextype posix-extended -regex ".*/<< parameters.artifact_name >>(-[^-]+){3}.jar" -exec bash -c 'cp $0 ./artifacts/<< parameters.artifact_name >>-neoforge-<< parameters.version >>.jar' {} \;
       - run: find ./fabric/build/libs -regextype posix-extended -regex ".*/<< parameters.artifact_name >>(-[^-]+){3}.jar" -exec bash -c 'cp $0 ./artifacts/<< parameters.artifact_name >>-fabric-<< parameters.version >>.jar' {} \;
 
       # Store artifacts
@@ -60,7 +60,7 @@ commands:
       - run: >-
           echo 'export DISCORD_MSG="
           New version, **${CIRCLE_TAG}** |
-          [Download Forge](https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/artifacts/<< parameters.artifact_name >>-forge-<< parameters.version >>.jar) |
+          [Download NeoForge](https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/artifacts/<< parameters.artifact_name >>-neoforge-<< parameters.version >>.jar) |
           [Download Fabric](https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/artifacts/<< parameters.artifact_name >>-fabric-<< parameters.version >>.jar)
           "' >> "$BASH_ENV"
   save_gradle_cache:

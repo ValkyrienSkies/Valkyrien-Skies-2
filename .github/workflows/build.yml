@@ -6,6 +6,7 @@ on:
       - '1.19.2/*'
       - '1.20/*'
       - '1.20.1/*'
+      - '1.21.1/*'
   pull_request:
     types: [ opened, synchronize, reopened ]
 jobs:
@@ -16,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: true # Clone with vs-core submodule
-      - uses: gradle/wrapper-validation-action@v1
+      - uses: gradle/wrapper-validation-action@v3
 
   json-yaml-validate:
     name: "Validate Json/Yaml files"
