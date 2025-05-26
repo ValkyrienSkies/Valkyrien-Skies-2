@@ -72,7 +72,7 @@ loom {
 // Not sure why remapJar fails on common, lets just disable it
 // (Probably create neoforge in the classpath? Need to switch to fabric)
 remapJar {
-    setActions([])
+    enabled = false
 }
 
 jar {
