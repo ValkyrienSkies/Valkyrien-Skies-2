@@ -208,6 +208,7 @@ shadowJar {
 }
 
 remapJar {
+    atAccessWideners.add "valkyrienskies-common.accesswidener"
     input.set shadowJar.archiveFile
     dependsOn shadowJar
     archiveClassifier.set null

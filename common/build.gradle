@@ -1,4 +1,3 @@
-
 dependencies {
     implementation(annotationProcessor("io.github.llamalad7:mixinextras-common:0.2.0"))
 
@@ -68,6 +67,12 @@ architectury {
 
 loom {
     accessWidenerPath = file("src/main/resources/valkyrienskies-common.accesswidener")
+}
+
+// Not sure why remapJar fails on common, lets just disable it
+// (Probably create neoforge in the classpath? Need to switch to fabric)
+remapJar {
+    setActions([])
 }
 
 jar {
