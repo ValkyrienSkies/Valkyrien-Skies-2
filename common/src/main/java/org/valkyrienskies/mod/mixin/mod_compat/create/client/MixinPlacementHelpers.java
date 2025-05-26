@@ -15,7 +15,7 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(IPlacementHelper.class)
-public class MixinPlacementHelpers {
+public interface MixinPlacementHelpers {
     @Redirect(method = "orderedByDistance(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/phys/Vec3;Ljava/util/Collection;)Ljava/util/List;", at = @At(value = "INVOKE", target = "Lnet/createmod/catnip/math/VecHelper;getCenterOf(Lnet/minecraft/core/Vec3i;)Lnet/minecraft/world/phys/Vec3;"))
     private static Vec3 redirectGetCenterOf(Vec3i pos) {
         Vec3 result = VecHelper.getCenterOf(pos);

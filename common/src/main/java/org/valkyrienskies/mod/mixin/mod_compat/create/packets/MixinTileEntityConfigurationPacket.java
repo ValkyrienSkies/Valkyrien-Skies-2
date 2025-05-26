@@ -15,19 +15,19 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 @Mixin(BlockEntityConfigurationPacket.class)
 public abstract class MixinTileEntityConfigurationPacket {
     @Unique
-    private Level _clockworkLevel;
+    private Level valkyrienskies$_clockworkLevel;
 
     @Redirect(
-            method = "lambda$handle$0",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/core/BlockPos;closerThan(Lnet/minecraft/core/Vec3i;D)Z"
-            )
+        method = "handle",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/core/BlockPos;closerThan(Lnet/minecraft/core/Vec3i;D)Z"
+        )
     )
     private boolean redirectCloserThan(final BlockPos instance, final Vec3i vec3i, final double v) {
         BlockPos blockPos = instance;
-        if (VSGameUtilsKt.isBlockInShipyard(this._clockworkLevel, instance)) {
-            final Ship ship = VSGameUtilsKt.getShipManagingPos(this._clockworkLevel, instance);
+        final Ship ship = VSGameUtilsKt.getShipManagingPos(this.valkyrienskies$_clockworkLevel, instance);
+        if (ship != null) {
             final Vector3d tempVec = VSGameUtilsKt.toWorldCoordinates(ship, instance);
             blockPos = BlockPos.containing(tempVec.x, tempVec.y, tempVec.z);
         }
@@ -35,14 +35,14 @@ public abstract class MixinTileEntityConfigurationPacket {
     }
 
     @Redirect(
-            method = "lambda$handle$0",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/world/level/Level;isLoaded(Lnet/minecraft/core/BlockPos;)Z"
-            )
+        method = "handle",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/world/level/Level;isLoaded(Lnet/minecraft/core/BlockPos;)Z"
+        )
     )
     private boolean injectCaptureLevel(final Level instance, final BlockPos pos) {
-        this._clockworkLevel = instance;
+        this.valkyrienskies$_clockworkLevel = instance;
         return instance.isLoaded(pos);
     }
 }

@@ -27,14 +27,14 @@
     "world.level.block.FireMixin"
   ],
   "client": [
-    "client.render.MixinLevelRenderer",
     "compat.cc_tweaked.MixinSpeakerSound",
     "compat.create.client.MixinContraptionHandlerClient",
     "compat.create.client.MixinSuperGlueSelectionHandler",
     "compat.create.client.MixinTrackBlockOutline",
     "compat.sodium.MixinRenderSectionManager",
     "compat.tis3d.MixinCasingTileEntityRender",
-    "compat.tis3d.MixinRenderContextImpl"
+    "compat.tis3d.MixinRenderContextImpl",
+    "neoforged.neoforge.client.MixinClientHooks"
   ],
   "injectors": {
     "defaultRequire": 1

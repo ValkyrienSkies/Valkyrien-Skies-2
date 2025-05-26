@@ -13,6 +13,12 @@ Moving blocks with physics :)
 '''
 logoFile = "icon.png"
 
+[[mixins]]
+config = "valkyrienskies-common.mixins.json"
+
+[[mixins]]
+config = "valkyrienskies-forge.mixins.json"
+
 [[dependencies.valkyrienskies]]
 modId = "neoforge"
 mandatory = true

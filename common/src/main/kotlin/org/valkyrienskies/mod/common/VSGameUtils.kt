@@ -314,9 +314,13 @@ private fun getShipManagingPosImpl(world: Level?, x: Int, z: Int): Ship? {
 fun ClientLevel?.transformRenderAABBToWorld(pos: Position, aabb: AABB): AABB {
     val ship = getShipObjectManagingPos(pos)
     if (ship != null) {
-        return aabb.toJOML().transform(ship.renderTransform.shipToWorldMatrix).toMinecraft()
+        return ship.transformRenderAABBToWorld(aabb)
     }
     return aabb
+}
+
+fun ClientShip.transformRenderAABBToWorld(aabb: AABB): AABB {
+    return aabb.toJOML().transform(renderTransform.shipToWorldMatrix).toMinecraft()
 }
 
 fun Entity?.getShipManaging(): Ship? = this?.let { this.level().getShipManagingPos(this.position()) }

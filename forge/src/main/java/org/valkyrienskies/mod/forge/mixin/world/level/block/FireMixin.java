@@ -53,12 +53,12 @@ public abstract class FireMixin {
 
             final boolean bl2 = level.isRainingAt(newPos);
             final int k = bl2 ? -50 : 0;
-            this.tryCatchFire(level, pos.east(), 300 + k, random, i, Direction.WEST);
-            this.tryCatchFire(level, pos.west(), 300 + k, random, i, Direction.EAST);
-            this.tryCatchFire(level, pos.below(), 250 + k, random, i, Direction.UP);
-            this.tryCatchFire(level, pos.above(), 250 + k, random, i, Direction.DOWN);
-            this.tryCatchFire(level, pos.north(), 300 + k, random, i, Direction.SOUTH);
-            this.tryCatchFire(level, pos.south(), 300 + k, random, i, Direction.NORTH);
+            this.checkBurnOut(level, pos.east(), 300 + k, random, i, Direction.WEST);
+            this.checkBurnOut(level, pos.west(), 300 + k, random, i, Direction.EAST);
+            this.checkBurnOut(level, pos.below(), 250 + k, random, i, Direction.UP);
+            this.checkBurnOut(level, pos.above(), 250 + k, random, i, Direction.DOWN);
+            this.checkBurnOut(level, pos.north(), 300 + k, random, i, Direction.SOUTH);
+            this.checkBurnOut(level, pos.south(), 300 + k, random, i, Direction.NORTH);
             final BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos();
 
             for (int l = -1; l <= 1; ++l) {
@@ -112,7 +112,7 @@ public abstract class FireMixin {
     }
 
     @Shadow
-    private void tryCatchFire(final Level arg, final BlockPos arg2, final int k, final RandomSource random, final int l,
+    private void checkBurnOut(final Level arg, final BlockPos arg2, final int k, final RandomSource random, final int l,
         final Direction face) {
     }
 
