@@ -4,10 +4,10 @@ description: "Installs java and restores gradle and build cache"
 runs:
   using: "composite"
   steps:
-    - name: Install JDK 17 (Temurin)
-      uses: actions/setup-java@v2
+    - name: Install JDK 21 (Temurin)
+      uses: actions/setup-java@v4
       with:
-        java-version: 17
+        java-version: 21
         distribution: 'temurin'
 
     - name: Cache local .gradle and gradle packages
