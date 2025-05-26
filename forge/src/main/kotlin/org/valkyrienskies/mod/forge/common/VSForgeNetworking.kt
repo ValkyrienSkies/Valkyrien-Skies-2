@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.forge.common
 
 import io.netty.buffer.ByteBuf
+import io.netty.buffer.Unpooled
 import net.minecraft.server.level.ServerPlayer
 import net.neoforged.bus.api.SubscribeEvent
 import net.neoforged.neoforge.network.PacketDistributor
@@ -25,11 +26,11 @@ object VSForgeNetworking {
     }
 
     fun sendToClient(data: ByteBuf, player: IPlayer) {
-        PacketDistributor.sendToPlayer(player.mcPlayer as ServerPlayer, MessageVSPacket(data))
+        PacketDistributor.sendToPlayer(player.mcPlayer as ServerPlayer, VSPacket(data.copyToByteArray()))
     }
 
     fun sendToServer(data: ByteBuf) {
-        PacketDistributor.sendToServer(MessageVSPacket(data))
+        PacketDistributor.sendToServer(VSPacket(data.copyToByteArray()))
     }
 
     @SubscribeEvent
@@ -38,9 +39,9 @@ object VSForgeNetworking {
         registrar = event.registrar("1")
         registrar = registrar.executesOn(HandlerThread.NETWORK)
         registrar = registrar.playBidirectional(
-            MessageVSPacket.TYPE,
-            MessageVSPacket.STREAM_CODEC,
-            DirectionalPayloadHandler<MessageVSPacket>(
+            VSPacket.VS_PACKET_TYPE,
+            VSPacket.VS_PACKET_CODEC,
+            DirectionalPayloadHandler<VSPacket>(
                 ::handleClient,
                 ::handleServer,
             )
@@ -48,21 +49,27 @@ object VSForgeNetworking {
     }
 
     fun handleClient(
-        message: MessageVSPacket,
+        message: VSPacket,
         context: IPayloadContext,
     ): CompletableFuture<Void?> = context.enqueueWork {
-        hooks.onReceiveClient(message.buf)
+        hooks.onReceiveClient(Unpooled.wrappedBuffer(message.data))
     }
 
     fun handleServer(
-        message: MessageVSPacket,
+        message: VSPacket,
         context: IPayloadContext,
     ): CompletableFuture<Void?> = context.enqueueWork {
         val player = context.player()
         if (player != null) {
-            hooks.onReceiveServer(message.buf, (player as PlayerDuck).vs_getPlayer())
+            hooks.onReceiveServer(Unpooled.wrappedBuffer(message.data), (player as PlayerDuck).vs_getPlayer())
         } else {
             println("context.sender was null?")
         }
+    }
+
+    private fun ByteBuf.copyToByteArray(): ByteArray {
+        val byteArray = ByteArray(readableBytes())
+        getBytes(readerIndex(), byteArray)
+        return byteArray
     }
 }

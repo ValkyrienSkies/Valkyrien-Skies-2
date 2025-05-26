@@ -1,18 +1,13 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 buildscript {
     repositories {
         mavenCentral()
-    }
-    dependencies {
-        // Make sure this version matches the one included in Kotlin for Forge
-        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.10'
-        // OPTIONAL Gradle plugin for Kotlin Serialization
-        classpath 'org.jetbrains.kotlin:kotlin-serialization:2.1.10'
     }
 }
 
 plugins {
     id "com.github.johnrengelman.shadow" version "7.1.2"
-    id "org.jetbrains.kotlin.jvm"
     id "com.matthewprenger.cursegradle"
     id "com.modrinth.minotaur"
 }
@@ -111,6 +106,9 @@ dependencies {
     implementation("thedarkcolour:kotlinforforge-neoforge:${kotlin_for_forge_version}")
     forgeRuntimeLibrary("thedarkcolour:kotlinforforge-neoforge:${kotlin_for_forge_version}")
 
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:2.1.20")
+
     // Cloth for config
     include(modImplementation("me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"))
 
@@ -182,10 +180,18 @@ dependencies {
     // endregion
 }
 
+// I don't know why, but this is the only way gradle can launch it
+tasks.runClient.configure {
+    jvmArgs '-Dkotlinx.coroutines.debug=off'
+}
+
+tasks.runServer.configure {
+    jvmArgs '-Dkotlinx.coroutines.debug=off'
+}
+
 processResources {
     inputs.property "version", project.version
 
-    // TODO: Change this?
     filesMatching('META-INF/neoforge.mods.toml') {
         expand "version": project.version
     }
@@ -207,9 +213,8 @@ remapJar {
     archiveClassifier.set null
 }
 
-compileKotlin {
-    kotlinOptions.jvmTarget = '21'
-}
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+compileKotlin.compilerOptions.jvmTarget = JvmTarget.JVM_21
 
 jar {
     archiveClassifier.set "dev"
