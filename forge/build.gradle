@@ -106,9 +106,6 @@ dependencies {
     implementation("thedarkcolour:kotlinforforge-neoforge:${kotlin_for_forge_version}")
     forgeRuntimeLibrary("thedarkcolour:kotlinforforge-neoforge:${kotlin_for_forge_version}")
 
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
-    implementation("org.jetbrains.kotlin:kotlin-stdlib:2.1.20")
-
     // Cloth for config
     include(modImplementation("me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"))
 
