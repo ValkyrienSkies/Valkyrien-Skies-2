@@ -88,6 +88,8 @@
     "mod_compat.create.pr.MixinSeatBlock",
     "mod_compat.create_big_cannons.MixinAbstractCannonProjectile",
     "mod_compat.create_big_cannons.MixinCBCUtils",
+    "mod_compat.create_big_cannons.MixinFCMSVB",
+    "mod_compat.create_big_cannons.MixinSSFCMVP",
     "mod_compat.create_big_cannons.MixinPitchOrientedContraptionEntity",
     "mod_compat.create_utilities.MixinVoidLinkBehaviour",
     "mod_compat.reachentityattributes.MixinReachEntityAttributes",
