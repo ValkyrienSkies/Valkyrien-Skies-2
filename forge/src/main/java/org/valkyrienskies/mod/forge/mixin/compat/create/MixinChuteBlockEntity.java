@@ -16,7 +16,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.mixin.mod_compat.create.accessors.ChuteBlockEntityAccessor;
+import org.valkyrienskies.mod.forge.mixin.compat.create.accessors.ChuteBlockEntityAccessor;
 
 @Mixin(value = ChuteBlockEntity.class, remap = false)
 public class MixinChuteBlockEntity {
