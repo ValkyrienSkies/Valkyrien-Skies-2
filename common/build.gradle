@@ -52,12 +52,6 @@ loom {
     accessWidenerPath = file("src/main/resources/valkyrienskies-common.accesswidener")
 }
 
-// Not sure why remapJar fails on common, lets just disable it
-// (Probably create neoforge in the classpath? Need to switch to fabric)
-remapJar {
-    enabled = false
-}
-
 jar {
     // Exclude dummy Optifine classes
     exclude "net/optifine/**"
