@@ -83,11 +83,11 @@ public abstract class MixinPersistentEntitySectionManager implements OfLevel {
     @Inject(
         method = "addEntity",
         at = @At(
-            value = "RETURN"
+            value = "HEAD"
         )
     )
     <T extends EntityAccess> void preAddEntity(T entityAccess, boolean bl, CallbackInfoReturnable<Boolean> cir) {
-        if (cir.getReturnValue() && entityAccess instanceof final Entity entity) {
+        if (entityAccess instanceof final Entity entity) {
             final LoadedShip ship =
                 VSGameUtilsKt.getShipObjectManagingPos(entity.level(), VectorConversionsMCKt.toJOML(entity.position()));
             if (ship != null) {
