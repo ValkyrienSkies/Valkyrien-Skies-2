@@ -31,7 +31,7 @@ dependencies {
     }
 
     // FTB Stuffs
-    modCompileOnly("dev.ftb.mods:ftb-chunks:1802.3.19-build.362") { transitive = false }
+    modCompileOnly("dev.ftb.mods:ftb-chunks-forge:1802.3.19-build.362") { transitive = false }
 
     // Weather2 1.18
     modCompileOnly("curse.maven:weather-storms-tornadoes-237746:4426524")

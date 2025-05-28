@@ -133,16 +133,8 @@ subprojects {
                 }
             }
             maven { // FTB Stuffs
-                url "https://maven.saps.dev/releases"
+                url "https://maven.ftb.dev/releases"
                 content {
-                    includeGroup "dev.latvian.mods"
-                    includeGroup "dev.ftb.mods"
-                }
-            }
-            maven { // FTB Stuffs
-                url "https://maven.saps.dev/snapshots"
-                content {
-                    includeGroup "dev.latvian.mods"
                     includeGroup "dev.ftb.mods"
                 }
             }
