@@ -124,6 +124,7 @@ dependencies {
         exclude module: "jsonschema.module.addon"
         exclude group: "org.jetbrains.kotlin"
         exclude group: "org.jetbrains.kotlinx"
+        exclude module: "org.apache.commons.lang3"
     }
 }
 
@@ -143,6 +144,16 @@ processResources {
         expand "version": project.version
     }
 }
+
+tasks.register('devNoShadowJar', Jar) {
+    exclude "fabric.mod.json"
+    exclude "architectury.common.json"
+
+    from sourceSets.main.output
+    archiveClassifier.set("dev-no-shadow")
+}
+
+build.dependsOn devNoShadowJar
 
 shadowJar {
     exclude "fabric.mod.json"
@@ -189,6 +200,9 @@ publishing {
             // Publish the dev shadow jar to maven
             artifact(shadowJar) {
                 classifier "dev-shadow"
+            }
+            artifact(devNoShadowJar) {
+                classifier "dev-no-shadow"
             }
             from components.java
         }
