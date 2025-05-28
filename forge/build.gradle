@@ -122,6 +122,8 @@ dependencies {
         exclude module: "kotlin-stdlib-jdk8" // Don't shade kotlin-stdlib-jdk8, even though vs-core depends on it
         exclude group: "com.google.guava"
         exclude module: "jsonschema.module.addon"
+        exclude group: "org.jetbrains.kotlin"
+        exclude group: "org.jetbrains.kotlinx"
     }
 }
 
