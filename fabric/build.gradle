@@ -65,9 +65,6 @@ dependencies {
         exclude module: "jsonschema.module.addon"
     }
 
-    def jacksonVersion = '2.14.0'
-
-
     include("com.fasterxml:classmate:1.5.1")
     implementation("com.fasterxml:classmate:1.5.1")
 
