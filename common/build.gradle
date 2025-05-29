@@ -39,7 +39,7 @@ dependencies {
     modCompileOnly("net.fabricmc.fabric-api:fabric-api:${fabric_api_version}")
     modCompileOnly("com.jozufozu.flywheel:flywheel-fabric-${minecraft_version}:${flywheel_version_fabric}")
 
-    modCompileOnly("com.rbasamoyai:createbigcannons:${createbigcannons_version}+mc.${minecraft_version}-common") { transitive = false }
+    modCompileOnly("com.rbasamoyai:createbigcannons:${createbigcannons_version}+mc.${minecraft_version}-fabric") { transitive = false }
 }
 
 architectury {
