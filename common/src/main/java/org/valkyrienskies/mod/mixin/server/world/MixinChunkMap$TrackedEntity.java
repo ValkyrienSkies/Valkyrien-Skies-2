@@ -1,6 +1,5 @@
 package org.valkyrienskies.mod.mixin.server.world;
 
-import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.server.level.ChunkMap;
@@ -25,14 +24,15 @@ public class MixinChunkMap$TrackedEntity {
     Entity entity;
 
     @Unique
-    private Ship inCallShip = null;
+    private Ship valkyrienskies$inCallShip = null;
 
     // Changes entity position for tracking into world space if needed
-    @ModifyExpressionValue(method = "updatePlayer", at = @At(value = "INVOKE",
+    @WrapOperation(method = "updatePlayer", at = @At(value = "INVOKE",
         target = "Lnet/minecraft/world/entity/Entity;position()Lnet/minecraft/world/phys/Vec3;"))
-    Vec3 includeShips(final Vec3 original) {
+    Vec3 includeShips(Entity instance, Operation<Vec3> operation) {
+        final Vec3 original = operation.call(instance);
         final Vector3d pos = VectorConversionsMCKt.toJOML(original);
-        final Ship ship = inCallShip = VSGameUtilsKt.getShipObjectManagingPos(this.entity.level(), pos);
+        final Ship ship = valkyrienskies$inCallShip = VSGameUtilsKt.getShipObjectManagingPos(this.entity.level(), pos);
         if (ship != null) {
             return VectorConversionsMCKt.toMinecraft(ship.getShipToWorld().transformPosition(pos));
         } else {
@@ -44,7 +44,12 @@ public class MixinChunkMap$TrackedEntity {
         target = "Lnet/minecraft/world/entity/Entity;broadcastToPlayer(Lnet/minecraft/server/level/ServerPlayer;)Z"))
     boolean skipWierdCheck(final Entity instance, final ServerPlayer serverPlayer,
         final Operation<Boolean> broadcastToPlayer) {
-        return inCallShip != null || broadcastToPlayer.call(instance, serverPlayer);
+        return valkyrienskies$inCallShip != null || broadcastToPlayer.call(instance, serverPlayer);
     }
 
+    @WrapOperation(method = "updatePlayer", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/server/level/ChunkMap;isChunkTracked(Lnet/minecraft/server/level/ServerPlayer;II)Z"))
+    boolean skipWierdCheck2(ChunkMap instance, ServerPlayer serverPlayer, int i, int j, Operation<Boolean> original) {
+        return valkyrienskies$inCallShip != null || original.call(instance, serverPlayer, i, j);
+    }
 }

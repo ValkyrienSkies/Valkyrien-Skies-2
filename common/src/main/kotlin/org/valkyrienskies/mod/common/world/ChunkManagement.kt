@@ -2,6 +2,7 @@ package org.valkyrienskies.mod.common.world
 
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.server.level.TicketType
 import net.minecraft.world.level.ChunkPos
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore
 import org.valkyrienskies.core.apigame.world.chunks.ChunkUnwatchTask
@@ -31,7 +32,7 @@ object ChunkManagement {
             val chunkPos = ChunkPos(chunkWatchTask.chunkX, chunkWatchTask.chunkZ)
 
             val level = server.getLevelFromDimensionId(chunkWatchTask.dimensionId)!!
-            level.chunkSource.updateChunkForced(chunkPos, true)
+            level.chunkSource.addRegionTicket(VS_FORCED, chunkPos, TICKET_LEVEL_BELOW_FORCED, chunkPos)
 
             level.server.executeIf({ level.isTickingChunk(chunkPos) }) {
                 val map = level.chunkSource.chunkMap as ChunkMapAccessor
@@ -57,7 +58,7 @@ object ChunkManagement {
 
             if (chunkUnwatchTask.shouldUnload) {
                 val level = server.getLevelFromDimensionId(chunkUnwatchTask.dimensionId)!!
-                level.chunkSource.updateChunkForced(chunkPos, false)
+                level.chunkSource.removeRegionTicket(VS_FORCED, chunkPos, TICKET_LEVEL_BELOW_FORCED, chunkPos)
             }
 
             val level = server.getLevelFromDimensionId(chunkUnwatchTask.dimensionId)!!
@@ -71,4 +72,8 @@ object ChunkManagement {
     }
 
     private val logger by logger()
+
+    private val VS_FORCED: TicketType<ChunkPos> = TicketType.create("vs_forced", Comparator.comparingLong(ChunkPos::toLong))
+    // Chunk ticket level gets set to FullChunkStatus.FULL - 3 = 30, it needs to be below 31 for entities to tick
+    private const val TICKET_LEVEL_BELOW_FORCED = 3
 }
