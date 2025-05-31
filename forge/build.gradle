@@ -38,6 +38,8 @@ configurations {
     compileClasspath.extendsFrom core
     forgeRuntimeLibrary.extendsFrom core
     shadowCommon.extendsFrom core
+    shadowCommonDevNoShadow
+    shadowCommonDevNoShadow.extendsFrom core
 }
 
 dependencies {
@@ -53,7 +55,9 @@ dependencies {
     shadowCommon(project(path: ":common", configuration: "transformProductionNeoForge")) {
         transitive = false
     }
-
+    shadowCommonDevNoShadow(project(path: ":common", configuration: "transformProductionNeoForge")) {
+        transitive = false
+    }
     //modCompileOnly("curse.maven:rubidium-574856:4024781")
     modCompileOnly("maven.modrinth:embeddium:${embeddium_version}")
 
@@ -108,7 +112,7 @@ dependencies {
     // Cloth for config
     include(modImplementation("me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"))
 
-    forgeRuntimeLibrary(implementation("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
+    forgeRuntimeLibrary(api("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
         exclude module: "netty-buffer"
         exclude module: "fastutil"
         exclude module: "kotlin-stdlib-jdk8"
@@ -145,11 +149,27 @@ processResources {
     }
 }
 
-tasks.register('devNoShadowJar', Jar) {
+tasks.register('devNoShadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
     exclude "fabric.mod.json"
     exclude "architectury.common.json"
 
-    from sourceSets.main.output
+    // Copy main forge code to this jar
+    from(sourceSets.main.output)
+
+    // Copy META-INF/accesstransformer.cfg from remapJar
+    dependsOn tasks.named("remapJar")
+    doFirst {
+        def remapJarFile = tasks.named("remapJar").get().archiveFile.get().asFile
+
+        from({
+            zipTree(remapJarFile).matching {
+                include "META-INF/accesstransformer.cfg"
+            }
+        })
+    }
+
+    // We still have to shade in the common jar, but nothing else
+    configurations = [project.configurations.shadowCommonDevNoShadow]
     archiveClassifier.set("dev-no-shadow")
 }
 
