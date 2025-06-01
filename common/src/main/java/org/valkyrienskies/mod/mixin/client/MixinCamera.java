@@ -114,18 +114,16 @@ public abstract class MixinCamera implements IVSCamera {
 
     @Unique
     private void valkyrienskies$setRotationWithShipTransform(final float yaw, final float pitch, final ShipTransform renderTransform) {
-        final Quaterniondc originalRotation =
-            new Quaterniond().rotateY(Math.toRadians(-yaw)).rotateX(Math.toRadians(pitch)).normalize();
-        final Quaterniondc newRotation =
-            renderTransform.getShipCoordinatesToWorldCoordinatesRotation().mul(originalRotation, new Quaterniond());
+        final Quaterniondc originalRotation = new Quaterniond().rotationYXZ((float)Math.PI - yaw * ((float)Math.PI / 180F), -pitch * ((float)Math.PI / 180F), 0.0F);
+        final Quaterniondc newRotation = renderTransform.getShipToWorldRotation().mul(originalRotation, new Quaterniond());
         this.xRot = pitch;
         this.yRot = yaw;
         this.rotation.set(newRotation);
-        this.forwards.set(0.0F, 0.0F, 1.0F);
+        this.forwards.set(0.0F, 0.0F, -1.0F);
         this.rotation.transform(this.forwards);
         this.up.set(0.0F, 1.0F, 0.0F);
         this.rotation.transform(this.up);
-        this.left.set(1.0F, 0.0F, 0.0F);
+        this.left.set(-1.0F, 0.0F, 0.0F);
         this.rotation.transform(this.left);
     }
 

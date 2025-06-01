@@ -13,7 +13,6 @@ import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
-import org.joml.Quaterniond;
 import org.joml.Quaternionf;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
@@ -268,18 +267,16 @@ public abstract class MixinGameRenderer {
             shipMountedToData.getMountPosInShip()
         );
 
-        // Apply the ship render transform to [matrixStack]
-        final Quaternionf invShipRenderRotation = new Quaternionf(
-            clientShip.getRenderTransform().getShipToWorldRotation().conjugate(new Quaterniond())
-        );
-        // TODO: This is probably wrong
-        rotationMatrix.mul(new Matrix4f().rotation(invShipRenderRotation));
+        // Set rotationMatrix to match the new camera rotation
+        Quaternionf quaternionf = camera.rotation().conjugate(new Quaternionf());
+        Matrix4f newRotationMatrix = (new Matrix4f()).rotation(quaternionf);
+        rotationMatrix.set(newRotationMatrix);
 
         // Camera FOV changes based on the position of the camera, so recompute FOV to account for the change of camera
         // position.
         final double fov = this.getFov(camera, partialTicks, true);
         final Matrix4f projectionMatrixNew = this.getProjectionMatrix(Math.max(fov, (double) this.minecraft.options.fov().get()));
-        prepareCullFrustum.call(instance, vec3, rotationMatrix, projectionMatrixNew);
+        prepareCullFrustum.call(instance, camera.getPosition(), rotationMatrix, projectionMatrixNew);
     }
     // endregion
 }
