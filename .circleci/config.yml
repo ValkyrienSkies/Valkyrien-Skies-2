@@ -39,8 +39,8 @@ commands:
     steps:
       # Rename artifacts to "neoforge.jar" and "fabric.jar"
       - run: mkdir artifacts
-      - run: find ./forge/build/libs -regextype posix-extended -regex ".*/<< parameters.artifact_name >>(-[^-]+){6}.jar" -exec bash -c 'cp $0 ./artifacts/<< parameters.artifact_name >>-neoforge-<< parameters.version >>.jar' {} \;
-      - run: find ./fabric/build/libs -regextype posix-extended -regex ".*/<< parameters.artifact_name >>(-[^-]+){6}.jar" -exec bash -c 'cp $0 ./artifacts/<< parameters.artifact_name >>-fabric-<< parameters.version >>.jar' {} \;
+      - run: find ./forge/build/libs -regextype posix-extended -regex ".*/<< parameters.artifact_name >>(-[^-]+){5}.jar" -exec bash -c 'cp $0 ./artifacts/<< parameters.artifact_name >>-neoforge-<< parameters.version >>.jar' {} \;
+      - run: find ./fabric/build/libs -regextype posix-extended -regex ".*/<< parameters.artifact_name >>(-[^-]+){5}.jar" -exec bash -c 'cp $0 ./artifacts/<< parameters.artifact_name >>-fabric-<< parameters.version >>.jar' {} \;
 
       # Store artifacts
       - store_artifacts:
