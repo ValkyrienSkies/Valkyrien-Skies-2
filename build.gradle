@@ -111,6 +111,7 @@ subprojects {
             }
             maven { url = "https://api.modrinth.com/maven" } // LazyDFU, Suggestion Tweaker, Create Big Cannons
             maven { url = "https://maven.shedaniel.me/" } // Cloth Config, REI
+            maven { url = "https://maven.createmod.net"} // https://wiki.createmod.net/developers/depend-on-create/forge-1.20.1
             maven { url "https://maven.architectury.dev/" }
             maven { url = "https://mvn.devos.one/snapshots/" } // Fabric Create, Porting Lib, Forge Tags, Milk Lib
             maven { url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/" } // Forge Config API Port

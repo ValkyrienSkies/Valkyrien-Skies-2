@@ -34,7 +34,6 @@
     "fabric-api": "*"
   },
   "breaks": {
-    "sodium": "<0.5.8",
-    "create": ">=6.0.0"
+    "sodium": "<0.5.8"
   }
 }
