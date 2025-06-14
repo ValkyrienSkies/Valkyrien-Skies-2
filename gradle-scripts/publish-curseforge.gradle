@@ -30,6 +30,11 @@ curseforge {
                         embeddedLibrary 'cloth-config'
                     }
 
+                    if (project.loader_platform == 'NeoForge') {
+                        requiredDependency 'kotlin-for-forge'
+                        embeddedLibrary 'cloth-config'
+                    }
+
                     if (project.loader_platform == 'Fabric') {
                         requiredDependency 'fabric-api'
                         embeddedLibrary 'cloth-config'
@@ -60,6 +65,11 @@ modrinth {
 
     dependencies {
         if (project.loader_platform == 'Forge') {
+            required.project 'kotlin-for-forge'
+            embedded.project 'cloth-config'
+        }
+
+        if (project.loader_platform == 'NeoForge') {
             required.project 'kotlin-for-forge'
             embedded.project 'cloth-config'
         }
