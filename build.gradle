@@ -22,7 +22,7 @@ plugins {
 // Determine the version
 if (project.hasProperty("CustomReleaseVersion")) {
     // Remove release/ from the version if present
-    version = project.property("CustomReleaseVersion").replaceFirst("^release/", "")
+    version = project.property("CustomReleaseVersion").replaceFirst("^release.*/", "")
 } else {
     String gitRevision = "git rev-parse HEAD".execute().text.trim()
 
