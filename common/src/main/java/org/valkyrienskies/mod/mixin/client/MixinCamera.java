@@ -116,8 +116,25 @@ public abstract class MixinCamera implements IVSCamera {
     private void valkyrienskies$setRotationWithShipTransform(final float yaw, final float pitch, final ShipTransform renderTransform) {
         final Quaterniondc originalRotation = new Quaterniond().rotationYXZ((float)Math.PI - yaw * ((float)Math.PI / 180F), -pitch * ((float)Math.PI / 180F), 0.0F);
         final Quaterniondc newRotation = renderTransform.getShipToWorldRotation().mul(originalRotation, new Quaterniond());
-        this.xRot = pitch;
-        this.yRot = yaw;
+
+        // region Compute xRot and yRot using renderTransform
+        final double pitchCosine = Math.cos(Math.toRadians(pitch));
+        final Vector3dc entityLookYawOnly =
+            new Vector3d(pitchCosine * Math.sin(-Math.toRadians(yaw)), -Math.sin(Math.toRadians(pitch)), pitchCosine * Math.cos(-Math.toRadians(yaw)));
+
+        final Vector3dc newLookIdeal = renderTransform.getShipToWorld().transformDirection(
+            entityLookYawOnly, new Vector3d()
+        );
+
+        // Get the X and Y rotation from [newLookIdeal]
+        final double newXRot = Math.asin(-newLookIdeal.y());
+        final double xRotCos = Math.cos(newXRot);
+        final double newYRot = -Math.atan2(newLookIdeal.x() / xRotCos, newLookIdeal.z() / xRotCos);
+
+        this.xRot = (float) Math.toDegrees(newXRot);
+        this.yRot = (float) Math.toDegrees(newYRot);
+        // endregion
+
         this.rotation.set(newRotation);
         this.forwards.set(0.0F, 0.0F, -1.0F);
         this.rotation.transform(this.forwards);
