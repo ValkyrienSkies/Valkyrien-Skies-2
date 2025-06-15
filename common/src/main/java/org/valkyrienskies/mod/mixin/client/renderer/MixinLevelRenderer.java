@@ -1,12 +1,32 @@
 package org.valkyrienskies.mod.mixin.client.renderer;
 
+import net.minecraft.client.Camera;
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.client.renderer.LightTexture;
+import net.minecraft.client.renderer.SectionOcclusionGraph;
+import org.joml.Matrix4f;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Constant;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyConstant;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.valkyrienskies.core.api.ships.properties.ShipTransform;
+import org.valkyrienskies.mod.client.IVSCamera;
 
 @Mixin(LevelRenderer.class)
 public abstract class MixinLevelRenderer {
+    @Shadow
+    @Final
+    private SectionOcclusionGraph sectionOcclusionGraph;
+
+    @Unique
+    private ShipTransform valkyrienskies$prevShipMountedToTransform = null;
 
     /**
      * @reason This mixin forces the game to always render block damage.
@@ -21,6 +41,26 @@ public abstract class MixinLevelRenderer {
         return Double.MAX_VALUE;
     }
 
+    @Inject(method = "renderLevel", at = @At("HEAD"))
+    private void preRenderLevel(DeltaTracker deltaTracker, boolean bl, Camera camera, GameRenderer gameRenderer,
+        LightTexture lightTexture, Matrix4f matrix4f, Matrix4f matrix4f2, CallbackInfo ci) {
+        final ShipTransform shipMountedRenderTransform = ((IVSCamera) camera).getShipMountedRenderTransform();
+        if (valkyrienskies$prevShipMountedToTransform != shipMountedRenderTransform) {
+            if (valkyrienskies$prevShipMountedToTransform != null && shipMountedRenderTransform != null) {
+                // Compute the angle between rotations
+                double rotDot = Math.abs(valkyrienskies$prevShipMountedToTransform.getShipToWorldRotation().dot(shipMountedRenderTransform.getShipToWorldRotation()));
+                rotDot = Math.min(rotDot, 1.0);
+                double angle = 2.0 * Math.acos(rotDot);
+                if (Math.toDegrees(angle) > 1.0) {
+                    valkyrienskies$prevShipMountedToTransform = shipMountedRenderTransform;
+                    sectionOcclusionGraph.invalidate();
+                }
+            } else {
+                valkyrienskies$prevShipMountedToTransform = shipMountedRenderTransform;
+                sectionOcclusionGraph.invalidate();
+            }
+        }
+    }
 
     /**
      * This mixin makes block damage render on ships.

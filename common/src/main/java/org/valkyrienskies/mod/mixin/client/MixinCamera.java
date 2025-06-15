@@ -74,11 +74,15 @@ public abstract class MixinCamera implements IVSCamera {
     protected abstract void setPosition(double x, double y, double z);
     // endregion
 
+    @Unique
+    private ShipTransform valkyrienskies$shipMountedToTransform = null;
+
     @Override
     public void setupWithShipMounted(final @NotNull BlockGetter level, final @NotNull Entity renderViewEntity,
         final boolean thirdPerson, final boolean thirdPersonReverse, final float partialTicks,
         final @NotNull ClientShip shipMountedTo, final @NotNull Vector3dc inShipPlayerPosition) {
         final ShipTransform renderTransform = shipMountedTo.getRenderTransform();
+        valkyrienskies$shipMountedToTransform = renderTransform;
         final Vector3dc playerBasePos =
             renderTransform.getShipToWorldMatrix().transformPosition(inShipPlayerPosition, new Vector3d());
         final Vector3dc playerEyePos = renderTransform.getShipCoordinatesToWorldCoordinatesRotation()
@@ -110,6 +114,16 @@ public abstract class MixinCamera implements IVSCamera {
                 this.move(-this.getMaxZoom((float) (4.0 * (dist / 4.0))), 0.0f, 0.0f);
             }
         }
+    }
+
+    @Override
+    public ShipTransform getShipMountedRenderTransform() {
+        return valkyrienskies$shipMountedToTransform;
+    }
+
+    @Override
+    public void resetShipMountedRenderTransform() {
+        valkyrienskies$shipMountedToTransform = null;
     }
 
     @Unique

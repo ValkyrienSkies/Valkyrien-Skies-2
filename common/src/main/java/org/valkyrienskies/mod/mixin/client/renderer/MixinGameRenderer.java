@@ -228,6 +228,14 @@ public abstract class MixinGameRenderer {
     )
     private void setupCameraWithMountedShip(LevelRenderer instance, Vec3 vec3, Matrix4f rotationMatrix, Matrix4f matrix4f2,
         Operation<Void> prepareCullFrustum, final DeltaTracker deltaTracker) {
+        final Camera camera = this.mainCamera;
+
+        if (camera == null) {
+            prepareCullFrustum.call(instance, vec3, rotationMatrix, matrix4f2);
+            return;
+        }
+
+        ((IVSCamera) camera).resetShipMountedRenderTransform();
 
         final ClientLevel clientLevel = minecraft.level;
         final Entity player = minecraft.player;
@@ -245,12 +253,6 @@ public abstract class MixinGameRenderer {
 
         final Entity playerVehicle = player.getVehicle();
         if (playerVehicle == null) {
-            prepareCullFrustum.call(instance, vec3, rotationMatrix, matrix4f2);
-            return;
-        }
-
-        final Camera camera = this.mainCamera;
-        if (camera == null) {
             prepareCullFrustum.call(instance, vec3, rotationMatrix, matrix4f2);
             return;
         }
