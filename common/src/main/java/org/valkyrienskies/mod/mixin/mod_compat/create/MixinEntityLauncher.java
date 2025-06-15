@@ -23,12 +23,12 @@ public abstract class MixinEntityLauncher {
     @Unique
     private BlockPos launcher;
 
-    @Inject(method = "getGlobalPos", at = @At("HEAD"))
+    @Inject(method = "getGlobalPos", at = @At("HEAD"), remap = false)
     private void harvestBlockPos(double t, Direction d, BlockPos launcher, CallbackInfoReturnable<Vec3> cir) {
         this.launcher = launcher;
     }
 
-    @ModifyVariable(method = "getGlobalPos", at = @At("STORE"), name = "start")
+    @ModifyVariable(method = "getGlobalPos", at = @At("STORE"), name = "start", remap = false)
     private Vec3 modStart(Vec3 value) {
         return new Vec3(launcher.getX() + .5, launcher.getY() + .5, launcher.getZ() + .5);
     }

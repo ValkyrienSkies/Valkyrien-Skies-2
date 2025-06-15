@@ -15,10 +15,11 @@
   "client": [
     "client.render.MixinLevelRenderer",
     "compat.create.client.MixinContraptionHandlerClient",
-    "compat.create.client.MixinContraptionRenderInfo",
+    // "compat.create.client.MixinContraptionRenderInfo",
     "compat.create.client.MixinCullingBlockEntityIterator",
-    "compat.create.client.MixinFlwContraption",
+    // "compat.create.client.MixinFlwContraption",
     "compat.create.client.MixinSuperGlueSelectionHandler",
+    "compat.create.client.MixinTrackBlockOutline",
     "feature.duplicate_keybindings.KeyMappingAccessor",
     "feature.duplicate_keybindings.MixinKeyMapping"
   ],

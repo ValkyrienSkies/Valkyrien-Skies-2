@@ -28,7 +28,7 @@ public abstract class MixinSoundScapes {
         return new Vec3(instance.getX(), instance.getY(), instance.getZ()).closerThan(newVec3, v);
     }
 
-    @ModifyVariable(method = "play", at = @At("HEAD"), index = 1, argsOnly = true)
+    @ModifyVariable(method = "play", at = @At("HEAD"), index = 1, argsOnly = true, remap = false)
     private static BlockPos modBlockPos(BlockPos value) {
         BlockPos result = value;
         Level world = Minecraft.getInstance().player.level();

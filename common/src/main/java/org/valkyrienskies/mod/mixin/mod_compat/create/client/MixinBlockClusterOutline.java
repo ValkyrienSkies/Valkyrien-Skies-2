@@ -2,13 +2,12 @@ package org.valkyrienskies.mod.mixin.mod_compat.create.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.simibubi.create.AllSpecialTextures;
-import com.simibubi.create.foundation.outliner.BlockClusterOutline;
-import com.simibubi.create.foundation.outliner.Outline;
-import com.simibubi.create.foundation.render.RenderTypes;
-import com.simibubi.create.foundation.render.SuperRenderTypeBuffer;
 import java.util.Iterator;
-import java.util.Optional;
+import net.createmod.catnip.outliner.BlockClusterOutline;
+import net.createmod.catnip.outliner.Outline;
+import net.createmod.catnip.render.BindableTexture;
+import net.createmod.catnip.render.PonderRenderTypes;
+import net.createmod.catnip.render.SuperRenderTypeBuffer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.BlockPos;
@@ -57,7 +56,7 @@ public abstract class MixinBlockClusterOutline extends Outline {
         }
     }
 
-    @Inject(method = "renderFaces", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "renderFaces", at = @At("HEAD"), cancellable = true, remap = false)
     private void preRenderFaces(PoseStack ms, SuperRenderTypeBuffer buffer, Vec3 camera, float pt, Vector4f color, int lightmap, CallbackInfo ci) {
         if (cw$cluster != null) {
             final BlockPos anchorPos = cw$cluster.anchor;
@@ -67,8 +66,8 @@ public abstract class MixinBlockClusterOutline extends Outline {
             final Level level = Minecraft.getInstance().level;
             final ClientShip ship = (ClientShip) VSGameUtilsKt.getShipManagingPos(level, anchorPos);
             if (ship != null) {
-                Optional<AllSpecialTextures> optionalFaceTexture = ((OutlineParamsAccessor) params).getFaceTexture();
-                if (optionalFaceTexture.isEmpty())
+                final BindableTexture faceTexture = ((OutlineParamsAccessor) params).getFaceTexture();
+                if (faceTexture == null)
                     return;
 
                 final ShipTransform renderTransform = ship.getRenderTransform();
@@ -83,9 +82,8 @@ public abstract class MixinBlockClusterOutline extends Outline {
                         cw$cluster.anchor.getZ() - renderTransform.getPositionInShip().z()
                 );
 
-                AllSpecialTextures faceTexture = optionalFaceTexture.get();
                 PoseStack.Pose pose = ms.last();
-                RenderType renderType = RenderTypes.getOutlineTranslucent(faceTexture.getLocation(), true);
+                RenderType renderType = PonderRenderTypes.outlineTranslucent(faceTexture.getLocation(), true);
                 VertexConsumer consumer = buffer.getLateBuffer(renderType);
 
                 cw$cluster.visibleFaces.forEach((face, axisDirection) -> {
@@ -103,7 +101,7 @@ public abstract class MixinBlockClusterOutline extends Outline {
         }
     }
 
-    @Inject(method = "renderEdges", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "renderEdges", at = @At("HEAD"), cancellable = true, remap = false)
     private void preRenderEdges(PoseStack ms, SuperRenderTypeBuffer buffer, Vec3 camera, float pt, Vector4f color, int lightmap, boolean disableNormals, CallbackInfo ci) {
         if (cw$cluster != null) {
             final BlockPos anchorPos = cw$cluster.anchor;
@@ -132,7 +130,7 @@ public abstract class MixinBlockClusterOutline extends Outline {
                 );
 
                 PoseStack.Pose pose = ms.last();
-                VertexConsumer consumer = buffer.getBuffer(RenderTypes.getOutlineSolid());
+                VertexConsumer consumer = buffer.getBuffer(PonderRenderTypes.outlineSolid());
 
                 cw$cluster.visibleEdges.forEach(edge -> {
                     BlockPos pos = edge.pos;
