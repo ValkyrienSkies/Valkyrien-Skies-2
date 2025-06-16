@@ -1,7 +1,6 @@
 package org.valkyrienskies.mod.mixin.mod_compat.ftb_chunks;
 
-/*
-import dev.ftb.mods.ftbchunks.data.ClaimedChunkManager;
+import dev.ftb.mods.ftbchunks.data.ClaimedChunkManagerImpl;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
@@ -18,19 +17,19 @@ import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Pseudo
-@Mixin(ClaimedChunkManager.class)
-public abstract class MixinClaimedChunkManager {
+@Mixin(ClaimedChunkManagerImpl.class)
+public abstract class MixinClaimedChunkManagerImpl {
     @Unique
     private Entity entity = null;
 
-    @ModifyVariable(method = "protect", at = @At("HEAD"), name = "entity", remap = false)
+    @ModifyVariable(method = "shouldPreventInteraction", at = @At("HEAD"), name = "actor", remap = false)
     private Entity ValkyrienSkies$entity(final Entity entity) {
         this.entity = entity;
         return entity;
     }
 
     @ModifyArg(
-        method = "protect",
+        method = "shouldPreventInteraction",
         at = @At(
             value = "INVOKE",
             target = "Ldev/ftb/mods/ftblibrary/math/ChunkDimPos;<init>(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;)V"
@@ -61,4 +60,3 @@ public abstract class MixinClaimedChunkManager {
         return newPos;
     }
 }
-*/
