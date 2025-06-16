@@ -99,6 +99,7 @@
     "mod_compat.create_big_cannons.MixinFCMSVB",
     "mod_compat.create_big_cannons.MixinPitchOrientedContraptionEntity",
     "mod_compat.create_big_cannons.MixinSSFCMVP",
+    "mod_compat.ftb_chunks.MixinClaimedChunkManagerImpl",
     "mod_compat.reachentityattributes.MixinReachEntityAttributes",
     "mod_compat.tis3d.MixinInfraredPacketEntity",
     "server.MixinMinecraftServer",
