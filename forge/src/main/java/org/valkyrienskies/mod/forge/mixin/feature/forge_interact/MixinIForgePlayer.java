@@ -39,6 +39,25 @@ public interface MixinIForgePlayer {
             return true;
         }
     }
+    
+    /**
+     * Include ships in server-side distance check when player interacts with a block.
+     */
+    @Overwrite(remap = false)
+    default boolean canReachRaw(final BlockPos pos, final double padding) {
+        if (VSGameConfig.SERVER.getEnableInteractDistanceChecks()) {
+            double reach = self().getAttributeValue(ForgeMod.BLOCK_REACH.get()) + padding;
+            final Vec3 eyes = this.self().getEyePosition();
+            return VSGameUtilsKt.squaredDistanceBetweenInclShips(this.self().level(),
+                pos.getX() + 0.5,
+                pos.getY() + 0.5,
+                pos.getZ() + 0.5,
+                eyes.x, eyes.y, eyes.z
+            ) < reach * reach;
+        } else {
+            return true;
+        }
+    }
 
     @Overwrite(remap = false)
     default boolean isCloseEnough(final Entity entity, final double distance) {
