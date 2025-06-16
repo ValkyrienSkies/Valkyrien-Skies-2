@@ -123,6 +123,7 @@ subprojects {
                 url = "https://maven.squiddev.cc"
                 content {
                     includeGroup("cc.tweaked")
+                }
             }
             maven {
                 name = "FTB Stuffs"
