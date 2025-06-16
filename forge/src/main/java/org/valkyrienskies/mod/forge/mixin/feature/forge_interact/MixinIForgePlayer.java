@@ -35,7 +35,7 @@ public interface MixinIForgePlayer {
                 pos.getY() + 0.5,
                 pos.getZ() + 0.5,
                 eyes.x, eyes.y, eyes.z
-            ) < reach * reach;
+            ) <= reach * reach;
         } else {
             return true;
         }
@@ -54,7 +54,7 @@ public interface MixinIForgePlayer {
                 pos.getY() + 0.5,
                 pos.getZ() + 0.5,
                 eyes.x, eyes.y, eyes.z
-            ) < reach * reach;
+            ) <= reach * reach;
         } else {
             return true;
         }
