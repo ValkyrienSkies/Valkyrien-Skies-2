@@ -89,6 +89,7 @@
     "mod_compat.create.client.MixinSchematicToolBase",
     "mod_compat.create.client.MixinSchematicTransformation",
     "mod_compat.create.client.MixinValueBox",
+    "mod_compat.create.entity.MixinAbstractContraptionEntity",
     "mod_compat.create.entity.MixinCarriageContraptionEntity",
     "mod_compat.create.entity.MixinControlledContraptionEntity",
     "mod_compat.create.entity.MixinSeatEntity",
