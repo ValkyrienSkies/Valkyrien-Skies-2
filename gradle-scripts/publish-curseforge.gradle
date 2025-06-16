@@ -1,12 +1,17 @@
 // Determine release type
+// alpha, beta, or release
 def vsReleaseType = 'alpha'
 if (project.hasProperty("CustomReleaseVersion")) {
-    def matches = project.property("CustomReleaseVersion") =~ 'release/(?:\\d+\\.){1,2}\\d+-(alpha|beta)\\d+'
+    def matches = project.property("CustomReleaseVersion") =~ 'release/(?:\\d+\\.){1,2}\\d+(?:-(alpha|beta).\\d+)?'
 
     vsReleaseType = matches[0][1] ?: 'release'
 }
 
 def fileDisplayName = "[${project.loader_platform} ${project.minecraft_version}] v${project.version}"
+
+// upgrade curseforge release type if it's an alpha,
+// because alpha can't be installed from the curseforge app
+def curseForgeReleaseType = vsReleaseType == 'alpha' ? 'beta' : vsReleaseType
 
 // Publish to CurseForge
 curseforge {
@@ -14,11 +19,24 @@ curseforge {
         apiKey = project.curse_api_key
         project {
             id = project.curse_project_id
-            releaseType = vsReleaseType
+            releaseType = curseForgeReleaseType
             addGameVersion project.minecraft_version
             addGameVersion project.loader_platform
 
             mainArtifact(remapJar.archiveFile.get().asFile) {
+                relations {
+                    if (project.loader_platform == 'Forge') {
+                        requiredDependency 'kotlin-for-forge'
+                        embeddedLibrary 'cloth-config'
+                    }
+
+                    if (project.loader_platform == 'Fabric') {
+                        requiredDependency 'fabric-api'
+                        embeddedLibrary 'cloth-config'
+                        embeddedLibrary 'fabric-language-kotlin'
+                        optionalDependency 'modmenu'
+                    }
+                }
                 displayName = fileDisplayName
             }
         }
@@ -39,4 +57,18 @@ modrinth {
     uploadFile = remapJar
     gameVersions = [project.minecraft_version]
     loaders = [project.loader_platform.toLowerCase()]
+
+    dependencies {
+        if (project.loader_platform == 'Forge') {
+            required.project 'kotlin-for-forge'
+            embedded.project 'cloth-config'
+        }
+
+        if (project.loader_platform == 'Fabric') {
+            required.project 'fabric-api'
+            embedded.project 'cloth-config'
+            embedded.project 'fabric-language-kotlin'
+            optional.project 'modmenu'
+        }
+    }
 }

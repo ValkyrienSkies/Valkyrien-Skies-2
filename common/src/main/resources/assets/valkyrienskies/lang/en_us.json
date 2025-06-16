@@ -1,7 +1,25 @@
 {
+  "key.valkyrienskies.ship_cruise": "Cruise",
   "key.valkyrienskies.ship_down": "Descend",
   "category.valkyrienskies.driving": "Driving",
   "block.valkyrienskies.test_chair": "Debug Chair",
+  "block.valkyrienskies.test_hinge": "Debug Hinge",
+  "block.valkyrienskies.test_flap": "Debug Flap",
+  "block.valkyrienskies.test_wing": "Debug Wing",
   "item.valkyrienskies.ship_creator": "Ship Creator",
-  "item.valkyrienskies.ship_creator_smaller": "Mini Ship Creator"
+  "item.valkyrienskies.ship_creator_smaller": "Mini Ship Creator",
+  "item.valkyrienskies.physics_entity_creator": "Physics Entity Creator",
+  "argument.valkyrienskies.ship.no_found": "Ship not found",
+  "argument.valkyrienskies.ship.multiple_found": "Multiple ships found",
+  "command.valkyrienskies.delete.success": "Deleted %d ships!",
+  "command.valkyrienskies.set_static.success": "Set %d ships to be is-static=%s!",
+  "command.valkyrienskies.teleport.success": "Teleported %d ships to %s!",
+  "command.valkyrienskies.teleport.multiple_ship_success": "Teleported %d ships!",
+  "command.valkyrienskies.mc_teleport.can_only_teleport_to_one_ship": "Can only teleport to exactly 1 ship",
+  "command.valkyrienskies.get_ship.success": "Found ship with slug %s",
+  "command.valkyrienskies.get_ship.fail": "No ship found",
+  "command.valkyrienskies.get_ship.only_usable_by_entities": "/vs get-ship can only be run by entities!",
+  "tooltip.valkyrienskies.mass": "Mass",
+  "command.valkyrienskies.scale.success": "Scaled %d ships!",
+  "itemGroup.valkyrienSkies": "Valkyrien Skies"
 }

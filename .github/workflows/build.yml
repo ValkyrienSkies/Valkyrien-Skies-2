@@ -2,7 +2,10 @@ name: Build
 on:
   push:
     branches:
-      - '*'
+      - '1.18.x/*'
+      - '1.19.2/*'
+      - '1.20/*'
+      - '1.20.1/*'
   pull_request:
     types: [ opened, synchronize, reopened ]
 jobs:
@@ -10,44 +13,25 @@ jobs:
     name: "Validate Gradle wrapper"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           submodules: true # Clone with vs-core submodule
       - uses: gradle/wrapper-validation-action@v1
 
-  build:
-    name: Build
+  json-yaml-validate:
+    name: "Validate Json/Yaml files"
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write # enable write permissions for pull request comments
     steps:
-      - name: Shallow Clone (--recurse-submodules)
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v4
+
+      - name: json-yaml-validate
+        id: json-yaml-validate
+        uses: GrantBirki/json-yaml-validate@v2.3.1
         with:
-          submodules: recursive
-
-      - name: Setup Gradle & Caches
-        uses: "./.github/actions/setup-gradle"
-
-      - name: Build and analyze
-        run: ./gradlew build --info
-        continue-on-error: true # still upload checkstyle report even if build fails
-
-      - uses: actions/upload-artifact@v3
-        with:
-          name: fabric artifacts
-          path: |
-            fabric/build/libs/*.jar
-
-      - uses: actions/upload-artifact@v3
-        with:
-          name: forge artifacts
-          path: |
-            forge/build/libs/*.jar
-
-      - uses: jwgmeligmeyling/checkstyle-github-action@master # show checkstyle/ktlint report
-        with:
-          path: |
-            */build/reports/checkstyle/*.xml
-            */build/reports/ktlint/*/*.xml
+          comment: "true" # enable comment mode
 
   test-server:
     name: Test Server
@@ -58,7 +42,7 @@ jobs:
     timeout-minutes: 20 # Fail after 20 minutes
     steps:
       - name: Shallow Clone (--recurse-submodules)
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -69,26 +53,3 @@ jobs:
         uses: ValkyrienSkies/Minecraft-Architectury-Testing@v1.9
         with:
           serverType: ${{ matrix.serverType }}
-
-  publish:
-    name: Publish to Maven
-    runs-on: ubuntu-latest
-    # Run only on main branch
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - name: Shallow Clone (--recurse-submodules)
-        uses: actions/checkout@v2
-        with:
-          submodules: recursive
-
-      - name: Setup Gradle & Caches
-        uses: "./.github/actions/setup-gradle"
-
-      - name: Publish with Gradle
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ORG_GRADLE_PROJECT_vs_maven_password: ${{ secrets.ORG_GRADLE_PROJECT_VS_MAVEN_PASSWORD }}
-          ORG_GRADLE_PROJECT_vs_maven_url: ${{ secrets.ORG_GRADLE_PROJECT_VS_MAVEN_URL }}
-          ORG_GRADLE_PROJECT_vs_maven_username: ${{ secrets.ORG_GRADLE_PROJECT_VS_MAVEN_USERNAME }}
-        run: |
-          ./gradlew build publish --stacktrace --no-daemon

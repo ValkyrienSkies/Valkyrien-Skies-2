@@ -6,10 +6,10 @@ import org.lwjgl.openal.AL10;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-import org.valkyrienskies.mod.mixinducks.com.mojang.blaze3d.audio.ChannelDuck;
+import org.valkyrienskies.mod.mixinducks.com.mojang.blaze3d.audio.HasOpenALVelocity;
 
 @Mixin(Channel.class)
-public class MixinChannel implements ChannelDuck {
+public class MixinChannel implements HasOpenALVelocity {
 
     @Shadow
     @Final

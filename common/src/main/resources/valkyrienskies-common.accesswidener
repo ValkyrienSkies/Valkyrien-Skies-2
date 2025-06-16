@@ -9,3 +9,20 @@ accessible	class	net/minecraft/client/multiplayer/ClientChunkCache$Storage
 
 # For including entities on ships getting send to the client
 accessible  class   net/minecraft/server/level/ChunkMap$TrackedEntity
+
+# For seamless chunk copies
+accessible  class   net/minecraft/client/renderer/chunk/ChunkRenderDispatcher$RenderChunk$RebuildTask
+accessible  class   net/minecraft/client/renderer/chunk/ChunkRenderDispatcher$RenderChunk$ChunkCompileTask
+accessible  class   net/minecraft/client/renderer/chunk/ChunkRenderDispatcher$ChunkTaskResult
+
+accessible  class   net/minecraft/client/renderer/LevelRenderer$RenderChunkStorage
+
+accessible field    net/minecraft/client/renderer/LevelRenderer$RenderChunkInfo  chunk    Lnet/minecraft/client/renderer/chunk/ChunkRenderDispatcher$RenderChunk;
+
+# For modifying BlockHitResult.location
+# Remove final
+mutable field    net/minecraft/world/phys/HitResult  location    Lnet/minecraft/world/phys/Vec3;
+# Make the field public
+accessible field    net/minecraft/world/phys/HitResult  location    Lnet/minecraft/world/phys/Vec3;
+
+accessible  class   net/minecraft/server/level/ChunkMap$DistanceManager

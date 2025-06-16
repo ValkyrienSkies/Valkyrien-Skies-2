@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.valkyrienskies.core.game.ships.ShipObjectClient;
+import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(LevelRenderer.class)
@@ -42,7 +42,7 @@ public abstract class MixinLevelRenderer {
         final double velocityZ,
         final CallbackInfoReturnable<Particle> cir
     ) {
-        final ShipObjectClient ship = VSGameUtilsKt.getShipObjectManagingPos(level, (int) x >> 4, (int) z >> 4);
+        final ClientShip ship = VSGameUtilsKt.getShipObjectManagingPos(level, (int) x >> 4, (int) z >> 4);
 
         if (ship == null) {
             // vanilla behaviour
@@ -58,7 +58,7 @@ public abstract class MixinLevelRenderer {
             // Rotate velocity wrt ship transform
             .transformDirection(new Vector3d(velocityX, velocityY, velocityZ))
             // Tack on the ships linear velocity (multiplied by 1/20 because particle velocity is given per tick)
-            .fma(0.05, ship.getShipData().getPhysicsData().getLinearVelocity());
+            .fma(0.05, ship.getVelocity());
 
         // Return and re-call this method with new coords
         cir.setReturnValue(

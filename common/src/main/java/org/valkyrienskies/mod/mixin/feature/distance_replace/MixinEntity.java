@@ -19,7 +19,7 @@ public class MixinEntity {
 
     @Inject(method = "distanceTo", at = @At("HEAD"), cancellable = true)
     private void preDistanceTo(final Entity entity, final CallbackInfoReturnable<Float> cir) {
-        cir.setReturnValue(Mth.sqrt(entity.distanceToSqr(entity)));
+        cir.setReturnValue(Mth.sqrt((float) (Entity.class.cast(this)).distanceToSqr(entity)));
     }
 
     @Inject(method = "distanceToSqr(Lnet/minecraft/world/phys/Vec3;)D", at = @At("HEAD"), cancellable = true)

@@ -29,7 +29,12 @@
   ],
   "accessWidener": "valkyrienskies-common.accesswidener",
   "depends": {
-    "fabricloader": ">=0.7.4",
-    "minecraft": ">=1.16.5"
+    "fabricloader": ">=0.14.9",
+    "minecraft": "1.20.1",
+    "fabric-api": "*"
+  },
+  "breaks": {
+    "sodium": "<0.5.8",
+    "create": ">=6.0.0"
   }
 }

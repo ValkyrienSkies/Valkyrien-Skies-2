@@ -1,16 +1,19 @@
 package org.valkyrienskies.mod.mixin.client;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.MultiPlayerGameMode;
-import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
@@ -18,14 +21,12 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.core.game.ships.ShipObjectClientWorld;
-import org.valkyrienskies.core.pipelines.VSPipeline;
+import org.valkyrienskies.core.apigame.world.ClientShipWorldCore;
+import org.valkyrienskies.core.apigame.world.VSPipeline;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientCreator;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.mixinducks.client.MinecraftDuck;
@@ -33,6 +34,11 @@ import org.valkyrienskies.mod.mixinducks.client.MinecraftDuck;
 @Mixin(Minecraft.class)
 public abstract class MixinMinecraft
     implements MinecraftDuck, IShipObjectWorldClientProvider, IShipObjectWorldClientCreator {
+
+    @Unique
+    private static final Logger log = LogManager.getLogger("VS2 MixinMinecraft");
+    @Unique
+    private static long lastLog = System.currentTimeMillis();
 
     @Shadow
     private boolean pause;
@@ -58,34 +64,39 @@ public abstract class MixinMinecraft
     }
 
     @Unique
-    private ShipObjectClientWorld shipObjectWorld = null;
+    private ClientShipWorldCore shipObjectWorld = null;
 
-    @Redirect(
+    @WrapOperation(
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/client/multiplayer/MultiPlayerGameMode;useItemOn(Lnet/minecraft/client/player/LocalPlayer;Lnet/minecraft/client/multiplayer/ClientLevel;Lnet/minecraft/world/InteractionHand;Lnet/minecraft/world/phys/BlockHitResult;)Lnet/minecraft/world/InteractionResult;"
+            target = "Lnet/minecraft/client/multiplayer/MultiPlayerGameMode;useItemOn(Lnet/minecraft/client/player/LocalPlayer;Lnet/minecraft/world/InteractionHand;Lnet/minecraft/world/phys/BlockHitResult;)Lnet/minecraft/world/InteractionResult;"
         ),
         method = "startUseItem"
     )
     private InteractionResult useOriginalCrosshairForBlockPlacement(final MultiPlayerGameMode instance,
-        final LocalPlayer localPlayer, final ClientLevel clientLevel, final InteractionHand interactionHand,
-        final BlockHitResult blockHitResult) {
+        final LocalPlayer localPlayer, final InteractionHand interactionHand,
+        final BlockHitResult blockHitResult, final Operation<InteractionResult> useItemOn) {
 
-        return instance.useItemOn(localPlayer, clientLevel, interactionHand,
-            (BlockHitResult) this.originalCrosshairTarget);
+        return useItemOn.call(instance, localPlayer, interactionHand,
+            this.originalCrosshairTarget);
     }
 
     @NotNull
     @Override
-    public ShipObjectClientWorld getShipObjectWorld() {
-        /*final ShipObjectClientWorld shipObjectWorldCopy = shipObjectWorld;
+    public ClientShipWorldCore getShipObjectWorld() {
+        final ClientShipWorldCore shipObjectWorldCopy = shipObjectWorld;
 
         if (shipObjectWorldCopy == null) {
-            throw new IllegalStateException("Requested getShipObjectWorld() when shipObjectWorld was null!");
+            if (lastLog + 5000 < System.currentTimeMillis()) {
+                lastLog = System.currentTimeMillis();
+                log.warn("Requested getShipObjectWorld() but failed returning dummy world",
+                    new IllegalStateException("shipObjectWorld is null"));
+            }
+
+            return ValkyrienSkiesMod.getVsCore().getDummyShipWorldClient();
         }
-        return shipObjectWorldCopy;*/
-        // I made it kind of nullable, it seems like preRender and getEntities mixins get used before its initialized
-        return shipObjectWorld;
+
+        return shipObjectWorldCopy;
     }
 
     @Shadow
@@ -97,9 +108,8 @@ public abstract class MixinMinecraft
     )
     public void postTick(final CallbackInfo ci) {
         // Tick the ship world and then drag entities
-        if (!pause && shipObjectWorld != null) {
-            VSGameUtilsKt.getShipObjectWorld(Minecraft.class.cast(this)).getNetworkManager()
-                .tick(getConnection().getConnection().getRemoteAddress());
+        if (!pause && shipObjectWorld != null && level != null && getConnection() != null) {
+            shipObjectWorld.tickNetworking(getConnection().getConnection().getRemoteAddress());
             shipObjectWorld.postTick();
             EntityDragger.INSTANCE.dragEntitiesWithShips(level.entitiesForRendering());
         }
@@ -119,13 +129,16 @@ public abstract class MixinMinecraft
         }
     }
 
+    /* TODO no longer needed
     @Inject(
         method = "setCurrentServer",
         at = @At("HEAD")
     )
     public void preSetCurrentServer(final ServerData serverData, final CallbackInfo ci) {
-        ValkyrienSkiesMod.getVsCore().getNetworking().setClientUsesUDP(false);
+        ValkyrienSkiesMod.getVsCore().setClientUsesUDP(false);
     }
+
+     */
 
     @Override
     public void createShipObjectWorldClient() {
@@ -134,18 +147,26 @@ public abstract class MixinMinecraft
         }
         shipObjectWorld = ValkyrienSkiesMod
             .getVsCoreClient()
-            .getShipWorldComponentFactory()
-            .newShipObjectClientWorldComponent()
-            .newWorld();
+            .newShipWorldClient();
     }
 
     @Override
     public void deleteShipObjectWorldClient() {
-        final ShipObjectClientWorld shipObjectWorldCopy = shipObjectWorld;
+        final ClientShipWorldCore shipObjectWorldCopy = shipObjectWorld;
         if (shipObjectWorldCopy == null) {
             throw new IllegalStateException("shipObjectWorld was null when it should be not null?");
         }
         shipObjectWorldCopy.destroyWorld();
         shipObjectWorld = null;
+    }
+
+    @Inject(
+        method = "clearLevel",
+        at = @At("TAIL")
+    )
+    private void postClearLevel(final CallbackInfo ci) {
+        if (shipObjectWorld != null) {
+            deleteShipObjectWorldClient();
+        }
     }
 }

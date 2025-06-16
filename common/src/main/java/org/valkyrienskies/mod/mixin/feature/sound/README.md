@@ -1,1 +1,2 @@
-These mixins make sound play correctly on ships
+These mixins make jukeboxes play correctly on ships and gives
+them doppler shift.

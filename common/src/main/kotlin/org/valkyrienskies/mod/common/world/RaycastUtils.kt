@@ -14,9 +14,11 @@ import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.EntityHitResult
 import net.minecraft.world.phys.HitResult
 import net.minecraft.world.phys.Vec3
+import org.apache.logging.log4j.LogManager
 import org.joml.Vector3d
 import org.joml.primitives.AABBd
 import org.joml.primitives.AABBdc
+import org.valkyrienskies.core.api.ships.properties.ShipId
 import org.valkyrienskies.core.game.ships.ShipObjectClient
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.toJOML
@@ -26,9 +28,21 @@ import java.util.function.BiFunction
 import java.util.function.Function
 import java.util.function.Predicate
 
+private val logger = LogManager.getLogger("RaycastUtilsKt")
+
 @JvmOverloads
-fun Level.clipIncludeShips(ctx: ClipContext, shouldTransformHitPos: Boolean = true): BlockHitResult {
+fun Level.clipIncludeShips(
+    ctx: ClipContext, shouldTransformHitPos: Boolean = true, skipShip: ShipId? = null
+): BlockHitResult {
     val vanillaHit = vanillaClip(ctx)
+
+    if (shipObjectWorld == null) {
+        logger.error(
+            "shipObjectWorld was empty for level raytrace, this should not be possible! " +
+                "Returning vanilla result."
+        )
+        return vanillaHit
+    }
 
     var closestHit = vanillaHit
     var closestHitPos = vanillaHit.location
@@ -38,7 +52,11 @@ fun Level.clipIncludeShips(ctx: ClipContext, shouldTransformHitPos: Boolean = tr
 
     // Iterate every ship, find do the raycast in ship space,
     // choose the raycast with the lowest distance to the start position.
-    for (ship in shipObjectWorld.getShipObjectsIntersecting(clipAABB)) {
+    for (ship in shipObjectWorld.loadedShips.getIntersecting(clipAABB)) {
+        // Skip skipShip
+        if (ship.id == skipShip) {
+            continue
+        }
         val worldToShip = (ship as? ShipObjectClient)?.renderTransform?.worldToShipMatrix ?: ship.worldToShip
         val shipToWorld = (ship as? ShipObjectClient)?.renderTransform?.shipToWorldMatrix ?: ship.shipToWorld
         val shipStart = worldToShip.transformPosition(ctx.from.toJOML()).toMinecraft()
@@ -55,15 +73,11 @@ fun Level.clipIncludeShips(ctx: ClipContext, shouldTransformHitPos: Boolean = tr
         }
     }
 
-    if (!shouldTransformHitPos) {
-        closestHitPos = closestHit.location
+    if (shouldTransformHitPos) {
+        closestHit.location = closestHitPos
     }
 
-    return if (closestHit.type == HitResult.Type.MISS) {
-        BlockHitResult.miss(closestHitPos, closestHit.direction, closestHit.blockPos)
-    } else {
-        BlockHitResult(closestHitPos, closestHit.direction, closestHit.blockPos, closestHit.isInside)
-    }
+    return closestHit
 }
 
 // copy paste of vanilla raycast with the option to specify a custom start/end
@@ -71,7 +85,7 @@ private fun Level.clip(context: ClipContext, realStart: Vec3, realEnd: Vec3): Bl
     return clip(
         realStart, realEnd, context,
         { raycastContext: ClipContext, blockPos: BlockPos? ->
-            val blockState: BlockState = getBlockState(blockPos)
+            val blockState: BlockState = getBlockState(blockPos!!)
             val fluidState: FluidState = getFluidState(blockPos)
             val vec3d = realStart
             val vec3d2 = realEnd
@@ -86,7 +100,7 @@ private fun Level.clip(context: ClipContext, realStart: Vec3, realEnd: Vec3): Bl
         }
     ) { raycastContext: ClipContext ->
         val vec3d = realStart.subtract(realEnd)
-        BlockHitResult.miss(realEnd, Direction.getNearest(vec3d.x, vec3d.y, vec3d.z), BlockPos(realEnd))
+        BlockHitResult.miss(realEnd, Direction.getNearest(vec3d.x, vec3d.y, vec3d.z), BlockPos.containing(realEnd))
     } as BlockHitResult
 }
 
@@ -209,15 +223,13 @@ fun Level.raytraceEntities(
     val start = Vector3d()
     val end = Vector3d()
 
-    shipObjectWorld.getShipObjectsIntersecting(origBoundingBoxM.toJOML()).forEach {
+    shipObjectWorld.loadedShips.getIntersecting(origBoundingBoxM.toJOML()).forEach {
         it.worldToShip.transformPosition(origStartVec, start)
         it.worldToShip.transformPosition(origEndVec, end)
 
-        // Shouldn't we have a double for scale in transform?
-        val scale = it.shipTransform.worldToShipMatrix.getScale(Vector3d())
-        assert(scale.x == scale.y && scale.y == scale.z)
+        val scale = 1.0 / it.transform.shipToWorldScaling.x()
 
-        checkEntities(entities, start.toMinecraft(), end.toMinecraft(), scale.x)
+        checkEntities(entities, start.toMinecraft(), end.toMinecraft(), scale)
     }
 
     return if (resultEntity == null) {
@@ -226,7 +238,7 @@ fun Level.raytraceEntities(
 }
 
 fun BlockGetter.vanillaClip(context: ClipContext): BlockHitResult =
-    BlockGetter.traverseBlocks(context,
+    BlockGetter.traverseBlocks(context.from, context.to, context,
         { clipContext: ClipContext, blockPos: BlockPos ->
             val blockState = getBlockState(blockPos)
             val fluidState = getFluidState(blockPos)
@@ -255,6 +267,6 @@ fun BlockGetter.vanillaClip(context: ClipContext): BlockHitResult =
             val vec3 = ctx.from.subtract(ctx.to)
             BlockHitResult.miss(
                 ctx.to, Direction.getNearest(vec3.x, vec3.y, vec3.z),
-                BlockPos(ctx.to)
+                BlockPos.containing(ctx.to)
             )
         })

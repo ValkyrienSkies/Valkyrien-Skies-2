@@ -2,10 +2,12 @@ package org.valkyrienskies.mod.common.util
 
 import net.minecraft.world.entity.player.Player
 import org.joml.Vector3d
-import org.valkyrienskies.core.game.DimensionId
-import org.valkyrienskies.core.game.IPlayer
-import org.valkyrienskies.core.hooks.CoreHooks
+import org.valkyrienskies.core.apigame.world.IPlayer
+import org.valkyrienskies.core.apigame.world.PlayerState
+import org.valkyrienskies.core.apigame.world.properties.DimensionId
 import org.valkyrienskies.mod.common.dimensionId
+import org.valkyrienskies.mod.common.getShipMountedToData
+import org.valkyrienskies.mod.common.vsCore
 import java.lang.ref.WeakReference
 import java.util.UUID
 
@@ -25,13 +27,24 @@ class MinecraftPlayer(playerObject: Player) : IPlayer {
         get() = player.hasPermissions(4)
 
     override val canModifyServerConfig: Boolean
-        get() = CoreHooks.isPhysicalClient || player.hasPermissions(4)
+        get() = vsCore.hooks.isPhysicalClient || player.hasPermissions(4)
 
     override val dimension: DimensionId
-        get() = player.level.dimensionId
+        get() = player.level().dimensionId
 
     override fun getPosition(dest: Vector3d): Vector3d {
         return dest.set(player.x, player.y, player.z)
+    }
+
+    override fun getPlayerState(): PlayerState {
+        val mountedShipAndPos = getShipMountedToData(player)
+        return PlayerState(
+            Vector3d(player.x, player.y, player.z),
+            Vector3d(Vector3d(player.x - player.xo, player.y - player.yo, player.z - player.zo)),
+            dimension,
+            mountedShipAndPos?.shipMountedTo?.id,
+            mountedShipAndPos?.mountPosInShip,
+        )
     }
 
     override fun hashCode(): Int {

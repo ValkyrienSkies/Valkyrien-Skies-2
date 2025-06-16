@@ -1,57 +1,57 @@
 package org.valkyrienskies.mod.common
 
-import com.fasterxml.jackson.module.kotlin.readValue
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.world.level.saveddata.SavedData
-import org.valkyrienskies.core.game.ChunkAllocator
-import org.valkyrienskies.core.game.ships.MutableQueryableShipDataServer
-import org.valkyrienskies.core.game.ships.QueryableShipDataImpl
-import org.valkyrienskies.core.game.ships.ShipData
-import org.valkyrienskies.core.util.serialization.VSJacksonUtil
+import org.valkyrienskies.core.apigame.world.VSPipeline
 
 /**
  * This class saves/loads ship data for a world.
  *
  * This is only a temporary solution, and should be replaced eventually because it is very inefficient.
  */
-class ShipSavedData : SavedData(SAVED_DATA_ID) {
+class ShipSavedData : SavedData() {
 
     companion object {
         const val SAVED_DATA_ID = "vs_ship_data"
         private const val QUERYABLE_SHIP_DATA_NBT_KEY = "queryable_ship_data"
         private const val CHUNK_ALLOCATOR_NBT_KEY = "chunk_allocator"
+        private const val PIPELINE_NBT_KEY = "vs_pipeline"
 
         fun createEmpty(): ShipSavedData {
-            val shipSavedData = ShipSavedData()
-            shipSavedData.queryableShipData = QueryableShipDataImpl()
-            shipSavedData.chunkAllocator = ChunkAllocator.create()
-            return shipSavedData
+            return ShipSavedData().apply { pipeline = vsCore.newPipeline() }
+        }
+
+        @JvmStatic
+        fun load(compoundTag: CompoundTag): ShipSavedData {
+            val data = ShipSavedData()
+
+            // Read bytes from the [CompoundTag]
+            val queryableShipDataAsBytes = compoundTag.getByteArray(QUERYABLE_SHIP_DATA_NBT_KEY)
+            val chunkAllocatorAsBytes = compoundTag.getByteArray(CHUNK_ALLOCATOR_NBT_KEY)
+            val pipelineAsBytes = compoundTag.getByteArray(PIPELINE_NBT_KEY)
+
+            try {
+                if (pipelineAsBytes.isNotEmpty()) {
+                    data.pipeline = vsCore.newPipeline(pipelineAsBytes)
+                } else if (queryableShipDataAsBytes.isNotEmpty() && chunkAllocatorAsBytes.isNotEmpty()) {
+                    data.pipeline = vsCore.newPipelineLegacyData(queryableShipDataAsBytes, chunkAllocatorAsBytes)
+                } else {
+                    throw IllegalStateException("Couldn't find serialized ship data")
+                }
+            } catch (ex: Exception) {
+                data.loadingException = ex
+            }
+            return data
         }
     }
 
-    private lateinit var queryableShipData: MutableQueryableShipDataServer
-    private lateinit var chunkAllocator: ChunkAllocator
+    lateinit var pipeline: VSPipeline
 
-    override fun load(compoundTag: CompoundTag) {
-        // Read bytes from the [CompoundTag]
-        val queryableShipDataAsBytes = compoundTag.getByteArray(QUERYABLE_SHIP_DATA_NBT_KEY)
-        val chunkAllocatorAsBytes = compoundTag.getByteArray(CHUNK_ALLOCATOR_NBT_KEY)
-
-        // Convert bytes to objects
-        val ships: List<ShipData> = VSJacksonUtil.defaultMapper.readValue(queryableShipDataAsBytes)
-
-        queryableShipData = QueryableShipDataImpl(ships)
-        chunkAllocator = VSJacksonUtil.defaultMapper.readValue(chunkAllocatorAsBytes)
-    }
+    var loadingException: Throwable? = null
+        private set
 
     override fun save(compoundTag: CompoundTag): CompoundTag {
-        // Convert objects to bytes
-        val queryableShipDataAsBytes = VSJacksonUtil.defaultMapper.writeValueAsBytes(queryableShipData.toList())
-        val chunkAllocatorAsBytes = VSJacksonUtil.defaultMapper.writeValueAsBytes(chunkAllocator)
-
-        // Save byte arrays
-        compoundTag.putByteArray(QUERYABLE_SHIP_DATA_NBT_KEY, queryableShipDataAsBytes)
-        compoundTag.putByteArray(CHUNK_ALLOCATOR_NBT_KEY, chunkAllocatorAsBytes)
+        compoundTag.putByteArray(PIPELINE_NBT_KEY, vsCore.serializePipeline(pipeline))
 
         return compoundTag
     }
@@ -62,7 +62,4 @@ class ShipSavedData : SavedData(SAVED_DATA_ID) {
     override fun isDirty(): Boolean {
         return true
     }
-
-    fun getQueryableShipData() = queryableShipData
-    fun getChunkAllocator() = chunkAllocator
 }

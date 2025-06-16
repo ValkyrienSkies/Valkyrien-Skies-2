@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.mixin.feature.block_placement_orientation;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionHand;
@@ -11,7 +13,6 @@ import net.minecraft.world.phys.BlockHitResult;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.valkyrienskies.mod.common.PlayerUtil;
 
 @Mixin(BlockPlaceContext.class)
@@ -26,19 +27,20 @@ public abstract class MixinBlockPlaceContext extends UseOnContext {
     @Shadow
     public abstract BlockPos getClickedPos();
 
-    @Redirect(
+    @WrapOperation(
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/core/Direction;orderedByNearest(Lnet/minecraft/world/entity/Entity;)[Lnet/minecraft/core/Direction;"
         ),
         method = "getNearestLookingDirections"
     )
-    private Direction[] transformPlayerBeforeGettingNearest(final Entity entity) {
+    private Direction[] transformPlayerBeforeGettingNearest(final Entity entity,
+        final Operation<Direction[]> orderedByNearest) {
         if (entity instanceof Player) {
             return PlayerUtil.transformPlayerTemporarily((Player) entity, this.getLevel(), this.getClickedPos(),
-                () -> Direction.orderedByNearest(entity));
+                () -> orderedByNearest.call(entity));
         } else {
-            return Direction.orderedByNearest(entity);
+            return orderedByNearest.call(entity);
         }
     }
 

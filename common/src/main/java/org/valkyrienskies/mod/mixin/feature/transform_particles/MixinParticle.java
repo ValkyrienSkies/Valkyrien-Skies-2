@@ -9,9 +9,9 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.core.game.ships.ShipObjectClient;
+import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.mixin.client.renderer.MixinLevelRenderer;
+import org.valkyrienskies.mod.mixin.mod_compat.optifine_vanilla.MixinLevelRenderer;
 
 @Mixin(Particle.class)
 public abstract class MixinParticle {
@@ -46,13 +46,13 @@ public abstract class MixinParticle {
     )
     public void checkShipCoords(final ClientLevel world, final double x, final double y, final double z,
         final CallbackInfo ci) {
-        final ShipObjectClient ship = VSGameUtilsKt.getShipObjectManagingPos(world, (int) x >> 4, (int) z >> 4);
+        final ClientShip ship = VSGameUtilsKt.getShipObjectManagingPos(world, (int) x >> 4, (int) z >> 4);
         if (ship == null) {
             return;
         }
 
         // in-world position
-        final Vector3d p = ship.getRenderTransform().getShipToWorldMatrix().transformPosition(new Vector3d(x, y, z));
+        final Vector3d p = ship.getRenderTransform().getShipToWorld().transformPosition(new Vector3d(x, y, z));
         this.setPos(p.x, p.y, p.z);
         this.xo = p.x;
         this.yo = p.y;
@@ -70,12 +70,12 @@ public abstract class MixinParticle {
         final double velocityX,
         final double velocityY, final double velocityZ, final CallbackInfo ci) {
 
-        final ShipObjectClient ship = VSGameUtilsKt.getShipObjectManagingPos(world, (int) x >> 4, (int) z >> 4);
+        final ClientShip ship = VSGameUtilsKt.getShipObjectManagingPos(world, (int) x >> 4, (int) z >> 4);
         if (ship == null) {
             return;
         }
 
-        final Matrix4dc transform = ship.getRenderTransform().getShipToWorldMatrix();
+        final Matrix4dc transform = ship.getRenderTransform().getShipToWorld();
         // in-world position
         final Vector3d p = transform.transformPosition(new Vector3d(x, y, z));
         // in-world velocity
@@ -83,7 +83,7 @@ public abstract class MixinParticle {
             // Rotate velocity wrt ship transform
             .transformDirection(new Vector3d(this.xd, this.yd, this.zd))
             // Tack on the ships linear velocity (multiplied by 1/20 because particle velocity is given per tick)
-            .fma(0.05, ship.getShipData().getPhysicsData().getLinearVelocity());
+            .fma(0.05, ship.getVelocity());
 
         this.setPos(p.x, p.y, p.z);
         this.xd = v.x;

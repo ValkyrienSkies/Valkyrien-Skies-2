@@ -1,5 +1,8 @@
 package org.valkyrienskies.mod.mixin.server.network;
 
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import java.util.Collections;
 import java.util.Set;
 import net.minecraft.core.BlockPos;
@@ -11,6 +14,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.ServerPlayerGameMode;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
+import net.minecraft.world.entity.RelativeMovement;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Final;
@@ -18,9 +22,9 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.core.game.ships.ShipData;
+import org.valkyrienskies.core.api.ships.ServerShip;
+import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
@@ -50,55 +54,80 @@ public abstract class MixinServerGamePacketListenerImpl {
     @Final
     private MinecraftServer server;
 
-    /**
-     * Include ships in server-side distance check when player interacts with a block.
-     */
-    @Redirect(
-        method = "handleUseItemOn",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/server/level/ServerPlayer;distanceToSqr(DDD)D"
-        )
+    @ModifyExpressionValue(
+        at = @At(value = "FIELD",
+            target = "Lnet/minecraft/server/network/ServerGamePacketListenerImpl;aboveGroundTickCount:I", ordinal = 0),
+        method = "tick"
     )
-    public double includeShipsInBlockInteractDistanceCheck(
-        final ServerPlayer receiver, final double x, final double y, final double z) {
-        if (VSGameConfig.SERVER.getEnableInteractDistanceChecks()) {
-            return VSGameUtilsKt.squaredDistanceToInclShips(receiver, x, y, z);
+    private int noFlyKick(final int original) {
+        if (VSGameConfig.SERVER.getEnableMovementChecks()) {
+            return original;
         } else {
             return 0;
         }
     }
 
-    @Redirect(
+    @WrapOperation(
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/world/phys/Vec3;subtract(Lnet/minecraft/world/phys/Vec3;)Lnet/minecraft/world/phys/Vec3;"
+        ),
+        method = "handleUseItemOn"
+    )
+    private Vec3 skipDistanceCheck2(final Vec3 instance, final Vec3 vec3, final Operation<Vec3> subtract) {
+        return VSGameUtilsKt.toWorldCoordinates(player.level(), subtract.call(instance, vec3));
+    }
+
+    /*
+    @WrapOperation(
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/world/level/ChunkPos;getChessboardDistance(Lnet/minecraft/world/level/ChunkPos;)I"
+        ),
+        method = "handleUseItemOn"
+    )
+    private int skipDistanceCheck(final ChunkPos instance, final ChunkPos chunkPos, final Operation<Integer> getChessboardDistance) {
+        return 0;
+    }
+
+     */
+
+    @WrapOperation(
         method = "handleMovePlayer",
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/server/network/ServerGamePacketListenerImpl;isSingleplayerOwner()Z"
-        )
+        ),
+        require = 0
     )
-    private boolean shouldSkipMoveCheck1(final ServerGamePacketListenerImpl instance) {
+    private boolean shouldSkipMoveCheck1(final ServerGamePacketListenerImpl instance,
+        final Operation<Boolean> isSinglePlayerOwner) {
         return !VSGameConfig.SERVER.getEnableMovementChecks();
     }
 
-    @Redirect(
+    @WrapOperation(
         method = "handleMoveVehicle",
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/server/network/ServerGamePacketListenerImpl;isSingleplayerOwner()Z"
-        )
+        ),
+        require = 0
     )
-    private boolean shouldSkipMoveCheck2(final ServerGamePacketListenerImpl instance) {
+    private boolean shouldSkipMoveCheck2(final ServerGamePacketListenerImpl instance,
+        final Operation<Boolean> isSinglePlayerOwner) {
         return !VSGameConfig.SERVER.getEnableMovementChecks();
     }
 
-    @Redirect(
+    @WrapOperation(
         method = "handleMovePlayer",
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/server/level/ServerPlayerGameMode;isCreative()Z"
-        )
+        ),
+        require = 0
     )
-    private boolean shouldSkipMoveCheck(final ServerPlayerGameMode instance) {
+    private boolean shouldSkipMoveCheck(final ServerPlayerGameMode instance,
+        final Operation<Boolean> isSinglePlayerOwner) {
         return !VSGameConfig.SERVER.getEnableMovementChecks();
     }
 
@@ -111,14 +140,14 @@ public abstract class MixinServerGamePacketListenerImpl {
         cancellable = true
     )
     private void transformTeleport(final double x, final double y, final double z, final float yaw, final float pitch,
-        final Set<ClientboundPlayerPositionPacket.RelativeArgument> relativeSet, final CallbackInfo ci) {
+        final Set<RelativeMovement> relativeSet, final CallbackInfo ci) {
 
         if (!VSGameConfig.SERVER.getTransformTeleports()) {
             return;
         }
 
-        final BlockPos blockPos = new BlockPos(x, y, z);
-        final ShipData ship = VSGameUtilsKt.getShipManagingPos((ServerLevel) player.level, blockPos);
+        final BlockPos blockPos = BlockPos.containing(x, y, z);
+        final ServerShip ship = VSGameUtilsKt.getShipManagingPos((ServerLevel) player.level(), blockPos);
 
         // TODO add flag to disable this https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues/30
         if (ship != null) {
@@ -144,9 +173,10 @@ public abstract class MixinServerGamePacketListenerImpl {
         at = @At("HEAD")
     )
     void onDisconnect(final Component reason, final CallbackInfo ci) {
-        VSGameUtilsKt.getShipObjectWorld(this.server).onDisconnect(
-            VSGameUtilsKt.getPlayerWrapper(this.player)
-        );
+        final ServerShipWorldCore world = VSGameUtilsKt.getShipObjectWorld(this.server);
+        if (world != null) {
+            world.onDisconnect(VSGameUtilsKt.getPlayerWrapper(this.player));
+        }
     }
 
 }

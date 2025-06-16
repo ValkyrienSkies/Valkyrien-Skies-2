@@ -1,9 +1,9 @@
 package org.valkyrienskies.mod.forge.mixin.world.level.block;
 
-import java.util.Random;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
@@ -20,7 +20,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(FireBlock.class)
-public class FireMixin {
+public abstract class FireMixin {
+
     @Unique
     private boolean isModifyingFireTick = false;
 
@@ -29,7 +30,7 @@ public class FireMixin {
     public static IntegerProperty AGE;
 
     @Inject(method = "tick", at = @At("TAIL"))
-    public void fireTickMixin(final BlockState state, final ServerLevel level, final BlockPos pos, final Random random,
+    public void fireTickMixin(final BlockState state, final ServerLevel level, final BlockPos pos, final RandomSource random,
         final CallbackInfo ci) {
         if (isModifyingFireTick) {
             return;
@@ -42,16 +43,15 @@ public class FireMixin {
         final double origZ = pos.getZ();
 
         VSGameUtilsKt.transformToNearbyShipsAndWorld(level, origX, origY, origZ, 3, (x, y, z) -> {
-
-            final BlockPos newPos = new BlockPos(x, y, z);
+            final BlockPos newPos = BlockPos.containing(x, y, z);
 
             if (level.isWaterAt(newPos)) {
                 level.removeBlock(pos, false);
             }
 
-            final int i = (Integer) state.getValue(this.AGE);
+            final int i = state.getValue(AGE);
 
-            final boolean bl2 = level.isHumidAt(newPos);
+            final boolean bl2 = level.isRainingAt(newPos);
             final int k = bl2 ? -50 : 0;
             this.tryCatchFire(level, pos.east(), 300 + k, random, i, Direction.WEST);
             this.tryCatchFire(level, pos.west(), 300 + k, random, i, Direction.EAST);
@@ -71,7 +71,7 @@ public class FireMixin {
                             }
 
                             mutableBlockPos.setWithOffset(newPos, l, n, m);
-                            final int p = this.getFireOdds(level, mutableBlockPos);
+                            final int p = this.getIgniteOdds(level, mutableBlockPos);
                             if (p > 0) {
                                 int q = (p + 40 + level.getDifficulty().getId() * 7) / (i + 30);
                                 if (bl2) {
@@ -104,30 +104,24 @@ public class FireMixin {
 
         VSGameUtilsKt.transformToNearbyShipsAndWorld(level, origX, origY, origZ, 1, (x, y, z) -> {
 
-            final BlockPos newPos = new BlockPos(x, y, z);
+            final BlockPos newPos = BlockPos.containing(x, y, z);
             if (level.isWaterAt(newPos)) {
                 level.removeBlock(pos, false);
             }
         });
     }
-    
+
     @Shadow
-    private void tryCatchFire(final Level arg, final BlockPos arg2, final int k, final Random random, final int l,
+    private void tryCatchFire(final Level arg, final BlockPos arg2, final int k, final RandomSource random, final int l,
         final Direction face) {
     }
 
     @Shadow
-    protected boolean isNearRain(final Level level, final BlockPos pos) {
-        return isNearRain(level, pos);
-    }
+    protected abstract BlockState getStateWithAge(LevelAccessor levelAccessor, BlockPos blockPos, int i);
 
     @Shadow
-    private int getFireOdds(final LevelReader level, final BlockPos pos) {
-        return getFireOdds(level, pos);
-    }
+    protected abstract boolean isNearRain(Level level, BlockPos blockPos);
 
     @Shadow
-    private BlockState getStateWithAge(final LevelAccessor level, final BlockPos pos, final int age) {
-        return getStateWithAge(level, pos, age);
-    }
+    protected abstract int getIgniteOdds(LevelReader levelReader, BlockPos blockPos);
 }

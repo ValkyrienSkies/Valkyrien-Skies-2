@@ -17,7 +17,8 @@ public class MixinScreenHandler {
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/world/entity/player/Player;distanceToSqr(DDD)D"
-        )
+        ),
+        require = 0
     )
     private static double includeShipsInDistanceCheck(
         final Player receiver, final double x, final double y, final double z) {

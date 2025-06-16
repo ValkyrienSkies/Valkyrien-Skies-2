@@ -1,16 +1,35 @@
+
 dependencies {
+    implementation(annotationProcessor("io.github.llamalad7:mixinextras-common:0.2.0"))
+
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
     // We depend on fabric loader here to use the fabric @Environment annotations
     // Do NOT use other classes from fabric loader
     modImplementation "net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}"
 
-    modApi("me.shedaniel.cloth:cloth-config:4.14.64")
+    modApi("me.shedaniel.cloth:cloth-config:${cloth_config_version}")
+
+    modCompileOnly("maven.modrinth:sodium:${sodium_version}")
 
     // vs-core
-    implementation("org.valkyrienskies.core:vs-core:${rootProject.vs_core_version}") {
+    implementation("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
         exclude module: "netty-buffer"
         exclude module: "fastutil"
     }
+
+    implementation("org.valkyrienskies.core:util:${rootProject.vs_core_version}")
+
+    // FTB Stuffs
+    modCompileOnly("dev.ftb.mods:ftb-chunks-forge:2001.3.6") { transitive = false }
+
+    //Common create compat,
+    //We just use a version from a platform and hope the classes exist on both versions and mixins apply correctly
+    modCompileOnly("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}")
+        { exclude group: 'com.github.AlphaMode', module: 'fakeconfigtoml' }
+    modCompileOnly("net.fabricmc.fabric-api:fabric-api:${fabric_api_version}")
+    modCompileOnly("com.jozufozu.flywheel:flywheel-fabric-${minecraft_version}:${flywheel_version_fabric}")
+
+    modCompileOnly("maven.modrinth:create-big-cannons:${createbigcannons_version}")
 }
 
 architectury {
@@ -21,6 +40,11 @@ loom {
     accessWidenerPath = file("src/main/resources/valkyrienskies-common.accesswidener")
 }
 
+jar {
+    // Exclude dummy Optifine classes
+    exclude "net/optifine/**"
+}
+
 publishing {
     publications {
         mavenCommon(MavenPublication) {
@@ -28,6 +52,10 @@ publishing {
             version = project.version
             artifactId = rootProject.archives_base_name + "-" + project.name
             from components.java
+
+            artifact(jar) {
+                classifier 'dev'
+            }
         }
     }
 }

@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.valkyrienskies.core.game.ships.ShipObjectClient;
+import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(ChunkRenderDispatcher.RenderChunk.class)
@@ -40,7 +40,7 @@ public class MixinRenderChunk {
             return;
         }
 
-        final ShipObjectClient shipObject = VSGameUtilsKt.getShipObjectManagingPos(world, origin);
+        final ClientShip shipObject = VSGameUtilsKt.getShipObjectManagingPos(world, origin);
         if (shipObject != null) {
             final Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
             final Vector3dc chunkPosInWorld = shipObject.getRenderTransform().getShipToWorldMatrix().transformPosition(
@@ -49,6 +49,19 @@ public class MixinRenderChunk {
             final double relDistanceSq =
                 chunkPosInWorld.distanceSquared(camera.getPosition().x, camera.getPosition().y, camera.getPosition().z);
             cir.setReturnValue(relDistanceSq);
+        }
+    }
+
+    // This fixes ship blocks not rendering for some reason...
+    @Inject(method = "hasAllNeighbors", at = @At("HEAD"), cancellable = true)
+    private void preHasAllNeighbors(final CallbackInfoReturnable<Boolean> cir) {
+        final ClientLevel world = Minecraft.getInstance().level;
+        if (world == null) {
+            return;
+        }
+
+        if (VSGameUtilsKt.isBlockInShipyard(world, origin)) {
+            cir.setReturnValue(true);
         }
     }
 }

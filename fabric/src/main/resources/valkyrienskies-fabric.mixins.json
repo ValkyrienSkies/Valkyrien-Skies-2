@@ -3,11 +3,24 @@
   "package": "org.valkyrienskies.mod.fabric.mixin",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
+    "compat.create.MixinBlockBreakingKineticTileEntity",
+    "compat.create.MixinBlocks",
+    "compat.create.MixinControlledContraptionEntity",
+    "compat.sodium.MixinRenderSectionManager",
+    "feature.explosions.ClipContextMixin",
+    "server.network.MixinServerGamePacketListenerImpl",
+    "server.network.MixinServerPlayerGameMode",
     "world.level.block.FireMixin"
   ],
   "client": [
-    "ExampleFabricMixin",
-    "client.main.MixinMain"
+    "client.render.MixinLevelRenderer",
+    "compat.create.client.MixinContraptionHandlerClient",
+    "compat.create.client.MixinContraptionRenderInfo",
+    "compat.create.client.MixinCullingBlockEntityIterator",
+    "compat.create.client.MixinFlwContraption",
+    "compat.create.client.MixinSuperGlueSelectionHandler",
+    "feature.duplicate_keybindings.KeyMappingAccessor",
+    "feature.duplicate_keybindings.MixinKeyMapping"
   ],
   "injectors": {
     "defaultRequire": 1

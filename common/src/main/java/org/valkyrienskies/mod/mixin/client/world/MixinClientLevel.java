@@ -1,15 +1,18 @@
 package org.valkyrienskies.mod.mixin.client.world;
 
-import java.util.Random;
+import static org.valkyrienskies.mod.common.ValkyrienSkiesMod.getVsCore;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
@@ -28,9 +31,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.core.api.Ship;
-import org.valkyrienskies.core.game.ships.ShipObjectClientWorld;
-import org.valkyrienskies.core.hooks.VSCoreHooksKt;
+import org.valkyrienskies.core.api.ships.Ship;
+import org.valkyrienskies.core.apigame.world.ClientShipWorldCore;
 import org.valkyrienskies.core.util.AABBdUtilKt;
 import org.valkyrienskies.core.util.VectorConversionsKt;
 import org.valkyrienskies.mod.client.audio.SimpleSoundInstanceOnShip;
@@ -40,7 +42,7 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 @Mixin(ClientLevel.class)
 public abstract class MixinClientLevel implements IShipObjectWorldClientProvider {
     @Unique
-    private final Random vsRandom = new Random();
+    private final RandomSource vsRandom = RandomSource.create();
 
     @Shadow
     @Final
@@ -48,7 +50,7 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
 
     @NotNull
     @Override
-    public ShipObjectClientWorld getShipObjectWorld() {
+    public ClientShipWorldCore getShipObjectWorld() {
         return ((IShipObjectWorldClientProvider) minecraft).getShipObjectWorld();
     }
 
@@ -59,7 +61,7 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
 
     @Inject(method = "disconnect", at = @At("TAIL"))
     private void afterDisconnect(final CallbackInfo ci) {
-        VSCoreHooksKt.getCoreHooks().afterDisconnect();
+        getVsCore().getHooks().afterDisconnect();
     }
 
     // do particle ticks for ships near the player
@@ -153,12 +155,14 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
             }
 
             if (holdingBarrierItem && blockState.is(Blocks.BARRIER)) {
-                thisAsClientLevel.addParticle(ParticleTypes.BARRIER, (double) posX + 0.5, (double) posY + 0.5,
+                thisAsClientLevel.addParticle(new BlockParticleOption(ParticleTypes.BLOCK_MARKER, blockState),
+                    (double) posX + 0.5, (double) posY + 0.5,
                     (double) posZ + 0.5, 0.0, 0.0, 0.0);
             }
 
             if (!blockState.isCollisionShapeFullBlock(thisAsClientLevel, mutableBlockPos)) {
                 thisAsClientLevel.getBiome(mutableBlockPos)
+                    .value()
                     .getAmbientParticle()
                     .ifPresent(
                         ambientParticleSettings -> {
@@ -182,19 +186,21 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
     @Redirect(
         at = @At(
             value = "NEW",
-            target = "net/minecraft/client/resources/sounds/SimpleSoundInstance"
+            target = "(Lnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FFLnet/minecraft/util/RandomSource;DDD)Lnet/minecraft/client/resources/sounds/SimpleSoundInstance;"
         ),
-        method = "playLocalSound(DDDLnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FFZ)V"
+        method = "playSound(DDDLnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FFZJ)V"
     )
     private SimpleSoundInstance redirectNewSoundInstance(final SoundEvent soundEvent, final SoundSource soundSource,
-        final float volume, final float pitch, final double x, final double y, final double z) {
+        final float volume, final float pitch, final RandomSource randomSource, final double x, final double y,
+        final double z) {
 
         final Ship ship = VSGameUtilsKt.getShipManagingPos(ClientLevel.class.cast(this), x, y, z);
         if (ship != null) {
-            return new SimpleSoundInstanceOnShip(soundEvent, soundSource, volume, pitch, x, y, z,
+            return new SimpleSoundInstanceOnShip(soundEvent, soundSource, volume, pitch, randomSource, x, y, z,
                 ship);
         }
 
-        return new SimpleSoundInstance(soundEvent, soundSource, volume, pitch, x, y, z);
+        return new SimpleSoundInstance(soundEvent, soundSource, volume, pitch, randomSource, x, y, z);
     }
+
 }

@@ -2,7 +2,7 @@ package org.valkyrienskies.mod.common.util
 
 import org.joml.Vector3d
 import org.joml.Vector3dc
-import org.valkyrienskies.core.game.ships.ShipId
+import org.valkyrienskies.core.api.ships.properties.ShipId
 
 /**
  * This stores the information needed to properly drag entities with ships.
@@ -16,16 +16,24 @@ class EntityDraggingInformation {
             field = value
         }
     var ticksSinceStoodOnShip: Int = 0
+    var mountedToEntity: Boolean = false
 
     // Used by the client rendering code only
     var cachedLastPosition: Vector3dc? = null
     var restoreCachedLastPosition = false
 
     fun isEntityBeingDraggedByAShip(): Boolean {
-        return (lastShipStoodOn != null) && (ticksSinceStoodOnShip < 10)
+        return (lastShipStoodOn != null) && (ticksSinceStoodOnShip < TICKS_TO_DRAG_ENTITIES) && !mountedToEntity
+    }
+
+    companion object {
+        // Max number of ticks we will drag an entity after the entity has jumped off the ship
+        private const val TICKS_TO_DRAG_ENTITIES = 20
     }
 }
 
 interface IEntityDraggingInformationProvider {
     val draggingInformation: EntityDraggingInformation
+
+    fun `vs$shouldDrag`(): Boolean
 }

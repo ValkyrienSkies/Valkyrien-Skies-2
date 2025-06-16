@@ -6,55 +6,24 @@ import net.minecraft.client.renderer.entity.EntityRenderer
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.projectile.AbstractHurtingProjectile
 import org.joml.Vector3d
-import org.joml.Vector3dc
-import org.valkyrienskies.core.api.ClientShip
-import org.valkyrienskies.core.api.Ship
-import org.valkyrienskies.mod.common.getShipObjectManagingPos
+import org.valkyrienskies.core.api.ships.ClientShip
+import org.valkyrienskies.core.api.ships.Ship
+import org.valkyrienskies.core.util.component1
+import org.valkyrienskies.core.util.component2
+import org.valkyrienskies.core.util.component3
+import org.valkyrienskies.mod.common.toWorldCoordinates
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toMinecraft
 import kotlin.math.atan2
 import kotlin.math.sqrt
 
 object WorldEntityHandler : VSEntityHandler {
-    override fun freshEntityInShipyard(entity: Entity, ship: Ship, position: Vector3dc) {
-        val newPos = ship.shipToWorld.transformPosition(Vector3d(position))
-        entity.teleportTo(newPos.x, newPos.y, newPos.z)
-        entity.xo = entity.x
-        entity.yo = entity.y
-        entity.zo = entity.z
+    override fun freshEntityInShipyard(entity: Entity, ship: Ship) {
+        moveEntityFromShipyardToWorld(entity, ship)
+    }
 
-        val shipVelocity = Vector3d().add(ship.velocity)
-            .add(
-                newPos.sub(ship.shipTransform.shipPositionInWorldCoordinates, Vector3d())
-                    .cross(ship.omega)
-            ).mul(0.05) // Tick velocity
-
-        entity.deltaMovement =
-            ship.shipTransform.transformDirectionNoScalingFromShipToWorld(entity.deltaMovement.toJOML(), Vector3d())
-                .add(shipVelocity)
-                .toMinecraft()
-
-        val direction =
-            ship.shipTransform.transformDirectionNoScalingFromShipToWorld(entity.lookAngle.toJOML(), Vector3d())
-        val yaw = -atan2(direction.x, direction.z)
-        val pitch = -atan2(direction.y, sqrt((direction.x * direction.x) + (direction.z * direction.z)))
-        entity.yRot = (yaw * (180 / Math.PI)).toFloat()
-        entity.xRot = (pitch * (180 / Math.PI)).toFloat()
-        entity.yRotO = entity.yRot
-        entity.xRotO = entity.xRot
-
-        if (entity is AbstractHurtingProjectile) {
-            val powerJank = Vector3d(entity.xPower, entity.yPower, entity.zPower)
-
-            ship.shipTransform.transformDirectionNoScalingFromShipToWorld(
-                powerJank,
-                powerJank
-            )
-
-            entity.xPower = powerJank.x
-            entity.yPower = powerJank.y
-            entity.zPower = powerJank.z
-        }
+    override fun entityRemovedFromShipyard(entity: Entity, ship: Ship) {
+        // Do nothing
     }
 
     override fun <T : Entity> applyRenderTransform(
@@ -68,19 +37,58 @@ object WorldEntityHandler : VSEntityHandler {
     }
 
     override fun positionSetFromVehicle(self: Entity, vehicle: Entity, x: Double, y: Double, z: Double) {
-        val pos = Vector3d(x, y, z)
-        val ship = self.level.getShipObjectManagingPos(pos)
+        val (wx, wy, wz) = self.level().toWorldCoordinates(x, y, z)
+        self.setPos(wx, wy, wz)
+    }
 
-        val worldSet = if (ship != null)
-            ship.shipToWorld.transformPosition(pos)
-        else
-            pos
-
-        self.setPos(worldSet.x, worldSet.y, worldSet.z)
+    override fun getTeleportPos(self: Entity, pos: Vector3d): Vector3d {
+        return self.level().toWorldCoordinates(pos)
     }
 
     override fun applyRenderOnMountedEntity(
         ship: ClientShip, self: Entity, passenger: Entity, partialTicks: Float, matrixStack: PoseStack
     ) {
+    }
+
+    fun moveEntityFromShipyardToWorld(entity: Entity, ship: Ship) =
+        moveEntityFromShipyardToWorld(entity, ship, entity.x, entity.y, entity.z)
+
+    fun moveEntityFromShipyardToWorld(
+        entity: Entity, ship: Ship, entityX: Double, entityY: Double, entityZ: Double
+    ) {
+        val newPos = ship.shipToWorld.transformPosition(Vector3d(entityX, entityY, entityZ))
+        entity.setPos(newPos.x, newPos.y, newPos.z)
+        entity.xo = entity.x
+        entity.yo = entity.y
+        entity.zo = entity.z
+
+        val newPosInShipLocal = Vector3d(newPos).sub(ship.transform.positionInWorld)
+        val shipVelocity = Vector3d(ship.velocity) // ship linear velocity
+            .add(Vector3d(ship.omega).cross(newPosInShipLocal)) // angular velocity
+            .mul(0.05) // Tick velocity
+
+        val entityVelocity = ship.transform.shipToWorldRotation.transform(entity.deltaMovement.toJOML())
+
+        entity.deltaMovement = Vector3d(entityVelocity)
+            .add(shipVelocity)
+            .toMinecraft()
+
+        val direction = ship.transform.shipToWorldRotation.transform(entity.lookAngle.toJOML())
+        val yaw = -atan2(direction.x, direction.z)
+        val pitch = -atan2(direction.y, sqrt((direction.x * direction.x) + (direction.z * direction.z)))
+        entity.yRot = (yaw * (180 / Math.PI)).toFloat()
+        entity.xRot = (pitch * (180 / Math.PI)).toFloat()
+        entity.yRotO = entity.yRot
+        entity.xRotO = entity.xRot
+
+        if (entity is AbstractHurtingProjectile) {
+            val power = Vector3d(entity.xPower, entity.yPower, entity.zPower)
+
+            ship.transform.shipToWorldRotation.transform(power)
+
+            entity.xPower = power.x
+            entity.yPower = power.y
+            entity.zPower = power.z
+        }
     }
 }

@@ -1,18 +1,17 @@
 package org.valkyrienskies.mod.common.hooks
 
 import net.minecraft.client.Minecraft
-import org.valkyrienskies.core.game.ships.ShipObjectClientWorld
-import org.valkyrienskies.core.game.ships.ShipObjectServerWorld
-import org.valkyrienskies.core.hooks.AbstractCoreHooks
-import org.valkyrienskies.core.hooks.PlayState
-import org.valkyrienskies.core.hooks.PlayState.CLIENT_MULTIPLAYER
-import org.valkyrienskies.core.hooks.PlayState.CLIENT_SINGLEPLAYER
-import org.valkyrienskies.core.hooks.PlayState.CLIENT_TITLESCREEN
-import org.valkyrienskies.core.hooks.PlayState.SERVERSIDE
+import org.valkyrienskies.core.api.world.ShipWorld
+import org.valkyrienskies.core.apigame.hooks.CoreHooksOut
+import org.valkyrienskies.core.apigame.hooks.PlayState
+import org.valkyrienskies.core.apigame.hooks.PlayState.CLIENT_MULTIPLAYER
+import org.valkyrienskies.core.apigame.hooks.PlayState.CLIENT_SINGLEPLAYER
+import org.valkyrienskies.core.apigame.hooks.PlayState.CLIENT_TITLESCREEN
+import org.valkyrienskies.core.apigame.hooks.PlayState.SERVERSIDE
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.shipObjectWorld
 
-abstract class CommonHooksImpl : AbstractCoreHooks() {
+abstract class CommonHooksImpl : CoreHooksOut {
 
     override val playState: PlayState
         get() {
@@ -33,9 +32,9 @@ abstract class CommonHooksImpl : AbstractCoreHooks() {
             return CLIENT_MULTIPLAYER
         }
 
-    override val currentShipServerWorld: ShipObjectServerWorld?
+    override val currentShipServerWorld: ShipWorld?
         get() = ValkyrienSkiesMod.currentServer?.shipObjectWorld
 
-    override val currentShipClientWorld: ShipObjectClientWorld
-        get() = Minecraft.getInstance().shipObjectWorld
+    override val currentShipClientWorld: ShipWorld
+        get() = Minecraft.getInstance().shipObjectWorld!!
 }
