@@ -2,6 +2,7 @@ package org.valkyrienskies.mod.common.util
 
 import net.minecraft.world.entity.player.Player
 import org.joml.Vector3d
+import org.valkyrienskies.core.api.ships.properties.ShipId
 import org.valkyrienskies.core.apigame.world.IPlayer
 import org.valkyrienskies.core.apigame.world.PlayerState
 import org.valkyrienskies.core.apigame.world.properties.DimensionId
@@ -31,6 +32,8 @@ class MinecraftPlayer(playerObject: Player) : IPlayer {
 
     override val dimension: DimensionId
         get() = player.level().dimensionId
+
+    override val forceWatchingShips = HashSet<ShipId>()
 
     override fun getPosition(dest: Vector3d): Vector3d {
         return dest.set(player.x, player.y, player.z)

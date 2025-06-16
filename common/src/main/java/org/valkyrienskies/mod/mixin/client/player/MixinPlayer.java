@@ -13,6 +13,7 @@ import net.minecraft.world.phys.AABB;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity;
 
 @Mixin(Player.class)
@@ -23,6 +24,28 @@ public abstract class MixinPlayer extends LivingEntity {
     protected MixinPlayer(final EntityType<? extends LivingEntity> entityType,
         final Level level) {
         super(entityType, level);
+    }
+
+    @WrapOperation(
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/world/entity/Entity;getBoundingBox()Lnet/minecraft/world/phys/AABB;"
+        ),
+        method = "aiStep"
+    )
+    private AABB redirectEntityGetBoundingBox(final Entity entity, final Operation<AABB> getBoundingBox) {
+        return VSGameUtilsKt.transformAabbToWorld(entity.level(), getBoundingBox.call(entity));
+    }
+
+    @WrapOperation(
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/world/entity/player/Player;getBoundingBox()Lnet/minecraft/world/phys/AABB;"
+        ),
+        method = "aiStep"
+    )
+    private AABB redirectPlayerGetBoundingBox(final Player entity, final Operation<AABB> getBoundingBox) {
+        return VSGameUtilsKt.transformAabbToWorld(entity.level(), getBoundingBox.call(entity));
     }
 
     @WrapOperation(
