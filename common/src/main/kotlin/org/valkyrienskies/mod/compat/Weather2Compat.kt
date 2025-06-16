@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.compat
 
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.world.entity.LivingEntity
 import org.joml.Vector3d
 import org.valkyrienskies.core.api.ships.getAttachment
 import org.valkyrienskies.mod.common.config.VSGameConfig
@@ -9,13 +10,15 @@ import org.valkyrienskies.mod.common.util.GameTickForceApplier
 import org.valkyrienskies.mod.common.util.toMinecraft
 import weather2.ServerTickHandler
 import weather2.weathersystem.storm.StormObject
+import weather2.weathersystem.storm.WeatherEntityConfig
 
 object Weather2Compat {
     fun tick(level: ServerLevel) {
         val mgr = ServerTickHandler
             .getWeatherManagerFor(level.dimension())
 
-        val windMult = VSGameConfig.SERVER.Weather2.windMultiplier
+        // Devided by 1000 because we need a very small multiplier but the config is weird with very small decimals
+        val windMult = VSGameConfig.SERVER.Weather2.windMultiplier / 1000
         val windMax = VSGameConfig.SERVER.Weather2.windMaxVel
         val stormDampen = 1.0f - VSGameConfig.SERVER.Weather2.stormDampening
         val stormRange = VSGameConfig.SERVER.Weather2.stormRange

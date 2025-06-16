@@ -78,7 +78,7 @@ object VSGameConfig {
             @JsonSchema(
                 description = "How much Weather 2's wind affects VS ships"
             )
-            var windMultiplier = 0.0001f
+            var windMultiplier = 0.1f
 
             @JsonSchema(
                 description = "The maximum velocity a VS ship can travel because of wind"
