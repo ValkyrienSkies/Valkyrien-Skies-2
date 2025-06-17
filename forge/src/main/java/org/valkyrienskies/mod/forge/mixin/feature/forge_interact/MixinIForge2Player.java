@@ -5,6 +5,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.common.ForgeMod;
 import net.minecraftforge.common.extensions.IForgePlayer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
@@ -13,7 +14,7 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 
 @Mixin(IForgePlayer.class)
-public interface MixinIForgePlayer {
+public interface MixinIForge2Player {
 
     @Shadow
     Player self();
@@ -34,7 +35,26 @@ public interface MixinIForgePlayer {
                 pos.getY() + 0.5,
                 pos.getZ() + 0.5,
                 eyes.x, eyes.y, eyes.z
-            ) < reach * reach;
+            ) <= reach * reach;
+        } else {
+            return true;
+        }
+    }
+
+    /**
+     * Include ships in server-side distance check when player interacts with a block.
+     */
+    @Overwrite(remap = false)
+    default boolean canReachRaw(final BlockPos pos, final double padding) {
+        if (VSGameConfig.SERVER.getEnableInteractDistanceChecks()) {
+            double reach = self().getAttributeValue(ForgeMod.BLOCK_REACH.get()) + padding;
+            final Vec3 eyes = this.self().getEyePosition();
+            return VSGameUtilsKt.squaredDistanceBetweenInclShips(this.self().level(),
+                pos.getX() + 0.5,
+                pos.getY() + 0.5,
+                pos.getZ() + 0.5,
+                eyes.x, eyes.y, eyes.z
+            ) <= reach * reach;
         } else {
             return true;
         }
