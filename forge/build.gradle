@@ -77,7 +77,7 @@ dependencies {
     modImplementation("curse.maven:coroutil-237749:5096038")
 
     // CC Tweaked
-    modCompileOnly("maven.modrinth:cc-tweaked:${cc_tweaked_version}")
+    modRuntimeOnly("cc.tweaked:cc-tweaked-${minecraft_version}-forge:${cc_tweaked_version}")
 
     // Modular Routers
     modCompileOnly("curse.maven:mr-250294:4696089")

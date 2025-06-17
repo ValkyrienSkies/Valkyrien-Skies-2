@@ -63,13 +63,8 @@ dependencies {
         exclude group: "com.google.guava"
     }
 
-    // CC Restitched
-    //modImplementation("curse.maven:cc-restitched-462672:3908334"){
-    //    exclude module: "jsonschema.module.addon"
-    //}
-
-    // CC Restitched
-    //modImplementation("curse.maven:cc-tweaked-282001:${cc_tweaked_version}")
+    // CC Tweaked
+    modRuntimeOnly("cc.tweaked:cc-tweaked-${minecraft_version}-fabric:${cc_tweaked_version}")
 
     // Create compat
     modCompileOnly("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}") {
