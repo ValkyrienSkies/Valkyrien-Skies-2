@@ -1,6 +1,6 @@
 package org.valkyrienskies.mod.mixinducks.mod_compat.create;
 
-import com.simibubi.create.foundation.utility.Iterate;
+import net.createmod.catnip.data.Iterate;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;

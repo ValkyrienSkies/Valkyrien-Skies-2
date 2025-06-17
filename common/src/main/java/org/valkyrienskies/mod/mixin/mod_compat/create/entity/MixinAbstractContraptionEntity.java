@@ -3,17 +3,16 @@ package org.valkyrienskies.mod.mixin.mod_compat.create.entity;
 import static org.valkyrienskies.mod.common.util.VectorConversionsMCKt.toJOML;
 import static org.valkyrienskies.mod.common.util.VectorConversionsMCKt.toMinecraft;
 
-import com.simibubi.create.AllMovementBehaviours;
+import com.simibubi.create.api.behaviour.movement.MovementBehaviour;
 import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
 import com.simibubi.create.content.contraptions.Contraption;
 import com.simibubi.create.content.contraptions.OrientedContraptionEntity;
 import com.simibubi.create.content.contraptions.StructureTransform;
 import com.simibubi.create.content.contraptions.actors.harvester.HarvesterMovementBehaviour;
-import com.simibubi.create.content.contraptions.behaviour.MovementBehaviour;
 import com.simibubi.create.content.contraptions.behaviour.MovementContext;
 import com.simibubi.create.content.kinetics.base.BlockBreakingMovementBehaviour;
 import com.simibubi.create.content.kinetics.deployer.DeployerMovementBehaviour;
-import com.simibubi.create.foundation.utility.VecHelper;
+import net.createmod.catnip.math.VecHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.server.level.ServerLevel;
@@ -43,6 +42,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 import org.valkyrienskies.core.api.ships.ContraptionWingProvider;
 import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.core.api.ships.LoadedShip;
@@ -99,10 +99,8 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
         final LoadedShip shipObjectEntityMountedTo = VSGameUtilsKt.getShipObjectManagingPos(passenger.level(), toJOML(this.position()));
         if (shipObjectEntityMountedTo == null) return null;
 
-        Vec3 transformedPos = this.getPassengerPosition(passenger, partialTicks == null ? 1 : partialTicks);
-        if (transformedPos == null) transformedPos = this.getPosition(partialTicks == null ? 0.0f : partialTicks);
-
-        return new ShipMountedToData(shipObjectEntityMountedTo, toJOML(transformedPos));
+        final Vector3dc mountedPosInShip = toJOML(this.getPassengerPosition(passenger, partialTicks == null ? 1 : partialTicks));
+        return new ShipMountedToData(shipObjectEntityMountedTo, mountedPosInShip);
     }
 
     //Region start - fix being sent to the  ̶s̶h̶a̶d̶o̶w̶r̶e̶a̶l̶m̶ shipyard on ship contraption disassembly
@@ -195,7 +193,7 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
     @Shadow
     protected abstract void onContraptionStalled();
 
-    @Inject(method = "tickActors", at = @At("HEAD"), cancellable = true, remap = false)
+    @Inject(method = "tickActors", at = @At("HEAD"), cancellable = true, locals = LocalCapture.CAPTURE_FAILHARD, remap = false)
     private void preTickActors(final CallbackInfo ci) {
         ci.cancel();
 
@@ -208,7 +206,7 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
         for (final MutablePair<StructureBlockInfo, MovementContext> pair : contraption.getActors()) {
             final MovementContext context = pair.right;
             final StructureBlockInfo blockInfo = pair.left;
-            final MovementBehaviour actor = AllMovementBehaviours.getBehaviour(blockInfo.state());
+            final MovementBehaviour actor = MovementBehaviour.REGISTRY.get(blockInfo.state());
 
             if (actor == null)
                 continue;
@@ -274,7 +272,7 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
 
     //Region end
     //Region start - Contraption Entity Collision
-    @Inject(method = "getContactPointMotion", at = @At("HEAD"))
+    @Inject(method = "getContactPointMotion", at = @At("HEAD"), remap = false)
     private void modGetContactPointMotion(Vec3 globalContactPoint, CallbackInfoReturnable<Vec3> cir) {
         if (VSGameUtilsKt.isBlockInShipyard(level(), getAnchorVec().x, getAnchorVec().y, getAnchorVec().z) != VSGameUtilsKt.isBlockInShipyard(level(), getPrevAnchorVec().x, getPrevAnchorVec().y, getPrevAnchorVec().z)) {
             Ship ship = VSGameUtilsKt.getShipManagingPos(level(), getAnchorVec());

@@ -1,6 +1,6 @@
 package org.valkyrienskies.mod.mixin.mod_compat.create.client;
 
-import com.simibubi.create.foundation.placement.PlacementOffset;
+import net.createmod.catnip.placement.PlacementOffset;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
@@ -29,7 +29,7 @@ public class MixinMultiplePlacementHelpers {
     @Unique
     private Level world;
 
-    @Inject(method = "getOffset", at = @At("HEAD"))
+    @Inject(method = "getOffset", at = @At("HEAD"), remap = false)
     private void harvestWorld(Player player, Level world, BlockState state, BlockPos pos, BlockHitResult ray, CallbackInfoReturnable<PlacementOffset> cir) {
         this.world = world;
     }

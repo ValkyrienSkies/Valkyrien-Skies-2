@@ -75,7 +75,8 @@ dependencies {
     modCompileOnly("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}") {
         exclude group: 'com.github.AlphaMode', module: 'fakeconfigtoml'
     }
-    modCompileOnly("com.jozufozu.flywheel:flywheel-fabric-${minecraft_version}:${flywheel_version_fabric}")
+    modCompileOnly("net.createmod.ponder:Ponder-Common-${minecraft_version}:${ponder_version_fabric}") { transitive = false }
+    modCompileOnly("dev.engine-room.flywheel:flywheel-fabric-api-${minecraft_version}:${flywheel_version_fabric}")
     modCompileOnly("com.tterrag.registrate_fabric:Registrate:${registrate_version}")
 
     //modImplementation("io.github.fabricators_of_create.Porting-Lib:Porting-Lib:$port_lib_version")

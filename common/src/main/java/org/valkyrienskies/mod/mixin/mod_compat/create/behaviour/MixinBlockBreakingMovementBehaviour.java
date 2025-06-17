@@ -43,7 +43,7 @@ public class MixinBlockBreakingMovementBehaviour {
     @Unique
     private MovementContext movementContext;
 
-    @Inject(method = "throwEntity", at = @At("HEAD"))
+    @Inject(method = "throwEntity", at = @At("HEAD"), remap = false)
     private void injectThrowEntity(final MovementContext context, final Entity entity, final CallbackInfo ci) {
         movementContext = context;
     }
