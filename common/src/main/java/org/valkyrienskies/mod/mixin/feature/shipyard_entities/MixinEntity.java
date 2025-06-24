@@ -11,7 +11,9 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.RelativeMovement;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.AABB;
 import org.joml.Vector3d;
+import org.joml.primitives.AABBic;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -158,6 +160,41 @@ public abstract class MixinEntity {
             VectorConversionsMCKt.toJOML(thisAsEntity.position()));
         if (ship != null) {
             VSEntityManager.INSTANCE.getHandler(thisAsEntity).entityRemovedFromShipyard(thisAsEntity, ship);
+        }
+    }
+
+    @Inject(
+        method = "move",
+        at = @At("HEAD")
+    )
+    void leaveShipyard(CallbackInfo ci) {
+        Entity e = Entity.class.cast(this);
+        Ship ship = VSGameUtilsKt.getShipManaging(e);
+        if (ship != null) {
+            AABBic shipAABBi = ship.getShipAABB();
+            if (shipAABBi == null || !shipAABBi.isValid()) {
+                // Only happens after the ship was broken. Move entities to world unconditionally.
+                WorldEntityHandler.INSTANCE.moveEntityFromShipyardToWorld(Entity.class.cast(this), ship);
+                return;
+            }
+
+            // JANK: If the ship does not protrude vertically, entities like minecarts might end up on top of the ship,
+            // and thus outside its bounding box. If we expand the bounding box too much, our minecarts will dismount
+            // the ship rather late. We can't use e.isOnRails() as it's reset like once a second. Combined with the
+            // minecarts joining the ships once they are close enough, an early dismount will result in an infinite loop
+            // which is really the worst case, especially if some other entity is riding the minecart.
+
+            // Right now the compromise is to extend the ship AABB just a bit and do other checks.
+
+            AABB eBB = e.getBoundingBox();
+            AABB shipAABB = new AABB(
+                shipAABBi.minX(), shipAABBi.minY(), shipAABBi.minZ(),
+                shipAABBi.maxX(), shipAABBi.maxY(), shipAABBi.maxZ()
+            ).inflate(-0.25, 1.5, -0.25);
+
+            if (!shipAABB.intersects(eBB) && e.flyDist > 0.05) {
+                WorldEntityHandler.INSTANCE.moveEntityFromShipyardToWorld(Entity.class.cast(this), ship);
+            }
         }
     }
 

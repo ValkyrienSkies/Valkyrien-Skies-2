@@ -6,6 +6,10 @@ in the ship.
 
 #### Mixins
 
+* `MixinEntity#leaveShipyard` Handles entities leaving the shipyard once moving
+  away from the ship.
+    * This fixes mobile shipyard entities falling into shipyard
+    void, for example, minecarts going off rails.
 * `MixinEntity#handlePosSet` Handles changes to the entity's position.
     * This is relevant for detecting if a entity is going out the ship's bounds.
 * `MixinEntity#positionRider` Handles mounted entities on other entities.
