@@ -93,6 +93,7 @@
     "mod_compat.create.blockentity.MixinCrushingWheelControllerTileEntity",
     "mod_compat.create.blockentity.MixinEjectorTileEntity",
     "mod_compat.create.blockentity.MixinEncasedFanTileEntity",
+    "mod_compat.create.blockentity.MixinHosePulleyBlockEntity",
     "mod_compat.create.blockentity.MixinNozzleBlockEntity",
     "mod_compat.create.blockentity.MixinSawBlockEntity",
     "mod_compat.create.blockentity.MixinSchematicannonBlockEntity",
