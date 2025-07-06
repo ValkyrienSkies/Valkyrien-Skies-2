@@ -35,6 +35,7 @@
     "compat.common_create.client.MixinSuperGlueSelectionHandler",
     "compat.common_create.client.MixinTrackBlockOutline",
     "compat.sodium.MixinRenderSectionManager",
+    "compat.oc2r.MixinComputerRenderer",
     "compat.old_create.client.MixinContraptionRenderInfo",
     "compat.old_create.client.MixinFlwContraption"
   ],
