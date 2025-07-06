@@ -108,6 +108,9 @@ dependencies {
     // CC Tweaked
     modCompileOnly("maven.modrinth:cc-tweaked:${cc_tweaked_version}")
 
+    // OpenComputers 2: Reimagined
+    modCompileOnly("maven.modrinth:oc2r:${oc2r_version}")
+
     // EMF compat
     //todo: fix
     modCompileOnly("curse.maven:entity-model-features-844662:5696899")
