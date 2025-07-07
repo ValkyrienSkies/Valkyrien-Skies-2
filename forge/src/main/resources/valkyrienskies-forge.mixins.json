@@ -38,7 +38,6 @@
     "compat.oc2r.MixinComputerRenderer",
     "compat.oc2r.MixinMonitorRenderer",
     "compat.oc2r.MixinProjectorDepthRenderer",
-    "compat.oc2r.MixinProjectorRenderer",
     "compat.old_create.client.MixinContraptionRenderInfo",
     "compat.old_create.client.MixinFlwContraption"
   ],
