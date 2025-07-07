@@ -14,6 +14,7 @@ import org.valkyrienskies.mod.api.ValkyrienSkies;
 @Pseudo
 @Mixin(ProjectorDepthRenderer.class)
 public abstract class MixinProjectorDepthRenderer {
+
     @ModifyVariable(method = "renderProjectorDepths", at = @At("STORE"), ordinal = 1, remap = false)
     private static Vec3 valkyrienskies$transformProjectorPosToWorld(Vec3 original, @Local(argsOnly = true) ClientLevel level) {
         Ship ship = ValkyrienSkies.getShipManagingBlock(level, original);
