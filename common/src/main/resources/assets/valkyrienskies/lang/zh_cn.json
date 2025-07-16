@@ -1,8 +1,11 @@
 {
   "itemGroup.valkyrienSkies": "瓦尔基里天空",
+
+  "tooltip.valkyrienskies.mass": "质量",
+  "category.valkyrienskies.driving": "驾驶",
   "key.valkyrienskies.ship_cruise": "巡航",
   "key.valkyrienskies.ship_down": "下降",
-  "category.valkyrienskies.driving": "驾驶",
+
   "block.valkyrienskies.test_chair": "调试椅",
   "block.valkyrienskies.test_hinge": "调试铰链",
   "block.valkyrienskies.test_flap": "调试襟翼",
@@ -16,7 +19,7 @@
   "item.valkyrienskies.connection_checker": "连接校验器",
   "item.valkyrienskies.physics_entity_creator": "物理实体生成器",
   "entity.valkyrienskies.vs_physics_entity": "物理实体",
-  "tooltip.valkyrienskies.mass": "质量",
+
   "argument.valkyrienskies.ship.no_found": "未找到物理结构",
   "argument.valkyrienskies.ship.multiple_found": "找到了多个物理结构",
   "command.valkyrienskies.delete.success": "删除了%d个物理结构！",
