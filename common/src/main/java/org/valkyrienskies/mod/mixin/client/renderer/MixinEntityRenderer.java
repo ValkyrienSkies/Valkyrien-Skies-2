@@ -22,9 +22,6 @@ public class MixinEntityRenderer {
      * This is necessary to avoid the vanilla flickering that occurs when entities are at high speeds.
      * <p>
      * Presumably, it is caused by the culling AABB only being updated on a subsequent tick, so we bypass that.
-     * @param instance
-     * @param original
-     * @return
      */
     @WrapOperation(method = "shouldRender", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;getBoundingBoxForCulling()Lnet/minecraft/world/phys/AABB;"))
     private AABB redirectAABBConstructor(Entity instance, Operation<AABB> original) {

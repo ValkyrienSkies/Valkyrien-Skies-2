@@ -23,6 +23,7 @@ import kotlin.math.asin
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 object EntityDragger {
     // How much we decay the addedMovement each tick after player hasn't collided with a ship for at least 10 ticks.
@@ -211,9 +212,10 @@ object EntityDragger {
 
     @JvmStatic
     fun backOff(vec3: Vec3, ship: Ship, player: Player, cLevel: Level): Vec3 {
-        var d = vec3.x
-        var e = vec3.y
-        var f = vec3.z
+        var transformedVec = ship.worldToShip.transformDirection(vec3.toJOML(), Vector3d())
+        var d = transformedVec.x
+        var e = transformedVec.y
+        var f = transformedVec.z
 
         while (d != 0.0 && !isValidWalkablePosition(cLevel, ship, player, d, Direction.EAST)) {
             if (d < 0.025 && d >= -0.025) {
@@ -274,12 +276,26 @@ object EntityDragger {
             }
         }
 
-        return Vec3(d, vec3.y, f)
+        val motionLength = sqrt(d * d + e * e + f * f)
+        return ship.shipToWorld.transformDirection(Vector3d(d, e, f)).normalize().mul(motionLength).toMinecraft()
     }
 
     private fun isValidWalkablePosition(
         level: Level, ship: Ship, player: Player, step: Double, dir: Direction
     ): Boolean {
+        // todo: eventually figure this out
+        // val downDirInShip: Vector3dc? = ship.worldToShip.transformDirection(
+        //     Vector3d(0.0, -1.0, 0.0), Vector3d()
+        // ).normalize().mul(player.maxUpStep().toDouble())
+        //
+        // val potentialMovement = ship.transform.shipToWorld.transformDirection(Vector3d(dir.step())).normalize().mul(step).add(downDirInShip)
+        //
+        // val shipPolygons = EntityShipCollisionUtils.getShipPolygonsCollidingWithEntity(
+        //     player, potentialMovement.toMinecraft(), player.getBoundingBox().inflate(-0.1), level
+        // )
+        // val noWorldCollision = level.noCollision(player, player.getBoundingBox().move(potentialMovement.toMinecraft()))
+        //
+        // val noCollision = noWorldCollision && shipPolygons.isEmpty()
         val clipContext = stepTowardsEdge(level, ship, player, step, dir)
         val result = level.clip(clipContext)
         if (result.type != HitResult.Type.BLOCK) {
@@ -290,9 +306,10 @@ object EntityDragger {
         if (hitShip != null) {
             val hitSide = result.direction.normal.toJOMLD()
             val upDir: Vector3dc = Vector3d(0.0, 1.0, 0.0)
-            val hitSideInWorld = hitShip.shipToWorld.transformDirection(hitSide, Vector3d())
+            val hitSideInWorld = hitShip.shipToWorld.transformDirection(hitSide, Vector3d()).normalize()
             // If the hit side is not facing up, we can't walk on it
-            if (hitSideInWorld.dot(upDir) < 0.5) {
+            val dot = hitSideInWorld.dot(upDir)
+            if (dot < 0.5 && dot > 0.001) {
                 return false
             }
         }
@@ -303,16 +320,15 @@ object EntityDragger {
     private fun stepTowardsEdge(
         level: Level?, ship: Ship, player: Player, step: Double, dir: Direction
     ): ClipContext {
-        val potentialPosition = player.position().add(Vector3d(dir.step()).mul(step).toMinecraft())
-        val potentialPosInShip: Vector3dc = ship.worldToShip.transformPosition(potentialPosition.toJOML(), Vector3d())
+        val potentialPosition = player.position().add(ship.transform.shipToWorld.transformDirection(Vector3d(dir.step())).normalize().mul(step).toMinecraft())
         val downDirInShip: Vector3dc? = ship.worldToShip.transformDirection(
-            Vector3d(0.0, -(player.maxUpStep()).toDouble(), 0.0), Vector3d()
-        )
+            Vector3d(0.0, -1.0, 0.0), Vector3d()
+        ).normalize().mul(player.maxUpStep().toDouble())
 
-        val maxDistPos: Vector3dc = potentialPosInShip.add(downDirInShip, Vector3d())
+        val maxDistPos: Vector3dc = potentialPosition.toJOML().add(downDirInShip, Vector3d())
 
         return ClipContext(
-            potentialPosInShip.toMinecraft(), maxDistPos.toMinecraft(), ClipContext.Block.COLLIDER,
+            potentialPosition, maxDistPos.toMinecraft(), ClipContext.Block.COLLIDER,
             ClipContext.Fluid.NONE, player
         )
     }

@@ -106,7 +106,7 @@ object EntityShipCollisionUtils {
         return newMovement.toMinecraft()
     }
 
-    private fun getShipPolygonsCollidingWithEntity(
+    fun getShipPolygonsCollidingWithEntity(
         entity: Entity?,
         movement: Vec3,
         entityBoundingBox: AABB,
