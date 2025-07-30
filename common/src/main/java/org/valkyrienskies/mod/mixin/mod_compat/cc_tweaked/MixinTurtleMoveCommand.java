@@ -51,7 +51,8 @@ public abstract class MixinTurtleMoveCommand {
         method = "execute",
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/core/BlockPos;relative(Lnet/minecraft/core/Direction;)Lnet/minecraft/core/BlockPos;"
+            target = "Lnet/minecraft/core/BlockPos;relative(Lnet/minecraft/core/Direction;)Lnet/minecraft/core/BlockPos;",
+            remap = true
         ),
         remap = false
     )

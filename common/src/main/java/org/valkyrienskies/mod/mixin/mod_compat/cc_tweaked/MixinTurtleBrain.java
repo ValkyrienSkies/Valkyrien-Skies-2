@@ -7,6 +7,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Vec3i;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -37,12 +38,12 @@ public abstract class MixinTurtleBrain {
 
     @ModifyVariable(
        method = "Ldan200/computercraft/shared/turtle/core/TurtleBrain;teleportTo(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;)Z",
-       at = @At(value = "HEAD"),
+       at = @At("HEAD"),
        index = 2
     )
     private BlockPos teleportTo$modify$blockPos(final BlockPos pos) {
         final TurtleBlockEntity owner = getOwner();
-        final BlockPos oldPos = owner.getBlockPos();
+        final BlockPos oldPos = ((BlockEntity)(owner)).getBlockPos();
         final Level world = getLevel();
 
         final Ship ship = VSGameUtilsKt.getShipManagingPos(world, oldPos);
