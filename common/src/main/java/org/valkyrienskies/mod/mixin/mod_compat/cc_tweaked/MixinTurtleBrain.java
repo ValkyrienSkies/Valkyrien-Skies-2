@@ -43,7 +43,7 @@ public abstract class MixinTurtleBrain {
     )
     private BlockPos teleportTo$modify$blockPos(final BlockPos pos) {
         final TurtleBlockEntity owner = getOwner();
-        final BlockPos oldPos = ((BlockEntity)(owner)).getBlockPos();
+        final BlockPos oldPos = ((BlockEntity) (owner)).getBlockPos();
         final Level world = getLevel();
 
         final Ship ship = VSGameUtilsKt.getShipManagingPos(world, oldPos);
