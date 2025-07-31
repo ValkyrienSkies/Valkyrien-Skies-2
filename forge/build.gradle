@@ -147,9 +147,6 @@ dependencies {
     // Cloth for config
     include(modImplementation("me.shedaniel.cloth:cloth-config-forge:${cloth_config_version}"))
 
-    // MCreator slop
-    modCompileOnly("maven.modrinth:create-stuff-additions:Fyf059LK")
-
     // Shade vs-core
     implementation("org.valkyrienskies.core:util:${rootProject.vs_core_version}")
     implementation("org.valkyrienskies.core:api-game:${rootProject.vs_core_version}") {
