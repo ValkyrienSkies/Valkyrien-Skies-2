@@ -89,17 +89,18 @@ dependencies {
     //modCompileOnly("com.simibubi.create:create-${minecraft_version}:${old_create_forge_version}:slim") { transitive = false }
     modCompileOnly("com.jozufozu.flywheel:flywheel-forge-${minecraft_version}:${old_flywheel_forge_version}") { transitive = false }
 
-//    if (old_create) {
-//        modRuntimeOnly("com.simibubi.create:create-${minecraft_version}:${old_create_forge_version}:slim") {
-//            exclude(group: 'com.github.AlphaMode', module: 'fakeconfigtoml')
-//            exclude(group: 'cc.tweaked')
-//            exclude(group: 'mezz.jei')
-//        }
-//        modRuntimeOnly("com.jozufozu.flywheel:flywheel-forge-${minecraft_version}:${old_flywheel_forge_version}")
-//    } else {
-//        modRuntimeOnly("com.simibubi.create:create-${minecraft_version}:${create_version}:slim")
-//        modRuntimeOnly("dev.engine-room.flywheel:flywheel-forge-${minecraft_version}:${flywheel_version}")
-//    }
+    if (old_create) {
+        modRuntimeOnly("com.simibubi.create:create-${minecraft_version}:${old_create_forge_version}:slim") {
+            exclude(group: 'com.github.AlphaMode', module: 'fakeconfigtoml')
+            exclude(group: 'cc.tweaked')
+            exclude(group: 'mezz.jei')
+        }
+        modRuntimeOnly("com.jozufozu.flywheel:flywheel-forge-${minecraft_version}:${old_flywheel_forge_version}")
+    } else {
+        modRuntimeOnly("com.simibubi.create:create-${minecraft_version}:${create_version}:slim")
+        modRuntimeOnly("dev.engine-room.flywheel:flywheel-forge-${minecraft_version}:${flywheel_version}")
+        modRuntimeOnly("net.createmod.ponder:Ponder-Forge-${minecraft_version}:${ponder_version}")
+    }
 
     // Weather2 1.20.1
     modImplementation("curse.maven:weather-storms-tornadoes-237746:5244118")
@@ -145,6 +146,9 @@ dependencies {
 
     // Cloth for config
     include(modImplementation("me.shedaniel.cloth:cloth-config-forge:${cloth_config_version}"))
+
+    // MCreator slop
+    modCompileOnly("maven.modrinth:create-stuff-additions:Fyf059LK")
 
     // Shade vs-core
     implementation("org.valkyrienskies.core:util:${rootProject.vs_core_version}")
