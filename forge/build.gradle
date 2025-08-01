@@ -59,7 +59,11 @@ dependencies {
         transitive = false
     }
     //modCompileOnly("curse.maven:rubidium-574856:4024781")
-    modCompileOnly("maven.modrinth:embeddium:${embeddium_version}")
+    modCompileOnly("maven.modrinth:sodium:mc1.21.1-0.6.13-neoforge")
+    modCompileOnly("maven.modrinth:chloride:NEOFORGE-mc1.21.1-v1.7.2")
+    modImplementation("maven.modrinth:embeddium:1.0.15+mc1.21.1")
+
+
 
     // Twilight Forest
     // modImplementation("teamtwilight:twilightforest:${twilightforest_version}:universal")
@@ -67,10 +71,15 @@ dependencies {
     // Create Mod, see https://wiki.createmod.net/developers/depend-on-create/neoforge-1.21.1
     modImplementation("com.simibubi.create:create-${property("minecraft_version")}:${property("forge_create_version")}:slim") { transitive = false }
     modImplementation("net.createmod.ponder:Ponder-NeoForge-${property("minecraft_version")}:${property("forge_ponder_version")}")
+    modImplementation files("libs/createbigcannons-5.9.1-dev.jar")
+    modImplementation("maven.modrinth:rpl:25s6VNqT")
     modCompileOnly("dev.engine-room.flywheel:flywheel-neoforge-api-${property("minecraft_version")}:${property("forge_flywheel_version")}")
-    modRuntimeOnly("dev.engine-room.flywheel:flywheel-neoforge-${property("minecraft_version")}:${property("forge_flywheel_version")}")
+    //modCompileOnly("dev.engine-room.flywheel:flywheel-fabric-1.20.1:${property("forge_flywheel_version")}")
+    //modRuntimeOnly("dev.engine-room.flywheel:flywheel-neoforge-${property("minecraft_version")}:${property("forge_flywheel_version")}")
+    modImplementation("dev.engine-room.flywheel:flywheel-neoforge-${property("minecraft_version")}:${property("forge_flywheel_version")}")
     modImplementation("com.tterrag.registrate:Registrate:${property("forge_registrate_version")}")
 
+   // modCompileOnlyApi("dev.engine-room.flywheel:flywheel-common-mojmap-api-${property("minecraft_version")}:${property("forge_flywheel_version")}")
     // Weather2 1.20.1
     // Not on 1.21.1 yet
     // modImplementation("curse.maven:weather-storms-tornadoes-237746:5244118")
@@ -112,24 +121,71 @@ dependencies {
     // Cloth for config
     include(modImplementation("me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"))
 
-    forgeRuntimeLibrary(api("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
-        exclude module: "netty-buffer"
-        exclude module: "fastutil"
-        exclude module: "kotlin-stdlib-jdk8"
-    })
-    forgeRuntimeLibrary(include("com.fasterxml:classmate:1.5.1"))
-
     // Shade vs-core
-    shadowCommon("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
-        exclude module: "netty-buffer"
-        exclude module: "fastutil"
-        exclude module: "kotlin-stdlib-jdk8" // Don't shade kotlin-stdlib-jdk8, even though vs-core depends on it
-        exclude group: "com.google.guava"
-        exclude module: "jsonschema.module.addon"
-        exclude group: "org.jetbrains.kotlin"
-        exclude group: "org.jetbrains.kotlinx"
-        exclude module: "org.apache.commons.lang3"
+    implementation("org.valkyrienskies.core:impl:${rootProject.vs_core_version}"){
+        exclude group: 'org.joml', module: 'joml'
     }
+    forgeRuntimeLibrary shadowCommon("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
+        exclude group: 'org.joml', module: 'joml'
+        transitive = false
+    }
+
+    // region Manually include every single dependency of vs-core (total meme)
+    forgeRuntimeLibrary include("org.valkyrienskies.core:api:${rootProject.vs_core_version}") {
+        exclude group: 'org.joml', module: 'joml'
+        transitive = false
+    }
+
+    forgeRuntimeLibrary shadowCommon("org.valkyrienskies.core:api-game:${rootProject.vs_core_version}") {
+        exclude group: 'org.joml', module: 'joml'
+        transitive = false
+    }
+
+    forgeRuntimeLibrary include("org.valkyrienskies.core:util:${rootProject.vs_core_version}") {
+        exclude group: 'org.joml', module: 'joml'
+        transitive = false
+    }
+
+    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api_krunch:1.0.0+7db6a103f1") {
+        exclude group: 'org.joml', module: 'joml'
+        transitive = false
+    }
+
+    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api:1.0.0+0ba0cc41e1") {
+        exclude group: 'org.joml', module: 'joml'
+        transitive = false
+    }
+    forgeRuntimeLibrary include("javax.inject:javax.inject:1") { transitive = false }
+
+
+    // JOML for Math
+    forgeRuntimeLibrary include("org.joml:joml-primitives:1.10.0")
+
+    // Apache Commons Math for Linear Programming
+    forgeRuntimeLibrary include("org.apache.commons:commons-math3:3.6.1") { transitive = false }
+
+    // Jackson Binary Dataformat for Object Serialization
+    def jacksonVersion = '2.14.0'
+    // forked to remove module-info
+    forgeRuntimeLibrary include("com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion-rubyfork") { transitive = false }
+    forgeRuntimeLibrary include("com.fasterxml.jackson.module:jackson-module-parameter-names:$jacksonVersion") { transitive = false }
+    forgeRuntimeLibrary include("com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:$jacksonVersion") { transitive = false }
+    forgeRuntimeLibrary include("com.fasterxml.jackson.core:jackson-databind:$jacksonVersion") { transitive = false }
+    forgeRuntimeLibrary include("com.fasterxml.jackson.core:jackson-annotations:$jacksonVersion") { transitive = false }
+    forgeRuntimeLibrary include("com.fasterxml.jackson.core:jackson-core:$jacksonVersion") { transitive = false }
+    forgeRuntimeLibrary include("com.github.Rubydesic:jackson-kotlin-dsl:1.2.0") { transitive = false }
+
+    forgeRuntimeLibrary include("com.networknt:json-schema-validator:1.0.71") { transitive = false }
+    forgeRuntimeLibrary include("com.ethlo.time:itu:1.7.0") { transitive = false }
+    forgeRuntimeLibrary include("com.github.victools:jsonschema-module-jackson:4.25.0") { transitive = false }
+    forgeRuntimeLibrary include("com.github.victools:jsonschema-generator:4.25.0") { transitive = false }
+    forgeRuntimeLibrary include("com.fasterxml:classmate:1.5.1") { transitive = false }
+    forgeRuntimeLibrary include("com.flipkart.zjsonpatch:zjsonpatch:0.4.11") { transitive = false }
+    //forgeRuntimeLibrary include("org.apache.commons:commons-collections4:4.3") { transitive = false }
+
+    forgeRuntimeLibrary include("com.google.dagger:dagger:2.43.2") { transitive = false }
+
+    // endregion
 }
 
 // I don't know why, but this is the only way gradle can launch it
@@ -180,6 +236,7 @@ shadowJar {
     exclude "architectury.common.json"
     // Exclude dummy Optifine classes
     exclude "net/optifine/**"
+    exclude "org/apache/commons/**"
 
     configurations = [project.configurations.shadowCommon]
     archiveClassifier.set "dev-shadow"

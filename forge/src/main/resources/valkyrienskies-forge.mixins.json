@@ -60,14 +60,18 @@
     "feature.forge_interact.MixinIForgePlayer",
     "feature.shipyard_entities.MixinPersistentEntitySectionManager",
     "feature.water_in_ships_entity.MixinEntity",
-    "world.level.block.FireMixin"
+    "world.level.block.FireMixin",
+    "compat.flywheel.SkyLightSectionStorageMixinMixin",
+    "compat.create_big_cannons.MixinCBCUtils",
+    "compat.create_big_cannons.MixinFCMSVB",
+    "compat.create_big_cannons.MixinPitchOrientedContraptionEntity",
+    "compat.create_big_cannons.MixinSSFCMVP"
   ],
   "client": [
     "compat.cc_tweaked.MixinSpeakerSound",
     "compat.create.client.MixinContraptionHandlerClient",
     "compat.create.client.MixinSuperGlueSelectionHandler",
     "compat.create.client.MixinTrackBlockOutline",
-    "compat.sodium.MixinRenderSectionManager",
     "compat.tis3d.MixinCasingTileEntityRender",
     "compat.tis3d.MixinRenderContextImpl",
     "neoforged.neoforge.client.MixinClientHooks",
@@ -91,7 +95,10 @@
     "compat.create.client.MixinTileEntityRenderHelper",
     "compat.create.client.MixinTrainRelocator",
     "compat.create.client.MixinValueBox",
-    "compat.create.client.trackOutlines.MixinBigOutlines"
+    "compat.create.client.trackOutlines.MixinBigOutlines",
+    "compat.sodium.MixinRenderSectionManager",
+    "compat.chloride.EntityCullingMixin",
+    "compat.embeddium.MixinRenderSectionManager"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -22,7 +22,7 @@ plugins {
 // Determine the version
 if (project.hasProperty("CustomReleaseVersion")) {
     // Remove release/ from the version if present
-    version = project.property("CustomReleaseVersion").replaceFirst("^release/", "")
+    version = project.property("CustomReleaseVersion").replaceFirst("^release/1\\.\\d+\\.\\d+/", "")
 } else {
     String gitRevision = "git rev-parse HEAD".execute().text.trim()
 
@@ -92,6 +92,14 @@ subprojects {
         if (!project.block_external_repositories) {
             mavenLocal()
             maven {
+                url = "https://maven.pkg.github.com/ims212/ForgifiedFabricAPI"
+                credentials {
+                    username = "IMS212"
+                    // Read only token
+                    password = "ghp_" + "DEuGv0Z56vnSOYKLCXdsS9svK4nb9K39C1Hn"
+                }
+            }
+            maven {
                 name = "ParchmentMC"
                 url = "https://maven.parchmentmc.org"
             }
@@ -116,10 +124,12 @@ subprojects {
             maven { url = "https://maven.tterrag.com/" } // Registrate, Forge Create and Flywheel
             maven { url = "https://maven.cafeteria.dev/releases" } // Fake Player API
             maven { url = "https://maven.jamieswhiteshirt.com/libs-release" } // Reach Entity Attributes
+            maven { url = "https://maven.ftb.dev/releases" } // FTB Mods
             maven {
                 name = 'NeoForged'
                 url = 'https://maven.neoforged.net/releases'
             }
+            maven {url = "https://maven.su5ed.dev/releases" }
 
             // Jitpack is last because its slow and bad  \(T_T)/
             maven { url = "https://jitpack.io"}
@@ -133,6 +143,9 @@ subprojects {
                     password = project.vs_maven_password
                 }
             }
+        }
+        flatDir {
+            dir 'libs'
         }
     }
 
