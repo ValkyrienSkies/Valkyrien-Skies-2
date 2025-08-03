@@ -1,9 +1,12 @@
 package org.valkyrienskies.mod.mixin.feature.shipyard_entities;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import java.util.Set;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Entity.RemovalReason;
@@ -24,12 +27,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.LoadedShip;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.entity.handling.VSEntityHandler;
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager;
 import org.valkyrienskies.mod.common.entity.handling.WorldEntityHandler;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
+import org.valkyrienskies.mod.mixinducks.feature.shipyard_entities.MixinEntityDuck;
 
 @Mixin(Entity.class)
-public abstract class MixinEntity {
+public abstract class MixinEntity implements MixinEntityDuck {
 
     @Shadow
     public abstract Level level();
@@ -85,6 +90,40 @@ public abstract class MixinEntity {
             isModifyingSetPos = false;
             ci.cancel();
         }
+    }
+
+    @WrapMethod(
+        method = "saveWithoutId"
+    )
+    private CompoundTag saveCustomEntityHandler(CompoundTag compoundTag, Operation<CompoundTag> original) {
+        original.call(compoundTag);
+        ResourceLocation name = VSEntityManager.INSTANCE.getHandlerName(vs_customHandler);
+        if (name != null) {
+            compoundTag.putString("CustomEntityHandler", name.toString());
+        }
+        return compoundTag;
+    }
+
+    @Inject(
+        method = "load",
+        at = @At("RETURN")
+    )
+    private void loadCustomEntityHandler(CompoundTag compoundTag, CallbackInfo ci) {
+        ResourceLocation name = new ResourceLocation(compoundTag.getString("CustomEntityHandler"));
+        VSEntityHandler handler = VSEntityManager.INSTANCE.getHandler(name);
+    }
+
+    @Unique
+    private VSEntityHandler vs_customHandler = null;
+
+    @Unique
+    public VSEntityHandler vs_getCustomHandler() {
+        return vs_customHandler;
+    }
+
+    @Unique
+    public void vs_setCustomHandler(VSEntityHandler handler) {
+        vs_customHandler = handler;
     }
 
     @Unique

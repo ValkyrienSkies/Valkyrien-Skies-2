@@ -9,7 +9,8 @@ import org.joml.Vector3d
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.mod.common.util.toJOML
-import org.valkyrienskies.mod.common.util.toMinecraft
+import kotlin.math.atan2
+import kotlin.math.sqrt
 
 abstract class AbstractShipyardEntityHandler : VSEntityHandler {
     override fun freshEntityInShipyard(entity: Entity, ship: Ship) {
@@ -55,5 +56,45 @@ abstract class AbstractShipyardEntityHandler : VSEntityHandler {
         // TODO: somewhere else position is already applied in the matrix stack
         // EW: i think it was in entity dragging logic
         matrixStack.mulPose(Quaternionf(ship.renderTransform.shipToWorldRotation))
+    }
+
+    fun moveEntityFromWorldToShipyard(entity: Entity, ship: Ship) =
+        moveEntityFromWorldToShipyard(entity, ship, entity.x, entity.y, entity.z)
+
+    fun moveEntityFromWorldToShipyard(
+        entity: Entity, ship: Ship, entityX: Double, entityY: Double, entityZ: Double
+    ) {
+
+        val newPos = ship.worldToShip.transformPosition(Vector3d(entityX, entityY, entityZ))
+        entity.setPos(newPos.x, newPos.y, newPos.z)
+        entity.xo = entity.x
+        entity.yo = entity.y
+        entity.zo = entity.z
+
+        // TODO: figure out maths
+
+        //val localVelocity = ship.transform.rotation.transform(entity.deltaMovement.toJOML())
+        //entity.deltaMovement = Vector3d(localVelocity).toMinecraft()
+
+        val localDirection = ship.transform.rotation.transform(entity.lookAngle.toJOML())
+
+        val yaw = -atan2(localDirection.x, localDirection.z)
+        val pitch = -atan2(localDirection.y, sqrt((localDirection.x * localDirection.x) + (localDirection.z * localDirection.z)))
+        entity.yRot = (yaw * (180 / Math.PI)).toFloat()
+        entity.xRot = (pitch * (180 / Math.PI)).toFloat()
+        entity.yRotO = entity.yRot
+        entity.xRotO = entity.xRot
+
+        /*if (entity is AbstractHurtingProjectile) {
+            val power = Vector3d(entity.xPower, entity.yPower, entity.zPower)
+
+            ship.transform.rotation.transform(power)
+
+            entity.xPower = power.x
+            entity.yPower = power.y
+            entity.zPower = power.z
+
+            ProjectileUtil.rotateTowardsMovement(entity, 1.0f)
+        }*/
     }
 }

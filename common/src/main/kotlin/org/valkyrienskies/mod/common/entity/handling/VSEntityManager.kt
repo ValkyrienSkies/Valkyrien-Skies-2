@@ -10,6 +10,7 @@ import org.valkyrienskies.mod.common.networking.PacketSyncVSEntityTypes
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.vsCore
 import org.valkyrienskies.mod.compat.CreateCompat
+import org.valkyrienskies.mod.mixinducks.feature.shipyard_entities.MixinEntityDuck
 import java.time.Duration
 import kotlin.text.RegexOption.IGNORE_CASE
 
@@ -55,7 +56,22 @@ object VSEntityManager {
         entityHandlers[entityType] = entityHandler
     }
 
+    /**
+     * Override entity handler for a specific entity.
+     * TODO: save and sync custom entity handlers?
+     *
+     * @param entity Entity instance
+     * @param entityHandler The entity handler
+     */
+    fun setCustomHandler(entity: Entity, entityHandler: VSEntityHandler?) {
+        (entity as? MixinEntityDuck)?.vs_setCustomHandler(entityHandler)
+    }
+
     fun getHandler(entity: Entity): VSEntityHandler {
+        val handler = (entity as? MixinEntityDuck)?.vs_getCustomHandler()
+        if (handler != null) {
+            return handler
+        }
         if (CreateCompat.isContraption(entity)) {
             return contraptionHandler
         }
@@ -86,6 +102,10 @@ object VSEntityManager {
 
     fun getHandler(type: ResourceLocation): VSEntityHandler? {
         return entityHandlersNamed[type]
+    }
+
+    fun getHandlerName(handler: VSEntityHandler?): ResourceLocation? {
+        return namedEntityHandlers[handler]
     }
 
     // Sends a packet with all the entity -> handler pairs to the client

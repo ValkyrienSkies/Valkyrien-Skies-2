@@ -30,6 +30,7 @@ object VSGamePackets {
         PacketStopChunkUpdates::class.register()
         PacketRestartChunkUpdates::class.register()
         PacketSyncVSEntityTypes::class.register()
+        PacketOverrideEntityHandler::class.register() // TODO: not actually sent from anywhere
         PacketEntityShipMotion::class.register()
         PacketMobShipRotation::class.register()
         PacketPlayerShipMotion::class.register()
@@ -64,6 +65,17 @@ object VSGamePackets {
                         ?: throw IllegalStateException("No handler: $handler")
                 )
             }
+        }
+
+        PacketOverrideEntityHandler::class.registerClientHandler { setHandler ->
+            val mc = Minecraft.getInstance()
+            val level = mc.level ?: return@registerClientHandler
+            val entity = level.getEntity(setHandler.entityID) ?: return@registerClientHandler
+
+            VSEntityManager.setCustomHandler(
+                entity,
+                VSEntityManager.getHandler(ResourceLocation(setHandler.handler))
+            )
         }
 
         PacketEntityShipMotion::class.registerClientHandler { setMotion ->
