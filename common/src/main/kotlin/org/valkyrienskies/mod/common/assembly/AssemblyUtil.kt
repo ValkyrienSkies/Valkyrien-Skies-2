@@ -44,7 +44,6 @@ object AssemblyUtil {
             val data: CompoundTag = blockentity.saveWithId(level.registryAccess())
             level.setBlockEntity(blockentity)
             val newBlockentity = level.getBlockEntity(to)
-            // TODO: Do we invoke LevelChunk.promotePendingBlockEntity()?
             newBlockentity?.loadWithComponents(data, level.registryAccess())
         }
     }

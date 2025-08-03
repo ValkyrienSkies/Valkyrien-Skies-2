@@ -82,7 +82,6 @@ class TestFlapBlock() :
         val wingCamberAttackAngleBias = 0.0
         return Wing(blockState.getValue(FACING).normal.toJOMLD(), wingPower, wingDrag, wingBreakingForce, wingCamberAttackAngleBias)
     }
-
     override fun codec() = CODEC
 
     companion object {

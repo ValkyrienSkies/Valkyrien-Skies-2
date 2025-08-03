@@ -1,10 +1,10 @@
 package org.valkyrienskies.mod.forge.mixinducks.mod_compat.create;
 
+import net.createmod.catnip.data.Iterate;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import net.createmod.catnip.data.Iterate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 
@@ -35,8 +35,7 @@ public class CWCluster {
         for (Direction.Axis axis : Iterate.axes) {
             Direction direction = Direction.get(Direction.AxisDirection.POSITIVE, axis);
             for (int offset : Iterate.zeroAndOne) {
-                CWMergeEntry
-                    entry = new CWMergeEntry(axis, pos.relative(direction, offset));
+                CWMergeEntry entry = new CWMergeEntry(axis, pos.relative(direction, offset));
                 if (visibleFaces.remove(entry) == null)
                     visibleFaces.put(entry, offset == 0 ? Direction.AxisDirection.NEGATIVE : Direction.AxisDirection.POSITIVE);
             }
@@ -60,8 +59,7 @@ public class CWCluster {
                         BlockPos entryPos = pos.relative(direction, offset);
                         for (int offset2 : Iterate.zeroAndOne) {
                             entryPos = entryPos.relative(direction2, offset2);
-                            CWMergeEntry
-                                entry = new CWMergeEntry(axis, entryPos);
+                            CWMergeEntry entry = new CWMergeEntry(axis, entryPos);
                             if (!visibleEdges.remove(entry))
                                 visibleEdges.add(entry);
                         }

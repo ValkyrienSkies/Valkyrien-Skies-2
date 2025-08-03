@@ -1,11 +1,11 @@
 package org.valkyrienskies.mod.forge.mixin.compat.sodium;
 
-import org.embeddedt.embeddium.impl.gl.device.CommandList;
-import org.embeddedt.embeddium.impl.render.chunk.ChunkRenderMatrices;
-import org.embeddedt.embeddium.impl.render.chunk.ChunkRenderer;
-import org.embeddedt.embeddium.impl.render.chunk.RenderSectionManager;
-import org.embeddedt.embeddium.impl.render.chunk.terrain.TerrainRenderPass;
-import org.embeddedt.embeddium.impl.render.viewport.CameraTransform;
+import net.caffeinemc.mods.sodium.client.gl.device.CommandList;
+import net.caffeinemc.mods.sodium.client.render.chunk.ChunkRenderMatrices;
+import net.caffeinemc.mods.sodium.client.render.chunk.ChunkRenderer;
+import net.caffeinemc.mods.sodium.client.render.chunk.RenderSectionManager;
+import net.caffeinemc.mods.sodium.client.render.chunk.terrain.TerrainRenderPass;
+import net.caffeinemc.mods.sodium.client.render.viewport.CameraTransform;
 import org.joml.Matrix4d;
 import org.joml.Matrix4f;
 import org.joml.Vector3dc;
@@ -20,12 +20,12 @@ import org.valkyrienskies.mod.mixinducks.mod_compat.sodium.RenderSectionManagerD
 @Mixin(value = RenderSectionManager.class, remap = false)
 public class MixinRenderSectionManager {
 
-    /*
+
     @Shadow
     @Final
     private ChunkRenderer chunkRenderer;
 
-    @Redirect(at = @At(value = "INVOKE", target = "Lorg/embeddedt/embeddium/impl/gl/device/CommandList;flush()V"),
+    @Redirect(at = @At(value = "INVOKE", target = "Lnet/caffeinemc/mods/sodium/client/gl/device/CommandList;flush()V"),
         method = "renderLayer")
     private void redirectRenderLayer(final CommandList list, final ChunkRenderMatrices matrices,
         final TerrainRenderPass pass, final double camX, final double camY, final double camZ) {
@@ -46,5 +46,5 @@ public class MixinRenderSectionManager {
             list.close();
         });
     }
-     */
+
 }

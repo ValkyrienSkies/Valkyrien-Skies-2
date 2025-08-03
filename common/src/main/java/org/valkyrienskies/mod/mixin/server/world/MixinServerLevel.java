@@ -87,7 +87,10 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
             getShipObjectWorld().addDimension(
                 VSGameUtilsKt.getDimensionId((ServerLevel) (Object) this),
                 VSGameUtilsKt.getYRange((ServerLevel) (Object) this),
-                McMathUtilKt.getDEFAULT_WORLD_GRAVITY()
+                McMathUtilKt.getDEFAULT_WORLD_GRAVITY(),
+                //todo make this datagenned
+                63.0,
+                962.0
             );
         }
     }

@@ -25,22 +25,22 @@ import org.joml.Vector3ic
 import org.joml.primitives.AABBd
 import org.joml.primitives.AABBdc
 import org.valkyrienskies.core.api.ships.ClientShip
+import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.core.api.ships.LoadedShip
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.api.util.functions.DoubleTernaryConsumer
 import org.valkyrienskies.core.api.world.LevelYRange
+import org.valkyrienskies.core.api.world.properties.DimensionId
 import org.valkyrienskies.core.apigame.world.IPlayer
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore
 import org.valkyrienskies.core.apigame.world.ShipWorldCore
 import org.valkyrienskies.core.apigame.world.chunks.TerrainUpdate
-import org.valkyrienskies.core.apigame.world.properties.DimensionId
-import org.valkyrienskies.core.game.ships.ShipObjectServer
-import org.valkyrienskies.core.impl.hooks.VSEvents.TickEndEvent
 import org.valkyrienskies.core.util.expand
 import org.valkyrienskies.mod.common.entity.ShipMountedToData
 import org.valkyrienskies.mod.common.entity.ShipMountedToDataProvider
 import org.valkyrienskies.mod.common.util.DimensionIdProvider
+import org.valkyrienskies.mod.common.util.EntityDragger.serversideEyePosition
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.util.set
 import org.valkyrienskies.mod.common.util.toJOML
@@ -69,7 +69,8 @@ val MinecraftServer.shipObjectWorld: ServerShipWorldCore
     get() = (this as IShipObjectWorldServerProvider).shipObjectWorld ?: vsCore.dummyShipWorldServer
 val MinecraftServer.vsPipeline get() = (this as IShipObjectWorldServerProvider).vsPipeline!!
 
-val ServerLevel?.shipObjectWorld: ServerShipWorldCore get() = this?.server?.shipObjectWorld ?: vsCore.dummyShipWorldServer
+val ServerLevel?.shipObjectWorld: ServerShipWorldCore
+    get() = this?.server?.shipObjectWorld ?: vsCore.dummyShipWorldServer
 
 val Level.dimensionId: DimensionId
     get() {
@@ -80,7 +81,7 @@ val Level.dimensionId: DimensionId
 private val levelResourceKeyMap: MutableMap<DimensionId, ResourceKey<Level>> = HashMap()
 
 fun getResourceKey(dimensionId: DimensionId): ResourceKey<Level> {
-    val cached =levelResourceKeyMap[dimensionId]
+    val cached = levelResourceKeyMap[dimensionId]
     if (cached == null) {
         val (registryNamespace, registryName, namespace, name) = dimensionId.split(":")
         val toReturn: ResourceKey<Level> = ResourceKeyAccessor.callCreate(
@@ -93,9 +94,8 @@ fun getResourceKey(dimensionId: DimensionId): ResourceKey<Level> {
 }
 
 fun MinecraftServer.executeIf(condition: () -> Boolean, toExecute: Runnable) {
-    // todo: don't use random vs-core internal stuff
-    TickEndEvent.on { (shipWorld), handler ->
-        if (shipWorld == this.shipObjectWorld && condition()) {
+    vsCore.tickEndEvent.on { ev, handler ->
+        if (ev.world == this.shipObjectWorld && condition()) {
             toExecute.run()
             handler.unregister()
         }
@@ -112,7 +112,8 @@ fun MinecraftServer.getLevelFromDimensionId(dimensionId: DimensionId): ServerLev
     return getLevel(getResourceKey(dimensionId))
 }
 
-val Minecraft.shipObjectWorld get() = (this as IShipObjectWorldClientProvider).shipObjectWorld ?: vsCore.dummyShipWorldClient
+val Minecraft.shipObjectWorld
+    get() = (this as IShipObjectWorldClientProvider).shipObjectWorld ?: vsCore.dummyShipWorldClient
 val ClientLevel?.shipObjectWorld get() = Minecraft.getInstance().shipObjectWorld
 
 val IPlayer.mcPlayer: Player get() = (this as MinecraftPlayer).playerEntityReference.get()!!
@@ -122,8 +123,12 @@ val Player.playerWrapper get() = (this as PlayerDuck).vs_getPlayer()
 /**
  * Like [Entity.squaredDistanceTo] except the destination is transformed into world coordinates if it is a ship
  */
-fun Entity.squaredDistanceToInclShips(x: Double, y: Double, z: Double) =
-    level().squaredDistanceBetweenInclShips(x, y, z, this.x, this.y, this.z)
+fun Entity.squaredDistanceToInclShips(x: Double, y: Double, z: Double): Double {
+    val eyePos = if (getShipMountedTo(this) != null) getShipMountedToData(
+        this, null
+    )!!.mountPosInShip.toMinecraft() else this.serversideEyePosition()
+    return level().squaredDistanceBetweenInclShips(x, y, z, eyePos.x, eyePos.y - 1.0, eyePos.z)
+}
 
 /**
  * Meant to be used with @WrapOperation to replace distance checks in a compatible way
@@ -289,7 +294,7 @@ fun ClientLevel?.getShipObjectManagingPos(chunkPos: ChunkPos) =
 
 // ServerWorld
 fun ServerLevel?.getShipObjectManagingPos(chunkX: Int, chunkZ: Int) =
-    getShipObjectManagingPosImpl(this, chunkX, chunkZ) as ShipObjectServer?
+    getShipObjectManagingPosImpl(this, chunkX, chunkZ) as LoadedServerShip?
 
 fun ServerLevel?.getShipObjectManagingPos(blockPos: Vec3i) =
     getShipObjectManagingPos(blockPos.x shr 4, blockPos.z shr 4)
@@ -314,13 +319,9 @@ private fun getShipManagingPosImpl(world: Level?, x: Int, z: Int): Ship? {
 fun ClientLevel?.transformRenderAABBToWorld(pos: Position, aabb: AABB): AABB {
     val ship = getShipObjectManagingPos(pos)
     if (ship != null) {
-        return ship.transformRenderAABBToWorld(aabb)
+        return aabb.toJOML().transform(ship.renderTransform.shipToWorldMatrix).toMinecraft()
     }
     return aabb
-}
-
-fun ClientShip.transformRenderAABBToWorld(aabb: AABB): AABB {
-    return aabb.toJOML().transform(renderTransform.shipToWorldMatrix).toMinecraft()
 }
 
 fun Entity?.getShipManaging(): Ship? = this?.let { this.level().getShipManagingPos(this.position()) }
@@ -368,6 +369,10 @@ fun Ship.toWorldCoordinates(pos: BlockPos): Vector3d =
 
 fun Ship.toWorldCoordinates(pos: Vec3): Vec3 =
     shipToWorld.transformPosition(pos.toJOML()).toMinecraft()
+
+fun Level?.toWorldCoordinates(pos: BlockPos): Vec3 {
+    return this?.getShipManagingPos(pos)?.toWorldCoordinates(pos)?.toMinecraft() ?: pos.toJOMLD().toMinecraft()
+}
 
 fun Level?.toWorldCoordinates(pos: Vec3): Vec3 {
     return this?.getShipManagingPos(pos)?.toWorldCoordinates(pos) ?: pos
@@ -457,8 +462,8 @@ fun getShipMountedToData(passenger: Entity, partialTicks: Float? = null): ShipMo
     if (vehicle is ShipMountedToDataProvider) {
         return vehicle.provideShipMountedToData(passenger, partialTicks)
     }
-    val shipObjectEntityMountedTo = passenger.level().getShipObjectManagingPos(vehicle.position().toJOML()) ?: return null
-
+    val shipObjectEntityMountedTo =
+        passenger.level().getShipObjectManagingPos(vehicle.position().toJOML()) ?: return null
     val mountedPosInShip: Vector3dc = vehicle.getPassengerRidingPosition(passenger)
         .subtract(passenger.getVehicleAttachmentPoint(vehicle))
         .toJOML()

@@ -115,7 +115,7 @@ public abstract class MixinCamera implements IVSCamera {
             }
         }
     }
-
+/*
     @Override
     public ShipTransform getShipMountedRenderTransform() {
         return valkyrienskies$shipMountedToTransform;
@@ -124,7 +124,7 @@ public abstract class MixinCamera implements IVSCamera {
     @Override
     public void resetShipMountedRenderTransform() {
         valkyrienskies$shipMountedToTransform = null;
-    }
+    }*/
 
     @Unique
     private void valkyrienskies$setRotationWithShipTransform(final float yaw, final float pitch, final ShipTransform renderTransform) {

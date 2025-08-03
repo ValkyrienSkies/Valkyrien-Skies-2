@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.forge.mixin.compat.create;
 
 import com.simibubi.create.content.kinetics.deployer.DeployerHandler;
+import dev.engine_room.flywheel.lib.model.baked.BlockModelBuilder;
 import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;

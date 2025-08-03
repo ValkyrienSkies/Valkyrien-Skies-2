@@ -1,8 +1,10 @@
 package org.valkyrienskies.mod.forge.mixin.neoforged.neoforge.client;
 
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.culling.Frustum;
+import net.minecraft.core.Position;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.AABB;
 import net.neoforged.neoforge.client.ClientHooks;
@@ -28,7 +30,7 @@ public class MixinClientHooks {
         final Ship ship = VSGameUtilsKt.getShipManagingPos(blockEntity.getLevel(), blockEntity.getBlockPos());
         if (ship == null) return;
         final AABB renderAABB = renderer.getRenderBoundingBox(blockEntity);
-        final AABB transformed = VSGameUtilsKt.transformRenderAABBToWorld((ClientShip) ship, renderAABB);
+        final AABB transformed = VSGameUtilsKt.transformRenderAABBToWorld((ClientLevel) blockEntity.getLevel(), (Position) blockEntity.getBlockPos(), renderAABB);
         if (frustum.isVisible(transformed)) {
             cir.setReturnValue(true);
         }

@@ -4,6 +4,7 @@ import com.mojang.serialization.MapCodec
 import net.minecraft.commands.arguments.EntityAnchorArgument
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
+import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.context.BlockPlaceContext
@@ -43,17 +44,18 @@ class TestChairBlock() : HorizontalDirectionalBlock(
             .setValue(FACING, ctx.horizontalDirection.opposite)
     }
 
+    @Deprecated("Deprecated in Java")
     override fun getShape(
-        state: BlockState, level: BlockGetter, pos: BlockPos, context: CollisionContext
+        state: BlockState, level: BlockGetter?, pos: BlockPos?, context: CollisionContext?
     ): VoxelShape = SEAT_AABB
 
+    @Deprecated("Deprecated in Java")
     override fun useWithoutItem(
         state: BlockState, level: Level, pos: BlockPos, player: Player, blockHitResult: BlockHitResult
     ): InteractionResult {
         if (level.isClientSide) return InteractionResult.SUCCESS
         val seatEntity = ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE.create(level)!!.apply {
-            // Put seat at y-offset of .15
-            val seatEntityPos: Vector3dc = Vector3d(pos.x + .5, pos.y.toDouble() + .15, pos.z + .5)
+            val seatEntityPos: Vector3dc = Vector3d(pos.x + .5, pos.y.toDouble(), pos.z + .5)
             moveTo(seatEntityPos.x, seatEntityPos.y, seatEntityPos.z)
             lookAt(EntityAnchorArgument.Anchor.EYES, state.getValue(FACING).normal.toDoubles().add(position()))
             isController = true
@@ -63,9 +65,7 @@ class TestChairBlock() : HorizontalDirectionalBlock(
         player.startRiding(seatEntity)
         return InteractionResult.CONSUME
     }
-
     override fun codec() = CODEC
-
     companion object {
         val CODEC: MapCodec<TestChairBlock> = simpleCodec { TestChairBlock() }
     }

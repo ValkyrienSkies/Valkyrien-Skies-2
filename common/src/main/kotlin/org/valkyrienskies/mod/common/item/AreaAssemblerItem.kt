@@ -8,10 +8,13 @@ import net.minecraft.world.InteractionResult
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.context.UseOnContext
-import net.minecraft.world.level.block.state.BlockState
-import org.joml.primitives.AABBi
+import net.minecraft.world.level.block.Blocks
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod.BLOCK_POS_COMPONENT
+import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate
+import org.joml.primitives.AABBi
 import org.valkyrienskies.mod.common.assembly.ShipAssembler
+import org.valkyrienskies.mod.common.assembly.createNewShipWithStructure
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getShipObjectManagingPos
 import org.valkyrienskies.mod.common.shipObjectWorld
@@ -81,4 +84,5 @@ class AreaAssemblerItem(
 
         return super.useOn(ctx)
     }
+
 }

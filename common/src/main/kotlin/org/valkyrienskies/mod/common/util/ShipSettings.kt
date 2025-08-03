@@ -1,8 +1,9 @@
 package org.valkyrienskies.mod.common.util
 
-import org.valkyrienskies.core.api.ships.ServerShip
-import org.valkyrienskies.core.api.ships.getAttachment
-import org.valkyrienskies.core.api.ships.saveAttachment
+import org.valkyrienskies.core.api.VsBeta
+import org.valkyrienskies.core.api.ships.LoadedServerShip
+import org.valkyrienskies.core.api.ships.ClientShip
+import org.valkyrienskies.mod.common.config.ShipRenderer
 
 /**
  * A attachment that stores ship specific settings.
@@ -20,5 +21,16 @@ data class ShipSettings(
     var changeDimensionOnTouchPortals: Boolean = true
 )
 
-val ServerShip.settings: ShipSettings
-    get() = getAttachment<ShipSettings>() ?: ShipSettings().also { saveAttachment(it) }
+@OptIn(VsBeta::class)
+val LoadedServerShip.settings: ShipSettings
+    get() = getAttachment(ShipSettings::class.java) ?: ShipSettings().also { setAttachment(it) }
+
+data class ClientShipSettings(
+    /**
+     * If null it will use the default
+     */
+    var renderer: ShipRenderer? = null
+)
+
+val ClientShip.settings: ClientShipSettings
+    get() = ClientShipSettings() //TODO have a way to store/pull from server a per ship client preference

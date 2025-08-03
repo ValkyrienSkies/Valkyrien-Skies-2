@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.common.item
 
+import net.minecraft.Util
 import net.minecraft.core.BlockPos
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
@@ -12,6 +13,7 @@ import org.valkyrienskies.mod.common.ValkyrienSkiesMod.BLOCK_POS_COMPONENT
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.shipObjectWorld
+import java.awt.TextComponent
 import java.util.function.DoubleSupplier
 
 class ConnectionCheckerItem(

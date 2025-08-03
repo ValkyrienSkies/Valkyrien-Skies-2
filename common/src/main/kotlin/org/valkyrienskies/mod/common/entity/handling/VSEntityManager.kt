@@ -103,4 +103,9 @@ object VSEntityManager {
             PacketSyncVSEntityTypes(entityTypes).sendToClient(player)
         }
     }
+
+    @JvmStatic
+    fun isShipyardEntity(entity: Entity): Boolean {
+        return getHandler(entity) == DefaultShipyardEntityHandler
+    }
 }

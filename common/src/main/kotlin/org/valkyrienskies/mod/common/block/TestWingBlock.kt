@@ -85,7 +85,6 @@ class TestWingBlock() :
             wingCamberAttackAngleBias
         )
     }
-
     override fun codec() = CODEC
 
     companion object {

@@ -4,6 +4,8 @@ import com.mojang.brigadier.StringReader
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType
 import com.mojang.brigadier.suggestion.SuggestionsBuilder
+import net.minecraft.commands.CommandSourceStack
+import net.minecraft.commands.SharedSuggestionProvider
 import net.minecraft.network.chat.Component
 import org.valkyrienskies.core.api.ships.properties.ShipId
 import org.valkyrienskies.mod.mixinducks.feature.command.VSCommandSource

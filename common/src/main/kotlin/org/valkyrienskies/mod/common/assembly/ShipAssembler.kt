@@ -9,13 +9,12 @@ import org.joml.Vector3i
 import org.joml.Vector3ic
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.ships.Ship
-import org.valkyrienskies.core.api.ships.getAttachment
-import org.valkyrienskies.core.impl.game.ShipTeleportDataImpl
 import org.valkyrienskies.mod.common.BlockStateInfo.onSetBlock
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getShipObjectManagingPos
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.SplittingDisablerAttachment
+import org.valkyrienskies.mod.common.vsCore
 
 object ShipAssembler {
 
@@ -69,11 +68,11 @@ object ShipAssembler {
         }
         //val contraptionPosition = ContraptionPosition(Quaterniond(Vec3d(0.0, 1.0, 1.0), 0.0), contraptionWorldPos, null)
 
-        val newShip: Ship = (level as ServerLevel).server.shipObjectWorld
+        val newShip: Ship = level.server.shipObjectWorld
             .createNewShipAtBlock(contraptionWorldPos, false, scale, level.dimensionId)
 
         if (shouldDisableSplitting) {
-            level.shipObjectWorld.loadedShips.getById(newShip.id)?.getAttachment<SplittingDisablerAttachment>()?.disableSplitting()
+            level.shipObjectWorld.loadedShips.getById(newShip.id)?.getAttachment(SplittingDisablerAttachment::class.java)?.disableSplitting()
 
         }
 
@@ -118,17 +117,18 @@ object ShipAssembler {
         val shipPos = Vector3d(contraptionOGPos).add(0.5, 0.5, 0.5)
         if (existingShip != null) {
             sLevel.server.shipObjectWorld
-                .teleportShip(newShip as ServerShip, ShipTeleportDataImpl(existingShip.shipToWorld.transformPosition(shipPos, Vector3d()), existingShip.transform.shipToWorldRotation, existingShip.velocity, existingShip.omega, existingShip.chunkClaimDimension, newScale = existingShip.transform.shipToWorldScaling.x(), newPosInShip = shipCenterPos))
+                .teleportShip(
+                    newShip, vsCore.newShipTeleportData(existingShip.shipToWorld.transformPosition(shipPos, Vector3d()), existingShip.transform.shipToWorldRotation, existingShip.velocity, existingShip.omega, existingShip.chunkClaimDimension, newScale = existingShip.transform.shipToWorldScaling.x(), newPosInShip = shipCenterPos))
 
         } else {
             sLevel.server.shipObjectWorld
-                .teleportShip(newShip as ServerShip, ShipTeleportDataImpl(newPos = shipPos, newPosInShip = shipCenterPos))
+                .teleportShip(newShip, vsCore.newShipTeleportData(newPos = shipPos, newPosInShip = shipCenterPos))
         }
         if (shouldDisableSplitting) {
-            level.shipObjectWorld.loadedShips.getById(newShip.id)?.getAttachment<SplittingDisablerAttachment>()?.enableSplitting()
+            level.shipObjectWorld.loadedShips.getById(newShip.id)?.getAttachment(SplittingDisablerAttachment::class.java)?.enableSplitting()
         }
 
-        return newShip as ServerShip
+        return newShip
     }
 
 

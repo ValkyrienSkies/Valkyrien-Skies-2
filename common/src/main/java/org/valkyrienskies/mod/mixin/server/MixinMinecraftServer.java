@@ -150,7 +150,9 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         getShipObjectWorld().addDimension(
             VSGameUtilsKt.getDimensionId(overworld()),
             VSGameUtilsKt.getYRange(overworld()),
-            McMathUtilKt.getDEFAULT_WORLD_GRAVITY()
+            McMathUtilKt.getDEFAULT_WORLD_GRAVITY(),
+            63.0,
+            962.0
         );
     }
 
@@ -218,7 +220,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         vsPipeline.postTickGame();
         // Only drag entities after we have updated the ship positions
         for (final ServerLevel level : getAllLevels()) {
-            EntityDragger.INSTANCE.dragEntitiesWithShips(level.getAllEntities());
+            EntityDragger.INSTANCE.dragEntitiesWithShips(level.getAllEntities(),false);
             if (LoadedMods.getWeather2())
                 Weather2Compat.INSTANCE.tick(level);
         }

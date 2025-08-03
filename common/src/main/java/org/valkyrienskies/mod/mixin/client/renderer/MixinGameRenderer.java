@@ -235,7 +235,7 @@ public abstract class MixinGameRenderer {
             return;
         }
 
-        ((IVSCamera) camera).resetShipMountedRenderTransform();
+        //((IVSCamera) camera).resetShipMountedRenderTransform();
 
         final ClientLevel clientLevel = minecraft.level;
         final Entity player = minecraft.player;
