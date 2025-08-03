@@ -74,7 +74,7 @@ dependencies {
     modImplementation files("libs/createbigcannons-5.9.1-dev.jar")
     modImplementation("maven.modrinth:rpl:25s6VNqT")
     modCompileOnly("dev.engine-room.flywheel:flywheel-neoforge-api-${property("minecraft_version")}:${property("forge_flywheel_version")}")
-    modRuntimeOnly("dev.engine-room.flywheel:flywheel-neoforge-${property("minecraft_version")}:${property("forge_flywheel_version")}")
+    modImplementation("dev.engine-room.flywheel:flywheel-neoforge-${property("minecraft_version")}:${property("forge_flywheel_version")}")
     modImplementation("com.tterrag.registrate:Registrate:${property("forge_registrate_version")}")
 
     // Weather2 1.20.1

@@ -62,6 +62,11 @@ class RelativeVector3Argument : ArgumentType<RelativeVector3> {
 
             fun parse(reader: StringReader, invokedByListSuggestions: Boolean): RelativeVector3 {
                 val i: Int = reader.cursor
+
+                suggest { builder ->
+                    builder.suggest("(0 0 0)")
+                }
+
                 if (!reader.canRead()) {
                     throw RotationArgument.ERROR_NOT_COMPLETE.createWithContext(reader)
                 } else {

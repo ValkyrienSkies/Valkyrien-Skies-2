@@ -30,6 +30,10 @@ abstract class CommonHooksImpl : CoreHooksOut {
         get() = vsCore.hooks.enableWorldConnectivity
         set(value) {}
 
+    override var enableSplitting: Boolean
+        get() = vsCore.hooks.enableSplitting
+        set(value) {}
+
     override val playState: PlayState
         get() {
             if (!isPhysicalClient) {

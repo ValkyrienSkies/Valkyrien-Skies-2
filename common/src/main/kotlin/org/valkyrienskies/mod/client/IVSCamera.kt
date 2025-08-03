@@ -4,7 +4,6 @@ import net.minecraft.world.entity.Entity
 import net.minecraft.world.level.BlockGetter
 import org.joml.Vector3dc
 import org.valkyrienskies.core.api.ships.ClientShip
-import org.valkyrienskies.core.api.ships.properties.ShipTransform
 
 interface IVSCamera {
     fun setupWithShipMounted(
@@ -16,8 +15,4 @@ interface IVSCamera {
         shipMountedTo: ClientShip,
         inShipPlayerPosition: Vector3dc
     )
-
-    val shipMountedRenderTransform: ShipTransform?
-
-    fun resetShipMountedRenderTransform()
 }

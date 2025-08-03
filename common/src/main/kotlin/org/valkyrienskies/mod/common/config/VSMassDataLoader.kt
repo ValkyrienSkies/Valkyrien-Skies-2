@@ -369,7 +369,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
 
                     VsBlockState(solidState, fluidState)
                 } else {
-                    vsCore.blockTypes.airState
+                    vsCore.blockTypes.emptyState
                 }
             }
             mcBlockStateToVs[blockState] = vsBlockState

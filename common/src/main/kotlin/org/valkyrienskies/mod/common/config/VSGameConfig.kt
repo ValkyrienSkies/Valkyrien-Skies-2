@@ -45,6 +45,11 @@ object VSGameConfig {
             )
             var fixBlockTinting = false
         }
+
+        @JsonSchema(
+            description = "The way ships are rendered by default"
+        )
+        var defaultRenderer = ShipRenderer.VANILLA
     }
 
     class Server {
@@ -169,6 +174,21 @@ object VSGameConfig {
             description = "Minimum scale of ships"
         )
         var minScaling = 0.25
+
+        @JsonSchema(
+            description = "Enable splitting in worldspace. (Experimental!)"
+        )
+        var enableWorldSplitting = false
+
+        @JsonSchema(
+            description = "The default grace timer for splitting. A split won't occur after a block break at a position until this many ticks have passed. Note that setting this too high may prevent things like explosions from properly launching split ships. (in ticks)"
+        )
+        var defaultSplitGraceTimer = 1
+
+        @JsonSchema(
+            description = "The permission level required to use the /vs command. Must be 0 <= x <= 4"
+        )
+        var vsCommandPerms = 2
     }
 
     class Common {
@@ -182,7 +202,7 @@ object VSGameConfig {
                 description = "Renders mob pathfinding nodes. Must be set on client and server to work. " +
                     "Requires the system property -Dorg.valkyrienskies.render_pathfinding=true"
             )
-            var renderPathfinding = true // Requires ValkyrienCommonMixinConfigPlugin.PATH_FINDING_DEBUG to be true
+            var renderPathfinding = false // Requires ValkyrienCommonMixinConfigPlugin.PATH_FINDING_DEBUG to be true
         }
     }
 }

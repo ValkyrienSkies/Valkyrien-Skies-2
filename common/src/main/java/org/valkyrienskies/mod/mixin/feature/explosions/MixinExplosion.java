@@ -13,7 +13,6 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult.Type;
 import net.minecraft.world.phys.Vec3;
-import net.minecraft.world.phys.shapes.CollisionContext;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Final;
@@ -26,8 +25,9 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
-import org.valkyrienskies.mod.common.util.GameTickForceApplier;
+import org.valkyrienskies.mod.common.util.GameToPhysicsAdapter;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(Explosion.class)
@@ -72,7 +72,7 @@ public abstract class MixinExplosion {
                         new ClipContext(Vec3.atCenterOf(explodePos),
                             Vec3.atCenterOf(explodePos.offset(x, y, z)),
                             ClipContext.Block.COLLIDER,
-                            ClipContext.Fluid.NONE, CollisionContext.empty()));
+                            ClipContext.Fluid.NONE, (Entity) null));
                     if (result.getType() == Type.BLOCK) {
                         final BlockPos blockPos = result.getBlockPos();
                         final ServerShip ship =
@@ -93,11 +93,10 @@ public abstract class MixinExplosion {
                             forceVector.mul(distanceMult); //Multiply by distance falloff
                             forceVector.mul(powerMult); //Multiply by radius, roughly equivalent to power
 
-                            final GameTickForceApplier forceApplier =
-                                ship.getAttachment(GameTickForceApplier.class);
+                            final GameToPhysicsAdapter forceApplier = ValkyrienSkiesMod.getOrCreateGTPA(ship.getChunkClaimDimension());
                             final Vector3dc shipCoords = ship.getShipTransform().getShipPositionInShipCoordinates();
                             if (forceVector.isFinite()) {
-                                forceApplier.applyInvariantForceToPos(forceVector,
+                                forceApplier.applyInvariantForceToPos(ship.getId(), forceVector,
                                     VectorConversionsMCKt.toJOML(Vec3.atCenterOf(blockPos)).sub(shipCoords));
                             }
                         }
@@ -143,7 +142,7 @@ public abstract class MixinExplosion {
         )
     )
     private List<Entity> noRayTrace(final Level instance, final Entity entity, final AABB aabb,
-        final Operation<List<Entity>> getEntities) {
+                                    final Operation<List<Entity>> getEntities) {
         if (isModifyingExplosion) {
             return Collections.emptyList();
         } else {

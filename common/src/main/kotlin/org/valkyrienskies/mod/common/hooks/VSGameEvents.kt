@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.common.hooks
 
+import com.mojang.blaze3d.vertex.PoseStack
 import it.unimi.dsi.fastutil.objects.ObjectList
 import net.minecraft.client.renderer.LevelRenderer
 import net.minecraft.client.renderer.RenderType
@@ -24,20 +25,16 @@ object VSGameEvents {
     data class ShipStartRenderEvent(
         val renderer: LevelRenderer,
         val renderType: RenderType,
-        val camX: Double,
-        val camY: Double,
-        val camZ: Double,
-        val poseMatrix: Matrix4f,
-        val projectionMatrix: Matrix4f,
+        val poseStack: PoseStack,
+        val camX: Double, val camY: Double, val camZ: Double,
+        val projectionMatrix: Matrix4f
     )
 
     data class ShipRenderEvent(
         val renderer: LevelRenderer,
         val renderType: RenderType,
-        val camX: Double,
-        val camY: Double,
-        val camZ: Double,
-        val poseMatrix: Matrix4f,
+        val poseStack: PoseStack,
+        val camX: Double, val camY: Double, val camZ: Double,
         val projectionMatrix: Matrix4f,
         val ship: ClientShip,
         val chunks: ObjectList<SectionRenderDispatcher.RenderSection>

@@ -1,7 +1,6 @@
 package org.valkyrienskies.mod.forge.mixin.compat.flywheel;
 
 import dev.engine_room.flywheel.backend.SkyLightSectionStorageExtension;
-import dev.engine_room.flywheel.backend.mixin.light.SkyLightSectionStorageMixin;
 import net.minecraft.world.level.chunk.DataLayer;
 import net.minecraft.world.level.lighting.LayerLightSectionStorage;
 import net.minecraft.world.level.lighting.SkyLightSectionStorage;

@@ -5,6 +5,8 @@ import java.util.Set;
 import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
+import org.valkyrienskies.mod.compat.LoadedMods;
+import org.valkyrienskies.mod.compat.LoadedMods.FlywheelVersion;
 
 public class ValkyrienSkiesForgeMixinPlugin implements IMixinConfigPlugin {
 
@@ -37,6 +39,19 @@ public class ValkyrienSkiesForgeMixinPlugin implements IMixinConfigPlugin {
         if (mixinClassName.equals("org.valkyrienskies.mod.forge.mixin.feature.forge_interact.MixinIForgePlayer")) {
             return !isMixinBoosterLoaded; // Load only if mixinbooster is not enabled
         }
+    /*    if (mixinClassName.contains("org.valkyrienskies.mod.mixin.mod_compat.flywheel")) {
+            // Only load this mixin if Flywheel v1 is present
+            return LoadedMods.getFlywheel() == FlywheelVersion.V1;
+        }
+        if (mixinClassName.contains("org.valkyrienskies.mod.mixin.mod_compat.flywheel_renderer")) {
+            // Only load this mixin if Flywheel v1 is present
+            return LoadedMods.getFlywheel() == FlywheelVersion.V1;
+        }
+        if (mixinClassName.contains("org.valkyrienskies.mod.mixin.mod_compat.old_flywheel")) {
+            // Only load this mixin if Flywheel v1 is present
+            return LoadedMods.getFlywheel() == FlywheelVersion.V06;
+        }*/
+
 
         return true;
     }
@@ -60,4 +75,5 @@ public class ValkyrienSkiesForgeMixinPlugin implements IMixinConfigPlugin {
     public void postApply(final String s, final ClassNode classNode, final String s1, final IMixinInfo iMixinInfo) {
 
     }
+
 }

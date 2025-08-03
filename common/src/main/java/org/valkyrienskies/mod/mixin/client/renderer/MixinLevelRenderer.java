@@ -40,7 +40,7 @@ public abstract class MixinLevelRenderer {
     private double disableBlockDamageDistanceCheck(final double originalBlockDamageDistanceConstant) {
         return Double.MAX_VALUE;
     }
-
+/*
     @Inject(method = "renderLevel", at = @At("HEAD"))
     private void preRenderLevel(DeltaTracker deltaTracker, boolean bl, Camera camera, GameRenderer gameRenderer,
         LightTexture lightTexture, Matrix4f matrix4f, Matrix4f matrix4f2, CallbackInfo ci) {
@@ -60,7 +60,7 @@ public abstract class MixinLevelRenderer {
                 sectionOcclusionGraph.invalidate();
             }
         }
-    }
+    }*/
 
     /**
      * This mixin makes block damage render on ships.

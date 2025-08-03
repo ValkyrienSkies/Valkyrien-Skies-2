@@ -13,14 +13,12 @@ import net.minecraft.util.RandomSource
 import net.minecraft.world.inventory.InventoryMenu
 import net.minecraft.world.level.block.RenderShape.INVISIBLE
 import net.minecraft.world.level.block.RenderShape.MODEL
-import org.joml.Quaterniondc
 import org.joml.Quaternionf
-import org.valkyrienskies.core.impl.game.ships.ShipObjectClientWorld
+import org.valkyrienskies.core.api.world.ClientShipWorld
+import org.valkyrienskies.core.apigame.world.ClientShipWorldCore
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.entity.VSPhysicsEntity
-import org.valkyrienskies.mod.common.util.toMinecraft
-import java.util.Random
 
 class VSPhysicsEntityRenderer(context: EntityRendererProvider.Context) : EntityRenderer<VSPhysicsEntity>(context) {
     override fun render(
@@ -40,7 +38,7 @@ class VSPhysicsEntityRenderer(context: EntityRendererProvider.Context) : EntityR
         }
 
         val renderTransform = fallingBlockEntity.getRenderTransform(
-            ((Minecraft.getInstance() as IShipObjectWorldClientProvider).shipObjectWorld as ShipObjectClientWorld)
+            ((Minecraft.getInstance() as IShipObjectWorldClientProvider).shipObjectWorld as ClientShipWorldCore)
         ) ?: return
 
         val expectedX = fallingBlockEntity.xo + (fallingBlockEntity.x - fallingBlockEntity.xo) * partialTick

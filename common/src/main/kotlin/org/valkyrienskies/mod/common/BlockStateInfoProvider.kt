@@ -135,7 +135,7 @@ object BlockStateInfo {
         )
 
         if (ValkyrienSkiesMod.vsCore.hooks.enableConnectivity) {
-            ValkyrienSkiesMod.splitHandler.split(level, x, y, z, prevBlockState, newBlockState)
+            ValkyrienSkiesMod.splitHandler.split(level, x, y, z, newBlockState)
         }
     }
 }

@@ -24,16 +24,14 @@ import org.valkyrienskies.core.api.ships.properties.ShipTransform
 import org.valkyrienskies.core.apigame.physics.PhysicsEntityData
 import org.valkyrienskies.core.apigame.physics.PhysicsEntityServer
 import org.valkyrienskies.core.apigame.physics.VSSphereCollisionShapeData
+import org.valkyrienskies.core.apigame.world.ClientShipWorldCore
 import org.valkyrienskies.core.apigame.world.ServerShipWorldCore
-import org.valkyrienskies.core.impl.game.ShipTeleportDataImpl
-import org.valkyrienskies.core.impl.game.ships.ShipInertiaDataImpl
-import org.valkyrienskies.core.impl.game.ships.ShipObjectClientWorld
-import org.valkyrienskies.core.impl.game.ships.ShipTransformImpl
-import org.valkyrienskies.core.impl.util.serialization.VSJacksonUtil
+import org.valkyrienskies.mod.api.vsApi
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toMinecraft
+import org.valkyrienskies.mod.common.vsCore
 import org.valkyrienskies.mod.mixin.accessors.entity.EntityAccessor
 
 open class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : Entity(type, level) {
@@ -48,6 +46,9 @@ open class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : En
     private var lerpPos: Vector3dc? = null
     private var lerpSteps = 0
 
+    override fun defineSynchedData(builder: SynchedEntityData.Builder) {
+        builder.define(SHIP_ID_DATA, "")
+    }
     fun setPhysicsEntityData(physicsEntityData: PhysicsEntityData) {
         if (this.physicsEntityData != null) {
             throw IllegalStateException("Cannot define physicsEntityData, its already defined!")
@@ -104,18 +105,13 @@ open class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : En
         this.setPos(d, e, f)
     }
 
-    fun getRenderTransform(shipObjectClientWorld: ShipObjectClientWorld): ShipTransform? {
+    fun getRenderTransform(shipObjectClientWorld: ClientShipWorldCore): ShipTransform? {
         val shipIdString = entityData.get(SHIP_ID_DATA)
         if (shipIdString == "") {
             return null
         }
         val shipIdLong = shipIdString.toLong()
-        val physEntityClient = shipObjectClientWorld.physicsEntities[shipIdLong]
-        return physEntityClient?.renderTransform
-    }
-
-    override fun defineSynchedData(builder: SynchedEntityData.Builder) {
-        builder.define(SHIP_ID_DATA, "")
+        return shipObjectClientWorld.getPhysEntityClientRenderTransform(shipIdLong)
     }
 
     override fun readAdditionalSaveData(compoundTag: CompoundTag) {
@@ -198,14 +194,15 @@ open class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : En
             val physicsEntityServerCopy = physicsEntityServer
             if (physicsEntityServerCopy != null) {
                 val newPos = Vector3d(d, e, f)
-                val teleportData = ShipTeleportDataImpl(newPos = newPos)
+                val teleportData = vsCore.newShipTeleportData(newPos = newPos)
                 (this.level().shipObjectWorld as ServerShipWorldCore).teleportPhysicsEntity(this.physicsEntityServer!!, teleportData)
             } else {
-                physicsEntityData!!.transform = ShipTransformImpl.create(
+                physicsEntityData!!.transform = vsApi.newBodyTransform(
                     Vector3d(d, e, f),
-                    Vector3d(),
                     physicsEntityData!!.transform.shipToWorldRotation,
-                )
+                    Vector3d(1.0),
+                    Vector3d()
+                ) as ShipTransform
             }
         }
     }
@@ -215,7 +212,7 @@ open class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : En
         val compoundTag = entity.saveWithoutId(CompoundTag())
         compoundTag.remove("Dimension")
         loadForTeleport(compoundTag)
-        (this as EntityAccessor).portalCooldown = (entity as EntityAccessor).portalCooldown
+        ((this as EntityAccessor).portalCooldown) = (entity as EntityAccessor).portalCooldown
         portalProcess = entity.portalProcess
     }
 
@@ -228,14 +225,14 @@ open class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : En
             SynchedEntityData.defineId(VSPhysicsEntity::class.java, EntityDataSerializers.STRING)
 
         private fun getMapper(): ObjectMapper {
-            return VSJacksonUtil.defaultMapper
+            return vsCore.defaultMapper
         }
 
         fun createBasicSphereData(
             shipId: ShipId, transform: ShipTransform, radius: Double = 0.5, mass: Double = 10000.0
         ): PhysicsEntityData {
             val inertia = 0.4 * mass * radius * radius
-            val inertiaData: ShipInertiaData = ShipInertiaDataImpl(Vector3d(), mass, Matrix3d().scale(inertia))
+            val inertiaData: ShipInertiaData = vsCore.newShipInertiaData(Vector3d(), mass, Matrix3d().scale(inertia))
             val collisionShapeData = VSSphereCollisionShapeData(radius)
             return PhysicsEntityData(
                 shipId = shipId,

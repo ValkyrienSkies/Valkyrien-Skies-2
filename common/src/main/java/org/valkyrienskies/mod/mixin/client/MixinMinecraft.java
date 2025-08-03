@@ -118,7 +118,7 @@ public abstract class MixinMinecraft
         if (!pause && shipObjectWorld != null && level != null && getConnection() != null) {
             shipObjectWorld.tickNetworking(getConnection().getConnection().getRemoteAddress());
             shipObjectWorld.postTick();
-            EntityDragger.INSTANCE.dragEntitiesWithShips(level.entitiesForRendering());
+            EntityDragger.INSTANCE.dragEntitiesWithShips(level.entitiesForRendering(), false);
         }
     }
 
