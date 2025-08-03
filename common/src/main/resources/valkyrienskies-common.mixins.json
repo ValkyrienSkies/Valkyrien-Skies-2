@@ -38,6 +38,7 @@
     "feature.ai.path_retargeting.MixinAirAndWaterRandomPos",
     "feature.ai.path_retargeting.MixinDefaultRandomPos",
     "feature.ai.path_retargeting.MixinLandRandomPos",
+    "feature.arrows_on_ships.MixinAbstractArrow",
     "feature.bed_fix.MixinServerPlayer",
     "feature.block_placement_orientation.MixinBlockItem",
     "feature.block_placement_orientation.MixinBlockPlaceContext",
