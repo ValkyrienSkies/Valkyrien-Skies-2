@@ -2,6 +2,7 @@ package org.valkyrienskies.mod.mixin.feature.shipyard_entities;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.Camera;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
@@ -14,9 +15,11 @@ import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.joml.primitives.AABBd;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
@@ -27,6 +30,21 @@ import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(EntityRenderDispatcher.class)
 public class MixinEntityRenderDispatcher {
+
+    @Shadow
+    public Camera camera;
+
+    @Inject(method = "distanceToSqr(Lnet/minecraft/world/entity/Entity;)D", at = @At("HEAD"), cancellable = true)
+    private void preDistanceToSqr(final Entity entity, final CallbackInfoReturnable<Double> cir) {
+        final Vec3 pos = entity.position();
+        cir.setReturnValue(VSGameUtilsKt.squaredDistanceToInclShips(entity, pos.x, pos.y, pos.z));
+    }
+
+    @Inject(method = "distanceToSqr(DDD)D", at = @At("HEAD"), cancellable = true)
+    private void preDistanceToSqr(final double x, final double y, final double z,
+        final CallbackInfoReturnable<Double> cir) {
+        cir.setReturnValue(VSGameUtilsKt.squaredDistanceToInclShips(camera.getEntity(), x, y, z));
+    }
 
     @Inject(method = "render",
         at = @At(
