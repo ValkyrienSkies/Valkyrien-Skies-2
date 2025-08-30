@@ -15,7 +15,7 @@ import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.api.ValkyrienSkies;
 
 @Pseudo
-@Mixin(targets = "com.sonicether.soundphysics.SoundPhysics",remap = false)
+@Mixin(targets = "com.sonicether.soundphysics.SoundPhysics")
 public abstract class MixinSoundPhysics {
 
 
