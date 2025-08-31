@@ -10,9 +10,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.valkyrienskies.core.api.ships.Ship;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
+import org.valkyrienskies.mod.common.CompatUtil;
 
 @Mixin(FunnelBlock.class)
 public class MixinFunnelBlock {
@@ -28,16 +26,6 @@ public class MixinFunnelBlock {
         Entity entity, Operation<Vec3> original,
         @Local(argsOnly = true) Level levelIn, @Local(argsOnly = true) BlockPos blockPos
     ) {
-        Ship ship = VSGameUtilsKt.getShipManagingPos(entity.level(), blockPos);
-        Vec3 pos = original.call(entity);
-        if (ship != null) {
-            pos = VectorConversionsMCKt.toMinecraft(
-                // If for some reason the entity position was already transformed.
-                ship.getWorldToShip().transformPosition(
-                    VSGameUtilsKt.getWorldCoordinates(levelIn, BlockPos.containing(pos), VectorConversionsMCKt.toJOML(pos))
-                )
-            );
-        }
-        return pos;
+        return CompatUtil.INSTANCE.toSameSpaceAs(levelIn, original.call(entity), blockPos);
     }
 }

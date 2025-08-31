@@ -94,16 +94,16 @@ dependencies {
 
     modCompileOnly("com.tterrag.registrate_fabric:Registrate:${registrate_version}")
 
-//    if (old_create) {
-//        modRuntimeOnly("com.simibubi.create:create-fabric-${minecraft_version}:${old_create_fabric_version}") {
-//            exclude(group: 'com.github.AlphaMode', module: 'fakeconfigtoml')
-//            exclude(module: 'cc-tweaked')
-//        }
-//        modRuntimeOnly("com.jozufozu.flywheel:flywheel-fabric-${minecraft_version}:${old_flywheel_version}")
-//    } else {
-//        modRuntimeOnly("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}")
-//        modRuntimeOnly("dev.engine-room.flywheel:flywheel-fabric-${minecraft_version}:${flywheel_version}")
-//    }
+    if (old_create) {
+        modRuntimeOnly("com.simibubi.create:create-fabric-${minecraft_version}:${old_create_fabric_version}") {
+            exclude(group: 'com.github.AlphaMode', module: 'fakeconfigtoml')
+            exclude(module: 'cc-tweaked')
+        }
+        modRuntimeOnly("com.jozufozu.flywheel:flywheel-fabric-${minecraft_version}:${old_flywheel_version}")
+    } else {
+        modRuntimeOnly("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}")
+        modRuntimeOnly("dev.engine-room.flywheel:flywheel-fabric-${minecraft_version}:${flywheel_version}")
+    }
 
     //modImplementation("io.github.fabricators_of_create.Porting-Lib:Porting-Lib:$port_lib_version")
     for (String module in port_lib_modules.split(",")) {

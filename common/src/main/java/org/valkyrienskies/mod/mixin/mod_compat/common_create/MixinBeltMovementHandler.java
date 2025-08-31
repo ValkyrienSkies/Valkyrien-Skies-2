@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.mod_compat.common_create;
 
+import com.llamalad7.mixinextras.sugar.Local;
 import com.simibubi.create.content.kinetics.belt.BeltBlockEntity;
 import com.simibubi.create.content.kinetics.belt.transport.BeltMovementHandler;
 import net.minecraft.core.BlockPos;
@@ -18,8 +19,8 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 import org.valkyrienskies.core.api.ships.Ship;
+import org.valkyrienskies.mod.common.CompatUtil;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
@@ -27,7 +28,7 @@ import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 public abstract class MixinBeltMovementHandler {
 
     @Unique
-    private static Vector3d blockPos;
+    private static BlockPos blockPos;
 
     @Unique
     private static Level level;
@@ -41,9 +42,13 @@ public abstract class MixinBeltMovementHandler {
     @Unique
     private static Entity entity;
 
-    @Inject(method = "transportEntity", at = @At(value = "INVOKE", target = "Lnet/minecraft/core/Direction;fromAxisAndDirection(Lnet/minecraft/core/Direction$Axis;Lnet/minecraft/core/Direction$AxisDirection;)Lnet/minecraft/core/Direction;"), locals = LocalCapture.CAPTURE_FAILHARD)
-    private static void injectHead(BeltBlockEntity beltTe, Entity entityIn, BeltMovementHandler.TransportedEntityInfo info, CallbackInfo ci, BlockPos pos) {
-        blockPos = VectorConversionsMCKt.toJOMLD(pos);
+    @Inject(method = "transportEntity", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/core/Direction;fromAxisAndDirection(Lnet/minecraft/core/Direction$Axis;Lnet/minecraft/core/Direction$AxisDirection;)Lnet/minecraft/core/Direction;"))
+    private static void injectHead(
+        BeltBlockEntity beltTe, Entity entityIn, BeltMovementHandler.TransportedEntityInfo info, CallbackInfo ci,
+        @Local BlockPos pos
+    ) {
+        blockPos = pos;
         entity = entityIn;
         level = beltTe.getLevel();
         if (level != null) {
@@ -91,12 +96,6 @@ public abstract class MixinBeltMovementHandler {
         return instance.choose(x, y, z);
     }
 
-    @ModifyVariable(method = "transportEntity", at = @At(value = "STORE"), name = "diffCenter", remap = false)
-    private static double modDiffCenter(double value) {
-        //if (ship != null) value = value + Math.copySign(value) );
-        return axis == Direction.Axis.Z ? (blockPos.x + .5 - getPos(entity).x) : (blockPos.z + .5 - getPos(entity).z);
-    }
-
     @Redirect(
             method = "transportEntity",
             at = @At(
@@ -120,28 +119,24 @@ public abstract class MixinBeltMovementHandler {
 
     @Redirect(method = "transportEntity", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;getX()D"))
     private static double redirectGetX(Entity instance) {
-        return getPos(instance).x;
+        return vs$getPos(instance).x;
     }
 
     @Redirect(method = "transportEntity", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;getY()D"))
     private static double redirectGetY(Entity instance) {
-        return getPos(instance).y;
+        return vs$getPos(instance).y;
     }
 
     @Redirect(method = "transportEntity", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;getZ()D"))
     private static double redirectGetZ(Entity instance) {
-        return getPos(instance).z;
+        return vs$getPos(instance).z;
     }
 
     @Unique
-    private static Vec3 getPos(Entity entity) {
+    private static Vec3 vs$getPos(Entity entity) {
         Vec3 result = entity.position();
         if (level != null) {
-            if (ship != null) {
-                Vector3d tempVec = VectorConversionsMCKt.toJOML(result);
-                ship.getTransform().getWorldToShip().transformPosition(tempVec);
-                result = VectorConversionsMCKt.toMinecraft(tempVec);
-            }
+            result = CompatUtil.INSTANCE.toSameSpaceAs(level, result, ship);
         }
         return result;
     }

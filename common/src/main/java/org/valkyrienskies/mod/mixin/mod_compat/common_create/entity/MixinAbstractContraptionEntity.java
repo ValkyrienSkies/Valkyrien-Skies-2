@@ -1,20 +1,20 @@
-package org.valkyrienskies.mod.mixin.mod_compat.create.entity;
+package org.valkyrienskies.mod.mixin.mod_compat.common_create.entity;
 
 import static org.valkyrienskies.mod.common.util.VectorConversionsMCKt.toJOML;
 import static org.valkyrienskies.mod.common.util.VectorConversionsMCKt.toMinecraft;
 
-import com.simibubi.create.api.behaviour.movement.MovementBehaviour;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.sugar.Local;
 import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
 import com.simibubi.create.content.contraptions.Contraption;
-import com.simibubi.create.content.contraptions.OrientedContraptionEntity;
 import com.simibubi.create.content.contraptions.StructureTransform;
 import com.simibubi.create.content.contraptions.actors.harvester.HarvesterMovementBehaviour;
 import com.simibubi.create.content.contraptions.behaviour.MovementContext;
 import com.simibubi.create.content.kinetics.base.BlockBreakingMovementBehaviour;
 import com.simibubi.create.content.kinetics.deployer.DeployerMovementBehaviour;
-import net.createmod.catnip.math.VecHelper;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.core.Position;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
@@ -23,7 +23,6 @@ import net.minecraft.world.entity.vehicle.AbstractMinecart;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate.StructureBlockInfo;
 import net.minecraft.world.phys.Vec3;
-import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -33,16 +32,16 @@ import org.joml.Matrix4d;
 import org.joml.Matrix4dc;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
-import org.spongepowered.asm.mixin.Final;
+import org.objectweb.asm.Opcodes;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Coerce;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 import org.valkyrienskies.core.api.ships.ContraptionWingProvider;
 import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.core.api.ships.LoadedShip;
@@ -54,6 +53,7 @@ import org.valkyrienskies.mod.common.entity.ShipMountedToData;
 import org.valkyrienskies.mod.common.entity.ShipMountedToDataProvider;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
+import org.valkyrienskies.mod.compat.CreateCompat;
 import org.valkyrienskies.mod.compat.CreateConversionsKt;
 import org.valkyrienskies.mod.mixinducks.mod_compat.create.MixinAbstractContraptionEntityDuck;
 
@@ -126,22 +126,22 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
     }
 
     @Inject(method = "toGlobalVector(Lnet/minecraft/world/phys/Vec3;FZ)Lnet/minecraft/world/phys/Vec3;",
-            at = @At("HEAD"), cancellable = true)
+        at = @At("HEAD"), cancellable = true)
     private void redirectToGlobalVector(Vec3 localVec, final float partialTicks, final boolean prevAnchor, final CallbackInfoReturnable<Vec3> cir) {
         if (partialTicks != 1 && !prevAnchor) {
             final Vec3 anchor = getAnchorVec();
             final Vec3 oldAnchor = getPrevAnchorVec();
             final Vec3 lerpedAnchor =
-                    new Vec3(
-                            Mth.lerp(partialTicks, oldAnchor.x, anchor.x),
-                            Mth.lerp(partialTicks, oldAnchor.y, anchor.y),
-                            Mth.lerp(partialTicks, oldAnchor.z, anchor.z)
-                    );
-            final Vec3 rotationOffset = VecHelper.getCenterOf(BlockPos.ZERO);
+                new Vec3(
+                    Mth.lerp(partialTicks, oldAnchor.x, anchor.x),
+                    Mth.lerp(partialTicks, oldAnchor.y, anchor.y),
+                    Mth.lerp(partialTicks, oldAnchor.z, anchor.z)
+                );
+            final Vec3 rotationOffset = CreateCompat.getCenterOf(BlockPos.ZERO);
             localVec = localVec.subtract(rotationOffset);
             localVec = applyRotation(localVec, partialTicks);
             localVec = localVec.add(rotationOffset)
-                    .add(lerpedAnchor);
+                .add(lerpedAnchor);
             cir.setReturnValue(localVec);
         }
     }
@@ -155,13 +155,13 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
     public abstract Vec3 getPrevPositionVec();
 
     @Unique
-    private boolean vs$shouldMod(final MovementBehaviour moveBehaviour) {
+    private boolean vs$shouldMod(final Object moveBehaviour) {
         return ((moveBehaviour instanceof BlockBreakingMovementBehaviour) || (moveBehaviour instanceof HarvesterMovementBehaviour) || (moveBehaviour instanceof DeployerMovementBehaviour));
     }
 
     @Unique
-    private BlockPos vs$getTargetPos(final MovementBehaviour instance, final MovementContext context, final BlockPos pos, final Vec3 actorPosition) {
-        if (vs$shouldMod(instance) && context.world.getBlockState(pos).isAir() && VSGameUtilsKt.isBlockInShipyard(context.world, pos)) {
+    private BlockPos vs$getTargetPos(final Object moveBehaviour, final MovementContext context, final BlockPos pos, final Vec3 actorPosition) {
+        if (vs$shouldMod(moveBehaviour) && context.world.getBlockState(pos).isAir() && VSGameUtilsKt.isBlockInShipyard(context.world, pos)) {
             final Ship ship = VSGameUtilsKt.getShipManagingPos(context.world, pos);
             if (ship != null) {
                 final Vector3dc actorPosInWorld = ship.getTransform().getShipToWorld().transformPosition(toJOML(actorPosition));
@@ -174,95 +174,71 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
     @Unique
     private boolean vs$forceStall = false;
 
-    @Shadow
-    private boolean skipActorStop;
+    @Redirect(
+        method = "tickActors",
+        at = @At(
+            value = "FIELD",
+            target = "Lcom/simibubi/create/content/contraptions/Contraption;stalled:Z",
+            opcode = Opcodes.PUTFIELD
+        ),
+        remap = false
+    )
+    private void putVSStall(Contraption contraption, boolean stall) {
+        contraption.stalled = vs$forceStall;
+    }
 
-    @Shadow
-    @Final
-    private static EntityDataAccessor<Boolean> STALLED;
+    @Unique
+    private Object vs$tempActor;
+    @Unique
+    private Vec3 vs$tempActorActiveAreaOffset;
 
-    @Shadow
-    public abstract boolean isStalled();
+    @WrapOperation(
+        method = "tickActors",
+        at = {
+            @At( // Create v0.5.1
+                value = "INVOKE",
+                target = "Lcom/simibubi/create/content/contraptions/behaviour/MovementBehaviour;getActiveAreaOffset(Lcom/simibubi/create/content/contraptions/behaviour/MovementContext;)Lnet/minecraft/world/phys/Vec3;"
+            ),
+            @At( // Create v6
+                value = "INVOKE",
+                target = "Lcom/simibubi/create/api/behaviour/movement/MovementBehaviour;getActiveAreaOffset(Lcom/simibubi/create/content/contraptions/behaviour/MovementContext;)Lnet/minecraft/world/phys/Vec3;"
+            )
+        },
+        require = 0
+    )
+    private Vec3 stealActor(@Coerce Object actor, MovementContext context, Operation<Vec3> original) {
+        Vec3 result = original.call(actor, context);
+        vs$tempActor = actor;
+        vs$tempActorActiveAreaOffset = result;
+        return result;
+    }
 
-    @Shadow
-    protected abstract boolean shouldActorTrigger(MovementContext context, StructureBlockInfo blockInfo, MovementBehaviour actor, Vec3 actorPosition, BlockPos gridPosition);
+    @WrapOperation(
+        method = "tickActors",
+        at = @At(
+            value = "INVOKE",
+            target = "Lcom/simibubi/create/content/contraptions/AbstractContraptionEntity;toGlobalVector(Lnet/minecraft/world/phys/Vec3;F)Lnet/minecraft/world/phys/Vec3;"
+        )
+    )
+    private Vec3 changeActorPosition(
+        AbstractContraptionEntity instance, Vec3 localVec, float partialTicks, Operation<Vec3> original,
+        @Local final MovementContext context, @Local final StructureBlockInfo blockInfo
+    ) {
+        return toGlobalVector(CreateCompat.getCenterOf(blockInfo.pos()).add(vs$tempActorActiveAreaOffset), 1);
+    }
 
-    @Shadow
-    protected abstract boolean isActorActive(MovementContext context, MovementBehaviour actor);
-
-    @Shadow
-    protected abstract void onContraptionStalled();
-
-    @Inject(method = "tickActors", at = @At("HEAD"), cancellable = true, locals = LocalCapture.CAPTURE_FAILHARD, remap = false)
-    private void preTickActors(final CallbackInfo ci) {
-        ci.cancel();
-
-        final boolean stalledPreviously = contraption.stalled;
-
-        if (!level().isClientSide)
-            contraption.stalled = vs$forceStall;
-
-        skipActorStop = true;
-        for (final MutablePair<StructureBlockInfo, MovementContext> pair : contraption.getActors()) {
-            final MovementContext context = pair.right;
-            final StructureBlockInfo blockInfo = pair.left;
-            final MovementBehaviour actor = MovementBehaviour.REGISTRY.get(blockInfo.state());
-
-            if (actor == null)
-                continue;
-
-            final Vec3 oldMotion = context.motion;
-            final Vec3 actorPosition = toGlobalVector(VecHelper.getCenterOf(blockInfo.pos())
-                .add(actor.getActiveAreaOffset(context)), 1);
-            final BlockPos gridPosition = vs$getTargetPos(actor, context, BlockPos.containing(actorPosition), actorPosition); // BlockPos.containing(actorPosition);
-            final boolean newPosVisited =
-                !context.stall && shouldActorTrigger(context, blockInfo, actor, actorPosition, gridPosition);
-
-            context.rotation = v -> applyRotation(v, 1);
-            context.position = actorPosition;
-            if (!isActorActive(context, actor) && !actor.mustTickWhileDisabled())
-                continue;
-            if (newPosVisited && !context.stall) {
-                actor.visitNewPosition(context, gridPosition);
-                if (!isAlive())
-                    break;
-                context.firstMovement = false;
-            }
-            if (!oldMotion.equals(context.motion)) {
-                actor.onSpeedChanged(context, oldMotion, context.motion);
-                if (!isAlive())
-                    break;
-            }
-            actor.tick(context);
-            if (!isAlive())
-                break;
-            contraption.stalled |= context.stall;
-        }
-        if (!isAlive()) {
-            contraption.stop(level());
-            return;
-        }
-        skipActorStop = false;
-
-        for (final Entity entity : getPassengers()) {
-            if (!(entity instanceof final OrientedContraptionEntity orientedCE))
-                continue;
-            if (contraption.getBearingPosOf(entity.getUUID()) == null)
-                continue;
-            if (orientedCE.getContraption() != null && orientedCE.getContraption().stalled) {
-                contraption.stalled = true;
-                break;
-            }
-        }
-
-        if (!level().isClientSide) {
-            if (!stalledPreviously && contraption.stalled)
-                onContraptionStalled();
-            entityData.set(STALLED, contraption.stalled);
-            return;
-        }
-
-        contraption.stalled = isStalled();
+    @WrapOperation(
+        method = "tickActors",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/core/BlockPos;containing(Lnet/minecraft/core/Position;)Lnet/minecraft/core/BlockPos;"
+        )
+    )
+    private BlockPos changeTargetPos(
+        Position position, Operation<BlockPos> original,
+        @Local final MovementContext context, @Local(ordinal = 1) final Vec3 actorPosition
+    ) {
+        return vs$getTargetPos(vs$tempActor, context, BlockPos.containing(actorPosition), actorPosition);
     }
 
     @Override
@@ -298,11 +274,11 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
 
     @Inject(method = "tick", at = @At("HEAD"))
     private void postTick(final CallbackInfo ci) {
-        final AbstractContraptionEntity thisAsAbstractContraptionEntity = AbstractContraptionEntity.class.cast(this);
-        final Level level = thisAsAbstractContraptionEntity.level();
+        final AbstractContraptionEntity thisAsACE = AbstractContraptionEntity.class.cast(this);
+        final Level level = thisAsACE.level();
         if (wingGroupId != -1 && level instanceof final ServerLevel serverLevel) {
             final LoadedServerShip ship = VSGameUtilsKt.getShipObjectManagingPos(serverLevel,
-                VectorConversionsMCKt.toJOML(thisAsAbstractContraptionEntity.position()));
+                VectorConversionsMCKt.toJOML(thisAsACE.position()));
             if (ship != null) {
                 try {
                     // This can happen if a player moves a train contraption from ship to world using a wrench
@@ -319,9 +295,9 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
     @NotNull
     @Override
     public Matrix4dc computeContraptionWingTransform() {
-        final AbstractContraptionEntity thisAsAbstractContraptionEntity = AbstractContraptionEntity.class.cast(this);
-        final Matrix3d rotationMatrix = CreateConversionsKt.toJOML(thisAsAbstractContraptionEntity.getRotationState().asMatrix());
-        final Vector3d pos = VectorConversionsMCKt.toJOML(thisAsAbstractContraptionEntity.getAnchorVec());
+        final AbstractContraptionEntity thisAsACE = AbstractContraptionEntity.class.cast(this);
+        final Matrix3d rotationMatrix = CreateConversionsKt.toJOML(thisAsACE.getRotationState().asMatrix());
+        final Vector3d pos = VectorConversionsMCKt.toJOML(thisAsACE.getAnchorVec());
         return new Matrix4d(rotationMatrix).setTranslation(pos);
     }
 

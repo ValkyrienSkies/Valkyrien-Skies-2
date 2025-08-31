@@ -9,8 +9,8 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.valkyrienskies.core.api.ships.Ship;
+import org.valkyrienskies.mod.common.CompatUtil;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(EjectorBlock.class)
 public abstract class MixinEjectorBlock {
@@ -25,29 +25,18 @@ public abstract class MixinEjectorBlock {
             value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;position()Lnet/minecraft/world/phys/Vec3;"
     ))
     private Vec3 redirectEntityPosition(Entity instance) {
-        Vec3 result = instance.position();
-        if (VSGameUtilsKt.getShipManagingPos(instance.level(), instance.position()) == null) {
-            Ship ship = VSGameUtilsKt.getShipManagingPos(instance.level(), instance.getOnPos());
-            if (ship != null) {
-                Vector3d tempVec = VectorConversionsMCKt.toJOML(result);
-                ship.getWorldToShip().transformPosition(tempVec, tempVec);
-                result = VectorConversionsMCKt.toMinecraft(tempVec);
-            }
-        }
-        return result;
+        return CompatUtil.INSTANCE.toSameSpaceAs(instance.level(), instance.position(), instance.getOnPos());
     }
 
     @Redirect(method = "updateEntityAfterFallOn", at = @At(
             value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;setPos(DDD)V"
     ))
     private void redirectSetPos(Entity instance, double x, double y, double z) {
+        Vector3d pos = new Vector3d(x, y, z);
         Ship ship = VSGameUtilsKt.getShipManagingPos(instance.level(), instance.getOnPos());
         if (ship != null) {
-            Vector3d tempVec = new Vector3d();
-            ship.getTransform().getShipToWorld().transformPosition(x, y, z, tempVec);
-            instance.setPos(tempVec.x, tempVec.y, tempVec.z);
-        } else {
-            instance.setPos(x, y, z);
+            Vector3d worldPos = ship.getShipToWorld().transformPosition(pos);
         }
+        instance.setPos(pos.x, pos.y, pos.z);
     }
 }

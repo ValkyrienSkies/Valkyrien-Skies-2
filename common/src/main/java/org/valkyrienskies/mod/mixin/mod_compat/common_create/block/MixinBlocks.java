@@ -1,19 +1,16 @@
-package org.valkyrienskies.mod.forge.mixin.compat.common_create;
+package org.valkyrienskies.mod.mixin.mod_compat.common_create.block;
 
 import com.simibubi.create.content.kinetics.millstone.MillstoneBlock;
 import com.simibubi.create.content.logistics.chute.AbstractChuteBlock;
 import com.simibubi.create.content.processing.basin.BasinBlock;
-import java.util.Iterator;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
-import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
-import org.valkyrienskies.core.api.ships.Ship;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
+import org.valkyrienskies.mod.common.CompatUtil;
+import org.valkyrienskies.mod.mixinducks.world.entity.EntityDuck;
 
 @Mixin(value = {
     MillstoneBlock.class,
@@ -31,15 +28,9 @@ public class MixinBlocks {
         require = 0, remap = false
     )
     protected BlockPos redirectBlockPosition(final Entity entity) {
-        final Iterator<Ship> ships =
-            VSGameUtilsKt.getShipsIntersecting(entity.level(), entity.getBoundingBox()).iterator();
-        if (ships.hasNext()) {
-            final Vector3d pos = ships.next().getWorldToShip()
-                .transformPosition(VectorConversionsMCKt.toJOML(entity.position()));
-            return BlockPos.containing(Math.floor(pos.x), Math.floor(pos.y), Math.floor(pos.z));
-        } else {
-            return entity.blockPosition();
-        }
+        return BlockPos.containing(
+            CompatUtil.INSTANCE.toSameSpaceAs(entity.level(), entity.position().add(0, 0.5, 0), ((EntityDuck)entity).vs_getSteppedOn())
+        );
     }
 
     @Redirect(
@@ -51,14 +42,6 @@ public class MixinBlocks {
         require = 0, remap = false
     )
     Vec3 redirectPosition(final Entity entity) {
-        final Iterator<Ship> ships =
-            VSGameUtilsKt.getShipsIntersecting(entity.level(), entity.getBoundingBox()).iterator();
-        if (ships.hasNext()) {
-            return VectorConversionsMCKt.toMinecraft(ships.next().getWorldToShip()
-                .transformPosition(VectorConversionsMCKt.toJOML(entity.position())));
-        } else {
-            return entity.position();
-        }
+        return CompatUtil.INSTANCE.toSameSpaceAs(entity.level(), entity.position(), ((EntityDuck)entity).vs_getSteppedOn());
     }
-
 }

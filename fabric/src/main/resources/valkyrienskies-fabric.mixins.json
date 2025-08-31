@@ -9,8 +9,6 @@
     "compat.cc_restitched.MixinWirelessModemPeripheral",
     "compat.cc_restitched.MixinWirelessNetwork",
     "compat.common_create.MixinBlockBreakingKineticTileEntity",
-    "compat.common_create.MixinBlocks",
-    "compat.common_create.MixinChuteBlockEntity",
     "compat.common_create.MixinControlledContraptionEntity",
     "compat.common_create.client.MixinTrackBlockOutline",
     "compat.sodium.MixinRenderSectionManager",

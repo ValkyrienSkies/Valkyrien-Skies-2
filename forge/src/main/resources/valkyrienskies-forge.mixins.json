@@ -9,8 +9,6 @@
     "compat.cc_tweaked.MixinWirelessModemPeripheral",
     "compat.cc_tweaked.MixinWirelessNetwork",
     "compat.common_create.MixinBlockBreakingKineticTileEntity",
-    "compat.common_create.MixinBlocks",
-    "compat.common_create.MixinChuteBlockEntity",
     "compat.common_create.MixinControlledContraptionEntity",
     "compat.immersivengineering.MixinBlockEntityInventory",
     "compat.integrateddynamics.MixinVoxelShapeComponents",

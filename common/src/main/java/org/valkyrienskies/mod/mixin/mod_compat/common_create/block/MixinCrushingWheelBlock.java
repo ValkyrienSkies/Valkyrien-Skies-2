@@ -62,7 +62,7 @@ public class MixinCrushingWheelBlock {
     double getYPos(final Entity entity) {
         final Vector3d vector3d = new Vector3d(entity.getX(), entity.getY(), entity.getZ());
         transform(vector3d);
-        return vector3d.x;
+        return vector3d.y;
     }
 
     @Redirect(
@@ -75,7 +75,7 @@ public class MixinCrushingWheelBlock {
     double getZPos(final Entity entity) {
         final Vector3d vector3d = new Vector3d(entity.getX(), entity.getY(), entity.getZ());
         transform(vector3d);
-        return vector3d.x;
+        return vector3d.z;
     }
 
 }

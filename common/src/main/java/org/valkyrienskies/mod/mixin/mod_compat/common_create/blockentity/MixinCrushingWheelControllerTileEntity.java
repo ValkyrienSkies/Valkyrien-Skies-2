@@ -10,15 +10,18 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
 import org.joml.primitives.AABBd;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.valkyrienskies.core.api.ships.Ship;
+import org.valkyrienskies.mod.common.CompatUtil;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
@@ -57,7 +60,7 @@ public abstract class MixinCrushingWheelControllerTileEntity {
         BlockPos worldPosition = ((CrushingWheelControllerBlockEntity) (Object) this).getBlockPos();
         Direction facing = ((CrushingWheelControllerBlockEntity) (Object) this)
                 .getBlockState().getValue(CrushingWheelControllerBlock.FACING);
-        Vec3 transformedPos = getTransformedPosition(instance);
+        Vec3 transformedPos = vs$getTransformedPosition(instance);
         double xMotion = ((worldPosition.getX() + .5) - transformedPos.x) / 2;
         double zMotion = ((worldPosition.getZ() + .5) - transformedPos.z) / 2;
 
@@ -65,7 +68,7 @@ public abstract class MixinCrushingWheelControllerTileEntity {
             xMotion = zMotion = 0;
         double movement = Math.max(-(this.crushingspeed * 4) / 4f, -.5f) * -facing.getAxisDirection().getStep();
 
-        Vec3 transformedDirection = directionShip2World(instance,
+        Vec3 transformedDirection = vs$directionShip2World(instance,
                 new Vec3(
                         facing.getAxis() == Direction.Axis.X ? movement : xMotion,
                         facing.getAxis() == Direction.Axis.Y ? movement : 0f,
@@ -77,33 +80,28 @@ public abstract class MixinCrushingWheelControllerTileEntity {
 
     @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;getX()D"))
     private double redirectEntityGetX(Entity instance) {
-        return getTransformedPosition(instance).x;
+        return vs$getTransformedPosition(instance).x;
     }
 
     @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;getY()D"))
     private double redirectEntityGetY(Entity instance) {
-        return getTransformedPosition(instance).y;
+        return vs$getTransformedPosition(instance).y;
     }
 
     @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;getZ()D"))
     private double redirectEntityGetZ(Entity instance) {
-        return getTransformedPosition(instance).z;
+        return vs$getTransformedPosition(instance).z;
     }
 
-    private Vec3 getTransformedPosition(Entity instance) {
-        Vec3 result = instance.position();
-        Ship ship = VSGameUtilsKt.getShipManagingPos(instance.level(), ((CrushingWheelControllerBlockEntity) (Object) this).getBlockPos());
-        if (ship != null) {
-            Vector3d tempVec = new Vector3d();
-            ship.getTransform().getWorldToShip().transformPosition(result.x, result.y, result.z, tempVec);
-            result = VectorConversionsMCKt.toMinecraft(tempVec);
-        }
-        return result;
+    @Unique
+    private Vec3 vs$getTransformedPosition(Entity instance) {
+        return CompatUtil.INSTANCE.toSameSpaceAs(instance.level(), instance.position(), BlockEntity.class.cast(this).getBlockPos());
     }
 
-    private Vec3 directionShip2World(Entity instance, Vec3 direction) {
+    @Unique
+    private Vec3 vs$directionShip2World(Entity instance, Vec3 direction) {
         Vec3 result = direction;
-        Ship ship = VSGameUtilsKt.getShipManagingPos(instance.level(), ((CrushingWheelControllerBlockEntity) (Object) this).getBlockPos());
+        Ship ship = VSGameUtilsKt.getShipManagingPos(instance.level(), BlockEntity.class.cast(this).getBlockPos());
         if (ship != null) {
             Vector3d tempVec = new Vector3d();
             ship.getTransform().getShipToWorld().transformDirection(result.x, result.y, result.z, tempVec);

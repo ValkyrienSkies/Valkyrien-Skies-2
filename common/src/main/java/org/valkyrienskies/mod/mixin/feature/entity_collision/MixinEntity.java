@@ -4,13 +4,13 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Position;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
@@ -31,9 +31,10 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
+import org.valkyrienskies.mod.mixinducks.world.entity.EntityDuck;
 
 @Mixin(Entity.class)
-public abstract class MixinEntity implements IEntityDraggingInformationProvider {
+public abstract class MixinEntity implements IEntityDraggingInformationProvider, EntityDuck {
 
     // region collision
 
@@ -61,6 +62,14 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
     @Shadow
     public abstract BlockPos getOnPos();
+
+    @Unique
+    public BlockPos vs_stepOnPos = new BlockPos(0, 0, 0);
+
+    @Unique
+    public BlockPos vs_getSteppedOn() {
+        return vs_stepOnPos;
+    }
 
     /**
      * Cancel movement of entities that are colliding with unloaded ships
@@ -163,37 +172,41 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
     // region Block standing on friction and sprinting particles mixins
     @Unique
-    private BlockPos getPosStandingOnFromShips(final Vector3dc blockPosInGlobal) {
-        final double radius = 0.5;
+    private BlockPos getPosStandingOnFromShips(final Vector3dc posInGlobal) {
+        final double radius = 1.0;
         final AABBdc testAABB = new AABBd(
-            blockPosInGlobal.x() - radius, blockPosInGlobal.y() - radius, blockPosInGlobal.z() - radius,
-            blockPosInGlobal.x() + radius, blockPosInGlobal.y() + radius, blockPosInGlobal.z() + radius
+            posInGlobal.x() - radius, posInGlobal.y() - radius, posInGlobal.z() - radius,
+            posInGlobal.x() + radius, posInGlobal.y() + radius, posInGlobal.z() + radius
         );
         final Iterable<Ship> intersectingShips = VSGameUtilsKt.getShipsIntersecting(level, testAABB);
         for (final Ship ship : intersectingShips) {
-            final Vector3dc blockPosInLocal =
-                ship.getTransform().getWorldToShip().transformPosition(blockPosInGlobal, new Vector3d());
-            final BlockPos blockPos = BlockPos.containing(
-                Math.floor(blockPosInLocal.x()), Math.floor(blockPosInLocal.y()), Math.floor(blockPosInLocal.z())
-            );
-            final BlockState blockState = level.getBlockState(blockPos);
-            if (!blockState.isAir()) {
+            final Vector3dc posInLocal =
+                ship.getTransform().getWorldToShip().transformPosition(posInGlobal, new Vector3d());
+            final BlockPos blockPos = vs$nearest(posInLocal.x(), posInLocal.y(), posInLocal.z());
+            if (!level.getBlockState(blockPos).isAir()) {
                 return blockPos;
             } else {
-                // Check the block below as well, in the cases of fences
-                final Vector3dc blockPosInLocal2 = ship.getTransform().getWorldToShip()
-                    .transformPosition(
-                        new Vector3d(blockPosInGlobal.x(), blockPosInGlobal.y() - 1.0, blockPosInGlobal.z()));
-                final BlockPos blockPos2 = BlockPos.containing(
-                    Math.round(blockPosInLocal2.x()), Math.round(blockPosInLocal2.y()), Math.round(blockPosInLocal2.z())
-                );
-                final BlockState blockState2 = level.getBlockState(blockPos2);
-                if (!blockState2.isAir()) {
-                    return blockPos2;
+                final BlockPos blockPos1 = blockPos.below();
+                if (!level.getBlockState(blockPos1).isAir()) {
+                    return blockPos1;
                 }
             }
         }
         return null;
+    }
+
+    @Unique
+    private BlockPos vs$nearest(double x, double y, double z) {
+        return BlockPos.containing(
+            Math.round(x * 2) * 0.5,
+            Math.round(y * 2) * 0.5,
+            Math.round(z * 2) * 0.5
+        );
+    }
+
+    @Unique
+    private BlockPos vs$nearest(Position pos) {
+        return vs$nearest(pos.x(), pos.y(), pos.z());
     }
 
     /**
@@ -202,15 +215,23 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
      */
     @Inject(method = "getOnPos(F)Lnet/minecraft/core/BlockPos;", at = @At("HEAD"), cancellable = true)
     private void preGetOnPos(final CallbackInfoReturnable<BlockPos> cir) {
-        final Vector3dc blockPosInGlobal = new Vector3d(
+        final Vector3dc posInGlobal = new Vector3d(
             position.x,
             position.y,
             position.z
         );
-        final BlockPos blockPosStandingOnFromShip = getPosStandingOnFromShips(blockPosInGlobal);
+        final BlockPos blockPosStandingOnFromShip = getPosStandingOnFromShips(posInGlobal);
         if (blockPosStandingOnFromShip != null) {
             cir.setReturnValue(blockPosStandingOnFromShip);
         }
+    }
+
+    @WrapOperation(method = "move", at = @At(
+        value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;getOnPosLegacy()Lnet/minecraft/core/BlockPos;"
+    ))
+    private BlockPos saveStepOnPos(Entity instance, Operation<BlockPos> original) {
+        vs_stepOnPos = original.call(instance);
+        return vs_stepOnPos;
     }
 
     @WrapOperation(method = "spawnSprintParticle", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;blockPosition()Lnet/minecraft/core/BlockPos;"))

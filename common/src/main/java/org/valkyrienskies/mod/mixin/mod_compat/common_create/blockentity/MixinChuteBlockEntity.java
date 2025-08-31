@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.fabric.mixin.compat.common_create;
+package org.valkyrienskies.mod.mixin.mod_compat.common_create.blockentity;
 
 import com.llamalad7.mixinextras.sugar.Local;
 import com.simibubi.create.content.logistics.chute.ChuteBlockEntity;
