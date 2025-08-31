@@ -1,5 +1,8 @@
 package org.valkyrienskies.mod.mixin.mod_compat.common_create.blockentity;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.sugar.Local;
 import com.simibubi.create.content.schematics.SchematicPrinter;
 import com.simibubi.create.content.schematics.cannon.SchematicannonBlockEntity;
 import net.minecraft.core.BlockPos;
@@ -32,6 +35,26 @@ public class MixinSchematicannonBlockEntity {
                 original.getCenter(),
                 thisShip
             )
+        );
+    }
+
+    @WrapOperation(
+        method = {
+            "launchBlock",
+            "launchEntity",
+            "launchBelt"
+        },
+        at = @At(
+            value = "INVOKE",
+            target = "Lcom/simibubi/create/content/schematics/cannon/SchematicannonBlockEntity;getBlockPos()Lnet/minecraft/core/BlockPos;"
+        )
+    )
+    private BlockPos useTargetSpacePos(
+        SchematicannonBlockEntity instance, Operation<BlockPos> original,
+        @Local(argsOnly = true) BlockPos target
+    ) {
+        return BlockPos.containing(
+            CompatUtil.INSTANCE.toSameSpaceAs(instance.getLevel(), original.call(instance).getCenter(), target)
         );
     }
 }
