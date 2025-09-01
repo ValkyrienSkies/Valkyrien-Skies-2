@@ -1,8 +1,5 @@
 package org.valkyrienskies.mod.mixin.mod_compat.common_create.client;
 
-import static org.valkyrienskies.mod.common.util.VectorConversionsMCKt.toJOML;
-import static org.valkyrienskies.mod.common.util.VectorConversionsMCKt.toMinecraft;
-
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.simibubi.create.content.schematics.client.SchematicTransformation;
@@ -15,6 +12,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.valkyrienskies.core.api.ships.Ship;
+import org.valkyrienskies.mod.common.CompatUtil;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 /**
@@ -60,11 +58,9 @@ public abstract class MixinSchematicToolBase {
         )
     )
     public Vec3 wrapLocalSpaceToShip(SchematicTransformation transformation, Vec3 vec, Operation<Vec3> original) {
-        Ship ship = VSGameUtilsKt.getShipObjectManagingPos(Minecraft.getInstance().level, transformation.getAnchor());
-        if (ship != null) {
-            return original.call(transformation, toMinecraft(ship.getWorldToShip().transformPosition(toJOML(vec))));
-        }
-
-        return original.call(transformation, vec);
+        return original.call(
+            transformation,
+            CompatUtil.INSTANCE.toSameSpaceAs(Minecraft.getInstance().level, vec, transformation.getAnchor())
+        );
     }
 }

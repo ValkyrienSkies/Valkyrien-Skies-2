@@ -9,6 +9,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.valkyrienskies.core.api.ships.Ship;
+import org.valkyrienskies.mod.common.CompatUtil;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
@@ -20,13 +21,8 @@ public class MixinCogwheelBlockItemHitOnShaft {
     private Vec3 redirectGetLocation(BlockHitResult instance) {
         Vec3 result = instance.getLocation();
         Level world = Minecraft.getInstance().level;
-        if(world!=null) {
-            Ship ship = VSGameUtilsKt.getShipManagingPos(world, instance.getBlockPos());
-            if (ship != null && !VSGameUtilsKt.isBlockInShipyard(world, result.x, result.y, result.z)) {
-                Vector3d tempVec = VectorConversionsMCKt.toJOML(result);
-                ship.getWorldToShip().transformPosition(tempVec, tempVec);
-                result = VectorConversionsMCKt.toMinecraft(tempVec);
-            }
+        if(world != null) {
+            result = CompatUtil.INSTANCE.toSameSpaceAs(world, result, instance.getBlockPos());
         }
         return result;
     }
