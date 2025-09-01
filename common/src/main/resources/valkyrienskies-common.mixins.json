@@ -113,6 +113,7 @@
     "mod_compat.common_create.blockentity.MixinCrushingWheelControllerTileEntity",
     "mod_compat.common_create.blockentity.MixinEjectorTileEntity",
     "mod_compat.common_create.blockentity.MixinEncasedFanTileEntity",
+    "mod_compat.common_create.blockentity.MixinHosePulleyBlockEntity",
     "mod_compat.common_create.blockentity.MixinSchematicannonBlockEntity",
     "mod_compat.common_create.client.MixinPlacementHelpers",
     "mod_compat.common_create.client.MixinSchematicannonRenderer",
