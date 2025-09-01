@@ -25,7 +25,7 @@ public abstract class MixinSuperGlueSelectionHandler {
     @Unique
     private Vec3 newTarget;
 
-    @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/foundation/utility/RaycastHelper;getTraceOrigin(Lnet/minecraft/world/entity/player/Player;)Lnet/minecraft/world/phys/Vec3;"))
+    @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/foundation/utility/RaycastHelper;getTraceOrigin(Lnet/minecraft/world/entity/player/Player;)Lnet/minecraft/world/phys/Vec3;"), remap = false)
     private Vec3 redirectGetTraceOrigin(
         Player playerIn,
         // Range retrieval is loader-specific but both Forge and Fabric Create do it just before our injection point.
@@ -63,7 +63,7 @@ public abstract class MixinSuperGlueSelectionHandler {
         return origin;
     }
 
-    @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/foundation/utility/RaycastHelper;getTraceTarget(Lnet/minecraft/world/entity/player/Player;DLnet/minecraft/world/phys/Vec3;)Lnet/minecraft/world/phys/Vec3;"))
+    @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/foundation/utility/RaycastHelper;getTraceTarget(Lnet/minecraft/world/entity/player/Player;DLnet/minecraft/world/phys/Vec3;)Lnet/minecraft/world/phys/Vec3;"), remap = false)
     private Vec3 redirectGetTraceTarget(final Player playerIn, final double range, final Vec3 origin) {
         return newTarget;
     }

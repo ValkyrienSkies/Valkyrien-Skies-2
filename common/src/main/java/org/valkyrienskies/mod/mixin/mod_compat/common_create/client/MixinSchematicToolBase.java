@@ -18,7 +18,7 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 /**
  * SchematicToolBase is responsible for the placement position of the schematic.
  */
-@Mixin(value={SchematicToolBase.class})
+@Mixin(SchematicToolBase.class)
 public abstract class MixinSchematicToolBase {
     /**
      * Create uses HitResult::getLocation to get the schematic placement position, which doesn't respect ship-space.
@@ -55,7 +55,8 @@ public abstract class MixinSchematicToolBase {
         at = @At(
             value = "INVOKE",
             target = "Lcom/simibubi/create/content/schematics/client/SchematicTransformation;toLocalSpace(Lnet/minecraft/world/phys/Vec3;)Lnet/minecraft/world/phys/Vec3;"
-        )
+        ),
+        remap = false
     )
     public Vec3 wrapLocalSpaceToShip(SchematicTransformation transformation, Vec3 vec, Operation<Vec3> original) {
         return original.call(

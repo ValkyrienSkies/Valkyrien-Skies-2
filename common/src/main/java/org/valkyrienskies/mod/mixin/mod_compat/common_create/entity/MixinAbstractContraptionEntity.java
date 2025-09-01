@@ -204,7 +204,8 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
                 target = "Lcom/simibubi/create/api/behaviour/movement/MovementBehaviour;getActiveAreaOffset(Lcom/simibubi/create/content/contraptions/behaviour/MovementContext;)Lnet/minecraft/world/phys/Vec3;"
             )
         },
-        require = 0
+        require = 0,
+        remap = false
     )
     private Vec3 stealActor(@Coerce Object actor, MovementContext context, Operation<Vec3> original) {
         Vec3 result = original.call(actor, context);
@@ -218,7 +219,8 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
         at = @At(
             value = "INVOKE",
             target = "Lcom/simibubi/create/content/contraptions/AbstractContraptionEntity;toGlobalVector(Lnet/minecraft/world/phys/Vec3;F)Lnet/minecraft/world/phys/Vec3;"
-        )
+        ),
+        remap = false
     )
     private Vec3 changeActorPosition(
         AbstractContraptionEntity instance, Vec3 localVec, float partialTicks, Operation<Vec3> original,

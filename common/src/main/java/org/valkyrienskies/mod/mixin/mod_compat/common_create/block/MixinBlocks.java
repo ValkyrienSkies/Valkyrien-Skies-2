@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.mixin.mod_compat.common_create.block;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.simibubi.create.content.kinetics.millstone.MillstoneBlock;
 import com.simibubi.create.content.logistics.chute.AbstractChuteBlock;
 import com.simibubi.create.content.processing.basin.BasinBlock;
@@ -17,7 +19,7 @@ import org.valkyrienskies.mod.mixinducks.world.entity.EntityDuck;
     BasinBlock.class,
     AbstractChuteBlock.class
 })
-public class MixinBlocks {
+public abstract class MixinBlocks {
 
     @Redirect(
         method = "updateEntityAfterFallOn",
@@ -25,23 +27,23 @@ public class MixinBlocks {
             value = "INVOKE",
             target = "Lnet/minecraft/world/entity/Entity;blockPosition()Lnet/minecraft/core/BlockPos;"
         ),
-        require = 0, remap = false
+        require = 0 // The mixin is a blanket solution, a specific block might not be using this particular function.
     )
-    protected BlockPos redirectBlockPosition(final Entity entity) {
+    private BlockPos redirectBlockPosition(final Entity entity) {
         return BlockPos.containing(
             CompatUtil.INSTANCE.toSameSpaceAs(entity.level(), entity.position().add(0, 0.5, 0), ((EntityDuck)entity).vs_getSteppedOn())
         );
     }
 
-    @Redirect(
+    @WrapOperation(
         method = "updateEntityAfterFallOn",
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/world/entity/Entity;position()Lnet/minecraft/world/phys/Vec3;"
         ),
-        require = 0, remap = false
+        require = 0
     )
-    Vec3 redirectPosition(final Entity entity) {
-        return CompatUtil.INSTANCE.toSameSpaceAs(entity.level(), entity.position(), ((EntityDuck)entity).vs_getSteppedOn());
+    private Vec3 redirectPosition(final Entity entity, Operation<Vec3> original) {
+        return CompatUtil.INSTANCE.toSameSpaceAs(entity.level(), original.call(entity), ((EntityDuck)entity).vs_getSteppedOn());
     }
 }

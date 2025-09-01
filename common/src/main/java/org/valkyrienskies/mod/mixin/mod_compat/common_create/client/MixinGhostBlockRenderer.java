@@ -24,8 +24,7 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
         // Create v6
         "net/createmod/catnip/ghostblock/GhostBlockRenderer$DefaultGhostBlockRenderer",
         "net/createmod/catnip/ghostblock/GhostBlockRenderer$TransparentGhostBlockRenderer",
-    },
-    remap = false
+    }
 )
 public class MixinGhostBlockRenderer {
     /**

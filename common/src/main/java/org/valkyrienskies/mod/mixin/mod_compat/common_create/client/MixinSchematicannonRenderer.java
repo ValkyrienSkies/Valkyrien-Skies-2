@@ -17,13 +17,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.mod.common.CompatUtil;
 
 @Mixin(SchematicannonRenderer.class)
-public class MixinSchematicannonRenderer {
+public abstract class MixinSchematicannonRenderer {
     @ModifyExpressionValue(
         method = "getCannonAngles",
         at = @At(
             value = "FIELD",
             target = "Lcom/simibubi/create/content/schematics/cannon/SchematicannonBlockEntity;previousTarget:Lnet/minecraft/core/BlockPos;"
-        )
+        ),
+        remap = false
     )
     private static BlockPos transformPreviousTarget(
         BlockPos original,
