@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.mixin.mod_compat.common_create.client;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
@@ -17,13 +19,8 @@ import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
         "com.simibubi.create.content.kinetics.simpleRelays.CogwheelBlockItem$DiagonalCogHelper"
 })
 public class MixinCogwheelBlockItemHitOnShaft {
-    @Redirect(method = "*", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/BlockHitResult;getLocation()Lnet/minecraft/world/phys/Vec3;"), require = 0)
-    private Vec3 redirectGetLocation(BlockHitResult instance) {
-        Vec3 result = instance.getLocation();
-        Level world = Minecraft.getInstance().level;
-        if(world != null) {
-            result = CompatUtil.INSTANCE.toSameSpaceAs(world, result, instance.getBlockPos());
-        }
-        return result;
+    @WrapOperation(method = "*", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/BlockHitResult;getLocation()Lnet/minecraft/world/phys/Vec3;"), require = 0)
+    private Vec3 redirectGetLocation(BlockHitResult instance, Operation<Vec3> original) {
+        return CompatUtil.INSTANCE.toSameSpaceAs(Minecraft.getInstance().level, original.call(instance), instance.getBlockPos());
     }
 }

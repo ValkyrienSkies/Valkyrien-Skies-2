@@ -4,13 +4,10 @@ import com.simibubi.create.content.logistics.depot.EjectorBlock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
-import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
-import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.CompatUtil;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(EjectorBlock.class)
 public abstract class MixinEjectorBlock {
@@ -32,11 +29,8 @@ public abstract class MixinEjectorBlock {
             value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;setPos(DDD)V"
     ))
     private void redirectSetPos(Entity instance, double x, double y, double z) {
-        Vector3d pos = new Vector3d(x, y, z);
-        Ship ship = VSGameUtilsKt.getShipManagingPos(instance.level(), instance.getOnPos());
-        if (ship != null) {
-            Vector3d worldPos = ship.getShipToWorld().transformPosition(pos);
-        }
-        instance.setPos(pos.x, pos.y, pos.z);
+        instance.setPos(
+            CompatUtil.INSTANCE.toSameSpaceAs(instance.level(), x, y, z, instance.getOnPos())
+        );
     }
 }

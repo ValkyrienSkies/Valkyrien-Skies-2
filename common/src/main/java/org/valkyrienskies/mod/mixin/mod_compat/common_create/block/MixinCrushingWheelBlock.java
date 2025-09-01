@@ -13,6 +13,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.Ship;
+import org.valkyrienskies.mod.common.CompatUtil;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(CrushingWheelBlock.class)
@@ -31,14 +32,6 @@ public class MixinCrushingWheelBlock {
         levelInside = worldIn;
     }
 
-    @Unique
-    void transform(final Vector3d in) {
-        final Ship ship = VSGameUtilsKt.getShipManagingPos(levelInside, blockPosInside);
-        if (ship != null) {
-            ship.getWorldToShip().transformPosition(in);
-        }
-    }
-
     @Redirect(
             method = "entityInside",
             at = @At(
@@ -47,9 +40,7 @@ public class MixinCrushingWheelBlock {
             )
     )
     double getXPos(final Entity entity) {
-        final Vector3d vector3d = new Vector3d(entity.getX(), entity.getY(), entity.getZ());
-        transform(vector3d);
-        return vector3d.x;
+        return CompatUtil.INSTANCE.toSameSpaceAs(levelInside, entity.position(), blockPosInside).x;
     }
 
     @Redirect(
@@ -60,9 +51,7 @@ public class MixinCrushingWheelBlock {
             )
     )
     double getYPos(final Entity entity) {
-        final Vector3d vector3d = new Vector3d(entity.getX(), entity.getY(), entity.getZ());
-        transform(vector3d);
-        return vector3d.y;
+        return CompatUtil.INSTANCE.toSameSpaceAs(levelInside, entity.position(), blockPosInside).y;
     }
 
     @Redirect(
@@ -73,9 +62,7 @@ public class MixinCrushingWheelBlock {
             )
     )
     double getZPos(final Entity entity) {
-        final Vector3d vector3d = new Vector3d(entity.getX(), entity.getY(), entity.getZ());
-        transform(vector3d);
-        return vector3d.z;
+        return CompatUtil.INSTANCE.toSameSpaceAs(levelInside, entity.position(), blockPosInside).z;
     }
 
 }
