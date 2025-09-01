@@ -36,7 +36,7 @@ import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 import org.valkyrienskies.mod.mixinducks.mod_compat.create.IExtendedAirCurrentSource;
 
-@Mixin(value = AirCurrent.class, remap = false)
+@Mixin(value = AirCurrent.class)
 public abstract class MixinAirCurrent {
 
     @Shadow
@@ -113,7 +113,7 @@ public abstract class MixinAirCurrent {
         }
     }
 
-    @Inject(method = "rebuild", at = @At("TAIL"))
+    @Inject(method = "rebuild", at = @At("TAIL"), remap = false)
     private void calcScaling(CallbackInfo ci) {
         Ship ship = getShip();
         if (ship != null) {
