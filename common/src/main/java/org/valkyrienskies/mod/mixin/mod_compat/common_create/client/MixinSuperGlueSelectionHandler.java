@@ -1,5 +1,6 @@
-package org.valkyrienskies.mod.forge.mixin.compat.common_create.client;
+package org.valkyrienskies.mod.mixin.mod_compat.common_create.client;
 
+import com.llamalad7.mixinextras.sugar.Local;
 import com.simibubi.create.content.contraptions.glue.SuperGlueSelectionHandler;
 import com.simibubi.create.foundation.utility.RaycastHelper;
 import java.util.Iterator;
@@ -7,7 +8,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.common.ForgeMod;
 import org.joml.Matrix4d;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
@@ -25,13 +25,15 @@ public abstract class MixinSuperGlueSelectionHandler {
     @Unique
     private Vec3 newTarget;
 
-    @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/foundation/utility/RaycastHelper;getTraceOrigin(Lnet/minecraft/world/entity/player/Player;)Lnet/minecraft/world/phys/Vec3;"), remap = false)
-    private Vec3 redirectGetTraceOrigin(Player playerIn) {
+    @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/foundation/utility/RaycastHelper;getTraceOrigin(Lnet/minecraft/world/entity/player/Player;)Lnet/minecraft/world/phys/Vec3;"))
+    private Vec3 redirectGetTraceOrigin(
+        Player playerIn,
+        // Range retrieval is loader-specific but both Forge and Fabric Create do it just before our injection point.
+        @Local double range
+    ) {
         Minecraft mc = Minecraft.getInstance();
-        double range = playerIn.getAttribute(ForgeMod.ENTITY_REACH.get()).getValue() + 1;
         Vec3 origin = RaycastHelper.getTraceOrigin(playerIn);
         Vec3 target = RaycastHelper.getTraceTarget(playerIn, range, origin);
-
 
         AABB searchAABB = new AABB(origin, target).inflate(0.25, 2, 0.25);
         final Iterator<Ship> ships = VSGameUtilsKt.getShipsIntersecting(playerIn.level(), searchAABB).iterator();
@@ -61,7 +63,7 @@ public abstract class MixinSuperGlueSelectionHandler {
         return origin;
     }
 
-    @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/foundation/utility/RaycastHelper;getTraceTarget(Lnet/minecraft/world/entity/player/Player;DLnet/minecraft/world/phys/Vec3;)Lnet/minecraft/world/phys/Vec3;"), remap = false)
+    @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/foundation/utility/RaycastHelper;getTraceTarget(Lnet/minecraft/world/entity/player/Player;DLnet/minecraft/world/phys/Vec3;)Lnet/minecraft/world/phys/Vec3;"))
     private Vec3 redirectGetTraceTarget(final Player playerIn, final double range, final Vec3 origin) {
         return newTarget;
     }

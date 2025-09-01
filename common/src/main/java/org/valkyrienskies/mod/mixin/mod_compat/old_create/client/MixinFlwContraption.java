@@ -1,28 +1,28 @@
- package org.valkyrienskies.mod.fabric.mixin.compat.old_create.client;
+ package org.valkyrienskies.mod.mixin.mod_compat.old_create.client;
 
- import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
- import com.simibubi.create.content.contraptions.Contraption;
- import com.simibubi.create.content.contraptions.render.ContraptionRenderInfo;
  import net.minecraft.util.Mth;
+ import net.minecraft.world.entity.Entity;
  import net.minecraft.world.phys.AABB;
+ import org.jetbrains.annotations.NotNull;
  import org.joml.Matrix4f;
  import org.spongepowered.asm.mixin.Mixin;
  import org.spongepowered.asm.mixin.Pseudo;
  import org.spongepowered.asm.mixin.injection.At;
+ import org.spongepowered.asm.mixin.injection.Coerce;
  import org.spongepowered.asm.mixin.injection.Inject;
  import org.spongepowered.asm.mixin.injection.Redirect;
  import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  import org.valkyrienskies.core.api.ships.ClientShip;
  import org.valkyrienskies.mod.common.VSClientGameUtils;
  import org.valkyrienskies.mod.common.VSGameUtilsKt;
+ import org.valkyrienskies.mod.mixin.mod_compat.old_create.accessors.ContraptionRenderInfoAccessor;
 
- @Pseudo
  @Mixin(targets = "com.simibubi.create.content.contraptions.render.FlwContraption")
  public class MixinFlwContraption {
 
-     @Inject(at = @At("HEAD"), method = "setupModelViewPartial", cancellable = true, remap = false)
+     @Inject(at = @At("HEAD"), method = "setupModelViewPartial(Lorg/joml/Matrix4f;Lorg/joml/Matrix4f;Lcom/simibubi/create/content/contraptions/AbstractContraptionEntity;DDDF)V", cancellable = true, remap = false)
      private static void beforeSetupModelViewPartial(Matrix4f matrix, Matrix4f modelMatrix,
-         AbstractContraptionEntity entity, double camX, double camY, double camZ, float pt, CallbackInfo ci) {
+         @Coerce Entity entity, double camX, double camY, double camZ, float pt, CallbackInfo ci) {
 
          if (VSGameUtilsKt.getShipManaging(entity) instanceof final ClientShip ship) {
              VSClientGameUtils.transformRenderWithShip(ship.getRenderTransform(),
@@ -47,8 +47,12 @@
              ),
              method = "beginFrame"
      )
-     private AABB transformLightboxToWorld(final AABB aabb, final double negCamX, final double negCamY,
-                                           final double negCamZ) throws NoSuchFieldException, IllegalAccessException {
-         return VSGameUtilsKt.transformAabbToWorld(((Contraption) ((ContraptionRenderInfo) (Object) this).getClass().getField("contraption").get(((ContraptionRenderInfo) (Object) this))).entity.level(), aabb).move(negCamX, negCamY, negCamZ);
+     private @NotNull AABB transformLightboxToWorld(
+         final AABB aabb, final double negCamX, final double negCamY, final double negCamZ
+     )  {
+         return VSGameUtilsKt.transformAabbToWorld(
+             ((ContraptionRenderInfoAccessor)this).getContraption().entity.level(),
+             aabb
+         ).move(negCamX, negCamY, negCamZ);
      }
  }

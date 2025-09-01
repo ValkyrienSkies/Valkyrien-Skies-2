@@ -30,14 +30,12 @@
     "client.render.MixinLevelRenderer",
     "compat.cc_tweaked.MixinSpeakerSound",
     "compat.common_create.client.MixinContraptionHandlerClient",
-    "compat.common_create.client.MixinSuperGlueSelectionHandler",
     "compat.common_create.client.MixinTrackBlockOutline",
     "compat.sodium.MixinRenderSectionManager",
     "compat.oc2r.MixinComputerRenderer",
     "compat.oc2r.MixinMonitorRenderer",
     "compat.oc2r.MixinProjectorDepthRenderer",
-    "compat.old_create.client.MixinContraptionRenderInfo",
-    "compat.old_create.client.MixinFlwContraption"
+    "compat.old_create.client.MixinContraptionRenderInfo"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -24,8 +24,6 @@
     "compat.common_create.client.MixinContraptionHandlerClient",
     "compat.old_create.client.MixinContraptionRenderInfo",
     "compat.common_create.client.MixinCullingBlockEntityIterator",
-    "compat.old_create.client.MixinFlwContraption",
-    "compat.common_create.client.MixinSuperGlueSelectionHandler",
     "compat.common_create.client.MixinTrackBlockOutline",
     "feature.duplicate_keybindings.KeyMappingAccessor",
     "feature.duplicate_keybindings.MixinKeyMapping"
