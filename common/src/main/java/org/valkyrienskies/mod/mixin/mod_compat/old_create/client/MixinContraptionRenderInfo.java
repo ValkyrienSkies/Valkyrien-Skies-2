@@ -5,13 +5,18 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
 import com.simibubi.create.content.contraptions.Contraption;
 import com.simibubi.create.content.contraptions.render.ContraptionMatrices;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.AABB;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Coerce;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
@@ -51,5 +56,17 @@ public class MixinContraptionRenderInfo {
             viewProjection.popPose();
             ci.cancel();
         }
+    }
+
+    @Redirect(
+        at = @At(
+            value = "INVOKE",
+            target = "Lcom/simibubi/create/content/contraptions/AbstractContraptionEntity;getBoundingBoxForCulling()Lnet/minecraft/world/phys/AABB;"
+        ),
+        method = "beginFrame"
+    )
+    private AABB redirectGetAABBForCulling(@Coerce final Entity receiver) {
+        return VSGameUtilsKt.transformRenderAABBToWorld(((ClientLevel) receiver.level()), receiver.position(),
+            receiver.getBoundingBoxForCulling());
     }
 }

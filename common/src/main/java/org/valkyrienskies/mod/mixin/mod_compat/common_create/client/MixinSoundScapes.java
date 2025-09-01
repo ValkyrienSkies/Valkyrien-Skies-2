@@ -4,14 +4,11 @@ import com.simibubi.create.foundation.sound.SoundScapes;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
-import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
-import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(SoundScapes.class)
