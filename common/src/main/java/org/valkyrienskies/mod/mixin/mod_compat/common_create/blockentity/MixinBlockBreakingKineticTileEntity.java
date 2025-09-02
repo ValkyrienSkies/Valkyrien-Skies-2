@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.forge.mixin.compat.common_create;
+package org.valkyrienskies.mod.mixin.mod_compat.common_create.blockentity;
 
 import com.simibubi.create.content.kinetics.base.BlockBreakingKineticBlockEntity;
 import net.minecraft.core.BlockPos;

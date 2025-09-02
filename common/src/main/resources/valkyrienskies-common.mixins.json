@@ -109,6 +109,7 @@
     "mod_compat.common_create.block.MixinRedstoneContactBlock",
     "mod_compat.common_create.block.MixinStickerBlock",
     "mod_compat.common_create.blockentity.IMixinMechanicalBearingTileEntity",
+    "mod_compat.common_create.blockentity.MixinBlockBreakingKineticTileEntity",
     "mod_compat.common_create.blockentity.MixinChuteBlockEntity",
     "mod_compat.common_create.blockentity.MixinCrushingWheelControllerTileEntity",
     "mod_compat.common_create.blockentity.MixinEjectorTileEntity",

@@ -8,8 +8,6 @@
     "compat.cc_restitched.MixinTurtleMoveCommand",
     "compat.cc_restitched.MixinWirelessModemPeripheral",
     "compat.cc_restitched.MixinWirelessNetwork",
-    "compat.common_create.MixinBlockBreakingKineticTileEntity",
-    "org.valkyrienskies.mod.mixin.mod_compat.common_create.MixinControlledContraptionEntity",
     "compat.common_create.client.MixinTrackBlockOutline",
     "compat.sodium.MixinRenderSectionManager",
     "feature.explosions.ClipContextMixin",
