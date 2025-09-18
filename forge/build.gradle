@@ -60,6 +60,7 @@ dependencies {
     }
     //modCompileOnly("curse.maven:rubidium-574856:4024781")
     modCompileOnly("maven.modrinth:embeddium:${embeddium_version}")
+    modCompileOnly("maven.modrinth:sodium:${sodium_version}")
 
     // Twilight Forest
     // modImplementation("teamtwilight:twilightforest:${twilightforest_version}:universal")
@@ -172,7 +173,7 @@ dependencies {
     forgeRuntimeLibrary include("com.github.victools:jsonschema-generator:4.25.0") { transitive = false }
     forgeRuntimeLibrary include("com.fasterxml:classmate:1.5.1") { transitive = false }
     forgeRuntimeLibrary include("com.flipkart.zjsonpatch:zjsonpatch:0.4.11") { transitive = false }
-    forgeRuntimeLibrary include("org.apache.commons:commons-collections4:4.3") { transitive = false }
+    // forgeRuntimeLibrary include("org.apache.commons:commons-collections4:4.3") { transitive = false }
 
     forgeRuntimeLibrary include("com.google.dagger:dagger:2.43.2") { transitive = false }
 
