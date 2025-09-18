@@ -1,50 +1,46 @@
 package org.valkyrienskies.mod.forge.mixin.compat.sodium;
 
-import org.embeddedt.embeddium.impl.gl.device.CommandList;
-import org.embeddedt.embeddium.impl.render.chunk.ChunkRenderMatrices;
-import org.embeddedt.embeddium.impl.render.chunk.ChunkRenderer;
-import org.embeddedt.embeddium.impl.render.chunk.RenderSectionManager;
-import org.embeddedt.embeddium.impl.render.chunk.terrain.TerrainRenderPass;
-import org.embeddedt.embeddium.impl.render.viewport.CameraTransform;
-import org.joml.Matrix4d;
+import com.llamalad7.mixinextras.sugar.Local;
+import net.caffeinemc.mods.sodium.client.gl.device.CommandList;
+import net.caffeinemc.mods.sodium.client.render.chunk.ChunkRenderMatrices;
+import net.caffeinemc.mods.sodium.client.render.chunk.ChunkRenderer;
+import net.caffeinemc.mods.sodium.client.render.chunk.RenderSectionManager;
+import net.caffeinemc.mods.sodium.client.render.chunk.terrain.TerrainRenderPass;
+import net.caffeinemc.mods.sodium.client.render.viewport.CameraTransform;
 import org.joml.Matrix4f;
 import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.mixinducks.mod_compat.sodium.RenderSectionManagerDuck;
-
 
 @Mixin(value = RenderSectionManager.class, remap = false)
 public class MixinRenderSectionManager {
 
-    /*
     @Shadow
     @Final
     private ChunkRenderer chunkRenderer;
 
-    @Redirect(at = @At(value = "INVOKE", target = "Lorg/embeddedt/embeddium/impl/gl/device/CommandList;flush()V"),
+    @Inject(at = @At(value = "INVOKE", target = "Lnet/caffeinemc/mods/sodium/client/gl/device/CommandList;flush()V"),
         method = "renderLayer")
-    private void redirectRenderLayer(final CommandList list, final ChunkRenderMatrices matrices,
-        final TerrainRenderPass pass, final double camX, final double camY, final double camZ) {
+    private void redirectRenderLayer(final ChunkRenderMatrices matrices, final TerrainRenderPass pass,
+        final double camX, final double camY, final double camZ, final CallbackInfo ci, @Local final CommandList commandList) {
 
         ((RenderSectionManagerDuck) this).vs_getShipRenderLists().forEach((ship, renderList) -> {
+            final Matrix4f newModelView = new Matrix4f(matrices.modelView());
             final Vector3dc center = ship.getRenderTransform().getPositionInShip();
-            final org.joml.Matrix4dc s = ship.getRenderTransform().getShipToWorld();
-            final Matrix4d newModelView = new Matrix4d(matrices.modelView())
-                .translate(-camX, -camY, -camZ)
-                .mul(s.m00(), s.m01(), s.m02(), s.m03(), s.m10(), s.m11(), s.m12(), s.m13(), s.m20(),
-                    s.m21(), s.m22(), s.m23(), s.m30(), s.m31(), s.m32(), s.m33())
-                .translate(center.x(), center.y(), center.z());
+            VSClientGameUtils.transformRenderWithShip(ship.getRenderTransform(), newModelView, center.x(), center.y(),
+                center.z(), camX, camY, camZ);
 
-            final ChunkRenderMatrices newMatrices =
-                new ChunkRenderMatrices(matrices.projection(), new Matrix4f(newModelView));
-            chunkRenderer.render(newMatrices, list, renderList, pass,
+            final ChunkRenderMatrices newMatrices = new ChunkRenderMatrices(matrices.projection(), newModelView);
+            chunkRenderer.render(newMatrices, commandList, renderList, pass,
                 new CameraTransform(center.x(), center.y(), center.z()));
-            list.close();
+            commandList.close();
         });
     }
-     */
+
 }
