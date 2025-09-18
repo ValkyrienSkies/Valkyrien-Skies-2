@@ -54,16 +54,22 @@ object VSClothConfig {
             if (key != "\$schema") {
                 getEntriesForProperty(
                     key,
-                    configJson[key], schema, entryBuilder,
+                    configJson[key],
+                    schema,
+                    entryBuilder,
                     save = { newValueToMerge ->
                         side.attemptUpdate(
                             side.generateInstJsonAndMergeWith(key, newValueToMerge)
                         )
                     },
                     validate = { newValueToMerge ->
-                        side.schema.validate(
-                            side.generateInstJsonAndMergeWith(key, newValueToMerge)
-                        )
+                        try {
+                            side.schema.validate(
+                                side.generateInstJsonAndMergeWith(key, newValueToMerge)
+                            )
+                        } catch (e: AbstractMethodError) {
+                            emptySet()
+                        }
                     }
                 ).forEach(category::addEntry)
             }
