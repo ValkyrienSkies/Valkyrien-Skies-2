@@ -1,21 +1,40 @@
 package org.valkyrienskies.mod.mixin.mod_compat.create.client;
 
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.mojang.blaze3d.vertex.PoseStack;
+import net.createmod.catnip.ghostblock.GhostBlockParams;
+import net.createmod.catnip.render.SuperRenderTypeBuffer;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.Pseudo;
+import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
+import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
+import org.valkyrienskies.mod.mixin.mod_compat.create.accessors.GhostBlockParamsAccessor;
 
-@Mixin(targets = {"com.simibubi.create.foundation.utility.ghost.GhostBlockRenderer$DefaultGhostBlockRenderer",
-        "com.simibubi.create.foundation.utility.ghost.GhostBlockRenderer$TransparentGhostBlockRenderer"})
+@Pseudo
+@Mixin(targets = {"net.createmod.catnip.ghostblock.GhostBlockRenderer$DefaultGhostBlockRenderer",
+    "net.createmod.catnip.ghostblock.GhostBlockRenderer$TransparentGhostBlockRenderer"})
 public class MixinGhostBlockRenderer {
 
-    @Redirect(
-            method = "render",
-            at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/PoseStack;translate(DDD)V", ordinal = 0)
+    @WrapMethod(
+        method = "render"
     )
-    private void redirectTranslate(
-            final PoseStack instance, final double pose, final double d, final double e) {
-        VSClientGameUtils.transformRenderIfInShipyard(instance, pose, d, e);
+    private void wrapRender(PoseStack ms, SuperRenderTypeBuffer buffer, Vec3 camera, GhostBlockParams params,
+        Operation<Void> original){
+        final BlockPos pos = ((GhostBlockParamsAccessor)params).getPos();
+        final ClientShip ship = VSClientGameUtils.getClientShip(pos.getX(), pos.getY(), pos.getZ());
+        if(ship != null) {
+            ms.pushPose();
+            final Vec3 cameraInShip = VectorConversionsMCKt.toMinecraft(ship.getWorldToShip().transformPosition(VectorConversionsMCKt.toJOML(camera)));
+            ms.mulPose(VectorConversionsMCKt.toFloat(ship.getRenderTransform().getShipToWorldRotation()));
+            original.call(ms, buffer, cameraInShip, params);
+            ms.popPose();
+        }
+        else{
+            original.call(ms, buffer, camera, params);
+        }
     }
 }
