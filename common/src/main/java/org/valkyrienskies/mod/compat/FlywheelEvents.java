@@ -1,35 +1,30 @@
 package org.valkyrienskies.mod.compat;
 
-import com.jozufozu.flywheel.backend.instancing.InstanceWorld;
 import java.util.Collections;
 import java.util.Set;
 import java.util.WeakHashMap;
 import org.valkyrienskies.core.impl.hooks.VSEvents.ShipUnloadEventClient;
-import org.valkyrienskies.mod.mixinducks.MixinVisualizationManagerDuck;
+import org.valkyrienskies.mod.mixinducks.mod_compat.flywheel.MixinBlockEntityStorageDuck;
 
 public class FlywheelEvents {
     static {
         registerEvents();
     }
 
-    private static final Set<InstanceWorld> weakLoadedInstanceWorlds =
+    private static final Set<MixinBlockEntityStorageDuck> weakLoadedBlockEntityStorages =
         Collections.newSetFromMap(
             new WeakHashMap<>()
         );
 
     private static synchronized void registerEvents() {
         ShipUnloadEventClient.Companion.on(event -> {
-            for (final InstanceWorld instanceWorld : weakLoadedInstanceWorlds) {
-                ((MixinVisualizationManagerDuck) instanceWorld.getBlockEntityInstanceManager()).vs$removeShipManager(event.getShip());
+            for (final MixinBlockEntityStorageDuck blockEntityStorage : weakLoadedBlockEntityStorages) {
+                blockEntityStorage.vs$unloadShip(event.getShip());
             }
         });
     }
 
-    public static void onInstanceWorldLoad(final InstanceWorld instanceWorld) {
-        weakLoadedInstanceWorlds.add(instanceWorld);
-    }
-
-    public static void onInstanceWorldUnload(final InstanceWorld instanceWorld) {
-        weakLoadedInstanceWorlds.remove(instanceWorld);
+    public static void onBlockEntityStorageCreation(final MixinBlockEntityStorageDuck blockEntityStorage) {
+        weakLoadedBlockEntityStorages.add(blockEntityStorage);
     }
 }
