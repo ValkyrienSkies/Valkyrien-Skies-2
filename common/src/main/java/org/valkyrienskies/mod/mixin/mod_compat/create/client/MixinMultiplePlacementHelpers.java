@@ -1,6 +1,6 @@
 package org.valkyrienskies.mod.mixin.mod_compat.create.client;
 
-import com.simibubi.create.foundation.placement.PlacementOffset;
+import net.createmod.catnip.placement.PlacementOffset;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;

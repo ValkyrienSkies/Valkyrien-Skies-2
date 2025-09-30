@@ -8,15 +8,12 @@ import net.createmod.catnip.render.SuperRenderTypeBuffer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Pseudo;
-import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.mixin.mod_compat.create.accessors.GhostBlockParamsAccessor;
 
-@Pseudo
 @Mixin(targets = {"net.createmod.catnip.ghostblock.GhostBlockRenderer$DefaultGhostBlockRenderer",
-    "net.createmod.catnip.ghostblock.GhostBlockRenderer$TransparentGhostBlockRenderer"})
+        "net.createmod.catnip.ghostblock.GhostBlockRenderer$TransparentGhostBlockRenderer"})
 public class MixinGhostBlockRenderer {
 
     @WrapMethod(

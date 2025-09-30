@@ -3,7 +3,7 @@ package org.valkyrienskies.mod.mixin.mod_compat.create.block;
 import static com.simibubi.create.content.logistics.funnel.AbstractFunnelBlock.getFunnelFacing;
 
 import com.simibubi.create.content.logistics.funnel.FunnelBlock;
-import com.simibubi.create.foundation.utility.VecHelper;
+import net.createmod.catnip.math.VecHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.Entity;

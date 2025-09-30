@@ -53,6 +53,7 @@ import org.valkyrienskies.mod.common.item.ShipAssemblerItem
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
 import org.valkyrienskies.mod.compat.clothconfig.VSClothConfig
 import org.valkyrienskies.mod.forge.compat.epicfight.FracturedBlockStateInfoProvider
+import org.valkyrienskies.mod.compat.flywheel.FlywheelCompat
 
 @Mod(MOD_ID)
 class ValkyrienSkiesModForge {
@@ -96,6 +97,7 @@ class ValkyrienSkiesModForge {
         if (isClient) {
             modBus.addListener(::registerKeyBindings)
             modBus.addListener(::entityRenderers)
+            FlywheelCompat.initClient()
         }
         modBus.addListener(::loadComplete)
 

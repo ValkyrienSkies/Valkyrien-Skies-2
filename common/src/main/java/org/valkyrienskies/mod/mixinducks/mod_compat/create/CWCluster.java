@@ -1,10 +1,10 @@
 package org.valkyrienskies.mod.mixinducks.mod_compat.create;
 
-import com.simibubi.create.foundation.utility.Iterate;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import net.createmod.catnip.data.Iterate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 

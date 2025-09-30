@@ -2,8 +2,8 @@ package org.valkyrienskies.mod.mixin.mod_compat.create;
 
 import com.simibubi.create.content.kinetics.fan.AirCurrent;
 import com.simibubi.create.content.kinetics.fan.IAirCurrentSource;
-import com.simibubi.create.foundation.utility.VecHelper;
 import java.util.Iterator;
+import net.createmod.catnip.math.VecHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Vec3i;
@@ -115,7 +115,8 @@ public abstract class MixinAirCurrent {
         locals = LocalCapture.CAPTURE_FAILSOFT,
         require = 0
     )
-    private void harvester(Level world, Direction facing, CallbackInfo ci, Iterator<Entity> iterator, Entity entity, Vec3 center, Vec3i flow, float sneakModifier, float speed, double entityDistance, float acceleration) {
+    private void harvester(Level world, CallbackInfo ci, Iterator iterator, Entity entity, Vec3i flow, float speed,
+        float sneakModifier, double entityDistance, double entityDistanceOld, float acceleration) {
         Ship ship = getShip();
         if (ship != null) {
             Vector3d tempVec = new Vector3d();
@@ -143,7 +144,7 @@ public abstract class MixinAirCurrent {
     }
 
     // Require 0 because this mixin doesn't work in create 0.5.1f
-    @Redirect(method = "tickAffectedEntities", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/foundation/utility/VecHelper;getCenterOf(Lnet/minecraft/core/Vec3i;)Lnet/minecraft/world/phys/Vec3;"), allow = 1, require = 0)
+    @Redirect(method = "tickAffectedEntities", at = @At(value = "INVOKE", target = "Lnet/createmod/catnip/math/VecHelper;getCenterOf(Lnet/minecraft/core/Vec3i;)Lnet/minecraft/world/phys/Vec3;"), allow = 1, require = 0)
     private Vec3 redirectGetCenterOf(Vec3i pos) {
         Ship ship = getShip();
         Vec3 result = VecHelper.getCenterOf(pos);

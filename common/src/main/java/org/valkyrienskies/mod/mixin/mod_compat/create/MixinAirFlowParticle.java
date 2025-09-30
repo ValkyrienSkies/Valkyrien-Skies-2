@@ -3,7 +3,7 @@ package org.valkyrienskies.mod.mixin.mod_compat.create;
 import com.simibubi.create.content.kinetics.fan.AirCurrent;
 import com.simibubi.create.content.kinetics.fan.AirFlowParticle;
 import com.simibubi.create.content.kinetics.fan.IAirCurrentSource;
-import com.simibubi.create.foundation.utility.VecHelper;
+import net.createmod.catnip.math.VecHelper;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.SimpleAnimatedParticle;
 import net.minecraft.client.particle.SpriteSet;
@@ -59,7 +59,7 @@ public abstract class MixinAirFlowParticle extends SimpleAnimatedParticle {
     }
 
 
-    @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/foundation/utility/VecHelper;getCenterOf(Lnet/minecraft/core/Vec3i;)Lnet/minecraft/world/phys/Vec3;"), allow = 1)
+    @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/createmod/catnip/math/VecHelper;getCenterOf(Lnet/minecraft/core/Vec3i;)Lnet/minecraft/world/phys/Vec3;"), allow = 1)
     private Vec3 redirectGetCenterOf(Vec3i pos) {
         Ship ship = getShip();
         Vec3 result = VecHelper.getCenterOf(pos);

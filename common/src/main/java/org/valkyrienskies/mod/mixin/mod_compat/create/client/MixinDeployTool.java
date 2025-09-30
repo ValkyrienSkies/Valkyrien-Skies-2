@@ -3,8 +3,8 @@ package org.valkyrienskies.mod.mixin.mod_compat.create.client;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.simibubi.create.content.schematics.client.tools.DeployTool;
 import com.simibubi.create.content.schematics.client.tools.SchematicToolBase;
-import com.simibubi.create.foundation.render.SuperRenderTypeBuffer;
-import com.simibubi.create.foundation.utility.AnimationTickHolder;
+import net.createmod.catnip.animation.AnimationTickHolder;
+import net.createmod.catnip.render.SuperRenderTypeBuffer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.AABB;
@@ -28,7 +28,7 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 @Mixin(value={DeployTool.class})
 public abstract class MixinDeployTool extends SchematicToolBase {
     @Redirect(
-        method = "renderTool(Lcom/mojang/blaze3d/vertex/PoseStack;Lcom/simibubi/create/foundation/render/SuperRenderTypeBuffer;Lnet/minecraft/world/phys/Vec3;)V",
+        method = "renderTool",
         at = @At(
             value = "INVOKE",
             target = "Lcom/mojang/blaze3d/vertex/PoseStack;translate(DDD)V",
@@ -39,7 +39,7 @@ public abstract class MixinDeployTool extends SchematicToolBase {
     }
 
     @Inject(
-        method = "renderTool(Lcom/mojang/blaze3d/vertex/PoseStack;Lcom/simibubi/create/foundation/render/SuperRenderTypeBuffer;Lnet/minecraft/world/phys/Vec3;)V",
+        method = "renderTool",
         at = @At(
             value = "INVOKE",
             target = "Lcom/mojang/blaze3d/vertex/PoseStack;translate(DDD)V",

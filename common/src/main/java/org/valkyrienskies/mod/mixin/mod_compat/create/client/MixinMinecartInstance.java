@@ -15,17 +15,12 @@ import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
-// TODO: Was this removed? Moved somewhere else?
-//@Mixin(MinecartInstance.class)
-public abstract class MixinMinecartInstance extends EntityInstance {
-
-
-    public MixinMinecartInstance(MaterialManager materialManager, Entity entity) {
-        super(materialManager, entity);
-    }
+//TODO: Fix this, its in Vanillin
+/*@Mixin(targets = "dev.engine_room.vanillin.visuals.MinecartVisual")
+public abstract class MixinMinecartInstance {
 
     @Redirect(
-            method = "beginFrame", at = @At(value = "INVOKE",
+            method = "updateInstances", at = @At(value = "INVOKE",
             target = "Lcom/jozufozu/flywheel/util/transform/TransformStack;translate(DDD)Ljava/lang/Object;", ordinal = 0),
             remap = false
     )
@@ -53,3 +48,4 @@ public abstract class MixinMinecartInstance extends EntityInstance {
         return null;
     }
 }
+*/
