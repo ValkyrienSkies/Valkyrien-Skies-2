@@ -11,6 +11,8 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(ContraptionRenderInfo.class)
 public class MixinContraptionRenderInfo {
+    //TODO: Find out where this moved. Fabric snapshot doesn't have this class.
+    /*
     @Redirect(
         at = @At(
             value = "INVOKE",
@@ -22,4 +24,5 @@ public class MixinContraptionRenderInfo {
         return VSGameUtilsKt.transformRenderAABBToWorld(((ClientLevel) receiver.level()), receiver.position(),
             receiver.getBoundingBoxForCulling());
     }
+    */
 }

@@ -23,7 +23,6 @@
     "compat.create.client.MixinBlockEntityRenderHelper",
     "compat.create.client.MixinContraptionHandlerClient",
     "compat.create.client.MixinContraptionRenderInfo",
-    "compat.create.client.MixinFlwContraption",
     "compat.create.client.MixinSuperGlueSelectionHandler",
     "compat.sodium.MixinRenderSectionManager"
   ],
