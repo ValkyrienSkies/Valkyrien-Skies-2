@@ -20,6 +20,7 @@
   ],
   "client": [
     "client.render.MixinLevelRenderer",
+    "compat.create.client.MixinBlockEntityRenderHelper",
     "compat.create.client.MixinContraptionHandlerClient",
     "compat.create.client.MixinContraptionRenderInfo",
     "compat.create.client.MixinFlwContraption",

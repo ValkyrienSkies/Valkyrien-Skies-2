@@ -34,7 +34,7 @@ public abstract class MixinSchematicTransformation {
     private Vec3 prevChasingPos;
 
     @Redirect(
-        method = {"applyTransformations"},
+        method = {"applyTransformations(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/world/phys/Vec3;)V"},
         at = @At(
             value = "INVOKE",
             target = "Ldev/engine_room/flywheel/lib/transform/PoseTransformStack;translate(Lnet/minecraft/world/phys/Vec3;)Ldev/engine_room/flywheel/lib/transform/Translate;",
@@ -42,7 +42,7 @@ public abstract class MixinSchematicTransformation {
         ),
         require = 0
     )
-    private Translate redirectTranslate(PoseTransformStack instance, Vec3 orig) {
+    private Translate<?> redirectTranslate(PoseTransformStack instance, Vec3 orig) {
         PoseStack ms = instance.unwrap();
         Ship ship = VSGameUtilsKt.getShipObjectManagingPos(Minecraft.getInstance().level, target.getX(), target.getY(), target.getZ());
 
