@@ -30,13 +30,13 @@ side = "BOTH"
 [[dependencies.valkyrienskies]]
 modId = "create"
 mandatory = false
-versionRange = "(,6.0.0)"
+versionRange = "[6.0.0, )"
 ordering = "NONE"
 side = "BOTH"
 
 [[dependencies.valkyrienskies]]
 modId = "computercraft"
 mandatory = false
-versionRange = "[1.115.0]"
+versionRange = "[1.115.0,)"
 ordering = "NONE"
 side = "BOTH"
