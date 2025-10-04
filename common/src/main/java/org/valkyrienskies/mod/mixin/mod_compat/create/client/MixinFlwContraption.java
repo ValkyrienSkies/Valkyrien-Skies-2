@@ -35,19 +35,5 @@ public abstract class MixinFlwContraption {
             ci.cancel();
         }
     }
-
-
-    // TODO: Find where this moved
-    /*@Redirect(
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/phys/AABB;move(DDD)Lnet/minecraft/world/phys/AABB;"
-        ),
-        method = "beginFrame"
-    )
-    private AABB transformLightboxToWorld(final AABB aabb, final double negCamX, final double negCamY,
-        final double negCamZ) {
-        return VSGameUtilsKt.transformAabbToWorld(this.contraption.entity.level(), aabb).move(negCamX, negCamY, negCamZ);
-    }*/
 }
 

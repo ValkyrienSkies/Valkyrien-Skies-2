@@ -85,6 +85,7 @@
     "mod_compat.create.blockentity.MixinEjectorTileEntity",
     "mod_compat.create.blockentity.MixinEncasedFanTileEntity",
     "mod_compat.create.blockentity.MixinSchematicannonBlockEntity",
+    "mod_compat.create.client.MixinContraptionVisual",
     "mod_compat.create.client.MixinDeployTool",
     "mod_compat.create.client.MixinFlwContraption",
     "mod_compat.create.client.MixinSchematicToolBase",
