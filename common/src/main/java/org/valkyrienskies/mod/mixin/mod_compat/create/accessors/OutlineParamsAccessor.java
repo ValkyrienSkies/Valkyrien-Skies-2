@@ -1,7 +1,5 @@
 package org.valkyrienskies.mod.mixin.mod_compat.create.accessors;
 
-import com.simibubi.create.AllSpecialTextures;
-import java.util.Optional;
 import net.createmod.catnip.outliner.Outline;
 import net.createmod.catnip.render.BindableTexture;
 import org.spongepowered.asm.mixin.Mixin;
