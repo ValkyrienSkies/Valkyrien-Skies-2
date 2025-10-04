@@ -2,6 +2,7 @@ package org.valkyrienskies.mod.mixin.mod_compat.flywheel;
 
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.mojang.logging.LogUtils;
 import dev.engine_room.flywheel.api.visual.Visual;
 import dev.engine_room.flywheel.api.visualization.VisualEmbedding;
 import dev.engine_room.flywheel.api.visualization.VisualizationContext;
@@ -65,8 +66,12 @@ public abstract class MixinStorage<T> implements MixinStorageDuck<T> {
             ship = VSGameUtilsKt.getShipObjectManagingPos(blockEntity.getLevel(), blockEntity.getBlockPos());
             pos = blockEntity.getBlockPos();
         } else if (obj instanceof final Entity entity) {
-            ship = VSGameUtilsKt.getShipManaging(entity);
-            pos = BlockPos.containing(entity.getPosition(partialTick));
+            ship = VSGameUtilsKt.getShipObjectManagingPos(entity.level(), entity.blockPosition());
+            if(ship == null && VSGameUtilsKt.isBlockInShipyard(entity.level(), entity.blockPosition())){
+                //TODO: Actually fix the underlying problem that entities are loaded before clientShip
+                LogUtils.getLogger().error("Entity {} is in shipyard but couldn't get a ship", entity);
+            }
+            pos = entity.blockPosition();
         } else {
             ship = null;
             pos = null;
@@ -119,6 +124,7 @@ public abstract class MixinStorage<T> implements MixinStorageDuck<T> {
             embedding.delete();
         }
         vs$shipAbsoluteOrigin.remove(ship);
+        vs$shipRenderOffset.remove(ship);
     }
 
     @Inject(

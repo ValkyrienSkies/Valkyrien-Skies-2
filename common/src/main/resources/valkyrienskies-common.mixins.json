@@ -178,6 +178,7 @@
     "mod_compat.create.client.MixinTrackBlockOutline",
     "mod_compat.create.client.MixinTrainRelocator",
     "mod_compat.create.client.MixinValueBox",
+    "mod_compat.flywheel.MixinAbstractEntityVisual",
     "mod_compat.flywheel.MixinStorage",
     "mod_compat.optifine.RenderChunkInfoAccessorOptifine",
     "mod_compat.optifine_vanilla.MixinLevelRenderer",

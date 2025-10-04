@@ -14,8 +14,8 @@
   ],
   "client": [
     "client.render.MixinLevelRenderer",
-    "compat.create.client.MixinContraptionHandlerClient",
     "compat.create.client.MixinBlockEntityRenderHelper",
+    "compat.create.client.MixinContraptionHandlerClient",
     "compat.create.client.MixinCullingBlockEntityIterator",
     "compat.create.client.MixinSuperGlueSelectionHandler",
     "feature.duplicate_keybindings.KeyMappingAccessor",

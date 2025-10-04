@@ -37,6 +37,7 @@ dependencies {
     modCompileOnly("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}")
         { exclude group: 'com.github.AlphaMode', module: 'fakeconfigtoml' }
     modCompileOnly("net.fabricmc.fabric-api:fabric-api:${fabric_api_version}")
+    modCompileOnly("curse.maven:vanillin-965702:6446557")
 
     modCompileOnly("com.rbasamoyai:createbigcannons:${createbigcannons_version}+mc.${minecraft_version}-fabric") { transitive = false }
 }
