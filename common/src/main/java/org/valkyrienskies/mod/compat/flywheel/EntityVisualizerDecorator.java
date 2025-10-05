@@ -19,7 +19,7 @@ public class EntityVisualizerDecorator<T extends Entity> implements EntityVisual
     @Override
     public EntityVisual<? super T> createVisual(VisualizationContext ctx, T entity, float partialTick) {
         if(VSGameUtilsKt.getShipManaging(entity) instanceof ClientShip ship){
-            VisualEmbedding embedding = ShipEmbeddingManager.getOrCreateEmbedding(ship, ctx);
+            VisualEmbedding embedding = ShipEmbeddingManager.INSTANCE.getOrCreateEmbedding(ship, ctx);
             return inner.createVisual(embedding, entity, partialTick);
         }
         else return inner.createVisual(ctx, entity, partialTick);

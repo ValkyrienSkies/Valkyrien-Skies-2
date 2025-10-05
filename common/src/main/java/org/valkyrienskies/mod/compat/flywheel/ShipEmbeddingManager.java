@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.compat.flywheel;
 
+import org.valkyrienskies.core.impl.hooks.VSEvents.ShipUnloadEventClient;
+import org.valkyrienskies.core.impl.hooks.VSEvents.StartUpdateRenderTransformsEvent;
 import dev.engine_room.flywheel.api.visualization.VisualEmbedding;
 import dev.engine_room.flywheel.api.visualization.VisualizationContext;
 import java.util.concurrent.ConcurrentHashMap;
@@ -15,21 +17,30 @@ import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 public class ShipEmbeddingManager {
 
+    public static final ShipEmbeddingManager INSTANCE = new ShipEmbeddingManager();
+
     protected static ConcurrentHashMap<ClientShip, Vec3i> vs$shipAnchor = new ConcurrentHashMap<>();
 
     protected static ConcurrentHashMap<ClientShip, Vec3i> vs$EmbeddingOrigin = new ConcurrentHashMap<>();
 
     protected static ConcurrentHashMap<ClientShip, VisualEmbedding> vs$shipEmbedding = new ConcurrentHashMap<>();
 
+    private ShipEmbeddingManager(){
+        ShipUnloadEventClient.Companion.on(event -> this.unloadShip(event.getShip()));
+        StartUpdateRenderTransformsEvent.Companion.on(event -> this.updateAllShips());
+    }
+
     /*
         Get or Create a VisualEmbedding that is attached to the ship.
      */
-    public static VisualEmbedding getOrCreateEmbedding(ClientShip ship, VisualizationContext ctx){
+    public synchronized VisualEmbedding getOrCreateEmbedding(ClientShip ship, VisualizationContext ctx){
         return vs$shipEmbedding.computeIfAbsent(ship, s ->{
             BlockPos anchor = BlockPos.containing(VectorConversionsMCKt.toMinecraft(s.getRenderTransform().getPositionInShip()));
             Vec3i origin = ctx.renderOrigin();
             VisualEmbedding result = ctx.createEmbedding(anchor);
             setEmbeddingTransform(result, s, anchor, origin);
+            vs$shipAnchor.put(s, anchor);
+            vs$EmbeddingOrigin.put(s, origin);
             return result;
         });
     }
@@ -38,7 +49,7 @@ public class ShipEmbeddingManager {
         Updates every VisualEmbedding attached to a ship.
         This should be called manually to update the transformation, or it won't properly update current ship movement.
      */
-    public static void updateAllShips() {
+    protected synchronized void updateAllShips() {
         for(final ClientShip ship : vs$shipEmbedding.keySet()){
             final Vec3i anchor = vs$shipAnchor.get(ship);
             final VisualEmbedding embedding = vs$shipEmbedding.get(ship);
@@ -50,7 +61,7 @@ public class ShipEmbeddingManager {
         Removes ship from the storage.
         This will delete the embedding create for the ship.
      */
-    public static void unloadShip(ClientShip ship) {
+    protected synchronized void unloadShip(ClientShip ship) {
         final VisualEmbedding embedding = vs$shipEmbedding.remove(ship);
         if(embedding != null){
             embedding.delete();
