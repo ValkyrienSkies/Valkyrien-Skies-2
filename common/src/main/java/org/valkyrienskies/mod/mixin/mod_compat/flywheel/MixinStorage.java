@@ -33,10 +33,10 @@ import org.valkyrienskies.mod.mixinducks.mod_compat.flywheel.MixinStorageDuck;
 public abstract class MixinStorage<T> implements MixinStorageDuck<T> {
 
     @Unique
-    protected ConcurrentHashMap<ClientShip, Vec3i> vs$shipAbsoluteOrigin = new ConcurrentHashMap<>();
+    protected ConcurrentHashMap<ClientShip, Vec3i> vs$shipAnchor = new ConcurrentHashMap<>();
 
     @Unique
-    protected ConcurrentHashMap<ClientShip, Vec3i> vs$shipRenderOffset = new ConcurrentHashMap<>();
+    protected ConcurrentHashMap<ClientShip, Vec3i> vs$EmbeddingOrigin = new ConcurrentHashMap<>();
 
     @Unique
     protected ConcurrentHashMap<ClientShip, VisualEmbedding> vs$shipEmbedding = new ConcurrentHashMap<>();
@@ -52,7 +52,7 @@ public abstract class MixinStorage<T> implements MixinStorageDuck<T> {
         at = @At("HEAD")
     )
     private void preInvalidate(final CallbackInfo ci){
-        vs$shipAbsoluteOrigin.clear();
+        vs$shipAnchor.clear();
         vs$shipEmbedding.clear();
     }
 
@@ -61,34 +61,31 @@ public abstract class MixinStorage<T> implements MixinStorageDuck<T> {
     )
     public void wrapAdd(final VisualizationContext visualizationContext, final T obj, final float partialTick, final Operation<Visual> original){
         final Ship ship;
-        final BlockPos pos;
+        final BlockPos anchor;
         if (obj instanceof final BlockEntity blockEntity) {
             ship = VSGameUtilsKt.getShipObjectManagingPos(blockEntity.getLevel(), blockEntity.getBlockPos());
-            pos = blockEntity.getBlockPos();
+            anchor = blockEntity.getBlockPos();
         } else if (obj instanceof final Entity entity) {
             ship = VSGameUtilsKt.getShipObjectManagingPos(entity.level(), entity.blockPosition());
             if(ship == null && VSGameUtilsKt.isBlockInShipyard(entity.level(), entity.blockPosition())){
                 //TODO: Actually fix the underlying problem that entities are loaded before clientShip
                 LogUtils.getLogger().error("Entity {} is in shipyard but couldn't get a ship", entity);
             }
-            pos = entity.blockPosition();
+            anchor = entity.blockPosition();
         } else {
             ship = null;
-            pos = null;
+            anchor = null;
         }
         if (ship instanceof final ClientShip clientShip) {
             final VisualEmbedding embedding = vs$shipEmbedding.computeIfAbsent(clientShip, s-> {
-                final Matrix3f normalMatrix = new Matrix3f();
-                final Vec3i offset = visualizationContext.renderOrigin().multiply(-1);
-                final Matrix4f poseMatrix = new Matrix4f();
-                poseMatrix.translate(s.getRenderTransform().getShipToWorld().transformPosition(pos.getX(), pos.getY(), pos.getZ(), new Vector3d()).get(new Vector3f()));
-                poseMatrix.translate(new Vector3f(offset.getX(), offset.getY(), offset.getZ()));
-                poseMatrix.rotate(s.getRenderTransform().getShipToWorldRotation().get(new Quaternionf()));
-                normalMatrix.set(poseMatrix);
-                final VisualEmbedding result = visualizationContext.createEmbedding(pos);
-                result.transforms(poseMatrix, normalMatrix);
-                vs$shipAbsoluteOrigin.put(s, pos);
-                vs$shipRenderOffset.put(s, offset);
+                final VisualEmbedding result = visualizationContext.createEmbedding(anchor);
+                final Vec3i origin = visualizationContext.renderOrigin().multiply(-1);
+                final Matrix4f poseMatrix = vs$setEmbeddingTransform(result, clientShip, anchor, origin);
+                vs$shipAnchor.put(s, anchor);
+                vs$EmbeddingOrigin.put(s, origin);
+                LogUtils.getLogger().info("Ship CoM : {}, World CoM : {}", s.getRenderTransform().getPositionInShip(), s.getRenderTransform().getPositionInWorld());
+                LogUtils.getLogger().info("BlockPos of Anchor : {}", anchor);
+                LogUtils.getLogger().info("Pos of Anchor in World : {}", poseMatrix.transformPosition(new Vector3f()));
                 return result;
             });
             original.call(embedding, obj, partialTick);
@@ -104,16 +101,10 @@ public abstract class MixinStorage<T> implements MixinStorageDuck<T> {
     @Override
     public void vs$updateAllShips(){
         for(final ClientShip ship : vs$shipEmbedding.keySet()){
-            final Matrix3f normalMatrix = new Matrix3f();
+            final Vec3i anchor = vs$shipAnchor.get(ship);
             final VisualEmbedding embedding = vs$shipEmbedding.get(ship);
-            final Matrix4f poseMatrix = new Matrix4f();
-            final Vec3i anchorPos = vs$shipAbsoluteOrigin.get(ship);
-            final Vec3i offset = vs$shipRenderOffset.get(ship);
-            poseMatrix.translate(ship.getRenderTransform().getShipToWorld().transformPosition(anchorPos.getX(), anchorPos.getY(), anchorPos.getZ(), new Vector3d()).get(new Vector3f()));
-            poseMatrix.translate(new Vector3f(offset.getX(), offset.getY(), offset.getZ()));
-            poseMatrix.rotate(ship.getRenderTransform().getShipToWorldRotation().get(new Quaternionf()));
-            normalMatrix.set(poseMatrix);
-            embedding.transforms(poseMatrix, normalMatrix);
+            final Vec3i origin = vs$EmbeddingOrigin.get(ship);
+            vs$setEmbeddingTransform(embedding, ship, anchor, origin);
         }
     }
 
@@ -123,8 +114,8 @@ public abstract class MixinStorage<T> implements MixinStorageDuck<T> {
         if(embedding != null){
             embedding.delete();
         }
-        vs$shipAbsoluteOrigin.remove(ship);
-        vs$shipRenderOffset.remove(ship);
+        vs$shipAnchor.remove(ship);
+        vs$EmbeddingOrigin.remove(ship);
     }
 
     @Inject(
@@ -133,5 +124,17 @@ public abstract class MixinStorage<T> implements MixinStorageDuck<T> {
     )
     private void postInit(CallbackInfo ci) {
         FlywheelEvents.onVisualizationManagerCreation(this);
+    }
+
+    @Unique
+    private static Matrix4f vs$setEmbeddingTransform(VisualEmbedding embedding, ClientShip ship, Vec3i anchor, Vec3i origin){
+        final Matrix4f poseMatrix = new Matrix4f();
+        final Matrix3f normalMatrix = new Matrix3f();
+        poseMatrix.translate(ship.getRenderTransform().getShipToWorld().transformPosition(anchor.getX(), anchor.getY(), anchor.getZ(), new Vector3d()).get(new Vector3f()));
+        poseMatrix.translate(new Vector3f(origin.getX(), origin.getY(), origin.getZ()));
+        poseMatrix.rotate(ship.getRenderTransform().getShipToWorldRotation().get(new Quaternionf()));
+        normalMatrix.set(poseMatrix);
+        embedding.transforms(poseMatrix, normalMatrix);
+        return poseMatrix;
     }
 }
