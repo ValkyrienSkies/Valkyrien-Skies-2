@@ -1,7 +1,6 @@
 package org.valkyrienskies.mod.compat.flywheel;
 
 import org.valkyrienskies.core.impl.hooks.VSEvents.ShipUnloadEventClient;
-import org.valkyrienskies.core.impl.hooks.VSEvents.StartUpdateRenderTransformsEvent;
 import dev.engine_room.flywheel.api.visualization.VisualEmbedding;
 import dev.engine_room.flywheel.api.visualization.VisualizationContext;
 import java.util.concurrent.ConcurrentHashMap;
@@ -13,6 +12,7 @@ import org.joml.Quaternionf;
 import org.joml.Vector3d;
 import org.joml.Vector3f;
 import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.mod.common.hooks.VSGameEvents;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 public class ShipEmbeddingManager {
@@ -27,7 +27,7 @@ public class ShipEmbeddingManager {
 
     private ShipEmbeddingManager(){
         ShipUnloadEventClient.Companion.on(event -> this.unloadShip(event.getShip()));
-        StartUpdateRenderTransformsEvent.Companion.on(event -> this.updateAllShips());
+        VSGameEvents.INSTANCE.getRenderShip().on(event -> this.updateAllShips());
     }
 
     /*
@@ -49,7 +49,7 @@ public class ShipEmbeddingManager {
         Updates every VisualEmbedding attached to a ship.
         This should be called manually to update the transformation, or it won't properly update current ship movement.
      */
-    protected synchronized void updateAllShips() {
+    protected void updateAllShips() {
         for(final ClientShip ship : vs$shipEmbedding.keySet()){
             final Vec3i anchor = vs$shipAnchor.get(ship);
             final VisualEmbedding embedding = vs$shipEmbedding.get(ship);
