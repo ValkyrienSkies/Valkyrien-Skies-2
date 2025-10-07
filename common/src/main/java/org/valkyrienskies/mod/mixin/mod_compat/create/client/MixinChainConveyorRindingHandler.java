@@ -4,17 +4,54 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorBlockEntity.ConnectionStats;
 import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorRidingHandler;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction.Axis;
 import net.minecraft.core.Vec3i;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
-@Mixin(ChainConveyorRidingHandler.class)
+@Mixin(value = ChainConveyorRidingHandler.class, remap = false)
 public abstract class MixinChainConveyorRindingHandler {
+    @Shadow
+    public static BlockPos ridingChainConveyor;
+    @Unique
+    private static ClientShip vs$ridingShip;
+
+    @Inject(
+        method = "embark",
+        at = @At("HEAD")
+    )
+    private static void preEmbark(BlockPos lift, float position, BlockPos connection, CallbackInfo ci) {
+        vs$ridingShip = VSClientGameUtils.getClientShip(lift.getX(), lift.getY(), lift.getZ());
+    }
+
+    @Inject(
+        method = "stopRiding",
+        at = @At("HEAD")
+    )
+    private static void preStopRiding(CallbackInfo ci) {
+        vs$ridingShip = null;
+    }
+
+    @Inject(
+        method = "clientTick",
+        at = @At("HEAD")
+    )
+    private static void preTick(CallbackInfo ci){
+        if (ridingChainConveyor == null) {
+            vs$ridingShip = null;
+        }
+    }
+
     @WrapOperation(
         method = "clientTick",
         at = @At(value = "INVOKE",
@@ -22,9 +59,8 @@ public abstract class MixinChainConveyorRindingHandler {
     )
     private static Vec3 wrapStart(ConnectionStats instance, Operation<Vec3> original){
         Vec3 origPos = original.call(instance);
-        ClientShip ship = VSClientGameUtils.getClientShip(origPos.x, origPos.y, origPos.z);
-        if (ship != null) {
-            Vector3d newPos = ship.getRenderTransform().getShipToWorld().transformPosition(origPos.x, origPos.y, origPos.z, new Vector3d());
+        if (vs$ridingShip != null) {
+            Vector3d newPos = vs$ridingShip.getRenderTransform().getShipToWorld().transformPosition(origPos.x, origPos.y, origPos.z, new Vector3d());
             return VectorConversionsMCKt.toMinecraft(newPos);
         }
         return origPos;
@@ -37,9 +73,8 @@ public abstract class MixinChainConveyorRindingHandler {
     )
     private static Vec3 wrapEnd(ConnectionStats instance, Operation<Vec3> original){
         Vec3 origPos = original.call(instance);
-        ClientShip ship = VSClientGameUtils.getClientShip(origPos.x, origPos.y, origPos.z);
-        if (ship != null) {
-            Vector3d newPos = ship.getRenderTransform().getShipToWorld().transformPosition(origPos.x, origPos.y, origPos.z, new Vector3d());
+        if (vs$ridingShip != null) {
+            Vector3d newPos = vs$ridingShip.getRenderTransform().getShipToWorld().transformPosition(origPos.x, origPos.y, origPos.z, new Vector3d());
             return VectorConversionsMCKt.toMinecraft(newPos);
         }
         return origPos;
@@ -51,11 +86,24 @@ public abstract class MixinChainConveyorRindingHandler {
     )
     private static Vec3 wrapBottomCenterOf(Vec3i vec3i, Operation<Vec3> original){
         Vec3 origPos = original.call(vec3i);
-        ClientShip ship = VSClientGameUtils.getClientShip(origPos.x, origPos.y, origPos.z);
-        if (ship != null) {
-            Vector3d newPos = ship.getRenderTransform().getShipToWorld().transformPosition(origPos.x, origPos.y, origPos.z, new Vector3d());
+        if (vs$ridingShip != null) {
+            Vector3d newPos = vs$ridingShip.getRenderTransform().getShipToWorld().transformPosition(origPos.x, origPos.y, origPos.z, new Vector3d());
             return VectorConversionsMCKt.toMinecraft(newPos);
         }
         return origPos;
+    }
+
+    @WrapOperation(
+        method = "clientTick",
+        at = @At(value = "INVOKE", target = "Lnet/createmod/catnip/math/VecHelper;rotate(Lnet/minecraft/world/phys/Vec3;DLnet/minecraft/core/Direction$Axis;)Lnet/minecraft/world/phys/Vec3;")
+    )
+    private static Vec3 wrapRotate(Vec3 vec, double deg, Axis axis, Operation<Vec3> original){
+        Vec3 result = original.call(vec, deg, axis);
+        if (vs$ridingShip != null) {
+            Vector3d resultD = VectorConversionsMCKt.toJOML(result);
+            resultD = vs$ridingShip.getRenderTransform().getShipToWorld().transformDirection(resultD);
+            return VectorConversionsMCKt.toMinecraft(resultD);
+        }
+        return result;
     }
 }
