@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.compat.flywheel;
 
+import dev.engine_room.flywheel.api.visual.Visual;
 import org.valkyrienskies.core.impl.hooks.VSEvents.ShipUnloadEventClient;
 import dev.engine_room.flywheel.api.visualization.VisualEmbedding;
 import dev.engine_room.flywheel.api.visualization.VisualizationContext;
@@ -24,6 +25,8 @@ public class ShipEmbeddingManager {
     protected static ConcurrentHashMap<ClientShip, Vec3i> vs$EmbeddingOrigin = new ConcurrentHashMap<>();
 
     protected static ConcurrentHashMap<ClientShip, VisualEmbedding> vs$shipEmbedding = new ConcurrentHashMap<>();
+
+    protected static ConcurrentHashMap<Visual, ClientShip> vs$shipVisuals = new ConcurrentHashMap<>();
 
     private ShipEmbeddingManager(){
         ShipUnloadEventClient.Companion.on(event -> this.unloadShip(event.getShip()));
@@ -59,13 +62,21 @@ public class ShipEmbeddingManager {
     }
     /*
         Removes ship from the storage.
-        This will delete the embedding create for the ship.
+        This will delete the embedding created for the ship, and Visuals too.
      */
     protected synchronized void unloadShip(ClientShip ship) {
         final VisualEmbedding embedding = vs$shipEmbedding.remove(ship);
         if(embedding != null){
             embedding.delete();
         }
+        vs$shipVisuals.entrySet().removeIf(
+            entry -> {
+                if (entry.getValue() == ship) {
+                    entry.getKey().delete();
+                    return true;
+                } else return false;
+            }
+        );
         vs$shipAnchor.remove(ship);
         vs$EmbeddingOrigin.remove(ship);
     }
@@ -79,5 +90,9 @@ public class ShipEmbeddingManager {
         poseMatrix.rotate(ship.getRenderTransform().getShipToWorldRotation().get(new Quaternionf()));
         normalMatrix.set(poseMatrix);
         embedding.transforms(poseMatrix, normalMatrix);
+    }
+
+    public void registerVisual(Visual visual, ClientShip ship) {
+        vs$shipVisuals.put(visual, ship);
     }
 }
