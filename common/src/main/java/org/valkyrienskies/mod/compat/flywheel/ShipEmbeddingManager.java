@@ -39,6 +39,18 @@ public class ShipEmbeddingManager {
     public synchronized VisualEmbedding getOrCreateEmbedding(ClientShip ship, VisualizationContext ctx){
         VisualEmbedding prevEmbedding = vs$shipEmbedding.get(ship);
         if(prevEmbedding != null && ctx.renderOrigin().equals(vs$EmbeddingOrigin.get(ship))) return prevEmbedding;
+
+        // remove previous mapping of visuals and embedding
+        vs$shipVisuals.entrySet().removeIf(
+            entry -> {
+                if (entry.getValue() == ship) {
+                    entry.getKey().delete();
+                    return true;
+                } else return false;
+            }
+        );
+        if (prevEmbedding != null) prevEmbedding.delete();
+
         BlockPos anchor = BlockPos.containing(VectorConversionsMCKt.toMinecraft(ship.getRenderTransform().getPositionInShip()));
         Vec3i origin = ctx.renderOrigin();
         VisualEmbedding result = ctx.createEmbedding(anchor);
