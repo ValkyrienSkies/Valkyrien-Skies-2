@@ -42,14 +42,9 @@ public class ShipEmbeddingManager {
 
         // remove previous mapping of visuals and embedding
         vs$shipVisuals.entrySet().removeIf(
-            entry -> {
-                if (entry.getValue() == ship) {
-                    entry.getKey().delete();
-                    return true;
-                } else return false;
-            }
+            entry -> entry.getValue() == ship
         );
-        if (prevEmbedding != null) prevEmbedding.delete();
+        if(prevEmbedding != null) prevEmbedding.delete();
 
         BlockPos anchor = BlockPos.containing(VectorConversionsMCKt.toMinecraft(ship.getRenderTransform().getPositionInShip()));
         Vec3i origin = ctx.renderOrigin();
