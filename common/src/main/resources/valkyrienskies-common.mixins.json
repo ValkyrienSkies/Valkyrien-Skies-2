@@ -88,7 +88,7 @@
     "mod_compat.create.blockentity.MixinSchematicannonBlockEntity",
     "mod_compat.create.client.MixinChainConveyorBlockEntity",
     "mod_compat.create.client.MixinChainConveyorInteractionHandler",
-    "mod_compat.create.client.MixinChainConveyorRindingHandler",
+    "mod_compat.create.client.MixinChainConveyorRidingHandler",
     "mod_compat.create.client.MixinChainPackageInteractionHandler",
     "mod_compat.create.client.MixinContraptionVisual",
     "mod_compat.create.client.MixinDeployTool",

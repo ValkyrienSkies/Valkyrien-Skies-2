@@ -4,6 +4,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorInteractionHandler;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.Vec3;
@@ -14,6 +15,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(ChainConveyorInteractionHandler.class)
@@ -25,7 +27,7 @@ public abstract class MixinChainConveyorInteractionHandler {
         method = "clientTick",
         at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/Vec3;subtract(Lnet/minecraft/world/phys/Vec3;)Lnet/minecraft/world/phys/Vec3;")
     )
-    private static Vec3 wrapSubtract(Vec3 instance, Vec3 liftVec, Operation<Vec3> original) {
+    private static Vec3 wrapRelativePos(final Vec3 instance, final Vec3 liftVec, final Operation<Vec3> original) {
         ClientShip ship = VSClientGameUtils.getClientShip(liftVec.x, liftVec.y, liftVec.z);
         if (ship != null) {
             Vector3d shipInstance = VectorConversionsMCKt.toJOML(instance);
@@ -38,20 +40,15 @@ public abstract class MixinChainConveyorInteractionHandler {
         method = "clientTick",
         at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/Vec3;distanceToSqr(Lnet/minecraft/world/phys/Vec3;)D")
     )
-    private static double wrapDistance(Vec3 instance, Vec3 from, Operation<Double> original) {
-        ClientShip ship = VSClientGameUtils.getClientShip(instance.x, instance.y, instance.z);
-        if (ship != null) {
-            Vector3d shipFrom = VectorConversionsMCKt.toJOML(from);
-            shipFrom = ship.getTransform().getWorldToShip().transformPosition(shipFrom);
-            return original.call(instance, VectorConversionsMCKt.toMinecraft(shipFrom));
-        } else return original.call(instance, from);
+    private static double wrapDistanceSqr(final Vec3 instance, final Vec3 from, Operation<Double> original) {
+        return VSGameUtilsKt.squaredDistanceBetweenInclShips(Minecraft.getInstance().level, instance, from, original);
     }
 
     @WrapOperation(
         method = "drawCustomBlockSelection",
         at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/PoseStack;translate(DDD)V")
     )
-    private static void wrapTranslate(PoseStack instance, double x, double y, double z, Operation<Void> original, PoseStack ms, MultiBufferSource buffer, Vec3 camera){
+    private static void wrapOutlineTranslation(PoseStack instance, double x, double y, double z, Operation<Void> original, PoseStack ms, MultiBufferSource buffer, Vec3 camera){
         ClientShip ship = VSClientGameUtils.getClientShip(selectedLift.getX(), selectedLift.getY(), selectedLift.getZ());
         if(ship != null) {
             Vector3d liftShipPos = ship.getRenderTransform().getShipToWorld().transformPosition(selectedLift.getX(), selectedLift.getY(), selectedLift.getZ(), new Vector3d());
