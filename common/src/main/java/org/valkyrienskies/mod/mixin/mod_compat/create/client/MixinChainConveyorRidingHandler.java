@@ -8,7 +8,6 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction.Axis;
 import net.minecraft.core.Vec3i;
-import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
@@ -96,7 +95,7 @@ public abstract class MixinChainConveyorRidingHandler {
      */
     @WrapOperation(
         method = "clientTick",
-        at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/Vec3;atBottomCenterOf(Lnet/minecraft/core/Vec3i;)Lnet/minecraft/world/phys/Vec3;")
+        at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/Vec3;atBottomCenterOf(Lnet/minecraft/core/Vec3i;)Lnet/minecraft/world/phys/Vec3;", remap = true)
     )
     private static Vec3 wrapBottomCenterOfConveyor(Vec3i vec3i, Operation<Vec3> original){
         Vec3 origPos = original.call(vec3i);
@@ -129,7 +128,8 @@ public abstract class MixinChainConveyorRidingHandler {
     @WrapOperation(
         method = "clientTick",
         at = @At(value = "INVOKE",
-            target = "Lnet/minecraft/client/player/LocalPlayer;setDeltaMovement(Lnet/minecraft/world/phys/Vec3;)V")
+            target = "Lnet/minecraft/client/player/LocalPlayer;setDeltaMovement(Lnet/minecraft/world/phys/Vec3;)V", remap = true),
+        remap = false
     )
     private static void addAcceleration(final LocalPlayer player, final Vec3 deltaMovement, final Operation<Void> original) {
         if (vs$ridingShip != null) {

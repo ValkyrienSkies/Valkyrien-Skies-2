@@ -48,12 +48,12 @@ public abstract class MixinChainConveyorVisual {
 
     @WrapOperation(
         method = "setupBoxVisual",
-        at = @At(value = "INVOKE", target = "Lnet/minecraft/util/Mth;clamp(FFF)F")
+        at = @At(value = "INVOKE", target = "Lnet/minecraft/util/Mth;clamp(FFF)F", remap = true)
     )
     private float disableClampIfOnShip(float f, float g, float h, Operation<Float> original){
         //Let's disable the dangling clamping on ship, for more visual effect.
         if (vs$ship != null) {
-            return f;
+            return original.call(f, -180f, 180f);
         } else return original.call(f, g, h);
     }
 
