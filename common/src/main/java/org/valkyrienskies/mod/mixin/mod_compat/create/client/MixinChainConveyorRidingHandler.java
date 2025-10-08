@@ -128,8 +128,7 @@ public abstract class MixinChainConveyorRidingHandler {
     @WrapOperation(
         method = "clientTick",
         at = @At(value = "INVOKE",
-            target = "Lnet/minecraft/client/player/LocalPlayer;setDeltaMovement(Lnet/minecraft/world/phys/Vec3;)V", remap = true),
-        remap = false
+            target = "Lnet/minecraft/client/player/LocalPlayer;setDeltaMovement(Lnet/minecraft/world/phys/Vec3;)V", remap = true)
     )
     private static void addAcceleration(final LocalPlayer player, final Vec3 deltaMovement, final Operation<Void> original) {
         if (vs$ridingShip != null) {
@@ -145,5 +144,18 @@ public abstract class MixinChainConveyorRidingHandler {
             return;
         }
         original.call(player, deltaMovement);
+    }
+
+    @WrapOperation(
+        method = "updateTargetPosition",
+        at = @At(value = "INVOKE", target = "Lnet/minecraft/client/player/LocalPlayer;getLookAngle()Lnet/minecraft/world/phys/Vec3;", remap = true)
+    )
+    private static Vec3 wrapLookVectorToShip(final LocalPlayer player, final Operation<Vec3> original) {
+        if(vs$ridingShip != null){
+            final Vector3d lookVectorWorld = VectorConversionsMCKt.toJOML(original.call(player));
+            vs$ridingShip.getWorldToShip().transformDirection(lookVectorWorld);
+            return VectorConversionsMCKt.toMinecraft(lookVectorWorld);
+        }
+        return original.call(player);
     }
 }
