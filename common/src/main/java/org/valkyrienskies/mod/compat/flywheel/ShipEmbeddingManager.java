@@ -109,6 +109,7 @@ public class ShipEmbeddingManager {
 
     /**
      * Updates the embedding created for the ship.
+     * It will apply the transformation in seperate elements, to avoid floating point error.
      * @param embedding Visual Embedding that is connected to the ship.
      * @param ship The ship associated to the embedding. Its render origin is anchor.
      * @param anchor 'Absolute' origin of the ship in shipyard.
@@ -122,9 +123,10 @@ public class ShipEmbeddingManager {
         Vec3i origin){
         final Matrix4f poseMatrix = new Matrix4f();
         final Matrix3f normalMatrix = new Matrix3f();
-        poseMatrix.translate(ship.getRenderTransform().getShipToWorld().transformPosition(anchor.getX(), anchor.getY(), anchor.getZ(), new Vector3d()).get(new Vector3f()));
         poseMatrix.translate(new Vector3f(-origin.getX(), -origin.getY(), -origin.getZ()));
+        poseMatrix.translate(ship.getRenderTransform().getShipToWorld().transformPosition(anchor.getX(), anchor.getY(), anchor.getZ(), new Vector3d()).get(new Vector3f()));
         poseMatrix.rotate(ship.getRenderTransform().getShipToWorldRotation().get(new Quaternionf()));
+        poseMatrix.scale(ship.getRenderTransform().getShipToWorldScaling().get(new Vector3f()));
         normalMatrix.set(poseMatrix);
         embedding.transforms(poseMatrix, normalMatrix);
     }

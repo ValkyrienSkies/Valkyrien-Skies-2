@@ -7,6 +7,7 @@ import net.createmod.catnip.ghostblock.GhostBlockParams;
 import net.createmod.catnip.render.SuperRenderTypeBuffer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.Vec3;
+import org.joml.Vector3f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
@@ -28,6 +29,7 @@ public class MixinGhostBlockRenderer {
             ms.pushPose();
             final Vec3 cameraInShip = VectorConversionsMCKt.toMinecraft(ship.getWorldToShip().transformPosition(VectorConversionsMCKt.toJOML(camera)));
             ms.mulPose(VectorConversionsMCKt.toFloat(ship.getRenderTransform().getShipToWorldRotation()));
+            ms.last().pose().scale(ship.getRenderTransform().getShipToWorldScaling().get(new Vector3f()));
             original.call(ms, buffer, cameraInShip, params);
             ms.popPose();
         }
