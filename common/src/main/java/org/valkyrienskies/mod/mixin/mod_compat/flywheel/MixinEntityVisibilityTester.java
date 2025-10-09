@@ -16,6 +16,11 @@ import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
+/**
+ * The Entity Culling test for the AbstractEntityVisuals have problem with 'transposed' visuals.
+ * This class shouldn't be needed but as of now(flywheel 1.0.4), it is necessary.
+ * @author Bunting_chj
+ */
 @Mixin(EntityVisibilityTester.class)
 public class MixinEntityVisibilityTester {
     @Shadow

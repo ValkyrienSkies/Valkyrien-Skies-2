@@ -16,6 +16,14 @@ import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.hooks.VSGameEvents;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
+/**
+ * This class is responsible for managing the VisualEmbeddings for the ships.
+ * VisualEmbedding is a sub-interface of VisualizationContext in flywheel,
+ * and it can be transformed to arbitrary pose to propagate it to visuals associated to it.
+ * Be aware that currently in flywheel 1.0.4,
+ * method getVisualPosition() in flywheel doesn't seem to take VisualEmbedding's transform into calculation.
+ * @author Bunting_chj
+ */
 public class ShipEmbeddingManager {
 
     public static final ShipEmbeddingManager INSTANCE = new ShipEmbeddingManager();
@@ -33,8 +41,10 @@ public class ShipEmbeddingManager {
         VSGameEvents.INSTANCE.getShipsStartRendering().on(event -> this.updateAllShips());
     }
 
-    /*
-        Get or Create a VisualEmbedding that is attached to the ship.
+    /**
+     * Get or Create a VisualEmbedding that is attached to the ship.
+     * If the pre-existing one is invalid, delete it and create a new one.
+     * @author Bunting_chj
      */
     public synchronized VisualEmbedding getOrCreateEmbedding(ClientShip ship, VisualizationContext ctx){
         VisualEmbedding prevEmbedding = vs$shipEmbedding.get(ship);
@@ -42,7 +52,12 @@ public class ShipEmbeddingManager {
 
         // remove previous mapping of visuals and embedding
         vs$shipVisuals.entrySet().removeIf(
-            entry -> entry.getValue() == ship
+            entry -> {
+                if (entry.getValue() == ship){
+                    entry.getKey().delete();
+                    return true;
+                } else return false;
+            }
         );
         if(prevEmbedding != null) prevEmbedding.delete();
 
@@ -56,9 +71,11 @@ public class ShipEmbeddingManager {
         return result;
     }
 
-    /*
-        Updates every VisualEmbedding attached to a ship.
-        This should be called manually to update the transformation, or it won't properly update current ship movement.
+    /**
+     * Updates every VisualEmbedding attached to a ship.
+     * This should be called manually to update the transformation, or it won't properly update current ship movement.
+     * Ideally this should be called every frame when ships have their transform changed, so it's bound to ShipStartRendering event.
+     * @author Bunting_chj
      */
     protected void updateAllShips() {
         for(final ClientShip ship : vs$shipEmbedding.keySet()){
@@ -68,9 +85,10 @@ public class ShipEmbeddingManager {
             setEmbeddingTransform(embedding, ship, anchor, origin);
         }
     }
-    /*
-        Removes ship from the storage.
-        This will delete the embedding created for the ship, and Visuals too.
+    /**
+     * Removes ship from the storage.
+     * This will delete the embedding created for the ship, and Visuals too.
+     * @author Bunting_chj
      */
     protected synchronized void unloadShip(ClientShip ship) {
         final VisualEmbedding embedding = vs$shipEmbedding.remove(ship);
@@ -89,6 +107,17 @@ public class ShipEmbeddingManager {
         vs$EmbeddingOrigin.remove(ship);
     }
 
+    /**
+     * Updates the embedding created for the ship.
+     * @param embedding Visual Embedding that is connected to the ship.
+     * @param ship The ship associated to the embedding. Its render origin is anchor.
+     * @param anchor 'Absolute' origin of the ship in shipyard.
+     *               The ship's position defined in ShipTransform can change its position upon center of mass moving.
+     *               Therefore, you must declare a Vec3i(BlockPos) in the shipyard as the ship's anchor,
+     *               and the anchor should also be the render origin of embedding too.
+     * @param origin render origin of the VisualizationContext that is the parent of the embedding.
+     * @author Bunting_chj
+     */
     protected static void setEmbeddingTransform(VisualEmbedding embedding, ClientShip ship, Vec3i anchor,
         Vec3i origin){
         final Matrix4f poseMatrix = new Matrix4f();

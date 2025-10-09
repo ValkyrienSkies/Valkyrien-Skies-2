@@ -14,6 +14,12 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.valkyrienskies.mod.compat.flywheel.BlockEntityVisualizerDecorator;
 import org.valkyrienskies.mod.compat.flywheel.EntityVisualizerDecorator;
 
+/**
+ * When a visualizer is created for either a type of entity or block entity,
+ * This mixin will wrap the visualizer with matching decorator class.
+ * After that, the decorators are responsible for checking whether it should be registered to the ShipEmbeddingManager.
+ * @author Bunting_chj
+ */
 @Mixin(VisualizerRegistry.class)
 public abstract class MixinVisualizerRegistry {
     @WrapMethod(

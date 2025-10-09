@@ -8,9 +8,15 @@ import net.minecraft.world.entity.Entity;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
+/**
+ * This and BlockEntityVisualizerDecorator will check if the subject to createVisual is on a ship,
+ * and bind the correct VisualEmbedding provided by ShipEmbeddingManager to it.
+ * It is a decorator class, and should expose the interface.
+ * @author Bunting_chj
+ */
 public class EntityVisualizerDecorator<T extends Entity> implements EntityVisualizer<T> {
 
-    private EntityVisualizer<? super T> inner;
+    private final EntityVisualizer<? super T> inner;
 
     public EntityVisualizerDecorator(EntityVisualizer<? super T> visualizer){
         this.inner = visualizer;
