@@ -1,18 +1,15 @@
 package org.valkyrienskies.mod.mixin.mod_compat.create.block;
 
-import static com.simibubi.create.content.logistics.funnel.AbstractFunnelBlock.getFunnelFacing;
-
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.sugar.Local;
 import com.simibubi.create.content.logistics.funnel.FunnelBlock;
-import net.createmod.catnip.math.VecHelper;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
@@ -20,26 +17,27 @@ import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 @Mixin(FunnelBlock.class)
 public class MixinFunnelBlock {
 
-
-    @ModifyVariable(
-        method= "entityInside(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/entity/Entity;)V",
-        at = @At(value = "STORE")
+    @WrapOperation(
+        method = "entityInside",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/world/entity/Entity;position()Lnet/minecraft/world/phys/Vec3;"
+        )
     )
-    public Vec3 entityInside(Vec3 diff, BlockState state, Level worldIn, BlockPos pos, Entity entityIn) {
-        Ship ship = VSGameUtilsKt.getShipObjectManagingPos(worldIn, pos);
-        Direction direction = getFunnelFacing(state);
-
+    public Vec3 transformPos(
+        Entity entity, Operation<Vec3> original,
+        @Local(argsOnly = true) Level levelIn, @Local(argsOnly = true) BlockPos blockPos
+    ) {
+        Ship ship = VSGameUtilsKt.getShipManagingPos(entity.level(), blockPos);
+        Vec3 pos = original.call(entity);
         if (ship != null) {
-            diff = VectorConversionsMCKt.toMinecraft(
-                ship.getTransform().getWorldToShip().transformPosition(
-                    VectorConversionsMCKt.toJOML(
-                        entityIn.position()
-                    )
+            pos = VectorConversionsMCKt.toMinecraft(
+                // If for some reason the entity position was already transformed.
+                ship.getWorldToShip().transformPosition(
+                    VSGameUtilsKt.getWorldCoordinates(levelIn, BlockPos.containing(pos), VectorConversionsMCKt.toJOML(pos))
                 )
-            ).subtract(VecHelper.getCenterOf(pos)
-                    .add(Vec3.atLowerCornerOf(direction.getNormal())
-                        .scale(-.325f)));
+            );
         }
-        return diff;
+        return pos;
     }
 }
