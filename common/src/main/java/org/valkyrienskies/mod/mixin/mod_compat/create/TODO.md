@@ -5,3 +5,9 @@
 MixinMinecartInstance - ~~commented out, og code moved to vanillin~~ This class is not needed since Implementing VisualEmbedding for the ships actually fixed the problem. (by Bunting_chj)
 
 MixinFlwContraption - fix needs testing, ~~and transformLightboxToWorld commented out~~ LightBox was moved to ContraptionVisual. MixinContraptionVisual will handle it now. (by Bunting_chj)
+
+Elevator Contraption - Previous version had the elevator descend to abyss.
+
+Hose Pulley - Let's make them drain the world from the ship.
+
+Package Entities - have problem on belts either accepting or ejecting them.
