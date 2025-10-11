@@ -4,10 +4,12 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorBlockEntity.ConnectionStats;
 import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorRidingHandler;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction.Axis;
 import net.minecraft.core.Vec3i;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
@@ -19,6 +21,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
+import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(value = ChainConveyorRidingHandler.class, remap = false)
@@ -37,13 +40,16 @@ public abstract class MixinChainConveyorRidingHandler {
     )
     private static void preEmbark(BlockPos lift, float position, BlockPos connection, CallbackInfo ci) {
         vs$ridingShip = VSClientGameUtils.getClientShip(lift.getX(), lift.getY(), lift.getZ());
+        Player player = Minecraft.getInstance().player;
+        if (player != null) ((IEntityDraggingInformationProvider)player).getDraggingInformation().setLastShipStoodOn(vs$ridingShip.getId());
     }
 
     @Inject(
         method = "stopRiding",
         at = @At("HEAD")
     )
-    private static void preStopRiding(CallbackInfo ci) {
+    private static void preStopRiding(CallbackInfo ci)
+    {
         vs$ridingShip = null;
     }
 
@@ -54,6 +60,9 @@ public abstract class MixinChainConveyorRidingHandler {
     private static void preTick(CallbackInfo ci){
         if (ridingChainConveyor == null) {
             vs$ridingShip = null;
+        } else if (vs$ridingShip != null) {
+            Player player = Minecraft.getInstance().player;
+            if (player != null) ((IEntityDraggingInformationProvider)player).getDraggingInformation().setLastShipStoodOn(vs$ridingShip.getId());
         }
     }
 
@@ -105,6 +114,7 @@ public abstract class MixinChainConveyorRidingHandler {
         }
         return origPos;
     }
+
     /*
         Sets the player to the right angle when they're hanging right under the conveyor pulley.
      */
@@ -116,34 +126,10 @@ public abstract class MixinChainConveyorRidingHandler {
         Vec3 result = original.call(vec, deg, axis);
         if (vs$ridingShip != null) {
             Vector3d resultD = VectorConversionsMCKt.toJOML(result);
-            resultD = vs$ridingShip.getRenderTransform().getShipToWorld().transformDirection(resultD);
+            vs$ridingShip.getRenderTransform().getShipToWorld().transformDirection(resultD);
             return VectorConversionsMCKt.toMinecraft(resultD);
         }
         return result;
-    }
-
-    /*
-        Adds velocity of the ship to the player, to make the movement smoother.
-     */
-    @WrapOperation(
-        method = "clientTick",
-        at = @At(value = "INVOKE",
-            target = "Lnet/minecraft/client/player/LocalPlayer;setDeltaMovement(Lnet/minecraft/world/phys/Vec3;)V", remap = true)
-    )
-    private static void addAcceleration(final LocalPlayer player, final Vec3 deltaMovement, final Operation<Void> original) {
-        if (vs$ridingShip != null) {
-            final Vector3dc currentPlayerPosInShip = vs$ridingShip.getWorldToShip().transformPosition(VectorConversionsMCKt.toJOML(player.position()));
-            final Vector3d deltaInShip;
-            if (vs$prevPlayerPosInShip != null) {
-                deltaInShip = vs$prevPlayerPosInShip.sub(currentPlayerPosInShip, new Vector3d());
-            } else {
-                deltaInShip = new Vector3d(0, 0, 0);
-            }
-            original.call(player, deltaMovement.add(VectorConversionsMCKt.toMinecraft(deltaInShip).scale(0.25)));
-            vs$prevPlayerPosInShip = currentPlayerPosInShip;
-            return;
-        }
-        original.call(player, deltaMovement);
     }
 
     @WrapOperation(
@@ -153,7 +139,7 @@ public abstract class MixinChainConveyorRidingHandler {
     private static Vec3 wrapLookVectorToShip(final LocalPlayer player, final Operation<Vec3> original) {
         if(vs$ridingShip != null){
             final Vector3d lookVectorWorld = VectorConversionsMCKt.toJOML(original.call(player));
-            vs$ridingShip.getWorldToShip().transformDirection(lookVectorWorld);
+            vs$ridingShip.getRenderTransform().getWorldToShip().transformDirection(lookVectorWorld);
             return VectorConversionsMCKt.toMinecraft(lookVectorWorld);
         }
         return original.call(player);
