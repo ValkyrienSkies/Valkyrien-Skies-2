@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.fabric.common
 
+import dev.engine_room.flywheel.api.event.ReloadLevelRendererCallback
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper
@@ -10,6 +11,7 @@ import net.fabricmc.fabric.api.`object`.builder.v1.block.entity.FabricBlockEntit
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper
 import net.fabricmc.loader.api.FabricLoader
+import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.client.renderer.entity.EntityRendererProvider.Context
 import net.minecraft.core.Registry
 import net.minecraft.core.registries.BuiltInRegistries
@@ -46,6 +48,7 @@ import org.valkyrienskies.mod.common.hooks.VSGameEvents
 import org.valkyrienskies.mod.common.item.PhysicsEntityCreatorItem
 import org.valkyrienskies.mod.common.item.ShipAssemblerItem
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
+import org.valkyrienskies.mod.compat.flywheel.ShipEmbeddingManager
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executor
 import java.util.concurrent.atomic.AtomicBoolean
@@ -211,6 +214,8 @@ class ValkyrienSkiesModFabric : ModInitializer {
         VSKeyBindings.clientSetup {
             KeyBindingHelper.registerKeyBinding(it)
         }
+        ReloadLevelRendererCallback.EVENT.register(
+            ReloadLevelRendererCallback { event: ClientLevel? -> ShipEmbeddingManager.INSTANCE.unloadAllShip() })
     }
 
     private fun registerBlockAndItem(registryName: String, block: Block): Item {

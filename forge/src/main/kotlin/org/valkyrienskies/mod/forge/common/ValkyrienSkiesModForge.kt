@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.forge.common
 
+import dev.engine_room.flywheel.api.event.ReloadLevelRendererEvent
 import net.minecraft.commands.Commands.CommandSelection.ALL
 import net.minecraft.commands.Commands.CommandSelection.INTEGRATED
 import net.minecraft.core.registries.Registries
@@ -52,6 +53,7 @@ import org.valkyrienskies.mod.common.item.PhysicsEntityCreatorItem
 import org.valkyrienskies.mod.common.item.ShipAssemblerItem
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
 import org.valkyrienskies.mod.compat.clothconfig.VSClothConfig
+import org.valkyrienskies.mod.compat.flywheel.ShipEmbeddingManager
 import org.valkyrienskies.mod.forge.compat.epicfight.FracturedBlockStateInfoProvider
 
 @Mod(MOD_ID)
@@ -96,6 +98,7 @@ class ValkyrienSkiesModForge {
         if (isClient) {
             modBus.addListener(::registerKeyBindings)
             modBus.addListener(::entityRenderers)
+            forgeBus.addListener(::registerFlywheelReload)
         }
         modBus.addListener(::loadComplete)
 
@@ -184,6 +187,10 @@ class ValkyrienSkiesModForge {
         VSKeyBindings.clientSetup {
             event.register(it)
         }
+    }
+
+    private fun registerFlywheelReload(event: ReloadLevelRendererEvent) {
+        ShipEmbeddingManager.INSTANCE.unloadAllShip()
     }
 
     private fun entityRenderers(event: EntityRenderersEvent.RegisterRenderers) {

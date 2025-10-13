@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.compat.flywheel;
 
 import dev.engine_room.flywheel.api.visual.Visual;
+import kotlinx.coroutines.debug.internal.ConcurrentWeakMap;
 import org.valkyrienskies.core.impl.hooks.VSEvents.ShipUnloadEventClient;
 import dev.engine_room.flywheel.api.visualization.VisualEmbedding;
 import dev.engine_room.flywheel.api.visualization.VisualizationContext;
@@ -34,11 +35,12 @@ public class ShipEmbeddingManager {
 
     protected static ConcurrentHashMap<ClientShip, VisualEmbedding> vs$shipEmbedding = new ConcurrentHashMap<>();
 
-    protected static ConcurrentHashMap<Visual, ClientShip> vs$shipVisuals = new ConcurrentHashMap<>();
+    protected static ConcurrentWeakMap<Visual, ClientShip> vs$shipVisuals = new ConcurrentWeakMap<>();
 
     private ShipEmbeddingManager(){
         ShipUnloadEventClient.Companion.on(event -> this.unloadShip(event.getShip()));
         VSGameEvents.INSTANCE.getShipsStartRendering().on(event -> this.updateAllShips());
+        VSGameEvents.INSTANCE.getShipsStartRenderingSodium().on(event -> this.updateAllShips());
     }
 
     /**
@@ -77,7 +79,7 @@ public class ShipEmbeddingManager {
      * Ideally this should be called every frame when ships have their transform changed, so it's bound to ShipStartRendering event.
      * @author Bunting_chj
      */
-    protected void updateAllShips() {
+    public void updateAllShips() {
         for(final ClientShip ship : vs$shipEmbedding.keySet()){
             final Vec3i anchor = vs$shipAnchor.get(ship);
             final VisualEmbedding embedding = vs$shipEmbedding.get(ship);
@@ -88,9 +90,10 @@ public class ShipEmbeddingManager {
     /**
      * Removes ship from the storage.
      * This will delete the embedding created for the ship, and Visuals too.
+     * @param ship The ship to be unloaded.
      * @author Bunting_chj
      */
-    protected synchronized void unloadShip(ClientShip ship) {
+    public synchronized void unloadShip(ClientShip ship) {
         final VisualEmbedding embedding = vs$shipEmbedding.remove(ship);
         if(embedding != null){
             embedding.delete();
@@ -105,6 +108,30 @@ public class ShipEmbeddingManager {
         );
         vs$shipAnchor.remove(ship);
         vs$EmbeddingOrigin.remove(ship);
+    }
+
+    /**
+     * Removes Every ship and ship-visual from the storage.
+     * The main purpose of this method is to flush all the data,
+     * current usage is on Flywheel Reload which happens at backend swap.
+     * @author Bunting_chj
+     */
+
+    public synchronized void unloadAllShip() {
+        vs$shipVisuals.forEach(
+            (visual, ship) -> {
+                visual.delete();
+            }
+        );
+        vs$shipEmbedding.forEach(
+            (ship, embedding) -> {
+                embedding.delete();
+            }
+        );
+        vs$shipVisuals.clear();
+        vs$shipEmbedding.clear();
+        vs$shipAnchor.clear();
+        vs$EmbeddingOrigin.clear();
     }
 
     /**
