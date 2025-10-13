@@ -35,7 +35,7 @@ public class ShipEmbeddingManager {
 
     protected static ConcurrentHashMap<ClientShip, VisualEmbedding> vs$shipEmbedding = new ConcurrentHashMap<>();
 
-    protected static ConcurrentWeakMap<Visual, ClientShip> vs$shipVisuals = new ConcurrentWeakMap<>();
+    protected static ConcurrentHashMap<Visual, ClientShip> vs$shipVisuals = new ConcurrentHashMap<>();
 
     private ShipEmbeddingManager(){
         ShipUnloadEventClient.Companion.on(event -> this.unloadShip(event.getShip()));
