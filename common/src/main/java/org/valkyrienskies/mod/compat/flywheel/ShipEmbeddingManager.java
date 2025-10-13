@@ -1,7 +1,6 @@
 package org.valkyrienskies.mod.compat.flywheel;
 
 import dev.engine_room.flywheel.api.visual.Visual;
-import kotlinx.coroutines.debug.internal.ConcurrentWeakMap;
 import org.valkyrienskies.core.impl.hooks.VSEvents.ShipUnloadEventClient;
 import dev.engine_room.flywheel.api.visualization.VisualEmbedding;
 import dev.engine_room.flywheel.api.visualization.VisualizationContext;
