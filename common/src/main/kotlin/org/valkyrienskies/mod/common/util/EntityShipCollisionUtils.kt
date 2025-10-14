@@ -79,9 +79,11 @@ object EntityShipCollisionUtils {
         val inflation = if (entity is Player) 0.5 else 0.1
         val stepHeight: Double = entity?.maxUpStep()?.toDouble() ?: 0.0
         // Add [max(stepHeight - inflation, 0.0)] to search for polygons we might collide with while stepping
+
+        // This part was slightly changed to inflate the bounding box in y-axis and adjust the center point. - Bunting_chj
         val collidingShipPolygons =
             getShipPolygonsCollidingWithEntity(
-                entity, Vec3(movement.x(), movement.y() - stepHeight / 2, movement.z()),
+                entity, Vec3(movement.x(), movement.y() + stepHeight / 2, movement.z()),
                 entityBoundingBox.inflate(inflation, inflation + stepHeight / 2, inflation), world
             )
 
