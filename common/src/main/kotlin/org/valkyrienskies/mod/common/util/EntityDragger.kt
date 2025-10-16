@@ -52,6 +52,16 @@ object EntityDragger {
                     if (shipData != null) {
                         dragTheEntity = true
 
+                        if(entityDraggingInformation.previousRelativeVelocityOnShip == null) { //This is the first Tick on the ship.
+                            val shipPos = entity.position().toJOML().sub(shipData.transform.positionInWorld)
+                            val shipPosVelocity = Vector3d(shipData.velocity).add(
+                                Vector3d(shipData.angularVelocity).cross(shipPos)
+                            ).mul(0.05)
+                            val newRelativeVelocity = entity.deltaMovement.toJOML().sub(shipPosVelocity)
+                            entity.deltaMovement = newRelativeVelocity.toMinecraft()
+                            shipData.transform.worldToShip.transformDirection(newRelativeVelocity)
+                            entityDraggingInformation.relativeVelocityOnShip = newRelativeVelocity
+                        }
                         val entityReferencePos: Vector3dc = if (preTick) {
                             Vector3d(entity.x, entity.y, entity.z)
                         } else {
@@ -104,7 +114,7 @@ object EntityDragger {
                         // endregion
                     }
                 } else {
-                    dragTheEntity = true
+                    dragTheEntity = entityDraggingInformation.ticksSinceStoodOnShip < EntityDraggingInformation.TICKS_TO_DRAG_ENTITIES
                     addedMovement = entityDraggingInformation.addedMovementLastTick
                         .mul(ADDED_MOVEMENT_DECAY, Vector3d())
                     addedYRot = entityDraggingInformation.addedYawRotLastTick * ADDED_MOVEMENT_DECAY
@@ -146,6 +156,9 @@ object EntityDragger {
 
                     entityDraggingInformation.addedYawRotLastTick = addedYRot
                 }
+                entityDraggingInformation.previousRelativeVelocityOnShip = entityDraggingInformation.relativeVelocityOnShip
+            } else {
+                entityDraggingInformation.previousRelativeVelocityOnShip = null
             }
             entityDraggingInformation.ticksSinceStoodOnShip++
             entityDraggingInformation.mountedToEntity = entity.vehicle != null

@@ -82,8 +82,8 @@ object EntityShipCollisionUtils {
         // Add [max(stepHeight - inflation, 0.0)] to search for polygons we might collide with while stepping
         val collidingShipPolygons =
             getShipPolygonsCollidingWithEntity(
-                entity, Vec3(movement.x(), movement.y() + max(stepHeight - inflation, 0.0), movement.z()),
-                entityBoundingBox.inflate(inflation), world
+                entity, Vec3(movement.x(), movement.y() + stepHeight / 2 , movement.z()),
+                entityBoundingBox.inflate(inflation, stepHeight / 2 + inflation, inflation), world
             )
 
         if (collidingShipPolygons.isEmpty()) {
