@@ -40,6 +40,9 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     // region collision
 
     @Shadow
+    public int tickCount;
+
+    @Shadow
     public abstract void setPos(Vec3 arg);
 
     @Shadow
@@ -50,9 +53,6 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
     @Shadow
     public abstract EntityType<?> getType();
-
-    @Shadow
-    protected boolean firstTick;
 
     @Shadow
     public abstract Iterable<Entity> getIndirectPassengers();
@@ -257,7 +257,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     private void postBaseTick(final CallbackInfo ci) {
         final EntityDraggingInformation entityDraggingInformation = getDraggingInformation();
 
-        if (level != null && level.isClientSide && !firstTick) {
+        if (level != null && level.isClientSide && tickCount > 1) { //baseTick sets the firstTick false, use tickCount instead.
             final Ship ship = VSGameUtilsKt.getShipObjectManagingPos(level, getOnPos());
             if (ship != null) {
                 entityDraggingInformation.setLastShipStoodOn(ship.getId());

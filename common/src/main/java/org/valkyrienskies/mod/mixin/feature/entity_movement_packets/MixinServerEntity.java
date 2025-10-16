@@ -61,8 +61,7 @@ public class MixinServerEntity {
                         if (dragInfo.getServerRelativePlayerPosition() != null) {
                             position = new Vector3d(dragInfo.getServerRelativePlayerPosition());
                         }
-                        Vector3d motion = ship.getTransform().transformDirectionNoScalingFromWorldToShip(new Vector3d(entity.getDeltaMovement().x(), entity.getDeltaMovement().y(), entity.getDeltaMovement().z()), new Vector3d());
-
+                        Vector3d motion = ship.getTransform().getShipToWorld().transformDirection(new Vector3d(entity.getDeltaMovement().x(), entity.getDeltaMovement().y(), entity.getDeltaMovement().z()), new Vector3d());
                         double yaw;
                         if (!(t instanceof ClientboundRotateHeadPacket)) {
                             yaw = EntityLerper.INSTANCE.yawToShip(ship, entity.getYRot());
