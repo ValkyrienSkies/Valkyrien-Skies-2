@@ -11,6 +11,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.TraceableEntity;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
@@ -33,6 +34,7 @@ import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.api.ships.LoadedShip;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.entity.ShipMountedToData;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.EntityDragger;
@@ -46,6 +48,44 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
     @Unique
     private final EntityDraggingInformation draggingInformation = new EntityDraggingInformation();
+
+    @Shadow
+    protected boolean firstTick;
+
+    @Shadow
+    public abstract void addDeltaMovement(Vec3 vec3);
+
+    @Inject(
+        method = "tick",
+        at = @At("HEAD")
+    )
+    private void addOwnerShipSpeed(CallbackInfo ci) {
+        final Entity owner;
+        if((Object)this instanceof TraceableEntity te) owner = te.getOwner();
+        else owner = null;
+        if(owner == null || !firstTick) return;
+        Ship ship = VSGameUtilsKt.getShipMountedTo(owner);
+        EntityDraggingInformation info = ((IEntityDraggingInformationProvider) owner).getDraggingInformation();
+        if (info.isEntityBeingDraggedByAShip()) {
+            ship = ValkyrienSkiesMod.getApi().getShipWorld(level).getLoadedShips()
+                .getById(info.getLastShipStoodOn());
+        }
+        if (ship != null && !level.isClientSide()) {
+            Vector3d ownerRelPos;
+            if (VSGameUtilsKt.isBlockInShipyard(owner.level(), owner.position())) {
+                ownerRelPos = ship.getShipToWorld()
+                    .transformPosition(owner.getX(), owner.getY(), owner.getZ(), new Vector3d());
+            } else {
+                ownerRelPos = VectorConversionsMCKt.toJOML(owner.position());
+            }
+            ownerRelPos.sub(ship.getTransform().getPositionInWorld());
+            Vector3d shipSpeed = new Vector3d(ship.getVelocity())
+                .add(ship.getAngularVelocity().cross(ownerRelPos, new Vector3d()))
+                .mul(0.05);
+            addDeltaMovement(VectorConversionsMCKt.toMinecraft(shipSpeed));
+            hasImpulse = true; //This should force the sync packet.
+        }
+    }
 
     @Redirect(
         method = "pick",
@@ -266,6 +306,15 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
     @Shadow
     public abstract boolean shouldRenderAtSqrDistance(double d);
+
+    @Shadow
+    private Vec3 position;
+
+    @Shadow
+    public boolean hasImpulse;
+
+    @Shadow
+    public abstract void setPos(Vec3 vec3);
 
     @Override
     @NotNull
