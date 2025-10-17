@@ -14,9 +14,11 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.At.Shift;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientCreator;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
+import org.valkyrienskies.mod.common.entity.handling.WorldEntityHandler;
 
 @Mixin(ClientPacketListener.class)
 public class MixinClientPacketListener {
@@ -59,6 +61,25 @@ public class MixinClientPacketListener {
             entity.setUUID(packet.getUUID());
             this.level.putNonPlayerEntity(i, entity);
         }
+    }
+
+    /**
+     * If the player picks up an item/arrow that is on shipyard, animation picking it up has problem lerping the position.
+     * To prevent this, the entity is repositioned from shipyard to world again.
+     * @author Bunting_chj
+     */
+
+    @WrapOperation(
+        method = "handleTakeItemEntity",
+        at = @At(value = "INVOKE",
+            target = "Lnet/minecraft/client/multiplayer/ClientLevel;getEntity(I)Lnet/minecraft/world/entity/Entity;")
+    )
+    private Entity setPositionBackToWorld(ClientLevel level, int i, Operation<Entity> getEntity) {
+        Entity entity = getEntity.call(level, i);
+        if(VSGameUtilsKt.getShipManaging(entity) instanceof ClientShip ship) {
+            WorldEntityHandler.INSTANCE.moveEntityFromShipyardToWorld(entity, ship);
+        }
+        return entity;
     }
 
     /**
