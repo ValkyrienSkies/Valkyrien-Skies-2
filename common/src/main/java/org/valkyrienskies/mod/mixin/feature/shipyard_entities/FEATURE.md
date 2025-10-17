@@ -14,6 +14,7 @@ in the ship.
   the vehicle position as the entities' position.
     * This fixes players falling through the world when loading if they were
     mounted to a ship entity when the game saved.
+* `MixinProjectile` Moves projectile to and from shipyard to keep them stick on where they landed.
 * `MixinEntityRenderDispatcher#render` Handles rendering of entities.
     * This is relevant for rendering entities on ships.
 * `MixinEntityRenderDispatcher#shouldRender` Handles rendering of entities.

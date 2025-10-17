@@ -4,6 +4,8 @@ import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.entity.EntityRenderer
 import net.minecraft.world.entity.Entity
+import net.minecraft.world.entity.projectile.AbstractHurtingProjectile
+import net.minecraft.world.entity.projectile.ProjectileUtil
 import org.joml.Quaternionf
 import org.joml.Vector3d
 import org.valkyrienskies.core.api.ships.ClientShip
@@ -55,5 +57,31 @@ abstract class AbstractShipyardEntityHandler : VSEntityHandler {
         // TODO: somewhere else position is already applied in the matrix stack
         // EW: i think it was in entity dragging logic
         matrixStack.mulPose(Quaternionf(ship.renderTransform.shipToWorldRotation))
+    }
+
+    fun moveEntityFromWorldToShipyard(entity: Entity, ship: Ship) =
+        moveEntityFromWorldToShipyard(entity, ship, entity.x, entity.y, entity.z)
+
+    fun moveEntityFromWorldToShipyard(entity: Entity, ship: Ship, entityX: Double, entityY: Double, entityZ: Double) {
+        val shipyardPos = ship.worldToShip.transformPosition(entity.position().toJOML())
+        val relativePos: Vector3d = entity.position().toJOML().sub(ship.transform.positionInWorld)
+        val shipPosVelocity = Vector3d(ship.velocity)
+            .add(Vector3d(ship.angularVelocity).cross(relativePos))
+            .mul(0.05)
+        val relativeDeltaOnShip: Vector3d = entity.deltaMovement.toJOML().sub(shipPosVelocity)
+        ship.worldToShip.transformDirection(relativeDeltaOnShip)
+        entity.setPos(shipyardPos.x, shipyardPos.y, shipyardPos.z)
+        entity.deltaMovement = relativeDeltaOnShip.toMinecraft()
+        entity.xo = shipyardPos.x - relativeDeltaOnShip.x
+        entity.yo = shipyardPos.y - relativeDeltaOnShip.y
+        entity.zo = shipyardPos.z - relativeDeltaOnShip.z
+        if (entity is AbstractHurtingProjectile) {
+            val power = Vector3d(entity.xPower, entity.yPower, entity.zPower)
+            ship.transform.worldToShip.transformDirection(power)
+            entity.xPower = power.x
+            entity.yPower = power.y
+            entity.zPower = power.z
+            ProjectileUtil.rotateTowardsMovement(entity, 1.0f)
+        }
     }
 }

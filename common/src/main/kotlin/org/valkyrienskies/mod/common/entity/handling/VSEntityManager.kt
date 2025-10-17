@@ -1,11 +1,11 @@
 package org.valkyrienskies.mod.common.entity.handling
 
 import com.google.common.cache.CacheBuilder
-import net.minecraft.core.Registry
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
+import net.minecraft.world.entity.projectile.Projectile
 import org.valkyrienskies.core.impl.networking.simple.sendToClient
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.networking.PacketSyncVSEntityTypes
@@ -75,7 +75,7 @@ object VSEntityManager {
             val className = entity::class.java.simpleName
             val registryName = BuiltInRegistries.ENTITY_TYPE.getKey(entity.type)
 
-            if (className.contains("SeatEntity", true) || registryName.path.contains(seatRegistryName)) {
+            if (entity is Projectile || className.contains("SeatEntity", true) || registryName.path.contains(seatRegistryName)) {
                 return DefaultShipyardEntityHandler
             }
         } catch (ex: Exception) {
