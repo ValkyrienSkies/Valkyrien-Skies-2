@@ -107,6 +107,7 @@
     "mod_compat.create_big_cannons.MixinSSFCMVP",
     "mod_compat.ftb_chunks.MixinClaimedChunkManagerImpl",
     "mod_compat.reachentityattributes.MixinReachEntityAttributes",
+    "mod_compat.sodium.MixinRenderSection",
     "mod_compat.tis3d.MixinInfraredPacketEntity",
     "server.MixinMinecraftServer",
     "server.MixinPlayerList",
