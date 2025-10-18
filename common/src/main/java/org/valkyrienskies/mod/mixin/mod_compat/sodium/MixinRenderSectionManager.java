@@ -77,7 +77,7 @@ public abstract class MixinRenderSectionManager implements RenderSectionManagerD
 
             // merge rebuild lists
             for (final var entry : collector.getRebuildLists().entrySet()) {
-                this.rebuildLists.get(entry.getKey()).addAll(entry.getValue());
+                entry.getValue().forEach(section -> this.rebuildLists.get(entry.getKey()).addFirst(section));
             }
         }
     }
