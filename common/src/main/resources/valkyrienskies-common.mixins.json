@@ -110,6 +110,7 @@
     "mod_compat.flywheel.MixinVisualizerRegistry",
     "mod_compat.ftb_chunks.MixinClaimedChunkManagerImpl",
     "mod_compat.reachentityattributes.MixinReachEntityAttributes",
+    "mod_compat.sodium.MixinRenderSection",
     "mod_compat.tis3d.MixinInfraredPacketEntity",
     "server.MixinMinecraftServer",
     "server.MixinPlayerList",
