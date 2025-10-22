@@ -29,6 +29,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 
 @Mixin(ContraptionCollider.class)
 public abstract class MixinContraptionCollider {
@@ -82,6 +83,7 @@ public abstract class MixinContraptionCollider {
                     } else {
                         motion = toMinecraft(ship.getShipToWorld().transformDirection(toJOML(motion)));
                     }
+                    ((IEntityDraggingInformationProvider)instance).getDraggingInformation().setLastShipStoodOn(ship.getId());
                     instance.setDeltaMovement(motion);
                     motion = null;
                 }
