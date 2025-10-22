@@ -12,6 +12,8 @@ import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toMinecraft
+import kotlin.math.atan2
+import kotlin.math.sqrt
 
 abstract class AbstractShipyardEntityHandler : VSEntityHandler {
     override fun freshEntityInShipyard(entity: Entity, ship: Ship) {
@@ -63,7 +65,7 @@ abstract class AbstractShipyardEntityHandler : VSEntityHandler {
         moveEntityFromWorldToShipyard(entity, ship, entity.x, entity.y, entity.z)
 
     fun moveEntityFromWorldToShipyard(entity: Entity, ship: Ship, entityX: Double, entityY: Double, entityZ: Double) {
-        val shipyardPos = ship.worldToShip.transformPosition(entity.position().toJOML())
+        val shipyardPos = ship.worldToShip.transformPosition(entityX, entityY, entityZ, Vector3d())
         val relativePos: Vector3d = entity.position().toJOML().sub(ship.transform.positionInWorld)
         val shipPosVelocity = Vector3d(ship.velocity)
             .add(Vector3d(ship.angularVelocity).cross(relativePos))
@@ -72,15 +74,26 @@ abstract class AbstractShipyardEntityHandler : VSEntityHandler {
         ship.worldToShip.transformDirection(relativeDeltaOnShip)
         entity.setPos(shipyardPos.x, shipyardPos.y, shipyardPos.z)
         entity.deltaMovement = relativeDeltaOnShip.toMinecraft()
-        entity.xo = shipyardPos.x - relativeDeltaOnShip.x
-        entity.yo = shipyardPos.y - relativeDeltaOnShip.y
-        entity.zo = shipyardPos.z - relativeDeltaOnShip.z
+
+        entity.xo = shipyardPos.x
+        entity.yo = shipyardPos.y
+        entity.zo = shipyardPos.z
+
+        val direction = ship.shipToWorld.transformDirection(entity.lookAngle.toJOML()) // I thought this should be world to ship, but it was ship to world. I have no idea why. -Bunting_chj
+        val yaw = atan2(-direction.x, direction.z)
+        val pitch = -atan2(direction.y, sqrt((direction.x * direction.x) + (direction.z * direction.z)))
+        entity.yRot = (yaw * (180 / Math.PI)).toFloat()
+        entity.xRot = (pitch * (180 / Math.PI)).toFloat()
+        entity.yRotO = entity.yRot
+        entity.xRotO = entity.xRot
+
         if (entity is AbstractHurtingProjectile) {
             val power = Vector3d(entity.xPower, entity.yPower, entity.zPower)
-            ship.transform.worldToShip.transformDirection(power)
+            ship.transform.shipToWorld.transformDirection(power)
             entity.xPower = power.x
             entity.yPower = power.y
             entity.zPower = power.z
+
             ProjectileUtil.rotateTowardsMovement(entity, 1.0f)
         }
     }
