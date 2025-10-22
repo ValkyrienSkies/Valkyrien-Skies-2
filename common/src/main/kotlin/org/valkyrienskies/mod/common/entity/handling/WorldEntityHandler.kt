@@ -73,8 +73,8 @@ object WorldEntityHandler : VSEntityHandler {
             .add(shipVelocity)
             .toMinecraft()
 
-        val direction = ship.transform.shipToWorldRotation.transform(entity.lookAngle.toJOML())
-        val yaw = -atan2(direction.x, direction.z)
+        val direction = ship.transform.worldToShip.transformDirection(entity.lookAngle.toJOML()) // I thought this should be ship to world, but it was world to ship. I have no idea why. -Bunting_chj
+        val yaw = atan2(-direction.x, direction.z)
         val pitch = -atan2(direction.y, sqrt((direction.x * direction.x) + (direction.z * direction.z)))
         entity.yRot = (yaw * (180 / Math.PI)).toFloat()
         entity.xRot = (pitch * (180 / Math.PI)).toFloat()
@@ -84,7 +84,7 @@ object WorldEntityHandler : VSEntityHandler {
         if (entity is AbstractHurtingProjectile) {
             val power = Vector3d(entity.xPower, entity.yPower, entity.zPower)
 
-            ship.transform.shipToWorldRotation.transform(power)
+            ship.transform.worldToShip.transformDirection(power)
 
             entity.xPower = power.x
             entity.yPower = power.y
