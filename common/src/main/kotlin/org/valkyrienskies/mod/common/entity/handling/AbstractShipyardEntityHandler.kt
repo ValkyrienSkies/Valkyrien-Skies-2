@@ -63,10 +63,10 @@ abstract class AbstractShipyardEntityHandler : VSEntityHandler {
         moveEntityFromWorldToShipyard(entity, ship, entity.x, entity.y, entity.z)
 
     fun moveEntityFromWorldToShipyard(entity: Entity, ship: Ship, entityX: Double, entityY: Double, entityZ: Double) {
-        val shipyardPos = ship.worldToShip.transformPosition(entity.position().toJOML())
+        val shipyardPos = ship.worldToShip.transformPosition(entityX, entityY, entityZ, Vector3d())
         val relativePos: Vector3d = entity.position().toJOML().sub(ship.transform.positionInWorld)
         val shipPosVelocity = Vector3d(ship.velocity)
-            .add(Vector3d(ship.angularVelocity).cross(relativePos))
+            .add(Vector3d(ship.omega).cross(relativePos))
             .mul(0.05)
         val relativeDeltaOnShip: Vector3d = entity.deltaMovement.toJOML().sub(shipPosVelocity)
         ship.worldToShip.transformDirection(relativeDeltaOnShip)
