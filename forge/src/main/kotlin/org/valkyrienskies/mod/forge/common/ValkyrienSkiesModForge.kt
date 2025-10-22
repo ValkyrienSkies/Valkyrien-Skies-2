@@ -98,7 +98,9 @@ class ValkyrienSkiesModForge {
         if (isClient) {
             modBus.addListener(::registerKeyBindings)
             modBus.addListener(::entityRenderers)
-            forgeBus.addListener(::registerFlywheelReload)
+            if (ModList.get().isLoaded("flywheel")) {
+                forgeBus.addListener(::registerFlywheelReload)
+            }
         }
         modBus.addListener(::loadComplete)
 

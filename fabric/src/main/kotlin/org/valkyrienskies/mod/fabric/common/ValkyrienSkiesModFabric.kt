@@ -214,7 +214,7 @@ class ValkyrienSkiesModFabric : ModInitializer {
         VSKeyBindings.clientSetup {
             KeyBindingHelper.registerKeyBinding(it)
         }
-        ReloadLevelRendererCallback.EVENT.register(
+        if(FabricLoader.getInstance().isModLoaded("flywheel")) ReloadLevelRendererCallback.EVENT.register(
             ReloadLevelRendererCallback { event: ClientLevel? -> ShipEmbeddingManager.INSTANCE.unloadAllShip() })
     }
 
