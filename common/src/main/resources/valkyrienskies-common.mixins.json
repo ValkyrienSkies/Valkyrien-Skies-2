@@ -85,6 +85,7 @@
     "mod_compat.create.blockentity.MixinCrushingWheelControllerTileEntity",
     "mod_compat.create.blockentity.MixinEjectorTileEntity",
     "mod_compat.create.blockentity.MixinEncasedFanTileEntity",
+    "mod_compat.create.blockentity.MixinSawBlockEntity",
     "mod_compat.create.blockentity.MixinSchematicannonBlockEntity",
     "mod_compat.create.client.MixinChainConveyorInteractionHandler",
     "mod_compat.create.client.MixinChainConveyorRidingHandler",
