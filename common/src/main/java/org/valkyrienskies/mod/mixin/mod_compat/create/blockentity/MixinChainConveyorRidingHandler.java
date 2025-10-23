@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.mod_compat.create.client;
+package org.valkyrienskies.mod.mixin.mod_compat.create.blockentity;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
