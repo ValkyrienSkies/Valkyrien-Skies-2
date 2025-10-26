@@ -25,7 +25,7 @@ public abstract class MixinSuperGlueSelectionHandler {
     @Unique
     private Vec3 newTarget;
 
-    @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/player/LocalPlayer;getEyePosition()Lnet/minecraft/world/phys/Vec3;"), remap = false)
+    @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/player/LocalPlayer;getEyePosition()Lnet/minecraft/world/phys/Vec3;"))
     private Vec3 redirectGetTraceOrigin(LocalPlayer playerIn) {
         double range = playerIn.getAttribute(ForgeMod.ENTITY_REACH.get()).getValue() + 1;
         Vec3 origin = playerIn.getEyePosition();

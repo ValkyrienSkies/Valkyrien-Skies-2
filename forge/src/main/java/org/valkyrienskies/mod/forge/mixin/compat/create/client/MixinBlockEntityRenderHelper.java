@@ -12,7 +12,7 @@ import org.valkyrienskies.mod.common.VSClientGameUtils;
 @Mixin(value = BlockEntityRenderHelper.class, remap = false)
 public abstract class MixinBlockEntityRenderHelper {
     @Redirect(
-        method = "renderBlockEntities(Lnet/minecraft/world/level/Level;Lcom/simibubi/create/foundation/virtualWorld/VirtualRenderWorld;Ljava/lang/Iterable;Lcom/mojang/blaze3d/vertex/PoseStack;Lorg/joml/Matrix4f;Lnet/minecraft/client/renderer/MultiBufferSource;F)V",
+        method = "renderBlockEntities",
         at = @At(value = "INVOKE", target = "Ldev/engine_room/flywheel/lib/transform/PoseTransformStack;translate(Lnet/minecraft/core/Vec3i;)Ldev/engine_room/flywheel/lib/transform/Translate;")
     )
     private static Translate redirectTranslate(PoseTransformStack instance, Vec3i vec3i){
