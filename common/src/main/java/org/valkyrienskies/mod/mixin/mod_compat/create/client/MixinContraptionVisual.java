@@ -9,10 +9,10 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
-@Mixin(ContraptionVisual.class)
+@Mixin(value = ContraptionVisual.class, remap = false)
 public class MixinContraptionVisual {
     @WrapOperation(
-        method = {"collectLightSections", "hasMovedSections", "hasMovedBlocks"},
+        method = "*",
         at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/contraptions/AbstractContraptionEntity;getBoundingBox()Lnet/minecraft/world/phys/AABB;")
     )
     private AABB transformLightboxToWorld(AbstractContraptionEntity instance, Operation<AABB> original) {

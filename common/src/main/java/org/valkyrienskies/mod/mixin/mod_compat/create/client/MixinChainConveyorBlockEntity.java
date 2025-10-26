@@ -24,7 +24,7 @@ import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
-@Mixin(value = ChainConveyorBlockEntity.class, remap = false)
+@Mixin(value = ChainConveyorBlockEntity.class)
 public abstract class MixinChainConveyorBlockEntity extends KineticBlockEntity implements TransformableBlockEntity {
     @Unique
     private ClientShip vs$ship;
@@ -51,7 +51,8 @@ public abstract class MixinChainConveyorBlockEntity extends KineticBlockEntity i
 
     @Inject(
         method = "tickBoxVisuals()V",
-        at = @At("HEAD")
+        at = @At("HEAD"),
+        remap = false
     )
     private void getShipVelocity(CallbackInfo ci) {
         //This part will check if the Chain Conveyor is on a ship, and update current velocity and omega(angular velocity)
@@ -96,7 +97,8 @@ public abstract class MixinChainConveyorBlockEntity extends KineticBlockEntity i
 
     @Inject(
         method = "tickBoxVisuals()V",
-        at = @At("TAIL")
+        at = @At("TAIL"),
+        remap = false
     )
     private void updatePrevVelocity(CallbackInfo ci){
         //After all the boxes have their acceleration applied, update previous velocity, omega and transform.
