@@ -172,7 +172,6 @@
     "mod_compat.create.client.MixinAABBOutline",
     "mod_compat.create.client.MixinBlockClusterOutline",
     "mod_compat.create.client.MixinCarriageContraptionInstance",
-    "mod_compat.create.client.MixinChainConveyorBlockEntity",
     "mod_compat.create.client.MixinChainConveyorRenderer",
     "mod_compat.create.client.MixinChainConveyorVisual",
     "mod_compat.create.client.MixinCogwheelBlockItem",

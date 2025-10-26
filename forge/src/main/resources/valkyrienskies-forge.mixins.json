@@ -22,6 +22,7 @@
   "client": [
     "client.render.MixinLevelRenderer",
     "compat.create.client.MixinBlockEntityRenderHelper",
+    "compat.create.client.MixinChainConveyorBlockEntity",
     "compat.create.client.MixinContraptionHandlerClient",
     "compat.create.client.MixinSuperGlueSelectionHandler",
     "compat.sodium.MixinRenderSectionManager"

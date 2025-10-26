@@ -12,3 +12,4 @@ Hose Pulley - ~~Let's make them drain the world from the ship.~~ I think this wa
 
 Package Entities - ~~have problem on belts either accepting or ejecting them.~~ Solved!
 
+Chain Conveyor BlockEntity(in fabric and forge) - Works fine but the dangling from acceleration of the ship is a bit jittery on sudden speed change.

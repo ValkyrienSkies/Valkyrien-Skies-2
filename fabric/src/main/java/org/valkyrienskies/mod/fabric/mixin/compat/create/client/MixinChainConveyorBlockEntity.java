@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixin.mod_compat.create.client;
+package org.valkyrienskies.mod.fabric.mixin.compat.create.client;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
@@ -7,7 +7,6 @@ import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
 import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorBlockEntity;
 import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorPackage.ChainConveyorPackagePhysicsData;
 import net.minecraft.core.BlockPos;
-import net.minecraft.util.Mth;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
@@ -59,7 +58,7 @@ public abstract class MixinChainConveyorBlockEntity extends KineticBlockEntity i
         vs$ship = VSClientGameUtils.getClientShip(worldPosition.getX(), worldPosition.getY(), worldPosition.getZ());
         if (vs$ship != null) {
             vs$shipCurrentVelocity = vs$ship.getVelocity();
-            vs$shipCurrentOmega = new Vector3d(vs$ship.getOmega()).mul(Mth.DEG_TO_RAD);
+            vs$shipCurrentOmega = new Vector3d(vs$ship.getOmega());
         }
         else {
             vs$shipCurrentVelocity = null;
@@ -70,32 +69,31 @@ public abstract class MixinChainConveyorBlockEntity extends KineticBlockEntity i
     /*
         When the ship velocity/angular velocity changes, the packages dangling in the ship's conveyors will shake.
         This is pure visual effect and doesn't otherwise affect the gameplay.
-        TODO: This has conflict over fabric and forge.
      */
-//    @WrapOperation(
-//        method = "tickBoxVisuals(Lcom/simibubi/create/content/kinetics/chainConveyor/ChainConveyorPackage;)V",
-//        at = @At(value = "FIELD", target = "Lcom/simibubi/create/content/kinetics/chainConveyor/ChainConveyorPackage$ChainConveyorPackagePhysicsData;motion:Lnet/minecraft/world/phys/Vec3;", opcode = Opcodes.PUTFIELD),
-//        remap = false
-//    )
-//    private void adjustToShipAcceleration(final ChainConveyorPackagePhysicsData instance, final Vec3 value,
-//        final Operation<Void> original){
-//        if (vs$ship != null && vs$shipPrevVelocity != null && vs$shipCurrentVelocity != null) {
-//            //Calculate velocity from linear velocity and angular velocity of the ship.
-//            final Vector3dc radius = vs$ship.getShipToWorld().transformPosition(VectorConversionsMCKt.toJOML(instance.pos)).sub(vs$ship.getTransform().getPositionInWorld());
-//            final Vector3dc prevRadius = vs$shipPrevTransform.getShipToWorld().transformPosition(VectorConversionsMCKt.toJOML(instance.prevPos)).sub(vs$shipPrevTransform.getPositionInWorld());
-//
-//            //Calculate acceleration by subtracting previous point velocity from current point velocity.
-//            final Vector3d acceleration = new Vector3d(vs$shipCurrentVelocity).add(vs$shipCurrentOmega.cross(radius, new Vector3d()));
-//            acceleration.sub(new Vector3d(vs$shipPrevVelocity).add(vs$shipPrevOmega.cross(prevRadius, new Vector3d())));
-//            vs$ship.getWorldToShip().transformDirection(acceleration);
-//
-//            //Too big acceleration(e.g teleport command) might be better to be clamped, to prevent jitter.
-//            if (acceleration.length() > 10) acceleration.normalize().mul(10);
-//
-//            //This was the ship acceleration. By the Galilean relativity we should invert it for boxes' local acceleration.
-//            original.call(instance, value.add(VectorConversionsMCKt.toMinecraft(acceleration).scale(-0.2)));
-//        } else original.call(instance, value);
-//    }
+    @WrapOperation(
+        method = "tickBoxVisuals(Lcom/simibubi/create/content/kinetics/chainConveyor/ChainConveyorPackage;)V",
+        at = @At(value = "FIELD", target = "Lcom/simibubi/create/content/kinetics/chainConveyor/ChainConveyorPackage$ChainConveyorPackagePhysicsData;motion:Lnet/minecraft/world/phys/Vec3;", opcode = Opcodes.PUTFIELD, remap = true),
+        remap = false
+    )
+    private void adjustToShipAcceleration(final ChainConveyorPackagePhysicsData instance, final Vec3 value,
+        final Operation<Void> original){
+        if (vs$ship != null && vs$shipPrevVelocity != null && vs$shipCurrentVelocity != null) {
+            //Calculate velocity from linear velocity and angular velocity of the ship.
+            final Vector3dc radius = vs$ship.getShipToWorld().transformPosition(VectorConversionsMCKt.toJOML(instance.pos)).sub(vs$ship.getTransform().getPositionInWorld());
+            final Vector3dc prevRadius = vs$shipPrevTransform.getShipToWorld().transformPosition(VectorConversionsMCKt.toJOML(instance.prevPos)).sub(vs$shipPrevTransform.getPositionInWorld());
+
+            //Calculate acceleration by subtracting previous point velocity from current point velocity.
+            final Vector3d acceleration = new Vector3d(vs$shipCurrentVelocity).add(vs$shipCurrentOmega.cross(radius, new Vector3d()));
+            acceleration.sub(new Vector3d(vs$shipPrevVelocity).add(vs$shipPrevOmega.cross(prevRadius, new Vector3d())));
+            vs$ship.getWorldToShip().transformDirection(acceleration);
+
+            //Too big acceleration(e.g teleport command) might be better to be clamped, to prevent jitter.
+            if (acceleration.length() > 3) acceleration.normalize().mul(3);
+
+            //This was the ship acceleration. By the Galilean relativity we should invert it for boxes' local acceleration.
+            original.call(instance, value.add(VectorConversionsMCKt.toMinecraft(acceleration).scale(-0.2)));
+        } else original.call(instance, value);
+    }
 
     @Inject(
         method = "tickBoxVisuals()V",
