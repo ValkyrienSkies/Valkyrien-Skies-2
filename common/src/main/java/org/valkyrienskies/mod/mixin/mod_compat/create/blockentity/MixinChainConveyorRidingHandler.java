@@ -24,7 +24,7 @@ import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
-@Mixin(value = ChainConveyorRidingHandler.class, remap = false)
+@Mixin(value = ChainConveyorRidingHandler.class)
 public abstract class MixinChainConveyorRidingHandler {
     @Shadow
     public static BlockPos ridingChainConveyor;
@@ -46,7 +46,8 @@ public abstract class MixinChainConveyorRidingHandler {
 
     @Inject(
         method = "stopRiding",
-        at = @At("HEAD")
+        at = @At("HEAD"),
+        remap = false
     )
     private static void preStopRiding(CallbackInfo ci)
     {
@@ -55,7 +56,8 @@ public abstract class MixinChainConveyorRidingHandler {
 
     @Inject(
         method = "clientTick",
-        at = @At("HEAD")
+        at = @At("HEAD"),
+        remap = false
     )
     private static void preTick(CallbackInfo ci){
         if (ridingChainConveyor == null) {
