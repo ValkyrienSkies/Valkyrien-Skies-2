@@ -4,7 +4,6 @@ import com.jamieswhiteshirt.reachentityattributes.ReachEntityAttributes;
 import com.simibubi.create.content.contraptions.glue.SuperGlueSelectionHandler;
 import com.simibubi.create.foundation.utility.RaycastHelper;
 import java.util.Iterator;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
@@ -28,7 +27,6 @@ public abstract class MixinSuperGlueSelectionHandler {
 
     @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/player/LocalPlayer;getEyePosition()Lnet/minecraft/world/phys/Vec3;"))
     private Vec3 redirectGetTraceOrigin(final LocalPlayer playerIn) {
-        Minecraft mc = Minecraft.getInstance();
         double range = ReachEntityAttributes.getReachDistance(playerIn, playerIn.isCreative() ? 5.0 : 4.5); // PlatformUtils.getReachDistance(playerIn) + 1;
         Vec3 origin = playerIn.getEyePosition();
         Vec3 target = RaycastHelper.getTraceTarget(playerIn, range, origin);
