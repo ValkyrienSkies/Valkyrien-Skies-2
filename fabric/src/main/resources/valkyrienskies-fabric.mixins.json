@@ -7,6 +7,7 @@
     "compat.create.MixinBlocks",
     "compat.create.MixinControlledContraptionEntity",
     "compat.sodium.MixinRenderSectionManager",
+    "entity.MixinContainerEntity",
     "feature.explosions.ClipContextMixin",
     "server.network.MixinServerGamePacketListenerImpl",
     "server.network.MixinServerPlayerGameMode",
