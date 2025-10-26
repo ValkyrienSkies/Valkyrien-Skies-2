@@ -30,7 +30,7 @@ side = "BOTH"
 [[dependencies.valkyrienskies]]
 modId = "create"
 mandatory = false
-versionRange = "[6.0.0, )"
+versionRange = "[6.0.7, )"
 ordering = "NONE"
 side = "BOTH"
 
