@@ -3,15 +3,16 @@ package org.valkyrienskies.mod.forge.mixin.compat.create;
 import com.simibubi.create.content.kinetics.millstone.MillstoneBlock;
 import com.simibubi.create.content.logistics.chute.AbstractChuteBlock;
 import com.simibubi.create.content.processing.basin.BasinBlock;
-import java.util.Iterator;
+import java.util.List;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
-import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
@@ -20,7 +21,11 @@ import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
     BasinBlock.class,
     AbstractChuteBlock.class
 })
-public class MixinBlocks {
+public class MixinBlocks extends Block {
+
+    public MixinBlocks(Properties arg) {
+        super(arg);
+    }
 
     @Redirect(
         method = "updateEntityAfterFallOn",
@@ -30,16 +35,16 @@ public class MixinBlocks {
         ),
         require = 0, remap = false
     )
-    protected BlockPos redirectBlockPosition(final Entity entity) {
-        final Iterator<Ship> ships =
-            VSGameUtilsKt.getShipsIntersecting(entity.level(), entity.getBoundingBox()).iterator();
-        if (ships.hasNext()) {
-            final Vector3d pos = ships.next().getWorldToShip()
-                .transformPosition(VectorConversionsMCKt.toJOML(entity.position()));
-            return BlockPos.containing(Math.floor(pos.x), Math.floor(pos.y), Math.floor(pos.z));
-        } else {
-            return entity.blockPosition();
+    protected BlockPos redirectBlockPosition(final Entity entity, final BlockGetter worldIn) {
+        List<Vector3d> possiblePositions = VSGameUtilsKt.transformToNearbyShipsAndWorld(entity.level(), entity.getX(), entity.getY(), entity.getZ(), entity.getBoundingBox().getSize());
+        for (Vector3d tempPos : possiblePositions) {
+            BlockPos tempBlockPos = BlockPos.containing(tempPos.x, tempPos.y, tempPos.z);
+            if(worldIn.getBlockState(tempBlockPos).is(((Block)this).getClass().cast(this))
+                || worldIn.getBlockState(tempBlockPos.below()).is(((Block)this).getClass().cast(this))) {
+                return tempBlockPos;
+            }
         }
+        return entity.blockPosition();
     }
 
     @Redirect(
@@ -50,15 +55,16 @@ public class MixinBlocks {
         ),
         require = 0, remap = false
     )
-    Vec3 redirectPosition(final Entity entity) {
-        final Iterator<Ship> ships =
-            VSGameUtilsKt.getShipsIntersecting(entity.level(), entity.getBoundingBox()).iterator();
-        if (ships.hasNext()) {
-            return VectorConversionsMCKt.toMinecraft(ships.next().getWorldToShip()
-                .transformPosition(VectorConversionsMCKt.toJOML(entity.position())));
-        } else {
-            return entity.position();
+    Vec3 redirectPosition(final Entity entity, final BlockGetter worldIn) {
+        List<Vector3d> possiblePositions = VSGameUtilsKt.transformToNearbyShipsAndWorld(entity.level(), entity.getX(), entity.getY(), entity.getZ(), entity.getBoundingBox().getSize());
+        for (Vector3d tempPos : possiblePositions) {
+            BlockPos tempBlockPos = BlockPos.containing(tempPos.x, tempPos.y, tempPos.z);
+            if(worldIn.getBlockState(tempBlockPos).is(((Block)this).getClass().cast(this))
+                || worldIn.getBlockState(tempBlockPos.below()).is(((Block)this).getClass().cast(this))) {
+                return VectorConversionsMCKt.toMinecraft(tempPos);
+            }
         }
+        return entity.position();
     }
 
 }
