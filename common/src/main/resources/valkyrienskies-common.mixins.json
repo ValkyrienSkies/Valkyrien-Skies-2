@@ -73,6 +73,7 @@
     "mod_compat.create.behaviour.MixinBlockBreakingMovementBehaviour",
     "mod_compat.create.behaviour.MixinFilteringBehaviour",
     "mod_compat.create.behaviour.MixinLinkBehaviour",
+    "mod_compat.create.behaviour.MixinSawMovementBehaviour",
     "mod_compat.create.behaviour.MixinScrollValueBehaviour",
     "mod_compat.create.behaviour.MixinSidedFilteringBehaviour",
     "mod_compat.create.block.MixinCrushingWheelBlock",

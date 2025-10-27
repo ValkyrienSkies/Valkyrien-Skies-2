@@ -2,10 +2,10 @@ package org.valkyrienskies.mod.mixin.mod_compat.create.blockentity;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.simibubi.create.content.kinetics.base.BlockBreakingKineticBlockEntity;
 import com.simibubi.create.content.kinetics.saw.SawBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
@@ -17,7 +17,7 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(SawBlockEntity.class)
-public abstract class MixinSawBlockEntity extends BlockEntity {
+public abstract class MixinSawBlockEntity extends BlockBreakingKineticBlockEntity {
     public MixinSawBlockEntity(BlockEntityType<?> type, BlockPos pos,
         BlockState state) {
         super(type, pos, state);
@@ -31,14 +31,14 @@ public abstract class MixinSawBlockEntity extends BlockEntity {
     private BlockPos shipWorldPosSubtract(BlockPos breakingPos, Vec3i worldPosition, Operation<BlockPos> subtract){
         final Ship shipTree = VSGameUtilsKt.getShipManagingPos(level, breakingPos);
         final Ship shipSaw = VSGameUtilsKt.getShipManagingPos(level, new BlockPos(worldPosition));
-        final Vector3d sawPos = VectorConversionsMCKt.toJOML(Vec3.atCenterOf(worldPosition));
+        final Vector3d sawWorldPos = VectorConversionsMCKt.toJOML(Vec3.atCenterOf(worldPosition));
         if (shipSaw == null && shipTree == null) return subtract.call(breakingPos, worldPosition);
         if (shipSaw != null) {
-            shipSaw.getShipToWorld().transformPosition(sawPos);
+            shipSaw.getShipToWorld().transformPosition(sawWorldPos);
         }
         if (shipTree != null) {
-            shipTree.getWorldToShip().transformPosition(sawPos);
+            shipTree.getWorldToShip().transformPosition(sawWorldPos);
         }
-        return subtract.call(breakingPos, new Vec3i((int)sawPos.x, (int)sawPos.y, (int)sawPos.z));
+        return subtract.call(breakingPos, BlockPos.containing(sawWorldPos.x, sawWorldPos.y, sawWorldPos.z));
     }
 }
