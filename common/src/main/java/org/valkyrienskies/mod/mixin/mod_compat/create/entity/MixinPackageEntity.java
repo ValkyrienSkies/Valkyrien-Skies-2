@@ -81,26 +81,17 @@ public abstract class MixinPackageEntity extends LivingEntity {
         else return original.call(entity, target);
     }
 
-    /**
-     * This injector is mostly copy-pasted from org.valkyrienskies.mod.mixin.feature.entity_collision.MixinEntity$collideWithShips
-     */
     @WrapOperation(
         method = "travel",
         at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/logistics/box/PackageEntity;collideBoundingBox(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/AABB;Lnet/minecraft/world/level/Level;Ljava/util/List;)Lnet/minecraft/world/phys/Vec3;")
     )
     private Vec3 redirectToShipCollision(final Entity entity, final Vec3 motion, final AABB aabb, final Level level, final List<VoxelShape> list,
         Operation<Vec3> collideOriginal) {
-        final Vec3 adjustedMotion = EntityShipCollisionUtils.INSTANCE.adjustEntityMovementForShipCollisions(entity, motion, aabb, level);
-        final Vec3 result = collideOriginal.call(entity, adjustedMotion, aabb, level, list);
-
-        if (result.distanceToSqr(adjustedMotion) > 1e-12) {
-            // We collided with the world? Set the dragging ship to null.
-            final EntityDraggingInformation entityDraggingInformation = ((IEntityDraggingInformationProvider)this).getDraggingInformation();
-            entityDraggingInformation.setLastShipStoodOn(null);
-            entityDraggingInformation.setAddedMovementLastTick(new Vector3d());
-            entityDraggingInformation.setAddedYawRotLastTick(0.0);
-        }
-
-        return result;
+        final EntityDraggingInformation entityDraggingInformation = ((IEntityDraggingInformationProvider)entity).getDraggingInformation();
+        final Long shipId = entityDraggingInformation.getLastShipStoodOn();
+        final Vec3 worldMotion = collideOriginal.call(entity, motion, aabb, level, list);
+        final Vec3 adjustedMotion = EntityShipCollisionUtils.INSTANCE.adjustEntityMovementForShipCollisions(entity, worldMotion, aabb, level);
+        entityDraggingInformation.setLastShipStoodOn(shipId);
+        return adjustedMotion;
     }
 }

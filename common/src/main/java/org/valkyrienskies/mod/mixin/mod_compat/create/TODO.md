@@ -10,6 +10,6 @@ Elevator Contraption - ~~Previous version had the elevator descend to abyss.~~ N
 
 Hose Pulley - ~~Let's make them drain the world from the ship.~~ I think this was PR'd by someone else.
 
-Package Entities - ~~have problem on belts either accepting or ejecting them.~~ Solved!
+Package Entities - Spins on a chute or belt like a gyro.
 
 Chain Conveyor BlockEntity(in fabric and forge) - Works fine but the dangling from acceleration of the ship is a bit jittery on sudden speed change.
