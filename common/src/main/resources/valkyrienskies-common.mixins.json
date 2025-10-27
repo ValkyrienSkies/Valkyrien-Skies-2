@@ -103,6 +103,7 @@
     "mod_compat.create.entity.MixinControlledContraptionEntity",
     "mod_compat.create.entity.MixinPackageEntity",
     "mod_compat.create.entity.MixinSeatEntity",
+    "mod_compat.create.item.MixinPackageItem",
     "mod_compat.create.packets.MixinControlsInputPacket",
     "mod_compat.create.packets.MixinCurvedTrackDestroyPacket",
     "mod_compat.create.packets.MixinSuperGlueRemovalPacket",
