@@ -79,6 +79,7 @@
     "mod_compat.create.block.MixinCrushingWheelBlock",
     "mod_compat.create.block.MixinEjectorBlock",
     "mod_compat.create.block.MixinFunnelBlock",
+    "mod_compat.create.block.MixinItemFallOnBlocks",
     "mod_compat.create.block.MixinRedstoneContactBlock",
     "mod_compat.create.block.MixinStickerBlock",
     "mod_compat.create.blockentity.IMixinMechanicalBearingTileEntity",

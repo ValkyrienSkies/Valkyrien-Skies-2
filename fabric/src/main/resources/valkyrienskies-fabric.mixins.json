@@ -4,7 +4,6 @@
   "compatibilityLevel": "JAVA_8",
   "mixins": [
     "compat.create.MixinBlockBreakingKineticTileEntity",
-    "compat.create.MixinBlocks",
     "compat.create.MixinControlledContraptionEntity",
     "compat.sodium.MixinRenderSectionManager",
     "entity.MixinContainerEntity",

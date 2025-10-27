@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.fabric.mixin.compat.create;
+package org.valkyrienskies.mod.mixin.mod_compat.create.block;
 
 import com.simibubi.create.content.kinetics.millstone.MillstoneBlock;
 import com.simibubi.create.content.logistics.chute.AbstractChuteBlock;
@@ -21,9 +21,9 @@ import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
         BasinBlock.class,
         AbstractChuteBlock.class
 })
-public class MixinBlocks extends Block {
+public class MixinItemFallOnBlocks extends Block {
 
-    public MixinBlocks(Properties properties) {
+    public MixinItemFallOnBlocks(Properties properties) {
         super(properties);
     }
 

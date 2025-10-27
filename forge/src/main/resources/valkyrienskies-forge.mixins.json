@@ -5,7 +5,6 @@
   "plugin": "org.valkyrienskies.mod.forge.mixin.ValkyrienForgeMixinConfigPlugin",
   "mixins": [
     "compat.create.MixinBlockBreakingKineticTileEntity",
-    "compat.create.MixinBlocks",
     "compat.create.MixinControlledContraptionEntity",
     "compat.immersivengineering.MixinBlockEntityInventory",
     "compat.mffs.MixinClientPacketHandler",
