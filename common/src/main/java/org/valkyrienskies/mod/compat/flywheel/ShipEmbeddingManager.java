@@ -1,6 +1,9 @@
 package org.valkyrienskies.mod.compat.flywheel;
 
-import dev.engine_room.flywheel.api.visual.Visual;
+import dev.engine_room.flywheel.api.visualization.VisualizationManager;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import org.valkyrienskies.core.impl.hooks.VSEvents.ShipUnloadEventClient;
 import dev.engine_room.flywheel.api.visualization.VisualEmbedding;
 import dev.engine_room.flywheel.api.visualization.VisualizationContext;
@@ -34,7 +37,9 @@ public class ShipEmbeddingManager {
 
     protected static ConcurrentHashMap<ClientShip, VisualEmbedding> vs$shipEmbedding = new ConcurrentHashMap<>();
 
-    protected static ConcurrentHashMap<Visual, ClientShip> vs$shipVisuals = new ConcurrentHashMap<>();
+    protected static ConcurrentHashMap<Entity, ClientShip> vs$shipEntitiesWithVisual = new ConcurrentHashMap<>();
+
+    protected static ConcurrentHashMap<BlockEntity, ClientShip> vs$shipBlockEntitiesWithVisual = new ConcurrentHashMap<>();
 
     private ShipEmbeddingManager(){
         ShipUnloadEventClient.Companion.on(event -> this.unloadShip(event.getShip()));
@@ -51,15 +56,14 @@ public class ShipEmbeddingManager {
         VisualEmbedding prevEmbedding = vs$shipEmbedding.get(ship);
         if(prevEmbedding != null && ctx.renderOrigin().equals(vs$EmbeddingOrigin.get(ship))) return prevEmbedding;
 
-        // remove previous mapping of visuals and embedding
-        vs$shipVisuals.entrySet().removeIf(
-            entry -> {
-                if (entry.getValue() == ship){
-                    entry.getKey().delete();
-                    return true;
-                } else return false;
-            }
+        // remove previous mapping of entities/blockEntities and embedding
+        vs$shipEntitiesWithVisual.entrySet().removeIf(
+            entry -> entry.getValue() == ship
         );
+        vs$shipBlockEntitiesWithVisual.entrySet().removeIf(
+            entry -> entry.getValue() == ship
+        );
+
         if(prevEmbedding != null) prevEmbedding.delete();
 
         BlockPos anchor = BlockPos.containing(VectorConversionsMCKt.toMinecraft(ship.getRenderTransform().getPositionInShip()));
@@ -97,14 +101,27 @@ public class ShipEmbeddingManager {
         if(embedding != null){
             embedding.delete();
         }
-        vs$shipVisuals.entrySet().removeIf(
-            entry -> {
-                if (entry.getValue() == ship) {
-                    entry.getKey().delete();
-                    return true;
-                } else return false;
-            }
-        );
+
+        final VisualizationManager manager = VisualizationManager.get(Minecraft.getInstance().level);
+        if (manager != null) {
+            vs$shipEntitiesWithVisual.entrySet().removeIf ( entry-> {
+                    if (entry.getValue() == ship) {
+                        manager.entities().queueRemove(entry.getKey());
+                        return true;
+                    }
+                    return false;
+                }
+            );
+            vs$shipBlockEntitiesWithVisual.entrySet().removeIf ( entry-> {
+                    if (entry.getValue() == ship) {
+                        manager.blockEntities().queueRemove(entry.getKey());
+                        return true;
+                    }
+                    return false;
+                }
+            );
+        }
+
         vs$shipAnchor.remove(ship);
         vs$EmbeddingOrigin.remove(ship);
     }
@@ -117,17 +134,21 @@ public class ShipEmbeddingManager {
      */
 
     public synchronized void unloadAllShip() {
-        vs$shipVisuals.forEach(
-            (visual, ship) -> {
-                visual.delete();
-            }
-        );
+        final VisualizationManager manager = VisualizationManager.get(Minecraft.getInstance().level);
+        if (manager != null) {
+            vs$shipEntitiesWithVisual.forEach(
+                (entity, ship) -> manager.entities().queueRemove(entity)
+            );
+            vs$shipBlockEntitiesWithVisual.forEach(
+                (blockEntity, clientShip) -> manager.blockEntities().queueRemove(blockEntity)
+            );
+        }
         vs$shipEmbedding.forEach(
             (ship, embedding) -> {
                 embedding.delete();
             }
         );
-        vs$shipVisuals.clear();
+        vs$shipEntitiesWithVisual.clear();
         vs$shipEmbedding.clear();
         vs$shipAnchor.clear();
         vs$EmbeddingOrigin.clear();
@@ -157,7 +178,11 @@ public class ShipEmbeddingManager {
         embedding.transforms(poseMatrix, normalMatrix);
     }
 
-    public void registerVisual(Visual visual, ClientShip ship) {
-        vs$shipVisuals.put(visual, ship);
+    public void registerEntity(Entity entity, ClientShip ship) {
+        vs$shipEntitiesWithVisual.put(entity, ship);
+    }
+
+    public void registerBlockEntity(BlockEntity blockEntity, ClientShip ship) {
+        vs$shipBlockEntitiesWithVisual.put(blockEntity, ship);
     }
 }
