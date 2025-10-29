@@ -159,27 +159,6 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
                     (double) posX + 0.5, (double) posY + 0.5,
                     (double) posZ + 0.5, 0.0, 0.0, 0.0);
             }
-
-            if (!blockState.isCollisionShapeFullBlock(thisAsClientLevel, mutableBlockPos)) {
-                thisAsClientLevel.getBiome(mutableBlockPos)
-                    .value()
-                    .getAmbientParticle()
-                    .ifPresent(
-                        ambientParticleSettings -> {
-                            if (ambientParticleSettings.canSpawn(vsRandom)) {
-                                thisAsClientLevel.addParticle(
-                                    ambientParticleSettings.getOptions(),
-                                    (double) mutableBlockPos.getX() + vsRandom.nextDouble(),
-                                    (double) mutableBlockPos.getY() + vsRandom.nextDouble(),
-                                    (double) mutableBlockPos.getZ() + vsRandom.nextDouble(),
-                                    0.0,
-                                    0.0,
-                                    0.0
-                                );
-                            }
-                        }
-                    );
-            }
         }
     }
 
