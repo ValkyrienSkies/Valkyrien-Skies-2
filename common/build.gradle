@@ -1,6 +1,6 @@
 
 dependencies {
-    implementation(annotationProcessor("io.github.llamalad7:mixinextras-common:0.2.0"))
+    implementation(annotationProcessor("io.github.llamalad7:mixinextras-common:0.4.1"))
 
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
     // We depend on fabric loader here to use the fabric @Environment annotations
