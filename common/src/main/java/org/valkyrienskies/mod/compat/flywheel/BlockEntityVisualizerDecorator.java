@@ -27,7 +27,7 @@ public class BlockEntityVisualizerDecorator<T extends BlockEntity> implements Bl
         if(VSGameUtilsKt.getShipManagingPos(blockEntity.getLevel(), blockEntity.getBlockPos()) instanceof ClientShip ship){
             final VisualEmbedding embedding = ShipEmbeddingManager.INSTANCE.getOrCreateEmbedding(ship, ctx);
             BlockEntityVisual<? super T> visual = inner.createVisual(embedding, blockEntity, partialTick);
-            ShipEmbeddingManager.INSTANCE.registerBlockEntity(blockEntity, ship);
+            ShipEmbeddingManager.INSTANCE.register(blockEntity, ship);
             return visual;
         }
         else return inner.createVisual(ctx, blockEntity, partialTick);
