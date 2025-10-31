@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.mixin.mod_compat.create;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
+import com.simibubi.create.content.decoration.copycat.CopycatBlock;
 import com.simibubi.create.content.kinetics.fan.AirCurrent;
 import com.simibubi.create.content.kinetics.fan.IAirCurrentSource;
 import net.minecraft.core.BlockPos;
@@ -10,11 +11,15 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.Vec3i;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import org.joml.Matrix4d;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
@@ -37,7 +42,6 @@ import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 import org.valkyrienskies.mod.mixinducks.mod_compat.create.IExtendedAirCurrentSource;
 
-
 @Mixin(value = AirCurrent.class)
 public abstract class MixinAirCurrent {
 
@@ -49,82 +53,71 @@ public abstract class MixinAirCurrent {
     public Direction direction;
 
     @Unique
-    double vs_scalingFactor = 1.0;
+    private double shipScale = 1.0;
+
+    @Shadow
+    private static boolean shouldAlwaysPass(BlockState state) {
+        return false;
+    }
 
     @Unique
     private Ship getShip() {
-        if (source instanceof IExtendedAirCurrentSource se)
+        if (source instanceof IExtendedAirCurrentSource se) {
             return se.getShip();
-        else if (source.getAirCurrentWorld() != null)
+        }
+        if (source.getAirCurrentWorld() != null) {
             return VSGameUtilsKt.getShipManagingPos(source.getAirCurrentWorld(), source.getAirCurrentPos());
-        else
-            return null;
+        }
+        return null;
     }
 
     @Inject(method = "getFlowLimit", at = @At("RETURN"), cancellable = true, remap = false)
     private static void clipFlowLimit(Level level, BlockPos start, float originalMax, Direction facing, CallbackInfoReturnable<Float> cir) {
         // First let Create do its job at finding block obstructions that will cap max length, then use this value as ship search range.
-        float max = cir.getReturnValue();
+        final float flowLimit = cir.getReturnValue();
 
-        Ship ship = VSGameUtilsKt.getShipManagingPos(level, start);
+        final Ship ship = VSGameUtilsKt.getShipManagingPos(level, start);
         if (ship != null) {
-            Vector3d startVec = ship.getTransform().getShipToWorld().transformPosition(new Vector3d(start.getX() + 0.5, start.getY() + 0.5, start.getZ() + 0.5));
-            Vector3d direction = ship.getTransform().getShipToWorld().transformDirection(VectorConversionsMCKt.toJOMLD(facing.getNormal()));
+            final Vector3d startVec = new Vector3d(start.getX(), start.getY(), start.getZ());
+            final Vector3d direction = VectorConversionsMCKt.toJOMLD(facing.getNormal());
+            startVec.add(0.5, 0.5, 0.5).add(direction.mul(0.5, new Vector3d()));
+            ship.getTransform().getShipToWorld().transformPosition(startVec);
+            ship.getTransform().getShipToWorld().transformDirection(direction);
 
-            Vector3dc scaling = ship.getTransform().getShipToWorldScaling();
-            Matrix4d rescaledId = new Matrix4d().scale(1 / scaling.x(), 1 / scaling.y(), 1 / scaling.z());
-            double vs_scalingFactor = VectorConversionsMCKt.transformDirection(
-                rescaledId,
-                facing
-            ).length();
+            final Vector3dc scaling = ship.getTransform().getShipToWorldScaling();
+            final double shipScale = facing.getAxis().choose(scaling.x(), scaling.y(), scaling.z());
 
-            direction.mul(max);
-            Vec3 mcStart = VectorConversionsMCKt.toMinecraft(startVec);
-            BlockHitResult result = RaycastUtilsKt.clipIncludeShips(level,
-                new ClipContext(
-                    mcStart,
-                    VectorConversionsMCKt.toMinecraft(startVec.add(direction.x, direction.y, direction.z)),
-                    ClipContext.Block.OUTLINE,
-                    ClipContext.Fluid.NONE,
-                    null), true,
-                // Skipping own ship as block obstructions were already calculated by Create. Besides,
-                // solid blocks like blaze burners or fan catalysts (from addons) can be used for processing
-                // instead of obstructing airflow. Not accounting for this used to cause this bug:
-                // https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues/1161
-                ship.getId());
+            direction.mul(flowLimit);
+            final Vec3 startPos = VectorConversionsMCKt.toMinecraft(startVec);
+            final Vec3 endPos = VectorConversionsMCKt.toMinecraft(startVec.add(direction.x, direction.y, direction.z));
+            final BlockHitResult result = level.clip(new AirFlowClipContext(startPos, endPos, start));
 
             // Distance from start to end but, its not squared so, slow -_-
-            cir.setReturnValue((float) (result.getLocation().distanceTo(mcStart) * vs_scalingFactor));
+            cir.setReturnValue((float) (result.getLocation().distanceTo(startPos) * shipScale));
         } else {
-            BlockPos end = start.relative(facing, (int) max);
-            if (VSGameUtilsKt.getShipsIntersecting(level,
-                new AABB(start.getX(), start.getY(), start.getZ(),
-                    end.getX() + 1.0, end.getY() + 1.0, end.getZ() + 1.0)).iterator().hasNext()) {
-                Vec3 centerStart = Vec3.atCenterOf(start);
-                BlockHitResult result = RaycastUtilsKt.clipIncludeShips(level,
-                    new ClipContext(
-                        centerStart.add(facing.getStepX(), facing.getStepY(), facing.getStepZ()),
-                        Vec3.atCenterOf(end),
-                        ClipContext.Block.OUTLINE,
-                        ClipContext.Fluid.NONE,
-                        null), true, null, true);
-
+            final BlockPos end = start.relative(facing, (int) (Math.ceil(flowLimit)));
+            if (
+                VSGameUtilsKt.getShipsIntersecting(
+                    level,
+                    new AABB(start.getX(), start.getY(), start.getZ(), end.getX() + 1, end.getY() + 1, end.getZ() + 1)
+                )
+                    .iterator()
+                    .hasNext()
+            ) {
+                final Vec3 startPos = Vec3.atCenterOf(start).add(facing.getStepX() * 0.5, facing.getStepY() * 0.5, facing.getStepZ() * 0.5);
+                final BlockHitResult result = level.clip(new AirFlowClipContext(startPos, Vec3.atCenterOf(end), start));
                 // Distance from start to end but, its not squared so, slow -_-
-                cir.setReturnValue((float) result.getLocation().distanceTo(centerStart));
+                cir.setReturnValue(Math.min((float) (result.getLocation().distanceTo(startPos)), flowLimit));
             }
         }
     }
 
-    @Inject(method = "rebuild", at = @At("TAIL"), remap = false)
+    @Inject(method = "rebuild", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/kinetics/fan/IAirCurrentSource;getAirCurrentWorld()Lnet/minecraft/world/level/Level;"), remap = false)
     private void calcScaling(CallbackInfo ci) {
-        Ship ship = getShip();
+        Ship ship = this.getShip();
         if (ship != null) {
-            Vector3dc scaling = ship.getTransform().getShipToWorldScaling();
-            Matrix4d rescaledId = new Matrix4d().scale(1 / scaling.x(), 1 / scaling.y(), 1 / scaling.z());
-            vs_scalingFactor = VectorConversionsMCKt.transformDirection(
-                rescaledId,
-                direction // Guaranteed to be non-null as this mixin only fires after direction is initialized.
-            ).length();
+            final Vector3dc scaling = ship.getTransform().getShipToWorldScaling();
+            this.shipScale = this.direction.getAxis().choose(scaling.x(), scaling.y(), scaling.z());
         }
     }
 
@@ -134,14 +127,12 @@ public abstract class MixinAirCurrent {
      * such as depots and belts. Instead we modify whatever is necessary specifically for entity interactions.
      */
     @WrapOperation(method = "rebuild", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/Vec3;scale(D)Lnet/minecraft/world/phys/Vec3;"))
-    private Vec3 rescaleEntityInteractionAABB(Vec3 instance, double d, Operation<Vec3> original) {
-        Vec3 result = original.call(instance, d);
-
-        Ship ship = getShip();
+    private Vec3 rescaleEntityInteractionAABB(Vec3 instance, double scale, Operation<Vec3> original) {
+        Ship ship = this.getShip();
         if (ship != null) {
-            result.scale(vs_scalingFactor);
+            scale *= this.shipScale;
         }
-        return result;
+        return original.call(instance, scale);
     }
 
     /**
@@ -152,18 +143,19 @@ public abstract class MixinAirCurrent {
     private Vec3 transformEntityPos(Entity instance, Operation<Vec3> original) {
         Vec3 result = original.call(instance);
 
-        Ship ship = getShip();
-        if (ship != null && !(VSEntityManager.INSTANCE.getHandler(instance) instanceof DefaultShipyardEntityHandler)) {
-            Vector3dc sourcePos = VectorConversionsMCKt.toJOML(source.getAirCurrentPos().getCenter());
-            Vector3dc naiveEntityPos = ship.getWorldToShip().transformPosition(VectorConversionsMCKt.toJOML(result));
+        Ship ship = this.getShip();
+        if (ship == null || VSEntityManager.INSTANCE.getHandler(instance) instanceof DefaultShipyardEntityHandler) {
+            return result;
+        }
+        Vector3dc sourcePos = VectorConversionsMCKt.toJOML(source.getAirCurrentPos().getCenter());
+        Vector3dc naiveEntityPos = ship.getWorldToShip().transformPosition(VectorConversionsMCKt.toJOML(result));
 
-            Vector3dc distanceFromSource = VectorConversionsMCKt.toJOML(source.getAirCurrentPos().getCenter()).sub(naiveEntityPos);
-            Vector3dc adjustedEntityPos = sourcePos.sub(
-                distanceFromSource.mul(1 / vs_scalingFactor, new Vector3d()),
-                new Vector3d()
-            );
-            return VectorConversionsMCKt.toMinecraft(adjustedEntityPos);
-        } else return result;
+        Vector3dc distanceFromSource = VectorConversionsMCKt.toJOML(source.getAirCurrentPos().getCenter()).sub(naiveEntityPos);
+        Vector3dc adjustedEntityPos = sourcePos.sub(
+            distanceFromSource.mul(1 / this.shipScale, new Vector3d()),
+            new Vector3d()
+        );
+        return VectorConversionsMCKt.toMinecraft(adjustedEntityPos);
     }
 
     /**
@@ -181,18 +173,21 @@ public abstract class MixinAirCurrent {
 
     @Redirect(method = "tickAffectedEntities", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/AABB;intersects(Lnet/minecraft/world/phys/AABB;)Z"))
     private boolean redirectIntersects(AABB entityAABB, AABB boundsAABB) {
-        Ship ship = getShip();
-        if (ship != null) {
-            // AABB of item entities is small so it can be transformed to ship even if rotated. Transforming ship AABB
-            // to world would make it way too large, producing false positives for "should item be processed" checks.
-            AABBd entityInShipAABB = VectorConversionsMCKt.toJOML(entityAABB).transform(ship.getWorldToShip());
-            return boundsAABB
-                // Making the AABB just a bit longer for some wiggle room. Solves items not being processed when reaching the end of airflow.
-                .intersects(
-                    entityInShipAABB.minX, entityInShipAABB.minY, entityInShipAABB.minZ,
-                    entityInShipAABB.maxX, entityInShipAABB.maxY, entityInShipAABB.maxZ
-                );
-        } else return entityAABB.intersects(boundsAABB);
+        Ship ship = this.getShip();
+        if (ship == null) {
+            return entityAABB.intersects(boundsAABB);
+        }
+        AABBd entityInShipAABB = VectorConversionsMCKt.toJOML(entityAABB).transform(ship.getWorldToShip());
+        AABBd boundsInWorldAABB = VectorConversionsMCKt.toJOML(boundsAABB).transform(ship.getShipToWorld());
+        return
+            boundsAABB.intersects(
+                entityInShipAABB.minX, entityInShipAABB.minY, entityInShipAABB.minZ,
+                entityInShipAABB.maxX, entityInShipAABB.maxY, entityInShipAABB.maxZ
+            ) &&
+            entityAABB.intersects(
+                boundsInWorldAABB.minX, boundsInWorldAABB.minY, boundsInWorldAABB.minZ,
+                boundsInWorldAABB.maxX, boundsInWorldAABB.maxY, boundsInWorldAABB.maxZ
+            );
     }
 
     // Ordinals used here are correct both for v0.5.1 and v6 and in fact are stable all the way from Create v0.3.
@@ -203,7 +198,7 @@ public abstract class MixinAirCurrent {
         Operation<Void> original,
         @Local(ordinal = 2) float acceleration, @Local(ordinal = 3) float maxAcceleration, @Local(ordinal = 0) Vec3i flow
     ) {
-        Ship ship = getShip();
+        Ship ship = this.getShip();
 
         if (ship != null && !(VSEntityManager.INSTANCE.getHandler(instance) instanceof DefaultShipyardEntityHandler)) {
             Vector3d tempVec = new Vector3d();
@@ -217,5 +212,26 @@ public abstract class MixinAirCurrent {
             motion = previousMotion.add(new Vec3(xIn, yIn, zIn).scale(1 / 8f));
         }
         original.call(instance, motion);
+    }
+
+    private static final class AirFlowClipContext extends ClipContext {
+        private final BlockPos source;
+
+        public AirFlowClipContext(final Vec3 from, final Vec3 to, final BlockPos source) {
+            super(from, to, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, null);
+            this.source = source;
+        }
+
+        @Override
+        public VoxelShape getBlockShape(final BlockState state, final BlockGetter level, final BlockPos pos) {
+            if (pos.equals(this.source)) {
+                return Shapes.empty();
+            }
+            final BlockState copycat = CopycatBlock.getMaterial(level, pos);
+            if (shouldAlwaysPass(copycat.isAir() ? state : copycat)) {
+                return Shapes.empty();
+            }
+            return super.getBlockShape(state, level, pos);
+        }
     }
 }
