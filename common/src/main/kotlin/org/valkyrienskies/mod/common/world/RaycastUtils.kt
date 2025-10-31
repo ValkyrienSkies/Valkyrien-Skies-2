@@ -34,7 +34,10 @@ private val logger = LogManager.getLogger("RaycastUtilsKt")
 fun Level.clipIncludeShips(
     ctx: ClipContext, shouldTransformHitPos: Boolean = true, skipShip: ShipId? = null, skipWorld: Boolean = false
 ): BlockHitResult {
-    val vanillaHit = vanillaClip(ctx)
+    val vanillaHit = if(skipWorld) {
+        val line = ctx.to.subtract(ctx.from)
+        BlockHitResult.miss(ctx.to, Direction.getNearest(line.x, line.y, line.z), BlockPos.containing(ctx.to))
+    } else vanillaClip(ctx)
 
     if (shipObjectWorld == null) {
         logger.error(
@@ -47,12 +50,6 @@ fun Level.clipIncludeShips(
     var closestHit = vanillaHit
     var closestHitPos = vanillaHit.location
     var closestHitDist = closestHitPos.distanceToSqr(ctx.from)
-    if(skipWorld) {
-        val line = ctx.to.subtract(ctx.from)
-        closestHit = BlockHitResult.miss(ctx.to, Direction.getNearest(line.x, line.y, line.z), BlockPos.containing(ctx.to))
-        closestHitPos = ctx.to
-        closestHitDist = line.lengthSqr()
-    }
 
     val clipAABB: AABBdc = AABBd(ctx.from.toJOML(), ctx.to.toJOML()).correctBounds()
 
