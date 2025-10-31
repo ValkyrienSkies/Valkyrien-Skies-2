@@ -4,8 +4,15 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.simibubi.create.content.decoration.copycat.CopycatBlock;
+import com.simibubi.create.content.kinetics.belt.behaviour.TransportedItemStackHandlerBehaviour;
 import com.simibubi.create.content.kinetics.fan.AirCurrent;
 import com.simibubi.create.content.kinetics.fan.IAirCurrentSource;
+import com.simibubi.create.content.kinetics.fan.processing.FanProcessingType;
+import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Vec3i;
@@ -20,10 +27,15 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import org.apache.commons.lang3.tuple.Pair;
+import org.joml.Intersectionf;
 import org.joml.Matrix4d;
+import org.joml.Vector2f;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.joml.primitives.AABBd;
+import org.joml.primitives.AABBi;
+import org.joml.primitives.AABBic;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -40,7 +52,9 @@ import org.valkyrienskies.mod.common.entity.handling.DefaultShipyardEntityHandle
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
+import org.valkyrienskies.mod.compat.create.AdvancedAirCurrentSegment;
 import org.valkyrienskies.mod.mixinducks.mod_compat.create.IExtendedAirCurrentSource;
+import org.valkyrienskies.mod.util.AdvancedBlockWalker;
 
 @Mixin(value = AirCurrent.class)
 public abstract class MixinAirCurrent {
@@ -48,17 +62,27 @@ public abstract class MixinAirCurrent {
     @Shadow
     @Final
     public IAirCurrentSource source;
-
     @Shadow
     public Direction direction;
+    @Shadow
+    public boolean pushing;
+    @Shadow
+    public float maxDistance;
+    @Shadow
+    protected List<Pair<TransportedItemStackHandlerBehaviour, FanProcessingType>> affectedItemHandlers;
 
     @Unique
     private double shipScale = 1.0;
+    @Unique
+    private List<AdvancedAirCurrentSegment> segments = new ArrayList<>();
 
     @Shadow
     private static boolean shouldAlwaysPass(BlockState state) {
         return false;
     }
+
+    @Shadow
+    protected abstract int getLimit();
 
     @Unique
     private Ship getShip() {
@@ -90,10 +114,10 @@ public abstract class MixinAirCurrent {
             direction.mul(flowLimit);
             final Vec3 startPos = VectorConversionsMCKt.toMinecraft(startVec);
             final Vec3 endPos = VectorConversionsMCKt.toMinecraft(startVec.add(direction.x, direction.y, direction.z));
-            final BlockHitResult result = level.clip(new AirFlowClipContext(startPos, endPos, start));
+            final BlockHitResult result = level.clip(new AirFlowClipContext(level, start, startPos, endPos));
 
-            // Distance from start to end but, its not squared so, slow -_-
-            cir.setReturnValue((float) (result.getLocation().distanceTo(startPos) * shipScale));
+            // Convert world space distance to ship space distance by dividing by shipScale
+            cir.setReturnValue((float) (result.getLocation().distanceTo(startPos) / shipScale));
         } else {
             final BlockPos end = start.relative(facing, (int) (Math.ceil(flowLimit)));
             if (
@@ -105,8 +129,8 @@ public abstract class MixinAirCurrent {
                     .hasNext()
             ) {
                 final Vec3 startPos = Vec3.atCenterOf(start).add(facing.getStepX() * 0.5, facing.getStepY() * 0.5, facing.getStepZ() * 0.5);
-                final BlockHitResult result = level.clip(new AirFlowClipContext(startPos, Vec3.atCenterOf(end), start));
-                // Distance from start to end but, its not squared so, slow -_-
+                final Vec3 endPos = Vec3.atCenterOf(end).add(facing.getStepX() * 0.5, facing.getStepY() * 0.5, facing.getStepZ() * 0.5);
+                final BlockHitResult result = level.clip(new AirFlowClipContext(level, start, startPos, endPos));
                 cir.setReturnValue(Math.min((float) (result.getLocation().distanceTo(startPos)), flowLimit));
             }
         }
@@ -122,17 +146,65 @@ public abstract class MixinAirCurrent {
     }
 
     /**
-     * Raycasting from ships works in shipspace coordinates, so range is lower for miniships or higher for jumboships.
-     * Changing maxDistance to account for that is undesired as this value is also used for same-space processing
-     * such as depots and belts. Instead we modify whatever is necessary specifically for entity interactions.
+     * MIT License
+     * Copyright (c) The Create Team / The Creators of Create
+     * Modified by zyxkad, 2025
+     * 
+     * Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+     * and associated documentation files (the "Software"), to deal in the Software without restriction,
+     * including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
+     * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
+     * subject to the following conditions:
+     * 
+     * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+     * 
+     * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+     * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+     * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+     * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+     * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+     * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
      */
-    @WrapOperation(method = "rebuild", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/Vec3;scale(D)Lnet/minecraft/world/phys/Vec3;"))
-    private Vec3 rescaleEntityInteractionAABB(Vec3 instance, double scale, Operation<Vec3> original) {
-        Ship ship = this.getShip();
-        if (ship != null) {
-            scale *= this.shipScale;
+    @Inject(method = "rebuild", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/kinetics/fan/AirCurrent;findAffectedHandlers()V"), remap = false)
+    private void calcSegments(final CallbackInfo ci) {
+        this.segments.clear();
+        final Level level = this.source.getAirCurrentWorld();
+        final BlockPos start = this.source.getAirCurrentPos();
+        AdvancedAirCurrentSegment currentSegment = null;
+        FanProcessingType type = null;
+
+        final int limit = this.getLimit();
+
+        final Vec3 delta = new Vec3(this.direction.getStepX() * 0.5, this.direction.getStepY() * 0.5, this.direction.getStepZ() * 0.5);
+        final Vec3 startPos = start.getCenter().add(delta);
+        final Vec3 endPos = start.relative(this.direction, limit).getCenter().add(delta);
+        final AdvancedBlockWalker walker = new AdvancedBlockWalker(level, startPos, endPos, !this.pushing);
+        while (walker.hasNext()) {
+            final AdvancedBlockWalker.BlockPosWithDistance data = walker.next();
+            final FanProcessingType newType = FanProcessingType.getAt(level, data.pos());
+            double dist = data.distance();
+            if (dist < Integer.MAX_VALUE && Math.abs(dist - (int) (dist)) < 1e-6) {
+                dist = (int) (dist);
+            }
+            if (newType != null) {
+                type = newType;
+            }
+            if (currentSegment == null) {
+                currentSegment = new AdvancedAirCurrentSegment();
+                currentSegment.startOffset = dist;
+                currentSegment.type = type;
+            } else if (currentSegment.type != type) {
+                currentSegment.endOffset = dist;
+                this.segments.add(currentSegment);
+                currentSegment = new AdvancedAirCurrentSegment();
+                currentSegment.startOffset = dist;
+                currentSegment.type = type;
+            }
         }
-        return original.call(instance, scale);
+        if (currentSegment != null) {
+            currentSegment.endOffset = this.pushing ? limit : 0;
+            this.segments.add(currentSegment);
+        }
     }
 
     /**
@@ -152,7 +224,7 @@ public abstract class MixinAirCurrent {
 
         Vector3dc distanceFromSource = VectorConversionsMCKt.toJOML(source.getAirCurrentPos().getCenter()).sub(naiveEntityPos);
         Vector3dc adjustedEntityPos = sourcePos.sub(
-            distanceFromSource.mul(1 / this.shipScale, new Vector3d()),
+            distanceFromSource.div(this.shipScale, new Vector3d()),
             new Vector3d()
         );
         return VectorConversionsMCKt.toMinecraft(adjustedEntityPos);
@@ -214,17 +286,118 @@ public abstract class MixinAirCurrent {
         original.call(instance, motion);
     }
 
-    private static final class AirFlowClipContext extends ClipContext {
-        private final BlockPos source;
+    /**
+     * MIT License
+     * Copyright (c) The Create Team / The Creators of Create
+     * Modified by zyxkad, 2025
+     */
+    @Inject(method = "findAffectedHandlers", at = @At("HEAD"), cancellable = true, remap = false)
+    private void findAffectedHandlers(final CallbackInfo ci) {
+        ci.cancel();
+        this.affectedItemHandlers.clear();
+        final Level level = this.source.getAirCurrentWorld();
+        final BlockPos start = this.source.getAirCurrentPos();
 
-        public AirFlowClipContext(final Vec3 from, final Vec3 to, final BlockPos source) {
+        final int limit = this.getLimit();
+
+        final List<AdvancedBlockWalker.BlockPosWithDistance> datas = new ArrayList<>();
+
+        final Vec3 delta = new Vec3(this.direction.getStepX() * 0.5, this.direction.getStepY() * 0.5, this.direction.getStepZ() * 0.5);
+        final Vec3 startPos = start.getCenter().add(delta);
+        final Vec3 endPos = start.relative(this.direction, limit).getCenter().add(delta);
+        final AdvancedBlockWalker walker = new AdvancedBlockWalker(level, startPos, endPos, !this.pushing);
+        while (walker.hasNext()) {
+            datas.add(walker.next());
+        }
+
+        final Set<BlockPos> processed = new HashSet<>();
+
+        for (final AdvancedBlockWalker.BlockPosWithDistance data : datas) {
+            final BlockPos pos = data.pos();
+            final TransportedItemStackHandlerBehaviour behaviour =
+                BlockEntityBehaviour.get(level, pos, TransportedItemStackHandlerBehaviour.TYPE);
+            if (behaviour == null) {
+                continue;
+            }
+            if (!processed.add(pos)) {
+                continue;
+            }
+            FanProcessingType type = FanProcessingType.getAt(level, pos);
+            if (type == null) {
+                type = this.getTypeAt0(data.distance());
+            }
+            this.affectedItemHandlers.add(Pair.of(behaviour, type));
+        }
+        // Process below blocks such as depot.
+        // Do it after processed all blocks on the path, so vertical current will process with correct FanProcessingType.
+        for (final AdvancedBlockWalker.BlockPosWithDistance data : datas) {
+            final BlockPos pos = data.pos().below();
+            final TransportedItemStackHandlerBehaviour behaviour =
+                BlockEntityBehaviour.get(level, pos, TransportedItemStackHandlerBehaviour.TYPE);
+            if (behaviour == null) {
+                continue;
+            }
+            if (!processed.add(pos)) {
+                continue;
+            }
+            FanProcessingType type = FanProcessingType.getAt(level, pos);
+            if (type == null) {
+                type = this.getTypeAt0(data.distance());
+            }
+            this.affectedItemHandlers.add(Pair.of(behaviour, type));
+        }
+    }
+
+    @Inject(method = "getTypeAt", at = @At("HEAD"), cancellable = true, remap = false)
+    private void getTypeAt(float offset, final CallbackInfoReturnable<FanProcessingType> cir) {
+        cir.setReturnValue(this.getTypeAt0(offset));
+    }
+
+    /**
+     * MIT License
+     * Copyright (c) The Create Team / The Creators of Create
+     * Modified by zyxkad, 2025
+     */
+    @Unique
+    private FanProcessingType getTypeAt0(double offset) {
+        if (offset < Integer.MAX_VALUE && Math.abs(offset - (int) (offset)) < 1e-6) {
+            offset = (int) (offset);
+        }
+        if (offset < 0 || offset > this.maxDistance) {
+            return null;
+        }
+        if (this.pushing) {
+            for (final AdvancedAirCurrentSegment segment : this.segments) {
+                if (offset <= segment.endOffset) {
+                    return segment.type;
+                }
+            }
+        } else {
+            for (final AdvancedAirCurrentSegment segment : this.segments) {
+                if (offset >= segment.endOffset) {
+                    return segment.type;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static final class AirFlowClipContext extends ClipContext {
+        private final Level level;
+        private final BlockPos source;
+        private final Ship sourceShip;
+
+        public AirFlowClipContext(final Level level, final BlockPos source, final Vec3 from, final Vec3 to) {
             super(from, to, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, null);
+            this.level = level;
             this.source = source;
+            this.sourceShip = VSGameUtilsKt.getShipManagingPos(level, source);
         }
 
         @Override
         public VoxelShape getBlockShape(final BlockState state, final BlockGetter level, final BlockPos pos) {
-            if (pos.equals(this.source)) {
+            // Ignore collision check on the same ship since create already handle it in a better way
+            if (this.sourceShip == VSGameUtilsKt.getShipManagingPos(this.level, pos)) {
                 return Shapes.empty();
             }
             final BlockState copycat = CopycatBlock.getMaterial(level, pos);
