@@ -27,7 +27,7 @@ public class MixinGhostBlockRenderer {
         final ClientShip ship = VSClientGameUtils.getClientShip(pos.getX(), pos.getY(), pos.getZ());
         if(ship != null) {
             ms.pushPose();
-            final Vec3 cameraInShip = VectorConversionsMCKt.toMinecraft(ship.getWorldToShip().transformPosition(VectorConversionsMCKt.toJOML(camera)));
+            final Vec3 cameraInShip = VectorConversionsMCKt.toMinecraft(ship.getRenderTransform().getWorldToShip().transformPosition(VectorConversionsMCKt.toJOML(camera)));
             ms.mulPose(VectorConversionsMCKt.toFloat(ship.getRenderTransform().getShipToWorldRotation()));
             ms.last().pose().scale(ship.getRenderTransform().getShipToWorldScaling().get(new Vector3f()));
             original.call(ms, buffer, cameraInShip, params);
