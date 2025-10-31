@@ -9,9 +9,13 @@ import me.jellysquid.mods.sodium.client.render.chunk.terrain.TerrainRenderPass
 import net.minecraft.client.renderer.LevelRenderer
 import net.minecraft.client.renderer.LevelRenderer.RenderChunkInfo
 import net.minecraft.client.renderer.RenderType
+import net.minecraft.world.level.entity.EntityAccess
+import net.minecraft.world.level.entity.EntitySection
 import org.joml.Matrix4f
 import org.valkyrienskies.core.api.ships.ClientShip
+import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.impl.util.events.EventEmitterImpl
+import javax.swing.text.html.parser.Entity
 
 object VSGameEvents {
 
@@ -20,11 +24,16 @@ object VSGameEvents {
 
     val renderShip = EventEmitterImpl<ShipRenderEvent>()
     val postRenderShip = EventEmitterImpl<ShipRenderEvent>()
+    val entitySectionSetShip = EventEmitterImpl<EntitySectionSetShip>()
     val shipsStartRendering = EventEmitterImpl<ShipStartRenderEvent>()
     val renderShipSodium = EventEmitterImpl<ShipRenderEventSodium>()
     val postRenderShipSodium = EventEmitterImpl<ShipRenderEventSodium>()
     val shipsStartRenderingSodium = EventEmitterImpl<ShipStartRenderEventSodium>()
 
+    data class EntitySectionSetShip(
+        val section: EntitySection<EntityAccess>,
+        val ship: Ship
+    )
 
     data class ShipStartRenderEvent(
         val renderer: LevelRenderer,

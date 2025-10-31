@@ -7,6 +7,8 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.valkyrienskies.core.api.ships.Ship;
+import org.valkyrienskies.mod.common.hooks.VSGameEvents;
+import org.valkyrienskies.mod.common.hooks.VSGameEvents.EntitySectionSetShip;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.mixinducks.world.OfShip;
 
@@ -24,6 +26,7 @@ public class MixinEntitySection implements OfShip {
     @Override
     public void setShip(final Ship ship) {
         this.ofShip = ship;
+        if (ship != null) VSGameEvents.INSTANCE.getEntitySectionSetShip().emit(new EntitySectionSetShip(EntitySection.class.cast(this), ship));
     }
 
     @ModifyVariable(
