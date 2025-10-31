@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.feature.shipyard_entities;
 
+import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.core.SectionPos;
 import net.minecraft.util.AbortableIterationConsumer;
 import net.minecraft.world.entity.Entity;
@@ -14,6 +15,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import org.valkyrienskies.core.impl.hooks.VSEvents.ShipLoadEventClient;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.mixinducks.world.OfLevel;
@@ -36,13 +38,36 @@ public abstract class MixinEntitySectionStorage implements OfLevel {
     @Override
     public void setLevel(final Level level) {
         this.level = level;
+        if(level.isClientSide) ShipLoadEventClient.Companion.on(this::handleShipLoad);
     }
 
     @Unique
     private boolean loopingShips = false;
 
+    @Unique
+    private ConcurrentHashMap<Long, EntitySection<Entity>> delayedSections = new ConcurrentHashMap<>();
+
+    private void handleShipLoad(ShipLoadEventClient event){
+        delayedSections.entrySet().removeIf(
+            entry -> {
+                final Long l = entry.getKey();
+                final EntitySection<Entity> section = entry.getValue();
+                if(VSGameUtilsKt.getShipManagingPos(level, SectionPos.x(l), SectionPos.z(l)) == event.getShip()) {
+                    ((OfShip) section).setShip(event.getShip());
+                    return true;
+                }
+                return false;
+            }
+        );
+    }
+
     @Inject(method = "createSection", at = @At("RETURN"))
     void onSectionCreate(final long l, final CallbackInfoReturnable<EntitySection<Entity>> cir) {
+        if (VSGameUtilsKt.getShipManagingPos(level, SectionPos.x(l), SectionPos.z(l)) == null) {
+            if (VSGameUtilsKt.isChunkInShipyard(level, SectionPos.x(l), SectionPos.z(l))) {
+                delayedSections.put(l, cir.getReturnValue());
+            }
+        }
         ((OfShip) cir.getReturnValue()).setShip(
             VSGameUtilsKt.getShipManagingPos(level, SectionPos.x(l), SectionPos.z(l))
         );

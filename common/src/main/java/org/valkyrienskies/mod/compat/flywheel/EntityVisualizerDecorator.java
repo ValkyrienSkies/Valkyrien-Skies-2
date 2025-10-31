@@ -28,9 +28,6 @@ public class EntityVisualizerDecorator<T extends Entity> implements EntityVisual
             VisualEmbedding embedding = ShipEmbeddingManager.INSTANCE.getOrCreateEmbedding(ship, ctx);
             EntityVisual<? super T> visual = inner.createVisual(embedding, entity, partialTick);
             return visual;
-        } else if (VSGameUtilsKt.isBlockInShipyard(entity.level(), entity.blockPosition())) {
-            ShipEmbeddingManager.INSTANCE.enqueueFutureVisualization(entity);
-            return null;
         } else return inner.createVisual(ctx, entity, partialTick);
     }
 

@@ -1,10 +1,10 @@
 package org.valkyrienskies.mod.compat.flywheel;
 
 import dev.engine_room.flywheel.api.visualization.VisualizationManager;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.entity.EntitySection;
 import org.valkyrienskies.core.impl.hooks.VSEvents.ShipUnloadEventClient;
 import dev.engine_room.flywheel.api.visualization.VisualEmbedding;
 import dev.engine_room.flywheel.api.visualization.VisualizationContext;
@@ -17,7 +17,6 @@ import org.joml.Quaternionf;
 import org.joml.Vector3d;
 import org.joml.Vector3f;
 import org.valkyrienskies.core.api.ships.ClientShip;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.hooks.VSGameEvents;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
@@ -41,12 +40,22 @@ public class ShipEmbeddingManager {
 
     protected static ConcurrentHashMap<BlockEntity, ClientShip> vs$shipBEs = new ConcurrentHashMap<>();
 
-    protected static Queue<Entity> vs$entitiesQueue = new ConcurrentLinkedQueue<>();
-
     private ShipEmbeddingManager(){
         ShipUnloadEventClient.Companion.on(event -> this.unloadShip(event.getShip()));
         VSGameEvents.INSTANCE.getShipsStartRendering().on(event -> this.updateAllShips());
         VSGameEvents.INSTANCE.getShipsStartRenderingSodium().on(event -> this.updateAllShips());
+        VSGameEvents.INSTANCE.getEntitySectionSetShip().on(event -> this.updateEntitySection(event.getSection()));
+    }
+
+    private void updateEntitySection(EntitySection<?> section){
+        VisualizationManager manager = VisualizationManager.get(Minecraft.getInstance().level);
+        if (manager == null) return;
+        section.getEntities().forEach(
+            entity -> {
+                manager.entities().queueAdd((Entity) entity);
+                manager.entities().queueRemove((Entity) entity);
+            }
+        );
     }
 
     /**
@@ -94,16 +103,6 @@ public class ShipEmbeddingManager {
             final Vec3i origin = vs$EmbeddingOrigin.get(ship);
             setEmbeddingTransform(embedding, ship, anchor, origin);
         }
-        vs$entitiesQueue.removeIf(
-            entity -> {
-                final VisualizationManager manager = VisualizationManager.get(entity.level());
-                if(VSGameUtilsKt.getShipManaging(entity) != null && manager != null) {
-                    manager.entities().queueAdd(entity);
-                    return true;
-                }
-                return false;
-            }
-        );
     }
     /**
      * Removes ship from the storage.
@@ -168,9 +167,5 @@ public class ShipEmbeddingManager {
 
     public void register(BlockEntity blockEntity, ClientShip ship) {
         vs$shipBEs.put(blockEntity, ship);
-    }
-
-    public void enqueueFutureVisualization(Entity entity) {
-        if(VSGameUtilsKt.isBlockInShipyard(entity.level(), entity.blockPosition())) vs$entitiesQueue.add(entity);
     }
 }
