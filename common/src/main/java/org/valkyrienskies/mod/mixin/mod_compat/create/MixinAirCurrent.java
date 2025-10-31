@@ -107,7 +107,7 @@ public abstract class MixinAirCurrent {
                         Vec3.atCenterOf(end),
                         ClipContext.Block.OUTLINE,
                         ClipContext.Fluid.NONE,
-                        null));
+                        null), true, null, true);
 
                 // Distance from start to end but, its not squared so, slow -_-
                 cir.setReturnValue((float) result.getLocation().distanceTo(centerStart));
