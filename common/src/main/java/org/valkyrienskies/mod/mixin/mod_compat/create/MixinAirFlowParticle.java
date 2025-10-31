@@ -34,6 +34,24 @@ public abstract class MixinAirFlowParticle extends SimpleAnimatedParticle {
         super(level, x, y, z, sprites, gravity);
     }
 
+    // Particles are delayed by one tick before movement so adding the ship's delta by 1 tick here.
+    @WrapOperation(
+        method = "<init>",
+        at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/kinetics/fan/AirFlowParticle;setPos(DDD)V")
+    )
+    private void setPos(AirFlowParticle particle, double x, double y, double z, Operation<Void> original) {
+        Ship ship = getShip();
+        if(ship != null) {
+            Vector3d p = new Vector3d(x, y, z);
+            ship.getPrevTickTransform().getWorldToShip().transformPosition(p);
+            ship.getTransform().getShipToWorld().transformPosition(p);
+            original.call(particle, p.x, p.y, p.z);
+            return;
+        }
+        original.call(particle, x, y, z);
+    }
+
+
     @Unique
     private Ship getShip() {
         if (source instanceof IExtendedAirCurrentSource se)
@@ -56,8 +74,10 @@ public abstract class MixinAirFlowParticle extends SimpleAnimatedParticle {
     private boolean redirectBounds(AABB instance, double x, double y, double z) {
         AirCurrent current = source.getAirCurrent();
         Level level = source.getAirCurrentWorld();
-        if (current != null && level != null) {
-            return VSGameUtilsKt.transformAabbToWorld(level, instance).contains(x, y, z);
+        Ship ship = getShip();
+        if (current != null && level != null && ship != null) {
+            Vector3d tempPos = ship.getTransform().getWorldToShip().transformPosition(x, y, z, new Vector3d());
+            return instance.contains(tempPos.x, tempPos.y, tempPos.z);
         }
 
         return instance.contains(x, y, z);
@@ -89,5 +109,26 @@ public abstract class MixinAirFlowParticle extends SimpleAnimatedParticle {
             dir = VectorConversionsMCKt.toMinecraft(tempVec);
         }
         return original.call(dir, d);
+    }
+
+    /**
+     * Not many particles need to be 'dragged' by the ship, but airflow particles are indicator of something that is fixed to the ship.
+     * Therefore, this logic is similar to that of entity dragging feature.
+     */
+    @WrapOperation(
+        method = "tick", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/kinetics/fan/AirFlowParticle;move(DDD)V")
+    )
+    private void moveWithShip(AirFlowParticle particle, double x, double y, double z, Operation<Void> original){
+        original.call(particle, x, y, z);
+        Ship ship = getShip();
+        if (ship != null) {
+            Vector3d p = new Vector3d(this.x, this.y, this.z);
+            ship.getPrevTickTransform().getWorldToShip().transformPosition(p);
+            ship.getTransform().getShipToWorld().transformPosition(p);
+            this.xd = p.x - this.xo;
+            this.yd = p.y - this.yo;
+            this.zd = p.z - this.zo;
+            this.setPos(p.x, p.y, p.z);
+        }
     }
 }
