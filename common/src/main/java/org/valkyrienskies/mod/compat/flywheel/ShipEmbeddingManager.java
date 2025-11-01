@@ -52,8 +52,8 @@ public class ShipEmbeddingManager {
         if (manager == null) return;
         section.getEntities().forEach(
             entity -> {
-                manager.entities().queueAdd((Entity) entity);
                 manager.entities().queueRemove((Entity) entity);
+                manager.entities().queueAdd((Entity) entity);
             }
         );
     }
