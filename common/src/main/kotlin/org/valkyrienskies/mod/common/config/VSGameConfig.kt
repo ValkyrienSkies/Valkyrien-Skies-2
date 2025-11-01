@@ -156,6 +156,36 @@ object VSGameConfig {
         var explosionBlastForce = 500000.0
 
         @JsonSchema(
+            description = "Default density for blocks without mass specified in data packs. Proportional to mass."
+        )
+        var defaultBlockDensity = 1000.0
+
+        @JsonSchema(
+            description = "Default block elasticity. Larger values make blocks more bouncy"
+        )
+        var defaultBlockElasticity = 0.3
+
+        @JsonSchema(
+            description = "Default block friction coefficient. Lower values make blocks more slippery"
+        )
+        var defaultBlockFriction = 0.5
+
+        @JsonSchema(
+            description = "Default hardness for blocks. Currently unused"
+        )
+        var defaultBlockHardness = 1.0
+
+        @JsonSchema(
+            description = "Default density for fluids"
+        )
+        var defaultFluidDensity = 1000.0
+
+        @JsonSchema(
+            description = "Default drag coefficient for fluids."
+        )
+        var defaultFluidDragCoefficient = 0.3
+
+        @JsonSchema(
             description = "Allow natural mob spawning on ships"
         )
         var allowMobSpawns = true

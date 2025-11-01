@@ -1,0 +1,12 @@
+[
+  {
+    "fluidTag": "minecraft:water",
+    "density": 1000.0,
+    "dragCoefficient": 0.3
+  },
+  {
+    "fluidTag": "minecraft:lava",
+    "density": 10000.0,
+    "dragCoefficient": 1.0
+  }
+]

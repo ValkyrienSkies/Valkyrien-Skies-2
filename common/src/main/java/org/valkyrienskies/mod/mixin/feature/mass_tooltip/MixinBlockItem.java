@@ -1,7 +1,6 @@
 package org.valkyrienskies.mod.mixin.feature.mass_tooltip;
 
 import java.util.List;
-import java.util.Objects;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.BlockItem;
@@ -27,9 +26,7 @@ public class MixinBlockItem {
         if (visibility.isVisible(tooltipFlag)) {
             try {
                 final BlockItem item = (BlockItem) itemStack.getItem();
-                final Double mass =
-                    Objects.requireNonNull(BlockStateInfo.INSTANCE.get(item.getBlock().defaultBlockState()))
-                        .getFirst();
+                final double mass = BlockStateInfo.INSTANCE.getBlockStateMass(item.getBlock().defaultBlockState());
                 list.add(Component.translatable("tooltip.valkyrienskies.mass")
                     .append(VSGameConfig.CLIENT.getTooltip().getUseImperialUnits() ?
                         getImperialText(mass) : ": " + mass + "kg").withStyle(ChatFormatting.DARK_GRAY));

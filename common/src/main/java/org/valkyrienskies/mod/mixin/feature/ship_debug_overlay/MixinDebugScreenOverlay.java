@@ -9,6 +9,7 @@ import net.minecraft.client.gui.components.DebugScreenOverlay;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
@@ -23,6 +24,7 @@ import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.api.world.ServerShipWorld;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.config.MassDatapackResolver;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 
@@ -58,6 +60,29 @@ public abstract class MixinDebugScreenOverlay {
                     }
                 }
             }
+        }
+    }
+
+    @Inject(
+        method = "getSystemInformation",
+        at = @At(
+            value = "INVOKE",
+            target = "Ljava/util/stream/Stream;forEach(Ljava/util/function/Consumer;)V",
+            ordinal = 0 // Also called for picked fluids, not interesting for us.
+        )
+    )
+    private void addVSBlockProperties(CallbackInfoReturnable<List<String>> cir, @Local List<String> list) {
+        if (this.block.getType() == HitResult.Type.BLOCK) {
+            BlockPos blockPos = ((BlockHitResult) this.block).getBlockPos();
+            BlockState blockState = this.minecraft.level.getBlockState(blockPos);
+            list.add(String.format(
+                //LOCALE.ROOT,
+                "VS mass: %.1f, elasticity: %.1f, friction: %.3f, hardness: %.1f",
+                MassDatapackResolver.INSTANCE.getBlockStateMass(blockState),
+                MassDatapackResolver.INSTANCE.getBlockStateElasticity(blockState),
+                MassDatapackResolver.INSTANCE.getBlockStateFriction(blockState),
+                MassDatapackResolver.INSTANCE.getBlockStateHardness(blockState)
+            ));
         }
     }
 

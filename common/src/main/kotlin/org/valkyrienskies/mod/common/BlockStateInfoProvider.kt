@@ -27,6 +27,9 @@ interface BlockStateInfoProvider {
     val priority: Int
 
     fun getBlockStateMass(blockState: BlockState): Double?
+    fun getBlockStateElasticity(blockState: BlockState): Double?
+    fun getBlockStateFriction(blockState: BlockState): Double?
+    fun getBlockStateHardness(blockState: BlockState): Double?
 
     // Get the id of the block state
     fun getBlockStateType(blockState: BlockState): BlockType?
@@ -83,11 +86,23 @@ object BlockStateInfo {
         return cache.get(blockState)
     }
 
+    fun getBlockStateMass(blockState: BlockState): Double =
+        SORTED_REGISTRY.firstNotNullOf { it.getBlockStateMass(blockState) }
+
+    fun getBlockStateElasticity(blockState: BlockState): Double =
+        SORTED_REGISTRY.firstNotNullOf { it.getBlockStateElasticity(blockState) }
+
+    fun getBlockStateFriction(blockState: BlockState): Double =
+        SORTED_REGISTRY.firstNotNullOf { it.getBlockStateFriction(blockState) }
+
+    fun getBlockStateHardness(blockState: BlockState): Double =
+        SORTED_REGISTRY.firstNotNullOf { it.getBlockStateHardness(blockState) }
+
+    fun getBlockStateType(blockState: BlockState): BlockType =
+        SORTED_REGISTRY.firstNotNullOf { it.getBlockStateType(blockState) }
+
     private fun iterateRegistry(blockState: BlockState): Pair<Double, BlockType> =
-        Pair(
-            SORTED_REGISTRY.firstNotNullOf { it.getBlockStateMass(blockState) },
-            SORTED_REGISTRY.firstNotNullOf { it.getBlockStateType(blockState) },
-        )
+        Pair(getBlockStateMass(blockState),getBlockStateType(blockState))
 
     // NOTE: this gets called irrelevant if the block is actually on a ship; so it needs to be changed that
     // shipObjectWorld only requests the data if needed (maybe supplier?)

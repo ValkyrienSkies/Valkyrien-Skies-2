@@ -16,6 +16,7 @@ import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.material.Fluid
 import net.minecraft.world.level.material.FluidState
 import net.minecraft.world.level.material.Fluids
 import net.minecraft.world.phys.shapes.VoxelShape
@@ -43,29 +44,63 @@ private data class VSBlockStateInfo(
     val id: ResourceLocation,
     val priority: Int,
     val mass: Double,
+    val density: Double,
     val friction: Double,
     val elasticity: Double,
+    val hardness: Double,
     val type: BlockType?,
+)
+
+private data class VSFluidInfo(
+    val id: ResourceLocation,
+    val priority: Int,
+    val density: Double,
+    val dragCoefficient: Double
 )
 
 object MassDatapackResolver : BlockStateInfoProvider {
     private val map = hashMapOf<ResourceLocation, VSBlockStateInfo>()
+    private val fluidMap = hashMapOf<Fluid, VSFluidInfo>()
     private val mcBlockStateToVs: MutableMap<BlockState, VsBlockState> = HashMap()
 
     val blockStateData: Collection<VsBlockState> = mcBlockStateToVs.values
 
     val loader get() = VSMassDataLoader()
 
-    private const val DEFAULT_ELASTICITY = 0.3
-    private const val DEFAULT_FRICTION = 0.5
-    // Unused for now, placeholder for later
-    private const val DEFAULT_HARDNESS = 1.0
-
     override val priority: Int
         get() = 100
 
-    override fun getBlockStateMass(blockState: BlockState): Double? =
-        map[BuiltInRegistries.BLOCK.getKey(blockState.block)]?.mass
+    override fun getBlockStateMass(blockState: BlockState): Double? {
+        val mass = map[BuiltInRegistries.BLOCK.getKey(blockState.block)]?.mass
+        // Explicitly specified mass takes priority over density and any other fallback.
+        if (mass == null || mass < 0) {
+            if (blockState.isAir) return 0.0
+            // If no density is specified, use default value (1000 kg per full block)
+            val density = map[BuiltInRegistries.BLOCK.getKey(blockState.block)]?.density ?: VSGameConfig.SERVER.defaultBlockDensity
+            return try {
+                var volume = 0.0
+                val voxelShape = blockState.getShape(dummyBlockGetter, BlockPos.ZERO)
+                voxelShape?.forAllBoxes { x1, y1, z1, x2, y2, z2 ->
+                    volume += kotlin.math.abs((x2 - x1) * (y2 - y1) * (z2 - z1))
+                }
+                // Scale mass by shape volume, round to nearest 0.5 kg, ensure minimum 0.5
+                kotlin.math.max(0.5, (density * volume * 2.0).roundToInt() / 2.0)
+            } catch (e: Exception) {
+                // Defensive fallback: VS2 default behavior
+                VSGameConfig.SERVER.defaultBlockDensity
+            }
+        }
+        return mass
+    }
+
+    override fun getBlockStateElasticity(blockState: BlockState): Double? =
+        map[BuiltInRegistries.BLOCK.getKey(blockState.block)]?.elasticity
+
+    override fun getBlockStateFriction(blockState: BlockState): Double? =
+        map[BuiltInRegistries.BLOCK.getKey(blockState.block)]?.friction
+
+    override fun getBlockStateHardness(blockState: BlockState): Double? =
+        map[BuiltInRegistries.BLOCK.getKey(blockState.block)]?.hardness
 
     override fun getBlockStateType(blockState: BlockState): BlockType? {
         val vsState = mcBlockStateToVs[blockState] ?: return null
@@ -77,6 +112,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
 
     class VSMassDataLoader : SimpleJsonResourceReloadListener(Gson(), "vs_mass") {
         private val tags = mutableListOf<VSBlockStateInfo>()
+        private val fluidTags = mutableListOf<VSFluidInfo>()
 
         override fun apply(
             objects: MutableMap<ResourceLocation, JsonElement>?,
@@ -85,6 +121,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
         ) {
             map.clear()
             tags.clear()
+            fluidTags.clear()
             objects?.forEach { (location, element) ->
                 try {
                     if (element.isJsonArray) {
@@ -115,10 +152,26 @@ object MassDatapackResolver : BlockStateInfoProvider {
                         tag.get().forEach {
                             add(
                                 VSBlockStateInfo(
-                                    BuiltInRegistries.BLOCK.getKey(it.value()), tagInfo.priority, tagInfo.mass, tagInfo.friction,
-                                    tagInfo.elasticity, tagInfo.type
+                                    BuiltInRegistries.BLOCK.getKey(it.value()), tagInfo.priority, tagInfo.mass, tagInfo.density, tagInfo.friction,
+                                    tagInfo.elasticity, tagInfo.hardness, tagInfo.type
                                 )
                             )
+                        }
+                    }
+                }
+                fluidTags.forEach { tagInfo ->
+                    val tag: Optional<HolderSet.Named<Fluid>>? =
+                        BuiltInRegistries.FLUID.getTag(TagKey.create(Registries.FLUID, tagInfo.id))
+                    if (tag != null) {
+
+                        if (!tag.isPresent) {
+                            logger.warn("No specified tag '${tagInfo.id}' doesn't exist!")
+                            return@forEach
+                        }
+
+                        tag.get().forEach {
+                            fluidMap[it.value()] =
+                                VSFluidInfo(tagInfo.id, priority, tagInfo.density, tagInfo.dragCoefficient)
                         }
                     }
                 }
@@ -129,6 +182,10 @@ object MassDatapackResolver : BlockStateInfoProvider {
         // idk why, so we note them down and use them later
         private fun addToBeAddedTags(tag: VSBlockStateInfo) {
             tags.add(tag)
+        }
+
+        private fun addToBeAddedFluidTags(tag: VSFluidInfo) {
+            fluidTags.add(tag)
         }
 
         private fun add(info: VSBlockStateInfo) {
@@ -142,21 +199,41 @@ object MassDatapackResolver : BlockStateInfoProvider {
         }
 
         private fun parse(element: JsonElement, origin: ResourceLocation) {
-            val tag = element.asJsonObject["tag"]?.asString
-            val weight = element.asJsonObject["mass"]?.asDouble
-                ?: throw IllegalArgumentException("No mass in file $origin")
-            val friction = element.asJsonObject["friction"]?.asDouble ?: DEFAULT_FRICTION
-            val elasticity = element.asJsonObject["elasticity"]?.asDouble ?: DEFAULT_ELASTICITY
+            val fluidTag = element.asJsonObject["fluidTag"]?.asString
+            if (fluidTag != null) {
+                val density = element.asJsonObject["density"]?.asDouble ?: VSGameConfig.SERVER.defaultFluidDensity
+                val dragCoefficient = element.asJsonObject["dragCoefficient"]?.asDouble ?: VSGameConfig.SERVER.defaultFluidDragCoefficient
 
-            val priority = element.asJsonObject["priority"]?.asInt ?: decideDefaultPriority(origin)
+                val priority = element.asJsonObject["priority"]?.asInt ?: decideDefaultPriority(origin)
 
-            if (tag != null) {
-                addToBeAddedTags(VSBlockStateInfo(ResourceLocation(tag), priority, weight, friction, elasticity, null))
+                addToBeAddedFluidTags(VSFluidInfo(ResourceLocation(fluidTag), priority, density, dragCoefficient))
             } else {
-                val block = element.asJsonObject["block"]?.asString
-                    ?: throw IllegalArgumentException("No block or tag in file $origin")
+                val tag = element.asJsonObject["tag"]?.asString
+                val mass = element.asJsonObject["mass"]?.asDouble ?: -1.0
+                val density = element.asJsonObject["density"]?.asDouble ?: VSGameConfig.SERVER.defaultBlockDensity
+                val friction = element.asJsonObject["friction"]?.asDouble ?: VSGameConfig.SERVER.defaultBlockFriction
+                val elasticity =
+                    element.asJsonObject["elasticity"]?.asDouble ?: VSGameConfig.SERVER.defaultBlockElasticity
+                val hardness = element.asJsonObject["hardness"]?.asDouble ?: VSGameConfig.SERVER.defaultBlockHardness
 
-                add(VSBlockStateInfo(ResourceLocation(block), priority, weight, friction, elasticity, null))
+                val priority = element.asJsonObject["priority"]?.asInt ?: decideDefaultPriority(origin)
+
+                if (tag != null) {
+                    addToBeAddedTags(
+                        VSBlockStateInfo(
+                            ResourceLocation(tag), priority, mass, density, friction, elasticity, hardness, null
+                        )
+                    )
+                } else {
+                    val block = element.asJsonObject["block"]?.asString
+                        ?: throw IllegalArgumentException("No block or tag in file $origin")
+
+                    add(
+                        VSBlockStateInfo(
+                            ResourceLocation(block), priority, mass, density, friction, elasticity, hardness, null
+                        )
+                    )
+                }
             }
         }
     }
@@ -282,26 +359,13 @@ object MassDatapackResolver : BlockStateInfoProvider {
             .addPositiveBox(fullLodBoundingBox)
             .build()
 
-        // A dummy world used to get the VoxelShape for each block state
-        val dummyBlockGetter = object: BlockGetter {
-            override fun getHeight(): Int = 255
-
-            override fun getMinBuildHeight(): Int = 0
-
-            override fun getBlockEntity(blockPos: BlockPos): BlockEntity? = null
-
-            override fun getBlockState(blockPos: BlockPos): BlockState = Blocks.VOID_AIR.defaultBlockState()
-
-            override fun getFluidState(blockPos: BlockPos): FluidState = Fluids.EMPTY.defaultFluidState()
-        }
-
         // Create a map of common VoxelShape to Lod1SolidCollisionShape
         val voxelShapeToCollisionShapeMap = generateStairCollisionShapes(
             StairBlockAccessor.getTopShapes() + StairBlockAccessor.getBottomShapes() + SlabBlockAccessor.getBottomAABB() + SlabBlockAccessor.getTopAABB()
         )
 
         val generatedCollisionShapesMap = HashMap<VoxelShape, SolidBlockShape?>()
-        val liquidMaterialToDensityMap = mapOf(Fluids.WATER to Pair(1000.0, 0.3), Fluids.LAVA to Pair(10000.0, 1.0), Fluids.FLOWING_WATER to Pair(1000.0, 0.3), Fluids.FLOWING_LAVA to Pair(10000.0, 1.0))
+        //val liquidMaterialToDensityMap = mapOf(Fluids.WATER to Pair(1000.0, 0.3), Fluids.LAVA to Pair(10000.0, 1.0), Fluids.FLOWING_WATER to Pair(1000.0, 0.3), Fluids.FLOWING_LAVA to Pair(10000.0, 1.0))
 
         val fluidStateToBlockTypeMap = HashMap<FluidState, LiquidState>()
 
@@ -311,12 +375,12 @@ object MassDatapackResolver : BlockStateInfoProvider {
             if (cached != null) return cached
             val maxY = ((fluidState.ownHeight * 16.0).roundToInt() - 1).coerceIn(0, 15)
             val fluidBox = AABBi(0, 0, 0, 15, maxY, 15)
-            return if (fluidState.type in liquidMaterialToDensityMap) {
-                val (density, dragCoefficient) = liquidMaterialToDensityMap[fluidState.type]!!
+            return if (fluidState.type in fluidMap.keys) {
+                val fluidInfo = fluidMap[fluidState.type]!!
                 val newFluidBlockState = vsCore.newLiquidStateBuilder()
                     .boxShape(fluidBox)
-                    .density(density)
-                    .dragCoefficient(dragCoefficient)
+                    .density(fluidInfo.density)
+                    .dragCoefficient(fluidInfo.dragCoefficient)
                     .velocity(Vector3d())
                     .build()
 
@@ -356,9 +420,9 @@ object MassDatapackResolver : BlockStateInfoProvider {
                     // Create new solid block state
                     val solidState = vsCore.newSolidStateBuilder()
                         .shape(collisionShape)
-                        .elasticity(vsBlockStateInfo?.elasticity ?: DEFAULT_ELASTICITY)
-                        .friction(vsBlockStateInfo?.friction ?: DEFAULT_FRICTION)
-                        .hardness(DEFAULT_HARDNESS)
+                        .elasticity(vsBlockStateInfo?.elasticity ?: VSGameConfig.SERVER.defaultBlockElasticity)
+                        .friction(vsBlockStateInfo?.elasticity ?: VSGameConfig.SERVER.defaultBlockFriction)
+                        .hardness(vsBlockStateInfo?.elasticity ?: VSGameConfig.SERVER.defaultBlockHardness)
                         .build()
 
                     val fluidState = if (!blockState.fluidState.isEmpty) {
@@ -386,4 +450,17 @@ object MassDatapackResolver : BlockStateInfoProvider {
     }
 
     private val logger by logger()
+
+    // A dummy world used to get the VoxelShape for block states
+    private val dummyBlockGetter = object: BlockGetter {
+        override fun getHeight(): Int = 255
+
+        override fun getMinBuildHeight(): Int = 0
+
+        override fun getBlockEntity(blockPos: BlockPos): BlockEntity? = null
+
+        override fun getBlockState(blockPos: BlockPos): BlockState = Blocks.VOID_AIR.defaultBlockState()
+
+        override fun getFluidState(blockPos: BlockPos): FluidState = Fluids.EMPTY.defaultFluidState()
+    }
 }
