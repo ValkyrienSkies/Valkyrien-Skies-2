@@ -76,6 +76,11 @@ object VSGameConfig {
 
         class WEATHER2 {
             @JsonSchema(
+                description = "If VS ships are affected by Weather2"
+            )
+            var enableWeatherCompat = true
+
+            @JsonSchema(
                 description = "How much Weather 2's wind affects VS ships"
             )
             var windMultiplier = 0.1f

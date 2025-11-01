@@ -40,19 +40,25 @@ public abstract class MixinSuperGlueSelectionHandler {
 
             Matrix4d world2Ship = (Matrix4d) ship.getTransform().getWorldToShip();
             AABBic shAABBi = ship.getShipAABB();
-            AABB shipAABB = new AABB(shAABBi.minX(), shAABBi.minY(), shAABBi.minZ(), shAABBi.maxX(), shAABBi.maxY(), shAABBi.maxZ());
+
+            // Hopefully fixes https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues/1341
+            // Presumably the AABB is null while the ship is still loading
+            // This fix is also applied on the forge version of this class
+            if (shAABBi != null) {
+                AABB shipAABB = new AABB(shAABBi.minX(), shAABBi.minY(), shAABBi.minZ(), shAABBi.maxX(), shAABBi.maxY(), shAABBi.maxZ());
 
 
-            origin = VectorConversionsMCKt.toMinecraft(world2Ship.transformPosition(VectorConversionsMCKt.toJOML(origin)));
-            target = VectorConversionsMCKt.toMinecraft(world2Ship.transformPosition(VectorConversionsMCKt.toJOML(target)));
+                origin = VectorConversionsMCKt.toMinecraft(world2Ship.transformPosition(VectorConversionsMCKt.toJOML(origin)));
+                target = VectorConversionsMCKt.toMinecraft(world2Ship.transformPosition(VectorConversionsMCKt.toJOML(target)));
 
-            Quaterniond tempQuat = new Quaterniond();
-            if (playerIn.getVehicle() != null && playerIn.getVehicle().getBoundingBox().intersects(shipAABB.inflate(20))) {
-                ship.getTransform().getWorldToShip().getNormalizedRotation(tempQuat);
-                tempQuat.invert();
-                Vector3d offset = VectorConversionsMCKt.toJOML(target.subtract(origin));
-                tempQuat.transform(offset);
-                target = origin.add(VectorConversionsMCKt.toMinecraft(offset));
+                Quaterniond tempQuat = new Quaterniond();
+                if (playerIn.getVehicle() != null && playerIn.getVehicle().getBoundingBox().intersects(shipAABB.inflate(20))) {
+                    ship.getTransform().getWorldToShip().getNormalizedRotation(tempQuat);
+                    tempQuat.invert();
+                    Vector3d offset = VectorConversionsMCKt.toJOML(target.subtract(origin));
+                    tempQuat.transform(offset);
+                    target = origin.add(VectorConversionsMCKt.toMinecraft(offset));
+                }
             }
         }
 
