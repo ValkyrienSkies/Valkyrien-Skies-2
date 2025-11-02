@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.mixin.mod_compat.create.block;
 
 import com.simibubi.create.AllBlocks;
+import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
 import com.simibubi.create.content.redstone.contact.RedstoneContactBlock;
 import com.simibubi.create.foundation.block.WrenchableDirectionalBlock;
 import net.minecraft.core.BlockPos;
@@ -11,6 +12,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate.StructureBlockInfo;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.ticks.TickPriority;
@@ -39,8 +41,6 @@ public abstract class MixinRedstoneContactBlock extends WrenchableDirectionalBlo
     private static final double CHECK_BOUND = 2.0 / 16;
     @Unique
     private static final double INTERSECT_BOUND = CHECK_BOUND + 0.1;
-    @Unique
-    private static final double MAX_ALIGNMENT_ANGLE = -(1 - Math.cos(Math.toRadians(20)));
 
     protected MixinRedstoneContactBlock() {
         super(null);
@@ -84,18 +84,6 @@ public abstract class MixinRedstoneContactBlock extends WrenchableDirectionalBlo
             return false;
         }
         final Direction targetDir = blockState.getValue(FACING);
-        final Vector3d selfDirection = new Vector3d(selfDir.getStepX(), selfDir.getStepY(), selfDir.getStepZ());
-        final Vector3d targetDirection = new Vector3d(targetDir.getStepX(), targetDir.getStepY(), targetDir.getStepZ());
-        if (ship != null) {
-            ship.getShipToWorld().transformDirection(selfDirection);
-        }
-        if (targetShip != null) {
-            targetShip.getShipToWorld().transformDirection(targetDirection);
-        }
-        final double angle = selfDirection.angleCos(targetDirection);
-        if (angle > MAX_ALIGNMENT_ANGLE) {
-            return false;
-        }
         final Vector3d[] checkPoints = makeCheckPoints(targetPos.relative(targetDir).getCenter(), targetDir);
         if (targetShip != null) {
             final Matrix4dc shipMat = targetShip.getShipToWorld();
@@ -156,18 +144,73 @@ public abstract class MixinRedstoneContactBlock extends WrenchableDirectionalBlo
                 found = true;
                 break;
             }
+            final Vec3 checkPos = new Vec3(checkPoint.x, checkPoint.y, checkPoint.z);
+            for (final AbstractContraptionEntity contraption : world.getEntitiesOfClass(AbstractContraptionEntity.class, searchAABB)) {
+                final Vec3 localPos = contraption.toLocalVector(checkPos, 1);
+                final StructureBlockInfo info = contraption.getContraption().getBlocks().get(BlockPos.containing(localPos));
+                if (info == null) {
+                    continue;
+                }
+                if (!info.state().is(AllBlocks.REDSTONE_CONTACT.get())) {
+                    continue;
+                }
+                final Direction dir = info.state().getValue(FACING);
+                final Vec3 checkVec = contraption.toGlobalVector(localPos.relative(dir, 0.65), 1);
+                final Vector3d checkP = new Vector3d(checkVec.x, checkVec.y, checkVec.z);
+                if (ship != null) {
+                    ship.getWorldToShip().transformPosition(checkP);
+                }
+                if (pos.equals(BlockPos.containing(checkP.x, checkP.y, checkP.z))) {
+                    foundBlock = null;
+                    found = true;
+                    break;
+                }
+            }
+            if (found) {
+                break;
+            }
         }
         if (!found) {
             final Vector3d foundPos = new Vector3d();
             for (final Ship targetShip : VSGameUtilsKt.getShipsIntersecting(level, searchAABB)) {
-                if (targetShip == ship) {
-                    continue;
-                }
                 for (final Vector3d checkPoint : checkPoints) {
                     targetShip.getWorldToShip().transformPosition(checkPoint, foundPos);
-                    foundBlock = BlockPos.containing(foundPos.x, foundPos.y, foundPos.z);
-                    if (hasContact(world, pos, direction, ship, foundBlock, targetShip)) {
-                        found = true;
+                    if (targetShip != ship) {
+                        foundBlock = BlockPos.containing(foundPos.x, foundPos.y, foundPos.z);
+                        if (hasContact(world, pos, direction, ship, foundBlock, targetShip)) {
+                            found = true;
+                            break;
+                        }
+                    }
+                    final Vec3 checkPos = new Vec3(foundPos.x, foundPos.y, foundPos.z);
+                    final AABB searchAABB2 = VectorConversionsMCKt.toMinecraft(
+                        VectorConversionsMCKt.toJOML(searchAABB).transform(targetShip.getWorldToShip())
+                    );
+                    for (final AbstractContraptionEntity contraption : world.getEntitiesOfClass(AbstractContraptionEntity.class, searchAABB2)) {
+                        final Vec3 localPos = contraption.toLocalVector(checkPos, 1);
+                        final StructureBlockInfo info = contraption.getContraption().getBlocks().get(BlockPos.containing(localPos));
+                        if (info == null) {
+                            continue;
+                        }
+                        if (!info.state().is(AllBlocks.REDSTONE_CONTACT.get())) {
+                            continue;
+                        }
+                        final Direction dir = info.state().getValue(FACING);
+                        final Vec3 checkVec = contraption.toGlobalVector(localPos.relative(dir, 0.65), 1);
+                        final Vector3d checkP = new Vector3d(checkVec.x, checkVec.y, checkVec.z);
+                        if (targetShip != ship) {
+                            targetShip.getShipToWorld().transformPosition(checkP);
+                            if (ship != null) {
+                                ship.getWorldToShip().transformPosition(checkP);
+                            }
+                        }
+                        if (pos.equals(BlockPos.containing(checkP.x, checkP.y, checkP.z))) {
+                            foundBlock = null;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (found) {
                         break;
                     }
                 }
@@ -179,9 +222,11 @@ public abstract class MixinRedstoneContactBlock extends WrenchableDirectionalBlo
         if (!found) {
             return;
         }
-        final BlockState targetState = world.getBlockState(foundBlock);
-        if (!targetState.getValue(POWERED)) {
-            level.setBlockAndUpdate(foundBlock, targetState.setValue(POWERED, true));
+        if (foundBlock != null) {
+            final BlockState targetState = world.getBlockState(foundBlock);
+            if (!targetState.getValue(POWERED)) {
+                level.setBlockAndUpdate(foundBlock, targetState.setValue(POWERED, true));
+            }
         }
         cir.setReturnValue(true);
     }
