@@ -12,7 +12,6 @@ import net.minecraft.core.Vec3i;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
-import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -31,9 +30,6 @@ public abstract class MixinChainConveyorRidingHandler {
     @Unique
     private static ClientShip vs$ridingShip;
 
-    @Unique
-    private static Vector3dc vs$prevPlayerPosInShip;
-
     @Inject(
         method = "embark",
         at = @At("HEAD")
@@ -41,7 +37,7 @@ public abstract class MixinChainConveyorRidingHandler {
     private static void preEmbark(BlockPos lift, float position, BlockPos connection, CallbackInfo ci) {
         vs$ridingShip = VSClientGameUtils.getClientShip(lift.getX(), lift.getY(), lift.getZ());
         Player player = Minecraft.getInstance().player;
-        if (player != null) ((IEntityDraggingInformationProvider)player).getDraggingInformation().setLastShipStoodOn(vs$ridingShip.getId());
+        if (player != null && vs$ridingShip != null) ((IEntityDraggingInformationProvider)player).getDraggingInformation().setLastShipStoodOn(vs$ridingShip.getId());
     }
 
     @Inject(
