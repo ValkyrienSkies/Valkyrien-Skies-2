@@ -37,96 +37,115 @@ import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 @Mixin(RedstoneContactBlock.class)
 public abstract class MixinRedstoneContactBlock extends WrenchableDirectionalBlock {
 
-    private static Map<Pair<Level, BlockPos>, BlockPos> contactCache = new HashMap<>();
-
     @Shadow
     @Final
     public static BooleanProperty POWERED;
     @Unique
-    private static final double MAX_ALIGNMENT_ANGLE = -0.93972176; //Mth.cos(20*(Mth.DEG_TO_RAD))
+    private static final double MAX_ALIGNMENT_ANGLE = -(1 - Math.cos(Math.toRadians(20)));
+
+    @Unique
+    private static final Map<Pair<Level, BlockPos>, BlockPos> CONTACT_CACHE = new HashMap<>();
 
     public MixinRedstoneContactBlock(Properties properties) {
         super(properties);
     }
 
+    @Override
+    public void onPlace(final BlockState state, final Level world, final BlockPos pos, final BlockState oldState, final boolean isMoving) {
+        if (!VSGameUtilsKt.isBlockInShipyard(world, pos)) {
+            return;
+        }
+        world.scheduleTick(pos, AllBlocks.REDSTONE_CONTACT.get(), 2, TickPriority.NORMAL);
+    }
+
     @Inject(method = "onRemove", at = @At("HEAD"))
-    private void injectOnRemove(BlockState state, Level worldIn, BlockPos pos, BlockState newState, boolean isMoving, CallbackInfo ci) {
+    private void injectOnRemove(BlockState state, Level world, BlockPos pos, BlockState newState, boolean isMoving, CallbackInfo ci) {
         if (state.getBlock() == this && newState.isAir()) {
-            Pair<Level, BlockPos> key = Pair.of(worldIn, pos);
-            if (state.getValue(POWERED) && contactCache.containsKey(key)) {
-                worldIn.scheduleTick(contactCache.get(key), AllBlocks.REDSTONE_CONTACT.get(), 2, TickPriority.NORMAL);
-                contactCache.remove(key);
+            final BlockPos peerPos = CONTACT_CACHE.remove(Pair.of(world, pos));
+            if (peerPos != null && state.getValue(POWERED)) {
+                world.scheduleTick(peerPos, AllBlocks.REDSTONE_CONTACT.get(), 2, TickPriority.NORMAL);
             }
         }
     }
 
     @Inject(method = "tick", at = @At(value = "INVOKE_ASSIGN", shift = At.Shift.BY, by = 2, target = "Lcom/simibubi/create/content/redstone/contact/RedstoneContactBlock;hasValidContact(Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;)Z"), locals = LocalCapture.CAPTURE_FAILHARD)
-    private void injectTick(BlockState state, ServerLevel worldIn, BlockPos pos, RandomSource random, CallbackInfo ci, boolean hasValidContact) {
-        if (VSGameUtilsKt.isBlockInShipyard(worldIn, pos)) {
-            Pair<Level, BlockPos> key = Pair.of(worldIn, pos);
-            if (!hasValidContact && state.getValue(POWERED) && contactCache.containsKey(key)) {
-                worldIn.scheduleTick(contactCache.get(key), AllBlocks.REDSTONE_CONTACT.get(), 2, TickPriority.NORMAL);
-                contactCache.remove(key);
-            }
-            worldIn.scheduleTick(pos, AllBlocks.REDSTONE_CONTACT.get(), 2, TickPriority.NORMAL);
+    private void injectTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random, CallbackInfo ci, boolean hasValidContact) {
+        if (!VSGameUtilsKt.isBlockInShipyard(world, pos)) {
+            return;
         }
+        final BlockPos peerPos = CONTACT_CACHE.remove(Pair.of(world, pos));
+        if (peerPos != null && !hasValidContact && state.getValue(POWERED)) {
+            world.scheduleTick(peerPos, AllBlocks.REDSTONE_CONTACT.get(), 2, TickPriority.NORMAL);
+        }
+        world.scheduleTick(pos, AllBlocks.REDSTONE_CONTACT.get(), 2, TickPriority.NORMAL);
     }
 
     @Unique
-    private static boolean hasContact(Level world, Ship ship, Vector3d searchPos, Direction direction, Ship shipItr) {
-        BlockState blockState = world.getBlockState(BlockPos.containing(VectorConversionsMCKt.toMinecraft(searchPos)));
-        if (AllBlocks.REDSTONE_CONTACT.has(blockState)) {
-            Vector3d worldDirection = toJOML(Vec3.atLowerCornerOf(direction.getNormal()));
-            Vector3d targetDirection = toJOML(Vec3.atLowerCornerOf(blockState.getValue(FACING).getNormal()));
-            if (ship != null) {
-                ship.getShipToWorld().transformDirection(worldDirection, worldDirection);
-            }
-            if (shipItr != null) {
-                shipItr.getShipToWorld().transformDirection(targetDirection, targetDirection);
-            }
-            double dotAngle = worldDirection.dot(targetDirection);
-            return dotAngle < MAX_ALIGNMENT_ANGLE;
+    private static boolean hasContact(LevelAccessor world, Ship ship, BlockPos searchPos, Direction direction, Ship targetShip) {
+        final BlockState blockState = world.getBlockState(searchPos);
+        if (!AllBlocks.REDSTONE_CONTACT.has(blockState)) {
+            return false;
         }
-        return false;
+        final Vector3d worldDirection = toJOML(Vec3.atLowerCornerOf(direction.getNormal()));
+        final Vector3d targetDirection = toJOML(Vec3.atLowerCornerOf(blockState.getValue(FACING).getNormal()));
+        if (ship != null) {
+            ship.getShipToWorld().transformDirection(worldDirection);
+        }
+        if (targetShip != null) {
+            targetShip.getShipToWorld().transformDirection(targetDirection);
+        }
+        final double angle = worldDirection.angleCos(targetDirection);
+        return angle < MAX_ALIGNMENT_ANGLE;
     }
 
     @Inject(method = "hasValidContact", at = @At("RETURN"), cancellable = true)
     private static void injectHasValidContact(LevelAccessor world, BlockPos pos, Direction direction, CallbackInfoReturnable<Boolean> cir) {
-        boolean result = false;
-        Level worldLevel = (Level) world;
-        BlockState blockState = world.getBlockState(pos.relative(direction));
+        if (cir.getReturnValueZ()) {
+            return;
+        }
+        final Level level = (Level) (world);
+        final BlockPos detectPos = pos.relative(direction);
+        final BlockState blockState = world.getBlockState(detectPos);
         if (AllBlocks.REDSTONE_CONTACT.has(blockState)) {
             cir.setReturnValue(blockState.getValue(FACING) == direction.getOpposite());
-        } else {
-
-            AABB searchAABB = new AABB(pos.relative(direction));
-            Vector3d searchPos = toJOML(Vec3.atCenterOf(pos.relative(direction)));
-            Ship ship = VSGameUtilsKt.getShipManagingPos(worldLevel, pos);
-            if (VSGameUtilsKt.isBlockInShipyard(worldLevel, pos) && ship != null) {
-                Vector3d tempVec = toJOML(Vec3.atCenterOf(pos.relative(direction)));
-                searchPos = ship.getShipToWorld().transformPosition(tempVec, new Vector3d());
-                ship.getShipToWorld().transformPosition(tempVec, tempVec);
-                double bounds = 0.25;
-                searchAABB = new AABB(tempVec.x - bounds, tempVec.y - bounds, tempVec.z - bounds,
-                        tempVec.x + bounds, tempVec.y + bounds, tempVec.z + bounds);
-
-                result = hasContact(worldLevel, ship, searchPos, direction, null);
-            }
-            Iterator<Ship> ships = VSGameUtilsKt.getShipsIntersecting(worldLevel, searchAABB).iterator();
-            if (ships.hasNext() && !result) {
-                do {
-                    Ship shipItr = ships.next();
-                    if (shipItr == ship) continue;
-                    Vector3d newSearchPos = shipItr.getWorldToShip().transformPosition(searchPos, new Vector3d());
-                    result = hasContact(worldLevel, ship, newSearchPos, direction, shipItr);
-                    if (result) searchPos = newSearchPos;
-                } while (ships.hasNext() && !result);
-            }
-            if (result) {
-                contactCache.put(Pair.of(worldLevel, pos), BlockPos.containing(VectorConversionsMCKt.toMinecraft(searchPos)));
-                world.scheduleTick(BlockPos.containing(VectorConversionsMCKt.toMinecraft(searchPos)), AllBlocks.REDSTONE_CONTACT.get(), 2, TickPriority.NORMAL);
-            }
-            cir.setReturnValue(result);
+            return;
         }
+        final Vec3 searchPoint = detectPos.getCenter();
+        final Vector3d searchPos = toJOML(searchPoint);
+        final Ship ship = VSGameUtilsKt.getShipManagingPos(level, pos);
+        if (ship != null) {
+            ship.getShipToWorld().transformPosition(searchPos);
+        }
+        final double bounds = 0.25;
+        final AABB searchAABB = new AABB(
+            searchPos.x - bounds, searchPos.y - bounds, searchPos.z - bounds,
+            searchPos.x + bounds, searchPos.y + bounds, searchPos.z + bounds
+        );
+        final Vector3d foundPos = new Vector3d(searchPos);
+        BlockPos foundBlock = BlockPos.containing(VectorConversionsMCKt.toMinecraft(foundPos));
+        boolean found = hasContact(world, ship, foundBlock, direction, null);
+        if (!found) {
+            for (final Ship targetShip : VSGameUtilsKt.getShipsIntersecting(level, searchAABB)) {
+                if (targetShip == ship) {
+                    continue;
+                }
+                targetShip.getWorldToShip().transformPosition(searchPos, foundPos);
+                foundBlock = BlockPos.containing(VectorConversionsMCKt.toMinecraft(foundPos));
+                if (hasContact(world, ship, foundBlock, direction, targetShip)) {
+                    found = true;
+                    break;
+                }
+            }
+        }
+        if (!found) {
+            return;
+        }
+        final BlockState targetState = world.getBlockState(foundBlock);
+        CONTACT_CACHE.put(Pair.of(level, pos), foundBlock);
+        if (!targetState.getValue(POWERED)) {
+            level.setBlockAndUpdate(foundBlock, targetState.setValue(POWERED, true));
+        }
+        world.scheduleTick(foundBlock, AllBlocks.REDSTONE_CONTACT.get(), 2, TickPriority.NORMAL);
+        cir.setReturnValue(true);
     }
 }
