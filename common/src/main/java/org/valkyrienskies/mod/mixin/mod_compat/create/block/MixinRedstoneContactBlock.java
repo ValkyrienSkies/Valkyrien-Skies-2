@@ -35,22 +35,38 @@ public abstract class MixinRedstoneContactBlock extends WrenchableDirectionalBlo
     @Shadow
     @Final
     public static BooleanProperty POWERED;
+    @Unique
     private static final double CHECK_BOUND = 2.0 / 16;
+    @Unique
     private static final double INTERSECT_BOUND = CHECK_BOUND + 0.1;
     @Unique
     private static final double MAX_ALIGNMENT_ANGLE = -(1 - Math.cos(Math.toRadians(20)));
 
-    public MixinRedstoneContactBlock(Properties properties) {
-        super(properties);
+    protected MixinRedstoneContactBlock() {
+        super(null);
     }
 
     @Override
-    public void onPlace(final BlockState state, final Level world, final BlockPos pos, final BlockState oldState, final boolean isMoving) {
+    public void onPlace(
+        final BlockState state,
+        final Level world,
+        final BlockPos pos,
+        final BlockState oldState,
+        final boolean isMoving
+    ) {
+        super.onPlace(state, world, pos, oldState, isMoving);
         world.scheduleTick(pos, AllBlocks.REDSTONE_CONTACT.get(), 2, TickPriority.NORMAL);
     }
 
     @Inject(method = "tick", at = @At(value = "INVOKE_ASSIGN", shift = At.Shift.BY, by = 2, target = "Lcom/simibubi/create/content/redstone/contact/RedstoneContactBlock;hasValidContact(Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;)Z"), locals = LocalCapture.CAPTURE_FAILHARD)
-    private void injectTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random, CallbackInfo ci, boolean hasValidContact) {
+    private void injectTick(
+        final BlockState state,
+        final ServerLevel world,
+        final BlockPos pos,
+        final RandomSource random,
+        final CallbackInfo ci,
+        final boolean hasValidContact
+    ) {
         world.scheduleTick(pos, AllBlocks.REDSTONE_CONTACT.get(), 2, TickPriority.NORMAL);
     }
 
@@ -102,7 +118,12 @@ public abstract class MixinRedstoneContactBlock extends WrenchableDirectionalBlo
     }
 
     @Inject(method = "hasValidContact", at = @At("RETURN"), cancellable = true)
-    private static void injectHasValidContact(LevelAccessor world, BlockPos pos, Direction direction, CallbackInfoReturnable<Boolean> cir) {
+    private static void injectHasValidContact(
+        final LevelAccessor world,
+        final BlockPos pos,
+        final Direction direction,
+        final CallbackInfoReturnable<Boolean> cir
+    ) {
         if (cir.getReturnValueZ()) {
             return;
         }
