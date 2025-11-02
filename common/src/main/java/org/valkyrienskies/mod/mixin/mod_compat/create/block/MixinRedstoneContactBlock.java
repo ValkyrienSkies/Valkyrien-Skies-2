@@ -1,14 +1,8 @@
 package org.valkyrienskies.mod.mixin.mod_compat.create.block;
 
-import static org.valkyrienskies.mod.common.util.VectorConversionsMCKt.toJOML;
-
-import com.mojang.datafixers.util.Pair;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.content.redstone.contact.RedstoneContactBlock;
 import com.simibubi.create.foundation.block.WrenchableDirectionalBlock;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
@@ -20,6 +14,7 @@ import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.ticks.TickPriority;
+import org.joml.Matrix4dc;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -40,11 +35,10 @@ public abstract class MixinRedstoneContactBlock extends WrenchableDirectionalBlo
     @Shadow
     @Final
     public static BooleanProperty POWERED;
+    private static final double CHECK_BOUND = 2.0 / 16;
+    private static final double INTERSECT_BOUND = CHECK_BOUND + 0.1;
     @Unique
     private static final double MAX_ALIGNMENT_ANGLE = -(1 - Math.cos(Math.toRadians(20)));
-
-    @Unique
-    private static final Map<Pair<Level, BlockPos>, BlockPos> CONTACT_CACHE = new HashMap<>();
 
     public MixinRedstoneContactBlock(Properties properties) {
         super(properties);
@@ -52,50 +46,59 @@ public abstract class MixinRedstoneContactBlock extends WrenchableDirectionalBlo
 
     @Override
     public void onPlace(final BlockState state, final Level world, final BlockPos pos, final BlockState oldState, final boolean isMoving) {
-        if (!VSGameUtilsKt.isBlockInShipyard(world, pos)) {
-            return;
-        }
         world.scheduleTick(pos, AllBlocks.REDSTONE_CONTACT.get(), 2, TickPriority.NORMAL);
-    }
-
-    @Inject(method = "onRemove", at = @At("HEAD"))
-    private void injectOnRemove(BlockState state, Level world, BlockPos pos, BlockState newState, boolean isMoving, CallbackInfo ci) {
-        if (state.getBlock() == this && newState.isAir()) {
-            final BlockPos peerPos = CONTACT_CACHE.remove(Pair.of(world, pos));
-            if (peerPos != null && state.getValue(POWERED)) {
-                world.scheduleTick(peerPos, AllBlocks.REDSTONE_CONTACT.get(), 2, TickPriority.NORMAL);
-            }
-        }
     }
 
     @Inject(method = "tick", at = @At(value = "INVOKE_ASSIGN", shift = At.Shift.BY, by = 2, target = "Lcom/simibubi/create/content/redstone/contact/RedstoneContactBlock;hasValidContact(Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;)Z"), locals = LocalCapture.CAPTURE_FAILHARD)
     private void injectTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random, CallbackInfo ci, boolean hasValidContact) {
-        if (!VSGameUtilsKt.isBlockInShipyard(world, pos)) {
-            return;
-        }
-        final BlockPos peerPos = CONTACT_CACHE.remove(Pair.of(world, pos));
-        if (peerPos != null && !hasValidContact && state.getValue(POWERED)) {
-            world.scheduleTick(peerPos, AllBlocks.REDSTONE_CONTACT.get(), 2, TickPriority.NORMAL);
-        }
         world.scheduleTick(pos, AllBlocks.REDSTONE_CONTACT.get(), 2, TickPriority.NORMAL);
     }
 
     @Unique
-    private static boolean hasContact(LevelAccessor world, Ship ship, BlockPos searchPos, Direction direction, Ship targetShip) {
-        final BlockState blockState = world.getBlockState(searchPos);
+    private static boolean hasContact(
+        final LevelAccessor world,
+        final BlockPos selfPos,
+        final Direction selfDir,
+        final Ship ship,
+        final BlockPos targetPos,
+        final Ship targetShip
+    ) {
+        final BlockState blockState = world.getBlockState(targetPos);
         if (!AllBlocks.REDSTONE_CONTACT.has(blockState)) {
             return false;
         }
-        final Vector3d worldDirection = toJOML(Vec3.atLowerCornerOf(direction.getNormal()));
-        final Vector3d targetDirection = toJOML(Vec3.atLowerCornerOf(blockState.getValue(FACING).getNormal()));
+        final Direction targetDir = blockState.getValue(FACING);
+        final Vector3d selfDirection = new Vector3d(selfDir.getStepX(), selfDir.getStepY(), selfDir.getStepZ());
+        final Vector3d targetDirection = new Vector3d(targetDir.getStepX(), targetDir.getStepY(), targetDir.getStepZ());
         if (ship != null) {
-            ship.getShipToWorld().transformDirection(worldDirection);
+            ship.getShipToWorld().transformDirection(selfDirection);
         }
         if (targetShip != null) {
             targetShip.getShipToWorld().transformDirection(targetDirection);
         }
-        final double angle = worldDirection.angleCos(targetDirection);
-        return angle < MAX_ALIGNMENT_ANGLE;
+        final double angle = selfDirection.angleCos(targetDirection);
+        if (angle > MAX_ALIGNMENT_ANGLE) {
+            return false;
+        }
+        final Vector3d[] checkPoints = makeCheckPoints(targetPos.relative(targetDir).getCenter(), targetDir);
+        if (targetShip != null) {
+            final Matrix4dc shipMat = targetShip.getShipToWorld();
+            for (final Vector3d checkPoint : checkPoints) {
+                shipMat.transformPosition(checkPoint);
+            }
+        }
+        if (ship != null) {
+            final Matrix4dc shipMat = ship.getWorldToShip();
+            for (final Vector3d checkPoint : checkPoints) {
+                shipMat.transformPosition(checkPoint);
+            }
+        }
+        for (final Vector3d checkPoint : checkPoints) {
+            if (selfPos.equals(BlockPos.containing(checkPoint.x, checkPoint.y, checkPoint.z))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Inject(method = "hasValidContact", at = @At("RETURN"), cancellable = true)
@@ -110,29 +113,44 @@ public abstract class MixinRedstoneContactBlock extends WrenchableDirectionalBlo
             cir.setReturnValue(blockState.getValue(FACING) == direction.getOpposite());
             return;
         }
-        final Vec3 searchPoint = detectPos.getCenter();
-        final Vector3d searchPos = toJOML(searchPoint);
+        final Vec3 point = detectPos.getCenter();
+        final Vector3d[] checkPoints = makeCheckPoints(point, direction);
         final Ship ship = VSGameUtilsKt.getShipManagingPos(level, pos);
         if (ship != null) {
-            ship.getShipToWorld().transformPosition(searchPos);
+            final Matrix4dc shipMat = ship.getShipToWorld();
+            for (final Vector3d checkPoint : checkPoints) {
+                shipMat.transformPosition(checkPoint);
+            }
         }
-        final double bounds = 0.25;
-        final AABB searchAABB = new AABB(
-            searchPos.x - bounds, searchPos.y - bounds, searchPos.z - bounds,
-            searchPos.x + bounds, searchPos.y + bounds, searchPos.z + bounds
-        );
-        final Vector3d foundPos = new Vector3d(searchPos);
-        BlockPos foundBlock = BlockPos.containing(VectorConversionsMCKt.toMinecraft(foundPos));
-        boolean found = hasContact(world, ship, foundBlock, direction, null);
+        final AABB searchAABB = VSGameUtilsKt.transformAabbToWorld(level, new AABB(
+            point.x - INTERSECT_BOUND, point.y - INTERSECT_BOUND, point.z - INTERSECT_BOUND,
+            point.x + INTERSECT_BOUND, point.y + INTERSECT_BOUND, point.z + INTERSECT_BOUND
+        ));
+        BlockPos foundBlock = null;
+        boolean found = false;
+
+        for (final Vector3d checkPoint : checkPoints) {
+            foundBlock = BlockPos.containing(checkPoint.x, checkPoint.y, checkPoint.z);
+            if (hasContact(world, pos, direction, ship, foundBlock, null)) {
+                found = true;
+                break;
+            }
+        }
         if (!found) {
+            final Vector3d foundPos = new Vector3d();
             for (final Ship targetShip : VSGameUtilsKt.getShipsIntersecting(level, searchAABB)) {
                 if (targetShip == ship) {
                     continue;
                 }
-                targetShip.getWorldToShip().transformPosition(searchPos, foundPos);
-                foundBlock = BlockPos.containing(VectorConversionsMCKt.toMinecraft(foundPos));
-                if (hasContact(world, ship, foundBlock, direction, targetShip)) {
-                    found = true;
+                for (final Vector3d checkPoint : checkPoints) {
+                    targetShip.getWorldToShip().transformPosition(checkPoint, foundPos);
+                    foundBlock = BlockPos.containing(foundPos.x, foundPos.y, foundPos.z);
+                    if (hasContact(world, pos, direction, ship, foundBlock, targetShip)) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (found) {
                     break;
                 }
             }
@@ -141,11 +159,33 @@ public abstract class MixinRedstoneContactBlock extends WrenchableDirectionalBlo
             return;
         }
         final BlockState targetState = world.getBlockState(foundBlock);
-        CONTACT_CACHE.put(Pair.of(level, pos), foundBlock);
         if (!targetState.getValue(POWERED)) {
             level.setBlockAndUpdate(foundBlock, targetState.setValue(POWERED, true));
         }
-        world.scheduleTick(foundBlock, AllBlocks.REDSTONE_CONTACT.get(), 2, TickPriority.NORMAL);
         cir.setReturnValue(true);
+    }
+
+    @Unique
+    private static Vector3d[] makeCheckPoints(final Vec3 point, final Direction direction) {
+        return switch (direction.getAxis()) {
+            case X -> new Vector3d[]{
+                new Vector3d(point.x, point.y - CHECK_BOUND, point.z - CHECK_BOUND),
+                new Vector3d(point.x, point.y - CHECK_BOUND, point.z + CHECK_BOUND),
+                new Vector3d(point.x, point.y + CHECK_BOUND, point.z - CHECK_BOUND),
+                new Vector3d(point.x, point.y + CHECK_BOUND, point.z + CHECK_BOUND)
+            };
+            case Y -> new Vector3d[]{
+                new Vector3d(point.x - CHECK_BOUND, point.y, point.z - CHECK_BOUND),
+                new Vector3d(point.x - CHECK_BOUND, point.y, point.z + CHECK_BOUND),
+                new Vector3d(point.x + CHECK_BOUND, point.y, point.z - CHECK_BOUND),
+                new Vector3d(point.x + CHECK_BOUND, point.y, point.z + CHECK_BOUND)
+            };
+            case Z -> new Vector3d[]{
+                new Vector3d(point.x - CHECK_BOUND, point.y - CHECK_BOUND, point.z),
+                new Vector3d(point.x - CHECK_BOUND, point.y + CHECK_BOUND, point.z),
+                new Vector3d(point.x + CHECK_BOUND, point.y - CHECK_BOUND, point.z),
+                new Vector3d(point.x + CHECK_BOUND, point.y + CHECK_BOUND, point.z)
+            };
+        };
     }
 }
