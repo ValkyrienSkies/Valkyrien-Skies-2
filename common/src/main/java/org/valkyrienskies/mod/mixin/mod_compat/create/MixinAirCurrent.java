@@ -117,7 +117,7 @@ public abstract class MixinAirCurrent {
             final BlockHitResult result = level.clip(new AirFlowClipContext(level, start, startPos, endPos));
 
             // Convert world space distance to ship space distance by dividing by shipScale
-            cir.setReturnValue((float) (result.getLocation().distanceTo(startPos) / shipScale));
+            cir.setReturnValue((float) (result.getLocation().distanceTo(startPos) / shipScale) + 2e-6);
         } else {
             final BlockPos end = start.relative(facing, (int) (Math.ceil(flowLimit)));
             if (
@@ -131,7 +131,7 @@ public abstract class MixinAirCurrent {
                 final Vec3 startPos = Vec3.atCenterOf(start).add(facing.getStepX() * 0.5, facing.getStepY() * 0.5, facing.getStepZ() * 0.5);
                 final Vec3 endPos = Vec3.atCenterOf(end).add(facing.getStepX() * 0.5, facing.getStepY() * 0.5, facing.getStepZ() * 0.5);
                 final BlockHitResult result = level.clip(new AirFlowClipContext(level, start, startPos, endPos));
-                cir.setReturnValue(Math.min((float) (result.getLocation().distanceTo(startPos)), flowLimit));
+                cir.setReturnValue(Math.min((float) (result.getLocation().distanceTo(startPos) + 2e-6), flowLimit));
             }
         }
     }
