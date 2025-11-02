@@ -15,15 +15,20 @@ import net.minecraft.world.phys.EntityHitResult
 import net.minecraft.world.phys.HitResult
 import net.minecraft.world.phys.Vec3
 import org.apache.logging.log4j.LogManager
+import org.joml.Intersectionf
+import org.joml.Vector2d
 import org.joml.Vector3d
 import org.joml.primitives.AABBd
 import org.joml.primitives.AABBdc
+import org.joml.primitives.LineSegmentf
 import org.valkyrienskies.core.api.ships.properties.ShipId
 import org.valkyrienskies.core.game.ships.ShipObjectClient
+import org.valkyrienskies.core.util.expand
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toMinecraft
 import org.valkyrienskies.mod.util.scale
+import java.util.Vector
 import java.util.function.BiFunction
 import java.util.function.Function
 import java.util.function.Predicate
@@ -52,18 +57,49 @@ fun Level.clipIncludeShips(
     var closestHitDist = closestHitPos.distanceToSqr(ctx.from)
 
     val clipAABB: AABBdc = AABBd(ctx.from.toJOML(), ctx.to.toJOML()).correctBounds()
+    val clipSegment = LineSegmentf(ctx.from.toVector3f(), ctx.to.toVector3f())
 
     // Iterate every ship, find do the raycast in ship space,
     // choose the raycast with the lowest distance to the start position.
     for (ship in shipObjectWorld.loadedShips.getIntersecting(clipAABB)) {
+        val chopParam = Vector2d()
+        // Pad AABB size to increase raycast tolerance
+        val expandedAABB = AABBd(ship.worldAABB).expand(1.0)
+        val intersectType = expandedAABB.intersectsLineSegment(clipSegment, chopParam);
+        if (intersectType == Intersectionf.OUTSIDE) {
+            continue
+        }
         // Skip skipShip
         if (ship.id == skipShip) {
             continue
         }
+
+        var choppedFrom: Vector3d
+        var choppedTo : Vector3d
+        if (intersectType == Intersectionf.TWO_INTERSECTION) {
+            choppedFrom = ctx.from.toJOML().add(ctx.to.toJOML().sub(ctx.from.toJOML()).mul(chopParam.x))
+            choppedTo = ctx.from.toJOML().add(ctx.to.toJOML().sub(ctx.from.toJOML()).mul(chopParam.y))
+
+        } else if (intersectType == Intersectionf.ONE_INTERSECTION) {
+            // This intersection type will result in both calculations above returning the same point,
+            // and thus we need to determine which point is inside the AABB to recover.
+            if (expandedAABB.containsPoint(ctx.from.toJOML())) {
+                choppedFrom = ctx.from.toJOML()
+                choppedTo = ctx.from.toJOML().add(ctx.to.toJOML().sub(ctx.from.toJOML()).mul(chopParam.y))
+            } else {
+                choppedFrom = ctx.from.toJOML().add(ctx.to.toJOML().sub(ctx.from.toJOML()).mul(chopParam.x))
+                choppedTo = ctx.to.toJOML()
+            }
+
+        } else {
+            choppedFrom = ctx.from.toJOML()
+            choppedTo = ctx.to.toJOML()
+        }
+
         val worldToShip = (ship as? ShipObjectClient)?.renderTransform?.worldToShipMatrix ?: ship.worldToShip
         val shipToWorld = (ship as? ShipObjectClient)?.renderTransform?.shipToWorldMatrix ?: ship.shipToWorld
-        val shipStart = worldToShip.transformPosition(ctx.from.toJOML()).toMinecraft()
-        val shipEnd = worldToShip.transformPosition(ctx.to.toJOML()).toMinecraft()
+        val shipStart = worldToShip.transformPosition(choppedFrom).toMinecraft()
+        val shipEnd = worldToShip.transformPosition(choppedTo).toMinecraft()
 
         val shipHit = clip(ctx, shipStart, shipEnd)
         val shipHitPos = shipToWorld.transformPosition(shipHit.location.toJOML()).toMinecraft()
