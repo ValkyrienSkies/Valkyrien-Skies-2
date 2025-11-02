@@ -1,10 +1,13 @@
 package org.valkyrienskies.mod.common.entity.handling
 
 import com.mojang.blaze3d.vertex.PoseStack
+import com.mojang.logging.LogUtils
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.entity.EntityRenderer
 import net.minecraft.world.entity.Entity
+import net.minecraft.world.entity.projectile.AbstractArrow
 import net.minecraft.world.entity.projectile.AbstractHurtingProjectile
+import net.minecraft.world.entity.projectile.Projectile
 import net.minecraft.world.entity.projectile.ProjectileUtil
 import org.joml.Quaternionf
 import org.joml.Vector3d
@@ -79,17 +82,31 @@ abstract class AbstractShipyardEntityHandler : VSEntityHandler {
         entity.yo = shipyardPos.y
         entity.zo = shipyardPos.z
 
-        val direction = ship.shipToWorld.transformDirection(entity.lookAngle.toJOML()) // I thought this should be world to ship, but it was ship to world. I have no idea why. -Bunting_chj
-        val yaw = atan2(-direction.x, direction.z)
-        val pitch = -atan2(direction.y, sqrt((direction.x * direction.x) + (direction.z * direction.z)))
+
+        val direction : Vector3d
+        val yaw : Double
+        val pitch : Double
+
+        if (entity is AbstractArrow) {
+            direction = entity.deltaMovement.toJOML()
+            yaw = atan2(direction.x, direction.z)
+            pitch = atan2(direction.y, sqrt((direction.x * direction.x) + (direction.z * direction.z)))
+        } else {
+            direction = ship.worldToShip.transformDirection(entity.lookAngle.toJOML())
+            yaw = atan2(-direction.x, direction.z)
+            pitch = atan2(direction.y, sqrt((direction.x * direction.x) + (direction.z * direction.z)))
+        }
+
         entity.yRot = (yaw * (180 / Math.PI)).toFloat()
         entity.xRot = (pitch * (180 / Math.PI)).toFloat()
+        LogUtils.getLogger().info("Yaw {}, Pitch {}", entity.yRot, entity.xRot)
         entity.yRotO = entity.yRot
         entity.xRotO = entity.xRot
 
         if (entity is AbstractHurtingProjectile) {
             val power = Vector3d(entity.xPower, entity.yPower, entity.zPower)
-            ship.transform.shipToWorld.transformDirection(power)
+            ship.worldToShip.transformDirection(power)
+
             entity.xPower = power.x
             entity.yPower = power.y
             entity.zPower = power.z
