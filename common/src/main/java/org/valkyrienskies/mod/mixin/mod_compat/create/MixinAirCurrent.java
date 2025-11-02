@@ -3,7 +3,6 @@ package org.valkyrienskies.mod.mixin.mod_compat.create;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
-import com.simibubi.create.content.decoration.copycat.CopycatBlock;
 import com.simibubi.create.content.kinetics.belt.behaviour.TransportedItemStackHandlerBehaviour;
 import com.simibubi.create.content.kinetics.fan.AirCurrent;
 import com.simibubi.create.content.kinetics.fan.IAirCurrentSource;
@@ -18,15 +17,11 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.Vec3i;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.level.BlockGetter;
-import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
-import net.minecraft.world.phys.shapes.Shapes;
-import net.minecraft.world.phys.shapes.VoxelShape;
 import org.apache.commons.lang3.tuple.Pair;
 import org.joml.Intersectionf;
 import org.joml.Matrix4d;
@@ -53,6 +48,7 @@ import org.valkyrienskies.mod.common.entity.handling.VSEntityManager;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 import org.valkyrienskies.mod.compat.create.AdvancedAirCurrentSegment;
+import org.valkyrienskies.mod.compat.create.AirFlowClipContext;
 import org.valkyrienskies.mod.mixinducks.mod_compat.create.IExtendedAirCurrentSource;
 import org.valkyrienskies.mod.util.AdvancedBlockWalker;
 
@@ -114,29 +110,37 @@ public abstract class MixinAirCurrent {
             direction.mul(flowLimit);
             final Vec3 startPos = VectorConversionsMCKt.toMinecraft(startVec);
             final Vec3 endPos = VectorConversionsMCKt.toMinecraft(startVec.add(direction.x, direction.y, direction.z));
-            final BlockHitResult result = level.clip(new AirFlowClipContext(level, start, startPos, endPos));
+            final BlockHitResult result = level.clip(new AirFlowClipContext(level, start, startPos, endPos, MixinAirCurrent::shouldAlwaysPass));
 
             // Convert world space distance to ship space distance by dividing by shipScale
-            cir.setReturnValue((float) (result.getLocation().distanceTo(startPos) / shipScale) + 2e-6);
-        } else {
-            final BlockPos end = start.relative(facing, (int) (Math.ceil(flowLimit)));
-            if (
-                VSGameUtilsKt.getShipsIntersecting(
-                    level,
-                    new AABB(start.getX(), start.getY(), start.getZ(), end.getX() + 1, end.getY() + 1, end.getZ() + 1)
-                )
-                    .iterator()
-                    .hasNext()
-            ) {
-                final Vec3 startPos = Vec3.atCenterOf(start).add(facing.getStepX() * 0.5, facing.getStepY() * 0.5, facing.getStepZ() * 0.5);
-                final Vec3 endPos = Vec3.atCenterOf(end).add(facing.getStepX() * 0.5, facing.getStepY() * 0.5, facing.getStepZ() * 0.5);
-                final BlockHitResult result = level.clip(new AirFlowClipContext(level, start, startPos, endPos));
-                cir.setReturnValue(Math.min((float) (result.getLocation().distanceTo(startPos) + 2e-6), flowLimit));
-            }
+            cir.setReturnValue((float) (result.getLocation().distanceTo(startPos) / shipScale + 2e-6));
+            return;
+        }
+        final BlockPos end = start.relative(facing, (int) (Math.ceil(flowLimit)));
+        if (
+            VSGameUtilsKt.getShipsIntersecting(
+                level,
+                new AABB(start.getX(), start.getY(), start.getZ(), end.getX() + 1, end.getY() + 1, end.getZ() + 1)
+            )
+                .iterator()
+                .hasNext()
+        ) {
+            final Vec3 startPos = Vec3.atCenterOf(start).add(facing.getStepX() * 0.5, facing.getStepY() * 0.5, facing.getStepZ() * 0.5);
+            final Vec3 endPos = Vec3.atCenterOf(end).add(facing.getStepX() * 0.5, facing.getStepY() * 0.5, facing.getStepZ() * 0.5);
+            final BlockHitResult result = level.clip(new AirFlowClipContext(level, start, startPos, endPos, MixinAirCurrent::shouldAlwaysPass));
+            cir.setReturnValue(Math.min((float) (result.getLocation().distanceTo(startPos) + 2e-6), flowLimit));
         }
     }
 
-    @Inject(method = "rebuild", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/kinetics/fan/IAirCurrentSource;getAirCurrentWorld()Lnet/minecraft/world/level/Level;"), remap = false)
+    @Inject(
+        method = "rebuild",
+        at = @At(
+            value = "INVOKE",
+            target = "Lcom/simibubi/create/content/kinetics/fan/IAirCurrentSource;getAirCurrentWorld()Lnet/minecraft/world/level/Level;",
+            remap = true
+        ),
+        remap = false
+    )
     private void calcScaling(CallbackInfo ci) {
         Ship ship = this.getShip();
         if (ship != null) {
@@ -380,31 +384,5 @@ public abstract class MixinAirCurrent {
             }
         }
         return null;
-    }
-
-    private static final class AirFlowClipContext extends ClipContext {
-        private final Level level;
-        private final BlockPos source;
-        private final Ship sourceShip;
-
-        public AirFlowClipContext(final Level level, final BlockPos source, final Vec3 from, final Vec3 to) {
-            super(from, to, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, null);
-            this.level = level;
-            this.source = source;
-            this.sourceShip = VSGameUtilsKt.getShipManagingPos(level, source);
-        }
-
-        @Override
-        public VoxelShape getBlockShape(final BlockState state, final BlockGetter level, final BlockPos pos) {
-            // Ignore collision check on the same ship since create already handle it in a better way
-            if (this.sourceShip == VSGameUtilsKt.getShipManagingPos(this.level, pos)) {
-                return Shapes.empty();
-            }
-            final BlockState copycat = CopycatBlock.getMaterial(level, pos);
-            if (shouldAlwaysPass(copycat.isAir() ? state : copycat)) {
-                return Shapes.empty();
-            }
-            return super.getBlockShape(state, level, pos);
-        }
     }
 }
