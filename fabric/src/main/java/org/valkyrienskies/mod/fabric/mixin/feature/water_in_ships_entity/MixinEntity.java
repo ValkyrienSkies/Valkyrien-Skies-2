@@ -77,7 +77,7 @@ public abstract class MixinEntity {
         cancellable = true
     )
     // Overwrite the vanilla method, since it's written in a way that's really hard to precisely mixin into.
-    private void afterFluidStateUpdate(final TagKey<Fluid> tagKey, final double d,
+    private void inShipFluidPush(final TagKey<Fluid> tagKey, final double d,
         final CallbackInfoReturnable<Boolean> cir) {
 
         if (this.touchingUnloadedChunk()) {

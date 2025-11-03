@@ -1,8 +1,10 @@
 package org.valkyrienskies.mod.forge.mixin.feature.water_in_ships_entity;
 
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import it.unimi.dsi.fastutil.objects.Object2ObjectArrayMap;
+import java.util.function.Predicate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
@@ -67,8 +69,8 @@ public abstract class MixinEntity {
         cancellable = true
     )
     // Overwrite the forge method, since it's written in a way that's really hard to precisely mixin into.
-    private void afterFluidStateUpdate(final CallbackInfo callbackInfo) {
-        if (this.touchingUnloadedChunk()) {
+    private void inShipFluidPush(final CallbackInfo callbackInfo) {
+       if (this.touchingUnloadedChunk()) {
             return;
         }
         VSGameUtilsKt.transformFromWorldToNearbyShipsAndWorld(level, this.getBoundingBox().deflate(0.001), aabb -> {
