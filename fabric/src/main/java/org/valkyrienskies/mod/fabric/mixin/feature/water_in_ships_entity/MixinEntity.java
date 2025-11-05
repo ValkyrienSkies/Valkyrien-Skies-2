@@ -94,8 +94,7 @@ public abstract class MixinEntity {
 
     @ModifyVariable(
         method = "updateFluidHeightAndDoFluidPushing",
-        at = @At("STORE"),
-        remap = false
+        at = @At("STORE")
     )
     private AABB setFluidPushInShipContext(AABB original) {
         if (inShipContext())
