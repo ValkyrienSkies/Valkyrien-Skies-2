@@ -1,0 +1,3 @@
+- Fixed train stations not being placeable on ships
+- Fixed create fans not processing depots in the world
+- Fixed/polished up the redstone contact compat with ships
