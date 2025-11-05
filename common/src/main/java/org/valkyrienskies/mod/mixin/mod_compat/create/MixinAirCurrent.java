@@ -356,6 +356,9 @@ public abstract class MixinAirCurrent {
                 if (behaviour == null) {
                     continue;
                 }
+                // Move the check point towards the block center for a bit,
+                // so getTypeAt0 can correctly handle the case that a depot is
+                // right after a processor.
                 double dist = data.distance() + EPS3;
                 if (dist > this.maxDistance) {
                     dist = this.maxDistance;
