@@ -54,6 +54,8 @@ import org.valkyrienskies.mod.util.AdvancedBlockWalker;
 
 @Mixin(value = AirCurrent.class)
 public abstract class MixinAirCurrent {
+    @Unique
+    private static final boolean[] FALSE_THEN_TRUE = new boolean[]{false, true};
 
     @Shadow
     @Final
@@ -316,39 +318,29 @@ public abstract class MixinAirCurrent {
 
         final Set<BlockPos> processed = new HashSet<>();
 
-        for (final AdvancedBlockWalker.BlockPosWithDistance data : datas) {
-            final BlockPos pos = data.pos();
-            final TransportedItemStackHandlerBehaviour behaviour =
-                BlockEntityBehaviour.get(level, pos, TransportedItemStackHandlerBehaviour.TYPE);
-            if (behaviour == null) {
-                continue;
+        // Process below blocks such as depot, after processed all blocks on the path,
+        // so vertical current will process with correct FanProcessingType.
+        for (final boolean checkBelow : FALSE_THEN_TRUE) {
+            for (final AdvancedBlockWalker.BlockPosWithDistance data : datas) {
+                final BlockPos pos = checkBelow ? data.pos().below() : data.pos();
+                final TransportedItemStackHandlerBehaviour behaviour =
+                    BlockEntityBehaviour.get(level, pos, TransportedItemStackHandlerBehaviour.TYPE);
+                if (behaviour == null) {
+                    continue;
+                }
+                final double dist = data.distance();
+                if (dist > this.maxDistance) {
+                    continue;
+                }
+                if (!processed.add(pos)) {
+                    continue;
+                }
+                FanProcessingType type = FanProcessingType.getAt(level, pos);
+                if (type == null) {
+                    type = this.getTypeAt0(dist);
+                }
+                this.affectedItemHandlers.add(Pair.of(behaviour, type));
             }
-            if (!processed.add(pos)) {
-                continue;
-            }
-            FanProcessingType type = FanProcessingType.getAt(level, pos);
-            if (type == null) {
-                type = this.getTypeAt0(data.distance());
-            }
-            this.affectedItemHandlers.add(Pair.of(behaviour, type));
-        }
-        // Process below blocks such as depot.
-        // Do it after processed all blocks on the path, so vertical current will process with correct FanProcessingType.
-        for (final AdvancedBlockWalker.BlockPosWithDistance data : datas) {
-            final BlockPos pos = data.pos().below();
-            final TransportedItemStackHandlerBehaviour behaviour =
-                BlockEntityBehaviour.get(level, pos, TransportedItemStackHandlerBehaviour.TYPE);
-            if (behaviour == null) {
-                continue;
-            }
-            if (!processed.add(pos)) {
-                continue;
-            }
-            FanProcessingType type = FanProcessingType.getAt(level, pos);
-            if (type == null) {
-                type = this.getTypeAt0(data.distance());
-            }
-            this.affectedItemHandlers.add(Pair.of(behaviour, type));
         }
     }
 
