@@ -129,7 +129,7 @@ public abstract class MixinAirCurrent {
             // crazy Create compat
             if (result.getType() == HitResult.Type.BLOCK) {
                 final BlockPos pos = result.getBlockPos();
-                if (level.getBlockState(pos).getCollisionShape(level, pos) == Shapes.block()) {
+                if (level.getBlockState(pos).getCollisionShape(level, pos) != Shapes.block()) {
                     limit += NON_BLOCK_EXTEND;
                 }
             }
@@ -152,7 +152,7 @@ public abstract class MixinAirCurrent {
             // crazy Create compat
             if (result.getType() == HitResult.Type.BLOCK) {
                 final BlockPos pos = result.getBlockPos();
-                if (level.getBlockState(pos).getCollisionShape(level, pos) == Shapes.block()) {
+                if (level.getBlockState(pos).getCollisionShape(level, pos) != Shapes.block()) {
                     limit += NON_BLOCK_EXTEND;
                 }
             }
@@ -202,15 +202,18 @@ public abstract class MixinAirCurrent {
         this.segments.clear();
         final Level level = this.source.getAirCurrentWorld();
         final BlockPos start = this.source.getAirCurrentPos();
+        final Vec3 startCenter = start.getCenter();
         AdvancedAirCurrentSegment currentSegment = null;
         FanProcessingType type = null;
 
         final int limit = this.getLimit();
+        // Note: Weird create behaviour that makes pulling fan process depot right under a processor
+        // but not for pushing fan.
 
         final Vec3 delta = new Vec3(this.direction.getStepX() * 0.5, this.direction.getStepY() * 0.5, this.direction.getStepZ() * 0.5);
-        final Vec3 startPos = start.getCenter().add(delta);
-        final Vec3 endPos = start.relative(this.direction, limit).getCenter().add(delta);
-        final AdvancedBlockWalker walker = new AdvancedBlockWalker(level, startPos, endPos, !this.pushing);
+        final Vec3 startPos = startCenter.add(delta);
+        final Vec3 endPos = startCenter.relative(this.direction, this.maxDistance).add(delta);
+        final AdvancedBlockWalker walker = new AdvancedBlockWalker(level, startPos, endPos, !this.pushing, true);
         while (walker.hasNext()) {
             final AdvancedBlockWalker.BlockPosWithDistance data = walker.next();
             final FanProcessingType newType = FanProcessingType.getAt(level, data.pos());
@@ -329,15 +332,14 @@ public abstract class MixinAirCurrent {
         this.affectedItemHandlers.clear();
         final Level level = this.source.getAirCurrentWorld();
         final BlockPos start = this.source.getAirCurrentPos();
-
-        final int limit = this.getLimit();
+        final Vec3 startCenter = start.getCenter();
 
         final List<AdvancedBlockWalker.BlockPosWithDistance> datas = new ArrayList<>();
 
         final Vec3 delta = new Vec3(this.direction.getStepX() * 0.5, this.direction.getStepY() * 0.5, this.direction.getStepZ() * 0.5);
-        final Vec3 startPos = start.getCenter().add(delta);
-        final Vec3 endPos = start.relative(this.direction, limit).getCenter().add(delta);
-        final AdvancedBlockWalker walker = new AdvancedBlockWalker(level, startPos, endPos, this.pushing);
+        final Vec3 startPos = startCenter.add(delta);
+        final Vec3 endPos = startCenter.relative(this.direction, this.maxDistance).add(delta);
+        final AdvancedBlockWalker walker = new AdvancedBlockWalker(level, startPos, endPos, !this.pushing, false);
         while (walker.hasNext()) {
             datas.add(walker.next());
         }
@@ -354,16 +356,11 @@ public abstract class MixinAirCurrent {
                 if (behaviour == null) {
                     continue;
                 }
-                double dist = data.distance();
-                // Move the check point towards the block center for a bit,
-                // so getTypeAt0 can correctly handle the case that a depot is
-                // right after a processor.
-                dist += (this.pushing ? EPS3 : -EPS3);
-                if (dist < Integer.MAX_VALUE && Math.abs(dist - (int) (dist)) < EPS1) {
-                    dist = (int) (dist);
-                }
+                double dist = data.distance() + EPS3;
                 if (dist > this.maxDistance) {
-                    continue;
+                    dist = this.maxDistance;
+                } else if (dist < Integer.MAX_VALUE && Math.abs(dist - (int) (dist)) < EPS1) {
+                    dist = (int) (dist);
                 }
                 if (!processed.add(pos)) {
                     continue;

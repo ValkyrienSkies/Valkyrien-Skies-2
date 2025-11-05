@@ -23,10 +23,11 @@ public final class AdvancedBlockWalker implements Iterator<AdvancedBlockWalker.B
     private final Vec3 from;
     private final Vec3 to;
     private final boolean reversed;
+    private final boolean useFurtherestClip;
     private final double maxDist;
     private final ArrayList<BlockWalkerWithShip> walkers = new ArrayList<>();
 
-    public AdvancedBlockWalker(final Level level, Vec3 from, Vec3 to, final boolean reversed) {
+    public AdvancedBlockWalker(final Level level, Vec3 from, Vec3 to, final boolean reversed, final boolean useFurtherestClip) {
         if (reversed) {
             final Vec3 tmp = from;
             from = to;
@@ -35,6 +36,7 @@ public final class AdvancedBlockWalker implements Iterator<AdvancedBlockWalker.B
         this.from = from = VSGameUtilsKt.toWorldCoordinates(level, from);
         this.to = to = VSGameUtilsKt.toWorldCoordinates(level, to);
         this.reversed = reversed;
+        this.useFurtherestClip = useFurtherestClip;
         this.maxDist = from.distanceTo(to);
         {
             final BlockWalkerWithShip walker = new BlockWalkerWithShip(new BlockWalker(from, to), null);
@@ -130,14 +132,22 @@ public final class AdvancedBlockWalker implements Iterator<AdvancedBlockWalker.B
     private double calcDistance(final BlockPos pos, final Ship ship) {
         final AABB block = new AABB(pos).inflate(1e-7);
         Vec3 from = this.from, to = this.to;
+        if (this.reversed != this.useFurtherestClip) {
+            // clip reversely to get the furtherest point of the clip
+            final Vec3 tmp = from;
+            from = to;
+            to = tmp;
+        }
         if (ship != null) {
             final Vector3d fromVec = ship.getWorldToShip().transformPosition(new Vector3d(from.x, from.y, from.z));
             final Vector3d toVec = ship.getWorldToShip().transformPosition(new Vector3d(to.x, to.y, to.z));
             from = new Vec3(fromVec.x, fromVec.y, fromVec.z);
             to = new Vec3(toVec.x, toVec.y, toVec.z);
         }
-        // clip reversely to get the furtherest point of the clip
-        Vec3 point = block.clip(to, from).orElse(null);
+        if (block.contains(from)) {
+            return this.reversed ? 0 : this.maxDist * this.maxDist;
+        }
+        Vec3 point = block.clip(from, to).orElse(null);
         if (point == null) {
             return Double.POSITIVE_INFINITY;
         }
