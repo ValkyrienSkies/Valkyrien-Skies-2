@@ -195,7 +195,6 @@ private fun getShipObjectManagingPosImpl(world: Level?, chunkX: Int, chunkZ: Int
  * followed by the AABB in the ship-space of the intersecting ships.
  */
 fun Level.transformFromWorldToNearbyShipsAndWorld(aabb: AABB, cb: Consumer<AABB>) {
-    cb.accept(aabb)
     val tmpAABB = AABBd()
     getShipsIntersecting(aabb).forEach { ship ->
         cb.accept(tmpAABB.set(aabb).transform(ship.worldToShip).toMinecraft())
