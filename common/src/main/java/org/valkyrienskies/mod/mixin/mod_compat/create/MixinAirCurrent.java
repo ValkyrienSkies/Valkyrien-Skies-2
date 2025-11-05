@@ -360,10 +360,11 @@ public abstract class MixinAirCurrent {
                 // so getTypeAt0 can correctly handle the case that a depot is
                 // right after a processor.
                 double dist = data.distance() + EPS3;
-                if (dist > this.maxDistance) {
-                    dist = this.maxDistance;
-                } else if (dist < Integer.MAX_VALUE && Math.abs(dist - (int) (dist)) < EPS1) {
+                if (dist < Integer.MAX_VALUE && Math.abs(dist - (int) (dist)) < EPS1) {
                     dist = (int) (dist);
+                }
+                if (dist > this.maxDistance) {
+                    continue;
                 }
                 if (!processed.add(pos)) {
                     continue;
