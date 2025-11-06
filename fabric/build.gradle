@@ -109,9 +109,17 @@ sourceSets {
 processResources {
     dependsOn("copyAccessWidener")
     inputs.property "version", project.version
+    inputs.property "minecraft_version", rootProject.minecraft_version
+    inputs.property "create_version", rootProject.create_version
+    inputs.property "cc_tweaked_version", rootProject.cc_tweaked_version
+    inputs.property "sodium_version", rootProject.sodium_version
 
     filesMatching("fabric.mod.json") {
-        expand "version": project.version
+        expand(["version": project.version,
+                "minecraft_version": rootProject.minecraft_version,
+                "create_version": rootProject.create_version,
+                "sodium_version": rootProject.sodium_version,
+                "cc_tweaked_version": rootProject.cc_tweaked_version])
     }
 }
 

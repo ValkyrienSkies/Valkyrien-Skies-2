@@ -30,12 +30,12 @@
   "accessWidener": "valkyrienskies-common.accesswidener",
   "depends": {
     "fabricloader": ">=0.14.9",
-    "minecraft": "1.20.1",
+    "minecraft": "${minecraft_version}",
     "fabric-api": "*"
   },
   "breaks": {
-    "sodium": "<0.5.8",
-    "create": "<6.0.7",
-    "computercraft": "<1.115.0"
+    "sodium": "<${sodium_version}",
+    "create": "<${create_version}",
+    "computercraft": "<${cc_tweaked_version}"
   }
 }

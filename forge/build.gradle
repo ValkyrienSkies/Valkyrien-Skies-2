@@ -170,9 +170,17 @@ dependencies {
 
 processResources {
     inputs.property "version", project.version
+    inputs.property "forge_version", rootProject.forge_version
+    inputs.property "minecraft_version", rootProject.minecraft_version
+    inputs.property "create_version", rootProject.create_version
+    inputs.property "cc_tweaked_version", rootProject.cc_tweaked_version
 
     filesMatching("META-INF/mods.toml") {
-        expand "version": project.version
+        expand(["version": project.version,
+         "forge_version": rootProject.forge_version,
+         "minecraft_version": rootProject.minecraft_version,
+         "create_version": rootProject.create_version,
+         "cc_tweaked_version": rootProject.cc_tweaked_version])
     }
 }
 

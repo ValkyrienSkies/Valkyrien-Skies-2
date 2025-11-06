@@ -16,27 +16,27 @@ logoFile = "icon.png"
 [[dependencies.valkyrienskies]]
 modId = "forge"
 mandatory = true
-versionRange = "[40.2.4,)"
+versionRange = "[${forge_version},)"
 ordering = "NONE"
 side = "BOTH"
 
 [[dependencies.valkyrienskies]]
 modId = "minecraft"
 mandatory = true
-versionRange = "[1.20.1]"
+versionRange = "[${minecraft_version}]"
 ordering = "NONE"
 side = "BOTH"
 
 [[dependencies.valkyrienskies]]
 modId = "create"
 mandatory = false
-versionRange = "[6.0.7, )"
+versionRange = "[${create_version}, )"
 ordering = "NONE"
 side = "BOTH"
 
 [[dependencies.valkyrienskies]]
 modId = "computercraft"
 mandatory = false
-versionRange = "[1.115.0,)"
+versionRange = "[${cc_tweaked_version},)"
 ordering = "NONE"
 side = "BOTH"
