@@ -144,7 +144,7 @@ public abstract class MixinExplosion {
         Vec3 from,
         Vec3 to,
         final ClipContext.Block blockClip,
-        final ClipContext.Block fluidClip,
+        final ClipContext.Fluid fluidClip,
         final Entity source,
         final Operation<ClipContext> operation
     ) {
