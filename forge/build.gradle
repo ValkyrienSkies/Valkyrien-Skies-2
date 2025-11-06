@@ -55,7 +55,7 @@ dependencies {
     implementation(include("io.github.llamalad7:mixinextras-forge:0.4.1"))
 
 
-    forge "net.minecraftforge:forge:${rootProject.forge_version}"
+    forge "net.minecraftforge:forge:${rootProject.minecraft_version}-${rootProject.forge_version}"
 
     common(project(path: ":common", configuration: "namedElements")) {
         transitive = false
@@ -65,10 +65,10 @@ dependencies {
     }
 
     //modCompileOnly("curse.maven:rubidium-574856:4024781")
-    modCompileOnly("maven.modrinth:embeddium:${embeddium_version}")
+    modCompileOnly("maven.modrinth:embeddium:${embeddium_version}+mc${minecraft_version}")
 
     // Create compat
-    modImplementation("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") { transitive = false }
+    modImplementation("com.simibubi.create:create-${minecraft_version}:${create_version}-${create_forge_suffix}:slim") { transitive = false }
     modImplementation("net.createmod.ponder:Ponder-Forge-${minecraft_version}:${ponder_version}")
     modImplementation("curse.maven:vanillin-965702:6446560")
     modCompileOnly("dev.engine-room.flywheel:flywheel-forge-api-${minecraft_version}:${flywheel_version}")

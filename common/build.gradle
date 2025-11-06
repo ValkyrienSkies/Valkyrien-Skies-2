@@ -10,7 +10,7 @@ dependencies {
 
     modApi("me.shedaniel.cloth:cloth-config:${cloth_config_version}")
 
-    modCompileOnly("maven.modrinth:sodium:${sodium_version}")
+    modCompileOnly("maven.modrinth:sodium:mc${rootProject.minecraft_version}-${sodium_version}")
 
     // vs-core
     implementation("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
@@ -37,9 +37,9 @@ dependencies {
 
     // Common create compat,
     // We just use a version from a platform and hope the classes exist on both versions and mixins apply correctly
-    modCompileOnly("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}")
+    modCompileOnly("com.simibubi.create:create-fabric:${rootProject.create_version}${create_fabric_suffix}-mc${rootProject.minecraft_version}")
         { exclude group: 'com.github.AlphaMode', module: 'fakeconfigtoml' }
-    modCompileOnly("net.fabricmc.fabric-api:fabric-api:${fabric_api_version}")
+    modCompileOnly("net.fabricmc.fabric-api:fabric-api:${fabric_api_version}+${rootProject.minecraft_version}")
     modCompileOnly("curse.maven:vanillin-965702:6446557")
 
     modCompileOnly("com.rbasamoyai:createbigcannons:${createbigcannons_version}+mc.${minecraft_version}-fabric") { transitive = false }
