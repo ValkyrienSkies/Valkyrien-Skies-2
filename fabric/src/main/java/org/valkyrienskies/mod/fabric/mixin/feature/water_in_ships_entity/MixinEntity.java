@@ -118,9 +118,14 @@ public abstract class MixinEntity {
         cancellable = true
     )
 
+    @Inject(
+        at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/Vec3;length()D", ordinal = 0),
+        method = "updateFluidHeightAndDoFluidPushing",
+        cancellable = true
+    )
     private void shouldProcessPush(TagKey<Fluid> tagKey, double d, CallbackInfoReturnable<Boolean> cir,
-        @Local(name = "o") int numberPush, @Local(name = "bl2") boolean bl2,@Local(ordinal = 0) Vec3 vec3,
-        @Local(name = "e") double e) {
+        @Local(ordinal = 6) int numberPush, @Local(ordinal = 1) boolean bl2, @Local(ordinal = 0) Vec3 vec3,
+        @Local(ordinal = 1) double e) {
         if (inShipContext()) {
             //stop processing is in ship context, processing will be done after collectShipFluidPush in normal context
             valkyrienskies$fluidPushE = e;
@@ -136,8 +141,8 @@ public abstract class MixinEntity {
     )
     private double collectShipFluidPush(Vec3 instance,
         @Local(ordinal = 0, argsOnly = true) TagKey<Fluid> tagKey, @Local(ordinal = 0, argsOnly = true) double d,
-        @Local(ordinal = 0) AABB aabb, @Local(name = "bl2") boolean bl2, @Local(name = "o") int numberPush,
-        @Local(name = "e") double e)
+        @Local(ordinal = 0) AABB aabb, @Local(ordinal = 1) boolean bl2, @Local(ordinal = 6) int numberPush,
+        @Local(ordinal = 1) double e)
     {
         valkyrienskies$fluidPushE = e;
         valkyrienskies$fluidPushNumber = numberPush;
