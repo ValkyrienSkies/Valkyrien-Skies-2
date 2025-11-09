@@ -90,6 +90,7 @@
     "mod_compat.create.block.MixinStickerBlock",
     "mod_compat.create.block.MixinTrackNodeLocation",
     "mod_compat.create.blockentity.IMixinMechanicalBearingTileEntity",
+    "mod_compat.create.blockentity.MixinBlazeBurnerBlockEntity",
     "mod_compat.create.blockentity.MixinChainConveyorInteractionHandler",
     "mod_compat.create.blockentity.MixinChainConveyorRidingHandler",
     "mod_compat.create.blockentity.MixinChainPackageInteractionHandler",
