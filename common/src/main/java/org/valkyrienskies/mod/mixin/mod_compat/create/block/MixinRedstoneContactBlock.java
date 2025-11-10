@@ -15,7 +15,6 @@ import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate.StructureBlockInfo;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.minecraft.world.ticks.TickPriority;
 import org.joml.Matrix4dc;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Final;
@@ -55,19 +54,20 @@ public abstract class MixinRedstoneContactBlock extends WrenchableDirectionalBlo
         final boolean isMoving
     ) {
         super.onPlace(state, world, pos, oldState, isMoving);
-        world.scheduleTick(pos, AllBlocks.REDSTONE_CONTACT.get(), 2, TickPriority.NORMAL);
+        world.scheduleTick(pos, this, 2);
     }
 
-    @Inject(method = "tick", at = @At(value = "INVOKE_ASSIGN", shift = At.Shift.BY, by = 2, target = "Lcom/simibubi/create/content/redstone/contact/RedstoneContactBlock;hasValidContact(Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;)Z"), locals = LocalCapture.CAPTURE_FAILHARD)
+    @Inject(method = "tick", at = @At("RETURN"))
     private void injectTick(
         final BlockState state,
         final ServerLevel world,
         final BlockPos pos,
         final RandomSource random,
-        final CallbackInfo ci,
-        final boolean hasValidContact
+        final CallbackInfo ci
     ) {
-        world.scheduleTick(pos, AllBlocks.REDSTONE_CONTACT.get(), 2, TickPriority.NORMAL);
+        if (!world.getBlockTicks().hasScheduledTick(pos, this)) {
+            world.scheduleTick(pos, this, 2);
+        }
     }
 
     @Unique
@@ -80,7 +80,7 @@ public abstract class MixinRedstoneContactBlock extends WrenchableDirectionalBlo
         final Ship targetShip
     ) {
         final BlockState blockState = world.getBlockState(targetPos);
-        if (!AllBlocks.REDSTONE_CONTACT.has(blockState)) {
+        if (!isContact(blockState)) {
             return false;
         }
         final Direction targetDir = blockState.getValue(FACING);
@@ -117,9 +117,18 @@ public abstract class MixinRedstoneContactBlock extends WrenchableDirectionalBlo
         }
         final Level level = (Level) (world);
         final BlockPos detectPos = pos.relative(direction);
-        final BlockState blockState = world.getBlockState(detectPos);
-        if (AllBlocks.REDSTONE_CONTACT.has(blockState)) {
-            cir.setReturnValue(blockState.getValue(FACING) == direction.getOpposite());
+        final BlockState facingState = world.getBlockState(detectPos);
+        if (isContact(facingState)) {
+            cir.setReturnValue(facingState.getValue(FACING) == direction.getOpposite());
+            return;
+        }
+        if (world.getBlockState(pos).is(AllBlocks.ELEVATOR_CONTACT.get())) {
+            // DO NOT RAY CAST ELEVATOR CONTACT
+            // BECAUSE IT IS
+            // BASED ON ELEVATOR'S
+            // TARGET POSITION
+            // NOT THE
+            // PEER CONTACT'S POSITION
             return;
         }
         final Vec3 point = detectPos.getCenter();
@@ -151,7 +160,7 @@ public abstract class MixinRedstoneContactBlock extends WrenchableDirectionalBlo
                 if (info == null) {
                     continue;
                 }
-                if (!info.state().is(AllBlocks.REDSTONE_CONTACT.get())) {
+                if (!isContact(info.state())) {
                     continue;
                 }
                 final Direction dir = info.state().getValue(FACING);
@@ -192,7 +201,7 @@ public abstract class MixinRedstoneContactBlock extends WrenchableDirectionalBlo
                         if (info == null) {
                             continue;
                         }
-                        if (!info.state().is(AllBlocks.REDSTONE_CONTACT.get())) {
+                        if (!isContact(info.state())) {
                             continue;
                         }
                         final Direction dir = info.state().getValue(FACING);
@@ -229,6 +238,11 @@ public abstract class MixinRedstoneContactBlock extends WrenchableDirectionalBlo
             }
         }
         cir.setReturnValue(true);
+    }
+
+    @Unique
+    private static boolean isContact(final BlockState state) {
+        return state.is(AllBlocks.REDSTONE_CONTACT.get()) || state.is(AllBlocks.ELEVATOR_CONTACT.get());
     }
 
     @Unique
