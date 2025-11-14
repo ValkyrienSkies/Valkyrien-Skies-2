@@ -18,6 +18,7 @@ import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 import org.joml.primitives.AABBd;
 import org.joml.primitives.AABBdc;
@@ -80,8 +81,11 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
             }
         }
 
-        final AABBdc biggerBB = AABBdUtilKt.expand(new AABBd(posX, posY, posZ, posX, posY, posZ), 32.0);
-        final AABBdc smallerBB = AABBdUtilKt.expand(new AABBd(posX, posY, posZ, posX, posY, posZ), 16.0);
+        // use more precise player position, since ship blocks aren't locked to the grid of integer coordinates in world space
+        final Vec3 pos = this.minecraft.player.position();
+
+        final AABBdc origin = new AABBd(pos.x, pos.y, pos.z, pos.x, pos.y, pos.z);
+        final AABBdc shipIntersectBB = AABBdUtilKt.expand(new AABBd(origin), 32.0);
         final double biggerBBProbability = 668.0 / (32.0 * 32.0 * 32.0);
         final double smallerBBProbability = 668.0 / (16.0 * 16.0 * 16.0);
 
@@ -91,11 +95,21 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
         final AABBi temp3 = new AABBi();
         final AABBi temp4 = new AABBi();
         final AABBi temp5 = new AABBi();
-        for (final Ship ship : VSGameUtilsKt.getShipsIntersecting(ClientLevel.class.cast(this), biggerBB)) {
-            final AABBic shipVoxelAABB = ship.getShipVoxelAABB();
+        final AABBd temp6 = new AABBd();
+        final AABBd temp7 = new AABBd();
+        for (final Ship ship : VSGameUtilsKt.getShipsIntersecting(ClientLevel.class.cast(this), shipIntersectBB)) {
+            final AABBic shipVoxelAABB = ship.getShipAABB();
             if (shipVoxelAABB == null) {
                 continue;
             }
+
+            // This reverses any scaling that would happen when transforming to ship space.
+            // We do this to ensure that the same number of blocks are ticked regardless of ship scale
+            // Otherwise, mini ships tick too many blocks and cause lag
+            final double distanceScaling = ship.getTransform().getShipToWorldScaling().x();
+            final AABBdc biggerBB = AABBdUtilKt.expand(temp6.set(origin), 32.0 * distanceScaling);
+            final AABBdc smallerBB = AABBdUtilKt.expand(temp7.set(origin), 16.0 * distanceScaling);
+
             // Only spawn particles in the intersection of the ship bounding box and the particle spawning bounding
             // boxes surrounding the player
             final AABBic biggerBBTransformed =
