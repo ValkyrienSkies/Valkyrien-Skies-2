@@ -13,6 +13,7 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
@@ -80,12 +81,17 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
                 }
             }
         }
+        Player player = this.minecraft.player;
+        assert player != null;
+
+        final double playerScale = player.getBbWidth() / Player.STANDING_DIMENSIONS.width;
+
 
         // use more precise player position, since ship blocks aren't locked to the grid of integer coordinates in world space
-        final Vec3 pos = this.minecraft.player.position();
+        final Vec3 pos = player.position();
 
-        final AABBdc origin = new AABBd(pos.x, pos.y, pos.z, pos.x, pos.y, pos.z);
-        final AABBdc shipIntersectBB = AABBdUtilKt.expand(new AABBd(origin), 32.0);
+        final AABBdc playerCenterBB = new AABBd(pos.x, pos.y, pos.z, pos.x, pos.y, pos.z);
+        final AABBdc shipIntersectBB = AABBdUtilKt.expand(new AABBd(playerCenterBB), 32.0);
         final double biggerBBProbability = 668.0 / (32.0 * 32.0 * 32.0);
         final double smallerBBProbability = 668.0 / (16.0 * 16.0 * 16.0);
 
@@ -103,12 +109,9 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
                 continue;
             }
 
-            // This reverses any scaling that would happen when transforming to ship space.
-            // We do this to ensure that the same number of blocks are ticked regardless of ship scale
-            // Otherwise, mini ships tick too many blocks and cause lag
-            final double distanceScaling = ship.getTransform().getShipToWorldScaling().x();
-            final AABBdc biggerBB = AABBdUtilKt.expand(temp6.set(origin), 32.0 * distanceScaling);
-            final AABBdc smallerBB = AABBdUtilKt.expand(temp7.set(origin), 16.0 * distanceScaling);
+            // Scaled to reduce lag for mini ships
+            final AABBdc biggerBB = AABBdUtilKt.expand(temp6.set(playerCenterBB), 32.0 * playerScale);
+            final AABBdc smallerBB = AABBdUtilKt.expand(temp7.set(playerCenterBB), 16.0 * playerScale);
 
             // Only spawn particles in the intersection of the ship bounding box and the particle spawning bounding
             // boxes surrounding the player
