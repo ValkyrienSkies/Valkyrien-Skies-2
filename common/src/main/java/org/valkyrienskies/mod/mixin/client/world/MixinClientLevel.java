@@ -7,6 +7,7 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.SectionPos;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
@@ -18,6 +19,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
@@ -151,23 +153,44 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
         }
         final ClientLevel thisAsClientLevel = ClientLevel.class.cast(this);
         final BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos();
+
+        final int minCX = SectionPos.blockToSectionCoord(region.minX());
+        final int maxCX = SectionPos.blockToSectionCoord(region.maxX());
+        final int minCZ = SectionPos.blockToSectionCoord(region.minZ());
+        final int maxCZ = SectionPos.blockToSectionCoord(region.maxZ());
+
+        // chunk lookup from level is very slow, this helps a lot
+        final LevelChunk[][] chunkCache = new LevelChunk[maxCX - minCX + 1][maxCZ - minCZ + 1];
+
         for (int i = 0; i < blocksToTick; i++) {
             final int posX = region.minX() + vsRandom.nextInt(region.maxX() - region.minX() + 1);
             final int posY = region.minY() + vsRandom.nextInt(region.maxY() - region.minY() + 1);
             final int posZ = region.minZ() + vsRandom.nextInt(region.maxZ() - region.minZ() + 1);
 
             mutableBlockPos.set(posX, posY, posZ);
-            final BlockState blockState = thisAsClientLevel.getBlockState(mutableBlockPos);
+            if (thisAsClientLevel.isOutsideBuildHeight(mutableBlockPos)) continue;
+
+            final int cx = SectionPos.blockToSectionCoord(posX) - minCX;
+            final int cz = SectionPos.blockToSectionCoord(posZ) - minCZ;
+
+            LevelChunk levelChunk = chunkCache[cx][cz];
+            if (levelChunk == null) {
+                levelChunk = thisAsClientLevel.getChunk(cx + minCX, cz + minCZ);
+                chunkCache[cx][cz] = levelChunk;
+            }
+
+            final BlockState blockState = levelChunk.getBlockState(mutableBlockPos);
             blockState.getBlock().animateTick(blockState, thisAsClientLevel, mutableBlockPos, vsRandom);
-            final FluidState fluidState = thisAsClientLevel.getFluidState(mutableBlockPos);
+            final FluidState fluidState = levelChunk.getFluidState(mutableBlockPos);
             if (!fluidState.isEmpty()) {
                 fluidState.animateTick(thisAsClientLevel, mutableBlockPos, vsRandom);
                 final ParticleOptions particleOptions = fluidState.getDripParticle();
                 if (particleOptions != null && vsRandom.nextInt(10) == 0) {
                     final boolean bl2 = blockState.isFaceSturdy(thisAsClientLevel, mutableBlockPos, Direction.DOWN);
                     final BlockPos blockPos = mutableBlockPos.below();
-                    this.trySpawnDripParticles(blockPos, thisAsClientLevel.getBlockState(blockPos), particleOptions,
-                        bl2);
+                    if (!thisAsClientLevel.isOutsideBuildHeight(blockPos)) {
+                        this.trySpawnDripParticles(blockPos, levelChunk.getBlockState(blockPos), particleOptions, bl2);
+                    }
                 }
             }
 
