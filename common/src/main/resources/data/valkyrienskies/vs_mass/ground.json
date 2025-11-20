@@ -101,7 +101,7 @@
   },
   {
     "block": "minecraft:end_stone",
-    "mass": 100.0,
+    "mass": 10.0,
     "friction": 0.6
   },
   {
@@ -150,87 +150,7 @@
     "friction": 0.6
   },
   {
-    "block": "minecraft:terracotta",
-    "mass": 200.0,
-    "friction": 0.6
-  },
-  {
-    "block": "minecraft:white_terracotta",
-    "mass": 200.0,
-    "friction": 0.6
-  },
-  {
-    "block": "minecraft:orange_terracotta",
-    "mass": 200.0,
-    "friction": 0.6
-  },
-  {
-    "block": "minecraft:magenta_terracotta",
-    "mass": 200.0,
-    "friction": 0.6
-  },
-  {
-    "block": "minecraft:light_blue_terracotta",
-    "mass": 200.0,
-    "friction": 0.6
-  },
-  {
-    "block": "minecraft:yellow_terracotta",
-    "mass": 200.0,
-    "friction": 0.6
-  },
-  {
-    "block": "minecraft:lime_terracotta",
-    "mass": 200.0,
-    "friction": 0.6
-  },
-  {
-    "block": "minecraft:pink_terracotta",
-    "mass": 200.0,
-    "friction": 0.6
-  },
-  {
-    "block": "minecraft:gray_terracotta",
-    "mass": 200.0,
-    "friction": 0.6
-  },
-  {
-    "block": "minecraft:light_gray_terracotta",
-    "mass": 200.0,
-    "friction": 0.6
-  },
-  {
-    "block": "minecraft:cyan_terracotta",
-    "mass": 200.0,
-    "friction": 0.6
-  },
-  {
-    "block": "minecraft:purple_terracotta",
-    "mass": 200.0,
-    "friction": 0.6
-  },
-  {
-    "block": "minecraft:blue_terracotta",
-    "mass": 200.0,
-    "friction": 0.6
-  },
-  {
-    "block": "minecraft:brown_terracotta",
-    "mass": 200.0,
-    "friction": 0.6
-  },
-  {
-    "block": "minecraft:green_terracotta",
-    "mass": 200.0,
-    "friction": 0.6
-  },
-  {
-    "block": "minecraft:red_terracotta",
-    "mass": 200.0,
-    "friction": 0.6
-  },
-  {
-    "block": "minecraft:black_terracotta",
+    "tag": "minecraft:terracotta",
     "mass": 200.0,
     "friction": 0.6
   }

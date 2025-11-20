@@ -20,22 +20,22 @@
   },
   {
     "block": "minecraft:detector_rail",
-    "mass": 100.0,
+    "mass": 50.0,
     "friction": 0.7
   },
   {
     "block": "minecraft:powered_rail",
-    "mass": 150.0,
+    "mass": 50.0,
     "friction": 0.7
   },
   {
     "block": "minecraft:rail",
-    "mass": 100.0,
+    "mass": 50.0,
     "friction": 0.7
   },
   {
     "block": "minecraft:activator_rail",
-    "mass": 100.0,
+    "mass": 50.0,
     "friction": 0.7
   },
   {
@@ -60,7 +60,7 @@
   },
   {
     "block": "minecraft:tnt",
-    "mass": 125.0
+    "mass": 90.0
   },
   {
     "block": "minecraft:lever",
@@ -117,7 +117,7 @@
   },
   {
     "block": "minecraft:redstone_block",
-    "mass": 250.0,
+    "mass": 300.0,
     "friction": 0.4
   },
   {
@@ -140,17 +140,17 @@
   },
   {
     "block": "minecraft:redstone_lamp",
-    "mass": 100.0,
+    "mass": 150.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:comparator",
-    "mass": 25.0,
+    "mass": 20.0,
     "friction": 0.3
   },
   {
     "block": "minecraft:repeater",
-    "mass": 25.0,
+    "mass": 20.0,
     "friction": 0.3
   },
   {

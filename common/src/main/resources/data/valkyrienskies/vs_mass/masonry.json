@@ -76,7 +76,7 @@
   },
   {
     "block": "minecraft:end_stone_brick_slab",
-    "mass": 50.0,
+    "mass": 5.0,
     "friction": 0.5
   },
   {
@@ -226,7 +226,7 @@
   },
   {
     "block": "minecraft:end_stone_brick_stairs",
-    "mass": 75.0,
+    "mass": 7.5,
     "friction": 0.5
   },
   {
@@ -346,7 +346,7 @@
   },
   {
     "block": "minecraft:end_stone_brick_wall",
-    "mass": 75.0,
+    "mass": 7.5,
     "friction": 0.5
   },
   {
@@ -541,7 +541,7 @@
   },
   {
     "block": "minecraft:end_stone_bricks",
-    "mass": 100.0,
+    "mass": 10.0,
     "friction": 0.5
   },
   {

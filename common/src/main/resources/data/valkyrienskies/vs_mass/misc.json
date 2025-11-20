@@ -190,7 +190,7 @@
   },
   {
     "block": "minecraft:end_rod",
-    "mass": 10.0,
+    "mass": 1.0,
     "friction": 0.1
   },
   {
@@ -466,13 +466,13 @@
   },
   {
     "block": "minecraft:slime_block",
-    "mass": 200.0,
+    "mass": 50.0,
     "friction": 1.0,
     "elasticity": 1.0
   },
   {
     "block": "minecraft:honey_block",
-    "mass": 200.0,
+    "mass": 50.0,
     "friction": 1.0
   },
   {
@@ -576,7 +576,7 @@
   },
   {
     "block": "minecraft:bell",
-    "mass": 100.0,
+    "mass": 50.0,
     "friction": 0.2
   },
   {
