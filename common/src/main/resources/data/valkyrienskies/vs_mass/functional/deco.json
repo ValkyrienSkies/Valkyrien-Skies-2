@@ -25,7 +25,7 @@
   },
   {
     "block": "minecraft:end_rod",
-    "mass": 1.0,
+    "mass": 10.0,
     "friction": 0.1
   },
   {

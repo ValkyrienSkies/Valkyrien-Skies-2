@@ -96,7 +96,7 @@
   },
   {
     "block": "minecraft:dead_bush",
-    "mass": 5.0
+    "mass": 10.0
   },
   {
     "block": "minecraft:cactus",

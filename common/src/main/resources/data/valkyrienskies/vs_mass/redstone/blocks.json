@@ -132,27 +132,27 @@
   },
   {
     "block": "minecraft:rail",
-    "mass": 50.0,
+    "mass": 100.0,
     "friction": 0.7
   },
   {
     "block": "minecraft:powered_rail",
-    "mass": 50.0,
+    "mass": 150.0,
     "friction": 0.7
   },
   {
     "block": "minecraft:detector_rail",
-    "mass": 50.0,
+    "mass": 100.0,
     "friction": 0.7
   },
   {
     "block": "minecraft:activator_rail",
-    "mass": 50.0,
+    "mass": 100.0,
     "friction": 0.7
   },
   {
     "block": "minecraft:tnt",
-    "mass": 90.0
+    "mass": 125.0
   },
   {
     "block": "minecraft:redstone_lamp",
