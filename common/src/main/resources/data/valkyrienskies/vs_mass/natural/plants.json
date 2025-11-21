@@ -1,14 +1,5 @@
 [
   {
-    "tag": "minecraft:saplings",
-    "mass": 15.0
-  },
-  {
-    "tag": "minecraft:leaves",
-    "mass": 20.0,
-    "elasticity": 0.15
-  },
-  {
     "tag": "minecraft:small_flowers",
     "mass": 1.0
   },
@@ -183,10 +174,6 @@
     "elasticity": 0.1
   },
   {
-    "block": "minecraft:shroomlight",
-    "mass": 80.0
-  },
-  {
     "block": "minecraft:chorus_plant",
     "mass": 30.0,
     "friction": 0.6
@@ -209,17 +196,74 @@
     "elasticity": 0.1
   },
   {
-    "block": "minecraft:mushroom_stem",
-    "mass": 60.0,
-    "friction": 0.2,
-    "elasticity": 0.1
-  },
-  {
     "block": "minecraft:brown_mushroom",
     "mass": 1.0
   },
   {
     "block": "minecraft:red_mushroom",
     "mass": 1.0
+  },
+  {
+    "block": "minecraft:azalea",
+    "mass": 12.0,
+    "elasticity": 0.1
+  },
+  {
+    "block": "minecraft:flowering_azalea",
+    "mass": 12.0,
+    "elasticity": 0.1
+  },
+  {
+    "block": "minecraft:big_dripleaf",
+    "mass": 0.80,
+    "friction": 0.3,
+    "elasticity": 0.3
+  },
+  {
+    "block": "minecraft:big_dripleaf_stem",
+    "mass": 0.40
+  },
+  {
+    "block": "minecraft:small_dripleaf",
+    "mass": 0.30
+  },
+  {
+    "block": "minecraft:cave_vines",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:cave_vines_plant",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:spore_blossom",
+    "mass": 1.20
+  },
+  {
+    "block": "minecraft:moss_block",
+    "mass": 25.0,
+    "friction": 0.5,
+    "elasticity": 0.05
+  },
+  {
+    "block": "minecraft:moss_carpet",
+    "mass": 1.5,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:hanging_roots",
+    "mass": 0.40
+  },
+  {
+    "block": "minecraft:pink_petals",
+    "mass": 0.1
+  },
+  {
+    "block": "minecraft:torchflower_crop",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:pitcher_crop",
+    "mass": 2.0
   }
 ]

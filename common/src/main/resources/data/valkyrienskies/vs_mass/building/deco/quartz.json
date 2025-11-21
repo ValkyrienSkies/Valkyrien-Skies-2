@@ -1,0 +1,47 @@
+[
+  {
+    "block": "minecraft:quartz_block",
+    "mass": 300.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:quartz_stairs",
+    "mass": 225.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:quartz_slab",
+    "mass": 150.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:chiseled_quartz_block",
+    "mass": 300.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:quartz_bricks",
+    "mass": 300.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:quartz_pillar",
+    "mass": 300.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:smooth_quartz",
+    "mass": 300.0,
+    "friction": 0.3
+  },
+  {
+    "block": "minecraft:smooth_quartz_stairs",
+    "mass": 225.0,
+    "friction": 0.3
+  },
+  {
+    "block": "minecraft:smooth_quartz_slab",
+    "mass": 150.0,
+    "friction": 0.3
+  }
+]

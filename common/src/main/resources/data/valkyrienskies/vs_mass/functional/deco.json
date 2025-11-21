@@ -1,0 +1,167 @@
+[
+  {
+    "block": "minecraft:torch",
+    "mass": 0.5
+  },
+  {
+    "block": "minecraft:wall_torch",
+    "mass": 0.5
+  },
+  {
+    "block": "minecraft:soul_torch",
+    "mass": 0.5
+  },
+  {
+    "block": "minecraft:soul_wall_torch",
+    "mass": 0.5
+  },
+  {
+    "block": "minecraft:lantern",
+    "mass": 2.5
+  },
+  {
+    "block": "minecraft:soul_lantern",
+    "mass": 2.5
+  },
+  {
+    "block": "minecraft:end_rod",
+    "mass": 1.0,
+    "friction": 0.1
+  },
+  {
+    "block": "minecraft:glowstone",
+    "mass": 100.0,
+    "friction": 0.7
+  },
+  {
+    "block": "minecraft:shroomlight",
+    "mass": 80.0
+  },
+  {
+    "block": "minecraft:ochre_froglight",
+    "mass": 320.0,
+    "friction": 0.07,
+    "elasticity": 0.8
+  },
+  {
+    "block": "minecraft:verdant_froglight",
+    "mass": 320.0,
+    "friction": 0.07,
+    "elasticity": 0.8
+  },
+  {
+    "block": "minecraft:pearlescent_froglight",
+    "mass": 320.0,
+    "friction": 0.07,
+    "elasticity": 0.8
+  },
+  {
+    "block": "minecraft:crying_obsidian",
+    "mass": 500.0,
+    "friction": 0.8
+  },
+  {
+    "block": "minecraft:glow_lichen",
+    "mass": 0.10
+  },
+  {
+    "block": "minecraft:magma_block",
+    "mass": 300.0,
+    "friction": 0.4
+  },
+  {
+    "tag": "minecraft:flower_pots",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:decorated_pot",
+    "mass": 25.0,
+    "friction": 0.35
+  },
+  {
+    "block": "minecraft:bookshelf",
+    "mass": 150.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:skeleton_skull",
+    "mass": 2.5,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:wither_skeleton_skull",
+    "mass": 2.5,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:zombie_head",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:player_head",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:creeper_head",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:dragon_head",
+    "mass": 7.5
+  },
+  {
+    "block": "minecraft:skeleton_wall_skull",
+    "mass": 2.5,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:wither_skeleton_wall_skull",
+    "mass": 2.5,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:zombie_wall_head",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:player_wall_head",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:creeper_wall_head",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:dragon_wall_head",
+    "mass": 7.5
+  },
+  {
+    "block": "minecraft:piglin_head",
+    "mass": 0.5
+  },
+  {
+    "block": "minecraft:piglin_wall_head",
+    "mass": 0.5
+  },
+  {
+    "block": "minecraft:dragon_egg",
+    "mass": 500.0,
+    "friction": 0.8
+  },
+  {
+    "block": "minecraft:carved_pumpkin",
+    "mass": 10.0,
+    "friction": 0.3
+  },
+  {
+    "block": "minecraft:jack_o_lantern",
+    "mass": 10.0,
+    "friction": 0.3
+  },
+  {
+    "block": "minecraft:hay_block",
+    "mass": 20.0,
+    "friction": 0.6,
+    "elasticity": 0.3
+  }
+]

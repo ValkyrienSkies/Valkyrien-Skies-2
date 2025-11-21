@@ -1,0 +1,37 @@
+[
+  {
+    "block": "minecraft:andesite",
+    "mass": 275.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:andesite_stairs",
+    "mass": 187.5,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:andesite_slab",
+    "mass": 125.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:andesite_wall",
+    "mass": 125.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:polished_andesite",
+    "mass": 250.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:polished_andesite_stairs",
+    "mass": 187.5,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:polished_andesite_slab",
+    "mass": 125.0,
+    "friction": 0.4
+  }
+]

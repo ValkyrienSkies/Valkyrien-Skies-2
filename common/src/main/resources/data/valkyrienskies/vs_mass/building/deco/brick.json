@@ -1,0 +1,22 @@
+[
+  {
+    "block": "minecraft:bricks",
+    "mass": 250.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:brick_stairs",
+    "mass": 187.5,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:brick_slab",
+    "mass": 125.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:brick_wall",
+    "mass": 125.0,
+    "friction": 0.6
+  }
+]

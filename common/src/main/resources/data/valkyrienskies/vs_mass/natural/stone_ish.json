@@ -1,0 +1,32 @@
+[
+  {
+    "block": "minecraft:clay",
+    "mass": 150.0,
+    "friction": 0.4
+  },
+  {
+    "tag": "minecraft:sand",
+    "mass": 150.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:gravel",
+    "mass": 150.0,
+    "friction": 0.7
+  },
+  {
+    "block": "minecraft:tuff",
+    "mass": 180.0,
+    "friction": 0.7
+  },
+  {
+    "block": "minecraft:calcite",
+    "mass": 270.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:obsidian",
+    "mass": 500.0,
+    "friction": 0.8
+  }
+]
