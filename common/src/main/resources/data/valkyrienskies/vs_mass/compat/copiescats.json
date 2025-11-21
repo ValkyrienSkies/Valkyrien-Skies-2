@@ -1,0 +1,34 @@
+[
+  {
+    "block": "copiescats:copycat_ten",
+    "mass": 50.0
+  },
+  {
+    "block": "copiescats:copycat_four",
+    "mass": 50.0
+  },
+  {
+    "block": "copiescats:copycat_six",
+    "mass": 50.0
+  },
+  {
+    "block": "copiescats:copycat_slab",
+    "mass": 50.0
+  },
+  {
+    "block": "copiescats:copycat_two",
+    "mass": 50.0
+  },
+  {
+    "block": "copiescats:copycat_twelve",
+    "mass": 50.0
+  },
+  {
+    "block": "copiescats:copycat_fourteen",
+    "mass": 50.0
+  },
+  {
+    "block": "copiescats:copycat_sixteen",
+    "mass": 50.0
+  }
+]

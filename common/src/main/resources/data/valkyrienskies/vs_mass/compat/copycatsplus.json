@@ -1,0 +1,98 @@
+[
+  {
+    "block": "copycats:copycat_layer",
+    "mass": 50.0
+  },
+  {
+    "block": "copycats:copycat_slab",
+    "mass": 50.0
+  },
+  {
+    "block": "copycats:copycat_beam",
+    "mass": 50.0
+  },
+  {
+    "block": "copycats:copycat_vertical_step",
+    "mass": 50.0
+  },
+  {
+    "block": "copycats:copycat_half_panel",
+    "mass": 50.0
+  },
+  {
+    "block": "copycats:copycat_stairs",
+    "mass": 50.0
+  },
+  {
+    "block": "copycats:copycat_fence",
+    "mass": 50.0
+  },
+  {
+    "block": "copycats:copycat_fence_gate",
+    "mass": 50.0
+  },
+  {
+    "block": "copycats:copycat_trapdoor",
+    "mass": 50.0
+  },
+  {
+    "block": "copycats:copycat_wall",
+    "mass": 50.0
+  },
+  {
+    "block": "copycats:copycat_board",
+    "mass": 50.0
+  },
+  {
+    "block": "copycats:copycat_box",
+    "mass": 50.0
+  },
+  {
+    "block": "copycats:copycat_catwalk",
+    "mass": 50.0
+  },
+  {
+    "block": "copycats:copycat_byte",
+    "mass": 50.0
+  },
+  {
+    "block": "copycats:copycat_block",
+    "mass": 50.0
+  },
+  {
+    "block": "copycats:copycat_half_layer",
+    "mass": 50.0
+  },
+  {
+    "block": "copycats:copycat_slice",
+    "mass": 50.0
+  },
+  {
+    "block": "copycats:copycat_vertical_slice",
+    "mass": 50.0
+  },
+  {
+    "block": "copycats:copycat_wooden_button",
+    "mass": 50.0
+  },
+  {
+    "block": "copycats:copycat_stone_button",
+    "mass": 50.0
+  },
+  {
+    "block": "copycats:copycat_wooden_pressure_plate",
+    "mass": 50.0
+  },
+  {
+    "block": "copycats:copycat_stone_pressure_plate",
+    "mass": 50.0
+  },
+  {
+    "block": "copycats:copycat_heavy_weighted_pressure_plate",
+    "mass": 50.0
+  },
+  {
+    "block": "copycats:copycat_light_weighted_pressure_plate",
+    "mass": 50.0
+  }
+]
