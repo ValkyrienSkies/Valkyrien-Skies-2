@@ -1,7 +1,8 @@
 package org.valkyrienskies.mod.mixin.client.world;
 
-import io.netty.util.collection.LongObjectHashMap;
-import io.netty.util.collection.LongObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import java.util.function.Consumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientChunkCache;
@@ -38,44 +39,51 @@ import org.valkyrienskies.mod.mixinducks.mod_compat.vanilla_renderer.LevelRender
 @Mixin(ClientChunkCache.class)
 public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
     @Shadow
+    volatile ClientChunkCache.Storage storage;
+    @Shadow
     @Final
     ClientLevel level;
 
-    public LongObjectMap<LevelChunk> vs$getShipChunks() {
+    @Unique
+    private final Long2ObjectMap<LevelChunk> vs$shipChunks = Long2ObjectMaps.synchronize(new Long2ObjectOpenHashMap<>());
+
+    @Override
+    public Long2ObjectMap<LevelChunk> vs$getShipChunks() {
         return vs$shipChunks;
     }
 
-    @Unique
-    private final LongObjectMap<LevelChunk> vs$shipChunks = new LongObjectHashMap<>();
-
     @Inject(method = "replaceWithPacketData", at = @At("HEAD"), cancellable = true)
-    private void preLoadChunkFromPacket(final int x, final int z,
+    private void preReplaceWithPacketData(
+        final int x,
+        final int z,
         final FriendlyByteBuf buf,
         final CompoundTag tag,
         final Consumer<BlockEntityTagOutput> consumer,
         final CallbackInfoReturnable<LevelChunk> cir
     ) {
-        if (VSGameUtilsKt.isChunkInShipyard(level, x, z)) {
-            if (Minecraft.getInstance().levelRenderer instanceof final LevelRendererDuck levelRenderer) {
-                levelRenderer.vs$setNeedsFrustumUpdate();
-            }
-            final ChunkPos pos = new ChunkPos(x, z);
-            final long chunkPosLong = pos.toLong();
-            final LevelChunk oldChunk = vs$shipChunks.get(chunkPosLong);
-            final LevelChunk worldChunk;
-            if (oldChunk != null) {
-                worldChunk = oldChunk;
-                oldChunk.replaceWithPacketData(buf, tag, consumer);
-            } else {
-                worldChunk = new LevelChunk(this.level, pos);
-                worldChunk.replaceWithPacketData(buf, tag, consumer);
-                vs$shipChunks.put(chunkPosLong, worldChunk);
-            }
-
-            this.level.onChunkLoaded(pos);
-            SodiumCompat.onChunkAdded(this.level, x, z);
-            cir.setReturnValue(worldChunk);
+        if (!VSGameUtilsKt.isChunkInShipyard(level, x, z)) {
+            return;
         }
+        if (Minecraft.getInstance().levelRenderer instanceof final LevelRendererDuck levelRenderer) {
+            levelRenderer.vs$setNeedsFrustumUpdate();
+        }
+        final ChunkPos pos = new ChunkPos(x, z);
+        final long chunkPosLong = pos.toLong();
+        final LevelChunk oldChunk = vs$shipChunks.get(chunkPosLong);
+        final LevelChunk worldChunk;
+        if (oldChunk != null) {
+            worldChunk = oldChunk;
+            worldChunk.replaceWithPacketData(buf, tag, consumer);
+        } else {
+            worldChunk = new LevelChunk(this.level, pos);
+            worldChunk.replaceWithPacketData(buf, tag, consumer);
+            vs$shipChunks.put(chunkPosLong, worldChunk);
+            ((ClientChunkCacheDuck.StorageDuck) ((Object) (this.storage))).vs$incChunkCount();
+        }
+
+        this.level.onChunkLoaded(pos);
+        SodiumCompat.onChunkAdded(this.level, x, z);
+        cir.setReturnValue(worldChunk);
     }
 
     @Override
@@ -88,24 +96,14 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
         }
     }
 
-    @Inject(method = "drop", at = @At("HEAD"), cancellable = true)
-    public void preUnload(final int chunkX, final int chunkZ, final CallbackInfo ci) {
-        if (VSGameUtilsKt.isChunkInShipyard(level, chunkX, chunkZ)) {
-            vs$shipChunks.remove(ChunkPos.asLong(chunkX, chunkZ));
-            if (ValkyrienCommonMixinConfigPlugin.getVSRenderer() != VSRenderer.SODIUM) {
-                ((IVSViewAreaMethods) ((LevelRendererAccessor) ((ClientLevelAccessor) level).getLevelRenderer()).getViewArea())
-                    .unloadChunk(chunkX, chunkZ);
-            }
-            SodiumCompat.onChunkRemoved(this.level, chunkX, chunkZ);
-            ci.cancel();
-        }
-    }
-
     @Unique
     private void removeShipChunk(final int chunkX, final int chunkZ) {
-        if (vs$shipChunks.remove(ChunkPos.asLong(chunkX, chunkZ)) == null) {
+        final LevelChunk chunk = vs$shipChunks.remove(ChunkPos.asLong(chunkX, chunkZ));
+        if (chunk == null) {
             return;
         }
+        ((ClientChunkCacheDuck.StorageDuck) ((Object) (this.storage))).vs$decChunkCount();
+        this.level.unload(chunk);
         if (ValkyrienCommonMixinConfigPlugin.getVSRenderer() != VSRenderer.SODIUM) {
             ((IVSViewAreaMethods) ((LevelRendererAccessor) ((ClientLevelAccessor) level).getLevelRenderer()).getViewArea())
                 .unloadChunk(chunkX, chunkZ);
@@ -115,7 +113,9 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
 
     @Inject(
         method = "getChunk(IILnet/minecraft/world/level/chunk/ChunkStatus;Z)Lnet/minecraft/world/level/chunk/LevelChunk;",
-        at = @At("HEAD"), cancellable = true)
+        at = @At("HEAD"),
+        cancellable = true
+    )
     public void preGetChunk(
         final int chunkX,
         final int chunkZ,
@@ -126,6 +126,22 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
         final LevelChunk shipChunk = vs$shipChunks.get(ChunkPos.asLong(chunkX, chunkZ));
         if (shipChunk != null) {
             cir.setReturnValue(shipChunk);
+        }
+    }
+
+    @Mixin(ClientChunkCache.Storage.class)
+    public static class MixinStorage implements ClientChunkCacheDuck.StorageDuck {
+        @Shadow
+        int chunkCount;
+
+        @Override
+        public void vs$incChunkCount() {
+            this.chunkCount++;
+        }
+
+        @Override
+        public void vs$decChunkCount() {
+            this.chunkCount--;
         }
     }
 }
