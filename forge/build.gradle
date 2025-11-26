@@ -63,6 +63,8 @@ dependencies {
     implementation(include("io.github.llamalad7:mixinextras-forge:0.4.1"))
     annotationProcessor("net.fabricmc:sponge-mixin:0.12.5+mixin.0.8.5") // use fabric mixin so we can write interface injectors (conditionally loaded if mixinbooster is enabled)
 
+    compileOnly(annotationProcessor("com.github.bawnorton.mixinsquared:mixinsquared-common:0.3.7-beta.1"))
+    implementation(include("com.github.bawnorton.mixinsquared:mixinsquared-forge:0.3.7-beta.1"))
 
     forge "net.minecraftforge:forge:${rootProject.forge_version}"
 
@@ -80,34 +82,21 @@ dependencies {
     modImplementation("teamtwilight:twilightforest:${twilightforest_version}:universal")
 
     // Create compat
-    modCompileOnly("com.simibubi.create:create-${minecraft_version}:${create_version}:slim")
-    modCompileOnly("net.createmod.ponder:Ponder-Forge-${minecraft_version}:${ponder_version}")
-    modApi("dev.engine-room.flywheel:flywheel-forge-api-${minecraft_version}:${flywheel_version}")
-    modCompileOnly("dev.engine-room.flywheel:flywheel-forge-${minecraft_version}:${flywheel_version}")
+    modImplementation("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") { transitive = false }
+    modImplementation("net.createmod.ponder:Ponder-Forge-${minecraft_version}:${ponder_version}")
+    modImplementation("curse.maven:vanillin-965702:6446560")
+    modCompileOnly("dev.engine-room.flywheel:flywheel-forge-api-${minecraft_version}:${flywheel_version}")
+    modRuntimeOnly("dev.engine-room.flywheel:flywheel-forge-${minecraft_version}:${flywheel_version}")
     modImplementation("com.tterrag.registrate:Registrate:${registrate_version}")
-
-    //modCompileOnly("com.simibubi.create:create-${minecraft_version}:${old_create_forge_version}:slim") { transitive = false }
-    modCompileOnly("com.jozufozu.flywheel:flywheel-forge-${minecraft_version}:${old_flywheel_forge_version}") { transitive = false }
-
-    if (old_create) {
-        modRuntimeOnly("com.simibubi.create:create-${minecraft_version}:${old_create_forge_version}:slim") {
-            exclude(group: 'com.github.AlphaMode', module: 'fakeconfigtoml')
-            exclude(group: 'cc.tweaked')
-            exclude(group: 'mezz.jei')
-        }
-        modRuntimeOnly("com.jozufozu.flywheel:flywheel-forge-${minecraft_version}:${old_flywheel_forge_version}")
-    } else {
-        modRuntimeOnly("com.simibubi.create:create-${minecraft_version}:${create_version}:slim")
-        modRuntimeOnly("dev.engine-room.flywheel:flywheel-forge-${minecraft_version}:${flywheel_version}")
-        modRuntimeOnly("net.createmod.ponder:Ponder-Forge-${minecraft_version}:${ponder_version}")
-    }
 
     // Weather2 1.20.1
     modImplementation("curse.maven:weather-storms-tornadoes-237746:5244118")
     modImplementation("curse.maven:coroutil-237749:5096038")
 
     // CC Tweaked
-    modCompileOnly("maven.modrinth:cc-tweaked:${cc_tweaked_version}")
+    modRuntimeOnly("cc.tweaked:cc-tweaked-${minecraft_version}-forge:${cc_tweaked_version}")
+
+    modImplementation("curse.maven:vmp-forge-892037:4657678")
 
     // OpenComputers 2: Reimagined
     modCompileOnly("maven.modrinth:oc2r:${oc2r_version}")
@@ -133,10 +122,19 @@ dependencies {
     // Epic Fight
     modCompileOnly("maven.modrinth:epic-fight:20.10.3")
 
+    // Dynmap
+    modCompileOnly("maven.modrinth:dynmap:${dynmap_version}")
+
     // Integrated Dynamics
     modCompileOnly("curse.maven:integrated-dynamics-236307:5297722")
     modCompileOnly("curse.maven:cyclops-core-232758:5262063")
     modCompileOnly("curse.maven:common-capabilities-247007:4987207")
+
+    // Very Many Players
+    //modCompileOnly("maven.modrinth:vmp-forge:0.2.0+beta.7.101+1.20.1")
+
+    // TerraFirmaCraft
+    modCompileOnly("curse.maven:terrafirmacraft-302973:${tfc_version}")
 
     // Mekanism
     modCompileOnly ("curse.maven:mekanism-268560:4644795")
@@ -149,7 +147,7 @@ dependencies {
 
     // Shade vs-core
     implementation("org.valkyrienskies.core:util:${rootProject.vs_core_version}")
-    implementation("org.valkyrienskies.core:api-game:${rootProject.vs_core_version}") {
+    implementation("org.valkyrienskies.core:internal:${rootProject.vs_core_version}") {
         exclude group: 'org.joml', module: 'joml'
     }
     runtimeOnly("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
@@ -167,7 +165,7 @@ dependencies {
         transitive = false
     }
 
-    forgeRuntimeLibrary shadowCommon("org.valkyrienskies.core:api-game:${rootProject.vs_core_version}") {
+    forgeRuntimeLibrary shadowCommon("org.valkyrienskies.core:internal:${rootProject.vs_core_version}") {
         exclude group: 'org.joml', module: 'joml'
         transitive = false
     }
@@ -177,12 +175,12 @@ dependencies {
         transitive = false
     }
 
-    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api_krunch:1.0.0+7db6a103f1") {
+    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api_krunch:1.0.0+7de6258833") {
         exclude group: 'org.joml', module: 'joml'
         transitive = false
     }
 
-    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api:1.0.0+0ba0cc41e1") {
+    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api:1.0.0+e38d2989db") {
         exclude group: 'org.joml', module: 'joml'
         transitive = false
     }

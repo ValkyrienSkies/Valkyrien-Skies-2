@@ -4,15 +4,14 @@ import org.joml.Vector3dc
 import org.valkyrienskies.core.api.VsBeta
 import org.valkyrienskies.core.api.ships.properties.ShipId
 import org.valkyrienskies.core.api.world.PhysLevel
-import org.valkyrienskies.core.apigame.joints.VSJoint
-import org.valkyrienskies.core.apigame.joints.VSJointAndId
-import org.valkyrienskies.core.apigame.joints.VSJointId
-import org.valkyrienskies.core.apigame.world.PhysLevelCore
+import org.valkyrienskies.core.internal.joints.VSJoint
+import org.valkyrienskies.core.internal.joints.VSJointAndId
+import org.valkyrienskies.core.internal.joints.VSJointId
+import org.valkyrienskies.core.internal.world.VsiPhysLevel
 import org.valkyrienskies.core.util.pollUntilEmpty
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.function.Consumer
-import java.util.function.Function
 
 @OptIn(VsBeta::class)
 class GameToPhysicsAdapter {
@@ -29,6 +28,9 @@ class GameToPhysicsAdapter {
 
     private val toBeStatic = ConcurrentLinkedQueue<Pair<ShipId, Boolean>>()
 
+    private val enablePairs = ConcurrentLinkedQueue<Pair<ShipId, ShipId>>()
+    private val disablePairs = ConcurrentLinkedQueue<Pair<ShipId, ShipId>>()
+
     fun physTick(physLevel: PhysLevel, delta: Double) {
         invForces.pollUntilEmpty { pair -> physLevel.getShipById(pair.first)?.applyInvariantForce(pair.second) }
         invTorques.pollUntilEmpty { pair -> physLevel.getShipById(pair.first)?.applyInvariantTorque(pair.second) }
@@ -42,18 +44,21 @@ class GameToPhysicsAdapter {
             if (timer > 0) {
                 joints[newJoint] = timer - 1
             } else {
-                newJoint.second.accept((physLevel as PhysLevelCore).addJoint(newJoint.first))
+                newJoint.second.accept((physLevel as VsiPhysLevel).addJoint(newJoint.first))
                 joints.remove(newJoint)
             }
         }
         updatedJoints.pollUntilEmpty { jointAndId ->
-            (physLevel as PhysLevelCore).updateJoint(jointAndId.jointId, jointAndId.joint)
+            (physLevel as VsiPhysLevel).updateJoint(jointAndId.jointId, jointAndId.joint)
         }
         deletedJoints.pollUntilEmpty { jointId ->
-            (physLevel as PhysLevelCore).removeJoint(jointId)
+            (physLevel as VsiPhysLevel).removeJoint(jointId)
         }
 
         toBeStatic.pollUntilEmpty { pair -> physLevel.getShipById(pair.first)?.isStatic = pair.second }
+
+        enablePairs.pollUntilEmpty { pair -> physLevel.enableCollisionBetween(pair.first, pair.second) }
+        disablePairs.pollUntilEmpty { pair -> physLevel.disableCollisionBetween(pair.first, pair.second) }
     }
 
     fun applyInvariantForce(ship: ShipId, force: Vector3dc) {
@@ -92,6 +97,14 @@ class GameToPhysicsAdapter {
     }
     fun removeJoint(jointId: VSJointId) {
         deletedJoints.add(jointId)
+    }
+
+    fun enableCollisionBetween(shipA: ShipId, shipB: ShipId) {
+        enablePairs.add(shipA to shipB)
+    }
+
+    fun disableCollisionBetween(shipA: ShipId, shipB: ShipId) {
+        disablePairs.add(shipA to shipB)
     }
 
     private data class InvForceAtPos(val force: Vector3dc, val pos: Vector3dc)

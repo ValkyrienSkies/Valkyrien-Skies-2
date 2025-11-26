@@ -29,7 +29,7 @@ public class MixinMultiplePlacementHelpers {
     @Unique
     private Level world;
 
-    @Inject(method = "getOffset", at = @At("HEAD"), remap = false)
+    @Inject(method = "getOffset", at = @At("HEAD"))
     private void harvestWorld(Player player, Level world, BlockState state, BlockPos pos, BlockHitResult ray, CallbackInfoReturnable<PlacementOffset> cir) {
         this.world = world;
     }

@@ -11,6 +11,7 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import java.util.ListIterator;
 import java.util.WeakHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -24,10 +25,12 @@ import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
+import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.joml.Vector3f;
 import org.joml.primitives.AABBd;
@@ -41,6 +44,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.core.util.datastructures.BlockPos2ByteOpenHashMap;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
@@ -52,12 +56,13 @@ import org.valkyrienskies.mod.compat.VSRenderer;
 import org.valkyrienskies.mod.mixin.ValkyrienCommonMixinConfigPlugin;
 import org.valkyrienskies.mod.mixin.accessors.client.render.ViewAreaAccessor;
 import org.valkyrienskies.mod.mixin.mod_compat.optifine.RenderChunkInfoAccessorOptifine;
+import org.valkyrienskies.mod.mixinducks.mod_compat.vanilla_renderer.LevelRendererDuck;
 import org.valkyrienskies.mod.mixinducks.client.render.LevelRendererVanillaDuck;
 
 @Mixin(value = LevelRenderer.class, priority = 999)
-public abstract class MixinLevelRendererVanilla implements LevelRendererVanillaDuck {
+public abstract class MixinLevelRendererVanilla implements LevelRendererDuck, LevelRendererVanillaDuck {
     @Unique
-    private final WeakHashMap<ClientShip, ObjectArrayList<RenderChunkInfo>> shipRenderChunks = new WeakHashMap<>();
+    private final WeakHashMap<ClientShip, ObjectList<RenderChunkInfo>> shipRenderChunks = new WeakHashMap<>();
     @Shadow
     private ClientLevel level;
 
@@ -71,9 +76,16 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererVanillaD
     @Shadow
     @Final
     private Minecraft minecraft;
+    @Shadow
+    @Final
+    private AtomicBoolean needsFrustumUpdate;
 
     @Unique
     private BlockPos2ByteOpenHashMap vs$visibileShipChunks = new BlockPos2ByteOpenHashMap();
+    @Unique
+    private Long lastMountedShipId = null;
+    @Unique
+    private ShipTransform lastTransform = null;
 
     /**
      * Fix the distance to render chunks, so that MC doesn't think ship chunks are too far away
@@ -102,12 +114,27 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererVanillaD
         ),
         method = "setupRender"
     )
-    private boolean needsFrustumUpdate(final boolean needsFrustumUpdate) {
-        final Player player = minecraft.player;
-
+    private boolean getNeedsFrustumUpdate(final boolean needsFrustumUpdate) {
         // force frustum update if default behaviour says to OR if the player is mounted to a ship
-        return needsFrustumUpdate ||
-            (player != null && VSGameUtilsKt.getShipMountedTo(player) != null);
+        final Player player = this.minecraft.player;
+        if (player == null || !(VSGameUtilsKt.getShipMountedTo(player) instanceof final ClientShip ship)) {
+            this.lastMountedShipId = null;
+            return needsFrustumUpdate;
+        }
+        final ShipTransform transform = ship.getRenderTransform();
+        if (this.lastMountedShipId == null || this.lastMountedShipId.longValue() != ship.getId() || this.lastTransform == null) {
+            this.lastMountedShipId = ship.getId();
+            this.lastTransform = transform;
+            return true;
+        }
+        final boolean needUpdate = this.lastTransform != transform && !this.lastTransform.getShipToWorld().equals(transform.getShipToWorld());
+        this.lastTransform = transform;
+        return needUpdate;
+    }
+
+    @Override
+    public void vs$setNeedsFrustumUpdate() {
+        this.needsFrustumUpdate.set(true);
     }
 
     /**
@@ -177,6 +204,14 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererVanillaD
         }
     }
 
+    @WrapOperation(
+        method = "*",
+        at = @At(value = "INVOKE", target = "Lnet/minecraft/core/BlockPos;distSqr(Lnet/minecraft/core/Vec3i;)D")
+    )
+    private double distToShips(BlockPos from, Vec3i to, Operation<Double> distSqr){
+        return VSGameUtilsKt.squaredDistanceBetweenInclShips(level, from.getCenter(), Vec3.atCenterOf(to), distSqr);
+    }
+
     @Inject(
         method = "*",
         at = @At(
@@ -208,9 +243,10 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererVanillaD
 
         shipRenderChunks.forEach((ship, chunks) -> {
             poseStack.pushPose();
-            final Vector3dc center = ship.getRenderTransform().getPositionInShip();
+            final ShipTransform shipTransform = ship.getRenderTransform();
+            final Vector3dc cameraShipSpace = shipTransform.getWorldToShip().transformPosition(new Vector3d(camX, camY, camZ));
             VSClientGameUtils.transformRenderWithShip(ship.getRenderTransform(), poseStack,
-                center.x(), center.y(), center.z(),
+                cameraShipSpace.x(), cameraShipSpace.y(), cameraShipSpace.z(),
                 camX, camY, camZ);
 
             final var event = new VSGameEvents.ShipRenderEvent(
@@ -218,7 +254,7 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererVanillaD
             );
 
             VSGameEvents.INSTANCE.getRenderShip().emit(event);
-            renderChunkLayer(renderType, poseStack, center.x(), center.y(), center.z(), matrix4f, chunks);
+            renderChunkLayer(renderType, poseStack, cameraShipSpace.x(), cameraShipSpace.y(), cameraShipSpace.z(), matrix4f, chunks);
             VSGameEvents.INSTANCE.getPostRenderShip().emit(event);
 
             poseStack.popPose();

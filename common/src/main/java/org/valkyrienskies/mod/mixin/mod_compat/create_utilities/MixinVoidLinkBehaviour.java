@@ -9,7 +9,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
-import org.valkyrienskies.mod.mixin.mod_compat.common_create.behaviour.MixinLinkBehaviour;
+import org.valkyrienskies.mod.mixin.mod_compat.create.behaviour.MixinLinkBehaviour;
 
 @Mixin(VoidLinkBehaviour.class)
 public class MixinVoidLinkBehaviour {

@@ -7,7 +7,7 @@ import net.minecraft.client.renderer.entity.EntityRendererProvider.Context
 import net.minecraft.client.renderer.entity.MobRenderer
 import net.minecraft.resources.ResourceLocation
 import org.joml.Quaternionf
-import org.valkyrienskies.core.apigame.world.ClientShipWorldCore
+import org.valkyrienskies.core.internal.world.VsiClientShipWorld
 import org.valkyrienskies.mod.client.VSPhysicsEntityModel.Companion.LAYER_LOCATION
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
@@ -27,7 +27,7 @@ class VSPhysicsEntityRenderer<T : VSPhysicsEntity>(context: Context) :
     ) {
 
         val renderTransform = mob.getRenderTransform(
-            ((Minecraft.getInstance() as IShipObjectWorldClientProvider).shipObjectWorld as ClientShipWorldCore)
+            ((Minecraft.getInstance() as IShipObjectWorldClientProvider).shipObjectWorld as VsiClientShipWorld)
         ) ?: return
 
         // Rotate with the ship

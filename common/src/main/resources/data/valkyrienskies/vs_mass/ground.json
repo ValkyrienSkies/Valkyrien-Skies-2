@@ -20,7 +20,7 @@
     "friction": 0.6
   },
   {
-    "block": "minecraft:grass",
+    "block": "minecraft:grass_block",
     "mass": 125.0,
     "friction": 0.5
   },

@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.forge.common
 
+import dev.engine_room.flywheel.api.event.ReloadLevelRendererEvent
 import net.minecraft.commands.Commands.CommandSelection.ALL
 import net.minecraft.commands.Commands.CommandSelection.INTEGRATED
 import net.minecraft.core.registries.Registries
@@ -27,7 +28,7 @@ import net.minecraftforge.fml.loading.FMLEnvironment
 import net.minecraftforge.registries.DeferredRegister
 import net.minecraftforge.registries.ForgeRegistries
 import net.minecraftforge.registries.RegistryObject
-import org.valkyrienskies.core.apigame.VSCoreFactory
+import org.valkyrienskies.core.internal.VsiCoreFactory
 import org.valkyrienskies.core.impl.config.VSCoreConfig
 import org.valkyrienskies.mod.client.EmptyRenderer
 import org.valkyrienskies.mod.client.VSPhysicsEntityModel
@@ -57,6 +58,8 @@ import org.valkyrienskies.mod.common.item.ShipAssemblerItem
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
 import org.valkyrienskies.mod.compat.LoadedMods
 import org.valkyrienskies.mod.compat.clothconfig.VSClothConfig
+import org.valkyrienskies.mod.compat.flywheel.ShipEmbeddingManager
+import org.valkyrienskies.mod.forge.compat.ForgeDynmapHandler
 import org.valkyrienskies.mod.compat.flywheel.FlywheelCompat
 import org.valkyrienskies.mod.forge.compat.epicfight.FracturedBlockStateInfoProvider
 
@@ -84,15 +87,8 @@ class ValkyrienSkiesModForge {
 
     init {
         val isClient = FMLEnvironment.dist.isClient
-        val vsCore = if (isClient) {
-            VSCoreFactory.instance.newVsCoreClient(ForgeHooksImpl)
-        } else {
-            VSCoreFactory.instance.newVsCoreServer(ForgeHooksImpl)
-        }
 
-        VSForgeNetworking.registerPacketHandlers(vsCore.hooks)
-
-        ValkyrienSkiesMod.init(vsCore)
+        ValkyrienSkiesMod.init()
         VSEntityManager.registerContraptionHandler(ContraptionShipyardEntityHandlerForge)
 
         val modBus = Bus.MOD.bus().get()
@@ -108,6 +104,9 @@ class ValkyrienSkiesModForge {
             modBus.addListener(::entityRenderers)
             modBus.addListener(::registerLayerDefinitions)
             if (LoadedMods.flywheel == LoadedMods.FlywheelVersion.V1) FlywheelCompat.initClient()
+            if (ModList.get().isLoaded("flywheel")) {
+                forgeBus.addListener(::registerFlywheelReload)
+            }
         }
         modBus.addListener(::loadComplete)
 
@@ -206,6 +205,11 @@ class ValkyrienSkiesModForge {
         if (ModList.get().isLoaded("epicfight")) {
             FracturedBlockStateInfoProvider.register()
         }
+
+        if (ModList.get().isLoaded("dynmap")) {
+            ForgeDynmapHandler().register()
+            forgeBus.addListener(ForgeDynmapHandler::tick)
+        }
     }
 
     private fun registerResourceManagers(event: AddReloadListenerEvent) {
@@ -217,6 +221,10 @@ class ValkyrienSkiesModForge {
         VSKeyBindings.clientSetup {
             event.register(it)
         }
+    }
+
+    private fun registerFlywheelReload(event: ReloadLevelRendererEvent) {
+        ShipEmbeddingManager.INSTANCE.unloadAllShip()
     }
 
     private fun entityRenderers(event: EntityRenderersEvent.RegisterRenderers) {

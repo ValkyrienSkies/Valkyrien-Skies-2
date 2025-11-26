@@ -13,13 +13,13 @@ import org.valkyrienskies.mod.common.VSClientGameUtils;
 public abstract class MixinContraptionRenderDispatcher {
 
     @Redirect(
-        method = "renderActors",
-        at = @At(
-            value = "INVOKE",
-            target = "Ldev/engine_room/flywheel/lib/transform/PoseTransformStack;translate(Lnet/minecraft/core/Vec3i;)Ldev/engine_room/flywheel/lib/transform/Translate;"
-        )
+            method = "renderActors",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Ldev/engine_room/flywheel/lib/transform/PoseTransformStack;translate(Lnet/minecraft/core/Vec3i;)Ldev/engine_room/flywheel/lib/transform/Translate;"
+            )
     )
-    private static Translate<PoseTransformStack> redirectTranslate(PoseTransformStack instance, Vec3i vec3i) {
+    private static Translate redirectTranslate(PoseTransformStack instance, Vec3i vec3i) {
         VSClientGameUtils.transformRenderIfInShipyard(instance.unwrap(), vec3i.getX(), vec3i.getY(), vec3i.getZ());
         return instance;
     }

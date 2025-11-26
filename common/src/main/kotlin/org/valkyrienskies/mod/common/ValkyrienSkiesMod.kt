@@ -1,5 +1,9 @@
 package org.valkyrienskies.mod.common
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.module.SimpleModule
+import net.minecraft.client.Minecraft
+import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.Registries
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceKey
@@ -12,8 +16,8 @@ import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.entity.BlockEntityType
 import org.valkyrienskies.core.api.world.properties.DimensionId
-import org.valkyrienskies.core.apigame.VSCore
-import org.valkyrienskies.core.apigame.VSCoreClient
+import org.valkyrienskies.core.internal.VsiCore
+import org.valkyrienskies.core.internal.VsiCoreClient
 import org.valkyrienskies.mod.api.SeatedControllingPlayer
 import org.valkyrienskies.mod.api_impl.events.VsApiImpl
 import org.valkyrienskies.mod.common.blockentity.DebugPhysicsTickables
@@ -22,11 +26,17 @@ import org.valkyrienskies.mod.common.blockentity.TestThrusterBlockEntity
 import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.entity.VSPhysicsEntity
+import org.valkyrienskies.mod.common.jackson.BlockPosDeserializer
+import org.valkyrienskies.mod.common.jackson.BlockPosKeyDeserializer
+import org.valkyrienskies.mod.common.jackson.BlockPosKeySerializer
+import org.valkyrienskies.mod.common.jackson.BlockPosSerializer
 import org.valkyrienskies.mod.common.networking.VSGamePackets
 import org.valkyrienskies.mod.common.util.GameToPhysicsAdapter
 import org.valkyrienskies.mod.common.util.ShipSettings
 import org.valkyrienskies.mod.common.util.SplitHandler
 import org.valkyrienskies.mod.common.util.SplittingDisablerAttachment
+import org.valkyrienskies.mod.mixinducks.client.world.ClientChunkCacheDuck
+import java.util.ServiceLoader
 
 object ValkyrienSkiesMod {
     const val MOD_ID = "valkyrienskies"
@@ -35,6 +45,7 @@ object ValkyrienSkiesMod {
     lateinit var TEST_HINGE: Block
     lateinit var TEST_FLAP: Block
     lateinit var TEST_WING: Block
+    lateinit var TEST_SPHERE: Block
     lateinit var TEST_THRUSTER: Block
     lateinit var CONNECTION_CHECKER_ITEM: Item
     lateinit var SHIP_CREATOR_ITEM: Item
@@ -55,10 +66,19 @@ object ValkyrienSkiesMod {
     var currentServer: MinecraftServer? = null
 
     @JvmStatic
-    lateinit var vsCore: VSCore
+    val vsCoreProvider: VSCoreProvider by lazy {
+        val loader = ServiceLoader.load(VSCoreProvider::class.java, VSCoreProvider::class.java.classLoader)
+
+        loader.findFirst().orElseThrow {
+            IllegalStateException("No VSCoreProvider implementation found via ServiceLoader!")
+        }
+    }
 
     @JvmStatic
-    val vsCoreClient get() = vsCore as VSCoreClient
+    val vsCore: VsiCore = vsCoreProvider.newVSCore()
+
+    @JvmStatic
+    val vsCoreClient get() = vsCore as VsiCoreClient
 
     @JvmStatic
     val api by lazy {
@@ -68,12 +88,22 @@ object ValkyrienSkiesMod {
     @JvmStatic
     lateinit var splitHandler: SplitHandler
 
-    fun init(core: VSCore) {
-        this.vsCore = core
+    fun init() {
+        val core = this.vsCore
 
         BlockStateInfo.init()
         VSGamePackets.register()
         VSGamePackets.registerHandlers()
+
+        // region Register BlockPos for serialization in force inducers
+        val aabbModule = SimpleModule()
+        aabbModule.addSerializer(BlockPos::class.java, BlockPosSerializer())
+        aabbModule.addDeserializer(BlockPos::class.java, BlockPosDeserializer())
+        aabbModule.addKeySerializer(BlockPos::class.java, BlockPosKeySerializer())
+        aabbModule.addKeyDeserializer(BlockPos::class.java, BlockPosKeyDeserializer())
+        val mapper = ObjectMapper()
+        mapper.registerModule(aabbModule)
+        // end region
 
         core.registerConfigLegacy("vs", VSGameConfig::class.java)
 
@@ -88,7 +118,7 @@ object ValkyrienSkiesMod {
         }
 
         core.shipLoadEvent.on { event ->
-            event.ship.setAttachment(SplittingDisablerAttachment(true))
+            event.ship.setAttachment(SplittingDisablerAttachment(false))
         }
 
         this.vsCore.physTickEvent.on { event ->
@@ -98,6 +128,12 @@ object ValkyrienSkiesMod {
                 }
             }
             DebugPhysicsTickables.physTick(event.world, event.delta)
+        }
+        core.shipUnloadEventClient.on { event ->
+            val level = Minecraft.getInstance().level
+            if (level != null) {
+                (level.getChunkSource() as ClientChunkCacheDuck).`vs$removeShip`(event.ship)
+            }
         }
     }
 

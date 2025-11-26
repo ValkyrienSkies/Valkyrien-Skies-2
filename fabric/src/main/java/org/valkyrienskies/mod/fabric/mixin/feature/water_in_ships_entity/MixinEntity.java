@@ -2,34 +2,37 @@ package org.valkyrienskies.mod.fabric.mixin.feature.water_in_ships_entity;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.sugar.Local;
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
+import java.util.function.Predicate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.tags.TagKey;
-import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import org.slf4j.Logger;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.At.Shift;
+import org.spongepowered.asm.mixin.injection.Constant;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyConstant;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
+import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.Slice;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(Entity.class)
 public abstract class MixinEntity {
-
-    @Shadow
-    public abstract void setPos(double x, double y, double z);
-
-    @Shadow
-    public abstract Vec3 position();
 
     @Unique
     private boolean isModifyingWaterState = false;
@@ -51,104 +54,131 @@ public abstract class MixinEntity {
     @Shadow
     public abstract boolean updateFluidHeightAndDoFluidPushing(TagKey<Fluid> tagKey, double d);
 
-    @Shadow
-    public abstract boolean touchingUnloadedChunk();
-
-    @Shadow
-    public abstract AABB getBoundingBox();
-
-    @Shadow
-    public abstract boolean isPushedByFluid();
-
-    @Shadow
-    public abstract Vec3 getDeltaMovement();
-
-    @Shadow
-    public abstract void setDeltaMovement(Vec3 vec3);
-
-    @Shadow
-    protected Object2DoubleMap<TagKey<Fluid>> fluidHeight;
     @Unique
     private boolean isShipWater = false;
 
+    /**
+     * used to replace updateFluidHeightAndDoFluidPushing aABB in ship context
+     * */
+    @Unique
+    private AABB valkyrienskies$fluidPushAABB = null;
+
+    /**
+     * vector apply to the entity when getting pushed by liquid
+     * used to combine updateFluidHeightAndDoFluidPushing vec3 of normal and ship context
+     * */
+    @Unique
+    private Vec3 valkyrienskies$fluidPushVec = null;
+
+    /**
+     * Number of fluid pushing the entity, o in updateFluidHeightAndDoFluidPushing
+     * used to combine updateFluidHeightAndDoFluidPushing o of normal and ship context
+     * */
+    @Unique
+    private int valkyrienskies$fluidPushNumber = 0;
+
+    @Unique
+    private boolean valkyrienskies$fluidPushRet = false;
+
+    /**
+     * double that rely on other fluid push that is put in the fluidHeight, i don't know its utility but it
+     * used to combine updateFluidHeightAndDoFluidPushing e of normal and ship context
+     * */
+    @Unique
+    private double valkyrienskies$fluidPushE = 0;
+
+    @Unique
+    private boolean inShipContext() {
+        return valkyrienskies$fluidPushAABB != null;
+    }
+
+    @ModifyVariable(
+        method = "updateFluidHeightAndDoFluidPushing",
+        at = @At("STORE")
+    )
+    private AABB setFluidPushInShipContext(AABB original) {
+        if (inShipContext())
+            return valkyrienskies$fluidPushAABB;
+
+        return original;
+    }
+
+    @ModifyConstant(
+        method = "updateFluidHeightAndDoFluidPushing",
+        constant = @Constant(doubleValue = 0.0)
+    )
+    private double setFluidPushInShipContext(double constant) {
+        // valkyrienskies$fluidPushE = 0 before function end, no need to check inShipContext
+        return valkyrienskies$fluidPushE;
+    }
+
+
     @Inject(
-        at = @At("HEAD"),
+        at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/Vec3;length()D", ordinal = 0),
         method = "updateFluidHeightAndDoFluidPushing",
         cancellable = true
     )
-    // Overwrite the vanilla method, since it's written in a way that's really hard to precisely mixin into.
-    private void afterFluidStateUpdate(final TagKey<Fluid> tagKey, final double d,
-        final CallbackInfoReturnable<Boolean> cir) {
-
-        if (this.touchingUnloadedChunk()) {
-            cir.setReturnValue(false);
-            return;
+    private void shouldProcessPush(TagKey<Fluid> tagKey, double d, CallbackInfoReturnable<Boolean> cir,
+        @Local(ordinal = 6) int numberPush, @Local(ordinal = 1) boolean bl2, @Local(ordinal = 0) Vec3 vec3,
+        @Local(ordinal = 1) double e) {
+        if (inShipContext()) {
+            //stop processing is in ship context, processing will be done after collectShipFluidPush in normal context
+            valkyrienskies$fluidPushE = e;
+            valkyrienskies$fluidPushNumber += numberPush;
+            valkyrienskies$fluidPushVec = valkyrienskies$fluidPushVec.add(vec3);
+            cir.setReturnValue(bl2);
         }
-
-        final Vec3[] vec3ref = {Vec3.ZERO};
-        final int[] oref = {0};
-        final boolean[] bl2ref = {false};
-        final double[] e = {0.0};
-
-        // The only change, gather fluid forces from nearby ships as well as the world.
-        VSGameUtilsKt.transformFromWorldToNearbyShipsAndWorld(level, this.getBoundingBox().deflate(0.001), aABB -> {
-            final int i = Mth.floor(aABB.minX);
-            final int j = Mth.ceil(aABB.maxX);
-            final int k = Mth.floor(aABB.minY);
-            final int l = Mth.ceil(aABB.maxY);
-            final int m = Mth.floor(aABB.minZ);
-            final int n = Mth.ceil(aABB.maxZ);
-            final boolean bl = this.isPushedByFluid();
-            final BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos();
-            for (int p = i; p < j; ++p) {
-                for (int q = k; q < l; ++q) {
-                    for (int r = m; r < n; ++r) {
-                        final double f;
-                        mutableBlockPos.set(p, q, r);
-                        final FluidState fluidState = this.level.getFluidState(mutableBlockPos);
-                        if (!fluidState.is(tagKey) ||
-                            !((f = (float) q + fluidState.getHeight(this.level, mutableBlockPos)) >=
-                                aABB.minY)) {
-                            continue;
-                        }
-                        bl2ref[0] = true;
-                        e[0] = Math.max(f - aABB.minY, e[0]);
-                        if (!bl) {
-                            continue;
-                        }
-                        Vec3 vec32 = fluidState.getFlow(this.level, mutableBlockPos);
-                        if (e[0] < 0.4) {
-                            vec32 = vec32.scale(e[0]);
-                        }
-                        vec3ref[0] = vec3ref[0].add(vec32);
-                        ++oref[0];
-                    }
-                }
-            }
-        });
-
-        Vec3 vec3 = vec3ref[0];
-        final boolean bl2 = bl2ref[0];
-        final int o = oref[0];
-
-        if (vec3.length() > 0.0) {
-            if (o > 0) {
-                vec3 = vec3.scale(1.0 / (double) o);
-            }
-            if (!Player.class.isInstance(this)) {
-                vec3 = vec3.normalize();
-            }
-            final Vec3 vec33 = this.getDeltaMovement();
-            vec3 = vec3.scale(d);
-            if (Math.abs(vec33.x) < 0.003 && Math.abs(vec33.z) < 0.003 && vec3.length() < 0.0045000000000000005) {
-                vec3 = vec3.normalize().scale(0.0045);
-            }
-            this.setDeltaMovement(this.getDeltaMovement().add(vec3));
-        }
-        this.fluidHeight.put(tagKey, e[0]);
-
-        cir.setReturnValue(bl2);
     }
+
+    @Redirect(
+        at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/Vec3;length()D", ordinal = 0),
+        method = "updateFluidHeightAndDoFluidPushing"
+    )
+    private double collectShipFluidPush(Vec3 instance,
+        @Local(ordinal = 0, argsOnly = true) TagKey<Fluid> tagKey, @Local(ordinal = 0, argsOnly = true) double d,
+        @Local(ordinal = 0) AABB aabb, @Local(ordinal = 1) boolean bl2, @Local(ordinal = 6) int numberPush,
+        @Local(ordinal = 1) double e)
+    {
+        valkyrienskies$fluidPushE = e;
+        valkyrienskies$fluidPushNumber = numberPush;
+        valkyrienskies$fluidPushRet = bl2;
+        valkyrienskies$fluidPushVec = instance;
+        VSGameUtilsKt.transformFromWorldToNearbyShipsAndWorld(level, aabb, (shipAabb) -> {
+            valkyrienskies$fluidPushAABB = shipAabb; // enable ship context
+            valkyrienskies$fluidPushRet = valkyrienskies$fluidPushRet || this.updateFluidHeightAndDoFluidPushing(tagKey, d);
+            //recall in the ship context
+        });
+        valkyrienskies$fluidPushAABB = null; //disable ship context
+        return valkyrienskies$fluidPushVec.length();
+    }
+    
+    @ModifyVariable(
+        method = "updateFluidHeightAndDoFluidPushing",
+        at = @At("LOAD"),
+        ordinal = 6
+    )
+    private int loadO(int origin) {
+        return valkyrienskies$fluidPushNumber;
+    }
+
+    @Redirect(
+        method = "updateFluidHeightAndDoFluidPushing",
+        at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/Vec3;scale(D)Lnet/minecraft/world/phys/Vec3;", ordinal = 1)
+    )
+    private Vec3 setVec3ToPush(Vec3 instance, double d) {
+        return valkyrienskies$fluidPushVec.scale(d);
+    }
+
+    @Inject(
+        method = "updateFluidHeightAndDoFluidPushing",
+        at = @At("TAIL"),
+        cancellable = true
+    )
+    private void setFluidPushingReturnValue(TagKey<Fluid> tagKey, double d, CallbackInfoReturnable<Boolean> cir) {
+        valkyrienskies$fluidPushE = 0;
+        cir.setReturnValue(valkyrienskies$fluidPushRet);
+    }
+
 
     @WrapOperation(
         at = @At(value = "INVOKE",

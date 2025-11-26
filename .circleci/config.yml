@@ -13,7 +13,6 @@ executors:
     environment:
       ORG_GRADLE_PROJECT_block_external_repositories: "true"
 
-
 commands:
   checkout_and_cache:
     steps:
@@ -28,6 +27,7 @@ commands:
       - restore_cache:
           keys:
             - v1-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
+
   save_artifacts:
     parameters:
       artifact_name:
@@ -38,13 +38,21 @@ commands:
         default: ${CIRCLE_SHA1}
     steps:
       # Rename artifacts to "forge.jar" and "fabric.jar"
-      - run: mkdir artifacts
-      - run: find ./forge/build/libs -regextype posix-extended -regex ".*/<< parameters.artifact_name >>(-[^-]+){3}.jar" -exec bash -c 'cp $0 ./artifacts/<< parameters.artifact_name >>-forge-<< parameters.version >>.jar' {} \;
-      - run: find ./fabric/build/libs -regextype posix-extended -regex ".*/<< parameters.artifact_name >>(-[^-]+){3}.jar" -exec bash -c 'cp $0 ./artifacts/<< parameters.artifact_name >>-fabric-<< parameters.version >>.jar' {} \;
-
-      # Store artifacts
+      - run: mkdir -p artifacts
+      - run: |
+          set -euo pipefail
+          find ./forge/build/libs -regextype posix-extended -regex ".*/<< parameters.artifact_name >>(-[^-]+){3}.jar" \
+            -exec bash -c 'cp "$0" "./artifacts/<< parameters.artifact_name >>-forge-<< parameters.version >>.jar"' {} \;
+          find ./fabric/build/libs -regextype posix-extended -regex ".*/<< parameters.artifact_name >>(-[^-]+){3}.jar" \
+            -exec bash -c 'cp "$0" "./artifacts/<< parameters.artifact_name >>-fabric-<< parameters.version >>.jar"' {} \;
       - store_artifacts:
           path: artifacts
+      # Make artifacts available to downstream jobs
+      - persist_to_workspace:
+          root: .
+          paths:
+            - artifacts
+
   save_artifacts_and_generate_discord:
     parameters:
       artifact_name:
@@ -63,6 +71,7 @@ commands:
           [Download Forge](https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/artifacts/<< parameters.artifact_name >>-forge-<< parameters.version >>.jar) |
           [Download Fabric](https://output.circle-artifacts.com/output/job/${CIRCLE_WORKFLOW_JOB_ID}/artifacts/${CIRCLE_NODE_INDEX}/artifacts/<< parameters.artifact_name >>-fabric-<< parameters.version >>.jar)
           "' >> "$BASH_ENV"
+
   save_gradle_cache:
     steps:
       - save_cache:
@@ -74,30 +83,166 @@ commands:
           paths:
             - .gradle
 
-# Define a job to be invoked later in a workflow.
-# See: https://circleci.com/docs/2.0/configuration-reference/#jobs
+  prepare_server_dir:
+    parameters:
+      server_root:
+        type: string
+    steps:
+      - run:
+          name: Prepare clean server directory
+          command: |
+            set -euo pipefail
+            rm -rf "<< parameters.server_root >>"
+            mkdir -p "<< parameters.server_root >>/mods"
+            mkdir -p "<< parameters.server_root >>/config"
+
+  run_test_server:
+    parameters:
+      cmd:
+        type: string
+      workdir:
+        type: string
+    steps:
+      - run:
+          name: Run dedicated production server
+          command: |
+            set -euo pipefail
+            cd "<< parameters.workdir >>"
+            
+            # Accept eula automatically
+            echo "eula=true" > eula.txt || true
+            
+            # Pipe "stop" into servers stdin so it closes right after a successful launch
+            # Timeout 5 mins just in case, but we should either stop after launch, or error and move on
+            timeout 5m echo "stop" | << parameters.cmd >> || true
+            
+            # Most reliable way I could find to detect a crash or not
+            if grep -q "For help, type \"help\"" logs/latest.log; then
+              echo "Server loaded successfully!"
+              exit 0
+            else
+              echo "Server failed to start!"
+              exit 1
+            fi
+      - store_artifacts:
+          path: << parameters.workdir >>/logs
+          when: always
+      - store_artifacts:
+          path: << parameters.workdir >>/latest.log
+          when: always
+
 jobs:
   gradle_build:
     executor: java_large
     steps:
-      # Checkout repo
       - checkout_and_cache
-      # Run build
       - run:
-          name: "Build"
+          name: Build
           command: "./gradlew build --no-daemon --stacktrace"
       - save_artifacts
       - save_gradle_cache
 
+  fabric_server_test:
+    executor: java_large
+    environment:
+      MC_VERSION: "1.20.1"
+      FABRIC_VERSION: "1.0.1"
+      FABRIC_API_URL: "https://cdn.modrinth.com/data/P7dR8mSH/versions/UapVHwiP/fabric-api-0.92.6%2B1.20.1.jar"
+    steps:
+      - attach_workspace:
+          at: .
+      - prepare_server_dir:
+          server_root: /tmp/fabric-server
+      - run:
+          name: Find built Fabric mod jar
+          command: |
+            set -euo pipefail
+            FABRIC_JAR="$(pwd)/$(ls -1 artifacts/*-fabric-*.jar | head -n1)"
+            if [ -z "${FABRIC_JAR}" ]; then
+              echo "No Fabric jar found in artifacts/"
+              ls -la artifacts || true
+              exit 1
+            fi
+            echo "export FABRIC_MOD_JAR=${FABRIC_JAR}" >> "$BASH_ENV"
+      - run:
+          name: Download Fabric server
+          command: |
+            set -euo pipefail
+            cd /tmp/fabric-server
+            curl -L "https://maven.fabricmc.net/net/fabricmc/fabric-installer/${FABRIC_VERSION}/fabric-installer-${FABRIC_VERSION}.jar" -o fabric-installer-${FABRIC_VERSION}.jar
+      - run:
+          name: Install Fabric server
+          command: |
+            set -euo pipefail
+            cd /tmp/fabric-server
+            # Generates server.jar and required loader files for the requested MC version.
+            java -jar fabric-installer-${FABRIC_VERSION}.jar server -downloadMinecraft -mcversion "${MC_VERSION}" -noprofile
+            # Copy mod jar into mods/
+            cp "/${FABRIC_MOD_JAR}" mods/
+      - run:
+          name: Download Fabric API
+          command: |
+            set -euo pipefail
+            cd /tmp/fabric-server
+            curl -L "${FABRIC_API_URL}" -o mods/fabric-api.jar
+      - run_test_server:
+          cmd: "java -Xmx2G -Xms2G -jar fabric-server-launch.jar nogui"
+          workdir: "/tmp/fabric-server"
+
+  forge_server_test:
+    executor: java_large
+    environment:
+      MC_VERSION: "1.20.1"
+      FORGE_VERSION: "47.2.0"
+      KFF_URL: "https://cdn.modrinth.com/data/ordsPcFz/versions/hmeyC41q/kotlinforforge-4.11.0-all.jar"
+    steps:
+      - attach_workspace:
+          at: .
+      - prepare_server_dir:
+          server_root: /tmp/forge-server
+      - run:
+          name: Find built Forge mod jar
+          command: |
+            set -euo pipefail
+            FORGE_JAR="$(pwd)/$(ls -1 artifacts/*-forge-*.jar | head -n1)"
+            if [ -z "${FORGE_JAR}" ]; then
+              echo "No Forge jar found in artifacts/"
+              ls -la artifacts || true
+              exit 1
+            fi
+            echo "export FORGE_MOD_JAR=${FORGE_JAR}" >> "$BASH_ENV"
+      - run:
+          name: Download Forge server
+          command: |
+            set -euo pipefail
+            cd /tmp/forge-server
+            curl -L "https://maven.minecraftforge.net/net/minecraftforge/forge/${MC_VERSION}-${FORGE_VERSION}/forge-${MC_VERSION}-${FORGE_VERSION}-installer.jar" -o forge-installer-${FORGE_VERSION}.jar
+      - run:
+          name: Install Forge server
+          command: |
+            set -euo pipefail
+            cd /tmp/forge-server
+            java -jar forge-installer-${FORGE_VERSION}.jar --installServer
+            # Copy the mod into mods/
+            cp "${FORGE_MOD_JAR}" mods/
+      - run:
+          name: Download Kotlin For Forge
+          command: |
+            set -euo pipefail
+            cd /tmp/forge-server
+            curl -L "${KFF_URL}" -o mods/kff.jar
+      - run_test_server:
+          cmd: "./run.sh nogui"
+          workdir: "/tmp/forge-server"
+
   publish_to_maven:
     executor: java_large
     steps:
-      # Checkout repo
       - checkout_and_cache
-      # Run build
       - run:
-          name: "Build"
+          name: Build
           command: "./gradlew build publish --no-daemon --stacktrace"
+
   deploy_to_curse:
     executor: java_large
     steps:
@@ -105,14 +250,13 @@ jobs:
       - run: echo 'export ORG_GRADLE_PROJECT_CustomReleaseVersion=${CIRCLE_TAG}' >> "$BASH_ENV"
       - run:
           command: "./gradlew build modrinth curseforge publish --no-daemon --stacktrace --continue"
+
   notify_playtesters:
     executor: java_large
     steps:
-      # Checkout repo
       - checkout_and_cache
-      # Run build
       - run:
-          name: "Build"
+          name: Build
           command: "./gradlew build --no-daemon --stacktrace"
       - save_artifacts_and_generate_discord
       - discord/status:
@@ -120,12 +264,22 @@ jobs:
           success_only: true
           webhook: ${VS2_1192_WEBHOOK}
 
-# Invoke jobs via workflows
-# See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
   build:
     jobs:
       - gradle_build:
+          context:
+            - valkyrien_maven
+
+      - fabric_server_test:
+          requires:
+            - gradle_build
+          context:
+            - valkyrien_maven
+
+      - forge_server_test:
+          requires:
+            - gradle_build
           context:
             - valkyrien_maven
 
@@ -138,6 +292,7 @@ workflows:
           context:
             - discord_webhooks
             - valkyrien_maven
+
       - deploy_to_curse:
           filters:
             tags:
@@ -147,6 +302,7 @@ workflows:
           context:
             - curse_publishing
             - valkyrien_maven
+
       - publish_to_maven:
           filters:
             branches:

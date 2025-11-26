@@ -5,7 +5,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.valkyrienskies.core.apigame.world.chunks.BlockType;
+import org.valkyrienskies.core.internal.world.chunks.VsiBlockType;
 import org.valkyrienskies.mod.common.BlockStateInfo;
 import org.valkyrienskies.mod.common.BlockStateInfoProvider;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
@@ -33,9 +33,9 @@ public class FracturedBlockStateInfoProvider implements BlockStateInfoProvider {
 
     @Nullable
     @Override
-    public BlockType getBlockStateType(@NotNull BlockState blockState) {
+    public VsiBlockType getBlockStateType(@NotNull BlockState blockState) {
         if (blockState instanceof FractureBlockState)
-            return ValkyrienSkiesMod.vsCore.getBlockTypes().getSolid();
+            return ValkyrienSkiesMod.getVsCore().getBlockTypes().getSolid();
         return null;
     }
 

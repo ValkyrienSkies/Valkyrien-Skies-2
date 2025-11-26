@@ -62,7 +62,7 @@ public abstract class MixinServerPlayer extends Player {
     void rememberLastShip(final CompoundTag compoundTag, final CallbackInfo ci) {
         final EntityDraggingInformation draggingInformation = ((IEntityDraggingInformationProvider) this).getDraggingInformation();
 
-        if (draggingInformation.getTicksSinceStoodOnShip() > VSGameConfig.SERVER.getMaxAirborneTicksForReconnectedPlayerTeleport())
+        if (!draggingInformation.isEntityBeingDraggedByAShip())
             return;
 
         @Nullable final Long lastShipId = draggingInformation.getLastShipStoodOn();

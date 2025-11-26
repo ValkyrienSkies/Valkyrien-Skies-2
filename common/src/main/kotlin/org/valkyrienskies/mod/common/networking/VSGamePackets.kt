@@ -6,6 +6,7 @@ import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.phys.Vec3
 import org.joml.Vector3d
 import org.valkyrienskies.core.api.attachment.getAttachment
@@ -81,6 +82,7 @@ object VSGamePackets {
                     entity.draggingInformation.lastShipStoodOn = setMotion.shipID
                     entity.draggingInformation.ignoreNextGroundStand = true
                 }
+                entity.draggingInformation.shouldImpulseMovement = false
 
                 entity.draggingInformation.relativePositionOnShip = ship.worldToShip.transformPosition(
                     Vector3d(entity.x, entity.y, entity.z)
@@ -97,14 +99,16 @@ object VSGamePackets {
                 } else {
                     Vector3d(entity.x, entity.y, entity.z)
                 }
-                val worldPosition = ship.renderTransform.shipToWorld.transformPosition(Vector3d(setMotion.x, setMotion.y, setMotion.z))
+                val worldPosition = ship.transform.shipToWorld.transformPosition(Vector3d(setMotion.x, setMotion.y, setMotion.z))
                 entity.syncPacketPositionCodec(worldPosition.x, worldPosition.y, worldPosition.z)
-                val worldVelocity = ship.renderTransform.shipToWorld.transformDirection(Vector3d(setMotion.xVel, setMotion.yVel, setMotion.zVel))
+                val worldVelocity = ship.transform.shipToWorld.transformDirection(Vector3d(setMotion.xVel, setMotion.yVel, setMotion.zVel))
                 entity.setDeltaMovement(worldVelocity.x, worldVelocity.y, worldVelocity.z)
                 entity.draggingInformation.lerpSteps = 3
 
-                // entity.setPos(previousWorldPosition.x, previousWorldPosition.y, previousWorldPosition.z)
-                // entity.lerpTo(worldPosition.x, worldPosition.y, worldPosition.z, Math.toDegrees(setMotion.yRot).toFloat(), Math.toDegrees(setMotion.xRot).toFloat(), 3, true)
+                if(entity !is LivingEntity) { // EntityLerper is called only if the entity is ai-controlled. In other cases lerp is manual.
+                    entity.setPos(previousWorldPosition.x, previousWorldPosition.y, previousWorldPosition.z)
+                    entity.lerpTo(worldPosition.x, worldPosition.y, worldPosition.z, Math.toDegrees(setMotion.yRot).toFloat(), Math.toDegrees(setMotion.xRot).toFloat(), 3, true)
+                }
             }
         }
 

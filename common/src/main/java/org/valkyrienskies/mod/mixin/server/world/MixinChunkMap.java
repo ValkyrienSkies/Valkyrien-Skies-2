@@ -25,7 +25,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.Ship;
-import org.valkyrienskies.core.apigame.world.IPlayer;
+import org.valkyrienskies.core.internal.world.VsiPlayer;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.MinecraftPlayer;
 
@@ -85,7 +85,7 @@ public abstract class MixinChunkMap {
     private void postGetPlayersWatchingChunk(final ChunkPos chunkPos, final boolean onlyOnWatchDistanceEdge,
         final CallbackInfoReturnable<List<ServerPlayer>> cir) {
 
-        final Iterator<IPlayer> playersWatchingShipChunk =
+        final Iterator<VsiPlayer> playersWatchingShipChunk =
             VSGameUtilsKt.getShipObjectWorld(level)
                 .getIPlayersWatchingShipChunk(chunkPos.x, chunkPos.z, VSGameUtilsKt.getDimensionId(level));
 

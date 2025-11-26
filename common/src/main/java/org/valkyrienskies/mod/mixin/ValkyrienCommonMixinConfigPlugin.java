@@ -130,6 +130,13 @@ public class ValkyrienCommonMixinConfigPlugin implements IMixinConfigPlugin {
             }
         }
 
+        //Disable ChunkMap Mixin when VMP is present
+        if(mixinClassName.equals("org.valkyrienskies.mod.mixin.server.world.MixinChunkMap")) {
+            if(classExists("com.ishland.vmp.mixins.playerwatching.MixinThreadedAnvilChunkStorage")) {
+                return false;
+            }
+        }
+
         return true;
     }
 

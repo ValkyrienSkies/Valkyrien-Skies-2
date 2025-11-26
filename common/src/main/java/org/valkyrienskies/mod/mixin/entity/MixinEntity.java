@@ -267,6 +267,12 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     @Shadow
     public abstract boolean shouldRenderAtSqrDistance(double d);
 
+    @Shadow
+    public boolean hasImpulse;
+
+    @Shadow
+    public abstract void push(double d, double e, double f);
+
     @Override
     @NotNull
     public EntityDraggingInformation getDraggingInformation() {
@@ -276,5 +282,12 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     @Override
     public boolean vs$shouldDrag() {
         return true;
+    }
+
+    @Override
+    public void vs$dragImmediately(Ship ship){
+        if(ship == null) return;
+        draggingInformation.setLastShipStoodOn(ship.getId());
+        draggingInformation.setShouldImpulseMovement(false);
     }
 }

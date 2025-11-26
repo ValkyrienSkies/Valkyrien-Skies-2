@@ -32,9 +32,9 @@ import org.joml.Quaterniond
 import org.joml.Quaterniondc
 import org.joml.Vector3d
 import org.joml.Vector3dc
-import org.valkyrienskies.core.apigame.joints.VSJointPose
-import org.valkyrienskies.core.apigame.joints.VSRevoluteJoint
-import org.valkyrienskies.core.apigame.ships.ShipCore
+import org.valkyrienskies.core.internal.joints.VSJointPose
+import org.valkyrienskies.core.internal.joints.VSRevoluteJoint
+import org.valkyrienskies.core.internal.ships.VsiShip
 import org.valkyrienskies.mod.api.vsApi
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
@@ -181,7 +181,7 @@ object TestHingeBlock :
                         ship.transform.positionInShip,
                     )
                     // Update the ship transform
-                    (ship as ShipCore).unsafeSetKinematics(newKinematics)
+                    (ship as VsiShip).unsafeSetKinematics(newKinematics)
                 } else {
                     val newPos = Vector3d(attachmentLocalPos0)
                     newPos.sub(attachmentOffset1)
@@ -194,7 +194,7 @@ object TestHingeBlock :
                         ship.transform.positionInShip,
                     )
                     // Update the ship transform
-                    (ship as ShipCore).unsafeSetKinematics(newKinematics)
+                    (ship as VsiShip).unsafeSetKinematics(newKinematics)
                 }
 
                 level.setBlockAndUpdate(shipCenterPos, Blocks.IRON_BLOCK.defaultBlockState())

@@ -21,7 +21,7 @@ import net.minecraft.world.phys.BlockHitResult
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.world.ServerShipWorld
 import org.valkyrienskies.core.api.world.ShipWorld
-import org.valkyrienskies.core.apigame.ShipTeleportData
+import org.valkyrienskies.core.internal.ShipTeleportData
 import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getShipManagingPos

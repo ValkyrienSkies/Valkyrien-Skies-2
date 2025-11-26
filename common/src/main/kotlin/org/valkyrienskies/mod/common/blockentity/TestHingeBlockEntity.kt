@@ -1,10 +1,9 @@
 package org.valkyrienskies.mod.common.blockentity
 
 import net.minecraft.core.BlockPos
-import net.minecraft.nbt.CompoundTag
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.state.BlockState
-import org.valkyrienskies.core.apigame.joints.VSJointId
+import org.valkyrienskies.core.internal.joints.VSJointId
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 
 class TestHingeBlockEntity(blockPos: BlockPos, blockState: BlockState) : BlockEntity(

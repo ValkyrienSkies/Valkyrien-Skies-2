@@ -33,7 +33,7 @@ public abstract class MixinAABBOutline extends Outline {
     @Shadow
     protected abstract void renderBoxEdges(PoseStack ms, VertexConsumer consumer, Vector3f minPos, Vector3f maxPos, float lineWidth, Vector4f color, int lightmap, boolean disableNormals);
 
-    @Inject(method = "renderBox", at = @At("HEAD"), cancellable = true, remap = false)
+    @Inject(method = "renderBox", at = @At("HEAD"), cancellable = true)
     private void preRenderBox(PoseStack ms, SuperRenderTypeBuffer buffer, Vec3 camera, AABB box, Vector4f color, int lightmap, boolean disableLineNormals, CallbackInfo ci) {
         final Level level = Minecraft.getInstance().level;
         if (level != null) {

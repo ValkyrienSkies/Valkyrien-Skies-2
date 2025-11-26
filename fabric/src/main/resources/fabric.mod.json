@@ -29,12 +29,18 @@
   ],
   "accessWidener": "valkyrienskies-common.accesswidener",
   "depends": {
-    "fabricloader": ">=0.14.9",
+    "fabricloader": ">=0.14.25",
     "minecraft": "1.20.1",
     "fabric-api": "*"
   },
   "breaks": {
     "sodium": "<0.5.8",
-    "nvidium": "*"
+    "create": "<6.0.7",
+    "computercraft": "<1.115.0"
+  },
+  "custom": {
+    "lithium:options": {
+      "mixin.ai.poi": false
+    }
   }
 }

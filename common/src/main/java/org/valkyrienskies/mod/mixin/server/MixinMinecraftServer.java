@@ -48,12 +48,12 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.core.api.ships.properties.IShipActiveChunksSet;
-import org.valkyrienskies.core.apigame.GameServer;
-import org.valkyrienskies.core.apigame.ShipTeleportData;
-import org.valkyrienskies.core.apigame.ships.LoadedServerShipCore;
-import org.valkyrienskies.core.apigame.world.IPlayer;
-import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
-import org.valkyrienskies.core.apigame.world.VSPipeline;
+import org.valkyrienskies.core.internal.VsiGameServer;
+import org.valkyrienskies.core.internal.ShipTeleportData;
+import org.valkyrienskies.core.internal.ships.VsiLoadedServerShip;
+import org.valkyrienskies.core.internal.world.VsiPlayer;
+import org.valkyrienskies.core.internal.world.VsiServerShipWorld;
+import org.valkyrienskies.core.internal.world.VsiPipeline;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.ShipSavedData;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
@@ -72,7 +72,7 @@ import org.valkyrienskies.mod.util.KrunchSupport;
 import org.valkyrienskies.mod.util.McMathUtilKt;
 
 @Mixin(MinecraftServer.class)
-public abstract class MixinMinecraftServer implements IShipObjectWorldServerProvider, GameServer {
+public abstract class MixinMinecraftServer implements IShipObjectWorldServerProvider, VsiGameServer {
     @Shadow
     private PlayerList playerList;
 
@@ -83,10 +83,10 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     public abstract Iterable<ServerLevel> getAllLevels();
 
     @Unique
-    private ServerShipWorldCore shipWorld;
+    private VsiServerShipWorld shipWorld;
 
     @Unique
-    private VSPipeline vsPipeline;
+    private VsiPipeline vsPipeline;
 
     @Unique
     private Set<String> loadedLevels = new HashSet<>();
@@ -109,13 +109,13 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
 
     @Nullable
     @Override
-    public ServerShipWorldCore getShipObjectWorld() {
+    public VsiServerShipWorld getShipObjectWorld() {
         return shipWorld;
     }
 
     @Nullable
     @Override
-    public VSPipeline getVsPipeline() {
+    public VsiPipeline getVsPipeline() {
         return vsPipeline;
     }
 
@@ -176,7 +176,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         at = @At("HEAD")
     )
     private void preTick(final CallbackInfo ci) {
-        final Set<IPlayer> vsPlayers = playerList.getPlayers().stream()
+        final Set<VsiPlayer> vsPlayers = playerList.getPlayers().stream()
             .map(VSGameUtilsKt::getPlayerWrapper).collect(Collectors.toSet());
 
         shipWorld.setPlayers(vsPlayers);
@@ -263,7 +263,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
             final BlockPos blockPos2 = BlockPos.containing(shipPos.x() + bbRadius, shipPos.y() + bbRadius, shipPos.z() + bbRadius);
             // Only run this code if the chunks between blockPos and blockPos2 are loaded
             if (level.hasChunksAt(blockPos, blockPos2)) {
-                ((LoadedServerShipCore) shipObject).decayPortalCoolDown();
+                ((VsiLoadedServerShip) shipObject).decayPortalCoolDown();
 
                 final BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos();
                 for (int i = blockPos.getX(); i <= blockPos2.getX(); ++i) {
@@ -273,7 +273,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
                             final BlockState blockState = level.getBlockState(mutableBlockPos);
                             if (blockState.getBlock() == Blocks.NETHER_PORTAL) {
                                 // Handle nether portal teleport
-                                if (!((LoadedServerShipCore) shipObject).isOnPortalCoolDown()) {
+                                if (!((VsiLoadedServerShip) shipObject).isOnPortalCoolDown()) {
                                     // Move the ship between dimensions
                                     final ServerLevel destLevel = getLevel(level.dimension() == Level.NETHER ? Level.OVERWORLD : Level.NETHER);
                                     // TODO: Do we want portal time?
@@ -283,7 +283,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
                                         level.getProfiler().pop();
                                     }
                                 }
-                                ((LoadedServerShipCore) shipObject).handleInsidePortal();
+                                ((VsiLoadedServerShip) shipObject).handleInsidePortal();
                             } else if (blockState.getBlock() == Blocks.END_PORTAL) {
                                 // Handle end portal teleport
                                 final ServerLevel destLevel = level.getServer().getLevel(level.dimension() == Level.END ? Level.OVERWORLD : Level.END);
@@ -307,7 +307,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
             // Getting portal info failed? Don't teleport.
             return;
         }
-        final ShipTeleportData shipTeleportData = ValkyrienSkiesMod.vsCore.newShipTeleportData(
+        final ShipTeleportData shipTeleportData = ValkyrienSkiesMod.getVsCore().newShipTeleportData(
             VectorConversionsMCKt.toJOML(portalInfo.pos),
             shipObject.getTransform().getShipToWorldRotation(),
             new Vector3d(),

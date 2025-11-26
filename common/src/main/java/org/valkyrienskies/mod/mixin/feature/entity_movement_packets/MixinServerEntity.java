@@ -2,6 +2,7 @@ package org.valkyrienskies.mod.mixin.feature.entity_movement_packets;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import java.util.List;
 import java.util.function.Consumer;
 import net.minecraft.network.protocol.game.ClientboundMoveEntityPacket;
 import net.minecraft.network.protocol.game.ClientboundRotateHeadPacket;
@@ -9,6 +10,7 @@ import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
 import net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket;
 import net.minecraft.server.level.ServerEntity;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Final;
@@ -25,6 +27,7 @@ import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.EntityLerper;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
+import org.valkyrienskies.mod.mixinducks.world.entity.PlayerDuck;
 
 @Mixin(ServerEntity.class)
 public class MixinServerEntity {
@@ -61,8 +64,7 @@ public class MixinServerEntity {
                         if (dragInfo.getServerRelativePlayerPosition() != null) {
                             position = new Vector3d(dragInfo.getServerRelativePlayerPosition());
                         }
-                        Vector3d motion = ship.getTransform().transformDirectionNoScalingFromWorldToShip(new Vector3d(entity.getDeltaMovement().x(), entity.getDeltaMovement().y(), entity.getDeltaMovement().z()), new Vector3d());
-
+                        Vector3d motion = ship.getTransform().getWorldToShip().transformDirection(new Vector3d(entity.getDeltaMovement().x(), entity.getDeltaMovement().y(), entity.getDeltaMovement().z()), new Vector3d());
                         double yaw;
                         if (!(t instanceof ClientboundRotateHeadPacket)) {
                             yaw = EntityLerper.INSTANCE.yawToShip(ship, entity.getYRot());
@@ -80,7 +82,11 @@ public class MixinServerEntity {
                             vsPacket = new PacketMobShipRotation(entity.getId(), ship.getId(), yaw, pitch);
                         }
 
-                        ValkyrienSkiesMod.getVsCore().getSimplePacketNetworking().sendToAllClients(vsPacket);
+                        List<ServerPlayer> players = level.getPlayers(player -> player.shouldRender(entity.getX(), entity.getY(), entity.getZ()));
+                        players.forEach(
+                            player -> ValkyrienSkiesMod.getVsCore().getSimplePacketNetworking().sendToClients(vsPacket, ((PlayerDuck)player).vs_getPlayer())
+                        );
+
                         return;
                     }
 

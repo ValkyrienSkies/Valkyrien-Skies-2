@@ -27,8 +27,8 @@ import org.valkyrienskies.core.api.physics.blockstates.BoxesBlockShape
 import org.valkyrienskies.core.api.physics.blockstates.CollisionPoint
 import org.valkyrienskies.core.api.physics.blockstates.LiquidState
 import org.valkyrienskies.core.api.physics.blockstates.SolidBlockShape
-import org.valkyrienskies.core.apigame.physics.blockstates.VsBlockState
-import org.valkyrienskies.core.apigame.world.chunks.BlockType
+import org.valkyrienskies.core.internal.physics.blockstates.VsiBlockState
+import org.valkyrienskies.core.internal.world.chunks.VsiBlockType
 import org.valkyrienskies.mod.api_impl.events.RegisterBlockStateEventImpl
 import org.valkyrienskies.mod.common.BlockStateInfoProvider
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
@@ -48,7 +48,7 @@ private data class VSBlockStateInfo(
     val friction: Double,
     val elasticity: Double,
     val hardness: Double,
-    val type: BlockType?,
+    val type: VsiBlockType?,
 )
 
 private data class VSFluidInfo(
@@ -61,9 +61,9 @@ private data class VSFluidInfo(
 object MassDatapackResolver : BlockStateInfoProvider {
     private val map = hashMapOf<ResourceLocation, VSBlockStateInfo>()
     private val fluidMap = hashMapOf<Fluid, VSFluidInfo>()
-    private val mcBlockStateToVs: MutableMap<BlockState, VsBlockState> = HashMap()
+    private val mcBlockStateToVs: MutableMap<BlockState, VsiBlockState> = HashMap()
 
-    val blockStateData: Collection<VsBlockState> = mcBlockStateToVs.values
+    val blockStateData: Collection<VsiBlockState> = mcBlockStateToVs.values
 
     val loader get() = VSMassDataLoader()
 
@@ -102,7 +102,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
     override fun getBlockStateHardness(blockState: BlockState): Double? =
         map[BuiltInRegistries.BLOCK.getKey(blockState.block)]?.hardness
 
-    override fun getBlockStateType(blockState: BlockState): BlockType? {
+    override fun getBlockStateType(blockState: BlockState): VsiBlockType? {
         val vsState = mcBlockStateToVs[blockState] ?: return null
         return vsCore.blockTypes.getType(vsState)
     }
@@ -392,12 +392,12 @@ object MassDatapackResolver : BlockStateInfoProvider {
         }
 
         blockStates.forEach { blockState: BlockState ->
-            val vsBlockState: VsBlockState
+            val vsBlockState: VsiBlockState
             if (blockState.isAir) {
                 vsBlockState = vsCore.blockTypes.airState
             } else {
                 vsBlockState = if (blockState.liquid()) {
-                    VsBlockState(null, getFluidState(blockState.fluidState))
+                    VsiBlockState(null, getFluidState(blockState.fluidState))
                 } else if (blockState.isSolid) {
                     val voxelShape = blockState.getShape(dummyBlockGetter, BlockPos.ZERO)
 
@@ -431,7 +431,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
                         null
                     }
 
-                    VsBlockState(solidState, fluidState)
+                    VsiBlockState(solidState, fluidState)
                 } else {
                     vsCore.blockTypes.emptyState
                 }
