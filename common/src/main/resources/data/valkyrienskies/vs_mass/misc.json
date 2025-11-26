@@ -411,7 +411,7 @@
   },
   {
     "block": "minecraft:snow",
-    "mass": 2.5,
+    "density": 20.0,
     "friction": 0.2
   },
   {
