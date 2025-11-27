@@ -25,8 +25,9 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
-import org.valkyrienskies.mod.common.util.GameTickForceApplier;
+import org.valkyrienskies.mod.common.util.GameToPhysicsAdapter;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(Explosion.class)
@@ -75,7 +76,7 @@ public abstract class MixinExplosion {
                     if (result.getType() == Type.BLOCK) {
                         final BlockPos blockPos = result.getBlockPos();
                         final ServerShip ship =
-                            (ServerShip) VSGameUtilsKt.getShipObjectManagingPos(this.level, blockPos);
+                            (ServerShip) VSGameUtilsKt.getLoadedShipManagingPos(this.level, blockPos);
                         if (ship != null) {
                             final Vector3d forceVector =
                                 VectorConversionsMCKt.toJOML(
@@ -92,11 +93,10 @@ public abstract class MixinExplosion {
                             forceVector.mul(distanceMult); //Multiply by distance falloff
                             forceVector.mul(powerMult); //Multiply by radius, roughly equivalent to power
 
-                            final GameTickForceApplier forceApplier =
-                                ship.getAttachment(GameTickForceApplier.class);
+                            final GameToPhysicsAdapter forceApplier = ValkyrienSkiesMod.getOrCreateGTPA(ship.getChunkClaimDimension());
                             final Vector3dc shipCoords = ship.getShipTransform().getShipPositionInShipCoordinates();
                             if (forceVector.isFinite()) {
-                                forceApplier.applyInvariantForceToPos(forceVector,
+                                forceApplier.applyInvariantForceToPos(ship.getId(), forceVector,
                                     VectorConversionsMCKt.toJOML(Vec3.atCenterOf(blockPos)).sub(shipCoords));
                             }
                         }

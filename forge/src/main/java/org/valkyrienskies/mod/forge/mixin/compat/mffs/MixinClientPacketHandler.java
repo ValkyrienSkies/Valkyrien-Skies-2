@@ -26,7 +26,7 @@ public class MixinClientPacketHandler {
         }
 
         Vec3 target = beam.target();
-        final Ship ship = VSGameUtilsKt.getShipObjectManagingPos(instance, ((BeamParticleOptions) arg).target());
+        final Ship ship = VSGameUtilsKt.getLoadedShipManagingPos(instance, ((BeamParticleOptions) arg).target());
         if (ship != null) {
             target = VSGameUtilsKt.toWorldCoordinates(ship, target);
         }

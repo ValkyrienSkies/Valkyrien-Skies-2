@@ -37,7 +37,7 @@ public abstract class MixinSchematicToolBase {
     )
     public Vec3 redirectGetLocation(BlockHitResult instance) {
         BlockPos b = instance.getBlockPos();
-        Ship ship = VSGameUtilsKt.getShipObjectManagingPos(Minecraft.getInstance().level, b);
+        Ship ship = VSGameUtilsKt.getLoadedShipManagingPos(Minecraft.getInstance().level, b);
         if (ship != null) {
             // The return value is used to form a BlockPos,
             // so the vec position within a block should not make a difference
@@ -60,7 +60,7 @@ public abstract class MixinSchematicToolBase {
         )
     )
     public Vec3 wrapLocalSpaceToShip(SchematicTransformation transformation, Vec3 vec, Operation<Vec3> original) {
-        Ship ship = VSGameUtilsKt.getShipObjectManagingPos(Minecraft.getInstance().level, transformation.getAnchor());
+        Ship ship = VSGameUtilsKt.getLoadedShipManagingPos(Minecraft.getInstance().level, transformation.getAnchor());
         if (ship != null) {
             return original.call(transformation, toMinecraft(ship.getWorldToShip().transformPosition(toJOML(vec))));
         }

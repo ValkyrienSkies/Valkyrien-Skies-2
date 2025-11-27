@@ -8,13 +8,16 @@ import net.minecraft.world.entity.projectile.AbstractArrow
 import net.minecraft.world.entity.projectile.AbstractHurtingProjectile
 import net.minecraft.world.entity.projectile.Projectile
 import net.minecraft.world.entity.projectile.ProjectileUtil
+import org.joml.Quaternionf
 import org.joml.Vector3d
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.util.component1
 import org.valkyrienskies.core.util.component2
 import org.valkyrienskies.core.util.component3
+import org.valkyrienskies.mod.common.applyShipVelocity
 import org.valkyrienskies.mod.common.toWorldCoordinates
+import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toMinecraft
 import kotlin.math.atan2
@@ -65,16 +68,14 @@ object WorldEntityHandler : VSEntityHandler {
         entity.yo = entity.y
         entity.zo = entity.z
 
-        val newPosInShipLocal = Vector3d(newPos).sub(ship.transform.positionInWorld)
-        val shipVelocity = Vector3d(ship.velocity) // ship linear velocity
-            .add(Vector3d(ship.omega).cross(newPosInShipLocal)) // angular velocity
-            .mul(0.05) // Tick velocity
-
         val entityVelocity = ship.transform.shipToWorldRotation.transform(entity.deltaMovement.toJOML())
 
-        entity.deltaMovement = Vector3d(entityVelocity)
-            .add(shipVelocity)
-            .toMinecraft()
+        entity.deltaMovement = entityVelocity.toMinecraft()
+        if (entity is Projectile) {
+            entity.applyShipVelocity(ship)
+        } else {
+            (entity as IEntityDraggingInformationProvider).`vs$dragImmediately`(ship)
+        }
 
         val direction : Vector3d
         val yaw : Double

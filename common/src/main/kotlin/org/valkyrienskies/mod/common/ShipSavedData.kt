@@ -2,7 +2,7 @@ package org.valkyrienskies.mod.common
 
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.world.level.saveddata.SavedData
-import org.valkyrienskies.core.apigame.world.VSPipeline
+import org.valkyrienskies.core.internal.world.VsiPipeline
 
 /**
  * This class saves/loads ship data for a world.
@@ -45,7 +45,7 @@ class ShipSavedData : SavedData() {
         }
     }
 
-    lateinit var pipeline: VSPipeline
+    lateinit var pipeline: VsiPipeline
 
     var loadingException: Throwable? = null
         private set

@@ -5,548 +5,548 @@
   },
   {
     "block": "minecraft:rooted_dirt",
-    "mass": 1100.0,
+    "mass": 110.0,
     "friction": 0.7
   },
   {
     "block": "minecraft:calcite",
-    "mass": 2700.0,
+    "mass": 270.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:dripstone_block",
-    "mass": 2700.0,
+    "mass": 270.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:pointed_dripstone",
-    "mass": 1900.0,
+    "mass": 190.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:tuff",
-    "mass": 1800.0,
+    "mass": 180.0,
     "friction": 0.7
   },
   {
     "block": "minecraft:budding_amethyst",
-    "mass": 2650.0,
+    "mass": 265.0,
     "friction": 1.0
   },
   {
     "block": "minecraft:amethyst_block",
-    "mass": 2650.0,
+    "mass": 265.0,
     "friction": 1.0
   },
   {
     "block": "minecraft:small_amethyst_bud",
-    "mass": 100.0,
+    "mass": 10.0,
     "friction": 0.7
   },
   {
     "block": "minecraft:medium_amethyst_bud",
-    "mass": 300.0,
+    "mass": 30.0,
     "friction": 0.8
   },
   {
     "block": "minecraft:large_amethyst_bud",
-    "mass": 600.0,
+    "mass": 60.0,
     "friction": 0.9
   },
   {
     "block": "minecraft:azalea",
-    "mass": 120.0,
+    "mass": 12.0,
     "elasticity": 0.1
   },
   {
     "block": "minecraft:flowering_azalea",
-    "mass": 120.0,
+    "mass": 12.0,
     "elasticity": 0.1
   },
   {
     "block": "minecraft:hanging_roots",
-    "mass": 4.0
+    "mass": 0.40
   },
   {
     "block": "minecraft:big_dripleaf",
-    "mass": 8.0,
+    "mass": 0.80,
     "friction": 0.3,
     "elasticity": 0.3
   },
   {
     "block": "minecraft:big_dripleaf_stem",
-    "mass": 4.0
+    "mass": 0.40
   },
   {
     "block": "minecraft:small_dripleaf",
-    "mass": 3.0
+    "mass": 0.30
   },
   {
     "block": "minecraft:glow_lichen",
-    "mass": 1.0
+    "mass": 0.10
   },
   {
     "block": "minecraft:cave_vines",
-    "mass": 20.0
+    "mass": 2.0
   },
   {
     "block": "minecraft:cave_vines_plant",
-    "mass": 20.0
+    "mass": 2.0
   },
   {
     "block": "minecraft:spore_blossom",
-    "mass": 12.0
+    "mass": 1.20
   },
   {
     "block": "minecraft:moss_block",
-    "mass": 250.0,
+    "mass": 25.0,
     "friction": 0.5,
     "elasticity": 0.05
   },
   {
     "block": "minecraft:moss_carpet",
-    "mass": 15.0,
+    "mass": 1.5,
     "friction": 0.5
   },
   {
     "block": "minecraft:lightning_rod",
-    "mass": 1800.0,
+    "mass": 180.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:copper_block",
-    "mass": 8960.0,
+    "mass": 900.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:exposed_copper",
-    "mass": 8960.0,
+    "mass": 900.0,
     "friction": 0.25
   },
   {
     "block": "minecraft:weathered_copper",
-    "mass": 8960.0,
+    "mass": 900.0,
     "friction": 0.3
   },
   {
     "block": "minecraft:oxidized_copper",
-    "mass": 8960.0,
+    "mass": 900.0,
     "friction": 0.35
   },
   {
     "block": "minecraft:waxed_copper_block",
-    "mass": 8960.0,
+    "mass": 900.0,
     "friction": 0.15
   },
   {
     "block": "minecraft:waxed_exposed_copper",
-    "mass": 8960.0,
+    "mass": 900.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:waxed_weathered_copper",
-    "mass": 8960.0,
+    "mass": 900.0,
     "friction": 0.25
   },
   {
     "block": "minecraft:waxed_oxidized_copper",
-    "mass": 8960.0,
+    "mass": 900.0,
     "friction": 0.3
   },
   {
     "block": "minecraft:cut_copper",
-    "mass": 2240.0,
+    "mass": 225.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:exposed_cut_copper",
-    "mass": 2240.0,
+    "mass": 225.0,
     "friction": 0.25
   },
   {
     "block": "minecraft:weathered_cut_copper",
-    "mass": 2240.0,
+    "mass": 225.0,
     "friction": 0.3
   },
   {
     "block": "minecraft:oxidized_cut_copper",
-    "mass": 2240.0,
+    "mass": 225.0,
     "friction": 0.35
   },
   {
     "block": "minecraft:waxed_cut_copper",
-    "mass": 2240.0,
+    "mass": 225.0,
     "friction": 0.15
   },
   {
     "block": "minecraft:waxed_exposed_cut_copper",
-    "mass": 2240.0,
+    "mass": 225.0,
     "friction": 0.2
   },
   {
     "block": "minecraft:waxed_weathered_cut_copper",
-    "mass": 2240.0,
+    "mass": 225.0,
     "friction": 0.25
   },
   {
     "block": "minecraft:waxed_oxidized_cut_copper",
-    "mass": 2240.0,
+    "mass": 225.0,
     "friction": 0.3
   },
   {
     "block": "minecraft:cut_copper_slab",
-    "mass": 1120.0,
+    "mass": 112.5,
     "friction": 0.2
   },
   {
     "block": "minecraft:exposed_cut_copper_slab",
-    "mass": 1120.0,
+    "mass": 112.5,
     "friction": 0.25
   },
   {
     "block": "minecraft:weathered_cut_copper_slab",
-    "mass": 1120.0,
+    "mass": 112.5,
     "friction": 0.3
   },
   {
     "block": "minecraft:oxidized_cut_copper_slab",
-    "mass": 1120.0,
+    "mass": 112.5,
     "friction": 0.35
   },
   {
     "block": "minecraft:waxed_cut_copper_slab",
-    "mass": 1120.0,
+    "mass": 112.5,
     "friction": 0.15
   },
   {
     "block": "minecraft:waxed_exposed_cut_copper_slab",
-    "mass": 1120.0,
+    "mass": 112.5,
     "friction": 0.2
   },
   {
     "block": "minecraft:waxed_weathered_cut_copper_slab",
-    "mass": 1120.0,
+    "mass": 112.5,
     "friction": 0.25
   },
   {
     "block": "minecraft:waxed_oxidized_cut_copper_slab",
-    "mass": 1120.0,
+    "mass": 112.5,
     "friction": 0.3
   },
   {
     "block": "minecraft:cut_copper_stairs",
-    "mass": 1680.0,
+    "mass": 168.75,
     "friction": 0.2
   },
   {
     "block": "minecraft:exposed_cut_copper_stairs",
-    "mass": 1680.0,
+    "mass": 168.75,
     "friction": 0.25
   },
   {
     "block": "minecraft:weathered_cut_copper_stairs",
-    "mass": 1680.0,
+    "mass": 168.75,
     "friction": 0.3
   },
   {
     "block": "minecraft:oxidized_cut_copper_stairs",
-    "mass": 1680.0,
+    "mass": 168.75,
     "friction": 0.35
   },
   {
     "block": "minecraft:waxed_cut_copper_stairs",
-    "mass": 1680.0,
+    "mass": 168.75,
     "friction": 0.15
   },
   {
     "block": "minecraft:waxed_exposed_cut_copper_stairs",
-    "mass": 1680.0,
+    "mass": 168.75,
     "friction": 0.2
   },
   {
     "block": "minecraft:waxed_weathered_cut_copper_stairs",
-    "mass": 1680.0,
+    "mass": 168.75,
     "friction": 0.25
   },
   {
     "block": "minecraft:waxed_oxidized_cut_copper_stairs",
-    "mass": 1680.0,
+    "mass": 168.75,
     "friction": 0.3
   },
   {
     "block": "minecraft:raw_copper_block",
-    "mass": 8960.0,
+    "mass": 900.0,
     "friction": 0.8
   },
   {
     "block": "minecraft:raw_iron_block",
-    "mass": 7840.0,
+    "mass": 785.0,
     "friction": 0.8
   },
   {
     "block": "minecraft:raw_gold_block",
-    "mass": 19280.0,
+    "mass": 1930.0,
     "friction": 0.8
   },
   {
     "block": "minecraft:candle",
-    "mass": 2.0,
+    "mass": 0.2,
     "friction": 0.1
   },
   {
     "block": "minecraft:white_candle",
-    "mass": 2.0,
+    "mass": 0.2,
     "friction": 0.1
   },
   {
     "block": "minecraft:orange_candle",
-    "mass": 2.0,
+    "mass": 0.2,
     "friction": 0.1
   },
   {
     "block": "minecraft:magenta_candle",
-    "mass": 2.0,
+    "mass": 0.2,
     "friction": 0.1
   },
   {
     "block": "minecraft:light_blue_candle",
-    "mass": 2.0,
+    "mass": 0.2,
     "friction": 0.1
   },
   {
     "block": "minecraft:yellow_candle",
-    "mass": 2.0,
+    "mass": 0.2,
     "friction": 0.1
   },
   {
     "block": "minecraft:lime_candle",
-    "mass": 2.0,
+    "mass": 0.2,
     "friction": 0.1
   },
   {
     "block": "minecraft:pink_candle",
-    "mass": 2.0,
+    "mass": 0.2,
     "friction": 0.1
   },
   {
     "block": "minecraft:gray_candle",
-    "mass": 2.0,
+    "mass": 0.2,
     "friction": 0.1
   },
   {
     "block": "minecraft:light_gray_candle",
-    "mass": 2.0,
+    "mass": 0.2,
     "friction": 0.1
   },
   {
     "block": "minecraft:cyan_candle",
-    "mass": 2.0,
+    "mass": 0.2,
     "friction": 0.1
   },
   {
     "block": "minecraft:purple_candle",
-    "mass": 2.0,
+    "mass": 0.2,
     "friction": 0.1
   },
   {
     "block": "minecraft:blue_candle",
-    "mass": 2.0,
+    "mass": 0.2,
     "friction": 0.1
   },
   {
     "block": "minecraft:brown_candle",
-    "mass": 2.0,
+    "mass": 0.2,
     "friction": 0.1
   },
   {
     "block": "minecraft:green_candle",
-    "mass": 2.0,
+    "mass": 0.2,
     "friction": 0.1
   },
   {
     "block": "minecraft:red_candle",
-    "mass": 2.0,
+    "mass": 0.2,
     "friction": 0.1
   },
   {
     "block": "minecraft:black_candle",
-    "mass": 2.0,
+    "mass": 0.2,
     "friction": 0.1
   },
   {
     "block": "minecraft:deepslate",
-    "mass": 2900.0,
+    "mass": 290.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:infested_deepslate",
-    "mass": 2900.0,
+    "mass": 290.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:cobbled_deepslate",
-    "mass": 2720.0,
+    "mass": 275.0,
     "friction": 0.8
   },
   {
     "block": "minecraft:chiseled_deepslate",
-    "mass": 2720.0,
+    "mass": 275.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:polished_deepslate",
-    "mass": 2720.0,
+    "mass": 275.0,
     "friction": 0.35
   },
   {
     "block": "minecraft:deepslate_bricks",
-    "mass": 2720.0,
+    "mass": 275.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:cracked_deepslate_bricks",
-    "mass": 2720.0,
+    "mass": 275.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:deepslate_tiles",
-    "mass": 2720.0,
+    "mass": 275.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:cracked_deepslate_tiles",
-    "mass": 2720.0,
+    "mass": 275.0,
     "friction": 0.7
   },
   {
     "block": "minecraft:cobbled_deepslate_slab",
-    "mass": 1360.0,
+    "mass": 137.5,
     "friction": 0.8
   },
   {
     "block": "minecraft:polished_deepslate_slab",
-    "mass": 1360.0,
+    "mass": 137.5,
     "friction": 0.35
   },
   {
     "block": "minecraft:deepslate_brick_slab",
-    "mass": 1360.0,
+    "mass": 137.5,
     "friction": 0.5
   },
   {
     "block": "minecraft:deepslate_tile_slab",
-    "mass": 1360.0,
+    "mass": 137.5,
     "friction": 0.6
   },
   {
     "block": "minecraft:cobbled_deepslate_stairs",
-    "mass": 2040.0,
+    "mass": 206.25,
     "friction": 0.8
   },
   {
     "block": "minecraft:polished_deepslate_stairs",
-    "mass": 2040.0,
+    "mass": 206.25,
     "friction": 0.35
   },
   {
     "block": "minecraft:deepslate_brick_stairs",
-    "mass": 2040.0,
+    "mass": 206.25,
     "friction": 0.5
   },
   {
     "block": "minecraft:deepslate_tile_stairs",
-    "mass": 2040.0,
+    "mass": 206.25,
     "friction": 0.6
   },
   {
     "block": "minecraft:cobbled_deepslate_wall",
-    "mass": 1360.0,
+    "mass": 135.0,
     "friction": 0.8
   },
   {
     "block": "minecraft:polished_deepslate_wall",
-    "mass": 1360.0,
+    "mass": 135.0,
     "friction": 0.45
   },
   {
     "block": "minecraft:deepslate_brick_wall",
-    "mass": 1360.0,
+    "mass": 135.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:deepslate_tile_wall",
-    "mass": 1360.0,
+    "mass": 135.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:copper_ore",
-    "mass": 3260.0,
+    "mass": 325.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:deepslate_copper_ore",
-    "mass": 3510.0,
+    "mass": 355.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:deepslate_coal_ore",
-    "mass": 2715.0,
+    "mass": 271.5,
     "friction": 0.5
   },
   {
     "block": "minecraft:deepslate_lapis_ore",
-    "mass": 2950.0,
+    "mass": 295.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:deepslate_iron_ore",
-    "mass": 3430.0,
+    "mass": 345.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:deepslate_gold_ore",
-    "mass": 4700.0,
+    "mass": 470.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:deepslate_redstone_ore",
-    "mass": 2225.0,
+    "mass": 222.5,
     "friction": 0.5
   },
   {
     "block": "minecraft:deepslate_diamond_ore",
-    "mass": 2950.0,
+    "mass": 295.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:deepslate_emerald_ore",
-    "mass": 2855.0,
+    "mass": 285.5,
     "friction": 0.5
   },
   {
     "block": "minecraft:powder_snow",
-    "mass": 120.0,
+    "mass": 12.0,
     "friction": 0.3
   },
   {
     "block": "minecraft:sculk_sensor",
-    "mass": 200.0,
+    "mass": 25.0,
     "friction": 0.2,
     "elasticity": 0.3
   },
   {
     "block": "minecraft:smooth_basalt",
-    "mass": 3010.0,
+    "mass": 300.0,
     "friction": 0.35
   },
   {
     "block": "minecraft:tinted_glass",
-    "mass": 2200.0,
+    "mass": 220.0,
     "friction": 0.2
   },
   {
     "tag": "minecraft:candle_cakes",
-    "mass": 702.0,
+    "mass": 70.0,
     "friction": 0.1
   }
 ]

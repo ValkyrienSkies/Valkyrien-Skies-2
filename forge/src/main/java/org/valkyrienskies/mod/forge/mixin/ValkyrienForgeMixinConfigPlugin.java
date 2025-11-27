@@ -73,6 +73,10 @@ public class ValkyrienForgeMixinConfigPlugin implements IMixinConfigPlugin {
             }
         }
 
+        if(mixinClassName.contains("MixinChunkMapVMPForge")) {
+            return LoadingModList.get().getModFileById("vmp") != null;
+        }
+
         return true;
     }
 

@@ -29,7 +29,7 @@ public class MixinEntityRenderer {
     void revertShipRotation(PoseStack matrices, float f, float g, float h, Operation<Void> original,
         @Local(argsOnly = true) Entity entity) {
         original.call(matrices, f, g, h);
-        final ClientShip ship = (ClientShip)VSGameUtilsKt.getShipObjectManagingPos(entity.level(), entity.blockPosition());
+        final ClientShip ship = (ClientShip)VSGameUtilsKt.getLoadedShipManagingPos(entity.level(), entity.blockPosition());
         if (ship != null) {
             matrices.mulPose(new Quaternionf(ship.getRenderTransform().getShipToWorldRotation()).invert());
         }

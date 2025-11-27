@@ -44,7 +44,7 @@ public abstract class MixinSchematicTransformation {
     )
     private Translate<?> redirectTranslate(PoseTransformStack instance, Vec3 orig) {
         PoseStack ms = instance.unwrap();
-        Ship ship = VSGameUtilsKt.getShipObjectManagingPos(Minecraft.getInstance().level, target.getX(), target.getY(), target.getZ());
+        Ship ship = VSGameUtilsKt.getLoadedShipManagingPos(Minecraft.getInstance().level, target.getX(), target.getY(), target.getZ());
 
         if (ship != null) {
             float pt = AnimationTickHolder.getPartialTicks();

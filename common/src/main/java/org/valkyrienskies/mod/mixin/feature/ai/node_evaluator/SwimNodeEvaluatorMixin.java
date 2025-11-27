@@ -25,9 +25,9 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
             target = "Lnet/minecraft/world/level/BlockGetter;getFluidState(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/material/FluidState;"),
         method = "getBlockPathType(Lnet/minecraft/world/level/BlockGetter;IIILnet/minecraft/world/entity/Mob;)Lnet/minecraft/world/level/pathfinder/BlockPathTypes;"
     )
-    private FluidState getFluidStateRedirectPathType(final BlockGetter instance, final BlockPos blockPos,
-        final Operation<FluidState> getFluidState) {
-        final FluidState[] fluidState = {getFluidState.call(instance, blockPos)};
+    private FluidState getFluidStateRedirectPathType(BlockGetter instance, BlockPos blockPos,
+        Operation<FluidState> original) {
+        final FluidState[] fluidState = {original.call(instance, blockPos)};
         Level level = null;
         if (!VSGameConfig.SERVER.getAiOnShips()) {
             if (instance instanceof PathNavigationRegion) {
@@ -42,10 +42,10 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
                 final double origZ = blockPos.getZ();
                 final Level finalLevel = level;
                 VSGameUtilsKt.transformToNearbyShipsAndWorld(level, origX,
-                    origY, origZ, 1,
+                    origY, origZ, 2,
                     (x, y, z) -> {
                         final BlockPos groundPos = BlockPos.containing(x, y, z);
-                        final FluidState tempFluidState = getFluidState.call(finalLevel, groundPos);
+                        final FluidState tempFluidState = original.call(finalLevel, groundPos);
                         if (!tempFluidState.isEmpty()) { // Skip any empty results for the case of intersecting ships
                             fluidState[0] = tempFluidState;
                         }
@@ -60,9 +60,9 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
             target = "Lnet/minecraft/world/level/BlockGetter;getBlockState(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/block/state/BlockState;"),
         method = "getBlockPathType(Lnet/minecraft/world/level/BlockGetter;IIILnet/minecraft/world/entity/Mob;)Lnet/minecraft/world/level/pathfinder/BlockPathTypes;"
     )
-    private BlockState getBlockStateRedirectPathType(final BlockGetter instance, final BlockPos blockPos,
-        final Operation<BlockState> getBlockState) {
-        final BlockState[] blockState = {getBlockState.call(instance, blockPos)};
+    private BlockState getBlockStateRedirectPathType(BlockGetter instance, BlockPos blockPos,
+        Operation<BlockState> original) {
+        final BlockState[] blockState = {original.call(instance, blockPos)};
         if (instance instanceof PathNavigationRegion && blockState[0].isAir() && VSGameConfig.SERVER.getAiOnShips()) {
             final Level level = ((PathNavigationRegionAccessor) instance).getLevel();
 
@@ -73,7 +73,7 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
                 origY, origZ, 1,
                 (x, y, z) -> {
                     final BlockPos groundPos = BlockPos.containing(x, y, z);
-                    final BlockState tempBlockState = getBlockState.call(level, groundPos);
+                    final BlockState tempBlockState = original.call(level, groundPos);
                     if (!tempBlockState.isAir()) { // Skip any empty results for the case of intersecting ships
                         blockState[0] = tempBlockState;
                     }
@@ -87,10 +87,9 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
             target = "Lnet/minecraft/world/level/block/state/BlockState;isPathfindable(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/pathfinder/PathComputationType;)Z"),
         method = "getBlockPathType(Lnet/minecraft/world/level/BlockGetter;IIILnet/minecraft/world/entity/Mob;)Lnet/minecraft/world/level/pathfinder/BlockPathTypes;"
     )
-    private boolean isPathFindableRedirectPathType(final BlockState instance, final BlockGetter blockGetter,
-        final BlockPos blockPos, final PathComputationType pathComputationType,
-        final Operation<Boolean> isPathfindable) {
-        final boolean[] isPathFindable = {isPathfindable.call(instance, blockGetter, blockPos, pathComputationType)};
+    private boolean isPathFindableRedirectPathType(BlockState instance, BlockGetter blockGetter, BlockPos blockPos,
+        PathComputationType pathComputationType, Operation<Boolean> original) {
+        final boolean[] isPathFindable = {original.call(instance, blockGetter, blockPos, pathComputationType)};
         if (!isPathFindable[0] && VSGameConfig.SERVER.getAiOnShips()) {
             Level level = null;
             if (blockGetter instanceof PathNavigationRegion) {
@@ -108,7 +107,7 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
                     (x, y, z) -> {
                         final BlockPos groundPos = BlockPos.containing(x, y, z);
                         final boolean pathfindable =
-                            isPathfindable.call(instance, finalLevel, groundPos, pathComputationType);
+                            original.call(instance, finalLevel, groundPos, pathComputationType);
                         if (pathfindable) { // Try to give a true result, not 100% accurate but method expects a single result
                             isPathFindable[0] = true;
                         }

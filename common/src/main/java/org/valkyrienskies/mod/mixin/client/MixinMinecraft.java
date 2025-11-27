@@ -22,8 +22,8 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.core.apigame.world.ClientShipWorldCore;
-import org.valkyrienskies.core.apigame.world.VSPipeline;
+import org.valkyrienskies.core.internal.world.VsiClientShipWorld;
+import org.valkyrienskies.core.internal.world.VsiPipeline;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientCreator;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
@@ -64,7 +64,7 @@ public abstract class MixinMinecraft
     }
 
     @Unique
-    private ClientShipWorldCore shipObjectWorld = null;
+    private VsiClientShipWorld shipObjectWorld = null;
 
     @WrapOperation(
         at = @At(
@@ -83,8 +83,8 @@ public abstract class MixinMinecraft
 
     @NotNull
     @Override
-    public ClientShipWorldCore getShipObjectWorld() {
-        final ClientShipWorldCore shipObjectWorldCopy = shipObjectWorld;
+    public VsiClientShipWorld getShipObjectWorld() {
+        final VsiClientShipWorld shipObjectWorldCopy = shipObjectWorld;
 
         if (shipObjectWorldCopy == null) {
             if (lastLog + 5000 < System.currentTimeMillis()) {
@@ -111,7 +111,7 @@ public abstract class MixinMinecraft
         if (!pause && shipObjectWorld != null && level != null && getConnection() != null) {
             shipObjectWorld.tickNetworking(getConnection().getConnection().getRemoteAddress());
             shipObjectWorld.postTick();
-            EntityDragger.INSTANCE.dragEntitiesWithShips(level.entitiesForRendering());
+            EntityDragger.INSTANCE.dragEntitiesWithShips(level.entitiesForRendering(), false);
         }
     }
 
@@ -122,7 +122,7 @@ public abstract class MixinMinecraft
     public void setGamePause(final boolean pauseOnly, final CallbackInfo ci) {
         final IShipObjectWorldServerProvider provider = (IShipObjectWorldServerProvider) getSingleplayerServer();
         if (provider != null) {
-            final VSPipeline pipeline = provider.getVsPipeline();
+            final VsiPipeline pipeline = provider.getVsPipeline();
             if (pipeline != null) {
                 pipeline.setArePhysicsRunning(!this.pause);
             }
@@ -152,7 +152,7 @@ public abstract class MixinMinecraft
 
     @Override
     public void deleteShipObjectWorldClient() {
-        final ClientShipWorldCore shipObjectWorldCopy = shipObjectWorld;
+        final VsiClientShipWorld shipObjectWorldCopy = shipObjectWorld;
         if (shipObjectWorldCopy == null) {
             throw new IllegalStateException("shipObjectWorld was null when it should be not null?");
         }

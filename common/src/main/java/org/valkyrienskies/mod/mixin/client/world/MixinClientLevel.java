@@ -7,17 +7,21 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.SectionPos;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 import org.joml.primitives.AABBd;
 import org.joml.primitives.AABBdc;
@@ -32,7 +36,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.Ship;
-import org.valkyrienskies.core.apigame.world.ClientShipWorldCore;
+import org.valkyrienskies.core.internal.world.VsiClientShipWorld;
 import org.valkyrienskies.core.util.AABBdUtilKt;
 import org.valkyrienskies.core.util.VectorConversionsKt;
 import org.valkyrienskies.mod.client.audio.SimpleSoundInstanceOnShip;
@@ -50,7 +54,7 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
 
     @NotNull
     @Override
-    public ClientShipWorldCore getShipObjectWorld() {
+    public VsiClientShipWorld getShipObjectWorld() {
         return ((IShipObjectWorldClientProvider) minecraft).getShipObjectWorld();
     }
 
@@ -79,9 +83,17 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
                 }
             }
         }
+        Player player = this.minecraft.player;
+        assert player != null;
 
-        final AABBdc biggerBB = AABBdUtilKt.expand(new AABBd(posX, posY, posZ, posX, posY, posZ), 32.0);
-        final AABBdc smallerBB = AABBdUtilKt.expand(new AABBd(posX, posY, posZ, posX, posY, posZ), 16.0);
+        final double playerScale = player.getBbWidth() / Player.STANDING_DIMENSIONS.width;
+
+
+        // use more precise player position, since ship blocks aren't locked to the grid of integer coordinates in world space
+        final Vec3 pos = player.position();
+
+        final AABBdc playerCenterBB = new AABBd(pos.x, pos.y, pos.z, pos.x, pos.y, pos.z);
+        final AABBdc shipIntersectBB = AABBdUtilKt.expand(new AABBd(playerCenterBB), 32.0);
         final double biggerBBProbability = 668.0 / (32.0 * 32.0 * 32.0);
         final double smallerBBProbability = 668.0 / (16.0 * 16.0 * 16.0);
 
@@ -91,11 +103,18 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
         final AABBi temp3 = new AABBi();
         final AABBi temp4 = new AABBi();
         final AABBi temp5 = new AABBi();
-        for (final Ship ship : VSGameUtilsKt.getShipsIntersecting(ClientLevel.class.cast(this), biggerBB)) {
-            final AABBic shipVoxelAABB = ship.getShipVoxelAABB();
+        final AABBd temp6 = new AABBd();
+        final AABBd temp7 = new AABBd();
+        for (final Ship ship : VSGameUtilsKt.getShipsIntersecting(ClientLevel.class.cast(this), shipIntersectBB)) {
+            final AABBic shipVoxelAABB = ship.getShipAABB();
             if (shipVoxelAABB == null) {
                 continue;
             }
+
+            // Scaled to reduce lag for mini ships
+            final AABBdc biggerBB = AABBdUtilKt.expand(temp6.set(playerCenterBB), 32.0 * playerScale);
+            final AABBdc smallerBB = AABBdUtilKt.expand(temp7.set(playerCenterBB), 16.0 * playerScale);
+
             // Only spawn particles in the intersection of the ship bounding box and the particle spawning bounding
             // boxes surrounding the player
             final AABBic biggerBBTransformed =
@@ -134,23 +153,44 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
         }
         final ClientLevel thisAsClientLevel = ClientLevel.class.cast(this);
         final BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos();
+
+        final int minCX = SectionPos.blockToSectionCoord(region.minX());
+        final int maxCX = SectionPos.blockToSectionCoord(region.maxX());
+        final int minCZ = SectionPos.blockToSectionCoord(region.minZ());
+        final int maxCZ = SectionPos.blockToSectionCoord(region.maxZ());
+
+        // chunk lookup from level is very slow, this helps a lot
+        final LevelChunk[][] chunkCache = new LevelChunk[maxCX - minCX + 1][maxCZ - minCZ + 1];
+
         for (int i = 0; i < blocksToTick; i++) {
             final int posX = region.minX() + vsRandom.nextInt(region.maxX() - region.minX() + 1);
             final int posY = region.minY() + vsRandom.nextInt(region.maxY() - region.minY() + 1);
             final int posZ = region.minZ() + vsRandom.nextInt(region.maxZ() - region.minZ() + 1);
 
             mutableBlockPos.set(posX, posY, posZ);
-            final BlockState blockState = thisAsClientLevel.getBlockState(mutableBlockPos);
+            if (thisAsClientLevel.isOutsideBuildHeight(mutableBlockPos)) continue;
+
+            final int cx = SectionPos.blockToSectionCoord(posX) - minCX;
+            final int cz = SectionPos.blockToSectionCoord(posZ) - minCZ;
+
+            LevelChunk levelChunk = chunkCache[cx][cz];
+            if (levelChunk == null) {
+                levelChunk = thisAsClientLevel.getChunk(cx + minCX, cz + minCZ);
+                chunkCache[cx][cz] = levelChunk;
+            }
+
+            final BlockState blockState = levelChunk.getBlockState(mutableBlockPos);
             blockState.getBlock().animateTick(blockState, thisAsClientLevel, mutableBlockPos, vsRandom);
-            final FluidState fluidState = thisAsClientLevel.getFluidState(mutableBlockPos);
+            final FluidState fluidState = levelChunk.getFluidState(mutableBlockPos);
             if (!fluidState.isEmpty()) {
                 fluidState.animateTick(thisAsClientLevel, mutableBlockPos, vsRandom);
                 final ParticleOptions particleOptions = fluidState.getDripParticle();
                 if (particleOptions != null && vsRandom.nextInt(10) == 0) {
                     final boolean bl2 = blockState.isFaceSturdy(thisAsClientLevel, mutableBlockPos, Direction.DOWN);
                     final BlockPos blockPos = mutableBlockPos.below();
-                    this.trySpawnDripParticles(blockPos, thisAsClientLevel.getBlockState(blockPos), particleOptions,
-                        bl2);
+                    if (!thisAsClientLevel.isOutsideBuildHeight(blockPos)) {
+                        this.trySpawnDripParticles(blockPos, levelChunk.getBlockState(blockPos), particleOptions, bl2);
+                    }
                 }
             }
 

@@ -5,7 +5,7 @@
   },
   {
     "tag": "minecraft:leaves",
-    "mass": 200.0,
+    "mass": 20.0,
     "elasticity": 0.15
   },
   {
@@ -95,32 +95,32 @@
   },
   {
     "tag": "minecraft:coral_blocks",
-    "mass": 1500.0,
+    "mass": 15.0,
     "friction": 0.7
   },
   {
     "block": "minecraft:dead_tube_coral_block",
-    "mass": 1500.0,
+    "mass": 15.0,
     "friction": 0.7
   },
   {
     "block": "minecraft:dead_brain_coral_block",
-    "mass": 1500.0,
+    "mass": 15.0,
     "friction": 0.7
   },
   {
     "block": "minecraft:dead_bubble_coral_block",
-    "mass": 1500.0,
+    "mass": 15.0,
     "friction": 0.7
   },
   {
     "block": "minecraft:dead_fire_coral_block",
-    "mass": 1500.0,
+    "mass": 15.0,
     "friction": 0.7
   },
   {
     "block": "minecraft:dead_horn_coral_block",
-    "mass": 1500.0,
+    "mass": 15.0,
     "friction": 0.7
   },
   {
@@ -209,7 +209,7 @@
   },
   {
     "block": "minecraft:cactus",
-    "mass": 600.0
+    "mass": 60.0
   },
   {
     "block": "minecraft:melon_stem",
@@ -221,7 +221,7 @@
   },
   {
     "block": "minecraft:melon",
-    "mass": 600.0,
+    "mass": 100.0,
     "friction": 0.2
   },
   {
@@ -234,7 +234,7 @@
   },
   {
     "block": "minecraft:pumpkin",
-    "mass": 600.0,
+    "mass": 100.0,
     "friction": 0.3
   },
   {
@@ -279,12 +279,12 @@
   },
   {
     "tag": "minecraft:wart_blocks",
-    "mass": 600.0,
+    "mass": 60.0,
     "elasticity": 0.1
   },
   {
     "block": "minecraft:shroomlight",
-    "mass": 800.0
+    "mass": 80.0
   },
   {
     "block": "minecraft:chorus_plant",
@@ -298,19 +298,19 @@
   },
   {
     "block": "minecraft:brown_mushroom_block",
-    "mass": 400.0,
+    "mass": 40.0,
     "friction": 0.2,
     "elasticity": 0.1
   },
   {
     "block": "minecraft:red_mushroom_block",
-    "mass": 400.0,
+    "mass": 40.0,
     "friction": 0.2,
     "elasticity": 0.1
   },
   {
     "block": "minecraft:mushroom_stem",
-    "mass": 600.0,
+    "mass": 60.0,
     "friction": 0.2,
     "elasticity": 0.1
   },

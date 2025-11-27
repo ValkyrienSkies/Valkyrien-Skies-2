@@ -14,11 +14,15 @@ import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.config.ShipRenderer;
+import org.valkyrienskies.mod.common.config.ShipRendererKt;
 import org.valkyrienskies.mod.mixinducks.client.render.IVSViewAreaMethods;
 
 /**
@@ -35,9 +39,11 @@ public class MixinViewAreaVanilla implements IVSViewAreaMethods {
     protected int chunkGridSizeY;
 
     // Maps chunk position to an array of BuiltChunk, indexed by the y value.
+    @Unique
     private final Long2ObjectMap<ChunkRenderDispatcher.RenderChunk[]> vs$shipRenderChunks =
         new Long2ObjectOpenHashMap<>();
     // This creates render chunks
+    @Unique
     private ChunkRenderDispatcher vs$chunkBuilder;
 
     /**
@@ -63,7 +69,8 @@ public class MixinViewAreaVanilla implements IVSViewAreaMethods {
             return; // Weird, but just ignore it
         }
 
-        if (VSGameUtilsKt.isChunkInShipyard(level, x, z)) {
+        var ship = (ClientShip) VSGameUtilsKt.getShipManagingPos(level, x, z);
+        if (ship != null && ShipRendererKt.getShipRenderer(ship) == ShipRenderer.VANILLA) {
             final long chunkPosAsLong = ChunkPos.asLong(x, z);
             final ChunkRenderDispatcher.RenderChunk[] renderChunksArray =
                 vs$shipRenderChunks.computeIfAbsent(chunkPosAsLong,
@@ -95,7 +102,8 @@ public class MixinViewAreaVanilla implements IVSViewAreaMethods {
             return; // Weird, but ignore it
         }
 
-        if (VSGameUtilsKt.isChunkInShipyard(level, chunkX, chunkZ)) {
+        var ship = (ClientShip) VSGameUtilsKt.getShipManagingPos(level, chunkX, chunkZ);
+        if (ship != null && ShipRendererKt.getShipRenderer(ship) == ShipRenderer.VANILLA) {
             final long chunkPosAsLong = ChunkPos.asLong(chunkX, chunkZ);
             final ChunkRenderDispatcher.RenderChunk[] renderChunksArray = vs$shipRenderChunks.get(chunkPosAsLong);
             if (renderChunksArray == null) {

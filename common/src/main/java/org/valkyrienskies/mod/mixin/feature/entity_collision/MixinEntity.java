@@ -7,6 +7,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityDimensions;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
@@ -37,8 +38,29 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     // region collision
 
     @Shadow
-    @Deprecated
-    public abstract BlockPos getOnPosLegacy();
+    public boolean hasImpulse;
+    @Shadow
+    protected boolean firstTick;
+    @Shadow
+    public int tickCount;
+
+    @Shadow
+    public abstract void setPos(Vec3 arg);
+
+    @Shadow
+    public abstract boolean is(Entity arg);
+
+    @Shadow
+    public abstract boolean isControlledByLocalInstance();
+
+    @Shadow
+    public abstract EntityType<?> getType();
+
+    @Shadow
+    public abstract Iterable<Entity> getIndirectPassengers();
+
+    @Shadow
+    public abstract BlockPos getOnPos();
 
     /**
      * Cancel movement of entities that are colliding with unloaded ships
@@ -73,11 +95,20 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         if (collisionResultWithWorld.distanceToSqr(movement) > 1e-12) {
             // We collided with the world? Set the dragging ship to null.
             final EntityDraggingInformation entityDraggingInformation = getDraggingInformation();
+            if (entityDraggingInformation.getIgnoreNextGroundStand()) {
+                entityDraggingInformation.setIgnoreNextGroundStand(false);
+                return collisionResultWithWorld;
+            }
             entityDraggingInformation.setLastShipStoodOn(null);
-            entityDraggingInformation.setAddedMovementLastTick(new Vector3d());
             entityDraggingInformation.setAddedYawRotLastTick(0.0);
-        }
 
+            for (Entity entityRiding : entity.getIndirectPassengers()) {
+                final EntityDraggingInformation passengerDraggingInformation =
+                    ((IEntityDraggingInformationProvider) entityRiding).getDraggingInformation();
+                passengerDraggingInformation.setLastShipStoodOn(null);
+                passengerDraggingInformation.setAddedYawRotLastTick(0.0);
+            }
+        }
         return collisionResultWithWorld;
     }
 
@@ -105,16 +136,18 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
         // Remove the component of [movementAdjustedForCollisions] that is parallel to [collisionResponseHorizontal]
         if (collisionResponseHorizontal.lengthSquared() > 1e-6) {
+            final Vec3 deltaMovement = getDeltaMovement();
+
             final Vector3dc collisionResponseHorizontalNormal = collisionResponseHorizontal.normalize(new Vector3d());
             final double parallelHorizontalVelocityComponent =
                 collisionResponseHorizontalNormal
-                    .dot(movementAdjustedForCollisions.x, 0.0, movementAdjustedForCollisions.z);
+                    .dot(deltaMovement.x, 0.0, deltaMovement.z);
 
             setDeltaMovement(
-                movementAdjustedForCollisions.x
+                deltaMovement.x
                     - collisionResponseHorizontalNormal.x() * parallelHorizontalVelocityComponent,
-                movementAdjustedForCollisions.y,
-                movementAdjustedForCollisions.z
+                deltaMovement.y,
+                deltaMovement.z
                     - collisionResponseHorizontalNormal.z() * parallelHorizontalVelocityComponent
             );
         }
@@ -181,6 +214,55 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         if (VSGameUtilsKt.isBlockInShipyard(level, posOn)) return posOn;
         return original.call(entity);
     }
+
+    /**
+     * This will set the entity impulsed if it is dragged by a ship on its first tick.
+     * Marking impulse forces the sync over server-client, so this will also sync dragging information.
+     */
+    @Inject(
+        method = "tick",
+        at = @At("HEAD")
+    )
+    private void markImpulsedFirstTick(CallbackInfo ci) {
+        if (firstTick && getDraggingInformation().isEntityBeingDraggedByAShip() && !level.isClientSide) {
+            hasImpulse = true;
+        }
+    }
+
+    @Inject(
+        method = "baseTick",
+        at = @At("TAIL")
+    )
+    private void postBaseTick(final CallbackInfo ci) {
+        final EntityDraggingInformation entityDraggingInformation = getDraggingInformation();
+
+        if (level != null && level.isClientSide && tickCount > 1) { //baseTick sets the firstTick false, use tickCount instead.
+            final Ship ship = VSGameUtilsKt.getLoadedShipManagingPos(level, getOnPos());
+            if (ship != null) {
+                entityDraggingInformation.setLastShipStoodOn(ship.getId());
+                getIndirectPassengers().forEach(entity -> {
+                    final EntityDraggingInformation passengerDraggingInformation =
+                        ((IEntityDraggingInformationProvider) entity).getDraggingInformation();
+                    passengerDraggingInformation.setLastShipStoodOn(ship.getId());
+                });
+            } else {
+                if (!level.getBlockState(getOnPos()).isAir()) {
+                    if (entityDraggingInformation.getIgnoreNextGroundStand()) {
+                        entityDraggingInformation.setIgnoreNextGroundStand(false);
+                    } else {
+                        entityDraggingInformation.setLastShipStoodOn(null);
+                        getIndirectPassengers().forEach(entity -> {
+                            final EntityDraggingInformation passengerDraggingInformation =
+                                ((IEntityDraggingInformationProvider) entity).getDraggingInformation();
+                            passengerDraggingInformation.setLastShipStoodOn(null);
+                        });
+                    }
+
+                }
+            }
+        }
+    }
+
     // endregion
 
     // region shadow functions and fields
@@ -194,13 +276,13 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     public abstract void setDeltaMovement(double x, double y, double z);
 
     @Shadow
+    protected abstract void tryCheckInsideBlocks();
+
+    @Shadow
     protected abstract Vec3 collide(Vec3 vec3d);
 
     @Shadow
     public abstract Vec3 getDeltaMovement();
-
-    @Shadow
-    protected abstract void tryCheckInsideBlocks();
 
     @Shadow
     public abstract double getZ();

@@ -101,6 +101,10 @@ fun Matrix4dc.transform(v: Vector4f) = v.also {
     )
 }
 
+fun Matrix4dc.transformPosition(v: Vec3): Vec3 {
+    return transformPosition(v.toJOML()).toMinecraft()
+}
+
 // endregion
 
 // region Minecraft

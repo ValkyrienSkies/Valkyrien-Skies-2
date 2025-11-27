@@ -23,6 +23,8 @@
   "argument.valkyrienskies.ship.no_found": "Ship not found",
   "argument.valkyrienskies.ship.multiple_found": "Multiple ships found",
   "command.valkyrienskies.delete.success": "Deleted %d ships!",
+  "command.valkyrienskies.remass.success": "Recalculated masses for %d ships!",
+  "command.valkyrienskies.remass.fail": "Failed to recalculate mass for %s!",
   "command.valkyrienskies.set_static.success": "Set %d ships to be is-static=%s!",
   "command.valkyrienskies.teleport.success": "Teleported %d ships to %s!",
   "command.valkyrienskies.teleport.multiple_ship_success": "Teleported %d ships!",

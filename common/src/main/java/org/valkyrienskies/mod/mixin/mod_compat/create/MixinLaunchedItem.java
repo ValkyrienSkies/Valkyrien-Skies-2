@@ -40,8 +40,8 @@ public class MixinLaunchedItem {
         }
 
         LaunchedItem launchedItem = LaunchedItem.class.cast(this);
-        Ship targetShip = VSGameUtilsKt.getShipObjectManagingPos(world, launchedItem.target);
-        Ship thisShip = VSGameUtilsKt.getShipObjectManagingPos(world, this.valkyrienskies$startPos);
+        Ship targetShip = VSGameUtilsKt.getLoadedShipManagingPos(world, launchedItem.target);
+        Ship thisShip = VSGameUtilsKt.getLoadedShipManagingPos(world, this.valkyrienskies$startPos);
 
         Vector3d newPos = VectorConversionsMCKt.toJOML(launchedItem.target.getCenter());
 

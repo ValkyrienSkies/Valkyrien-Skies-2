@@ -1,16 +1,13 @@
 package org.valkyrienskies.mod.compat
 
 import net.minecraft.server.level.ServerLevel
-import net.minecraft.world.entity.LivingEntity
 import org.joml.Vector3d
-import org.valkyrienskies.core.api.ships.getAttachment
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.shipObjectWorld
-import org.valkyrienskies.mod.common.util.GameTickForceApplier
 import org.valkyrienskies.mod.common.util.toMinecraft
 import weather2.ServerTickHandler
 import weather2.weathersystem.storm.StormObject
-import weather2.weathersystem.storm.WeatherEntityConfig
 
 object Weather2Compat {
     fun tick(level: ServerLevel) {
@@ -28,7 +25,7 @@ object Weather2Compat {
 
         level.shipObjectWorld.loadedShips.forEach { ship ->
             val vec = Vector3d()
-            val forces = ship.getAttachment<GameTickForceApplier>()!!
+            val forces = ValkyrienSkiesMod.getOrCreateGTPA(ship.chunkClaimDimension)
 
             val com = ship.inertiaData.centerOfMassInShip
 
@@ -56,7 +53,7 @@ object Weather2Compat {
                 vec.sub(ship.velocity)
                 vec.mul(mass)
 
-                forces.applyInvariantForceToPos(vec, com)
+                forces.applyInvariantForceToPos(ship.id, vec, com)
             }
 
             applyForcePlusMotion()

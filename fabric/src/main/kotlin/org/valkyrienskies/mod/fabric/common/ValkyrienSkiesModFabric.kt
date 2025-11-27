@@ -4,10 +4,12 @@ import dev.engine_room.flywheel.api.event.ReloadLevelRendererCallback
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper
+import net.fabricmc.fabric.api.client.rendering.v1.EntityModelLayerRegistry
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents
 import net.fabricmc.fabric.api.`object`.builder.v1.block.entity.FabricBlockEntityTypeBuilder
+import net.fabricmc.fabric.api.`object`.builder.v1.entity.FabricDefaultAttributeRegistry
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper
 import net.fabricmc.loader.api.FabricLoader
@@ -26,17 +28,18 @@ import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.Item.Properties
 import net.minecraft.world.level.block.Block
-import org.dynmap.modsupport.ModSupportAPI
-import org.valkyrienskies.core.apigame.VSCoreFactory
+import org.valkyrienskies.core.internal.VsiCoreFactory
 import org.valkyrienskies.mod.client.EmptyRenderer
+import org.valkyrienskies.mod.client.VSPhysicsEntityModel
 import org.valkyrienskies.mod.client.VSPhysicsEntityRenderer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.block.TestChairBlock
 import org.valkyrienskies.mod.common.block.TestFlapBlock
 import org.valkyrienskies.mod.common.block.TestHingeBlock
-import org.valkyrienskies.mod.common.block.TestSphereBlock
+import org.valkyrienskies.mod.common.block.TestThrusterBlock
 import org.valkyrienskies.mod.common.block.TestWingBlock
 import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
+import org.valkyrienskies.mod.common.blockentity.TestThrusterBlockEntity
 import org.valkyrienskies.mod.common.command.VSCommands
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.config.VSEntityHandlerDataLoader
@@ -46,9 +49,13 @@ import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.entity.VSPhysicsEntity
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager
 import org.valkyrienskies.mod.common.hooks.VSGameEvents
+import org.valkyrienskies.mod.common.item.AreaAssemblerItem
+import org.valkyrienskies.mod.common.item.ConnectionCheckerItem
 import org.valkyrienskies.mod.common.item.PhysicsEntityCreatorItem
 import org.valkyrienskies.mod.common.item.ShipAssemblerItem
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
+import org.valkyrienskies.mod.compat.LoadedMods
+import org.valkyrienskies.mod.compat.flywheel.FlywheelCompat
 import org.valkyrienskies.mod.compat.flywheel.ShipEmbeddingManager
 import org.valkyrienskies.mod.fabric.compat.dynmap.FabricDynmapHandler
 import java.util.concurrent.CompletableFuture
@@ -68,13 +75,23 @@ class ValkyrienSkiesModFabric : ModInitializer {
         ValkyrienSkiesMod.TEST_HINGE = TestHingeBlock
         ValkyrienSkiesMod.TEST_FLAP = TestFlapBlock
         ValkyrienSkiesMod.TEST_WING = TestWingBlock
-        ValkyrienSkiesMod.TEST_SPHERE = TestSphereBlock
+        ValkyrienSkiesMod.TEST_THRUSTER = TestThrusterBlock
+        ValkyrienSkiesMod.CONNECTION_CHECKER_ITEM = ConnectionCheckerItem(
+            Properties(),
+            { 1.0 },
+            { VSGameConfig.SERVER.minScaling }
+        )
         ValkyrienSkiesMod.SHIP_CREATOR_ITEM = ShipCreatorItem(
             Properties(),
             { 1.0 },
             { VSGameConfig.SERVER.minScaling }
         )
         ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM = ShipAssemblerItem(Properties())
+        ValkyrienSkiesMod.AREA_ASSEMBLER_ITEM = AreaAssemblerItem(
+            Properties(),
+            { 1.0 },
+            { VSGameConfig.SERVER.minScaling }
+        )
         ValkyrienSkiesMod.SHIP_CREATOR_ITEM_SMALLER = ShipCreatorItem(
             Properties(),
             { VSGameConfig.SERVER.miniShipSize },
@@ -91,7 +108,7 @@ class ValkyrienSkiesModFabric : ModInitializer {
         ValkyrienSkiesMod.PHYSICS_ENTITY_TYPE = EntityType.Builder.of(
             ::VSPhysicsEntity,
             MobCategory.MISC
-        ).sized(.3f, .3f)
+        ).sized(1f, 1f)
             .updateInterval(1)
             .clientTrackingRange(10)
             .build(ResourceLocation(ValkyrienSkiesMod.MOD_ID, "vs_physics_entity").toString())
@@ -99,27 +116,30 @@ class ValkyrienSkiesModFabric : ModInitializer {
         ValkyrienSkiesMod.TEST_HINGE_BLOCK_ENTITY_TYPE =
             FabricBlockEntityTypeBuilder.create(::TestHingeBlockEntity, ValkyrienSkiesMod.TEST_HINGE).build()
 
-        val isClient = FabricLoader.getInstance().environmentType == EnvType.CLIENT
-        val networking = VSFabricNetworking(isClient)
-        val hooks = FabricHooksImpl(networking)
-        val vsCore = if (isClient) {
-            VSCoreFactory.instance.newVsCoreClient(hooks)
-        } else {
-            VSCoreFactory.instance.newVsCoreServer(hooks)
-        }
+        ValkyrienSkiesMod.TEST_THRUSTER_BLOCK_ENTITY_TYPE =
+            FabricBlockEntityTypeBuilder.create(::TestThrusterBlockEntity, ValkyrienSkiesMod.TEST_THRUSTER).build()
 
-        networking.register(vsCore.hooks)
+        val isClient = FabricLoader.getInstance().environmentType == EnvType.CLIENT
+
+        ValkyrienSkiesMod.init()
 
         if (isClient) onInitializeClient()
 
-        ValkyrienSkiesMod.init(vsCore)
         VSEntityManager.registerContraptionHandler(ContraptionShipyardEntityHandlerFabric)
 
         registerBlockAndItem("test_chair", ValkyrienSkiesMod.TEST_CHAIR)
         registerBlockAndItem("test_hinge", ValkyrienSkiesMod.TEST_HINGE)
         registerBlockAndItem("test_flap", ValkyrienSkiesMod.TEST_FLAP)
         registerBlockAndItem("test_wing", ValkyrienSkiesMod.TEST_WING)
-        registerBlockAndItem("test_sphere", ValkyrienSkiesMod.TEST_SPHERE)
+        registerBlockAndItem("test_thruster", ValkyrienSkiesMod.TEST_THRUSTER)
+        Registry.register(
+            BuiltInRegistries.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "connection_checker"),
+            ValkyrienSkiesMod.CONNECTION_CHECKER_ITEM
+        )
+        Registry.register(
+            BuiltInRegistries.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "area_assembler"),
+            ValkyrienSkiesMod.AREA_ASSEMBLER_ITEM
+        )
         Registry.register(
             BuiltInRegistries.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_assembler"),
             ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM
@@ -144,9 +164,17 @@ class ValkyrienSkiesModFabric : ModInitializer {
             BuiltInRegistries.ENTITY_TYPE, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "vs_physics_entity"),
             ValkyrienSkiesMod.PHYSICS_ENTITY_TYPE
         )
+        FabricDefaultAttributeRegistry.register(ValkyrienSkiesMod.PHYSICS_ENTITY_TYPE, VSPhysicsEntity.Companion.createAttributes())
+
+
+
         Registry.register(
             BuiltInRegistries.BLOCK_ENTITY_TYPE, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "test_hinge_block_entity"),
             ValkyrienSkiesMod.TEST_HINGE_BLOCK_ENTITY_TYPE
+        )
+        Registry.register(
+            BuiltInRegistries.BLOCK_ENTITY_TYPE, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "test_thruster_block_entity"),
+            ValkyrienSkiesMod.TEST_THRUSTER_BLOCK_ENTITY_TYPE
         )
 
         Registry.register(
@@ -216,8 +244,17 @@ class ValkyrienSkiesModFabric : ModInitializer {
             )
         }
 
+        EntityModelLayerRegistry.registerModelLayer(
+            VSPhysicsEntityModel.LAYER_LOCATION,
+            VSPhysicsEntityModel.Companion::createBodyLayer
+        )
+
         VSKeyBindings.clientSetup {
             KeyBindingHelper.registerKeyBinding(it)
+        }
+
+        if (LoadedMods.flywheel == LoadedMods.FlywheelVersion.V1) {
+            FlywheelCompat.initClient()
         }
         if(FabricLoader.getInstance().isModLoaded("flywheel")) ReloadLevelRendererCallback.EVENT.register(
             ReloadLevelRendererCallback { event: ClientLevel? -> ShipEmbeddingManager.INSTANCE.unloadAllShip() })

@@ -15,12 +15,16 @@ import java.util.Optional;
 import java.util.function.BooleanSupplier;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.BlockPos.MutableBlockPos;
+import net.minecraft.core.Holder;
 import net.minecraft.core.Position;
+import net.minecraft.core.SectionPos;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.ai.village.poi.PoiManager;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunk;
@@ -36,19 +40,26 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.LoadedServerShip;
+import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.api.ships.Wing;
 import org.valkyrienskies.core.api.ships.WingManager;
-import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
-import org.valkyrienskies.core.apigame.world.chunks.TerrainUpdate;
+import org.valkyrienskies.core.internal.world.VsiServerShipWorld;
+import org.valkyrienskies.core.internal.world.chunks.VsiTerrainUpdate;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.block.WingBlock;
+import org.valkyrienskies.mod.common.util.DragInfoReporter;
 import org.valkyrienskies.mod.common.util.VSServerLevel;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.mixin.accessors.server.level.ChunkMapAccessor;
 import org.valkyrienskies.mod.mixin.accessors.server.level.DistanceManagerAccessor;
+import org.valkyrienskies.mod.mixinducks.world.OfLevel;
+import org.valkyrienskies.mod.util.McMathUtilKt;
 
 @Mixin(ServerLevel.class)
 public abstract class MixinServerLevel implements IShipObjectWorldServerProvider, VSServerLevel {
@@ -59,6 +70,10 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
     @Shadow
     @NotNull
     public abstract MinecraftServer getServer();
+
+    @Shadow
+    public abstract int sectionsToVillage(SectionPos arg);
+
 
     // Map from ChunkPos to the list of voxel chunks that chunk owns
     @Unique
@@ -74,7 +89,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
 
     @Nullable
     @Override
-    public ServerShipWorldCore getShipObjectWorld() {
+    public VsiServerShipWorld getShipObjectWorld() {
         return ((IShipObjectWorldServerProvider) getServer()).getShipObjectWorld();
     }
 
@@ -83,8 +98,34 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
 
         // This only happens when overworld gets loaded on startup, we have a mixin in MixinMinecraftServer for this specific case
         if (getShipObjectWorld() != null) {
-            getShipObjectWorld().addDimension(VSGameUtilsKt.getDimensionId((ServerLevel) (Object) this),
-                VSGameUtilsKt.getYRange((ServerLevel) (Object) this));
+            getShipObjectWorld().addDimension(
+                VSGameUtilsKt.getDimensionId((ServerLevel) (Object) this),
+                VSGameUtilsKt.getYRange((ServerLevel) (Object) this),
+                McMathUtilKt.getDEFAULT_WORLD_GRAVITY(),
+                //todo make this datagenned
+                63.0,
+                962.0
+            );
+        }
+    }
+
+    @Inject(method = "getPoiManager", at = @At("HEAD"))
+    void onGetPoiManager(CallbackInfoReturnable<PoiManager> cir) {
+        if (chunkSource.getPoiManager() instanceof final OfLevel levelProvider) {
+            levelProvider.setLevel((ServerLevel) (Object) this);
+        }
+    }
+
+    @Inject(method = "isCloseToVillage", at = @At("HEAD"), cancellable = true)
+    void preIsCloseToVillage(BlockPos blockPos, int i, CallbackInfoReturnable<Boolean> cir) {
+        if (i <= 6) {
+            final boolean[] found = {false};
+            VSGameUtilsKt.transformToNearbyShipsAndWorld(ServerLevel.class.cast(this), blockPos.getX(), blockPos.getY(), blockPos.getZ(), i * 100.0, (double x, double y, double z) -> {
+                found[0] = found[0] || this.sectionsToVillage(SectionPos.of(BlockPos.containing(x, y, z))) <= i;
+            });
+            if (found[0]) {
+                cir.setReturnValue(true);
+            }
         }
     }
 
@@ -103,7 +144,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
         final Operation<Boolean> closerToCenterThan) {
 
         final ServerLevel self = ServerLevel.class.cast(this);
-        final LoadedServerShip ship = VSGameUtilsKt.getShipObjectManagingPos(
+        final LoadedServerShip ship = VSGameUtilsKt.getLoadedShipManagingPos(
             self, (int) particle.x() >> 4, (int) particle.z() >> 4);
 
         if (ship == null) {
@@ -118,7 +159,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
     }
 
     @Unique
-    private void vs$loadChunk(@NotNull final ChunkAccess worldChunk, final List<TerrainUpdate> voxelShapeUpdates) {
+    private void vs$loadChunk(@NotNull final ChunkAccess worldChunk, final List<VsiTerrainUpdate> voxelShapeUpdates) {
         // Remove the chunk pos from vs$chunksToUnload if its present
         vs$chunksToUnload.remove(worldChunk.getPos().toLong());
         if (!vs$knownChunks.containsKey(worldChunk.getPos())) {
@@ -137,24 +178,25 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
 
                 if (chunkSection != null && !chunkSection.hasOnlyAir()) {
                     // Add this chunk to the ground rigid body
-                    final TerrainUpdate voxelShapeUpdate =
+                    final VsiTerrainUpdate voxelShapeUpdate =
                         VSGameUtilsKt.toDenseVoxelUpdate(chunkSection, chunkPos);
                     voxelShapeUpdates.add(voxelShapeUpdate);
 
                     // region Detect wings
                     final ServerLevel thisAsLevel = ServerLevel.class.cast(this);
                     final LoadedServerShip
-                        ship = VSGameUtilsKt.getShipObjectManagingPos(thisAsLevel, chunkX, chunkZ);
+                        ship = VSGameUtilsKt.getLoadedShipManagingPos(thisAsLevel, chunkX, chunkZ);
                     if (ship != null) {
                         // Sussy cast, but I don't want to expose this directly through the vs-core api
-                        final WingManager shipAsWingManager = ship.getAttachment(WingManager.class);
+                        final WingManager shipAsWingManager = ship.getWingManager();
                         final MutableBlockPos mutableBlockPos = new MutableBlockPos();
                         for (int x = 0; x < 16; x++) {
                             for (int y = 0; y < 16; y++) {
                                 for (int z = 0; z < 16; z++) {
                                     final BlockState blockState = chunkSection.getBlockState(x, y, z);
                                     final int posX = (chunkX << 4) + x;
-                                    final int posY = worldChunk.getMinBuildHeight() + (sectionY << 4) + y;                                    final int posZ = (chunkZ << 4) + z;
+                                    final int posY = worldChunk.getMinBuildHeight() + (sectionY << 4) + y;
+                                    final int posZ = (chunkZ << 4) + z;
                                     if (blockState.getBlock() instanceof WingBlock) {
                                         mutableBlockPos.set(posX, posY, posZ);
                                         final Wing wing =
@@ -171,7 +213,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                     }
                     // endregion
                 } else {
-                    final TerrainUpdate emptyVoxelShapeUpdate = getVsCore()
+                    final VsiTerrainUpdate emptyVoxelShapeUpdate = getVsCore()
                         .newEmptyVoxelShapeUpdate(chunkPos.x(), chunkPos.y(), chunkPos.z(), true);
                     voxelShapeUpdates.add(emptyVoxelShapeUpdate);
                 }
@@ -183,23 +225,25 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
     @Inject(method = "tick", at = @At("TAIL"))
     private void postTick(final BooleanSupplier shouldKeepTicking, final CallbackInfo ci) {
         final ServerLevel self = ServerLevel.class.cast(this);
-        final ServerShipWorldCore shipObjectWorld = VSGameUtilsKt.getShipObjectWorld(self);
+        final VsiServerShipWorld shipObjectWorld = VSGameUtilsKt.getShipObjectWorld(self);
         // Find newly loaded chunks
         final ChunkMapAccessor chunkMapAccessor = (ChunkMapAccessor) chunkSource.chunkMap;
 
         // Create DenseVoxelShapeUpdate for new loaded chunks
         // Also mark the chunks as loaded in the ship objects
-        final List<TerrainUpdate> voxelShapeUpdates = new ArrayList<>();
+        final List<VsiTerrainUpdate> voxelShapeUpdates = new ArrayList<>();
         final DistanceManagerAccessor distanceManagerAccessor = (DistanceManagerAccessor) chunkSource.chunkMap.getDistanceManager();
 
         for (final ChunkHolder chunkHolder : chunkMapAccessor.callGetChunks()) {
-            final Optional<LevelChunk> worldChunkOptional =
-                chunkHolder.getTickingChunkFuture().getNow(ChunkHolder.UNLOADED_LEVEL_CHUNK).left();
-            // Only load chunks that are present and that have tickets
-            if (worldChunkOptional.isPresent() && distanceManagerAccessor.getTickets().containsKey(chunkHolder.getPos().toLong())) {
-                // Only load chunks that have a ticket
-                final LevelChunk worldChunk = worldChunkOptional.get();
-                vs$loadChunk(worldChunk, voxelShapeUpdates);
+            // Only load chunks that haven't been loaded before, and have a ticket
+            if (!vs$knownChunks.containsKey(chunkHolder.getPos()) && distanceManagerAccessor.getTickets().containsKey(chunkHolder.getPos().toLong())) {
+                final Optional<LevelChunk> worldChunkOptional =
+                    chunkHolder.getTickingChunkFuture().getNow(ChunkHolder.UNLOADED_LEVEL_CHUNK).left();
+                if (worldChunkOptional.isPresent()) {
+                    // Only load chunks that have a ticket
+                    final LevelChunk worldChunk = worldChunkOptional.get();
+                    vs$loadChunk(worldChunk, voxelShapeUpdates);
+                }
             }
         }
 
@@ -213,7 +257,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                 if (ticksWaitingToUnload > VS$CHUNK_UNLOAD_THRESHOLD) {
                     // Unload this chunk
                     for (final Vector3ic unloadedChunk : knownChunkPosEntry.getValue()) {
-                        final TerrainUpdate deleteVoxelShapeUpdate =
+                        final VsiTerrainUpdate deleteVoxelShapeUpdate =
                             getVsCore().newDeleteTerrainUpdate(unloadedChunk.x(), unloadedChunk.y(), unloadedChunk.z());
                         voxelShapeUpdates.add(deleteVoxelShapeUpdate);
                     }
@@ -230,11 +274,32 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
             VSGameUtilsKt.getDimensionId(self),
             voxelShapeUpdates
         );
+
+        if (ValkyrienSkiesMod.getVsCore().getHooks().getEnableSplitting()) {
+            ValkyrienSkiesMod.splitHandler.tick(ServerLevel.class.cast(this));
+        }
+
+        DragInfoReporter.INSTANCE.tick((ServerLevel) (Object) this);
+
     }
 
     @Override
     public void removeChunk(final int chunkX, final int chunkZ) {
         final ChunkPos chunkPos = new ChunkPos(chunkX, chunkZ);
         vs$knownChunks.remove(chunkPos);
+    }
+
+    //Replace the biome check in tick chunk for one that transforms ship positions to world-space.
+    @Redirect(method = "tickChunk", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerLevel;getBiome(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/core/Holder;"))
+    private Holder<Biome> adjustForWorldPosition(final ServerLevel instance, final BlockPos blockPos) {
+        final ServerLevel level = ServerLevel.class.cast(this);
+        final Ship ship = VSGameUtilsKt.getShipManagingPos(level, blockPos);
+        if (ship != null) {
+            final Vector3d vPosWorld = ship.getShipToWorld().transformPosition(VectorConversionsMCKt.toJOMLD(blockPos));
+            final BlockPos blockPosWorld = BlockPos.containing(vPosWorld.x, vPosWorld.y, vPosWorld.z);
+            return level.getBiome(blockPosWorld);
+        }
+
+        return level.getBiome(blockPos);
     }
 }

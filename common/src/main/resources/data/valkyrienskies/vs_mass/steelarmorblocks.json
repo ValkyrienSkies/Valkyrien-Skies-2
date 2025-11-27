@@ -1,0 +1,1486 @@
+[
+  {
+    "block": "s_a_b:doublesteelblock",
+    "mass": 2744.0
+  },
+  {
+    "block": "s_a_b:steelblock",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:hardsteelblock",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:lightsteelblock",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:lightsteelvslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:steelvslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:lightsteelslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:steelslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:lightsteelstairs",
+    "mass": 294.0
+  },
+  {
+    "block": "s_a_b:steelarmorstairs",
+    "mass": 882.0
+  },
+  {
+    "block": "s_a_b:steelwl",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:armorwl",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:sandbag",
+    "mass": 624.0
+  },
+  {
+    "block": "s_a_b:blacksteelblock",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:redsteelblock",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:greensteelblock",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:bluesteelblock",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:cyansteelblock",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:brownsteelblock",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:graysteelblock",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:whitesteelblock",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:lightgraysteelblock",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:lightbluesteelblock",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:magentasteelblock",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:yellowsteelblock",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:pinksteelblock",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:purplesteelblock",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:orangesteelblock",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:limesteelblock",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:blackhardsteelblock",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:redhardsteelblock",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:greenhardsteelblock",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:bluehardsteelblock",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:cyanhardsteelblock",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:brownhardsteelblock",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:grayhardsteelblock",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:lightgrayhardsteelblock",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:lightbluehardsteelblock",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:magentahardsteelblock",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:yellowhardsteelblock",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:pinkhardsteelblock",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:purplehardsteelblock",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:orangehardsteelblock",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:limehardsteelblock",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:whitehardsteelblock",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:blacklightsteelblock",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:redlightsteelblock",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:greenlightsteelblock",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:bluelightsteelblock",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:cyanlightsteelblock",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:brownlightsteelblock",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:graylightsteelblock",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:lightgraylightsteelblock",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:lightbluelightsteelblock",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:magentalightsteelblock",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:yellowlightsteelblock",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:pinklightsteelblock",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:purplelightsteelblock",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:orangelightsteelblock",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:limelightsteelblock",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:whitelightsteelblock",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:blackdoublesteelblock",
+    "mass": 2744.0
+  },
+  {
+    "block": "s_a_b:reddoublesteelblock",
+    "mass": 2744.0
+  },
+  {
+    "block": "s_a_b:greendoublesteelblock",
+    "mass": 2744.0
+  },
+  {
+    "block": "s_a_b:bluedoublesteelblock",
+    "mass": 2744.0
+  },
+  {
+    "block": "s_a_b:cyandoublesteelblock",
+    "mass": 2744.0
+  },
+  {
+    "block": "s_a_b:browndoublesteelblock",
+    "mass": 2744.0
+  },
+  {
+    "block": "s_a_b:graydoublesteelblock",
+    "mass": 2744.0
+  },
+  {
+    "block": "s_a_b:lightgraydoublesteelblock",
+    "mass": 2744.0
+  },
+  {
+    "block": "s_a_b:lightbluedoublesteelblock",
+    "mass": 2744.0
+  },
+  {
+    "block": "s_a_b:magentadoublesteelblock",
+    "mass": 2744.0
+  },
+  {
+    "block": "s_a_b:yellowdoublesteelblock",
+    "mass": 2744.0
+  },
+  {
+    "block": "s_a_b:pinkdoublesteelblock",
+    "mass": 2744.0
+  },
+  {
+    "block": "s_a_b:purpledoublesteelblock",
+    "mass": 2744.0
+  },
+  {
+    "block": "s_a_b:orangedoublesteelblock",
+    "mass": 2744.0
+  },
+  {
+    "block": "s_a_b:limedoublesteelblock",
+    "mass": 2744.0
+  },
+  {
+    "block": "s_a_b:whitedoublesteelblock",
+    "mass": 2744.0
+  },
+  {
+    "block": "s_a_b:blacklightsteelvslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:redlightsteelvslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:greenlightsteelvslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:bluelightsteelvslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:cyanlightsteelvslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:brownlightsteelvslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:graylightsteelvslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:lightgraylightsteelvslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:lightbluelightsteelvslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:magentalightsteelvslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:yellowlightsteelvslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:pinklightsteelvslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:purplelightsteelvslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:orangelightsteelvslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:limelightsteelvslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:whitelightsteelvslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:blacksteelvslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:redsteelvslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:greensteelvslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:bluesteelvslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:cyansteelvslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:brownsteelvslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:graysteelvslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:lightgraysteelvslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:lightbluesteelvslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:magentasteelvslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:yellowsteelvslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:pinksteelvslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:purplesteelvslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:orangesteelvslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:limesteelvslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:whitesteelvslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:blacklightsteelslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:redlightsteelslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:greenlightsteelslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:bluelightsteelslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:cyanlightsteelslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:brownlightsteelslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:graylightsteelslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:lightgraylightsteelslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:lightbluelightsteelslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:magentalightsteelslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:yellowlightsteelslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:pinklightsteelslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:purplelightsteelslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:orangelightsteelslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:limelightsteelslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:whitelightsteelslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:blacksteelslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:redsteelslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:greensteelslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:bluesteelslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:cyansteelslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:brownsteelslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:graysteelslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:lightgraysteelslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:lightbluesteelslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:magentasteelslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:yellowsteelslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:pinksteelslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:purplesteelslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:orangesteelslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:limesteelslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:whitesteelslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:blacklightsteelstairs",
+    "mass": 294.0
+  },
+  {
+    "block": "s_a_b:redlightsteelstairs",
+    "mass": 294.0
+  },
+  {
+    "block": "s_a_b:greenlightsteelstairs",
+    "mass": 294.0
+  },
+  {
+    "block": "s_a_b:bluelightsteelstairs",
+    "mass": 294.0
+  },
+  {
+    "block": "s_a_b:cyanlightsteelstairs",
+    "mass": 294.0
+  },
+  {
+    "block": "s_a_b:brownlightsteelstairs",
+    "mass": 294.0
+  },
+  {
+    "block": "s_a_b:graylightsteelstairs",
+    "mass": 294.0
+  },
+  {
+    "block": "s_a_b:lightgraylightsteelstairs",
+    "mass": 294.0
+  },
+  {
+    "block": "s_a_b:lightbluelightsteelstairs",
+    "mass": 294.0
+  },
+  {
+    "block": "s_a_b:magentalightsteelstairs",
+    "mass": 294.0
+  },
+  {
+    "block": "s_a_b:yellowlightsteelstairs",
+    "mass": 294.0
+  },
+  {
+    "block": "s_a_b:pinklightsteelstairs",
+    "mass": 294.0
+  },
+  {
+    "block": "s_a_b:purplelightsteelstairs",
+    "mass": 294.0
+  },
+  {
+    "block": "s_a_b:orangelightsteelstairs",
+    "mass": 294.0
+  },
+  {
+    "block": "s_a_b:limelightsteelstairs",
+    "mass": 294.0
+  },
+  {
+    "block": "s_a_b:whitelightsteelstairs",
+    "mass": 294.0
+  },
+  {
+    "block": "s_a_b:blacksteelstairs",
+    "mass": 882.0
+  },
+  {
+    "block": "s_a_b:redsteelstairs",
+    "mass": 882.0
+  },
+  {
+    "block": "s_a_b:greensteelstairs",
+    "mass": 882.0
+  },
+  {
+    "block": "s_a_b:bluesteelstairs",
+    "mass": 882.0
+  },
+  {
+    "block": "s_a_b:cyansteelstairs",
+    "mass": 882.0
+  },
+  {
+    "block": "s_a_b:brownsteelstairs",
+    "mass": 882.0
+  },
+  {
+    "block": "s_a_b:graysteelstairs",
+    "mass": 882.0
+  },
+  {
+    "block": "s_a_b:lightgraysteelstairs",
+    "mass": 882.0
+  },
+  {
+    "block": "s_a_b:lightbluesteelstairs",
+    "mass": 882.0
+  },
+  {
+    "block": "s_a_b:magentasteelstairs",
+    "mass": 882.0
+  },
+  {
+    "block": "s_a_b:yellowsteelstairs",
+    "mass": 882.0
+  },
+  {
+    "block": "s_a_b:pinksteelstairs",
+    "mass": 882.0
+  },
+  {
+    "block": "s_a_b:purplesteelstairs",
+    "mass": 882.0
+  },
+  {
+    "block": "s_a_b:orangesteelstairs",
+    "mass": 882.0
+  },
+  {
+    "block": "s_a_b:limesteelstairs",
+    "mass": 882.0
+  },
+  {
+    "block": "s_a_b:whitesteelstairs",
+    "mass": 882.0
+  },
+  {
+    "block": "s_a_b:steelblockcolored_29",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:steelblockcolored_31",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:steelblockcolored_32",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:steelblockcolored_33",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:steelblockcoloredparade",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:doublesteelblockcolored_29",
+    "mass": 2744.0
+  },
+  {
+    "block": "s_a_b:doublesteelblockcolored_31",
+    "mass": 2744.0
+  },
+  {
+    "block": "s_a_b:doublesteelblockcolored_32",
+    "mass": 2744.0
+  },
+  {
+    "block": "s_a_b:doublesteelblockcolored_33",
+    "mass": 2744.0
+  },
+  {
+    "block": "s_a_b:doublesteelblockcoloredparade",
+    "mass": 2744.0
+  },
+  {
+    "block": "s_a_b:lightsteelblockcolored_29",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:lightsteelblockcolored_31",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:lightsteelblockcolored_32",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:lightsteelblockcolored_33",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:lightsteelblockcoloredparade",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:hardsteelblockcolored_29",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:hardsteelblockcolored_31",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:hardsteelblockcolored_32",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:hardsteelblockcolored_33",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:hardsteelblockcoloredparade",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:steelvslabcolored_29",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:steelvslabcolored_31",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:steelvslabcolored_32",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:steelvslabcolored_33",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:steelvslabcoloredparade",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:lightsteelvslabcolored_29",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:lightsteelvslabcolored_31",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:lightsteelvslabcolored_32",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:lightsteelvslabcolored_33",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:lightsteelvslabcoloredparade",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:steelslabcolored_29",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:steelslabcolored_31",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:steelslabcolored_32",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:steelslabcolored_33",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:steelslabcoloredparade",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:lightsteelslabcolored_29",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:lightsteelslabcolored_31",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:lightsteelslabcolored_32",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:lightsteelslabcolored_33",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:lightsteelslabcoloredparade",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:steelstairscolored_29",
+    "mass": 882.0
+  },
+  {
+    "block": "s_a_b:steelstairscolored_31",
+    "mass": 882.0
+  },
+  {
+    "block": "s_a_b:steelstairscolored_32",
+    "mass": 882.0
+  },
+  {
+    "block": "s_a_b:steelstairscolored_33",
+    "mass": 882.0
+  },
+  {
+    "block": "s_a_b:steelstairscoloredparade",
+    "mass": 882.0
+  },
+  {
+    "block": "s_a_b:lightsteelstairscolored_29",
+    "mass": 294.0
+  },
+  {
+    "block": "s_a_b:lghtsteelstairscolored_31",
+    "mass": 294.0
+  },
+  {
+    "block": "s_a_b:lghtsteelstairscolored_32",
+    "mass": 294.0
+  },
+  {
+    "block": "s_a_b:lghtsteelstairscolored_33",
+    "mass": 294.0
+  },
+  {
+    "block": "s_a_b:lghtsteelstairscoloredparade",
+    "mass": 3234.0
+  },
+  {
+    "block": "s_a_b:doublesteelblockshipbottom",
+    "mass": 2744.0
+  },
+  {
+    "block": "s_a_b:steelblockshipbottom",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:hardsteelblockshipbottom",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:lightsteelblockshipbottom",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:doublesteelblock_4bo",
+    "mass": 2744.0
+  },
+  {
+    "block": "s_a_b:steelblock_4bo",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:hardsteelblock_4bo",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:lightsteelblock_4bo",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:doublesteelblockgelb",
+    "mass": 2744.0
+  },
+  {
+    "block": "s_a_b:steelblockgelb",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:hardsteelblockgelb",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:lightsteelblockgelb",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:doublesteelblockpanzergrau",
+    "mass": 2744.0
+  },
+  {
+    "block": "s_a_b:steelblockpanzergrau",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:hardsteelblockpanzergrau",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:lightsteelblockpanzergrau",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:doublesteelblockrotbraun",
+    "mass": 2744.0
+  },
+  {
+    "block": "s_a_b:steelblockrotbraun",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:hardsteelblockrotbraun",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:lightsteelblockrotbraun",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:steelslabshipbottom",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:steelvslabshipbottom",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:steelstairsshipbottom",
+    "mass": 882.0
+  },
+  {
+    "block": "s_a_b:lightsteelslabshipbottom",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:lightsteelvslabshipbottom",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:lightsteelstairsshipbottom",
+    "mass": 294.0
+  },
+  {
+    "block": "s_a_b:steelslab_4bo",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:steelvslab_4bo",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:steelstairs_4bo",
+    "mass": 882.0
+  },
+  {
+    "block": "s_a_b:lightsteelslab_4bo",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:lightsteelvslab_4bo",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:lightsteelstairs_4bo",
+    "mass": 294.0
+  },
+  {
+    "block": "s_a_b:steelslabgelb",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:steelvslabgelb",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:steelstairsgelb",
+    "mass": 882.0
+  },
+  {
+    "block": "s_a_b:lightsteelslabgelb",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:lightsteelvslabgelb",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:lightsteelstairsgelb",
+    "mass": 294.0
+  },
+  {
+    "block": "s_a_b:steelslabpanzergrau",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:steelvslabpanzergrau",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:steelstairspanzergrau",
+    "mass": 882.0
+  },
+  {
+    "block": "s_a_b:lightsteelslabpanzergrau",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:lightsteelvslabpanzergrau",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:lightsteelstairspanzergrau",
+    "mass": 294.0
+  },
+  {
+    "block": "s_a_b:steelslabrotbraun",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:steelvslabrotbraun",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:steelstairsrotbraun",
+    "mass": 882.0
+  },
+  {
+    "block": "s_a_b:lightsteelslabrotbraun",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:lightsteelvslabrotbraun",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:lightsteelstairsrotbraun",
+    "mass": 294.0
+  },
+  {
+    "block": "s_a_b:steelwl_29",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:steelwl_31",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:steelwl_32",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:steelwl_33",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:steelwlblack",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:steelwlgray",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:lightwl_29",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:lightwl_31",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:lightwl_32",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:lightwl_33",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:lightwlblack",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:lightwlgray",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:armorwl_29",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:armorwl_31",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:armorwl_32",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:armorwl_33",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:armorwlblack",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:armorwlgray",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:lightsteelblockcamoplains",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:lightsteelcamoforest",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:lightsteelcamosnow",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:lightsteelcamodesert",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:lightsteelcamomesa",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:lightsteelcamoswamp",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:lightsteelcamojungle",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:lightsteelcamotaiga",
+    "mass": 392.0
+  },
+  {
+    "block": "s_a_b:steelblockcamoplains",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:steelblockcamoforest",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:steelblockcamosnow",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:steelblockcamodesert",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:steelblockcamomesa",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:steelblockcamoswamp",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:steelblockcamojungle",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:steelblockcamotaiga",
+    "mass": 1176.0
+  },
+  {
+    "block": "s_a_b:doublesteelblockcamoplains",
+    "mass": 2744.0
+  },
+  {
+    "block": "s_a_b:doublesteelblockcamoforest",
+    "mass": 2744.0
+  },
+  {
+    "block": "s_a_b:doublesteelblockcamosnow",
+    "mass": 2744.0
+  },
+  {
+    "block": "s_a_b:doublesteelblockcamodesert",
+    "mass": 2744.0
+  },
+  {
+    "block": "s_a_b:doublesteelblockcamomesa",
+    "mass": 2744.0
+  },
+  {
+    "block": "s_a_b:doublesteelblockcamoswamp",
+    "mass": 2744.0
+  },
+  {
+    "block": "s_a_b:doublesteelblockcamojungle",
+    "mass": 2744.0
+  },
+  {
+    "block": "s_a_b:doublesteelblockcamotaiga",
+    "mass": 2744.0
+  },
+  {
+    "block": "s_a_b:hardsteelblockcamoplains",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:hardsteelblockcamoforest",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:hardsteelblockcamosnow",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:hardsteelblockcamodesert",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:hardsteelblockcamomesa",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:hardsteelblockcamoswamp",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:hardsteelblockcamojungle",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:hardsteelblockcamotaiga",
+    "mass": 4312.0
+  },
+  {
+    "block": "s_a_b:iightsteelcamoplainsslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:iightsteelcamoplainsvslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:iightsteelcamoplainsstairs",
+    "mass": 294.0
+  },
+  {
+    "block": "s_a_b:iightsteelcamoforestslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:iightsteelcamoforestvslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:iightsteelcamoforeststairs",
+    "mass": 294.0
+  },
+  {
+    "block": "s_a_b:iightsteelcamosnowslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:iightsteelcamosnowvslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:iightsteelcamosnowstairs",
+    "mass": 294.0
+  },
+  {
+    "block": "s_a_b:iightsteelcamodesertslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:iightsteelcamodesertvslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:iightsteelcamodesertstairs",
+    "mass": 294.0
+  },
+  {
+    "block": "s_a_b:iightsteelcamomesaslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:iightsteelcamomesavslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:iightsteelcamomesastairs",
+    "mass": 294.0
+  },
+  {
+    "block": "s_a_b:iightsteelcamoswampslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:iightsteelcamoswampvslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:iightsteelcamoswampstairs",
+    "mass": 294.0
+  },
+  {
+    "block": "s_a_b:iightsteelcamojungleslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:iightsteelcamojunglevslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:iightsteelcamojunglestairs",
+    "mass": 294.0
+  },
+  {
+    "block": "s_a_b:iightsteelcamotaigaslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:iightsteelcamotaigavslab",
+    "mass": 196.0
+  },
+  {
+    "block": "s_a_b:iightsteelcamotaigastairs",
+    "mass": 294.0
+  },
+  {
+    "block": "s_a_b:steelcamoplainsslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:steelcamoplainsvslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:steelcamoplainsstairs",
+    "mass": 882.0
+  },
+  {
+    "block": "s_a_b:steelcamoforestslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:steelcamoforestvslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:steelcamoforeststairs",
+    "mass": 882.0
+  },
+  {
+    "block": "s_a_b:steelcamosnowslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:steelcamosnowvslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:steelcamosnowstairs",
+    "mass": 882.0
+  },
+  {
+    "block": "s_a_b:steelcamodesertslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:steelcamodesertvslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:steelcamodesertstairs",
+    "mass": 882.0
+  },
+  {
+    "block": "s_a_b:steelcamomesaslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:steelcamomesavslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:steelcamomesastairs",
+    "mass": 882.0
+  },
+  {
+    "block": "s_a_b:steelcamoswampslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:steelcamoswampvslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:steelcamoswampstairs",
+    "mass": 882.0
+  },
+  {
+    "block": "s_a_b:steelcamojungleslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:steelcamojunglevslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:steelcamojunglestairs",
+    "mass": 882.0
+  },
+  {
+    "block": "s_a_b:steelcamotaigaslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:steelcamotaigavslab",
+    "mass": 588.0
+  },
+  {
+    "block": "s_a_b:steelcamotaigastairs",
+    "mass": 882.0
+  }
+]

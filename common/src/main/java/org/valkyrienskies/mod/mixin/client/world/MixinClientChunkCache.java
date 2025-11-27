@@ -39,7 +39,7 @@ import org.valkyrienskies.mod.mixinducks.mod_compat.vanilla_renderer.LevelRender
 public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
     @Shadow
     @Final
-    ClientLevel level;
+    public ClientLevel level;
 
     public LongObjectMap<LevelChunk> vs$getShipChunks() {
         return vs$shipChunks;
@@ -52,7 +52,7 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
     private void preLoadChunkFromPacket(final int x, final int z,
         final FriendlyByteBuf buf,
         final CompoundTag tag,
-        final Consumer<BlockEntityTagOutput> consumer, 
+        final Consumer<BlockEntityTagOutput> consumer,
         final CallbackInfoReturnable<LevelChunk> cir
     ) {
         if (VSGameUtilsKt.isChunkInShipyard(level, x, z)) {
@@ -73,7 +73,13 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
             }
 
             this.level.onChunkLoaded(pos);
-            SodiumCompat.onChunkAdded(this.level, x, z);
+            if (ValkyrienCommonMixinConfigPlugin.getVSRenderer() == VSRenderer.SODIUM) {
+                // getVSRenderer() only returns SODIUM if the mod is installed.
+                // Methods of SodiumCompat check if Sodium is present but calling them
+                // is not safe anyway as the class references Sodium classes so the game
+                // crashes with NoClassDefFoundError.
+                SodiumCompat.onChunkAdded(this.level, x, z);
+            }
             cir.setReturnValue(worldChunk);
         }
     }
@@ -88,6 +94,20 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
         }
     }
 
+    @Inject(method = "drop", at = @At("HEAD"), cancellable = true)
+    public void preUnload(final int chunkX, final int chunkZ, final CallbackInfo ci) {
+        if (VSGameUtilsKt.isChunkInShipyard(level, chunkX, chunkZ)) {
+            vs$shipChunks.remove(ChunkPos.asLong(chunkX, chunkZ));
+            if (ValkyrienCommonMixinConfigPlugin.getVSRenderer() != VSRenderer.SODIUM) {
+                ((IVSViewAreaMethods) ((LevelRendererAccessor) ((ClientLevelAccessor) level).getLevelRenderer()).getViewArea())
+                    .unloadChunk(chunkX, chunkZ);
+            } else {
+                SodiumCompat.onChunkRemoved(this.level, chunkX, chunkZ);
+            }
+            ci.cancel();
+        }
+    }
+
     @Unique
     private void removeShipChunk(final int chunkX, final int chunkZ) {
         if (vs$shipChunks.remove(ChunkPos.asLong(chunkX, chunkZ)) == null) {
@@ -96,8 +116,9 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
         if (ValkyrienCommonMixinConfigPlugin.getVSRenderer() != VSRenderer.SODIUM) {
             ((IVSViewAreaMethods) ((LevelRendererAccessor) ((ClientLevelAccessor) level).getLevelRenderer()).getViewArea())
                 .unloadChunk(chunkX, chunkZ);
+        } else {
+            SodiumCompat.onChunkRemoved(this.level, chunkX, chunkZ);
         }
-        SodiumCompat.onChunkRemoved(this.level, chunkX, chunkZ);
     }
 
     @Inject(

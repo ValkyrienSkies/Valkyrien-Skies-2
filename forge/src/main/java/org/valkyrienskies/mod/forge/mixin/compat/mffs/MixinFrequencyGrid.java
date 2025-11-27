@@ -32,12 +32,12 @@ public abstract class MixinFrequencyGrid {
         Vec3i origin = instance;
         Vec3i target = vec3i;
 
-        if (VSGameUtilsKt.getShipObjectManagingPos(level, instance) instanceof final LoadedServerShip ship) {
+        if (VSGameUtilsKt.getLoadedShipManagingPos(level, instance) instanceof final LoadedServerShip ship) {
             final Vec3 temp = VectorConversionsMCKt.toMinecraft(ship.getShipToWorld().transformPosition(VectorConversionsMCKt.toJOMLD(origin)));
             origin = new Vec3i((int) temp.x, (int) temp.y, (int) temp.z);
         }
 
-        if (VSGameUtilsKt.getShipObjectManagingPos(level, vec3i) instanceof final LoadedServerShip ship) {
+        if (VSGameUtilsKt.getLoadedShipManagingPos(level, vec3i) instanceof final LoadedServerShip ship) {
             final Vec3 temp = VectorConversionsMCKt.toMinecraft(ship.getShipToWorld().transformPosition(VectorConversionsMCKt.toJOMLD(target)));
             target = new Vec3i((int) temp.x, (int) temp.y, (int) temp.z);
         }

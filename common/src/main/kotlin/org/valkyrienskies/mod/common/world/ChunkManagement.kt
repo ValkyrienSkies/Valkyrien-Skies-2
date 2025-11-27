@@ -4,9 +4,9 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.level.ChunkPos
 import org.apache.commons.lang3.mutable.MutableObject
-import org.valkyrienskies.core.apigame.world.ServerShipWorldCore
-import org.valkyrienskies.core.apigame.world.chunks.ChunkUnwatchTask
-import org.valkyrienskies.core.apigame.world.chunks.ChunkWatchTask
+import org.valkyrienskies.core.internal.world.VsiServerShipWorld
+import org.valkyrienskies.core.internal.world.chunks.VsiChunkUnwatchTask
+import org.valkyrienskies.core.internal.world.chunks.VsiChunkWatchTask
 import org.valkyrienskies.mod.common.executeIf
 import org.valkyrienskies.mod.common.getLevelFromDimensionId
 import org.valkyrienskies.mod.common.isTickingChunk
@@ -17,12 +17,12 @@ import org.valkyrienskies.mod.util.logger
 
 object ChunkManagement {
     @JvmStatic
-    fun tickChunkLoading(shipWorld: ServerShipWorldCore, server: MinecraftServer) {
+    fun tickChunkLoading(shipWorld: VsiServerShipWorld, server: MinecraftServer) {
         val (chunkWatchTasks, chunkUnwatchTasks) = shipWorld.getChunkWatchTasks()
 
         // for now, just do all the watch tasks
 
-        chunkWatchTasks.forEach { chunkWatchTask: ChunkWatchTask ->
+        chunkWatchTasks.forEach { chunkWatchTask: VsiChunkWatchTask ->
             logger.debug(
                 "Watch task for dimension " + chunkWatchTask.dimensionId + ": " +
                     chunkWatchTask.chunkX + " : " + chunkWatchTask.chunkZ
@@ -48,7 +48,7 @@ object ChunkManagement {
             }
         }
 
-        chunkUnwatchTasks.forEach { chunkUnwatchTask: ChunkUnwatchTask ->
+        chunkUnwatchTasks.forEach { chunkUnwatchTask: VsiChunkUnwatchTask ->
             logger.debug(
                 "Unwatch task for dimension " + chunkUnwatchTask.dimensionId + ": " +
                     chunkUnwatchTask.chunkX + " : " + chunkUnwatchTask.chunkZ

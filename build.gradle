@@ -11,7 +11,7 @@ plugins {
     id "dev.architectury.loom" version "1.3.355" apply false
     id 'io.github.juuxel.loom-vineflower' version '1.11.0' apply false
     // Kotlin
-    id "org.jetbrains.kotlin.jvm" version "1.9.10" apply false
+    id "org.jetbrains.kotlin.jvm" version "2.0.0" apply false
     id 'com.matthewprenger.cursegradle' version '1.4.0' apply false
     id "com.modrinth.minotaur" version "2.4.3" apply false
 }
@@ -42,13 +42,13 @@ tasks.register("updateVsCore") {
 
     try {
         def vsCoreBuild = gradle.includedBuild("vs-core")
-        versionFile = new File(vsCoreBuild.projectDir, "api-game/build/version.txt")
+        versionFile = new File(vsCoreBuild.projectDir, "internal/build/version.txt")
 
         inputs.file(versionFile)
         outputs.file(gradleProperties)
-        dependsOn(vsCoreBuild.task(":api-game:writeVersion"))
+        dependsOn(vsCoreBuild.task(":internal:writeVersion"))
 
-        [':impl', ':api', ':api-game', ':util'].each {
+        [':impl', ':api', ':internal', ':util'].each {
             dependsOn(vsCoreBuild.task("${it}:publishToMavenLocal"))
         }
     } catch (UnknownDomainObjectException ignore) {}
@@ -81,7 +81,7 @@ subprojects {
                 }
             }
 
-            [':impl', ':api', ':api-game'].each {
+            [':impl', ':api', ':internal'].each {
                 compileJava.dependsOn(vsCoreBuild.task("${it}:publishToMavenLocal"))
             }
         } catch (UnknownDomainObjectException ignore) {}
@@ -94,6 +94,9 @@ subprojects {
             }
         }
         if (!project.block_external_repositories) {
+            maven {
+                url = "https://maven.realrobotix.me/master/"
+            }
             mavenLocal()
             maven {
                 name = "ParchmentMC"
@@ -109,6 +112,7 @@ subprojects {
                 name = 'tterrag maven'
                 url = 'https://maven.tterrag.com/'
             }
+            maven { url = "https://modmaven.dev/" } // Twilight Forest
             maven { url = "https://api.modrinth.com/maven" } // LazyDFU, Suggestion Tweaker, Create Big Cannons
             maven { url = "https://maven.shedaniel.me/" } // Cloth Config, REI
             maven { url "https://maven.architectury.dev/" }
@@ -119,9 +123,8 @@ subprojects {
             // mavens for Create Fabric and dependencies
             maven { url = "https://mvn.devos.one/releases" } // Porting Lib releases
             maven { url = "https://mvn.devos.one/snapshots/" } // Create and several dependencies
+            maven { url = "https://maven.cafeteria.dev/releases" } // Fake Player API
             maven { url = "https://maven.jamieswhiteshirt.com/libs-release" } // Reach Entity Attributes
-            maven { url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven" } // Forge Config API Port
-
             maven { // Fabric ASM for Porting Lib
                 url = "https://jitpack.io/"
                 content { includeGroupAndSubgroups("com.github") }
@@ -154,6 +157,12 @@ subprojects {
                 }
             }
         }
+
+        //Mixin squared
+        maven { url = "https://maven.bawnorton.com/releases" }
+
+        // Mirror
+        maven { url = "https://maven.enjarai.dev/mirrors" }
     }
 
     // Remove automatically added repos
@@ -172,6 +181,12 @@ subprojects {
         mappings loom.officialMojangMappings()
 
         compileOnly("com.google.code.findbugs:jsr305:3.0.2")
+    }
+
+    kotlin {
+        compilerOptions {
+            optIn.add("org.valkyrienskies.core.api.VsBeta")
+        }
     }
 }
 

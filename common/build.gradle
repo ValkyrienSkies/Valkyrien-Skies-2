@@ -1,7 +1,7 @@
 
 dependencies {
-
     implementation(annotationProcessor("io.github.llamalad7:mixinextras-common:0.4.1"))
+    implementation(annotationProcessor("com.github.bawnorton.mixinsquared:mixinsquared-fabric:0.3.7-beta.1"))
 
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
     // We depend on fabric loader here to use the fabric @Environment annotations
@@ -13,12 +13,15 @@ dependencies {
     modCompileOnly("maven.modrinth:sodium:${sodium_version}")
 
     // vs-core
-    implementation("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
+    runtimeOnly("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
         exclude module: "netty-buffer"
         exclude module: "fastutil"
     }
-
+    implementation("org.valkyrienskies.core:api:${rootProject.vs_core_version}")
+    implementation("org.valkyrienskies.core:internal:${rootProject.vs_core_version}")
     implementation("org.valkyrienskies.core:util:${rootProject.vs_core_version}")
+
+    implementation("com.google.guava:guava:31.1-jre")
 
     // FTB Stuffs
     //modCompileOnly("dev.ftb.mods:ftb-chunks-forge:2001.3.6") { transitive = false }
@@ -37,12 +40,37 @@ dependencies {
 
     // Common create compat,
     // We just use a version from a platform and hope the classes exist on both versions and mixins apply correctly
-    modCompileOnly("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}")
+    // EMF compat
+    //todo: fix
+    modCompileOnly("curse.maven:entity-model-features-844662:5696901")
+    modCompileOnly("curse.maven:entity-texture-features-fabric-568563:5697084")
+
+    // Weather2 1.20.1
+    modCompileOnly("curse.maven:weather-storms-tornadoes-237746:5244118")
+
+    //Common create compat,
+    //We just use a version from a platform and hope the classes exist on both versions and mixins apply correctly
+    modCompileOnly("com.simibubi.create:create-fabric:${create_fabric_version}")
         { exclude group: 'com.github.AlphaMode', module: 'fakeconfigtoml' }
     modCompileOnly("net.fabricmc.fabric-api:fabric-api:${fabric_api_version}")
     modCompileOnly("curse.maven:vanillin-965702:6446557")
 
+    modCompileOnly("maven.modrinth:create-utilities:${create_utilities_version}")
+    modImplementation("teamreborn:energy:${energy_version}")
+    // modCompileOnly("io.github.fabricators_of_create:Porting-Lib:${port_lib_version}+${minecraft_version}")
+
+    //Very many players
+    modCompileOnly("curse.maven:vmp-fabric-552542:4754074")
+
+    //Bluemap fabric 1.20.1
+    modCompileOnly("curse.maven:bluemap-406463:5555756")
+
+    modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:imm_ptl_core:${immptl_version}")
+    modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:q_misc_util:${immptl_version}")
+    modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:build:${immptl_version}")
     modCompileOnly("com.rbasamoyai:createbigcannons:${createbigcannons_version}+mc.${minecraft_version}-fabric") { transitive = false }
+    modCompileOnly("com.rbasamoyai:createbigcannons:${createbigcannons_version}+mc.${minecraft_version}-forge") { transitive = false }
+    modCompileOnly("com.rbasamoyai:ritchiesprojectilelib:2.1.0+mc.${minecraft_version}-forge")
 }
 
 architectury {

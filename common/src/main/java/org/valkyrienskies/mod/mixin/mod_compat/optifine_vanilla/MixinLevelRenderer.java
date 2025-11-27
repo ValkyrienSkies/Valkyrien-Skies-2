@@ -48,7 +48,10 @@ public abstract class MixinLevelRenderer {
         )
     )
     private void afterRefresh(final CallbackInfo ci) {
-        ((ClientChunkCacheDuck) this.level.getChunkSource()).vs$getShipChunks().forEach((pos, chunk) -> {
+        // This can happen when immersive portals is installed
+        if (!(this.level.getChunkSource() instanceof final ClientChunkCacheDuck chunks)) return;
+
+        chunks.vs$getShipChunks().forEach((pos, chunk) -> {
             for (int y = level.getMinSection(); y < level.getMaxSection(); y++) {
                 viewArea.setDirty(ChunkPos.getX(pos), y, ChunkPos.getZ(pos), false);
             }
@@ -70,7 +73,7 @@ public abstract class MixinLevelRenderer {
         final Matrix4f methodMatrix4f) {
 
         final BlockPos blockEntityPos = blockEntity.getBlockPos();
-        final ClientShip shipObject = VSGameUtilsKt.getShipObjectManagingPos(level, blockEntityPos);
+        final ClientShip shipObject = VSGameUtilsKt.getLoadedShipManagingPos(level, blockEntityPos);
         if (shipObject != null) {
             final Vec3 cam = methodCamera.getPosition();
             matrix.popPose();

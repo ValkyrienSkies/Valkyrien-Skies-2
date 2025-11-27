@@ -51,7 +51,7 @@ public abstract class MixinDeployTool extends SchematicToolBase {
         double x = Mth.lerp(pt, lastChasingSelectedPos.x, chasingSelectedPos.x);
         double y = Mth.lerp(pt, lastChasingSelectedPos.y, chasingSelectedPos.y);
         double z = Mth.lerp(pt, lastChasingSelectedPos.z, chasingSelectedPos.z);
-        Ship ship = VSGameUtilsKt.getShipObjectManagingPos(Minecraft.getInstance().level, x, y, z);
+        Ship ship = VSGameUtilsKt.getLoadedShipManagingPos(Minecraft.getInstance().level, x, y, z);
 
         AABB bounds = schematicHandler.getBounds();
         Vec3 center = bounds.getCenter();

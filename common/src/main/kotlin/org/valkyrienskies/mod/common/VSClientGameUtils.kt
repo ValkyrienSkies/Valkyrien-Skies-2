@@ -18,7 +18,7 @@ object VSClientGameUtils {
 
     @JvmStatic
     fun transformRenderIfInShipyard(poseStack: PoseStack, offsetX: Double, offsetY: Double, offsetZ: Double) {
-        val ship = Minecraft.getInstance().level?.getShipObjectManagingPos(offsetX, offsetY, offsetZ)
+        val ship = Minecraft.getInstance().level?.getLoadedShipManagingPos(offsetX, offsetY, offsetZ)
 
         if (ship != null) {
             val transform = ship.renderTransform
@@ -34,7 +34,7 @@ object VSClientGameUtils {
 
     @JvmStatic
     fun getClientShip(offsetX: Double, offsetY: Double, offsetZ: Double): ClientShip? {
-        return Minecraft.getInstance().level?.getShipObjectManagingPos(offsetX, offsetY, offsetZ)
+        return Minecraft.getInstance().level?.getLoadedShipManagingPos(offsetX, offsetY, offsetZ)
     }
 
     /**

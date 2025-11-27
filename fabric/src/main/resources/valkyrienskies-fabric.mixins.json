@@ -2,12 +2,14 @@
   "required": true,
   "package": "org.valkyrienskies.mod.fabric.mixin",
   "compatibilityLevel": "JAVA_8",
+  "plugin": "org.valkyrienskies.mod.fabric.mixin.ValkyrienSkiesFabricMixinPlugin",
   "mixins": [
     "compat.create.MixinBlockBreakingKineticTileEntity",
     "compat.create.MixinControlledContraptionEntity",
-    "compat.sodium.MixinRenderSectionManager",
+    "compat.very_many_players.MixinChunkMapVMPFabric",
     "entity.MixinContainerEntity",
     "feature.explosions.ClipContextMixin",
+    "feature.shipyard_entities.MixinPersistentEntitySectionManager",
     "feature.water_in_ships_entity.MixinEntity",
     "server.network.MixinServerGamePacketListenerImpl",
     "server.network.MixinServerPlayerGameMode",
@@ -20,6 +22,7 @@
     "compat.create.client.MixinContraptionHandlerClient",
     "compat.create.client.MixinCullingBlockEntityIterator",
     "compat.create.client.MixinSuperGlueSelectionHandler",
+    "compat.sodium.MixinSodiumWorldRenderer",
     "feature.duplicate_keybindings.KeyMappingAccessor",
     "feature.duplicate_keybindings.MixinKeyMapping"
   ],

@@ -1,302 +1,302 @@
 [
   {
     "block": "minecraft:oak_wood",
-    "mass": 900.0,
+    "mass": 400.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:oak_log",
-    "mass": 900.0,
+    "mass": 400.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:stripped_oak_wood",
-    "mass": 900.0,
+    "mass": 400.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:stripped_oak_log",
-    "mass": 900.0,
+    "mass": 400.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:oak_planks",
-    "mass": 600.0,
+    "mass": 100.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:oak_slab",
-    "mass": 300.0,
+    "mass": 50.0,
     "friction": 0.5
   },
   {
-    "block": "minecraft:oak_slab",
-    "mass": 450.0,
+    "block": "minecraft:oak_stairs",
+    "mass": 75.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:spruce_wood",
-    "mass": 780.0,
+    "mass": 400.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:spruce_log",
-    "mass": 780.0,
+    "mass": 400.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:stripped_spruce_wood",
-    "mass": 780.0,
+    "mass": 400.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:stripped_spruce_log",
-    "mass": 780.0,
+    "mass": 400.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:spruce_planks",
-    "mass": 480.0,
+    "mass": 100.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:spruce_slab",
-    "mass": 240.0,
+    "mass": 50.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:spruce_stairs",
-    "mass": 360.0,
+    "mass": 75.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:birch_wood",
-    "mass": 770.0,
+    "mass": 400.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:birch_log",
-    "mass": 770.0,
+    "mass": 400.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:stripped_birch_wood",
-    "mass": 770.0,
+    "mass": 400.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:stripped_birch_log",
-    "mass": 770.0,
+    "mass": 400.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:birch_planks",
-    "mass": 510.0,
+    "mass": 100.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:birch_slab",
-    "mass": 255.0,
+    "mass": 50.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:birch_stairs",
-    "mass": 380.0,
+    "mass": 75.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:jungle_wood",
-    "mass": 850.0,
+    "mass": 400.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:jungle_log",
-    "mass": 850.0,
+    "mass": 400.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:stripped_jungle_wood",
-    "mass": 850.0,
+    "mass": 400.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:stripped_jungle_log",
-    "mass": 850.0,
+    "mass": 400.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:jungle_planks",
-    "mass": 500.0,
+    "mass": 100.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:jungle_slab",
-    "mass": 250.0,
+    "mass": 50.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:jungle_stairs",
-    "mass": 375.0,
+    "mass": 75.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:acacia_wood",
-    "mass": 770.0,
+    "mass": 400.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:acacia_log",
-    "mass": 770.0,
+    "mass": 400.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:stripped_acacia_wood",
-    "mass": 770.0,
+    "mass": 400.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:stripped_acacia_log",
-    "mass": 770.0,
+    "mass": 400.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:acacia_planks",
-    "mass": 550.0,
+    "mass": 100.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:acacia_slab",
-    "mass": 275.0,
+    "mass": 50.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:acacia_stairs",
-    "mass": 410.0,
+    "mass": 75.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:dark_oak_wood",
-    "mass": 800.0,
+    "mass": 400.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:dark_oak_log",
-    "mass": 800.0,
+    "mass": 400.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:stripped_dark_oak_wood",
-    "mass": 800.0,
+    "mass": 400.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:stripped_dark_oak_log",
-    "mass": 800.0,
+    "mass": 400.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:dark_oak_planks",
-    "mass": 650.0,
+    "mass": 100.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:dark_oak_slab",
-    "mass": 325.0,
+    "mass": 50.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:dark_oak_stairs",
-    "mass": 485.0,
+    "mass": 75.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:warped_hyphae",
-    "mass": 980.0,
+    "mass": 400.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:warped_stem",
-    "mass": 980.0,
+    "mass": 400.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:stripped_warped_hyphae",
-    "mass": 980.0,
+    "mass": 400.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:stripped_warped_stem",
-    "mass": 980.0,
+    "mass": 400.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:warped_planks",
-    "mass": 910.0,
+    "mass": 100.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:warped_slab",
-    "mass": 455.0,
+    "mass": 50.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:warped_stairs",
-    "mass": 680.0,
+    "mass": 75.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:crimson_hyphae",
-    "mass": 980.0,
+    "mass": 400.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:crimson_stem",
-    "mass": 980.0,
+    "mass": 400.0,
     "friction": 0.6
   },
   {
     "block": "minecraft:stripped_crimson_hyphae",
-    "mass": 980.0,
+    "mass": 400.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:stripped_crimson_stem",
-    "mass": 980.0,
+    "mass": 400.0,
     "friction": 0.4
   },
   {
     "block": "minecraft:crimson_planks",
-    "mass": 910.0,
+    "mass": 100.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:crimson_slab",
-    "mass": 455.0,
+    "mass": 50.0,
     "friction": 0.5
   },
   {
     "block": "minecraft:crimson_stairs",
-    "mass": 680.0,
+    "mass": 750.0,
     "friction": 0.5
   },
   {
     "tag": "minecraft:logs",
-    "mass": 800.0,
+    "mass": 400.0,
     "friction": 0.6
   },
   {
     "tag": "minecraft:planks",
-    "mass": 700.0,
+    "mass": 100.0,
     "friction": 0.5
   },
   {
     "tag": "minecraft:wooden_stairs",
-    "mass": 525.0,
+    "mass": 75.0,
     "friction": 0.5
   },
   {
     "tag": "minecraft:wooden_slabs",
-    "mass": 350.0,
+    "mass": 50.0,
     "friction": 0.5
   }
 ]

@@ -40,3 +40,6 @@ mandatory = false
 versionRange = "[1.115.0,)"
 ordering = "NONE"
 side = "BOTH"
+
+["lithium:options"]
+mixin.ai.poi = false

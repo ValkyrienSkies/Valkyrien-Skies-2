@@ -1,6 +1,5 @@
 package org.valkyrienskies.mod.common.command
 
-import com.google.gson.JsonObject
 import com.mojang.brigadier.StringReader
 import com.mojang.brigadier.arguments.ArgumentType
 import com.mojang.brigadier.context.CommandContext
@@ -8,25 +7,31 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException
 import com.mojang.brigadier.suggestion.Suggestions
 import com.mojang.brigadier.suggestion.SuggestionsBuilder
 import net.minecraft.commands.CommandRuntimeException
-import net.minecraft.network.FriendlyByteBuf
+import net.minecraft.commands.CommandSourceStack
+import net.minecraft.commands.SharedSuggestionProvider
 import net.minecraft.network.chat.Component
-import net.minecraft.network.chat.Component.translatable
 import org.valkyrienskies.core.api.ships.Ship
-import org.valkyrienskies.mod.mixinducks.feature.command.VSCommandSource
+import org.valkyrienskies.mod.common.shipObjectWorld
 import java.util.concurrent.CompletableFuture
 
 class ShipArgument private constructor(val selectorOnly: Boolean) : ArgumentType<ShipSelector> {
     private val EXAMPLES = listOf("the-mogus", "@v", "@v[slug=the-mogus]")
 
+    /**
+     * In vanilla, the only classes [S] will be are impls of [SharedSuggestionProvider].
+     * Another mod might violate this, but hopefully null checks will handle it
+     */
     override fun <S : Any> listSuggestions(
         context: CommandContext<S>, builder: SuggestionsBuilder
-    ): CompletableFuture<Suggestions> = if (context.source is VSCommandSource) {
+    ): CompletableFuture<Suggestions> {
         val reader = StringReader(builder.input)
         reader.cursor = builder.start
 
         val startsWithAt = reader.canRead() && reader.peek() == '@'
 
-        val parser = ShipArgumentParser(context.source as VSCommandSource, selectorOnly)
+        // If context.source isn't an impl of SharedSuggestionProvider,
+        // and is null, the parser will just not suggest anything
+        val parser = ShipArgumentParser(context.source as? SharedSuggestionProvider, selectorOnly)
 
         try {
             parser.parse(reader, true)
@@ -42,27 +47,33 @@ class ShipArgument private constructor(val selectorOnly: Boolean) : ArgumentType
         val nBuilder = builder.createOffset(reader.cursor)
         parser.suggestionProvider(nBuilder)
 
-        nBuilder.buildFuture()
-    } else super.listSuggestions(context, builder)
+        return nBuilder.buildFuture()
+    }
 
     override fun parse(reader: StringReader): ShipSelector =
         ShipArgumentParser(null, selectorOnly).parse(reader, false)
 
     companion object {
 
+        @JvmStatic
         fun selectorOnly(): ShipArgument = ShipArgument(true)
+
+        @JvmStatic
         fun ships(): ShipArgument = ShipArgument(false)
 
         /**
          * @return Can return either a loaded ship or an unloaded ship
          */
-        fun <S : VSCommandSource> getShips(context: CommandContext<S>, argName: String): Set<Ship> {
+        @JvmStatic
+        fun getShips(context: CommandContext<CommandSourceStack>, argName: String): Set<Ship> {
             val selector = context.getArgument(argName, ShipSelector::class.java)
 
-            val fromLoadedShips = selector.select(context.source.shipWorld.loadedShips)
+            val shipWorld = context.source.shipWorld
+
+            val fromLoadedShips = selector.select(shipWorld.loadedShips)
             val fromLoadedShipIds = fromLoadedShips.map { it.id }.toSet()
 
-            val fromUnloadedShips = selector.select(context.source.shipWorld.allShips)
+            val fromUnloadedShips = selector.select(shipWorld.allShips)
 
             // Return loaded ships and unloaded ships, do not return a loaded ship twice
             return fromLoadedShips + (fromUnloadedShips.filter { !fromLoadedShipIds.contains(it.id) })
@@ -71,8 +82,10 @@ class ShipArgument private constructor(val selectorOnly: Boolean) : ArgumentType
         /**
          * @return Can return either a loaded ship or an unloaded ship
          */
-        fun <S : VSCommandSource> getShip(context: CommandContext<S>, argName: String): Ship {
+        @JvmStatic
+        fun getShip(context: CommandContext<CommandSourceStack>, argName: String): Ship {
             val selector = context.getArgument(argName, ShipSelector::class.java)
+
 
             // First attempt to return a loaded ship
             val loadedShips = selector.select(context.source.shipWorld.loadedShips)

@@ -6,8 +6,8 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
 import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerPlayer
-import org.valkyrienskies.core.apigame.hooks.CoreHooksIn
-import org.valkyrienskies.core.apigame.world.IPlayer
+import org.valkyrienskies.core.internal.hooks.VsiCoreHooksIn
+import org.valkyrienskies.core.internal.world.VsiPlayer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.playerWrapper
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
@@ -20,13 +20,13 @@ class VSFabricNetworking(
 ) {
     private val VS_PACKET_ID = ResourceLocation(ValkyrienSkiesMod.MOD_ID, "vs_packet")
 
-    private fun registerClientNetworking(hooks: CoreHooksIn) {
+    private fun registerClientNetworking(hooks: VsiCoreHooksIn) {
         ClientPlayNetworking.registerGlobalReceiver(VS_PACKET_ID) { _, _, buf, _ ->
             hooks.onReceiveClient(buf)
         }
     }
 
-    fun register(hooks: CoreHooksIn) {
+    fun register(hooks: VsiCoreHooksIn) {
         if (isClient) {
             registerClientNetworking(hooks)
         }
@@ -36,7 +36,7 @@ class VSFabricNetworking(
         }
     }
 
-    fun sendToClient(data: ByteBuf, player: IPlayer) {
+    fun sendToClient(data: ByteBuf, player: VsiPlayer) {
         val serverPlayer = (player as MinecraftPlayer).player as ServerPlayer
         ServerPlayNetworking.send(serverPlayer, VS_PACKET_ID, FriendlyByteBuf(data))
     }

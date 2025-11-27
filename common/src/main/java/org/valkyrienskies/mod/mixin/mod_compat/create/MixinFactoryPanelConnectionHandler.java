@@ -19,14 +19,14 @@ public class MixinFactoryPanelConnectionHandler {
 
     @WrapOperation(method = "clientTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/core/BlockPos;closerThan(Lnet/minecraft/core/Vec3i;D)Z"))
     private static boolean valkyrien_logistics$stupidDistanceCheck(BlockPos instance, Vec3i vec3i, double v, Operation<Boolean> original, @Local Minecraft mc) {
-        ClientShip ship = VSGameUtilsKt.getShipObjectManagingPos(mc.level, instance);
+        ClientShip ship = VSGameUtilsKt.getLoadedShipManagingPos(mc.level, instance);
 
         Vector3d jomlInstance = VectorConversionsMCKt.toJOML(instance.getCenter());
 
         if (ship != null)
             ship.getTransform().getShipToWorld().transformPosition(jomlInstance);
 
-        ship = VSGameUtilsKt.getShipObjectManagingPos(mc.level, vec3i);
+        ship = VSGameUtilsKt.getLoadedShipManagingPos(mc.level, vec3i);
         Vector3d jomlVec3i = VectorConversionsMCKt.toJOMLD(vec3i);
         if (ship != null)
             ship.getTransform().getShipToWorld().transformPosition(jomlVec3i);

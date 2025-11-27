@@ -24,8 +24,8 @@ public class MixinSchematicannonBlockEntity {
     private BlockPos redirectGetBlockPos(final SchematicPrinter instance) {
         SchematicannonBlockEntity thisBE = SchematicannonBlockEntity.class.cast(this);
         final BlockPos original = instance.getAnchor();
-        final Ship thisShip = VSGameUtilsKt.getShipObjectManagingPos(thisBE.getLevel(), thisBE.getBlockPos());
-        final Ship targetShip = VSGameUtilsKt.getShipObjectManagingPos(thisBE.getLevel(), original);
+        final Ship thisShip = VSGameUtilsKt.getLoadedShipManagingPos(thisBE.getLevel(), thisBE.getBlockPos());
+        final Ship targetShip = VSGameUtilsKt.getLoadedShipManagingPos(thisBE.getLevel(), original);
 
         // If we're on the same ship as where we're placing, don't change behaviour
         if (thisShip == targetShip) {

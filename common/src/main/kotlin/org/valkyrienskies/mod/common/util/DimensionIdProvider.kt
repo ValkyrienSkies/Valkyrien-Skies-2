@@ -1,6 +1,6 @@
 package org.valkyrienskies.mod.common.util
 
-import org.valkyrienskies.core.apigame.world.properties.DimensionId
+import org.valkyrienskies.core.api.world.properties.DimensionId
 
 /**
  * Interface used to get the [DimensionId] from Minecraft [Level] objects

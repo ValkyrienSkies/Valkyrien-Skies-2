@@ -7,8 +7,8 @@ import net.minecraft.server.level.ServerPlayer
 import net.minecraftforge.network.NetworkRegistry
 import net.minecraftforge.network.PacketDistributor
 import net.minecraftforge.network.simple.SimpleChannel
-import org.valkyrienskies.core.apigame.hooks.CoreHooksIn
-import org.valkyrienskies.core.apigame.world.IPlayer
+import org.valkyrienskies.core.internal.hooks.VsiCoreHooksIn
+import org.valkyrienskies.core.internal.world.VsiPlayer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.mcPlayer
 import org.valkyrienskies.mod.common.playerWrapper
@@ -23,7 +23,7 @@ object VSForgeNetworking {
         protocolVersion::equals
     )
 
-    fun registerPacketHandlers(hooks: CoreHooksIn) {
+    fun registerPacketHandlers(hooks: VsiCoreHooksIn) {
         // This gibberish is brought to you by forge
         // seriously forge wtf
         @Suppress("INACCESSIBLE_TYPE")
@@ -45,7 +45,7 @@ object VSForgeNetworking {
         )
     }
 
-    fun sendToClient(data: ByteBuf, player: IPlayer) {
+    fun sendToClient(data: ByteBuf, player: VsiPlayer) {
         vsForgeChannel.send(
             PacketDistributor.PLAYER.with { player.mcPlayer as ServerPlayer },
             MessageVSPacket(data)

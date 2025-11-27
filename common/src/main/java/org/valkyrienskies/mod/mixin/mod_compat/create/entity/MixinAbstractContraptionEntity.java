@@ -11,7 +11,6 @@ import com.simibubi.create.content.contraptions.StructureTransform;
 import com.simibubi.create.content.contraptions.actors.harvester.HarvesterMovementBehaviour;
 import com.simibubi.create.content.contraptions.behaviour.MovementContext;
 import com.simibubi.create.content.kinetics.base.BlockBreakingMovementBehaviour;
-import dev.engine_room.flywheel.api.visualization.VisualizationManager;
 import net.createmod.catnip.math.VecHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.syncher.EntityDataAccessor;
@@ -95,7 +94,7 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
     @Nullable
     @Override
     public ShipMountedToData provideShipMountedToData(@NotNull final Entity passenger, @Nullable final Float partialTicks) {
-        final LoadedShip shipObjectEntityMountedTo = VSGameUtilsKt.getShipObjectManagingPos(passenger.level(), toJOML(this.position()));
+        final LoadedShip shipObjectEntityMountedTo = VSGameUtilsKt.getLoadedShipManagingPos(passenger.level(), toJOML(this.position()));
         if (shipObjectEntityMountedTo == null) return null;
 
         Vec3 transformedPos = this.getPassengerPosition(passenger, partialTicks == null ? 1 : partialTicks);
@@ -193,24 +192,6 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
 
     @Shadow
     protected abstract void onContraptionStalled();
-
-    /**
-     * If the contraption is moved between ship and world or other ship, the anchor should be moved too.
-     * As far as I know this will only happen to carriage contraptions which can be relocated on tracks, but I'll add it here just in case other contraption entities are moved to a ship.
-     */
-    @Inject(
-        method = "tick",
-        at = @At("HEAD")
-    )
-    private void updateAnchor(CallbackInfo ci) {
-        if (VSGameUtilsKt.getShipManagingPos(level(), contraption.anchor) != VSGameUtilsKt.getShipManaging(this)) {
-            this.contraption.anchor = this.blockPosition();
-            if(VisualizationManager.supportsVisualization(level())) {
-                VisualizationManager.get(level()).entities().queueRemove(this);
-                VisualizationManager.get(level()).entities().queueAdd(this);
-            }
-        }
-    }
 
     @Inject(method = "tickActors", at = @At("HEAD"), cancellable = true, remap = false)
     private void preTickActors(final CallbackInfo ci) {
@@ -320,7 +301,7 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
         final AbstractContraptionEntity thisAsAbstractContraptionEntity = AbstractContraptionEntity.class.cast(this);
         final Level level = thisAsAbstractContraptionEntity.level();
         if (wingGroupId != -1 && level instanceof final ServerLevel serverLevel) {
-            final LoadedServerShip ship = VSGameUtilsKt.getShipObjectManagingPos(serverLevel,
+            final LoadedServerShip ship = VSGameUtilsKt.getLoadedShipManagingPos(serverLevel,
                 VectorConversionsMCKt.toJOML(thisAsAbstractContraptionEntity.position()));
             if (ship != null) {
                 try {

@@ -85,7 +85,7 @@ public abstract class MixinPlayerList {
             return;
         }
 
-        final LoadedShip ship = VSGameUtilsKt.getShipObjectManagingPos(world, (int) x >> 4, (int) z >> 4);
+        final LoadedShip ship = VSGameUtilsKt.getLoadedShipManagingPos(world, (int) x >> 4, (int) z >> 4);
         if (ship == null) {
             return;
         }

@@ -2,18 +2,39 @@ package org.valkyrienskies.mod.common.hooks
 
 import net.minecraft.client.Minecraft
 import org.valkyrienskies.core.api.world.ShipWorld
-import org.valkyrienskies.core.apigame.hooks.CoreHooksOut
-import org.valkyrienskies.core.apigame.hooks.PlayState
-import org.valkyrienskies.core.apigame.hooks.PlayState.CLIENT_MULTIPLAYER
-import org.valkyrienskies.core.apigame.hooks.PlayState.CLIENT_SINGLEPLAYER
-import org.valkyrienskies.core.apigame.hooks.PlayState.CLIENT_TITLESCREEN
-import org.valkyrienskies.core.apigame.hooks.PlayState.SERVERSIDE
+import org.valkyrienskies.core.internal.hooks.VsiCoreHooksOut
+import org.valkyrienskies.core.internal.hooks.VsiPlayState
+import org.valkyrienskies.core.internal.hooks.VsiPlayState.CLIENT_MULTIPLAYER
+import org.valkyrienskies.core.internal.hooks.VsiPlayState.CLIENT_SINGLEPLAYER
+import org.valkyrienskies.core.internal.hooks.VsiPlayState.CLIENT_TITLESCREEN
+import org.valkyrienskies.core.internal.hooks.VsiPlayState.SERVERSIDE
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.shipObjectWorld
+import org.valkyrienskies.mod.common.vsCore
 
-abstract class CommonHooksImpl : CoreHooksOut {
+abstract class CommonHooksImpl : VsiCoreHooksOut {
 
-    override val playState: PlayState
+    override var enableBlockEdgeConnectivity: Boolean
+        get() = vsCore.hooks.enableBlockEdgeConnectivity
+        set(value) {}
+
+    override var enableBlockCornerConnectivity: Boolean
+        get() = vsCore.hooks.enableBlockCornerConnectivity
+        set(value) {}
+
+    override var enableConnectivity: Boolean
+        get() = vsCore.hooks.enableConnectivity
+        set(value) {}
+
+    override var enableWorldConnectivity: Boolean
+        get() = vsCore.hooks.enableWorldConnectivity
+        set(value) {}
+
+    override var enableSplitting: Boolean
+        get() = vsCore.hooks.enableSplitting
+        set(value) {}
+
+    override val playState: VsiPlayState
         get() {
             if (!isPhysicalClient) {
                 return SERVERSIDE

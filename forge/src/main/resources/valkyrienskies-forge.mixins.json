@@ -10,23 +10,34 @@
     "compat.create.client.MixinBlockEntityRenderHelper67",
     "compat.create.client.MixinSuperGlueSelectionHandler66",
     "compat.create.client.MixinSuperGlueSelectionHandler67",
+    "compat.create_stuff_additions.MixinGrapplinWhiskChainsLineProcedure",
+    "compat.create_stuff_additions.MixinGrapplinWhiskItemInHandTickProcedure",
+    "compat.create_stuff_additions.MixinGrapplinWhiskRightclickedProcedure",
     "compat.immersivengineering.MixinBlockEntityInventory",
+    "compat.integrateddynamics.MixinVoxelShapeComponents",
+    "compat.mekanism.MixinRadiationManager",
     "compat.mffs.MixinClientPacketHandler",
     "compat.mffs.MixinFrequencyGrid",
     "compat.modular_routers.MixinRouterMenu",
-    "compat.tfc.MixinTFCChunkGenerator",
+    "compat.terrafirmacraft.MixinTFCChunkGenerator",
     "compat.thermalexpansion.MixinTileCoFH",
+    "compat.twilightforest.ChunkGeneratorTwilightMixin",
     "entity.MixinContainerEntity",
     "feature.forge_interact.MixinIForge2Player",
     "feature.forge_interact.MixinIForgePlayer",
+    "feature.shipyard_entities.MixinPersistentEntitySectionManager",
     "feature.water_in_ships_entity.MixinEntity",
+    "very_many_players.MixinChunkMapVMPForge",
     "world.level.block.FireMixin"
   ],
   "client": [
     "client.render.MixinLevelRenderer",
     "compat.create.client.MixinChainConveyorBlockEntity",
     "compat.create.client.MixinContraptionHandlerClient",
-    "compat.sodium.MixinRenderSectionManager"
+    "compat.oc2r.MixinComputerRenderer",
+    "compat.oc2r.MixinMonitorRenderer",
+    "compat.oc2r.MixinProjectorDepthRenderer",
+    "compat.sodium.MixinSodiumWorldRenderer"
   ],
   "injectors": {
     "defaultRequire": 1

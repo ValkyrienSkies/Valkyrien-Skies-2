@@ -20,10 +20,12 @@ import org.joml.Vector2d
 import org.joml.Vector3d
 import org.joml.primitives.AABBd
 import org.joml.primitives.AABBdc
+import org.valkyrienskies.core.api.ships.ClientShip
 import org.joml.primitives.LineSegmentf
 import org.valkyrienskies.core.api.ships.properties.ShipId
 import org.valkyrienskies.core.game.ships.ShipObjectClient
 import org.valkyrienskies.core.util.expand
+import org.valkyrienskies.mod.common.getShipsIntersecting
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toMinecraft
@@ -61,7 +63,7 @@ fun Level.clipIncludeShips(
 
     // Iterate every ship, find do the raycast in ship space,
     // choose the raycast with the lowest distance to the start position.
-    for (ship in shipObjectWorld.loadedShips.getIntersecting(clipAABB)) {
+    for (ship in getShipsIntersecting(clipAABB)) {
         val chopParam = Vector2d()
         // Pad AABB size to increase raycast tolerance
         val expandedAABB = AABBd(ship.worldAABB).expand(1.0)
@@ -96,10 +98,10 @@ fun Level.clipIncludeShips(
             choppedTo = ctx.to.toJOML()
         }
 
-        val worldToShip = (ship as? ShipObjectClient)?.renderTransform?.worldToShipMatrix ?: ship.worldToShip
-        val shipToWorld = (ship as? ShipObjectClient)?.renderTransform?.shipToWorldMatrix ?: ship.shipToWorld
-        val shipStart = worldToShip.transformPosition(choppedFrom).toMinecraft()
-        val shipEnd = worldToShip.transformPosition(choppedTo).toMinecraft()
+        val worldToShip = (ship as? ClientShip)?.renderTransform?.worldToShip ?: ship.worldToShip
+        val shipToWorld = (ship as? ClientShip)?.renderTransform?.shipToWorld ?: ship.shipToWorld
+        val shipStart = worldToShip.transformPosition(ctx.from.toJOML()).toMinecraft()
+        val shipEnd = worldToShip.transformPosition(ctx.to.toJOML()).toMinecraft()
 
         val shipHit = clip(ctx, shipStart, shipEnd)
         val shipHitPos = shipToWorld.transformPosition(shipHit.location.toJOML()).toMinecraft()
@@ -262,7 +264,7 @@ fun Level.raytraceEntities(
     val start = Vector3d()
     val end = Vector3d()
 
-    shipObjectWorld.loadedShips.getIntersecting(origBoundingBoxM.toJOML()).forEach {
+    getShipsIntersecting(origBoundingBoxM.toJOML()).forEach {
         it.worldToShip.transformPosition(origStartVec, start)
         it.worldToShip.transformPosition(origEndVec, end)
 

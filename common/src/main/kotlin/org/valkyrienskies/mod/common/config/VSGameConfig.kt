@@ -45,6 +45,11 @@ object VSGameConfig {
             )
             var fixBlockTinting = false
         }
+
+        @JsonSchema(
+            description = "The way ships are rendered by default"
+        )
+        var defaultRenderer = ShipRenderer.VANILLA
     }
 
     class Server {
@@ -114,6 +119,15 @@ object VSGameConfig {
             var showShipMass = true
         }
 
+        val Cbc = CBC()
+
+        class CBC {
+            @JsonSchema(description = "Should cannon shots apply a recoil force to ships")
+            var shellRecoil = false
+            @JsonSchema(description = "The force multiplier applied to recoil on ships")
+            var shellRecoilMult = 500000.0
+        }
+
 
         @JsonSchema(
             description = "By default, the vanilla server prevents block interacts past a certain distance " +
@@ -139,40 +153,18 @@ object VSGameConfig {
         var enableMovementChecks = false
 
         @JsonSchema(
-
-
             description = "If true, when a player disconnects, their position on the ship is saved such that " +
-
-
                 "if the ship is moved, when they reconnect they will be teleported to the same position in the ship " +
-
-
                 "as they left, instead of being left behind."
-
-
         )
-
-
         var teleportReconnectedPlayers = true
 
         @JsonSchema(
-
-
-            description = "Determines how many airborne ticks after a player leaves the ground of a" +
-
-
-                "ship that they are still considered part of it when they disconnect, such that they will" +
-
-
-                "be teleported back to it after reconnecnting."
-
-
+            description = "If true, when a mob gets unloaded, its position on a ship is saved such that " +
+                "if the ship is moved, when the mob loads back in it will be teleported to the same position in the ship." +
+                " This helps prevent mobs from falling off of ships."
         )
-
-
-        var maxAirborneTicksForReconnectedPlayerTeleport = 4
-
-
+        var saveMobsPositionOnShip = true
 
         @JsonSchema(
             description = "If true, prevents water and other fluids from flowing out of the ship's bounding box."
@@ -205,9 +197,73 @@ object VSGameConfig {
         var minScaling = 0.25
 
         @JsonSchema(
-            description = "The permission level required to use the /vs command. Must be 0 <= x <= 4"
+            description = "Default mass for blocks that do not have it defined in data or code. Blocks with masses below 1000 float in water"
         )
-        var vsCommandPerms = 2
+        var defaultBlockMass = 100.0
+
+        @JsonSchema(
+            description = "Default elasticity coefficient for blocks. Higher values make blocks more bouncy"
+        )
+        var defaultBlockElasticity = 0.3
+
+        @JsonSchema(
+            description = "Default friction coefficient for blocks. Lower values make blocks more slippery"
+        )
+        var defaultBlockFriction = 0.5
+
+        @JsonSchema(
+            description = "Default block hardness (unused value, placeholder for later)"
+        )
+        var defaultBlockHardness = 1.0
+
+        @JsonSchema(
+            description = "Enable splitting in worldspace. (Experimental!)"
+        )
+        var enableWorldSplitting = false
+
+        @JsonSchema(
+            description = "The default grace timer for splitting. A split won't occur after a block break at a position until this many ticks have passed. Note that setting this too high may prevent things like explosions from properly launching split ships. (in ticks)"
+        )
+        var defaultSplitGraceTimer = 1
+
+        val Commands = COMMANDS()
+
+        class COMMANDS {
+            @JsonSchema(
+                description = "The permission level required to use the /vs delete command. Must be 0 <= x <= 4"
+            )
+            var deleteShipCommandPerms = 2
+
+            @JsonSchema(
+                description = "The permission level required to use the /vs get-ship command. Must be 0 <= x <= 4"
+            )
+            var getShipCommandPerms = 0
+
+            @JsonSchema(
+                description = "The permission level required to use the /vs rename command. Must be 0 <= x <= 4"
+            )
+            var renameShipCommandPerms = 2
+
+            @JsonSchema(
+                description = "The permission level required to use the /vs remass command. Must be 0 <= x <= 4"
+            )
+            var remassShipCommandPerms = 2
+
+            @JsonSchema(
+                description = "The permission level required to use the /vs scale command. Must be 0 <= x <= 4"
+            )
+            var scaleShipCommandPerms = 2
+
+            @JsonSchema(
+                description = "The permission level required to use the /vs set-static command. Must be 0 <= x <= 4"
+            )
+            var setStaticShipCommandPerms = 2
+
+            @JsonSchema(
+                description = "The permission level required to use the /vs teleport command. Must be 0 <= x <= 4"
+            )
+            var teleportShipCommandPerms = 2
+        }
     }
 
     class Common {
@@ -221,7 +277,7 @@ object VSGameConfig {
                 description = "Renders mob pathfinding nodes. Must be set on client and server to work. " +
                     "Requires the system property -Dorg.valkyrienskies.render_pathfinding=true"
             )
-            var renderPathfinding = true // Requires ValkyrienCommonMixinConfigPlugin.PATH_FINDING_DEBUG to be true
+            var renderPathfinding = false // Requires ValkyrienCommonMixinConfigPlugin.PATH_FINDING_DEBUG to be true
         }
     }
 }

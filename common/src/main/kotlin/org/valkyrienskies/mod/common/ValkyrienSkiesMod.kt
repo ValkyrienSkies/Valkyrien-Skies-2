@@ -1,6 +1,9 @@
 package org.valkyrienskies.mod.common
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.module.SimpleModule
 import net.minecraft.client.Minecraft
+import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.Registries
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceKey
@@ -12,19 +15,28 @@ import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.entity.BlockEntityType
-import org.valkyrienskies.core.api.ships.setAttachment
-import org.valkyrienskies.core.apigame.VSCore
-import org.valkyrienskies.core.apigame.VSCoreClient
-import org.valkyrienskies.core.impl.config.VSConfigClass
-import org.valkyrienskies.core.impl.config.VSCoreConfig
-import org.valkyrienskies.core.impl.hooks.VSEvents
+import org.valkyrienskies.core.api.world.properties.DimensionId
+import org.valkyrienskies.core.internal.VsiCore
+import org.valkyrienskies.core.internal.VsiCoreClient
+import org.valkyrienskies.mod.api.SeatedControllingPlayer
+import org.valkyrienskies.mod.api_impl.events.VsApiImpl
+import org.valkyrienskies.mod.common.blockentity.DebugPhysicsTickables
 import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
+import org.valkyrienskies.mod.common.blockentity.TestThrusterBlockEntity
 import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.entity.VSPhysicsEntity
+import org.valkyrienskies.mod.common.jackson.BlockPosDeserializer
+import org.valkyrienskies.mod.common.jackson.BlockPosKeyDeserializer
+import org.valkyrienskies.mod.common.jackson.BlockPosKeySerializer
+import org.valkyrienskies.mod.common.jackson.BlockPosSerializer
 import org.valkyrienskies.mod.common.networking.VSGamePackets
-import org.valkyrienskies.mod.common.util.GameTickForceApplier
+import org.valkyrienskies.mod.common.util.GameToPhysicsAdapter
+import org.valkyrienskies.mod.common.util.ShipSettings
+import org.valkyrienskies.mod.common.util.SplitHandler
+import org.valkyrienskies.mod.common.util.SplittingDisablerAttachment
 import org.valkyrienskies.mod.mixinducks.client.world.ClientChunkCacheDuck
+import java.util.ServiceLoader
 
 object ValkyrienSkiesMod {
     const val MOD_ID = "valkyrienskies"
@@ -34,13 +46,19 @@ object ValkyrienSkiesMod {
     lateinit var TEST_FLAP: Block
     lateinit var TEST_WING: Block
     lateinit var TEST_SPHERE: Block
+    lateinit var TEST_THRUSTER: Block
+    lateinit var CONNECTION_CHECKER_ITEM: Item
     lateinit var SHIP_CREATOR_ITEM: Item
     lateinit var SHIP_ASSEMBLER_ITEM: Item
     lateinit var SHIP_CREATOR_ITEM_SMALLER: Item
+    lateinit var AREA_ASSEMBLER_ITEM: Item
     lateinit var PHYSICS_ENTITY_CREATOR_ITEM: Item
     lateinit var SHIP_MOUNTING_ENTITY_TYPE: EntityType<ShipMountingEntity>
     lateinit var PHYSICS_ENTITY_TYPE: EntityType<VSPhysicsEntity>
     lateinit var TEST_HINGE_BLOCK_ENTITY_TYPE: BlockEntityType<TestHingeBlockEntity>
+    lateinit var TEST_THRUSTER_BLOCK_ENTITY_TYPE: BlockEntityType<TestThrusterBlockEntity>
+
+    private val dimensionalGTPAs: HashMap<DimensionId, GameToPhysicsAdapter> = HashMap()
 
     val VS_CREATIVE_TAB = ResourceKey.create(Registries.CREATIVE_MODE_TAB, ResourceLocation("valkyrienskies"))
 
@@ -48,29 +66,80 @@ object ValkyrienSkiesMod {
     var currentServer: MinecraftServer? = null
 
     @JvmStatic
-    lateinit var vsCore: VSCore
+    val vsCoreProvider: VSCoreProvider by lazy {
+        val loader = ServiceLoader.load(VSCoreProvider::class.java, VSCoreProvider::class.java.classLoader)
+
+        loader.findFirst().orElseThrow {
+            IllegalStateException("No VSCoreProvider implementation found via ServiceLoader!")
+        }
+    }
 
     @JvmStatic
-    val vsCoreClient get() = vsCore as VSCoreClient
+    val vsCore: VsiCore = vsCoreProvider.newVSCore()
 
-    fun init(core: VSCore) {
-        this.vsCore = core
+    @JvmStatic
+    val vsCoreClient get() = vsCore as VsiCoreClient
+
+    @JvmStatic
+    val api by lazy {
+        VsApiImpl(vsCore)
+    }
+
+    @JvmStatic
+    lateinit var splitHandler: SplitHandler
+
+    fun init() {
+        val core = this.vsCore
 
         BlockStateInfo.init()
         VSGamePackets.register()
         VSGamePackets.registerHandlers()
 
-        VSConfigClass.registerConfig("vs_core", VSCoreConfig::class.java)
-        VSConfigClass.registerConfig("vs", VSGameConfig::class.java)
-        VSEvents.ShipLoadEvent.on { event ->
-            event.ship.setAttachment(GameTickForceApplier())
+        // region Register BlockPos for serialization in force inducers
+        val aabbModule = SimpleModule()
+        aabbModule.addSerializer(BlockPos::class.java, BlockPosSerializer())
+        aabbModule.addDeserializer(BlockPos::class.java, BlockPosDeserializer())
+        aabbModule.addKeySerializer(BlockPos::class.java, BlockPosKeySerializer())
+        aabbModule.addKeyDeserializer(BlockPos::class.java, BlockPosKeyDeserializer())
+        val mapper = ObjectMapper()
+        mapper.registerModule(aabbModule)
+        // end region
+
+        core.registerConfigLegacy("vs", VSGameConfig::class.java)
+
+        splitHandler = SplitHandler(this.vsCore.hooks.enableBlockEdgeConnectivity, this.vsCore.hooks.enableBlockCornerConnectivity)
+
+        core.registerAttachment(ShipSettings::class.java)
+        core.registerAttachment(SeatedControllingPlayer::class.java) {
+            useLegacySerializer()
         }
-        VSEvents.ShipUnloadEventClient.on { event ->
+        core.registerAttachment(SplittingDisablerAttachment::class.java) {
+            useLegacySerializer()
+        }
+
+        core.shipLoadEvent.on { event ->
+            event.ship.setAttachment(SplittingDisablerAttachment(false))
+        }
+
+        this.vsCore.physTickEvent.on { event ->
+            dimensionalGTPAs.forEach { dimensionId, gameTickForceApplier ->
+                if (event.world.dimension == dimensionId) {
+                    gameTickForceApplier.physTick(event.world, event.delta)
+                }
+            }
+            DebugPhysicsTickables.physTick(event.world, event.delta)
+        }
+        core.shipUnloadEventClient.on { event ->
             val level = Minecraft.getInstance().level
             if (level != null) {
                 (level.getChunkSource() as ClientChunkCacheDuck).`vs$removeShip`(event.ship)
             }
         }
+    }
+
+    @JvmStatic
+    fun getOrCreateGTPA(dimensionId: DimensionId): GameToPhysicsAdapter {
+        return dimensionalGTPAs.getOrPut(dimensionId) { GameToPhysicsAdapter() }
     }
 
     fun createCreativeTab(): CreativeModeTab {
@@ -82,11 +151,15 @@ object ValkyrienSkiesMod {
                 output.accept(TEST_HINGE.asItem())
                 output.accept(TEST_FLAP.asItem())
                 output.accept(TEST_WING.asItem())
+                output.accept(TEST_THRUSTER.asItem())
+                output.accept(CONNECTION_CHECKER_ITEM)
                 output.accept(SHIP_CREATOR_ITEM)
                 output.accept(SHIP_ASSEMBLER_ITEM)
                 output.accept(SHIP_CREATOR_ITEM_SMALLER)
+                output.accept(AREA_ASSEMBLER_ITEM)
                 output.accept(PHYSICS_ENTITY_CREATOR_ITEM)
             }
             .build()
     }
+
 }

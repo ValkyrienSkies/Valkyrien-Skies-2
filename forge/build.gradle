@@ -4,9 +4,9 @@ buildscript {
     }
     dependencies {
         // Make sure this version matches the one included in Kotlin for Forge
-        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.6.10'
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.22'
         // OPTIONAL Gradle plugin for Kotlin Serialization
-        classpath 'org.jetbrains.kotlin:kotlin-serialization:1.6.10'
+        classpath 'org.jetbrains.kotlin:kotlin-serialization:1.9.22'
     }
 }
 
@@ -22,6 +22,14 @@ apply from: '../gradle-scripts/publish-curseforge.gradle'
 architectury {
     platformSetupLoomIde()
     forge()
+}
+
+sourceSets {
+    main {
+        resources {
+            srcDir "$buildDir/generated/resources"
+        }
+    }
 }
 
 loom {
@@ -53,7 +61,10 @@ configurations {
 dependencies {
     implementation(annotationProcessor("io.github.llamalad7:mixinextras-common:0.4.1"))
     implementation(include("io.github.llamalad7:mixinextras-forge:0.4.1"))
+    annotationProcessor("net.fabricmc:sponge-mixin:0.12.5+mixin.0.8.5") // use fabric mixin so we can write interface injectors (conditionally loaded if mixinbooster is enabled)
 
+    compileOnly(annotationProcessor("com.github.bawnorton.mixinsquared:mixinsquared-common:0.3.7-beta.1"))
+    implementation(include("com.github.bawnorton.mixinsquared:mixinsquared-forge:0.3.7-beta.1"))
 
     forge "net.minecraftforge:forge:${rootProject.forge_version}"
 
@@ -66,6 +77,9 @@ dependencies {
 
     //modCompileOnly("curse.maven:rubidium-574856:4024781")
     modCompileOnly("maven.modrinth:embeddium:${embeddium_version}")
+
+    // Twilight Forest
+    modImplementation("teamtwilight:twilightforest:${twilightforest_version}:universal")
 
     // Create compat
     modImplementation("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") { transitive = false }
@@ -82,6 +96,23 @@ dependencies {
     // CC Tweaked
     modRuntimeOnly("cc.tweaked:cc-tweaked-${minecraft_version}-forge:${cc_tweaked_version}")
 
+    modImplementation("curse.maven:vmp-forge-892037:4657678")
+
+    // OpenComputers 2: Reimagined
+    modCompileOnly("maven.modrinth:oc2r:${oc2r_version}")
+
+    // EMF compat
+    //todo: fix
+    modCompileOnly("curse.maven:entity-model-features-844662:5696899")
+    modCompileOnly("curse.maven:entity-texture-features-fabric-568563:5697083")
+
+    modCompileOnly("maven.modrinth:create-utilities:0.2.0+1.20.1")
+    modImplementation("teamreborn:energy:${energy_version}") {
+        transitive = false
+    }
+    // TIS-3d
+    modCompileOnly("maven.modrinth:tis3d:${tis3d_version}")
+
     // Modular Routers
     modCompileOnly("curse.maven:mr-250294:4696089")
 
@@ -94,6 +125,20 @@ dependencies {
     // Dynmap
     modCompileOnly("maven.modrinth:dynmap:${dynmap_version}")
 
+    // Integrated Dynamics
+    modCompileOnly("curse.maven:integrated-dynamics-236307:5297722")
+    modCompileOnly("curse.maven:cyclops-core-232758:5262063")
+    modCompileOnly("curse.maven:common-capabilities-247007:4987207")
+
+    // Very Many Players
+    //modCompileOnly("maven.modrinth:vmp-forge:0.2.0+beta.7.101+1.20.1")
+
+    // TerraFirmaCraft
+    modCompileOnly("curse.maven:terrafirmacraft-302973:${tfc_version}")
+
+    // Mekanism
+    modCompileOnly ("curse.maven:mekanism-268560:4644795")
+
     // Add Kotlin for Forge (3.12.0)
     forgeRuntimeLibrary("maven.modrinth:kotlin-for-forge:${kotlin_version}")
 
@@ -101,7 +146,11 @@ dependencies {
     include(modImplementation("me.shedaniel.cloth:cloth-config-forge:${cloth_config_version}"))
 
     // Shade vs-core
-    implementation("org.valkyrienskies.core:impl:${rootProject.vs_core_version}"){
+    implementation("org.valkyrienskies.core:util:${rootProject.vs_core_version}")
+    implementation("org.valkyrienskies.core:internal:${rootProject.vs_core_version}") {
+        exclude group: 'org.joml', module: 'joml'
+    }
+    runtimeOnly("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
         exclude group: 'org.joml', module: 'joml'
     }
     forgeRuntimeLibrary shadowCommon("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
@@ -116,7 +165,7 @@ dependencies {
         transitive = false
     }
 
-    forgeRuntimeLibrary shadowCommon("org.valkyrienskies.core:api-game:${rootProject.vs_core_version}") {
+    forgeRuntimeLibrary shadowCommon("org.valkyrienskies.core:internal:${rootProject.vs_core_version}") {
         exclude group: 'org.joml', module: 'joml'
         transitive = false
     }
@@ -126,12 +175,12 @@ dependencies {
         transitive = false
     }
 
-    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api_krunch:1.0.0+7db6a103f1") {
+    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api_krunch:${rootProject.krunch_version}") {
         exclude group: 'org.joml', module: 'joml'
         transitive = false
     }
 
-    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api:1.0.0+0ba0cc41e1") {
+    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api:${rootProject.krunch_api_version}") {
         exclude group: 'org.joml', module: 'joml'
         transitive = false
     }
@@ -168,7 +217,16 @@ dependencies {
     // endregion
 }
 
+// Copy the VS common access widener to the generated resources folder
+def generatedResourcesDir = layout.buildDirectory.dir("generated/resources")
+
+tasks.register("copyAccessWidener", Copy) {
+    from(project(":common").file("src/main/resources/valkyrienskies-common.accesswidener"))
+    into(generatedResourcesDir)
+}
+
 processResources {
+    dependsOn("copyAccessWidener")
     inputs.property "version", project.version
 
     filesMatching("META-INF/mods.toml") {
@@ -201,6 +259,8 @@ jar {
 }
 
 sourcesJar {
+    dependsOn("copyAccessWidener")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     def commonSources = project(":common").sourcesJar
     dependsOn commonSources
     from commonSources.archiveFile.map { zipTree(it) }

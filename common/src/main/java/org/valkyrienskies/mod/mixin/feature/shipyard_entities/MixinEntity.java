@@ -156,7 +156,7 @@ public abstract class MixinEntity {
     @Inject(method = "setRemoved", at = @At("HEAD"))
     private void preSetRemoved(final RemovalReason removalReason, final CallbackInfo ci) {
         final Entity thisAsEntity = Entity.class.cast(this);
-        final LoadedShip ship = VSGameUtilsKt.getShipObjectManagingPos(thisAsEntity.level(),
+        final LoadedShip ship = VSGameUtilsKt.getLoadedShipManagingPos(thisAsEntity.level(),
             VectorConversionsMCKt.toJOML(thisAsEntity.position()));
         if (ship != null) {
             VSEntityManager.INSTANCE.getHandler(thisAsEntity).entityRemovedFromShipyard(thisAsEntity, ship);
