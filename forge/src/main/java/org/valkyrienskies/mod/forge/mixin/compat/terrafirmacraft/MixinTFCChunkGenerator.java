@@ -32,8 +32,7 @@ import org.valkyrienskies.mod.common.VS2ChunkAllocator;
 
 @Mixin(TFCChunkGenerator.class)
 public class MixinTFCChunkGenerator {
-    @Final
-    @Shadow
+    @Final @Shadow @Mutable
     private Holder<NoiseGeneratorSettings> noiseSettings;
 
     @Inject(method = "getBaseColumn", at = @At("HEAD"), cancellable = true)
