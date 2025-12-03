@@ -12,7 +12,6 @@ import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate
 import org.joml.primitives.AABBi
-import org.valkyrienskies.mod.common.assembly.createNewShipWithStructure
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getLoadedShipManagingPos
 import org.valkyrienskies.mod.common.shipObjectWorld
@@ -60,8 +59,8 @@ class AreaAssemblerItem(
                         structure.fillFromWorld(level, lowerCorner, upperCorner.offset(1, 1, 1).subtract(lowerCorner), true, Blocks.STRUCTURE_VOID)
 
                         ctx.player?.sendSystemMessage(Component.literal("Assembling (${blockPos.x}, ${blockPos.y}, ${blockPos.z}) to ($firstPosX, $firstPosY, $firstPosZ)!"))
-                        //ShipAssembler.assembleToShip(level, blocks, true, scale.asDouble, true)
-                        createNewShipWithStructure(lowerCorner, upperCorner, structure, level)
+                        // createNewShipWithStructure(lowerCorner, upperCorner, structure, level)
+                        // fixme
                     }
                     item.tag!!.remove("firstPosX")
                     item.tag!!.remove("firstPosY")
