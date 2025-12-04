@@ -6,19 +6,20 @@
   "key.valkyrienskies.ship_cruise": "Крейсерский ход",
   "key.valkyrienskies.ship_down": "Спуск",
 
-  "block.valkyrienskies.test_chair": "Отладочный Стул",
-  "block.valkyrienskies.test_hinge": "Отладочная Петля",
-  "block.valkyrienskies.test_flap": "Отладочный Клапан",
-  "block.valkyrienskies.test_wing": "Отладочное Крыло",
-  "block.valkyrienskies.test_sphere": "Отладочная Сфера",
-  "block.valkyrienskies.test_thruster": "Отладочный Тяговый Двигатель",
-  "item.valkyrienskies.ship_creator": "Создатель Кораблей",
-  "item.valkyrienskies.ship_creator_smaller": "Мини-Создатель Кораблей",
-  "item.valkyrienskies.ship_assembler": "Сборщик Кораблей",
-  "item.valkyrienskies.area_assembler": "Сборщик Области",
-  "item.valkyrienskies.connection_checker": "Проверка Соединений",
-  "item.valkyrienskies.physics_entity_creator": "Создатель Физических Объектов",
-  "entity.valkyrienskies.vs_physics_entity": "Физический Объект",
+  "block.valkyrienskies.test_chair": "Отладочный стул",
+  "block.valkyrienskies.test_hinge": "Отладочная петля",
+  "block.valkyrienskies.test_flap": "Отладочный клапан",
+  "block.valkyrienskies.test_wing": "Отладочное крыло",
+  "block.valkyrienskies.test_sphere": "Отладочная сфера",
+  "block.valkyrienskies.test_thruster": "Отладочный тяговый двигатель",
+  "item.valkyrienskies.ship_creator": "Создатель кораблей",
+  "item.valkyrienskies.ship_creator_smaller": "Мини-создатель кораблей",
+  "item.valkyrienskies.ship_assembler": "Сборщик кораблей",
+  "item.valkyrienskies.area_assembler": "Сборщик области",
+  "item.valkyrienskies.connection_checker": "Проверка соединений",
+  "item.valkyrienskies.physics_entity_creator": "Создатель физических объектов",
+
+  "entity.valkyrienskies.vs_physics_entity": "Физический объект",
 
   "argument.valkyrienskies.ship.no_found": "Корабль не найден",
   "argument.valkyrienskies.ship.multiple_found": "Найдено несколько кораблей",
@@ -34,7 +35,7 @@
   "command.valkyrienskies.get_ship.only_usable_by_entities": "/vs get-ship можно выполнять только сущностям!",
   "command.valkyrienskies.scale.success": "Масштабировано кораблей: %d!",
 
-  "misc.valkyrienskies.create.deployer_working_mode": "Поведение Корабля",
+  "misc.valkyrienskies.create.deployer_working_mode": "Поведение корабля",
   "misc.valkyrienskies.create.deployer_working_mode.original": "Размещать на текущем корабле",
   "misc.valkyrienskies.create.deployer_working_mode.in_world": "Размещать в мире"
 }
