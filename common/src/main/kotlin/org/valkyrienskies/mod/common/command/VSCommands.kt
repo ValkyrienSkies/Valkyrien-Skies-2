@@ -22,6 +22,7 @@ import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.world.ServerShipWorld
 import org.valkyrienskies.core.api.world.ShipWorld
 import org.valkyrienskies.core.internal.ShipTeleportData
+import org.valkyrienskies.mod.common.BlockStateInfo
 import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getShipManagingPos
@@ -34,6 +35,8 @@ import org.valkyrienskies.mod.util.logger
 object VSCommands {
     private val LOGGER by logger()
     private const val DELETED_SHIPS_MESSAGE = "command.valkyrienskies.delete.success"
+    private const val REMASSED_SHIPS_SUCCESS_MESSAGE = "command.valkyrienskies.remass.success"
+    private const val REMASSED_SHIP_FAIL_MESSAGE = "command.valkyrienskies.remass.fail"
     private const val SET_SHIP_STATIC_SUCCESS_MESSAGE = "command.valkyrienskies.set_static.success"
     private const val TELEPORT_SHIP_SUCCESS_MESSAGE = "command.valkyrienskies.teleport.success"
     private const val GET_SHIP_SUCCESS_MESSAGE = "command.valkyrienskies.get_ship.success"
@@ -107,6 +110,31 @@ object VSCommands {
                             }
                         )
                     )
+                )
+                .then(
+                    literal("remass")
+                        .requires{ it.hasPermission(VSGameConfig.SERVER.Commands.remassShipCommandPerms)}.then(
+                            argument("ships", ShipArgument.ships()).executes {
+                                val r = ShipArgument.getShips(it, "ships").toList() as List<ServerShip>
+                                var successful = 0
+                                r.forEach { ship ->
+                                    if (BlockStateInfo.remassShip(it.source.level, ship)) {
+                                        ++successful
+                                    } else {
+                                        it.source.sendVSMessage(
+                                            translatable(
+                                                REMASSED_SHIP_FAIL_MESSAGE, ship.slug
+                                            )
+                                        )
+                                    }
+                                }
+                                it.source.sendVSMessage(
+                                       translatable(
+                                           REMASSED_SHIPS_SUCCESS_MESSAGE, successful
+                                       )
+                                   )
+                                successful
+                            })
                 )
                 .then(
                     literal("set-static")

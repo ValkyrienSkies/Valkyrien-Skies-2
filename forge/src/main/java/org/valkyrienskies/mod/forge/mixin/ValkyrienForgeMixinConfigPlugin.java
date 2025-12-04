@@ -4,6 +4,7 @@ import com.llamalad7.mixinextras.MixinExtrasBootstrap;
 import java.util.List;
 import java.util.Set;
 import net.minecraftforge.fml.loading.FMLLoader;
+import net.minecraftforge.fml.loading.LoadingModList;
 import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
 import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
@@ -14,8 +15,24 @@ import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
  */
 public class ValkyrienForgeMixinConfigPlugin implements IMixinConfigPlugin {
 
+    static boolean is607orAbove = false;
+
     @Override
     public void onLoad(final String s) {
+
+        if (LoadingModList.get().getModFileById("create") != null) {
+            final DefaultArtifactVersion createVersion =
+                new DefaultArtifactVersion(LoadingModList.get().getModFileById("create").versionString());
+            final DefaultArtifactVersion createNewer = new DefaultArtifactVersion("6.0.7");
+
+            is607orAbove = createVersion.compareTo(createNewer) >= 0;
+
+            // Just in case, for debugging
+            // Also its amusing
+            System.out.println("six-seven:");
+            System.out.println(is607orAbove);
+        }
+
         MixinExtrasBootstrap.init();
     }
 
@@ -36,6 +53,24 @@ public class ValkyrienForgeMixinConfigPlugin implements IMixinConfigPlugin {
         }
         if (mixinClassName.contains("MixinIForgePlayer")) {
             return forgeVersion.compareTo(forgeNewer) < 0;
+        }
+
+        // Create changed on 6.0.7 so we have some duplicate mixins
+        // This only applies on forge, because fabric create is only 6.0.7+
+        if (LoadingModList.get().getModFileById("create") != null) {
+            if (mixinClassName.contains("MixinSuperGlueSelectionHandler67")) {
+                return is607orAbove;
+            }
+            if (mixinClassName.contains("MixinSuperGlueSelectionHandler66")) {
+                return !is607orAbove;
+            }
+
+            if (mixinClassName.contains("MixinBlockEntityRenderHelper67")) {
+                return is607orAbove;
+            }
+            if (mixinClassName.contains("MixinBlockEntityRenderHelper66")) {
+                return !is607orAbove;
+            }
         }
 
         return true;

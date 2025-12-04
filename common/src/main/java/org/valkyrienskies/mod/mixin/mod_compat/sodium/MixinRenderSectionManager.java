@@ -3,6 +3,9 @@ package org.valkyrienskies.mod.mixin.mod_compat.sodium;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 import me.jellysquid.mods.sodium.client.render.chunk.ChunkUpdateType;
@@ -98,6 +101,14 @@ public abstract class MixinRenderSectionManager implements RenderSectionManagerD
                 this.rebuildLists.get(entry.getKey()).addAll(entry.getValue());
             }
         }
+        this.rebuildLists.forEach(
+            (type, rebuildLists) -> {
+                final List<RenderSection> rebuildSorted = new ArrayList<>(rebuildLists);
+                rebuildSorted.sort(Comparator.comparingDouble(section -> section.getSquaredDistance(camera.getBlockPosition())));
+                rebuildLists.clear();
+                rebuildLists.addAll(rebuildSorted);
+            }
+        );
     }
 
     @WrapMethod(method = "tickVisibleRenders")

@@ -73,7 +73,7 @@ public abstract class MixinLevelRenderer {
         final Matrix4f methodMatrix4f) {
 
         final BlockPos blockEntityPos = blockEntity.getBlockPos();
-        final ClientShip shipObject = VSGameUtilsKt.getShipObjectManagingPos(level, blockEntityPos);
+        final ClientShip shipObject = VSGameUtilsKt.getLoadedShipManagingPos(level, blockEntityPos);
         if (shipObject != null) {
             final Vec3 cam = methodCamera.getPosition();
             matrix.popPose();

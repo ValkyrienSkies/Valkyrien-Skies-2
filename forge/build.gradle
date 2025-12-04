@@ -63,7 +63,6 @@ dependencies {
     implementation(include("io.github.llamalad7:mixinextras-forge:0.4.1"))
     annotationProcessor("net.fabricmc:sponge-mixin:0.12.5+mixin.0.8.5") // use fabric mixin so we can write interface injectors (conditionally loaded if mixinbooster is enabled)
 
-
     forge "net.minecraftforge:forge:${rootProject.forge_version}"
 
     common(project(path: ":common", configuration: "namedElements")) {
@@ -93,6 +92,8 @@ dependencies {
 
     // CC Tweaked
     modRuntimeOnly("cc.tweaked:cc-tweaked-${minecraft_version}-forge:${cc_tweaked_version}")
+
+    modImplementation("curse.maven:vmp-forge-892037:4657678")
 
     // OpenComputers 2: Reimagined
     modCompileOnly("maven.modrinth:oc2r:${oc2r_version}")
@@ -125,6 +126,12 @@ dependencies {
     modCompileOnly("curse.maven:integrated-dynamics-236307:5297722")
     modCompileOnly("curse.maven:cyclops-core-232758:5262063")
     modCompileOnly("curse.maven:common-capabilities-247007:4987207")
+
+    // Very Many Players
+    //modCompileOnly("maven.modrinth:vmp-forge:0.2.0+beta.7.101+1.20.1")
+
+    // TerraFirmaCraft
+    modCompileOnly("curse.maven:terrafirmacraft-302973:${tfc_version}")
 
     // Mekanism
     modCompileOnly ("curse.maven:mekanism-268560:4644795")
@@ -165,12 +172,12 @@ dependencies {
         transitive = false
     }
 
-    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api_krunch:1.0.0+7db6a103f1") {
+    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api_krunch:${rootProject.krunch_version}") {
         exclude group: 'org.joml', module: 'joml'
         transitive = false
     }
 
-    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api:1.0.0+0ba0cc41e1") {
+    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api:${rootProject.krunch_api_version}") {
         exclude group: 'org.joml', module: 'joml'
         transitive = false
     }

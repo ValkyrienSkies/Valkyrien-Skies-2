@@ -18,7 +18,7 @@ import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.mod.api.toJOML
 import org.valkyrienskies.mod.api.toMinecraft
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager
-import org.valkyrienskies.mod.common.getShipObjectManagingPos
+import org.valkyrienskies.mod.common.getLoadedShipManagingPos
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.EntityLerper.yawToWorld
 import kotlin.math.asin
@@ -324,7 +324,7 @@ object EntityDragger {
             return false
         }
         //get the normal of the hit face in worldspace
-        val hitShip = level.getShipObjectManagingPos(result.blockPos)
+        val hitShip = level.getLoadedShipManagingPos(result.blockPos)
         if (hitShip != null) {
             val hitSide = result.direction.normal.toJOMLD()
             val upDir: Vector3dc = Vector3d(0.0, 1.0, 0.0)

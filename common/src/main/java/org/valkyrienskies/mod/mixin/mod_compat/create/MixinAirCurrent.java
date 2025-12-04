@@ -21,7 +21,9 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.Shapes;
 import org.apache.commons.lang3.tuple.Pair;
 import org.joml.Intersectionf;
 import org.joml.Matrix4d;
@@ -54,6 +56,16 @@ import org.valkyrienskies.mod.util.AdvancedBlockWalker;
 
 @Mixin(value = AirCurrent.class)
 public abstract class MixinAirCurrent {
+    @Unique
+    private static final boolean[] FALSE_THEN_TRUE = new boolean[]{false, true};
+    @Unique
+    private static final double NON_BLOCK_EXTEND = 1 / 32d;
+    @Unique
+    private static final double EPS1 = 1e-6;
+    @Unique
+    private static final double EPS2 = 2e-6;
+    @Unique
+    private static final double EPS3 = 4e-6;
 
     @Shadow
     @Final
@@ -113,7 +125,15 @@ public abstract class MixinAirCurrent {
             final BlockHitResult result = level.clip(new AirFlowClipContext(level, start, startPos, endPos, MixinAirCurrent::shouldAlwaysPass));
 
             // Convert world space distance to ship space distance by dividing by shipScale
-            cir.setReturnValue((float) (result.getLocation().distanceTo(startPos) / shipScale + 2e-6));
+            double limit = result.getLocation().distanceTo(startPos) / shipScale + EPS2;
+            // crazy Create compat
+            if (result.getType() == HitResult.Type.BLOCK) {
+                final BlockPos pos = result.getBlockPos();
+                if (level.getBlockState(pos).getCollisionShape(level, pos) != Shapes.block()) {
+                    limit += NON_BLOCK_EXTEND;
+                }
+            }
+            cir.setReturnValue((float) (limit));
             return;
         }
         final BlockPos end = start.relative(facing, (int) (Math.ceil(flowLimit)));
@@ -128,7 +148,15 @@ public abstract class MixinAirCurrent {
             final Vec3 startPos = Vec3.atCenterOf(start).add(facing.getStepX() * 0.5, facing.getStepY() * 0.5, facing.getStepZ() * 0.5);
             final Vec3 endPos = Vec3.atCenterOf(end).add(facing.getStepX() * 0.5, facing.getStepY() * 0.5, facing.getStepZ() * 0.5);
             final BlockHitResult result = level.clip(new AirFlowClipContext(level, start, startPos, endPos, MixinAirCurrent::shouldAlwaysPass));
-            cir.setReturnValue(Math.min((float) (result.getLocation().distanceTo(startPos) + 2e-6), flowLimit));
+            double limit = result.getLocation().distanceTo(startPos) + EPS2;
+            // crazy Create compat
+            if (result.getType() == HitResult.Type.BLOCK) {
+                final BlockPos pos = result.getBlockPos();
+                if (level.getBlockState(pos).getCollisionShape(level, pos) != Shapes.block()) {
+                    limit += NON_BLOCK_EXTEND;
+                }
+            }
+            cir.setReturnValue(Math.min((float) (limit), flowLimit));
         }
     }
 
@@ -174,20 +202,23 @@ public abstract class MixinAirCurrent {
         this.segments.clear();
         final Level level = this.source.getAirCurrentWorld();
         final BlockPos start = this.source.getAirCurrentPos();
+        final Vec3 startCenter = start.getCenter();
         AdvancedAirCurrentSegment currentSegment = null;
         FanProcessingType type = null;
 
         final int limit = this.getLimit();
+        // Note: Weird create behaviour that makes pulling fan process depot right under a processor
+        // but not for pushing fan.
 
         final Vec3 delta = new Vec3(this.direction.getStepX() * 0.5, this.direction.getStepY() * 0.5, this.direction.getStepZ() * 0.5);
-        final Vec3 startPos = start.getCenter().add(delta);
-        final Vec3 endPos = start.relative(this.direction, limit).getCenter().add(delta);
-        final AdvancedBlockWalker walker = new AdvancedBlockWalker(level, startPos, endPos, !this.pushing);
+        final Vec3 startPos = startCenter.add(delta);
+        final Vec3 endPos = startCenter.relative(this.direction, this.maxDistance).add(delta);
+        final AdvancedBlockWalker walker = new AdvancedBlockWalker(level, startPos, endPos, !this.pushing, true);
         while (walker.hasNext()) {
             final AdvancedBlockWalker.BlockPosWithDistance data = walker.next();
             final FanProcessingType newType = FanProcessingType.getAt(level, data.pos());
             double dist = data.distance();
-            if (dist < Integer.MAX_VALUE && Math.abs(dist - (int) (dist)) < 1e-6) {
+            if (dist < Integer.MAX_VALUE && Math.abs(dist - (int) (dist)) < EPS1) {
                 dist = (int) (dist);
             }
             if (newType != null) {
@@ -301,54 +332,49 @@ public abstract class MixinAirCurrent {
         this.affectedItemHandlers.clear();
         final Level level = this.source.getAirCurrentWorld();
         final BlockPos start = this.source.getAirCurrentPos();
-
-        final int limit = this.getLimit();
+        final Vec3 startCenter = start.getCenter();
 
         final List<AdvancedBlockWalker.BlockPosWithDistance> datas = new ArrayList<>();
 
         final Vec3 delta = new Vec3(this.direction.getStepX() * 0.5, this.direction.getStepY() * 0.5, this.direction.getStepZ() * 0.5);
-        final Vec3 startPos = start.getCenter().add(delta);
-        final Vec3 endPos = start.relative(this.direction, limit).getCenter().add(delta);
-        final AdvancedBlockWalker walker = new AdvancedBlockWalker(level, startPos, endPos, !this.pushing);
+        final Vec3 startPos = startCenter.add(delta);
+        final Vec3 endPos = startCenter.relative(this.direction, this.maxDistance).add(delta);
+        final AdvancedBlockWalker walker = new AdvancedBlockWalker(level, startPos, endPos, !this.pushing, false);
         while (walker.hasNext()) {
             datas.add(walker.next());
         }
 
         final Set<BlockPos> processed = new HashSet<>();
 
-        for (final AdvancedBlockWalker.BlockPosWithDistance data : datas) {
-            final BlockPos pos = data.pos();
-            final TransportedItemStackHandlerBehaviour behaviour =
-                BlockEntityBehaviour.get(level, pos, TransportedItemStackHandlerBehaviour.TYPE);
-            if (behaviour == null) {
-                continue;
+        // Process below blocks such as depot, after processed all blocks on the path,
+        // so vertical current will process with correct FanProcessingType.
+        for (final boolean checkBelow : FALSE_THEN_TRUE) {
+            for (final AdvancedBlockWalker.BlockPosWithDistance data : datas) {
+                final BlockPos pos = checkBelow ? data.pos().below() : data.pos();
+                final TransportedItemStackHandlerBehaviour behaviour =
+                    BlockEntityBehaviour.get(level, pos, TransportedItemStackHandlerBehaviour.TYPE);
+                if (behaviour == null) {
+                    continue;
+                }
+                // Move the check point towards the block center for a bit,
+                // so getTypeAt0 can correctly handle the case that a depot is
+                // right after a processor.
+                double dist = data.distance() + EPS3;
+                if (dist < Integer.MAX_VALUE && Math.abs(dist - (int) (dist)) < EPS1) {
+                    dist = (int) (dist);
+                }
+                if (dist > this.maxDistance) {
+                    continue;
+                }
+                if (!processed.add(pos)) {
+                    continue;
+                }
+                FanProcessingType type = FanProcessingType.getAt(level, pos);
+                if (type == null) {
+                    type = this.getTypeAt0(dist);
+                }
+                this.affectedItemHandlers.add(Pair.of(behaviour, type));
             }
-            if (!processed.add(pos)) {
-                continue;
-            }
-            FanProcessingType type = FanProcessingType.getAt(level, pos);
-            if (type == null) {
-                type = this.getTypeAt0(data.distance());
-            }
-            this.affectedItemHandlers.add(Pair.of(behaviour, type));
-        }
-        // Process below blocks such as depot.
-        // Do it after processed all blocks on the path, so vertical current will process with correct FanProcessingType.
-        for (final AdvancedBlockWalker.BlockPosWithDistance data : datas) {
-            final BlockPos pos = data.pos().below();
-            final TransportedItemStackHandlerBehaviour behaviour =
-                BlockEntityBehaviour.get(level, pos, TransportedItemStackHandlerBehaviour.TYPE);
-            if (behaviour == null) {
-                continue;
-            }
-            if (!processed.add(pos)) {
-                continue;
-            }
-            FanProcessingType type = FanProcessingType.getAt(level, pos);
-            if (type == null) {
-                type = this.getTypeAt0(data.distance());
-            }
-            this.affectedItemHandlers.add(Pair.of(behaviour, type));
         }
     }
 
@@ -364,7 +390,7 @@ public abstract class MixinAirCurrent {
      */
     @Unique
     private FanProcessingType getTypeAt0(double offset) {
-        if (offset < Integer.MAX_VALUE && Math.abs(offset - (int) (offset)) < 1e-6) {
+        if (offset < Integer.MAX_VALUE && Math.abs(offset - (int) (offset)) < EPS1) {
             offset = (int) (offset);
         }
         if (offset < 0 || offset > this.maxDistance) {

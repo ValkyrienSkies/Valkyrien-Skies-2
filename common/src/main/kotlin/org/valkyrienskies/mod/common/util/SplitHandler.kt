@@ -14,7 +14,7 @@ import org.valkyrienskies.core.util.datastructures.DenseBlockPosSet
 import org.valkyrienskies.mod.common.assembly.ShipAssembler
 import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.dimensionId
-import org.valkyrienskies.mod.common.getShipObjectManagingPos
+import org.valkyrienskies.mod.common.getLoadedShipManagingPos
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.util.logger
 
@@ -47,7 +47,7 @@ class SplitHandler(private val doEdges: Boolean, private val doCorners: Boolean)
 
     fun split(level: Level, x: Int, y: Int, z: Int, newBlockState: BlockState) {
         if (level is ServerLevel) {
-            val loadedShip : LoadedServerShip? = level.getShipObjectManagingPos(x shr 4, z shr 4)
+            val loadedShip : LoadedServerShip? = level.getLoadedShipManagingPos(x shr 4, z shr 4)
             if ((loadedShip != null && loadedShip.getAttachment<SplittingDisablerAttachment>()?.canSplit() != false) || (loadedShip == null && VSGameConfig.SERVER.enableWorldSplitting)) {
                 if (newBlockState.isAir) {
                     val blockNeighbors: HashSet<BlockPos> = HashSet()

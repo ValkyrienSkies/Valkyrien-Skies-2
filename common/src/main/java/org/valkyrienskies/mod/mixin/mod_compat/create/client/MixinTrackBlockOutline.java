@@ -1,84 +1,59 @@
 package org.valkyrienskies.mod.mixin.mod_compat.create.client;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.sugar.Local;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.simibubi.create.content.trains.track.BezierConnection;
 import com.simibubi.create.content.trains.track.TrackBlockOutline;
-import com.simibubi.create.foundation.utility.RaycastHelper;
-import java.util.List;
+import com.simibubi.create.content.trains.track.TrackBlockOutline.BezierPointSelection;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.HitResult.Type;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import org.joml.Quaternionf;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
+import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(TrackBlockOutline.class)
 public class MixinTrackBlockOutline {
-    @Unique
-    private static boolean isShip = false;
-    @Unique
-    private static BlockPos shipBlockPos;
+    @Shadow
+    public static BezierPointSelection result;
 
-    @Inject(
-            method = "pickCurves",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/client/player/LocalPlayer;getEyePosition(F)Lnet/minecraft/world/phys/Vec3;"
-            ), locals = LocalCapture.CAPTURE_FAILHARD
+    @WrapOperation(
+        method = "pickCurves",
+        at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/trains/track/BezierConnection;getBounds()Lnet/minecraft/world/phys/AABB;")
     )
-    private static void stuff(final CallbackInfo ci, final Minecraft mc) {
-        if (mc.hitResult != null && mc.level != null && mc.hitResult.getType() == Type.BLOCK) {
-            shipBlockPos = ((BlockHitResult) mc.hitResult).getBlockPos();
-
-            final List<Vector3d>
-                    ships = VSGameUtilsKt.transformToNearbyShipsAndWorld(mc.level, shipBlockPos.getX(), shipBlockPos.getY(),
-                    shipBlockPos.getZ(), 10);
-            isShip = !ships.isEmpty();
-        }
+    private static AABB getBoundsToWorld(BezierConnection connection, Operation<AABB> original) {
+        return VSGameUtilsKt.transformAabbToWorld(Minecraft.getInstance().level, original.call(connection));
     }
 
-    @Redirect(
-            method = "pickCurves()V",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/client/player/LocalPlayer;getEyePosition(F)Lnet/minecraft/world/phys/Vec3;"
-            )
+    @WrapOperation(
+        method = "pickCurves",
+        at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/trains/track/BezierConnection;getPosition(D)Lnet/minecraft/world/phys/Vec3;")
     )
-    private static Vec3 redirectedOrigin(final LocalPlayer instance, final float v) {
-        final Vec3 eyePos = instance.getEyePosition(v);
-        if (isShip) {
-            final List<Vector3d>
-                    ships = VSGameUtilsKt.transformToNearbyShipsAndWorld(instance.level(), eyePos.x, eyePos.y, eyePos.z, 10);
-            if (ships.isEmpty()) {
-                return eyePos;
-            }
-            final Vector3d tempVec = ships.get(0);
-            return new Vec3(tempVec.x, tempVec.y, tempVec.z);
-        } else {
-            return eyePos;
-        }
+    private static Vec3 getPositionToWorld(final BezierConnection connection, final double t, final Operation<Vec3> original){
+        return VSGameUtilsKt.toWorldCoordinates(Minecraft.getInstance().level, original.call(connection, t));
     }
 
-    @Redirect(
-            method = "pickCurves()V",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lcom/simibubi/create/foundation/utility/RaycastHelper;getTraceTarget(Lnet/minecraft/world/entity/player/Player;DLnet/minecraft/world/phys/Vec3;)Lnet/minecraft/world/phys/Vec3;"
-            )
+    @WrapOperation(
+        // Two mixin targets. One for 6.0.7+, one for 6.0.6.
+        // If we just use "drawCustomBlockSelection" it's not smart enough to match both
+        method = {"Lcom/simibubi/create/content/trains/track/TrackBlockOutline;drawCustomBlockSelection(Lnet/minecraft/client/renderer/LevelRenderer;Lnet/minecraft/client/Camera;Lnet/minecraft/world/phys/HitResult;FLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;)Z", "Lcom/simibubi/create/content/trains/track/TrackBlockOutline;drawCustomBlockSelection(Lnet/minecraftforge/client/event/RenderHighlightEvent$Block;)V"},
+        at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/PoseStack;translate(DDD)V")
     )
-    private static Vec3 redirectedTarget(final Player playerIn, final double range, final Vec3 origin) {
-        if (isShip) {
-            return new Vec3(shipBlockPos.getX(), shipBlockPos.getY(), shipBlockPos.getZ());
-        } else {
-            return RaycastHelper.getTraceTarget(playerIn, range, origin);
-        }
+    private static void wrapSelection(PoseStack instance, double d, double e, double f, Operation<Void> original,
+        @Local BlockPos hitPos, @Local Vec3 camPos){
+        ClientShip ship = VSClientGameUtils.getClientShip(hitPos.getX(), hitPos.getY(), hitPos.getZ());
+        if(ship != null) {
+            Vector3d posInWorld = ship.getRenderTransform().getShipToWorld().transformPosition(hitPos.getX(), hitPos.getY(), hitPos.getZ(), new Vector3d());
+            instance.translate(posInWorld.x - camPos.x, posInWorld.y - camPos.y, posInWorld.z - camPos.z);
+            instance.mulPose(ship.getRenderTransform().getShipToWorld().getNormalizedRotation(new Quaternionf()));
+        } else original.call(instance, d, e, f);
     }
 }

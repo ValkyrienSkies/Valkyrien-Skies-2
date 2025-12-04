@@ -15,7 +15,7 @@ import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.internal.collision.VsiConvexPolygonc
 import org.valkyrienskies.core.util.extend
 import org.valkyrienskies.mod.common.dimensionId
-import org.valkyrienskies.mod.common.getShipObjectManagingPos
+import org.valkyrienskies.mod.common.getLoadedShipManagingPos
 import org.valkyrienskies.mod.common.getShipsIntersecting
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.vsCore
@@ -95,7 +95,7 @@ object EntityShipCollisionUtils {
             movement.toJOML(), entityBoundingBox.toJOML(), stepHeight, collidingShipPolygons
         )
         if (entity != null) {
-            val standingOnShip = entity.level().getShipObjectManagingPos(entity.onPos)
+            val standingOnShip = entity.level().getLoadedShipManagingPos(entity.onPos)
             if (shipCollidingWith != null && standingOnShip != null && standingOnShip.id == shipCollidingWith) {
                 // Update the [IEntity.lastShipStoodOn]
                 (entity as IEntityDraggingInformationProvider).draggingInformation.lastShipStoodOn = shipCollidingWith

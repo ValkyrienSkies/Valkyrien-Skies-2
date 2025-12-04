@@ -29,8 +29,8 @@ import org.valkyrienskies.core.internal.world.VsiPlayer;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.MinecraftPlayer;
 
-
-@Mixin(ChunkMap.class)
+//This should trump Very Many Players, which is set to 1050
+@Mixin(value = ChunkMap.class, priority = 1100)
 public abstract class MixinChunkMap {
 
     @Shadow

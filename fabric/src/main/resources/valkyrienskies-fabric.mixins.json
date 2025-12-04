@@ -6,7 +6,6 @@
   "mixins": [
     "compat.create.MixinBlockBreakingKineticTileEntity",
     "compat.create.MixinControlledContraptionEntity",
-    "compat.sodium.MixinRenderSectionManager",
     "entity.MixinContainerEntity",
     "feature.explosions.ClipContextMixin",
     "feature.shipyard_entities.MixinPersistentEntitySectionManager",
@@ -22,6 +21,7 @@
     "compat.create.client.MixinContraptionHandlerClient",
     "compat.create.client.MixinCullingBlockEntityIterator",
     "compat.create.client.MixinSuperGlueSelectionHandler",
+    "compat.sodium.MixinSodiumWorldRenderer",
     "feature.duplicate_keybindings.KeyMappingAccessor",
     "feature.duplicate_keybindings.MixinKeyMapping"
   ],

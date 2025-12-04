@@ -25,6 +25,7 @@ import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import org.jetbrains.annotations.Nullable;
@@ -43,7 +44,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
-import org.valkyrienskies.core.api.ships.LoadedShip;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.core.util.datastructures.BlockPos2ByteOpenHashMap;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
@@ -202,6 +202,14 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererDuck, Le
                 }
             });
         }
+    }
+
+    @WrapOperation(
+        method = "*",
+        at = @At(value = "INVOKE", target = "Lnet/minecraft/core/BlockPos;distSqr(Lnet/minecraft/core/Vec3i;)D")
+    )
+    private double distToShips(BlockPos from, Vec3i to, Operation<Double> distSqr){
+        return VSGameUtilsKt.squaredDistanceBetweenInclShips(level, from.getCenter(), Vec3.atCenterOf(to), distSqr);
     }
 
     @Inject(

@@ -1,48 +1,48 @@
 {
   "variants": {
-    "facing=down,lit=false": {
+    "facing=down,powered=false": {
       "model": "valkyrienskies:block/test_thruster",
       "x": 90
     },
-    "facing=east,lit=false": {
+    "facing=east,powered=false": {
       "model": "valkyrienskies:block/test_thruster",
       "y": 90
     },
-    "facing=north,lit=false": {
+    "facing=north,powered=false": {
       "model": "valkyrienskies:block/test_thruster"
     },
-    "facing=south,lit=false": {
+    "facing=south,powered=false": {
       "model": "valkyrienskies:block/test_thruster",
       "y": 180
     },
-    "facing=up,lit=false": {
+    "facing=up,powered=false": {
       "model": "valkyrienskies:block/test_thruster",
       "x": 270
     },
-    "facing=west,lit=false": {
+    "facing=west,powered=false": {
       "model": "valkyrienskies:block/test_thruster",
       "y": 270
     },
-    "facing=down,lit=true": {
+    "facing=down,powered=true": {
       "model": "valkyrienskies:block/test_thruster",
       "x": 90
     },
-    "facing=east,lit=true": {
+    "facing=east,powered=true": {
       "model": "valkyrienskies:block/test_thruster",
       "y": 90
     },
-    "facing=north,lit=true": {
+    "facing=north,powered=true": {
       "model": "valkyrienskies:block/test_thruster"
     },
-    "facing=south,lit=true": {
+    "facing=south,powered=true": {
       "model": "valkyrienskies:block/test_thruster",
       "y": 180
     },
-    "facing=up,lit=true": {
+    "facing=up,powered=true": {
       "model": "valkyrienskies:block/test_thruster",
       "x": 270
     },
-    "facing=west,lit=true": {
+    "facing=west,powered=true": {
       "model": "valkyrienskies:block/test_thruster",
       "y": 270
     }

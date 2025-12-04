@@ -10,7 +10,10 @@ import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
+import org.valkyrienskies.core.api.ships.LoadedServerShip
+import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.api.ships.Wing
 import org.valkyrienskies.core.api.ships.WingManager
 import org.valkyrienskies.core.internal.world.chunks.VsiBlockType
@@ -109,9 +112,9 @@ object BlockStateInfo {
 
         // region Inject wings
         if (level is ServerLevel) {
-            val loadedShip = level.getShipObjectManagingPos(x shr 4, z shr 4)
+            val loadedShip = level.getLoadedShipManagingPos(x shr 4, z shr 4)
             if (loadedShip != null) {
-                val wingManager = loadedShip.getAttachment(WingManager::class.java)!!
+                val wingManager = loadedShip.wingManager!!
                 val wasOldBlockWing = prevBlockState.block is WingBlock
                 val newBlockStateBlock = newBlockState.block
                 val newWing: Wing? =
@@ -137,5 +140,77 @@ object BlockStateInfo {
         if (ValkyrienSkiesMod.vsCore.hooks.enableConnectivity) {
             ValkyrienSkiesMod.splitHandler.split(level, x, y, z, newBlockState)
         }
+    }
+
+    /**
+     * Recalculates mass of a ship. Useful if block masses were changed in a data pack, game config or in VS itself.
+     * The ship is made static before any of its physical properties are modified and only returns to original status
+     * if recalculation has been successfully completed.
+     *
+     * NOTE: There is no distinction between masses that were added by placing real blocks and those that were
+     * added "manually" by calling onSetBlock. Some addons implement custom masses in this hacky way. Before
+     * triggering a remass, these custom masses should be removed.
+     *
+     * @return false if mass recalculation has failed for any reason
+     */
+    // TODO: Add a way to manage custom masses in VS itself so that they are trackable on VS side for remassing and so.
+    fun remassShip(level: Level, ship: Ship): Boolean {
+        if (level !is ServerLevel) return false
+        if (ship !is LoadedServerShip) return false
+        if (!::SORTED_REGISTRY.isInitialized) return false
+
+        val aabb = ship.shipAABB
+        if (aabb == null) return false
+
+        // Last thing we want is something physical happening to our zero-mass ship.
+        val wasStatic = ship.isStatic
+        ship.isStatic = true
+
+        val (airBlockMass, airBlockType) = get(Blocks.AIR.defaultBlockState()) ?: return false
+        // Before we rebuild masses, make sure we have a ship with zero mass and no colliders.
+        // Blocks are replaced with air (in physical representation of a ship, no Minecraft blockstates are changed)
+        BlockPos.betweenClosed(
+            aabb.minX(), aabb.minY(), aabb.minZ(), aabb.maxX(), aabb.maxY(),
+            aabb.maxZ()
+        ).forEach {
+            val state = level.getBlockState(it)
+            val (realBlockMass, realBlockType) = get(state) ?: return false
+            if (realBlockType != airBlockType) {
+                level.shipObjectWorld.onSetBlock(
+                    it.x, it.y, it.z,
+                    level.dimensionId,
+                    realBlockType, airBlockType,
+                    0.0, 0.0 // Making the block air without modifying ship mass, CoM and MoI
+                )
+            }
+        }
+        // Zeroing out ship mass.
+        // This looks wrong but is actually fine. As per ShipInertiaDataImpl, if the resulting ship mass is zero,
+        // its CoM and MoI are explicitly zeroed out, bypassing any calculations. Any blockPos inside ship AABB is good
+        // for this purpose.
+        level.shipObjectWorld.onSetBlock(
+            aabb.minX(), aabb.minY(), aabb.minZ(), level.dimensionId,
+            airBlockType, airBlockType,
+            ship.inertiaData.mass, 0.0
+        )
+        // Readding all blocks to ship's physics representation (mass, block type)
+        BlockPos.betweenClosed(
+            aabb.minX(), aabb.minY(), aabb.minZ(), aabb.maxX(), aabb.maxY(),
+            aabb.maxZ()
+        ).forEach {
+            val state = level.getBlockState(it)
+            val (realBlockMass, realBlockType) = get(state) ?: return false
+            if (realBlockType != airBlockType) {
+                level.shipObjectWorld.onSetBlock(
+                    it.x, it.y, it.z,
+                    level.dimensionId,
+                    airBlockType, realBlockType,
+                    0.0, realBlockMass
+                )
+            }
+        }
+        ship.isStatic = wasStatic
+
+        return true
     }
 }

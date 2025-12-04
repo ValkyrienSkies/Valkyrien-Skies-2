@@ -94,6 +94,9 @@ subprojects {
             }
         }
         if (!project.block_external_repositories) {
+            maven {
+                url = "https://maven.realrobotix.me/master/"
+            }
             mavenLocal()
             maven {
                 name = "ParchmentMC"
@@ -154,6 +157,12 @@ subprojects {
                 }
             }
         }
+
+        //Mixin squared
+        maven { url = "https://maven.bawnorton.com/releases" }
+
+        // Mirror
+        maven { url = "https://maven.enjarai.dev/mirrors" }
     }
 
     // Remove automatically added repos

@@ -11,7 +11,6 @@ import com.simibubi.create.content.contraptions.StructureTransform;
 import com.simibubi.create.content.contraptions.actors.harvester.HarvesterMovementBehaviour;
 import com.simibubi.create.content.contraptions.behaviour.MovementContext;
 import com.simibubi.create.content.kinetics.base.BlockBreakingMovementBehaviour;
-import com.simibubi.create.content.kinetics.deployer.DeployerMovementBehaviour;
 import net.createmod.catnip.math.VecHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.syncher.EntityDataAccessor;
@@ -95,7 +94,7 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
     @Nullable
     @Override
     public ShipMountedToData provideShipMountedToData(@NotNull final Entity passenger, @Nullable final Float partialTicks) {
-        final LoadedShip shipObjectEntityMountedTo = VSGameUtilsKt.getShipObjectManagingPos(passenger.level(), toJOML(this.position()));
+        final LoadedShip shipObjectEntityMountedTo = VSGameUtilsKt.getLoadedShipManagingPos(passenger.level(), toJOML(this.position()));
         if (shipObjectEntityMountedTo == null) return null;
 
         Vec3 transformedPos = this.getPassengerPosition(passenger, partialTicks == null ? 1 : partialTicks);
@@ -157,7 +156,7 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
 
     @Unique
     private boolean vs$shouldMod(final MovementBehaviour moveBehaviour) {
-        return ((moveBehaviour instanceof BlockBreakingMovementBehaviour) || (moveBehaviour instanceof HarvesterMovementBehaviour) || (moveBehaviour instanceof DeployerMovementBehaviour));
+        return ((moveBehaviour instanceof BlockBreakingMovementBehaviour) || (moveBehaviour instanceof HarvesterMovementBehaviour));
     }
 
     @Unique
@@ -302,12 +301,12 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
         final AbstractContraptionEntity thisAsAbstractContraptionEntity = AbstractContraptionEntity.class.cast(this);
         final Level level = thisAsAbstractContraptionEntity.level();
         if (wingGroupId != -1 && level instanceof final ServerLevel serverLevel) {
-            final LoadedServerShip ship = VSGameUtilsKt.getShipObjectManagingPos(serverLevel,
+            final LoadedServerShip ship = VSGameUtilsKt.getLoadedShipManagingPos(serverLevel,
                 VectorConversionsMCKt.toJOML(thisAsAbstractContraptionEntity.position()));
             if (ship != null) {
                 try {
                     // This can happen if a player moves a train contraption from ship to world using a wrench
-                    ship.getAttachment(WingManager.class)
+                    ship.getWingManager()
                         .setWingGroupTransform(wingGroupId, computeContraptionWingTransform());
                 } catch (final Exception e) {
                     // I'm not sure why, but this fails sometimes. For now just catch the error and print it

@@ -20,11 +20,13 @@ class EntityDraggingInformation {
             changedShipLastTick = field != value && field != null && value != null
             field = value
         }
+    var lastShipStoodOnServerWriteOnly : ShipId? = null
     var ticksSinceStoodOnShip: Int = 0
         set(value) {
             shouldImpulseMovement = false
             field = value
         }
+    var ticksSinceLastServerPacket: Int = 0
     var ignoreNextGroundStand = false
     var mountedToEntity: Boolean = false
 

@@ -38,6 +38,9 @@ curseforge {
                     }
                 }
                 displayName = fileDisplayName
+
+                changelogType = "markdown"
+                changelog = rootProject.file('changelog.md')
             }
         }
     }
@@ -53,6 +56,7 @@ modrinth {
     projectId = project.modrinth_project_id
     versionType = vsReleaseType
     versionName = fileDisplayName
+    changelog = rootProject.file('changelog.md').text
     versionNumber = "${project.minecraft_version}-${project.loader_platform.toLowerCase()}-${project.version}"
     uploadFile = remapJar
     gameVersions = [project.minecraft_version]

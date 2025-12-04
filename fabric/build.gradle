@@ -41,7 +41,7 @@ dependencies {
     include(modImplementation("me.shedaniel.cloth:cloth-config-fabric:${cloth_config_version}"))
 
     modCompileOnly("maven.modrinth:create-utilities:${create_utilities_version}")
-    //modImplementation("maven.modrinth:sodium:${sodium_version}")
+    modCompileOnly("maven.modrinth:sodium:${sodium_version}")
     // Disable indium until we update sodium to newer versions
     //modRuntimeOnly("maven.modrinth:indium:${indium_version}")
     modImplementation("maven.modrinth:modmenu:${modmenu_version}")
@@ -77,13 +77,16 @@ dependencies {
     // CC Restitched
     modCompileOnly("maven.modrinth:cc-tweaked:${cc_tweaked_version}")
 
+    //Very many players
+    modImplementation("curse.maven:vmp-fabric-552542:4754074")
+
     // EMF compat
     //todo: fix
     modCompileOnly("curse.maven:entity-model-features-844662:5696901")
     modCompileOnly("curse.maven:entity-texture-features-fabric-568563:5697084")
 
     // Create compat
-    modImplementation("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}") {
+    modImplementation("com.simibubi.create:create-fabric:${create_fabric_version}") {
         exclude group: 'com.github.AlphaMode', module: 'fakeconfigtoml'
     }
     modImplementation("com.tterrag.registrate_fabric:Registrate:${registrate_version}")

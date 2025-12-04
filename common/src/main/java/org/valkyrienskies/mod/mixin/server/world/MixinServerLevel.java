@@ -144,7 +144,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
         final Operation<Boolean> closerToCenterThan) {
 
         final ServerLevel self = ServerLevel.class.cast(this);
-        final LoadedServerShip ship = VSGameUtilsKt.getShipObjectManagingPos(
+        final LoadedServerShip ship = VSGameUtilsKt.getLoadedShipManagingPos(
             self, (int) particle.x() >> 4, (int) particle.z() >> 4);
 
         if (ship == null) {
@@ -185,7 +185,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                     // region Detect wings
                     final ServerLevel thisAsLevel = ServerLevel.class.cast(this);
                     final LoadedServerShip
-                        ship = VSGameUtilsKt.getShipObjectManagingPos(thisAsLevel, chunkX, chunkZ);
+                        ship = VSGameUtilsKt.getLoadedShipManagingPos(thisAsLevel, chunkX, chunkZ);
                     if (ship != null) {
                         // Sussy cast, but I don't want to expose this directly through the vs-core api
                         final WingManager shipAsWingManager = ship.getWingManager();

@@ -8,7 +8,6 @@ import net.minecraft.world.entity.projectile.AbstractArrow
 import net.minecraft.world.entity.projectile.AbstractHurtingProjectile
 import net.minecraft.world.entity.projectile.Projectile
 import net.minecraft.world.entity.projectile.ProjectileUtil
-import org.joml.Quaternionf
 import org.joml.Vector3d
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.Ship
@@ -16,6 +15,8 @@ import org.valkyrienskies.core.util.component1
 import org.valkyrienskies.core.util.component2
 import org.valkyrienskies.core.util.component3
 import org.valkyrienskies.mod.common.applyShipVelocity
+import org.valkyrienskies.mod.common.getShipManaging
+import org.valkyrienskies.mod.common.isBlockInShipyard
 import org.valkyrienskies.mod.common.toWorldCoordinates
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider
 import org.valkyrienskies.mod.common.util.toJOML
@@ -43,6 +44,10 @@ object WorldEntityHandler : VSEntityHandler {
     }
 
     override fun positionSetFromVehicle(self: Entity, vehicle: Entity, x: Double, y: Double, z: Double) {
+        if (self.level().isBlockInShipyard(vehicle.position()) && vehicle.getShipManaging() == null) {
+            self.stopRiding()
+            return
+        }
         val (wx, wy, wz) = self.level().toWorldCoordinates(x, y, z)
         self.setPos(wx, wy, wz)
     }
@@ -88,7 +93,7 @@ object WorldEntityHandler : VSEntityHandler {
         } else {
             direction = ship.shipToWorld.transformDirection(entity.lookAngle.toJOML())
             yaw = atan2(-direction.x, direction.z)
-            pitch = atan2(direction.y, sqrt((direction.x * direction.x) + (direction.z * direction.z)))
+            pitch = atan2(-direction.y, sqrt((direction.x * direction.x) + (direction.z * direction.z)))
         }
 
         entity.yRot = (yaw * (180 / Math.PI)).toFloat()

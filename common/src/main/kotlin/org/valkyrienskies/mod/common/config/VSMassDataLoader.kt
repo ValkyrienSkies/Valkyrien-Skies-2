@@ -56,11 +56,6 @@ object MassDatapackResolver : BlockStateInfoProvider {
 
     val loader get() = VSMassDataLoader()
 
-    private const val DEFAULT_ELASTICITY = 0.3
-    private const val DEFAULT_FRICTION = 0.5
-    // Unused for now, placeholder for later
-    private const val DEFAULT_HARDNESS = 1.0
-
     override val priority: Int
         get() = 100
 
@@ -145,8 +140,8 @@ object MassDatapackResolver : BlockStateInfoProvider {
             val tag = element.asJsonObject["tag"]?.asString
             val weight = element.asJsonObject["mass"]?.asDouble
                 ?: throw IllegalArgumentException("No mass in file $origin")
-            val friction = element.asJsonObject["friction"]?.asDouble ?: DEFAULT_FRICTION
-            val elasticity = element.asJsonObject["elasticity"]?.asDouble ?: DEFAULT_ELASTICITY
+            val friction = element.asJsonObject["friction"]?.asDouble ?: VSGameConfig.SERVER.defaultBlockFriction
+            val elasticity = element.asJsonObject["elasticity"]?.asDouble ?: VSGameConfig.SERVER.defaultBlockElasticity
 
             val priority = element.asJsonObject["priority"]?.asInt ?: decideDefaultPriority(origin)
 
@@ -356,9 +351,9 @@ object MassDatapackResolver : BlockStateInfoProvider {
                     // Create new solid block state
                     val solidState = vsCore.newSolidStateBuilder()
                         .shape(collisionShape)
-                        .elasticity(vsBlockStateInfo?.elasticity ?: DEFAULT_ELASTICITY)
-                        .friction(vsBlockStateInfo?.friction ?: DEFAULT_FRICTION)
-                        .hardness(DEFAULT_HARDNESS)
+                        .elasticity(vsBlockStateInfo?.elasticity ?: VSGameConfig.SERVER.defaultBlockElasticity)
+                        .friction(vsBlockStateInfo?.friction ?: VSGameConfig.SERVER.defaultBlockFriction)
+                        .hardness(VSGameConfig.SERVER.defaultBlockHardness) // Unused for now, placeholder for later
                         .build()
 
                     val fluidState = if (!blockState.fluidState.isEmpty) {
@@ -374,11 +369,10 @@ object MassDatapackResolver : BlockStateInfoProvider {
             }
             mcBlockStateToVs[blockState] = vsBlockState
         }
-
+        runRegisterBlockStateEvent()
         registeredBlocks = true
     }
 
-    // TODO implement
     private fun runRegisterBlockStateEvent() {
         val event = RegisterBlockStateEventImpl()
         ValkyrienSkiesMod.api.registerBlockStateEvent.emit(event)

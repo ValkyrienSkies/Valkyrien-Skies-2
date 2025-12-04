@@ -46,7 +46,7 @@ public abstract class MixinParticle {
     )
     public void checkShipCoords(final ClientLevel world, final double x, final double y, final double z,
         final CallbackInfo ci) {
-        final ClientShip ship = VSGameUtilsKt.getShipObjectManagingPos(world, (int) x >> 4, (int) z >> 4);
+        final ClientShip ship = VSGameUtilsKt.getLoadedShipManagingPos(world, (int) x >> 4, (int) z >> 4);
         if (ship == null) {
             return;
         }
@@ -76,7 +76,7 @@ public abstract class MixinParticle {
         final double velocityX,
         final double velocityY, final double velocityZ, final CallbackInfo ci) {
 
-        final ClientShip ship = VSGameUtilsKt.getShipObjectManagingPos(world, (int) x >> 4, (int) z >> 4);
+        final ClientShip ship = VSGameUtilsKt.getLoadedShipManagingPos(world, (int) x >> 4, (int) z >> 4);
         if (ship == null) {
             return;
         }

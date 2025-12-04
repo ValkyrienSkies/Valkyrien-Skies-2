@@ -54,6 +54,9 @@ public abstract class MixinAirFlowParticle extends SimpleAnimatedParticle {
 
     @Unique
     private Ship getShip() {
+        // Edge case on loading the fan too quickly, source is null
+        if (source == null) return null;
+
         if (source instanceof IExtendedAirCurrentSource se)
             return se.getShip();
         else if (source.getAirCurrentWorld() != null)

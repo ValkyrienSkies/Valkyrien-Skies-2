@@ -17,15 +17,15 @@ import org.valkyrienskies.mod.compat.LoadedMods.FlywheelVersion
 object FlywheelCompat {
 
     fun initClient() {
-        if (LoadedMods.flywheel != FlywheelVersion.V1) return
-
-        vsCore.shipLoadEventClient.on { e ->
-            VisualizationHelper.queueAdd(ShipEffect(e.ship, Minecraft.getInstance().level!!))
-        }
-
-        vsCore.shipUnloadEventClient.on { e ->
-            VisualizationHelper.queueRemove(ShipEffect.getShipEffect(e.ship))
-        }
+        // if (LoadedMods.flywheel != FlywheelVersion.V1) return
+        //
+        // vsCore.shipLoadEventClient.on { e ->
+        //     VisualizationHelper.queueAdd(ShipEffect(e.ship, Minecraft.getInstance().level!!))
+        // }
+        //
+        // vsCore.shipUnloadEventClient.on { e ->
+        //     VisualizationHelper.queueRemove(ShipEffect.getShipEffect(e.ship))
+        // }
     }
 
     fun validate(blockEntity: BlockEntity, level: Level): Boolean {
@@ -51,18 +51,6 @@ object FlywheelCompat {
     fun onLightUpdate(ship: ClientShip, pos: SectionPos) {
         var manager = (ShipEffect.getShipEffect(ship).manager) as VisualManagerImpl<*, *>?
         manager?.onLightUpdate(pos.asLong())
-    }
-
-    fun addBlockEntity(blockEntity: BlockEntity) {
-        getEffect(blockEntity)?.queueAddition(blockEntity)
-    }
-
-    fun removeBlockEntity(blockEntity: BlockEntity) {
-        getEffect(blockEntity)?.queueRemoval(blockEntity)
-    }
-
-    fun updateBlockEntity(blockEntity: BlockEntity) {
-        getEffect(blockEntity)?.queueUpdate(blockEntity)
     }
 
     lateinit var viewProjection: Matrix4f

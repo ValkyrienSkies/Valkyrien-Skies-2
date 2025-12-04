@@ -4,6 +4,7 @@ import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.LiquidBlock
 import net.minecraft.world.level.block.state.BlockState
 import org.valkyrienskies.core.internal.world.chunks.VsiBlockType
+import org.valkyrienskies.mod.common.config.VSGameConfig
 
 object DefaultBlockStateInfoProvider : BlockStateInfoProvider {
     override val priority: Int
@@ -11,8 +12,7 @@ object DefaultBlockStateInfoProvider : BlockStateInfoProvider {
 
     override fun getBlockStateMass(blockState: BlockState): Double {
         if (blockState.isAir) return 0.0
-        // By default make blocks weight 1000 kg
-        return 100.0
+        return VSGameConfig.SERVER.defaultBlockMass
     }
 
     override fun getBlockStateType(blockState: BlockState): VsiBlockType {

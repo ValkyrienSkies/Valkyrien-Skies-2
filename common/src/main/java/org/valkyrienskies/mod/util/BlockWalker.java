@@ -8,6 +8,7 @@ import net.minecraft.world.phys.Vec3;
  * Modified from vanilla BlockGetter.traverseBlocks
  */
 public final class BlockWalker {
+    private static final double EPS = 1e-7;
     private BlockPos.MutableBlockPos nextValue = new BlockPos.MutableBlockPos();
     private final int xStep;
     private final int yStep;
@@ -34,15 +35,15 @@ public final class BlockWalker {
             return;
         }
 
-        final double afterToX = Mth.lerp(-1e-7, to.x, from.x);
-        final double afterToY = Mth.lerp(-1e-7, to.y, from.y);
-        final double afterToZ = Mth.lerp(-1e-7, to.z, from.z);
-        final double beforeFromX = Mth.lerp(-1e-7, from.x, to.x);
-        final double beforeFromY = Mth.lerp(-1e-7, from.y, to.y);
-        final double beforeFromZ = Mth.lerp(-1e-7, from.z, to.z);
-        this.x = Mth.floor(beforeFromX);
-        this.y = Mth.floor(beforeFromY);
-        this.z = Mth.floor(beforeFromZ);
+        final double afterToX = from.x < to.x ? to.x + EPS : to.x < from.x ? to.x - EPS : to.x;
+        final double afterToY = from.y < to.y ? to.y + EPS : to.y < from.y ? to.y - EPS : to.y;
+        final double afterToZ = from.z < to.z ? to.z + EPS : to.z < from.z ? to.z - EPS : to.z;
+        final double beforeFromX = from.x < to.x ? from.x - EPS : to.x < from.x ? from.x + EPS : from.x;
+        final double beforeFromY = from.y < to.y ? from.y - EPS : to.y < from.y ? from.y + EPS : from.y;
+        final double beforeFromZ = from.z < to.z ? from.z - EPS : to.z < from.z ? from.z + EPS : from.z;
+        this.x = Mth.floor(from.x);
+        this.y = Mth.floor(from.y);
+        this.z = Mth.floor(from.z);
         final double xDiff = afterToX - beforeFromX;
         final double yDiff = afterToY - beforeFromY;
         final double zDiff = afterToZ - beforeFromZ;

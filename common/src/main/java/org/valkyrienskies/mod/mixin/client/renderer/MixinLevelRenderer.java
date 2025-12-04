@@ -64,7 +64,7 @@ public abstract class MixinLevelRenderer {
         final Entity entity, final double camX, final double camY, final double camZ, final BlockPos blockPos,
         final BlockState blockState, final CallbackInfo ci) {
         ci.cancel();
-        final ClientShip ship = VSGameUtilsKt.getShipObjectManagingPos(level, blockPos);
+        final ClientShip ship = VSGameUtilsKt.getLoadedShipManagingPos(level, blockPos);
         if (ship != null) {
             matrixStack.pushPose();
             transformRenderWithShip(ship.getRenderTransform(), matrixStack, blockPos, camX, camY, camZ);
@@ -95,7 +95,7 @@ public abstract class MixinLevelRenderer {
         final VertexConsumer vertexConsumer, final Operation<Void> renderBreakingTexture) {
 
 
-        final ClientShip ship = VSGameUtilsKt.getShipObjectManagingPos(level, blockPos);
+        final ClientShip ship = VSGameUtilsKt.getLoadedShipManagingPos(level, blockPos);
         if (ship != null) {
             // Remove the vanilla render transform
             matrixStack.popPose();

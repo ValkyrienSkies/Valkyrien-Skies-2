@@ -76,7 +76,7 @@ public abstract class MixinExplosion {
                     if (result.getType() == Type.BLOCK) {
                         final BlockPos blockPos = result.getBlockPos();
                         final ServerShip ship =
-                            (ServerShip) VSGameUtilsKt.getShipObjectManagingPos(this.level, blockPos);
+                            (ServerShip) VSGameUtilsKt.getLoadedShipManagingPos(this.level, blockPos);
                         if (ship != null) {
                             final Vector3d forceVector =
                                 VectorConversionsMCKt.toJOML(
@@ -133,9 +133,33 @@ public abstract class MixinExplosion {
         isModifyingExplosion = false;
     }
 
+    @WrapOperation(
+        method = "getSeenPercent",
+        at = @At(
+            value = "NEW",
+            target = "Lnet/minecraft/world/level/ClipContext;"
+        )
+    )
+    private static ClipContext getSeenPercent$ClipContext$new(
+        Vec3 from,
+        Vec3 to,
+        final ClipContext.Block blockClip,
+        final ClipContext.Fluid fluidClip,
+        final Entity source,
+        final Operation<ClipContext> operation
+    ) {
+        if (source != null) {
+            final Level level = source.level();
+            from = VSGameUtilsKt.toWorldCoordinates(level, from);
+            to = VSGameUtilsKt.toWorldCoordinates(level, to);
+        }
+        return operation.call(from, to, blockClip, fluidClip, source);
+    }
+
     // Don't raytrace the shipyard
     // getEntities already gives shipyard entities
-    @WrapOperation(method = "explode",
+    @WrapOperation(
+        method = "explode",
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/world/level/Level;getEntities(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/phys/AABB;)Ljava/util/List;"

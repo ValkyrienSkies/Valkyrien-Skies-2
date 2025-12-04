@@ -1,9 +1,11 @@
 package org.valkyrienskies.mod.mixin.feature.shipyard_entities;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import java.util.Set;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Entity.RemovalReason;
@@ -156,7 +158,7 @@ public abstract class MixinEntity {
     @Inject(method = "setRemoved", at = @At("HEAD"))
     private void preSetRemoved(final RemovalReason removalReason, final CallbackInfo ci) {
         final Entity thisAsEntity = Entity.class.cast(this);
-        final LoadedShip ship = VSGameUtilsKt.getShipObjectManagingPos(thisAsEntity.level(),
+        final LoadedShip ship = VSGameUtilsKt.getLoadedShipManagingPos(thisAsEntity.level(),
             VectorConversionsMCKt.toJOML(thisAsEntity.position()));
         if (ship != null) {
             VSEntityManager.INSTANCE.getHandler(thisAsEntity).entityRemovedFromShipyard(thisAsEntity, ship);
@@ -203,4 +205,17 @@ public abstract class MixinEntity {
 
     @Shadow
     public Level level;
+
+    /**
+     * @author Bunting_chj
+     * @reason Allow entities to be loaded to shipyard
+     */
+    @WrapMethod(
+        method = "load"
+    )
+    private void loadShipyard(CompoundTag compoundTag, Operation<Void> original){
+        isModifyingSetPos = true;
+        original.call(compoundTag);
+        isModifyingSetPos = false;
+    }
 }

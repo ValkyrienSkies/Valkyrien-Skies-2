@@ -28,7 +28,7 @@ import org.valkyrienskies.mod.common.entity.ShipMountedToData;
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
-@Mixin(EntityRenderDispatcher.class)
+@Mixin(value = EntityRenderDispatcher.class, priority = 500)
 public class MixinEntityRenderDispatcher {
 
     @Shadow
@@ -83,7 +83,7 @@ public class MixinEntityRenderDispatcher {
             matrixStack.translate(offset.x, offset.y, offset.z);
         } else {
             final ClientShip ship =
-                (ClientShip) VSGameUtilsKt.getShipObjectManagingPos(entity.level(), entity.blockPosition());
+                (ClientShip) VSGameUtilsKt.getLoadedShipManagingPos(entity.level(), entity.blockPosition());
             if (ship != null) {
                 // Remove the earlier applied translation
                 matrixStack.popPose();
@@ -95,7 +95,7 @@ public class MixinEntityRenderDispatcher {
                         buffer, packedLight);
             } else if (entity.isPassenger()) {
                 final ClientShip vehicleShip =
-                    (ClientShip) VSGameUtilsKt.getShipObjectManagingPos(entity.level(),
+                    (ClientShip) VSGameUtilsKt.getLoadedShipManagingPos(entity.level(),
                         entity.getVehicle().blockPosition());
                 // If the entity is a passenger and that vehicle is in ship space
                 if (vehicleShip != null) {
@@ -116,7 +116,7 @@ public class MixinEntityRenderDispatcher {
 
         if (!returns) {
             final ClientShip ship =
-                (ClientShip) VSGameUtilsKt.getShipObjectManagingPos(entity.level(), entity.blockPosition());
+                (ClientShip) VSGameUtilsKt.getLoadedShipManagingPos(entity.level(), entity.blockPosition());
             if (ship != null) {
                 AABB aABB = entity.getBoundingBoxForCulling().inflate(0.5);
                 if (aABB.hasNaN() || aABB.getSize() == 0.0) {

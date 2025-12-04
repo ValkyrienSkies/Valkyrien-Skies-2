@@ -237,8 +237,11 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         final EntityDraggingInformation entityDraggingInformation = getDraggingInformation();
 
         if (level != null && level.isClientSide && tickCount > 1) { //baseTick sets the firstTick false, use tickCount instead.
-            final Ship ship = VSGameUtilsKt.getShipObjectManagingPos(level, getOnPos());
+            final Ship ship = VSGameUtilsKt.getLoadedShipManagingPos(level, getOnPos());
             if (ship != null) {
+                if (entityDraggingInformation.getLastShipStoodOnServerWriteOnly() == null) {
+                    return;
+                }
                 entityDraggingInformation.setLastShipStoodOn(ship.getId());
                 getIndirectPassengers().forEach(entity -> {
                     final EntityDraggingInformation passengerDraggingInformation =
@@ -250,6 +253,9 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
                     if (entityDraggingInformation.getIgnoreNextGroundStand()) {
                         entityDraggingInformation.setIgnoreNextGroundStand(false);
                     } else {
+                        if (entityDraggingInformation.getLastShipStoodOnServerWriteOnly() != null) {
+                            return;
+                        }
                         entityDraggingInformation.setLastShipStoodOn(null);
                         getIndirectPassengers().forEach(entity -> {
                             final EntityDraggingInformation passengerDraggingInformation =

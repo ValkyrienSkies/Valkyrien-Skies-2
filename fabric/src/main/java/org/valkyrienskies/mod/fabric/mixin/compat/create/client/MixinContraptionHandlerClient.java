@@ -21,7 +21,7 @@ public class MixinContraptionHandlerClient {
     private static Vec3 wrapRayTraceContraptionToLocalVector(
         final AbstractContraptionEntity instance, final Vec3 localVec, final float partialTicks, final Operation<Vec3> toLocalVector
     ) {
-        final ClientShip clientShip = VSGameUtilsKt.getShipObjectManagingPos(Minecraft.getInstance().level, instance.getAnchorVec().x, instance.getAnchorVec().y, instance.getAnchorVec().z);
+        final ClientShip clientShip = VSGameUtilsKt.getLoadedShipManagingPos(Minecraft.getInstance().level, instance.getAnchorVec().x, instance.getAnchorVec().y, instance.getAnchorVec().z);
         if (clientShip != null) {
             final Vec3 newLocalVec = VectorConversionsMCKt.toMinecraft(clientShip.getRenderTransform().getWorldToShip().transformPosition(VectorConversionsMCKt.toJOML(localVec)));
             return toLocalVector.call(instance, newLocalVec, partialTicks);
@@ -32,7 +32,7 @@ public class MixinContraptionHandlerClient {
     // Fixes raytracing contraptions on ships
     @WrapOperation(method = "rightClickingOnContraptionsGetsHandledLocally", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/contraptions/AbstractContraptionEntity;getBoundingBox()Lnet/minecraft/world/phys/AABB;"))
     private static AABB wrapRightClickingOnContraptionsGetsHandledLocallyGetBoundingBox(final AbstractContraptionEntity instance, final Operation<AABB> getBoundingBox) {
-        final ClientShip clientShip = VSGameUtilsKt.getShipObjectManagingPos(Minecraft.getInstance().level, instance.getAnchorVec().x, instance.getAnchorVec().y, instance.getAnchorVec().z);
+        final ClientShip clientShip = VSGameUtilsKt.getLoadedShipManagingPos(Minecraft.getInstance().level, instance.getAnchorVec().x, instance.getAnchorVec().y, instance.getAnchorVec().z);
         if (clientShip != null) {
             final AABB original = getBoundingBox.call(instance);
             final AABBdc modified = VectorConversionsMCKt.toJOML(original).transform(clientShip.getRenderTransform().getShipToWorld());

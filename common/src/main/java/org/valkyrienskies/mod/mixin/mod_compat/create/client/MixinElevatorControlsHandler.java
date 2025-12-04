@@ -18,7 +18,7 @@ public class MixinElevatorControlsHandler {
     // Fixes raytracing contraptions on ships
     @WrapOperation(method = "onScroll", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/contraptions/AbstractContraptionEntity;getBoundingBox()Lnet/minecraft/world/phys/AABB;"))
     private static AABB onScrollGetBoundingBox(final AbstractContraptionEntity instance, final Operation<AABB> getBoundingBox) {
-        final ClientShip clientShip = VSGameUtilsKt.getShipObjectManagingPos(Minecraft.getInstance().level, instance.getAnchorVec().x, instance.getAnchorVec().y, instance.getAnchorVec().z);
+        final ClientShip clientShip = VSGameUtilsKt.getLoadedShipManagingPos(Minecraft.getInstance().level, instance.getAnchorVec().x, instance.getAnchorVec().y, instance.getAnchorVec().z);
         if (clientShip != null) {
             final AABB original = getBoundingBox.call(instance);
             final AABBdc modified = VectorConversionsMCKt.toJOML(original).transform(clientShip.getRenderTransform().getShipToWorld());

@@ -24,7 +24,7 @@ public class MixinSmartBlockEntityRenderer {
     private <T extends SmartBlockEntity> void revertShipRotation(PoseStack matrices, double d, double e, double f,
         Operation<Void> original, @Local(argsOnly = true) T entity) {
         original.call(matrices, d, e, f);
-        final ClientShip ship = (ClientShip) VSGameUtilsKt.getShipObjectManagingPos(entity.getLevel(), entity.getBlockPos());
+        final ClientShip ship = (ClientShip) VSGameUtilsKt.getLoadedShipManagingPos(entity.getLevel(), entity.getBlockPos());
         if (ship != null) {
             matrices.mulPose(new Quaternionf(ship.getRenderTransform().getShipToWorldRotation()).invert());
         }

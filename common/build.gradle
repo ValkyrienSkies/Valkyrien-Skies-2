@@ -49,7 +49,7 @@ dependencies {
 
     //Common create compat,
     //We just use a version from a platform and hope the classes exist on both versions and mixins apply correctly
-    modCompileOnly("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}")
+    modCompileOnly("com.simibubi.create:create-fabric:${create_fabric_version}")
         { exclude group: 'com.github.AlphaMode', module: 'fakeconfigtoml' }
     modCompileOnly("net.fabricmc.fabric-api:fabric-api:${fabric_api_version}")
     modCompileOnly("curse.maven:vanillin-965702:6446557")
@@ -58,6 +58,9 @@ dependencies {
     modImplementation("teamreborn:energy:${energy_version}")
     // modCompileOnly("io.github.fabricators_of_create:Porting-Lib:${port_lib_version}+${minecraft_version}")
 
+    //Very many players
+    modCompileOnly("curse.maven:vmp-fabric-552542:4754074")
+
     //Bluemap fabric 1.20.1
     modCompileOnly("curse.maven:bluemap-406463:5555756")
 
@@ -65,6 +68,8 @@ dependencies {
     modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:q_misc_util:${immptl_version}")
     modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:build:${immptl_version}")
     modCompileOnly("com.rbasamoyai:createbigcannons:${createbigcannons_version}+mc.${minecraft_version}-fabric") { transitive = false }
+    modCompileOnly("com.rbasamoyai:createbigcannons:${createbigcannons_version}+mc.${minecraft_version}-forge") { transitive = false }
+    modCompileOnly("com.rbasamoyai:ritchiesprojectilelib:2.1.0+mc.${minecraft_version}-forge")
 }
 
 architectury {
