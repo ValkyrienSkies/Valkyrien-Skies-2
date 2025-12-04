@@ -1,0 +1,43 @@
+{
+  "itemGroup.valkyrienSkies": "Valkyrien Skies",
+
+  "tooltip.valkyrienskies.mass": "Massa",
+  "category.valkyrienskies.driving": "Pilotagem",
+  "key.valkyrienskies.ship_cruise": "Cruzeiro",
+  "key.valkyrienskies.ship_down": "Descer",
+
+  "block.valkyrienskies.test_chair": "Cadeira de Debug",
+  "block.valkyrienskies.test_hinge": "Dobradiça de Debug",
+  "block.valkyrienskies.test_flap": "Flap de Debug",
+  "block.valkyrienskies.test_wing": "Asa de Debug",
+  "block.valkyrienskies.test_sphere": "Esfera de Debug",
+  "block.valkyrienskies.test_thruster": "Propulsor de Debug",
+
+  "item.valkyrienskies.ship_creator": "Criador de Navios",
+  "item.valkyrienskies.ship_creator_smaller": "Mini Criador de Navios",
+  "item.valkyrienskies.ship_assembler": "Montador de Navios",
+  "item.valkyrienskies.area_assembler": "Montador de Área",
+  "item.valkyrienskies.connection_checker": "Verificador de Conexões",
+  "item.valkyrienskies.physics_entity_creator": "Criador de Entidade Física",
+
+  "entity.valkyrienskies.vs_physics_entity": "Entidade Física",
+
+  "argument.valkyrienskies.ship.no_found": "Navio não encontrado",
+  "argument.valkyrienskies.ship.multiple_found": "Múltiplos navios encontrados",
+
+  "command.valkyrienskies.delete.success": "%d navios deletados!",
+  "command.valkyrienskies.remass.success": "Massas recalculadas para %d navios!",
+  "command.valkyrienskies.remass.fail": "Falha ao recalcular a massa para %s!",
+  "command.valkyrienskies.set_static.success": "Definidos %d navios como is-static=%s!",
+  "command.valkyrienskies.teleport.success": "Teleportados %d navios para %s!",
+  "command.valkyrienskies.teleport.multiple_ship_success": "%d navios teleportados!",
+  "command.valkyrienskies.mc_teleport.can_only_teleport_to_one_ship": "Só é possível teleportar para exatamente 1 navio",
+  "command.valkyrienskies.get_ship.success": "Navio encontrado com slug %s",
+  "command.valkyrienskies.get_ship.fail": "Nenhum navio encontrado",
+  "command.valkyrienskies.get_ship.only_usable_by_entities": "/vs get-ship só pode ser executado por entidades!",
+  "command.valkyrienskies.scale.success": "%d navios escalados!",
+
+  "misc.valkyrienskies.create.deployer_working_mode": "Comportamento do Navio",
+  "misc.valkyrienskies.create.deployer_working_mode.original": "Colocar no navio atual",
+  "misc.valkyrienskies.create.deployer_working_mode.in_world": "Colocar no mundo"
+}
