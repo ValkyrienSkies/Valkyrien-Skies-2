@@ -1,0 +1,40 @@
+{
+  "itemGroup.valkyrienSkies": "Valkyrien Skies",
+
+  "tooltip.valkyrienskies.mass": "द्रव्यमान",
+  "category.valkyrienskies.driving": "ड्राइविंग",
+  "key.valkyrienskies.ship_cruise": "क्रूज़",
+  "key.valkyrienskies.ship_down": "नीचे उतरें",
+
+  "block.valkyrienskies.test_chair": "डिबग कुर्सी",
+  "block.valkyrienskies.test_hinge": "डिबग हिंग",
+  "block.valkyrienskies.test_flap": "डिबग फ्लैप",
+  "block.valkyrienskies.test_wing": "डिबग विंग",
+  "block.valkyrienskies.test_sphere": "डिबग गोला",
+  "block.valkyrienskies.test_thruster": "डिबग थ्रस्टर",
+  "item.valkyrienskies.ship_creator": "जहाज़ निर्माता",
+  "item.valkyrienskies.ship_creator_smaller": "मिनी जहाज़ निर्माता",
+  "item.valkyrienskies.ship_assembler": "जहाज़ असेंबलर",
+  "item.valkyrienskies.area_assembler": "क्षेत्र असेंबलर",
+  "item.valkyrienskies.connection_checker": "कनेक्शन चेकर",
+  "item.valkyrienskies.physics_entity_creator": "भौतिक इकाई निर्माता",
+  "entity.valkyrienskies.vs_physics_entity": "भौतिक इकाई",
+
+  "argument.valkyrienskies.ship.no_found": "जहाज़ नहीं मिला",
+  "argument.valkyrienskies.ship.multiple_found": "कई जहाज़ मिले",
+  "command.valkyrienskies.delete.success": "%d जहाज़ हटाए गए!",
+  "command.valkyrienskies.remass.success": "%d जहाज़ों के द्रव्यमान पुनर्गणित किए गए!",
+  "command.valkyrienskies.remass.fail": "%s के लिए द्रव्यमान पुनर्गणित करने में विफल!",
+  "command.valkyrienskies.set_static.success": "%d जहाज़ों को is-static=%s पर सेट किया गया!",
+  "command.valkyrienskies.teleport.success": "%d जहाज़ों को %s पर टेलीपोर्ट किया गया!",
+  "command.valkyrienskies.teleport.multiple_ship_success": "%d जहाज़ टेलीपोर्ट किए गए!",
+  "command.valkyrienskies.mc_teleport.can_only_teleport_to_one_ship": "सिर्फ ठीक 1 जहाज़ पर ही टेलीपोर्ट किया जा सकता है",
+  "command.valkyrienskies.get_ship.success": "स्लग %s वाला जहाज़ मिला",
+  "command.valkyrienskies.get_ship.fail": "कोई जहाज़ नहीं मिला",
+  "command.valkyrienskies.get_ship.only_usable_by_entities": "/vs get-ship केवल इकाइयों द्वारा ही चलाया जा सकता है!",
+  "command.valkyrienskies.scale.success": "%d जहाज़ स्केल किए गए!",
+
+  "misc.valkyrienskies.create.deployer_working_mode": "जहाज़ व्यवहार",
+  "misc.valkyrienskies.create.deployer_working_mode.original": "वर्तमान जहाज़ पर रखें",
+  "misc.valkyrienskies.create.deployer_working_mode.in_world": "दुनिया में रखें"
+}
