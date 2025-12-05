@@ -46,8 +46,18 @@ public abstract class StructureTemplateMixin {
     @Unique
     public void vs$fillFromVoxelSet(@NotNull Level level, @NotNull Iterable<BlockPos> voxels,
         @NotNull List<ServerShip> shipsBeingCopied, @NotNull Map<Long, Vector3d> centerPositions) {
-        BlockPos minCorner = new BlockPos(999999999, 999999999, 999999999);
-        BlockPos maxCorner = new BlockPos(-999999999, -999999999, -999999999);
+        var minCorner = new BlockPos.MutableBlockPos(999999999, 999999999, 999999999);
+        var maxCorner = new BlockPos.MutableBlockPos(-999999999, -999999999, -999999999);
+
+        for (BlockPos pos: voxels) {
+            minCorner.setX(Math.min(minCorner.getX(), pos.getX()));
+            minCorner.setY(Math.min(minCorner.getY(), pos.getY()));
+            minCorner.setZ(Math.min(minCorner.getZ(), pos.getZ()));
+
+            maxCorner.setX(Math.max(maxCorner.getX(), pos.getX()));
+            maxCorner.setY(Math.max(maxCorner.getY(), pos.getY()));
+            maxCorner.setZ(Math.max(maxCorner.getZ(), pos.getZ()));
+        }
 
         List<StructureTemplate.StructureBlockInfo> basicBlocks = Lists.newArrayList();
         List<StructureTemplate.StructureBlockInfo> blocksWithEntities = Lists.newArrayList();
