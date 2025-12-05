@@ -46,26 +46,15 @@ public abstract class StructureTemplateMixin implements StructureTemplateFillFro
 
     @Unique
     public void vs$fillFromVoxelSet(@NotNull Level level, @NotNull Iterable<BlockPos> voxels,
-        @NotNull List<ServerShip> shipsBeingCopied, @NotNull Map<Long, Vector3d> centerPositions) {
-        var minCorner = new BlockPos.MutableBlockPos(999999999, 999999999, 999999999);
-        var maxCorner = new BlockPos.MutableBlockPos(-999999999, -999999999, -999999999);
-
-        for (BlockPos pos: voxels) {
-            minCorner.setX(Math.min(minCorner.getX(), pos.getX()));
-            minCorner.setY(Math.min(minCorner.getY(), pos.getY()));
-            minCorner.setZ(Math.min(minCorner.getZ(), pos.getZ()));
-
-            maxCorner.setX(Math.max(maxCorner.getX(), pos.getX()));
-            maxCorner.setY(Math.max(maxCorner.getY(), pos.getY()));
-            maxCorner.setZ(Math.max(maxCorner.getZ(), pos.getZ()));
-        }
+        @NotNull List<ServerShip> shipsBeingCopied, @NotNull Map<Long, Vector3d> centerPositions,
+        @NotNull BlockPos min, @NotNull BlockPos max) {
 
         List<StructureTemplate.StructureBlockInfo> basicBlocks = Lists.newArrayList();
         List<StructureTemplate.StructureBlockInfo> blocksWithEntities = Lists.newArrayList();
         List<StructureTemplate.StructureBlockInfo> specialBlocks = Lists.newArrayList();
 
         for (BlockPos currentWorldPos : voxels) {
-            BlockPos relativePos = currentWorldPos.subtract(minCorner);
+            BlockPos relativePos = currentWorldPos.subtract(min);
             BlockState blockState = level.getBlockState(currentWorldPos);
 
             BlockEntity blockEntity = level.getBlockEntity(currentWorldPos);
@@ -89,9 +78,9 @@ public abstract class StructureTemplateMixin implements StructureTemplateFillFro
         }
 
         this.size = new Vec3i(
-            maxCorner.getX() - minCorner.getX() + 1,
-            maxCorner.getY() - minCorner.getY() + 1,
-            maxCorner.getZ() - minCorner.getZ() + 1
+            max.getX() - min.getX() + 1,
+            max.getY() - min.getY() + 1,
+            max.getZ() - min.getZ() + 1
         );
 
         List<StructureTemplate.StructureBlockInfo> finalBlockList = buildInfoList(basicBlocks, blocksWithEntities, specialBlocks);

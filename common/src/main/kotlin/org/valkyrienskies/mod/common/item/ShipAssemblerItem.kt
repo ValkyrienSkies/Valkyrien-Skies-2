@@ -30,9 +30,7 @@ class ShipAssemblerItem(properties: Properties) : Item(properties) {
                     }
                 }
 
-                // val shipData = createNewShipWithBlocks(pos, set, level)
-                // fixme
-                ShipAssembler.assembleToShip(level, set.toList().map { it.toBlockPos() }, 1.0)
+                ShipAssembler.assembleToShip(level, set.map { it.toBlockPos() }.toSet(), 1.0)
                 ctx.player?.sendSystemMessage(Component.literal("SHIPIFIED!"))
             }
         }

@@ -10,5 +10,7 @@ import org.valkyrienskies.core.api.ships.ServerShip;
 
 public interface StructureTemplateFillFromVoxelSet {
     void vs$fillFromVoxelSet(@NotNull Level level, @NotNull Iterable<BlockPos> voxels,
-        @NotNull List<ServerShip> shipsBeingCopied, @NotNull Map<Long, Vector3d> centerPositions);
+        @NotNull List<ServerShip> shipsBeingCopied, @NotNull Map<Long, Vector3d> centerPositions,
+        @NotNull BlockPos min, @NotNull BlockPos max
+        );
 }

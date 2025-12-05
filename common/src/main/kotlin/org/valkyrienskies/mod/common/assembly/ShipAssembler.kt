@@ -16,9 +16,6 @@ import org.joml.Vector3i
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.ships.properties.ShipId
 import org.valkyrienskies.core.api.util.GameTickOnly
-import org.valkyrienskies.mod.api.toBlockPos
-import org.valkyrienskies.mod.api.toMinecraft
-import org.valkyrienskies.mod.api.transformDirection
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.shipObjectWorld
@@ -46,8 +43,8 @@ object ShipAssembler {
 
     @JvmStatic
     fun findMinAndMax(blocks: Iterable<BlockPos>): Pair<BlockPos, BlockPos> {
-        var minCorner = BlockPos.MutableBlockPos(999999999, 999999999, 999999999)
-        var maxCorner = BlockPos.MutableBlockPos(-999999999, -999999999, -999999999)
+        var minCorner = BlockPos.MutableBlockPos(Int.MAX_VALUE, Int.MAX_VALUE, Int.MAX_VALUE)
+        var maxCorner = BlockPos.MutableBlockPos(Int.MIN_VALUE, Int.MIN_VALUE, Int.MIN_VALUE)
 
         for (pos in blocks) {
             minCorner.x = Math.min(minCorner.x, pos.x)
@@ -62,19 +59,23 @@ object ShipAssembler {
         return minCorner to maxCorner
     }
 
+    @JvmStatic
     @OptIn(GameTickOnly::class)
-    fun assembleToShip(level: ServerLevel, blocks: Iterable<BlockPos>, scale: Double): ServerShip {
+    fun assembleToShip(level: ServerLevel, blocks: Set<BlockPos>, scale: Double): ServerShip {
+        if (blocks.isEmpty()) throw RuntimeException("Empty set of blocks")
+
         // val eventData = mutableMapOf<String, CompoundTag>()
         // VSAssemblyEvents.onCopy.emit(VSAssemblyEvents.OnCopy(level, TODO(), TODO(), eventData))
 
-        val (oldMin, oldMax) = findMinAndMax(blocks).let { it.first.toJOMLD() to it.second.toJOMLD() }
+        val (minB, maxB) = findMinAndMax(blocks)
+        val oldMin = minB.toJOMLD()
+        val oldMax = maxB.toJOMLD()
+        //offset to center from corner of structure
         val offset = oldMax.get(Vector3d())
             .sub(oldMin)
             .add(1.0, 1.0, 1.0)
             .div(2.0)
-
-        val oldCenter = offset.get(Vector3d())
-            .add(oldMin)
+        val oldCenter = offset.get(Vector3d()).add(oldMin)
 
         val oldShip = level.getShipManagingPos(oldCenter)
         val oldId = oldShip?.id ?: -1L
@@ -87,7 +88,8 @@ object ShipAssembler {
         template.`vs$fillFromVoxelSet`(
             level, blocks,
             oldShip?.let { listOf(it) } ?: emptyList(),
-            SingleItemMap(oldId, oldCenter, Vector3d())
+            SingleItemMap(oldId, oldCenter, Vector3d()),
+            minB, maxB
         )
 
         val air = Blocks.AIR.defaultBlockState()
@@ -95,15 +97,11 @@ object ShipAssembler {
 
         val ship = level.shipObjectWorld.createNewShipAtBlock(Vector3i(worldOldCenter, RoundingMode.FLOOR), false, scale * oldScale, level.dimensionId)
         ship.isStatic = true
-        val centerOfShip = ship.chunkClaim.getCenterBlockCoordinates(level.yRange, Vector3i())
+        val centerOfPlot = ship.chunkClaim.getCenterBlockCoordinates(level.yRange, Vector3i())
 
-        val structureSettings = StructurePlaceSettings().addProcessor(
-            ICopyableProcessor(
-                SingleItemMap(oldId, ship.id, -1) {it},
-                SingleItemMap(oldId, Pair(oldCenter, Vector3d(centerOfShip)), Pair(Vector3d(), Vector3d()))
-            )
-        )
-        val cornerOfShip = Vector3d(centerOfShip)
+        //structure template builds from a corner, so offset center of plot so that structure's center and center of
+        //plot roughly align
+        val cornerOfShip = Vector3d(centerOfPlot)
             .sub(offset)
             .ceil()
             .let { BlockPos(
@@ -112,7 +110,14 @@ object ShipAssembler {
                 it.z.toInt(),
             ) }
 
-        val actualCenter = cornerOfShip.toJOMLD().add(offset)
+        val centerOfShip = cornerOfShip.toJOMLD().add(offset)
+
+        val structureSettings = StructurePlaceSettings().addProcessor(
+            ICopyableProcessor(
+                SingleItemMap(oldId, ship.id, -1) {it},
+                SingleItemMap(oldId, Pair(oldCenter, Vector3d(centerOfShip)), Pair(Vector3d(), Vector3d()))
+            )
+        )
 
         structureSettings.rotationPivot = cornerOfShip
 
@@ -121,12 +126,12 @@ object ShipAssembler {
         template.placeInWorld(level, cornerOfShip, cornerOfShip, structureSettings, level.random, 2)
         // VSAssemblyEvents.onPasteAfterBlocksAreLoaded.emit(VSAssemblyEvents.OnPasteAfterBlocksAreLoaded(level, TODO(), TODO(), eventData))
 
-        //from old ShipAssembler
         val shipPos = oldCenter.get(Vector3d()).add(0.5, 0.5, 0.5, Vector3d())
 
+        //teleport fn uses COM as center of ship, so it calculates such offset that centerOfShip will be "center" instead
         val posOffset =
             Vector3d(ship.inertiaData.centerOfMass)
-            .sub(Vector3d(actualCenter))
+            .sub(Vector3d(centerOfShip))
             .let { oldShip?.shipToWorld?.transformDirection(it) ?: it }
 
         level.shipObjectWorld.teleportShip(ship, vsCore.newShipTeleportData(
