@@ -93,7 +93,7 @@ object ShipAssembler {
         )
 
         val air = Blocks.AIR.defaultBlockState()
-        for (pos in blocks) {level.setBlockAndUpdate(pos, air)}
+        for (pos in blocks) {level.removeBlock(pos, true)}
 
         val ship = level.shipObjectWorld.createNewShipAtBlock(Vector3i(worldOldCenter, RoundingMode.FLOOR), false, scale * oldScale, level.dimensionId)
         ship.isStatic = true

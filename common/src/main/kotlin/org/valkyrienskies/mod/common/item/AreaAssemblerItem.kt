@@ -54,7 +54,7 @@ class AreaAssemblerItem(
                         val lowerCorner = BlockPos(blockAABB.minX, blockAABB.minY, blockAABB.minZ)
                         val upperCorner = BlockPos(blockAABB.maxX, blockAABB.maxY, blockAABB.maxZ)
 
-                        ShipAssembler.assembleToShip(level, BlockPos.betweenClosed(lowerCorner, upperCorner).toSet(), 1.0)
+                        ShipAssembler.assembleToShip(level, BlockPos.betweenClosed(lowerCorner, upperCorner).map{ it.mutable() }.toSet(), 1.0)
                     }
                     item.tag!!.remove("firstPosX")
                     item.tag!!.remove("firstPosY")

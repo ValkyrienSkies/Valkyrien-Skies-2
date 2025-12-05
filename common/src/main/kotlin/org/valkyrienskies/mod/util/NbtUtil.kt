@@ -1,6 +1,8 @@
 package org.valkyrienskies.mod.util
 
 import net.minecraft.nbt.CompoundTag
+import org.joml.Quaterniond
+import org.joml.Quaterniondc
 import org.joml.Vector3d
 import org.joml.Vector3dc
 
@@ -13,9 +15,9 @@ fun CompoundTag.putVector3d(prefix: String, vector3d: Vector3dc) =
 
 fun CompoundTag.getVector3d(prefix: String): Vector3d? {
     return if (
-        !prefix.contains(prefix + "x") ||
-        !prefix.contains(prefix + "y") ||
-        !prefix.contains(prefix + "z")
+        !this.contains(prefix + "x") ||
+        !this.contains(prefix + "y") ||
+        !this.contains(prefix + "z")
     ) {
         null
     } else {
@@ -26,3 +28,26 @@ fun CompoundTag.getVector3d(prefix: String): Vector3d? {
         )
     }
 }
+
+fun CompoundTag.putQuatd(prefix: String, quat: Quaterniondc) =
+    with(quat) {
+        putDouble(prefix + "x", x())
+        putDouble(prefix + "y", y())
+        putDouble(prefix + "z", z())
+        putDouble(prefix + "w", w())
+    }
+
+fun CompoundTag.getQuatd(prefix: String): Quaterniond? =
+    if (
+        this.contains(prefix + "x") &&
+        this.contains(prefix + "y") &&
+        this.contains(prefix + "z") &&
+        this.contains(prefix + "w")
+    ) {
+        Quaterniond(
+            getDouble(prefix + "x"),
+            getDouble(prefix + "y"),
+            getDouble(prefix + "z"),
+            getDouble(prefix + "w"),
+        )
+    } else null
