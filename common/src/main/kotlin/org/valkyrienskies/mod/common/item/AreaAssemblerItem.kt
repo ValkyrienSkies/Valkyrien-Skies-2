@@ -12,6 +12,7 @@ import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate
 import org.joml.primitives.AABBi
+import org.valkyrienskies.mod.common.assembly.ShipAssembler
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getLoadedShipManagingPos
 import org.valkyrienskies.mod.common.shipObjectWorld
@@ -55,12 +56,13 @@ class AreaAssemblerItem(
                         val lowerCorner = BlockPos(blockAABB.minX, blockAABB.minY, blockAABB.minZ)
                         val upperCorner = BlockPos(blockAABB.maxX, blockAABB.maxY, blockAABB.maxZ)
 
-                        val structure = StructureTemplate()
-                        structure.fillFromWorld(level, lowerCorner, upperCorner.offset(1, 1, 1).subtract(lowerCorner), true, Blocks.STRUCTURE_VOID)
+                        // val structure = StructureTemplate()
+                        // structure.fillFromWorld(level, lowerCorner, upperCorner.offset(1, 1, 1).subtract(lowerCorner), true, Blocks.STRUCTURE_VOID)
 
-                        ctx.player?.sendSystemMessage(Component.literal("Assembling (${blockPos.x}, ${blockPos.y}, ${blockPos.z}) to ($firstPosX, $firstPosY, $firstPosZ)!"))
+                        // ctx.player?.sendSystemMessage(Component.literal("Assembling (${blockPos.x}, ${blockPos.y}, ${blockPos.z}) to ($firstPosX, $firstPosY, $firstPosZ)!"))
                         // createNewShipWithStructure(lowerCorner, upperCorner, structure, level)
                         // fixme
+                        ShipAssembler.assembleToShip(level, BlockPos.betweenClosed(lowerCorner, upperCorner), 1.0)
                     }
                     item.tag!!.remove("firstPosX")
                     item.tag!!.remove("firstPosY")

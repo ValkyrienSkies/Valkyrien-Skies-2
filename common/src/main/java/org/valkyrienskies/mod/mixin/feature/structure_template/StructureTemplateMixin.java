@@ -20,9 +20,10 @@ import org.spongepowered.asm.mixin.Unique;
 import java.util.List;
 import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.mod.common.assembly.ICopyableBlock;
+import org.valkyrienskies.mod.util.StructureTemplateFillFromVoxelSet;
 
 @Mixin(value = StructureTemplate.class)
-public abstract class StructureTemplateMixin {
+public abstract class StructureTemplateMixin implements StructureTemplateFillFromVoxelSet {
 
     @Shadow
     private Vec3i size;
