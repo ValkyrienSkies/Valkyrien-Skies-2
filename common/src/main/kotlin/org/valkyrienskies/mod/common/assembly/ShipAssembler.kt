@@ -1,10 +1,10 @@
 package org.valkyrienskies.mod.common.assembly
 
 import net.minecraft.core.BlockPos
+import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.LevelReader
 import net.minecraft.world.level.ServerLevelAccessor
-import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessor
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessorType
@@ -64,8 +64,7 @@ object ShipAssembler {
     fun assembleToShip(level: ServerLevel, blocks: Set<BlockPos>, scale: Double): ServerShip {
         if (blocks.isEmpty()) throw RuntimeException("Empty set of blocks")
 
-        // val eventData = mutableMapOf<String, CompoundTag>()
-        // VSAssemblyEvents.onCopy.emit(VSAssemblyEvents.OnCopy(level, TODO(), TODO(), eventData))
+        val eventData = mutableMapOf<String, CompoundTag>()
 
         val (minB, maxB) = findMinAndMax(blocks)
         val oldMin = minB.toJOMLD()
@@ -83,6 +82,8 @@ object ShipAssembler {
 
         val worldOldCenter = oldShip?.shipToWorld?.transformPosition(oldCenter.get(Vector3d())) ?: oldCenter.get(Vector3d())
 
+        VSAssemblyEvents.beforeCopy.emit(VSAssemblyEvents.BeforeCopy(level, oldMin, oldMax, oldCenter, oldShip, blocks, eventData))
+
         val template = StructureTemplate()
         template as StructureTemplateFillFromVoxelSet
         template.`vs$fillFromVoxelSet`(
@@ -92,12 +93,11 @@ object ShipAssembler {
             minB, maxB
         )
 
-        val air = Blocks.AIR.defaultBlockState()
         for (pos in blocks) {level.removeBlock(pos, true)}
 
-        val ship = level.shipObjectWorld.createNewShipAtBlock(Vector3i(worldOldCenter, RoundingMode.FLOOR), false, scale * oldScale, level.dimensionId)
-        ship.isStatic = true
-        val centerOfPlot = ship.chunkClaim.getCenterBlockCoordinates(level.yRange, Vector3i())
+        val newShip = level.shipObjectWorld.createNewShipAtBlock(Vector3i(worldOldCenter, RoundingMode.FLOOR), false, scale * oldScale, level.dimensionId)
+        newShip.isStatic = true
+        val centerOfPlot = newShip.chunkClaim.getCenterBlockCoordinates(level.yRange, Vector3i())
 
         //structure template builds from a corner, so offset center of plot so that structure's center and center of
         //plot roughly align
@@ -114,36 +114,36 @@ object ShipAssembler {
 
         val structureSettings = StructurePlaceSettings().addProcessor(
             ICopyableProcessor(
-                SingleItemMap(oldId, ship.id, -1) {it},
+                SingleItemMap(oldId, newShip.id, -1) {it},
                 SingleItemMap(oldId, Pair(oldCenter, Vector3d(centerOfShip)), Pair(Vector3d(), Vector3d()))
             )
         )
 
         structureSettings.rotationPivot = cornerOfShip
 
-        // VSAssemblyEvents.onPasteBeforeBlocksAreLoaded.emit(VSAssemblyEvents.OnPasteBeforeBlocksAreCopied(level, TODO(), Pair(TODO(), ship), TODO(), eventData))
+        VSAssemblyEvents.onPasteBeforeBlocksAreLoaded.emit(VSAssemblyEvents.OnPasteBeforeBlocksAreLoaded(level, oldShip, newShip, Pair(oldCenter, centerOfShip), eventData))
         //TODO what is 2?
         template.placeInWorld(level, cornerOfShip, cornerOfShip, structureSettings, level.random, 2)
-        // VSAssemblyEvents.onPasteAfterBlocksAreLoaded.emit(VSAssemblyEvents.OnPasteAfterBlocksAreLoaded(level, TODO(), TODO(), eventData))
+        VSAssemblyEvents.onPasteAfterBlocksAreLoaded.emit(VSAssemblyEvents.OnPasteAfterBlocksAreLoaded(level, oldShip, newShip, Pair(oldCenter, centerOfShip), eventData))
 
         val shipPos = oldCenter.get(Vector3d()).add(0.5, 0.5, 0.5, Vector3d())
 
         //teleport fn uses COM as center of ship, so it calculates such offset that centerOfShip will be "center" instead
         val posOffset =
-            Vector3d(ship.inertiaData.centerOfMass)
+            Vector3d(newShip.inertiaData.centerOfMass)
             .sub(Vector3d(centerOfShip))
             .let { oldShip?.shipToWorld?.transformDirection(it) ?: it }
 
-        level.shipObjectWorld.teleportShip(ship, vsCore.newShipTeleportData(
+        level.shipObjectWorld.teleportShip(newShip, vsCore.newShipTeleportData(
             (oldShip?.shipToWorld?.transformPosition(shipPos) ?: shipPos).add(posOffset),
             oldShip?.transform?.shipToWorldRotation ?: Quaterniond(),
             oldShip?.velocity ?: Vector3d(),
             oldShip?.angularVelocity ?: Vector3d(),
         ))
 
-        ship.isStatic = false
+        newShip.isStatic = false
 
-        return ship
+        return newShip
     }
 
     class ICopyableProcessor(
