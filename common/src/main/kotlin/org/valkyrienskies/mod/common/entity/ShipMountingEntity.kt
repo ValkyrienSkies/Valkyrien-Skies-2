@@ -145,6 +145,7 @@ open class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level
         val up = isPressed(opts.keyJump, GLFW.GLFW_GAMEPAD_BUTTON_A)
         val down = isPressed(VSKeyBindings.shipDown.get(), GLFW.GLFW_GAMEPAD_BUTTON_B)
         val cruise = isPressed(VSKeyBindings.shipCruise.get(), GLFW.GLFW_GAMEPAD_BUTTON_Y)
+        // can't believe no one uses this
         val sprint = this.controllingPassenger?.isSprinting == true
 
         val leftStickX = if (selectedGamepad >= 0) state.axes(GLFW.GLFW_GAMEPAD_AXIS_LEFT_X) else 0f
@@ -162,8 +163,8 @@ open class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level
 
         val magnitude = impulse.length()
         if (magnitude > 1f) impulse.mul(1f / magnitude)
-        
-        vsCore.simplePacketNetworking.run {
+
+        with(vsCore.simplePacketNetworking) {
             PacketPlayerDriving(impulse, sprint, cruise).sendToServer()
         }
     }
