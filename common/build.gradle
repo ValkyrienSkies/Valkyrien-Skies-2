@@ -37,6 +37,9 @@ dependencies {
     // Dynmap
     modCompileOnly("maven.modrinth:dynmap:${dynmap_version}")
 
+    // Hexcasting
+    modCompileOnly("at.petra-k.hexcasting:hexcasting-common-$minecraft_version:$hexcasting_version")
+
     // Common create compat,
     // We just use a version from a platform and hope the classes exist on both versions and mixins apply correctly
     // EMF compat

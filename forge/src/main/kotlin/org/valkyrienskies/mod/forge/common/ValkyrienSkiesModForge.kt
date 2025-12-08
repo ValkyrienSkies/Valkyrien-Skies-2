@@ -60,6 +60,7 @@ import org.valkyrienskies.mod.compat.LoadedMods
 import org.valkyrienskies.mod.compat.flywheel.ShipEmbeddingManager
 import org.valkyrienskies.mod.forge.compat.ForgeDynmapHandler
 import org.valkyrienskies.mod.compat.flywheel.FlywheelCompat
+import org.valkyrienskies.mod.compat.hexcasting.HexcastingCompat
 import org.valkyrienskies.mod.forge.compat.epicfight.FracturedBlockStateInfoProvider
 
 @Mod(MOD_ID)
@@ -209,6 +210,9 @@ class ValkyrienSkiesModForge {
             ForgeDynmapHandler().register()
             forgeBus.addListener(ForgeDynmapHandler::tick)
         }
+
+        if (ModList.get().isLoaded("hexcasting"))
+            HexcastingCompat.register()
     }
 
     private fun onConfigLoad(event: ModConfigEvent.Loading) {

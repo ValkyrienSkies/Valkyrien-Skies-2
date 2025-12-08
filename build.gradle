@@ -151,6 +151,9 @@ subprojects {
                 name = "Forge Config Api Port"
                 url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/"
             }
+            maven { // Hexcasting
+                url = "https://maven.blamejared.com"
+            }
         }
         maven {
             name = "Valkyrien Skies Internal"
