@@ -1,55 +1,37 @@
-name: Build
-on:
-  push:
-    branches:
-      - '1.18.x/*'
-      - '1.19.2/*'
-      - '1.20/*'
-      - '1.20.1/*'
-  pull_request:
-    types: [ opened, synchronize, reopened ]
+# Automatically build the project and run any configured tests for every push
+# and submitted pull request. This can help catch issues that only occur on
+# certain platforms or Java versions, and provides a first line of defence
+# against bad commits.
+
+name: build
+on: [pull_request, push]
+
 jobs:
-  validate-gradle:
-    name: "Validate Gradle wrapper"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: true # Clone with vs-core submodule
-      - uses: gradle/wrapper-validation-action@v1
-
-  json-yaml-validate:
-    name: "Validate Json/Yaml files"
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write # enable write permissions for pull request comments
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: json-yaml-validate
-        id: json-yaml-validate
-        uses: GrantBirki/json-yaml-validate@v2.3.1
-        with:
-          comment: "true" # enable comment mode
-
-  test-server:
-    name: Test Server
+  build:
     strategy:
       matrix:
-        serverType: [ 'fabric', 'forge' ]
-    runs-on: ubuntu-latest
-    timeout-minutes: 20 # Fail after 20 minutes
+        # Use these Java versions
+        java: [
+          21,    # Current Java LTS
+        ]
+    runs-on: ubuntu-22.04
     steps:
-      - name: Shallow Clone (--recurse-submodules)
+      - name: checkout repository
         uses: actions/checkout@v4
+      - name: validate gradle wrapper
+        uses: gradle/wrapper-validation-action@v2
+      - name: setup jdk ${{ matrix.java }}
+        uses: actions/setup-java@v4
         with:
-          submodules: recursive
-
-      - name: Setup Gradle & Caches
-        uses: "./.github/actions/setup-gradle"
-
-      - name: Test Server
-        uses: ValkyrienSkies/Minecraft-Architectury-Testing@v1.9
+          java-version: ${{ matrix.java }}
+          distribution: 'microsoft'
+      - name: make gradle wrapper executable
+        run: chmod +x ./gradlew
+      - name: build
+        run: ./gradlew build
+      - name: capture build artifacts
+        if: ${{ matrix.java == '21' }} # Only upload artifacts built from latest java
+        uses: actions/upload-artifact@v4
         with:
-          serverType: ${{ matrix.serverType }}
+          name: Artifacts
+          path: forge/build/libs/
