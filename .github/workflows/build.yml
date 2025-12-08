@@ -12,7 +12,7 @@ jobs:
       matrix:
         # Use these Java versions
         java: [
-          21,    # Current Java LTS
+          17,    # Current Java LTS
         ]
     runs-on: ubuntu-22.04
     steps:
@@ -30,7 +30,7 @@ jobs:
       - name: build
         run: ./gradlew build
       - name: capture build artifacts
-        if: ${{ matrix.java == '21' }} # Only upload artifacts built from latest java
+        if: ${{ matrix.java == '17' }} # Only upload artifacts built from latest java
         uses: actions/upload-artifact@v4
         with:
           name: Artifacts
