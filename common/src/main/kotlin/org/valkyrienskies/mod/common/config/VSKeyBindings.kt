@@ -38,3 +38,6 @@ object VSKeyBindings {
         return keyMapping.name.startsWith("key.valkyrienskies")
     }
 }
+    val shipUp = KeyMapping("key.vs.ship_up", InputConstants.Type.KEYSYM, GLFW.GLFW_GAMEPAD_BUTTON_A, "key.categories.vs")
+    val shipDown = KeyMapping("key.vs.ship_down", InputConstants.Type.KEYSYM, GLFW.GLFW_GAMEPAD_BUTTON_B, "key.categories.vs")
+}
