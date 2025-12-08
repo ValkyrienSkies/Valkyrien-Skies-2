@@ -148,7 +148,7 @@ open class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level
         val leftStickY = if (selectedGamepad >= 0) state.axes(GLFW.GLFW_GAMEPAD_AXIS_LEFT_Y) else 0f
         val rightStickY = if (selectedGamepad >= 0) state.axes(GLFW.GLFW_GAMEPAD_AXIS_RIGHT_Y) else 0f
 
-        // stops shiphelms from constantly turning, can probably be axed if i make full analog support later
+        // stops ship helms from constantly turning, can probably be axed if i make full analog support later
         fun applyDeadzone(value: Float, deadzone: Float = 0.1f) =
             if (kotlin.math.abs(value) < deadzone) 0f else value
 
@@ -157,9 +157,9 @@ open class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level
         impulse.z = applyDeadzone(-leftStickY) + if (forward == backward) 0f else if (forward) 1f else -1f
         impulse.y = applyDeadzone(-rightStickY) + if (up == down) 0f else if (up) 1f else -1f
 
-        // :ballsack:
         val magnitude = impulse.length()
         if (magnitude > 1f) impulse.mul(1f / magnitude)
+        
         vsCore.simplePacketNetworking.run {
             PacketPlayerDriving(impulse, sprint, cruise).sendToServer()
         }
