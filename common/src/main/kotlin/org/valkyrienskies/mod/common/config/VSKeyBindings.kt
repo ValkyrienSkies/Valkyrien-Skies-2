@@ -4,6 +4,7 @@ import net.minecraft.client.KeyMapping
 import org.lwjgl.glfw.GLFW
 import java.util.function.Consumer
 import java.util.function.Supplier
+import com.mojang.blaze3d.platform.InputConstants;
 
 object VSKeyBindings {
     // TODO when making the addon utils for registering... this too
@@ -38,6 +39,7 @@ object VSKeyBindings {
         return keyMapping.name.startsWith("key.valkyrienskies")
     }
 }
+object VSControllerBindings {
     val shipUp = KeyMapping("key.vs.ship_up", InputConstants.Type.KEYSYM, GLFW.GLFW_GAMEPAD_BUTTON_A, "key.categories.vs")
     val shipDown = KeyMapping("key.vs.ship_down", InputConstants.Type.KEYSYM, GLFW.GLFW_GAMEPAD_BUTTON_B, "key.categories.vs")
 }
