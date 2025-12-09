@@ -111,6 +111,9 @@ dependencies {
     // Hexcasting
     modCompileOnly("at.petra-k.hexcasting:hexcasting-fabric-${minecraft_version}:${hexcasting_version}")
 
+    // HexTweaks
+    modCompileOnly("maven.modrinth:hextweaks:$hextweaks_version")
+
     modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:imm_ptl_core:${immptl_version}")
     modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:q_misc_util:${immptl_version}")
     modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:build:${immptl_version}")

@@ -5,13 +5,16 @@ import at.petrak.hexcasting.api.casting.eval.CastingEnvironmentComponent.IsVecIn
 import at.petrak.hexcasting.api.casting.eval.CastingEnvironmentComponent.Key
 import at.petrak.hexcasting.api.casting.eval.env.CircleCastEnv
 import at.petrak.hexcasting.api.casting.eval.env.PlayerBasedCastEnv
+import at.petrak.hexcasting.xplat.Platform
 import net.minecraft.world.phys.Vec3
+import org.joml.Vector3d
 import org.valkyrienskies.core.api.util.GameTickOnly
 import org.valkyrienskies.mod.api.positionToShip
 import org.valkyrienskies.mod.api.positionToWorld
 import org.valkyrienskies.mod.common.getLoadedShipManagingPos
 import org.valkyrienskies.mod.common.toWorldCoordinates
 import org.valkyrienskies.mod.common.util.toJOML
+import org.valkyrienskies.mod.compat.hexcasting.hextweaks.HexTweaksCompat
 import kotlin.random.Random
 
 class AmbitRemapping(private val env: CastingEnvironment) : IsVecInRange {
@@ -24,7 +27,7 @@ class AmbitRemapping(private val env: CastingEnvironment) : IsVecInRange {
     override fun onIsVecInRange(vec: Vec3, current: Boolean): Boolean {
         if (current) return true
         val level = env.world
-        var castVec = getCasterPosition()
+        val castVec = getCasterPosition() ?: Vec3.ZERO
         val casterShip = level.getLoadedShipManagingPos(castVec.toJOML())
         val posShip = level.getLoadedShipManagingPos(vec.toJOML())
 
@@ -47,12 +50,20 @@ class AmbitRemapping(private val env: CastingEnvironment) : IsVecInRange {
         return env.isVecInRange(vec)
     }
 
-    private fun getCasterPosition() =
-        when(env) {
-            is CircleCastEnv -> env.impetus?.blockPos?.center ?: Vec3.ZERO
-            is PlayerBasedCastEnv -> env.caster?.position() ?: Vec3.ZERO
-            else -> Vec3.ZERO // TODO: Add Extra Hexcasting Addon Compat Here (HexTweaks Computers and Hexal Wisps)
-        }
+    private fun getCasterPosition(): Vec3? {
+        env.castingEntity?.position()?.let { return it }
+
+        if (env is CircleCastEnv)
+            return env.impetus?.blockPos?.center
+
+        // Apparently we have nothing in common to check if a mod is loaded or not so...
+        try {
+            Class.forName("net.walksanator.hextweaks.casting.environment.ComputerCastingEnv")
+            HexTweaksCompat.getComputerPosition(env)?.let { return it }
+        } catch (ignored: ClassNotFoundException) {}
+
+        return null
+    }
 }
 
 class Key(val id: Int) : Key<AmbitRemapping> {}
