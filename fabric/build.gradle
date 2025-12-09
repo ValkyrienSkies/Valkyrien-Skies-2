@@ -114,6 +114,9 @@ dependencies {
     // HexTweaks
     modCompileOnly("maven.modrinth:hextweaks:$hextweaks_version")
 
+    // Hexical
+    modCompileOnly("miyucomics.hexical:hexical:$hexical_version") { transitive = false }
+
     modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:imm_ptl_core:${immptl_version}")
     modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:q_misc_util:${immptl_version}")
     modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:build:${immptl_version}")

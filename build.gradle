@@ -154,6 +154,9 @@ subprojects {
             maven { // Hexcasting
                 url = "https://maven.blamejared.com"
             }
+            maven { // Hexical via temporary Maven
+                url = "https://maven.pool.net.eu.org/"
+            }
         }
         maven {
             name = "Valkyrien Skies Internal"
