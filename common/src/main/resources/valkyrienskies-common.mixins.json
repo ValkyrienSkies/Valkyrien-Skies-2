@@ -186,6 +186,7 @@
     "mod_compat.flywheel.MixinVisualizerRegistry",
     "mod_compat.flywheel_renderer.LevelLightEngineAccessor",
     "mod_compat.ftb_chunks.MixinClaimedChunkManagerImpl",
+    "mod_compat.hexcasting.MixinHexAdditionalRenderers",
     "mod_compat.hexcasting.MixinOpEntityRaycast",
     "mod_compat.immersive_portals.MixinIpNewChunkTrackingGraph",
     "mod_compat.reachentityattributes.MixinReachEntityAttributes",
