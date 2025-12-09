@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.forge.compat
+package org.valkyrienskies.mod.forge.compat.dynmap
 
 import net.minecraft.server.level.ServerLevel
 import net.minecraftforge.event.TickEvent.LevelTickEvent

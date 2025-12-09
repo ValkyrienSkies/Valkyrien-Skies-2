@@ -117,6 +117,9 @@ dependencies {
     // Hexical
     modCompileOnly("miyucomics.hexical:hexical:$hexical_version") { transitive = false }
 
+    // Lapisworks
+    modCompileOnly("maven.modrinth:lapisworks:$lapisworks_version")
+
     modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:imm_ptl_core:${immptl_version}")
     modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:q_misc_util:${immptl_version}")
     modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:build:${immptl_version}")

@@ -17,7 +17,7 @@ import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.compat.hexcasting.hextweaks.HexTweaksCompat
 import kotlin.random.Random
 
-class AmbitRemapping(private val env: CastingEnvironment) : IsVecInRange {
+open class AmbitRemapping(val env: CastingEnvironment) : IsVecInRange {
     private val id = Keygen.randid()
     private val key = Key(id)
 
@@ -50,17 +50,11 @@ class AmbitRemapping(private val env: CastingEnvironment) : IsVecInRange {
         return env.isVecInRange(vec)
     }
 
-    private fun getCasterPosition(): Vec3? {
+    open fun getCasterPosition(): Vec3? {
         env.castingEntity?.position()?.let { return it }
 
         if (env is CircleCastEnv)
             return env.impetus?.blockPos?.center
-
-        // Apparently we have nothing in common to check if a mod is loaded or not so...
-        try {
-            Class.forName("net.walksanator.hextweaks.casting.environment.ComputerCastingEnv")
-            HexTweaksCompat.getComputerPosition(env)?.let { return it }
-        } catch (ignored: ClassNotFoundException) {}
 
         return null
     }

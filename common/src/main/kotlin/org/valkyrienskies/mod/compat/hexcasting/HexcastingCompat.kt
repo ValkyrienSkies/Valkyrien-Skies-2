@@ -3,9 +3,9 @@ package org.valkyrienskies.mod.compat.hexcasting
 import at.petrak.hexcasting.api.casting.eval.CastingEnvironment
 
 object HexcastingCompat {
-    fun register() {
+    fun register(clazz: Class<in AmbitRemapping>) {
         CastingEnvironment.addCreateEventListener { env, _ ->
-            env.addExtension(AmbitRemapping(env))
+            env.addExtension(clazz.getConstructor(CastingEnvironment::class.java).newInstance(env) as AmbitRemapping)
         }
     }
 }
