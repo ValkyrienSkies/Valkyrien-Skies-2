@@ -124,6 +124,9 @@ dependencies {
     // Dynmap
     modCompileOnly("maven.modrinth:dynmap:${dynmap_version}")
 
+    // Hexcasting
+    modCompileOnly("at.petra-k.hexcasting:hexcasting-forge-${minecraft_version}:${hexcasting_version}") { transitive = false }
+
     // Integrated Dynamics
     modCompileOnly("curse.maven:integrated-dynamics-236307:5297722")
     modCompileOnly("curse.maven:cyclops-core-232758:5262063")

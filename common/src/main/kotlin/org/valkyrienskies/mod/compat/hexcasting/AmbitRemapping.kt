@@ -8,6 +8,7 @@ import at.petrak.hexcasting.api.casting.eval.env.PlayerBasedCastEnv
 import net.minecraft.world.phys.Vec3
 import org.valkyrienskies.core.api.util.GameTickOnly
 import org.valkyrienskies.mod.api.positionToShip
+import org.valkyrienskies.mod.api.positionToWorld
 import org.valkyrienskies.mod.common.getLoadedShipManagingPos
 import org.valkyrienskies.mod.common.toWorldCoordinates
 import org.valkyrienskies.mod.common.util.toJOML
@@ -24,14 +25,25 @@ class AmbitRemapping(private val env: CastingEnvironment) : IsVecInRange {
         if (current) return true
         val level = env.world
         var castVec = getCasterPosition()
-        level.getLoadedShipManagingPos(castVec.toJOML())?.let { ship ->
-            return env.isVecInRange(ship.positionToShip(vec))
+        val casterShip = level.getLoadedShipManagingPos(castVec.toJOML())
+        val posShip = level.getLoadedShipManagingPos(vec.toJOML())
+
+        // Is Caster in the Shipyard?
+        casterShip?.let { casterShip ->
+            // Is Target Position on a Ship?
+            posShip?.let { posShip ->
+                // Transform Target to Worldspace, then to the Caster's Shipyard
+                return env.isVecInRange(casterShip.positionToShip(posShip.positionToWorld(vec)))
+            }
+            // Transform Target to Caster's Shipyard
+            return env.isVecInRange(casterShip.positionToShip(vec))
         }
 
-        env.world.getLoadedShipManagingPos(vec.toJOML())?.let { ship ->
-            return env.isVecInRange(ship.toWorldCoordinates(vec))
-        }
+        // Is Target Position on a Ship?
+        // Transform Target to Worldspace
+        posShip?.let { ship -> return env.isVecInRange(ship.positionToWorld(vec)) }
 
+        // Neither on a Ship, normal functions
         return env.isVecInRange(vec)
     }
 
