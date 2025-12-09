@@ -21,7 +21,7 @@ import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 public class MixinHexAdditionalRenderers {
     @WrapOperation(method = "renderSentinel", at = @At(value = "INVOKE",
         target = "Lcom/mojang/blaze3d/vertex/PoseStack;translate(DDD)V"))
-    private static void valkyrienSkies$renderOnShip(PoseStack instance, double d, double e, double f, Operation<Void> original, @Local(argsOnly = true) Sentinel sentinel, @Local Vec3 playerPos) {
+    private static void valkyrienskies$renderOnShip(PoseStack instance, double d, double e, double f, Operation<Void> original, @Local(argsOnly = true) Sentinel sentinel, @Local Vec3 playerPos) {
         ClientShip ship = VSClientGameUtils.getClientShip(sentinel.position().x, sentinel.position().y, sentinel.position().z);
         if (ship != null) {
             Vec3 distance = VectorConversionsMCKt.toMinecraft(ship.getShipToWorld().transformPosition(VectorConversionsMCKt.toJOML(sentinel.position()))).subtract(playerPos);
