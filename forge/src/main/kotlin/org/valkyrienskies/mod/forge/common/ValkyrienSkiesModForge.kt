@@ -62,6 +62,7 @@ import org.valkyrienskies.mod.forge.compat.dynmap.ForgeDynmapHandler
 import org.valkyrienskies.mod.compat.flywheel.FlywheelCompat
 import org.valkyrienskies.mod.compat.hexcasting.HexcastingCompat
 import org.valkyrienskies.mod.forge.compat.epicfight.FracturedBlockStateInfoProvider
+import org.valkyrienskies.mod.forge.compat.hexcasting.ForgeAmbitRemapping
 
 @Mod(MOD_ID)
 class ValkyrienSkiesModForge {
@@ -212,7 +213,7 @@ class ValkyrienSkiesModForge {
         }
 
         if (ModList.get().isLoaded("hexcasting"))
-            HexcastingCompat.register()
+            HexcastingCompat.register(ForgeAmbitRemapping::class.java)
     }
 
     private fun onConfigLoad(event: ModConfigEvent.Loading) {
