@@ -97,6 +97,10 @@ jar {
     exclude "net/optifine/**"
 }
 
+compileKotlin { doLast {
+    file(compileKotlin.destinationDirectory.get().toString() + "/META-INF/valkyrienskies-120.kotlin_module").renameTo(file(compileKotlin.destinationDirectory.get().toString() + "/META-INF/valkyrienskies-120_common.kotlin_module"))
+} }
+
 publishing {
     publications {
         mavenCommon(MavenPublication) {

@@ -162,8 +162,15 @@ object MassDatapackResolver : BlockStateInfoProvider {
         else -> 100
     }
 
-
-    private fun generateStairCollisionShapes(stairShapes: Array<VoxelShape>): Map<VoxelShape, SolidBlockShape> {
+    /**
+     * This is mostly an internal function, not meant for public use.
+     * If however, you absolutely _need_ it to generate some stair collision shapes,
+     * then it is left public.
+     *
+     * @see generateShapeFromVoxel
+     */
+    @JvmStatic
+    fun generateStairCollisionShapes(stairShapes: Array<VoxelShape>): Map<VoxelShape, SolidBlockShape> {
         val testPoints = listOf(
             CollisionPoint(.25f, .25f, .25f, .25f),
             CollisionPoint(.25f, .25f, .75f, .25f),
@@ -219,7 +226,8 @@ object MassDatapackResolver : BlockStateInfoProvider {
         return map
     }
 
-    private fun generateShapeFromVoxel(voxelShape: VoxelShape): BoxesBlockShape? {
+    @JvmStatic
+    fun generateShapeFromVoxel(voxelShape: VoxelShape): BoxesBlockShape? {
         val posBoxes = ArrayList<AABBic>()
         var failed = false
         var maxBoxesToTest = 20
@@ -260,6 +268,11 @@ object MassDatapackResolver : BlockStateInfoProvider {
         }
     }
 
+    /**
+     * This is left public so it can be used in [org.valkyrienskies.mod.mixin.server.MixinMinecraftServer].
+     *
+     * It is **not recommended** to call this yourself!
+     */
     fun registerAllBlockStates(blockStates: Iterable<BlockState>) {
         val fullLodBoundingBox = AABBi(0, 0, 0, 15, 15, 15)
         val fullBlockCollisionPoints = listOf(
@@ -380,4 +393,5 @@ object MassDatapackResolver : BlockStateInfoProvider {
     }
 
     private val logger by logger()
+
 }

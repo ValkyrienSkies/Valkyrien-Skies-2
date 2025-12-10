@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.common.util
 
+import org.joml.Vector3d
 import org.joml.Vector3dc
 import org.valkyrienskies.core.api.VsBeta
 import org.valkyrienskies.core.api.ships.properties.ShipId
@@ -15,12 +16,14 @@ import java.util.function.Consumer
 
 @OptIn(VsBeta::class)
 class GameToPhysicsAdapter {
-    private val invForces = ConcurrentLinkedQueue<Pair<ShipId, Vector3dc>>()
-    private val invTorques = ConcurrentLinkedQueue<Pair<ShipId, Vector3dc>>()
-    private val rotForces = ConcurrentLinkedQueue<Pair<ShipId, Vector3dc>>()
-    private val rotTorques = ConcurrentLinkedQueue<Pair<ShipId, Vector3dc>>()
-    private val invPosForces = ConcurrentLinkedQueue<Pair<ShipId, InvForceAtPos>>()
-    private val rotPosForces = ConcurrentLinkedQueue<Pair<ShipId, InvForceAtPos>>()
+    private val worldForces = ConcurrentLinkedQueue<Pair<ShipId, ForceAtPos>>()
+    private val worldTorques = ConcurrentLinkedQueue<Pair<ShipId, Vector3dc>>()
+    private val modelForces = ConcurrentLinkedQueue<Pair<ShipId, ForceAtPos>>()
+    private val modelTorques = ConcurrentLinkedQueue<Pair<ShipId, Vector3dc>>()
+    private val bodyForces = ConcurrentLinkedQueue<Pair<ShipId, ForceAtPos>>()
+    private val bodyTorques = ConcurrentLinkedQueue<Pair<ShipId, Vector3dc>>()
+    private val worldToModelForces = ConcurrentLinkedQueue<Pair<ShipId, ForceAtPos>>()
+    private val worldToBodyForces = ConcurrentLinkedQueue<Pair<ShipId, ForceAtPos>>()
 
     private val joints = ConcurrentHashMap<Pair<VSJoint, Consumer<VSJointId>>, Int>()
     private val updatedJoints = ConcurrentLinkedQueue<VSJointAndId>()
@@ -32,12 +35,70 @@ class GameToPhysicsAdapter {
     private val disablePairs = ConcurrentLinkedQueue<Pair<ShipId, ShipId>>()
 
     fun physTick(physLevel: PhysLevel, delta: Double) {
-        invForces.pollUntilEmpty { pair -> physLevel.getShipById(pair.first)?.applyInvariantForce(pair.second) }
-        invTorques.pollUntilEmpty { pair -> physLevel.getShipById(pair.first)?.applyInvariantTorque(pair.second) }
-        rotForces.pollUntilEmpty { pair -> physLevel.getShipById(pair.first)?.applyRotDependentForce(pair.second) }
-        rotTorques.pollUntilEmpty { pair -> physLevel.getShipById(pair.first)?.applyRotDependentTorque(pair.second) }
-        invPosForces.pollUntilEmpty { pair -> physLevel.getShipById(pair.first)?.applyInvariantForceToPos(pair.second.force, pair.second.pos) }
-        rotPosForces.pollUntilEmpty { pair -> physLevel.getShipById(pair.first)?.applyInvariantForceToPos(pair.second.force, pair.second.pos) }
+        worldForces.pollUntilEmpty { pair ->
+            val ship = physLevel.getShipById(pair.first)
+            if (pair.second.pos != null) {
+                ship?.applyWorldForce(pair.second.force, pair.second.pos!!)
+            } else {
+                ship?.applyWorldForce(
+                    pair.second.force
+                )
+            }
+        }
+        worldTorques.pollUntilEmpty { pair ->
+            physLevel.getShipById(pair.first)
+                ?.applyWorldTorque(pair.second)
+        }
+        modelForces.pollUntilEmpty { pair ->
+            val ship = physLevel.getShipById(pair.first)
+            if (pair.second.pos != null) {
+                ship?.applyModelForce(pair.second.force, pair.second.pos!!)
+            } else {
+                ship?.applyModelForce(
+                    pair.second.force
+                )
+            }
+        }
+        modelTorques.pollUntilEmpty { pair ->
+            physLevel.getShipById(pair.first)
+                ?.applyModelTorque(pair.second)
+        }
+        bodyForces.pollUntilEmpty { pair ->
+            val ship = physLevel.getShipById(pair.first)
+            if (pair.second.pos != null) {
+                ship?.applyBodyForce(pair.second.force, pair.second.pos!!)
+            } else {
+                ship?.applyBodyForce(
+                    pair.second.force
+                )
+            }
+
+        }
+        bodyTorques.pollUntilEmpty { pair ->
+            physLevel.getShipById(pair.first)
+                ?.applyBodyTorque(pair.second)
+        }
+        worldToModelForces.pollUntilEmpty { pair ->
+            val ship = physLevel.getShipById(pair.first)
+            if (pair.second.pos != null) {
+                ship?.applyWorldForceToModelPos(pair.second.force, pair.second.pos!!)
+            } else {
+                ship?.applyWorldForceToModelPos(
+                    pair.second.force
+                )
+            }
+
+        }
+        worldToBodyForces.pollUntilEmpty { pair ->
+            val ship = physLevel.getShipById(pair.first)
+            if (pair.second.pos != null) {
+                ship?.applyWorldForceToBodyPos(pair.second.force, pair.second.pos!!)
+            } else {
+                ship?.applyWorldForceToBodyPos(
+                    pair.second.force
+                )
+            }
+        }
 
         val safeJoints = HashMap(joints)
         safeJoints.forEach { newJoint, timer ->
@@ -61,28 +122,117 @@ class GameToPhysicsAdapter {
         disablePairs.pollUntilEmpty { pair -> physLevel.disableCollisionBetween(pair.first, pair.second) }
     }
 
+    /**
+     * Applies a force in World Space to a ship at a World Space position. A World Space force is independent of the ship's transform, and is always global; for example, up in World Space
+     * is ALWAYS (0, 1, 0) (as in, towards the sky), regardless of the ship's orientation.
+     *
+     * @param forceInWorld The force vector in World Space.
+     * @param posInWorld The position in World Space where the force is applied. Defaults to the ship's center of mass in World Space.
+     */
+    fun applyWorldForce(ship: ShipId, forceInWorld: Vector3dc, posInWorld: Vector3dc) {
+        worldForces.add(ship to ForceAtPos(forceInWorld, posInWorld))
+    }
+    /**
+     * Applies a torque in World Space to a ship at a World Space position. A World Space torque is independent of the ship's transform, and is always global; for example, up in World Space
+     * is ALWAYS (0, 1, 0) (as in, towards the sky), regardless of the ship's orientation.
+     *
+     * @param torqueInWorld The force vector in World Space.
+     */
+    fun applyWorldTorque(ship: ShipId, torqueInWorld: Vector3dc) {
+        worldTorques.add(ship to torqueInWorld)
+    }
+
+    /**
+     * Applies a force in Model Space to a ship at a Model Space position. A Model Space force is relative to the ship's transform, meaning that it rotates and scales with the ship; for example,
+     * a ship rotated on its side applying a force pointing to (0, 1, 0) in Model Space would be **perpendicular** to World Space up.
+     *
+     * This is useful for a Thruster or similar block that should apply a force relative to the ship's orientation.
+     *
+     * @param forceInShip The force vector in Model Space.
+     * @param posInShip The position in Model Space where the force is applied. Defaults to the ship's center of mass in Model Space.
+     */
+    fun applyModelForce(ship: ShipId, forceInShip: Vector3dc, posInShip: Vector3dc) {
+        modelForces.add(ship to ForceAtPos(forceInShip, posInShip))
+    }
+    /**
+     * Applies a torque in Model Space to a ship at a Model Space position. A Model Space torque is relative to the ship's transform, meaning that it rotates and scales with the ship.
+     *
+     * @param torqueInShip The torque vector in Model Space.
+     * @param posInShip The position in Model Space where the torque is applied. Defaults to the ship's center of mass in Model Space.
+     */
+    fun applyModelTorque(ship: ShipId, torqueInShip: Vector3dc) {
+        modelTorques.add(ship to torqueInShip)
+    }
+    /**
+     * Applies a force in World Space to a ship at a Model Space position. A World Space force is independent of the ship's transform, and is always global; for example, up in World Space
+     * is ALWAYS (0, 1, 0) (as in, towards the sky), regardless of the ship's orientation.
+     *
+     * This is useful for a balloon or similar block that should apply a force relative to the world, such as always pushing up against gravity.
+     *
+     * @param forceInWorld The force vector in World Space.
+     * @param posInShip The position in Model Space where the force is applied. Defaults to the ship's center of mass in Model Space.
+     */
+    fun applyWorldForceToModelPos(ship: ShipId, forceInWorld: Vector3dc, posInShip: Vector3dc) {
+        worldToModelForces.add(ship to ForceAtPos(forceInWorld, posInShip))
+    }
+
+    /**
+     * Applies a force in Body Space to a ship at a Body Space position. A Body Space force is positionally relative to the ship's Center of Mass, and applies relative to the ship's transform, meaning that it rotates and scales with the ship.
+     *
+     * @param forceInBody The force vector in Body Space.
+     * @param posInBody The position in Body Space where the force is applied. Defaults to (0,0,0), the ship's center of mass.
+     */
+    fun applyBodyForce(ship: ShipId, forceInBody: Vector3dc, posInBody: Vector3dc = Vector3d()) {
+        bodyForces.add(ship to ForceAtPos(forceInBody, posInBody))
+    }
+    /**
+     * Applies a torque in Body Space to a ship at a Body Space position. A Body Space torque is positionally relative to the ship's Center of Mass, and applies relative to the ship's transform, meaning that it rotates and scales with the ship.
+     *
+     * @param torqueInBody The force vector in Body Space.
+     * @param posInBody The position in Body Space where the force is applied. Defaults to (0,0,0), the ship's center of mass.
+     */
+    fun applyBodyTorque(ship: ShipId, torqueInBody: Vector3dc) {
+        bodyTorques.add(ship to torqueInBody)
+    }
+    /**
+     * Applies a force in World Space to a ship at a Body Space position. A World Space force is independent of the ship's transform, and is always global; for example, up in World Space
+     * is ALWAYS (0, 1, 0) (as in, towards the sky), regardless of the ship's orientation.
+     *
+     * @param forceInWorld The force vector in World Space.
+     * @param posInBody The position in Body Space where the force is applied. Defaults to (0,0,0), the ship's center of mass.
+     */
+    fun applyWorldForceToBodyPos(ship: ShipId, forceInWorld: Vector3dc, posInBody: Vector3dc = Vector3d()) {
+        worldToBodyForces.add(ship to ForceAtPos(forceInWorld, posInBody))
+    }
+
+    @Deprecated("Use applyWorldForceToBodyPos instead")
     fun applyInvariantForce(ship: ShipId, force: Vector3dc) {
-        invForces.add(ship to force)
+        applyWorldForceToBodyPos(ship, force)
     }
 
+    @Deprecated("Use applyWorldTorque instead")
     fun applyInvariantTorque(ship: ShipId, torque: Vector3dc) {
-        invTorques.add(ship to torque)
+        applyWorldTorque(ship, torque)
     }
-    
+
+    @Deprecated("Use applyBodyForce instead")
     fun applyRotDependentForce(ship: ShipId, force: Vector3dc) {
-        rotForces.add(ship to force)
+        applyBodyForce(ship, force)
     }
 
+    @Deprecated("Use applyBodyTorque instead")
     fun applyRotDependentTorque(ship: ShipId, torque: Vector3dc) {
-        rotTorques.add(ship to torque)
+        applyBodyTorque(ship, torque)
     }
 
+    @Deprecated("Use applyWorldForceToBodyPos instead")
     fun applyInvariantForceToPos(ship: ShipId, force: Vector3dc, pos: Vector3dc) {
-        invPosForces.add(ship to InvForceAtPos(force, pos))
+        applyWorldForceToBodyPos(ship, force, pos)
     }
-    
+
+    @Deprecated("Use applyBodyForce instead")
     fun applyRotDependentForceToPos(ship: ShipId, force: Vector3dc, pos: Vector3dc) {
-        rotPosForces.add(ship to InvForceAtPos(force, pos))
+        applyBodyForce(ship, force, pos)
     }
 
     fun setStatic(ship: ShipId, b: Boolean) {
@@ -107,5 +257,5 @@ class GameToPhysicsAdapter {
         disablePairs.add(shipA to shipB)
     }
 
-    private data class InvForceAtPos(val force: Vector3dc, val pos: Vector3dc)
+    private data class ForceAtPos(val force: Vector3dc, val pos: Vector3dc?)
 }
