@@ -15,10 +15,11 @@ import org.valkyrienskies.mod.common.getLoadedShipManagingPos
 import org.valkyrienskies.mod.common.toWorldCoordinates
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.compat.hexcasting.hextweaks.HexTweaksCompat
+import java.util.UUID
 import kotlin.random.Random
 
 open class AmbitRemapping(val env: CastingEnvironment) : IsVecInRange {
-    private val id = Keygen.randid()
+    private val id = UUID.randomUUID()
     private val key = Key(id)
 
     override fun getKey(): Key<*> = key
@@ -60,9 +61,4 @@ open class AmbitRemapping(val env: CastingEnvironment) : IsVecInRange {
     }
 }
 
-class Key(val id: Int) : Key<AmbitRemapping> {}
-
-private object Keygen {
-    val rand = Random(2819038190)
-    fun randid() = rand.nextInt()
-}
+class Key(val id: UUID) : Key<AmbitRemapping> {}
