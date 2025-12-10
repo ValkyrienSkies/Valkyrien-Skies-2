@@ -14,7 +14,6 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult.Type;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
-import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Mutable;
@@ -94,10 +93,9 @@ public abstract class MixinExplosion {
                             forceVector.mul(powerMult); //Multiply by radius, roughly equivalent to power
 
                             final GameToPhysicsAdapter forceApplier = ValkyrienSkiesMod.getOrCreateGTPA(ship.getChunkClaimDimension());
-                            final Vector3dc shipCoords = ship.getShipTransform().getShipPositionInShipCoordinates();
                             if (forceVector.isFinite()) {
-                                forceApplier.applyInvariantForceToPos(ship.getId(), forceVector,
-                                    VectorConversionsMCKt.toJOML(Vec3.atCenterOf(blockPos)).sub(shipCoords));
+                                forceApplier.applyWorldForceToModelPos(ship.getId(), forceVector,
+                                    VectorConversionsMCKt.toJOML(Vec3.atCenterOf(blockPos)));
                             }
                         }
                     }

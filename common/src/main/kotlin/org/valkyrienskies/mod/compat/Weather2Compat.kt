@@ -53,7 +53,7 @@ object Weather2Compat {
                 vec.sub(ship.velocity)
                 vec.mul(mass)
 
-                forces.applyInvariantForceToPos(ship.id, vec, com)
+                forces.applyWorldForce(ship.id, vec, null)
             }
 
             applyForcePlusMotion()

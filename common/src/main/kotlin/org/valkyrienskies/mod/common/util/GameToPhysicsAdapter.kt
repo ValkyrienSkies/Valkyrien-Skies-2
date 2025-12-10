@@ -129,7 +129,7 @@ class GameToPhysicsAdapter {
      * @param forceInWorld The force vector in World Space.
      * @param posInWorld The position in World Space where the force is applied. Defaults to the ship's center of mass in World Space.
      */
-    fun applyWorldForce(ship: ShipId, forceInWorld: Vector3dc, posInWorld: Vector3dc) {
+    fun applyWorldForce(ship: ShipId, forceInWorld: Vector3dc, posInWorld: Vector3dc?) {
         worldForces.add(ship to ForceAtPos(forceInWorld, posInWorld))
     }
     /**
@@ -151,7 +151,7 @@ class GameToPhysicsAdapter {
      * @param forceInShip The force vector in Model Space.
      * @param posInShip The position in Model Space where the force is applied. Defaults to the ship's center of mass in Model Space.
      */
-    fun applyModelForce(ship: ShipId, forceInShip: Vector3dc, posInShip: Vector3dc) {
+    fun applyModelForce(ship: ShipId, forceInShip: Vector3dc, posInShip: Vector3dc?) {
         modelForces.add(ship to ForceAtPos(forceInShip, posInShip))
     }
     /**

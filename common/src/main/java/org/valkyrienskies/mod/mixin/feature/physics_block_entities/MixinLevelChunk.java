@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.feature.physics_block_entities;
 
+import java.util.Map;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -15,13 +16,16 @@ import org.valkyrienskies.mod.api.ValkyrienSkies;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 
 @Mixin(LevelChunk.class)
-public class MixinLevelChunk {
+public abstract class MixinLevelChunk {
     @Shadow
     @Final
     Level level;
 
     @Shadow
     private boolean loaded;
+
+    @Shadow
+    public abstract Map<BlockPos, BlockEntity> getBlockEntities();
 
     @Inject(method = "updateBlockEntityTicker", at = @At("HEAD"))
     private <T extends BlockEntity> void onUpdateBlockEntityTickerHead(T blockEntity, CallbackInfo ci) {
@@ -39,9 +43,14 @@ public class MixinLevelChunk {
         }
     }
 
-    @Inject(method = "clearAllBlockEntities", at = @At("TAIL"))
+    @Inject(method = "clearAllBlockEntities", at = @At("HEAD"))
     private void onClearAllBlockEntitiesHead(CallbackInfo ci) {
-        ValkyrienSkiesMod.INSTANCE.getBlockEntityPhysListeners().clear();
+        getBlockEntities().forEach((blockPos, blockEntity) -> {
+            if (blockEntity instanceof BlockEntityPhysicsListener listener) {
+                String dimensionId = ValkyrienSkies.getDimensionId(this.level);
+                ValkyrienSkiesMod.INSTANCE.removeBlockEntityPhysTicker(blockPos, dimensionId);
+            }
+        });
     }
 
     @Inject(method = "removeBlockEntity", at = @At("TAIL"))

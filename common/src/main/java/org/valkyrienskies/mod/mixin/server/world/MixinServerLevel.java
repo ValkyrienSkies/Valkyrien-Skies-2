@@ -47,6 +47,7 @@ import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.api.ships.Wing;
 import org.valkyrienskies.core.api.ships.WingManager;
+import org.valkyrienskies.core.api.util.AerodynamicUtils;
 import org.valkyrienskies.core.internal.world.VsiServerShipWorld;
 import org.valkyrienskies.core.internal.world.chunks.VsiTerrainUpdate;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
@@ -102,9 +103,8 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                 VSGameUtilsKt.getDimensionId((ServerLevel) (Object) this),
                 VSGameUtilsKt.getYRange((ServerLevel) (Object) this),
                 McMathUtilKt.getDEFAULT_WORLD_GRAVITY(),
-                //todo make this datagenned
-                63.0,
-                962.0
+                AerodynamicUtils.DEFAULT_SEA_LEVEL,
+                AerodynamicUtils.DEFAULT_MAX
             );
         }
     }
