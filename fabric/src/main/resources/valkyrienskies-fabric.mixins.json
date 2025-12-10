@@ -6,8 +6,6 @@
   "mixins": [
     "compat.create.MixinBlockBreakingKineticTileEntity",
     "compat.create.MixinControlledContraptionEntity",
-    "compat.hexcasting.lapisworks.MixinCradleEntity",
-    "compat.hexcasting.lapisworks.MixinTHEGRANDROTATER",
     "compat.hexcasting.hexical.MixinLesserSentinelRenderer",
     "compat.hexcasting.hexical.MixinPedestalBlockEntity",
     "entity.MixinContainerEntity",
