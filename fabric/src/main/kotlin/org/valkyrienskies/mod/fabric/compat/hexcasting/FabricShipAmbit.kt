@@ -6,7 +6,7 @@ import net.minecraft.world.phys.Vec3
 import org.valkyrienskies.mod.compat.hexcasting.AmbitRemapping
 import org.valkyrienskies.mod.compat.hexcasting.hextweaks.HexTweaksCompat
 
-class FabricAmbitRemapping(env: CastingEnvironment) : AmbitRemapping(env) {
+class FabricShipAmbit(env: CastingEnvironment) : AmbitRemapping(env) {
     override fun getCasterPosition(): Vec3? {
         super.getCasterPosition()?.let { return it }
 

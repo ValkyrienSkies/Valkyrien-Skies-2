@@ -4,19 +4,13 @@ import at.petrak.hexcasting.api.casting.eval.CastingEnvironment
 import at.petrak.hexcasting.api.casting.eval.CastingEnvironmentComponent.IsVecInRange
 import at.petrak.hexcasting.api.casting.eval.CastingEnvironmentComponent.Key
 import at.petrak.hexcasting.api.casting.eval.env.CircleCastEnv
-import at.petrak.hexcasting.api.casting.eval.env.PlayerBasedCastEnv
-import at.petrak.hexcasting.xplat.Platform
 import net.minecraft.world.phys.Vec3
-import org.joml.Vector3d
 import org.valkyrienskies.core.api.util.GameTickOnly
 import org.valkyrienskies.mod.api.positionToShip
 import org.valkyrienskies.mod.api.positionToWorld
 import org.valkyrienskies.mod.common.getLoadedShipManagingPos
-import org.valkyrienskies.mod.common.toWorldCoordinates
 import org.valkyrienskies.mod.common.util.toJOML
-import org.valkyrienskies.mod.compat.hexcasting.hextweaks.HexTweaksCompat
 import java.util.UUID
-import kotlin.random.Random
 
 open class AmbitRemapping(val env: CastingEnvironment) : IsVecInRange {
     private val id = UUID.randomUUID()

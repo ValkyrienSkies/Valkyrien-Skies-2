@@ -8,3 +8,4 @@ This section adds necessary Mixins for Hexcasting compatibility and its addons
 - `MixinLesserSentinelRenderer` mimics `MixinSentinelRenderer` to render Lesser Sentinels on Ships
 ### Lapisworks
 - `MixinCradleEntity` mimics `MixinPedestalBlockEntity` for a similar use of item entities
+- `MixinTHEGRANDROTATER` mimics `MixinSentinelRenderer` to render Enchanted Sentinels on Ships

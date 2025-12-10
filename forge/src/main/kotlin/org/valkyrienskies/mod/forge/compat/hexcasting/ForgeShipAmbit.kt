@@ -6,7 +6,7 @@ import net.minecraftforge.fml.ModList
 import org.valkyrienskies.mod.compat.hexcasting.AmbitRemapping
 import org.valkyrienskies.mod.compat.hexcasting.hextweaks.HexTweaksCompat
 
-class ForgeAmbitRemapping(env: CastingEnvironment) : AmbitRemapping(env) {
+class ForgeShipAmbit(env: CastingEnvironment) : AmbitRemapping(env) {
     override fun getCasterPosition(): Vec3? {
         super.getCasterPosition()?.let { return it }
 
