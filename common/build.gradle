@@ -43,6 +43,12 @@ dependencies {
     // HexTweaks
     modCompileOnly("maven.modrinth:hextweaks:$hextweaks_version")
 
+    // Ephemera
+    modCompileOnly("maven.modrinth:ephemera:$ephemera_version")
+
+    // Hexal
+    modCompileOnly("ram.talia.hexal:hexal-fabric-$minecraft_version:$hexal_version") { transitive = false }
+
     // Common create compat,
     // We just use a version from a platform and hope the classes exist on both versions and mixins apply correctly
     // EMF compat

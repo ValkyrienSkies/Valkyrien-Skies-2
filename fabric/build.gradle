@@ -120,6 +120,12 @@ dependencies {
     // Lapisworks
     modCompileOnly("maven.modrinth:lapisworks:$lapisworks_version")
 
+    // Ephemera
+    modCompileOnly("maven.modrinth:ephemera:$ephemera_version")
+
+    // Hexal
+    modCompileOnly("ram.talia.hexal:hexal-fabric-$minecraft_version:$hexal_version") { transitive = false }
+
     modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:imm_ptl_core:${immptl_version}")
     modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:q_misc_util:${immptl_version}")
     modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:build:${immptl_version}")

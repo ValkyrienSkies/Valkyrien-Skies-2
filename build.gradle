@@ -157,6 +157,9 @@ subprojects {
             maven { // Hexical via temporary Maven
                 url = "https://maven.pool.net.eu.org/"
             }
+            maven { // Hexal
+                url = uri("https://maven.hexxy.media")
+            }
         }
         maven {
             name = "Valkyrien Skies Internal"

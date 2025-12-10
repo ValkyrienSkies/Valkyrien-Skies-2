@@ -18,7 +18,7 @@ import org.valkyrienskies.mod.common.entity.handling.DefaultShipyardEntityHandle
 @Mixin(CradleEntity.class)
 public class MixinCradleEntity {
     @Shadow
-    private ItemEntity heldEntity;
+    public ItemEntity heldEntity;
 
     @Inject(method = "configureItemEntity", at = @At("TAIL"), remap = false)
     private void valkyrienskies$putItemInShipyard(CallbackInfo ci) {
