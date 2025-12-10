@@ -117,9 +117,6 @@ dependencies {
     // Hexical
     modCompileOnly("miyucomics.hexical:hexical:$hexical_version") { transitive = false }
 
-    // Lapisworks
-    modCompileOnly("maven.modrinth:lapisworks:$lapisworks_version")
-
     // Ephemera
     modCompileOnly("maven.modrinth:ephemera:$ephemera_version")
 
