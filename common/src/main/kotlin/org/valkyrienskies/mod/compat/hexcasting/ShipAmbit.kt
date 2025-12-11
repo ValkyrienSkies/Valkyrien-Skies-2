@@ -42,7 +42,7 @@ open class AmbitRemapping(val env: CastingEnvironment) : IsVecInRange {
         posShip?.let { ship -> return env.isVecInRange(ship.positionToWorld(vec)) }
 
         // Neither on a Ship, normal functions
-        return env.isVecInRange(vec)
+        return current
     }
 
     open fun getCasterPosition(): Vec3? {
