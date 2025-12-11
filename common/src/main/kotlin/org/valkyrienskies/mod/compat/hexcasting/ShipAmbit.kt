@@ -24,25 +24,17 @@ open class AmbitRemapping(val env: CastingEnvironment) : IsVecInRange {
         val level = env.world
         val castVec = getCasterPosition() ?: Vec3.ZERO
         val casterShip = level.getLoadedShipManagingPos(castVec.toJOML())
-        val posShip = level.getLoadedShipManagingPos(vec.toJOML())
+        val otherShip = level.getLoadedShipManagingPos(vec.toJOML())
+
+        // If both null or same ship, use current check
+        if (casterShip == otherShip) return current
+
+        // Is Other Position on a Ship? Transform to Worldspace
+        val otherPos = otherShip?.positionToWorld(vec) ?: vec
 
         // Is Caster in the Shipyard?
-        casterShip?.let { casterShip ->
-            // Is Target Position on a Ship?
-            posShip?.let { posShip ->
-                // Transform Target to Worldspace, then to the Caster's Shipyard
-                return env.isVecInRange(casterShip.positionToShip(posShip.positionToWorld(vec)))
-            }
-            // Transform Target to Caster's Shipyard
-            return env.isVecInRange(casterShip.positionToShip(vec))
-        }
-
-        // Is Target Position on a Ship?
-        // Transform Target to Worldspace
-        posShip?.let { ship -> return env.isVecInRange(ship.positionToWorld(vec)) }
-
-        // Neither on a Ship, normal functions
-        return current
+        // Transform Other Position to Caster's Shipyard
+        casterShip?.let { casterShip -> return env.isVecInRange(casterShip.positionToShip(otherPos)) } ?: return env.isVecInRange(otherPos)
     }
 
     open fun getCasterPosition(): Vec3? {
