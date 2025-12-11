@@ -42,11 +42,13 @@ public class MixinGui {
         if (integratedServer != null) {
             String physicsTPS = "Error";
             String loadedVoxelChunks = "Error";
+            String physicsBackendType = "Error";
             try {
                 // This is dangerous because we have to reach into the Server state from the Client, which can fail.
                 // So, put this in a try/catch block to catch any errors that may occur.
                 physicsTPS = " " + Math.round(VSGameUtilsKt.getVsPipeline(integratedServer).computePhysTps());
                 loadedVoxelChunks = " " + VSGameUtilsKt.getVsPipeline(integratedServer).getLoadedVoxelChunks();
+                physicsBackendType = " " + VSGameUtilsKt.getVsPipeline(integratedServer).getPhysicsBackendType().name();
             } catch (final Exception e) {
                 e.printStackTrace();
             }
@@ -54,6 +56,8 @@ public class MixinGui {
             debugText.add(worldPhysicsDebugText);
             final String loadedVoxelChunkDebugText = "VS VoxelChunks: " + loadedVoxelChunks;
             debugText.add(loadedVoxelChunkDebugText);
+            final String physicsBackendDebugText = "VS PhysicsBackendType: " + physicsBackendType;
+            debugText.add(physicsBackendDebugText);
         }
 
         debugText.add("Using UDP: " + ValkyrienSkiesMod.getVsCore().getClientUsesUDP());

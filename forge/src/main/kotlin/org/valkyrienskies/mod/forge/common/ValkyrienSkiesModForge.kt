@@ -8,6 +8,7 @@ import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MobCategory
 import net.minecraft.world.item.BlockItem
+import net.minecraft.world.item.CreativeModeTabs
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.Item.Properties
 import net.minecraft.world.level.block.Block
@@ -15,6 +16,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraftforge.client.event.EntityRenderersEvent
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent
 import net.minecraftforge.event.AddReloadListenerEvent
+import net.minecraftforge.event.BuildCreativeModeTabContentsEvent
 import net.minecraftforge.event.RegisterCommandsEvent
 import net.minecraftforge.event.TagsUpdatedEvent
 import net.minecraftforge.event.entity.EntityAttributeCreationEvent
@@ -33,7 +35,18 @@ import org.valkyrienskies.mod.client.EmptyRenderer
 import org.valkyrienskies.mod.client.VSPhysicsEntityModel
 import org.valkyrienskies.mod.client.VSPhysicsEntityRenderer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.AREA_ASSEMBLER_ITEM
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.CONNECTION_CHECKER_ITEM
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod.MOD_ID
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.PHYSICS_ENTITY_CREATOR_ITEM
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.SHIP_CREATOR_ITEM
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.SHIP_CREATOR_ITEM_SMALLER
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.TEST_CHAIR
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.TEST_FLAP
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.TEST_HINGE
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.TEST_THRUSTER
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.TEST_WING
 import org.valkyrienskies.mod.common.block.TestChairBlock
 import org.valkyrienskies.mod.common.block.TestFlapBlock
 import org.valkyrienskies.mod.common.block.TestHingeBlock
@@ -197,11 +210,15 @@ class ValkyrienSkiesModForge {
 
 
 
-        val deferredRegister = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MOD_ID)
-        deferredRegister.register("general") {
-            ValkyrienSkiesMod.createCreativeTab()
-        }
-        deferredRegister.register(modBus)
+        // val deferredRegister = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MOD_ID)
+        // deferredRegister.register("general") {
+        //     ValkyrienSkiesMod.createCreativeTab()
+        // }
+        // deferredRegister.register(modBus)
+
+        modBus.addListener(::onTabModify)
+
+
 
         if (ModList.get().isLoaded("epicfight")) {
             FracturedBlockStateInfoProvider.register()
@@ -214,6 +231,22 @@ class ValkyrienSkiesModForge {
 
         if (ModList.get().isLoaded("hexcasting"))
             HexcastingCompat.register(ForgeShipAmbit::class.java)
+    }
+
+    private fun onTabModify(event: BuildCreativeModeTabContentsEvent) {
+        if (event.tabKey == CreativeModeTabs.OP_BLOCKS) {
+            event.accept(TEST_CHAIR.asItem())
+            event.accept(TEST_HINGE.asItem())
+            event.accept(TEST_FLAP.asItem())
+            event.accept(TEST_WING.asItem())
+            event.accept(TEST_THRUSTER.asItem())
+            event.accept(CONNECTION_CHECKER_ITEM)
+            event.accept(SHIP_CREATOR_ITEM)
+            event.accept(SHIP_ASSEMBLER_ITEM)
+            event.accept(SHIP_CREATOR_ITEM_SMALLER)
+            event.accept(AREA_ASSEMBLER_ITEM)
+            event.accept(PHYSICS_ENTITY_CREATOR_ITEM)
+        }
     }
 
     private fun onConfigLoad(event: ModConfigEvent.Loading) {

@@ -158,26 +158,6 @@ object ValkyrienSkiesMod {
         return dimensionalGTPAs.getOrPut(dimensionId) { GameToPhysicsAdapter() }
     }
 
-    fun createCreativeTab(): CreativeModeTab {
-        return CreativeModeTab.builder(CreativeModeTab.Row.TOP, 0)
-            .title(Component.translatable("itemGroup.valkyrienSkies"))
-            .icon { ItemStack(SHIP_CREATOR_ITEM) }
-            .displayItems { _, output ->
-                output.accept(TEST_CHAIR.asItem())
-                output.accept(TEST_HINGE.asItem())
-                output.accept(TEST_FLAP.asItem())
-                output.accept(TEST_WING.asItem())
-                output.accept(TEST_THRUSTER.asItem())
-                output.accept(CONNECTION_CHECKER_ITEM)
-                output.accept(SHIP_CREATOR_ITEM)
-                output.accept(SHIP_ASSEMBLER_ITEM)
-                output.accept(SHIP_CREATOR_ITEM_SMALLER)
-                output.accept(AREA_ASSEMBLER_ITEM)
-                output.accept(PHYSICS_ENTITY_CREATOR_ITEM)
-            }
-            .build()
-    }
-
     fun addBlockEntityPhysTicker(
         dimensionId: DimensionId, pos: BlockPos, blockEntity: BlockEntityPhysicsListener
     ) {

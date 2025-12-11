@@ -10,6 +10,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.EntityModelLayerRegistry
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents
+import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents
 import net.fabricmc.fabric.api.`object`.builder.v1.block.entity.FabricBlockEntityTypeBuilder
 import net.fabricmc.fabric.api.`object`.builder.v1.entity.FabricDefaultAttributeRegistry
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener
@@ -27,6 +28,7 @@ import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MobCategory
 import net.minecraft.world.item.BlockItem
+import net.minecraft.world.item.CreativeModeTabs
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.Item.Properties
 import net.minecraft.world.level.block.Block
@@ -35,6 +37,17 @@ import org.valkyrienskies.mod.client.EmptyRenderer
 import org.valkyrienskies.mod.client.VSPhysicsEntityModel
 import org.valkyrienskies.mod.client.VSPhysicsEntityRenderer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.AREA_ASSEMBLER_ITEM
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.CONNECTION_CHECKER_ITEM
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.PHYSICS_ENTITY_CREATOR_ITEM
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.SHIP_CREATOR_ITEM
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.SHIP_CREATOR_ITEM_SMALLER
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.TEST_CHAIR
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.TEST_FLAP
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.TEST_HINGE
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.TEST_THRUSTER
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.TEST_WING
 import org.valkyrienskies.mod.common.block.TestChairBlock
 import org.valkyrienskies.mod.common.block.TestFlapBlock
 import org.valkyrienskies.mod.common.block.TestHingeBlock
@@ -192,11 +205,25 @@ class ValkyrienSkiesModFabric : ModInitializer {
             ValkyrienSkiesMod.TEST_THRUSTER_BLOCK_ENTITY_TYPE
         )
 
-        Registry.register(
-            BuiltInRegistries.CREATIVE_MODE_TAB,
-            ValkyrienSkiesMod.VS_CREATIVE_TAB,
-            ValkyrienSkiesMod.createCreativeTab()
-        )
+        // Registry.register(
+        //     BuiltInRegistries.CREATIVE_MODE_TAB,
+        //     ValkyrienSkiesMod.VS_CREATIVE_TAB,
+        //     ValkyrienSkiesMod.createCreativeTab()
+        // )
+
+        ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.OP_BLOCKS).register { event ->
+            event.accept(TEST_CHAIR.asItem())
+            event.accept(TEST_HINGE.asItem())
+            event.accept(TEST_FLAP.asItem())
+            event.accept(TEST_WING.asItem())
+            event.accept(TEST_THRUSTER.asItem())
+            event.accept(CONNECTION_CHECKER_ITEM)
+            event.accept(SHIP_CREATOR_ITEM)
+            event.accept(SHIP_ASSEMBLER_ITEM)
+            event.accept(SHIP_CREATOR_ITEM_SMALLER)
+            event.accept(AREA_ASSEMBLER_ITEM)
+            event.accept(PHYSICS_ENTITY_CREATOR_ITEM)
+        }
 
         CommandRegistrationCallback.EVENT.register { dispatcher ,d, _ ->
             VSCommands.registerServerCommands(dispatcher)

@@ -205,7 +205,7 @@ object VSGameConfig {
         var minScaling = 0.25
 
         @ConfigEntry(
-            description = "Default mass for blocks that do not have it defined in data or code. Blocks with masses below 1000 float in water"
+            description = "Default mass for blocks that do not have it defined in data or code. Blocks with masses below 100 float in water"
         )
         var defaultBlockMass = 100.0
 

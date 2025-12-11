@@ -309,7 +309,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
         )
 
         val generatedCollisionShapesMap = HashMap<VoxelShape, SolidBlockShape?>()
-        val liquidMaterialToDensityMap = mapOf(Fluids.WATER to Pair(1000.0, 0.3), Fluids.LAVA to Pair(10000.0, 1.0), Fluids.FLOWING_WATER to Pair(1000.0, 0.3), Fluids.FLOWING_LAVA to Pair(10000.0, 1.0))
+        val liquidMaterialToDensityMap = mapOf(Fluids.WATER to Pair(100.0, 0.3), Fluids.LAVA to Pair(1000.0, 1.0), Fluids.FLOWING_WATER to Pair(1000.0, 0.3), Fluids.FLOWING_LAVA to Pair(10000.0, 1.0))
 
         val fluidStateToBlockTypeMap = HashMap<FluidState, LiquidState>()
 
