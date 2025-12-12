@@ -2,7 +2,12 @@ package org.valkyrienskies.mod.mixin.client.world;
 
 import static org.valkyrienskies.mod.common.ValkyrienSkiesMod.getVsCore;
 
+import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientChunkCache;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.BlockPos;
@@ -16,6 +21,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -23,6 +29,7 @@ import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
+import org.joml.Vector3ic;
 import org.joml.primitives.AABBd;
 import org.joml.primitives.AABBdc;
 import org.joml.primitives.AABBi;
@@ -62,6 +69,18 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
     private void trySpawnDripParticles(final BlockPos blockPos, final BlockState blockState,
         final ParticleOptions particleData, final boolean shapeDownSolid) {
     }
+
+    @Shadow
+    @Final
+    private ClientChunkCache chunkSource;
+    // Map from ChunkPos to the list of voxel chunks that chunk owns
+    @Unique
+    private final Map<ChunkPos, List<Vector3ic>> vs$knownChunks = new HashMap<>();
+
+    // Maps chunk pos to number of ticks we have considered unloading the chunk
+    @Unique
+    private final Long2LongOpenHashMap vs$chunksToUnload = new Long2LongOpenHashMap();
+
 
     @Inject(method = "disconnect", at = @At("TAIL"))
     private void afterDisconnect(final CallbackInfo ci) {

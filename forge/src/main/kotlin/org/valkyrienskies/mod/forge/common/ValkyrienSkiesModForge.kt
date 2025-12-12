@@ -3,7 +3,6 @@ package org.valkyrienskies.mod.forge.common
 import dev.engine_room.flywheel.api.event.ReloadLevelRendererEvent
 import net.minecraft.commands.Commands.CommandSelection.ALL
 import net.minecraft.commands.Commands.CommandSelection.INTEGRATED
-import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MobCategory
@@ -55,6 +54,7 @@ import org.valkyrienskies.mod.common.block.TestWingBlock
 import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
 import org.valkyrienskies.mod.common.blockentity.TestThrusterBlockEntity
 import org.valkyrienskies.mod.common.command.VSCommands
+import org.valkyrienskies.mod.common.config.DimensionParametersResolver
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.config.VSConfigUpdater
 import org.valkyrienskies.mod.common.config.VSEntityHandlerDataLoader
@@ -264,6 +264,7 @@ class ValkyrienSkiesModForge {
     private fun registerResourceManagers(event: AddReloadListenerEvent) {
         event.addListener(MassDatapackResolver.loader)
         event.addListener(VSEntityHandlerDataLoader)
+        event.addListener(DimensionParametersResolver)
     }
 
     private fun registerKeyBindings(event: RegisterKeyMappingsEvent) {

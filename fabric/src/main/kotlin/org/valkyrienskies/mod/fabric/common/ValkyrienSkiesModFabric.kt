@@ -56,6 +56,7 @@ import org.valkyrienskies.mod.common.block.TestWingBlock
 import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
 import org.valkyrienskies.mod.common.blockentity.TestThrusterBlockEntity
 import org.valkyrienskies.mod.common.command.VSCommands
+import org.valkyrienskies.mod.common.config.DimensionParametersResolver
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.config.VSConfigUpdater
 import org.valkyrienskies.mod.common.config.VSEntityHandlerDataLoader
@@ -232,6 +233,7 @@ class ValkyrienSkiesModFabric : ModInitializer {
         // registering data loaders
         val loader1 = MassDatapackResolver.loader // the get makes a new instance so get it only once
         val loader2 = VSEntityHandlerDataLoader // the get makes a new instance so get it only once
+        val loader3 = DimensionParametersResolver
         ResourceManagerHelper.get(SERVER_DATA)
             .registerReloadListener(object : IdentifiableResourceReloadListener {
                 override fun getFabricId(): ResourceLocation {
@@ -255,6 +257,26 @@ class ValkyrienSkiesModFabric : ModInitializer {
                             backgroundExecutor, gameExecutor
                         )
                     ) { _, _ -> }
+                }
+            })
+        ResourceManagerHelper.get(SERVER_DATA)
+            .registerReloadListener(object : IdentifiableResourceReloadListener {
+                override fun getFabricId(): ResourceLocation {
+                    return ResourceLocation(ValkyrienSkiesMod.MOD_ID, "vs_dimension_parameters")
+                }
+
+                override fun reload(
+                    stage: PreparationBarrier,
+                    resourceManager: ResourceManager,
+                    preparationsProfiler: ProfilerFiller,
+                    reloadProfiler: ProfilerFiller,
+                    backgroundExecutor: Executor,
+                    gameExecutor: Executor
+                ): CompletableFuture<Void> {
+                    return loader3.reload(
+                        stage, resourceManager, preparationsProfiler, reloadProfiler,
+                        backgroundExecutor, gameExecutor
+                    )
                 }
             })
         CommonLifecycleEvents.TAGS_LOADED.register { _, _ ->

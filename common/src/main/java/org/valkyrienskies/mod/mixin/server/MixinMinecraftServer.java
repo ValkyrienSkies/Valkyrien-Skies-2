@@ -58,6 +58,7 @@ import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.ShipSavedData;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
+import org.valkyrienskies.mod.common.config.DimensionParametersResolver;
 import org.valkyrienskies.mod.common.config.MassDatapackResolver;
 import org.valkyrienskies.mod.common.hooks.VSGameEvents;
 import org.valkyrienskies.mod.common.util.EntityDragger;
@@ -162,13 +163,25 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
 
         VSGameEvents.INSTANCE.getRegistriesCompleted().emit(Unit.INSTANCE);
 
-        getShipObjectWorld().addDimension(
-            VSGameUtilsKt.getDimensionId(overworld()),
-            VSGameUtilsKt.getYRange(overworld()),
-            McMathUtilKt.getDEFAULT_WORLD_GRAVITY(),
-            63.0,
-            962.0
-        );
+        DimensionParametersResolver.Parameters params = DimensionParametersResolver.INSTANCE.getDimensionMap().get(VSGameUtilsKt.getDimensionId(overworld()));
+
+        if (params != null) {
+            getShipObjectWorld().addDimension(
+                VSGameUtilsKt.getDimensionId(overworld()),
+                VSGameUtilsKt.getYRange(overworld()),
+                params.getGravity(),
+                params.getSeaLevel(),
+                params.getMaxY()
+            );
+        } else {
+            getShipObjectWorld().addDimension(
+                VSGameUtilsKt.getDimensionId(overworld()),
+                VSGameUtilsKt.getYRange(overworld()),
+                McMathUtilKt.getDEFAULT_WORLD_GRAVITY(),
+                63.0,
+                962.0
+            );
+        }
     }
 
     @Inject(
