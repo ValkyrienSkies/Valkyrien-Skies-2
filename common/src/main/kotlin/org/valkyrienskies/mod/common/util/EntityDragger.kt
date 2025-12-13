@@ -234,67 +234,86 @@ object EntityDragger {
 
     @JvmStatic
     fun backOff(vec3: Vec3, ship: Ship, player: Player, cLevel: Level): Vec3 {
-        var transformedVec = ship.worldToShip.transformDirection(vec3.toJOML(), Vector3d())
+        // Early exit: if there's ground ahead in the movement direction, allow full movement
+        // This lets us walk away from edges without being blocked
+        val movementLength = vec3.length()
+        if (movementLength > 0) {
+            val checkDistance = movementLength + player.bbWidth
+            val checkOffset = vec3.normalize().scale(checkDistance)
+            val checkPosWorld = player.position().add(checkOffset)
+            // Transform to ship space for the raycast (where ship blocks actually exist)
+            val checkPosShip = ship.worldToShip.transformPosition(checkPosWorld.toJOML(), Vector3d())
+            val checkStart = Vec3(checkPosShip.x(), checkPosShip.y(), checkPosShip.z())
+            val checkEnd = Vec3(checkPosShip.x(), checkPosShip.y() - player.maxUpStep().toDouble(), checkPosShip.z())
+            val clipContext = ClipContext(checkStart, checkEnd, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player)
+            val result = cLevel.clip(clipContext)
+            if (result.type == HitResult.Type.BLOCK) {
+                // Ground ahead, allow full movement
+                return vec3
+            }
+        }
+
+        val transformedVec = ship.worldToShip.transformDirection(vec3.toJOML(), Vector3d())
         var d = transformedVec.x
-        var e = transformedVec.y
+        val e = transformedVec.y
         var f = transformedVec.z
+        val halfWidth = player.bbWidth / 4.0 // players walking on a moving ship should be careful
 
-        while (d != 0.0 && !isValidWalkablePosition(cLevel, ship, player, d, Direction.EAST)) {
-            if (d < 0.025 && d >= -0.025) {
-                d = 0.0
-            } else if (d > 0.0) {
-                d -= 0.025
+        val stepDown = player.maxUpStep().toDouble()
+        // Get player position in ship space for axis-specific checks
+        val playerPosShip = ship.worldToShip.transformPosition(player.position().toJOML(), Vector3d())
+
+        // Early exit for X axis: check both sides (offset by halfWidth in Z) for ground ahead
+        if (d != 0.0) {
+            val xCheckDist = d + (if (d > 0) -halfWidth else halfWidth)
+            // Check in ship space (where ship blocks actually exist)
+            val xStart1 = Vec3(playerPosShip.x() + xCheckDist, playerPosShip.y(), playerPosShip.z() + halfWidth)
+            val xEnd1 = Vec3(xStart1.x, xStart1.y - stepDown, xStart1.z)
+            val xResult1 = cLevel.clip(ClipContext(xStart1, xEnd1, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player))
+
+            val xStart2 = Vec3(playerPosShip.x() + xCheckDist, playerPosShip.y(), playerPosShip.z() - halfWidth)
+            val xEnd2 = Vec3(xStart2.x, xStart2.y - stepDown, xStart2.z)
+            val xResult2 = cLevel.clip(ClipContext(xStart2, xEnd2, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player))
+
+            if (xResult1.type == HitResult.Type.BLOCK || xResult2.type == HitResult.Type.BLOCK) {
+                d = transformedVec.x // Ground ahead on at least one side, keep original X movement
             } else {
-                d += 0.025
+                while (d != 0.0 && !isValidWalkablePosition(cLevel, ship, player, d, Direction.EAST, halfWidth)) {
+                    if (d < 0.05 && d >= -0.05) {
+                        d = 0.0
+                    } else if (d > 0.0) {
+                        d -= 0.05
+                    } else {
+                        d += 0.05
+                    }
+                }
             }
         }
 
-        while (f != 0.0 && !isValidWalkablePosition(cLevel, ship, player, f, Direction.SOUTH)) {
-            if (f < 0.025 && f >= -0.025) {
-                f = 0.0
-            } else if (f > 0.0) {
-                f -= 0.025
-            } else {
-                f += 0.025
-            }
-        }
+        // Early exit for Z axis: check both sides (offset by halfWidth in X) for ground ahead
+        if (f != 0.0) {
+            val zCheckDist = f + (if (f > 0) -halfWidth else halfWidth)
+            // Check in ship space (where ship blocks actually exist)
+            val zStart1 = Vec3(playerPosShip.x() + halfWidth, playerPosShip.y(), playerPosShip.z() + zCheckDist)
+            val zEnd1 = Vec3(zStart1.x, zStart1.y - stepDown, zStart1.z)
+            val zResult1 = cLevel.clip(ClipContext(zStart1, zEnd1, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player))
 
-        while (e != 0.0 && !isValidWalkablePosition(cLevel, ship, player, e, Direction.UP)) {
-            if (e < 0.025 && e >= -0.025) {
-                e = 0.0
-            } else if (e > 0.0) {
-                e -= 0.025
-            } else {
-                e += 0.025
-            }
-        }
+            val zStart2 = Vec3(playerPosShip.x() - halfWidth, playerPosShip.y(), playerPosShip.z() + zCheckDist)
+            val zEnd2 = Vec3(zStart2.x, zStart2.y - stepDown, zStart2.z)
+            val zResult2 = cLevel.clip(ClipContext(zStart2, zEnd2, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player))
 
-        while (d != 0.0 && f != 0.0 && e != 0.0 &&
-            !isValidWalkablePosition(cLevel, ship, player, d, Direction.EAST) &&
-            !isValidWalkablePosition(cLevel, ship, player, f, Direction.SOUTH) &&
-            !isValidWalkablePosition(cLevel, ship, player, e, Direction.UP)) {
-            if (d < 0.025 && d >= -0.025) {
-                d = 0.0
-            } else if (d > 0.0) {
-                d -= 0.025
+            if (zResult1.type == HitResult.Type.BLOCK || zResult2.type == HitResult.Type.BLOCK) {
+                f = transformedVec.z // Ground ahead on at least one side, keep original Z movement
             } else {
-                d += 0.025
-            }
-
-            if (f < 0.025 && f >= -0.025) {
-                f = 0.0
-            } else if (f > 0.0) {
-                f -= 0.025
-            } else {
-                f += 0.025
-            }
-
-            if (e < 0.025 && e >= -0.025) {
-                e = 0.0
-            } else if (e > 0.0) {
-                e -= 0.025
-            } else {
-                e += 0.025
+                while (f != 0.0 && !isValidWalkablePosition(cLevel, ship, player, f, Direction.SOUTH, halfWidth)) {
+                    if (f < 0.05 && f >= -0.05) {
+                        f = 0.0
+                    } else if (f > 0.0) {
+                        f -= 0.05
+                    } else {
+                        f += 0.05
+                    }
+                }
             }
         }
 
@@ -303,27 +322,14 @@ object EntityDragger {
     }
 
     private fun isValidWalkablePosition(
-        level: Level, ship: Ship, player: Player, step: Double, dir: Direction
+        level: Level, ship: Ship, player: Player, step: Double, dir: Direction, halfWidth: Double
     ): Boolean {
-        // todo: eventually figure this out
-        // val downDirInShip: Vector3dc? = ship.worldToShip.transformDirection(
-        //     Vector3d(0.0, -1.0, 0.0), Vector3d()
-        // ).normalize().mul(player.maxUpStep().toDouble())
-        //
-        // val potentialMovement = ship.transform.shipToWorld.transformDirection(Vector3d(dir.step())).normalize().mul(step).add(downDirInShip)
-        //
-        // val shipPolygons = EntityShipCollisionUtils.getShipPolygonsCollidingWithEntity(
-        //     player, potentialMovement.toMinecraft(), player.getBoundingBox().inflate(-0.1), level
-        // )
-        // val noWorldCollision = level.noCollision(player, player.getBoundingBox().move(potentialMovement.toMinecraft()))
-        //
-        // val noCollision = noWorldCollision && shipPolygons.isEmpty()
-        val clipContext = stepTowardsEdge(level, ship, player, step, dir)
+        val clipContext = stepTowardsEdge(ship, player, step, dir, halfWidth)
         val result = level.clip(clipContext)
         if (result.type != HitResult.Type.BLOCK) {
             return false
         }
-        //get the normal of the hit face in worldspace
+
         val hitShip = level.getLoadedShipManagingPos(result.blockPos)
         if (hitShip != null) {
             val hitSide = result.direction.normal.toJOMLD()
@@ -335,22 +341,22 @@ object EntityDragger {
                 return false
             }
         }
-
         return true
     }
 
     private fun stepTowardsEdge(
-        level: Level?, ship: Ship, player: Player, step: Double, dir: Direction
+        ship: Ship, player: Player, step: Double, dir: Direction, halfWidth: Double
     ): ClipContext {
-        val potentialPosition = player.position().add(ship.transform.shipToWorld.transformDirection(Vector3d(dir.step())).normalize().mul(step).toMinecraft())
-        val downDirInShip: Vector3dc? = ship.worldToShip.transformDirection(
-            Vector3d(0.0, -1.0, 0.0), Vector3d()
-        ).normalize().mul(player.maxUpStep().toDouble())
+        // Calculate check position: movement - half player width in movement direction
+        val dirVec = ship.transform.shipToWorld.transformDirection(Vector3d(dir.step())).normalize()
+        val offsetDistance = step + (if (step > 0) -halfWidth else halfWidth)
+        val potentialPosition = player.position().add(dirVec.mul(offsetDistance).toMinecraft())
 
-        val maxDistPos: Vector3dc = potentialPosition.toJOML().add(downDirInShip, Vector3d())
+        // Raycast downward to check for ground
+        val maxDistPos = potentialPosition.add(0.0, -player.maxUpStep().toDouble(), 0.0)
 
         return ClipContext(
-            potentialPosition, maxDistPos.toMinecraft(), ClipContext.Block.COLLIDER,
+            potentialPosition, maxDistPos, ClipContext.Block.COLLIDER,
             ClipContext.Fluid.NONE, player
         )
     }
