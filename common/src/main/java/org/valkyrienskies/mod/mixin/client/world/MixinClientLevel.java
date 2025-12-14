@@ -6,16 +6,22 @@ import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientChunkCache;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.multiplayer.ClientLevel.ClientLevelData;
+import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.Holder;
 import net.minecraft.core.SectionPos;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
@@ -43,12 +49,15 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.Ship;
+import org.valkyrienskies.core.api.util.AerodynamicUtils;
 import org.valkyrienskies.core.internal.world.VsiClientShipWorld;
 import org.valkyrienskies.core.util.AABBdUtilKt;
 import org.valkyrienskies.core.util.VectorConversionsKt;
 import org.valkyrienskies.mod.client.audio.SimpleSoundInstanceOnShip;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.config.DimensionParametersResolver;
+import org.valkyrienskies.mod.util.McMathUtilKt;
 
 @Mixin(ClientLevel.class)
 public abstract class MixinClientLevel implements IShipObjectWorldClientProvider {
@@ -80,6 +89,35 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
     // Maps chunk pos to number of ticks we have considered unloading the chunk
     @Unique
     private final Long2LongOpenHashMap vs$chunksToUnload = new Long2LongOpenHashMap();
+
+    @Inject(method = "<init>", at = @At("TAIL"))
+    private void postInit(ClientPacketListener clientPacketListener, ClientLevelData clientLevelData,
+        ResourceKey resourceKey, Holder holder, int i, int j, Supplier supplier, LevelRenderer levelRenderer,
+        boolean bl, long l, CallbackInfo ci) {
+        if (getShipObjectWorld() != null) {
+            DimensionParametersResolver.Parameters params = DimensionParametersResolver.INSTANCE.getDimensionMap().get(
+                VSGameUtilsKt.getDimensionId((ClientLevel) (Object) this)
+            );
+            if (params != null) {
+                getShipObjectWorld().addDimension(
+                    VSGameUtilsKt.getDimensionId((ClientLevel) (Object) this),
+                    VSGameUtilsKt.getYRange((ClientLevel) (Object) this),
+                    params.getGravity(),
+                    params.getSeaLevel(),
+                    params.getMaxY()
+                );
+                return;
+            }
+            getShipObjectWorld().addDimension(
+                VSGameUtilsKt.getDimensionId((ClientLevel) (Object) this),
+                VSGameUtilsKt.getYRange((ClientLevel) (Object) this),
+                McMathUtilKt.getDEFAULT_WORLD_GRAVITY(),
+                AerodynamicUtils.DEFAULT_SEA_LEVEL,
+                AerodynamicUtils.DEFAULT_MAX
+            );
+        }
+
+    }
 
 
     @Inject(method = "disconnect", at = @At("TAIL"))

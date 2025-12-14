@@ -90,7 +90,7 @@ object ValkyrienSkiesMod {
         VsApiImpl(vsCore)
     }
 
-    val blockEntityPhysListeners: ConcurrentHashMap<DimensionId, HashMap<BlockPos, Pair<ShipId?, BlockEntityPhysicsListener>>> =
+    val blockEntityPhysListeners: ConcurrentHashMap<DimensionId, ConcurrentHashMap<BlockPos, Pair<ShipId?, BlockEntityPhysicsListener>>> =
         ConcurrentHashMap()
 
     @JvmStatic
@@ -134,7 +134,7 @@ object ValkyrienSkiesMod {
                     gameTickForceApplier.physTick(event.world, event.delta)
                 }
             }
-            blockEntityPhysListeners.getOrPut(event.world.dimension, {HashMap()}).forEach { pos, infoPair ->
+            blockEntityPhysListeners.getOrPut(event.world.dimension, { ConcurrentHashMap() }).forEach { pos, infoPair ->
                 val shipId = infoPair.first
                 val listener = infoPair.second
                 val ship = if (shipId != null) {
@@ -168,15 +168,15 @@ object ValkyrienSkiesMod {
             val ship = level.getShipManagingBlock(pos)
             shipId = ship?.id
         }
-        blockEntityPhysListeners.getOrPut(dimensionId, {HashMap()})[pos] = Pair(shipId, blockEntity)
+        blockEntityPhysListeners.getOrPut(dimensionId, { ConcurrentHashMap() })[pos] = Pair(shipId, blockEntity)
     }
 
     fun getBlockEntityPhysTicker(dimensionId: DimensionId, pos: BlockPos): BlockEntityPhysicsListener? {
-        return blockEntityPhysListeners.getOrPut(dimensionId, {HashMap()})[pos]?.second
+        return blockEntityPhysListeners.getOrPut(dimensionId, { ConcurrentHashMap() })[pos]?.second
     }
 
     fun removeBlockEntityPhysTicker(pos: BlockPos, dimensionId: DimensionId) {
-        blockEntityPhysListeners.getOrPut(dimensionId, {HashMap()}).remove(pos)
+        blockEntityPhysListeners.getOrPut(dimensionId, { ConcurrentHashMap() }).remove(pos)
     }
 
 }

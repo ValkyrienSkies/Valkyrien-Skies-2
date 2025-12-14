@@ -41,9 +41,19 @@ commands:
       - run: mkdir -p artifacts
       - run: |
           set -euo pipefail
-          find ./forge/build/libs -regextype posix-extended -regex ".*/<< parameters.artifact_name >>(-[^-]+){3}.jar" \
+          find ./forge/build/libs \
+            -name "<< parameters.artifact_name >>*.jar" \
+            ! -name "*-sources.jar" \
+            ! -name "*-dev.jar" \
+            ! -name "*-shadow.jar" \
+            ! -name "*-javadoc.jar" \
             -exec bash -c 'cp "$0" "./artifacts/<< parameters.artifact_name >>-forge-<< parameters.version >>.jar"' {} \;
-          find ./fabric/build/libs -regextype posix-extended -regex ".*/<< parameters.artifact_name >>(-[^-]+){3}.jar" \
+          find ./fabric/build/libs \
+            -name "<< parameters.artifact_name >>*.jar" \
+            ! -name "*-sources.jar" \
+            ! -name "*-dev.jar" \
+            ! -name "*-shadow.jar" \
+            ! -name "*-javadoc.jar" \
             -exec bash -c 'cp "$0" "./artifacts/<< parameters.artifact_name >>-fabric-<< parameters.version >>.jar"' {} \;
       - store_artifacts:
           path: artifacts

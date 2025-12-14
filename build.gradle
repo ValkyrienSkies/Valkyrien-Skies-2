@@ -87,12 +87,6 @@ subprojects {
         } catch (UnknownDomainObjectException ignore) {}
 
         mavenCentral()
-        maven {
-            url "https://cursemaven.com"
-            content {
-                includeModule "curse.maven", "kotlinforforge-351264"
-            }
-        }
         if (!project.block_external_repositories) {
             maven {
                 url = "https://maven.realrobotix.me/master/"
@@ -171,12 +165,6 @@ subprojects {
                 }
             }
         }
-
-        //Mixin squared
-        maven { url = "https://maven.bawnorton.com/releases" }
-
-        // Mirror
-        maven { url = "https://maven.enjarai.dev/mirrors" }
     }
 
     // Remove automatically added repos

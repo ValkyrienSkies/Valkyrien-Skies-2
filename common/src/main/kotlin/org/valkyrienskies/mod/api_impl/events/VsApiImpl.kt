@@ -31,7 +31,6 @@ import org.valkyrienskies.mod.api.getShipManagingBlock
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
-import org.valkyrienskies.mod.common.ValkyrienSkiesMod.blockEntityPhysListeners
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.getLoadedShipManagingPos

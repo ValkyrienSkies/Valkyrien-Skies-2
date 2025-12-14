@@ -15,9 +15,9 @@ import net.minecraft.world.level.block.state.BlockState
 import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.api.ships.Wing
-import org.valkyrienskies.core.api.ships.WingManager
 import org.valkyrienskies.core.internal.world.chunks.VsiBlockType
 import org.valkyrienskies.mod.common.block.WingBlock
+import org.valkyrienskies.mod.common.config.ConfigType
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.hooks.VSGameEvents
 import java.util.function.IntFunction
@@ -53,6 +53,16 @@ object BlockStateInfo {
         )
 
         VSGameEvents.registriesCompleted.on { _, _ -> SORTED_REGISTRY = REGISTRY.sortedByDescending { it.priority } }
+
+        VSGameEvents.configUpdated.on { entries ->
+            val defaultMassChanged = entries.any {
+                it.configType == ConfigType.SERVER && it.name == "defaultBlockMass"
+            }
+
+            if (defaultMassChanged) {
+                invalidateCache()
+            }
+        }
     }
 
     // This is [ThreadLocal] because in single-player games the Client thread and Server thread will read/write to
@@ -74,8 +84,12 @@ object BlockStateInfo {
         }
     }
 
-    private val _cache = ThreadLocal.withInitial { Cache() }
+    private var _cache = ThreadLocal.withInitial { Cache() }
     val cache: Cache get() = _cache.get()
+
+    private fun invalidateCache() {
+        _cache = ThreadLocal.withInitial { Cache() }
+    }
 
     // NOTE: this caching can get allot better, ex. default just returns constants so it might be more faster
     //  if we store that these values do not need to be cached by double and blocktype but just that they use default impl

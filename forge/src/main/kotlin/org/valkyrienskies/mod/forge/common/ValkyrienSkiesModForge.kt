@@ -102,11 +102,21 @@ class ValkyrienSkiesModForge {
     init {
         val isClient = FMLEnvironment.dist.isClient
 
-        ValkyrienSkiesMod.init()
-        VSEntityManager.registerContraptionHandler(ContraptionShipyardEntityHandlerForge)
-
         val modBus = Bus.MOD.bus().get()
         val forgeBus = Bus.FORGE.bus().get()
+
+        ModLoadingContext.get().apply {
+            registerConfig(ModConfig.Type.SERVER, VSConfigUpdater.CORE_SERVER_SPEC, "valkyrienskies/vs-core-server.toml")
+            registerConfig(ModConfig.Type.SERVER, VSConfigUpdater.SERVER_SPEC, "valkyrienskies/valkyrienskies-server.toml")
+            registerConfig(ModConfig.Type.COMMON, VSConfigUpdater.COMMON_SPEC, "valkyrienskies/valkyrienskies-common.toml")
+            registerConfig(ModConfig.Type.CLIENT, VSConfigUpdater.CLIENT_SPEC, "valkyrienskies/valkyrienskies-client.toml")
+        }
+
+        modBus.addListener(::onConfigLoad)
+        modBus.addListener(::onConfigReload)
+
+        ValkyrienSkiesMod.init()
+        VSEntityManager.registerContraptionHandler(ContraptionShipyardEntityHandlerForge)
 
         BLOCKS.register(modBus)
         ITEMS.register(modBus)
@@ -127,16 +137,6 @@ class ValkyrienSkiesModForge {
         forgeBus.addListener(::registerCommands)
         forgeBus.addListener(::tagsUpdated)
         forgeBus.addListener(::registerResourceManagers)
-
-        ModLoadingContext.get().apply {
-            registerConfig(ModConfig.Type.SERVER, VSConfigUpdater.CORE_SERVER_SPEC, "valkyrienskies/vs-core-server.toml")
-            registerConfig(ModConfig.Type.SERVER, VSConfigUpdater.SERVER_SPEC, "valkyrienskies/valkyrienskies-server.toml")
-            registerConfig(ModConfig.Type.COMMON, VSConfigUpdater.COMMON_SPEC, "valkyrienskies/valkyrienskies-common.toml")
-            registerConfig(ModConfig.Type.CLIENT, VSConfigUpdater.CLIENT_SPEC, "valkyrienskies/valkyrienskies-client.toml")
-        }
-
-        modBus.addListener(::onConfigLoad)
-        modBus.addListener(::onConfigReload)
 
         TEST_CHAIR_REGISTRY = registerBlockAndItem("test_chair") { TestChairBlock }
         TEST_HINGE_REGISTRY = registerBlockAndItem("test_hinge") { TestHingeBlock }
