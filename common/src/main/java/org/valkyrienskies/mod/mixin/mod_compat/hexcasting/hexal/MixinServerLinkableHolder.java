@@ -1,7 +1,5 @@
 package org.valkyrienskies.mod.mixin.mod_compat.hexcasting.hexal;
 
-import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
-import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Final;
@@ -9,6 +7,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.valkyrienskies.mod.api.ValkyrienSkies;
 import ram.talia.hexal.api.linkable.ILinkable;
 import ram.talia.hexal.api.linkable.ServerLinkableHolder;
@@ -20,9 +19,9 @@ public class MixinServerLinkableHolder {
     @Shadow
     private ServerLevel level;
 
-    @WrapOperation(method = "checkLinks", at= @At(value = "INVOKE",
+    @Redirect(method = "checkLinks", at= @At(value = "INVOKE",
         target = "Lram/talia/hexal/api/linkable/ILinkable;isInRange(Lram/talia/hexal/api/linkable/ILinkable;)Z"), remap = false)
-    private boolean valkyrienskies$isInRange(ILinkable instance, ILinkable iLinkable, Operation<Boolean> original) {
+    private boolean valkyrienskies$isInRange(ILinkable instance, ILinkable iLinkable) {
         double maxDistance = 2 * (Math.sqrt(instance.maxSqrLinkRange()) + Math.sqrt(iLinkable.maxSqrLinkRange()));
         Vec3 first = instance.getPosition();
         Vec3 second = iLinkable.getPosition();
