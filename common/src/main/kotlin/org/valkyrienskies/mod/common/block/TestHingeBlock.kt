@@ -222,18 +222,14 @@ object TestHingeBlock :
                 val hingeOrientation = rotationQuaternion.mul(Quaterniond(AxisAngle4d(Math.toRadians(90.0), 0.0, 0.0, 1.0)), Quaterniond()).normalize()
 
                 // Hinge orientation constraint
-                run {
-                    // I don't recommend setting compliance lower than 1e-10 because it tends to cause instability
-                    val hingeOrientationCompliance = 1e-10
-                    val attachmentMaxForce = 1e10
-                    val hingeMaxTorque = 1e10
-                    val hingeConstraint = VSRevoluteJoint(
-                        shipId0, VSJointPose(attachmentLocalPos0, hingeOrientation), shipId1, VSJointPose(attachmentLocalPos1, hingeOrientation),
-                        maxForceTorque = null, driveFreeSpin = true
-                    )
-                    ValkyrienSkiesMod.getOrCreateGTPA(level.dimensionId).addJoint(hingeConstraint, delay = 4) { t ->
-                        blockEntity.get().constraintId = t
-                    }
+                // I don't recommend setting compliance lower than 1e-10 because it tends to cause instability
+                val compliance = 1e-10
+                val hingeConstraint = VSRevoluteJoint(
+                    shipId0, VSJointPose(attachmentLocalPos0, hingeOrientation), shipId1, VSJointPose(attachmentLocalPos1, hingeOrientation),
+                    maxForceTorque = null, compliance = compliance, driveFreeSpin = true
+                )
+                ValkyrienSkiesMod.getOrCreateGTPA(level.dimensionId).addJoint(hingeConstraint, delay = 4) { t ->
+                    blockEntity.get().constraintId = t
                 }
 
                 // Add position damping to make the hinge more stable

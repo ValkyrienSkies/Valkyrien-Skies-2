@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.common.command
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.arguments.BoolArgumentType
 import com.mojang.brigadier.arguments.DoubleArgumentType
+import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.context.CommandContext
 import net.minecraft.commands.CommandRuntimeException
@@ -18,11 +19,15 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.phys.BlockHitResult
+import net.minecraftforge.common.ForgeConfigSpec
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.world.ServerShipWorld
 import org.valkyrienskies.core.api.world.ShipWorld
+import org.valkyrienskies.core.impl.api_impl.config.ConfigPhysicsBackendType
+import org.valkyrienskies.core.impl.config.VSCoreConfig
 import org.valkyrienskies.core.internal.ShipTeleportData
 import org.valkyrienskies.mod.common.BlockStateInfo
+import org.valkyrienskies.mod.common.config.VSConfigUpdater
 import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getShipManagingPos
@@ -97,7 +102,42 @@ object VSCommands {
                             }
                         )
                     )
-                ).then(literal("rename")
+                ).then(literal("backend")
+                .requires{ it.hasPermission(VSGameConfig.SERVER.Commands.changeBackendCommandPerms)}
+                    .then(literal("engine")
+                        .then(literal("krunch")
+                            .executes {
+                                VSCoreConfig.SERVER.physics.physicsBackend = ConfigPhysicsBackendType.KRUNCH_CLASSIC
+                                (VSConfigUpdater.forgeConfigValuesMap.get("physicsBackend") as ForgeConfigSpec.ConfigValue<String>).set(ConfigPhysicsBackendType.KRUNCH_CLASSIC.name)
+                                1
+                            }
+                        ).then(literal("DEFAULT")
+                            .executes {
+                                VSCoreConfig.SERVER.physics.physicsBackend = ConfigPhysicsBackendType.KRUNCH_CLASSIC
+                                (VSConfigUpdater.forgeConfigValuesMap.get("physicsBackend") as ForgeConfigSpec.ConfigValue<String>).set(ConfigPhysicsBackendType.KRUNCH_CLASSIC.name)
+                                1
+                            }
+                        ).then(literal("physx")
+                            .executes {
+                                VSCoreConfig.SERVER.physics.physicsBackend = ConfigPhysicsBackendType.KRUNCH_PHYSX
+                                (VSConfigUpdater.forgeConfigValuesMap.get("physicsBackend") as ForgeConfigSpec.ConfigValue<String>).set(ConfigPhysicsBackendType.KRUNCH_PHYSX.name)
+                                1
+                            }
+                        )
+                    )
+                    .then(literal("lodDetail")
+                        .then(argument("amount", IntegerArgumentType.integer(0))
+                            .executes {
+                                var amount = IntegerArgumentType.getInteger(it, "amount")
+                                VSCoreConfig.SERVER.physics.lodDetail = amount
+                                (VSConfigUpdater.forgeConfigValuesMap.get("lodDetail") as ForgeConfigSpec.ConfigValue<Int>).set(amount)
+                                1
+                            }
+                        )
+                    )
+                )
+
+                .then(literal("rename")
                 .requires{ it.hasPermission(VSGameConfig.SERVER.Commands.renameShipCommandPerms)}
                     .then(argument("ship", ShipArgument.ships())
                         .then(argument("newName", StringArgumentType.string())

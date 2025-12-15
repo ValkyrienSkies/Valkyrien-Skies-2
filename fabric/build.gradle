@@ -39,7 +39,7 @@ dependencies {
     // Depend on the fabric kotlin mod
     include(modImplementation("net.fabricmc:fabric-language-kotlin:${kotlin_fabric_version}"))
 
-    modImplementation "fuzs.forgeconfigapiport:forgeconfigapiport-fabric:${rootProject.fcap_version}"
+    include(modImplementation "fuzs.forgeconfigapiport:forgeconfigapiport-fabric:${rootProject.fcap_version}")
     modRuntimeOnly("maven.modrinth:forge-config-screens:v8.0.2-1.20.1-Fabric")
 
 

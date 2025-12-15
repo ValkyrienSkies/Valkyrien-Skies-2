@@ -272,6 +272,11 @@ object VSGameConfig {
                 description = "The permission level required to use the /vs teleport command. Must be 0 <= x <= 4"
             )
             var teleportShipCommandPerms = 2
+
+            @ConfigEntry(
+                description = "The permission level required to use the /vs backend command. Must be 0 <= x <= 4"
+            )
+            var changeBackendCommandPerms = 4
         }
     }
 
