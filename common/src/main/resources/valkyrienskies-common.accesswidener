@@ -1,4 +1,4 @@
-accessWidener	v1	named
+accessWidener	v2	named
 
 # Only put classes in here. For everything else use Accessor mixins
 # For Rendering
@@ -37,3 +37,7 @@ accessible  class   net/minecraft/world/entity/animal/Bee$BaseBeeGoal
 
 # For flywheel lighting engine
 mutable field   net/minecraft/world/level/lighting/LevelLightEngine   blockEngine    Lnet/minecraft/world/level/lighting/LightEngine;
+
+# For unloading shipyard chunks when teleporting across dimensions
+accessible class net/minecraft/world/level/chunk/LevelChunk$RebindableTickingBlockEntityWrapper
+accessible method net/minecraft/world/level/chunk/LevelChunk$RebindableTickingBlockEntityWrapper rebind (Lnet/minecraft/world/level/block/entity/TickingBlockEntity;)V
