@@ -39,7 +39,11 @@ commands:
       - run: mkdir -p artifacts
       - run: |
           set -euo pipefail
-          ./gradlew outputArtifacts \
+          if ! [ -z "$CIRCLE_PULL_REQUEST" ]; then
+            block_external_repositories=true
+          fi
+          ./gradlew outputArtifacts --no-daemon \
+            "-Dblock_external_repositories=${block_external_repositories}" \
             -Dartifacts_output_dir=artifacts \
             "-Dartifacts_output_name=<< parameters.artifact_name >>" \
             "-Dartifacts_output_version=<< parameters.version >>"
