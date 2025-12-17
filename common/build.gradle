@@ -72,12 +72,12 @@ dependencies {
     //Bluemap fabric 1.20.1
     modCompileOnly("curse.maven:bluemap-406463:5555756")
 
-    modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:imm_ptl_core:${immptl_version}") { transitive = false }
-    modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:q_misc_util:${immptl_version}") { transitive = false }
-    modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:build:${immptl_version}") { transitive = false }
-    modCompileOnly("com.rbasamoyai:createbigcannons:${createbigcannons_version}+mc.${minecraft_version}-fabric") { transitive = false }
-    modCompileOnly("com.rbasamoyai:createbigcannons:${createbigcannons_version}+mc.${minecraft_version}-forge") { transitive = false }
-    modCompileOnly("com.rbasamoyai:ritchiesprojectilelib:2.1.0+mc.${minecraft_version}-forge") { transitive = false }
+    modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:imm_ptl_core:$immptl_version") { transitive = false }
+    modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:q_misc_util:$immptl_version") { transitive = false }
+    modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:build:$immptl_version") { transitive = false }
+    modCompileOnly("com.rbasamoyai:createbigcannons:$createbigcannons_version+mc.$minecraft_version-fabric") { transitive = false }
+    modCompileOnly("com.rbasamoyai:createbigcannons:$createbigcannons_version+mc.$minecraft_version-forge") { transitive = false }
+    modCompileOnly("com.rbasamoyai:ritchiesprojectilelib:2.1.0+mc.$minecraft_version-forge") { transitive = false }
 }
 
 architectury {
