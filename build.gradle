@@ -97,18 +97,26 @@ subprojects {
             }
             maven {
                 url = "https://cursemaven.com"
-                content { includeGroup("curse.maven") }
+                content {
+                    includeGroup("curse.maven")
+                }
             }
-            maven { // Mod Menu
+            maven {
+                name = "Mod Menu"
                 url = "https://maven.terraformersmc.com/releases/"
-                content { includeGroup("com.terraformersmc") }
+                content {
+                    includeGroup("com.terraformersmc")
+                }
             }
             maven {
                 name = 'Kotlin for Forge'
                 url = 'https://thedarkcolour.github.io/KotlinForForge/'
-                content { includeGroup("thedarkcolour") }
+                content {
+                    includeGroup("thedarkcolour")
+                }
             }
             maven {
+                name = "Registrate"
                 name = 'tterrag maven'
                 url = 'https://maven.tterrag.com/'
                 content {
@@ -116,26 +124,36 @@ subprojects {
                     includeGroup("com.tterrag.registrate_fabric")
                 }
             }
-            maven { // Twilight Forest
+            maven {
+                name = "Twilight Forest, TeamReborn Energy API"
                 url = "https://modmaven.dev/"
                 content {
                     includeGroup("teamtwilight")
                     includeGroup("teamreborn")
                 }
             }
-            maven { // LazyDFU, Suggestion Tweaker, Create Big Cannons
+            maven {
+                name = "LazyDFU, Suggestion Tweaker"
                 url = "https://api.modrinth.com/maven"
-                content { includeGroup("maven.modrinth") }
+                content {
+                    includeGroup("maven.modrinth")
+                }
             }
-            maven { // Cloth Config, REI
+            maven {
+                name = "Cloth Config, REI"
                 url = "https://maven.shedaniel.me/"
-                content { includeGroup("me.shedaniel") }
+                content {
+                    includeGroup("me.shedaniel")
+                }
             }
             maven {
                 url = "https://maven.architectury.dev/"
-                content { includeGroup("dev.architectury") }
+                content {
+                    includeGroup("dev.architectury")
+                }
             }
-            maven { // Create, Ponder, Flywheel
+            maven {
+                name = "Create, Ponder, Flywheel"
                 url = "https://maven.createmod.net"
                 content {
                     includeGroup("com.simibubi.create")
@@ -143,21 +161,30 @@ subprojects {
                     includeGroup("dev.engine-room.flywheel")
                 }
             }
-            maven { // Registrate
+            maven {
+                name = "Registrate"
                 url = "https://maven.ithundxr.dev/mirror"
-                content { includeGroup("com.tterrag.registrate") }
+                content {
+                    includeGroup("com.tterrag.registrate")
+                }
             }
-            maven { // ForgeConfigAPIPort
+            maven {
+                name = "ForgeConfigAPIPort"
                 url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/"
-                content { includeGroup("fuzs.forgeconfigapiport") }
+                content {
+                    includeGroup("fuzs.forgeconfigapiport")
+                }
             }
 
-            // mavens for Create Fabric and dependencies
-            maven { // Porting Lib releases
+            maven {
+                name = "Porting Lib releases"
                 url = "https://mvn.devos.one/releases"
-                content { includeGroup("io.github.fabricators_of_create.Porting-Lib") }
+                content {
+                    includeGroup("io.github.fabricators_of_create.Porting-Lib")
+                }
             }
-            maven { // Create and several dependencies
+            maven {
+                name = "Create and several dependencies"
                 url = "https://mvn.devos.one/snapshots/"
                 content {
                     includeGroup("io.github.tropheusj")
@@ -166,26 +193,41 @@ subprojects {
                     includeGroup("com.tterrag.registrate_fabric")
                 }
             }
-            maven { // Fake Player API
+            maven {
+                name = "Fake Player API"
                 url = "https://maven.cafeteria.dev/releases"
-                content { includeGroup("dev.cafeteria") }
-            }
-            maven { // Reach Entity Attributes
-                url = "https://maven.jamieswhiteshirt.com/libs-release"
-                content { includeGroup("com.jamieswhiteshirt") }
-            }
-            maven { // Fabric ASM for Porting Lib
-                url = "https://jitpack.io/"
-                content { includeGroupAndSubgroups("com.github") }
-            }
-
-            maven { // Create Big Cannons
-                url = "https://maven.realrobotix.me/master/"
-                content { includeGroup("com.rbasamoyai") }
+                content {
+                    includeGroup("dev.cafeteria")
+                }
             }
             maven {
+                name = "Reach Entity Attributes"
+                url = "https://maven.jamieswhiteshirt.com/libs-release"
+                content {
+                    includeGroup("com.jamieswhiteshirt")
+                }
+            }
+            maven {
+                name = "Jitpack"
+                url = "https://jitpack.io/"
+                content {
+                    includeGroupAndSubgroups("com.github")
+                }
+            }
+
+            maven {
+                name = "Ritchie's Projectile Lib"
+                url = "https://maven.realrobotix.me/master/"
+                content {
+                    includeGroup("com.rbasamoyai")
+                }
+            }
+            maven {
+                name = "Create Big Cannons"
                 url = "https://maven.realrobotix.me/createbigcannons/"
-                content { includeGroup("com.rbasamoyai") }
+                content {
+                    includeGroup("com.rbasamoyai")
+                }
             }
             maven {
                 name = "CC-Tweaked"
@@ -201,7 +243,8 @@ subprojects {
                     includeGroup("dev.ftb.mods")
                 }
             }
-            maven { // Hexcasting
+            maven {
+                name = "Hexcasting, Paucal, Patchouli"
                 url = "https://maven.blamejared.com"
                 content {
                     includeGroup("at.petra-k.hexcasting")
@@ -209,11 +252,15 @@ subprojects {
                     includeGroup("vazkii.patchouli")
                 }
             }
-            maven { // Hexical via temporary Maven
+            maven {
+                name = "[Temporary] Hexical"
                 url = "https://maven.pool.net.eu.org/"
-                content { includeGroup("miyucomics.hexical") }
+                content {
+                    includeGroup("miyucomics.hexical")
+                }
             }
-            maven { // Hexal
+            maven {
+                name = "Hexal"
                 url = uri("https://maven.hexxy.media")
                 content {
                     includeGroup("ram.talia.hexal")
