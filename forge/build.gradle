@@ -283,6 +283,19 @@ components.java {
     }
 }
 
+tasks.register('outputArtifacts') {
+    dependsOn tasks.remapJar
+    doLast {
+        def jarFile = tasks.remapJar.archiveFile.get().asFile
+        def targetDir = file("${rootDir}/${artifacts_output_dir}/")
+        copy {
+            from jarFile
+            into targetDir
+            rename { "${artifacts_output_name}-forge-${artifacts_output_version}.jar" }
+        }
+    }
+}
+
 publishing {
     publications {
         mavenForge(MavenPublication) {
