@@ -2,6 +2,7 @@ package org.valkyrienskies.mod.common.config
 
 import net.minecraftforge.common.ForgeConfigSpec
 import net.minecraftforge.fml.config.ModConfig
+import org.jetbrains.annotations.ApiStatus
 import org.valkyrienskies.core.impl.api_impl.config.VsiConfigModelImpl
 import org.valkyrienskies.core.internal.config.VsiConfigModel
 import org.valkyrienskies.core.internal.config.VsiConfigModelCategory
@@ -17,20 +18,21 @@ object VSConfigUpdater {
     val forgeConfigValuesMap: HashMap<String, ForgeConfigSpec.ConfigValue<*>> = HashMap()
 
     private val core_server_config = ValkyrienSkiesMod.vsCore.getServerConfig()
-    val CORE_SERVER_SPEC: ForgeConfigSpec = buildCategory(core_server_config.root, ForgeConfigSpec.Builder()).build()
+    val CORE_SERVER_SPEC: ForgeConfigSpec = buildConfigSpec(core_server_config.root, ForgeConfigSpec.Builder()).build()
 
     private val server_config = VsiConfigModelImpl.build(VSGameConfig.SERVER)
-    val SERVER_SPEC: ForgeConfigSpec = buildCategory(server_config.root, ForgeConfigSpec.Builder()).build()
+    val SERVER_SPEC: ForgeConfigSpec = buildConfigSpec(server_config.root, ForgeConfigSpec.Builder()).build()
 
     private val common_config = VsiConfigModelImpl.build(VSGameConfig.COMMON)
-    val COMMON_SPEC: ForgeConfigSpec = buildCategory(common_config.root, ForgeConfigSpec.Builder()).build()
+    val COMMON_SPEC: ForgeConfigSpec = buildConfigSpec(common_config.root, ForgeConfigSpec.Builder()).build()
 
     private val client_config = VsiConfigModelImpl.build(VSGameConfig.CLIENT)
-    val CLIENT_SPEC: ForgeConfigSpec = buildCategory(client_config.root, ForgeConfigSpec.Builder()).build()
+    val CLIENT_SPEC: ForgeConfigSpec = buildConfigSpec(client_config.root, ForgeConfigSpec.Builder()).build()
 
     /**
      * Call this from platform events when config is loaded or updated
      **/
+    @ApiStatus.Internal
     fun update(config: ModConfig) {
         val updatedEntries = mutableSetOf<ConfigUpdateEntry>()
 
@@ -44,12 +46,12 @@ object VSConfigUpdater {
         }
     }
 
-    private fun buildCategory(configCategory: VsiConfigModelCategory, builder: ForgeConfigSpec.Builder): ForgeConfigSpec.Builder {
+     fun buildConfigSpec(configCategory: VsiConfigModelCategory, builder: ForgeConfigSpec.Builder): ForgeConfigSpec.Builder {
         for (node in configCategory.children) {
             val entry = node.value
             if (entry is VsiConfigModelCategory) {
                 builder.push(entry.title)
-                buildCategory(entry, builder)
+                buildConfigSpec(entry, builder)
                 builder.pop()
             } else if (entry is VsiConfigModelEntry<*>){
                 val configValue = defineNode(builder, entry)
