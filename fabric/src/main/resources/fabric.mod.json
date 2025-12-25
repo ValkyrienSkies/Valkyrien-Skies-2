@@ -10,7 +10,8 @@
   ],
   "contact": {
     "homepage": "https://valkyrienskies.org/",
-    "sources": "https://github.com/ValkyrienSkies/Valkyrien-Skies-2/"
+    "sources": "https://github.com/ValkyrienSkies/Valkyrien-Skies-2/",
+    "issues": "https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues"
   },
   "license": "Apache-2.0",
   "icon": "assets/valkyrienskies/icon.png",
