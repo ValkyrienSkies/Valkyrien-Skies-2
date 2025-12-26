@@ -1,5 +1,3 @@
-
-
 <p align="center">
 <img src="vs_logo.png" width="200" height="200">
 </p>
@@ -7,8 +5,11 @@
 Valkyrien Skies
 </h1>
 <p align="center">
-<a href="https://www.valkyrienskies.org/">Website</a> - <a href="https://www.curseforge.com/minecraft/mc-mods/valkyrien-skies">CurseForge</a> - 
-<a href="https://modrinth.com/mod/valkyrien-skies">Modrinth</a> - <a href="https://wiki.valkyrienskies.org/wiki/Main_Page">Wiki</a> - <a href="https://discord.gg/rG3QNDV">Discord</a>
+<a href="https://www.valkyrienskies.org/"><img src="https://img.shields.io/badge/Website-white?style=for-the-badge&logo=html5&logoColor=black" alt="Website"></a>
+<a href="https://www.curseforge.com/minecraft/mc-mods/valkyrien-skies"><img src="https://img.shields.io/badge/CurseForge-white?style=for-the-badge&logo=curseforge" alt="CurseForge"></a>
+<a href="https://modrinth.com/mod/valkyrien-skies"><img src="https://img.shields.io/badge/Modrinth-white?style=for-the-badge&logo=modrinth" alt="Modrinth"></a>
+<a href="https://wiki.valkyrienskies.org/wiki/Main_Page"><img src="https://img.shields.io/badge/Wiki-white?style=for-the-badge&logo=wikipedia&logoColor=black" alt="Wiki"></a>
+<a href="https://discord.gg/rG3QNDV"><img src="https://img.shields.io/badge/Discord-white?style=for-the-badge&logo=discord" alt="Discord"></a>
 </p>
 
 *The physics mod to end all other physics mods. Better compatibility,
@@ -59,7 +60,7 @@ dependencies {
    implementation("org.valkyrienskies.core:api:${vscore_version}") {
       exclude group: 'org.joml', module: ''
    }
-   implementation("org.valkyrienskies.core:api-game:${vscore_version}") {
+   implementation("org.valkyrienskies.core:internal:${vscore_version}") {
       exclude group: 'org.joml', module: ''
    }
    implementation("org.valkyrienskies.core:util:${vscore_version}") {

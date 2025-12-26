@@ -1,0 +1,46 @@
+[
+  {
+    "block": "minecraft:coal_block",
+    "mass": 150.0,
+    "friction": 0.7
+  },
+  {
+    "block": "minecraft:gold_block",
+    "mass": 1930.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:light_weighted_pressure_plate",
+    "mass": 100.0
+  },
+  {
+    "block": "minecraft:redstone_block",
+    "mass": 300.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:emerald_block",
+    "mass": 275.0,
+    "friction": 0.1
+  },
+  {
+    "block": "minecraft:lapis_block",
+    "mass": 275.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:diamond_block",
+    "mass": 350.0,
+    "friction": 0.1
+  },
+  {
+    "block": "minecraft:netherite_block",
+    "mass": 8968.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:amethyst_block",
+    "mass": 265.0,
+    "friction": 1.0
+  }
+]

@@ -56,6 +56,4 @@ public abstract class MixinVibrationSystem {
         }
         return result;
     }
-
-    // TODO: Particles are surprisingly non-trivial as they are created from an anonymous class inside a method.
 }

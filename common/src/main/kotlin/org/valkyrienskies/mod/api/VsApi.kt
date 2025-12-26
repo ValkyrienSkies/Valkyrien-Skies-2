@@ -16,6 +16,7 @@ import org.joml.primitives.AABBdc
 import org.valkyrienskies.core.api.VsCoreApi
 import org.valkyrienskies.core.api.event.ListenableEvent
 import org.valkyrienskies.core.api.ships.*
+import org.valkyrienskies.core.api.util.PhysTickOnly
 import org.valkyrienskies.core.api.world.ClientShipWorld
 import org.valkyrienskies.core.api.world.ServerShipWorld
 import org.valkyrienskies.core.api.world.ShipWorld
@@ -40,10 +41,6 @@ interface VsApi : VsCoreApi {
     val postRenderShipEvent: ListenableEvent<PostRenderShipEvent>
 
     fun isShipMountingEntity(entity: Entity): Boolean
-
-    @Deprecated(message = "The legacy VS config system will be replaced soon. " +
-        "Migrate to another config library, or the new system when it's released. ")
-    fun createConfigScreenLegacy(parent: Screen, vararg configs: Class<*>): Screen
 
     /**
      * Returns the [DimensionId]
@@ -152,5 +149,4 @@ interface VsApi : VsCoreApi {
     fun getShipsIntersecting(level: Level?, aabb: AABBdc?): Iterable<Ship>
 
     fun getShipsIntersecting(level: Level?, x: Double, y: Double, z: Double): Iterable<Ship>
-
 }

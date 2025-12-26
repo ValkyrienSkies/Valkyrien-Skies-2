@@ -11,6 +11,8 @@ import weather2.weathersystem.storm.StormObject
 
 object Weather2Compat {
     fun tick(level: ServerLevel) {
+        if (!VSGameConfig.SERVER.Weather2.enableWeatherCompat) return
+
         val mgr = ServerTickHandler
             .getWeatherManagerFor(level.dimension())
 
@@ -51,7 +53,7 @@ object Weather2Compat {
                 vec.sub(ship.velocity)
                 vec.mul(mass)
 
-                forces.applyInvariantForceToPos(ship.id, vec, com)
+                forces.applyWorldForce(ship.id, vec, null)
             }
 
             applyForcePlusMotion()

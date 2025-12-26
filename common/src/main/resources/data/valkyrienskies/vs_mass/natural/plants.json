@@ -1,0 +1,274 @@
+[
+  {
+    "tag": "minecraft:small_flowers",
+    "mass": 1.0
+  },
+  {
+    "tag": "minecraft:tall_flowers",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:grass",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:tall_grass",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:fern",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:large_fern",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:lily_pad",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:vine",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:cocoa",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:wheat",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:beetroots",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:carrots",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:potatoes",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:sweet_berry_bush",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:sugar_cane",
+    "mass": 10.0
+  },
+  {
+    "block": "minecraft:bamboo_sapling",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:bamboo",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:kelp",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:kelp_plant",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:seagrass",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:sea_pickle",
+    "mass": 2.0,
+    "elasticity": 0.1
+  },
+  {
+    "tag": "minecraft:coral_blocks",
+    "mass": 15.0,
+    "friction": 0.7
+  },
+  {
+    "tag": "minecraft:corals",
+    "mass": 5.0,
+    "friction": 0.7
+  },
+  {
+    "block": "minecraft:dead_bush",
+    "mass": 10.0
+  },
+  {
+    "block": "minecraft:cactus",
+    "mass": 60.0
+  },
+  {
+    "block": "minecraft:melon_stem",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:attached_melon_stem",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:melon",
+    "mass": 100.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:pumpkin_stem",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:attached_pumpkin_stem",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:pumpkin",
+    "mass": 80.0,
+    "friction": 0.3
+  },
+  {
+    "block": "minecraft:carved_pumpkin",
+    "mass": 40.0,
+    "friction": 0.3
+  },
+  {
+    "block": "minecraft:warped_fungus",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:nether_sprouts",
+    "mass": 1.0
+  },
+  {
+    "block": "minecraft:warped_roots",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:twisting_vines",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:twisting_vines_plant",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:crimson_fungus",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:nether_wart",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:crimson_roots",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:weeping_vines",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:weeping_vines_plant",
+    "mass": 5.0
+  },
+  {
+    "tag": "minecraft:wart_blocks",
+    "mass": 60.0,
+    "elasticity": 0.1
+  },
+  {
+    "block": "minecraft:chorus_plant",
+    "mass": 30.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:chorus_flower",
+    "mass": 50.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:brown_mushroom_block",
+    "mass": 40.0,
+    "friction": 0.2,
+    "elasticity": 0.1
+  },
+  {
+    "block": "minecraft:red_mushroom_block",
+    "mass": 40.0,
+    "friction": 0.2,
+    "elasticity": 0.1
+  },
+  {
+    "block": "minecraft:brown_mushroom",
+    "mass": 1.0
+  },
+  {
+    "block": "minecraft:red_mushroom",
+    "mass": 1.0
+  },
+  {
+    "block": "minecraft:azalea",
+    "mass": 12.0,
+    "elasticity": 0.1
+  },
+  {
+    "block": "minecraft:flowering_azalea",
+    "mass": 12.0,
+    "elasticity": 0.1
+  },
+  {
+    "block": "minecraft:big_dripleaf",
+    "mass": 0.80,
+    "friction": 0.3,
+    "elasticity": 0.3
+  },
+  {
+    "block": "minecraft:big_dripleaf_stem",
+    "mass": 0.40
+  },
+  {
+    "block": "minecraft:small_dripleaf",
+    "mass": 0.30
+  },
+  {
+    "block": "minecraft:cave_vines",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:cave_vines_plant",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:spore_blossom",
+    "mass": 1.20
+  },
+  {
+    "block": "minecraft:moss_block",
+    "mass": 25.0,
+    "friction": 0.5,
+    "elasticity": 0.05
+  },
+  {
+    "block": "minecraft:moss_carpet",
+    "mass": 1.5,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:hanging_roots",
+    "mass": 0.40
+  },
+  {
+    "block": "minecraft:pink_petals",
+    "mass": 0.1
+  },
+  {
+    "block": "minecraft:torchflower_crop",
+    "mass": 2.0
+  },
+  {
+    "block": "minecraft:pitcher_crop",
+    "mass": 2.0
+  }
+]

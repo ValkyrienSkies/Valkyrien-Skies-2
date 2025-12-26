@@ -2,72 +2,46 @@ package org.valkyrienskies.mod.client
 
 import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.Minecraft
-import net.minecraft.client.renderer.ItemBlockRenderTypes
 import net.minecraft.client.renderer.MultiBufferSource
-import net.minecraft.client.renderer.entity.EntityRenderer
-import net.minecraft.client.renderer.entity.EntityRendererProvider
-import net.minecraft.client.renderer.texture.OverlayTexture
-import net.minecraft.core.BlockPos
+import net.minecraft.client.renderer.entity.EntityRendererProvider.Context
+import net.minecraft.client.renderer.entity.MobRenderer
 import net.minecraft.resources.ResourceLocation
-import net.minecraft.util.RandomSource
-import net.minecraft.world.inventory.InventoryMenu
-import net.minecraft.world.level.block.RenderShape.INVISIBLE
-import net.minecraft.world.level.block.RenderShape.MODEL
 import org.joml.Quaternionf
-import org.valkyrienskies.core.api.world.ClientShipWorld
-import org.valkyrienskies.core.apigame.world.ClientShipWorldCore
+import org.valkyrienskies.core.internal.world.VsiClientShipWorld
+import org.valkyrienskies.mod.client.VSPhysicsEntityModel.Companion.LAYER_LOCATION
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.entity.VSPhysicsEntity
 
-class VSPhysicsEntityRenderer(context: EntityRendererProvider.Context) : EntityRenderer<VSPhysicsEntity>(context) {
-    override fun render(
-        fallingBlockEntity: VSPhysicsEntity, f: Float, partialTick: Float, poseStack: PoseStack,
-        multiBufferSource: MultiBufferSource, i: Int
+class VSPhysicsEntityRenderer<T : VSPhysicsEntity>(context: Context) :
+    MobRenderer<T, VSPhysicsEntityModel<T>>(
+        context,
+        // Bake the layer
+        VSPhysicsEntityModel(context.bakeLayer(LAYER_LOCATION)),
+        // Shadow size
+        0.0F
     ) {
-        val blockState = ValkyrienSkiesMod.TEST_SPHERE.defaultBlockState()
-        if (blockState.renderShape != MODEL) {
-            return
-        }
-        val level = fallingBlockEntity.level()
-        if (blockState === level.getBlockState(
-                fallingBlockEntity.blockPosition()
-            ) || blockState.renderShape == INVISIBLE
-        ) {
-            return
-        }
 
-        val renderTransform = fallingBlockEntity.getRenderTransform(
-            ((Minecraft.getInstance() as IShipObjectWorldClientProvider).shipObjectWorld as ClientShipWorldCore)
+    override fun render(
+        mob: T, f: Float, g: Float, poseStack: PoseStack, multiBufferSource: MultiBufferSource, i: Int
+    ) {
+
+        val renderTransform = mob.getRenderTransform(
+            ((Minecraft.getInstance() as IShipObjectWorldClientProvider).shipObjectWorld as VsiClientShipWorld)
         ) ?: return
 
-        val expectedX = fallingBlockEntity.xo + (fallingBlockEntity.x - fallingBlockEntity.xo) * partialTick
-        val expectedY = fallingBlockEntity.yo + (fallingBlockEntity.y - fallingBlockEntity.yo) * partialTick
-        val expectedZ = fallingBlockEntity.zo + (fallingBlockEntity.z - fallingBlockEntity.zo) * partialTick
-
-        // Replace the default transform applied by mc with these offsets
-        val offsetX = renderTransform.positionInWorld.x() - expectedX
-        val offsetY = renderTransform.positionInWorld.y() - expectedY
-        val offsetZ = renderTransform.positionInWorld.z() - expectedZ
-
-        poseStack.pushPose()
-        val blockPos = BlockPos.containing(fallingBlockEntity.x, fallingBlockEntity.boundingBox.maxY, fallingBlockEntity.z)
-
-        poseStack.translate(offsetX, offsetY, offsetZ)
+        // Rotate with the ship
         poseStack.mulPose(Quaternionf(renderTransform.shipToWorldRotation))
-        poseStack.translate(-0.5, -0.5, -0.5)
-        val blockRenderDispatcher = Minecraft.getInstance().blockRenderer
-        blockRenderDispatcher.modelRenderer.tesselateBlock(
-            level, blockRenderDispatcher.getBlockModel(blockState), blockState, blockPos, poseStack,
-            multiBufferSource.getBuffer(
-                ItemBlockRenderTypes.getMovingBlockRenderType(blockState)
-            ), false, RandomSource.create(), blockState.getSeed(BlockPos.ZERO), OverlayTexture.NO_OVERLAY
-        )
-        poseStack.popPose()
-        super.render(fallingBlockEntity, f, partialTick, poseStack, multiBufferSource, i)
+
+        // Offset model from hitbox
+        poseStack.translate(0.0, -0.5, 0.0)
+
+        super.render(mob, f, g, poseStack, multiBufferSource, i)
     }
 
-    override fun getTextureLocation(entity: VSPhysicsEntity): ResourceLocation {
-        return InventoryMenu.BLOCK_ATLAS
+    override fun getTextureLocation(entity: T): ResourceLocation {
+        return ResourceLocation(ValkyrienSkiesMod.MOD_ID, "textures/test_sphere.png")
     }
+
+
 }

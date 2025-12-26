@@ -46,13 +46,19 @@ public abstract class MixinParticle {
     )
     public void checkShipCoords(final ClientLevel world, final double x, final double y, final double z,
         final CallbackInfo ci) {
-        final ClientShip ship = VSGameUtilsKt.getShipObjectManagingPos(world, (int) x >> 4, (int) z >> 4);
+        final ClientShip ship = VSGameUtilsKt.getLoadedShipManagingPos(world, (int) x >> 4, (int) z >> 4);
         if (ship == null) {
             return;
         }
-
         // in-world position
-        final Vector3d p = ship.getRenderTransform().getShipToWorld().transformPosition(new Vector3d(x, y, z));
+
+        // Particles are delayed by one tick before movement so adding the ship's delta by 1 tick here.
+        Vector3d tempVel = ship.getVelocity().get(new Vector3d());
+        tempVel.add(ship.getRenderTransform().getShipToWorld().transformDirection(new Vector3d(x, y, z).sub(ship.getTransform().getPositionInShip())).cross(ship.getOmega()));
+        tempVel.mul(0.05);
+        final Vector3d p = ship.getTransform().getShipToWorld().transformPosition(new Vector3d(x, y, z));
+        ship.getPrevTickTransform().getWorldToShip().transformPosition(p);
+        ship.getTransform().getShipToWorld().transformPosition(p);
         this.setPos(p.x, p.y, p.z);
         this.xo = p.x;
         this.yo = p.y;
@@ -70,14 +76,16 @@ public abstract class MixinParticle {
         final double velocityX,
         final double velocityY, final double velocityZ, final CallbackInfo ci) {
 
-        final ClientShip ship = VSGameUtilsKt.getShipObjectManagingPos(world, (int) x >> 4, (int) z >> 4);
+        final ClientShip ship = VSGameUtilsKt.getLoadedShipManagingPos(world, (int) x >> 4, (int) z >> 4);
         if (ship == null) {
             return;
         }
 
-        final Matrix4dc transform = ship.getRenderTransform().getShipToWorld();
+        final Matrix4dc transform = ship.getTransform().getShipToWorld();
         // in-world position
         final Vector3d p = transform.transformPosition(new Vector3d(x, y, z));
+        ship.getPrevTickTransform().getWorldToShip().transformPosition(p);
+        transform.transformPosition(p);
         // in-world velocity
         final Vector3d v = transform
             // Rotate velocity wrt ship transform

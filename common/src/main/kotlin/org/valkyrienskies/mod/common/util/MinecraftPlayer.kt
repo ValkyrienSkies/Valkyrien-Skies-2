@@ -3,9 +3,9 @@ package org.valkyrienskies.mod.common.util
 import net.minecraft.world.entity.player.Player
 import org.joml.Vector3d
 import org.valkyrienskies.core.api.ships.properties.ShipId
-import org.valkyrienskies.core.apigame.world.IPlayer
-import org.valkyrienskies.core.apigame.world.PlayerState
-import org.valkyrienskies.core.apigame.world.properties.DimensionId
+import org.valkyrienskies.core.internal.world.VsiPlayer
+import org.valkyrienskies.core.internal.world.VsiPlayerState
+import org.valkyrienskies.core.internal.world.properties.DimensionId
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getShipMountedToData
 import org.valkyrienskies.mod.common.vsCore
@@ -13,9 +13,9 @@ import java.lang.ref.WeakReference
 import java.util.UUID
 
 /**
- * We use this wrapper around [PlayerEntity] to create [IPlayer] objects used by vs-core.
+ * We use this wrapper around [PlayerEntity] to create [VsiPlayer] objects used by vs-core.
  */
-class MinecraftPlayer(playerObject: Player) : IPlayer {
+class MinecraftPlayer(playerObject: Player) : VsiPlayer {
 
     override val uuid: UUID = playerObject.uuid
 
@@ -39,9 +39,9 @@ class MinecraftPlayer(playerObject: Player) : IPlayer {
         return dest.set(player.x, player.y, player.z)
     }
 
-    override fun getPlayerState(): PlayerState {
+    override fun getPlayerState(): VsiPlayerState {
         val mountedShipAndPos = getShipMountedToData(player)
-        return PlayerState(
+        return VsiPlayerState(
             Vector3d(player.x, player.y, player.z),
             Vector3d(Vector3d(player.x - player.xo, player.y - player.yo, player.z - player.zo)),
             dimension,

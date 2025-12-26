@@ -1,8 +1,40 @@
 {
-  "key.valkyrienskies.ship_down": "Sink",
+  "itemGroup.valkyrienSkies": "Valkyrien Skies",
+
+  "tooltip.valkyrienskies.mass": "Burden o’ the Hull",
   "category.valkyrienskies.driving": "Sailin'",
+  "key.valkyrienskies.ship_cruise": "Smooth Sailin'",
+  "key.valkyrienskies.ship_down": "Sink",
+
   "block.valkyrienskies.test_chair": "Davy Jones' Chair",
   "block.valkyrienskies.test_hinge": "Spinner Mount",
-  "item.valkyrienskies.ship_creator": "Ship Maker",
-  "item.valkyrienskies.ship_creator_smaller": "Rowboat Maker"
+  "block.valkyrienskies.test_flap": "Debuggin’ Flap",
+  "block.valkyrienskies.test_wing": "Debuggin’ Wing",
+  "block.valkyrienskies.test_sphere": "Debuggin’ Globe",
+  "block.valkyrienskies.test_thruster": "Debuggin’ Booster",
+  "item.valkyrienskies.ship_creator": "Ship Forgin’ Tool",
+  "item.valkyrienskies.ship_creator_smaller": "Rowboat Forgin’ Tool",
+  "item.valkyrienskies.ship_assembler": "Ship Assembler o’ the Seas",
+  "item.valkyrienskies.area_assembler": "Territory Assembler",
+  "item.valkyrienskies.connection_checker": "Riggin’ Checker",
+  "item.valkyrienskies.physics_entity_creator": "Creator o’ Mystic Sea-Entities",
+  "entity.valkyrienskies.vs_physics_entity": "Mystic Sea-Entity",
+
+  "argument.valkyrienskies.ship.no_found": "Nay vessel be found!",
+  "argument.valkyrienskies.ship.multiple_found": "Too many ships be answerin’ yer call!",
+  "command.valkyrienskies.delete.success": "Sent %d ships to Davy Jones!",
+  "command.valkyrienskies.remass.success": "Reckoned the weight o’ %d ships anew!",
+  "command.valkyrienskies.remass.fail": "Failed to reckon the burden o’ %s!",
+  "command.valkyrienskies.set_static.success": "Marked %d ships as stiff as a barnacle: is-static=%s!",
+  "command.valkyrienskies.teleport.success": "Whisked %d ships to %s!",
+  "command.valkyrienskies.teleport.multiple_ship_success": "Whisked %d ships across the briny deep!",
+  "command.valkyrienskies.mc_teleport.can_only_teleport_to_one_ship": "Ye can only blink-jump to one ship, ye scallywag!",
+  "command.valkyrienskies.get_ship.success": "Found a vessel flyin’ the slug %s!",
+  "command.valkyrienskies.get_ship.fail": "Nary a ship be found!",
+  "command.valkyrienskies.get_ship.only_usable_by_entities": "/vs get-ship can only be run by livin’ creatures, lad!",
+  "command.valkyrienskies.scale.success": "Sized up %d ships, aye!",
+
+  "misc.valkyrienskies.create.deployer_working_mode": "Ship Manner o’ Workin’",
+  "misc.valkyrienskies.create.deployer_working_mode.original": "Set upon yer current vessel",
+  "misc.valkyrienskies.create.deployer_working_mode.in_world": "Set upon the wide world"
 }

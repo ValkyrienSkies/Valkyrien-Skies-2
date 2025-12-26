@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.mixin.client.renderer;
 
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -19,6 +21,7 @@ import org.joml.Quaterniond;
 import org.joml.Quaternionf;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
+import org.joml.primitives.AABBdc;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -27,7 +30,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
-import org.valkyrienskies.core.apigame.world.ClientShipWorldCore;
+import org.valkyrienskies.core.internal.world.VsiClientShipWorld;
 import org.valkyrienskies.mod.client.IVSCamera;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
 import org.valkyrienskies.mod.common.entity.ShipMountedToData;
@@ -109,7 +112,7 @@ public abstract class MixinGameRenderer {
         final ClientLevel clientWorld = minecraft.level;
         if (clientWorld != null) {
             // Update ship render transforms
-            final ClientShipWorldCore shipWorld =
+            final VsiClientShipWorld shipWorld =
                 IShipObjectWorldClientProvider.class.cast(this.minecraft).getShipObjectWorld();
             if (shipWorld == null) {
                 return;
@@ -295,4 +298,25 @@ public abstract class MixinGameRenderer {
             this.getProjectionMatrix(Math.max(fov, this.minecraft.options.fov().get())));
     }
     // endregion
+
+    @ModifyReturnValue(method = "getDepthFar", at = @At("RETURN"))
+    public float includeShipsIn(final float originalDepth) {
+        float maxDistance = originalDepth;
+        for (final ClientShip ship : VSGameUtilsKt.getShipObjectWorld(Minecraft.getInstance()).getLoadedShips()) {
+            Vec3 cameraPos = this.mainCamera.getPosition();
+            AABBdc shipAABB = ship.getRenderAABB();
+            // find the furthest distance from the camera to the ship AABB corners
+            double furthestDistanceSq = 0;
+            double dMinX = shipAABB.minX() - cameraPos.x();  
+            double dMaxX = shipAABB.maxX() - cameraPos.x();  
+            double dMinY = shipAABB.minY() - cameraPos.y();  
+            double dMaxY = shipAABB.maxY() - cameraPos.y();  
+            double dMinZ = shipAABB.minZ() - cameraPos.z();  
+            double dMaxZ = shipAABB.maxZ() - cameraPos.z();  
+            double furthestDist = Math.sqrt(Math.max(dMinX * dMinX, dMaxX * dMaxX) + Math.max(dMinY * dMinY, dMaxY * dMaxY) + Math.max(dMinZ * dMinZ, dMaxZ * dMaxZ));  
+            maxDistance = Math.max(maxDistance, (float) furthestDist);  
+        }
+
+        return maxDistance;
+    }
 }

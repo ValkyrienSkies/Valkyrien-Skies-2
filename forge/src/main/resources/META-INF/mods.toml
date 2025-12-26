@@ -30,6 +30,16 @@ side = "BOTH"
 [[dependencies.valkyrienskies]]
 modId = "create"
 mandatory = false
-versionRange = "(0.5.1,)"
+versionRange = "[6.0.6, )"
 ordering = "NONE"
 side = "BOTH"
+
+[[dependencies.valkyrienskies]]
+modId = "computercraft"
+mandatory = false
+versionRange = "[1.115.0,)"
+ordering = "NONE"
+side = "BOTH"
+
+["lithium:options"]
+mixin.ai.poi = false

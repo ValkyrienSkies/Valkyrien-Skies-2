@@ -15,7 +15,7 @@ object LoadedMods {
     val immersivePortals by CompatInfo("qouteall.imm_ptl.core.IPModMain")
 
     @JvmStatic
-    val create by CompatInfo("com.simibubi.create.foundation.render.AllInstanceTypes")
+    val create by CompatInfo("com.simibubi.create.AllMountedDispenseItemBehaviors")
 
     @JvmStatic
     val oldCreate by CompatInfo("com.simibubi.create.foundation.render.AllInstanceFormats")

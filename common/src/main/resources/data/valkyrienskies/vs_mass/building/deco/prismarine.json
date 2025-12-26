@@ -1,0 +1,57 @@
+[
+  {
+    "block": "minecraft:sea_lantern",
+    "mass": 250.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:prismarine",
+    "mass": 200.0,
+    "friction": 0.8
+  },
+  {
+    "block": "minecraft:prismarine_stairs",
+    "mass": 150.0,
+    "friction": 0.8
+  },
+  {
+    "block": "minecraft:prismarine_slab",
+    "mass": 100.0,
+    "friction": 0.8
+  },
+  {
+    "block": "minecraft:prismarine_wall",
+    "mass": 100.0,
+    "friction": 0.8
+  },
+  {
+    "block": "minecraft:prismarine_bricks",
+    "mass": 300.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:prismarine_brick_stairs",
+    "mass": 225.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:prismarine_brick_slab",
+    "mass": 150.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:dark_prismarine",
+    "mass": 300.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:dark_prismarine_stairs",
+    "mass": 225.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:dark_prismarine_slab",
+    "mass": 150.0,
+    "friction": 0.6
+  }
+]

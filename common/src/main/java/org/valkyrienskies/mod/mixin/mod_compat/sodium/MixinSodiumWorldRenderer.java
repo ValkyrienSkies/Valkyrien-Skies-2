@@ -1,27 +1,41 @@
 package org.valkyrienskies.mod.mixin.mod_compat.sodium;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import java.util.SortedSet;
+
+import me.jellysquid.mods.sodium.client.gl.device.CommandList;
+import me.jellysquid.mods.sodium.client.gl.device.RenderDevice;
 import me.jellysquid.mods.sodium.client.render.SodiumWorldRenderer;
+import me.jellysquid.mods.sodium.client.render.chunk.ChunkRenderMatrices;
 import me.jellysquid.mods.sodium.client.render.chunk.RenderSectionManager;
 import me.jellysquid.mods.sodium.client.render.chunk.lists.SortedRenderLists;
+import me.jellysquid.mods.sodium.client.render.chunk.terrain.DefaultTerrainRenderPasses;
+import me.jellysquid.mods.sodium.client.render.chunk.terrain.TerrainRenderPass;
+import me.jellysquid.mods.sodium.client.render.viewport.CameraTransform;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.MultiBufferSource.BufferSource;
 import net.minecraft.client.renderer.RenderBuffers;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
+import net.minecraft.client.renderer.entity.layers.RenderLayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.BlockDestructionProgress;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.entity.BlockEntity;
+
+import org.joml.Matrix4f;
+import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
@@ -43,22 +57,28 @@ public abstract class MixinSodiumWorldRenderer {
         method = "renderBlockEntity",
         at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/PoseStack;translate(DDD)V")
     )
-    private static void renderShipBlockEntityInShipyard(final PoseStack instance, final double d, final double e,
-        final double f, final PoseStack ignore, final RenderBuffers bufferBuilders,
+    private static void renderShipBlockEntityInShipyard(
+        final PoseStack instance,
+        final double x, final double y, final double z,
+        final PoseStack ignore,
+        final RenderBuffers bufferBuilders,
         final Long2ObjectMap<SortedSet<BlockDestructionProgress>> blockBreakingProgressions,
-        final float tickDelta, final MultiBufferSource.BufferSource immediate, final double camX, final double camY,
-        final double camZ, final BlockEntityRenderDispatcher dispatcher, final BlockEntity entity) {
-
+        final float tickDelta,
+        final MultiBufferSource.BufferSource immediate,
+        final double camX, final double camY, final double camZ,
+        final BlockEntityRenderDispatcher dispatcher,
+        final BlockEntity entity
+    ) {
         final BlockPos pos = entity.getBlockPos();
 
         // fix for https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues/818
         if(!(dispatcher.level instanceof ClientLevel)) return;
 
         final ClientLevel level = (ClientLevel) dispatcher.level;
-        final ClientShip ship = VSGameUtilsKt.getShipObjectManagingPos(level, pos);
+        final ClientShip ship = VSGameUtilsKt.getLoadedShipManagingPos(level, pos);
 
         if (ship == null) {
-            instance.translate(d, e, f);
+            instance.translate(x, y, z);
         } else {
             VSClientGameUtils.transformRenderWithShip(ship.getRenderTransform(), instance, pos, camX, camY, camZ);
         }
@@ -89,7 +109,7 @@ public abstract class MixinSodiumWorldRenderer {
 
         this.currentRenderLists = null;
     }
-
+    
     @ModifyExpressionValue(
         method = "renderBlockEntities(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/RenderBuffers;Lit/unimi/dsi/fastutil/longs/Long2ObjectMap;FLnet/minecraft/client/renderer/MultiBufferSource$BufferSource;DDDLnet/minecraft/client/renderer/blockentity/BlockEntityRenderDispatcher;)V",
         at = @At(value = "INVOKE",

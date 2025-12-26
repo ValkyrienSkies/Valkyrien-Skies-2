@@ -7,8 +7,6 @@ import net.minecraft.CrashReportCategory;
 import net.minecraft.ReportedException;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.ClipContext;
@@ -35,7 +33,6 @@ import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.mod.common.entity.ShipMountedToData;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
@@ -157,11 +154,12 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     }
 
     /**
-     * @reason Needed for players to pick blocks correctly when mounted to a ship
+     * @reason Used to be needed for players to pick blocks correctly when mounted to a ship
      *
      * Additionally, this has to have dragging information included or it breaks. This is because of reasons that I literally
      * do not know or understand, but minecraft's rendering pipeline is like that.
      */
+    /*
     @Inject(method = "calculateViewVector", at = @At("HEAD"), cancellable = true)
     private void preCalculateViewVector(final float xRot, final float yRot, final CallbackInfoReturnable<Vec3> cir) {
         final LoadedShip shipMountedTo = VSGameUtilsKt.getShipMountedTo(Entity.class.cast(this));
@@ -211,6 +209,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
             shipTransform.getShipCoordinatesToWorldCoordinatesRotation().transform(originalViewVector, new Vector3d()));
         cir.setReturnValue(newViewVector);
     }
+    */
 
     /**
      * @reason Without this and that other mixin, things don't render correctly at high speeds.
@@ -267,6 +266,12 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     @Shadow
     public abstract boolean shouldRenderAtSqrDistance(double d);
 
+    @Shadow
+    public boolean hasImpulse;
+
+    @Shadow
+    public abstract void push(double d, double e, double f);
+
     @Override
     @NotNull
     public EntityDraggingInformation getDraggingInformation() {
@@ -276,5 +281,12 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     @Override
     public boolean vs$shouldDrag() {
         return true;
+    }
+
+    @Override
+    public void vs$dragImmediately(Ship ship){
+        if(ship == null) return;
+        draggingInformation.setLastShipStoodOn(ship.getId());
+        draggingInformation.setShouldImpulseMovement(false);
     }
 }

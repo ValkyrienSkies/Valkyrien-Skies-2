@@ -55,12 +55,16 @@ class ShipArgument private constructor(val selectorOnly: Boolean) : ArgumentType
 
     companion object {
 
+        @JvmStatic
         fun selectorOnly(): ShipArgument = ShipArgument(true)
+
+        @JvmStatic
         fun ships(): ShipArgument = ShipArgument(false)
 
         /**
          * @return Can return either a loaded ship or an unloaded ship
          */
+        @JvmStatic
         fun getShips(context: CommandContext<CommandSourceStack>, argName: String): Set<Ship> {
             val selector = context.getArgument(argName, ShipSelector::class.java)
 
@@ -78,6 +82,7 @@ class ShipArgument private constructor(val selectorOnly: Boolean) : ArgumentType
         /**
          * @return Can return either a loaded ship or an unloaded ship
          */
+        @JvmStatic
         fun getShip(context: CommandContext<CommandSourceStack>, argName: String): Ship {
             val selector = context.getArgument(argName, ShipSelector::class.java)
 

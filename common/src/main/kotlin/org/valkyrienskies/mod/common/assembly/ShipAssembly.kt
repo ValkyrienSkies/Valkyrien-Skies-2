@@ -11,7 +11,7 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlac
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate
 import org.joml.Vector3d
 import org.valkyrienskies.core.api.ships.ServerShip
-import org.valkyrienskies.core.apigame.ships.ShipCore
+import org.valkyrienskies.core.internal.ships.VsiShip
 import org.valkyrienskies.core.util.datastructures.DenseBlockPosSet
 import org.valkyrienskies.mod.api.vsApi
 import org.valkyrienskies.mod.common.dimensionId
@@ -88,7 +88,7 @@ fun createNewShipWithBlocks(
     // well now it doesnt kekw
     //(ship as ShipDataCommon).transform = (ship.transform).withTransformFrom(positionInWorld = centerBlockPosInWorld)
 
-    (ship as ShipCore).setFromTransform(vsApi.transformFactory.create(centerBlockPosInWorld, ship.transform.rotation, ship.transform.scaling, ship.transform.positionInShip))
+    (ship as VsiShip).setFromTransform(vsApi.transformFactory.create(centerBlockPosInWorld, ship.transform.rotation, ship.transform.scaling, ship.transform.positionInShip))
     level.server.executeIf(
         // This condition will return true if all modified chunks have been both loaded AND
         // chunk update packets were sent to players

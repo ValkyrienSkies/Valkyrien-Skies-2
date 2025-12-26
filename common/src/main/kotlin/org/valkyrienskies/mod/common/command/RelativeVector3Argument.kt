@@ -48,8 +48,10 @@ class RelativeVector3Argument : ArgumentType<RelativeVector3> {
         private val DUMMY_EULER_ANGLES =
             RelativeVector3(RelativeValue(0.0, false), RelativeValue(0.0, false), RelativeValue(0.0, false))
 
+        @JvmStatic
         fun relativeVector3() = RelativeVector3Argument()
 
+        @JvmStatic
         fun getRelativeVector3(commandContext: CommandContext<CommandSourceStack?>, string: String?): RelativeVector3 {
             return commandContext.getArgument(
                 string,
@@ -77,7 +79,9 @@ class RelativeVector3Argument : ArgumentType<RelativeVector3> {
                                 builder.suggest("(0 0 0)")
                             }
                         } else {
-                            return DUMMY_EULER_ANGLES
+                            throw SimpleCommandExceptionType(
+                                Component.translatable(VSCommands.VECTOR_ARG_FAIL_MESSAGE)
+                            ).createWithContext(reader)
                         }
                     }
 
@@ -91,7 +95,9 @@ class RelativeVector3Argument : ArgumentType<RelativeVector3> {
                                     builder.suggest("${builder.remaining}0 0 0)")
                                 }
                             } else {
-                                return DUMMY_EULER_ANGLES
+                                throw SimpleCommandExceptionType(
+                                    Component.translatable(VSCommands.VECTOR_ARG_FAIL_MESSAGE)
+                                ).createWithContext(reader)
                             }
                         }
 
@@ -104,7 +110,9 @@ class RelativeVector3Argument : ArgumentType<RelativeVector3> {
                                     builder.suggest("${builder.remaining} 0 0)")
                                 }
                             } else {
-                                return DUMMY_EULER_ANGLES
+                                throw SimpleCommandExceptionType(
+                                    Component.translatable(VSCommands.VECTOR_ARG_FAIL_MESSAGE)
+                                ).createWithContext(reader)
                             }
                         }
 
@@ -118,7 +126,9 @@ class RelativeVector3Argument : ArgumentType<RelativeVector3> {
                                         builder.suggest("${builder.remaining}0 0)")
                                     }
                                 } else {
-                                    return DUMMY_EULER_ANGLES
+                                    throw SimpleCommandExceptionType(
+                                        Component.translatable(VSCommands.VECTOR_ARG_FAIL_MESSAGE)
+                                    ).createWithContext(reader)
                                 }
                             }
 
@@ -131,7 +141,9 @@ class RelativeVector3Argument : ArgumentType<RelativeVector3> {
                                         builder.suggest("${builder.remaining} 0)")
                                     }
                                 } else {
-                                    return DUMMY_EULER_ANGLES
+                                    throw SimpleCommandExceptionType(
+                                        Component.translatable(VSCommands.VECTOR_ARG_FAIL_MESSAGE)
+                                    ).createWithContext(reader)
                                 }
                             }
 
@@ -144,10 +156,27 @@ class RelativeVector3Argument : ArgumentType<RelativeVector3> {
                                             builder.suggest("${builder.remaining}0)")
                                         }
                                     } else {
-                                        return DUMMY_EULER_ANGLES
+                                        throw SimpleCommandExceptionType(
+                                            Component.translatable(VSCommands.VECTOR_ARG_FAIL_MESSAGE)
+                                        ).createWithContext(reader)
                                     }
                                 }
-                                val worldCoordinate3 = WorldCoordinate.parseDouble(reader, false)
+
+
+                                // So we don't get index out of range when they haven't finished the command
+                                val worldCoordinate3 = if (reader.remainingLength > 1 && reader.peek(1) == ')') {
+                                    // Use a temporary reader without ')' so WorldCoordinate doesn't break
+                                    StringReader(reader.string.substring(0, reader.cursor + 1)).apply {
+                                        cursor = reader.cursor
+                                    }.let {
+                                        // Advance original cursor
+                                        WorldCoordinate.parseDouble(it, false).also { reader.read() }
+                                    }
+                                } else {
+                                    // Normal logic (no ')' to worry about)
+                                    WorldCoordinate.parseDouble(reader, false)
+                                }
+
                                 if (reader.canRead()) {
                                     if (reader.peek() == ')') {
                                         reader.skip()
@@ -169,11 +198,11 @@ class RelativeVector3Argument : ArgumentType<RelativeVector3> {
                                         suggest { builder ->
                                             builder.suggest("${builder.remaining})")
                                         }
-                                        throw SimpleCommandExceptionType(
-                                            Component.translatable("Expected )")
-                                        ).createWithContext(reader)
+
                                     } else {
-                                        return DUMMY_EULER_ANGLES
+                                        throw SimpleCommandExceptionType(
+                                            Component.translatable(VSCommands.VECTOR_ARG_FAIL_MESSAGE)
+                                        ).createWithContext(reader)
                                     }
                                 }
                             }

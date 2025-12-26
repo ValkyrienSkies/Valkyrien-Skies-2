@@ -47,12 +47,14 @@ import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.api.ships.Wing;
 import org.valkyrienskies.core.api.ships.WingManager;
-import org.valkyrienskies.core.apigame.world.ServerShipWorldCore;
-import org.valkyrienskies.core.apigame.world.chunks.TerrainUpdate;
+import org.valkyrienskies.core.api.util.AerodynamicUtils;
+import org.valkyrienskies.core.internal.world.VsiServerShipWorld;
+import org.valkyrienskies.core.internal.world.chunks.VsiTerrainUpdate;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.block.WingBlock;
+import org.valkyrienskies.mod.common.config.DimensionParametersResolver;
 import org.valkyrienskies.mod.common.util.DragInfoReporter;
 import org.valkyrienskies.mod.common.util.VSServerLevel;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
@@ -89,7 +91,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
 
     @Nullable
     @Override
-    public ServerShipWorldCore getShipObjectWorld() {
+    public VsiServerShipWorld getShipObjectWorld() {
         return ((IShipObjectWorldServerProvider) getServer()).getShipObjectWorld();
     }
 
@@ -98,13 +100,25 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
 
         // This only happens when overworld gets loaded on startup, we have a mixin in MixinMinecraftServer for this specific case
         if (getShipObjectWorld() != null) {
+            DimensionParametersResolver.Parameters params = DimensionParametersResolver.INSTANCE.getDimensionMap().get(
+                VSGameUtilsKt.getDimensionId((ServerLevel) (Object) this)
+            );
+            if (params != null) {
+                getShipObjectWorld().addDimension(
+                    VSGameUtilsKt.getDimensionId((ServerLevel) (Object) this),
+                    VSGameUtilsKt.getYRange((ServerLevel) (Object) this),
+                    params.getGravity(),
+                    params.getSeaLevel(),
+                    params.getMaxY()
+                );
+                return;
+            }
             getShipObjectWorld().addDimension(
                 VSGameUtilsKt.getDimensionId((ServerLevel) (Object) this),
                 VSGameUtilsKt.getYRange((ServerLevel) (Object) this),
                 McMathUtilKt.getDEFAULT_WORLD_GRAVITY(),
-                //todo make this datagenned
-                63.0,
-                962.0
+                AerodynamicUtils.DEFAULT_SEA_LEVEL,
+                AerodynamicUtils.DEFAULT_MAX
             );
         }
     }
@@ -144,7 +158,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
         final Operation<Boolean> closerToCenterThan) {
 
         final ServerLevel self = ServerLevel.class.cast(this);
-        final LoadedServerShip ship = VSGameUtilsKt.getShipObjectManagingPos(
+        final LoadedServerShip ship = VSGameUtilsKt.getLoadedShipManagingPos(
             self, (int) particle.x() >> 4, (int) particle.z() >> 4);
 
         if (ship == null) {
@@ -159,7 +173,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
     }
 
     @Unique
-    private void vs$loadChunk(@NotNull final ChunkAccess worldChunk, final List<TerrainUpdate> voxelShapeUpdates) {
+    private void vs$loadChunk(@NotNull final ChunkAccess worldChunk, final List<VsiTerrainUpdate> voxelShapeUpdates) {
         // Remove the chunk pos from vs$chunksToUnload if its present
         vs$chunksToUnload.remove(worldChunk.getPos().toLong());
         if (!vs$knownChunks.containsKey(worldChunk.getPos())) {
@@ -178,14 +192,14 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
 
                 if (chunkSection != null && !chunkSection.hasOnlyAir()) {
                     // Add this chunk to the ground rigid body
-                    final TerrainUpdate voxelShapeUpdate =
+                    final VsiTerrainUpdate voxelShapeUpdate =
                         VSGameUtilsKt.toDenseVoxelUpdate(chunkSection, chunkPos);
                     voxelShapeUpdates.add(voxelShapeUpdate);
 
                     // region Detect wings
                     final ServerLevel thisAsLevel = ServerLevel.class.cast(this);
                     final LoadedServerShip
-                        ship = VSGameUtilsKt.getShipObjectManagingPos(thisAsLevel, chunkX, chunkZ);
+                        ship = VSGameUtilsKt.getLoadedShipManagingPos(thisAsLevel, chunkX, chunkZ);
                     if (ship != null) {
                         // Sussy cast, but I don't want to expose this directly through the vs-core api
                         final WingManager shipAsWingManager = ship.getWingManager();
@@ -213,7 +227,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                     }
                     // endregion
                 } else {
-                    final TerrainUpdate emptyVoxelShapeUpdate = getVsCore()
+                    final VsiTerrainUpdate emptyVoxelShapeUpdate = getVsCore()
                         .newEmptyVoxelShapeUpdate(chunkPos.x(), chunkPos.y(), chunkPos.z(), true);
                     voxelShapeUpdates.add(emptyVoxelShapeUpdate);
                 }
@@ -225,13 +239,13 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
     @Inject(method = "tick", at = @At("TAIL"))
     private void postTick(final BooleanSupplier shouldKeepTicking, final CallbackInfo ci) {
         final ServerLevel self = ServerLevel.class.cast(this);
-        final ServerShipWorldCore shipObjectWorld = VSGameUtilsKt.getShipObjectWorld(self);
+        final VsiServerShipWorld shipObjectWorld = VSGameUtilsKt.getShipObjectWorld(self);
         // Find newly loaded chunks
         final ChunkMapAccessor chunkMapAccessor = (ChunkMapAccessor) chunkSource.chunkMap;
 
         // Create DenseVoxelShapeUpdate for new loaded chunks
         // Also mark the chunks as loaded in the ship objects
-        final List<TerrainUpdate> voxelShapeUpdates = new ArrayList<>();
+        final List<VsiTerrainUpdate> voxelShapeUpdates = new ArrayList<>();
         final DistanceManagerAccessor distanceManagerAccessor = (DistanceManagerAccessor) chunkSource.chunkMap.getDistanceManager();
 
         for (final ChunkHolder chunkHolder : chunkMapAccessor.callGetChunks()) {
@@ -257,7 +271,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                 if (ticksWaitingToUnload > VS$CHUNK_UNLOAD_THRESHOLD) {
                     // Unload this chunk
                     for (final Vector3ic unloadedChunk : knownChunkPosEntry.getValue()) {
-                        final TerrainUpdate deleteVoxelShapeUpdate =
+                        final VsiTerrainUpdate deleteVoxelShapeUpdate =
                             getVsCore().newDeleteTerrainUpdate(unloadedChunk.x(), unloadedChunk.y(), unloadedChunk.z());
                         voxelShapeUpdates.add(deleteVoxelShapeUpdate);
                     }

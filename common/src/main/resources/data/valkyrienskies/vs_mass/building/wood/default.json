@@ -1,0 +1,56 @@
+[
+  {
+    "tag": "minecraft:logs",
+    "mass": 80.0,
+    "friction": 0.6
+  },
+  {
+    "tag": "minecraft:planks",
+    "mass": 50.0,
+    "friction": 0.5
+  },
+  {
+    "tag": "minecraft:wooden_stairs",
+    "mass": 37.5,
+    "friction": 0.5
+  },
+  {
+    "tag": "minecraft:wooden_slabs",
+    "mass": 25.0,
+    "friction": 0.5
+  },
+  {
+    "tag": "minecraft:wooden_doors",
+    "mass": 10.0
+  },
+
+  {
+    "tag": "minecraft:wooden_trapdoors",
+    "mass": 50.0
+  },
+  {
+    "tag": "minecraft:fence_gates",
+    "mass": 5.0
+  },
+  {
+    "tag": "minecraft:fences",
+    "mass": 50.0
+  },
+  {
+    "tag": "minecraft:wooden_pressure_plates",
+    "mass": 5.0
+  },
+  {
+    "tag": "minecraft:wooden_buttons",
+    "mass": 0.25
+  },
+  {
+    "tag": "minecraft:signs",
+    "mass": 5.0
+  },
+  {
+    "tag": "minecraft:all_hanging_signs",
+    "mass": 20.0,
+    "friction": 0.5
+  }
+]

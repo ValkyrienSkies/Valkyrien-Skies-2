@@ -21,7 +21,7 @@ object PlayerUtil {
 
     @JvmStatic
     fun transformPlayerTemporarily(player: Player, world: Level, blockInShip: BlockPos) =
-        transformPlayerTemporarily(player, world.getShipObjectManagingPos(blockInShip))
+        transformPlayerTemporarily(player, world.getLoadedShipManagingPos(blockInShip))
 
     @JvmStatic
     fun transformPlayerTemporarily(player: Player, ship: LoadedShip?) {
@@ -64,7 +64,7 @@ object PlayerUtil {
      */
     @JvmStatic
     fun <T> transformPlayerTemporarily(player: Player, world: Level, blockInShip: BlockPos, inside: () -> T): T =
-        transformPlayerTemporarily(player, world.getShipObjectManagingPos(blockInShip), inside)
+        transformPlayerTemporarily(player, world.getLoadedShipManagingPos(blockInShip), inside)
 
     /**
      * Updates [player] to 'live' in ship space for everything executed in the inside lambda

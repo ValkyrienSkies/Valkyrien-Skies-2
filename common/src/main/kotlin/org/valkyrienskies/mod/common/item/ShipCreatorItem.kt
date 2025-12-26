@@ -10,7 +10,7 @@ import net.minecraft.world.level.block.Rotation.NONE
 import net.minecraft.world.level.block.state.BlockState
 import org.joml.Vector3d
 import org.valkyrienskies.core.api.VsBeta
-import org.valkyrienskies.core.apigame.ships.ServerShipCore
+import org.valkyrienskies.core.internal.ships.VsiServerShip
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.shipObjectWorld
@@ -73,7 +73,7 @@ class ShipCreatorItem(
                         newShipScaling,
                         newShipPosInShipyard,
                     )
-                    (serverShip as ServerShipCore).unsafeSetTransform(newTransform)
+                    (serverShip as VsiServerShip).unsafeSetTransform(newTransform)
                 }
             }
         }

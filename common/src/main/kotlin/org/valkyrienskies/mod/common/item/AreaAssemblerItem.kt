@@ -14,7 +14,7 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemp
 import org.joml.primitives.AABBi
 import org.valkyrienskies.mod.common.assembly.createNewShipWithStructure
 import org.valkyrienskies.mod.common.dimensionId
-import org.valkyrienskies.mod.common.getShipObjectManagingPos
+import org.valkyrienskies.mod.common.getLoadedShipManagingPos
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.toJOML
 import java.util.function.DoubleSupplier
@@ -48,7 +48,7 @@ class AreaAssemblerItem(
                     val firstPosZ = item.tag!!.getInt("firstPosZ")
                     if (level.shipObjectWorld.isBlockInShipyard(blockPos.x, blockPos.y, blockPos.z, dimensionId) != level.shipObjectWorld.isBlockInShipyard(firstPosX, firstPosY, firstPosZ, dimensionId)) {
                         ctx.player?.sendSystemMessage(Component.literal("Cannot assemble between ship and world!"))
-                    } else if (level.getShipObjectManagingPos(blockPos) != level.getShipObjectManagingPos(Vec3i(firstPosX, firstPosY, firstPosZ))) {
+                    } else if (level.getLoadedShipManagingPos(blockPos) != level.getLoadedShipManagingPos(Vec3i(firstPosX, firstPosY, firstPosZ))) {
                         ctx.player?.sendSystemMessage(Component.literal("Cannot assemble something between two ships!"))
                     } else {
                         val blockAABB = AABBi(blockPos.toJOML(), Vec3i(firstPosX, firstPosY, firstPosZ).toJOML())

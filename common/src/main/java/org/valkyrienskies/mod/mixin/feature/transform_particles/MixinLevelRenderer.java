@@ -42,7 +42,7 @@ public abstract class MixinLevelRenderer {
         final double velocityZ,
         final CallbackInfoReturnable<Particle> cir
     ) {
-        final ClientShip ship = VSGameUtilsKt.getShipObjectManagingPos(level, (int) x >> 4, (int) z >> 4);
+        final ClientShip ship = VSGameUtilsKt.getLoadedShipManagingPos(level, (int) x >> 4, (int) z >> 4);
 
         if (ship == null) {
             // vanilla behaviour

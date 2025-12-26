@@ -1,0 +1,42 @@
+[
+  {
+    "block": "minecraft:cobblestone",
+    "mass": 240.0,
+    "friction": 0.8
+  },
+  {
+    "block": "minecraft:cobblestone_stairs",
+    "mass": 180.0,
+    "friction": 0.8
+  },
+  {
+    "block": "minecraft:cobblestone_slab",
+    "mass": 120.0,
+    "friction": 0.8
+  },
+  {
+    "block": "minecraft:cobblestone_wall",
+    "mass": 120.0,
+    "friction": 0.8
+  },
+  {
+    "block": "minecraft:mossy_cobblestone",
+    "mass": 240.0,
+    "friction": 0.8
+  },
+  {
+    "block": "minecraft:mossy_cobblestone_stairs",
+    "mass": 180.0,
+    "friction": 0.8
+  },
+  {
+    "block": "minecraft:mossy_cobblestone_slab",
+    "mass": 120.0,
+    "friction": 0.8
+  },
+  {
+    "block": "minecraft:mossy_cobblestone_wall",
+    "mass": 120.0,
+    "friction": 0.8
+  }
+]

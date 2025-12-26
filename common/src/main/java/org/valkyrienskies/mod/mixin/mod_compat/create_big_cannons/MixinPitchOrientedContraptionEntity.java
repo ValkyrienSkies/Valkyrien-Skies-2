@@ -39,7 +39,7 @@ public abstract class MixinPitchOrientedContraptionEntity extends OrientedContra
         if (original != null && controllerPos != null) {
             final Vector3d editOriginal = VectorConversionsMCKt.toJOML(original);
 
-            final Ship ship = VSGameUtilsKt.getShipObjectManagingPos(level(), controllerPos);
+            final Ship ship = VSGameUtilsKt.getLoadedShipManagingPos(level(), controllerPos);
 
             if (ship != null) {
                 ship.getShipToWorld().transformPosition(editOriginal);
@@ -53,7 +53,7 @@ public abstract class MixinPitchOrientedContraptionEntity extends OrientedContra
 
     @Inject(method="getPassengerPosition", at = @At("RETURN"), cancellable = true, remap = false)
     protected void vsGetPassengerPosition(Entity passenger, float partialTicks, CallbackInfoReturnable<Vec3> cir) {
-        if (VSGameUtilsKt.getShipObjectManagingPos(passenger.level(), toJOML(this.position())) != null) {
+        if (VSGameUtilsKt.getLoadedShipManagingPos(passenger.level(), toJOML(this.position())) != null) {
             cir.setReturnValue(cir.getReturnValue().add(0,0.1,0));
         }
     }

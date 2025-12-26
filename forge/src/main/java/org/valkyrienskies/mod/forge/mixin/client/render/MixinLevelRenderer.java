@@ -54,7 +54,7 @@ public class MixinLevelRenderer {
         final Camera methodCamera, final GameRenderer methodGameRenderer,
         final LightTexture methodLightmapTextureManager, final Matrix4f methodMatrix4f) {
 
-        final ClientShip ship = VSGameUtilsKt.getShipObjectManagingPos(level, blockPos);
+        final ClientShip ship = VSGameUtilsKt.getLoadedShipManagingPos(level, blockPos);
         if (ship != null) {
             // Remove the vanilla render transform
             matrixStack.popPose();

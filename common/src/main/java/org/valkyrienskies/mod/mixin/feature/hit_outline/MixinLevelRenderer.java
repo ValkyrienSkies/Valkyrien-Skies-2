@@ -52,7 +52,7 @@ public class MixinLevelRenderer {
         BlockPos pos, BlockState state,
         CallbackInfo ci
     ) {
-        final ClientShip ship = VSGameUtilsKt.getShipObjectManagingPos(this.level, pos);
+        final ClientShip ship = VSGameUtilsKt.getLoadedShipManagingPos(this.level, pos);
         if (ship != null) {
             matrixStack.pushPose();
             transformRenderWithShip(ship.getRenderTransform(), matrixStack, pos, camX, camY, camZ);

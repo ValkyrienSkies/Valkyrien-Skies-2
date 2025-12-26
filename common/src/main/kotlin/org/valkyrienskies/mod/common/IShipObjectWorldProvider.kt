@@ -1,21 +1,21 @@
 package org.valkyrienskies.mod.common
 
 import org.valkyrienskies.core.api.world.ShipWorld
-import org.valkyrienskies.core.apigame.world.ClientShipWorldCore
-import org.valkyrienskies.core.apigame.world.ServerShipWorldCore
-import org.valkyrienskies.core.apigame.world.VSPipeline
+import org.valkyrienskies.core.internal.world.VsiClientShipWorld
+import org.valkyrienskies.core.internal.world.VsiServerShipWorld
+import org.valkyrienskies.core.internal.world.VsiPipeline
 
 interface IShipObjectWorldProvider {
     val shipObjectWorld: ShipWorld?
 }
 
 interface IShipObjectWorldServerProvider : IShipObjectWorldProvider {
-    override val shipObjectWorld: ServerShipWorldCore?
-    val vsPipeline: VSPipeline?
+    override val shipObjectWorld: VsiServerShipWorld?
+    val vsPipeline: VsiPipeline?
 }
 
 interface IShipObjectWorldClientProvider : IShipObjectWorldProvider {
-    override val shipObjectWorld: ClientShipWorldCore?
+    override val shipObjectWorld: VsiClientShipWorld?
 }
 
 interface IShipObjectWorldClientCreator {

@@ -1,0 +1,62 @@
+[
+  {
+    "block": "minecraft:netherrack",
+    "mass": 100.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:nether_bricks",
+    "mass": 200.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:cracked_nether_bricks",
+    "mass": 200.0,
+    "friction": 0.7
+  },
+  {
+    "block": "minecraft:nether_brick_stairs",
+    "mass": 150.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:nether_brick_slab",
+    "mass": 100.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:nether_brick_wall",
+    "mass": 100.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:nether_brick_fence",
+    "mass": 50.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:chiseled_nether_bricks",
+    "mass": 200.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:red_nether_bricks",
+    "mass": 200.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:red_nether_brick_stairs",
+    "mass": 150.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:red_nether_brick_slab",
+    "mass": 100.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:red_nether_brick_wall",
+    "mass": 100.0,
+    "friction": 0.6
+  }
+]

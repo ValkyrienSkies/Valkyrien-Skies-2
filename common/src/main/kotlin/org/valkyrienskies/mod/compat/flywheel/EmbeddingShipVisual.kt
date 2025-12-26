@@ -1,22 +1,17 @@
 package org.valkyrienskies.mod.compat.flywheel
 
 import dev.engine_room.flywheel.api.task.Plan
-import dev.engine_room.flywheel.api.visual.DistanceUpdateLimiter
 import dev.engine_room.flywheel.api.visual.DynamicVisual
 import dev.engine_room.flywheel.api.visual.DynamicVisual.Context
 import dev.engine_room.flywheel.api.visual.EffectVisual
 import dev.engine_room.flywheel.api.visual.LightUpdatedVisual
 import dev.engine_room.flywheel.api.visual.SectionTrackedVisual.SectionCollector
 import dev.engine_room.flywheel.api.visual.ShaderLightVisual
-import dev.engine_room.flywheel.api.visual.TickableVisual
 import dev.engine_room.flywheel.api.visualization.VisualizationContext
-import dev.engine_room.flywheel.impl.visualization.VisualManagerImpl
-import dev.engine_room.flywheel.lib.task.MapContextPlan
 import dev.engine_room.flywheel.lib.task.NestedPlan
 import dev.engine_room.flywheel.lib.task.RunnablePlan
 import it.unimi.dsi.fastutil.longs.LongArraySet
 import it.unimi.dsi.fastutil.longs.LongSet
-import net.minecraft.client.Camera
 import net.minecraft.core.SectionPos
 import net.minecraft.util.Mth
 import org.joml.FrustumIntersection
@@ -28,10 +23,9 @@ import org.valkyrienskies.mod.common.config.shipRenderer
 import org.valkyrienskies.mod.common.util.toBlockPos
 import org.valkyrienskies.mod.common.util.toFloat
 import org.valkyrienskies.mod.common.util.toJOMLD
-import org.valkyrienskies.mod.compat.LoadedMods
 
 class EmbeddingShipVisual(val effect: ShipEffect, val visualContext: VisualizationContext) :
-    EffectVisual<ShipEffect>, DynamicVisual, TickableVisual, ShaderLightVisual, LightUpdatedVisual
+    EffectVisual<ShipEffect>, DynamicVisual, ShaderLightVisual, LightUpdatedVisual
 {
     val ship get() = effect.ship
     val embedding = visualContext.createEmbedding(
@@ -39,9 +33,6 @@ class EmbeddingShipVisual(val effect: ShipEffect, val visualContext: Visualizati
             LevelYRange(effect.level.minBuildHeight, effect.level.maxBuildHeight - 1)
         ).toBlockPos()
     )
-    //TODO uses impl prone to change will prob break
-    val storage = ShipBlockEntityStorage()
-    val manager = VisualManagerImpl(storage).apply { effect.manager = this }
     val camera = ShipEffectCamera(ship)
     val frustum = FrustumIntersection()
 
@@ -68,46 +59,12 @@ class EmbeddingShipVisual(val effect: ShipEffect, val visualContext: Visualizati
 
     }
 
-    override fun planTick(): Plan<TickableVisual.Context> =
-        manager.tickPlan(visualContext)
-
     override fun planFrame(): Plan<Context> =
         NestedPlan.of(
             RunnablePlan.of(::updateEmbedding),
             RunnablePlan.of(::updateSections),
-            MapContextPlan.map(::newContext).to(manager.framePlan(visualContext)),
             IfNotNullPlan({renderingShipVisual}, RenderingShipVisual::planFrame)
         )
-
-    private fun newContext(ctx: Context): Context {
-        camera.update(ctx.camera())
-        val pos = ship.renderTransform.shipToWorld.transformPosition(embedding.renderOrigin().toJOMLD())
-        val rotation = ship.renderTransform.shipToWorldRotation.toFloat()
-        val scale = ship.renderTransform.shipToWorldScaling
-
-        val viewProjection = Matrix4f(FlywheelCompat.viewProjection)
-            .translate(
-                (pos.x - ctx.camera().position.x).toFloat(),
-                (pos.y - ctx.camera().position.y).toFloat(),
-                (pos.z - ctx.camera().position.z).toFloat()
-            )
-            .scale(
-                scale.x().toFloat(),
-                scale.y().toFloat(),
-                scale.z().toFloat()
-            )
-            .rotate(rotation)
-
-        frustum.set(viewProjection)
-
-        return object : Context {
-            override fun camera(): Camera = camera
-            override fun frustum(): FrustumIntersection = frustum
-            override fun partialTick(): Float = ctx.partialTick()
-            override fun limiter(): DistanceUpdateLimiter = ctx.limiter()
-        }
-    }
-
 
     private fun updateEmbedding(ctx: Context) {
         val pos = ship.renderTransform.shipToWorld.transformPosition(embedding.renderOrigin().toJOMLD())
@@ -176,8 +133,6 @@ class EmbeddingShipVisual(val effect: ShipEffect, val visualContext: Visualizati
     }
 
     override fun delete() {
-        manager.invalidate()
-        storage.invalidate()
         renderingShipVisual?.delete()
         embedding.delete()
     }

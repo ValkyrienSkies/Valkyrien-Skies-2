@@ -73,7 +73,7 @@
 //        final boolean isPlayerInShipyard = ChunkAllocator.isChunkInShipyard(playerChunkX, playerChunkZ);
 //
 //        final BlockPos renderChunkOrigin = builtChunk.getOrigin();
-//        final ClientShip shipObject = VSGameUtilsKt.getShipObjectManagingPos(level, renderChunkOrigin);
+//        final ClientShip shipObject = VSGameUtilsKt.getLoadedShipManagingPos(level, renderChunkOrigin);
 //        if (!isPlayerInShipyard && shipObject != null) {
 //            final Matrix4d chunkTransformMatrix = new Matrix4d()
 //                .translate(-playerCameraX, -playerCameraY, -playerCameraZ)
@@ -115,7 +115,7 @@
 //        final VboRegion vboRegion, final CallbackInfo ci
 //    ) {
 //        final ClientShip shipObject =
-//            VSGameUtilsKt.getShipObjectManagingPos(level, BlockPos.containing(regionX, regionY, regionZ));
+//            VSGameUtilsKt.getLoadedShipManagingPos(level, BlockPos.containing(regionX, regionY, regionZ));
 //        if (shipObject != null) {
 //            final Matrix4d chunkTransformMatrix = new Matrix4d()
 //                .translate(-xIn, -yIn, -zIn)

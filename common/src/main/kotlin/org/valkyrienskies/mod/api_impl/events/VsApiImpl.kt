@@ -9,30 +9,38 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.entity.BlockEntity
 import org.joml.Vector3dc
 import org.joml.primitives.AABBd
 import org.joml.primitives.AABBdc
 import org.valkyrienskies.core.api.VsCoreApi
 import org.valkyrienskies.core.api.ships.Ship
+import org.valkyrienskies.core.api.ships.properties.ShipId
+import org.valkyrienskies.core.api.util.PhysTickOnly
 import org.valkyrienskies.core.api.world.ClientShipWorld
 import org.valkyrienskies.core.api.world.ServerShipWorld
 import org.valkyrienskies.core.api.world.ShipWorld
+import org.valkyrienskies.core.api.world.properties.DimensionId
 import org.valkyrienskies.core.util.events.EventEmitterImpl
+import org.valkyrienskies.mod.api.BlockEntityPhysicsListener
 import org.valkyrienskies.mod.api.VsApi
 import org.valkyrienskies.mod.api.events.PostRenderShipEvent
 import org.valkyrienskies.mod.api.events.PreRenderShipEvent
 import org.valkyrienskies.mod.api.events.RegisterBlockStateEvent
+import org.valkyrienskies.mod.api.getShipManagingBlock
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
+import org.valkyrienskies.mod.common.getLoadedShipManagingPos
 import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.getShipMountedToData
 import org.valkyrienskies.mod.common.getShipsIntersecting
-import org.valkyrienskies.mod.compat.clothconfig.VSClothConfig
+import java.util.concurrent.ConcurrentHashMap
 
 @Suppress("OVERRIDE_DEPRECATION")
+@OptIn(PhysTickOnly::class)
 class VsApiImpl(
     private val core: VsCoreApi
 ) : VsApi, VsCoreApi by core {
@@ -43,10 +51,6 @@ class VsApiImpl(
 
     override fun isShipMountingEntity(entity: Entity): Boolean {
         return entity is ShipMountingEntity
-    }
-
-    override fun createConfigScreenLegacy(parent: Screen, vararg configs: Class<*>): Screen {
-        return VSClothConfig.createConfigScreenFor(parent, *configs)
     }
 
     override fun getDimensionId(level: Level): String =
@@ -105,4 +109,5 @@ class VsApiImpl(
 
     override fun getShipsIntersecting(level: Level?, x: Double, y: Double, z: Double): Iterable<Ship> =
         getShipsIntersecting(level, AABBd(x, y, z, x, y, z))
+
 }

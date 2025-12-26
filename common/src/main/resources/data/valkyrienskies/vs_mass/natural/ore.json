@@ -1,0 +1,112 @@
+[
+  {
+    "block": "minecraft:coal_ore",
+    "mass": 245.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:deepslate_coal_ore",
+    "mass": 271.5,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:iron_ore",
+    "mass": 315.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:deepslate_iron_ore",
+    "mass": 345.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:copper_ore",
+    "mass": 325.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:deepslate_copper_ore",
+    "mass": 355.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:gold_ore",
+    "mass": 445.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:deepslate_gold_ore",
+    "mass": 470.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:redstone_ore",
+    "mass": 195.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:deepslate_redstone_ore",
+    "mass": 222.5,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:emerald_ore",
+    "mass": 260.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:deepslate_emerald_ore",
+    "mass": 285.5,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:lapis_ore",
+    "mass": 270.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:deepslate_lapis_ore",
+    "mass": 295.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:diamond_ore",
+    "mass": 270.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:deepslate_diamond_ore",
+    "mass": 295.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:nether_gold_ore",
+    "mass": 225.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:nether_quartz_ore",
+    "mass": 150.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:ancient_debris",
+    "mass": 315.0,
+    "friction": 0.8
+  },
+  {
+    "block": "minecraft:raw_iron_block",
+    "mass": 785.0,
+    "friction": 0.8
+  },
+  {
+    "block": "minecraft:raw_copper_block",
+    "mass": 900.0,
+    "friction": 0.8
+  },
+  {
+    "block": "minecraft:raw_gold_block",
+    "mass": 1930.0,
+    "friction": 0.8
+  }
+]

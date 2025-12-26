@@ -31,6 +31,10 @@ class SimpleSoundInstanceOnShip : SimpleSoundInstance, VelocityTickableSoundInst
         ship: Ship
     ) : super(resourceLocation, soundSource, volume, pitch, random, looping, delay, attenuation, x, y, z, relative) {
         this.ship = ship
+        val newPos = ship.shipToWorld.transformPosition(originalPos, Vector3d())
+        this.x = newPos.x
+        this.y = newPos.y
+        this.z = newPos.z
     }
 
     constructor(
@@ -47,13 +51,14 @@ class SimpleSoundInstanceOnShip : SimpleSoundInstance, VelocityTickableSoundInst
 
     private val originalPos = Vector3d(x, y, z)
 
-    override val velocity: Vector3dc
-        get() = ship.velocity
+    override var velocity: Vector3dc = Vector3d()
+        private set
 
     override fun isStopped(): Boolean = false
 
     override fun tick() {
         val newPos = ship.shipToWorld.transformPosition(originalPos, Vector3d())
+        this.velocity = newPos.sub(this.x, this.y, this.z, Vector3d())
         this.x = newPos.x
         this.y = newPos.y
         this.z = newPos.z

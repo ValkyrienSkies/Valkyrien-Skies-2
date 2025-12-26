@@ -48,7 +48,7 @@ public class MixinBlockEntityRenderDispatcher {
 
         // If by default was false, then check if this BlockEntity belongs to a ship
         final BlockPos bePos = blockEntity.getBlockPos();
-        final Ship nullableShip = VSGameUtilsKt.getShipObjectManagingPos(level, bePos);
+        final Ship nullableShip = VSGameUtilsKt.getLoadedShipManagingPos(level, bePos);
         if (nullableShip instanceof ClientShip ship) {
             final Matrix4dc m = ship.getRenderTransform().getShipToWorld();
 

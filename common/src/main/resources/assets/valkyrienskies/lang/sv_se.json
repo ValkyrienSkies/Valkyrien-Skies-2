@@ -1,0 +1,40 @@
+{
+  "itemGroup.valkyrienSkies": "Valkyrien Skies",
+
+  "tooltip.valkyrienskies.mass": "Massa",
+  "category.valkyrienskies.driving": "Körning",
+  "key.valkyrienskies.ship_cruise": "Kryssning",
+  "key.valkyrienskies.ship_down": "Sänk",
+
+  "block.valkyrienskies.test_chair": "Debugstol",
+  "block.valkyrienskies.test_hinge": "Debuggångjärn",
+  "block.valkyrienskies.test_flap": "Debugflik",
+  "block.valkyrienskies.test_wing": "Debugvinge",
+  "block.valkyrienskies.test_sphere": "Debugsfär",
+  "block.valkyrienskies.test_thruster": "Debugdrivmotor",
+  "item.valkyrienskies.ship_creator": "Skeppsskapare",
+  "item.valkyrienskies.ship_creator_smaller": "Mini-skeppsskapare",
+  "item.valkyrienskies.ship_assembler": "Skeppsmontör",
+  "item.valkyrienskies.area_assembler": "Områdesmontör",
+  "item.valkyrienskies.connection_checker": "Anslutningskontroll",
+  "item.valkyrienskies.physics_entity_creator": "Fysikenhetsskapare",
+  "entity.valkyrienskies.vs_physics_entity": "Fysikenhet",
+
+  "argument.valkyrienskies.ship.no_found": "Inget skepp hittades",
+  "argument.valkyrienskies.ship.multiple_found": "Flera skepp hittades",
+  "command.valkyrienskies.delete.success": "Tog bort %d skepp!",
+  "command.valkyrienskies.remass.success": "Beräknade om massorna för %d skepp!",
+  "command.valkyrienskies.remass.fail": "Misslyckades med att beräkna om massan för %s!",
+  "command.valkyrienskies.set_static.success": "Satte %d skepp till is-static=%s!",
+  "command.valkyrienskies.teleport.success": "Teleporterade %d skepp till %s!",
+  "command.valkyrienskies.teleport.multiple_ship_success": "Teleporterade %d skepp!",
+  "command.valkyrienskies.mc_teleport.can_only_teleport_to_one_ship": "Kan bara teleportera till exakt 1 skepp",
+  "command.valkyrienskies.get_ship.success": "Hittade skepp med slug %s",
+  "command.valkyrienskies.get_ship.fail": "Inget skepp hittades",
+  "command.valkyrienskies.get_ship.only_usable_by_entities": "/vs get-ship kan endast köras av entiteter!",
+  "command.valkyrienskies.scale.success": "Skalade %d skepp!",
+
+  "misc.valkyrienskies.create.deployer_working_mode": "Skeppsbeteende",
+  "misc.valkyrienskies.create.deployer_working_mode.original": "Placera på nuvarande skepp",
+  "misc.valkyrienskies.create.deployer_working_mode.in_world": "Placera i världen"
+}

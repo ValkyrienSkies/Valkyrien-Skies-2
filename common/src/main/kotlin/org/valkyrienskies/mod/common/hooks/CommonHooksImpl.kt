@@ -2,17 +2,17 @@ package org.valkyrienskies.mod.common.hooks
 
 import net.minecraft.client.Minecraft
 import org.valkyrienskies.core.api.world.ShipWorld
-import org.valkyrienskies.core.apigame.hooks.CoreHooksOut
-import org.valkyrienskies.core.apigame.hooks.PlayState
-import org.valkyrienskies.core.apigame.hooks.PlayState.CLIENT_MULTIPLAYER
-import org.valkyrienskies.core.apigame.hooks.PlayState.CLIENT_SINGLEPLAYER
-import org.valkyrienskies.core.apigame.hooks.PlayState.CLIENT_TITLESCREEN
-import org.valkyrienskies.core.apigame.hooks.PlayState.SERVERSIDE
+import org.valkyrienskies.core.internal.hooks.VsiCoreHooksOut
+import org.valkyrienskies.core.internal.hooks.VsiPlayState
+import org.valkyrienskies.core.internal.hooks.VsiPlayState.CLIENT_MULTIPLAYER
+import org.valkyrienskies.core.internal.hooks.VsiPlayState.CLIENT_SINGLEPLAYER
+import org.valkyrienskies.core.internal.hooks.VsiPlayState.CLIENT_TITLESCREEN
+import org.valkyrienskies.core.internal.hooks.VsiPlayState.SERVERSIDE
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.vsCore
 
-abstract class CommonHooksImpl : CoreHooksOut {
+abstract class CommonHooksImpl : VsiCoreHooksOut {
 
     override var enableBlockEdgeConnectivity: Boolean
         get() = vsCore.hooks.enableBlockEdgeConnectivity
@@ -34,7 +34,7 @@ abstract class CommonHooksImpl : CoreHooksOut {
         get() = vsCore.hooks.enableSplitting
         set(value) {}
 
-    override val playState: PlayState
+    override val playState: VsiPlayState
         get() {
             if (!isPhysicalClient) {
                 return SERVERSIDE

@@ -1,0 +1,43 @@
+{
+  "itemGroup.valkyrienSkies": "Valkyrien Skies",
+
+  "tooltip.valkyrienskies.mass": "質量",
+  "category.valkyrienskies.driving": "操縦",
+  "key.valkyrienskies.ship_cruise": "巡航",
+  "key.valkyrienskies.ship_down": "下降",
+
+  "block.valkyrienskies.test_chair": "デバッグチェア",
+  "block.valkyrienskies.test_hinge": "デバッグヒンジ",
+  "block.valkyrienskies.test_flap": "デバッグフラップ",
+  "block.valkyrienskies.test_wing": "デバッグウイング",
+  "block.valkyrienskies.test_sphere": "デバッグスフィア",
+  "block.valkyrienskies.test_thruster": "デバッグスラスター",
+
+  "item.valkyrienskies.ship_creator": "船作成ツール",
+  "item.valkyrienskies.ship_creator_smaller": "ミニ船作成ツール",
+  "item.valkyrienskies.ship_assembler": "船アセンブラー",
+  "item.valkyrienskies.area_assembler": "エリアアセンブラー",
+  "item.valkyrienskies.connection_checker": "接続チェッカー",
+  "item.valkyrienskies.physics_entity_creator": "物理エンティティ作成ツール",
+
+  "entity.valkyrienskies.vs_physics_entity": "物理エンティティ",
+
+  "argument.valkyrienskies.ship.no_found": "船が見つかりません",
+  "argument.valkyrienskies.ship.multiple_found": "複数の船が見つかりました",
+
+  "command.valkyrienskies.delete.success": "%d 隻の船を削除しました！",
+  "command.valkyrienskies.remass.success": "%d 隻の船の質量を再計算しました！",
+  "command.valkyrienskies.remass.fail": "%s の質量再計算に失敗しました！",
+  "command.valkyrienskies.set_static.success": "%d 隻の船を is-static=%s に設定しました！",
+  "command.valkyrienskies.teleport.success": "%d 隻の船を %s にテレポートしました！",
+  "command.valkyrienskies.teleport.multiple_ship_success": "%d 隻の船をテレポートしました！",
+  "command.valkyrienskies.mc_teleport.can_only_teleport_to_one_ship": "テレポートできる船は 1 隻のみです",
+  "command.valkyrienskies.get_ship.success": "スラグ %s の船が見つかりました",
+  "command.valkyrienskies.get_ship.fail": "船が見つかりません",
+  "command.valkyrienskies.get_ship.only_usable_by_entities": "/vs get-ship はエンティティのみが実行できます！",
+  "command.valkyrienskies.scale.success": "%d 隻の船をスケールしました！",
+
+  "misc.valkyrienskies.create.deployer_working_mode": "船の動作モード",
+  "misc.valkyrienskies.create.deployer_working_mode.original": "現在の船に設置",
+  "misc.valkyrienskies.create.deployer_working_mode.in_world": "ワールドに設置"
+}

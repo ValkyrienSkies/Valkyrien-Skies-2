@@ -1,0 +1,37 @@
+[
+  {
+    "block": "minecraft:warped_stem",
+    "mass": 80.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:warped_hyphae",
+    "mass": 80.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:stripped_warped_stem",
+    "mass": 80.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:stripped_warped_hyphae",
+    "mass": 80.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:warped_planks",
+    "mass": 50.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:warped_stairs",
+    "mass": 37.5,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:warped_slab",
+    "mass": 25.0,
+    "friction": 0.5
+  }
+]

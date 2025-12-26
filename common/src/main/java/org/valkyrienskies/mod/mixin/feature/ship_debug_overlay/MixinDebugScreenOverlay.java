@@ -66,7 +66,7 @@ public abstract class MixinDebugScreenOverlay {
         Level l = getLevel();
         BlockPos blockPos = ((BlockHitResult) this.block).getBlockPos();
         Ship ship = VSGameUtilsKt.getShipManagingPos(l, blockPos);
-        LoadedServerShip lsship = l instanceof ServerLevel ? VSGameUtilsKt.getShipObjectManagingPos((ServerLevel) l, blockPos) : null;
+        LoadedServerShip lsship = l instanceof ServerLevel ? VSGameUtilsKt.getLoadedShipManagingPos((ServerLevel) l, blockPos) : null;
         if (ship != null) {
             list.add("");
             list.add(ChatFormatting.UNDERLINE + "Targeted Ship: " + ship.getSlug());

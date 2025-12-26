@@ -1,0 +1,40 @@
+{
+  "itemGroup.valkyrienSkies": "فالكايرين سكايز",
+
+  "tooltip.valkyrienskies.mass": "الكتلة",  
+  "category.valkyrienskies.driving": "القيادة",  
+  "key.valkyrienskies.ship_cruise": "الإبحار",
+  "key.valkyrienskies.ship_down": "الانخفاض",
+
+  "block.valkyrienskies.test_chair": "كرسي تجريبي",
+  "block.valkyrienskies.test_hinge": "مفصلة تجريبية",
+  "block.valkyrienskies.test_flap": "رفرف تجريبي",
+  "block.valkyrienskies.test_wing": "جناح تجريبي",
+  "block.valkyrienskies.test_sphere": "كرة تجريبية",
+  "block.valkyrienskies.test_thruster": "دافع تجريبي",
+  "item.valkyrienskies.ship_creator": "منشئ السفينة",
+  "item.valkyrienskies.ship_creator_smaller": "منشئ سفينة صغير",
+  "item.valkyrienskies.ship_assembler": "مجمع السفينة",
+  "item.valkyrienskies.area_assembler": "مجمع المنطقة",
+  "item.valkyrienskies.connection_checker": "مدقق الاتصال",
+  "item.valkyrienskies.physics_entity_creator": "منشئ كيان فيزيائي",
+  "entity.valkyrienskies.vs_physics_entity": "كيان فيزيائي",
+
+  "argument.valkyrienskies.ship.no_found": "لم يتم العثور على سفينة",
+  "argument.valkyrienskies.ship.multiple_found": "تم العثور على عدة سفن",
+  "command.valkyrienskies.delete.success": "تم حذف %d سفن!",
+  "command.valkyrienskies.remass.success": "تم حساب الكتلة لـ %d سفن!",
+  "command.valkyrienskies.remass.fail": "فشل في حساب الكتلة لـ %s!",
+  "command.valkyrienskies.set_static.success": "تم ضبط %d سفن على الحالة الثابتة = %s!",
+  "command.valkyrienskies.teleport.success": "تم نقل %d سفن إلى %s!",
+  "command.valkyrienskies.teleport.multiple_ship_success": "تم نقل %d سفن!",
+  "command.valkyrienskies.mc_teleport.can_only_teleport_to_one_ship": "يمكنك الانتقال إلى سفينة واحدة فقط",
+  "command.valkyrienskies.get_ship.success": "تم العثور على سفينة بالمعرّف %s",
+  "command.valkyrienskies.get_ship.fail": "لم يتم العثور على سفينة",
+  "command.valkyrienskies.get_ship.only_usable_by_entities": "/vs get-ship يمكن استخدامه فقط بواسطة الكيانات!",
+  "command.valkyrienskies.scale.success": "تم تغيير حجم %d سفن!",
+
+  "misc.valkyrienskies.create.deployer_working_mode": "سلوك السفينة",
+  "misc.valkyrienskies.create.deployer_working_mode.original": "الوضع على السفينة الحالية",
+  "misc.valkyrienskies.create.deployer_working_mode.in_world": "الوضع في العالم"
+}

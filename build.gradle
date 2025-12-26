@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
+
 buildscript {
     // Lock plugin dependencies
     configurations.classpath {
@@ -42,13 +44,13 @@ tasks.register("updateVsCore") {
 
     try {
         def vsCoreBuild = gradle.includedBuild("vs-core")
-        versionFile = new File(vsCoreBuild.projectDir, "api-game/build/version.txt")
+        versionFile = new File(vsCoreBuild.projectDir, "internal/build/version.txt")
 
         inputs.file(versionFile)
         outputs.file(gradleProperties)
-        dependsOn(vsCoreBuild.task(":api-game:writeVersion"))
+        dependsOn(vsCoreBuild.task(":internal:writeVersion"))
 
-        [':impl', ':api', ':api-game', ':util'].each {
+        [':impl', ':api', ':internal', ':util'].each {
             dependsOn(vsCoreBuild.task("${it}:publishToMavenLocal"))
         }
     } catch (UnknownDomainObjectException ignore) {}
@@ -81,52 +83,79 @@ subprojects {
                 }
             }
 
-            [':impl', ':api', ':api-game'].each {
+            [':impl', ':api', ':internal'].each {
                 compileJava.dependsOn(vsCoreBuild.task("${it}:publishToMavenLocal"))
             }
         } catch (UnknownDomainObjectException ignore) {}
 
         mavenCentral()
-        maven {
-            url "https://cursemaven.com"
-            content {
-                includeModule "curse.maven", "kotlinforforge-351264"
-            }
-        }
         if (!project.block_external_repositories) {
+            maven {
+                url = "https://maven.realrobotix.me/master/"
+            }
             mavenLocal()
             maven {
                 name = "ParchmentMC"
                 url = "https://maven.parchmentmc.org"
             }
+            maven { url = "https://cursemaven.com" }
             maven { url = "https://maven.terraformersmc.com/releases/" } // Mod Menu
             maven {
                 name = 'Kotlin for Forge'
                 url = 'https://thedarkcolour.github.io/KotlinForForge/'
             }
             maven {
-                name "createmod maven"
-                url "https://maven.createmod.net/"
+                name = 'tterrag maven'
+                url = 'https://maven.tterrag.com/'
             }
             maven { url = "https://modmaven.dev/" } // Twilight Forest
             maven { url = "https://api.modrinth.com/maven" } // LazyDFU, Suggestion Tweaker, Create Big Cannons
             maven { url = "https://maven.shedaniel.me/" } // Cloth Config, REI
             maven { url "https://maven.architectury.dev/" }
-            maven { url = "https://mvn.devos.one/snapshots/" } // Fabric Create, Porting Lib, Forge Tags, Milk Lib
-            maven { url = "https://mvn.devos.one/releases/" }
-            maven { url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/" } // Forge Config API Port
-            //maven { url = "https://maven.tterrag.com/" } // Registrate, Forge Create and Flywheel
+            maven { url = "https://maven.createmod.net" } // Create, Ponder, Flywheel
+            maven { url = "https://maven.ithundxr.dev/mirror" } // Registrate
+            maven { url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/" } // ForgeConfigAPIPort
+
+            // mavens for Create Fabric and dependencies
+            maven { url = "https://mvn.devos.one/releases" } // Porting Lib releases
+            maven { url = "https://mvn.devos.one/snapshots/" } // Create and several dependencies
             maven { url = "https://maven.cafeteria.dev/releases" } // Fake Player API
             maven { url = "https://maven.jamieswhiteshirt.com/libs-release" } // Reach Entity Attributes
+            maven { // Fabric ASM for Porting Lib
+                url = "https://jitpack.io/"
+                content { includeGroupAndSubgroups("com.github") }
+            }
+
+            maven { url = "https://maven.cafeteria.dev/releases" } // Fake Player API
             maven { url = "https://maven.realrobotix.me/createbigcannons/" } // Create Big Cannons
-            maven { // FTB Stuffs
-                url "https://maven.ftb.dev/releases"
+            maven {
+                name = "CC-Tweaked"
+                url = "https://maven.squiddev.cc"
                 content {
-                    includeGroup "dev.ftb.mods"
+                    includeGroup("cc.tweaked")
                 }
             }
-            //please dont enable unless ABSOLUTELY necessary
-            //maven { url = "https://jitpack.io"}
+            maven {
+                name = "FTB Stuffs"
+                url = "https://maven.ftb.dev/releases"
+                content {
+                    includeGroup("dev.ftb.mods")
+                }
+            }
+
+            maven {
+                name = "Forge Config Api Port"
+                url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/"
+            }
+            maven { // Hexcasting
+                url = "https://maven.blamejared.com"
+            }
+            maven { // Hexical via temporary Maven
+                url = "https://maven.pool.net.eu.org/"
+            }
+            maven { // Hexal
+                url = uri("https://maven.hexxy.media")
+            }
         }
         maven {
             name = "Valkyrien Skies Internal"
@@ -206,6 +235,13 @@ allprojects {
         options.encoding = "UTF-8"
 
         options.release = 17
+    }
+
+    tasks.withType(KotlinJvmCompile).configureEach {
+        kotlinOptions {
+            jvmTarget = "17"
+            freeCompilerArgs += "-Xjvm-default=all"
+        }
     }
 
     java {

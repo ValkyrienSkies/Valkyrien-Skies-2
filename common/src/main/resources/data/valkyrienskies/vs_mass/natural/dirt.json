@@ -1,0 +1,42 @@
+[
+  {
+    "block": "minecraft:grass_block",
+    "mass": 125.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:podzol",
+    "mass": 125.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:mycelium",
+    "mass": 125.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:dirt_path",
+    "mass": 115.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:dirt",
+    "mass": 125.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:coarse_dirt",
+    "mass": 150.0,
+    "friction": 0.7
+  },
+  {
+    "block": "minecraft:rooted_dirt",
+    "mass": 120.0,
+    "friction": 0.7
+  },
+  {
+    "block": "minecraft:farmland",
+    "mass": 125.0,
+    "friction": 0.6
+  }
+]

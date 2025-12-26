@@ -16,7 +16,7 @@ import org.valkyrienskies.core.api.ships.setAttachment
 import org.valkyrienskies.mod.api.SeatedControllingPlayer
 import org.valkyrienskies.mod.common.config.VSKeyBindings
 import org.valkyrienskies.mod.common.getShipManagingPos
-import org.valkyrienskies.mod.common.getShipObjectManagingPos
+import org.valkyrienskies.mod.common.getLoadedShipManagingPos
 import org.valkyrienskies.mod.common.isBlockInShipyard
 import org.valkyrienskies.mod.common.networking.PacketPlayerDriving
 import org.valkyrienskies.mod.common.vsCore
@@ -41,7 +41,7 @@ open class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level
             return
         }
 
-        if (level().getShipObjectManagingPos(blockPosition()) != null)
+        if (level().getLoadedShipManagingPos(blockPosition()) != null)
             sendDrivingPacket()
     }
 
@@ -77,7 +77,7 @@ open class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level
 
     override fun remove(removalReason: RemovalReason) {
         if (this.isController && !level().isClientSide)
-            (level().getShipObjectManagingPos(blockPosition()) as LoadedServerShip?)
+            (level().getLoadedShipManagingPos(blockPosition()) as LoadedServerShip?)
                 ?.setAttachment<SeatedControllingPlayer>(null)
         super.remove(removalReason)
     }

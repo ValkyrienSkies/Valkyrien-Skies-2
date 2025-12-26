@@ -32,9 +32,9 @@ import org.joml.Quaterniond
 import org.joml.Quaterniondc
 import org.joml.Vector3d
 import org.joml.Vector3dc
-import org.valkyrienskies.core.apigame.joints.VSJointPose
-import org.valkyrienskies.core.apigame.joints.VSRevoluteJoint
-import org.valkyrienskies.core.apigame.ships.ShipCore
+import org.valkyrienskies.core.internal.joints.VSJointPose
+import org.valkyrienskies.core.internal.joints.VSRevoluteJoint
+import org.valkyrienskies.core.internal.ships.VsiShip
 import org.valkyrienskies.mod.api.vsApi
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
@@ -181,7 +181,7 @@ object TestHingeBlock :
                         ship.transform.positionInShip,
                     )
                     // Update the ship transform
-                    (ship as ShipCore).unsafeSetKinematics(newKinematics)
+                    (ship as VsiShip).unsafeSetKinematics(newKinematics)
                 } else {
                     val newPos = Vector3d(attachmentLocalPos0)
                     newPos.sub(attachmentOffset1)
@@ -194,7 +194,7 @@ object TestHingeBlock :
                         ship.transform.positionInShip,
                     )
                     // Update the ship transform
-                    (ship as ShipCore).unsafeSetKinematics(newKinematics)
+                    (ship as VsiShip).unsafeSetKinematics(newKinematics)
                 }
 
                 level.setBlockAndUpdate(shipCenterPos, Blocks.IRON_BLOCK.defaultBlockState())
@@ -222,18 +222,14 @@ object TestHingeBlock :
                 val hingeOrientation = rotationQuaternion.mul(Quaterniond(AxisAngle4d(Math.toRadians(90.0), 0.0, 0.0, 1.0)), Quaterniond()).normalize()
 
                 // Hinge orientation constraint
-                run {
-                    // I don't recommend setting compliance lower than 1e-10 because it tends to cause instability
-                    val hingeOrientationCompliance = 1e-10
-                    val attachmentMaxForce = 1e10
-                    val hingeMaxTorque = 1e10
-                    val hingeConstraint = VSRevoluteJoint(
-                        shipId0, VSJointPose(attachmentLocalPos0, hingeOrientation), shipId1, VSJointPose(attachmentLocalPos1, hingeOrientation),
-                        maxForceTorque = null, driveFreeSpin = true
-                    )
-                    ValkyrienSkiesMod.getOrCreateGTPA(level.dimensionId).addJoint(hingeConstraint, delay = 4) { t ->
-                        blockEntity.get().constraintId = t
-                    }
+                // I don't recommend setting compliance lower than 1e-10 because it tends to cause instability
+                val compliance = 1e-10
+                val hingeConstraint = VSRevoluteJoint(
+                    shipId0, VSJointPose(attachmentLocalPos0, hingeOrientation), shipId1, VSJointPose(attachmentLocalPos1, hingeOrientation),
+                    maxForceTorque = null, compliance = compliance, driveFreeSpin = true
+                )
+                ValkyrienSkiesMod.getOrCreateGTPA(level.dimensionId).addJoint(hingeConstraint, delay = 4) { t ->
+                    blockEntity.get().constraintId = t
                 }
 
                 // Add position damping to make the hinge more stable

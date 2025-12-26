@@ -1,0 +1,642 @@
+[
+  {
+    "block": "create:shaft",
+    "mass": 15.0,
+    "friction": 0.3
+  },
+  {
+    "block": "create:brass_block",
+    "mass": 860.0,
+    "friction": 0.2
+  },
+  {
+    "block": "create:andesite_casing",
+    "mass": 75.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:brass_casing",
+    "mass": 145.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:train_casing",
+    "mass": 150.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:copper_casing",
+    "mass": 175.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:cogwheel",
+    "mass": 35.0,
+    "friction": 0.7
+  },
+  {
+    "block": "create:large_cogwheel",
+    "mass": 55.0,
+    "friction": 0.7
+  },
+  {
+    "block": "create:andesite_encased_shaft",
+    "mass": 90.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:brass_encased_shaft",
+    "mass": 160.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:andesite_encased_cogwheel",
+    "mass": 110.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:andesite_encased_large_cogwheel",
+    "mass": 130.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:brass_encased_cogwheel",
+    "mass": 180.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:brass_encased_large_cogwheel",
+    "mass": 200.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:gearbox",
+    "mass": 121.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:clutch",
+    "mass": 110.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:gearshift",
+    "mass": 110.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:encased_chain_drive",
+    "mass": 125.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:belt",
+    "mass": 5.0,
+    "friction": 0.77
+  },
+  {
+    "block": "create:creative_motor",
+    "mass": 10.0,
+    "friction": 0.8
+  },
+  {
+    "block": "create:water_wheel",
+    "mass": 437.5,
+    "friction": 0.5
+  },
+  {
+    "block": "create:encased_fan",
+    "mass": 235.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:nozzle",
+    "mass": 10.0,
+    "friction": 0.7
+  },
+  {
+    "block": "create:turntable",
+    "mass": 10.0,
+    "friction": 0.3
+  },
+  {
+    "block": "create:millstone",
+    "mass": 400.0,
+    "friction": 0.5
+  },
+  {
+    "block": "create:crushing_wheel",
+    "mass": 500.0,
+    "friction": 0.9
+  },
+  {
+    "block": "create:mechanical_press",
+    "mass": 110.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:mechanical_mixer",
+    "mass": 110.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:basin",
+    "mass": 200.0,
+    "friction": 0.25
+  },
+  {
+    "block": "create:blaze_burner",
+    "mass": 225.0,
+    "friction": 0.6
+  },
+  {
+    "block": "create:depot",
+    "mass": 30.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:weighted_ejector",
+    "mass": 350.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:chute",
+    "mass": 245.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:smart_chute",
+    "mass": 250.0,
+    "friction": 0.35
+  },
+  {
+    "block": "create:speedometer",
+    "mass": 50.0,
+    "friction": 0.5
+  },
+  {
+    "block": "create:stressometer",
+    "mass": 50.0,
+    "friction": 0.5
+  },
+  {
+    "block": "create:metal_girder",
+    "mass": 150.0,
+    "friction": 0.1
+  },
+  {
+    "block": "create:metal_girder_encased_shaft",
+    "mass": 200.0,
+    "friction": 0.1
+  },
+  {
+    "block": "create:fluid_pipe",
+    "mass": 75.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:smart_fluid_pipe",
+    "mass": 80.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:glass_fluid_pipe",
+    "mass": 75.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:encased_fluid_pipe",
+    "mass": 225.0,
+    "friction": 0.5
+  },
+  {
+    "block": "create:mechanical_pump",
+    "mass": 85,
+    "friction": 0.4
+  },
+  {
+    "block": "create:fluid_valve",
+    "mass": 65.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:fluid_tank",
+    "mass": 500.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:creative_fluid_tank",
+    "mass": 500.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:hose_pulley",
+    "mass": 42.0,
+    "friction": 0.5
+  },
+  {
+    "block": "create:item_drain",
+    "mass": 80.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:spout",
+    "mass": 250.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:portable_fluid_interface",
+    "mass": 125.0,
+    "friction": 0.6
+  },
+  {
+    "block": "create:portable_item_interface",
+    "mass": 125.0,
+    "friction": 0.6
+  },
+  {
+    "block": "create:steam_engine",
+    "mass": 300.0,
+    "friction": 0.8
+  },
+  {
+    "block": "create:steam_whistle",
+    "mass": 20.0,
+    "friction": 0.3
+  },
+  {
+    "block": "create:steam_whistle_extension",
+    "mass": 20.0,
+    "friction": 0.3
+  },
+  {
+    "block": "create:powered_shaft",
+    "mass": 15.0,
+    "friction": 0.5
+  },
+  {
+    "block": "create:mechanical_piston",
+    "mass": 125.0,
+    "friction": 0.5
+  },
+  {
+    "block": "create:sticky_mechanical_piston",
+    "mass": 125.0,
+    "friction": 0.5
+  },
+  {
+    "block": "create:piston_extension_pole",
+    "mass": 10.0,
+    "friction": 0.3
+  },
+  {
+    "block": "create:mechanical_piston_head",
+    "mass": 35.0,
+    "friction": 0.5
+  },
+  {
+    "block": "create:gantry_carriage",
+    "mass": 160.0,
+    "friction": 0.5
+  },
+  {
+    "block": "create:gantry_shaft",
+    "mass": 25.0,
+    "friction": 0.9
+  },
+  {
+    "block": "create:windmill_bearing",
+    "mass": 255.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:mechanical_bearing",
+    "mass": 155.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:clockwork_bearing",
+    "mass": 195.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:rope_pulley",
+    "mass": 145.0,
+    "friction": 0.5
+  },
+  {
+    "block": "create:rope",
+    "mass": 8.0,
+    "friction": 0.9
+  },
+  {
+    "block": "create:pulley_magnet",
+    "mass": 89.0,
+    "friction": 0.2
+  },
+  {
+    "block": "create:cart_assembler",
+    "mass": 145.0,
+    "friction": 0.5
+  },
+  {
+    "block": "create:controller_rail",
+    "mass": 84.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:minecart_anchor",
+    "mass": 145.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:linear_chassis",
+    "mass": 90.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:secondary_linear_chassis",
+    "mass": 90.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:radial_chassis",
+    "mass": 90.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:sticker",
+    "mass": 115.0,
+    "friction": 0.95
+  },
+  {
+    "block": "create:mechanical_drill",
+    "mass": 75.0,
+    "friction": 0.2
+  },
+  {
+    "block": "create:mechanical_saw",
+    "mass": 75.0,
+    "friction": 0.2
+  },
+  {
+    "block": "create:deployer",
+    "mass": 185.0,
+    "friction": 0.5
+  },
+  {
+    "block": "create:redstone_contact",
+    "mass": 150.0,
+    "friction": 0.8
+  },
+  {
+    "block": "create:mechanical_harvester",
+    "mass": 75.0,
+    "friction": 0.2
+  },
+  {
+    "block": "create:mechanical_plough",
+    "mass": 75.0,
+    "friction": 0.2
+  },
+  {
+    "block": "create:seat",
+    "mass": 50.0,
+    "friction": 0.3
+  },
+  {
+    "block": "create:mechanical_crafter",
+    "mass": 150.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:sequenced_gearshift",
+    "mass": 150.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:flywheel",
+    "mass": 785.0,
+    "friction": 0.77
+  },
+  {
+    "block": "create:rotation_speed_controller",
+    "mass": 380.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:mechanical_arm",
+    "mass": 75.0,
+    "friction": 0.7
+  },
+  {
+    "block": "create:track",
+    "mass": 150.0,
+    "friction": 0.5
+  },
+  {
+    "block": "create:fake_track",
+    "mass": 75.0,
+    "friction": 0.5
+  },
+  {
+    "block": "create:track_station",
+    "mass": 75.0,
+    "friction": 0.5
+  },
+  {
+    "block": "create:track_signal",
+    "mass": 25.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:track_observer",
+    "mass": 75.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:small_bogey",
+    "mass": 90.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:large_bogey",
+    "mass": 180.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:contraption_controls",
+    "mass": 50.0,
+    "friction": 0.2
+  },
+  {
+    "block": "create:controls",
+    "mass": 50.0,
+    "friction": 0.2
+  },
+  {
+    "block": "create:train_door",
+    "mass": 105.0,
+    "friction": 0.5
+  },
+  {
+    "block": "create:train_trapdoor",
+    "mass": 55,
+    "friction": 0.1
+  },
+  {
+    "block": "create:item_vault",
+    "mass": 105,
+    "friction": 0.1
+  },
+  {
+    "block": "create:andesite_funnel",
+    "mass": 20.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:andesite_belt_funnel",
+    "mass": 25.0,
+    "friction": 0.77
+  },
+  {
+    "block": "create:brass_funnel",
+    "mass": 40.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:brass_belt_funnel",
+    "mass": 50.0,
+    "friction": 0.77
+  },
+  {
+    "block": "create:andesite_tunnel",
+    "mass": 25.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:brass_tunnel",
+    "mass": 50.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:content_observer",
+    "mass": 105.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:stockpile_switch",
+    "mass": 105.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:display_link",
+    "mass": 25.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:display_board",
+    "mass": 10.0,
+    "friction": 0.5
+  },
+  {
+    "block": "create:nixie_tube",
+    "mass": 15,
+    "friction": 0.4
+  },
+  {
+    "block": "create:redstone_link",
+    "mass": 10.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:analog_lever",
+    "mass": 1.0,
+    "friction": 0.1
+  },
+  {
+    "block": "create:placard",
+    "mass": 45.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:pulse_repeater",
+    "mass": 30.0,
+    "friction": 0.5
+  },
+  {
+    "block": "create:pulse_extender",
+    "mass": 30.0,
+    "friction": 0.5
+  },
+  {
+    "block": "create:powered_latch",
+    "mass": 30.0,
+    "friction": 0.5
+  },
+  {
+    "block": "create:powered_toggle_latch",
+    "mass": 30.0,
+    "friction": 0.5
+  },
+  {
+    "block": "create:lectern_controller",
+    "mass": 15.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:copper_backtank",
+    "mass": 5,
+    "friction": 0.3
+  },
+  {
+    "block": "create:toolbox",
+    "mass": 15.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:peculiar_bell",
+    "mass": 15.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:haunted_bell",
+    "mass": 15.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:zinc_ore",
+    "mass": 430.0,
+    "friction": 0.6
+  },
+  {
+    "block": "create:deepslate_zinc_ore",
+    "mass": 450.0,
+    "friction": 0.65
+  },
+  {
+    "block": "create:raw_zinc_block",
+    "mass": 715.0,
+    "friction": 0.65
+  },
+  {
+    "block": "create:zinc_block",
+    "mass": 715.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create:copycat_step",
+    "mass": 5.0,
+    "friction": 0.5
+  },
+  {
+    "block": "create:copycat_panel",
+    "mass": 2.5,
+    "friction": 0.5
+  },
+  {
+    "tag": "create:windmill_sails",
+    "mass": 5.0,
+    "friction": 0.75
+  }
+]

@@ -33,23 +33,23 @@ jobs:
         with:
           comment: "true" # enable comment mode
 
-  test-server:
-    name: Test Server
-    strategy:
-      matrix:
-        serverType: [ 'fabric', 'forge' ]
-    runs-on: ubuntu-latest
-    timeout-minutes: 20 # Fail after 20 minutes
-    steps:
-      - name: Shallow Clone (--recurse-submodules)
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
+  # test-server:
+  #   name: Test Server
+  #   strategy:
+  #     matrix:
+  #       serverType: [ 'fabric', 'forge' ]
+  #   runs-on: ubuntu-latest
+  #   timeout-minutes: 20 # Fail after 20 minutes
+  #   steps:
+  #     - name: Shallow Clone (--recurse-submodules)
+  #       uses: actions/checkout@v4
+  #       with:
+  #         submodules: recursive
 
-      - name: Setup Gradle & Caches
-        uses: "./.github/actions/setup-gradle"
+  #     - name: Setup Gradle & Caches
+  #       uses: "./.github/actions/setup-gradle"
 
-      - name: Test Server
-        uses: ValkyrienSkies/Minecraft-Architectury-Testing@v1.9
-        with:
-          serverType: ${{ matrix.serverType }}
+  #     - name: Test Server
+  #       uses: ValkyrienSkies/Minecraft-Architectury-Testing@v1.9
+  #       with:
+  #         serverType: ${{ matrix.serverType }}

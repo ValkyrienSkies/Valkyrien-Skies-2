@@ -40,7 +40,7 @@ public class MixinRenderChunk {
             return;
         }
 
-        final ClientShip shipObject = VSGameUtilsKt.getShipObjectManagingPos(world, origin);
+        final ClientShip shipObject = VSGameUtilsKt.getLoadedShipManagingPos(world, origin);
         if (shipObject != null) {
             final Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
             final Vector3dc chunkPosInWorld = shipObject.getRenderTransform().getShipToWorldMatrix().transformPosition(

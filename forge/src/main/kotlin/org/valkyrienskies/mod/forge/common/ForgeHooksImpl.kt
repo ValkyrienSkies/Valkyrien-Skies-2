@@ -3,7 +3,7 @@ package org.valkyrienskies.mod.forge.common
 import io.netty.buffer.ByteBuf
 import net.minecraftforge.fml.loading.FMLEnvironment
 import net.minecraftforge.fml.loading.FMLPaths
-import org.valkyrienskies.core.apigame.world.IPlayer
+import org.valkyrienskies.core.internal.world.VsiPlayer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.hooks.CommonHooksImpl
 import java.nio.file.Path
@@ -20,7 +20,7 @@ object ForgeHooksImpl : CommonHooksImpl() {
         VSForgeNetworking.sendToServer(buf)
     }
 
-    override fun sendToClient(buf: ByteBuf, player: IPlayer) {
+    override fun sendToClient(buf: ByteBuf, player: VsiPlayer) {
         VSForgeNetworking.sendToClient(buf, player)
     }
 }

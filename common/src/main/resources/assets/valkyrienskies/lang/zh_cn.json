@@ -7,7 +7,7 @@
   "key.valkyrienskies.ship_down": "下降",
 
   "block.valkyrienskies.test_chair": "调试椅",
-  "block.valkyrienskies.test_hinge": "调试铰链",
+  "block.valkyrienskies.test_hinge": "调试轴承",
   "block.valkyrienskies.test_flap": "调试襟翼",
   "block.valkyrienskies.test_wing": "调试机翼",
   "block.valkyrienskies.test_sphere": "调试球",
@@ -23,6 +23,8 @@
   "argument.valkyrienskies.ship.no_found": "未找到物理结构",
   "argument.valkyrienskies.ship.multiple_found": "找到了多个物理结构",
   "command.valkyrienskies.delete.success": "删除了%d个物理结构！",
+  "command.valkyrienskies.remass.success": "已重新计算了%d个物理结构的质量！",
+  "command.valkyrienskies.remass.fail": "重新计算%s的质量时发生错误！",
   "command.valkyrienskies.set_static.success": "已将%d个物理结构的静态状态参数设为%s！",
   "command.valkyrienskies.teleport.success": "已将%d个物理结构传送至%s！",
   "command.valkyrienskies.teleport.multiple_ship_success": "传送了%d个物理结构！",
@@ -30,5 +32,9 @@
   "command.valkyrienskies.get_ship.success": "已找到名为%s的物理结构",
   "command.valkyrienskies.get_ship.fail": "未找到物理结构",
   "command.valkyrienskies.get_ship.only_usable_by_entities": "指令 /vs get-ship 只能被实体执行！",
-  "command.valkyrienskies.scale.success": "调整了%d个物理结构的尺寸！"
+  "command.valkyrienskies.scale.success": "调整了%d个物理结构的尺寸！",
+
+  "misc.valkyrienskies.create.deployer_working_mode": "机械手工作模式",
+  "misc.valkyrienskies.create.deployer_working_mode.original": "放置于当前物理结构上",
+  "misc.valkyrienskies.create.deployer_working_mode.in_world": "放置于世界中"
 }

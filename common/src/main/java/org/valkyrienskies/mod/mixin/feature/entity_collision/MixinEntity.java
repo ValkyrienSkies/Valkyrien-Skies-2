@@ -2,16 +2,14 @@ package org.valkyrienskies.mod.mixin.feature.entity_collision;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.particles.BlockParticleOption;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -40,6 +38,13 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     // region collision
 
     @Shadow
+    public boolean hasImpulse;
+    @Shadow
+    protected boolean firstTick;
+    @Shadow
+    public int tickCount;
+
+    @Shadow
     public abstract void setPos(Vec3 arg);
 
     @Shadow
@@ -50,9 +55,6 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
     @Shadow
     public abstract EntityType<?> getType();
-
-    @Shadow
-    protected boolean firstTick;
 
     @Shadow
     public abstract Iterable<Entity> getIndirectPassengers();
@@ -98,14 +100,12 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
                 return collisionResultWithWorld;
             }
             entityDraggingInformation.setLastShipStoodOn(null);
-            entityDraggingInformation.setAddedMovementLastTick(new Vector3d());
             entityDraggingInformation.setAddedYawRotLastTick(0.0);
 
             for (Entity entityRiding : entity.getIndirectPassengers()) {
                 final EntityDraggingInformation passengerDraggingInformation =
                     ((IEntityDraggingInformationProvider) entityRiding).getDraggingInformation();
                 passengerDraggingInformation.setLastShipStoodOn(null);
-                passengerDraggingInformation.setAddedMovementLastTick(new Vector3d());
                 passengerDraggingInformation.setAddedYawRotLastTick(0.0);
             }
         }
@@ -172,7 +172,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
             final Vector3dc blockPosInLocal =
                 ship.getTransform().getWorldToShip().transformPosition(blockPosInGlobal, new Vector3d());
             final BlockPos blockPos = BlockPos.containing(
-                Math.floor(blockPosInLocal.x()), Math.floor(blockPosInLocal.y()), Math.floor(blockPosInLocal.z())
+                blockPosInLocal.x(), blockPosInLocal.y(), blockPosInLocal.z()
             );
             final BlockState blockState = level.getBlockState(blockPos);
             if (!blockState.isAir()) {
@@ -182,9 +182,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
                 final Vector3dc blockPosInLocal2 = ship.getTransform().getWorldToShip()
                     .transformPosition(
                         new Vector3d(blockPosInGlobal.x(), blockPosInGlobal.y() - 1.0, blockPosInGlobal.z()));
-                final BlockPos blockPos2 = BlockPos.containing(
-                    Math.round(blockPosInLocal2.x()), Math.round(blockPosInLocal2.y()), Math.round(blockPosInLocal2.z())
-                );
+                final BlockPos blockPos2 = BlockPos.containing(blockPosInLocal2.x(), blockPosInLocal2.y(), blockPosInLocal2.z());
                 final BlockState blockState2 = level.getBlockState(blockPos2);
                 if (!blockState2.isAir()) {
                     return blockPos2;
@@ -194,28 +192,15 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         return null;
     }
 
-    @Inject(method = "getBlockPosBelowThatAffectsMyMovement", at = @At("HEAD"), cancellable = true)
-    private void preGetBlockPosBelowThatAffectsMyMovement(final CallbackInfoReturnable<BlockPos> cir) {
-        final Vector3dc blockPosInGlobal = new Vector3d(
-            position.x,
-            getBoundingBox().minY - 0.5,
-            position.z
-        );
-        final BlockPos blockPosStandingOnFromShip = getPosStandingOnFromShips(blockPosInGlobal);
-        if (blockPosStandingOnFromShip != null) {
-            cir.setReturnValue(blockPosStandingOnFromShip);
-        }
-    }
-
     /**
      * @author tri0de
      * @reason Allows ship blocks to spawn landing particles, running particles, and play step sounds
      */
-    @Inject(method = "getOnPos", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "getOnPos(F)Lnet/minecraft/core/BlockPos;", at = @At("HEAD"), cancellable = true)
     private void preGetOnPos(final CallbackInfoReturnable<BlockPos> cir) {
         final Vector3dc blockPosInGlobal = new Vector3d(
             position.x,
-            position.y - 0.2,
+            position.y,
             position.z
         );
         final BlockPos blockPosStandingOnFromShip = getPosStandingOnFromShips(blockPosInGlobal);
@@ -224,29 +209,23 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         }
     }
 
-    @Inject(method = "spawnSprintParticle", at = @At("HEAD"), cancellable = true)
-    private void preSpawnSprintParticle(final CallbackInfo ci) {
-        final Vector3dc blockPosInGlobal = new Vector3d(
-            position.x,
-            position.y - 0.2,
-            position.z
-        );
-        final BlockPos blockPosStandingOnFromShip = getPosStandingOnFromShips(blockPosInGlobal);
-        if (blockPosStandingOnFromShip != null) {
-            final BlockState blockState = this.level.getBlockState(blockPosStandingOnFromShip);
-            if (blockState.getRenderShape() != RenderShape.INVISIBLE) {
-                final Vec3 vec3 = this.getDeltaMovement();
-                this.level.addParticle(
-                    new BlockParticleOption(ParticleTypes.BLOCK, blockState),
-                    this.getX() + (this.random.nextDouble() - 0.5) * (double) this.dimensions.width,
-                    this.getY() + 0.1,
-                    this.getZ() + (this.random.nextDouble() - 0.5) * (double) this.dimensions.width,
-                    vec3.x * -4.0,
-                    1.5,
-                    vec3.z * -4.0
-                );
-                ci.cancel();
-            }
+    @WrapOperation(method = "spawnSprintParticle", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;blockPosition()Lnet/minecraft/core/BlockPos;"))
+    private BlockPos skipBlockPosition(final Entity entity, final Operation<BlockPos> original, @Local final BlockPos posOn) {
+        if (VSGameUtilsKt.isBlockInShipyard(level, posOn)) return posOn;
+        return original.call(entity);
+    }
+
+    /**
+     * This will set the entity impulsed if it is dragged by a ship on its first tick.
+     * Marking impulse forces the sync over server-client, so this will also sync dragging information.
+     */
+    @Inject(
+        method = "tick",
+        at = @At("HEAD")
+    )
+    private void markImpulsedFirstTick(CallbackInfo ci) {
+        if (firstTick && getDraggingInformation().isEntityBeingDraggedByAShip() && !level.isClientSide) {
+            hasImpulse = true;
         }
     }
 
@@ -257,9 +236,12 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     private void postBaseTick(final CallbackInfo ci) {
         final EntityDraggingInformation entityDraggingInformation = getDraggingInformation();
 
-        if (level != null && level.isClientSide && !firstTick) {
-            final Ship ship = VSGameUtilsKt.getShipObjectManagingPos(level, getOnPos());
+        if (level != null && level.isClientSide && tickCount > 1) { //baseTick sets the firstTick false, use tickCount instead.
+            final Ship ship = VSGameUtilsKt.getLoadedShipManagingPos(level, getOnPos());
             if (ship != null) {
+                if (entityDraggingInformation.getLastShipStoodOnServerWriteOnly() == null) {
+                    return;
+                }
                 entityDraggingInformation.setLastShipStoodOn(ship.getId());
                 getIndirectPassengers().forEach(entity -> {
                     final EntityDraggingInformation passengerDraggingInformation =
@@ -271,6 +253,9 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
                     if (entityDraggingInformation.getIgnoreNextGroundStand()) {
                         entityDraggingInformation.setIgnoreNextGroundStand(false);
                     } else {
+                        if (entityDraggingInformation.getLastShipStoodOnServerWriteOnly() != null) {
+                            return;
+                        }
                         entityDraggingInformation.setLastShipStoodOn(null);
                         getIndirectPassengers().forEach(entity -> {
                             final EntityDraggingInformation passengerDraggingInformation =
