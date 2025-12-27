@@ -72,8 +72,6 @@ subprojects {
     apply plugin: "org.jetbrains.kotlin.jvm"
     apply plugin: "io.github.juuxel.loom-vineflower"
 
-    configurations.each { it.resolutionStrategy.useGlobalDependencySubstitutionRules.set(false) }
-
     repositories {
         try {
             def vsCoreBuild = gradle.includedBuild("vs-core")
