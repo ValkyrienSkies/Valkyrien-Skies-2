@@ -161,9 +161,8 @@ object TestHingeBlock :
                 // The positions the hinge attaches relative to the center of mass
                 val attachmentOffset0: Vector3dc = rotationQuaternion.transform(Vector3d(0.0, 0.5 + extraHeight, 0.0))
                 val attachmentOffset1: Vector3dc = rotationQuaternion.transform(Vector3d(0.0, -0.5, 0.0))
-                val worldOffset = if (shipThisIsIn == null) Vector3d(0.5, 0.5, 0.5) else Vector3d(0.0, 0.0, 0.0)
 
-                val attachmentLocalPos0: Vector3dc = Vector3d(pos.x.toDouble() + 0.5, pos.y.toDouble() + 0.5, pos.z.toDouble() + 0.5).add(attachmentOffset0).add(worldOffset)
+                val attachmentLocalPos0: Vector3dc = Vector3d(pos.x.toDouble() + 0.5, pos.y.toDouble() + 0.5, pos.z.toDouble() + 0.5).add(attachmentOffset0)
                 val attachmentLocalPos1: Vector3dc =
                     Vector3d(shipCenterPos.x.toDouble() + 0.5, shipCenterPos.y.toDouble() + 0.5, shipCenterPos.z.toDouble() + 0.5).add(attachmentOffset1)
 

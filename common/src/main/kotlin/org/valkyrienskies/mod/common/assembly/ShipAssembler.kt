@@ -112,9 +112,8 @@ object ShipAssembler {
             AssemblyUtil.updateBlock(level,itPos,shipPos,level.getBlockState(shipPos))
         }
 
-        val shipCenterPos = ((newShip as ServerShip).inertiaData.centerOfMassInShip).add(0.5, 0.5, 0.5, Vector3d())
-        // This is giga sus, but whatever
-        val shipPos = Vector3d(contraptionOGPos).add(0.5, 0.5, 0.5)
+        val shipCenterPos = ((newShip as ServerShip).inertiaData.centerOfMassInShip)
+        val shipPos = Vector3d(contraptionOGPos)
         if (existingShip != null) {
             sLevel.server.shipObjectWorld
                 .teleportShip(
