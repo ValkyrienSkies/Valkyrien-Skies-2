@@ -575,7 +575,7 @@ object VSCommands {
         val r = ShipArgument.getShips(context, "ships").toList() as List<ServerShip>
 
         val deletedShips = r.map {
-            ship -> ShipAssembler.deleteShip(context.source.level, ship, deleteBlocks = true, dropBlocks = false)
+            ship -> ShipAssembler.deleteShip(context.source.level, ship, deleteBlocks, dropBlocks = false)
         }
 
         context.source.sendVSMessage(
