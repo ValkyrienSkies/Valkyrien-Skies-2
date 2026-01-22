@@ -21,6 +21,7 @@
     "compat.mffs.MixinClientPacketHandler",
     "compat.mffs.MixinFrequencyGrid",
     "compat.modular_routers.MixinRouterMenu",
+    "compat.sodium.MixinSmoothLightPipeline",
     "compat.thermalexpansion.MixinTileCoFH",
     "compat.twilightforest.ChunkGeneratorTwilightMixin",
     "entity.MixinContainerEntity",
