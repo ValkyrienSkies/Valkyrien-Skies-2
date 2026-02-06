@@ -25,7 +25,7 @@ loom {
 }
 
 dependencies {
-    include(implementation(annotationProcessor("io.github.llamalad7:mixinextras-fabric:0.5.0")))
+    include(implementation(annotationProcessor("io.github.llamalad7:mixinextras-fabric:${rootProject.mixinextras_version}")))
 
     modImplementation("net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}")
 
@@ -47,14 +47,12 @@ dependencies {
     modCompileOnly("maven.modrinth:sodium:${sodium_version}")
     // Disable indium until we update sodium to newer versions
     //modRuntimeOnly("maven.modrinth:indium:${indium_version}")
-    modImplementation("maven.modrinth:modmenu:${modmenu_version}")
+    modRuntimeOnly("maven.modrinth:modmenu:${modmenu_version}")
 
     // Depend on the fabric API
     modImplementation("net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}")
 
-    modImplementation("teamreborn:energy:${energy_version}") {
-        transitive = false
-    }
+    modCompileOnly("teamreborn:energy:${energy_version}") { transitive = false }
 
     implementation("org.valkyrienskies.core:internal:${rootProject.vs_core_version}")
     implementation("org.valkyrienskies.core:util:${rootProject.vs_core_version}")
@@ -72,8 +70,7 @@ dependencies {
         exclude module: "jsonschema.module.addon"
     }
 
-    include("com.fasterxml:classmate:1.5.1")
-    implementation("com.fasterxml:classmate:1.5.1")
+    include(implementation("com.fasterxml:classmate:1.5.1"))
 
     // CC Tweaked
     //modRuntimeOnly("cc.tweaked:cc-tweaked-${minecraft_version}-fabric:${cc_tweaked_version}")
@@ -89,10 +86,12 @@ dependencies {
     modCompileOnly("maven.modrinth:entitytexturefeatures:7.0.6-fabric-1.20.1")
 
     // Create compat
-    modImplementation("com.simibubi.create:create-fabric:${create_fabric_version}") {
-        exclude group: 'com.github.AlphaMode', module: 'fakeconfigtoml'
-    }
-    modImplementation("com.tterrag.registrate_fabric:Registrate:${registrate_version}")
+    //modImplementation("com.simibubi.create:create-fabric:${create_fabric_version}") {
+    //    exclude group: 'com.github.AlphaMode', module: 'fakeconfigtoml'
+    //}
+    modCompileOnly("com.simibubi.create:create-fabric:$create_fabric_version")
+    modRuntimeOnly("com.simibubi.create:create-fabric:$create_fabric_version")
+    //modImplementation("com.tterrag.registrate_fabric:Registrate:${registrate_version}")
 
     //modImplementation("io.github.fabricators_of_create.Porting-Lib:Porting-Lib:$port_lib_version")
     for (String module in port_lib_modules.split(",")) {
@@ -109,7 +108,7 @@ dependencies {
     modCompileOnly("maven.modrinth:dynmap:${dynmap_version}")
 
     // Hexcasting
-    modCompileOnly("at.petra-k.hexcasting:hexcasting-fabric-${minecraft_version}:${hexcasting_version}")
+    modCompileOnly("at.petra-k.hexcasting:hexcasting-fabric-${minecraft_version}:${hexcasting_version}") { transitive = false }
 
     // HexTweaks
     modCompileOnly("maven.modrinth:hextweaks:$hextweaks_version")
@@ -123,9 +122,9 @@ dependencies {
     // Hexal
     modCompileOnly("ram.talia.hexal:hexal-fabric-$minecraft_version:$hexal_version") { transitive = false }
 
-    modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:imm_ptl_core:${immptl_version}")
-    modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:q_misc_util:${immptl_version}")
-    modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:build:${immptl_version}")
+    modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:imm_ptl_core:${immptl_version}") { transitive = false }
+    modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:q_misc_util:${immptl_version}") { transitive = false }
+    modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:build:${immptl_version}") { transitive = false }
 
     // Connectible Chains [Fabric]
     modCompileOnly("curse.maven:connectiblechains-415681:7148381")
