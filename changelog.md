@@ -1,17 +1,18 @@
-## VS 2.4.9
-More buoyancy fixes, connectivity fixes, 
+## VS 2.4.10
+Critical fixes, Jolt, Command Feedback, and Hexcasting Compat
 
 #### Changes:
-- Datapackable fluid values (for buoyancy in non-vanilla fluids)
+- Jolt physics now available as an engine option
+- Proper VS Command feedback
+- Connectivity, client and server, is disabled by default in config while it's being fixed- you'll want to update your configs and disable buoyancy. We're working on a much better flooding system, so stay tuned...
 - Removed Herobrine
 
 #### Bugfixes:
-- Joining Multiplayer is no longer cooked if you have a ship in the world
-- Connectivity no longer incorrectly caches components (should fix excessive buoyancy)
-- Connectivity no longer allows buoyancy to use the world air component
-- Avoid crashing with latest forge
-- Fix compat with create tree fertilizer and supplementaries
-- Forge air pocket breathing
-- Connectible chains no longer leave behind their hitbox
-- Fixed Mekanism multiblock crash
-- Fixed extreme slowdown caused while recalculating pockets in client connectivity
+- Respawn breaking all ships (hopefully)
+- Some minor connectivity improvements (but its still off by default now)
+- Engine adjustments
+- Weather/snow on ships
+- Bluemap crash fix on newer versions
+- Hexcasting null crash
+- Cannon recoil direction with CBC compat fixed
+- Additional miscellaneous fixes

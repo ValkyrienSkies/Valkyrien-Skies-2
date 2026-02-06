@@ -39,6 +39,7 @@ import org.valkyrienskies.core.api.ships.LoadedShip;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.core.api.world.ShipWorld;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 import org.valkyrienskies.mod.common.entity.ShipMountedToData;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.EntityDragger;
@@ -110,7 +111,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
                     }
                 }
 
-                vs$setInSealedArea(isInSealedArea);
+                vs$setInSealedArea(isInSealedArea && ValkyrienSkies.isConnectivityEnabled(level.isClientSide));
             }
         }
     }
@@ -119,7 +120,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         method = "updateFluidOnEyes"
     )
     private void onFluidOnEyes(Operation<Void> original) {
-        if (vs$isInSealedArea()) {
+        if (vs$isInSealedArea() && ValkyrienSkies.isConnectivityEnabled(level.isClientSide)) {
             this.wasEyeInWater = false;
             this.fluidOnEyes.clear();
             return;
@@ -129,7 +130,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
     @WrapMethod(method = "updateSwimming")
     private void onUpdateSwimming(Operation<Void> original) {
-        if (vs$isInSealedArea) {
+        if (vs$isInSealedArea && ValkyrienSkies.isConnectivityEnabled(level.isClientSide)) {
             this.wasTouchingWater = false;
             this.setSwimming(false);
             return;
@@ -143,7 +144,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         cancellable = true
     )
     private void onUpdateInWaterStateAndDoWaterCurrentPushing(CallbackInfo ci) {
-        if (vs$isInSealedArea) {
+        if (vs$isInSealedArea && ValkyrienSkies.isConnectivityEnabled(level.isClientSide)) {
             this.wasTouchingWater = false;
             ci.cancel();
         }
@@ -151,7 +152,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
     @WrapMethod(method = "isInBubbleColumn")
     private boolean onIsInBubbleColumn(Operation<Boolean> original) {
-        if (vs$isInSealedArea) return false;
+        if (vs$isInSealedArea && ValkyrienSkies.isConnectivityEnabled(level.isClientSide)) return false;
         return original.call();
     }
 

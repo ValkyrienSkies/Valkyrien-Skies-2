@@ -35,6 +35,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.core.api.world.ClientShipWorld;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 import org.valkyrienskies.mod.client.IVSCamera;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
@@ -95,6 +96,9 @@ public abstract class MixinCamera implements IVSCamera {
 
     @Inject(method = "tick", at = @At("HEAD"))
     private void onTick(CallbackInfo ci) {
+        if (!ValkyrienSkies.isConnectivityEnabled(true)) {
+            return;
+        }
         LocalPlayer player = Minecraft.getInstance().player;
         if (player != null && player.level() != null && player instanceof IEntityDraggingInformationProvider provider && initialized) {
             Vec3 relativePosition = Vec3.ZERO;
@@ -144,7 +148,7 @@ public abstract class MixinCamera implements IVSCamera {
         method = "getFluidInCamera"
     )
     private FogType redirectGetFluidInCamera(Operation<FogType> original) {
-        if (vs$sealedGraceTicks > 0) {
+        if (vs$sealedGraceTicks > 0 && ValkyrienSkies.isConnectivityEnabled(true)) {
             return FogType.NONE;
         }
         return original.call();

@@ -35,6 +35,16 @@ object LoadedMods {
         }
     }
 
+    @JvmStatic
+    val bluemap: String by lazy {
+        try {
+            val claz = Class.forName("de.bluecolored.bluemap.core.BlueMap")
+            claz.getField("VERSION").get(null) as String
+        } catch (e: ClassNotFoundException) {
+            "NONE"
+        }
+    }
+
     class CompatInfo(private val className: String) : ReadOnlyProperty<Any?, Boolean> {
         private var isLoaded: Boolean? = null
 
@@ -54,6 +64,12 @@ object LoadedMods {
     enum class FlywheelVersion {
         V1,
         V06,
+        NONE
+    }
+
+    enum class BluemapVersion {
+        V53,
+        V512,
         NONE
     }
 }

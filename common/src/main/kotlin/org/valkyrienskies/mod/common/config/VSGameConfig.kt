@@ -170,7 +170,7 @@ object VSGameConfig {
         var enableInteractDistanceChecks = true
 
         @ConfigEntry(description = "If true, enables buoyancy from serverside air pockets.")
-        var enablePocketBuoyancy = true
+        var enablePocketBuoyancy = false
 
         @ConfigEntry(description = "Buoyancy factor added per cubic meter of air pocket inside a ship")
         var buoyancyFactorPerPocketVolume = 0.05 // per cubic meter
@@ -207,6 +207,11 @@ object VSGameConfig {
             description = "If true, prevents water and other fluids from flowing out of the ship's bounding box."
         )
         var preventFluidEscapingShip = true
+
+        @ConfigEntry(
+            description = "If true, prevents vines from growing beyond the ship's bounding box."
+        )
+        var preventVinesEscapingShip = true
 
         @ConfigEntry(
             description = "Blast force in newtons of a TNT explosion at the center of the explosion."

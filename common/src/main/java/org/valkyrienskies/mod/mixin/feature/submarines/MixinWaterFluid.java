@@ -29,7 +29,7 @@ public class MixinWaterFluid {
             for (Ship ship : ships) {
                 Vector3dc posInShip = ship.getWorldToShip().transformPosition(VectorConversionsMCKt.toJOMLD(blockPos));
                 BlockPos blockPosInShip = BlockPos.containing(VectorConversionsMCKt.toMinecraft(posInShip));
-                if (VSGameUtilsKt.isPositionMaybeSealed(level, blockPosInShip)) {
+                if (VSGameUtilsKt.isPositionMaybeSealed(level, blockPosInShip) && ValkyrienSkies.isConnectivityEnabled(level.isClientSide)) {
                     ci.cancel();
                     return;
                 }
