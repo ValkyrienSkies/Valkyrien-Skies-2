@@ -11,6 +11,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Coerce;
 
+// This is no longer necessary, but I’ll leave it here!
 @Pseudo
 @Mixin(targets = "com/pedrorok/hypertube/core/connection/BezierConnection", remap = false)
 public abstract class MixinBezierConnection {

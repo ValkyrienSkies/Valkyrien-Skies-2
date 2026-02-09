@@ -307,7 +307,6 @@
     "mod_compat.etf.MixinBlockEntity",
     "mod_compat.flywheel_renderer.MixinViewArea",
     "mod_compat.hypertube.MixinBezierConnection",
-    "mod_compat.hypertube.MixinBezierTextureRenderer",
     "mod_compat.immersive_portals.MixinMyBuiltChunkStorage",
     "mod_compat.immersive_portals.MixinVisibleSectionDiscovery",
     "mod_compat.optifine.RenderChunkInfoAccessorOptifine",
