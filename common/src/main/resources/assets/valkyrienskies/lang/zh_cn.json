@@ -29,8 +29,8 @@
   "command.valkyrienskies.remass.success_one": "重新计算了 %s 的质量！",
   "command.valkyrienskies.remass.success": "已重新计算了 %d 个物理结构的质量！",
   "command.valkyrienskies.remass.fail": "重新计算 %s 的质量时发生错误！",
-  "command.valkyrienskies.shipify.success_one": "已将 %s 转换为物理结构！",
-  "command.valkyrienskies.shipify.success": "已将 %d 个物理结构转换为物理结构！",
+  "command.valkyrienskies.shipify.success_one": "成功创建了ID为 %s 的物理结构！",
+  "command.valkyrienskies.shipify.success": "成功创建了 %d 个物理结构！",
   "command.valkyrienskies.set_static.success_one": "已将 %s 的静态状态参数设为 %s！",
   "command.valkyrienskies.set_static.success": "已将 %d 个物理结构的静态状态参数设为 %s！",
   "command.valkyrienskies.teleport.success_one": "已将物理结构 %s 传送至 %s！",
@@ -58,4 +58,5 @@
   "misc.valkyrienskies.create.deployer_working_mode": "机械手工作模式",
   "misc.valkyrienskies.create.deployer_working_mode.original": "放置于当前物理结构上",
   "misc.valkyrienskies.create.deployer_working_mode.in_world": "放置于世界中"
+
 }
