@@ -118,7 +118,7 @@ public class MixinDebugRenderer {
 
                 // Bounding Box
                 LevelRenderer
-                    .renderLineBox(matrices, bufferSource.getBuffer(RenderType.LINES), renderAABB.inflate(0.25), 234.0F / 255.0F, 0.0F, 217.0f / 255.0f, 1.0F);
+                    .renderLineBox(matrices, bufferSource.getBuffer(RenderType.LINES), renderAABB, 234.0F / 255.0F, 0.0F, 217.0f / 255.0f, 1.0F);
 
                 // The following all rotate along with the ship.
                 matrices.mulPose(shipRenderRotate);
