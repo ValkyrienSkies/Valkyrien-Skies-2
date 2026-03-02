@@ -161,7 +161,7 @@ class SplitHandler(private val doEdges: Boolean, private val doCorners: Boolean)
 
     companion object {
 
-        val SPLITLOGGER = logger("kitkat factory")
+        val SPLITLOGGER = logger("(Valkyrien Skies) kitkat factory")
 
         val offsetsToCheck: ArrayList<Vec3i> = arrayListOf(
             Vec3i(1, 0, 0),

@@ -14,7 +14,7 @@ import org.valkyrienskies.mod.util.logger
 
 object DimensionParametersResolver: SimpleJsonResourceReloadListener(Gson(), "vs_dimension_parameters") {
 
-    val logger = logger("Bloon Factory").logger
+    val logger = logger("(Valkyrien Skies) Bloon Factory").logger
     var dimensionMap: Map<String, Parameters> = hashMapOf()
 
     override fun apply(

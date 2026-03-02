@@ -47,7 +47,7 @@ import org.valkyrienskies.mod.util.logger
 
 object ShipAssembler {
 
-    val ASSEMBLY_LOGGER = logger("Sandwich Factory").logger
+    val ASSEMBLY_LOGGER = logger("(Valkyrien Skies) Sandwich Factory").logger
 
     class SingleItemMap<K, V>(val mkey: K, val mvalue: V, val default: V, val defaultFn: ((K) -> V)? = null): Map<K, V> {
         override val size: Int = 1
