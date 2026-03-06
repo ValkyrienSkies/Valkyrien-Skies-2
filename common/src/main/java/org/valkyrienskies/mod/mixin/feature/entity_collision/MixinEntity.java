@@ -25,7 +25,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
+
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
@@ -113,28 +113,23 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     }
 
     /**
-     * This mixin replaces the following code in Entity.move().
-     *
-     * <p>if (movement.x != vec3d.x) { this.setVelocity(0.0D, vec3d2.y, vec3d2.z); } </p>
-     *
-     * <p>if (movement.z != vec3d.z) { this.setVelocity(vec3d2.x, vec3d2.y, 0.0D); } </p>
-     *
-     * <p>This code makes accurate collision with non axis-aligned surfaces impossible, so this mixin replaces it. </p>
+     * Replaces vanilla's axis-zeroing collision response with projection-based velocity removal,
+     * enabling accurate collision with non-axis-aligned ship surfaces.
      */
-    @Inject(method = "move", at = @At(
+    @WrapOperation(method = "move", at = @At(
         value = "INVOKE",
-        target = "Lnet/minecraft/world/entity/Entity;setDeltaMovement(DDD)V"),
-        locals = LocalCapture.CAPTURE_FAILHARD, cancellable = true
-    )
-    private void redirectSetVelocity(final MoverType moverType, final Vec3 movement, final CallbackInfo callbackInfo,
-        final Vec3 movementAdjustedForCollisions) {
+        target = "Lnet/minecraft/world/entity/Entity;setDeltaMovement(DDD)V"))
+    private void redirectSetVelocity(final Entity instance, final double x, final double y, final double z,
+        final Operation<Void> original,
+        @Local(argsOnly = true) final Vec3 movement,
+        @Local(ordinal = 1) final Vec3 movementAdjustedForCollisions) {
 
         // Compute the collision response horizontal
         final Vector3dc collisionResponseHorizontal =
             new Vector3d(movementAdjustedForCollisions.x - movement.x, 0.0,
                 movementAdjustedForCollisions.z - movement.z);
 
-        // Remove the component of [movementAdjustedForCollisions] that is parallel to [collisionResponseHorizontal]
+        // Remove the component of velocity that is parallel to the collision normal
         if (collisionResponseHorizontal.lengthSquared() > 1e-6) {
             final Vec3 deltaMovement = getDeltaMovement();
 
@@ -151,10 +146,6 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
                     - collisionResponseHorizontalNormal.z() * parallelHorizontalVelocityComponent
             );
         }
-        // The rest of the move function (including tryCheckInsideBlocks) is skipped, so calling it here
-        tryCheckInsideBlocks();
-        // Cancel the original invocation of Entity.setVelocity(DDD)V to remove vanilla behavior
-        callbackInfo.cancel();
     }
 
     // endregion
@@ -294,9 +285,6 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
     @Shadow
     public abstract void setDeltaMovement(double x, double y, double z);
-
-    @Shadow
-    protected abstract void tryCheckInsideBlocks();
 
     @Shadow
     protected abstract Vec3 collide(Vec3 vec3d);
