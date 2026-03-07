@@ -104,6 +104,14 @@ private fun isWaterloggableForFlood(state: BlockState, floodFluid: Fluid): Boole
     return canonicalFloodSource(floodFluid) == Fluids.WATER && state.hasProperty(BlockStateProperties.WATERLOGGED)
 }
 
+private fun countsAsMaterializedFloodFluid(state: BlockState, floodFluid: Fluid): Boolean {
+    val currentFluid = state.fluidState
+    if (currentFluid.isEmpty) return false
+    if (canonicalFloodSource(currentFluid.type) != canonicalFloodSource(floodFluid)) return false
+    if (state.block is LiquidBlock) return currentFluid.isSource
+    return isWaterloggableForFlood(state, floodFluid) && state.getValue(BlockStateProperties.WATERLOGGED)
+}
+
 private const val MAX_COMPONENT_GRAPH_NODES = 12_000_000
 private const val MIN_HEURISTIC_PROMOTED_COMPONENT_SIZE = 4
 
@@ -253,16 +261,9 @@ internal fun computeGeometryAsync(snapshot: GeometryAsyncSnapshot): GeometryAsyn
                 }
 
                 val bs = snapshot.blockStates[idx]
-                val fluidState = bs.fluidState
-                if (!fluidState.isEmpty && canonicalFloodSource(fluidState.type) == snapshot.floodFluid) {
+                if (countsAsMaterializedFloodFluid(bs, snapshot.floodFluid)) {
                     flooded.set(idx)
-                    if (
-                        bs.block is LiquidBlock ||
-                        (isWaterloggableForFlood(bs, snapshot.floodFluid) &&
-                            bs.getValue(BlockStateProperties.WATERLOGGED))
-                    ) {
-                        materialized.set(idx)
-                    }
+                    materialized.set(idx)
                 }
 
                 idx++

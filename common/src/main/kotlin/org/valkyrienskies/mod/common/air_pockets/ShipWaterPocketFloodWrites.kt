@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.common.air_pockets
 
+import it.unimi.dsi.fastutil.ints.IntArrayList
 import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.block.BucketPickup
@@ -82,20 +83,42 @@ internal fun enqueueFloodWriteDiffs(
     state: ShipPocketState,
     toAdd: BitSet,
     toRemove: BitSet,
+    orderedAdds: IntArrayList? = null,
 ) {
     if (!toRemove.isEmpty) {
         state.queuedFloodRemoves.or(toRemove)
         state.queuedFloodAdds.andNot(toRemove)
     }
     if (!toAdd.isEmpty) {
-        state.queuedFloodAdds.or(toAdd)
-        state.queuedFloodRemoves.andNot(toAdd)
+        if (orderedAdds != null && !orderedAdds.isEmpty) {
+            for (i in 0 until orderedAdds.size) {
+                val idx = orderedAdds.getInt(i)
+                if (idx < 0 || !toAdd.get(idx)) continue
+                if (!state.queuedFloodAdds.get(idx)) {
+                    state.queuedFloodAddOrder.add(idx)
+                }
+                state.queuedFloodAdds.set(idx)
+                state.queuedFloodRemoves.clear(idx)
+            }
+        }
+
+        var idx = toAdd.nextSetBit(0)
+        while (idx >= 0) {
+            if (!state.queuedFloodAdds.get(idx)) {
+                state.queuedFloodAddOrder.add(idx)
+            }
+            state.queuedFloodAdds.set(idx)
+            state.queuedFloodRemoves.clear(idx)
+            idx = toAdd.nextSetBit(idx + 1)
+        }
     }
 }
 
 internal fun clearFloodWriteQueues(state: ShipPocketState) {
     state.queuedFloodAdds.clear()
     state.queuedFloodRemoves.clear()
+    state.queuedFloodAddOrder.clear()
+    state.nextQueuedAddOrderIdx = 0
     state.nextQueuedAddIdx = 0
     state.nextQueuedRemoveIdx = 0
 }
@@ -127,6 +150,52 @@ private fun processQueuedIndices(
     }
 
     return processed to if (idx >= 0) idx else 0
+}
+
+private fun processQueuedAddIndices(
+    state: ShipPocketState,
+    budget: Int,
+    handle: (Int) -> Unit,
+): Pair<Int, Int> {
+    if (budget <= 0 || state.queuedFloodAdds.isEmpty) return 0 to state.nextQueuedAddIdx
+
+    var processed = 0
+    val ordered = state.queuedFloodAddOrder
+    var orderedCursor = state.nextQueuedAddOrderIdx.coerceAtLeast(0)
+
+    while (orderedCursor < ordered.size && processed < budget) {
+        val idx = ordered.getInt(orderedCursor++)
+        if (!state.queuedFloodAdds.get(idx)) continue
+        handle(idx)
+        state.queuedFloodAdds.clear(idx)
+        processed++
+    }
+
+    state.nextQueuedAddOrderIdx = orderedCursor
+
+    if (orderedCursor > 2048 && orderedCursor * 2 >= ordered.size) {
+        ordered.removeElements(0, orderedCursor)
+        state.nextQueuedAddOrderIdx = 0
+    }
+
+    if (!state.queuedFloodAdds.isEmpty && processed < budget) {
+        val fallback = processQueuedIndices(
+            queue = state.queuedFloodAdds,
+            startCursor = state.nextQueuedAddIdx,
+            budget = budget - processed,
+            handle = handle,
+        )
+        state.nextQueuedAddIdx = fallback.second
+        processed += fallback.first
+    }
+
+    if (state.queuedFloodAdds.isEmpty) {
+        ordered.clear()
+        state.nextQueuedAddOrderIdx = 0
+        state.nextQueuedAddIdx = 0
+    }
+
+    return processed to state.nextQueuedAddIdx
 }
 
 internal fun flushFloodWriteQueue(
@@ -219,33 +288,35 @@ internal fun flushFloodWriteQueue(
         }
         state.nextQueuedRemoveIdx = removeResult.second
 
-        val addResult = processQueuedIndices(
-            queue = state.queuedFloodAdds,
-            startCursor = state.nextQueuedAddIdx,
+        val addResult = processQueuedAddIndices(
+            state = state,
             budget = addCap,
         ) { idx ->
-            if (idx < 0 || idx >= volume) return@processQueuedIndices
+            if (idx < 0 || idx >= volume) return@processQueuedAddIndices
             posFromIndex(state, idx, pos)
             val current = level.getBlockState(pos)
             val currentFluid = current.fluidState
+            val isFlowingFloodFluid =
+                !currentFluid.isEmpty && isFloodFluidType(currentFluid.type) && !currentFluid.isSource
 
-            if (!currentFluid.isEmpty && isFloodFluidType(currentFluid.type)) {
+            if (!currentFluid.isEmpty && isFloodFluidType(currentFluid.type) && currentFluid.isSource) {
                 state.materializedWater.set(idx)
-                return@processQueuedIndices
+                return@processQueuedAddIndices
             }
 
             val ingressQualified = isIngressQualifiedForAdd(pos, shipTransform, shipPosTmp, worldPosTmp, worldBlockPos)
             if (!ingressQualified) {
                 rejectedAdds++
-                return@processQueuedIndices
+                return@processQueuedAddIndices
             }
 
-            if (!current.isAir) {
+            // Flowing flood-fluid should behave like clear air for this fill step.
+            if (!current.isAir && !isFlowingFloodFluid) {
                 if (tryPlaceFluidInContainer(level, pos, current, floodCanonical)) {
                     addedApplied++
                     state.materializedWater.set(idx)
                     recordAddedSample(idx)
-                    return@processQueuedIndices
+                    return@processQueuedAddIndices
                 }
 
                 if (isWaterloggableForFlood(current, floodCanonical)) {
@@ -258,7 +329,7 @@ internal fun flushFloodWriteQueue(
                     state.materializedWater.set(idx)
                     recordAddedSample(idx)
                 }
-                return@processQueuedIndices
+                return@processQueuedAddIndices
             }
 
             level.setBlock(pos, sourceBlockState, FLOOD_QUEUE_SETBLOCK_FLAGS)
@@ -268,6 +339,11 @@ internal fun flushFloodWriteQueue(
             recordAddedSample(idx)
         }
         state.nextQueuedAddIdx = addResult.second
+        if (state.queuedFloodAdds.isEmpty) {
+            state.queuedFloodAddOrder.clear()
+            state.nextQueuedAddOrderIdx = 0
+            state.nextQueuedAddIdx = 0
+        }
     } finally {
         setApplyingInternalUpdates(false)
     }

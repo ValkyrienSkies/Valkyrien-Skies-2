@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.common.air_pockets
 
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap
+import it.unimi.dsi.fastutil.ints.IntArrayList
 import net.minecraft.core.Direction
 import net.minecraft.world.level.material.Fluid
 import net.minecraft.world.level.material.Fluids
@@ -63,6 +64,9 @@ internal data class ShipPocketState(
     var appliedCullMaskGeneration: Long = 0,
     var queuedFloodAdds: BitSet = BitSet(),
     var queuedFloodRemoves: BitSet = BitSet(),
+    var queuedFloodAddOrder: IntArrayList = IntArrayList(),
+    var activeFloodIngressPoints: Int = 1,
+    var nextQueuedAddOrderIdx: Int = 0,
     var nextQueuedAddIdx: Int = 0,
     var nextQueuedRemoveIdx: Int = 0,
     var dirty: Boolean = true,

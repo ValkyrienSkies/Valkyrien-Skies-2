@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.common.air_pockets
 
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap
+import it.unimi.dsi.fastutil.ints.IntArrayList
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.minecraft.core.Direction
@@ -38,6 +39,7 @@ import org.valkyrienskies.mod.common.isBlockInShipyard
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.BuoyancyHandlerAttachment
 import org.valkyrienskies.mod.mixinducks.feature.air_pockets.compat.vs2.ValkyrienAirBuoyancyAttachmentDuck
+import java.util.Arrays
 import java.util.BitSet
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
@@ -62,10 +64,15 @@ object ShipWaterPocketManager {
     private const val FLOOD_RISE_PER_TICK_BASE = 0.01
     private const val FLOOD_RISE_PER_TICK_PER_HOLE_FACE = 0.00125
     private const val FLOOD_RISE_MAX_PER_TICK = 0.35
-    private const val FLOOD_ENTER_PLANE_EPS = 1e-4
     private const val FLOOD_EXIT_PLANE_EPS = 3e-4
     private const val FLOOD_OPENING_LEVEL_EPS = 1e-5
     private const val SUBMERGED_INGRESS_MIN_COVERAGE = 0.34
+    // Hard cap for virtual multi-front ingresses used per ship flood update tick.
+    private const val MAX_VIRTUAL_INGRESS_FRONTS = 10
+    private const val VIRTUAL_INGRESS_MIN_SEPARATION = 4
+    private const val VIRTUAL_FRONT_PRELUDE_LINE_CAP = 16
+    private const val VIRTUAL_FRONT_PRELUDE_LAYER_CAP = 8
+    private const val VIRTUAL_FRONT_PRELUDE_TOTAL_CAP = 40
     private const val GEOMETRY_ASYNC_SUBMISSIONS_PER_LEVEL_PER_TICK = 2
     private const val WATER_SOLVER_ASYNC_SUBMISSIONS_PER_LEVEL_PER_TICK = 2
     private const val MAX_SYNC_WATER_SOLVE_PER_LEVEL_PER_TICK = 2
@@ -638,10 +645,16 @@ object ShipWaterPocketManager {
             state.dirty = true
         }
 
-        state.flooded.set(idx)
-        state.materializedWater.set(idx)
-        state.queuedFloodAdds.clear(idx)
-        state.queuedFloodRemoves.clear(idx)
+        val current = level.getBlockState(shipPos)
+        if (countsAsMaterializedFloodFluid(current, state.floodFluid)) {
+            state.flooded.set(idx)
+            state.materializedWater.set(idx)
+            state.queuedFloodAdds.clear(idx)
+            state.queuedFloodRemoves.clear(idx)
+        } else {
+            state.flooded.clear(idx)
+            state.materializedWater.clear(idx)
+        }
         state.persistDirty = true
     }
 
@@ -1999,10 +2012,15 @@ object ShipWaterPocketManager {
                 state.lastFloodUpdateTick = now
             }
 
+            val fluidTickDelay = (state.floodFluid as? FlowingFluid)?.getTickDelay(level)?.coerceAtLeast(1) ?: 1
+            val ingressMultiplier = state.activeFloodIngressPoints.coerceIn(1, MAX_VIRTUAL_INGRESS_FRONTS)
+            val floodAddCap = if (now % fluidTickDelay.toLong() == 0L) ingressMultiplier else 0
+
             val flushResult = flushFloodWriteQueue(
                 level = level,
                 state = state,
                 shipTransform = shipTransform,
+                addCap = floodAddCap,
                 setApplyingInternalUpdates = { applyingInternalUpdates = it },
                 isFloodFluidType = { fluid -> canonicalFloodSource(fluid) == state.floodFluid },
                 isIngressQualifiedForAdd = { pos, transform, shipPosTmp, worldPosTmp, worldBlockPos ->
@@ -2200,14 +2218,19 @@ object ShipWaterPocketManager {
         val volume = state.sizeX * state.sizeY * state.sizeZ
         if (volume <= 0 || open.isEmpty) {
             state.materializedWater.clear()
+            state.flooded.clear()
             state.persistDirty = true
             return
         }
 
         val materialized = state.materializedWater
+        val flooded = state.flooded
         val beforeMaterialized = materialized.clone() as BitSet
+        val beforeFlooded = flooded.clone() as BitSet
         materialized.and(open)
-        var changed = beforeMaterialized != materialized
+        flooded.and(open)
+        flooded.and(state.simulationDomain)
+        var changed = beforeMaterialized != materialized || beforeFlooded != flooded
         var internalUpdatesActive = false
 
         fun beginInternalUpdates() {
@@ -2239,6 +2262,10 @@ object ShipWaterPocketManager {
                         changed = true
                         materialized.clear(idx)
                     }
+                    if (flooded.get(idx)) {
+                        changed = true
+                        flooded.clear(idx)
+                    }
                     idx = open.nextSetBit(idx + 1)
                     continue
                 }
@@ -2248,24 +2275,31 @@ object ShipWaterPocketManager {
                         changed = true
                         materialized.clear(idx)
                     }
+                    if (flooded.get(idx)) {
+                        changed = true
+                        flooded.clear(idx)
+                    }
                     idx = open.nextSetBit(idx + 1)
                     continue
                 }
 
-                val currentFluid = current.fluidState
-                val hasFloodFluid = !currentFluid.isEmpty && canonicalFloodSource(currentFluid.type) == state.floodFluid
-                if (hasFloodFluid &&
-                    (current.block is LiquidBlock ||
-                        (isWaterloggable && current.getValue(BlockStateProperties.WATERLOGGED)))
-                ) {
+                if (countsAsMaterializedFloodFluid(current, state.floodFluid)) {
                     if (!materialized.get(idx)) {
                         changed = true
                         materialized.set(idx)
+                    }
+                    if (!flooded.get(idx)) {
+                        changed = true
+                        flooded.set(idx)
                     }
                 } else {
                     if (materialized.get(idx)) {
                         changed = true
                         materialized.clear(idx)
+                    }
+                    if (flooded.get(idx)) {
+                        changed = true
+                        flooded.clear(idx)
                     }
                 }
                 idx = open.nextSetBit(idx + 1)
@@ -3451,6 +3485,14 @@ object ShipWaterPocketManager {
 
     private fun isWaterloggableForFlood(state: BlockState, floodFluid: Fluid): Boolean {
         return canonicalFloodSource(floodFluid) == Fluids.WATER && state.hasProperty(BlockStateProperties.WATERLOGGED)
+    }
+
+    private fun countsAsMaterializedFloodFluid(state: BlockState, floodFluid: Fluid): Boolean {
+        val currentFluid = state.fluidState
+        if (currentFluid.isEmpty) return false
+        if (canonicalFloodSource(currentFluid.type) != canonicalFloodSource(floodFluid)) return false
+        if (state.block is LiquidBlock) return currentFluid.isSource
+        return isWaterloggableForFlood(state, floodFluid) && state.getValue(BlockStateProperties.WATERLOGGED)
     }
 
     private fun computeWaterReachableWithPressure(
@@ -4857,6 +4899,7 @@ object ShipWaterPocketManager {
         val interior = state.simulationDomain
         val materialized = state.materializedWater
         if (open.isEmpty) {
+            state.activeFloodIngressPoints = 1
             state.floodPlaneByComponent.clear()
             return
         }
@@ -4876,6 +4919,8 @@ object ShipWaterPocketManager {
         val newPlanes = Int2DoubleOpenHashMap()
         val toAddAll = BitSet(volume)
         val toRemoveAll = BitSet(volume)
+        val orderedAddsAll = IntArrayList()
+        var virtualFrontsRemaining = MAX_VIRTUAL_INGRESS_FRONTS
 
         if (!targetWetInterior.isEmpty) {
             // If everything that *should* be wet is already wet, stop the slow-fill simulation.
@@ -4920,6 +4965,7 @@ object ShipWaterPocketManager {
                 val strideY = sizeX
                 val strideZ = sizeX * sizeY
                 val hasComponentConnectivity = hasComponentTraversalSupport(state)
+                val gravityDownDir = computeShipGravityDownDir(shipTransform)
 
                 val visited = tmpFloodComponentVisited.get()
                 visited.clear()
@@ -4937,9 +4983,119 @@ object ShipWaterPocketManager {
                     visited.set(start)
 
                     var rep = start
-                    var minY = Double.POSITIVE_INFINITY
                     var targetPlane = Double.NEGATIVE_INFINITY
-                    var submergedHoleFaces = 0
+                    var seedIdx = -1
+                    var seedY = Double.NEGATIVE_INFINITY
+                    val ingressIdxs = IntArray(MAX_VIRTUAL_INGRESS_FRONTS) { -1 }
+                    val ingressConductance = IntArray(MAX_VIRTUAL_INGRESS_FRONTS)
+                    val ingressWorldYKey = IntArray(MAX_VIRTUAL_INGRESS_FRONTS)
+                    var ingressCount = 0
+
+                    fun isIngressBetter(
+                        conductanceA: Int,
+                        worldYKeyA: Int,
+                        idxA: Int,
+                        conductanceB: Int,
+                        worldYKeyB: Int,
+                        idxB: Int,
+                    ): Boolean {
+                        if (conductanceA != conductanceB) return conductanceA > conductanceB
+                        if (worldYKeyA != worldYKeyB) return worldYKeyA > worldYKeyB
+                        return idxA < idxB
+                    }
+
+                    fun manhattanIdxDist(idxA: Int, idxB: Int): Int {
+                        val ax = idxA % sizeX
+                        val at = idxA / sizeX
+                        val ay = at % sizeY
+                        val az = at / sizeY
+
+                        val bx = idxB % sizeX
+                        val bt = idxB / sizeX
+                        val by = bt % sizeY
+                        val bz = bt / sizeY
+
+                        val dx = if (ax >= bx) ax - bx else bx - ax
+                        val dy = if (ay >= by) ay - by else by - ay
+                        val dz = if (az >= bz) az - bz else bz - az
+                        return dx + dy + dz
+                    }
+
+                    fun considerIngressAnchor(idx: Int, conductance: Int, wy: Double) {
+                        if (idx < 0 || idx >= volume || conductance <= 0) return
+                        val worldYKey = kotlin.math.floor(wy * 1024.0).toInt()
+
+                        for (i in 0 until ingressCount) {
+                            if (ingressIdxs[i] != idx) continue
+                            val mergedConductance = (ingressConductance[i] + conductance).coerceAtMost(1_000_000)
+                            ingressConductance[i] = mergedConductance
+                            if (worldYKey > ingressWorldYKey[i]) ingressWorldYKey[i] = worldYKey
+                            return
+                        }
+
+                        var nearSlot = -1
+                        for (i in 0 until ingressCount) {
+                            val existingIdx = ingressIdxs[i]
+                            if (existingIdx < 0) continue
+                            if (manhattanIdxDist(existingIdx, idx) <= VIRTUAL_INGRESS_MIN_SEPARATION) {
+                                nearSlot = i
+                                break
+                            }
+                        }
+                        if (nearSlot >= 0) {
+                            if (isIngressBetter(
+                                    conductance,
+                                    worldYKey,
+                                    idx,
+                                    ingressConductance[nearSlot],
+                                    ingressWorldYKey[nearSlot],
+                                    ingressIdxs[nearSlot],
+                                )
+                            ) {
+                                ingressIdxs[nearSlot] = idx
+                                ingressConductance[nearSlot] = conductance
+                                ingressWorldYKey[nearSlot] = worldYKey
+                            }
+                            return
+                        }
+
+                        if (ingressCount < MAX_VIRTUAL_INGRESS_FRONTS) {
+                            ingressIdxs[ingressCount] = idx
+                            ingressConductance[ingressCount] = conductance
+                            ingressWorldYKey[ingressCount] = worldYKey
+                            ingressCount++
+                            return
+                        }
+
+                        var weakest = 0
+                        for (i in 1 until ingressCount) {
+                            if (isIngressBetter(
+                                    ingressConductance[weakest],
+                                    ingressWorldYKey[weakest],
+                                    ingressIdxs[weakest],
+                                    ingressConductance[i],
+                                    ingressWorldYKey[i],
+                                    ingressIdxs[i],
+                                )
+                            ) {
+                                weakest = i
+                            }
+                        }
+
+                        if (isIngressBetter(
+                                conductance,
+                                worldYKey,
+                                idx,
+                                ingressConductance[weakest],
+                                ingressWorldYKey[weakest],
+                                ingressIdxs[weakest],
+                            )
+                        ) {
+                            ingressIdxs[weakest] = idx
+                            ingressConductance[weakest] = conductance
+                            ingressWorldYKey[weakest] = worldYKey
+                        }
+                    }
 
                     while (head < tail) {
                         val idx = queue[head++]
@@ -4952,7 +5108,6 @@ object ShipWaterPocketManager {
                         val curInteriorMask = if (hasComponentConnectivity) simulationComponentMaskAt(state, idx) else -1L
 
                         val wy = cellCenterWorldY(lx, ly, lz)
-                        if (wy < minY) minY = wy
                         if (targetWetInterior.get(idx) && wy > targetPlane) targetPlane = wy
 
                         fun tryNeighbor(n: Int, dirCode: Int) {
@@ -4981,7 +5136,7 @@ object ShipWaterPocketManager {
                                     queue[tail++] = n
                                 }
                             } else {
-                                // Count submerged hull openings into world water as "holes" controlling fill rate.
+                                // Track a seed candidate at submerged ingress so queued writes expand from the opening.
                                 if (!open.get(n)) return
                                 if (!state.outsideVoid.get(n)) return
                                 if (!state.waterReachable.get(n)) return
@@ -4989,7 +5144,11 @@ object ShipWaterPocketManager {
                                     microOpeningFilteredCount.incrementAndGet()
                                     return
                                 }
-                                submergedHoleFaces += conductance
+                                if (wy > seedY) {
+                                    seedY = wy
+                                    seedIdx = idx
+                                }
+                                considerIngressAnchor(idx, conductance, wy)
                             }
                         }
 
@@ -5001,31 +5160,423 @@ object ShipWaterPocketManager {
                         if (lz + 1 < sizeZ) tryNeighbor(idx + strideZ, 5)
                     }
 
+                    if (ingressCount > 0) {
+                        var bestIngress = 0
+                        for (i in 1 until ingressCount) {
+                            if (isIngressBetter(
+                                    ingressConductance[i],
+                                    ingressWorldYKey[i],
+                                    ingressIdxs[i],
+                                    ingressConductance[bestIngress],
+                                    ingressWorldYKey[bestIngress],
+                                    ingressIdxs[bestIngress],
+                                )
+                            ) {
+                                bestIngress = i
+                            }
+                        }
+                        seedIdx = ingressIdxs[bestIngress]
+                    }
+
                     if (!targetPlane.isFinite()) return
 
-                    val oldPlane = if (state.floodPlaneByComponent.containsKey(rep)) state.floodPlaneByComponent.get(rep) else minY
-                    val floodRateMultiplier = VSGameConfig.COMMON.shipPocketFloodRateMultiplier
-                        .coerceIn(0.05, 5.0)
-                    val rise = ((FLOOD_RISE_PER_TICK_BASE +
-                        submergedHoleFaces.coerceAtLeast(1).toDouble() * FLOOD_RISE_PER_TICK_PER_HOLE_FACE)
-                        .coerceAtMost(FLOOD_RISE_MAX_PER_TICK)) * floodRateMultiplier
-                    val newPlane = minOf(targetPlane, oldPlane + rise)
+                    val newPlane = targetPlane
                     newPlanes.put(rep, newPlane)
 
-                    // Materialize new water blocks up to the current plane height, rising from the pocket's lowest point.
+                    // Queue all newly-reachable cells now, then order by:
+                    // 1) a short interleaved multi-ingress prelude (line + first-layer samples per ingress)
+                    // 2) furthest layer
+                    // 3) second furthest layer
+                    // 4) continue inward until fully flooded
+                    // Layers are gravity-oriented (world-down relative to the ship), matching original behavior.
+                    var firstMissingIdx = -1
+                    var seedMissing = false
+                    val candidateIdxs = IntArray(tail)
+                    val candidateLayerKey = IntArray(tail)
+                    val candidateDistSq = IntArray(tail)
+                    var candidateCount = 0
                     for (i in 0 until tail) {
                         val idx = queue[i]
                         if (!targetWetInterior.get(idx)) continue
                         if (materialized.get(idx)) continue
+                        if (state.queuedFloodAdds.get(idx)) continue
+                        if (firstMissingIdx < 0) firstMissingIdx = idx
+                        if (idx == seedIdx) seedMissing = true
+                        toAddAll.set(idx)
 
                         val lx = idx % sizeX
                         val t = idx / sizeX
                         val ly = t % sizeY
                         val lz = t / sizeY
-                        val wy = cellCenterWorldY(lx, ly, lz)
-                        if (wy <= newPlane + FLOOD_ENTER_PLANE_EPS) {
-                            toAddAll.set(idx)
+                        val layerKey = when (gravityDownDir) {
+                            Direction.DOWN -> -ly
+                            Direction.UP -> ly
+                            Direction.EAST -> lx
+                            Direction.WEST -> -lx
+                            Direction.SOUTH -> lz
+                            Direction.NORTH -> -lz
                         }
+
+                        candidateIdxs[candidateCount] = idx
+                        candidateLayerKey[candidateCount] = layerKey
+                        candidateDistSq[candidateCount] = 0
+                        candidateCount++
+                    }
+                    if (firstMissingIdx < 0) return
+
+                    val anchorIdx = if (seedIdx >= 0) seedIdx else firstMissingIdx
+                    val anchorX = anchorIdx % sizeX
+                    val anchorT = anchorIdx / sizeX
+                    val anchorY = anchorT % sizeY
+                    val anchorZ = anchorT / sizeY
+
+                    val emitted = BitSet(volume)
+                    fun emitIfPending(idx: Int) {
+                        if (idx < 0 || idx >= volume) return
+                        if (emitted.get(idx) || !toAddAll.get(idx)) return
+                        emitted.set(idx)
+                        orderedAddsAll.add(idx)
+                    }
+
+                    if (seedMissing) {
+                        emitIfPending(seedIdx)
+                    }
+
+                    var maxLayerKey = Int.MIN_VALUE
+                    var minLayerKey = Int.MAX_VALUE
+                    for (i in 0 until candidateCount) {
+                        val idx = candidateIdxs[i]
+                        val lx = idx % sizeX
+                        val t = idx / sizeX
+                        val ly = t % sizeY
+                        val lz = t / sizeY
+                        val dx = if (lx >= anchorX) lx - anchorX else anchorX - lx
+                        val dy = if (ly >= anchorY) ly - anchorY else anchorY - ly
+                        val dz = if (lz >= anchorZ) lz - anchorZ else anchorZ - lz
+                        candidateDistSq[i] = dx * dx + dy * dy + dz * dz
+
+                        val layerKey = candidateLayerKey[i]
+                        if (layerKey > maxLayerKey) maxLayerKey = layerKey
+                        if (layerKey < minLayerKey) minLayerKey = layerKey
+                    }
+
+                    val anchorLayerKey = when (gravityDownDir) {
+                        Direction.DOWN -> -anchorY
+                        Direction.UP -> anchorY
+                        Direction.EAST -> anchorX
+                        Direction.WEST -> -anchorX
+                        Direction.SOUTH -> anchorZ
+                        Direction.NORTH -> -anchorZ
+                    }
+                    val distToMax = kotlin.math.abs(maxLayerKey - anchorLayerKey)
+                    val distToMin = kotlin.math.abs(anchorLayerKey - minLayerKey)
+                    val firstLayerKey = if (distToMax >= distToMin) maxLayerKey else minLayerKey
+                    val layerStep = if (firstLayerKey == maxLayerKey) -1 else 1
+
+                    val frontAnchorIdxs = IntArray(MAX_VIRTUAL_INGRESS_FRONTS)
+                    val frontWeights = IntArray(MAX_VIRTUAL_INGRESS_FRONTS)
+                    var frontCount = 0
+                    val maxFrontsForComponent = virtualFrontsRemaining.coerceAtMost(MAX_VIRTUAL_INGRESS_FRONTS)
+
+                    fun addFront(anchor: Int, conductance: Int) {
+                        if (anchor < 0 || anchor >= volume) return
+                        for (i in 0 until frontCount) {
+                            if (frontAnchorIdxs[i] == anchor) {
+                                if (conductance > frontWeights[i]) {
+                                    frontWeights[i] = conductance
+                                }
+                                return
+                            }
+                        }
+                        if (frontCount >= maxFrontsForComponent) return
+                        frontAnchorIdxs[frontCount] = anchor
+                        frontWeights[frontCount] = conductance
+                        frontCount++
+                    }
+
+                    if (ingressCount > 0 && maxFrontsForComponent > 0) {
+                        val ingressPicked = BooleanArray(ingressCount)
+                        while (frontCount < maxFrontsForComponent) {
+                            var best = -1
+                            for (i in 0 until ingressCount) {
+                                if (ingressPicked[i] || ingressIdxs[i] < 0) continue
+                                if (best < 0 || isIngressBetter(
+                                        ingressConductance[i],
+                                        ingressWorldYKey[i],
+                                        ingressIdxs[i],
+                                        ingressConductance[best],
+                                        ingressWorldYKey[best],
+                                        ingressIdxs[best],
+                                    )
+                                ) {
+                                    best = i
+                                }
+                            }
+                            if (best < 0) break
+                            ingressPicked[best] = true
+                            addFront(ingressIdxs[best], ingressConductance[best])
+                        }
+                    }
+                    if (frontCount == 0 && ingressCount == 0) {
+                        addFront(anchorIdx, MIN_OPENING_CONDUCTANCE)
+                    }
+
+                    if (frontCount > 0) {
+                        val streamCap = VIRTUAL_FRONT_PRELUDE_LINE_CAP + VIRTUAL_FRONT_PRELUDE_LAYER_CAP
+                        val frontStreams = Array(frontCount) { IntArray(streamCap) }
+                        val frontStreamSizes = IntArray(frontCount)
+                        val frontStreamCursors = IntArray(frontCount)
+
+                        fun appendFrontPoint(front: Int, idx: Int): Boolean {
+                            if (idx < 0 || idx >= volume || !toAddAll.get(idx)) return false
+                            val size = frontStreamSizes[front]
+                            if (size >= streamCap) return false
+                            for (i in 0 until size) {
+                                if (frontStreams[front][i] == idx) return false
+                            }
+                            frontStreams[front][size] = idx
+                            frontStreamSizes[front] = size + 1
+                            return true
+                        }
+
+                        fun layerKeyForCoords(x: Int, y: Int, z: Int): Int {
+                            return when (gravityDownDir) {
+                                Direction.DOWN -> -y
+                                Direction.UP -> y
+                                Direction.EAST -> x
+                                Direction.WEST -> -x
+                                Direction.SOUTH -> z
+                                Direction.NORTH -> -z
+                            }
+                        }
+
+                        for (front in 0 until frontCount) {
+                            val frontAnchor = frontAnchorIdxs[front]
+                            val ax = frontAnchor % sizeX
+                            val at = frontAnchor / sizeX
+                            val ay = at % sizeY
+                            val az = at / sizeY
+                            val frontAnchorLayerKey = layerKeyForCoords(ax, ay, az)
+                            val frontDistToMax = kotlin.math.abs(maxLayerKey - frontAnchorLayerKey)
+                            val frontDistToMin = kotlin.math.abs(frontAnchorLayerKey - minLayerKey)
+                            val frontFirstLayerKey = if (frontDistToMax >= frontDistToMin) maxLayerKey else minLayerKey
+
+                            var frontLineTargetIdx = -1
+                            var frontLineTargetDistSq = Int.MAX_VALUE
+                            for (i in 0 until candidateCount) {
+                                if (candidateLayerKey[i] != frontFirstLayerKey) continue
+                                val idx = candidateIdxs[i]
+                                val lx = idx % sizeX
+                                val t = idx / sizeX
+                                val ly = t % sizeY
+                                val lz = t / sizeY
+                                val dx = if (lx >= ax) lx - ax else ax - lx
+                                val dy = if (ly >= ay) ly - ay else ay - ly
+                                val dz = if (lz >= az) lz - az else az - lz
+                                val distSq = dx * dx + dy * dy + dz * dz
+                                if (distSq < frontLineTargetDistSq ||
+                                    (distSq == frontLineTargetDistSq && idx < frontLineTargetIdx)
+                                ) {
+                                    frontLineTargetDistSq = distSq
+                                    frontLineTargetIdx = idx
+                                }
+                            }
+
+                            if (frontLineTargetIdx >= 0) {
+                                var x0 = ax
+                                var y0 = ay
+                                var z0 = az
+                                val x1 = frontLineTargetIdx % sizeX
+                                val t1 = frontLineTargetIdx / sizeX
+                                val y1 = t1 % sizeY
+                                val z1 = t1 / sizeY
+
+                                val dx = kotlin.math.abs(x1 - x0)
+                                val dy = kotlin.math.abs(y1 - y0)
+                                val dz = kotlin.math.abs(z1 - z0)
+                                val xs = if (x1 > x0) 1 else -1
+                                val ys = if (y1 > y0) 1 else -1
+                                val zs = if (z1 > z0) 1 else -1
+
+                                var lineAdded = 0
+                                fun emitLinePoint(x: Int, y: Int, z: Int) {
+                                    if (lineAdded >= VIRTUAL_FRONT_PRELUDE_LINE_CAP) return
+                                    if (x !in 0 until sizeX || y !in 0 until sizeY || z !in 0 until sizeZ) return
+                                    val idx = x + y * strideY + z * strideZ
+                                    if (appendFrontPoint(front, idx)) {
+                                        lineAdded++
+                                    }
+                                }
+
+                                if (dx >= dy && dx >= dz) {
+                                    var p1 = 2 * dy - dx
+                                    var p2 = 2 * dz - dx
+                                    while (x0 != x1 && lineAdded < VIRTUAL_FRONT_PRELUDE_LINE_CAP) {
+                                        x0 += xs
+                                        if (p1 >= 0) {
+                                            y0 += ys
+                                            p1 -= 2 * dx
+                                        }
+                                        if (p2 >= 0) {
+                                            z0 += zs
+                                            p2 -= 2 * dx
+                                        }
+                                        p1 += 2 * dy
+                                        p2 += 2 * dz
+                                        emitLinePoint(x0, y0, z0)
+                                    }
+                                } else if (dy >= dx && dy >= dz) {
+                                    var p1 = 2 * dx - dy
+                                    var p2 = 2 * dz - dy
+                                    while (y0 != y1 && lineAdded < VIRTUAL_FRONT_PRELUDE_LINE_CAP) {
+                                        y0 += ys
+                                        if (p1 >= 0) {
+                                            x0 += xs
+                                            p1 -= 2 * dy
+                                        }
+                                        if (p2 >= 0) {
+                                            z0 += zs
+                                            p2 -= 2 * dy
+                                        }
+                                        p1 += 2 * dx
+                                        p2 += 2 * dz
+                                        emitLinePoint(x0, y0, z0)
+                                    }
+                                } else {
+                                    var p1 = 2 * dy - dz
+                                    var p2 = 2 * dx - dz
+                                    while (z0 != z1 && lineAdded < VIRTUAL_FRONT_PRELUDE_LINE_CAP) {
+                                        z0 += zs
+                                        if (p1 >= 0) {
+                                            y0 += ys
+                                            p1 -= 2 * dz
+                                        }
+                                        if (p2 >= 0) {
+                                            x0 += xs
+                                            p2 -= 2 * dz
+                                        }
+                                        p1 += 2 * dy
+                                        p2 += 2 * dx
+                                        emitLinePoint(x0, y0, z0)
+                                    }
+                                }
+                            }
+
+                            if (VIRTUAL_FRONT_PRELUDE_LAYER_CAP > 0) {
+                                val nearestIdx = IntArray(VIRTUAL_FRONT_PRELUDE_LAYER_CAP) { -1 }
+                                val nearestDistSq = IntArray(VIRTUAL_FRONT_PRELUDE_LAYER_CAP)
+                                var nearestCount = 0
+
+                                for (i in 0 until candidateCount) {
+                                    if (candidateLayerKey[i] != frontFirstLayerKey) continue
+                                    val idx = candidateIdxs[i]
+                                    val lx = idx % sizeX
+                                    val t = idx / sizeX
+                                    val ly = t % sizeY
+                                    val lz = t / sizeY
+                                    val dx = if (lx >= ax) lx - ax else ax - lx
+                                    val dy = if (ly >= ay) ly - ay else ay - ly
+                                    val dz = if (lz >= az) lz - az else az - lz
+                                    val distSq = dx * dx + dy * dy + dz * dz
+
+                                    var insert = nearestCount
+                                    while (insert > 0) {
+                                        val prevDist = nearestDistSq[insert - 1]
+                                        val prevIdx = nearestIdx[insert - 1]
+                                        if (distSq > prevDist || (distSq == prevDist && idx >= prevIdx)) break
+                                        insert--
+                                    }
+                                    if (insert >= VIRTUAL_FRONT_PRELUDE_LAYER_CAP) continue
+
+                                    val newCount = if (nearestCount < VIRTUAL_FRONT_PRELUDE_LAYER_CAP) {
+                                        nearestCount + 1
+                                    } else {
+                                        nearestCount
+                                    }
+                                    var j = newCount - 1
+                                    while (j > insert) {
+                                        nearestDistSq[j] = nearestDistSq[j - 1]
+                                        nearestIdx[j] = nearestIdx[j - 1]
+                                        j--
+                                    }
+                                    nearestDistSq[insert] = distSq
+                                    nearestIdx[insert] = idx
+                                    nearestCount = newCount
+                                }
+
+                                for (i in 0 until nearestCount) {
+                                    appendFrontPoint(front, nearestIdx[i])
+                                }
+                            }
+                        }
+
+                        var preludeBudget = VIRTUAL_FRONT_PRELUDE_TOTAL_CAP
+                        while (preludeBudget > 0) {
+                            var progressed = false
+                            for (front in 0 until frontCount) {
+                                val weight = ((frontWeights[front] + MIN_OPENING_CONDUCTANCE - 1) / MIN_OPENING_CONDUCTANCE)
+                                    .coerceIn(1, 4)
+                                var pulls = 0
+                                while (pulls < weight && preludeBudget > 0) {
+                                    val cursor = frontStreamCursors[front]
+                                    if (cursor >= frontStreamSizes[front]) break
+                                    emitIfPending(frontStreams[front][cursor])
+                                    frontStreamCursors[front] = cursor + 1
+                                    preludeBudget--
+                                    pulls++
+                                    progressed = true
+                                }
+                            }
+                            if (!progressed) break
+                        }
+                    }
+                    if (ingressCount > 0 && frontCount > 0) {
+                        virtualFrontsRemaining = (virtualFrontsRemaining - frontCount).coerceAtLeast(0)
+                    }
+
+                    if (maxLayerKey >= minLayerKey) {
+                        val layerCount = maxLayerKey - minLayerKey + 1
+                        val countsByLayer = IntArray(layerCount)
+                        for (i in 0 until candidateCount) {
+                            val idx = candidateIdxs[i]
+                            if (emitted.get(idx)) continue
+                            val layer = candidateLayerKey[i] - minLayerKey
+                            if (layer in 0 until layerCount) countsByLayer[layer]++
+                        }
+
+                        val buckets = Array(layerCount) { layer ->
+                            LongArray(countsByLayer[layer])
+                        }
+                        java.util.Arrays.fill(countsByLayer, 0)
+
+                        for (i in 0 until candidateCount) {
+                            val idx = candidateIdxs[i]
+                            if (emitted.get(idx)) continue
+                            val layer = candidateLayerKey[i] - minLayerKey
+                            if (layer !in 0 until layerCount) continue
+                            val distSq = candidateDistSq[i]
+                            val key = ((distSq.toLong() and 0xffff_ffffL) shl 32) or (idx.toLong() and 0xffff_ffffL)
+                            val at = countsByLayer[layer]
+                            buckets[layer][at] = key
+                            countsByLayer[layer] = at + 1
+                        }
+
+                        var layerKey = firstLayerKey
+                        while (layerKey in minLayerKey..maxLayerKey) {
+                            val layer = layerKey - minLayerKey
+                            val bucket = buckets[layer]
+                            if (!bucket.isEmpty()) {
+                                Arrays.sort(bucket)
+                                for (k in bucket.indices) {
+                                    emitIfPending(bucket[k].toInt())
+                                }
+                            }
+                            layerKey += layerStep
+                        }
+                    }
+
+                    for (i in 0 until candidateCount) {
+                        emitted.clear(candidateIdxs[i])
                     }
                 }
 
@@ -5052,8 +5603,9 @@ object ShipWaterPocketManager {
         )
 
         state.floodPlaneByComponent = newPlanes
+        state.activeFloodIngressPoints = (MAX_VIRTUAL_INGRESS_FRONTS - virtualFrontsRemaining).coerceAtLeast(1)
 
-        enqueueFloodWriteDiffs(state, toAddAll, toRemoveAll)
+        enqueueFloodWriteDiffs(state, toAddAll, toRemoveAll, orderedAddsAll)
         state.persistDirty = true
     }
 
@@ -5539,9 +6091,13 @@ object ShipWaterPocketManager {
                     }
 
                     val currentFluid = current.fluidState
-                    if (!currentFluid.isEmpty && canonicalFloodSource(currentFluid.type) == state.floodFluid) {
+                    val isFlowingFloodFluid =
+                        !currentFluid.isEmpty &&
+                            canonicalFloodSource(currentFluid.type) == state.floodFluid &&
+                            !currentFluid.isSource
+                    if (countsAsMaterializedFloodFluid(current, state.floodFluid)) {
                         state.materializedWater.set(idx)
-                    } else if (current.isAir) {
+                    } else if (current.isAir || isFlowingFloodFluid) {
                         level.setBlock(pos, sourceBlockState, flags)
                         level.scheduleTick(pos, state.floodFluid, 1)
                         state.materializedWater.set(idx)
