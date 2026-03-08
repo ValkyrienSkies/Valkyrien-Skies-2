@@ -126,9 +126,10 @@ public class FluidStateManager {
 
 		public void setFluidStateLocked(final int y, final FluidState state) {
 			final boolean isEmpty = state.isEmpty();
+			final List<Section> sections = this.sections;
 			int i = 0;
-			for (final Section s : this.sections) {
-				i++;
+			for (; i < sections.size(); i++) {
+				final Section s = sections.get(i);
 				if (s.lowY > y) {
 					break;
 				}
@@ -141,8 +142,8 @@ public class FluidStateManager {
 				if (isSurface) {
 					if (isBottom) {
 						if (isEmpty) {
-							final List<Section> newSections = new ArrayList<>(this.sections);
-							newSections.remove(i - 1);
+							final List<Section> newSections = new ArrayList<>(sections);
+							newSections.remove(i);
 							this.sections = newSections;
 							return;
 						}
@@ -158,34 +159,64 @@ public class FluidStateManager {
 					if (isEmpty) {
 						return;
 					}
-					// Put current state to the section above if possible
-					if (i < this.sections.size()) {
-						final Section above = this.sections.get(i);
+					// Merge current state to the section above if possible
+					if (i + 1 < sections.size()) {
+						final Section above = sections.get(i + 1);
 						if (above.lowY - 1 == y && above.surface.getType().isSame(state.getType())) {
 							above.lowY--;
 							return;
 						}
 					}
-					this.sections.add(i, new Section(y, state));
+					sections.add(i + 1, new Section(y, state));
 					return;
 				}
 				if (s.surface.getType().isSame(state.getType())) {
 					return;
 				}
 				if (!isEmpty) {
-					this.sections.add(i - 1, new Section(y, state));
+					sections.add(i, new Section(y, state));
 				}
 				if (isBottom) {
 					s.lowY++;
 					return;
 				}
-				this.sections.add(i - 1, new Section(s.lowY, y - 1, getFullFluidState(s.surface)));
+				sections.add(i, new Section(s.lowY, y - 1, getFullFluidState(s.surface)));
 				s.lowY = y + 1;
 				return;
 			}
-			if (!isEmpty) {
-				this.sections.add(i, new Section(y, state));
+			if (isEmpty) {
+				return;
 			}
+			// try merge current to above
+			if (i < sections.size()) {
+				final Section above = sections.get(i);
+				if (above.lowY - 1 == y && above.surface.getType().isSame(state.getType())) {
+					// try merge current and above to below
+					if (i > 0) {
+						final Section below = sections.get(i - 1);
+						if (below.highY + 1 == y && below.surface.getType().isSame(state.getType())) {
+							below.highY = above.highY;
+							below.surface = above.surface;
+							final List<Section> newSections = new ArrayList<>(sections);
+							newSections.remove(i);
+							this.sections = newSections;
+							return;
+						}
+					}
+					above.lowY--;
+					return;
+				}
+			}
+			// try merge current to below
+			if (i > 0) {
+				final Section below = sections.get(i - 1);
+				if (below.highY + 1 == y && below.surface.getType().isSame(state.getType())) {
+					below.highY++;
+					below.surface = state;
+					return;
+				}
+			}
+			sections.add(i, new Section(y, state));
 		}
 
 		private static final class Section {
