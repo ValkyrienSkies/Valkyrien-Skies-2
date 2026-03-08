@@ -8,7 +8,7 @@ import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.material.FlowingFluid;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
-import org.valkyrienskies.mod.mixinducks.world.chunk.LevelChunkDuck;
+import org.valkyrienskies.mod.mixinducks.feature.air_pockets.ship_water_pockets.LevelChunkDuck;
 
 import java.util.ArrayList;
 import java.util.List;

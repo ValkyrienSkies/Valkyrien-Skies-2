@@ -41,7 +41,7 @@ import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.BlockStateInfo;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VSLevelChunk;
-import org.valkyrienskies.mod.mixinducks.world.chunk.LevelChunkDuck;
+import org.valkyrienskies.mod.mixinducks.feature.air_pockets.ship_water_pockets.LevelChunkDuck;
 import org.valkyrienskies.mod.util.FluidStateManager;
 
 @Mixin(LevelChunk.class)
