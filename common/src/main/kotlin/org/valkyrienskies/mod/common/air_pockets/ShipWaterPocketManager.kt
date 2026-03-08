@@ -4,32 +4,37 @@ import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap
 import it.unimi.dsi.fastutil.ints.IntArrayList
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
-import net.minecraft.core.Direction
+import java.util.Arrays
+import java.util.BitSet
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.atomic.AtomicReference
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
 import net.minecraft.core.particles.BlockParticleOption
-import net.minecraft.core.particles.ParticleTypes
 import net.minecraft.core.particles.ParticleOptions
+import net.minecraft.core.particles.ParticleTypes
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.util.Mth
 import net.minecraft.world.level.Level
-import net.minecraft.world.level.block.BucketPickup
 import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.BucketPickup
 import net.minecraft.world.level.block.LiquidBlock
 import net.minecraft.world.level.block.LiquidBlockContainer
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
-import net.minecraft.world.level.material.Fluid
-import net.minecraft.world.level.material.Fluids
 import net.minecraft.world.level.material.FlowingFluid
+import net.minecraft.world.level.material.Fluid
 import net.minecraft.world.level.material.FluidState
+import net.minecraft.world.level.material.Fluids
 import net.minecraft.world.phys.Vec3
 import net.minecraft.world.phys.shapes.BooleanOp
 import net.minecraft.world.phys.shapes.Shapes
 import org.apache.logging.log4j.LogManager
 import org.joml.Vector3d
 import org.joml.primitives.AABBd
-import org.valkyrienskies.core.api.ships.LoadedShip
 import org.valkyrienskies.core.api.ships.LoadedServerShip
+import org.valkyrienskies.core.api.ships.LoadedShip
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.api.ships.properties.ShipTransform
 import org.valkyrienskies.core.api.world.properties.DimensionId
@@ -39,11 +44,7 @@ import org.valkyrienskies.mod.common.isBlockInShipyard
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.BuoyancyHandlerAttachment
 import org.valkyrienskies.mod.mixinducks.feature.air_pockets.compat.vs2.ValkyrienAirBuoyancyAttachmentDuck
-import java.util.Arrays
-import java.util.BitSet
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicLong
-import java.util.concurrent.atomic.AtomicReference
+import org.valkyrienskies.mod.util.FluidStateManager
 
 object ShipWaterPocketManager {
     private val log = LogManager.getLogger("[Valkyrien Skies] Air-Pockets")
@@ -973,13 +974,13 @@ object ShipWaterPocketManager {
         val wz = Mth.floor(worldPosTmp.z)
         worldBlockPos.set(wx, wy, wz)
 
-        val worldFluid = level.getFluidState(worldBlockPos)
-        if (worldFluid.isEmpty) return null
-        if (worldFluid.isSource) return canonicalFloodSource(worldFluid.type)
+        val worldFluid = FluidStateManager.getFluidData(level, worldBlockPos)
+        if (worldFluid == null) return null
+        if (!worldFluid.isSurface || worldFluid.surface.isSource) return worldFluid.sourceFluid()
 
-        val height = worldFluid.getHeight(level, worldBlockPos).toDouble()
+        val height = worldFluid.height().toDouble()
         val localY = worldPosTmp.y - wy.toDouble()
-        return if (localY <= height + epsY) canonicalFloodSource(worldFluid.type) else null
+        return if (localY <= height + epsY) worldFluid.sourceFluid() else null
     }
 
     private fun estimateExteriorFluidSurfaceYAtShipPoint(
@@ -1009,10 +1010,10 @@ object ShipWaterPocketManager {
             var lastSurface = Double.NEGATIVE_INFINITY
 
             while (steps < AIR_PRESSURE_SURFACE_SCAN_MAX_STEPS && y < level.maxBuildHeight) {
-                val fs = level.getFluidState(worldBlockPos)
-                if (fs.isEmpty || canonicalFloodSource(fs.type) != canonical) break
+                val fs = FluidStateManager.getFluidData(level, worldBlockPos)
+                if (fs == null || fs.sourceFluid() != canonical) break
 
-                val h = if (fs.isSource) 1.0 else fs.getHeight(level, worldBlockPos).toDouble()
+                val h = if (!fs.isSurface || fs.surface.isSource) 1.0 else fs.height().toDouble()
                 lastSurface = y.toDouble() + h
                 if (h < 1.0 - 1e-6) break
 
