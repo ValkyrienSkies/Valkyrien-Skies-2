@@ -51,8 +51,6 @@
     "feature.air_pockets.compat.embeddium.MixinValkyrienSkiesSodiumCompat",
     "feature.air_pockets.compat.itemphysic.MixinCommonPhysic",
     "feature.air_pockets.compat.itemphysic.MixinItemPhysicServer",
-    "feature.air_pockets.compat.vs2.MixinBuoyancyHandlerAttachment",
-    "feature.air_pockets.compat.vs2.MixinVSGameUtilsKt",
     "feature.air_pockets.server.MixinMinecraftServer",
     "feature.air_pockets.world.level.block.MixinAbstractCauldronBlock",
     "feature.air_pockets.world.level.block.MixinBaseFireBlock",

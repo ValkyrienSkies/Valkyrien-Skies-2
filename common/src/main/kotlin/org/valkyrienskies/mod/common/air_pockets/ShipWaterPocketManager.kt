@@ -2318,17 +2318,16 @@ object ShipWaterPocketManager {
     private fun updateVsBuoyancyFromPockets(ship: LoadedShip, state: ShipPocketState) {
         val serverShip = ship as? LoadedServerShip ?: return
         val buoyancyHandler = serverShip.getAttachment(BuoyancyHandlerAttachment::class.java) ?: return
-        val buoyancyDuck = buoyancyHandler as? ValkyrienAirBuoyancyAttachmentDuck
 
         val props = getBuoyancyFluidProps(state.floodFluid)
-        buoyancyDuck?.`valkyrienair$setBuoyancyFluidDensity`(props.density)
-        buoyancyDuck?.`valkyrienair$setBuoyancyFluidViscosity`(props.viscosity)
+        buoyancyHandler?.setBuoyancyFluidDensity(props.density)
+        buoyancyHandler?.setBuoyancyFluidViscosity(props.viscosity)
 
         // The additional buoyant force from pockets is just the volume of *submerged interior air* that is currently
         // not flooded (i.e. displacing world water).
         val maxAbs = state.simulationDomain.cardinality().toDouble().coerceAtLeast(1.0)
         val displaced = state.buoyancy.submergedAirVolume.coerceIn(0.0, maxAbs)
-        buoyancyDuck?.`valkyrienair$setDisplacedVolume`(displaced)
+        buoyancyHandler?.setDisplacedVolume(displaced)
 
         val centerX: Double
         val centerY: Double
@@ -2342,7 +2341,7 @@ object ShipWaterPocketManager {
             centerY = 0.0
             centerZ = 0.0
         }
-        buoyancyDuck?.`valkyrienair$setPocketCenter`(centerX, centerY, centerZ)
+        buoyancyHandler?.setPocketCenter(centerX, centerY, centerZ)
     }
 
     @JvmStatic
