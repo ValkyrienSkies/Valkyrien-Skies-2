@@ -12,6 +12,8 @@ import org.valkyrienskies.mod.mixinducks.world.chunk.LevelChunkDuck;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class FluidStateManager {
 	private FluidStateManager() {}
@@ -36,6 +38,7 @@ public class FluidStateManager {
 	}
 
 	public static final class ChunkFluidData {
+		private final ReadWriteLock rwl = new ReentrantReadWriteLock();
 		// TODO: right now it assumes all fluids are proper FlowingFluid implemention.
 		private final Column[] columns = new Column[16 * 16];
 
@@ -44,11 +47,16 @@ public class FluidStateManager {
 				x = SectionPos.sectionRelative(pos.getX()),
 				z = SectionPos.sectionRelative(pos.getZ());
 			final int index = (x << 4) | z;
-			final Column column = this.columns[index];
-			if (column == null) {
-				return null;
+			try {
+				this.rwl.readLock().lock();
+				final Column column = this.columns[index];
+				if (column == null) {
+					return null;
+				}
+				return column.getFluidData(pos.getY());
+			} finally {
+				this.rwl.readLock().unlock();
 			}
-			return column.getFluidData(pos.getY());
 		}
 
 		public void setFluidState(final BlockPos pos, final FluidState state) {
@@ -56,22 +64,46 @@ public class FluidStateManager {
 				x = SectionPos.sectionRelative(pos.getX()),
 				z = SectionPos.sectionRelative(pos.getZ());
 			final int index = (x << 4) | z;
-			Column column = this.columns[index];
+			Column column;
+			try {
+				this.rwl.readLock().lock();
+				column = this.columns[index];
+			} finally {
+				this.rwl.readLock().unlock();
+			}
 			if (column == null) {
 				if (state.isEmpty()) {
 					return;
 				}
-				column = new Column();
-				this.columns[index] = column;
+				try {
+					this.rwl.writeLock().lock();
+					column = this.columns[index];
+					if (column == null) {
+						column = new Column();
+						this.columns[index] = column;
+					}
+				} finally {
+					this.rwl.writeLock().unlock();
+				}
 			}
 			column.setFluidState(pos.getY(), state);
 		}
 	}
 
 	private static final class Column {
-		private List<Section> sections = new ArrayList<>();
+		private final ReadWriteLock rwl = new ReentrantReadWriteLock();
+		private final List<Section> sections = new ArrayList<>();
 
 		private FluidData getFluidData(final int y) {
+			try {
+				this.rwl.readLock().lock();
+				return this.getFluidDataLocked(y);
+			} finally {
+				this.rwl.readLock().unlock();
+			}
+		}
+
+		private FluidData getFluidDataLocked(final int y) {
 			for (final Section s : this.sections) {
 				if (s.lowY > y) {
 					break;
@@ -85,6 +117,16 @@ public class FluidStateManager {
 		}
 
 		public void setFluidState(final int y, final FluidState state) {
+			// TOOD: copy on write list / locked linked list nodes maybe faster than read write locks
+			try {
+				this.rwl.writeLock().lock();
+				this.setFluidStateLocked(y, state);
+			} finally {
+				this.rwl.writeLock().unlock();
+			}
+		}
+
+		public void setFluidStateLocked(final int y, final FluidState state) {
 			final boolean isEmpty = state.isEmpty();
 			int i = 0;
 			for (final Section s : this.sections) {
