@@ -16,7 +16,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.mod.common.air_pockets.ShipWaterPocketManager;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
-import org.valkyrienskies.mod.mixinducks.feature.air_pockets.feature.ship_water_pockets.ShipWaterPocketEntityDuck;
+import org.valkyrienskies.mod.mixinducks.feature.air_pockets.ship_water_pockets.ShipWaterPocketEntityDuck;
 
 @Mixin(Entity.class)
 public abstract class MixinEntityFluidPushing {

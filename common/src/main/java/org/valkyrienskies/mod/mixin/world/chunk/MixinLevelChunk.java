@@ -150,6 +150,7 @@ public abstract class MixinLevelChunk extends ChunkAccess implements VSLevelChun
             //new LevelChunkSection(registry);
             sections[i] = new LevelChunkSection(registry);
         }
+        this.fluidData.clear();
         this.setLightCorrect(false);
 
         registerTickContainerInLevel((ServerLevel) level);

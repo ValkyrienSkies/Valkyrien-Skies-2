@@ -205,6 +205,9 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
         final boolean bl,
         final CallbackInfoReturnable<LevelChunk> cir
     ) {
+        if (!VSGameUtilsKt.isChunkInShipyard(this.level, chunkX, chunkZ)) {
+            return;
+        }
         final LevelChunk shipChunk = vs$shipChunks.get(ChunkPos.asLong(chunkX, chunkZ));
         if (shipChunk != null) {
             cir.setReturnValue(shipChunk);

@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.mixinducks.feature.air_pockets.feature.ship_water_pockets;
+package org.valkyrienskies.mod.mixinducks.feature.air_pockets.ship_water_pockets;
 
 /**
  * Exposes cached "is this entity inside a ship air pocket?" checks to other mixins without duplicating logic.

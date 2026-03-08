@@ -43,7 +43,6 @@ import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.isBlockInShipyard
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.BuoyancyHandlerAttachment
-import org.valkyrienskies.mod.mixinducks.feature.air_pockets.compat.vs2.ValkyrienAirBuoyancyAttachmentDuck
 import org.valkyrienskies.mod.util.FluidStateManager
 
 object ShipWaterPocketManager {
@@ -2734,8 +2733,8 @@ object ShipWaterPocketManager {
         fun isCellAlreadyFloodFluid(cellIdx: Int): Boolean {
             if (cellIdx < 0 || cellIdx >= volume) return false
             posFromIndex(state, cellIdx, shipCellPos)
-            val cellFluid = level.getFluidState(shipCellPos)
-            return !cellFluid.isEmpty && canonicalFloodSource(cellFluid.type) == state.floodFluid
+            val cellFluid = FluidStateManager.getFluidData(level, shipCellPos)
+            return cellFluid != null && cellFluid.sourceFluid() == state.floodFluid
         }
 
         val faceDirBuf = IntArray(6)
