@@ -87,9 +87,12 @@ public class FluidStateManager {
 
 		private FluidData getFluidData(final int y) {
 			long stamp = this.lock.tryOptimisticRead();
-			FluidData data = this.getFluidDataLocked(this.sections, y);
+			FluidData data;
+			if (stamp != 0) {
+				data = this.getFluidDataLocked(this.sections, y);
+			}
 
-			if (!this.lock.validate(stamp)) {
+			if (stamp == 0 || !this.lock.validate(stamp)) {
 				stamp = this.lock.readLock();
 				try {
 					data = this.getFluidDataLocked(this.sections, y);
