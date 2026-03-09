@@ -128,7 +128,6 @@ public class FluidStateManager {
 		}
 
 		public void setFluidStateLocked(final int y, final FluidState state) {
-			final boolean isEmpty = state.isEmpty();
 			final List<Section> sections = this.sections;
 			int i = 0;
 			for (; i < sections.size(); i++) {
@@ -144,7 +143,7 @@ public class FluidStateManager {
 				final boolean isBottom = s.lowY == y;
 				if (isSurface) {
 					if (isBottom) {
-						if (isEmpty) {
+						if (state.isEmpty()) {
 							final List<Section> newSections = new ArrayList<>(sections);
 							newSections.remove(i);
 							this.sections = newSections;
@@ -159,7 +158,7 @@ public class FluidStateManager {
 					}
 					s.highY--;
 					s.surface = getFullFluidState(s.surface);
-					if (isEmpty) {
+					if (state.isEmpty()) {
 						return;
 					}
 					// Merge current state to the section above if possible
@@ -176,7 +175,7 @@ public class FluidStateManager {
 				if (s.surface.getType().isSame(state.getType())) {
 					return;
 				}
-				if (!isEmpty) {
+				if (!state.isEmpty()) {
 					sections.add(i, new Section(y, state));
 				}
 				if (isBottom) {
@@ -187,7 +186,7 @@ public class FluidStateManager {
 				s.lowY = y + 1;
 				return;
 			}
-			if (isEmpty) {
+			if (state.isEmpty()) {
 				return;
 			}
 			// try merge current to above
