@@ -10,9 +10,9 @@ import kotlin.jvm.functions.Function0
 
 class ShipWaterPocketAsyncRuntimeTest {
     private val runtimeClass =
-        Class.forName("org.valkyrienskies.valkyrienair.feature.ship_water_pockets.ShipPocketAsyncRuntime")
+        Class.forName("org.valkyrienskies.mod.common.air_pockets.ShipPocketAsyncRuntime")
     private val subsystemClass =
-        Class.forName("org.valkyrienskies.valkyrienair.feature.ship_water_pockets.ShipPocketAsyncSubsystem")
+        Class.forName("org.valkyrienskies.mod.common.air_pockets.ShipPocketAsyncSubsystem")
     private val trySubmitMethod =
         runtimeClass.getMethod("trySubmit", subsystemClass, Function0::class.java)
 

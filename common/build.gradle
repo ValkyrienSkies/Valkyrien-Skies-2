@@ -104,6 +104,10 @@ loom {
     accessWidenerPath = file("src/main/resources/valkyrienskies-common.accesswidener")
 }
 
+test {
+    useJUnitPlatform()
+}
+
 jar {
     // Exclude dummy Optifine classes
     exclude "net/optifine/**"

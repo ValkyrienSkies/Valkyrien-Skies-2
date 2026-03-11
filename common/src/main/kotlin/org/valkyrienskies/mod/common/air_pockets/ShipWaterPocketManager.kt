@@ -4918,7 +4918,7 @@ object ShipWaterPocketManager {
         val newPlanes = Int2DoubleOpenHashMap()
         val toAddAll = BitSet(volume)
         val toRemoveAll = BitSet(volume)
-        val orderedAddsAll = IntArrayList()
+        val orderedAddComponents = mutableListOf<PendingFloodComponentOrder>()
         var virtualFrontsRemaining = MAX_VIRTUAL_INGRESS_FRONTS
 
         if (!targetWetInterior.isEmpty) {
@@ -5230,11 +5230,12 @@ object ShipWaterPocketManager {
                     val anchorZ = anchorT / sizeY
 
                     val emitted = BitSet(volume)
+                    val orderedAddsForComponent = IntArrayList(candidateCount)
                     fun emitIfPending(idx: Int) {
                         if (idx < 0 || idx >= volume) return
                         if (emitted.get(idx) || !toAddAll.get(idx)) return
                         emitted.set(idx)
-                        orderedAddsAll.add(idx)
+                        orderedAddsForComponent.add(idx)
                     }
 
                     if (seedMissing) {
@@ -5577,6 +5578,15 @@ object ShipWaterPocketManager {
                     for (i in 0 until candidateCount) {
                         emitted.clear(candidateIdxs[i])
                     }
+
+                    if (!orderedAddsForComponent.isEmpty) {
+                        orderedAddComponents.add(
+                            PendingFloodComponentOrder(
+                                orderedIndices = orderedAddsForComponent,
+                                fairnessWeight = frontCount.coerceAtLeast(1),
+                            ),
+                        )
+                    }
                 }
 
                 var start = missing.nextSetBit(0)
@@ -5604,6 +5614,7 @@ object ShipWaterPocketManager {
         state.floodPlaneByComponent = newPlanes
         state.activeFloodIngressPoints = (MAX_VIRTUAL_INGRESS_FRONTS - virtualFrontsRemaining).coerceAtLeast(1)
 
+        val orderedAddsAll = mergeOrderedFloodComponentAdds(orderedAddComponents)
         enqueueFloodWriteDiffs(state, toAddAll, toRemoveAll, orderedAddsAll)
         state.persistDirty = true
     }
