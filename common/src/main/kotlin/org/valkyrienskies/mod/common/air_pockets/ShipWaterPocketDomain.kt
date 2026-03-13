@@ -242,7 +242,10 @@ internal fun computeEnclosedHeuristicFromGeometry(
         if (bny && bpy) axisPairs++
         if (bnz && bpz) axisPairs++
 
-        if (blockedDirs >= 4 && axisPairs >= 2) {
+        // Require both side-axis pairs to be blocked. Without this, a long cavity that is open on one side can still
+        // satisfy the generic "4 dirs + 2 axis pairs" rule and get promoted as enclosed.
+        val sideAxisPairsBlocked = (if (bnx && bpx) 1 else 0) + (if (bnz && bpz) 1 else 0)
+        if (blockedDirs >= 4 && axisPairs >= 2 && sideAxisPairsBlocked == 2) {
             enclosed.set(idx)
         }
 
@@ -251,4 +254,3 @@ internal fun computeEnclosedHeuristicFromGeometry(
 
     return enclosed
 }
-

@@ -1,8 +1,10 @@
 package org.valkyrienskies.mod.feature.ship_water_pockets
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.valkyrienskies.mod.common.air_pockets.computeEnclosedHeuristicFromGeometry
 import org.valkyrienskies.mod.common.air_pockets.MIN_OPENING_CONDUCTANCE
 import org.valkyrienskies.mod.common.air_pockets.computeOutsideVoidFromGeometry
 import java.util.BitSet
@@ -59,6 +61,43 @@ class ShipWaterPocketDomainTest {
         assertTrue(first.get(interiorIdx))
         assertEquals(expected, first)
         assertEquals(first, second)
+    }
+
+    @Test
+    fun computeEnclosedHeuristicRejectsSideOpenCavity() {
+        val sizeX = 5
+        val sizeY = 5
+        val sizeZ = 5
+        val volume = sizeX * sizeY * sizeZ
+
+        val open = BitSet(volume)
+        // 1-block-wide tunnel that leaves the center cell open to +X boundary.
+        open.set(indexOf(sizeX, sizeY, x = 1, y = 2, z = 2))
+        open.set(indexOf(sizeX, sizeY, x = 2, y = 2, z = 2))
+        open.set(indexOf(sizeX, sizeY, x = 3, y = 2, z = 2))
+        open.set(indexOf(sizeX, sizeY, x = 4, y = 2, z = 2))
+
+        val faceCondXP = ShortArray(volume)
+        val faceCondYP = ShortArray(volume)
+        val faceCondZP = ShortArray(volume)
+
+        faceCondXP[indexOf(sizeX, sizeY, x = 1, y = 2, z = 2)] = MIN_OPENING_CONDUCTANCE.toShort()
+        faceCondXP[indexOf(sizeX, sizeY, x = 2, y = 2, z = 2)] = MIN_OPENING_CONDUCTANCE.toShort()
+        faceCondXP[indexOf(sizeX, sizeY, x = 3, y = 2, z = 2)] = MIN_OPENING_CONDUCTANCE.toShort()
+
+        val enclosed = computeEnclosedHeuristicFromGeometry(
+            open = open,
+            sizeX = sizeX,
+            sizeY = sizeY,
+            sizeZ = sizeZ,
+            faceCondXP = faceCondXP,
+            faceCondYP = faceCondYP,
+            faceCondZP = faceCondZP,
+            passCondThreshold = MIN_OPENING_CONDUCTANCE,
+        )
+
+        val sideOpenCenter = indexOf(sizeX, sizeY, x = 1, y = 2, z = 2)
+        assertFalse(enclosed.get(sideOpenCenter))
     }
 
     private fun indexOf(sizeX: Int, sizeY: Int, x: Int, y: Int, z: Int): Int {
