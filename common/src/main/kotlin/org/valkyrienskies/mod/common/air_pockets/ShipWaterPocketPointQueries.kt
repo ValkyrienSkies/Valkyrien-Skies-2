@@ -6,6 +6,7 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.material.FluidState
 import net.minecraft.world.phys.AABB
 import org.joml.Vector3d
+import org.valkyrienskies.mod.util.FluidStateManager
 import kotlin.math.abs
 
 const val POINT_QUERY_EPS: Double = 1e-5
@@ -15,6 +16,7 @@ internal fun findOpenShipBlockPosForPoint(
     state: ShipPocketState,
     shipPos: Vector3d,
     tmp: BlockPos.MutableBlockPos,
+    queryCache: FluidStateManager.QueryCache? = null,
 ): BlockPos.MutableBlockPos? {
     val x = shipPos.x
     val y = shipPos.y
@@ -54,7 +56,7 @@ internal fun findOpenShipBlockPosForPoint(
     // blocks like doors (player can be inside the same block coordinate, but only on one side of the plane).
     run {
         tmp.set(baseX, baseY, baseZ)
-        val bs = level.getBlockState(tmp)
+        val bs = FluidStateManager.getBlockState(level, tmp, queryCache)
         val shape = bs.getCollisionShape(level, tmp)
         if (!shape.isEmpty) {
             // For full blocks, treat the collision shape as a solid hull voxel and pick the open neighbor cell
@@ -185,12 +187,13 @@ internal fun findShipFluidAtShipPoint(
     level: Level,
     shipPos: Vector3d,
     shipBlockPos: BlockPos.MutableBlockPos,
+    queryCache: FluidStateManager.QueryCache? = null,
 ): FluidState {
     val baseX = shipBlockPos.x
     val baseY = shipBlockPos.y
     val baseZ = shipBlockPos.z
 
-    var shipFluid = level.getBlockState(shipBlockPos).fluidState
+    var shipFluid = FluidStateManager.getBlockState(level, shipBlockPos, queryCache).fluidState
     if (!shipFluid.isEmpty) return shipFluid
 
     val e = POINT_QUERY_EPS
@@ -206,7 +209,7 @@ internal fun findShipFluidAtShipPoint(
                     Mth.floor(shipPos.y + dy),
                     Mth.floor(shipPos.z + dz),
                 )
-                shipFluid = level.getBlockState(shipBlockPos).fluidState
+                shipFluid = FluidStateManager.getBlockState(level, shipBlockPos, queryCache).fluidState
                 if (!shipFluid.isEmpty) return shipFluid
             }
         }

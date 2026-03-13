@@ -103,6 +103,8 @@ object ShipWaterPocketManager {
         ThreadLocal.withInitial { BlockPos.MutableBlockPos() }
     private val tmpShipFlowDir: ThreadLocal<Vector3d> = ThreadLocal.withInitial { Vector3d() }
     private val tmpShipGravityVec: ThreadLocal<Vector3d> = ThreadLocal.withInitial { Vector3d() }
+    private val tmpChunkQueryCache: ThreadLocal<FluidStateManager.QueryCache> =
+        ThreadLocal.withInitial { FluidStateManager.QueryCache() }
 
     private data class ShipFluidSampleCache(
         var lastLevel: Level? = null,
@@ -963,6 +965,7 @@ object ShipWaterPocketManager {
         shipPosTmp: Vector3d,
         worldPosTmp: Vector3d,
         worldBlockPos: BlockPos.MutableBlockPos,
+        queryCache: FluidStateManager.QueryCache? = null,
     ): Fluid? {
         val epsY = 1e-5
         shipPosTmp.set(shipX, shipY, shipZ)
@@ -973,7 +976,7 @@ object ShipWaterPocketManager {
         val wz = Mth.floor(worldPosTmp.z)
         worldBlockPos.set(wx, wy, wz)
 
-        val worldFluid = FluidStateManager.getFluidData(level, worldBlockPos)
+        val worldFluid = FluidStateManager.getFluidData(level, worldBlockPos, queryCache)
         if (worldFluid == null) return null
         if (!worldFluid.isSurface || worldFluid.surface.isSource) return worldFluid.sourceFluid()
 
@@ -992,6 +995,7 @@ object ShipWaterPocketManager {
         shipPosTmp: Vector3d,
         worldPosTmp: Vector3d,
         worldBlockPos: BlockPos.MutableBlockPos,
+        queryCache: FluidStateManager.QueryCache? = null,
     ): Double? {
         return withBypassedFluidOverrides {
             val canonical = canonicalFloodSource(sampleFluid)
@@ -1009,7 +1013,7 @@ object ShipWaterPocketManager {
             var lastSurface = Double.NEGATIVE_INFINITY
 
             while (steps < AIR_PRESSURE_SURFACE_SCAN_MAX_STEPS && y < level.maxBuildHeight) {
-                val fs = FluidStateManager.getFluidData(level, worldBlockPos)
+                val fs = FluidStateManager.getFluidData(level, worldBlockPos, queryCache)
                 if (fs == null || fs.sourceFluid() != canonical) break
 
                 val h = if (!fs.isSurface || fs.surface.isSource) 1.0 else fs.height().toDouble()
@@ -1039,6 +1043,7 @@ object ShipWaterPocketManager {
         shipPosTmp: Vector3d,
         worldPosTmp: Vector3d,
         worldBlockPos: BlockPos.MutableBlockPos,
+        queryCache: FluidStateManager.QueryCache? = null,
     ): Double? {
         return estimateExteriorFluidSurfaceYAtShipPoint(
             level = level,
@@ -1050,6 +1055,7 @@ object ShipWaterPocketManager {
             shipPosTmp = shipPosTmp,
             worldPosTmp = worldPosTmp,
             worldBlockPos = worldBlockPos,
+            queryCache = queryCache,
         )
     }
 
@@ -1066,9 +1072,9 @@ object ShipWaterPocketManager {
         val volumeLong = sizeX.toLong() * sizeY.toLong() * sizeZ.toLong()
         if (volumeLong <= 0 || volumeLong > MAX_SIM_VOLUME.toLong()) return null
         val volume = volumeLong.toInt()
-
         val shipPosTmp = tmpShipPos2.get()
         val worldPosTmp = tmpWorldPos2.get()
+        val queryCache = tmpChunkQueryCache.get().apply { reset() }
         val shipBlockPos = tmpShipBlockPos.get()
         val worldBlockPos = BlockPos.MutableBlockPos()
 
@@ -1118,6 +1124,7 @@ object ShipWaterPocketManager {
                 shipPosTmp = shipPosTmp,
                 worldPosTmp = worldPosTmp,
                 worldBlockPos = worldBlockPos,
+                queryCache = queryCache,
             )
             val fluid = coverage.canonicalFluid
             if (coverage.isSubmergedAny() && fluid != null) {
@@ -1139,6 +1146,7 @@ object ShipWaterPocketManager {
                         shipPosTmp = shipPosTmp,
                         worldPosTmp = worldPosTmp,
                         worldBlockPos = worldBlockPos,
+                        queryCache = queryCache,
                     )
                     if (surface != null && surface.isFinite()) {
                         surfaceYByCell[idx] = surface
@@ -1395,6 +1403,7 @@ object ShipWaterPocketManager {
                         shipPosTmp = shipPosTmp,
                         worldPosTmp = worldPosTmp,
                         worldBlockPos = worldBlockPos,
+                        queryCache = queryCache,
                     )
                     if (isCenter) centerFluid = fluid
                     if (fluid == null) return
@@ -1481,6 +1490,7 @@ object ShipWaterPocketManager {
                         shipPosTmp = shipPosTmp,
                         worldPosTmp = worldPosTmp,
                         worldBlockPos = worldBlockPos,
+                        queryCache = queryCache,
                     )
                 } else {
                     null
@@ -2031,6 +2041,7 @@ object ShipWaterPocketManager {
                 val fluidTickDelay = (state.floodFluid as? FlowingFluid)?.getTickDelay(level)?.coerceAtLeast(1) ?: 1
                 val ingressMultiplier = state.activeFloodIngressPoints.coerceIn(1, MAX_VIRTUAL_INGRESS_FRONTS)
                 val floodAddCap = if (now % fluidTickDelay.toLong() == 0L) ingressMultiplier else 0
+                val flushQueryCache = tmpChunkQueryCache.get().apply { reset() }
 
                 val flushResult = flushFloodWriteQueue(
                     level = level,
@@ -2039,30 +2050,22 @@ object ShipWaterPocketManager {
                     addCap = floodAddCap,
                     setApplyingInternalUpdates = { applyingInternalUpdates = it },
                     isFloodFluidType = { fluid -> canonicalFloodSource(fluid) == state.floodFluid },
-                    isIngressQualifiedForAdd = { pos, transform, shipPosTmp, worldPosTmp, worldBlockPos ->
-                        val pointClass = classifyShipPoint(
-                            state = state,
-                            x = pos.x + 0.5,
-                            y = pos.y + 0.5,
-                            z = pos.z + 0.5,
+                    isExteriorFloodSeedReady = { pos, transform, shipPosTmp, worldPosTmp, worldBlockPos ->
+                        val submergedSample = getShipCellFluidCoverage(
+                            level = level,
+                            shipTransform = transform,
+                            shipBlockPos = pos,
+                            shipPosTmp = shipPosTmp,
+                            worldPosTmp = worldPosTmp,
+                            worldBlockPos = worldBlockPos,
+                            queryCache = flushQueryCache,
                         )
-                        if (!isClassificationInSimulationDomain(state, pointClass)) {
-                            false
-                        } else {
-                            val submergedSample = getShipCellFluidCoverage(
-                                level = level,
-                                shipTransform = transform,
-                                shipBlockPos = pos,
-                                shipPosTmp = shipPosTmp,
-                                worldPosTmp = worldPosTmp,
-                                worldBlockPos = worldBlockPos,
-                            )
-                            val submergedFluid = submergedSample.canonicalFluid
-                            submergedSample.isIngressQualified() &&
-                                submergedFluid != null &&
-                                canonicalFloodSource(submergedFluid) == state.floodFluid
-                        }
+                        val submergedFluid = submergedSample.canonicalFluid
+                        submergedSample.isIngressQualified() &&
+                            submergedFluid != null &&
+                            canonicalFloodSource(submergedFluid) == state.floodFluid
                     },
+                    queryCache = flushQueryCache,
                 )
                 if (flushResult.rejectedAdds > 0) {
                     val count = rejectedFloodQueueAdds.addAndGet(flushResult.rejectedAdds.toLong())
@@ -3082,6 +3085,7 @@ object ShipWaterPocketManager {
     ): FluidState {
         if (!VSGameConfig.COMMON.enableAirPockets) return original
         if (level.isBlockInShipyard(worldX, worldY, worldZ)) return original
+        val queryCache = tmpChunkQueryCache.get().apply { reset() }
 
         val worldBlockPos = BlockPos.containing(worldX, worldY, worldZ)
         val queryAabb = ShipWaterPocketManager.tmpQueryAabb.get().apply {
@@ -3119,7 +3123,7 @@ object ShipWaterPocketManager {
                 continue
             }
 
-            val shipFluid = findShipFluidAtShipPoint(level, shipPosTmp, shipBlockPosTmp)
+            val shipFluid = findShipFluidAtShipPoint(level, shipPosTmp, shipBlockPosTmp, queryCache)
             if (!shipFluid.isEmpty) return shipFluid
             if (!original.isEmpty && ShipWaterPocketManager.isSuppressionClassification(
                     state, classification
@@ -3173,6 +3177,7 @@ object ShipWaterPocketManager {
 
         if (!enabled) return cache
         if (level.isBlockInShipyard(worldBlockPos)) return cache
+        val queryCache = tmpChunkQueryCache.get().apply { reset() }
 
         val queryAabb = tmpQueryAabb.get().apply {
             minX = worldBlockPos.x.toDouble()
@@ -3211,7 +3216,7 @@ object ShipWaterPocketManager {
                 shipBlockPosTmp.set(Mth.floor(shipPosTmp.x), Mth.floor(shipPosTmp.y), Mth.floor(shipPosTmp.z))
             }
 
-            val shipFluid = findShipFluidAtShipPoint(level, shipPosTmp, shipBlockPosTmp)
+            val shipFluid = findShipFluidAtShipPoint(level, shipPosTmp, shipBlockPosTmp, queryCache)
             if (shipFluid.isEmpty) continue
 
             cache.height = shipFluid.getHeight(level, shipBlockPosTmp)
@@ -3431,12 +3436,13 @@ object ShipWaterPocketManager {
         level: Level,
         shipPos: Vector3d,
         shipBlockPos: BlockPos.MutableBlockPos,
+        queryCache: FluidStateManager.QueryCache? = null,
     ): FluidState {
         val baseX = shipBlockPos.x
         val baseY = shipBlockPos.y
         val baseZ = shipBlockPos.z
 
-        var shipFluid = level.getBlockState(shipBlockPos).fluidState
+        var shipFluid = FluidStateManager.getBlockState(level, shipBlockPos, queryCache).fluidState
         if (!shipFluid.isEmpty) return shipFluid
 
         val e = POINT_QUERY_EPS
@@ -3452,7 +3458,7 @@ object ShipWaterPocketManager {
                         Mth.floor(shipPos.y + dy),
                         Mth.floor(shipPos.z + dz),
                     )
-                    shipFluid = level.getBlockState(shipBlockPos).fluidState
+                    shipFluid = FluidStateManager.getBlockState(level, shipBlockPos, queryCache).fluidState
                     if (!shipFluid.isEmpty) return shipFluid
                 }
             }
@@ -3604,6 +3610,7 @@ object ShipWaterPocketManager {
         allowWorldSurfaceScan: Boolean = true,
     ): BitSet {
         out.clear()
+        val queryCache = if (level != null) tmpChunkQueryCache.get().apply { reset() } else null
 
         val buoyancy = buoyancyOut
         buoyancy?.reset()
@@ -3683,6 +3690,7 @@ object ShipWaterPocketManager {
                     sampledShipPosTmp,
                     sampledWorldPosTmp,
                     sampledWorldBlockPos,
+                    queryCache = queryCache,
                 )
             }
 
@@ -4120,6 +4128,7 @@ object ShipWaterPocketManager {
                         shipPosTmp = shipPosTmp,
                         worldPosTmp = worldPosTmp,
                         worldBlockPos = worldBlockPos,
+                        queryCache = queryCache,
                     )
                     if (isCenter) centerFluid = fluid
                     if (fluid == null) return
@@ -4208,6 +4217,7 @@ object ShipWaterPocketManager {
                         shipPosTmp = shipPosTmp,
                         worldPosTmp = worldPosTmp,
                         worldBlockPos = worldBlockPos,
+                        queryCache = queryCache,
                     )
                 } else {
                     null
@@ -4662,6 +4672,7 @@ object ShipWaterPocketManager {
                             shipPosTmp = shipPosTmp,
                             worldPosTmp = worldPosTmp,
                             worldBlockPos = worldBlockPos,
+                            queryCache = queryCache,
                         ).canonicalFluid
                     }
                     if (sampleFluid != null) sampleFluid = canonicalFloodSource(sampleFluid)
@@ -4694,6 +4705,7 @@ object ShipWaterPocketManager {
                                 shipPosTmp = shipPosTmp,
                                 worldPosTmp = worldPosTmp,
                                 worldBlockPos = worldBlockPos,
+                                queryCache = queryCache,
                             )
                         }
 
@@ -5729,6 +5741,7 @@ object ShipWaterPocketManager {
 
         val shipPosTmp = tmpShipPos2.get()
         val worldPosTmp = tmpWorldPos2.get()
+        val queryCache = tmpChunkQueryCache.get().apply { reset() }
 
         shipPosTmp.set(baseShipX, baseShipY, baseShipZ)
         shipTransform.shipToWorld.transformPosition(shipPosTmp, worldPosTmp)
@@ -5852,7 +5865,18 @@ object ShipWaterPocketManager {
                 shipBlockPos.set(shipX, shipY, shipZ)
 
                 // A vent must open into outside *air* (not submerged in world water).
-                if (isShipCellSubmergedInWorldFluid(level, shipTransform, shipBlockPos, shipPosCornerTmp, worldPosCornerTmp, worldBlockPos)) return
+                if (isShipCellSubmergedInWorldFluid(
+                        level,
+                        shipTransform,
+                        shipBlockPos,
+                        shipPosCornerTmp,
+                        worldPosCornerTmp,
+                        worldBlockPos,
+                        queryCache = queryCache,
+                    )
+                ) {
+                    return
+                }
                 // ...and must actually open into *air*, not terrain/solid blocks (e.g. when the ship rests on the sea floor).
                 // Otherwise we'd incorrectly "flush" water just because the outside isn't liquid.
                 run {
@@ -5863,7 +5887,7 @@ object ShipWaterPocketManager {
                         Mth.floor(worldPosCornerTmp.y),
                         Mth.floor(worldPosCornerTmp.z),
                     )
-                    if (!level.getBlockState(worldBlockPos).isAir) return
+                    if (!FluidStateManager.getBlockState(level, worldBlockPos, queryCache).isAir) return
                 }
 
                 // Water can't "flush" out through an opening that's above the draining water cell in world-space.
@@ -6047,10 +6071,19 @@ object ShipWaterPocketManager {
         val shipPosTmp = tmpShipPos2.get()
         val shipBlockPos = BlockPos.MutableBlockPos()
         val worldBlockPos = BlockPos.MutableBlockPos()
+        val queryCache = tmpChunkQueryCache.get().apply { reset() }
 
         fun shipCellSubmerged(idx: Int): Boolean {
             posFromIndex(state, idx, shipBlockPos)
-            return isShipCellSubmergedInWorldFluid(level, shipTransform, shipBlockPos, shipPosTmp, worldPosTmp, worldBlockPos)
+            return isShipCellSubmergedInWorldFluid(
+                level,
+                shipTransform,
+                shipBlockPos,
+                shipPosTmp,
+                worldPosTmp,
+                worldBlockPos,
+                queryCache = queryCache,
+            )
         }
 
         fun tryEnqueue(idx: Int, requireSubmerged: Boolean) {
@@ -6147,6 +6180,7 @@ object ShipWaterPocketManager {
         val worldPosTmp = tmpWorldPos2.get()
         val shipPosTmp = tmpShipPos2.get()
         val worldBlockPos = BlockPos.MutableBlockPos()
+        val queryCache = tmpChunkQueryCache.get().apply { reset() }
 
         applyingInternalUpdates = true
         try {
@@ -6154,7 +6188,7 @@ object ShipWaterPocketManager {
             while (idx >= 0) {
                 posFromIndex(state, idx, pos)
 
-                val current = level.getBlockState(pos)
+                val current = FluidStateManager.getBlockState(level, pos, queryCache)
                 if (toWater) {
                     if (!state.simulationDomain.get(idx)) {
                         state.materializedWater.clear(idx)
@@ -6168,7 +6202,8 @@ object ShipWaterPocketManager {
                             pos,
                             shipPosTmp,
                             worldPosTmp,
-                            worldBlockPos
+                            worldBlockPos,
+                            queryCache = queryCache,
                         )
                         val submergedFluid = submergedSample.canonicalFluid
                         if (!submergedSample.isIngressQualified() || submergedFluid == null || canonicalFloodSource(submergedFluid) != state.floodFluid) {
@@ -6234,8 +6269,17 @@ object ShipWaterPocketManager {
         shipPosTmp: Vector3d,
         worldPosTmp: Vector3d,
         worldBlockPos: BlockPos.MutableBlockPos,
+        queryCache: FluidStateManager.QueryCache? = null,
     ): Boolean {
-        return getShipCellFluidCoverage(level, shipTransform, shipBlockPos, shipPosTmp, worldPosTmp, worldBlockPos)
+        return getShipCellFluidCoverage(
+            level,
+            shipTransform,
+            shipBlockPos,
+            shipPosTmp,
+            worldPosTmp,
+            worldBlockPos,
+            queryCache = queryCache,
+        )
             .isIngressQualified()
     }
 
@@ -6246,8 +6290,17 @@ object ShipWaterPocketManager {
         shipPosTmp: Vector3d,
         worldPosTmp: Vector3d,
         worldBlockPos: BlockPos.MutableBlockPos,
+        queryCache: FluidStateManager.QueryCache? = null,
     ): Fluid? {
-        val sample = getShipCellFluidCoverage(level, shipTransform, shipBlockPos, shipPosTmp, worldPosTmp, worldBlockPos)
+        val sample = getShipCellFluidCoverage(
+            level,
+            shipTransform,
+            shipBlockPos,
+            shipPosTmp,
+            worldPosTmp,
+            worldBlockPos,
+            queryCache = queryCache,
+        )
         return if (sample.isIngressQualified()) sample.canonicalFluid else null
     }
 
@@ -6258,6 +6311,7 @@ object ShipWaterPocketManager {
         shipPosTmp: Vector3d,
         worldPosTmp: Vector3d,
         worldBlockPos: BlockPos.MutableBlockPos,
+        queryCache: FluidStateManager.QueryCache? = null,
     ): FluidCoverageSample {
         return withBypassedFluidOverrides {
             val epsCorner = 1e-4
@@ -6278,6 +6332,7 @@ object ShipWaterPocketManager {
                     shipPosTmp = shipPosTmp,
                     worldPosTmp = worldPosTmp,
                     worldBlockPos = worldBlockPos,
+                    queryCache = queryCache,
                 )
             }
 
