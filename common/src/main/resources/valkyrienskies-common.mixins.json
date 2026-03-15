@@ -252,6 +252,7 @@
     "feature.block_tint.MixinClientLevel",
     "feature.commands.ClientSuggestionProviderAccessor",
     "feature.entity_movement_packets.MixinLocalPlayer",
+    "feature.particle_collision.MixinEntity",
     "feature.fix_render_chunk_sorting.MixinRenderChunk",
     "feature.fluid_camera_fix.MixinCamera",
     "feature.hit_outline.MixinLevelRenderer",
