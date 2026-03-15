@@ -260,6 +260,7 @@
     "feature.render_leashes.MixinMobRenderer",
     "feature.render_pathfinding.MixinDebugRenderer",
     "feature.render_ship_debug_bb.MixinDebugRenderer",
+    "feature.world_weather.MixinLevelRenderer",
     "feature.seamless_copy.MixinClientPacketListener",
     "feature.ship_debug_overlay.MixinDebugScreenOverlay",
     "feature.shipyard_entities.MixinClientLevel",
