@@ -27,6 +27,7 @@ import org.valkyrienskies.mod.util.BugFixUtil
 import java.util.stream.Stream
 
 object EntityShipCollisionUtils {
+    private const val PARTICLE_COLLISION_BOX_EXPANSION = 0.00390625 //1.0 / 256.0
 
     private val collider = vsCore.entityPolygonCollider
 
@@ -123,8 +124,14 @@ object EntityShipCollisionUtils {
             return movement
         }
 
+        val collisionBoundingBox = if (entity == null) {
+            entityBoundingBox.inflate(PARTICLE_COLLISION_BOX_EXPANSION)
+        } else {
+            entityBoundingBox
+        }
+
         val (newMovement, shipCollidingWith) = collider.adjustEntityMovementForPolygonCollisions(
-            movement.toJOML(), entityBoundingBox.toJOML(), stepHeight, collidingShipPolygons
+            movement.toJOML(), collisionBoundingBox.toJOML(), stepHeight, collidingShipPolygons
         )
         if (entity != null) {
             val standingOnShip = entity.level().getLoadedShipManagingPos(entity.onPos)
