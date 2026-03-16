@@ -70,7 +70,9 @@ public abstract class MixinBlockItem {
         if (!result) {
             return false;
         }
-        if (!VSGameConfig.COMMON.BLOCK_PLACEMENT.getEnableExtendedObstructionChecks()) {
+        final boolean checkBlockObstructions = VSGameConfig.COMMON.BLOCK_PLACEMENT.getEnableBlockObstructionChecks();
+        final boolean checkEntityObstructions = VSGameConfig.COMMON.BLOCK_PLACEMENT.getEnableEntityObstructionChecks();
+        if (!checkBlockObstructions && !checkEntityObstructions) {
             return true;
         }
 
@@ -87,17 +89,17 @@ public abstract class MixinBlockItem {
         final Ship ship = VSGameUtilsKt.getShipManagingPos(level, blockPos);
         if (ship != null) {
             final Matrix4dc shipToWorld = ship.getShipToWorld();
-            if (vs_hasObstructionWithWorldBlocks(level, placementBoxes, shipToWorld)) {
+            if (checkBlockObstructions && vs_hasObstructionWithWorldBlocks(level, placementBoxes, shipToWorld)) {
                 return false;
             }
-            if (vs_hasObstructionWithEntities(level, placementBoxes, shipToWorld)) {
+            if (checkEntityObstructions && vs_hasObstructionWithEntities(level, placementBoxes, shipToWorld)) {
                 return false;
             }
             return true;
         }
 
         final AABBd worldBounds = VectorConversionsMCKt.toJOML(voxelShape.bounds().move(blockPos));
-        if (vs_hasWorldPlacementObstructionWithShips(level, placementBoxes, worldBounds)) {
+        if (checkBlockObstructions && vs_hasWorldPlacementObstructionWithShips(level, placementBoxes, worldBounds)) {
             return false;
         }
 

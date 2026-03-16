@@ -336,10 +336,16 @@ object VSGameConfig {
 
         class BlockPlacement {
             @ConfigEntry(
-                description = "If true, VS2 block placement additionally checks ship/world/entity obstructions " +
-                    "so placement is denied when those collision shapes intersect."
+                description = "If true, VS2 block placement additionally checks block obstructions across ship/world " +
+                    "spaces so placement is denied when collision shapes intersect."
             )
-            var enableExtendedObstructionChecks = true
+            var enableBlockObstructionChecks = false
+
+            @ConfigEntry(
+                description = "If true, VS2 block placement additionally checks entity obstructions " +
+                    "during cross-space placement so placement is denied when collision shapes intersect."
+            )
+            var enableEntityObstructionChecks = true
         }
 
         class Advanced { // Debug configs that may be either side
