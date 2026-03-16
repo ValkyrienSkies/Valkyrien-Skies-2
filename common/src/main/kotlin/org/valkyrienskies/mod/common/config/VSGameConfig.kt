@@ -327,8 +327,20 @@ object VSGameConfig {
     class Common {
 
         @JvmField
+        @ConfigCategory(title = "Block Placement")
+        val BLOCK_PLACEMENT = BlockPlacement()
+
+        @JvmField
         @ConfigCategory(title = "Advanced")
         val ADVANCED = Advanced()
+
+        class BlockPlacement {
+            @ConfigEntry(
+                description = "If true, VS2 block placement additionally checks ship/world/entity obstructions " +
+                    "so placement is denied when those collision shapes intersect."
+            )
+            var enableExtendedObstructionChecks = true
+        }
 
         class Advanced { // Debug configs that may be either side
             @ConfigEntry(
