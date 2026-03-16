@@ -111,7 +111,7 @@ public abstract class MixinBlockItem {
         final Level level, final List<AABBd> placementBoxes, final Matrix4dc shipToWorld
     ) {
         for (final AABBd placementBox : placementBoxes) {
-            if (vs_hasObstructionWithNonReplaceableBlocks(level, placementBox, shipToWorld)) {
+            if (vs_hasObstructionWithBlockCollisionShapes(level, placementBox, shipToWorld)) {
                 return true;
             }
         }
@@ -148,7 +148,7 @@ public abstract class MixinBlockItem {
         for (final Ship ship : VSGameUtilsKt.getShipsIntersecting(level, worldBounds)) {
             final Matrix4dc worldToShip = ship.getWorldToShip();
             for (final AABBd placementBox : placementBoxes) {
-                if (vs_hasObstructionWithNonReplaceableBlocks(level, placementBox, worldToShip)) {
+                if (vs_hasObstructionWithBlockCollisionShapes(level, placementBox, worldToShip)) {
                     return true;
                 }
             }
@@ -157,7 +157,7 @@ public abstract class MixinBlockItem {
     }
 
     @Unique
-    private static boolean vs_hasObstructionWithNonReplaceableBlocks(
+    private static boolean vs_hasObstructionWithBlockCollisionShapes(
         final Level level, final AABBd placementBox, final Matrix4dc placementToBlockSpace
     ) {
         final AABBd shrunkenPlacementBox = vs_deflateAabb(placementBox, VS_OBSTRUCTION_SHRINK);
@@ -178,10 +178,6 @@ public abstract class MixinBlockItem {
                 for (int z = minZ; z <= maxZ; z++) {
                     mutablePos.set(x, y, z);
                     final BlockState blockState = level.getBlockState(mutablePos);
-                    if (blockState.canBeReplaced()) {
-                        continue;
-                    }
-
                     final VoxelShape blockShape = blockState.getCollisionShape(level, mutablePos);
                     if (blockShape.isEmpty()) {
                         continue;
