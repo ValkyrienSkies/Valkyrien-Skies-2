@@ -108,6 +108,40 @@ class EntityDraggingInformation {
         serverRelativePlayerYaw = null
     }
 
+    fun authoritativeRelativePositionForLerp(shipId: ShipId, packetPosition: Vector3dc): Vector3dc {
+        return if (authoritativeShipStoodOn == shipId) {
+            relativePositionOnShip?.let(::Vector3d)
+                ?: lerpPositionOnShip?.let(::Vector3d)
+                ?: Vector3d(packetPosition)
+        } else {
+            Vector3d(packetPosition)
+        }
+    }
+
+    fun authoritativeYawForLerp(shipId: ShipId, packetYaw: Double): Double {
+        return if (authoritativeShipStoodOn == shipId) {
+            relativeYawOnShip ?: lerpYawOnShip ?: packetYaw
+        } else {
+            packetYaw
+        }
+    }
+
+    fun authoritativeHeadYawForLerp(shipId: ShipId, packetYaw: Double): Double {
+        return if (authoritativeShipStoodOn == shipId) {
+            relativeHeadYawOnShip ?: lerpHeadYawOnShip ?: packetYaw
+        } else {
+            packetYaw
+        }
+    }
+
+    fun authoritativePitchForLerp(shipId: ShipId, packetPitch: Double): Double {
+        return if (authoritativeShipStoodOn == shipId) {
+            relativePitchOnShip ?: lerpPitchOnShip ?: packetPitch
+        } else {
+            packetPitch
+        }
+    }
+
     fun isEntityBeingDraggedByAShip(): Boolean {
         return (authoritativeShipStoodOn != null || (predictedShipStoodOn != null && ticksSinceStoodOnShip < TICKS_TO_DRAG_ENTITIES)) && !mountedToEntity
     }

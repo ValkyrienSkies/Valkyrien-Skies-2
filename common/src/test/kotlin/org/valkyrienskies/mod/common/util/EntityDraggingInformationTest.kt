@@ -82,4 +82,44 @@ class EntityDraggingInformationTest {
         assertFalse(info.changedShipLastTick)
         assertFalse(info.shouldImpulseMovement)
     }
+
+    @Test
+    fun authoritativeLerpStartReusesCurrentRelativeStateOnSameShip() {
+        val info = EntityDraggingInformation()
+
+        info.setAuthoritativeShipStoodOn(7L)
+        info.relativePositionOnShip = Vector3d(1.0, 2.0, 3.0)
+        info.relativeYawOnShip = 0.25
+        info.relativeHeadYawOnShip = 0.5
+        info.relativePitchOnShip = 0.75
+
+        val startPosition = info.authoritativeRelativePositionForLerp(7L, Vector3d(10.0, 20.0, 30.0))
+
+        assertEquals(1.0, startPosition.x(), 1e-9)
+        assertEquals(2.0, startPosition.y(), 1e-9)
+        assertEquals(3.0, startPosition.z(), 1e-9)
+        assertEquals(0.25, info.authoritativeYawForLerp(7L, 1.25), 1e-9)
+        assertEquals(0.5, info.authoritativeHeadYawForLerp(7L, 1.5), 1e-9)
+        assertEquals(0.75, info.authoritativePitchForLerp(7L, 1.75), 1e-9)
+    }
+
+    @Test
+    fun authoritativeLerpStartSnapsToPacketStateWhenShipChanges() {
+        val info = EntityDraggingInformation()
+
+        info.setAuthoritativeShipStoodOn(7L)
+        info.relativePositionOnShip = Vector3d(1.0, 2.0, 3.0)
+        info.relativeYawOnShip = 0.25
+        info.relativeHeadYawOnShip = 0.5
+        info.relativePitchOnShip = 0.75
+
+        val startPosition = info.authoritativeRelativePositionForLerp(8L, Vector3d(10.0, 20.0, 30.0))
+
+        assertEquals(10.0, startPosition.x(), 1e-9)
+        assertEquals(20.0, startPosition.y(), 1e-9)
+        assertEquals(30.0, startPosition.z(), 1e-9)
+        assertEquals(1.25, info.authoritativeYawForLerp(8L, 1.25), 1e-9)
+        assertEquals(1.5, info.authoritativeHeadYawForLerp(8L, 1.5), 1e-9)
+        assertEquals(1.75, info.authoritativePitchForLerp(8L, 1.75), 1e-9)
+    }
 }

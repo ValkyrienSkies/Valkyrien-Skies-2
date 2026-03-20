@@ -93,6 +93,12 @@ object VSGamePackets {
                 return@registerClientHandler
             }
 
+            val previousRelativePosition = dragInfo.authoritativeRelativePositionForLerp(
+                setMotion.shipID,
+                Vector3d(setMotion.x, setMotion.y, setMotion.z)
+            )
+            val previousRelativeYaw = dragInfo.authoritativeYawForLerp(setMotion.shipID, setMotion.yRot)
+
             dragInfo.setAuthoritativeShipStoodOn(setMotion.shipID)
             if (previousShipId == null || previousShipId != setMotion.shipID) {
                 dragInfo.ignoreNextGroundStand = true
@@ -100,21 +106,16 @@ object VSGamePackets {
             dragInfo.shouldImpulseMovement = false
             dragInfo.ticksSinceLastServerPacket = 0
 
-            dragInfo.relativePositionOnShip = ship.worldToShip.transformPosition(
-                Vector3d(entity.x, entity.y, entity.z)
-            )
+            dragInfo.relativePositionOnShip = previousRelativePosition
             dragInfo.previousRelativeVelocityOnShip = dragInfo.relativeVelocityOnShip
-            dragInfo.relativeYawOnShip = EntityLerper.yawToShip(ship, entity.yRot.toDouble())
+            dragInfo.relativeYawOnShip = previousRelativeYaw
 
             dragInfo.lerpPositionOnShip = Vector3d(setMotion.x, setMotion.y, setMotion.z)
             dragInfo.relativeVelocityOnShip = Vector3d(setMotion.xVel, setMotion.yVel, setMotion.zVel)
             dragInfo.lerpYawOnShip = setMotion.yRot
 
-            val previousWorldPosition = if (dragInfo.relativePositionOnShip != null) {
-                ship.renderTransform.shipToWorld.transformPosition(Vector3d(dragInfo.relativePositionOnShip))
-            } else {
-                Vector3d(entity.x, entity.y, entity.z)
-            }
+            val previousWorldPosition =
+                ship.renderTransform.shipToWorld.transformPosition(Vector3d(previousRelativePosition))
             val worldPosition = ship.renderTransform.shipToWorld.transformPosition(Vector3d(setMotion.x, setMotion.y, setMotion.z))
             entity.syncPacketPositionCodec(worldPosition.x, worldPosition.y, worldPosition.z)
             val worldVelocity = ship.renderTransform.shipToWorld.transformDirection(Vector3d(setMotion.xVel, setMotion.yVel, setMotion.zVel))
@@ -148,13 +149,16 @@ object VSGamePackets {
                     return@registerClientHandler
                 }
 
+            val previousHeadYaw = dragInfo.authoritativeHeadYawForLerp(setRotation.shipID, setRotation.yaw)
+            val previousPitch = dragInfo.authoritativePitchForLerp(setRotation.shipID, setRotation.pitch)
+
             if (dragInfo.authoritativeShipStoodOn == null || dragInfo.authoritativeShipStoodOn != setRotation.shipID) {
                 dragInfo.setAuthoritativeShipStoodOn(setRotation.shipID)
                 dragInfo.ignoreNextGroundStand = true
             }
-            dragInfo.relativeHeadYawOnShip = EntityLerper.yawToShip(ship, entity.yHeadRot.toDouble())
+            dragInfo.relativeHeadYawOnShip = previousHeadYaw
             dragInfo.lerpHeadYawOnShip = setRotation.yaw
-            dragInfo.relativePitchOnShip = entity.xRot.toDouble()
+            dragInfo.relativePitchOnShip = previousPitch
             dragInfo.lerpPitchOnShip = setRotation.pitch
             dragInfo.headLerpSteps = 3
         }
