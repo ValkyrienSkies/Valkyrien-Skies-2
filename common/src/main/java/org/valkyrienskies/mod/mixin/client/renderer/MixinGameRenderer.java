@@ -151,6 +151,9 @@ public abstract class MixinGameRenderer {
                     ((IEntityDraggingInformationProvider) entity).getDraggingInformation();
                 final Long lastShipStoodOn = entityDraggingInformation.getLastShipStoodOn();
                 // Then try getting [entityShouldBeHere] from [entityDraggingInformation]
+                if (!entityDraggingInformation.shouldUseClientPrediction(entity)) {
+                    continue;
+                }
                 if (lastShipStoodOn != null && entityDraggingInformation.isEntityBeingDraggedByAShip()) {
                     final ClientShip shipObject =
                         VSGameUtilsKt.getShipObjectWorld(clientWorld).getLoadedShips().getById(lastShipStoodOn);

@@ -29,7 +29,7 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
         Operation<FluidState> original) {
         final FluidState[] fluidState = {original.call(instance, blockPos)};
         Level level = null;
-        if (!VSGameConfig.SERVER.getAiOnShips()) {
+        if (VSGameConfig.SERVER.getAiOnShips()) {
             if (instance instanceof PathNavigationRegion) {
                 level = ((PathNavigationRegionAccessor) instance).getLevel();
             } else if (instance instanceof Level) {
@@ -127,7 +127,7 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
         final Operation<FluidState> getFluidState) {
         final FluidState[] fluidState = {getFluidState.call(instance, blockPos)};
         final Level level = ((PathNavigationRegionAccessor) instance).getLevel();
-        if (!VSGameConfig.SERVER.getAiOnShips()) {
+        if (VSGameConfig.SERVER.getAiOnShips()) {
             if (level != null && fluidState[0].isEmpty()) {
                 final double origX = blockPos.getX();
                 final double origY = blockPos.getY();
@@ -146,5 +146,6 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
         return fluidState[0];
     }
 
-    // TODO - re-add isFree mixins
+    // 1.20.1 inlines the old isFree checks into getBlockPathType/findAcceptedNode-style flows,
+    // so the PathNavigationRegion and path-type hooks above are the ship-aware equivalent.
 }

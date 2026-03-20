@@ -9,10 +9,12 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MoverType;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import java.util.Optional;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.joml.primitives.AABBd;
@@ -31,9 +33,11 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
+import org.valkyrienskies.mod.common.util.ShipPathfindingUtils;
+import org.valkyrienskies.mod.mixinducks.world.entity.EntityShipGroundingDuck;
 
 @Mixin(Entity.class)
-public abstract class MixinEntity implements IEntityDraggingInformationProvider {
+public abstract class MixinEntity implements IEntityDraggingInformationProvider, EntityShipGroundingDuck {
 
     // region collision
 
@@ -162,34 +166,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     // region Block standing on friction and sprinting particles mixins
     @Unique
     private BlockPos getPosStandingOnFromShips(final Vector3dc blockPosInGlobal) {
-        final double radius = 0.5;
-        final AABBdc testAABB = new AABBd(
-            blockPosInGlobal.x() - radius, blockPosInGlobal.y() - radius, blockPosInGlobal.z() - radius,
-            blockPosInGlobal.x() + radius, blockPosInGlobal.y() + radius, blockPosInGlobal.z() + radius
-        );
-        final Iterable<Ship> intersectingShips = VSGameUtilsKt.getShipsIntersecting(level, testAABB);
-        for (final Ship ship : intersectingShips) {
-            final Vector3dc blockPosInLocal =
-                ship.getTransform().getWorldToShip().transformPosition(blockPosInGlobal, new Vector3d());
-            final BlockPos blockPos = BlockPos.containing(
-                blockPosInLocal.x(), blockPosInLocal.y(), blockPosInLocal.z()
-            );
-            final BlockState blockState = level.getBlockState(blockPos);
-            if (!blockState.isAir()) {
-                return blockPos;
-            } else {
-                // Check the block below as well, in the cases of fences
-                final Vector3dc blockPosInLocal2 = ship.getTransform().getWorldToShip()
-                    .transformPosition(
-                        new Vector3d(blockPosInGlobal.x(), blockPosInGlobal.y() - 1.0, blockPosInGlobal.z()));
-                final BlockPos blockPos2 = BlockPos.containing(blockPosInLocal2.x(), blockPosInLocal2.y(), blockPosInLocal2.z());
-                final BlockState blockState2 = level.getBlockState(blockPos2);
-                if (!blockState2.isAir()) {
-                    return blockPos2;
-                }
-            }
-        }
-        return null;
+        return ShipPathfindingUtils.findSupportingShipBlock(level, Entity.class.cast(this), getBoundingBox());
     }
 
     @Inject(method = "getBlockPosBelowThatAffectsMyMovement", at = @At("HEAD"), cancellable = true)
@@ -223,6 +200,30 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         }
     }
 
+    @WrapOperation(
+        method = "move",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/world/entity/Entity;setOnGroundWithKnownMovement(ZLnet/minecraft/world/phys/Vec3;)V"
+        )
+    )
+    private void addShipSupportToOnGroundState(final Entity entity, final boolean onGround, final Vec3 movement,
+        final Operation<Void> original) {
+        final BlockPos shipSupportPos =
+            onGround ? null : ShipPathfindingUtils.findSupportingShipBlock(level, entity, getBoundingBox());
+        final boolean shouldBeGrounded = onGround || shipSupportPos != null;
+        original.call(entity, shouldBeGrounded, movement);
+        if (shipSupportPos != null) {
+            vs$setShipSupportingBlock(shipSupportPos);
+        }
+    }
+
+    @Override
+    public void vs$setShipSupportingBlock(final BlockPos blockPos) {
+        this.mainSupportingBlockPos = Optional.of(blockPos.immutable());
+        this.onGroundNoBlocks = false;
+    }
+
     @WrapOperation(method = "spawnSprintParticle", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;blockPosition()Lnet/minecraft/core/BlockPos;"))
     private BlockPos skipBlockPosition(final Entity entity, final Operation<BlockPos> original, @Local final BlockPos posOn) {
         if (VSGameUtilsKt.isBlockInShipyard(level, posOn)) return posOn;
@@ -249,8 +250,13 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     )
     private void postBaseTick(final CallbackInfo ci) {
         final EntityDraggingInformation entityDraggingInformation = getDraggingInformation();
+        final Entity self = Entity.class.cast(this);
 
         if (level != null && level.isClientSide && tickCount > 1) { //baseTick sets the firstTick false, use tickCount instead.
+            if (!(self.isControlledByLocalInstance() || (self instanceof final Player player && player.isLocalPlayer()))) {
+                entityDraggingInformation.setMountedToEntity(self.getVehicle() != null);
+                return;
+            }
             final Ship ship = VSGameUtilsKt.getLoadedShipManagingPos(level, getOnPos());
             if (ship != null) {
 //                if (entityDraggingInformation.getLastShipStoodOnServerWriteOnly() == null) {
@@ -322,5 +328,11 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
     @Shadow
     private EntityDimensions dimensions;
+
+    @Shadow
+    public Optional<BlockPos> mainSupportingBlockPos;
+
+    @Shadow
+    private boolean onGroundNoBlocks;
     // endregion
 }

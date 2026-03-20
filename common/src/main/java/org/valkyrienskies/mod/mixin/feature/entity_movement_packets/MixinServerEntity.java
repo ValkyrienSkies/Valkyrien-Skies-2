@@ -2,20 +2,21 @@ package org.valkyrienskies.mod.mixin.feature.entity_movement_packets;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import java.util.List;
 import java.util.function.Consumer;
 import net.minecraft.network.protocol.game.ClientboundMoveEntityPacket;
 import net.minecraft.network.protocol.game.ClientboundRotateHeadPacket;
 import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
 import net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket;
+import net.minecraft.server.level.ChunkMap;
 import net.minecraft.server.level.ServerEntity;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.network.ServerPlayerConnection;
 import net.minecraft.world.entity.Entity;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.core.impl.networking.simple.SimplePacket;
@@ -27,6 +28,8 @@ import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.EntityLerper;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
+import org.valkyrienskies.mod.mixin.accessors.server.level.ChunkMapAccessor;
+import org.valkyrienskies.mod.mixin.accessors.server.level.TrackedEntityAccessor;
 import org.valkyrienskies.mod.mixinducks.world.entity.PlayerDuck;
 
 @Mixin(ServerEntity.class)
@@ -39,6 +42,23 @@ public class MixinServerEntity {
     @Shadow
     @Final
     private ServerLevel level;
+
+    @Unique
+    private Long vs$lastSentShipId = null;
+
+    @Unique
+    private void vs$sendToTrackedViewers(final SimplePacket packet) {
+        final ChunkMap.TrackedEntity trackedEntity =
+            ((ChunkMapAccessor) level.getChunkSource().chunkMap).getEntityMap().get(entity.getId());
+        if (trackedEntity == null) {
+            return;
+        }
+
+        for (final ServerPlayerConnection connection : ((TrackedEntityAccessor) trackedEntity).getSeenBy()) {
+            ValkyrienSkiesMod.getVsCore().getSimplePacketNetworking()
+                .sendToClients(packet, ((PlayerDuck) connection.getPlayer()).vs_getPlayer());
+        }
+    }
 
     /**
      * @author Tomato
@@ -82,15 +102,15 @@ public class MixinServerEntity {
                             vsPacket = new PacketMobShipRotation(entity.getId(), ship.getId(), yaw, pitch);
                         }
 
-                        List<ServerPlayer> players = level.getPlayers(player -> player.shouldRender(entity.getX(), entity.getY(), entity.getZ()));
-                        players.forEach(
-                            player -> ValkyrienSkiesMod.getVsCore().getSimplePacketNetworking().sendToClients(vsPacket, ((PlayerDuck)player).vs_getPlayer())
-                        );
-
+                        vs$sendToTrackedViewers(vsPacket);
+                        vs$lastSentShipId = ship.getId();
                         return;
                     }
+                }
 
-
+                if (vs$lastSentShipId != null) {
+                    vs$sendToTrackedViewers(new PacketEntityShipMotion(entity.getId(), -1L, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
+                    vs$lastSentShipId = null;
                 }
             }
         }

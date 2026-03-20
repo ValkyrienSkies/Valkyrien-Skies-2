@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.mixin.feature.shipyard_entities;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Camera;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
@@ -26,6 +27,8 @@ import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.entity.ShipMountedToData;
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager;
+import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
+import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(value = EntityRenderDispatcher.class, priority = 500)
@@ -86,6 +89,34 @@ public class MixinEntityRenderDispatcher {
             matrixStack.scale((float) scale.x(), (float) scale.y(), (float) scale.z());
             matrixStack.translate(offset.x, offset.y, offset.z);
         } else {
+            if (entity instanceof IEntityDraggingInformationProvider dragProvider) {
+                final EntityDraggingInformation dragInfo = dragProvider.getDraggingInformation();
+                final Long lastShipStoodOn = dragInfo.getLastShipStoodOn();
+                if (lastShipStoodOn != null && dragInfo.isEntityBeingDraggedByAShip()) {
+                    final ClientShip ship =
+                        VSGameUtilsKt.getShipObjectWorld((ClientLevel) entity.level()).getLoadedShips().getById(lastShipStoodOn);
+                    final Vector3dc relativePosition = dragInfo.interpolatedRelativeEntityPosition(partialTicks);
+                    if (ship != null && relativePosition != null) {
+                        matrixStack.popPose();
+                        matrixStack.pushPose();
+
+                        final Vec3 entityPosition = entity.getPosition(partialTicks);
+                        final Vector3dc transformed = ship.getRenderTransform().getShipToWorld()
+                            .transformPosition(relativePosition, new Vector3d());
+
+                        final double camX = x - entityPosition.x;
+                        final double camY = y - entityPosition.y;
+                        final double camZ = z - entityPosition.z;
+
+                        final Vec3 offset = entityRenderer.getRenderOffset(entity, partialTicks);
+
+                        matrixStack.translate(transformed.x() + camX, transformed.y() + camY, transformed.z() + camZ);
+                        matrixStack.translate(offset.x, offset.y, offset.z);
+                        return;
+                    }
+                }
+            }
+
             final ClientShip ship =
                 (ClientShip) VSGameUtilsKt.getLoadedShipManagingPos(entity.level(), entity.blockPosition());
             if (ship != null) {
