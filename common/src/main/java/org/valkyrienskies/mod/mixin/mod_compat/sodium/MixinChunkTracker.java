@@ -19,19 +19,19 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 @Mixin(ChunkTracker.class)
 public class MixinChunkTracker {
 
-    @Shadow
+    @Shadow(remap = false)
     @Final
     private Long2IntOpenHashMap chunkStatus;
 
-    @Shadow
+    @Shadow(remap = false)
     @Final
     private LongOpenHashSet chunkReady;
 
-    @Shadow
+    @Shadow(remap = false)
     @Final
     private LongSet unloadQueue;
 
-    @Shadow
+    @Shadow(remap = false)
     @Final
     private LongSet loadQueue;
 

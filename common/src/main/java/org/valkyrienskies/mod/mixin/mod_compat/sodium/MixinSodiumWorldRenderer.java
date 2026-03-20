@@ -32,10 +32,10 @@ import org.valkyrienskies.mod.mixinducks.mod_compat.sodium.RenderSectionManagerD
 @Mixin(SodiumWorldRenderer.class)
 public abstract class MixinSodiumWorldRenderer {
 
-    @Shadow
+    @Shadow(remap = false)
     private ClientLevel level;
 
-    @Shadow
+    @Shadow(remap = false)
     private RenderSectionManager renderSectionManager;
     @Unique
     private SortedRenderLists currentRenderLists;

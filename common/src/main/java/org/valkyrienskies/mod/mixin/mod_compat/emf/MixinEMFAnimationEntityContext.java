@@ -4,7 +4,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
@@ -14,8 +13,6 @@ import traben.entity_model_features.utils.EMFEntity;
 
 @Mixin(EMFAnimationEntityContext.class)
 public class MixinEMFAnimationEntityContext {
-    @Shadow
-    private static EMFEntity IEMFEntity;
 
     @Inject(
         at = @At("HEAD"),
@@ -23,12 +20,19 @@ public class MixinEMFAnimationEntityContext {
         cancellable = true
     )
     private static void distanceOfEntityFrom(final BlockPos pos, final CallbackInfoReturnable<Integer> cir) {
-        if (IEMFEntity != null) {
-            final var level = Minecraft.getInstance().level;
-            final var posW = VSGameUtilsKt.toWorldCoordinates(level, Vec3.atCenterOf(pos));
-            final var entityW = VSGameUtilsKt.toWorldCoordinates(level, Vec3.atCenterOf(IEMFEntity.etf$getBlockPos()));
-            final var dist = posW.distanceTo(entityW);
-            cir.setReturnValue((int) dist);
-        }
+        try {
+            var getEmfState = EMFAnimationEntityContext.class.getMethod("getEmfState");
+            var state = getEmfState.invoke(null);
+            if (state == null) return;
+            var getEmfEntity = state.getClass().getMethod("emfEntity");
+            var entity = (EMFEntity) getEmfEntity.invoke(state);
+            if (entity != null) {
+                final var level = Minecraft.getInstance().level;
+                final var posW = VSGameUtilsKt.toWorldCoordinates(level, Vec3.atCenterOf(pos));
+                final var entityW = VSGameUtilsKt.toWorldCoordinates(level, Vec3.atCenterOf(entity.etf$getBlockPos()));
+                final var dist = posW.distanceTo(entityW);
+                cir.setReturnValue((int) dist);
+            }
+        } catch (Exception ignored) {}
     }
 }
