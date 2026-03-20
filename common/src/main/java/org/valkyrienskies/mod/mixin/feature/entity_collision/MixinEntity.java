@@ -9,6 +9,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MoverType;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
@@ -249,8 +250,13 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     )
     private void postBaseTick(final CallbackInfo ci) {
         final EntityDraggingInformation entityDraggingInformation = getDraggingInformation();
+        final Entity self = Entity.class.cast(this);
 
         if (level != null && level.isClientSide && tickCount > 1) { //baseTick sets the firstTick false, use tickCount instead.
+            if (!(self.isControlledByLocalInstance() || (self instanceof final Player player && player.isLocalPlayer()))) {
+                entityDraggingInformation.setMountedToEntity(self.getVehicle() != null);
+                return;
+            }
             final Ship ship = VSGameUtilsKt.getLoadedShipManagingPos(level, getOnPos());
             if (ship != null) {
 //                if (entityDraggingInformation.getLastShipStoodOnServerWriteOnly() == null) {

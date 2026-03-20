@@ -10,6 +10,7 @@
     "accessors.server.level.ChunkMapAccessor",
     "accessors.server.level.DistanceManagerAccessor",
     "accessors.server.level.ServerChunkCacheAccessor",
+    "accessors.server.level.TrackedEntityAccessor",
     "accessors.util.math.Matrix4fAccessor",
     "accessors.world.level.block.SlabBlockAccessor",
     "accessors.world.level.block.StairBlockAccessor",

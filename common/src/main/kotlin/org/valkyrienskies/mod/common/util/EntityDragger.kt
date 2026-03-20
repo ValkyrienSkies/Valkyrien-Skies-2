@@ -38,16 +38,17 @@ object EntityDragger {
     fun dragEntitiesWithShips(entities: Iterable<Entity>, preTick: Boolean = false) {
         for (entity in entities) {
             val entityDraggingInformation = (entity as? IEntityDraggingInformationProvider)?.draggingInformation ?: continue
+            val shouldApplyShipDrag = !entity.level().isClientSide || entityDraggingInformation.shouldUseClientPrediction(entity)
 
             var dragTheEntity = false
             var addedMovement: Vector3dc? = null
             var addedYRot = 0.0
 
-            val shipDraggingEntity = entityDraggingInformation.lastShipStoodOn
+            val shipDraggingEntity = entityDraggingInformation.getDraggingShipId(entity)
 
 
             // Only drag entities that aren't mounted to vehicles
-            if (shipDraggingEntity != null && entity.vehicle == null && isDraggable(entity)) {
+            if (shouldApplyShipDrag && shipDraggingEntity != null && entity.vehicle == null && isDraggable(entity)) {
                 if (entityDraggingInformation.isEntityBeingDraggedByAShip()) {
                     // Compute how much we should drag the entity
                     val shipData = entity.level().shipObjectWorld.allShips.getById(shipDraggingEntity)
@@ -169,7 +170,20 @@ object EntityDragger {
                 entityDraggingInformation.addedMovementLastTick = Vector3d()
                 entityDraggingInformation.addedYawRotLastTick = 0.0
             }
-            entityDraggingInformation.ticksSinceStoodOnShip++
+
+            if (shouldApplyShipDrag) {
+                entityDraggingInformation.ticksSinceStoodOnShip++
+            }
+
+            if (!entity.level().isClientSide &&
+                entityDraggingInformation.getPredictedShipStoodOn() != null &&
+                entityDraggingInformation.ticksSinceStoodOnShip >= EntityDraggingInformation.TICKS_TO_DRAG_ENTITIES &&
+                entity.vehicle == null
+            ) {
+                entityDraggingInformation.clearPredictedShipState()
+                entity.hasImpulse = true
+            }
+
             entityDraggingInformation.mountedToEntity = entity.vehicle != null
         }
     }
