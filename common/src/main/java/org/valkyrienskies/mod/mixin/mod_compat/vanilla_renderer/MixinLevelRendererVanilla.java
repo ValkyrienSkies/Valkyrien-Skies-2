@@ -87,22 +87,7 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererDuck, Le
     @Unique
     private ShipTransform lastTransform = null;
 
-    /**
-     * Fix the distance to render chunks, so that MC doesn't think ship chunks are too far away
-     */
-    @Redirect(
-        method = "compileChunks",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/core/BlockPos;distSqr(Lnet/minecraft/core/Vec3i;)D"
-        ),
-        require = 0
-    )
-    private double includeShipChunksInNearChunks(final BlockPos b, final Vec3i v) {
-        return VSGameUtilsKt.squaredDistanceBetweenInclShips(
-            level, b.getX(), b.getY(), b.getZ(), v.getX(), v.getY(), v.getZ()
-        );
-    }
+
 
     /**
      * Force frustum update if the ship moves and the camera doesn't
@@ -209,7 +194,11 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererDuck, Le
         at = @At(value = "INVOKE", target = "Lnet/minecraft/core/BlockPos;distSqr(Lnet/minecraft/core/Vec3i;)D")
     )
     private double distToShips(BlockPos from, Vec3i to, Operation<Double> distSqr){
-        return VSGameUtilsKt.squaredDistanceBetweenInclShips(level, from.getCenter(), Vec3.atCenterOf(to), distSqr);
+        Vec3 worldFrom = VSGameUtilsKt.toWorldCoordinates(level, from.getCenter());
+        Vec3 worldTo = VSGameUtilsKt.toWorldCoordinates(level, Vec3.atCenterOf(to));
+        BlockPos bpFrom = BlockPos.containing(worldFrom.x(), worldFrom.y(), worldFrom.z());
+        BlockPos bpTo = BlockPos.containing(worldTo.x(), worldTo.y(), worldTo.z());
+        return distSqr.call(bpFrom, bpTo);
     }
 
     @Inject(
