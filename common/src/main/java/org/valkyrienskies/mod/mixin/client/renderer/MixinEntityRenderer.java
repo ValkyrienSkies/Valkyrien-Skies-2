@@ -32,11 +32,22 @@ public class MixinEntityRenderer {
                 return original.call(instance);
             }
             if (dragInfo.getLastShipStoodOn() != null && (dragInfo.getRelativePositionOnShip() != null || dragInfo.getServerRelativePlayerPosition() != null)) {
-                Vector3dc positionToTransform = dragInfo.bestRelativeEntityPosition();
+                final Vector3dc positionToTransform = dragInfo.bestRelativeEntityPosition();
                 if (positionToTransform != null) {
-                    Vector3dc transformed = ship.getRenderTransform().getShipToWorld().transformPosition(positionToTransform,
+                    final Vector3dc transformed = ship.getRenderTransform().getShipToWorld().transformPosition(positionToTransform,
                         new Vector3d());
-                    return instance.getDimensions(instance.getPose()).makeBoundingBox(transformed.x(), transformed.y(), transformed.z()).inflate(0.5D);
+                    AABB box = instance.getDimensions(instance.getPose())
+                        .makeBoundingBox(transformed.x(), transformed.y(), transformed.z());
+
+                    final Vector3dc previousRelativePosition = dragInfo.getPreviousRelativePositionOnShip();
+                    if (dragInfo.getServerRelativePlayerPosition() == null && previousRelativePosition != null) {
+                        final Vector3dc previousTransformed = ship.getRenderTransform().getShipToWorld()
+                            .transformPosition(previousRelativePosition, new Vector3d());
+                        box = box.minmax(instance.getDimensions(instance.getPose())
+                            .makeBoundingBox(previousTransformed.x(), previousTransformed.y(), previousTransformed.z()));
+                    }
+
+                    return box.inflate(0.5D);
                 }
             }
         }

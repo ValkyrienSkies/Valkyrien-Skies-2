@@ -43,7 +43,13 @@ class EntityDraggingInformation {
     var lerpHeadYawOnShip: Double? = null
     var lerpPitchOnShip: Double? = null
 
+    var previousRelativePositionOnShip: Vector3dc? = null
+        private set
     var relativePositionOnShip: Vector3dc? = null
+        set(value) {
+            previousRelativePositionOnShip = field?.let(::Vector3d)
+            field = value?.let(::Vector3d)
+        }
     var previousRelativeVelocityOnShip: Vector3dc? = null
     var relativeYawOnShip: Double? = null
     var relativeHeadYawOnShip: Double? = null
@@ -80,6 +86,7 @@ class EntityDraggingInformation {
     fun clearAuthoritativeClientState() {
         authoritativeShipStoodOn = null
         relativePositionOnShip = null
+        previousRelativePositionOnShip = null
         previousRelativeVelocityOnShip = null
         relativeVelocityOnShip = null
         relativeYawOnShip = null
@@ -140,6 +147,26 @@ class EntityDraggingInformation {
         } else {
             packetPitch
         }
+    }
+
+    fun snapRelativeRenderPosition() {
+        previousRelativePositionOnShip = relativePositionOnShip?.let(::Vector3d)
+    }
+
+    fun interpolatedRelativeEntityPosition(partialTicks: Float): Vector3dc? {
+        if (serverRelativePlayerPosition != null) {
+            return serverRelativePlayerPosition
+        }
+
+        val current = relativePositionOnShip ?: return null
+        val previous = previousRelativePositionOnShip ?: return current
+        val tickDelta = partialTicks.toDouble().coerceIn(0.0, 1.0)
+
+        return Vector3d(
+            previous.x() + (current.x() - previous.x()) * tickDelta,
+            previous.y() + (current.y() - previous.y()) * tickDelta,
+            previous.z() + (current.z() - previous.z()) * tickDelta
+        )
     }
 
     fun isEntityBeingDraggedByAShip(): Boolean {

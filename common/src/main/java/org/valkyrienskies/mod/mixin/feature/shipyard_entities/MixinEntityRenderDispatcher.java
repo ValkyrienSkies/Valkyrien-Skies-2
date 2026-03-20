@@ -95,7 +95,7 @@ public class MixinEntityRenderDispatcher {
                 if (lastShipStoodOn != null && dragInfo.isEntityBeingDraggedByAShip()) {
                     final ClientShip ship =
                         VSGameUtilsKt.getShipObjectWorld((ClientLevel) entity.level()).getLoadedShips().getById(lastShipStoodOn);
-                    final Vector3dc relativePosition = dragInfo.bestRelativeEntityPosition();
+                    final Vector3dc relativePosition = dragInfo.interpolatedRelativeEntityPosition(partialTicks);
                     if (ship != null && relativePosition != null) {
                         matrixStack.popPose();
                         matrixStack.pushPose();

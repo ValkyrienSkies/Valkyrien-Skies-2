@@ -107,6 +107,9 @@ object VSGamePackets {
             dragInfo.ticksSinceLastServerPacket = 0
 
             dragInfo.relativePositionOnShip = previousRelativePosition
+            if (previousShipId == null || previousShipId != setMotion.shipID) {
+                dragInfo.snapRelativeRenderPosition()
+            }
             dragInfo.previousRelativeVelocityOnShip = dragInfo.relativeVelocityOnShip
             dragInfo.relativeYawOnShip = previousRelativeYaw
 

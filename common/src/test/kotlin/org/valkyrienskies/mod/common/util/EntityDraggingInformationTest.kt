@@ -122,4 +122,33 @@ class EntityDraggingInformationTest {
         assertEquals(1.5, info.authoritativeHeadYawForLerp(8L, 1.5), 1e-9)
         assertEquals(1.75, info.authoritativePitchForLerp(8L, 1.75), 1e-9)
     }
+
+    @Test
+    fun interpolatedRelativePositionBlendsPreviousAndCurrent() {
+        val info = EntityDraggingInformation()
+
+        info.relativePositionOnShip = Vector3d(1.0, 2.0, 3.0)
+        info.relativePositionOnShip = Vector3d(5.0, 6.0, 7.0)
+
+        val interpolated = info.interpolatedRelativeEntityPosition(0.25f)
+
+        assertEquals(2.0, interpolated!!.x(), 1e-9)
+        assertEquals(3.0, interpolated.y(), 1e-9)
+        assertEquals(4.0, interpolated.z(), 1e-9)
+    }
+
+    @Test
+    fun snapRelativeRenderPositionPreventsCrossShipInterpolation() {
+        val info = EntityDraggingInformation()
+
+        info.relativePositionOnShip = Vector3d(1.0, 2.0, 3.0)
+        info.relativePositionOnShip = Vector3d(10.0, 20.0, 30.0)
+        info.snapRelativeRenderPosition()
+
+        val interpolated = info.interpolatedRelativeEntityPosition(0.25f)
+
+        assertEquals(10.0, interpolated!!.x(), 1e-9)
+        assertEquals(20.0, interpolated.y(), 1e-9)
+        assertEquals(30.0, interpolated.z(), 1e-9)
+    }
 }
