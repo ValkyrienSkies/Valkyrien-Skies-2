@@ -21,6 +21,7 @@ import org.valkyrienskies.mod.common.entity.handling.VSEntityManager
 import org.valkyrienskies.mod.common.getLoadedShipManagingPos
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.EntityLerper.yawToWorld
+import org.valkyrienskies.mod.mixinducks.world.entity.EntityShipGroundingDuck
 import kotlin.math.asin
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -122,6 +123,13 @@ object EntityDragger {
                     entity.y + addedMovement.y(),
                     entity.z + addedMovement.z()
                 )
+
+                val shipSupportPos = ShipPathfindingUtils.findSupportingShipBlock(entity.level(), entity, newBB)
+                entity.setOnGroundWithKnownMovement(shipSupportPos != null, addedMovement.toMinecraft())
+                if (shipSupportPos != null) {
+                    (entity as? EntityShipGroundingDuck)?.`vs$setShipSupportingBlock`(shipSupportPos)
+                    entity.fallDistance = 0.0f
+                }
 
                 if(entityDraggingInformation.shouldImpulseMovement && (!entity.level().isClientSide || entity is LocalPlayer)) { //This is the first Tick on the ship. Also, should push the entity in server side only and propagate the result.
                     val acceleration = Vector3d(entityDraggingInformation.addedMovementLastTick) // if it was on a different ship last tick, consider that too.
