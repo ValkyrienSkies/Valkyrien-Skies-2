@@ -50,7 +50,6 @@
     "compat.create.MixinControlledContraptionEntity",
     "compat.immersivengineering.MixinBlockEntityInventory",
     "compat.integrateddynamics.MixinVoxelShapeComponents",
-    "compat.mekanism.MixinRadiationManager",
     "compat.mixinbooster.MixinIForgePlayer",
     "compat.modular_routers.MixinRouterMenu",
     "compat.tfc.MixinTFCChunkGenerator",
@@ -65,7 +64,6 @@
   "client": [
     "compat.cc_tweaked.MixinSpeakerSound",
     "compat.create.client.MixinContraptionHandlerClient",
-    "compat.create.client.MixinSuperGlueSelectionHandler",
     "compat.create.client.MixinTrackBlockOutline",
     "compat.sodium.MixinRenderSectionManager",
     "compat.tis3d.MixinCasingTileEntityRender",

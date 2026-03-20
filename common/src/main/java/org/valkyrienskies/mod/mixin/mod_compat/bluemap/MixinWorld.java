@@ -16,7 +16,7 @@ import org.valkyrienskies.mod.mixinducks.mod_compat.bluemap.WorldDuck;
 @Pseudo
 public class MixinWorld implements WorldDuck {
 
-    @Shadow
+    @Shadow(remap = false)
     @Final
     private Path worldFolder;
 

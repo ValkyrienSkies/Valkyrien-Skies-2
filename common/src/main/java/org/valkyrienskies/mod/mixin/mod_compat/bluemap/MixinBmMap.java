@@ -17,11 +17,11 @@ import org.valkyrienskies.mod.mixinducks.mod_compat.bluemap.WorldDuck;
 @Mixin(BmMap.class)
 @Pseudo
 public class MixinBmMap {
-    @Shadow
+    @Shadow(remap = false)
     @Final
     private World world;
 
-    @Shadow
+    @Shadow(remap = false)
     @Final
     private HiresModelManager hiresModelManager;
 
