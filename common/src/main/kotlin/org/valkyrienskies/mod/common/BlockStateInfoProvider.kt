@@ -177,46 +177,6 @@ object BlockStateInfo {
         }
 
         if (level is ServerLevel) {
-            val loadedShip = level.getLoadedShipManagingPos(x shr 4, z shr 4)
-            if (loadedShip != null) {
-                if (VSGameConfig.SERVER.enablePocketBuoyancy) {
-                    val buoyancyHandler = loadedShip.getAttachment(BuoyancyHandlerAttachment::class.java)
-                    val dimension = loadedShip.chunkClaimDimension
-                    val allComponentsInClaim = level.shipObjectWorld.getAllAirComponentsFromClaim(dimension, loadedShip.chunkClaim)
-                    var newTotal = 0.0
-                    var centerSum = Vector3d(0.0, 0.0, 0.0)
-                    if (allComponentsInClaim.isNotEmpty()) {
-                        for (component in allComponentsInClaim) {
-                            if (level.shipObjectWorld.isIsolatedAir(
-                                    component.x(), component.y(), component.z(), dimension
-                                ) != ConnectionStatus.DISCONNECTED
-                            ) continue
-                            val componentSize = level.shipObjectWorld.getAirComponentSize(
-                                component.x(), component.y(), component.z(), dimension
-                            )
-                            val componentVoxels = level.shipObjectWorld.indexAirComponentVoxels(
-                                component.x(), component.y(), component.z(), dimension
-                            )
-                            val componentCenter = componentVoxels.centerFromVoxelSet()
-
-                            newTotal += componentSize
-                            centerSum.add(
-                                componentCenter.x() * componentSize,
-                                componentCenter.y() * componentSize,
-                                componentCenter.z() * componentSize
-                            )
-                        }
-                    }
-                    if (newTotal > 0.0) {
-                        centerSum.div(newTotal)
-                    } else {
-                        centerSum.set(0.0, 0.0, 0.0)
-                    }
-                    buoyancyHandler?.buoyancyData?.pocketVolumeTotal = newTotal.toDouble()
-                    if (loadedShip.shipAABB?.containsPoint(centerSum.x().toFloat(), centerSum.y().toFloat(), centerSum.z().toFloat()) != false) buoyancyHandler?.buoyancyData?.pocketCenterAverage = centerSum
-                    //println("is center sum contained within ship aabb?: ${loadedShip.shipAABB?.containsPoint(centerSum.x().toFloat(), centerSum.y().toFloat(), centerSum.z().toFloat())}")
-                }
-            }
             if (ValkyrienSkiesMod.vsCore.hooks.enableConnectivity) {
                 ValkyrienSkiesMod.splitHandler.queueSplit(level, level.getShipManagingPos(x.toDouble(), y.toDouble(), z.toDouble())?.id)
             }

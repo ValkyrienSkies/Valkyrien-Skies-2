@@ -129,6 +129,13 @@ public class ValkyrienCommonMixinConfigPlugin implements IMixinConfigPlugin {
             return LoadedMods.getCreate();
         }
 
+        if (mixinClassName.startsWith("org.valkyrienskies.valkyrienair.mixin.compat.create.")) {
+            return LoadedMods.getCreate();
+        }
+        if (mixinClassName.startsWith("org.valkyrienskies.valkyrienair.mixin.compat.itemphysic.")) {
+            return LoadedMods.getItemPhysic();
+        }
+
         // Only load this mixin when ETF is installed
         if (mixinClassName.equals("org.valkyrienskies.mod.mixin.mod_compat.etf.MixinBlockEntity")) {
             if (!classExists("traben.entity_texture_features.utils.ETFEntity")) {

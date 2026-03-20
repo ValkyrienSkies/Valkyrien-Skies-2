@@ -24,6 +24,7 @@
     "compat.thermalexpansion.MixinTileCoFH",
     "compat.twilightforest.ChunkGeneratorTwilightMixin",
     "entity.MixinContainerEntity",
+    "feature.air_pockets.MixinEntityFluidPushing",
     "feature.fix_tp_ships_cross_dimension.MixinLevelChunk",
     "feature.forge_interact.MixinIForge2Player",
     "feature.forge_interact.MixinIForgePlayer",

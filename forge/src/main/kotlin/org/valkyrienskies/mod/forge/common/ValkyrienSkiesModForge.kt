@@ -79,6 +79,7 @@ import org.valkyrienskies.mod.compat.flywheel.ShipEmbeddingManager
 import org.valkyrienskies.mod.forge.compat.dynmap.ForgeDynmapHandler
 import org.valkyrienskies.mod.compat.flywheel.FlywheelCompat
 import org.valkyrienskies.mod.compat.hexcasting.HexcastingCompat
+import org.valkyrienskies.mod.forge.client.ValkyrienSkiesModForgeClient
 import org.valkyrienskies.mod.forge.compat.epicfight.FracturedBlockStateInfoProvider
 import org.valkyrienskies.mod.forge.compat.hexcasting.ForgeShipAmbit
 import org.valkyrienskies.mod.util.ClientConnectivityUpdateQueue
@@ -136,6 +137,7 @@ class ValkyrienSkiesModForge {
             modBus.addListener(::registerKeyBindings)
             modBus.addListener(::entityRenderers)
             modBus.addListener(::registerLayerDefinitions)
+            modBus.addListener(ValkyrienSkiesModForgeClient::clientInit)
             if (LoadedMods.flywheel == LoadedMods.FlywheelVersion.V1) FlywheelCompat.initClient()
             if (ModList.get().isLoaded("flywheel")) {
                 forgeBus.addListener(::registerFlywheelReload)

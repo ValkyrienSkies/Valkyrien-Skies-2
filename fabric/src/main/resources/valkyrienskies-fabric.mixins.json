@@ -9,6 +9,7 @@
     "compat.create.MixinBlockBreakingKineticTileEntity",
     "compat.create.MixinControlledContraptionEntity",
     "entity.MixinContainerEntity",
+    "feature.air_pockets.MixinEntityFluidPushing",
     "feature.explosions.ClipContextMixin",
     "feature.fix_tp_ships_cross_dimension.MixinLevelChunk",
     "feature.shipyard_entities.MixinPersistentEntitySectionManager",

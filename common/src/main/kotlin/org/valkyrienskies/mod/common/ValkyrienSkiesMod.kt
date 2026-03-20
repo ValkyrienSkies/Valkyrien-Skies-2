@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.common
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.module.SimpleModule
 import net.minecraft.client.Minecraft
+import net.minecraft.client.renderer.BiomeColors
 import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.Registries
 import net.minecraft.network.chat.Component
@@ -10,6 +11,7 @@ import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
 import net.minecraft.tags.TagKey
+import net.minecraft.util.Mth
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.item.CreativeModeTab
@@ -24,6 +26,8 @@ import org.valkyrienskies.core.api.util.PhysTickOnly
 import org.valkyrienskies.core.api.world.properties.DimensionId
 import org.valkyrienskies.core.internal.VsiCore
 import org.valkyrienskies.core.internal.VsiCoreClient
+import org.valkyrienskies.mod.air_pockets.client.ShipWaterPocketExternalWaterCullRenderContext
+import org.valkyrienskies.mod.air_pockets.client.ShipWaterPocketShipWaterTintRenderContext
 import org.valkyrienskies.mod.api.BlockEntityPhysicsListener
 import org.valkyrienskies.mod.api.EntityPhysicsListener
 import org.valkyrienskies.mod.api.SeatedControllingPlayer
@@ -34,6 +38,7 @@ import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
 import org.valkyrienskies.mod.common.blockentity.TestThrusterBlockEntity
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.entity.VSPhysicsEntity
+import org.valkyrienskies.mod.common.hooks.VSGameEvents
 import org.valkyrienskies.mod.common.jackson.BlockPosDeserializer
 import org.valkyrienskies.mod.common.jackson.BlockPosKeyDeserializer
 import org.valkyrienskies.mod.common.jackson.BlockPosKeySerializer
@@ -219,6 +224,37 @@ object ValkyrienSkiesMod {
 
     fun getEntityPhysTicker(dimensionId: DimensionId, entity: Entity): EntityPhysicsListener? {
         return entityPhysListeners.getOrPut(dimensionId, { ConcurrentHashMap() })[entity.id]
+    }
+
+    private val tmpWorldBlockPos = BlockPos.MutableBlockPos()
+
+    private fun computeShipWaterTintRgb(shipEventShip: org.valkyrienskies.core.api.ships.ClientShip): Int {
+        val level = Minecraft.getInstance().level ?: return 0xFFFFFF
+        val worldPos = shipEventShip.renderTransform.positionInWorld
+        tmpWorldBlockPos.set(Mth.floor(worldPos.x()), Mth.floor(worldPos.y()), Mth.floor(worldPos.z()))
+
+        return BiomeColors.getAverageWaterColor(level, tmpWorldBlockPos)
+    }
+
+    @JvmStatic
+    fun initClient() {
+        VSGameEvents.renderShip.on {
+            ShipWaterPocketExternalWaterCullRenderContext.beginShipRender()
+            ShipWaterPocketShipWaterTintRenderContext.pushShipWaterTintRgb(computeShipWaterTintRgb(it.ship))
+        }
+        VSGameEvents.postRenderShip.on {
+            ShipWaterPocketShipWaterTintRenderContext.popShipWaterTintRgb()
+            ShipWaterPocketExternalWaterCullRenderContext.endShipRender()
+        }
+
+        VSGameEvents.renderShipSodium.on {
+            ShipWaterPocketExternalWaterCullRenderContext.beginShipRender()
+            ShipWaterPocketShipWaterTintRenderContext.pushShipWaterTintRgb(computeShipWaterTintRgb(it.ship))
+        }
+        VSGameEvents.postRenderShipSodium.on {
+            ShipWaterPocketShipWaterTintRenderContext.popShipWaterTintRgb()
+            ShipWaterPocketExternalWaterCullRenderContext.endShipRender()
+        }
     }
 
 }

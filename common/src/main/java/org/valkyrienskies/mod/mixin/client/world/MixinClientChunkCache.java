@@ -197,14 +197,19 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
 
     @Inject(
         method = "getChunk(IILnet/minecraft/world/level/chunk/ChunkStatus;Z)Lnet/minecraft/world/level/chunk/LevelChunk;",
-        at = @At("HEAD"), cancellable = true)
-    public void preGetChunk(
+        at = @At("TAIL"),
+        cancellable = true
+    )
+    public void postGetChunk(
         final int chunkX,
         final int chunkZ,
         final ChunkStatus chunkStatus,
         final boolean bl,
         final CallbackInfoReturnable<LevelChunk> cir
     ) {
+        if (!VSGameUtilsKt.isChunkInShipyard(this.level, chunkX, chunkZ)) {
+            return;
+        }
         final LevelChunk shipChunk = vs$shipChunks.get(ChunkPos.asLong(chunkX, chunkZ));
         if (shipChunk != null) {
             cir.setReturnValue(shipChunk);
