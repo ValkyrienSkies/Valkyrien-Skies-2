@@ -311,6 +311,9 @@ object EntityDragger {
             }
         }
 
+        if (d == 0.0 && e == 0.0 && f == 0.0) {
+            return Vec3(0.0, vec3.y, 0.0)
+        }
         val motionLength = sqrt(d * d + e * e + f * f)
         return ship.shipToWorld.transformDirection(Vector3d(d, e, f)).normalize().mul(motionLength).toMinecraft()
     }
