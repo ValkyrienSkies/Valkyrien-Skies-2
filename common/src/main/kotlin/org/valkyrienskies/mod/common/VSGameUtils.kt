@@ -113,15 +113,11 @@ fun Level.isTickingChunk(chunkX: Int, chunkZ: Int) =
     (chunkSource as ServerChunkCache).isPositionTicking(ChunkPos.asLong(chunkX, chunkZ))
 
 /**
- * Check if a chunk is loaded enough for VS2 to use it. For shipyard chunks using the lightweight
- * ticket (level 33), this checks if the chunk has reached FULL status. For world chunks, it
- * checks the ticking status as before.
+ * Check if a chunk is loaded enough for VS2 to use it.
+ * Ship chunks use a lightweight ticket (level 32 = ticking), so isPositionTicking works for both
+ * ship chunks and world chunks.
  */
 fun Level.isChunkLoadedForVS(pos: ChunkPos): Boolean {
-    if (VS2ChunkAllocator.isChunkInShipyardCompanion(pos.x, pos.z)) {
-        // For ship chunks, just check if we can get the chunk (it's at FULL level)
-        return chunkSource.hasChunk(pos.x, pos.z)
-    }
     return isTickingChunk(pos)
 }
 
@@ -480,10 +476,11 @@ fun Ship.toWorldCoordinates(x: Double, y: Double, z: Double, dest: Vector3d = Ve
 fun LevelChunkSection.toDenseVoxelUpdate(chunkPos: Vector3ic): VsiTerrainUpdate {
     val update = vsCore.newDenseTerrainUpdateBuilder(chunkPos.x(), chunkPos.y(), chunkPos.z())
     val info = BlockStateInfo.cache
+    val airType = vsCore.blockTypes.air
     for (x in 0..15) {
         for (y in 0..15) {
             for (z in 0..15) {
-                update.addBlock(x, y, z, info.get(getBlockState(x, y, z))?.second ?: vsCore.blockTypes.air)
+                update.addBlock(x, y, z, info.get(getBlockState(x, y, z))?.second ?: airType)
             }
         }
     }

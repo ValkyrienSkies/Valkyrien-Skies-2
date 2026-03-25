@@ -5,27 +5,17 @@ import net.minecraft.world.level.ChunkPos
 import java.util.Comparator
 
 /**
- * Custom ticket type for ship chunks that loads them to FULL status
- * without forcing neighbor chunks to load (unlike vanilla's FORCED ticket at level 31).
+ * Custom ticket type for ship chunks. Used with radius 1, giving ticket level 32 (ticking).
  *
- * Level 33 = "border" in MC's chunk system, which means:
- * - The chunk is fully generated and converted to LevelChunk
- * - Block access works normally
- * - But entity ticking and block ticking are NOT active
- * - Neighbor chunks are NOT required to be loaded
+ * Vanilla's FORCED ticket uses level 31 (entity ticking) which requires a 2-chunk neighborhood,
+ * causing ~25 chunks to be loaded per ship chunk. Our ticket at level 32 (ticking) only needs
+ * a 1-chunk neighborhood (~9 chunks), reducing the chunk loading overhead by ~3x.
  *
- * This dramatically reduces the number of chunks MC loads per ship,
- * from ~25 (with FORCED at level 31) to exactly 1.
+ * Entity ticking is not needed for shipyard chunks since they don't contain natural entities.
  */
 object VSTicketType {
     @JvmField
     val SHIP_CHUNK: TicketType<ChunkPos> = TicketType.create(
         "vs_ship_chunk", Comparator.comparingLong(ChunkPos::toLong)
     )
-
-    /**
-     * The ticket level for ship chunks.
-     * 33 = border level in MC, which fully generates the chunk without requiring neighbors.
-     */
-    const val SHIP_CHUNK_LEVEL = 33
 }

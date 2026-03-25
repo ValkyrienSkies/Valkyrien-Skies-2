@@ -35,12 +35,13 @@ object ChunkManagement {
 
             val level = server.getLevelFromDimensionId(chunkWatchTask.dimensionId)!!
 
-            // Use lightweight ticket for shipyard chunks to avoid loading neighbor chunks.
-            // Vanilla's updateChunkForced uses level 31 (entity ticking) which forces ~25 neighbor
-            // chunks to load. Our custom ticket at level 33 (border) loads only the target chunk.
+            // Use lightweight ticket for shipyard chunks to avoid loading excessive neighbor chunks.
+            // Vanilla's updateChunkForced uses level 31 (entity ticking) which forces a 2-chunk
+            // neighborhood (~25 chunks). Our ticket with radius 1 gives level 32 (ticking), which
+            // only needs a 1-chunk neighborhood (~9 chunks) — still a big reduction.
             if (VS2ChunkAllocator.isChunkInShipyardCompanion(chunkPos.x, chunkPos.z)) {
                 level.chunkSource.addRegionTicket(
-                    VSTicketType.SHIP_CHUNK, chunkPos, 0, chunkPos
+                    VSTicketType.SHIP_CHUNK, chunkPos, 1, chunkPos
                 )
                 (level as VSServerLevel).addPendingForcedChunk(chunkPos.x, chunkPos.z)
             } else {
@@ -74,7 +75,7 @@ object ChunkManagement {
                 val level = server.getLevelFromDimensionId(chunkUnwatchTask.dimensionId)!!
                 if (VS2ChunkAllocator.isChunkInShipyardCompanion(chunkPos.x, chunkPos.z)) {
                     level.chunkSource.removeRegionTicket(
-                        VSTicketType.SHIP_CHUNK, chunkPos, 0, chunkPos
+                        VSTicketType.SHIP_CHUNK, chunkPos, 1, chunkPos
                     )
                 } else {
                     level.chunkSource.updateChunkForced(chunkPos, false)
