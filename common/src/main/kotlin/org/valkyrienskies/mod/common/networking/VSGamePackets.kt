@@ -28,6 +28,10 @@ import org.valkyrienskies.mod.mixinducks.world.entity.PlayerDuck
 
 object VSGamePackets {
 
+    private fun zeroNear(value: Double, epsilon: Double = 1.0e-4): Double {
+        return if (kotlin.math.abs(value) <= epsilon) 0.0 else value
+    }
+
     fun register() = with(vsCore.simplePacketNetworking) {
         PacketPlayerDriving::class.register()
         PacketStopChunkUpdates::class.register()
@@ -106,28 +110,55 @@ object VSGamePackets {
             dragInfo.shouldImpulseMovement = false
             dragInfo.ticksSinceLastServerPacket = 0
 
-            dragInfo.relativePositionOnShip = previousRelativePosition
+            val packetRelativePosition = Vector3d(setMotion.x, setMotion.y, setMotion.z)
+            dragInfo.relativePositionOnShip = if (entity is LivingEntity) {
+                previousRelativePosition
+            } else {
+                // Non-living entities (e.g. dropped items) rely on render interpolation from relative positions.
+                // Keep their current relative position authoritative to avoid visual freeze at spawn point.
+                packetRelativePosition
+            }
             if (previousShipId == null || previousShipId != setMotion.shipID) {
                 dragInfo.snapRelativeRenderPosition()
             }
             dragInfo.previousRelativeVelocityOnShip = dragInfo.relativeVelocityOnShip
             dragInfo.relativeYawOnShip = previousRelativeYaw
 
-            dragInfo.lerpPositionOnShip = Vector3d(setMotion.x, setMotion.y, setMotion.z)
-            dragInfo.relativeVelocityOnShip = Vector3d(setMotion.xVel, setMotion.yVel, setMotion.zVel)
+            val relXVel = zeroNear(setMotion.xVel)
+            val relYVel = zeroNear(setMotion.yVel)
+            val relZVel = zeroNear(setMotion.zVel)
+
+            dragInfo.lerpPositionOnShip = packetRelativePosition
+            dragInfo.relativeVelocityOnShip = Vector3d(relXVel, relYVel, relZVel)
             dragInfo.lerpYawOnShip = setMotion.yRot
 
             val previousWorldPosition =
                 ship.renderTransform.shipToWorld.transformPosition(Vector3d(previousRelativePosition))
             val worldPosition = ship.renderTransform.shipToWorld.transformPosition(Vector3d(setMotion.x, setMotion.y, setMotion.z))
             entity.syncPacketPositionCodec(worldPosition.x, worldPosition.y, worldPosition.z)
-            val worldVelocity = ship.renderTransform.shipToWorld.transformDirection(Vector3d(setMotion.xVel, setMotion.yVel, setMotion.zVel))
+            val worldVelocity = ship.renderTransform.shipToWorld.transformDirection(Vector3d(relXVel, relYVel, relZVel))
             entity.setDeltaMovement(worldVelocity.x, worldVelocity.y, worldVelocity.z)
-            dragInfo.lerpSteps = 3
+            dragInfo.lerpSteps = if (entity is LivingEntity) 3 else 0
 
             if (entity !is LivingEntity) { // EntityLerper is called only if the entity is ai-controlled. In other cases lerp is manual.
-                entity.setPos(previousWorldPosition.x, previousWorldPosition.y, previousWorldPosition.z)
-                entity.lerpTo(worldPosition.x, worldPosition.y, worldPosition.z, Math.toDegrees(setMotion.yRot).toFloat(), Math.toDegrees(setMotion.xRot).toFloat(), 3, true)
+                val worldPosErrorSqr = entity.position().distanceToSqr(worldPosition.x, worldPosition.y, worldPosition.z)
+                val switchedShip = previousShipId == null || previousShipId != setMotion.shipID
+                val shouldCorrect = switchedShip || worldPosErrorSqr > 1.0
+
+                if (switchedShip) {
+                    entity.setPos(previousWorldPosition.x, previousWorldPosition.y, previousWorldPosition.z)
+                }
+                if (shouldCorrect) {
+                    entity.lerpTo(
+                        worldPosition.x,
+                        worldPosition.y,
+                        worldPosition.z,
+                        Math.toDegrees(setMotion.yRot).toFloat(),
+                        Math.toDegrees(setMotion.xRot).toFloat(),
+                        2,
+                        true
+                    )
+                }
             }
         }
 

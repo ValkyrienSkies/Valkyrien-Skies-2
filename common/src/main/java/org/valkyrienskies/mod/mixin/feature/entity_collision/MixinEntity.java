@@ -75,7 +75,10 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider,
         cancellable = true
     )
     private void beforeMove(final MoverType type, final Vec3 pos, final CallbackInfo ci) {
-        if (EntityShipCollisionUtils.isCollidingWithUnloadedShips(Entity.class.cast(this))) {
+        final EntityDraggingInformation draggingInformation = getDraggingInformation();
+        final boolean isDraggedByShip = draggingInformation != null && draggingInformation.isEntityBeingDraggedByAShip();
+
+        if (!isDraggedByShip && EntityShipCollisionUtils.isCollidingWithUnloadedShips(Entity.class.cast(this))) {
             ci.cancel();
         }
     }
