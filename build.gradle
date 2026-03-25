@@ -72,6 +72,10 @@ subprojects {
     apply plugin: "org.jetbrains.kotlin.jvm"
     apply plugin: "io.github.juuxel.loom-vineflower"
 
+    loom {
+        intermediaryUrl = 'https://repo.spongepowered.org/repository/maven-public/net/fabricmc/intermediary/%1$s/intermediary-%1$s-v2.jar'
+    }
+
     repositories {
         try {
             def vsCoreBuild = gradle.includedBuild("vs-core")

@@ -44,15 +44,34 @@ include("fabric")
 include("forge")
 
 try {
-    def core = file("./vs-core")
-    println "VS-CORE DEBUG: Looking at path: ${core.absolutePath}"
-    println "VS-CORE DEBUG: Exists? ${core.isDirectory()}"
-    if (core.isDirectory()) {
+    def candidatePaths = [
+        providers.gradleProperty("vsCoreDir").orNull,
+        System.getenv("VS_CORE_DIR"),
+        "./vs-core",
+        "../vs-core",
+    ].findAll { it != null && !it.isBlank() }
+
+    def core = candidatePaths
+        .collect { file(it) }
+        .find { it.isDirectory() }
+
+    if (core == null) {
+        def parentDir = rootDir.parentFile
+        if (parentDir != null) {
+            core = parentDir.listFiles()?.find { it.isDirectory() && it.name == "vs-core" }
+        }
+    }
+
+    println "VS-CORE DEBUG: Candidate paths: ${candidatePaths}"
+    println "VS-CORE DEBUG: Resolved path: ${core?.absolutePath ?: '<not found>'}"
+    println "VS-CORE DEBUG: Exists? ${core?.isDirectory() ?: false}"
+    if (core?.isDirectory()) {
         includeBuild(core) {
             dependencySubstitution {
                 // Tell Gradle: "Whenever someone asks for 'org.valkyrienskies.core:api',
                 // use the project named ':api' inside this included build instead."
                 substitute module('org.valkyrienskies.core:api') using project(':api')
+                substitute module('org.valkyrienskies.core:internal') using project(':internal')
                 substitute module('org.valkyrienskies.core:util') using project(':util')
                 substitute module('org.valkyrienskies.core:impl') using project(':impl')
             }
