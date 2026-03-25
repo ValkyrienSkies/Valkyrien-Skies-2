@@ -30,6 +30,20 @@ sourceSets {
             srcDir "$buildDir/generated/resources"
         }
     }
+    gametest {
+        java {
+            srcDir 'src/gametest/java'
+        }
+        resources {
+            srcDir 'src/gametest/resources'
+        }
+        compileClasspath += main.compileClasspath + main.output
+        runtimeClasspath += main.runtimeClasspath + main.output
+    }
+}
+
+tasks.named("processGametestResources", Copy) {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 loom {
@@ -43,6 +57,17 @@ loom {
     }
     mixin {
         defaultRefmapName = "valkyrienskies-refmap.json"
+    }
+
+    runs {
+        gameTestServer {
+            server()
+            name "Forge GameTest Server"
+            source sourceSets.gametest
+            vmArg "-Dforge.enabledGameTestNamespaces=valkyrienskies"
+            vmArg "-Dforge.gameTestServer=true"
+            vmArg "-Xmx4G"
+        }
     }
 }
 
@@ -301,4 +326,11 @@ publishing {
             from components.java
         }
     }
+}
+
+// Task to run Forge gametests via the gametest server
+tasks.register("runForgeGameTests") {
+    description = "Runs the Forge GameTest server"
+    group = "verification"
+    dependsOn("runGameTestServer")
 }

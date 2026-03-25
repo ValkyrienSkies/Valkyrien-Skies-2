@@ -40,7 +40,6 @@ object ClientConnectivityUpdateQueue {
                         val voxelShapeUpdate: VsiTerrainUpdate =
                             chunkSection.toDenseVoxelUpdate(chunkPos)
                         voxelShapeUpdates.add(voxelShapeUpdate)
-                        // endregion
                     } else {
                         val emptyVoxelShapeUpdate: VsiTerrainUpdate = vsCore
                             .newEmptyVoxelShapeUpdate(chunkPos.x(), chunkPos.y(), chunkPos.z(), true)

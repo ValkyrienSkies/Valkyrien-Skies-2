@@ -5,6 +5,7 @@ import static org.valkyrienskies.mod.common.ValkyrienSkiesMod.getVsCore;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -86,6 +87,10 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
     // How many ticks we wait before unloading a chunk
     @Unique
     private static final long VS$CHUNK_UNLOAD_THRESHOLD = 100;
+
+    // Set of chunk positions (as longs) that were recently force-loaded and need to be checked
+    @Unique
+    private final LongOpenHashSet vs$pendingForcedChunks = new LongOpenHashSet();
 
     @Nullable
     @Override
@@ -188,7 +193,6 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                 final LevelChunkSection chunkSection = chunkSections[sectionY];
                 final Vector3ic chunkPos =
                     new Vector3i(chunkX, worldChunk.getSectionYFromSectionIndex(sectionY), chunkZ);
-                voxelChunkPositions.add(chunkPos);
 
                 if (chunkSection != null && !chunkSection.hasOnlyAir()) {
                     // Add this chunk to the ground rigid body
@@ -227,10 +231,12 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                     }
                     // endregion
                 } else {
+                    // Send empty update so vs-core knows this section is loaded (air), not unloaded
                     final VsiTerrainUpdate emptyVoxelShapeUpdate = getVsCore()
                         .newEmptyVoxelShapeUpdate(chunkPos.x(), chunkPos.y(), chunkPos.z(), true);
                     voxelShapeUpdates.add(emptyVoxelShapeUpdate);
                 }
+                voxelChunkPositions.add(chunkPos);
             }
             vs$knownChunks.put(worldChunk.getPos(), voxelChunkPositions);
         }
@@ -248,16 +254,43 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
         final List<VsiTerrainUpdate> voxelShapeUpdates = new ArrayList<>();
         final DistanceManagerAccessor distanceManagerAccessor = (DistanceManagerAccessor) chunkSource.chunkMap.getDistanceManager();
 
-        for (final ChunkHolder chunkHolder : chunkMapAccessor.callGetChunks()) {
-            // Only load chunks that haven't been loaded before, and have a ticket
-            if (!vs$knownChunks.containsKey(chunkHolder.getPos()) && distanceManagerAccessor.getTickets().containsKey(chunkHolder.getPos().toLong())) {
-                final Optional<LevelChunk> worldChunkOptional =
-                    chunkHolder.getTickingChunkFuture().getNow(ChunkHolder.UNLOADED_LEVEL_CHUNK).left();
-                if (worldChunkOptional.isPresent()) {
-                    // Only load chunks that have a ticket
-                    final LevelChunk worldChunk = worldChunkOptional.get();
-                    vs$loadChunk(worldChunk, voxelShapeUpdates);
+        // Fast path: check ship chunks that were recently force-loaded via ChunkManagement.
+        // Uses direct O(1) lookups instead of iterating ALL chunk holders.
+        if (!vs$pendingForcedChunks.isEmpty()) {
+            final var pendingIterator = vs$pendingForcedChunks.iterator();
+            while (pendingIterator.hasNext()) {
+                final long chunkPosLong = pendingIterator.nextLong();
+                final ChunkPos pos = new ChunkPos(chunkPosLong);
+                if (vs$knownChunks.containsKey(pos)) {
+                    pendingIterator.remove();
+                    continue;
                 }
+                final ChunkHolder chunkHolder = chunkMapAccessor.callGetVisibleChunkIfPresent(chunkPosLong);
+                if (chunkHolder != null) {
+                    // Use getFullChunkFuture instead of getTickingChunkFuture because ship chunks
+                    // use a lightweight ticket (level 33 = FULL) that doesn't reach ticking status.
+                    final Optional<LevelChunk> worldChunkOptional =
+                        chunkHolder.getFullChunkFuture().getNow(ChunkHolder.UNLOADED_LEVEL_CHUNK).left();
+                    if (worldChunkOptional.isPresent()) {
+                        vs$loadChunk(worldChunkOptional.get(), voxelShapeUpdates);
+                        pendingIterator.remove();
+                    }
+                }
+            }
+        }
+
+        // Slow path: scan chunk holders for non-ship chunks (world terrain near players).
+        // Skip chunks already known to VS to reduce work.
+        for (final ChunkHolder chunkHolder : chunkMapAccessor.callGetChunks()) {
+            final ChunkPos pos = chunkHolder.getPos();
+            if (vs$knownChunks.containsKey(pos)) continue;
+            final long posLong = pos.toLong();
+            if (vs$pendingForcedChunks.contains(posLong)) continue;
+            if (!distanceManagerAccessor.getTickets().containsKey(posLong)) continue;
+            final Optional<LevelChunk> worldChunkOptional =
+                chunkHolder.getTickingChunkFuture().getNow(ChunkHolder.UNLOADED_LEVEL_CHUNK).left();
+            if (worldChunkOptional.isPresent()) {
+                vs$loadChunk(worldChunkOptional.get(), voxelShapeUpdates);
             }
         }
 
@@ -301,5 +334,10 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
     public void removeChunk(final int chunkX, final int chunkZ) {
         final ChunkPos chunkPos = new ChunkPos(chunkX, chunkZ);
         vs$knownChunks.remove(chunkPos);
+    }
+
+    @Override
+    public void addPendingForcedChunk(final int chunkX, final int chunkZ) {
+        vs$pendingForcedChunks.add(ChunkPos.asLong(chunkX, chunkZ));
     }
 }

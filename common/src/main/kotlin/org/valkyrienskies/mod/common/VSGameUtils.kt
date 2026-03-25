@@ -112,6 +112,19 @@ fun Level.isTickingChunk(pos: ChunkPos) = isTickingChunk(pos.x, pos.z)
 fun Level.isTickingChunk(chunkX: Int, chunkZ: Int) =
     (chunkSource as ServerChunkCache).isPositionTicking(ChunkPos.asLong(chunkX, chunkZ))
 
+/**
+ * Check if a chunk is loaded enough for VS2 to use it. For shipyard chunks using the lightweight
+ * ticket (level 33), this checks if the chunk has reached FULL status. For world chunks, it
+ * checks the ticking status as before.
+ */
+fun Level.isChunkLoadedForVS(pos: ChunkPos): Boolean {
+    if (VS2ChunkAllocator.isChunkInShipyardCompanion(pos.x, pos.z)) {
+        // For ship chunks, just check if we can get the chunk (it's at FULL level)
+        return chunkSource.hasChunk(pos.x, pos.z)
+    }
+    return isTickingChunk(pos)
+}
+
 fun MinecraftServer.getLevelFromDimensionId(dimensionId: DimensionId): ServerLevel? {
     return getLevel(getResourceKey(dimensionId))
 }
