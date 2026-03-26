@@ -79,6 +79,8 @@ public abstract class MixinLocalPlayer extends Entity implements IEntityDragging
         if (arg instanceof ServerboundMoveVehiclePacket vehiclePacket && getRootVehicle() instanceof IEntityDraggingInformationProvider dragProvider) {
             if (dragProvider.getDraggingInformation().isEntityBeingDraggedByAShip()) {
                 if (dragProvider.getDraggingInformation().getLastShipStoodOn() != null) {
+                    if (!dragProvider.vs$shouldDrag()) return;
+
                     ClientShip ship = VSGameUtilsKt.getShipObjectWorld(Minecraft.getInstance().level).getAllShips().getById(
                         dragProvider.getDraggingInformation().getLastShipStoodOn());
                     if (ship != null) {

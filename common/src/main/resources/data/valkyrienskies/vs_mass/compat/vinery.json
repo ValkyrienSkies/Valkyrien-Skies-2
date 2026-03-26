@@ -1,0 +1,27 @@
+[
+  {
+    "block": "vinery:dark_cherry_floorboard",
+    "mass": 500.0,
+    "friction": 0.5
+  },
+  {
+    "block": "vinery:coarse_dirt_slab",
+    "mass": 750.0,
+    "friction": 0.7
+  },
+  {
+    "block": "vinery:dirt_slab",
+    "mass": 625.0,
+    "friction": 0.6
+  },
+  {
+    "block": "vinery:grass_slab",
+    "mass": 625.0,
+    "friction": 0.5
+  },
+  {
+    "block": "vinery:dirt_path_slab",
+    "mass": 575.0,
+    "friction": 0.5
+  }
+]

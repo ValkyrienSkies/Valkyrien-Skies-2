@@ -38,7 +38,7 @@
   "command.valkyrienskies.teleport.teleport_data": "%s %s, rotation %s, velocity %s",
   "command.valkyrienskies.teleport.multiple_ship_success": "Teleported %d ships!",
   "command.valkyrienskies.mc_teleport.can_only_teleport_to_one_ship": "Can only teleport to exactly 1 ship",
-  "command.valkyrienskies.get_ship.success": "Found ship with slug %s",
+  "command.valkyrienskies.get_ship.success": "Found ship with slug %s, id %s",
   "command.valkyrienskies.get_ship.fail": "No ship found",
   "command.valkyrienskies.get_ship.only_usable_by_entities": "/vs get-ship can only be run by entities!",
   "command.valkyrienskies.scale.success_one": "Scaled %s",
@@ -54,6 +54,8 @@
   "command.valkyrienskies.air_values.pressure": "At y: %s, pressure is %s",
   "command.valkyrienskies.get_gravity": "The gravity in %s is %s",
   "command.valkyrienskies.set_splitting": "Set splitting to %s on %s ships",
+  "command.valkyrienskies.dry.no_blocks": "Ship has no blocks!",
+  "command.valkyrienskies.dry.success": "Successfully dried %s blocks",
 
   "misc.valkyrienskies.create.deployer_working_mode": "Ship Behaviour",
   "misc.valkyrienskies.create.deployer_working_mode.original": "Place on current ship",

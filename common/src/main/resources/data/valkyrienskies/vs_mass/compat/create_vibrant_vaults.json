@@ -1,0 +1,12 @@
+[
+  {
+    "tag": "create_vibrant_vaults:item_vaults",
+    "mass": 1050.0,
+    "friction": 0.1
+  },
+  {
+    "tag": "create_vibrant_vaults:shipping_containers",
+    "mass": 1050.0,
+    "friction": 0.1
+  }
+]

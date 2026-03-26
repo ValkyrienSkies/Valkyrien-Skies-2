@@ -1,0 +1,32 @@
+[
+  {
+    "tag": "hexcasting:slate_blocks",
+    "mass": 2910.0,
+    "friction": 0.6
+  },
+  {
+    "tag": "hexcasting:amethyst_blocks",
+    "mass": 2650.0,
+    "friction": 1.0
+  },
+  {
+    "block": "hexcasting:slate_amethyst_tiles",
+    "mass": 2780.0,
+    "friction": 0.8
+  },
+  {
+    "block": "hexcasting:slate_amethyst_bricks",
+    "mass": 2780.0,
+    "friction": 0.8
+  },
+  {
+    "block": "hexcasting:slate_amethyst_bricks_small",
+    "mass": 2780.0,
+    "friction": 0.8
+  },
+  {
+    "block": "hexcasting:slate_amethyst_pillar",
+    "mass": 2780.0,
+    "friction": 0.8
+  }
+]

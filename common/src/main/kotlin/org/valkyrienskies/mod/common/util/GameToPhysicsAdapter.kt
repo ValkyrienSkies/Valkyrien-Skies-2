@@ -37,6 +37,7 @@ class GameToPhysicsAdapter {
     private val enablePairs = ConcurrentLinkedQueue<Pair<ShipId, ShipId>>()
     private val disablePairs = ConcurrentLinkedQueue<Pair<ShipId, ShipId>>()
 
+    private val shipToLiquidOverlap = ConcurrentHashMap<Long, Double>()
 
     fun physTick(physLevel: PhysLevel, delta: Double) {
 
@@ -142,6 +143,10 @@ class GameToPhysicsAdapter {
         enablePairs.pollUntilEmpty { pair -> physLevel.enableCollisionBetween(pair.first, pair.second) }
         disablePairs.pollUntilEmpty { pair -> physLevel.disableCollisionBetween(pair.first, pair.second) }
 
+        shipToLiquidOverlap.clear()
+        physLevel.getAllPhysShips().forEach { ship ->
+            shipToLiquidOverlap[ship.id] = ship.liquidOverlap
+        }
     }
 
     /**
@@ -316,6 +321,54 @@ class GameToPhysicsAdapter {
 
     fun disableCollisionBetween(shipA: ShipId, shipB: ShipId) {
         disablePairs.add(shipA to shipB)
+    }
+
+    /**
+     * Gets all of the ships connected to [start] with joints.
+     *
+     * Note: This function is mildly expensive. Try to avoid using it too often,
+     * perhaps cache the return value for a few ticks.
+     *
+     * @param start the "root" [ShipId] to start from
+     * @return A list of all connected ships (as [ShipId]s)
+     */
+    fun getAllConnectedShips(start: ShipId): List<ShipId> {
+        val visited = mutableSetOf<ShipId>()
+        val queue = ArrayDeque<ShipId>()
+
+        queue.add(start)
+        visited.add(start)
+
+        while (queue.isNotEmpty()) {
+            val currentShip = queue.removeFirst()
+
+            val jointIds = getJointsFromShip(currentShip) ?: continue
+
+            for (jointId in jointIds) {
+                val joint = getJointById(jointId) ?: continue
+
+                // Get the other ship attached to the joint
+                val otherShip = when (currentShip) {
+                    joint.shipId0 -> joint.shipId1
+                    joint.shipId1 -> joint.shipId0
+                    else -> null
+                }
+
+                if (otherShip != null && visited.add(otherShip)) {
+                    queue.add(otherShip)
+                }
+            }
+        }
+
+        return visited.toList()
+    }
+
+    /**
+     * Gets the percent of the ship that is overlapping a fluid, from 0 to 1.
+     * Should not be null unless the `id` is not a valid ship
+     */
+    fun getLiquidOverlap(id: Long): Double? {
+        return shipToLiquidOverlap[id]
     }
 
     private data class ForceAtPos(val force: Vector3dc, val pos: Vector3dc?)

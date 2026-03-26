@@ -1,12 +1,19 @@
 package org.valkyrienskies.mod.common
 
 import net.minecraft.core.BlockPos
+import net.minecraft.tags.BlockTags
+import net.minecraft.util.Mth
+import net.minecraft.world.level.ClipContext
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.LightLayer
+import net.minecraft.world.level.levelgen.Heightmap.Types
+import net.minecraft.world.phys.BlockHitResult
+import net.minecraft.world.phys.HitResult
 import net.minecraft.world.phys.Vec3
 import org.joml.Vector3d
 import org.joml.Vector3dc
 import org.valkyrienskies.core.api.ships.Ship
+import org.valkyrienskies.mod.common.world.clipIncludeShips
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toMinecraft
 import org.valkyrienskies.mod.common.util.transformPosition
@@ -93,6 +100,81 @@ object CompatUtil {
     fun toSameSpaceAs(level: Level?, px: Double, py: Double, pz: Double, target: BlockPos): Vec3 {
         return toSameSpaceAs(level, Vector3d(px, py, pz), level.getShipManagingPos(target))
             .toMinecraft()
+    }
+
+    /**
+     * Get the vanilla heightmap position in world space, then raycast only the space above it for ships.
+     */
+    fun getWorldHeightmapPosIncludingShips(level: Level, types: Types, pos: BlockPos): BlockPos {
+        val worldHeight = BlockPos.containing(toSameSpaceAs(level, level.getHeightmapPos(types, pos).center, targetShip = null))
+        val shipSurfaceHit = getShipHeightmapHitAboveWorldHeight(level, types, worldHeight) ?: return worldHeight
+        val shipHeightY = Mth.floor(Math.nextDown(shipSurfaceHit.location.y)) + 1
+        return BlockPos(worldHeight.x, shipHeightY, worldHeight.z)
+    }
+
+    fun getWorldHeightIncludingShips(level: Level, types: Types, x: Int, z: Int): Int =
+        getWorldHeightmapPosIncludingShips(level, types, BlockPos(x, level.minBuildHeight, z)).y
+
+    fun getShipHeightmapPosAboveWorldHeight(level: Level, types: Types, worldHeight: BlockPos): BlockPos? {
+        return getShipHeightmapHitAboveWorldHeight(level, types, worldHeight)?.blockPos?.immutable()
+    }
+
+    fun getShipHeightmapHitAboveWorldHeight(level: Level, types: Types, worldHeight: BlockPos): BlockHitResult? {
+        if (worldHeight.y >= level.maxBuildHeight) {
+            return null
+        }
+
+        val start = Vec3(worldHeight.x + 0.5, level.maxBuildHeight.toDouble(), worldHeight.z + 0.5)
+        val end = worldHeight.center
+        if (types == Types.MOTION_BLOCKING_NO_LEAVES) {
+            return clipAboveWorldHeightIgnoringLeafHits(level, start, end)
+        }
+
+        val blockClip = when (types) {
+            Types.WORLD_SURFACE, Types.WORLD_SURFACE_WG -> ClipContext.Block.OUTLINE
+            else -> ClipContext.Block.COLLIDER
+        }
+        val fluidClip = when (types) {
+            Types.MOTION_BLOCKING, Types.MOTION_BLOCKING_NO_LEAVES, Types.WORLD_SURFACE, Types.WORLD_SURFACE_WG ->
+                ClipContext.Fluid.ANY
+            else -> ClipContext.Fluid.NONE
+        }
+        val hit = level.clipIncludeShips(
+            ClipContext(start, end, blockClip, fluidClip, null),
+            skipWorld = true
+        )
+        return if (hit.type == HitResult.Type.MISS) null else hit
+    }
+
+    // ClipContext cannot express MOTION_BLOCKING_NO_LEAVES exactly, so this retries through leaf hits
+    private fun clipAboveWorldHeightIgnoringLeafHits(
+        level: Level,
+        start: Vec3,
+        end: Vec3
+    ): BlockHitResult? {
+        var currentStart = start
+
+        while (true) {
+            val hit = level.clipIncludeShips(
+                ClipContext(currentStart, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.ANY, null),
+                skipWorld = true
+            )
+
+            if (hit.type == HitResult.Type.MISS) {
+                return null
+            }
+
+            val hitPos = hit.blockPos
+            if (!level.getBlockState(hitPos).`is`(BlockTags.LEAVES)) {
+                return hit
+            }
+
+            currentStart = hit.location.add(0.0, -0.25, 0.0)
+
+            if (currentStart.y <= end.y) {
+                return null
+            }
+        }
     }
 
     /**

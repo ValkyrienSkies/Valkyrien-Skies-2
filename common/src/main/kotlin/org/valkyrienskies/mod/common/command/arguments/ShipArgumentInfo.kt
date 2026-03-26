@@ -1,10 +1,10 @@
-package org.valkyrienskies.mod.common.command
+package org.valkyrienskies.mod.common.command.arguments
 
 import com.google.gson.JsonObject
 import net.minecraft.commands.CommandBuildContext
 import net.minecraft.commands.synchronization.ArgumentTypeInfo
 import net.minecraft.network.FriendlyByteBuf
-import org.valkyrienskies.mod.common.command.ShipArgument.Companion
+import org.valkyrienskies.mod.common.command.arguments.ShipArgument.Companion
 
 internal class ShipArgumentInfo : ArgumentTypeInfo<ShipArgument, ShipArgumentInfoTemplate> {
     override fun serializeToNetwork(template: ShipArgumentInfoTemplate, friendlyByteBuf: FriendlyByteBuf) {

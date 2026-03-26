@@ -145,7 +145,7 @@ public final class AdvancedBlockWalker implements Iterator<AdvancedBlockWalker.B
             to = new Vec3(toVec.x, toVec.y, toVec.z);
         }
         if (block.contains(from)) {
-            return this.reversed ? 0 : this.maxDist * this.maxDist;
+            return this.reversed == this.useFurtherestClip ? 0 : this.maxDist * this.maxDist;
         }
         Vec3 point = block.clip(from, to).orElse(null);
         if (point == null) {

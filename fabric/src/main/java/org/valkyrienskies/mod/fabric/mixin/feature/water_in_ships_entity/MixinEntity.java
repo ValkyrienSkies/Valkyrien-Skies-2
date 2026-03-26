@@ -146,7 +146,7 @@ public abstract class MixinEntity {
         valkyrienskies$fluidPushVec = instance;
         IEntityDraggingInformationProvider provider = (IEntityDraggingInformationProvider) (Object) this;
         boolean sealed = provider.vs$isInSealedArea();
-        VSGameUtilsKt.transformFromWorldToNearbyShipsAndWorld(level, aabb, (shipAabb) -> {
+        VSGameUtilsKt.transformFromWorldToNearbyShips(level, aabb, (shipAabb) -> {
             valkyrienskies$fluidPushAABB = shipAabb; // enable ship context
             valkyrienskies$fluidPushRet = valkyrienskies$fluidPushRet || (this.updateFluidHeightAndDoFluidPushing(tagKey, d) && !sealed);
             //recall in the ship context

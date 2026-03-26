@@ -1,0 +1,27 @@
+[
+  {
+    "block": "create_new_age:generator_coil",
+    "mass": 12000.0,
+    "friction": 0.9
+  },
+  {
+    "block": "create_new_age:redstone_magnet",
+    "mass": 1500.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create_new_age:layered_magnet",
+    "mass": 3000.0,
+    "friction": 0.5
+  },
+  {
+    "block": "create_new_age:fluxated_magnetite",
+    "mass": 6000.0,
+    "friction": 0.2
+  },
+  {
+    "block": "create_new_age:netherite_magnet",
+    "mass": 18000.0,
+    "friction": 0.2
+  }
+]

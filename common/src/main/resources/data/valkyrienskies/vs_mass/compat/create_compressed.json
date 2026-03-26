@@ -1,0 +1,57 @@
+[
+  {
+    "block": "create_compressed:cogwheel_block",
+    "mass": 3150.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create_compressed:large_cogwheel_block",
+    "mass": 4950.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create_compressed:belt_block",
+    "mass": 450.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create_compressed:shaft_bundle",
+    "mass": 1350.0,
+    "friction": 0.3
+  },
+  {
+    "block": "create_compressed:cinder_flour_pile",
+    "mass": 1500.0,
+    "friction": 0.85
+  },
+  {
+    "block": "create_compressed:copper_sheet_block",
+    "mass": 9000.0,
+    "friction": 0.15
+  },
+  {
+    "block": "create_compressed:iron_sheet_block",
+    "mass": 7850.0,
+    "friction": 0.15
+  },
+  {
+    "block": "create_compressed:gold_sheet_block",
+    "mass": 19300.0,
+    "friction": 0.15
+  },
+  {
+    "block": "create_compressed:crushed_copper_pile",
+    "mass": 9000.0,
+    "friction": 0.9
+  },
+  {
+    "block": "create_compressed:crushed_iron_pile",
+    "mass": 7850.0,
+    "friction": 0.9
+  },
+  {
+    "block": "create_compressed:crushed_gold_pile",
+    "mass": 19300.0,
+    "friction": 0.9
+  }
+]

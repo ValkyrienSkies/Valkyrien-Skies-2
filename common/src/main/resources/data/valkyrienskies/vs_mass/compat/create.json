@@ -563,23 +563,28 @@
   },
   {
     "block": "create:pulse_repeater",
-    "mass": 300.0,
-    "friction": 0.5
+    "mass": 200.0,
+    "friction": 0.3
   },
   {
     "block": "create:pulse_extender",
-    "mass": 300.0,
-    "friction": 0.5
+    "mass": 200.0,
+    "friction": 0.3
+  },
+  {
+    "block": "create:pulse_timer",
+    "mass": 200.0,
+    "friction": 0.3
   },
   {
     "block": "create:powered_latch",
-    "mass": 300.0,
-    "friction": 0.5
+    "mass": 200.0,
+    "friction": 0.3
   },
   {
     "block": "create:powered_toggle_latch",
-    "mass": 300.0,
-    "friction": 0.5
+    "mass": 200.0,
+    "friction": 0.3
   },
   {
     "block": "create:lectern_controller",
@@ -615,16 +620,6 @@
     "block": "create:deepslate_zinc_ore",
     "mass": 4500.0,
     "friction": 0.65
-  },
-  {
-    "block": "create:raw_zinc_block",
-    "mass": 7150.0,
-    "friction": 0.65
-  },
-  {
-    "block": "create:zinc_block",
-    "mass": 7150.0,
-    "friction": 0.4
   },
   {
     "block": "create:copycat_step",

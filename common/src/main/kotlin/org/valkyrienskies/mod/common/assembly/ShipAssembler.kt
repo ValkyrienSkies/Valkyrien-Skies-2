@@ -10,6 +10,7 @@ import net.minecraft.world.level.LevelReader
 import net.minecraft.world.level.ServerLevelAccessor
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessor
@@ -23,13 +24,16 @@ import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.ships.properties.ShipId
 import org.valkyrienskies.core.api.util.GameTickOnly
+import org.valkyrienskies.core.impl.config.VSCoreConfig
 import org.valkyrienskies.core.internal.ships.VsiServerShip
+import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.executeIf
+import org.valkyrienskies.mod.common.forEach
 import org.valkyrienskies.mod.common.getLoadedShipManagingPos
 import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.inAssemblyBlacklist
-import org.valkyrienskies.mod.common.isTickingChunk
+import org.valkyrienskies.mod.common.isChunkLoadedForVS
 import org.valkyrienskies.mod.common.networking.PacketRestartChunkUpdates
 import org.valkyrienskies.mod.common.networking.PacketStopChunkUpdates
 import org.valkyrienskies.mod.common.playerWrapper
@@ -46,7 +50,7 @@ import org.valkyrienskies.mod.util.logger
 
 object ShipAssembler {
 
-    val ASSEMBLY_LOGGER = logger("Sandwich Factory").logger
+    val ASSEMBLY_LOGGER = logger("(Valkyrien Skies) Sandwich Factory").logger
 
     class SingleItemMap<K, V>(val mkey: K, val mvalue: V, val default: V, val defaultFn: ((K) -> V)? = null): Map<K, V> {
         override val size: Int = 1
@@ -226,8 +230,16 @@ object ShipAssembler {
         if (removeOriginal) {
             for (pos in blocks) {
                 level.getBlockEntity(pos)?.let {
-                    Clearable.tryClear(it)
+                    if (it is Clearable) {
+                        Clearable.tryClear(it)
+                    } else {
+                        // Clear all NBT if it doesn't implement IClearable
+                        it.load(CompoundTag())
+                    }
+                    // Without this, copycats still drop their items
+                    level.removeBlockEntity(pos)
                 }
+
                 level.setBlock(pos, Blocks.BARRIER.defaultBlockState(), Block.UPDATE_CLIENTS)
             }
             for (pos in blocks) {
@@ -282,12 +294,12 @@ object ShipAssembler {
         level.server.executeIf(
             // This condition will return true if all modified chunks have been both loaded AND
             // chunk update packets were sent to players
-            { chunkPoses.all(level::isTickingChunk) || level.server.tickCount - timeAtExecution > 60 }
+            { chunkPoses.all(level::isChunkLoadedForVS) || level.server.tickCount - timeAtExecution > 60 }
         ) {
             if (level.server.tickCount - timeAtExecution > 60) {
                 ASSEMBLY_LOGGER.warn("Timed out waiting for chunks to start ticking after assembly! Forcibly resuming...")
                 ASSEMBLY_LOGGER.warn("All chunks involved in assembly: $chunkPoses")
-                ASSEMBLY_LOGGER.warn("Chunks that were supposed to be ticking: ${chunkPoses.filterNot { level.isTickingChunk(it) }}")
+                ASSEMBLY_LOGGER.warn("Chunks that were not loaded: ${chunkPoses.filterNot { level.isChunkLoadedForVS(it) }}")
             }
             // Once all the chunk updates are sent to players, we can tell them to restart chunk updates
             level.players().forEach { player ->
@@ -298,23 +310,26 @@ object ShipAssembler {
             }
             VSAssemblyEvents.onPasteAfterBlocksAreLoaded.emit(VSAssemblyEvents.OnPasteAfterBlocksAreLoaded(level, fromShip, toShip, Pair(fromCenter, centerOfShip), eventData))
             //force update connectivity because this new assemblyslop doesn't update it :(
-            for (pos in chunkPoses) {
-                val worldChunk = level.getChunk(pos.x, pos.z) ?: continue
-                val chunkSections = worldChunk.sections ?: continue
-                for (sectionY in 0 until worldChunk.sectionsCount) {
-                    val sectionPos = Vector3i(pos.x, worldChunk.getSectionYFromSectionIndex(sectionY), pos.z)
-                    val section = chunkSections[sectionY] ?: continue
-                    if (section.hasOnlyAir()) continue
-                    val update = section.toDenseVoxelUpdate(sectionPos)
-                    level.shipObjectWorld.forceUpdateConnectivityChunk(
-                        level.dimensionId,
-                        sectionPos.x,
-                        sectionPos.y,
-                        sectionPos.z,
-                        update
-                    )
+            if (VSCoreConfig.SERVER.sp.enableConnectivity) {
+                for (pos in chunkPoses) {
+                    val worldChunk = level.getChunk(pos.x, pos.z) ?: continue
+                    val chunkSections = worldChunk.sections ?: continue
+                    for (sectionY in 0 until worldChunk.sectionsCount) {
+                        val sectionPos = Vector3i(pos.x, worldChunk.getSectionYFromSectionIndex(sectionY), pos.z)
+                        val section = chunkSections[sectionY] ?: continue
+                        if (section.hasOnlyAir()) continue
+                        val update = section.toDenseVoxelUpdate(sectionPos)
+                        level.shipObjectWorld.forceUpdateConnectivityChunk(
+                            level.dimensionId,
+                            sectionPos.x,
+                            sectionPos.y,
+                            sectionPos.z,
+                            update
+                        )
+                    }
                 }
             }
+
             if (fromShip is LoadedServerShip) {
                 val splittingDisabler = fromShip.getAttachment(SplittingDisablerAttachment::class.java)
                 if (wasSplittingEnabled) {
@@ -337,6 +352,7 @@ object ShipAssembler {
         return assembleToShip(level as ServerLevel, blocks.toSet(), scale)
     }
 
+    @Suppress("unused")
     fun isValidShipBlock(state: BlockState?) : Boolean {
         if (state == null) return false
         if (state.isAir) return false
@@ -352,17 +368,12 @@ object ShipAssembler {
         }
         if (deleteBlocks) {
             val aabb = ship.shipAABB ?: return 0
-            // There has to be a better way to do this...
-            for (x in aabb.minX()..aabb.maxX()) {
-                for (y in aabb.minY()..aabb.maxY()) {
-                    for (z in aabb.minZ()..aabb.maxZ()) {
-                        // Not sure if 2 is what we want, but its what /fill uses
-                        if (dropBlocks)
-                            level.destroyBlock(BlockPos(x, y, z), true)
-                        else
-                            level.setBlock(BlockPos(x, y, z), Blocks.AIR.defaultBlockState(), 2)
-                    }
-                }
+            aabb.forEach { x, y, z ->
+                if (dropBlocks)
+                    level.destroyBlock(BlockPos(x, y, z), true)
+                else
+                    // Not sure if 2 is what we want, but it's what /fill uses
+                    level.setBlock(BlockPos(x, y, z), Blocks.AIR.defaultBlockState(), 2)
             }
         }
 

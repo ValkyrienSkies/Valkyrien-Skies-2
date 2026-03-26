@@ -56,9 +56,9 @@ public class MixinLevel {
         final Predicate<? super T> predicate, final CallbackInfoReturnable<List<T>> cir) {
 
         if (BugFixUtil.INSTANCE.isCollisionBoxTooBig(area)) {
-            LIMITER.maybeRun(() ->
+            /*LIMITER.maybeRun(() ->
                 LOGGER.error(new Exception(
-                    "Collision box is too big! " + area + " returning empty list! this might break things")));
+                    "Collision box is too big! " + area + " returning empty list! this might break things")));*/
             cir.setReturnValue(Collections.emptyList());
             cir.cancel();
         }
@@ -73,9 +73,9 @@ public class MixinLevel {
         final Predicate<? super Entity> predicate, final CallbackInfoReturnable<List<Entity>> cir) {
 
         if (BugFixUtil.INSTANCE.isCollisionBoxTooBig(area)) {
-            LIMITER.maybeRun(() ->
+            /*LIMITER.maybeRun(() ->
                 LOGGER.error(new Exception(
-                    "Collision box is too big! " + area + " returning empty list! this might break things")));
+                    "Collision box is too big! " + area + " returning empty list! this might break things")));*/
             cir.setReturnValue(Collections.emptyList());
             cir.cancel();
         }

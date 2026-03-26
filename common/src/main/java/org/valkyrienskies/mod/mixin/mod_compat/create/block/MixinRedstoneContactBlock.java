@@ -25,7 +25,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
@@ -115,6 +114,9 @@ public abstract class MixinRedstoneContactBlock extends WrenchableDirectionalBlo
         if (cir.getReturnValueZ()) {
             return;
         }
+
+        if (!(world instanceof Level)) return;
+
         final Level level = (Level) (world);
         final BlockPos detectPos = pos.relative(direction);
         final BlockState facingState = world.getBlockState(detectPos);

@@ -16,7 +16,13 @@ import org.valkyrienskies.mod.common.config.VSGameConfig;
 
 @Mixin(VineBlock.class)
 public class MixinVineBlock {
-    @WrapOperation(method = "randomTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerLevel;setBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;I)Z"))
+    @WrapOperation(
+        method = "randomTick",
+        at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerLevel;setBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;I)Z"),
+        // Arclight and Ketting both use an @Overwrite on the entire VineBlock behaviour, leading to the @Inject failing.
+        // We make this mixin optional to reluctantly support the @Overwrite and prevent a hard crash.
+        require = 0
+    )
     boolean cancelSpread(ServerLevel level, BlockPos toPos, BlockState blockState, int i, Operation<Boolean> original) {
         if (VSGameConfig.SERVER.getPreventVinesEscapingShip() && level != null) {
             final Ship ship = VSGameUtilsKt.getShipManagingPos((Level) level, toPos);

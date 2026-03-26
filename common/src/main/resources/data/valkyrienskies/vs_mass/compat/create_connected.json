@@ -1,0 +1,57 @@
+[
+  {
+    "block": "create_connected:crank_wheel",
+    "mass": 400.0,
+    "friction": 0.7
+  },
+  {
+    "block": "create_connected:large_crank_wheel",
+    "mass": 600.0,
+    "friction": 0.7
+  },
+  {
+    "block": "create_connected:inverted_clutch",
+    "mass": 1100.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create_connected:inverted_gearshift",
+    "mass": 1100.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create_connected:parallel_gearbox",
+    "mass": 1210.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create_connected:shear_pin",
+    "mass": 120.0,
+    "friction": 0.7
+  },
+  {
+    "block": "create_connected:item_silo",
+    "mass": 1050.0,
+    "friction": 0.1
+  },
+  {
+    "block": "create_connected:fluid_vessel",
+    "mass": 5000.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create_connected:creative_fluid_vessel",
+    "mass": 5000.0,
+    "friction": 0.4
+  },
+  {
+    "block": "create_connected:sequenced_pulse_generator",
+    "mass": 200.0,
+    "friction": 0.3
+  },
+  {
+    "block": "create_connected:empty_fan_catalyst",
+    "mass": 3000.0,
+    "friction": 0.2
+  }
+]

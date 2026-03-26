@@ -1,0 +1,16 @@
+[
+  {
+    "block": "galosphere:amethyst_stairs",
+    "mass": 1987.5,
+    "friction": 1.0
+  },
+  {
+    "block": "galosphere:amethyst_slab",
+    "mass": 1325.0,
+    "friction": 1.0
+  },
+  {
+    "block": "galosphere:silver_lattice",
+    "mass": 334.0
+  }
+]

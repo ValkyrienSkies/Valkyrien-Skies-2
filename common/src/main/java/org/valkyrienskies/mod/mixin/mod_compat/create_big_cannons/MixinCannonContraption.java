@@ -38,17 +38,18 @@ public class MixinCannonContraption {
     @Unique
     private void vs$handleRecoil(ControlPitchContraption instance, Vec3 vector, AbstractContraptionEntity cannon, float magnitude) {
         LoadedServerShip ship = (LoadedServerShip) VSGameUtilsKt.getLoadedShipManagingPos(cannon.level(), BlockPos.containing(cannon.getAnchorVec()));
-        if (VSGameConfig.SERVER.getCbc().getShellRecoil()) {
-            GameToPhysicsAdapter applier = ValkyrienSkiesMod.getOrCreateGTPA(VSGameUtilsKt.getDimensionId(cannon.level()));
-            if (applier != null) {
-                // Invert (by mult by -1) because magnitude is in direction the cannon shot, not the direction recoil is
-                double recoilForce = magnitude * VSGameConfig.SERVER.getCbc().getShellRecoilMult() * -1;
-                applier.applyInvariantForceToPos(
-                    ship.getId(),
-                    ship.getTransform().getShipToWorldRotation().transform(VectorConversionsMCKt.toJOML(vector).negate().normalize()).mul(recoilForce),
-                    VectorConversionsMCKt.toJOML(cannon.getAnchorVec().add(0.5, 0.5, 0.5)).sub(ship.getTransform().getPositionInShip())
-                );
-            }
-        }
+        // We aren't on a ship, nothing to apply recoil to
+        if (ship == null) return;
+        if (!VSGameConfig.SERVER.getCbc().getShellRecoil()) return;
+
+        GameToPhysicsAdapter applier = ValkyrienSkiesMod.getOrCreateGTPA(VSGameUtilsKt.getDimensionId(cannon.level()));
+        // Invert (by mult by -1) because magnitude is in direction the cannon shot, not the direction recoil is
+        double recoilForce = magnitude * VSGameConfig.SERVER.getCbc().getShellRecoilMult() * -1;
+        applier.applyWorldForceToBodyPos(
+            ship.getId(),
+            ship.getTransform().getShipToWorldRotation().transform(VectorConversionsMCKt.toJOML(vector).negate().normalize()).mul(recoilForce),
+            VectorConversionsMCKt.toJOML(cannon.getAnchorVec().add(0.5, 0.5, 0.5)).sub(ship.getTransform().getPositionInShip())
+        );
+
     }
 }

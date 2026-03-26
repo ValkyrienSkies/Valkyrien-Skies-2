@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.common.command
+package org.valkyrienskies.mod.common.command.arguments
 
 import org.valkyrienskies.core.api.ships.QueryableShipData
 import org.valkyrienskies.core.api.ships.Ship

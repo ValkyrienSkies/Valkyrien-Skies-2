@@ -1,0 +1,92 @@
+[
+  {
+    "tag": "forge:storage_blocks/raw_aluminum",
+    "mass": 2700.0,
+    "friction": 0.8
+  },
+  {
+    "tag": "forge:storage_blocks/raw_beryllium",
+    "mass": 1850.0,
+    "friction": 0.8
+  },
+  {
+    "tag": "forge:storage_blocks/raw_cobalt",
+    "mass": 8340.0,
+    "friction": 0.8
+  },
+  {
+    "tag": "forge:storage_blocks/raw_iridium",
+    "mass": 22560.0,
+    "friction": 0.8
+  },
+  {
+    "tag": "forge:storage_blocks/raw_lead",
+    "mass": 11350.0,
+    "friction": 0.8
+  },
+  {
+    "tag": "forge:storage_blocks/raw_lithium",
+    "mass": 530.0,
+    "friction": 0.8
+  },
+  {
+    "tag": "forge:storage_blocks/raw_magnetite",
+    "mass": 7850.0,
+    "friction": 0.8
+  },
+  {
+    "tag": "forge:storage_blocks/raw_neodymium",
+    "mass": 7010.0,
+    "friction": 0.8
+  },
+  {
+    "tag": "forge:storage_blocks/raw_nickel",
+    "mass": 8910.0,
+    "friction": 0.8
+  },
+  {
+    "tag": "forge:storage_blocks/raw_opal",
+    "mass": 2090.0,
+    "friction": 0.8
+  },
+  {
+    "tag": "forge:storage_blocks/raw_osmium",
+    "mass": 22590.0,
+    "friction": 0.8
+  },
+  {
+    "tag": "forge:storage_blocks/raw_silver",
+    "mass": 10490.0,
+    "friction": 0.8
+  },
+  {
+    "tag": "forge:storage_blocks/raw_tantalite",
+    "mass": 16650.0,
+    "friction": 0.8
+  },
+  {
+    "tag": "forge:storage_blocks/raw_tin",
+    "mass": 7290.0,
+    "friction": 0.8
+  },
+  {
+    "tag": "forge:storage_blocks/raw_titanium",
+    "mass": 4510.0,
+    "friction": 0.8
+  },
+  {
+    "tag": "forge:storage_blocks/raw_uranium",
+    "mass": 19050.0,
+    "friction": 0.8
+  },
+  {
+    "tag": "forge:storage_blocks/raw_vanadium",
+    "mass": 6100.0,
+    "friction": 0.8
+  },
+  {
+    "tag": "forge:storage_blocks/raw_zinc",
+    "mass": 7150.0,
+    "friction": 0.8
+  }
+]

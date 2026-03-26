@@ -154,7 +154,7 @@ public abstract class MixinEntity {
     )
     private void collectShipFluidPush(@Coerce Object2ObjectMap instance, BiConsumer consumer, Operation<Void> original,
         @Local(ordinal = 0, argsOnly = true) Predicate<FluidState> shouldUpdate, @Local AABB aabb) {
-        VSGameUtilsKt.transformFromWorldToNearbyShipsAndWorld(level, aabb, (shipAabb) -> {
+        VSGameUtilsKt.transformFromWorldToNearbyShips(level, aabb, (shipAabb) -> {
             valkyrienskies$fluidPushAABB = shipAabb; // enable ship context
             this.updateFluidHeightAndDoFluidPushing(shouldUpdate); //recall in the ship context
         });

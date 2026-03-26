@@ -1,0 +1,25 @@
+[
+  {
+    "block": "occultism:otherstone",
+    "mass": 2500.0,
+    "friction": 0.6
+  },
+  {
+    "block": "occultism:otherstone_slab",
+    "mass": 1250.0,
+    "friction": 0.6
+  },
+  {
+    "block": "occultism:otherstone_pedestal",
+    "mass": 2000.0,
+    "friction": 0.6
+  },
+  {
+    "block": "occultism:iesnium_block",
+    "mass": 5400.0
+  },
+  {
+    "block": "occultism:raw_iesnium_block",
+    "mass": 5400.0
+  }
+]

@@ -1,0 +1,121 @@
+[
+  {
+    "tag": "immersive_weathering:leaf_piles",
+    "mass": 10.0
+  },
+  {
+    "block": "immersive_weathering:cracked_prismarine_bricks",
+    "mass": 2000.0,
+    "friction": 0.7
+  },
+  {
+    "block": "immersive_weathering:prismarine_brick_wall",
+    "mass": 1000.0,
+    "friction": 0.5
+  },
+  {
+    "block": "immersive_weathering:chiseled_prismarine_bricks",
+    "mass": 2000.0,
+    "friction": 0.6
+  },
+  {
+    "block": "immersive_weathering:cracked_prismarine_brick_stairs",
+    "mass": 1500.0,
+    "friction": 0.7
+  },
+  {
+    "block": "immersive_weathering:cracked_prismarine_brick_slab",
+    "mass": 1000.0,
+    "friction": 0.7
+  },
+  {
+    "block": "immersive_weathering:cracked_prismarine_brick_wall",
+    "mass": 1000.0,
+    "friction": 0.7
+  },
+  {
+    "block": "immersive_weathering:dark_prismarine_wall",
+    "mass": 1500.0,
+    "friction": 0.6
+  },
+  {
+    "block": "immersive_weathering:cracked_nether_brick_stairs",
+    "mass": 1500.0,
+    "friction": 0.7
+  },
+  {
+    "block": "immersive_weathering:cracked_nether_brick_slab",
+    "mass": 1000.0,
+    "friction": 0.7
+  },
+  {
+    "block": "immersive_weathering:cracked_nether_brick_wall",
+    "mass": 1000.0,
+    "friction": 0.7
+  },
+  {
+    "block": "immersive_weathering:cracked_polished_blackstone_brick_stairs",
+    "mass": 2625.0,
+    "friction": 0.6
+  },
+  {
+    "block": "immersive_weathering:cracked_polished_blackstone_brick_slab",
+    "mass": 1750.0,
+    "friction": 0.6
+  },
+  {
+    "block": "immersive_weathering:cracked_polished_blackstone_brick_wall",
+    "mass": 1750.0,
+    "friction": 0.6
+  },
+  {
+    "block": "immersive_weathering:frosty_glass",
+    "mass": 2000.0,
+    "friction": 0.05
+  },
+  {
+    "block": "immersive_weathering:frosty_glass_pane",
+    "mass": 250.0,
+    "friction": 0.05
+  },
+  {
+    "block": "immersive_weathering:tinted_glass_pane",
+    "mass": 250.0,
+    "friction": 0.2
+  },
+  {
+    "block": "immersive_weathering:soot",
+    "mass": 10.0,
+    "friction": 0.9
+  },
+  {
+    "block": "immersive_weathering:frost",
+    "mass": 10.0,
+    "friction": 0.05
+  },
+  {
+    "block": "immersive_weathering:icicle",
+    "mass": 560.0,
+    "friction": 0.05
+  },
+  {
+    "block": "immersive_weathering:frosty_grass",
+    "mass": 20.0
+  },
+  {
+    "block": "immersive_weathering:frosty_fern",
+    "mass": 20.0
+  },
+  {
+    "block": "immersive_weathering:dune_grass",
+    "mass": 20.0
+  },
+  {
+    "block": "immersive_weathering:ivy",
+    "mass": 20.0
+  },
+  {
+    "block": "immersive_weathering:weeds",
+    "mass": 20.0
+  }
+]

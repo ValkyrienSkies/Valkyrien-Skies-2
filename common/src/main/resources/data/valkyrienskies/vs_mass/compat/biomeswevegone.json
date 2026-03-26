@@ -1,0 +1,37 @@
+[
+  {
+    "block": "biomeswevegone:mossy_stone",
+    "mass": 2500.0,
+    "friction": 0.6
+  },
+  {
+    "block": "biomeswevegone:mossy_stone_stairs",
+    "mass": 1875.0,
+    "friction": 0.6
+  },
+  {
+    "block": "biomeswevegone:mossy_stone_slab",
+    "mass": 1250.0,
+    "friction": 0.6
+  },
+  {
+    "block": "biomeswevegone:black_ice",
+    "mass": 800.0,
+    "friction": 0.05
+  },
+  {
+    "block": "biomeswevegone:packed_black_ice",
+    "mass": 900.0,
+    "friction": 0.02
+  },
+  {
+    "block": "biomeswevegone:borealis_ice",
+    "mass": 800.0,
+    "friction": 0.05
+  },
+  {
+    "block": "biomeswevegone:packed_borealis_ice",
+    "mass": 900.0,
+    "friction": 0.02
+  }
+]

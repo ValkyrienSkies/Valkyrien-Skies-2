@@ -25,6 +25,7 @@ import org.joml.Vector3dc
 import org.joml.Vector3ic
 import org.joml.primitives.AABBd
 import org.joml.primitives.AABBdc
+import org.joml.primitives.AABBic
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.core.api.ships.LoadedShip
@@ -110,6 +111,15 @@ val Level.yRange get() = LevelYRange(minBuildHeight, maxBuildHeight - 1)
 fun Level.isTickingChunk(pos: ChunkPos) = isTickingChunk(pos.x, pos.z)
 fun Level.isTickingChunk(chunkX: Int, chunkZ: Int) =
     (chunkSource as ServerChunkCache).isPositionTicking(ChunkPos.asLong(chunkX, chunkZ))
+
+/**
+ * Check if a chunk is loaded enough for VS2 to use it.
+ * Ship chunks use a lightweight ticket (level 32 = ticking), so isPositionTicking works for both
+ * ship chunks and world chunks.
+ */
+fun Level.isChunkLoadedForVS(pos: ChunkPos): Boolean {
+    return isTickingChunk(pos)
+}
 
 fun MinecraftServer.getLevelFromDimensionId(dimensionId: DimensionId): ServerLevel? {
     return getLevel(getResourceKey(dimensionId))
@@ -205,6 +215,20 @@ private fun getShipObjectManagingPosImpl(world: Level?, chunkX: Int, chunkZ: Int
  */
 fun Level.transformFromWorldToNearbyShipsAndWorld(aabb: AABB, cb: Consumer<AABB>) {
     val tmpAABB = AABBd()
+    cb.accept(aabb)
+    getShipsIntersecting(aabb).forEach { ship ->
+        cb.accept(tmpAABB.set(aabb).transform(ship.worldToShip).toMinecraft())
+    }
+}
+
+/**
+ * Same as [transformFromWorldToNearbyShipsAndWorld] but does not call [cb] with the original [aabb].
+ *
+ * Not sure if this is actually useful, but our MixinEntity for water-flowing on ships seems to need it.
+ */
+fun Level.transformFromWorldToNearbyShips(aabb: AABB, cb: Consumer<AABB>) {
+    val tmpAABB = AABBd()
+    //cb.accept(aabb)
     getShipsIntersecting(aabb).forEach { ship ->
         cb.accept(tmpAABB.set(aabb).transform(ship.worldToShip).toMinecraft())
     }
@@ -452,10 +476,11 @@ fun Ship.toWorldCoordinates(x: Double, y: Double, z: Double, dest: Vector3d = Ve
 fun LevelChunkSection.toDenseVoxelUpdate(chunkPos: Vector3ic): VsiTerrainUpdate {
     val update = vsCore.newDenseTerrainUpdateBuilder(chunkPos.x(), chunkPos.y(), chunkPos.z())
     val info = BlockStateInfo.cache
+    val airType = vsCore.blockTypes.air
     for (x in 0..15) {
         for (y in 0..15) {
             for (z in 0..15) {
-                update.addBlock(x, y, z, info.get(getBlockState(x, y, z))?.second ?: vsCore.blockTypes.air)
+                update.addBlock(x, y, z, info.get(getBlockState(x, y, z))?.second ?: airType)
             }
         }
     }
@@ -556,4 +581,19 @@ fun Entity?.applyShipVelocity(ship: Ship?) {
 @Suppress("unused")
 fun BlockState?.inAssemblyBlacklist(): Boolean {
     return this?.`is`(ASSEMBLE_BLACKLIST) ?: false
+}
+
+/**
+ * Calls the consumer [f] for every (integer) position in the AABBic.
+ *
+ * This function is expensive, don't call it too often.
+ */
+fun AABBic.forEach(f: (Int, Int, Int) -> Unit) {
+    for (x in this.minX()..this.maxX()) {
+        for (y in this.minY()..this.maxY()) {
+            for (z in this.minZ()..this.maxZ()) {
+                f.invoke(x, y, z)
+            }
+        }
+    }
 }

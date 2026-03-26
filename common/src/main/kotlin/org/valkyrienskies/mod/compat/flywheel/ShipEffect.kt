@@ -62,7 +62,7 @@ class ShipEffect(val ship: ClientShip, val level: ClientLevel) : Effect {
 
     companion object {
         private val map = WeakHashMap<ClientShip, ShipEffect>()
-        private val logger by logger("ShipEffect-Flywheel")
+        private val logger by logger("(Valkyrien Skies) ShipEffect-Flywheel")
 
         fun getShipEffect(ship: ClientShip): ShipEffect = map.getOrPut(ship) {
             ShipEffect(ship, Minecraft.getInstance().level!!).apply {

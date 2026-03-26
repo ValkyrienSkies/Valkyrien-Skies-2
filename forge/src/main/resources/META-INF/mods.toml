@@ -16,7 +16,7 @@ logoFile = "icon.png"
 [[dependencies.valkyrienskies]]
 modId = "forge"
 mandatory = true
-versionRange = "[40.2.4,)"
+versionRange = "[47.2.0,),[47.1.21,47.1.47]"
 ordering = "NONE"
 side = "BOTH"
 
@@ -37,7 +37,7 @@ side = "BOTH"
 [[dependencies.valkyrienskies]]
 modId = "computercraft"
 mandatory = false
-versionRange = "[1.115.0,)"
+versionRange = "[1.115.1,)"
 ordering = "NONE"
 side = "BOTH"
 

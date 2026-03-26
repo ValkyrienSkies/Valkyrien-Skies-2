@@ -129,11 +129,6 @@
     "friction": 0.3
   },
   {
-    "block": "minecraft:carved_pumpkin",
-    "mass": 400.0,
-    "friction": 0.3
-  },
-  {
     "block": "minecraft:warped_fungus",
     "mass": 20.0
   },
