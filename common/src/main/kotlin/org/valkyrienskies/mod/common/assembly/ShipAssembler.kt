@@ -33,7 +33,7 @@ import org.valkyrienskies.mod.common.forEach
 import org.valkyrienskies.mod.common.getLoadedShipManagingPos
 import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.inAssemblyBlacklist
-import org.valkyrienskies.mod.common.isTickingChunk
+import org.valkyrienskies.mod.common.isChunkLoadedForVS
 import org.valkyrienskies.mod.common.networking.PacketRestartChunkUpdates
 import org.valkyrienskies.mod.common.networking.PacketStopChunkUpdates
 import org.valkyrienskies.mod.common.playerWrapper
@@ -294,12 +294,12 @@ object ShipAssembler {
         level.server.executeIf(
             // This condition will return true if all modified chunks have been both loaded AND
             // chunk update packets were sent to players
-            { chunkPoses.all(level::isTickingChunk) || level.server.tickCount - timeAtExecution > 60 }
+            { chunkPoses.all(level::isChunkLoadedForVS) || level.server.tickCount - timeAtExecution > 60 }
         ) {
             if (level.server.tickCount - timeAtExecution > 60) {
                 ASSEMBLY_LOGGER.warn("Timed out waiting for chunks to start ticking after assembly! Forcibly resuming...")
                 ASSEMBLY_LOGGER.warn("All chunks involved in assembly: $chunkPoses")
-                ASSEMBLY_LOGGER.warn("Chunks that were supposed to be ticking: ${chunkPoses.filterNot { level.isTickingChunk(it) }}")
+                ASSEMBLY_LOGGER.warn("Chunks that were not loaded: ${chunkPoses.filterNot { level.isChunkLoadedForVS(it) }}")
             }
             // Once all the chunk updates are sent to players, we can tell them to restart chunk updates
             level.players().forEach { player ->

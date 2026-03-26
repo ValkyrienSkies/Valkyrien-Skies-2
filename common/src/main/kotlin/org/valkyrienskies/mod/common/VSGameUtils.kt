@@ -112,6 +112,15 @@ fun Level.isTickingChunk(pos: ChunkPos) = isTickingChunk(pos.x, pos.z)
 fun Level.isTickingChunk(chunkX: Int, chunkZ: Int) =
     (chunkSource as ServerChunkCache).isPositionTicking(ChunkPos.asLong(chunkX, chunkZ))
 
+/**
+ * Check if a chunk is loaded enough for VS2 to use it.
+ * Ship chunks use a lightweight ticket (level 32 = ticking), so isPositionTicking works for both
+ * ship chunks and world chunks.
+ */
+fun Level.isChunkLoadedForVS(pos: ChunkPos): Boolean {
+    return isTickingChunk(pos)
+}
+
 fun MinecraftServer.getLevelFromDimensionId(dimensionId: DimensionId): ServerLevel? {
     return getLevel(getResourceKey(dimensionId))
 }
@@ -467,10 +476,11 @@ fun Ship.toWorldCoordinates(x: Double, y: Double, z: Double, dest: Vector3d = Ve
 fun LevelChunkSection.toDenseVoxelUpdate(chunkPos: Vector3ic): VsiTerrainUpdate {
     val update = vsCore.newDenseTerrainUpdateBuilder(chunkPos.x(), chunkPos.y(), chunkPos.z())
     val info = BlockStateInfo.cache
+    val airType = vsCore.blockTypes.air
     for (x in 0..15) {
         for (y in 0..15) {
             for (z in 0..15) {
-                update.addBlock(x, y, z, info.get(getBlockState(x, y, z))?.second ?: vsCore.blockTypes.air)
+                update.addBlock(x, y, z, info.get(getBlockState(x, y, z))?.second ?: airType)
             }
         }
     }

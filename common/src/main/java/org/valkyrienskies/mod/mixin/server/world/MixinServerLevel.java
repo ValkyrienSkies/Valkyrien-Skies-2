@@ -5,6 +5,7 @@ import static org.valkyrienskies.mod.common.ValkyrienSkiesMod.getVsCore;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -86,6 +87,10 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
     // How many ticks we wait before unloading a chunk
     @Unique
     private static final long VS$CHUNK_UNLOAD_THRESHOLD = 100;
+
+    // Set of chunk positions (as longs) that were recently force-loaded and need to be checked
+    @Unique
+    private final LongOpenHashSet vs$pendingForcedChunks = new LongOpenHashSet();
 
     @Nullable
     @Override
@@ -184,11 +189,15 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
 
             final LevelChunkSection[] chunkSections = worldChunk.getSections();
 
+            // Cache ship lookup per-chunk instead of per-section
+            final ServerLevel thisAsLevel = ServerLevel.class.cast(this);
+            final LoadedServerShip ship = VSGameUtilsKt.getLoadedShipManagingPos(thisAsLevel, chunkX, chunkZ);
+            final WingManager shipWingManager = ship != null ? ship.getWingManager() : null;
+
             for (int sectionY = 0; sectionY < chunkSections.length; sectionY++) {
                 final LevelChunkSection chunkSection = chunkSections[sectionY];
                 final Vector3ic chunkPos =
                     new Vector3i(chunkX, worldChunk.getSectionYFromSectionIndex(sectionY), chunkZ);
-                voxelChunkPositions.add(chunkPos);
 
                 if (chunkSection != null && !chunkSection.hasOnlyAir()) {
                     // Add this chunk to the ground rigid body
@@ -196,28 +205,23 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                         VSGameUtilsKt.toDenseVoxelUpdate(chunkSection, chunkPos);
                     voxelShapeUpdates.add(voxelShapeUpdate);
 
-                    // region Detect wings
-                    final ServerLevel thisAsLevel = ServerLevel.class.cast(this);
-                    final LoadedServerShip
-                        ship = VSGameUtilsKt.getLoadedShipManagingPos(thisAsLevel, chunkX, chunkZ);
-                    if (ship != null) {
-                        // Sussy cast, but I don't want to expose this directly through the vs-core api
-                        final WingManager shipAsWingManager = ship.getWingManager();
+                    // Detect wings — only scan blocks if this chunk belongs to a ship
+                    if (shipWingManager != null) {
                         final MutableBlockPos mutableBlockPos = new MutableBlockPos();
                         for (int x = 0; x < 16; x++) {
                             for (int y = 0; y < 16; y++) {
                                 for (int z = 0; z < 16; z++) {
                                     final BlockState blockState = chunkSection.getBlockState(x, y, z);
-                                    final int posX = (chunkX << 4) + x;
-                                    final int posY = worldChunk.getMinBuildHeight() + (sectionY << 4) + y;
-                                    final int posZ = (chunkZ << 4) + z;
                                     if (blockState.getBlock() instanceof WingBlock) {
+                                        final int posX = (chunkX << 4) + x;
+                                        final int posY = worldChunk.getMinBuildHeight() + (sectionY << 4) + y;
+                                        final int posZ = (chunkZ << 4) + z;
                                         mutableBlockPos.set(posX, posY, posZ);
                                         final Wing wing =
                                             ((WingBlock) blockState.getBlock()).getWing(thisAsLevel,
                                                 mutableBlockPos, blockState);
                                         if (wing != null) {
-                                            shipAsWingManager.setWing(shipAsWingManager.getFirstWingGroupId(),
+                                            shipWingManager.setWing(shipWingManager.getFirstWingGroupId(),
                                                 posX, posY, posZ, wing);
                                         }
                                     }
@@ -225,12 +229,13 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                             }
                         }
                     }
-                    // endregion
                 } else {
+                    // Send empty update so vs-core knows this section is loaded (air), not unloaded
                     final VsiTerrainUpdate emptyVoxelShapeUpdate = getVsCore()
                         .newEmptyVoxelShapeUpdate(chunkPos.x(), chunkPos.y(), chunkPos.z(), true);
                     voxelShapeUpdates.add(emptyVoxelShapeUpdate);
                 }
+                voxelChunkPositions.add(chunkPos);
             }
             vs$knownChunks.put(worldChunk.getPos(), voxelChunkPositions);
         }
@@ -248,16 +253,42 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
         final List<VsiTerrainUpdate> voxelShapeUpdates = new ArrayList<>();
         final DistanceManagerAccessor distanceManagerAccessor = (DistanceManagerAccessor) chunkSource.chunkMap.getDistanceManager();
 
-        for (final ChunkHolder chunkHolder : chunkMapAccessor.callGetChunks()) {
-            // Only load chunks that haven't been loaded before, and have a ticket
-            if (!vs$knownChunks.containsKey(chunkHolder.getPos()) && distanceManagerAccessor.getTickets().containsKey(chunkHolder.getPos().toLong())) {
-                final Optional<LevelChunk> worldChunkOptional =
-                    chunkHolder.getTickingChunkFuture().getNow(ChunkHolder.UNLOADED_LEVEL_CHUNK).left();
-                if (worldChunkOptional.isPresent()) {
-                    // Only load chunks that have a ticket
-                    final LevelChunk worldChunk = worldChunkOptional.get();
-                    vs$loadChunk(worldChunk, voxelShapeUpdates);
+        // Fast path: check ship chunks that were recently force-loaded via ChunkManagement.
+        // Uses direct O(1) lookups instead of iterating ALL chunk holders.
+        if (!vs$pendingForcedChunks.isEmpty()) {
+            final var pendingIterator = vs$pendingForcedChunks.iterator();
+            while (pendingIterator.hasNext()) {
+                final long chunkPosLong = pendingIterator.nextLong();
+                final ChunkPos pos = new ChunkPos(chunkPosLong);
+                if (vs$knownChunks.containsKey(pos)) {
+                    pendingIterator.remove();
+                    continue;
                 }
+                final ChunkHolder chunkHolder = chunkMapAccessor.callGetVisibleChunkIfPresent(chunkPosLong);
+                if (chunkHolder != null) {
+                    // Ship chunks use a lightweight ticket (level 32 = ticking)
+                    final Optional<LevelChunk> worldChunkOptional =
+                        chunkHolder.getTickingChunkFuture().getNow(ChunkHolder.UNLOADED_LEVEL_CHUNK).left();
+                    if (worldChunkOptional.isPresent()) {
+                        vs$loadChunk(worldChunkOptional.get(), voxelShapeUpdates);
+                        pendingIterator.remove();
+                    }
+                }
+            }
+        }
+
+        // Slow path: scan chunk holders for non-ship chunks (world terrain near players).
+        // Skip chunks already known to VS to reduce work.
+        for (final ChunkHolder chunkHolder : chunkMapAccessor.callGetChunks()) {
+            final ChunkPos pos = chunkHolder.getPos();
+            if (vs$knownChunks.containsKey(pos)) continue;
+            final long posLong = pos.toLong();
+            if (vs$pendingForcedChunks.contains(posLong)) continue;
+            if (!distanceManagerAccessor.getTickets().containsKey(posLong)) continue;
+            final Optional<LevelChunk> worldChunkOptional =
+                chunkHolder.getTickingChunkFuture().getNow(ChunkHolder.UNLOADED_LEVEL_CHUNK).left();
+            if (worldChunkOptional.isPresent()) {
+                vs$loadChunk(worldChunkOptional.get(), voxelShapeUpdates);
             }
         }
 
@@ -301,5 +332,10 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
     public void removeChunk(final int chunkX, final int chunkZ) {
         final ChunkPos chunkPos = new ChunkPos(chunkX, chunkZ);
         vs$knownChunks.remove(chunkPos);
+    }
+
+    @Override
+    public void addPendingForcedChunk(final int chunkX, final int chunkZ) {
+        vs$pendingForcedChunks.add(ChunkPos.asLong(chunkX, chunkZ));
     }
 }
