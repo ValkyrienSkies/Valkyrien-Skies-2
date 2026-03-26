@@ -45,8 +45,7 @@ dependencies {
 
     modCompileOnly("maven.modrinth:create-utilities:${create_utilities_version}")
     modCompileOnly("maven.modrinth:sodium:${sodium_version}")
-    // Disable indium until we update sodium to newer versions
-    //modRuntimeOnly("maven.modrinth:indium:${indium_version}")
+
     modRuntimeOnly("maven.modrinth:modmenu:${modmenu_version}")
 
     // Depend on the fabric API
@@ -75,7 +74,7 @@ dependencies {
     // CC Tweaked
     //modRuntimeOnly("cc.tweaked:cc-tweaked-${minecraft_version}-fabric:${cc_tweaked_version}")
     // CC Restitched
-    modCompileOnly("maven.modrinth:cc-tweaked:${cc_tweaked_version}")
+    modCompileOnly("maven.modrinth:cc-tweaked:${cc_tweaked_version}-fabric")
 
     //Very many players
     //modImplementation("curse.maven:vmp-fabric-552542:4754074")
