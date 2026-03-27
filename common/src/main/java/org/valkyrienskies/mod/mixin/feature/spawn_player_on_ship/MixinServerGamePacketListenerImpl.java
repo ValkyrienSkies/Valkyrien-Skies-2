@@ -10,6 +10,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils;
 
 @Mixin(ServerGamePacketListenerImpl.class)
@@ -34,6 +35,10 @@ public abstract class MixinServerGamePacketListenerImpl {
         cancellable = true
     )
     private void injectHandleMovePlayer(final ServerboundMovePlayerPacket packet, final CallbackInfo ci) {
+        if (VSGameUtilsKt.getShipMountedTo(this.player) != null) {
+            return;
+        }
+
         if (EntityShipCollisionUtils.isCollidingWithUnloadedShips(this.player)) {
             ci.cancel();
             LOGGER.warn("{} moved while colliding with unloaded ships!", this.player.getName().getString());
