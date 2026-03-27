@@ -48,6 +48,11 @@ public abstract class MixinCamera {
         if (!VSGameConfig.COMMON.getEnableAirPockets()) return originalHeight;
         if (!(blockGetter instanceof final Level level)) return originalHeight;
 
+        final Vec3 pos = this.getPosition();
+        if (ShipWaterPocketManager.isWorldPosInShipAirPocket(level, pos.x, pos.y, pos.z)) {
+            return originalHeight;
+        }
+
         final Float shipHeight = ShipWaterPocketManager.computeShipFluidHeight(level, worldBlockPos);
         return shipHeight != null ? shipHeight.floatValue() : originalHeight;
     }

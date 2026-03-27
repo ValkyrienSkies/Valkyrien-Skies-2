@@ -130,6 +130,7 @@ object ShipWaterPocketManager {
 
     private val tmpFloodQueue: ThreadLocal<IntArray> = ThreadLocal.withInitial { IntArray(0) }
     private val tmpFloodComponentVisited: ThreadLocal<BitSet> = ThreadLocal.withInitial { BitSet() }
+    private val tmpDrainTraversalVisited: ThreadLocal<BitSet> = ThreadLocal.withInitial { BitSet() }
     private val tmpPressureComponentVisited: ThreadLocal<BitSet> = ThreadLocal.withInitial { BitSet() }
     private val tmpPressureSubmerged: ThreadLocal<BitSet> = ThreadLocal.withInitial { BitSet() }
     private val tmpLeakedWaterToRemove: ThreadLocal<BitSet> = ThreadLocal.withInitial { BitSet() }
@@ -3274,6 +3275,7 @@ object ShipWaterPocketManager {
 
         if (!enabled) return cache
         if (level.isBlockInShipyard(worldBlockPos)) return cache
+        if (isWorldPosInShipAirPocket(level, worldBlockPos)) return cache
         val queryCache = tmpChunkQueryCache.get().apply { reset() }
 
         val queryAabb = tmpQueryAabb.get().apply {
@@ -5840,6 +5842,46 @@ object ShipWaterPocketManager {
             return baseWorldY + incX * (lx + 0.5) + incY * (ly + 0.5) + incZ * (lz + 0.5)
         }
 
+        fun cellMinWorldY(lx: Int, ly: Int, lz: Int): Double {
+            val x0 = lx.toDouble()
+            val y0 = ly.toDouble()
+            val z0 = lz.toDouble()
+            val x1 = x0 + 1.0
+            val y1 = y0 + 1.0
+            val z1 = z0 + 1.0
+            fun wy(x: Double, y: Double, z: Double): Double = baseWorldY + incX * x + incY * y + incZ * z
+            return minOf(
+                wy(x0, y0, z0),
+                wy(x1, y0, z0),
+                wy(x0, y1, z0),
+                wy(x1, y1, z0),
+                wy(x0, y0, z1),
+                wy(x1, y0, z1),
+                wy(x0, y1, z1),
+                wy(x1, y1, z1),
+            )
+        }
+
+        fun cellMaxWorldY(lx: Int, ly: Int, lz: Int): Double {
+            val x0 = lx.toDouble()
+            val y0 = ly.toDouble()
+            val z0 = lz.toDouble()
+            val x1 = x0 + 1.0
+            val y1 = y0 + 1.0
+            val z1 = z0 + 1.0
+            fun wy(x: Double, y: Double, z: Double): Double = baseWorldY + incX * x + incY * y + incZ * z
+            return maxOf(
+                wy(x0, y0, z0),
+                wy(x1, y0, z0),
+                wy(x0, y1, z0),
+                wy(x1, y1, z0),
+                wy(x0, y0, z1),
+                wy(x1, y0, z1),
+                wy(x0, y1, z1),
+                wy(x1, y1, z1),
+            )
+        }
+
         fun openingFaceMinWorldY(lx: Int, ly: Int, lz: Int, outDirCode: Int): Double {
             val x0 = lx.toDouble()
             val y0 = ly.toDouble()
@@ -5970,6 +6012,8 @@ object ShipWaterPocketManager {
         val shipPosCornerTmp = tmpShipPos3.get()
         val worldPosCornerTmp = tmpWorldPos3.get()
         val worldBlockPos = BlockPos.MutableBlockPos()
+        val drainVisited = tmpDrainTraversalVisited.get()
+        val drainSeedIdxs = IntArray(volume)
         var drainParticleBudget = 2
         fun spawnDrainParticles(ventIdx: Int, outDirCode: Int, conductance: Int) {
             if (drainParticleBudget <= 0) return
@@ -6009,14 +6053,15 @@ object ShipWaterPocketManager {
             var bestVentIdx = -1
             var bestVentOutDirCode = 0
             var bestVentConductance = 0
+            var ventSeedCount = 0
 
             fun considerVent(
                 holeIdx: Int,
                 outDirCode: Int,
-                fromWaterWy: Double,
                 waterLX: Int,
                 waterLY: Int,
                 waterLZ: Int,
+                waterIdx: Int,
                 conductance: Int,
             ) {
                 if (conductance <= 0) return
@@ -6025,17 +6070,14 @@ object ShipWaterPocketManager {
                     return
                 }
                 if (!open.get(holeIdx) || !exteriorOpen.get(holeIdx)) return
-                val lx = holeIdx % sizeX
-                val t = holeIdx / sizeX
-                val ly = t % sizeY
-                val lz = t / sizeY
 
                 if (!openingExposesOutsideAir(waterLX, waterLY, waterLZ, outDirCode)) return
 
                 // Water can't "flush" out through an opening that's above the draining water cell in world-space.
                 // This fixes bowls/open-top containers losing water upward when moved out of the ocean.
                 val holeWy = openingFaceMinWorldY(waterLX, waterLY, waterLZ, outDirCode)
-                if (holeWy > fromWaterWy + 1.0e-6) return
+                val waterTopWy = cellMaxWorldY(waterLX, waterLY, waterLZ)
+                if (holeWy > waterTopWy + 1.0e-6) return
 
                 val filteredConductance = conductance
                 if (filteredConductance <= 0) return
@@ -6047,6 +6089,9 @@ object ShipWaterPocketManager {
                     bestVentIdx = holeIdx
                     bestVentOutDirCode = outDirCode
                     bestVentConductance = filteredConductance
+                }
+                if (ventSeedCount < drainSeedIdxs.size) {
+                    drainSeedIdxs[ventSeedCount++] = waterIdx
                 }
             }
 
@@ -6103,7 +6148,7 @@ object ShipWaterPocketManager {
                         } else {
                             conductance
                         }
-                        considerVent(n, outDirCode, waterWy, lx, ly, lz, ventConductance)
+                        considerVent(n, outDirCode, lx, ly, lz, idx, ventConductance)
                     }
                 }
 
@@ -6117,10 +6162,7 @@ object ShipWaterPocketManager {
 
             if (hasProtected) return
             if (!currentTop.isFinite()) return
-            if (!drainTarget.isFinite() || drainFaces <= 0) return
-
-            val oldPlane =
-                if (state.floodPlaneByComponent.containsKey(rep)) state.floodPlaneByComponent.get(rep) else currentTop
+            if (!drainTarget.isFinite() || drainFaces <= 0 || ventSeedCount <= 0) return
 
             val drainRate = computeFloodProgressRateModel(
                 level = level,
@@ -6128,26 +6170,141 @@ object ShipWaterPocketManager {
                 openingConductanceUnits = ((drainFaces + MIN_OPENING_CONDUCTANCE - 1) / MIN_OPENING_CONDUCTANCE)
                     .coerceAtLeast(1),
                 openingCount = drainOpeningCount.coerceAtLeast(1),
-            ).planeDeltaPerTick
-            val newPlane = maxOf(drainTarget, oldPlane - drainRate)
-            newPlanesOut.put(rep, newPlane)
+            )
+            newPlanesOut.put(rep, drainTarget)
 
-            if (bestVentIdx >= 0 && oldPlane - newPlane > 1.0e-6) {
-                spawnDrainParticles(bestVentIdx, bestVentOutDirCode, bestVentConductance)
-            }
+            if (level.gameTime % drainRate.fluidTickDelay.toLong() != 0L) return
 
-            for (i in 0 until tail) {
-                val idx = queue[i]
-                if (!materialized.get(idx)) continue
+            val drainBudget = drainRate.frontierBudget.coerceAtLeast(1)
+            drainVisited.clear()
+            head = 0
+            tail = 0
+
+            fun tryEnqueueDrainWater(idx: Int) {
+                if (idx < 0 || idx >= volume) return
+                if (drainVisited.get(idx) || !materialized.get(idx)) return
 
                 val lx = idx % sizeX
                 val t = idx / sizeX
                 val ly = t % sizeY
                 val lz = t / sizeY
-                val wy = cellCenterWorldY(lx, ly, lz)
-                if (wy > newPlane + FLOOD_EXIT_PLANE_EPS) {
-                    toRemoveAll.set(idx)
+                if (cellMinWorldY(lx, ly, lz) + FLOOD_EXIT_PLANE_EPS < drainTarget) return
+
+                drainVisited.set(idx)
+                queue[tail++] = idx
+            }
+
+            for (i in 0 until ventSeedCount) {
+                tryEnqueueDrainWater(drainSeedIdxs[i])
+            }
+            if (tail <= 0) return
+
+            val selectedIdxs = IntArray(drainBudget) { -1 }
+            val selectedHeights = DoubleArray(drainBudget)
+            var selectedCount = 0
+            var removedCount = 0
+
+            fun compareRemovalCandidate(
+                idxA: Int,
+                heightA: Double,
+                idxB: Int,
+                heightB: Double,
+            ): Int {
+                return when {
+                    heightA > heightB + 1.0e-6 -> -1
+                    heightB > heightA + 1.0e-6 -> 1
+                    idxA < idxB -> -1
+                    idxA > idxB -> 1
+                    else -> 0
                 }
+            }
+
+            fun recordRemovalCandidate(idx: Int, height: Double) {
+                if (drainBudget <= 0) return
+
+                var insertAt = selectedCount
+                while (insertAt > 0 &&
+                    compareRemovalCandidate(
+                        idx,
+                        height,
+                        selectedIdxs[insertAt - 1],
+                        selectedHeights[insertAt - 1],
+                    ) < 0
+                ) {
+                    insertAt--
+                }
+
+                if (selectedCount < drainBudget) {
+                    var move = selectedCount
+                    while (move > insertAt) {
+                        selectedIdxs[move] = selectedIdxs[move - 1]
+                        selectedHeights[move] = selectedHeights[move - 1]
+                        move--
+                    }
+                    selectedIdxs[insertAt] = idx
+                    selectedHeights[insertAt] = height
+                    selectedCount++
+                    return
+                }
+
+                if (insertAt >= drainBudget) return
+
+                var move = drainBudget - 1
+                while (move > insertAt) {
+                    selectedIdxs[move] = selectedIdxs[move - 1]
+                    selectedHeights[move] = selectedHeights[move - 1]
+                    move--
+                }
+                selectedIdxs[insertAt] = idx
+                selectedHeights[insertAt] = height
+            }
+
+            while (head < tail) {
+                val idx = queue[head++]
+
+                val lx = idx % sizeX
+                val t = idx / sizeX
+                val ly = t % sizeY
+                val lz = t / sizeY
+                val curWaterMask = if (hasComponentConnectivity) simulationComponentMaskAt(state, idx) else -1L
+                recordRemovalCandidate(idx, cellCenterWorldY(lx, ly, lz))
+
+                fun tryDrainNeighbor(n: Int, dirCode: Int) {
+                    if (n < 0 || n >= volume || !materialized.get(n)) return
+                    val conductance = if (hasComponentConnectivity) {
+                        val nMask = simulationComponentMaskAt(state, n)
+                        computeFilteredFaceConductance(
+                            state = state,
+                            idxA = idx,
+                            idxB = n,
+                            dirCode = dirCode,
+                            componentMaskA = curWaterMask,
+                            componentMaskB = nMask,
+                        )
+                    } else {
+                        edgeConductance(state, idx, lx, ly, lz, dirCode)
+                    }
+                    if (conductance <= 0) return
+                    tryEnqueueDrainWater(n)
+                }
+
+                if (lx > 0) tryDrainNeighbor(idx - 1, 0)
+                if (lx + 1 < sizeX) tryDrainNeighbor(idx + 1, 1)
+                if (ly > 0) tryDrainNeighbor(idx - strideY, 2)
+                if (ly + 1 < sizeY) tryDrainNeighbor(idx + strideY, 3)
+                if (lz > 0) tryDrainNeighbor(idx - strideZ, 4)
+                if (lz + 1 < sizeZ) tryDrainNeighbor(idx + strideZ, 5)
+            }
+
+            for (i in 0 until selectedCount) {
+                val idx = selectedIdxs[i]
+                if (idx < 0 || state.queuedFloodRemoves.get(idx)) continue
+                toRemoveAll.set(idx)
+                removedCount++
+            }
+
+            if (bestVentIdx >= 0 && removedCount > 0) {
+                spawnDrainParticles(bestVentIdx, bestVentOutDirCode, bestVentConductance)
             }
         }
 
