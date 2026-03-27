@@ -166,10 +166,19 @@ public final class ShipWaterPocketFluidVisualHelper {
 
     public static @Nullable TextureAtlasSprite pickPreferredSprite(final @Nullable TextureAtlasSprite[] sprites) {
         if (sprites == null) return null;
-        if (sprites.length > 2 && sprites[2] != null) return sprites[2];
-        if (sprites.length > 0) return sprites[0];
-        if (sprites.length > 1 && sprites[1] != null) return sprites[1];
-        return null;
+        final int preferredIndex = preferredSpriteIndex(
+            sprites.length > 0 && sprites[0] != null,
+            sprites.length > 1 && sprites[1] != null,
+            sprites.length > 2 && sprites[2] != null
+        );
+        return preferredIndex >= 0 ? sprites[preferredIndex] : null;
+    }
+
+    static int preferredSpriteIndex(final boolean hasStill, final boolean hasFlow, final boolean hasOverlay) {
+        if (hasStill) return 0;
+        if (hasOverlay) return 2;
+        if (hasFlow) return 1;
+        return -1;
     }
 
     private static Fluid canonicalSource(final Fluid fluid) {

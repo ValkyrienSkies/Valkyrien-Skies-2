@@ -54,9 +54,26 @@ public final class ShipWaterPocketLiquidOverlay {
 
     private static final float OVERLAY_ALPHA = 1.0f;
     private static final float FACE_EPS = 0.0025f;
+    private static final float FACE_SAMPLE_OFFSET = 0.15f;
     private static final float OVERLAY_UV_SCALE = 1.0f;
     private static final int FULL_BRIGHT = 0x00F000F0;
     private static final double SURFACE_EPS = 1.0E-5;
+    private static final double[][] FLUID_SAMPLE_OFFSETS = {
+        {0.0, 0.0, 0.0},
+        {0.0, -0.35, 0.0},
+        {0.35, 0.0, 0.0},
+        {-0.35, 0.0, 0.0},
+        {0.0, 0.0, 0.35},
+        {0.0, 0.0, -0.35},
+        {0.35, -0.35, 0.0},
+        {-0.35, -0.35, 0.0},
+        {0.0, -0.35, 0.35},
+        {0.0, -0.35, -0.35},
+        {0.35, 0.0, 0.35},
+        {0.35, 0.0, -0.35},
+        {-0.35, 0.0, 0.35},
+        {-0.35, 0.0, -0.35},
+    };
     private static final int SHAPE_SUBCELL_RES = 8;
     private static final int SHAPE_SUBCELL_COUNT = SHAPE_SUBCELL_RES * SHAPE_SUBCELL_RES * SHAPE_SUBCELL_RES;
     private static final int SHAPE_FACE_NEG_X = 0;
@@ -111,6 +128,22 @@ public final class ShipWaterPocketLiquidOverlay {
         }
     }
 
+    private static final class OverlayFaceSample {
+        private final TextureAtlasSprite sprite;
+        private final float r;
+        private final float g;
+        private final float b;
+        private final double surfaceY;
+
+        private OverlayFaceSample(final TextureAtlasSprite sprite, final float r, final float g, final float b, final double surfaceY) {
+            this.sprite = sprite;
+            this.r = r;
+            this.g = g;
+            this.b = b;
+            this.surfaceY = surfaceY;
+        }
+    }
+
     private static final class OverlayShapeTemplate {
         private final long[] occupancyMask;
         private final byte[] componentBySubcell;
@@ -131,12 +164,14 @@ public final class ShipWaterPocketLiquidOverlay {
     private static final Map<Long, ShipCache> SHIP_CACHE = new HashMap<>();
     private static final Map<BlockState, OverlayShapeTemplate> SHAPE_TEMPLATE_CACHE = new HashMap<>();
     private static net.minecraft.client.multiplayer.ClientLevel lastSurfaceCacheLevel = null;
+    private static long lastSurfaceCacheGameTime = Long.MIN_VALUE;
     private static final Long2ObjectOpenHashMap<FluidSurfaceSample> FLUID_SURFACE_CACHE = new Long2ObjectOpenHashMap<>();
 
     public static void clear() {
         SHIP_CACHE.clear();
         SHAPE_TEMPLATE_CACHE.clear();
         lastSurfaceCacheLevel = null;
+        lastSurfaceCacheGameTime = Long.MIN_VALUE;
         FLUID_SURFACE_CACHE.clear();
     }
 
@@ -150,8 +185,9 @@ public final class ShipWaterPocketLiquidOverlay {
         final Camera camera = mc.gameRenderer.getMainCamera();
         if (camera.getFluidInCamera() != FogType.NONE) return;
 
-        if (lastSurfaceCacheLevel != level) {
+        if (lastSurfaceCacheLevel != level || lastSurfaceCacheGameTime != level.getGameTime()) {
             lastSurfaceCacheLevel = level;
+            lastSurfaceCacheGameTime = level.getGameTime();
             FLUID_SURFACE_CACHE.clear();
         }
 
@@ -340,114 +376,148 @@ public final class ShipWaterPocketLiquidOverlay {
             final int t = outsideIdx / sizeX;
             final int ly = t % sizeY;
             final int lz = t / sizeY;
-            final double centerX = lx + 0.5;
-            final double centerY = ly + 0.5;
-            final double centerZ = lz + 0.5;
-
-            final double worldX = m00 * centerX + m10 * centerY + m20 * centerZ + tX;
-            final double worldY = m01 * centerX + m11 * centerY + m21 * centerZ + tY;
-            final double worldZ = m02 * centerX + m12 * centerY + m22 * centerZ + tZ;
-
-            final FluidSurfaceSample surface = findExteriorFluidSurface(level, fluidPos, scanPos, worldX, worldY, worldZ);
-            if (surface == null) continue;
-            final Fluid overlayFluid = chooseOverlayFluid(surface != null ? surface.fluid : null, snapshot.getFloodFluid());
-            final FluidState overlayState = surface != null ? surface.fluidState : overlayFluid.defaultFluidState();
-            final BlockPos tintPos = surface != null ? surface.pos : fluidPos.set(Mth.floor(worldX), Mth.floor(worldY), Mth.floor(worldZ));
-            final ShipWaterPocketFluidVisualHelper.FluidVisual visual =
-                ShipWaterPocketFluidVisualHelper.resolveFluidVisual(level, tintPos, overlayState, overlayFluid);
-            final float r = ((visual.getTintRgb() >> 16) & 0xFF) / 255.0f;
-            final float g = ((visual.getTintRgb() >> 8) & 0xFF) / 255.0f;
-            final float b = (visual.getTintRgb() & 0xFF) / 255.0f;
-            final double surfaceY = surface != null ? surface.surfaceY : Double.NaN;
-
             if (lx > 0) {
                 final int n = outsideIdx - 1;
-                if (isFullCellOverlaySolid(fullCellOverlaySolids, n)) {
-                    solidPos.set(cache.minX + lx - 1, cache.minY + ly, cache.minZ + lz);
-                    quadsEmitted += emitSolidFaceX(level, solidPos, matrix, consumer, lx - 1, ly, lz, true, +1.0f, m01, m11, m21, tY,
-                        surfaceY, visual.getSprite(), r, g, b, OVERLAY_ALPHA);
-                } else if (isInteriorOpen(open, interior, n)) {
-                    quadsEmitted += emitFaceXClipped(matrix, consumer, lx, ly, lz, +1.0f, false, m01, m11, m21, tY, surfaceY,
-                        visual.getSprite(), r, g, b, OVERLAY_ALPHA);
-                } else if (!open.get(n) && overlaySolids != null && overlaySolids.get(n)) {
-                    solidPos.set(cache.minX + lx - 1, cache.minY + ly, cache.minZ + lz);
-                    quadsEmitted += emitSolidFaceX(level, solidPos, matrix, consumer, lx - 1, ly, lz, true, +1.0f, m01, m11, m21, tY,
-                        surfaceY, visual.getSprite(), r, g, b, OVERLAY_ALPHA);
+                final boolean fullCell = isFullCellOverlaySolid(fullCellOverlaySolids, n);
+                final boolean interiorFace = isInteriorOpen(open, interior, n);
+                final boolean solidFace = !open.get(n) && overlaySolids != null && overlaySolids.get(n);
+                if (fullCell || interiorFace || solidFace) {
+                    final @Nullable OverlayFaceSample sample = resolveOverlayFaceSample(level, snapshot, fluidPos, scanPos,
+                        lx + FACE_SAMPLE_OFFSET, ly + 0.5, lz + 0.5, m00, m10, m20, m01, m11, m21, m02, m12, m22, tX, tY, tZ);
+                    if (sample != null) {
+                        if (fullCell) {
+                            solidPos.set(cache.minX + lx - 1, cache.minY + ly, cache.minZ + lz);
+                            quadsEmitted += emitSolidFaceX(level, solidPos, matrix, consumer, lx - 1, ly, lz, true, +1.0f, m01, m11, m21,
+                                tY, sample.surfaceY, sample.sprite, sample.r, sample.g, sample.b, OVERLAY_ALPHA);
+                        } else if (interiorFace) {
+                            quadsEmitted += emitFaceXClipped(matrix, consumer, lx, ly, lz, +1.0f, false, m01, m11, m21, tY,
+                                sample.surfaceY, sample.sprite, sample.r, sample.g, sample.b, OVERLAY_ALPHA);
+                        } else {
+                            solidPos.set(cache.minX + lx - 1, cache.minY + ly, cache.minZ + lz);
+                            quadsEmitted += emitSolidFaceX(level, solidPos, matrix, consumer, lx - 1, ly, lz, true, +1.0f, m01, m11, m21,
+                                tY, sample.surfaceY, sample.sprite, sample.r, sample.g, sample.b, OVERLAY_ALPHA);
+                        }
+                    }
                 }
             }
             if (lx + 1 < sizeX) {
                 final int n = outsideIdx + 1;
-                if (isFullCellOverlaySolid(fullCellOverlaySolids, n)) {
-                    solidPos.set(cache.minX + lx + 1, cache.minY + ly, cache.minZ + lz);
-                    quadsEmitted += emitSolidFaceX(level, solidPos, matrix, consumer, lx + 1, ly, lz, false, -1.0f, m01, m11, m21, tY,
-                        surfaceY, visual.getSprite(), r, g, b, OVERLAY_ALPHA);
-                } else if (isInteriorOpen(open, interior, n)) {
-                    quadsEmitted += emitFaceXClipped(matrix, consumer, lx + 1, ly, lz, -1.0f, false, m01, m11, m21, tY, surfaceY,
-                        visual.getSprite(), r, g, b, OVERLAY_ALPHA);
-                } else if (!open.get(n) && overlaySolids != null && overlaySolids.get(n)) {
-                    solidPos.set(cache.minX + lx + 1, cache.minY + ly, cache.minZ + lz);
-                    quadsEmitted += emitSolidFaceX(level, solidPos, matrix, consumer, lx + 1, ly, lz, false, -1.0f, m01, m11, m21, tY,
-                        surfaceY, visual.getSprite(), r, g, b, OVERLAY_ALPHA);
+                final boolean fullCell = isFullCellOverlaySolid(fullCellOverlaySolids, n);
+                final boolean interiorFace = isInteriorOpen(open, interior, n);
+                final boolean solidFace = !open.get(n) && overlaySolids != null && overlaySolids.get(n);
+                if (fullCell || interiorFace || solidFace) {
+                    final @Nullable OverlayFaceSample sample = resolveOverlayFaceSample(level, snapshot, fluidPos, scanPos,
+                        lx + 1.0 - FACE_SAMPLE_OFFSET, ly + 0.5, lz + 0.5, m00, m10, m20, m01, m11, m21, m02, m12, m22, tX, tY, tZ);
+                    if (sample != null) {
+                        if (fullCell) {
+                            solidPos.set(cache.minX + lx + 1, cache.minY + ly, cache.minZ + lz);
+                            quadsEmitted += emitSolidFaceX(level, solidPos, matrix, consumer, lx + 1, ly, lz, false, -1.0f, m01, m11, m21,
+                                tY, sample.surfaceY, sample.sprite, sample.r, sample.g, sample.b, OVERLAY_ALPHA);
+                        } else if (interiorFace) {
+                            quadsEmitted += emitFaceXClipped(matrix, consumer, lx + 1, ly, lz, -1.0f, false, m01, m11, m21, tY,
+                                sample.surfaceY, sample.sprite, sample.r, sample.g, sample.b, OVERLAY_ALPHA);
+                        } else {
+                            solidPos.set(cache.minX + lx + 1, cache.minY + ly, cache.minZ + lz);
+                            quadsEmitted += emitSolidFaceX(level, solidPos, matrix, consumer, lx + 1, ly, lz, false, -1.0f, m01, m11, m21,
+                                tY, sample.surfaceY, sample.sprite, sample.r, sample.g, sample.b, OVERLAY_ALPHA);
+                        }
+                    }
                 }
             }
             if (ly > 0) {
                 final int n = outsideIdx - strideY;
-                if (isFullCellOverlaySolid(fullCellOverlaySolids, n)) {
-                    solidPos.set(cache.minX + lx, cache.minY + ly - 1, cache.minZ + lz);
-                    quadsEmitted += emitSolidFaceY(level, solidPos, matrix, consumer, lx, ly - 1, lz, true, +1.0f, m01, m11, m21, tY,
-                        surfaceY, visual.getSprite(), r, g, b, OVERLAY_ALPHA);
-                } else if (isInteriorOpen(open, interior, n)) {
-                    quadsEmitted += emitFaceYClipped(matrix, consumer, lx, ly, lz, +1.0f, false, m01, m11, m21, tY, surfaceY,
-                        visual.getSprite(), r, g, b, OVERLAY_ALPHA);
-                } else if (!open.get(n) && overlaySolids != null && overlaySolids.get(n)) {
-                    solidPos.set(cache.minX + lx, cache.minY + ly - 1, cache.minZ + lz);
-                    quadsEmitted += emitSolidFaceY(level, solidPos, matrix, consumer, lx, ly - 1, lz, true, +1.0f, m01, m11, m21, tY,
-                        surfaceY, visual.getSprite(), r, g, b, OVERLAY_ALPHA);
+                final boolean fullCell = isFullCellOverlaySolid(fullCellOverlaySolids, n);
+                final boolean interiorFace = isInteriorOpen(open, interior, n);
+                final boolean solidFace = !open.get(n) && overlaySolids != null && overlaySolids.get(n);
+                if (fullCell || interiorFace || solidFace) {
+                    final @Nullable OverlayFaceSample sample = resolveOverlayFaceSample(level, snapshot, fluidPos, scanPos,
+                        lx + 0.5, ly + FACE_SAMPLE_OFFSET, lz + 0.5, m00, m10, m20, m01, m11, m21, m02, m12, m22, tX, tY, tZ);
+                    if (sample != null) {
+                        if (fullCell) {
+                            solidPos.set(cache.minX + lx, cache.minY + ly - 1, cache.minZ + lz);
+                            quadsEmitted += emitSolidFaceY(level, solidPos, matrix, consumer, lx, ly - 1, lz, true, +1.0f, m01, m11, m21,
+                                tY, sample.surfaceY, sample.sprite, sample.r, sample.g, sample.b, OVERLAY_ALPHA);
+                        } else if (interiorFace) {
+                            quadsEmitted += emitFaceYClipped(matrix, consumer, lx, ly, lz, +1.0f, false, m01, m11, m21, tY,
+                                sample.surfaceY, sample.sprite, sample.r, sample.g, sample.b, OVERLAY_ALPHA);
+                        } else {
+                            solidPos.set(cache.minX + lx, cache.minY + ly - 1, cache.minZ + lz);
+                            quadsEmitted += emitSolidFaceY(level, solidPos, matrix, consumer, lx, ly - 1, lz, true, +1.0f, m01, m11, m21,
+                                tY, sample.surfaceY, sample.sprite, sample.r, sample.g, sample.b, OVERLAY_ALPHA);
+                        }
+                    }
                 }
             }
             if (ly + 1 < sizeY) {
                 final int n = outsideIdx + strideY;
-                if (isFullCellOverlaySolid(fullCellOverlaySolids, n)) {
-                    solidPos.set(cache.minX + lx, cache.minY + ly + 1, cache.minZ + lz);
-                    quadsEmitted += emitSolidFaceY(level, solidPos, matrix, consumer, lx, ly + 1, lz, false, -1.0f, m01, m11, m21, tY,
-                        surfaceY, visual.getSprite(), r, g, b, OVERLAY_ALPHA);
-                } else if (isInteriorOpen(open, interior, n)) {
-                    quadsEmitted += emitFaceYClipped(matrix, consumer, lx, ly + 1, lz, -1.0f, false, m01, m11, m21, tY, surfaceY,
-                        visual.getSprite(), r, g, b, OVERLAY_ALPHA);
-                } else if (!open.get(n) && overlaySolids != null && overlaySolids.get(n)) {
-                    solidPos.set(cache.minX + lx, cache.minY + ly + 1, cache.minZ + lz);
-                    quadsEmitted += emitSolidFaceY(level, solidPos, matrix, consumer, lx, ly + 1, lz, false, -1.0f, m01, m11, m21, tY,
-                        surfaceY, visual.getSprite(), r, g, b, OVERLAY_ALPHA);
+                final boolean fullCell = isFullCellOverlaySolid(fullCellOverlaySolids, n);
+                final boolean interiorFace = isInteriorOpen(open, interior, n);
+                final boolean solidFace = !open.get(n) && overlaySolids != null && overlaySolids.get(n);
+                if (fullCell || interiorFace || solidFace) {
+                    final @Nullable OverlayFaceSample sample = resolveOverlayFaceSample(level, snapshot, fluidPos, scanPos,
+                        lx + 0.5, ly + 1.0 - FACE_SAMPLE_OFFSET, lz + 0.5, m00, m10, m20, m01, m11, m21, m02, m12, m22, tX, tY, tZ);
+                    if (sample != null) {
+                        if (fullCell) {
+                            solidPos.set(cache.minX + lx, cache.minY + ly + 1, cache.minZ + lz);
+                            quadsEmitted += emitSolidFaceY(level, solidPos, matrix, consumer, lx, ly + 1, lz, false, -1.0f, m01, m11, m21,
+                                tY, sample.surfaceY, sample.sprite, sample.r, sample.g, sample.b, OVERLAY_ALPHA);
+                        } else if (interiorFace) {
+                            quadsEmitted += emitFaceYClipped(matrix, consumer, lx, ly + 1, lz, -1.0f, false, m01, m11, m21, tY,
+                                sample.surfaceY, sample.sprite, sample.r, sample.g, sample.b, OVERLAY_ALPHA);
+                        } else {
+                            solidPos.set(cache.minX + lx, cache.minY + ly + 1, cache.minZ + lz);
+                            quadsEmitted += emitSolidFaceY(level, solidPos, matrix, consumer, lx, ly + 1, lz, false, -1.0f, m01, m11, m21,
+                                tY, sample.surfaceY, sample.sprite, sample.r, sample.g, sample.b, OVERLAY_ALPHA);
+                        }
+                    }
                 }
             }
             if (lz > 0) {
                 final int n = outsideIdx - strideZ;
-                if (isFullCellOverlaySolid(fullCellOverlaySolids, n)) {
-                    solidPos.set(cache.minX + lx, cache.minY + ly, cache.minZ + lz - 1);
-                    quadsEmitted += emitSolidFaceZ(level, solidPos, matrix, consumer, lx, ly, lz - 1, true, +1.0f, m01, m11, m21, tY,
-                        surfaceY, visual.getSprite(), r, g, b, OVERLAY_ALPHA);
-                } else if (isInteriorOpen(open, interior, n)) {
-                    quadsEmitted += emitFaceZClipped(matrix, consumer, lx, ly, lz, +1.0f, false, m01, m11, m21, tY, surfaceY,
-                        visual.getSprite(), r, g, b, OVERLAY_ALPHA);
-                } else if (!open.get(n) && overlaySolids != null && overlaySolids.get(n)) {
-                    solidPos.set(cache.minX + lx, cache.minY + ly, cache.minZ + lz - 1);
-                    quadsEmitted += emitSolidFaceZ(level, solidPos, matrix, consumer, lx, ly, lz - 1, true, +1.0f, m01, m11, m21, tY,
-                        surfaceY, visual.getSprite(), r, g, b, OVERLAY_ALPHA);
+                final boolean fullCell = isFullCellOverlaySolid(fullCellOverlaySolids, n);
+                final boolean interiorFace = isInteriorOpen(open, interior, n);
+                final boolean solidFace = !open.get(n) && overlaySolids != null && overlaySolids.get(n);
+                if (fullCell || interiorFace || solidFace) {
+                    final @Nullable OverlayFaceSample sample = resolveOverlayFaceSample(level, snapshot, fluidPos, scanPos,
+                        lx + 0.5, ly + 0.5, lz + FACE_SAMPLE_OFFSET, m00, m10, m20, m01, m11, m21, m02, m12, m22, tX, tY, tZ);
+                    if (sample != null) {
+                        if (fullCell) {
+                            solidPos.set(cache.minX + lx, cache.minY + ly, cache.minZ + lz - 1);
+                            quadsEmitted += emitSolidFaceZ(level, solidPos, matrix, consumer, lx, ly, lz - 1, true, +1.0f, m01, m11, m21,
+                                tY, sample.surfaceY, sample.sprite, sample.r, sample.g, sample.b, OVERLAY_ALPHA);
+                        } else if (interiorFace) {
+                            quadsEmitted += emitFaceZClipped(matrix, consumer, lx, ly, lz, +1.0f, false, m01, m11, m21, tY,
+                                sample.surfaceY, sample.sprite, sample.r, sample.g, sample.b, OVERLAY_ALPHA);
+                        } else {
+                            solidPos.set(cache.minX + lx, cache.minY + ly, cache.minZ + lz - 1);
+                            quadsEmitted += emitSolidFaceZ(level, solidPos, matrix, consumer, lx, ly, lz - 1, true, +1.0f, m01, m11, m21,
+                                tY, sample.surfaceY, sample.sprite, sample.r, sample.g, sample.b, OVERLAY_ALPHA);
+                        }
+                    }
                 }
             }
             if (lz + 1 < sizeZ) {
                 final int n = outsideIdx + strideZ;
-                if (isFullCellOverlaySolid(fullCellOverlaySolids, n)) {
-                    solidPos.set(cache.minX + lx, cache.minY + ly, cache.minZ + lz + 1);
-                    quadsEmitted += emitSolidFaceZ(level, solidPos, matrix, consumer, lx, ly, lz + 1, false, -1.0f, m01, m11, m21, tY,
-                        surfaceY, visual.getSprite(), r, g, b, OVERLAY_ALPHA);
-                } else if (isInteriorOpen(open, interior, n)) {
-                    quadsEmitted += emitFaceZClipped(matrix, consumer, lx, ly, lz + 1, -1.0f, false, m01, m11, m21, tY, surfaceY,
-                        visual.getSprite(), r, g, b, OVERLAY_ALPHA);
-                } else if (!open.get(n) && overlaySolids != null && overlaySolids.get(n)) {
-                    solidPos.set(cache.minX + lx, cache.minY + ly, cache.minZ + lz + 1);
-                    quadsEmitted += emitSolidFaceZ(level, solidPos, matrix, consumer, lx, ly, lz + 1, false, -1.0f, m01, m11, m21, tY,
-                        surfaceY, visual.getSprite(), r, g, b, OVERLAY_ALPHA);
+                final boolean fullCell = isFullCellOverlaySolid(fullCellOverlaySolids, n);
+                final boolean interiorFace = isInteriorOpen(open, interior, n);
+                final boolean solidFace = !open.get(n) && overlaySolids != null && overlaySolids.get(n);
+                if (fullCell || interiorFace || solidFace) {
+                    final @Nullable OverlayFaceSample sample = resolveOverlayFaceSample(level, snapshot, fluidPos, scanPos,
+                        lx + 0.5, ly + 0.5, lz + 1.0 - FACE_SAMPLE_OFFSET, m00, m10, m20, m01, m11, m21, m02, m12, m22, tX, tY, tZ);
+                    if (sample != null) {
+                        if (fullCell) {
+                            solidPos.set(cache.minX + lx, cache.minY + ly, cache.minZ + lz + 1);
+                            quadsEmitted += emitSolidFaceZ(level, solidPos, matrix, consumer, lx, ly, lz + 1, false, -1.0f, m01, m11, m21,
+                                tY, sample.surfaceY, sample.sprite, sample.r, sample.g, sample.b, OVERLAY_ALPHA);
+                        } else if (interiorFace) {
+                            quadsEmitted += emitFaceZClipped(matrix, consumer, lx, ly, lz + 1, -1.0f, false, m01, m11, m21, tY,
+                                sample.surfaceY, sample.sprite, sample.r, sample.g, sample.b, OVERLAY_ALPHA);
+                        } else {
+                            solidPos.set(cache.minX + lx, cache.minY + ly, cache.minZ + lz + 1);
+                            quadsEmitted += emitSolidFaceZ(level, solidPos, matrix, consumer, lx, ly, lz + 1, false, -1.0f, m01, m11, m21,
+                                tY, sample.surfaceY, sample.sprite, sample.r, sample.g, sample.b, OVERLAY_ALPHA);
+                        }
+                    }
                 }
             }
         }
@@ -542,6 +612,70 @@ public final class ShipWaterPocketLiquidOverlay {
     private static @Nullable FluidSurfaceSample findExteriorFluidSurface(final net.minecraft.client.multiplayer.ClientLevel level,
         final BlockPos.MutableBlockPos fluidPos, final BlockPos.MutableBlockPos scanPos, final double worldX, final double worldY,
         final double worldZ) {
+        FluidSurfaceSample best = null;
+        for (final double[] offset : FLUID_SAMPLE_OFFSETS) {
+            final FluidSurfaceSample candidate = findExteriorFluidSurfaceAtSamplePoint(
+                level,
+                fluidPos,
+                scanPos,
+                worldX + offset[0],
+                worldY + offset[1],
+                worldZ + offset[2]
+            );
+            if (candidate == null) {
+                continue;
+            }
+            if (best == null || candidate.surfaceY > best.surfaceY + SURFACE_EPS) {
+                best = candidate;
+            }
+        }
+        return best;
+    }
+
+    private static @Nullable OverlayFaceSample resolveOverlayFaceSample(final net.minecraft.client.multiplayer.ClientLevel level,
+        final ShipWaterPocketManager.ClientWaterReachableSnapshot snapshot, final BlockPos.MutableBlockPos fluidPos,
+        final BlockPos.MutableBlockPos scanPos, final double localX, final double localY, final double localZ, final double m00,
+        final double m10, final double m20, final double m01, final double m11, final double m21, final double m02,
+        final double m12, final double m22, final double tX, final double tY, final double tZ) {
+        final double worldX = m00 * localX + m10 * localY + m20 * localZ + tX;
+        final double worldY = m01 * localX + m11 * localY + m21 * localZ + tY;
+        final double worldZ = m02 * localX + m12 * localY + m22 * localZ + tZ;
+
+        final FluidSurfaceSample surface = findExteriorFluidSurface(level, fluidPos, scanPos, worldX, worldY, worldZ);
+        if (surface == null) {
+            return null;
+        }
+        final Fluid overlayFluid = chooseOverlayFluid(surface != null ? surface.fluid : null, snapshot.getFloodFluid());
+        final FluidState overlayFluidState =
+            surface != null && !surface.fluidState.isEmpty() ? surface.fluidState : overlayFluid.defaultFluidState();
+        final BlockPos tintPos;
+        if (surface != null) {
+            tintPos = surface.pos;
+        } else {
+            fluidPos.set(Mth.floor(worldX), Mth.floor(worldY), Mth.floor(worldZ));
+            tintPos = fluidPos.immutable();
+        }
+
+        final ShipWaterPocketFluidVisualHelper.FluidVisual visual =
+            ShipWaterPocketFluidVisualHelper.resolveFluidVisual(level, tintPos, overlayFluidState, overlayFluid);
+        final int rgb = visual.getTintRgb();
+        return new OverlayFaceSample(
+            visual.getSprite(),
+            ((rgb >> 16) & 0xFF) / 255.0f,
+            ((rgb >> 8) & 0xFF) / 255.0f,
+            (rgb & 0xFF) / 255.0f,
+            surface != null ? surface.surfaceY : Double.NaN
+        );
+    }
+
+    private static @Nullable FluidSurfaceSample findExteriorFluidSurfaceAtSamplePoint(
+        final net.minecraft.client.multiplayer.ClientLevel level,
+        final BlockPos.MutableBlockPos fluidPos,
+        final BlockPos.MutableBlockPos scanPos,
+        final double worldX,
+        final double worldY,
+        final double worldZ
+    ) {
         final int blockX = Mth.floor(worldX);
         final int blockY = Mth.floor(worldY);
         final int blockZ = Mth.floor(worldZ);
@@ -617,7 +751,7 @@ public final class ShipWaterPocketLiquidOverlay {
         final double wy3 = worldY(m01, m11, m21, tY, x, y0, z1);
 
         if (Double.isNaN(fluidSurfaceY) || Math.max(Math.max(wy0, wy1), Math.max(wy2, wy3)) <= fluidSurfaceY + SURFACE_EPS) {
-            quad(consumer, matrix, sprite, x, y0, z0, x, y1, z0, x, y1, z1, x, y0, z1, u0, v0, u1, v1, normalX, 0.0f, 0.0f,
+            quad(consumer, matrix, sprite, x, y0, z0, x, y0, z1, x, y1, z1, x, y1, z0, u0, v0, u1, v1, normalX, 0.0f, 0.0f,
                 r, g, b, a);
             return 1;
         }
@@ -629,8 +763,8 @@ public final class ShipWaterPocketLiquidOverlay {
         CLIP_U0[0] = u0;
         CLIP_V0[0] = v0;
         CLIP_X0[1] = x;
-        CLIP_Y0[1] = y1;
-        CLIP_Z0[1] = z0;
+        CLIP_Y0[1] = y0;
+        CLIP_Z0[1] = z1;
         CLIP_U0[1] = u1;
         CLIP_V0[1] = v0;
         CLIP_X0[2] = x;
@@ -639,8 +773,8 @@ public final class ShipWaterPocketLiquidOverlay {
         CLIP_U0[2] = u1;
         CLIP_V0[2] = v1;
         CLIP_X0[3] = x;
-        CLIP_Y0[3] = y0;
-        CLIP_Z0[3] = z1;
+        CLIP_Y0[3] = y1;
+        CLIP_Z0[3] = z0;
         CLIP_U0[3] = u0;
         CLIP_V0[3] = v1;
 

@@ -149,6 +149,14 @@ class ShipWaterPocketLiquidOverlayTest {
     }
 
     @Test
+    fun `fluid sprite selection prefers still before overlay and flow`() {
+        assertEquals(0, ShipWaterPocketFluidVisualHelper.preferredSpriteIndex(true, true, true))
+        assertEquals(2, ShipWaterPocketFluidVisualHelper.preferredSpriteIndex(false, true, true))
+        assertEquals(1, ShipWaterPocketFluidVisualHelper.preferredSpriteIndex(false, true, false))
+        assertEquals(-1, ShipWaterPocketFluidVisualHelper.preferredSpriteIndex(false, false, false))
+    }
+
+    @Test
     fun `solid render layer can still qualify as transparent overlay block`() {
         val candidate = ShipWaterPocketLiquidOverlay.isOverlaySolidCandidate(false, false, true, 0)
         assertTrue(candidate)
