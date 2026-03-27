@@ -3209,15 +3209,23 @@ object ShipWaterPocketManager {
                 z = shipPosTmp.z,
                 out = shipBlockPosTmp,
             )
-            if (classification.kind == PointVoidClass.OUT_OF_BOUNDS || classification.kind == PointVoidClass.SOLID) {
+            val suppressionCell =
+                if (classification.kind == PointVoidClass.SOLID) {
+                    findNearbyWorldFluidSuppressionZone(state, shipPosTmp, shipBlockPosTmp, radius = 0)
+                } else {
+                    null
+                }
+            if (classification.kind == PointVoidClass.OUT_OF_BOUNDS ||
+                (classification.kind == PointVoidClass.SOLID && suppressionCell == null)
+            ) {
                 continue
             }
 
             val shipFluid = findShipFluidAtShipPoint(level, shipPosTmp, shipBlockPosTmp, queryCache)
             if (!shipFluid.isEmpty) return shipFluid
-            if (!original.isEmpty && ShipWaterPocketManager.isSuppressionClassification(
+            if (!original.isEmpty && (suppressionCell != null || ShipWaterPocketManager.isSuppressionClassification(
                     state, classification
-                )
+                ))
             ) {
                 val count = ShipWaterPocketManager.worldSuppressionHits.incrementAndGet()
                 ShipWaterPocketManager.logThrottledDiag(
@@ -3411,7 +3419,10 @@ object ShipWaterPocketManager {
                 z = shipPosTmp.z,
                 out = shipBlockPosTmp,
             )
-            if (isSuppressionClassification(state, classification)) {
+            if (isSuppressionClassification(state, classification) ||
+                (classification.kind == PointVoidClass.SOLID &&
+                    findNearbyWorldFluidSuppressionZone(state, shipPosTmp, shipBlockPosTmp, radius = 0) != null)
+            ) {
                 return true
             }
         }
@@ -3466,7 +3477,10 @@ object ShipWaterPocketManager {
                 z = shipPosTmp.z,
                 out = shipBlockPosTmp,
             )
-            if (isAirPocketClassification(state, classification)) {
+            if (isAirPocketClassification(state, classification) ||
+                (classification.kind == PointVoidClass.SOLID &&
+                    findNearbyAirPocket(state, shipPosTmp, shipBlockPosTmp, radius = 0) != null)
+            ) {
                 return true
             }
         }
@@ -3514,8 +3528,13 @@ object ShipWaterPocketManager {
                 z = shipPosTmp.z,
                 out = shipBlockPosTmp,
             )
-            if (!isAirPocketClassification(state, classification)) continue
-            return BlockPos(classification.voxelX, classification.voxelY, classification.voxelZ)
+            if (isAirPocketClassification(state, classification)) {
+                return BlockPos(classification.voxelX, classification.voxelY, classification.voxelZ)
+            }
+            if (classification.kind == PointVoidClass.SOLID) {
+                val fallback = findNearbyAirPocket(state, shipPosTmp, shipBlockPosTmp, radius = 0) ?: continue
+                return BlockPos(fallback.x, fallback.y, fallback.z)
+            }
         }
 
         return null
@@ -3588,82 +3607,6 @@ object ShipWaterPocketManager {
 
         shipBlockPos.set(baseX, baseY, baseZ)
         return shipFluid
-    }
-
-    private fun findNearbyAirPocket(
-        state: ShipPocketState,
-        shipPos: Vector3d,
-        shipBlockPos: BlockPos.MutableBlockPos,
-        radius: Int,
-    ): BlockPos.MutableBlockPos? {
-        val baseX = shipBlockPos.x
-        val baseY = shipBlockPos.y
-        val baseZ = shipBlockPos.z
-
-        if (isAirPocket(state, shipBlockPos)) return shipBlockPos
-
-        val e = POINT_QUERY_EPS
-        for (dxi in -1..1) {
-            val dx = dxi.toDouble() * e
-            for (dyi in -1..1) {
-                val dy = dyi.toDouble() * e
-                for (dzi in -1..1) {
-                    val dz = dzi.toDouble() * e
-                    if (dx == 0.0 && dy == 0.0 && dz == 0.0) continue
-                    shipBlockPos.set(
-                        Mth.floor(shipPos.x + dx),
-                        Mth.floor(shipPos.y + dy),
-                        Mth.floor(shipPos.z + dz),
-                    )
-                    if (isAirPocket(state, shipBlockPos)) return shipBlockPos
-                }
-            }
-        }
-
-        if (radius <= 0) return null
-
-        var bestDistSq = Double.POSITIVE_INFINITY
-        var bestX = 0
-        var bestY = 0
-        var bestZ = 0
-
-        val x = shipPos.x
-        val y = shipPos.y
-        val z = shipPos.z
-
-        for (dx in -radius..radius) {
-            val px = baseX + dx
-            val cx = px + 0.5
-            val ddx = x - cx
-            for (dy in -radius..radius) {
-                val py = baseY + dy
-                val cy = py + 0.5
-                val ddy = y - cy
-                for (dz in -radius..radius) {
-                    val pz = baseZ + dz
-                    shipBlockPos.set(px, py, pz)
-                    if (!isAirPocket(state, shipBlockPos)) continue
-
-                    val cz = pz + 0.5
-                    val ddz = z - cz
-                    val distSq = ddx * ddx + ddy * ddy + ddz * ddz
-
-                    if (distSq < bestDistSq - 1e-12) {
-                        bestDistSq = distSq
-                        bestX = px
-                        bestY = py
-                        bestZ = pz
-                    }
-                }
-            }
-        }
-
-        if (bestDistSq != Double.POSITIVE_INFINITY) {
-            shipBlockPos.set(bestX, bestY, bestZ)
-            return shipBlockPos
-        }
-
-        return null
     }
 
     private fun indexOf(state: ShipPocketState, lx: Int, ly: Int, lz: Int): Int =

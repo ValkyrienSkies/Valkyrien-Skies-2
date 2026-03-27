@@ -332,6 +332,19 @@ public abstract class MixinEntity implements ShipWaterPocketEntityDuck {
     }
 
     @Inject(
+        method = "isInFluidType()Z",
+        at = @At("RETURN"),
+        cancellable = true,
+        require = 0
+    )
+    private void ignoreFluidTypeFlagInShipAirPockets(final CallbackInfoReturnable<Boolean> cir) {
+        if (!cir.getReturnValueZ()) return;
+        if (vs$isInShipAirPocketForWorldWater()) {
+            cir.setReturnValue(false);
+        }
+    }
+
+    @Inject(
         method = "isInFluidType(Ljava/util/function/BiPredicate;Z)Z",
         at = @At("HEAD"),
         cancellable = true,
