@@ -6,6 +6,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import java.util.SortedSet;
 
+import net.minecraft.client.Minecraft;
 import me.jellysquid.mods.sodium.client.gl.device.CommandList;
 import me.jellysquid.mods.sodium.client.gl.device.RenderDevice;
 import me.jellysquid.mods.sodium.client.render.SodiumWorldRenderer;
@@ -52,6 +53,8 @@ public abstract class MixinSodiumWorldRenderer {
     private RenderSectionManager renderSectionManager;
     @Unique
     private SortedRenderLists currentRenderLists;
+    @Unique
+    private boolean vs$prevFrameHadShips;
 
     @Redirect(
         method = "renderBlockEntity",
@@ -123,20 +126,15 @@ public abstract class MixinSodiumWorldRenderer {
         }
     }
 
-//    /**
-//     * @reason Fix ship ghosts when ships are deleted and camera hasn't moved, and ships not rendering when teleported
-//     * and camera hasn't moved
-//     */
-//    @Inject(method = "updateChunks", at = @At("HEAD"))
-//    private void preUpdateChunks(final CallbackInfo callbackInfo) {
-//        final boolean curFrameHasShips =
-//            !VSGameUtilsKt.getShipObjectWorld(Minecraft.getInstance()).getLoadedShips().isEmpty();
-//        // Mark the graph dirty if ships were loaded this frame or the previous one
-//        if (vs$prevFrameHadShips || curFrameHasShips) {
-//            this.renderSectionManager.markGraphDirty();
-//        }
-//        vs$prevFrameHadShips = curFrameHasShips;
-//    }
+    @Inject(method = "setupTerrain", at = @At("HEAD"))
+    private void preUpdateChunks(final CallbackInfo callbackInfo) {
+        final boolean curFrameHasShips =
+            !VSGameUtilsKt.getShipObjectWorld(Minecraft.getInstance()).getLoadedShips().isEmpty();
+        if (vs$prevFrameHadShips || curFrameHasShips) {
+            this.renderSectionManager.markGraphDirty();
+        }
+        vs$prevFrameHadShips = curFrameHasShips;
+    }
 
     /**
      * Fix entities in ships not rendering when Sodium is installed

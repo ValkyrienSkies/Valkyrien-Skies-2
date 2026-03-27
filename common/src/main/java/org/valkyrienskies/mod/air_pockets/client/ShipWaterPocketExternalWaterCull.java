@@ -10,7 +10,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
-import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -59,6 +58,7 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.air_pockets.ShipPocketAsyncRuntime;
 import org.valkyrienskies.mod.common.air_pockets.ShipPocketAsyncSubsystem;
 import org.valkyrienskies.mod.common.air_pockets.ShipWaterPocketAsyncCull;
+import org.valkyrienskies.mod.common.air_pockets.ShipWaterPocketClientCullBridge;
 import org.valkyrienskies.mod.common.air_pockets.ShipWaterPocketManager;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 
@@ -150,7 +150,8 @@ public final class ShipWaterPocketExternalWaterCull {
         private final Matrix4f worldToShip = new Matrix4f();
 
         private int[] maskData;
-        private IntBuffer maskBuffer;
+        private byte[] maskBytes;
+        private ByteBuffer maskByteBuffer;
         private CompletableFuture<int[]> pendingMaskWordsFuture;
         private long pendingMaskBuildRevision = Long.MIN_VALUE;
 
@@ -1092,11 +1093,7 @@ public final class ShipWaterPocketExternalWaterCull {
                 for (int lx = 0; lx < sizeX; lx++) {
                     pos.set(minX + lx, minY + ly, minZ + lz);
                     final BlockState state = level.getBlockState(pos);
-                    VoxelShape shape = state.getOcclusionShape(level, pos);
-                    if (shape.isEmpty()) {
-                        shape = state.getCollisionShape(level, pos);
-                    }
-                    shapeSnapshot[idx++] = shape;
+                    shapeSnapshot[idx++] = ShipWaterPocketClientCullBridge.buildCullVoxelShape(level, pos, state);
                 }
             }
         }
@@ -1146,23 +1143,27 @@ public final class ShipWaterPocketExternalWaterCull {
         }
 
         final int prevId = masks.maskTexId;
-        masks.maskTexId = ensureIntTexture(masks.maskTexId, MASK_TEX_WIDTH, height);
+        masks.maskTexId = ensureWordTexture(masks.maskTexId, MASK_TEX_WIDTH, height);
         masks.maskTexHeight = height;
         newOrResized |= (prevId == 0 && masks.maskTexId != 0);
 
         // Clear newly allocated storage to avoid undefined sampler reads during async rebuild.
         if (newOrResized && masks.maskTexId != 0) {
             final int capacity = MASK_TEX_WIDTH * height;
+            final int byteCapacity = capacity * 4;
             if (masks.maskData == null || masks.maskData.length != capacity) {
                 masks.maskData = new int[capacity];
-                masks.maskBuffer = BufferUtils.createIntBuffer(capacity);
             } else {
                 Arrays.fill(masks.maskData, 0);
             }
-            masks.maskBuffer.clear();
-            masks.maskBuffer.put(masks.maskData);
-            masks.maskBuffer.flip();
-            uploadIntTexture(masks.maskTexId, MASK_TEX_WIDTH, height, masks.maskBuffer);
+            if (masks.maskBytes == null || masks.maskBytes.length != byteCapacity) {
+                masks.maskBytes = new byte[byteCapacity];
+                masks.maskByteBuffer = BufferUtils.createByteBuffer(byteCapacity);
+            } else {
+                Arrays.fill(masks.maskBytes, (byte) 0);
+            }
+            packMaskWords(masks);
+            uploadWordTexture(masks.maskTexId, MASK_TEX_WIDTH, height, masks.maskByteBuffer);
             masks.lastMaskUploadRevision = Long.MIN_VALUE;
         }
     }
@@ -1187,11 +1188,17 @@ public final class ShipWaterPocketExternalWaterCull {
     private static void applyMaskWords(final ShipMasks masks, final int[] words, final long uploadRevision) {
         if (masks.maskTexId == 0) return;
         final int capacity = MASK_TEX_WIDTH * masks.maskTexHeight;
+        final int byteCapacity = capacity * 4;
         if (masks.maskData == null || masks.maskData.length != capacity) {
             masks.maskData = new int[capacity];
-            masks.maskBuffer = BufferUtils.createIntBuffer(capacity);
         } else {
             Arrays.fill(masks.maskData, 0);
+        }
+        if (masks.maskBytes == null || masks.maskBytes.length != byteCapacity) {
+            masks.maskBytes = new byte[byteCapacity];
+            masks.maskByteBuffer = BufferUtils.createByteBuffer(byteCapacity);
+        } else {
+            Arrays.fill(masks.maskBytes, (byte) 0);
         }
 
         final int maxWords = Math.min(words.length, masks.maskData.length);
@@ -1202,10 +1209,8 @@ public final class ShipWaterPocketExternalWaterCull {
             masks.maskData[texIdx] = words[wordIdx];
         }
 
-        masks.maskBuffer.clear();
-        masks.maskBuffer.put(masks.maskData);
-        masks.maskBuffer.flip();
-        uploadIntTexture(masks.maskTexId, MASK_TEX_WIDTH, masks.maskTexHeight, masks.maskBuffer);
+        packMaskWords(masks);
+        uploadWordTexture(masks.maskTexId, MASK_TEX_WIDTH, masks.maskTexHeight, masks.maskByteBuffer);
         masks.lastMaskUploadRevision = uploadRevision;
     }
 
@@ -1413,7 +1418,23 @@ public final class ShipWaterPocketExternalWaterCull {
         return null;
     }
 
-    private static int ensureIntTexture(final int existingId, final int width, final int height) {
+    private static void packMaskWords(final ShipMasks masks) {
+        if (masks.maskData == null || masks.maskBytes == null || masks.maskByteBuffer == null) return;
+        final int wordCount = Math.min(masks.maskData.length, masks.maskBytes.length / 4);
+        for (int i = 0; i < wordCount; i++) {
+            final int word = masks.maskData[i];
+            final int base = i * 4;
+            masks.maskBytes[base] = (byte) (word & 0xFF);
+            masks.maskBytes[base + 1] = (byte) ((word >>> 8) & 0xFF);
+            masks.maskBytes[base + 2] = (byte) ((word >>> 16) & 0xFF);
+            masks.maskBytes[base + 3] = (byte) ((word >>> 24) & 0xFF);
+        }
+        masks.maskByteBuffer.clear();
+        masks.maskByteBuffer.put(masks.maskBytes);
+        masks.maskByteBuffer.flip();
+    }
+
+    private static int ensureWordTexture(final int existingId, final int width, final int height) {
         final int prevBinding = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
         final int prevUnpackAlignment = GL11.glGetInteger(GL11.GL_UNPACK_ALIGNMENT);
         try {
@@ -1431,8 +1452,8 @@ public final class ShipWaterPocketExternalWaterCull {
             GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL12.GL_CLAMP_TO_EDGE);
 
             GL11.glPixelStorei(GL11.GL_UNPACK_ALIGNMENT, 1);
-            GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL30.GL_R32UI, width, height, 0, GL30.GL_RED_INTEGER,
-                GL11.GL_UNSIGNED_INT, (IntBuffer) null);
+            GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGBA8, width, height, 0, GL11.GL_RGBA,
+                GL11.GL_UNSIGNED_BYTE, (ByteBuffer) null);
 
             return id;
         } finally {
@@ -1482,13 +1503,13 @@ public final class ShipWaterPocketExternalWaterCull {
         }
     }
 
-    private static void uploadIntTexture(final int texId, final int width, final int height, final IntBuffer data) {
+    private static void uploadWordTexture(final int texId, final int width, final int height, final ByteBuffer data) {
         final int prevBinding = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
         final int prevUnpackAlignment = GL11.glGetInteger(GL11.GL_UNPACK_ALIGNMENT);
         try {
             GlStateManager._bindTexture(texId);
             GL11.glPixelStorei(GL11.GL_UNPACK_ALIGNMENT, 1);
-            GL11.glTexSubImage2D(GL11.GL_TEXTURE_2D, 0, 0, 0, width, height, GL30.GL_RED_INTEGER, GL11.GL_UNSIGNED_INT, data);
+            GL11.glTexSubImage2D(GL11.GL_TEXTURE_2D, 0, 0, 0, width, height, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, data);
         } finally {
             GL11.glPixelStorei(GL11.GL_UNPACK_ALIGNMENT, prevUnpackAlignment);
             GlStateManager._bindTexture(prevBinding);

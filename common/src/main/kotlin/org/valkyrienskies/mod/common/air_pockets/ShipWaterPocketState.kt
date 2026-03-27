@@ -66,6 +66,7 @@ internal data class ShipPocketState(
     var queuedFloodRemoves: BitSet = BitSet(),
     var queuedFloodAddOrder: IntArrayList = IntArrayList(),
     var activeFloodIngressPoints: Int = 1,
+    var activeFloodIngressConductanceUnits: Int = 1,
     var nextQueuedAddOrderIdx: Int = 0,
     var nextQueuedAddIdx: Int = 0,
     var nextQueuedRemoveIdx: Int = 0,

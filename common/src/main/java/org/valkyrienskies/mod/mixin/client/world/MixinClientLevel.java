@@ -56,6 +56,7 @@ import org.valkyrienskies.core.util.VectorConversionsKt;
 import org.valkyrienskies.mod.client.audio.SimpleSoundInstanceOnShip;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.air_pockets.ShipWaterPocketManager;
 import org.valkyrienskies.mod.common.config.DimensionParametersResolver;
 import org.valkyrienskies.mod.util.McMathUtilKt;
 
@@ -238,7 +239,12 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
 
             final BlockState blockState = levelChunk.getBlockState(mutableBlockPos);
             blockState.getBlock().animateTick(blockState, thisAsClientLevel, mutableBlockPos, vsRandom);
-            final FluidState fluidState = levelChunk.getFluidState(mutableBlockPos);
+            final FluidState fluidState = ShipWaterPocketManager.overrideShipyardWaterFluidState(
+                thisAsClientLevel,
+                mutableBlockPos,
+                levelChunk.getFluidState(mutableBlockPos),
+                blockState
+            );
             if (!fluidState.isEmpty()) {
                 fluidState.animateTick(thisAsClientLevel, mutableBlockPos, vsRandom);
                 final ParticleOptions particleOptions = fluidState.getDripParticle();

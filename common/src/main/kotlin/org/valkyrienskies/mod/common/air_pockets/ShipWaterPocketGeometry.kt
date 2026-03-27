@@ -785,3 +785,18 @@ internal fun computeInteriorMaskHeuristic(open: BitSet, sizeX: Int, sizeY: Int, 
 
     return interior
 }
+
+object ShipWaterPocketClientCullBridge {
+    @JvmStatic
+    fun buildCullVoxelShape(level: Level, pos: BlockPos, state: BlockState): VoxelShape {
+        val geom = computeShapeWaterGeometry(level, pos, state)
+        if (geom.fullSolid) return Shapes.block()
+        if (geom.boxes.isEmpty()) return Shapes.empty()
+
+        var shape: VoxelShape = Shapes.empty()
+        for (box in geom.boxes) {
+            shape = Shapes.or(shape, Shapes.create(box))
+        }
+        return shape
+    }
+}

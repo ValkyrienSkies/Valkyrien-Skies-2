@@ -35,7 +35,7 @@ uniform vec3 ValkyrienAir_CameraShipPos0;
 uniform vec4 ValkyrienAir_GridMin0;
 uniform vec4 ValkyrienAir_GridSize0;
 uniform mat4 ValkyrienAir_WorldToShip0;
-uniform usampler2D ValkyrienAir_Mask0;
+uniform sampler2D ValkyrienAir_Mask0;
 
 uniform vec4 ValkyrienAir_ShipAabbMin1;
 uniform vec4 ValkyrienAir_ShipAabbMax1;
@@ -43,7 +43,7 @@ uniform vec3 ValkyrienAir_CameraShipPos1;
 uniform vec4 ValkyrienAir_GridMin1;
 uniform vec4 ValkyrienAir_GridSize1;
 uniform mat4 ValkyrienAir_WorldToShip1;
-uniform usampler2D ValkyrienAir_Mask1;
+uniform sampler2D ValkyrienAir_Mask1;
 
 uniform vec4 ValkyrienAir_ShipAabbMin2;
 uniform vec4 ValkyrienAir_ShipAabbMax2;
@@ -51,7 +51,7 @@ uniform vec3 ValkyrienAir_CameraShipPos2;
 uniform vec4 ValkyrienAir_GridMin2;
 uniform vec4 ValkyrienAir_GridSize2;
 uniform mat4 ValkyrienAir_WorldToShip2;
-uniform usampler2D ValkyrienAir_Mask2;
+uniform sampler2D ValkyrienAir_Mask2;
 
 uniform vec4 ValkyrienAir_ShipAabbMin3;
 uniform vec4 ValkyrienAir_ShipAabbMax3;
@@ -59,7 +59,7 @@ uniform vec3 ValkyrienAir_CameraShipPos3;
 uniform vec4 ValkyrienAir_GridMin3;
 uniform vec4 ValkyrienAir_GridSize3;
 uniform mat4 ValkyrienAir_WorldToShip3;
-uniform usampler2D ValkyrienAir_Mask3;
+uniform sampler2D ValkyrienAir_Mask3;
 
 uniform vec4 ValkyrienAir_ShipAabbMin4;
 uniform vec4 ValkyrienAir_ShipAabbMax4;
@@ -67,7 +67,7 @@ uniform vec3 ValkyrienAir_CameraShipPos4;
 uniform vec4 ValkyrienAir_GridMin4;
 uniform vec4 ValkyrienAir_GridSize4;
 uniform mat4 ValkyrienAir_WorldToShip4;
-uniform usampler2D ValkyrienAir_Mask4;
+uniform sampler2D ValkyrienAir_Mask4;
 
 uniform vec4 ValkyrienAir_ShipAabbMin5;
 uniform vec4 ValkyrienAir_ShipAabbMax5;
@@ -75,7 +75,7 @@ uniform vec3 ValkyrienAir_CameraShipPos5;
 uniform vec4 ValkyrienAir_GridMin5;
 uniform vec4 ValkyrienAir_GridSize5;
 uniform mat4 ValkyrienAir_WorldToShip5;
-uniform usampler2D ValkyrienAir_Mask5;
+uniform sampler2D ValkyrienAir_Mask5;
 
 uniform vec4 ValkyrienAir_ShipAabbMin6;
 uniform vec4 ValkyrienAir_ShipAabbMax6;
@@ -83,7 +83,7 @@ uniform vec3 ValkyrienAir_CameraShipPos6;
 uniform vec4 ValkyrienAir_GridMin6;
 uniform vec4 ValkyrienAir_GridSize6;
 uniform mat4 ValkyrienAir_WorldToShip6;
-uniform usampler2D ValkyrienAir_Mask6;
+uniform sampler2D ValkyrienAir_Mask6;
 
 uniform vec4 ValkyrienAir_ShipAabbMin7;
 uniform vec4 ValkyrienAir_ShipAabbMax7;
@@ -91,7 +91,7 @@ uniform vec3 ValkyrienAir_CameraShipPos7;
 uniform vec4 ValkyrienAir_GridMin7;
 uniform vec4 ValkyrienAir_GridSize7;
 uniform mat4 ValkyrienAir_WorldToShip7;
-uniform usampler2D ValkyrienAir_Mask7;
+uniform sampler2D ValkyrienAir_Mask7;
 
 uniform vec4 ValkyrienAir_ShipAabbMin8;
 uniform vec4 ValkyrienAir_ShipAabbMax8;
@@ -99,7 +99,7 @@ uniform vec3 ValkyrienAir_CameraShipPos8;
 uniform vec4 ValkyrienAir_GridMin8;
 uniform vec4 ValkyrienAir_GridSize8;
 uniform mat4 ValkyrienAir_WorldToShip8;
-uniform usampler2D ValkyrienAir_Mask8;
+uniform sampler2D ValkyrienAir_Mask8;
 
 const int VA_MASK_TEX_WIDTH_SHIFT = 12;
 const int VA_MASK_TEX_WIDTH_MASK = (1 << VA_MASK_TEX_WIDTH_SHIFT) - 1;
@@ -121,12 +121,14 @@ bool va_isFluidUv(vec2 uv) {
     return texture(ValkyrienAir_FluidMask, uv).r > 0.5;
 }
 
-uint va_fetchWord(usampler2D tex, int wordIndex) {
+uint va_fetchWord(sampler2D tex, int wordIndex) {
     ivec2 coord = ivec2(wordIndex & VA_MASK_TEX_WIDTH_MASK, wordIndex >> VA_MASK_TEX_WIDTH_SHIFT);
-    return texelFetch(tex, coord, 0).r;
+    vec4 raw = texelFetch(tex, coord, 0) * 255.0;
+    uvec4 bytes = uvec4(round(raw));
+    return bytes.r | (bytes.g << 8u) | (bytes.b << 16u) | (bytes.a << 24u);
 }
 
-bool va_testAir(usampler2D mask, int voxelIdx, ivec3 isize) {
+bool va_testAir(sampler2D mask, int voxelIdx, ivec3 isize) {
     int volume = isize.x * isize.y * isize.z;
     int occBase = volume * VA_OCC_WORDS_PER_VOXEL;
     int wordIndex = occBase + (voxelIdx >> 5);
@@ -135,7 +137,7 @@ bool va_testAir(usampler2D mask, int voxelIdx, ivec3 isize) {
     return ((word >> uint(bit)) & 1u) != 0u;
 }
 
-bool va_testOcc(usampler2D mask, int voxelIdx, int subIdx) {
+bool va_testOcc(sampler2D mask, int voxelIdx, int subIdx) {
     int wordIndex = voxelIdx * VA_OCC_WORDS_PER_VOXEL + (subIdx >> 5);
     int bit = subIdx & 31;
     uint word = va_fetchWord(mask, wordIndex);

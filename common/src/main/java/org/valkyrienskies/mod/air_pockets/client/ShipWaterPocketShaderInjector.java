@@ -94,7 +94,7 @@ public final class ShipWaterPocketShaderInjector {
 	            sb.append("uniform vec4 ValkyrienAir_ShipAabbMax").append(i).append(";\n");
 	            sb.append("uniform vec4 ValkyrienAir_GridSize").append(i).append(";\n");
 	            sb.append("uniform mat4 ValkyrienAir_WorldToShip").append(i).append(";\n");
-	            sb.append("uniform usampler2D ValkyrienAir_Mask").append(i).append(";\n\n");
+	            sb.append("uniform sampler2D ValkyrienAir_Mask").append(i).append(";\n\n");
 	        }
 
 	        sb.append("const int VA_MASK_TEX_WIDTH_SHIFT = 12;\n");
@@ -117,13 +117,15 @@ public final class ShipWaterPocketShaderInjector {
 	        sb.append("    return texture(ValkyrienAir_FluidMask, uv).r > 0.5;\n");
 	        sb.append("}\n\n");
 
-	        sb.append("uint va_fetchWord(usampler2D tex, int wordIndex) {\n");
+	        sb.append("uint va_fetchWord(sampler2D tex, int wordIndex) {\n");
 	        sb.append("    ivec2 coord = ivec2(wordIndex & VA_MASK_TEX_WIDTH_MASK, wordIndex >> VA_MASK_TEX_WIDTH_SHIFT);\n");
-	        sb.append("    return texelFetch(tex, coord, 0).r;\n");
+	        sb.append("    vec4 raw = texelFetch(tex, coord, 0) * 255.0;\n");
+	        sb.append("    uvec4 bytes = uvec4(round(raw));\n");
+	        sb.append("    return bytes.r | (bytes.g << 8u) | (bytes.b << 16u) | (bytes.a << 24u);\n");
 	        sb.append("}\n\n");
 
 	        // Combined mask texture: occ words first, then air words.
-	        sb.append("bool va_testAir(usampler2D mask, int voxelIdx, ivec3 isize) {\n");
+	        sb.append("bool va_testAir(sampler2D mask, int voxelIdx, ivec3 isize) {\n");
 	        sb.append("    int volume = isize.x * isize.y * isize.z;\n");
 	        sb.append("    int occBase = volume * VA_OCC_WORDS_PER_VOXEL;\n");
 	        sb.append("    int wordIndex = occBase + (voxelIdx >> 5);\n");
@@ -132,7 +134,7 @@ public final class ShipWaterPocketShaderInjector {
 	        sb.append("    return ((word >> uint(bit)) & 1u) != 0u;\n");
 	        sb.append("}\n\n");
 
-	        sb.append("bool va_testOcc(usampler2D mask, int voxelIdx, int subIdx) {\n");
+	        sb.append("bool va_testOcc(sampler2D mask, int voxelIdx, int subIdx) {\n");
 	        sb.append("    int wordIndex = voxelIdx * VA_OCC_WORDS_PER_VOXEL + (subIdx >> 5);\n");
 	        sb.append("    int bit = subIdx & 31;\n");
 	        sb.append("    uint word = va_fetchWord(mask, wordIndex);\n");
