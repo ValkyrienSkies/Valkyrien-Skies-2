@@ -26,6 +26,7 @@ import org.valkyrienskies.core.api.util.PhysTickOnly
 import org.valkyrienskies.core.api.world.properties.DimensionId
 import org.valkyrienskies.core.internal.VsiCore
 import org.valkyrienskies.core.internal.VsiCoreClient
+import org.valkyrienskies.mod.air_pockets.client.ShipWaterPocketCurrentShipRenderContext
 import org.valkyrienskies.mod.air_pockets.client.ShipWaterPocketExternalWaterCullRenderContext
 import org.valkyrienskies.mod.air_pockets.client.ShipWaterPocketShipWaterTintRenderContext
 import org.valkyrienskies.mod.api.BlockEntityPhysicsListener
@@ -240,19 +241,23 @@ object ValkyrienSkiesMod {
     fun initClient() {
         VSGameEvents.renderShip.on {
             ShipWaterPocketExternalWaterCullRenderContext.beginShipRender()
+            ShipWaterPocketCurrentShipRenderContext.push(it.ship.id, false)
             ShipWaterPocketShipWaterTintRenderContext.pushShipWaterTintRgb(computeShipWaterTintRgb(it.ship))
         }
         VSGameEvents.postRenderShip.on {
             ShipWaterPocketShipWaterTintRenderContext.popShipWaterTintRgb()
+            ShipWaterPocketCurrentShipRenderContext.pop()
             ShipWaterPocketExternalWaterCullRenderContext.endShipRender()
         }
 
         VSGameEvents.renderShipSodium.on {
             ShipWaterPocketExternalWaterCullRenderContext.beginShipRender()
+            ShipWaterPocketCurrentShipRenderContext.push(it.ship.id, true)
             ShipWaterPocketShipWaterTintRenderContext.pushShipWaterTintRgb(computeShipWaterTintRgb(it.ship))
         }
         VSGameEvents.postRenderShipSodium.on {
             ShipWaterPocketShipWaterTintRenderContext.popShipWaterTintRgb()
+            ShipWaterPocketCurrentShipRenderContext.pop()
             ShipWaterPocketExternalWaterCullRenderContext.endShipRender()
         }
     }

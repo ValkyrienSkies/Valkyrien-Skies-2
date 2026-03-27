@@ -1275,21 +1275,18 @@ public final class ShipWaterPocketExternalWaterCull {
 
         // Best-effort: include modded fluids by enumerating registered fluids and asking their client render props.
         final HashSet<ResourceLocation> textureIds = new HashSet<>();
+        final BlockPos fluidLookupPos = BlockPos.ZERO;
         for (final Fluid regFluid : BuiltInRegistries.FLUID) {
             try {
                 final Fluid fluid = regFluid instanceof final FlowingFluid flowing ? flowing.getSource() : regFluid;
                 final FluidState fs = fluid.defaultFluidState();
 
-                final ResourceLocation[] forge = queryForgeFluidTextures(level, fluid, fs);
-                if (forge != null) {
-                    if (forge.length > 0 && forge[0] != null && textureIds.add(forge[0])) sprites.add(atlas.apply(forge[0]));
-                    if (forge.length > 1 && forge[1] != null && textureIds.add(forge[1])) sprites.add(atlas.apply(forge[1]));
-                    if (forge.length > 2 && forge[2] != null && textureIds.add(forge[2])) sprites.add(atlas.apply(forge[2]));
-                } else {
-                    final TextureAtlasSprite[] fabric = queryFabricFluidSprites(level, fluid, fs);
-                    if (fabric != null) {
-                        for (final TextureAtlasSprite sprite : fabric) {
-                            if (sprite != null) sprites.add(sprite);
+                final TextureAtlasSprite[] resolved = ShipWaterPocketFluidVisualHelper.getFluidSprites(level, fluidLookupPos, fluid, fs);
+                if (resolved != null) {
+                    for (final TextureAtlasSprite sprite : resolved) {
+                        if (sprite == null) continue;
+                        if (textureIds.add(sprite.contents().name())) {
+                            sprites.add(sprite);
                         }
                     }
                 }
