@@ -65,6 +65,7 @@ class ShipWaterPocketFloodBlockWriteTest {
         assertEquals(Blocks.AIR.defaultBlockState(), currentState)
 
         verify(exactly = 1) { level.destroyBlock(any<BlockPos>(), true) }
+        verify(exactly = 1) { level.scheduleTick(any<BlockPos>(), Fluids.WATER, 1) }
     }
 
     @Test
@@ -137,6 +138,38 @@ class ShipWaterPocketFloodBlockWriteTest {
         assertFalse(currentState.getValue(BlockStateProperties.WATERLOGGED))
 
         verify(exactly = 0) { level.destroyBlock(any<BlockPos>(), any()) }
+        verify(exactly = 1) { level.scheduleTick(any<BlockPos>(), Fluids.WATER, 1) }
+    }
+
+    @Test
+    fun containerDrainDoesNotScheduleWaterToRefillTheCell() {
+        val pos = BlockPos.MutableBlockPos(3, 64, 3)
+        val fixture = newTestFloodContainerFixture()
+        var currentState = fixture.emptyState
+        val level = createTrackingLevel(readState = { currentState }) { currentState = it }
+
+        val flooded = applyFloodBlockWrite(
+            level = level,
+            pos = pos,
+            current = currentState,
+            floodFluid = Fluids.WATER,
+            toWater = true,
+        )
+
+        assertTrue(flooded.applied)
+        assertEquals(fixture.filledState, currentState)
+
+        val drained = applyFloodBlockWrite(
+            level = level,
+            pos = pos,
+            current = currentState,
+            floodFluid = Fluids.WATER,
+            toWater = false,
+        )
+
+        assertTrue(drained.applied)
+        assertEquals(fixture.emptyState, currentState)
+        verify(exactly = 1) { level.scheduleTick(any<BlockPos>(), Fluids.WATER, 1) }
     }
 
     @Test

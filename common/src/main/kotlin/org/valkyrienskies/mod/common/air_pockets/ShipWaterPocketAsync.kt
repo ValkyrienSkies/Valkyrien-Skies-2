@@ -3,12 +3,8 @@ package org.valkyrienskies.mod.common.air_pockets
 import net.minecraft.core.BlockPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Blocks
-import net.minecraft.world.level.block.LiquidBlock
 import net.minecraft.world.level.block.state.BlockState
-import net.minecraft.world.level.block.state.properties.BlockStateProperties
-import net.minecraft.world.level.material.FlowingFluid
 import net.minecraft.world.level.material.Fluid
-import net.minecraft.world.level.material.Fluids
 import java.lang.Double
 import java.util.BitSet
 
@@ -70,9 +66,7 @@ private val EMPTY_GEOMETRY = ShapeWaterGeometry(
     boxes = emptyList(),
 )
 
-private fun canonicalFloodSource(fluid: Fluid): Fluid {
-    return if (fluid is FlowingFluid) fluid.source else fluid
-}
+private fun canonicalFloodSource(fluid: Fluid): Fluid = floodCanonicalSource(fluid)
 
 private fun mixHash64(acc: Long, value: Long): Long {
     var h = acc xor value
@@ -100,17 +94,8 @@ private fun geometryStateHash(blockState: BlockState, geom: ShapeWaterGeometry, 
     return h
 }
 
-private fun isWaterloggableForFlood(state: BlockState, floodFluid: Fluid): Boolean {
-    return canonicalFloodSource(floodFluid) == Fluids.WATER && state.hasProperty(BlockStateProperties.WATERLOGGED)
-}
-
-private fun countsAsMaterializedFloodFluid(state: BlockState, floodFluid: Fluid): Boolean {
-    val currentFluid = state.fluidState
-    if (currentFluid.isEmpty) return false
-    if (canonicalFloodSource(currentFluid.type) != canonicalFloodSource(floodFluid)) return false
-    if (state.block is LiquidBlock) return currentFluid.isSource
-    return isWaterloggableForFlood(state, floodFluid) && state.getValue(BlockStateProperties.WATERLOGGED)
-}
+private fun countsAsMaterializedFloodFluid(state: BlockState, floodFluid: Fluid): Boolean =
+    isMaterializedFloodState(state, floodFluid)
 
 private const val MAX_COMPONENT_GRAPH_NODES = 12_000_000
 private const val MIN_HEURISTIC_PROMOTED_COMPONENT_SIZE = 4

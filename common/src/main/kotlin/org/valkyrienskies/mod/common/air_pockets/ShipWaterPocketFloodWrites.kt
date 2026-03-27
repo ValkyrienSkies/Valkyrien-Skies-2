@@ -157,6 +157,13 @@ internal fun clearFloodWriteQueues(state: ShipPocketState) {
     state.nextQueuedRemoveIdx = 0
 }
 
+internal fun clearQueuedFloodAdds(state: ShipPocketState) {
+    state.queuedFloodAdds.clear()
+    state.queuedFloodAddOrder.clear()
+    state.nextQueuedAddOrderIdx = 0
+    state.nextQueuedAddIdx = 0
+}
+
 private fun processQueuedIndices(
     queue: BitSet,
     startCursor: Int,

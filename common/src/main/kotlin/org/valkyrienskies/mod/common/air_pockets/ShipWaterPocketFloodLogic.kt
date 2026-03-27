@@ -120,7 +120,6 @@ private fun tryDrainFloodFluidFromContainer(
     return try {
         val picked = block.pickupBlock(level, pos, current)
         if (picked.isEmpty) return false
-        level.scheduleTick(pos, canonical, 1)
         true
     } catch (_: Throwable) {
         false
@@ -219,7 +218,6 @@ internal fun applyFloodBlockWrite(
         floodCanonicalSource(currentFluid.type) == canonical
     ) {
         level.setBlock(pos, Blocks.AIR.defaultBlockState(), setBlockFlags)
-        level.scheduleTick(pos, canonical, 1)
         return FloodWriteApplication(true, false, FloodWriteEffectKind.SOURCE)
     }
 
@@ -227,7 +225,6 @@ internal fun applyFloodBlockWrite(
         current.getValue(BlockStateProperties.WATERLOGGED)
     ) {
         level.setBlock(pos, current.setValue(BlockStateProperties.WATERLOGGED, false), setBlockFlags)
-        level.scheduleTick(pos, Fluids.WATER, 1)
         return FloodWriteApplication(true, false, FloodWriteEffectKind.WATERLOG)
     }
 
