@@ -11,6 +11,7 @@ import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
+import net.minecraft.core.SectionPos
 import net.minecraft.core.particles.BlockParticleOption
 import net.minecraft.core.particles.ParticleOptions
 import net.minecraft.core.particles.ParticleTypes
@@ -82,6 +83,8 @@ object ShipWaterPocketManager {
     private const val PERSIST_FLUSH_INTERVAL_TICKS = 20L
     private const val CLIENT_WATER_SOLVE_DEMAND_WINDOW_TICKS = 10L
     private const val CLIENT_WATER_SOLVE_FORCED_REFRESH_STALE_TICKS = 20L
+    private const val CLIENT_WATER_SOLVE_LARGE_QUERY_RADIUS_CHUNKS = 12
+    private const val CLIENT_WATER_SOLVE_HUGE_QUERY_RADIUS_CHUNKS = 8
     private const val INTERSECTING_SHIPS_CACHE_SIZE = 64
     @Volatile
     private var applyingInternalUpdates: Boolean = false
@@ -131,6 +134,29 @@ object ShipWaterPocketManager {
         val forcedRefresh: Boolean = false,
         val skipReason: ClientWaterSolveSkipReason? = null,
         val cadenceTicks: Long,
+    )
+
+    private data class ClientCameraChunkCenter(
+        val chunkX: Int,
+        val chunkZ: Int,
+    )
+
+    private data class ClientWorldChunkQueryBounds(
+        val minChunkX: Int,
+        val maxChunkX: Int,
+        val minChunkZ: Int,
+        val maxChunkZ: Int,
+    ) {
+        fun containsBlock(blockX: Int, blockZ: Int): Boolean {
+            val chunkX = SectionPos.blockToSectionCoord(blockX)
+            val chunkZ = SectionPos.blockToSectionCoord(blockZ)
+            return chunkX in minChunkX..maxChunkX && chunkZ in minChunkZ..maxChunkZ
+        }
+    }
+
+    private data class ClientWaterSolveQueryWindow(
+        val bounds: ClientWorldChunkQueryBounds,
+        val key: Long,
     )
 
     private data class IntersectingShipsCache(
@@ -212,6 +238,14 @@ object ShipWaterPocketManager {
         }
     }
 
+    internal fun clientWaterSolveNearbyQueryChunkRadiusForVolume(volume: Long): Int? {
+        return when {
+            volume <= 131_072L -> null
+            volume <= 524_288L -> CLIENT_WATER_SOLVE_LARGE_QUERY_RADIUS_CHUNKS
+            else -> CLIENT_WATER_SOLVE_HUGE_QUERY_RADIUS_CHUNKS
+        }
+    }
+
     internal fun decideClientWaterSolveSubmission(
         state: ShipPocketState,
         volume: Long,
@@ -281,6 +315,53 @@ object ShipWaterPocketManager {
     private fun markClientStateDemanded(level: Level, state: ShipPocketState) {
         if (!level.isClientSide) return
         state.lastClientDemandTick = level.gameTime
+    }
+
+    private fun getClientCameraChunkCenter(level: Level): ClientCameraChunkCenter? {
+        if (!level.isClientSide) return null
+        return try {
+            val mcClass = Class.forName("net.minecraft.client.Minecraft")
+            val mc = mcClass.getMethod("getInstance").invoke(null) ?: return null
+            val currentLevel = mcClass.getField("level").get(mc)
+            if (currentLevel !== level) return null
+
+            val gameRenderer = mcClass.getField("gameRenderer").get(mc)
+            val camera = gameRenderer?.javaClass?.getMethod("getMainCamera")?.invoke(gameRenderer)
+            val cameraPos = camera?.javaClass?.getMethod("getPosition")?.invoke(camera) as? Vec3
+            val player = mcClass.getField("player").get(mc)
+            val playerPos = player?.javaClass?.getMethod("position")?.invoke(player) as? Vec3
+            val origin = cameraPos ?: playerPos ?: return null
+
+            ClientCameraChunkCenter(
+                chunkX = SectionPos.blockToSectionCoord(Mth.floor(origin.x)),
+                chunkZ = SectionPos.blockToSectionCoord(Mth.floor(origin.z)),
+            )
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
+    private fun buildClientWaterSolveQueryWindow(
+        volume: Long,
+        cameraCenter: ClientCameraChunkCenter?,
+    ): ClientWaterSolveQueryWindow? {
+        val radius = clientWaterSolveNearbyQueryChunkRadiusForVolume(volume) ?: return null
+        val center = cameraCenter ?: return null
+        val bounds = ClientWorldChunkQueryBounds(
+            minChunkX = center.chunkX - radius,
+            maxChunkX = center.chunkX + radius,
+            minChunkZ = center.chunkZ - radius,
+            maxChunkZ = center.chunkZ + radius,
+        )
+        val centerKey = net.minecraft.world.level.ChunkPos.asLong(center.chunkX, center.chunkZ)
+        return ClientWaterSolveQueryWindow(bounds, mixHash64(centerKey, radius.toLong()))
+    }
+
+    private fun combineClientWaterSolveTransformKey(
+        baseTransformKey: Long,
+        queryWindow: ClientWaterSolveQueryWindow?,
+    ): Long {
+        return if (queryWindow == null) baseTransformKey else mixHash64(baseTransformKey, queryWindow.key)
     }
 
     private fun transformKey(
@@ -1143,6 +1224,7 @@ object ShipWaterPocketManager {
         worldBlockPos: BlockPos.MutableBlockPos,
         queryCache: FluidStateManager.QueryCache? = null,
         currentShipState: ShipPocketState? = null,
+        clientWorldQueryBounds: ClientWorldChunkQueryBounds? = null,
     ): Fluid? {
         val epsY = 1e-5
         if (currentShipState != null &&
@@ -1165,6 +1247,9 @@ object ShipWaterPocketManager {
         val wy = Mth.floor(worldPosTmp.y)
         val wz = Mth.floor(worldPosTmp.z)
         worldBlockPos.set(wx, wy, wz)
+        if (clientWorldQueryBounds != null && !clientWorldQueryBounds.containsBlock(wx, wz)) {
+            return null
+        }
 
         val worldFluid = FluidStateManager.getFluidData(level, worldBlockPos, queryCache)
         if (worldFluid == null) return null
@@ -1187,6 +1272,7 @@ object ShipWaterPocketManager {
         worldBlockPos: BlockPos.MutableBlockPos,
         queryCache: FluidStateManager.QueryCache? = null,
         currentShipState: ShipPocketState? = null,
+        clientWorldQueryBounds: ClientWorldChunkQueryBounds? = null,
     ): Double? {
         return withBypassedFluidOverrides {
             val canonical = canonicalFloodSource(sampleFluid)
@@ -1211,6 +1297,11 @@ object ShipWaterPocketManager {
                 Mth.floor(worldPosTmp.y),
                 Mth.floor(worldPosTmp.z),
             )
+            if (clientWorldQueryBounds != null &&
+                !clientWorldQueryBounds.containsBlock(worldBlockPos.x, worldBlockPos.z)
+            ) {
+                return@withBypassedFluidOverrides null
+            }
 
             var y = worldBlockPos.y
             var steps = 0
@@ -1249,6 +1340,7 @@ object ShipWaterPocketManager {
         worldBlockPos: BlockPos.MutableBlockPos,
         queryCache: FluidStateManager.QueryCache? = null,
         currentShipState: ShipPocketState? = null,
+        clientWorldQueryBounds: ClientWorldChunkQueryBounds? = null,
     ): Double? {
         return estimateExteriorFluidSurfaceYAtShipPoint(
             level = level,
@@ -1262,6 +1354,7 @@ object ShipWaterPocketManager {
             worldBlockPos = worldBlockPos,
             queryCache = queryCache,
             currentShipState = currentShipState,
+            clientWorldQueryBounds = clientWorldQueryBounds,
         )
     }
 
@@ -1271,6 +1364,8 @@ object ShipWaterPocketManager {
         shipTransform: ShipTransform,
         generation: Long,
         captureTick: Long,
+        transformKeyOverride: Long? = null,
+        clientWorldQueryBounds: ClientWorldChunkQueryBounds? = null,
     ): WaterSolveSnapshot? {
         val sizeX = state.sizeX
         val sizeY = state.sizeY
@@ -1284,7 +1379,7 @@ object ShipWaterPocketManager {
         val shipBlockPos = tmpShipBlockPos.get()
         val worldBlockPos = BlockPos.MutableBlockPos()
 
-        val transformKeyValue = transformKey(
+        val transformKeyValue = transformKeyOverride ?: transformKey(
             minX = state.minX,
             minY = state.minY,
             minZ = state.minZ,
@@ -1332,6 +1427,7 @@ object ShipWaterPocketManager {
                 worldPosTmp = worldPosTmp,
                 worldBlockPos = worldBlockPos,
                 queryCache = queryCache,
+                clientWorldQueryBounds = clientWorldQueryBounds,
             )
             val fluid = coverage.canonicalFluid
             if (coverage.isSubmergedAny() && fluid != null) {
@@ -1355,6 +1451,7 @@ object ShipWaterPocketManager {
                         worldPosTmp = worldPosTmp,
                         worldBlockPos = worldBlockPos,
                         queryCache = queryCache,
+                        clientWorldQueryBounds = clientWorldQueryBounds,
                     )
                     if (surface != null && surface.isFinite()) {
                         surfaceYByCell[idx] = surface
@@ -1613,6 +1710,7 @@ object ShipWaterPocketManager {
                         worldPosTmp = worldPosTmp,
                         worldBlockPos = worldBlockPos,
                         queryCache = queryCache,
+                        clientWorldQueryBounds = clientWorldQueryBounds,
                     )
                     if (isCenter) centerFluid = fluid
                     if (fluid == null) return
@@ -1701,6 +1799,7 @@ object ShipWaterPocketManager {
                         worldPosTmp = worldPosTmp,
                         worldBlockPos = worldBlockPos,
                         queryCache = queryCache,
+                        clientWorldQueryBounds = clientWorldQueryBounds,
                     )
                 } else {
                     null
@@ -1827,6 +1926,8 @@ object ShipWaterPocketManager {
         state: ShipPocketState,
         shipTransform: ShipTransform,
         captureTick: Long,
+        transformKeyOverride: Long? = null,
+        clientWorldQueryBounds: ClientWorldChunkQueryBounds? = null,
     ): Boolean {
         val pending = state.pendingWaterSolveFuture
         if (pending != null && !pending.isDone) {
@@ -1844,6 +1945,8 @@ object ShipWaterPocketManager {
                 shipTransform = shipTransform,
                 generation = generation,
                 captureTick = captureTick,
+                transformKeyOverride = transformKeyOverride,
+                clientWorldQueryBounds = clientWorldQueryBounds,
             )
         } catch (t: Throwable) {
             val count = waterSolveJobsFailed.incrementAndGet()
@@ -1924,6 +2027,7 @@ object ShipWaterPocketManager {
         nowTick: Long,
         shipTransform: ShipTransform,
         isClientSide: Boolean = false,
+        currentTransformKeyOverride: Long? = null,
     ): Boolean {
         val future = state.pendingWaterSolveFuture ?: return false
         if (!future.isDone) return false
@@ -1976,7 +2080,7 @@ object ShipWaterPocketManager {
         run {
             val shipPosTmp = tmpShipPos2.get()
             val worldPosTmp = tmpWorldPos2.get()
-            val currentKey = transformKey(
+            val currentKey = currentTransformKeyOverride ?: transformKey(
                 minX = state.minX,
                 minY = state.minY,
                 minZ = state.minZ,
@@ -2622,6 +2726,7 @@ object ShipWaterPocketManager {
         if (!VSGameConfig.COMMON.enableAirPockets) return
 
         val states = clientStates.computeIfAbsent(level.dimensionId) { ConcurrentHashMap() }
+        val clientCameraChunkCenter = getClientCameraChunkCenter(level)
         val loadedShipIds = LongOpenHashSet()
         var remainingGeometrySubmissions = GEOMETRY_ASYNC_SUBMISSIONS_PER_LEVEL_PER_TICK
         var remainingWaterSolveSubmissions = WATER_SOLVER_ASYNC_SUBMISSIONS_PER_LEVEL_PER_TICK
@@ -2684,20 +2789,29 @@ object ShipWaterPocketManager {
 
             val now = level.gameTime
             val shipTransform = getQueryTransform(ship)
-            tryApplyCompletedWaterSolveJob(state, now, shipTransform, isClientSide = true)
             if (state.sizeX > 0 &&
                 state.sizeY > 0 &&
                 state.sizeZ > 0
             ) {
                 val shipPosTmpKey = tmpShipPos3.get()
                 val worldPosTmpKey = tmpWorldPos3.get()
-                val currentTransformKey = transformKey(
+                val baseTransformKey = transformKey(
                     minX = state.minX,
                     minY = state.minY,
                     minZ = state.minZ,
                     shipTransform = shipTransform,
                     shipPosTmp = shipPosTmpKey,
                     worldPosTmp = worldPosTmpKey,
+                )
+                val clientQueryWindow = buildClientWaterSolveQueryWindow(volume, clientCameraChunkCenter)
+                val currentTransformKey =
+                    combineClientWaterSolveTransformKey(baseTransformKey, clientQueryWindow)
+                tryApplyCompletedWaterSolveJob(
+                    state = state,
+                    nowTick = now,
+                    shipTransform = shipTransform,
+                    isClientSide = true,
+                    currentTransformKeyOverride = currentTransformKey,
                 )
                 val submitDecision = decideClientWaterSolveSubmission(
                     state = state,
@@ -2708,7 +2822,14 @@ object ShipWaterPocketManager {
                 )
                 if (submitDecision.shouldSubmit) {
                     if (remainingWaterSolveSubmissions > 0 &&
-                        trySubmitWaterSolveJob(level, state, shipTransform, now)
+                        trySubmitWaterSolveJob(
+                            level = level,
+                            state = state,
+                            shipTransform = shipTransform,
+                            captureTick = now,
+                            transformKeyOverride = currentTransformKey,
+                            clientWorldQueryBounds = clientQueryWindow?.bounds,
+                        )
                     ) {
                         remainingWaterSolveSubmissions--
                         if (submitDecision.forcedRefresh) {
@@ -2757,6 +2878,8 @@ object ShipWaterPocketManager {
                         null -> Unit
                     }
                 }
+            } else {
+                tryApplyCompletedWaterSolveJob(state, now, shipTransform, isClientSide = true)
             }
 
             // Server-authoritative ingress particles are emitted from confirmed flood-write adds.
@@ -6621,6 +6744,7 @@ object ShipWaterPocketManager {
         worldBlockPos: BlockPos.MutableBlockPos,
         queryCache: FluidStateManager.QueryCache? = null,
         currentShipState: ShipPocketState? = null,
+        clientWorldQueryBounds: ClientWorldChunkQueryBounds? = null,
     ): FluidCoverageSample {
         return withBypassedFluidOverrides {
             val epsCorner = 1e-4
@@ -6643,6 +6767,7 @@ object ShipWaterPocketManager {
                     worldBlockPos = worldBlockPos,
                     queryCache = queryCache,
                     currentShipState = currentShipState,
+                    clientWorldQueryBounds = clientWorldQueryBounds,
                 )
             }
 

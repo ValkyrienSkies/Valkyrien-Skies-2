@@ -1,14 +1,26 @@
 package org.valkyrienskies.mod.feature.ship_water_pockets
 
+import net.minecraft.SharedConstants
+import net.minecraft.server.Bootstrap
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.valkyrienskies.mod.common.air_pockets.ShipPocketState
 import org.valkyrienskies.mod.common.air_pockets.ShipWaterPocketManager
 import org.valkyrienskies.mod.common.air_pockets.ShipWaterPocketManager.ClientWaterSolveSkipReason
 
 class ShipWaterPocketClientSchedulingTest {
+    companion object {
+        @BeforeAll
+        @JvmStatic
+        fun bootstrapMinecraft() {
+            SharedConstants.tryDetectVersion()
+            Bootstrap.bootStrap()
+        }
+    }
+
     @Test
     fun volumeTiersMapToCadenceBuckets() {
         assertEquals(1L, ShipWaterPocketManager.clientWaterSolveCadenceTicksForVolume(32_768L))
@@ -17,6 +29,14 @@ class ShipWaterPocketClientSchedulingTest {
         assertEquals(4L, ShipWaterPocketManager.clientWaterSolveCadenceTicksForVolume(131_073L))
         assertEquals(4L, ShipWaterPocketManager.clientWaterSolveCadenceTicksForVolume(524_288L))
         assertEquals(8L, ShipWaterPocketManager.clientWaterSolveCadenceTicksForVolume(524_289L))
+    }
+
+    @Test
+    fun largeClientShipsUseNearbyChunkQueryRadius() {
+        assertEquals(null, ShipWaterPocketManager.clientWaterSolveNearbyQueryChunkRadiusForVolume(131_072L))
+        assertEquals(12, ShipWaterPocketManager.clientWaterSolveNearbyQueryChunkRadiusForVolume(131_073L))
+        assertEquals(12, ShipWaterPocketManager.clientWaterSolveNearbyQueryChunkRadiusForVolume(524_288L))
+        assertEquals(8, ShipWaterPocketManager.clientWaterSolveNearbyQueryChunkRadiusForVolume(524_289L))
     }
 
     @Test

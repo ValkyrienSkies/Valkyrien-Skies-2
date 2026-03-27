@@ -3,10 +3,13 @@ package org.valkyrienskies.mod.feature.ship_water_pockets
 import io.mockk.every
 import io.mockk.mockk
 import org.joml.primitives.AABBd
+import net.minecraft.SharedConstants
 import net.minecraft.core.BlockPos
+import net.minecraft.server.Bootstrap
 import net.minecraft.world.level.Level
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.core.api.ships.Ship
@@ -14,6 +17,15 @@ import org.valkyrienskies.core.internal.world.VsiServerShipWorld
 import org.valkyrienskies.mod.common.air_pockets.ShipWaterPocketManager
 
 class ShipWaterPocketIntersectingShipsCacheTest {
+    companion object {
+        @BeforeAll
+        @JvmStatic
+        fun bootstrapMinecraft() {
+            SharedConstants.tryDetectVersion()
+            Bootstrap.bootStrap()
+        }
+    }
+
     @Test
     fun repeatedQueriesReuseCachedIntersectingShipsEvenForEmptyResults() {
         val shipWorld = mockk<VsiServerShipWorld>(relaxed = true)
