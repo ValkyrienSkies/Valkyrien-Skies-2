@@ -196,7 +196,7 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
 
     @Inject(
         method = "getChunk(IILnet/minecraft/world/level/chunk/ChunkStatus;Z)Lnet/minecraft/world/level/chunk/LevelChunk;",
-        at = @At("TAIL"),
+        at = @At("RETURN"),
         cancellable = true
     )
     public void postGetChunk(
