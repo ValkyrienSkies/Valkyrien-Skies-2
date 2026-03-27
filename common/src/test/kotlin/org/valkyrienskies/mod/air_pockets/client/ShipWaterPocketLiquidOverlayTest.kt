@@ -105,6 +105,40 @@ class ShipWaterPocketLiquidOverlayTest {
     }
 
     @Test
+    fun `boundary mask marks only outside cells that touch an overlay boundary`() {
+        val open = bitSetOf(0, 1)
+        val interior = bitSetOf(1)
+        val overlaySolids = bitSetOf(2)
+
+        val boundary = ShipWaterPocketLiquidOverlay.buildOverlayBoundaryMask(open, interior, overlaySolids, null, 3, 1, 1)
+
+        assertTrue(boundary.get(0))
+        assertFalse(boundary.get(1))
+        assertFalse(boundary.get(2))
+    }
+
+    @Test
+    fun `boundary mask skips full cell overlay solids even if marked open`() {
+        val open = bitSetOf(0, 1)
+        val interior = BitSet()
+        val overlaySolids = bitSetOf(1)
+        val fullCellOverlaySolids = bitSetOf(1)
+
+        val boundary = ShipWaterPocketLiquidOverlay.buildOverlayBoundaryMask(
+            open,
+            interior,
+            overlaySolids,
+            fullCellOverlaySolids,
+            2,
+            1,
+            1
+        )
+
+        assertTrue(boundary.get(0))
+        assertFalse(boundary.get(1))
+    }
+
+    @Test
     fun `clipping trims polygon to fluid height`() {
         val inX = floatArrayOf(0f, 0f, 0f, 0f)
         val inY = floatArrayOf(0f, 1f, 1f, 0f)

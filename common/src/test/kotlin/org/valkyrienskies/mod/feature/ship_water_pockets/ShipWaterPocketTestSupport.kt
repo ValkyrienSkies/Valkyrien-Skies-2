@@ -33,6 +33,7 @@ import org.joml.Vector3dc
 import org.valkyrienskies.core.api.bodies.properties.BodyKinematics
 import org.valkyrienskies.core.api.bodies.properties.BodyTransform
 import org.valkyrienskies.core.api.ships.properties.ShipTransform
+import org.valkyrienskies.core.internal.world.VsiServerShipWorld
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider
 import org.valkyrienskies.mod.common.air_pockets.MIN_OPENING_CONDUCTANCE
 import org.valkyrienskies.mod.common.air_pockets.ShipPocketState
@@ -199,6 +200,7 @@ internal fun horizontalPocketStateX(
 internal fun createTrackingLevel(
     states: MutableMap<Long, BlockState>,
     gameTime: Long = 0L,
+    shipObjectWorld: VsiServerShipWorld? = null,
 ): ServerLevel {
     val level = mockk<ServerLevel>(
         relaxed = true,
@@ -219,7 +221,7 @@ internal fun createTrackingLevel(
     every { level.maxBuildHeight } returns 320
     every { level.server } returns server
     every { (level as DimensionIdProvider).dimensionId } returns "minecraft:overworld"
-    every { (server as IShipObjectWorldServerProvider).shipObjectWorld } returns null
+    every { (server as IShipObjectWorldServerProvider).shipObjectWorld } returns shipObjectWorld
     every { (server as IShipObjectWorldServerProvider).vsPipeline } returns null
 
     every { chunk.getBlockState(any()) } answers {
