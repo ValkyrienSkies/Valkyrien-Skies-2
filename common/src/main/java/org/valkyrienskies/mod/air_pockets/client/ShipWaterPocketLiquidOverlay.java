@@ -4,6 +4,7 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -20,8 +21,10 @@ import net.minecraft.client.renderer.RenderStateShard;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.SectionPos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.inventory.InventoryMenu;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
@@ -53,6 +56,10 @@ public final class ShipWaterPocketLiquidOverlay {
     private static final int MAX_FLUID_SURFACE_CACHE = 8192;
     private static final int MAX_FLUID_SURFACE_POINT_CACHE = 16384;
     private static final int MAX_RAW_EXTERIOR_FLUID_CACHE = 32768;
+    private static final double MAX_OVERLAY_SHIP_DISTANCE_BLOCKS_FALLBACK = 192.0;
+    private static final double OVERLAY_SHIP_DISTANCE_MARGIN_BLOCKS = 48.0;
+    private static final double OVERLAY_NEAR_VIEW_CULL_DISTANCE_BLOCKS = 24.0;
+    private static final double OVERLAY_VIEW_ANGLE_MARGIN_DEGREES = 20.0;
 
     private static final float OVERLAY_ALPHA = 1.0f;
     private static final float FACE_EPS = 0.0025f;
@@ -131,6 +138,26 @@ public final class ShipWaterPocketLiquidOverlay {
         }
     }
 
+    private static final class ChunkTrackedFluidState {
+        private final long chunkRevision;
+        private final FluidState fluidState;
+
+        private ChunkTrackedFluidState(final long chunkRevision, final FluidState fluidState) {
+            this.chunkRevision = chunkRevision;
+            this.fluidState = fluidState;
+        }
+    }
+
+    private static final class ChunkTrackedFluidSurface {
+        private final long chunkRevision;
+        private final FluidSurfaceSample sample;
+
+        private ChunkTrackedFluidSurface(final long chunkRevision, final FluidSurfaceSample sample) {
+            this.chunkRevision = chunkRevision;
+            this.sample = sample;
+        }
+    }
+
     private static final class OverlayFaceSample {
         private final TextureAtlasSprite sprite;
         private final float r;
@@ -174,16 +201,40 @@ public final class ShipWaterPocketLiquidOverlay {
         Double.NaN
     );
     private static net.minecraft.client.multiplayer.ClientLevel lastSurfaceCacheLevel = null;
-    private static long lastSurfaceCacheGameTime = Long.MIN_VALUE;
-    private static final Long2ObjectOpenHashMap<FluidSurfaceSample> FLUID_SURFACE_CACHE = new Long2ObjectOpenHashMap<>();
-    private static final Long2ObjectOpenHashMap<FluidSurfaceSample> FLUID_SURFACE_POINT_CACHE = new Long2ObjectOpenHashMap<>();
-    private static final Long2ObjectOpenHashMap<FluidState> RAW_EXTERIOR_FLUID_CACHE = new Long2ObjectOpenHashMap<>();
+    private static final Long2LongOpenHashMap EXTERIOR_FLUID_CHUNK_REVISIONS = new Long2LongOpenHashMap();
+    private static final Long2ObjectOpenHashMap<ChunkTrackedFluidSurface> FLUID_SURFACE_CACHE = new Long2ObjectOpenHashMap<>();
+    private static final Long2ObjectOpenHashMap<ChunkTrackedFluidSurface> FLUID_SURFACE_POINT_CACHE =
+        new Long2ObjectOpenHashMap<>();
+    private static final Long2ObjectOpenHashMap<ChunkTrackedFluidState> RAW_EXTERIOR_FLUID_CACHE =
+        new Long2ObjectOpenHashMap<>();
 
     public static void clear() {
         SHIP_CACHE.clear();
         SHAPE_TEMPLATE_CACHE.clear();
         lastSurfaceCacheLevel = null;
-        lastSurfaceCacheGameTime = Long.MIN_VALUE;
+        clearExteriorFluidCaches();
+    }
+
+    public static void invalidateExteriorFluidChunk(final @Nullable net.minecraft.client.multiplayer.ClientLevel level, final int chunkX,
+        final int chunkZ) {
+        if (level == null) return;
+        if (lastSurfaceCacheLevel != null && lastSurfaceCacheLevel != level) {
+            clearExteriorFluidCaches();
+        }
+        lastSurfaceCacheLevel = level;
+        invalidateExteriorFluidChunk(chunkX, chunkZ);
+    }
+
+    public static void invalidateExteriorFluidChunkForTests(final int chunkX, final int chunkZ) {
+        invalidateExteriorFluidChunk(chunkX, chunkZ);
+    }
+
+    public static long getExteriorFluidChunkRevisionForTests(final int chunkX, final int chunkZ) {
+        return currentExteriorFluidChunkRevision(exteriorFluidChunkKeyFromChunk(chunkX, chunkZ));
+    }
+
+    private static void clearExteriorFluidCaches() {
+        EXTERIOR_FLUID_CHUNK_REVISIONS.clear();
         FLUID_SURFACE_CACHE.clear();
         FLUID_SURFACE_POINT_CACHE.clear();
         RAW_EXTERIOR_FLUID_CACHE.clear();
@@ -199,16 +250,13 @@ public final class ShipWaterPocketLiquidOverlay {
         final Camera camera = mc.gameRenderer.getMainCamera();
         if (camera.getFluidInCamera() != FogType.NONE) return;
 
-        if (lastSurfaceCacheLevel != level || lastSurfaceCacheGameTime != level.getGameTime()) {
-            lastSurfaceCacheLevel = level;
-            lastSurfaceCacheGameTime = level.getGameTime();
-            FLUID_SURFACE_CACHE.clear();
-            FLUID_SURFACE_POINT_CACHE.clear();
-            RAW_EXTERIOR_FLUID_CACHE.clear();
-        }
+        ensureExteriorFluidCacheLevel(level);
 
         final Vec3 cameraPos = new Vec3(camX, camY, camZ);
-        final List<LoadedShip> ships = selectClosestShips(level, cameraPos, MAX_SHIPS);
+        final Vec3 cameraView = camera.getEntity() != null ? camera.getEntity().getViewVector(1.0F) : new Vec3(0.0, 0.0, 1.0);
+        final double maxShipDistanceBlocks = getMaxOverlayShipDistanceBlocks(mc);
+        final double minViewDot = getOverlayViewMinDot(mc);
+        final List<LoadedShip> ships = selectClosestShips(level, cameraPos, cameraView, maxShipDistanceBlocks, minViewDot, MAX_SHIPS);
         if (ships.isEmpty()) return;
 
         final MultiBufferSource.BufferSource bufferSource = MultiBufferSource.immediate(Tesselator.getInstance().getBuilder());
@@ -712,10 +760,14 @@ public final class ShipWaterPocketLiquidOverlay {
         final int blockX = Mth.floor(worldX);
         final int blockY = Mth.floor(worldY);
         final int blockZ = Mth.floor(worldZ);
+        final long chunkRevision = currentExteriorFluidChunkRevision(exteriorFluidChunkKey(blockX, blockZ));
         final long pointKey = BlockPos.asLong(blockX, blockY, blockZ);
-        final FluidSurfaceSample pointCached = FLUID_SURFACE_POINT_CACHE.get(pointKey);
+        final ChunkTrackedFluidSurface pointCached = FLUID_SURFACE_POINT_CACHE.get(pointKey);
         if (pointCached != null) {
-            return pointCached == FLUID_SURFACE_MISS ? null : pointCached;
+            if (pointCached.chunkRevision == chunkRevision) {
+                return pointCached.sample == FLUID_SURFACE_MISS ? null : pointCached.sample;
+            }
+            FLUID_SURFACE_POINT_CACHE.remove(pointKey);
         }
 
         fluidPos.set(blockX, blockY, blockZ);
@@ -727,17 +779,20 @@ public final class ShipWaterPocketLiquidOverlay {
                 fluidPos.move(0, 2, 0);
                 sampleState = getRawExteriorFluidState(level, fluidPos);
                 if (sampleState == null) {
-                    cacheFluidSurfacePoint(pointKey, FLUID_SURFACE_MISS);
+                    cacheFluidSurfacePoint(pointKey, chunkRevision, FLUID_SURFACE_MISS);
                     return null;
                 }
             }
         }
 
         final long key = BlockPos.asLong(fluidPos.getX(), fluidPos.getY(), fluidPos.getZ());
-        final FluidSurfaceSample cached = FLUID_SURFACE_CACHE.get(key);
+        final ChunkTrackedFluidSurface cached = FLUID_SURFACE_CACHE.get(key);
         if (cached != null) {
-            cacheFluidSurfacePoint(pointKey, cached);
-            return cached;
+            if (cached.chunkRevision == chunkRevision) {
+                cacheFluidSurfacePoint(pointKey, chunkRevision, cached.sample);
+                return cached.sample == FLUID_SURFACE_MISS ? null : cached.sample;
+            }
+            FLUID_SURFACE_CACHE.remove(key);
         }
 
         final Fluid canonicalFluid = canonicalSource(sampleState.getType());
@@ -752,7 +807,7 @@ public final class ShipWaterPocketLiquidOverlay {
 
         final FluidState topFluid = getRawExteriorFluidState(level, scanPos);
         if (topFluid == null) {
-            cacheFluidSurfacePoint(pointKey, FLUID_SURFACE_MISS);
+            cacheFluidSurfacePoint(pointKey, chunkRevision, FLUID_SURFACE_MISS);
             return null;
         }
 
@@ -760,31 +815,35 @@ public final class ShipWaterPocketLiquidOverlay {
             canonicalFluid,
             topFluid,
             scanPos.immutable(),
-            scanPos.getY() + topFluid.getHeight(level, scanPos)
+            scanPos.getY() + rawExteriorFluidHeight(topFluid)
         );
         if (FLUID_SURFACE_CACHE.size() >= MAX_FLUID_SURFACE_CACHE) {
             FLUID_SURFACE_CACHE.clear();
         }
-        FLUID_SURFACE_CACHE.put(key, sample);
-        cacheFluidSurfacePoint(pointKey, sample);
+        FLUID_SURFACE_CACHE.put(key, new ChunkTrackedFluidSurface(chunkRevision, sample));
+        cacheFluidSurfacePoint(pointKey, chunkRevision, sample);
         return sample;
     }
 
-    private static void cacheFluidSurfacePoint(final long pointKey, final FluidSurfaceSample sample) {
+    private static void cacheFluidSurfacePoint(final long pointKey, final long chunkRevision, final FluidSurfaceSample sample) {
         if (FLUID_SURFACE_POINT_CACHE.size() >= MAX_FLUID_SURFACE_POINT_CACHE) {
             FLUID_SURFACE_POINT_CACHE.clear();
         }
-        FLUID_SURFACE_POINT_CACHE.put(pointKey, sample);
+        FLUID_SURFACE_POINT_CACHE.put(pointKey, new ChunkTrackedFluidSurface(chunkRevision, sample));
     }
 
     private static @Nullable FluidState getRawExteriorFluidState(
         final net.minecraft.client.multiplayer.ClientLevel level,
         final BlockPos pos
     ) {
+        final long chunkRevision = currentExteriorFluidChunkRevision(exteriorFluidChunkKey(pos.getX(), pos.getZ()));
         final long key = pos.asLong();
-        final FluidState cached = RAW_EXTERIOR_FLUID_CACHE.get(key);
+        final ChunkTrackedFluidState cached = RAW_EXTERIOR_FLUID_CACHE.get(key);
         if (cached != null) {
-            return cached == RAW_EXTERIOR_FLUID_MISS ? null : cached;
+            if (cached.chunkRevision == chunkRevision) {
+                return cached.fluidState == RAW_EXTERIOR_FLUID_MISS ? null : cached.fluidState;
+            }
+            RAW_EXTERIOR_FLUID_CACHE.remove(key);
         }
 
         final FluidState result;
@@ -799,12 +858,42 @@ public final class ShipWaterPocketLiquidOverlay {
         if (RAW_EXTERIOR_FLUID_CACHE.size() >= MAX_RAW_EXTERIOR_FLUID_CACHE) {
             RAW_EXTERIOR_FLUID_CACHE.clear();
         }
-        RAW_EXTERIOR_FLUID_CACHE.put(key, result != null ? result : RAW_EXTERIOR_FLUID_MISS);
+        RAW_EXTERIOR_FLUID_CACHE.put(
+            key,
+            new ChunkTrackedFluidState(chunkRevision, result != null ? result : RAW_EXTERIOR_FLUID_MISS)
+        );
         return result;
+    }
+
+    private static void ensureExteriorFluidCacheLevel(final net.minecraft.client.multiplayer.ClientLevel level) {
+        if (lastSurfaceCacheLevel == level) return;
+        lastSurfaceCacheLevel = level;
+        clearExteriorFluidCaches();
+    }
+
+    private static void invalidateExteriorFluidChunk(final int chunkX, final int chunkZ) {
+        final long chunkKey = exteriorFluidChunkKeyFromChunk(chunkX, chunkZ);
+        EXTERIOR_FLUID_CHUNK_REVISIONS.put(chunkKey, currentExteriorFluidChunkRevision(chunkKey) + 1L);
+    }
+
+    private static long exteriorFluidChunkKey(final int blockX, final int blockZ) {
+        return ChunkPos.asLong(SectionPos.blockToSectionCoord(blockX), SectionPos.blockToSectionCoord(blockZ));
+    }
+
+    private static long exteriorFluidChunkKeyFromChunk(final int chunkX, final int chunkZ) {
+        return ChunkPos.asLong(chunkX, chunkZ);
+    }
+
+    private static long currentExteriorFluidChunkRevision(final long chunkKey) {
+        return EXTERIOR_FLUID_CHUNK_REVISIONS.get(chunkKey);
     }
 
     static boolean shouldUseExteriorFluidSample(final boolean inShipyard, final boolean emptyFluid) {
         return !inShipyard && !emptyFluid;
+    }
+
+    static float rawExteriorFluidHeight(final FluidState fluidState) {
+        return fluidState.getOwnHeight();
     }
 
     private static double worldY(final double m01, final double m11, final double m21, final double tY, final float x,
@@ -1920,9 +2009,13 @@ public final class ShipWaterPocketLiquidOverlay {
     }
 
     private static List<LoadedShip> selectClosestShips(final net.minecraft.client.multiplayer.ClientLevel level, final Vec3 cameraPos,
-        final int maxCount) {
+        final Vec3 cameraView, final double maxDistanceBlocks, final double minViewDot, final int maxCount) {
         final List<LoadedShip> candidates = new ArrayList<>();
         for (final LoadedShip ship : VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips()) {
+            final AABBdc shipWorldAabb = getShipWorldAabb(ship);
+            if (!isShipWithinOverlayView(cameraPos, cameraView, shipWorldAabb, maxDistanceBlocks, minViewDot)) {
+                continue;
+            }
             candidates.add(ship);
         }
 
@@ -1944,6 +2037,57 @@ public final class ShipWaterPocketLiquidOverlay {
         final double dy = closestY - cameraPos.y;
         final double dz = closestZ - cameraPos.z;
         return dx * dx + dy * dy + dz * dz;
+    }
+
+    static boolean isShipWithinOverlayView(final Vec3 cameraPos, final Vec3 cameraView, final @Nullable AABBdc shipWorldAabb,
+        final double maxDistanceBlocks, final double minViewDot) {
+        if (shipWorldAabb == null) return false;
+
+        final double closestX = Mth.clamp(cameraPos.x, shipWorldAabb.minX(), shipWorldAabb.maxX());
+        final double closestY = Mth.clamp(cameraPos.y, shipWorldAabb.minY(), shipWorldAabb.maxY());
+        final double closestZ = Mth.clamp(cameraPos.z, shipWorldAabb.minZ(), shipWorldAabb.maxZ());
+        final double dx = closestX - cameraPos.x;
+        final double dy = closestY - cameraPos.y;
+        final double dz = closestZ - cameraPos.z;
+        final double distanceSqToAabb = dx * dx + dy * dy + dz * dz;
+        if (distanceSqToAabb <= 1.0E-6) return true;
+
+        final double centerX = (shipWorldAabb.minX() + shipWorldAabb.maxX()) * 0.5;
+        final double centerY = (shipWorldAabb.minY() + shipWorldAabb.maxY()) * 0.5;
+        final double centerZ = (shipWorldAabb.minZ() + shipWorldAabb.maxZ()) * 0.5;
+        final double halfX = (shipWorldAabb.maxX() - shipWorldAabb.minX()) * 0.5;
+        final double halfY = (shipWorldAabb.maxY() - shipWorldAabb.minY()) * 0.5;
+        final double halfZ = (shipWorldAabb.maxZ() - shipWorldAabb.minZ()) * 0.5;
+        final double radius = Math.sqrt(halfX * halfX + halfY * halfY + halfZ * halfZ);
+
+        final double maxDistance = Math.max(maxDistanceBlocks, radius + OVERLAY_SHIP_DISTANCE_MARGIN_BLOCKS);
+        if (distanceSqToAabb > maxDistance * maxDistance) return false;
+
+        if (distanceSqToAabb <= OVERLAY_NEAR_VIEW_CULL_DISTANCE_BLOCKS * OVERLAY_NEAR_VIEW_CULL_DISTANCE_BLOCKS) {
+            return true;
+        }
+
+        final double toCenterX = centerX - cameraPos.x;
+        final double toCenterY = centerY - cameraPos.y;
+        final double toCenterZ = centerZ - cameraPos.z;
+        final double centerDistanceSq = toCenterX * toCenterX + toCenterY * toCenterY + toCenterZ * toCenterZ;
+        if (centerDistanceSq <= 1.0E-6) return true;
+
+        final double centerDistance = Math.sqrt(centerDistanceSq);
+        final double dot = cameraView.x * toCenterX + cameraView.y * toCenterY + cameraView.z * toCenterZ;
+        return dot >= minViewDot * centerDistance - radius;
+    }
+
+    static double getMaxOverlayShipDistanceBlocks(final Minecraft mc) {
+        final int renderDistanceChunks = mc.options != null ? mc.options.renderDistance().get() : 0;
+        if (renderDistanceChunks <= 0) return MAX_OVERLAY_SHIP_DISTANCE_BLOCKS_FALLBACK;
+        return renderDistanceChunks * 16.0 + OVERLAY_SHIP_DISTANCE_MARGIN_BLOCKS;
+    }
+
+    static double getOverlayViewMinDot(final Minecraft mc) {
+        final double configuredFov = mc.options != null ? mc.options.fov().get() : 70.0;
+        final double halfAngleRadians = Math.toRadians(Math.min(170.0, configuredFov + OVERLAY_VIEW_ANGLE_MARGIN_DEGREES) * 0.5);
+        return Math.cos(halfAngleRadians);
     }
 
     private static @Nullable AABBdc getShipWorldAabb(final LoadedShip ship) {

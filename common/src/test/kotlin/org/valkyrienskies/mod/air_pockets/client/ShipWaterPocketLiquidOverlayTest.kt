@@ -6,6 +6,7 @@ import net.minecraft.SharedConstants
 import net.minecraft.server.Bootstrap
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.phys.AABB
+import net.minecraft.world.phys.Vec3
 import net.minecraft.world.level.material.Fluids
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -187,6 +188,71 @@ class ShipWaterPocketLiquidOverlayTest {
         assertFalse(ShipWaterPocketLiquidOverlay.shouldUseExteriorFluidSample(true, false))
         assertFalse(ShipWaterPocketLiquidOverlay.shouldUseExteriorFluidSample(false, true))
         assertTrue(ShipWaterPocketLiquidOverlay.shouldUseExteriorFluidSample(false, false))
+    }
+
+    @Test
+    fun `raw exterior fluid height uses own height without world lookup`() {
+        assertEquals(
+            Fluids.WATER.defaultFluidState().ownHeight,
+            ShipWaterPocketLiquidOverlay.rawExteriorFluidHeight(Fluids.WATER.defaultFluidState())
+        )
+        assertEquals(
+            Fluids.FLOWING_WATER.defaultFluidState().ownHeight,
+            ShipWaterPocketLiquidOverlay.rawExteriorFluidHeight(Fluids.FLOWING_WATER.defaultFluidState())
+        )
+    }
+
+    @Test
+    fun `exterior fluid chunk invalidation is chunk scoped and survives across ticks`() {
+        ShipWaterPocketLiquidOverlay.clear()
+
+        assertEquals(0L, ShipWaterPocketLiquidOverlay.getExteriorFluidChunkRevisionForTests(4, 7))
+        assertEquals(0L, ShipWaterPocketLiquidOverlay.getExteriorFluidChunkRevisionForTests(5, 7))
+
+        ShipWaterPocketLiquidOverlay.invalidateExteriorFluidChunkForTests(4, 7)
+
+        assertEquals(1L, ShipWaterPocketLiquidOverlay.getExteriorFluidChunkRevisionForTests(4, 7))
+        assertEquals(0L, ShipWaterPocketLiquidOverlay.getExteriorFluidChunkRevisionForTests(5, 7))
+
+        ShipWaterPocketLiquidOverlay.invalidateExteriorFluidChunkForTests(4, 7)
+        assertEquals(2L, ShipWaterPocketLiquidOverlay.getExteriorFluidChunkRevisionForTests(4, 7))
+
+        ShipWaterPocketLiquidOverlay.clear()
+        assertEquals(0L, ShipWaterPocketLiquidOverlay.getExteriorFluidChunkRevisionForTests(4, 7))
+    }
+
+    @Test
+    fun `overlay ship view culling rejects far ships behind camera`() {
+        val cameraPos = Vec3(0.0, 64.0, 0.0)
+        val cameraView = Vec3(0.0, 0.0, 1.0)
+        val shipAabb = org.joml.primitives.AABBd(-4.0, 60.0, -140.0, 4.0, 68.0, -132.0)
+
+        assertFalse(
+            ShipWaterPocketLiquidOverlay.isShipWithinOverlayView(
+                cameraPos,
+                cameraView,
+                shipAabb,
+                192.0,
+                Math.cos(Math.toRadians(45.0))
+            )
+        )
+    }
+
+    @Test
+    fun `overlay ship view culling keeps near ships even off axis`() {
+        val cameraPos = Vec3(0.0, 64.0, 0.0)
+        val cameraView = Vec3(0.0, 0.0, 1.0)
+        val shipAabb = org.joml.primitives.AABBd(18.0, 60.0, 0.0, 22.0, 68.0, 4.0)
+
+        assertTrue(
+            ShipWaterPocketLiquidOverlay.isShipWithinOverlayView(
+                cameraPos,
+                cameraView,
+                shipAabb,
+                192.0,
+                Math.cos(Math.toRadians(45.0))
+            )
+        )
     }
 
     @Test

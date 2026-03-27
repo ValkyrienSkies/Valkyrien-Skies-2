@@ -12,6 +12,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.valkyrienskies.mod.air_pockets.client.ShipWaterPocketLiquidOverlay;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.air_pockets.ShipWaterPocketManager;
@@ -27,6 +28,7 @@ public class MixinClientPacketListener {
     private void vs$markShipWaterPocketsDirtyOnShipyardChunkLoad(final ClientboundLevelChunkWithLightPacket packet,
         final CallbackInfo ci) {
         if (level == null) return;
+        ShipWaterPocketLiquidOverlay.invalidateExteriorFluidChunk(level, packet.getX(), packet.getZ());
         vs$markShipDirtyIfShipyardChunk(packet.getX(), packet.getZ());
     }
 
@@ -35,6 +37,7 @@ public class MixinClientPacketListener {
         final CallbackInfo ci) {
         if (level == null) return;
         final SectionPos pos = ((ClientboundSectionBlocksUpdatePacketAccessor) packet).getSectionPos();
+        ShipWaterPocketLiquidOverlay.invalidateExteriorFluidChunk(level, pos.x(), pos.z());
         vs$markShipDirtyIfShipyardChunk(pos.x(), pos.z());
     }
 
@@ -42,7 +45,10 @@ public class MixinClientPacketListener {
     private void vs$markShipWaterPocketsDirtyOnShipyardBlockUpdate(final ClientboundBlockUpdatePacket packet,
         final CallbackInfo ci) {
         if (level == null) return;
-        vs$markShipDirtyIfShipyardChunk(packet.getPos().getX() >> 4, packet.getPos().getZ() >> 4);
+        final int chunkX = packet.getPos().getX() >> 4;
+        final int chunkZ = packet.getPos().getZ() >> 4;
+        ShipWaterPocketLiquidOverlay.invalidateExteriorFluidChunk(level, chunkX, chunkZ);
+        vs$markShipDirtyIfShipyardChunk(chunkX, chunkZ);
     }
 
     @Unique
