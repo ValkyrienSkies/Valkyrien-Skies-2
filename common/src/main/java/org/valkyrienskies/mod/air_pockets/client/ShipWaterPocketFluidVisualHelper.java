@@ -93,7 +93,7 @@ public final class ShipWaterPocketFluidVisualHelper {
         }
 
         final TextureAtlasSprite[] sprites = getFluidSprites(level, pos, fluid, fluidState);
-        TextureAtlasSprite sprite = pickPreferredSprite(sprites);
+        TextureAtlasSprite sprite = pickPreferredSprite(fluid, sprites);
         if (sprite == null) {
             final Function<ResourceLocation, TextureAtlasSprite> atlas =
                 Minecraft.getInstance().getTextureAtlas(InventoryMenu.BLOCK_ATLAS);
@@ -164,9 +164,10 @@ public final class ShipWaterPocketFluidVisualHelper {
         return 0xFFFFFF;
     }
 
-    public static @Nullable TextureAtlasSprite pickPreferredSprite(final @Nullable TextureAtlasSprite[] sprites) {
+    public static @Nullable TextureAtlasSprite pickPreferredSprite(final Fluid fluid, final @Nullable TextureAtlasSprite[] sprites) {
         if (sprites == null) return null;
         final int preferredIndex = preferredSpriteIndex(
+            canonicalSource(fluid),
             sprites.length > 0 && sprites[0] != null,
             sprites.length > 1 && sprites[1] != null,
             sprites.length > 2 && sprites[2] != null
@@ -174,7 +175,8 @@ public final class ShipWaterPocketFluidVisualHelper {
         return preferredIndex >= 0 ? sprites[preferredIndex] : null;
     }
 
-    static int preferredSpriteIndex(final boolean hasStill, final boolean hasFlow, final boolean hasOverlay) {
+    static int preferredSpriteIndex(final Fluid fluid, final boolean hasStill, final boolean hasFlow, final boolean hasOverlay) {
+        if (fluid == Fluids.WATER && hasOverlay) return 2;
         if (hasStill) return 0;
         if (hasOverlay) return 2;
         if (hasFlow) return 1;

@@ -149,11 +149,12 @@ class ShipWaterPocketLiquidOverlayTest {
     }
 
     @Test
-    fun `fluid sprite selection prefers still before overlay and flow`() {
-        assertEquals(0, ShipWaterPocketFluidVisualHelper.preferredSpriteIndex(true, true, true))
-        assertEquals(2, ShipWaterPocketFluidVisualHelper.preferredSpriteIndex(false, true, true))
-        assertEquals(1, ShipWaterPocketFluidVisualHelper.preferredSpriteIndex(false, true, false))
-        assertEquals(-1, ShipWaterPocketFluidVisualHelper.preferredSpriteIndex(false, false, false))
+    fun `water sprite selection prefers overlay while other fluids prefer still`() {
+        assertEquals(2, ShipWaterPocketFluidVisualHelper.preferredSpriteIndex(Fluids.WATER, true, true, true))
+        assertEquals(0, ShipWaterPocketFluidVisualHelper.preferredSpriteIndex(Fluids.LAVA, true, true, false))
+        assertEquals(2, ShipWaterPocketFluidVisualHelper.preferredSpriteIndex(Fluids.WATER, false, true, true))
+        assertEquals(1, ShipWaterPocketFluidVisualHelper.preferredSpriteIndex(Fluids.LAVA, false, true, false))
+        assertEquals(-1, ShipWaterPocketFluidVisualHelper.preferredSpriteIndex(Fluids.LAVA, false, false, false))
     }
 
     @Test
