@@ -68,6 +68,42 @@ class ShipWaterPocketFloodBlockWriteTest {
     }
 
     @Test
+    fun repeatedTorchFloodCanSuppressDuplicateDrops() {
+        val pos = BlockPos.MutableBlockPos(0, 64, 1)
+        var currentState = Blocks.TORCH.defaultBlockState()
+        val level = createTrackingLevel(readState = { currentState }) { currentState = it }
+
+        val firstFlood = applyFloodBlockWrite(
+            level = level,
+            pos = pos,
+            current = currentState,
+            floodFluid = Fluids.WATER,
+            toWater = true,
+        )
+
+        assertTrue(firstFlood.applied)
+        assertEquals(Blocks.WATER.defaultBlockState(), currentState)
+
+        // Simulate an unexpected retry against the same breakable block state: the second pass must not drop again.
+        currentState = Blocks.TORCH.defaultBlockState()
+        val retriedFlood = applyFloodBlockWrite(
+            level = level,
+            pos = pos,
+            current = currentState,
+            floodFluid = Fluids.WATER,
+            toWater = true,
+            dropOnBreak = false,
+        )
+
+        assertTrue(retriedFlood.applied)
+        assertEquals(FloodWriteEffectKind.BREAK_ON_FLOOD, retriedFlood.effect)
+        assertEquals(Blocks.WATER.defaultBlockState(), currentState)
+
+        verify(exactly = 1) { level.destroyBlock(any<BlockPos>(), true) }
+        verify(exactly = 1) { level.destroyBlock(any<BlockPos>(), false) }
+    }
+
+    @Test
     fun trapdoorWaterlogsAndUnwaterlogsWithoutBreaking() {
         val pos = BlockPos.MutableBlockPos(1, 64, 1)
         var currentState = Blocks.OAK_TRAPDOOR.defaultBlockState()
@@ -136,7 +172,7 @@ class ShipWaterPocketFloodBlockWriteTest {
             updateState(secondArg<BlockState>())
             true
         }
-        every { level.destroyBlock(any<BlockPos>(), true) } answers {
+        every { level.destroyBlock(any<BlockPos>(), any()) } answers {
             updateState(Blocks.AIR.defaultBlockState())
             true
         }

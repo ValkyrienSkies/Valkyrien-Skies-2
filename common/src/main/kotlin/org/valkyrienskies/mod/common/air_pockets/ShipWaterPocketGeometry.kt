@@ -270,7 +270,6 @@ internal fun computeTemplateAxisConductance(
 private fun isGameplaySealedState(state: BlockState): Boolean {
     val block = state.block
     return when (block) {
-        is DoorBlock -> !state.getValue(BlockStateProperties.OPEN)
         is FenceGateBlock -> !state.getValue(BlockStateProperties.OPEN)
         else -> false
     }

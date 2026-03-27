@@ -453,6 +453,7 @@ object ShipWaterPocketManager {
         changed = clampBitSetToVolume(state.outsideVoid, volume) || changed
         changed = clampBitSetToVolume(state.flooded, volume) || changed
         changed = clampBitSetToVolume(state.materializedWater, volume) || changed
+        changed = clampBitSetToVolume(state.brokenByFlood, volume) || changed
         changed = clampBitSetToVolume(state.waterReachable, volume) || changed
         changed = clampBitSetToVolume(state.unreachableVoid, volume) || changed
 
@@ -473,6 +474,11 @@ object ShipWaterPocketManager {
         state.materializedWater.and(state.open)
         state.materializedWater.and(state.simulationDomain)
         if (state.materializedWater.cardinality() != materializedBefore) changed = true
+
+        val brokenBefore = state.brokenByFlood.cardinality()
+        state.brokenByFlood.and(state.open)
+        state.brokenByFlood.and(state.simulationDomain)
+        if (state.brokenByFlood.cardinality() != brokenBefore) changed = true
 
         val reachableBefore = state.waterReachable.cardinality()
         state.waterReachable.and(state.open)
@@ -603,6 +609,34 @@ object ShipWaterPocketManager {
 
         // Outside the sim bounds, always block; it is never part of the ship interior pocket volume.
         return true
+    }
+
+    @JvmStatic
+    fun shouldAllowImmediateFragileShipyardFloodPlacement(
+        level: Level,
+        shipId: Long,
+        shipPos: BlockPos,
+        floodFluid: Fluid,
+        currentState: BlockState? = null,
+    ): Boolean {
+        if (!VSGameConfig.COMMON.enableAirPockets) return false
+        if (level.isClientSide) return false
+
+        val state = serverStates[level.dimensionId]?.get(shipId) ?: return false
+        if (state.sizeX <= 0 || state.sizeY <= 0 || state.sizeZ <= 0) return false
+        if (state.open.isEmpty || state.dirty) return false
+
+        val lx = shipPos.x - state.minX
+        val ly = shipPos.y - state.minY
+        val lz = shipPos.z - state.minZ
+        if (lx !in 0 until state.sizeX || ly !in 0 until state.sizeY || lz !in 0 until state.sizeZ) return false
+
+        val idx = indexOf(state, lx, ly, lz)
+        if (!state.open.get(idx) || !state.simulationDomain.get(idx)) return false
+        if (shouldPreventExteriorWaterlogging(state, idx)) return false
+
+        val current = currentState ?: level.getBlockState(shipPos)
+        return shouldBreakOnFloodState(level, shipPos, current, floodCanonicalSource(floodFluid))
     }
 
     @JvmStatic
@@ -801,6 +835,7 @@ object ShipWaterPocketManager {
         state.interior = result.interior
         state.flooded = result.flooded
         state.materializedWater = result.materializedWater
+        state.brokenByFlood = if (boundsChanged) BitSet() else state.brokenByFlood
         state.faceCondXP = result.faceCondXP
         state.faceCondYP = result.faceCondYP
         state.faceCondZP = result.faceCondZP
@@ -2254,17 +2289,21 @@ object ShipWaterPocketManager {
         if (volume <= 0 || open.isEmpty) {
             state.materializedWater.clear()
             state.flooded.clear()
+            state.brokenByFlood.clear()
             state.persistDirty = true
             return
         }
 
         val materialized = state.materializedWater
         val flooded = state.flooded
+        val brokenByFlood = state.brokenByFlood
         val beforeMaterialized = materialized.clone() as BitSet
         val beforeFlooded = flooded.clone() as BitSet
         materialized.and(open)
         flooded.and(open)
         flooded.and(state.simulationDomain)
+        brokenByFlood.and(open)
+        brokenByFlood.and(state.simulationDomain)
         var changed = beforeMaterialized != materialized || beforeFlooded != flooded
         var internalUpdatesActive = false
 
@@ -2301,6 +2340,10 @@ object ShipWaterPocketManager {
                         changed = true
                         flooded.clear(idx)
                     }
+                    if (brokenByFlood.get(idx)) {
+                        changed = true
+                        brokenByFlood.clear(idx)
+                    }
                     idx = open.nextSetBit(idx + 1)
                     continue
                 }
@@ -2313,6 +2356,10 @@ object ShipWaterPocketManager {
                     if (flooded.get(idx)) {
                         changed = true
                         flooded.clear(idx)
+                    }
+                    if (brokenByFlood.get(idx)) {
+                        changed = true
+                        brokenByFlood.clear(idx)
                     }
                     idx = open.nextSetBit(idx + 1)
                     continue
@@ -2335,6 +2382,10 @@ object ShipWaterPocketManager {
                     if (flooded.get(idx)) {
                         changed = true
                         flooded.clear(idx)
+                    }
+                    if (brokenByFlood.get(idx)) {
+                        changed = true
+                        brokenByFlood.clear(idx)
                     }
                 }
                 idx = open.nextSetBit(idx + 1)
@@ -4693,8 +4744,6 @@ object ShipWaterPocketManager {
             hasAirVent = airVentConductance > 0
 
             if (seedCount > 0) {
-                // If the component has no direct vent to outside air, model simple hydrostatic air compression so
-                // sealed pockets can still flood more as they go deeper (and avoid "1-block-short" sideways fills).
                 var pressurizedPlane = waterLevel
                 if (!hasAirVent && bestSurfaceSampleIdx >= 0 && waterLevel.isFinite()) {
                     var sampleFluid: Fluid? = componentFloodFluid ?: dominantFloodFluid
@@ -4756,37 +4805,9 @@ object ShipWaterPocketManager {
                         }
 
                         if (surfaceY != null) {
-                            val surfaceYClamped = maxOf(surfaceY, waterLevel)
-                            val density = getBuoyancyFluidProps(sampleFluid).density
-                            var plane = waterLevel
-                            val totalVol = tail.toDouble()
-
-                            repeat(AIR_PRESSURE_SOLVER_ITERS) {
-                                var airCells = 0
-                                for (i in 0 until tail) {
-                                    val cellIdx = componentQueue[i]
-                                    val cx = cellIdx % sizeX
-                                    val ct = cellIdx / sizeX
-                                    val cy = ct % sizeY
-                                    val cz = ct / sizeY
-                                    if (cellCenterWorldY(cx, cy, cz) > plane + AIR_PRESSURE_Y_EPS) {
-                                        airCells++
-                                    }
-                                }
-
-                                val effectiveAirVol =
-                                    maxOf(airCells.toDouble(), AIR_PRESSURE_MIN_EFFECTIVE_AIR_VOLUME)
-                                        .coerceAtMost(totalVol)
-                                val pAir = AIR_PRESSURE_ATM * (totalVol / effectiveAirVol)
-
-                                val planeNew =
-                                    surfaceYClamped - (pAir - AIR_PRESSURE_ATM) / (density * AIR_PRESSURE_PER_BLOCK_PER_DENSITY)
-                                // Damped relaxation: the discrete voxel air-volume function can cause oscillation.
-                                val targetPlane = maxOf(waterLevel, planeNew).coerceAtMost(surfaceYClamped)
-                                plane = plane * 0.5 + targetPlane * 0.5
-                            }
-
-                            pressurizedPlane = plane
+                            // Keep sealed-pocket flooding clamped to the highest submerged opening so side holes do
+                            // not magically raise the interior water level above the real inlet height.
+                            pressurizedPlane = waterLevel
                         }
                     }
                 }
@@ -5841,36 +5862,100 @@ object ShipWaterPocketManager {
             val shipPosCornerTmp = tmpShipPos3.get()
             val worldPosCornerTmp = tmpWorldPos3.get()
             val worldBlockPos = BlockPos.MutableBlockPos()
-            val sampleX = lx + 0.5 + when (outDirCode) {
-                0 -> -0.505
-                1 -> 0.505
-                else -> 0.0
-            }
-            val sampleY = ly + 0.5 + when (outDirCode) {
-                2 -> -0.505
-                3 -> 0.505
-                else -> 0.0
-            }
-            val sampleZ = lz + 0.5 + when (outDirCode) {
-                4 -> -0.505
-                5 -> 0.505
-                else -> 0.0
+            val faceOffset = 1.0e-4
+            val lo = 1.0e-4
+            val hi = 1.0 - lo
+
+            fun sampleOutsideFace(u: Double, v: Double): Boolean {
+                val sampleX: Double
+                val sampleY: Double
+                val sampleZ: Double
+                when (outDirCode) {
+                    0 -> {
+                        sampleX = lx - faceOffset
+                        sampleY = ly + u
+                        sampleZ = lz + v
+                    }
+                    1 -> {
+                        sampleX = lx + 1.0 + faceOffset
+                        sampleY = ly + u
+                        sampleZ = lz + v
+                    }
+                    2 -> {
+                        sampleX = lx + u
+                        sampleY = ly - faceOffset
+                        sampleZ = lz + v
+                    }
+                    3 -> {
+                        sampleX = lx + u
+                        sampleY = ly + 1.0 + faceOffset
+                        sampleZ = lz + v
+                    }
+                    4 -> {
+                        sampleX = lx + u
+                        sampleY = ly + v
+                        sampleZ = lz - faceOffset
+                    }
+                    else -> {
+                        sampleX = lx + u
+                        sampleY = ly + v
+                        sampleZ = lz + 1.0 + faceOffset
+                    }
+                }
+
+                val shipX = state.minX + sampleX
+                val shipY = state.minY + sampleY
+                val shipZ = state.minZ + sampleZ
+                if (sampleCanonicalWorldFluidAtShipPoint(
+                        level = level,
+                        shipTransform = shipTransform,
+                        shipX = shipX,
+                        shipY = shipY,
+                        shipZ = shipZ,
+                        shipPosTmp = shipPosCornerTmp,
+                        worldPosTmp = worldPosCornerTmp,
+                        worldBlockPos = worldBlockPos,
+                        queryCache = queryCache,
+                    ) != null
+                ) {
+                    return false
+                }
+
+                shipPosCornerTmp.set(shipX, shipY, shipZ)
+                shipTransform.shipToWorld.transformPosition(shipPosCornerTmp, worldPosCornerTmp)
+                worldBlockPos.set(
+                    Mth.floor(worldPosCornerTmp.x),
+                    Mth.floor(worldPosCornerTmp.y),
+                    Mth.floor(worldPosCornerTmp.z),
+                )
+
+                val outsideBlock = FluidStateManager.getBlockState(level, worldBlockPos, queryCache)
+                if (outsideBlock.isAir) return true
+
+                val shape = outsideBlock.getCollisionShape(level, worldBlockPos)
+                if (shape.isEmpty) return true
+
+                val localX = worldPosCornerTmp.x - worldBlockPos.x.toDouble()
+                val localY = worldPosCornerTmp.y - worldBlockPos.y.toDouble()
+                val localZ = worldPosCornerTmp.z - worldBlockPos.z.toDouble()
+                val eps = 1.0e-7
+                for (box in shape.toAabbs()) {
+                    if (localX >= box.minX - eps && localX <= box.maxX + eps &&
+                        localY >= box.minY - eps && localY <= box.maxY + eps &&
+                        localZ >= box.minZ - eps && localZ <= box.maxZ + eps
+                    ) {
+                        return false
+                    }
+                }
+
+                return true
             }
 
-            shipPosCornerTmp.set(
-                state.minX + sampleX,
-                state.minY + sampleY,
-                state.minZ + sampleZ,
-            )
-            shipTransform.shipToWorld.transformPosition(shipPosCornerTmp, worldPosCornerTmp)
-            worldBlockPos.set(
-                Mth.floor(worldPosCornerTmp.x),
-                Mth.floor(worldPosCornerTmp.y),
-                Mth.floor(worldPosCornerTmp.z),
-            )
-
-            val outsideBlock = FluidStateManager.getBlockState(level, worldBlockPos, queryCache)
-            return outsideBlock.isAir && FluidStateManager.getFluidData(level, worldBlockPos, queryCache) == null
+            return sampleOutsideFace(0.5, 0.5) ||
+                sampleOutsideFace(lo, lo) ||
+                sampleOutsideFace(hi, lo) ||
+                sampleOutsideFace(lo, hi) ||
+                sampleOutsideFace(hi, hi)
         }
 
         val visited = tmpFloodComponentVisited.get()
@@ -5882,7 +5967,6 @@ object ShipWaterPocketManager {
             tmpFloodQueue.set(queue)
         }
 
-        val shipBlockPos = BlockPos.MutableBlockPos()
         val shipPosCornerTmp = tmpShipPos3.get()
         val worldPosCornerTmp = tmpWorldPos3.get()
         val worldBlockPos = BlockPos.MutableBlockPos()
@@ -5933,7 +6017,6 @@ object ShipWaterPocketManager {
                 waterLX: Int,
                 waterLY: Int,
                 waterLZ: Int,
-                fromWaterIdx: Int,
                 conductance: Int,
             ) {
                 if (conductance <= 0) return
@@ -5947,25 +6030,7 @@ object ShipWaterPocketManager {
                 val ly = t % sizeY
                 val lz = t / sizeY
 
-                val shipX = state.minX + lx
-                val shipY = state.minY + ly
-                val shipZ = state.minZ + lz
-                shipBlockPos.set(shipX, shipY, shipZ)
-
-                // A vent must open into outside *air* (not submerged in world water).
-                if (isShipCellSubmergedInWorldFluid(
-                        level,
-                        shipTransform,
-                        shipBlockPos,
-                        shipPosCornerTmp,
-                        worldPosCornerTmp,
-                        worldBlockPos,
-                        queryCache = queryCache,
-                    )
-                ) {
-                    return
-                }
-                if (!openingExposesOutsideAir(lx, ly, lz, outDirCode)) return
+                if (!openingExposesOutsideAir(waterLX, waterLY, waterLZ, outDirCode)) return
 
                 // Water can't "flush" out through an opening that's above the draining water cell in world-space.
                 // This fixes bowls/open-top containers losing water upward when moved out of the ocean.
@@ -6038,7 +6103,7 @@ object ShipWaterPocketManager {
                         } else {
                             conductance
                         }
-                        considerVent(n, outDirCode, waterWy, lx, ly, lz, idx, ventConductance)
+                        considerVent(n, outDirCode, waterWy, lx, ly, lz, ventConductance)
                     }
                 }
 
@@ -6255,10 +6320,14 @@ object ShipWaterPocketManager {
                         current = current,
                         floodFluid = state.floodFluid,
                         toWater = true,
+                        dropOnBreak = !state.brokenByFlood.get(idx),
                         setBlockFlags = flags,
                     )
                     if (write.materialized) {
                         state.materializedWater.set(idx)
+                        if (write.effect == FloodWriteEffectKind.BREAK_ON_FLOOD) {
+                            state.brokenByFlood.set(idx)
+                        }
                     }
                 } else {
                     applyFloodBlockWrite(
@@ -6270,6 +6339,7 @@ object ShipWaterPocketManager {
                         setBlockFlags = flags,
                     )
                     state.materializedWater.clear(idx)
+                    state.brokenByFlood.clear(idx)
                 }
 
                 idx = indices.nextSetBit(idx + 1)

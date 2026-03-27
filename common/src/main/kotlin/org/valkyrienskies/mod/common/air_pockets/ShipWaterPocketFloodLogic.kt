@@ -127,7 +127,7 @@ private fun tryDrainFloodFluidFromContainer(
     }
 }
 
-private fun shouldBreakOnFlood(
+internal fun shouldBreakOnFloodState(
     level: Level,
     pos: BlockPos,
     current: BlockState,
@@ -158,6 +158,7 @@ internal fun applyFloodBlockWrite(
     current: BlockState,
     floodFluid: Fluid,
     toWater: Boolean,
+    dropOnBreak: Boolean = true,
     setBlockFlags: Int = FLOOD_WRITE_SETBLOCK_FLAGS,
 ): FloodWriteApplication {
     val canonical = floodCanonicalSource(floodFluid)
@@ -198,8 +199,8 @@ internal fun applyFloodBlockWrite(
             return FloodWriteApplication(true, true, FloodWriteEffectKind.CONTAINER)
         }
 
-        if (shouldBreakOnFlood(level, pos, current, canonical)) {
-            val destroyed = level.destroyBlock(pos, true)
+        if (shouldBreakOnFloodState(level, pos, current, canonical)) {
+            val destroyed = level.destroyBlock(pos, dropOnBreak)
             val afterDestroy = level.getBlockState(pos)
             if (!destroyed && !afterDestroy.isAir) {
                 return FloodWriteApplication(false, false, FloodWriteEffectKind.NONE)

@@ -103,6 +103,15 @@ public abstract class MixinLevel {
         if (ship == null) return;
 
         if (ShipWaterPocketManager.shouldBlockShipyardWaterPlacement(level, ship.getId(), pos)) {
+            if (ShipWaterPocketManager.shouldAllowImmediateFragileShipyardFloodPlacement(
+                level,
+                ship.getId(),
+                pos,
+                fluidState.getType(),
+                existing
+            )) {
+                return;
+            }
             cir.setReturnValue(false);
             cir.cancel();
         }

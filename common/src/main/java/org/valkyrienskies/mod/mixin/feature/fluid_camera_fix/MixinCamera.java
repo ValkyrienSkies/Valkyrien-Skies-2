@@ -13,6 +13,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.air_pockets.ShipWaterPocketManager;
 
 @Mixin(Camera.class)
 public abstract class MixinCamera {
@@ -33,9 +34,14 @@ public abstract class MixinCamera {
         isShipWater = false;
         if (fluidState[0].isEmpty() && instance instanceof final Level level) {
 
-            final double origX = this.getPosition().x;
-            final double origY = this.getPosition().y;
-            final double origZ = this.getPosition().z;
+            final Vec3 cameraPos = this.getPosition();
+            final double origX = cameraPos.x;
+            final double origY = cameraPos.y;
+            final double origZ = cameraPos.z;
+
+            if (ShipWaterPocketManager.isWorldPosInShipAirPocket(level, origX, origY, origZ)) {
+                return fluidState[0];
+            }
 
             VSGameUtilsKt.transformToNearbyShipsAndWorld(level, origX, origY, origZ, 1,
                 (x, y, z) -> {
