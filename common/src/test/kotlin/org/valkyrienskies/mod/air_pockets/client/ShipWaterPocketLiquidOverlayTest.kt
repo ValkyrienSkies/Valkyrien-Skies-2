@@ -149,6 +149,13 @@ class ShipWaterPocketLiquidOverlayTest {
     }
 
     @Test
+    fun `shipyard and empty samples do not qualify as exterior fluid`() {
+        assertFalse(ShipWaterPocketLiquidOverlay.shouldUseExteriorFluidSample(true, false))
+        assertFalse(ShipWaterPocketLiquidOverlay.shouldUseExteriorFluidSample(false, true))
+        assertTrue(ShipWaterPocketLiquidOverlay.shouldUseExteriorFluidSample(false, false))
+    }
+
+    @Test
     fun `water sprite selection prefers overlay while other fluids prefer still`() {
         assertEquals(2, ShipWaterPocketFluidVisualHelper.preferredSpriteIndex(Fluids.WATER, true, true, true))
         assertEquals(0, ShipWaterPocketFluidVisualHelper.preferredSpriteIndex(Fluids.LAVA, true, true, false))

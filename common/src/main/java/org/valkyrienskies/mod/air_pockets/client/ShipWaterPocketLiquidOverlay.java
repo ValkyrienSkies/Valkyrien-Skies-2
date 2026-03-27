@@ -681,14 +681,14 @@ public final class ShipWaterPocketLiquidOverlay {
         final int blockZ = Mth.floor(worldZ);
 
         fluidPos.set(blockX, blockY, blockZ);
-        FluidState sampleState = level.getFluidState(fluidPos);
-        if (sampleState.isEmpty()) {
+        FluidState sampleState = getRawExteriorFluidState(level, fluidPos);
+        if (sampleState == null) {
             fluidPos.move(0, -1, 0);
-            sampleState = level.getFluidState(fluidPos);
-            if (sampleState.isEmpty()) {
+            sampleState = getRawExteriorFluidState(level, fluidPos);
+            if (sampleState == null) {
                 fluidPos.move(0, 2, 0);
-                sampleState = level.getFluidState(fluidPos);
-                if (sampleState.isEmpty()) {
+                sampleState = getRawExteriorFluidState(level, fluidPos);
+                if (sampleState == null) {
                     return null;
                 }
             }
@@ -704,14 +704,14 @@ public final class ShipWaterPocketLiquidOverlay {
         scanPos.set(fluidPos);
         final int maxYExclusive = level.getMaxBuildHeight();
         while (scanPos.getY() < maxYExclusive) {
-            final FluidState current = level.getFluidState(scanPos);
-            if (current.isEmpty() || canonicalSource(current.getType()) != canonicalFluid) break;
+            final FluidState current = getRawExteriorFluidState(level, scanPos);
+            if (current == null || canonicalSource(current.getType()) != canonicalFluid) break;
             scanPos.move(0, 1, 0);
         }
         scanPos.move(0, -1, 0);
 
-        final FluidState topFluid = level.getFluidState(scanPos);
-        if (topFluid.isEmpty()) return null;
+        final FluidState topFluid = getRawExteriorFluidState(level, scanPos);
+        if (topFluid == null) return null;
 
         final FluidSurfaceSample sample = new FluidSurfaceSample(
             canonicalFluid,
@@ -724,6 +724,23 @@ public final class ShipWaterPocketLiquidOverlay {
         }
         FLUID_SURFACE_CACHE.put(key, sample);
         return sample;
+    }
+
+    private static @Nullable FluidState getRawExteriorFluidState(
+        final net.minecraft.client.multiplayer.ClientLevel level,
+        final BlockPos pos
+    ) {
+        if (!level.hasChunkAt(pos)) {
+            return null;
+        }
+
+        final boolean inShipyard = VSGameUtilsKt.isBlockInShipyard(level, pos);
+        final FluidState rawFluid = level.getChunkAt(pos).getFluidState(pos);
+        return shouldUseExteriorFluidSample(inShipyard, rawFluid.isEmpty()) ? rawFluid : null;
+    }
+
+    static boolean shouldUseExteriorFluidSample(final boolean inShipyard, final boolean emptyFluid) {
+        return !inShipyard && !emptyFluid;
     }
 
     private static double worldY(final double m01, final double m11, final double m21, final double tY, final float x,
