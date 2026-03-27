@@ -261,6 +261,7 @@ internal fun invokeDrainFloodedInteriorToOutsideAir(
     protectedInterior: BitSet?,
     newPlanesOut: Int2DoubleOpenHashMap,
     toRemoveAll: BitSet,
+    drainSuppressedOut: BitSet = BitSet(),
 ) {
     val method = ShipWaterPocketManager::class.java.getDeclaredMethod(
         "drainFloodedInteriorToOutsideAir",
@@ -270,9 +271,10 @@ internal fun invokeDrainFloodedInteriorToOutsideAir(
         BitSet::class.java,
         Int2DoubleOpenHashMap::class.java,
         BitSet::class.java,
+        BitSet::class.java,
     )
     method.isAccessible = true
-    method.invoke(ShipWaterPocketManager, level, state, shipTransform, protectedInterior, newPlanesOut, toRemoveAll)
+    method.invoke(ShipWaterPocketManager, level, state, shipTransform, protectedInterior, newPlanesOut, toRemoveAll, drainSuppressedOut)
 }
 
 internal fun invokeSyncMaterializedFloodFluidFromWorld(

@@ -29,6 +29,9 @@ internal data class ShipPocketState(
     var flooded: BitSet = BitSet(),
     var materializedWater: BitSet = BitSet(),
     var brokenByFlood: BitSet = BitSet(),
+    // Cells currently above an active drain plane. While set, shipyard fluid placement back into the cell
+    // should be blocked so vanilla flow doesn't immediately undo drain progress.
+    var drainSuppressed: BitSet = BitSet(),
     var waterReachable: BitSet = BitSet(),
     var unreachableVoid: BitSet = BitSet(),
     // Face conductance masks (shape-aware connectivity), stored on positive axes only.

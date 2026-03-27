@@ -3,7 +3,9 @@ package org.valkyrienskies.mod.common.air_pockets
 import net.minecraft.core.BlockPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.LiquidBlock
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.material.Fluid
 import java.lang.Double
 import java.util.BitSet
@@ -94,8 +96,13 @@ private fun geometryStateHash(blockState: BlockState, geom: ShapeWaterGeometry, 
     return h
 }
 
-private fun countsAsMaterializedFloodFluid(state: BlockState, floodFluid: Fluid): Boolean =
-    isMaterializedFloodState(state, floodFluid)
+private fun countsAsMaterializedFloodFluid(state: BlockState, floodFluid: Fluid): Boolean {
+    val currentFluid = state.fluidState
+    if (currentFluid.isEmpty) return false
+    if (floodCanonicalSource(currentFluid.type) != floodCanonicalSource(floodFluid)) return false
+    if (state.block is LiquidBlock) return true
+    return isWaterloggableFloodState(state, floodFluid) && state.getValue(BlockStateProperties.WATERLOGGED)
+}
 
 private const val MAX_COMPONENT_GRAPH_NODES = 12_000_000
 private const val MIN_HEURISTIC_PROMOTED_COMPONENT_SIZE = 4

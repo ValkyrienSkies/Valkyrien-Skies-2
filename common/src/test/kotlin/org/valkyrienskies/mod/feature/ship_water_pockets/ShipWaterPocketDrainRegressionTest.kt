@@ -74,7 +74,7 @@ class ShipWaterPocketDrainRegressionTest {
             exteriorIndices = intArrayOf(),
         ).apply {
             dirty = false
-            flooded = bitSetOf(0)
+            drainSuppressed = bitSetOf(0)
             materializedWater = BitSet()
         }
 
@@ -87,7 +87,7 @@ class ShipWaterPocketDrainRegressionTest {
     }
 
     @Test
-    fun materializedSyncKeepsDrainingCellBlockedUntilFloodStateUpdates() {
+    fun staleFloodedCellDoesNotBlockVanillaPlacementAfterDrainStops() {
         val level = createTrackingLevel(
             states = mutableMapOf(blockKey(0, 0, 0) to Blocks.AIR.defaultBlockState()),
             gameTime = 0L,
@@ -102,13 +102,8 @@ class ShipWaterPocketDrainRegressionTest {
             materializedWater = BitSet()
         }
 
-        invokeSyncMaterializedFloodFluidFromWorld(level, state)
-
-        assertTrue(state.flooded.get(0))
-        assertFalse(state.materializedWater.get(0))
-
         withRegisteredServerState(level, shipId = 43L, state = state) {
-            assertTrue(ShipWaterPocketManager.shouldBlockShipyardWaterPlacement(level, 43L, BlockPos(0, 0, 0)))
+            assertFalse(ShipWaterPocketManager.shouldBlockShipyardWaterPlacement(level, 43L, BlockPos(0, 0, 0)))
         }
     }
 
@@ -132,6 +127,85 @@ class ShipWaterPocketDrainRegressionTest {
         withRegisteredServerState(level, shipId = 44L, state = state) {
             assertTrue(ShipWaterPocketManager.shouldBlockShipyardWaterPlacement(level, 44L, BlockPos(0, 0, 0)))
         }
+    }
+
+    @Test
+    fun bottomHoleDrainsAlongGravityAtIdentityRotation() {
+        val level = createTrackingLevel(
+            states = mutableMapOf(
+                blockKey(0, 0, 0) to Blocks.AIR.defaultBlockState(),
+                blockKey(0, 1, 0) to Blocks.WATER.defaultBlockState(),
+                blockKey(0, 2, 0) to Blocks.WATER.defaultBlockState(),
+            ),
+            gameTime = 0L,
+        )
+        val state = verticalPocketState(
+            sizeY = 3,
+            simulationIndices = intArrayOf(1, 2),
+            exteriorIndices = intArrayOf(0),
+        ).apply {
+            materializedWater = bitSetOf(1, 2)
+            flooded = bitSetOf(1, 2)
+        }
+
+        val toRemoveAll = BitSet()
+        val drainSuppressedOut = BitSet()
+        withAirPocketWorldQueriesDisabled {
+            invokeDrainFloodedInteriorToOutsideAir(
+                level = level,
+                state = state,
+                shipTransform = shipTransform,
+                protectedInterior = null,
+                newPlanesOut = Int2DoubleOpenHashMap(),
+                toRemoveAll = toRemoveAll,
+                drainSuppressedOut = drainSuppressedOut,
+            )
+        }
+
+        assertTrue(drainSuppressedOut.get(2))
+        assertTrue(toRemoveAll.get(2))
+        assertFalse(toRemoveAll.get(1))
+        assertEquals(1, toRemoveAll.cardinality())
+    }
+
+    @Test
+    fun sourceConnectedToBottomHoleByFlowingWaterStillDrains() {
+        val level = createTrackingLevel(
+            states = mutableMapOf(
+                blockKey(0, 0, 0) to Blocks.AIR.defaultBlockState(),
+                blockKey(0, 1, 0) to Fluids.FLOWING_WATER.defaultFluidState().createLegacyBlock(),
+                blockKey(0, 2, 0) to Blocks.WATER.defaultBlockState(),
+            ),
+            gameTime = 0L,
+        )
+        val state = verticalPocketState(
+            sizeY = 3,
+            simulationIndices = intArrayOf(1, 2),
+            exteriorIndices = intArrayOf(0),
+        ).apply {
+            flooded = bitSetOf(2)
+            materializedWater = bitSetOf(2)
+        }
+
+        invokeSyncMaterializedFloodFluidFromWorld(level, state)
+        assertTrue(state.materializedWater.get(1))
+        assertTrue(state.materializedWater.get(2))
+
+        val toRemoveAll = BitSet()
+        withAirPocketWorldQueriesDisabled {
+            invokeDrainFloodedInteriorToOutsideAir(
+                level = level,
+                state = state,
+                shipTransform = shipTransform,
+                protectedInterior = null,
+                newPlanesOut = Int2DoubleOpenHashMap(),
+                toRemoveAll = toRemoveAll,
+            )
+        }
+
+        assertTrue(toRemoveAll.get(2))
+        assertFalse(toRemoveAll.get(1))
+        assertEquals(1, toRemoveAll.cardinality())
     }
 
     @Test
