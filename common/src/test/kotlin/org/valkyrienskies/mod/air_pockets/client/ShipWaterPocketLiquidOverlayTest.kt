@@ -4,9 +4,12 @@ import java.util.BitSet
 import kotlin.math.abs
 import net.minecraft.SharedConstants
 import net.minecraft.server.Bootstrap
+import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.phys.AABB
 import net.minecraft.world.level.material.Fluids
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
@@ -30,7 +33,7 @@ class ShipWaterPocketLiquidOverlayTest {
         val overlaySolids = bitSetOf(1)
 
         val selected = ShipWaterPocketLiquidOverlay.isOutsideSubmergedFluid(open, interior, waterReachable, 0) &&
-            ShipWaterPocketLiquidOverlay.touchesOverlayBoundary(open, interior, waterReachable, overlaySolids, 0, 2, 1, 1)
+            ShipWaterPocketLiquidOverlay.touchesOverlayBoundary(open, interior, waterReachable, overlaySolids, null, 0, 2, 1, 1)
 
         assertTrue(selected)
     }
@@ -42,7 +45,7 @@ class ShipWaterPocketLiquidOverlayTest {
         val waterReachable = bitSetOf(0)
 
         val selected = ShipWaterPocketLiquidOverlay.isOutsideSubmergedFluid(open, interior, waterReachable, 0) &&
-            ShipWaterPocketLiquidOverlay.touchesOverlayBoundary(open, interior, waterReachable, null, 0, 2, 1, 1)
+            ShipWaterPocketLiquidOverlay.touchesOverlayBoundary(open, interior, waterReachable, null, null, 0, 2, 1, 1)
 
         assertTrue(selected)
     }
@@ -63,9 +66,42 @@ class ShipWaterPocketLiquidOverlayTest {
         val waterReachable = BitSet()
 
         val selected = ShipWaterPocketLiquidOverlay.isOutsideSubmergedFluid(open, interior, waterReachable, 0) &&
-            ShipWaterPocketLiquidOverlay.touchesOverlayBoundary(open, interior, waterReachable, null, 0, 2, 1, 1)
+            ShipWaterPocketLiquidOverlay.touchesOverlayBoundary(open, interior, waterReachable, null, null, 0, 2, 1, 1)
 
         assertFalse(selected)
+    }
+
+    @Test
+    fun `door voxel marked open still counts as full cell overlay boundary`() {
+        val open = bitSetOf(0, 1)
+        val interior = BitSet()
+        val waterReachable = bitSetOf(0)
+        val overlaySolids = bitSetOf(1)
+        val fullCellOverlaySolids = bitSetOf(1)
+
+        val selected = ShipWaterPocketLiquidOverlay.isOutsideSubmergedFluid(open, interior, waterReachable, 0) &&
+            ShipWaterPocketLiquidOverlay.touchesOverlayBoundary(
+                open,
+                interior,
+                waterReachable,
+                overlaySolids,
+                fullCellOverlaySolids,
+                0,
+                2,
+                1,
+                1
+            )
+
+        assertTrue(selected)
+        assertTrue(ShipWaterPocketLiquidOverlay.isFullCellOverlaySolid(fullCellOverlaySolids, 1))
+    }
+
+    @Test
+    fun `door voxel is not treated as an outside emission source`() {
+        val fullCellOverlaySolids = bitSetOf(1)
+
+        assertTrue(ShipWaterPocketLiquidOverlay.isFullCellOverlaySolid(fullCellOverlaySolids, 1))
+        assertFalse(ShipWaterPocketLiquidOverlay.isFullCellOverlaySolid(fullCellOverlaySolids, 0))
     }
 
     @Test
@@ -126,8 +162,35 @@ class ShipWaterPocketLiquidOverlayTest {
 
     @Test
     fun `overlay uv scale enlarges the sampled texture`() {
-        assertEquals(0.5f, ShipWaterPocketLiquidOverlay.scaleOverlayUv(1.0f))
-        assertEquals(0.25f, ShipWaterPocketLiquidOverlay.scaleOverlayUv(0.5f))
+        assertEquals(1.0f, ShipWaterPocketLiquidOverlay.scaleOverlayUv(1.0f))
+        assertEquals(0.5f, ShipWaterPocketLiquidOverlay.scaleOverlayUv(0.5f))
+    }
+
+    @Test
+    fun `recessed thin barrier exposes only the wet face`() {
+        val recessedDoorLikeBox = listOf(AABB(0.75, 0.0, 0.0, 1.0, 1.0, 1.0))
+
+        val wetFaceCount = ShipWaterPocketLiquidOverlay.countAccessibleSolidInterfacesForBoxes(
+            recessedDoorLikeBox,
+            0, // SHAPE_FACE_NEG_X
+            0, // SHAPE_FACE_NEG_X
+        )
+        val dryFaceCount = ShipWaterPocketLiquidOverlay.countAccessibleSolidInterfacesForBoxes(
+            recessedDoorLikeBox,
+            0, // SHAPE_FACE_NEG_X
+            1, // SHAPE_FACE_POS_X
+        )
+
+        assertNotEquals(0, wetFaceCount)
+        assertEquals(0, dryFaceCount)
+    }
+
+    @Test
+    fun `doors use full cell solid overlays`() {
+        assertTrue(ShipWaterPocketLiquidOverlay.shouldUseFullCellSolidOverlay(Blocks.OAK_DOOR.defaultBlockState()))
+        assertFalse(ShipWaterPocketLiquidOverlay.shouldUseFullCellSolidOverlay(Blocks.GLASS.defaultBlockState()))
+        assertTrue(ShipWaterPocketLiquidOverlay.shouldRenderOverlaySolidInterfaces(Blocks.OAK_DOOR.defaultBlockState()))
+        assertTrue(ShipWaterPocketLiquidOverlay.shouldRenderOverlaySolidInterfaces(Blocks.GLASS.defaultBlockState()))
     }
 
     private fun bitSetOf(vararg indices: Int): BitSet =
