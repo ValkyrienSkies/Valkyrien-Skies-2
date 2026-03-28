@@ -89,6 +89,7 @@ subprojects {
         mavenCentral()
         if (!project.block_external_repositories) {
             maven {
+                name = "Robotix's Public Maven"
                 url = "https://maven.realrobotix.me/master/"
             }
             mavenLocal()
@@ -96,36 +97,133 @@ subprojects {
                 name = "ParchmentMC"
                 url = "https://maven.parchmentmc.org"
             }
-            maven { url = "https://cursemaven.com" }
-            maven { url = "https://maven.terraformersmc.com/releases/" } // Mod Menu
+            maven {
+                name = "Curse Maven"
+                url = "https://cursemaven.com"
+                content {
+                    includeGroup("curse.maven")
+                }
+            }
+            maven {
+                name = "TerraformersMC Maven"
+                url = "https://maven.terraformersmc.com/releases/"
+                content {
+                    includeGroup("com.terraformersmc")
+                }
+            } // Mod Menu
             maven {
                 name = 'Kotlin for Forge'
                 url = 'https://thedarkcolour.github.io/KotlinForForge/'
+                content {
+                    includeGroup("thedarkcolor")
+                }
             }
             maven {
                 name = 'tterrag maven'
                 url = 'https://maven.tterrag.com/'
+                content {
+                    includeGroup("com.tterrag.registrate")
+                    includeGroup("com.tterrag.registrate_fabric")
+                }
             }
-            maven { url = "https://modmaven.dev/" } // Twilight Forest
-            maven { url = "https://api.modrinth.com/maven" } // LazyDFU, Suggestion Tweaker, Create Big Cannons
-            maven { url = "https://maven.shedaniel.me/" } // Cloth Config, REI
-            maven { url "https://maven.architectury.dev/" }
-            maven { url = "https://maven.createmod.net" } // Create, Ponder, Flywheel
-            maven { url = "https://maven.ithundxr.dev/mirror" } // Registrate
-            maven { url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/" } // ForgeConfigAPIPort
+            maven {
+                name = "Mod Maven"
+                url = "https://modmaven.dev/"
+                content {
+                    includeGroup("teamtwilight")
+                    includeGroup("teamreborn")
+                } // Twilight Forest
+            }
+            maven {
+                name = "Modrinth Maven"
+                url = "https://api.modrinth.com/maven"
+                content {
+                    includeGroup("maven.modrinth")
+                }
+            } // LazyDFU, Suggestion Tweaker, Create Big Cannons
+            maven {
+                name = "Shedaniel's Maven"
+                url = "https://maven.shedaniel.me/"
+                content {
+                    includeGroup("me.shedaniel")
+                }
+            } // Cloth Config, REI
+            maven {
+                name = "Architectury Maven"
+                url = "https://maven.architectury.dev/"
+                content {
+                    includeGroup("dev.architectury")
+                }
+            }
+            maven {
+                name = "Create Maven"
+                url = "https://maven.createmod.net"
+                content {
+                    includeGroup("com.simibubi.create")
+                    includeGroup("net.createmod.ponder")
+                    includeGroup("dev.engine-room.flywheel")
+                }
+            } // Create, Ponder, Flywheel
+            maven {
+                name = "IThundxrs Maven Repository"
+                url = "https://maven.ithundxr.dev/mirror"
+                content {
+                    includeGroup("com.tterrag.registrate")
+                }
+            } // Registrate
+            maven {
+                name = "Fuzss's Maven"
+                url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/"
+                content {
+                    includeGroup("fuzs.forgeconfigapiport")
+                }
+            } // ForgeConfigAPIPort
 
-            // mavens for Create Fabric and dependencies
-            maven { url = "https://mvn.devos.one/releases" } // Porting Lib releases
-            maven { url = "https://mvn.devos.one/snapshots/" } // Create and several dependencies
-            maven { url = "https://maven.cafeteria.dev/releases" } // Fake Player API
-            maven { url = "https://maven.jamieswhiteshirt.com/libs-release" } // Reach Entity Attributes
+            maven {
+                name = "devOS release Maven"
+                url = "https://mvn.devos.one/releases"
+                content {
+                    includeGroup("io.github.fabricators_of_create.Porting-Lib")
+                }
+            } // Porting Lib releases
+            maven {
+                name = "devOS snapshot Maven"
+                url = "https://mvn.devos.one/snapshots/"
+                content {
+                    includeGroup("io.github.tropheusj")
+                    includeGroup("com.simibubi.create")
+                    includeGroup("io.github.fabricators_of_create")
+                    includeGroup("com.tterrag.registrate_fabric")
+                }
+            } // Create and several dependencies
+            maven {
+                name = "Cafeteria Development"
+                url = "https://maven.cafeteria.dev/releases"
+                content {
+                    includeGroup("dev.cafeteria")
+                }
+            } // Fake Player API
+            maven {
+                name = "jamieswhiteshirt"
+                url = "https://maven.jamieswhiteshirt.com/libs-release"
+                content {
+                    includeGroup("com.jamieswhiteshirt")
+                }
+            } // Reach Entity Attributes
             maven { // Fabric ASM for Porting Lib
+                name = "JitPack"
                 url = "https://jitpack.io/"
-                content { includeGroupAndSubgroups("com.github") }
+                content {
+                    includeGroupAndSubgroups("com.github")
+                }
             }
-
-            maven { url = "https://maven.cafeteria.dev/releases" } // Fake Player API
-            maven { url = "https://maven.realrobotix.me/createbigcannons/" } // Create Big Cannons
+            maven {
+                name = "Robotix's Public Maven"
+                url = "https://maven.realrobotix.me/createbigcannons/"
+                content {
+                    includeGroup("com.rbasamoyai")
+                }
+            } // Create Big Cannons
             maven {
                 name = "CC-Tweaked"
                 url = "https://maven.squiddev.cc"
@@ -140,21 +238,31 @@ subprojects {
                     includeGroup("dev.ftb.mods")
                 }
             }
-
-            maven {
-                name = "Forge Config Api Port"
-                url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/"
-            }
             maven { // Hexcasting
+                name = "BlameJared"
                 url = "https://maven.blamejared.com"
+                content {
+                    includeGroup("at.petra-k.hexcasting")
+                    includeGroup("at.petra-k.paucal")
+                    includeGroup("vazkii.patchouli")
+                }
             }
             maven { // Hexal
+                name = "Hexxy Media"
                 url = uri("https://maven.hexxy.media")
+                content {
+                    includeGroup("ram.talia.hexal")
+                }
             }
         }
         maven {
             name = "Valkyrien Skies Internal"
             url = project.vs_maven_url ?: 'https://maven.valkyrienskies.org'
+            content {
+                includeGroup("org.valkyrienskies")
+                includeGroup("org.valkyrienskies.core")
+                includeGroup("com.fasterxml.jackson.module")
+            }
             if (project.vs_maven_username && project.vs_maven_password) {
                 credentials {
                     username = project.vs_maven_username

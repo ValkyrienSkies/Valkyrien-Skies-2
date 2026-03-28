@@ -59,8 +59,8 @@ configurations {
 }
 
 dependencies {
-    implementation(annotationProcessor("io.github.llamalad7:mixinextras-common:0.4.1"))
-    implementation(include("io.github.llamalad7:mixinextras-forge:0.4.1"))
+    implementation(annotationProcessor("io.github.llamalad7:mixinextras-common:${rootProject.mixinextras_version}"))
+    implementation(include("io.github.llamalad7:mixinextras-forge:${rootProject.mixinextras_version}"))
     annotationProcessor("net.fabricmc:sponge-mixin:0.12.5+mixin.0.8.5") // use fabric mixin so we can write interface injectors (conditionally loaded if mixinbooster is enabled)
 
     forge "net.minecraftforge:forge:${rootProject.forge_version}"
@@ -78,7 +78,8 @@ dependencies {
     modRuntimeOnly("maven.modrinth:forge-config-screens:v8.0.2-1.20.1-Forge")
 
     // Twilight Forest
-    modImplementation("teamtwilight:twilightforest:${twilightforest_version}:universal")
+    modCompileOnly("teamtwilight:twilightforest:${twilightforest_version}:universal")
+    modRuntimeOnly("teamtwilight:twilightforest:${twilightforest_version}:universal")
 
     // CBC
     //modRuntimeOnly("com.rbasamoyai:createbigcannons:${createbigcannons_version}+mc.${minecraft_version}-forge-build.250") { transitive = false }
@@ -86,21 +87,23 @@ dependencies {
 
 
     // Create compat
-    modImplementation("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") { transitive = false }
-    modImplementation("net.createmod.ponder:Ponder-Forge-${minecraft_version}:${ponder_version}")
-    modImplementation("curse.maven:vanillin-965702:6446560")
+    modCompileOnly("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") { transitive = false }
+    modRuntimeOnly("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") { transitive = false }
+    modCompileOnly("net.createmod.ponder:Ponder-Forge-${minecraft_version}:${ponder_version}")
+    modRuntimeOnly("net.createmod.ponder:Ponder-Forge-${minecraft_version}:${ponder_version}")
+    modCompileOnly("curse.maven:vanillin-965702:6446560")
+    modRuntimeOnly("curse.maven:vanillin-965702:6446560")
     modCompileOnly("dev.engine-room.flywheel:flywheel-forge-api-${minecraft_version}:${flywheel_version}")
     modRuntimeOnly("dev.engine-room.flywheel:flywheel-forge-${minecraft_version}:${flywheel_version}")
-    modImplementation("com.tterrag.registrate:Registrate:${registrate_version}")
+    modCompileOnly("com.tterrag.registrate:Registrate:${registrate_version}")
+    modRuntimeOnly("com.tterrag.registrate:Registrate:${registrate_version}")
 
     // Weather2 1.20.1
-    modImplementation("curse.maven:weather-storms-tornadoes-237746:5244118")
-    modImplementation("curse.maven:coroutil-237749:5096038")
+    modRuntimeOnly("curse.maven:weather-storms-tornadoes-237746:5244118")
+    modRuntimeOnly("curse.maven:coroutil-237749:5096038")
 
     // CC Tweaked
     modRuntimeOnly("cc.tweaked:cc-tweaked-${minecraft_version}-forge:${cc_tweaked_version}")
-
-    //modImplementation("curse.maven:vmp-forge-892037:4657678")
 
     // OpenComputers 2: Reimagined
     modCompileOnly("maven.modrinth:oc2r:${oc2r_version}")
@@ -111,7 +114,7 @@ dependencies {
     modCompileOnly("maven.modrinth:entitytexturefeatures:7.0.6-forge-1.20.1")
 
     modCompileOnly("maven.modrinth:create-utilities:0.2.0+1.20.1")
-    modImplementation("teamreborn:energy:${energy_version}") {
+    modCompileOnly("teamreborn:energy:${energy_version}") {
         transitive = false
     }
     // TIS-3d
@@ -150,16 +153,15 @@ dependencies {
     //modCompileOnly("maven.modrinth:vmp-forge:0.2.0+beta.7.101+1.20.1")
 
     // Mekanism
-    modImplementation ("maven.modrinth:mekanism:${mekanism_version}")
+    modCompileOnly("maven.modrinth:mekanism:${mekanism_version}")
+    modRuntimeOnly("maven.modrinth:mekanism:${mekanism_version}")
 
     // Connectible Chains [Forge]
-    modImplementation("curse.maven:connectible-chains-forge-418514:6142294")
+    modCompileOnly("curse.maven:connectible-chains-forge-418514:6142294")
+    modRuntimeOnly("curse.maven:connectible-chains-forge-418514:6142294")
 
     // Add Kotlin for Forge (3.12.0)
     forgeRuntimeLibrary("maven.modrinth:kotlin-for-forge:${kotlin_version}")
-
-    // Cloth for config
-    include(modImplementation("me.shedaniel.cloth:cloth-config-forge:${cloth_config_version}"))
 
     // Shade vs-core
     implementation("org.valkyrienskies.core:util:${rootProject.vs_core_version}")
