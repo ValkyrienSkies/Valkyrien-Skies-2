@@ -260,7 +260,7 @@ public final class ShipWaterPocketLiquidOverlay {
         if (ships.isEmpty()) return;
 
         final MultiBufferSource.BufferSource bufferSource = MultiBufferSource.immediate(Tesselator.getInstance().getBuilder());
-        final VertexConsumer consumer = bufferSource.getBuffer(getOverlayRenderType());
+        final VertexConsumer consumer = bufferSource.getBuffer(OVERLAY_RENDER_TYPE);
 
         for (final LoadedShip ship : ships) {
             final long shipId = ship.getId();
@@ -311,27 +311,29 @@ public final class ShipWaterPocketLiquidOverlay {
         bufferSource.endBatch();
     }
 
-    private static RenderType getOverlayRenderType() {
-        return RenderType.create(
-            "valkyrienskies_ship_liquid_overlay",
-            DefaultVertexFormat.NEW_ENTITY,
-            VertexFormat.Mode.QUADS,
-            256,
-            false,
-            true,
-            RenderType.CompositeState.builder()
-                .setShaderState(RenderStateShard.RENDERTYPE_ENTITY_TRANSLUCENT_SHADER)
-                .setTextureState(new RenderStateShard.TextureStateShard(InventoryMenu.BLOCK_ATLAS, false, false))
-                .setTransparencyState(RenderStateShard.TRANSLUCENT_TRANSPARENCY)
-                .setCullState(RenderStateShard.NO_CULL)
-                .setLightmapState(RenderStateShard.LIGHTMAP)
-                .setOverlayState(RenderStateShard.OVERLAY)
-                .setLayeringState(RenderStateShard.VIEW_OFFSET_Z_LAYERING)
-                .setDepthTestState(RenderStateShard.LEQUAL_DEPTH_TEST)
-                .setWriteMaskState(RenderStateShard.COLOR_WRITE)
-                .createCompositeState(true)
-        );
-    }
+    private static RenderType OVERLAY_RENDER_TYPE = new RenderStateShard(null, null, null) {
+        private static RenderType createOverlayRenderType() {
+            return RenderType.create(
+                "valkyrienskies_ship_liquid_overlay",
+                DefaultVertexFormat.NEW_ENTITY,
+                VertexFormat.Mode.QUADS,
+                256,
+                false,
+                true,
+                RenderType.CompositeState.builder()
+                    .setShaderState(RenderStateShard.RENDERTYPE_ENTITY_TRANSLUCENT_SHADER)
+                    .setTextureState(new RenderStateShard.TextureStateShard(InventoryMenu.BLOCK_ATLAS, false, false))
+                    .setTransparencyState(RenderStateShard.TRANSLUCENT_TRANSPARENCY)
+                    .setCullState(RenderStateShard.NO_CULL)
+                    .setLightmapState(RenderStateShard.LIGHTMAP)
+                    .setOverlayState(RenderStateShard.OVERLAY)
+                    .setLayeringState(RenderStateShard.VIEW_OFFSET_Z_LAYERING)
+                    .setDepthTestState(RenderStateShard.LEQUAL_DEPTH_TEST)
+                    .setWriteMaskState(RenderStateShard.COLOR_WRITE)
+                    .createCompositeState(true)
+            );
+        }
+    }.createOverlayRenderType();
 
     private static void ensureOverlaySolids(final net.minecraft.client.multiplayer.ClientLevel level, final ShipCache cache,
         final ShipWaterPocketManager.ClientWaterReachableSnapshot snapshot) {
