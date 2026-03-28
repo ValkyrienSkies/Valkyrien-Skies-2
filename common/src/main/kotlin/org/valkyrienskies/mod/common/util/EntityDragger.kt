@@ -39,7 +39,13 @@ object EntityDragger {
     fun dragEntitiesWithShips(entities: Iterable<Entity>, preTick: Boolean = false) {
         for (entity in entities) {
             val entityDraggingInformation = (entity as? IEntityDraggingInformationProvider)?.draggingInformation ?: continue
-            val shouldApplyShipDrag = !entity.level().isClientSide || entityDraggingInformation.shouldUseClientPrediction(entity)
+            val shouldApplyAuthoritativeClientDrag = entity.level().isClientSide &&
+                !entityDraggingInformation.shouldUseClientPrediction(entity) &&
+                entity !is LivingEntity &&
+                entityDraggingInformation.authoritativeShipStoodOn != null
+            val shouldApplyShipDrag = !entity.level().isClientSide ||
+                entityDraggingInformation.shouldUseClientPrediction(entity) ||
+                shouldApplyAuthoritativeClientDrag
 
             var dragTheEntity = false
             var addedMovement: Vector3dc? = null
