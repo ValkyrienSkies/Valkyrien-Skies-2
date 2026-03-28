@@ -77,10 +77,8 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider,
     private void beforeMove(final MoverType type, final Vec3 pos, final CallbackInfo ci) {
         final EntityDraggingInformation draggingInformation = getDraggingInformation();
         final boolean isDraggedByShip = draggingInformation != null && draggingInformation.isEntityBeingDraggedByAShip();
-        final boolean isMountedToShip = VSGameUtilsKt.getShipMountedTo(Entity.class.cast(this)) != null;
 
-        if (!isDraggedByShip && !isMountedToShip &&
-            EntityShipCollisionUtils.isCollidingWithUnloadedShips(Entity.class.cast(this))) {
+        if (!isDraggedByShip && EntityShipCollisionUtils.isCollidingWithUnloadedShips(Entity.class.cast(this))) {
             ci.cancel();
         }
     }
