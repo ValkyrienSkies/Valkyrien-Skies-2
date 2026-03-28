@@ -5,6 +5,7 @@ import java.util.Set;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult.Type;
@@ -25,8 +26,12 @@ import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.util.GameToPhysicsAdapter;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
-@Mixin(targets = "com.github.alexmodguy.alexscaves.server.entity.item.NuclearExplosionEntity", priority = 999)
+@Mixin(Entity.class)
 public abstract class MixinNuclearExplosion {
+
+    @Unique
+    private static final String VS2$ALEX_CAVES_NUKE_CLASS =
+        "com.github.alexmodguy.alexscaves.server.entity.item.NuclearExplosionEntity";
 
     @Unique
     private boolean vs2$forcesApplied = false;
@@ -39,14 +44,19 @@ public abstract class MixinNuclearExplosion {
         if (vs2$forcesApplied) {
             return;
         }
-        vs2$forcesApplied = true;
 
         Entity nuke = (Entity) (Object) this;
-        ServerLevel level = (ServerLevel) nuke.level();
-        
-        if (level.isClientSide) {
+
+        if (!nuke.getClass().getName().equals(VS2$ALEX_CAVES_NUKE_CLASS)) {
             return;
         }
+
+        final Level entityLevel = nuke.level();
+        if (!(entityLevel instanceof ServerLevel level)) {
+            return;
+        }
+
+        vs2$forcesApplied = true;
 
         try {
             // Get explosion properties using reflection
@@ -123,7 +133,7 @@ public abstract class MixinNuclearExplosion {
         }
     }
 
-    @Inject(at = @At("HEAD"), method = "tick", remap = false)
+    @Inject(at = @At("HEAD"), method = "tick")
     private void onNuclearTick(final CallbackInfo ci) {
         vs2$applyNuclearForces();
     }
