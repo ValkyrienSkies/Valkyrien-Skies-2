@@ -108,6 +108,7 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
                         final VsiTerrainUpdate voxelShapeUpdate =
                             VSGameUtilsKt.toDenseVoxelUpdate(chunkSection, chunkPos);
                         voxelShapeUpdates.add(voxelShapeUpdate);
+                        // endregion
                     } else {
                         final VsiTerrainUpdate emptyVoxelShapeUpdate = getVsCore()
                             .newEmptyVoxelShapeUpdate(chunkPos.x(), chunkPos.y(), chunkPos.z(), true);

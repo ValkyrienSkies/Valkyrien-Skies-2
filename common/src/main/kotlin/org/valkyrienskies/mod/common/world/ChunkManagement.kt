@@ -7,14 +7,11 @@ import org.apache.commons.lang3.mutable.MutableObject
 import org.valkyrienskies.core.internal.world.VsiServerShipWorld
 import org.valkyrienskies.core.internal.world.chunks.VsiChunkUnwatchTask
 import org.valkyrienskies.core.internal.world.chunks.VsiChunkWatchTask
-import org.valkyrienskies.mod.common.VS2ChunkAllocator
 import org.valkyrienskies.mod.common.executeIf
 import org.valkyrienskies.mod.common.getLevelFromDimensionId
-import org.valkyrienskies.mod.common.isChunkLoadedForVS
 import org.valkyrienskies.mod.common.isTickingChunk
 import org.valkyrienskies.mod.common.mcPlayer
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
-import org.valkyrienskies.mod.common.util.VSServerLevel
 import org.valkyrienskies.mod.mixin.accessors.server.level.ChunkMapAccessor
 import org.valkyrienskies.mod.util.logger
 
@@ -34,22 +31,9 @@ object ChunkManagement {
             val chunkPos = ChunkPos(chunkWatchTask.chunkX, chunkWatchTask.chunkZ)
 
             val level = server.getLevelFromDimensionId(chunkWatchTask.dimensionId)!!
+            level.chunkSource.updateChunkForced(chunkPos, true)
 
-            // Use lightweight ticket for shipyard chunks to avoid loading excessive neighbor chunks.
-            // Vanilla's updateChunkForced uses level 31 (entity ticking) which forces a 2-chunk
-            // neighborhood (~25 chunks). Our ticket with radius 1 gives level 32 (ticking), which
-            // only needs a 1-chunk neighborhood (~9 chunks) — still a big reduction.
-            if (VS2ChunkAllocator.isChunkInShipyardCompanion(chunkPos.x, chunkPos.z)) {
-                level.chunkSource.addRegionTicket(
-                    VSTicketType.SHIP_CHUNK, chunkPos, 1, chunkPos
-                )
-                (level as VSServerLevel).addPendingForcedChunk(chunkPos.x, chunkPos.z)
-            } else {
-                level.chunkSource.updateChunkForced(chunkPos, true)
-                (level as VSServerLevel).addPendingForcedChunk(chunkPos.x, chunkPos.z)
-            }
-
-            level.server.executeIf({ level.isChunkLoadedForVS(chunkPos) }) {
+            level.server.executeIf({ level.isTickingChunk(chunkPos) }) {
                 for (player in chunkWatchTask.playersNeedWatching) {
                     val minecraftPlayer = player as MinecraftPlayer
                     val serverPlayer = minecraftPlayer.playerEntityReference.get() as ServerPlayer?
@@ -73,13 +57,7 @@ object ChunkManagement {
 
             if (chunkUnwatchTask.shouldUnload) {
                 val level = server.getLevelFromDimensionId(chunkUnwatchTask.dimensionId)!!
-                if (VS2ChunkAllocator.isChunkInShipyardCompanion(chunkPos.x, chunkPos.z)) {
-                    level.chunkSource.removeRegionTicket(
-                        VSTicketType.SHIP_CHUNK, chunkPos, 1, chunkPos
-                    )
-                } else {
-                    level.chunkSource.updateChunkForced(chunkPos, false)
-                }
+                level.chunkSource.updateChunkForced(chunkPos, false)
             }
 
             for (player in chunkUnwatchTask.playersNeedUnwatching) {
