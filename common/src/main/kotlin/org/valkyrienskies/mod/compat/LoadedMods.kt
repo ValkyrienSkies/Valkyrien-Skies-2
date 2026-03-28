@@ -12,6 +12,9 @@ object LoadedMods {
     val weather2 by CompatInfo("weather2.Weather")
 
     @JvmStatic
+    val alexCaves by CompatInfo("com.github.alexmodguy.alexscaves.AlexsCaves")
+
+    @JvmStatic
     val immersivePortals by CompatInfo("qouteall.imm_ptl.core.IPModMain")
 
     @JvmStatic

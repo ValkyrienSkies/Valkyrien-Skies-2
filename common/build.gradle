@@ -11,6 +11,9 @@ dependencies {
 
     modCompileOnly("maven.modrinth:sodium:${sodium_version}")
 
+    // Alex Caves
+    modCompileOnly("maven.modrinth:alexs-caves:$alexscaves_version")
+
     // vs-core
     runtimeOnly("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
         exclude module: "netty-buffer"

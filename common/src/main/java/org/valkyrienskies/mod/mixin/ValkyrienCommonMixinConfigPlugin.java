@@ -136,6 +136,11 @@ public class ValkyrienCommonMixinConfigPlugin implements IMixinConfigPlugin {
             }
         }
 
+        if (mixinClassName.contains("org.valkyrienskies.mod.mixin.mod_compat.alex_caves")) {
+            // Only load this mixin if Alex Caves is installed
+            return LoadedMods.getAlexCaves();
+        }
+
         return true;
     }
 
