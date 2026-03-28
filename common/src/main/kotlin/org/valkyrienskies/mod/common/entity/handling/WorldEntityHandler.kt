@@ -45,9 +45,7 @@ object WorldEntityHandler : VSEntityHandler {
 
     override fun positionSetFromVehicle(self: Entity, vehicle: Entity, x: Double, y: Double, z: Double) {
         if (self.level().isBlockInShipyard(vehicle.position()) && vehicle.getShipManaging() == null) {
-            if (!self.level().isClientSide) {
-                self.stopRiding()
-            }
+            self.stopRiding()
             return
         }
         val (wx, wy, wz) = self.level().toWorldCoordinates(x, y, z)
