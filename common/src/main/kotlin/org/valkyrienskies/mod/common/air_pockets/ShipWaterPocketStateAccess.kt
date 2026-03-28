@@ -19,7 +19,37 @@ internal data class PointVoidClassification(
     val localComponent: Int = -1,
 )
 
-private const val POINT_CLASSIFY_EPS = 1e-5
+private const val EPS = 1e-5 // eps used for point classification
+private val EPSILON_OFFSETS = doubleArrayOf(
+    -EPS, -EPS, -EPS,
+    -EPS, -EPS,  0.0,
+    -EPS, -EPS,  EPS,
+    -EPS,  0.0, -EPS,
+    -EPS,  0.0,  0.0,
+    -EPS,  0.0,  EPS,
+    -EPS,  EPS, -EPS,
+    -EPS,  EPS,  0.0,
+    -EPS,  EPS,  EPS,
+    0.0, -EPS, -EPS,
+    0.0, -EPS,  0.0,
+    0.0, -EPS,  EPS,
+    0.0,  0.0, -EPS,
+    0.0,  0.0,  0.0, // skipped in for loop
+    0.0,  0.0,  EPS,
+    0.0,  EPS, -EPS,
+    0.0,  EPS,  0.0,
+    0.0,  EPS,  EPS,
+    EPS, -EPS, -EPS,
+    EPS, -EPS,  0.0,
+    EPS, -EPS,  EPS,
+    EPS,  0.0, -EPS,
+    EPS,  0.0,  0.0,
+    EPS,  0.0,  EPS,
+    EPS,  EPS, -EPS,
+    EPS,  EPS,  0.0,
+    EPS,  EPS,  EPS,
+)
+private const val EPSILON_ZERO_IDX = 39
 
 internal fun indexOf(state: ShipPocketState, lx: Int, ly: Int, lz: Int): Int =
     lx + state.sizeX * (ly + state.sizeY * lz)
@@ -274,17 +304,20 @@ internal fun classifyShipPointWithEpsilon(
     }
 
     var bestExterior: PointVoidClassification? = null
-    val eps = POINT_CLASSIFY_EPS
-    for (dx in doubleArrayOf(-eps, 0.0, eps)) {
-        for (dy in doubleArrayOf(-eps, 0.0, eps)) {
-            for (dz in doubleArrayOf(-eps, 0.0, eps)) {
-                if (dx == 0.0 && dy == 0.0 && dz == 0.0) continue
-                val candidate = classifyShipPoint(state, x + dx, y + dy, z + dz, out)
-                when (candidate.kind) {
-                    PointVoidClass.INTERIOR_VOID -> return candidate
-                    PointVoidClass.EXTERIOR_VOID -> if (bestExterior == null) bestExterior = candidate
-                    else -> Unit
-                }
+    var i = 0
+    for (i in EPSILON_OFFSETS.indices step 3) {
+        if (i != EPSILON_ZERO_IDX) {
+            val candidate = classifyShipPoint(
+                state,
+                x + EPSILON_OFFSETS[i],
+                y + EPSILON_OFFSETS[i + 1],
+                z + EPSILON_OFFSETS[i + 2],
+                out,
+            )
+            when (candidate.kind) {
+                PointVoidClass.INTERIOR_VOID -> return candidate
+                PointVoidClass.EXTERIOR_VOID -> if (bestExterior == null) bestExterior = candidate
+                else -> Unit
             }
         }
     }
