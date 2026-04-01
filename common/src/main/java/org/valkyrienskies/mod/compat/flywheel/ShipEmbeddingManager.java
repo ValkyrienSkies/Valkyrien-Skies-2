@@ -153,12 +153,23 @@ public class ShipEmbeddingManager {
      * @param origin render origin of the VisualizationContext that is the parent of the embedding.
      * @author Bunting_chj
      */
-    protected static void setEmbeddingTransform(VisualEmbedding embedding, ClientShip ship, Vec3i anchor,
-        Vec3i origin){
+    protected static void setEmbeddingTransform(VisualEmbedding embedding, ClientShip ship, Vec3i anchor, Vec3i origin) {
         final Matrix4f poseMatrix = new Matrix4f();
         final Matrix3f normalMatrix = new Matrix3f();
-        poseMatrix.translate(new Vector3f(-origin.getX(), -origin.getY(), -origin.getZ()));
-        poseMatrix.translate(ship.getRenderTransform().getShipToWorld().transformPosition(anchor.getX(), anchor.getY(), anchor.getZ(), new Vector3d()).get(new Vector3f()));
+
+        // Compute anchor's world position in double precision
+        Vector3d anchorWorld = ship.getRenderTransform()
+            .getShipToWorld()
+            .transformPosition(anchor.getX(), anchor.getY(), anchor.getZ(), new Vector3d());
+
+        // Subtract origin in double precision BEFORE narrowing to float
+        // This avoids cancellation of large nearly-equal floats
+        float dx = (float)(anchorWorld.x - origin.getX());
+        float dy = (float)(anchorWorld.y - origin.getY());
+        float dz = (float)(anchorWorld.z - origin.getZ());
+
+        // Now build the matrix from small residual values — no precision loss
+        poseMatrix.translate(dx, dy, dz);
         poseMatrix.rotate(ship.getRenderTransform().getShipToWorldRotation().get(new Quaternionf()));
         poseMatrix.scale(ship.getRenderTransform().getShipToWorldScaling().get(new Vector3f()));
         normalMatrix.set(poseMatrix);
