@@ -25,3 +25,4 @@ Bug fixes galore
 - Fixed CBC autocannons breaking on VS ships
 - Fixed a crash with Create: Hypertubes (sorry it took so long Rok!)
 - Fixed visual artifacts with the ship AABB when at large coordinates
+- Fixed visual artifacts with create flywheels when at large coordinates
