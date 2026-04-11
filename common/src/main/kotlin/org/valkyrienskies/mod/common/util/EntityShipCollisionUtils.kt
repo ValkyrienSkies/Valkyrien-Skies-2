@@ -17,6 +17,7 @@ import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.internal.collision.VsiConvexPolygonc
 import org.valkyrienskies.core.util.extend
 import org.valkyrienskies.core.util.toAABBd
+import org.valkyrienskies.core.api.ships.properties.ShipId
 import org.valkyrienskies.mod.common.allShips
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getLoadedShipManagingPos
@@ -24,9 +25,36 @@ import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.vsCore
 import org.valkyrienskies.mod.mixinducks.feature.tickets.PlayerKnownShipsDuck
 import org.valkyrienskies.mod.util.BugFixUtil
+import java.util.concurrent.ConcurrentHashMap
 import java.util.stream.Stream
 
 object EntityShipCollisionUtils {
+
+    /**
+     * Tracks recently-spawned ships by their ID and the tick they were created.
+     * Ships in this grace period are excluded from unloaded-ship collision checks
+     * to prevent freezing the player when a new ship is assembled nearby but its
+     * chunks haven't loaded yet.
+     */
+    private val recentlySpawnedShips = ConcurrentHashMap<ShipId, Long>()
+    private const val SPAWN_GRACE_PERIOD_TICKS = 100L // ~5 seconds
+
+    @JvmStatic
+    fun markShipAsRecentlySpawned(shipId: ShipId, currentTick: Long) {
+        recentlySpawnedShips[shipId] = currentTick
+    }
+
+    @JvmStatic
+    fun cleanupExpiredGracePeriods(currentTick: Long) {
+        recentlySpawnedShips.entries.removeIf { (_, spawnTick) ->
+            currentTick - spawnTick > SPAWN_GRACE_PERIOD_TICKS
+        }
+    }
+
+    @JvmStatic
+    fun isInSpawnGracePeriod(shipId: ShipId): Boolean {
+        return recentlySpawnedShips.containsKey(shipId)
+    }
     private const val PARTICLE_COLLISION_BOX_EXPANSION = 0.00390625 //1.0 / 256.0
 
     private val collider = vsCore.entityPolygonCollider
@@ -67,6 +95,15 @@ object EntityShipCollisionUtils {
             val aabb = entity.boundingBox.toJOML()
             return getAllShipsIntersectingEvenIfNotYetFullyLoaded(level, aabb)
                 .allMatch { ship ->
+                    // Skip collision check for recently-spawned ships whose chunks are still
+                    // loading. Without this, spawning a new ship near a player would freeze
+                    // them because isCollidingWithUnloadedShips returns true (the new ship's
+                    // chunks haven't loaded yet), which cancels all entity movement.
+                    // This must be checked BEFORE vs_isKnownShip, because the player won't
+                    // know about a brand-new ship yet either.
+                    if (isInSpawnGracePeriod(ship.id)) {
+                        return@allMatch true // pretend it's loaded → don't block movement
+                    }
                     if (entity is PlayerKnownShipsDuck && !entity.vs_isKnownShip(ship.id)) {
                         return@allMatch false
                     }

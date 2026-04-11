@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.common
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
+import net.minecraft.world.level.block.Blocks
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Position
 import net.minecraft.core.Vec3i
@@ -98,10 +99,20 @@ fun getResourceKey(dimensionId: DimensionId): ResourceKey<Level> {
 }
 
 fun MinecraftServer.executeIf(condition: () -> Boolean, toExecute: Runnable) {
+    val registeredAtTick = this.tickCount
     vsCore.tickEndEvent.on { ev, handler ->
-        if (ev.world == this.shipObjectWorld && condition()) {
-            toExecute.run()
-            handler.unregister()
+        if (ev.world == this.shipObjectWorld) {
+            if (condition()) {
+                toExecute.run()
+                handler.unregister()
+            } else if (this.tickCount - registeredAtTick > 600) {
+                // Safety timeout: if the condition hasn't been met after 600 ticks (30 seconds),
+                // execute anyway and unregister. This prevents executeIf callbacks from accumulating
+                // forever and potentially blocking server shutdown.
+                org.slf4j.LoggerFactory.getLogger("VS2").info(" executeIf timed out after 600 ticks — forcing execution")
+                toExecute.run()
+                handler.unregister()
+            }
         }
     }
 }
@@ -111,6 +122,26 @@ val Level.yRange get() = LevelYRange(minBuildHeight, maxBuildHeight - 1)
 fun Level.isTickingChunk(pos: ChunkPos) = isTickingChunk(pos.x, pos.z)
 fun Level.isTickingChunk(chunkX: Int, chunkZ: Int) =
     (chunkSource as ServerChunkCache).isPositionTicking(ChunkPos.asLong(chunkX, chunkZ))
+
+/**
+ * Check if a chunk is loaded enough for VS2 to use it.
+ *
+ * Ship chunks in the shipyard use radius=0 tickets (level 33 = FULL status), which means they
+ * won't pass [isPositionTicking] (requires level ≤ 32). Instead, we check if the chunk is at
+ * FULL status using [ServerChunkCache.getChunkNow], which returns non-null for any chunk that
+ * has reached FULL status or better.
+ *
+ * For world chunks (non-shipyard), we still use isPositionTicking since those use vanilla forced
+ * tickets at level 31 (entity ticking).
+ */
+fun Level.isChunkLoadedForVS(pos: ChunkPos): Boolean {
+    // For shipyard chunks, accept FULL status (level 33) — no need for ticking
+    if (VS2ChunkAllocator.isChunkInShipyardCompanion(pos.x, pos.z)) {
+        return (chunkSource as ServerChunkCache).getChunkNow(pos.x, pos.z) != null
+    }
+    // For world chunks, require ticking status
+    return isTickingChunk(pos)
+}
 
 fun MinecraftServer.getLevelFromDimensionId(dimensionId: DimensionId): ServerLevel? {
     return getLevel(getResourceKey(dimensionId))
@@ -467,10 +498,11 @@ fun Ship.toWorldCoordinates(x: Double, y: Double, z: Double, dest: Vector3d = Ve
 fun LevelChunkSection.toDenseVoxelUpdate(chunkPos: Vector3ic): VsiTerrainUpdate {
     val update = vsCore.newDenseTerrainUpdateBuilder(chunkPos.x(), chunkPos.y(), chunkPos.z())
     val info = BlockStateInfo.cache
+    val airType = vsCore.blockTypes.air
     for (x in 0..15) {
         for (y in 0..15) {
             for (z in 0..15) {
-                update.addBlock(x, y, z, info.get(getBlockState(x, y, z))?.second ?: vsCore.blockTypes.air)
+                update.addBlock(x, y, z, info.get(getBlockState(x, y, z))?.second ?: airType)
             }
         }
     }

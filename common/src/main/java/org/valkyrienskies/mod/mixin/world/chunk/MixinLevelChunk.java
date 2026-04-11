@@ -7,6 +7,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.level.FullChunkStatus;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
@@ -31,9 +32,11 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.BlockStateInfo;
+import org.valkyrienskies.mod.common.VS2ChunkAllocator;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VSLevelChunk;
 
@@ -52,6 +55,40 @@ public abstract class MixinLevelChunk extends ChunkAccess implements VSLevelChun
 
     @Unique
     private static final Set<Types> ALL_HEIGHT_MAP_TYPES = new HashSet<>(Arrays.asList((Heightmap.Types.values())));
+
+    /**
+     * Allow block entity ticking in shipyard chunks at FULL status (level 33).
+     *
+     * MC's isTicking checks getFullStatus().isOrAfter(BLOCK_TICKING), which requires
+     * level ≤ 32. Ship chunks use level 33 (FULL) to minimize neighbor loading.
+     * Without this, furnaces/hoppers/etc won't tick on ships.
+     *
+     * Note: On Forge 1.20.1 the ticking gate is shouldTickBlocksAt in MixinServerLevel,
+     * so this may not be invoked. Kept as a safety net for other code paths.
+     */
+    @Inject(method = "isTicking", at = @At("HEAD"), cancellable = true)
+    private void vs$allowShipyardBlockEntityTicking(BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
+        if (VS2ChunkAllocator.INSTANCE.isChunkInShipyardCompanion(
+                pos.getX() >> 4, pos.getZ() >> 4)) {
+            cir.setReturnValue(true);
+        }
+    }
+
+    /**
+     * Report shipyard chunks as BLOCK_TICKING status so that Level.markAndNotifyBlock()
+     * calls sendBlockUpdated(), which triggers ServerChunkCache.blockChanged() and
+     * ultimately ChunkHolder.broadcastChanges() to send block update packets to clients.
+     *
+     * Without this, ship chunks at level 33 (FULL status) fail the
+     * getFullStatus().isOrAfter(BLOCK_TICKING) check and block updates are silently dropped.
+     */
+    @Inject(method = "getFullStatus", at = @At("HEAD"), cancellable = true)
+    private void vs$upgradeShipyardChunkStatus(CallbackInfoReturnable<FullChunkStatus> cir) {
+        if (VS2ChunkAllocator.INSTANCE.isChunkInShipyardCompanion(
+                this.chunkPos.x, this.chunkPos.z)) {
+            cir.setReturnValue(FullChunkStatus.BLOCK_TICKING);
+        }
+    }
 
     // Dummy constructor
     public MixinLevelChunk(final Ship ship) {

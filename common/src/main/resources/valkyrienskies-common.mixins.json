@@ -7,6 +7,7 @@
     "accessors.entity.EntityAccessor",
     "accessors.network.protocol.game.ClientboundSectionBlocksUpdatePacketAccessor",
     "accessors.resource.ResourceKeyAccessor",
+    "accessors.server.level.ChunkHolderAccessor",
     "accessors.server.level.ChunkMapAccessor",
     "accessors.server.level.DistanceManagerAccessor",
     "accessors.server.level.ServerChunkCacheAccessor",
@@ -221,8 +222,11 @@
     "server.command.MixinCommands",
     "server.command.level.MixinServerPlayer",
     "server.network.MixinServerGamePacketListenerImpl",
+    "server.world.MixinChunkHolder",
     "server.world.MixinChunkMap",
     "server.world.MixinChunkMap$TrackedEntity",
+    "server.world.MixinChunkMapClose",
+    "server.world.MixinChunkMapShipyard",
     "server.world.MixinServerLevel",
     "world.chunk.MixinLevelChunk",
     "world.chunk.MixinServerChunkCache",
@@ -231,7 +235,11 @@
     "world.level.MixinBlockCollisions",
     "world.level.MixinLevel",
     "world.level.chunk.MixinChunkGenerator",
-    "world.level.levelgen.MixinChunkStatus"
+    "world.level.levelgen.MixinChunkStatus",
+    "world.level.lighting.LayerLightSectionStorageAccessor",
+    "world.level.lighting.LayerLightSectionStorageInvoker",
+    "world.level.lighting.LightEngineStorageAccessor",
+    "world.level.lighting.MixinThreadedLevelLightEngine"
   ],
   "client": [
     "accessors.client.multiplayer.ClientLevelAccessor",
@@ -325,7 +333,8 @@
     "mod_compat.vanilla_renderer.MixinLevelRendererVanilla",
     "mod_compat.vanilla_renderer.MixinViewAreaVanilla",
     "mod_compat.vanilla_renderer.RenderChunkInfoAccessor",
-    "realms.MixinRealmsConnect"
+    "realms.MixinRealmsConnect",
+    "world.level.lighting.MixinSkyLightSectionStorage"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -5,6 +5,7 @@ import static org.valkyrienskies.mod.common.ValkyrienSkiesMod.getVsCore;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -47,6 +48,7 @@ import org.valkyrienskies.core.api.util.AerodynamicUtils;
 import org.valkyrienskies.core.impl.config.VSCoreConfig;
 import org.valkyrienskies.core.internal.world.VsiServerShipWorld;
 import org.valkyrienskies.core.internal.world.chunks.VsiTerrainUpdate;
+import org.valkyrienskies.mod.common.VS2ChunkAllocator;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
@@ -74,6 +76,57 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
     @Shadow
     public abstract int sectionsToVillage(SectionPos arg);
 
+
+    /**
+     * Allow scheduled ticks and block entity ticking in shipyard chunks at FULL status (level 33).
+     *
+     * Forge's Level.tickBlockEntities() calls shouldTickBlocksAt(BlockPos) before ticking each
+     * block entity. Ship chunks use level 33 (FULL) tickets to minimize neighbor loading, but
+     * shouldTickBlocksAt requires level ≤ 32. Without this override, furnaces/hoppers/etc won't
+     * tick on ships.
+     */
+    @Inject(method = "shouldTickBlocksAt(J)Z", at = @At("HEAD"), cancellable = true)
+    private void vs$allowShipyardBlockTicking(long packedPos, CallbackInfoReturnable<Boolean> cir) {
+        // Try both BlockPos and ChunkPos decodings since Forge may use either format
+        int chunkX, chunkZ;
+        // First try BlockPos encoding (used by tickBlockEntities)
+        chunkX = BlockPos.getX(packedPos) >> 4;
+        chunkZ = BlockPos.getZ(packedPos) >> 4;
+        if (org.valkyrienskies.mod.common.VS2ChunkAllocator.INSTANCE.isChunkInShipyardCompanion(chunkX, chunkZ)) {
+            if (chunkSource.getChunkNow(chunkX, chunkZ) != null) {
+                cir.setReturnValue(true);
+                return;
+            }
+        }
+        // Also try ChunkPos encoding (used by LevelTicks for scheduled ticks)
+        chunkX = ChunkPos.getX(packedPos);
+        chunkZ = ChunkPos.getZ(packedPos);
+        if (org.valkyrienskies.mod.common.VS2ChunkAllocator.INSTANCE.isChunkInShipyardCompanion(chunkX, chunkZ)) {
+            if (chunkSource.getChunkNow(chunkX, chunkZ) != null) {
+                cir.setReturnValue(true);
+            }
+        }
+    }
+
+    /**
+     * Allow shipyard chunks to pass the LevelTicks tick-processing gate.
+     *
+     * LevelTicks uses isPositionTickingWithEntitiesLoaded as its tickCheck predicate.
+     * This method requires BOTH areEntitiesLoaded() AND isPositionTicking() to be true.
+     * Ship chunks may not have their entity sections loaded through the normal entity
+     * management pipeline, so areEntitiesLoaded() returns false, which prevents ALL
+     * scheduled ticks (repeaters, observers, torches, buttons) from being processed.
+     */
+    @Inject(method = "isPositionTickingWithEntitiesLoaded", at = @At("HEAD"), cancellable = true)
+    private void vs$allowShipyardPositionTicking(long packedPos, CallbackInfoReturnable<Boolean> cir) {
+        int chunkX = ChunkPos.getX(packedPos);
+        int chunkZ = ChunkPos.getZ(packedPos);
+        if (VS2ChunkAllocator.INSTANCE.isChunkInShipyardCompanion(chunkX, chunkZ)) {
+            if (chunkSource.getChunkNow(chunkX, chunkZ) != null) {
+                cir.setReturnValue(true);
+            }
+        }
+    }
 
     // Map from ChunkPos to the list of voxel chunks that chunk owns
     @Unique
@@ -177,6 +230,22 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
         // Remove the chunk pos from vs$chunksToUnload if its present
         vs$chunksToUnload.remove(worldChunk.getPos().toLong());
         if (!vs$knownChunks.containsKey(worldChunk.getPos())) {
+            // Ship chunks at level 33 (FULL) never reach BLOCK_TICKING status in vanilla,
+            // so two critical callbacks are missed:
+            // 1. registerTickContainerInLevel() — adds tick containers to LevelTicks
+            // 2. startTickingChunk() → unpackTicks() — moves saved ticks from pendingTicks
+            //    to the active tickQueue so they actually fire
+            // Without both, scheduled ticks (repeaters, torches, observers) freeze on reload.
+            if (worldChunk instanceof LevelChunk levelChunk) {
+                final int cx = worldChunk.getPos().x;
+                final int cz = worldChunk.getPos().z;
+                if (VS2ChunkAllocator.INSTANCE.isChunkInShipyardCompanion(cx, cz)) {
+                    final ServerLevel self = ServerLevel.class.cast(this);
+                    levelChunk.registerTickContainerInLevel(self);
+                    self.startTickingChunk(levelChunk);
+                }
+            }
+
             final List<Vector3ic> voxelChunkPositions = new ArrayList<>();
 
             final int chunkX = worldChunk.getPos().x;
@@ -251,10 +320,21 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
         for (final ChunkHolder chunkHolder : chunkMapAccessor.callGetChunks()) {
             // Only load chunks that haven't been loaded before, and have a ticket
             if (!vs$knownChunks.containsKey(chunkHolder.getPos()) && distanceManagerAccessor.getTickets().containsKey(chunkHolder.getPos().toLong())) {
-                final Optional<LevelChunk> worldChunkOptional =
+                Optional<LevelChunk> worldChunkOptional =
                     chunkHolder.getTickingChunkFuture().getNow(ChunkHolder.UNLOADED_LEVEL_CHUNK).left();
+                // Shipyard chunks use level 33 (FULL) tickets which don't reach ticking status,
+                // so tickingChunkFuture is never completed. For these chunks, get the chunk
+                // directly from the chunk cache instead of relying on futures.
+                if (worldChunkOptional.isEmpty()) {
+                    final ChunkPos cp = chunkHolder.getPos();
+                    if (VS2ChunkAllocator.INSTANCE.isChunkInShipyardCompanion(cp.x, cp.z)) {
+                        final LevelChunk cachedChunk = chunkSource.getChunkNow(cp.x, cp.z);
+                        if (cachedChunk != null) {
+                            worldChunkOptional = Optional.of(cachedChunk);
+                        }
+                    }
+                }
                 if (worldChunkOptional.isPresent()) {
-                    // Only load chunks that have a ticket
                     final LevelChunk worldChunk = worldChunkOptional.get();
                     vs$loadChunk(worldChunk, voxelShapeUpdates);
                 }
@@ -301,5 +381,19 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
     public void removeChunk(final int chunkX, final int chunkZ) {
         final ChunkPos chunkPos = new ChunkPos(chunkX, chunkZ);
         vs$knownChunks.remove(chunkPos);
+    }
+
+    @Unique
+    private final LongOpenHashSet vs$pendingForcedChunks = new LongOpenHashSet();
+
+    @Override
+    public void addPendingForcedChunk(final int chunkX, final int chunkZ) {
+        vs$pendingForcedChunks.add(ChunkPos.asLong(chunkX, chunkZ));
+    }
+
+    @NotNull
+    @Override
+    public LongOpenHashSet getPendingForcedChunks() {
+        return vs$pendingForcedChunks;
     }
 }

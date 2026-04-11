@@ -63,7 +63,7 @@ public abstract class MixinNuclearExplosion {
             double x = nuke.getX();
             double y = nuke.getY();
             double z = nuke.getZ();
-            
+
             // Reflection: call getSize() via method on the entity
             var getSizeMethod = nuke.getClass().getDeclaredMethod("getSize");
             getSizeMethod.setAccessible(true);

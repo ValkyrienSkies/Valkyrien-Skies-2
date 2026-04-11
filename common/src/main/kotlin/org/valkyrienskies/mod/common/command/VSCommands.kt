@@ -24,6 +24,7 @@ import org.valkyrienskies.mod.common.command.commands.RemassCommand
 import org.valkyrienskies.mod.common.command.commands.RenameCommand
 import org.valkyrienskies.mod.common.command.commands.ScaleCommand
 import org.valkyrienskies.mod.common.command.commands.SplittingCommand
+import org.valkyrienskies.mod.common.command.commands.SpawnShipCubeCommand
 import org.valkyrienskies.mod.common.command.commands.StaticCommand
 import org.valkyrienskies.mod.common.command.commands.TeleportCommand
 import org.valkyrienskies.mod.common.shipObjectWorld
@@ -47,6 +48,7 @@ object VSCommands {
         RenameCommand.register(vs)
         ScaleCommand.register(vs)
         SplittingCommand.register(vs)
+        SpawnShipCubeCommand.register(vs)
         StaticCommand.register(vs)
         TeleportCommand.register(vs)
 

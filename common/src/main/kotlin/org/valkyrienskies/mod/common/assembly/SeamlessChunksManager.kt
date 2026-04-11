@@ -42,6 +42,8 @@ class SeamlessChunksManager(private val listener: ClientPacketListener) {
     private val shipQueuedUpdates = ConcurrentHashMap<ChunkClaim, ConcurrentLinkedQueue<Packet<*>>>()
     private val queuedUpdates = ConcurrentHashMap<ChunkPos, ConcurrentLinkedQueue<Packet<*>>>()
     private val stalledChunks = LongOpenHashSet()
+    // Guard flag to prevent re-entrant throttling when drainDeferredBatch dispatches packets
+    private var dispatching = false
 
     init {
         with(vsCore.simplePacketNetworking) {
@@ -64,7 +66,7 @@ class SeamlessChunksManager(private val listener: ClientPacketListener) {
         val packets = shipQueuedUpdates.remove(ship.chunkClaim)
         if (!packets.isNullOrEmpty()) {
             logger.debug("Executing ${packets.size} deferred updates for ship ID=${ship.id} at ${ship.chunkClaim}")
-            dispatchQueuedPackets(packets)
+            packets.pollUntilEmpty { deferredDispatch.add(it) }
         }
         val player = Minecraft.getInstance().player
         if (player is PlayerKnownShipsDuck) {
@@ -81,19 +83,50 @@ class SeamlessChunksManager(private val listener: ClientPacketListener) {
             val packets = queuedUpdates.remove(pos)
             if (!packets.isNullOrEmpty()) {
                 logger.debug("Executing ${packets.size} deferred updates at <${pos.x}, ${pos.z}>")
-                dispatchQueuedPackets(packets)
+                packets.pollUntilEmpty { deferredDispatch.add(it) }
             }
         }
     }
 
-    private fun dispatchQueuedPackets(queue: Queue<Packet<*>>) {
-        queue.pollUntilEmpty { packet ->
-            when (packet) {
-                is ClientboundBlockUpdatePacket -> listener.handleBlockUpdate(packet)
-                is ClientboundSectionBlocksUpdatePacket -> listener.handleChunkBlocksUpdate(packet)
-                is ClientboundLevelChunkWithLightPacket -> listener.handleLevelChunkWithLight(packet)
-                else -> throw IllegalStateException("Didn't know how to dispatch packet: ${packet::class}")
+    // Time budget per frame for processing deferred chunk packets (in milliseconds).
+    // Adapts automatically to frame rate: at 60fps we get ~16ms/frame so 5ms is ~30%;
+    // at 30fps we get ~33ms/frame so 5ms is ~15%. This replaces the old fixed count
+    // of 5 chunks/frame which was too slow for worlds with 1000+ ships.
+    private val CHUNK_BUDGET_MS = 5L
+
+    // Queue of packets waiting to be dispatched, processed in batches each frame
+    private val deferredDispatch = ConcurrentLinkedQueue<Packet<*>>()
+
+    /**
+     * Called once per render frame from setupRender to process deferred chunk packets.
+     * This is the ONLY place that drains the deferred queue, ensuring exactly one
+     * batch per frame regardless of how many packets arrive.
+     *
+     * Uses a time budget instead of a fixed count so throughput scales with how
+     * fast the client can actually process chunks (affected by render chunk pooling,
+     * light engine optimizations, etc.).
+     */
+    fun drainDeferredBatch() {
+        if (deferredDispatch.isEmpty()) return
+        dispatching = true
+        val deadline = System.nanoTime() + CHUNK_BUDGET_MS * 1_000_000
+        try {
+            while (deferredDispatch.isNotEmpty()) {
+                val packet = deferredDispatch.peek() ?: break
+                // Check time budget before processing expensive chunk packets
+                if (packet is ClientboundLevelChunkWithLightPacket && System.nanoTime() >= deadline) {
+                    return
+                }
+                deferredDispatch.poll()
+                when (packet) {
+                    is ClientboundBlockUpdatePacket -> listener.handleBlockUpdate(packet)
+                    is ClientboundSectionBlocksUpdatePacket -> listener.handleChunkBlocksUpdate(packet)
+                    is ClientboundLevelChunkWithLightPacket -> listener.handleLevelChunkWithLight(packet)
+                    else -> throw IllegalStateException("Didn't know how to dispatch packet: ${packet::class}")
+                }
             }
+        } finally {
+            dispatching = false
         }
     }
 
@@ -101,6 +134,7 @@ class SeamlessChunksManager(private val listener: ClientPacketListener) {
         stalledChunks.clear()
         queuedUpdates.clear()
         shipQueuedUpdates.clear()
+        deferredDispatch.clear()
     }
 
     /**
@@ -132,6 +166,19 @@ class SeamlessChunksManager(private val listener: ClientPacketListener) {
                 .computeIfAbsent(ChunkPos(chunkX, chunkZ)) { ConcurrentLinkedQueue() }
                 .add(packet)
 
+            return true
+        }
+
+        // Throttle shipyard chunk packets even when the ship is already loaded.
+        // Without this, spawning 100 ships sends ~500 chunk packets that are all processed
+        // in a single frame (each running toDenseVoxelUpdate with 4096 block lookups),
+        // causing a massive client-side lag spike.
+        // Skip this check when we're dispatching from the deferred queue (re-entrant call).
+        if (!dispatching &&
+            packet is ClientboundLevelChunkWithLightPacket &&
+            level.isChunkInShipyard(chunkX, chunkZ)
+        ) {
+            deferredDispatch.add(packet)
             return true
         }
 

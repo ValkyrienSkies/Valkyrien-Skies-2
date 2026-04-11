@@ -30,7 +30,22 @@ public class MixinGui {
      */
     @Inject(method = "renderEffects", at = @At("HEAD"))
     private void preRenderStatusEffectOverlay(final GuiGraphics guiGraphics, final CallbackInfo ci) {
-        if (!VSGameConfig.CLIENT.getRenderDebugText()) {
+        // Read the config value from Forge's config system directly, not from the
+        // VSGameConfig.CLIENT field. The field can be stale if the config update event
+        // hasn't fired yet (e.g. on first load), causing the debug text to not show
+        // even though the config file says renderDebugText=true. Reading from the Forge
+        // ConfigValue always returns the current value.
+        final var forgeConfigValues = org.valkyrienskies.mod.common.config.VSConfigUpdater.getForgeConfigValuesMap();
+        final var renderDebugValue = forgeConfigValues.get("renderDebugText");
+        final boolean shouldRender;
+        if (renderDebugValue != null) {
+            shouldRender = Boolean.TRUE.equals(renderDebugValue.get());
+        } else {
+            // Fallback to the field if the Forge config value isn't registered yet
+            shouldRender = VSGameConfig.CLIENT.getRenderDebugText();
+        }
+
+        if (!shouldRender) {
             return;
         }
 

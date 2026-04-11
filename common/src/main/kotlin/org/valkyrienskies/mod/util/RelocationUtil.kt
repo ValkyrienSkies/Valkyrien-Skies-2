@@ -105,7 +105,7 @@ fun updateBlock(level: Level, fromPos: BlockPos, toPos: BlockPos, toState: Block
     if (!level.isClientSide && toState.hasAnalogOutputSignal()) {
         level.updateNeighbourForOutputSignal(toPos, toState.block)
     }
-    //This updates lighting for blocks in shipspace
+    // Update lighting for blocks in shipspace
     level.chunkSource.lightEngine.checkBlock(toPos)
 }
 
