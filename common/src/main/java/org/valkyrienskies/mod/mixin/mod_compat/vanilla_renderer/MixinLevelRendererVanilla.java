@@ -231,13 +231,14 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererDuck, Le
         }
     }
 
-    @WrapOperation(
-        method = "*",
-        at = @At(value = "INVOKE", target = "Lnet/minecraft/core/BlockPos;distSqr(Lnet/minecraft/core/Vec3i;)D")
-    )
-    private double distToShips(BlockPos from, Vec3i to, Operation<Double> distSqr){
-        return VSGameUtilsKt.squaredDistanceBetweenInclShips(level, from.getCenter(), Vec3.atCenterOf(to), distSqr);
-    }
+    // If ships stop rendering try uncommenting this line.
+//    @WrapOperation(
+//        method = "*",
+//        at = @At(value = "INVOKE", target = "Lnet/minecraft/core/BlockPos;distSqr(Lnet/minecraft/core/Vec3i;)D")
+//    )
+//    private double distToShips(BlockPos from, Vec3i to, Operation<Double> distSqr){
+//        return VSGameUtilsKt.squaredDistanceBetweenInclShips(level, from.getCenter(), Vec3.atCenterOf(to), distSqr);
+//    }
 
     @Inject(
         method = "*",
