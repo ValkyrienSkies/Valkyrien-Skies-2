@@ -88,7 +88,7 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
         final Consumer<BlockEntityTagOutput> consumer,
         final CallbackInfoReturnable<LevelChunk> cir
     ) {
-        if (!VSGameUtilsKt.isChunkInShipyard(level, x, z)) {
+        if (!VS2ChunkAllocator.INSTANCE.isChunkInShipyardCompanion(x, z)) {
             return;
         }
         // When real data arrives from server, remove the empty placeholder from VS cache
@@ -103,7 +103,7 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
         boolean shouldForce = false;
         if (oldChunk != null) {
             worldChunk = oldChunk;
-            oldChunk.replaceWithPacketData(buf, tag, consumer);
+            worldChunk.replaceWithPacketData(buf, tag, consumer);
             shouldForce = true;
         } else {
             worldChunk = new LevelChunk(this.level, pos);
@@ -115,45 +115,34 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
         boolean shouldDefer = !isSortedRegistryInitialized();
         if (shouldDefer) {
             ClientConnectivityUpdateQueue.queueChunkForInitialization(pos, shouldForce);
-        }
-
-        VsiClientShipWorld clientShipWorld = VSGameUtilsKt.getShipObjectWorld(level);
-        if (clientShipWorld != null && VSGameConfig.CLIENT.getConnectivity().getEnableClientConnectivity() && !shouldDefer) {
-            ArrayList<VsiTerrainUpdate> voxelShapeUpdates = new ArrayList<>();
-
-
-            final LevelChunkSection[] chunkSections = worldChunk.getSections();
-
-            for (int sectionY = 0; sectionY < chunkSections.length; sectionY++) {
-                final LevelChunkSection chunkSection = chunkSections[sectionY];
-                final Vector3ic chunkPos =
-                    new Vector3i(pos.x, worldChunk.getSectionYFromSectionIndex(sectionY), pos.z);
-
-                if (chunkSection != null && !chunkSection.hasOnlyAir()) {
-                    // Add this chunk to the ground rigid body
-                    final VsiTerrainUpdate voxelShapeUpdate =
-                        VSGameUtilsKt.toDenseVoxelUpdate(chunkSection, chunkPos);
-                    voxelShapeUpdates.add(voxelShapeUpdate);
-                } else {
-                    final VsiTerrainUpdate emptyVoxelShapeUpdate = getVsCore()
-                        .newEmptyVoxelShapeUpdate(chunkPos.x(), chunkPos.y(), chunkPos.z(), true);
-                    voxelShapeUpdates.add(emptyVoxelShapeUpdate);
-                }
-            }
-            if (!shouldForce) {
-                clientShipWorld.addTerrainUpdates(getApi().getDimensionId(level), voxelShapeUpdates);
-            } else {
-                for (VsiTerrainUpdate update : voxelShapeUpdates) {
-                    clientShipWorld.forceUpdateConnectivityChunk(
-                        getApi().getDimensionId(level),
-                        update.getChunkX(),
-                        update.getChunkY(),
-                        update.getChunkZ(),
-                        update
+        } else {
+            final VsiClientShipWorld clientShipWorld = VSGameUtilsKt.getShipObjectWorld(level);
+            if (clientShipWorld != null && VSGameConfig.CLIENT.getConnectivity().getEnableClientConnectivity()) {
+                final LevelChunkSection[] chunkSections = worldChunk.getSections();
+                final ArrayList<VsiTerrainUpdate> voxelShapeUpdates = new ArrayList<>(chunkSections.length);
+                for (int i = 0; i < chunkSections.length; i++) {
+                    final LevelChunkSection chunkSection = chunkSections[i];
+                    final int sectionY = worldChunk.getSectionYFromSectionIndex(i);
+                    voxelShapeUpdates.add(
+                        chunkSection != null && !chunkSection.hasOnlyAir()
+                            ? VSGameUtilsKt.toDenseVoxelUpdate(chunkSection, new Vector3i(pos.x, sectionY, pos.z))
+                            : getVsCore().newEmptyVoxelShapeUpdate(pos.x, sectionY, pos.z, true)
                     );
                 }
+                if (shouldForce) {
+                    for (VsiTerrainUpdate update : voxelShapeUpdates) {
+                        clientShipWorld.forceUpdateConnectivityChunk(
+                            getApi().getDimensionId(level),
+                            update.getChunkX(),
+                            update.getChunkY(),
+                            update.getChunkZ(),
+                            update
+                        );
+                    }
+                } else {
+                    clientShipWorld.addTerrainUpdates(getApi().getDimensionId(level), voxelShapeUpdates);
+                }
             }
-
         }
 
         // Force MC's light engine to recompute lighting for this ship chunk.
@@ -224,15 +213,9 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
         }
         VsiClientShipWorld clientShipWorld = VSGameUtilsKt.getShipObjectWorld(level);
         if (clientShipWorld != null && VSGameConfig.CLIENT.getConnectivity().getEnableClientConnectivity()) {
-            ArrayList<VsiTerrainUpdate> voxelShapeUpdates = new ArrayList<>();
-            final LevelChunkSection[] chunkSections = worldChunk.getSections();
-
-            for (int sectionY = 0; sectionY < chunkSections.length; sectionY++) {
-                final LevelChunkSection chunkSection = chunkSections[sectionY];
-                final Vector3ic chunkPos =
-                    new Vector3i(chunkX, worldChunk.getSectionYFromSectionIndex(sectionY), chunkZ);
-
-                voxelShapeUpdates.add(getVsCore().newDeleteTerrainUpdate(chunkPos.x(), chunkPos.y(), chunkPos.z()));
+            ArrayList<VsiTerrainUpdate> voxelShapeUpdates = new ArrayList<>(chunk.getSectionsCount());
+            for (int sectionY = chunk.getMinSection(); sectionY < chunk.getMaxSection(); sectionY++) {
+                voxelShapeUpdates.add(getVsCore().newDeleteTerrainUpdate(chunkX, sectionY, chunkZ));
             }
             clientShipWorld.addTerrainUpdates(getApi().getDimensionId(level), voxelShapeUpdates);
         }
