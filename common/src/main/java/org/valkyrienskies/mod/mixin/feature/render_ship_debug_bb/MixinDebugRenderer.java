@@ -21,6 +21,7 @@ import net.minecraft.world.phys.Vec3;
 import org.joml.Intersectiond;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
+import org.joml.Quaternionf;
 import org.joml.Vector2d;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
@@ -34,7 +35,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.core.internal.world.VsiClientShipWorld;
-import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.DragInfoReporter;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
@@ -58,9 +58,6 @@ public class MixinDebugRenderer {
 
         if (Minecraft.getInstance().getEntityRenderDispatcher().shouldRenderHitBoxes()) {
             // Further on coordinates will be relative to (0, 0, 0).
-            matrices.pushPose();
-            matrices.translate(-cameraX, -cameraY, -cameraZ);
-
             // This raycast is used to determine if player's line of sight to a ship is obstructed.
             // [Entity#pick] produces false results for blocks like tall grass, hence we do a verbose raycast
             // with a different ClipContext.Block.
@@ -82,10 +79,12 @@ public class MixinDebugRenderer {
 
             for (final ClientShip shipObjectClient : shipObjectClientWorld.getLoadedShips()) {
                 final ShipTransform shipRenderTransform = shipObjectClient.getRenderTransform();
-                final Vector3dc shipRenderPosition = shipRenderTransform.getPosition();
+                final Vector3d shipRenderPosition = shipObjectClient.getRenderAABB().center(new Vector3d());
+                final Quaternionf shipRenderRotate = shipRenderTransform.getRotation().get(new Quaternionf());
+                // First, move to the location of the ship.
+                matrices.pushPose();
+                matrices.translate(-cameraX + shipRenderPosition.x(), -cameraY + shipRenderPosition.y(), -cameraZ + shipRenderPosition.z());
 
-                // For visibility, gizmos and everything should not be obstructed by terrain and ship blocks.
-                // This "x-ray" behavior is limited to reduce visual clutter and prevent seeing ships through walls.
                 boolean xrayEligible =
                     // Allow for spectators and creative builders.
                     Minecraft.getInstance().player.isSpectator() || Minecraft.getInstance().player.isCreative()
@@ -104,20 +103,27 @@ public class MixinDebugRenderer {
                     ;
 
                 final AABBic shipAABB = shipObjectClient.getShipAABB();
-                final AABB renderAABB = VectorConversionsMCKt.toMinecraft(shipObjectClient.getRenderAABB());
+                AABB renderAABB = VectorConversionsMCKt.toMinecraft(shipObjectClient.getRenderAABB());
+                renderAABB = new AABB(
+                    renderAABB.maxX - shipRenderPosition.x(), renderAABB.maxY - shipRenderPosition.y(), renderAABB.maxZ - shipRenderPosition.z(),
+                    renderAABB.minX - shipRenderPosition.x(), renderAABB.minY - shipRenderPosition.y(), renderAABB.minZ - shipRenderPosition.z()
+                );
 
                 if (shipAABB == null) {
                     // Ship with no blocks, something is wrong. Rendering a small marker in its position.
                     LevelRenderer
-                        .renderLineBox(matrices, bufferSource.getBuffer(xrayEligible ? XRAY_LINES : RenderType.LINES),
-                            renderAABB.inflate(0.25),
-                            1.0F, 0.0F, 0.0F, 1.0F);
+                        .renderLineBox(matrices, bufferSource.getBuffer(xrayEligible ? XRAY_LINES : RenderType.LINES), renderAABB, 1.0F, 0.0F, 0.0F, 1.0F);
                     continue;
                 }
 
-                final Vector3dc centerOfShip = shipAABB.center(new Vector3d());
+                // Bounding Box
+                LevelRenderer
+                    .renderLineBox(matrices, bufferSource.getBuffer(RenderType.LINES), renderAABB, 234.0F / 255.0F, 0.0F, 217.0f / 255.0f, 1.0F);
 
-                // Offset the AABB by -[centerOfShip] to fix floating point errors.
+                // The following all rotate along with the ship.
+                matrices.mulPose(shipRenderRotate);
+                // Ship Block Bounding Box
+                final Vector3dc centerOfShip = shipAABB.center(new Vector3d());
                 final AABB shipVoxelAABBAfterOffset =
                     new AABB(
                         shipAABB.minX() - centerOfShip.x(),
@@ -127,30 +133,15 @@ public class MixinDebugRenderer {
                         shipAABB.maxY() - centerOfShip.y(),
                         shipAABB.maxZ() - centerOfShip.z()
                     );
-
-                // Now rendering for shipyard coordinates.
-                matrices.pushPose();
-                // Offset the transform of the AABB by [centerOfShip] to account for [shipVoxelAABBAfterOffset]
-                // being offset by -[centerOfShip].
-                VSClientGameUtils.transformRenderWithShip(
-                    shipRenderTransform, matrices,
-                    centerOfShip.x(), centerOfShip.y(), centerOfShip.z(),
-                    0, 0, 0);
-
-                // Draw voxel AABB (extent of the ship in ship coordinates)
                 LevelRenderer.renderLineBox(
                     matrices, bufferSource.getBuffer(RenderType.LINES),
                     shipVoxelAABBAfterOffset,
                     0.5F, 0.0F, 0.0F, 1.0F);
 
-                // Center of mass (0, 0, 0 in model) relative to the voxel AABB
-                Vector3d centerOfMass = shipRenderTransform.getPositionInModel().sub(centerOfShip, new Vector3d());
-
                 // Render center of mass as a small cube
+                Vector3d centerOfMass = shipRenderTransform.getPositionInModel().sub(centerOfShip, new Vector3d());
                 final double comBoxSize = .25;
-                final AABB comBox = AABB.ofSize(
-                    VectorConversionsMCKt.toMinecraft(centerOfMass), comBoxSize, comBoxSize, comBoxSize
-                );
+                final AABB comBox = AABB.ofSize(VectorConversionsMCKt.toMinecraft(centerOfMass), comBoxSize, comBoxSize, comBoxSize);
                 LevelRenderer.renderLineBox(
                     matrices, bufferSource.getBuffer(xrayEligible ? XRAY_LINES : RenderType.LINES),
                     comBox,
@@ -164,15 +155,6 @@ public class MixinDebugRenderer {
                         centerOfMass.x, centerOfMass.y, centerOfMass.z, 1.0F, .125F
                     );
                 }
-                // Back to rendering in world coordinates.
-                matrices.popPose();
-
-                // Draw render AABB (extent of the ship in world coordinates)
-                LevelRenderer
-                    .renderLineBox(matrices, bufferSource.getBuffer(RenderType.LINES),
-                        renderAABB,
-                        234.0F / 255.0F, 0.0F, 217.0f / 255.0f, 1.0F);
-
                 // Render the ship's drag and lift forces as lines
                 final Vector3dc dragForce = DragInfoReporter.INSTANCE.getShipDragValues().get(shipObjectClient.getId());
                 final Vector3dc liftForce = DragInfoReporter.INSTANCE.getShipLiftValues().get(shipObjectClient.getId());
@@ -184,8 +166,9 @@ public class MixinDebugRenderer {
                     vs_renderForce(matrices, bufferSource.getBuffer(RenderType.LINES), shipRenderPosition, liftForce,
                     0.01, 10.0, 0.0F, 1.0F, 0.5F, 1.0F);
                 }
+
+                matrices.popPose();
             }
-            matrices.popPose();
         }
         bufferSource.endBatch();
     }

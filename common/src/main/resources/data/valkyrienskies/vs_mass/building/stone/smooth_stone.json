@@ -1,0 +1,12 @@
+[
+  {
+    "block": "minecraft:smooth_stone",
+    "mass": 2500.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:smooth_stone_slab",
+    "mass": 1250.0,
+    "friction": 0.4
+  }
+]

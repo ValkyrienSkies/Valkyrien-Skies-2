@@ -12,14 +12,20 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
+import org.joml.Vector3d
+import org.joml.Vector3dc
 import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.api.ships.Wing
-import org.valkyrienskies.core.api.ships.WingManager
+import org.valkyrienskies.core.api.world.connectivity.ConnectionStatus
+import org.valkyrienskies.core.api.world.connectivity.SparseVoxelPosition
 import org.valkyrienskies.core.internal.world.chunks.VsiBlockType
 import org.valkyrienskies.mod.common.block.WingBlock
+import org.valkyrienskies.mod.common.config.ConfigType
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
+import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.hooks.VSGameEvents
+import org.valkyrienskies.mod.common.util.BuoyancyHandlerAttachment
 import java.util.function.IntFunction
 
 // Other mods can then provide weights and types based on their added content
@@ -45,14 +51,27 @@ object BlockStateInfo {
 
     private lateinit var SORTED_REGISTRY: List<BlockStateInfoProvider>
 
+    @JvmStatic
+    fun isSortedRegistryInitialized(): Boolean = ::SORTED_REGISTRY.isInitialized
+
     // init { doesn't work since the class gets loaded too late
     fun init() {
         Registry.register(REGISTRY, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "data"), MassDatapackResolver)
         Registry.register(
             REGISTRY, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "default"), DefaultBlockStateInfoProvider
         )
-
+        SORTED_REGISTRY = REGISTRY.sortedByDescending { it.priority } // why is this even tied to an event dawg
         VSGameEvents.registriesCompleted.on { _, _ -> SORTED_REGISTRY = REGISTRY.sortedByDescending { it.priority } }
+
+        VSGameEvents.configUpdated.on { entries ->
+            val defaultMassChanged = entries.any {
+                it.configType == ConfigType.SERVER && it.name == "defaultBlockMass"
+            }
+
+            if (defaultMassChanged) {
+                invalidateCache()
+            }
+        }
     }
 
     // This is [ThreadLocal] because in single-player games the Client thread and Server thread will read/write to
@@ -74,8 +93,12 @@ object BlockStateInfo {
         }
     }
 
-    private val _cache = ThreadLocal.withInitial { Cache() }
+    private var _cache = ThreadLocal.withInitial { Cache() }
     val cache: Cache get() = _cache.get()
+
+    private fun invalidateCache() {
+        _cache = ThreadLocal.withInitial { Cache() }
+    }
 
     // NOTE: this caching can get allot better, ex. default just returns constants so it might be more faster
     //  if we store that these values do not need to be cached by double and blocktype but just that they use default impl
@@ -137,9 +160,69 @@ object BlockStateInfo {
             newBlockMass
         )
 
-        if (ValkyrienSkiesMod.vsCore.hooks.enableConnectivity) {
-            ValkyrienSkiesMod.splitHandler.split(level, x, y, z, newBlockState)
+        fun Set<SparseVoxelPosition>.centerFromVoxelSet() : Vector3dc {
+            val center = Vector3d(0.0, 0.0, 0.0)
+            if (this.isEmpty()) {
+                return center
+            }
+            for (voxel in this) {
+                center.add(
+                    voxel.x.toDouble() + ((voxel.extent - 1L).toDouble() / 2.0) + 0.5,
+                    voxel.y.toDouble() + ((voxel.extent - 1L).toDouble() / 2.0) + 0.5,
+                    voxel.z.toDouble() + ((voxel.extent - 1L).toDouble() / 2.0) + 0.5
+                )
+            }
+            center.div(this.size.toDouble())
+            return center
         }
+
+        if (level is ServerLevel) {
+            val loadedShip = level.getLoadedShipManagingPos(x shr 4, z shr 4)
+            if (loadedShip != null) {
+                if (VSGameConfig.SERVER.enablePocketBuoyancy) {
+                    val buoyancyHandler = loadedShip.getAttachment(BuoyancyHandlerAttachment::class.java)
+                    val dimension = loadedShip.chunkClaimDimension
+                    val allComponentsInClaim = level.shipObjectWorld.getAllAirComponentsFromClaim(dimension, loadedShip.chunkClaim)
+                    var newTotal = 0.0
+                    var centerSum = Vector3d(0.0, 0.0, 0.0)
+                    if (allComponentsInClaim.isNotEmpty()) {
+                        for (component in allComponentsInClaim) {
+                            if (level.shipObjectWorld.isIsolatedAir(
+                                    component.x(), component.y(), component.z(), dimension
+                                ) != ConnectionStatus.DISCONNECTED
+                            ) continue
+                            val componentSize = level.shipObjectWorld.getAirComponentSize(
+                                component.x(), component.y(), component.z(), dimension
+                            )
+                            val componentVoxels = level.shipObjectWorld.indexAirComponentVoxels(
+                                component.x(), component.y(), component.z(), dimension
+                            )
+                            val componentCenter = componentVoxels.centerFromVoxelSet()
+
+                            newTotal += componentSize
+                            centerSum.add(
+                                componentCenter.x() * componentSize,
+                                componentCenter.y() * componentSize,
+                                componentCenter.z() * componentSize
+                            )
+                        }
+                    }
+                    if (newTotal > 0.0) {
+                        centerSum.div(newTotal)
+                    } else {
+                        centerSum.set(0.0, 0.0, 0.0)
+                    }
+                    buoyancyHandler?.buoyancyData?.pocketVolumeTotal = newTotal.toDouble()
+                    if (loadedShip.shipAABB?.containsPoint(centerSum.x().toFloat(), centerSum.y().toFloat(), centerSum.z().toFloat()) != false) buoyancyHandler?.buoyancyData?.pocketCenterAverage = centerSum
+                    //println("is center sum contained within ship aabb?: ${loadedShip.shipAABB?.containsPoint(centerSum.x().toFloat(), centerSum.y().toFloat(), centerSum.z().toFloat())}")
+                }
+            }
+            if (ValkyrienSkiesMod.vsCore.hooks.enableConnectivity) {
+                ValkyrienSkiesMod.splitHandler.queueSplit(level, level.getShipManagingPos(x.toDouble(), y.toDouble(), z.toDouble())?.id)
+            }
+        }
+
+
     }
 
     /**

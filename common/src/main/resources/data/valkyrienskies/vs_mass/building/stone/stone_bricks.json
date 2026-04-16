@@ -1,0 +1,52 @@
+[
+  {
+    "block": "minecraft:stone_bricks",
+    "mass": 2500.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:cracked_stone_bricks",
+    "mass": 2500.0,
+    "friction": 0.7
+  },
+  {
+    "block": "minecraft:stone_brick_stairs",
+    "mass": 1875.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:stone_brick_slab",
+    "mass": 1250.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:stone_brick_wall",
+    "mass": 1250.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:chiseled_stone_bricks",
+    "mass": 2500.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:mossy_stone_bricks",
+    "mass": 2500.0,
+    "friction": 0.3
+  },
+  {
+    "block": "minecraft:mossy_stone_brick_stairs",
+    "mass": 1875.0,
+    "friction": 0.3
+  },
+  {
+    "block": "minecraft:mossy_stone_brick_slab",
+    "mass": 1250.0,
+    "friction": 0.3
+  },
+  {
+    "block": "minecraft:mossy_stone_brick_wall",
+    "mass": 1250.0,
+    "friction": 0.3
+  }
+]

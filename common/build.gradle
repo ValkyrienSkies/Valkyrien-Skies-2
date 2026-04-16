@@ -7,9 +7,12 @@ dependencies {
     // Do NOT use other classes from fabric loader
     modImplementation "net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}"
 
-    modApi("me.shedaniel.cloth:cloth-config:${cloth_config_version}")
+    modCompileOnly "fuzs.forgeconfigapiport:forgeconfigapiport-common:${rootProject.fcap_version}"
 
     modCompileOnly("maven.modrinth:sodium:${sodium_version}")
+
+    // Alex Caves
+    modCompileOnly("maven.modrinth:alexs-caves:$alexscaves_version")
 
     // vs-core
     runtimeOnly("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
@@ -36,6 +39,21 @@ dependencies {
 
     // Dynmap
     modCompileOnly("maven.modrinth:dynmap:${dynmap_version}")
+
+    // Hexcasting
+    modCompileOnly("at.petra-k.hexcasting:hexcasting-common-$minecraft_version:$hexcasting_version")
+
+    // HexTweaks
+    modCompileOnly("maven.modrinth:hextweaks:$hextweaks_version")
+
+    // Ephemera
+    modCompileOnly("maven.modrinth:ephemera:$ephemera_version")
+
+    // Hexal
+    modCompileOnly("ram.talia.hexal:hexal-fabric-$minecraft_version:$hexal_version") { transitive = false }
+
+    // Supplementaries (Moonlight Lib)
+    modImplementation("maven.modrinth:moonlight:$moonlight_version")
 
     // Common create compat,
     // We just use a version from a platform and hope the classes exist on both versions and mixins apply correctly
@@ -67,9 +85,9 @@ dependencies {
     modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:imm_ptl_core:${immptl_version}")
     modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:q_misc_util:${immptl_version}")
     modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:build:${immptl_version}")
-    modCompileOnly("com.rbasamoyai:createbigcannons:${createbigcannons_version}+mc.${minecraft_version}-fabric") { transitive = false }
-    modCompileOnly("com.rbasamoyai:createbigcannons:${createbigcannons_version}+mc.${minecraft_version}-forge") { transitive = false }
-    modCompileOnly("com.rbasamoyai:ritchiesprojectilelib:2.1.0+mc.${minecraft_version}-forge")
+    modCompileOnly("com.rbasamoyai:createbigcannons:${createbigcannons_version}+mc.${minecraft_version}-fabric${createbigcannons_build}") { transitive = false }
+    modCompileOnly("com.rbasamoyai:createbigcannons:${createbigcannons_version}+mc.${minecraft_version}-forge${createbigcannons_build}") { transitive = false }
+    modCompileOnly("com.rbasamoyai:ritchiesprojectilelib:${rpl_version}+mc.${minecraft_version}-forge")
 }
 
 architectury {
@@ -84,6 +102,10 @@ jar {
     // Exclude dummy Optifine classes
     exclude "net/optifine/**"
 }
+
+compileKotlin { doLast {
+    file(compileKotlin.destinationDirectory.get().toString() + "/META-INF/valkyrienskies-120.kotlin_module").renameTo(file(compileKotlin.destinationDirectory.get().toString() + "/META-INF/valkyrienskies-120_common.kotlin_module"))
+} }
 
 publishing {
     publications {

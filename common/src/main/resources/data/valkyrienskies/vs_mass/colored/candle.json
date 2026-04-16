@@ -1,0 +1,92 @@
+[
+  {
+    "block": "minecraft:candle",
+    "mass": 2.0,
+    "friction": 0.1
+  },
+  {
+    "block": "minecraft:white_candle",
+    "mass": 2.0,
+    "friction": 0.1
+  },
+  {
+    "block": "minecraft:orange_candle",
+    "mass": 2.0,
+    "friction": 0.1
+  },
+  {
+    "block": "minecraft:magenta_candle",
+    "mass": 2.0,
+    "friction": 0.1
+  },
+  {
+    "block": "minecraft:light_blue_candle",
+    "mass": 2.0,
+    "friction": 0.1
+  },
+  {
+    "block": "minecraft:yellow_candle",
+    "mass": 2.0,
+    "friction": 0.1
+  },
+  {
+    "block": "minecraft:lime_candle",
+    "mass": 2.0,
+    "friction": 0.1
+  },
+  {
+    "block": "minecraft:pink_candle",
+    "mass": 2.0,
+    "friction": 0.1
+  },
+  {
+    "block": "minecraft:gray_candle",
+    "mass": 2.0,
+    "friction": 0.1
+  },
+  {
+    "block": "minecraft:light_gray_candle",
+    "mass": 2.0,
+    "friction": 0.1
+  },
+  {
+    "block": "minecraft:cyan_candle",
+    "mass": 2.0,
+    "friction": 0.1
+  },
+  {
+    "block": "minecraft:purple_candle",
+    "mass": 2.0,
+    "friction": 0.1
+  },
+  {
+    "block": "minecraft:blue_candle",
+    "mass": 2.0,
+    "friction": 0.1
+  },
+  {
+    "block": "minecraft:brown_candle",
+    "mass": 2.0,
+    "friction": 0.1
+  },
+  {
+    "block": "minecraft:green_candle",
+    "mass": 2.0,
+    "friction": 0.1
+  },
+  {
+    "block": "minecraft:red_candle",
+    "mass": 2.0,
+    "friction": 0.1
+  },
+  {
+    "block": "minecraft:black_candle",
+    "mass": 2.0,
+    "friction": 0.1
+  },
+  {
+    "tag": "minecraft:candle_cakes",
+    "mass": 60.0,
+    "friction": 0.1
+  }
+]

@@ -102,6 +102,12 @@ public class ValkyrienCommonMixinConfigPlugin implements IMixinConfigPlugin {
             return LoadedMods.getFlywheel() == FlywheelVersion.V06;
         }
 
+        if (mixinClassName.contains("org.valkyrienskies.mod.mixin.mod_compat.bluemap")) {
+            // Our mixins will crash if bluemap version is NONE or 5.12(+)
+            // We can't support bluemap 5.12(+) because it needs JVM 21, so that's for an addon to do.
+            return LoadedMods.getBluemap().matches("^5\\.3(-.*)?$");
+        }
+
         if (mixinClassName.contains("org.valkyrienskies.mod.mixin.mod_compat.common_create.client.trackOutlines")) {
             //interactive has its own track outline stuff so disable fixed version of VS2's track outline stuff
             if (classExists("org.valkyrienskies.create_interactive.mixin.client.MixinTrackBlockOutline")) {
@@ -128,6 +134,11 @@ public class ValkyrienCommonMixinConfigPlugin implements IMixinConfigPlugin {
             if (!classExists("traben.entity_texture_features.utils.ETFEntity")) {
                 return false;
             }
+        }
+
+        if (mixinClassName.contains("org.valkyrienskies.mod.mixin.mod_compat.alex_caves")) {
+            // Only load this mixin if Alex Caves is installed
+            return LoadedMods.getAlexCaves();
         }
 
         return true;

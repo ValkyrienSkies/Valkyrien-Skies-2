@@ -192,6 +192,20 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         return null;
     }
 
+    @Inject(method = "getBlockPosBelowThatAffectsMyMovement", at = @At("HEAD"), cancellable = true)
+    private void preGetBlockPosBelowThatAffectsMyMovement(final CallbackInfoReturnable<BlockPos> cir) {
+        final Vector3dc blockPosInGlobal = new Vector3d(
+            position.x,
+            getBoundingBox().minY - 0.5,
+            position.z
+        );
+        final BlockPos blockPosStandingOnFromShip = getPosStandingOnFromShips(blockPosInGlobal);
+        if (blockPosStandingOnFromShip != null) {
+            cir.setReturnValue(blockPosStandingOnFromShip);
+        }
+    }
+
+
     /**
      * @author tri0de
      * @reason Allows ship blocks to spawn landing particles, running particles, and play step sounds
@@ -200,7 +214,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     private void preGetOnPos(final CallbackInfoReturnable<BlockPos> cir) {
         final Vector3dc blockPosInGlobal = new Vector3d(
             position.x,
-            position.y,
+            position.y - 0.2,
             position.z
         );
         final BlockPos blockPosStandingOnFromShip = getPosStandingOnFromShips(blockPosInGlobal);
@@ -239,9 +253,9 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         if (level != null && level.isClientSide && tickCount > 1) { //baseTick sets the firstTick false, use tickCount instead.
             final Ship ship = VSGameUtilsKt.getLoadedShipManagingPos(level, getOnPos());
             if (ship != null) {
-                if (entityDraggingInformation.getLastShipStoodOnServerWriteOnly() == null) {
-                    return;
-                }
+//                if (entityDraggingInformation.getLastShipStoodOnServerWriteOnly() == null) {
+//                    return;
+//                }
                 entityDraggingInformation.setLastShipStoodOn(ship.getId());
                 getIndirectPassengers().forEach(entity -> {
                     final EntityDraggingInformation passengerDraggingInformation =
@@ -253,9 +267,9 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
                     if (entityDraggingInformation.getIgnoreNextGroundStand()) {
                         entityDraggingInformation.setIgnoreNextGroundStand(false);
                     } else {
-                        if (entityDraggingInformation.getLastShipStoodOnServerWriteOnly() != null) {
-                            return;
-                        }
+//                        if (entityDraggingInformation.getLastShipStoodOnServerWriteOnly() != null) {
+//                            return;
+//                        }
                         entityDraggingInformation.setLastShipStoodOn(null);
                         getIndirectPassengers().forEach(entity -> {
                             final EntityDraggingInformation passengerDraggingInformation =

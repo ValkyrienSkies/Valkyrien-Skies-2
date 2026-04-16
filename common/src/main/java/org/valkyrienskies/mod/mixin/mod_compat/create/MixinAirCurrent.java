@@ -3,6 +3,8 @@ package org.valkyrienskies.mod.mixin.mod_compat.create;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
+import com.llamalad7.mixinextras.sugar.Share;
+import com.llamalad7.mixinextras.sugar.ref.LocalRef;
 import com.simibubi.create.content.kinetics.belt.behaviour.TransportedItemStackHandlerBehaviour;
 import com.simibubi.create.content.kinetics.fan.AirCurrent;
 import com.simibubi.create.content.kinetics.fan.IAirCurrentSource;
@@ -25,14 +27,9 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.Shapes;
 import org.apache.commons.lang3.tuple.Pair;
-import org.joml.Intersectionf;
-import org.joml.Matrix4d;
-import org.joml.Vector2f;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.joml.primitives.AABBd;
-import org.joml.primitives.AABBi;
-import org.joml.primitives.AABBic;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -48,7 +45,6 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.entity.handling.DefaultShipyardEntityHandler;
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
-import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 import org.valkyrienskies.mod.compat.create.AdvancedAirCurrentSegment;
 import org.valkyrienskies.mod.compat.create.AirFlowClipContext;
 import org.valkyrienskies.mod.mixinducks.mod_compat.create.IExtendedAirCurrentSource;
@@ -169,12 +165,22 @@ public abstract class MixinAirCurrent {
         ),
         remap = false
     )
-    private void calcScaling(CallbackInfo ci) {
-        Ship ship = this.getShip();
-        if (ship != null) {
-            final Vector3dc scaling = ship.getTransform().getShipToWorldScaling();
-            this.shipScale = this.direction.getAxis().choose(scaling.x(), scaling.y(), scaling.z());
+    private void calcScaling(final CallbackInfo ci) {
+        final Ship ship = this.getShip();
+        if (ship == null) {
+            return;
         }
+        final Vector3dc scaling = ship.getTransform().getShipToWorldScaling();
+        this.shipScale = this.direction.getAxis().choose(scaling.x(), scaling.y(), scaling.z());
+    }
+
+    @Inject(method = "rebuild", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/kinetics/fan/AirCurrent;getLimit()I"), remap = false)
+    private void stealInitialType(
+        final CallbackInfo ci,
+        final @Local(name = "type") FanProcessingType type,
+        final @Share("initFanProcessingType") LocalRef<FanProcessingType> initTypeRef
+    ) {
+        initTypeRef.set(type);
     }
 
     /**
@@ -198,17 +204,30 @@ public abstract class MixinAirCurrent {
      * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
      */
     @Inject(method = "rebuild", at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/kinetics/fan/AirCurrent;findAffectedHandlers()V"), remap = false)
-    private void calcSegments(final CallbackInfo ci) {
+    private void calcSegments(
+        final CallbackInfo ci,
+        final @Share("initFanProcessingType") LocalRef<FanProcessingType> initTypeRef
+    ) {
         this.segments.clear();
         final Level level = this.source.getAirCurrentWorld();
         final BlockPos start = this.source.getAirCurrentPos();
         final Vec3 startCenter = start.getCenter();
-        AdvancedAirCurrentSegment currentSegment = null;
-        FanProcessingType type = null;
+        // do not assume this to be null, might be modified by another mixin ;)
+        FanProcessingType type = initTypeRef.get();
+        AdvancedAirCurrentSegment currentSegment = new AdvancedAirCurrentSegment();
+        currentSegment.startOffset = 0;
+        currentSegment.type = type;
 
         final int limit = this.getLimit();
-        // Note: Weird create behaviour that makes pulling fan process depot right under a processor
-        // but not for pushing fan.
+
+        //// **** IMPORTANT IMPLEMENT NOTES **** ////
+
+        // Note #1: Weird Create mod behaviour that makes pulling fan process depot right under a catalyst,
+        //          but not for pushing fan.
+        // Note #2: Even more werid Create mod behaviour that if a catalyst is just in front of a pushing fan,
+        //          anything under the catalyst will be processed. This does not happen if a catalyst is the first
+        //          catalyst but is not located right next to the fan. (Issue #1575)
+        final BlockPos startCatalystPos = start.relative(this.direction);
 
         final Vec3 delta = new Vec3(this.direction.getStepX() * 0.5, this.direction.getStepY() * 0.5, this.direction.getStepZ() * 0.5);
         final Vec3 startPos = startCenter.add(delta);
@@ -217,26 +236,24 @@ public abstract class MixinAirCurrent {
         while (walker.hasNext()) {
             final AdvancedBlockWalker.BlockPosWithDistance data = walker.next();
             final FanProcessingType newType = FanProcessingType.getAt(level, data.pos());
-            double dist = data.distance();
-            if (dist < Integer.MAX_VALUE && Math.abs(dist - (int) (dist)) < EPS1) {
-                dist = (int) (dist);
-            }
+            final double dist = fixDecimalError(data.distance());
             if (newType != null) {
                 type = newType;
             }
-            if (currentSegment == null) {
-                currentSegment = new AdvancedAirCurrentSegment();
-                currentSegment.startOffset = dist;
-                currentSegment.type = type;
-            } else if (currentSegment.type != type) {
-                currentSegment.endOffset = dist;
-                this.segments.add(currentSegment);
-                currentSegment = new AdvancedAirCurrentSegment();
-                currentSegment.startOffset = dist;
-                currentSegment.type = type;
+            if (currentSegment.type != type) {
+                if (currentSegment.type == null && startCatalystPos.equals(data.pos())) {
+                    // See Note #2 above
+                    currentSegment.type = type;
+                } else {
+                    currentSegment.endOffset = dist;
+                    this.segments.add(currentSegment);
+                    currentSegment = new AdvancedAirCurrentSegment();
+                    currentSegment.startOffset = dist;
+                    currentSegment.type = type;
+                }
             }
         }
-        if (currentSegment != null) {
+        if (currentSegment != null && currentSegment.type != null) {
             currentSegment.endOffset = this.pushing ? limit : 0;
             this.segments.add(currentSegment);
         }
@@ -359,10 +376,7 @@ public abstract class MixinAirCurrent {
                 // Move the check point towards the block center for a bit,
                 // so getTypeAt0 can correctly handle the case that a depot is
                 // right after a processor.
-                double dist = data.distance() + EPS3;
-                if (dist < Integer.MAX_VALUE && Math.abs(dist - (int) (dist)) < EPS1) {
-                    dist = (int) (dist);
-                }
+                final double dist = fixDecimalError(data.distance() + EPS3);
                 if (dist > this.maxDistance) {
                     continue;
                 }
@@ -390,9 +404,7 @@ public abstract class MixinAirCurrent {
      */
     @Unique
     private FanProcessingType getTypeAt0(double offset) {
-        if (offset < Integer.MAX_VALUE && Math.abs(offset - (int) (offset)) < EPS1) {
-            offset = (int) (offset);
-        }
+        offset = fixDecimalError(offset);
         if (offset < 0 || offset > this.maxDistance) {
             return null;
         }
@@ -410,5 +422,13 @@ public abstract class MixinAirCurrent {
             }
         }
         return null;
+    }
+
+    @Unique
+    private double fixDecimalError(final double value) {
+        if (value < Integer.MAX_VALUE && Math.abs(value - (int) (value)) < EPS1) {
+            return (int) (value);
+        }
+        return value;
     }
 }

@@ -18,7 +18,7 @@ import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 public class ProjectileUtilMixin {
 
     @Inject(
-        at = @At("HEAD"),
+        at = @At("RETURN"),
         method = "getEntityHitResult(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/AABB;Ljava/util/function/Predicate;D)Lnet/minecraft/world/phys/EntityHitResult;",
         cancellable = true
     )
@@ -26,7 +26,7 @@ public class ProjectileUtilMixin {
         final Entity entity, final Vec3 vec3, final Vec3 vec32, final AABB aABB, final Predicate<Entity> predicate,
         final double d, final CallbackInfoReturnable<@Nullable EntityHitResult> cir) {
 
-        if (!VSGameUtilsKt.getShipsIntersecting(entity.level(), aABB).iterator().hasNext()) {
+        if (cir.getReturnValue() != null || !VSGameUtilsKt.getShipsIntersecting(entity.level(), aABB).iterator().hasNext()) {
             return;
         }
 

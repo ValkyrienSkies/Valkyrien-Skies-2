@@ -1,0 +1,82 @@
+[
+  {
+    "block": "minecraft:white_concrete",
+    "mass": 2400.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:orange_concrete",
+    "mass": 2400.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:magenta_concrete",
+    "mass": 2400.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:light_blue_concrete",
+    "mass": 2400.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:yellow_concrete",
+    "mass": 2400.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:lime_concrete",
+    "mass": 2400.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:pink_concrete",
+    "mass": 2400.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:gray_concrete",
+    "mass": 2400.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:light_gray_concrete",
+    "mass": 2400.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:cyan_concrete",
+    "mass": 2400.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:purple_concrete",
+    "mass": 2400.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:blue_concrete",
+    "mass": 2400.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:brown_concrete",
+    "mass": 2400.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:green_concrete",
+    "mass": 2400.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:red_concrete",
+    "mass": 2400.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:black_concrete",
+    "mass": 2400.0,
+    "friction": 0.4
+  }
+]

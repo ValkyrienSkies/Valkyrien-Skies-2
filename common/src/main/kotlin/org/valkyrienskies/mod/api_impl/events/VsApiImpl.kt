@@ -31,14 +31,12 @@ import org.valkyrienskies.mod.api.getShipManagingBlock
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
-import org.valkyrienskies.mod.common.ValkyrienSkiesMod.blockEntityPhysListeners
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.getLoadedShipManagingPos
 import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.getShipMountedToData
 import org.valkyrienskies.mod.common.getShipsIntersecting
-import org.valkyrienskies.mod.compat.clothconfig.VSClothConfig
 import java.util.concurrent.ConcurrentHashMap
 
 @Suppress("OVERRIDE_DEPRECATION")
@@ -53,10 +51,6 @@ class VsApiImpl(
 
     override fun isShipMountingEntity(entity: Entity): Boolean {
         return entity is ShipMountingEntity
-    }
-
-    override fun createConfigScreenLegacy(parent: Screen, vararg configs: Class<*>): Screen {
-        return VSClothConfig.createConfigScreenFor(parent, *configs)
     }
 
     override fun getDimensionId(level: Level): String =

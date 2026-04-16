@@ -1,0 +1,82 @@
+[
+  {
+    "block": "minecraft:white_glazed_terracotta",
+    "mass": 2000.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:orange_glazed_terracotta",
+    "mass": 2000.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:magenta_glazed_terracotta",
+    "mass": 2000.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:light_blue_glazed_terracotta",
+    "mass": 2000.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:yellow_glazed_terracotta",
+    "mass": 2000.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:lime_glazed_terracotta",
+    "mass": 2000.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:pink_glazed_terracotta",
+    "mass": 2000.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:gray_glazed_terracotta",
+    "mass": 2000.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:light_gray_glazed_terracotta",
+    "mass": 2000.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:cyan_glazed_terracotta",
+    "mass": 2000.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:purple_glazed_terracotta",
+    "mass": 2000.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:blue_glazed_terracotta",
+    "mass": 2000.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:brown_glazed_terracotta",
+    "mass": 2000.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:green_glazed_terracotta",
+    "mass": 2000.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:red_glazed_terracotta",
+    "mass": 2000.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:black_glazed_terracotta",
+    "mass": 2000.0,
+    "friction": 0.2
+  }
+]

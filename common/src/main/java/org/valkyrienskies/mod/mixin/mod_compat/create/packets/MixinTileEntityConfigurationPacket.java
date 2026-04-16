@@ -1,15 +1,16 @@
 package org.valkyrienskies.mod.mixin.mod_compat.create.packets;
 
+import com.llamalad7.mixinextras.sugar.Local;
 import com.simibubi.create.foundation.networking.BlockEntityConfigurationPacket;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
-import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
-import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(BlockEntityConfigurationPacket.class)
@@ -24,12 +25,11 @@ public abstract class MixinTileEntityConfigurationPacket {
                     target = "Lnet/minecraft/core/BlockPos;closerThan(Lnet/minecraft/core/Vec3i;D)Z"
             )
     )
-    private boolean redirectCloserThan(final BlockPos instance, final Vec3i vec3i, final double v) {
+    private boolean redirectCloserThan(final BlockPos instance, final Vec3i vec3i, final double v, @Local ServerPlayer player) {
         BlockPos blockPos = instance;
         if (VSGameUtilsKt.isBlockInShipyard(this._clockworkLevel, instance)) {
-            final Ship ship = VSGameUtilsKt.getShipManagingPos(this._clockworkLevel, instance);
-            final Vector3d tempVec = VSGameUtilsKt.toWorldCoordinates(ship, instance);
-            blockPos = BlockPos.containing(tempVec.x, tempVec.y, tempVec.z);
+            double distance = VSGameUtilsKt.squaredDistanceToInclShips(player, instance.getX(), instance.getY(), instance.getZ());
+            return distance < Mth.square(v);
         }
         return blockPos.closerThan(vec3i, v);
     }

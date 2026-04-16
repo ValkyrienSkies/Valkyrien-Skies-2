@@ -1,3 +1,4 @@
+# Ignore unwanted files from git
 
 # eclipse
 bin
@@ -5,9 +6,11 @@ bin
 .settings
 .metadata
 .classpath
+.factorypath
 .project
 
 # idea
+# out
 out
 *.ipr
 *.iws
@@ -20,6 +23,9 @@ out
 !.idea/inspectionProfiles/
 # recommended plugins
 !.idea/externalDependencies.xml
+
+# kotlin
+.kotlin
 
 # vscode
 .vscode

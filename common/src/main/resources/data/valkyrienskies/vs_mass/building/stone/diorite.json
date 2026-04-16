@@ -1,0 +1,37 @@
+[
+  {
+    "block": "minecraft:diorite",
+    "mass": 2500.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:diorite_stairs",
+    "mass": 1875.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:diorite_slab",
+    "mass": 1250.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:diorite_wall",
+    "mass": 1250.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:polished_diorite",
+    "mass": 2500.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:polished_diorite_stairs",
+    "mass": 1875.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:polished_diorite_slab",
+    "mass": 1250.0,
+    "friction": 0.4
+  }
+]

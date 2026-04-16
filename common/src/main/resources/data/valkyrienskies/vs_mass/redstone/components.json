@@ -1,0 +1,32 @@
+[
+  {
+    "block": "minecraft:redstone_wire",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:redstone_torch",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:repeater",
+    "mass": 200.0,
+    "friction": 0.3
+  },
+  {
+    "block": "minecraft:comparator",
+    "mass": 200.0,
+    "friction": 0.3
+  },
+  {
+    "block": "minecraft:lever",
+    "mass": 10.0
+  },
+  {
+    "block": "minecraft:tripwire_hook",
+    "mass": 5.0
+  },
+  {
+    "block": "minecraft:tripwire",
+    "mass": 1.0
+  }
+]

@@ -46,6 +46,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.core.util.datastructures.BlockPos2ByteOpenHashMap;
+import org.valkyrienskies.mod.common.assembly.SeamlessChunksManager;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.ShipRenderer;
@@ -54,7 +55,7 @@ import org.valkyrienskies.mod.common.hooks.VSGameEvents;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.compat.VSRenderer;
 import org.valkyrienskies.mod.mixin.ValkyrienCommonMixinConfigPlugin;
-import org.valkyrienskies.mod.mixin.accessors.client.render.ViewAreaAccessor;
+import org.valkyrienskies.mod.mixinducks.client.render.IVSViewAreaMethods;
 import org.valkyrienskies.mod.mixin.mod_compat.optifine.RenderChunkInfoAccessorOptifine;
 import org.valkyrienskies.mod.mixinducks.mod_compat.vanilla_renderer.LevelRendererDuck;
 import org.valkyrienskies.mod.mixinducks.client.render.LevelRendererVanillaDuck;
@@ -145,14 +146,35 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererDuck, Le
         at = @At("RETURN")
     )
     private void preSetupRender(final Camera camera, final Frustum frustum, final boolean bl, final boolean bl2, final CallbackInfo ci) {
+        // Gradually pre-allocate render chunk GPU buffers so they're ready when ships load
+        ((IVSViewAreaMethods) viewArea).vs$fillRenderChunkPool();
         // This mixin never gets called for IP dimensions, instead we'll call it manually
         vs$addShipVisibleChunks(frustum);
     }
 
+    /**
+     * Process deferred ship chunk packets BEFORE vanilla's light updates so that
+     * ship chunks are loaded and their light is computed before render chunks compile.
+     */
+    @Inject(
+        method = "setupRender",
+        at = @At("HEAD")
+    )
+    private void drainShipChunksBeforeLightUpdate(final Camera camera, final Frustum frustum, final boolean bl, final boolean bl2, final CallbackInfo ci) {
+        final SeamlessChunksManager manager = SeamlessChunksManager.get();
+        if (manager != null) {
+            manager.drainDeferredBatch();
+            // Drain all queued light updates so the light engine has the latest data
+            while (!level.isLightUpdateQueueEmpty()) {
+                level.pollLightUpdates();
+            }
+        }
+    }
+
     @Override
     public void vs$addShipVisibleChunks(final Frustum frustum) {
-        final BlockPos.MutableBlockPos tempPos = new BlockPos.MutableBlockPos();
-        final ViewAreaAccessor chunkStorageAccessor = (ViewAreaAccessor) viewArea;
+        final IVSViewAreaMethods shipViewArea = (IVSViewAreaMethods) viewArea;
+        final AABBd tempAABB = new AABBd();
         for (final ClientShip shipObject : VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips()) {
             if (ShipRendererKt.getShipRenderer(shipObject) != ShipRenderer.VANILLA)
                 continue;
@@ -161,6 +183,8 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererDuck, Le
             if (!frustum.isVisible(VectorConversionsMCKt.toMinecraft(shipObject.getRenderAABB())))
                 continue;
 
+            final var shipToWorld = shipObject.getRenderTransform().getShipToWorld();
+
             shipObject.getActiveChunksSet().forEach((x, z) -> {
                 final LevelChunk levelChunk = level.getChunk(x, z);
                 for (int y = level.getMinSection(); y < level.getMaxSection(); y++) {
@@ -168,22 +192,25 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererDuck, Le
                     if (vs$visibileShipChunks.contains(x, y, z)) {
                         continue;
                     }
-                    tempPos.set(x << 4, y << 4, z << 4);
-                    final ChunkRenderDispatcher.RenderChunk renderChunk =
-                        chunkStorageAccessor.callGetRenderChunkAt(tempPos);
+                    // If the chunk section is empty then skip it early
+                    final LevelChunkSection levelChunkSection = levelChunk.getSection(y - level.getMinSection());
+                    if (levelChunkSection.hasOnlyAir()) {
+                        continue;
+                    }
+
+                    // Use direct ship render chunk lookup — bypasses getShipManagingPos
+                    ChunkRenderDispatcher.RenderChunk renderChunk = shipViewArea.vs$getShipRenderChunk(x, y, z);
+                    if (renderChunk == null) {
+                        renderChunk = shipViewArea.vs$getOrCreateShipRenderChunk(x, y, z);
+                    }
                     if (renderChunk != null) {
-                        // If the chunk section is empty then skip it
-                        final LevelChunkSection levelChunkSection = levelChunk.getSection(y - level.getMinSection());
-                        if (levelChunkSection.hasOnlyAir()) {
-                            continue;
-                        }
 
-                        // If the chunk isn't in the frustum then skip it
-                        final AABBd b2 = new AABBd((x << 4) - 6e-1, (y << 4) - 6e-1, (z << 4) - 6e-1,
-                            (x << 4) + 15.6, (y << 4) + 15.6, (z << 4) + 15.6)
-                            .transform(shipObject.getRenderTransform().getShipToWorld());
+                        // If the chunk isn't in the frustum then skip it (reuse tempAABB)
+                        tempAABB.setMin((x << 4) - 6e-1, (y << 4) - 6e-1, (z << 4) - 6e-1);
+                        tempAABB.setMax((x << 4) + 15.6, (y << 4) + 15.6, (z << 4) + 15.6);
+                        tempAABB.transform(shipToWorld);
 
-                        if (!frustum.isVisible(VectorConversionsMCKt.toMinecraft(b2))) {
+                        if (!frustum.isVisible(VectorConversionsMCKt.toMinecraft(tempAABB))) {
                             continue;
                         }
 
@@ -241,6 +268,66 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererDuck, Le
             receiver, renderType, poseStack, camX, camY, camZ, matrix4f
         ));
 
+        if (!shipRenderChunks.isEmpty()) {
+            renderAllShipChunkLayers(renderType, poseStack, camX, camY, camZ, matrix4f, receiver);
+        }
+    }
+
+    /**
+     * Batched ship rendering: sets up the shader state ONCE per render type, then draws
+     * all ships by only updating the model-view matrix between them. Without batching,
+     * 100 ships would require 100 full shader setup/teardown cycles per render type
+     * (300+ OpenGL state changes per frame). With batching, it's just 1 setup + 100
+     * lightweight matrix updates.
+     */
+    @Unique
+    private void renderAllShipChunkLayers(final RenderType renderType, final PoseStack poseStack,
+        final double camX, final double camY, final double camZ,
+        final Matrix4f matrix4f, final LevelRenderer receiver) {
+
+        RenderSystem.assertOnRenderThread();
+        renderType.setupRenderState();
+        this.minecraft.getProfiler().push("vs_ship_render");
+
+        final boolean forwardOrder = renderType != RenderType.translucent();
+        final ShaderInstance shaderInstance = RenderSystem.getShader();
+
+        // Set up shader state once for all ships
+        for (int k = 0; k < 12; ++k) {
+            int l = RenderSystem.getShaderTexture(k);
+            shaderInstance.setSampler("Sampler" + k, l);
+        }
+
+        if (shaderInstance.PROJECTION_MATRIX != null) {
+            shaderInstance.PROJECTION_MATRIX.set(matrix4f);
+        }
+        if (shaderInstance.COLOR_MODULATOR != null) {
+            shaderInstance.COLOR_MODULATOR.set(RenderSystem.getShaderColor());
+        }
+        if (shaderInstance.FOG_START != null) {
+            shaderInstance.FOG_START.set(RenderSystem.getShaderFogStart());
+        }
+        if (shaderInstance.FOG_END != null) {
+            shaderInstance.FOG_END.set(RenderSystem.getShaderFogEnd());
+        }
+        if (shaderInstance.FOG_COLOR != null) {
+            shaderInstance.FOG_COLOR.set(RenderSystem.getShaderFogColor());
+        }
+        if (shaderInstance.FOG_SHAPE != null) {
+            shaderInstance.FOG_SHAPE.set(RenderSystem.getShaderFogShape().getIndex());
+        }
+        if (shaderInstance.TEXTURE_MATRIX != null) {
+            shaderInstance.TEXTURE_MATRIX.set(RenderSystem.getTextureMatrix());
+        }
+        if (shaderInstance.GAME_TIME != null) {
+            shaderInstance.GAME_TIME.set(RenderSystem.getShaderGameTime());
+        }
+
+        RenderSystem.setupShaderLights(shaderInstance);
+
+        final Uniform modelViewUniform = shaderInstance.MODEL_VIEW_MATRIX;
+        final Uniform chunkOffsetUniform = shaderInstance.CHUNK_OFFSET;
+
         shipRenderChunks.forEach((ship, chunks) -> {
             poseStack.pushPose();
             final ShipTransform shipTransform = ship.getRenderTransform();
@@ -254,99 +341,39 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererDuck, Le
             );
 
             VSGameEvents.INSTANCE.getRenderShip().emit(event);
-            renderChunkLayer(renderType, poseStack, cameraShipSpace.x(), cameraShipSpace.y(), cameraShipSpace.z(), matrix4f, chunks);
-            VSGameEvents.INSTANCE.getPostRenderShip().emit(event);
 
+            // Update only the model-view matrix for this ship (the only thing that changes)
+            if (modelViewUniform != null) {
+                modelViewUniform.set(poseStack.last().pose());
+            }
+            shaderInstance.apply();
+
+            // Draw all chunks for this ship
+            final ListIterator<RenderChunkInfo> it = chunks.listIterator(forwardOrder ? 0 : chunks.size());
+            while (forwardOrder ? it.hasNext() : it.hasPrevious()) {
+                final RenderChunkInfo info = forwardOrder ? it.next() : it.previous();
+                final ChunkRenderDispatcher.RenderChunk renderChunk = info.chunk;
+                if (!renderChunk.getCompiledChunk().isEmpty(renderType)) {
+                    final VertexBuffer vertexBuffer = renderChunk.getBuffer(renderType);
+                    final BlockPos blockPos = renderChunk.getOrigin();
+                    if (chunkOffsetUniform != null) {
+                        chunkOffsetUniform.set(
+                            (float) ((double) blockPos.getX() - cameraShipSpace.x()),
+                            (float) ((double) blockPos.getY() - cameraShipSpace.y()),
+                            (float) ((double) blockPos.getZ() - cameraShipSpace.z()));
+                        chunkOffsetUniform.upload();
+                    }
+                    vertexBuffer.bind();
+                    vertexBuffer.draw();
+                }
+            }
+
+            VSGameEvents.INSTANCE.getPostRenderShip().emit(event);
             poseStack.popPose();
         });
-    }
 
-
-    @Unique
-    private void renderChunkLayer(final RenderType renderType, final PoseStack poseStack, final double d,
-        final double e, final double f,
-        final Matrix4f matrix4f, final ObjectList<RenderChunkInfo> chunksToRender) {
-        RenderSystem.assertOnRenderThread();
-        renderType.setupRenderState();
-        this.minecraft.getProfiler().push("filterempty");
-        this.minecraft.getProfiler().popPush(() -> {
-            return "render_" + renderType;
-        });
-        boolean bl = renderType != RenderType.translucent();
-        final ListIterator objectListIterator = chunksToRender.listIterator(bl ? 0 : chunksToRender.size());
-        ShaderInstance shaderInstance = RenderSystem.getShader();
-
-        for(int k = 0; k < 12; ++k) {
-            int l = RenderSystem.getShaderTexture(k);
-            shaderInstance.setSampler("Sampler" + k, l);
-        }
-
-        if (shaderInstance.MODEL_VIEW_MATRIX != null) {
-            shaderInstance.MODEL_VIEW_MATRIX.set(poseStack.last().pose());
-        }
-
-        if (shaderInstance.PROJECTION_MATRIX != null) {
-            shaderInstance.PROJECTION_MATRIX.set(matrix4f);
-        }
-
-        if (shaderInstance.COLOR_MODULATOR != null) {
-            shaderInstance.COLOR_MODULATOR.set(RenderSystem.getShaderColor());
-        }
-
-        if (shaderInstance.FOG_START != null) {
-            shaderInstance.FOG_START.set(RenderSystem.getShaderFogStart());
-        }
-
-        if (shaderInstance.FOG_END != null) {
-            shaderInstance.FOG_END.set(RenderSystem.getShaderFogEnd());
-        }
-
-        if (shaderInstance.FOG_COLOR != null) {
-            shaderInstance.FOG_COLOR.set(RenderSystem.getShaderFogColor());
-        }
-
-        if (shaderInstance.FOG_SHAPE != null) {
-            shaderInstance.FOG_SHAPE.set(RenderSystem.getShaderFogShape().getIndex());
-        }
-
-        if (shaderInstance.TEXTURE_MATRIX != null) {
-            shaderInstance.TEXTURE_MATRIX.set(RenderSystem.getTextureMatrix());
-        }
-
-        if (shaderInstance.GAME_TIME != null) {
-            shaderInstance.GAME_TIME.set(RenderSystem.getShaderGameTime());
-        }
-
-        RenderSystem.setupShaderLights(shaderInstance);
-        shaderInstance.apply();
-        Uniform uniform = shaderInstance.CHUNK_OFFSET;
-
-        while(true) {
-            if (bl) {
-                if (!objectListIterator.hasNext()) {
-                    break;
-                }
-            } else if (!objectListIterator.hasPrevious()) {
-                break;
-            }
-
-            RenderChunkInfo renderChunkInfo2 = bl ? (RenderChunkInfo)objectListIterator.next() : (RenderChunkInfo)objectListIterator.previous();
-            ChunkRenderDispatcher.RenderChunk renderChunk = renderChunkInfo2.chunk;
-            if (!renderChunk.getCompiledChunk().isEmpty(renderType)) {
-                VertexBuffer vertexBuffer = renderChunk.getBuffer(renderType);
-                BlockPos blockPos = renderChunk.getOrigin();
-                if (uniform != null) {
-                    uniform.set((float)((double)blockPos.getX() - d), (float)((double)blockPos.getY() - e), (float)((double)blockPos.getZ() - f));
-                    uniform.upload();
-                }
-
-                vertexBuffer.bind();
-                vertexBuffer.draw();
-            }
-        }
-
-        if (uniform != null) {
-            uniform.set(new Vector3f());
+        if (chunkOffsetUniform != null) {
+            chunkOffsetUniform.set(new Vector3f());
         }
 
         shaderInstance.clear();

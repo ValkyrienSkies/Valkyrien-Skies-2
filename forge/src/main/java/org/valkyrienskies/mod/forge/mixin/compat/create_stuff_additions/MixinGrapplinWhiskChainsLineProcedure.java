@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Pseudo
-@Mixin(targets = {"net.mcreator.createstuffadditions.procedures.GrapplinWhiskChainsLineProcedure"}, remap = false)
+@Mixin(targets = {"net.mcreator.createstuffadditions.procedures.GrapplinWhiskChainsLineProcedure"})
 public abstract class MixinGrapplinWhiskChainsLineProcedure {
     /**
      * There's no harm in skipping this check, it shouldn't happen client side anyway.

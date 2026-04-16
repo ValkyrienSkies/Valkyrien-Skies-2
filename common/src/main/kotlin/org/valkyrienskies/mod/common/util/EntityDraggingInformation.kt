@@ -77,6 +77,14 @@ interface IEntityDraggingInformationProvider {
 
     fun `vs$shouldDrag`(): Boolean
 
+    fun `vs$isInSealedArea`(): Boolean {
+        return false
+    }
+
+    fun `vs$setInSealedArea`(sealed: Boolean) {
+        // Default no-op
+    }
+
     /**
      * Shortcut for entity initializations that requires to set the entity dragged without sliding.
      */

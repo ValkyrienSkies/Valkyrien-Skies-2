@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.compat
 
+import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerLevel
 import org.joml.Vector3d
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
@@ -29,8 +30,18 @@ object Weather2Compat {
 
             val com = ship.inertiaData.centerOfMassInShip
 
-            ship.shipToWorld.transformPosition(com, vec)
             val pos = vec.toMinecraft()
+
+            ship.shipToWorld.transformPosition(com, vec)
+            ship.dragController?.setWindDirection(Vector3d(0.0, 0.0, -1.0).rotateY(Math.toRadians(
+                mgr.windManager.getWindAngle(pos).toDouble()
+            )), "WEATHER2")
+            ship.dragController?.setWindSpeed(
+                mgr.windManager.getWindSpeed(
+                    BlockPos.containing(pos)
+                ).toDouble(),
+                "WEATHER2"
+            )
 
             val motion = ship.velocity.toMinecraft()
 
@@ -53,10 +64,10 @@ object Weather2Compat {
                 vec.sub(ship.velocity)
                 vec.mul(mass)
 
-                forces.applyInvariantForceToPos(ship.id, vec, com)
+                forces.applyWorldForce(ship.id, vec, null)
             }
 
-            applyForcePlusMotion()
+            //applyForcePlusMotion()
 
             mgr.getStormsAround(pos, stormRange).forEach {
                 if (it is StormObject && it.tornadoFunnelSimple != null) {

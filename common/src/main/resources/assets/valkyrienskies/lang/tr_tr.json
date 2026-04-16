@@ -1,0 +1,40 @@
+{
+  "itemGroup.valkyrienSkies": "Valkyrien Skies",
+
+  "tooltip.valkyrienskies.mass": "Kütle",
+  "category.valkyrienskies.driving": "Sürüş",
+  "key.valkyrienskies.ship_cruise": "Seyir",
+  "key.valkyrienskies.ship_down": "Alçal",
+
+  "block.valkyrienskies.test_chair": "Hata Ayıklama Sandalyesi",
+  "block.valkyrienskies.test_hinge": "Hata Ayıklama Menteşesi",
+  "block.valkyrienskies.test_flap": "Hata Ayıklama Kanadı",
+  "block.valkyrienskies.test_wing": "Hata Ayıklama Kanadı",
+  "block.valkyrienskies.test_sphere": "Hata Ayıklama Küresi",
+  "block.valkyrienskies.test_thruster": "Hata Ayıklama İtici",
+  "item.valkyrienskies.ship_creator": "Gemi Oluşturucu",
+  "item.valkyrienskies.ship_creator_smaller": "Mini Gemi Oluşturucu",
+  "item.valkyrienskies.ship_assembler": "Gemi Birleştirici",
+  "item.valkyrienskies.area_assembler": "Alan Birleştirici",
+  "item.valkyrienskies.connection_checker": "Bağlantı Kontrolcüsü",
+  "item.valkyrienskies.physics_entity_creator": "Fizik Varlığı Oluşturucu",
+  "entity.valkyrienskies.vs_physics_entity": "Fizik Varlığı",
+
+  "argument.valkyrienskies.ship.no_found": "Gemi bulunamadı",
+  "argument.valkyrienskies.ship.multiple_found": "Birden fazla gemi bulundu",
+  "command.valkyrienskies.delete.success": "%d gemi silindi!",
+  "command.valkyrienskies.remass.success": "%d geminin kütlesi yeniden hesaplandı!",
+  "command.valkyrienskies.remass.fail": "%s için kütle yeniden hesaplanamadı!",
+  "command.valkyrienskies.set_static.success": "%d gemi is-static=%s olarak ayarlandı!",
+  "command.valkyrienskies.teleport.success": "%d gemi %s konumuna ışınlandı!",
+  "command.valkyrienskies.teleport.multiple_ship_success": "%d gemi ışınlandı!",
+  "command.valkyrienskies.mc_teleport.can_only_teleport_to_one_ship": "Yalnızca tam olarak 1 gemiye ışınlanabilirsiniz",
+  "command.valkyrienskies.get_ship.success": "%s slug'ına sahip gemi bulundu",
+  "command.valkyrienskies.get_ship.fail": "Gemi bulunamadı",
+  "command.valkyrienskies.get_ship.only_usable_by_entities": "/vs get-ship yalnızca varlıklar tarafından çalıştırılabilir!",
+  "command.valkyrienskies.scale.success": "%d gemi ölçeklendirildi!",
+
+  "misc.valkyrienskies.create.deployer_working_mode": "Gemi Davranışı",
+  "misc.valkyrienskies.create.deployer_working_mode.original": "Geçerli gemiye yerleştir",
+  "misc.valkyrienskies.create.deployer_working_mode.in_world": "Dünyaya yerleştir"
+}

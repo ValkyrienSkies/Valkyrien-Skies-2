@@ -3,7 +3,6 @@ package org.valkyrienskies.mod.common.hooks
 import com.mojang.blaze3d.vertex.PoseStack
 import it.unimi.dsi.fastutil.objects.ObjectList
 import me.jellysquid.mods.sodium.client.render.chunk.ChunkRenderMatrices
-import me.jellysquid.mods.sodium.client.render.chunk.ChunkRenderer
 import me.jellysquid.mods.sodium.client.render.chunk.lists.SortedRenderLists
 import me.jellysquid.mods.sodium.client.render.chunk.terrain.TerrainRenderPass
 import net.minecraft.client.renderer.LevelRenderer
@@ -17,12 +16,23 @@ import org.valkyrienskies.core.api.ships.properties.ShipId
 import org.valkyrienskies.core.util.events.EventEmitterImpl
 import org.valkyrienskies.core.util.datastructures.DenseBlockPosSet
 import org.valkyrienskies.core.api.ships.Ship
-import javax.swing.text.html.parser.Entity
+import org.valkyrienskies.mod.common.config.ConfigType
 
 object VSGameEvents {
 
     val registriesCompleted = EventEmitterImpl<Unit>()
     val tagsAreLoaded = EventEmitterImpl<Unit>()
+
+    /** Emits a Set of config entries that were updated **/
+    val configUpdated = EventEmitterImpl<Set<ConfigUpdateEntry>>()
+
+    data class ConfigUpdateEntry(
+        val configType: ConfigType,
+        val category: List<String>,
+        val name: String
+    ) {
+        val path: String get() = (category + name).joinToString(".")
+    }
 
     val renderShip = EventEmitterImpl<ShipRenderEvent>()
     val postRenderShip = EventEmitterImpl<ShipRenderEvent>()

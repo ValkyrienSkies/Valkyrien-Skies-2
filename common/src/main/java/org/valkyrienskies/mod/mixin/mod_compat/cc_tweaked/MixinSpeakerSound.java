@@ -9,9 +9,7 @@ import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.Unique;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.client.audio.VelocityTickableSoundInstance;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
@@ -20,8 +18,6 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 public abstract class MixinSpeakerSound extends AbstractSoundInstance implements VelocityTickableSoundInstance {
     @Unique
     private Vector3dc position = null;
-    @Unique
-    private Vector3dc lastPosition = null;
     @Unique
     private Vector3dc velocity = new Vector3d();
 
@@ -49,12 +45,16 @@ public abstract class MixinSpeakerSound extends AbstractSoundInstance implements
         return this.velocity;
     }
 
-    @Inject(method = "tick", at = @At("RETURN"))
-    public void tick(final CallbackInfo ci) {
-        this.position = VSGameUtilsKt.toWorldCoordinates(Minecraft.getInstance().level, new Vector3d(this.x, this.y, this.z));
-        if (this.lastPosition != null) {
-            this.velocity = this.position.sub(this.lastPosition, new Vector3d());
+    @Override
+    public void updateVelocity() {
+        final Vector3d newPosition = new Vector3d(this.x, this.y, this.z);
+        final ClientShip ship = VSGameUtilsKt.getLoadedShipManagingPos(Minecraft.getInstance().level, this.x, this.y, this.z);
+        if (ship != null) {
+            ship.getRenderTransform().getShipToWorld().transformPosition(newPosition);
         }
-        this.lastPosition = this.position;
+        if (this.position != null) {
+            this.velocity = newPosition.sub(this.position, new Vector3d());
+        }
+        this.position = newPosition;
     }
 }

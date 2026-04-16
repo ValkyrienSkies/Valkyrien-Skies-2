@@ -1,0 +1,39 @@
+[
+  {
+    "block": "minecraft:light",
+    "mass": 0.1
+  },
+  {
+    "block": "minecraft:barrier",
+    "mass": 0.1
+  },
+  {
+    "block": "minecraft:command_block",
+    "mass": 0.1
+  },
+  {
+    "block": "minecraft:chain_command_block",
+    "mass": 0.1
+  },
+  {
+    "block": "minecraft:repeating_command_block",
+    "mass": 0.1
+  },
+  {
+    "block": "minecraft:structure_block",
+    "mass": 0.1
+  },
+  {
+    "tag": "minecraft:fire",
+    "mass": 0.1
+  },
+  {
+    "tag": "minecraft:portals",
+    "mass": 0.1
+  },
+  {
+    "block": "minecraft:bedrock",
+    "mass": 3000.0,
+    "friction": 0.8
+  }
+]

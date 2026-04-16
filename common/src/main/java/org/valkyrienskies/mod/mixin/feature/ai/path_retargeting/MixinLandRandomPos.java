@@ -33,12 +33,15 @@ public class MixinLandRandomPos {
     @Inject(
         method = "generateRandomPosTowardDirection",
         at = @At(
-            value = "HEAD"
+            value = "TAIL"
         ),
         cancellable = true
     )
     private static void postGenerateRandomPosTowardDirection(PathfinderMob pathfinderMob, int i, boolean bl,
         BlockPos blockPos, CallbackInfoReturnable<BlockPos> cir) {
+        if (cir.getReturnValue() != null) {
+            return;
+        }
         if (pathfinderMob.level() != null) {
             final BlockPos blockPos3 = RandomPos.generateRandomPosTowardDirection(pathfinderMob, i, pathfinderMob.getRandom(), blockPos);
             AABB checker = new AABB(blockPos3);
@@ -70,9 +73,12 @@ public class MixinLandRandomPos {
         return null;
     }
 
-    @Inject(method = "getPos(Lnet/minecraft/world/entity/PathfinderMob;IILjava/util/function/ToDoubleFunction;)Lnet/minecraft/world/phys/Vec3;", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "getPos(Lnet/minecraft/world/entity/PathfinderMob;IILjava/util/function/ToDoubleFunction;)Lnet/minecraft/world/phys/Vec3;", at = @At("TAIL"), cancellable = true)
     private static void preGetPos(PathfinderMob pathfinderMob, int i, int j,
         ToDoubleFunction<BlockPos> toDoubleFunction, CallbackInfoReturnable<Vec3> cir) {
+        if (cir.getReturnValue() != null) {
+            return;
+        }
         boolean bl = GoalUtils.mobRestricted(pathfinderMob, i);
         Vec3 randomPos = RandomPos.generateRandomPos(() -> {
             BlockPos blockPos = RandomPos.generateRandomDirection(pathfinderMob.getRandom(), i, j);

@@ -1,0 +1,37 @@
+[
+  {
+    "block": "minecraft:spruce_log",
+    "mass": 800.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:spruce_wood",
+    "mass": 800.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:stripped_spruce_log",
+    "mass": 800.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:stripped_spruce_wood",
+    "mass": 800.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:spruce_planks",
+    "mass": 500.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:spruce_stairs",
+    "mass": 375.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:spruce_slab",
+    "mass": 250.0,
+    "friction": 0.5
+  }
+]

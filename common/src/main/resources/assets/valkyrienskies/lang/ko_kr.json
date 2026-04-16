@@ -1,17 +1,31 @@
 {
+  "itemGroup.valkyrienSkies": "Valkyrien Skies",
+
+  "tooltip.valkyrienskies.mass": "질량",
+  "category.valkyrienskies.driving": "운전",
   "key.valkyrienskies.ship_cruise": "크루즈",
   "key.valkyrienskies.ship_down": "하강",
-  "category.valkyrienskies.driving": "운전",
+
   "block.valkyrienskies.test_chair": "디버그 의자",
   "block.valkyrienskies.test_hinge": "디버그 힌지",
   "block.valkyrienskies.test_flap": "디버그 플랩",
   "block.valkyrienskies.test_wing": "디버그 날개",
+  "block.valkyrienskies.test_sphere": "디버그 구체",
+  "block.valkyrienskies.test_thruster": "디버그 스러스터",
+
   "item.valkyrienskies.ship_creator": "선박 생성기",
   "item.valkyrienskies.ship_creator_smaller": "소형 선박 생성기",
+  "item.valkyrienskies.ship_assembler": "선박 조립기",
+  "item.valkyrienskies.area_assembler": "영역 조립기",
+  "item.valkyrienskies.connection_checker": "연결 검사기",
   "item.valkyrienskies.physics_entity_creator": "물리 엔티티 생성기",
+  "entity.valkyrienskies.vs_physics_entity": "물리 엔티티",
+
   "argument.valkyrienskies.ship.no_found": "선박을 찾을 수 없음",
   "argument.valkyrienskies.ship.multiple_found": "여러 선박을 찾음",
   "command.valkyrienskies.delete.success": "%d척의 선박을 삭제했습니다!",
+  "command.valkyrienskies.remass.success": "%d개의 선박의 질량을 재계산했습니다!",
+  "command.valkyrienskies.remass.fail": "%s의 질량 재계산에 실패했습니다!",
   "command.valkyrienskies.set_static.success": "%d척의 선박을 is-static=%s로 설정했습니다!",
   "command.valkyrienskies.teleport.success": "%d척의 선박을 %s(으)로 이동했습니다!",
   "command.valkyrienskies.teleport.multiple_ship_success": "%d척의 선박을 이동했습니다!",
@@ -19,7 +33,9 @@
   "command.valkyrienskies.get_ship.success": "슬러그가 %s인 선박을 찾았습니다",
   "command.valkyrienskies.get_ship.fail": "선박을 찾을 수 없습니다",
   "command.valkyrienskies.get_ship.only_usable_by_entities": "/vs get-ship은 엔티티에 의해서만 실행될 수 있습니다!",
-  "tooltip.valkyrienskies.mass": "질량",
   "command.valkyrienskies.scale.success": "%d척의 선박을 크기를 조절했습니다!",
-  "itemGroup.valkyrienSkies": "Valkyrien Skies"
+
+  "misc.valkyrienskies.create.deployer_working_mode": "선박 동작 방식",
+  "misc.valkyrienskies.create.deployer_working_mode.original": "현재 선박에 배치",
+  "misc.valkyrienskies.create.deployer_working_mode.in_world": "월드에 배치"
 }

@@ -99,7 +99,7 @@ public abstract class MixinChunkMap {
 
         playersWatchingShipChunk.forEachRemaining(
             iPlayer -> {
-                final MinecraftPlayer minecraftPlayer = (MinecraftPlayer) iPlayer;
+                if (!(iPlayer instanceof MinecraftPlayer minecraftPlayer)) return;
                 final ServerPlayer playerEntity =
                     (ServerPlayer) minecraftPlayer.getPlayerEntityReference().get();
                 if (playerEntity != null) {

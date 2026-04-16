@@ -32,14 +32,21 @@ public abstract class MixinPollinateGoal {
     @Unique
     private BlockPos modifiedBeePosition = field_20377.blockPosition();
 
-    @Inject(method = "findNearbyFlower", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "findNearbyFlower", at = @At("RETURN"), cancellable = true)
     private void preFindNearbyFlower(CallbackInfoReturnable<Optional<BlockPos>> cir) {
-        Optional<BlockPos> res = VSGameUtilsKt.transformToNearbyShipsAndWorld(this.field_20377.level(), modifiedBeePosition.getX(), modifiedBeePosition.getY(), modifiedBeePosition.getZ(), 5.0).stream().flatMap(pos -> {
-            this.modifiedBeePosition = BlockPos.containing(pos.x, pos.y, pos.z);
-            return findNearestBlock(VALID_POLLINATION_BLOCKS, 5.0).stream();
-        }).min(Comparator.comparingDouble(pos -> VSGameUtilsKt.squaredDistanceBetweenInclShips(this.field_20377.level(), modifiedBeePosition.getX(), modifiedBeePosition.getY(), modifiedBeePosition.getZ(), pos.getX(), pos.getY(), pos.getZ())));
-        modifiedBeePosition = field_20377.blockPosition();
-        cir.setReturnValue(res);
+        if (cir.getReturnValue().isEmpty()) {
+            Optional<BlockPos> res =
+                VSGameUtilsKt.transformToNearbyShipsAndWorld(this.field_20377.level(), field_20377.blockPosition().getX(),
+                    field_20377.blockPosition().getY(), field_20377.blockPosition().getZ(), 5.0).stream().flatMap(pos -> {
+                    this.modifiedBeePosition = BlockPos.containing(pos.x, pos.y, pos.z);
+                    return findNearestBlock(VALID_POLLINATION_BLOCKS, 5.0).stream();
+                }).min(Comparator.comparingDouble(
+                    pos -> VSGameUtilsKt.squaredDistanceBetweenInclShips(this.field_20377.level(),
+                        modifiedBeePosition.getX(), modifiedBeePosition.getY(), modifiedBeePosition.getZ(), pos.getX(),
+                        pos.getY(), pos.getZ())));
+            modifiedBeePosition = field_20377.blockPosition();
+            cir.setReturnValue(res);
+        }
     }
 
     @WrapOperation(method = "findNearestBlock", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/animal/Bee;blockPosition()Lnet/minecraft/core/BlockPos;"))

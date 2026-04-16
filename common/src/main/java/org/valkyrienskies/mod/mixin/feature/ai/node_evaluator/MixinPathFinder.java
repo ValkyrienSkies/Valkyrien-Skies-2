@@ -35,6 +35,6 @@ public class MixinPathFinder {
         return original.call(instance, Collectors.<BlockPos, Target, BlockPos>toMap(blockPos ->  {
             BlockPos transformedPos = BlockPos.containing(VSGameUtilsKt.toWorldCoordinates(mob.level(), blockPos));
             return this.nodeEvaluator.getGoal(transformedPos.getX(), transformedPos.getY(), transformedPos.getZ());
-        }, Function.identity()));
+        }, Function.identity(), (last, second) -> second));
     }
 }

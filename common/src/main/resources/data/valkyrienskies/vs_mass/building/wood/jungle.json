@@ -1,0 +1,37 @@
+[
+  {
+    "block": "minecraft:jungle_log",
+    "mass": 800.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:jungle_wood",
+    "mass": 800.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:stripped_jungle_log",
+    "mass": 800.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:stripped_jungle_wood",
+    "mass": 800.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:jungle_planks",
+    "mass": 500.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:jungle_stairs",
+    "mass": 375.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:jungle_slab",
+    "mass": 250.0,
+    "friction": 0.5
+  }
+]

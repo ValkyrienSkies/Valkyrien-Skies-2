@@ -1,0 +1,40 @@
+{
+  "itemGroup.valkyrienSkies": "Valkyrien Skies",
+
+  "tooltip.valkyrienskies.mass": "Massa",  
+  "category.valkyrienskies.driving": "Ajaminen",  
+  "key.valkyrienskies.ship_cruise": "Risteily",
+  "key.valkyrienskies.ship_down": "Laskeudu",
+
+  "block.valkyrienskies.test_chair": "Debug-tuoli",
+  "block.valkyrienskies.test_hinge": "Debug-sarana",
+  "block.valkyrienskies.test_flap": "Debug-läppä",
+  "block.valkyrienskies.test_wing": "Debug-siipi",
+  "block.valkyrienskies.test_sphere": "Debug-pallo",
+  "block.valkyrienskies.test_thruster": "Debug-työntölaite",
+  "item.valkyrienskies.ship_creator": "Aluksen Luoja",
+  "item.valkyrienskies.ship_creator_smaller": "Mini-aluksen Luoja",
+  "item.valkyrienskies.ship_assembler": "Aluksen Kokoaja",
+  "item.valkyrienskies.area_assembler": "Alueen Kokoaja",
+  "item.valkyrienskies.connection_checker": "Yhteyden Tarkistin",
+  "item.valkyrienskies.physics_entity_creator": "Fysiikkaolion Luoja",
+  "entity.valkyrienskies.vs_physics_entity": "Fysiikkaolio",
+
+  "argument.valkyrienskies.ship.no_found": "Alusta ei löytynyt",
+  "argument.valkyrienskies.ship.multiple_found": "Useita aluksia löytyi",
+  "command.valkyrienskies.delete.success": "Poistettu %d alusta!",
+  "command.valkyrienskies.remass.success": "Laskettiin massat uudelleen %d alukselle!",
+  "command.valkyrienskies.remass.fail": "Massan uudelleenlaskenta epäonnistui alukselle %s!",
+  "command.valkyrienskies.set_static.success": "Asetettiin %d alusta tilaan is-static=%s!",
+  "command.valkyrienskies.teleport.success": "Teleportattiin %d alusta kohteeseen %s!",
+  "command.valkyrienskies.teleport.multiple_ship_success": "Teleportattiin %d alusta!",
+  "command.valkyrienskies.mc_teleport.can_only_teleport_to_one_ship": "Voi teleportata vain tarkalleen yhteen alukseen",
+  "command.valkyrienskies.get_ship.success": "Löydettiin alus tunnisteella %s",
+  "command.valkyrienskies.get_ship.fail": "Alusta ei löytynyt",
+  "command.valkyrienskies.get_ship.only_usable_by_entities": "/vs get-ship voidaan suorittaa vain entiteeteiltä!",
+  "command.valkyrienskies.scale.success": "Skaalattiin %d alusta!",
+
+  "misc.valkyrienskies.create.deployer_working_mode": "Aluksen Käyttäytyminen",
+  "misc.valkyrienskies.create.deployer_working_mode.original": "Aseta nykyiselle alukselle",
+  "misc.valkyrienskies.create.deployer_working_mode.in_world": "Aseta maailmaan"
+}

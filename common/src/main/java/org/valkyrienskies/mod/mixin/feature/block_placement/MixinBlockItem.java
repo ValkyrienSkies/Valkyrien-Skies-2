@@ -38,9 +38,8 @@ public abstract class MixinBlockItem {
         final Operation<BlockState> original, final BlockPlaceContext ctx
     ) {
         if (ctx == null || ctx.getPlayer() == null) {
-            return null;
+            return original.call(this, ctx);
         }
-
         return PlayerUtil.transformPlayerTemporarily(
             ctx.getPlayer(),
             ctx.getLevel(),

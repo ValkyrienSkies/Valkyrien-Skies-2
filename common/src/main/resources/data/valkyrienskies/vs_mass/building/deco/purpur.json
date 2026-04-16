@@ -1,0 +1,22 @@
+[
+  {
+    "block": "minecraft:purpur_block",
+    "mass": 100.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:purpur_pillar",
+    "mass": 100.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:purpur_stairs",
+    "mass": 75.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:purpur_slab",
+    "mass": 50.0,
+    "friction": 0.6
+  }
+]

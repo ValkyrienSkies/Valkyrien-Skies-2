@@ -104,7 +104,7 @@ public abstract class MixinMinecraft
 
     @Inject(
         method = "tick",
-        at = @At("TAIL")
+        at = @At("RETURN")
     )
     public void postTick(final CallbackInfo ci) {
         // Tick the ship world and then drag entities

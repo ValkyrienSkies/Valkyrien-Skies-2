@@ -30,6 +30,7 @@ import org.spongepowered.asm.mixin.injection.Slice;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 
 @Mixin(Entity.class)
 public abstract class MixinEntity {
@@ -143,9 +144,11 @@ public abstract class MixinEntity {
         valkyrienskies$fluidPushNumber = numberPush;
         valkyrienskies$fluidPushRet = bl2;
         valkyrienskies$fluidPushVec = instance;
-        VSGameUtilsKt.transformFromWorldToNearbyShipsAndWorld(level, aabb, (shipAabb) -> {
+        IEntityDraggingInformationProvider provider = (IEntityDraggingInformationProvider) (Object) this;
+        boolean sealed = provider.vs$isInSealedArea();
+        VSGameUtilsKt.transformFromWorldToNearbyShips(level, aabb, (shipAabb) -> {
             valkyrienskies$fluidPushAABB = shipAabb; // enable ship context
-            valkyrienskies$fluidPushRet = valkyrienskies$fluidPushRet || this.updateFluidHeightAndDoFluidPushing(tagKey, d);
+            valkyrienskies$fluidPushRet = valkyrienskies$fluidPushRet || (this.updateFluidHeightAndDoFluidPushing(tagKey, d) && !sealed);
             //recall in the ship context
         });
         valkyrienskies$fluidPushAABB = null; //disable ship context

@@ -1,0 +1,31 @@
+[
+  {
+    "block": "minecraft:iron_block",
+    "mass": 7850.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:iron_bars",
+    "mass": 250.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:iron_door",
+    "mass": 750.0,
+    "friction": 0.35
+  },
+  {
+    "block": "minecraft:iron_trapdoor",
+    "mass": 1000.0,
+    "friction": 0.35
+  },
+  {
+    "block": "minecraft:heavy_weighted_pressure_plate",
+    "mass": 500.0
+  },
+  {
+    "block": "minecraft:chain",
+    "mass": 50.0,
+    "friction": 0.7
+  }
+]

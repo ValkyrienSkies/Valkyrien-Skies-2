@@ -1,0 +1,116 @@
+[
+  {
+    "block": "minecraft:beacon",
+    "mass": 4000.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:conduit",
+    "mass": 750.0
+  },
+  {
+    "block": "minecraft:lodestone",
+    "mass": 4450.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:ladder",
+    "mass": 50.0
+  },
+  {
+    "block": "minecraft:scaffolding",
+    "mass": 50.0
+  },
+  {
+    "block": "minecraft:bee_nest",
+    "mass": 400.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:beehive",
+    "mass": 400.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:suspicious_sand",
+    "mass": 1600.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:suspicious_gravel",
+    "mass": 1600.0,
+    "friction": 0.7
+  },
+  {
+    "block": "minecraft:ender_chest",
+    "mass": 1000.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:respawn_anchor",
+    "mass": 2000.0,
+    "friction": 0.7
+  },
+  {
+    "block": "minecraft:infested_stone",
+    "mass": 2750.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:infested_cobblestone",
+    "mass": 2750.0,
+    "friction": 0.8
+  },
+  {
+    "block": "minecraft:infested_stone_bricks",
+    "mass": 2750.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:infested_mossy_stone_bricks",
+    "mass": 2750.0,
+    "friction": 0.3
+  },
+  {
+    "block": "minecraft:infested_cracked_stone_bricks",
+    "mass": 2750.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:infested_chiseled_stone_bricks",
+    "mass": 2750.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:infested_deepslate",
+    "mass": 3050.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:end_portal_frame",
+    "mass": 3000.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:cake",
+    "mass": 50.0,
+    "friction": 0.1
+  },
+  {
+    "block": "minecraft:sponge",
+    "mass": 150.0,
+    "friction": 0.6,
+    "elasticity": 0.2
+  },
+  {
+    "block": "minecraft:wet_sponge",
+    "mass": 1150.0,
+    "friction": 0.3,
+    "elasticity": 0.6
+  },
+  {
+    "block": "minecraft:cobweb",
+    "mass": 0.1,
+    "friction": 1.0
+  }
+]

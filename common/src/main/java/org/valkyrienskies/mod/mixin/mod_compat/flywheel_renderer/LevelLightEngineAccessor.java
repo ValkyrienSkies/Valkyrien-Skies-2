@@ -13,4 +13,7 @@ public interface LevelLightEngineAccessor {
 
     @Accessor("blockEngine")
     LightEngine<?, ?> getBlockLightEngine();
+
+    @Accessor("skyEngine")
+    LightEngine<?, ?> getSkyLightEngine();
 }

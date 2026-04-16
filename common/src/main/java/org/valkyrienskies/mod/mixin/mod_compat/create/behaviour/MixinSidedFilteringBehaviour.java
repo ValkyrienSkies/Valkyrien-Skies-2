@@ -6,6 +6,8 @@ import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.valkyrienskies.core.api.bodies.properties.BodyTransform;
+import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
@@ -29,9 +31,17 @@ public class MixinSidedFilteringBehaviour {
             Ship ship1 = VSGameUtilsKt.getShipManagingPos(level, pos1.x, pos1.y, pos1.z);
             Ship ship2 = VSGameUtilsKt.getShipManagingPos(level, pos2.x, pos2.y, pos2.z);
             if (ship1 != null && ship2 == null) {
-                pos2 = VectorConversionsMCKt.toMinecraft(ship1.getWorldToShip().transformPosition(VectorConversionsMCKt.toJOML(pos2)));
+                BodyTransform transform = ship1 instanceof ClientShip cs ?
+                    cs.getRenderTransform() : ship1.getTransform();
+                pos2 = VectorConversionsMCKt.toMinecraft(
+                    transform.getToModel().transformPosition(VectorConversionsMCKt.toJOML(pos2))
+                );
             } else if (ship1 == null && ship2 != null) {
-                pos1 = VectorConversionsMCKt.toMinecraft(ship2.getWorldToShip().transformPosition(VectorConversionsMCKt.toJOML(pos1)));
+                BodyTransform transform = ship2 instanceof ClientShip cs ?
+                    cs.getRenderTransform() : ship2.getTransform();
+                pos1 = VectorConversionsMCKt.toMinecraft(
+                    transform.getToModel().transformPosition(VectorConversionsMCKt.toJOML(pos1))
+                );
             }
         }
         return pos1.subtract(pos2);

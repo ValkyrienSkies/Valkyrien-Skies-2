@@ -18,7 +18,9 @@ public class MixinCarriageSounds {
             value = "INVOKE", target = "Lcom/simibubi/create/content/trains/entity/Carriage$DimensionalCarriageEntity;leadingAnchor()Lnet/minecraft/world/phys/Vec3;")
     )
     private Vec3 leadingToWorldSpace(DimensionalCarriageEntity carriage, Operation<Vec3> original) {
-        return VSGameUtilsKt.toWorldCoordinates(Minecraft.getInstance().level, original.call(carriage));
+        Vec3 anchor = original.call(carriage);
+        if (anchor == null) return null;
+        return VSGameUtilsKt.toWorldCoordinates(Minecraft.getInstance().level, anchor);
     }
 
     @WrapOperation(
@@ -27,6 +29,8 @@ public class MixinCarriageSounds {
             value = "INVOKE", target = "Lcom/simibubi/create/content/trains/entity/Carriage$DimensionalCarriageEntity;trailingAnchor()Lnet/minecraft/world/phys/Vec3;")
     )
     private Vec3 trailingToWorldSpace(DimensionalCarriageEntity carriage, Operation<Vec3> original) {
-        return VSGameUtilsKt.toWorldCoordinates(Minecraft.getInstance().level, original.call(carriage));
+        Vec3 anchor = original.call(carriage);
+        if (anchor == null) return null;
+        return VSGameUtilsKt.toWorldCoordinates(Minecraft.getInstance().level, anchor);
     }
 }

@@ -1,0 +1,102 @@
+[
+  {
+    "block": "minecraft:sandstone",
+    "mass": 2400.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:sandstone_stairs",
+    "mass": 1800.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:sandstone_slab",
+    "mass": 1200.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:sandstone_wall",
+    "mass": 1200.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:chiseled_sandstone",
+    "mass": 2400.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:smooth_sandstone",
+    "mass": 2400.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:smooth_sandstone_stairs",
+    "mass": 1800.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:smooth_sandstone_slab",
+    "mass": 1200.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:cut_sandstone",
+    "mass": 2400.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:cut_sandstone_slab",
+    "mass": 1200.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:red_sandstone",
+    "mass": 2400.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:red_sandstone_stairs",
+    "mass": 1800.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:red_sandstone_slab",
+    "mass": 1200.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:red_sandstone_wall",
+    "mass": 1200.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:chiseled_red_sandstone",
+    "mass": 2400.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:smooth_red_sandstone",
+    "mass": 2400.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:smooth_red_sandstone_stairs",
+    "mass": 1800.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:smooth_red_sandstone_slab",
+    "mass": 1200.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:cut_red_sandstone",
+    "mass": 2400.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:cut_red_sandstone_slab",
+    "mass": 1200.0,
+    "friction": 0.6
+  }
+]

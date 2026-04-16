@@ -18,10 +18,13 @@ import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(AirAndWaterRandomPos.class)
 public class MixinAirAndWaterRandomPos {
-    @Inject(method = "generateRandomPos", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/ai/util/GoalUtils;isOutsideLimits(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/entity/PathfinderMob;)Z"),
+    @Inject(method = "generateRandomPos", at = @At(value = "TAIL"),
         cancellable = true)
     private static void preGenerateRandomPos(PathfinderMob pathfinderMob, int i, int j, int k, double d, double e,
         double f, boolean bl, CallbackInfoReturnable<BlockPos> cir, @Local(ordinal = 1) BlockPos blockPos2) {
+        if (cir.getReturnValue() != null) {
+            return;
+        }
         if (pathfinderMob.level() != null) {
             if (blockPos2 == null) {
                 return;

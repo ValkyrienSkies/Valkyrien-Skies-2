@@ -1,0 +1,27 @@
+[
+  {
+    "block": "minecraft:end_stone",
+    "mass": 1000.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:end_stone_bricks",
+    "mass": 1000.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:end_stone_brick_stairs",
+    "mass": 750.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:end_stone_brick_slab",
+    "mass": 500.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:end_stone_brick_wall",
+    "mass": 500.0,
+    "friction": 0.5
+  }
+]

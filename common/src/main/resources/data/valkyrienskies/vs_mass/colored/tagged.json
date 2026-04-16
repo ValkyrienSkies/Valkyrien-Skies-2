@@ -1,0 +1,34 @@
+[
+  {
+    "tag": "minecraft:wool",
+    "mass": 500.0,
+    "friction": 0.6,
+    "elasticity": 0.5
+  },
+  {
+    "tag": "minecraft:carpets",
+    "mass": 20.0,
+    "friction": 0.6,
+    "elasticity": 0.05
+  },
+  {
+    "tag": "minecraft:terracotta",
+    "mass": 2000.0,
+    "friction": 0.6
+  },
+  {
+    "tag": "minecraft:shulker_boxes",
+    "mass": 500.0,
+    "friction": 0.1
+  },
+  {
+    "tag": "minecraft:beds",
+    "mass": 250.0,
+    "friction": 0.6,
+    "elasticity": 0.5
+  },
+  {
+    "tag": "minecraft:banners",
+    "mass": 30.0
+  }
+]

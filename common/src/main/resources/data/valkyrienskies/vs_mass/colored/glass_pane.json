@@ -1,0 +1,87 @@
+[
+  {
+    "block": "minecraft:glass_pane",
+    "mass": 250.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:white_stained_glass_pane",
+    "mass": 250.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:orange_stained_glass_pane",
+    "mass": 250.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:magenta_stained_glass_pane",
+    "mass": 250.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:light_blue_stained_glass_pane",
+    "mass": 250.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:yellow_stained_glass_pane",
+    "mass": 250.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:lime_stained_glass_pane",
+    "mass": 250.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:pink_stained_glass_pane",
+    "mass": 250.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:gray_stained_glass_pane",
+    "mass": 250.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:light_gray_stained_glass_pane",
+    "mass": 250.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:cyan_stained_glass_pane",
+    "mass": 250.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:purple_stained_glass_pane",
+    "mass": 250.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:blue_stained_glass_pane",
+    "mass": 250.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:brown_stained_glass_pane",
+    "mass": 250.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:green_stained_glass_pane",
+    "mass": 250.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:red_stained_glass_pane",
+    "mass": 250.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:black_stained_glass_pane",
+    "mass": 250.0,
+    "friction": 0.2
+  }
+]

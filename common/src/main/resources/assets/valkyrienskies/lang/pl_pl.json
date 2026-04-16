@@ -1,0 +1,40 @@
+{
+  "itemGroup.valkyrienSkies": "Valkyrien Skies",
+
+  "tooltip.valkyrienskies.mass": "Masa",
+  "category.valkyrienskies.driving": "Sterowanie",
+  "key.valkyrienskies.ship_cruise": "Wznoszenie",
+  "key.valkyrienskies.ship_down": "Opadanie",
+
+  "block.valkyrienskies.test_chair": "Krzesło Debugowe",
+  "block.valkyrienskies.test_hinge": "Zawias Debugowy",
+  "block.valkyrienskies.test_flap": "Klapa Debugowa",
+  "block.valkyrienskies.test_wing": "Skrzydło Debugowe",
+  "block.valkyrienskies.test_sphere": "Sfera Debugowa",
+  "block.valkyrienskies.test_thruster": "Silnik Debugowy",
+  "item.valkyrienskies.ship_creator": "Kreator Statku",
+  "item.valkyrienskies.ship_creator_smaller": "Mini Kreator Statku",
+  "item.valkyrienskies.ship_assembler": "Konstruktor Statku",
+  "item.valkyrienskies.area_assembler": "Konstruktor Obszaru",
+  "item.valkyrienskies.connection_checker": "Sprawdzacz Połączeń",
+  "item.valkyrienskies.physics_entity_creator": "Kreator Bytu Fizycznego",
+  "entity.valkyrienskies.vs_physics_entity": "Byt Fizyczny",
+
+  "argument.valkyrienskies.ship.no_found": "Nie znaleziono statku",
+  "argument.valkyrienskies.ship.multiple_found": "Znaleziono wiele statków",
+  "command.valkyrienskies.delete.success": "Usunięto %d statków!",
+  "command.valkyrienskies.remass.success": "Przeliczono masy dla %d statków!",
+  "command.valkyrienskies.remass.fail": "Nie udało się przeliczyć masy dla %s!",
+  "command.valkyrienskies.set_static.success": "Ustawiono %d statków jako is-static=%s!",
+  "command.valkyrienskies.teleport.success": "Przeteleportowano %d statków do %s!",
+  "command.valkyrienskies.teleport.multiple_ship_success": "Przeteleportowano %d statków!",
+  "command.valkyrienskies.mc_teleport.can_only_teleport_to_one_ship": "Można teleportować się tylko do dokładnie 1 statku",
+  "command.valkyrienskies.get_ship.success": "Znaleziono statek o nazwie %s",
+  "command.valkyrienskies.get_ship.fail": "Nie znaleziono statku",
+  "command.valkyrienskies.get_ship.only_usable_by_entities": "/vs get-ship może być uruchomione tylko przez byty!",
+  "command.valkyrienskies.scale.success": "Zmieniono skalę %d statków!",
+
+  "misc.valkyrienskies.create.deployer_working_mode": "Zachowanie Statku",
+  "misc.valkyrienskies.create.deployer_working_mode.original": "Umieść na aktualnym statku",
+  "misc.valkyrienskies.create.deployer_working_mode.in_world": "Umieść w świecie"
+}

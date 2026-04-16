@@ -18,15 +18,35 @@ import org.valkyrienskies.mod.common.CompatUtil;
 
 @Mixin(SchematicannonRenderer.class)
 public abstract class MixinSchematicannonRenderer {
+
+    // This is somehow broken on forge?? So we need a remap=false (for forge) AND a remap=true (for fabric) variant
     @ModifyExpressionValue(
         method = "getCannonAngles",
         at = @At(
             value = "FIELD",
             target = "Lcom/simibubi/create/content/schematics/cannon/SchematicannonBlockEntity;previousTarget:Lnet/minecraft/core/BlockPos;"
         ),
+        require = 0,
         remap = false
     )
-    private static BlockPos transformPreviousTarget(
+    private static BlockPos transformPreviousTargetForge(
+        BlockPos original,
+        @Local(argsOnly = true) SchematicannonBlockEntity blockEntity, @Local(argsOnly = true) BlockPos blockPos
+    ) {
+        return original != null ? BlockPos.containing(
+            CompatUtil.INSTANCE.toSameSpaceAs(blockEntity.getLevel(), original.getCenter(), blockPos)
+        ) : null;
+    }
+
+    @ModifyExpressionValue(
+        method = "getCannonAngles",
+        at = @At(
+            value = "FIELD",
+            target = "Lcom/simibubi/create/content/schematics/cannon/SchematicannonBlockEntity;previousTarget:Lnet/minecraft/core/BlockPos;"
+        ),
+        require = 0
+    )
+    private static BlockPos transformPreviousTargetFabric(
         BlockPos original,
         @Local(argsOnly = true) SchematicannonBlockEntity blockEntity, @Local(argsOnly = true) BlockPos blockPos
     ) {

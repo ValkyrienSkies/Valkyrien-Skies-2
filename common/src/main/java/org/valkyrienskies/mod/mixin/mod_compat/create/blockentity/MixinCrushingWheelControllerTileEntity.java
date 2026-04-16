@@ -63,7 +63,6 @@ public abstract class MixinCrushingWheelControllerTileEntity extends SmartBlockE
 
     @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;setDeltaMovement(Lnet/minecraft/world/phys/Vec3;)V"))
     private void redirectSetDeltaMovement(Entity instance, Vec3 motion) {
-        LogUtils.getLogger().info("Motion is %.1f %.1f %.1f".formatted(motion.x ,motion.y, motion.z));
         Vec3 transformedDirection = directionShip2World(motion);
         instance.setDeltaMovement(transformedDirection);
     }
@@ -107,7 +106,6 @@ public abstract class MixinCrushingWheelControllerTileEntity extends SmartBlockE
         remap = false
     )
     private double doubleXMotion(double original) {
-        LogUtils.getLogger().info("X motion modified");
         return ((worldPosition.getX() + .5) - redirectEntityGetX(processingEntity)) / 2.0;
     }
 
@@ -119,7 +117,6 @@ public abstract class MixinCrushingWheelControllerTileEntity extends SmartBlockE
         remap = false
     )
     private double doubleZMotion(double original) {
-        LogUtils.getLogger().info("Z motion modified");
         return ((worldPosition.getZ() + .5) - redirectEntityGetZ(processingEntity)) / 2.0;
     }
 

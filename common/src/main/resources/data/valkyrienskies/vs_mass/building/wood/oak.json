@@ -1,0 +1,37 @@
+[
+  {
+    "block": "minecraft:oak_log",
+    "mass": 800.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:oak_wood",
+    "mass": 800.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:stripped_oak_log",
+    "mass": 800.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:stripped_oak_wood",
+    "mass": 800.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:oak_planks",
+    "mass": 500.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:oak_stairs",
+    "mass": 375.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:oak_slab",
+    "mass": 250.0,
+    "friction": 0.5
+  }
+]

@@ -1,0 +1,162 @@
+[
+  {
+    "block": "minecraft:copper_block",
+    "mass": 9000.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:cut_copper",
+    "mass": 2250.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:cut_copper_stairs",
+    "mass": 1687.5,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:cut_copper_slab",
+    "mass": 1125.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:exposed_copper",
+    "mass": 9000.0,
+    "friction": 0.25
+  },
+  {
+    "block": "minecraft:exposed_cut_copper",
+    "mass": 2250.0,
+    "friction": 0.25
+  },
+  {
+    "block": "minecraft:exposed_cut_copper_stairs",
+    "mass": 1687.5,
+    "friction": 0.25
+  },
+  {
+    "block": "minecraft:exposed_cut_copper_slab",
+    "mass": 1125.0,
+    "friction": 0.25
+  },
+  {
+    "block": "minecraft:weathered_copper",
+    "mass": 9000.0,
+    "friction": 0.3
+  },
+  {
+    "block": "minecraft:weathered_cut_copper",
+    "mass": 2250.0,
+    "friction": 0.3
+  },
+  {
+    "block": "minecraft:weathered_cut_copper_stairs",
+    "mass": 1687.5,
+    "friction": 0.3
+  },
+  {
+    "block": "minecraft:weathered_cut_copper_slab",
+    "mass": 1125.0,
+    "friction": 0.3
+  },
+  {
+    "block": "minecraft:oxidized_copper",
+    "mass": 9000.0,
+    "friction": 0.35
+  },
+  {
+    "block": "minecraft:oxidized_cut_copper",
+    "mass": 2250.0,
+    "friction": 0.35
+  },
+  {
+    "block": "minecraft:oxidized_cut_copper_stairs",
+    "mass": 1687.5,
+    "friction": 0.35
+  },
+  {
+    "block": "minecraft:oxidized_cut_copper_slab",
+    "mass": 1125.0,
+    "friction": 0.35
+  },
+  {
+    "block": "minecraft:waxed_copper_block",
+    "mass": 9000.0,
+    "friction": 0.15
+  },
+  {
+    "block": "minecraft:waxed_cut_copper",
+    "mass": 2250.0,
+    "friction": 0.15
+  },
+  {
+    "block": "minecraft:waxed_cut_copper_stairs",
+    "mass": 1687.5,
+    "friction": 0.15
+  },
+  {
+    "block": "minecraft:waxed_cut_copper_slab",
+    "mass": 1125.0,
+    "friction": 0.15
+  },
+  {
+    "block": "minecraft:waxed_exposed_copper",
+    "mass": 9000.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:waxed_exposed_cut_copper",
+    "mass": 2250.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:waxed_exposed_cut_copper_stairs",
+    "mass": 1687.5,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:waxed_exposed_cut_copper_slab",
+    "mass": 1125.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:waxed_weathered_copper",
+    "mass": 9000.0,
+    "friction": 0.25
+  },
+  {
+    "block": "minecraft:waxed_weathered_cut_copper",
+    "mass": 2250.0,
+    "friction": 0.25
+  },
+  {
+    "block": "minecraft:waxed_weathered_cut_copper_stairs",
+    "mass": 1687.5,
+    "friction": 0.25
+  },
+  {
+    "block": "minecraft:waxed_weathered_cut_copper_slab",
+    "mass": 1125.0,
+    "friction": 0.25
+  },
+  {
+    "block": "minecraft:waxed_oxidized_copper",
+    "mass": 9000.0,
+    "friction": 0.3
+  },
+  {
+    "block": "minecraft:waxed_oxidized_cut_copper",
+    "mass": 2250.0,
+    "friction": 0.3
+  },
+  {
+    "block": "minecraft:waxed_oxidized_cut_copper_stairs",
+    "mass": 1687.5,
+    "friction": 0.3
+  },
+  {
+    "block": "minecraft:waxed_oxidized_cut_copper_slab",
+    "mass": 1125.0,
+    "friction": 0.3
+  }
+]

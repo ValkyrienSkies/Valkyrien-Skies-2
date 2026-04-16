@@ -1,0 +1,158 @@
+[
+  {
+    "block": "simplest_compression:compressed_cobblestone",
+    "mass": 4800.0,
+    "friction": 0.8
+  },
+  {
+    "block": "simplest_compression:compressed_blackstone",
+    "mass": 7000.0,
+    "friction": 0.7
+  },
+  {
+    "block": "simplest_compression:compressed_cobbled_deepslate",
+    "mass": 5500.0,
+    "friction": 0.8
+  },
+  {
+    "block": "simplest_compression:compressed_basalt",
+    "mass": 6000.0,
+    "friction": 0.6
+  },
+  {
+    "block": "simplest_compression:compressed_calcite",
+    "mass": 5400.0,
+    "friction": 0.5
+  },
+  {
+    "block": "simplest_compression:compressed_clay",
+    "mass": 3000.0,
+    "friction": 0.4
+  },
+  {
+    "block": "simplest_compression:compressed_diorite",
+    "mass": 5000.0,
+    "friction": 0.6
+  },
+  {
+    "block": "simplest_compression:compressed_dirt",
+    "mass": 2500.0,
+    "friction": 0.6
+  },
+  {
+    "block": "simplest_compression:compressed_dripstone_block",
+    "mass": 5400.0,
+    "friction": 0.5
+  },
+  {
+    "block": "simplest_compression:compressed_end_stone",
+    "mass": 2000.0,
+    "friction": 0.6
+  },
+  {
+    "block": "simplest_compression:compressed_granite",
+    "mass": 5000.0,
+    "friction": 0.6
+  },
+  {
+    "block": "simplest_compression:compressed_gravel",
+    "mass": 3000.0,
+    "friction": 0.7
+  },
+  {
+    "block": "simplest_compression:compressed_netherrack",
+    "mass": 2000.0,
+    "friction": 0.4
+  },
+  {
+    "tag": "simplest_compression:compressed_sand",
+    "mass": 3000.0,
+    "friction": 0.4
+  },
+  {
+    "block": "simplest_compression:compressed_tuff",
+    "mass": 3600.0,
+    "friction": 0.7
+  },
+  {
+    "block": "simplest_compression:compressed_andesite",
+    "mass": 5000.0,
+    "friction": 0.6
+  },
+  {
+    "block": "simplest_compression:compressed_sandstone",
+    "mass": 4800.0,
+    "friction": 0.6
+  },
+  {
+    "block": "simplest_compression:compressed_red_sandstone",
+    "mass": 4800.0,
+    "friction": 0.6
+  },
+  {
+    "block": "simplest_compression:compressed_red_sand",
+    "mass": 3000.0,
+    "friction": 0.4
+  },
+  {
+    "block": "simplest_compression:compressed_deepslate",
+    "mass": 5800.0,
+    "friction": 0.5
+  },
+  {
+    "block": "simplest_compression:compressed_soul_sand",
+    "mass": 2000.0,
+    "friction": 0.9
+  },
+  {
+    "block": "simplest_compression:compressed_soul_soil",
+    "mass": 2000.0,
+    "friction": 0.8
+  },
+  {
+    "block": "simplest_compression:compressed_prismarine",
+    "mass": 4000.0,
+    "friction": 0.8
+  },
+  {
+    "block": "simplest_compression:compressed_snow_block",
+    "mass": 500.0,
+    "friction": 0.2
+  },
+  {
+    "block": "simplest_compression:compressed_stone",
+    "mass": 5000.0,
+    "friction": 0.6
+  },
+  {
+    "block": "simplest_compression:compressed_smooth_basalt",
+    "mass": 6000.0,
+    "friction": 0.5
+  },
+  {
+    "block": "simplest_compression:compressed_magma_block",
+    "mass": 6000.0,
+    "friction": 0.4
+  },
+  {
+    "block": "simplest_compression:compressed_obsidian",
+    "mass": 10000.0,
+    "friction": 0.8
+  },
+  {
+    "block": "simplest_compression:compressed_mud",
+    "mass": 2500.0,
+    "friction": 0.9
+  },
+  {
+    "block": "simplest_compression:compressed_packed_mud",
+    "mass": 3000.0,
+    "friction": 0.7
+  },
+  {
+    "block": "simplest_compression:compressed_moss_block",
+    "mass": 500.0,
+    "friction": 0.5,
+    "elasticity": 0.05
+  }
+]

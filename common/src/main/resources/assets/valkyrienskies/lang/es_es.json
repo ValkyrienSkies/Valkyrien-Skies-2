@@ -1,0 +1,40 @@
+{
+  "itemGroup.valkyrienSkies": "Valkyrien Skies",
+
+  "tooltip.valkyrienskies.mass": "Masa",
+  "category.valkyrienskies.driving": "Conducción",
+  "key.valkyrienskies.ship_cruise": "Crucero",
+  "key.valkyrienskies.ship_down": "Descender",
+
+  "block.valkyrienskies.test_chair": "Silla de Depuración",
+  "block.valkyrienskies.test_hinge": "Bisagra de Depuración",
+  "block.valkyrienskies.test_flap": "Aleta de Depuración",
+  "block.valkyrienskies.test_wing": "Ala de Depuración",
+  "block.valkyrienskies.test_sphere": "Esfera de Depuración",
+  "block.valkyrienskies.test_thruster": "Propulsor de Depuración",
+  "item.valkyrienskies.ship_creator": "Creador de Barcos",
+  "item.valkyrienskies.ship_creator_smaller": "Mini Creador de Barcos",
+  "item.valkyrienskies.ship_assembler": "Ensamblador de Barcos",
+  "item.valkyrienskies.area_assembler": "Ensamblador de Áreas",
+  "item.valkyrienskies.connection_checker": "Comprobador de Conexiones",
+  "item.valkyrienskies.physics_entity_creator": "Creador de Entidades Físicas",
+  "entity.valkyrienskies.vs_physics_entity": "Entidad Física",
+
+  "argument.valkyrienskies.ship.no_found": "Barco no encontrado",
+  "argument.valkyrienskies.ship.multiple_found": "Se encontraron múltiples barcos",
+  "command.valkyrienskies.delete.success": "¡Eliminados %d barcos!",
+  "command.valkyrienskies.remass.success": "¡Recalculadas las masas de %d barcos!",
+  "command.valkyrienskies.remass.fail": "¡No se pudo recalcular la masa de %s!",
+  "command.valkyrienskies.set_static.success": "¡Establecidos %d barcos como is-static=%s!",
+  "command.valkyrienskies.teleport.success": "¡Teletransportados %d barcos a %s!",
+  "command.valkyrienskies.teleport.multiple_ship_success": "¡Teletransportados %d barcos!",
+  "command.valkyrienskies.mc_teleport.can_only_teleport_to_one_ship": "Solo se puede teletransportar exactamente a 1 barco",
+  "command.valkyrienskies.get_ship.success": "Barco encontrado con identificador %s",
+  "command.valkyrienskies.get_ship.fail": "No se encontró ningún barco",
+  "command.valkyrienskies.get_ship.only_usable_by_entities": "/vs get-ship solo puede ser ejecutado por entidades",
+  "command.valkyrienskies.scale.success": "¡Escalados %d barcos!",
+
+  "misc.valkyrienskies.create.deployer_working_mode": "Comportamiento del Barco",
+  "misc.valkyrienskies.create.deployer_working_mode.original": "Colocar en el barco actual",
+  "misc.valkyrienskies.create.deployer_working_mode.in_world": "Colocar en el mundo"
+}

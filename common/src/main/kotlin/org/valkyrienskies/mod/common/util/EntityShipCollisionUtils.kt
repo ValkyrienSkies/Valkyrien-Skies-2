@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.common.util
 
 import net.minecraft.client.multiplayer.ClientLevel
+import net.minecraft.core.SectionPos
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.util.Mth
 import net.minecraft.world.entity.Entity
@@ -11,19 +12,76 @@ import net.minecraft.world.phys.Vec3
 import net.minecraft.world.phys.shapes.VoxelShape
 import org.joml.primitives.AABBd
 import org.joml.primitives.AABBdc
+import org.joml.primitives.AABBi
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.internal.collision.VsiConvexPolygonc
 import org.valkyrienskies.core.util.extend
+import org.valkyrienskies.core.util.toAABBd
+import org.valkyrienskies.core.api.ships.properties.ShipId
+import org.valkyrienskies.mod.common.allShips
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getLoadedShipManagingPos
-import org.valkyrienskies.mod.common.getShipsIntersecting
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.vsCore
+import org.valkyrienskies.mod.mixinducks.feature.tickets.PlayerKnownShipsDuck
 import org.valkyrienskies.mod.util.BugFixUtil
+import java.util.concurrent.ConcurrentHashMap
+import java.util.stream.Stream
 
 object EntityShipCollisionUtils {
 
+    /**
+     * Tracks recently-spawned ships by their ID and the tick they were created.
+     * Ships in this grace period are excluded from unloaded-ship collision checks
+     * to prevent freezing the player when a new ship is assembled nearby but its
+     * chunks haven't loaded yet.
+     */
+    private val recentlySpawnedShips = ConcurrentHashMap<ShipId, Long>()
+    private const val SPAWN_GRACE_PERIOD_TICKS = 100L // ~5 seconds
+
+    @JvmStatic
+    fun markShipAsRecentlySpawned(shipId: ShipId, currentTick: Long) {
+        recentlySpawnedShips[shipId] = currentTick
+    }
+
+    @JvmStatic
+    fun cleanupExpiredGracePeriods(currentTick: Long) {
+        recentlySpawnedShips.entries.removeIf { (_, spawnTick) ->
+            currentTick - spawnTick > SPAWN_GRACE_PERIOD_TICKS
+        }
+    }
+
+    @JvmStatic
+    fun isInSpawnGracePeriod(shipId: ShipId): Boolean {
+        return recentlySpawnedShips.containsKey(shipId)
+    }
+    private const val PARTICLE_COLLISION_BOX_EXPANSION = 0.00390625 //1.0 / 256.0
+
     private val collider = vsCore.entityPolygonCollider
+
+    private fun getShipyardChunkAABBAround(ship: Ship): AABBi {
+        val box = AABBi()
+        // Since we don't know how big the ship is vertically we'll just have to trust the shipAABB and add some margin of error.
+        val minY = (ship.shipAABB?.minY() ?: Mth.floor(ship.transform.position.y())) - 16
+        val maxY = (ship.shipAABB?.maxY() ?: Mth.ceil(ship.transform.position.y())) + 16
+        ship.activeChunksSet.forEach { x, z ->
+            val minX = SectionPos.sectionToBlockCoord(x)
+            val minZ = SectionPos.sectionToBlockCoord(z)
+            val maxX = SectionPos.sectionToBlockCoord(x, 15)
+            val maxZ = SectionPos.sectionToBlockCoord(z, 15)
+            box.union(minX, minY, minZ).union(maxX, maxY, maxZ)
+        }
+        return box
+    }
+
+    private fun getAllShipsIntersectingEvenIfNotYetFullyLoaded(level: Level, aabb: AABBd): Stream<Ship> {
+        // shipAABB and worldAABB are sometimes too small when ship was just loaded for the first time.
+        // To circumvent this, we use activeChunksSet to find a rougher bounding box which should always contain the entire ship.
+        return level.allShips.stream().filter { ship ->
+            ship.chunkClaimDimension == level.dimensionId &&
+            getShipyardChunkAABBAround(ship).toAABBd(AABBd()).transform(ship.shipToWorld).intersectsAABB(aabb)
+        }
+    }
 
     @JvmStatic
     fun isCollidingWithUnloadedShips(entity: Entity): Boolean {
@@ -35,8 +93,20 @@ object EntityShipCollisionUtils {
             }
 
             val aabb = entity.boundingBox.toJOML()
-            return level.getShipsIntersecting(aabb)
-                .all { ship ->
+            return getAllShipsIntersectingEvenIfNotYetFullyLoaded(level, aabb)
+                .allMatch { ship ->
+                    // Skip collision check for recently-spawned ships whose chunks are still
+                    // loading. Without this, spawning a new ship near a player would freeze
+                    // them because isCollidingWithUnloadedShips returns true (the new ship's
+                    // chunks haven't loaded yet), which cancels all entity movement.
+                    // This must be checked BEFORE vs_isKnownShip, because the player won't
+                    // know about a brand-new ship yet either.
+                    if (isInSpawnGracePeriod(ship.id)) {
+                        return@allMatch true // pretend it's loaded → don't block movement
+                    }
+                    if (entity is PlayerKnownShipsDuck && !entity.vs_isKnownShip(ship.id)) {
+                        return@allMatch false
+                    }
                     val aabbInShip = AABBd(aabb).transform(ship.worldToShip)
                     areAllChunksLoaded(ship, aabbInShip, level)
                 }
@@ -91,8 +161,14 @@ object EntityShipCollisionUtils {
             return movement
         }
 
+        val collisionBoundingBox = if (entity == null) {
+            entityBoundingBox.inflate(PARTICLE_COLLISION_BOX_EXPANSION)
+        } else {
+            entityBoundingBox
+        }
+
         val (newMovement, shipCollidingWith) = collider.adjustEntityMovementForPolygonCollisions(
-            movement.toJOML(), entityBoundingBox.toJOML(), stepHeight, collidingShipPolygons
+            movement.toJOML(), collisionBoundingBox.toJOML(), stepHeight, collidingShipPolygons
         )
         if (entity != null) {
             val standingOnShip = entity.level().getLoadedShipManagingPos(entity.onPos)

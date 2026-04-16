@@ -14,7 +14,7 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
 import org.valkyrienskies.core.api.ships.ServerShip
 
-private val AIR = Blocks.AIR.defaultBlockState()
+val AIR = Blocks.AIR.defaultBlockState()
 
 /**
  * Relocate block
@@ -105,7 +105,7 @@ fun updateBlock(level: Level, fromPos: BlockPos, toPos: BlockPos, toState: Block
     if (!level.isClientSide && toState.hasAnalogOutputSignal()) {
         level.updateNeighbourForOutputSignal(toPos, toState.block)
     }
-    //This updates lighting for blocks in shipspace
+    // Update lighting for blocks in shipspace
     level.chunkSource.lightEngine.checkBlock(toPos)
 }
 

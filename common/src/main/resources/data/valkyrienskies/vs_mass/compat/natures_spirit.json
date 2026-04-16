@@ -1,0 +1,321 @@
+[
+  {
+    "tag": "natures_spirit:travertine",
+    "mass": 2600.0,
+    "friction": 0.6
+  },
+  {
+    "tag": "natures_spirit:travertine_stairs",
+    "mass": 1950.0,
+    "friction": 0.6
+  },
+  {
+    "tag": "natures_spirit:travertine_slab",
+    "mass": 1300.0,
+    "friction": 0.6
+  },
+  {
+    "tag": "natures_spirit:cobbled_travertine",
+    "mass": 2500.0,
+    "friction": 0.8
+  },
+  {
+    "tag": "natures_spirit:cobbled_travertine_stairs",
+    "mass": 1875.0,
+    "friction": 0.8
+  },
+  {
+    "tag": "natures_spirit:cobbled_travertine_slab",
+    "mass": 1250.0,
+    "friction": 0.8
+  },
+  {
+    "tag": "natures_spirit:mossy_cobbled_travertine",
+    "mass": 2500.0,
+    "friction": 0.8
+  },
+  {
+    "tag": "natures_spirit:mossy_cobbled_travertine_stairs",
+    "mass": 1875.0,
+    "friction": 0.8
+  },
+  {
+    "tag": "natures_spirit:mossy_cobbled_travertine_slab",
+    "mass": 1250.0,
+    "friction": 0.8
+  },
+  {
+    "tag": "natures_spirit:chiseled_travertine",
+    "mass": 2500.0,
+    "friction": 0.6
+  },
+  {
+    "tag": "natures_spirit:polished_travertine",
+    "mass": 2600.0,
+    "friction": 0.4
+  },
+  {
+    "tag": "natures_spirit:polished_travertine_stairs",
+    "mass": 1950.0,
+    "friction": 0.4
+  },
+  {
+    "tag": "natures_spirit:polished_travertine_slab",
+    "mass": 1300.0,
+    "friction": 0.4
+  },
+  {
+    "tag": "natures_spirit:polished_travertine_wall",
+    "mass": 1300.0,
+    "friction": 0.4
+  },
+  {
+    "tag": "natures_spirit:travertine_bricks",
+    "mass": 2600.0,
+    "friction": 0.5
+  },
+  {
+    "tag": "natures_spirit:cracked_travertine_bricks",
+    "mass": 2600.0,
+    "friction": 0.7
+  },
+  {
+    "tag": "natures_spirit:travertine_brick_stairs",
+    "mass": 1950.0,
+    "friction": 0.5
+  },
+  {
+    "tag": "natures_spirit:travertine_brick_slab",
+    "mass": 1300.0,
+    "friction": 0.5
+  },
+  {
+    "tag": "natures_spirit:travertine_brick_wall",
+    "mass": 1300.0,
+    "friction": 0.5
+  },
+  {
+    "tag": "natures_spirit:mossy_travertine_bricks",
+    "mass": 2600.0,
+    "friction": 0.5
+  },
+  {
+    "tag": "natures_spirit:mossy_travertine_brick_stairs",
+    "mass": 1950.0,
+    "friction": 0.5
+  },
+  {
+    "tag": "natures_spirit:mossy_travertine_brick_slab",
+    "mass": 1300.0,
+    "friction": 0.5
+  },
+  {
+    "tag": "natures_spirit:mossy_travertine_brick_wall",
+    "mass": 1300.0,
+    "friction": 0.5
+  },
+  {
+    "tag": "natures_spirit:travertine_tiles",
+    "mass": 2600.0,
+    "friction": 0.5
+  },
+  {
+    "tag": "natures_spirit:cracked_travertine_tiles",
+    "mass": 2600.0,
+    "friction": 0.7
+  },
+  {
+    "tag": "natures_spirit:travertine_tile_stairs",
+    "mass": 1950.0,
+    "friction": 0.5
+  },
+  {
+    "tag": "natures_spirit:travertine_tile_slab",
+    "mass": 1300.0,
+    "friction": 0.5
+  },
+  {
+    "tag": "natures_spirit:travertine_tile_wall",
+    "mass": 1300.0,
+    "friction": 0.5
+  },
+  {
+    "block": "natures_spirit:sugi_mosaic",
+    "mass": 500.0,
+    "friction": 0.5
+  },
+  {
+    "block": "natures_spirit:sugi_mosaic_stairs",
+    "mass": 375.0,
+    "friction": 0.5
+  },
+  {
+    "block": "natures_spirit:sugi_mosaic_slab",
+    "mass": 250.0,
+    "friction": 0.5
+  },
+  {
+    "block": "natures_spirit:wisteria_mosaic",
+    "mass": 500.0,
+    "friction": 0.5
+  },
+  {
+    "block": "natures_spirit:wisteria_mosaic_stairs",
+    "mass": 375.0,
+    "friction": 0.5
+  },
+  {
+    "block": "natures_spirit:wisteria_mosaic_slab",
+    "mass": 250.0,
+    "friction": 0.5
+  },
+  {
+    "block": "natures_spirit:joshua_mosaic",
+    "mass": 500.0,
+    "friction": 0.5
+  },
+  {
+    "block": "natures_spirit:joshua_mosaic_stairs",
+    "mass": 375.0,
+    "friction": 0.5
+  },
+  {
+    "block": "natures_spirit:joshua_mosaic_slab",
+    "mass": 250.0,
+    "friction": 0.5
+  },
+  {
+    "block": "natures_spirit:coconut_mosaic",
+    "mass": 500.0,
+    "friction": 0.5
+  },
+  {
+    "block": "natures_spirit:coconut_mosaic_stairs",
+    "mass": 375.0,
+    "friction": 0.5
+  },
+  {
+    "block": "natures_spirit:coconut_mosaic_slab",
+    "mass": 250.0,
+    "friction": 0.5
+  },
+  {
+    "block": "natures_spirit:mahogany_mosaic",
+    "mass": 500.0,
+    "friction": 0.5
+  },
+  {
+    "block": "natures_spirit:mahogany_mosaic_stairs",
+    "mass": 375.0,
+    "friction": 0.5
+  },
+  {
+    "block": "natures_spirit:mahogany_mosaic_slab",
+    "mass": 250.0,
+    "friction": 0.5
+  },
+  {
+    "block": "natures_spirit:chert",
+    "mass": 2650.0
+  },
+  {
+    "block": "natures_spirit:chert_stairs",
+    "mass": 1987.5
+  },
+  {
+    "block": "natures_spirit:chert_slab",
+    "mass": 1325.0
+  },
+  {
+    "block": "natures_spirit:polished_chert",
+    "mass": 2650.0
+  },
+  {
+    "block": "natures_spirit:polished_chert_stairs",
+    "mass": 1987.5
+  },
+  {
+    "block": "natures_spirit:polished_chert_slab",
+    "mass": 1325.0
+  },
+  {
+    "block": "natures_spirit:polished_chert_wall",
+    "mass": 1325.0
+  },
+  {
+    "block": "natures_spirit:chert_bricks",
+    "mass": 2650.0
+  },
+  {
+    "block": "natures_spirit:cracked_chert_bricks",
+    "mass": 2650.0
+  },
+  {
+    "block": "natures_spirit:chert_brick_stairs",
+    "mass": 1987.5
+  },
+  {
+    "block": "natures_spirit:chert_brick_slab",
+    "mass": 1325.0
+  },
+  {
+    "block": "natures_spirit:chert_brick_wall",
+    "mass": 1325.0
+  },
+  {
+    "block": "natures_spirit:chert_tiles",
+    "mass": 2650.0
+  },
+  {
+    "block": "natures_spirit:cracked_chert_tiles",
+    "mass": 2650.0
+  },
+  {
+    "block": "natures_spirit:chert_tile_stairs",
+    "mass": 1987.5
+  },
+  {
+    "block": "natures_spirit:chert_tile_slab",
+    "mass": 1325.0
+  },
+  {
+    "block": "natures_spirit:chert_tile_wall",
+    "mass": 1325.0
+  },
+  {
+    "tag": "natures_spirit:kaolin",
+    "mass": 1500.0
+  },
+  {
+    "tag": "natures_spirit:kaolin_stairs",
+    "mass": 1125.0
+  },
+  {
+    "tag": "natures_spirit:kaolin_slabs",
+    "mass": 750.0
+  },
+  {
+    "tag": "natures_spirit:kaolin_bricks",
+    "mass": 1500.0
+  },
+  {
+    "tag": "natures_spirit:kaolin_brick_stairs",
+    "mass": 1125.0
+  },
+  {
+    "tag": "natures_spirit:kaolin_brick_slabs",
+    "mass": 750.0
+  },
+  {
+    "tag": "natures_spirit:chalk",
+    "mass": 2400.0
+  },
+  {
+    "tag": "natures_spirit:chalk_stairs",
+    "mass": 1800.0
+  },
+  {
+    "tag": "natures_spirit:chalk_slabs",
+    "mass": 1200.0
+  }
+]

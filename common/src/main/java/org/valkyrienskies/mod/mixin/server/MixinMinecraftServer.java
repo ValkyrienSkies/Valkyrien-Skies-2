@@ -58,6 +58,7 @@ import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.ShipSavedData;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
+import org.valkyrienskies.mod.common.config.DimensionParametersResolver;
 import org.valkyrienskies.mod.common.config.MassDatapackResolver;
 import org.valkyrienskies.mod.common.hooks.VSGameEvents;
 import org.valkyrienskies.mod.common.util.EntityDragger;
@@ -162,13 +163,25 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
 
         VSGameEvents.INSTANCE.getRegistriesCompleted().emit(Unit.INSTANCE);
 
-        getShipObjectWorld().addDimension(
-            VSGameUtilsKt.getDimensionId(overworld()),
-            VSGameUtilsKt.getYRange(overworld()),
-            McMathUtilKt.getDEFAULT_WORLD_GRAVITY(),
-            63.0,
-            962.0
-        );
+        DimensionParametersResolver.Parameters params = DimensionParametersResolver.INSTANCE.getDimensionMap().get(VSGameUtilsKt.getDimensionId(overworld()));
+
+        if (params != null) {
+            getShipObjectWorld().addDimension(
+                VSGameUtilsKt.getDimensionId(overworld()),
+                VSGameUtilsKt.getYRange(overworld()),
+                params.getGravity(),
+                params.getSeaLevel(),
+                params.getMaxY()
+            );
+        } else {
+            getShipObjectWorld().addDimension(
+                VSGameUtilsKt.getDimensionId(overworld()),
+                VSGameUtilsKt.getYRange(overworld()),
+                McMathUtilKt.getDEFAULT_WORLD_GRAVITY(),
+                63.0,
+                962.0
+            );
+        }
     }
 
     @Inject(
@@ -178,7 +191,6 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     private void preTick(final CallbackInfo ci) {
         final Set<VsiPlayer> vsPlayers = playerList.getPlayers().stream()
             .map(VSGameUtilsKt::getPlayerWrapper).collect(Collectors.toSet());
-
         shipWorld.setPlayers(vsPlayers);
 
         // region Tell the VS world to load new levels, and unload deleted ones
@@ -414,6 +426,25 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         if (vsPipeline != null) {
             vsPipeline.setDeleteResources(true);
             vsPipeline.setArePhysicsRunning(true);
+        }
+
+        // Remove all ship chunk tickets before Minecraft's shutdown loop, otherwise the
+        // while(hasWork()) loop in stopServer() hangs forever because shipyard ChunkHolders
+        // remain in updatingChunkMap and are never scheduled for dropping.
+        if (shipWorld != null) {
+            for (final LoadedServerShip ship : shipWorld.getLoadedShips()) {
+                final ServerLevel level = dimensionToLevelMap.get(ship.getChunkClaimDimension());
+                if (level != null) {
+                    ship.getActiveChunksSet().forEach((final int x, final int z) -> {
+                        final ChunkPos cp = new ChunkPos(x, z);
+                        // Remove the SHIP_CHUNK ticket (radius-0, level 33)
+                        level.getChunkSource().removeRegionTicket(
+                            org.valkyrienskies.mod.common.world.VSTicketType.SHIP_CHUNK, cp, 0, cp);
+                        // Also remove any legacy FORCED tickets in case they exist
+                        level.getChunkSource().updateChunkForced(cp, false);
+                    });
+                }
+            }
         }
     }
 

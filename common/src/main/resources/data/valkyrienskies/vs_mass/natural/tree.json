@@ -1,0 +1,32 @@
+[
+  {
+    "block": "minecraft:mangrove_roots",
+    "mass": 500.0,
+    "friction": 0.8
+  },
+  {
+    "block": "minecraft:muddy_mangrove_roots",
+    "mass": 1500.0,
+    "friction": 0.8
+  },
+  {
+    "block": "minecraft:mushroom_stem",
+    "mass": 600.0,
+    "friction": 0.2,
+    "elasticity": 0.1
+  },
+  {
+    "tag": "minecraft:saplings",
+    "mass": 150.0
+  },
+  {
+    "block": "minecraft:mangrove_propagule",
+    "mass": 150.0
+  },
+  {
+    "tag": "minecraft:leaves",
+    "mass": 200.0,
+    "no_collision": true,
+    "elasticity": 0.15
+  }
+]

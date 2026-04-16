@@ -1,0 +1,107 @@
+[
+  {
+    "block": "minecraft:deepslate",
+    "mass": 2900.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:cobbled_deepslate",
+    "mass": 2750.0,
+    "friction": 0.8
+  },
+  {
+    "block": "minecraft:cobbled_deepslate_stairs",
+    "mass": 2060.25,
+    "friction": 0.8
+  },
+  {
+    "block": "minecraft:cobbled_deepslate_slab",
+    "mass": 1375.0,
+    "friction": 0.8
+  },
+  {
+    "block": "minecraft:cobbled_deepslate_wall",
+    "mass": 1350.0,
+    "friction": 0.8
+  },
+  {
+    "block": "minecraft:chiseled_deepslate",
+    "mass": 2750.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:polished_deepslate",
+    "mass": 2750.0,
+    "friction": 0.35
+  },
+  {
+    "block": "minecraft:polished_deepslate_stairs",
+    "mass": 2062.5,
+    "friction": 0.35
+  },
+  {
+    "block": "minecraft:polished_deepslate_slab",
+    "mass": 1375.0,
+    "friction": 0.35
+  },
+  {
+    "block": "minecraft:polished_deepslate_wall",
+    "mass": 1350.0,
+    "friction": 0.45
+  },
+  {
+    "block": "minecraft:deepslate_bricks",
+    "mass": 2750.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:cracked_deepslate_bricks",
+    "mass": 2750.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:deepslate_brick_stairs",
+    "mass": 2062.5,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:deepslate_brick_slab",
+    "mass": 1375.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:deepslate_brick_wall",
+    "mass": 1350.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:deepslate_tiles",
+    "mass": 2750.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:cracked_deepslate_tiles",
+    "mass": 2750.0,
+    "friction": 0.7
+  },
+  {
+    "block": "minecraft:deepslate_tile_stairs",
+    "mass": 2062.5,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:deepslate_tile_slab",
+    "mass": 1375.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:deepslate_tile_wall",
+    "mass": 1350.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:reinforced_deepslate",
+    "mass": 4000.0,
+    "friction": 0.7
+  }
+]

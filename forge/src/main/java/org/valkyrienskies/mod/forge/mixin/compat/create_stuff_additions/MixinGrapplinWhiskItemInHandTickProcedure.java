@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.Slice;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Pseudo
-@Mixin(targets = {"net.mcreator.createstuffadditions.procedures.GrapplinWhiskItemInHandTickProcedure"}, remap = false)
+@Mixin(targets = {"net.mcreator.createstuffadditions.procedures.GrapplinWhiskItemInHandTickProcedure"})
 public abstract class MixinGrapplinWhiskItemInHandTickProcedure {
     /**
      * This mixin repeats {@link MixinGrapplinWhiskChainsLineProcedure} but is responsible for game logic, namely players

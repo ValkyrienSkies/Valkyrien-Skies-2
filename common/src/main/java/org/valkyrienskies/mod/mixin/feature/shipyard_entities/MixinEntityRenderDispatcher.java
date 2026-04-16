@@ -37,12 +37,16 @@ public class MixinEntityRenderDispatcher {
     @Inject(method = "distanceToSqr(Lnet/minecraft/world/entity/Entity;)D", at = @At("HEAD"), cancellable = true)
     private void preDistanceToSqr(final Entity entity, final CallbackInfoReturnable<Double> cir) {
         final Vec3 pos = entity.position();
+        // entity seems to be null sometimes when the "real camera" mod is used
+        if (entity == null) return;
         cir.setReturnValue(VSGameUtilsKt.squaredDistanceToInclShips(entity, pos.x, pos.y, pos.z));
     }
 
     @Inject(method = "distanceToSqr(DDD)D", at = @At("HEAD"), cancellable = true)
     private void preDistanceToSqr(final double x, final double y, final double z,
         final CallbackInfoReturnable<Double> cir) {
+        // entity seems to be null sometimes when the "real camera" mod is used
+        if (camera.getEntity() == null) return;
         cir.setReturnValue(VSGameUtilsKt.squaredDistanceToInclShips(camera.getEntity(), x, y, z));
     }
 

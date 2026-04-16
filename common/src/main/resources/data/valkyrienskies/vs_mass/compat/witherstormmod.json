@@ -1,0 +1,129 @@
+[
+  {
+    "block": "witherstormmod:tainted_dust_block",
+    "mass": 1350.0,
+    "friction": 0.4
+  },
+  {
+    "block": "witherstormmod:tainted_dirt",
+    "mass": 1250.0,
+    "friction": 0.6
+  },
+  {
+    "block": "witherstormmod:tainted_stone",
+    "mass": 2500.0,
+    "friction": 0.6
+  },
+  {
+    "block": "witherstormmod:tainted_stone_stairs",
+    "mass": 1875.0,
+    "friction": 0.6
+  },
+  {
+    "block": "witherstormmod:tainted_stone_slab",
+    "mass": 1250.0,
+    "friction": 0.6
+  },
+  {
+    "block": "witherstormmod:tainted_stone_button",
+    "mass": 30.0
+  },
+  {
+    "block": "witherstormmod:tainted_stone_pressure_plate",
+    "mass": 100.0
+  },
+  {
+    "block": "witherstormmod:tainted_cobblestone",
+    "mass": 2400.0,
+    "friction": 0.8
+  },
+  {
+    "block": "witherstormmod:tainted_cobblestone_stairs",
+    "mass": 1800.0,
+    "friction": 0.8
+  },
+  {
+    "block": "witherstormmod:tainted_cobblestone_slab",
+    "mass": 1200.0,
+    "friction": 0.8
+  },
+  {
+    "block": "witherstormmod:tainted_cobblestone_wall",
+    "mass": 1200.0,
+    "friction": 0.8
+  },
+  {
+    "block": "witherstormmod:tainted_sandstone",
+    "mass": 2400.0,
+    "friction": 0.6
+  },
+  {
+    "block": "witherstormmod:tainted_sandstone_slab",
+    "mass": 1200.0,
+    "friction": 0.6
+  },
+  {
+    "block": "witherstormmod:tainted_sandstone_stairs",
+    "mass": 1800.0,
+    "friction": 0.6
+  },
+  {
+    "block": "witherstormmod:tainted_sandstone_wall",
+    "mass": 1200.0,
+    "friction": 0.6
+  },
+  {
+    "block": "witherstormmod:tainted_cut_sandstone",
+    "mass": 2400.0,
+    "friction": 0.6
+  },
+  {
+    "block": "witherstormmod:tainted_cut_sandstone_slab",
+    "mass": 1200.0,
+    "friction": 0.6
+  },
+  {
+    "block": "witherstormmod:tainted_chiseled_sandstone",
+    "mass": 2400.0,
+    "friction": 0.6
+  },
+  {
+    "block": "witherstormmod:tainted_smooth_sandstone",
+    "mass": 2400.0,
+    "friction": 0.5
+  },
+  {
+    "block": "witherstormmod:tainted_smooth_sandstone_stairs",
+    "mass": 1800.0,
+    "friction": 0.5
+  },
+  {
+    "block": "witherstormmod:tainted_smooth_sandstone_slab",
+    "mass": 1200.0,
+    "friction": 0.5
+  },
+  {
+    "block": "witherstormmod:tainted_smooth_sandstone_wall",
+    "mass": 1200.0,
+    "friction": 0.5
+  },
+  {
+    "block": "witherstormmod:tainted_glass",
+    "mass": 2000.0,
+    "friction": 0.2
+  },
+  {
+    "block": "witherstormmod:tainted_glass_pane",
+    "mass": 250.0,
+    "friction": 0.2
+  },
+  {
+    "block": "witherstormmod:tainted_pumpkin",
+    "mass": 800.0,
+    "friction": 0.3
+  },
+  {
+    "block": "witherstormmod:tainted_mushroom",
+    "mass": 10.0
+  }
+]

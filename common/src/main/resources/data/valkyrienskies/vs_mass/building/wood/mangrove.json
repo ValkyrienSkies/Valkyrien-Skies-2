@@ -1,0 +1,37 @@
+[
+  {
+    "block": "minecraft:mangrove_log",
+    "mass": 800.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:mangrove_wood",
+    "mass": 800.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:stripped_mangrove_log",
+    "mass": 800.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:stripped_mangrove_wood",
+    "mass": 800.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:mangrove_planks",
+    "mass": 500.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:mangrove_stairs",
+    "mass": 375.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:mangrove_slab",
+    "mass": 250.0,
+    "friction": 0.5
+  }
+]

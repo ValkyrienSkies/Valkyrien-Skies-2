@@ -7,22 +7,22 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.level.gameevent.vibrations.VibrationSystem;
+import net.minecraft.world.level.gameevent.vibrations.VibrationSystem.Listener;
 import net.minecraft.world.phys.Vec3;
-import org.joml.Vector3dc;
-import org.joml.primitives.AABBd;
 import org.spongepowered.asm.mixin.Mixin;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
-@Mixin(targets = {
-        "net.minecraft.world.level.gameevent.vibrations.VibrationSystem$Listener"
-})
+@Mixin(Listener.class)
 public abstract class MixinVibrationSystem {
     @WrapMethod(
             method = "scheduleVibration"
     )
-    void scheduleVibration(ServerLevel level, VibrationSystem.Data data, GameEvent gameEvent, GameEvent.Context context, Vec3 pos, Vec3 sensorPos, Operation original) { // GameEvent changed to Holder<GameEvent> in 1.21
+    private void scheduleVibration(
+        ServerLevel level, VibrationSystem.Data data, GameEvent gameEvent, GameEvent.Context context, Vec3 pos, Vec3 sensorPos,
+        Operation<Void> original
+    ) { // GameEvent changed to Holder<GameEvent> in 1.21
         original.call(level, data, gameEvent, context,
             VectorConversionsMCKt.toMinecraft(VSGameUtilsKt.getWorldCoordinates(level, BlockPos.containing(pos), VectorConversionsMCKt.toJOML(pos))),
             VectorConversionsMCKt.toMinecraft(VSGameUtilsKt.getWorldCoordinates(level, BlockPos.containing(sensorPos), VectorConversionsMCKt.toJOML(sensorPos)))

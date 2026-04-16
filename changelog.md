@@ -1,15 +1,28 @@
-Added a new automatic changelog system for releases!
+## VS 2.4.11
 
-- Support for both Create 6.0.6, and 6.0.7+
-- Fixed many issues with Create trains on ships
-- Fixed create fans not processing depots in the world
-- Added "working mode" to deployers. You can now select between "place on ship" and "place in world"
-- Add hose pulley compat, they can now pull from world-space fluids while on ships
-- Fixed players being pushed extra in flowing water
-- Fixed/polished up the redstone contact compat with ships + elevator contacts being broken
-- Fixed mechanical crafters not being mergeable on ships
-- Fixed fences having an incorrect hitbox
-- Fixed blaze burners not looking at players on ships
-- Fixed players looking the wrong way when dismounting from seats on ships
-- Fixed enchanting table not rotating book towards player on ships
-- Fixed interacting with factory gauges on ships
+Bug fixes galore
+
+#### Changes:
+- Old (buggy) air pocket system is now able to be turned off, and is off by default. A better airpocket system is still in progress.  
+- Atmospheric max has been changed from 1000 to 2000. This should make propeller planes 
+  much more controllable at altitudes above the clouds, where before they would stall pretty suddenly.
+- Added `/vs dry` command for once ship flooding is added. 
+
+#### API changes:
+- Fixed `transformFromWorldToNearbyShipsAndWorld` util function
+- Added `getAllConnectedShips` to GTPA
+- Added liquid overlap to GTPA
+- Added `.serialized()` method to `VSJoint`, allowing for addons to opt-in to automatic joint saving/loading handled by VS core
+- Moved command related classes (aka `ShipArgument` and others). 
+  **Breaking change**, but only imports will need changing
+
+#### Bugfixes:
+- Fixed buoyancy on large ships not being quite right
+- Fixed an issue where Connectivity would still cause lag even if disabled
+- Fixed a crash with Real Camera
+- Fixed hexcasting and hexal compat issues
+- Fixed copycats duping on assembly
+- Fixed CBC autocannons breaking on VS ships
+- Fixed a crash with Create: Hypertubes (sorry it took so long Rok!)
+- Fixed visual artifacts with the ship AABB when at large coordinates
+- Fixed visual artifacts with create flywheels when at large coordinates

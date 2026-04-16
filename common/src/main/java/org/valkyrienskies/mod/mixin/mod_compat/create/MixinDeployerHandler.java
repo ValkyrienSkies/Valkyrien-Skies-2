@@ -22,6 +22,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
+import org.valkyrienskies.mod.mixin.accessors.entity.EntityAccessor;
 import org.valkyrienskies.mod.mixinducks.mod_compat.create.IDeployerBehavior;
 import org.valkyrienskies.mod.mixinducks.mod_compat.create.IDeployerBehavior.WorkingMode;
 
@@ -92,17 +93,54 @@ public abstract class MixinDeployerHandler {
             method = "activateInner",
             at = @At(
                     value = "INVOKE",
+                    target = "Lcom/simibubi/create/content/kinetics/deployer/DeployerFakePlayer;setPos(DDD)V"
+            )
+    )
+    private static void setPos(DeployerFakePlayer player, double x, double y, double z, Operation<Void> original,
+                               @Share("mode") LocalBooleanRef original_behaviour) {
+        if (!original_behaviour.get() && VSGameUtilsKt.isBlockInShipyard(player.level(), x, y, z)) {
+            final EntityAccessor accessor = (EntityAccessor) (Object) player;
+            accessor.setPosNoUpdates(new Vec3(x, y, z));
+            accessor.setBlockPosition(BlockPos.containing(x, y, z));
+            return;
+        }
+        original.call(player, x, y, z);
+    }
+
+    @WrapOperation(
+            method = "activateInner",
+            at = @At(
+                    value = "INVOKE",
                     target = "Lnet/minecraft/server/level/ServerLevel;clip(Lnet/minecraft/world/level/ClipContext;)Lnet/minecraft/world/phys/BlockHitResult;"
             )
     )
-    private static BlockHitResult clip(ServerLevel instance, ClipContext clipContext, Operation<BlockHitResult> original, @Local(argsOnly = true, ordinal = 0) Vec3 vec, @Local(argsOnly = true, ordinal = 1) Vec3 extensionVector, @Share("mode") LocalBooleanRef original_behaviour) {
-        if(original_behaviour.get()) {
-            BlockHitResult result = RaycastUtilsKt.clipIncludeShips(instance, clipContext, true);
+    private static BlockHitResult clip(ServerLevel instance, ClipContext clipContext, Operation<BlockHitResult> original,
+                                       @Local(argsOnly = true, ordinal = 0) Vec3 vec,
+                                       @Local(argsOnly = true, ordinal = 0) BlockPos clickedPos,
+                                       @Local(argsOnly = true, ordinal = 1) Vec3 extensionVector,
+                                       @Share("mode") LocalBooleanRef original_behaviour) {
+        if (original_behaviour.get()) {
+            final BlockHitResult result = RaycastUtilsKt.clipIncludeShips(instance, clipContext, false);
             if (result.getType() == HitResult.Type.MISS) {
-                return RaycastUtilsKt.clipIncludeShips(instance, new ClipContext(clipContext.getFrom(), VSGameUtilsKt.toWorldCoordinates(instance, vec.add(extensionVector.scale(5 / 2f - 1 / 64f))), ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, null), true);
+                return RaycastUtilsKt.clipIncludeShips(instance,
+                        new ClipContext(
+                                clipContext.getFrom(),
+                                VSGameUtilsKt.toWorldCoordinates(instance,
+                                        vec.add(extensionVector.scale(5 / 2f - 1 / 64f))),
+                                ClipContext.Block.OUTLINE,
+                                ClipContext.Fluid.NONE,
+                                null
+                        ),
+                        false
+                );
             }
-            return RaycastUtilsKt.clipIncludeShips(instance, clipContext, true);
+            return result;
         }
+
+        if (VSGameUtilsKt.isBlockInShipyard(instance, clickedPos)) {
+            return RaycastUtilsKt.vanillaClip(instance, clipContext);
+        }
+
         return original.call(instance, clipContext);
     }
 

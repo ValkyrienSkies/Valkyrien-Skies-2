@@ -12,6 +12,7 @@ import org.joml.Vector3d
 import org.valkyrienskies.core.api.attachment.getAttachment
 import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.mod.api.SeatedControllingPlayer
+import org.valkyrienskies.mod.api.shipWorld
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager
 import org.valkyrienskies.mod.common.getLoadedShipManagingPos
@@ -22,6 +23,7 @@ import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.util.toMinecraft
 import org.valkyrienskies.mod.common.vsCore
+import org.valkyrienskies.mod.mixinducks.feature.tickets.PlayerKnownShipsDuck
 import org.valkyrienskies.mod.mixinducks.world.entity.PlayerDuck
 
 object VSGamePackets {
@@ -34,6 +36,7 @@ object VSGamePackets {
         PacketEntityShipMotion::class.register()
         PacketMobShipRotation::class.register()
         PacketPlayerShipMotion::class.register()
+        PacketChangeKnownShips::class.register()
     }
 
     fun registerHandlers() = with(vsCore.simplePacketNetworking) {
@@ -248,6 +251,18 @@ object VSGamePackets {
 
                 if ((player.level() as ServerLevel).shipObjectWorld.allShips.getById(motion.shipID) != null) {
                     entity.setPos(player.level().toWorldCoordinates(Vec3(motion.x, motion.y, motion.z)))
+                }
+            }
+        }
+
+
+        PacketChangeKnownShips::class.registerServerHandler { ships, iPlayer ->
+            val player = (iPlayer as MinecraftPlayer).player as PlayerKnownShipsDuck
+            if (!ships.add || iPlayer.player.level().shipWorld?.loadedShips?.contains(ships.shipID) == true) {
+                if (ships.add) {
+                    player.vs_addKnownShip(ships.shipID)
+                } else {
+                    player.vs_removeKnownShip(ships.shipID)
                 }
             }
         }

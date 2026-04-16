@@ -1,0 +1,157 @@
+[
+  {
+    "block": "minecraft:target",
+    "mass": 200.0,
+    "elasticity": 0.3
+  },
+  {
+    "block": "minecraft:calibrated_sculk_sensor",
+    "mass": 250.0,
+    "friction": 0.9,
+    "elasticity": 0.3
+  },
+  {
+    "block": "minecraft:sculk_shrieker",
+    "mass": 500.0,
+    "friction": 0.2,
+    "elasticity": 0.3
+  },
+  {
+    "block": "minecraft:lectern",
+    "mass": 150.0
+  },
+  {
+    "block": "minecraft:daylight_detector",
+    "mass": 1250.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:lightning_rod",
+    "mass": 1800.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:piston",
+    "mass": 2500.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:sticky_piston",
+    "mass": 2500.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:piston_head",
+    "mass": 1.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:moving_piston",
+    "mass": 1.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:slime_block",
+    "mass": 500.0,
+    "friction": 1.0,
+    "elasticity": 1.0
+  },
+  {
+    "block": "minecraft:honey_block",
+    "mass": 500.0,
+    "friction": 1.0
+  },
+  {
+    "block": "minecraft:dispenser",
+    "mass": 2500.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:dropper",
+    "mass": 2500.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:hopper",
+    "mass": 1000.0,
+    "friction": 0.3
+  },
+  {
+    "block": "minecraft:chest",
+    "mass": 1000.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:barrel",
+    "mass": 400.0,
+    "friction": 0.4
+  },
+  {
+    "block": "minecraft:trapped_chest",
+    "mass": 1050.0
+  },
+  {
+    "block": "minecraft:jukebox",
+    "mass": 800.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:observer",
+    "mass": 2500.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:note_block",
+    "mass": 1000.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:composter",
+    "mass": 350.0,
+    "friction": 0.5
+  },
+  {
+    "block": "minecraft:cauldron",
+    "mass": 5400.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:water_cauldron",
+    "mass": 5900.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:rail",
+    "mass": 350.0,
+    "friction": 0.7
+  },
+  {
+    "block": "minecraft:powered_rail",
+    "mass": 800.0,
+    "friction": 0.7
+  },
+  {
+    "block": "minecraft:detector_rail",
+    "mass": 400.0,
+    "friction": 0.7
+  },
+  {
+    "block": "minecraft:activator_rail",
+    "mass": 350.0,
+    "friction": 0.7
+  },
+  {
+    "block": "minecraft:tnt",
+    "mass": 1250.0
+  },
+  {
+    "block": "minecraft:redstone_lamp",
+    "mass": 1250.0,
+    "friction": 0.2
+  },
+  {
+    "block": "minecraft:bell",
+    "mass": 500.0,
+    "friction": 0.2
+  }
+]

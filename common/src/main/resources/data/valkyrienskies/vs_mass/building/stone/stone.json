@@ -1,0 +1,25 @@
+[
+  {
+    "block": "minecraft:stone",
+    "mass": 2500.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:stone_stairs",
+    "mass": 1875.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:stone_slab",
+    "mass": 1250.0,
+    "friction": 0.6
+  },
+  {
+    "block": "minecraft:stone_pressure_plate",
+    "mass": 100.0
+  },
+  {
+    "block": "minecraft:stone_button",
+    "mass": 30.0
+  }
+]

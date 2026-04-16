@@ -42,10 +42,6 @@ interface VsApi : VsCoreApi {
 
     fun isShipMountingEntity(entity: Entity): Boolean
 
-    @Deprecated(message = "The legacy VS config system will be replaced soon. " +
-        "Migrate to another config library, or the new system when it's released. ")
-    fun createConfigScreenLegacy(parent: Screen, vararg configs: Class<*>): Screen
-
     /**
      * Returns the [DimensionId]
      */

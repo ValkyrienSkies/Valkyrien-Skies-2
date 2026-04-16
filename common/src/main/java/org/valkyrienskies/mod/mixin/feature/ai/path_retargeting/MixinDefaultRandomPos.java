@@ -28,12 +28,15 @@ public class MixinDefaultRandomPos {
     @Inject(
         method = "generateRandomPosTowardDirection",
         at = @At(
-            value = "HEAD"
+            value = "TAIL"
         ),
         cancellable = true
     )
     private static void postGenerateRandomPosTowardDirection(PathfinderMob pathfinderMob, int i, boolean bl,
         BlockPos blockPos, final CallbackInfoReturnable<BlockPos> cir) {
+        if (cir.getReturnValue() != null) {
+            return;
+        }
         if (pathfinderMob.level() != null) {
             final BlockPos blockPos3 = RandomPos.generateRandomPosTowardDirection(pathfinderMob, i, pathfinderMob.getRandom(), blockPos);
             if (blockPos3 == null) {

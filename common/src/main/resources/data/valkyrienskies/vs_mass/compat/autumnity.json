@@ -1,0 +1,37 @@
+[
+  {
+    "block": "autumnity:large_pumpkin_slice",
+    "mass": 800.0,
+    "friction": 0.3
+  },
+  {
+    "block": "autumnity:carved_large_pumpkin_slice",
+    "mass": 100.0,
+    "friction": 0.3
+  },
+  {
+    "block": "autumnity:large_jack_o_lantern_slice",
+    "mass": 100.0,
+    "friction": 0.3
+  },
+  {
+    "block": "autumnity:soul_jack_o_lantern",
+    "mass": 100.0,
+    "friction": 0.3
+  },
+  {
+    "block": "autumnity:large_soul_jack_o_lantern_slice",
+    "mass": 100.0,
+    "friction": 0.3
+  },
+  {
+    "block": "autumnity:redstone_jack_o_lantern",
+    "mass": 100.0,
+    "friction": 0.3
+  },
+  {
+    "block": "autumnity:large_redstone_jack_o_lantern_slice",
+    "mass": 100.0,
+    "friction": 0.3
+  }
+]

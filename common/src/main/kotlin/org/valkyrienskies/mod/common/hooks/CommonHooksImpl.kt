@@ -34,6 +34,26 @@ abstract class CommonHooksImpl : VsiCoreHooksOut {
         get() = vsCore.hooks.enableSplitting
         set(value) {}
 
+    override var enableDrag: Boolean
+        get() = vsCore.hooks.enableDrag
+        set(value) {}
+
+    override var enableLift: Boolean
+        get() = vsCore.hooks.enableLift
+        set(value) {}
+
+    override var dragCoefficient: Double
+        get() = vsCore.hooks.dragCoefficient
+        set(value) {}
+
+    override var dragMultiplier: Double
+        get() = vsCore.hooks.dragMultiplier
+        set(value) {}
+
+    override var liftMultiplier: Double
+        get() = vsCore.hooks.liftMultiplier
+        set(value) {}
+
     override val playState: VsiPlayState
         get() {
             if (!isPhysicalClient) {

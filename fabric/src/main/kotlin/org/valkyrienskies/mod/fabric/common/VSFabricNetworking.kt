@@ -9,6 +9,7 @@ import net.minecraft.server.level.ServerPlayer
 import org.valkyrienskies.core.internal.hooks.VsiCoreHooksIn
 import org.valkyrienskies.core.internal.world.VsiPlayer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
+import org.valkyrienskies.mod.common.networking.VSPacketFragmenter
 import org.valkyrienskies.mod.common.playerWrapper
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 
@@ -19,10 +20,17 @@ class VSFabricNetworking(
     private val isClient: Boolean
 ) {
     private val VS_PACKET_ID = ResourceLocation(ValkyrienSkiesMod.MOD_ID, "vs_packet")
+    private val VS_FRAGMENT_ID = ResourceLocation(ValkyrienSkiesMod.MOD_ID, "vs_fragment")
 
     private fun registerClientNetworking(hooks: VsiCoreHooksIn) {
         ClientPlayNetworking.registerGlobalReceiver(VS_PACKET_ID) { _, _, buf, _ ->
             hooks.onReceiveClient(buf)
+        }
+        ClientPlayNetworking.registerGlobalReceiver(VS_FRAGMENT_ID) { _, _, buf, _ ->
+            val assembled = VSPacketFragmenter.onReceiveFragment(buf)
+            if (assembled != null) {
+                hooks.onReceiveClient(assembled)
+            }
         }
     }
 
@@ -34,11 +42,24 @@ class VSFabricNetworking(
         ServerPlayNetworking.registerGlobalReceiver(VS_PACKET_ID) { _, player, _, buf, _ ->
             hooks.onReceiveServer(buf, player.playerWrapper)
         }
+        ServerPlayNetworking.registerGlobalReceiver(VS_FRAGMENT_ID) { _, player, _, buf, _ ->
+            val assembled = VSPacketFragmenter.onReceiveFragment(buf)
+            if (assembled != null) {
+                hooks.onReceiveServer(assembled, player.playerWrapper)
+            }
+        }
     }
 
     fun sendToClient(data: ByteBuf, player: VsiPlayer) {
         val serverPlayer = (player as MinecraftPlayer).player as ServerPlayer
-        ServerPlayNetworking.send(serverPlayer, VS_PACKET_ID, FriendlyByteBuf(data))
+
+        if (VSPacketFragmenter.needsSplitting(data)) {
+            for (fragment in VSPacketFragmenter.split(data)) {
+                ServerPlayNetworking.send(serverPlayer, VS_FRAGMENT_ID, FriendlyByteBuf(fragment))
+            }
+        } else {
+            ServerPlayNetworking.send(serverPlayer, VS_PACKET_ID, FriendlyByteBuf(data))
+        }
     }
 
     fun sendToServer(data: ByteBuf) {

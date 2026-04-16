@@ -36,6 +36,6 @@ class TestThrusterBlockEntity(blockPos: BlockPos, blockState: BlockState) : Bloc
             return
         }
         
-        physShip.applyModelForce(facing.normal.toJOMLD().mul(10000.0), pos.toJOMLD().add(0.5, 0.5, 0.5))
+        physShip.applyModelForce(facing.normal.toJOMLD().mul(100000.0), pos.toJOMLD().add(0.5, 0.5, 0.5))
     }
 }

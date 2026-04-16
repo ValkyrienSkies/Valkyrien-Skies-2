@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
+
 buildscript {
     // Lock plugin dependencies
     configurations.classpath {
@@ -70,8 +72,6 @@ subprojects {
     apply plugin: "org.jetbrains.kotlin.jvm"
     apply plugin: "io.github.juuxel.loom-vineflower"
 
-    configurations.each { it.resolutionStrategy.useGlobalDependencySubstitutionRules.set(false) }
-
     repositories {
         try {
             def vsCoreBuild = gradle.includedBuild("vs-core")
@@ -87,12 +87,6 @@ subprojects {
         } catch (UnknownDomainObjectException ignore) {}
 
         mavenCentral()
-        maven {
-            url "https://cursemaven.com"
-            content {
-                includeModule "curse.maven", "kotlinforforge-351264"
-            }
-        }
         if (!project.block_external_repositories) {
             maven {
                 url = "https://maven.realrobotix.me/master/"
@@ -146,6 +140,17 @@ subprojects {
                     includeGroup("dev.ftb.mods")
                 }
             }
+
+            maven {
+                name = "Forge Config Api Port"
+                url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/"
+            }
+            maven { // Hexcasting
+                url = "https://maven.blamejared.com"
+            }
+            maven { // Hexal
+                url = uri("https://maven.hexxy.media")
+            }
         }
         maven {
             name = "Valkyrien Skies Internal"
@@ -157,12 +162,6 @@ subprojects {
                 }
             }
         }
-
-        //Mixin squared
-        maven { url = "https://maven.bawnorton.com/releases" }
-
-        // Mirror
-        maven { url = "https://maven.enjarai.dev/mirrors" }
     }
 
     // Remove automatically added repos
@@ -231,6 +230,13 @@ allprojects {
         options.encoding = "UTF-8"
 
         options.release = 17
+    }
+
+    tasks.withType(KotlinJvmCompile).configureEach {
+        kotlinOptions {
+            jvmTarget = "17"
+            freeCompilerArgs += "-Xjvm-default=all"
+        }
     }
 
     java {
