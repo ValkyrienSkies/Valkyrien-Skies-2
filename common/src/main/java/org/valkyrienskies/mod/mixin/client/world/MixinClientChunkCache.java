@@ -11,6 +11,7 @@ import java.util.function.Consumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientChunkCache;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.nbt.CompoundTag;
@@ -21,6 +22,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
+import net.minecraft.world.level.lighting.LevelLightEngine;
 import org.joml.Vector3i;
 import org.joml.Vector3ic;
 import org.spongepowered.asm.mixin.Final;
@@ -60,7 +62,7 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
     public ClientLevel level;
 
     @Unique
-    private final Long2ObjectMap<LevelChunk> vs$shipChunks = new Long2ObjectOpenHashMap<>();
+    private final Long2ObjectMap<LevelChunk> shipChunks = new Long2ObjectOpenHashMap<>();
 
     /**
      * VS-managed client-side cache for shipyard chunks. When any code (rendering,
@@ -72,11 +74,11 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
      * this cache entry is replaced with the actual chunk containing block data.
      */
     @Unique
-    private final Long2ObjectMap<LevelChunk> vs$shipyardChunkCache = new Long2ObjectOpenHashMap<>();
+    private final Long2ObjectMap<LevelChunk> emptyShipChunks = new Long2ObjectOpenHashMap<>();
 
     @Override
     public Long2ObjectMap<LevelChunk> vs$getShipChunks() {
-        return vs$shipChunks;
+        return this.shipChunks;
     }
 
     @Inject(method = "replaceWithPacketData", at = @At("HEAD"), cancellable = true)
@@ -91,14 +93,14 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
         if (!VS2ChunkAllocator.INSTANCE.isChunkInShipyardCompanion(x, z)) {
             return;
         }
-        // When real data arrives from server, remove the empty placeholder from VS cache
-        vs$shipyardChunkCache.remove(ChunkPos.asLong(x, z));
         if (Minecraft.getInstance().levelRenderer instanceof final LevelRendererDuck levelRenderer) {
             levelRenderer.vs$setNeedsFrustumUpdate();
         }
         final ChunkPos pos = new ChunkPos(x, z);
         final long chunkPosLong = pos.toLong();
-        final LevelChunk oldChunk = vs$shipChunks.get(chunkPosLong);
+        final LevelChunk oldChunk = this.shipChunks.get(chunkPosLong);
+        // When real data arrives from server, remove the empty placeholder from VS cache
+        final LevelChunk oldEmptyChunk = this.emptyShipChunks.remove(chunkPosLong);
         final LevelChunk worldChunk;
         boolean shouldForce = false;
         if (oldChunk != null) {
@@ -106,9 +108,9 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
             worldChunk.replaceWithPacketData(buf, tag, consumer);
             shouldForce = true;
         } else {
-            worldChunk = new LevelChunk(this.level, pos);
+            worldChunk = oldEmptyChunk == null ? new LevelChunk(this.level, pos) : oldEmptyChunk;
             worldChunk.replaceWithPacketData(buf, tag, consumer);
-            vs$shipChunks.put(chunkPosLong, worldChunk);
+            this.shipChunks.put(chunkPosLong, worldChunk);
             ((ClientChunkCacheDuck.StorageDuck) ((Object) (this.storage))).vs$incChunkCount();
         }
 
@@ -129,10 +131,11 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
                             : getVsCore().newEmptyVoxelShapeUpdate(pos.x, sectionY, pos.z, true)
                     );
                 }
+                final String dimensionId = getApi().getDimensionId(level);
                 if (shouldForce) {
                     for (VsiTerrainUpdate update : voxelShapeUpdates) {
                         clientShipWorld.forceUpdateConnectivityChunk(
-                            getApi().getDimensionId(level),
+                            dimensionId,
                             update.getChunkX(),
                             update.getChunkY(),
                             update.getChunkZ(),
@@ -140,7 +143,7 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
                         );
                     }
                 } else {
-                    clientShipWorld.addTerrainUpdates(getApi().getDimensionId(level), voxelShapeUpdates);
+                    clientShipWorld.addTerrainUpdates(dimensionId, voxelShapeUpdates);
                 }
             }
         }
@@ -148,7 +151,7 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
         // Force MC's light engine to recompute lighting for this ship chunk.
         // The client's LevelLightEngine is synchronous — call checkBlock for each
         // non-air block so the engine computes proper sky light with shadows.
-        vs$relightChunk(worldChunk);
+        this.relightChunk(worldChunk);
 
         // Flush all queued light updates NOW so that when render chunks are dirtied
         // below, they recompile with correct light data. Without this, there's a race
@@ -166,7 +169,7 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
             for (int dx = -1; dx <= 1; dx++) {
                 for (int dz = -1; dz <= 1; dz++) {
                     for (int sy = level.getMinSection(); sy < level.getMaxSection(); sy++) {
-                        final var renderChunk = viewArea.vs$getShipRenderChunk(x + dx, sy, z + dz);
+                        final ChunkRenderDispatcher.RenderChunk renderChunk = viewArea.vs$getShipRenderChunk(x + dx, sy, z + dz);
                         if (renderChunk != null) {
                             renderChunk.setDirty(true);
                         }
@@ -198,8 +201,8 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
 
     @Unique
     private void removeShipChunk(final int chunkX, final int chunkZ) {
-        final LevelChunk chunk = vs$shipChunks.remove(ChunkPos.asLong(chunkX, chunkZ));
-        vs$shipyardChunkCache.remove(ChunkPos.asLong(chunkX, chunkZ));
+        final LevelChunk chunk = this.shipChunks.remove(ChunkPos.asLong(chunkX, chunkZ));
+        this.emptyShipChunks.remove(ChunkPos.asLong(chunkX, chunkZ));
         if (chunk == null) {
             return;
         }
@@ -237,7 +240,7 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
             return;
         }
         // First check real ship chunks (received from server with block data)
-        final LevelChunk shipChunk = vs$shipChunks.get(ChunkPos.asLong(chunkX, chunkZ));
+        final LevelChunk shipChunk = this.shipChunks.get(ChunkPos.asLong(chunkX, chunkZ));
         if (shipChunk != null) {
             cir.setReturnValue(shipChunk);
             return;
@@ -246,7 +249,7 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
         // For shipyard positions without data yet, return a cached empty chunk.
         // This prevents null returns that cause rendering stalls and "chunk not loaded"
         // issues while the server is still sending chunk packets.
-        cir.setReturnValue(getOrCreateCachedChunk(chunkX, chunkZ));
+        cir.setReturnValue(getOrCreateEmptyChunk(chunkX, chunkZ));
     }
 
     /**
@@ -255,9 +258,9 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
      * propagates light sources, then checks every non-air block.
      */
     @Unique
-    private void vs$relightChunk(LevelChunk chunk) {
+    private void relightChunk(LevelChunk chunk) {
         try {
-            final var lightEngine = this.level.getLightEngine();
+            final LevelLightEngine lightEngine = this.level.getLightEngine();
             final ChunkPos cp = chunk.getPos();
             final int baseX = cp.getMinBlockX();
             final int baseZ = cp.getMinBlockZ();
@@ -304,18 +307,18 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
     /**
      * Get or create an empty LevelChunk for a shipyard position.
      * These are lightweight placeholders — actual block data arrives later via
-     * replaceWithPacketData and is stored in vs$shipChunks.
+     * replaceWithPacketData and is stored in shipChunks.
      */
     @Unique
-    private LevelChunk getOrCreateCachedChunk(int x, int z) {
+    private LevelChunk getOrCreateEmptyChunk(int x, int z) {
         final long posLong = ChunkPos.asLong(x, z);
-        LevelChunk cached = this.vs$shipyardChunkCache.get(posLong);
+        LevelChunk cached = this.emptyShipChunks.get(posLong);
         if (cached != null) {
             return cached;
         }
         // Create empty chunk — no blocks, just a container
         LevelChunk chunk = new LevelChunk(this.level, new ChunkPos(x, z));
-        this.vs$shipyardChunkCache.put(posLong, chunk);
+        this.emptyShipChunks.put(posLong, chunk);
         return chunk;
     }
 
