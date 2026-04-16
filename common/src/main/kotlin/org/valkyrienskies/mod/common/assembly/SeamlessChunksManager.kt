@@ -109,12 +109,12 @@ class SeamlessChunksManager(private val listener: ClientPacketListener) {
     fun drainDeferredBatch() {
         if (deferredDispatch.isEmpty()) return
         dispatching = true
-        val deadline = System.nanoTime() + CHUNK_BUDGET_MS * 1_000_000
+        val deadline = System.currentTimeMillis() + CHUNK_BUDGET_MS
         try {
             while (deferredDispatch.isNotEmpty()) {
                 val packet = deferredDispatch.peek() ?: break
                 // Check time budget before processing expensive chunk packets
-                if (packet is ClientboundLevelChunkWithLightPacket && System.nanoTime() >= deadline) {
+                if (packet is ClientboundLevelChunkWithLightPacket && System.currentTimeMillis() >= deadline) {
                     return
                 }
                 deferredDispatch.poll()

@@ -35,11 +35,11 @@ object SpawnShipCubeCommand {
                             Component.literal("[VS2] Spawning ${size}x${size}x${size} ship cube ($totalShips ships)...")
                         }, true)
 
-                        val overallStart = System.nanoTime()
+                        val overallStart = System.currentTimeMillis()
                         val spacing = 2 // 1 block gap between each 1-block ship
 
                         // Phase 1: Place all iron blocks
-                        val placeStart = System.nanoTime()
+                        val placeStart = System.currentTimeMillis()
                         val blockSets = mutableListOf<Set<BlockPos>>()
                         for (x in 0 until size) {
                             for (y in 0 until size) {
@@ -53,29 +53,29 @@ object SpawnShipCubeCommand {
                                 }
                             }
                         }
-                        val placeMs = (System.nanoTime() - placeStart) / 1_000_000.0
+                        val placeMs = System.currentTimeMillis() - placeStart
 
                         // Phase 2: Batch-assemble all ships at once
                         // This is MUCH faster than sequential assembleToShip because:
                         // - One PacketStopChunkUpdates/Restart for ALL ships
                         // - One executeIf callback instead of N
                         // - Batched connectivity updates
-                        val assembleStart = System.nanoTime()
+                        val assembleStart = System.currentTimeMillis()
                         val results = try {
                             ShipAssembler.batchAssembleToShips(level, blockSets, 1.0)
                         } catch (e: Exception) {
                             source.sendFailure(Component.literal("[VS2] Batch assembly failed: ${e.message}"))
                             return@executes 0
                         }
-                        val assembleMs = (System.nanoTime() - assembleStart) / 1_000_000.0
+                        val assembleMs = System.currentTimeMillis() - assembleStart
 
-                        val totalMs = (System.nanoTime() - overallStart) / 1_000_000.0
+                        val totalMs = System.currentTimeMillis() - overallStart
 
                         source.sendSuccess({
-                            Component.literal("[VS2] Created ${results.size} ships in ${String.format("%.0f", totalMs)}ms " +
-                                "(place: ${String.format("%.0f", placeMs)}ms, " +
-                                "assemble: ${String.format("%.0f", assembleMs)}ms, " +
-                                "${String.format("%.1f", totalMs / results.size)}ms/ship)")
+                            Component.literal("[VS2] Created ${results.size} ships in ${totalMs}ms " +
+                                "(place: ${placeMs}ms, " +
+                                "assemble: ${assembleMs}ms, " +
+                                "${totalMs / results.size}ms/ship)")
                         }, true)
 
                         results.size
