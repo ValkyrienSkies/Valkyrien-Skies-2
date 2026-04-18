@@ -107,11 +107,11 @@ dependencies {
     // modImplementation("teamtwilight:twilightforest:${twilightforest_version}:universal")
 
     // Create Mod, see https://wiki.createmod.net/developers/depend-on-create/neoforge-1.21.1
-    modImplementation("com.simibubi.create:create-${property("minecraft_version")}:${property("forge_create_version")}:slim") { transitive = false }
-    modImplementation("net.createmod.ponder:ponder-neoforge:${property("forge_ponder_version")}")
+    modCompileOnly("com.simibubi.create:create-${property("minecraft_version")}:${property("forge_create_version")}:slim") { transitive = false }
+    modCompileOnly("net.createmod.ponder:ponder-neoforge:${property("forge_ponder_version")}")
     modCompileOnly("dev.engine-room.flywheel:flywheel-neoforge-api-${property("minecraft_version")}:${property("forge_flywheel_version")}")
     modRuntimeOnly("dev.engine-room.flywheel:flywheel-neoforge-${property("minecraft_version")}:${property("forge_flywheel_version")}")
-    modImplementation("com.tterrag.registrate:Registrate:${property("forge_registrate_version")}")
+    modCompileOnly("com.tterrag.registrate:Registrate:${property("forge_registrate_version")}")
 
     // Weather2 1.20.1
     // Not on 1.21.1 yet
@@ -171,7 +171,7 @@ dependencies {
     forgeRuntimeLibrary(implementation("thedarkcolour:kotlinforforge-neoforge:${kotlin_for_forge_version}"))
 
     // Cloth for config
-    include(modImplementation("me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"))
+    include(modCompileOnly("me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"))
 
     // Shade vs-core
     implementation("org.valkyrienskies.core:util:${rootProject.vs_core_version}")
@@ -237,8 +237,6 @@ dependencies {
     forgeRuntimeLibrary include("com.github.victools:jsonschema-generator:4.25.0") { transitive = false }
     forgeRuntimeLibrary include("com.fasterxml:classmate:1.5.1") { transitive = false }
     forgeRuntimeLibrary include("com.flipkart.zjsonpatch:zjsonpatch:0.4.11") { transitive = false }
-    forgeRuntimeLibrary include("org.apache.commons:commons-collections4:4.3") { transitive = false }
-
     forgeRuntimeLibrary include("com.google.dagger:dagger:2.43.2") { transitive = false }
 
     // endregion
@@ -246,11 +244,17 @@ dependencies {
 
 // I don't know why, but this is the only way gradle can launch it
 tasks.runClient.configure {
+    dependsOn(":common:classes")
+    dependsOn("syncDevModsToml")
     jvmArgs '-Dkotlinx.coroutines.debug=off'
+    dependsOn("syncDevClassOutputs")
 }
 
 tasks.runServer.configure {
+    dependsOn(":common:classes")
+    dependsOn("syncDevModsToml")
     jvmArgs '-Dkotlinx.coroutines.debug=off'
+    dependsOn("syncDevClassOutputs")
 }
 
 // Copy the VS common access widener to the generated resources folder.
@@ -263,10 +267,63 @@ tasks.register("copyAccessWidener", Copy) {
 
 processResources {
     dependsOn("copyAccessWidener")
-    inputs.property "version", project.version
+    inputs.property "version", rootProject.mod_version
 
     filesMatching('META-INF/neoforge.mods.toml') {
-        expand "version": project.version
+        expand "version": rootProject.mod_version
+    }
+}
+
+tasks.register("syncDevModsToml") {
+    dependsOn(tasks.named("processResources"))
+
+    doLast {
+        def sourceToml = file("$buildDir/resources/main/META-INF/neoforge.mods.toml")
+        if (!sourceToml.exists()) {
+            return
+        }
+
+        [
+            file("$projectDir/bin/main/META-INF"),
+            file("$projectDir/out/production/resources/META-INF")
+        ].each { targetDir ->
+            targetDir.mkdirs()
+            copy {
+                from sourceToml
+                into targetDir
+            }
+        }
+    }
+}
+
+tasks.register("syncDevClassOutputs") {
+    dependsOn(tasks.named("classes"))
+
+    doLast {
+        def javaClassesDir = file("$buildDir/classes/java/main")
+        def kotlinClassesDir = file("$buildDir/classes/kotlin/main")
+        def resourcesDir = file("$buildDir/resources/main")
+
+        def ideBinMain = file("$projectDir/bin/main")
+        def ideOutClasses = file("$projectDir/out/production/classes")
+        def ideOutResources = file("$projectDir/out/production/resources")
+
+        [ideBinMain, ideOutClasses, ideOutResources].each { it.mkdirs() }
+
+        copy {
+            from javaClassesDir, kotlinClassesDir, resourcesDir
+            into ideBinMain
+        }
+
+        copy {
+            from javaClassesDir, kotlinClassesDir
+            into ideOutClasses
+        }
+
+        copy {
+            from resourcesDir
+            into ideOutResources
+        }
     }
 }
 

@@ -90,47 +90,176 @@ subprojects {
 
         mavenCentral()
         if (!project.block_external_repositories) {
-            maven {
-                url = "https://maven.realrobotix.me/master/"
-            }
             mavenLocal()
-            maven {
-                name = "ParchmentMC"
-                url = "https://maven.parchmentmc.org"
+            exclusiveContent {
+                forRepository {
+                    maven {
+                        name = "ParchmentMC"
+                        url = "https://maven.parchmentmc.org"
+                    }
+                }
+                filter {
+                    includeGroup("org.parchmentmc")
+                }
             }
-            maven { url = "https://cursemaven.com" }
-            maven { url = "https://maven.terraformersmc.com/releases/" } // Mod Menu
-            maven {
-                name = 'Kotlin for Forge'
-                url = 'https://thedarkcolour.github.io/KotlinForForge/'
+            exclusiveContent {
+                forRepository {
+                    maven { url = "https://cursemaven.com" }
+                }
+                filter {
+                    includeGroup("curse.maven")
+                }
             }
-            maven {
-                name = 'tterrag maven'
-                url = 'https://maven.tterrag.com/'
+            exclusiveContent {
+                forRepository {
+                    maven { url = "https://maven.terraformersmc.com/releases/" } // Mod Menu
+                }
+                filter {
+                    includeGroup("com.terraformersmc")
+                }
             }
-            maven { url = "https://modmaven.dev/" } // Twilight Forest
-            maven { url = "https://api.modrinth.com/maven" } // LazyDFU, Suggestion Tweaker, Create Big Cannons
-            maven { url = "https://maven.shedaniel.me/" } // Cloth Config, REI
-            maven { url = "https://maven.architectury.dev/" }
-            maven { url = "https://maven.createmod.net" } // Create, Ponder, Flywheel
-            maven { url = "https://maven.ithundxr.dev/mirror" } // Registrate mirror
-            maven { url = "https://mvn.devos.one/snapshots/" } // Fabric Create, Porting Lib, Forge Tags, Milk Lib
-            maven { url = "https://mvn.devos.one/releases/" }
-            maven { url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/" } // Forge Config API Port
-            maven { url = "https://maven.cafeteria.dev/releases" } // Fake Player API
-            maven { url = "https://maven.jamieswhiteshirt.com/libs-release" } // Reach Entity Attributes
-            maven { url = "https://maven.realrobotix.me/createbigcannons/" } // Create Big Cannons
-            maven {
-                name = "CC-Tweaked"
-                url = "https://maven.squiddev.cc"
-                content {
+            exclusiveContent {
+                forRepository {
+                    maven {
+                        name = 'Kotlin for Forge'
+                        url = 'https://thedarkcolour.github.io/KotlinForForge/'
+                    }
+                }
+                filter {
+                    includeGroup("thedarkcolour")
+                }
+            }
+            exclusiveContent {
+                forRepository {
+                    maven {
+                        name = 'tterrag maven'
+                        url = 'https://maven.tterrag.com/'
+                    }
+                }
+                filter {
+                    includeGroup("com.tterrag")
+                }
+            }
+            exclusiveContent {
+                forRepository {
+                    maven { url = "https://modmaven.dev/" } // Twilight Forest
+                }
+                filter {
+                    includeGroup("teamtwilight")
+                }
+            }
+            exclusiveContent {
+                forRepository {
+                    maven { url = "https://api.modrinth.com/maven" } // LazyDFU, Suggestion Tweaker, Create Big Cannons
+                }
+                filter {
+                    includeGroup("maven.modrinth")
+                }
+            }
+            exclusiveContent {
+                forRepository {
+                    maven { url = "https://maven.shedaniel.me/" } // Cloth Config, REI
+                }
+                filter {
+                    includeGroup("me.shedaniel")
+                }
+            }
+            exclusiveContent {
+                forRepository {
+                    maven { url = "https://maven.architectury.dev/" }
+                }
+                filter {
+                    includeGroup("dev.architectury")
+                    includeGroup("architectury-plugin")
+                }
+            }
+            exclusiveContent {
+                forRepository {
+                    maven { url = "https://maven.createmod.net" } // Create, Ponder, Flywheel
+                }
+                filter {
+                    includeGroup("com.simibubi.create")
+                    includeGroup("net.createmod.ponder")
+                    includeGroup("dev.engine-room.flywheel")
+                }
+            }
+            exclusiveContent {
+                forRepository {
+                    maven { url = "https://maven.ithundxr.dev/snapshots" } // Registrate mirror
+                }
+                filter {
+                    includeGroup("com.tterrag.registrate")
+                }
+            }
+            exclusiveContent {
+                forRepository {
+                    maven { url = "https://mvn.devos.one/snapshots/" } // Fabric Create, Porting Lib, Forge Tags, Milk Lib
+                }
+                filter {
+                    includeGroup("io.github.fabricators_of_create.Porting-Lib")
+                    includeGroup("io.github.tropheusj")
+                }
+            }
+            exclusiveContent {
+                forRepository {
+                    maven { url = "https://mvn.devos.one/releases/" }
+                }
+                filter {
+                    includeGroup("io.github.fabricators_of_create.Porting-Lib")
+                    includeGroup("io.github.tropheusj")
+                }
+            }
+            exclusiveContent {
+                forRepository {
+                    maven { url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/" } // Forge Config API Port
+                }
+                filter {
+                    includeGroup("fuzs.forgeconfigapiport")
+                }
+            }
+            exclusiveContent {
+                forRepository {
+                    maven { url = "https://maven.cafeteria.dev/releases" } // Fake Player API
+                }
+                filter {
+                    includeGroup("dev.cafeteria")
+                }
+            }
+            exclusiveContent {
+                forRepository {
+                    maven { url = "https://maven.jamieswhiteshirt.com/libs-release" } // Reach Entity Attributes
+                }
+                filter {
+                    includeGroup("com.jamieswhiteshirt")
+                }
+            }
+            exclusiveContent {
+                forRepository {
+                    maven { url = "https://maven.realrobotix.me/createbigcannons/" } // Create Big Cannons
+                }
+                filter {
+                    includeGroup("rbasamoyai.createbigcannons")
+                }
+            }
+            exclusiveContent {
+                forRepository {
+                    maven {
+                        name = "CC-Tweaked"
+                        url = "https://maven.squiddev.cc"
+                    }
+                }
+                filter {
                     includeGroup("cc.tweaked")
                 }
             }
-            maven {
-                name = "FTB Stuffs"
-                url = "https://maven.ftb.dev/releases"
-                content {
+            exclusiveContent {
+                forRepository {
+                    maven {
+                        name = "FTB Stuffs"
+                        url = "https://maven.ftb.dev/releases"
+                    }
+                }
+                filter {
                     includeGroup("dev.ftb.mods")
                 }
             }
@@ -138,14 +267,50 @@ subprojects {
                 name = "NeoForged"
                 url = "https://maven.neoforged.net/releases"
             }
-            maven { // Hexcasting
-                url = "https://maven.blamejared.com"
+            // exclusiveContent {
+            //     forRepository {
+            //         maven {
+            //             name = "NeoForged"
+            //             url = "https://maven.neoforged.net/releases"
+            //         }
+            //     }
+            //     filter {
+            //         includeGroup("net.neoforged")
+            //         includeGroup("net.neoforged.fancymodloader")
+            //         includeGroup("net.neoforged.installertools")
+            //         includeGroup("net.neoforged.fml")
+            //         includeGroup("cpw.mods")
+            //     }
+            // }
+            exclusiveContent {
+                forRepository {
+                    maven { // Hexcasting
+                        url = "https://maven.blamejared.com"
+                    }
+                }
+                filter {
+                    includeGroup("at.petra-k.hexcasting")
+                }
             }
-            maven { // Hexal
-                url = uri("https://maven.hexxy.media")
+            exclusiveContent {
+                forRepository {
+                    maven { // Hexal
+                        url = uri("https://maven.hexxy.media")
+                    }
+                }
+                filter {
+                    includeGroup("ram.talia.hexal")
+                }
             }
             // Jitpack is last because it's slow and should only be used as fallback.
-            maven { url = "https://jitpack.io" }
+            exclusiveContent {
+                forRepository {
+                    maven { url = "https://jitpack.io" }
+                }
+                filter {
+                    includeGroup('com.github.iPortalTeam')
+                }
+            }
         }
         maven {
             name = "Valkyrien Skies Internal"
@@ -157,13 +322,49 @@ subprojects {
                 }
             }
         }
+        // if (project.block_external_repositories) {
+        //     maven {
+        //         name = "Valkyrien Skies Internal"
+        //         url = project.vs_maven_url ?: 'https://maven.valkyrienskies.org'
+        //         if (project.vs_maven_username && project.vs_maven_password) {
+        //             credentials {
+        //                 username = project.vs_maven_username
+        //                 password = project.vs_maven_password
+        //             }
+        //         }
+        //     }
+        // } else {
+        //     exclusiveContent {
+        //         forRepository {
+        //             maven {
+        //                 name = "Valkyrien Skies Internal"
+        //                 url = project.vs_maven_url ?: 'https://maven.valkyrienskies.org'
+        //                 if (project.vs_maven_username && project.vs_maven_password) {
+        //                     credentials {
+        //                         username = project.vs_maven_username
+        //                         password = project.vs_maven_password
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //         filter {
+        //             includeGroup("org.valkyrienskies")
+        //             includeGroup("org.valkyrienskies.core")
+        //             includeGroup("com.github.Rubydesic")
+        //             includeVersion("com.fasterxml.jackson.module", "jackson-module-kotlin", "2.14.0-rubyfork")
+        //         }
+        //     }
+        // }
     }
 
     // Remove automatically added repos
     if (project.block_external_repositories) {
-        repositories.removeIf {
-            def url = it.url.toString()
-            url.contains("maven.minecraftforge.net") ||
+        repositories.removeIf { repo ->
+            if (!repo.hasProperty("url")) {
+                return false
+            }
+            def url = repo.url.toString()
+            url.contains("maven.neoforged.net") ||
                 url.contains("maven.fabricmc.net") ||
                 url.contains("maven.architectury.dev")
         }
