@@ -3,7 +3,6 @@ package org.valkyrienskies.mod.mixin.feature.spawn_player_on_ship;
 import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
-import net.minecraft.client.Minecraft;
 import org.slf4j.Logger;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -12,6 +11,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils;
+import org.valkyrienskies.mod.util.MinecraftClientHelper;
 
 @Mixin(ServerGamePacketListenerImpl.class)
 public abstract class MixinServerGamePacketListenerImpl {
@@ -37,7 +37,7 @@ public abstract class MixinServerGamePacketListenerImpl {
     private void injectHandleMovePlayer(final ServerboundMovePlayerPacket packet, final CallbackInfo ci) {
         if (EntityShipCollisionUtils.isCollidingWithUnloadedShips(this.player)) {
             ci.cancel();
-            if (this.player.getServer().isSingleplayer() && Minecraft.getInstance().isPaused()) {
+            if (this.player.getServer().isSingleplayer() && MinecraftClientHelper.isSinglePlayerPaused()) {
                 // Prevent log spam when player paused the world while ship loading
                 // (e.g. player is on a ship when they loading a world, and they unfocused the game that the world will be paused from the first tick)
                 return;
