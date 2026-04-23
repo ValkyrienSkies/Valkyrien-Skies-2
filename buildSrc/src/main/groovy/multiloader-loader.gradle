@@ -1,0 +1,54 @@
+plugins {
+    id 'multiloader-common'
+}
+
+configurations {
+    embeddedLibraries {
+        canBeResolved = true
+        canBeConsumed = false
+        transitive = false
+    }
+    commonNamed {
+        canBeResolved = true
+        canBeConsumed = false
+    }
+    commonResources {
+        canBeResolved = true
+        canBeConsumed = false
+    }
+}
+
+dependencies {
+    compileOnly 'org.jspecify:jspecify:1.0.0'
+    commonNamed project(path: ':common', configuration: 'namedElements')
+    commonResources project(path: ':common', configuration: 'commonResources')
+    compileOnly(project(path: ':common', configuration: 'namedElements')) {
+        transitive = false
+    }
+    runtimeOnly(project(path: ':common', configuration: 'namedElements')) {
+        transitive = false
+    }
+    // :common is intentionally NOT embedded here. Loader projects merge
+    // common's classes into their main output via sourceSets.main.output.dir
+    // and common's resources via processResources { from(commonResources) }.
+    // Re-embedding the namedElements jar would duplicate every class +
+    // resource and trip reobfJar's strict duplicate check.
+}
+
+processResources {
+    dependsOn(configurations.commonResources)
+    from(configurations.commonResources)
+}
+
+tasks.named('sourcesJar', Jar) {
+    dependsOn(configurations.commonResources)
+    from(configurations.commonResources)
+}
+
+tasks.named('jar', Jar) {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    exclude 'LICENSE_*'
+    from({
+        configurations.embeddedLibraries.collect { zipTree(it) }
+    })
+}

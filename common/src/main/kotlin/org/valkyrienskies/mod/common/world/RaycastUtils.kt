@@ -310,4 +310,12 @@ fun BlockGetter.vanillaClip(context: ClipContext): BlockHitResult =
                 ctx.to, Direction.getNearest(vec3.x, vec3.y, vec3.z),
                 BlockPos.containing(ctx.to)
             )
-        })
+        }) ?: BlockHitResult.miss(
+        context.to,
+        Direction.getNearest(
+            context.from.x - context.to.x,
+            context.from.y - context.to.y,
+            context.from.z - context.to.z
+        ),
+        BlockPos.containing(context.to)
+    )

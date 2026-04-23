@@ -1,304 +1,401 @@
-buildscript {
-    repositories {
-        mavenCentral()
-    }
-    dependencies {
-        // Make sure this version matches the one included in Kotlin for Forge
-        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.22'
-        // OPTIONAL Gradle plugin for Kotlin Serialization
-        classpath 'org.jetbrains.kotlin:kotlin-serialization:1.9.22'
-    }
-}
-
 plugins {
-    id "com.github.johnrengelman.shadow" version "7.1.2"
-    id "org.jetbrains.kotlin.jvm"
-    id "com.matthewprenger.cursegradle"
-    id "com.modrinth.minotaur"
+    id 'multiloader-loader'
+    id 'net.neoforged.moddev.legacyforge'
+    id 'org.jetbrains.kotlin.jvm'
+    id('dev.kikugie.fletching-table.neoforge') version '0.1.0-alpha.22'
+    id 'com.github.johnrengelman.shadow' version '7.1.2'
 }
 
-apply from: '../gradle-scripts/publish-curseforge.gradle'
+// Cross-loader compat mod dependencies (sodium/create/cc-tweaked/hex-*/etc.)
+// are declared once in this shared file; forge picks its own coordinates.
+apply from: "${rootDir}/gradle/mod-dependencies.gradle"
 
-architectury {
-    platformSetupLoomIde()
-    forge()
+// Plain runtimeOnly puts deps on the JVM classpath but only on the modlauncher
+// boot layer, where mixins can't transform them. Each moddev run owns a
+// `<runName>AdditionalRuntimeClasspath` configuration whose entries land in
+// the per-run legacyClasspath.txt — modlauncher reads that file to mark jars
+// as non-boot (transformable). We declare deps once into vsCoreModRuntime and
+// extend every run's config from it below.
+configurations {
+    vsCoreModRuntime {
+        canBeConsumed = false
+        canBeResolved = false
+    }
 }
 
-sourceSets {
-    main {
-        resources {
-            srcDir "$buildDir/generated/resources"
+mixin {
+    add(sourceSets.main, "${mod_id}-forge-refmap.json")
+
+    config("${mod_id}-common.mixins.json")
+    config("${mod_id}-forge.mixins.json")
+}
+
+legacyForge {
+    version = "${minecraft_version}-${forge_version}"
+
+    validateAccessTransformers = true
+
+    def at = project(':common').file('src/main/resources/META-INF/accesstransformer.cfg')
+    if (at.exists()) {
+        accessTransformers = [at.absolutePath]
+    }
+
+    parchment {
+        minecraftVersion = parchment_minecraft
+        mappingsVersion = parchment_version
+    }
+
+    runs {
+        configureEach {
+            additionalRuntimeClasspathConfiguration.extendsFrom(configurations.vsCoreModRuntime)
+        }
+        client {
+            client()
+        }
+        data {
+            data()
+            programArguments.addAll '--mod', project.mod_id, '--all',
+                    '--output', file('src/generated/resources/').getAbsolutePath(),
+                    '--existing', file('src/main/resources/').getAbsolutePath()
+        }
+        server {
+            server()
+        }
+    }
+
+    mods {
+        "${mod_id}" {
+            sourceSet sourceSets.main
+            // Do NOT register :common's sourceSet here — moddev would put
+            // :common's raw build/classes/java/main directory on the dev
+            // classpath, and its AP-generated intermediary refmap would
+            // shadow the SRG-translated refmap that processResources
+            // copies in from the generateCommonForgeRefmap task.
+            // syncCommonClassesForForge already merges :common's classes
+            // into forge's main sourceSet output with the bad refmap stripped.
         }
     }
 }
 
-loom {
-    accessWidenerPath = project(":common").loom.accessWidenerPath
+sourceSets.main.resources.srcDir 'src/generated/resources'
 
-    forge {
-        mixinConfig "valkyrienskies-common.mixins.json"
-        mixinConfig "valkyrienskies-forge.mixins.json"
-        convertAccessWideners.set(true)
-        extraAccessWideners.add loom.accessWidenerPath.get().asFile.name
-    }
-    mixin {
-        defaultRefmapName = "valkyrienskies-refmap.json"
-    }
+// :common compiles under fabric-loom and writes an intermediary refmap
+// (Yarn class_xxx/method_xxx/field_xxx entries) which forge's SRG runtime
+// can't consume. Previously this was stripped and replaced with an empty
+// refmap, which worked only for annotations that already had matching names
+// at runtime — @Shadow methods like Minecraft.getSingleplayerServer (no
+// @Inject string ref backing them) have no fallback and crash mixin apply.
+//
+// Sync filters common's raw output (minus its intermediary refmap) into a
+// forge-local copy. generateCommonForgeRefmap then reads that refmap plus
+// common's compiled bytecode and emits a forge-flavored refmap with mojmap →
+// SRG translations for @Shadow/@Accessor/@Invoker and @Inject/@At entries.
+def commonClassesForge = layout.buildDirectory.dir('common-classes-for-forge')
+tasks.register('syncCommonClassesForForge', Sync) {
+    from(project(':common').layout.buildDirectory.dir('classes/java/main'))
+    from(project(':common').layout.buildDirectory.dir('classes/kotlin/main'))
+    into(commonClassesForge)
+    // Strip :common's AP-generated refmap — forge bundles a regenerated SRG
+    // version via generateCommonForgeRefmap instead. Also strip stale
+    // .refmap.json (dot) files from older loom configs that Gradle's
+    // incremental compile can leave behind.
+    exclude 'valkyrienskies-common-refmap.json'
+    exclude 'valkyrienskies.refmap.json'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    dependsOn(project(':common').tasks.named('compileJava'))
+    dependsOn(project(':common').tasks.named('compileKotlin'))
 }
 
-configurations {
-    common
-    shadowCommon // Don't use shadow from the shadow plugin because we don't want IDEA to index this.
-    core
-    compileClasspath.extendsFrom common
-    runtimeClasspath.extendsFrom common
-    developmentForge.extendsFrom common
-    compileClasspath.extendsFrom core
-    forgeRuntimeLibrary.extendsFrom core
-    shadowCommon.extendsFrom core
-}
+sourceSets.main.output.dir(
+    commonClassesForge,
+    builtBy: tasks.named('syncCommonClassesForForge')
+)
 
-dependencies {
-    implementation(annotationProcessor("io.github.llamalad7:mixinextras-common:0.4.1"))
-    implementation(include("io.github.llamalad7:mixinextras-forge:0.4.1"))
-    annotationProcessor("net.fabricmc:sponge-mixin:0.12.5+mixin.0.8.5") // use fabric mixin so we can write interface injectors (conditionally loaded if mixinbooster is enabled)
+apply from: 'generate-common-forge-refmap.gradle'
 
-    forge "net.minecraftforge:forge:${rootProject.forge_version}"
-
-    common(project(path: ":common", configuration: "namedElements")) {
-        transitive = false
+def forgeRefmapOverrideDir = layout.buildDirectory.dir('forge-refmap-override')
+tasks.register('buildCommonForgeRefmap') {
+    def commonClassesDir = project(':common').layout.buildDirectory.dir('classes/java/main')
+    def commonRefmapFile = project(':common').layout.buildDirectory.file('classes/java/main/valkyrienskies-common-refmap.json')
+    def srgFile = layout.buildDirectory.file('moddev/artifacts/intermediateToNamed.srg')
+    def mergedMcJar = layout.buildDirectory.file("moddev/artifacts/forge-${rootProject.minecraft_version}-${rootProject.forge_version}-merged.jar")
+    def outputFile = forgeRefmapOverrideDir.map { it.file('valkyrienskies-common-refmap.json') }
+    def shadowMappingsFile = forgeRefmapOverrideDir.map { it.file('valkyrienskies-shadow-mappings.json') }
+    // Loom's resolved layered mappings live in ~/.gradle/caches/fabric-loom/<mc>/loom.mappings.*-v2/mappings.tiny
+    def loomMappingsTiny = fileTree(
+        dir: "${System.getProperty('user.home')}/.gradle/caches/fabric-loom/${rootProject.minecraft_version}",
+        includes: ['loom.mappings.*-v2/mappings.tiny']
+    )
+    // Loom ships the tiny file both loose and inside a jar named after the hash
+    // (common module's `mappings(loom.layered { ... })` resolves to that jar).
+    def loomMappingsJar = fileTree(
+        dir: "${System.getProperty('user.home')}/.gradle/caches/fabric-loom/${rootProject.minecraft_version}/layered",
+        includes: ['loom.mappings-layered+hash.*.jar']
+    )
+    // mcp_config supplies obf → SRG for methods/fields. Needed to bridge
+    // fabric-intermediary to forge-SRG for synthetic lambdas where
+    // intermediary name ≠ forge-mojmap name.
+    def mcpConfigZip = fileTree(
+        dir: "${System.getProperty('user.home')}/.gradle/caches/modules-2/files-2.1/de.oceanlabs.mcp/mcp_config",
+        includes: ['**/mcp_config-*.zip']
+    )
+    dependsOn(project(':common').tasks.named('compileJava'))
+    dependsOn(tasks.named('createMinecraftArtifacts'))
+    inputs.file(commonRefmapFile)
+    inputs.file(srgFile)
+    inputs.file(mergedMcJar)
+    inputs.files(loomMappingsJar)
+    inputs.files(mcpConfigZip)
+    outputs.file(outputFile)
+    outputs.file(shadowMappingsFile)
+    doLast {
+        def jars = loomMappingsJar.files.toList()
+        if (jars.isEmpty()) {
+            throw new GradleException("No loom layered mappings jar found under ~/.gradle/caches/fabric-loom/${rootProject.minecraft_version}/layered — did :common build successfully?")
+        }
+        def mcpZips = mcpConfigZip.files.toList()
+        if (mcpZips.isEmpty()) {
+            throw new GradleException("No mcp_config zip found under ~/.gradle/caches/modules-2/files-2.1/de.oceanlabs.mcp/mcp_config — did :forge's createMinecraftArtifacts resolve mcp_config?")
+        }
+        generateCommonForgeRefmap(
+            commonClassesDir   : commonClassesDir.get().asFile,
+            commonRefmapFile   : commonRefmapFile.get().asFile,
+            srgFile            : srgFile.get().asFile,
+            loomMappingsJar    : jars[0],
+            mcpConfigZip       : mcpZips[0],
+            mergedMcJar        : mergedMcJar.get().asFile,
+            outputFile         : outputFile.get().asFile,
+            shadowMappingsFile : shadowMappingsFile.get().asFile,
+        )
     }
-    shadowCommon(project(path: ":common", configuration: "transformProductionForge")) {
-        transitive = false
-    }
-
-    //modCompileOnly("curse.maven:rubidium-574856:4024781")
-    modCompileOnly("maven.modrinth:embeddium:${embeddium_version}")
-
-    modRuntimeOnly("maven.modrinth:forge-config-screens:v8.0.2-1.20.1-Forge")
-
-    // Twilight Forest
-    modImplementation("teamtwilight:twilightforest:${twilightforest_version}:universal")
-
-    // CBC
-    //modRuntimeOnly("com.rbasamoyai:createbigcannons:${createbigcannons_version}+mc.${minecraft_version}-forge-build.250") { transitive = false }
-    //modRuntimeOnly("com.rbasamoyai:ritchiesprojectilelib:${rpl_version}+mc.${minecraft_version}-forge")
-
-
-    // Create compat
-    modImplementation("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") { transitive = false }
-    modImplementation("net.createmod.ponder:Ponder-Forge-${minecraft_version}:${ponder_version}")
-    modImplementation("curse.maven:vanillin-965702:6446560")
-    modCompileOnly("dev.engine-room.flywheel:flywheel-forge-api-${minecraft_version}:${flywheel_version}")
-    modRuntimeOnly("dev.engine-room.flywheel:flywheel-forge-${minecraft_version}:${flywheel_version}")
-    modImplementation("com.tterrag.registrate:Registrate:${registrate_version}")
-
-    // Weather2 1.20.1
-    modImplementation("curse.maven:weather-storms-tornadoes-237746:5244118")
-    modImplementation("curse.maven:coroutil-237749:5096038")
-
-    // CC Tweaked
-    modRuntimeOnly("cc.tweaked:cc-tweaked-${minecraft_version}-forge:${cc_tweaked_version}")
-
-    //modImplementation("curse.maven:vmp-forge-892037:4657678")
-
-    // OpenComputers 2: Reimagined
-    modCompileOnly("maven.modrinth:oc2r:${oc2r_version}")
-
-    // EMF compat
-    //todo: fix
-    modCompileOnly("maven.modrinth:entity-model-features:3.0.7-forge-1.20.1")
-    modCompileOnly("maven.modrinth:entitytexturefeatures:7.0.6-forge-1.20.1")
-
-    modCompileOnly("maven.modrinth:create-utilities:0.2.0+1.20.1")
-    modImplementation("teamreborn:energy:${energy_version}") {
-        transitive = false
-    }
-    // TIS-3d
-    modCompileOnly("maven.modrinth:tis3d:${tis3d_version}")
-
-    // Modular Routers
-    modCompileOnly("curse.maven:mr-250294:4696089")
-
-    // Modular Force Field System
-    modCompileOnly("maven.modrinth:mffs:5.1.18")
-
-    // Epic Fight
-    modCompileOnly("maven.modrinth:epic-fight:20.10.3")
-
-    // Dynmap
-    modCompileOnly("maven.modrinth:dynmap:${dynmap_version}")
-
-    // Hexcasting
-    modCompileOnly("at.petra-k.hexcasting:hexcasting-forge-${minecraft_version}:${hexcasting_version}") { transitive = false }
-
-    // HexTweaks
-    modCompileOnly("maven.modrinth:hextweaks:$hextweaks_version")
-
-    // Ephemera
-    modCompileOnly("maven.modrinth:ephemera:$ephemera_version")
-
-    // Hexal
-    modCompileOnly("ram.talia.hexal:hexal-forge-$minecraft_version:$hexal_version") { transitive = false }
-
-    // Integrated Dynamics
-    modCompileOnly("curse.maven:integrated-dynamics-236307:5297722")
-    modCompileOnly("curse.maven:cyclops-core-232758:5262063")
-    modCompileOnly("curse.maven:common-capabilities-247007:4987207")
-
-    // Very Many Players
-    //modCompileOnly("maven.modrinth:vmp-forge:0.2.0+beta.7.101+1.20.1")
-
-    // Mekanism
-    modImplementation ("maven.modrinth:mekanism:${mekanism_version}")
-
-    // Connectible Chains [Forge]
-    modImplementation("curse.maven:connectible-chains-forge-418514:6142294")
-
-    // Add Kotlin for Forge (3.12.0)
-    forgeRuntimeLibrary("maven.modrinth:kotlin-for-forge:${kotlin_version}")
-
-    // Cloth for config
-    include(modImplementation("me.shedaniel.cloth:cloth-config-forge:${cloth_config_version}"))
-
-    // Shade vs-core
-    implementation("org.valkyrienskies.core:util:${rootProject.vs_core_version}")
-    implementation("org.valkyrienskies.core:internal:${rootProject.vs_core_version}") {
-        exclude group: 'org.joml', module: 'joml'
-    }
-    runtimeOnly("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
-        exclude group: 'org.joml', module: 'joml'
-    }
-    forgeRuntimeLibrary shadowCommon("org.valkyrienskies.core:impl:${rootProject.vs_core_version}") {
-        exclude group: 'org.joml', module: 'joml'
-        transitive = false
-    }
-
-
-    // region Manually include every single dependency of vs-core (total meme)
-    forgeRuntimeLibrary include("org.valkyrienskies.core:api:${rootProject.vs_core_version}") {
-        exclude group: 'org.joml', module: 'joml'
-        transitive = false
-    }
-
-    forgeRuntimeLibrary shadowCommon("org.valkyrienskies.core:internal:${rootProject.vs_core_version}") {
-        exclude group: 'org.joml', module: 'joml'
-        transitive = false
-    }
-
-    forgeRuntimeLibrary include("org.valkyrienskies.core:util:${rootProject.vs_core_version}") {
-        exclude group: 'org.joml', module: 'joml'
-        transitive = false
-    }
-
-    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api_krunch:${rootProject.krunch_version}") {
-        exclude group: 'org.joml', module: 'joml'
-        transitive = false
-    }
-
-    forgeRuntimeLibrary shadowCommon("org.valkyrienskies:physics_api:${rootProject.krunch_api_version}") {
-        exclude group: 'org.joml', module: 'joml'
-        transitive = false
-    }
-
-    forgeRuntimeLibrary include("javax.inject:javax.inject:1") { transitive = false }
-
-    // JOML for Math
-    forgeRuntimeLibrary include("org.joml:joml-primitives:1.10.0")
-
-    // Apache Commons Math for Linear Programming
-    forgeRuntimeLibrary include("org.apache.commons:commons-math3:3.6.1") { transitive = false }
-
-    // Jackson Binary Dataformat for Object Serialization
-    def jacksonVersion = '2.14.0'
-    // forked to remove module-info
-    forgeRuntimeLibrary include("com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion-rubyfork") { transitive = false }
-    forgeRuntimeLibrary include("com.fasterxml.jackson.module:jackson-module-parameter-names:$jacksonVersion") { transitive = false }
-    forgeRuntimeLibrary include("com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:$jacksonVersion") { transitive = false }
-    forgeRuntimeLibrary include("com.fasterxml.jackson.core:jackson-databind:$jacksonVersion") { transitive = false }
-    forgeRuntimeLibrary include("com.fasterxml.jackson.core:jackson-annotations:$jacksonVersion") { transitive = false }
-    forgeRuntimeLibrary include("com.fasterxml.jackson.core:jackson-core:$jacksonVersion") { transitive = false }
-    forgeRuntimeLibrary include("com.github.Rubydesic:jackson-kotlin-dsl:1.2.0") { transitive = false }
-
-    forgeRuntimeLibrary include("com.networknt:json-schema-validator:1.0.71") { transitive = false }
-    forgeRuntimeLibrary include("com.ethlo.time:itu:1.7.0") { transitive = false }
-    forgeRuntimeLibrary include("com.github.victools:jsonschema-module-jackson:4.25.0") { transitive = false }
-    forgeRuntimeLibrary include("com.github.victools:jsonschema-generator:4.25.0") { transitive = false }
-    forgeRuntimeLibrary include("com.fasterxml:classmate:1.5.1") { transitive = false }
-    forgeRuntimeLibrary include("com.flipkart.zjsonpatch:zjsonpatch:0.4.11") { transitive = false }
-    forgeRuntimeLibrary include("org.apache.commons:commons-collections4:4.3") { transitive = false }
-
-    forgeRuntimeLibrary include("com.google.dagger:dagger:2.43.2") { transitive = false }
-
-    // endregion
-}
-
-// Copy the VS common access widener to the generated resources folder
-def generatedResourcesDir = layout.buildDirectory.dir("generated/resources")
-
-tasks.register("copyAccessWidener", Copy) {
-    from(project(":common").file("src/main/resources/valkyrienskies-common.accesswidener"))
-    into(generatedResourcesDir)
 }
 
 processResources {
-    dependsOn("copyAccessWidener")
-    inputs.property "version", project.version
-
-    filesMatching("META-INF/mods.toml") {
-        expand "version": project.version
+    dependsOn(tasks.named('buildCommonForgeRefmap'))
+    from(forgeRefmapOverrideDir) {
+        include 'valkyrienskies-common-refmap.json'
+        include 'valkyrienskies-shadow-mappings.json'
     }
 }
 
-shadowJar {
-    exclude "fabric.mod.json"
-    exclude "architectury.common.json"
-    // Exclude dummy Optifine classes
-    exclude "net/optifine/**"
+dependencies {
+    compileOnly(project(path: ':common', configuration: 'namedElements')) {
+        transitive = false
+    }
+    // Common's runtime classes reach forge via syncCommonClassesForForge below
+    // (registered as a sourceSets.main.output.dir). Pulling :common in as
+    // implementation/modImplementation would also drop the namedElements jar
+    // and its remapped sibling onto the runtime classpath, both of which carry
+    // the Yarn-flavored valkyrienskies-refmap.json that our processResources
+    // override is trying to displace.
+    // Use fabric's sponge-mixin fork as the annotation processor so injectors
+    // in interfaces (e.g. MixinVibrationSystemTicker) compile — stock Sponge
+    // mixin 0.8.5 rejects those, the fabric fork allows them.
+    annotationProcessor('net.fabricmc:sponge-mixin:0.12.5+mixin.0.8.5')
+    implementation(annotationProcessor('io.github.llamalad7:mixinextras-common:0.4.1'))
+    implementation(jarJar('io.github.llamalad7:mixinextras-forge:0.4.1'))
 
-    configurations = [project.configurations.shadowCommon]
-    archiveClassifier.set "dev-shadow"
+    implementation 'com.google.code.findbugs:jsr305:3.0.2'
+
+    // Kotlin runtime for forge — the Kotlin for Forge language provider.
+    // compileOnly + vsCoreModRuntime for the same reason vs-core uses that
+    // pair below: moddev legacyforge only feeds additionalRuntimeClasspath
+    // entries into each run's clientLegacyClasspath.txt. Plain implementation
+    // deps don't reach that file, so KFF would be absent at runtime and every
+    // Kotlin class (vs-core's RateLimiter, this module's own .kt files) would
+    // crash with NoClassDefFoundError: kotlin/jvm/internal/Intrinsics.
+    compileOnly "thedarkcolour:kotlinforforge:${kotlin_version}"
+    vsCoreModRuntime "thedarkcolour:kotlinforforge:${kotlin_version}"
+
+    // Forge-only mod deps — cross-loader ones live in gradle/mod-dependencies.gradle.
+    // (Create itself is declared there as modImplementation with transitive=false,
+    //  so its required mods — ponder, flywheel — must be pulled explicitly here.)
+    implementation "me.shedaniel.cloth:cloth-config-forge:${cloth_config_version}"
+    modImplementation "com.tterrag.registrate:Registrate:${registrate_version}"
+    modImplementation "net.createmod.ponder:Ponder-Forge-${minecraft_version}:${ponder_version}"
+    modImplementation "dev.engine-room.flywheel:flywheel-forge-${minecraft_version}:${flywheel_version}"
+    modCompileOnly "teamtwilight:twilightforest:${twilightforest_version}:universal"
+    modCompileOnly "maven.modrinth:oc2r:${oc2r_version}"
+    modCompileOnly "maven.modrinth:mekanism:${mekanism_version}"
+
+    // Runtime-only deps required by other mods we load at runtime.
+    // weather2 requires coroutil [1.20.1-1.3.7,).
+    modRuntimeOnly 'maven.modrinth:coroutil:1.20.1-1.3.7'
+
+    // Integrated Dynamics
+    modCompileOnly('curse.maven:integrated-dynamics-236307:5297722')
+    modCompileOnly('curse.maven:cyclops-core-232758:5262063')
+    modCompileOnly('curse.maven:common-capabilities-247007:4987207')
+
+    // Connectible Chains [Forge]
+    modCompileOnly('curse.maven:connectible-chains-forge-418514:6142294')
+
+    // Modular Routers
+    modCompileOnly('curse.maven:mr-250294:4696089')
+
+    // Epic Fight
+    modCompileOnly('maven.modrinth:epic-fight:20.10.3')
+
+    // Modular Force Field System
+    modCompileOnly('maven.modrinth:mffs:5.1.18')
+
+    // vs-core deps are compileOnly here — `implementation` would drop them
+    // into moddev's `clientLegacyClasspath.txt`, i.e. the MC-BOOTSTRAP
+    // module layer. That layer doesn't see KotlinForForge's Kotlin runtime
+    // (which lives on the mod/TRANSFORM layer), so vs-core's Kotlin code
+    // (RateLimiter, ...) hits `NoClassDefFoundError: kotlin/jvm/internal/
+    // Intrinsics` at classload. Runtime is instead supplied via the
+    // vsCoreModRuntime configuration (see below), which moddev wires into
+    // each run's additionalRuntimeClasspath — that is the transform layer
+    // next to KFF.
+    //
+    // The `fastutil`/`netty-buffer` excludes match :common/:fabric: vs-core's
+    // POMs request fastutil 8.2.1, but MC 1.20.1 bundles 8.5.9
+    // (Int2ObjectMap.computeIfAbsent(int, Int2ObjectFunction) is new in
+    // 8.5.x). If vs-core's transitive wins on the boot layer, MC's
+    // DataFixerUpper bootstrap crashes with NoSuchMethodError.
+    def vsCoreExcludes = {
+        exclude module: 'fastutil'
+        exclude module: 'netty-buffer'
+    }
+    compileOnly("org.valkyrienskies.core:api:${rootProject.vs_core_version}", vsCoreExcludes)
+    compileOnly("org.valkyrienskies.core:internal:${rootProject.vs_core_version}", vsCoreExcludes)
+    compileOnly("org.valkyrienskies.core:util:${rootProject.vs_core_version}", vsCoreExcludes)
+    // vs-core's runtime classes go on each dev run's additionalRuntimeClasspath
+    // (wired above), which is what feeds modlauncher's transformable classpath
+    // so mixins targeting vs-core classes can resolve them. In production
+    // they're bundled into the mod jar via embeddedLibraries.
+    //
+    // transitive=false: every runtime dep vs-core needs is already on the
+    // dev classpath via another route (kotlin/kotlinx via KFF, jackson via
+    // the jarJar rubyfork variant, joml via implementation, netty-buffer +
+    // fastutil via Minecraft). Letting transitives in produces JPMS conflicts
+    // — module-info'd jars become named modules that require modules KFF
+    // wraps but does not re-export (kotlin.stdlib, kotlinx.coroutines), or
+    // split packages with KFF outright.
+    def vsCoreNoTransitive = { transitive = false }
+    vsCoreModRuntime("org.valkyrienskies.core:api:${rootProject.vs_core_version}", vsCoreNoTransitive)
+    vsCoreModRuntime("org.valkyrienskies.core:internal:${rootProject.vs_core_version}", vsCoreNoTransitive)
+    vsCoreModRuntime("org.valkyrienskies.core:util:${rootProject.vs_core_version}", vsCoreNoTransitive)
+    vsCoreModRuntime("org.valkyrienskies.core:impl:${rootProject.vs_core_version}", vsCoreNoTransitive)
+    // vs-core's internal module injects via javax.inject.Provider (see
+    // VsiCoreFactory). With transitive=false above, nothing else pulls
+    // javax.inject into the dev run's legacy classpath, so VSCoreProviderImpl
+    // crashes with NoClassDefFoundError: javax.inject.Provider at mod
+    // construct-time. :fabric bundles this via embeddedLibraries; we do the
+    // same below for production, and put it on vsCoreModRuntime for dev.
+    vsCoreModRuntime("javax.inject:javax.inject:1")
+    // joml-primitives needs to land on the transformable classpath too —
+    // ~20 common mixins reference AABBd and friends. moddev otherwise drops
+    // this dep from clientLegacyClasspath.txt, and Mixin fails with
+    // ClassMetadataNotFoundException: org.joml.primitives.AABBd during apply.
+    vsCoreModRuntime("org.joml:joml-primitives:${rootProject.joml_primitives_version}", vsCoreNoTransitive)
+    // vs-core's internal runtime needs jackson (CBOR serialization) + a handful
+    // of other libs. `jarJar`/`embeddedLibraries` only bundle them into the
+    // production mod jar — they don't land on the dev run's legacy classpath,
+    // so runClient crashes with NoClassDefFoundError: CBORMapper / JsonSchema...
+    // The old ForgeGradle setup used `forgeRuntimeLibrary` which did both;
+    // moddev has no equivalent, so we route them through vsCoreModRuntime.
+    // All with transitive=false to avoid pulling kotlin-stdlib / kotlinx
+    // module-info'd jars that JPMS-conflict with KotlinForForge.
+    def jacksonVersion = '2.14.0'
+    vsCoreModRuntime("com.fasterxml.jackson.core:jackson-annotations:${jacksonVersion}", vsCoreNoTransitive)
+    vsCoreModRuntime("com.fasterxml.jackson.core:jackson-core:${jacksonVersion}", vsCoreNoTransitive)
+    vsCoreModRuntime("com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}", vsCoreNoTransitive)
+    vsCoreModRuntime("com.fasterxml.jackson.module:jackson-module-kotlin:${jacksonVersion}-rubyfork", vsCoreNoTransitive)
+    vsCoreModRuntime("com.fasterxml.jackson.module:jackson-module-parameter-names:${jacksonVersion}", vsCoreNoTransitive)
+    vsCoreModRuntime("com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:${jacksonVersion}", vsCoreNoTransitive)
+    // Not jackson-dataformat-yaml: its module-info declares `requires
+    // org.yaml.snakeyaml`, which we don't carry, so JPMS resolution fails at
+    // bootstraplauncher time. The old forgeRuntimeLibrary config also excluded
+    // this one — it's bundled in production via embeddedLibraries but not
+    // needed on the dev classpath.
+    vsCoreModRuntime("com.github.Rubydesic:jackson-kotlin-dsl:1.2.0", vsCoreNoTransitive)
+    vsCoreModRuntime("com.networknt:json-schema-validator:1.0.71", vsCoreNoTransitive)
+    vsCoreModRuntime("com.ethlo.time:itu:1.7.0", vsCoreNoTransitive)
+    vsCoreModRuntime("com.github.victools:jsonschema-module-jackson:4.25.0", vsCoreNoTransitive)
+    vsCoreModRuntime("com.github.victools:jsonschema-generator:4.25.0", vsCoreNoTransitive)
+    vsCoreModRuntime("com.fasterxml:classmate:1.5.1", vsCoreNoTransitive)
+    vsCoreModRuntime("com.flipkart.zjsonpatch:zjsonpatch:0.4.11", vsCoreNoTransitive)
+    vsCoreModRuntime("org.apache.commons:commons-collections4:4.3", vsCoreNoTransitive)
+    vsCoreModRuntime("org.apache.commons:commons-math3:3.6.1", vsCoreNoTransitive)
+    vsCoreModRuntime("com.google.dagger:dagger:2.43.2", vsCoreNoTransitive)
+
+    embeddedLibraries("org.valkyrienskies.core:api:${rootProject.vs_core_version}")
+    embeddedLibraries("org.valkyrienskies.core:internal:${rootProject.vs_core_version}")
+    embeddedLibraries("org.valkyrienskies.core:util:${rootProject.vs_core_version}")
+    embeddedLibraries("org.valkyrienskies.core:impl:${rootProject.vs_core_version}")
+    embeddedLibraries("javax.inject:javax.inject:1")
+    jarJar("com.fasterxml.jackson.core:jackson-annotations:${jacksonVersion}")
+    jarJar("com.fasterxml.jackson.core:jackson-core:${jacksonVersion}")
+    jarJar("com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}")
+    // Use rubyfork variant without module-info to avoid JPMS conflicts with KotlinForForge.
+    jarJar("com.fasterxml.jackson.module:jackson-module-kotlin:${jacksonVersion}-rubyfork")
+    jarJar("com.fasterxml.jackson.module:jackson-module-parameter-names:${jacksonVersion}")
+    jarJar("com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:${jacksonVersion}")
+    embeddedLibraries("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${jacksonVersion}")
+    jarJar('com.github.Rubydesic:jackson-kotlin-dsl:1.2.0')
+    implementation("org.joml:joml:${rootProject.joml_version}")
+    implementation("org.joml:joml-primitives:${rootProject.joml_primitives_version}")
+    // embeddedLibraries("org.joml:joml:${rootProject.joml_version}")
+    jarJar("org.joml:joml-primitives:${rootProject.joml_primitives_version}")
 }
 
-remapJar {
-    input.set shadowJar.archiveFile
-    dependsOn shadowJar
-    archiveClassifier.set null
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile).configureEach {
+    kotlinOptions {
+        jvmTarget = '17'
+        freeCompilerArgs += '-Xjvm-default=all'
+    }
 }
 
-compileKotlin {
-    kotlinOptions.jvmTarget = '17'
+// Mixin AP: downgrade "Unable to locate obfuscation mapping" diagnostics from
+// ERROR to WARNING for @Overwrite and injector (@Inject/@Redirect/@WrapOperation)
+// targets that live in third-party mod classes (Create, hex-*, cc-tweaked, ...).
+// Those classes aren't in MCP SRG, but their method names don't change between
+// dev and production on forge, so the mixin still applies correctly at runtime.
+// Fabric doesn't hit this because loom feeds mod-remap mappings into the AP.
+// Option prefix `MSG_` comes from IMessagerEx.MessageType in sponge-mixin.
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs += [
+            '-AMSG_NO_OBFDATA_FOR_TARGET=WARNING',
+            '-AMSG_NO_OBFDATA_FOR_OVERWRITE=WARNING',
+            '-AMSG_NO_OBFDATA_FOR_SOFT_IMPLEMENTS=WARNING',
+            // Multi-target mixins (e.g. MixinItemFallOnBlocks targeting 4 Create
+            // blocks) default to ERROR when the injector's target-method
+            // descriptor can't be resolved; the single-target equivalent is
+            // already WARNING. Same reasoning as the NO_OBFDATA_FOR_* flags.
+            '-AMSG_MISSING_INJECTOR_DESC_MULTITARGET=WARNING'
+    ]
+}
+
+tasks.named('runClient').configure {
+    dependsOn(project(':common').tasks.named('compileJava'))
+    dependsOn(project(':common').tasks.named('compileKotlin'))
+}
+
+tasks.named('runServer').configure {
+    dependsOn(project(':common').tasks.named('compileJava'))
+    dependsOn(project(':common').tasks.named('compileKotlin'))
 }
 
 jar {
-    archiveClassifier.set "dev"
+    finalizedBy('reobfJar')
+    manifest.attributes([
+            'MixinConfigs': "${mod_id}-common.mixins.json,${mod_id}-forge.mixins.json"
+    ])
 }
 
-sourcesJar {
-    dependsOn("copyAccessWidener")
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    def commonSources = project(":common").sourcesJar
-    dependsOn commonSources
-    from commonSources.archiveFile.map { zipTree(it) }
-}
-
-components.java {
-    withVariantsFromConfiguration(project.configurations.shadowRuntimeElements) {
-        skip()
-    }
-}
-
-publishing {
-    publications {
-        mavenForge(MavenPublication) {
-            groupId = "org.valkyrienskies"
-            version = project.version
-            artifactId = rootProject.archives_base_name + "-" + project.name
-            // Publish the dev shadow jar to maven
-            artifact(shadowJar) {
-                classifier "dev-shadow"
-            }
-            from components.java
-        }
-    }
+// After reobfJar, rewrite @Shadow member names (and their call sites within
+// each mixin class) from mojmap to SRG in the prod jar. Mixin's runtime
+// transformMethodRef only rewrites the owner of invokes to @Shadow'd methods,
+// not their name (it requires isSynthetic/isConformed, which plain @Shadow
+// never satisfies), so injectors would call e.g. ArgumentTypeInfos.register
+// on a SRG-named prod class that only has m_235386_ → NoSuchMethodError.
+// ForgeGradle mods dodge this because MixinGradle's AP rewrites the names at
+// compile time; our multi-loader setup has no equivalent.
+// Dev still uses the un-rewritten synced common classes, so runClient is
+// unaffected.
+apply from: 'rewrite-mixin-shadows.gradle'
+tasks.named('reobfJar').configure {
+    finalizedBy('rewriteMixinShadowsInJar')
 }

@@ -1,0 +1,235 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+}
+
+base {
+    archivesName = "${mod_id}-${project.name}-${minecraft_version}"
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(java_version)
+    withSourcesJar()
+    // withJavadocJar()
+}
+
+repositories {
+    mavenCentral()
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = 'Sponge'
+                url = 'https://repo.spongepowered.org/repository/maven-public'
+            }
+        }
+        filter { includeGroupAndSubgroups('org.spongepowered') }
+    }
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = 'ParchmentMC'
+                url = 'https://maven.parchmentmc.org/'
+            }
+        }
+        filter { includeGroup('org.parchmentmc.data') }
+    }
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = 'BlameJared'
+                url = 'https://maven.blamejared.com'
+            }
+        }
+        filter {
+            includeGroup('at.petra-k.hexcasting')
+            includeGroup('foundry.veil')
+            includeGroup('io.github.ocelot')
+            includeGroup('gg.moonflower')
+        }
+    }
+    exclusiveContent {
+        forRepository { maven { url = 'https://maven.fabricmc.net/' } }
+        filter { includeGroupAndSubgroups('net.fabricmc') }
+    }
+    exclusiveContent {
+        forRepository { maven { url = 'https://maven.minecraftforge.net/' } }
+        filter {
+            includeGroup('net.minecraftforge')
+            includeGroup('cpw.mods')
+        }
+    }
+    exclusiveContent {
+        forRepository { maven { url = 'https://api.modrinth.com/maven' } }
+        filter { includeGroup('maven.modrinth') }
+    }
+    exclusiveContent {
+        forRepository { maven { url = 'https://maven.terraformersmc.com/releases/' } }
+        filter { includeGroup('com.terraformersmc') }
+    }
+    exclusiveContent {
+        forRepository { maven { url = 'https://maven.createmod.net' } }
+        filter {
+            includeModule('com.simibubi.create', "create-${minecraft_version}")
+            includeGroup('net.createmod.ponder')
+            includeGroup('dev.engine-room.flywheel')
+        }
+    }
+    exclusiveContent {
+        forRepository { maven { url = 'https://maven.ithundxr.dev/mirror' } }
+        filter { includeGroup('com.tterrag.registrate') }
+    }
+    exclusiveContent {
+        forRepository { maven { url = 'https://maven.cafeteria.dev/releases' } }
+        filter { includeGroup('dev.cafeteria') }
+    }
+    exclusiveContent {
+        forRepository { maven { url = 'https://maven.jamieswhiteshirt.com/libs-release' } }
+        filter { includeGroup('com.jamieswhiteshirt') }
+    }
+    exclusiveContent {
+        forRepository { maven { url = 'https://maven.shedaniel.me/' } }
+        filter { includeGroup('me.shedaniel.cloth') }
+    }
+    exclusiveContent {
+        forRepository { maven { url = 'https://maven.squiddev.cc' } }
+        filter { includeGroup('cc.tweaked') }
+    }
+    exclusiveContent {
+        forRepository { maven { url = 'https://modmaven.dev/' } }
+        filter { includeGroup('teamtwilight') }
+    }
+    exclusiveContent {
+        forRepository { maven { url = 'https://cursemaven.com' } }
+        filter { includeGroup('curse.maven') }
+    }
+    exclusiveContent {
+        forRepository { maven { url = 'https://maven.realrobotix.me/createbigcannons/' } }
+        filter {
+            includeModule('com.rbasamoyai', 'createbigcannons')
+        }
+    }
+    exclusiveContent {
+        forRepository { maven { url = 'https://maven.realrobotix.me/ritchiesprojectilelib/' } }
+        filter {
+            includeModule('com.rbasamoyai', 'ritchiesprojectilelib')
+        }
+    }
+    exclusiveContent {
+        forRepository { maven { url = 'https://maven.ftb.dev/releases' } }
+        filter { includeGroup('dev.ftb.mods') }
+    }
+    exclusiveContent {
+        forRepository { maven { url = 'https://maven.tterrag.com/' } }
+        filter { includeGroup('com.tterrag') }
+    }
+    exclusiveContent {
+        forRepository { maven { url = 'https://thedarkcolour.github.io/KotlinForForge/' } }
+        filter { includeGroup('thedarkcolour') }
+    }
+    exclusiveContent {
+        forRepository { maven { url = uri('https://maven.hexxy.media') } }
+        filter { includeGroup('ram.talia.hexal') }
+    }
+    exclusiveContent {
+        forRepository { maven { url = 'https://jitpack.io/' } }
+        filter {
+            includeGroup('com.github.iPortalTeam.ImmersivePortalsMod')
+        }
+    }
+    exclusiveContent {
+        forRepository { maven { url = 'https://raw.githubusercontent.com/Fuzss/modresources/main/maven/' } }
+        filter { includeGroup('fuzs.forgeconfigapiport') }
+    }
+    maven {
+        name = 'Valkyrien Skies Internal'
+        url = project.findProperty('vs_maven_url') ?: 'https://maven.valkyrienskies.org'
+        if (project.findProperty('vs_maven_username') && project.findProperty('vs_maven_password')) {
+            credentials {
+                username = project.findProperty('vs_maven_username')
+                password = project.findProperty('vs_maven_password')
+            }
+        }
+    }
+    mavenLocal()
+    // todo: fix this, porting lib dies
+    maven { url = 'https://mvn.devos.one/releases' }
+    maven { url = 'https://mvn.devos.one/snapshots/' }
+}
+
+['apiElements', 'runtimeElements', 'sourcesElements', 'javadocElements'].each { variant ->
+    publishing.publications.configureEach {
+        suppressPomMetadataWarningsFor(variant)
+    }
+}
+
+sourcesJar {
+    from(rootProject.file('LICENSE')) {
+        rename { "${it}_${mod_name}" }
+    }
+}
+
+jar {
+    from(rootProject.file('LICENSE')) {
+        rename { "${it}_${mod_name}" }
+    }
+
+    manifest {
+        attributes([
+            'Specification-Title'   : mod_name,
+            'Specification-Vendor'  : mod_author,
+            'Specification-Version' : project.jar.archiveVersion,
+            'Implementation-Title'  : project.name,
+            'Implementation-Version': project.jar.archiveVersion,
+            'Implementation-Vendor' : mod_author,
+            'Built-On-Minecraft'    : minecraft_version
+        ])
+    }
+}
+
+processResources {
+    var expandProps = [
+        'version'                   : version,
+        'group'                     : project.group,
+        'minecraft_version'         : minecraft_version,
+        'minecraft_version_range'   : minecraft_version_range,
+        'fabric_version'            : fabric_version,
+        'fabric_loader_version'     : fabric_loader_version,
+        'mod_name'                  : mod_name,
+        'mod_author'                : mod_author,
+        'mod_id'                    : mod_id,
+        'license'                   : license,
+        'description'               : project.description,
+        'forge_version'             : forge_version,
+        'forge_loader_version_range': forge_loader_version_range,
+        'credits'                   : credits,
+        'java_version'              : java_version
+    ]
+
+    var jsonExpandProps = expandProps.collectEntries { key, value ->
+        [(key): value instanceof String ? value.replace("\n", "\\\\n") : value]
+    }
+
+    filesMatching(['META-INF/mods.toml']) {
+        expand expandProps
+    }
+
+    filesMatching(['pack.mcmeta', 'fabric.mod.json']) {
+        expand jsonExpandProps
+    }
+
+    inputs.properties(expandProps)
+}
+
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            artifactId base.archivesName.get()
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+            url System.getenv('local_maven_url')
+        }
+    }
+}

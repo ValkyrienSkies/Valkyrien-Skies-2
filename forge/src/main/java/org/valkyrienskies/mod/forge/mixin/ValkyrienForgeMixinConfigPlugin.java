@@ -7,6 +7,7 @@ import net.minecraftforge.fml.loading.FMLLoader;
 import net.minecraftforge.fml.loading.LoadingModList;
 import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
 import org.objectweb.asm.tree.ClassNode;
+import org.spongepowered.asm.mixin.MixinEnvironment;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 
@@ -16,6 +17,7 @@ import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 public class ValkyrienForgeMixinConfigPlugin implements IMixinConfigPlugin {
 
     static boolean is607orAbove = false;
+    private static boolean remapperRegistered = false;
 
     @Override
     public void onLoad(final String s) {
@@ -34,6 +36,17 @@ public class ValkyrienForgeMixinConfigPlugin implements IMixinConfigPlugin {
         }
 
         MixinExtrasBootstrap.init();
+
+        // Plug a mojmap→SRG remapper into Mixin's RemapperChain. Forge 1.20.1
+        // ships no IRemapper implementation, so @Shadow members declared with
+        // mojmap names in :common's fabric-loom-compiled bytecode can't resolve
+        // against SRG prod classes (findRemappedMethod / findRemappedField both
+        // return null). VSMixinRemapper reads the lookup table generated
+        // alongside the refmap and answers those queries from it.
+        if (!remapperRegistered) {
+            remapperRegistered = true;
+            MixinEnvironment.getDefaultEnvironment().getRemappers().add(VSMixinRemapper.load());
+        }
     }
 
     @Override

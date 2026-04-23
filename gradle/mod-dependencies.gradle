@@ -1,0 +1,194 @@
+// Consolidated compat-mod dependency manifest for the multiloader setup.
+//
+// This file is applied by :common, :fabric, and :forge. Each `modDep` call
+// picks the coordinate (and scope) matching `project.name` — so you add a new
+// compat mod in one place and every loader that has a variant of it gets
+// wired up automatically.
+//
+// Each row keys its coordinate by loader:
+//   common: used by :common (fabric-loom compile against common-flavor jars)
+//   fabric: used by :fabric
+//   forge:  used by :forge
+//
+// The value under a loader key is a **closure** returning either:
+//   - a String "group:artifact:version"
+//   - a Map    [coord: '...', scope: '...', transitive: false,
+//               exclude: [[group: ..., module: ...]]]
+//
+// The closure wrapper is required because version properties (e.g. the
+// forge-only `embeddium_version`) don't exist in every loader's gradle.properties,
+// and a bare GString would blow up when the spec map is constructed in the
+// wrong loader. Closures defer the lookup to the loader actually selected.
+//
+// Top-level `scope`/`transitive`/`exclude` on the `modDep` call apply to every
+// loader row unless that row overrides them. Scopes may be a list, in which
+// case the dep is added to each (e.g. modCompileOnly + modRuntimeOnly).
+
+def loaderKey = project.name
+
+ext.modDep = { Map spec ->
+    def entry = spec[loaderKey]
+    if (entry == null) return
+    if (entry instanceof Closure) entry = entry.call()
+    if (entry == null) return
+    Map row = entry instanceof Map ? entry : [coord: entry.toString()]
+    def coord = row.coord
+    if (coord == null) return
+    def scopes = row.scope ?: spec.scope ?: 'modCompileOnly'
+    if (!(scopes instanceof List)) scopes = [scopes]
+    def transitive = row.containsKey('transitive') ? row.transitive : spec.transitive
+    def excludes = row.exclude ?: spec.exclude
+
+    scopes.each { String scope ->
+        dependencies.add(scope, coord) { cfg ->
+            if (transitive != null) cfg.transitive = transitive
+            excludes?.each { ex -> cfg.exclude(ex) }
+        }
+    }
+}
+
+// ========================================================================
+// Rendering backends
+// ========================================================================
+
+// Fabric ships sodium; forge runs the embeddium fork (same package surface).
+modDep common: { "maven.modrinth:sodium:${sodium_version}" },
+       fabric: { [coord: "maven.modrinth:sodium:${sodium_version}", scope: ['modCompileOnly', 'modRuntimeOnly']] },
+       forge:  { "maven.modrinth:embeddium:${embeddium_version}" }
+
+// ========================================================================
+// Create ecosystem
+// ========================================================================
+
+modDep common: { [coord: "com.simibubi.create:create-fabric:${create_fabric_version}",
+                  exclude: [[group: 'com.github.AlphaMode', module: 'fakeconfigtoml']]] },
+       fabric: { [coord: "com.simibubi.create:create-fabric:${create_fabric_version}",
+                  exclude: [[group: 'com.github.AlphaMode', module: 'fakeconfigtoml']]] },
+       forge:  { [coord: "com.simibubi.create:create-${minecraft_version}:${create_version}:slim",
+                  scope: 'modCompileOnly',
+                  transitive: false] }
+
+modDep common: { "maven.modrinth:create-utilities:${create_utilities_version}" },
+       fabric: { "maven.modrinth:create-utilities:${create_utilities_version}" },
+       forge:  { 'maven.modrinth:create-utilities:0.2.0+1.20.1' }
+
+// Create: Big Cannons — common builds against BOTH variants so the shared
+// mixins resolve on either loader; each loader pulls only its own variant.
+modDep common: { [coord: "com.rbasamoyai:createbigcannons:${createbigcannons_version}+mc.${minecraft_version}-fabric${createbigcannons_build}",
+                  transitive: false] },
+       fabric: { [coord: "com.rbasamoyai:createbigcannons:${createbigcannons_version}+mc.${minecraft_version}-fabric${createbigcannons_build}",
+                  transitive: false] }
+modDep common: { [coord: "com.rbasamoyai:createbigcannons:${createbigcannons_version}+mc.${minecraft_version}-forge${createbigcannons_build}",
+                  transitive: false] },
+       forge:  { [coord: "com.rbasamoyai:createbigcannons:${createbigcannons_version}+mc.${minecraft_version}-forge${createbigcannons_build}",
+                  transitive: false] }
+
+// Ritchie's Projectile Lib — forge-published; all three loaders pull the forge
+// variant because the CBC mixin in shared source references it regardless.
+modDep common: { "com.rbasamoyai:ritchiesprojectilelib:${rpl_version}+mc.${minecraft_version}-forge" },
+       fabric: { "com.rbasamoyai:ritchiesprojectilelib:${rpl_version}+mc.${minecraft_version}-forge" },
+       forge:  { "com.rbasamoyai:ritchiesprojectilelib:${rpl_version}+mc.${minecraft_version}-forge" }
+
+// Vanillin — different curse file IDs per loader.
+modDep common: { 'curse.maven:vanillin-965702:6446557' },
+       fabric: { 'curse.maven:vanillin-965702:6446557' },
+       forge:  { [coord: 'curse.maven:vanillin-965702:6446560', scope: 'modImplementation'] }
+
+// ========================================================================
+// Hex Casting family
+// ========================================================================
+
+modDep common: { "at.petra-k.hexcasting:hexcasting-common-${minecraft_version}:${hexcasting_version}" },
+       fabric: { "at.petra-k.hexcasting:hexcasting-fabric-${minecraft_version}:${hexcasting_version}" },
+       forge:  { [coord: "at.petra-k.hexcasting:hexcasting-forge-${minecraft_version}:${hexcasting_version}",
+                  transitive: false] }
+
+modDep common: { "maven.modrinth:hextweaks:${hextweaks_version}" },
+       fabric: { "maven.modrinth:hextweaks:${hextweaks_version}" },
+       forge:  { "maven.modrinth:hextweaks:${hextweaks_version}" }
+
+modDep common: { "maven.modrinth:ephemera:${ephemera_version}" },
+       fabric: { "maven.modrinth:ephemera:${ephemera_version}" },
+       forge:  { "maven.modrinth:ephemera:${ephemera_version}" }
+
+modDep common: { [coord: "ram.talia.hexal:hexal-fabric-${minecraft_version}:${hexal_version}", transitive: false] },
+       fabric: { [coord: "ram.talia.hexal:hexal-fabric-${minecraft_version}:${hexal_version}", transitive: false] },
+       forge:  { [coord: "ram.talia.hexal:hexal-forge-${minecraft_version}:${hexal_version}",  transitive: false] }
+
+// ========================================================================
+// ComputerCraft (CC Tweaked)
+// ========================================================================
+
+modDep common: { "cc.tweaked:cc-tweaked-${minecraft_version}-common:${cc_tweaked_version}" },
+       fabric: { "maven.modrinth:cc-tweaked:${cc_tweaked_version}" },
+       forge:  { [coord: "cc.tweaked:cc-tweaked-${minecraft_version}-forge:${cc_tweaked_version}",
+                  scope: ['modCompileOnly', 'modRuntimeOnly']] }
+
+// ========================================================================
+// Mapping / server-side
+// ========================================================================
+
+modDep common: { "maven.modrinth:dynmap:${dynmap_version}" },
+       fabric: { "maven.modrinth:dynmap:${dynmap_version}" },
+       forge:  { "maven.modrinth:dynmap:${dynmap_version}" }
+
+modDep common: { 'curse.maven:bluemap-406463:5555756' },
+       fabric: { 'curse.maven:bluemap-406463:5555756' },
+       forge:  { "maven.modrinth:bluemap:${bluemap_version_forge}" }
+
+// ========================================================================
+// World generation / terrain mods
+// ========================================================================
+
+modDep common: { "maven.modrinth:moonlight:${moonlight_version}" },
+       fabric: { "maven.modrinth:moonlight:${moonlight_version}" },
+       forge:  { "maven.modrinth:moonlight:${moonlight_version_forge}" }
+
+modDep common: { "maven.modrinth:alexs-caves:${alexscaves_version}" },
+       fabric: { "maven.modrinth:alexs-caves:${alexscaves_version}" },
+       forge:  { "maven.modrinth:alexs-caves:${alexscaves_version_forge}" }
+
+modDep common: { "maven.modrinth:tis3d:${tis3d_version}" },
+       fabric: { "maven.modrinth:tis3d:${tis3d_version}" },
+       forge:  { "maven.modrinth:tis3d:${tis3d_version}" }
+
+// ========================================================================
+// Entity model / texture features (Iris/OptiFine compat)
+// ========================================================================
+
+modDep common: { 'curse.maven:entity-model-features-844662:5696901' },
+       fabric: { 'maven.modrinth:entity-model-features:3.0.7-fabric-1.20.1' },
+       forge:  { 'maven.modrinth:entity-model-features:3.0.7-forge-1.20.1' }
+
+modDep common: { 'curse.maven:entity-texture-features-fabric-568563:5697084' },
+       fabric: { 'maven.modrinth:entitytexturefeatures:7.0.6-fabric-1.20.1' },
+       forge:  { 'maven.modrinth:entitytexturefeatures:7.0.6-forge-1.20.1' }
+
+// ========================================================================
+// Weather/ambient mods
+// ========================================================================
+
+modDep common: { 'curse.maven:weather-storms-tornadoes-237746:5244118' },
+       fabric: { 'curse.maven:weather-storms-tornadoes-237746:5244118' },
+       forge:  { [coord: 'curse.maven:weather-storms-tornadoes-237746:5244118', scope: 'modImplementation'] }
+
+// ========================================================================
+// Immersive Portals
+//   - fabric (and the common build that compiles against fabric-loom) uses
+//     the jitpack multi-module fabric repo;
+//   - forge uses the single-artifact `immersive-portals-neoforge` modrinth
+//     jar from the ImmersivePortalsModForForge repo, which bundles
+//     `imm_ptl_core` + `q_misc_util` in one "-all" jar.
+// ========================================================================
+
+modDep common: { "com.github.iPortalTeam.ImmersivePortalsMod:imm_ptl_core:${immptl_version}" },
+       fabric: { "com.github.iPortalTeam.ImmersivePortalsMod:imm_ptl_core:${immptl_version}" },
+       forge:  { "maven.modrinth:immersive-portals-neoforge:${immptl_version_forge}" }
+modDep common: { "com.github.iPortalTeam.ImmersivePortalsMod:q_misc_util:${immptl_version}" },
+       fabric: { "com.github.iPortalTeam.ImmersivePortalsMod:q_misc_util:${immptl_version}" }
+modDep common: { "com.github.iPortalTeam.ImmersivePortalsMod:build:${immptl_version}" },
+       fabric: { "com.github.iPortalTeam.ImmersivePortalsMod:build:${immptl_version}" }
+
+modDep common: { "com.jamieswhiteshirt:reach-entity-attributes:${reach_entity_attributes_version}" },
+       fabric: { "com.jamieswhiteshirt:reach-entity-attributes:${reach_entity_attributes_version}" },
+       forge:  { "com.jamieswhiteshirt:reach-entity-attributes:${reach_entity_attributes_version}" }

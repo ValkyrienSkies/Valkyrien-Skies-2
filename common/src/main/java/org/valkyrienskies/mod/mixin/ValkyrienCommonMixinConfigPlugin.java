@@ -63,6 +63,18 @@ public class ValkyrienCommonMixinConfigPlugin implements IMixinConfigPlugin {
     public boolean shouldApplyMixin(final String s, final String mixinClassName) {
         final VSRenderer renderer = getVSRenderer();
 
+        // MixinVibrationSystemTicker uses @WrapOperation on a private method
+        // of an interface. Fabric's mixin fork (and MixinBooster on forge)
+        // accept that; stock Sponge Mixin 0.8.5 — what forge ships — rejects
+        // it up-front with InvalidInterfaceMixinException during config
+        // validation (independent of refmap remapping). Skip on forge; the
+        // feature (sculk vibration position remapping for ships) degrades
+        // gracefully without it.
+        if (mixinClassName.equals("org.valkyrienskies.mod.mixin.feature.sculk.MixinVibrationSystemTicker")
+                && classExists("net.minecraftforge.common.MinecraftForge")) {
+            return false;
+        }
+
         if (mixinClassName.contains("org.valkyrienskies.mod.mixin.mod_compat.immersive_portals")) {
             return LoadedMods.getImmersivePortals(); // Only load this mixin if immersive portals is present
         }

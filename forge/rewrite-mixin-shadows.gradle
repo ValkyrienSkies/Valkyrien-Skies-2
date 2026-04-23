@@ -1,0 +1,180 @@
+// Post-process the reobf'd prod jar: rewrite @Shadow method/field names (and
+// their call sites inside each mixin class) from mojmap to SRG. See the
+// comment in build.gradle above the task registration for why.
+
+buildscript {
+    repositories { mavenCentral() }
+    dependencies { classpath 'org.ow2.asm:asm-tree:9.7.1' }
+}
+
+import org.objectweb.asm.ClassReader
+import org.objectweb.asm.ClassWriter
+import org.objectweb.asm.tree.AnnotationNode
+import org.objectweb.asm.tree.ClassNode
+import org.objectweb.asm.tree.FieldInsnNode
+import org.objectweb.asm.tree.FieldNode
+import org.objectweb.asm.tree.MethodInsnNode
+import org.objectweb.asm.tree.MethodNode
+import org.objectweb.asm.Opcodes
+
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
+import java.util.zip.ZipEntry
+import java.util.zip.ZipFile
+import java.util.zip.ZipOutputStream
+
+tasks.register('rewriteMixinShadowsInJar') {
+    def reobfTask = tasks.named('reobfJar')
+    dependsOn(reobfTask)
+    dependsOn(tasks.named('buildCommonForgeRefmap'))
+    def shadowMappingsFile = layout.buildDirectory.file('forge-refmap-override/valkyrienskies-shadow-mappings.json')
+    inputs.file(shadowMappingsFile)
+    // reobfJar writes the final prod jar to build/libs/; the plain jar task
+    // writes to build/devlibs/. Rewrite the post-reobf file in place.
+    def jarFile = reobfTask.flatMap { it.archiveFile }
+    inputs.file(jarFile)
+    outputs.file(jarFile)
+    doLast {
+        def shadowMap = new groovy.json.JsonSlurper().parse(shadowMappingsFile.get().asFile)
+        // Turn into fast lookup: ownerInternal → methods{name+desc → srg}, fields{name → srg}.
+        def ownerMethods = [:]
+        def ownerFields = [:]
+        shadowMap.each { owner, v ->
+            ownerMethods[owner] = v.methods ?: [:]
+            ownerFields[owner] = v.fields ?: [:]
+        }
+
+        def jarPath = jarFile.get().asFile.toPath()
+        // Create the temp file next to the target jar so Files.move stays on
+        // the same filesystem (system tmp is often a separate mount).
+        def tmp = Files.createTempFile(jarPath.parent, 'vs-rewrite-', '.jar')
+        try {
+            int classesChanged = 0
+            int memberRenames = 0
+            int callSiteRewrites = 0
+            new ZipFile(jarPath.toFile()).withCloseable { zf ->
+                new ZipOutputStream(Files.newOutputStream(tmp)).withCloseable { zos ->
+                    zf.entries().each { entry ->
+                        def bytes = zf.getInputStream(entry).bytes
+                        if (!entry.name.endsWith('.class') || !entry.name.startsWith('org/valkyrienskies/mod/mixin')) {
+                            zos.putNextEntry(new ZipEntry(entry.name))
+                            zos.write(bytes)
+                            zos.closeEntry()
+                            return
+                        }
+
+                        def cn = new ClassNode()
+                        new ClassReader(bytes).accept(cn, 0)
+
+                        // Find @Mixin target classes. Entry is missing → not a
+                        // mixin, pass through unmodified.
+                        def mixinAnn = null
+                        cn.invisibleAnnotations?.each { if (it.desc == 'Lorg/spongepowered/asm/mixin/Mixin;') mixinAnn = it }
+                        cn.visibleAnnotations?.each { if (it.desc == 'Lorg/spongepowered/asm/mixin/Mixin;') mixinAnn = it }
+                        if (mixinAnn == null) {
+                            zos.putNextEntry(new ZipEntry(entry.name))
+                            zos.write(bytes)
+                            zos.closeEntry()
+                            return
+                        }
+                        def targets = []
+                        mixinAnn.values?.eachWithIndex { val, i ->
+                            if (i % 2 == 0) return
+                            def key = mixinAnn.values[i - 1]
+                            if (key == 'value') val.each { t -> targets << t.internalName }
+                            else if (key == 'targets') val.each { s -> targets << s.replace('.', '/') }
+                        }
+
+                        // Build this mixin's own mojmap→SRG rename tables by
+                        // matching each @Shadow / @Overwrite member against
+                        // any target's shadow-mappings entry. @Overwrite is
+                        // handled here too because Mixin's resolution path
+                        // for @Overwrite skips findRemappedMethod entirely —
+                        // it short-circuits on findMethod miss without
+                        // consulting the RemapperChain (see
+                        // MixinPreProcessorStandard.attachSpecialMethod), so
+                        // VSMixinRemapper never gets a chance. The only way
+                        // to make @Overwrite resolve in SRG prod is to have
+                        // the bytecode name already match the target's SRG.
+                        def methodRenames = [:]  // "mojmapName+desc" → srgName
+                        def fieldRenames = [:]   // "mojmapName" → srgName
+                        cn.methods?.each { m ->
+                            def shadowOrOverwrite = false
+                            def check = { a ->
+                                return a.desc == 'Lorg/spongepowered/asm/mixin/Shadow;' ||
+                                       a.desc == 'Lorg/spongepowered/asm/mixin/Overwrite;'
+                            }
+                            m.visibleAnnotations?.each { a -> if (check(a)) shadowOrOverwrite = true }
+                            m.invisibleAnnotations?.each { a -> if (check(a)) shadowOrOverwrite = true }
+                            if (!shadowOrOverwrite) return
+                            for (def tc in targets) {
+                                def srg = ownerMethods[tc]?.get(m.name + m.desc)
+                                if (srg) { methodRenames[m.name + m.desc] = srg; break }
+                            }
+                        }
+                        cn.fields?.each { f ->
+                            def hasShadow = false
+                            f.visibleAnnotations?.each { a -> if (a.desc == 'Lorg/spongepowered/asm/mixin/Shadow;') hasShadow = true }
+                            f.invisibleAnnotations?.each { a -> if (a.desc == 'Lorg/spongepowered/asm/mixin/Shadow;') hasShadow = true }
+                            if (!hasShadow) return
+                            for (def tc in targets) {
+                                def srg = ownerFields[tc]?.get(f.name)
+                                if (srg) { fieldRenames[f.name] = srg; break }
+                            }
+                        }
+
+                        if (methodRenames.isEmpty() && fieldRenames.isEmpty()) {
+                            zos.putNextEntry(new ZipEntry(entry.name))
+                            zos.write(bytes)
+                            zos.closeEntry()
+                            return
+                        }
+
+                        // Apply: rename declarations.
+                        cn.methods?.each { m ->
+                            def newName = methodRenames[m.name + m.desc]
+                            if (newName != null) { m.name = newName; memberRenames++ }
+                        }
+                        cn.fields?.each { f ->
+                            def newName = fieldRenames[f.name]
+                            if (newName != null) { f.name = newName; memberRenames++ }
+                        }
+                        // Apply: rewrite invokes/field refs within this class
+                        // that still point at the mixin class with the mojmap
+                        // name. Mixin rewrites the owner at apply time; we just
+                        // need the name to match so the owner-rewritten insn
+                        // resolves against the target class's SRG member.
+                        cn.methods?.each { m ->
+                            def ins = m.instructions
+                            if (ins == null) return
+                            for (int i = 0; i < ins.size(); i++) {
+                                def node = ins.get(i)
+                                if (node instanceof MethodInsnNode && node.owner == cn.name) {
+                                    def srg = methodRenames[node.name + node.desc]
+                                    if (srg != null) { node.name = srg; callSiteRewrites++ }
+                                } else if (node instanceof FieldInsnNode && node.owner == cn.name) {
+                                    def srg = fieldRenames[node.name]
+                                    if (srg != null) { node.name = srg; callSiteRewrites++ }
+                                }
+                            }
+                        }
+
+                        def cw = new ClassWriter(0)
+                        cn.accept(cw)
+                        def newBytes = cw.toByteArray()
+                        classesChanged++
+
+                        zos.putNextEntry(new ZipEntry(entry.name))
+                        zos.write(newBytes)
+                        zos.closeEntry()
+                    }
+                }
+            }
+            Files.move(tmp, jarPath, StandardCopyOption.REPLACE_EXISTING)
+            logger.lifecycle("[rewriteMixinShadows] rewrote {} mixin classes, {} member renames, {} call-site rewrites",
+                classesChanged, memberRenames, callSiteRewrites)
+        } finally {
+            Files.deleteIfExists(tmp)
+        }
+    }
+}

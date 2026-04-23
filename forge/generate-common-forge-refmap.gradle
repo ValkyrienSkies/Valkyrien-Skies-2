@@ -1,0 +1,707 @@
+buildscript {
+    repositories { mavenCentral() }
+    dependencies { classpath 'org.ow2.asm:asm-tree:9.7.1' }
+}
+
+// Generates a forge-flavored refmap for :common's mixin classes so @Shadow /
+// @Accessor / @Invoker members resolve against forge's SRG-named runtime.
+//
+// Why a bytecode scan instead of loom's refmap:
+// :common compiles under fabric-loom, which outputs an intermediary
+// (Yarn/class_xxx/method_xxx/field_xxx) refmap. Forge's runtime is SRG
+// (m_xxx_/f_xxx_). Using the empty stub forces Mixin to look up literal
+// mojmap annotation values on SRG runtime classes, which fails for any
+// @Shadow that isn't already string-referenced elsewhere (e.g.
+// MixinMinecraft.getSingleplayerServer — no @Inject/@At backs its name).
+//
+// Strategy:
+// 1. Read forge's intermediateToNamed.srg → mojmap-name → SRG-name lookup.
+// 2. Read loom's layered mappings → intermediary → mojmap lookup (for
+//    translating :common's AP-generated refmap values).
+// 3. Scan :common's compiled class files. For each @Mixin class, emit refmap
+//    entries for every @Shadow/@Accessor/@Invoker member, plus the translated
+//    @Inject/@At entries that :common's mixin AP already produced.
+// 4. Emit the result with both a top-level `mappings` section and a
+//    `data.searge` section (forge's Mixin consumer reads the latter).
+
+import org.objectweb.asm.ClassReader
+import org.objectweb.asm.Opcodes
+import org.objectweb.asm.tree.AnnotationNode
+import org.objectweb.asm.tree.ClassNode
+
+import java.util.zip.ZipFile
+
+ext.generateCommonForgeRefmap = { Map args ->
+    def commonClassesDir = args.commonClassesDir as File
+    def commonRefmapFile = args.commonRefmapFile as File
+    def srgFile = args.srgFile as File
+    def loomMappingsJar = args.loomMappingsJar as File
+    def mcpConfigZip = args.mcpConfigZip as File
+    def outputFile = args.outputFile as File
+    // Companion file, owner-keyed mojmap→SRG lookup consumed by our custom
+    // IRemapper at runtime to resolve @Shadow against SRG-named prod classes.
+    // Forge 1.20.1 prod has empty Mixin RemapperChain, so @Shadow name
+    // translation has to come from this mod itself.
+    def shadowMappingsFile = args.shadowMappingsFile as File
+    // Merged MC+Forge jar, used to read class hierarchy so the inheritance
+    // fallback can resolve methods declared on a superclass/interface
+    // (e.g. Player.getBoundingBox → Entity.m_20191_).
+    def mergedMcJar = args.mergedMcJar as File
+
+    // ---- 1. Load forge SRG mappings (SRG → mojmap, inverted for use) ----
+    // File format lines:
+    //   CL: srg/path/Name  named/path/Name
+    //   FD: srg/path/Cls/srgField  named/path/Cls/namedField
+    //   MD: srg/path/Cls/srgMethod (desc) named/path/Cls/namedMethod (desc)
+    def mojmapMethodToSrg = [:]   // "owner.name+desc" → srg method name
+    def mojmapFieldToSrg = [:]    // "owner.name" → srg field name
+    def mojmapFieldMemberToSrg = [:]  // "name" → srg field name (inheritance fallback)
+    // Inheritance-fallback index: MCP assigns one SRG number per unique
+    // mojmap (name + desc), shared across the declaring class and all its
+    // subclasses. When a refmap value references an inherited method —
+    // e.g. Level.clip(ClipContext) (actually declared on BlockGetter) —
+    // the owner-keyed lookup misses because the SRG file only lists the
+    // declaring class. The memberIndex lets us still emit the correct SRG.
+    // Values: the SRG method name if globally unique, or null if the same
+    // name+desc resolves to different SRG names across classes (the latter
+    // shouldn't happen in MC but we guard against it).
+    def mojmapMethodMemberToSrg = [:]
+    srgFile.eachLine { line ->
+        def parts = line.split(' ')
+        if (parts.length < 3) return
+        switch (parts[0]) {
+            case 'FD:':
+                def namedPath = parts[2]
+                def idx = namedPath.lastIndexOf('/')
+                def namedCls = namedPath.substring(0, idx)
+                def namedField = namedPath.substring(idx + 1)
+                def srgPath = parts[1]
+                def srgField = srgPath.substring(srgPath.lastIndexOf('/') + 1)
+                mojmapFieldToSrg[namedCls + '.' + namedField] = srgField
+                if (mojmapFieldMemberToSrg.containsKey(namedField)) {
+                    def prior = mojmapFieldMemberToSrg[namedField]
+                    if (prior != null && prior != srgField) {
+                        mojmapFieldMemberToSrg.remove(namedField)
+                        mojmapFieldMemberToSrg[namedField + '#AMBIGUOUS'] = true
+                    }
+                } else if (!mojmapFieldMemberToSrg.containsKey(namedField + '#AMBIGUOUS')) {
+                    mojmapFieldMemberToSrg[namedField] = srgField
+                }
+                break
+            case 'MD:':
+                // MD: srg/Cls/srgMethod (desc) named/Cls/namedMethod (desc)
+                def srgPath = parts[1]
+                def desc = parts[2]
+                def namedPath = parts[3]
+                def idx = namedPath.lastIndexOf('/')
+                def namedCls = namedPath.substring(0, idx)
+                def namedMethod = namedPath.substring(idx + 1)
+                def srgMethod = srgPath.substring(srgPath.lastIndexOf('/') + 1)
+                mojmapMethodToSrg[namedCls + '.' + namedMethod + desc] = srgMethod
+                def memberKey = namedMethod + desc
+                if (mojmapMethodMemberToSrg.containsKey(memberKey)) {
+                    def prior = mojmapMethodMemberToSrg[memberKey]
+                    if (prior != null && prior != srgMethod) {
+                        // Collision across distinct SRG numbers; drop the
+                        // entry so the lookup treats it as ambiguous and
+                        // falls back to the declaring-class-only path.
+                        mojmapMethodMemberToSrg.remove(memberKey)
+                        mojmapMethodMemberToSrg[memberKey + '#AMBIGUOUS'] = true
+                    }
+                } else if (!mojmapMethodMemberToSrg.containsKey(memberKey + '#AMBIGUOUS')) {
+                    mojmapMethodMemberToSrg[memberKey] = srgMethod
+                }
+                break
+        }
+    }
+
+    // ---- 2. Load loom layered mappings (intermediary → mojmap + official) ---
+    // Format (tiny v2, columns: intermediary named official):
+    //   c <inter-cls>  <named-cls>  <obf-cls>
+    //   \tf <desc> <inter-name> <named-name> <obf-name>
+    //   \tm <desc> <inter-name> <named-name> <obf-name>
+    def interToNamedClass = [:]
+    def interToObfClass = [:]
+    def interToNamedMember = [:]         // "<inter-cls>.<inter-name>" → named-name
+    def interToObfMemberSpec = [:]       // "<inter-cls>.<inter-name>+<inter-desc>" → [obfName, obfOwner]
+    def currentInterClass = null
+    def currentObfClass = null
+    int interIdx = -1, namedIdx = -1, obfIdx = -1
+    // Fallback for inherited members whose intermediary name is only listed
+    // on the super/interface (e.g. ClientGamePacketListener.method_11112 is
+    // inherited by ClientPacketListener).
+    def interToNamedMemberByName = [:]
+    new ZipFile(loomMappingsJar).withCloseable { zf ->
+        def entry = zf.getEntry('mappings/mappings.tiny')
+        zf.getInputStream(entry).newReader('UTF-8').withCloseable { reader ->
+            reader.eachLine { line ->
+                if (line.startsWith('tiny\t')) {
+                    def hdr = Arrays.asList(line.split('\t'))
+                    interIdx = hdr.indexOf('intermediary') - 3
+                    namedIdx = hdr.indexOf('named') - 3
+                    obfIdx = hdr.indexOf('official') - 3
+                    return
+                }
+                def parts = line.split('\t', -1)
+                if (parts[0] == 'c') {
+                    def interName = parts[1 + interIdx]
+                    def namedName = parts[1 + namedIdx]
+                    def obfName = parts[1 + obfIdx]
+                    interToNamedClass[interName] = namedName
+                    interToObfClass[interName] = obfName
+                    currentInterClass = interName
+                    currentObfClass = obfName
+                } else if (parts.length > 0 && parts[0].isEmpty()) {
+                    if (parts[1] == 'f' || parts[1] == 'm') {
+                        // '' f/m <desc> ns0 ns1 ns2
+                        def interDesc = parts[2]
+                        def interName = parts[3 + interIdx]
+                        def namedName = parts[3 + namedIdx]
+                        def obfName = parts[3 + obfIdx]
+                        interToNamedMember[currentInterClass + '.' + interName] = namedName
+                        interToNamedMemberByName[interName] = namedName
+                        if (parts[1] == 'm') {
+                            interToObfMemberSpec[currentInterClass + '.' + interName + interDesc] = [obfName, currentObfClass]
+                        } else {
+                            interToObfMemberSpec[currentInterClass + '.' + interName] = [obfName, currentObfClass]
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ---- 2c. Build class hierarchy from merged MC+Forge jar. --------------
+    // Used by the inheritance fallback when a refmap value references a
+    // member declared on a super: e.g. Player.getBoundingBox is actually
+    // declared on Entity, so mojmapMethodToSrg[Player.getBoundingBox+desc]
+    // misses. Walking the super chain lets us find Entity.getBoundingBox
+    // → m_20191_ instead of guessing wrong from the globally-ambiguous
+    // member-only index (getBoundingBox also exists on Particle with a
+    // different SRG number).
+    def classParents = [:]  // "<owner-internal>" → [super, iface1, iface2, ...]
+    if (mergedMcJar != null) {
+        new ZipFile(mergedMcJar).withCloseable { zf ->
+            def entries = zf.entries()
+            while (entries.hasMoreElements()) {
+                def entry = entries.nextElement()
+                if (!entry.name.endsWith('.class')) continue
+                zf.getInputStream(entry).withCloseable { is ->
+                    def reader = new ClassReader(is)
+                    def name = reader.className
+                    def parents = []
+                    if (reader.superName != null) parents.add(reader.superName)
+                    parents.addAll(reader.interfaces as List)
+                    classParents[name] = parents
+                }
+            }
+        }
+    }
+
+    // ---- 2b. Load mcp_config joined.tsrg (obf → SRG for methods + fields) ---
+    // tsrg2 format:
+    //   <obf-class> <srg-class> <id>
+    //   \t<obf-field> <srg-field> <id>
+    //   \t<obf-method> <desc-obf> <srg-method> <id>
+    //   \t\t<param-idx> o <srg-param> <id>
+    // Critically the descriptor is in OBF form (uses obf class refs like Ldec;).
+    def obfMethodToSrg = [:]   // "<obf-cls>.<obf-method>+<obf-desc>" → srg method
+    def obfFieldToSrg = [:]    // "<obf-cls>.<obf-field>" → srg field
+    def currentObfCls = null
+    new ZipFile(mcpConfigZip).withCloseable { zf ->
+        def entry = zf.getEntry('config/joined.tsrg')
+        zf.getInputStream(entry).newReader('UTF-8').withCloseable { reader ->
+            reader.eachLine { line ->
+                if (line.startsWith('tsrg2')) return
+                if (line.isEmpty()) return
+                if (!line.startsWith('\t')) {
+                    // class line
+                    def parts = line.split(' ')
+                    currentObfCls = parts[0]
+                } else if (line.startsWith('\t\t')) {
+                    // param line — ignore
+                } else {
+                    // member line (one \t indent)
+                    def body = line.substring(1)
+                    def parts = body.split(' ')
+                    if (parts.length >= 3 && parts[1].startsWith('(')) {
+                        // method: obf-method obf-desc srg-method [id]
+                        obfMethodToSrg[currentObfCls + '.' + parts[0] + parts[1]] = parts[2]
+                    } else if (parts.length >= 2) {
+                        // field: obf-field srg-field [id]
+                        obfFieldToSrg[currentObfCls + '.' + parts[0]] = parts[1]
+                    }
+                }
+            }
+        }
+    }
+
+    // Translate a descriptor using a class-name map: replace every `L<cls>;`
+    // class reference with `L<mapped>;`. Non-map classes pass through.
+    def remapDescriptorClasses = { String desc, Map classMap ->
+        if (desc == null) return desc
+        return desc.replaceAll(/L([^;]+);/) { full, cls ->
+            def mapped = classMap[cls]
+            return mapped ? "L${mapped};" : full
+        }
+    }
+
+    // ---- 3. Helpers ----
+    def translateDescriptorToMojmap = { String desc -> remapDescriptorClasses(desc, interToNamedClass) }
+    def translateDescriptorToObf    = { String desc -> remapDescriptorClasses(desc, interToObfClass) }
+
+    // Walk the class hierarchy (BFS over super + interfaces) looking for a
+    // matching SRG mapping. `kind` is 'method' or 'field'. Returns the SRG
+    // name or null. Stops at java/lang/Object.
+    def lookupInHierarchy = { String owner, String memberKey, String kind ->
+        def lookupMap = (kind == 'method') ? mojmapMethodToSrg : mojmapFieldToSrg
+        def seen = new HashSet<String>()
+        def queue = new ArrayDeque<String>()
+        def parents = classParents[owner]
+        if (parents == null) return null
+        parents.each { queue.offer(it) }
+        while (!queue.isEmpty()) {
+            def cls = queue.poll()
+            if (!seen.add(cls) || cls == 'java/lang/Object') continue
+            def hit = lookupMap[cls + '.' + memberKey]
+            if (hit != null) return hit
+            def more = classParents[cls]
+            if (more != null) more.each { queue.offer(it) }
+        }
+        return null
+    }
+
+    // Translate an intermediary refmap value (e.g. for @Inject targets).
+    // Input forms:
+    //   "methodName"                       — no class prefix, local name only
+    //   "Lnet/minecraft/class_X;field:desc"   — field reference
+    //   "Lnet/minecraft/class_X;method(desc)ret" — method reference
+    //
+    // Critical: fabric-intermediary method names for synthetic lambdas
+    // (e.g. `method_38284`) do NOT match forge's mojmap names for the same
+    // method (`lambda$static$8`). Fabric's tiny "named" column here is Yarn's
+    // view of mojmap, which retains obf-like names for synthetic lambdas;
+    // forge's Mojang mojmap uses `lambda$static$N` assigned by javac. To get
+    // a reliable SRG, bridge through obf via mcp_config's joined.tsrg.
+    def translateValue = { String val ->
+        if (val == null || !val.startsWith('L')) return val
+        def semi = val.indexOf(';')
+        if (semi < 0) return val
+        def interCls = val.substring(1, semi)
+        def rest = val.substring(semi + 1)
+        def namedCls = interToNamedClass[interCls] ?: interCls
+        def obfCls = interToObfClass[interCls]
+        def parenIdx = rest.indexOf('(')
+        def colonIdx = rest.indexOf(':')
+        if (parenIdx > 0) {
+            def methodName = rest.substring(0, parenIdx)
+            def descPart = rest.substring(parenIdx)
+            def namedDesc = translateDescriptorToMojmap(descPart)
+            def obfDesc = translateDescriptorToObf(descPart)
+            // Bridge: intermediary → obf → SRG via joined.tsrg.
+            def srgMethod = null
+            def obfSpec = interToObfMemberSpec[interCls + '.' + methodName + descPart]
+            if (obfSpec && obfCls) {
+                srgMethod = obfMethodToSrg[obfCls + '.' + obfSpec[0] + obfDesc]
+                // Fallback: the obf name may belong to a super/interface; try
+                // joined.tsrg's declaring owner recorded alongside the obf name.
+                if (!srgMethod && obfSpec[1] && obfSpec[1] != obfCls) {
+                    srgMethod = obfMethodToSrg[obfSpec[1] + '.' + obfSpec[0] + obfDesc]
+                }
+            }
+            // Legacy fallback: try Mojang mojmap → SRG. Works for non-synthetic
+            // methods where fabric-intermediary == forge-mojmap (e.g.
+            // Minecraft.getSingleplayerServer).
+            if (!srgMethod) {
+                def namedMethod = interToNamedMember[interCls + '.' + methodName] ?: interToNamedMemberByName[methodName] ?: methodName
+                srgMethod = mojmapMethodToSrg[namedCls + '.' + namedMethod + namedDesc]
+                // Inheritance fallback: e.g. Level.clip(ClipContext) is
+                // declared on BlockGetter, so the class-specific key misses.
+                // Walk the class hierarchy first (authoritative); only fall
+                // back to the globally-unique member-only index when we have
+                // no hierarchy data. Different classes can share a mojmap
+                // name with different SRG numbers (getBoundingBox on Entity
+                // vs Particle), so the member-only index is only safe when
+                // there's no ambiguity.
+                if (!srgMethod) {
+                    srgMethod = lookupInHierarchy(namedCls, namedMethod + namedDesc, 'method')
+                }
+                if (!srgMethod) {
+                    srgMethod = mojmapMethodMemberToSrg[namedMethod + namedDesc]
+                }
+                if (!srgMethod) {
+                    srgMethod = namedMethod
+                }
+            }
+            return "L${namedCls};${srgMethod}${namedDesc}"
+        } else if (colonIdx > 0) {
+            def fieldName = rest.substring(0, colonIdx)
+            def fieldDesc = rest.substring(colonIdx)
+            def namedDesc = translateDescriptorToMojmap(fieldDesc)
+            def srgField = null
+            def obfSpec = interToObfMemberSpec[interCls + '.' + fieldName]
+            if (obfSpec && obfCls) {
+                srgField = obfFieldToSrg[obfCls + '.' + obfSpec[0]]
+                if (!srgField && obfSpec[1] && obfSpec[1] != obfCls) {
+                    srgField = obfFieldToSrg[obfSpec[1] + '.' + obfSpec[0]]
+                }
+            }
+            if (!srgField) {
+                def namedField = interToNamedMember[interCls + '.' + fieldName] ?: interToNamedMemberByName[fieldName] ?: fieldName
+                srgField = mojmapFieldToSrg[namedCls + '.' + namedField]
+                if (!srgField) {
+                    srgField = lookupInHierarchy(namedCls, namedField, 'field')
+                }
+                if (!srgField) {
+                    srgField = mojmapFieldMemberToSrg[namedField]
+                }
+                if (!srgField) {
+                    srgField = namedField
+                }
+            }
+            return "L${namedCls};${srgField}${namedDesc}"
+        }
+        return val
+    }
+
+    // ---- 4. Scan common's class files, harvest @Shadow/@Accessor/@Invoker ----
+    // Maps mixin class internal name → {memberSelector → refmap value}.
+    def shadowMappings = [:].withDefault { [:] }
+
+    // Owner-keyed mojmap→SRG lookup, consumed by VSMixinRemapper at runtime.
+    // Structure: { "<owner>": { "methods": { "<mojmapName><desc>": "<srgName>" },
+    //                           "fields":  { "<mojmapName>": "<srgName>" } } }.
+    // Only @Shadow members are emitted; @Accessor/@Invoker target names come
+    // from their annotation values and are resolved via a different Mixin path.
+    def ownerLookup = [:].withDefault { [methods: [:], fields: [:]] }
+
+    // mixinCls → its @Mixin target classes, populated by the bytecode scan.
+    // Used to resolve owner-less refmap values (e.g. `method = "randomTick"`
+    // on a multi-target mixin): the value `method_9514(...)V` has no owner,
+    // so we try each target class until we find an SRG mapping.
+    def mixinToTargets = [:]
+
+    // Pull field type / return-from-getter for @Accessor with no target
+    def methodReturnType = { String desc ->
+        if (desc == null || !desc.contains(')')) return null
+        return desc.substring(desc.indexOf(')') + 1)
+    }
+    def methodFirstArg = { String desc ->
+        // @Accessor setter: (TypeToSet)V ; @Invoker varies.
+        if (desc == null) return null
+        def inner = desc.substring(1, desc.indexOf(')'))
+        def m = inner =~ /^(\[*(?:L[^;]+;|[BCDFIJSZV]))/
+        return m.find() ? m.group(1) : null
+    }
+    // Strip Accessor/Invoker/Shadow prefix conventions: `getXxx` → `xxx`,
+    // `setXxx` → `xxx`, `isXxx` → `xxx`, `callXxx` → `xxx`, `invokeXxx` → `xxx`.
+    def deriveAccessorTarget = { String methodName ->
+        def m = methodName =~ /^(?:get|set|is|has)([A-Z][A-Za-z0-9_\$]*)$/
+        if (m.find()) {
+            def n = m.group(1)
+            return n.substring(0, 1).toLowerCase() + n.substring(1)
+        }
+        return methodName
+    }
+    def deriveInvokerTarget = { String methodName ->
+        def m = methodName =~ /^(?:call|invoke)([A-Z][A-Za-z0-9_\$]*)$/
+        if (m.find()) {
+            def n = m.group(1)
+            return n.substring(0, 1).toLowerCase() + n.substring(1)
+        }
+        return methodName
+    }
+
+    // Extract an annotation value as a list (single-valued annotations emit a single type)
+    def annotationValue = { AnnotationNode ann, String key ->
+        if (ann == null || ann.values == null) return null
+        for (int i = 0; i < ann.values.size(); i += 2) {
+            if (ann.values[i] == key) return ann.values[i + 1]
+        }
+        return null
+    }
+
+    commonClassesDir.eachFileRecurse { f ->
+        if (!f.name.endsWith('.class')) return
+        def bytes = f.bytes
+        ClassNode cn = new ClassNode()
+        new ClassReader(bytes).accept(cn, ClassReader.SKIP_CODE | ClassReader.SKIP_FRAMES | ClassReader.SKIP_DEBUG)
+
+        // Find @Mixin annotation on class
+        AnnotationNode mixinAnn = null
+        cn.invisibleAnnotations?.each { if (it.desc == 'Lorg/spongepowered/asm/mixin/Mixin;') mixinAnn = it }
+        cn.visibleAnnotations?.each { if (it.desc == 'Lorg/spongepowered/asm/mixin/Mixin;') mixinAnn = it }
+        if (mixinAnn == null) return
+
+        // Resolve target classes. @Mixin(value = {Clazz.class, ...}) or @Mixin(targets = {"..."})
+        def targetClasses = []
+        def valueTypes = annotationValue(mixinAnn, 'value')
+        if (valueTypes) {
+            valueTypes.each { t ->
+                def internal = t.internalName
+                targetClasses << internal
+            }
+        }
+        def targetStrings = annotationValue(mixinAnn, 'targets')
+        if (targetStrings) {
+            targetStrings.each { s ->
+                targetClasses << s.replace('.', '/')
+            }
+        }
+        if (targetClasses.isEmpty()) return
+        mixinToTargets[cn.name] = targetClasses
+
+        def entries = shadowMappings[cn.name]
+
+        // Walk methods for @Shadow / @Overwrite / @Accessor / @Invoker
+        cn.methods?.each { m ->
+            def shadowAnn = null
+            def overwriteAnn = null
+            def accessorAnn = null
+            def invokerAnn = null
+            m.visibleAnnotations?.each { a ->
+                if (a.desc == 'Lorg/spongepowered/asm/mixin/Shadow;') shadowAnn = a
+                if (a.desc == 'Lorg/spongepowered/asm/mixin/Overwrite;') overwriteAnn = a
+                if (a.desc == 'Lorg/spongepowered/asm/mixin/gen/Accessor;') accessorAnn = a
+                if (a.desc == 'Lorg/spongepowered/asm/mixin/gen/Invoker;') invokerAnn = a
+            }
+            m.invisibleAnnotations?.each { a ->
+                if (a.desc == 'Lorg/spongepowered/asm/mixin/Shadow;') shadowAnn = a
+                if (a.desc == 'Lorg/spongepowered/asm/mixin/Overwrite;') overwriteAnn = a
+                if (a.desc == 'Lorg/spongepowered/asm/mixin/gen/Accessor;') accessorAnn = a
+                if (a.desc == 'Lorg/spongepowered/asm/mixin/gen/Invoker;') invokerAnn = a
+            }
+
+            // Treat @Overwrite exactly like @Shadow for SRG lookup: we need
+            // the target's SRG name recorded so the build-time bytecode
+            // rewriter (rewrite-mixin-shadows.gradle) can rename the mixin
+            // method to match prod's SRG-named target class.
+            if (shadowAnn == null && overwriteAnn != null) shadowAnn = overwriteAnn
+
+            if (shadowAnn != null) {
+                // @Shadow method — resolve target method by name+desc on first matching target class.
+                // Mixin looks up this name on the @Mixin target class at apply time; emit flat form
+                // (no class prefix) to match the refmap convention observed in working forge jars.
+                def srg = null
+                def resolvedTc = null
+                for (def tc in targetClasses) {
+                    srg = mojmapMethodToSrg[tc + '.' + m.name + m.desc]
+                    if (srg) { resolvedTc = tc; break }
+                }
+                // Inheritance fallback — same reasoning as in translateValue.
+                if (!srg) {
+                    for (def tc in targetClasses) {
+                        srg = lookupInHierarchy(tc, m.name + m.desc, 'method')
+                        if (srg) { resolvedTc = tc; break }
+                    }
+                }
+                if (!srg) {
+                    srg = mojmapMethodMemberToSrg[m.name + m.desc]
+                    if (srg) { resolvedTc = targetClasses[0] }
+                }
+                if (srg) {
+                    entries[m.name] = "${srg}${m.desc}"
+                    ownerLookup[resolvedTc].methods[m.name + m.desc] = srg
+                }
+            } else if (accessorAnn != null) {
+                def explicit = annotationValue(accessorAnn, 'value')
+                def fieldName = explicit ?: deriveAccessorTarget(m.name)
+                def fieldDesc = m.desc.startsWith('()') ? methodReturnType(m.desc) : methodFirstArg(m.desc)
+                if (fieldName && fieldDesc) {
+                    for (def tc in targetClasses) {
+                        def srg = mojmapFieldToSrg[tc + '.' + fieldName]
+                        if (srg) {
+                            entries[fieldName] = "${srg}:${fieldDesc}"
+                            break
+                        }
+                    }
+                }
+            } else if (invokerAnn != null) {
+                def explicit = annotationValue(invokerAnn, 'value')
+                def targetMethod = explicit ?: deriveInvokerTarget(m.name)
+                for (def tc in targetClasses) {
+                    def srg = mojmapMethodToSrg[tc + '.' + targetMethod + m.desc]
+                    if (srg) {
+                        entries[targetMethod] = "${srg}${m.desc}"
+                        break
+                    }
+                }
+            }
+        }
+
+        // Walk fields for @Shadow
+        cn.fields?.each { f2 ->
+            def shadowAnn = null
+            f2.visibleAnnotations?.each { a -> if (a.desc == 'Lorg/spongepowered/asm/mixin/Shadow;') shadowAnn = a }
+            f2.invisibleAnnotations?.each { a -> if (a.desc == 'Lorg/spongepowered/asm/mixin/Shadow;') shadowAnn = a }
+            if (shadowAnn != null) {
+                def resolved = false
+                def srg = null
+                def resolvedTc = null
+                for (def tc in targetClasses) {
+                    srg = mojmapFieldToSrg[tc + '.' + f2.name]
+                    if (srg) { resolvedTc = tc; break }
+                }
+                if (!srg) {
+                    // Inheritance fallback for @Shadow fields declared on a
+                    // super (e.g. Bee.blockPosition declared on Entity).
+                    for (def tc in targetClasses) {
+                        srg = lookupInHierarchy(tc, f2.name, 'field')
+                        if (srg) { resolvedTc = tc; break }
+                    }
+                }
+                if (!srg) {
+                    srg = mojmapFieldMemberToSrg[f2.name]
+                    if (srg) { resolvedTc = targetClasses[0] }
+                }
+                if (srg) {
+                    entries[f2.name] = "${srg}:${f2.desc}"
+                    ownerLookup[resolvedTc].fields[f2.name] = srg
+                    resolved = true
+                }
+                // Synthetic outer-class reference fallback: javac emits
+                // `this$0` for the outer class instance on every non-static
+                // inner class. Mojang's mojmap/SRG don't list synthetic
+                // fields, so the lookup above misses. Fabric Yarn assigns
+                // `field_NNNNN` — match that shape, confirm the field type
+                // equals the outer class of the @Mixin target, then map to
+                // the javac-convention `this$0`. Emit the full form with
+                // class prefix so Mixin's field resolver treats it as a
+                // direct descriptor lookup rather than a name search (which
+                // skips synthetic fields).
+                if (!resolved && f2.name.startsWith('field_')) {
+                    for (def tc in targetClasses) {
+                        def dollarIdx = tc.lastIndexOf('$')
+                        if (dollarIdx < 0) continue
+                        def outerInternal = tc.substring(0, dollarIdx)
+                        if (f2.desc == "L${outerInternal};") {
+                            entries[f2.name] = "L${tc};this\$0:${f2.desc}"
+                            // Also add to ownerLookup so VSMixinRemapper (the
+                            // IRemapper consulted by Mixin's findRemappedField)
+                            // can translate field_NNN → this$0 at runtime —
+                            // otherwise Mixin throws InvalidMixinException in
+                            // both dev and prod (neither mojmap nor SRG lists
+                            // this synthetic field by its fabric name).
+                            ownerLookup[tc].fields[f2.name] = 'this$0'
+                            resolved = true
+                            break
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ---- 5. Load common's intermediary refmap and translate ----
+    def slurper = new groovy.json.JsonSlurper()
+    def commonRefmap = slurper.parse(commonRefmapFile)
+
+    // Translate the value side of every entry only. The KEY is the raw
+    // annotation literal Mixin reads back at apply time from the mixin class's
+    // bytecode — for :common that's mojmap (source compiled against
+    // officialMojangMappings), so Mixin's refmap lookup uses the mojmap form as
+    // the key. Running translateValue on the key would mistake mojmap for
+    // intermediary, flip it to SRG, and break the lookup (this is what broke
+    // @WrapOperation(at=@At(target="...useItemOn...")): the key was rewritten
+    // to "...m_233732_..." while Mixin kept searching for "...useItemOn...").
+    // Flat (no-L-prefix) values are @Accessor/@Invoker entries whose target is
+    // the @Mixin target class — drop them and let the bytecode scan below
+    // re-emit them in SRG form. Keeping the stale intermediary forms would
+    // either duplicate or outright override the SRG ones depending on Mixin's
+    // lookup order.
+    // Translate an owner-less intermediary value like
+    // `method_9514(Lnet/minecraft/class_2680;...)V` — the form loom emits for
+    // `method = "randomTick"` selectors on a multi-target @Mixin. The method
+    // is resolved against the @Mixin target classes; owner-less output is
+    // what Mixin expects for these too (no L<owner>; prefix).
+    def translateOwnerlessMethodValue = { String val, List targets ->
+        def parenIdx = val.indexOf('(')
+        if (parenIdx < 0) return val
+        def methodName = val.substring(0, parenIdx)
+        def descPart = val.substring(parenIdx)
+        def namedDesc = translateDescriptorToMojmap(descPart)
+        def namedMethod = interToNamedMemberByName[methodName] ?: methodName
+        def srgMethod = null
+        for (def tc in targets ?: []) {
+            srgMethod = mojmapMethodToSrg[tc + '.' + namedMethod + namedDesc]
+            if (srgMethod) break
+        }
+        if (!srgMethod) {
+            for (def tc in targets ?: []) {
+                srgMethod = lookupInHierarchy(tc, namedMethod + namedDesc, 'method')
+                if (srgMethod) break
+            }
+        }
+        if (!srgMethod) {
+            srgMethod = mojmapMethodMemberToSrg[namedMethod + namedDesc]
+        }
+        if (!srgMethod) srgMethod = namedMethod
+        return srgMethod + namedDesc
+    }
+
+    def translatedMappings = [:]
+    (commonRefmap.mappings ?: [:]).each { mixinCls, members ->
+        def newMembers = [:]
+        def targets = mixinToTargets[mixinCls]
+        members.each { k, v ->
+            if (v == null) return
+            if (v.startsWith('L')) {
+                newMembers[k] = translateValue(v)
+            } else if (v.contains('(')) {
+                // Owner-less method: `name(desc)ret`. Resolve against @Mixin
+                // targets. Without this, selectors like `method = "randomTick"`
+                // stay intermediary and @WrapOperation fails injection-check.
+                newMembers[k] = translateOwnerlessMethodValue(v, targets)
+            }
+            // Drop owner-less field entries ("name:Ltype;") — @Accessor/@Invoker
+            // targets re-emitted in SRG form by the bytecode scan.
+        }
+        translatedMappings[mixinCls] = newMembers
+    }
+
+    // Merge with bytecode-scanned shadow/accessor/invoker entries. Refmap
+    // entries from translation take priority since the AP had full context.
+    shadowMappings.each { mixinCls, members ->
+        def bucket = translatedMappings.computeIfAbsent(mixinCls) { [:] }
+        members.each { k, v ->
+            if (!bucket.containsKey(k)) bucket[k] = v
+        }
+    }
+
+    // Prune empty class buckets
+    translatedMappings = translatedMappings.findAll { !it.value.isEmpty() }
+
+    // Populate BOTH top-level `mappings` and `data.searge` with the same
+    // SRG-flavored entries. In dev, moddev launches with
+    // `-Dmixin.env.remapRefMap=true` plus a `refMapRemappingFile` pointing at
+    // intermediateToNamed.srg — Mixin reads the refmap and remaps SRG values
+    // back to mojmap at runtime. That remapping consults the top-level
+    // `mappings` (not data.searge) in dev, so an empty top-level would
+    // leave Mixin with nothing to translate and fall back to the raw
+    // annotation literals, which for fabric-intermediary names (field_NNN,
+    // method_NNN) don't match either mojmap or SRG runtime members.
+    def newRefmap = [
+        mappings: translatedMappings,
+        data    : [searge: translatedMappings]
+    ]
+
+    outputFile.parentFile.mkdirs()
+    outputFile.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(newRefmap))
+
+    // Emit the companion owner-keyed shadow mapping. VSMixinRemapper reads
+    // this at mod init and answers RemapperChain.mapMethodName / mapFieldName
+    // queries from it — the only way @Shadow resolves against SRG prod on
+    // Forge 1.20.1 when the mixin AP that normally rewrites @Shadow names
+    // (MixinGradle for ForgeGradle mods) isn't in our pipeline.
+    if (shadowMappingsFile != null) {
+        // Convert withDefault closure-backed map to plain LinkedHashMap for
+        // deterministic JSON output.
+        def plainOwners = new LinkedHashMap()
+        ownerLookup.sort().each { k, v ->
+            plainOwners[k] = [methods: new LinkedHashMap(v.methods.sort()),
+                              fields: new LinkedHashMap(v.fields.sort())]
+        }
+        shadowMappingsFile.parentFile.mkdirs()
+        shadowMappingsFile.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(plainOwners))
+    }
+}
