@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.forge.mixin.compat.create.client;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.simibubi.create.content.schematics.client.SchematicTransformation;
 import dev.engine_room.flywheel.lib.transform.PoseTransformStack;
@@ -33,7 +35,7 @@ public abstract class MixinSchematicTransformation {
     @Shadow
     private Vec3 prevChasingPos;
 
-    @Redirect(
+    @WrapOperation(
             method = {"applyTransformations(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/world/phys/Vec3;)V"},
             at = @At(
                     value = "INVOKE",
@@ -41,7 +43,7 @@ public abstract class MixinSchematicTransformation {
                     ordinal = 0
             )
     )
-    private Translate redirectTranslate(PoseTransformStack instance, Vec3 orig) {
+    private Translate redirectTranslate(PoseTransformStack instance, Vec3 orig, Operation<PoseTransformStack> operation) {
         PoseStack ms = instance.unwrap();
         Ship ship = VSGameUtilsKt.getShipObjectManagingPos(Minecraft.getInstance().level, target.getX(), target.getY(), target.getZ());
 
@@ -52,7 +54,7 @@ public abstract class MixinSchematicTransformation {
             VSClientGameUtils.transformRenderWithShip(ship.getTransform(), ms, pos.x, pos.y, pos.z, camera.x, camera.y, camera.z);
             return instance;
         } else {
-            return instance.translate(orig);
+            return operation.call(instance, orig);
         }
     }
 }

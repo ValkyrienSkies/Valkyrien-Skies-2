@@ -1,11 +1,13 @@
 package org.valkyrienskies.mod.common
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation
 import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
 import org.joml.Matrix4d
 import org.joml.Matrix4f
 import org.valkyrienskies.core.api.ships.ClientShip
+import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.api.ships.properties.ShipTransform
 import org.valkyrienskies.mod.common.util.multiply
 
@@ -16,8 +18,9 @@ object VSClientGameUtils {
         poseStack.multiply(ship.renderTransform.shipToWorld, ship.renderTransform.shipToWorldRotation)
     }
 
+    @JvmOverloads
     @JvmStatic
-    fun transformRenderIfInShipyard(poseStack: PoseStack, offsetX: Double, offsetY: Double, offsetZ: Double) {
+    fun transformRenderIfInShipyard(poseStack: PoseStack, offsetX: Double, offsetY: Double, offsetZ: Double, vanillaCallback: Operation<*>? = null) {
         val ship = Minecraft.getInstance().level?.getLoadedShipManagingPos(offsetX, offsetY, offsetZ)
 
         if (ship != null) {
@@ -28,7 +31,10 @@ object VSClientGameUtils {
 
             poseStack.multiply(renderMatrix)
         } else {
-            poseStack.translate(offsetX, offsetY, offsetZ)
+            if (vanillaCallback==null)
+                poseStack.translate(offsetX, offsetY, offsetZ)
+            else
+                vanillaCallback.call(poseStack, offsetX, offsetY, offsetZ)
         }
     }
 

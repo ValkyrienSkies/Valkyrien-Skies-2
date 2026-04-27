@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.forge.mixin.compat.create.block;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.simibubi.create.content.logistics.depot.EjectorBlock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
@@ -21,11 +23,11 @@ public abstract class MixinEjectorBlock {
         return instance.getOnPos();
     }
 
-    @Redirect(method = "updateEntityAfterFallOn", at = @At(
+    @WrapOperation(method = "updateEntityAfterFallOn", at = @At(
             value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;position()Lnet/minecraft/world/phys/Vec3;"
     ))
-    private Vec3 redirectEntityPosition(Entity instance) {
-        Vec3 result = instance.position();
+    private Vec3 redirectEntityPosition(Entity instance, Operation<Vec3> original) {
+        Vec3 result = original.call(instance);
         if (VSGameUtilsKt.getShipManagingPos(instance.level(), instance.position()) == null) {
             Ship ship = VSGameUtilsKt.getShipManagingPos(instance.level(), instance.getOnPos());
             if (ship != null) {
@@ -37,17 +39,17 @@ public abstract class MixinEjectorBlock {
         return result;
     }
 
-    @Redirect(method = "updateEntityAfterFallOn", at = @At(
+    @WrapOperation(method = "updateEntityAfterFallOn", at = @At(
             value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;setPos(DDD)V"
     ))
-    private void redirectSetPos(Entity instance, double x, double y, double z) {
+    private void redirectSetPos(Entity instance, double x, double y, double z, Operation<Vec3> original) {
         Ship ship = VSGameUtilsKt.getShipManagingPos(instance.level(), instance.getOnPos());
         if (ship != null) {
             Vector3d tempVec = new Vector3d();
             ship.getTransform().getShipToWorld().transformPosition(x, y, z, tempVec);
-            instance.setPos(tempVec.x, tempVec.y, tempVec.z);
+            original.call(instance, tempVec.x, tempVec.y, tempVec.z);
         } else {
-            instance.setPos(x, y, z);
+            original.call(instance, x, y, z);
         }
     }
 }

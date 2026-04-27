@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.forge.mixin.compat.create;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.simibubi.create.content.kinetics.fan.AirCurrent;
 import com.simibubi.create.content.kinetics.fan.AirFlowParticle;
 import com.simibubi.create.content.kinetics.fan.IAirCurrentSource;
@@ -44,25 +46,25 @@ public abstract class MixinAirFlowParticle extends SimpleAnimatedParticle {
             return null;
     }
 
-    @Redirect(method = "tick", at = @At(
+    @WrapOperation(method = "tick", at = @At(
         value = "INVOKE",
         target = "Lnet/minecraft/world/phys/AABB;contains(DDD)Z"
     ))
-    private boolean redirectBounds(AABB instance, double x, double y, double z) {
+    private boolean redirectBounds(AABB instance, double x, double y, double z, Operation<Boolean> original) {
         AirCurrent current = source.getAirCurrent();
         Level level = source.getAirCurrentWorld();
         if (current != null && level != null) {
             return VSGameUtilsKt.transformAabbToWorld(level, instance).contains(x, y, z);
         }
 
-        return instance.contains(x, y, z);
+        return original.call(instance, x, y, z);
     }
 
 
-    @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/createmod/catnip/math/VecHelper;getCenterOf(Lnet/minecraft/core/Vec3i;)Lnet/minecraft/world/phys/Vec3;"), allow = 1)
-    private Vec3 redirectGetCenterOf(Vec3i pos) {
+    @WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/createmod/catnip/math/VecHelper;getCenterOf(Lnet/minecraft/core/Vec3i;)Lnet/minecraft/world/phys/Vec3;"), allow = 1)
+    private Vec3 redirectGetCenterOf(Vec3i pos, Operation<Vec3> original) {
         Ship ship = getShip();
-        Vec3 result = VecHelper.getCenterOf(pos);
+        Vec3 result = original.call(pos);
         if (ship != null) {
             Vector3d tempVec = new Vector3d();
             ship.getTransform().getShipToWorld().transformPosition(result.x, result.y, result.z, tempVec);
@@ -71,9 +73,9 @@ public abstract class MixinAirFlowParticle extends SimpleAnimatedParticle {
         return result;
     }
 
-    @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/Vec3;atLowerCornerOf(Lnet/minecraft/core/Vec3i;)Lnet/minecraft/world/phys/Vec3;"), allow = 1)
-    private Vec3 redirectToLowerCorner(Vec3i pos) {
-        Vec3 result = Vec3.atLowerCornerOf(pos);
+    @WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/Vec3;atLowerCornerOf(Lnet/minecraft/core/Vec3i;)Lnet/minecraft/world/phys/Vec3;"), allow = 1)
+    private Vec3 redirectToLowerCorner(Vec3i pos, Operation<Vec3> original) {
+        Vec3 result = original.call(pos);
         Ship ship = getShip();
         if (ship != null) {
             Vector3d tempVec = new Vector3d();

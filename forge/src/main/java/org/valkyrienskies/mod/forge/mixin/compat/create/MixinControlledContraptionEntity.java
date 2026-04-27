@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.forge.mixin.compat.create;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
 import com.simibubi.create.content.contraptions.ControlledContraptionEntity;
 import com.simibubi.create.content.contraptions.bearing.BearingContraption;
@@ -26,16 +28,16 @@ public abstract class MixinControlledContraptionEntity extends AbstractContrapti
     @Shadow
     protected float angleDelta;
 
-    @Redirect(method = "shouldActorTrigger", at = @At(value = "FIELD", opcode = Opcodes.PUTFIELD, target = "Lcom/simibubi/create/content/contraptions/behaviour/MovementContext;motion:Lnet/minecraft/world/phys/Vec3;"),
+    @WrapOperation(method = "shouldActorTrigger", at = @At(value = "FIELD", opcode = Opcodes.PUTFIELD, target = "Lcom/simibubi/create/content/contraptions/behaviour/MovementContext;motion:Lnet/minecraft/world/phys/Vec3;"),
     remap = false)
-    private void redirectPutMotion(MovementContext instance, Vec3 value) {
+    private void redirectPutMotion(MovementContext instance, Vec3 value, Operation<Void> operation) {
         BearingContraption bc = (BearingContraption) contraption;
         Direction facing = bc.getFacing();
         Vec3i dir = facing.getNormal();
 
         double scalar = Math.abs(angleDelta / 360.0) * Math.signum(dir.getX() + dir.getY() + dir.getZ());
 
-        instance.motion = new Vec3(Math.abs(dir.getX()), Math.abs(dir.getY()), Math.abs(dir.getZ())).scale(scalar);
+        operation.call(instance, new Vec3(Math.abs(dir.getX()), Math.abs(dir.getY()), Math.abs(dir.getZ())).scale(scalar));
     }
     //Region end
 }

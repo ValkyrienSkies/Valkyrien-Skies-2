@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.forge.mixin.compat.create;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.simibubi.create.content.contraptions.Contraption;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
@@ -10,14 +12,14 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 
 @Mixin(Contraption.class)
 public class MixinContraption {
-    @Redirect(method = "onEntityCreated", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/Level;addFreshEntity(Lnet/minecraft/world/entity/Entity;)Z"))
-    private boolean wrapOp(Level level, Entity entity) {
+    @WrapOperation(method = "onEntityCreated", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/Level;addFreshEntity(Lnet/minecraft/world/entity/Entity;)Z"))
+    private boolean wrapOp(Level level, Entity entity, Operation<Boolean> original) {
         // BlockPos anchor = blockFace.getConnectedPos();
         // movedContraption.setPos(anchor.getX() + .5f, anchor.getY(), anchor.getZ() + .5f);
         //
         // Derive anchor from the code above
         final BlockPos anchor = BlockPos.containing((int) Math.floor(entity.getX()), (int) Math.floor(entity.getY()), (int) Math.floor(entity.getZ()));
-        boolean added = level.addFreshEntity(entity);
+        boolean added = original.call(level, entity);
         if (added) {
             entity.moveTo(anchor.getX() + .5, anchor.getY(), anchor.getZ() + .5);
         }

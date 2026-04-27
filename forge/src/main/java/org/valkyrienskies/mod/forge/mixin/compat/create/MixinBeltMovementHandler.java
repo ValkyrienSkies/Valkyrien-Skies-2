@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.forge.mixin.compat.create;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.simibubi.create.content.kinetics.belt.BeltBlockEntity;
 import com.simibubi.create.content.kinetics.belt.transport.BeltMovementHandler;
 import net.minecraft.core.BlockPos;
@@ -57,34 +59,34 @@ public abstract class MixinBeltMovementHandler {
         return value;
     }
 
-    @Redirect(method = "transportEntity", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;move(Lnet/minecraft/world/entity/MoverType;Lnet/minecraft/world/phys/Vec3;)V", ordinal = 2))
-    private static void redirectMove1(Entity instance, MoverType type, Vec3 pos) {
+    @WrapOperation(method = "transportEntity", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;move(Lnet/minecraft/world/entity/MoverType;Lnet/minecraft/world/phys/Vec3;)V", ordinal = 2))
+    private static void redirectMove1(Entity instance, MoverType type, Vec3 pos, Operation<Void> original) {
         if (ship != null) {
-            instance.move(type, new Vec3(pos.x * 3, 0.2, pos.z * 3));
+            original.call(instance, type, new Vec3(pos.x * 3, 0.2, pos.z * 3));
         } else
-            instance.move(type, pos);
+            original.call(instance, type, pos);
     }
 
-    @Redirect(method = "transportEntity", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;move(Lnet/minecraft/world/entity/MoverType;Lnet/minecraft/world/phys/Vec3;)V", ordinal = 1))
-    private static void redirectMove2(Entity instance, MoverType type, Vec3 pos) {
+    @WrapOperation(method = "transportEntity", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;move(Lnet/minecraft/world/entity/MoverType;Lnet/minecraft/world/phys/Vec3;)V", ordinal = 1))
+    private static void redirectMove2(Entity instance, MoverType type, Vec3 pos, Operation<Void> original) {
         if (ship != null) {
-            instance.move(type, new Vec3(pos.x * 3, 0, pos.z * 3));
+            original.call(instance, type, new Vec3(pos.x * 3, 0, pos.z * 3));
         } else
-            instance.move(type, pos);
+            original.call(instance, type, pos);
     }
 
-    @Redirect(method = "transportEntity", at = @At(value = "INVOKE", target = "Lnet/minecraft/core/Direction$Axis;choose(DDD)D"))
-    private static double redirectChoose(Direction.Axis instance, double x, double y, double z) {
+    @WrapOperation(method = "transportEntity", at = @At(value = "INVOKE", target = "Lnet/minecraft/core/Direction$Axis;choose(DDD)D"))
+    private static double redirectChoose(Direction.Axis instance, double x, double y, double z, Operation<Double> original ) {
         if (ship != null) {
             Vec3 mul = new Vec3(0, 0, 0);
             if (instance == Direction.Axis.X) {
-                mul = redirectGetNormal(new Vec3i(1, 0, 0));
+                mul = redirectGetNormal(new Vec3i(1, 0, 0), null);
             }
             if (instance == Direction.Axis.Y) {
-                mul = redirectGetNormal(new Vec3i(0, 1, 0));
+                mul = redirectGetNormal(new Vec3i(0, 1, 0), null);
             }
             if (instance == Direction.Axis.Z) {
-                mul = redirectGetNormal(new Vec3i(0, 0, 1));
+                mul = redirectGetNormal(new Vec3i(0, 0, 1), null);
             }
             return Math.abs(x * mul.x) + Math.abs(y * mul.y) + Math.abs(z * mul.z);
         }
@@ -97,15 +99,15 @@ public abstract class MixinBeltMovementHandler {
         return axis == Direction.Axis.Z ? (blockPos.x + .5 - getPos(entity).x) : (blockPos.z + .5 - getPos(entity).z);
     }
 
-    @Redirect(
+    @WrapOperation(
             method = "transportEntity",
             at = @At(
                     value = "INVOKE",
                     target = "Lnet/minecraft/world/phys/Vec3;atLowerCornerOf(Lnet/minecraft/core/Vec3i;)Lnet/minecraft/world/phys/Vec3;"
             )
     )
-    private static Vec3 redirectGetNormal(Vec3i toCopy) {
-        Vec3 result = Vec3.atLowerCornerOf(toCopy);
+    private static Vec3 redirectGetNormal(Vec3i toCopy, Operation<Vec3> original) {
+        Vec3 result = original==null?Vec3.atLowerCornerOf(toCopy):original.call(toCopy);
         if (level != null) {
             if (ship != null) {
                 Vector3d tempVec = VectorConversionsMCKt.toJOML(result);

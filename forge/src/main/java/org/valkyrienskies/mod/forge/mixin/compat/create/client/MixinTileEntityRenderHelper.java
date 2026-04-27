@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.forge.mixin.compat.create.client;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.simibubi.create.foundation.render.BlockEntityRenderHelper;
 import dev.engine_room.flywheel.lib.transform.PoseTransformStack;
 import dev.engine_room.flywheel.lib.transform.Translate;
@@ -11,16 +13,16 @@ import org.valkyrienskies.mod.common.VSClientGameUtils;
 
 @Mixin(BlockEntityRenderHelper.class)
 public abstract class MixinTileEntityRenderHelper {
-    @Redirect(
-        method = "renderBlockEntities(Lnet/minecraft/world/level/Level;Lcom/simibubi/create/foundation/virtualWorld/VirtualRenderWorld;Ljava/lang/Iterable;Lcom/mojang/blaze3d/vertex/PoseStack;Lorg/joml/Matrix4f;Lnet/minecraft/client/renderer/MultiBufferSource;F)V",
+    @WrapOperation(
+        method = "renderBlockEntities",
         at = @At(
             value = "INVOKE",
             target = "Ldev/engine_room/flywheel/lib/transform/PoseTransformStack;translate(Lnet/minecraft/core/Vec3i;)Ldev/engine_room/flywheel/lib/transform/Translate;"
         ),
         remap = false
     )
-    private static Translate<PoseTransformStack> redirectTranslate(PoseTransformStack instance, Vec3i vec3i) {
-        VSClientGameUtils.transformRenderIfInShipyard(instance.unwrap(), vec3i.getX(), vec3i.getY(), vec3i.getZ());
+    private static Translate<PoseTransformStack> redirectTranslate(PoseTransformStack instance, Vec3i vec3i, Operation<PoseTransformStack> original) {
+        VSClientGameUtils.transformRenderIfInShipyard(instance.unwrap(), vec3i.getX(), vec3i.getY(), vec3i.getZ(), original);
         return instance;
     }
 }

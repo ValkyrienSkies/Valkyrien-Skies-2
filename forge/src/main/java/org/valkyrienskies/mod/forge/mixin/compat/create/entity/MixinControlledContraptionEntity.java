@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.forge.mixin.compat.create.entity;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.simibubi.create.content.contraptions.ControlledContraptionEntity;
 import com.simibubi.create.content.contraptions.IControlContraption;
 import net.minecraft.world.phys.Vec3;
@@ -24,12 +26,12 @@ public abstract class MixinControlledContraptionEntity implements IMixinControll
         return vec3;
     }
 
-    @Redirect(method = "shouldActorTrigger", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/Vec3;equals(Ljava/lang/Object;)Z"), remap = false)
-    private boolean redirectEquals(Vec3 instance, Object vec3) {
+    @WrapOperation(method = "shouldActorTrigger", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/Vec3;equals(Ljava/lang/Object;)Z"), remap = false)
+    private boolean redirectEquals(Vec3 instance, Object vec3, Operation<Boolean> original) {
         Vec3 other = (Vec3) vec3;
         other = flatten(other);
         instance = flatten(instance);
-        return instance.equals(other);
+        return original.call(instance, other);
     }
 
     //Region end

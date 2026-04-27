@@ -3,6 +3,8 @@ package org.valkyrienskies.mod.forge.mixin.compat.create.entity;
 import static org.valkyrienskies.mod.common.util.VectorConversionsMCKt.toJOML;
 import static org.valkyrienskies.mod.common.util.VectorConversionsMCKt.toMinecraft;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.simibubi.create.api.behaviour.movement.MovementBehaviour;
 import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
 import com.simibubi.create.content.contraptions.Contraption;
@@ -103,22 +105,22 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
     }
 
     //Region start - fix being sent to the  ̶s̶h̶a̶d̶o̶w̶r̶e̶a̶l̶m̶ shipyard on ship contraption disassembly
-    @Redirect(method = "moveCollidedEntitiesOnDisassembly", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;setPos(DDD)V"))
-    private void redirectSetPos(Entity instance, double x, double y, double z) {
+    @WrapOperation(method = "moveCollidedEntitiesOnDisassembly", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;setPos(DDD)V"))
+    private void redirectSetPos(Entity instance, double x, double y, double z, Operation<Void> original) {
         Vec3 result = CompatUtil.INSTANCE.toSameSpaceAs(instance.getCommandSenderWorld(), x, y, z, instance.position());
         if (instance.position().distanceTo(result) < 20) {
-            instance.setPos(result.x, result.y, result.z);
+            original.call(instance, result.x, result.y, result.z);
         } else LOGGER.warn("Warning distance too high ignoring setPos request");
     }
 
-    @Redirect(method = "moveCollidedEntitiesOnDisassembly", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;teleportTo(DDD)V"))
-    private void redirectTeleportTo(Entity instance, double x, double y, double z) {
+    @WrapOperation(method = "moveCollidedEntitiesOnDisassembly", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;teleportTo(DDD)V"))
+    private void redirectTeleportTo(Entity instance, double x, double y, double z, Operation<Void> original) {
         Vec3 result = CompatUtil.INSTANCE.toSameSpaceAs(instance.getCommandSenderWorld(), x, y, z, instance.position());
         if (instance.position().distanceTo(result) < 20) {
             if (VSGameUtilsKt.isBlockInShipyard(instance.getCommandSenderWorld(), result.x, result.y, result.z) && instance instanceof AbstractMinecart) {
                 result.add(0, 0.5, 0);
             }
-            instance.teleportTo(result.x, result.y, result.z);
+            original.call(instance, result.x, result.y, result.z);
         } else {
             LOGGER.warn("Warning distance too high ignoring teleportTo request");
         }

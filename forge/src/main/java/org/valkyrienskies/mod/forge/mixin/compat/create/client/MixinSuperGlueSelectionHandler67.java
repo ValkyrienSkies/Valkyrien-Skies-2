@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.forge.mixin.compat.create.client;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.simibubi.create.content.contraptions.glue.SuperGlueSelectionHandler;
 import com.simibubi.create.foundation.utility.RaycastHelper;
 import java.util.Iterator;
@@ -26,11 +28,11 @@ public abstract class MixinSuperGlueSelectionHandler67 {
     @Unique
     private Vec3 newTarget;
 
-    @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/player/LocalPlayer;getEyePosition()Lnet/minecraft/world/phys/Vec3;"))
-    private Vec3 redirectGetTraceOrigin(LocalPlayer playerIn) {
+    @WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/player/LocalPlayer;getEyePosition()Lnet/minecraft/world/phys/Vec3;"))
+    private Vec3 redirectGetTraceOrigin(LocalPlayer playerIn, Operation<Vec3> original) {
         Minecraft mc = Minecraft.getInstance();
         double range = playerIn.getAttribute(Attributes.BLOCK_INTERACTION_RANGE).getValue() + 1;
-        Vec3 origin = playerIn.getEyePosition();
+        Vec3 origin = original.call(playerIn);
         Vec3 target = RaycastHelper.getTraceTarget(playerIn, range, origin);
 
 

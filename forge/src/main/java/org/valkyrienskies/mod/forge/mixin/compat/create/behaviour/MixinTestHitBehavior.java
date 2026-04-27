@@ -1,6 +1,12 @@
 package org.valkyrienskies.mod.forge.mixin.compat.create.behaviour;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.simibubi.create.content.redstone.link.LinkBehaviour;
+import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
+import com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringBehaviour;
+import com.simibubi.create.foundation.blockEntity.behaviour.filtering.SidedFilteringBehaviour;
+import com.simibubi.create.foundation.blockEntity.behaviour.scrollValue.ScrollValueBehaviour;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
@@ -12,17 +18,17 @@ import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
-@Mixin(LinkBehaviour.class)
-public class MixinLinkBehaviour {
-    @Redirect(
-            method = "testHit",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/world/phys/Vec3;subtract(Lnet/minecraft/world/phys/Vec3;)Lnet/minecraft/world/phys/Vec3;"
-            )
+@Mixin({SidedFilteringBehaviour.class, ScrollValueBehaviour.class, LinkBehaviour.class, FilteringBehaviour.class})
+public class MixinTestHitBehavior {
+    @WrapOperation(
+        method = "testHit",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/world/phys/Vec3;subtract(Lnet/minecraft/world/phys/Vec3;)Lnet/minecraft/world/phys/Vec3;"
+        )
     )
-    public Vec3 redirectSubtract(Vec3 instance, Vec3 vec) {
-        Level level = ((LinkBehaviour) (Object) this).getWorld();
+    public Vec3 redirectSubtract(Vec3 instance, Vec3 vec, Operation<Vec3> original) {
+        Level level = BlockEntityBehaviour.class.cast(this).getWorld();
 
         Vec3 pos1 = instance;
         Vec3 pos2 = vec;
@@ -44,6 +50,6 @@ public class MixinLinkBehaviour {
                 );
             }
         }
-        return pos1.subtract(pos2);
+        return original.call(pos1, pos2);
     }
 }

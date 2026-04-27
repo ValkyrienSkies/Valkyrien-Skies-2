@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.forge.mixin.compat.create.client.trackOutlines;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.simibubi.create.foundation.block.BigOutlines;
 import com.simibubi.create.foundation.utility.RaycastHelper;
 import net.minecraft.client.Minecraft;
@@ -55,15 +57,15 @@ public class MixinBigOutlines {
         }
     }
 
-    @Redirect(
+    @WrapOperation(
         method = "pick",
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/client/player/LocalPlayer;getEyePosition(F)Lnet/minecraft/world/phys/Vec3;"
         )
     )
-    private static Vec3 redirectedOrigin(final LocalPlayer instance, final float v) {
-        final Vec3 eyePos = instance.getEyePosition(v);
+    private static Vec3 redirectedOrigin(final LocalPlayer instance, final float v, Operation<Vec3> original) {
+        final Vec3 eyePos = original.call(instance, v);
         if (valkyrienskies$toShip) {
             valkyrienskies$originalOrigin = eyePos;
             return VectorConversionsMCKt.toMinecraft(
@@ -73,7 +75,7 @@ public class MixinBigOutlines {
         }
     }
 
-    @Redirect(
+    @WrapOperation(
         method = "pick",
         at = @At(
             value = "INVOKE",
@@ -81,13 +83,13 @@ public class MixinBigOutlines {
         ),
         remap = false
     )
-    private static Vec3 redirectedTarget(final Player playerIn, final double range, final Vec3 origin) {
+    private static Vec3 redirectedTarget(final Player playerIn, final double range, final Vec3 origin, Operation<Vec3> original) {
         if (valkyrienskies$toShip) {
             return VectorConversionsMCKt.toMinecraft(
                 valkyrienskies$ship.getWorldToShip().transformPosition(VectorConversionsMCKt.toJOML(
-                    RaycastHelper.getTraceTarget(playerIn, range, valkyrienskies$originalOrigin))));
+                    original.call(playerIn, range, valkyrienskies$originalOrigin))));
         } else {
-            return RaycastHelper.getTraceTarget(playerIn, range, origin);
+            return original.call(playerIn, range, origin);
         }
     }
 }
