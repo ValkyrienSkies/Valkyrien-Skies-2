@@ -19,6 +19,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.chunk.LevelChunk.PostLoadProcessor;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.chunk.ProtoChunk;
 import net.minecraft.world.level.chunk.UpgradeData;
@@ -36,6 +37,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.BlockStateInfo;
@@ -109,16 +111,9 @@ public abstract class MixinLevelChunk extends ChunkAccess implements VSLevelChun
         at = @At("RETURN")
     )
     private void LevelChunk$init(
-        final Level level,
-        final ChunkPos chunkPos,
-        final UpgradeData data,
-        final LevelChunkTicks<Block> blockTicks,
-        final LevelChunkTicks<Fluid> fluidTicks,
-        final long inhabitedTime,
-        final LevelChunkSection[] sections,
-        final LevelChunk.PostLoadProcessor postProcessor,
-        final BlendingData blendingData,
-        final CallbackInfo ci
+        Level level, ChunkPos chunkPos, UpgradeData upgradeData, LevelChunkTicks levelChunkTicks,
+        LevelChunkTicks levelChunkTicks2, long l, LevelChunkSection[] levelChunkSections,
+        PostLoadProcessor postLoadProcessor, BlendingData blendingData, CallbackInfo ci
     ) {
         this.fluidData = new FluidStateManager.ChunkFluidData();
 
