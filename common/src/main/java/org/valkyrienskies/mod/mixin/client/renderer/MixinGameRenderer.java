@@ -36,9 +36,13 @@ import org.valkyrienskies.mod.common.entity.ShipMountedToData;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
+import org.valkyrienskies.mod.common.util.EntityRenderPosition;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 import org.valkyrienskies.mod.mixinducks.client.MinecraftDuck;
+
+import java.util.IdentityHashMap;
+import java.util.Map;
 
 @Mixin(GameRenderer.class)
 public abstract class MixinGameRenderer {
@@ -56,6 +60,9 @@ public abstract class MixinGameRenderer {
 
     @Shadow
     public abstract Matrix4f getProjectionMatrix(double d);
+
+    @Unique
+    private final Map<Entity, EntityRenderPosition.Snapshot> vs$renderPositionSnapshots = new IdentityHashMap<>();
 
     /**
      * {@link Entity#pick(double, float, boolean)} except the hit pos is not transformed
@@ -137,7 +144,13 @@ public abstract class MixinGameRenderer {
                     final Vector3dc passengerPos = shipMountedToData.getMountPosInShip();
                     entityShouldBeHere = shipMountedTo.getRenderTransform().getShipToWorld()
                         .transformPosition(passengerPos, new Vector3d());
-                    entity.setPos(entityShouldBeHere.x(), entityShouldBeHere.y(), entityShouldBeHere.z());
+                    vs$renderPositionSnapshots.computeIfAbsent(entity, EntityRenderPosition::capture);
+                    EntityRenderPosition.setWithoutSectionUpdate(
+                        entity,
+                        entityShouldBeHere.x(),
+                        entityShouldBeHere.y(),
+                        entityShouldBeHere.z()
+                    );
                     entity.xo = entityShouldBeHere.x();
                     entity.yo = entityShouldBeHere.y();
                     entity.zo = entityShouldBeHere.z();
@@ -205,6 +218,9 @@ public abstract class MixinGameRenderer {
     private void postRender(final float tickDelta, final long startTime, final boolean tick, final CallbackInfo ci) {
         final ClientLevel clientWorld = minecraft.level;
         if (clientWorld != null) {
+            vs$renderPositionSnapshots.forEach((entity, snapshot) -> snapshot.restore(entity));
+            vs$renderPositionSnapshots.clear();
+
             // Restore the entity last tick positions that were replaced during this frame
             for (final Entity entity : clientWorld.entitiesForRendering()) {
                 final EntityDraggingInformation vsEntity =

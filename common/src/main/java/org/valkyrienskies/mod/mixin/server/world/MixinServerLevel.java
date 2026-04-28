@@ -78,7 +78,8 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
 
 
     /**
-     * Allow scheduled ticks and block entity ticking in shipyard chunks at FULL status (level 33).
+     * Allow scheduled ticks and block entity ticking in shipyard chunks that were loaded only to
+     * FULL status through SHIP_CHUNK.
      *
      * Forge's Level.tickBlockEntities() calls shouldTickBlocksAt(BlockPos) before ticking each
      * block entity. Ship chunks use level 33 (FULL) tickets to minimize neighbor loading, but
@@ -109,7 +110,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
     }
 
     /**
-     * Allow shipyard chunks to pass the LevelTicks tick-processing gate.
+     * Allow FULL-only shipyard chunks to pass the LevelTicks tick-processing gate.
      *
      * LevelTicks uses isPositionTickingWithEntitiesLoaded as its tickCheck predicate.
      * This method requires BOTH areEntitiesLoaded() AND isPositionTicking() to be true.
@@ -230,7 +231,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
         // Remove the chunk pos from vs$chunksToUnload if its present
         vs$chunksToUnload.remove(worldChunk.getPos().toLong());
         if (!vs$knownChunks.containsKey(worldChunk.getPos())) {
-            // Ship chunks at level 33 (FULL) never reach BLOCK_TICKING status in vanilla,
+            // FULL-only shipyard chunks never reach BLOCK_TICKING status in vanilla,
             // so two critical callbacks are missed:
             // 1. registerTickContainerInLevel() — adds tick containers to LevelTicks
             // 2. startTickingChunk() → unpackTicks() — moves saved ticks from pendingTicks
@@ -322,7 +323,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
             if (!vs$knownChunks.containsKey(chunkHolder.getPos()) && distanceManagerAccessor.getTickets().containsKey(chunkHolder.getPos().toLong())) {
                 Optional<LevelChunk> worldChunkOptional =
                     chunkHolder.getTickingChunkFuture().getNow(ChunkHolder.UNLOADED_LEVEL_CHUNK).left();
-                // Shipyard chunks use level 33 (FULL) tickets which don't reach ticking status,
+                // FULL-only shipyard chunks don't complete tickingChunkFuture,
                 // so tickingChunkFuture is never completed. For these chunks, get the chunk
                 // directly from the chunk cache instead of relying on futures.
                 if (worldChunkOptional.isEmpty()) {

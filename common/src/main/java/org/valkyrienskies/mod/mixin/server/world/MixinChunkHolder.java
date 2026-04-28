@@ -15,7 +15,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.mod.common.VS2ChunkAllocator;
 
 /**
- * Fix multiple issues with ship chunks at level 33 (FULL status):
+ * Fix multiple issues with shipyard chunks that were loaded only to FULL status:
  *
  * 1. getTickingChunk() returns null — blocks blockChanged() and broadcastChanges()
  *    from sending block update packets to clients. Fixed by getting the chunk
@@ -51,7 +51,7 @@ public abstract class MixinChunkHolder {
     }
 
     /**
-     * Report shipyard chunk holders as BLOCK_TICKING status.
+     * Report FULL-only shipyard chunk holders as BLOCK_TICKING status.
      *
      * ChunkMap uses this status to decide when to call registerTickContainerInLevel().
      * Without this, ship chunks at level 33 (FULL) never get their tick containers

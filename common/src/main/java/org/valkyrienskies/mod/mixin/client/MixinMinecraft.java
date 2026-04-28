@@ -78,7 +78,7 @@ public abstract class MixinMinecraft
         final BlockHitResult blockHitResult, final Operation<InteractionResult> useItemOn) {
 
         return useItemOn.call(instance, localPlayer, interactionHand,
-            this.originalCrosshairTarget);
+            (BlockHitResult) this.originalCrosshairTarget);
     }
 
     @NotNull
@@ -104,7 +104,7 @@ public abstract class MixinMinecraft
 
     @Inject(
         method = "tick",
-        at = @At("RETURN")
+        at = @At("TAIL")
     )
     public void postTick(final CallbackInfo ci) {
         // Tick the ship world and then drag entities

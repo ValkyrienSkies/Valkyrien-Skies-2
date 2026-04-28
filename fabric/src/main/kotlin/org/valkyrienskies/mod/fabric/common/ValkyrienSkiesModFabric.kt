@@ -38,6 +38,7 @@ import org.valkyrienskies.mod.client.VSPhysicsEntityModel
 import org.valkyrienskies.mod.client.VSPhysicsEntityRenderer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod.AREA_ASSEMBLER_ITEM
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.CLASSIC_AREA_ASSEMBLER_ITEM
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod.CONNECTION_CHECKER_ITEM
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod.PHYSICS_ENTITY_CREATOR_ITEM
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM
@@ -131,6 +132,12 @@ class ValkyrienSkiesModFabric : ModInitializer {
             { 1.0 },
             { VSGameConfig.SERVER.minScaling }
         )
+        ValkyrienSkiesMod.CLASSIC_AREA_ASSEMBLER_ITEM = AreaAssemblerItem(
+            Properties(),
+            { 1.0 },
+            { VSGameConfig.SERVER.minScaling },
+            true
+        )
         ValkyrienSkiesMod.SHIP_CREATOR_ITEM_SMALLER = ShipCreatorItem(
             Properties(),
             { VSGameConfig.SERVER.miniShipSize },
@@ -182,6 +189,10 @@ class ValkyrienSkiesModFabric : ModInitializer {
         Registry.register(
             BuiltInRegistries.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "area_assembler"),
             ValkyrienSkiesMod.AREA_ASSEMBLER_ITEM
+        )
+        Registry.register(
+            BuiltInRegistries.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "classic_area_assembler"),
+            ValkyrienSkiesMod.CLASSIC_AREA_ASSEMBLER_ITEM
         )
         Registry.register(
             BuiltInRegistries.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_assembler"),
@@ -247,6 +258,7 @@ class ValkyrienSkiesModFabric : ModInitializer {
             event.accept(SHIP_ASSEMBLER_ITEM)
             event.accept(SHIP_CREATOR_ITEM_SMALLER)
             event.accept(AREA_ASSEMBLER_ITEM)
+            event.accept(CLASSIC_AREA_ASSEMBLER_ITEM)
             event.accept(PHYSICS_ENTITY_CREATOR_ITEM)
         }
 

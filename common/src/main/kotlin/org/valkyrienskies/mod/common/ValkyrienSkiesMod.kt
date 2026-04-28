@@ -71,6 +71,7 @@ object ValkyrienSkiesMod {
     lateinit var SHIP_ASSEMBLER_ITEM: Item
     lateinit var SHIP_CREATOR_ITEM_SMALLER: Item
     lateinit var AREA_ASSEMBLER_ITEM: Item
+    lateinit var CLASSIC_AREA_ASSEMBLER_ITEM: Item
     lateinit var PHYSICS_ENTITY_CREATOR_ITEM: Item
     lateinit var SHIP_MOUNTING_ENTITY_TYPE: EntityType<ShipMountingEntity>
     lateinit var PHYSICS_ENTITY_TYPE: EntityType<VSPhysicsEntity>

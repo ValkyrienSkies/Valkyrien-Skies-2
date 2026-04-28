@@ -12,15 +12,16 @@ import org.valkyrienskies.mod.common.VS2ChunkAllocator;
 public class MixinServerChunkCache {
 
     /**
-     * Allow shipyard chunks to be treated as "position ticking" even at ticket level 33 (FULL).
+     * Allow shipyard chunks loaded only through SHIP_CHUNK to pass position-ticking checks.
      *
-     * VS2 uses radius-0 tickets (level 33) for ship chunks to minimize neighbor chunk loading.
-     * However, vanilla's isPositionTicking requires level ≤ 32, which means:
+     * This is for transient FULL-only shipyard chunk loads. Normal active ship chunks still use
+     * vanilla forced tickets so they naturally receive random, block, and entity ticking.
+     *
+     * Vanilla's isPositionTicking requires level ≤ 32, which means:
      * - Scheduled ticks (buttons, repeaters) don't process
      * - Block entities (furnaces, hoppers) don't tick
      *
-     * This mixin checks if the chunk is in the shipyard and loaded at FULL status,
-     * and returns true so block ticking works on ships.
+     * This mixin checks if the chunk is in the shipyard and loaded at FULL status.
      */
     @Inject(method = "isPositionTicking", at = @At("HEAD"), cancellable = true)
     private void vs$allowShipyardTicking(long pos, CallbackInfoReturnable<Boolean> cir) {

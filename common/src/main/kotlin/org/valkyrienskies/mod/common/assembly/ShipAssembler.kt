@@ -1,21 +1,30 @@
 package org.valkyrienskies.mod.common.assembly
 
+import com.google.common.collect.Lists
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.util.RandomSource
 import net.minecraft.world.Clearable
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
+import net.minecraft.world.level.LevelAccessor
 import net.minecraft.world.level.LevelReader
 import net.minecraft.world.level.ServerLevelAccessor
-import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.Block
-import net.minecraft.world.level.block.entity.BlockEntity
+import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.LiquidBlockContainer
+import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessor
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessorType
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate
+import net.minecraft.world.phys.shapes.BitSetDiscreteVoxelShape
+import net.minecraft.world.phys.shapes.DiscreteVoxelShape
 import org.joml.Quaterniond
 import org.joml.RoundingMode
 import org.joml.Vector3d
@@ -26,7 +35,7 @@ import org.valkyrienskies.core.api.ships.properties.ShipId
 import org.valkyrienskies.core.api.util.GameTickOnly
 import org.valkyrienskies.core.impl.config.VSCoreConfig
 import org.valkyrienskies.core.internal.ships.VsiServerShip
-import org.valkyrienskies.mod.common.config.VSGameConfig
+import org.valkyrienskies.mod.common.assembly.ShipAssembler.assembleToShipFull
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.executeIf
 import org.valkyrienskies.mod.common.forEach
@@ -48,6 +57,10 @@ import org.valkyrienskies.mod.common.yRange
 import org.valkyrienskies.mod.util.AIR
 import org.valkyrienskies.mod.util.StructureTemplateFillFromVoxelSet
 import org.valkyrienskies.mod.util.logger
+import org.valkyrienskies.mod.util.relocateBlock
+import kotlin.Int.Companion
+import kotlin.math.max
+import kotlin.math.min
 
 object ShipAssembler {
 
@@ -236,12 +249,6 @@ object ShipAssembler {
 
         // ========== Removing Old Blocks
         if (removeOriginal) {
-            // Single-pass removal: clear block entities and set to air in one pass.
-            // Use UPDATE_KNOWN_SHAPE to skip expensive neighbor shape updates during bulk removal,
-            // and UPDATE_SUPPRESS_DROPS to prevent item drops. We use flag 2 (UPDATE_CLIENTS) to
-            // send changes to clients. Skip the old two-pass approach (barrier then remove) which
-            // doubled the work and triggered expensive recursive neighbor updates per block.
-            val flags = Block.UPDATE_CLIENTS or Block.UPDATE_KNOWN_SHAPE or Block.UPDATE_SUPPRESS_DROPS or Block.UPDATE_MOVE_BY_PISTON
             for (pos in blocks) {
                 level.getBlockEntity(pos)?.let {
                     if (it is Clearable) {
@@ -253,10 +260,26 @@ object ShipAssembler {
                     // Without this, copycats still drop their items
                     level.removeBlockEntity(pos)
                 }
-                level.setBlock(pos, Blocks.AIR.defaultBlockState(), flags)
+
+                level.setBlock(pos, Blocks.BARRIER.defaultBlockState(), Block.UPDATE_CLIENTS)
             }
-            // Batch light updates after all blocks are removed
             for (pos in blocks) {
+                val block = level.getBlockState(pos)
+                level.removeBlock(pos, false)
+                // 75 = flag 1 (block update) & flag 2 (send to clients) + flag 8 (force rerenders)
+                val flags = 11 or Block.UPDATE_MOVE_BY_PISTON or Block.UPDATE_SUPPRESS_DROPS
+
+                //updateNeighbourShapes recurses through nearby blocks, recursionLeft is the limit
+                val recursionLeft = 511
+
+                level.setBlocksDirty(pos, block, AIR)
+                level.sendBlockUpdated(pos, block, AIR, flags)
+                level.blockUpdated(pos, AIR.block)
+                // This handles the update for neighboring blocks in worldspace
+                AIR.updateIndirectNeighbourShapes(level, pos, flags, recursionLeft - 1)
+                AIR.updateNeighbourShapes(level, pos, flags, recursionLeft)
+                AIR.updateIndirectNeighbourShapes(level, pos, flags, recursionLeft)
+                //This updates lighting for blocks in worldspace
                 level.chunkSource.lightEngine.checkBlock(pos)
             }
         }
@@ -301,9 +324,9 @@ object ShipAssembler {
         level.server.executeIf(
             // This condition will return true if all modified chunks have been both loaded AND
             // chunk update packets were sent to players
-            { chunkPoses.all(level::isChunkLoadedForVS) || level.server.tickCount - timeAtExecution > 60 }
+            { chunkPoses.all(level::isChunkLoadedForVS) || level.server.tickCount - timeAtExecution > 20 }
         ) {
-            if (level.server.tickCount - timeAtExecution > 60) {
+            if (level.server.tickCount - timeAtExecution > 20) {
                 ASSEMBLY_LOGGER.warn("Timed out waiting for chunks to start ticking after assembly! Forcibly resuming...")
                 ASSEMBLY_LOGGER.warn("All chunks involved in assembly: $chunkPoses")
                 ASSEMBLY_LOGGER.warn("Chunks that were not loaded: ${chunkPoses.filterNot { level.isChunkLoadedForVS(it) }}")

@@ -35,6 +35,7 @@ import org.valkyrienskies.mod.client.VSPhysicsEntityModel
 import org.valkyrienskies.mod.client.VSPhysicsEntityRenderer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod.AREA_ASSEMBLER_ITEM
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.CLASSIC_AREA_ASSEMBLER_ITEM
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod.CONNECTION_CHECKER_ITEM
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod.MOD_ID
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod.PHYSICS_ENTITY_CREATOR_ITEM
@@ -101,6 +102,7 @@ class ValkyrienSkiesModForge {
     private val SHIP_CREATOR_SMALLER_ITEM_REGISTRY: RegistryObject<Item>
     private val SHIP_REMOVER_ITEM_REGISTRY: RegistryObject<Item>
     private val AREA_ASSEMBLER_ITEM_REGISTRY: RegistryObject<Item>
+    private val CLASSIC_AREA_ASSEMBLER_ITEM_REGISTRY: RegistryObject<Item>
     private val PHYSICS_ENTITY_CREATOR_ITEM_REGISTRY: RegistryObject<Item>
     private val SHIP_MOUNTING_ENTITY_REGISTRY: RegistryObject<EntityType<ShipMountingEntity>>
     private val PHYSICS_ENTITY_TYPE_REGISTRY: RegistryObject<EntityType<VSPhysicsEntity>>
@@ -191,6 +193,14 @@ class ValkyrienSkiesModForge {
                 { VSGameConfig.SERVER.minScaling }
             )
         }
+        CLASSIC_AREA_ASSEMBLER_ITEM_REGISTRY = ITEMS.register("classic_area_assembler") {
+            AreaAssemblerItem(
+                Properties(),
+                { 1.0 },
+                { VSGameConfig.SERVER.minScaling },
+                true
+            )
+        }
         PHYSICS_ENTITY_CREATOR_ITEM_REGISTRY =
             ITEMS.register("physics_entity_creator") {
                 PhysicsEntityCreatorItem(
@@ -269,6 +279,7 @@ class ValkyrienSkiesModForge {
             event.accept(SHIP_ASSEMBLER_ITEM)
             event.accept(SHIP_CREATOR_ITEM_SMALLER)
             event.accept(AREA_ASSEMBLER_ITEM)
+            event.accept(CLASSIC_AREA_ASSEMBLER_ITEM)
             event.accept(PHYSICS_ENTITY_CREATOR_ITEM)
         }
     }
@@ -348,6 +359,7 @@ class ValkyrienSkiesModForge {
         ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM = SHIP_ASSEMBLER_ITEM_REGISTRY.get()
         ValkyrienSkiesMod.SHIP_CREATOR_ITEM_SMALLER = SHIP_CREATOR_SMALLER_ITEM_REGISTRY.get()
         ValkyrienSkiesMod.AREA_ASSEMBLER_ITEM = AREA_ASSEMBLER_ITEM_REGISTRY.get()
+        ValkyrienSkiesMod.CLASSIC_AREA_ASSEMBLER_ITEM = CLASSIC_AREA_ASSEMBLER_ITEM_REGISTRY.get()
         ValkyrienSkiesMod.PHYSICS_ENTITY_CREATOR_ITEM = PHYSICS_ENTITY_CREATOR_ITEM_REGISTRY.get()
         ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE = SHIP_MOUNTING_ENTITY_REGISTRY.get()
         ValkyrienSkiesMod.PHYSICS_ENTITY_TYPE = PHYSICS_ENTITY_TYPE_REGISTRY.get()

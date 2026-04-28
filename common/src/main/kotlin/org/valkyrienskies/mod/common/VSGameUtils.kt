@@ -124,22 +124,19 @@ fun Level.isTickingChunk(chunkX: Int, chunkZ: Int) =
     (chunkSource as ServerChunkCache).isPositionTicking(ChunkPos.asLong(chunkX, chunkZ))
 
 /**
- * Check if a chunk is loaded enough for VS2 to use it.
+ * Check if a chunk is loaded enough for non-ticking VS2 work.
  *
- * Ship chunks in the shipyard use radius=0 tickets (level 33 = FULL status), which means they
- * won't pass [isPositionTicking] (requires level ≤ 32). Instead, we check if the chunk is at
- * FULL status using [ServerChunkCache.getChunkNow], which returns non-null for any chunk that
- * has reached FULL status or better.
+ * This is for flows such as ship assembly and terrain copies that only need direct chunk access.
+ * It is not a substitute for [isTickingChunk] when gameplay needs random, block, or entity ticks.
  *
- * For world chunks (non-shipyard), we still use isPositionTicking since those use vanilla forced
- * tickets at level 31 (entity ticking).
+ * Shipyard chunks loaded through [org.valkyrienskies.mod.common.world.VSTicketType.SHIP_CHUNK]
+ * only reach FULL status, so they won't pass [isPositionTicking]. For those chunks we accept a
+ * non-null [ServerChunkCache.getChunkNow].
  */
 fun Level.isChunkLoadedForVS(pos: ChunkPos): Boolean {
-    // For shipyard chunks, accept FULL status (level 33) — no need for ticking
     if (VS2ChunkAllocator.isChunkInShipyardCompanion(pos.x, pos.z)) {
         return (chunkSource as ServerChunkCache).getChunkNow(pos.x, pos.z) != null
     }
-    // For world chunks, require ticking status
     return isTickingChunk(pos)
 }
 
@@ -286,7 +283,7 @@ inline fun Level.transformToNearbyShipsAndWorld(
     }
 
     for (nearbyShip in shipObjectWorld.allShips.getIntersecting(aabb, this!!.dimensionId)) {
-        if (nearbyShip == currentShip) continue
+        if (nearbyShip.id == currentShip?.id) continue
         val posInShip = nearbyShip.worldToShip.transformPosition(posInWorld, temp0)
         cb(posInShip.x(), posInShip.y(), posInShip.z())
     }

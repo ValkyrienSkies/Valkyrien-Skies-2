@@ -18,6 +18,7 @@
   "item.valkyrienskies.ship_remover": "Ship Remover",
   "item.valkyrienskies.ship_assembler": "Ship Assembler",
   "item.valkyrienskies.area_assembler": "Area Assembler",
+  "item.valkyrienskies.classic_area_assembler": "Classic Area Assembler",
   "item.valkyrienskies.connection_checker": "Connection Checker",
   "item.valkyrienskies.physics_entity_creator": "Physics Entity Creator",
   "entity.valkyrienskies.vs_physics_entity": "Physics Entity",

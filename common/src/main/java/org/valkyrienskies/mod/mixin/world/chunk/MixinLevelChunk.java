@@ -36,7 +36,6 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.BlockStateInfo;
@@ -66,7 +65,7 @@ public abstract class MixinLevelChunk extends ChunkAccess implements VSLevelChun
     private FluidStateManager.ChunkFluidData fluidData;
 
     /**
-     * Allow block entity ticking in shipyard chunks at FULL status (level 33).
+     * Allow block entity ticking in shipyard chunks that were loaded only to FULL status.
      *
      * MC's isTicking checks getFullStatus().isOrAfter(BLOCK_TICKING), which requires
      * level ≤ 32. Ship chunks use level 33 (FULL) to minimize neighbor loading.
@@ -84,18 +83,18 @@ public abstract class MixinLevelChunk extends ChunkAccess implements VSLevelChun
     }
 
     /**
-     * Report shipyard chunks as BLOCK_TICKING status so that Level.markAndNotifyBlock()
+     * Report FULL-only shipyard chunks as ENTITY_TICKING status so that Level.markAndNotifyBlock()
      * calls sendBlockUpdated(), which triggers ServerChunkCache.blockChanged() and
      * ultimately ChunkHolder.broadcastChanges() to send block update packets to clients.
      *
      * Without this, ship chunks at level 33 (FULL status) fail the
-     * getFullStatus().isOrAfter(BLOCK_TICKING) check and block updates are silently dropped.
+     * getFullStatus().isOrAfter(ENTITY_TICKING) check and block updates are silently dropped.
      */
     @Inject(method = "getFullStatus", at = @At("HEAD"), cancellable = true)
     private void vs$upgradeShipyardChunkStatus(CallbackInfoReturnable<FullChunkStatus> cir) {
         if (VS2ChunkAllocator.INSTANCE.isChunkInShipyardCompanion(
                 this.chunkPos.x, this.chunkPos.z)) {
-            cir.setReturnValue(FullChunkStatus.BLOCK_TICKING);
+            cir.setReturnValue(FullChunkStatus.ENTITY_TICKING);
         }
     }
 

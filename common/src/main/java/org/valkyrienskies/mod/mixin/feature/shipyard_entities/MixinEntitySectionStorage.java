@@ -17,6 +17,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.impl.hooks.VSEvents.ShipLoadEventClient;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.util.ShipyardEntityQueryContext;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.mixinducks.world.OfLevel;
 import org.valkyrienskies.mod.mixinducks.world.OfShip;
@@ -79,21 +80,27 @@ public abstract class MixinEntitySectionStorage implements OfLevel {
 
         if (level != null && !loopingShips) {
             loopingShips = true;
-            VSGameUtilsKt.getShipsIntersecting(level, aABB).forEach(ship -> {
-                final var transformedAABB = VectorConversionsMCKt.toMinecraft(
-                    VectorConversionsMCKt.toJOML(aABB).transform(ship.getWorldToShip()));
+            try {
+                VSGameUtilsKt.getShipsIntersecting(level, aABB).forEach(ship -> {
+                    final var transformedAABB = VectorConversionsMCKt.toMinecraft(
+                        VectorConversionsMCKt.toJOML(aABB).transform(ship.getWorldToShip()));
 
-                // No idea how this method works or why it throws (subset bounds are messed up)
-                // but let's just catch it for now.
+                    // No idea how this method works or why it throws (subset bounds are messed up)
+                    // but let's just catch it for now.
 
-                // java.lang.IllegalArgumentException: Start element (9223367638808264704) is larger than end element (-9223372036854775808)
-                try {
-                    this.forEachAccessibleNonEmptySection(transformedAABB, abortableIterationConsumer);
-                } catch (final IllegalArgumentException ex) {
-                    ex.printStackTrace();
-                }
-            });
-            loopingShips = false;
+                    // java.lang.IllegalArgumentException: Start element (9223367638808264704) is larger than end element (-9223372036854775808)
+                    ShipyardEntityQueryContext.pushShipSpaceQuery(transformedAABB);
+                    try {
+                        this.forEachAccessibleNonEmptySection(transformedAABB, abortableIterationConsumer);
+                    } catch (final IllegalArgumentException ex) {
+                        ex.printStackTrace();
+                    } finally {
+                        ShipyardEntityQueryContext.popShipSpaceQuery();
+                    }
+                });
+            } finally {
+                loopingShips = false;
+            }
         }
     }
 }

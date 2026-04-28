@@ -9,6 +9,7 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.hooks.VSGameEvents;
 import org.valkyrienskies.mod.common.hooks.VSGameEvents.EntitySectionSetShip;
+import org.valkyrienskies.mod.common.util.ShipyardEntityQueryContext;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.mixinducks.world.OfShip;
 
@@ -35,7 +36,7 @@ public class MixinEntitySection implements OfShip {
         ordinal = 0,
         argsOnly = true)
     AABB modifyAABB1(final AABB aabb) {
-        if (ofShip != null) {
+        if (ofShip != null && !ShipyardEntityQueryContext.isShipSpaceQuery(aabb)) {
             return VectorConversionsMCKt.toMinecraft(
                 VectorConversionsMCKt.toJOML(aabb).transform(ofShip.getWorldToShip()));
         } else {
@@ -49,7 +50,7 @@ public class MixinEntitySection implements OfShip {
         ordinal = 0,
         argsOnly = true)
     AABB modifyAABB2(final AABB aabb) {
-        if (ofShip != null) {
+        if (ofShip != null && !ShipyardEntityQueryContext.isShipSpaceQuery(aabb)) {
             return VectorConversionsMCKt.toMinecraft(
                 VectorConversionsMCKt.toJOML(aabb).transform(ofShip.getWorldToShip()));
         } else {
