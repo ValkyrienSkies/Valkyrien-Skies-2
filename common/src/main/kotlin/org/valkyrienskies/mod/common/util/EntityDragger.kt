@@ -21,6 +21,7 @@ import org.valkyrienskies.mod.common.entity.handling.VSEntityManager
 import org.valkyrienskies.mod.common.getLoadedShipManagingPos
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.EntityLerper.yawToWorld
+import org.valkyrienskies.mod.mixinducks.world.entity.EntityShipGroundingDuck
 import kotlin.math.asin
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -37,16 +38,23 @@ object EntityDragger {
     fun dragEntitiesWithShips(entities: Iterable<Entity>, preTick: Boolean = false) {
         for (entity in entities) {
             val entityDraggingInformation = (entity as? IEntityDraggingInformationProvider)?.draggingInformation ?: continue
+            val shouldApplyAuthoritativeClientDrag = entity.level().isClientSide &&
+                !entityDraggingInformation.shouldUseClientPrediction(entity) &&
+                entity !is LivingEntity &&
+                entityDraggingInformation.authoritativeShipStoodOn != null
+            val shouldApplyShipDrag = !entity.level().isClientSide ||
+                entityDraggingInformation.shouldUseClientPrediction(entity) ||
+                shouldApplyAuthoritativeClientDrag
 
             var dragTheEntity = false
             var addedMovement: Vector3dc? = null
             var addedYRot = 0.0
 
-            val shipDraggingEntity = entityDraggingInformation.lastShipStoodOn
+            val shipDraggingEntity = entityDraggingInformation.getDraggingShipId(entity)
 
 
             // Only drag entities that aren't mounted to vehicles
-            if (shipDraggingEntity != null && entity.vehicle == null && isDraggable(entity)) {
+            if (shouldApplyShipDrag && shipDraggingEntity != null && entity.vehicle == null && isDraggable(entity)) {
                 if (entityDraggingInformation.isEntityBeingDraggedByAShip()) {
                     // Compute how much we should drag the entity
                     val shipData = entity.level().shipObjectWorld.allShips.getById(shipDraggingEntity)
@@ -121,6 +129,13 @@ object EntityDragger {
                     entity.z + addedMovement.z()
                 )
 
+                val shipSupportPos = ShipPathfindingUtils.findSupportingShipBlock(entity.level(), entity, newBB)
+                entity.setOnGroundWithKnownMovement(shipSupportPos != null, addedMovement.toMinecraft())
+                if (shipSupportPos != null) {
+                    (entity as? EntityShipGroundingDuck)?.`vs$setShipSupportingBlock`(shipSupportPos)
+                    entity.fallDistance = 0.0f
+                }
+
                 if(entityDraggingInformation.shouldImpulseMovement && (!entity.level().isClientSide || entity is LocalPlayer)) { //This is the first Tick on the ship. Also, should push the entity in server side only and propagate the result.
                     val acceleration = Vector3d(entityDraggingInformation.addedMovementLastTick) // if it was on a different ship last tick, consider that too.
                         .sub(addedMovement) // relative velocity to current ship.
@@ -168,7 +183,20 @@ object EntityDragger {
                 entityDraggingInformation.addedMovementLastTick = Vector3d()
                 entityDraggingInformation.addedYawRotLastTick = 0.0
             }
-            entityDraggingInformation.ticksSinceStoodOnShip++
+
+            if (shouldApplyShipDrag) {
+                entityDraggingInformation.ticksSinceStoodOnShip++
+            }
+
+            if (!entity.level().isClientSide &&
+                entityDraggingInformation.getPredictedShipStoodOn() != null &&
+                entityDraggingInformation.ticksSinceStoodOnShip >= EntityDraggingInformation.TICKS_TO_DRAG_ENTITIES &&
+                entity.vehicle == null
+            ) {
+                entityDraggingInformation.clearPredictedShipState()
+                entity.hasImpulse = true
+            }
+
             entityDraggingInformation.mountedToEntity = entity.vehicle != null
         }
     }

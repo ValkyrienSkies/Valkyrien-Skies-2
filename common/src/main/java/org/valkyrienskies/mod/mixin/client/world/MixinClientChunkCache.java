@@ -24,19 +24,18 @@ import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.lighting.LevelLightEngine;
 import org.joml.Vector3i;
-import org.joml.Vector3ic;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.api.ships.properties.ChunkClaim;
 import org.valkyrienskies.core.internal.world.VsiClientShipWorld;
 import org.valkyrienskies.core.internal.world.chunks.VsiTerrainUpdate;
+import org.valkyrienskies.mod.air_pockets.client.ShipWaterPocketLiquidOverlay;
 import org.valkyrienskies.mod.common.VS2ChunkAllocator;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
@@ -201,6 +200,7 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
 
     @Unique
     private void removeShipChunk(final int chunkX, final int chunkZ) {
+        ShipWaterPocketLiquidOverlay.invalidateExteriorFluidChunk(this.level, chunkX, chunkZ);
         final LevelChunk chunk = this.shipChunks.remove(ChunkPos.asLong(chunkX, chunkZ));
         this.emptyShipChunks.remove(ChunkPos.asLong(chunkX, chunkZ));
         if (chunk == null) {

@@ -154,6 +154,9 @@ dependencies {
     // Mekanism
     modImplementation ("maven.modrinth:mekanism:${mekanism_version}")
 
+    // Spark Profiler
+    modRuntimeOnly ("maven.modrinth:spark:${spark_version}")
+
     // Connectible Chains [Forge]
     modImplementation("curse.maven:connectible-chains-forge-418514:6142294")
 

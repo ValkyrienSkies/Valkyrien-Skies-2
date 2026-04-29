@@ -28,6 +28,9 @@ object VSGameConfig {
         @ConfigCategory(title = "Connectivity")
         val Connectivity = CONNECTIVITY()
 
+        @ConfigCategory(title = "Underwater")
+        val Underwater = UNDERWATER()
+
         @ConfigEntry(description = "Renders the VS2 debug HUD with TPS")
         var renderDebugText = false
 
@@ -70,6 +73,27 @@ object VSGameConfig {
                 description = "Enable client connectivity; increases client load, but allows for client-sided sealed space visuals, like occluding water in a submarine."
             )
             var enableClientConnectivity = false
+        }
+
+        class UNDERWATER {
+            @ConfigEntry(description = "Enable the flat-face overlay of fluids outside of ships")
+            var enableFluidOverlay = true
+
+            @ConfigEntry(description = "Enable the custom fog shader for fluids outside of ships")
+            var enableCustomFluidFog = true
+
+            @ConfigEntry(description = "Fade overlay when camera is in custom fog")
+            var fadeFluidOverlayInCustomFog = true
+
+            //todo: probably data-drive this and lava or just fluids in general
+            @ConfigEntry(description = "Custom water fog density")
+            var waterFogDensity = 0.045f
+
+            @ConfigEntry(description = "Custom lava fog density")
+            var lavaFogDensity = 0.45f
+
+            @ConfigEntry(description = "Custom fog effected by vanilla fog modifiers (Water Breathing, Fire Resist, Conduits)")
+            var fogEffects = true
         }
 
         @ConfigEntry(
@@ -170,7 +194,7 @@ object VSGameConfig {
         var enableInteractDistanceChecks = true
 
         @ConfigEntry(description = "If true, enables buoyancy from serverside air pockets.")
-        var enablePocketBuoyancy = false
+        var enablePocketBuoyancy = true
 
         @ConfigEntry(description = "Buoyancy factor added per cubic meter of air pocket inside a ship")
         var buoyancyFactorPerPocketVolume = 0.05 // per cubic meter
@@ -325,6 +349,21 @@ object VSGameConfig {
     }
 
     class Common {
+
+        @ConfigEntry(
+            description = "Multiplier for ship pocket flooding speed. `1.0` = current baseline, `0.3333` = ~3x slower flooding."
+        )
+        var shipPocketFloodRateMultiplier = 0.3333333333333333
+
+        @ConfigEntry(
+            description = "Multiplier for ship pocket leak/flood particle velocity."
+        )
+        var shipPocketParticleSpeedMultiplier = 1.0
+
+        @ConfigEntry(
+            description = "Enables ship air pockets. Must be enabled on both client and server."
+        )
+        var enableAirPockets = true
 
         @JvmField
         @ConfigCategory(title = "Advanced")

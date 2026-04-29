@@ -28,6 +28,10 @@ import org.valkyrienskies.mod.mixinducks.world.entity.PlayerDuck
 
 object VSGamePackets {
 
+    private fun zeroNear(value: Double, epsilon: Double = 1.0e-4): Double {
+        return if (kotlin.math.abs(value) <= epsilon) 0.0 else value
+    }
+
     fun register() = with(vsCore.simplePacketNetworking) {
         PacketPlayerDriving::class.register()
         PacketStopChunkUpdates::class.register()
@@ -77,59 +81,83 @@ object VSGamePackets {
 
             if (entity.isControlledByLocalInstance || mc.player?.id == entity.id) return@registerClientHandler
 
-            if (entity is IEntityDraggingInformationProvider) {
-                entity.draggingInformation.lastShipStoodOnServerWriteOnly = if (setMotion.shipID != -1L) {
-                    setMotion.shipID
-                } else {
-                    null
-                }
-            }
-            val ship = level.shipObjectWorld.allShips.getById(setMotion.shipID)
+            val dragInfo = (entity as? IEntityDraggingInformationProvider)?.draggingInformation
+                ?: return@registerClientHandler
 
-            if (ship == null) {
-                if (entity is IEntityDraggingInformationProvider) {
-                    entity.draggingInformation.lastShipStoodOn = null
-                }
+            if (setMotion.shipID == -1L) {
+                dragInfo.clearAuthoritativeClientState()
                 return@registerClientHandler
             }
 
-            if (entity is IEntityDraggingInformationProvider) {
+            val previousShipId = dragInfo.authoritativeShipStoodOn
+            val ship = level.shipObjectWorld.allShips.getById(setMotion.shipID)
 
-                if (entity.draggingInformation.lastShipStoodOn == null || entity.draggingInformation.lastShipStoodOn != setMotion.shipID) {
-                    entity.draggingInformation.lastShipStoodOn = if (setMotion.shipID != -1L) {
-                        setMotion.shipID
-                    } else {
-                        null
-                    }
-                    entity.draggingInformation.ignoreNextGroundStand = true
-                }
-                entity.draggingInformation.shouldImpulseMovement = false
-                entity.draggingInformation.ticksSinceLastServerPacket = 0
+            if (ship == null) {
+                dragInfo.clearAuthoritativeClientState()
+                return@registerClientHandler
+            }
 
-                entity.draggingInformation.relativePositionOnShip = ship.worldToShip.transformPosition(
-                    Vector3d(entity.x, entity.y, entity.z)
-                )
-                entity.draggingInformation.previousRelativeVelocityOnShip = entity.draggingInformation.relativeVelocityOnShip
-                entity.draggingInformation.relativeYawOnShip = EntityLerper.yawToShip(ship, entity.yRot.toDouble())
+            val previousRelativePosition = dragInfo.authoritativeRelativePositionForLerp(
+                setMotion.shipID,
+                Vector3d(setMotion.x, setMotion.y, setMotion.z)
+            )
+            val previousRelativeYaw = dragInfo.authoritativeYawForLerp(setMotion.shipID, setMotion.yRot)
 
-                entity.draggingInformation.lerpPositionOnShip = Vector3d(setMotion.x, setMotion.y, setMotion.z)
-                entity.draggingInformation.relativeVelocityOnShip = Vector3d(setMotion.xVel, setMotion.yVel, setMotion.zVel)
-                entity.draggingInformation.lerpYawOnShip = setMotion.yRot
+            dragInfo.setAuthoritativeShipStoodOn(setMotion.shipID)
+            if (previousShipId == null || previousShipId != setMotion.shipID) {
+                dragInfo.ignoreNextGroundStand = true
+            }
+            dragInfo.shouldImpulseMovement = false
+            dragInfo.ticksSinceLastServerPacket = 0
 
-                val previousWorldPosition = if (entity.draggingInformation.relativePositionOnShip != null) {
-                    ship.renderTransform.shipToWorld.transformPosition(Vector3d(entity.draggingInformation.relativePositionOnShip))
-                } else {
-                    Vector3d(entity.x, entity.y, entity.z)
-                }
-                val worldPosition = ship.transform.shipToWorld.transformPosition(Vector3d(setMotion.x, setMotion.y, setMotion.z))
-                entity.syncPacketPositionCodec(worldPosition.x, worldPosition.y, worldPosition.z)
-                val worldVelocity = ship.transform.shipToWorld.transformDirection(Vector3d(setMotion.xVel, setMotion.yVel, setMotion.zVel))
-                entity.setDeltaMovement(worldVelocity.x, worldVelocity.y, worldVelocity.z)
-                entity.draggingInformation.lerpSteps = 3
+            val packetRelativePosition = Vector3d(setMotion.x, setMotion.y, setMotion.z)
+            dragInfo.relativePositionOnShip = if (entity is LivingEntity) {
+                previousRelativePosition
+            } else {
+                // Non-living entities (e.g. dropped items) rely on render interpolation from relative positions.
+                // Keep their current relative position authoritative to avoid visual freeze at spawn point.
+                packetRelativePosition
+            }
+            if (previousShipId == null || previousShipId != setMotion.shipID) {
+                dragInfo.snapRelativeRenderPosition()
+            }
+            dragInfo.previousRelativeVelocityOnShip = dragInfo.relativeVelocityOnShip
+            dragInfo.relativeYawOnShip = previousRelativeYaw
 
-                if(entity !is LivingEntity) { // EntityLerper is called only if the entity is ai-controlled. In other cases lerp is manual.
+            val relXVel = zeroNear(setMotion.xVel)
+            val relYVel = zeroNear(setMotion.yVel)
+            val relZVel = zeroNear(setMotion.zVel)
+
+            dragInfo.lerpPositionOnShip = packetRelativePosition
+            dragInfo.relativeVelocityOnShip = Vector3d(relXVel, relYVel, relZVel)
+            dragInfo.lerpYawOnShip = setMotion.yRot
+
+            val previousWorldPosition =
+                ship.renderTransform.shipToWorld.transformPosition(Vector3d(previousRelativePosition))
+            val worldPosition = ship.renderTransform.shipToWorld.transformPosition(Vector3d(setMotion.x, setMotion.y, setMotion.z))
+            entity.syncPacketPositionCodec(worldPosition.x, worldPosition.y, worldPosition.z)
+            val worldVelocity = ship.renderTransform.shipToWorld.transformDirection(Vector3d(relXVel, relYVel, relZVel))
+            entity.setDeltaMovement(worldVelocity.x, worldVelocity.y, worldVelocity.z)
+            dragInfo.lerpSteps = if (entity is LivingEntity) 3 else 0
+
+            if (entity !is LivingEntity) { // EntityLerper is called only if the entity is ai-controlled. In other cases lerp is manual.
+                val worldPosErrorSqr = entity.position().distanceToSqr(worldPosition.x, worldPosition.y, worldPosition.z)
+                val switchedShip = previousShipId == null || previousShipId != setMotion.shipID
+                val shouldCorrect = switchedShip || worldPosErrorSqr > 1.0
+
+                if (switchedShip) {
                     entity.setPos(previousWorldPosition.x, previousWorldPosition.y, previousWorldPosition.z)
-                    entity.lerpTo(worldPosition.x, worldPosition.y, worldPosition.z, Math.toDegrees(setMotion.yRot).toFloat(), Math.toDegrees(setMotion.xRot).toFloat(), 3, true)
+                }
+                if (shouldCorrect) {
+                    entity.lerpTo(
+                        worldPosition.x,
+                        worldPosition.y,
+                        worldPosition.z,
+                        Math.toDegrees(setMotion.yRot).toFloat(),
+                        Math.toDegrees(setMotion.xRot).toFloat(),
+                        2,
+                        true
+                    )
                 }
             }
         }
@@ -141,32 +169,32 @@ object VSGamePackets {
 
             if (entity.isControlledByLocalInstance || entity is LocalPlayer) return@registerClientHandler
 
-            if (entity is IEntityDraggingInformationProvider) {
-                entity.draggingInformation.lastShipStoodOnServerWriteOnly = if (setRotation.shipID != -1L) {
-                    setRotation.shipID
-                } else {
-                    null
-                }
+            val dragInfo = (entity as? IEntityDraggingInformationProvider)?.draggingInformation
+                ?: return@registerClientHandler
+
+            if (setRotation.shipID == -1L) {
+                dragInfo.clearAuthoritativeClientState()
+                return@registerClientHandler
             }
 
             val ship = level.shipObjectWorld.allShips.getById(setRotation.shipID)
-                ?: return@registerClientHandler
-
-            if (entity is IEntityDraggingInformationProvider) {
-                if (entity.draggingInformation.lastShipStoodOn == null || entity.draggingInformation.lastShipStoodOn != setRotation.shipID) {
-                    entity.draggingInformation.lastShipStoodOn = if (setRotation.shipID != -1L) {
-                        setRotation.shipID
-                    } else {
-                        null
-                    }
-                    entity.draggingInformation.ignoreNextGroundStand = true
+                ?: run {
+                    dragInfo.clearAuthoritativeClientState()
+                    return@registerClientHandler
                 }
-                entity.draggingInformation.relativeHeadYawOnShip = EntityLerper.yawToShip(ship, entity.yHeadRot.toDouble())
-                entity.draggingInformation.lerpHeadYawOnShip = setRotation.yaw
-                entity.draggingInformation.relativePitchOnShip = entity.xRot.toDouble()
-                entity.draggingInformation.lerpPitchOnShip = setRotation.pitch
-                entity.draggingInformation.headLerpSteps = 3
+
+            val previousHeadYaw = dragInfo.authoritativeHeadYawForLerp(setRotation.shipID, setRotation.yaw)
+            val previousPitch = dragInfo.authoritativePitchForLerp(setRotation.shipID, setRotation.pitch)
+
+            if (dragInfo.authoritativeShipStoodOn == null || dragInfo.authoritativeShipStoodOn != setRotation.shipID) {
+                dragInfo.setAuthoritativeShipStoodOn(setRotation.shipID)
+                dragInfo.ignoreNextGroundStand = true
             }
+            dragInfo.relativeHeadYawOnShip = previousHeadYaw
+            dragInfo.lerpHeadYawOnShip = setRotation.yaw
+            dragInfo.relativePitchOnShip = previousPitch
+            dragInfo.lerpPitchOnShip = setRotation.pitch
+            dragInfo.headLerpSteps = 3
         }
 
         // PacketRequestEntityMotion::class.registerServerHandler { motion, player ->
@@ -207,6 +235,12 @@ object VSGamePackets {
                 ?: return@registerServerHandler
 
             if (player is IEntityDraggingInformationProvider) {
+                if (motion.shipID == -1L) {
+                    player.draggingInformation.lastShipStoodOn = null
+                    player.draggingInformation.clearServerRelativeState()
+                    return@registerServerHandler
+                }
+
                 if (player.draggingInformation.lastShipStoodOn == null || player.draggingInformation.lastShipStoodOn != motion.shipID) {
                     player.draggingInformation.lastShipStoodOn = if (motion.shipID != -1L) {
                         motion.shipID
@@ -214,11 +248,12 @@ object VSGamePackets {
                         null
                     }
                 }
-                player.draggingInformation.serverRelativePlayerPosition = Vector3d(motion.x, motion.y, motion.z)
                 if (player.level() != null) {
                     val sLevel = (player.level() as ServerLevel)
                     val ship = sLevel.shipObjectWorld.allShips.getById(motion.shipID)
                     if (ship != null) {
+                        player.draggingInformation.serverRelativePlayerPosition = Vector3d(motion.x, motion.y, motion.z)
+                        player.draggingInformation.serverRelativePlayerYaw = motion.yRot
                         val posUpdate = ship.shipToWorld.transformPosition(Vector3d(motion.x, motion.y, motion.z), Vector3d()).toMinecraft()
                         if ((player as PlayerDuck).vs_handledMovePacket()) {
                             player.setPos(posUpdate.x, posUpdate.y, posUpdate.z)
@@ -226,9 +261,11 @@ object VSGamePackets {
                         } else {
                             player.vs_setQueuedPositionUpdate(posUpdate)
                         }
+                    } else {
+                        player.draggingInformation.lastShipStoodOn = null
+                        player.draggingInformation.clearServerRelativeState()
                     }
                 }
-                player.draggingInformation.serverRelativePlayerYaw = motion.yRot
             }
         }
 
