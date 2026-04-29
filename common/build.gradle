@@ -90,9 +90,6 @@ dependencies {
     modCompileOnly("com.rbasamoyai:createbigcannons:${createbigcannons_version}+mc.${minecraft_version}-fabric${createbigcannons_build}") { transitive = false }
     modCompileOnly("com.rbasamoyai:createbigcannons:${createbigcannons_version}+mc.${minecraft_version}-forge${createbigcannons_build}") { transitive = false }
     modCompileOnly("com.rbasamoyai:ritchiesprojectilelib:${rpl_version}+mc.${minecraft_version}-forge")
-
-    modImplementation("maven.modrinth:theatrical:1.0.0-alpha.28.120+mc1.20.1")
-
 }
 
 architectury {
