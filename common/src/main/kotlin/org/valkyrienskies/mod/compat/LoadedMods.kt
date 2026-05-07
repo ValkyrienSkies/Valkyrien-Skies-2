@@ -24,6 +24,12 @@ object LoadedMods {
     val oldCreate by CompatInfo("com.simibubi.create.foundation.render.AllInstanceFormats")
 
     @JvmStatic
+    val sableCompanion by CompatInfo("dev.ryanhcode.sable.companion.SableCompanion")
+
+    @JvmStatic
+    val sable by CompatInfo("dev.ryanhcode.sable.companion.SableCompanion")
+
+    @JvmStatic
     val flywheel: FlywheelVersion by lazy {
         try {
             Class.forName("dev.engine_room.flywheel.backend.FlwBackend")

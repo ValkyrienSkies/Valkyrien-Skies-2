@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.client.renderer;
 
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import net.minecraft.client.Camera;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.renderer.GameRenderer;
@@ -31,12 +32,10 @@ public abstract class MixinLevelRenderer {
     /**
      * @reason This mixin forces the game to always render block damage.
      */
-    @ModifyConstant(
+    @ModifyExpressionValue(
         method = "renderLevel",
-        constant = @Constant(
-            doubleValue = 1024,
-            ordinal = 0
-        ))
+        at = @At(value = "CONSTANT", args = "doubleValue=1024", ordinal = 0)
+    )
     private double disableBlockDamageDistanceCheck(final double originalBlockDamageDistanceConstant) {
         return Double.MAX_VALUE;
     }

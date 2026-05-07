@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.common.world
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.util.Mth
@@ -29,6 +30,7 @@ import org.valkyrienskies.mod.common.getShipsIntersecting
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toMinecraft
+import org.valkyrienskies.mod.mixinducks.feature.clip_replace.ClipContextDuck
 import org.valkyrienskies.mod.util.scale
 import java.util.Vector
 import java.util.function.BiFunction
@@ -41,10 +43,25 @@ private val logger = LogManager.getLogger("RaycastUtilsKt")
 fun Level.clipIncludeShips(
     ctx: ClipContext, shouldTransformHitPos: Boolean = true, skipShip: ShipId? = null, skipWorld: Boolean = false
 ): BlockHitResult {
-    val vanillaHit = if(skipWorld) {
+    val ccd = (ctx as ClipContextDuck)
+    ccd.rayCastExtraParameter = RayCastExtraParameter(
+        shouldTransformHitPos = shouldTransformHitPos,
+        skipShip = skipShip,
+        skipWorld = skipWorld)
+    val ret = this.clip(ctx)
+    ccd.reset()
+    return ret
+}
+
+fun Level.clipIncludeShipsImpl(
+    ctx: ClipContext, vanillaClip: Operation<BlockHitResult>): BlockHitResult {
+    if (ctx !is ClipContextDuck)
+        return vanillaClip.call(ctx);
+
+    val vanillaHit = if(ctx.rayCastExtraParameter.skipWorld) {
         val line = ctx.to.subtract(ctx.from)
         BlockHitResult.miss(ctx.to, Direction.getNearest(line.x, line.y, line.z), BlockPos.containing(ctx.to))
-    } else vanillaClip(ctx)
+    } else vanillaClip.call(ctx)
 
     if (shipObjectWorld == null) {
         logger.error(
@@ -72,7 +89,7 @@ fun Level.clipIncludeShips(
             continue
         }
         // Skip skipShip
-        if (ship.id == skipShip) {
+        if (ship.id == ctx.rayCastExtraParameter.skipShip) {
             continue
         }
 
@@ -100,10 +117,13 @@ fun Level.clipIncludeShips(
 
         val worldToShip = (ship as? ClientShip)?.renderTransform?.worldToShip ?: ship.worldToShip
         val shipToWorld = (ship as? ClientShip)?.renderTransform?.shipToWorld ?: ship.shipToWorld
-        val shipStart = worldToShip.transformPosition(ctx.from.toJOML()).toMinecraft()
-        val shipEnd = worldToShip.transformPosition(ctx.to.toJOML()).toMinecraft()
+        ctx.rayCastExtraParameter._posStart = worldToShip.transformPosition(ctx.from.toJOML()).toMinecraft()
+        ctx.rayCastExtraParameter._posEnd = worldToShip.transformPosition(ctx.to.toJOML()).toMinecraft()
 
-        val shipHit = clip(ctx, shipStart, shipEnd)
+        val shipHit = vanillaClip.call(ctx)
+        ctx.rayCastExtraParameter._posStart = null
+        ctx.rayCastExtraParameter._posEnd = null
+
         val shipHitPos = shipToWorld.transformPosition(shipHit.location.toJOML()).toMinecraft()
         val shipHitDist = shipHitPos.distanceToSqr(ctx.from)
 
@@ -114,100 +134,11 @@ fun Level.clipIncludeShips(
         }
     }
 
-    if (shouldTransformHitPos) {
+    if (ctx.rayCastExtraParameter.shouldTransformHitPos) {
         closestHit.location = closestHitPos
     }
 
     return closestHit
-}
-
-// copy paste of vanilla raycast with the option to specify a custom start/end
-private fun Level.clip(context: ClipContext, realStart: Vec3, realEnd: Vec3): BlockHitResult {
-    return clip(
-        realStart, realEnd, context,
-        { raycastContext: ClipContext, blockPos: BlockPos? ->
-            val blockState: BlockState = getBlockState(blockPos!!)
-            val fluidState: FluidState = getFluidState(blockPos)
-            val vec3d = realStart
-            val vec3d2 = realEnd
-            val voxelShape = raycastContext.getBlockShape(blockState, this, blockPos)
-            val blockHitResult: BlockHitResult? =
-                clipWithInteractionOverride(vec3d, vec3d2, blockPos, voxelShape, blockState)
-            val voxelShape2 = raycastContext.getFluidShape(fluidState, this, blockPos)
-            val blockHitResult2 = voxelShape2.clip(vec3d, vec3d2, blockPos)
-            val d = if (blockHitResult == null) Double.MAX_VALUE else realStart.distanceToSqr(blockHitResult.location)
-            val e = if (blockHitResult2 == null) Double.MAX_VALUE else realEnd.distanceToSqr(blockHitResult2.location)
-            if (d <= e) blockHitResult else blockHitResult2
-        }
-    ) { raycastContext: ClipContext ->
-        val vec3d = realStart.subtract(realEnd)
-        BlockHitResult.miss(realEnd, Direction.getNearest(vec3d.x, vec3d.y, vec3d.z), BlockPos.containing(realEnd))
-    } as BlockHitResult
-}
-
-private fun <T> clip(
-    realStart: Vec3,
-    realEnd: Vec3,
-    raycastContext: ClipContext,
-    context: BiFunction<ClipContext, BlockPos?, T>,
-    blockRaycaster: Function<ClipContext, T>
-): T {
-    val vec3d = realStart
-    val vec3d2 = realEnd
-    return if (vec3d == vec3d2) {
-        blockRaycaster.apply(raycastContext)
-    } else {
-        val d = Mth.lerp(-1.0E-7, vec3d2.x, vec3d.x)
-        val e = Mth.lerp(-1.0E-7, vec3d2.y, vec3d.y)
-        val f = Mth.lerp(-1.0E-7, vec3d2.z, vec3d.z)
-        val g = Mth.lerp(-1.0E-7, vec3d.x, vec3d2.x)
-        val h = Mth.lerp(-1.0E-7, vec3d.y, vec3d2.y)
-        val i = Mth.lerp(-1.0E-7, vec3d.z, vec3d2.z)
-        var j = Mth.floor(g)
-        var k = Mth.floor(h)
-        var l = Mth.floor(i)
-        val mutable = BlockPos.MutableBlockPos(j, k, l)
-        val `object`: T? = context.apply(raycastContext, mutable)
-        if (`object` != null) {
-            `object`
-        } else {
-            val m = d - g
-            val n = e - h
-            val o = f - i
-            val p = Mth.sign(m)
-            val q = Mth.sign(n)
-            val r = Mth.sign(o)
-            val s = if (p == 0) Double.MAX_VALUE else p.toDouble() / m
-            val t = if (q == 0) Double.MAX_VALUE else q.toDouble() / n
-            val u = if (r == 0) Double.MAX_VALUE else r.toDouble() / o
-            var v = s * if (p > 0) 1.0 - Mth.frac(g) else Mth.frac(g)
-            var w = t * if (q > 0) 1.0 - Mth.frac(h) else Mth.frac(h)
-            var x = u * if (r > 0) 1.0 - Mth.frac(i) else Mth.frac(i)
-            var object2: T?
-            do {
-                if (v > 1.0 && w > 1.0 && x > 1.0) {
-                    return blockRaycaster.apply(raycastContext)
-                }
-                if (v < w) {
-                    if (v < x) {
-                        j += p
-                        v += s
-                    } else {
-                        l += r
-                        x += u
-                    }
-                } else if (w < x) {
-                    k += q
-                    w += t
-                } else {
-                    l += r
-                    x += u
-                }
-                object2 = context.apply(raycastContext, mutable.set(j, k, l))
-            } while (object2 == null)
-            object2
-        }
-    }
 }
 
 fun Level.raytraceEntities(
@@ -278,36 +209,13 @@ fun Level.raytraceEntities(
     } else EntityHitResult(resultEntity, location)
 }
 
-fun BlockGetter.vanillaClip(context: ClipContext): BlockHitResult =
-    BlockGetter.traverseBlocks(context.from, context.to, context,
-        { clipContext: ClipContext, blockPos: BlockPos ->
-            val blockState = getBlockState(blockPos)
-            val fluidState = getFluidState(blockPos)
-            val vec3 = clipContext.from
-            val vec32 = clipContext.to
-            val voxelShape = clipContext.getBlockShape(blockState, this, blockPos)
-            val blockHitResult = clipWithInteractionOverride(vec3, vec32, blockPos, voxelShape, blockState)
-            val voxelShape2 = clipContext.getFluidShape(fluidState, this, blockPos)
-            val blockHitResult2 = voxelShape2.clip(vec3, vec32, blockPos)
+val VanillaClipContext = RayCastExtraParameter(useVanillaClip = true)
 
-            val d = if (blockHitResult == null)
-                Double.MAX_VALUE
-            else
-                clipContext.from.distanceToSqr(blockHitResult.location)
-
-            val e = if (blockHitResult2 == null)
-                Double.MAX_VALUE
-            else
-                clipContext.from.distanceToSqr(blockHitResult2.location)
-
-            if (d <= e)
-                blockHitResult
-            else
-                blockHitResult2
-        }, { ctx ->
-            val vec3 = ctx.from.subtract(ctx.to)
-            BlockHitResult.miss(
-                ctx.to, Direction.getNearest(vec3.x, vec3.y, vec3.z),
-                BlockPos.containing(ctx.to)
-            )
-        })
+fun BlockGetter.vanillaClip(ctx: ClipContext): BlockHitResult {
+    if (ctx !is ClipContextDuck)
+        return this.clip(ctx)
+    ctx.rayCastExtraParameter = VanillaClipContext
+    val ret = this.clip(ctx)
+    ctx.reset()
+    return ret
+}

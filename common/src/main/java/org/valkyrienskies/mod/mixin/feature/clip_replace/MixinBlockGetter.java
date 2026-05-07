@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.mixin.feature.clip_replace;
 
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.BlockGetter;
@@ -8,18 +10,24 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import org.apache.logging.log4j.LogManager;
+import org.spongepowered.asm.mixin.Debug;
 import org.spongepowered.asm.mixin.Mixin;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
+import org.valkyrienskies.mod.mixinducks.feature.clip_replace.ClipContextDuck;
 
-@Mixin(Level.class)
-public abstract class MixinLevel implements BlockGetter {
+@Debug(export = true)
+@Mixin(BlockGetter.class)
+public interface MixinBlockGetter {
 
-    @Override
-    public BlockHitResult clip(final ClipContext clipContext) {
+    @WrapMethod(method = "clip")
+    default BlockHitResult clip(ClipContext clipContext, Operation<BlockHitResult> original) {
+        if (!(this instanceof Level level) || (clipContext instanceof ClipContextDuck ccd && ccd.getRayCastExtraParameter().getUseVanillaClip())) {
+            return original.call(clipContext);
+        }
 
-        if (VSGameUtilsKt.getShipManagingPos(Level.class.cast(this), clipContext.getTo()) !=
-            VSGameUtilsKt.getShipManagingPos(Level.class.cast(this), clipContext.getFrom())) {
+        if (VSGameUtilsKt.getShipManagingPos(level, clipContext.getTo()) !=
+            VSGameUtilsKt.getShipManagingPos(level, clipContext.getFrom())) {
             LogManager.getLogger().warn("Trying to clip from " +
                 clipContext.getFrom() + " to " + clipContext.getTo() +
                 " wich one of them is in a shipyard wich is ... sus!!");
@@ -30,7 +38,7 @@ public abstract class MixinLevel implements BlockGetter {
                 BlockPos.containing(clipContext.getTo())
             );
         } else {
-            return RaycastUtilsKt.clipIncludeShips(Level.class.cast(this), clipContext);
+            return RaycastUtilsKt.clipIncludeShipsImpl(level, clipContext,  original);
         }
     }
 }

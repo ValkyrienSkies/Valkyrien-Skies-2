@@ -51,6 +51,8 @@ import org.valkyrienskies.mod.common.util.set
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toJOMLD
 import org.valkyrienskies.mod.common.util.toMinecraft
+import org.valkyrienskies.mod.compat.LoadedMods
+import org.valkyrienskies.mod.compat.SableCompat
 import org.valkyrienskies.mod.mixin.accessors.resource.ResourceKeyAccessor
 import org.valkyrienskies.mod.mixinducks.world.entity.PlayerDuck
 import java.util.function.Consumer
@@ -222,7 +224,7 @@ fun Level?.squaredDistanceBetweenInclShips(
 }
 
 private fun getShipObjectManagingPosImpl(world: Level?, chunkX: Int, chunkZ: Int): LoadedShip? {
-    if (world != null && world.shipObjectWorld.isChunkInShipyard(chunkX, chunkZ, world.dimensionId)) {
+    if (world != null && world.isChunkInShipyard(chunkX, chunkZ)) {
         val ship = world.shipObjectWorld.allShips.getByChunkPos(chunkX, chunkZ, world.dimensionId)
         if (ship != null) {
             return world.shipObjectWorld.loadedShips.getById(ship.id)
@@ -294,10 +296,12 @@ inline fun Level.transformToNearbyShipsAndWorld(
 
 // Level
 fun Level.isChunkInShipyard(chunkX: Int, chunkZ: Int) =
-    shipObjectWorld.isChunkInShipyard(chunkX, chunkZ, dimensionId)
+    !(LoadedMods.sable && SableCompat.isChunkInSublevel(this, chunkX, chunkZ))
+        && shipObjectWorld.isChunkInShipyard(chunkX, chunkZ, dimensionId)
 
 fun Level.isBlockInShipyard(blockX: Int, blockY: Int, blockZ: Int) =
-    shipObjectWorld.isBlockInShipyard(blockX, blockY, blockZ, dimensionId)
+    !(LoadedMods.sable && SableCompat.isBlockInSublevel(this, blockX, blockY, blockZ)) &&
+        shipObjectWorld.isBlockInShipyard(blockX, blockY, blockZ, dimensionId)
 
 fun Level.isBlockInShipyard(pos: BlockPos) = isBlockInShipyard(pos.x, pos.y, pos.z)
 

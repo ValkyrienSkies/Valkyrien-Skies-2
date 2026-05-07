@@ -2,7 +2,9 @@ package org.valkyrienskies.mod.forge.mixin.feature.water_in_ships_entity;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import it.unimi.dsi.fastutil.objects.Object2ObjectArrayMap;
+import com.llamalad7.mixinextras.sugar.Local;
+import com.llamalad7.mixinextras.sugar.ref.LocalRef;
+import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
@@ -15,14 +17,22 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.common.extensions.IEntityExtension;
 import net.neoforged.neoforge.fluids.FluidType;
 import org.apache.commons.lang3.tuple.MutableTriple;
+import org.joml.primitives.AABBd;
+import org.objectweb.asm.Opcodes;
+import org.spongepowered.asm.mixin.Debug;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.At.Shift;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
+import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
+@Debug(export = true)
 @Mixin(Entity.class)
 public abstract class MixinEntity {
     @Shadow
@@ -60,79 +70,66 @@ public abstract class MixinEntity {
     @Shadow
     protected abstract void setFluidTypeHeight(FluidType type, double height);
 
-    @Inject(
-        at = @At("HEAD"),
-        method = "updateFluidHeightAndDoFluidPushing()V",
-        remap = false,
-        cancellable = true
-    )
-    // Overwrite the forge method, since it's written in a way that's really hard to precisely mixin into.
-    private void afterFluidStateUpdate(final CallbackInfo callbackInfo) {
-        if (this.touchingUnloadedChunk()) {
+    @Shadow
+    public abstract void updateFluidHeightAndDoFluidPushing();
+
+    @Unique
+    private boolean VS$finishComputingFluidPushing = false;
+    @Unique
+    private Object2ObjectMap VS$interimCalcs = null;
+    @Unique
+    private Ship VS$ship = null;
+
+    @Unique //avoid realloc
+    private AABBd VS$tmpAABB = new AABBd();
+
+    @WrapOperation(method = "updateFluidHeightAndDoFluidPushing()V",
+        at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;getBoundingBox()Lnet/minecraft/world/phys/AABB;"),
+        remap = false)
+    private AABB returnShipedAABB(Entity instance, Operation<AABB> original) {
+        if (VS$ship == null)
+            return original.call(instance);
+        return VectorConversionsMCKt.toMinecraft(VectorConversionsMCKt.set(VS$tmpAABB, original.call(instance)).transform(VS$ship.getWorldToShip()));
+    }
+
+    @Inject(method = "updateFluidHeightAndDoFluidPushing()V",
+        at = @At(
+            value = "JUMP", opcode = Opcodes.IFNULL, //inject at the "if (interimCalcs != null)" after the loop end
+            shift = Shift.BY, by = -1 //shift before interimCalcs is loaded on the stack
+        ),
+        cancellable = true,
+        remap = false, locals = LocalCapture.CAPTURE_FAILHARD, require = 1)
+    private void recallUpdateFluidWithVSShip(CallbackInfo ci, AABB aabb, @Local LocalRef<Object2ObjectMap> interimCalcs) {
+        if (VS$finishComputingFluidPushing)
+            return;
+        if (VS$ship != null) {
+            if (interimCalcs.get() != null) {
+                if (VS$interimCalcs == null)
+                    VS$interimCalcs = interimCalcs.get();
+                else
+                    VS$interimCalcs.putAll(interimCalcs.get());
+            }
+            ci.cancel();
             return;
         }
-        VSGameUtilsKt.transformFromWorldToNearbyShipsAndWorld(level, this.getBoundingBox().deflate(0.001), aabb -> {
-            int i = Mth.floor(aabb.minX);
-            int j = Mth.ceil(aabb.maxX);
-            int k = Mth.floor(aabb.minY);
-            int l = Mth.ceil(aabb.maxY);
-            int i1 = Mth.floor(aabb.minZ);
-            int j1 = Mth.ceil(aabb.maxZ);
-            double d0 = 0.0;
-            boolean flag = this.isPushedByFluid();
-            boolean flag1 = false;
-            Vec3 vec3 = Vec3.ZERO;
-            boolean k1 = false;
-            BlockPos.MutableBlockPos blockpos$mutableblockpos = new BlockPos.MutableBlockPos();
-            Object2ObjectArrayMap<FluidType, MutableTriple>
-                interimCalcs = new Object2ObjectArrayMap<FluidType, MutableTriple>((Integer) FluidType.SIZE.get() - 1);
-            for (int l1 = i; l1 < j; ++l1) {
-                for (int i2 = k; i2 < l; ++i2) {
-                    for (int j2 = i1; j2 < j1; ++j2) {
-                        double d1;
-                        blockpos$mutableblockpos.set(l1, i2, j2);
-                        FluidState fluidstate = this.level.getFluidState(blockpos$mutableblockpos);
-                        FluidType fluidType2 = fluidstate.getFluidType();
-                        if (fluidType2.isAir() || !((d1 =
-                            (double) ((float) i2 + fluidstate.getHeight(this.level, blockpos$mutableblockpos))) >=
-                            aabb.minY)) continue;
-                        flag1 = true;
-                        MutableTriple interim2 =
-                            interimCalcs.computeIfAbsent(fluidType2, t -> MutableTriple.of(0.0, Vec3.ZERO, 0));
-                        interim2.setLeft(Math.max(d1 - aabb.minY, (Double) interim2.getLeft()));
-                        if (!((IEntityExtension) this).isPushedByFluid(fluidType2)) continue;
-                        Vec3 vec31 = fluidstate.getFlow(this.level, blockpos$mutableblockpos);
-                        if ((Double) interim2.getLeft() < 0.4) {
-                            vec31 = vec31.scale((Double) interim2.getLeft());
-                        }
-                        interim2.setMiddle(((Vec3) interim2.getMiddle()).add(vec31));
-                        interim2.setRight((Integer) interim2.getRight() + 1);
-                    }
-                }
-            }
-            interimCalcs.forEach((fluidType, interim) -> {
-                if (((Vec3) interim.getMiddle()).length() > 0.0) {
-                    if ((Integer) interim.getRight() > 0) {
-                        interim.setMiddle(((Vec3) interim.getMiddle()).scale(
-                            1.0 / (double) ((Integer) interim.getRight()).intValue()));
-                    }
-                    if (!Player.class.isInstance(this)) {
-                        interim.setMiddle(((Vec3) interim.getMiddle()).normalize());
-                    }
-                    Vec3 vec32 = this.getDeltaMovement();
-                    interim.setMiddle(((Vec3) interim.getMiddle()).scale(
-                        ((IEntityExtension) this).getFluidMotionScale((FluidType) fluidType)));
-                    double d2 = 0.003;
-                    if (Math.abs(vec32.x) < 0.003 && Math.abs(vec32.z) < 0.003 &&
-                        ((Vec3) interim.getMiddle()).length() < 0.0045000000000000005) {
-                        interim.setMiddle(((Vec3) interim.getMiddle()).normalize().scale(0.0045000000000000005));
-                    }
-                    this.setDeltaMovement(this.getDeltaMovement().add((Vec3) interim.getMiddle()));
-                }
-                this.setFluidTypeHeight((FluidType) fluidType, (Double) interim.getLeft());
-            });
-        });
-        callbackInfo.cancel();
+
+        VS$interimCalcs = interimCalcs.get();
+
+        for (Ship ship : VSGameUtilsKt.getShipsIntersecting(level, this.getBoundingBox())) {
+            VS$ship = ship;
+            updateFluidHeightAndDoFluidPushing();
+        }
+
+        interimCalcs.set(VS$interimCalcs);
+        VS$interimCalcs = null;
+        VS$ship = null;
+        VS$finishComputingFluidPushing = true;
+    }
+
+    @Inject(method = "updateFluidHeightAndDoFluidPushing()V", at = @At("TAIL"), remap = false)
+    private void resetState(CallbackInfo ci) {
+        VS$interimCalcs = null;
+        VS$finishComputingFluidPushing = false;
     }
 
     @WrapOperation(

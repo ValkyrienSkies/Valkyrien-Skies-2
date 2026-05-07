@@ -37,6 +37,8 @@ import org.valkyrienskies.mod.common.getLoadedShipManagingPos
 import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.getShipMountedToData
 import org.valkyrienskies.mod.common.getShipsIntersecting
+import org.valkyrienskies.mod.compat.LoadedMods
+import org.valkyrienskies.mod.compat.SableCompat
 import java.util.concurrent.ConcurrentHashMap
 
 @Suppress("OVERRIDE_DEPRECATION")
@@ -83,7 +85,8 @@ class VsApiImpl(
 
     override fun isChunkInShipyard(level: Level?, chunkX: Int, chunkZ: Int): Boolean {
         if (level == null) return false
-        return getShipWorld(level)?.isChunkInShipyard(chunkX, chunkZ, getDimensionId(level)) ?: false
+        return !(LoadedMods.sable && SableCompat.isChunkInSublevel(level, chunkX, chunkZ)) &&
+            getShipWorld(level)?.isChunkInShipyard(chunkX, chunkZ, getDimensionId(level)) ?: false
     }
 
     override fun getClientShipWorld(client: Minecraft?): ClientShipWorld? =

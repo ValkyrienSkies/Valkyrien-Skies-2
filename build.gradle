@@ -150,6 +150,10 @@ subprojects {
                 name = "Fuzs Mod Resources"
                 url = uri("https://raw.githubusercontent.com/Fuzss/modresources/main/maven/")
             }
+            maven {
+                url = "https://maven.ryanhcode.dev/releases"
+                name = "RyanHCode Maven"
+            }
         }
         maven {
             name = "Valkyrien Skies Internal"

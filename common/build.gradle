@@ -78,6 +78,7 @@ dependencies {
     modCompileOnly("com.github.iPortalTeam:ImmersivePortalsMod:${immptl_version}")
     // These older common-side compat coordinates were kept in 1.20.1, but do not resolve on 1.21.1.
     // Platform-specific compat remains under fabric/forge where available.
+    modCompileOnly("dev.ryanhcode.sable:sable-common-${minecraft_version}:${sable_version}")
 }
 
 architectury {
