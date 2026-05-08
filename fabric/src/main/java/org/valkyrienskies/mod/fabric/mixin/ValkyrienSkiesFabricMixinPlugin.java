@@ -8,6 +8,10 @@ import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 import org.valkyrienskies.mod.compat.LoadedMods;
 
 public class ValkyrienSkiesFabricMixinPlugin implements IMixinConfigPlugin {
+    private static final String FABRIC_SHIPYARD_ENTITY_MANAGER_MIXIN =
+        "org.valkyrienskies.mod.fabric.mixin.feature.shipyard_entities.MixinPersistentEntitySectionManager";
+    private static final String C2ME_CHUNK_SYSTEM_ENTITY_MANAGER_MIXIN =
+        "com.ishland.c2me.rewrites.chunksystem.mixin.fixes.MixinServerEntityManager";
 
     private static boolean classExists(final String className) {
         try {
@@ -31,6 +35,14 @@ public class ValkyrienSkiesFabricMixinPlugin implements IMixinConfigPlugin {
     @Override
     public boolean shouldApplyMixin(final String s, final String mixinClassName) {
         final boolean isMixinBoosterLoaded = classExists("io.github.steelwoolmc.mixintransmog.MixinModlauncherRemapper");
+
+        // C2ME rewrites PersistentEntitySectionManager.processUnloads() and removes the vanilla LongSet.removeIf
+        // call that the Fabric-only VS patch targets. The common VS mixin already replaces processUnloads()
+        // safely, so skip only this redundant Fabric patch when C2ME's chunk-system rewrite is present.
+        if (FABRIC_SHIPYARD_ENTITY_MANAGER_MIXIN.equals(mixinClassName)
+            && classExists(C2ME_CHUNK_SYSTEM_ENTITY_MANAGER_MIXIN)) {
+            return false;
+        }
 
         if (mixinClassName.contains("org.valkyrienskies.mod.fabric.mixin.compat.old_create")) {
             return LoadedMods.getOldCreate();
