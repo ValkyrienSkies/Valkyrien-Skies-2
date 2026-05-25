@@ -26,7 +26,6 @@ import org.valkyrienskies.mod.common.getLoadedShipManagingPos
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.unloadedShips
 import org.valkyrienskies.mod.common.vsCore
-import org.valkyrienskies.mod.mixinducks.feature.tickets.PlayerKnownShipsDuck
 import org.valkyrienskies.mod.util.BugFixUtil
 import java.util.concurrent.ConcurrentHashMap
 import java.util.stream.Stream
@@ -44,6 +43,8 @@ object EntityShipCollisionUtils {
     private val playerUnloadedShipBlockStartTicks = ConcurrentHashMap<Long, Long>()
     private val playerClientSyncBlockStartTicks = ConcurrentHashMap<Int, Long>()
     private const val PLAYER_UNLOADED_SHIP_BLOCK_TIMEOUT_TICKS = 200L // ~10 seconds
+
+    private const val PLAYER_JOIN_GRACE_TICKS = 200L // ~10 seconds
 
     @JvmStatic
     fun markShipAsRecentlySpawned(shipId: ShipId, currentTick: Long) {
@@ -117,6 +118,9 @@ object EntityShipCollisionUtils {
         val level = entity.level()
 
         if (level is ServerLevel || (level.isClientSide && level is ClientLevel)) {
+            if (entity is Player && entity.tickCount < PLAYER_JOIN_GRACE_TICKS) {
+                return false
+            }
             if (level.isClientSide && level is ClientLevel && !level.shipObjectWorld.isSyncedWithServer) {
                 return shouldBlockPlayerForClientShipSync(entity, level.gameTime)
             } else if (entity is Player) {
@@ -134,8 +138,6 @@ object EntityShipCollisionUtils {
                     // loading. Without this, spawning a new ship near a player would freeze
                     // them because isCollidingWithUnloadedShips returns true (the new ship's
                     // chunks haven't loaded yet), which cancels all entity movement.
-                    // This must be checked BEFORE vs_isKnownShip, because the player won't
-                    // know about a brand-new ship yet either.
                     if (isInSpawnGracePeriod(ship.id)) {
                         return@allMatch true // pretend it's loaded → don't block movement
                     }
@@ -144,9 +146,6 @@ object EntityShipCollisionUtils {
                     if (chunksLoaded) {
                         playerUnloadedShipBlockStartTicks.remove(playerShipBlockKey(entity, ship.id))
                         return@allMatch true
-                    }
-                    if (entity is PlayerKnownShipsDuck && !entity.vs_isKnownShip(ship.id)) {
-                        return@allMatch !shouldBlockPlayerForUnloadedShip(entity, ship, currentTick)
                     }
                     !shouldBlockPlayerForUnloadedShip(entity, ship, currentTick)
                 }
