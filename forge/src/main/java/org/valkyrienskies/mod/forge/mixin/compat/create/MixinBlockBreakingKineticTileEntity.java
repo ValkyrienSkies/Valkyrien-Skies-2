@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.forge.mixin.compat.create;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.simibubi.create.content.kinetics.base.BlockBreakingKineticBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ClipContext;
@@ -10,7 +12,6 @@ import net.minecraft.world.phys.shapes.CollisionContext;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
@@ -21,15 +22,15 @@ public abstract class MixinBlockBreakingKineticTileEntity {
     @Shadow
     protected abstract BlockPos getBreakingPos();
 
-    @Redirect(
+    @WrapOperation(
         method = "tick",
         at = @At(
             value = "INVOKE",
             target = "Lcom/simibubi/create/content/kinetics/base/BlockBreakingKineticBlockEntity;getBreakingPos()Lnet/minecraft/core/BlockPos;"
         ), remap = false
     )
-    private BlockPos getBreakingBlockPos(final BlockBreakingKineticBlockEntity self) {
-        final BlockPos orig = this.getBreakingPos();
+    private BlockPos getBreakingBlockPos(final BlockBreakingKineticBlockEntity self, Operation<BlockPos> original) {
+        final BlockPos orig = original.call(self);
         final Vec3 origin;
         final Vec3 target;
         final Ship ship = VSGameUtilsKt.getShipManagingPos(self.getLevel(), self.getBlockPos());

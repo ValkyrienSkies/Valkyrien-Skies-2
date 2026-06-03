@@ -23,7 +23,7 @@ public abstract class MixinEjectorTileEntity {
     private List<Entity> redirectGetEntitiesOfClass(Level instance, Class aClass, AABB aabb, Operation<List<Entity>> original) {
         // Getting shipyard entities positioned in ship coordinates and so not needing a transformed AABB.
         List<Entity> entities = original.call(instance, aClass, aabb);
-        Ship ship = VSGameUtilsKt.getShipManagingPos(instance, ((EjectorBlockEntity) (Object) this).getBlockPos());
+        Ship ship = VSGameUtilsKt.getShipManagingPos(instance, EjectorBlockEntity.class.cast(this).getBlockPos());
         if (ship != null) {
             AABB worldAABB = VectorConversionsMCKt.toMinecraft(
                 VectorConversionsMCKt.toJOML(aabb).transform(ship.getShipToWorld())
@@ -36,18 +36,18 @@ public abstract class MixinEjectorTileEntity {
         return entities;
     }
 
-    @Redirect(method = "activateDeferred", at = @At(
+    @WrapOperation(method = "activateDeferred", at = @At(
         value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;setPos(DDD)V"
     ))
-    private void redirectSetPos(Entity instance, double x, double y, double z) {
-        Ship ship = VSGameUtilsKt.getShipManagingPos(instance.level(), ((EjectorBlockEntity) (Object) this).getBlockPos());
+    private void redirectSetPos(Entity instance, double x, double y, double z, Operation<Void> original) {
+        Ship ship = VSGameUtilsKt.getShipManagingPos(instance.level(), EjectorBlockEntity.class.cast(this).getBlockPos());
         if (ship != null) {
-            BlockPos temp = ((EjectorBlockEntity) (Object) this).getBlockPos();
+            BlockPos temp = EjectorBlockEntity.class.cast(this).getBlockPos();
             Vector3d tempVec = new Vector3d(temp.getX() + .5, temp.getY() + 1, temp.getZ() + .5);
             ship.getTransform().getShipToWorld().transformPosition(tempVec, tempVec);
-            instance.setPos(tempVec.x, tempVec.y, tempVec.z);
+            original.call(instance, tempVec.x, tempVec.y, tempVec.z);
         } else {
-            instance.setPos(x, y, z);
+            original.call(instance, x, y, z);
         }
     }
 }

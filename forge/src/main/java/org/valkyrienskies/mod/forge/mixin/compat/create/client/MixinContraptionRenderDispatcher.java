@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.forge.mixin.compat.create.client;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.simibubi.create.content.contraptions.render.ContraptionEntityRenderer;
 import dev.engine_room.flywheel.lib.transform.PoseTransformStack;
 import dev.engine_room.flywheel.lib.transform.Translate;
@@ -12,7 +14,7 @@ import org.valkyrienskies.mod.common.VSClientGameUtils;
 @Mixin(ContraptionEntityRenderer.class)
 public abstract class MixinContraptionRenderDispatcher {
 
-    @Redirect(
+    @WrapOperation(
         method = "renderActors",
         at = @At(
             value = "INVOKE",
@@ -20,8 +22,8 @@ public abstract class MixinContraptionRenderDispatcher {
         ),
         remap = false
     )
-    private static Translate<PoseTransformStack> redirectTranslate(PoseTransformStack instance, Vec3i vec3i) {
-        VSClientGameUtils.transformRenderIfInShipyard(instance.unwrap(), vec3i.getX(), vec3i.getY(), vec3i.getZ());
+    private static Translate<PoseTransformStack> redirectTranslate(PoseTransformStack instance, Vec3i vec3i, Operation<PoseTransformStack> original) {
+        VSClientGameUtils.transformRenderIfInShipyard(instance.unwrap(), vec3i.getX(), vec3i.getY(), vec3i.getZ(), original);
         return instance;
     }
 }

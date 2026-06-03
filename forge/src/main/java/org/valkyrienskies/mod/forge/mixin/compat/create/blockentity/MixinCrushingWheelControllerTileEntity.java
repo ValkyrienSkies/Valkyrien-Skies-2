@@ -2,7 +2,6 @@ package org.valkyrienskies.mod.forge.mixin.compat.create.blockentity;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import com.mojang.logging.LogUtils;
 import com.simibubi.create.content.kinetics.crusher.CrushingWheelControllerBlockEntity;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import java.util.ArrayList;
@@ -47,8 +46,8 @@ public abstract class MixinCrushingWheelControllerTileEntity extends SmartBlockE
         return new ArrayList<>();
     }
 
-    @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/AABB;intersects(Lnet/minecraft/world/phys/AABB;)Z"))
-    private boolean redirectIntersects(AABB instance, AABB other) {
+    @WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/AABB;intersects(Lnet/minecraft/world/phys/AABB;)Z"))
+    private boolean redirectIntersects(AABB instance, AABB other, Operation<Boolean> original) {
         Level level = this.getLevel();
         if (level != null) {
             Iterator<Ship> ships = VSGameUtilsKt.getShipsIntersecting(level, instance).iterator();
@@ -58,7 +57,7 @@ public abstract class MixinCrushingWheelControllerTileEntity extends SmartBlockE
                 instance = VectorConversionsMCKt.toMinecraft(result);
             }
         }
-        return instance.intersects(other);
+        return original.call(instance, other);
     }
 
     @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;setDeltaMovement(Lnet/minecraft/world/phys/Vec3;)V"))

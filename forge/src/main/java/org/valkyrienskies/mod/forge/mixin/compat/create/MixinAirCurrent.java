@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.forge.mixin.compat.create;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.simibubi.create.content.kinetics.fan.AirCurrent;
 import com.simibubi.create.content.kinetics.fan.IAirCurrentSource;
 import java.util.Iterator;
@@ -96,14 +98,14 @@ public abstract class MixinAirCurrent {
     }
 
     // Require 0 because this mixin doesn't work in create 0.5.1f
-    @Redirect(method = "tickAffectedEntities", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/AABB;intersects(Lnet/minecraft/world/phys/AABB;)Z"), require = 0)
-    private boolean redirectIntersects(AABB instance, AABB other) {
+    @WrapOperation(method = "tickAffectedEntities", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/AABB;intersects(Lnet/minecraft/world/phys/AABB;)Z"), require = 0)
+    private boolean redirectIntersects(AABB instance, AABB other, Operation<Boolean> original) {
         Ship ship = getShip();
         if (ship != null) {
             AABBd thisAABB = VectorConversionsMCKt.toJOML(instance);
             thisAABB.transform(ship.getWorldToShip());
             return other.intersects(thisAABB.minX, thisAABB.minY, thisAABB.minZ, thisAABB.maxX, thisAABB.maxY, thisAABB.maxZ);
-        } else return instance.intersects(other);
+        } else return original.call(instance, other);
     }
 
     // Require 0 because this mixin doesn't work in create 0.5.1f
@@ -128,27 +130,27 @@ public abstract class MixinAirCurrent {
     }
 
     // Require 0 because this mixin doesn't work in create 0.5.1f
-    @Redirect(method = "tickAffectedEntities",
+    @WrapOperation(method = "tickAffectedEntities",
         at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;setDeltaMovement(Lnet/minecraft/world/phys/Vec3;)V"), require = 0
     )
-    private void redirectSetDeltaMovement(Entity instance, Vec3 motion) {
+    private void redirectSetDeltaMovement(Entity instance, Vec3 motion, Operation<Void> original) {
         Ship ship = getShip();
         if (ship != null) {
             Vec3 previousMotion = instance.getDeltaMovement();
             double xIn = Mth.clamp(transformedFlow.x * acceleration - previousMotion.x, -maxAcceleration, maxAcceleration);
             double yIn = Mth.clamp(transformedFlow.y * acceleration - previousMotion.y, -maxAcceleration, maxAcceleration);
             double zIn = Mth.clamp(transformedFlow.z * acceleration - previousMotion.z, -maxAcceleration, maxAcceleration);
-            instance.setDeltaMovement(previousMotion.add(new Vec3(xIn, yIn, zIn).scale(1 / 8f)));
+            original.call(instance, previousMotion.add(new Vec3(xIn, yIn, zIn).scale(1 / 8f)));
         } else {
-            instance.setDeltaMovement(motion);
+            original.call(instance, motion);
         }
     }
 
     // Require 0 because this mixin doesn't work in create 0.5.1f
-    @Redirect(method = "tickAffectedEntities", at = @At(value = "INVOKE", target = "Lnet/createmod/catnip/math/VecHelper;getCenterOf(Lnet/minecraft/core/Vec3i;)Lnet/minecraft/world/phys/Vec3;"), allow = 1, require = 0, remap = false)
-    private Vec3 redirectGetCenterOf(Vec3i pos) {
+    @WrapOperation(method = "tickAffectedEntities", at = @At(value = "INVOKE", target = "Lnet/createmod/catnip/math/VecHelper;getCenterOf(Lnet/minecraft/core/Vec3i;)Lnet/minecraft/world/phys/Vec3;"), allow = 1, require = 0, remap = false)
+    private Vec3 redirectGetCenterOf(Vec3i pos, Operation<Vec3> original) {
         Ship ship = getShip();
-        Vec3 result = VecHelper.getCenterOf(pos);
+        Vec3 result = original.call(pos);
         if (ship != null && this.source.getAirCurrentWorld() != null) {
             Vector3d tempVec = new Vector3d();
             ship.getTransform().getShipToWorld().transformPosition(result.x, result.y, result.z, tempVec);

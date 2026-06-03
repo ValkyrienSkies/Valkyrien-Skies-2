@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.forge.mixin.compat.create.client;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.createmod.catnip.placement.PlacementOffset;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
@@ -34,9 +36,9 @@ public class MixinMultiplePlacementHelpers {
         this.world = world;
     }
 
-    @Redirect(method = "getOffset", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/BlockHitResult;getLocation()Lnet/minecraft/world/phys/Vec3;"))
-    private Vec3 redirectGetLocation(BlockHitResult instance) {
-        Vec3 result = instance.getLocation();
+    @WrapOperation(method = "getOffset", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/BlockHitResult;getLocation()Lnet/minecraft/world/phys/Vec3;"))
+    private Vec3 redirectGetLocation(BlockHitResult instance, Operation<Vec3> original) {
+        Vec3 result = original.call(instance);
         Ship ship = VSGameUtilsKt.getShipManagingPos(world, instance.getBlockPos());
         if (ship != null && !VSGameUtilsKt.isBlockInShipyard(world,result.x,result.y,result.z)) {
             Vector3d tempVec = VectorConversionsMCKt.toJOML(result);

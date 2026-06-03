@@ -1,5 +1,8 @@
 package org.valkyrienskies.mod.forge.mixin.compat.create.entity;
 
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.simibubi.create.content.contraptions.actors.seat.SeatEntity;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -21,12 +24,12 @@ public abstract class MixinSeatEntity extends Entity {
      * @author Triode
      * @reason Fix dismount position when ship or seat is destroyed
      */
-    @Overwrite
-    public @NotNull Vec3 getDismountLocationForPassenger(final @NotNull LivingEntity livingEntity) {
+    @WrapMethod(method = "getDismountLocationForPassenger")
+    public @NotNull Vec3 getDismountLocationForPassenger(final @NotNull LivingEntity livingEntity, Operation<Vec3> original) {
         if (VSGameUtilsKt.isBlockInShipyard(level(), position()) && VSGameUtilsKt.getShipManagingPos(level(), position()) == null) {
             // Don't teleport to the ship if we can't find the ship
             return livingEntity.position();
         }
-        return super.getDismountLocationForPassenger(livingEntity).add(0, 0.5f, 0);
+        return original.call(livingEntity);
     }
 }

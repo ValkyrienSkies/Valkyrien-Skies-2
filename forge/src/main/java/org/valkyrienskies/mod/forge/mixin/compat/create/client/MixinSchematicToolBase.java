@@ -27,7 +27,7 @@ public abstract class MixinSchematicToolBase {
      * This mixin conditionally changes it to BlockHitResult::getBlockPos instead which *does* respect ship-space.
      * The original behaviour is otherwise not changed.
      */
-    @Redirect(
+    @WrapOperation(
         method = "updateTargetPos()V",
         at = @At(
             value = "INVOKE",
@@ -35,7 +35,7 @@ public abstract class MixinSchematicToolBase {
             ordinal = 0
         )
     )
-    public Vec3 redirectGetLocation(BlockHitResult instance) {
+    public Vec3 redirectGetLocation(BlockHitResult instance, Operation<Vec3> original) {
         BlockPos b = instance.getBlockPos();
         Ship ship = VSGameUtilsKt.getLoadedShipManagingPos(Minecraft.getInstance().level, b);
         if (ship != null) {
@@ -43,7 +43,7 @@ public abstract class MixinSchematicToolBase {
             // so the vec position within a block should not make a difference
             return Vec3.atLowerCornerOf(b);
         } else {
-            return instance.getLocation();
+            return original.call(instance);
         }
     }
 

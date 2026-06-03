@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.forge.mixin.compat.create.behaviour;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.simibubi.create.content.contraptions.behaviour.MovementContext;
 import com.simibubi.create.content.kinetics.base.BlockBreakingMovementBehaviour;
 import net.minecraft.world.entity.Entity;
@@ -9,7 +11,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
@@ -31,12 +32,12 @@ public class MixinBlockBreakingMovementBehaviour {
         return vec3;
     }
 
-    @Redirect(method = "tickBreaker", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/Vec3;equals(Ljava/lang/Object;)Z"), remap = false)
-    private boolean redirectEquals(Vec3 instance, final Object vec3) {
+    @WrapOperation(method = "tickBreaker", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/Vec3;equals(Ljava/lang/Object;)Z"), remap = false)
+    private boolean redirectEquals(Vec3 instance, final Object vec3, Operation<Boolean> original) {
         Vec3 other = (Vec3) vec3;
         other = flatten(other);
         instance = flatten(instance);
-        return instance.equals(other);
+        return original.call(instance, other);
     }
     //Region end
     //Region start - fix entity throwing not being aligned to ship
@@ -48,14 +49,14 @@ public class MixinBlockBreakingMovementBehaviour {
         movementContext = context;
     }
 
-    @Redirect(method = "throwEntity", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;setDeltaMovement(Lnet/minecraft/world/phys/Vec3;)V"))
-    private void redirectSetDeltaMovement(final Entity instance, Vec3 motion) {
+    @WrapOperation(method = "throwEntity", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;setDeltaMovement(Lnet/minecraft/world/phys/Vec3;)V"))
+    private void redirectSetDeltaMovement(final Entity instance, Vec3 motion, Operation<Void> original) {
         if (movementContext != null && VSGameUtilsKt.isBlockInShipyard(movementContext.world, movementContext.contraption.anchor)) {
             Ship ship = VSGameUtilsKt.getShipManagingPos(movementContext.world, movementContext.contraption.anchor);
             if (ship != null)
                 motion = VectorConversionsMCKt.toMinecraft(ship.getShipToWorld().transformDirection(VectorConversionsMCKt.toJOML(motion), new Vector3d()));
         }
-        instance.setDeltaMovement(motion);
+        original.call(instance, motion);
     }
     //Region end
 }

@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.forge.mixin.compat.create.client;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.simibubi.create.foundation.render.BlockEntityRenderHelper;
 import dev.engine_room.flywheel.lib.transform.PoseTransformStack;
 import dev.engine_room.flywheel.lib.transform.Translate;
@@ -18,12 +20,12 @@ import org.valkyrienskies.mod.common.VSClientGameUtils;
 @Pseudo
 @Mixin(value = BlockEntityRenderHelper.class, remap = false)
 public abstract class MixinBlockEntityRenderHelper67 {
-    @Redirect(
+    @WrapOperation(
         method = "renderBlockEntities",
         at = @At(value = "INVOKE", target = "Ldev/engine_room/flywheel/lib/transform/PoseTransformStack;translate(Lnet/minecraft/core/Vec3i;)Ldev/engine_room/flywheel/lib/transform/Translate;")
     )
-    private static Translate redirectTranslate(PoseTransformStack instance, Vec3i vec3i){
-        VSClientGameUtils.transformRenderIfInShipyard(instance.unwrap(), vec3i.getX(), vec3i.getY(), vec3i.getZ());
+    private static Translate redirectTranslate(PoseTransformStack instance, Vec3i vec3i, Operation<PoseTransformStack> original){
+        VSClientGameUtils.transformRenderIfInShipyard(instance.unwrap(), vec3i.getX(), vec3i.getY(), vec3i.getZ(), original);
         return instance;
     }
 }
