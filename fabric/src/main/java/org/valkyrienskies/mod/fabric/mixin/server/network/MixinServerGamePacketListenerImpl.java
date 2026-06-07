@@ -13,7 +13,6 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(ServerGamePacketListenerImpl.class)
@@ -42,17 +41,6 @@ public abstract class MixinServerGamePacketListenerImpl {
             return original.call(player, x, y, z);
         }
         return VSGameUtilsKt.squaredDistanceToUseHit(player.level(), packet.getHitResult(), player.position());
-    }
-
-    @Redirect(
-        method = "handleUseItemOn",
-        at = @At(
-            value = "INVOKE",
-            target = "Ljava/lang/Math;abs(D)D"
-        )
-    )
-    private double stopFarAwayReturn(double a) {
-        return 0.0;
     }
 
     @WrapOperation(
