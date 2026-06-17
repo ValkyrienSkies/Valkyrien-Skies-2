@@ -94,7 +94,7 @@ dependencies {
     modCompileOnly("com.rbasamoyai:createbigcannons:${createbigcannons_version}+mc.${minecraft_version}-forge${createbigcannons_build}") { transitive = false }
     modCompileOnly("com.rbasamoyai:ritchiesprojectilelib:${rpl_version}+mc.${minecraft_version}-forge") { transitive = false }
 
-    modImplementation("maven.modrinth:theatrical:1.0.0-alpha.28.120+mc1.20.1")
+    modCompileOnly("maven.modrinth:theatrical:1.0.0-alpha.28.120+mc1.20.1")
 
     // Unit testing
     def kotestVersion = "5.4.1"
