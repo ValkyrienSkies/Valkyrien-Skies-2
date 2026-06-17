@@ -10,6 +10,8 @@ object DragInfoReporter {
     val shipLiftValues = HashMap<ShipId, Vector3dc>()
 
     fun tick(level: ServerLevel) {
+        shipDragValues.clear()
+        shipLiftValues.clear()
         level.shipObjectWorld.loadedShips.forEach { ship ->
             shipDragValues[ship.id] = ship.dragController!!.getDragForce()
             shipLiftValues[ship.id] = ship.dragController!!.getLiftForce()

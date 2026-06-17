@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.common.entity.handling
 import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.entity.EntityRenderer
+import net.minecraft.core.BlockPos
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.projectile.AbstractArrow
 import net.minecraft.world.entity.projectile.AbstractHurtingProjectile
@@ -27,6 +28,17 @@ import kotlin.math.sqrt
 object WorldEntityHandler : VSEntityHandler {
     override fun freshEntityInShipyard(entity: Entity, ship: Ship) {
         moveEntityFromShipyardToWorld(entity, ship)
+        // Spawn-tick variant of EntityDragger.dragEntitiesWithShips's onGround catch
+        if (entity !is Projectile) {
+            val foot = ship.transform.worldToShip.transformPosition(
+                Vector3d(entity.x, entity.y - 0.2, entity.z), Vector3d()
+            )
+            val footProbe = BlockPos.containing(foot.x, foot.y, foot.z)
+            val level = entity.level()
+            val onShipBlock = !level.getBlockState(footProbe).getCollisionShape(level, footProbe).isEmpty
+                || !level.getBlockState(footProbe.below()).getCollisionShape(level, footProbe.below()).isEmpty
+            if (onShipBlock) entity.setOnGround(true)
+        }
     }
 
     override fun entityRemovedFromShipyard(entity: Entity, ship: Ship) {
@@ -102,14 +114,6 @@ object WorldEntityHandler : VSEntityHandler {
         entity.xRotO = entity.xRot
 
         if (entity is AbstractHurtingProjectile) {
-            val power = Vector3d(entity.xPower, entity.yPower, entity.zPower)
-
-            ship.shipToWorld.transformDirection(power)
-
-            entity.xPower = power.x
-            entity.yPower = power.y
-            entity.zPower = power.z
-
             ProjectileUtil.rotateTowardsMovement(entity, 1.0f)
         }
     }

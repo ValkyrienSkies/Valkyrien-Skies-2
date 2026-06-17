@@ -17,7 +17,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(ServerPlayer.class)
 public abstract class MixinServerPlayer extends Player {
@@ -58,13 +57,6 @@ public abstract class MixinServerPlayer extends Player {
         final Ship ship = VSGameUtilsKt.getShipManagingPos(level, x, y, z);
         if (ship != null) {
             ci.cancel();
-
-            Vector3d lookVector = VectorConversionsMCKt.toJOML(this.getLookAngle());
-            final Vector3d transformedLook = ship.getTransform().getShipToWorld().transformDirection(lookVector);
-            final double yaw = Math.atan2(-transformedLook.x, transformedLook.z) * 180.0 / Math.PI;
-            final double pitch = Math.atan2(-transformedLook.y, Math.sqrt((transformedLook.x * transformedLook.x) + (transformedLook.z * transformedLook.z))) * 180.0 / Math.PI;
-            this.setYRot((float) yaw);
-            this.setXRot((float) pitch);
 
             //Predict the position 2 ticks ahead for dismount
             final Vector3d inWorld = ship.getTransform().getShipToWorld().transformPosition(x, y, z, new Vector3d());

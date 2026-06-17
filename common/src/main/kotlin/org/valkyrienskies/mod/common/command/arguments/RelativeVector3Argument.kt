@@ -53,7 +53,7 @@ open class RelativeVector3Argument : ArgumentType<RelativeVector3> {
         fun relativeVector3() = RelativeVector3Argument()
 
         @JvmStatic
-        fun getRelativeVector3(commandContext: CommandContext<CommandSourceStack?>, string: String?): RelativeVector3 {
+        fun getRelativeVector3(commandContext: CommandContext<CommandSourceStack>, string: String?): RelativeVector3 {
             return commandContext.getArgument(
                 string,
                 RelativeVector3::class.java

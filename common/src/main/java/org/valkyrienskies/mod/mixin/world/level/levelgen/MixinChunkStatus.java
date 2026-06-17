@@ -27,8 +27,8 @@ import org.valkyrienskies.mod.common.VS2ChunkAllocator;
 @Mixin(ChunkStatus.class)
 public class MixinChunkStatus {
 
-    // NOISE, fillFromNoise
-    @Inject(method = "method_38284", at = @At("HEAD"), cancellable = true)
+    // BIOMES + NOISE — both have the same full generation task signature
+    @Inject(method = {"method_38285", "method_38284"}, at = @At("HEAD"), cancellable = true)
     private static void skipFillFromNoise(ChunkStatus chunkStatus, Executor executor, ServerLevel serverLevel,
         ChunkGenerator chunkGenerator, StructureTemplateManager structureTemplateManager,
         ThreadedLevelLightEngine threadedLevelLightEngine, Function function, List list, ChunkAccess chunkAccess,
@@ -65,4 +65,10 @@ public class MixinChunkStatus {
         ChunkPos cp = chunkAccess.getPos();
         if (VS2ChunkAllocator.INSTANCE.isChunkInShipyardCompanion(cp.x, cp.z)) ci.cancel();
     }
+
+    // Let the vanilla light engine's lightChunk run for shipyard chunks.
+    // MixinThreadedLevelLightEngine gives shipyard light tasks high priority so they
+    // actually get processed. MixinChunkMapShipyard handles neighbor requirements.
+    // lightChunk sets up internal light engine state (propagateLightSources, setLightEnabled)
+    // that is required for lighting to work correctly after assembly.
 }

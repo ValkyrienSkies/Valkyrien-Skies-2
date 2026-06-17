@@ -6,11 +6,18 @@
   "mixins": [
     "compat.connectiblechains.MixinChainable",
     "compat.connectiblechains.MixinChainCollisionEntity",
-    "compat.create.MixinBlockBreakingKineticTileEntity",
     "compat.create.MixinControlledContraptionEntity",
+    "entity.MixinBoat",
     "entity.MixinContainerEntity",
+    "feature.air_pockets.MixinEntityFluidPushing",
     "feature.explosions.ClipContextMixin",
     "feature.fix_tp_ships_cross_dimension.MixinLevelChunk",
+    "feature.mob_spawning.MixinBaseSpawnerShipObstruction",
+    "feature.mob_spawning.MixinCatSpawnerShipFinalize",
+    "feature.mob_spawning.MixinEntityTypeShipFinalize",
+    "feature.mob_spawning.MixinNaturalSpawnerShipFinalize",
+    "feature.mob_spawning.MixinPatrolSpawnerShipFinalize",
+    "feature.mob_spawning.MixinPhantomSpawnerShipFinalize",
     "feature.shipyard_entities.MixinPersistentEntitySectionManager",
     "feature.water_in_ships_entity.MixinEntity",
     "server.network.MixinServerGamePacketListenerImpl",
@@ -19,6 +26,7 @@
   ],
   "client": [
     "client.render.MixinLevelRenderer",
+    "client.render.MixinScreenEffectRenderer",
     "compat.connectiblechains.client.MixinChainKnotEntityRenderer",
     "compat.create.client.MixinBlockEntityRenderHelper",
     "compat.create.client.MixinChainConveyorBlockEntity",
@@ -26,9 +34,12 @@
     "compat.create.client.MixinCullingBlockEntityIterator",
     "compat.create.client.MixinSuperGlueSelectionHandler",
     "compat.emf.MixinEMFAnimationEntityContext",
+    "compat.sodium.MixinBlockRenderer",
+    "compat.sodium.MixinFluidRenderer",
     "compat.sodium.MixinSodiumWorldRenderer",
     "feature.duplicate_keybindings.KeyMappingAccessor",
-    "feature.duplicate_keybindings.MixinKeyMapping"
+    "feature.duplicate_keybindings.MixinKeyMapping",
+    "feature.render_ship_core_shader.MixinAbstractBlockRenderContext"
   ],
   "injectors": {
     "defaultRequire": 1

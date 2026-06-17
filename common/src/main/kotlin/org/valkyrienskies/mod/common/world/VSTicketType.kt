@@ -5,13 +5,17 @@ import net.minecraft.world.level.ChunkPos
 import java.util.Comparator
 
 /**
- * Custom ticket type for ship chunks. Used with radius 1, giving ticket level 32 (ticking).
+ * Custom ticket type for transient shipyard chunk access that only needs FULL status.
  *
- * Vanilla's FORCED ticket uses level 31 (entity ticking) which requires a 2-chunk neighborhood,
- * causing ~25 chunks to be loaded per ship chunk. Our ticket at level 32 (ticking) only needs
- * a 1-chunk neighborhood (~9 chunks), reducing the chunk loading overhead by ~3x.
+ * Used with radius 0, this loads only the requested chunk with zero neighbor chunks:
+ * - Vanilla FORCED ticket: level 31 (entity ticking) = 2-chunk radius = ~25 chunks per ship chunk
+ * - Previous VS2 ticket: radius 1 (level 32, block ticking) = 1-chunk radius = ~9 chunks per ship chunk
+ * - SHIP_CHUNK ticket: radius 0 (level 33, FULL) = 0-chunk radius = 1 chunk per ship chunk
  *
- * Entity ticking is not needed for shipyard chunks since they don't contain natural entities.
+ * This is appropriate for preload/copy/update flows where VS only needs the chunk data itself.
+ * It can also be used for active ship chunks when the experimental server-side
+ * useRadiusZeroShipChunkTickets flag is enabled; in that mode VS mixins provide the ticking
+ * gates that vanilla normally derives from block/entity ticking ticket levels.
  */
 object VSTicketType {
     @JvmField

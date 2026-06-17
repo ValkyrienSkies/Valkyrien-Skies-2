@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.mixin.world.entity.projectile;
 import java.util.function.Predicate;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
@@ -31,6 +32,25 @@ public class ProjectileUtilMixin {
         }
 
         cir.setReturnValue(RaycastUtilsKt.raytraceEntities(entity.level(), entity, vec3, vec32, aABB, predicate, d));
+    }
+
+    // Projectile-style overload (per-target inflate arg). Without this wrap arrows fly
+    // straight through shipyard-frame entities — vanilla's scan only sees world entities.
+    @Inject(
+        at = @At("RETURN"),
+        method = "getEntityHitResult(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/world/phys/AABB;Ljava/util/function/Predicate;F)Lnet/minecraft/world/phys/EntityHitResult;",
+        cancellable = true
+    )
+    private static void vs$beforeProjectileHitResult(
+        final Level level, final Entity entity, final Vec3 vec3, final Vec3 vec32,
+        final AABB aABB, final Predicate<Entity> predicate, final float f,
+        final CallbackInfoReturnable<@Nullable EntityHitResult> cir) {
+
+        if (cir.getReturnValue() != null || !VSGameUtilsKt.getShipsIntersecting(level, aABB).iterator().hasNext()) {
+            return;
+        }
+
+        cir.setReturnValue(RaycastUtilsKt.raytraceEntitiesInflated(level, entity, vec3, vec32, aABB, predicate, f));
     }
 
 }

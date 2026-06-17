@@ -2,6 +2,7 @@ package org.valkyrienskies.mod.mixin.client;
 
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
@@ -66,6 +67,10 @@ public abstract class MixinCamera implements IVSCamera {
     private float xRot;
     @Shadow
     private float yRot;
+
+    @Unique
+    private float vs$zRot;
+
     @Shadow
     @Final
     private Quaternionf rotation;
@@ -77,6 +82,8 @@ public abstract class MixinCamera implements IVSCamera {
     private float eyeHeightOld;
     @Shadow
     private Vec3 position;
+    @Shadow
+    private BlockPos.MutableBlockPos blockPosition;
 
     @Unique
     private int vs$sealedGraceTicks = 0;
@@ -122,7 +129,10 @@ public abstract class MixinCamera implements IVSCamera {
                     if (!VSGameUtilsKt.isBlockInShipyard(player.level(), BlockPos.containing(relativePosition))) {
                         // find overlapping ships
                         ClientShipWorld shipWorld = VSGameUtilsKt.getShipObjectWorld(player.clientLevel);
-                        for (ClientShip ship : shipWorld.getAllShips().getIntersecting(VectorConversionsMCKt.toJOML(player.getBoundingBox().inflate(1.0)))) {
+                        for (ClientShip ship : shipWorld.getAllShips().getIntersecting(
+                            VectorConversionsMCKt.toJOML(player.getBoundingBox().inflate(1.0)),
+                            VSGameUtilsKt.getDimensionId(player.level())
+                        )) {
                             relativePosition = VectorConversionsMCKt.toMinecraft(ship.getWorldToShip().transformPosition(VectorConversionsMCKt.toJOML(player.position()), new Vector3d()));
                             if (VSGameUtilsKt.isPositionSealed(player.level(), BlockPos.containing(relativePosition))) {
                                 vs$lastSealedCheckPos = BlockPos.containing(relativePosition);
@@ -154,28 +164,33 @@ public abstract class MixinCamera implements IVSCamera {
         return original.call();
     }
 
+    /**
+     * @author Bunting_chj
+     * @reason This Injection will modify the Camera position to transform the eye offset with the ship player is mounted on.
+     *  Funny thing that original code doesn't utilize getEyePosition().
+     */
+    @WrapOperation(
+        method = "setup",
+        at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Camera;setPosition(DDD)V")
+    )
+    private void setPosition(Camera camera, double d, double e, double f, Operation<Void> original){
+        if(VSGameUtilsKt.getShipMountedTo(this.entity) instanceof ClientShip ship) {
+            double eyeHeight = Mth.lerp(f, this.eyeHeightOld, this.eyeHeight);
+            Vector3d eyeOffset = ship.getRenderTransform().getRotation().transform(new Vector3d(0, eyeHeight, 0));
+            original.call(camera, d + eyeOffset.x, e - eyeHeight + eyeOffset.y, f + eyeOffset.z);
+        }
+        else original.call(camera, d, e, f);
+    }
+
     @Override
     public void setupWithShipMounted(final @NotNull BlockGetter level, final @NotNull Entity renderViewEntity,
         final boolean thirdPerson, final boolean thirdPersonReverse, final float partialTicks,
         final @NotNull ClientShip shipMountedTo, final @NotNull Vector3dc inShipPlayerPosition) {
-        final ShipTransform renderTransform = shipMountedTo.getRenderTransform();
-        final Vector3dc playerBasePos =
-            renderTransform.getShipToWorldMatrix().transformPosition(inShipPlayerPosition, new Vector3d());
-        final Vector3dc playerEyePos = renderTransform.getShipCoordinatesToWorldCoordinatesRotation()
-            .transform(new Vector3d(0.0, Mth.lerp(partialTicks, this.eyeHeightOld, this.eyeHeight), 0.0))
-            .add(playerBasePos);
-
         this.initialized = true;
         this.level = level;
         this.entity = renderViewEntity;
         this.detached = thirdPerson;
-        this.setRotationWithShipTransform(renderViewEntity.getViewYRot(partialTicks),
-            renderViewEntity.getViewXRot(partialTicks), renderTransform);
-        this.setPosition(playerEyePos.x(), playerEyePos.y(), playerEyePos.z());
         if (thirdPerson) {
-            if (thirdPersonReverse) {
-                this.setRotationWithShipTransform(this.yRot + 180.0F, -this.xRot, renderTransform);
-            }
 
             final AABBi boundingBox = (AABBi) shipMountedTo.getShipVoxelAABB();
 
@@ -238,5 +253,27 @@ public abstract class MixinCamera implements IVSCamera {
         }
 
         return maxZoom;
+    }
+
+    @Override
+    public void setRotationVS(float yaw, float pitch, float roll) {
+        this.xRot = pitch;
+        this.yRot = yaw;
+        this.vs$zRot = roll;
+        this.rotation.rotationYXZ(-yaw * ((float)Math.PI / 180), pitch * ((float)Math.PI / 180), roll * ((float)Math.PI / 180));
+        this.forwards.set(0.0f, 0.0f, 1.0f).rotate(this.rotation);
+        this.up.set(0.0f, 1.0f, 0.0f).rotate(this.rotation);
+        this.left.set(1.0f, 0.0f, 0.0f).rotate(this.rotation);
+    }
+
+    @Override
+    public void setPositionVS(Vec3 position) {
+        this.position = position;
+        this.blockPosition.set(position.x, position.y, position.z);
+    }
+
+    @Override
+    public float getZrot() {
+        return vs$zRot;
     }
 }

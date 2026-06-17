@@ -29,5 +29,8 @@ public interface EntityAccessor {
     int getPortalCooldown();
 
     @Accessor("portalEntrancePos")
+    void setPortalEntrancePos(BlockPos portalEntrancePos);
+
+    @Accessor("portalEntrancePos")
     BlockPos getPortalEntrancePos();
 }

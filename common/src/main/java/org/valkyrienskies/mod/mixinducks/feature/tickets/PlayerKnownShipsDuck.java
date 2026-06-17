@@ -14,4 +14,5 @@ public interface PlayerKnownShipsDuck {
 
     boolean vs_isKnownShip(long shipId);
 
+    void vs_flushKnownShips();
 }

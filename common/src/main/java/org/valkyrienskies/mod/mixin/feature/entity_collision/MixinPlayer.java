@@ -28,6 +28,9 @@ public abstract class MixinPlayer implements IEntityDraggingInformationProvider 
     @Final
     private Abilities abilities;
 
+    @Shadow
+    protected abstract boolean isAboveGround();
+
     // Allow players to crouch walk on ships
     @Inject(method = "maybeBackOffFromEdge", at = @At("HEAD"), cancellable = true)
     private void preMaybeBackOffFromEdge(final Vec3 vec3, final MoverType moverType,
@@ -45,9 +48,8 @@ public abstract class MixinPlayer implements IEntityDraggingInformationProvider 
                 if (ship == null) {
                     return;
                 }
-                if (vec3.y <= 0.0f && (moverType == MoverType.SELF || moverType == MoverType.PLAYER) && this.isStayingOnGroundSurface() && !this.abilities.flying) {
+                if (vec3.y <= 0.0f && (moverType == MoverType.SELF || moverType == MoverType.PLAYER) && this.isStayingOnGroundSurface() && !this.abilities.flying && this.isAboveGround()) {
                     Vec3 adjustedVec = backOff(vec3, ship, player, level);
-
                     callbackInfoReturnable.setReturnValue(adjustedVec);
                 }
             }

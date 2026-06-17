@@ -21,6 +21,7 @@ import org.joml.Vector3d
 import org.joml.primitives.AABBd
 import org.joml.primitives.AABBdc
 import org.valkyrienskies.core.api.ships.ClientShip
+import org.valkyrienskies.core.api.ships.Ship
 import org.joml.primitives.LineSegmentf
 import org.valkyrienskies.core.api.ships.properties.ShipId
 import org.valkyrienskies.core.game.ships.ShipObjectClient
@@ -276,6 +277,63 @@ fun Level.raytraceEntities(
     return if (resultEntity == null) {
         null
     } else EntityHitResult(resultEntity, location)
+}
+
+// Sibling of [raytraceEntities] for projectiles: takes an explicit inflate (vanilla
+// default 0.3) instead of [Entity.getPickRadius], which is 0 for most entities and
+// too strict for arrow hits.
+fun Level.raytraceEntitiesInflated(
+    shooter: Entity,
+    origStartVecM: Vec3,
+    origEndVecM: Vec3,
+    origBoundingBoxM: AABB,
+    filter: Predicate<Entity>,
+    inflate: Float
+): EntityHitResult? {
+    var bestDistance2 = Double.MAX_VALUE
+    var resultEntity: Entity? = null
+    var location: Vec3? = null
+
+    fun checkEntities(entities: List<Entity>, startVec: Vec3, endVec: Vec3, ship: Ship?) =
+        entities.forEach { entity ->
+            val aabb = entity.boundingBox.inflate(inflate.toDouble())
+            val clipO = aabb.clip(startVec, endVec)
+            if (!clipO.isPresent) return@forEach
+            val localClip = clipO.get()
+
+            // For ship-frame checks, the resulting hit location is in ship-local
+            // coords; project back to world before computing distance against the
+            // original world start vec.
+            val worldClip = if (ship == null) {
+                localClip
+            } else {
+                ship.transform.shipToWorld.transformPosition(localClip.toJOML()).toMinecraft()
+            }
+
+            val d = origStartVecM.distanceToSqr(worldClip)
+            if (d >= bestDistance2) return@forEach
+
+            resultEntity = entity
+            location = worldClip
+            bestDistance2 = d
+        }
+
+    val entities = getEntities(shooter, origBoundingBoxM, filter) // mirror returns world + ship entities
+
+    checkEntities(entities, origStartVecM, origEndVecM, null)
+
+    val startJoml = origStartVecM.toJOML()
+    val endJoml = origEndVecM.toJOML()
+    val shipStart = Vector3d()
+    val shipEnd = Vector3d()
+
+    getShipsIntersecting(origBoundingBoxM.toJOML()).forEach { ship ->
+        ship.worldToShip.transformPosition(startJoml, shipStart)
+        ship.worldToShip.transformPosition(endJoml, shipEnd)
+        checkEntities(entities, shipStart.toMinecraft(), shipEnd.toMinecraft(), ship)
+    }
+
+    return if (resultEntity == null) null else EntityHitResult(resultEntity, location)
 }
 
 fun BlockGetter.vanillaClip(context: ClipContext): BlockHitResult =

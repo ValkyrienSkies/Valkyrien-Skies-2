@@ -17,16 +17,14 @@ class EntityDraggingInformation {
         set(value) {
             if(value != null) ticksSinceStoodOnShip = 0 // ensure this is set before boardedShipLastTick check.
             shouldImpulseMovement = field != value && value != null // only if it boarded different ship.
-            changedShipLastTick = field != value && field != null && value != null
+            changedShipLastTick = field != value
             field = value
         }
-    var lastShipStoodOnServerWriteOnly : ShipId? = null
     var ticksSinceStoodOnShip: Int = 0
         set(value) {
             shouldImpulseMovement = false
             field = value
         }
-    var ticksSinceLastServerPacket: Int = 0
     var ignoreNextGroundStand = false
     var mountedToEntity: Boolean = false
 

@@ -21,7 +21,7 @@ object GetShipCommand {
             var success = false
             val sourceEntity: Entity? = it.source.entity
             if (sourceEntity != null) {
-                val rayTrace = sourceEntity.pick(10.0, 1.0.toFloat(), false)
+                val rayTrace = sourceEntity.pick(25.0, 1.0.toFloat(), false)
                 if (rayTrace is BlockHitResult) {
                     val ship = sourceEntity.level().getShipManagingPos(rayTrace.blockPos)
                     if (ship != null) {

@@ -3,13 +3,7 @@ package org.valkyrienskies.mod.forge.mixin.feature.water_in_ships_entity;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import com.llamalad7.mixinextras.sugar.Local;
-import com.llamalad7.mixinextras.sugar.ref.LocalRef;
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
-import it.unimi.dsi.fastutil.objects.Object2ObjectArrayMap;
-import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
-import java.util.function.BiConsumer;
-import java.util.function.Predicate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.BlockGetter;
@@ -17,17 +11,16 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.ForgeMod;
 import net.minecraftforge.fluids.FluidType;
+import org.joml.Quaterniondc;
+import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Coerce;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
-import org.spongepowered.asm.mixin.injection.Redirect;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 
@@ -47,25 +40,6 @@ public abstract class MixinEntity {
     @Shadow
     public abstract double getZ();
 
-    @Unique
-    private boolean isShipWater = false;
-
-    /**
-     * used to replace updateFluidHeightAndDoFluidPushing aabb in ship context
-     * */
-    @Unique
-    private AABB valkyrienskies$fluidPushAABB = null;
-
-    /**
-     * list of fluid push to calculate
-     * used to combine updateFluidHeightAndDoFluidPushing interimCalcs of normal and ship context
-     * */
-    @Unique
-    private Object2ObjectMap<?,?> valkyrienskies$interimCalcs = null;
-
-    @Shadow
-    public abstract void updateFluidHeightAndDoFluidPushing(Predicate<FluidState> par1);
-
     @Shadow
     private FluidType forgeFluidTypeOnEyes;
 
@@ -73,96 +47,77 @@ public abstract class MixinEntity {
     protected Object2DoubleMap<FluidType> forgeFluidTypeHeight;
 
     @Unique
-    private boolean inShipContext() {
-        return valkyrienskies$fluidPushAABB != null;
-    }
+    private boolean isShipWater = false;
 
-    //IDE may show error, ignore its valid mixin
-    @ModifyVariable(
-        method = "updateFluidHeightAndDoFluidPushing(Ljava/util/function/Predicate;)V",
-        at = @At(value = "STORE"),
-        remap = false
+    /**
+     * Correctness relies on the method querying getFluidState before
+     * getHeight/getFlow within each scanned cell: getFluidState sets these, the
+     * other two read them. Null = current cell is world fluid, not ship fluid.
+     */
+    @Unique
+    private BlockPos valkyrienskies$pushShipPos = null;
+    @Unique
+    private Ship valkyrienskies$pushShip = null;
+
+    @WrapOperation(
+        at = @At(value = "INVOKE",
+            target = "Lnet/minecraft/world/level/Level;getFluidState(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/material/FluidState;"),
+        method = "updateFluidHeightAndDoFluidPushing(Ljava/util/function/Predicate;)V"
     )
-    private AABB setFluidPushAABB(AABB original) {
-        if (inShipContext())
-            return valkyrienskies$fluidPushAABB;
+    private FluidState valkyrienskies$pushFluidState(final Level lvl, final BlockPos pos,
+        final Operation<FluidState> original) {
+        valkyrienskies$pushShipPos = null;
+        valkyrienskies$pushShip = null;
 
-        return original;
-    }
-
-    @Redirect(
-        method = "updateFluidHeightAndDoFluidPushing(Ljava/util/function/Predicate;)V",
-        at = @At(value = "NEW", target = "(I)Lit/unimi/dsi/fastutil/objects/Object2ObjectArrayMap;"),
-        remap = false
-    )
-    private Object2ObjectArrayMap<?, ?> setInterimCalcInstance(int capacity) {
-        if (inShipContext()) {
-            return (Object2ObjectArrayMap<?, ?>) valkyrienskies$interimCalcs;
+        final FluidState world = original.call(lvl, pos);
+        if (!world.isEmpty()) {
+            return world;
         }
-        return (Object2ObjectArrayMap<?, ?>) (valkyrienskies$interimCalcs = new Object2ObjectArrayMap<>(capacity));
-    }
-
-    // From Forge 47.4.15, the map used in forEach is only instantiated if a world fluid collision was found.
-    // This makes forEach, which we mixin for the purpose of re-running the method again, never trigger.
-    // We do not need it to be a valid map or anything, just whatever will get us through the null check.
-
-    // @ModifyConstant doesn't work on null constants despite supporting targeting ACONST_NULL opcode.
-    @Inject(
-        method = "updateFluidHeightAndDoFluidPushing(Ljava/util/function/Predicate;)V",
-        at = @At(value = "INVOKE", target = "Lnet/minecraft/core/BlockPos$MutableBlockPos;set(III)Lnet/minecraft/core/BlockPos$MutableBlockPos;"),
-        require = 0, // local not resolving with older Forge
-        remap = false
-    )
-    private void setInterimCalcInstance2(Predicate<FluidState> shouldUpdate, CallbackInfo ci,
-        @Local LocalRef<Object2ObjectArrayMap> interimCalcs
-    ) {
-        if (interimCalcs.get() == null) { // our special case for new Forge
-            if (inShipContext()) {
-                interimCalcs.set((Object2ObjectArrayMap) valkyrienskies$interimCalcs);
-            } else interimCalcs.set((Object2ObjectArrayMap) (valkyrienskies$interimCalcs = new Object2ObjectArrayMap<>()));
+        if (((IEntityDraggingInformationProvider) (Object) this).vs$isInSealedArea()) {
+            return world;
         }
-    }
 
-    @Inject(
-        method = "updateFluidHeightAndDoFluidPushing(Ljava/util/function/Predicate;)V",
-        at = {
-            @At(value = "INVOKE",
-                target = "Lit/unimi/dsi/fastutil/objects/Object2ObjectMap;forEach(Ljava/util/function/BiConsumer;)V"),
-            @At(value = "INVOKE",
-                target = "Lit/unimi/dsi/fastutil/objects/Object2ObjectArrayMap;forEach(Ljava/util/function/BiConsumer;)V")
-        },
-        require = 1,
-        remap = false,
-        cancellable = true
-    )
-    private void shouldProcessPush(Predicate<FluidState> shouldUpdate, CallbackInfo ci) {
-        if (inShipContext()) {
-            ci.cancel();
+        for (final Ship ship : VSGameUtilsKt.getShipsIntersecting(this.level, new AABB(pos))) {
+            final Vector3d sp = ship.getWorldToShip().transformPosition(
+                new Vector3d(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5));
+            final BlockPos shipPos = BlockPos.containing(sp.x, sp.y, sp.z);
+            final FluidState shipFluid = original.call(lvl, shipPos);
+            if (!shipFluid.isEmpty()) {
+                valkyrienskies$pushShipPos = shipPos;
+                valkyrienskies$pushShip = ship;
+                return shipFluid;
+            }
         }
+        return world;
     }
 
     @WrapOperation(
-        method = "updateFluidHeightAndDoFluidPushing(Ljava/util/function/Predicate;)V",
-        at = {
-            @At(value = "INVOKE",
-                target = "Lit/unimi/dsi/fastutil/objects/Object2ObjectMap;forEach(Ljava/util/function/BiConsumer;)V"),
-            @At(value = "INVOKE",
-                target = "Lit/unimi/dsi/fastutil/objects/Object2ObjectArrayMap;forEach(Ljava/util/function/BiConsumer;)V")
-        },
-        require = 1,
-        remap = false
+        at = @At(value = "INVOKE",
+            target = "Lnet/minecraft/world/level/material/FluidState;getHeight(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;)F"),
+        method = "updateFluidHeightAndDoFluidPushing(Ljava/util/function/Predicate;)V"
     )
-    private void collectShipFluidPush(@Coerce Object2ObjectMap instance, BiConsumer consumer, Operation<Void> original,
-        @Local(ordinal = 0, argsOnly = true) Predicate<FluidState> shouldUpdate, @Local AABB aabb) {
-        VSGameUtilsKt.transformFromWorldToNearbyShips(level, aabb, (shipAabb) -> {
-            valkyrienskies$fluidPushAABB = shipAabb; // enable ship context
-            this.updateFluidHeightAndDoFluidPushing(shouldUpdate); //recall in the ship context
-        });
-        valkyrienskies$fluidPushAABB = null;
-        valkyrienskies$interimCalcs = null;
+    private float valkyrienskies$pushHeight(final FluidState instance, final BlockGetter bg, final BlockPos pos,
+        final Operation<Float> original) {
+        if (valkyrienskies$pushShipPos != null) {
+            return original.call(instance, this.level, valkyrienskies$pushShipPos);
+        }
+        return original.call(instance, bg, pos);
+    }
 
-        //processing collected push (vanilla and ship)
-        original.call(instance, consumer);
+    @WrapOperation(
+        at = @At(value = "INVOKE",
+            target = "Lnet/minecraft/world/level/material/FluidState;getFlow(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/phys/Vec3;"),
+        method = "updateFluidHeightAndDoFluidPushing(Ljava/util/function/Predicate;)V"
+    )
+    private Vec3 valkyrienskies$pushFlow(final FluidState instance, final BlockGetter bg, final BlockPos pos,
+        final Operation<Vec3> original) {
+        if (valkyrienskies$pushShipPos == null || valkyrienskies$pushShip == null) {
+            return original.call(instance, bg, pos);
+        }
+        final Vec3 shipFlow = original.call(instance, this.level, valkyrienskies$pushShipPos);
+        final Quaterniondc shipToWorldRot = valkyrienskies$pushShip.getTransform().getShipToWorldRotation();
+        final Vector3d rotated = shipToWorldRot.transform(new Vector3d(shipFlow.x, shipFlow.y, shipFlow.z));
+        return new Vec3(rotated.x, rotated.y, rotated.z);
     }
 
     @WrapOperation(
@@ -188,9 +143,13 @@ public abstract class MixinEntity {
 
             VSGameUtilsKt.transformToNearbyShipsAndWorld(this.level, origX, origY, origZ, this.bb.getSize(),
                 (x, y, z) -> {
-                    fluidState[0] = getFluidState.call(level, BlockPos.containing(x, y, z));
+                    final BlockPos shipPos = BlockPos.containing(x, y, z);
+                    final FluidState fs = getFluidState.call(level, shipPos);
+                    if (!fs.isEmpty() && y < shipPos.getY() + fs.getHeight(level, shipPos)) {
+                        fluidState[0] = fs;
+                    }
                 });
-            isShipWater = true;
+            isShipWater = !fluidState[0].isEmpty();
         }
         return fluidState[0];
     }

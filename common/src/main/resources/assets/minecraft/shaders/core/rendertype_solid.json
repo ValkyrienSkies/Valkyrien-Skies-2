@@ -1,0 +1,112 @@
+{
+    "blend": {
+        "func": "add",
+        "srcrgb": "srcalpha",
+        "dstrgb": "1-srcalpha"
+    },
+    "vertex": "rendertype_solid",
+    "fragment": "rendertype_solid",
+    "attributes": [
+        "Position",
+        "Color",
+        "UV0",
+        "UV2",
+        "Normal"
+    ],
+    "samplers": [
+        { "name": "Sampler0" },
+        { "name": "Sampler2" },
+        { "name": "ValkyrienAir_FluidMask" },
+        { "name": "ValkyrienAir_Mask0" },
+        { "name": "ValkyrienAir_Mask1" },
+        { "name": "ValkyrienAir_Mask2" },
+        { "name": "ValkyrienAir_Mask3" },
+        { "name": "ValkyrienAir_Mask4" },
+        { "name": "ValkyrienAir_Mask5" },
+        { "name": "ValkyrienAir_Mask6" },
+        { "name": "ValkyrienAir_Mask7" },
+        { "name": "ValkyrienAir_Mask8" }
+    ],
+    "uniforms": [
+        { "name": "ModelViewMat", "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
+        { "name": "ProjMat", "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
+        { "name": "ChunkOffset", "type": "float", "count": 3, "values": [ 0.0, 0.0, 0.0 ] },
+        { "name": "ColorModulator", "type": "float", "count": 4, "values": [ 1.0, 1.0, 1.0, 1.0 ] },
+        { "name": "FogStart", "type": "float", "count": 1, "values": [ 0.0 ] },
+        { "name": "FogEnd", "type": "float", "count": 1, "values": [ 1.0 ] },
+        { "name": "FogColor", "type": "float", "count": 4, "values": [ 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "FogShape", "type": "int", "count": 1, "values": [ 0 ] },
+
+        { "name": "ValkyrienAir_CullEnabled", "type": "float", "count": 1, "values": [ 0.0 ] },
+        { "name": "ValkyrienAir_IsShipPass", "type": "float", "count": 1, "values": [ 0.0 ] },
+        { "name": "ValkyrienAir_CameraWorldPos", "type": "float", "count": 3, "values": [ 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_WaterStillUv", "type": "float", "count": 4, "values": [ 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_WaterFlowUv", "type": "float", "count": 4, "values": [ 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_WaterOverlayUv", "type": "float", "count": 4, "values": [ 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_ShipWaterTintEnabled", "type": "float", "count": 1, "values": [ 0.0 ] },
+        { "name": "ValkyrienAir_ShipWaterTint", "type": "float", "count": 3, "values": [ 1.0, 1.0, 1.0 ] },
+
+        { "name": "ValkyrienAir_ShipAabbMin0", "type": "float", "count": 4, "values": [ 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_ShipAabbMax0", "type": "float", "count": 4, "values": [ -1.0, -1.0, -1.0, 0.0 ] },
+        { "name": "ValkyrienAir_CameraShipPos0", "type": "float", "count": 3, "values": [ 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_GridMin0", "type": "float", "count": 4, "values": [ 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_GridSize0", "type": "float", "count": 4, "values": [ 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_WorldToShip0", "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
+
+        { "name": "ValkyrienAir_ShipAabbMin1", "type": "float", "count": 4, "values": [ 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_ShipAabbMax1", "type": "float", "count": 4, "values": [ -1.0, -1.0, -1.0, 0.0 ] },
+        { "name": "ValkyrienAir_CameraShipPos1", "type": "float", "count": 3, "values": [ 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_GridMin1", "type": "float", "count": 4, "values": [ 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_GridSize1", "type": "float", "count": 4, "values": [ 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_WorldToShip1", "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
+
+        { "name": "ValkyrienAir_ShipAabbMin2", "type": "float", "count": 4, "values": [ 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_ShipAabbMax2", "type": "float", "count": 4, "values": [ -1.0, -1.0, -1.0, 0.0 ] },
+        { "name": "ValkyrienAir_CameraShipPos2", "type": "float", "count": 3, "values": [ 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_GridMin2", "type": "float", "count": 4, "values": [ 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_GridSize2", "type": "float", "count": 4, "values": [ 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_WorldToShip2", "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
+
+        { "name": "ValkyrienAir_ShipAabbMin3", "type": "float", "count": 4, "values": [ 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_ShipAabbMax3", "type": "float", "count": 4, "values": [ -1.0, -1.0, -1.0, 0.0 ] },
+        { "name": "ValkyrienAir_CameraShipPos3", "type": "float", "count": 3, "values": [ 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_GridMin3", "type": "float", "count": 4, "values": [ 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_GridSize3", "type": "float", "count": 4, "values": [ 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_WorldToShip3", "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
+
+        { "name": "ValkyrienAir_ShipAabbMin4", "type": "float", "count": 4, "values": [ 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_ShipAabbMax4", "type": "float", "count": 4, "values": [ -1.0, -1.0, -1.0, 0.0 ] },
+        { "name": "ValkyrienAir_CameraShipPos4", "type": "float", "count": 3, "values": [ 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_GridMin4", "type": "float", "count": 4, "values": [ 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_GridSize4", "type": "float", "count": 4, "values": [ 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_WorldToShip4", "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
+
+        { "name": "ValkyrienAir_ShipAabbMin5", "type": "float", "count": 4, "values": [ 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_ShipAabbMax5", "type": "float", "count": 4, "values": [ -1.0, -1.0, -1.0, 0.0 ] },
+        { "name": "ValkyrienAir_CameraShipPos5", "type": "float", "count": 3, "values": [ 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_GridMin5", "type": "float", "count": 4, "values": [ 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_GridSize5", "type": "float", "count": 4, "values": [ 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_WorldToShip5", "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
+
+        { "name": "ValkyrienAir_ShipAabbMin6", "type": "float", "count": 4, "values": [ 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_ShipAabbMax6", "type": "float", "count": 4, "values": [ -1.0, -1.0, -1.0, 0.0 ] },
+        { "name": "ValkyrienAir_CameraShipPos6", "type": "float", "count": 3, "values": [ 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_GridMin6", "type": "float", "count": 4, "values": [ 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_GridSize6", "type": "float", "count": 4, "values": [ 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_WorldToShip6", "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
+
+        { "name": "ValkyrienAir_ShipAabbMin7", "type": "float", "count": 4, "values": [ 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_ShipAabbMax7", "type": "float", "count": 4, "values": [ -1.0, -1.0, -1.0, 0.0 ] },
+        { "name": "ValkyrienAir_CameraShipPos7", "type": "float", "count": 3, "values": [ 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_GridMin7", "type": "float", "count": 4, "values": [ 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_GridSize7", "type": "float", "count": 4, "values": [ 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_WorldToShip7", "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
+
+        { "name": "ValkyrienAir_ShipAabbMin8", "type": "float", "count": 4, "values": [ 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_ShipAabbMax8", "type": "float", "count": 4, "values": [ -1.0, -1.0, -1.0, 0.0 ] },
+        { "name": "ValkyrienAir_CameraShipPos8", "type": "float", "count": 3, "values": [ 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_GridMin8", "type": "float", "count": 4, "values": [ 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_GridSize8", "type": "float", "count": 4, "values": [ 0.0, 0.0, 0.0, 0.0 ] },
+        { "name": "ValkyrienAir_WorldToShip8", "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] }
+    ]
+}

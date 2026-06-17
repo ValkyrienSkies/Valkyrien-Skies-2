@@ -272,7 +272,56 @@ jobs:
       - discord/status:
           success_message: ${DISCORD_MSG}
           success_only: true
-          webhook: ${VS2_1192_WEBHOOK}
+          webhook: ${VS2_120_WEBHOOK}
+
+  deploy_to_lilypad:
+    executor: java_large
+    steps:
+      - attach_workspace:
+          at: .
+      - run:
+          name: Find built Forge mod jar
+          command: |
+            set -euo pipefail
+            FORGE_JAR="$(pwd)/$(ls -1 artifacts/*-forge-*.jar | head -n1)"
+            if [ -z "${FORGE_JAR}" ]; then
+              echo "No Forge jar found in artifacts/"
+              ls -la artifacts || true
+              exit 1
+            fi
+            
+            PLAYTEST_JAR="$(pwd)/vs-playtest.jar"
+            cp "${FORGE_JAR}" "${PLAYTEST_JAR}"
+
+            echo "Prepared playtest jar: ${PLAYTEST_JAR}"
+            echo "export FORGE_MOD_JAR='${PLAYTEST_JAR}'" >> "$BASH_ENV"
+      - run:
+          name: Install SSH tools
+          command: sudo apt-get update && sudo apt-get install -y openssh-client
+      - run:
+          name: Upload jar to Lilypad mods folder
+          command: |
+            mkdir -p ~/.ssh
+            echo "${LILYPAD_SFTP_PRIVATE_KEY}" | base64 -d > ~/.ssh/lilypad_key
+            chmod 600 ~/.ssh/lilypad_key
+
+            sftp \
+              -i ~/.ssh/lilypad_key \
+              -o StrictHostKeyChecking=no \
+              -P "${LILYPAD_SFTP_PORT}" \
+              "${LILYPAD_SFTP_USER}@${LILYPAD_SFTP_HOST}" \<<EOF
+            cd mods
+            put "${FORGE_MOD_JAR}"
+            bye
+            EOF
+      - run:
+          name: Restart Lilypad server
+          command: |
+            curl --fail-with-body -X POST "https://panel.lilypad.gg/api/client/servers/${LILYPAD_SERVER_ID}/power" \
+              -H "Authorization: Bearer ${LILYPAD_API_KEY}" \
+              -H "Accept: application/json" \
+              -H "Content-Type: application/json" \
+              -d '{"signal":"restart"}'
 
 workflows:
   build:
@@ -318,6 +367,19 @@ workflows:
             branches:
               only:
                 - /.*\/main/
+                - /.*\/playtest/
           context:
             - valkyrien_maven
             - github_maven
+
+      - deploy_to_lilypad:
+          requires:
+            - notify_playtesters
+          filters:
+            tags:
+              only: /^playtest\/1\.20\.1\/.*/
+            branches:
+              ignore: /.*/
+          context:
+            - valkyrien_maven
+            - lilypad_publishing

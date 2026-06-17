@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import net.minecraft.network.protocol.game.ClientboundMoveEntityPacket;
 import net.minecraft.network.protocol.game.ClientboundRotateHeadPacket;
+import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket;
 import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
 import net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket;
 import net.minecraft.server.level.ServerEntity;
@@ -13,14 +14,17 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import org.joml.Vector3d;
+import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.core.impl.networking.simple.SimplePacket;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
+import org.valkyrienskies.mod.common.entity.ShipMountedToData;
 import org.valkyrienskies.mod.common.networking.PacketEntityShipMotion;
 import org.valkyrienskies.mod.common.networking.PacketMobShipRotation;
 import org.valkyrienskies.mod.common.util.EntityDragger;
@@ -51,49 +55,53 @@ public class MixinServerEntity {
             target = "Ljava/util/function/Consumer;accept(Ljava/lang/Object;)V")
     )
     private void wrapBroadcastAccept(Consumer instance, Object t, Operation<Void> original) {
-        if (t instanceof ClientboundSetEntityMotionPacket || t instanceof ClientboundTeleportEntityPacket || t instanceof ClientboundMoveEntityPacket || t instanceof ClientboundRotateHeadPacket) {
+        if (t instanceof ClientboundSetEntityMotionPacket || t instanceof ClientboundTeleportEntityPacket || t instanceof ClientboundMoveEntityPacket || t instanceof ClientboundRotateHeadPacket || t instanceof ClientboundSetEntityDataPacket) {
             if (EntityDragger.isDraggable(entity)) {
+                // Mount relationship wins over dragger info: a sleeper/passenger has a fixed
+                // ship-local pos, while the dragger derivation only matches transient stand-on.
+                final ShipMountedToData mountedTo = VSGameUtilsKt.getShipMountedToData(entity, null);
+                if (mountedTo != null && mountedTo.getShipMountedTo() instanceof ServerShip mountShip) {
+                    vs$broadcastShipRelative(mountShip, mountedTo.getMountPosInShip(), t);
+                    return;
+                }
+
                 IEntityDraggingInformationProvider draggedEntity = (IEntityDraggingInformationProvider) entity;
                 EntityDraggingInformation dragInfo = draggedEntity.getDraggingInformation();
 
-                if (dragInfo != null && dragInfo.isEntityBeingDraggedByAShip() && dragInfo.getLastShipStoodOn() != null) {
+                if (dragInfo.isEntityBeingDraggedByAShip() && dragInfo.getLastShipStoodOn() != null) {
                     ServerShip ship = VSGameUtilsKt.getShipObjectWorld(level).getAllShips().getById(dragInfo.getLastShipStoodOn());
                     if (ship != null) {
-
-                        Vector3d position = ship.getWorldToShip().transformPosition(new Vector3d(entity.getX(), entity.getY(), entity.getZ()));
-                        if (dragInfo.getServerRelativePlayerPosition() != null) {
-                            position = new Vector3d(dragInfo.getServerRelativePlayerPosition());
+                        Vector3dc position = dragInfo.getServerRelativePlayerPosition();
+                        if (position == null) {
+                            position = ship.getWorldToShip().transformPosition(new Vector3d(entity.getX(), entity.getY(), entity.getZ()));
                         }
-                        Vector3d motion = ship.getTransform().getWorldToShip().transformDirection(new Vector3d(entity.getDeltaMovement().x(), entity.getDeltaMovement().y(), entity.getDeltaMovement().z()), new Vector3d());
-                        double yaw;
-                        if (!(t instanceof ClientboundRotateHeadPacket)) {
-                            yaw = EntityLerper.INSTANCE.yawToShip(ship, entity.getYRot());
-                        } else {
-                            yaw = EntityLerper.INSTANCE.yawToShip(ship, entity.getYHeadRot());
-                        }
-                        double pitch = entity.getXRot();
-                        SimplePacket vsPacket;
-                        if (!(t instanceof ClientboundRotateHeadPacket)) {
-                            vsPacket = new PacketEntityShipMotion(entity.getId(), ship.getId(),
-                                position.x, position.y, position.z,
-                                motion.x, motion.y, motion.z,
-                                yaw, pitch);
-                        } else {
-                            vsPacket = new PacketMobShipRotation(entity.getId(), ship.getId(), yaw, pitch);
-                        }
-
-                        List<ServerPlayer> players = level.getPlayers(player -> player.shouldRender(entity.getX(), entity.getY(), entity.getZ()));
-                        players.forEach(
-                            player -> ValkyrienSkiesMod.getVsCore().getSimplePacketNetworking().sendToClients(vsPacket, ((PlayerDuck)player).vs_getPlayer())
-                        );
-
+                        vs$broadcastShipRelative(ship, position, t);
                         return;
                     }
-
-
                 }
             }
         }
         original.call(instance, t);
+    }
+
+    @Unique
+    private void vs$broadcastShipRelative(final ServerShip ship, final Vector3dc shipLocalPos, final Object originalPacket) {
+        final boolean isHead = originalPacket instanceof ClientboundRotateHeadPacket;
+        final double yaw = EntityLerper.INSTANCE.yawToShip(ship, isHead ? entity.getYHeadRot() : entity.getYRot());
+        final SimplePacket vsPacket;
+        if (isHead) {
+            vsPacket = new PacketMobShipRotation(entity.getId(), ship.getId(), yaw, entity.getXRot());
+        } else {
+            final Vector3d motion = ship.getTransform().getWorldToShip().transformDirection(
+                new Vector3d(entity.getDeltaMovement().x(), entity.getDeltaMovement().y(), entity.getDeltaMovement().z()),
+                new Vector3d());
+            vsPacket = new PacketEntityShipMotion(entity.getId(), ship.getId(),
+                shipLocalPos.x(), shipLocalPos.y(), shipLocalPos.z(),
+                motion.x, motion.y, motion.z,
+                yaw, entity.getXRot(), entity.onGround());
+        }
+        final List<ServerPlayer> players = level.getPlayers(p -> p.shouldRender(entity.getX(), entity.getY(), entity.getZ()));
+        players.forEach(p -> ValkyrienSkiesMod.getVsCore().getSimplePacketNetworking()
+            .sendToClients(vsPacket, ((PlayerDuck) p).vs_getPlayer()));
     }
 }

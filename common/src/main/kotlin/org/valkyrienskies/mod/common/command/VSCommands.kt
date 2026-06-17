@@ -1,11 +1,9 @@
 package org.valkyrienskies.mod.common.command
 
 import com.mojang.brigadier.CommandDispatcher
-import net.minecraft.commands.CommandRuntimeException
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands.literal
 import net.minecraft.commands.SharedSuggestionProvider
-import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.Component.translatable
 import org.joml.Quaterniond
 import org.joml.Quaterniondc
@@ -13,10 +11,12 @@ import org.joml.Vector3d
 import org.joml.Vector3dc
 import org.valkyrienskies.core.api.world.ShipWorld
 import org.valkyrienskies.core.api.world.properties.DimensionId
-import org.valkyrienskies.core.internal.ShipTeleportData
+import org.valkyrienskies.core.api.ships.ShipTeleportData
+import org.valkyrienskies.mod.common.command.arguments.ContraptionSelectorOptions
 import org.valkyrienskies.mod.common.command.commands.BackendCommand
 import org.valkyrienskies.mod.common.command.commands.DeleteCommand
 import org.valkyrienskies.mod.common.command.commands.DryCommand
+import org.valkyrienskies.mod.common.command.commands.ApplyCommand
 import org.valkyrienskies.mod.common.command.commands.GetAirCommand
 import org.valkyrienskies.mod.common.command.commands.GetGravityCommand
 import org.valkyrienskies.mod.common.command.commands.GetShipCommand
@@ -24,6 +24,9 @@ import org.valkyrienskies.mod.common.command.commands.RemassCommand
 import org.valkyrienskies.mod.common.command.commands.RenameCommand
 import org.valkyrienskies.mod.common.command.commands.ScaleCommand
 import org.valkyrienskies.mod.common.command.commands.SplittingCommand
+import org.valkyrienskies.mod.common.command.commands.SaveShipCommand
+import org.valkyrienskies.mod.common.command.commands.SpawnShipCommand
+import org.valkyrienskies.mod.common.command.commands.PerfTestCommand
 import org.valkyrienskies.mod.common.command.commands.StaticCommand
 import org.valkyrienskies.mod.common.command.commands.TeleportCommand
 import org.valkyrienskies.mod.common.shipObjectWorld
@@ -40,15 +43,21 @@ object VSCommands {
         BackendCommand.register(vs)
         DeleteCommand.register(vs)
         DryCommand.register(vs)
+        ApplyCommand.register(vs)
         GetAirCommand.register(vs)
         GetGravityCommand.register(vs)
         GetShipCommand.register(vs)
         RemassCommand.register(vs)
         RenameCommand.register(vs)
+        SaveShipCommand.register(vs)
         ScaleCommand.register(vs)
         SplittingCommand.register(vs)
+        SpawnShipCommand.register(vs)
+        PerfTestCommand.register(vs)
         StaticCommand.register(vs)
         TeleportCommand.register(vs)
+
+        ContraptionSelectorOptions.bootStrap()
 
         dispatcher.register(vs)
     }
@@ -94,7 +103,7 @@ val SharedSuggestionProvider.shipWorld: ShipWorld
                 return this.minecraft.level.shipObjectWorld
             } else {
                 // Shouldn't happen
-                throw CommandRuntimeException(Component.literal("Command source wasn't CommandSourceStack or ClientSuggestionProvider? Please report this as a bug"))
+                throw IllegalStateException("Command source wasn't CommandSourceStack or ClientSuggestionProvider")
             }
             )
     }

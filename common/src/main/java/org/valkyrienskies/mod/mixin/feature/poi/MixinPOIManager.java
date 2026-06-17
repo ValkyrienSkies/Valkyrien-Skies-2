@@ -6,6 +6,7 @@ import com.llamalad7.mixinextras.sugar.Local;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.ai.village.poi.PoiManager;
 import net.minecraft.world.entity.ai.village.poi.PoiManager.Occupancy;
@@ -29,7 +30,7 @@ import org.valkyrienskies.mod.mixinducks.world.OfLevel;
 
 /**
  * @author Tomato
- * This atrocious mess of a mixin allows POIs in ship space to be detected, however it requires further mixins to Goals for the ship space positions to be correctly used, from what I can understand.
+ * This atrocious mess of a mixin allows POIs in ship space to be detected.
  */
 @Mixin(PoiManager.class)
 public abstract class MixinPOIManager implements OfLevel {
@@ -38,16 +39,24 @@ public abstract class MixinPOIManager implements OfLevel {
     private Level valkyrienskies$sLevel;
 
     @Shadow
-    public abstract Stream<PoiRecord> getInChunk(Predicate<PoiType> predicate, ChunkPos chunkPos, Occupancy occupancy);
+    public abstract Stream<PoiRecord> getInChunk(Predicate<Holder<PoiType>> predicate, ChunkPos chunkPos, Occupancy occupancy);
 
     /**
      * @author Tomato
-     * @reason Allows for ships to be considered as a valid POI, also this method sucks anyway.
+     * @reason Walk both the seed's chunks and every intersecting ship's chunks, then
+     * filter in world coords so cross-frame seeds and records compare correctly.
      */
     @Overwrite
-    public Stream<PoiRecord> getInSquare(Predicate<PoiType> predicate, BlockPos blockPos, int i, Occupancy occupancy) {
+    public Stream<PoiRecord> getInSquare(Predicate<Holder<PoiType>> predicate, BlockPos blockPos, int i, Occupancy occupancy) {
         int j = Math.floorDiv(i, 16) + 1;
-        final AABB aABB = new AABB(blockPos).inflate((double) i + 1);
+        final Vec3 seedWorld;
+        if (this.valkyrienskies$sLevel != null) {
+            seedWorld = VSGameUtilsKt.toWorldCoordinates(this.valkyrienskies$sLevel,
+                new Vec3(blockPos.getX(), blockPos.getY(), blockPos.getZ()));
+        } else {
+            seedWorld = new Vec3(blockPos.getX(), blockPos.getY(), blockPos.getZ());
+        }
+        final AABB aABB = new AABB(seedWorld, seedWorld).inflate((double) i + 1);
         Stream<ChunkPos> chunkRange = ChunkPos.rangeClosed(new ChunkPos(blockPos), j);
         if (this.valkyrienskies$sLevel instanceof ServerLevel sLevel) {
             for (LoadedServerShip ship : VSGameUtilsKt.getShipObjectWorld(sLevel).getLoadedShips().getIntersecting(
@@ -60,17 +69,20 @@ public abstract class MixinPOIManager implements OfLevel {
                         new ChunkPos(chunkRangeBounds.z(), chunkRangeBounds.w())));
             }
         }
-        return chunkRange.flatMap((chunkPos) -> this.getInChunk(predicate, chunkPos, occupancy)).filter((poiRecord) -> {
+        // distinct(): a shipyard seed has its initial range and the ship-intersect loop
+        // covering the same chunks, which would return each PoiRecord twice.
+        return chunkRange.distinct().flatMap((chunkPos) -> this.getInChunk(predicate, chunkPos, occupancy)).filter((poiRecord) -> {
             BlockPos blockPos2 = poiRecord.getPos();
             Vec3 vecPos = VSGameUtilsKt.toWorldCoordinates(valkyrienskies$sLevel, new Vec3(blockPos2.getX(), blockPos2.getY(), blockPos2.getZ()));
-            return Math.abs(vecPos.x() - blockPos.getX()) <= i && Math.abs(vecPos.z() - blockPos.getZ()) <= i;
+            return Math.abs(vecPos.x() - seedWorld.x()) <= i && Math.abs(vecPos.z() - seedWorld.z()) <= i;
         });
     }
 
     @WrapOperation(method = "getInRange", at = @At(value = "INVOKE", target = "Ljava/util/stream/Stream;filter(Ljava/util/function/Predicate;)Ljava/util/stream/Stream;"))
-    private Stream<PoiRecord> onGetInRange(Stream<PoiRecord> instance, Predicate<PoiType> predicate, Operation<Stream<PoiRecord>> original, @Local(argsOnly = true) BlockPos arg, @Local(argsOnly = true) int i) {
+    private Stream<PoiRecord> onGetInRange(Stream<PoiRecord> instance, Predicate<? super PoiRecord> predicate, Operation<Stream<PoiRecord>> original, @Local(argsOnly = true) BlockPos arg, @Local(argsOnly = true) int i) {
         final int k = i * i;
-        return instance.filter(poiRecord -> POIChunkSearcher.INSTANCE.getWorldPos(poiRecord, this.valkyrienskies$sLevel).distanceToSqr(Vec3.atLowerCornerOf(arg)) <= (double)k);
+        final Vec3 seedWorld = VSGameUtilsKt.toWorldCoordinates(this.valkyrienskies$sLevel, Vec3.atLowerCornerOf(arg));
+        return instance.filter(poiRecord -> POIChunkSearcher.INSTANCE.getWorldPos(poiRecord, this.valkyrienskies$sLevel).distanceToSqr(seedWorld) <= (double)k);
     }
 
     @Override

@@ -49,7 +49,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.core.api.ships.properties.IShipActiveChunksSet;
 import org.valkyrienskies.core.internal.VsiGameServer;
-import org.valkyrienskies.core.internal.ShipTeleportData;
+import org.valkyrienskies.core.api.ships.ShipTeleportData;
 import org.valkyrienskies.core.internal.ships.VsiLoadedServerShip;
 import org.valkyrienskies.core.internal.world.VsiPlayer;
 import org.valkyrienskies.core.internal.world.VsiServerShipWorld;
@@ -60,6 +60,7 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.config.DimensionParametersResolver;
 import org.valkyrienskies.mod.common.config.MassDatapackResolver;
+import org.valkyrienskies.mod.common.fluid.VanillaFluidFlowWindProvider;
 import org.valkyrienskies.mod.common.hooks.VSGameEvents;
 import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.common.util.ShipSettingsKt;
@@ -191,7 +192,6 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     private void preTick(final CallbackInfo ci) {
         final Set<VsiPlayer> vsPlayers = playerList.getPlayers().stream()
             .map(VSGameUtilsKt::getPlayerWrapper).collect(Collectors.toSet());
-
         shipWorld.setPlayers(vsPlayers);
 
         // region Tell the VS world to load new levels, and unload deleted ones
@@ -252,6 +252,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         // Only drag entities after we have updated the ship positions
         for (final ServerLevel level : getAllLevels()) {
             EntityDragger.INSTANCE.dragEntitiesWithShips(level.getAllEntities(), false);
+            VanillaFluidFlowWindProvider.INSTANCE.tick(level);
             if (LoadedMods.getWeather2())
                 Weather2Compat.INSTANCE.tick(level);
         }
@@ -427,6 +428,25 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         if (vsPipeline != null) {
             vsPipeline.setDeleteResources(true);
             vsPipeline.setArePhysicsRunning(true);
+        }
+
+        // Remove all ship chunk tickets before Minecraft's shutdown loop, otherwise the
+        // while(hasWork()) loop in stopServer() hangs forever because shipyard ChunkHolders
+        // remain in updatingChunkMap and are never scheduled for dropping.
+        if (shipWorld != null) {
+            for (final LoadedServerShip ship : shipWorld.getLoadedShips()) {
+                final ServerLevel level = dimensionToLevelMap.get(ship.getChunkClaimDimension());
+                if (level != null) {
+                    ship.getActiveChunksSet().forEach((final int x, final int z) -> {
+                        final ChunkPos cp = new ChunkPos(x, z);
+                        // Remove the SHIP_CHUNK ticket (radius-0, level 33)
+                        level.getChunkSource().removeRegionTicket(
+                            org.valkyrienskies.mod.common.world.VSTicketType.SHIP_CHUNK, cp, 0, cp);
+                        // Also remove any legacy FORCED tickets in case they exist
+                        level.getChunkSource().updateChunkForced(cp, false);
+                    });
+                }
+            }
         }
     }
 

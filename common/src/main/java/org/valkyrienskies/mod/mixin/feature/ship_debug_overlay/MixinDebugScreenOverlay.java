@@ -6,6 +6,7 @@ import java.util.Locale;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.DebugScreenOverlay;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
@@ -21,8 +22,12 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.core.api.ships.Ship;
+import org.valkyrienskies.core.api.world.ClientShipWorld;
 import org.valkyrienskies.core.api.world.ServerShipWorld;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.assembly.SeamlessChunksManager;
+import org.valkyrienskies.mod.common.config.VSGameConfig;
+import org.valkyrienskies.mod.mixin.ValkyrienCommonMixinConfigPlugin;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 
@@ -39,9 +44,31 @@ public abstract class MixinDebugScreenOverlay {
     @Inject(method = "getGameInformation", at = @At(value = "INVOKE", target = "Ljava/util/List;add(Ljava/lang/Object;)Z", ordinal = 1))
     private void addShipCountInformation(CallbackInfoReturnable<List<String>> cir, @Local List<String> list) {
         Level l = getLevel();
+        list.add("Ship renderer: " + VSGameConfig.CLIENT.getDefaultRenderer()
+            + " (world: " + ValkyrienCommonMixinConfigPlugin.getVSRenderer() + ")");
         if (l instanceof ServerLevel) {
             ServerShipWorld world = VSGameUtilsKt.getShipObjectWorld((ServerLevel)l);
             list.add("Ships Loaded: " + world.getLoadedShips().size() + "/" + world.getAllShips().size());
+        } else if (l instanceof ClientLevel clientLevel) {
+            final ClientShipWorld world = VSGameUtilsKt.getShipObjectWorld(clientLevel);
+            final int loadedShips = world.getLoadedShips().size();
+            final int knownShips = world.getAllShips().size();
+            final SeamlessChunksManager chunks = SeamlessChunksManager.get();
+            final int deferredPackets = chunks == null ? 0 : chunks.pendingDeferredCount();
+            final int waitingPackets = chunks == null ? 0 : chunks.pendingShipChunkUpdateCount();
+            final int stalledPackets = chunks == null ? 0 : chunks.pendingStalledChunkUpdateCount();
+            final int waitingClaims = chunks == null ? 0 : chunks.pendingShipClaimCount();
+            final int stalledChunks = chunks == null ? 0 : chunks.stalledChunkCount();
+            final boolean loading =
+                loadedShips < knownShips || deferredPackets > 0 || waitingPackets > 0 || stalledPackets > 0;
+
+            list.add("Client Ships Loaded: " + loadedShips + "/" + knownShips + " (" +
+                (loading ? "loading" : "settled") + ")");
+            if (loading) {
+                list.add("Client Ship Loading: deferred=" + deferredPackets +
+                    ", waitingForShip=" + waitingPackets + "/" + waitingClaims +
+                    ", stalled=" + stalledPackets + "/" + stalledChunks);
+            }
         }
     }
 

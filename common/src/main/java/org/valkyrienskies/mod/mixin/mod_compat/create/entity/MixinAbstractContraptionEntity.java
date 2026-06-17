@@ -27,6 +27,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Quaterniond;
+import org.joml.Quaterniondc;
 import org.joml.Matrix3d;
 import org.joml.Matrix4d;
 import org.joml.Matrix4dc;
@@ -45,7 +47,6 @@ import org.valkyrienskies.core.api.ships.ContraptionWingProvider;
 import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.core.api.ships.LoadedShip;
 import org.valkyrienskies.core.api.ships.Ship;
-import org.valkyrienskies.core.api.ships.WingManager;
 import org.valkyrienskies.mod.common.CompatUtil;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.entity.ShipMountedToData;
@@ -53,6 +54,7 @@ import org.valkyrienskies.mod.common.entity.ShipMountedToDataProvider;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.compat.CreateConversionsKt;
+import org.valkyrienskies.mod.compat.create.ContraptionSegmentHelper;
 import org.valkyrienskies.mod.mixinducks.mod_compat.create.MixinAbstractContraptionEntityDuck;
 
 @Mixin(AbstractContraptionEntity.class)
@@ -101,6 +103,67 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
         if (transformedPos == null) transformedPos = this.getPosition(partialTicks == null ? 0.0f : partialTicks);
 
         return new ShipMountedToData(shipObjectEntityMountedTo, toJOML(transformedPos));
+    }
+
+    @Unique
+    private int vs$segmentId = -1;
+
+    @Unique
+    private long vs$segmentBodyId = -1L;
+
+    @Unique
+    private boolean vs$isWorldSegment = true;
+
+    @Unique
+    @Nullable
+    private Vector3d vs$lastSegmentPosition;
+
+    @Unique
+    @Nullable
+    private Quaterniond vs$lastSegmentRotation;
+
+    @Override
+    public int vs$getSegmentId() {
+        return vs$segmentId;
+    }
+
+    @Override
+    public void vs$setSegmentId(int segmentId) {
+        vs$segmentId = segmentId;
+    }
+
+    @Override
+    public void vs$setSegmentOwner(long bodyId, boolean isWorld) {
+        vs$segmentBodyId = bodyId;
+        vs$isWorldSegment = isWorld;
+    }
+
+    @Override
+    public long vs$getSegmentBodyId() {
+        return vs$segmentBodyId;
+    }
+
+    @Override
+    public boolean vs$isWorldSegment() {
+        return vs$isWorldSegment;
+    }
+
+    @Override
+    public void vs$setLastSegmentPose(Vector3dc position, Quaterniondc rotation) {
+        vs$lastSegmentPosition = new Vector3d(position);
+        vs$lastSegmentRotation = new Quaterniond(rotation);
+    }
+
+    @Override
+    @Nullable
+    public Vector3dc vs$getLastSegmentPosition() {
+        return vs$lastSegmentPosition;
+    }
+
+    @Override
+    @Nullable
+    public Quaterniondc vs$getLastSegmentRotation() {
+        return vs$lastSegmentRotation;
     }
 
     //Region start - fix being sent to the  ̶s̶h̶a̶d̶o̶w̶r̶e̶a̶l̶m̶ shipyard on ship contraption disassembly
@@ -316,6 +379,31 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
         }
     }
 
+    @Inject(method = "tick", at = @At("RETURN"))
+    private void updateCollisionSegmentTransform(final CallbackInfo ci) {
+        final int segmentId = this.vs$getSegmentId();
+        if (segmentId == -1 || this.level().isClientSide) {
+            return;
+        }
+        final ServerLevel serverLevel = (ServerLevel) this.level();
+        final AbstractContraptionEntity thisAsACE = AbstractContraptionEntity.class.cast(this);
+        final long bodyId = this.vs$getSegmentBodyId();
+        final boolean isWorld = this.vs$isWorldSegment();
+        ContraptionSegmentHelper.updateContraptionSegmentTransform(
+            serverLevel,
+            thisAsACE,
+            segmentId,
+            bodyId,
+            isWorld,
+            this.vs$getLastSegmentPosition(),
+            this.vs$getLastSegmentRotation()
+        );
+        this.vs$setLastSegmentPose(
+            ContraptionSegmentHelper.getContraptionSegmentPosition(serverLevel, thisAsACE, bodyId, isWorld),
+            ContraptionSegmentHelper.getContraptionSegmentRotation(serverLevel, thisAsACE, bodyId, isWorld)
+        );
+    }
+
     @NotNull
     @Override
     public Matrix4dc computeContraptionWingTransform() {
@@ -328,5 +416,22 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
     @Override
     public boolean vs$shouldDrag() {
         return false;
+    }
+
+    @Inject(method = "remove", at = @At("HEAD"))
+    private void onRemove(RemovalReason p_146834_, CallbackInfo ci) {
+        int segmentId = this.vs$getSegmentId();
+        if (segmentId == -1) return;
+        Level level = this.level();
+        if (level.isClientSide) {
+            return;
+        }
+        ServerLevel serverLevel = (ServerLevel) level;
+        ContraptionSegmentHelper.removeContraptionSegment(
+            serverLevel,
+            segmentId,
+            this.vs$getSegmentBodyId(),
+            this.vs$isWorldSegment()
+        );
     }
 }

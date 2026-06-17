@@ -5,8 +5,13 @@ import net.minecraft.world.InteractionResult
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.context.UseOnContext
+import org.joml.Matrix3d
+import org.joml.Quaterniond
 import org.joml.Vector3d
 import org.joml.Vector3dc
+import org.valkyrienskies.core.api.bodies.VsBodyCreateData
+import org.valkyrienskies.core.api.bodies.properties.BodyInertia
+import org.valkyrienskies.mod.api.vsApi
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.entity.VSPhysicsEntity
@@ -18,10 +23,7 @@ import org.valkyrienskies.mod.common.vsCore
 
 class PhysicsEntityCreatorItem(
     properties: Properties
-) : Item(properties) {
-    override fun isFoil(stack: ItemStack): Boolean {
-        return true
-    }
+) : VSItem(properties) {
 
     override fun useOn(ctx: UseOnContext): InteractionResult {
         val level = ctx.level as? ServerLevel ?: return super.useOn(ctx)
@@ -51,6 +53,22 @@ class PhysicsEntityCreatorItem(
             entity.setPhysicsEntityData(physicsEntityData)
             entity.setPos(entityPos.x(), entityPos.y(), entityPos.z())
             level.addFreshEntity(entity)
+
+            level.shipObjectWorld.createBody(
+                VsBodyCreateData(
+                    dimensionId = level.dimensionId,
+                    inertiaData = vsCore.newShipInertiaData(Vector3d(0.0, 0.0, 0.0), 50.0, Matrix3d().identity()),
+                    kinematics = vsCore.newBodyKinematics(
+                        velocity = Vector3d(),
+                        angularVelocity = Vector3d(),
+                        position = Vector3d(entityPos.x(), entityPos.y(), entityPos.z()),
+                        rotation = Quaterniond(),
+                        scaling = Vector3d(1.0),
+                        positionInModel = Vector3d(),
+                    ),
+                    collisionShape = vsCore.newSphereBodyShape(0.75)
+                )
+            )
 
             // Example of adding a constraint to a physics entity
             if (shipOn != null) {

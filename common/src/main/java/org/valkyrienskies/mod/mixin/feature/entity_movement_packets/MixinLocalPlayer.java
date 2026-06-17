@@ -89,7 +89,7 @@ public abstract class MixinLocalPlayer extends Entity implements IEntityDragging
 
                         double relativeYaw = EntityLerper.INSTANCE.yawToShip(ship, getRootVehicle().getYRot());
 
-                        PacketEntityShipMotion packet = new PacketEntityShipMotion(getRootVehicle().getId(), ship.getId(), relativePosition.x(), relativePosition.y(), relativePosition.z(), 0.0, 0.0, 0.0, relativeYaw, 0.0);
+                        PacketEntityShipMotion packet = new PacketEntityShipMotion(getRootVehicle().getId(), ship.getId(), relativePosition.x(), relativePosition.y(), relativePosition.z(), 0.0, 0.0, 0.0, relativeYaw, 0.0, getRootVehicle().onGround());
                         ValkyrienSkiesMod.getVsCore().getSimplePacketNetworking().sendToServer(packet);
                     }
                 }

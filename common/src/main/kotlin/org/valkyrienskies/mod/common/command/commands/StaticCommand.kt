@@ -13,6 +13,7 @@ import kotlin.collections.forEach
 
 object StaticCommand {
     private const val SET_SHIP_STATIC_SUCCESS_MESSAGE = "command.valkyrienskies.set_static.success"
+    private const val TOGGLE_SHIP_STATIC_SUCCESS_MESSAGE = "command.valkyrienskies.set_static.toggle_success"
     private const val SET_ONE_SHIP_STATIC_SUCCESS_MESSAGE = "command.valkyrienskies.set_static.success_one"
 
     fun register(vs: LiteralArgumentBuilder<CommandSourceStack>) {
@@ -35,6 +36,20 @@ object StaticCommand {
                             )
                             r.size
                         })
+                        .executes {
+                            val r = ShipArgument.getShips(it, "ships").toList() as List<ServerShip>
+                            r.forEach { ship ->
+                                ship.isStatic = !ship.isStatic
+                            }
+                            it.source.sendSuccess(
+                                {
+                                    translatable(
+                                        TOGGLE_SHIP_STATIC_SUCCESS_MESSAGE, r.size
+                                    )
+                                }, true
+                            )
+                            r.size
+                        }
                 )
         )
     }

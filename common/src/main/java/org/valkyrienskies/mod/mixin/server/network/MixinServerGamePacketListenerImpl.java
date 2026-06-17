@@ -4,6 +4,7 @@ import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Set;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -15,8 +16,12 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.ServerPlayerGameMode;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.RelativeMovement;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -179,6 +184,42 @@ public abstract class MixinServerGamePacketListenerImpl {
         if (world != null) {
             world.onDisconnect(VSGameUtilsKt.getPlayerWrapper(this.player));
         }
+    }
+
+    // Drop shapes whose bounds don't intersect the query AABB before they reach
+    // Shapes.joinIsNotEmpty — its discretized IndexMerger loses precision at the ~10⁷
+    // coords of shipyard-frame entity shapes and reports a false intersect with the
+    // player's world-frame bbox, locking the player in a teleport-back loop.
+    @WrapOperation(
+        method = "isPlayerCollidingWithAnythingNew",
+        at = @At(value = "INVOKE",
+            target = "Lnet/minecraft/world/level/LevelReader;getCollisions(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/phys/AABB;)Ljava/lang/Iterable;")
+    )
+    private Iterable<VoxelShape> vs$dropFarShapesFromMoveCheck(
+        final LevelReader level, final Entity excluder, final AABB aabb,
+        final Operation<Iterable<VoxelShape>> original
+    ) {
+        final Iterable<VoxelShape> raw = original.call(level, excluder, aabb);
+        return () -> new Iterator<>() {
+            final Iterator<VoxelShape> backing = raw.iterator();
+            VoxelShape next = advance();
+
+            private VoxelShape advance() {
+                while (backing.hasNext()) {
+                    final VoxelShape s = backing.next();
+                    if (s.isEmpty()) continue;
+                    if (s.bounds().intersects(aabb)) return s;
+                }
+                return null;
+            }
+
+            @Override public boolean hasNext() { return next != null; }
+            @Override public VoxelShape next() {
+                final VoxelShape r = next;
+                next = advance();
+                return r;
+            }
+        };
     }
 
     @Inject(

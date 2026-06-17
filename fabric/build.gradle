@@ -45,8 +45,12 @@ dependencies {
 
     modCompileOnly("maven.modrinth:create-utilities:${create_utilities_version}")
     modCompileOnly("maven.modrinth:sodium:${sodium_version}")
+    // Disable indium until we update sodium to newer versions
+    //modRuntimeOnly("maven.modrinth:indium:${indium_version}")
+    modCompileOnly("maven.modrinth:iris:${iris_version}")
 
     modRuntimeOnly("maven.modrinth:modmenu:${modmenu_version}")
+
 
     // Depend on the fabric API
     modImplementation("net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}")
@@ -83,6 +87,8 @@ dependencies {
     //todo: fix
     modCompileOnly("maven.modrinth:entity-model-features:3.0.7-fabric-1.20.1")
     modCompileOnly("maven.modrinth:entitytexturefeatures:7.0.6-fabric-1.20.1")
+
+    modCompileOnly("curse.maven:vista-1368607:7929284")
 
     // Create compat
     //modImplementation("com.simibubi.create:create-fabric:${create_fabric_version}") {

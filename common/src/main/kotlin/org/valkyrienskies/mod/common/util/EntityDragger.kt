@@ -1,7 +1,9 @@
 package org.valkyrienskies.mod.common.util
 
 import net.minecraft.client.player.LocalPlayer
+import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
+import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.util.Mth
 import net.minecraft.world.entity.Entity
@@ -19,13 +21,17 @@ import org.valkyrienskies.mod.api.toJOML
 import org.valkyrienskies.mod.api.toMinecraft
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager
 import org.valkyrienskies.mod.common.getLoadedShipManagingPos
+import org.valkyrienskies.mod.common.networking.PacketEntityShipMotion
+import org.valkyrienskies.mod.common.networking.PacketPlayerShipMotion
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.EntityLerper.yawToWorld
+import org.valkyrienskies.mod.common.vsCore
+import org.valkyrienskies.mod.mixinducks.world.entity.PlayerDuck
+import java.util.function.Predicate
 import kotlin.math.asin
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
-import kotlin.math.sqrt
 
 object EntityDragger {
     // How much we decay the addedMovement each tick after player hasn't collided with a ship for at least 10 ticks.
@@ -122,7 +128,7 @@ object EntityDragger {
                     entity.z + addedMovement.z()
                 )
 
-                if(entityDraggingInformation.shouldImpulseMovement && (!entity.level().isClientSide || entity is LocalPlayer)) { //This is the first Tick on the ship. Also, should push the entity in server side only and propagate the result.
+                if(entityDraggingInformation.shouldImpulseMovement && entity.isControlledByLocalInstance) { //This is the first Tick on the ship. Also, should push the entity in server side only and propagate the result.
                     val acceleration = Vector3d(entityDraggingInformation.addedMovementLastTick) // if it was on a different ship last tick, consider that too.
                         .sub(addedMovement) // relative velocity to current ship.
                     entity.push(acceleration.x, acceleration.y, acceleration.z)
@@ -162,13 +168,31 @@ object EntityDragger {
 
                     entityDraggingInformation.addedYawRotLastTick = addedYRot
                 }
-            } else if ((!entity.level().isClientSide || entity is LocalPlayer) && entityDraggingInformation.addedMovementLastTick.length() > 1e-3) {
+                if (!entity.level().isClientSide && !entity.onGround() && entity.deltaMovement.y <= 0.0) {
+                    val ship = shipDraggingEntity?.let { entity.level().shipObjectWorld.allShips.getById(it) }
+                    if (ship != null) {
+                        val level = entity.level()
+                        val shipLocal = ship.transform.worldToShip.transformPosition(
+                            Vector3d(entity.x, entity.y - 0.2, entity.z), Vector3d()
+                        )
+                        val footProbe = BlockPos.containing(shipLocal.x, shipLocal.y, shipLocal.z)
+                        // Fallback to the cell below catches fences/walls whose collision extends
+                        // above the cell they occupy.
+                        val onShipBlock = !level.getBlockState(footProbe)
+                                .getCollisionShape(level, footProbe).isEmpty
+                            || !level.getBlockState(footProbe.below())
+                                .getCollisionShape(level, footProbe.below()).isEmpty
+                        if (onShipBlock) entity.setOnGround(true)
+                    }
+                }
+            } else if (entity.isControlledByLocalInstance && entityDraggingInformation.addedMovementLastTick.lengthSquared() > 1e-6) {
                 entity.push(entityDraggingInformation.addedMovementLastTick.x(),
                     entityDraggingInformation.addedMovementLastTick.y(),
                     entityDraggingInformation.addedMovementLastTick.z())
                 entityDraggingInformation.addedMovementLastTick = Vector3d()
                 entityDraggingInformation.addedYawRotLastTick = 0.0
             }
+
             entityDraggingInformation.ticksSinceStoodOnShip++
             entityDraggingInformation.mountedToEntity = entity.vehicle != null
         }
@@ -311,8 +335,7 @@ object EntityDragger {
             }
         }
 
-        val motionLength = sqrt(d * d + e * e + f * f)
-        return ship.shipToWorld.transformDirection(Vector3d(d, e, f)).normalize().mul(motionLength).toMinecraft()
+        return ship.shipToWorld.transformDirection(Vector3d(d, e, f)).toMinecraft()
     }
 
     private fun isValidWalkablePosition(

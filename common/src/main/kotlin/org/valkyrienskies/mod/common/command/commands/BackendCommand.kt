@@ -18,6 +18,7 @@ object BackendCommand {
     private const val LOD_SET_MESSAGE = "command.valkyrienskies.lod.set"
     private const val BACKEND_CURRENT_MESSAGE = "command.valkyrienskies.backend.current"
     private const val BACKEND_SET_MESSAGE = "command.valkyrienskies.backend.set"
+    private const val BACKEND_EOL_MESSAGE = "command.valkyrienskies.backend.eol"
     private const val LOD_DISABLED_MESSAGE = "command.valkyrienskies.lod.disabled"
 
     fun register(vs: LiteralArgumentBuilder<CommandSourceStack>) {
@@ -63,14 +64,24 @@ object BackendCommand {
 
                         1
                     }
-                ).then(literal("jolt")
+                ).then(literal("konstant")
                     .executes {
-                        VSCoreConfig.SERVER.physics.physicsBackend = ConfigPhysicsBackendType.KRUNCH_JOLT
-                        (VSConfigUpdater.forgeConfigValuesMap.get("physicsBackend") as ForgeConfigSpec.ConfigValue<String>).set(ConfigPhysicsBackendType.KRUNCH_JOLT.name)
+                        VSCoreConfig.SERVER.physics.physicsBackend = ConfigPhysicsBackendType.KRUNCH_KONSTANT
+                        (VSConfigUpdater.forgeConfigValuesMap.get("physicsBackend") as ForgeConfigSpec.ConfigValue<String>).set(ConfigPhysicsBackendType.KRUNCH_KONSTANT.name)
 
                         it.source.sendSuccess(
                             {
                                 translatable(BACKEND_SET_MESSAGE, VSCoreConfig.SERVER.physics.physicsBackend.name)
+                            }, true
+                        )
+
+                        1
+                    }
+                ).then(literal("jolt")
+                    .executes {
+                        it.source.sendSuccess(
+                            {
+                                translatable(BACKEND_EOL_MESSAGE, "Jolt")
                             }, true
                         )
 

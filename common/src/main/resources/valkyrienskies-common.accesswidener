@@ -4,7 +4,7 @@ accessWidener	v2	named
 # For Rendering
 accessible	class	net/minecraft/client/renderer/LevelRenderer$RenderChunkInfo
 
-# For ChunkMap
+# For ChunkMap, ClientChunkCache
 accessible	class	net/minecraft/client/multiplayer/ClientChunkCache$Storage
 
 # For including entities on ships getting send to the client

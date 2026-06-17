@@ -21,6 +21,7 @@ import org.valkyrienskies.core.api.world.connectivity.ConnectionStatus
 import org.valkyrienskies.core.api.world.connectivity.SparseVoxelPosition
 import org.valkyrienskies.core.internal.world.chunks.VsiBlockType
 import org.valkyrienskies.mod.common.block.WingBlock
+import org.valkyrienskies.mod.common.air_pockets.ShipWaterPocketManager
 import org.valkyrienskies.mod.common.config.ConfigType
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.config.VSGameConfig
@@ -129,9 +130,16 @@ object BlockStateInfo {
 
         val shipObjectWorld = level.shipObjectWorld
 
-        val (prevBlockMass, prevBlockType) = get(prevBlockState) ?: return
+        val (prevBlockMass, rawPrevBlockType) = get(prevBlockState) ?: return
 
-        val (newBlockMass, newBlockType) = get(newBlockState) ?: return
+        val (newBlockMass, rawNewBlockType) = get(newBlockState) ?: return
+
+        val prevBlockType = resolvePhysicsBlockTypeForAirPocket(
+            level, x, y, z, prevBlockState, rawPrevBlockType
+        )
+        val newBlockType = resolvePhysicsBlockTypeForAirPocket(
+            level, x, y, z, newBlockState, rawNewBlockType
+        )
 
         // region Inject wings
         if (level is ServerLevel) {
@@ -177,52 +185,29 @@ object BlockStateInfo {
         }
 
         if (level is ServerLevel) {
-            val loadedShip = level.getLoadedShipManagingPos(x shr 4, z shr 4)
-            if (loadedShip != null) {
-                if (VSGameConfig.SERVER.enablePocketBuoyancy) {
-                    val buoyancyHandler = loadedShip.getAttachment(BuoyancyHandlerAttachment::class.java)
-                    val dimension = loadedShip.chunkClaimDimension
-                    val allComponentsInClaim = level.shipObjectWorld.getAllAirComponentsFromClaim(dimension, loadedShip.chunkClaim)
-                    var newTotal = 0.0
-                    var centerSum = Vector3d(0.0, 0.0, 0.0)
-                    if (allComponentsInClaim.isNotEmpty()) {
-                        for (component in allComponentsInClaim) {
-                            if (level.shipObjectWorld.isIsolatedAir(
-                                    component.x(), component.y(), component.z(), dimension
-                                ) != ConnectionStatus.DISCONNECTED
-                            ) continue
-                            val componentSize = level.shipObjectWorld.getAirComponentSize(
-                                component.x(), component.y(), component.z(), dimension
-                            )
-                            val componentVoxels = level.shipObjectWorld.indexAirComponentVoxels(
-                                component.x(), component.y(), component.z(), dimension
-                            )
-                            val componentCenter = componentVoxels.centerFromVoxelSet()
-
-                            newTotal += componentSize
-                            centerSum.add(
-                                componentCenter.x() * componentSize,
-                                componentCenter.y() * componentSize,
-                                componentCenter.z() * componentSize
-                            )
-                        }
-                    }
-                    if (newTotal > 0.0) {
-                        centerSum.div(newTotal)
-                    } else {
-                        centerSum.set(0.0, 0.0, 0.0)
-                    }
-                    buoyancyHandler?.buoyancyData?.pocketVolumeTotal = newTotal.toDouble()
-                    if (loadedShip.shipAABB?.containsPoint(centerSum.x().toFloat(), centerSum.y().toFloat(), centerSum.z().toFloat()) != false) buoyancyHandler?.buoyancyData?.pocketCenterAverage = centerSum
-                    //println("is center sum contained within ship aabb?: ${loadedShip.shipAABB?.containsPoint(centerSum.x().toFloat(), centerSum.y().toFloat(), centerSum.z().toFloat())}")
-                }
-            }
             if (ValkyrienSkiesMod.vsCore.hooks.enableConnectivity) {
                 ValkyrienSkiesMod.splitHandler.queueSplit(level, level.getShipManagingPos(x.toDouble(), y.toDouble(), z.toDouble())?.id)
             }
         }
 
 
+    }
+
+    private fun resolvePhysicsBlockTypeForAirPocket(
+        level: Level,
+        x: Int,
+        y: Int,
+        z: Int,
+        blockState: BlockState,
+        defaultBlockType: VsiBlockType,
+    ): VsiBlockType {
+        if (!blockState.isAir || !VSGameConfig.COMMON.enableAirPockets) return defaultBlockType
+        val blockPos = BlockPos(x, y, z)
+        return if (ShipWaterPocketManager.isShipyardBlockPosInShipAirPocket(level, blockPos)) {
+            ValkyrienSkiesMod.vsCore.blockTypes.displacementAir
+        } else {
+            defaultBlockType
+        }
     }
 
     /**

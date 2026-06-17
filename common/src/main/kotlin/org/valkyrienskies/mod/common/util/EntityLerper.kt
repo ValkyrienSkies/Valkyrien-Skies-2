@@ -22,35 +22,30 @@ object EntityLerper {
             return
         }
         val ship = refship as ClientShip
-        dragInfo.ticksSinceLastServerPacket++
-        if (dragInfo.ticksSinceLastServerPacket > 19) {
-            // Ping server to ask for an update, we're probably stuck!
-
-        }
         if (dragInfo.lerpSteps > 0) {
-            if (dragInfo.changedShipLastTick) {
-                //dragInfo.lerpSteps = 0
-                dragInfo.changedShipLastTick = false
-
-
-                // val transformed = if (dragInfo.lerpPositionOnShip != null) {
-                //      entity.level.toWorldCoordinates(Vector3d(dragInfo.lerpPositionOnShip))
-                // } else entity.position().toJOML()
-                // val transformedYaw = if (dragInfo.lerpYawOnShip != null) {
-                //     yawToWorld(ship, dragInfo.lerpYawOnShip!!)
-                // } else entity.yRot.toDouble()
-                //
-                // if (dragInfo.relativePositionOnShip != null) {
-                //     val newX: Double = dragInfo.relativePositionOnShip!!.x() + (dragInfo.lerpPositionOnShip - currentX) / dragInfo.lerpSteps
-                //     val newY: Double = currentY + (lerpY - currentY) / dragInfo.lerpSteps
-                //     val newZ: Double = currentZ + (lerpZ - currentZ) / dragInfo.lerpSteps
-                //
-                //     entity.setPos(transformed.x, transformed.y, transformed.z)
-                //     entity.yRot = transformedYaw.toFloat()
-                // }
-                //dragInfo.lerpSteps--
-                //return
-            }
+            // if (dragInfo.changedShipLastTick) {
+            //     //dragInfo.lerpSteps = 0
+            //     dragInfo.changedShipLastTick = false
+            //
+            //
+            //     // val transformed = if (dragInfo.lerpPositionOnShip != null) {
+            //     //      entity.level.toWorldCoordinates(Vector3d(dragInfo.lerpPositionOnShip))
+            //     // } else entity.position().toJOML()
+            //     // val transformedYaw = if (dragInfo.lerpYawOnShip != null) {
+            //     //     yawToWorld(ship, dragInfo.lerpYawOnShip!!)
+            //     // } else entity.yRot.toDouble()
+            //     //
+            //     // if (dragInfo.relativePositionOnShip != null) {
+            //     //     val newX: Double = dragInfo.relativePositionOnShip!!.x() + (dragInfo.lerpPositionOnShip - currentX) / dragInfo.lerpSteps
+            //     //     val newY: Double = currentY + (lerpY - currentY) / dragInfo.lerpSteps
+            //     //     val newZ: Double = currentZ + (lerpZ - currentZ) / dragInfo.lerpSteps
+            //     //
+            //     //     entity.setPos(transformed.x, transformed.y, transformed.z)
+            //     //     entity.yRot = transformedYaw.toFloat()
+            //     // }
+            //     //dragInfo.lerpSteps--
+            //     //return
+            // }
 
             val lerpship = entity.level().getLoadedShipManagingPos(dragInfo.lerpPositionOnShip!!)
             val posship = entity.level().getLoadedShipManagingPos(dragInfo.relativePositionOnShip!!)

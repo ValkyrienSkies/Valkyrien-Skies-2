@@ -124,8 +124,9 @@ public abstract class MixinEntity {
         isModifyingTeleport = true;
         final Vector3d pos = VSEntityManager.INSTANCE.getHandler(Entity.class.cast(this))
             .getTeleportPos(Entity.class.cast(this), new Vector3d(d, e, f));
-        teleportTo(serverLevel, pos.x, pos.y, pos.z, set, g, h);
+        final boolean result = teleportTo(serverLevel, pos.x, pos.y, pos.z, set, g, h);
         isModifyingTeleport = false;
+        ci.setReturnValue(result);
     }
 
     /**

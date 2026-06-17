@@ -6,6 +6,8 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -56,8 +58,10 @@ public abstract class MixinLivingEntity extends Entity {
                 // Only run this if we haven't modified cir yet
                 if (cir.getReturnValue() != Boolean.TRUE) {
                     // Modify the block position, then check if we can climb ladders
-                    thisAsAccessor.setBlockPosition(BlockPos.containing(Mth.floor(x), Mth.floor(y), Mth.floor(z)));
-                    thisAsAccessor.setFeetBlockState(null);
+                    final BlockPos shipLocalPos = BlockPos.containing(Mth.floor(x), Mth.floor(y), Mth.floor(z));
+                    thisAsAccessor.setBlockPosition(shipLocalPos);
+                    final BlockState shipLocalState = this.level().getBlockState(shipLocalPos);
+                    thisAsAccessor.setFeetBlockState(shipLocalState != null ? shipLocalState : Blocks.AIR.defaultBlockState());
                     if (onClimbable()) {
                         cir.setReturnValue(true);
                     }
@@ -66,7 +70,8 @@ public abstract class MixinLivingEntity extends Entity {
             });
             // Restore the original block position
             thisAsAccessor.setBlockPosition(originalBlockPosition);
-            thisAsAccessor.setFeetBlockState(null);
+            final BlockState restoredState = this.level().getBlockState(originalBlockPosition);
+            thisAsAccessor.setFeetBlockState(restoredState != null ? restoredState : Blocks.AIR.defaultBlockState());
             isModifyingClimbable = false;
         }
     }

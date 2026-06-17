@@ -13,11 +13,7 @@ import org.valkyrienskies.mod.api.toBlockPos
 import org.valkyrienskies.mod.common.assembly.ShipAssembler
 import org.valkyrienskies.mod.common.isChunkInShipyard
 
-class ShipAssemblerItem(properties: Properties) : Item(properties) {
-
-    override fun isFoil(stack: ItemStack): Boolean {
-        return true
-    }
+class ShipAssemblerItem(properties: Properties) : VSItem(properties) {
 
     override fun useOn(ctx: UseOnContext): InteractionResult {
         val level = ctx.level as? ServerLevel ?: return super.useOn(ctx)

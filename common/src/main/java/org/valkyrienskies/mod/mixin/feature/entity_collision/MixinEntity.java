@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.mixin.feature.entity_collision;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
+import java.util.Objects;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
@@ -13,29 +14,35 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import java.util.Optional;
+import net.minecraft.world.phys.shapes.BooleanOp;
+import net.minecraft.world.phys.shapes.Shapes;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
-import org.joml.primitives.AABBd;
-import org.joml.primitives.AABBdc;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
-import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
+import org.valkyrienskies.mod.common.util.ShipPathfindingUtils;
+import org.valkyrienskies.mod.mixinducks.world.entity.EntityShipGroundingDuck;
 
 @Mixin(Entity.class)
-public abstract class MixinEntity implements IEntityDraggingInformationProvider {
+public abstract class MixinEntity implements IEntityDraggingInformationProvider, EntityShipGroundingDuck {
 
     // region collision
+
+    @Shadow
+    public abstract BlockPos blockPosition();
 
     @Shadow
     public boolean hasImpulse;
@@ -77,6 +84,44 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     }
 
     /**
+     * Will execute suffocation check for ship blocks too.
+     */
+    @Inject(
+        method = "isInWall",
+        at = @At(value = "TAIL"),
+        cancellable = true
+    )
+    private void isInShipWall(CallbackInfoReturnable<Boolean> cir, @Local AABB aabb){
+        if(cir.getReturnValue()) return;
+        VSGameUtilsKt.transformFromWorldToNearbyShipsAndWorld(level, aabb, arg -> {
+            BlockPos.betweenClosedStream(arg).forEach(
+                blockPos -> {
+                    BlockState blockState = level.getBlockState(blockPos);
+                    if(!blockState.isAir()
+                        && blockState.isSuffocating(level, blockPos)
+                        && Shapes.joinIsNotEmpty(blockState.getCollisionShape(level, blockPos).move(blockPos.getX(), blockPos.getY(), blockPos.getZ()), Shapes.create(arg), BooleanOp.AND)
+                    ) {
+                        cir.setReturnValue(true);
+                    }
+                }
+            );
+        });
+    }
+
+    /**
+     * Allows Entities to use collision with ship to get into pose, e.g. crawling of players.
+     */
+    @WrapOperation(
+        method = "canEnterPose",
+        at = @At(value = "INVOKE",
+            target = "Lnet/minecraft/world/level/Level;noCollision(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/phys/AABB;)Z")
+    )
+    private boolean noCollisionWithShip(Level level, Entity entity, AABB aabb, Operation<Boolean> original){
+        if(!original.call(level, entity, aabb)) return false;
+        return EntityShipCollisionUtils.INSTANCE.getShipPolygonsCollidingWithEntity(null, Vec3.ZERO, aabb.deflate(0.2), level).isEmpty();
+    }
+
+    /**
      * Allows entities to collide with ships by modifying the movement vector.
      */
     @WrapOperation(
@@ -88,8 +133,22 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     )
     public Vec3 collideWithShips(final Entity entity, Vec3 movement, final Operation<Vec3> collide) {
         final AABB box = this.getBoundingBox();
-        movement = EntityShipCollisionUtils.INSTANCE
-            .adjustEntityMovementForShipCollisions(entity, movement, box, this.level);
+        Long draggingShipID = getDraggingInformation().getLastShipStoodOn();
+      
+        //Subdivide the movement if the speed is too high, to avoid clipping through.
+        int subdivision = (int) (movement.length() / 0.5) + 1;
+        Vec3 substep = movement.scale(1.0 / subdivision);
+        for (int i = 0; i < subdivision; i++) {
+            Vec3 partialResult = EntityShipCollisionUtils.INSTANCE
+                .adjustEntityMovementForShipCollisions(entity, substep, box.move(substep.scale(i)), this.level);
+            partialResult = EntityShipCollisionUtils
+              .adjustEntityMovementForShipyardEntityCollisions(entity, partialResult, box.move(substep.scale(i)), this.level);
+          if (partialResult.distanceToSqr(substep) > 1e-12) {
+                //Collision happened on this step.
+                movement = substep.scale(i).add(partialResult);
+                break;
+            }
+        }
         final Vec3 collisionResultWithWorld = collide.call(entity, movement);
 
         if (collisionResultWithWorld.distanceToSqr(movement) > 1e-12) {
@@ -108,6 +167,9 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
                 passengerDraggingInformation.setLastShipStoodOn(null);
                 passengerDraggingInformation.setAddedYawRotLastTick(0.0);
             }
+        }
+        if(!Objects.equals(getDraggingInformation().getLastShipStoodOn(), draggingShipID)) {
+            entity.hasImpulse = true;
         }
         return collisionResultWithWorld;
     }
@@ -136,7 +198,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
         // Remove the component of [movementAdjustedForCollisions] that is parallel to [collisionResponseHorizontal]
         if (collisionResponseHorizontal.lengthSquared() > 1e-6) {
-            final Vec3 deltaMovement = getDeltaMovement();
+            final Vec3 deltaMovement = this.getDeltaMovement();
 
             final Vector3dc collisionResponseHorizontalNormal = collisionResponseHorizontal.normalize(new Vector3d());
             final double parallelHorizontalVelocityComponent =
@@ -144,62 +206,76 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
                     .dot(deltaMovement.x, 0.0, deltaMovement.z);
 
             setDeltaMovement(
-                deltaMovement.x
-                    - collisionResponseHorizontalNormal.x() * parallelHorizontalVelocityComponent,
+                deltaMovement.x - collisionResponseHorizontalNormal.x() * parallelHorizontalVelocityComponent,
                 deltaMovement.y,
-                deltaMovement.z
-                    - collisionResponseHorizontalNormal.z() * parallelHorizontalVelocityComponent
+                deltaMovement.z - collisionResponseHorizontalNormal.z() * parallelHorizontalVelocityComponent
             );
         }
-        // The rest of the move function (including tryCheckInsideBlocks) is skipped, so calling it here
-        tryCheckInsideBlocks();
-        // Cancel the original invocation of Entity.setVelocity(DDD)V to remove vanilla behavior
-        callbackInfo.cancel();
     }
-
     // endregion
+
+    // This cancels the actual setDeltaMovement. We can't cancel it in the @Inject, that cancels the entire move function. Somehow this doesn't interfere with the @Inject, crazy.
+    @Redirect(
+        method = "move",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/world/entity/Entity;setDeltaMovement(DDD)V"
+        )
+    )
+    private void cancelSetDeltaMovement(Entity instance, double d, double e, double f) {}
+
 
     // region Block standing on friction and sprinting particles mixins
     @Unique
-    private BlockPos getPosStandingOnFromShips(final Vector3dc blockPosInGlobal) {
-        final double radius = 0.5;
-        final AABBdc testAABB = new AABBd(
-            blockPosInGlobal.x() - radius, blockPosInGlobal.y() - radius, blockPosInGlobal.z() - radius,
-            blockPosInGlobal.x() + radius, blockPosInGlobal.y() + radius, blockPosInGlobal.z() + radius
-        );
-        final Iterable<Ship> intersectingShips = VSGameUtilsKt.getShipsIntersecting(level, testAABB);
-        for (final Ship ship : intersectingShips) {
-            final Vector3dc blockPosInLocal =
-                ship.getTransform().getWorldToShip().transformPosition(blockPosInGlobal, new Vector3d());
-            final BlockPos blockPos = BlockPos.containing(
-                blockPosInLocal.x(), blockPosInLocal.y(), blockPosInLocal.z()
-            );
-            final BlockState blockState = level.getBlockState(blockPos);
-            if (!blockState.isAir()) {
-                return blockPos;
-            } else {
-                // Check the block below as well, in the cases of fences
-                final Vector3dc blockPosInLocal2 = ship.getTransform().getWorldToShip()
-                    .transformPosition(
-                        new Vector3d(blockPosInGlobal.x(), blockPosInGlobal.y() - 1.0, blockPosInGlobal.z()));
-                final BlockPos blockPos2 = BlockPos.containing(blockPosInLocal2.x(), blockPosInLocal2.y(), blockPosInLocal2.z());
-                final BlockState blockState2 = level.getBlockState(blockPos2);
-                if (!blockState2.isAir()) {
-                    return blockPos2;
-                }
-            }
+    private int vs$shipSupportCacheTick = Integer.MIN_VALUE;
+    @Unique
+    private double vs$shipSupportCacheMinX;
+    @Unique
+    private double vs$shipSupportCacheMinY;
+    @Unique
+    private double vs$shipSupportCacheMinZ;
+    @Unique
+    private double vs$shipSupportCacheMaxX;
+    @Unique
+    private double vs$shipSupportCacheMaxY;
+    @Unique
+    private double vs$shipSupportCacheMaxZ;
+    @Unique
+    private BlockPos vs$shipSupportCacheResult;
+
+    @Unique
+    private BlockPos getPosStandingOnFromShips() {
+        final AABB box = getBoundingBox();
+        if (vs$isShipSupportCacheValid(box)) {
+            return vs$shipSupportCacheResult;
         }
-        return null;
+
+        final BlockPos result = ShipPathfindingUtils.findSupportingShipBlock(level, Entity.class.cast(this), box);
+        vs$shipSupportCacheTick = tickCount;
+        vs$shipSupportCacheMinX = box.minX;
+        vs$shipSupportCacheMinY = box.minY;
+        vs$shipSupportCacheMinZ = box.minZ;
+        vs$shipSupportCacheMaxX = box.maxX;
+        vs$shipSupportCacheMaxY = box.maxY;
+        vs$shipSupportCacheMaxZ = box.maxZ;
+        vs$shipSupportCacheResult = result;
+        return result;
+    }
+
+    @Unique
+    private boolean vs$isShipSupportCacheValid(final AABB box) {
+        return vs$shipSupportCacheTick == tickCount
+            && vs$shipSupportCacheMinX == box.minX
+            && vs$shipSupportCacheMinY == box.minY
+            && vs$shipSupportCacheMinZ == box.minZ
+            && vs$shipSupportCacheMaxX == box.maxX
+            && vs$shipSupportCacheMaxY == box.maxY
+            && vs$shipSupportCacheMaxZ == box.maxZ;
     }
 
     @Inject(method = "getBlockPosBelowThatAffectsMyMovement", at = @At("HEAD"), cancellable = true)
     private void preGetBlockPosBelowThatAffectsMyMovement(final CallbackInfoReturnable<BlockPos> cir) {
-        final Vector3dc blockPosInGlobal = new Vector3d(
-            position.x,
-            getBoundingBox().minY - 0.5,
-            position.z
-        );
-        final BlockPos blockPosStandingOnFromShip = getPosStandingOnFromShips(blockPosInGlobal);
+        final BlockPos blockPosStandingOnFromShip = getPosStandingOnFromShips();
         if (blockPosStandingOnFromShip != null) {
             cir.setReturnValue(blockPosStandingOnFromShip);
         }
@@ -212,15 +288,34 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
      */
     @Inject(method = "getOnPos(F)Lnet/minecraft/core/BlockPos;", at = @At("HEAD"), cancellable = true)
     private void preGetOnPos(final CallbackInfoReturnable<BlockPos> cir) {
-        final Vector3dc blockPosInGlobal = new Vector3d(
-            position.x,
-            position.y - 0.2,
-            position.z
-        );
-        final BlockPos blockPosStandingOnFromShip = getPosStandingOnFromShips(blockPosInGlobal);
+        final BlockPos blockPosStandingOnFromShip = getPosStandingOnFromShips();
         if (blockPosStandingOnFromShip != null) {
             cir.setReturnValue(blockPosStandingOnFromShip);
         }
+    }
+
+    @WrapOperation(
+        method = "move",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/world/entity/Entity;setOnGroundWithKnownMovement(ZLnet/minecraft/world/phys/Vec3;)V"
+        )
+    )
+    private void addShipSupportToOnGroundState(final Entity entity, final boolean onGround, final Vec3 movement,
+        final Operation<Void> original) {
+        final BlockPos shipSupportPos =
+            onGround ? null : getPosStandingOnFromShips();
+        final boolean shouldBeGrounded = onGround || shipSupportPos != null;
+        original.call(entity, shouldBeGrounded, movement);
+        if (shipSupportPos != null) {
+            vs$setShipSupportingBlock(shipSupportPos);
+        }
+    }
+
+    @Override
+    public void vs$setShipSupportingBlock(final BlockPos blockPos) {
+        this.mainSupportingBlockPos = Optional.of(blockPos.immutable());
+        this.onGroundNoBlocks = false;
     }
 
     @WrapOperation(method = "spawnSprintParticle", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;blockPosition()Lnet/minecraft/core/BlockPos;"))
@@ -243,45 +338,50 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         }
     }
 
-    @Inject(
-        method = "baseTick",
-        at = @At("TAIL")
-    )
-    private void postBaseTick(final CallbackInfo ci) {
-        final EntityDraggingInformation entityDraggingInformation = getDraggingInformation();
-
-        if (level != null && level.isClientSide && tickCount > 1) { //baseTick sets the firstTick false, use tickCount instead.
-            final Ship ship = VSGameUtilsKt.getLoadedShipManagingPos(level, getOnPos());
-            if (ship != null) {
-//                if (entityDraggingInformation.getLastShipStoodOnServerWriteOnly() == null) {
-//                    return;
+//    @Inject(
+//        method = "baseTick",
+//        at = @At("TAIL")
+//    )
+//    private void postBaseTick(final CallbackInfo ci) {
+//        final EntityDraggingInformation entityDraggingInformation = getDraggingInformation();
+//        final Entity self = Entity.class.cast(this);
+//
+//        if (level != null && level.isClientSide && tickCount > 1) { //baseTick sets the firstTick false, use tickCount instead.
+////            if (!(self.isControlledByLocalInstance() || (self instanceof final Player player && player.isLocalPlayer()))) {
+////                entityDraggingInformation.setMountedToEntity(self.getVehicle() != null);
+////                return;
+////            }
+//            final BlockPos onPos = getOnPos();
+//            final Ship ship = VSGameUtilsKt.getLoadedShipManagingPos(level, onPos);
+//            if (ship != null) {
+////                if (entityDraggingInformation.getLastShipStoodOnServerWriteOnly() == null) {
+////                    return;
+////                }
+//                entityDraggingInformation.setLastShipStoodOn(ship.getId());
+//                getIndirectPassengers().forEach(entity -> {
+//                    final EntityDraggingInformation passengerDraggingInformation =
+//                        ((IEntityDraggingInformationProvider) entity).getDraggingInformation();
+//                    passengerDraggingInformation.setLastShipStoodOn(ship.getId());
+//                });
+//            } else {
+//                if (!level.getBlockState(onPos).isAir()) {
+//                    if (entityDraggingInformation.getIgnoreNextGroundStand()) {
+//                        entityDraggingInformation.setIgnoreNextGroundStand(false);
+//                    } else {
+////                        if (entityDraggingInformation.getLastShipStoodOnServerWriteOnly() != null) {
+////                            return;
+////                        }
+//                        entityDraggingInformation.setLastShipStoodOn(null);
+//                        getIndirectPassengers().forEach(entity -> {
+//                            final EntityDraggingInformation passengerDraggingInformation =
+//                                ((IEntityDraggingInformationProvider) entity).getDraggingInformation();
+//                            passengerDraggingInformation.setLastShipStoodOn(null);
+//                        });
+//                    }
 //                }
-                entityDraggingInformation.setLastShipStoodOn(ship.getId());
-                getIndirectPassengers().forEach(entity -> {
-                    final EntityDraggingInformation passengerDraggingInformation =
-                        ((IEntityDraggingInformationProvider) entity).getDraggingInformation();
-                    passengerDraggingInformation.setLastShipStoodOn(ship.getId());
-                });
-            } else {
-                if (!level.getBlockState(getOnPos()).isAir()) {
-                    if (entityDraggingInformation.getIgnoreNextGroundStand()) {
-                        entityDraggingInformation.setIgnoreNextGroundStand(false);
-                    } else {
-//                        if (entityDraggingInformation.getLastShipStoodOnServerWriteOnly() != null) {
-//                            return;
-//                        }
-                        entityDraggingInformation.setLastShipStoodOn(null);
-                        getIndirectPassengers().forEach(entity -> {
-                            final EntityDraggingInformation passengerDraggingInformation =
-                                ((IEntityDraggingInformationProvider) entity).getDraggingInformation();
-                            passengerDraggingInformation.setLastShipStoodOn(null);
-                        });
-                    }
-
-                }
-            }
-        }
-    }
+//            }
+//        }
+//    }
 
     // endregion
 
@@ -294,12 +394,6 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
     @Shadow
     public abstract void setDeltaMovement(double x, double y, double z);
-
-    @Shadow
-    protected abstract void tryCheckInsideBlocks();
-
-    @Shadow
-    protected abstract Vec3 collide(Vec3 vec3d);
 
     @Shadow
     public abstract Vec3 getDeltaMovement();
@@ -322,5 +416,11 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
     @Shadow
     private EntityDimensions dimensions;
+
+    @Shadow
+    public Optional<BlockPos> mainSupportingBlockPos;
+
+    @Shadow
+    private boolean onGroundNoBlocks;
     // endregion
 }

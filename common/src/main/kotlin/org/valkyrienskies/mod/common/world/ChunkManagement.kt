@@ -10,9 +10,9 @@ import org.valkyrienskies.core.internal.world.chunks.VsiChunkWatchTask
 import org.valkyrienskies.mod.common.VS2ChunkAllocator
 import org.valkyrienskies.mod.common.executeIf
 import org.valkyrienskies.mod.common.getLevelFromDimensionId
-import org.valkyrienskies.mod.common.isChunkLoadedForVS
 import org.valkyrienskies.mod.common.isTickingChunk
 import org.valkyrienskies.mod.common.mcPlayer
+import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.util.VSServerLevel
 import org.valkyrienskies.mod.mixin.accessors.server.level.ChunkMapAccessor
@@ -22,10 +22,13 @@ object ChunkManagement {
     @JvmStatic
     fun tickChunkLoading(shipWorld: VsiServerShipWorld, server: MinecraftServer) {
         val (chunkWatchTasks, chunkUnwatchTasks) = shipWorld.getChunkWatchTasks()
+        val maxWatchTasks = VSGameConfig.SERVER.Performance.shipChunkWatchTasksPerTick.coerceIn(1, 4096)
+        val maxUnwatchTasks = VSGameConfig.SERVER.Performance.shipChunkUnwatchTasksPerTick.coerceIn(1, 4096)
+        val executedWatchTasks = ArrayList<VsiChunkWatchTask>(minOf(chunkWatchTasks.size, maxWatchTasks))
+        val executedUnwatchTasks =
+            ArrayList<VsiChunkUnwatchTask>(minOf(chunkUnwatchTasks.size, maxUnwatchTasks))
 
-        // for now, just do all the watch tasks
-
-        chunkWatchTasks.forEach { chunkWatchTask: VsiChunkWatchTask ->
+        for (chunkWatchTask in chunkWatchTasks.asSequence().take(maxWatchTasks)) {
             logger.debug(
                 "Watch task for dimension " + chunkWatchTask.dimensionId + ": " +
                     chunkWatchTask.chunkX + " : " + chunkWatchTask.chunkZ
@@ -34,22 +37,19 @@ object ChunkManagement {
             val chunkPos = ChunkPos(chunkWatchTask.chunkX, chunkWatchTask.chunkZ)
 
             val level = server.getLevelFromDimensionId(chunkWatchTask.dimensionId)!!
-
-            // Use lightweight ticket for shipyard chunks to avoid loading excessive neighbor chunks.
-            // Vanilla's updateChunkForced uses level 31 (entity ticking) which forces a 2-chunk
-            // neighborhood (~25 chunks). Our ticket with radius 1 gives level 32 (ticking), which
-            // only needs a 1-chunk neighborhood (~9 chunks) — still a big reduction.
-            if (VS2ChunkAllocator.isChunkInShipyardCompanion(chunkPos.x, chunkPos.z)) {
-                level.chunkSource.addRegionTicket(
-                    VSTicketType.SHIP_CHUNK, chunkPos, 1, chunkPos
-                )
-                (level as VSServerLevel).addPendingForcedChunk(chunkPos.x, chunkPos.z)
+            if (VSGameConfig.SERVER.Performance.useRadiusZeroShipChunkTickets) {
+                // Experimental path: load only the exact active ship chunk. MixinDistanceManager
+                // treats this ticket as force-ticking without lowering the ticket level and
+                // reintroducing the vanilla chunk-loading ring.
+                level.chunkSource.addRegionTicket(VSTicketType.SHIP_CHUNK, chunkPos, 0, chunkPos)
             } else {
+                // Stable path: vanilla forced tickets preserve ticking behavior, but they also
+                // create Minecraft's normal concentric chunk-loading ring around each ship chunk.
                 level.chunkSource.updateChunkForced(chunkPos, true)
-                (level as VSServerLevel).addPendingForcedChunk(chunkPos.x, chunkPos.z)
             }
+            (level as? VSServerLevel)?.addPendingForcedChunk(chunkPos.x, chunkPos.z)
 
-            level.server.executeIf({ level.isChunkLoadedForVS(chunkPos) }) {
+            level.server.executeIf({ level.isTickingChunk(chunkPos) }) {
                 for (player in chunkWatchTask.playersNeedWatching) {
                     val minecraftPlayer = player as MinecraftPlayer
                     val serverPlayer = minecraftPlayer.playerEntityReference.get() as ServerPlayer?
@@ -62,9 +62,10 @@ object ChunkManagement {
                     }
                 }
             }
+            executedWatchTasks.add(chunkWatchTask)
         }
 
-        chunkUnwatchTasks.forEach { chunkUnwatchTask: VsiChunkUnwatchTask ->
+        for (chunkUnwatchTask in chunkUnwatchTasks.asSequence().take(maxUnwatchTasks)) {
             logger.debug(
                 "Unwatch task for dimension " + chunkUnwatchTask.dimensionId + ": " +
                     chunkUnwatchTask.chunkX + " : " + chunkUnwatchTask.chunkZ
@@ -73,21 +74,39 @@ object ChunkManagement {
 
             if (chunkUnwatchTask.shouldUnload) {
                 val level = server.getLevelFromDimensionId(chunkUnwatchTask.dimensionId)!!
-                if (VS2ChunkAllocator.isChunkInShipyardCompanion(chunkPos.x, chunkPos.z)) {
-                    level.chunkSource.removeRegionTicket(
-                        VSTicketType.SHIP_CHUNK, chunkPos, 1, chunkPos
-                    )
-                } else {
-                    level.chunkSource.updateChunkForced(chunkPos, false)
+                val isLiveShipChunk =
+                    VS2ChunkAllocator.isChunkInShipyardCompanion(chunkPos.x, chunkPos.z) &&
+                        shipWorld.allShips.getById(chunkUnwatchTask.ship.id) != null
+                    if (!isLiveShipChunk) {
+                        if (VSGameConfig.SERVER.Performance.useRadiusZeroShipChunkTickets) {
+                            level.chunkSource.removeRegionTicket(VSTicketType.SHIP_CHUNK, chunkPos, 0, chunkPos)
+                        } else {
+                            level.chunkSource.updateChunkForced(chunkPos, false)
+                        }
                 }
             }
 
             for (player in chunkUnwatchTask.playersNeedUnwatching) {
                 (player.mcPlayer as ServerPlayer).untrackChunk(chunkPos)
             }
+            executedUnwatchTasks.add(chunkUnwatchTask)
         }
 
-        shipWorld.setExecutedChunkWatchTasks(chunkWatchTasks, chunkUnwatchTasks)
+        shipWorld.setExecutedChunkWatchTasks(executedWatchTasks, executedUnwatchTasks)
+    }
+
+    /**
+     * Returns the list of pending tracking updates (currently empty â€” stub for tests).
+     */
+    @JvmStatic
+    fun getPendingTrackingUpdates(): List<Any> = emptyList()
+
+    /**
+     * Clears any pending chunk management state (stub for tests).
+     */
+    @JvmStatic
+    fun clearPendingState() {
+        // No-op in current implementation
     }
 
     private val logger by logger()

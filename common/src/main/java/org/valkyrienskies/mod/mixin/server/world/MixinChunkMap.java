@@ -17,6 +17,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.storage.DimensionDataStorage;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -27,6 +28,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.internal.world.VsiPlayer;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.common.util.MinecraftPlayer;
 
 //This should trump Very Many Players, which is set to 1050
@@ -99,7 +101,7 @@ public abstract class MixinChunkMap {
 
         playersWatchingShipChunk.forEachRemaining(
             iPlayer -> {
-                final MinecraftPlayer minecraftPlayer = (MinecraftPlayer) iPlayer;
+                if (!(iPlayer instanceof MinecraftPlayer minecraftPlayer)) return;
                 final ServerPlayer playerEntity =
                     (ServerPlayer) minecraftPlayer.getPlayerEntityReference().get();
                 if (playerEntity != null) {
@@ -114,25 +116,62 @@ public abstract class MixinChunkMap {
     @WrapOperation(method = "anyPlayerCloseEnoughForSpawning", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ChunkMap$DistanceManager;hasPlayersNearby(J)Z"))
     private boolean onHasPlayersNearby(
         DistanceManager instance, long l, Operation<Boolean> original, @Local(argsOnly = true) ChunkPos arg) {
-        return original.call(instance, new ChunkPos(BlockPos.containing(VSGameUtilsKt.toWorldCoordinates(level, arg.getMiddleBlockPosition(63)))).toLong());
+        final Ship ship = VSGameUtilsKt.getShipManagingPos(level, arg);
+        if (ship == null) {
+            return original.call(instance, l);
+        }
+
+        return original.call(instance, new ChunkPos(BlockPos.containing(
+            VectorConversionsMCKt.toMinecraft(VSGameUtilsKt.toWorldCoordinates(ship, arg.getMiddleBlockPosition(63)))
+        )).toLong());
     }
 
     @WrapOperation(method = "playerIsCloseEnoughForSpawning", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ChunkMap;euclideanDistanceSquared(Lnet/minecraft/world/level/ChunkPos;Lnet/minecraft/world/entity/Entity;)D"))
     private double onEuclideanDistanceSquared(ChunkPos d0, Entity d1, Operation<Double> original) {
-        return original.call(new ChunkPos(BlockPos.containing(VSGameUtilsKt.toWorldCoordinates(level, d0.getMiddleBlockPosition(63)))), d1);
+        final Ship ship = VSGameUtilsKt.getShipManagingPos(level, d0);
+        if (ship == null) {
+            return original.call(d0, d1);
+        }
+
+        return original.call(new ChunkPos(BlockPos.containing(
+            VectorConversionsMCKt.toMinecraft(VSGameUtilsKt.toWorldCoordinates(ship, d0.getMiddleBlockPosition(63)))
+        )), d1);
     }
 
     /**
-     * Only save ship chunks that actually have something in them to avoid massive lag when closing/saving the game
+     * Only save ship chunks that actually have something in them to avoid massive lag when closing/saving the game.
+     *
+     * <p>Previously this gated on {@code ship.getActiveChunksSet().contains(pos)}
+     * but that set is populated asynchronously by the connectivity-update
+     * executeIf in {@code ShipAssembler.batchAssembleToShips} phase 4. Closing
+     * the world immediately after a spawn (before that executeIf fires)
+     * would hit preSave with an empty activeChunksSet, bail, and lose the
+     * ship's blocks on reload. Switch to a direct "has any non-air section"
+     * check so freshly-spawned ships still save correctly.
+     *
+     * <p>Important: we MUST call {@code chunkAccess.setUnsaved(false)} before
+     * cancelling the save. Vanilla's {@code ChunkMap.save} marks the chunk
+     * clean as its very first side-effect (after the {@code isUnsaved()}
+     * check). If we short-circuit at HEAD without doing the same, the chunk
+     * stays dirty, so {@code ChunkHolder.isReadyForSaving()} keeps returning
+     * false, and during {@code stopServer()}'s chunk-unload loop
+     * ({@code ChunkMap.processUnloads} → {@code scheduleUnload}) the chunk
+     * keeps being requeued — the server thread spins at 100% CPU in
+     * {@code thenRunAsync → scheduleUnload} and never exits runServer().
+     * Observed as a 200s+ server-shutdown hang blocking {@code halt(true)}.
      */
     @Inject(method = "save", at = @At("HEAD"), cancellable = true)
     private void preSave(ChunkAccess chunkAccess, CallbackInfoReturnable<Boolean> cir) {
         final ChunkPos pos = chunkAccess.getPos();
         final Ship ship = VSGameUtilsKt.getShipManagingPos(level, pos);
-        if (ship != null) {
-            if (!ship.getActiveChunksSet().contains(pos.x, pos.z)) {
-                cir.setReturnValue(false);
+        if (ship == null) return;
+
+        for (LevelChunkSection section : chunkAccess.getSections()) {
+            if (section != null && !section.hasOnlyAir()) {
+                return; // chunk has content — let vanilla save run
             }
         }
+        chunkAccess.setUnsaved(false);
+        cir.setReturnValue(false);
     }
 }
