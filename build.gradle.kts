@@ -1,4 +1,7 @@
+import net.fabricmc.loom.api.LoomGradleExtensionAPI
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
+import java.io.ByteArrayOutputStream
+import dev.architectury.plugin.ArchitectPluginExtension
 
 buildscript {
     // Lock plugin dependencies
@@ -8,22 +11,44 @@ buildscript {
 }
 
 plugins {
+    java
     // Needed for Forge+Fabric
-    id "architectury-plugin" version "3.4.146"
-    id "dev.architectury.loom" version "1.3.355" apply false
-    id 'io.github.juuxel.loom-vineflower' version '1.11.0' apply false
+    id("architectury-plugin") version "3.4.146"
+    id("dev.architectury.loom") version "1.3.355" apply false
+    id ("io.github.juuxel.loom-vineflower") version "1.11.0" apply false
     // Kotlin
-    id "org.jetbrains.kotlin.jvm" version "2.0.0" apply false
-    id 'com.matthewprenger.cursegradle' version '1.4.0' apply false
-    id "com.modrinth.minotaur" version "2.4.3" apply false
+    id ("org.jetbrains.kotlin.jvm") version "2.0.0" apply false
+    id ("com.matthewprenger.cursegradle") version "1.4.0" apply false
+    id ("com.modrinth.minotaur") version "2.4.3" apply false
 }
+
+fun String.execute(currentWorkingDir: File = file("./")): String {
+    val byteOut = ByteArrayOutputStream()
+    project.exec {
+        workingDir = currentWorkingDir
+        commandLine = this@execute.split("\\s".toRegex())
+        standardOutput = byteOut
+    }
+    return String(byteOut.toByteArray()).trim()
+}
+
+val minecraft_version: String by project
+val archives_base_name: String by project
+
+val maven_group: String by project
+val mod_version: String by project
+val block_external_repositories: String by project
+val vs_maven_url: String by project
+val vs_maven_username: String by project
+val vs_maven_password: String by project
+
 
 // Determine the version
 if (project.hasProperty("CustomReleaseVersion")) {
     // Remove release/ from the version if present
-    version = project.property("CustomReleaseVersion").replaceFirst("^release/", "")
+    var version = (project.property("CustomReleaseVersion") as String).replaceFirst("^release/", "")
 } else if (!project.hasProperty("CustomVersion")) {
-    String gitRevision = "git rev-parse HEAD".execute().text.trim()
+    val gitRevision = "git rev-parse HEAD".execute().trim()
 
     version = mod_version + "+" + gitRevision.substring(0, 10)
 } else {
@@ -31,8 +56,9 @@ if (project.hasProperty("CustomReleaseVersion")) {
 }
 
 architectury {
-    minecraft = rootProject.minecraft_version
+    minecraft = minecraft_version
 }
+
 
 // Lock dependencies
 // https://docs.gradle.org/current/userguide/dependency_locking.html
@@ -40,93 +66,103 @@ dependencyLocking {
     lockAllConfigurations()
 }
 
-tasks.register("updateVsCore") {
-    File versionFile = null
-    File gradleProperties = file("gradle.properties")
+task("updateVsCore") {
+    var versionFile: File? = null
+    val gradleProperties = file("gradle.properties")
 
     try {
-        def vsCoreBuild = gradle.includedBuild("vs-core")
-        versionFile = new File(vsCoreBuild.projectDir, "internal/build/version.txt")
+        val vsCoreBuild = gradle.includedBuild("vs-core")
+        versionFile = File(vsCoreBuild.projectDir, "internal/build/version.txt")
 
         inputs.file(versionFile)
         outputs.file(gradleProperties)
         dependsOn(vsCoreBuild.task(":internal:writeVersion"))
 
-        [':impl', ':api', ':internal', ':util'].each {
-            dependsOn(vsCoreBuild.task("${it}:publishToMavenLocal"))
+        listOf(":impl", ":api", ":internal", ":util").forEach { project ->
+            dependsOn(vsCoreBuild.task("$project:publishToMavenLocal"))
         }
-    } catch (UnknownDomainObjectException ignore) {}
+    } catch (ignore: UnknownDomainObjectException) {}
 
     onlyIf {
         versionFile != null
     }
 
     doLast {
-        def vsCoreVersion = versionFile.text
-        def newGradleProperties = gradleProperties.text.replaceFirst("(?m)^vs_core_version=.*", "vs_core_version=" + vsCoreVersion)
-        gradleProperties.write(newGradleProperties)
+        val vsCoreVersion = versionFile!!.readText()
+        val newGradleProperties = gradleProperties.readText().replaceFirst("(?m)^vs_core_version=.*", "vs_core_version=" + vsCoreVersion)
+        gradleProperties.writeText(newGradleProperties)
     }
 }
 
-subprojects {
-    apply plugin: "dev.architectury.loom"
-    // Apply checkstyle and ktlint to check the code style of every sub project
-    apply plugin: "org.jetbrains.kotlin.jvm"
-    apply plugin: "io.github.juuxel.loom-vineflower"
 
-    loom {
-        intermediaryUrl = 'https://repo.spongepowered.org/repository/maven-public/net/fabricmc/intermediary/%1$s/intermediary-%1$s-v2.jar'
+subprojects {
+    apply(plugin = "dev.architectury.loom")
+    // Apply checkstyle and ktlint to check the code style of every sub project
+    apply(plugin = "org.jetbrains.kotlin.jvm")
+    apply(plugin = "io.github.juuxel.loom-vineflower")
+
+    val loom = project.extensions.getByType<LoomGradleExtensionAPI>()
+    loom.apply {
+        intermediaryUrl =
+            "https://repo.spongepowered.org/repository/maven-public/net/fabricmc/intermediary/%1\$s/intermediary-%1\$s-v2.jar"
+    }
+
+    try {
+        val vsCoreBuild = gradle.includedBuild("vs-core")
+        listOf(":impl", ":api", ":internal").forEach {
+            tasks.named("compileJava") {
+                dependsOn(vsCoreBuild.task("$it:publishToMavenLocal"))
+            }
+        }
+    } catch (_: UnknownDomainObjectException) {
     }
 
     repositories {
         try {
-            def vsCoreBuild = gradle.includedBuild("vs-core")
+            val vsCoreBuild = gradle.includedBuild("vs-core")
             mavenLocal {
                 content {
                     includeGroup("org.valkyrienskies.core")
                 }
             }
-
-            [':impl', ':api', ':internal'].each {
-                compileJava.dependsOn(vsCoreBuild.task("${it}:publishToMavenLocal"))
-            }
-        } catch (UnknownDomainObjectException ignore) {}
+        } catch (_: UnknownDomainObjectException) {
+        }
 
         mavenCentral()
-        if (!project.block_external_repositories) {
+        if (block_external_repositories != "true") {
             maven {
-                name = "Robotix's Public Maven"
-                url = "https://maven.realrobotix.me/master/"
+                name = "Robotix's Public Maven "
+                url = uri("https://maven.realrobotix.me/master/")
             }
             mavenLocal()
             maven {
                 name = "ParchmentMC"
-                url = "https://maven.parchmentmc.org"
+                url = uri("https://maven.parchmentmc.org")
             }
             maven {
                 name = "Curse Maven"
-                url = "https://cursemaven.com"
+                url = uri("https://cursemaven.com")
                 content {
                     includeGroup("curse.maven")
                 }
             }
             maven {
                 name = "TerraformersMC Maven"
-                url = "https://maven.terraformersmc.com/releases/"
+                url = uri("https://maven.terraformersmc.com/releases/")
                 content {
                     includeGroup("com.terraformersmc")
                 }
             } // Mod Menu
             maven {
-                name = 'Kotlin for Forge'
-                url = 'https://thedarkcolour.github.io/KotlinForForge/'
+                name = "Kotlin for Forge"
+                url = uri("https://thedarkcolour.github.io/KotlinForForge/")
                 content {
                     includeGroup("thedarkcolor")
                 }
             }
             maven {
-                name = 'tterrag maven'
-                url = 'https://maven.tterrag.com/'
+                name = "tterrag maven"
+                url = uri("https://maven.tterrag.com/")
                 content {
                     includeGroup("com.tterrag.registrate")
                     includeGroup("com.tterrag.registrate_fabric")
@@ -134,7 +170,7 @@ subprojects {
             }
             maven {
                 name = "Mod Maven"
-                url = "https://modmaven.dev/"
+                url = uri("https://modmaven.dev/")
                 content {
                     includeGroup("teamtwilight")
                     includeGroup("teamreborn")
@@ -142,28 +178,28 @@ subprojects {
             }
             maven {
                 name = "Modrinth Maven"
-                url = "https://api.modrinth.com/maven"
+                url = uri("https://api.modrinth.com/maven")
                 content {
                     includeGroup("maven.modrinth")
                 }
             } // LazyDFU, Suggestion Tweaker, Create Big Cannons
             maven {
                 name = "Shedaniel's Maven"
-                url = "https://maven.shedaniel.me/"
+                url = uri("https://maven.shedaniel.me/")
                 content {
                     includeGroup("me.shedaniel")
                 }
             } // Cloth Config, REI
             maven {
                 name = "Architectury Maven"
-                url = "https://maven.architectury.dev/"
+                url = uri("https://maven.architectury.dev/")
                 content {
                     includeGroup("dev.architectury")
                 }
             }
             maven {
                 name = "Create Maven"
-                url = "https://maven.createmod.net"
+                url = uri("https://maven.createmod.net")
                 content {
                     includeGroup("com.simibubi.create")
                     includeGroup("net.createmod.ponder")
@@ -172,14 +208,14 @@ subprojects {
             } // Create, Ponder, Flywheel
             maven {
                 name = "IThundxrs Maven Repository"
-                url = "https://maven.ithundxr.dev/mirror"
+                url = uri("https://maven.ithundxr.dev/mirror")
                 content {
                     includeGroup("com.tterrag.registrate")
                 }
             } // Registrate
             maven {
                 name = "Fuzss's Maven"
-                url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/"
+                url = uri("https://raw.githubusercontent.com/Fuzss/modresources/main/maven/")
                 content {
                     includeGroup("fuzs.forgeconfigapiport")
                 }
@@ -187,14 +223,14 @@ subprojects {
 
             maven {
                 name = "devOS release Maven"
-                url = "https://mvn.devos.one/releases"
+                url = uri("https://mvn.devos.one/releases")
                 content {
                     includeGroup("io.github.fabricators_of_create.Porting-Lib")
                 }
             } // Porting Lib releases
             maven {
                 name = "devOS snapshot Maven"
-                url = "https://mvn.devos.one/snapshots/"
+                url = uri("https://mvn.devos.one/snapshots/")
                 content {
                     includeGroup("io.github.tropheusj")
                     includeGroup("com.simibubi.create")
@@ -204,49 +240,49 @@ subprojects {
             } // Create and several dependencies
             maven {
                 name = "Cafeteria Development"
-                url = "https://maven.cafeteria.dev/releases"
+                url = uri("https://maven.cafeteria.dev/releases")
                 content {
                     includeGroup("dev.cafeteria")
                 }
             } // Fake Player API
             maven {
                 name = "jamieswhiteshirt"
-                url = "https://maven.jamieswhiteshirt.com/libs-release"
+                url = uri("https://maven.jamieswhiteshirt.com/libs-release")
                 content {
                     includeGroup("com.jamieswhiteshirt")
                 }
             } // Reach Entity Attributes
             maven { // Fabric ASM for Porting Lib
                 name = "JitPack"
-                url = "https://jitpack.io/"
+                url = uri("https://jitpack.io/")
                 content {
                     includeGroupAndSubgroups("com.github")
                 }
             }
             maven {
-                name = "Robotix's Public Maven"
-                url = "https://maven.realrobotix.me/createbigcannons/"
+                name = "Robotix's Public Maven "
+                url = uri("https://maven.realrobotix.me/createbigcannons/")
                 content {
                     includeGroup("com.rbasamoyai")
                 }
             } // Create Big Cannons
             maven {
                 name = "CC-Tweaked"
-                url = "https://maven.squiddev.cc"
+                url = uri("https://maven.squiddev.cc")
                 content {
                     includeGroup("cc.tweaked")
                 }
             }
             maven {
                 name = "FTB Stuffs"
-                url = "https://maven.ftb.dev/releases"
+                url = uri("https://maven.ftb.dev/releases")
                 content {
                     includeGroup("dev.ftb.mods")
                 }
             }
             maven { // Hexcasting
                 name = "BlameJared"
-                url = "https://maven.blamejared.com"
+                url = uri("https://maven.blamejared.com")
                 content {
                     includeGroup("at.petra-k.hexcasting")
                     includeGroup("at.petra-k.paucal")
@@ -263,25 +299,25 @@ subprojects {
         }
         maven {
             name = "Valkyrien Skies Internal"
-            url = project.vs_maven_url ?: 'https://maven.valkyrienskies.org'
+            url = uri(if (vs_maven_url != "") vs_maven_url else "https://maven.valkyrienskies.org")
             content {
                 includeGroup("org.valkyrienskies")
                 includeGroup("org.valkyrienskies.core")
                 includeGroup("com.fasterxml.jackson.module")
             }
-            if (project.vs_maven_username && project.vs_maven_password) {
+            if ((vs_maven_username != "") && (vs_maven_password != "")) {
                 credentials {
-                    username = project.vs_maven_username
-                    password = project.vs_maven_password
+                    username = vs_maven_username
+                    password = vs_maven_password
                 }
             }
         }
     }
 
     // Remove automatically added repos
-    if (project.block_external_repositories) {
+    if (block_external_repositories.equals("true")) {
         repositories.removeIf {
-            def url = it.url.toString()
+            val url = (it as? MavenArtifactRepository)?.url.toString()
             url.contains("maven.minecraftforge.net") ||
                 url.contains("maven.fabricmc.net") ||
                 url.contains("maven.architectury.dev")
@@ -289,71 +325,65 @@ subprojects {
     }
 
     dependencies {
-        minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
+        "minecraft"("com.mojang:minecraft:${minecraft_version}")
         // The following line declares the mojmap mappings, you may use other mappings as well
-        mappings loom.officialMojangMappings()
+        "mappings"(loom.officialMojangMappings())
 
         compileOnly("com.google.code.findbugs:jsr305:3.0.2")
     }
-
-    kotlin {
-        compilerOptions {
-            optIn.add("org.valkyrienskies.core.api.VsBeta")
-        }
-    }
 }
 
+
 allprojects {
-    apply plugin: "java"
-    apply plugin: "architectury-plugin"
-    apply plugin: "maven-publish"
+    apply(plugin = "java")
+    apply(plugin = "architectury-plugin")
+    apply(plugin = "maven-publish")
 
     // Set the base name, version, and group to the values in the gradle.properties
-    archivesBaseName = rootProject.archives_base_name
+    base.archivesName.set(archives_base_name)
+    group = maven_group
     version = rootProject.version
-    group = rootProject.maven_group
 
-    publishing {
+    extensions.configure<PublishingExtension> {
         repositories {
-            if (project.vs_maven_username && project.vs_maven_password) {
-                println "Publishing to VS Maven ($version)"
-                maven {
-                    name = "VSMaven"
-                    url = project.vs_maven_url
-                    credentials {
-                        username = project.vs_maven_username
-                        password = project.vs_maven_password
+            repositories {
+                if ((vs_maven_username != "") && (vs_maven_password != "")) {
+                    println("Publishing to VS Maven ($version)")
+                    maven {
+                        name = "VSMaven"
+                        url = uri(vs_maven_url)
+                        credentials {
+                            username = vs_maven_username
+                            password = vs_maven_password
+                        }
                     }
                 }
-            }
-            if (System.getenv("GITHUB_ACTOR") != null) {
-                println "Publishing to Github Packages ($version)"
-                maven {
-                    name = "GitHubPackages"
-                    url = uri("https://maven.pkg.github.com/ValkyrienSkies/Valkyrien-Skies-2")
-                    credentials {
-                        username = System.getenv("GITHUB_ACTOR")
-                        password = System.getenv("GITHUB_TOKEN")
+                if (System.getenv("GITHUB_ACTOR") != null) {
+                    println("Publishing to Github Packages ($version)")
+                    maven {
+                        name = "GitHubPackages"
+                        url = uri("https://maven.pkg.github.com/ValkyrienSkies/Valkyrien-Skies-2")
+                        credentials {
+                            username = System.getenv("GITHUB_ACTOR")
+                            password = System.getenv("GITHUB_TOKEN")
+                        }
                     }
                 }
             }
         }
     }
 
-    tasks.withType(JavaCompile) {
+    tasks.withType<JavaCompile>().configureEach {
         options.encoding = "UTF-8"
-
-        options.release = 17
+        options.release.set(17)
     }
 
-    tasks.withType(KotlinJvmCompile).configureEach {
-        kotlinOptions {
-            jvmTarget = "17"
-            freeCompilerArgs += "-Xjvm-default=all"
-        }
+    tasks.withType<KotlinJvmCompile>().configureEach {
+        kotlinOptions.jvmTarget = "17"
+        kotlinOptions.freeCompilerArgs += listOf("-Xjvm-default=all", "-opt-in=org.valkyrienskies.core.api.VsBeta")
     }
 
-    java {
+    extensions.configure<JavaPluginExtension> {
         withSourcesJar()
     }
 }

@@ -1,0 +1,164 @@
+#region docs
+# ----- How to use this file -----
+# 1.
+#   Determine what group your dependency is under.
+#   If it is only used by forge, preface it with forge_
+#   If it is only used by fabric, preface it with fabric_
+#   If it is used by multiple subprojects, or only used by common, preface it with common_
+# 1.5:
+#   Aside from the prefix, you shouldn't use "_" in any of your version or dependency names you add to here,
+#   as this results in them having the wrong gradle syntax. For example, forge_my_mod would need to be accessed
+#   with `libs.forge.my.mod` which is ugly. Instead, use camelCase after the preface.
+#   forge_my_mod becomes forge_myMod so that it can be accessed with `libs.forge.myMod`
+# 2.
+#   Put its version in the [versions] section of this file.
+#   Ideally include a link to where the version can be found (although this is optional)
+# 3.
+#   Put its dependency string (e.g. "my.maven:whatever") in the [libraries]
+#   section of this file, prefaced with the same as the version (forge_, fabric_ or common_).
+# 3.5.
+#   If your dependency string is different per loaders, e.g. "my.maven:mod-forge" and "my.maven:mod-fabric",
+#   then create two entries in the [libraries] section, one for each dependency string. If they use the same
+#   version number, they can both reference the common_ version you added to [versions]
+# 4.
+#   Re-sync gradle BEFORE adding the actual dependency to any of the scripts
+# 5.
+#   Once gradle has loaded, your dependency should now be available for use as `libs.<loader>.mydep`
+# Notes:
+#   If your dependency string does not end with the version, e.g. "my.maven:mod:${version}:universal" or
+#   "my.maven:mod:${version}-${build-version}", then it cannot work with this file. Instead, you should
+#   add only its version number to the [versions] section, and write out the dependency string in the actual scripts.
+#   e.g. `modImplementation("my.maven:mod:${libs.versions.<loader>.mydep.get()}:universal")`
+#
+#   If your dependency has to go through a non-standard method, such as `include` or `annotationProcessor`, then you
+#   often need to add `.get()` to the end. E.g. `annotationProcessor(libs.forge.mymod.get())`. You also may need to do
+#   this if you're using the `libs.version.mymod` as part of a string.
+#endregion
+
+[versions]
+#region common
+common_mixinextras = "0.5.0" # https://github.com/LlamaLad7/MixinExtras/releases
+common_fabricLoader="0.17.2" # https://fabricmc.net/develop/
+common_fcap = "8.0.3" # https://github.com/Fuzss/forgeconfigapiport
+common_ccTweaked = "1.115.1" # Note: 1.115.1 is for create 6.0.0+
+common_createFabric="6.0.7.0+build.1728-mc1.20.1" # https://modrinth.com/mod/create-fabric/versions
+common_createbigcannons_version="5.11.0-dev" # https://modrinth.com/mod/create-big-cannons/versions
+common_createbigcannons_build="-build.250" # Only used for in-dev versions, otherwise leave blank
+common_rpl="2.1.1"
+common_immptl="v3.3.9-mc1.20.1"
+common_createUtilities="0.2.1+1.20.1"
+common_teamRebornRnergy="2.3.0"
+common_dynmap="IIQSYMHC" # https://modrinth.com/plugin/dynmap/versions
+common_hexcasting="0.11.3" # https://modrinth.com/mod/hex-casting/versions
+common_hextweaks="7RPBspd1" # https://modrinth.com/mod/hextweaks/versions
+common_hexal="0.3.1" # https://modrinth.com/mod/hexal/versions
+common_ephemera="d4xVSBKN" # https://modrinth.com/mod/ephemera/versions
+common_sodium = "mc1.20.1-0.5.13-fabric" # https://modrinth.com/mod/sodium/versions
+common_tis3d = "MC1.20.1-fabric-1.7.7" # https://modrinth.com/mod/tis3d/version/MC1.20.1-fabric-1.7.7
+common_moonlight = "1.20-2.16.22-fabric" # https://modrinth.com/mod/moonlight/versions
+common_iris = "1.7.6+1.20.1" #https://modrinth.com/mod/iris/versions
+common_emf = "5696901"
+common_etf = "5697084"
+#endregion
+
+#region fabric
+fabric_fabricApi="0.92.6+1.20.1" # https://fabricmc.net/develop/
+fabric_ccTweaked = "1.115.1-fabric"
+fabric_fakePlayerApi="0.6.0" # https://github.com/CafeteriaGuild/fake-player-api/blob/1.19/gradle.properties
+fabric_reachEntityAttributes="2.4.0" # https://github.com/JamiesWhiteShirt/reach-entity-attributes/tags
+fabric_milkLib="1.2.60" # https://github.com/Fabricators-of-Create/Create/blob/4724359545de070788221dbb6387c31e582e9d45/gradle.properties#L33
+fabric_portLib="2.3.12+1.20.1" # https://github.com/Fabricators-of-Create/Create/blob/4724359545de070788221dbb6387c31e582e9d45/gradle.properties#L35
+fabric_modmenu = "7.1.0" # https://linkie.shedaniel.me/dependencies?loader=fabric&version=1.20.1
+fabric_kotlin = "1.11.0+kotlin.2.0.0"
+fabric_forgeConfigScreens = "v8.0.2-1.20.1-Fabric"
+fabric_emf = "3.0.7-fabric-1.20.1"
+fabric_etf = "7.0.6-fabric-1.20.1"
+#endregion
+
+#region forge
+forge_forge="1.20.1-47.4.2" # https://files.minecraftforge.net/net/minecraftforge/forge/
+forge_dynmap="RtI5TFAi"
+forge_mekanism = "10.4.16.80" # https://modrinth.com/mod/mekanism/versions
+forge_spark = "1.10.53-forge" # https://modrinth.com/mod/spark/versions
+forge_embeddium = "0.3.31+mc1.20.1" # https://modrinth.com/mod/embeddium/versions
+forge_oculus = "1.20.1-1.8.0" # https://modrinth.com/mod/oculus/versions
+forge_twilightforest = "4.3.2145" # https://modmaven.dev/teamtwilight/twilightforest/
+forge_oc2r = "2.1.3" # https://modrinth.com/mod/oc2r/version/2.1.3
+forge_create = "6.0.7-281" # https://wiki.createmod.net/developers/depend-on-create/forge-1.20.1
+forge_ponder = "1.0.91" # ^
+forge_flywheel = "1.0.5" # ^
+forge_registrate = "MC1.20-1.3.3" # ^
+forge_kotlinForForge = "4.11.0"
+forge_forgeConfigScreens = "v8.0.2-1.20.1-Forge"
+forge_emf = "3.0.7-forge-1.20.1"
+forge_etf = "7.0.6-forge-1.20.1"
+#endregion
+
+[libraries]
+#region common
+common_fabricLoader = { module = "net.fabricmc:fabric-loader", version.ref = "common_fabricLoader" }
+common_mixinExtras = { module = "io.github.llamalad7:mixinextras-common", version.ref = "common_mixinextras" }
+common_forgeConfigApiPort = { module = "fuzs.forgeconfigapiport:forgeconfigapiport-common", version.ref = "common_fcap" }
+common_ccTweaked = { module = "cc.tweaked:cc-tweaked-1.20.1-common", version.ref = "common_ccTweaked" }
+common_createFabric = { module = "com.simibubi.create:create-fabric", version.ref = "common_createFabric" }
+common_immptl-core = { module = "com.github.iPortalTeam.ImmersivePortalsMod:imm_ptl_core", version.ref = "common_immptl" }
+common_immptl-misc = { module = "com.github.iPortalTeam.ImmersivePortalsMod:q_misc_util", version.ref = "common_immptl" }
+common_immptl-build = { module = "com.github.iPortalTeam.ImmersivePortalsMod:build", version.ref = "common_immptl" }
+common_createUtilities = { module = "maven.modrinth:create-utilities", version.ref = "common_createUtilities" }
+common_teamRebornEnergy = { module = "teamreborn:energy", version.ref = "common_teamRebornRnergy" }
+common_dynmap = { module = "maven.modrinth:dynmap", version.ref = "common_dynmap" }
+common_hexcasting = { module = "at.petra-k.hexcasting:hexcasting-common-1.20.1", version.ref = "common_hexcasting" }
+common_hextweaks = { module = "maven.modrinth:hextweaks", version.ref = "common_hextweaks" }
+common_hexal = { module = "ram.talia.hexal:hexal-fabric-1.20.1", version.ref = "common_hexal" }
+common_ephemera = { module = "maven.modrinth:ephemera", version.ref = "common_ephemera"}
+common_sodium = { module = "maven.modrinth:sodium", version.ref = "common_sodium" }
+common_tis3d = { module = "maven.modrinth:tis3d", version.ref = "common_tis3d" }
+common_moonlight = { module = "maven.modrinth:moonlight", version.ref = "common_moonlight" }
+common_iris = { module = "maven.modrinth:iris", version.ref = "common_iris" }
+common_emf = { module = "curse.maven:entity-model-features-844662", version.ref = "common_emf" }
+common_etf = { module = "curse.maven:entity-texture-features-fabric-568563", version.ref = "common_etf" }
+#endregion
+
+#region forge
+forge_mixinExtras = { module = "io.github.llamalad7:mixinextras-forge", version.ref = "common_mixinextras" }
+forge_forge = { module = "net.minecraftforge:forge", version.ref = "forge_forge"}
+forge_ccTweaked = { module = "cc.tweaked:cc-tweaked-1.20.1-forge", version.ref = "common_ccTweaked" }
+forge_dynmap = { module = "maven.modrinth:dynmap", version.ref = "forge_dynmap" }
+forge_hexcasting = { module = "at.petra-k.hexcasting:hexcasting-forge-1.20.1", version.ref = "common_hexcasting" }
+forge_hexal = { module = "ram.talia.hexal:hexal-forge-1.20.1", version.ref = "common_hexal" }
+forge_mekanism = { module = "maven.modrinth:mekanism", version.ref = "forge_mekanism" }
+forge_spark = { module = "maven.modrinth:spark", version.ref = "forge_spark" }
+forge_embeddium = { module = "maven.modrinth:embeddium", version.ref = "forge_embeddium" }
+forge_oculus = { module = "maven.modrinth:oculus", version.ref = "forge_oculus" }
+forge_oc2r = { module = "maven.modrinth:oc2r", version.ref = "forge_oc2r" }
+forge_ponder = { module = "net.createmod.ponder:Ponder-Forge-1.20.1", version.ref = "forge_ponder" }
+forge_flywheel = { module = "dev.engine-room.flywheel:flywheel-forge-1.20.1", version.ref = "forge_flywheel" }
+forge_flywheel-api = { module = "dev.engine-room.flywheel:flywheel-forge-api-1.20.1", version.ref = "forge_flywheel" }
+forge_registrate = { module = "com.tterrag.registrate:Registrate", version.ref = "forge_registrate" }
+forge_kotlinForForge = { module = "maven.modrinth:kotlin-for-forge", version.ref = "forge_kotlinForForge" }
+forge_forgeConfigScreens = { module = "maven.modrinth:forge-config-screens", version.ref = "forge_forgeConfigScreens" }
+forge_emf = { module = "maven.modrinth:entity-model-features", version.ref = "forge_emf" }
+forge_etf = { module = "maven.modrinth:entitytexturefeatures", version.ref = "forge_etf" }
+#endregion forge
+
+#region fabric
+fabric_mixinExtras = { module = "io.github.llamalad7:mixinextras-fabric", version.ref = "common_mixinextras" }
+fabric_fabricApi = { module = "net.fabricmc.fabric-api:fabric-api", version.ref = "fabric_fabricApi"}
+fabric_forgeConfigApiPort = { module = "fuzs.forgeconfigapiport:forgeconfigapiport-fabric", version.ref = "common_fcap"}
+fabric_ccTweaked = { module = "maven.modrinth:cc-tweaked", version.ref = "fabric_ccTweaked" }
+fabric_hexcasting = { module = "at.petra-k.hexcasting:hexcasting-fabric-1.20.1", version.ref = "common_hexcasting" }
+fabric_hexal = { module = "ram.talia.hexal:hexal-fabric-1.20.1", version.ref = "common_hexal" }
+fabric_fakePlayerApi = { module = "dev.cafeteria:fake-player-api", version.ref = "fabric_fakePlayerApi" }
+fabric_reachEntityAttributes = { module = "com.jamieswhiteshirt:reach-entity-attributes", version.ref = "fabric_reachEntityAttributes" }
+fabric_milkLib = { module = "io.github.tropheusj:milk-lib", version.ref = "fabric_milkLib" }
+fabric_modmenu = { module = "maven.modrinth:modmenu", version.ref = "fabric_modmenu" }
+fabric_kotlin = { module = "net.fabricmc:fabric-language-kotlin", version.ref = "fabric_kotlin" }
+fabric_forgeConfigScreens = { module = "maven.modrinth:forge-config-screens", version.ref = "fabric_forgeConfigScreens" }
+fabric_emf = { module = "maven.modrinth:entity-model-features", version.ref = "fabric_emf" }
+fabric_etf = { module = "maven.modrinth:entitytexturefeatures", version.ref = "fabric_etf" }
+#endregion
+
+[bundles]
+common_immptl = ["common_immptl-core", "common_immptl-misc", "common_immptl-build"]
+forge_createDeps = ["forge_ponder", "forge_flywheel", "forge_flywheel", "forge_flywheel-api", "forge_registrate"]
+fabric_createDeps = ["fabric_fakePlayerApi", "fabric_reachEntityAttributes", "fabric_milkLib"]
