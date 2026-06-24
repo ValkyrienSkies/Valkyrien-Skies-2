@@ -120,16 +120,16 @@ object VSGameConfig {
         )
         var defaultRenderer = ShipRenderer.BATCHED
 
-        @ConfigEntry(description = "Use a custom vanilla shader for rendering ship chunks, improving lighting on tilted and upside down ships. Also enables the directional-shade fix for the sodium/embeddium ship renderer.")
+        @ConfigEntry(description = "Use a custom vanilla shader for rendering ship chunks, improving lighting on tilted and upside down ships. Also enables the directional-shade fix for the sodium/embeddium ship renderer. Only affects the VANILLA ship renderer — the BATCHED renderer (the default) has its own shading built in and ignores this.")
         var betterVanillaShipShading = false
 
-        @ConfigEntry(description = "Sample the world biome at the ship's actual rendered position so grass/leaves/water on ships show the correct biome color (sodium/embeddium only). Disable for a small perf gain — ship blocks fall back to whatever the chunk mesher baked.")
+        @ConfigEntry(description = "Sample the world biome at the ship's actual rendered position so grass/leaves/water on ships show the correct biome color (sodium/embeddium only). Only affects the VANILLA ship renderer — the BATCHED renderer (the default) bakes biome color into its mesh and ignores this. Disable for a small perf gain — ship blocks fall back to whatever the chunk mesher baked.")
         var dynamicShipBiomeTinting = false
 
-        @ConfigEntry(description = "Sample world block/sky light at the ship's rendered position so torches and sunlight in the world correctly light the ship (sodium/embeddium only). Disable for a moderate perf gain — ship blocks fall back to the shipyard's baked lightmap.")
+        @ConfigEntry(description = "Sample world block/sky light at the ship's rendered position so torches and sunlight in the world correctly light the ship (sodium/embeddium only). Only affects the VANILLA and FLYWHEEL ship renderers — the BATCHED renderer (the default) has this built into its own shaders and ignores this. Disable for a moderate perf gain — ship blocks fall back to the shipyard's baked lightmap.")
         var dynamicShipLighting = false
 
-        @ConfigEntry(description = "Project ships into the world's lighting at render time so ships occlude sunlight on the ground beneath them and ship-internal torches illuminate nearby world blocks (sodium/embeddium only). Experimental — overrides sodium's stock world-chunk shader. Disable for the default vanilla behavior where ships don't affect world lighting.")
+        @ConfigEntry(description = "Project ships into the world's lighting at render time so ships occlude sunlight on the ground beneath them and ship-internal torches illuminate nearby world blocks (sodium/embeddium only). Unlike the other ship-lighting options this affects the WORLD's chunks rather than ship blocks, so it applies to ALL ship renderers, the BATCHED default included. Experimental — overrides sodium's stock world-chunk shader. Disable for the default vanilla behavior where ships don't affect world lighting.")
         var dynamicShipToWorldLighting = false
 
     }

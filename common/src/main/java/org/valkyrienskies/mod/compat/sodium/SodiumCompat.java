@@ -24,15 +24,20 @@ import me.jellysquid.mods.sodium.client.render.chunk.terrain.DefaultTerrainRende
 import me.jellysquid.mods.sodium.client.render.chunk.terrain.TerrainRenderPass;
 import me.jellysquid.mods.sodium.client.render.viewport.CameraTransform;
 import me.jellysquid.mods.sodium.client.render.viewport.Viewport;
+import me.jellysquid.mods.sodium.client.render.texture.SpriteUtil;
 import me.jellysquid.mods.sodium.client.util.iterator.ByteIterator;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.texture.TextureAtlas;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import org.joml.Matrix4d;
 import org.joml.Matrix4dc;
@@ -58,6 +63,7 @@ import org.valkyrienskies.mod.compat.sodium.light.VsShipOccluderList;
 import org.valkyrienskies.mod.compat.sodium.light.VsShipLightStorage;
 import org.valkyrienskies.mod.compat.sodium.light.VsWorldFromShipLightStorage;
 import org.valkyrienskies.mod.mixin.ValkyrienCommonMixinConfigPlugin;
+import org.valkyrienskies.mod.mixin.accessors.client.renderer.texture.TextureAtlasAccessor;
 import org.valkyrienskies.mod.mixin.mod_compat.sodium.RenderSectionManagerAccessor;
 import org.valkyrienskies.mod.mixinducks.mod_compat.sodium.RenderSectionManagerDuck;
 import org.valkyrienskies.mod.mixinducks.mod_compat.sodium.SodiumWorldRendererDuck;
@@ -188,8 +194,17 @@ public class SodiumCompat {
         if (!VSGameConfig.CLIENT.getDynamicShipLighting()) return;
         final VsShipLightStorage storage = getLightStorage();
         storage.beginFrame();
+        storage.beginSettleTick(level.getGameTime(), level.getLightEngine().hasLightWork());
         for (ClientShip clientShip : VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips()) {
             final AABBdc aabb = clientShip.getRenderAABB();
+            if (aabb == null) {
+                continue;
+            }
+            if (storage.shipNeedsResettle(clientShip.getId())) {
+                storage.markAabbDirty(
+                    aabb.minX(), aabb.minY(), aabb.minZ(),
+                    aabb.maxX(), aabb.maxY(), aabb.maxZ());
+            }
             storage.requestSectionsInAabb(level,
                 aabb.minX(), aabb.minY(), aabb.minZ(),
                 aabb.maxX(), aabb.maxY(), aabb.maxZ());
@@ -515,6 +530,9 @@ public class SodiumCompat {
 
         if (renderLayer == RenderType.solid()) {
             ShipBatchRenderer.INSTANCE.beginFrame(net.minecraft.client.Minecraft.getInstance().level);
+            if (ShipBatchRenderer.INSTANCE.hasRenderableShips()) {
+                markBatchedShipAnimatedSpritesActive();
+            }
             for (final RenderType layer : ShipSectionMesh.CHUNK_LAYERS) {
                 if (layer == RenderType.translucent()) {
                     continue;
@@ -523,6 +541,29 @@ public class SodiumCompat {
             }
         } else if (renderLayer == RenderType.translucent()) {
             ShipBatchRenderer.INSTANCE.drawLayer(RenderType.translucent(), poseStack, x, y, z, projection, null);
+        }
+    }
+
+    private static TextureAtlas cachedBlockAtlas = null;
+    private static List<TextureAtlasSprite> cachedAnimatedBlockSprites = null;
+
+    public static void markBatchedShipAnimatedSpritesActive() {
+        final TextureAtlas atlas = Minecraft.getInstance().getModelManager()
+            .getAtlas(TextureAtlas.LOCATION_BLOCKS);
+        if (atlas == null) {
+            return;
+        }
+        if (atlas != cachedBlockAtlas || cachedAnimatedBlockSprites == null) {
+            cachedBlockAtlas = atlas;
+            cachedAnimatedBlockSprites = new ArrayList<>();
+            for (final TextureAtlasSprite sprite : ((TextureAtlasAccessor) atlas).vs$getTexturesByName().values()) {
+                if (SpriteUtil.hasAnimation(sprite)) {
+                    cachedAnimatedBlockSprites.add(sprite);
+                }
+            }
+        }
+        for (int i = 0; i < cachedAnimatedBlockSprites.size(); i++) {
+            SpriteUtil.markSpriteActive(cachedAnimatedBlockSprites.get(i));
         }
     }
 

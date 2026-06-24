@@ -398,6 +398,7 @@
     "accessors.client.render.OverlayVertexConsumerAccessor",
     "accessors.client.render.ViewAreaAccessor",
     "accessors.client.render.chunk.RenderChunkAccessor",
+    "accessors.client.renderer.texture.TextureAtlasAccessor",
     "accessors.client.world.ClientChunkCacheStorageAccessor",
     "client.MixinCamera",
     "client.MixinMinecraft",
@@ -506,6 +507,7 @@
     "mod_compat.vista.VistaLevelRendererMixin",
     "realms.MixinRealmsConnect",
     "world.level.lighting.MixinSkyLightSectionStorage",
+    "world.level.lighting.MixinLayerLightSectionStorage",
     "world.level.lighting.MixinLightEngineNullSafeRead",
     "world.level.lighting.MixinLevelLightEngineSafeUpdates"
   ],

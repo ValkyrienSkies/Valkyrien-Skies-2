@@ -31,6 +31,13 @@ public final class ShipRenderObject implements AutoCloseable {
     private long lastChunkPollGameTime = Long.MIN_VALUE;
     private boolean built = false;
 
+    private static final int RELIGHT_SETTLE_QUIET_TICKS = 3;
+    private static final long RELIGHT_SETTLE_MAX_DELAY_TICKS = 200L; // ~10s cap for slow mass-spawn propagation
+    private boolean relightRemeshArmed = false;
+    private int relightQuietTicks = 0;
+    private long relightLastTick = Long.MIN_VALUE;
+    private long relightDeadlineTick = Long.MIN_VALUE;
+
     private double[] cachedShipyardEmitters = NO_EMITTERS;
     private volatile boolean emittersDirty = true;
 
@@ -110,7 +117,34 @@ public final class ShipRenderObject implements AutoCloseable {
             built = true;
             blockEntitiesDirty = true;
             emittersDirty = true;
+            relightRemeshArmed = true;
+            relightQuietTicks = 0;
+            relightDeadlineTick = gameTime + RELIGHT_SETTLE_MAX_DELAY_TICKS;
             return false;
+        }
+
+        if (relightRemeshArmed) {
+            if (gameTime != relightLastTick) {
+                relightLastTick = gameTime;
+                if (level.getLightEngine().hasLightWork()) {
+                    relightQuietTicks = 0;
+                } else {
+                    relightQuietTicks++;
+                }
+            }
+            if (relightQuietTicks >= RELIGHT_SETTLE_QUIET_TICKS || gameTime >= relightDeadlineTick) {
+                if (!incrementalBudgetAvailable) {
+                    return false; // defer to a frame with re-mesh budget
+                }
+                fullRemesh(level, dispatcher, compiler);
+                synchronized (dirtySections) {
+                    dirtySections.clear();
+                }
+                relightRemeshArmed = false;
+                blockEntitiesDirty = true;
+                emittersDirty = true;
+                return true;
+            }
         }
 
         final boolean hasDirty;
