@@ -77,6 +77,19 @@ object BackendCommand {
 
                         1
                     }
+                ).then(literal("vox3d")
+                    .executes {
+                        VSCoreConfig.SERVER.physics.physicsBackend = ConfigPhysicsBackendType.KRUNCH_VOX3D
+                        (VSConfigUpdater.forgeConfigValuesMap.get("physicsBackend") as ForgeConfigSpec.ConfigValue<String>).set(ConfigPhysicsBackendType.KRUNCH_VOX3D.name)
+
+                        it.source.sendSuccess(
+                            {
+                                translatable(BACKEND_SET_MESSAGE, VSCoreConfig.SERVER.physics.physicsBackend.name)
+                            }, true
+                        )
+
+                        1
+                    }
                 ).then(literal("jolt")
                     .executes {
                         it.source.sendSuccess(
