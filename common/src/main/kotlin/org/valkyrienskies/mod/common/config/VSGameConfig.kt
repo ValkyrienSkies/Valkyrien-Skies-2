@@ -363,7 +363,7 @@ object VSGameConfig {
         @ConfigEntry(
             description = "Blast force in newtons of a TNT explosion at the center of the explosion."
         )
-        var explosionBlastForce = 500000.0
+        var explosionBlastForce = 70000.0
 
         @ConfigEntry(
             description = "Allow natural mob spawning on ships"
@@ -419,6 +419,11 @@ object VSGameConfig {
             description = "The default grace timer for splitting. A split won't occur after a block break at a position until this many ticks have passed. Note that setting this too high may prevent things like explosions from properly launching split ships. (in ticks)"
         )
         var defaultSplitGraceTimer = 2
+
+        @ConfigEntry(
+            description = "When a fully-contained vanilla structure is assembled into a ship, move its structure metadata (start + chunk references) onto the ship so in_structure advancements and other structure lookups keep working there."
+        )
+        var relocateStructureMetadata = true
 
         @ConfigCategory(title = "Commands")
         val Commands = COMMANDS()

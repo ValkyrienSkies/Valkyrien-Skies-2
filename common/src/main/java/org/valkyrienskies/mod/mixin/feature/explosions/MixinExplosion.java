@@ -125,7 +125,9 @@ public abstract class MixinExplosion {
         final Vec3 origin = new Vec3(this.x, this.y, this.z);
         final int radius = (int) Math.ceil(this.radius);
         final double blastForce = VSGameConfig.SERVER.getExplosionBlastForce();
-        final double powerMult = Math.max(0.1, this.radius / 4.0); // TNT blast radius = 4
+        final int rayCount = (2 * radius + 1) * (2 * radius + 1) * (2 * radius + 1) - 1;
+        final double rayDensityCorrection = (double) rayCount / 728.0;
+        final double powerMult = Math.pow(this.radius / 4.0, 2.0) * rayDensityCorrection;
         for (int x = -radius; x <= radius; x++) {
             for (int y = -radius; y <= radius; y++) {
                 for (int z = -radius; z <= radius; z++) {

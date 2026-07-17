@@ -61,6 +61,7 @@ import org.valkyrienskies.mod.common.util.set
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toJOMLD
 import org.valkyrienskies.mod.common.util.toMinecraft
+import org.valkyrienskies.mod.mixin.accessors.entity.EntityAccessor
 import org.valkyrienskies.mod.mixin.accessors.resource.ResourceKeyAccessor
 import org.valkyrienskies.mod.mixinducks.world.entity.PlayerDuck
 import java.util.function.Consumer
@@ -826,8 +827,9 @@ fun getShipMountedToData(passenger: Entity, partialTicks: Float? = null): ShipMo
     }
     val shipObjectEntityMountedTo =
         passenger.level().getLoadedShipManagingPos(vehicle.position().toJOML()) ?: return null
-    val mountedPosInShip: Vector3dc = vehicle.getPosition(partialTicks ?: 0.0f)
-        .add(0.0, vehicle.passengersRidingOffset + passenger.myRidingOffset, 0.0).toJOML()
+    val offset = Vector3d()
+    (vehicle as EntityAccessor).callPositionRider(passenger) { p, x, y, z -> offset.set(x, y, z).sub(vehicle.position().toJOML()) }
+    val mountedPosInShip: Vector3dc = vehicle.getPosition(partialTicks ?: 0.0f).toJOML().add(offset)
 
     return ShipMountedToData(shipObjectEntityMountedTo, mountedPosInShip)
 }
@@ -881,4 +883,36 @@ fun AABBic.forEach(f: (Int, Int, Int) -> Unit) {
             }
         }
     }
+}
+
+/**
+ * Will attempt to rename the ServerShip to the newSlug,
+ * but if an existing ship is found with that slug it will
+ * append a number like `-1` to the slug to make them unique.
+ * Not technically required, slugs _can_ be duplicated, but
+ * highly recommended.
+ */
+fun ServerShip.safeRenameTo(level: ServerLevel, newSlug: String) {
+    var newSlug = newSlug
+    var safeLimit = 0
+    while (safeLimit < 50) {
+        safeLimit += 1
+        run breaking@ {
+            level.allShips.forEach {
+                if (it.slug == newSlug) {
+                    val suffix = newSlug.split("-").last()
+                    if (suffix.toIntOrNull() != null) {
+                        val newNum = suffix.toInt() + 1
+                        newSlug = newSlug.dropLast(suffix.length)
+                        newSlug += newNum.toString()
+                    } else {
+                        newSlug += "-1"
+                    }
+                    // search all slugs again
+                    return@breaking
+                }
+            }
+        }
+    }
+    this.slug = newSlug
 }

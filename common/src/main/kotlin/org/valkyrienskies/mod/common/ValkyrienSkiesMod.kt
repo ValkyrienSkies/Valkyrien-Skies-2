@@ -18,6 +18,7 @@ import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.entity.BlockEntityType
+import net.minecraft.world.level.levelgen.structure.Structure
 import org.valkyrienskies.core.api.ships.properties.ShipId
 import org.valkyrienskies.core.api.util.GameTickOnly
 import org.valkyrienskies.core.api.util.PhysTickOnly
@@ -47,6 +48,7 @@ import org.valkyrienskies.mod.common.util.SplitHandler
 import org.valkyrienskies.mod.common.util.SplittingDisablerAttachment
 import org.valkyrienskies.mod.mixinducks.client.world.ClientChunkCacheDuck
 import org.valkyrienskies.mod.mixinducks.feature.tickets.PlayerKnownShipsDuck
+import org.valkyrienskies.mod.util.ModListUtil
 import java.util.ServiceLoader
 import java.util.concurrent.ConcurrentHashMap
 
@@ -82,6 +84,10 @@ object ValkyrienSkiesMod {
         TagKey.create(Registries.BLOCK, ResourceLocation(MOD_ID, "assemble_blacklist"))
 
     @JvmField
+    val STRUCTURE_RELOCATION_BLACKLIST: TagKey<Structure> =
+        TagKey.create(Registries.STRUCTURE, ResourceLocation(MOD_ID, "relocation_blacklist"))
+
+    @JvmField
     val NO_NATURAL_SHIP_SPAWN: TagKey<EntityType<*>> =
         TagKey.create(Registries.ENTITY_TYPE, ResourceLocation(MOD_ID, "no_natural_ship_spawn"))
 
@@ -95,6 +101,15 @@ object ValkyrienSkiesMod {
         loader.findFirst().orElseThrow {
             IllegalStateException("No VSCoreProvider implementation found via ServiceLoader!")
         }
+    }
+
+    @JvmStatic
+    val modListUtil by lazy {
+        ServiceLoader.load(ModListUtil::class.java, ModListUtil::class.java.classLoader)
+            .findFirst()
+            .orElseThrow {
+                IllegalStateException("No ModListUtil implementation found via ServiceLoader!")
+            }
     }
 
     @JvmStatic

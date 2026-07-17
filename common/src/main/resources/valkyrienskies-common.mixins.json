@@ -231,6 +231,7 @@
     "feature.spawn_player_on_ship.MixinPlayer",
     "feature.spawn_player_on_ship.MixinServerGamePacketListenerImpl",
     "feature.spawn_player_on_ship.MixinServerPlayer",
+    "feature.structure_lookup.MixinStructureManager",
     "feature.structure_template.PaletteInvoker",
     "feature.structure_template.StructureTemplateMixin",
     "feature.teleport_reconnected_player_to_ship.MixinServerPlayer",
