@@ -8,9 +8,11 @@ import net.minecraft.core.Direction
 import net.minecraft.core.Position
 import net.minecraft.core.Vec3i
 import net.minecraft.server.MinecraftServer
+import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
+import net.minecraft.world.level.levelgen.structure.StructureStart
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import org.jetbrains.annotations.Contract
@@ -145,6 +147,20 @@ fun Level?.getShipManagingBlock(v: Position?): Ship? =
  */
 fun Entity?.getShipManagingEntity(): Ship? =
     this?.level()?.getShipManagingBlock(position())
+
+/**
+ * The vanilla [StructureStart]s stored in this [Ship]'s chunks, i.e. the structures whose
+ * metadata was carried onto the ship during assembly. Only loaded chunks are consulted.
+ */
+fun Ship?.getStructureStarts(level: ServerLevel): List<StructureStart> {
+    if (this == null) return emptyList()
+    val starts = ArrayList<StructureStart>()
+    activeChunksSet.forEach { chunkX, chunkZ ->
+        val chunk = level.chunkSource.getChunkNow(chunkX, chunkZ) ?: return@forEach
+        starts.addAll(chunk.allStarts.values)
+    }
+    return starts
+}
 
 /**
  * If both endpoints of the given [aabb] are in the same ship, transform them

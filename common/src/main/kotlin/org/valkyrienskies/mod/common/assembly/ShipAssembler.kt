@@ -315,6 +315,10 @@ object ShipAssembler {
         VSAssemblyEvents.onPasteBeforeBlocksAreLoaded.emit(VSAssemblyEvents.OnPasteBeforeBlocksAreLoaded(level, fromShip, toShip, Pair(fromCenter, centerOfShip), eventData))
         template.placeInWorld(level, cornerOfShip, cornerOfShip, structureSettings, level.random, Block.UPDATE_CLIENTS)
 
+        if (removeOriginal) {
+            StructureMetadataRelocator.relocateStructureMetadata(level, blocks, minStructurePos, maxStructurePos, cornerOfShip)
+        }
+
         // Compute correct sky light for the destination blocks using column-based shadows.
         val moveDestPositions = blocks.map { srcPos ->
             val dx = srcPos.x - minStructurePos.x
@@ -633,6 +637,7 @@ object ShipAssembler {
                 }
 
                 initSkyLightForShip(level, destPositions)
+                StructureMetadataRelocator.relocateStructureMetadata(level, filteredBlocks, pending.minB, pending.maxB, cornerOfShip)
             } else {
                 // Full StructureTemplate path for larger block sets
                 val template = StructureTemplate()
@@ -667,6 +672,8 @@ object ShipAssembler {
                     VSAssemblyEvents.OnPasteBeforeBlocksAreLoaded(level, pending.fromShip, pending.toShip, Pair(fromCenter, centerOfShip), eventData)
                 )
                 template.placeInWorld(level, cornerOfShip, cornerOfShip, structureSettings, level.random, Block.UPDATE_CLIENTS)
+
+                StructureMetadataRelocator.relocateStructureMetadata(level, filteredBlocks, pending.minB, pending.maxB, cornerOfShip)
 
                 // Compute correct sky light for the ship using column-based shadows.
                 val destPositions2 = filteredBlocks.map { srcPos ->

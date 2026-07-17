@@ -1,0 +1,1 @@
+Makes chunk-reference structure lookups (advancement `in_structure` checks, structure mob-spawn overrides) resolve on ships by re-running world-position queries in the frames of intersecting loaded ships. Pairs with assembly carrying structure starts/references into the shipyard chunks.

@@ -264,11 +264,6 @@ subprojects {
         maven {
             name = "Valkyrien Skies Internal"
             url = project.vs_maven_url ?: 'https://maven.valkyrienskies.org'
-            content {
-                includeGroup("org.valkyrienskies")
-                includeGroup("org.valkyrienskies.core")
-                includeGroup("com.fasterxml.jackson.module")
-            }
             if (project.vs_maven_username && project.vs_maven_password) {
                 credentials {
                     username = project.vs_maven_username
