@@ -33,6 +33,7 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
 import org.joml.Vector3i;
 import org.joml.Vector3ic;
+import org.joml.primitives.AABBic;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -56,6 +57,8 @@ import org.valkyrienskies.mod.common.block.WingBlock;
 import org.valkyrienskies.mod.common.config.DimensionParametersResolver;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.util.DragInfoReporter;
+import org.valkyrienskies.mod.common.util.FractureEventHandler;
+import org.valkyrienskies.mod.common.util.ImpactFractureHandler;
 import org.valkyrienskies.mod.common.util.VSServerLevel;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.mixin.accessors.server.level.ChunkMapAccessor;
@@ -235,6 +238,18 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
             final LevelChunkSection[] chunkSections = worldChunk.getSections();
             final ServerLevel thisAsLevel = ServerLevel.class.cast(this);
 
+            final LoadedServerShip ship = VSGameUtilsKt.getLoadedShipManagingPos(thisAsLevel, chunkX, chunkZ);
+
+            int emptySectionEmitMinY = Integer.MIN_VALUE;
+            int emptySectionEmitMaxY = Integer.MAX_VALUE;
+            if (ship != null) {
+                final AABBic shipAABB = ship.getShipAABB();
+                if (shipAABB != null) {
+                    emptySectionEmitMinY = (shipAABB.minY() >> 4) - 1;
+                    emptySectionEmitMaxY = (shipAABB.maxY() >> 4) + 1;
+                }
+            }
+
             for (int sectionY = 0; sectionY < chunkSections.length; sectionY++) {
                 final LevelChunkSection chunkSection = chunkSections[sectionY];
                 final Vector3ic chunkPos =
@@ -248,8 +263,6 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                     voxelShapeUpdates.add(voxelShapeUpdate);
 
                     // region Detect wings
-                    final LoadedServerShip
-                        ship = VSGameUtilsKt.getLoadedShipManagingPos(thisAsLevel, chunkX, chunkZ);
                     if (ship != null) {
                         // Sussy cast, but I don't want to expose this directly through the vs-core api
                         final WingManager shipAsWingManager = ship.getWingManager();
@@ -277,9 +290,12 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                     }
                     // endregion
                 } else {
-                    final VsiTerrainUpdate emptyVoxelShapeUpdate = getVsCore()
-                        .newEmptyVoxelShapeUpdate(chunkPos.x(), chunkPos.y(), chunkPos.z(), true);
-                    voxelShapeUpdates.add(emptyVoxelShapeUpdate);
+                    final int sectionYCoord = chunkPos.y();
+                    if (sectionYCoord >= emptySectionEmitMinY && sectionYCoord <= emptySectionEmitMaxY) {
+                        final VsiTerrainUpdate emptyVoxelShapeUpdate = getVsCore()
+                            .newEmptyVoxelShapeUpdate(chunkPos.x(), chunkPos.y(), chunkPos.z(), true);
+                        voxelShapeUpdates.add(emptyVoxelShapeUpdate);
+                    }
                 }
             }
             vs$knownChunks.put(chunkPosLong, voxelChunkPositions);
@@ -423,6 +439,8 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
         if (VSCoreConfig.SERVER.getSp().getEnableSplitting()) {
             ValkyrienSkiesMod.splitHandler.tick(ServerLevel.class.cast(this));
         }
+        ImpactFractureHandler.INSTANCE.tick(ServerLevel.class.cast(this));
+        FractureEventHandler.INSTANCE.tick(ServerLevel.class.cast(this));
 
         DragInfoReporter.INSTANCE.tick((ServerLevel) (Object) this);
 

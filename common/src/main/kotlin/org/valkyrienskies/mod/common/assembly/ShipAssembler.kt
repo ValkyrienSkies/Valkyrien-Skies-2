@@ -117,6 +117,14 @@ object ShipAssembler {
 
     data class AssembleContext(val ship: ServerShip, val fromCenter: Vector3d, val toCenter: Vector3d)
 
+    private fun splitVelocity(fromShip: ServerShip?, fromCenter: Vector3d, posOffset: Vector3d): Vector3d {
+        if (fromShip == null) return Vector3d()
+        val newWorldCom = fromShip.shipToWorld.transformPosition(Vector3d(fromCenter)).add(posOffset)
+        val parentCom = fromShip.shipToWorld.transformPosition(Vector3d(fromShip.inertiaData.centerOfMass))
+        val r = newWorldCom.sub(parentCom)
+        return Vector3d(fromShip.velocity).add(Vector3d(fromShip.angularVelocity).cross(r))
+    }
+
     @JvmStatic
     @OptIn(GameTickOnly::class)
     fun assembleToShipFull(level: ServerLevel, blocks: Set<BlockPos>, scale: Double = 1.0): AssembleContext {
@@ -165,7 +173,7 @@ object ShipAssembler {
                 .let { fromShip?.shipToWorld?.transformDirection(it) ?: it }
 
         (toShip as VsiServerShip).unsafeSetKinematics(vsCore.newBodyKinematics(
-            fromShip?.velocity ?: Vector3d(),
+            splitVelocity(fromShip, fromCenter, posOffset),
             fromShip?.angularVelocity ?: Vector3d(),
             vsCore.newBodyTransform(
                 (fromShip?.shipToWorld?.transformPosition(Vector3d(fromCenter)) ?: fromCenter).add(posOffset),
@@ -619,8 +627,7 @@ object ShipAssembler {
                         if (it is Clearable) Clearable.tryClear(it) else it.load(CompoundTag())
                         level.removeBlockEntity(srcPos)
                     }
-                    val srcChunk = level.getChunkAt(srcPos)
-                    srcChunk.setBlockState(srcPos, Blocks.AIR.defaultBlockState(), false)
+                    level.setBlock(srcPos, Blocks.AIR.defaultBlockState(), removeFlags)
 
                     // Place at destination using chunk-level setBlockState directly.
                     // This bypasses Level.setBlock's sendBlockUpdated + onBlockStateChange
@@ -692,7 +699,7 @@ object ShipAssembler {
 
             val oldScale = pending.fromShip?.transform?.scaling?.x() ?: 1.0
             (pending.toShip as VsiServerShip).unsafeSetKinematics(vsCore.newBodyKinematics(
-                pending.fromShip?.velocity ?: Vector3d(),
+                splitVelocity(pending.fromShip, pending.fromCenter, posOffset),
                 pending.fromShip?.angularVelocity ?: Vector3d(),
                 vsCore.newBodyTransform(
                     (pending.fromShip?.shipToWorld?.transformPosition(Vector3d(fromCenter)) ?: fromCenter).add(posOffset),
