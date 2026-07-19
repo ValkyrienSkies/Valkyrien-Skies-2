@@ -52,7 +52,7 @@ object VSConfigApi {
                                     // Convert string name to enum instance
                                     @Suppress("UNCHECKED_CAST")
                                     val enumConstants = defaultValue.declaringJavaClass.enumConstants as Array<Enum<*>>
-                                    enumConstants.find { it.name == newValue }
+                                    enumConstants.find { it.name.equals(newValue, ignoreCase = true) }
                                 }
                                 is Enum<*> -> newValue
                                 else -> null
