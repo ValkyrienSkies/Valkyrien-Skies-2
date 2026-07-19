@@ -4,17 +4,11 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.Vec3i
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.Level
-import org.joml.Vector3ic
 import org.valkyrienskies.core.api.attachment.getAttachment
 import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.ships.properties.ShipId
-import org.valkyrienskies.core.api.world.connectivity.ConnectionStatus.CONNECTED
-import org.valkyrienskies.core.api.world.connectivity.ConnectionStatus.DISCONNECTED
-import org.valkyrienskies.core.api.world.connectivity.SparseVoxelPosition
 import org.valkyrienskies.core.api.world.properties.DimensionId
-import org.valkyrienskies.mod.api.getShipById
-import org.valkyrienskies.mod.api.toBlockPos
 import org.valkyrienskies.mod.common.assembly.ShipAssembler
 import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.dimensionId
@@ -57,14 +51,21 @@ SPLITLOGGER.logger.debug("[split-debug] queueSplit requested: ship=$shipId dim=$
         val loadedShip: LoadedServerShip = level.shipObjectWorld.loadedShips.getById(shipId) ?: return
         if (loadedShip.getAttachment<SplittingDisablerAttachment>()?.canSplit() == false) return
 
-        val aabb = loadedShip.shipAABB ?: return
         val allBlocks = HashSet<BlockPos>()
-        for (bx in aabb.minX()..aabb.maxX())
-            for (by in aabb.minY()..aabb.maxY())
-                for (bz in aabb.minZ()..aabb.maxZ()) {
-                    val pos = BlockPos(bx, by, bz)
-                    if (!level.getBlockState(pos).isAir) allBlocks.add(pos)
+        loadedShip.activeChunksSet.forEach { cx, cz ->
+            val chunk = level.chunkSource.getChunkNow(cx, cz) ?: return@forEach
+            val sections = chunk.sections
+            for (sIdx in sections.indices) {
+                val section = sections[sIdx] ?: continue
+                if (section.hasOnlyAir()) continue
+                val baseY = chunk.getSectionYFromSectionIndex(sIdx) shl 4
+                for (lx in 0..15) for (ly in 0..15) for (lz in 0..15) {
+                    if (!section.getBlockState(lx, ly, lz).isAir) {
+                        allBlocks.add(BlockPos((cx shl 4) + lx, baseY + ly, (cz shl 4) + lz))
+                    }
                 }
+            }
+        }
         if (allBlocks.size <= 1) return
 
         val components = connectedComponents(allBlocks, getOffsets(doEdges, doCorners))

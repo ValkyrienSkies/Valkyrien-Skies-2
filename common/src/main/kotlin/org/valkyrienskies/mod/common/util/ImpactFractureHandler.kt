@@ -30,6 +30,9 @@ object ImpactFractureHandler {
 
     var maxCarveRadius: Int = 3
 
+    private val CARVE_FLAGS = Block.UPDATE_CLIENTS or Block.UPDATE_KNOWN_SHAPE or
+        Block.UPDATE_SUPPRESS_DROPS or Block.UPDATE_MOVE_BY_PISTON
+
     private data class PendingImpact(val shipId: ShipId, val point: Vector3d, val approach: Double)
 
     private val queues = ConcurrentHashMap<DimensionId, ConcurrentLinkedQueue<PendingImpact>>()
@@ -51,7 +54,7 @@ object ImpactFractureHandler {
                 worstPoint = Vector3d(contact.position) // copy: event objects may be recycled
             }
         }
-        logger.info("[impact-debug] collision ships=${event.shipIdA}/${event.shipIdB} " +
+        logger.debug("[impact-debug] collision ships=${event.shipIdA}/${event.shipIdB} " +
             "maxApproach=${"%.2f".format(worstApproach)} threshold=$minApproachSpeed")
         if (worstPoint == null || worstApproach < minApproachSpeed) return
         val q = queues.computeIfAbsent(event.dimensionId) { ConcurrentLinkedQueue() }
@@ -90,7 +93,7 @@ object ImpactFractureHandler {
             if (dx * dx + dy * dy + dz * dz > r2) continue
             val pos = BlockPos(cx + dx, cy + dy, cz + dz)
             if (!level.getBlockState(pos).isAir) {
-                level.setBlock(pos, air, Block.UPDATE_ALL)
+                level.setBlock(pos, air, CARVE_FLAGS)
                 removed++
             }
         }

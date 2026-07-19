@@ -627,7 +627,8 @@ object ShipAssembler {
                         if (it is Clearable) Clearable.tryClear(it) else it.load(CompoundTag())
                         level.removeBlockEntity(srcPos)
                     }
-                    level.setBlock(srcPos, Blocks.AIR.defaultBlockState(), removeFlags)
+                    val srcChunk = level.getChunkAt(srcPos)
+                    srcChunk.setBlockState(srcPos, Blocks.AIR.defaultBlockState(), false)
 
                     // Place at destination using chunk-level setBlockState directly.
                     // This bypasses Level.setBlock's sendBlockUpdated + onBlockStateChange
