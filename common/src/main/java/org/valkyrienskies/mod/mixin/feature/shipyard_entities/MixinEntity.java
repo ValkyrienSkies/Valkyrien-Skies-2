@@ -99,7 +99,7 @@ public abstract class MixinEntity {
         final BlockPos pos = BlockPos.containing(x, y, z);
         if (Level.isInSpawnableBounds(pos)) {
             lastSafePosition = new Vec3(x, y, z);
-        } else {
+        } else if (!VSEntityManager.INSTANCE.isShipyardEntity(Entity.class.cast(this))) {
             valkyrienskies$resolveInvalidPosition(x, y, z);
             ci.cancel();
             return;
