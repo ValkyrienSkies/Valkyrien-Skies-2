@@ -67,7 +67,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         )
     )
     public BlockHitResult addShipsToRaycast(final Level receiver, final ClipContext ctx) {
-        return RaycastUtilsKt.clipIncludeShips(receiver, ctx);
+        return RaycastUtilsKt.clipIncludeShips(receiver, ctx, false);
     }
 
     //todo: still interact with water on a ship when in a sealed pocket
