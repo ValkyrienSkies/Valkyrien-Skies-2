@@ -77,6 +77,7 @@ public class VsShipLightStorage {
     private LongSet requestedThisFrame = new LongOpenHashSet();
 
     private static final int SETTLE_WINDOW_TICKS = 100; // ~5s hard cap after first sight
+    private static final int WINDOW_EXPIRED = 0;
     private final Long2IntOpenHashMap shipSettleTicksLeft = new Long2IntOpenHashMap();
     private final LongSet shipSettleSeenThisTick = new LongOpenHashSet();
     private long settleTick = Long.MIN_VALUE;
@@ -258,11 +259,11 @@ public class VsShipLightStorage {
             while (it.hasNext()) {
                 final Long2IntMap.Entry e = it.next();
                 final int v = e.getIntValue() - 1;
-                if (v <= 0) {
-                    it.remove();
-                } else {
-                    e.setValue(v);
-                }
+                // Pin an elapsed window at WINDOW_EXPIRED instead of removing the entry.
+                // Removing it would let shipNeedsResettle() treat a still-visible ship as
+                // a first sight and reopen the window forever; keeping the entry enforces
+                // the hard cap. The retainAll above still drops it when the ship leaves view.
+                e.setValue(v <= WINDOW_EXPIRED ? WINDOW_EXPIRED : v);
             }
         }
     }
@@ -271,8 +272,9 @@ public class VsShipLightStorage {
         shipSettleSeenThisTick.add(shipId);
         if (!shipSettleTicksLeft.containsKey(shipId)) {
             shipSettleTicksLeft.put(shipId, SETTLE_WINDOW_TICKS); // first sight: open window
+            return settleLightPending;
         }
-        return settleLightPending && shipSettleTicksLeft.containsKey(shipId);
+        return settleLightPending && shipSettleTicksLeft.get(shipId) > WINDOW_EXPIRED;
     }
 
     public void markAabbDirty(double minX, double minY, double minZ,
