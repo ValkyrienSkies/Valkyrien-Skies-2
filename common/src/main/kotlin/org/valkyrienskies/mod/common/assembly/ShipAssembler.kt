@@ -595,127 +595,116 @@ object ShipAssembler {
                 splittingDisabler?.disableSplitting()
             }
 
-            VSAssemblyEvents.beforeCopy.emit(VSAssemblyEvents.BeforeCopy(level, oldMin, oldMax, fromCenter, pending.fromShip, filteredBlocks, eventData))
+            try {
+                VSAssemblyEvents.beforeCopy.emit(VSAssemblyEvents.BeforeCopy(level, oldMin, oldMax, fromCenter, pending.fromShip, filteredBlocks, eventData))
 
-            // Place blocks at destination
-            val cornerOfShip = Vector3d(pending.toCenter)
-                .sub(offset)
-                .ceil()
-                .let { BlockPos(it.x.toInt(), it.y.toInt(), it.z.toInt()) }
-            val centerOfShip = cornerOfShip.toJOMLD().add(offset)
+                val cornerOfShip = Vector3d(pending.toCenter)
+                    .sub(offset)
+                    .ceil()
+                    .let { BlockPos(it.x.toInt(), it.y.toInt(), it.z.toInt()) }
+                val centerOfShip = cornerOfShip.toJOMLD().add(offset)
 
-            val removeFlags = Block.UPDATE_CLIENTS or Block.UPDATE_KNOWN_SHAPE or Block.UPDATE_SUPPRESS_DROPS or Block.UPDATE_MOVE_BY_PISTON
+                val removeFlags = Block.UPDATE_CLIENTS or Block.UPDATE_KNOWN_SHAPE or Block.UPDATE_SUPPRESS_DROPS or Block.UPDATE_MOVE_BY_PISTON
 
-            // Fast path for small block sets (<=8 blocks): directly copy block state
-            // instead of going through StructureTemplate (which serializes to NBT,
-            // creates a template, then deserializes — ~40ms overhead per ship).
-            // For 125 1-block ships, this saves ~5 seconds total.
-            if (filteredBlocksWithState.size <= 8) {
-                val destPositions = ArrayList<BlockPos>(filteredBlocksWithState.size)
-                for ((srcPos, state) in filteredBlocksWithState) {
-                    val beTag = level.getBlockEntity(srcPos)?.saveWithFullMetadata()
-                    val dx = srcPos.x - pending.minB.x
-                    val dy = srcPos.y - pending.minB.y
-                    val dz = srcPos.z - pending.minB.z
-                    val destPos = BlockPos(cornerOfShip.x + dx, cornerOfShip.y + dy, cornerOfShip.z + dz)
-                    destPositions.add(destPos)
+                if (filteredBlocksWithState.size <= 8) {
+                    val destPositions = ArrayList<BlockPos>(filteredBlocksWithState.size)
+                    for ((srcPos, state) in filteredBlocksWithState) {
+                        val beTag = level.getBlockEntity(srcPos)?.saveWithFullMetadata()
+                        val dx = srcPos.x - pending.minB.x
+                        val dy = srcPos.y - pending.minB.y
+                        val dz = srcPos.z - pending.minB.z
+                        val destPos = BlockPos(cornerOfShip.x + dx, cornerOfShip.y + dy, cornerOfShip.z + dz)
+                        destPositions.add(destPos)
 
-                    // Remove source — use chunk-level setBlockState to bypass all MC
-                    // neighbor update machinery. Skip sendBlockUpdated since source chunks
-                    // are stalled by PacketStopChunkUpdates.
-                    level.getBlockEntity(srcPos)?.let {
-                        if (it is Clearable) Clearable.tryClear(it) else it.load(CompoundTag())
-                        level.removeBlockEntity(srcPos)
+                        level.getBlockEntity(srcPos)?.let {
+                            if (it is Clearable) Clearable.tryClear(it) else it.load(CompoundTag())
+                            level.removeBlockEntity(srcPos)
+                        }
+                        val srcChunk = level.getChunkAt(srcPos)
+                        srcChunk.setBlockState(srcPos, Blocks.AIR.defaultBlockState(), false)
+
+                        val destChunk = level.getChunkAt(destPos)
+                        destChunk.setBlockState(destPos, state, false)
+                        beTag?.let { tag ->
+                            tag.putInt("x", destPos.x)
+                            tag.putInt("y", destPos.y)
+                            tag.putInt("z", destPos.z)
+                            level.getBlockEntity(destPos)?.load(tag)
+                        }
                     }
-                    val srcChunk = level.getChunkAt(srcPos)
-                    srcChunk.setBlockState(srcPos, Blocks.AIR.defaultBlockState(), false)
 
-                    // Place at destination using chunk-level setBlockState directly.
-                    // This bypasses Level.setBlock's sendBlockUpdated + onBlockStateChange
-                    // which are unnecessary while dest chunks are stalled.
-                    // LevelChunk.setBlockState handles block entity creation internally.
-                    val destChunk = level.getChunkAt(destPos)
-                    destChunk.setBlockState(destPos, state, false)
-                    beTag?.let { tag ->
-                        tag.putInt("x", destPos.x)
-                        tag.putInt("y", destPos.y)
-                        tag.putInt("z", destPos.z)
-                        level.getBlockEntity(destPos)?.load(tag)
-                    }
-                }
-
-                initSkyLightForShip(level, destPositions)
-                StructureMetadataRelocator.relocateStructureMetadata(level, filteredBlocks, pending.minB, pending.maxB, cornerOfShip)
-            } else {
-                // Full StructureTemplate path for larger block sets
-                val template = StructureTemplate()
-                template as StructureTemplateFillFromVoxelSet
-                template.`vs$fillFromVoxelSet`(
-                    level, filteredBlocks,
-                    pending.fromShip?.let { listOf(it) } ?: emptyList(),
-                    SingleItemMap(fromId, fromCenter, Vector3d()),
-                    pending.minB, pending.maxB
-                )
-
-                for (pos in filteredBlocks) {
-                    level.getBlockEntity(pos)?.let {
-                        if (it is Clearable) Clearable.tryClear(it) else it.load(CompoundTag())
-                        level.removeBlockEntity(pos)
-                    }
-                    level.setBlock(pos, Blocks.AIR.defaultBlockState(), removeFlags)
-                }
-                for (pos in filteredBlocks) {
-                    level.chunkSource.lightEngine.checkBlock(pos)
-                }
-
-                val structureSettings = StructurePlaceSettings().addProcessor(
-                    ICopyableProcessor(
-                        SingleItemMap(fromId, pending.toShip.id, -1L) { it },
-                        SingleItemMap(fromId, Pair(fromCenter, Vector3d(centerOfShip)), Pair(Vector3d(), Vector3d()))
+                    initSkyLightForShip(level, destPositions)
+                    StructureMetadataRelocator.relocateStructureMetadata(level, filteredBlocks, pending.minB, pending.maxB, cornerOfShip)
+                } else {
+                    // Full StructureTemplate path for larger block sets
+                    val template = StructureTemplate()
+                    template as StructureTemplateFillFromVoxelSet
+                    template.`vs$fillFromVoxelSet`(
+                        level, filteredBlocks,
+                        pending.fromShip?.let { listOf(it) } ?: emptyList(),
+                        SingleItemMap(fromId, fromCenter, Vector3d()),
+                        pending.minB, pending.maxB
                     )
-                )
-                structureSettings.rotationPivot = cornerOfShip
 
-                VSAssemblyEvents.onPasteBeforeBlocksAreLoaded.emit(
-                    VSAssemblyEvents.OnPasteBeforeBlocksAreLoaded(level, pending.fromShip, pending.toShip, Pair(fromCenter, centerOfShip), eventData)
-                )
-                template.placeInWorld(level, cornerOfShip, cornerOfShip, structureSettings, level.random, Block.UPDATE_CLIENTS)
+                    for (pos in filteredBlocks) {
+                        level.getBlockEntity(pos)?.let {
+                            if (it is Clearable) Clearable.tryClear(it) else it.load(CompoundTag())
+                            level.removeBlockEntity(pos)
+                        }
+                        level.setBlock(pos, Blocks.AIR.defaultBlockState(), removeFlags)
+                    }
+                    for (pos in filteredBlocks) {
+                        level.chunkSource.lightEngine.checkBlock(pos)
+                    }
 
-                StructureMetadataRelocator.relocateStructureMetadata(level, filteredBlocks, pending.minB, pending.maxB, cornerOfShip)
+                    val structureSettings = StructurePlaceSettings().addProcessor(
+                        ICopyableProcessor(
+                            SingleItemMap(fromId, pending.toShip.id, -1L) { it },
+                            SingleItemMap(fromId, Pair(fromCenter, Vector3d(centerOfShip)), Pair(Vector3d(), Vector3d()))
+                        )
+                    )
+                    structureSettings.rotationPivot = cornerOfShip
 
-                // Compute correct sky light for the ship using column-based shadows.
-                val destPositions2 = filteredBlocks.map { srcPos ->
-                    val dx = srcPos.x - pending.minB.x
-                    val dy = srcPos.y - pending.minB.y
-                    val dz = srcPos.z - pending.minB.z
-                    BlockPos(cornerOfShip.x + dx, cornerOfShip.y + dy, cornerOfShip.z + dz)
+                    VSAssemblyEvents.onPasteBeforeBlocksAreLoaded.emit(
+                        VSAssemblyEvents.OnPasteBeforeBlocksAreLoaded(level, pending.fromShip, pending.toShip, Pair(fromCenter, centerOfShip), eventData)
+                    )
+                    template.placeInWorld(level, cornerOfShip, cornerOfShip, structureSettings, level.random, Block.UPDATE_CLIENTS)
+
+                    StructureMetadataRelocator.relocateStructureMetadata(level, filteredBlocks, pending.minB, pending.maxB, cornerOfShip)
+
+                    // Compute correct sky light for the ship using column-based shadows.
+                    val destPositions2 = filteredBlocks.map { srcPos ->
+                        val dx = srcPos.x - pending.minB.x
+                        val dy = srcPos.y - pending.minB.y
+                        val dz = srcPos.z - pending.minB.z
+                        BlockPos(cornerOfShip.x + dx, cornerOfShip.y + dy, cornerOfShip.z + dz)
+                    }
+                    initSkyLightForShip(level, destPositions2)
                 }
-                initSkyLightForShip(level, destPositions2)
-            }
 
-            // Set kinematics
-            val posOffset = Vector3d(pending.toShip.inertiaData.centerOfMass)
-                .sub(Vector3d(centerOfShip))
-                .let { pending.fromShip?.shipToWorld?.transformDirection(it) ?: it }
+                // Set kinematics
+                val posOffset = Vector3d(pending.toShip.inertiaData.centerOfMass)
+                    .sub(Vector3d(centerOfShip))
+                    .let { pending.fromShip?.shipToWorld?.transformDirection(it) ?: it }
 
-            val oldScale = pending.fromShip?.transform?.scaling?.x() ?: 1.0
-            (pending.toShip as VsiServerShip).unsafeSetKinematics(vsCore.newBodyKinematics(
-                splitVelocity(pending.fromShip, pending.fromCenter, posOffset),
-                pending.fromShip?.angularVelocity ?: Vector3d(),
-                vsCore.newBodyTransform(
-                    (pending.fromShip?.shipToWorld?.transformPosition(Vector3d(fromCenter)) ?: fromCenter).add(posOffset),
-                    pending.fromShip?.transform?.shipToWorldRotation ?: Quaterniond(),
-                    Vector3d(scale * oldScale, scale * oldScale, scale * oldScale),
-                    centerOfShip
-                )
-            ))
-            pending.toShip.isStatic = false
+                val oldScale = pending.fromShip?.transform?.scaling?.x() ?: 1.0
+                (pending.toShip as VsiServerShip).unsafeSetKinematics(vsCore.newBodyKinematics(
+                    splitVelocity(pending.fromShip, pending.fromCenter, posOffset),
+                    pending.fromShip?.angularVelocity ?: Vector3d(),
+                    vsCore.newBodyTransform(
+                        (pending.fromShip?.shipToWorld?.transformPosition(Vector3d(fromCenter)) ?: fromCenter).add(posOffset),
+                        pending.fromShip?.transform?.shipToWorldRotation ?: Quaterniond(),
+                        Vector3d(scale * oldScale, scale * oldScale, scale * oldScale),
+                        centerOfShip
+                    )
+                ))
+                pending.toShip.isStatic = false
 
-            results.add(AssembleContext(pending.toShip, fromCenter, centerOfShip))
-
-            // Re-enable splitting on source
-            if (pending.fromShip is LoadedServerShip && wasSplittingEnabled) {
-                pending.fromShip.getAttachment(SplittingDisablerAttachment::class.java)?.enableSplitting()
+                results.add(AssembleContext(pending.toShip, fromCenter, centerOfShip))
+            } finally {
+                if (pending.fromShip is LoadedServerShip && wasSplittingEnabled) {
+                    pending.fromShip.getAttachment(SplittingDisablerAttachment::class.java)?.enableSplitting()
+                }
             }
         }
 
