@@ -1,21 +1,21 @@
 package org.valkyrienskies.mod.common.config
 
-import io.netty.util.internal.ThreadLocalRandom
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.packs.resources.ResourceManager
 import net.minecraft.server.packs.resources.SimplePreparableReloadListener
 import net.minecraft.util.GsonHelper
 import net.minecraft.util.profiling.ProfilerFiller
 import org.valkyrienskies.mod.util.logger
+import java.util.concurrent.ThreadLocalRandom
 import kotlin.collections.component1
 import kotlin.collections.component2
 import kotlin.collections.forEach
 
 object SlugDatapackResolver {
     private val logger by logger()
-    val loader get() = DataLoader
+    val loader = DataLoader
 
-    private var slugList: MutableList<SlugEntry> = mutableListOf()
+    private var slugList: List<SlugEntry> = listOf()
     private var slugsByPosition: List<List<SlugEntry>> = mutableListOf()
 
     const val NOUNS_PER_NAME = 3
@@ -73,43 +73,53 @@ object SlugDatapackResolver {
             }
 
             for ((id, stack) in resources) {
-                val entries = mutableListOf<SlugEntry>()
+                try {
+                    val entries = mutableListOf<SlugEntry>()
 
-                for (resource in stack) {
-                    resource.openAsReader().use { reader ->
-                        //region the actual parsing of the file
-                        val obj = GsonHelper.parse(reader).asJsonObject
+                    for (resource in stack) {
+                        resource.openAsReader().use { reader ->
+                            //region the actual parsing of the file
+                            val obj = GsonHelper.parse(reader).asJsonObject
 
-                        if (obj.get("replace")?.asBoolean == true) {
-                            entries.clear()
+                            if (obj.get("replace")?.asBoolean == true) {
+                                entries.clear()
+                            }
+
+                            obj.get("remove")?.asJsonArray?.forEach { remove ->
+                                removed.add(remove.asString)
+                            }
+
+                            obj.get("values")?.asJsonArray?.forEach { value ->
+                                val entry =
+                                    if (value.isJsonPrimitive) {
+                                        SlugEntry(value.asString, null)
+                                    } else {
+                                        val json = value.asJsonObject
+
+                                        SlugEntry(
+                                            json["id"].asString,
+                                            json["positions"]
+                                                ?.asJsonArray
+                                                ?.map {
+                                                    val i = it.asInt
+                                                    if (i < 0 || i > NOUNS_PER_NAME) {
+                                                        logger.warn("Warning while parsing $id: Slug '${json["id"].asString}' position '$i' is not within range 0..$NOUNS_PER_NAME")
+                                                    }
+                                                    it.asInt
+                                                }
+                                        )
+                                    }
+                                entries += entry
+                            }
+                            //endregion
                         }
-
-                        obj.get("remove")?.asJsonArray?.forEach { remove ->
-                            removed.add(remove.asString)
-                        }
-
-                        obj.get("values")?.asJsonArray?.forEach { value ->
-                            val entry =
-                                if (value.isJsonPrimitive) {
-                                    SlugEntry(value.asString, null)
-                                } else {
-                                    val json = value.asJsonObject
-
-                                    SlugEntry(
-                                        json["id"].asString,
-                                        json["positions"]
-                                            ?.asJsonArray
-                                            ?.map { it.asInt }
-                                    )
-                                }
-
-                            entries += entry
-                        }
-                        //endregion
                     }
-                }
 
-                result[id] = entries
+                    result[id] = entries
+                } catch (e: Exception) {
+                    logger.error("An exception occurred while parsing: $id. See below for info")
+                    e.printStackTrace()
+                }
             }
 
             return LoadedSlugData(result, removed)
@@ -120,14 +130,12 @@ object SlugDatapackResolver {
             resourceManager: ResourceManager,
             profiler: ProfilerFiller
         ) {
-            slugList.clear()
-
-            data.addedSlugs.entries.forEach { entry ->
-                entry.setValue(entry.value.filter { entry -> !data.removedSlugs.contains(entry.id) } as MutableList<SlugEntry>)
-            }
+            // Hash set .contains() is slightly faster
+            val removed = data.removedSlugs.toHashSet()
 
             slugList = data.addedSlugs.values
-                .flatten() as MutableList<SlugEntry>
+                .flatten()
+                .filter { it.id !in removed }
 
             calculatePositionalSlugs()
         }
