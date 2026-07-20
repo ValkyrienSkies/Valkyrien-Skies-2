@@ -193,7 +193,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
             .map(VSGameUtilsKt::getPlayerWrapper).collect(Collectors.toSet());
         shipWorld.setPlayers(vsPlayers);
 
-        // region Tell the VS world to load new levels, and unload deleted ones
+        // region Tell the VS world to load new levels
         final Map<String, ServerLevel> newLoadedLevels = new HashMap<>();
         for (final ServerLevel level : getAllLevels()) {
             final String dimensionId = VSGameUtilsKt.getDimensionId(level);
@@ -209,6 +209,12 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         }
         */
 
+        // endregion
+
+        vsPipeline.preTickGame();
+
+        // region Tell VS to unload deleted levels and update the loaded level set.
+        // VsiServerShipWorld::removeDimension must happen after the PRE_TICK stage, otherwise the game crashes.
         for (final String oldLoadedLevelId : loadedLevels) {
             if (!newLoadedLevels.containsKey(oldLoadedLevelId)) {
                 shipWorld.removeDimension(oldLoadedLevelId);
@@ -217,8 +223,6 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         }
         loadedLevels = newLoadedLevels.keySet();
         // endregion
-
-        vsPipeline.preTickGame();
     }
 
     /**
