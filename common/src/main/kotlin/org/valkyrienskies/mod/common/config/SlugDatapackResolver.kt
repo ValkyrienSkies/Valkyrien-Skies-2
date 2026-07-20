@@ -105,7 +105,7 @@ object SlugDatapackResolver {
                                                     if (i < 0 || i > (NOUNS_PER_NAME-1)) {
                                                         logger.warn("Warning while parsing $id: Slug '${json["id"].asString}' position '$i' is not within range 0..${NOUNS_PER_NAME-1}")
                                                     }
-                                                    it.asInt
+                                                    i
                                                 }
                                         )
                                     }
