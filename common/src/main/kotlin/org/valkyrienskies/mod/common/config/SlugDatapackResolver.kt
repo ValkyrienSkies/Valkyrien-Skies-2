@@ -1,0 +1,135 @@
+package org.valkyrienskies.mod.common.config
+
+import io.netty.util.internal.ThreadLocalRandom
+import net.minecraft.resources.ResourceLocation
+import net.minecraft.server.packs.resources.ResourceManager
+import net.minecraft.server.packs.resources.SimplePreparableReloadListener
+import net.minecraft.util.GsonHelper
+import net.minecraft.util.profiling.ProfilerFiller
+import org.valkyrienskies.mod.util.logger
+import kotlin.collections.component1
+import kotlin.collections.component2
+import kotlin.collections.forEach
+
+object SlugDatapackResolver {
+    private val logger by logger()
+    val loader get() = DataLoader
+
+    private var slugList: MutableList<SlugEntry> = mutableListOf()
+    private var slugsByPosition: List<List<SlugEntry>> = mutableListOf()
+
+    const val NOUNS_PER_NAME = 3
+
+    fun generateSlug(): String {
+        if (slugList.isEmpty()) {
+            logger.error("No slugs found from datapacks!")
+            return "null"
+        }
+
+        return List(NOUNS_PER_NAME) { position ->
+            val choices = slugsByPosition[position]
+
+            if (choices.isEmpty()) {
+                logger.error("No valid slugs for position $position")
+                return@List "null"
+            }
+
+            choices[ThreadLocalRandom.current().nextInt(0, choices.size)].id
+        }.joinToString("-")
+    }
+
+    /**
+     * Sort each SlugEntry into the places in the slug it can go into
+     */
+    private fun calculatePositionalSlugs() {
+        slugsByPosition = List(NOUNS_PER_NAME) { position ->
+            slugList.filter { entry ->
+                entry.positions.isNullOrEmpty() || position in entry.positions
+            }
+        }
+    }
+
+    /**
+     * @param addedSlugs is a map of the resource location of each datapack file to the list of slug entries it adds.
+     * @param removedSlugs is a list of string slugs which should be removed from [addedSlugs], if present, after [addedSlugs] has fully loaded.
+     */
+    data class LoadedSlugData(val addedSlugs: MutableMap<ResourceLocation, MutableList<SlugEntry>>, val removedSlugs: List<String>)
+
+    data class SlugEntry(val id: String, val positions: List<Int>? = listOf())
+
+    object DataLoader : SimplePreparableReloadListener<LoadedSlugData>() {
+
+        override fun prepare(
+            resourceManager: ResourceManager,
+            profiler: ProfilerFiller
+        ): LoadedSlugData {
+
+            val result = mutableMapOf<ResourceLocation, MutableList<SlugEntry>>()
+            val removed = mutableListOf<String>()
+
+            // Every json under data/<namespace>/vs_slugs
+            val resources = resourceManager.listResourceStacks("vs_slugs") {
+                it.path.endsWith(".json")
+            }
+
+            for ((id, stack) in resources) {
+                val entries = mutableListOf<SlugEntry>()
+
+                for (resource in stack) {
+                    resource.openAsReader().use { reader ->
+                        //region the actual parsing of the file
+                        val obj = GsonHelper.parse(reader).asJsonObject
+
+                        if (obj.get("replace")?.asBoolean == true) {
+                            entries.clear()
+                        }
+
+                        obj.get("remove")?.asJsonArray?.forEach { remove ->
+                            removed.add(remove.asString)
+                        }
+
+                        obj.get("values")?.asJsonArray?.forEach { value ->
+                            val entry =
+                                if (value.isJsonPrimitive) {
+                                    SlugEntry(value.asString, null)
+                                } else {
+                                    val json = value.asJsonObject
+
+                                    SlugEntry(
+                                        json["id"].asString,
+                                        json["positions"]
+                                            ?.asJsonArray
+                                            ?.map { it.asInt }
+                                    )
+                                }
+
+                            entries += entry
+                        }
+                        //endregion
+                    }
+                }
+
+                result[id] = entries
+            }
+
+            return LoadedSlugData(result, removed)
+        }
+
+        override fun apply(
+            data: LoadedSlugData,
+            resourceManager: ResourceManager,
+            profiler: ProfilerFiller
+        ) {
+            slugList.clear()
+
+            data.addedSlugs.entries.forEach { entry ->
+                entry.setValue(entry.value.filter { entry -> !data.removedSlugs.contains(entry.id) } as MutableList<SlugEntry>)
+            }
+
+            slugList = data.addedSlugs.values
+                .flatten() as MutableList<SlugEntry>
+
+            calculatePositionalSlugs()
+        }
+    }
+}

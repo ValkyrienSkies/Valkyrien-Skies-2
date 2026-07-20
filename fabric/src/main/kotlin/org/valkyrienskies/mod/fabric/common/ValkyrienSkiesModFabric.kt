@@ -69,6 +69,7 @@ import org.valkyrienskies.mod.common.command.VSCommands
 import org.valkyrienskies.mod.common.config.ConfigType
 import org.valkyrienskies.mod.common.config.DimensionParametersResolver
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
+import org.valkyrienskies.mod.common.config.SlugDatapackResolver
 import org.valkyrienskies.mod.common.config.VSConfigUpdater
 import org.valkyrienskies.mod.common.config.VSEntityHandlerDataLoader
 import org.valkyrienskies.mod.common.config.VSGameConfig
@@ -277,6 +278,7 @@ class ValkyrienSkiesModFabric : ModInitializer {
         val loader1 = MassDatapackResolver.loader // the get makes a new instance so get it only once
         val loader2 = VSEntityHandlerDataLoader // the get makes a new instance so get it only once
         val loader3 = DimensionParametersResolver
+        val loader4 = SlugDatapackResolver.loader
         ResourceManagerHelper.get(SERVER_DATA)
             .registerReloadListener(object : IdentifiableResourceReloadListener {
                 override fun getFabricId(): ResourceLocation {
@@ -317,6 +319,26 @@ class ValkyrienSkiesModFabric : ModInitializer {
                     gameExecutor: Executor
                 ): CompletableFuture<Void> {
                     return loader3.reload(
+                        stage, resourceManager, preparationsProfiler, reloadProfiler,
+                        backgroundExecutor, gameExecutor
+                    )
+                }
+            })
+        ResourceManagerHelper.get(SERVER_DATA)
+            .registerReloadListener(object : IdentifiableResourceReloadListener {
+                override fun getFabricId(): ResourceLocation {
+                    return ResourceLocation(ValkyrienSkiesMod.MOD_ID, "vs_slugs")
+                }
+
+                override fun reload(
+                    stage: PreparationBarrier,
+                    resourceManager: ResourceManager,
+                    preparationsProfiler: ProfilerFiller,
+                    reloadProfiler: ProfilerFiller,
+                    backgroundExecutor: Executor,
+                    gameExecutor: Executor
+                ): CompletableFuture<Void> {
+                    return loader4.reload(
                         stage, resourceManager, preparationsProfiler, reloadProfiler,
                         backgroundExecutor, gameExecutor
                     )

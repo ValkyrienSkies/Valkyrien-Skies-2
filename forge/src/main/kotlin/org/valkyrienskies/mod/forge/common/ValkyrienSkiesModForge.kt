@@ -67,6 +67,7 @@ import org.valkyrienskies.mod.common.command.VSCommands
 import org.valkyrienskies.mod.common.config.ConfigType
 import org.valkyrienskies.mod.common.config.DimensionParametersResolver
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
+import org.valkyrienskies.mod.common.config.SlugDatapackResolver
 import org.valkyrienskies.mod.common.config.VSConfigUpdater
 import org.valkyrienskies.mod.common.config.VSEntityHandlerDataLoader
 import org.valkyrienskies.mod.common.config.VSGameConfig
@@ -305,6 +306,7 @@ class ValkyrienSkiesModForge {
     }
 
     private fun registerResourceManagers(event: AddReloadListenerEvent) {
+        event.addListener(SlugDatapackResolver.loader)
         event.addListener(MassDatapackResolver.loader)
         event.addListener(VSEntityHandlerDataLoader)
         event.addListener(DimensionParametersResolver)
