@@ -22,18 +22,11 @@ object SlugDatapackResolver {
 
     fun generateSlug(): String {
         if (slugList.isEmpty()) {
-            logger.error("No slugs found from datapacks!")
-            return "null"
+            return "unnamed-ship"
         }
 
         return List(NOUNS_PER_NAME) { position ->
-            val choices = slugsByPosition[position]
-
-            if (choices.isEmpty()) {
-                logger.error("No valid slugs for position $position")
-                return@List "null"
-            }
-
+            val choices = slugsByPosition[position].ifEmpty { slugList }
             choices[ThreadLocalRandom.current().nextInt(0, choices.size)].id
         }.joinToString("-")
     }
