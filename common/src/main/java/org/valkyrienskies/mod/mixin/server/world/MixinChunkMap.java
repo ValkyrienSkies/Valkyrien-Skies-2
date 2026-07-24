@@ -17,6 +17,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.storage.DimensionDataStorage;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -123,16 +124,39 @@ public abstract class MixinChunkMap {
     }
 
     /**
-     * Only save ship chunks that actually have something in them to avoid massive lag when closing/saving the game
+     * Only save ship chunks that actually have something in them to avoid massive lag when closing/saving the game.
+     *
+     * <p>Previously this gated on {@code ship.getActiveChunksSet().contains(pos)}
+     * but that set is populated asynchronously by the connectivity-update
+     * executeIf in {@code ShipAssembler.batchAssembleToShips} phase 4. Closing
+     * the world immediately after a spawn (before that executeIf fires)
+     * would hit preSave with an empty activeChunksSet, bail, and lose the
+     * ship's blocks on reload. Switch to a direct "has any non-air section"
+     * check so freshly-spawned ships still save correctly.
+     *
+     * <p>Important: we MUST call {@code chunkAccess.setUnsaved(false)} before
+     * cancelling the save. Vanilla's {@code ChunkMap.save} marks the chunk
+     * clean as its very first side-effect (after the {@code isUnsaved()}
+     * check). If we short-circuit at HEAD without doing the same, the chunk
+     * stays dirty, so {@code ChunkHolder.isReadyForSaving()} keeps returning
+     * false, and during {@code stopServer()}'s chunk-unload loop
+     * ({@code ChunkMap.processUnloads} → {@code scheduleUnload}) the chunk
+     * keeps being requeued — the server thread spins at 100% CPU in
+     * {@code thenRunAsync → scheduleUnload} and never exits runServer().
+     * Observed as a 200s+ server-shutdown hang blocking {@code halt(true)}.
      */
     @Inject(method = "save", at = @At("HEAD"), cancellable = true)
     private void preSave(ChunkAccess chunkAccess, CallbackInfoReturnable<Boolean> cir) {
         final ChunkPos pos = chunkAccess.getPos();
         final Ship ship = VSGameUtilsKt.getShipManagingPos(level, pos);
-        if (ship != null) {
-            if (!ship.getActiveChunksSet().contains(pos.x, pos.z)) {
-                cir.setReturnValue(false);
+        if (ship == null) return;
+
+        for (LevelChunkSection section : chunkAccess.getSections()) {
+            if (section != null && !section.hasOnlyAir()) {
+                return; // chunk has content — let vanilla save run
             }
         }
+        chunkAccess.setUnsaved(false);
+        cir.setReturnValue(false);
     }
 }

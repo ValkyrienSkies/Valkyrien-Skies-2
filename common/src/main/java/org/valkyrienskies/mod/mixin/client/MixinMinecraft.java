@@ -28,7 +28,10 @@ import org.valkyrienskies.mod.common.IShipObjectWorldClientCreator;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
+import org.valkyrienskies.mod.common.assembly.SeamlessChunksManager;
 import org.valkyrienskies.mod.common.util.EntityDragger;
+import org.valkyrienskies.mod.compat.LoadedMods;
+import org.valkyrienskies.mod.compat.LoadedMods.FlywheelVersion;
 import org.valkyrienskies.mod.mixinducks.client.MinecraftDuck;
 
 @Mixin(Minecraft.class)
@@ -101,6 +104,24 @@ public abstract class MixinMinecraft
 
     @Shadow
     public abstract ClientPacketListener getConnection();
+
+    @Inject(
+        method = "runTick",
+        at = @At("HEAD")
+    )
+    private void vs$drainDeferredShipChunksBeforeFlywheelFrame(final boolean pauseOnly, final CallbackInfo ci) {
+        if (LoadedMods.getFlywheel() != FlywheelVersion.V1 || level == null) {
+            return;
+        }
+        final SeamlessChunksManager manager = SeamlessChunksManager.get();
+        if (manager == null) {
+            return;
+        }
+        manager.drainDeferredBatch();
+        if (!level.isLightUpdateQueueEmpty()) {
+            level.pollLightUpdates();
+        }
+    }
 
     @Inject(
         method = "tick",

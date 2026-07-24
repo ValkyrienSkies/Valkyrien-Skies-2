@@ -24,6 +24,8 @@ import org.valkyrienskies.core.api.util.PhysTickOnly
 import org.valkyrienskies.core.api.world.properties.DimensionId
 import org.valkyrienskies.core.internal.VsiCore
 import org.valkyrienskies.core.internal.VsiCoreClient
+import org.valkyrienskies.mod.air_pockets.client.ShipWaterPocketCurrentShipRenderContext
+import org.valkyrienskies.mod.air_pockets.client.ShipWaterPocketExternalWaterCullRenderContext
 import org.valkyrienskies.mod.api.BlockEntityPhysicsListener
 import org.valkyrienskies.mod.api.EntityPhysicsListener
 import org.valkyrienskies.mod.api.SeatedControllingPlayer
@@ -34,6 +36,7 @@ import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
 import org.valkyrienskies.mod.common.blockentity.TestThrusterBlockEntity
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.entity.VSPhysicsEntity
+import org.valkyrienskies.mod.common.hooks.VSGameEvents
 import org.valkyrienskies.mod.common.jackson.BlockPosDeserializer
 import org.valkyrienskies.mod.common.jackson.BlockPosKeyDeserializer
 import org.valkyrienskies.mod.common.jackson.BlockPosKeySerializer
@@ -220,6 +223,27 @@ object ValkyrienSkiesMod {
 
     fun getEntityPhysTicker(dimensionId: DimensionId, entity: Entity): EntityPhysicsListener? {
         return entityPhysListeners.getOrPut(dimensionId, { ConcurrentHashMap() })[entity.id]
+    }
+
+    @JvmStatic
+    fun initClient() {
+        VSGameEvents.renderShip.on {
+            ShipWaterPocketExternalWaterCullRenderContext.beginShipRender()
+            ShipWaterPocketCurrentShipRenderContext.push(it.ship.id, false)
+        }
+        VSGameEvents.postRenderShip.on {
+            ShipWaterPocketCurrentShipRenderContext.pop()
+            ShipWaterPocketExternalWaterCullRenderContext.endShipRender()
+        }
+
+        VSGameEvents.renderShipSodium.on {
+            ShipWaterPocketExternalWaterCullRenderContext.beginShipRender()
+            ShipWaterPocketCurrentShipRenderContext.push(it.ship.id, true)
+        }
+        VSGameEvents.postRenderShipSodium.on {
+            ShipWaterPocketCurrentShipRenderContext.pop()
+            ShipWaterPocketExternalWaterCullRenderContext.endShipRender()
+        }
     }
 
 }

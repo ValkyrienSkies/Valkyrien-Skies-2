@@ -46,6 +46,7 @@ import org.valkyrienskies.mod.common.entity.ShipMountedToData
 import org.valkyrienskies.mod.common.entity.ShipMountedToDataProvider
 import org.valkyrienskies.mod.common.util.DimensionIdProvider
 import org.valkyrienskies.mod.common.util.EntityDragger.serversidePosition
+import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.util.set
 import org.valkyrienskies.mod.common.util.toJOML
@@ -69,6 +70,8 @@ val Level?.shipObjectWorld
     get() = shipWorldNullable ?: vsCore.dummyShipWorldClient
 
 val Level?.allShips get() = this.shipObjectWorld.allShips
+val Level?.unloadedShips get() = this.shipObjectWorld.unloadedShips
+val Level?.allBodies get() = this.shipObjectWorld.allBodies
 
 val MinecraftServer.shipObjectWorld: VsiServerShipWorld
     get() = (this as IShipObjectWorldServerProvider).shipObjectWorld ?: vsCore.dummyShipWorldServer
@@ -236,7 +239,10 @@ fun Level.transformFromWorldToNearbyShipsAndWorld(aabb: AABB, cb: Consumer<AABB>
     val tmpAABB = AABBd()
     cb.accept(aabb)
     getShipsIntersecting(aabb).forEach { ship ->
-        cb.accept(tmpAABB.set(aabb).transform(ship.worldToShip).toMinecraft())
+        tmpAABB.set(aabb).transform(ship.worldToShip)
+        if (EntityShipCollisionUtils.mayShipIntersectLocalAabb(ship, tmpAABB)) {
+            cb.accept(tmpAABB.toMinecraft())
+        }
     }
 }
 
@@ -249,7 +255,10 @@ fun Level.transformFromWorldToNearbyShips(aabb: AABB, cb: Consumer<AABB>) {
     val tmpAABB = AABBd()
     //cb.accept(aabb)
     getShipsIntersecting(aabb).forEach { ship ->
-        cb.accept(tmpAABB.set(aabb).transform(ship.worldToShip).toMinecraft())
+        tmpAABB.set(aabb).transform(ship.worldToShip)
+        if (EntityShipCollisionUtils.mayShipIntersectLocalAabb(ship, tmpAABB)) {
+            cb.accept(tmpAABB.toMinecraft())
+        }
     }
 }
 
@@ -495,11 +504,10 @@ fun Ship.toWorldCoordinates(x: Double, y: Double, z: Double, dest: Vector3d = Ve
 fun LevelChunkSection.toDenseVoxelUpdate(chunkPos: Vector3ic): VsiTerrainUpdate {
     val update = vsCore.newDenseTerrainUpdateBuilder(chunkPos.x(), chunkPos.y(), chunkPos.z())
     val info = BlockStateInfo.cache
-    val airType = vsCore.blockTypes.air
     for (x in 0..15) {
         for (y in 0..15) {
             for (z in 0..15) {
-                update.addBlock(x, y, z, info.get(getBlockState(x, y, z))?.second ?: airType)
+                update.addBlock(x, y, z, info.get(getBlockState(x, y, z))?.second ?: vsCore.blockTypes.air)
             }
         }
     }

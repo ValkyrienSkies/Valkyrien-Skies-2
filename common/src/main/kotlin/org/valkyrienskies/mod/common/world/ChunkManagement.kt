@@ -7,11 +7,14 @@ import org.apache.commons.lang3.mutable.MutableObject
 import org.valkyrienskies.core.internal.world.VsiServerShipWorld
 import org.valkyrienskies.core.internal.world.chunks.VsiChunkUnwatchTask
 import org.valkyrienskies.core.internal.world.chunks.VsiChunkWatchTask
+import org.valkyrienskies.mod.common.VS2ChunkAllocator
 import org.valkyrienskies.mod.common.executeIf
 import org.valkyrienskies.mod.common.getLevelFromDimensionId
 import org.valkyrienskies.mod.common.isTickingChunk
 import org.valkyrienskies.mod.common.mcPlayer
+import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
+import org.valkyrienskies.mod.common.util.VSServerLevel
 import org.valkyrienskies.mod.mixin.accessors.server.level.ChunkMapAccessor
 import org.valkyrienskies.mod.util.logger
 
@@ -19,10 +22,13 @@ object ChunkManagement {
     @JvmStatic
     fun tickChunkLoading(shipWorld: VsiServerShipWorld, server: MinecraftServer) {
         val (chunkWatchTasks, chunkUnwatchTasks) = shipWorld.getChunkWatchTasks()
+        val maxWatchTasks = VSGameConfig.SERVER.Performance.shipChunkWatchTasksPerTick.coerceIn(1, 4096)
+        val maxUnwatchTasks = VSGameConfig.SERVER.Performance.shipChunkUnwatchTasksPerTick.coerceIn(1, 4096)
+        val executedWatchTasks = ArrayList<VsiChunkWatchTask>(minOf(chunkWatchTasks.size, maxWatchTasks))
+        val executedUnwatchTasks =
+            ArrayList<VsiChunkUnwatchTask>(minOf(chunkUnwatchTasks.size, maxUnwatchTasks))
 
-        // for now, just do all the watch tasks
-
-        chunkWatchTasks.forEach { chunkWatchTask: VsiChunkWatchTask ->
+        for (chunkWatchTask in chunkWatchTasks.asSequence().take(maxWatchTasks)) {
             logger.debug(
                 "Watch task for dimension " + chunkWatchTask.dimensionId + ": " +
                     chunkWatchTask.chunkX + " : " + chunkWatchTask.chunkZ
@@ -34,6 +40,7 @@ object ChunkManagement {
             // Active ship chunks must stay on vanilla forced tickets so gameplay keeps
             // random ticks, block ticks, and entity ticks.
             level.chunkSource.updateChunkForced(chunkPos, true)
+            (level as? VSServerLevel)?.addPendingForcedChunk(chunkPos.x, chunkPos.z)
 
             level.server.executeIf({ level.isTickingChunk(chunkPos) }) {
                 for (player in chunkWatchTask.playersNeedWatching) {
@@ -48,9 +55,10 @@ object ChunkManagement {
                     }
                 }
             }
+            executedWatchTasks.add(chunkWatchTask)
         }
 
-        chunkUnwatchTasks.forEach { chunkUnwatchTask: VsiChunkUnwatchTask ->
+        for (chunkUnwatchTask in chunkUnwatchTasks.asSequence().take(maxUnwatchTasks)) {
             logger.debug(
                 "Unwatch task for dimension " + chunkUnwatchTask.dimensionId + ": " +
                     chunkUnwatchTask.chunkX + " : " + chunkUnwatchTask.chunkZ
@@ -59,15 +67,21 @@ object ChunkManagement {
 
             if (chunkUnwatchTask.shouldUnload) {
                 val level = server.getLevelFromDimensionId(chunkUnwatchTask.dimensionId)!!
-                level.chunkSource.updateChunkForced(chunkPos, false)
+                val isLiveShipChunk =
+                    VS2ChunkAllocator.isChunkInShipyardCompanion(chunkPos.x, chunkPos.z) &&
+                        shipWorld.allShips.getById(chunkUnwatchTask.ship.id) != null
+                if (!isLiveShipChunk) {
+                    level.chunkSource.updateChunkForced(chunkPos, false)
+                }
             }
 
             for (player in chunkUnwatchTask.playersNeedUnwatching) {
                 (player.mcPlayer as ServerPlayer).untrackChunk(chunkPos)
             }
+            executedUnwatchTasks.add(chunkUnwatchTask)
         }
 
-        shipWorld.setExecutedChunkWatchTasks(chunkWatchTasks, chunkUnwatchTasks)
+        shipWorld.setExecutedChunkWatchTasks(executedWatchTasks, executedUnwatchTasks)
     }
 
     /**

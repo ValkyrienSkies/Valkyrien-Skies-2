@@ -4,9 +4,9 @@ import com.mojang.brigadier.StringReader
 import com.mojang.brigadier.arguments.ArgumentType
 import com.mojang.brigadier.context.CommandContext
 import com.mojang.brigadier.exceptions.CommandSyntaxException
+import com.mojang.brigadier.exceptions.SimpleCommandExceptionType
 import com.mojang.brigadier.suggestion.Suggestions
 import com.mojang.brigadier.suggestion.SuggestionsBuilder
-import net.minecraft.commands.CommandRuntimeException
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.SharedSuggestionProvider
 import net.minecraft.network.chat.Component
@@ -97,9 +97,12 @@ open class ShipArgument private constructor(val selectorOnly: Boolean) : Argumen
             if (r.size == 1) return r.first() else throw ERROR_MANY_SHIP_FOUND
         }
 
-        private val ERROR_NO_SHIP_FOUND = CommandRuntimeException(Component.translatable("argument.valkyrienskies.ship.no_found"))
-        private val ERROR_MANY_SHIP_FOUND =
-            CommandRuntimeException(Component.translatable("argument.valkyrienskies.ship.multiple_found"))
+        private val ERROR_NO_SHIP_FOUND = SimpleCommandExceptionType(
+            Component.translatable("argument.valkyrienskies.ship.no_found")
+        ).create()
+        private val ERROR_MANY_SHIP_FOUND = SimpleCommandExceptionType(
+            Component.translatable("argument.valkyrienskies.ship.multiple_found")
+        ).create()
     }
 
     override fun getExamples(): Collection<String> = EXAMPLES

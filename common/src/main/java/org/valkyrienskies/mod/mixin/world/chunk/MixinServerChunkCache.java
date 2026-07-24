@@ -1,12 +1,15 @@
 package org.valkyrienskies.mod.mixin.world.chunk;
 
 import net.minecraft.server.level.ServerChunkCache;
+import net.minecraft.server.level.TicketType;
 import net.minecraft.world.level.ChunkPos;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.mod.common.VS2ChunkAllocator;
+import org.valkyrienskies.mod.common.world.VSTicketType;
 
 @Mixin(ServerChunkCache.class)
 public class MixinServerChunkCache {
@@ -34,4 +37,5 @@ public class MixinServerChunkCache {
             }
         }
     }
+
 }

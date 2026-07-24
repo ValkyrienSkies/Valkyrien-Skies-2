@@ -46,7 +46,7 @@ public class MixinChunkTracker {
 
         final int flags = this.chunkStatus.get(key);
 
-        if (flags == ChunkStatus.FLAG_ALL) {
+        if ((flags & ChunkStatus.FLAG_HAS_BLOCK_DATA) != 0) {
             if (this.chunkReady.add(key) && !this.unloadQueue.remove(key)) {
                 this.loadQueue.add(key);
             }

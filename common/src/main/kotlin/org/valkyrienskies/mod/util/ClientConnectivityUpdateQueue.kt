@@ -13,15 +13,31 @@ import org.valkyrienskies.mod.common.toDenseVoxelUpdate
 import org.valkyrienskies.mod.common.vsCore
 
 object ClientConnectivityUpdateQueue {
+    private const val MAX_CHUNKS_PER_TICK = 8
+
     val toInitialize = ArrayDeque<Pair<ChunkPos, Boolean>>()
 
     @JvmStatic
     fun queueChunkForInitialization(pos: ChunkPos, forceUpdate: Boolean) {
+        if (!VSGameConfig.CLIENT.Connectivity.enableClientConnectivity) {
+            return
+        }
         toInitialize.addLast(Pair(pos, forceUpdate))
     }
 
+    @JvmStatic
     fun onRegistriesCompleted() {
-        do {
+        drainQueuedChunks(MAX_CHUNKS_PER_TICK)
+    }
+
+    @JvmStatic
+    fun drainQueuedChunks(maxChunks: Int) {
+        if (!VSGameConfig.CLIENT.Connectivity.enableClientConnectivity) {
+            toInitialize.clear()
+            return
+        }
+        var processedChunks = 0
+        while (processedChunks < maxChunks) {
             val (pos, shouldForce) = toInitialize.removeFirstOrNull() ?: break
             val level = Minecraft.getInstance().level ?: continue
             val worldChunk = level.getChunk(pos.x, pos.z) ?: continue
@@ -40,6 +56,7 @@ object ClientConnectivityUpdateQueue {
                         val voxelShapeUpdate: VsiTerrainUpdate =
                             chunkSection.toDenseVoxelUpdate(chunkPos)
                         voxelShapeUpdates.add(voxelShapeUpdate)
+                        // endregion
                     } else {
                         val emptyVoxelShapeUpdate: VsiTerrainUpdate = vsCore
                             .newEmptyVoxelShapeUpdate(chunkPos.x(), chunkPos.y(), chunkPos.z(), true)
@@ -60,6 +77,7 @@ object ClientConnectivityUpdateQueue {
                     }
                 }
             }
-        } while (toInitialize.isNotEmpty())
+            processedChunks++
+        }
     }
 }

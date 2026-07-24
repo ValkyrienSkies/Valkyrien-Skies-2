@@ -1,6 +1,7 @@
 
 dependencies {
     implementation(annotationProcessor("io.github.llamalad7:mixinextras-common:0.4.1"))
+    testImplementation "junit:junit:4.13.2"
 
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
     // We depend on fabric loader here to use the fabric @Environment annotations
@@ -10,6 +11,7 @@ dependencies {
     modCompileOnly "fuzs.forgeconfigapiport:forgeconfigapiport-common:${rootProject.fcap_version}"
 
     modCompileOnly("maven.modrinth:sodium:${sodium_version}")
+    modCompileOnly("maven.modrinth:iris:${iris_version}")
 
     // Alex Caves
     modCompileOnly("maven.modrinth:alexs-caves:$alexscaves_version")
@@ -93,6 +95,14 @@ dependencies {
 
     modImplementation("maven.modrinth:theatrical:1.0.0-alpha.28.120+mc1.20.1")
 
+    // Unit testing
+    def kotestVersion = "5.4.1"
+    testImplementation "org.junit.jupiter:junit-jupiter-api:5.8.1"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.8.1"
+    testImplementation "io.kotest:kotest-runner-junit5:${kotestVersion}"
+    testImplementation "io.kotest:kotest-property:${kotestVersion}"
+    testImplementation "io.kotest:kotest-assertions-core:${kotestVersion}"
+    testImplementation "io.mockk:mockk:1.12.5"
 }
 
 architectury {
@@ -101,6 +111,10 @@ architectury {
 
 loom {
     accessWidenerPath = file("src/main/resources/valkyrienskies-common.accesswidener")
+}
+
+test {
+    useJUnitPlatform()
 }
 
 jar {

@@ -21,13 +21,13 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 @Mixin(Ticker.class)
 public interface MixinVibrationSystemTicker {
     @WrapOperation(method = "receiveVibration", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/gameevent/vibrations/VibrationInfo;pos()Lnet/minecraft/world/phys/Vec3;"))
-    private static Vec3 destWorldPos(VibrationInfo instance, Operation<Vec3> original,
+    static Vec3 destWorldPos(VibrationInfo instance, Operation<Vec3> original,
         @Local(argsOnly = true) ServerLevel serverLevel) {
         return VSGameUtilsKt.toWorldCoordinates(serverLevel, original.call(instance));
     }
 
     @WrapOperation(method = "receiveVibration", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/gameevent/vibrations/VibrationSystem$User;getPositionSource()Lnet/minecraft/world/level/gameevent/PositionSource;"))
-    private static PositionSource destSourcePos(User instance, Operation<PositionSource> original, @Local(argsOnly = true) ServerLevel serverLevel) {
+    static PositionSource destSourcePos(User instance, Operation<PositionSource> original, @Local(argsOnly = true) ServerLevel serverLevel) {
         PositionSource trueResult = original.call(instance);
         Optional<Vec3> optPos = trueResult.getPosition(serverLevel);
         if (optPos.isPresent()) {
@@ -47,7 +47,7 @@ public interface MixinVibrationSystemTicker {
     }
 
     @WrapOperation(method = "tryReloadVibrationParticle", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/gameevent/vibrations/VibrationSystem$User;getPositionSource()Lnet/minecraft/world/level/gameevent/PositionSource;"))
-    private static PositionSource destReloadSourcePos(User instance, Operation<PositionSource> original, @Local(argsOnly = true) ServerLevel serverLevel) {
+    static PositionSource destReloadSourcePos(User instance, Operation<PositionSource> original, @Local(argsOnly = true) ServerLevel serverLevel) {
         return destSourcePos(instance, original, serverLevel);
     }
 }

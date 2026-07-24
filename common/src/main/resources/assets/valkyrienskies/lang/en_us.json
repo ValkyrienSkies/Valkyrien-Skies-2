@@ -1,6 +1,11 @@
 {
   "itemGroup.valkyrienSkies": "Valkyrien Skies",
 
+  "_comment_vs_core_startup_tab": "Override the STARTUP-typed vs-core config's button label and subpage title so the tab reads 'VSCore' instead of NeoForge's default 'Startup settings'. NeoForge's ConfigurationScreen.translatableConfig builds first-try keys as '<modid>.configuration.section.<sanitized-filename>[.title]' where the filename is sanitized by [^a-zA-Z0-9]+ -> '.'. The group section header above the button ('Startup Options') is NOT mod-scoped in NeoForge (it uses the global neoforge.configuration.uitext.<typename> key), so that's not customizable without overriding globally.",
+  "valkyrienskies.configuration.section.valkyrienskies.core.server.toml": "VSCore Options",
+  "valkyrienskies.configuration.section.valkyrienskies.core.server.toml.title": "VSCore Settings",
+
+
   "tooltip.valkyrienskies.mass": "Mass",  
   "category.valkyrienskies.driving": "Driving",  
   "key.valkyrienskies.ship_cruise": "Cruise",

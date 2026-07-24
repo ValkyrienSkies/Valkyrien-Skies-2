@@ -22,7 +22,6 @@ import org.valkyrienskies.mod.compat.flywheel.model.FlywheelSectionModelBuilder
 import org.valkyrienskies.mod.compat.flywheel.model.FlywheelSectionModelBuilder.BuildingContext
 import org.valkyrienskies.mod.compat.flywheel.model.MultiBlockModelSectionBuilder
 import org.valkyrienskies.mod.compat.flywheel.model.TestModelBuilder
-import org.valkyrienskies.mod.mixin.mod_compat.flywheel_renderer.LevelLightEngineAccessor
 
 class RenderingShipVisual(val effect: ShipEffect, val ctx: VisualizationContext) : Visual, DynamicVisual {
     private val instances = Long2ObjectMaps.synchronize(Long2ObjectOpenHashMap<TransformedInstance>())
@@ -33,12 +32,6 @@ class RenderingShipVisual(val effect: ShipEffect, val ctx: VisualizationContext)
     )
     private val models: FlywheelSectionModelBuilder = MultiBlockModelSectionBuilder()
     private val lightEngine = LevelLightEngine(effect.level.chunkSource, false, false)
-
-    init {
-        (lightEngine as LevelLightEngineAccessor).setBlockLightEngine(
-            (effect.level.lightEngine as LevelLightEngineAccessor).getBlockLightEngine()
-        )
-    }
 
     private fun newModel(pos: SectionPos, model: Model?) {
         if (model == null) {
