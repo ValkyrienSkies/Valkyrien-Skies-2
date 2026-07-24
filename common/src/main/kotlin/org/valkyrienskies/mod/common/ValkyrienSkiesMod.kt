@@ -2,6 +2,7 @@ package org.valkyrienskies.mod.common
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.module.SimpleModule
+import net.fabricmc.fabric.api.loot.v2.LootTableEvents
 import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.Registries
@@ -9,15 +10,20 @@ import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
+import net.minecraft.server.level.ServerLevel
 import net.minecraft.tags.TagKey
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.item.CreativeModeTab
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
+import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.entity.BlockEntityType
+import net.minecraft.world.level.border.BorderChangeListener
+import net.minecraft.world.level.border.WorldBorder
+import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.core.api.ships.properties.ShipId
 import org.valkyrienskies.core.api.util.GameTickOnly
 import org.valkyrienskies.core.api.util.PhysTickOnly
@@ -27,11 +33,13 @@ import org.valkyrienskies.core.internal.VsiCoreClient
 import org.valkyrienskies.mod.api.BlockEntityPhysicsListener
 import org.valkyrienskies.mod.api.EntityPhysicsListener
 import org.valkyrienskies.mod.api.SeatedControllingPlayer
+import org.valkyrienskies.mod.api.dimensionId
 import org.valkyrienskies.mod.api.getShipManagingBlock
 import org.valkyrienskies.mod.api_impl.events.VsApiImpl
 import org.valkyrienskies.mod.common.blockentity.TestAntigravBlockEntity
 import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
 import org.valkyrienskies.mod.common.blockentity.TestThrusterBlockEntity
+import org.valkyrienskies.mod.common.config.DimensionParametersResolver
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.entity.VSPhysicsEntity
 import org.valkyrienskies.mod.common.jackson.BlockPosDeserializer
@@ -44,6 +52,8 @@ import org.valkyrienskies.mod.common.util.GameToPhysicsAdapter
 import org.valkyrienskies.mod.common.util.ShipSettings
 import org.valkyrienskies.mod.common.util.SplitHandler
 import org.valkyrienskies.mod.common.util.SplittingDisablerAttachment
+import org.valkyrienskies.mod.common.util.VoidAttachment
+import org.valkyrienskies.mod.common.util.WorldBorderAttachment
 import org.valkyrienskies.mod.mixinducks.client.world.ClientChunkCacheDuck
 import org.valkyrienskies.mod.mixinducks.feature.tickets.PlayerKnownShipsDuck
 import java.util.ServiceLoader
@@ -139,10 +149,24 @@ object ValkyrienSkiesMod {
             useLegacySerializer()
         }
         core.registerAttachment(BuoyancyHandlerAttachment::class.java)
+        core.registerAttachment(WorldBorderAttachment::class.java)
+        core.registerAttachment(VoidAttachment::class.java)
 
         core.shipLoadEvent.on { event ->
             event.ship.setAttachment(SplittingDisablerAttachment(true))
             event.ship.setAttachment(BuoyancyHandlerAttachment())
+            event.ship.setAttachment(WorldBorderAttachment())
+            event.ship.setAttachment(VoidAttachment())
+            val level = currentServer?.getLevelFromDimensionId(event.ship.chunkClaimDimension)
+            // Maybe we should perf test this?
+            level?.let {
+                event.ship.getAttachment(WorldBorderAttachment::class.java)!!.border = it.worldBorder
+                if (!(DimensionParametersResolver.dimensionMap[level.dimensionId]?.disableVoidSaving ?: false)) {
+                    event.ship.getAttachment(VoidAttachment::class.java)!!.lowestHeight = it.yRange.minY - 64
+                } else {
+                    event.ship.getAttachment(VoidAttachment::class.java)!!.lowestHeight = null
+                }
+            }
         }
 
         core.physTickEvent.on { event ->
@@ -175,6 +199,8 @@ object ValkyrienSkiesMod {
                 player.vs_removeKnownShip(event.ship.id)
             }
         }
+
+
     }
 
     @JvmStatic
@@ -220,6 +246,63 @@ object ValkyrienSkiesMod {
 
     fun getEntityPhysTicker(dimensionId: DimensionId, entity: Entity): EntityPhysicsListener? {
         return entityPhysListeners.getOrPut(dimensionId, { ConcurrentHashMap() })[entity.id]
+    }
+
+    fun onLevelLoaded(level: ServerLevel) {
+        level.worldBorder.addListener(ShipBorderChangeListener(level))
+    }
+
+    /**
+     * Our shipLoaded event handler takes care of ships which are loading in, they query the current world border.
+     *
+     * This listener is only to update the _already_ loaded ships with the new border.
+     */
+    private class ShipBorderChangeListener(val level: ServerLevel) : BorderChangeListener {
+        override fun onBorderSizeSet(worldBorder: WorldBorder, d: Double) {
+            updateAllLoadedShips(worldBorder)
+        }
+
+        override fun onBorderSizeLerping(
+            worldBorder: WorldBorder, d: Double, e: Double,
+            l: Long
+        ) {
+            updateAllLoadedShips(worldBorder)
+        }
+
+        override fun onBorderCenterSet(
+            worldBorder: WorldBorder, d: Double, e: Double
+        ) {
+            updateAllLoadedShips(worldBorder)
+        }
+
+        override fun onBorderSetWarningTime(worldBorder: WorldBorder, i: Int) {
+            updateAllLoadedShips(worldBorder)
+        }
+
+        override fun onBorderSetWarningBlocks(
+            worldBorder: WorldBorder, i: Int
+        ) {
+            updateAllLoadedShips(worldBorder)
+        }
+
+        override fun onBorderSetDamagePerBlock(
+            worldBorder: WorldBorder, d: Double
+        ) {
+            updateAllLoadedShips(worldBorder)
+        }
+
+        override fun onBorderSetDamageSafeZOne(
+            worldBorder: WorldBorder, d: Double
+        ) {
+            updateAllLoadedShips(worldBorder)
+        }
+
+        private fun updateAllLoadedShips(worldBorder: WorldBorder) {
+            val loadedShips = level.allShips.filter { ship -> ship is LoadedServerShip }
+            loadedShips.forEach { ship ->
+                (ship as LoadedServerShip).getAttachment(WorldBorderAttachment::class.java)!!.border = worldBorder
+            }
+        }
     }
 
 }
