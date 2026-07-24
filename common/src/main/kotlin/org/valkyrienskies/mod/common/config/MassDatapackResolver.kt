@@ -277,6 +277,15 @@ object MassDatapackResolver : BlockStateInfoProvider {
      *
      * It is **not recommended** to call this yourself!
      */
+
+    val liquidMaterialToDensityMap: HashMap<Fluid, Pair<Double, Double>> = hashMapOf(
+        Fluids.WATER to Pair(1000.0, 0.3),
+        Fluids.LAVA to Pair(10000.0, 1.0),
+        Fluids.FLOWING_WATER to Pair(1000.0, 0.3),
+        Fluids.FLOWING_LAVA to Pair(10000.0, 1.0)
+    )
+
+
     fun registerAllBlockStates(blockStates: Iterable<BlockState>) {
         val fullLodBoundingBox = AABBi(0, 0, 0, 15, 15, 15)
         val fullBlockCollisionPoints = listOf(
@@ -313,8 +322,6 @@ object MassDatapackResolver : BlockStateInfoProvider {
         )
 
         val generatedCollisionShapesMap = HashMap<VoxelShape, SolidBlockShape?>()
-        val liquidMaterialToDensityMap: HashMap<Fluid, Pair<Double, Double>> = hashMapOf(Fluids.WATER to Pair(1000.0, 0.3), Fluids.LAVA to Pair(10000.0, 1.0), Fluids.FLOWING_WATER to Pair(1000.0, 0.3), Fluids.FLOWING_LAVA to Pair(10000.0, 1.0))
-
         val fluidStateToBlockTypeMap = HashMap<FluidState, LiquidState>()
 
         // Get the id of the fluid state/create a new fluid state if necessary
