@@ -27,6 +27,7 @@ import org.joml.Vector3ic
 import org.joml.primitives.AABBd
 import org.joml.primitives.AABBdc
 import org.joml.primitives.AABBic
+import org.joml.primitives.Intersectiond
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.core.api.ships.LoadedShip
@@ -532,6 +533,52 @@ fun Level?.transformAabbToWorld(aabb: AABBdc, dest: AABBd): AABBd {
     }
 
     return dest.set(aabb)
+}
+
+/**
+ * Like [transformAabbToWorld], but yields the actual OBB (center, three unit axes, half-extents)
+ * rather than the loose AABB around it. Output layout matches [Intersectiond]'s `testObOb`.
+ */
+fun Level?.transformAabbToWorldObb(
+    aabb: AABBdc,
+    centerOut: Vector3d,
+    axisXOut: Vector3d,
+    axisYOut: Vector3d,
+    axisZOut: Vector3d,
+    halfExtentsOut: Vector3d,
+) {
+    val cx = (aabb.minX() + aabb.maxX()) * 0.5
+    val cy = (aabb.minY() + aabb.maxY()) * 0.5
+    val cz = (aabb.minZ() + aabb.maxZ()) * 0.5
+    val hx = (aabb.maxX() - aabb.minX()) * 0.5
+    val hy = (aabb.maxY() - aabb.minY()) * 0.5
+    val hz = (aabb.maxZ() - aabb.minZ()) * 0.5
+
+    val ship1 = getShipManagingPos(aabb.minX(), aabb.minY(), aabb.minZ())
+    val ship2 = getShipManagingPos(aabb.maxX(), aabb.maxY(), aabb.maxZ())
+    val ship = if (ship1 != null && ship2 != null && ship1.id == ship2.id) ship1 else null
+
+    if (ship == null) {
+        centerOut.set(cx, cy, cz)
+        axisXOut.set(1.0, 0.0, 0.0)
+        axisYOut.set(0.0, 1.0, 0.0)
+        axisZOut.set(0.0, 0.0, 1.0)
+        halfExtentsOut.set(hx, hy, hz)
+        return
+    }
+
+    val m = ship.shipToWorld
+    m.transformPosition(centerOut.set(cx, cy, cz))
+    m.transformDirection(axisXOut.set(hx, 0.0, 0.0))
+    m.transformDirection(axisYOut.set(0.0, hy, 0.0))
+    m.transformDirection(axisZOut.set(0.0, 0.0, hz))
+    val lx = axisXOut.length()
+    val ly = axisYOut.length()
+    val lz = axisZOut.length()
+    halfExtentsOut.set(lx, ly, lz)
+    if (lx > 0.0) axisXOut.div(lx)
+    if (ly > 0.0) axisYOut.div(ly)
+    if (lz > 0.0) axisZOut.div(lz)
 }
 
 /**

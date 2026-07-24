@@ -66,6 +66,8 @@
     "feature.mob_spawning.NaturalSpawnerMixin",
     "feature.physics_block_entities.MixinLevelChunk",
     "feature.physics_entities.MixinServerLevel",
+    "feature.piston_ship_push.MixinMinecraftServer",
+    "feature.piston_ship_push.MixinPistonMovingBlockEntity",
     "feature.poi.MixinPOIManager",
     "feature.render_pathfinding.MixinDebugPackets",
     "feature.save_mob_location_on_ship.MixinChunkMap",
