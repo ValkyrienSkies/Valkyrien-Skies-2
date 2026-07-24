@@ -10,8 +10,6 @@ executors:
     resource_class: large
     docker:
       - image: cimg/openjdk:17.0
-    environment:
-      ORG_GRADLE_PROJECT_block_external_repositories: "true"
 
 commands:
   checkout_and_cache:
@@ -41,20 +39,14 @@ commands:
       - run: mkdir -p artifacts
       - run: |
           set -euo pipefail
-          find ./forge/build/libs \
-            -name "<< parameters.artifact_name >>*.jar" \
-            ! -name "*-sources.jar" \
-            ! -name "*-dev.jar" \
-            ! -name "*-shadow.jar" \
-            ! -name "*-javadoc.jar" \
-            -exec bash -c 'cp "$0" "./artifacts/<< parameters.artifact_name >>-forge-<< parameters.version >>.jar"' {} \;
-          find ./fabric/build/libs \
-            -name "<< parameters.artifact_name >>*.jar" \
-            ! -name "*-sources.jar" \
-            ! -name "*-dev.jar" \
-            ! -name "*-shadow.jar" \
-            ! -name "*-javadoc.jar" \
-            -exec bash -c 'cp "$0" "./artifacts/<< parameters.artifact_name >>-fabric-<< parameters.version >>.jar"' {} \;
+          if ! [ -z "$CIRCLE_PULL_REQUEST" ]; then
+            block_external_repositories=true
+          fi
+          ./gradlew outputArtifacts --no-daemon \
+            "-Dblock_external_repositories=${block_external_repositories}" \
+            -Dartifacts_output_dir=artifacts \
+            "-Dartifacts_output_name=<< parameters.artifact_name >>" \
+            "-Dartifacts_output_version=<< parameters.version >>"
       - store_artifacts:
           path: artifacts
       # Make artifacts available to downstream jobs
@@ -148,7 +140,12 @@ jobs:
       - checkout_and_cache
       - run:
           name: Build
-          command: "./gradlew build --no-daemon --stacktrace"
+          command: |
+            if ! [ -z "$CIRCLE_PULL_REQUEST" ]; then
+              block_external_repositories=true
+            fi
+            ./gradlew build --no-daemon --stacktrace \
+              "-Dblock_external_repositories=${block_external_repositories}"
       - save_artifacts
       - save_gradle_cache
 
@@ -251,15 +248,19 @@ jobs:
       - checkout_and_cache
       - run:
           name: Build
-          command: "./gradlew build publish --no-daemon --stacktrace"
+          command: |
+            ./gradlew build publish --no-daemon --stacktrace \
+              -Dblock_external_repositories=true
 
   deploy_to_curse:
     executor: java_large
     steps:
       - checkout_and_cache
-      - run: echo 'export ORG_GRADLE_PROJECT_CustomReleaseVersion=${CIRCLE_TAG}' >> "$BASH_ENV"
       - run:
-          command: "./gradlew build modrinth curseforge publish --no-daemon --stacktrace --continue"
+          command: |
+            ./gradlew build modrinth curseforge publish --no-daemon --stacktrace --continue \
+              -Dblock_external_repositories=true \
+              "-DCustomReleaseVersion=${CIRCLE_TAG}"
 
   notify_playtesters:
     executor: java_large
@@ -267,7 +268,9 @@ jobs:
       - checkout_and_cache
       - run:
           name: Build
-          command: "./gradlew build --no-daemon --stacktrace"
+          command: |
+            ./gradlew build --no-daemon --stacktrace \
+              -Dblock_external_repositories=true
       - save_artifacts_and_generate_discord
       - discord/status:
           success_message: ${DISCORD_MSG}
