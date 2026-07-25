@@ -43,3 +43,5 @@ accessible class net/minecraft/world/level/chunk/LevelChunk$RebindableTickingBlo
 accessible method net/minecraft/world/level/chunk/LevelChunk$RebindableTickingBlockEntityWrapper rebind (Lnet/minecraft/world/level/block/entity/TickingBlockEntity;)V
 
 accessible class net/minecraft/server/level/ServerLevel$EntityCallbacks
+# vdex renderer
+accessible class net/minecraft/client/renderer/RenderStateShard$EmptyTextureStateShard
