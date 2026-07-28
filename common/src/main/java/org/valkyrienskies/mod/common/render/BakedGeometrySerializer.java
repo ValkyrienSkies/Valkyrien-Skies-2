@@ -18,6 +18,8 @@ import java.util.TreeMap;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtIo;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.state.BlockState;
@@ -44,6 +46,17 @@ import net.minecraft.world.level.block.state.properties.Property;
  * Render type names are palette-deduplicated the same way (v3): a ship might have thousands
  * of geometries but only a small handful of distinct RenderTypes (solid, cutout, translucent,
  * etc.), so this is an even bigger win per-entry than the texture palette.
+ *
+     * FORMAT_VERSION 3 — BlockEntity NBT section: after the geometry-entries table, a trailing
+     * section carries each BlockEntity's own NBT (BlockEntity.saveWithFullMetadata), one record per
+     * actual instance. Each record's key is the same wire key the geometry palette uses for that
+     * entry — the plain canonical BlockState string for non-BE blocks, or
+     * canonicalKey(state)+"#"+nbtFingerprint(nbt) for BE blocks (so two same-state tanks with
+     * different fluid/level land in distinct palette entries). Per-instance (not deduped per state):
+     * two chests share the state part of the key but differ in the fingerprint part and in the
+     * carried NBT. The NBT is written with vanilla NbtIo framing (self-delimiting); a consumer
+     * joins beInstances[i].wireKey -> entries[j] to attach the data to the right rendered model. A
+     * reader that only wants models can stop after entries and skip this section.
  *
  * FORMAT_VERSION 2 — vertex-topology invariant: every BakedGeometry's vertex list is now
  * always a flat, independent triangle list. vertices.size() is guaranteed to be a multiple
@@ -96,7 +109,21 @@ public class BakedGeometrySerializer {
         }
     }
 
-    private static final int FORMAT_VERSION = 2;
+    /**
+     * One BlockEntity instance's full NBT, keyed by the same wire key the geometry palette uses for
+     * that state, so a consumer can join it back to the rendered model. For non-BE blocks the wire
+     * key is the plain canonical BlockState string (see {@link BlockStateKeys#canonicalKey}); for BE
+     * blocks it's {@code canonicalKey(state) + "#" + nbtFingerprint(nbt)} (computed in SectionBakery),
+     * so two same-state BE blocks with different NBT land in distinct palette entries — each with its
+     * own geometry, since a BE's rendered mesh is BlockEntityRenderer-driven (fluid level/type,
+     * etc.) and is not a pure function of BlockState. Per-instance (not deduped per state): two
+     * chests share the *state* part of the key but differ in the fingerprint part and in the carried
+     * NBT.
+     */
+    public record BlockEntityEntry(String wireKey, CompoundTag nbt) {
+    }
+
+    private static final int FORMAT_VERSION = 3;
     private static final int MAGIC = 0x56444558; // "VDEX"
 
     private static void writeString(DataOutputStream out, String s) throws IOException {
@@ -248,7 +275,16 @@ public class BakedGeometrySerializer {
      *                for that state. Bake each distinct BlockState across the whole ship once
      *                — LinkedHashMap so file output is deterministic across repeated bakes.
      */
-    public static void write(OutputStream rawOut, Map<String, List<Bakery.BakedGeometry>> palette) throws IOException {
+    /**
+     * Writes baked geometry and per-instance BlockEntity NBT.
+     *
+     * @param palette    canonical BlockState key -> baked geometry for that state (deduped per state)
+     * @param beInstances per-instance BlockEntity NBT, keyed by the same canonical BlockState string.
+     *                   Multiple records may share the same canonicalKey (two chests, same state,
+     *                   different contents). Empty list if the ship has no block entities.
+     */
+    public static void write(OutputStream rawOut, Map<String, List<Bakery.BakedGeometry>> palette,
+        List<BlockEntityEntry> beInstances) throws IOException {
         try (DataOutputStream out = new DataOutputStream(
             new BufferedOutputStream(new GZIPOutputStream(rawOut)))) {
 
@@ -284,10 +320,25 @@ public class BakedGeometrySerializer {
                     writeGeometry(out, g, textureIndices, renderTypeIndices);
                 }
             }
+
+            // v3: per-instance BlockEntity NBT. Each record is the palette wire key (joins to
+            // entries[] by exact string) followed by the full saveWithFullMetadata() CompoundTag
+            // in vanilla NBT framing.
+            out.writeInt(beInstances.size());
+            for (BlockEntityEntry be : beInstances) {
+                writeString(out, be.wireKey());
+                NbtIo.write(be.nbt(), out);
+            }
         }
     }
 
-    public static Map<String, List<Bakery.BakedGeometry>> read(InputStream rawIn) throws IOException {
+    /** Result of reading a v3 .vdexgeom file. */
+    public record VdexGeomReadResult(
+        Map<String, List<Bakery.BakedGeometry>> palette,
+        List<BlockEntityEntry> beInstances
+    ) {}
+
+    public static VdexGeomReadResult read(InputStream rawIn) throws IOException {
         try (DataInputStream in = new DataInputStream(
             new BufferedInputStream(new GZIPInputStream(rawIn)))) {
 
@@ -326,7 +377,16 @@ public class BakedGeometrySerializer {
                 palette.put(key, geomList);
             }
 
-            return palette;
+            // v3: per-instance BlockEntity NBT.
+            int beCount = in.readInt();
+            List<BlockEntityEntry> beInstances = new ArrayList<>(beCount);
+            for (int i = 0; i < beCount; i++) {
+                String wireKey = readString(in);
+                CompoundTag nbt = NbtIo.read(in);
+                beInstances.add(new BlockEntityEntry(wireKey, nbt));
+            }
+
+            return new VdexGeomReadResult(palette, beInstances);
         }
     }
 }

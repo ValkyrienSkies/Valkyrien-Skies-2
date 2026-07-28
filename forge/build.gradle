@@ -166,7 +166,6 @@ dependencies {
     modCompileOnly("curse.maven:connectible-chains-forge-418514:6142294")
     //modRuntimeOnly("curse.maven:connectible-chains-forge-418514:6142294")
 
-
     // Add Kotlin for Forge (3.12.0)
     forgeRuntimeLibrary("maven.modrinth:kotlin-for-forge:${kotlin_version}")
 

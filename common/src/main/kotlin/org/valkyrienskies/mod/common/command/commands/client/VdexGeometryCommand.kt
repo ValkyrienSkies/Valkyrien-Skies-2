@@ -9,7 +9,7 @@ import net.minecraft.commands.Commands.literal
 import net.minecraft.network.chat.Component
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.mod.common.render.BakedGeometrySerializer
-import org.valkyrienskies.mod.common.render.BakedGeometrySerializer.BlockStateKeys
+import org.valkyrienskies.mod.common.render.BakedGeometrySerializer.BlockEntityEntry
 import org.valkyrienskies.mod.common.render.Bakery.BakedGeometry
 import org.valkyrienskies.mod.common.render.SectionBakery
 import org.valkyrienskies.mod.common.shipObjectWorld
@@ -56,15 +56,19 @@ object VdexGeometryCommand {
             return 0
         }
 
-        // Flatten every section's palette into one whole-ship map, keyed by canonical
-        // BlockState string — matches the "no position duplication, website already has
-        // NBT" format from before, rather than writing sections separately.
+        // Flatten every section's palette into one whole-ship map. Each PaletteEntry already
+        // carries its wireKey: for non-BE blocks that's the plain canonical BlockState string;
+        // for BE blocks it's canonicalKey(state)+"#"+nbtFingerprint, so two same-state tanks with
+        // different NBT (different fluid/level) land in distinct palette entries instead of being
+        // collapsed onto whichever tank was baked first. The BE-instance records carry the same
+        // wireKey, so the consumer joins beInstances[i].wireKey -> palette[wireKey].
         val palette = linkedMapOf<String, List<BakedGeometry>>()
+        val beInstances = mutableListOf<BlockEntityEntry>()
         for (section in bakedSections) {
             for (entry in section.palette) {
-                val key = BlockStateKeys.canonicalKey(entry.state)
-                palette.putIfAbsent(key, entry.geometry)
+                palette.putIfAbsent(entry.wireKey, entry.geometry)
             }
+            beInstances.addAll(section.beInstances)
         }
 
         val outDir = mc.gameDirectory.toPath().resolve("vsbake")
@@ -72,10 +76,12 @@ object VdexGeometryCommand {
             Files.createDirectories(outDir)
             val outFile = outDir.resolve("$filename.vdexgeom")
             FileOutputStream(outFile.toFile()).use { fos ->
-                BakedGeometrySerializer.write(fos, palette)
+                BakedGeometrySerializer.write(fos, palette, beInstances)
             }
             player?.displayClientMessage(
-                Component.literal("Baked ${palette.size} unique blockstates to $outFile"),
+                Component.literal(
+                    "Baked ${palette.size} unique blockstates and ${beInstances.size} block entities to $outFile"
+                ),
                 false
             )
         } catch (e: Exception) {

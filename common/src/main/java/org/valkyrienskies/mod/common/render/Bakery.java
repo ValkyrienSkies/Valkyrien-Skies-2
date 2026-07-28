@@ -20,6 +20,7 @@ import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
@@ -28,6 +29,8 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.valkyrienskies.mod.mixin.accessors.client.render.vdex.CompositeRenderTypeAccessor;
 import org.valkyrienskies.mod.mixin.accessors.client.render.vdex.CompositeStateAccessor;
 import org.valkyrienskies.mod.mixin.accessors.client.render.vdex.RenderStateShardAccessor;
@@ -42,12 +45,12 @@ import org.valkyrienskies.mod.mixin.accessors.client.render.vdex.TextureStateSha
  * expandToTriangles()/triangleIndices(), and never leaves this class.
  */
 public class Bakery {
-
+    private static final Logger LOGGER = LoggerFactory.getLogger(Bakery.class);
     /**
      * Decodes a BakedQuad's raw int[] vertex data. Block-render quads use DefaultVertexFormat.BLOCK: per vertex that's
      * 8 ints — [pos.x, pos.y, pos.z, color, uv.u, uv.v, packedLight, packedNormal].
      */
-    private static BakedGeometry bakeQuad(BakedQuad quad, @Nullable Direction cullFace, BlockState bs, BlockPos pos) {
+    public static BakedGeometry bakeQuad(BakedQuad quad, @Nullable Direction cullFace, BlockState bs, BlockPos pos) {
         RecordingVertexConsumer consumer = new RecordingVertexConsumer();
         int[] raw = quad.getVertices();
         int intsPerVertex = DefaultVertexFormat.BLOCK.getVertexSize() / 4;
@@ -56,6 +59,43 @@ public class Bakery {
             throw new IllegalStateException(
                 "Bread Factory: Unexpected quad vertex data length " + raw.length + ", expected " +
                     (intsPerVertex * 4) + " (non-BLOCK vertex format?)");
+        }
+
+        RenderType renderType = ItemBlockRenderTypes.getChunkRenderType(bs);
+
+        // Decode atlas-space UVs for all 4 vertices up front so we can validate/resolve the real
+        // sprite before doing any per-vertex UV math.
+        float[] atlasU = new float[4];
+        float[] atlasV = new float[4];
+        for (int vert = 0; vert < 4; vert++) {
+            int base = vert * intsPerVertex;
+            atlasU[vert] = Float.intBitsToFloat(raw[base + 4]);
+            atlasV[vert] = Float.intBitsToFloat(raw[base + 5]);
+        }
+
+        // CTM (and other "connected texture" mods) sometimes hand back a getSprite() whose declared
+        // bounds don't actually contain this quad's real atlas UVs -- CTM picks a specific sub-icon
+        // of a larger connected-texture sheet per quad, and the icon reference it returns doesn't
+        // always match the one the raw UVs were baked against. Naive (u-u0)/(u1-u0) division against
+        // the wrong sprite then produces wildly out-of-range UVs (we've seen values like -39). Detect
+        // that and fall back to scanning the atlas for the sprite that actually contains these UVs.
+        TextureAtlasSprite declaredSprite = quad.getSprite();
+        TextureAtlasSprite sprite = declaredSprite;
+        if (declaredSprite == null || !allContained(declaredSprite, atlasU, atlasV)) {
+            TextureAtlasSprite resolved = findSpriteFromRenderType(renderType, atlasU, atlasV);
+            if (resolved != null) {
+                sprite = resolved;
+            } else if (declaredSprite == null) {
+                throw new IllegalStateException(
+                    "Bread Factory: quad has no sprite and none could be resolved from its UVs");
+            }
+            // else: no atlas match found either -- fall through and use declaredSprite as a last
+            // resort, same as before this fix, rather than crashing on a quad we can't fully trust.
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("bakeQuad: sprite {} did not contain quad UVs, resolved {} instead",
+                    declaredSprite == null ? "null" : declaredSprite.contents().name(),
+                    sprite == null ? "null" : sprite.contents().name());
+            }
         }
 
         int tintR = 255, tintG = 255, tintB = 255;
@@ -86,14 +126,9 @@ public class Bakery {
                 b = (b * tintB) / 255;
             }
 
-            float u = Float.intBitsToFloat(raw[base + 4]);
-            float v = Float.intBitsToFloat(raw[base + 5]);
-
-            // Convert atlas-space UVs back into sprite-local [0,1] UVs.
-            // BakedQuad stores atlas UVs, but the exported format expects sprite-local UVs.
-            TextureAtlasSprite sprite = quad.getSprite();
-            u = (u - sprite.getU0()) / (sprite.getU1() - sprite.getU0());
-            v = (v - sprite.getV0()) / (sprite.getV1() - sprite.getV0());
+            // Sprite-local UVs, using the validated/resolved sprite rather than trusting getSprite() blindly.
+            float u = (atlasU[vert] - sprite.getU0()) / (sprite.getU1() - sprite.getU0());
+            float v = (atlasV[vert] - sprite.getV0()) / (sprite.getV1() - sprite.getV0());
 
             int packedLight = raw[base + 6];
             int lightU = packedLight & 0xFFFF;
@@ -107,7 +142,7 @@ public class Bakery {
             consumer.vertex(x, y, z);
             consumer.color(r, g, b, a);
             consumer.uv(u, v);
-            consumer.overlayCoords(0, 10); // BLOCK format carries no overlay data
+            consumer.overlayCoords(0, 10);
             consumer.uv2(lightU, lightV);
             consumer.normal(nx, ny, nz);
             consumer.endVertex();
@@ -117,13 +152,9 @@ public class Bakery {
             throw new IllegalStateException("Bread Factory: expected 4 vertices, got " + consumer.vertices.size());
         }
 
-        RenderType renderType = ItemBlockRenderTypes.getChunkRenderType(bs);
-        // A BakedQuad is always exactly one QUADS-mode primitive — expand it to 2 independent
-        // triangles so this geometry's vertex list matches every other geometry's invariant
-        // (flat triangle list) rather than being a special 4-vertex case.
         List<VertexData> triangles = expandToTriangles(consumer.vertices, VertexFormat.Mode.QUADS);
         return new BakedGeometry(((RenderStateShardAccessor) renderType).getName(), cullFace,
-            quad.getSprite().contents().name(), triangles);
+            sprite.contents().name(), triangles);
     }
 
     public static List<BakedGeometry> bakeQuads(BlockState bs, BlockPos pos) {
@@ -135,32 +166,8 @@ public class Bakery {
         if (bs.hasBlockEntity()) {
             baked.addAll(bakeBlockEntity(Minecraft.getInstance().level.getBlockEntity(pos), Minecraft.getInstance().getFrameTime(), LightTexture.FULL_BRIGHT));
         }
-        //todo: figure out how to skip cogs, large cogs and shafts
         if (bs.getRenderShape() == RenderShape.MODEL) {
-            baked.addAll(bakeBlockQuads(bs, pos));
-        }
-
-        return baked;
-    }
-
-    private static List<BakedGeometry> bakeBlockQuads(BlockState bs, BlockPos pos) {
-        var random = Minecraft.getInstance().level.random;
-        var model = Minecraft.getInstance().getBlockRenderer().getBlockModel(bs);
-
-        List<BakedGeometry> baked = new ArrayList<>();
-
-        // Cull-face-specific quads: each of the 6 directions is baked separately so the
-        // resulting BakedGeometry can record which face it belongs to (cullFace), matching
-        // how chunk rendering culls per-neighbor.
-        for (Direction dir : Direction.values()) {
-            for (BakedQuad quad : model.getQuads(bs, dir, random)) {
-                baked.add(bakeQuad(quad, dir, bs, pos));
-            }
-        }
-
-        // Direction-independent quads (cross-shaped plants, etc.) — no cull face applies.
-        for (BakedQuad quad : model.getQuads(bs, null, random)) {
-            baked.add(bakeQuad(quad, null, bs, pos));
+            baked.addAll(PlatformBakery.INSTANCE.bakeBlockQuads(bs, pos));
         }
 
         return baked;
@@ -238,8 +245,8 @@ public class Bakery {
             // or mismatched faces. Passing every vertex lets findSpriteByUv pick the one sprite
             // whose rectangle contains the whole triangle, which is unique for any non-degenerate
             // triangle since atlas sprites tile without overlap.
-            TextureAtlasSprite sprite =
-                findSpriteFromRenderType(renderType, v0.u(), v0.v(), v1.u(), v1.v(), v2.u(), v2.v());
+            TextureAtlasSprite sprite = findSpriteFromRenderType(renderType,
+                new float[] {v0.u(), v1.u(), v2.u()}, new float[] {v0.v(), v1.v(), v2.v()});
 
             ResourceLocation tex = null;
             VertexData o0 = v0, o1 = v1, o2 = v2;
@@ -263,9 +270,7 @@ public class Bakery {
             currentGroup.add(o2);
         }
 
-        if (!currentGroup.isEmpty()) {
-            out.add(new BakedGeometry(renderTypeName, null, currentTex, currentGroup));
-        }
+        out.add(new BakedGeometry(renderTypeName, null, currentTex, currentGroup));
         return out;
     }
 
@@ -328,69 +333,84 @@ public class Bakery {
         return out;
     }
 
-    private static @Nullable TextureAtlasSprite findSpriteFromRenderType(RenderType renderType, float u0, float v0,
-        float u1, float v1, float u2, float v2) {
+    private static @Nullable TextureAtlasSprite findSpriteFromRenderType(RenderType renderType, float[] us, float[] vs) {
         if (!(renderType instanceof RenderType.CompositeRenderType)) {
+            LOGGER.warn("findSprite: renderType {} is not CompositeRenderType", renderType);
             return null;
         }
 
         RenderType.CompositeState compositeState = ((CompositeRenderTypeAccessor) renderType).getState();
-
         RenderStateShard.EmptyTextureStateShard textureStateShard =
             ((CompositeStateAccessor) (Object) compositeState).getTextureState();
 
         if (!(textureStateShard instanceof RenderStateShard.TextureStateShard textureState)) {
+            LOGGER.warn("findSprite: textureStateShard {} is not TextureStateShard", textureStateShard);
             return null;
         }
 
         ResourceLocation textureLocation = ((TextureStateShardAccessor) textureState).getTexture().orElse(null);
-
-        if (textureLocation == null || !isAtlasTexture(textureLocation)) {
+        if (textureLocation == null) {
+            LOGGER.warn("findSprite: no texture location on textureState");
+            return null;
+        }
+        if (!isAtlasTexture(textureLocation)) {
+            LOGGER.warn("findSprite: texture {} is not an atlas texture", textureLocation);
             return null;
         }
 
-        return findSpriteByUv(textureLocation, u0, v0, u1, v1, u2, v2);
+        return findSpriteByUv(textureLocation, us, vs);
     }
 
     private static boolean isAtlasTexture(ResourceLocation location) {
-        return location.getPath().contains("/atlas/");
+        TextureManager textureManager = Minecraft.getInstance().getTextureManager();
+        return textureManager.getTexture(location) instanceof TextureAtlas;
     }
 
-    private static @Nullable TextureAtlasSprite findSpriteByUv(ResourceLocation atlasLocation, float u0, float v0,
-        float u1, float v1, float u2, float v2) {
+    /**
+     * Scans the atlas for the sprite whose rectangle contains the most of the given UV points.
+     * Returns immediately on a sprite that contains all of them (the common, unambiguous case);
+     * otherwise falls back to a best-match vote, same idea as before but generalized to N points
+     * instead of a hardcoded 3 -- bakeQuad needs 4 (one per quad vertex), splitByTexture needs 3
+     * (one per triangle vertex).
+     */
+    private static @Nullable TextureAtlasSprite findSpriteByUv(ResourceLocation atlasLocation, float[] us, float[] vs) {
         TextureAtlas atlas = Minecraft.getInstance().getModelManager().getAtlas(atlasLocation);
-        // Stitched atlas sprites tile the atlas without overlap -- two neighbors share only an
-        // edge. Because the bounds test below is inclusive on both ends, a vertex lying exactly
-        // on a shared edge satisfies it for BOTH neighbors. Resolving from a single vertex then
-        // picked whichever neighbor HashMap happened to visit first; for a triangle with one
-        // vertex on the seam and the other two inside the *other* sprite, that returned the
-        // wrong sprite and unbakeUv() pushed the interior vertices outside [0,1].
-        //
-        // Fix: return the sprite whose rectangle contains ALL THREE vertices. For any
-        // non-degenerate triangle that is unique (sprites don't overlap), and the seam vertex
-        // -- valid under either neighbor by the inclusive test -- is disambiguated by the two
-        // vertices that sit in only one of them.
-        TextureAtlasSprite firstHit = null;
+
+        TextureAtlasSprite bestSprite = null;
+        int bestCount = 0;
+
         for (TextureAtlasSprite sprite : ((TextureAtlasAccessor) atlas).getTexturesByName().values()) {
-            if (contains(sprite, u0, v0)) {
-                if (firstHit == null) {
-                    firstHit = sprite;
-                }
-                if (contains(sprite, u1, v1) && contains(sprite, u2, v2)) {
-                    return sprite;
-                }
+            int count = 0;
+            for (int i = 0; i < us.length; i++) {
+                if (contains(sprite, us[i], vs[i])) count++;
+            }
+            if (count == us.length) {
+                return sprite;
+            }
+            if (count > bestCount) {
+                bestCount = count;
+                bestSprite = sprite;
             }
         }
-        // No single sprite contains all three (a triangle genuinely straddling a seam, or a
-        // vertex that didn't land in any sprite). Fall back to the first sprite containing v0
-        // so behavior degrades to the old single-vertex result rather than returning null.
-        return firstHit;
+        return bestSprite;
+    }
+
+    private static boolean allContained(TextureAtlasSprite sprite, float[] us, float[] vs) {
+        for (int i = 0; i < us.length; i++) {
+            if (!contains(sprite, us[i], vs[i])) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static boolean contains(TextureAtlasSprite sprite, float u, float v) {
         return u >= sprite.getU0() && u <= sprite.getU1() && v >= sprite.getV0() && v <= sprite.getV1();
     }
 
+    /**
+     * A simple record to hold vertex data for baking.
+     */
     public record VertexData(double x, double y, double z, int r, int g, int b, int a, float u, float v, short overlayU,
                              short overlayV, short lightmapU, short lightmapV, float normalX, float normalY,
                              float normalZ) {
