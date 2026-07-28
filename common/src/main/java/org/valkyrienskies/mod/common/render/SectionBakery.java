@@ -169,6 +169,19 @@ public class SectionBakery {
         stripped.remove("x");
         stripped.remove("y");
         stripped.remove("z");
+        // create bs
+        if (stripped.contains("Network")) {
+            stripped.remove("Network");
+        }
+        if (stripped.contains("Source")) {
+            stripped.remove("Source");
+        }
+        if (stripped.contains("Controller")) {
+            stripped.remove("Controller");
+        }
+        if (stripped.contains("LastKnownPos")) {
+            stripped.remove("LastKnownPos");
+        }
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         try {
             NbtIo.write(stripped, new DataOutputStream(bytes));

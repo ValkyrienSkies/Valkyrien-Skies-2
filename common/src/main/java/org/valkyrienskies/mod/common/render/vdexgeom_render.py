@@ -383,9 +383,9 @@ def _raw_uv(verts: list[Vertex]) -> np.ndarray:
     clip so the renderer degrades gracefully (edge texel) instead of crashing or
     wrapping into nonsense; once the producer is fixed these clips become inert.
     """
-    for w in verts:
-        if w.u < 0 or w.u > 1 or w.v < 0 or w.v > 1:
-            print(f"  warn: vertex UV out of range: ({w.u:.3f}, {w.v:.3f})", file=sys.stderr)
+    # for w in verts:
+    #     if w.u < 0 or w.u > 1 or w.v < 0 or w.v > 1:
+    #         print(f"  warn: vertex UV out of range: ({w.u:.3f}, {w.v:.3f})", file=sys.stderr)
     u = np.clip(np.array([w.u for w in verts], dtype=np.float64), 0.0, 1.0)
     v = np.clip(np.array([w.v for w in verts], dtype=np.float64), 0.0, 1.0)
     return np.column_stack([u, v])
@@ -579,6 +579,7 @@ def render_block_state(geoms: list[Geometry], pack: ResourcePack,
                 img = _checker(16, 16)
         else:
             resolved = False
+            print(f"  warn: geometry for render type {g.render_type!r} has no texture — using checker", file=sys.stderr)
             img = _checker(16, 16)
 
         w0v = verts[0]
@@ -622,10 +623,10 @@ def render_block_state(geoms: list[Geometry], pack: ResourcePack,
         mippable = "mipped" in rt or blend
         # print(f"  render_type={g.render_type!r} -> alpha_test={alpha_test} blend={blend}", file=sys.stderr)
 
-        if "fluid" in rt:
-            for w in g.vertices[:3]:
-                print(f"    vert rgba=({w.r},{w.g},{w.b},{w.a}) uv=({w.u:.3f},{w.v:.3f})", file=sys.stderr)
-            print(f"    texture={g.texture!r}", file=sys.stderr)
+        # if "fluid" in rt:
+        #     for w in g.vertices[:3]:
+        #         print(f"    vert rgba=({w.r},{w.g},{w.b},{w.a}) uv=({w.u:.3f},{w.v:.3f})", file=sys.stderr)
+        #     print(f"    texture={g.texture!r}", file=sys.stderr)
 
         # Format v2: vertices are already a flat, independent triangle list — every
         # 3 vertices is one triangle, no quad/fan reconstruction needed here at all.
