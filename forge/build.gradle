@@ -106,6 +106,9 @@ dependencies {
     // CC Tweaked
     //modRuntimeOnly("cc.tweaked:cc-tweaked-${minecraft_version}-forge:${cc_tweaked_version}")
 
+    // Etched
+    modImplementation("maven.modrinth:etched:3.0.4")
+
     // OpenComputers 2: Reimagined
     modCompileOnly("maven.modrinth:oc2r:${oc2r_version}")
 
