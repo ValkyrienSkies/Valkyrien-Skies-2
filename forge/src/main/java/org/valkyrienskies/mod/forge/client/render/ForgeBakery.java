@@ -23,7 +23,7 @@ public class ForgeBakery implements PlatformBakery {
         ModelData modelData = model.getModelData(Minecraft.getInstance().level, pos, bs, Minecraft.getInstance().level.getModelDataManager()
             .getAt(pos));
         if (modelData == null) {
-            return List.of();
+            modelData = ModelData.EMPTY;
         }
         RandomSource random = RandomSource.create(42L); // vanilla's fixed seed for consistent quad caching
 
