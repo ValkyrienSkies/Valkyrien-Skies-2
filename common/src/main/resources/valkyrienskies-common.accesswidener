@@ -44,4 +44,5 @@ accessible method net/minecraft/world/level/chunk/LevelChunk$RebindableTickingBl
 
 accessible class net/minecraft/server/level/ServerLevel$EntityCallbacks
 # vdex renderer
+accessible class net/minecraft/client/renderer/RenderType$CompositeRenderType
 accessible class net/minecraft/client/renderer/RenderStateShard$EmptyTextureStateShard

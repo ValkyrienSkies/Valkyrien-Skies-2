@@ -22,6 +22,9 @@ public class ForgeBakery implements PlatformBakery {
         BakedModel model = Minecraft.getInstance().getBlockRenderer().getBlockModel(bs);
         ModelData modelData = model.getModelData(Minecraft.getInstance().level, pos, bs, Minecraft.getInstance().level.getModelDataManager()
             .getAt(pos));
+        if (modelData == null) {
+            return List.of();
+        }
         RandomSource random = RandomSource.create(42L); // vanilla's fixed seed for consistent quad caching
 
         List<BakedGeometry> baked = new ArrayList<>();
