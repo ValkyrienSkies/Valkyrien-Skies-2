@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.common.command
 
 import com.mojang.brigadier.CommandDispatcher
+import net.minecraft.client.Minecraft
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands.literal
 import net.minecraft.commands.SharedSuggestionProvider
@@ -28,6 +29,7 @@ import org.valkyrienskies.mod.common.command.commands.SchematicCommand
 import org.valkyrienskies.mod.common.command.commands.PerfTestCommand
 import org.valkyrienskies.mod.common.command.commands.StaticCommand
 import org.valkyrienskies.mod.common.command.commands.TeleportCommand
+import org.valkyrienskies.mod.common.command.commands.client.VdexGeometryCommand
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.mixin.feature.commands.ClientSuggestionProviderAccessor
 import org.valkyrienskies.mod.util.logger
@@ -63,7 +65,10 @@ object VSCommands {
 
 
     fun registerClientCommands(dispatcher: CommandDispatcher<CommandSourceStack>) {
-        // TODO implement client commands
+        var vs = literal("vs")
+
+        VdexGeometryCommand.register(vs)
+        dispatcher.register(vs)
     }
 }
 

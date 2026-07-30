@@ -16,6 +16,7 @@ import net.minecraft.world.item.Item.Properties
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraftforge.client.event.EntityRenderersEvent
+import net.minecraftforge.client.event.RegisterClientCommandsEvent
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent
 import net.minecraftforge.client.event.RegisterShadersEvent
 import net.minecraftforge.event.AddReloadListenerEvent
@@ -160,6 +161,7 @@ class ValkyrienSkiesModForge {
         modBus.addListener(::loadComplete)
 
         forgeBus.addListener(::registerCommands)
+        forgeBus.addListener(::registerClientCommands)
         forgeBus.addListener(::tagsUpdated)
         forgeBus.addListener(::registerResourceManagers)
 
@@ -346,10 +348,10 @@ class ValkyrienSkiesModForge {
 
     private fun registerCommands(event: RegisterCommandsEvent) {
         VSCommands.registerServerCommands(event.dispatcher)
+    }
 
-        if (event.commandSelection == ALL || event.commandSelection == INTEGRATED) {
-            VSCommands.registerClientCommands(event.dispatcher)
-        }
+    private fun registerClientCommands(event: RegisterClientCommandsEvent) {
+        VSCommands.registerClientCommands(event.dispatcher)
     }
 
     private fun registerShaders(event: RegisterShadersEvent) {
