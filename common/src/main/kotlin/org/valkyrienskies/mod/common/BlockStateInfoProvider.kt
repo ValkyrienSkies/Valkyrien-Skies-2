@@ -20,6 +20,7 @@ import org.valkyrienskies.core.api.ships.Wing
 import org.valkyrienskies.core.api.world.connectivity.ConnectionStatus
 import org.valkyrienskies.core.api.world.connectivity.SparseVoxelPosition
 import org.valkyrienskies.core.internal.world.chunks.VsiBlockType
+import org.valkyrienskies.mod.common.assembly.ShipAssembler
 import org.valkyrienskies.mod.common.block.WingBlock
 import org.valkyrienskies.mod.common.config.ConfigType
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
@@ -162,6 +163,14 @@ object BlockStateInfo {
             x, y, z, level.dimensionId, prevBlockType, newBlockType, prevBlockMass,
             newBlockMass
         )
+
+        //when there are no blocks on the ship delete it | Tiger was here:)
+        if (level is ServerLevel) {
+            val shipJustModified = level.getLoadedShipManagingPos(x shr 4, z shr 4)
+            if (shipJustModified != null && shipJustModified.shipAABB == null) {
+                ShipAssembler.deleteShip(level, shipJustModified, deleteBlocks = false, dropBlocks = false)
+            }
+        }
 
         fun Set<SparseVoxelPosition>.centerFromVoxelSet() : Vector3dc {
             val center = Vector3d(0.0, 0.0, 0.0)
