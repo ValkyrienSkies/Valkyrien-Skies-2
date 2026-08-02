@@ -13,6 +13,7 @@ import org.valkyrienskies.core.api.attachment.getAttachment
 import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.mod.api.SeatedControllingPlayer
 import org.valkyrienskies.mod.api.shipWorld
+import org.valkyrienskies.mod.client.ClientBlockStateInfo
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager
 import org.valkyrienskies.mod.common.getLoadedShipManagingPos
@@ -33,6 +34,7 @@ object VSGamePackets {
         PacketStopChunkUpdates::class.register()
         PacketRestartChunkUpdates::class.register()
         PacketSyncVSEntityTypes::class.register()
+        PacketSyncBlockStateInfo::class.register()
         PacketEntityShipMotion::class.register()
         PacketMobShipRotation::class.register()
         PacketPlayerShipMotion::class.register()
@@ -67,6 +69,17 @@ object VSGamePackets {
                     ResourceLocation.tryParse(handler)?.let { VSEntityManager.getHandler(it) }
                         ?: throw IllegalStateException("No handler: $handler")
                 )
+            }
+        }
+
+        PacketSyncBlockStateInfo::class.registerClientHandler { syncBsi ->
+            if (syncBsi.blockState2VS.isEmpty()) {
+                ClientBlockStateInfo.disable()
+            } else {
+                syncBsi.blockState2VS.forEach { (id, state) ->
+                    ClientBlockStateInfo.enabled = true
+                    ClientBlockStateInfo.registerBlockInfo(ResourceLocation.of(id, ':'), state)
+                }
             }
         }
 
@@ -143,38 +156,40 @@ object VSGamePackets {
             }
         }
 
-        // PacketRequestEntityMotion::class.registerServerHandler { motion, player ->
-        //     val player = (player as MinecraftPlayer).player as ServerPlayer?
-        //         ?: return@registerServerHandler
-        //     val level = player.level() ?: return@registerServerHandler
-        //     val entity = level.getEntity(motion.entityId) ?: return@registerServerHandler
-        //
-        //     val dragInfo = (entity as? IEntityDraggingInformationProvider)?.draggingInformation
-        //         ?: return@registerServerHandler
-        //
-        //     val ship = if (dragInfo.lastShipStoodOn != null) {
-        //         (level as ServerLevel).shipObjectWorld.allShips.getById(dragInfo.lastShipStoodOn!!)
-        //     } else {
-        //         null
-        //     }
-        //
-        //     val position = ship.getWorldToShip().transformPosition(new Vector3d(entity.getX(), entity.getY(), entity.getZ()));
-        //     if (dragInfo.getServerRelativePlayerPosition() != null) {
-        //         position = new Vector3d(dragInfo.getServerRelativePlayerPosition());
-        //     }
-        //     Vector3d motion = ship.getTransform().getWorldToShip().transformDirection(new Vector3d(entity.getDeltaMovement().x(), entity.getDeltaMovement().y(), entity.getDeltaMovement().z()), new Vector3d());
-        //     double yaw;
-        //     if (!(t instanceof ClientboundRotateHeadPacket)) {
-        //         yaw = EntityLerper.INSTANCE.yawToShip(ship, entity.getYRot());
-        //     } else {
-        //         yaw = EntityLerper.INSTANCE.yawToShip(ship, entity.getYHeadRot());
-        //     }
-        //     double pitch = entity.getXRot();
-        //     val vsPacket = PacketEntityShipMotion(motion.entityId, ship?.id ?: -1L,
-        //         position.x, position.y, position.z,
-        //         motion.x, motion.y, motion.z,
-        //         yaw, pitch);
-        // }
+        /*
+        PacketRequestEntityMotion::class.registerServerHandler { motion, player ->
+            val player = (player as MinecraftPlayer).player as ServerPlayer?
+                ?: return@registerServerHandler
+            val level = player.level() ?: return@registerServerHandler
+            val entity = level.getEntity(motion.entityId) ?: return@registerServerHandler
+
+            val dragInfo = (entity as? IEntityDraggingInformationProvider)?.draggingInformation
+                ?: return@registerServerHandler
+
+            val ship = if (dragInfo.lastShipStoodOn != null) {
+                (level as ServerLevel).shipObjectWorld.allShips.getById(dragInfo.lastShipStoodOn!!)
+            } else {
+                null
+            }
+
+            val position = ship.getWorldToShip().transformPosition(new Vector3d(entity.getX(), entity.getY(), entity.getZ()));
+            if (dragInfo.getServerRelativePlayerPosition() != null) {
+                position = new Vector3d(dragInfo.getServerRelativePlayerPosition());
+            }
+            Vector3d motion = ship.getTransform().getWorldToShip().transformDirection(new Vector3d(entity.getDeltaMovement().x(), entity.getDeltaMovement().y(), entity.getDeltaMovement().z()), new Vector3d());
+            double yaw;
+            if (!(t instanceof ClientboundRotateHeadPacket)) {
+                yaw = EntityLerper.INSTANCE.yawToShip(ship, entity.getYRot());
+            } else {
+                yaw = EntityLerper.INSTANCE.yawToShip(ship, entity.getYHeadRot());
+            }
+            double pitch = entity.getXRot();
+            val vsPacket = PacketEntityShipMotion(motion.entityId, ship?.id ?: -1L,
+                position.x, position.y, position.z,
+                motion.x, motion.y, motion.z,
+                yaw, pitch);
+        }
+        */
 
         PacketPlayerShipMotion::class.registerServerHandler { motion, iPlayer ->
             val player = (iPlayer as MinecraftPlayer).player as ServerPlayer?

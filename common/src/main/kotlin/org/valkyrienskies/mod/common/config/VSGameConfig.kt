@@ -395,6 +395,11 @@ object VSGameConfig {
         var minScaling = 0.25
 
         @ConfigEntry(
+            description = "If players can see block info (mass, friction, elasticity)"
+        )
+        var allowBlockInfo = true
+
+        @ConfigEntry(
             description = "Default mass for blocks that do not have it defined in data or code. Blocks with masses below 100 float in water"
         )
         var defaultBlockMass = 1000.0
