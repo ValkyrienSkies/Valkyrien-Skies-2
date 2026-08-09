@@ -67,6 +67,8 @@
   "command.valkyrienskies.scale.success_one": "Scaled %s",
   "command.valkyrienskies.scale.success": "Scaled %d ships!",
   "command.valkyrienskies.backend.current": "Backend is currently %s",
+  "command.valkyrienskies.config.reload": "Config reloaded from disk",
+  "command.valkyrienskies.config.save": "Config saved to disk",
   "command.valkyrienskies.backend.set": "Backend set to %s",
   "command.valkyrienskies.backend.eol": "Sorry! The %s backend is no longer supported. Please use a different backend.",
   "command.valkyrienskies.lod.current": "Level of detail is currently %s",
