@@ -23,7 +23,6 @@ import net.minecraftforge.event.BuildCreativeModeTabContentsEvent
 import net.minecraftforge.event.RegisterCommandsEvent
 import net.minecraftforge.event.TagsUpdatedEvent
 import net.minecraftforge.event.entity.EntityAttributeCreationEvent
-import net.minecraftforge.event.server.ServerStoppingEvent
 import net.minecraftforge.fml.ModList
 import net.minecraftforge.fml.ModLoadingContext
 import net.minecraftforge.fml.common.Mod
@@ -135,8 +134,6 @@ class ValkyrienSkiesModForge {
 
         modBus.addListener(::onConfigLoad)
         modBus.addListener(::onConfigReload)
-
-        forgeBus.addListener(::onServerStopping)
 
         ValkyrienSkiesMod.init()
         VSEntityManager.registerContraptionHandler(ContraptionShipyardEntityHandlerForge)
@@ -306,10 +303,6 @@ class ValkyrienSkiesModForge {
         if (event.config.modId == MOD_ID) {
             VSConfigUpdater.update(event.config)
         }
-    }
-
-    private fun onServerStopping(event: ServerStoppingEvent) {
-        VSConfigUpdater.syncBeforeShutdown()
     }
 
     private fun registerResourceManagers(event: AddReloadListenerEvent) {

@@ -12,7 +12,6 @@ import net.fabricmc.fabric.api.client.rendering.v1.EntityModelLayerRegistry
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents
 import net.fabricmc.fabric.api.`object`.builder.v1.block.entity.FabricBlockEntityTypeBuilder
 import net.fabricmc.fabric.api.`object`.builder.v1.entity.FabricDefaultAttributeRegistry
@@ -115,7 +114,6 @@ class ValkyrienSkiesModFabric : ModInitializer {
 
         ModConfigEvents.reloading(ValkyrienSkiesMod.MOD_ID).register (VSConfigUpdater::update)
         ModConfigEvents.loading(ValkyrienSkiesMod.MOD_ID).register (VSConfigUpdater::update)
-        ServerLifecycleEvents.SERVER_STOPPING.register { VSConfigUpdater.syncBeforeShutdown() }
 
         ValkyrienSkiesMod.TEST_CHAIR = TestChairBlock
         ValkyrienSkiesMod.TEST_HINGE = TestHingeBlock
