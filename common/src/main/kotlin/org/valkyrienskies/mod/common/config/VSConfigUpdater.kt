@@ -38,6 +38,7 @@ object VSConfigUpdater {
      */
     private fun pathAwareConsumerFor(configType: ConfigType) =
         { path: List<String>, entry: VsiConfigModelEntry<*>, forgeValue: ForgeConfigSpec.ConfigValue<*> ->
+            val path = if (path.size == 1) { listOf("General") + path } else { path }
             pathAwareConfigValuesMap.getOrPut(configType) { HashMap() }
                 .set(sanitiseCategoryName(path.joinToString(".")), Pair(entry, forgeValue))
         }
