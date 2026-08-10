@@ -484,6 +484,7 @@
     "mod_compat.flywheel_renderer.MixinViewArea",
     "mod_compat.immersive_portals.MixinMyBuiltChunkStorage",
     "mod_compat.immersive_portals.MixinVisibleSectionDiscovery",
+    "feature.fluid_render.MixinClientPacketListener",
     "feature.fluid_render.MixinLevelRenderer",
     "feature.fluid_render.MixinMinecraft",
     "feature.fluid_render.MixinRebuildTask",

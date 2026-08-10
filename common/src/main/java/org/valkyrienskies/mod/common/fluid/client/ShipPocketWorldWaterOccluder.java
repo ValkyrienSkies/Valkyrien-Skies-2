@@ -1,6 +1,6 @@
 package org.valkyrienskies.mod.common.fluid.client;
 
-import static org.valkyrienskies.mod.common.fluid.client.ShipWaterPocketLiquidOverlay.SURFACE_EPS;
+import static org.valkyrienskies.mod.common.fluid.client.ShipExteriorFluidSampler.SURFACE_EPS;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
@@ -479,7 +479,7 @@ public final class ShipPocketWorldWaterOccluder {
                 + (m11 >= 0.0 ? m11 * (ly + 1.0) : m11 * ly)
                 + (m21 >= 0.0 ? m21 * (lz + 1.0) : m21 * lz);
 
-            final double sy = ShipWaterPocketLiquidOverlay.sampleOverlayFaceSurfaceY(level, fluidPos, scanPos, fluidQueryCache,
+            final double sy = ShipExteriorFluidSampler.sampleSurfaceY(level, fluidPos, scanPos, fluidQueryCache,
                 cellCx, cellCy, cellCz, m00, m10, m20, m01, m11, m21, m02, m12, m22, tX, tY, tZ);
             if (Double.isNaN(sy) || sy < wyLo - SURFACE_EPS || sy > wyHi + SURFACE_EPS) continue;
 
