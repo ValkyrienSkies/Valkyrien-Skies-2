@@ -7,6 +7,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.mod.common.fluid.client.ShipFluidRenderSnapshot;
 import org.valkyrienskies.mod.common.fluid.client.ShipInteriorFogRenderer;
+import org.valkyrienskies.mod.common.fluid.client.ShipPocketWorldWaterOccluder;
 import org.valkyrienskies.mod.common.fluid.client.ShipWaterPocketExternalWaterCull;
 
 @Mixin(Minecraft.class)
@@ -17,6 +18,7 @@ public abstract class MixinMinecraft {
     private void vs$clearShipFluidRenderState(final CallbackInfo ci) {
         ShipWaterPocketExternalWaterCull.clear();
         ShipInteriorFogRenderer.clear();
+        ShipPocketWorldWaterOccluder.clear();
         ShipFluidRenderSnapshot.clear();
     }
 }

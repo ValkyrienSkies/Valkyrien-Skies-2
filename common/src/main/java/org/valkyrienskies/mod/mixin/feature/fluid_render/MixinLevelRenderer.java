@@ -16,8 +16,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
+import net.minecraft.world.phys.Vec3;
 import org.valkyrienskies.mod.common.fluid.client.ShipFluidRenderTypes;
 import org.valkyrienskies.mod.common.fluid.client.ShipInteriorFogRenderer;
+import org.valkyrienskies.mod.common.fluid.client.ShipPocketWorldWaterOccluder;
 
 @Mixin(value = LevelRenderer.class, priority = 900)
 public abstract class MixinLevelRenderer {
@@ -34,6 +36,11 @@ public abstract class MixinLevelRenderer {
      *
      * <p>Tripwire is the hook because it is the last chunk layer vanilla renders, so by the time it
      * runs everything the cull needs to depth-test against is already in the buffer.</p>
+     *
+     * <p>Under a shaderpack the depth pre-pass runs first: Iris swaps out the core shaders, so the
+     * uniform-mask occlusion never reaches the fragments and the only thing left that every pipeline
+     * still respects is the shared depth buffer. Without a shaderpack the mask handles it and the
+     * pre-pass would just be redundant geometry.</p>
      */
     @Inject(
         method = "renderChunkLayer(Lnet/minecraft/client/renderer/RenderType;Lcom/mojang/blaze3d/vertex/PoseStack;DDDLorg/joml/Matrix4f;)V",
@@ -46,6 +53,14 @@ public abstract class MixinLevelRenderer {
         if (!VSGameConfig.CLIENT.getUnderwater().getEnableWaterCulling()) return;
         if (renderType != RenderType.tripwire()) return;
         if (this.level == null) return;
+
+        if (ShipPocketWorldWaterOccluder.isDepthPrepassActive()) {
+            final Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
+            if (camera != null) {
+                final Vec3 camPos = camera.getPosition();
+                ShipPocketWorldWaterOccluder.render(camPos.x, camPos.y, camPos.z, projectionMatrix, poseStack);
+            }
+        }
 
         renderChunkLayer(ShipFluidRenderTypes.AIR_CULL_RENDER_TYPE, poseStack, camX, camY, camZ, projectionMatrix);
     }
