@@ -76,41 +76,41 @@ public abstract class MixinLevelRenderer {
      * gets to animate and shade this geometry alongside the world's own surface. Drawing it after
      * the layer, as a standalone pass, would have picked up the wrong program.</p>
      */
-    @Inject(
-        method = "renderChunkLayer(Lnet/minecraft/client/renderer/RenderType;Lcom/mojang/blaze3d/vertex/PoseStack;DDDLorg/joml/Matrix4f;)V",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/client/renderer/RenderType;clearRenderState()V",
-            shift = At.Shift.BEFORE
-        ),
-        // Required: silently missing this point would leave the overlay drawn with the wrong
-        // program, or not drawn at all, with nothing to indicate why.
-        require = 1
-    )
-    private void vs$renderShipFluidOverlay(final RenderType renderType, final PoseStack poseStack,
-        final double camX, final double camY, final double camZ, final Matrix4f projectionMatrix,
-        final CallbackInfo ci) {
-        if (renderType != RenderType.translucent()) return;
-        if (this.level == null) return;
-
-        final Matrix4f oldProjection = new Matrix4f(RenderSystem.getProjectionMatrix());
-        final VertexSorting oldVertexSorting = RenderSystem.getVertexSorting();
-
-        final PoseStack modelViewStack = RenderSystem.getModelViewStack();
-        modelViewStack.pushPose();
-        modelViewStack.setIdentity();
-        modelViewStack.mulPoseMatrix(poseStack.last().pose());
-
-        RenderSystem.setProjectionMatrix(projectionMatrix, VertexSorting.DISTANCE_TO_ORIGIN);
-        RenderSystem.applyModelViewMatrix();
-        try {
-            ShipWaterPocketLiquidOverlay.render(camX, camY, camZ);
-        } finally {
-            modelViewStack.popPose();
-            RenderSystem.applyModelViewMatrix();
-            RenderSystem.setProjectionMatrix(oldProjection, oldVertexSorting);
-        }
-    }
+//    @Inject(
+//        method = "renderChunkLayer(Lnet/minecraft/client/renderer/RenderType;Lcom/mojang/blaze3d/vertex/PoseStack;DDDLorg/joml/Matrix4f;)V",
+//        at = @At(
+//            value = "INVOKE",
+//            target = "Lnet/minecraft/client/renderer/RenderType;clearRenderState()V",
+//            shift = At.Shift.BEFORE
+//        ),
+//        // Required: silently missing this point would leave the overlay drawn with the wrong
+//        // program, or not drawn at all, with nothing to indicate why.
+//        require = 1
+//    )
+//    private void vs$renderShipFluidOverlay(final RenderType renderType, final PoseStack poseStack,
+//        final double camX, final double camY, final double camZ, final Matrix4f projectionMatrix,
+//        final CallbackInfo ci) {
+//        if (renderType != RenderType.translucent()) return;
+//        if (this.level == null) return;
+//
+//        final Matrix4f oldProjection = new Matrix4f(RenderSystem.getProjectionMatrix());
+//        final VertexSorting oldVertexSorting = RenderSystem.getVertexSorting();
+//
+//        final PoseStack modelViewStack = RenderSystem.getModelViewStack();
+//        modelViewStack.pushPose();
+//        modelViewStack.setIdentity();
+//        modelViewStack.mulPoseMatrix(poseStack.last().pose());
+//
+//        RenderSystem.setProjectionMatrix(projectionMatrix, VertexSorting.DISTANCE_TO_ORIGIN);
+//        RenderSystem.applyModelViewMatrix();
+//        try {
+//            ShipWaterPocketLiquidOverlay.render(camX, camY, camZ);
+//        } finally {
+//            modelViewStack.popPose();
+//            RenderSystem.applyModelViewMatrix();
+//            RenderSystem.setProjectionMatrix(oldProjection, oldVertexSorting);
+//        }
+//    }
 
     @Inject(
         method = "renderChunkLayer(Lnet/minecraft/client/renderer/RenderType;Lcom/mojang/blaze3d/vertex/PoseStack;DDDLorg/joml/Matrix4f;)V",
