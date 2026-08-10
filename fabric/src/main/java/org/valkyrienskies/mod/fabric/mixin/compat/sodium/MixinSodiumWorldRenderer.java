@@ -5,6 +5,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.compat.sodium.SodiumCompat;
 
 import me.jellysquid.mods.sodium.client.render.SodiumWorldRenderer;
@@ -20,6 +21,9 @@ public abstract class MixinSodiumWorldRenderer {
     @Inject(method = "drawChunkLayer", at = @At("TAIL"))
     private void afterChunkLayer(RenderType renderLayer, ChunkRenderMatrices matrices, double x, double y, double z,
             CallbackInfo ci) {
+            if (renderLayer == RenderType.tripwire() && VSGameConfig.CLIENT.getUnderwater().getEnableWaterCulling()) {
+                renderSectionManager.renderLayer(matrices, SodiumCompat.AIR_POCKET_PASS, x, y, z);
+            }
             SodiumCompat.renderShips(renderSectionManager, renderLayer, matrices, x, y, z);
     }
 }

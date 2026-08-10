@@ -654,20 +654,12 @@ public final class ShipWaterPocketExternalWaterCull {
         final BitSet submergedBoundarySnapshot = new BitSet(volume);
         for (int waterIdx = waterReachableSnapshot.nextSetBit(0); waterIdx >= 0 && waterIdx < volume;
              waterIdx = waterReachableSnapshot.nextSetBit(waterIdx + 1)) {
-            if (!ShipWaterPocketLiquidOverlay.isOutsideSubmergedFluid(openSnapshot, interiorSnapshot, waterReachableSnapshot, waterIdx)) {
+            if (!ShipFluidCellClassification.isOutsideSubmergedFluid(
+                openSnapshot, interiorSnapshot, waterReachableSnapshot, waterIdx)) {
                 continue;
             }
-            if (ShipWaterPocketLiquidOverlay.touchesOverlayBoundary(
-                openSnapshot,
-                interiorSnapshot,
-                waterReachableSnapshot,
-                null,
-                null,
-                waterIdx,
-                sizeX,
-                sizeY,
-                sizeZ
-            )) {
+            if (ShipFluidCellClassification.touchesInteriorOpen(
+                openSnapshot, interiorSnapshot, waterIdx, sizeX, sizeY, sizeZ)) {
                 submergedBoundarySnapshot.set(waterIdx);
             }
         }

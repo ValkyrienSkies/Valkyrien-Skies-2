@@ -82,6 +82,10 @@ public class ValkyrienCommonMixinConfigPlugin implements IMixinConfigPlugin {
         if (mixinClassName.contains("org.valkyrienskies.mod.mixin.mod_compat.sodium")) {
             return renderer == VSRenderer.SODIUM;
         }
+        if (mixinClassName.contains("org.valkyrienskies.mod.mixin.mod_compat.iris")) {
+            // Extends an Iris enum, so it can only be applied when Iris/Oculus is actually present.
+            return classExists("net.irisshaders.iris.pipeline.WorldRenderingPhase");
+        }
         if (mixinClassName.contains("org.valkyrienskies.mod.mixin.mod_compat.optifine_vanilla")) {
             return renderer == VSRenderer.VANILLA || renderer == VSRenderer.OPTIFINE;
         }
