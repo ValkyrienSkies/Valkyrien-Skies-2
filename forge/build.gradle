@@ -77,8 +77,9 @@ dependencies {
     }
 
     modCompileOnly("maven.modrinth:embeddium:${embeddium_version}")
-    //modRuntimeOnly("maven.modrinth:embeddium:${embeddium_version}")
+    modRuntimeOnly("maven.modrinth:embeddium:${embeddium_version}")
     modCompileOnly("maven.modrinth:oculus:${oculus_version}")
+    modRuntimeOnly("maven.modrinth:oculus:${oculus_version}")
 
     // radium and enemies (radium reforged works natively)
     modCompileOnly("maven.modrinth:radium:${radium_version}")
