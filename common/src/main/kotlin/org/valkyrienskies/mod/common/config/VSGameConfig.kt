@@ -492,6 +492,11 @@ object VSGameConfig {
                 description = "The permission level required to use the /vs apply (force/torque) command. Must be 0 <= x <= 4"
             )
             var applyCommandPerms = 2
+
+            @ConfigEntry(
+                description = "The permission level required to use the /vs config (get/set) command. Must be 0 <= x <= 4"
+            )
+            var configCommandPerms = 2
         }
     }
 

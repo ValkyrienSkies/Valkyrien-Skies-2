@@ -7,17 +7,18 @@ import com.mojang.brigadier.suggestion.SuggestionsBuilder
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands.argument
 import net.minecraft.commands.Commands.literal
-import net.minecraft.network.chat.Component.literal as textLiteral
 import net.minecraft.network.chat.Component.translatable
+import net.minecraftforge.common.ForgeConfigSpec
 import org.valkyrienskies.mod.common.config.ConfigType
 import org.valkyrienskies.mod.common.config.VSConfigUpdater
+import org.valkyrienskies.mod.common.config.VSGameConfig
 import java.util.concurrent.CompletableFuture
 
 object ConfigCommand {
-    private const val RELOAD_MESSAGE = "command.valkyrienskies.config.reload"
-    private const val SAVE_MESSAGE = "command.valkyrienskies.config.save"
 
-    private const val REQUIRED_PERMISSION_LEVEL = 2
+    const val CONFIG_PROP_NOT_FOUND = "command.valkyrienskies.config.not_found"
+    const val CONFIG_PROP_RESULT = "command.valkyrienskies.config.result"
+    const val CONFIG_PROP_SET = "command.valkyrienskies.config.set"
 
     private val CONFIG_TYPES = linkedMapOf(
         "core" to ConfigType.CORE_SERVER,
@@ -28,25 +29,7 @@ object ConfigCommand {
 
     fun register(vs: LiteralArgumentBuilder<CommandSourceStack>) {
         val config = literal("config")
-            .requires { it.hasPermission(REQUIRED_PERMISSION_LEVEL) }
-            .then(literal("reload")
-                .executes {
-                    VSConfigUpdater.reloadAll()
-
-                    it.source.sendSuccess({ translatable(RELOAD_MESSAGE) }, true)
-
-                    1
-                }
-            )
-            .then(literal("save")
-                .executes {
-                    VSConfigUpdater.saveAll()
-
-                    it.source.sendSuccess({ translatable(SAVE_MESSAGE) }, true)
-
-                    1
-                }
-            )
+            .requires { it.hasPermission(VSGameConfig.SERVER.Commands.configCommandPerms) }
 
         for ((typeName, configType) in CONFIG_TYPES) {
             registerGet(config, typeName, configType)
@@ -63,19 +46,39 @@ object ConfigCommand {
                     .suggests { _, builder -> suggestPath(configType, builder, includeValueSuggestions = false) }
                     .executes {
                         val input = StringArgumentType.getString(it, "path")
-                        val result = VSConfigUpdater.walk(configType, input)
+                        val resultEntry = VSConfigUpdater.forgeConfigValuesMap.get(input)
 
-                        if (result.entry == null) {
-                            it.source.sendFailure(textLiteral("No such $typeName config entry: ${input.trim()}"))
+                        if (resultEntry == null) {
+                            it.source.sendFailure(
+                                //"No such $typeName config entry: $input.trim()"
+                                translatable(CONFIG_PROP_NOT_FOUND, typeName, input.trim())
+                            )
                             return@executes 0
                         }
 
+                        val result = resultEntry.get()
+
                         it.source.sendSuccess(
-                            { textLiteral("${result.entry.dottedPath} = ${result.entry.modelEntry.getValue()}") },
+                            {
+                                //"$input is set to $result"
+                                translatable(CONFIG_PROP_RESULT, input, result.toString())
+                            },
                             true
                         )
 
-                        1
+                        if (result is Number) {
+                            return@executes result.toInt()
+                        }
+
+                        if (result is Enum<*>) {
+                            return@executes result.ordinal
+                        }
+
+                        if (result is Boolean) {
+                            return@executes result.compareTo(false)
+                        }
+
+                        return@executes 1
                     }
                 )
             )
@@ -85,82 +88,95 @@ object ConfigCommand {
     private fun registerEdit(config: LiteralArgumentBuilder<CommandSourceStack>, typeName: String, configType: ConfigType) {
         config.then(literal("edit")
             .then(literal(typeName)
-                .then(argument("pathAndValue", StringArgumentType.greedyString())
+                .then(argument("path", StringArgumentType.string())
                     .suggests { _, builder -> suggestPath(configType, builder, includeValueSuggestions = true) }
-                    .executes {
-                        val input = StringArgumentType.getString(it, "pathAndValue")
-                        val result = VSConfigUpdater.walk(configType, input)
+                    .then(argument("value", StringArgumentType.string())
+                        .executes {
+                            val input = StringArgumentType.getString(it, "path")
+                            val resultEntry = VSConfigUpdater.forgeConfigValuesMap.get(input)
 
-                        if (result.entry == null) {
-                            it.source.sendFailure(textLiteral("No such $typeName config entry: ${input.trim()}"))
-                            return@executes 0
-                        }
-
-                        val rawValue = result.remainingText.trim()
-                        if (rawValue.isEmpty()) {
-                            it.source.sendFailure(textLiteral("Usage: /vs config edit $typeName ${result.entry.dottedPath.replace('.', ' ')} <value>"))
-                            return@executes 0
-                        }
-
-                        when (val setResult = VSConfigUpdater.setEntry(result.entry, rawValue)) {
-                            is VSConfigUpdater.SetResult.InvalidValue -> {
-                                it.source.sendFailure(textLiteral(setResult.reason))
-                                0
-                            }
-                            is VSConfigUpdater.SetResult.Success -> {
-                                VSConfigUpdater.saveAll()
-                                VSConfigUpdater.reloadAll()
-
-                                it.source.sendSuccess(
-                                    { textLiteral("${result.entry.dottedPath}: ${setResult.oldValue} -> ${setResult.newValue}") },
-                                    true
+                            if (resultEntry == null) {
+                                it.source.sendFailure(
+                                    //"No such $typeName config entry: $input.trim()"
+                                    translatable(CONFIG_PROP_NOT_FOUND, typeName, input.trim())
                                 )
-
-                                1
+                                return@executes 0
                             }
+
+                            val valueString = StringArgumentType.getString(it, "value")
+                            val desiredType = resultEntry.get()
+
+                            val value = stringToType(valueString, desiredType)
+
+                            (resultEntry as ForgeConfigSpec.ConfigValue<Any>).set(value)
+
+
+                            it.source.sendSuccess(
+                                {
+                                    //"Set $input value: $old -> $new"
+                                    translatable(CONFIG_PROP_SET, input, desiredType, value)
+                                },
+                                true
+                            )
+
+                            1
                         }
-                    }
+                    )
+
                 )
             )
         )
     }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun <T> stringToType(
+        valueString: String,
+        desiredTypeInstance: T
+    ): T {
+        if (desiredTypeInstance is String) {
+            return valueString as T
+        }
+
+        if (desiredTypeInstance is Boolean) {
+            if (valueString == "0") return false as T
+            if (valueString == "1") return true as T
+            if (valueString.lowercase() == "false") return false as T
+            if (valueString.lowercase() == "true") return true as T
+            return false as T
+        }
+
+        if (desiredTypeInstance is Enum<*>) {
+            try {
+                return java.lang.Enum.valueOf(desiredTypeInstance.javaClass as Class<out Enum<*>>, valueString) as T
+            } catch (e: IllegalArgumentException) {
+                // The string wasn't a valid enum value
+            }
+        }
+
+        if (desiredTypeInstance is Number) {
+            return valueString.toDouble() as T
+        }
+
+        return desiredTypeInstance
+    }
+
     private fun suggestPath(
         configType: ConfigType,
         builder: SuggestionsBuilder,
         includeValueSuggestions: Boolean
     ): CompletableFuture<Suggestions> {
         val typedSoFar = builder.remaining
-        val result = VSConfigUpdater.walk(configType, typedSoFar)
 
-        val consumedLength = typedSoFar.length - result.remainingText.length
-        val offsetBuilder = builder.createOffset(builder.start + consumedLength)
-        val partial = result.remainingText.trimStart()
-        val partialOffsetBuilder = offsetBuilder.createOffset(offsetBuilder.start + (result.remainingText.length - partial.length))
-
-        if (result.entry != null) {
-            if (includeValueSuggestions) {
-                for (suggestion in valueSuggestionsFor(result.entry)) {
-                    if (suggestion.startsWith(partial, ignoreCase = true)) {
-                        partialOffsetBuilder.suggest(suggestion)
-                    }
-                }
-            }
-            return partialOffsetBuilder.buildFuture()
-        }
-
-        for (node in result.nodesAtCursor) {
-            if (node.name.startsWith(partial, ignoreCase = true)) {
-                partialOffsetBuilder.suggest(node.name)
-            }
-        }
-        return partialOffsetBuilder.buildFuture()
+        val matchingKeys = VSConfigUpdater.forgeConfigValuesMap.filterKeys { it.startsWith(typedSoFar) }.keys.toList()
+        matchingKeys.forEach { builder.suggest(it) }
+        return builder.buildFuture()
     }
 
-    private fun valueSuggestionsFor(handle: VSConfigUpdater.ConfigEntryHandle): List<String> {
+    /*private fun valueSuggestionsFor(handle: VSConfigUpdater.ConfigEntryHandle): List<String> {
         return when (val current = handle.modelEntry.getValue()) {
             is Boolean -> listOf("true", "false")
             is Enum<*> -> current.declaringJavaClass.enumConstants.map { (it as Enum<*>).name }
             else -> emptyList()
         }
-    }
+    }*/
 }
