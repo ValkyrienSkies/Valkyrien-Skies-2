@@ -439,62 +439,86 @@ object VSGameConfig {
 
         class COMMANDS {
             @ConfigEntry(
-                description = "The permission level required to use the /vs delete command. Must be 0 <= x <= 4"
+                description = "The permission level required to use the /vs delete command",
+                min = 0.0,
+                max = 4.0
             )
             var deleteShipCommandPerms = 2
 
             @ConfigEntry(
-                description = "The permission level required to use the /vs get-ship command. Must be 0 <= x <= 4"
+                description = "The permission level required to use the /vs get-ship command",
+                min = 0.0,
+                max = 4.0
             )
             var getShipCommandPerms = 0
 
             @ConfigEntry(
-                description = "The permission level required to use the /vs get-air and /vs get-gravity command. Must be 0 <= x <= 4"
+                description = "The permission level required to use the /vs get-air and /vs get-gravity command",
+                min = 0.0,
+                max = 4.0
             )
             var getAirValuesPerms = 0
 
             @ConfigEntry(
-                description = "The permission level required to use the /vs rename command. Must be 0 <= x <= 4"
+                description = "The permission level required to use the /vs rename command",
+                min = 0.0,
+                max = 4.0
             )
             var renameShipCommandPerms = 2
 
             @ConfigEntry(
-                description = "The permission level required to use the /vs remass command. Must be 0 <= x <= 4"
+                description = "The permission level required to use the /vs remass command",
+                min = 0.0,
+                max = 4.0
             )
             var remassShipCommandPerms = 2
 
             @ConfigEntry(
-                description = "The permission level required to use the /vs scale command. Must be 0 <= x <= 4"
+                description = "The permission level required to use the /vs scale command",
+                min = 0.0,
+                max = 4.0
             )
             var scaleShipCommandPerms = 2
 
             @ConfigEntry(
-                description = "The permission level required to use the /vs set-static command. Must be 0 <= x <= 4"
+                description = "The permission level required to use the /vs set-static command",
+                min = 0.0,
+                max = 4.0
             )
             var setStaticShipCommandPerms = 2
 
             @ConfigEntry(
-                description = "The permission level required to use the /vs teleport command. Must be 0 <= x <= 4"
+                description = "The permission level required to use the /vs teleport command",
+                min = 0.0,
+                max = 4.0
             )
             var teleportShipCommandPerms = 2
 
             @ConfigEntry(
-                description = "The permission level required to use the /vs backend command. Must be 0 <= x <= 4"
+                description = "The permission level required to use the /vs backend command",
+                min = 0.0,
+                max = 4.0
             )
             var changeBackendCommandPerms = 4
 
             @ConfigEntry(
-                description = "The permission level required to use the /vs dry command. Must be 0 <= x <= 4"
+                description = "The permission level required to use the /vs dry command",
+                min = 0.0,
+                max = 4.0
             )
             var dryShipCommandPerms = 2
 
             @ConfigEntry(
-                description = "The permission level required to use the /vs apply (force/torque) command. Must be 0 <= x <= 4"
+                description = "The permission level required to use the /vs apply (force/torque) command",
+                min = 0.0,
+                max = 4.0
             )
             var applyCommandPerms = 2
 
             @ConfigEntry(
-                description = "The permission level required to use the /vs config (get/set) command. Must be 0 <= x <= 4"
+                description = "The permission level required to use the /vs config (get/set) command",
+                min = 0.0,
+                max = 4.0
             )
             var configCommandPerms = 2
         }
