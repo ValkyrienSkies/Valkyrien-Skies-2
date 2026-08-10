@@ -90,21 +90,6 @@ public final class ShipInteriorFogRenderer {
         compositeFogToMain(mainTarget);
     }
 
-    public static boolean shouldSuppressLiquidOverlay(final Camera camera) {
-        if (!canRenderInteriorWaterFog(camera)) {
-            return false;
-        }
-        final Minecraft mc = Minecraft.getInstance();
-        return shouldRenderInteriorWaterFog(
-            ShipFluidRenderSnapshot.isWorldPosInShipAirPocket(
-                mc.level, camera.getPosition().x, camera.getPosition().y, camera.getPosition().z
-            ),
-            ShipFluidRenderSnapshot.isWorldPosInShipWorldFluidSuppressionZone(
-                mc.level, camera.getPosition().x, camera.getPosition().y, camera.getPosition().z
-            )
-        );
-    }
-
     public static void clear() {
         closePasses();
         if (interiorMaskTarget != null) {
