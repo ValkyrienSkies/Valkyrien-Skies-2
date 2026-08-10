@@ -400,6 +400,7 @@
     "accessors.client.render.GameRendererAccessor",
     "accessors.client.render.LevelRendererAccessor",
     "accessors.client.render.OverlayVertexConsumerAccessor",
+    "accessors.client.render.RenderTypeAccessor",
     "accessors.client.render.ViewAreaAccessor",
     "accessors.client.render.chunk.RenderChunkAccessor",
     "accessors.client.world.ClientChunkCacheStorageAccessor",
