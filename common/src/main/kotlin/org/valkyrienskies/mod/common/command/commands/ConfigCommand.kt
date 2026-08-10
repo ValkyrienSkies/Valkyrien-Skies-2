@@ -43,10 +43,10 @@ object ConfigCommand {
         config.then(literal("get")
             .then(literal(typeName)
                 .then(argument("path", StringArgumentType.greedyString())
-                    .suggests { _, builder -> suggestPath(configType, builder, includeValueSuggestions = false) }
+                    .suggests { _, builder -> suggestPath(configType, builder) }
                     .executes {
                         val input = StringArgumentType.getString(it, "path")
-                        val resultEntry = VSConfigUpdater.forgeConfigValuesMap.get(input)
+                        val resultEntry = VSConfigUpdater.pathAwareConfigValuesMap.get(configType)!!.get(input)?.second
 
                         if (resultEntry == null) {
                             it.source.sendFailure(
@@ -89,11 +89,12 @@ object ConfigCommand {
         config.then(literal("edit")
             .then(literal(typeName)
                 .then(argument("path", StringArgumentType.string())
-                    .suggests { _, builder -> suggestPath(configType, builder, includeValueSuggestions = true) }
+                    .suggests { _, builder -> suggestPath(configType, builder) }
                     .then(argument("value", StringArgumentType.string())
+                        .suggests { c, builder -> suggestValue(StringArgumentType.getString(c, "path"), configType, builder) }
                         .executes {
                             val input = StringArgumentType.getString(it, "path")
-                            val resultEntry = VSConfigUpdater.forgeConfigValuesMap.get(input)
+                            val resultEntry = VSConfigUpdater.pathAwareConfigValuesMap.get(configType)!!.get(input)?.second
 
                             if (resultEntry == null) {
                                 it.source.sendFailure(
@@ -109,7 +110,6 @@ object ConfigCommand {
                             val value = stringToType(valueString, desiredType)
 
                             (resultEntry as ForgeConfigSpec.ConfigValue<Any>).set(value)
-
 
                             it.source.sendSuccess(
                                 {
@@ -148,12 +148,16 @@ object ConfigCommand {
         if (desiredTypeInstance is Enum<*>) {
             try {
                 return java.lang.Enum.valueOf(desiredTypeInstance.javaClass as Class<out Enum<*>>, valueString) as T
-            } catch (e: IllegalArgumentException) {
+            } catch (_: IllegalArgumentException) {
                 // The string wasn't a valid enum value
             }
         }
 
-        if (desiredTypeInstance is Number) {
+        if (desiredTypeInstance is Int) {
+            return valueString.toInt() as T
+        }
+
+        if (desiredTypeInstance is Double) {
             return valueString.toDouble() as T
         }
 
@@ -162,21 +166,66 @@ object ConfigCommand {
 
     private fun suggestPath(
         configType: ConfigType,
-        builder: SuggestionsBuilder,
-        includeValueSuggestions: Boolean
+        builder: SuggestionsBuilder
     ): CompletableFuture<Suggestions> {
         val typedSoFar = builder.remaining
 
-        val matchingKeys = VSConfigUpdater.forgeConfigValuesMap.filterKeys { it.startsWith(typedSoFar) }.keys.toList()
+        val matchingKeys = VSConfigUpdater.pathAwareConfigValuesMap
+            .get(configType)!!
+            .filterKeys { it.startsWith(typedSoFar, ignoreCase = true) }
+            .keys.toList()
+
         matchingKeys.forEach { builder.suggest(it) }
         return builder.buildFuture()
     }
 
-    /*private fun valueSuggestionsFor(handle: VSConfigUpdater.ConfigEntryHandle): List<String> {
-        return when (val current = handle.modelEntry.getValue()) {
-            is Boolean -> listOf("true", "false")
-            is Enum<*> -> current.declaringJavaClass.enumConstants.map { (it as Enum<*>).name }
-            else -> emptyList()
+    private fun suggestValue(
+        path: String,
+        configType: ConfigType,
+        builder: SuggestionsBuilder
+    ): CompletableFuture<Suggestions> {
+        val resultEntry = VSConfigUpdater.pathAwareConfigValuesMap.get(configType)!!.get(path)
+            ?: return builder.buildFuture()
+
+        val desiredType = resultEntry.second.get()
+
+        if (desiredType is Int) {
+            val min = (resultEntry.first.min ?: 0) as Int
+            builder.suggest(min)
+
+            val max = resultEntry.first.max as? Int
+            if (max != null) {
+                // If the range is less than 5, suggest all possible values
+                if ((max - min) < 5) {
+                    for (i in min+1..max) {
+                        builder.suggest(i)
+                    }
+                } else {
+                    builder.suggest(max)
+                }
+            }
         }
-    }*/
+
+        if (desiredType is Double) {
+            val min = (resultEntry.first.min ?: 0.0) as Double
+            builder.suggest(min.toString())
+            val max = resultEntry.first.max as? Double
+            if (max != null) {
+                builder.suggest(max.toString())
+            }
+        }
+
+        if (desiredType is Boolean) {
+            builder.suggest("true")
+            builder.suggest("false")
+        }
+
+        if (desiredType is Enum<*>) {
+            (desiredType.javaClass as Class<out Enum<*>>).enumConstants.forEach { enum ->
+                builder.suggest(enum.name)
+            }
+        }
+
+        return builder.buildFuture()
+    }
 }
