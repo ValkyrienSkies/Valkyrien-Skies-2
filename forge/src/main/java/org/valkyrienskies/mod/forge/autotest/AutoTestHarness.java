@@ -231,7 +231,7 @@ public final class AutoTestHarness {
     }
 
     /**
-     * Builds a hollow 5x4x5 box of {@code block} centred on the given position and assembles it into a
+     * Builds a hollow 5x6x5 box of {@code block} centred on the given position and assembles it into a
      * ship through the same path the mod's own assembly uses.
      *
      * <p>Hollow on purpose: a solid cube has no interior for fluid to occupy, so it can never produce a
@@ -247,8 +247,12 @@ public final class AutoTestHarness {
         server.execute(() -> {
             final ServerLevel level = server.getLevel(dimension);
             final DenseBlockPosSet blocks = new DenseBlockPosSet();
+            // Tall on purpose. The hull has to run dynamic for a moment before it can be pinned (a
+            // static body gets no topology snapshot at all), and it drifts a block or so in that time.
+            // A short hull lets that drift carry the waterline out of the interior, which produces zero
+            // caps and is indistinguishable from a broken cull.
             for (int dx = -2; dx <= 2; dx++) {
-                for (int dy = 0; dy <= 3; dy++) {
+                for (int dy = 0; dy <= 5; dy++) {
                     for (int dz = -2; dz <= 2; dz++) {
                         final boolean shell = dx == -2 || dx == 2 || dz == -2 || dz == 2 || dy == 0;
                         if (!shell) {
