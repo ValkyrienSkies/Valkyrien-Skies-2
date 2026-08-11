@@ -1,0 +1,50 @@
+# Does ship flooding reach the client, and does it draw?
+#
+# Builds a stone-walled pool, hollows out an air pocket inside it, then assembles a hollow box ship
+# around that pocket so the ship sits fully submerged with air trapped inside. That is the state
+# flooding acts on: water works its way in, and both FloodedVoxelRenderer (interior surfaces) and the
+# occlusion path (hiding world water inside the dry volume) have something to do.
+#
+# flood_report is the load-bearing assertion. It prints, per ship, whether a topology snapshot arrived
+# and how many flooded voxels came with it. All flooding rendering is downstream of those two
+# snapshots, so an empty report means the server never sent the data and no rendering change could
+# ever have made it visible.
+world autotest
+wait-level
+wait 100
+cmd gamemode creative
+cmd time set noon
+cmd gamerule doDaylightCycle false
+
+# Stone shell, then hollow it out with water: a contained pool that will not drain away.
+cmd fill 90 -59 90 116 -49 116 minecraft:stone
+wait 10
+cmd fill 92 -58 92 114 -50 114 minecraft:water
+wait 20
+
+# The air pocket the ship will enclose.
+cmd fill 101 -56 101 105 -52 105 minecraft:air
+wait 10
+
+# Hollow box (walls + floor, open top) assembled into a real ship around that pocket.
+run spawn_ship minecraft:oak_planks 103 -56 103
+wait 60
+run shipinfo
+run flood_report t0
+
+# Watch it from outside, above the waterline, looking down at the ship.
+cmd tp @s 103 -46 118 180 -25
+wait 40
+screenshot flooding_outside
+run flood_report t1
+
+wait 100
+screenshot flooding_settled
+run flood_report t2
+
+# Inside the pocket: this is where interior flood surfaces and the dry-volume occlusion show up.
+cmd tp @s 103 -54 103 0 0
+wait 40
+screenshot flooding_inside
+run flood_report t3
+quit
