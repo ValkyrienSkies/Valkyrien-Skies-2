@@ -135,6 +135,10 @@ public final class AutoTestHarness {
                 return;
             }
             this.started = true;
+            // The run has no one at the keyboard, so the window routinely sits unfocused. Left alone,
+            // vanilla opens the pause menu, which halts the script and puts the menu in every
+            // screenshot from then on.
+            minecraft.options.pauseOnLostFocus = false;
             LOGGER.info("[autotest] starting script");
         }
 

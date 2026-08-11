@@ -20,7 +20,6 @@ import net.minecraft.world.phys.Vec3;
 import org.valkyrienskies.mod.common.fluid.client.ShipFluidRenderTypes;
 import org.valkyrienskies.mod.common.fluid.client.ShipInteriorFogRenderer;
 import org.valkyrienskies.mod.common.fluid.client.ShipPocketWorldWaterOccluder;
-import org.valkyrienskies.mod.common.fluid.client.ShipWaterPocketLiquidOverlay;
 
 @Mixin(value = LevelRenderer.class, priority = 900)
 public abstract class MixinLevelRenderer {
