@@ -213,7 +213,8 @@ public final class AutoTestHarness {
     private static void runHook(final Minecraft minecraft, final String[] inst) {
         switch (inst[1]) {
             case "spawn_ship" -> spawnShip(minecraft, blockByName(inst[2]),
-                Integer.parseInt(inst[3]), Integer.parseInt(inst[4]), Integer.parseInt(inst[5]));
+                Integer.parseInt(inst[3]), Integer.parseInt(inst[4]), Integer.parseInt(inst[5]),
+                inst.length > 6 && "static".equals(inst[6]));
             case "shipinfo" -> logShipInfo(minecraft);
             case "flood_report" -> floodReport(minecraft, inst.length > 2 ? inst[2] : "");
             case "pin_ship" -> pinLastShip(minecraft);
@@ -236,7 +237,8 @@ public final class AutoTestHarness {
      * <p>Hollow on purpose: a solid cube has no interior for fluid to occupy, so it can never produce a
      * flood snapshot and would make a flooding test vacuously empty.</p>
      */
-    private static void spawnShip(final Minecraft minecraft, final Block block, final int x, final int y, final int z) {
+    private static void spawnShip(final Minecraft minecraft, final Block block, final int x, final int y, final int z,
+        final boolean makeStatic) {
         final MinecraftServer server = minecraft.getSingleplayerServer();
         if (server == null) {
             throw new IllegalStateException("spawn_ship: no integrated server");
@@ -260,17 +262,25 @@ public final class AutoTestHarness {
             }
             final ServerShip ship =
                 ShipAssemblyKt.createNewShipWithBlocks(new BlockPos(x, y, z), blocks, level);
+            if (makeStatic) {
+                // Pinned in the same tick it is assembled. Doing it from a later instruction races the
+                // server thread, and even a few ticks of drift lifts the hull off the waterline.
+                ship.setStatic(true);
+            }
             lastSpawnedShip = ship;
-            LOGGER.info("[autotest] spawned ship id={} at ({}, {}, {})", ship.getId(), x, y, z);
+            LOGGER.info("[autotest] spawned ship id={} at ({}, {}, {}) static={}",
+                ship.getId(), x, y, z, makeStatic);
         });
     }
 
     /**
-     * Makes the last spawned ship static, so it holds the position it was assembled at.
+     * Freezes the last spawned ship where it currently is.
      *
-     * <p>A freshly assembled hull is an ordinary dynamic body: left alone it sinks or drifts within a
-     * few seconds, which is fatal for a test that needs it at a specific waterline when the
-     * screenshots are taken. Pinning it removes the timing dependence entirely.</p>
+     * <p>Cannot be folded into assembly: a static body is excluded from the fluid simulation, so a hull
+     * assembled static never receives a topology snapshot and every fluid renderer downstream of that
+     * has nothing to draw. It has to run dynamic long enough for topology to arrive, which means it
+     * also settles a little — so scenes that care about the waterline should leave headroom rather than
+     * assume the hull is still exactly where it was placed.</p>
      */
     private static void pinLastShip(final Minecraft minecraft) {
         final MinecraftServer server = minecraft.getSingleplayerServer();

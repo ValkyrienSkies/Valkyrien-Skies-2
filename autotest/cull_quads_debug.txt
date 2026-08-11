@@ -28,9 +28,12 @@ cmd fill 64 -59 64 136 -57 136 minecraft:water
 wait 40
 
 # Hollow box straddling the surface: interior spans y=-57..-55, so the waterline cuts through it.
-run spawn_ship minecraft:oak_planks 100 -58 100
-wait 20
-# Pin it: a dynamic hull sinks out of the pool within seconds and the waterline never crosses it.
+# Spawned a block lower than the waterline needs, then pinned once topology has arrived. It cannot be
+# assembled static -- a static body is left out of the fluid simulation and never gets a topology
+# snapshot at all -- so it runs dynamic briefly and settles. The extra block is headroom for that
+# settle: the interior still straddles y=-56 whether it drops or rises by one.
+run spawn_ship minecraft:oak_planks 100 -59 100
+wait 40
 run pin_ship
 wait 60
 run shipinfo
@@ -51,6 +54,12 @@ screenshot cull_waterline
 cmd tp @s 100 -49 100 0 89
 wait 30
 screenshot cull_topdown
+wait 12
+screenshot cull_topdown_f1
+wait 12
+screenshot cull_topdown_f2
+wait 12
+screenshot cull_topdown_f3
 
 # Away from the ship over open water, where no cap should be drawn at all.
 cmd tp @s 80 -53 75 0 10
