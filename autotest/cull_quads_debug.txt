@@ -1,0 +1,59 @@
+# Where does the fluid cull geometry actually land, on a ship sitting in world water?
+#
+# Run with -Pvs_debug_quads, which flips the cull pass from depth-only to colour-writing magenta
+# (255, 0, 255). Normally this geometry is invisible by design: it exists only to put depth in the
+# buffer so world water z-fails against it, so the only way to judge whether it is in the right place
+# is to draw it.
+#
+# The pass is only built under a shaderpack -- without one, the uniform-mask occlusion handles this
+# instead and the depth pre-pass is skipped -- so this needs enableShaders=true in oculus.properties
+# and Underwater.enableWaterCulling on.
+#
+# A hollow ship is assembled straddling the waterline of a world-water pool: floor and lower walls
+# below the surface, open top above it. The caps should appear as magenta polygons across the ship's
+# interior at exactly the waterline, and nowhere else -- not on the outside of the hull, and not
+# across open water away from the ship.
+world autotest
+wait-level
+wait 100
+cmd gamemode spectator
+cmd time set noon
+cmd gamerule doDaylightCycle false
+cmd gamerule sendCommandFeedback false
+
+# World-space water: stone basin hollowed out, surface at y=-56.
+cmd fill 62 -60 62 138 -57 138 minecraft:stone
+wait 10
+cmd fill 64 -59 64 136 -57 136 minecraft:water
+wait 40
+
+# Hollow box straddling the surface: interior spans y=-57..-55, so the waterline cuts through it.
+run spawn_ship minecraft:oak_planks 100 -58 100
+wait 20
+# Pin it: a dynamic hull sinks out of the pool within seconds and the waterline never crosses it.
+run pin_ship
+wait 60
+run shipinfo
+run flood_report ship_in_world_water
+
+# Outside, slightly above the surface, looking at the ship.
+cmd tp @s 100 -53 86 0 12
+wait 40
+screenshot cull_outside
+
+# Close in on the waterline from the side.
+cmd tp @s 100 -55.4 92 0 3
+wait 30
+screenshot cull_waterline
+
+# Above, looking straight down into the open top: the caps should read as a filled magenta
+# cross-section of the interior.
+cmd tp @s 100 -49 100 0 89
+wait 30
+screenshot cull_topdown
+
+# Away from the ship over open water, where no cap should be drawn at all.
+cmd tp @s 80 -53 75 0 10
+wait 30
+screenshot cull_open_water
+quit

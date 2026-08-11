@@ -51,6 +51,11 @@ loom {
             if (project.hasProperty('vs_autotest')) {
                 property "vs.autotest", project.property('vs_autotest').toString()
             }
+            // `-Pvs_debug_quads` draws the fluid cull geometry with colour writes on and a magenta
+            // tint, instead of the depth-only pass it normally is, so it can be seen and placed.
+            if (project.hasProperty('vs_debug_quads')) {
+                property "vsk.occluder.debug", "true"
+            }
         }
     }
 }

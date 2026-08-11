@@ -216,6 +216,7 @@ public final class AutoTestHarness {
                 Integer.parseInt(inst[3]), Integer.parseInt(inst[4]), Integer.parseInt(inst[5]));
             case "shipinfo" -> logShipInfo(minecraft);
             case "flood_report" -> floodReport(minecraft, inst.length > 2 ? inst[2] : "");
+            case "pin_ship" -> pinLastShip(minecraft);
             default -> throw new IllegalArgumentException("unknown hook: " + inst[1]);
         }
     }
@@ -261,6 +262,28 @@ public final class AutoTestHarness {
                 ShipAssemblyKt.createNewShipWithBlocks(new BlockPos(x, y, z), blocks, level);
             lastSpawnedShip = ship;
             LOGGER.info("[autotest] spawned ship id={} at ({}, {}, {})", ship.getId(), x, y, z);
+        });
+    }
+
+    /**
+     * Makes the last spawned ship static, so it holds the position it was assembled at.
+     *
+     * <p>A freshly assembled hull is an ordinary dynamic body: left alone it sinks or drifts within a
+     * few seconds, which is fatal for a test that needs it at a specific waterline when the
+     * screenshots are taken. Pinning it removes the timing dependence entirely.</p>
+     */
+    private static void pinLastShip(final Minecraft minecraft) {
+        final MinecraftServer server = minecraft.getSingleplayerServer();
+        if (server == null) {
+            throw new IllegalStateException("pin_ship: no integrated server");
+        }
+        final ServerShip ship = lastSpawnedShip;
+        if (ship == null) {
+            throw new IllegalStateException("pin_ship: no ship has been spawned yet");
+        }
+        server.execute(() -> {
+            ship.setStatic(true);
+            LOGGER.info("[autotest] pinned ship id={} (static)", ship.getId());
         });
     }
 
