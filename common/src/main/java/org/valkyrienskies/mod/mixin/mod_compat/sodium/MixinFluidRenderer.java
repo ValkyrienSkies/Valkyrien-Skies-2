@@ -11,6 +11,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.compat.sodium.SodiumCompat;
 
 @Mixin(FluidRenderer.class)
@@ -27,6 +28,14 @@ public class MixinFluidRenderer {
         @Local(argsOnly = true) WorldSlice world,
         @Local(argsOnly = true, ordinal = 0) BlockPos blockPos
     ) {
+        // Gated on the same config as the pass that draws it. Without this check the mesher keeps
+        // routing world fluid into AIR_POCKET_PASS while MixinSodiumWorldRenderer stops drawing that
+        // pass, and world water disappears entirely rather than falling back to the translucent layer.
+        if (!VSGameConfig.CLIENT.getUnderwater().getEnableWaterCulling()) {
+            return material;
+        }
+        // World fluid only. Fluid inside a shipyard belongs to the ship's own volume and is handled by
+        // the ship fluid renderers, so it stays on the layer Sodium picked for it.
         if (!VSGameUtilsKt.isBlockInShipyard(((WorldSliceAccessor) (Object) world).getWorld(), blockPos)) {
             if (fluidState.is(Fluids.WATER) || fluidState.is(Fluids.FLOWING_WATER)) {
                 return SodiumCompat.AIR_POCKET_MATERIAL;
