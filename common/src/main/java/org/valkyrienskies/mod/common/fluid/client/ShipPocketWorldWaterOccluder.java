@@ -66,6 +66,8 @@ public final class ShipPocketWorldWaterOccluder {
     private static final Logger LOGGER = LogManager.getLogger("ValkyrienAir PocketWaterOccluder");
     private static final long DIAG_INTERVAL_MS = 3000L;
     private static long lastDiagAtMs = 0L;
+    private static int invocationsSinceDiag = 0;
+    private static long nanosSinceDiag = 0L;
     private static final boolean DEBUG_VISUALIZE =
         Boolean.parseBoolean(System.getProperty("vsk.occluder.debug", "false"));
 
@@ -145,9 +147,9 @@ public final class ShipPocketWorldWaterOccluder {
      * arrives with it unset — which is why routing these through the water program alone left them flat
      * while the surface moved around them.</p>
      *
-     * <p>The id itself is asked of Iris rather than hardcoded. {@code 32000} is what Complementary's
-     * {@code block.properties} happens to assign; the numbering is per-pack, so a fixed constant would
-     * silently stop waving under any pack that numbers water differently.</p>
+     * <p>The id itself is asked of Iris rather than hardcoded, because the numbering is per-pack:
+     * water is {@code 32000} under Complementary and {@code 10001} under Photon. A fixed constant works
+     * for one pack and silently stops waving under the next.</p>
      *
      * <p>{@code mc_Entity} is not array-backed for this draw, and GL substitutes the <i>current generic
      * attribute value</i> for any attribute whose array is disabled. Setting that value once before the
@@ -173,7 +175,7 @@ public final class ShipPocketWorldWaterOccluder {
         }
         if (loggedMaterialId != materialId) {
             loggedMaterialId = materialId;
-            LOGGER.info("forcing mc_Entity.x={} (pack id for water) at attribute location {}",
+            LOGGER.info("forcing mc_Entity.x={} (this pack's id for water) at attribute location {}",
                 materialId, location);
         }
         GL20.glDisableVertexAttribArray(location);
@@ -206,6 +208,8 @@ public final class ShipPocketWorldWaterOccluder {
 
     public static void render(final double cameraX, final double cameraY, final double cameraZ,
         final Matrix4f projectionMatrix, final PoseStack poseStack) {
+        final long vs$enteredAt = System.nanoTime();
+        invocationsSinceDiag++;
         final Minecraft mc = Minecraft.getInstance();
         final ClientLevel level = mc.level;
         if (level == null) return;
@@ -231,15 +235,18 @@ public final class ShipPocketWorldWaterOccluder {
         }
         RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
 
-        // Factor deliberately left at 0: the slope-scale term scales with the polygon's
-        // screen-space depth gradient, which is derived from its (winding-dependent) front-facing
-        // orientation. Backface culling is disabled below so the cap is visible — and must be
-        // biased — from both sides (e.g. looking up at it from inside the pocket), and several
-        // drivers don't treat the slope term symmetrically for the back-facing case, which showed
-        // up as occlusion silently failing when viewed from underneath. A flat "units" bias has no
-        // such direction dependency, so it's used alone (bumped up to compensate for losing the
-        // slope term's extra push at grazing angles). Sign is negative = depth pulled toward camera
-        // so water at the same world position loses GL_LEQUAL.
+        // Left disabled: tried again now that the caps are vertex-displaced, on the theory that a
+        // rasterization-stage bias survives displacement where the CPU-side vertex nudge does not, but
+        // it made no measurable difference and the per-vertex bias is doing the job.
+        //
+        // Factor deliberately left at 0: the slope-scale term scales with the polygon's screen-space
+        // depth gradient, which is derived from its (winding-dependent) front-facing orientation.
+        // Backface culling is disabled below so the cap is visible — and must be biased — from both
+        // sides (e.g. looking up at it from inside the pocket), and several drivers don't treat the
+        // slope term symmetrically for the back-facing case, which showed up as occlusion silently
+        // failing when viewed from underneath. A flat "units" bias has no such direction dependency,
+        // so it is used alone. Sign is negative = depth pulled toward camera, so water at the same
+        // world position loses GL_LEQUAL.
 //        GL11.glEnable(GL11.GL_POLYGON_OFFSET_FILL);
 //        GL11.glPolygonOffset(0.0f, -16.0f);
 
@@ -331,11 +338,20 @@ public final class ShipPocketWorldWaterOccluder {
             // by the RenderType setups that immediately follow this pass.
         }
 
+        nanosSinceDiag += System.nanoTime() - vs$enteredAt;
         final long now = System.currentTimeMillis();
         if (now - lastDiagAtMs >= DIAG_INTERVAL_MS) {
+            final long elapsedMs = Math.max(1L, now - lastDiagAtMs);
             lastDiagAtMs = now;
-            LOGGER.info("Occluder pass: {} ships with snapshot, {} drawn, {} waterline-clipped quads (debug={})",
-                shipsWithSnapshot, shipsDrawn, totalQuads, DEBUG_VISUALIZE);
+            LOGGER.info(
+                "Occluder pass: {} ships with snapshot, {} drawn, {} waterline-clipped quads (debug={}) "
+                    + "| {} calls in {} ms, {} ms total ({}% of wall clock, {} us per call)",
+                shipsWithSnapshot, shipsDrawn, totalQuads, DEBUG_VISUALIZE,
+                invocationsSinceDiag, elapsedMs, nanosSinceDiag / 1_000_000L,
+                (nanosSinceDiag / 10_000L) / elapsedMs,
+                invocationsSinceDiag == 0 ? 0 : nanosSinceDiag / 1000L / invocationsSinceDiag);
+            invocationsSinceDiag = 0;
+            nanosSinceDiag = 0L;
         }
     }
 

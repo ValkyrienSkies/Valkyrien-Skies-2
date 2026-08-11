@@ -20,9 +20,10 @@ public class IrisCompat {
      * {@code mc_Entity.x}.
      *
      * <p>These ids come from each pack's own {@code block.properties}, so they are a property of the
-     * loaded pack rather than of Minecraft or of Iris — the number that means "water" in one pack means
-     * nothing, or something else, in another. Anything hand-building geometry that a pack should treat
-     * as a particular block has to ask for the id rather than assume one.</p>
+     * loaded pack rather than of Minecraft or of Iris. Water is {@code 32000} under Complementary and
+     * {@code 10001} under Photon, and under a third pack it is whatever that pack says — so anything
+     * hand-building geometry a pack should treat as a given block has to ask for the id rather than
+     * assume one.</p>
      *
      * @return the pack's id, or {@link #UNKNOWN_MATERIAL_ID} if there is no pack loaded or it does not
      *     map this state
