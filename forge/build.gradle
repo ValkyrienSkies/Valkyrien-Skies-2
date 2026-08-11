@@ -44,6 +44,15 @@ loom {
     mixin {
         defaultRefmapName = "valkyrienskies-refmap.json"
     }
+    runs {
+        client {
+            // Autotest passthrough: `-Pvs_autotest=<script>` hands the script path to the game JVM.
+            // Used by autotest/run.sh; absent in normal runs.
+            if (project.hasProperty('vs_autotest')) {
+                property "vs.autotest", project.property('vs_autotest').toString()
+            }
+        }
+    }
 }
 
 configurations {
