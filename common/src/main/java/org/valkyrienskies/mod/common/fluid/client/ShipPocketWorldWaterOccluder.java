@@ -19,6 +19,7 @@ import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.Blocks;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joml.Matrix4dc;
@@ -114,17 +115,8 @@ public final class ShipPocketWorldWaterOccluder {
     // depth against, even at a perfectly grazing angle.
     private static final double SKIRT_DEPTH = 0.15;
 
-    /**
-     * The pack material id for water.
-     *
-     * <p>Taken from Complementary's {@code block.properties} ({@code block.32000=water flowing_water}).
-     * These ids are assigned by each pack's own block.properties, so this is not universal -- a pack
-     * that numbers water differently will not displace these caps. Resolving it from Iris's block-id
-     * map would make it pack-agnostic and is the obvious follow-up.</p>
-     */
-    private static final int WATER_MATERIAL_ID = 32000;
-
     private static boolean loggedMaterialAttribute = false;
+    private static int loggedMaterialId = Integer.MIN_VALUE;
 
     /** One cap vertex, in the terrain format {@code gbuffers_water} declares its attributes against. */
     private static void capVertex(final BufferBuilder bb, final float x, final float y, final float z,
@@ -150,15 +142,27 @@ public final class ShipPocketWorldWaterOccluder {
      * <p>Packs gate wave displacement on the block material, not on which program is bound:
      * Complementary reads {@code mat = int(mc_Entity.x + 0.5)} and only displaces under
      * {@code if (mat == 32000)}. That attribute is fed by the chunk mesher, so geometry built here
-     * arrives with it unset -- which is why routing these through the water program alone left them
-     * flat while the surface moved around them.</p>
+     * arrives with it unset — which is why routing these through the water program alone left them flat
+     * while the surface moved around them.</p>
      *
-     * <p>{@code mc_Entity} is not array-backed for this draw, and GL substitutes the <i>current
-     * generic attribute value</i> for any attribute whose array is disabled. Setting that value once
-     * before the draw applies it to every vertex, which is exactly right here -- these caps are all
-     * water and nothing else.</p>
+     * <p>The id itself is asked of Iris rather than hardcoded. {@code 32000} is what Complementary's
+     * {@code block.properties} happens to assign; the numbering is per-pack, so a fixed constant would
+     * silently stop waving under any pack that numbers water differently.</p>
+     *
+     * <p>{@code mc_Entity} is not array-backed for this draw, and GL substitutes the <i>current generic
+     * attribute value</i> for any attribute whose array is disabled. Setting that value once before the
+     * draw applies it to every vertex, which is exactly right here — these caps are all water and
+     * nothing else.</p>
      */
     private static void forceWaterMaterialAttribute(final ShaderInstance shader) {
+        final int materialId = IrisCompat.getBlockMaterialId(Blocks.WATER.defaultBlockState());
+        if (materialId == IrisCompat.UNKNOWN_MATERIAL_ID) {
+            if (loggedMaterialId != materialId) {
+                loggedMaterialId = materialId;
+                LOGGER.info("shaderpack maps no id for water; caps cannot be wave-displaced");
+            }
+            return;
+        }
         final int location = GL20.glGetAttribLocation(shader.getId(), "mc_Entity");
         if (location < 0) {
             if (!loggedMaterialAttribute) {
@@ -167,12 +171,13 @@ public final class ShipPocketWorldWaterOccluder {
             }
             return;
         }
-        if (!loggedMaterialAttribute) {
-            loggedMaterialAttribute = true;
-            LOGGER.info("forcing mc_Entity.x={} at attribute location {}", WATER_MATERIAL_ID, location);
+        if (loggedMaterialId != materialId) {
+            loggedMaterialId = materialId;
+            LOGGER.info("forcing mc_Entity.x={} (pack id for water) at attribute location {}",
+                materialId, location);
         }
         GL20.glDisableVertexAttribArray(location);
-        GL20.glVertexAttrib4f(location, WATER_MATERIAL_ID, 0.0f, 0.0f, 0.0f);
+        GL20.glVertexAttrib4f(location, materialId, 0.0f, 0.0f, 0.0f);
     }
 
     /**
