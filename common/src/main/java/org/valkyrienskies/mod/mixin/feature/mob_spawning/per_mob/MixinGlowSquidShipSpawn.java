@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
-@Mixin(GlowSquid.class)
+@Mixin(value = GlowSquid.class, priority = 1500)
 public abstract class MixinGlowSquidShipSpawn {
 
     @WrapOperation(
@@ -21,7 +21,8 @@ public abstract class MixinGlowSquidShipSpawn {
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/core/BlockPos;getY()I"
-        )
+        ),
+        require = 0
     )
     private static int vs$shipGlowSquidY(
         final BlockPos pos, final Operation<Integer> original,
@@ -36,7 +37,8 @@ public abstract class MixinGlowSquidShipSpawn {
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/world/level/ServerLevelAccessor;getRawBrightness(Lnet/minecraft/core/BlockPos;I)I"
-        )
+        ),
+        require = 0
     )
     private static int vs$shipGlowSquidBrightness(
         final ServerLevelAccessor accessor, final BlockPos pos, final int skyDarken,
