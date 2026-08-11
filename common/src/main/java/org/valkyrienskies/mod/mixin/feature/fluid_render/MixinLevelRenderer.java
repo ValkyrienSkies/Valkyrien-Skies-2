@@ -107,35 +107,8 @@ public abstract class MixinLevelRenderer {
 //        }
 //    }
 
-    @Inject(
-        method = "renderChunkLayer(Lnet/minecraft/client/renderer/RenderType;Lcom/mojang/blaze3d/vertex/PoseStack;DDDLorg/joml/Matrix4f;)V",
-        at = @At("TAIL"),
-        require = 0
-    )
-    private void vs$renderInteriorFog(final RenderType renderType, final PoseStack poseStack,
-        final double camX, final double camY, final double camZ, final Matrix4f projectionMatrix,
-        final CallbackInfo ci) {
-        if (!VSGameConfig.CLIENT.getUnderwater().getEnableCustomFluidFog()) return;
-        if (renderType != RenderType.tripwire()) return;
-        final Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
-        if (this.level == null || camera == null) return;
-
-        final Matrix4f oldProjection = new Matrix4f(RenderSystem.getProjectionMatrix());
-        final VertexSorting oldVertexSorting = RenderSystem.getVertexSorting();
-
-        final PoseStack modelViewStack = RenderSystem.getModelViewStack();
-        modelViewStack.pushPose();
-        modelViewStack.setIdentity();
-        modelViewStack.mulPoseMatrix(poseStack.last().pose());
-
-        RenderSystem.setProjectionMatrix(projectionMatrix, VertexSorting.DISTANCE_TO_ORIGIN);
-        RenderSystem.applyModelViewMatrix();
-        try {
-            ShipInteriorFogRenderer.render(camera, projectionMatrix, poseStack.last().pose());
-        } finally {
-            modelViewStack.popPose();
-            RenderSystem.applyModelViewMatrix();
-            RenderSystem.setProjectionMatrix(oldProjection, oldVertexSorting);
-        }
-    }
+    // The custom interior fog pass is not wired up. Fog is left to the upstream path
+    // (fluid_camera_fix's MixinCamera, gated on renderFloodedFluidFog), which is what this branch is
+    // meant to sit on top of rather than replace. ShipInteriorFogRenderer and its shaders are still in
+    // the tree, unreferenced, if the screen-space version is wanted back.
 }
