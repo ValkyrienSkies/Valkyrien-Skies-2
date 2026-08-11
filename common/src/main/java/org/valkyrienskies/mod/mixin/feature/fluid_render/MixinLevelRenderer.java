@@ -54,14 +54,10 @@ public abstract class MixinLevelRenderer {
         if (renderType != RenderType.tripwire()) return;
         if (this.level == null) return;
 
-        if (ShipPocketWorldWaterOccluder.isDepthPrepassActive()) {
-            final Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
-            if (camera != null) {
-                final Vec3 camPos = camera.getPosition();
-                ShipPocketWorldWaterOccluder.render(camPos.x, camPos.y, camPos.z, projectionMatrix, poseStack);
-            }
-        }
-
+        // The depth pre-pass is not run from here. It has to draw while Iris still has the water phase
+        // active, or its caps get the flat gbuffers_basic program and sit at the undisplaced waterline
+        // while the surface they are standing in for waves past them. On Sodium that window is inside
+        // drawChunkLayer(translucent) -- see MixinSodiumWorldRenderer.
         renderChunkLayer(ShipFluidRenderTypes.AIR_CULL_RENDER_TYPE, poseStack, camX, camY, camZ, projectionMatrix);
     }
 

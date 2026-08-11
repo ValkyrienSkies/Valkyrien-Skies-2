@@ -14,6 +14,10 @@ import java.util.Map;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.ShaderInstance;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.core.BlockPos;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -22,6 +26,7 @@ import org.joml.Matrix4f;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL20;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.api.ships.LoadedShip;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
@@ -108,6 +113,67 @@ public final class ShipPocketWorldWaterOccluder {
     // real vertical extent, so there's always some near-vertical surface facing the camera to write
     // depth against, even at a perfectly grazing angle.
     private static final double SKIRT_DEPTH = 0.15;
+
+    /**
+     * The pack material id for water.
+     *
+     * <p>Taken from Complementary's {@code block.properties} ({@code block.32000=water flowing_water}).
+     * These ids are assigned by each pack's own block.properties, so this is not universal -- a pack
+     * that numbers water differently will not displace these caps. Resolving it from Iris's block-id
+     * map would make it pack-agnostic and is the obvious follow-up.</p>
+     */
+    private static final int WATER_MATERIAL_ID = 32000;
+
+    private static boolean loggedMaterialAttribute = false;
+
+    /** One cap vertex, in the terrain format {@code gbuffers_water} declares its attributes against. */
+    private static void capVertex(final BufferBuilder bb, final float x, final float y, final float z,
+        final int r, final int g, final int b, final int a) {
+        final TextureAtlasSprite sprite = waterSprite();
+        bb.vertex(x, y, z)
+            .color(r, g, b, a)
+            .uv(sprite.getU0(), sprite.getV0())
+            .uv2(0x00F000F0)
+            .normal(0.0f, 1.0f, 0.0f)
+            .endVertex();
+    }
+
+    private static TextureAtlasSprite waterSprite() {
+        return Minecraft.getInstance()
+            .getTextureAtlas(InventoryMenu.BLOCK_ATLAS)
+            .apply(new ResourceLocation("minecraft", "block/water_still"));
+    }
+
+    /**
+     * Tells the shaderpack these vertices are water, so it waves them like the surface.
+     *
+     * <p>Packs gate wave displacement on the block material, not on which program is bound:
+     * Complementary reads {@code mat = int(mc_Entity.x + 0.5)} and only displaces under
+     * {@code if (mat == 32000)}. That attribute is fed by the chunk mesher, so geometry built here
+     * arrives with it unset -- which is why routing these through the water program alone left them
+     * flat while the surface moved around them.</p>
+     *
+     * <p>{@code mc_Entity} is not array-backed for this draw, and GL substitutes the <i>current
+     * generic attribute value</i> for any attribute whose array is disabled. Setting that value once
+     * before the draw applies it to every vertex, which is exactly right here -- these caps are all
+     * water and nothing else.</p>
+     */
+    private static void forceWaterMaterialAttribute(final ShaderInstance shader) {
+        final int location = GL20.glGetAttribLocation(shader.getId(), "mc_Entity");
+        if (location < 0) {
+            if (!loggedMaterialAttribute) {
+                loggedMaterialAttribute = true;
+                LOGGER.info("mc_Entity absent from the bound program; caps cannot be wave-displaced");
+            }
+            return;
+        }
+        if (!loggedMaterialAttribute) {
+            loggedMaterialAttribute = true;
+            LOGGER.info("forcing mc_Entity.x={} at attribute location {}", WATER_MATERIAL_ID, location);
+        }
+        GL20.glDisableVertexAttribArray(location);
+        GL20.glVertexAttrib4f(location, WATER_MATERIAL_ID, 0.0f, 0.0f, 0.0f);
+    }
 
     /**
      * Whether the depth pre-pass is the occlusion path for the current frame.
@@ -238,8 +304,10 @@ public final class ShipPocketWorldWaterOccluder {
                         cameraX, cameraY, cameraZ
                     );
                     final Matrix4f modelView = new Matrix4f(poseStack.last().pose());
+                    final ShaderInstance capShader = GameRenderer.getRendertypeTranslucentShader();
                     mesh.vertexBuffer.bind();
-                    mesh.vertexBuffer.drawWithShader(modelView, projectionMatrix, GameRenderer.getPositionColorShader());
+                    forceWaterMaterialAttribute(capShader);
+                    mesh.vertexBuffer.drawWithShader(modelView, projectionMatrix, capShader);
                 } finally {
                     poseStack.popPose();
                 }
@@ -283,7 +351,7 @@ public final class ShipPocketWorldWaterOccluder {
         final double pivotDeltaX, final double pivotDeltaY, final double pivotDeltaZ) {
 
         final BufferBuilder bb = new BufferBuilder(4096);
-        bb.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+        bb.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK);
 
         final int dr = DEBUG_VISUALIZE ? 255 : 0;
         final int dg = 0;
@@ -572,19 +640,19 @@ public final class ShipPocketWorldWaterOccluder {
     private static int emitLocalPolygon(final BufferBuilder bb, final float[] x, final float[] y, final float[] z,
         final int count, final int dr, final int dg, final int db, final int da) {
         if (count == 4) {
-            bb.vertex(x[0], y[0], z[0]).color(dr, dg, db, da).endVertex();
-            bb.vertex(x[1], y[1], z[1]).color(dr, dg, db, da).endVertex();
-            bb.vertex(x[2], y[2], z[2]).color(dr, dg, db, da).endVertex();
-            bb.vertex(x[3], y[3], z[3]).color(dr, dg, db, da).endVertex();
+            capVertex(bb, x[0], y[0], z[0], dr, dg, db, da);
+            capVertex(bb, x[1], y[1], z[1], dr, dg, db, da);
+            capVertex(bb, x[2], y[2], z[2], dr, dg, db, da);
+            capVertex(bb, x[3], y[3], z[3], dr, dg, db, da);
             return 1;
         }
 
         int quads = 0;
         for (int i = 1; i + 1 < count; i++) {
-            bb.vertex(x[0], y[0], z[0]).color(dr, dg, db, da).endVertex();
-            bb.vertex(x[i], y[i], z[i]).color(dr, dg, db, da).endVertex();
-            bb.vertex(x[i + 1], y[i + 1], z[i + 1]).color(dr, dg, db, da).endVertex();
-            bb.vertex(x[i + 1], y[i + 1], z[i + 1]).color(dr, dg, db, da).endVertex();
+            capVertex(bb, x[0], y[0], z[0], dr, dg, db, da);
+            capVertex(bb, x[i], y[i], z[i], dr, dg, db, da);
+            capVertex(bb, x[i + 1], y[i + 1], z[i + 1], dr, dg, db, da);
+            capVertex(bb, x[i + 1], y[i + 1], z[i + 1], dr, dg, db, da);
             quads++;
         }
         return quads;
