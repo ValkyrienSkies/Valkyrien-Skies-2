@@ -6,6 +6,7 @@ import net.minecraft.world.level.chunk.LevelChunk;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.mod.common.VS2ChunkAllocator;
 
@@ -30,6 +31,24 @@ public class MixinChunkData {
         final ChunkPos pos = chunk.getPos();
         if (VS2ChunkAllocator.INSTANCE.isChunkInShipyardCompanion(pos.x, pos.z)) {
             cir.setReturnValue(ChunkData.EMPTY);
+        }
+    }
+
+    // ChunkData.update is called from ChunkDataProvider#promotePartial with whatever partial ChunkData was tracked
+    // for the ProtoChunk being promoted to a LevelChunk, looked up by removing it from a weak map keyed on the
+    // ProtoChunk instance. Since shipyard chunks skip the worldgen stages that populate that map (see
+    // MixinChunkStatus), the lookup misses and returns null. ChunkDataCapability#setData stores that null with no
+    // check, so the next chunk save NPEs in ChunkDataCapability.serializeNBT. Cancelling here leaves the capability
+    // holding the non-null ChunkData it was attached with instead of being nulled out.
+    @Inject(
+        method = "update(Lnet/minecraft/world/level/chunk/LevelChunk;Lnet/dries007/tfc/world/chunkdata/ChunkData;)V",
+        at = @At("HEAD"),
+        cancellable = true,
+        require = 0
+    )
+    private static void vs$noNullChunkDataUpdate(final LevelChunk chunk, final ChunkData data, final CallbackInfo ci) {
+        if (data == null) {
+            ci.cancel();
         }
     }
 }
