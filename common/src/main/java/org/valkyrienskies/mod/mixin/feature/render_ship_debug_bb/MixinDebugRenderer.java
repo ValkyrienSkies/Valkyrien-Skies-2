@@ -2,7 +2,6 @@ package org.valkyrienskies.mod.mixin.feature.render_ship_debug_bb;
 
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import java.util.ArrayList;
@@ -50,6 +49,7 @@ import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.core.internal.world.VsiClientShipWorld;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.fluid.FloodedVoxelRenderer;
 import org.valkyrienskies.mod.common.util.DragInfoReporter;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
@@ -62,13 +62,15 @@ public class MixinDebugRenderer {
      * <p>They get rendered in the same pass as entities.
      */
     @Inject(method = "render", at = @At("HEAD"))
-    private void postRender(final PoseStack matrices, final MultiBufferSource.BufferSource vertexConsumersIgnore,
+    private void postRender(final PoseStack matrices, final MultiBufferSource.BufferSource bufferSource,
         final double cameraX, final double cameraY, final double cameraZ, final CallbackInfo ci) {
 
-        final MultiBufferSource.BufferSource bufferSource =
-            MultiBufferSource.immediate(Tesselator.getInstance().getBuilder());
         final ClientLevel world = Minecraft.getInstance().level;
         final VsiClientShipWorld shipObjectClientWorld = VSGameUtilsKt.getShipObjectWorld(world);
+
+        FloodedVoxelRenderer.render(
+            matrices, bufferSource, shipObjectClientWorld, cameraX, cameraY, cameraZ
+        );
 
         if (Minecraft.getInstance().getEntityRenderDispatcher().shouldRenderHitBoxes()) {
             // Further on coordinates will be relative to (0, 0, 0).

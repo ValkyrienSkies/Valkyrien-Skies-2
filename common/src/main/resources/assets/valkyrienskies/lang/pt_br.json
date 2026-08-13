@@ -34,7 +34,6 @@
   "command.valkyrienskies.mc_teleport.can_only_teleport_to_one_ship": "Só é possível teleportar para exatamente 1 navio",
   "command.valkyrienskies.get_ship.success": "Navio encontrado com slug %s",
   "command.valkyrienskies.get_ship.fail": "Nenhum navio encontrado",
-  "command.valkyrienskies.get_ship.only_usable_by_entities": "/vs get-ship só pode ser executado por entidades!",
   "command.valkyrienskies.scale.success": "%d navios escalados!",
 
   "misc.valkyrienskies.create.deployer_working_mode": "Comportamento do Navio",

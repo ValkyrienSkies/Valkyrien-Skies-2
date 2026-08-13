@@ -1,7 +1,5 @@
 package org.valkyrienskies.mod.common.schematic
 
-import com.mojang.brigadier.context.CommandContext
-import net.minecraft.commands.CommandSourceStack
 import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
@@ -30,7 +28,6 @@ import org.valkyrienskies.core.internal.joints.VSRackAndPinionJoint
 import org.valkyrienskies.core.internal.joints.VSRevoluteJoint
 import org.valkyrienskies.core.internal.joints.VSSphericalJoint
 import org.valkyrienskies.core.internal.joints.VSSpringJoint
-import org.valkyrienskies.mod.api.toJOML
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.assembly.ICopyableAttachment
 import org.valkyrienskies.mod.common.assembly.ShipAssembler
@@ -306,13 +303,13 @@ object VdexWrapper {
 
         //todo, figure out some way to get real mod versions
         val modList = mutableListOf(
-            VdexModEntry("valkyrienskies", ValkyrienSkiesMod.modListUtil.getModVersion("valkyrienskies"), true),
+            VdexModEntry("valkyrienskies", ValkyrienSkiesMod.platformUtils.getModVersion("valkyrienskies"), true),
         )
         modList.addAll(
             collectedModList
                 .distinct()
                 .sorted()
-                .map { VdexModEntry(it, ValkyrienSkiesMod.modListUtil.getModVersion(it), true) }
+                .map { VdexModEntry(it, ValkyrienSkiesMod.platformUtils.getModVersion(it), true) }
         )
 
         // Save to world/schematics/ directory

@@ -5,16 +5,13 @@ import com.fasterxml.jackson.databind.module.SimpleModule
 import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.Registries
-import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
 import net.minecraft.tags.TagKey
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
-import net.minecraft.world.item.CreativeModeTab
 import net.minecraft.world.item.Item
-import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.entity.BlockEntityType
@@ -35,7 +32,6 @@ import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
 import org.valkyrienskies.mod.common.blockentity.TestThrusterBlockEntity
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.entity.VSPhysicsEntity
-import org.valkyrienskies.mod.common.hooks.VSGameEvents
 import org.valkyrienskies.mod.common.jackson.BlockPosDeserializer
 import org.valkyrienskies.mod.common.jackson.BlockPosKeyDeserializer
 import org.valkyrienskies.mod.common.jackson.BlockPosKeySerializer
@@ -50,7 +46,7 @@ import org.valkyrienskies.mod.common.util.SplitHandler
 import org.valkyrienskies.mod.common.util.SplittingDisablerAttachment
 import org.valkyrienskies.mod.mixinducks.client.world.ClientChunkCacheDuck
 import org.valkyrienskies.mod.mixinducks.feature.tickets.PlayerKnownShipsDuck
-import org.valkyrienskies.mod.util.ModListUtil
+import org.valkyrienskies.mod.util.PlatformUtils
 import java.util.ServiceLoader
 import java.util.concurrent.ConcurrentHashMap
 
@@ -106,11 +102,11 @@ object ValkyrienSkiesMod {
     }
 
     @JvmStatic
-    val modListUtil by lazy {
-        ServiceLoader.load(ModListUtil::class.java, ModListUtil::class.java.classLoader)
+    val platformUtils by lazy {
+        ServiceLoader.load(PlatformUtils::class.java, PlatformUtils::class.java.classLoader)
             .findFirst()
             .orElseThrow {
-                IllegalStateException("No ModListUtil implementation found via ServiceLoader!")
+                IllegalStateException("No PlatformUtils implementation found via ServiceLoader!")
             }
     }
 

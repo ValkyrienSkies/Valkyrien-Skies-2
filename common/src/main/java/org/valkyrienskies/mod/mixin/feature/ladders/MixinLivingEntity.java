@@ -53,7 +53,11 @@ public abstract class MixinLivingEntity extends Entity {
             final EntityAccessor thisAsAccessor = (EntityAccessor) this;
             final BlockPos originalBlockPosition = thisAsAccessor.getBlockPosition();
 
-            VSGameUtilsKt.transformToNearbyShipsAndWorld(this.level(), origX, origY, origZ, 1, (x, y, z) -> {
+            // We add 0.1 to the y coordinate because otherwise slight precision issues in transforming to the ship
+            // can cause this to be run with the block _below_ the players feet, making them unable to start climbing
+            // until they jump. But adding 0.5 is too much, because it then prevents them from automatically getting
+            // _off_ the ladder at the top. 0.1 works for both situations.
+            VSGameUtilsKt.transformToNearbyShipsAndWorld(this.level(), origX, origY+0.1, origZ, 1, (x, y, z) -> {
 
                 // Only run this if we haven't modified cir yet
                 if (cir.getReturnValue() != Boolean.TRUE) {

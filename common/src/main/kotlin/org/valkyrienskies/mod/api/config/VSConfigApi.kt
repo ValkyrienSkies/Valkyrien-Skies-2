@@ -20,16 +20,20 @@ object VSConfigApi {
     fun buildForgeConfigSpec(
         configCategory: VsiConfigModelCategory,
         builder: ForgeConfigSpec.Builder,
-        forgeConfigValueConsumer: (String, ForgeConfigSpec.ConfigValue<*>) -> Unit = { a, b -> }
+        forgeConfigValueConsumer: (String, ForgeConfigSpec.ConfigValue<*>) -> Unit = { a, b -> },
+        path: List<String> = emptyList(),
+        pathAwareConsumer: (List<String>, VsiConfigModelEntry<*>, ForgeConfigSpec.ConfigValue<*>) -> Unit? = {a, b, c ->}
     ): ForgeConfigSpec.Builder {
         for (node in configCategory.children) {
             val entry = node.value
             if (entry is VsiConfigModelCategory) {
                 builder.push(entry.title)
-                buildForgeConfigSpec(entry, builder, forgeConfigValueConsumer)
+                buildForgeConfigSpec(entry, builder, forgeConfigValueConsumer, path + entry.title, pathAwareConsumer)
                 builder.pop()
             } else if (entry is VsiConfigModelEntry<*>){
-                forgeConfigValueConsumer.invoke(entry.name, defineNode(builder, entry))
+                val value = defineNode(builder, entry)
+                forgeConfigValueConsumer.invoke(entry.name, value)
+                pathAwareConsumer.invoke(path + entry.name, entry, value)
             }
         }
         return builder

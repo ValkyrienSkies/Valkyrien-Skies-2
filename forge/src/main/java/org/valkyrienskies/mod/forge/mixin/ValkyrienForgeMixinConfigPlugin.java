@@ -26,11 +26,6 @@ public class ValkyrienForgeMixinConfigPlugin implements IMixinConfigPlugin {
             final DefaultArtifactVersion createNewer = new DefaultArtifactVersion("6.0.7");
 
             is607orAbove = createVersion.compareTo(createNewer) >= 0;
-
-            // Just in case, for debugging
-            // Also its amusing
-            System.out.println("six-seven:");
-            System.out.println(is607orAbove);
         }
 
         MixinExtrasBootstrap.init();

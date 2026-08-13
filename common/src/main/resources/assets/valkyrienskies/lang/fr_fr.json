@@ -18,7 +18,6 @@
   "command.valkyrienskies.mc_teleport.can_only_teleport_to_one_ship": "Peut seulement téléporter exactement 1 vaisseau",
   "command.valkyrienskies.get_ship.success": "Vaisseau trouvé avec le slug %s",
   "command.valkyrienskies.get_ship.fail": "Aucun vaisseau trouvé",
-  "command.valkyrienskies.get_ship.only_usable_by_entities": "/vs get-ship ne peut être exécuté que par des entités !",
   "tooltip.valkyrienskies.mass": "Masse",
   "command.valkyrienskies.scale.success": "%d navires mis à l'échelle !"
 }

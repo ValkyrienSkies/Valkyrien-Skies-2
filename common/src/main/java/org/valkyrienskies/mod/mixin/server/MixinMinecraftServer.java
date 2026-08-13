@@ -50,6 +50,10 @@ import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.core.api.ships.properties.IShipActiveChunksSet;
 import org.valkyrienskies.core.internal.VsiGameServer;
 import org.valkyrienskies.core.api.ships.ShipTeleportData;
+import org.valkyrienskies.core.internal.physics.VsiFluidOutflow;
+import org.valkyrienskies.core.internal.physics.VsiFluidOutflowResult;
+import org.valkyrienskies.core.internal.physics.VsiFluidSourceWithdrawal;
+import org.valkyrienskies.core.internal.physics.VsiFluidSourceWithdrawalResult;
 import org.valkyrienskies.core.internal.ships.VsiLoadedServerShip;
 import org.valkyrienskies.core.internal.world.VsiPlayer;
 import org.valkyrienskies.core.internal.world.VsiServerShipWorld;
@@ -61,6 +65,8 @@ import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.config.DimensionParametersResolver;
 import org.valkyrienskies.mod.common.config.MassDatapackResolver;
 import org.valkyrienskies.mod.common.fluid.VanillaFluidFlowWindProvider;
+import org.valkyrienskies.mod.common.fluid.FluidSourceWithdrawalHandler;
+import org.valkyrienskies.mod.common.fluid.WorldFluidOutflowManager;
 import org.valkyrienskies.mod.common.hooks.VSGameEvents;
 import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.common.util.ShipSettingsKt;
@@ -95,6 +101,9 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
 
     @Unique
     private final Map<String, ServerLevel> dimensionToLevelMap = new HashMap<>();
+
+    @Unique
+    private final WorldFluidOutflowManager fluidOutflowManager = new WorldFluidOutflowManager();
 
     @Inject(
         at = @At(value = "INVOKE", target = "Lnet/minecraft/server/MinecraftServer;initServer()Z"),
@@ -194,7 +203,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
             .map(VSGameUtilsKt::getPlayerWrapper).collect(Collectors.toSet());
         shipWorld.setPlayers(vsPlayers);
 
-        // region Tell the VS world to load new levels, and unload deleted ones
+        // region Tell the VS world to load new levels
         final Map<String, ServerLevel> newLoadedLevels = new HashMap<>();
         for (final ServerLevel level : getAllLevels()) {
             final String dimensionId = VSGameUtilsKt.getDimensionId(level);
@@ -210,8 +219,12 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         }
         */
 
+        // endregion
+
         vsPipeline.preTickGame();
 
+        // region Tell VS to unload deleted levels and update the loaded level set.
+        // VsiServerShipWorld::removeDimension must happen after the PRE_TICK stage, otherwise the game crashes.
         for (final String oldLoadedLevelId : loadedLevels) {
             if (!newLoadedLevels.containsKey(oldLoadedLevelId)) {
                 shipWorld.removeDimension(oldLoadedLevelId);
@@ -249,6 +262,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     )
     private void postTick(final CallbackInfo ci) {
         vsPipeline.postTickGame();
+        fluidOutflowManager.tick(dimensionToLevelMap);
         // Only drag entities after we have updated the ship positions
         for (final ServerLevel level : getAllLevels()) {
             EntityDragger.INSTANCE.dragEntitiesWithShips(level.getAllEntities(), false);
@@ -458,6 +472,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         at = @At("RETURN")
     )
     private void postStopServer(final CallbackInfo ci) {
+        fluidOutflowManager.clear(dimensionToLevelMap);
         dimensionToLevelMap.clear();
         shipWorld.setGameServer(null);
         shipWorld = null;
@@ -466,6 +481,28 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     @NotNull
     private ServerLevel getLevelFromDimensionId(@NotNull final String dimensionId) {
         return dimensionToLevelMap.get(dimensionId);
+    }
+
+    @NotNull
+    @Override
+    public VsiFluidSourceWithdrawalResult applyFluidSourceWithdrawal(
+        @NotNull final VsiFluidSourceWithdrawal withdrawal
+    ) {
+        return FluidSourceWithdrawalHandler.apply(
+            dimensionToLevelMap.get(withdrawal.getDimensionId()),
+            withdrawal
+        );
+    }
+
+    @NotNull
+    @Override
+    public VsiFluidOutflowResult applyFluidOutflow(
+        @NotNull final VsiFluidOutflow outflow
+    ) {
+        return fluidOutflowManager.enqueue(
+            dimensionToLevelMap.get(outflow.getDimensionId()),
+            outflow
+        );
     }
 
     @Override

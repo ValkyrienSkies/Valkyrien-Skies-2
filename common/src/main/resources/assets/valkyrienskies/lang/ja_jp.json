@@ -34,7 +34,6 @@
   "command.valkyrienskies.mc_teleport.can_only_teleport_to_one_ship": "テレポートできる船は 1 隻のみです",
   "command.valkyrienskies.get_ship.success": "スラグ %s の船が見つかりました",
   "command.valkyrienskies.get_ship.fail": "船が見つかりません",
-  "command.valkyrienskies.get_ship.only_usable_by_entities": "/vs get-ship はエンティティのみが実行できます！",
   "command.valkyrienskies.scale.success": "%d 隻の船をスケールしました！",
 
   "misc.valkyrienskies.create.deployer_working_mode": "船の動作モード",

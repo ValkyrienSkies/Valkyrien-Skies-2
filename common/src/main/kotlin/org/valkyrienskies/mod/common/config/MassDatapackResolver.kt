@@ -19,6 +19,7 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.material.Fluid
 import net.minecraft.world.level.material.FluidState
 import net.minecraft.world.level.material.Fluids
+import net.minecraft.world.level.material.FlowingFluid
 import net.minecraft.world.phys.shapes.VoxelShape
 import org.joml.Vector3d
 import org.joml.primitives.AABBi
@@ -53,6 +54,7 @@ private data class VSBlockStateInfo(
 object MassDatapackResolver : BlockStateInfoProvider {
     private val map = hashMapOf<ResourceLocation, VSBlockStateInfo>()
     private val mcBlockStateToVs: MutableMap<BlockState, VsiBlockState> = HashMap()
+    private val liquidIdToFlowingFluid: MutableMap<Int, FlowingFluid?> = HashMap()
 
     val blockStateData: Collection<VsiBlockState> = mcBlockStateToVs.values
 
@@ -67,6 +69,26 @@ object MassDatapackResolver : BlockStateInfoProvider {
     override fun getBlockStateType(blockState: BlockState): VsiBlockType? {
         val vsState = mcBlockStateToVs[blockState] ?: return null
         return vsCore.blockTypes.getType(vsState)
+    }
+
+    fun getLiquidStateId(blockState: BlockState): Int? =
+        getBlockStateType(blockState)?.let(vsCore.blockTypes::getLiquidStateId)
+
+    fun getFlowingFluid(liquidStateId: Int): FlowingFluid? {
+        if (liquidIdToFlowingFluid.containsKey(liquidStateId)) {
+            return liquidIdToFlowingFluid[liquidStateId]
+        }
+        val fluid = mcBlockStateToVs.entries.firstNotNullOfOrNull { (blockState, vsState) ->
+            val blockType =
+                vsCore.blockTypes.getType(vsState) ?: return@firstNotNullOfOrNull null
+            if (vsCore.blockTypes.getLiquidStateId(blockType) == liquidStateId) {
+                blockState.fluidState.type as? FlowingFluid
+            } else {
+                null
+            }
+        }
+        liquidIdToFlowingFluid[liquidStateId] = fluid
+        return fluid
     }
 
     var registeredBlocks = false
@@ -431,6 +453,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
         val event = RegisterBlockStateEventImpl()
         ValkyrienSkiesMod.api.registerBlockStateEvent.emit(event)
         mcBlockStateToVs.putAll(event.toRegister)
+        liquidIdToFlowingFluid.clear()
     }
 
     private val logger by logger()

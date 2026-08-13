@@ -68,6 +68,7 @@ public abstract class MixinStructureManager {
                 result = new ArrayList<>();
             }
             result.add(shipBlockPos);
+            result.add(blockPos);
         }
         return result;
     }

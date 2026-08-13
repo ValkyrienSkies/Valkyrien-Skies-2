@@ -2,14 +2,12 @@ package org.valkyrienskies.mod.forge.common
 
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import dev.engine_room.flywheel.api.event.ReloadLevelRendererEvent
-import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.ShaderInstance
 import net.minecraft.commands.Commands.CommandSelection.ALL
 import net.minecraft.commands.Commands.CommandSelection.INTEGRATED
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MobCategory
-import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.CreativeModeTabs
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.Item.Properties
@@ -64,9 +62,9 @@ import org.valkyrienskies.mod.common.blockentity.TestAntigravBlockEntity
 import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
 import org.valkyrienskies.mod.common.blockentity.TestThrusterBlockEntity
 import org.valkyrienskies.mod.common.command.VSCommands
-import org.valkyrienskies.mod.common.config.ConfigType
 import org.valkyrienskies.mod.common.config.DimensionParametersResolver
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
+import org.valkyrienskies.mod.common.config.SlugDatapackResolver
 import org.valkyrienskies.mod.common.config.VSConfigUpdater
 import org.valkyrienskies.mod.common.config.VSEntityHandlerDataLoader
 import org.valkyrienskies.mod.common.config.VSGameConfig
@@ -83,11 +81,11 @@ import org.valkyrienskies.mod.common.item.ShipCreatorItem
 import org.valkyrienskies.mod.common.item.ShipRemoverItem
 import org.valkyrienskies.mod.common.item.VSBlockItem
 import org.valkyrienskies.mod.compat.LoadedMods
-import org.valkyrienskies.mod.compat.flywheel.ShipEmbeddingManager
-import org.valkyrienskies.mod.forge.compat.dynmap.ForgeDynmapHandler
 import org.valkyrienskies.mod.compat.flywheel.FlywheelCompat
+import org.valkyrienskies.mod.compat.flywheel.ShipEmbeddingManager
 import org.valkyrienskies.mod.compat.hexcasting.HexcastingCompat
 import org.valkyrienskies.mod.forge.client.ValkyrienSkiesModForgeClient
+import org.valkyrienskies.mod.forge.compat.dynmap.ForgeDynmapHandler
 import org.valkyrienskies.mod.forge.compat.epicfight.FracturedBlockStateInfoProvider
 import org.valkyrienskies.mod.forge.compat.hexcasting.ForgeShipAmbit
 import org.valkyrienskies.mod.util.ClientConnectivityUpdateQueue
@@ -125,8 +123,8 @@ class ValkyrienSkiesModForge {
         val forgeBus = Bus.FORGE.bus().get()
 
         ModLoadingContext.get().apply {
-            registerConfig(ModConfig.Type.SERVER, VSConfigUpdater.CORE_SERVER_SPEC, "valkyrienskies/vs-core-server.toml")
             registerConfig(ModConfig.Type.SERVER, VSConfigUpdater.SERVER_SPEC, "valkyrienskies/valkyrienskies-server.toml")
+            registerConfig(ModConfig.Type.SERVER, VSConfigUpdater.CORE_SERVER_SPEC, "valkyrienskies/vs-core-server.toml")
             registerConfig(ModConfig.Type.COMMON, VSConfigUpdater.COMMON_SPEC, "valkyrienskies/valkyrienskies-common.toml")
             registerConfig(ModConfig.Type.CLIENT, VSConfigUpdater.CLIENT_SPEC, "valkyrienskies/valkyrienskies-client.toml")
         }
@@ -305,6 +303,7 @@ class ValkyrienSkiesModForge {
     }
 
     private fun registerResourceManagers(event: AddReloadListenerEvent) {
+        event.addListener(SlugDatapackResolver.loader)
         event.addListener(MassDatapackResolver.loader)
         event.addListener(VSEntityHandlerDataLoader)
         event.addListener(DimensionParametersResolver)

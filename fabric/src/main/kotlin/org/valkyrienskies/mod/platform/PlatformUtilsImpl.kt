@@ -1,9 +1,9 @@
 package org.valkyrienskies.mod.platform
 
 import net.fabricmc.loader.api.FabricLoader
-import org.valkyrienskies.mod.util.ModListUtil
+import org.valkyrienskies.mod.util.PlatformUtils
 
-class ModListUtilImpl: ModListUtil {
+class PlatformUtilsImpl: PlatformUtils {
     override fun isModLoaded(modid: String): Boolean {
         return FabricLoader.getInstance().isModLoaded(modid)
     }

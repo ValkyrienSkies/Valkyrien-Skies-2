@@ -18,7 +18,6 @@ import net.fabricmc.fabric.api.`object`.builder.v1.entity.FabricDefaultAttribute
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper
 import net.fabricmc.loader.api.FabricLoader
-import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.client.renderer.ShaderInstance
 import net.minecraft.client.renderer.entity.EntityRendererProvider.Context
@@ -31,7 +30,6 @@ import net.minecraft.server.packs.resources.ResourceManager
 import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MobCategory
-import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.CreativeModeTabs
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.Item.Properties
@@ -66,9 +64,9 @@ import org.valkyrienskies.mod.common.blockentity.TestAntigravBlockEntity
 import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
 import org.valkyrienskies.mod.common.blockentity.TestThrusterBlockEntity
 import org.valkyrienskies.mod.common.command.VSCommands
-import org.valkyrienskies.mod.common.config.ConfigType
 import org.valkyrienskies.mod.common.config.DimensionParametersResolver
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
+import org.valkyrienskies.mod.common.config.SlugDatapackResolver
 import org.valkyrienskies.mod.common.config.VSConfigUpdater
 import org.valkyrienskies.mod.common.config.VSEntityHandlerDataLoader
 import org.valkyrienskies.mod.common.config.VSGameConfig
@@ -105,8 +103,8 @@ class ValkyrienSkiesModFabric : ModInitializer {
         if (hasInitialized.getAndSet(true)) return
 
         ForgeConfigRegistry.INSTANCE.apply {
-            register(ValkyrienSkiesMod.MOD_ID, ModConfig.Type.SERVER, VSConfigUpdater.CORE_SERVER_SPEC, "valkyrienskies/vs-core-server.toml")
             register(ValkyrienSkiesMod.MOD_ID, ModConfig.Type.SERVER, VSConfigUpdater.SERVER_SPEC, "valkyrienskies/valkyrienskies-server.toml")
+            register(ValkyrienSkiesMod.MOD_ID, ModConfig.Type.SERVER, VSConfigUpdater.CORE_SERVER_SPEC, "valkyrienskies/vs-core-server.toml")
             register(ValkyrienSkiesMod.MOD_ID, ModConfig.Type.COMMON, VSConfigUpdater.COMMON_SPEC, "valkyrienskies/valkyrienskies-common.toml")
             register(ValkyrienSkiesMod.MOD_ID, ModConfig.Type.CLIENT, VSConfigUpdater.CLIENT_SPEC, "valkyrienskies/valkyrienskies-client.toml")
         }
@@ -277,6 +275,7 @@ class ValkyrienSkiesModFabric : ModInitializer {
         val loader1 = MassDatapackResolver.loader // the get makes a new instance so get it only once
         val loader2 = VSEntityHandlerDataLoader // the get makes a new instance so get it only once
         val loader3 = DimensionParametersResolver
+        val loader4 = SlugDatapackResolver.loader
         ResourceManagerHelper.get(SERVER_DATA)
             .registerReloadListener(object : IdentifiableResourceReloadListener {
                 override fun getFabricId(): ResourceLocation {
@@ -317,6 +316,26 @@ class ValkyrienSkiesModFabric : ModInitializer {
                     gameExecutor: Executor
                 ): CompletableFuture<Void> {
                     return loader3.reload(
+                        stage, resourceManager, preparationsProfiler, reloadProfiler,
+                        backgroundExecutor, gameExecutor
+                    )
+                }
+            })
+        ResourceManagerHelper.get(SERVER_DATA)
+            .registerReloadListener(object : IdentifiableResourceReloadListener {
+                override fun getFabricId(): ResourceLocation {
+                    return ResourceLocation(ValkyrienSkiesMod.MOD_ID, "vs_slugs")
+                }
+
+                override fun reload(
+                    stage: PreparationBarrier,
+                    resourceManager: ResourceManager,
+                    preparationsProfiler: ProfilerFiller,
+                    reloadProfiler: ProfilerFiller,
+                    backgroundExecutor: Executor,
+                    gameExecutor: Executor
+                ): CompletableFuture<Void> {
+                    return loader4.reload(
                         stage, resourceManager, preparationsProfiler, reloadProfiler,
                         backgroundExecutor, gameExecutor
                     )

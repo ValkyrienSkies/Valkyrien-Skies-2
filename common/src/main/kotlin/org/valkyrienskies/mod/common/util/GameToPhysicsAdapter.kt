@@ -4,6 +4,7 @@ import org.joml.Vector3d
 import org.joml.Vector3dc
 import org.valkyrienskies.core.api.VsBeta
 import org.valkyrienskies.core.api.ships.properties.ShipId
+import org.valkyrienskies.core.api.util.PhysTickOnly
 import org.valkyrienskies.core.api.world.PhysLevel
 import org.valkyrienskies.core.internal.joints.VSJoint
 import org.valkyrienskies.core.internal.joints.VSJointAndId
@@ -39,6 +40,7 @@ class GameToPhysicsAdapter {
 
     private val shipToLiquidOverlap = ConcurrentHashMap<Long, Double>()
 
+    @OptIn(PhysTickOnly::class)
     fun physTick(physLevel: PhysLevel, delta: Double) {
 
         worldForces.pollUntilEmpty { pair ->
@@ -133,7 +135,7 @@ class GameToPhysicsAdapter {
         jointById.clear()
 
         shipToJointIds.putAll((physLevel as VsiPhysLevel).getJointsByShipIds())
-        jointById.putAll((physLevel as VsiPhysLevel).getAllJoints())
+        jointById.putAll(physLevel.getAllJoints())
 
         // and finally... call the callbacks
         callbackQueue.forEach { (consumer, i) -> consumer.accept(i) }
@@ -269,9 +271,11 @@ class GameToPhysicsAdapter {
     fun addJoint(joint: VSJoint, delay: Int = 0, function: Consumer<VSJointId>) {
         addedJoints.put(joint to function, delay)
     }
+
     fun updateJoint(jointAndId: VSJointAndId) {
         updatedJoints.add(jointAndId)
     }
+
     fun removeJoint(jointId: VSJointId) {
         deletedJoints.add(jointId)
     }

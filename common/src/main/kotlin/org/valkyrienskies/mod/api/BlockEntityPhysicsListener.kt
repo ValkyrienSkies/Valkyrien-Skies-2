@@ -10,7 +10,6 @@ import org.valkyrienskies.core.api.world.properties.DimensionId
  *
  * Do not access non-volatile/atomic Block Entity variables from physTick, as that isn't thread-safe! Make sure anything accessed between ticks is thread-safe, either by using atomic variables or concurrent queues.
  */
-@PhysTickOnly
 interface BlockEntityPhysicsListener {
 
     /**
@@ -22,6 +21,7 @@ interface BlockEntityPhysicsListener {
      * @see [PhysShip]
      * @see [PhysLevel]
      */
+    @PhysTickOnly
     fun physTick(physShip: PhysShip?, physLevel: PhysLevel)
 
     var dimension: DimensionId

@@ -111,6 +111,13 @@ public abstract class MixinEntity {
             return;
         }
 
+        // This is a little strange, because technically dragging info has nothing to do with shipyard entities.
+        // But an entity that doesn't want to be dragged probably doesn't want its setPosRaw messed with either.
+        // E.g. the CC: Tweaked turtle fake player
+        if (!((IEntityDraggingInformationProvider) this).vs$shouldDrag()) {
+            return;
+        }
+
         final Ship ship = VSGameUtilsKt.getShipManagingPos(level, x, y, z);
         if (ship != null) {
             isModifyingSetPos = true;

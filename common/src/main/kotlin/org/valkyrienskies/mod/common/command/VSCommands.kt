@@ -14,6 +14,7 @@ import org.valkyrienskies.core.api.world.properties.DimensionId
 import org.valkyrienskies.core.api.ships.ShipTeleportData
 import org.valkyrienskies.mod.common.command.arguments.ContraptionSelectorOptions
 import org.valkyrienskies.mod.common.command.commands.BackendCommand
+import org.valkyrienskies.mod.common.command.commands.ConfigCommand
 import org.valkyrienskies.mod.common.command.commands.DeleteCommand
 import org.valkyrienskies.mod.common.command.commands.DryCommand
 import org.valkyrienskies.mod.common.command.commands.ApplyCommand
@@ -41,6 +42,7 @@ object VSCommands {
         var vs = literal("vs")
 
         BackendCommand.register(vs)
+        ConfigCommand.register(vs)
         DeleteCommand.register(vs)
         DryCommand.register(vs)
         ApplyCommand.register(vs)

@@ -61,7 +61,7 @@ commands:
       - persist_to_workspace:
           root: .
           paths:
-            - artifacts
+              - artifacts
 
   save_artifacts_and_generate_discord:
     parameters:
@@ -148,8 +148,14 @@ jobs:
       - checkout_and_cache
       - run:
           name: Build
-          command: "./gradlew build --no-daemon --stacktrace"
+          command: "./gradlew build --no-daemon --stacktrace --max-workers 1"
       - save_artifacts
+      - persist_to_workspace:
+          root: .
+          paths:
+            - build
+            - "*/build"          # forge/build, fabric/build, common/build, ...
+            - .gradle            # Gradle's incremental task state
       - save_gradle_cache
 
   fabric_server_test:
@@ -249,9 +255,11 @@ jobs:
     executor: java_large
     steps:
       - checkout_and_cache
+      - attach_workspace:
+          at: .
       - run:
-          name: Build
-          command: "./gradlew build publish --no-daemon --stacktrace"
+          name: Publish
+          command: "./gradlew publish --no-daemon --stacktrace"
 
   deploy_to_curse:
     executor: java_large
@@ -259,7 +267,7 @@ jobs:
       - checkout_and_cache
       - run: echo 'export ORG_GRADLE_PROJECT_CustomReleaseVersion=${CIRCLE_TAG}' >> "$BASH_ENV"
       - run:
-          command: "./gradlew build modrinth curseforge publish --no-daemon --stacktrace --continue"
+          command: "./gradlew build modrinth curseforge publish --no-daemon --stacktrace --max-workers 1 --continue"
 
   notify_playtesters:
     executor: java_large
@@ -267,7 +275,7 @@ jobs:
       - checkout_and_cache
       - run:
           name: Build
-          command: "./gradlew build --no-daemon --stacktrace"
+          command: "./gradlew build --no-daemon --stacktrace --max-workers 1"
       - save_artifacts_and_generate_discord
       - discord/status:
           success_message: ${DISCORD_MSG}
@@ -363,6 +371,8 @@ workflows:
             - valkyrien_maven
 
       - publish_to_maven:
+          requires:
+            - gradle_build
           filters:
             branches:
               only:

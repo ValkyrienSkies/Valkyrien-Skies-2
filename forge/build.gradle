@@ -106,6 +106,9 @@ dependencies {
     // CC Tweaked
     //modRuntimeOnly("cc.tweaked:cc-tweaked-${minecraft_version}-forge:${cc_tweaked_version}")
 
+    // Etched
+    modCompileOnly("maven.modrinth:etched:3.0.4")
+
     // OpenComputers 2: Reimagined
     modCompileOnly("maven.modrinth:oc2r:${oc2r_version}")
 
@@ -165,6 +168,9 @@ dependencies {
     // Connectible Chains [Forge]
     modCompileOnly("curse.maven:connectible-chains-forge-418514:6142294")
     //modRuntimeOnly("curse.maven:connectible-chains-forge-418514:6142294")
+
+    // TerraFirmaCraft
+    modCompileOnly("maven.modrinth:terrafirmacraft:3.2.23")
 
 
     // Add Kotlin for Forge (3.12.0)

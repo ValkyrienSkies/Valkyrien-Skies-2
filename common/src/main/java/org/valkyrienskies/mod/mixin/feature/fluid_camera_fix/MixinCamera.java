@@ -4,10 +4,12 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import java.lang.ref.WeakReference;
 import net.minecraft.client.Camera;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.Vec3;
 import org.joml.primitives.AABBd;
 import org.spongepowered.asm.mixin.Mixin;
@@ -15,6 +17,9 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.config.VSGameConfig;
+import org.valkyrienskies.mod.common.fluid.FloodedFluidClientCache;
+import org.valkyrienskies.mod.common.fluid.ShipFluidInteraction;
 
 @Mixin(Camera.class)
 public abstract class MixinCamera {
@@ -48,7 +53,7 @@ public abstract class MixinCamera {
         final Operation<FluidState> getFluidState) {
         final FluidState vanillaFluid = getFluidState.call(instance, blockPos);
         isShipWater = false;
-        if (!vanillaFluid.isEmpty() || !(instance instanceof final Level level)) {
+        if (!(instance instanceof final Level level)) {
             return vanillaFluid;
         }
 
@@ -66,13 +71,25 @@ public abstract class MixinCamera {
         }
 
         FluidState result = vanillaFluid;
+        final ShipFluidInteraction.PointSample shipFluid =
+            ShipFluidInteraction.samplePoint(level, cameraPos);
+        if (shipFluid.insideDomain()) {
+            if (shipFluid.fluid() != null
+                && VSGameConfig.CLIENT.getRenderFloodedFluidFog()) {
+                result = shipFluid.fluid().defaultFluidState();
+                isShipWater = true;
+            } else {
+                result = Fluids.EMPTY.defaultFluidState();
+            }
+        }
 
-        final AABBd cameraAABB = new AABBd(origX - 1, origY - 1, origZ - 1, origX + 1, origY + 1, origZ + 1);
+        final AABBd cameraAABB =
+            new AABBd(origX - 1, origY - 1, origZ - 1, origX + 1, origY + 1, origZ + 1);
         final boolean anyShipsNearCamera =
             VSGameUtilsKt.getShipsIntersecting(level, cameraAABB).iterator().hasNext()
                 || VSGameUtilsKt.getShipManagingPos(level, origX, origY, origZ) != null;
 
-        if (anyShipsNearCamera) {
+        if (result.isEmpty() && !shipFluid.insideDomain() && anyShipsNearCamera) {
             final FluidState[] fluidState = {vanillaFluid};
             VSGameUtilsKt.transformToNearbyShipsAndWorld(level, origX, origY, origZ, 1,
                 (x, y, z) -> {
@@ -83,6 +100,17 @@ public abstract class MixinCamera {
                     }
                 });
             result = fluidState[0];
+        }
+
+        if (result.isEmpty() && !shipFluid.insideDomain()
+            && level instanceof final ClientLevel clientLevel
+            && VSGameConfig.CLIENT.getRenderFloodedFluidFog()) {
+            final FloodedFluidClientCache.FloodedFluidSample flooded =
+                FloodedFluidClientCache.findAtWorldPosition(clientLevel, cameraPos);
+            if (flooded != null) {
+                result = flooded.fluid().defaultFluidState();
+                isShipWater = true;
+            }
         }
 
         if (cachedLevel != level) {

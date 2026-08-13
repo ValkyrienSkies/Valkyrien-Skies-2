@@ -4,11 +4,13 @@ import static org.valkyrienskies.mod.common.util.VectorConversionsMCKt.toJOML;
 
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
 import java.util.Set;
 import net.minecraft.CrashReport;
 import net.minecraft.CrashReportCategory;
 import net.minecraft.ReportedException;
 import net.minecraft.core.BlockPos;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -37,10 +39,9 @@ import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.api.ships.LoadedShip;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
-import org.valkyrienskies.core.api.world.ShipWorld;
-import org.valkyrienskies.mod.api.ValkyrienSkies;
 import org.valkyrienskies.mod.common.entity.ShipMountedToData;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.fluid.ShipFluidInteraction;
 import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils;
@@ -56,8 +57,6 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
     @Unique
     private boolean vs$isInSealedArea = false;
-    @Unique
-    private BlockPos vs$lastCheckedSealedPos = BlockPos.ZERO;
 
     @Redirect(
         method = "pick",
@@ -70,97 +69,45 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         return RaycastUtilsKt.clipIncludeShips(receiver, ctx);
     }
 
-    //todo: still interact with water on a ship when in a sealed pocket
-    @Inject(
-        method = "baseTick", at = @At("HEAD")
-    )
-    private void onBaseTick(CallbackInfo ci) {
-        if (this.level == null || this.isRemoved()) {
-            return;
-        }
-        if (!ValkyrienSkies.isConnectivityEnabled(level.isClientSide)) {
-            vs$setInSealedArea(false);
-            return;
-        }
-
-        Entity entity = (Entity) (Object) this;
-        Vec3 relativePosition = Vec3.ZERO;
-        if (this.getDraggingInformation().isEntityBeingDraggedByAShip()) {
-            relativePosition = EntityDragger.INSTANCE.serversidePosition(entity);
-        } else {
-            final ShipMountedToData shipMountedToData = VSGameUtilsKt.getShipMountedToData(entity, null);
-            if (shipMountedToData != null) {
-                relativePosition = VectorConversionsMCKt.toMinecraft(shipMountedToData.getMountPosInShip()
-                    .add(0.0, (double) entity.getEyeHeight(entity.getPose()), 0.0, new Vector3d()));
-            }
-        }
-
-        boolean isInSealedArea = false;
-        final BlockPos relativeBlockPos = BlockPos.containing(relativePosition);
-        if (relativePosition != Vec3.ZERO && VSGameUtilsKt.isBlockInShipyard(level, relativeBlockPos)) {
-            if (relativeBlockPos.equals(vs$lastCheckedSealedPos)) {
-                isInSealedArea = vs$isInSealedArea();
-            } else {
-                isInSealedArea = VSGameUtilsKt.isPositionSealed(level, relativeBlockPos);
-                vs$lastCheckedSealedPos = relativeBlockPos;
-            }
-        } else if (!VSGameUtilsKt.isBlockInShipyard(level, relativeBlockPos)) {
-            final ShipWorld shipWorld = VSGameUtilsKt.getShipObjectWorld(level);
-            for (Ship ship : shipWorld.getAllShips().getIntersecting(
-                VectorConversionsMCKt.toJOML(entity.getBoundingBox().inflate(1.0)), VSGameUtilsKt.getDimensionId(level)
-            )) {
-                relativePosition = VectorConversionsMCKt.toMinecraft(
-                    ship.getWorldToShip().transformPosition(VectorConversionsMCKt.toJOML(entity.position()), new Vector3d())
-                );
-                final BlockPos shipRelativeBlockPos = BlockPos.containing(relativePosition);
-                if (VSGameUtilsKt.isPositionSealed(level, shipRelativeBlockPos)) {
-                    vs$lastCheckedSealedPos = shipRelativeBlockPos;
-                    isInSealedArea = true;
-                    break;
-                }
-            }
-        }
-
-        vs$setInSealedArea(isInSealedArea);
-    }
-
     @WrapMethod(
         method = "updateFluidOnEyes"
     )
     private void onFluidOnEyes(Operation<Void> original) {
-        if (vs$isInSealedArea() && ValkyrienSkies.isConnectivityEnabled(level.isClientSide)) {
-            this.wasEyeInWater = false;
-            this.fluidOnEyes.clear();
+        final Entity entity = (Entity) (Object) this;
+        final ShipFluidInteraction.PointSample sample =
+            ShipFluidInteraction.samplePoint(this.level, entity.getEyePosition());
+        vs$setInSealedArea(sample.insideDomain() && !sample.flooded());
+        if (!sample.insideDomain()) {
+            original.call();
             return;
         }
-        original.call();
+
+        this.wasEyeInWater = this.fluidOnEyes.contains(FluidTags.WATER);
+        this.fluidOnEyes.clear();
+        if (sample.fluid() != null) {
+            sample.fluid().defaultFluidState().getTags().forEach(this.fluidOnEyes::add);
+        }
     }
 
-    @WrapMethod(method = "updateSwimming")
-    private void onUpdateSwimming(Operation<Void> original) {
-        if (vs$isInSealedArea && ValkyrienSkies.isConnectivityEnabled(level.isClientSide)) {
-            this.wasTouchingWater = false;
-            this.setSwimming(false);
-            return;
+    @WrapMethod(method = "updateFluidHeightAndDoFluidPushing")
+    private boolean onUpdateFluidHeightAndDoFluidPushing(
+        final TagKey<Fluid> fluidTag,
+        final double motionScale,
+        final Operation<Boolean> original
+    ) {
+        final ShipFluidInteraction.VolumeSample sample =
+            ShipFluidInteraction.sampleVolume(this.level, this.getBoundingBox(), fluidTag);
+        if (!sample.controlsVanilla()) {
+            return original.call(fluidTag, motionScale);
         }
-        original.call();
-    }
 
-    @Inject(
-        method = "updateInWaterStateAndDoWaterCurrentPushing",
-        at = @At("HEAD"),
-        cancellable = true
-    )
-    private void onUpdateInWaterStateAndDoWaterCurrentPushing(CallbackInfo ci) {
-        if (vs$isInSealedArea && ValkyrienSkies.isConnectivityEnabled(level.isClientSide)) {
-            this.wasTouchingWater = false;
-            ci.cancel();
-        }
+        this.fluidHeight.put(fluidTag, sample.fluidDepth());
+        return sample.submerged();
     }
 
     @WrapMethod(method = "isInBubbleColumn")
     private boolean onIsInBubbleColumn(Operation<Boolean> original) {
-        if (vs$isInSealedArea && ValkyrienSkies.isConnectivityEnabled(level.isClientSide)) return false;
+        if (vs$isInSealedArea) return false;
         return original.call();
     }
 
@@ -353,9 +300,6 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     public abstract boolean isRemoved();
 
     @Shadow
-    protected boolean wasTouchingWater;
-
-    @Shadow
     protected boolean wasEyeInWater;
 
     @Shadow
@@ -363,7 +307,8 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     private Set<TagKey<Fluid>> fluidOnEyes;
 
     @Shadow
-    public abstract void setSwimming(boolean bl);
+    @Final
+    private Object2DoubleMap<TagKey<Fluid>> fluidHeight;
 
     @Override
     @NotNull

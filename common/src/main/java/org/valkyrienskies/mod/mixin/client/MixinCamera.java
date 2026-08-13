@@ -35,14 +35,11 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
-import org.valkyrienskies.core.api.world.ClientShipWorld;
-import org.valkyrienskies.mod.api.ValkyrienSkies;
 import org.valkyrienskies.mod.client.IVSCamera;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
-import org.valkyrienskies.mod.common.util.EntityDragger;
+import org.valkyrienskies.mod.common.fluid.ShipFluidInteraction;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 
 @Mixin(Camera.class)
@@ -88,9 +85,6 @@ public abstract class MixinCamera implements IVSCamera {
     @Unique
     private int vs$sealedGraceTicks = 0;
 
-    @Unique
-    private BlockPos vs$lastSealedCheckPos = BlockPos.ZERO;
-
     @Shadow
     protected abstract double getMaxZoom(double startingDistance);
 
@@ -103,54 +97,19 @@ public abstract class MixinCamera implements IVSCamera {
 
     @Inject(method = "tick", at = @At("HEAD"))
     private void onTick(CallbackInfo ci) {
-        if (!ValkyrienSkies.isConnectivityEnabled(true)) {
-            return;
-        }
-        LocalPlayer player = Minecraft.getInstance().player;
-        if (player != null && player.level() != null && player instanceof IEntityDraggingInformationProvider provider && initialized) {
-            Vec3 relativePosition = Vec3.ZERO;
-            if (provider.getDraggingInformation().isEntityBeingDraggedByAShip()) {
-                relativePosition = EntityDragger.INSTANCE.serversideEyePosition(player);
-            } else if (VSGameUtilsKt.getShipMountedTo(player) != null) {
-                relativePosition = VectorConversionsMCKt.toMinecraft(VSGameUtilsKt.getShipMountedToData(player, null).getMountPosInShip().add(0.0, (double) player.getEyeHeight(player.getPose()), 0.0, new Vector3d()));
-            }
-            boolean isInSealedArea = false;
+        final LocalPlayer player = Minecraft.getInstance().player;
+        if (player == null || player.level() == null
+            || !(player instanceof final IEntityDraggingInformationProvider provider)
+            || !initialized) return;
 
-            if (!isInSealedArea) {
-                if (relativePosition != Vec3.ZERO && VSGameUtilsKt.isBlockInShipyard(player.level(), BlockPos.containing(relativePosition))) {
-                    if (BlockPos.containing(relativePosition).equals(vs$lastSealedCheckPos)) {
-                        isInSealedArea = provider.vs$isInSealedArea();
-                    } else {
-                        isInSealedArea = VSGameUtilsKt.isPositionSealed(player.level(),
-                            BlockPos.containing(relativePosition));
-                        vs$lastSealedCheckPos = BlockPos.containing(relativePosition);
-                    }
-                } else {
-                    if (!VSGameUtilsKt.isBlockInShipyard(player.level(), BlockPos.containing(relativePosition))) {
-                        // find overlapping ships
-                        ClientShipWorld shipWorld = VSGameUtilsKt.getShipObjectWorld(player.clientLevel);
-                        for (ClientShip ship : shipWorld.getAllShips().getIntersecting(
-                            VectorConversionsMCKt.toJOML(player.getBoundingBox().inflate(1.0)),
-                            VSGameUtilsKt.getDimensionId(player.level())
-                        )) {
-                            relativePosition = VectorConversionsMCKt.toMinecraft(ship.getWorldToShip().transformPosition(VectorConversionsMCKt.toJOML(player.position()), new Vector3d()));
-                            if (VSGameUtilsKt.isPositionSealed(player.level(), BlockPos.containing(relativePosition))) {
-                                vs$lastSealedCheckPos = BlockPos.containing(relativePosition);
-                                isInSealedArea = true;
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (provider.vs$isInSealedArea()) {
-                vs$sealedGraceTicks = VSGameConfig.CLIENT.getSealedAreaCameraGracePeriod();
-            }
-
-            provider.vs$setInSealedArea(isInSealedArea);
-
-            if (vs$sealedGraceTicks > 0) vs$sealedGraceTicks--;
+        final ShipFluidInteraction.PointSample sample =
+            ShipFluidInteraction.samplePoint(player.level(), this.position);
+        final boolean isInDryShipDomain = sample.insideDomain() && !sample.flooded();
+        provider.vs$setInSealedArea(isInDryShipDomain);
+        if (isInDryShipDomain) {
+            vs$sealedGraceTicks = VSGameConfig.CLIENT.getSealedAreaCameraGracePeriod();
+        } else if (vs$sealedGraceTicks > 0) {
+            --vs$sealedGraceTicks;
         }
     }
 
@@ -158,7 +117,7 @@ public abstract class MixinCamera implements IVSCamera {
         method = "getFluidInCamera"
     )
     private FogType redirectGetFluidInCamera(Operation<FogType> original) {
-        if (vs$sealedGraceTicks > 0 && ValkyrienSkies.isConnectivityEnabled(true)) {
+        if (vs$sealedGraceTicks > 0) {
             return FogType.NONE;
         }
         return original.call();
