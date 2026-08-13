@@ -40,6 +40,24 @@ object VSConfigApi {
     }
 
     @JvmStatic
+    @JvmName("buildForgeConfigSpec\$default")
+    @Suppress("UNUSED_PARAMETER")
+    fun buildForgeConfigSpecDefaultCompat(
+        configCategory: VsiConfigModelCategory,
+        builder: ForgeConfigSpec.Builder,
+        forgeConfigValueConsumer: ((String, ForgeConfigSpec.ConfigValue<*>) -> Unit)?,
+        mask: Int,
+        ignored: Any?
+    ): ForgeConfigSpec.Builder {
+        val consumer = if ((mask and 0x4) != 0 || forgeConfigValueConsumer == null) {
+            { _: String, _: ForgeConfigSpec.ConfigValue<*> -> }
+        } else {
+            forgeConfigValueConsumer
+        }
+        return buildForgeConfigSpec(configCategory, builder, consumer)
+    }
+
+    @JvmStatic
     fun VsiConfigModel.update(forgeConfig: ModConfig, configType: ConfigType, updatedEntries: MutableSet<ConfigUpdateEntry>) {
         root.forEachEntry { category, node ->
             val forgeKey = (category + node.name).joinToString(".")
