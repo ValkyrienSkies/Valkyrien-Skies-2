@@ -61,6 +61,7 @@ import org.valkyrienskies.mod.util.AIR
 import org.valkyrienskies.mod.util.StructureTemplateFillFromVoxelSet
 import org.valkyrienskies.mod.util.logger
 import org.valkyrienskies.mod.util.relocateBlock
+import org.valkyrienskies.mod.util.updateBlock
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.locks.LockSupport
 import kotlin.Int.Companion
@@ -631,6 +632,8 @@ object ShipAssembler {
                             tag.putInt("z", destPos.z)
                             level.getBlockEntity(destPos)?.load(tag)
                         }
+
+                        updateBlock(level, srcPos, destPos, state)
                     }
 
                     initSkyLightForShip(level, destPositions)

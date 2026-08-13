@@ -210,6 +210,8 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         }
         */
 
+        vsPipeline.preTickGame();
+
         for (final String oldLoadedLevelId : loadedLevels) {
             if (!newLoadedLevels.containsKey(oldLoadedLevelId)) {
                 shipWorld.removeDimension(oldLoadedLevelId);
@@ -218,8 +220,6 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         }
         loadedLevels = newLoadedLevels.keySet();
         // endregion
-
-        vsPipeline.preTickGame();
     }
 
     /**

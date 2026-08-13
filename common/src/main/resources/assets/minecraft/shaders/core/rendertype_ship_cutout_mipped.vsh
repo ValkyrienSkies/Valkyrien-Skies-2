@@ -23,20 +23,29 @@ out vec4 vertexColor;
 out vec2 texCoord0;
 out vec4 normal;
 
+out vec3 valkyrienair_CamRelPos;
+out vec2 v_VsLightCoordRaw;
+out vec3 v_VsWorldNormal;
+
 void main() {
     vec3 pos = Position + ChunkOffset;
-    gl_Position = ProjMat * ModelViewMat * vec4(pos, 1.0);
+    vec4 viewPos = ModelViewMat * vec4(pos, 1.0);
+    gl_Position = ProjMat * viewPos;
 
     vertexDistance = fog_distance(ModelViewMat, pos, FogShape);
     texCoord0 = UV0;
     normal = ProjMat * ModelViewMat * vec4(Normal, 0.0);
+    valkyrienair_CamRelPos = IViewRotMat * viewPos.xyz;
+    v_VsLightCoordRaw = clamp(vec2(UV2) / 256.0, vec2(1.0 / 32.0), vec2(31.0 / 32.0));
+
+    vec3 worldNormal = normalize(IViewRotMat * mat3(ModelViewMat) * Normal);
+    v_VsWorldNormal = worldNormal;
 
     if (Color.a == 0.0) {
         vertexColor = Color * minecraft_sample_lightmap(Sampler2, UV2);
         vertexColor.a = 1.0;
     } else {
         vertexColor = Color * minecraft_sample_lightmap(Sampler2, UV2);
-        vec3 worldNormal = normalize(IViewRotMat * mat3(ModelViewMat) * Normal);
         float shade = vanillaShadeFromNormal(worldNormal);
         vertexColor.rgb *= shade;
     }
