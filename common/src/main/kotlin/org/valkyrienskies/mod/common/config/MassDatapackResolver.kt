@@ -35,7 +35,6 @@ import org.valkyrienskies.mod.api_impl.events.RegisterBlockStateEventImpl
 import org.valkyrienskies.mod.client.ClientBlockInfo
 import org.valkyrienskies.mod.common.BlockStateInfoProvider
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
-import org.valkyrienskies.mod.common.config.MassDatapackResolver.generateShapeFromVoxel
 import org.valkyrienskies.mod.common.hooks.VSGameEvents
 import org.valkyrienskies.mod.common.networking.PacketSyncBlockStateInfo
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
@@ -460,7 +459,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
     fun syncBlockStates(player: MinecraftPlayer) {
         logger.info("Syncing ${mcBlockStateToVs.size} blockstates to ${player.uuid}")
         with(vsCore.simplePacketNetworking) {
-            val blockstate2VS: Map<String, ClientBlockInfo> =
+            val resourceLoc2VS: Map<String, ClientBlockInfo> =
                 mcBlockStateToVs.entries.associate { (blockState, vsState) ->
                     val id = BuiltInRegistries.BLOCK.getKey(blockState.block)
                     val clientInfo = ClientBlockInfo(
@@ -469,13 +468,13 @@ object MassDatapackResolver : BlockStateInfoProvider {
                         vsState.solidState?.elasticity ?: VSGameConfig.SERVER.defaultBlockElasticity,
                     )
                     id.toString() to clientInfo
-                }
-                    .toMap()
+                }.toMap()
 
-            PacketSyncBlockStateInfo(blockstate2VS).sendToClient(player)
+            PacketSyncBlockStateInfo(resourceLoc2VS).sendToClient(player)
         }
     }
 
+    @ApiStatus.Internal
     fun clearBlockStates(player: MinecraftPlayer) {
         logger.info("Clearing synced blockstates from ${player.uuid}")
         with(vsCore.simplePacketNetworking) {

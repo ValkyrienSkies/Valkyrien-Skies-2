@@ -397,7 +397,7 @@ object VSGameConfig {
         @ConfigEntry(
             description = "If players can see block info (mass, friction, elasticity)"
         )
-        var allowBlockInfo = true
+        var allowBlockInfo = true // they call me jade because i be showin block info
 
         @ConfigEntry(
             description = "Default mass for blocks that do not have it defined in data or code. Blocks with masses below 100 float in water"

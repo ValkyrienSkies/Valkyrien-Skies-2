@@ -160,7 +160,6 @@ class ValkyrienSkiesModForge {
         }
         modBus.addListener(::loadComplete)
         forgeBus.addListener(::playerJoin)
-        forgeBus.addListener(::playerLeave)
 
         forgeBus.addListener(::registerCommands)
         forgeBus.addListener(::tagsUpdated)
@@ -394,13 +393,6 @@ class ValkyrienSkiesModForge {
             } else {
                 MassDatapackResolver.clearBlockStates(player)
             }
-        }
-    }
-
-    private fun playerLeave(event: PlayerEvent.PlayerLoggedOutEvent) {
-        if (event.entity is ServerPlayer) {
-            val player: MinecraftPlayer = event.entity.playerWrapper
-            MassDatapackResolver.clearBlockStates(player)
         }
     }
 

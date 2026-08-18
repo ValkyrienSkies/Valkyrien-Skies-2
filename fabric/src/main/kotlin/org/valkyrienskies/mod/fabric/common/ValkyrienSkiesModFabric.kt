@@ -282,13 +282,6 @@ class ValkyrienSkiesModFabric : ModInitializer {
             }
         }
 
-        ServerPlayConnectionEvents.DISCONNECT.register { handler, server ->
-            if (handler.player is ServerPlayer) {
-                val player: MinecraftPlayer = handler.player.playerWrapper
-                MassDatapackResolver.clearBlockStates(player)
-            }
-        }
-
         CommandRegistrationCallback.EVENT.register { dispatcher ,d, _ ->
             VSCommands.registerServerCommands(dispatcher)
         }

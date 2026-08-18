@@ -21,7 +21,7 @@ object ClientBlockStateInfo {
      * Set by server and used on client side, disables mass tooltip completely if false
      */
     @ApiStatus.Internal
-    var enabled = false
+    var shouldAddMassTooltip = false
 
     /**
      * Used to register clientside block data. For internal use only.
@@ -40,7 +40,7 @@ object ClientBlockStateInfo {
      */
     @ApiStatus.Internal
     fun disable() {
-        enabled = false
+        shouldAddMassTooltip = false
         idToBlockData.clear()
     }
 }
