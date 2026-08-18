@@ -39,6 +39,8 @@ import org.valkyrienskies.mod.common.jackson.BlockPosSerializer
 import org.valkyrienskies.mod.common.networking.VSGamePackets
 import org.valkyrienskies.mod.common.util.BuoyancyHandlerAttachment
 import org.valkyrienskies.mod.common.util.GameToPhysicsAdapter
+import org.valkyrienskies.mod.common.util.FractureEventHandler
+import org.valkyrienskies.mod.common.util.ImpactFractureHandler
 import org.valkyrienskies.mod.common.util.ShipSettings
 import org.valkyrienskies.mod.common.util.SplitHandler
 import org.valkyrienskies.mod.common.util.SplittingDisablerAttachment
@@ -160,6 +162,16 @@ object ValkyrienSkiesMod {
             event.ship.setAttachment(SplittingDisablerAttachment(true))
             event.ship.setAttachment(BuoyancyHandlerAttachment())
         }
+
+        core.fractureEvent.on { event ->
+            FractureEventHandler.onFracture(event)
+        }
+        ImpactFractureHandler.enabled = false
+
+        core.collisionStartEvent.on { event ->
+            ImpactFractureHandler.onCollision(event)
+        }
+        ImpactFractureHandler.logRegistered()
 
         core.physTickEvent.on { event ->
             dimensionalGTPAs.forEach { dimensionId, gameTickForceApplier ->

@@ -27,55 +27,23 @@ object BackendCommand {
             .then(literal("engine")
                 .then(literal("krunch")
                     .executes {
-                        VSCoreConfig.SERVER.physics.physicsBackend = ConfigPhysicsBackendType.KRUNCH_CLASSIC
-                        (VSConfigUpdater.forgeConfigValuesMap.get("physicsBackend") as ForgeConfigSpec.ConfigValue<String>).set(ConfigPhysicsBackendType.KRUNCH_CLASSIC.name)
-
-                        it.source.sendSuccess(
-                            {
-                                translatable(BACKEND_SET_MESSAGE, VSCoreConfig.SERVER.physics.physicsBackend.name)
-                            }, true
-                        )
-
-                        1
+                        setBackend(it.source, ConfigPhysicsBackendType.KRUNCH_CLASSIC)
                     }
                 ).then(literal("DEFAULT")
                     .executes {
-                        VSCoreConfig.SERVER.physics.physicsBackend = ConfigPhysicsBackendType.KRUNCH_CLASSIC
-                        (VSConfigUpdater.forgeConfigValuesMap.get("physicsBackend") as ForgeConfigSpec.ConfigValue<String>).set(ConfigPhysicsBackendType.KRUNCH_CLASSIC.name)
-
-                        it.source.sendSuccess(
-                            {
-                                translatable(BACKEND_SET_MESSAGE, VSCoreConfig.SERVER.physics.physicsBackend.name)
-                            }, true
-                        )
-
-                        1
+                        setBackend(it.source, ConfigPhysicsBackendType.KRUNCH_CLASSIC)
                     }
                 ).then(literal("physx")
                     .executes {
-                        VSCoreConfig.SERVER.physics.physicsBackend = ConfigPhysicsBackendType.KRUNCH_PHYSX
-                        (VSConfigUpdater.forgeConfigValuesMap.get("physicsBackend") as ForgeConfigSpec.ConfigValue<String>).set(ConfigPhysicsBackendType.KRUNCH_PHYSX.name)
-
-                        it.source.sendSuccess(
-                            {
-                                translatable(BACKEND_SET_MESSAGE, VSCoreConfig.SERVER.physics.physicsBackend.name)
-                            }, true
-                        )
-
-                        1
+                        setBackend(it.source, ConfigPhysicsBackendType.KRUNCH_PHYSX)
                     }
                 ).then(literal("konstant")
                     .executes {
-                        VSCoreConfig.SERVER.physics.physicsBackend = ConfigPhysicsBackendType.KRUNCH_KONSTANT
-                        (VSConfigUpdater.forgeConfigValuesMap.get("physicsBackend") as ForgeConfigSpec.ConfigValue<String>).set(ConfigPhysicsBackendType.KRUNCH_KONSTANT.name)
-
-                        it.source.sendSuccess(
-                            {
-                                translatable(BACKEND_SET_MESSAGE, VSCoreConfig.SERVER.physics.physicsBackend.name)
-                            }, true
-                        )
-
-                        1
+                        setBackend(it.source, ConfigPhysicsBackendType.KRUNCH_KONSTANT)
+                    }
+                ).then(literal("vox3d")
+                    .executes {
+                        setBackend(it.source, ConfigPhysicsBackendType.KRUNCH_VOX3D)
                     }
                 ).then(literal("jolt")
                     .executes {
@@ -138,5 +106,18 @@ object BackendCommand {
                 }
             )
         )
+    }
+
+    private fun setBackend(source: CommandSourceStack, backend: ConfigPhysicsBackendType): Int {
+        VSCoreConfig.SERVER.physics.physicsBackend = backend
+        (VSConfigUpdater.forgeConfigValuesMap["physicsBackend"] as ForgeConfigSpec.ConfigValue<String>).set(backend.name)
+
+        source.sendSuccess(
+            {
+                translatable(BACKEND_SET_MESSAGE, VSCoreConfig.SERVER.physics.physicsBackend.name)
+            }, true
+        )
+
+        return 1
     }
 }

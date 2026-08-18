@@ -59,14 +59,15 @@ public abstract class MixinStructureManager {
             loadedShips.getIntersecting(valkyrienskies$queryAabb, VSGameUtilsKt.getDimensionId(serverLevel))) {
             final Vector3d shipPos = ship.getWorldToShip()
                 .transformPosition(valkyrienskies$queryPos.set(centerX, centerY, centerZ));
-            BlockPos blockPos = BlockPos.containing(shipPos.x, shipPos.y, shipPos.z);
-            if (serverLevel.getChunkSource().getChunkNow(blockPos.getX() >> 4, blockPos.getZ() >> 4) == null) {
+            final BlockPos shipBlockPos = BlockPos.containing(shipPos.x, shipPos.y, shipPos.z);
+            if (serverLevel.getChunkSource().getChunkNow(
+                shipBlockPos.getX() >> 4, shipBlockPos.getZ() >> 4) == null) {
                 continue;
             }
             if (result == null) {
                 result = new ArrayList<>();
             }
-            result.add(blockPos);
+            result.add(shipBlockPos);
         }
         return result;
     }

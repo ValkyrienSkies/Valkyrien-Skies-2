@@ -97,6 +97,10 @@ public final class ShipBatchRenderer {
         }
     }
 
+    public boolean hasRenderableShips() {
+        return !drawOrder.isEmpty();
+    }
+
     public void beginFrame(final ClientLevel level) {
         RenderSystem.assertOnRenderThread();
         currentFrameToken++;
