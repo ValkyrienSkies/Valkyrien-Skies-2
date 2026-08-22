@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
-@Mixin(Bat.class)
+@Mixin(value = Bat.class, priority = 1500)
 public abstract class MixinBatShipSpawn {
 
     @WrapOperation(
@@ -22,7 +22,8 @@ public abstract class MixinBatShipSpawn {
             value = "INVOKE",
             target = "Lnet/minecraft/core/BlockPos;getY()I",
             ordinal = 0
-        )
+        ),
+        require = 0
     )
     private static int vs$shipBatY(
         final BlockPos pos, final Operation<Integer> original,
@@ -37,7 +38,8 @@ public abstract class MixinBatShipSpawn {
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/world/level/LevelAccessor;getMaxLocalRawBrightness(Lnet/minecraft/core/BlockPos;)I"
-        )
+        ),
+        require = 0
     )
     private static int vs$shipBatMaxRawBrightness(
         final LevelAccessor level, final BlockPos pos, final Operation<Integer> original

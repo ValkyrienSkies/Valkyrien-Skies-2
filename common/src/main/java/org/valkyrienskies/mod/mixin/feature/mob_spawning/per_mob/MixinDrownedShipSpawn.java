@@ -9,7 +9,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
-@Mixin(Drowned.class)
+@Mixin(value = Drowned.class, priority = 1500)
 public abstract class MixinDrownedShipSpawn {
 
     @WrapOperation(
@@ -17,7 +17,8 @@ public abstract class MixinDrownedShipSpawn {
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/core/BlockPos;getY()I"
-        )
+        ),
+        require = 0
     )
     private static int vs$shipDeepEnoughY(
         final BlockPos receiver, final Operation<Integer> original,
