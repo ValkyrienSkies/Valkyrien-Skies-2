@@ -14,6 +14,7 @@ import org.valkyrienskies.core.util.datastructures.DenseBlockPosSet
 import org.valkyrienskies.mod.api.toJOMLd
 import org.valkyrienskies.mod.api.toMinecraft
 import org.valkyrienskies.mod.common.assembly.ShipAssembler
+import org.valkyrienskies.mod.common.assembly.ShipAssembler.ASSEMBLY_LOGGER
 import org.valkyrienskies.mod.common.assembly.createNewShipWithBlocks
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getLoadedShipManagingPos
@@ -61,10 +62,18 @@ class AreaAssemblerItem(
                             createNewShipWithBlocks(BlockPos.containing(center.toMinecraft()), denseSet, level)
                         }
                         else {
-                            ShipAssembler.assembleToShip(level, BlockPos.betweenClosed(lowerCorner, upperCorner).map{ it.mutable() }.toSet(), 1.0)
+                            try {
+                                ShipAssembler.assembleToShip(level, BlockPos.betweenClosed(lowerCorner, upperCorner).map{ it.mutable() }.toSet(), 1.0)
+                            } catch (e: Throwable) {
+                                ASSEMBLY_LOGGER.warn("Assembly failed (possibly nothing left to assemble)", e)
+                                ctx.player?.sendSystemMessage(Component.literal("Nothing to assemble!"))
+                                null
+                            }
                         }
 
-                        ctx.player?.sendSystemMessage(Component.translatable("command.valkyrienskies.shipify.success_one", ship.slug))
+                        ship?.let {
+                            ctx.player?.sendSystemMessage(Component.translatable("command.valkyrienskies.shipify.success_one", it.slug))
+                        }
 
                     }
                     item.tag!!.remove("firstPosX")

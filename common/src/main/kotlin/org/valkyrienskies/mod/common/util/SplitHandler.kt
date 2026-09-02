@@ -148,8 +148,12 @@ class SplitHandler(private val doEdges: Boolean, private val doCorners: Boolean)
 
                         for (component in toAssemble) {
                             if (component.isEmpty()) continue
-                            val newShip = ShipAssembler.assembleToShip(level, component, 1.0)
-                            if (after != null) after.accept(newShip)
+                            try {
+                                val newShip = ShipAssembler.assembleToShip(level, component, 1.0)
+                                if (after != null) after.accept(newShip)
+                            } catch (e: Throwable) {
+                                SPLITLOGGER.logger.warn("couldnt assemble unconnected component into a ship (gulp)", e)
+                            }
                         }
 
                         loadedShip?.getAttachment(SplittingDisablerAttachment::class.java)?.enableSplitting()
