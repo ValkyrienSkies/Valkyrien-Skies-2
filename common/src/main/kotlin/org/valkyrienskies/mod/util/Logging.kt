@@ -10,6 +10,7 @@ fun logger(name: String): ClassLogger = ClassLogger(LogManager.getLogger(name))
 @JvmInline
 value class ClassLogger(val logger: Logger) {
     operator fun getValue(thisRef: Any?, property: KProperty<*>): Logger = logger
+    fun warn(string: String, e: Throwable) {}
 }
 
 object DelegateLogger {

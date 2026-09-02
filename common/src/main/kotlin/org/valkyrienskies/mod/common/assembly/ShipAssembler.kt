@@ -37,6 +37,7 @@ import org.valkyrienskies.core.api.util.GameTickOnly
 import org.valkyrienskies.core.impl.config.VSCoreConfig
 import org.valkyrienskies.core.internal.ships.VsiServerShip
 import org.valkyrienskies.mod.common.assembly.ShipAssembler.assembleToShipFull
+import org.valkyrienskies.mod.common.BlockStateInfo
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.executeIf
 import org.valkyrienskies.mod.common.forEach
@@ -56,6 +57,8 @@ import org.valkyrienskies.mod.common.util.toJOMLD
 import org.valkyrienskies.mod.common.vsCore
 import org.valkyrienskies.mod.common.world.VSTicketType
 import org.valkyrienskies.mod.common.yRange
+import org.valkyrienskies.mod.compat.LoadedMods
+import org.valkyrienskies.mod.compat.create.CreateAssemblyCompat
 import org.valkyrienskies.mod.mixin.accessors.server.level.ServerChunkCacheAccessor
 import org.valkyrienskies.mod.util.AIR
 import org.valkyrienskies.mod.util.StructureTemplateFillFromVoxelSet
@@ -115,6 +118,61 @@ object ShipAssembler {
         return chunkSet
     }
 
+    /**
+     * Computes the mass-weighted center of mass that the destination ship *will* end up with once the
+     * physics engine has processed the blocks being moved, expressed in the destination ship's local
+     * (model-space) coordinates.
+     *
+     * We compute this ourselves instead of reading [ServerShip.inertiaData]'s centerOfMass right after
+     * placing blocks because that value is backed by the physics engine's own (asynchronously updated)
+     * snapshot of the ship's mass distribution. Immediately after blocks are placed that snapshot has not
+     * necessarily caught up yet, so reading it synchronously can hand back a stale center of mass (e.g. the
+     * ship's pre-assembly/empty COM). For ships whose true center of mass happens to coincide with the
+     * bounding-box center (any ship with rotationally/reflectively symmetric mass distribution) a stale
+     * value is indistinguishable from a correct one, which is why symmetric shapes never showed this bug.
+     * For ships with an off-center COM (e.g. a symmetric hull with one extra block stuck on) the stale value
+     * differs from the true one, producing a wrong initial position that "pops" back into place once the
+     * physics engine's snapshot updates - the exact client-visible lerp being reported.
+     *
+     * Computing the expected center of mass ourselves, from the same per-block mass data the physics engine
+     * uses ([BlockStateInfo]), sidesteps that race entirely: the value is available synchronously and is
+     * correct on the very first frame, so there's nothing left to lerp/correct later.
+     */
+    @JvmStatic
+    private fun computeExpectedCenterOfMass(
+        blocksWithState: List<Pair<BlockPos, BlockState>>,
+        minStructurePos: BlockPos,
+        cornerOfShip: BlockPos,
+        geometricCenterFallback: Vector3d
+    ): Vector3d {
+        var totalMass = 0.0
+        val weightedSum = Vector3d()
+
+        for ((srcPos, state) in blocksWithState) {
+            val mass = BlockStateInfo.get(state)?.first ?: 1.0
+            if (mass <= 0.0) continue
+
+            val dx = srcPos.x - minStructurePos.x
+            val dy = srcPos.y - minStructurePos.y
+            val dz = srcPos.z - minStructurePos.z
+
+            weightedSum.add(
+                (cornerOfShip.x + dx + 0.5) * mass,
+                (cornerOfShip.y + dy + 0.5) * mass,
+                (cornerOfShip.z + dz + 0.5) * mass
+            )
+            totalMass += mass
+        }
+
+        // Fall back to the geometric center of the ship's bounding box (the old, pre-fix behavior) if we
+        // somehow have no usable mass data - this keeps behavior unchanged rather than risking a divide by 0.
+        if (totalMass <= 0.0) {
+            return Vector3d(geometricCenterFallback)
+        }
+
+        return weightedSum.div(totalMass)
+    }
+
     data class AssembleContext(val ship: ServerShip, val fromCenter: Vector3d, val toCenter: Vector3d)
 
     @JvmStatic
@@ -149,7 +207,7 @@ object ShipAssembler {
             toShip.id, level.server.tickCount.toLong()
         )
 
-        val (wasSuccessful, _, toCenter) = moveBlocksFromTo(level, blocks, fromShip, toShip, minB, maxB, toShip.chunkClaim.getCenterBlockCoordinates(level.yRange, Vector3i()))
+        val (wasSuccessful, _, toCenter, expectedCenterOfMass) = moveBlocksFromTo(level, blocks, fromShip, toShip, minB, maxB, toShip.chunkClaim.getCenterBlockCoordinates(level.yRange, Vector3i()))
 
         if (!wasSuccessful) {
             level.shipObjectWorld.deleteShip(toShip)
@@ -158,9 +216,18 @@ object ShipAssembler {
             throw error
         }
 
-        //teleport fn uses COM as center of ship, so it calculates such offset that centerOfShip will be "center" instead
+        //teleport fn uses COM as center of ship: newBodyTransform's positionInModel field IS read by the
+        //engine (and debug renderer) as the ship's actual center of mass, not just an arbitrary pivot point.
+        //So positionInModel must be set to the real (expected) center of mass, and posOffset is the
+        //world-space correction needed so that toCenter (the geometric center of the placed blocks) still
+        //ends up at its correct, unmoved world location once positionInModel is no longer toCenter.
+        //
+        //Passing toCenter as positionInModel (the old behavior) tells the engine the COM is somewhere it
+        //isn't; something downstream then reconciles positionInModel with the ship's real mass distribution
+        //on a later tick and re-derives position to match, which is the visible pop/lerp being reported.
+        //Passing the real expectedCenterOfMass here up front means there's nothing left to reconcile later.
         val posOffset =
-            Vector3d(toShip.inertiaData.centerOfMass)
+            Vector3d(expectedCenterOfMass)
                 .sub(Vector3d(toCenter))
                 .let { fromShip?.shipToWorld?.transformDirection(it) ?: it }
 
@@ -171,7 +238,7 @@ object ShipAssembler {
                 (fromShip?.shipToWorld?.transformPosition(Vector3d(fromCenter)) ?: fromCenter).add(posOffset),
                 fromShip?.transform?.shipToWorldRotation ?: Quaterniond(),
                 Vector3d(scale * oldScale, scale * oldScale, scale * oldScale),
-                toCenter
+                expectedCenterOfMass
             )
         ))
         toShip.isStatic = false
@@ -179,8 +246,13 @@ object ShipAssembler {
         return AssembleContext(toShip, fromCenter, toCenter)
     }
 
-    data class MoveContext(val wasSuccessful: Boolean, val fromCenter: Vector3d, val toCenter: Vector3d)
-    private val failedMove = MoveContext(false, Vector3d(), Vector3d())
+    data class MoveContext(
+        val wasSuccessful: Boolean,
+        val fromCenter: Vector3d,
+        val toCenter: Vector3d,
+        val expectedCenterOfMass: Vector3d = Vector3d()
+    )
+    private val failedMove = MoveContext(false, Vector3d(), Vector3d(), Vector3d())
 
     @JvmStatic
     @OptIn(GameTickOnly::class)
@@ -191,8 +263,19 @@ object ShipAssembler {
         minStructurePos: BlockPos, maxStructurePos: BlockPos,
         toCenter: Vector3i,
         removeOriginal: Boolean = true)
-    : MoveContext {
-        val blocks = blocks.filter { level.getBlockState(it).let{!it.isAir && !it.inAssemblyBlacklist()} }.toSet()
+        : MoveContext {
+        // Break any belt that this assembly would otherwise split across the ship/world boundary. Must run
+        // here, before any of VS's chunk-pause/shipyard machinery starts below, while these are still plain
+        // world blocks - see CreateAssemblyCompat.breakSplitBeltChains for why that ordering matters.
+        if (LoadedMods.create) {
+            CreateAssemblyCompat.breakSplitBeltChains(level, blocks)
+        }
+
+        val blocksWithState = blocks.mapNotNull { pos ->
+            val state = level.getBlockState(pos)
+            if (!state.isAir && !state.inAssemblyBlacklist()) pos to state else null
+        }
+        val blocks = blocksWithState.map { it.first }.toSet()
         if (blocks.isEmpty()) return failedMove
 
         val fromId = fromShip?.id ?: -1L
@@ -254,6 +337,12 @@ object ShipAssembler {
 
         // ========== Removing Old Blocks
         if (removeOriginal) {
+            // Clear any items carried by belts before their block entities are removed, so removal
+            // doesn't eject them into the world as duplicates of the copy that's about to be placed on
+            // the ship. See CreateAssemblyCompat.clearCarriedBeltItemsBeforeRemoval for details.
+            if (LoadedMods.create) {
+                CreateAssemblyCompat.clearCarriedBeltItemsBeforeRemoval(level, blocks)
+            }
             for (pos in blocks) {
                 level.getBlockEntity(pos)?.let {
                     if (it is Clearable) {
@@ -303,6 +392,10 @@ object ShipAssembler {
 
         val centerOfShip = cornerOfShip.toJOMLD().add(offset)
 
+        val expectedCenterOfMass = computeExpectedCenterOfMass(
+            blocksWithState, minStructurePos, cornerOfShip, centerOfShip
+        )
+
         val structureSettings = StructurePlaceSettings().addProcessor(
             ICopyableProcessor(
                 SingleItemMap(fromId, toShip?.id ?: -1L, -1L) {it},
@@ -348,6 +441,22 @@ object ShipAssembler {
                 }
             }
             VSAssemblyEvents.onPasteAfterBlocksAreLoaded.emit(VSAssemblyEvents.OnPasteAfterBlocksAreLoaded(level, fromShip, toShip, Pair(fromCenter, centerOfShip), eventData))
+
+            // Create's kinetic block entities (belts, shafts, etc.) bake position-dependent data (e.g. a
+            // belt segment's absolute "controller" BlockPos) into their saved NBT that's only valid at the
+            // position it was saved from. VS's placement here skips the full vanilla neighbor-update cascade
+            // Create normally relies on to detect this and discard the stale data, so we replicate that
+            // reset ourselves. See CreateAssemblyCompat for details.
+            //
+            // This is deliberately done here, once every chunk involved in the assembly is confirmed loaded
+            // (rather than immediately after placement), so that when the reset causes belts to recompute
+            // their chain on their next tick, every belt segment they might scan is guaranteed to already
+            // be in place. Doing this too early risked the scan racing chunks that hadn't finished loading,
+            // which Create can misread as the belt having been broken - destroying a block instead of
+            // reconnecting it (audible pop + block-break particles).
+            if (LoadedMods.create) {
+                CreateAssemblyCompat.fixMovedKineticBlockEntities(level, moveDestPositions)
+            }
             //force update connectivity because this new assemblyslop doesn't update it :(
             if (VSCoreConfig.SERVER.sp.enableConnectivity) {
                 for (pos in chunkPoses) {
@@ -377,7 +486,7 @@ object ShipAssembler {
             }
         }
 
-        return MoveContext(true, fromCenter, centerOfShip)
+        return MoveContext(true, fromCenter, centerOfShip, expectedCenterOfMass)
     }
 
     @JvmStatic
@@ -550,7 +659,14 @@ object ShipAssembler {
 
         // Phase 3: Execute all block moves
         val phase3Start = System.currentTimeMillis()
+        val allKineticFixPositions = ArrayList<BlockPos>()
         for (pending in pendingAssemblies) {
+            // Break any belt that this assembly would otherwise split across the ship/world boundary.
+            // See CreateAssemblyCompat.breakSplitBeltChains for details.
+            if (LoadedMods.create) {
+                CreateAssemblyCompat.breakSplitBeltChains(level, pending.blocks)
+            }
+
             // Cache block states during filtering to avoid double getBlockState calls
             val filteredBlocksWithState = mutableListOf<Pair<BlockPos, BlockState>>()
             for (pos in pending.blocks) {
@@ -612,6 +728,13 @@ object ShipAssembler {
                     val destPos = BlockPos(cornerOfShip.x + dx, cornerOfShip.y + dy, cornerOfShip.z + dz)
                     destPositions.add(destPos)
 
+                    // Clear any items carried by this belt before its block entity is removed below, so
+                    // removal doesn't eject them into the world as duplicates of the copy captured in
+                    // beTag above. See CreateAssemblyCompat.clearCarriedBeltItemsBeforeRemoval.
+                    if (LoadedMods.create) {
+                        CreateAssemblyCompat.clearCarriedBeltItemsBeforeRemoval(level, srcPos)
+                    }
+
                     // Remove source — use chunk-level setBlockState to bypass all MC
                     // neighbor update machinery. Skip sendBlockUpdated since source chunks
                     // are stalled by PacketStopChunkUpdates.
@@ -638,6 +761,10 @@ object ShipAssembler {
 
                 initSkyLightForShip(level, destPositions)
                 StructureMetadataRelocator.relocateStructureMetadata(level, filteredBlocks, pending.minB, pending.maxB, cornerOfShip)
+
+                if (LoadedMods.create) {
+                    allKineticFixPositions.addAll(destPositions)
+                }
             } else {
                 // Full StructureTemplate path for larger block sets
                 val template = StructureTemplate()
@@ -648,6 +775,13 @@ object ShipAssembler {
                     SingleItemMap(fromId, fromCenter, Vector3d()),
                     pending.minB, pending.maxB
                 )
+
+                // Clear any items carried by belts before their block entities are removed below, so
+                // removal doesn't eject them into the world as duplicates of what the template above
+                // already captured. See CreateAssemblyCompat.clearCarriedBeltItemsBeforeRemoval.
+                if (LoadedMods.create) {
+                    CreateAssemblyCompat.clearCarriedBeltItemsBeforeRemoval(level, filteredBlocks)
+                }
 
                 for (pos in filteredBlocks) {
                     level.getBlockEntity(pos)?.let {
@@ -683,10 +817,23 @@ object ShipAssembler {
                     BlockPos(cornerOfShip.x + dx, cornerOfShip.y + dy, cornerOfShip.z + dz)
                 }
                 initSkyLightForShip(level, destPositions2)
+
+                if (LoadedMods.create) {
+                    allKineticFixPositions.addAll(destPositions2)
+                }
             }
 
             // Set kinematics
-            val posOffset = Vector3d(pending.toShip.inertiaData.centerOfMass)
+            //NOTE: newBodyTransform's positionInModel field is read directly as the ship's center of mass
+            //(confirmed by the debug renderer), so it must be set to the real expected COM here, not
+            //centerOfShip (the geometric bounding-box center). Passing centerOfShip as positionInModel tells
+            //the engine the COM is somewhere it isn't; whatever reconciles positionInModel with the ship's
+            //real mass distribution on a later tick then re-derives position to match, producing the visible
+            //pop/lerp on off-center-COM ships. Passing the real expectedCenterOfMass up front avoids that.
+            val expectedCenterOfMass = computeExpectedCenterOfMass(
+                filteredBlocksWithState, pending.minB, cornerOfShip, centerOfShip
+            )
+            val posOffset = Vector3d(expectedCenterOfMass)
                 .sub(Vector3d(centerOfShip))
                 .let { pending.fromShip?.shipToWorld?.transformDirection(it) ?: it }
 
@@ -698,7 +845,7 @@ object ShipAssembler {
                     (pending.fromShip?.shipToWorld?.transformPosition(Vector3d(fromCenter)) ?: fromCenter).add(posOffset),
                     pending.fromShip?.transform?.shipToWorldRotation ?: Quaterniond(),
                     Vector3d(scale * oldScale, scale * oldScale, scale * oldScale),
-                    centerOfShip
+                    expectedCenterOfMass
                 )
             ))
             pending.toShip.isStatic = false
@@ -731,6 +878,11 @@ object ShipAssembler {
                     sendRestartChunkUpdates(allChunkPosesJOML, player.playerWrapper)
                 }
             }
+
+            if (allKineticFixPositions.isNotEmpty()) {
+                CreateAssemblyCompat.fixMovedKineticBlockEntities(level, allKineticFixPositions)
+            }
+
             // Batch connectivity updates for all destination chunks
             if (VSCoreConfig.SERVER.sp.enableConnectivity) {
                 for (pos in destChunkPoses) {
@@ -772,7 +924,7 @@ object ShipAssembler {
                 if (dropBlocks)
                     level.destroyBlock(BlockPos(x, y, z), true)
                 else
-                    // Not sure if 2 is what we want, but it's what /fill uses
+                // Not sure if 2 is what we want, but it's what /fill uses
                     level.setBlock(BlockPos(x, y, z), Blocks.AIR.defaultBlockState(), 2)
             }
         }

@@ -11,6 +11,7 @@ import net.minecraft.world.level.block.state.BlockState
 import org.valkyrienskies.core.util.datastructures.DenseBlockPosSet
 import org.valkyrienskies.mod.api.toBlockPos
 import org.valkyrienskies.mod.common.assembly.ShipAssembler
+import org.valkyrienskies.mod.common.assembly.ShipAssembler.ASSEMBLY_LOGGER
 import org.valkyrienskies.mod.common.isChunkInShipyard
 
 class ShipAssemblerItem(properties: Properties) : VSItem(properties) {
@@ -32,10 +33,19 @@ class ShipAssemblerItem(properties: Properties) : VSItem(properties) {
                     }
                 }
 
-                val shipData = ShipAssembler.assembleToShip(level, set.map { it.toBlockPos() }.toSet(), 1.0)
-                ctx.player?.sendSystemMessage(
-                    Component.translatable("command.valkyrienskies.shipify.success_one", shipData.slug)
-                )
+                val shipData = try {
+                    ShipAssembler.assembleToShip(level, set.map { it.toBlockPos() }.toSet(), 1.0)
+                } catch (e: Throwable) {
+                    ASSEMBLY_LOGGER.warn("Assembly failed (possibly nothing left to assemble)", e)
+                    null
+                }
+                if (shipData != null) {
+                    ctx.player?.sendSystemMessage(
+                        Component.translatable("command.valkyrienskies.shipify.success_one", shipData.slug)
+                    )
+                } else {
+                    ctx.player?.sendSystemMessage(Component.literal("Nothing to assemble!"))
+                }
             }
         }
 

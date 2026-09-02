@@ -436,6 +436,7 @@
     "feature.seamless_copy.MixinClientPacketListener",
     "feature.ship_debug_overlay.MixinDebugScreenOverlay",
     "feature.ship_world_light.client.renderer.MixinShaderInstance",
+    "feature.stable_ship_texture_seed.MixinBlockStateBaseGetSeed",
     "feature.shipyard_entities.MixinClientLevel",
     "feature.shipyard_entities.MixinEntityRenderDispatcher",
     "feature.shipyard_entities.MixinEntityRenderer",

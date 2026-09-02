@@ -34,6 +34,16 @@ public final class ShipSectionCompiler {
     private final ChunkBufferBuilderPack buffers = new ChunkBufferBuilderPack();
     private final RandomSource random = RandomSource.create();
     private final BlockPos.MutableBlockPos scratchPos = new BlockPos.MutableBlockPos();
+    // Used only for BlockState#getSeed(pos), which drives the pseudo-random model rotation/variant
+    // that blocks like grass, sand, and concrete use to reduce texture tiling. It must be seeded from
+    // a position that stays stable relative to the ship, not the raw absolute BlockPos of the block in
+    // the underlying shipyard chunk storage - that storage position is essentially arbitrary (assigned
+    // wherever the shipyard happens to allocate chunks for this ship) and has no relation to the block's
+    // original position in the world, so keying the seed off of it makes the chosen texture variant
+    // effectively re-randomized (commonly appearing as a 90-degree texture rotation on affected blocks)
+    // the moment a structure is assembled into a ship. Keying off the position relative to the mesh's
+    // own local origin instead keeps the seed - and therefore the rendered texture variant - stable.
+    private final BlockPos.MutableBlockPos seedPos = new BlockPos.MutableBlockPos();
     private final ShipShadeRemovingGetter shadeRemovingView = new ShipShadeRemovingGetter();
     private final OffsetVertexConsumer offsetConsumer = new OffsetVertexConsumer();
 
@@ -103,7 +113,8 @@ public final class ShipSectionCompiler {
                             if (hasModel) {
                                 final Object modelData = BatchedModelRenderer.INSTANCE
                                     .getModelData(renderView, level, scratchPos, state);
-                                random.setSeed(state.getSeed(scratchPos));
+                                seedPos.set(offX + lx, offY + ly, offZ + lz);
+                                random.setSeed(state.getSeed(seedPos));
                                 for (final RenderType blockLayer : BatchedModelRenderer.INSTANCE
                                     .getRenderTypes(dispatcher, state, random, modelData)) {
                                     if (blockLayer == translucentLayer) {

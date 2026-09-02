@@ -10,7 +10,7 @@ import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.networking.PacketSyncVSEntityTypes
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.vsCore
-import org.valkyrienskies.mod.compat.CreateCompat
+import org.valkyrienskies.mod.compat.create.CreateCompat
 import java.time.Duration
 import kotlin.text.RegexOption.IGNORE_CASE
 
