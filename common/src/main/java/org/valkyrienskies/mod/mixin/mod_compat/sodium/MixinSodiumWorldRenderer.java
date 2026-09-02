@@ -81,15 +81,9 @@ public abstract class MixinSodiumWorldRenderer implements SodiumWorldRendererDuc
     ) {
         final BlockPos pos = entity.getBlockPos();
 
-        // fix for https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues/818
-        if(!(dispatcher.level instanceof ClientLevel)) {
-            // fix for https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues/1162
-            instance.translate(x, y, z);
-            return;
-        };
-
-        final ClientLevel level = (ClientLevel) dispatcher.level;
-        final ClientShip ship = VSGameUtilsKt.getLoadedShipManagingPos(level, pos);
+        // We don't use the level from the BlockEntityRenderDispatcher because it might not be a ClientLevel
+        // see https://github.com/maruohon/litematica/issues/937 for more info
+        final ClientShip ship = (ClientShip) VSGameUtilsKt.getShipManagingPos(Minecraft.getInstance().level, pos);
 
         if (ship == null) {
             instance.translate(x, y, z);

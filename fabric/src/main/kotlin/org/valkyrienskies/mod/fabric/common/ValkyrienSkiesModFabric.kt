@@ -13,25 +13,25 @@ import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents
 import net.fabricmc.fabric.api.`object`.builder.v1.block.entity.FabricBlockEntityTypeBuilder
 import net.fabricmc.fabric.api.`object`.builder.v1.entity.FabricDefaultAttributeRegistry
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper
 import net.fabricmc.loader.api.FabricLoader
-import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.client.renderer.ShaderInstance
 import net.minecraft.client.renderer.entity.EntityRendererProvider.Context
 import net.minecraft.core.Registry
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.server.level.ServerPlayer
 import net.minecraft.server.packs.PackType.SERVER_DATA
 import net.minecraft.server.packs.resources.PreparableReloadListener.PreparationBarrier
 import net.minecraft.server.packs.resources.ResourceManager
 import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MobCategory
-import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.CreativeModeTabs
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.Item.Properties
@@ -66,7 +66,6 @@ import org.valkyrienskies.mod.common.blockentity.TestAntigravBlockEntity
 import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
 import org.valkyrienskies.mod.common.blockentity.TestThrusterBlockEntity
 import org.valkyrienskies.mod.common.command.VSCommands
-import org.valkyrienskies.mod.common.config.ConfigType
 import org.valkyrienskies.mod.common.config.DimensionParametersResolver
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.config.SlugDatapackResolver
@@ -85,6 +84,8 @@ import org.valkyrienskies.mod.common.item.ShipAssemblerItem
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
 import org.valkyrienskies.mod.common.item.ShipRemoverItem
 import org.valkyrienskies.mod.common.item.VSBlockItem
+import org.valkyrienskies.mod.common.playerWrapper
+import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.compat.LoadedMods
 import org.valkyrienskies.mod.compat.flywheel.FlywheelCompat
 import org.valkyrienskies.mod.compat.flywheel.ShipEmbeddingManager
@@ -106,8 +107,8 @@ class ValkyrienSkiesModFabric : ModInitializer {
         if (hasInitialized.getAndSet(true)) return
 
         ForgeConfigRegistry.INSTANCE.apply {
-            register(ValkyrienSkiesMod.MOD_ID, ModConfig.Type.SERVER, VSConfigUpdater.CORE_SERVER_SPEC, "valkyrienskies/vs-core-server.toml")
             register(ValkyrienSkiesMod.MOD_ID, ModConfig.Type.SERVER, VSConfigUpdater.SERVER_SPEC, "valkyrienskies/valkyrienskies-server.toml")
+            register(ValkyrienSkiesMod.MOD_ID, ModConfig.Type.SERVER, VSConfigUpdater.CORE_SERVER_SPEC, "valkyrienskies/vs-core-server.toml")
             register(ValkyrienSkiesMod.MOD_ID, ModConfig.Type.COMMON, VSConfigUpdater.COMMON_SPEC, "valkyrienskies/valkyrienskies-common.toml")
             register(ValkyrienSkiesMod.MOD_ID, ModConfig.Type.CLIENT, VSConfigUpdater.CLIENT_SPEC, "valkyrienskies/valkyrienskies-client.toml")
         }
@@ -268,6 +269,17 @@ class ValkyrienSkiesModFabric : ModInitializer {
             event.accept(AREA_ASSEMBLER_ITEM)
             event.accept(CLASSIC_AREA_ASSEMBLER_ITEM)
             event.accept(PHYSICS_ENTITY_CREATOR_ITEM)
+        }
+
+        ServerPlayConnectionEvents.JOIN.register { handler, sender, server ->
+            if (handler.player is ServerPlayer) {
+                val player: MinecraftPlayer = handler.player.playerWrapper
+                if (VSGameConfig.SERVER.allowBlockInfo) {
+                    MassDatapackResolver.syncBlockStates(player)
+                } else {
+                    MassDatapackResolver.clearBlockStates(player)
+                }
+            }
         }
 
         CommandRegistrationCallback.EVENT.register { dispatcher ,d, _ ->

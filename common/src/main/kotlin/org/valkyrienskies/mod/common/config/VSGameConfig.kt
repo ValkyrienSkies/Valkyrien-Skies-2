@@ -141,6 +141,11 @@ object VSGameConfig {
         @ConfigEntry(description = "Project ships into the world's lighting at render time so ships occlude sunlight on the ground beneath them and ship-internal torches illuminate nearby world blocks (sodium/embeddium only). Experimental — overrides sodium's stock world-chunk shader. Disable for the default vanilla behavior where ships don't affect world lighting.")
         var dynamicShipToWorldLighting = false
 
+        @ConfigEntry(description = "Enable searching by block physical properties in JEI")
+        var jeiSearch = true
+
+        @ConfigEntry(description = "Prefix character used for searching block properties. Must be a single character!")
+        var searchPrefix = "~"
     }
 
     class Server {
@@ -395,6 +400,11 @@ object VSGameConfig {
         var minScaling = 0.25
 
         @ConfigEntry(
+            description = "If players can see block info (mass, friction, elasticity). Disabling this will also disable JEI search."
+        )
+        var allowBlockInfo = true // they call me jade because i be showin block info
+
+        @ConfigEntry(
             description = "Default mass for blocks that do not have it defined in data or code. Blocks with masses below 100 float in water"
         )
         var defaultBlockMass = 1000.0
@@ -439,59 +449,102 @@ object VSGameConfig {
 
         class COMMANDS {
             @ConfigEntry(
-                description = "The permission level required to use the /vs delete command. Must be 0 <= x <= 4"
+                description = "The permission level required to use the /vs delete command",
+                min = 0.0,
+                max = 4.0
             )
             var deleteShipCommandPerms = 2
 
             @ConfigEntry(
-                description = "The permission level required to use the /vs get-ship command. Must be 0 <= x <= 4"
+                description = "The permission level required to use the /vs get-ship command",
+                min = 0.0,
+                max = 4.0
             )
             var getShipCommandPerms = 0
 
             @ConfigEntry(
-                description = "The permission level required to use the /vs get-air and /vs get-gravity command. Must be 0 <= x <= 4"
+                description = "The permission level required to use the /vs get-air and /vs get-gravity command",
+                min = 0.0,
+                max = 4.0
             )
             var getAirValuesPerms = 0
 
             @ConfigEntry(
-                description = "The permission level required to use the /vs rename command. Must be 0 <= x <= 4"
+                description = "The permission level required to use the /vs rename command",
+                min = 0.0,
+                max = 4.0
             )
             var renameShipCommandPerms = 2
 
             @ConfigEntry(
-                description = "The permission level required to use the /vs remass command. Must be 0 <= x <= 4"
+                description = "The permission level required to use the /vs remass command",
+                min = 0.0,
+                max = 4.0
             )
             var remassShipCommandPerms = 2
 
             @ConfigEntry(
-                description = "The permission level required to use the /vs scale command. Must be 0 <= x <= 4"
+                description = "The permission level required to use the /vs scale command",
+                min = 0.0,
+                max = 4.0
             )
             var scaleShipCommandPerms = 2
 
             @ConfigEntry(
-                description = "The permission level required to use the /vs set-static command. Must be 0 <= x <= 4"
+                description = "The permission level required to use the /vs set-static command",
+                min = 0.0,
+                max = 4.0
             )
             var setStaticShipCommandPerms = 2
 
             @ConfigEntry(
-                description = "The permission level required to use the /vs teleport command. Must be 0 <= x <= 4"
+                description = "The permission level required to use the /vs teleport command",
+                min = 0.0,
+                max = 4.0
             )
             var teleportShipCommandPerms = 2
 
             @ConfigEntry(
-                description = "The permission level required to use the /vs backend command. Must be 0 <= x <= 4"
+                description = "The permission level required to use the /vs backend command",
+                min = 0.0,
+                max = 4.0
             )
             var changeBackendCommandPerms = 4
 
             @ConfigEntry(
-                description = "The permission level required to use the /vs dry command. Must be 0 <= x <= 4"
+                description = "The permission level required to use the /vs dry command",
+                min = 0.0,
+                max = 4.0
             )
             var dryShipCommandPerms = 2
 
             @ConfigEntry(
-                description = "The permission level required to use the /vs apply (force/torque) command. Must be 0 <= x <= 4"
+                description = "The permission level required to use the /vs apply (force/torque) command",
+                min = 0.0,
+                max = 4.0
             )
             var applyCommandPerms = 2
+
+            @ConfigEntry(
+                description = "The permission level required to use the /vs config (get/set) command",
+                min = 0.0,
+                max = 4.0
+            )
+            var configCommandPerms = 2
+
+            @ConfigEntry(
+                description = "The permission level required to use the /vs gravity command",
+                min = 0.0,
+                max = 4.0
+            )
+            var setGravityCommandPerms = 2
+
+            @ConfigEntry(
+                description = "The permission level required to use the /vs splitting command",
+                min = 0.0,
+                max = 4.0
+            )
+            var setSplittingCommandPerms = 2
         }
     }
 

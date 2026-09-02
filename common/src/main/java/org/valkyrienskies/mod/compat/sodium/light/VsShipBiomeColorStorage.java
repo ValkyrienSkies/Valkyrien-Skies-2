@@ -253,6 +253,8 @@ public class VsShipBiomeColorStorage {
     private void ensureGlObjects() {
         if (sectionsBuffer == 0) {
             sectionsBuffer = GL15.glGenBuffers();
+            GL15.glBindBuffer(GL31.GL_TEXTURE_BUFFER, sectionsBuffer);
+            GL15.glBindBuffer(GL31.GL_TEXTURE_BUFFER, 0);
         }
         if (sectionsTexture == 0) {
             sectionsTexture = GL11.glGenTextures();
@@ -262,6 +264,8 @@ public class VsShipBiomeColorStorage {
         }
         if (lutBuffer == 0) {
             lutBuffer = GL15.glGenBuffers();
+            GL15.glBindBuffer(GL31.GL_TEXTURE_BUFFER, lutBuffer);
+            GL15.glBindBuffer(GL31.GL_TEXTURE_BUFFER, 0);
         }
         if (lutTexture == 0) {
             lutTexture = GL11.glGenTextures();

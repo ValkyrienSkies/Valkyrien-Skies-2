@@ -297,8 +297,8 @@ class GameToPhysicsAdapter {
      *
      * @see [getJointById]
      */
-    fun getJointsFromShip(shipId: ShipId): Set<VSJointId>? {
-        return shipToJointIds[shipId]
+    fun getJointsFromShip(shipId: ShipId): Set<VSJointId> {
+        return shipToJointIds[shipId] ?: emptySet()
     }
 
     /**

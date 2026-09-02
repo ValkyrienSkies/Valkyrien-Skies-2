@@ -16,11 +16,12 @@ import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.material.FlowingFluid
 import net.minecraft.world.level.material.Fluid
 import net.minecraft.world.level.material.FluidState
 import net.minecraft.world.level.material.Fluids
-import net.minecraft.world.level.material.FlowingFluid
 import net.minecraft.world.phys.shapes.VoxelShape
+import org.jetbrains.annotations.ApiStatus
 import org.joml.Vector3d
 import org.joml.primitives.AABBi
 import org.joml.primitives.AABBic
@@ -31,9 +32,12 @@ import org.valkyrienskies.core.api.physics.blockstates.SolidBlockShape
 import org.valkyrienskies.core.internal.physics.blockstates.VsiBlockState
 import org.valkyrienskies.core.internal.world.chunks.VsiBlockType
 import org.valkyrienskies.mod.api_impl.events.RegisterBlockStateEventImpl
+import org.valkyrienskies.mod.client.ClientBlockInfo
 import org.valkyrienskies.mod.common.BlockStateInfoProvider
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.hooks.VSGameEvents
+import org.valkyrienskies.mod.common.networking.PacketSyncBlockStateInfo
+import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.vsCore
 import org.valkyrienskies.mod.mixin.accessors.world.level.block.SlabBlockAccessor
 import org.valkyrienskies.mod.mixin.accessors.world.level.block.StairBlockAccessor
@@ -48,7 +52,7 @@ private data class VSBlockStateInfo(
     val friction: Double,
     val elasticity: Double,
     val type: VsiBlockType?,
-    val noCollisionOverride: Boolean?,
+    val noCollision: Boolean?,
 )
 
 object MassDatapackResolver : BlockStateInfoProvider {
@@ -65,6 +69,12 @@ object MassDatapackResolver : BlockStateInfoProvider {
 
     override fun getBlockStateMass(blockState: BlockState): Double? =
         map[BuiltInRegistries.BLOCK.getKey(blockState.block)]?.mass
+
+    fun getBlockStateFriction(blockState: BlockState): Double? =
+        map[BuiltInRegistries.BLOCK.getKey(blockState.block)]?.friction
+
+    fun getBlockStateElasticity(blockState: BlockState): Double? =
+        map[BuiltInRegistries.BLOCK.getKey(blockState.block)]?.elasticity
 
     override fun getBlockStateType(blockState: BlockState): VsiBlockType? {
         val vsState = mcBlockStateToVs[blockState] ?: return null
@@ -135,7 +145,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
                             add(
                                 VSBlockStateInfo(
                                     BuiltInRegistries.BLOCK.getKey(it.value()), tagInfo.priority, tagInfo.mass, tagInfo.friction,
-                                    tagInfo.elasticity, tagInfo.type, tagInfo.noCollisionOverride
+                                    tagInfo.elasticity, tagInfo.type, tagInfo.noCollision
                                 )
                             )
                         }
@@ -162,22 +172,21 @@ object MassDatapackResolver : BlockStateInfoProvider {
 
         private fun parse(element: JsonElement, origin: ResourceLocation) {
             val tag = element.asJsonObject["tag"]?.asString
-            val weight = element.asJsonObject["mass"]?.asDouble
-                ?: throw IllegalArgumentException("No mass in file $origin")
+            val weight = element.asJsonObject["mass"]?.asDouble ?: VSGameConfig.SERVER.defaultBlockMass
             val friction = element.asJsonObject["friction"]?.asDouble ?: VSGameConfig.SERVER.defaultBlockFriction
             val elasticity = element.asJsonObject["elasticity"]?.asDouble ?: VSGameConfig.SERVER.defaultBlockElasticity
 
             val priority = element.asJsonObject["priority"]?.asInt ?: decideDefaultPriority(origin)
 
-            val overrideNoCollision = element.asJsonObject["no_collision"]?.asBoolean
+            val noCollision = element.asJsonObject["no_collision"]?.asBoolean ?: false
 
             if (tag != null) {
-                addToBeAddedTags(VSBlockStateInfo(ResourceLocation(tag), priority, weight, friction, elasticity, null, overrideNoCollision))
+                addToBeAddedTags(VSBlockStateInfo(ResourceLocation(tag), priority, weight, friction, elasticity, null, noCollision))
             } else {
                 val block = element.asJsonObject["block"]?.asString
                     ?: throw IllegalArgumentException("No block or tag in file $origin")
 
-                add(VSBlockStateInfo(ResourceLocation(block), priority, weight, friction, elasticity, null, overrideNoCollision))
+                add(VSBlockStateInfo(ResourceLocation(block), priority, weight, friction, elasticity, null, noCollision))
             }
         }
     }
@@ -418,8 +427,8 @@ object MassDatapackResolver : BlockStateInfoProvider {
 
                     val vsBlockStateInfo = map[BuiltInRegistries.BLOCK.getKey(blockState.block)]
 
-                    // If overrideNoCollision is set to true in datapack, force it to have no collision shape
-                    if (vsBlockStateInfo?.noCollisionOverride ?: false) {
+                    // If noCollision is set to true in datapack, force it to have no collision shape
+                    if (vsBlockStateInfo?.noCollision ?: false) {
                         // Won't ever be null with an empty list
                         collisionShape = vsCore.solidShapeUtils.generateShapeFromBoxes(mutableListOf())!!
                     }
@@ -447,6 +456,36 @@ object MassDatapackResolver : BlockStateInfoProvider {
 
         runRegisterBlockStateEvent()
         registeredBlocks = true
+    }
+
+    /**
+     * For internal use only, used to sync blockstate info from server to client and should not be called otherwise.
+     */
+    @ApiStatus.Internal
+    fun syncBlockStates(player: MinecraftPlayer) {
+        logger.info("Syncing ${mcBlockStateToVs.size} blockstates to ${player.uuid}")
+        with(vsCore.simplePacketNetworking) {
+            val resourceLoc2VS: Map<String, ClientBlockInfo> =
+                mcBlockStateToVs.entries.associate { (blockState, vsState) ->
+                    val id = BuiltInRegistries.BLOCK.getKey(blockState.block)
+                    val clientInfo = ClientBlockInfo(
+                        getBlockStateMass(blockState) ?: VSGameConfig.SERVER.defaultBlockMass,
+                        vsState.solidState?.friction ?: VSGameConfig.SERVER.defaultBlockFriction,
+                        vsState.solidState?.elasticity ?: VSGameConfig.SERVER.defaultBlockElasticity,
+                    )
+                    id.toString() to clientInfo
+                }.toMap()
+
+            PacketSyncBlockStateInfo(resourceLoc2VS).sendToClient(player)
+        }
+    }
+
+    @ApiStatus.Internal
+    fun clearBlockStates(player: MinecraftPlayer) {
+        logger.info("Clearing synced blockstates from ${player.uuid}")
+        with(vsCore.simplePacketNetworking) {
+            PacketSyncBlockStateInfo(HashMap()).sendToClient(player)
+        }
     }
 
     private fun runRegisterBlockStateEvent() {

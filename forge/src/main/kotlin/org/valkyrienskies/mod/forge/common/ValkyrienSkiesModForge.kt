@@ -2,14 +2,13 @@ package org.valkyrienskies.mod.forge.common
 
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import dev.engine_room.flywheel.api.event.ReloadLevelRendererEvent
-import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.ShaderInstance
 import net.minecraft.commands.Commands.CommandSelection.ALL
 import net.minecraft.commands.Commands.CommandSelection.INTEGRATED
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MobCategory
-import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.CreativeModeTabs
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.Item.Properties
@@ -23,6 +22,7 @@ import net.minecraftforge.event.BuildCreativeModeTabContentsEvent
 import net.minecraftforge.event.RegisterCommandsEvent
 import net.minecraftforge.event.TagsUpdatedEvent
 import net.minecraftforge.event.entity.EntityAttributeCreationEvent
+import net.minecraftforge.event.entity.player.PlayerEvent
 import net.minecraftforge.fml.ModList
 import net.minecraftforge.fml.ModLoadingContext
 import net.minecraftforge.fml.common.Mod
@@ -64,7 +64,6 @@ import org.valkyrienskies.mod.common.blockentity.TestAntigravBlockEntity
 import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
 import org.valkyrienskies.mod.common.blockentity.TestThrusterBlockEntity
 import org.valkyrienskies.mod.common.command.VSCommands
-import org.valkyrienskies.mod.common.config.ConfigType
 import org.valkyrienskies.mod.common.config.DimensionParametersResolver
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.config.SlugDatapackResolver
@@ -83,12 +82,14 @@ import org.valkyrienskies.mod.common.item.ShipAssemblerItem
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
 import org.valkyrienskies.mod.common.item.ShipRemoverItem
 import org.valkyrienskies.mod.common.item.VSBlockItem
+import org.valkyrienskies.mod.common.playerWrapper
+import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.compat.LoadedMods
-import org.valkyrienskies.mod.compat.flywheel.ShipEmbeddingManager
-import org.valkyrienskies.mod.forge.compat.dynmap.ForgeDynmapHandler
 import org.valkyrienskies.mod.compat.flywheel.FlywheelCompat
+import org.valkyrienskies.mod.compat.flywheel.ShipEmbeddingManager
 import org.valkyrienskies.mod.compat.hexcasting.HexcastingCompat
 import org.valkyrienskies.mod.forge.client.ValkyrienSkiesModForgeClient
+import org.valkyrienskies.mod.forge.compat.dynmap.ForgeDynmapHandler
 import org.valkyrienskies.mod.forge.compat.epicfight.FracturedBlockStateInfoProvider
 import org.valkyrienskies.mod.forge.compat.hexcasting.ForgeShipAmbit
 import org.valkyrienskies.mod.util.ClientConnectivityUpdateQueue
@@ -126,8 +127,8 @@ class ValkyrienSkiesModForge {
         val forgeBus = Bus.FORGE.bus().get()
 
         ModLoadingContext.get().apply {
-            registerConfig(ModConfig.Type.SERVER, VSConfigUpdater.CORE_SERVER_SPEC, "valkyrienskies/vs-core-server.toml")
             registerConfig(ModConfig.Type.SERVER, VSConfigUpdater.SERVER_SPEC, "valkyrienskies/valkyrienskies-server.toml")
+            registerConfig(ModConfig.Type.SERVER, VSConfigUpdater.CORE_SERVER_SPEC, "valkyrienskies/vs-core-server.toml")
             registerConfig(ModConfig.Type.COMMON, VSConfigUpdater.COMMON_SPEC, "valkyrienskies/valkyrienskies-common.toml")
             registerConfig(ModConfig.Type.CLIENT, VSConfigUpdater.CLIENT_SPEC, "valkyrienskies/valkyrienskies-client.toml")
         }
@@ -158,6 +159,7 @@ class ValkyrienSkiesModForge {
             }
         }
         modBus.addListener(::loadComplete)
+        forgeBus.addListener(::playerJoin)
 
         forgeBus.addListener(::registerCommands)
         forgeBus.addListener(::tagsUpdated)
@@ -381,6 +383,17 @@ class ValkyrienSkiesModForge {
 
     private fun tagsUpdated(event: TagsUpdatedEvent) {
         VSGameEvents.tagsAreLoaded.emit(Unit)
+    }
+
+    private fun playerJoin(event: PlayerEvent.PlayerLoggedInEvent) {
+        if (event.entity is ServerPlayer) {
+            val player: MinecraftPlayer = event.entity.playerWrapper
+            if (VSGameConfig.SERVER.allowBlockInfo) {
+                MassDatapackResolver.syncBlockStates(player)
+            } else {
+                MassDatapackResolver.clearBlockStates(player)
+            }
+        }
     }
 
     private fun loadComplete(event: FMLLoadCompleteEvent) {

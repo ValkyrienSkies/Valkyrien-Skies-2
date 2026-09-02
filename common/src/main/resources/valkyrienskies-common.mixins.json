@@ -364,6 +364,7 @@
     "mod_compat.hexcasting.hexal.MixinRenderHelper",
     "mod_compat.hexcasting.hexal.MixinServerLinkableHolder",
     "mod_compat.immersive_portals.MixinIpNewChunkTrackingGraph",
+    "mod_compat.jei.MixinElementPrefixParser",
     "mod_compat.moonlight.MixinFakeServerLevel",
     "mod_compat.reachentityattributes.MixinReachEntityAttributes",
     "mod_compat.theatrical.MixinBaseLightBlockEntity",

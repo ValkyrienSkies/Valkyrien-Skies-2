@@ -9,17 +9,19 @@ import org.joml.Quaterniond
 import org.joml.Quaterniondc
 import org.joml.Vector3d
 import org.joml.Vector3dc
+import org.valkyrienskies.core.api.ships.ShipTeleportData
 import org.valkyrienskies.core.api.world.ShipWorld
 import org.valkyrienskies.core.api.world.properties.DimensionId
-import org.valkyrienskies.core.api.ships.ShipTeleportData
 import org.valkyrienskies.mod.common.command.arguments.ContraptionSelectorOptions
 import org.valkyrienskies.mod.common.command.commands.BackendCommand
+import org.valkyrienskies.mod.common.command.commands.ConfigCommand
 import org.valkyrienskies.mod.common.command.commands.DeleteCommand
 import org.valkyrienskies.mod.common.command.commands.DryCommand
 import org.valkyrienskies.mod.common.command.commands.ApplyCommand
 import org.valkyrienskies.mod.common.command.commands.GetAirCommand
 import org.valkyrienskies.mod.common.command.commands.GetGravityCommand
 import org.valkyrienskies.mod.common.command.commands.GetShipCommand
+import org.valkyrienskies.mod.common.command.commands.GravityCommand
 import org.valkyrienskies.mod.common.command.commands.RemassCommand
 import org.valkyrienskies.mod.common.command.commands.RenameCommand
 import org.valkyrienskies.mod.common.command.commands.ScaleCommand
@@ -40,6 +42,7 @@ object VSCommands {
         var vs = literal("vs")
 
         BackendCommand.register(vs)
+        ConfigCommand.register(vs)
         DeleteCommand.register(vs)
         DryCommand.register(vs)
         ApplyCommand.register(vs)
@@ -51,6 +54,7 @@ object VSCommands {
         SchematicCommand.register(vs)
         ScaleCommand.register(vs)
         SplittingCommand.register(vs)
+        GravityCommand.register(vs)
         PerfTestCommand.register(vs)
         StaticCommand.register(vs)
         TeleportCommand.register(vs)

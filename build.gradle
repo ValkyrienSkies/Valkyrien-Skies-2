@@ -251,6 +251,7 @@ subprojects {
                     includeGroup("at.petra-k.hexcasting")
                     includeGroup("at.petra-k.paucal")
                     includeGroup("vazkii.patchouli")
+                    includeGroup("mezz.jei")
                 }
             }
             maven { // Hexal

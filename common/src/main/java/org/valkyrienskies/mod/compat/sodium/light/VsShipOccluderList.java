@@ -168,7 +168,11 @@ public class VsShipOccluderList {
     }
 
     private void ensureGlObjects() {
-        if (buffer == 0) buffer = GL15.glGenBuffers();
+        if (buffer == 0) {
+            buffer = GL15.glGenBuffers();
+            GL15.glBindBuffer(GL31.GL_TEXTURE_BUFFER, buffer);
+            GL15.glBindBuffer(GL31.GL_TEXTURE_BUFFER, 0);
+        }
         if (texture == 0) {
             texture = GL11.glGenTextures();
             GL11.glBindTexture(GL31.GL_TEXTURE_BUFFER, texture);

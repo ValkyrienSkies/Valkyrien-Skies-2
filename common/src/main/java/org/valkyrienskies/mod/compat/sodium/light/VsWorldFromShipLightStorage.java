@@ -617,14 +617,22 @@ public class VsWorldFromShipLightStorage {
     public Set<Long> trackedSections() { return Set.copyOf(section2Index.keySet()); }
 
     private void ensureGlObjects() {
-        if (sectionsBuffer == 0) sectionsBuffer = GL15.glGenBuffers();
+        if (sectionsBuffer == 0) {
+            sectionsBuffer = GL15.glGenBuffers();
+            GL15.glBindBuffer(GL31.GL_TEXTURE_BUFFER, sectionsBuffer);
+            GL15.glBindBuffer(GL31.GL_TEXTURE_BUFFER, 0);
+        }
         if (sectionsTexture == 0) {
             sectionsTexture = GL11.glGenTextures();
             GL11.glBindTexture(GL31.GL_TEXTURE_BUFFER, sectionsTexture);
             GL31.glTexBuffer(GL31.GL_TEXTURE_BUFFER, GL_R32UI(), sectionsBuffer);
             GL11.glBindTexture(GL31.GL_TEXTURE_BUFFER, 0);
         }
-        if (lutBuffer == 0) lutBuffer = GL15.glGenBuffers();
+        if (lutBuffer == 0) {
+            lutBuffer = GL15.glGenBuffers();
+            GL15.glBindBuffer(GL31.GL_TEXTURE_BUFFER, lutBuffer);
+            GL15.glBindBuffer(GL31.GL_TEXTURE_BUFFER, 0);
+        }
         if (lutTexture == 0) {
             lutTexture = GL11.glGenTextures();
             GL11.glBindTexture(GL31.GL_TEXTURE_BUFFER, lutTexture);

@@ -16,7 +16,7 @@ object SplittingCommand {
 
     fun register(vs: LiteralArgumentBuilder<CommandSourceStack>) {
         vs.then(literal("splitting")
-            .requires{ it.hasPermission(VSGameConfig.SERVER.Commands.deleteShipCommandPerms)}
+            .requires{ it.hasPermission(VSGameConfig.SERVER.Commands.setSplittingCommandPerms)}
             .then(argument("ships", ShipArgument.ships())
                 .then(argument("enable", BoolArgumentType.bool())
                     .executes {

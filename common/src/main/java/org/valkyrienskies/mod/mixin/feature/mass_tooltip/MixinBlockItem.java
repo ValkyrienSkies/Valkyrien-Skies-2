@@ -1,8 +1,8 @@
 package org.valkyrienskies.mod.mixin.feature.mass_tooltip;
 
 import java.util.List;
-import java.util.Objects;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
@@ -13,7 +13,8 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.mod.common.BlockStateInfo;
+import org.valkyrienskies.mod.client.ClientBlockInfo;
+import org.valkyrienskies.mod.client.ClientBlockStateInfo;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.mixinducks.feature.mass_tooltip.MassTooltipVisibility;
 import oshi.util.tuples.Pair;
@@ -24,12 +25,11 @@ public class MixinBlockItem {
     private void ValkyrienSkies$addMassToTooltip(final ItemStack itemStack, final Level level,
         final List<Component> list, final TooltipFlag tooltipFlag, final CallbackInfo ci) {
         final MassTooltipVisibility visibility = VSGameConfig.CLIENT.getTooltip().getMassTooltipVisibility();
-        if (visibility.isVisible(tooltipFlag)) {
+        if (visibility.isVisible(tooltipFlag) && ClientBlockStateInfo.INSTANCE.getClientHasMassInfo()) {
             try {
                 final BlockItem item = (BlockItem) itemStack.getItem();
-                final Double mass =
-                    Objects.requireNonNull(BlockStateInfo.INSTANCE.get(item.getBlock().defaultBlockState()))
-                        .getFirst();
+                final ClientBlockInfo info = ClientBlockStateInfo.INSTANCE.getBlockInfo(BuiltInRegistries.BLOCK.getKey(item.getBlock()));
+                final double mass = info != null ? info.getMass() : 1000;
                 list.add(Component.translatable("tooltip.valkyrienskies.mass")
                     .append(VSGameConfig.CLIENT.getTooltip().getUseImperialUnits() ?
                         getImperialText(mass) : ": " + mass + "kg").withStyle(ChatFormatting.DARK_GRAY));

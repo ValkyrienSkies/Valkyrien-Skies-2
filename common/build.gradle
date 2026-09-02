@@ -96,6 +96,10 @@ dependencies {
 
     modCompileOnly("maven.modrinth:theatrical:1.0.0-alpha.28.120+mc1.20.1")
 
+    // JEI
+    modCompileOnlyApi("mezz.jei:jei-${minecraft_version}-common-api:15.20.0.112")
+    modCompileOnly("maven.modrinth:jei:MdKE2PdF")
+
     // Unit testing
     def kotestVersion = "5.4.1"
     testImplementation "org.junit.jupiter:junit-jupiter-api:5.8.1"
