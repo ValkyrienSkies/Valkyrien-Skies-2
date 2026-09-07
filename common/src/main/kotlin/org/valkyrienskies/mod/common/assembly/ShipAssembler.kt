@@ -53,7 +53,6 @@ import org.valkyrienskies.mod.mixin.accessors.server.level.ServerChunkCacheAcces
 import org.valkyrienskies.mod.util.AIR
 import org.valkyrienskies.mod.util.StructureTemplateFillFromVoxelSet
 import org.valkyrienskies.mod.util.logger
-import org.valkyrienskies.mod.util.resetIfPressedButton
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.locks.LockSupport
 
@@ -268,18 +267,10 @@ object ShipAssembler {
             val splittingDisabler = fromShip.getAttachment(SplittingDisablerAttachment::class.java)
             wasSplittingEnabled = splittingDisabler?.canSplit() != false
             splittingDisabler?.disableSplitting()
-
         }
 
         // ========== Copy Blocks
         VSAssemblyEvents.beforeCopy.emit(VSAssemblyEvents.BeforeCopy(level, oldMin, oldMax, fromCenter, fromShip, blocks, eventData))
-
-        for ((pos, state) in blocksWithState) {
-            val resetState = state.resetIfPressedButton()
-            if (resetState !== state) {
-                level.getChunkAt(pos).setBlockState(pos, resetState, false)
-            }
-        }
 
         val template = StructureTemplate()
         template as StructureTemplateFillFromVoxelSet
@@ -713,7 +704,7 @@ object ShipAssembler {
                     // which are unnecessary while dest chunks are stalled.
                     // LevelChunk.setBlockState handles block entity creation internally.
                     val destChunk = level.getChunkAt(destPos)
-                    destChunk.setBlockState(destPos, state.resetIfPressedButton(), false)
+                    destChunk.setBlockState(destPos, state, false)
                     beTag?.let { tag ->
                         tag.putInt("x", destPos.x)
                         tag.putInt("y", destPos.y)
@@ -730,13 +721,6 @@ object ShipAssembler {
                 }
             } else {
                 // Full StructureTemplate path for larger block sets
-                for ((pos, state) in filteredBlocksWithState) {
-                    val resetState = state.resetIfPressedButton()
-                    if (resetState !== state) {
-                        level.getChunkAt(pos).setBlockState(pos, resetState, false)
-                    }
-                }
-
                 val template = StructureTemplate()
                 template as StructureTemplateFillFromVoxelSet
                 template.`vs$fillFromVoxelSet`(

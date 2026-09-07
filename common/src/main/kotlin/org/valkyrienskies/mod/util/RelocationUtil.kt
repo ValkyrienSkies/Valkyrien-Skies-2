@@ -6,23 +6,15 @@ import net.minecraft.world.Clearable
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
-import net.minecraft.world.level.block.ButtonBlock
 import net.minecraft.world.level.block.Rotation
 import net.minecraft.world.level.block.Rotation.NONE
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity
 import net.minecraft.world.level.block.state.BlockState
-import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.chunk.LevelChunk
 import org.valkyrienskies.core.api.ships.ServerShip
 
 val AIR = Blocks.AIR.defaultBlockState()
-
-fun BlockState.resetIfPressedButton(): BlockState {
-    if (block !is ButtonBlock) return this
-    if (!getValue(BlockStateProperties.POWERED)) return this
-    return setValue(BlockStateProperties.POWERED, false)
-}
 
 /**
  * Relocate block
@@ -38,7 +30,7 @@ fun relocateBlock(
     fromChunk: LevelChunk, from: BlockPos, toChunk: LevelChunk, to: BlockPos, doUpdate: Boolean, toShip: ServerShip?,
     rotation: Rotation = NONE
 ) {
-    var state = fromChunk.getBlockState(from).resetIfPressedButton()
+    var state = fromChunk.getBlockState(from)
     val entity = fromChunk.getBlockEntity(from)
 	val level = toChunk.level
 	
