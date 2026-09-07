@@ -40,8 +40,8 @@ object BackendCommand {
                     }
                 ).then(literal("DEFAULT")
                     .executes {
-                        VSCoreConfig.SERVER.physics.physicsBackend = ConfigPhysicsBackendType.KRUNCH_CLASSIC
-                        (VSConfigUpdater.forgeConfigValuesMap.get("physicsBackend") as ForgeConfigSpec.ConfigValue<String>).set(ConfigPhysicsBackendType.KRUNCH_CLASSIC.name)
+                        VSCoreConfig.SERVER.physics.physicsBackend = ConfigPhysicsBackendType.KRUNCH_KONSTANT
+                        (VSConfigUpdater.forgeConfigValuesMap.get("physicsBackend") as ForgeConfigSpec.ConfigValue<String>).set(ConfigPhysicsBackendType.KRUNCH_KONSTANT.name)
 
                         it.source.sendSuccess(
                             {

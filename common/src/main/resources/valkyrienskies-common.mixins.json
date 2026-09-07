@@ -20,6 +20,7 @@
     "accessors.world.level.block.StairBlockAccessor",
     "accessors.world.level.pathfinder.PathAccessor",
     "accessors.world.level.pathfinder.WalkNodeEvaluatorInvoker",
+    "accessors.world.ticks.LevelTicksAccessor",
     "commands.argument.selector.MixinEntitySelectorParser",
     "entity.MixinEntity",
     "feature.ai.bell.MixinBellBlockEntity",
