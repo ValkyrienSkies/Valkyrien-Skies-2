@@ -66,7 +66,7 @@ import org.valkyrienskies.mod.common.blockentity.TestAntigravBlockEntity
 import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
 import org.valkyrienskies.mod.common.blockentity.TestThrusterBlockEntity
 import org.valkyrienskies.mod.common.command.VSCommands
-import org.valkyrienskies.mod.common.config.BlockStateInfoResolver
+import org.valkyrienskies.mod.common.blockstate.BlockStateInfoResolver
 import org.valkyrienskies.mod.common.config.DimensionParametersResolver
 import org.valkyrienskies.mod.common.config.SlugDatapackResolver
 import org.valkyrienskies.mod.common.config.VSConfigUpdater

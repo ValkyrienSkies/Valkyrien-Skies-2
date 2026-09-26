@@ -23,7 +23,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.mod.client.ClientBlockStateInfo;
-import org.valkyrienskies.mod.common.config.SolidStateProperties;
+import org.valkyrienskies.mod.common.blockstate.SolidStateProperties;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.compat.jei.NumericAttributeStorage;
 

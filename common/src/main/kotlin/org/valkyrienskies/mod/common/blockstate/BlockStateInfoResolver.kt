@@ -1,10 +1,9 @@
-package org.valkyrienskies.mod.common.config
+package org.valkyrienskies.mod.common.blockstate
 
 import com.google.gson.Gson
 import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
-import net.minecraft.commands.arguments.blocks.BlockStateParser
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceLocation
@@ -14,7 +13,6 @@ import net.minecraft.tags.TagKey
 import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
-import net.minecraft.world.level.block.state.properties.Property
 import net.minecraft.world.level.material.Fluid
 import net.minecraft.world.level.material.FluidState
 import net.minecraft.world.phys.shapes.VoxelShape
@@ -22,176 +20,36 @@ import org.jetbrains.annotations.ApiStatus.Internal
 import org.joml.Vector3d
 import org.joml.primitives.AABBi
 import org.joml.primitives.AABBic
-import org.valkyrienskies.core.api.physics.blockstates.LiquidState
-import org.valkyrienskies.core.api.physics.blockstates.DisplacementState
 import org.valkyrienskies.core.api.physics.blockstates.SolidBlockShape
-import org.valkyrienskies.core.api.physics.blockstates.SolidState
 import org.valkyrienskies.core.internal.physics.blockstates.VsiBlockState
+import org.valkyrienskies.core.internal.world.chunks.VsiBlockType
 import org.valkyrienskies.mod.api_impl.events.RegisterBlockStateEventImpl
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.config.MassDatapackResolver.decideDefaultPriority
+import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.networking.PacketSyncBlockStateProperties
 import org.valkyrienskies.mod.common.util.BlockShapeUtil
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.vsCore
 import org.valkyrienskies.mod.util.logger
-import oshi.util.tuples.Pair
 import java.util.function.Predicate
 import java.util.regex.Pattern
-import kotlin.math.roundToInt
 import kotlin.system.measureNanoTime
 
-// massive fucking file oml
-
-// region data classes
-/**
- * @see [SolidState]
- */
-data class SolidStateProperties (
-    val mass: Double,
-    val friction: Double,
-    val elasticity: Double,
-    val hardness: Double,
-    val noCollision: Boolean = false,
-    val shapeOverride: AABBic? = null
-) {
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is SolidStateProperties) return false
-
-        return mass == other.mass && friction == other.friction && elasticity == other.elasticity && hardness == other.hardness && noCollision == other.noCollision && shapeOverride == other.shapeOverride
-    }
-
-    override fun hashCode(): Int { // hashbrowns are good but have you ever tried hashcodes
-        var result = mass.hashCode()
-        result = 31 * result + friction.hashCode()
-        result = 31 * result + elasticity.hashCode()
-        result = 31 * result + hardness.hashCode()
-        result = 31 * result + noCollision.hashCode()
-        return result
-    }
-}
-
-/**
- * @see [LiquidState]
- */
-data class LiquidStateProperties (
-    val density: Double,
-    val dragCoefficient: Double,
-    val velocity: Vector3d,
-    val shapeOverride: AABBic? = null
-) {
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is LiquidStateProperties) return false
-
-        return density == other.density && dragCoefficient == other.dragCoefficient && velocity == other.velocity && shapeOverride == other.shapeOverride
-    }
-
-    override fun hashCode(): Int {
-        var result = density.hashCode()
-        result = 31 * result + dragCoefficient.hashCode()
-        result = 31 * result + velocity.hashCode()
-        result = 31 * result + shapeOverride.hashCode()
-        return result
-    }
-}
-
-/**
- * @see [DisplacementState]
- */
-data class DisplacementStateProperties (
-    val shape: AABBic? = null
-) {
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is DisplacementStateProperties) return false
-
-        return shape == other.shape
-    }
-
-    override fun hashCode(): Int {
-        return shape.hashCode()
-    }
-}
-
-/**
- * Liquid state in a costume until MediumState gets implemented
- */
-data class MediumStateProperties (
-    val dragCoefficient: Double,
-    val shape: AABBic? = null
-) {
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is MediumStateProperties) return false
-
-        return dragCoefficient == other.dragCoefficient && shape == other.shape
-    }
-
-    override fun hashCode(): Int {
-        var result = dragCoefficient.hashCode()
-        result = 31 * result + shape.hashCode()
-        return result
-    }
-}
-
-data class BlockStateProperties (
-    val priority: Int,
-    val solid: SolidStateProperties? = null,
-    val liquid: LiquidStateProperties? = null,
-    val displacement: DisplacementStateProperties? = null,
-    val medium: MediumStateProperties? = null,
-)
-
-data class PendingSolidStateProperties(
-    val mass: NumericValue,
-    val friction: NumericValue,
-    val elasticity: NumericValue,
-    val hardness: NumericValue,
-    val noCollision: Boolean = false,
-    val shapeOverride: AABBic? = null
-)
-
-data class PendingLiquidStateProperties(
-    val density: NumericValue,
-    val dragCoefficient: NumericValue,
-    val velocity: Vector3d,
-    val shapeOverride: AABBic? = null
-)
-
-data class PendingMediumStateProperties(
-    val dragCoefficient: NumericValue,
-    val shape: AABBic? = null
-)
-
-data class PendingBlockStateProperties(
-    val priority: Int,
-    val solid: PendingSolidStateProperties? = null,
-    val liquid: PendingLiquidStateProperties? = null,
-    val displacement: DisplacementStateProperties? = null,
-    val medium: PendingMediumStateProperties? = null
-)
-
-data class PendingTagProperties(
-    val properties: PendingBlockStateProperties,
-    val exclude: Set<ResourceLocation>,
-    val block: Boolean
-)
-
-sealed class NumericValue {
-    data class Literal(val value: Double) : NumericValue()
-    data class Dependent(val targetId: ResourceLocation, val targetState: String, val mult: Double) : NumericValue()
-}
-// endregion
 
 /**
  * todo this is a reminder to myself to write docs for the mass system
  */
 object BlockStateInfoResolver {
-    private val blockState2Properties: MutableMap<ResourceLocation, MutableMap<String, BlockStateProperties>> = HashMap()
-    private val pendingBlockState2Properties: MutableMap<ResourceLocation, MutableMap<String, PendingBlockStateProperties>> = HashMap()
+    private val blockState2Properties: MutableMap<ResourceLocation, MutableMap<String, StateProperties>> = HashMap()
+    private val pendingBlockState2Properties: MutableMap<ResourceLocation, MutableMap<String, PendingStateProperties>> = HashMap()
     private val tag2Properties: MutableMap<ResourceLocation, PendingTagProperties> = HashMap()
+
+    /**
+     * Values of this map should never be null, as we iterate through every single block state in [registerAllBlockStates]
+     * and thus we have a corresponding VsiBlockState for every BlockState.
+     * If a value _is_ null, something has gone very wrong.
+     */
     private val mcState2VsState: MutableMap<BlockState, VsiBlockState> = HashMap()
 
     val blockStateData: Collection<VsiBlockState> = mcState2VsState.values
@@ -201,22 +59,30 @@ object BlockStateInfoResolver {
 
     val loader get() = BlockStateInfoDataLoader()
 
-    fun getProperties(blockState: BlockState): BlockStateProperties? {
-        val string = stateToString(blockState)
+    fun getVsiBlockState(blockState: BlockState): VsiBlockState {
+        return mcState2VsState[blockState]!!
+    }
+
+    fun getVsiBlockType(blockState: BlockState): VsiBlockType {
+        return vsCore.blockTypes.getType(getVsiBlockState(blockState))!!
+    }
+
+    fun getProperties(blockState: BlockState): StateProperties? {
+        val string = blockState.idAndProperties()
         return blockState2Properties[string.a]?.getOrOther(string.b, "default")
     }
 
-    fun getProperties(fluidState: FluidState): BlockStateProperties? {
-        val string = stateToString(fluidState)
+    fun getProperties(fluidState: FluidState): StateProperties? {
+        val string = fluidState.idAndProperties()
         return blockState2Properties[string.a]?.getOrOther(string.b, "default")
     }
 
-    fun getProperties(id: ResourceLocation): BlockStateProperties? {
+    fun getProperties(id: ResourceLocation): StateProperties? {
         return blockState2Properties[id]?.get("default")
     }
 
-    fun getProperties(raw: String): BlockStateProperties? {
-        val string = stateToString(raw)
+    fun getProperties(raw: String): StateProperties? {
+        val string = idAndProperties(raw)
         return blockState2Properties[string.a]?.getOrOther(string.b, "default")
     }
 
@@ -256,58 +122,64 @@ object BlockStateInfoResolver {
                 .velocity(Vector3d())
                 .build()
 
+        fun getSolidState(props: StateProperties?, voxelShape: VoxelShape) = if (props?.solid != null) {
+            val shape: SolidBlockShape =
+                if (props.solid.noCollision) BlockShapeUtil.noCollisionShape
+                else if (props.solid.shapeOverride != null)
+                    vsCore.solidShapeUtils.generateShapeFromBoxes(mutableListOf(props.solid.shapeOverride)) ?: generateShape(voxelShape)
+                else generateShape(voxelShape)
+
+            vsCore.newSolidStateBuilder()
+                .shape(shape)
+                .mass(props.solid.mass)
+                .friction(props.solid.friction)
+                .elasticity(props.solid.elasticity)
+                .hardness(props.solid.hardness)
+                .build()
+        } else buildDefaultSolidState(voxelShape)
+
+        // todo change liquid stuff here to use LiquidBlockShape instead of AABBi?
+        fun getLiquidState(props: StateProperties?, boxShape: AABBic) = if (props?.liquid != null) {
+            val shape: AABBic = props.liquid.shapeOverride ?: boxShape
+
+            vsCore.newLiquidStateBuilder()
+                .boxShape(shape)
+                .density(props.liquid.density)
+                .dragCoefficient(props.liquid.dragCoefficient)
+                .velocity(props.liquid.velocity)
+                .build()
+        } else buildDefaultLiquidState(boxShape)
+
         blockStates.forEach { blockState ->
-            val vsiBlockState: VsiBlockState
-            if (blockState.isAir) {
-                vsiBlockState = vsCore.blockTypes.airState
-            } else {
-                val composition: Composition = getComposition(blockState)
-                val voxelShape = BlockShapeUtil.getShapeForVS(blockState)
-                val props = getProperties(blockState)
-                val fluidState = blockState.fluidState
+            val composition: Composition = getComposition(blockState)
+            val vsiBlockState = when (composition) {
+                Composition.AIR -> {
+                    vsCore.blockTypes.airState
+                }
+                Composition.SOLID -> {
+                    val voxelShape = BlockShapeUtil.getShapeForVS(blockState)
+                    val props = getProperties(blockState)
 
-                fun getSolidState() = if (props?.solid != null) {
-                    val shape: SolidBlockShape =
-                        if (props.solid.noCollision) BlockShapeUtil.noCollisionShape
-                        else if (props.solid.shapeOverride != null)
-                            vsCore.solidShapeUtils.generateShapeFromBoxes(mutableListOf(props.solid.shapeOverride)) ?: generateShape(voxelShape)
-                        else generateShape(voxelShape)
+                    val mediumState = if (props?.medium != null)
+                        buildMediumState(props.medium.dragCoefficient, props.medium.shape ?: BlockShapeUtil.fullLodBoundingBox)
+                    else null
 
-                    vsCore.newSolidStateBuilder()
-                        .shape(shape)
-                        .mass(props.solid.mass)
-                        .friction(props.solid.friction)
-                        .elasticity(props.solid.elasticity)
-                        .hardness(props.solid.hardness)
-                        .build()
-                } else buildDefaultSolidState(voxelShape)
+                    VsiBlockState(getSolidState(props, voxelShape), mediumState)
+                }
+                Composition.MIXED -> {
+                    val voxelShape = BlockShapeUtil.getShapeForVS(blockState)
+                    val props = getProperties(blockState)
+                    VsiBlockState(getSolidState(props, voxelShape), getLiquidState(props, fluidBox(blockState.fluidState)))
+                }
+                Composition.LIQUID -> {
+                    val props = getProperties(blockState)
+                    VsiBlockState(null, getLiquidState(props, fluidBox(blockState.fluidState)))
+                }
+                Composition.EMPTY -> {
+                    val voxelShape = BlockShapeUtil.getShapeForVS(blockState)
+                    val props = getProperties(blockState)
 
-                // todo change liquid stuff here to use LiquidBlockShape instead of AABBi?
-                fun getLiquidState() = if (props?.liquid != null) {
-                    val shape: AABBic = props.liquid.shapeOverride ?: fluidBox(fluidState)
-
-                    vsCore.newLiquidStateBuilder()
-                        .boxShape(shape)
-                        .density(props.liquid.density)
-                        .dragCoefficient(props.liquid.dragCoefficient)
-                        .velocity(props.liquid.velocity)
-                        .build()
-                } else buildDefaultLiquidState(fluidBox(fluidState))
-
-                when (composition) {
-                    Composition.SOLID -> {
-                        val mediumState = if (props?.medium != null) {
-                            buildMediumState(props.medium.dragCoefficient, props.medium.shape ?: BlockShapeUtil.fullLodBoundingBox)
-                        } else null
-
-                        vsiBlockState = VsiBlockState(getSolidState(), mediumState)
-                    }
-                    Composition.MIXED -> {
-                        vsiBlockState = VsiBlockState(getSolidState(), getLiquidState())
-                    }
-                    Composition.LIQUID -> {
-                        vsiBlockState = VsiBlockState(null, getLiquidState())
-                    }
+                    VsiBlockState(getSolidState(props, voxelShape), null)
                 }
             }
             mcState2VsState[blockState] = vsiBlockState
@@ -339,6 +211,7 @@ object BlockStateInfoResolver {
         }
     }
 
+    @Internal
     fun loadTags() {
         logger.info("Loading tag entries.")
         var tagsLoaded = 0
@@ -369,7 +242,7 @@ object BlockStateInfoResolver {
                         BuiltInRegistries.FLUID.getKey(it.value() as Fluid)
                     if (!tagProperties.exclude.contains(id)) {
                         blocksLoaded++
-                        putPendingProperties(id, "default", tagProperties.properties)
+                        putPendingProperties(id.toString(), "default", tagProperties.properties)
                     }
                 }
             }
@@ -399,7 +272,7 @@ object BlockStateInfoResolver {
             var progress = true
             while (unresolved.isNotEmpty() && progress) {
                 progress = false
-                val stillUnresolved = mutableListOf<Triple<ResourceLocation, String, PendingBlockStateProperties>>()
+                val stillUnresolved = mutableListOf<Triple<ResourceLocation, String, PendingStateProperties>>()
 
                 for ((id, state, pending) in unresolved) {
                     val resolved = resolve(pending, false)
@@ -425,11 +298,11 @@ object BlockStateInfoResolver {
         logger.info("Resolving all values took %.3f seconds (%d unresolved).".format(elapsedNanos / 1_000_000_000.0, unresolvedCount))
     }
 
-    private fun resolve(pending: PendingBlockStateProperties, force: Boolean): BlockStateProperties? {
+    private fun resolve(pending: PendingStateProperties, force: Boolean): StateProperties? {
         val solid = pending.solid?.let { resolveSolid(it, force) ?: return null }
         val liquid = pending.liquid?.let { resolveLiquid(it, force) ?: return null }
         val medium = pending.medium?.let { resolveMedium(it, force) ?: return null }
-        return BlockStateProperties(pending.priority, solid, liquid, pending.displacement, medium)
+        return StateProperties(pending.priority, solid, liquid, pending.displacement, medium)
     }
 
     private fun resolveSolid(p: PendingSolidStateProperties, force: Boolean): SolidStateProperties? {
@@ -451,7 +324,7 @@ object BlockStateInfoResolver {
         return MediumStateProperties(drag, p.shape)
     }
 
-    private fun resolveValue(value: NumericValue, default: Double, force: Boolean, extractor: (BlockStateProperties) -> Double?): Double? = when (value) {
+    private fun resolveValue(value: NumericValue, default: Double, force: Boolean, extractor: (StateProperties) -> Double?): Double? = when (value) {
         is NumericValue.Literal -> value.value
         is NumericValue.Dependent -> {
             val target = blockState2Properties[value.targetId]?.getOrOther(value.targetState, "default")
@@ -475,7 +348,7 @@ object BlockStateInfoResolver {
      * if the value associated with the given key is null, we put [propertiesToPut] to that key.
      * if there is a value associated with the given key, we compare the priority of both and put [propertiesToPut] if its priority is higher than the existing value.
      */
-    private fun putProperties(id: ResourceLocation, key: String, propertiesToPut: BlockStateProperties) {
+    private fun putProperties(id: ResourceLocation, key: String, propertiesToPut: StateProperties) {
         blockState2Properties.computeIfAbsent(id) { mutableMapOf() }.compute(key) { _, properties ->
             if (properties == null)
                 propertiesToPut
@@ -486,16 +359,12 @@ object BlockStateInfoResolver {
         }
     }
 
-    private fun putPendingProperties(id: ResourceLocation, key: String, propertiesToPut: PendingBlockStateProperties) {
-        pendingBlockState2Properties.computeIfAbsent(id) { mutableMapOf() }.compute(key) { _, properties ->
+    private fun putPendingProperties(id: String, key: String, propertiesToPut: PendingStateProperties) {
+        pendingBlockState2Properties.computeIfAbsent(ResourceLocation(id)) { mutableMapOf() }.compute(key) { _, properties ->
             if (properties == null) propertiesToPut
             else if (propertiesToPut.priority > properties.priority) propertiesToPut
             else properties
         }
-    }
-
-    private fun putPendingProperties(id: String, key: String, propertiesToPut: PendingBlockStateProperties) {
-        putPendingProperties(ResourceLocation.of(id, ':'), key, propertiesToPut)
     }
 
     private fun putTagProperties(id: String, propertiesToPut: PendingTagProperties) {
@@ -504,88 +373,6 @@ object BlockStateInfoResolver {
             else if (propertiesToPut.properties.priority > properties.properties.priority) propertiesToPut
             else properties
         }
-    }
-
-    fun stateToString(blockState: BlockState) = stateToString(BlockStateParser.serialize(blockState))
-    fun stateToString(fluidState: FluidState) = stateToString(serializeFluid(fluidState))
-
-    fun stateToString(raw: String): Pair<ResourceLocation, String> {
-        if (raw.indexOf('[') == -1) {
-            return Pair(ResourceLocation.of(raw, ':'), "default")
-            // if a blockstate has no properties, the parser will not append the brackets to it, so we can use that as a check
-            // since indexOf returns -1 if the char does not exist in the string.
-        }
-        val id = ResourceLocation(raw.substring(0, raw.indexOf('[')))
-        val properties = raw.substring(raw.indexOf('[') + 1, raw.indexOf(']'))
-        return Pair(id, properties)
-    }
-
-    fun serializeFluid(fluidState: FluidState): String {
-        val stringBuilder = StringBuilder(fluidState.holder().unwrapKey().map { key -> key.location().toString() }.orElse("empty"))
-        if (fluidState.properties.isNotEmpty()) {
-            stringBuilder.append('[')
-            var afterFirst = false
-
-            // i would like a better solution to this but java and kotlin wildcards are different so i can't do it the same way BlockStateParser does
-            fun <T : Comparable<T>> appendProperty(property: Property<T>, comparable: Any) {
-                stringBuilder.append(property.name)
-                stringBuilder.append('=')
-                @Suppress("UNCHECKED_CAST")
-                stringBuilder.append(property.getName(comparable as T))
-            }
-
-            for ((property, value) in fluidState.values.entries) {
-                if (afterFirst) {
-                    stringBuilder.append(',')
-                }
-
-                appendProperty(property, value)
-                afterFirst = true
-            }
-
-            stringBuilder.append(']')
-        }
-
-        return stringBuilder.toString()
-    }
-
-    fun fluidBox(fluidState: FluidState): AABBic {
-        val fluidHeight = if (fluidState.isSource) {
-            15
-        } else {
-            ((fluidState.ownHeight * 16.0).roundToInt() - 1).coerceIn(0, 15)
-        }
-        return AABBi(0, 0, 0, 15, fluidHeight, 15)
-    }
-
-    enum class Composition {
-        SOLID,
-        MIXED,
-        LIQUID
-    }
-
-    fun getComposition(blockState: BlockState): Composition {
-        val hasFluid = !blockState.fluidState.isEmpty
-
-        val collisionShape = BlockShapeUtil.getCollisionShape(blockState)
-        val outlineShape = BlockShapeUtil.getShape(blockState)
-        val isSolid = !collisionShape.isEmpty || !outlineShape.isEmpty
-
-        return when {
-            isSolid && hasFluid -> Composition.MIXED
-            hasFluid -> Composition.LIQUID
-
-            else -> Composition.SOLID
-        }
-    }
-
-    fun buildMediumState(dragCoefficient: Double, shape: AABBic): LiquidState {
-        return vsCore.newLiquidStateBuilder()
-            .density(0.0)
-            .dragCoefficient(dragCoefficient)
-            .boxShape(shape)
-            .velocity(Vector3d())
-            .build()
     }
     // endregion
 
@@ -864,7 +651,7 @@ object BlockStateInfoResolver {
                         logger.error("no target value in dependent value, defaulting to $default")
                         NumericValue.Literal(default)
                     } else {
-                        val targetState = stateToString(target)
+                        val targetState = idAndProperties(target)
                         NumericValue.Dependent(targetState.a, targetState.b, mult)
                     }
                 }
@@ -914,10 +701,10 @@ object BlockStateInfoResolver {
 
             when (structure.type) {
                 StructureType.BLOCK_BASIC -> {
-                    putPendingProperties(id, "default", PendingBlockStateProperties(priority, parseSolid(json)))
+                    putPendingProperties(id, "default", PendingStateProperties(priority, parseSolid(json)))
                 }
                 StructureType.BLOCK_COMPOUND -> {
-                    putPendingProperties(id, "default", PendingBlockStateProperties(priority,
+                    putPendingProperties(id, "default", PendingStateProperties(priority,
                         solid = if (json.has("solid")) parseSolid(json.getAsJsonObject("solid")) else null,
                         medium = if (json.has("medium")) parseMedium(json.getAsJsonObject("medium")) else null
                     ))
@@ -926,11 +713,11 @@ object BlockStateInfoResolver {
                     structure.state2StructureType!!.forEach { (state, type) ->
                         when (type) {
                             StructureType.BLOCK_BASIC -> {
-                                putPendingProperties(id, state, PendingBlockStateProperties(priority, parseSolid(json.getAsJsonObject(state))))
+                                putPendingProperties(id, state, PendingStateProperties(priority, parseSolid(json.getAsJsonObject(state))))
                             }
                             StructureType.BLOCK_COMPOUND -> {
                                 val stateJson = json.getAsJsonObject(state)
-                                putPendingProperties(id, "default", PendingBlockStateProperties(priority,
+                                putPendingProperties(id, "default", PendingStateProperties(priority,
                                     solid = if (stateJson.has("solid")) parseSolid(stateJson.getAsJsonObject("solid")) else null,
                                     medium = if (stateJson.has("medium")) parseMedium(stateJson.getAsJsonObject("medium")) else null
                                 ))
@@ -942,24 +729,24 @@ object BlockStateInfoResolver {
                     }
                 }
                 StructureType.FLUID_BASIC -> {
-                    putPendingProperties(id, "default", PendingBlockStateProperties(priority, liquid = parseLiquid(json)))
+                    putPendingProperties(id, "default", PendingStateProperties(priority, liquid = parseLiquid(json)))
                 }
                 StructureType.FLUID_STATES -> { // type really doesn't matter here because fluids can only be parsed one way, but i don't feel like adding a list of states to this, map works just fine
                     structure.state2StructureType!!.keys.forEach { state ->
-                        putPendingProperties(id, state, PendingBlockStateProperties(priority, liquid = parseLiquid(json.getAsJsonObject(state))))
+                        putPendingProperties(id, state, PendingStateProperties(priority, liquid = parseLiquid(json.getAsJsonObject(state))))
                     }
                 }
                 StructureType.BLOCK_TAG_BASIC -> {
-                    putTagProperties(id, PendingTagProperties(PendingBlockStateProperties(priority, parseSolid(json)), parseTagExclusions(json), true))
+                    putTagProperties(id, PendingTagProperties(PendingStateProperties(priority, parseSolid(json)), parseTagExclusions(json), true))
                 }
                 StructureType.BLOCK_TAG_COMPOUND -> {
-                    putTagProperties(id, PendingTagProperties(PendingBlockStateProperties(priority,
+                    putTagProperties(id, PendingTagProperties(PendingStateProperties(priority,
                         solid = if (json.has("solid")) parseSolid(json.getAsJsonObject("solid")) else null,
                         medium = if (json.has("medium")) parseMedium(json.getAsJsonObject("medium")) else null
                     ), parseTagExclusions(json), true))
                 }
                 StructureType.FLUID_TAG_BASIC -> {
-                    putTagProperties(id, PendingTagProperties(PendingBlockStateProperties(priority, liquid = parseLiquid(json)), parseTagExclusions(json), false))
+                    putTagProperties(id, PendingTagProperties(PendingStateProperties(priority, liquid = parseLiquid(json)), parseTagExclusions(json), false))
                 }
             }
         }

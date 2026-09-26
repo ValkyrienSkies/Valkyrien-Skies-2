@@ -1,7 +1,7 @@
 package org.valkyrienskies.mod.common.networking
 
 import org.valkyrienskies.core.impl.networking.simple.SimplePacket
-import org.valkyrienskies.mod.common.config.BlockStateProperties
+import org.valkyrienskies.mod.common.blockstate.BlockStateProperties
 
 /**
  * Packet to sync datapack-defined blockstate info from server to client

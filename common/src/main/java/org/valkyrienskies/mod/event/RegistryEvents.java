@@ -4,6 +4,7 @@ import kotlin.Unit;
 import net.minecraft.core.RegistryAccess;
 import org.valkyrienskies.mod.common.hooks.VSGameEvents;
 
+@Deprecated(forRemoval = true) // these methods have been deprecated since 2023 i'm removing this later
 public class RegistryEvents {
 
     /**

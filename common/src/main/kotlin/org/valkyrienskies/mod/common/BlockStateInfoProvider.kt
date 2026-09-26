@@ -12,21 +12,14 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
-import org.joml.Vector3d
-import org.joml.Vector3dc
 import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.api.ships.Wing
-import org.valkyrienskies.core.api.world.connectivity.ConnectionStatus
-import org.valkyrienskies.core.api.world.connectivity.SparseVoxelPosition
 import org.valkyrienskies.core.internal.world.chunks.VsiBlockType
-import org.valkyrienskies.core.internal.world.chunks.VsiBlockTypes
 import org.valkyrienskies.mod.common.block.WingBlock
 import org.valkyrienskies.mod.common.config.ConfigType
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
-import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.hooks.VSGameEvents
-import org.valkyrienskies.mod.common.util.BuoyancyHandlerAttachment
 import java.util.function.IntFunction
 
 @Deprecated("Unless absolutely needed, it is recommended to use the datapack system as it can handle nearly all of the functionality of this.")
@@ -59,11 +52,10 @@ object BlockStateInfo {
             REGISTRY, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "default"), DefaultBlockStateInfoProvider
         )
         SORTED_REGISTRY = REGISTRY.sortedByDescending { it.priority } // why is this even tied to an event dawg
-        VSGameEvents.registriesCompleted.on { _, _ -> SORTED_REGISTRY = REGISTRY.sortedByDescending { it.priority } }
 
         VSGameEvents.configUpdated.on { entries ->
             val defaultMassChanged = entries.any {
-                it.configType == ConfigType.SERVER && it.name == "defaultBlockMass" // love how we invalidate cache only on mass change :clueless:
+                it.configType == ConfigType.SERVER && it.name == "defaultBlockMass"
             }
 
             if (defaultMassChanged) {
@@ -113,12 +105,6 @@ object BlockStateInfo {
             SORTED_REGISTRY.firstNotNullOf { it.getBlockStateType(blockState) },
         )
 
-    // NOTE: this gets called irrelevant if the block is actually on a ship; so it needs to be changed that
-    // shipObjectWorld only requests the data if needed (maybe supplier?)
-    // NOTE2: spoken of in discord in the future well have prob block's in vs-core with id's and then
-    // the above issue shall be fixed
-    // https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues/25
-
     fun onSetBlock(level: Level, blockPos: BlockPos, prevBlockState: BlockState, newBlockState: BlockState) =
         onSetBlock(level, blockPos.x, blockPos.y, blockPos.z, prevBlockState, newBlockState)
 
@@ -161,29 +147,11 @@ object BlockStateInfo {
             newBlockMass
         )
 
-        fun Set<SparseVoxelPosition>.centerFromVoxelSet() : Vector3dc {
-            val center = Vector3d(0.0, 0.0, 0.0)
-            if (this.isEmpty()) {
-                return center
-            }
-            for (voxel in this) {
-                center.add(
-                    voxel.x.toDouble() + ((voxel.extent - 1L).toDouble() / 2.0) + 0.5,
-                    voxel.y.toDouble() + ((voxel.extent - 1L).toDouble() / 2.0) + 0.5,
-                    voxel.z.toDouble() + ((voxel.extent - 1L).toDouble() / 2.0) + 0.5
-                )
-            }
-            center.div(this.size.toDouble())
-            return center
-        }
-
         if (level is ServerLevel) {
             if (ValkyrienSkiesMod.vsCore.hooks.enableConnectivity) {
                 ValkyrienSkiesMod.splitHandler.queueSplit(level, level.getShipManagingPos(x.toDouble(), y.toDouble(), z.toDouble())?.id)
             }
         }
-
-
     }
 
     /**
@@ -197,7 +165,6 @@ object BlockStateInfo {
      *
      * @return false if mass recalculation has failed for any reason
      */
-    // TODO: Add a way to manage custom masses in VS itself so that they are trackable on VS side for remassing and so.
     fun remassShip(level: Level, ship: Ship): Boolean {
         if (level !is ServerLevel) return false
         if (ship !is LoadedServerShip) return false

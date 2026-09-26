@@ -4,12 +4,12 @@ import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.material.FluidState
 import org.jetbrains.annotations.ApiStatus
-import org.valkyrienskies.mod.common.config.BlockStateInfoResolver
-import org.valkyrienskies.mod.common.config.BlockStateInfoResolver.getOrOther
-import org.valkyrienskies.mod.common.config.BlockStateInfoResolver.stateToString
-import org.valkyrienskies.mod.common.config.BlockStateProperties
-import org.valkyrienskies.mod.common.config.LiquidStateProperties
-import org.valkyrienskies.mod.common.config.SolidStateProperties
+import org.valkyrienskies.mod.common.blockstate.BlockStateInfoResolver
+import org.valkyrienskies.mod.common.blockstate.BlockStateInfoResolver.getOrOther
+import org.valkyrienskies.mod.common.blockstate.BlockStateInfoResolver.stateToString
+import org.valkyrienskies.mod.common.blockstate.BlockStateProperties
+import org.valkyrienskies.mod.common.blockstate.LiquidStateProperties
+import org.valkyrienskies.mod.common.blockstate.SolidStateProperties
 
 /**
  * For getting block mass, friction, and elasticity on the client side
