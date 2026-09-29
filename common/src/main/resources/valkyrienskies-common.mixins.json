@@ -210,6 +210,7 @@
     "feature.save_mob_location_on_ship.MixinChunkMap",
     "feature.save_mob_location_on_ship.MixinMob",
     "feature.screen_distance_check.MixinScreenHandler",
+    "feature.seat_movement.MixinLivingEntity",
     "feature.sculk.MixinEuclideanGameEventListenerRegistry",
     "feature.sculk.MixinGameEventDispatcher",
     "feature.sculk.MixinVibrationSystem",
