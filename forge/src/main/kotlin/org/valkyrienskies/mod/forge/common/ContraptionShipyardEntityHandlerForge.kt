@@ -20,7 +20,7 @@ object ContraptionShipyardEntityHandlerForge: AbstractShipyardEntityHandler() {
             entity.contraption.blocks.forEach { (pos: BlockPos, blockInfo: StructureTemplate.StructureBlockInfo) ->
                 val block = blockInfo.state.block
                 if (block is WingBlock) {
-                    val wing = block.getWing(null, null, blockInfo.state)
+                    val wing = block.getWing(entity.contraption.contraptionWorld, pos, blockInfo.state)
                     attachment.setWing(entity.wingGroupId, pos.x, pos.y, pos.z, wing)
                 }
             }
