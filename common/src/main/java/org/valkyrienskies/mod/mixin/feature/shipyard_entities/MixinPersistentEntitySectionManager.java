@@ -63,6 +63,10 @@ public abstract class MixinPersistentEntitySectionManager implements OfLevel {
         method = "processUnloads", at = @At(value = "HEAD"), cancellable = true
     )
     private void replaceProcessUnloads(final CallbackInfo ci) {
+        if (this.chunksToUnload.isEmpty()) {
+            ci.cancel();
+            return;
+        }
         // I don't know why this crashes, try-catch please help me!
         try {
             final LongSet toRemove = new LongOpenHashSet();

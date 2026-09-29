@@ -164,6 +164,9 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     // region Block standing on friction and sprinting particles mixins
     @Unique
     private BlockPos getPosStandingOnFromShips(final Vector3dc blockPosInGlobal) {
+        if (VSGameUtilsKt.getAllShips(level).isEmpty()) {
+            return null;
+        }
         final double radius = 0.5;
         final AABBdc testAABB = new AABBd(
             blockPosInGlobal.x() - radius, blockPosInGlobal.y() - radius, blockPosInGlobal.z() - radius,
