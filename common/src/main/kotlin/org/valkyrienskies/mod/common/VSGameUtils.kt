@@ -11,6 +11,7 @@ import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerChunkCache
+import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.util.thread.BlockableEventLoop
 import net.minecraft.world.entity.Entity
@@ -39,6 +40,7 @@ import org.valkyrienskies.core.api.world.properties.DimensionId
 import org.valkyrienskies.core.internal.world.VsiPlayer
 import org.valkyrienskies.core.internal.world.VsiServerShipWorld
 import org.valkyrienskies.core.internal.world.VsiShipWorld
+import org.valkyrienskies.core.internal.world.chunks.VsiBlockType
 import org.valkyrienskies.core.internal.world.chunks.VsiTerrainUpdate
 import org.valkyrienskies.core.util.expand
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod.ASSEMBLE_BLACKLIST
@@ -270,6 +272,10 @@ fun Level?.transformToNearbyShipsAndWorld(
 inline fun Level.transformToNearbyShipsAndWorld(
     x: Double, y: Double, z: Double, aabbRadius: Double, cb: (Double, Double, Double) -> Unit
 ) {
+    if (allShips.isEmpty()) {
+        // No ship can manage or intersect anything, so there is nothing to call back with
+        return
+    }
     val currentShip = getShipManagingPos(x, y, z)
     val aabb = AABBd(x, y, z, x, y, z).expand(aabbRadius)
 
@@ -486,7 +492,7 @@ fun Level?.toWorldCoordinates(pos: Vector3d): Vector3d {
 
 @JvmOverloads
 fun Level?.toWorldCoordinates(x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
-    getShipManagingPos(x, y, z)?.toWorldCoordinates(x, y, z) ?: dest.set(x, y, z)
+    getShipManagingPos(x, y, z)?.toWorldCoordinates(x, y, z, dest) ?: dest.set(x, y, z)
 
 @JvmOverloads
 fun Ship.toWorldCoordinates(x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
@@ -496,10 +502,37 @@ fun LevelChunkSection.toDenseVoxelUpdate(chunkPos: Vector3ic): VsiTerrainUpdate 
     val update = vsCore.newDenseTerrainUpdateBuilder(chunkPos.x(), chunkPos.y(), chunkPos.z())
     val info = BlockStateInfo.cache
     val airType = vsCore.blockTypes.air
+
+    // A section made of a single block state (air, stone, deepslate, water: most sections) needs no per-position
+    // reads. PalettedContainer.maybeHas only walks the palette entries, so this costs O(palette) and is exact for
+    // single-value palettes; a palette that still lists stale entries, or a global palette, simply takes the
+    // per-position path below.
+    val first = getBlockState(0, 0, 0)
+    if (!states.maybeHas { it !== first }) {
+        val type = info.get(first)?.second ?: airType
+        for (x in 0..15) {
+            for (y in 0..15) {
+                for (z in 0..15) {
+                    update.addBlock(x, y, z, type)
+                }
+            }
+        }
+        return update.build()
+    }
+
+    // Mixed section: read every position as before, but resolve each distinct block state only once
+    // (BlockStateInfo.Cache.get is two hash lookups and a lambda allocation per call)
+    val types = Reference2ObjectOpenHashMap<BlockState, VsiBlockType>(16)
     for (x in 0..15) {
         for (y in 0..15) {
             for (z in 0..15) {
-                update.addBlock(x, y, z, info.get(getBlockState(x, y, z))?.second ?: airType)
+                val state = getBlockState(x, y, z)
+                var type = types.get(state)
+                if (type == null) {
+                    type = info.get(state)?.second ?: airType
+                    types.put(state, type)
+                }
+                update.addBlock(x, y, z, type)
             }
         }
     }
