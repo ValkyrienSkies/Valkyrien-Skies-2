@@ -70,20 +70,20 @@ public abstract class MixinMinecraft
     @Unique
     private VsiClientShipWorld shipObjectWorld = null;
 
-    @WrapOperation(
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/client/multiplayer/MultiPlayerGameMode;useItemOn(Lnet/minecraft/client/player/LocalPlayer;Lnet/minecraft/world/InteractionHand;Lnet/minecraft/world/phys/BlockHitResult;)Lnet/minecraft/world/InteractionResult;"
-        ),
-        method = "startUseItem"
-    )
-    private InteractionResult useOriginalCrosshairForBlockPlacement(final MultiPlayerGameMode instance,
-        final LocalPlayer localPlayer, final InteractionHand interactionHand,
-        final BlockHitResult blockHitResult, final Operation<InteractionResult> useItemOn) {
-
-        return useItemOn.call(instance, localPlayer, interactionHand,
-            (BlockHitResult) this.originalCrosshairTarget);
-    }
+//    @WrapOperation(
+//        at = @At(
+//            value = "INVOKE",
+//            target = "Lnet/minecraft/client/multiplayer/MultiPlayerGameMode;useItemOn(Lnet/minecraft/client/player/LocalPlayer;Lnet/minecraft/world/InteractionHand;Lnet/minecraft/world/phys/BlockHitResult;)Lnet/minecraft/world/InteractionResult;"
+//        ),
+//        method = "startUseItem"
+//    )
+//    private InteractionResult useOriginalCrosshairForBlockPlacement(final MultiPlayerGameMode instance,
+//        final LocalPlayer localPlayer, final InteractionHand interactionHand,
+//        final BlockHitResult blockHitResult, final Operation<InteractionResult> useItemOn) {
+//
+//        return useItemOn.call(instance, localPlayer, interactionHand,
+//            (BlockHitResult) this.originalCrosshairTarget);
+//    }
 
     @NotNull
     @Override
