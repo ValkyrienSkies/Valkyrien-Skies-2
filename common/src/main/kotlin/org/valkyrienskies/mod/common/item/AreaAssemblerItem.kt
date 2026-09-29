@@ -14,6 +14,7 @@ import org.valkyrienskies.core.util.datastructures.DenseBlockPosSet
 import org.valkyrienskies.mod.api.toJOMLd
 import org.valkyrienskies.mod.api.toMinecraft
 import org.valkyrienskies.mod.common.assembly.ShipAssembler
+import org.valkyrienskies.mod.common.assembly.ShipAssembler.ASSEMBLY_LOGGER
 import org.valkyrienskies.mod.common.assembly.createNewShipWithBlocks
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getLoadedShipManagingPos
@@ -54,17 +55,29 @@ class AreaAssemblerItem(
                         val lowerCorner = BlockPos(blockAABB.minX, blockAABB.minY, blockAABB.minZ)
                         val upperCorner = BlockPos(blockAABB.maxX, blockAABB.maxY, blockAABB.maxZ)
 
-                        val ship = if (classicAssembler) {
-                            val denseSet = DenseBlockPosSet()
-                            BlockPos.betweenClosed(lowerCorner, upperCorner).forEach{ denseSet.add(it.toJOML()) }
-                            val center = lowerCorner.toJOMLd().add(upperCorner.toJOMLd()).div(2.0)
-                            createNewShipWithBlocks(BlockPos.containing(center.toMinecraft()), denseSet, level)
-                        }
-                        else {
-                            ShipAssembler.assembleToShip(level, BlockPos.betweenClosed(lowerCorner, upperCorner).map{ it.mutable() }.toSet(), 1.0)
+                        val ship = try {
+                            if (classicAssembler) {
+                                val denseSet = DenseBlockPosSet()
+                                BlockPos.betweenClosed(lowerCorner, upperCorner).forEach{ denseSet.add(it.toJOML()) }
+                                val center = lowerCorner.toJOMLd().add(upperCorner.toJOMLd()).div(2.0)
+                                createNewShipWithBlocks(BlockPos.containing(center.toMinecraft()), denseSet, level)
+                            }
+                            else {
+                                ShipAssembler.assembleToShip(level, BlockPos.betweenClosed(lowerCorner, upperCorner).map{ it.mutable() }.toSet(), 1.0)
+                            }
+                        } catch (e: Exception) {
+                            ASSEMBLY_LOGGER.error("Failed to assemble ship", e)
+                            ctx.player?.sendSystemMessage(Component.literal("Assembly failed: ${e.message ?: e.javaClass.simpleName}"))
+                            null
+                        } catch (e: AssertionError) {
+                            ASSEMBLY_LOGGER.error("Failed to assemble ship", e)
+                            ctx.player?.sendSystemMessage(Component.literal("Assembly failed: ${e.message ?: e.javaClass.simpleName}"))
+                            null
                         }
 
-                        ctx.player?.sendSystemMessage(Component.translatable("command.valkyrienskies.shipify.success_one", ship.slug))
+                        ship?.let {
+                            ctx.player?.sendSystemMessage(Component.translatable("command.valkyrienskies.shipify.success_one", it.slug))
+                        }
 
                     }
                     item.tag!!.remove("firstPosX")

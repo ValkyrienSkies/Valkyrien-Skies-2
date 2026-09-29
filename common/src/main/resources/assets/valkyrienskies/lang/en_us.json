@@ -42,6 +42,8 @@
   "argument.valkyrienskies.ship.options.omega": "Rotational velocity (length)",
   "argument.valkyrienskies.ship.options.velocity": "Velocity (length)",
   "argument.valkyrienskies.ship.options.slug": "Ship name",
+  "argument.valkyrienskies.ship.area_assembler.nothing_to_assemble": "Nothing to assemble!",
+
 
   "command.valkyrienskies.delete.success_one": "Deleted %s!",
   "command.valkyrienskies.delete.success": "Deleted %d ships!",
