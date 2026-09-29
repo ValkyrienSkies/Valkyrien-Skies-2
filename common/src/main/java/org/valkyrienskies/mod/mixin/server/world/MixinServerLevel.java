@@ -5,13 +5,13 @@ import static org.valkyrienskies.mod.common.ValkyrienSkiesMod.getVsCore;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.function.BooleanSupplier;
 import net.minecraft.core.BlockPos;
@@ -129,9 +129,9 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
         }
     }
 
-    // Map from ChunkPos to the list of voxel chunks that chunk owns
+    // Map from ChunkPos (as a long) to the list of voxel chunks that chunk owns
     @Unique
-    private final Map<ChunkPos, List<Vector3ic>> vs$knownChunks = new HashMap<>();
+    private final Long2ObjectOpenHashMap<List<Vector3ic>> vs$knownChunks = new Long2ObjectOpenHashMap<>();
 
     // Maps chunk pos to number of ticks we have considered unloading the chunk
     @Unique
@@ -228,9 +228,10 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
 
     @Unique
     private void vs$loadChunk(@NotNull final ChunkAccess worldChunk, final List<VsiTerrainUpdate> voxelShapeUpdates) {
+        final long chunkPosLong = worldChunk.getPos().toLong();
         // Remove the chunk pos from vs$chunksToUnload if its present
-        vs$chunksToUnload.remove(worldChunk.getPos().toLong());
-        if (!vs$knownChunks.containsKey(worldChunk.getPos())) {
+        vs$chunksToUnload.remove(chunkPosLong);
+        if (!vs$knownChunks.containsKey(chunkPosLong)) {
             // FULL-only shipyard chunks never reach BLOCK_TICKING status in vanilla,
             // so two critical callbacks are missed:
             // 1. registerTickContainerInLevel() — adds tick containers to LevelTicks
@@ -302,7 +303,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
                     voxelShapeUpdates.add(emptyVoxelShapeUpdate);
                 }
             }
-            vs$knownChunks.put(worldChunk.getPos(), voxelChunkPositions);
+            vs$knownChunks.put(chunkPosLong, voxelChunkPositions);
         }
     }
 
@@ -318,34 +319,43 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
         final List<VsiTerrainUpdate> voxelShapeUpdates = new ArrayList<>();
         final DistanceManagerAccessor distanceManagerAccessor = (DistanceManagerAccessor) chunkSource.chunkMap.getDistanceManager();
 
-        for (final ChunkHolder chunkHolder : chunkMapAccessor.callGetChunks()) {
-            // Only load chunks that haven't been loaded before, and have a ticket
-            if (!vs$knownChunks.containsKey(chunkHolder.getPos()) && distanceManagerAccessor.getTickets().containsKey(chunkHolder.getPos().toLong())) {
-                Optional<LevelChunk> worldChunkOptional =
-                    chunkHolder.getTickingChunkFuture().getNow(ChunkHolder.UNLOADED_LEVEL_CHUNK).left();
-                // FULL-only shipyard chunks don't complete tickingChunkFuture,
-                // so tickingChunkFuture is never completed. For these chunks, get the chunk
-                // directly from the chunk cache instead of relying on futures.
-                if (worldChunkOptional.isEmpty()) {
-                    final ChunkPos cp = chunkHolder.getPos();
-                    if (VS2ChunkAllocator.INSTANCE.isChunkInShipyardCompanion(cp.x, cp.z)) {
-                        final LevelChunk cachedChunk = chunkSource.getChunkNow(cp.x, cp.z);
-                        if (cachedChunk != null) {
-                            worldChunkOptional = Optional.of(cachedChunk);
-                        }
+        // Only chunks with a ticket can be loaded here, so walk the tickets rather than every chunk holder
+        final LongIterator ticketIterator = distanceManagerAccessor.getTickets().keySet().iterator();
+        while (ticketIterator.hasNext()) {
+            final long chunkPosLong = ticketIterator.nextLong();
+            // Only load chunks that haven't been loaded before, and are visible
+            if (vs$knownChunks.containsKey(chunkPosLong)) {
+                continue;
+            }
+            final ChunkHolder chunkHolder = chunkMapAccessor.callGetVisibleChunkIfPresent(chunkPosLong);
+            if (chunkHolder == null) {
+                continue;
+            }
+            Optional<LevelChunk> worldChunkOptional =
+                chunkHolder.getTickingChunkFuture().getNow(ChunkHolder.UNLOADED_LEVEL_CHUNK).left();
+            // FULL-only shipyard chunks don't complete tickingChunkFuture,
+            // so tickingChunkFuture is never completed. For these chunks, get the chunk
+            // directly from the chunk cache instead of relying on futures.
+            if (worldChunkOptional.isEmpty()) {
+                final ChunkPos cp = chunkHolder.getPos();
+                if (VS2ChunkAllocator.INSTANCE.isChunkInShipyardCompanion(cp.x, cp.z)) {
+                    final LevelChunk cachedChunk = chunkSource.getChunkNow(cp.x, cp.z);
+                    if (cachedChunk != null) {
+                        worldChunkOptional = Optional.of(cachedChunk);
                     }
                 }
-                if (worldChunkOptional.isPresent()) {
-                    final LevelChunk worldChunk = worldChunkOptional.get();
-                    vs$loadChunk(worldChunk, voxelShapeUpdates);
-                }
+            }
+            if (worldChunkOptional.isPresent()) {
+                final LevelChunk worldChunk = worldChunkOptional.get();
+                vs$loadChunk(worldChunk, voxelShapeUpdates);
             }
         }
 
-        final Iterator<Entry<ChunkPos, List<Vector3ic>>> knownChunkPosIterator = vs$knownChunks.entrySet().iterator();
+        final ObjectIterator<Long2ObjectMap.Entry<List<Vector3ic>>> knownChunkPosIterator =
+            vs$knownChunks.long2ObjectEntrySet().fastIterator();
         while (knownChunkPosIterator.hasNext()) {
-            final Entry<ChunkPos, List<Vector3ic>> knownChunkPosEntry = knownChunkPosIterator.next();
-            final long chunkPos = knownChunkPosEntry.getKey().toLong();
+            final Long2ObjectMap.Entry<List<Vector3ic>> knownChunkPosEntry = knownChunkPosIterator.next();
+            final long chunkPos = knownChunkPosEntry.getLongKey();
             // Unload chunks if they don't have tickets or if they're not in the visible chunks
             if ((!distanceManagerAccessor.getTickets().containsKey(chunkPos) || chunkMapAccessor.callGetVisibleChunkIfPresent(chunkPos) == null)) {
                 final long ticksWaitingToUnload = vs$chunksToUnload.getOrDefault(chunkPos, 0L);
@@ -380,8 +390,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
 
     @Override
     public void removeChunk(final int chunkX, final int chunkZ) {
-        final ChunkPos chunkPos = new ChunkPos(chunkX, chunkZ);
-        vs$knownChunks.remove(chunkPos);
+        vs$knownChunks.remove(ChunkPos.asLong(chunkX, chunkZ));
     }
 
     @Unique
