@@ -75,6 +75,12 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
     )
     private void onBaseTick(CallbackInfo ci) {
         if (this.level != null) {
+            if (!ValkyrienSkies.isConnectivityEnabled(level.isClientSide) || VSGameUtilsKt.getAllShips(level).isEmpty()) {
+                // Nothing can be sealed without connectivity or without ships
+                vs$setInSealedArea(false);
+                vs$lastCheckedSealedPos = BlockPos.ZERO;
+                return;
+            }
             if (!this.isRemoved()) {
                 Entity entity = (Entity) (Object) this;
                 Vec3 relativePosition = Vec3.ZERO;
@@ -160,6 +166,9 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         method = "checkInsideBlocks"
     )
     private void afterCheckInside(final CallbackInfo ci) {
+        if (VSGameUtilsKt.getAllShips(level).isEmpty()) {
+            return;
+        }
         final AABBd boundingBox = toJOML(getBoundingBox());
         final AABBd temp = new AABBd();
         for (final Ship ship : VSGameUtilsKt.getShipsIntersecting(level, boundingBox)) {

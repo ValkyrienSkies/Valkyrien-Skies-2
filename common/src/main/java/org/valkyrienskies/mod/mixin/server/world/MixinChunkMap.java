@@ -28,6 +28,7 @@ import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.internal.world.VsiPlayer;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.MinecraftPlayer;
+import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 //This should trump Very Many Players, which is set to 1050
 @Mixin(value = ChunkMap.class, priority = 1100)
@@ -114,12 +115,21 @@ public abstract class MixinChunkMap {
     @WrapOperation(method = "anyPlayerCloseEnoughForSpawning", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ChunkMap$DistanceManager;hasPlayersNearby(J)Z"))
     private boolean onHasPlayersNearby(
         DistanceManager instance, long l, Operation<Boolean> original, @Local(argsOnly = true) ChunkPos arg) {
-        return original.call(instance, new ChunkPos(BlockPos.containing(VSGameUtilsKt.toWorldCoordinates(level, arg.getMiddleBlockPosition(63)))).toLong());
+        final Ship ship = VSGameUtilsKt.getShipManagingPos(level, arg.x, arg.z);
+        if (ship == null) {
+            // Not a ship chunk: the world-space round trip would land in this same chunk
+            return original.call(instance, l);
+        }
+        return original.call(instance, new ChunkPos(BlockPos.containing(VectorConversionsMCKt.toMinecraft(VSGameUtilsKt.toWorldCoordinates(ship, arg.getMiddleBlockPosition(63))))).toLong());
     }
 
     @WrapOperation(method = "playerIsCloseEnoughForSpawning", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ChunkMap;euclideanDistanceSquared(Lnet/minecraft/world/level/ChunkPos;Lnet/minecraft/world/entity/Entity;)D"))
     private double onEuclideanDistanceSquared(ChunkPos d0, Entity d1, Operation<Double> original) {
-        return original.call(new ChunkPos(BlockPos.containing(VSGameUtilsKt.toWorldCoordinates(level, d0.getMiddleBlockPosition(63)))), d1);
+        final Ship ship = VSGameUtilsKt.getShipManagingPos(level, d0.x, d0.z);
+        if (ship == null) {
+            return original.call(d0, d1);
+        }
+        return original.call(new ChunkPos(BlockPos.containing(VectorConversionsMCKt.toMinecraft(VSGameUtilsKt.toWorldCoordinates(ship, d0.getMiddleBlockPosition(63))))), d1);
     }
 
     /**
