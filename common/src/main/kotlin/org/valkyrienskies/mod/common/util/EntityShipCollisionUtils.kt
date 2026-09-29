@@ -10,6 +10,8 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import net.minecraft.world.phys.shapes.VoxelShape
+import org.joml.Matrix4dc
+import org.joml.Vector3d
 import org.joml.primitives.AABBd
 import org.joml.primitives.AABBdc
 import org.joml.primitives.AABBi
@@ -26,7 +28,8 @@ import org.valkyrienskies.mod.common.vsCore
 import org.valkyrienskies.mod.mixinducks.feature.tickets.PlayerKnownShipsDuck
 import org.valkyrienskies.mod.util.BugFixUtil
 import java.util.concurrent.ConcurrentHashMap
-import java.util.stream.Stream
+import kotlin.math.max
+import kotlin.math.min
 
 object EntityShipCollisionUtils {
 
@@ -59,8 +62,8 @@ object EntityShipCollisionUtils {
 
     private val collider = vsCore.entityPolygonCollider
 
-    private fun getShipyardChunkAABBAround(ship: Ship): AABBi {
-        val box = AABBi()
+    private fun getShipyardChunkAABBAround(ship: Ship, box: AABBi): AABBi {
+        box.setMin(Int.MAX_VALUE, Int.MAX_VALUE, Int.MAX_VALUE).setMax(Int.MIN_VALUE, Int.MIN_VALUE, Int.MIN_VALUE)
         // Since we don't know how big the ship is vertically we'll just have to trust the shipAABB and add some margin of error.
         val minY = (ship.shipAABB?.minY() ?: Mth.floor(ship.transform.position.y())) - 16
         val maxY = (ship.shipAABB?.maxY() ?: Mth.ceil(ship.transform.position.y())) + 16
@@ -74,15 +77,6 @@ object EntityShipCollisionUtils {
         return box
     }
 
-    private fun getAllShipsIntersectingEvenIfNotYetFullyLoaded(level: Level, aabb: AABBd): Stream<Ship> {
-        // shipAABB and worldAABB are sometimes too small when ship was just loaded for the first time.
-        // To circumvent this, we use activeChunksSet to find a rougher bounding box which should always contain the entire ship.
-        return level.allShips.stream().filter { ship ->
-            ship.chunkClaimDimension == level.dimensionId &&
-            getShipyardChunkAABBAround(ship).toAABBd(AABBd()).transform(ship.shipToWorld).intersectsAABB(aabb)
-        }
-    }
-
     @JvmStatic
     fun isCollidingWithUnloadedShips(entity: Entity): Boolean {
         val level = entity.level()
@@ -91,26 +85,38 @@ object EntityShipCollisionUtils {
             if (level.isClientSide && level is ClientLevel && !level.shipObjectWorld.isSyncedWithServer) {
                 return true
             }
+            if (level.allShips.isEmpty()) {
+                return false
+            }
 
             val aabb = entity.boundingBox.toJOML()
-            return getAllShipsIntersectingEvenIfNotYetFullyLoaded(level, aabb)
-                .allMatch { ship ->
-                    // Skip collision check for recently-spawned ships whose chunks are still
-                    // loading. Without this, spawning a new ship near a player would freeze
-                    // them because isCollidingWithUnloadedShips returns true (the new ship's
-                    // chunks haven't loaded yet), which cancels all entity movement.
-                    // This must be checked BEFORE vs_isKnownShip, because the player won't
-                    // know about a brand-new ship yet either.
-                    if (isInSpawnGracePeriod(ship.id)) {
-                        return@allMatch true // pretend it's loaded → don't block movement
-                    }
-                    if (entity is PlayerKnownShipsDuck && !entity.vs_isKnownShip(ship.id)) {
-                        return@allMatch false
-                    }
-                    val aabbInShip = AABBd(aabb).transform(ship.worldToShip)
-                    areAllChunksLoaded(ship, aabbInShip, level)
+            val chunkBox = AABBi()
+            val chunkBoxInWorld = AABBd()
+            val aabbInShip = AABBd()
+            for (ship in level.allShips) {
+                // shipAABB and worldAABB are sometimes too small when ship was just loaded for the first time.
+                // To circumvent this, we use activeChunksSet to find a rougher bounding box which should always contain the entire ship.
+                if (ship.chunkClaimDimension != level.dimensionId ||
+                    !getShipyardChunkAABBAround(ship, chunkBox).toAABBd(chunkBoxInWorld).transform(ship.shipToWorld).intersectsAABB(aabb)
+                ) {
+                    continue
                 }
-                .not()
+                // Skip collision check for recently-spawned ships whose chunks are still
+                // loading. Without this, spawning a new ship near a player would freeze
+                // them because isCollidingWithUnloadedShips returns true (the new ship's
+                // chunks haven't loaded yet), which cancels all entity movement.
+                // This must be checked BEFORE vs_isKnownShip, because the player won't
+                // know about a brand-new ship yet either.
+                if (isInSpawnGracePeriod(ship.id)) {
+                    continue // pretend it's loaded → don't block movement
+                }
+                if (entity is PlayerKnownShipsDuck && !entity.vs_isKnownShip(ship.id)) {
+                    return true
+                }
+                if (!areAllChunksLoaded(ship, aabbInShip.set(aabb).transform(ship.worldToShip), level)) {
+                    return true
+                }
+            }
         }
 
         return false
@@ -144,6 +150,9 @@ object EntityShipCollisionUtils {
         entityBoundingBox: AABB,
         world: Level
     ): Vec3 {
+        if (world.shipObjectWorld.loadedShips.isEmpty()) {
+            return movement
+        }
         // Inflate the bounding box more for players than other entities, to give players a better collision result.
         // Note that this increases the cost of doing collision, so we only do it for the players
         val inflation = if (entity is Player) 0.5 else 0.1
@@ -194,17 +203,14 @@ object EntityShipCollisionUtils {
         val entityBoundingBoxExtended = entityBoundingBox.toJOML().extend(movement.toJOML())
         for (shipObject in world.shipObjectWorld.loadedShips.getIntersecting(entityBoundingBoxExtended, world.dimensionId)) {
             val shipTransform = shipObject.transform
-            val entityPolyInShipCoordinates: VsiConvexPolygonc = collider.createPolygonFromAABB(
-                entityBoxWithMovement.toJOML(),
-                shipTransform.worldToShip
-            )
-            val entityBoundingBoxInShipCoordinates: AABBdc = entityPolyInShipCoordinates.getEnclosingAABB(AABBd())
-            if (BugFixUtil.isCollisionBoxTooBig(entityBoundingBoxInShipCoordinates.toMinecraft())) {
+            val entityBoundingBoxInShipCoordinates =
+                transformedBounds(entityBoxWithMovement, shipTransform.worldToShip).toMinecraft()
+            if (BugFixUtil.isCollisionBoxTooBig(entityBoundingBoxInShipCoordinates)) {
                 // Box too large, skip it
                 continue
             }
             val shipBlockCollisionStream =
-                world.getBlockCollisions(entity, entityBoundingBoxInShipCoordinates.toMinecraft())
+                world.getBlockCollisions(entity, entityBoundingBoxInShipCoordinates)
             shipBlockCollisionStream.forEach { voxelShape: VoxelShape ->
                 voxelShape.forAllBoxes { minX, minY, minZ, maxX, maxY, maxZ ->
                     val shipPolygon: VsiConvexPolygonc = vsCore.entityPolygonCollider.createPolygonFromAABB(
@@ -217,5 +223,29 @@ object EntityShipCollisionUtils {
             }
         }
         return collidingPolygons
+    }
+
+    /**
+     * The AABB enclosing [box] after [transform]: the same corners, in the same order and with the same min/max
+     * operations as [collider].createPolygonFromAABB followed by getEnclosingAABB, without creating the polygon.
+     */
+    private fun transformedBounds(box: AABB, transform: Matrix4dc): AABBd {
+        val bounds = AABBd()
+        val corner = Vector3d()
+        for (i in 0 until 8) {
+            corner.set(
+                if ((i and 4) == 0) box.minX else box.maxX,
+                if ((i and 2) == 0) box.minY else box.maxY,
+                if ((i and 1) == 0) box.minZ else box.maxZ
+            )
+            transform.transformPosition(corner)
+            bounds.minX = min(bounds.minX, corner.x)
+            bounds.minY = min(bounds.minY, corner.y)
+            bounds.minZ = min(bounds.minZ, corner.z)
+            bounds.maxX = max(bounds.maxX, corner.x)
+            bounds.maxY = max(bounds.maxY, corner.y)
+            bounds.maxZ = max(bounds.maxZ, corner.z)
+        }
+        return bounds
     }
 }
