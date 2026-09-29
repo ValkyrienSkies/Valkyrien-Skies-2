@@ -32,6 +32,7 @@ import org.valkyrienskies.core.internal.physics.VsiFluidTopologyVoxel;
 import org.valkyrienskies.core.internal.world.VsiClientShipWorld;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
+import org.valkyrienskies.mod.common.fluid.client.ShipPocketWorldWaterOccluder;
 
 /**
  * Uploads sparse synchronized dry-domain cells as dense bit masks for world-fluid fragment culling.
@@ -80,7 +81,11 @@ public final class FluidOcclusionRenderer {
         RenderSystem.assertOnRenderThread();
         final ProgramHandles handles = handles(programId);
         if (handles.enabledLocation < 0) return;
-        if (!VSGameConfig.CLIENT.getRenderFluidOcclusion()) {
+        // Under a shaderpack the depth pre-pass owns fluid occlusion instead: Iris replaces the core
+        // shaders, so this mask would not reach the fragments anyway, and uploading it per frame is
+        // wasted work.
+        if (!VSGameConfig.CLIENT.getRenderFluidOcclusion()
+            || ShipPocketWorldWaterOccluder.isDepthPrepassActive()) {
             disableForProgram(programId);
             clearMasks();
             return;

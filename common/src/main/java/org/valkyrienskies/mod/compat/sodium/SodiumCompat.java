@@ -22,6 +22,8 @@ import me.jellysquid.mods.sodium.client.render.chunk.shader.ChunkShaderInterface
 import me.jellysquid.mods.sodium.client.render.chunk.shader.ChunkShaderOptions;
 import me.jellysquid.mods.sodium.client.render.chunk.terrain.DefaultTerrainRenderPasses;
 import me.jellysquid.mods.sodium.client.render.chunk.terrain.TerrainRenderPass;
+import me.jellysquid.mods.sodium.client.render.chunk.terrain.material.Material;
+import me.jellysquid.mods.sodium.client.render.chunk.terrain.material.parameters.AlphaCutoffParameter;
 import me.jellysquid.mods.sodium.client.render.viewport.CameraTransform;
 import me.jellysquid.mods.sodium.client.render.viewport.Viewport;
 import me.jellysquid.mods.sodium.client.util.iterator.ByteIterator;
@@ -43,6 +45,7 @@ import org.joml.Vector3dc;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.mod.common.config.ShipRendererKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
+import org.valkyrienskies.mod.common.fluid.client.ShipFluidRenderTypes;
 import org.valkyrienskies.mod.common.render.batched.ShipBatchRenderer;
 import org.valkyrienskies.mod.common.render.batched.ShipSectionMesh;
 import org.valkyrienskies.mod.common.render.light.VsDynamicLight;
@@ -68,6 +71,20 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 
 public class SodiumCompat {
+
+    /**
+     * Sodium's counterpart to {@link ShipFluidRenderTypes#AIR_CULL_RENDER_TYPE}: world fluid gets
+     * meshed into this pass instead of the regular translucent one so the ship fluid cull can drop
+     * its quads without touching anything else in the translucent layer.
+     */
+    public static final TerrainRenderPass AIR_POCKET_PASS =
+        new TerrainRenderPass(ShipFluidRenderTypes.AIR_CULL_RENDER_TYPE, true, false);
+
+    public static final Material AIR_POCKET_MATERIAL = new Material(
+        SodiumCompat.AIR_POCKET_PASS,
+        AlphaCutoffParameter.ZERO,
+        true);
+
     /**
      * Composite cache key for ship shader programs. Sodium's
      * {@link ChunkShaderOptions} alone isn't enough — our shaders branch on

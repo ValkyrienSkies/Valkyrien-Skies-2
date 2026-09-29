@@ -1,0 +1,38 @@
+# Is the shaderpack's water VERTEX shader running on the cull layer?
+#
+# Wave displacement is a vertex-stage effect: gbuffers_water moves the surface geometry up and down.
+# Nothing in the fragment stage can fake it, so it is the honest test for "is the pack's vertex shader
+# being applied", as opposed to just getting its colour.
+#
+# The camera sits a little above the surface looking almost flat across a long stretch of water, which
+# is where displacement reads most clearly — an undisplaced surface is a razor-straight line against
+# the sky, a displaced one has a visibly broken, moving silhouette. Frames are spaced out so the
+# crests travel between them; a still surface across all four means the vertex shader is not running.
+#
+# Run once with Underwater.enableWaterCulling true (fluid on AIR_CULL_RENDER_TYPE / AIR_POCKET_PASS)
+# and once false (stock translucent layer). Matching silhouettes and matching motion mean the cull
+# layer is getting the same vertex program as ordinary world water.
+world autotest
+wait-level
+wait 100
+cmd gamemode spectator
+cmd time set noon
+cmd gamerule doDaylightCycle false
+cmd gamerule sendCommandFeedback false
+
+cmd fill 62 -60 62 138 -57 138 minecraft:stone
+wait 10
+cmd fill 64 -59 64 136 -57 136 minecraft:water
+wait 40
+
+# Just above the surface at the near rim, looking down the long axis of the pool.
+cmd tp @s 100 -57.3 66 0 1
+wait 60
+screenshot vertex_f0
+wait 15
+screenshot vertex_f1
+wait 15
+screenshot vertex_f2
+wait 15
+screenshot vertex_f3
+quit
