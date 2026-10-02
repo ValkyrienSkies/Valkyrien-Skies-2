@@ -12,6 +12,7 @@ import net.minecraft.tags.TagKey
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.item.Item
+import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.entity.BlockEntityType
@@ -30,6 +31,7 @@ import org.valkyrienskies.mod.api_impl.events.VsApiImpl
 import org.valkyrienskies.mod.common.blockentity.TestAntigravBlockEntity
 import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
 import org.valkyrienskies.mod.common.blockentity.TestThrusterBlockEntity
+import org.valkyrienskies.mod.common.blockstate.BlockStateInfo2ElectricBoogaloo
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.entity.VSPhysicsEntity
 import org.valkyrienskies.mod.common.jackson.BlockPosDeserializer
@@ -132,7 +134,7 @@ object ValkyrienSkiesMod {
     fun init() {
         val core = this.vsCore
 
-        BlockStateInfo.init()
+        BlockStateInfo2ElectricBoogaloo.init()
         VSGamePackets.register()
         VSGamePackets.registerHandlers()
 
@@ -164,12 +166,12 @@ object ValkyrienSkiesMod {
         }
 
         core.physTickEvent.on { event ->
-            dimensionalGTPAs.forEach { dimensionId, gameTickForceApplier ->
+            dimensionalGTPAs.forEach { (dimensionId, gameTickForceApplier) ->
                 if (event.world.dimension == dimensionId) {
                     gameTickForceApplier.physTick(event.world, event.delta)
                 }
             }
-            blockEntityPhysListeners.getOrPut(event.world.dimension, { ConcurrentHashMap() }).forEach { pos, infoPair ->
+            blockEntityPhysListeners.getOrPut(event.world.dimension) { ConcurrentHashMap() }.forEach { (_, infoPair) ->
                 val shipId = infoPair.first
                 val listener = infoPair.second
                 val ship = if (shipId != null) {
@@ -179,14 +181,14 @@ object ValkyrienSkiesMod {
                 }
                 listener.physTick(ship, event.world)
             }
-            entityPhysListeners.getOrPut(event.world.dimension, { ConcurrentHashMap() }).forEach { _, listener ->
+            entityPhysListeners.getOrPut(event.world.dimension) { ConcurrentHashMap() }.forEach { (_, listener) ->
                 listener.physTick(event.world)
             }
         }
         core.shipUnloadEventClient.on { event ->
             val level = Minecraft.getInstance().level
             if (level != null) {
-                (level.getChunkSource() as ClientChunkCacheDuck).`vs$removeShip`(event.ship)
+                (level.chunkSource as ClientChunkCacheDuck).`vs$removeShip`(event.ship)
             }
             val player = Minecraft.getInstance().player
             if (player is PlayerKnownShipsDuck) {
@@ -200,44 +202,37 @@ object ValkyrienSkiesMod {
         return dimensionalGTPAs.getOrPut(dimensionId) { GameToPhysicsAdapter() }
     }
 
-    fun addBlockEntityPhysTicker(
-        dimensionId: DimensionId, pos: BlockPos, blockEntity: BlockEntityPhysicsListener
-    ) {
+    fun addBlockEntityPhysTicker(dimensionId: DimensionId, pos: BlockPos, blockEntity: BlockEntityPhysicsListener) {
         val level = (blockEntity as BlockEntity).level ?: return
         if (level.isClientSide) return
-        var shipId : ShipId? = null
-        if (!level.isClientSide) {
-            val ship = level.getShipManagingBlock(pos)
-            shipId = ship?.id
-        }
-        blockEntityPhysListeners.getOrPut(dimensionId, { ConcurrentHashMap() })[pos] = Pair(shipId, blockEntity)
+        val ship = level.getShipManagingBlock(pos)
+        val shipId = ship?.id
+        blockEntityPhysListeners.getOrPut(dimensionId) { ConcurrentHashMap() }[pos] = Pair(shipId, blockEntity)
     }
 
     fun getBlockEntityPhysTicker(dimensionId: DimensionId, pos: BlockPos): BlockEntityPhysicsListener? {
-        return blockEntityPhysListeners.getOrPut(dimensionId, { ConcurrentHashMap() })[pos]?.second
+        return blockEntityPhysListeners[dimensionId]?.get(pos)?.second
     }
 
     fun removeBlockEntityPhysTicker(pos: BlockPos, dimensionId: DimensionId) {
-        blockEntityPhysListeners.getOrPut(dimensionId, { ConcurrentHashMap() }).remove(pos)
+        blockEntityPhysListeners[dimensionId]?.remove(pos)
     }
 
-    fun addEntityPhysTicker(
-        dimensionId: DimensionId, entity: Entity
-    ) {
+    fun addEntityPhysTicker(dimensionId: DimensionId, entity: Entity) {
         if (entity.level() == null || entity.level().isClientSide) return
-        entityPhysListeners.getOrPut(dimensionId, { ConcurrentHashMap() })[entity.id] = entity as EntityPhysicsListener
+        entityPhysListeners.getOrPut(dimensionId) { ConcurrentHashMap() }[entity.id] = entity as EntityPhysicsListener
     }
 
     fun removeEntityPhysTicker(entity: Entity, dimensionId: DimensionId) {
-        entityPhysListeners.getOrPut(dimensionId, { ConcurrentHashMap() }).remove(entity.id)
+        entityPhysListeners[dimensionId]?.remove(entity.id)
     }
 
     fun getEntityPhysTicker(dimensionId: DimensionId, entityId: Int): EntityPhysicsListener? {
-        return entityPhysListeners.getOrPut(dimensionId, { ConcurrentHashMap() })[entityId]
+        return entityPhysListeners[dimensionId]?.get(entityId)
     }
 
     fun getEntityPhysTicker(dimensionId: DimensionId, entity: Entity): EntityPhysicsListener? {
-        return entityPhysListeners.getOrPut(dimensionId, { ConcurrentHashMap() })[entity.id]
+        return entityPhysListeners[dimensionId]?.get(entity.id)
     }
 
     @JvmStatic

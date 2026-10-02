@@ -9,7 +9,6 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.FullChunkStatus;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
@@ -18,13 +17,10 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunk;
-import net.minecraft.world.level.chunk.LevelChunk.PostLoadProcessor;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.chunk.ProtoChunk;
-import net.minecraft.world.level.chunk.UpgradeData;
 import net.minecraft.world.level.chunk.storage.ChunkSerializer;
 import net.minecraft.world.level.levelgen.Heightmap;
-import net.minecraft.world.level.levelgen.blending.BlendingData;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.ticks.LevelChunkTicks;
 import org.jetbrains.annotations.NotNull;
@@ -35,12 +31,11 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.Ship;
-import org.valkyrienskies.mod.common.BlockStateInfo;
 import org.valkyrienskies.mod.common.VS2ChunkAllocator;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.blockstate.BlockStateInfo2ElectricBoogaloo;
 import org.valkyrienskies.mod.common.fluid.VanillaFluidFlowWindProvider;
 import org.valkyrienskies.mod.common.util.VSLevelChunk;
 
@@ -107,11 +102,9 @@ public abstract class MixinLevelChunk extends ChunkAccess implements VSLevelChun
         if (prevState == null) {
             return;
         }
-        // This function is getting invoked by non-game threads for some reason. So use executeOrSchedule() to schedule
-        // onSetBlock() to be run on the next tick when this function is invoked by a non-game thread.
-        // See https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues/913 for more info.
+
         VSGameUtilsKt.executeOrSchedule(level, () -> {
-            BlockStateInfo.INSTANCE.onSetBlock(level, pos, prevState, state);
+            BlockStateInfo2ElectricBoogaloo.INSTANCE.onSetBlock(level, pos, prevState, state);
             VanillaFluidFlowWindProvider.INSTANCE.markDirty(level, pos, prevState, state);
         });
         // VS benchmark patch (air pockets removed): per-block fluid snapshot updates are no longer needed.

@@ -28,9 +28,9 @@ import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.api.world.ServerShipWorld;
 import org.valkyrienskies.core.internal.world.chunks.VsiBlockType;
 import org.valkyrienskies.mod.api.ValkyrienSkies;
-import org.valkyrienskies.mod.common.DefaultBlockStateInfoProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
+import org.valkyrienskies.mod.common.blockstate.BlockStateUtils;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 public class ContraptionSegmentHelper {
@@ -91,7 +91,7 @@ public class ContraptionSegmentHelper {
                 int x = pair.first().getX();
                 int y = pair.first().getY();
                 int z = pair.first().getZ();
-                VsiBlockType type = DefaultBlockStateInfoProvider.INSTANCE.getBlockStateType(pair.second().state());
+                VsiBlockType type = BlockStateUtils.getTypeByComposition(pair.second().state());
                 updateBuilder.addBlock(x, y, z, (VoxelType) type);
             }
             updates[index] = updateBuilder.build();

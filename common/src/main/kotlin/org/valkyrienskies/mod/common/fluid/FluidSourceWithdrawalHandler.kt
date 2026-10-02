@@ -10,7 +10,7 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import org.valkyrienskies.core.api.ships.properties.ShipId
 import org.valkyrienskies.core.internal.physics.VsiFluidSourceWithdrawal
 import org.valkyrienskies.core.internal.physics.VsiFluidSourceWithdrawalResult
-import org.valkyrienskies.mod.common.config.MassDatapackResolver
+import org.valkyrienskies.mod.common.blockstate.BlockStateInfoResolver
 import org.valkyrienskies.mod.common.getShipManagingPos
 
 object FluidSourceWithdrawalHandler {
@@ -38,7 +38,7 @@ object FluidSourceWithdrawalHandler {
         validateSource(
             withdrawal,
             level.getShipManagingPos(pos)?.id,
-            MassDatapackResolver.getLiquidStateId(state)
+            BlockStateInfoResolver.getLiquidStateId(state)
         )?.let { return it }
 
         if (state.hasProperty(BlockStateProperties.WATERLOGGED) &&

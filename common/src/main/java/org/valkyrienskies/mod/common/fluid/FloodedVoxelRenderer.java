@@ -24,10 +24,9 @@ import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.internal.physics.VsiFluidFloodedVoxel;
-import org.valkyrienskies.core.internal.physics.VsiFluidFloodingSnapshot;
 import org.valkyrienskies.core.internal.world.VsiClientShipWorld;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
-import org.valkyrienskies.mod.common.config.MassDatapackResolver;
+import org.valkyrienskies.mod.common.blockstate.BlockStateInfoResolver;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 
 public final class FloodedVoxelRenderer {
@@ -107,7 +106,7 @@ public final class FloodedVoxelRenderer {
                     worldBlock
                 )) continue;
                 final FlowingFluid fluid =
-                    MassDatapackResolver.INSTANCE.getFlowingFluid(voxel.getFluidId());
+                    BlockStateInfoResolver.INSTANCE.getFlowingFluid(voxel.getFluidId());
                 final boolean lava =
                     fluid == Fluids.LAVA || fluid == Fluids.FLOWING_LAVA;
                 final int packedLight =

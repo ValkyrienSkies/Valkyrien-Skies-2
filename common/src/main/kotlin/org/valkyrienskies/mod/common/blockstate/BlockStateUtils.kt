@@ -1,3 +1,4 @@
+@file:JvmName("BlockStateUtils")
 package org.valkyrienskies.mod.common.blockstate
 
 import net.minecraft.commands.arguments.blocks.BlockStateParser
@@ -29,12 +30,36 @@ fun BlockGetter.getVsiBlockType(blockPos: BlockPos): VsiBlockType {
     return getVsiBlockType(getBlockState(blockPos))
 }
 
-val BlockState.vs: VsiBlockState
+fun AABBic.size(): Int {
+    return (maxX() - minX()) * (maxY() - minY()) * (maxZ() - minZ())
+}
+
+val BlockState.vsState: VsiBlockState
     get() = getVsiBlockState(this)
 
 val BlockState.vsType: VsiBlockType
     get() = getVsiBlockType(this)
 
+val BlockState.mass: Double
+    get() {
+        val composition = getComposition(this)
+        return when (composition) { // if the composition is solid, mixed, or liquid, the corresponding states should never be null.
+            Composition.SOLID -> vsState.solidState!!.mass
+            Composition.MIXED -> vsState.solidState!!.mass + vsState.liquidState!!.actualMass
+            Composition.LIQUID -> vsState.liquidState!!.actualMass
+            Composition.AIR, Composition.EMPTY -> 0.0
+        }
+    }
+
+val LiquidState.actualMass: Double
+    get() = density * (shape.boundingBox.size() / BlockShapeUtil.fullLodBoundingBox.size())
+
+fun getTypeByComposition(blockState: BlockState) =
+    when (getComposition(blockState)) {
+        Composition.SOLID, Composition.MIXED -> vsCore.blockTypes.solid
+        Composition.LIQUID -> vsCore.blockTypes.liquid
+        Composition.AIR, Composition.EMPTY -> vsCore.blockTypes.air
+    }
 
 fun serializeFluid(fluidState: FluidState): String {
     val stringBuilder = StringBuilder(fluidState.holder().unwrapKey().map { key -> key.location().toString() }.orElse("empty"))
@@ -120,9 +145,4 @@ fun buildMediumState(dragCoefficient: Double, shape: AABBic): LiquidState {
         .boxShape(shape)
         .velocity(Vector3d())
         .build()
-}
-
-fun getActualMass(density: Double, shape: AABBic): Double {
-    val size = (shape.maxX() - shape.minX()) * (shape.maxY() - shape.minY()) * (shape.maxZ() - shape.minZ())
-    return density * (size / 3375) // because 15*15*15 is a full block ???
 }

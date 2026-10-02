@@ -13,6 +13,7 @@ import net.minecraft.tags.TagKey
 import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.material.FlowingFluid
 import net.minecraft.world.level.material.Fluid
 import net.minecraft.world.level.material.FluidState
 import net.minecraft.world.phys.shapes.VoxelShape
@@ -25,7 +26,6 @@ import org.valkyrienskies.core.internal.physics.blockstates.VsiBlockState
 import org.valkyrienskies.core.internal.world.chunks.VsiBlockType
 import org.valkyrienskies.mod.api_impl.events.RegisterBlockStateEventImpl
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
-import org.valkyrienskies.mod.common.config.MassDatapackResolver.decideDefaultPriority
 import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.networking.PacketSyncBlockStateProperties
 import org.valkyrienskies.mod.common.util.BlockShapeUtil
@@ -38,12 +38,33 @@ import kotlin.system.measureNanoTime
 
 
 /**
- * todo this is a reminder to myself to write docs for the mass system
+ * mass datapack resolver 2: electric boogaloo
  */
 object BlockStateInfoResolver {
     private val blockState2Properties: MutableMap<ResourceLocation, MutableMap<String, StateProperties>> = HashMap()
     private val pendingBlockState2Properties: MutableMap<ResourceLocation, MutableMap<String, PendingStateProperties>> = HashMap()
     private val tag2Properties: MutableMap<ResourceLocation, PendingTagProperties> = HashMap()
+    private val liquidIdToFlowingFluid: MutableMap<Int, FlowingFluid?> = HashMap()
+
+    fun getLiquidStateId(blockState: BlockState): Int? =
+        blockState.vsType.let(vsCore.blockTypes::getLiquidStateId)
+
+    fun getFlowingFluid(liquidStateId: Int): FlowingFluid? {
+        if (liquidIdToFlowingFluid.containsKey(liquidStateId)) {
+            return liquidIdToFlowingFluid[liquidStateId]
+        }
+        val fluid = mcState2VsState.entries.firstNotNullOfOrNull { (blockState, vsState) ->
+            val blockType =
+                vsCore.blockTypes.getType(vsState) ?: return@firstNotNullOfOrNull null
+            if (vsCore.blockTypes.getLiquidStateId(blockType) == liquidStateId) {
+                blockState.fluidState.type as? FlowingFluid
+            } else {
+                null
+            }
+        }
+        liquidIdToFlowingFluid[liquidStateId] = fluid
+        return fluid
+    }
 
     /**
      * Values of this map should never be null, as we iterate through every single block state in [registerAllBlockStates]
@@ -138,7 +159,6 @@ object BlockStateInfoResolver {
                 .build()
         } else buildDefaultSolidState(voxelShape)
 
-        // todo change liquid stuff here to use LiquidBlockShape instead of AABBi?
         fun getLiquidState(props: StateProperties?, boxShape: AABBic) = if (props?.liquid != null) {
             val shape: AABBic = props.liquid.shapeOverride ?: boxShape
 
@@ -462,6 +482,12 @@ object BlockStateInfoResolver {
                     return Structure(type, warn = string)
                 }
             }
+        }
+
+        fun decideDefaultPriority(resourceLocation: ResourceLocation) = when {
+            resourceLocation.namespace.equals(ValkyrienSkiesMod.MOD_ID) -> 50
+            resourceLocation.namespace.equals("custom") -> 1000
+            else -> 100
         }
 
         // matches if the string is "default", or if it matches "key=value,key2=value2,etc"
