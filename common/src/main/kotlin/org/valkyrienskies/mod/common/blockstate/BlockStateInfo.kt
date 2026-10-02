@@ -17,7 +17,7 @@ import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.vsCore
 
 @OptIn(GameTickOnly::class)
-object BlockStateInfo2ElectricBoogaloo {
+object BlockStateInfo {
 
     var isInitialized = false
         private set

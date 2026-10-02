@@ -42,7 +42,7 @@ import org.valkyrienskies.core.internal.world.chunks.VsiTerrainUpdate;
 import org.valkyrienskies.mod.common.assembly.SeamlessChunksManager;
 import org.valkyrienskies.mod.common.VS2ChunkAllocator;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.blockstate.BlockStateInfo2ElectricBoogaloo;
+import org.valkyrienskies.mod.common.blockstate.BlockStateInfo;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.render.light.VsDynamicLight;
 import org.valkyrienskies.mod.compat.VSRenderer;
@@ -143,7 +143,7 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
         }
 
         final boolean connectivityEnabled = VSGameConfig.CLIENT.getConnectivity().getEnableClientConnectivity();
-        boolean shouldDefer = !BlockStateInfo2ElectricBoogaloo.INSTANCE.isInitialized();
+        boolean shouldDefer = !BlockStateInfo.INSTANCE.isInitialized();
         if (connectivityEnabled) {
             if (shouldDefer) {
                 ClientConnectivityUpdateQueue.queueChunkForInitialization(pos, shouldForce);

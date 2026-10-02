@@ -35,7 +35,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VS2ChunkAllocator;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.blockstate.BlockStateInfo2ElectricBoogaloo;
+import org.valkyrienskies.mod.common.blockstate.BlockStateInfo;
 import org.valkyrienskies.mod.common.fluid.VanillaFluidFlowWindProvider;
 import org.valkyrienskies.mod.common.util.VSLevelChunk;
 
@@ -104,7 +104,7 @@ public abstract class MixinLevelChunk extends ChunkAccess implements VSLevelChun
         }
 
         VSGameUtilsKt.executeOrSchedule(level, () -> {
-            BlockStateInfo2ElectricBoogaloo.INSTANCE.onSetBlock(level, pos, prevState, state);
+            BlockStateInfo.INSTANCE.onSetBlock(level, pos, prevState, state);
             VanillaFluidFlowWindProvider.INSTANCE.markDirty(level, pos, prevState, state);
         });
         // VS benchmark patch (air pockets removed): per-block fluid snapshot updates are no longer needed.

@@ -12,7 +12,6 @@ import net.minecraft.tags.TagKey
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.item.Item
-import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.entity.BlockEntityType
@@ -31,7 +30,7 @@ import org.valkyrienskies.mod.api_impl.events.VsApiImpl
 import org.valkyrienskies.mod.common.blockentity.TestAntigravBlockEntity
 import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
 import org.valkyrienskies.mod.common.blockentity.TestThrusterBlockEntity
-import org.valkyrienskies.mod.common.blockstate.BlockStateInfo2ElectricBoogaloo
+import org.valkyrienskies.mod.common.blockstate.BlockStateInfo
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.entity.VSPhysicsEntity
 import org.valkyrienskies.mod.common.jackson.BlockPosDeserializer
@@ -134,7 +133,7 @@ object ValkyrienSkiesMod {
     fun init() {
         val core = this.vsCore
 
-        BlockStateInfo2ElectricBoogaloo.init()
+        BlockStateInfo.init()
         VSGamePackets.register()
         VSGamePackets.registerHandlers()
 

@@ -6,7 +6,7 @@ import net.minecraft.commands.Commands.argument
 import net.minecraft.commands.Commands.literal
 import net.minecraft.network.chat.Component.translatable
 import org.valkyrienskies.core.api.ships.ServerShip
-import org.valkyrienskies.mod.common.blockstate.BlockStateInfo2ElectricBoogaloo
+import org.valkyrienskies.mod.common.blockstate.BlockStateInfo
 import org.valkyrienskies.mod.common.command.arguments.ShipArgument
 import org.valkyrienskies.mod.common.config.VSGameConfig
 import kotlin.collections.forEach
@@ -24,7 +24,7 @@ object RemassCommand {
                         val r = ShipArgument.getShips(it, "ships").toList() as List<ServerShip>
                         var successful = 0
                         r.forEach { ship ->
-                            if (BlockStateInfo2ElectricBoogaloo.remassShip(it.source.level, ship)) {
+                            if (BlockStateInfo.remassShip(it.source.level, ship)) {
                                 ++successful
                             } else {
                                 it.source.sendFailure(
