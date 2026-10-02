@@ -1,8 +1,6 @@
 package org.valkyrienskies.mod.mixin.feature.mass_tooltip;
 
-
 import java.util.List;
-import java.util.Objects;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
@@ -27,7 +25,7 @@ public class MixinBlockItem {
         final TOOLTIP tooltip = VSGameConfig.CLIENT.getTooltip();
         if (tooltip.getMassTooltipVisibility().isVisible(tooltipFlag)) {
             final SolidStateProperties props = ClientBlockStateInfo.INSTANCE.getSolidProperties(((BlockItem) itemStack.getItem()).getBlock().defaultBlockState());
-            final double mass = props != null ? props.getMass() : Objects.requireNonNullElse(ClientBlockStateInfo.INSTANCE.getDefaultMass(), 404.0);
+            final double mass = props != null ? props.getMass() : VSGameConfig.SERVER.getBlockProperties().getDefaultBlockMass();
             list.add(MassTooltipHelperKt.makeMassComponent(mass, false, tooltip.getUseImperialUnits(), tooltip.getDetailedMassTooltip()));
         }
     }

@@ -11,9 +11,6 @@ import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.material.FluidState;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -85,6 +82,7 @@ public abstract class MixinLevelRenderer {
                 0.0F, 0.0F, 0.0F, 0.4F);
         }
     }
+    
 
     /**
      * This mixin makes block damage render on ships.

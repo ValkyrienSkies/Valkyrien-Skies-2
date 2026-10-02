@@ -1,7 +1,6 @@
 package org.valkyrienskies.mod.mixin.feature.mass_tooltip;
 
 import java.util.List;
-import java.util.Objects;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.Item;
@@ -35,7 +34,7 @@ public abstract class MixinBucketItem extends Item {
         if (tooltip.getMassTooltipVisibility().isVisible(tooltipFlag) && content != null) {
             if (content instanceof EmptyFluid) return;
             final LiquidStateProperties props = ClientBlockStateInfo.INSTANCE.getLiquidProperties(content.defaultFluidState());
-            final double density = props != null ? props.getDensity() : Objects.requireNonNullElse(ClientBlockStateInfo.INSTANCE.getDefaultDensity(), 404.0);
+            final double density = props != null ? props.getDensity() : VSGameConfig.SERVER.getBlockProperties().getDefaultLiquidDensity();
             list.add(MassTooltipHelperKt.makeMassComponent(density, true, tooltip.getUseImperialUnits(), tooltip.getDetailedMassTooltip()));
         }
     }

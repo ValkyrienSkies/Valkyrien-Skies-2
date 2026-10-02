@@ -214,13 +214,7 @@ object BlockStateInfoResolver {
         logger.info("Syncing ${mcState2VsState.size} blockstates to ${player.uuid}")
         with(vsCore.simplePacketNetworking) {
             val packetMap = blockState2Properties.mapKeys { it.key.toString() }
-            PacketSyncBlockStateProperties(
-                packetMap,
-                VSGameConfig.SERVER.blockProperties.defaultBlockMass,
-                VSGameConfig.SERVER.blockProperties.defaultBlockFriction,
-                VSGameConfig.SERVER.blockProperties.defaultBlockElasticity,
-                VSGameConfig.SERVER.blockProperties.defaultLiquidDensity
-            ).sendToClient(player)
+            PacketSyncBlockStateProperties(packetMap).sendToClient(player)
         }
     }
 

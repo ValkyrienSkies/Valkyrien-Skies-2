@@ -78,7 +78,6 @@ object VSGamePackets {
                 ClientBlockStateInfo.disable()
             } else {
                 ClientBlockStateInfo.clientHasMassInfo = true
-                ClientBlockStateInfo.setDefaultValues(props.defaultMass, props.defaultFriction, props.defaultElasticity, props.defaultDensity)
                 for ((idString, properties) in props.blockState2properties) {
                     val id = ResourceLocation(idString)
                     properties.forEach { (string, properties) ->
