@@ -19,6 +19,7 @@ import org.joml.Matrix4dc;
 import org.joml.Quaterniondc;
 import org.joml.Vector3d;
 import org.joml.primitives.AABBic;
+import org.joml.primitives.AABBdc;
 
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
@@ -49,6 +50,8 @@ public class VsShipEmitterList {
 
     private final long arenaPtr;
     private int count = 0;
+    private final float[] positionsAndLight = new float[MAX_EMITTERS * 4];
+    private final double[] selectionScores = new double[ShipEmitterSelection.MAX_SELECTED];
 
     private int buffer = 0;
     private int texture = 0;
@@ -73,6 +76,10 @@ public class VsShipEmitterList {
 
     public int size() {
         return count;
+    }
+
+    public int selectForBounds(final AABBdc bounds, final int[] selected) {
+        return ShipEmitterSelection.select(positionsAndLight, count, bounds, selected, selectionScores);
     }
 
     public static double[] scanShipEmitters(final LevelAccessor level, final ClientShip ship) {
@@ -133,6 +140,11 @@ public class VsShipEmitterList {
     public void appendEmitter(final double worldX, final double worldY, final double worldZ, final int lightLevel,
         final float qx, final float qy, final float qz, final float qw) {
         if (lightLevel <= 0 || count >= MAX_EMITTERS) return;
+
+        positionsAndLight[count * 4] = (float) worldX;
+        positionsAndLight[count * 4 + 1] = (float) worldY;
+        positionsAndLight[count * 4 + 2] = (float) worldZ;
+        positionsAndLight[count * 4 + 3] = lightLevel;
 
         long offset = arenaPtr + (long) count * BYTES_PER_EMITTER;
         MemoryUtil.memPutFloat(offset,        (float) worldX);

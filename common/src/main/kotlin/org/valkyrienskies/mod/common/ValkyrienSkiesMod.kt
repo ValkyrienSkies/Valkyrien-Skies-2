@@ -37,6 +37,7 @@ import org.valkyrienskies.mod.common.jackson.BlockPosKeyDeserializer
 import org.valkyrienskies.mod.common.jackson.BlockPosKeySerializer
 import org.valkyrienskies.mod.common.jackson.BlockPosSerializer
 import org.valkyrienskies.mod.common.networking.VSGamePackets
+import org.valkyrienskies.mod.common.render.batched.ShipBatchRenderer
 import org.valkyrienskies.mod.common.util.BuoyancyHandlerAttachment
 import org.valkyrienskies.mod.common.util.GameToPhysicsAdapter
 import org.valkyrienskies.mod.common.util.ShipGravityAttachment
@@ -184,6 +185,7 @@ object ValkyrienSkiesMod {
             }
         }
         core.shipUnloadEventClient.on { event ->
+            ShipBatchRenderer.INSTANCE.onShipUnload(event.ship)
             val level = Minecraft.getInstance().level
             if (level != null) {
                 (level.getChunkSource() as ClientChunkCacheDuck).`vs$removeShip`(event.ship)

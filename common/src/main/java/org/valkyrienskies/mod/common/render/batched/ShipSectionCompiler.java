@@ -6,6 +6,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexBuffer;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongList;
@@ -26,6 +27,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.material.FluidState;
+import org.valkyrienskies.mod.compat.sodium.light.VsShipEmitterList;
 
 public final class ShipSectionCompiler {
 
@@ -45,6 +47,7 @@ public final class ShipSectionCompiler {
         final RenderType translucentLayer = RenderType.translucent();
         final Set<RenderType> startedOpaque = new HashSet<>();
         final Long2ObjectMap<ShipSectionMesh> translucentSections = new Long2ObjectOpenHashMap<>();
+        final DoubleArrayList emitters = new DoubleArrayList();
 
         ModelBlockRenderer.enableCaching();
         try {
@@ -78,6 +81,13 @@ public final class ShipSectionCompiler {
                     for (int lz = 0; lz < 16; lz++) {
                         for (int lx = 0; lx < 16; lx++) {
                             final BlockState state = section.getBlockState(lx, ly, lz);
+                            final int emission = state.getLightEmission();
+                            if (emission > 0 && emitters.size() < VsShipEmitterList.MAX_EMITTERS * 4) {
+                                emitters.add(originX + lx + 0.5);
+                                emitters.add(originY + ly + 0.5);
+                                emitters.add(originZ + lz + 0.5);
+                                emitters.add(emission);
+                            }
                             final FluidState fluid = state.getFluidState();
                             final boolean hasFluid = !fluid.isEmpty();
                             final boolean hasModel = state.getRenderShape() == RenderShape.MODEL;
@@ -162,7 +172,7 @@ public final class ShipSectionCompiler {
             }
             VertexBuffer.unbind();
 
-            return new ShipMesh(opaque, translucentSections, refX, refY, refZ);
+            return new ShipMesh(opaque, translucentSections, refX, refY, refZ, emitters.toDoubleArray());
         } finally {
             ModelBlockRenderer.clearCache();
         }

@@ -25,6 +25,7 @@ public final class ShipSectionMesh implements AutoCloseable {
     public final int originX;
     public final int originY;
     public final int originZ;
+    ShipMesh owner;
 
     private final VertexBuffer[] buffers = new VertexBuffer[CHUNK_LAYERS.length];
 
