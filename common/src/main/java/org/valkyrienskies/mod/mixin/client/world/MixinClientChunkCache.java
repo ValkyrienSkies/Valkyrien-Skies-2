@@ -44,6 +44,8 @@ import org.valkyrienskies.mod.common.assembly.SeamlessChunksManager;
 import org.valkyrienskies.mod.common.VS2ChunkAllocator;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
+import org.valkyrienskies.mod.common.config.ShipRendererKt;
+import org.valkyrienskies.mod.common.render.batched.ShipBatchRenderer;
 import org.valkyrienskies.mod.common.render.light.VsDynamicLight;
 import org.valkyrienskies.mod.compat.VSRenderer;
 import org.valkyrienskies.mod.compat.sodium.SodiumCompat;
@@ -214,6 +216,12 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
         }
 
         this.level.onChunkLoaded(pos);
+        // Packet refreshes can mutate an existing LevelChunk in place. Batched ships have
+        // no vanilla RenderChunks to dirty, so notify their cache on both render backends.
+        if (VSGameUtilsKt.getShipManagingPos(level, x, z) instanceof final ClientShip ship
+            && ShipRendererKt.getUsesBatchedRenderer(ship)) {
+            ShipBatchRenderer.INSTANCE.markColumnDirty(level, ship.getId(), x, z);
+        }
         if (ValkyrienCommonMixinConfigPlugin.getVSRenderer() == VSRenderer.SODIUM) {
             // getVSRenderer() only returns SODIUM if the mod is installed.
             // Methods of SodiumCompat check if Sodium is present but calling them

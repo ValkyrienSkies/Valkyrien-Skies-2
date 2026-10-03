@@ -2,6 +2,7 @@ package org.valkyrienskies.mod.common.render.batched;
 
 import com.mojang.blaze3d.vertex.VertexBuffer;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import org.valkyrienskies.mod.compat.sodium.light.ShipEmitterSelection;
 
 final class ShipMesh implements AutoCloseable {
 
@@ -11,14 +12,19 @@ final class ShipMesh implements AutoCloseable {
     final int refX;
     final int refY;
     final int refZ;
+    final double[] emitters;
+    final int[] selectedEmitters = new int[ShipEmitterSelection.MAX_SELECTED];
+    int selectedEmitterCount;
 
     ShipMesh(final VertexBuffer[] opaque, final Long2ObjectMap<ShipSectionMesh> translucentSections,
-        final int refX, final int refY, final int refZ) {
+        final int refX, final int refY, final int refZ, final double[] emitters) {
         this.opaque = opaque;
         this.translucentSections = translucentSections;
         this.refX = refX;
         this.refY = refY;
         this.refZ = refZ;
+        this.emitters = emitters;
+        for (final ShipSectionMesh section : translucentSections.values()) section.owner = this;
     }
 
     VertexBuffer getOpaque(final int layerIndex) {

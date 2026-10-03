@@ -63,11 +63,17 @@ public abstract class MixinClientLevel extends Level {
     private void vs$markBatchedShipSectionDirty(final BlockPos pos, final BlockState oldState,
         final BlockState newState, final int flags, final CallbackInfo ci) {
         final int sectionX = pos.getX() >> 4;
-        final int sectionY = pos.getY() >> 4;
         final int sectionZ = pos.getZ() >> 4;
         if (VSGameUtilsKt.getShipManagingPos((ClientLevel) (Object) this, sectionX, sectionZ)
                 instanceof final ClientShip ship && ShipRendererKt.getUsesBatchedRenderer(ship)) {
-            ShipBatchRenderer.INSTANCE.markSectionDirty(ship.getId(), sectionX, sectionY, sectionZ);
+            // Neighbors across section boundaries share faces, AO and baked light.
+            for (int sx = (pos.getX() - 1) >> 4; sx <= (pos.getX() + 1) >> 4; sx++) {
+                for (int sy = (pos.getY() - 1) >> 4; sy <= (pos.getY() + 1) >> 4; sy++) {
+                    for (int sz = (pos.getZ() - 1) >> 4; sz <= (pos.getZ() + 1) >> 4; sz++) {
+                        ShipBatchRenderer.INSTANCE.markSectionDirty(ship.getId(), sx, sy, sz);
+                    }
+                }
+            }
         }
     }
 }

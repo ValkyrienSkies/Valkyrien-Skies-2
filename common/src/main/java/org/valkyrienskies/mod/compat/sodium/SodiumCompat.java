@@ -41,7 +41,6 @@ import org.joml.Matrix4fc;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
-import org.valkyrienskies.mod.common.config.ShipRendererKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.render.batched.ShipBatchRenderer;
 import org.valkyrienskies.mod.common.render.batched.ShipSectionMesh;
@@ -324,12 +323,6 @@ public class SodiumCompat {
         if (ValkyrienCommonMixinConfigPlugin.getVSRenderer() == VSRenderer.SODIUM) {
             ChunkTrackerHolder.get(level).onChunkStatusAdded(x, z, ChunkStatus.FLAG_HAS_BLOCK_DATA);
             markShipSectionCacheDirty(level, x, z);
-            if (VSGameUtilsKt.getShipManagingPos(level, x, z) instanceof final ClientShip ship
-                    && ShipRendererKt.getUsesBatchedRenderer(ship)) {
-                for (int sy = level.getMinSection(); sy < level.getMaxSection(); sy++) {
-                    ShipBatchRenderer.INSTANCE.markSectionDirty(ship.getId(), x, sy, z);
-                }
-            }
         }
     }
 

@@ -132,8 +132,8 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererDuck, Le
     private boolean vs$renderableLayerCachesDirty = true;
     @Unique
     private int vs$shipSectionCacheGeneration = 1;
-    // Most recent culling frustum, captured in postApplyFrustum, used for whole-ship culling of
-    // BATCHED ships in the batched draw pass (redirectRenderChunkLayer has no frustum param).
+    // Refreshed by setupRender every frame, even when vanilla skips applyFrustum.
+    // The batched draw pass has no frustum parameter of its own.
     @Unique
     private Frustum vs$lastFrustum = null;
 
@@ -291,6 +291,7 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererDuck, Le
     )
     private void vs$beginSetupRender(final Camera camera, final Frustum frustum, final boolean bl, final boolean bl2,
         final CallbackInfo ci) {
+        this.vs$lastFrustum = frustum;
         this.vs$didApplyFrustumThisFrame = false;
     }
 

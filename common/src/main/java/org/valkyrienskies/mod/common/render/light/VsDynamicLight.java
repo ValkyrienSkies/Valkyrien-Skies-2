@@ -5,6 +5,7 @@ import org.joml.primitives.AABBdc;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.ShipRendererKt;
+import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.compat.sodium.light.VsShipEmitterList;
 import org.valkyrienskies.mod.compat.sodium.light.VsShipLightStorage;
 import org.valkyrienskies.mod.compat.sodium.light.VsShipOccluderList;
@@ -74,14 +75,14 @@ public final class VsDynamicLight {
         }
     }
 
-    public static void populateWorldLightForBatched(final ClientLevel level) {
-        if (level == null) {
+    /** Preserve the other renderer's requests when the shared cache is refreshed for batched draws. */
+    public static void requestTerrainShipLight(final ClientLevel level) {
+        if (level == null || !VSGameConfig.CLIENT.getDynamicShipLighting()) {
             return;
         }
         final VsShipLightStorage light = getLightStorage();
-        light.beginFrame();
         for (final ClientShip ship : VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips()) {
-            if (!ShipRendererKt.getUsesBatchedRenderer(ship)) {
+            if (ShipRendererKt.getUsesBatchedRenderer(ship)) {
                 continue;
             }
             final AABBdc aabb = ship.getRenderAABB();
@@ -91,7 +92,5 @@ public final class VsDynamicLight {
                     aabb.maxX(), aabb.maxY(), aabb.maxZ());
             }
         }
-        light.pruneUnused();
-        light.upload();
     }
 }
