@@ -97,6 +97,10 @@ public final class ShipBatchRenderer {
         }
     }
 
+    public boolean hasRenderableShips() {
+        return !drawOrder.isEmpty();
+    }
+
     public void beginFrame(final ClientLevel level) {
         RenderSystem.assertOnRenderThread();
         currentFrameToken++;
@@ -350,9 +354,13 @@ public final class ShipBatchRenderer {
             data.translucentOrder.clear();
 
             final ClientShip ship = renderObject.ship;
-            if (renderObject.isEmpty()
-                || (frustum != null
-                    && !frustum.isVisible(VectorConversionsMCKt.toMinecraft(ship.getRenderAABB())))) {
+            if (renderObject.isEmpty()) {
+                data.visible = true;
+                continue;
+            }
+
+            if (frustum != null
+                && !frustum.isVisible(VectorConversionsMCKt.toMinecraft(ship.getRenderAABB()))) {
                 data.visible = false;
                 continue;
             }

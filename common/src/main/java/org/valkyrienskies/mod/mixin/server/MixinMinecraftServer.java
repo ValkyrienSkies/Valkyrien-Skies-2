@@ -218,7 +218,6 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
             }
         }
         */
-
         // endregion
 
         vsPipeline.preTickGame();

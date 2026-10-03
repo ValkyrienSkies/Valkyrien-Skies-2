@@ -76,6 +76,13 @@ public class VsShipLightStorage {
 
     private LongSet requestedThisFrame = new LongOpenHashSet();
 
+    private static final int SETTLE_WINDOW_TICKS = 100; // ~5s hard cap after first sight
+    private static final int WINDOW_EXPIRED = 0;
+    private final Long2IntOpenHashMap shipSettleTicksLeft = new Long2IntOpenHashMap();
+    private final LongSet shipSettleSeenThisTick = new LongOpenHashSet();
+    private long settleTick = Long.MIN_VALUE;
+    private boolean settleLightPending = false;
+
     private long arenaPtr;
     private int capacity;
 
@@ -228,6 +235,69 @@ public class VsShipLightStorage {
             for (int dz = -1; dz <= 1; dz++) {
                 for (int dx = -1; dx <= 1; dx++) {
                     int idx = section2Index.get(SectionPos.asLong(sx + dx, sy + dy, sz + dz));
+                    if (idx != INVALID) {
+                        dirty.set(idx);
+                    }
+                }
+            }
+        }
+    }
+
+    public void beginSettleTick(long gameTime, boolean lightWorkPending) {
+        if (gameTime == settleTick) {
+            settleLightPending |= lightWorkPending;
+            return;
+        }
+        settleTick = gameTime;
+        settleLightPending = lightWorkPending;
+        if (!shipSettleTicksLeft.isEmpty()) {
+            shipSettleTicksLeft.keySet().retainAll(shipSettleSeenThisTick);
+        }
+        shipSettleSeenThisTick.clear();
+        if (!shipSettleTicksLeft.isEmpty()) {
+            final ObjectIterator<Long2IntMap.Entry> it = shipSettleTicksLeft.long2IntEntrySet().iterator();
+            while (it.hasNext()) {
+                final Long2IntMap.Entry e = it.next();
+                final int v = e.getIntValue() - 1;
+                // Pin an elapsed window at WINDOW_EXPIRED instead of removing the entry.
+                // Removing it would let shipNeedsResettle() treat a still-visible ship as
+                // a first sight and reopen the window forever; keeping the entry enforces
+                // the hard cap. The retainAll above still drops it when the ship leaves view.
+                e.setValue(v <= WINDOW_EXPIRED ? WINDOW_EXPIRED : v);
+            }
+        }
+    }
+
+    public boolean shipNeedsResettle(long shipId) {
+        shipSettleSeenThisTick.add(shipId);
+        if (!shipSettleTicksLeft.containsKey(shipId)) {
+            shipSettleTicksLeft.put(shipId, SETTLE_WINDOW_TICKS); // first sight: open window
+            return settleLightPending;
+        }
+        return settleLightPending && shipSettleTicksLeft.get(shipId) > WINDOW_EXPIRED;
+    }
+
+    public void markAabbDirty(double minX, double minY, double minZ,
+            double maxX, double maxY, double maxZ) {
+        minX -= 1.0; minY -= 1.0; minZ -= 1.0;
+        maxX += 1.0; maxY += 1.0; maxZ += 1.0;
+
+        int sxMin = SectionPos.blockToSectionCoord((int) Math.floor(minX));
+        int syMin = SectionPos.blockToSectionCoord((int) Math.floor(minY));
+        int szMin = SectionPos.blockToSectionCoord((int) Math.floor(minZ));
+        int sxMax = SectionPos.blockToSectionCoord((int) Math.floor(maxX));
+        int syMax = SectionPos.blockToSectionCoord((int) Math.floor(maxY));
+        int szMax = SectionPos.blockToSectionCoord((int) Math.floor(maxZ));
+
+        long count = (long) (sxMax - sxMin + 1) * (syMax - syMin + 1) * (szMax - szMin + 1);
+        if (count > MAX_SECTIONS_PER_REQUEST) {
+            return;
+        }
+
+        for (int sy = syMin; sy <= syMax; sy++) {
+            for (int sz = szMin; sz <= szMax; sz++) {
+                for (int sx = sxMin; sx <= sxMax; sx++) {
+                    int idx = section2Index.get(SectionPos.asLong(sx, sy, sz));
                     if (idx != INVALID) {
                         dirty.set(idx);
                     }

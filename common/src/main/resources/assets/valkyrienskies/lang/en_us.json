@@ -93,6 +93,10 @@
   "command.valkyrienskies.schematic.load.fail.missing_structure": "Missing structure file: %s",
   "command.valkyrienskies.schematic.load.fail.bad_joint_type": "Unsupported joint type: %s",
   "command.valkyrienskies.schematic.open_folder.server": "This command can't be used on a dedicated server",
+  "command.valkyrienskies.shoot.must_be_entity": "/vs shoot must be run by an entity (it fires from your eyes along your look direction).",
+  "command.valkyrienskies.shoot.unknown_block": "Unknown block: %s",
+  "command.valkyrienskies.shoot.success": "Fired %dx%dx%d %s ship #%s at %s m/s",
+  "command.valkyrienskies.shoot.success.impact_note": "Fired %dx%dx%d %s ship #%s at %s m/s  (note: impact fracture needs ~%d+ m/s to trigger)",
 
   "misc.valkyrienskies.create.deployer_working_mode": "Ship Behaviour",
   "misc.valkyrienskies.create.deployer_working_mode.original": "Place on current ship",

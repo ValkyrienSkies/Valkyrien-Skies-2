@@ -4,17 +4,11 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.Vec3i
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.Level
-import org.joml.Vector3ic
 import org.valkyrienskies.core.api.attachment.getAttachment
 import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.ships.properties.ShipId
-import org.valkyrienskies.core.api.world.connectivity.ConnectionStatus.CONNECTED
-import org.valkyrienskies.core.api.world.connectivity.ConnectionStatus.DISCONNECTED
-import org.valkyrienskies.core.api.world.connectivity.SparseVoxelPosition
 import org.valkyrienskies.core.api.world.properties.DimensionId
-import org.valkyrienskies.mod.api.getShipById
-import org.valkyrienskies.mod.api.toBlockPos
 import org.valkyrienskies.mod.common.assembly.ShipAssembler
 import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.dimensionId
@@ -27,8 +21,10 @@ class SplitHandler(private val doEdges: Boolean, private val doCorners: Boolean)
     private val splitQueue: HashMap<DimensionId, HashMap<ShipId, Int>> = hashMapOf()
 
     fun queueSplit(level: Level, shipId: ShipId?) {
-        splitQueue[level.dimensionId]?.put(shipId ?: -1, VSGameConfig.SERVER.defaultSplitGraceTimer) ?: run {
-            splitQueue[level.dimensionId] = hashMapOf((shipId ?: -1) to VSGameConfig.SERVER.defaultSplitGraceTimer)
+        if (shipId == null) return
+        SPLITLOGGER.logger.debug("[split-debug] queueSplit requested: ship=$shipId dim=${level.dimensionId}")
+        splitQueue[level.dimensionId]?.put(shipId, VSGameConfig.SERVER.defaultSplitGraceTimer) ?: run {
+            splitQueue[level.dimensionId] = hashMapOf(shipId to VSGameConfig.SERVER.defaultSplitGraceTimer)
         }
     }
 
@@ -43,6 +39,7 @@ class SplitHandler(private val doEdges: Boolean, private val doCorners: Boolean)
                 }
             }
             splitsToProcess.forEach {
+                SPLITLOGGER.logger.info("[split-debug] grace timer expired, running split() for ship=$it")
                 splitQueue[level.dimensionId]!!.remove(it)
                 split(level, it)
             }
@@ -50,113 +47,67 @@ class SplitHandler(private val doEdges: Boolean, private val doCorners: Boolean)
     }
 
     fun split(level: Level, shipId: ShipId, after: Consumer<ServerShip>? = null) {
-        if (level is ServerLevel) {
-            val loadedShip : LoadedServerShip? = level.shipObjectWorld.loadedShips.getById(shipId)
-            if ((loadedShip != null && loadedShip.getAttachment<SplittingDisablerAttachment>()?.canSplit() != false) || (loadedShip == null && VSGameConfig.SERVER.enableWorldSplitting)) {
-                if (true) {
+        if (level !is ServerLevel) return
+        val loadedShip: LoadedServerShip = level.shipObjectWorld.loadedShips.getById(shipId) ?: return
+        if (loadedShip.getAttachment<SplittingDisablerAttachment>()?.canSplit() == false) return
 
-                    val blockNeighbors = HashSet(level.shipObjectWorld.getAllSolidComponentsFromClaim(loadedShip?.chunkClaimDimension ?: return, loadedShip?.chunkClaim ?: return))
-
-                    if (blockNeighbors.isNotEmpty()) {
-                        //find largest remaining component
-                        var largestComponentNode: BlockPos = blockNeighbors.first().toBlockPos()
-                        var largestComponentSize: Long = -1
-
-                        for (neighborPos in blockNeighbors) {
-                            if (level.shipObjectWorld.isIsolatedSolid(neighborPos.x(), neighborPos.y(), neighborPos.z(), level.dimensionId) == DISCONNECTED) {
-                                val size = level.shipObjectWorld.getSolidComponentSize(neighborPos.x(), neighborPos.y(), neighborPos.z(), level.dimensionId)
-                                if (size > largestComponentSize) {
-                                    largestComponentNode = neighborPos.toBlockPos()
-                                    largestComponentSize = size
-                                }
-                            }
-                        }
-
-                        if (largestComponentSize == -1L) {
-                            return
-                        }
-
-                        blockNeighbors.remove(largestComponentNode.toJOML())
-
-                        // use largest as base
-
-                        //find all disconnected components
-
-                        val disconnected = HashSet<BlockPos>()
-                        for (neighborPos in blockNeighbors) {
-                            if (level.shipObjectWorld.isIsolatedSolid(neighborPos.x(), neighborPos.y(), neighborPos.z(), level.dimensionId) == DISCONNECTED) {
-                                if (neighborPos != largestComponentNode) {
-                                    if (level.shipObjectWorld.isConnectedBySolid(largestComponentNode.x, largestComponentNode.y, largestComponentNode.z, neighborPos.x(), neighborPos.y(), neighborPos.z(), level.dimensionId) == DISCONNECTED) {
-                                        disconnected.add(neighborPos.toBlockPos())
-                                    }
-                                }
-                            }
-                        }
-
-                        //check if any disconnected components are connected
-                        val toIgnore: HashSet<BlockPos> = HashSet()
-                        //toIgnore.add(BlockPos(x, y, z))
-                        for (component in disconnected) {
-                            for (otherComponent in disconnected) {
-                                if (component == otherComponent) {
-                                    continue
-                                }
-                                if (level.shipObjectWorld.isConnectedBySolid(component.x, component.y, component.z, otherComponent.x, otherComponent.y, otherComponent.z, level.dimensionId) == CONNECTED) {
-                                    if (!toIgnore.contains(otherComponent) && !toIgnore.contains(component)) {
-                                        toIgnore.add(component)
-                                    }
-                                }
-                                if (level.shipObjectWorld.isIsolatedSolid(otherComponent.x, otherComponent.y, otherComponent.z, level.dimensionId) == CONNECTED) {
-                                    if (!toIgnore.contains(otherComponent) && !toIgnore.contains(component)) {
-                                        toIgnore.add(component)
-                                    }
-                                }
-                            }
-                        }
-
-                        disconnected.removeAll(toIgnore)
-
-                        if (disconnected.isEmpty()) {
-                            return
-                        } else {
-                            loadedShip?.getAttachment(SplittingDisablerAttachment::class.java)?.disableSplitting()
-                        }
-
-                        //begin the DFSing
-
-                        val toAssemble = HashSet<Set<BlockPos>>()
-
-                        fun getAllBlocksFromSparseVoxelSet(set: Set<SparseVoxelPosition>): Set<BlockPos> {
-                            val blocks = HashSet<BlockPos>()
-                            for (voxel in set) {
-                                blocks.addAll(voxel.getContaining().map(Vector3ic::toBlockPos))
-                            }
-                            return blocks
-                        }
-
-                        for (starter in disconnected) {
-                            if (level.shipObjectWorld.isIsolatedSolid(starter.x, starter.y, starter.z, level.dimensionId) == DISCONNECTED) {
-                                val component = level.shipObjectWorld.indexSolidComponentVoxels(starter.x, starter.y, starter.z, level.dimensionId)
-                                toAssemble.add(getAllBlocksFromSparseVoxelSet(component))
-                            }
-                        }
-
-                        if (toAssemble.isEmpty()) {
-                            loadedShip?.getAttachment(SplittingDisablerAttachment::class.java)?.enableSplitting()
-                            return
-                        }
-
-                        for (component in toAssemble) {
-                            if (component.isEmpty()) continue
-                            val newShip = ShipAssembler.assembleToShip(level, component, 1.0)
-                            if (after != null) after.accept(newShip)
-                        }
-
-                        loadedShip?.getAttachment(SplittingDisablerAttachment::class.java)?.enableSplitting()
+        val allBlocks = HashSet<BlockPos>()
+        loadedShip.activeChunksSet.forEach { cx, cz ->
+            val chunk = level.chunkSource.getChunkNow(cx, cz) ?: return@forEach
+            val sections = chunk.sections
+            for (sIdx in sections.indices) {
+                val section = sections[sIdx] ?: continue
+                if (section.hasOnlyAir()) continue
+                val baseY = chunk.getSectionYFromSectionIndex(sIdx) shl 4
+                for (lx in 0..15) for (ly in 0..15) for (lz in 0..15) {
+                    if (!section.getBlockState(lx, ly, lz).isAir) {
+                        allBlocks.add(BlockPos((cx shl 4) + lx, baseY + ly, (cz shl 4) + lz))
                     }
                 }
             }
         }
+        if (allBlocks.size <= 1) return
+
+        val components = connectedComponents(allBlocks, getOffsets(doEdges, doCorners))
+        SPLITLOGGER.logger.info("[split-debug] BFS: ${components.size} component(s) from ${allBlocks.size} blocks")
+        if (components.size <= 1) return // still one connected piece -> no split
+
+        components.sortByDescending { it.size }
+        loadedShip.getAttachment(SplittingDisablerAttachment::class.java)?.disableSplitting()
+        try {
+            for (i in 1 until components.size) {
+                val comp = components[i]
+                if (comp.isEmpty()) continue
+                val newShip = ShipAssembler.assembleToShip(level, comp, 1.0)
+                SPLITLOGGER.logger.info("[split-debug] split off new ship ${newShip.id} (${comp.size} blocks)")
+                after?.accept(newShip)
+            }
+        } finally {
+            loadedShip.getAttachment(SplittingDisablerAttachment::class.java)?.enableSplitting()
+        }
+    }
+
+    private fun connectedComponents(blocks: Set<BlockPos>, offsets: List<Vec3i>): MutableList<MutableSet<BlockPos>> {
+        val remaining = HashSet(blocks)
+        val components = ArrayList<MutableSet<BlockPos>>()
+        while (remaining.isNotEmpty()) {
+            val start = remaining.iterator().next()
+            remaining.remove(start)
+            val comp = HashSet<BlockPos>().apply { add(start) }
+            val stack = ArrayDeque<BlockPos>().apply { addLast(start) }
+            while (stack.isNotEmpty()) {
+                val cur = stack.removeLast()
+                for (off in offsets) {
+                    val nb = cur.offset(off.x, off.y, off.z)
+                    if (remaining.remove(nb)) {
+                        comp.add(nb)
+                        stack.addLast(nb)
+                    }
+                }
+            }
+            components.add(comp)
+        }
+        return components
     }
 
     companion object {

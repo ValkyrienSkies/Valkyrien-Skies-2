@@ -252,7 +252,6 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererDuck, Le
         at = @At("RETURN")
     )
     private void postApplyFrustum(Frustum frustum, CallbackInfo ci){
-        this.vs$lastFrustum = frustum;
         // Gradually pre-allocate render chunk GPU buffers so they're ready when ships load
         ((IVSViewAreaMethods) viewArea).vs$fillRenderChunkPool();
         // This mixin never gets called for IP dimensions, instead we'll call it manually
@@ -292,6 +291,7 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererDuck, Le
     private void vs$beginSetupRender(final Camera camera, final Frustum frustum, final boolean bl, final boolean bl2,
         final CallbackInfo ci) {
         this.vs$didApplyFrustumThisFrame = false;
+        this.vs$lastFrustum = frustum;
     }
 
     /**
