@@ -13,6 +13,7 @@ import com.simibubi.create.content.contraptions.behaviour.MovementContext;
 import com.simibubi.create.content.kinetics.base.BlockBreakingMovementBehaviour;
 import net.createmod.catnip.math.VecHelper;
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
@@ -115,6 +116,9 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
     private boolean vs$isWorldSegment = true;
 
     @Unique
+    private boolean vs$segmentGeometryDirty;
+
+    @Unique
     @Nullable
     private Vector3d vs$lastSegmentPosition;
 
@@ -130,6 +134,8 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
     @Override
     public void vs$setSegmentId(int segmentId) {
         vs$segmentId = segmentId;
+        vs$lastSegmentPosition = null;
+        vs$lastSegmentRotation = null;
     }
 
     @Override
@@ -381,23 +387,23 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
 
     @Inject(method = "tick", at = @At("RETURN"))
     private void updateCollisionSegmentTransform(final CallbackInfo ci) {
-        final int segmentId = this.vs$getSegmentId();
-        if (segmentId == -1 || this.level().isClientSide) {
-            return;
-        }
-        final ServerLevel serverLevel = (ServerLevel) this.level();
+        if (!(this.level() instanceof ServerLevel serverLevel)) return;
         final AbstractContraptionEntity thisAsACE = AbstractContraptionEntity.class.cast(this);
+        if (vs$segmentGeometryDirty) {
+            ContraptionSegmentHelper.clearContraptionSegment(serverLevel, this);
+            vs$segmentGeometryDirty = false;
+        }
+        if (!ContraptionSegmentHelper.ensureContraptionSegment(serverLevel, thisAsACE)) return;
+        final int segmentId = this.vs$getSegmentId();
         final long bodyId = this.vs$getSegmentBodyId();
         final boolean isWorld = this.vs$isWorldSegment();
-        ContraptionSegmentHelper.updateContraptionSegmentTransform(
-            serverLevel,
-            thisAsACE,
-            segmentId,
-            bodyId,
-            isWorld,
-            this.vs$getLastSegmentPosition(),
-            this.vs$getLastSegmentRotation()
-        );
+        if (!ContraptionSegmentHelper.updateContraptionSegmentTransform(
+            serverLevel, thisAsACE, segmentId, bodyId, isWorld,
+            this.vs$getLastSegmentPosition(), this.vs$getLastSegmentRotation()
+        )) {
+            ContraptionSegmentHelper.clearContraptionSegment(serverLevel, this);
+            return;
+        }
         this.vs$setLastSegmentPose(
             ContraptionSegmentHelper.getContraptionSegmentPosition(serverLevel, thisAsACE, bodyId, isWorld),
             ContraptionSegmentHelper.getContraptionSegmentRotation(serverLevel, thisAsACE, bodyId, isWorld)
@@ -420,18 +426,31 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
 
     @Inject(method = "remove", at = @At("HEAD"))
     private void onRemove(RemovalReason p_146834_, CallbackInfo ci) {
-        int segmentId = this.vs$getSegmentId();
-        if (segmentId == -1) return;
-        Level level = this.level();
-        if (level.isClientSide) {
-            return;
+        if (this.level() instanceof ServerLevel serverLevel) {
+            ContraptionSegmentHelper.clearContraptionSegment(serverLevel, this);
         }
-        ServerLevel serverLevel = (ServerLevel) level;
-        ContraptionSegmentHelper.removeContraptionSegment(
-            serverLevel,
-            segmentId,
-            this.vs$getSegmentBodyId(),
-            this.vs$isWorldSegment()
-        );
+    }
+
+    @Inject(method = "setBlock", at = @At("RETURN"), remap = false)
+    private void vs$onContraptionBlockChanged(BlockPos localPos, StructureBlockInfo info, CallbackInfo ci) {
+        vs$segmentGeometryDirty = true;
+    }
+
+    @Inject(method = "writeAdditional", at = @At("RETURN"), remap = false)
+    private void vs$writeSegmentBinding(CompoundTag tag, boolean spawnPacket, CallbackInfo ci) {
+        if (!spawnPacket && vs$segmentId != -1 && !vs$isWorldSegment) {
+            tag.putInt("VSContraptionSegment", vs$segmentId);
+            tag.putLong("VSContraptionBody", vs$segmentBodyId);
+        }
+    }
+
+    @Inject(method = "readAdditional", at = @At("RETURN"), remap = false)
+    private void vs$readSegmentBinding(CompoundTag tag, boolean spawnData, CallbackInfo ci) {
+        if (!spawnData && tag.contains("VSContraptionSegment") && tag.contains("VSContraptionBody")) {
+            vs$setSegmentId(tag.getInt("VSContraptionSegment"));
+            vs$setSegmentOwner(tag.getLong("VSContraptionBody"), false);
+            // The saved ship can retain the child. Replace it once, including its voxel data.
+            vs$segmentGeometryDirty = true;
+        }
     }
 }
