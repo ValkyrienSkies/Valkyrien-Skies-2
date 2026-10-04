@@ -17,6 +17,8 @@ import org.valkyrienskies.core.api.physics.blockstates.SolidBlockShape
 import org.valkyrienskies.mod.common.vsCore
 import org.valkyrienskies.mod.mixin.accessors.world.level.block.SlabBlockAccessor
 import org.valkyrienskies.mod.mixin.accessors.world.level.block.StairBlockAccessor
+import kotlin.math.ceil
+import kotlin.math.floor
 import kotlin.math.roundToInt
 
 /**
@@ -202,5 +204,18 @@ object BlockShapeUtil {
     fun getFluidShape(fluidState: FluidState): VoxelShape {
         return fluidState.getShape(dummyGetter, BlockPos.ZERO)
     }
+
+    @JvmStatic
+    fun VoxelShape.toAABBi(): AABBic {
+        return if (this.isEmpty) AABBi(0, 0, 0, 0, 0, 0)
+        else {
+            val b = bounds()
+            AABBi(
+                floor(b.minX * 16).toInt(), floor(b.minY * 16).toInt(), floor(b.minZ * 16).toInt(),
+                ceil(b.maxX * 16).toInt() - 1, ceil(b.maxY * 16).toInt() - 1, ceil(b.maxZ * 16).toInt() - 1
+            )
+        }
+    }
+
 
 }

@@ -18,6 +18,7 @@ import org.valkyrienskies.mod.common.command.commands.ConfigCommand
 import org.valkyrienskies.mod.common.command.commands.DeleteCommand
 import org.valkyrienskies.mod.common.command.commands.DryCommand
 import org.valkyrienskies.mod.common.command.commands.ApplyCommand
+import org.valkyrienskies.mod.common.command.commands.BlockStateCommand
 import org.valkyrienskies.mod.common.command.commands.GetAirCommand
 import org.valkyrienskies.mod.common.command.commands.GetGravityCommand
 import org.valkyrienskies.mod.common.command.commands.GetShipCommand
@@ -42,6 +43,7 @@ object VSCommands {
         var vs = literal("vs")
 
         BackendCommand.register(vs)
+        BlockStateCommand.register(vs)
         ConfigCommand.register(vs)
         DeleteCommand.register(vs)
         DryCommand.register(vs)

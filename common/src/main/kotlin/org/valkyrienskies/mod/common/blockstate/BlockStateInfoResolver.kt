@@ -29,6 +29,7 @@ import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.networking.PacketSyncBlockStateProperties
 import org.valkyrienskies.mod.common.util.BlockShapeUtil
+import org.valkyrienskies.mod.common.util.BlockShapeUtil.toAABBi
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.vsCore
 import org.valkyrienskies.mod.util.logger
@@ -45,6 +46,46 @@ object BlockStateInfoResolver {
     private val pendingBlockState2Properties: MutableMap<ResourceLocation, MutableMap<String, PendingStateProperties>> = HashMap()
     private val tag2Properties: MutableMap<ResourceLocation, PendingTagProperties> = HashMap()
     private val liquidIdToFlowingFluid: MutableMap<Int, FlowingFluid?> = HashMap()
+
+    /*
+    TODO #1
+    take liquid properties out of state properties and put it in its own map so that we look up separate properties for
+    the solid and liquid as opposed to taking the liquid from the full state (as this will return null) and thus we
+    end up putting the default liquid state for blocks like waterlogged slabs
+     */
+
+    /*
+    TODO #2
+    allow tags to do blockstates, because yes
+     */
+
+    /*
+    TODO #3
+    new blockstate format where instead of matching the string, we hae a base value + each property
+    has a modifier for its values, and we register the mass by getting the modifier for each property and summing them up for the full value
+     */
+
+    /*
+    TODO #4
+    define property templates in a templates.json file in the vs_mass directory
+    these would take a set amount of values and basically spit out properties
+    for example, we could have a slab template that would take one value (likely the mass of its full block counterpart)
+    and spit out properties that would basically just be half the given mass, or the full given mass if double slab
+
+    would help for saving time when defining entries for stuff like slabs, stairs etc
+    instead of writing out a whole entry just smthn like:
+
+    "block": "minecraft:oak_stairs",
+    "template": {
+        "name": "valkyrienskies:slab",
+        "input": "minecraft:oak_planks <- this value would get resolved into the actual mass
+    }
+
+    also for defining templates, they would just have a name like "slab" then we get the namespace from the namespace
+    of the templates.json file they're placed in
+    having users define templates in a templates.json file in the vs_mass directory means we can filter the map of jsons for the
+    ones that have a path of "template.json", and make sure we load the templates before we start loading any properties
+     */
 
     fun getLiquidStateId(blockState: BlockState): Int? =
         blockState.vsType.let(vsCore.blockTypes::getLiquidStateId)
@@ -159,8 +200,8 @@ object BlockStateInfoResolver {
                 .build()
         } else buildDefaultSolidState(voxelShape)
 
-        fun getLiquidState(props: StateProperties?, boxShape: AABBic) = if (props?.liquid != null) {
-            val shape: AABBic = props.liquid.shapeOverride ?: boxShape
+        fun getLiquidState(props: StateProperties?, voxelShape: VoxelShape) = if (props?.liquid != null) {
+            val shape: AABBic = props.liquid.shapeOverride ?: voxelShape.toAABBi()
 
             vsCore.newLiquidStateBuilder()
                 .boxShape(shape)
@@ -168,7 +209,7 @@ object BlockStateInfoResolver {
                 .dragCoefficient(props.liquid.dragCoefficient)
                 .velocity(props.liquid.velocity)
                 .build()
-        } else buildDefaultLiquidState(boxShape)
+        } else buildDefaultLiquidState(voxelShape.toAABBi())
 
         blockStates.forEach { blockState ->
             val composition: Composition = getComposition(blockState)
@@ -189,11 +230,11 @@ object BlockStateInfoResolver {
                 Composition.MIXED -> {
                     val voxelShape = BlockShapeUtil.getShapeForVS(blockState)
                     val props = getProperties(blockState)
-                    VsiBlockState(getSolidState(props, voxelShape), getLiquidState(props, fluidBox(blockState.fluidState)))
+                    VsiBlockState(getSolidState(props, voxelShape), getLiquidState(props, BlockShapeUtil.getFluidShape(blockState.fluidState)))
                 }
                 Composition.LIQUID -> {
                     val props = getProperties(blockState)
-                    VsiBlockState(null, getLiquidState(props, fluidBox(blockState.fluidState)))
+                    VsiBlockState(null, getLiquidState(props, BlockShapeUtil.getFluidShape(blockState.fluidState)))
                 }
                 Composition.EMPTY -> {
                     val voxelShape = BlockShapeUtil.getShapeForVS(blockState)
@@ -273,7 +314,7 @@ object BlockStateInfoResolver {
      */
     private fun resolveAll() {
         if (pendingBlockState2Properties.isEmpty()) return
-        logger.info("Resolving all values. This may take a while if there are a large amount of dependent values!")
+        logger.info("Resolving all values (${pendingBlockState2Properties.size}). This may take a while if there are a large amount of dependent values!")
 
         var unresolvedCount = 0
         val elapsedNanos = measureNanoTime {
@@ -340,6 +381,7 @@ object BlockStateInfoResolver {
 
     private fun resolveValue(value: NumericValue, default: Double, force: Boolean, extractor: (StateProperties) -> Double?): Double? = when (value) {
         is NumericValue.Literal -> value.value
+        is NumericValue.Default -> value.mult * default
         is NumericValue.Dependent -> {
             val target = blockState2Properties[value.targetId]?.getOrOther(value.targetState, "default")
             val resolved = target?.let(extractor)?.let { it * value.mult }
@@ -667,12 +709,18 @@ object BlockStateInfoResolver {
                     val target = json["value"]?.asString
                     val mult = json["mult"]?.asDouble ?: 1.0
 
-                    if (target == null) {
-                        logger.error("no target value in dependent value, defaulting to $default")
-                        NumericValue.Literal(default)
-                    } else {
-                        val targetState = idAndProperties(target)
-                        NumericValue.Dependent(targetState.a, targetState.b, mult)
+                    when (target) {
+                        null -> {
+                            logger.error("no target value in dependent value, defaulting to $default")
+                            NumericValue.Literal(default)
+                        }
+                        "default" -> {
+                            NumericValue.Default(mult)
+                        }
+                        else -> {
+                            val targetState = idAndProperties(target)
+                            NumericValue.Dependent(targetState.a, targetState.b, mult)
+                        }
                     }
                 }
                 else -> {

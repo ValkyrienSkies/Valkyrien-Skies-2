@@ -1,6 +1,7 @@
 @file:JvmName("BlockStateUtils")
 package org.valkyrienskies.mod.common.blockstate
 
+import de.bluecolored.bluemap.core.util.math.Axis
 import net.minecraft.commands.arguments.blocks.BlockStateParser
 import net.minecraft.core.BlockPos
 import net.minecraft.resources.ResourceLocation
@@ -8,6 +9,7 @@ import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.properties.Property
 import net.minecraft.world.level.material.FluidState
+import net.minecraft.world.phys.shapes.VoxelShape
 import org.joml.Vector3d
 import org.joml.primitives.AABBi
 import org.joml.primitives.AABBic
@@ -52,7 +54,7 @@ val BlockState.mass: Double
     }
 
 val LiquidState.actualMass: Double
-    get() = density * (shape.boundingBox.size() / BlockShapeUtil.fullLodBoundingBox.size())
+    get() = density * (shape.boundingBox.size().toDouble() / BlockShapeUtil.fullLodBoundingBox.size().toDouble())
 
 fun getTypeByComposition(blockState: BlockState) =
     when (getComposition(blockState)) {
@@ -60,6 +62,9 @@ fun getTypeByComposition(blockState: BlockState) =
         Composition.LIQUID -> vsCore.blockTypes.liquid
         Composition.AIR, Composition.EMPTY -> vsCore.blockTypes.air
     }
+
+fun BlockState.toFullString(): String = BlockStateParser.serialize(this)
+fun FluidState.toFullString(): String = serializeFluid(this)
 
 fun serializeFluid(fluidState: FluidState): String {
     val stringBuilder = StringBuilder(fluidState.holder().unwrapKey().map { key -> key.location().toString() }.orElse("empty"))

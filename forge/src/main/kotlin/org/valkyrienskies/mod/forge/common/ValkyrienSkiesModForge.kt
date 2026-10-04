@@ -90,7 +90,6 @@ import org.valkyrienskies.mod.compat.flywheel.ShipEmbeddingManager
 import org.valkyrienskies.mod.compat.hexcasting.HexcastingCompat
 import org.valkyrienskies.mod.forge.client.ValkyrienSkiesModForgeClient
 import org.valkyrienskies.mod.forge.compat.dynmap.ForgeDynmapHandler
-import org.valkyrienskies.mod.forge.compat.epicfight.FracturedBlockStateInfoProvider
 import org.valkyrienskies.mod.forge.compat.hexcasting.ForgeShipAmbit
 import org.valkyrienskies.mod.util.ClientConnectivityUpdateQueue
 
@@ -261,11 +260,6 @@ class ValkyrienSkiesModForge {
 
         modBus.addListener(::onTabModify)
 
-
-
-        if (ModList.get().isLoaded("epicfight")) {
-            FracturedBlockStateInfoProvider.register()
-        }
 
         if (ModList.get().isLoaded("dynmap")) {
             ForgeDynmapHandler().register()
