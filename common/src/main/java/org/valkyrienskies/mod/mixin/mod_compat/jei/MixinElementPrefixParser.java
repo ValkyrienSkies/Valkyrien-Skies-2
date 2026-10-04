@@ -22,8 +22,8 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.valkyrienskies.mod.client.ClientBlockInfo;
 import org.valkyrienskies.mod.client.ClientBlockStateInfo;
+import org.valkyrienskies.mod.common.blockstate.SolidStateProperties;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.compat.jei.NumericAttributeStorage;
 
@@ -60,8 +60,8 @@ public abstract class MixinElementPrefixParser {
 
             for (BlockState state : block.getStateDefinition().getPossibleStates()) {
 
-                // grab values from ClientBlockStateInfo instead of using the MassDatapackResolver as on the client-side values are stored there
-                ClientBlockInfo blockInfo = ClientBlockStateInfo.INSTANCE.getBlockInfo(state);
+                // grab values from ClientBlockStateInfo instead of using the BlockStateInfoResolver as on the client-side values are stored there
+                SolidStateProperties blockInfo = ClientBlockStateInfo.INSTANCE.getSolidProperties(state);
                 double mass = blockInfo != null ? blockInfo.getMass() : 0.0;
                 double friction = blockInfo != null ? blockInfo.getFriction() : 0.0;
                 double elasticity = blockInfo != null ? blockInfo.getElasticity() : 0.0;

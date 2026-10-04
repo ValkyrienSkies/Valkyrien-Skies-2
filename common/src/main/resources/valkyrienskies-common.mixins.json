@@ -169,6 +169,8 @@
     "feature.ladders.MixinLivingEntity",
     "feature.los_replace.MixinLivingEntityHasLineOfSight",
     "feature.mass_tooltip.MixinBlockItem",
+    "feature.mass_tooltip.MixinBucketItem",
+    "feature.mass_tooltip.MixinBannerItem",
     "feature.mob_spawning.MixinAnimalShipSpawn",
     "feature.mob_spawning.MixinBaseSpawnerShipFinalize",
     "feature.mob_spawning.MixinBaseSpawnerSky",

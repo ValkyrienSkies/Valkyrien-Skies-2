@@ -6,8 +6,11 @@
   "valkyrienskies.configuration.section.valkyrienskies.core.server.toml.title": "VSCore Settings",
 
 
-  "tooltip.valkyrienskies.mass": "Mass",  
-  "category.valkyrienskies.driving": "Driving",  
+  "tooltip.valkyrienskies.mass": "Mass",
+  "tooltip.valkyrienskies.friction": "Friction",
+  "tooltip.valkyrienskies.elasticity": "Elasticity",
+  "tooltip.valkyrienskies.density": "Density",
+  "category.valkyrienskies.driving": "Driving",
   "key.valkyrienskies.ship_cruise": "Cruise",
   "key.valkyrienskies.ship_down": "Descend",
 

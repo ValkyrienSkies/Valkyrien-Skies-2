@@ -10,7 +10,7 @@ import net.minecraft.world.level.material.FlowingFluid
 import org.joml.Vector3d
 import org.valkyrienskies.core.internal.physics.VsiFluidOutflow
 import org.valkyrienskies.core.internal.physics.VsiFluidOutflowResult
-import org.valkyrienskies.mod.common.config.MassDatapackResolver
+import org.valkyrienskies.mod.common.blockstate.BlockStateInfoResolver
 import java.util.ArrayDeque
 import java.util.UUID
 import kotlin.math.abs
@@ -93,7 +93,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
         if (level == null) {
             return VsiFluidOutflowResult.RETRY_LATER
         }
-        val fluid = MassDatapackResolver.getFlowingFluid(outflow.fluidId)
+        val fluid = BlockStateInfoResolver.getFlowingFluid(outflow.fluidId)
             ?: return VsiFluidOutflowResult.UNSUPPORTED_FLUID
         if (parcels.size >= maxActiveParcels.coerceAtLeast(1)) {
             return VsiFluidOutflowResult.RETRY_LATER

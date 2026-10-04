@@ -66,8 +66,8 @@ import org.valkyrienskies.mod.common.blockentity.TestAntigravBlockEntity
 import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
 import org.valkyrienskies.mod.common.blockentity.TestThrusterBlockEntity
 import org.valkyrienskies.mod.common.command.VSCommands
+import org.valkyrienskies.mod.common.blockstate.BlockStateInfoResolver
 import org.valkyrienskies.mod.common.config.DimensionParametersResolver
-import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.config.SlugDatapackResolver
 import org.valkyrienskies.mod.common.config.VSConfigUpdater
 import org.valkyrienskies.mod.common.config.VSEntityHandlerDataLoader
@@ -271,13 +271,13 @@ class ValkyrienSkiesModFabric : ModInitializer {
             event.accept(PHYSICS_ENTITY_CREATOR_ITEM)
         }
 
-        ServerPlayConnectionEvents.JOIN.register { handler, sender, server ->
+        ServerPlayConnectionEvents.JOIN.register { handler, _, _ ->
             if (handler.player is ServerPlayer) {
                 val player: MinecraftPlayer = handler.player.playerWrapper
-                if (VSGameConfig.SERVER.allowBlockInfo) {
-                    MassDatapackResolver.syncBlockStates(player)
+                if (VSGameConfig.SERVER.blockProperties.allowBlockInfo) {
+                    BlockStateInfoResolver.syncBlockStates(player)
                 } else {
-                    MassDatapackResolver.clearBlockStates(player)
+                    BlockStateInfoResolver.clearBlockStates(player)
                 }
             }
         }
@@ -287,7 +287,7 @@ class ValkyrienSkiesModFabric : ModInitializer {
         }
 
         // registering data loaders
-        val loader1 = MassDatapackResolver.loader // the get makes a new instance so get it only once
+        val loader1 = BlockStateInfoResolver.loader // the get makes a new instance so get it only once
         val loader2 = VSEntityHandlerDataLoader // the get makes a new instance so get it only once
         val loader3 = DimensionParametersResolver
         val loader4 = SlugDatapackResolver.loader
@@ -357,7 +357,7 @@ class ValkyrienSkiesModFabric : ModInitializer {
                 }
             })
         CommonLifecycleEvents.TAGS_LOADED.register { _, _ ->
-            VSGameEvents.tagsAreLoaded.emit(Unit)
+            BlockStateInfoResolver.loadTags()
         }
 
         if (FabricLoader.getInstance().isModLoaded("dynmap"))

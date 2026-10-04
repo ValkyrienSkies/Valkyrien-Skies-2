@@ -62,8 +62,8 @@ import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.ShipSavedData;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
+import org.valkyrienskies.mod.common.blockstate.BlockStateInfoResolver;
 import org.valkyrienskies.mod.common.config.DimensionParametersResolver;
-import org.valkyrienskies.mod.common.config.MassDatapackResolver;
 import org.valkyrienskies.mod.common.fluid.VanillaFluidFlowWindProvider;
 import org.valkyrienskies.mod.common.fluid.FluidSourceWithdrawalHandler;
 import org.valkyrienskies.mod.common.fluid.WorldFluidOutflowManager;
@@ -143,11 +143,11 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     )
     private void postCreateLevels(final CallbackInfo ci) {
         // Register blocks
-        if (!MassDatapackResolver.INSTANCE.getRegisteredBlocks()) {
+        if (!BlockStateInfoResolver.INSTANCE.getHasRegistered()) {
             final List<BlockState> blockStateList = new ArrayList<>(Block.BLOCK_STATE_REGISTRY.size());
             Block.BLOCK_STATE_REGISTRY.forEach((blockStateList::add));
-            MassDatapackResolver.INSTANCE.registerAllBlockStates(blockStateList);
-            ValkyrienSkiesMod.getVsCore().registerBlockStates(MassDatapackResolver.INSTANCE.getBlockStateData());
+            BlockStateInfoResolver.INSTANCE.registerAllBlockStates(blockStateList);
+            ValkyrienSkiesMod.getVsCore().registerBlockStates(BlockStateInfoResolver.INSTANCE.getBlockStateData());
         }
 
         // Load ship data from the world storage

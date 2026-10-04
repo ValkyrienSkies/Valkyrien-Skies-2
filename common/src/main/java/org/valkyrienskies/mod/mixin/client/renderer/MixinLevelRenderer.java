@@ -82,7 +82,7 @@ public abstract class MixinLevelRenderer {
                 0.0F, 0.0F, 0.0F, 0.4F);
         }
     }
-
+    
 
     /**
      * This mixin makes block damage render on ships.

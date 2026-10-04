@@ -6,7 +6,7 @@ import net.minecraft.commands.Commands.argument
 import net.minecraft.commands.Commands.literal
 import net.minecraft.network.chat.Component.translatable
 import org.valkyrienskies.core.api.ships.ServerShip
-import org.valkyrienskies.mod.common.BlockStateInfo
+import org.valkyrienskies.mod.common.blockstate.BlockStateInfo
 import org.valkyrienskies.mod.common.command.arguments.ShipArgument
 import org.valkyrienskies.mod.common.config.VSGameConfig
 import kotlin.collections.forEach

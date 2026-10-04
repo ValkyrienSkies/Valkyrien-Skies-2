@@ -34,7 +34,7 @@ object VSGamePackets {
         PacketStopChunkUpdates::class.register()
         PacketRestartChunkUpdates::class.register()
         PacketSyncVSEntityTypes::class.register()
-        PacketSyncBlockStateInfo::class.register()
+        PacketSyncBlockStateProperties::class.register()
         PacketEntityShipMotion::class.register()
         PacketMobShipRotation::class.register()
         PacketPlayerShipMotion::class.register()
@@ -72,14 +72,17 @@ object VSGamePackets {
             }
         }
 
-        // sync mass/friction/elasticity to the client
-        PacketSyncBlockStateInfo::class.registerClientHandler { syncBsi ->
-            if (syncBsi.blockState2VS.isEmpty()) {
+        // sync properties to the client
+        PacketSyncBlockStateProperties::class.registerClientHandler { props ->
+            if (props.blockState2properties.isEmpty()) {
                 ClientBlockStateInfo.disable()
             } else {
                 ClientBlockStateInfo.clientHasMassInfo = true
-                syncBsi.blockState2VS.forEach { (id, state) ->
-                    ClientBlockStateInfo.registerBlockInfo(ResourceLocation.of(id, ':'), state)
+                for ((idString, properties) in props.blockState2properties) {
+                    val id = ResourceLocation(idString)
+                    properties.forEach { (string, properties) ->
+                        ClientBlockStateInfo.registerBlockInfo(id, string, properties)
+                    }
                 }
             }
         }

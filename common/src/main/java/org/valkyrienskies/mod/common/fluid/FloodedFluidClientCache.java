@@ -12,7 +12,7 @@ import org.valkyrienskies.core.internal.physics.VsiFluidFloodedVoxel;
 import org.valkyrienskies.core.internal.physics.VsiFluidFloodingSnapshot;
 import org.valkyrienskies.core.internal.world.VsiClientShipWorld;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.config.MassDatapackResolver;
+import org.valkyrienskies.mod.common.blockstate.BlockStateInfoResolver;
 
 /**
  * Render-thread index over the latest synchronized flooding snapshots.
@@ -67,7 +67,7 @@ public final class FloodedFluidClientCache {
                 continue;
             }
 
-            final FlowingFluid fluid = MassDatapackResolver.INSTANCE.getFlowingFluid(voxel.getFluidId());
+            final FlowingFluid fluid = BlockStateInfoResolver.INSTANCE.getFlowingFluid(voxel.getFluidId());
             if (fluid != null) {
                 return new FloodedFluidSample(ship.getId(), voxel, fluid);
             }
