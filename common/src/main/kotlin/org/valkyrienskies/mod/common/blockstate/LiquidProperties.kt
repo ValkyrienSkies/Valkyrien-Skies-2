@@ -17,4 +17,19 @@ data class PendingLiquidStateProperties(
     val shapeOverride: AABBic? = null
 )
 
+data class LiquidProperties(
+    val density: Double,
+    val dragCoefficient: Double,
+    val velocity: Vector3d,
+    val shapeOverride: AABBic? = null
+)
+
+data class PendingLiquidProperties(
+    val priority: Int,
+    val density: NumericValue,
+    val dragCoefficient: NumericValue,
+    val velocity: Vector3d,
+    val shapeOverride: AABBic? = null
+)
+
 data class DisplacementStateProperties(val shape: AABBic? = null)

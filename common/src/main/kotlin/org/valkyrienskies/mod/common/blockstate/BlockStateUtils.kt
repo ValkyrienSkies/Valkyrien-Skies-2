@@ -46,10 +46,10 @@ val BlockState.mass: Double
     get() {
         val composition = getComposition(this)
         return when (composition) { // if the composition is solid, mixed, or liquid, the corresponding states should never be null.
-            Composition.SOLID -> vsState.solidState!!.mass
+            Composition.SOLID, Composition.EMPTY -> vsState.solidState!!.mass
             Composition.MIXED -> vsState.solidState!!.mass + vsState.liquidState!!.actualMass
             Composition.LIQUID -> vsState.liquidState!!.actualMass
-            Composition.AIR, Composition.EMPTY -> 0.0
+            Composition.AIR -> 0.0
         }
     }
 
@@ -58,9 +58,9 @@ val LiquidState.actualMass: Double
 
 fun getTypeByComposition(blockState: BlockState) =
     when (getComposition(blockState)) {
-        Composition.SOLID, Composition.MIXED -> vsCore.blockTypes.solid
+        Composition.SOLID, Composition.MIXED, Composition.EMPTY -> vsCore.blockTypes.solid
         Composition.LIQUID -> vsCore.blockTypes.liquid
-        Composition.AIR, Composition.EMPTY -> vsCore.blockTypes.air
+        Composition.AIR -> vsCore.blockTypes.air
     }
 
 fun BlockState.toFullString(): String = BlockStateParser.serialize(this)

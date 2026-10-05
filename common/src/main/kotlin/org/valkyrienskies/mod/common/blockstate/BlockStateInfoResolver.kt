@@ -24,7 +24,6 @@ import org.joml.primitives.AABBic
 import org.valkyrienskies.core.api.physics.blockstates.SolidBlockShape
 import org.valkyrienskies.core.internal.physics.blockstates.VsiBlockState
 import org.valkyrienskies.core.internal.world.chunks.VsiBlockType
-import org.valkyrienskies.mod.api_impl.events.RegisterBlockStateEventImpl
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.networking.PacketSyncBlockStateProperties
@@ -44,6 +43,8 @@ import kotlin.system.measureNanoTime
 object BlockStateInfoResolver {
     private val blockState2Properties: MutableMap<ResourceLocation, MutableMap<String, StateProperties>> = HashMap()
     private val pendingBlockState2Properties: MutableMap<ResourceLocation, MutableMap<String, PendingStateProperties>> = HashMap()
+    private val fluidState2Properties: MutableMap<ResourceLocation, MutableMap<String, LiquidStateProperties>> = HashMap()
+    private val pendingFluidState2Properties: MutableMap<ResourceLocation, MutableMap<String, PendingLiquidProperties>> = HashMap()
     private val tag2Properties: MutableMap<ResourceLocation, PendingTagProperties> = HashMap()
     private val liquidIdToFlowingFluid: MutableMap<Int, FlowingFluid?> = HashMap()
 
@@ -153,7 +154,8 @@ object BlockStateInfoResolver {
      * **Do not call this method otherwise!**
      */
     @Internal
-    fun registerAllBlockStates(blockStates: Iterable<BlockState>) {
+    fun registerAllBlockStates(blockStates: List<BlockState>) {
+        logger.info("Registering all mc states (${blockStates.size}). We have ${blockState2Properties.size} properties loaded from data.")
         val voxelShapeToSolidShape: MutableMap<VoxelShape, SolidBlockShape> = HashMap(BlockShapeUtil.generateCommonShapes())
 
         fun generateShape(voxelShape: VoxelShape): SolidBlockShape =
@@ -217,7 +219,7 @@ object BlockStateInfoResolver {
                 Composition.AIR -> {
                     vsCore.blockTypes.airState
                 }
-                Composition.SOLID -> {
+                Composition.SOLID, Composition.EMPTY -> {
                     val voxelShape = BlockShapeUtil.getShapeForVS(blockState)
                     val props = getProperties(blockState)
 
@@ -236,19 +238,12 @@ object BlockStateInfoResolver {
                     val props = getProperties(blockState)
                     VsiBlockState(null, getLiquidState(props, BlockShapeUtil.getFluidShape(blockState.fluidState)))
                 }
-                Composition.EMPTY -> {
-                    val voxelShape = BlockShapeUtil.getShapeForVS(blockState)
-                    val props = getProperties(blockState)
-
-                    VsiBlockState(getSolidState(props, voxelShape), null)
-                }
             }
             mcState2VsState[blockState] = vsiBlockState
         }
+        logger.info("Registered ${mcState2VsState.size} states for vs. This number should be the same as the number of mc states.")
 
-        val event = RegisterBlockStateEventImpl()
-        ValkyrienSkiesMod.api.registerBlockStateEvent.emit(event)
-        mcState2VsState.putAll(event.toRegister)
+        hasRegistered = true
     }
 
     fun syncBlockStates(player: MinecraftPlayer) {
@@ -423,6 +418,14 @@ object BlockStateInfoResolver {
         }
     }
 
+    private fun putPendingLiquidProperties(id: String, key: String, propertiesToPut: PendingLiquidProperties) {
+        pendingFluidState2Properties.computeIfAbsent(ResourceLocation(id)) { mutableMapOf() }.compute(key) { _, properties ->
+            if (properties == null) propertiesToPut
+            else if (propertiesToPut.priority > properties.priority) propertiesToPut
+            else properties
+        }
+    }
+
     private fun putTagProperties(id: String, propertiesToPut: PendingTagProperties) {
         tag2Properties.compute(ResourceLocation.of(id, ':')) { _, properties ->
             if (properties == null) propertiesToPut
@@ -434,6 +437,7 @@ object BlockStateInfoResolver {
 
     class BlockStateInfoDataLoader : SimpleJsonResourceReloadListener(Gson(), "vs_mass") {
         override fun apply(objects: MutableMap<ResourceLocation, JsonElement>, resourceManager: ResourceManager, profilerFiller: ProfilerFiller) {
+            //val templates = objects.filter { it.key.path == "templates" }
             objects.forEach { (location, element) ->
                 try {
                     if (element.isJsonArray) {
@@ -484,10 +488,12 @@ object BlockStateInfoResolver {
             BLOCK_BASIC,
             BLOCK_COMPOUND,
             BLOCK_STATES,
+            BLOCK_STATES_MODIFIER,
             FLUID_BASIC,
             FLUID_STATES,
             BLOCK_TAG_BASIC,
             BLOCK_TAG_COMPOUND,
+            BLOCK_TAG_STATES,
             FLUID_TAG_BASIC
             ;
 
@@ -526,8 +532,8 @@ object BlockStateInfoResolver {
             else -> 100
         }
 
-        // matches if the string is "default", or if it matches "key=value,key2=value2,etc"
-        val stateRegex: Predicate<String> = Pattern.compile("^(default|\\w+=[^,=]+(,\\w+=[^,=]+)*)$").asPredicate()
+        // matches if the string is formatted like "key=value,key2=value2" etc
+        val stateRegex: Predicate<String> = Pattern.compile("^(\\w+=[^,=]+(,\\w+=[^,=]+)*)$").asPredicate()
 
         val blockValues = listOf("mass", "friction", "elasticity", "hardness", "no_collision", "shape_override")
         val mediumValues = listOf("drag", "shape")
@@ -596,9 +602,14 @@ object BlockStateInfoResolver {
                 IdType.BLOCK -> {
                     if (json.basic()) {
                         StructureType.BLOCK_BASIC.toStructure() // basic structure, same as old version
-                    } else if (json.compound()) {
+                    }
+                    else if (json.compound()) {
                         determineCompoundBlockStructure(json, id)
-                    } else if (json.has("states")) {
+                    }
+                    else if (json.hasAll("base", "states")) {
+                        StructureType.BLOCK_STATES_MODIFIER.toStructure()
+                    }
+                    else if (json.has("states")) {
                         val states = json["states"].asJsonObject
                         // check to make sure we have a valid default state, otherwise return an error structure
                         // technically this check will succeed if the default state has solid or medium but the internal format of those is invalid, we'll just do that check later.
@@ -645,7 +656,10 @@ object BlockStateInfoResolver {
                         }
 
                         Structure(StructureType.BLOCK_STATES, warn = if (states.size() == 1 && fullSize > 1) "The default state in block $id is the only valid state!" else null, state2StructureType = state2StructureType)
-                    } else throw MassJsonParseException("Could not determine block structure", id) // sowwy >.<
+                    }
+                    else {
+                        throw MassJsonParseException("Could not determine block structure", id)
+                    } // sowwy >.<
                 }
                 IdType.FLUID -> {
                     if (json.basic(false)) {
@@ -704,6 +718,18 @@ object BlockStateInfoResolver {
             if (element == null) return NumericValue.Literal(default)
             return when {
                 element.isJsonPrimitive && element.asJsonPrimitive.isNumber -> NumericValue.Literal(element.asDouble)
+                element.isJsonPrimitive && element.asJsonPrimitive.isString -> {
+                    val target = element.asString
+                    when (target) {
+                        "default" -> {
+                            NumericValue.Default(1.0)
+                        }
+                        else -> {
+                            val targetState = idAndProperties(target)
+                            NumericValue.Dependent(targetState.a, targetState.b, 1.0)
+                        }
+                    }
+                }
                 element.isJsonObject -> {
                     val json = element.asJsonObject
                     val target = json["value"]?.asString
@@ -735,6 +761,14 @@ object BlockStateInfoResolver {
          */
         private fun parse(element: JsonElement, origin: ResourceLocation, index: Int = -1) {
             val json: JsonObject = element.asJsonObject
+            if (json.has("ignore")) {
+                if (index == -1) {
+                    logger.info("Ignoring entry $origin")
+                } else {
+                    logger.info("Ignoring entry at index $index in $origin")
+                }
+                return
+            }
             val idType = determineId(json)
 
             if (idType == IdType.NONE) {
@@ -796,6 +830,7 @@ object BlockStateInfoResolver {
                         }
                     }
                 }
+                StructureType.BLOCK_STATES_MODIFIER -> {}
                 StructureType.FLUID_BASIC -> {
                     putPendingProperties(id, "default", PendingStateProperties(priority, liquid = parseLiquid(json)))
                 }
@@ -813,6 +848,7 @@ object BlockStateInfoResolver {
                         medium = if (json.has("medium")) parseMedium(json.getAsJsonObject("medium")) else null
                     ), parseTagExclusions(json), true))
                 }
+                StructureType.BLOCK_TAG_STATES -> {}
                 StructureType.FLUID_TAG_BASIC -> {
                     putTagProperties(id, PendingTagProperties(PendingStateProperties(priority, liquid = parseLiquid(json)), parseTagExclusions(json), false))
                 }
@@ -877,6 +913,8 @@ object BlockStateInfoResolver {
 
     fun JsonObject.hasAny(members: Iterable<String>): Boolean = members.any { has(it) }
     fun JsonObject.hasAny(vararg members: String): Boolean = hasAny(members.asIterable())
+    fun JsonObject.hasAll(vararg members: String): Boolean = members.all { has(it) }
+
     fun <K, V> Map<K, V>.getOrOther(key: K, other: K): V? = if (key == other) get(key) else get(key) ?: get(other)
 
     private val logger by logger()
