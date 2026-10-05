@@ -30,8 +30,10 @@ class GameToPhysicsAdapter {
     private val updatedJoints = ConcurrentLinkedQueue<VSJointAndId>()
     private val deletedJoints = ConcurrentLinkedQueue<VSJointId>()
 
-    private val shipToJointIds = ConcurrentHashMap<Long, Set<Int>>()
-    private val jointById = ConcurrentHashMap<Int, VSJoint>()
+    private data class JointSnapshot(val byShip: Map<ShipId, Set<VSJointId>>, val byId: Map<VSJointId, VSJoint>)
+
+    @Volatile
+    private var joints = JointSnapshot(emptyMap(), emptyMap())
 
     private val toBeStatic = ConcurrentLinkedQueue<Pair<ShipId, Boolean>>()
 
@@ -131,11 +133,11 @@ class GameToPhysicsAdapter {
         }
 
         // Update our joint maps - strategically placed between adding the joints, and calling the callbacks
-        shipToJointIds.clear()
-        jointById.clear()
-
-        shipToJointIds.putAll((physLevel as VsiPhysLevel).getJointsByShipIds())
-        jointById.putAll(physLevel.getAllJoints())
+        // Publish both indexes together. Clearing live maps briefly made anchored ships appear jointless.
+        joints = JointSnapshot(
+            (physLevel as VsiPhysLevel).getJointsByShipIds().mapValues { it.value.toSet() },
+            physLevel.getAllJoints().toMap()
+        )
 
         // and finally... call the callbacks
         callbackQueue.forEach { (consumer, i) -> consumer.accept(i) }
@@ -287,7 +289,7 @@ class GameToPhysicsAdapter {
      * @return The joint with the specified ID, or null if it does not exist.
      */
     fun getJointById(jointId: VSJointId): VSJoint? {
-        return jointById[jointId]
+        return joints.byId[jointId]
     }
 
     /**
@@ -298,7 +300,7 @@ class GameToPhysicsAdapter {
      * @see [getJointById]
      */
     fun getJointsFromShip(shipId: ShipId): Set<VSJointId> {
-        return shipToJointIds[shipId] ?: emptySet()
+        return joints.byShip[shipId]?.toSet() ?: emptySet()
     }
 
     /**
@@ -307,7 +309,7 @@ class GameToPhysicsAdapter {
      * @see [getJointById]
      */
     fun getAllJoints(): Map<VSJointId, VSJoint> {
-        return jointById.toMap()
+        return joints.byId.toMap()
     }
 
     /**
@@ -316,7 +318,7 @@ class GameToPhysicsAdapter {
      * @see [getJointsFromShip]
      */
     fun getJointsByShipIds(): Map<ShipId, Set<VSJointId>> {
-        return shipToJointIds.toMap()
+        return joints.byShip.mapValues { it.value.toSet() }
     }
 
     fun enableCollisionBetween(shipA: ShipId, shipB: ShipId) {
@@ -337,6 +339,7 @@ class GameToPhysicsAdapter {
      * @return A list of all connected ships (as [ShipId]s)
      */
     fun getAllConnectedShips(start: ShipId): List<ShipId> {
+        val snapshot = joints
         val visited = mutableSetOf<ShipId>()
         val queue = ArrayDeque<ShipId>()
 
@@ -346,10 +349,10 @@ class GameToPhysicsAdapter {
         while (queue.isNotEmpty()) {
             val currentShip = queue.removeFirst()
 
-            val jointIds = getJointsFromShip(currentShip) ?: continue
+            val jointIds = snapshot.byShip[currentShip] ?: continue
 
             for (jointId in jointIds) {
-                val joint = getJointById(jointId) ?: continue
+                val joint = snapshot.byId[jointId] ?: continue
 
                 // Get the other ship attached to the joint
                 val otherShip = when (currentShip) {

@@ -55,6 +55,7 @@ import org.valkyrienskies.mod.common.VS2ChunkAllocator;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
+import org.valkyrienskies.mod.common.assembly.ShipWelder;
 import org.valkyrienskies.mod.common.block.WingBlock;
 import org.valkyrienskies.mod.common.config.DimensionParametersResolver;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
@@ -441,6 +442,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
         if (VSCoreConfig.SERVER.getSp().getEnableSplitting()) {
             ValkyrienSkiesMod.splitHandler.tick(ServerLevel.class.cast(this));
         }
+        ShipWelder.tick(ServerLevel.class.cast(this));
         final ConfigPhysicsBackendType backend = VSCoreConfig.SERVER.getPhysics().getPhysicsBackend();
         final boolean isFracturingBackend = backend == ConfigPhysicsBackendType.KRUNCH_KONSTANT
             || backend == ConfigPhysicsBackendType.KRUNCH_VOX3D;

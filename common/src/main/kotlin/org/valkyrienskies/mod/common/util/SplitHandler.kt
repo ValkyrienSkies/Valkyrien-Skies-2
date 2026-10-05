@@ -8,14 +8,17 @@ import org.valkyrienskies.core.api.attachment.getAttachment
 import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.ships.properties.ShipId
+import org.valkyrienskies.core.api.util.GameTickOnly
 import org.valkyrienskies.core.api.world.properties.DimensionId
 import org.valkyrienskies.mod.common.assembly.ShipAssembler
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.util.logger
 import java.util.function.Consumer
 
+@OptIn(GameTickOnly::class)
 class SplitHandler(private val doEdges: Boolean, private val doCorners: Boolean) {
 
     private val splitQueue: HashMap<DimensionId, HashMap<ShipId, Int>> = hashMapOf()
@@ -51,20 +54,9 @@ class SplitHandler(private val doEdges: Boolean, private val doCorners: Boolean)
         val loadedShip: LoadedServerShip = level.shipObjectWorld.loadedShips.getById(shipId) ?: return
         if (loadedShip.getAttachment<SplittingDisablerAttachment>()?.canSplit() == false) return
 
-        val allBlocks = HashSet<BlockPos>()
-        loadedShip.activeChunksSet.forEach { cx, cz ->
-            val chunk = level.chunkSource.getChunkNow(cx, cz) ?: return@forEach
-            val sections = chunk.sections
-            for (sIdx in sections.indices) {
-                val section = sections[sIdx] ?: continue
-                if (section.hasOnlyAir()) continue
-                val baseY = chunk.getSectionYFromSectionIndex(sIdx) shl 4
-                for (lx in 0..15) for (ly in 0..15) for (lz in 0..15) {
-                    if (!section.getBlockState(lx, ly, lz).isAir) {
-                        allBlocks.add(BlockPos((cx shl 4) + lx, baseY + ly, (cz shl 4) + lz))
-                    }
-                }
-            }
+        val allBlocks = collectShipBlocks(level, loadedShip) ?: run {
+            queueSplit(level, shipId)
+            return
         }
         if (allBlocks.size <= 1) return
 
@@ -73,6 +65,20 @@ class SplitHandler(private val doEdges: Boolean, private val doCorners: Boolean)
         if (components.size <= 1) return // still one connected piece -> no split
 
         components.sortByDescending { it.size }
+        val gtpa = ValkyrienSkiesMod.getOrCreateGTPA(level.dimensionId)
+        val joints = gtpa.getAllJoints().toMutableMap()
+        val persisted = level.shipObjectWorld.persistedJointStore
+        persisted.getJointIdsForShip(shipId).forEach { id -> persisted.getJoint(id)?.let { joints.putIfAbsent(id, it) } }
+        val anchors = joints.values.flatMap { joint ->
+            buildList {
+                if (joint.shipId0 == shipId) add(SplitOwnership.Anchor(joint.pose0.pos,
+                    joint.shipId1 == null || level.shipObjectWorld.allShips.getById(joint.shipId1!!)?.isStatic == true))
+                if (joint.shipId1 == shipId) add(SplitOwnership.Anchor(joint.pose1.pos,
+                    joint.shipId0 == null || level.shipObjectWorld.allShips.getById(joint.shipId0!!)?.isStatic == true))
+            }
+        }
+        val retained = SplitOwnership.retainedComponent(components, anchors)
+        java.util.Collections.swap(components, 0, retained)
         loadedShip.getAttachment(SplittingDisablerAttachment::class.java)?.disableSplitting()
         try {
             for (i in 1 until components.size) {

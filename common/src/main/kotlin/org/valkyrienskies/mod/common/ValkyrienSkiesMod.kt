@@ -32,6 +32,7 @@ import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
 import org.valkyrienskies.mod.common.blockentity.TestThrusterBlockEntity
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.entity.VSPhysicsEntity
+import org.valkyrienskies.mod.common.assembly.ShipWelder
 import org.valkyrienskies.mod.common.jackson.BlockPosDeserializer
 import org.valkyrienskies.mod.common.jackson.BlockPosKeyDeserializer
 import org.valkyrienskies.mod.common.jackson.BlockPosKeySerializer
@@ -65,6 +66,7 @@ object ValkyrienSkiesMod {
     lateinit var SHIP_CREATOR_ITEM: Item
     lateinit var SHIP_REMOVER_ITEM: Item
     lateinit var SHIP_ASSEMBLER_ITEM: Item
+    lateinit var SHIP_WELDER_ITEM: Item
     lateinit var SHIP_CREATOR_ITEM_SMALLER: Item
     lateinit var AREA_ASSEMBLER_ITEM: Item
     lateinit var CLASSIC_AREA_ASSEMBLER_ITEM: Item
@@ -176,6 +178,7 @@ object ValkyrienSkiesMod {
         ImpactFractureHandler.logRegistered()
 
         core.physTickEvent.on { event ->
+            ShipWelder.physTick(event.world, event.delta)
             dimensionalGTPAs.forEach { dimensionId, gameTickForceApplier ->
                 if (event.world.dimension == dimensionId) {
                     gameTickForceApplier.physTick(event.world, event.delta)
