@@ -110,6 +110,11 @@ public final class ShipTransformStorage {
     private void ensureGlObjects() {
         if (buffer == 0) {
             buffer = GL15.glGenBuffers();
+            // glGenBuffers only reserves a name; the buffer object does not exist
+            // until it is first bound, and glTexBuffer rejects a name that isn't
+            // one yet with GL_INVALID_OPERATION. Bind once to materialize it.
+            GL15.glBindBuffer(GL31.GL_TEXTURE_BUFFER, buffer);
+            GL15.glBindBuffer(GL31.GL_TEXTURE_BUFFER, 0);
         }
         if (texture == 0) {
             texture = GL11.glGenTextures();

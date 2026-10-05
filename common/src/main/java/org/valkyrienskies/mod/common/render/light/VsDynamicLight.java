@@ -80,12 +80,18 @@ public final class VsDynamicLight {
         }
         final VsShipLightStorage light = getLightStorage();
         light.beginFrame();
+        light.beginSettleTick(level.getGameTime(), level.getLightEngine().hasLightWork());
         for (final ClientShip ship : VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips()) {
             if (!ShipRendererKt.getUsesBatchedRenderer(ship)) {
                 continue;
             }
             final AABBdc aabb = ship.getRenderAABB();
             if (aabb != null) {
+                if (light.shipNeedsResettle(ship.getId())) {
+                    light.markAabbDirty(
+                        aabb.minX(), aabb.minY(), aabb.minZ(),
+                        aabb.maxX(), aabb.maxY(), aabb.maxZ());
+                }
                 light.requestSectionsInAabb(level,
                     aabb.minX(), aabb.minY(), aabb.minZ(),
                     aabb.maxX(), aabb.maxY(), aabb.maxZ());

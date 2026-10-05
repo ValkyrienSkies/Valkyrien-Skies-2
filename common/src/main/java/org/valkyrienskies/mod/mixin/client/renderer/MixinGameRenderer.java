@@ -150,19 +150,7 @@ public abstract class MixinGameRenderer {
                     final Vector3dc passengerPos = shipMountedToData.getMountPosInShip();
                     entityShouldBeHere = shipMountedTo.getRenderTransform().getShipToWorld()
                         .transformPosition(passengerPos, new Vector3d());
-                    vs$renderPositionSnapshots.computeIfAbsent(entity, EntityRenderPosition::capture);
-                    EntityRenderPosition.setWithoutSectionUpdate(
-                        entity,
-                        entityShouldBeHere.x(),
-                        entityShouldBeHere.y(),
-                        entityShouldBeHere.z()
-                    );
-                    entity.xo = entityShouldBeHere.x();
-                    entity.yo = entityShouldBeHere.y();
-                    entity.zo = entityShouldBeHere.z();
-                    entity.xOld = entityShouldBeHere.x();
-                    entity.yOld = entityShouldBeHere.y();
-                    entity.zOld = entityShouldBeHere.z();
+                    vs$moveEntityToRenderPosition(entity, entityShouldBeHere);
                     continue;
                 }
 
@@ -177,10 +165,6 @@ public abstract class MixinGameRenderer {
                     final ClientShip shipObject =
                         VSGameUtilsKt.getShipObjectWorld(clientWorld).getLoadedShips().getById(lastShipStoodOn);
                     if (shipObject != null) {
-                        entityDraggingInformation.setCachedLastPosition(
-                            new Vector3d(entity.xo, entity.yo, entity.zo));
-                        entityDraggingInformation.setRestoreCachedLastPosition(true);
-
                         // The velocity added to the entity by ship dragging
                         final Vector3dc entityAddedVelocity = entityDraggingInformation.getAddedMovementLastTick();
 
@@ -205,19 +189,28 @@ public abstract class MixinGameRenderer {
                     }
                 }
 
-                // Apply entityShouldBeHere, if its present
-                //
-                // Also, don't run this if [tickDelta] is too small, getting so close to dividing by 0 could mess
-                // something up
-                if (entityShouldBeHere != null && tickDelta < .99999) {
-                    // Update the entity last tick positions such that the entity's render position will be
-                    // interpolated to be [entityShouldBeHere]
-                    entity.xo = (entityShouldBeHere.x() - (entity.getX() * tickDelta)) / (1.0 - tickDelta);
-                    entity.yo = (entityShouldBeHere.y() - (entity.getY() * tickDelta)) / (1.0 - tickDelta);
-                    entity.zo = (entityShouldBeHere.z() - (entity.getZ() * tickDelta)) / (1.0 - tickDelta);
+                if (entityShouldBeHere != null) {
+                    vs$moveEntityToRenderPosition(entity, entityShouldBeHere);
                 }
             }
         }
+    }
+
+    @Unique
+    private void vs$moveEntityToRenderPosition(final Entity entity, final Vector3dc renderPosition) {
+        vs$renderPositionSnapshots.computeIfAbsent(entity, EntityRenderPosition::capture);
+        EntityRenderPosition.setWithoutSectionUpdate(
+            entity,
+            renderPosition.x(),
+            renderPosition.y(),
+            renderPosition.z()
+        );
+        entity.xo = renderPosition.x();
+        entity.yo = renderPosition.y();
+        entity.zo = renderPosition.z();
+        entity.xOld = renderPosition.x();
+        entity.yOld = renderPosition.y();
+        entity.zOld = renderPosition.z();
     }
 
     @Inject(method = "render", at = @At("TAIL"))

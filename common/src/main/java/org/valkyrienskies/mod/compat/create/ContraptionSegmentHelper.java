@@ -18,7 +18,6 @@ import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.joml.Vector3i;
 import org.joml.Vector3ic;
-import org.joml.primitives.AABBdc;
 import org.valkyrienskies.core.api.bodies.ServerVsBody;
 import org.valkyrienskies.core.api.bodies.shape.BoxBodyShapeData;
 import org.valkyrienskies.core.api.bodies.shape.VoxelBodyShapeData;
@@ -27,7 +26,11 @@ import org.valkyrienskies.core.api.bodies.shape.VoxelUpdate;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.api.world.ServerShipWorld;
 import org.valkyrienskies.core.internal.world.chunks.VsiBlockType;
+import org.valkyrienskies.core.internal.world.VsiServerShipWorld;
+import org.valkyrienskies.mod.common.config.VSGameConfig;
+import org.valkyrienskies.mod.mixinducks.mod_compat.create.MixinAbstractContraptionEntityDuck;
 import org.valkyrienskies.mod.api.ValkyrienSkies;
+import org.valkyrienskies.mod.common.BlockStateInfo;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.blockstate.BlockStateUtils;
@@ -41,22 +44,54 @@ public class ContraptionSegmentHelper {
     @Nullable
     public static VoxelBodyShapeData toShapeData(AbstractContraptionEntity entity) {
         Contraption contraption = entity.getContraption();
-        if (contraption != null) {
-            AABBdc contraptionBounds = VectorConversionsMCKt.toJOML(contraption.bounds);
-            Vector3ic lowerCorner = new Vector3i(
-                (int) Math.floor(contraptionBounds.minX()),
-                (int) Math.floor(contraptionBounds.minY()),
-                (int) Math.floor(contraptionBounds.minZ())
-            );
-            Vector3ic upperCorner = new Vector3i(
-                (int) Math.ceil(contraptionBounds.maxX()) - 1,
-                (int) Math.ceil(contraptionBounds.maxY()) - 1,
-                (int) Math.ceil(contraptionBounds.maxZ()) - 1
-            );
-            VoxelBodyShapeData data = new VoxelBodyShapeData(lowerCorner, upperCorner);
-            return data;
+        if (contraption != null && !contraption.getBlocks().isEmpty()) {
+            Vector3i min = new Vector3i(Integer.MAX_VALUE);
+            Vector3i max = new Vector3i(Integer.MIN_VALUE);
+            for (BlockPos pos : contraption.getBlocks().keySet()) {
+                min.min(new Vector3i(pos.getX(), pos.getY(), pos.getZ()));
+                max.max(new Vector3i(pos.getX(), pos.getY(), pos.getZ()));
+            }
+            return new VoxelBodyShapeData(min, max);
         }
         return null;
+    }
+
+    public static boolean ensureContraptionSegment(ServerLevel level, AbstractContraptionEntity entity) {
+        MixinAbstractContraptionEntityDuck duck = (MixinAbstractContraptionEntityDuck) entity;
+        ServerShipWorld world = ValkyrienSkies.getShipWorld(level.getServer());
+        if (world == null || entity.getContraption() == null || entity.isRemoved()) {
+            return false;
+        }
+        if (!VSGameConfig.SERVER.getCreate().getEnableContraptionCollisions()) {
+            clearContraptionSegment(level, duck);
+            return false;
+        }
+        Long groundId = ((VsiServerShipWorld) world).getDimensionToGroundBodyIdImmutable().get(ValkyrienSkies.getDimensionId(level));
+        if (groundId == null) return false;
+        Ship ship = getContraptionAnchorShip(level, entity);
+        long bodyId = ship != null && ship.getBodyId() != null ? ship.getBodyId() : groundId;
+        boolean isWorld = bodyId == groundId;
+        if (duck.vs$getSegmentId() != -1 &&
+                (duck.vs$getSegmentBodyId() != bodyId || duck.vs$isWorldSegment() != isWorld)) {
+            clearContraptionSegment(level, duck);
+        }
+        if (duck.vs$getSegmentId() == -1) {
+            VoxelBodyShapeData shape = toShapeData(entity);
+            if (shape == null) return false;
+            int id = addContraptionSegment(level, shape, entity, bodyId, isWorld);
+            if (id == -1) return false;
+            duck.vs$setSegmentId(id);
+            duck.vs$setSegmentOwner(bodyId, isWorld);
+        }
+        return true;
+    }
+
+    public static void clearContraptionSegment(ServerLevel level, MixinAbstractContraptionEntityDuck duck) {
+        if (duck.vs$getSegmentId() != -1) {
+            removeContraptionSegment(level, duck.vs$getSegmentId(), duck.vs$getSegmentBodyId(), duck.vs$isWorldSegment());
+        }
+        duck.vs$setSegmentId(-1);
+        duck.vs$setSegmentOwner(-1, true);
     }
 
     public static VoxelUpdate[] toVoxelUpdates(AbstractContraptionEntity entity) {
@@ -91,8 +126,10 @@ public class ContraptionSegmentHelper {
                 int x = pair.first().getX();
                 int y = pair.first().getY();
                 int z = pair.first().getZ();
-                VsiBlockType type = BlockStateUtils.getTypeByComposition(pair.second().state());
-                updateBuilder.addBlock(x, y, z, (VoxelType) type);
+                kotlin.Pair<Double, VsiBlockType> info = BlockStateInfo.INSTANCE.get(pair.second().state());
+                if (info != null) {
+                    updateBuilder.addBlock(x, y, z, (VoxelType) info.getSecond(), info.getFirst());
+                }
             }
             updates[index] = updateBuilder.build();
             index++;
@@ -101,19 +138,13 @@ public class ContraptionSegmentHelper {
     }
 
     public static Vector3dc getContraptionSegmentPosition(AbstractContraptionEntity contraption) {
-        return VectorConversionsMCKt.toJOML(contraption.getAnchorVec());
+        return ContraptionColliderTransform.pivot(VectorConversionsMCKt.toJOML(contraption.getAnchorVec()));
     }
 
     @Nullable
     public static Ship getContraptionAnchorShip(ServerLevel level, AbstractContraptionEntity contraptionEntity) {
-        Contraption contraption = contraptionEntity.getContraption();
-        if (contraption != null && contraption.anchor != null) {
-            Ship anchorShip = VSGameUtilsKt.getShipManagingPos(level, contraption.anchor);
-            if (anchorShip != null) {
-                return anchorShip;
-            }
-        }
-
+        // The assembly anchor is historical; mobile contraptions can leave its ship.
+        // The current anchor determines the coordinate space used by Create's pose.
         return VSGameUtilsKt.getShipManagingPos(level, BlockPos.containing(contraptionEntity.getAnchorVec()));
     }
 
@@ -142,7 +173,11 @@ public class ContraptionSegmentHelper {
             return new Vector3d(anchorVec);
         }
 
-        return body.getKinematics().getTransform().getToModel().transformPosition(anchorVec, new Vector3d());
+        Vector3d worldAnchor = new Vector3d(anchorVec);
+        if (anchorShip != null) {
+            anchorShip.getTransform().getShipToWorld().transformPosition(worldAnchor);
+        }
+        return body.getKinematics().getTransform().getToModel().transformPosition(worldAnchor);
     }
 
     public static Quaterniond getContraptionSegmentRotation(AbstractContraptionEntity contraption) {
@@ -183,13 +218,16 @@ public class ContraptionSegmentHelper {
             return contraptionRot;
         }
 
+        if (anchorShip != null) {
+            contraptionRot.premul(anchorShip.getTransform().getShipToWorldRotation());
+        }
         return new Quaterniond(body.getKinematics().getRotation()).conjugate().mul(contraptionRot).normalize();
     }
 
     public static int addContraptionSegment(ServerLevel level, VoxelBodyShapeData shapeData, AbstractContraptionEntity contraption, long bodyId, boolean isWorld) {
         Quaterniond contraptionRot = getContraptionSegmentRotation(level, contraption, bodyId, isWorld);
         Vector3dc anchorVec = getContraptionSegmentPosition(level, contraption, bodyId, isWorld);
-        Vector3d collisionShapeOffset = getLocalBoundsCenter(shapeData);
+        Vector3d collisionShapeOffset = getLocalBoundsCenter(shapeData).sub(MINECRAFT_BLOCK_CENTER_OFFSET);
 
         int segmentId = -1;
 
@@ -207,7 +245,7 @@ public class ContraptionSegmentHelper {
             if (USE_PRIMITIVE_SEGMENT_DEBUG) {
                 segmentId = shipWorld.addWorldCollisionSegment(dimensionId, toBoxShapeData(shapeData), anchorVec, contraptionRot, 1.0, collisionShapeOffset);
             } else {
-                segmentId = shipWorld.addWorldCollisionSegment(dimensionId, shapeData, anchorVec, contraptionRot, 1.0, MINECRAFT_BLOCK_CENTER_OFFSET);
+                segmentId = shipWorld.addWorldCollisionSegment(dimensionId, shapeData, anchorVec, contraptionRot, 1.0, ContraptionColliderTransform.voxelOffset());
             }
 
             if (segmentId == -1) {
@@ -228,7 +266,7 @@ public class ContraptionSegmentHelper {
             if (USE_PRIMITIVE_SEGMENT_DEBUG) {
                 segmentId = body.addCollisionSegment(toBoxShapeData(shapeData), anchorVec, contraptionRot, 1.0, collisionShapeOffset);
             } else {
-                segmentId = body.addCollisionSegment(shapeData, anchorVec, contraptionRot, 1.0, MINECRAFT_BLOCK_CENTER_OFFSET);
+                segmentId = body.addCollisionSegment(shapeData, anchorVec, contraptionRot, 1.0, ContraptionColliderTransform.voxelOffset());
             }
 
             if (!USE_PRIMITIVE_SEGMENT_DEBUG) {
@@ -244,11 +282,7 @@ public class ContraptionSegmentHelper {
     private static BoxBodyShapeData toBoxShapeData(VoxelBodyShapeData shapeData) {
         Vector3ic min = shapeData.getMinDefined();
         Vector3ic max = shapeData.getMaxDefined();
-        return new BoxBodyShapeData(new Vector3d(
-            (max.x() - min.x() + 1.0) * 0.5,
-            (max.y() - min.y() + 1.0) * 0.5,
-            (max.z() - min.z() + 1.0) * 0.5
-        ));
+        return new BoxBodyShapeData(ContraptionColliderTransform.boxLengths(min, max));
     }
 
     private static Vector3d getLocalBoundsCenter(VoxelBodyShapeData shapeData) {
@@ -340,7 +374,9 @@ public class ContraptionSegmentHelper {
     public static boolean removeContraptionSegment(ServerLevel level, int segmentId, long bodyId, boolean isWorld) {
         ServerShipWorld shipWorld = ValkyrienSkies.getShipWorld(level.getServer());
 
+        if (shipWorld == null || segmentId == -1) return false;
         if (isWorld) {
+            if (!((VsiServerShipWorld) shipWorld).getDimensionToGroundBodyIdImmutable().containsKey(ValkyrienSkies.getDimensionId(level))) return false;
             return shipWorld.removeWorldCollisionSegment(ValkyrienSkies.getDimensionId(level), segmentId);
         }
 

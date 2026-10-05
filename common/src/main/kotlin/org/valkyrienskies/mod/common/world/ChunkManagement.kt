@@ -144,7 +144,8 @@ object ChunkManagement {
 
             if (pending.requiresTickingChunk) {
                 val ready =
-                    chunkMap.callGetVisibleChunkIfPresent(pending.chunkPos.toLong())?.tickingChunk != null
+                    chunkMap.callGetVisibleChunkIfPresent(pending.chunkPos.toLong())?.tickingChunk != null ||
+                        pending.level.chunkSource.getChunkNow(pending.chunkPos.x, pending.chunkPos.z) != null
                 if (!ready && !timedOut) {
                     pendingChunkSends.add(pending)
                     continue

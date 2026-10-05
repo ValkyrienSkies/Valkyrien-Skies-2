@@ -39,6 +39,42 @@ object VSConfigApi {
         return builder
     }
 
+    /**
+     * Binary-compatibility overload for addons compiled before the path-aware config API was added.
+     */
+    @Deprecated("Binary-compatibility overload for addons compiled before the path-aware config API was added.")
+    @JvmStatic
+    @JvmName("buildForgeConfigSpec")
+    fun buildForgeConfigSpecCompat(
+        configCategory: VsiConfigModelCategory,
+        builder: ForgeConfigSpec.Builder,
+        forgeConfigValueConsumer: (String, ForgeConfigSpec.ConfigValue<*>) -> Unit
+    ): ForgeConfigSpec.Builder = buildForgeConfigSpec(
+        configCategory,
+        builder,
+        forgeConfigValueConsumer,
+        emptyList()
+    )
+
+    @Deprecated("Binary-compatibility overload for addons compiled before the path-aware config API was added.")
+    @JvmStatic
+    @JvmName("buildForgeConfigSpec\$default")
+    @Suppress("UNUSED_PARAMETER")
+    fun buildForgeConfigSpecDefaultCompat(
+        configCategory: VsiConfigModelCategory,
+        builder: ForgeConfigSpec.Builder,
+        forgeConfigValueConsumer: ((String, ForgeConfigSpec.ConfigValue<*>) -> Unit)?,
+        mask: Int,
+        ignored: Any?
+    ): ForgeConfigSpec.Builder {
+        val consumer = if ((mask and 0x4) != 0 || forgeConfigValueConsumer == null) {
+            { _: String, _: ForgeConfigSpec.ConfigValue<*> -> }
+        } else {
+            forgeConfigValueConsumer
+        }
+        return buildForgeConfigSpec(configCategory, builder, consumer)
+    }
+
     @JvmStatic
     fun VsiConfigModel.update(forgeConfig: ModConfig, configType: ConfigType, updatedEntries: MutableSet<ConfigUpdateEntry>) {
         root.forEachEntry { category, node ->
@@ -56,7 +92,7 @@ object VSConfigApi {
                                     // Convert string name to enum instance
                                     @Suppress("UNCHECKED_CAST")
                                     val enumConstants = defaultValue.declaringJavaClass.enumConstants as Array<Enum<*>>
-                                    enumConstants.find { it.name == newValue }
+                                    enumConstants.find { it.name.equals(newValue, ignoreCase = true) }
                                 }
                                 is Enum<*> -> newValue
                                 else -> null

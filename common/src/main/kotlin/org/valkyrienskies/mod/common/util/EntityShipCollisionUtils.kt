@@ -432,6 +432,26 @@ object EntityShipCollisionUtils {
         return Vec3(clippedWorld.x, clippedWorld.y, clippedWorld.z)
     }
 
+    /** Gather block shapes once for all the support probes in a single sneaking movement. */
+    fun createShipCollisionQuery(entity: Entity, worldBounds: AABB, world: Level): ShipCollisionQuery {
+        val query = ShipCollisionQuery()
+        val worldBox = worldBounds.toJOML()
+        val localBox = AABBd()
+        for (ship in world.shipObjectWorld.loadedShips.getIntersecting(worldBox, world.dimensionId)) {
+            val transform = ship.transform
+            worldBox.transform(transform.worldToShip, localBox)
+            val localBounds = localBox.toMinecraft()
+            if (BugFixUtil.isCollisionBoxTooBig(localBounds) || !mayShipIntersectLocalAabb(ship, localBox)) {
+                continue
+            }
+            val shapes = query.addShip(transform.shipToWorld)
+            for (shape in world.getBlockCollisions(entity, localBounds)) {
+                shape.forAllBoxes(shapes::addBox)
+            }
+        }
+        return query
+    }
+
     fun getShipPolygonsCollidingWithEntity(
         entity: Entity?,
         movement: Vec3,
