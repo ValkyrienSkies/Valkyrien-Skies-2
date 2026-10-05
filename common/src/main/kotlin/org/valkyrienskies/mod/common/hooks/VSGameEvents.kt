@@ -17,6 +17,7 @@ import org.valkyrienskies.mod.common.config.ConfigType
 object VSGameEvents {
 
     val registriesCompleted = EventEmitterImpl<Unit>()
+    @Deprecated("Why is this here? There is an event in both loaders for this, we don't need our own.")
     val tagsAreLoaded = EventEmitterImpl<Unit>()
 
     /** Emits a Set of config entries that were updated **/

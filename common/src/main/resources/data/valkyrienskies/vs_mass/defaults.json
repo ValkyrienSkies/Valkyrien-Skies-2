@@ -1,0 +1,18 @@
+[
+  {
+    "priority": 1,
+    "tag": "minecraft:slabs",
+    "mass": {
+      "value": "default",
+      "mult": 0.5
+    }
+  },
+  {
+    "priority": 1,
+    "tag": "minecraft:stairs",
+    "mass": {
+      "value": "default",
+      "mult": 0.75
+    }
+  }
+]

@@ -1,0 +1,224 @@
+{
+  "ignore": true,
+  "priority": 1,
+  "tag": "minecraft:walls",
+  "base": {
+    "mass": {
+      "value": "default",
+      "mult": 0.123046875
+    }
+  },
+  "states": [
+    {
+      "modify": {
+        "mass": {
+          "value": "default",
+          "mult": 0.126953125
+        }
+      },
+      "when": {
+        "up": "true"
+      }
+    },
+    {
+      "modify": {
+        "mass": {
+          "value": "default",
+          "mult": 0.1
+        }
+      },
+      "when": {
+        "north": "low"
+      }
+    },
+    {
+      "modify": {
+        "mass": {
+          "value": "default",
+          "mult": 0.1
+        }
+      },
+      "when": {
+        "south": "low"
+      }
+    },
+    {
+      "modify": {
+        "mass": {
+          "value": "default",
+          "mult": 0.1
+        }
+      },
+      "when": {
+        "east": "low"
+      }
+    },
+    {
+      "modify": {
+        "mass": {
+          "value": "default",
+          "mult": 0.1
+        }
+      },
+      "when": {
+        "west": "low"
+      }
+    },
+    {
+      "modify": {
+        "mass": {
+          "value": "default",
+          "mult": 0.1
+        }
+      },
+      "when": {
+        "north": "tall"
+      }
+    },
+    {
+      "modify": {
+        "mass": {
+          "value": "default",
+          "mult": 0.1
+        }
+      },
+      "when": {
+        "south": "tall"
+      }
+    },
+    {
+      "modify": {
+        "mass": {
+          "value": "default",
+          "mult": 0.1
+        }
+      },
+      "when": {
+        "east": "tall"
+      }
+    },
+    {
+      "modify": {
+        "mass": {
+          "value": "default",
+          "mult": 0.1
+        }
+      },
+      "when": {
+        "west": "tall"
+      }
+    },
+    {
+      "modify": {
+        "mass": {
+          "value": "default",
+          "mult": 0.05
+        }
+      },
+      "when": {
+        "AND": {
+          "north": "low",
+          "up": "false"
+        }
+      }
+    },
+    {
+      "modify": {
+        "mass": {
+          "value": "default",
+          "mult": 0.1
+        }
+      },
+      "when": {
+        "AND": {
+          "south": "low",
+          "up": "false"
+        }
+      }
+    },
+    {
+      "modify": {
+        "mass": {
+          "value": "default",
+          "mult": 0.1
+        }
+      },
+      "when": {
+        "AND": {
+          "east": "low",
+          "up": "false"
+        }
+      }
+    },
+    {
+      "modify": {
+        "mass": {
+          "value": "default",
+          "mult": 0.1
+        }
+      },
+      "when": {
+        "AND": {
+          "west": "low",
+          "up": "false"
+        }
+      }
+    },
+    {
+      "modify": {
+        "mass": {
+          "value": "default",
+          "mult": 0.05
+        }
+      },
+      "when": {
+        "AND": {
+          "north": "tall",
+          "up": "false"
+        }
+      }
+    },
+    {
+      "modify": {
+        "mass": {
+          "value": "default",
+          "mult": 0.05
+        }
+      },
+      "when": {
+        "AND": {
+          "south": "tall",
+          "up": "false"
+        }
+      }
+    },
+    {
+      "modify": {
+        "mass": {
+          "value": "default",
+          "mult": 0.05
+        }
+      },
+      "when": {
+        "AND": {
+          "east": "tall",
+          "up": "false"
+        }
+      }
+    },
+    {
+      "modify": {
+        "mass": {
+          "value": "default",
+          "mult": 0.05
+        }
+      },
+      "when": {
+        "AND": {
+          "west": "tall",
+          "up": "false"
+        }
+      }
+    }
+  ]
+}

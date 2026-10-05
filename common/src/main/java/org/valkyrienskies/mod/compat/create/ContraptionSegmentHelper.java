@@ -33,6 +33,7 @@ import org.valkyrienskies.mod.api.ValkyrienSkies;
 import org.valkyrienskies.mod.common.BlockStateInfo;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
+import org.valkyrienskies.mod.common.blockstate.BlockStateUtils;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 public class ContraptionSegmentHelper {

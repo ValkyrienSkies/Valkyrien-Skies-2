@@ -133,7 +133,7 @@ dependencies {
     modCompileOnly("maven.modrinth:mffs:5.1.18")
 
     // Epic Fight
-    modCompileOnly("maven.modrinth:epic-fight:20.10.3")
+    modCompileOnly("maven.modrinth:vu3NZ5Ma:KEBfkBat")
 
     // Dynmap
     modCompileOnly("maven.modrinth:dynmap:${dynmap_version}")

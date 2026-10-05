@@ -110,7 +110,12 @@
   },
   {
     "block": "minecraft:cobweb",
-    "mass": 0.1,
-    "friction": 1.0
+    "solid": {
+      "mass": 0.1,
+      "no_collision": true
+    },
+    "medium": {
+      "drag": 0.5
+    }
   }
 ]

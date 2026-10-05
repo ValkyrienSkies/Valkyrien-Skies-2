@@ -21,7 +21,7 @@ import org.valkyrienskies.core.internal.world.VsiClientShipWorld;
 import org.valkyrienskies.core.internal.world.VsiServerShipWorld;
 import org.valkyrienskies.core.internal.world.VsiShipWorld;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.config.MassDatapackResolver;
+import org.valkyrienskies.mod.common.blockstate.BlockStateInfoResolver;
 
 /**
  * Shared client/server view of the fluid occupying a ship topology domain.
@@ -65,7 +65,7 @@ public final class ShipFluidInteraction {
 
             final FlowingFluid fluid = localSample.fluidId() == null
                 ? null
-                : MassDatapackResolver.INSTANCE.getFlowingFluid(localSample.fluidId());
+                : BlockStateInfoResolver.INSTANCE.getFlowingFluid(localSample.fluidId());
             if (fluid != null) {
                 return new PointSample(true, fluid);
             }
@@ -130,7 +130,7 @@ public final class ShipFluidInteraction {
                         if (voxel == null || voxel.getFillAmount() <= 0) continue;
 
                         final FlowingFluid fluid =
-                            MassDatapackResolver.INSTANCE.getFlowingFluid(voxel.getFluidId());
+                            BlockStateInfoResolver.INSTANCE.getFlowingFluid(voxel.getFluidId());
                         if (fluid == null || !fluid.defaultFluidState().is(fluidTag)) continue;
 
                         final double fillHeight = Math.min(255, voxel.getFillAmount()) / 255.0;

@@ -51,6 +51,7 @@ import org.valkyrienskies.core.internal.world.chunks.VsiBlockType
 import org.valkyrienskies.core.internal.world.chunks.VsiTerrainUpdate
 import org.valkyrienskies.core.util.expand
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod.ASSEMBLE_BLACKLIST
+import org.valkyrienskies.mod.common.blockstate.vsType
 import org.valkyrienskies.mod.common.entity.ShipMountedToData
 import org.valkyrienskies.mod.common.entity.ShipMountedToDataProvider
 import org.valkyrienskies.mod.common.util.DimensionIdProvider
@@ -698,12 +699,11 @@ fun Ship.toWorldCoordinates(x: Double, y: Double, z: Double, dest: Vector3d = Ve
 @JvmOverloads
 fun LevelChunkSection.toDenseVoxelUpdate(chunkPos: Vector3ic, level: Level? = null): VsiTerrainUpdate {
     val update = vsCore.newDenseTerrainUpdateBuilder(chunkPos.x(), chunkPos.y(), chunkPos.z())
-    val info = BlockStateInfo.cache
     for (x in 0..15) {
         for (y in 0..15) {
             for (z in 0..15) {
                 val blockState = getBlockState(x, y, z)
-                val defaultBlockType = info.get(blockState)?.second ?: vsCore.blockTypes.air
+                val defaultBlockType = blockState.vsType
                 update.addBlock(x, y, z, defaultBlockType)
             }
         }

@@ -29,7 +29,9 @@ object VSCrashReportHeader {
         "successful pilgrimage to the shipyard",
         "perchanceably",
         "'I did a quick test, it seemed alright.'",
-        "lemme see, and then we carry the one. yup. and then add the remainder, and there we go. your ship is yeeted."
+        "lemme see, and then we carry the one. yup. and then add the remainder, and there we go. your ship is gone.",
+        "blame kotlin.",
+        "please be an easy repro"
     )
 
     private fun getHeaderComment(): String {
@@ -40,11 +42,13 @@ object VSCrashReportHeader {
         }
     }
 
+    const val ISSUE_LINK = "https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues?q=is%3Aissue"
+
     @JvmStatic
     fun addCrashReportHeader(builder: StringBuilder) {
         builder.append("\n\n// " + getHeaderComment())
-        builder.append("\nPlease check that this issue occurs without Valkyrien Skies before reporting it to other mod authors.")
-        builder.append("\nIf this issue does not occur without Valkyrien Skies, please check if your issue has already been reported at https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues?q=is%3Aissue.")
+        builder.append("\nVALKYRIEN SKIES IS INSTALLED! Please check that this issue occurs without Valkyrien Skies before reporting it to other mod authors.")
+        builder.append("\nIf this issue does not occur without Valkyrien Skies, please check if your issue has already been reported at $ISSUE_LINK.")
         builder.append("\nIf your issue has not been reported or you are unsure, please report it at the link provided above.\n\n")
     }
 

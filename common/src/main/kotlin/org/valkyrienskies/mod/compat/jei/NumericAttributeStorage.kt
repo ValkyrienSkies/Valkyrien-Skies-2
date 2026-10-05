@@ -167,7 +167,7 @@ class NumericAttributeStorage<T> : ISearchStorage<T> {
     )
 
     companion object {
-        private val ATTRIBUTES = mutableListOf<String>("f", "e", "m")
+        private val ATTRIBUTES = mutableListOf<String>("f", "e", "m") // &m
         private val DEFAULT_ATTRIBUTE = "m"
 
         // Matches a key:value syntax

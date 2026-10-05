@@ -1,0 +1,74 @@
+{
+  "ignore": true,
+  "priority": 1,
+  "tag": "minecraft:walls",
+  "base": {
+    "mass": {
+      "value": "default",
+      "mult": 0.123046875
+    }
+  },
+  "states": [
+    {
+      "modify": {
+        "mass": {
+          "value": "default",
+          "mult": 0.126953125
+        }
+      },
+      "when": {
+        "up": "true"
+      }
+    },
+    {
+      "for": ["north", "south", "east", "west"],
+      "modify": {
+        "mass": {
+          "value": "default",
+          "mult": 0.1
+        }
+      },
+      "when": {
+        "_": "low"
+      },
+      "additional": [
+        {
+          "modify": {
+            "mass": {
+              "value": "default",
+              "mult": 0.05
+            }
+          },
+          "when": {
+            "up": "false"
+          }
+        }
+      ]
+    },
+    {
+      "for": ["north", "south", "east", "west"],
+      "modify": {
+        "mass": {
+          "value": "default",
+          "mult": 0.2
+        }
+      },
+      "when": {
+        "_": "tall"
+      },
+      "additional": [
+        {
+          "modify": {
+            "mass": {
+              "value": "default",
+              "mult": 0.1
+            }
+          },
+          "when": {
+            "up": "false"
+          }
+        }
+      ]
+    }
+  ]
+}
