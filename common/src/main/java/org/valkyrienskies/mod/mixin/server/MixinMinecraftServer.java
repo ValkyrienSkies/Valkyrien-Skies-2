@@ -115,6 +115,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
 
     @Inject(at = @At("TAIL"), method = "stopServer")
     private void afterStopServer(final CallbackInfo ci) {
+        VanillaFluidFlowWindProvider.INSTANCE.onWorldClosed(shipWorld);
         ValkyrienSkiesMod.setCurrentServer(null);
     }
 
@@ -226,6 +227,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         // VsiServerShipWorld::removeDimension must happen after the PRE_TICK stage, otherwise the game crashes.
         for (final String oldLoadedLevelId : loadedLevels) {
             if (!newLoadedLevels.containsKey(oldLoadedLevelId)) {
+                VanillaFluidFlowWindProvider.INSTANCE.clearDimension(oldLoadedLevelId);
                 shipWorld.removeDimension(oldLoadedLevelId);
                 dimensionToLevelMap.remove(oldLoadedLevelId);
             }

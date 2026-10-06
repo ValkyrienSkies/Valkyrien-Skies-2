@@ -33,15 +33,8 @@ object VanillaFluidFlowWindProvider : WindProvider {
     private const val FLOW_SPEED_SCALE = 1.0
     private const val MAX_CHUNK_REFRESHES_PER_TICK = 8
 
-    @Volatile
-    private var registered = false
-
-    @Volatile
-    private var snapshotsByDimension: Map<DimensionId, DimensionFlowSnapshot> = emptyMap()
-
-    private val refreshQueue = ArrayDeque<ChunkScanRequest>()
-    private val queuedRefreshes = HashSet<ChunkRefreshKey>()
-    private val dirtyChunks = HashSet<ChunkRefreshKey>()
+    private var registeredWorld: ServerShipWorld? = null
+    private val cache = FluidFlowSnapshotCache<Long2ObjectOpenHashMap<Vector3d>>()
 
     fun markDirty(level: Level, pos: BlockPos, previousState: BlockState?, newState: BlockState?) {
         if (level.isClientSide || level !is ServerLevel) return
@@ -51,11 +44,9 @@ object VanillaFluidFlowWindProvider : WindProvider {
         val chunkX = SectionPos.blockToSectionCoord(pos.x)
         val chunkZ = SectionPos.blockToSectionCoord(pos.z)
 
-        synchronized(this) {
-            for (dx in -1..1) {
-                for (dz in -1..1) {
-                    dirtyChunks.add(ChunkRefreshKey(dimensionId, ChunkPos.asLong(chunkX + dx, chunkZ + dz)))
-                }
+        for (dx in -1..1) {
+            for (dz in -1..1) {
+                cache.markDirty(dimensionId, ChunkPos.asLong(chunkX + dx, chunkZ + dz))
             }
         }
     }
@@ -68,9 +59,10 @@ object VanillaFluidFlowWindProvider : WindProvider {
         val dimensionId = level.dimensionId
         val activeChunkRanges = HashMap<Long, IntRange>()
 
-        for (ship in shipWorld.loadedShips) {
-            if (ship.chunkClaimDimension != dimensionId) continue
-            val worldAabb = AABBd(ship.worldAABB).expand(1.0)
+        // Includes ship-owned and standalone voxel bodies; enumerate each body once.
+        for (body in shipWorld.loadedBodies) {
+            if (body.dimension != dimensionId || body.isStatic) continue
+            val worldAabb = AABBd(body.aabb).expand(1.0)
 
             val minX = floor(worldAabb.minX()).toInt()
             val minY = floor(worldAabb.minY()).toInt().coerceAtLeast(level.minBuildHeight)
@@ -93,25 +85,25 @@ object VanillaFluidFlowWindProvider : WindProvider {
             }
         }
 
-        if (activeChunkRanges.isEmpty()) {
-            clearDimension(dimensionId)
-            return
+        cache.refresh(dimensionId, activeChunkRanges, MAX_CHUNK_REFRESHES_PER_TICK) { chunkKey, heights ->
+            val chunk = level.chunkSource.getChunkNow(ChunkPos.getX(chunkKey), ChunkPos.getZ(chunkKey))
+            chunk?.let { scanChunk(level, it, heights.first, heights.last) }
         }
-
-        queueChunksNeedingRefresh(dimensionId, activeChunkRanges)
-        val refreshedChunks = refreshQueuedChunks(level, dimensionId)
-        publishSnapshot(dimensionId, activeChunkRanges.keys, refreshedChunks)
     }
 
     override fun getWindFor(type: WindType, x: Double, y: Double, z: Double, dim: DimensionId): WindData {
         if (type != WindType.FLUID) return WindData.none(type)
-        val snapshot = snapshotsByDimension[dim] ?: return WindData.none(type)
+        val snapshot = cache.snapshot(dim)
+        if (snapshot.isEmpty()) return WindData.none(type)
         val flow = sampleSmoothedFlow(snapshot, x, y, z)
         val speed = flow.length() * VSGameConfig.SERVER.fluidWindSpeedScale
         return if (speed > 1.0e-6) WindData(Vector3d(flow), speed, type) else WindData.none(type)
     }
 
-    private fun sampleSmoothedFlow(snapshot: DimensionFlowSnapshot, x: Double, y: Double, z: Double): Vector3d {
+    private fun sampleSmoothedFlow(
+        snapshot: Map<Long, FluidFlowSnapshotCache.Snapshot<Long2ObjectOpenHashMap<Vector3d>>>,
+        x: Double, y: Double, z: Double
+    ): Vector3d {
         // Interpret stored block flows as cell-centered samples. This avoids a hard force step when the drag sampler
         // crosses a block boundary at the edge of a flowing-fluid cell.
         val sampleX = x - 0.5
@@ -146,86 +138,16 @@ object VanillaFluidFlowWindProvider : WindProvider {
         return result
     }
 
-    private fun sampleBlockFlow(snapshot: DimensionFlowSnapshot, blockX: Int, blockY: Int, blockZ: Int): Vector3d? {
+    private fun sampleBlockFlow(
+        snapshot: Map<Long, FluidFlowSnapshotCache.Snapshot<Long2ObjectOpenHashMap<Vector3d>>>,
+        blockX: Int, blockY: Int, blockZ: Int
+    ): Vector3d? {
         val chunkKey = ChunkPos.asLong(SectionPos.blockToSectionCoord(blockX), SectionPos.blockToSectionCoord(blockZ))
-        val chunk = snapshot.chunkFlows[chunkKey] ?: return null
-        return chunk.flows[BlockPos.asLong(blockX, blockY, blockZ)]
+        val chunk = snapshot[chunkKey] ?: return null
+        return chunk.value[BlockPos.asLong(blockX, blockY, blockZ)]
     }
 
-    private fun queueChunksNeedingRefresh(dimensionId: DimensionId, activeChunkRanges: Map<Long, IntRange>) {
-        val previousSnapshot = snapshotsByDimension[dimensionId]
-        for ((chunkKey, yRange) in activeChunkRanges) {
-            val refreshKey = ChunkRefreshKey(dimensionId, chunkKey)
-            val needsInitialScan = previousSnapshot?.chunkFlows?.containsKey(chunkKey) != true
-            val isDirty = synchronized(this) { dirtyChunks.remove(refreshKey) }
-
-            if ((needsInitialScan || isDirty) && queuedRefreshes.add(refreshKey)) {
-                refreshQueue.addLast(ChunkScanRequest(dimensionId, chunkKey, yRange.first, yRange.last))
-            }
-        }
-    }
-
-    private fun refreshQueuedChunks(level: ServerLevel, dimensionId: DimensionId): Map<Long, ChunkFlowSnapshot> {
-        val refreshed = HashMap<Long, ChunkFlowSnapshot>()
-        var refreshedThisTick = 0
-
-        while (refreshQueue.isNotEmpty() && refreshedThisTick < MAX_CHUNK_REFRESHES_PER_TICK) {
-            val request = refreshQueue.removeFirst()
-            queuedRefreshes.remove(ChunkRefreshKey(request.dimensionId, request.chunkKey))
-
-            if (request.dimensionId != dimensionId) {
-                refreshQueue.addLast(request)
-                break
-            }
-
-            val chunkX = ChunkPos.getX(request.chunkKey)
-            val chunkZ = ChunkPos.getZ(request.chunkKey)
-            val chunk = level.chunkSource.getChunkNow(chunkX, chunkZ)
-            if (chunk == null) {
-                refreshed[request.chunkKey] = ChunkFlowSnapshot(Long2ObjectOpenHashMap())
-                refreshedThisTick++
-                continue
-            }
-
-            refreshed[request.chunkKey] = scanChunk(level, chunk, request.minY, request.maxY)
-            refreshedThisTick++
-        }
-
-        return refreshed
-    }
-
-    private fun publishSnapshot(
-        dimensionId: DimensionId,
-        activeChunkKeys: Set<Long>,
-        refreshedChunks: Map<Long, ChunkFlowSnapshot>
-    ) {
-        val previousDimension = snapshotsByDimension[dimensionId]
-        val chunkFlows = HashMap<Long, ChunkFlowSnapshot>()
-
-        if (previousDimension != null) {
-            for ((chunkKey, snapshot) in previousDimension.chunkFlows) {
-                if (chunkKey in activeChunkKeys) {
-                    chunkFlows[chunkKey] = snapshot
-                }
-            }
-        }
-
-        for ((chunkKey, snapshot) in refreshedChunks) {
-            if (chunkKey in activeChunkKeys) {
-                chunkFlows[chunkKey] = snapshot
-            }
-        }
-
-        val next = HashMap(snapshotsByDimension)
-        if (chunkFlows.isEmpty()) {
-            next.remove(dimensionId)
-        } else {
-            next[dimensionId] = DimensionFlowSnapshot(chunkFlows)
-        }
-        snapshotsByDimension = next
-    }
-
-    private fun scanChunk(level: ServerLevel, chunk: LevelChunk, minY: Int, maxY: Int): ChunkFlowSnapshot {
+    private fun scanChunk(level: ServerLevel, chunk: LevelChunk, minY: Int, maxY: Int): Long2ObjectOpenHashMap<Vector3d> {
         val flows = Long2ObjectOpenHashMap<Vector3d>()
         val mutablePos = BlockPos.MutableBlockPos()
         val minBlockX = chunk.pos.minBlockX
@@ -252,35 +174,28 @@ object VanillaFluidFlowWindProvider : WindProvider {
             }
         }
 
-        return ChunkFlowSnapshot(flows)
+        return flows
     }
 
     @OptIn(GameTickOnly::class)
-    private fun ensureRegistered(shipWorld: ServerShipWorld) {
-        if (registered) return
-        synchronized(this) {
-            if (!registered) {
-                shipWorld.aerodynamicUtils.registerWindProvider(this)
-                registered = true
-            }
-        }
+    internal fun ensureRegistered(shipWorld: ServerShipWorld) {
+        if (registeredWorld === shipWorld) return
+        registeredWorld?.aerodynamicUtils?.unregisterWindProvider(this)
+        cache.clear()
+        shipWorld.aerodynamicUtils.registerWindProvider(this)
+        registeredWorld = shipWorld
     }
 
-    private fun clearDimension(dimensionId: DimensionId) {
-        val next = HashMap(snapshotsByDimension)
-        next.remove(dimensionId)
-        snapshotsByDimension = next
-        refreshQueue.removeAll { request ->
-            if (request.dimensionId == dimensionId) {
-                queuedRefreshes.remove(ChunkRefreshKey(request.dimensionId, request.chunkKey))
-                true
-            } else {
-                false
-            }
-        }
-        synchronized(this) {
-            dirtyChunks.removeIf { it.dimensionId == dimensionId }
-        }
+    @OptIn(GameTickOnly::class)
+    fun onWorldClosed(shipWorld: ServerShipWorld?) {
+        if (shipWorld == null || registeredWorld !== shipWorld) return
+        shipWorld.aerodynamicUtils.unregisterWindProvider(this)
+        registeredWorld = null
+        cache.clear()
+    }
+
+    fun clearDimension(dimensionId: DimensionId) {
+        cache.clearDimension(dimensionId)
     }
 
     private fun merge(previous: IntRange?, next: IntRange): IntRange =
@@ -290,16 +205,4 @@ object VanillaFluidFlowWindProvider : WindProvider {
             minOf(previous.first, next.first)..maxOf(previous.last, next.last)
         }
 
-    private data class ChunkScanRequest(
-        val dimensionId: DimensionId,
-        val chunkKey: Long,
-        val minY: Int,
-        val maxY: Int
-    )
-
-    private data class ChunkRefreshKey(val dimensionId: DimensionId, val chunkKey: Long)
-
-    private data class DimensionFlowSnapshot(val chunkFlows: Map<Long, ChunkFlowSnapshot>)
-
-    private data class ChunkFlowSnapshot(val flows: Long2ObjectOpenHashMap<Vector3d>)
 }

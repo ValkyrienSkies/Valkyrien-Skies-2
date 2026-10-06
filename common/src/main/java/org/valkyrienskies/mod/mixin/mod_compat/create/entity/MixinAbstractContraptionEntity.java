@@ -367,6 +367,10 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
 
     @Inject(method = "tick", at = @At("HEAD"))
     private void postTick(final CallbackInfo ci) {
+        if (this.vs$getSegmentId() != -1 && !this.vs$isWorldSegment()) {
+            // Bound groups publish once, with the completed segment pose at tick RETURN.
+            return;
+        }
         final AbstractContraptionEntity thisAsAbstractContraptionEntity = AbstractContraptionEntity.class.cast(this);
         final Level level = thisAsAbstractContraptionEntity.level();
         if (wingGroupId != -1 && level instanceof final ServerLevel serverLevel) {
@@ -408,6 +412,15 @@ public abstract class MixinAbstractContraptionEntity extends Entity implements M
             ContraptionSegmentHelper.getContraptionSegmentPosition(serverLevel, thisAsACE, bodyId, isWorld),
             ContraptionSegmentHelper.getContraptionSegmentRotation(serverLevel, thisAsACE, bodyId, isWorld)
         );
+        if (!isWorld && wingGroupId != -1) {
+            final LoadedServerShip ship = VSGameUtilsKt.getLoadedShipManagingPos(serverLevel,
+                VectorConversionsMCKt.toJOML(thisAsACE.position()));
+            if (ship != null && ship.getBodyId() != null && ship.getBodyId() == bodyId) {
+                // Publish the wing pose and its segment motion from the same completed game tick.
+                ship.getWingManager().setWingGroupTransform(wingGroupId, computeContraptionWingTransform());
+                ship.getWingManager().setWingGroupCollisionSegment(wingGroupId, segmentId);
+            }
+        }
     }
 
     @NotNull
