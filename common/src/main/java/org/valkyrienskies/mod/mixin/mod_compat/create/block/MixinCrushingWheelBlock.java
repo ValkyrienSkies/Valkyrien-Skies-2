@@ -1,5 +1,8 @@
 package org.valkyrienskies.mod.mixin.mod_compat.create.block;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.sugar.Local;
 import com.simibubi.create.content.kinetics.crusher.CrushingWheelBlock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
@@ -17,65 +20,53 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(CrushingWheelBlock.class)
 public class MixinCrushingWheelBlock {
-
     @Unique
-    private BlockPos blockPosInside;
-    @Unique
-    private Level levelInside;
-
-    @Inject(method = "entityInside", at = @At("HEAD"))
-    void startInside(
-            final BlockState state, final Level worldIn, final BlockPos pos, final Entity entityIn,
-            final CallbackInfo info) {
-        blockPosInside = pos;
-        levelInside = worldIn;
-    }
-
-    @Unique
-    void transform(final Vector3d in) {
+    void transform(final Vector3d in, BlockPos blockPosInside, Level levelInside) {
         final Ship ship = VSGameUtilsKt.getShipManagingPos(levelInside, blockPosInside);
         if (ship != null) {
             ship.getWorldToShip().transformPosition(in);
         }
     }
 
-    @Redirect(
+    @WrapOperation(
             method = "entityInside",
             at = @At(
                     value = "INVOKE",
                     target = "Lnet/minecraft/world/entity/Entity;getX()D"
             )
     )
-    double getXPos(final Entity entity) {
-        final Vector3d vector3d = new Vector3d(entity.getX(), entity.getY(), entity.getZ());
-        transform(vector3d);
+    double getXPos(final Entity entity, Operation<Double> original,
+        @Local(argsOnly = true) BlockPos blockPosInside, @Local(argsOnly = true) Level levelInside) {
+        final Vector3d vector3d = new Vector3d(original.call(entity), entity.getY(), entity.getZ());
+        transform(vector3d, blockPosInside, levelInside);
         return vector3d.x;
     }
 
-    @Redirect(
+    @WrapOperation(
             method = "entityInside",
             at = @At(
                     value = "INVOKE",
                     target = "Lnet/minecraft/world/entity/Entity;getY()D"
             )
     )
-    double getYPos(final Entity entity) {
-        final Vector3d vector3d = new Vector3d(entity.getX(), entity.getY(), entity.getZ());
-        transform(vector3d);
-        return vector3d.x;
+    double getYPos(final Entity entity, Operation<Double> original,
+        @Local(argsOnly = true) BlockPos blockPosInside, @Local(argsOnly = true) Level levelInside) {
+        final Vector3d vector3d = new Vector3d(entity.getX(), original.call(entity), entity.getZ());
+        transform(vector3d, blockPosInside, levelInside);
+        return vector3d.y;
     }
 
-    @Redirect(
+    @WrapOperation(
             method = "entityInside",
             at = @At(
                     value = "INVOKE",
                     target = "Lnet/minecraft/world/entity/Entity;getZ()D"
             )
     )
-    double getZPos(final Entity entity) {
-        final Vector3d vector3d = new Vector3d(entity.getX(), entity.getY(), entity.getZ());
-        transform(vector3d);
-        return vector3d.x;
+    double getZPos(final Entity entity, Operation<Double> original,
+        @Local(argsOnly = true) BlockPos blockPosInside, @Local(argsOnly = true) Level levelInside) {
+        final Vector3d vector3d = new Vector3d(entity.getX(), entity.getY(), original.call(entity));
+        transform(vector3d, blockPosInside, levelInside);
+        return vector3d.z;
     }
-
 }
