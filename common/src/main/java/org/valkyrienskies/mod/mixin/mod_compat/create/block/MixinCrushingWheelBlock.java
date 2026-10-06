@@ -1,5 +1,8 @@
 package org.valkyrienskies.mod.mixin.mod_compat.create.block;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.sugar.Local;
 import com.simibubi.create.content.kinetics.crusher.CrushingWheelBlock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
