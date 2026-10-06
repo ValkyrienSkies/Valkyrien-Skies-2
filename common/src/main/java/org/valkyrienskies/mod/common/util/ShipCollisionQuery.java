@@ -30,14 +30,69 @@ public final class ShipCollisionQuery {
 
     public boolean hasSupport(final double minX, final double minY, final double minZ,
         final double maxX, final double maxY, final double maxZ) {
-        final double inset = (maxY - minY) * STANDING_INSET_PER_HEIGHT + MIN_STANDING_RESPONSE + EPSILON;
+        return !Double.isNaN(supportHeight(minX, minY, minZ, maxX, maxY, maxZ, false));
+    }
+
+    /** Highest walkable contact under the full footprint, or NaN when none exists in the probe. */
+    public double supportHeight(final double minX, final double minY, final double minZ,
+        final double maxX, final double maxY, final double maxZ) {
+        return supportHeight(minX, minY, minZ, maxX, maxY, maxZ, true);
+    }
+
+    /** Whether VS-core's below-feet slice resolves upward instead of out through a nearby edge. */
+    public boolean hasStandingSupport(final double minX, final double feetY, final double minZ,
+        final double maxX, final double maxY, final double maxZ) {
+        final double halfDepth = (maxY - feetY) * STANDING_INSET_PER_HEIGHT * 0.5;
+        final double halfX = (maxX - minX) * 0.5;
+        final double halfZ = (maxZ - minZ) * 0.5;
+        for (int shipIndex = 0; shipIndex < ships.size(); shipIndex++) {
+            final ShipShapes ship = ships.get(shipIndex);
+            for (int boxIndex = 0; boxIndex < ship.boxes.size(); boxIndex++) {
+                final Box box = ship.boxes.get(boxIndex);
+                final double dx = (minX + maxX) * 0.5 - box.center.x;
+                final double dy = feetY - halfDepth - box.center.y;
+                final double dz = (minZ + maxZ) * 0.5 - box.center.z;
+                double shortestResponse = Double.POSITIVE_INFINITY;
+                boolean upward = false;
+                for (int i = 0; i < ship.separatingAxes.size(); i++) {
+                    final Vector3d normal = ship.separatingAxes.get(i);
+                    final double radius = box.radii[i] + Math.abs(normal.x) * halfX
+                        + Math.abs(normal.y) * halfDepth + Math.abs(normal.z) * halfZ;
+                    final double offset = normal.x * dx + normal.y * dy + normal.z * dz;
+                    final double overlap = radius - Math.abs(offset);
+                    if (overlap <= 0.0) {
+                        upward = false;
+                        break;
+                    }
+                    final boolean walkable = Math.abs(normal.y) >= MIN_WALKABLE_NORMAL_Y;
+                    final double response = overlap / (walkable ? Math.abs(normal.y)
+                        : Math.sqrt(normal.x * normal.x + normal.z * normal.z));
+                    if (response < shortestResponse) {
+                        shortestResponse = response;
+                        upward = walkable && offset * normal.y > 0.0 && response > MIN_STANDING_RESPONSE;
+                    }
+                }
+                if (upward) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private double supportHeight(final double minX, final double minY, final double minZ,
+        final double maxX, final double maxY, final double maxZ, final boolean highest) {
+        // Boolean probes need a stable overlap margin; settling needs the actual
+        // contact height at the outer edge of the player's collision box.
+        final double inset = highest ? 0.0 : standingInset(maxY - minY);
         final double halfX = (maxX - minX) * 0.5 - inset;
         final double halfZ = (maxZ - minZ) * 0.5 - inset;
         if (halfX <= 0.0 || halfZ <= 0.0 || maxY - minY <= EPSILON * 2.0) {
-            return false;
+            return Double.NaN;
         }
         final double centerX = (minX + maxX) * 0.5;
         final double centerZ = (minZ + maxZ) * 0.5;
+        double result = Double.NaN;
         for (int i = 0; i < ships.size(); i++) {
             final ShipShapes ship = ships.get(i);
             for (int j = 0; j < ship.boxes.size(); j++) {
@@ -50,12 +105,20 @@ public final class ShipCollisionQuery {
                     || maxY - EPSILON <= box.center.y - box.worldHalfExtents.y) {
                     continue;
                 }
-                if (ship.hasSupport(box, dx, dz, halfX, halfZ, minY, maxY)) {
-                    return true;
+                final double height = ship.supportHeight(box, dx, dz, halfX, halfZ, minY, maxY);
+                if (!Double.isNaN(height)) {
+                    if (!highest) {
+                        return height;
+                    }
+                    result = Double.isNaN(result) ? height : Math.max(result, height);
                 }
             }
         }
-        return false;
+        return result;
+    }
+
+    static double standingInset(final double height) {
+        return height * STANDING_INSET_PER_HEIGHT + MIN_STANDING_RESPONSE + EPSILON;
     }
 
     public static final class ShipShapes {
@@ -118,7 +181,7 @@ public final class ShipCollisionQuery {
             boxes.add(new Box(center, worldHalfExtents, radii));
         }
 
-        private boolean hasSupport(final Box box, final double dx, final double dz,
+        private double supportHeight(final Box box, final double dx, final double dz,
             final double halfX, final double halfZ, final double minY, final double maxY) {
             // SAT for a horizontal footprint swept vertically through the box. The
             // upper end of the intersection interval is the first surface hit from
@@ -134,7 +197,7 @@ public final class ShipCollisionQuery {
                 final double absY = Math.abs(normal.y);
                 if (absY < EPSILON) {
                     if (Math.abs(horizontalOffset) >= radius) {
-                        return false;
+                        return Double.NaN;
                     }
                     continue;
                 }
@@ -146,11 +209,12 @@ public final class ShipCollisionQuery {
                     topNormalY = absY;
                 }
                 if (bottom > top) {
-                    return false;
+                    return Double.NaN;
                 }
             }
             final double surfaceY = box.center.y + top;
-            return topNormalY >= MIN_WALKABLE_NORMAL_Y && surfaceY > minY + EPSILON && surfaceY < maxY - EPSILON;
+            return topNormalY >= MIN_WALKABLE_NORMAL_Y && surfaceY > minY + EPSILON && surfaceY < maxY - EPSILON
+                ? surfaceY : Double.NaN;
         }
     }
 

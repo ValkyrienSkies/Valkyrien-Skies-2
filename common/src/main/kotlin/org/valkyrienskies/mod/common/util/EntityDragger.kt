@@ -11,6 +11,7 @@ import net.minecraft.world.entity.player.Player
 import net.minecraft.world.phys.Vec3
 import org.joml.Vector3d
 import org.joml.Vector3dc
+import org.joml.primitives.AABBd
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.mod.api.toMinecraft
@@ -21,6 +22,7 @@ import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.EntityLerper.yawToWorld
 import org.valkyrienskies.mod.common.vsCore
 import org.valkyrienskies.mod.mixinducks.world.entity.PlayerDuck
+import org.valkyrienskies.mod.util.BugFixUtil
 import java.util.function.Predicate
 import kotlin.math.asin
 import kotlin.math.atan2
@@ -68,6 +70,13 @@ object EntityDragger {
                             )
                         )
                         addedMovement = newPosIdeal.sub(entityReferencePos, Vector3d())
+                        if (entity is Player && entity.isShiftKeyDown &&
+                            (entity.onGround() || entity.fallDistance < entity.maxUpStep()) &&
+                            !entity.abilities.flying && !entity.noPhysics && entity.deltaMovement.y <= 0.0 &&
+                            addedMovement.isFinite
+                        ) {
+                            addedMovement = keepSneakingPlayerOnShip(entity, shipData, addedMovement)
+                        }
                         // endregion
 
                         // region Compute look dragging
@@ -189,6 +198,39 @@ object EntityDragger {
 
             entityDraggingInformation.ticksSinceStoodOnShip++
             entityDraggingInformation.mountedToEntity = entity.vehicle != null
+        }
+    }
+
+    private fun keepSneakingPlayerOnShip(player: Player, ship: Ship, movement: Vector3dc): Vector3dc {
+        val previous = ship.prevTickTransform
+        val current = ship.transform
+        // Translation preserves the footprint exactly. Only changing orientation
+        // or scale needs another support check after vanilla's movement check.
+        if (previous.shipToWorldRotation == current.shipToWorldRotation &&
+            previous.shipToWorldScaling == current.shipToWorldScaling
+        ) {
+            return movement
+        }
+        val box = player.boundingBox
+        val oldBounds = box.inflate(0.0, 0.05, 0.0).expandTowards(0.0, -player.maxUpStep().toDouble(), 0.0)
+            .toJOML().transform(previous.worldToShip)
+        val nextBounds = box.move(movement.toMinecraft()).expandTowards(0.0, -player.maxUpStep().toDouble(), 0.0)
+            .toJOML().transform(current.worldToShip)
+        val localBounds = AABBd(oldBounds).union(nextBounds).toMinecraft()
+        if (BugFixUtil.isCollisionBoxTooBig(localBounds)) {
+            return movement
+        }
+        val support = ShipSneakingDrag(previous.shipToWorld, current.shipToWorld)
+        // One bounded shape scan on the carrying ship, shared by all fallback candidates.
+        for (shape in player.level().getBlockCollisions(player, localBounds)) {
+            shape.forAllBoxes(support::addBox)
+        }
+        val corrected = support.adjustDrag(box.toJOML(), movement, player.maxUpStep().toDouble())
+        // Do not introduce a correction into stationary world blocks.
+        return if (corrected === movement || player.level().noCollision(player, box.move(corrected.toMinecraft()))) {
+            corrected
+        } else {
+            movement
         }
     }
 
