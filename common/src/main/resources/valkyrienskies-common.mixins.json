@@ -4,6 +4,10 @@
   "compatibilityLevel": "JAVA_17",
   "plugin": "org.valkyrienskies.mod.mixin.ValkyrienCommonMixinConfigPlugin",
   "mixins": [
+    "feature.ship_interactions.MixinItemRowing",
+    "feature.ship_interactions.MixinPressurePlate",
+    "feature.ship_interactions.PressurePlateAccessor",
+    "feature.ship_interactions.ButtonAccessor",
     "feature.assembly.MixinWelderBlockInteraction",
     "accessors.entity.EntityAccessor",
     "accessors.network.protocol.game.ClientboundSectionBlocksUpdatePacketAccessor",
@@ -439,6 +443,7 @@
     "feature.seamless_copy.MixinClientPacketListener",
     "feature.ship_debug_overlay.MixinDebugScreenOverlay",
     "feature.ship_world_light.client.renderer.MixinShaderInstance",
+    "feature.ship_world_light.client.renderer.MixinEntityRenderer",
     "feature.shipyard_entities.MixinClientLevel",
     "feature.shipyard_entities.MixinEntityRenderDispatcher",
     "feature.shipyard_entities.MixinEntityRenderer",

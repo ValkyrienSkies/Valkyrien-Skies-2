@@ -116,6 +116,8 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     @Inject(at = @At("TAIL"), method = "stopServer")
     private void afterStopServer(final CallbackInfo ci) {
         org.valkyrienskies.mod.common.debug.ShipDebugService.clear();
+        org.valkyrienskies.mod.common.util.ShipInteractions.clear();
+        org.valkyrienskies.mod.common.util.ShipShadows.clear();
         ValkyrienSkiesMod.setCurrentServer(null);
     }
 

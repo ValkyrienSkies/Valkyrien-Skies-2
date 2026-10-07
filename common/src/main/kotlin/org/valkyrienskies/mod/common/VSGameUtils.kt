@@ -554,29 +554,41 @@ fun shipProjectedWorldY(level: LevelAccessor, pos: BlockPos, original: Int): Int
 @JvmStatic
 fun shipAwareCombinedBrightness(getter: BlockAndTintGetter, pos: BlockPos, skyDarken: Int, original: Int): Int {
     if (getter !is ServerLevel) return original
-    val ship = getter.getShipManagingPos(pos) ?: return original
+    val ship = getter.getShipManagingPos(pos)
     val shipSky = getter.getBrightness(LightLayer.SKY, pos)
-    val rendered = ship.transform.shipToWorld.transformPosition(
+    val rendered = ship?.transform?.shipToWorld?.transformPosition(
         pos.x + 0.5, pos.y + 0.5, pos.z + 0.5, Vector3d()
-    )
+    ) ?: Vector3d(pos.x + 0.5, pos.y + 0.5, pos.z + 0.5)
     val worldSky = getter.getBrightness(LightLayer.SKY,
         BlockPos.containing(rendered.x, rendered.y, rendered.z))
-    val adjustedSky = Math.max(0, Math.min(shipSky, worldSky) - skyDarken)
+    val shadowSky = org.valkyrienskies.mod.common.util.ShipShadows.skyBrightness(getter, pos, Math.min(shipSky, worldSky))
+    val adjustedSky = Math.max(0, shadowSky - skyDarken)
     val shipBlock = getter.getBrightness(LightLayer.BLOCK, pos)
-    return Math.max(adjustedSky, shipBlock)
+    val worldBlock = getter.getBrightness(LightLayer.BLOCK, BlockPos.containing(rendered.x, rendered.y, rendered.z))
+    return Math.max(adjustedSky, Math.max(shipBlock, worldBlock))
+}
+
+/** Include world block light at a ship's position. */
+@JvmStatic
+fun shipAwareBlockBrightness(getter: BlockAndTintGetter, pos: BlockPos, original: Int): Int {
+    if (getter !is ServerLevel) return original
+    val ship = getter.getShipManagingPos(pos) ?: return original
+    val world = ship.shipToWorld.transformPosition(pos.x + 0.5, pos.y + 0.5, pos.z + 0.5, Vector3d())
+    return Math.max(original, getter.getBrightness(LightLayer.BLOCK, BlockPos.containing(world.x, world.y, world.z)))
 }
 
 /** Sky-only counterpart to [shipAwareCombinedBrightness] — returns `min(original, worldSky)`. */
 @JvmStatic
 fun shipAwareSkyBrightness(getter: BlockAndTintGetter, pos: BlockPos, original: Int): Int {
     if (getter !is ServerLevel) return original
-    val ship = getter.getShipManagingPos(pos) ?: return original
+    val ship = getter.getShipManagingPos(pos)
+    if (ship == null) return org.valkyrienskies.mod.common.util.ShipShadows.skyBrightness(getter, pos, original)
     val rendered = ship.transform.shipToWorld.transformPosition(
         pos.x + 0.5, pos.y + 0.5, pos.z + 0.5, Vector3d()
     )
     val worldSky = getter.getBrightness(LightLayer.SKY,
         BlockPos.containing(rendered.x, rendered.y, rendered.z))
-    return Math.min(original, worldSky)
+    return org.valkyrienskies.mod.common.util.ShipShadows.skyBrightness(getter, pos, Math.min(original, worldSky))
 }
 
 /** Vanilla `canSeeSky` projected to the ship's world pos, plus a heightmap-including-ships
@@ -613,7 +625,8 @@ fun shipAwareEntityLightLevelDependentMagicValue(entity: Entity): Float? {
     )
     val shipyardPos = BlockPos.containing(shipyard.x, shipyard.y, shipyard.z)
     val shipSky = level.getBrightness(LightLayer.SKY, shipyardPos)
-    val worldSky = level.getBrightness(LightLayer.SKY, worldPos)
+    val worldSky = org.valkyrienskies.mod.common.util.ShipShadows.skyBrightness(level, shipyardPos,
+        level.getBrightness(LightLayer.SKY, worldPos))
     val effectiveSky = Math.max(0, Math.min(shipSky, worldSky) - level.skyDarken)
     val shipBlock = level.getBrightness(LightLayer.BLOCK, shipyardPos)
     val worldBlock = level.getBrightness(LightLayer.BLOCK, worldPos)

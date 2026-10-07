@@ -1,13 +1,10 @@
 #version 330 core
+#import <valkyrienskies:include/ship_shadows.glsl>
 
 #import <sodium:include/fog.glsl>
 
-// VS-modified copy of sodium's stock chunk FSH. The only effect added on top of
-// vanilla world rendering is "ship lights brighten the world": each ship-emitter
-// is fed in as an entry in u_VsShipEmitters (vec4 = worldPos + lightLevel) and
-// we max-merge the distance-attenuated contribution into the world's lightmap
-// UV. No occlusion (sky shadowing or wall attenuation) — those approximations
-// were causing visible artifacts so they're removed.
+// Apply ship light and sky shadows to world blocks.
+// Shadow boxes follow the ship transform and keep hull openings clear.
 //
 // Sub-block precision: emitter world coords are stored as floats, so as a ship
 // moves smoothly the lit area on the ground tracks it continuously. The old
@@ -222,7 +219,8 @@ void main() {
         lightCoord.x = max(lightCoord.x, shipLightUv);
     }
 
-    vec4 lightSample = texture(u_LightTex, clamp(lightCoord, vec2(WS_UV_MIN), vec2(WS_UV_MAX)));
+    vec4 lightSample = vs_shipShadowLight(u_LightTex,
+        clamp(lightCoord, vec2(WS_UV_MIN), vec2(WS_UV_MAX)), worldPos + v_WorldNormal * 0.04, v_WorldNormal);
 
     // Tint × lightmap. AO and shade are applied below as a single combined
     // multiplier so vanilla world AO and ship-to-world AO stack the way

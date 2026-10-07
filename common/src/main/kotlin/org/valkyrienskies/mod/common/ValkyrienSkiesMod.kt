@@ -162,6 +162,7 @@ object ValkyrienSkiesMod {
         }
         core.registerAttachment(BuoyancyHandlerAttachment::class.java)
         core.registerAttachment(ShipGravityAttachment::class.java)
+        core.registerAttachment(org.valkyrienskies.mod.common.util.ShovelRowingAttachment::class.java)
 
         core.shipLoadEvent.on { event ->
             event.ship.setAttachment(SplittingDisablerAttachment(true))
@@ -175,6 +176,10 @@ object ValkyrienSkiesMod {
 
         core.collisionStartEvent.on { event ->
             ImpactFractureHandler.onCollision(event)
+            org.valkyrienskies.mod.common.util.ShipInteractions.onCollision(event)
+        }
+        core.collisionPersistEvent.on { event ->
+            org.valkyrienskies.mod.common.util.ShipInteractions.onCollision(event)
         }
         ImpactFractureHandler.logRegistered()
 

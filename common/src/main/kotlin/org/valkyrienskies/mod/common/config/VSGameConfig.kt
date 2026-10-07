@@ -138,8 +138,23 @@ object VSGameConfig {
         @ConfigEntry(description = "Sample world block/sky light at the ship's rendered position so torches and sunlight in the world correctly light the ship (sodium/embeddium only). Only affects the VANILLA and FLYWHEEL ship renderers, the BATCHED renderer has this built into its own shaders and ignores this. Disable for a moderate perf gain — ship blocks fall back to the shipyard's baked lightmap.")
         var dynamicShipLighting = false
 
-        @ConfigEntry(description = "Project ships into the world's lighting at render time so ships occlude sunlight on the ground beneath them and ship-internal torches illuminate nearby world blocks (sodium/embeddium only). Unlike the other ship-lighting options this affects the WORLD's chunks rather than ship blocks, so it applies to ALL ship renderers. Experimental overrides sodium's stock world-chunk shader. Disable for the default vanilla behavior where ships don't affect world lighting.")
-        var dynamicShipToWorldLighting = false
+        @ConfigEntry(description = "Enable ship sky shadows and light from ships for VANILLA and FLYWHEEL. BATCHED always enables these features and ignores this setting.")
+        var dynamicShipToWorldLighting = true
+
+        fun isShipToWorldLightingEnabled(): Boolean =
+            defaultRenderer == ShipRenderer.BATCHED || dynamicShipToWorldLighting
+
+        @ConfigEntry(description = "Visual ship shadow strength. 0 keeps full ambient sky light. 1 removes all sky light below a ship. This does not change mob spawn light checks.", min = 0.0, max = 1.0)
+        var shipShadowStrength = 0.4
+
+        @ConfigEntry(description = "Minimum width of the visual ship shadow edge fade, in blocks. Set this and shipShadowBlurGrowth to 0 for hard shadows.", min = 0.0, max = 4.0)
+        var shipShadowSoftness = 0.35
+
+        @ConfigEntry(description = "Increase the shadow fade width by this amount per block between the ship and the surface. The width limit is 8 blocks. 0 keeps the base width.", min = 0.0, max = 0.5)
+        var shipShadowBlurGrowth = 0.08
+
+        @ConfigEntry(description = "Directional shade strength for ship faces. 0 gives all faces the same shade. 1 uses the full Minecraft face shade.", min = 0.0, max = 1.0)
+        var shipShadeStrength = 0.6
 
         @ConfigEntry(description = "Enable searching by block physical properties in JEI")
         var jeiSearch = true
@@ -149,6 +164,59 @@ object VSGameConfig {
     }
 
     class Server {
+        @ConfigCategory(title = "Ship interactions")
+        val ShipInteractions = SHIP_INTERACTIONS()
+
+        class SHIP_INTERACTIONS {
+            @ConfigEntry(description = "Use a shovel in water to move the ship on which you stand.")
+            var shovelRowing = true
+
+            @ConfigEntry(description = "Impulse of one shovel stroke, in newton seconds.", min = 0.0)
+            var rowingImpulse = 4000.0
+
+            @ConfigEntry(description = "Minimum time between shovel strokes, in ticks.", min = 1.0)
+            var rowingCooldownTicks = 10
+
+            @ConfigEntry(description = "Break blocks in the fragile_ship_collision tag on impact.")
+            var breakFragileBlocks = true
+
+        @ConfigEntry(description = "Minimum estimated force per contact block that breaks a fragile block, in newtons.", min = 0.0)
+        var fragileBlockForce = 15000.0
+
+        @ConfigEntry(description = "Minimum closing speed for a fragile block impact, in meters per second. Slower contact and rebound do not break blocks.", min = 0.0)
+        var fragileBlockMinImpactSpeed = 4.0
+
+            @ConfigEntry(description = "Impact duration used for the force estimate, in seconds.", min = 0.001)
+            var impactDuration = 0.05
+
+            @ConfigEntry(description = "Let ships operate pressure plates, buttons, levers, and target blocks.")
+            var shipRedstone = true
+
+            @ConfigEntry(description = "Minimum relative speed for a ship to operate a target block, in meters per second.", min = 0.0)
+            var targetImpactSpeed = 4.0
+
+            @ConfigEntry(description = "Minimum push speed along the lever handle, in meters per second.", min = 0.0)
+            var leverPushSpeed = 0.5
+
+            @ConfigEntry(description = "Let fast ship collisions cause player damage.")
+            var shipImpactDamage = true
+
+            @ConfigEntry(description = "Minimum closing speed for player damage, in meters per second.", min = 0.0)
+            var playerImpactSpeed = 6.0
+
+            @ConfigEntry(description = "Damage points per meter per second above the speed limit.", min = 0.0)
+            var playerImpactDamageScale = 2.0
+
+            @ConfigEntry(description = "Maximum damage points from one ship impact.", min = 0.0)
+            var maxPlayerImpactDamage = 40.0
+
+            @ConfigEntry(description = "Minimum time between ship damage events for a player, in ticks.", min = 1.0)
+            var playerImpactCooldownTicks = 10
+
+            @ConfigEntry(description = "Let ships block sky light in mob spawn and mob light checks.")
+            var shipShadows = true
+        }
+
         @ConfigCategory(title = "Create")
         val Create = CREATE()
 

@@ -50,7 +50,7 @@ public class MixinFluidRenderer {
                                       CallbackInfo ci) {
         boolean anyShipFeature = VSGameConfig.CLIENT.getDynamicShipBiomeTinting()
                 || VSGameConfig.CLIENT.getDynamicShipLighting();
-        boolean worldFromShip = VSGameConfig.CLIENT.getDynamicShipToWorldLighting();
+        boolean worldFromShip = VSGameConfig.CLIENT.isShipToWorldLightingEnabled();
         if (!anyShipFeature && !worldFromShip) {
             vs$shouldPack = false;
             return;

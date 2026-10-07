@@ -38,7 +38,7 @@ public abstract class MixinClientLevel extends Level {
     public int getBrightness(LightLayer lightLayer, BlockPos blockPos) {
         int local = super.getBrightness(lightLayer, blockPos);
         if (!VSGameConfig.CLIENT.getDynamicShipLighting()
-            && !VSGameConfig.CLIENT.getDynamicShipToWorldLighting()) return local;
+            && !VSGameConfig.CLIENT.isShipToWorldLightingEnabled()) return local;
         int world = lightLayer.equals(LightLayer.SKY) ? 15 : 0;
         BlockPos worldPos = blockPos;
         if (VSGameUtilsKt.isBlockInShipyard(this, blockPos)) {
@@ -50,7 +50,7 @@ public abstract class MixinClientLevel extends Level {
             return Math.min(local, world);
         } else {
             int worldToShipCombined = Math.max(local, world);
-            if (!VSGameConfig.CLIENT.getDynamicShipToWorldLighting()) {
+            if (!VSGameConfig.CLIENT.isShipToWorldLightingEnabled()) {
                 return worldToShipCombined;
             } else {
                 int shipToWorld = SodiumCompat.getWorldFromShipStorage().getBlockLightAt(worldPos);

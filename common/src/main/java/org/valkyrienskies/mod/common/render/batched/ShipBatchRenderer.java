@@ -35,7 +35,7 @@ import org.valkyrienskies.mod.common.VSRenderTypes;
 import org.valkyrienskies.mod.common.config.ShipRendererKt;
 import org.valkyrienskies.mod.common.render.light.VsDynamicLight;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
-import org.valkyrienskies.mod.compat.sodium.light.VsShipEmitterList;
+
 
 public final class ShipBatchRenderer {
 
@@ -77,6 +77,7 @@ public final class ShipBatchRenderer {
     }
 
     public void markSectionDirty(final long shipId, final int sx, final int sy, final int sz) {
+        VsDynamicLight.invalidateShipEmitters(shipId);
         final ShipRenderObject renderObject;
         synchronized (ships) {
             renderObject = ships.get(shipId);
@@ -114,9 +115,6 @@ public final class ShipBatchRenderer {
             lastLightPopulationGameTime = gameTime;
             VsDynamicLight.populateWorldLightForBatched(level);
         }
-        final VsShipEmitterList shipEmitters = VsDynamicLight.getShipEmitterList();
-        shipEmitters.beginFrame();
-
         final BlockRenderDispatcher dispatcher = Minecraft.getInstance().getBlockRenderer();
         presentScratch.clear();
 
@@ -137,12 +135,7 @@ public final class ShipBatchRenderer {
             if (renderObject.ensureCompiled(level, dispatcher, compiler, reMeshBudget > 0)) {
                 reMeshBudget--;
             }
-            final double[] shipyardEmitters = renderObject.getShipyardEmitters(level);
-            if (shipyardEmitters.length != 0) {
-                shipEmitters.appendShipEmitters(ship, shipyardEmitters);
-            }
         }
-        shipEmitters.upload();
 
         synchronized (ships) {
             if (ships.size() != presentScratch.size()) {
@@ -223,6 +216,7 @@ public final class ShipBatchRenderer {
         int shipIndexLoc = -1;
         if (usingBatchedShader) {
             final int programId = shader.getId();
+            org.valkyrienskies.mod.common.render.light.ShipShadowRenderer.bind(programId);
             transformStorage.bind(SHIP_TRANSFORMS_TEXTURE_UNIT);
             final int samplerLoc = GL20.glGetUniformLocation(programId, "ShipTransforms");
             if (samplerLoc >= 0) {

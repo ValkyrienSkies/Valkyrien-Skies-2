@@ -2,6 +2,7 @@
 
 #moj_import <fog.glsl>
 #moj_import <vs_ship_glow_grid.glsl>
+#moj_import <vs_ship_shadows.glsl>
 
 uniform sampler2D Sampler0;
 uniform sampler2D Sampler2;
@@ -33,12 +34,11 @@ void main() {
     if (u_VsShipGlowEnabled != 0) {
         vec3 vsWorldPos = valkyrienair_CamRelPos + u_VsShipLightCameraPos;
         float vsShipGlow = vs_shipGlowSmooth(vsWorldPos, v_VsWorldNormal);
-        if (vsShipGlow > 0.0) {
-            float vsBoostedU = max(v_VsLightCoordRaw.x, (vsShipGlow + 0.5) / 16.0);
-            vec3 vsBase = texture(Sampler2, v_VsLightCoordRaw).rgb;
-            vec3 vsBoosted = texture(Sampler2, vec2(vsBoostedU, v_VsLightCoordRaw.y)).rgb;
-            color.rgb *= vsBoosted / max(vsBase, vec3(1.0 / 255.0));
-        }
+        vec2 vsAdjusted = v_VsLightCoordRaw;
+        vsAdjusted.x = max(vsAdjusted.x, (vsShipGlow + 0.5) / 16.0);
+        vec3 vsBase = texture(Sampler2, v_VsLightCoordRaw).rgb;
+        vec3 vsLight = vs_shipShadowLight(Sampler2, vsAdjusted, vsWorldPos + v_VsWorldNormal * 0.04, v_VsWorldNormal).rgb;
+        color.rgb *= vsLight / max(vsBase, vec3(1.0 / 255.0));
     }
     fragColor = linear_fog(color, vertexDistance, FogStart, FogEnd, FogColor);
 }

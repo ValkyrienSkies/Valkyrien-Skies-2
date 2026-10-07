@@ -443,6 +443,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
             ValkyrienSkiesMod.splitHandler.tick(ServerLevel.class.cast(this));
         }
         ShipWelder.tick(ServerLevel.class.cast(this));
+        org.valkyrienskies.mod.common.util.ShipInteractions.tick((ServerLevel) (Object) this);
         final ConfigPhysicsBackendType backend = VSCoreConfig.SERVER.getPhysics().getPhysicsBackend();
         final boolean isFracturingBackend = backend == ConfigPhysicsBackendType.KRUNCH_KONSTANT
             || backend == ConfigPhysicsBackendType.KRUNCH_VOX3D;

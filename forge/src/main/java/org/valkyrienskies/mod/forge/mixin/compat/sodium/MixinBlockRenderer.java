@@ -53,7 +53,7 @@ public class MixinBlockRenderer {
         boolean anyShipFeature = VSGameConfig.CLIENT.getDynamicShipBiomeTinting()
                 || VSGameConfig.CLIENT.getDynamicShipLighting()
                 || VSGameConfig.CLIENT.getBetterVanillaShipShading();
-        boolean worldFromShip = VSGameConfig.CLIENT.getDynamicShipToWorldLighting();
+        boolean worldFromShip = VSGameConfig.CLIENT.isShipToWorldLightingEnabled();
         if (!anyShipFeature && !worldFromShip) {
             vs$shouldPack = false;
             return;

@@ -170,23 +170,20 @@ public class SodiumCompat {
 
     public static void populateWorldFromShipsForFrame(net.minecraft.client.multiplayer.ClientLevel level,
             Viewport viewport) {
-        if (!VSGameConfig.CLIENT.getDynamicShipToWorldLighting()) return;
+        if (!VSGameConfig.CLIENT.isShipToWorldLightingEnabled()) return;
         if (level == null) return;
         VsWorldFromShipLightStorage storage = getWorldFromShipStorage();
-        VsShipEmitterList emitters = getShipEmitterList();
         VsShipOccluderList occluders = getShipOccluderList();
         storage.beginFrame();
-        emitters.beginFrame();
         occluders.beginFrame();
         org.valkyrienskies.mod.common.VSGameUtilsKt.getShipObjectWorld(
                 net.minecraft.client.Minecraft.getInstance()).getLoadedShips().forEach(ship -> {
             ClientShip cs = ship;
             if (!isShipRelevantToWorldFromShipFrame(cs, viewport)) return;
-            storage.populateFromShip(level, cs, emitters, occluders);
+            storage.populateFromShip(level, cs, null, occluders);
         });
         storage.pruneUnused();
         storage.upload();
-        emitters.upload();
         occluders.upload();
     }
 
@@ -270,7 +267,7 @@ public class SodiumCompat {
         if (VSGameConfig.CLIENT.getDynamicShipBiomeTinting()) bits |= FEATURE_BIOME;
         if (VSGameConfig.CLIENT.getDynamicShipLighting()) bits |= FEATURE_LIGHT;
         if (VSGameConfig.CLIENT.getBetterVanillaShipShading()) bits |= FEATURE_SHADE;
-        if (VSGameConfig.CLIENT.getDynamicShipToWorldLighting()) bits |= FEATURE_SHIP_ON_SHIP;
+        if (VSGameConfig.CLIENT.isShipToWorldLightingEnabled()) bits |= FEATURE_SHIP_ON_SHIP;
         return bits;
     }
 
@@ -285,6 +282,8 @@ public class SodiumCompat {
     }
 
     public static void setupShipShaderState(GlProgram<ChunkShaderInterface> program, ChunkRenderMatrices matrices, Matrix4fc transformMatrix) {
+        org.valkyrienskies.mod.common.render.light.ShipShadowRenderer.bind(
+            org.lwjgl.opengl.GL11.glGetInteger(org.lwjgl.opengl.GL20.GL_CURRENT_PROGRAM));
         ShipThing shipInterface = (ShipThing) program.getInterface();
         shipInterface.setupState();
         // Set projection and model-view matrices
@@ -460,7 +459,7 @@ public class SodiumCompat {
             if (biomeStorageLocal != null) biomeStorageLocal.bind(BIOME_SECTIONS_TEXTURE_UNIT, BIOME_LUT_TEXTURE_UNIT);
             // Same world-from-ship storage the world chunk shader queries —
             // bound here so the ship shader can read it for ship-on-ship.
-            if (VSGameConfig.CLIENT.getDynamicShipToWorldLighting()) {
+            if (VSGameConfig.CLIENT.isShipToWorldLightingEnabled()) {
                 getShipEmitterList().bind(SHIP_EMITTER_LIST_TEXTURE_UNIT);
             }
 
@@ -588,6 +587,8 @@ public class SodiumCompat {
     }
 
     public static void setupWorldShaderState(GlProgram<ChunkShaderInterface> program, ChunkRenderMatrices matrices) {
+        org.valkyrienskies.mod.common.render.light.ShipShadowRenderer.bind(
+            org.lwjgl.opengl.GL11.glGetInteger(org.lwjgl.opengl.GL20.GL_CURRENT_PROGRAM));
         WorldThing wt = (WorldThing) program.getInterface();
         wt.setupState();
         wt.setProjectionMatrix(matrices.projection());
@@ -665,7 +666,7 @@ public class SodiumCompat {
      * (LUT lookups return 0, emitter loop runs 0 times, no visible effect).
      */
     public static boolean shouldUseWorldFromShipShader() {
-        return VSGameConfig.CLIENT.getDynamicShipToWorldLighting();
+        return VSGameConfig.CLIENT.isShipToWorldLightingEnabled();
     }
 
     private static GlProgram<ShipThing> createShader(String path, ChunkShaderOptions options, int features) {
