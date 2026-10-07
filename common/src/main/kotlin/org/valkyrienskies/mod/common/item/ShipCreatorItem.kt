@@ -44,6 +44,7 @@ class ShipCreatorItem(
 
                 val serverShip =
                     level.shipObjectWorld.createNewShipAtBlock(blockPos.toJOML(), false, scale, dimensionId)
+                org.valkyrienskies.mod.common.debug.ShipDebugService.markCreated(level.server, serverShip, null)
 
                 org.slf4j.LoggerFactory.getLogger("VS2").info(" ShipCreatorItem: ship created id=${serverShip.id}, slug=${serverShip.slug}")
 

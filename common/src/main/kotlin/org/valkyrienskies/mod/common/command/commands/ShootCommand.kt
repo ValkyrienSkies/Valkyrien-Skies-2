@@ -100,6 +100,7 @@ object ShootCommand {
             Vector3i(spawnCenter, RoundingMode.FLOOR), false, 1.0, level.dimensionId
         )
         EntityShipCollisionUtils.markShipAsRecentlySpawned(ship.id, level.server.tickCount.toLong())
+        org.valkyrienskies.mod.common.debug.ShipDebugService.markCreated(level.server, ship, null)
 
         val claimCenter = ship.chunkClaim.getCenterBlockCoordinates(level.yRange, Vector3i())
         val half = size / 2

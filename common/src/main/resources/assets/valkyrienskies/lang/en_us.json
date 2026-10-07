@@ -118,6 +118,10 @@
   "command.valkyrienskies.shoot.success.impact_note": "Fired %dx%dx%d %s ship #%s at %s m/s  (note: impact fracture needs ~%d+ m/s to trigger)",
 
   "misc.valkyrienskies.create.deployer_working_mode": "Ship Behaviour",
+  "command.valkyrienskies.debug.renderer.none": "VS debug renderer stopped.",
+  "command.valkyrienskies.debug.renderer.markers": "VS debug renderer shows markers. Use /vs debug renderer none to stop it.",
+  "command.valkyrienskies.debug.renderer.text": "VS debug renderer shows ship text. Use /vs debug renderer none to stop it.",
+  "command.valkyrienskies.debug.renderer.full": "VS debug renderer shows markers and ship text. Use /vs debug renderer none to stop it.",
   "misc.valkyrienskies.create.deployer_working_mode.original": "Place on current ship",
   "misc.valkyrienskies.create.deployer_working_mode.in_world": "Place in world"
 }

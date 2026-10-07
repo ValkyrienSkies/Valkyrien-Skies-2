@@ -151,6 +151,7 @@ object ShipAssembler {
 
         val toShip = level.shipObjectWorld.createNewShipAtBlock(Vector3i(worldOldCenter, RoundingMode.FLOOR), false, scale * oldScale, level.dimensionId)
         toShip.isStatic = fromShip == null || fromShip.isStatic
+        org.valkyrienskies.mod.common.debug.ShipDebugService.markCreated(level.server, toShip, fromShip)
 
         // Mark as recently spawned immediately so player movement packets processed
         // during chunk loading don't treat this new ship as "unloaded".
@@ -452,6 +453,7 @@ object ShipAssembler {
                 Vector3i(worldOldCenter, RoundingMode.FLOOR), false, scale * oldScale, level.dimensionId
             )
             toShip.isStatic = fromShip == null || fromShip.isStatic
+            org.valkyrienskies.mod.common.debug.ShipDebugService.markCreated(level.server, toShip, fromShip)
 
             // Mark ship as recently spawned immediately so that player movement packets
             // processed during managedBlock (in the preload phase) don't treat this new

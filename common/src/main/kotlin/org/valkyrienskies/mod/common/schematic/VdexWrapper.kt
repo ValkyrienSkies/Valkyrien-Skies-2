@@ -95,6 +95,7 @@ object VdexWrapper {
                 level.dimensionId
             )
             indexToShip[index] = ship
+            org.valkyrienskies.mod.common.debug.ShipDebugService.markCreated(level.server, ship, null)
 
             ship.isStatic = vdexShipEntry.isStatic
             ship.safeRenameTo(level, vdexShipEntry.name)

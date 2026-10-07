@@ -115,6 +115,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
 
     @Inject(at = @At("TAIL"), method = "stopServer")
     private void afterStopServer(final CallbackInfo ci) {
+        org.valkyrienskies.mod.common.debug.ShipDebugService.clear();
         ValkyrienSkiesMod.setCurrentServer(null);
     }
 
@@ -261,6 +262,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     )
     private void postTick(final CallbackInfo ci) {
         vsPipeline.postTickGame();
+        org.valkyrienskies.mod.common.debug.ShipDebugService.tick((MinecraftServer) (Object) this);
         fluidOutflowManager.tick(dimensionToLevelMap);
         // Only drag entities after we have updated the ship positions
         for (final ServerLevel level : getAllLevels()) {

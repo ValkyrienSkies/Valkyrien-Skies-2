@@ -153,6 +153,7 @@ object ValkyrienSkiesMod {
         splitHandler = SplitHandler(this.vsCore.hooks.enableBlockEdgeConnectivity, this.vsCore.hooks.enableBlockCornerConnectivity)
 
         core.registerAttachment(ShipSettings::class.java)
+        core.registerAttachment(org.valkyrienskies.mod.common.debug.ShipDebugMetadata::class.java)
         core.registerAttachment(SeatedControllingPlayer::class.java) {
             useLegacySerializer()
         }

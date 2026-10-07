@@ -16,6 +16,7 @@ import org.valkyrienskies.mod.common.command.arguments.ContraptionSelectorOption
 import org.valkyrienskies.mod.common.command.commands.BackendCommand
 import org.valkyrienskies.mod.common.command.commands.ConfigCommand
 import org.valkyrienskies.mod.common.command.commands.DeleteCommand
+import org.valkyrienskies.mod.common.command.commands.DebugCommand
 import org.valkyrienskies.mod.common.command.commands.DryCommand
 import org.valkyrienskies.mod.common.command.commands.ApplyCommand
 import org.valkyrienskies.mod.common.command.commands.GetAirCommand
@@ -45,6 +46,7 @@ object VSCommands {
         BackendCommand.register(vs)
         ConfigCommand.register(vs)
         DeleteCommand.register(vs)
+        DebugCommand.register(vs)
         DryCommand.register(vs)
         ApplyCommand.register(vs)
         GetAirCommand.register(vs)

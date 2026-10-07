@@ -192,6 +192,7 @@ public abstract class MixinMinecraft
         at = @At("TAIL")
     )
     private void postClearLevel(final CallbackInfo ci) {
+        org.valkyrienskies.mod.client.debug.ShipDebugRenderer.clear();
         if (shipObjectWorld != null) {
             deleteShipObjectWorldClient();
         }
