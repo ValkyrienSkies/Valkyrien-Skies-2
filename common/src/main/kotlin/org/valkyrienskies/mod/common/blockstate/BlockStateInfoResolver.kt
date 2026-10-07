@@ -4,8 +4,10 @@ import com.google.gson.Gson
 import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
+import net.minecraft.core.Registry
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
+import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.packs.resources.ResourceManager
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener
@@ -49,21 +51,40 @@ data class VSFluidProperties(
     val shapeOverride: AABBic? = null
 )
 
+class MassJsonParseException(override val message: String) : Exception(message) {
+    constructor(message: String, id: String) : this("Parsing exception for $id: $message")
+}
+
 class NonNullMap<K, V>(private val map: Map<K, V>) {
     operator fun get(key: K): V = map[key]!!
 }
+
+// mass datapack resolver 2: electric boogaloo
 /**
- * mass datapack resolver 2: electric boogaloo
+ * todo write docs for this
  */
 object BlockStateInfoResolver {
-    private val liquidIdToFlowingFluid: MutableMap<Int, FlowingFluid?> = HashMap()
+    init {
+        VSGameEvents.tagsAreLoaded.on { _, listener ->
+            loadTags()
+            resolveAll()
+            hasFilled = true
+            blockTags.clear()
+            fluidTags.clear()
+            pendingBlocks.clear()
+            pendingFluids.clear()
+            listener.unregister()
+        }
+    }
 
+    // with this many maps, we'll never get lost :clueless:
     private val blockTags: MutableMap<ResourceLocation, BlockTagProperties> = HashMap()
     private val fluidTags: MutableMap<ResourceLocation, FluidTagProperties> = HashMap()
     private val pendingBlocks: MutableMap<ResourceLocation, MutableMap<String, PendingBlockProperties>> = HashMap()
     private val pendingFluids: MutableMap<ResourceLocation, MutableMap<String, PendingFluidProperties>> = HashMap()
     private val blocks: MutableMap<ResourceLocation, MutableMap<String, VSBlockProperties>> = HashMap()
     private val fluids: MutableMap<ResourceLocation, MutableMap<String, VSFluidProperties>> = HashMap()
+    private val liquidIdToFlowingFluid: MutableMap<Int, FlowingFluid?> = HashMap()
 
     /**
      * Values of this map should never be null, as we iterate through every single block state in [registerAllBlockStates]
@@ -78,20 +99,6 @@ object BlockStateInfoResolver {
      * If a value _is_ null, something has gone very wrong.
      */
     val blockStateToVs = NonNullMap(mcState2VsState)
-
-    init {
-        VSGameEvents.tagsAreLoaded.on { _, listener ->
-            loadTags()
-            listener.unregister()
-        }
-    }
-
-    /*
-    TODO #1
-    take liquid properties out of state properties and put it in its own map so that we look up separate properties for
-    the solid and liquid as opposed to taking the liquid from the full state (as this will return null) and thus we
-    end up putting the default liquid state for blocks like waterlogged slabs
-     */
 
     /*
     TODO #2
@@ -126,6 +133,40 @@ object BlockStateInfoResolver {
     ones that have a path of "template.json", and make sure we load the templates before we start loading any properties
      */
 
+    /*
+    TODO #5
+    new format that defines a list of ids
+    could probably just modify current to check if the entry is a string or a json array
+     */
+
+    val blockStateData: Collection<VsiBlockState> = mcState2VsState.values
+
+    var hasRegistered = false
+        private set
+    var hasFilled = false
+        private set
+
+    val loader get() = BlockStateInfoDataLoader()
+
+    // region getters
+    fun getVsiBlockState(blockState: BlockState): VsiBlockState {
+        return mcState2VsState[blockState]!!
+    }
+
+    fun getVsiBlockType(blockState: BlockState): VsiBlockType {
+        return vsCore.blockTypes.getType(getVsiBlockState(blockState))!!
+    }
+
+    fun getVSProperties(blockState: BlockState): VSBlockProperties? {
+        val string = blockState.idAndProperties()
+        return blocks[string.a]?.getOrOther(string.b, "default")
+    }
+
+    fun getVSProperties(fluidState: FluidState): VSFluidProperties? {
+        val string = fluidState.idAndProperties()
+        return fluids[string.a]?.getOrOther(string.b, "default")
+    }
+
     fun getLiquidStateId(blockState: BlockState): Int? =
         blockState.vsType.let(vsCore.blockTypes::getLiquidStateId)
 
@@ -145,33 +186,9 @@ object BlockStateInfoResolver {
         liquidIdToFlowingFluid[liquidStateId] = fluid
         return fluid
     }
+    // endregion
 
-    val blockStateData: Collection<VsiBlockState> = mcState2VsState.values
-
-    var hasRegistered = false
-        private set
-
-    val loader get() = BlockStateInfoDataLoader()
-
-    fun getVsiBlockState(blockState: BlockState): VsiBlockState {
-        return mcState2VsState[blockState]!!
-    }
-
-    fun getVsiBlockType(blockState: BlockState): VsiBlockType {
-        return vsCore.blockTypes.getType(getVsiBlockState(blockState))!!
-    }
-
-
-    fun getVSProperties(blockState: BlockState): VSBlockProperties? {
-        val string = blockState.idAndProperties()
-        return blocks[string.a]?.getOrOther(string.b, "default")
-    }
-
-    fun getVSProperties(fluidState: FluidState): VSFluidProperties? {
-        val string = fluidState.idAndProperties()
-        return fluids[string.a]?.getOrOther(string.b, "default")
-    }
-
+    // region internal stuff
     /**
      * This is left public so that it can be called in [org.valkyrienskies.mod.mixin.server.MixinMinecraftServer]
      * **Do not call this method otherwise!**
@@ -270,6 +287,7 @@ object BlockStateInfoResolver {
         hasRegistered = true
     }
 
+    @Internal
     fun syncBlockStates(player: MinecraftPlayer) {
         logger.info("Syncing blockstates to ${player.uuid}")
         with(vsCore.simplePacketNetworking) {
@@ -279,6 +297,7 @@ object BlockStateInfoResolver {
         }
     }
 
+    @Internal
     fun clearBlockStates(player: MinecraftPlayer) {
         logger.info("Clearing synced blockstates from ${player.uuid}")
         with(vsCore.simplePacketNetworking) {
@@ -286,63 +305,42 @@ object BlockStateInfoResolver {
         }
     }
 
-    fun loadTags() {
+    private fun loadTags() {
         logger.info("Loading tag entries.")
-        var tags = 0
-        var entries = 0
-        blockTags.forEach { (tagId, tagProperties) ->
-            val tag = BuiltInRegistries.BLOCK.getTag(TagKey.create(Registries.BLOCK, tagId))
 
-            if (tag != null) {
+        fun <P, T : TagProperties<P>, R : Any> load(map: MutableMap<ResourceLocation, T>, registry: Registry<R>, key: ResourceKey<Registry<R>>, type: String, put: (String, String, P) -> Unit) {
+            if (map.isEmpty()) return
+            var tags = 0
+            var entries = 0
+            map.forEach { (tagId, tagProperties) ->
+                val tag = registry.getTag(TagKey.create(key, tagId))
+
                 if (!tag.isPresent) {
                     if (tagId.namespace == "minecraft") {
-                        logger.warn("Block tag '$tagId' does not exist!")
+                        logger.warn("$type tag '$tagId' does not exist!")
                     }
                     return@forEach
                 }
-            }
 
-            tags++
+                tags++
 
-            tag.get().forEach {
-                val id = BuiltInRegistries.BLOCK.getKey(it.value())
-                if (!tagProperties.exclusions.contains(id)) {
-                    entries++
-                    putBlockProperties(id.toString(), "default", tagProperties.properties)
-                }
-            }
-        }
-
-        logger.info("Loaded $tags block tag entries (properties for $entries blocks).")
-        tags = 0
-        entries = 0
-
-        fluidTags.forEach { (tagId, tagProperties) ->
-            val tag = BuiltInRegistries.FLUID.getTag(TagKey.create(Registries.FLUID, tagId))
-
-            if (tag != null) {
-                if (!tag.isPresent) {
-                    if (tagId.namespace == "minecraft") {
-                        logger.warn("Fluid tag '$tagId' does not exist!")
+                tag.get().forEach {
+                    val id = registry.getKey(it.value())
+                    if (!tagProperties.exclusions.contains(id)) {
+                        entries++
+                        put(id.toString(), "default", tagProperties.properties)
                     }
-                    return@forEach
                 }
             }
 
-            tags++
+            logger.info("Loaded $tags $type tag entries (properties for $entries ${type}s).")
 
-            tag.get().forEach {
-                val id = BuiltInRegistries.FLUID.getKey(it.value())
-                if (!tagProperties.exclusions.contains(id)) {
-                    entries++
-                    putFluidProperties(id.toString(), "default", tagProperties.properties)
-                }
-            }
         }
 
-        logger.info("Loaded $tags fluid tag entries (properties for $entries fluids).")
-        resolveAll()
+        load(blockTags, BuiltInRegistries.BLOCK, Registries.BLOCK, "block") { id, state, properties -> putBlockProperties(id, state, properties) }
+        load(fluidTags, BuiltInRegistries.FLUID, Registries.FLUID, "fluid") { id, state, properties -> putFluidProperties(id, state, properties) }
     }
+    // endregion
 
     // region resolve pending values -> actual values
     /**
@@ -443,7 +441,7 @@ object BlockStateInfoResolver {
     }
     // endregion
 
-    // region utility functions
+    // region put functions
     private fun putBlockProperties(id: String, key: String, propertiesToPut: PendingBlockProperties) {
         pendingBlocks.computeIfAbsent(ResourceLocation(id)) { mutableMapOf() }.compute(key) { _, properties ->
             priorityPut(properties, propertiesToPut) as PendingBlockProperties
@@ -491,16 +489,6 @@ object BlockStateInfoResolver {
                     } else throw IllegalArgumentException()
                 } catch (e: Exception) {
                     logger.error(e)
-                }
-            }
-        }
-
-        class MassJsonParseException(override val message: String, val id: String? = null) : Exception(message) {
-            fun getParseError(): String {
-                return if (id == null) {
-                    message
-                } else {
-                    "Parsing exception for $id: $message"
                 }
             }
         }
@@ -682,7 +670,7 @@ object BlockStateInfoResolver {
 
                                     state2StructureType[state] = structure.type
                                 } catch (parseE: MassJsonParseException) {
-                                    logger.error(parseE.getParseError())
+                                    logger.error(parseE.message)
                                     states.remove(state)
                                 }
                             } else { // state format isn't valid here for obvious reasons
@@ -759,8 +747,7 @@ object BlockStateInfoResolver {
             return when {
                 element.isJsonPrimitive && element.asJsonPrimitive.isNumber -> NumericValue.Literal(element.asDouble)
                 element.isJsonPrimitive && element.asJsonPrimitive.isString -> {
-                    val target = element.asString
-                    when (target) {
+                    when (val target = element.asString) {
                         "default" -> {
                             NumericValue.Default(1.0)
                         }
@@ -833,7 +820,7 @@ object BlockStateInfoResolver {
             try {
                 structure = determineStructure(json, idType, id)
             } catch (parseE: MassJsonParseException) {
-                logger.error(parseE.getParseError()) // parseE jackson
+                logger.error(parseE.message) // parseE jackson
                 return
             }
 

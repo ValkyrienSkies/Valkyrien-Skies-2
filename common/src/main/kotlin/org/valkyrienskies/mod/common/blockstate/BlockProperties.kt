@@ -1,18 +1,7 @@
 package org.valkyrienskies.mod.common.blockstate
 
-import net.minecraft.resources.ResourceLocation
 import org.joml.primitives.AABBic
 import java.util.function.Supplier
-
-data class BlockTagProperties(
-    val priority: Int,
-    val properties: PendingBlockProperties,
-    val exclusions: Collection<ResourceLocation>
-) : Supplier<Int> {
-    override fun get(): Int {
-        return priority
-    }
-}
 
 data class PendingBlockProperties(
     val priority: Int,
