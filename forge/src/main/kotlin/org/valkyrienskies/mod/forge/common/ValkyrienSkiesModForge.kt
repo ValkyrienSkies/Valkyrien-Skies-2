@@ -223,7 +223,7 @@ class ValkyrienSkiesModForge {
                 ::ShipMountingEntity,
                 MobCategory.MISC
             ).sized(.3f, .3f)
-                .build(ResourceLocation(MOD_ID, "ship_mounting_entity").toString())
+                .build(ResourceLocation.fromNamespaceAndPath(MOD_ID, "ship_mounting_entity").toString())
         }
 
         PHYSICS_ENTITY_TYPE_REGISTRY = ENTITIES.register("vs_physics_entity") {
@@ -233,7 +233,7 @@ class ValkyrienSkiesModForge {
             ).sized(1f, 1f)
                 .setUpdateInterval(1)
                 .clientTrackingRange(10)
-                .build(ResourceLocation(MOD_ID, "vs_physics_entity").toString())
+                .build(ResourceLocation.fromNamespaceAndPath(MOD_ID, "vs_physics_entity").toString())
         }
         modBus.addListener(::registerAttributes)
 
@@ -376,7 +376,7 @@ class ValkyrienSkiesModForge {
     }
 
     private fun tagsUpdated(event: TagsUpdatedEvent) {
-        BlockStateInfoResolver.loadTags()
+        VSGameEvents.tagsAreLoaded.emit(Unit)
     }
 
     private fun playerJoin(event: PlayerEvent.PlayerLoggedInEvent) {

@@ -25,12 +25,10 @@ import org.valkyrienskies.core.api.bodies.shape.VoxelType;
 import org.valkyrienskies.core.api.bodies.shape.VoxelUpdate;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.api.world.ServerShipWorld;
-import org.valkyrienskies.core.internal.world.chunks.VsiBlockType;
 import org.valkyrienskies.core.internal.world.VsiServerShipWorld;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.mixinducks.mod_compat.create.MixinAbstractContraptionEntityDuck;
 import org.valkyrienskies.mod.api.ValkyrienSkies;
-import org.valkyrienskies.mod.common.BlockStateInfo;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.blockstate.BlockStateUtils;
@@ -126,10 +124,7 @@ public class ContraptionSegmentHelper {
                 int x = pair.first().getX();
                 int y = pair.first().getY();
                 int z = pair.first().getZ();
-                kotlin.Pair<Double, VsiBlockType> info = BlockStateInfo.INSTANCE.get(pair.second().state());
-                if (info != null) {
-                    updateBuilder.addBlock(x, y, z, (VoxelType) info.getSecond(), info.getFirst());
-                }
+                updateBuilder.addBlock(x, y, z, (VoxelType) BlockStateUtils.getVsType(pair.second().state()), BlockStateUtils.getMass(pair.second().state()));
             }
             updates[index] = updateBuilder.build();
             index++;

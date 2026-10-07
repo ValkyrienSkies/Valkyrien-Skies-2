@@ -357,7 +357,7 @@ class ValkyrienSkiesModFabric : ModInitializer {
                 }
             })
         CommonLifecycleEvents.TAGS_LOADED.register { _, _ ->
-            BlockStateInfoResolver.loadTags()
+            VSGameEvents.tagsAreLoaded.emit(Unit)
         }
 
         if (FabricLoader.getInstance().isModLoaded("dynmap"))

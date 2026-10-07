@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.mod.client.ClientBlockStateInfo;
-import org.valkyrienskies.mod.common.blockstate.SolidStateProperties;
+import org.valkyrienskies.mod.common.blockstate.SolidProperties;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.config.VSGameConfig.Client.TOOLTIP;
 import org.valkyrienskies.mod.common.item.MassTooltipHelperKt;
@@ -31,7 +31,7 @@ public class MixinBannerItem {
         if (!ClientBlockStateInfo.INSTANCE.getClientHasMassInfo()) return;
         final TOOLTIP tooltip = VSGameConfig.CLIENT.getTooltip();
         if (tooltip.getMassTooltipVisibility().isVisible(tooltipFlag)) {
-            final SolidStateProperties props = ClientBlockStateInfo.INSTANCE.getSolidProperties(((BannerItem) itemStack.getItem()).getBlock().defaultBlockState());
+            final SolidProperties props = ClientBlockStateInfo.INSTANCE.getSolidProperties(((BannerItem) itemStack.getItem()).getBlock().defaultBlockState());
             final double mass = props != null ? props.getMass() : VSGameConfig.SERVER.getBlockProperties().getDefaultBlockMass();
             list.add(MassTooltipHelperKt.makeMassComponent(mass, false, tooltip.getUseImperialUnits(), tooltip.getDetailedMassTooltip()));
         }

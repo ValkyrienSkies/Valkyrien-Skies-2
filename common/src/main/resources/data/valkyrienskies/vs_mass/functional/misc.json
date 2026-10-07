@@ -115,7 +115,7 @@
       "no_collision": true
     },
     "medium": {
-      "drag": 0.5
+      "drag": 1.0
     }
   }
 ]

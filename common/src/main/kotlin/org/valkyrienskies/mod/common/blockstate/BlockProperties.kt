@@ -1,25 +1,55 @@
 package org.valkyrienskies.mod.common.blockstate
 
 import net.minecraft.resources.ResourceLocation
+import org.joml.primitives.AABBic
+import java.util.function.Supplier
 
-data class StateProperties(
+data class BlockTagProperties(
     val priority: Int,
-    val solid: SolidStateProperties? = null,
-    val liquid: LiquidStateProperties? = null,
-    val displacement: DisplacementStateProperties? = null,
-    val medium: MediumStateProperties? = null,
+    val properties: PendingBlockProperties,
+    val exclusions: Collection<ResourceLocation>
+) : Supplier<Int> {
+    override fun get(): Int {
+        return priority
+    }
+}
+
+data class PendingBlockProperties(
+    val priority: Int,
+    val solid: PendingSolidProperties? = null,
+    val medium: PendingMediumProperties? = null,
+    val displacement: AABBic? = null
+) : Supplier<Int> {
+    override fun get(): Int {
+        return priority
+    }
+}
+
+
+data class PendingSolidProperties(
+    val mass: NumericValue,
+    val friction: NumericValue,
+    val elasticity: NumericValue,
+    val hardness: NumericValue,
+    val noCollision: Boolean = false,
+    val shapeOverride: AABBic? = null
 )
 
-data class PendingStateProperties(
-    val priority: Int,
-    val solid: PendingSolidStateProperties? = null,
-    val liquid: PendingLiquidStateProperties? = null,
-    val displacement: DisplacementStateProperties? = null,
-    val medium: PendingMediumStateProperties? = null
+data class PendingMediumProperties(
+    val dragCoefficient: NumericValue,
+    val shape: AABBic? = null
 )
 
-data class PendingTagProperties(
-    val properties: PendingStateProperties,
-    val exclude: Set<ResourceLocation>,
-    val block: Boolean
+data class SolidProperties(
+    val mass: Double,
+    val friction: Double,
+    val elasticity: Double,
+    val hardness: Double,
+    val noCollision: Boolean = false,
+    val shapeOverride: AABBic? = null
+)
+
+data class MediumProperties(
+    val dragCoefficient: Double,
+    val shape: AABBic? = null
 )

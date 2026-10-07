@@ -23,7 +23,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.mod.client.ClientBlockStateInfo;
-import org.valkyrienskies.mod.common.blockstate.SolidStateProperties;
+import org.valkyrienskies.mod.common.blockstate.SolidProperties;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.compat.jei.NumericAttributeStorage;
 
@@ -61,10 +61,10 @@ public abstract class MixinElementPrefixParser {
             for (BlockState state : block.getStateDefinition().getPossibleStates()) {
 
                 // grab values from ClientBlockStateInfo instead of using the BlockStateInfoResolver as on the client-side values are stored there
-                SolidStateProperties blockInfo = ClientBlockStateInfo.INSTANCE.getSolidProperties(state);
-                double mass = blockInfo != null ? blockInfo.getMass() : 0.0;
-                double friction = blockInfo != null ? blockInfo.getFriction() : 0.0;
-                double elasticity = blockInfo != null ? blockInfo.getElasticity() : 0.0;
+                SolidProperties props = ClientBlockStateInfo.INSTANCE.getSolidProperties(state);
+                double mass = props != null ? props.getMass() : 0.0;
+                double friction = props != null ? props.getFriction() : 0.0;
+                double elasticity = props != null ? props.getElasticity() : 0.0;
 
                 // JEI requires our data passed to searcher be a string so we format the string and
                 // un-format it later

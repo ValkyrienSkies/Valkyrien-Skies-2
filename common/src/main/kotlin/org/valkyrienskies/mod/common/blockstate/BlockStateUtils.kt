@@ -1,7 +1,6 @@
 @file:JvmName("BlockStateUtils")
 package org.valkyrienskies.mod.common.blockstate
 
-import de.bluecolored.bluemap.core.util.math.Axis
 import net.minecraft.commands.arguments.blocks.BlockStateParser
 import net.minecraft.core.BlockPos
 import net.minecraft.resources.ResourceLocation
@@ -9,7 +8,6 @@ import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.properties.Property
 import net.minecraft.world.level.material.FluidState
-import net.minecraft.world.phys.shapes.VoxelShape
 import org.joml.Vector3d
 import org.joml.primitives.AABBi
 import org.joml.primitives.AABBic
@@ -22,7 +20,6 @@ import org.valkyrienskies.mod.common.util.BlockShapeUtil
 import org.valkyrienskies.mod.common.vsCore
 import oshi.util.tuples.Pair
 import kotlin.math.roundToInt
-
 
 fun BlockGetter.getVsiBlockState(blockPos: BlockPos): VsiBlockState {
     return getVsiBlockState(getBlockState(blockPos))
@@ -145,7 +142,7 @@ fun fluidBox(fluidState: FluidState): AABBic {
 
 fun buildMediumState(dragCoefficient: Double, shape: AABBic): LiquidState {
     return vsCore.newLiquidStateBuilder()
-        .density(0.0)
+        .density(1000.0)
         .dragCoefficient(dragCoefficient)
         .boxShape(shape)
         .velocity(Vector3d())

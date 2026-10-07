@@ -74,11 +74,17 @@ object VSGamePackets {
 
         // sync properties to the client
         PacketSyncBlockStateProperties::class.registerClientHandler { props ->
-            if (props.blockState2properties.isEmpty()) {
+            if (props.blockState2Properties.isEmpty() && props.fluidState2Properties.isEmpty()) {
                 ClientBlockStateInfo.disable()
             } else {
                 ClientBlockStateInfo.clientHasMassInfo = true
-                for ((idString, properties) in props.blockState2properties) {
+                for ((idString, properties) in props.blockState2Properties) {
+                    val id = ResourceLocation(idString)
+                    properties.forEach { (string, properties) ->
+                        ClientBlockStateInfo.registerBlockInfo(id, string, properties)
+                    }
+                }
+                for ((idString, properties) in props.fluidState2Properties) {
                     val id = ResourceLocation(idString)
                     properties.forEach { (string, properties) ->
                         ClientBlockStateInfo.registerBlockInfo(id, string, properties)
