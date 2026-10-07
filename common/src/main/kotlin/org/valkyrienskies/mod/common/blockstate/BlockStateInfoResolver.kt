@@ -133,12 +133,6 @@ object BlockStateInfoResolver {
     ones that have a path of "template.json", and make sure we load the templates before we start loading any properties
      */
 
-    /*
-    TODO #5
-    new format that defines a list of ids
-    could probably just modify current to check if the entry is a string or a json array
-     */
-
     val blockStateData: Collection<VsiBlockState> = mcState2VsState.values
 
     var hasRegistered = false
@@ -487,6 +481,7 @@ object BlockStateInfoResolver {
     fun JsonObject.hasAll(vararg members: String): Boolean = members.all { has(it) }
     fun JsonObject.asBooleanValue(name: String): Boolean = get(name)?.asBooleanValue ?: false
     val JsonElement.asBooleanValue: Boolean get() = isJsonPrimitive && asJsonPrimitive.isBoolean && asBoolean
+    val JsonElement.isString: Boolean get() = isJsonPrimitive && asJsonPrimitive.isString
 
     fun <K, V> Map<K, V>.getOrOther(key: K, other: K): V? = if (key == other) get(key) else get(key) ?: get(other)
     // endregion
@@ -525,8 +520,9 @@ object BlockStateInfoResolver {
             FLUID_TAG("fluid_tag"),
             NONE("");
 
-            fun getId(jsonObject: JsonObject): String {
-                return jsonObject.get(string).asString
+            fun getIds(jsonObject: JsonObject): List<JsonElement> {
+                val ids = jsonObject[string]
+                return if (ids.isString) listOf(ids) else ids.asJsonArray.asList()
             }
         }
 
@@ -579,23 +575,8 @@ object BlockStateInfoResolver {
         val stateRegex: Predicate<String> = Pattern.compile("^(\\w+=[^,=]+(,\\w+=[^,=]+)*)$").asPredicate()
 
         val blockValues = listOf("mass", "friction", "elasticity", "hardness", "no_collision", "shape_override")
-        val mediumValues = listOf("drag", "shape")
         val fluidValues = listOf("density", "drag", "velocity", "no_collision", "shape_override")
-        // displacement state values are just "shape"
         // endregion
-
-        /**
-         * Determine the [IdType] for a property entry
-         */
-        private fun determineId(json: JsonObject): IdType {
-            return when {
-                json.has("block") -> IdType.BLOCK
-                json.has("fluid") -> IdType.FLUID
-                json.has("tag") || json.has("block_tag") -> IdType.BLOCK_TAG
-                json.has("fluid_tag") -> IdType.FLUID_TAG
-                else -> IdType.NONE
-            }
-        }
 
         /**
          * Determine the [Structure] of a property entry.
@@ -612,7 +593,7 @@ object BlockStateInfoResolver {
                         if (tag) StructureType.BLOCK_TAG_COMPOUND.toStructure() else StructureType.BLOCK_COMPOUND.toStructure()
                     } else throw MassJsonParseException("Solid state is invalid!", loc) // prevent so we default
                 } else if (hasMedium && !hasSolid) {
-                    val mediumValid = jsonObject["medium"].asJsonObject.hasAny(mediumValues)
+                    val mediumValid = jsonObject["medium"].asJsonObject.hasAny("drag", "shape")
 
                     if (mediumValid) {
                         if (tag) StructureType.BLOCK_TAG_COMPOUND.toStructure() else StructureType.BLOCK_COMPOUND.toStructure()
@@ -621,7 +602,7 @@ object BlockStateInfoResolver {
                     throw MassJsonParseException("Json does not have a solid or medium state!", loc)
                 } else { // has both
                     val solidValid = jsonObject["solid"].asJsonObject.hasAny(blockValues)
-                    val mediumValid = jsonObject["medium"].asJsonObject.hasAny(mediumValues)
+                    val mediumValid = jsonObject["medium"].asJsonObject.hasAny("drag", "shape")
 
                     if (solidValid && mediumValid) {
                         if (tag) StructureType.BLOCK_TAG_COMPOUND.toStructure() else StructureType.BLOCK_COMPOUND.toStructure()
@@ -753,7 +734,6 @@ object BlockStateInfoResolver {
             }
         }
 
-
         /**
          * Parses a single entry for a block or fluid.
          */
@@ -768,10 +748,21 @@ object BlockStateInfoResolver {
                 return
             }
 
-            val idType = determineId(json)
+            fun hasId(name: String): Boolean {
+                val id = json[name] ?: return false
+                return id.isJsonArray || (id.isJsonPrimitive && id.asJsonPrimitive.isString)
+            }
+
+            val idType = when {
+                hasId("block") -> IdType.BLOCK
+                hasId("fluid") -> IdType.FLUID
+                hasId("tag") || hasId("block_tag") -> IdType.BLOCK_TAG
+                hasId("fluid_tag") -> IdType.FLUID_TAG
+                else -> IdType.NONE
+            }
 
             if (idType == IdType.NONE) {
-                var message = "error while parsing $origin: Could not find member for a valid fluid, block, or tag id"
+                var message = "error while parsing $origin: Could not find a valid fluid, block, or tag id"
                 if (index != -1) {
                     message += " in element $index" // tell the user which element this error occurred in
                 }
@@ -779,89 +770,96 @@ object BlockStateInfoResolver {
                 return
             }
 
-            val id = idType.getId(json)
-            if (!ResourceLocation.isValidResourceLocation(id)) {
-                logger.error("error while parsing entry: $id is not a valid id!")
-                return
-            }
+            val ids = idType.getIds(json)
 
-            val priority = json["priority"]?.asInt ?: decideDefaultPriority(origin)
-
-            val structure: Structure
-
-            try {
-                structure = determineStructure(json, idType, id)
-            } catch (parseE: MassJsonParseException) {
-                logger.error(parseE.message) // parseE jackson
-                return
-            }
-
-            if (structure.isWarn())
-                logger.warn("warning while parsing entry for $id: ${structure.warn}")
-            // all clear
-
-            when (structure.type) {
-                // block
-                StructureType.BLOCK_BASIC -> {
-                    putBlockProperties(id, "default", PendingBlockProperties(priority, parseSolid(json)))
+            for (idElement in ids) {
+                if (!idElement.isString) {
+                    logger.error("error while parsing entry: $idElement is not a string!")
+                    return
                 }
-                StructureType.BLOCK_COMPOUND -> {
-                    putBlockProperties(id, "default", PendingBlockProperties(
-                        priority,
-                        if (json.has("solid")) parseSolid(json.getAsJsonObject("solid")) else null,
-                        if (json.has("medium")) parseMedium(json.getAsJsonObject("medium")) else null,
-                        if (json.has("displacement")) parseShape(json.getAsJsonArray("displacement")) else null
-                    ))
+                val id = idElement.asString
+
+                if (!ResourceLocation.isValidResourceLocation(id)) {
+                    logger.error("error while parsing entry: $id is not a valid id!")
+                    return
                 }
-                StructureType.BLOCK_STATES -> {
-                    structure.state2StructureType!!.forEach { (state, type) ->
-                        when (type) {
-                            StructureType.BLOCK_BASIC -> {
-                                putBlockProperties(id, state, PendingBlockProperties(priority, parseSolid(json.getAsJsonObject(state))))
-                            }
-                            StructureType.BLOCK_COMPOUND -> {
-                                val stateJson = json.getAsJsonObject(state)
-                                putBlockProperties(id, state, PendingBlockProperties(
-                                    priority,
-                                    if (json.has("solid")) parseSolid(stateJson.getAsJsonObject("solid")) else null,
-                                    if (json.has("medium")) parseMedium(stateJson.getAsJsonObject("medium")) else null,
-                                    if (json.has("displacement")) parseShape(stateJson.getAsJsonArray("displacement")) else null
-                                ))
-                            }
-                            else -> {
-                                logger.error("what are you doing this should be impossible to reach what (id: $id, index: $index, origin: $origin)")
+
+                val priority = json["priority"]?.asInt ?: decideDefaultPriority(origin)
+
+                val structure = try {
+                    determineStructure(json, idType, id)
+                } catch (ex: MassJsonParseException) {
+                    logger.error(ex.message)
+                    return
+                }
+
+                if (structure.isWarn())
+                    logger.warn("warning while parsing entry for $id: ${structure.warn}")
+                // all clear
+
+                when (structure.type) {
+                    // block
+                    StructureType.BLOCK_BASIC -> {
+                        putBlockProperties(id, "default", PendingBlockProperties(priority, parseSolid(json)))
+                    }
+                    StructureType.BLOCK_COMPOUND -> {
+                        putBlockProperties(id, "default", PendingBlockProperties(
+                            priority,
+                            if (json.has("solid")) parseSolid(json.getAsJsonObject("solid")) else null,
+                            if (json.has("medium")) parseMedium(json.getAsJsonObject("medium")) else null,
+                            if (json.has("displacement")) parseShape(json.getAsJsonArray("displacement")) else null
+                        ))
+                    }
+                    StructureType.BLOCK_STATES -> {
+                        structure.state2StructureType!!.forEach { (state, type) ->
+                            when (type) {
+                                StructureType.BLOCK_BASIC -> {
+                                    putBlockProperties(id, state, PendingBlockProperties(priority, parseSolid(json.getAsJsonObject(state))))
+                                }
+                                StructureType.BLOCK_COMPOUND -> {
+                                    val stateJson = json.getAsJsonObject(state)
+                                    putBlockProperties(id, state, PendingBlockProperties(
+                                        priority,
+                                        if (json.has("solid")) parseSolid(stateJson.getAsJsonObject("solid")) else null,
+                                        if (json.has("medium")) parseMedium(stateJson.getAsJsonObject("medium")) else null,
+                                        if (json.has("displacement")) parseShape(stateJson.getAsJsonArray("displacement")) else null
+                                    ))
+                                }
+                                else -> {
+                                    logger.error("what are you doing this should be impossible to reach what (id: $id, index: $index, origin: $origin)")
+                                }
                             }
                         }
                     }
-                }
-                StructureType.BLOCK_STATES_MODIFIER -> {}
+                    StructureType.BLOCK_STATES_MODIFIER -> {}
 
-                // fluid
-                StructureType.FLUID_BASIC -> {
-                    putFluidProperties(id, "default", PendingFluidProperties(priority, parseLiquid(json)))
-                }
-                StructureType.FLUID_STATES -> { // type really doesn't matter here because fluids can only be parsed one way, but i don't feel like adding a list of states to this, map works just fine
-                    structure.state2StructureType!!.keys.forEach { state ->
-                        putFluidProperties(id, state, PendingFluidProperties(priority, parseLiquid(json.getAsJsonObject(state))))
+                    // fluid
+                    StructureType.FLUID_BASIC -> {
+                        putFluidProperties(id, "default", PendingFluidProperties(priority, parseLiquid(json)))
                     }
-                }
-                // block tag
-                StructureType.BLOCK_TAG_BASIC -> {
-                    putBlockTag(id, BlockTagProperties(priority, PendingBlockProperties(priority, parseSolid(json)), parseTagExclusions(json)))
-                }
-                StructureType.BLOCK_TAG_COMPOUND -> {
-                    putBlockTag(id, BlockTagProperties(priority, PendingBlockProperties(
-                        priority,
-                        if (json.has("solid")) parseSolid(json.getAsJsonObject("solid")) else null,
-                        if (json.has("medium")) parseMedium(json.getAsJsonObject("medium")) else null,
-                        if (json.has("displacement")) parseShape(json.getAsJsonArray("displacement")) else null
-                    ), parseTagExclusions(json)))
-                }
-                StructureType.BLOCK_TAG_STATES -> {}
+                    StructureType.FLUID_STATES -> { // type really doesn't matter here because fluids can only be parsed one way, but i don't feel like adding a list of states to this, map works just fine
+                        structure.state2StructureType!!.keys.forEach { state ->
+                            putFluidProperties(id, state, PendingFluidProperties(priority, parseLiquid(json.getAsJsonObject(state))))
+                        }
+                    }
+                    // block tag
+                    StructureType.BLOCK_TAG_BASIC -> {
+                        putBlockTag(id, BlockTagProperties(priority, PendingBlockProperties(priority, parseSolid(json)), parseTagExclusions(json)))
+                    }
+                    StructureType.BLOCK_TAG_COMPOUND -> {
+                        putBlockTag(id, BlockTagProperties(priority, PendingBlockProperties(
+                            priority,
+                            if (json.has("solid")) parseSolid(json.getAsJsonObject("solid")) else null,
+                            if (json.has("medium")) parseMedium(json.getAsJsonObject("medium")) else null,
+                            if (json.has("displacement")) parseShape(json.getAsJsonArray("displacement")) else null
+                        ), parseTagExclusions(json)))
+                    }
+                    StructureType.BLOCK_TAG_STATES -> {}
 
-                // fluid tag
-                StructureType.FLUID_TAG_BASIC -> {
-                    putFluidTag(id, FluidTagProperties(priority, PendingFluidProperties(priority, parseLiquid(json)), parseTagExclusions(json)))
+                    // fluid tag
+                    StructureType.FLUID_TAG_BASIC -> {
+                        putFluidTag(id, FluidTagProperties(priority, PendingFluidProperties(priority, parseLiquid(json)), parseTagExclusions(json)))
+                    }
                 }
             }
         }
