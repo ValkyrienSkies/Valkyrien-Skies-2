@@ -184,6 +184,8 @@ object ValkyrienSkiesMod {
         ImpactFractureHandler.logRegistered()
 
         core.physTickEvent.on { event ->
+            org.valkyrienskies.mod.common.util.ShipPushing.physTick(event.world)
+            org.valkyrienskies.mod.common.util.ShipImpactVelocities.capture(event.world)
             ShipWelder.physTick(event.world, event.delta)
             dimensionalGTPAs.forEach { dimensionId, gameTickForceApplier ->
                 if (event.world.dimension == dimensionId) {

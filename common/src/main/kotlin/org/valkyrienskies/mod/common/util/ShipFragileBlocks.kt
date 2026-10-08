@@ -17,7 +17,7 @@ import kotlin.math.roundToInt
 object ShipFragileBlocks {
     data class Impact(val point: Vector3dc, val inward: Vector3dc, val toOther: Matrix4dc, val force: Double)
     class Budget(var remaining: Int = 32768)
-    private data class Hit(val pos: BlockPos, val state: BlockState, val box: AABB)
+    private data class Hit(val pos: BlockPos, val state: BlockState, val box: AABB, val point: Vector3d)
     private data class Patch(val cells: Set<BlockPos>, val supported: Boolean, val complete: Boolean)
     private data class Face(val pos: BlockPos, val x: Int, val y: Int, val z: Int)
 
@@ -63,14 +63,18 @@ object ShipFragileBlocks {
             var touching = false
             for (localBox in state.getCollisionShape(level, pos).toAabbs()) {
                 val box = localBox.move(pos)
-                val point = supportPoint(box, inward)
-                if (abs(projection(point, inward) - plane) > 0.03) continue
-                val from = toOther.transformPosition(Vector3d(inward).mul(0.02).add(point))
-                val to = toOther.transformPosition(Vector3d(inward).mul(-0.08).add(point))
-                if (firstHit(level, from, to, otherBlock, budget) != null) {
-                    touching = true
-                    break
+                val center = supportPoint(box, inward)
+                if (abs(projection(center, inward) - plane) > 0.03) continue
+                // Check the contact position as well as the center of the face.
+                for (point in listOf(supportPoint(box, inward, first.point), center)) {
+                    val from = toOther.transformPosition(Vector3d(inward).mul(0.02).add(point))
+                    val to = toOther.transformPosition(Vector3d(inward).mul(-0.08).add(point))
+                    if (firstHit(level, from, to, otherBlock, budget) != null) {
+                        touching = true
+                        break
+                    }
                 }
+                if (touching) break
             }
             if (budget.remaining <= 0) return Patch(cells, false, false)
             if (!touching) continue
@@ -84,14 +88,16 @@ object ShipFragileBlocks {
         return Patch(cells, false, true)
     }
 
-    private fun supportPoint(box: AABB, inward: Vector3dc): Vector3d {
-        fun coordinate(low: Double, high: Double, normal: Double) = when {
+    private fun supportPoint(box: AABB, inward: Vector3dc, anchor: Vector3dc? = null): Vector3d {
+        fun coordinate(low: Double, high: Double, normal: Double, contact: Double?) = when {
             normal > 1.0e-6 -> low
             normal < -1.0e-6 -> high
+            contact != null -> contact.coerceIn(low + 1.0e-5, high - 1.0e-5)
             else -> (low + high) * 0.5
         }
-        return Vector3d(coordinate(box.minX, box.maxX, inward.x()),
-            coordinate(box.minY, box.maxY, inward.y()), coordinate(box.minZ, box.maxZ, inward.z()))
+        return Vector3d(coordinate(box.minX, box.maxX, inward.x(), anchor?.x()),
+            coordinate(box.minY, box.maxY, inward.y(), anchor?.y()),
+            coordinate(box.minZ, box.maxZ, inward.z(), anchor?.z()))
     }
 
     private fun projection(point: Vector3dc, normal: Vector3dc) = point.dot(normal)
@@ -118,7 +124,7 @@ object ShipFragileBlocks {
                 val distance = entry(box, from, travel) ?: continue
                 if (distance < nearest) {
                     nearest = distance
-                    hit = Hit(pos, state, box)
+                    hit = Hit(pos, state, box, Vector3d(travel).mul(distance).add(from))
                 }
             }
         }

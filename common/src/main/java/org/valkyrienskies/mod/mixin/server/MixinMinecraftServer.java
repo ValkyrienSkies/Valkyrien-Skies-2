@@ -268,6 +268,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         fluidOutflowManager.tick(dimensionToLevelMap);
         // Only drag entities after we have updated the ship positions
         for (final ServerLevel level : getAllLevels()) {
+            org.valkyrienskies.mod.common.util.ShipInteractions.afterPhysicsTick(level);
             EntityDragger.INSTANCE.dragEntitiesWithShips(level.getAllEntities(), false);
             VanillaFluidFlowWindProvider.INSTANCE.tick(level);
             if (LoadedMods.getWeather2())

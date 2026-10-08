@@ -4,6 +4,7 @@ import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerLevel
 import org.joml.Matrix4d
 import org.joml.Vector3d
+import org.joml.Vector3dc
 import org.joml.primitives.AABBd
 import org.joml.primitives.AABBdc
 import org.valkyrienskies.core.api.ships.Ship
@@ -23,7 +24,8 @@ object ShipBlockContacts {
     }
 
     fun find(level: ServerLevel, source: Ship, sensor: AABBdc, target: Ship? = null,
-        sweep: Boolean = true): Contact? {
+        sweep: Boolean = true, sensorVelocity: Vector3dc? = null, useMovementSpeed: Boolean = false,
+        pushNormal: Vector3dc? = null): Contact? {
         if (source.id == target?.id) return null
         val current = Matrix4d(target?.worldToShip ?: Matrix4d()).mul(source.shipToWorld)
         val previous = Matrix4d(target?.prevTickTransform?.worldToShip ?: Matrix4d())
@@ -41,6 +43,8 @@ object ShipBlockContacts {
         // Limit work for extreme ship scales and long motion steps.
         if ((maxX.toLong() - minX + 1) * (maxY.toLong() - minY + 1) * (maxZ.toLong() - minZ + 1) > 32768) return null
         val pos = BlockPos.MutableBlockPos()
+        var strongest: Contact? = null
+        var strongestSpeed = Double.NEGATIVE_INFINITY
         for (x in minX..maxX) for (z in minZ..maxZ) {
             if (!source.activeChunksSet.contains(x shr 4, z shr 4) || !level.hasChunk(x shr 4, z shr 4)) continue
             for (y in minY..maxY) {
@@ -50,16 +54,33 @@ object ShipBlockContacts {
                 for (box in state.getCollisionShape(level, pos).toAabbs()) {
                     val localBox = box.move(x.toDouble(), y.toDouble(), z.toDouble()).toJOML()
                     val normal = ShipInteractionMath.sweptNormal(localBox, current, previous, sensor, sweep) ?: continue
+                    if (pushNormal != null && normal.dot(pushNormal) < 0.5) continue
                     val point = Vector3d((sensor.minX() + sensor.maxX()) * 0.5,
                         (sensor.minY() + sensor.maxY()) * 0.5, (sensor.minZ() + sensor.maxZ()) * 0.5)
                     target?.shipToWorld?.transformPosition(point)
                     val velocity = ShipInteractionMath.pointVelocity(source.velocity, source.omega, source.transform.position, point)
                     if (target != null) velocity.sub(ShipInteractionMath.pointVelocity(
                         target.velocity, target.omega, target.transform.position, point))
-                    return Contact(normal, velocity, point)
+                    if (sensorVelocity == null && !useMovementSpeed) return Contact(normal, velocity, point)
+                    val worldNormal = Vector3d(normal)
+                    target?.transform?.rotation?.transform(worldNormal)
+                    if (useMovementSpeed && target == null) {
+                        // The ship can stop before the game thread receives its new position.
+                        val movedPoint = source.prevTickTransform.worldToShip.transformPosition(point, Vector3d())
+                        source.shipToWorld.transformPosition(movedPoint)
+                        val movementVelocity = movedPoint.sub(point).mul(20.0)
+                        if (movementVelocity.dot(worldNormal) > velocity.dot(worldNormal)) velocity.set(movementVelocity)
+                    }
+                    val contact = Contact(normal, velocity, point)
+                    if (sensorVelocity == null) return contact
+                    val speed = Vector3d(velocity).sub(sensorVelocity).dot(worldNormal)
+                    if (speed > strongestSpeed) {
+                        strongest = contact
+                        strongestSpeed = speed
+                    }
                 }
             }
         }
-        return null
+        return strongest
     }
 }

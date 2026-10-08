@@ -341,6 +341,11 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
         }
     }
 
+    @Inject(method = "tick", at = @At("HEAD"))
+    private void vs$checkPlayerShipImpacts(final BooleanSupplier shouldKeepTicking, final CallbackInfo ci) {
+        org.valkyrienskies.mod.common.util.ShipInteractions.beginTick((ServerLevel) (Object) this);
+    }
+
     @Inject(method = "tick", at = @At("TAIL"))
     private void postTick(final BooleanSupplier shouldKeepTicking, final CallbackInfo ci) {
         final ServerLevel self = ServerLevel.class.cast(this);

@@ -5,9 +5,11 @@
   "plugin": "org.valkyrienskies.mod.mixin.ValkyrienCommonMixinConfigPlugin",
   "mixins": [
     "feature.ship_interactions.MixinItemRowing",
+    "feature.ship_interactions.MixinServerShipPush",
     "feature.ship_interactions.MixinPressurePlate",
     "feature.ship_interactions.PressurePlateAccessor",
     "feature.ship_interactions.ButtonAccessor",
+    "feature.ship_interactions.MixinButtonBlock",
     "feature.assembly.MixinWelderBlockInteraction",
     "accessors.entity.EntityAccessor",
     "accessors.network.protocol.game.ClientboundSectionBlocksUpdatePacketAccessor",
@@ -402,6 +404,8 @@
     "world.level.lighting.MixinThreadedLevelLightEngine"
   ],
   "client": [
+    "feature.ship_interactions.MixinClientShipPush",
+    "feature.ship_interactions.MixinShipPushInput",
     "accessors.client.multiplayer.ClientLevelAccessor",
     "accessors.client.render.GameRendererAccessor",
     "accessors.client.render.LevelRendererAccessor",

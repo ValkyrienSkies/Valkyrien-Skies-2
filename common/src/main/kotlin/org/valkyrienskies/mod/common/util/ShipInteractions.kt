@@ -30,8 +30,6 @@ import org.valkyrienskies.mod.common.getEnclosingShip
 import org.valkyrienskies.mod.common.getShipMountedTo
 import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.shipObjectWorld
-import org.valkyrienskies.mod.mixin.feature.ship_interactions.PressurePlateAccessor
-import org.valkyrienskies.mod.mixin.feature.ship_interactions.ButtonAccessor
 import java.util.WeakHashMap
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.abs
@@ -48,7 +46,8 @@ object ShipInteractions {
         val x: Int, val y: Int, val z: Int)
     private val impacts = ConcurrentHashMap<ImpactKey, ShipFragileBlocks.Impact>()
     private val damageTimes = WeakHashMap<net.minecraft.world.entity.player.Player, Long>()
-    private val pressedPlates = WeakHashMap<ServerLevel, MutableSet<BlockPos>>()
+    private data class PlayerFrame(val dimension: String, val bounds: AABBd, val velocity: Vector3d, val rider: Long?)
+    private val playerFrames = WeakHashMap<net.minecraft.world.entity.player.Player, PlayerFrame>()
 
     @JvmStatic
     fun onCollision(event: CollisionEvent) {
@@ -64,7 +63,7 @@ object ShipInteractions {
             Matrix4d(transforms[1 - index]).mul(Matrix4d(transforms[index]).invert())
         }
         for (contact in event.contactPoints) {
-            val speed = ShipInteractionMath.closingSpeed(contact.velocity, contact.normal)
+            val speed = ShipImpactVelocities.closingSpeed(event, contact)
             if (!contact.separation.isFinite()) continue
             val force = ShipInteractionMath.impactForce(massA, massB, speed, settings.duration, settings.minSpeed)
             if (force <= 0.0 || !force.isFinite() || !contact.position.isFinite) continue
@@ -86,9 +85,13 @@ object ShipInteractions {
 
     @JvmStatic
     fun clear() {
+        ShipPushing.clear()
+        ShipImpactVelocities.clear()
         impacts.clear()
         damageTimes.clear()
-        pressedPlates.clear()
+        playerFrames.clear()
+        ShipPressurePlates.clear()
+        ShipButtons.clear()
     }
 
     @JvmStatic
@@ -122,40 +125,64 @@ object ShipInteractions {
             val state = level.getBlockState(pos)
             if (state.`is`(fragile) && state.getDestroySpeed(level, pos) >= 0.0f) level.destroyBlock(pos, true)
         }
+    }
+
+    /** Check contacts after the core applies the new ship positions. */
+    @JvmStatic
+    fun afterPhysicsTick(level: ServerLevel) {
+        ShipPushing.tick(level)
+        val config = VSGameConfig.SERVER.ShipInteractions
+        if (config.shipImpactDamage) tickPlayerDamage(level)
+        else playerFrames.clear()
         if (config.shipRedstone) tickRedstone(level)
         else {
-            pressedPlates.remove(level)?.forEach { pos ->
-                val block = level.getBlockState(pos).block
-                if (block is BasePressurePlateBlock) level.scheduleTick(pos, block, 1)
-            }
+            ShipButtons.update(level, emptyMap())
+            ShipPressurePlates.update(level, emptyMap())
         }
-        if (config.shipImpactDamage) tickPlayerDamage(level)
+    }
+
+    private fun playerFrame(player: net.minecraft.world.entity.player.Player, level: ServerLevel): PlayerFrame {
+        val bounds = player.boundingBox.toJOML()
+        val mounted = getShipMountedTo(player)?.id
+        val dragged = player.getEnclosingShip()
+        val feet = AABBd(bounds.minX, bounds.minY - .05, bounds.minZ,
+            bounds.maxX, bounds.minY + .05, bounds.maxZ)
+        // Recent ship contact does not make the player a rider of that ship.
+        val supported = dragged != null && ShipBlockContacts.find(level, dragged, feet, sweep = false,
+            pushNormal = Vector3d(0.0, 1.0, 0.0)) != null
+        return PlayerFrame(level.dimensionId, bounds, player.deltaMovement.toJOML().mul(20.0),
+            mounted ?: dragged?.id?.takeIf { supported })
+    }
+
+    /** Save the first player position before the ship positions change. */
+    @JvmStatic
+    fun beginTick(level: ServerLevel) {
+        if (!VSGameConfig.SERVER.ShipInteractions.shipImpactDamage) return
+        for (player in level.players()) playerFrames.putIfAbsent(player, playerFrame(player, level))
     }
 
     private fun isSensor(state: BlockState): Boolean = state.block is BasePressurePlateBlock ||
         state.block is ButtonBlock || state.block is LeverBlock || state.block is TargetBlock
 
     private fun tickRedstone(level: ServerLevel) {
-        val plates = HashSet<BlockPos>()
+        val plates = HashMap<BlockPos, BasePressurePlateBlock>()
+        val buttons = HashMap<BlockPos, ButtonBlock>()
         val visited = HashSet<Pair<Long, BlockPos>>()
         for (source in level.shipObjectWorld.loadedShips) {
             if (source.chunkClaimDimension != level.dimensionId) continue
             val swept = ShipBlockContacts.sweptBounds(source)
             scanSensors(level, swept, null) { pos ->
-                if (visited.add(source.id to pos)) operate(level, pos, source, null, plates)
+                if (visited.add(source.id to pos)) operate(level, pos, source, null, plates, buttons)
             }
             for (target in level.shipObjectWorld.loadedShips.getIntersecting(swept, level.dimensionId)) {
                 if (target.id == source.id) continue
                 scanSensors(level, AABBd(swept).transform(target.worldToShip), target) { pos ->
-                    if (visited.add(source.id to pos)) operate(level, pos, source, target, plates)
+                    if (visited.add(source.id to pos)) operate(level, pos, source, target, plates, buttons)
                 }
             }
         }
-        val previous = pressedPlates.put(level, plates) ?: emptySet()
-        for (pos in previous) if (pos !in plates && level.hasChunkAt(pos)) {
-            val block = level.getBlockState(pos).block
-            if (block is BasePressurePlateBlock) level.scheduleTick(pos, block, 1)
-        }
+        ShipButtons.update(level, buttons)
+        ShipPressurePlates.update(level, plates)
     }
 
     private fun scanSensors(level: ServerLevel, bounds: AABBd, ship: Ship?, action: (BlockPos) -> Unit) {
@@ -182,32 +209,26 @@ object ShipInteractions {
         }
     }
 
-    private fun operate(level: ServerLevel, pos: BlockPos, source: Ship, target: Ship?, plates: MutableSet<BlockPos>) {
+    private fun operate(level: ServerLevel, pos: BlockPos, source: Ship, target: Ship?,
+        plates: MutableMap<BlockPos, BasePressurePlateBlock>,
+        buttons: MutableMap<BlockPos, ButtonBlock>) {
         val state = level.getBlockState(pos)
         if (level.getShipManagingPos(pos)?.id != target?.id) return
         val block = state.block
-        val shape = if (block is BasePressurePlateBlock) {
-            AABBd(pos.x + 0.125, pos.y.toDouble(), pos.z + 0.125, pos.x + 0.875, pos.y + 0.25, pos.z + 0.875)
-        } else {
-            val shape = state.getShape(level, pos)
-            if (shape.isEmpty) return
-            shape.bounds().move(pos).toJOML()
+        if (block is ButtonBlock) {
+            if (ShipButtons.isPushed(level, pos, state, source, target)) buttons[pos] = block
+            return
         }
-        val contact = ShipBlockContacts.find(level, source, shape, target, block !is BasePressurePlateBlock) ?: return
+        if (block is BasePressurePlateBlock) {
+            if (ShipPressurePlates.isPushed(level, pos, source, target)) plates[pos] = block
+            return
+        }
+        val shape = state.getShape(level, pos)
+        if (shape.isEmpty) return
+        val contact = ShipBlockContacts.find(level, source, shape.bounds().move(pos).toJOML(), target) ?: return
         val localVelocity = Vector3d(contact.velocity)
         target?.transform?.rotation?.transformInverse(localVelocity)
         when (block) {
-            is BasePressurePlateBlock -> {
-                plates.add(pos)
-                val accessor = block as PressurePlateAccessor
-                accessor.`vs$checkPressed`(null, level, pos, state, accessor.`vs$getSignalForState`(state))
-            }
-            is ButtonBlock -> {
-                if (!state.getValue(ButtonBlock.POWERED) && localVelocity.dot(outward(state)) < -0.1) {
-                    block.press(state, level, pos)
-                    (block as ButtonAccessor).`vs$playSound`(null, level, pos, true)
-                }
-            }
             is LeverBlock -> {
                 val axis = if (state.getValue(BlockStateProperties.ATTACH_FACE) == AttachFace.WALL)
                     Vector3d(0.0, 1.0, 0.0) else state.getValue(BlockStateProperties.HORIZONTAL_FACING).normal.toJOMLD()
@@ -243,30 +264,30 @@ object ShipInteractions {
 
     @JvmStatic
     fun plateSignal(level: net.minecraft.world.level.Level, pos: BlockPos): Int {
-        if (level !is ServerLevel || !VSGameConfig.SERVER.ShipInteractions.shipRedstone) return 0
-        val target = level.getShipManagingPos(pos)
-        val sensor = AABBd(pos.x + 0.125, pos.y.toDouble(), pos.z + 0.125, pos.x + 0.875, pos.y + 0.25, pos.z + 0.875)
-        val world = if (target != null) AABBd(sensor).transform(target.shipToWorld) else sensor
-        for (source in level.shipObjectWorld.loadedShips.getIntersecting(world, level.dimensionId)) {
-            if (ShipBlockContacts.find(level, source, sensor, target, false) != null) return 15
-        }
-        return 0
+        return ShipPressurePlates.signal(level, pos)
     }
 
     private fun tickPlayerDamage(level: ServerLevel) {
         val config = VSGameConfig.SERVER.ShipInteractions
         for (player in level.players()) {
+            val current = playerFrame(player, level)
+            val previous = playerFrames.put(player, current)?.takeIf { it.dimension == current.dimension } ?: current
             if (player.isSpectator || player.isCreative || player.isDeadOrDying) continue
             val last = damageTimes[player]
             if (last != null && level.gameTime - last in 0 until config.playerImpactCooldownTicks.coerceAtLeast(1).toLong()) continue
             var worst = 0.0
-            val rider = getShipMountedTo(player)?.id ?: player.getEnclosingShip()?.id
+            val mounted = getShipMountedTo(player)?.id
             for (ship in level.shipObjectWorld.loadedShips) {
-                if (ship.chunkClaimDimension != level.dimensionId || ship.id == rider) continue
-                if (!ShipBlockContacts.sweptBounds(ship).intersectsAABB(player.boundingBox.toJOML())) continue
-                val contact = ShipBlockContacts.find(level, ship, player.boundingBox.toJOML()) ?: continue
-                val relative = contact.velocity.sub(player.deltaMovement.toJOML().mul(20.0))
-                worst = max(worst, relative.dot(contact.normal))
+                if (ship.chunkClaimDimension != level.dimensionId || ship.id == previous.rider || ship.id == mounted) continue
+                val swept = ShipBlockContacts.sweptBounds(ship)
+                // A movement packet can place the player outside the ship after an impact.
+                for (bounds in listOf(previous.bounds, current.bounds)) {
+                    if (!swept.intersectsAABB(bounds)) continue
+                    val contact = ShipBlockContacts.find(level, ship, bounds,
+                        sensorVelocity = previous.velocity, useMovementSpeed = true) ?: continue
+                    val relative = contact.velocity.sub(previous.velocity)
+                    worst = max(worst, relative.dot(contact.normal))
+                }
             }
             val damage = ShipInteractionMath.impactDamage(worst, config.playerImpactSpeed,
                 config.playerImpactDamageScale, config.maxPlayerImpactDamage)

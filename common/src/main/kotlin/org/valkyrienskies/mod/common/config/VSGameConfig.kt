@@ -168,6 +168,15 @@ object VSGameConfig {
         val ShipInteractions = SHIP_INTERACTIONS()
 
         class SHIP_INTERACTIONS {
+            @ConfigEntry(description = "Let players push ships with sneak and an empty main hand.")
+            var playerShipPushing = true
+
+            @ConfigEntry(description = "Maximum push force per player, in newtons.", min = 0.0)
+            var playerPushForce = 100000.0
+
+            @ConfigEntry(description = "Ship contact speed at which player push force reaches zero, in meters per second.", min = 0.01)
+            var playerPushSpeed = 1.5
+
             @ConfigEntry(description = "Use a shovel in water to move the ship on which you stand.")
             var shovelRowing = true
 

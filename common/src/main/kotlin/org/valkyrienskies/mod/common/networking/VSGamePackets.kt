@@ -31,6 +31,7 @@ object VSGamePackets {
 
     fun register() = with(vsCore.simplePacketNetworking) {
         PacketPlayerDriving::class.register()
+        PacketPlayerShipPush::class.register()
         PacketStopChunkUpdates::class.register()
         PacketRestartChunkUpdates::class.register()
         PacketSyncVSEntityTypes::class.register()
@@ -43,6 +44,13 @@ object VSGamePackets {
     }
 
     fun registerHandlers() = with(vsCore.simplePacketNetworking) {
+        PacketPlayerShipPush::class.registerServerHandler { input, iPlayer ->
+            val player = (iPlayer as MinecraftPlayer).player as ServerPlayer
+            player.server.execute {
+                org.valkyrienskies.mod.common.util.ShipPushing.receiveInput(player,
+                    input.active, input.left, input.forward)
+            }
+        }
         PacketPhysicsDebug::class.registerClientHandler { packet ->
             val minecraft = Minecraft.getInstance()
             val connection = minecraft.connection
