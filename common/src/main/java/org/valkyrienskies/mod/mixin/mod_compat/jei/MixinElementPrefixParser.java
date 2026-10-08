@@ -4,10 +4,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import mezz.jei.api.helpers.IColorHelper;
+import mezz.jei.api.helpers.IModIdHelper;
 import mezz.jei.api.runtime.IIngredientManager;
+import mezz.jei.api.search.ISearchStorageBuilderFactory;
 import mezz.jei.common.config.IIngredientFilterConfig;
-import mezz.jei.core.search.PrefixInfo;
-import mezz.jei.core.search.SearchMode;
+import mezz.jei.common.config.SearchMode;
+import mezz.jei.common.search.PrefixInfo;
 import mezz.jei.gui.ingredients.IListElement;
 import mezz.jei.gui.ingredients.IListElementInfo;
 import mezz.jei.gui.search.ElementPrefixParser;
@@ -35,14 +37,16 @@ public abstract class MixinElementPrefixParser {
     @Inject(
         method = "<init>",
         at = @At("RETURN"),
-        remap = false
+        remap = false,
+        require = 0
     )
     private void injectInit(IIngredientManager ingredientManager, IIngredientFilterConfig config,
-        IColorHelper colorHelper, CallbackInfo ci) {
+        IColorHelper colorHelper, IModIdHelper modIdHelper, ISearchStorageBuilderFactory searchStorageBuilderFactory,
+        CallbackInfo ci) {
 
         if (!ClientBlockStateInfo.INSTANCE.getClientHasMassInfo()) return;
         if (!VSGameConfig.CLIENT.getJeiSearch()) return;
-        addPrefix(new PrefixInfo<>(VSGameConfig.CLIENT.getSearchPrefix().charAt(0), () -> SearchMode.REQUIRE_PREFIX, this::valkyrienskies$getCreativeTabsStrings, NumericAttributeStorage::new));
+        addPrefix(new PrefixInfo<>("valkyrienskies", VSGameConfig.CLIENT.getSearchPrefix().charAt(0), () -> SearchMode.REQUIRE_PREFIX, this::valkyrienskies$getCreativeTabsStrings, NumericAttributeStorage::new));
     }
 
     @Unique
