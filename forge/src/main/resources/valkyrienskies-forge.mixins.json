@@ -16,6 +16,8 @@
     "compat.create_stuff_additions.MixinGrapplinWhiskItemInHandTickProcedure",
     "compat.immersivengineering.MixinBlockEntityInventory",
     "compat.integrateddynamics.MixinVoxelShapeComponents",
+    "compat.lithium.MixinCanaryConfig",
+    "compat.lithium.MixinLithiumConfig",
     "compat.mekanism.MixinRadiationManager",
     "compat.mffs.MixinClientPacketHandler",
     "compat.mffs.MixinFrequencyGrid",
