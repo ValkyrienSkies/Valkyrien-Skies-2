@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
-@Mixin(Stray.class)
+@Mixin(value = Stray.class, priority = 1500)
 public abstract class MixinStrayShipSpawn {
 
     @WrapOperation(
@@ -18,7 +18,8 @@ public abstract class MixinStrayShipSpawn {
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/world/level/ServerLevelAccessor;canSeeSky(Lnet/minecraft/core/BlockPos;)Z"
-        )
+        ),
+        require = 0
     )
     private static boolean vs$shipAwareCanSeeSky(
         final ServerLevelAccessor instance, final BlockPos pos, final Operation<Boolean> original
