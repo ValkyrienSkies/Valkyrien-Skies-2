@@ -4,11 +4,7 @@ import com.mojang.blaze3d.platform.GlStateManager;
 import java.nio.ByteBuffer;
 import java.util.BitSet;
 import java.util.ArrayList;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Block;
@@ -35,9 +31,11 @@ public final class ShipShadowRenderer {
     private static final int TEXTURE_UNIT = 14;
     private static final int MAX_CELLS_PER_SHIP = 524288;
     private static final ByteBuffer DATA = BufferUtils.createByteBuffer(MAX_BOXES * 48);
-    private record Geometry(long tick, List<AABBd> boxes) { }
-    private static final Map<Long, Geometry> GEOMETRY = new ConcurrentHashMap<>();
-    private static ClientLevel geometryLevel;
+    private record Geometry(List<AABBd> boxes, boolean dynamic) { }
+    private static final ShipGeometryCache<Geometry> GEOMETRY = new ShipGeometryCache<>();
+    private static final Quaterniond ROTATION = new Quaterniond();
+    private static final Vector3d SCALE = new Vector3d();
+    private static final Vector3d CENTER = new Vector3d();
     private static int buffer;
     private static int texture;
     private static int count;
@@ -46,28 +44,26 @@ public final class ShipShadowRenderer {
     }
 
     public static void prepare(final ClientLevel level) {
-        if (geometryLevel != level) {
-            GEOMETRY.clear();
-            geometryLevel = level;
-        }
+        GEOMETRY.beginFrame(level);
         count = 0;
         DATA.clear();
         if (level == null || !VSGameConfig.CLIENT.isShipToWorldLightingEnabled()
-            || !level.dimensionType().hasSkyLight()) return;
-        final Set<Long> present = new HashSet<>();
+            || !level.dimensionType().hasSkyLight()) {
+            GEOMETRY.endFrame();
+            return;
+        }
         for (final ClientShip ship : VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips()) {
-            present.add(ship.getId());
-            Geometry geometry = GEOMETRY.get(ship.getId());
-            if (geometry == null || geometry.tick != level.getGameTime()) {
-                geometry = new Geometry(level.getGameTime(), collect(level, ship));
-                GEOMETRY.put(ship.getId(), geometry);
-            }
+            if (count >= MAX_BOXES) break;
+            final List<AABBd> boxes = GEOMETRY.get(ship.getId(), ship.getShipAABB(),
+                ship.getActiveChunksSet(), level.getGameTime(), Geometry::dynamic,
+                () -> collectGeometry(level, ship)).boxes();
+            if (boxes.isEmpty()) continue;
             final var transform = ship.getRenderTransform().getShipToWorld();
-            final Quaterniond rotation = transform.getNormalizedRotation(new Quaterniond());
-            final Vector3d scale = transform.getScale(new Vector3d());
-            for (final AABBd box : geometry.boxes) {
+            final Quaterniond rotation = transform.getNormalizedRotation(ROTATION);
+            final Vector3d scale = transform.getScale(SCALE);
+            for (final AABBd box : boxes) {
                 if (count >= MAX_BOXES) break;
-                final Vector3d center = transform.transformPosition(new Vector3d(
+                final Vector3d center = transform.transformPosition(CENTER.set(
                     (box.minX + (double) box.maxX) * 0.5,
                     (box.minY + (double) box.maxY) * 0.5,
                     (box.minZ + (double) box.maxZ) * 0.5));
@@ -80,7 +76,7 @@ public final class ShipShadowRenderer {
                 count++;
             }
         }
-        GEOMETRY.keySet().retainAll(present);
+        GEOMETRY.endFrame();
         DATA.flip();
         ensureTexture();
         GL15.glBindBuffer(GL31.GL_TEXTURE_BUFFER, buffer);
@@ -96,16 +92,21 @@ public final class ShipShadowRenderer {
     }
 
     public static void invalidate(final long shipId) {
-        GEOMETRY.remove(shipId);
+        GEOMETRY.invalidate(shipId);
     }
 
     static List<AABBd> collect(final LevelAccessor level, final ClientShip ship) {
+        return collectGeometry(level, ship).boxes();
+    }
+
+    private static Geometry collectGeometry(final LevelAccessor level, final ClientShip ship) {
         final AABBic bounds = ship.getShipAABB();
-        if (bounds == null) return List.of();
+        if (bounds == null) return new Geometry(List.of(), false);
         final List<AABBi> full = new ArrayList<>();
         final List<AABBd> partial = new ArrayList<>();
         final BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
         final int[] visited = {0};
+        final boolean[] dynamic = {false};
         ship.getActiveChunksSet().forEach((cx, cz) -> {
             if (visited[0] >= MAX_CELLS_PER_SHIP) return;
             final var chunk = level.getChunk(cx, cz,
@@ -123,6 +124,11 @@ public final class ShipShadowRenderer {
                             if (++visited[0] > MAX_CELLS_PER_SHIP) break scan;
                             pos.set(x, y, z);
                             final BlockState state = section.getBlockState(x & 15, y & 15, z & 15);
+                            // Keep the tick refresh for shapes that can depend on the world.
+                            if (state.getBlock().hasDynamicShape()
+                                || !state.getBlock().getClass().getName().startsWith("net.minecraft.")) {
+                                dynamic[0] = true;
+                            }
                             if (state.isAir() || (!state.canOcclude() && state.getLightBlock(level, pos) < 15)) continue;
                             final var shape = state.getShape(level, pos);
                             if (Block.isShapeFullBlock(shape)) {
@@ -146,7 +152,7 @@ public final class ShipShadowRenderer {
         for (final AABBi box : boxes) result.add(new AABBd(
             box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ));
         result.addAll(partial);
-        return result;
+        return new Geometry(result, dynamic[0]);
     }
 
     public static void bind(final int programId) {
@@ -197,6 +203,5 @@ public final class ShipShadowRenderer {
         buffer = 0;
         count = 0;
         GEOMETRY.clear();
-        geometryLevel = null;
     }
 }

@@ -1,9 +1,6 @@
 package org.valkyrienskies.mod.common.render.light;
 
 import net.minecraft.client.multiplayer.ClientLevel;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import org.joml.primitives.AABBdc;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
@@ -26,9 +23,7 @@ public final class VsDynamicLight {
     private static VsWorldFromShipLightStorage worldFromShipStorage;
     private static VsShipEmitterList shipEmitterList;
     private static VsShipOccluderList shipOccluderList;
-    private record Emitters(long tick, double[] positions) { }
-    private static final Map<Long, Emitters> EMITTERS = new ConcurrentHashMap<>();
-    private static ClientLevel emitterLevel;
+    private static final ShipGeometryCache<double[]> EMITTERS = new ShipGeometryCache<>();
 
     private VsDynamicLight() {
     }
@@ -63,7 +58,6 @@ public final class VsDynamicLight {
 
     public static void deleteStorages() {
         EMITTERS.clear();
-        emitterLevel = null;
         ShipShadowRenderer.delete();
         if (lightStorage != null) {
             lightStorage.delete();
@@ -84,32 +78,24 @@ public final class VsDynamicLight {
     }
 
     public static void invalidateShipEmitters(final long shipId) {
-        EMITTERS.remove(shipId);
+        EMITTERS.invalidate(shipId);
         ShipShadowRenderer.invalidate(shipId);
     }
 
     /** Prepare one light list for all ship and world render paths. */
     public static void prepareFrame(final ClientLevel level) {
         ShipShadowRenderer.prepare(level);
-        if (level != emitterLevel) {
-            EMITTERS.clear();
-            emitterLevel = level;
-        }
+        EMITTERS.beginFrame(level);
         final VsShipEmitterList list = getShipEmitterList();
         list.beginFrame();
         if (level != null) {
-            final HashSet<Long> present = new HashSet<>();
             for (final ClientShip ship : VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips()) {
-                present.add(ship.getId());
-                Emitters geometry = EMITTERS.get(ship.getId());
-                if (geometry == null || geometry.tick != level.getGameTime()) {
-                    geometry = new Emitters(level.getGameTime(), VsShipEmitterList.scanShipEmitters(level, ship));
-                    EMITTERS.put(ship.getId(), geometry);
-                }
-                list.appendShipEmitters(ship, geometry.positions);
+                final double[] positions = EMITTERS.get(ship.getId(), ship.getShipAABB(),
+                    ship.getActiveChunksSet(), () -> VsShipEmitterList.scanShipEmitters(level, ship));
+                list.appendShipEmitters(ship, positions);
             }
-            EMITTERS.keySet().retainAll(present);
         }
+        EMITTERS.endFrame();
         list.upload();
     }
 

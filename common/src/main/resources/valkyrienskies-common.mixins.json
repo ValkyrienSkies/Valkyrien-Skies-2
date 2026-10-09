@@ -425,6 +425,7 @@
     "client.world.MixinClientChunkCache",
     "client.world.MixinClientChunkCache$MixinStorage",
     "client.world.MixinClientLevel",
+    "client.world.MixinClientLevelChunk",
     "feature.ai.goal.parrot.MixinLevelRendererParrotDance",
     "feature.ai.sleep_render.MixinPlayerRendererFirstPersonSleep",
     "feature.block_tint.MixinClientLevel",

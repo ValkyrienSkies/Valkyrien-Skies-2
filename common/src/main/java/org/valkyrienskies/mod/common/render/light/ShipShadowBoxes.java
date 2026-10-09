@@ -16,8 +16,11 @@ public final class ShipShadowBoxes {
 
     /** Join section boxes that share a complete face. Keep holes open. */
     public static List<AABBi> joinSections(final List<AABBi> input, final int limit) {
+        if (limit <= 0 || input.isEmpty()) return List.of();
+        if (input.size() == 1) return List.of(new AABBi(input.get(0)));
         List<AABBi> boxes = new ArrayList<>(input);
         for (int pass = 0; pass < 2; pass++) for (int axis = 0; axis < 3; axis++) {
+            if (boxes.size() <= 1) return boxes;
             final int along = axis;
             final Map<Span, List<AABBi>> groups = new LinkedHashMap<>();
             for (final AABBi box : boxes) {
@@ -59,6 +62,7 @@ public final class ShipShadowBoxes {
     /** Combine adjacent opaque cells. Keep empty cells outside all boxes. */
     public static List<AABBi> merge(final BitSet cells, final int width, final int height,
         final int depth, final int limit) {
+        if (limit <= 0 || cells.isEmpty()) return List.of();
         final BitSet remaining = (BitSet) cells.clone();
         final List<AABBi> boxes = new ArrayList<>();
         for (int index = remaining.nextSetBit(0); index >= 0 && boxes.size() < limit;

@@ -58,26 +58,30 @@ object ShipInteractions {
         val massA = if (a == null || a.isStatic) 0.0 else a.mass
         val massB = if (b == null || b.isStatic) 0.0 else b.mass
         val bodies = listOf(a, b)
-        val transforms = bodies.map { it?.worldToShip?.let(::Matrix4d) ?: Matrix4d() }
-        val toOther = transforms.indices.map { index ->
-            Matrix4d(transforms[1 - index]).mul(Matrix4d(transforms[index]).invert())
-        }
+        var transforms: List<Matrix4d>? = null
+        var toOther: List<Matrix4d>? = null
         for (contact in event.contactPoints) {
             val speed = ShipImpactVelocities.closingSpeed(event, contact)
             if (!contact.separation.isFinite()) continue
             val force = ShipInteractionMath.impactForce(massA, massB, speed, settings.duration, settings.minSpeed)
             if (force <= 0.0 || !force.isFinite() || !contact.position.isFinite) continue
             if (impacts.size >= 8192) break
+            val contactTransforms = transforms ?: bodies.map {
+                it?.worldToShip?.let(::Matrix4d) ?: Matrix4d()
+            }.also { transforms = it }
+            val otherTransforms = toOther ?: contactTransforms.indices.map { index ->
+                Matrix4d(contactTransforms[1 - index]).mul(Matrix4d(contactTransforms[index]).invert())
+            }.also { toOther = it }
             for ((index, body) in bodies.withIndex()) {
                 val p = Vector3d(contact.position)
                 val normal = Vector3d(contact.normal).mul(if (index == 0) 1.0 else -1.0)
                 // Keep the contact in the ship frame while the ship moves.
-                transforms[index].transformPosition(p)
-                transforms[index].transformDirection(normal)
+                contactTransforms[index].transformPosition(p)
+                contactTransforms[index].transformDirection(normal)
                 val other = bodies[1 - index]
                 val key = ImpactKey(event.dimensionId, body?.id, other?.id,
                     floor(p.x).toInt(), floor(p.y).toInt(), floor(p.z).toInt())
-                val copy = ShipFragileBlocks.Impact(p, normal, toOther[index], force)
+                val copy = ShipFragileBlocks.Impact(p, normal, otherTransforms[index], force)
                 impacts.merge(key, copy) { old, new -> if (new.force > old.force) new else old }
             }
         }
@@ -161,52 +165,36 @@ object ShipInteractions {
         for (player in level.players()) playerFrames.putIfAbsent(player, playerFrame(player, level))
     }
 
-    private fun isSensor(state: BlockState): Boolean = state.block is BasePressurePlateBlock ||
-        state.block is ButtonBlock || state.block is LeverBlock || state.block is TargetBlock
-
-    private fun tickRedstone(level: ServerLevel) {
+    internal fun tickRedstone(level: ServerLevel) {
         val plates = HashMap<BlockPos, BasePressurePlateBlock>()
         val buttons = HashMap<BlockPos, ButtonBlock>()
         val visited = HashSet<Pair<Long, BlockPos>>()
-        for (source in level.shipObjectWorld.loadedShips) {
-            if (source.chunkClaimDimension != level.dimensionId) continue
+        val scan = ShipSensorScan(level)
+        val dimension = level.dimensionId
+        val ships = level.shipObjectWorld.loadedShips
+        var hasSensorShips: Boolean? = null
+        for (source in ships) {
+            if (source.chunkClaimDimension != dimension) continue
             val swept = ShipBlockContacts.sweptBounds(source)
-            scanSensors(level, swept, null) { pos ->
+            scan.scan(swept, null) { pos ->
                 if (visited.add(source.id to pos)) operate(level, pos, source, null, plates, buttons)
+                hasSensorShips = null
             }
-            for (target in level.shipObjectWorld.loadedShips.getIntersecting(swept, level.dimensionId)) {
+            // Do not search other ships when none of them has a sensor.
+            if (hasSensorShips == null) {
+                hasSensorShips = ships.any { it.chunkClaimDimension == dimension && scan.hasSensors(it) }
+            }
+            if (hasSensorShips == false) continue
+            for (target in ships.getIntersecting(swept, dimension)) {
                 if (target.id == source.id) continue
-                scanSensors(level, AABBd(swept).transform(target.worldToShip), target) { pos ->
+                scan.scan(AABBd(swept).transform(target.worldToShip), target) { pos ->
                     if (visited.add(source.id to pos)) operate(level, pos, source, target, plates, buttons)
+                    hasSensorShips = null
                 }
             }
         }
         ShipButtons.update(level, buttons)
         ShipPressurePlates.update(level, plates)
-    }
-
-    private fun scanSensors(level: ServerLevel, bounds: AABBd, ship: Ship?, action: (BlockPos) -> Unit) {
-        val minX = floor(bounds.minX - 0.25).toInt()
-        val maxX = floor(bounds.maxX + 0.25).toInt()
-        val minZ = floor(bounds.minZ - 0.25).toInt()
-        val maxZ = floor(bounds.maxZ + 0.25).toInt()
-        val minY = max(level.minBuildHeight, floor(bounds.minY - 0.25).toInt())
-        val maxY = min(level.maxBuildHeight - 1, floor(bounds.maxY + 0.25).toInt())
-        var sectionCount = 0
-        for (cx in (minX shr 4)..(maxX shr 4)) for (cz in (minZ shr 4)..(maxZ shr 4)) {
-            if (ship != null && !ship.activeChunksSet.contains(cx, cz)) continue
-            val chunk = level.chunkSource.getChunkNow(cx, cz) ?: continue
-            for (sy in (minY shr 4)..(maxY shr 4)) {
-                if (++sectionCount > 2048) return
-                val section = chunk.getSection(chunk.getSectionIndex(sy shl 4))
-                if (!section.maybeHas(::isSensor)) continue
-                for (x in max(minX, cx shl 4)..min(maxX, (cx shl 4) + 15))
-                    for (z in max(minZ, cz shl 4)..min(maxZ, (cz shl 4) + 15))
-                        for (y in max(minY, sy shl 4)..min(maxY, (sy shl 4) + 15)) {
-                            if (isSensor(section.getBlockState(x and 15, y and 15, z and 15))) action(BlockPos(x, y, z))
-                        }
-            }
-        }
     }
 
     private fun operate(level: ServerLevel, pos: BlockPos, source: Ship, target: Ship?,
