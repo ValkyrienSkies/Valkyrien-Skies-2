@@ -128,6 +128,9 @@ public class SodiumCompat {
 
     /** Cached VS world chunk programs, keyed by sodium's render-pass options. */
     private static final Map<ChunkShaderOptions, GlProgram<WorldThing>> cachedWorldPrograms = new HashMap<>();
+    private static ClientLevel shaderConfigLevel;
+    private static int lastShipFeatures;
+    private static boolean lastWorldShader;
 
     public static VsShipLightStorage getLightStorage() {
         return VsDynamicLight.getLightStorage();
@@ -153,6 +156,7 @@ public class SodiumCompat {
     }
 
     public static void deleteStorages() {
+        shaderConfigLevel = null;
         if (biomeStorage != null) {
             biomeStorage.delete();
             biomeStorage = null;
@@ -170,6 +174,7 @@ public class SodiumCompat {
 
     public static void populateWorldFromShipsForFrame(net.minecraft.client.multiplayer.ClientLevel level,
             Viewport viewport) {
+        refreshShaderConfig(level);
         if (!VSGameConfig.CLIENT.isShipToWorldLightingEnabled()) return;
         if (level == null) return;
         VsWorldFromShipLightStorage storage = getWorldFromShipStorage();
@@ -185,6 +190,18 @@ public class SodiumCompat {
         storage.pruneUnused();
         storage.upload();
         occluders.upload();
+    }
+
+    private static void refreshShaderConfig(final ClientLevel level) {
+        final int features = computeFeatureBits();
+        final boolean worldShader = shouldUseWorldFromShipShader();
+        final boolean reload = level != null && shaderConfigLevel == level
+            && (lastShipFeatures != features || lastWorldShader != worldShader);
+        shaderConfigLevel = level;
+        lastShipFeatures = features;
+        lastWorldShader = worldShader;
+        // Rebuild packed vertices when the selected shader format changes.
+        if (reload) net.minecraft.client.Minecraft.getInstance().levelRenderer.allChanged();
     }
 
     public static void populateLightSectionStorage(ClientLevel level) {
@@ -267,7 +284,7 @@ public class SodiumCompat {
         if (VSGameConfig.CLIENT.getDynamicShipBiomeTinting()) bits |= FEATURE_BIOME;
         if (VSGameConfig.CLIENT.getDynamicShipLighting()) bits |= FEATURE_LIGHT;
         if (VSGameConfig.CLIENT.getBetterVanillaShipShading()) bits |= FEATURE_SHADE;
-        if (VSGameConfig.CLIENT.isShipToWorldLightingEnabled()) bits |= FEATURE_SHIP_ON_SHIP;
+        if (VSGameConfig.CLIENT.isShipToWorldShaderEnabled()) bits |= FEATURE_SHIP_ON_SHIP;
         return bits;
     }
 
@@ -306,8 +323,9 @@ public class SodiumCompat {
         shipInterface.setLightLutSampler(LIGHT_LUT_TEXTURE_UNIT);
         shipInterface.setBiomeSectionsSampler(BIOME_SECTIONS_TEXTURE_UNIT);
         shipInterface.setBiomeLutSampler(BIOME_LUT_TEXTURE_UNIT);
-        shipInterface.setShipEmitters(SHIP_EMITTER_LIST_TEXTURE_UNIT, getShipEmitterList().size());
-        shipInterface.setShipOccluders(SHIP_OCCLUDER_LIST_TEXTURE_UNIT, getShipOccluderList().size());
+        final boolean lighting = VSGameConfig.CLIENT.isShipToWorldLightingEnabled();
+        shipInterface.setShipEmitters(SHIP_EMITTER_LIST_TEXTURE_UNIT, lighting ? getShipEmitterList().size() : 0);
+        shipInterface.setShipOccluders(SHIP_OCCLUDER_LIST_TEXTURE_UNIT, lighting ? getShipOccluderList().size() : 0);
     }
 
     /** Stores transform for the next render() call on the current thread. */
@@ -610,8 +628,9 @@ public class SodiumCompat {
                 (float) (cameraPos.x - ox),
                 (float) (cameraPos.y - oy),
                 (float) (cameraPos.z - oz));
-        wt.setShipEmitters(SHIP_EMITTER_LIST_TEXTURE_UNIT, getShipEmitterList().size());
-        wt.setShipOccluders(SHIP_OCCLUDER_LIST_TEXTURE_UNIT, getShipOccluderList().size());
+        final boolean lighting = VSGameConfig.CLIENT.isShipToWorldLightingEnabled();
+        wt.setShipEmitters(SHIP_EMITTER_LIST_TEXTURE_UNIT, lighting ? getShipEmitterList().size() : 0);
+        wt.setShipOccluders(SHIP_OCCLUDER_LIST_TEXTURE_UNIT, lighting ? getShipOccluderList().size() : 0);
     }
 
     private static GlProgram<WorldThing> createWorldShader(String path, ChunkShaderOptions options) {
@@ -666,7 +685,7 @@ public class SodiumCompat {
      * (LUT lookups return 0, emitter loop runs 0 times, no visible effect).
      */
     public static boolean shouldUseWorldFromShipShader() {
-        return VSGameConfig.CLIENT.isShipToWorldLightingEnabled();
+        return VSGameConfig.CLIENT.isShipToWorldShaderEnabled();
     }
 
     private static GlProgram<ShipThing> createShader(String path, ChunkShaderOptions options, int features) {

@@ -42,7 +42,8 @@ uniform int u_VsShipEmitterCount;
 // Per-frame list of solid ship voxel CENTERS in world space, paired with
 // each voxel's owning-ship rotation quaternion. Two RGBA32F texels per
 // voxel:
-//   texel 2i:   vec4(worldX, worldY, worldZ, 0)
+//   texel 2i:   vec4(worldX, worldY, worldZ, radiusSquared)
+// A zero radius disables the distance check for that voxel.
 //   texel 2i+1: vec4(qx, qy, qz, qw)   ship-to-world rotation
 // The shader applies the inverse rotation to the fragment-to-voxel
 // offset so the Manhattan SDF runs in the voxel's ship-local frame.
@@ -102,9 +103,10 @@ float ws_shipAo(vec3 worldPosWorld, vec3 nf) {
         // both into the voxel's ship-local frame; pick face-local U/V
         // from the rotated normal so the SDF axes track the ship.
         vec4 voxel = texelFetch(u_VsShipOccluders, i * 2);
-        vec4 q = texelFetch(u_VsShipOccluders, i * 2 + 1);
-
         vec3 d_world = voxel.xyz - worldPosWorld;
+        // Skip voxels outside their AO range before the rotation and face basis.
+        if (voxel.w > 0.0 && dot(d_world, d_world) > voxel.w) continue;
+        vec4 q = texelFetch(u_VsShipOccluders, i * 2 + 1);
         vec3 d_ship = vs_quatRotateInv(q, d_world);
         vec3 nf_ship = vs_quatRotateInv(q, nf);
 

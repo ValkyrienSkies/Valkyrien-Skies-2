@@ -27,10 +27,10 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 
 public final class ShipShadowRenderer {
-    private static final int MAX_BOXES = 512;
     private static final int TEXTURE_UNIT = 14;
-    private static final int MAX_CELLS_PER_SHIP = 524288;
-    private static final ByteBuffer DATA = BufferUtils.createByteBuffer(MAX_BOXES * 48);
+    private static ByteBuffer data = BufferUtils.createByteBuffer(48);
+    private static final ShipShadowTree TREE = new ShipShadowTree();
+    private static final ShipShadowFrame FRAME = new ShipShadowFrame();
     private record Geometry(List<AABBd> boxes, boolean dynamic) { }
     private static final ShipGeometryCache<Geometry> GEOMETRY = new ShipGeometryCache<>();
     private static final Quaterniond ROTATION = new Quaterniond();
@@ -39,49 +39,64 @@ public final class ShipShadowRenderer {
     private static int buffer;
     private static int texture;
     private static int count;
+    private static int nodeCount;
 
     private ShipShadowRenderer() {
     }
 
     public static void prepare(final ClientLevel level) {
         GEOMETRY.beginFrame(level);
-        count = 0;
-        DATA.clear();
-        if (level == null || !VSGameConfig.CLIENT.isShipToWorldLightingEnabled()
+        if (level == null || !VSGameConfig.CLIENT.getShipShadows()
             || !level.dimensionType().hasSkyLight()) {
+            count = 0;
+            nodeCount = 0;
+            FRAME.clear();
             GEOMETRY.endFrame();
             return;
         }
+        FRAME.begin();
         for (final ClientShip ship : VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips()) {
-            if (count >= MAX_BOXES) break;
             final List<AABBd> boxes = GEOMETRY.get(ship.getId(), ship.getShipAABB(),
                 ship.getActiveChunksSet(), level.getGameTime(), Geometry::dynamic,
                 () -> collectGeometry(level, ship)).boxes();
-            if (boxes.isEmpty()) continue;
-            final var transform = ship.getRenderTransform().getShipToWorld();
+            FRAME.add(ship.getId(), boxes, ship.getRenderTransform().getShipToWorld());
+        }
+        GEOMETRY.endFrame();
+        if (!FRAME.finish()) return;
+        count = 0;
+        nodeCount = 0;
+        data.clear();
+        for (final ShipShadowFrame.Entry entry : FRAME.entries()) {
+            final List<AABBd> boxes = entry.boxes;
+            ensureCapacity(Math.multiplyExact(Math.addExact(count, boxes.size()), 48));
+            final var transform = entry.transform;
             final Quaterniond rotation = transform.getNormalizedRotation(ROTATION);
             final Vector3d scale = transform.getScale(SCALE);
             for (final AABBd box : boxes) {
-                if (count >= MAX_BOXES) break;
                 final Vector3d center = transform.transformPosition(CENTER.set(
                     (box.minX + (double) box.maxX) * 0.5,
                     (box.minY + (double) box.maxY) * 0.5,
                     (box.minZ + (double) box.maxZ) * 0.5));
-                DATA.putFloat((float) center.x).putFloat((float) center.y).putFloat((float) center.z).putFloat(0);
-                DATA.putFloat((float) ((box.maxX - box.minX) * scale.x * 0.5));
-                DATA.putFloat((float) ((box.maxY - box.minY) * scale.y * 0.5));
-                DATA.putFloat((float) ((box.maxZ - box.minZ) * scale.z * 0.5)).putFloat(0);
-                DATA.putFloat((float) rotation.x).putFloat((float) rotation.y)
+                data.putFloat((float) center.x).putFloat((float) center.y).putFloat((float) center.z).putFloat(0);
+                data.putFloat((float) ((box.maxX - box.minX) * scale.x * 0.5));
+                data.putFloat((float) ((box.maxY - box.minY) * scale.y * 0.5));
+                data.putFloat((float) ((box.maxZ - box.minZ) * scale.z * 0.5)).putFloat(0);
+                data.putFloat((float) rotation.x).putFloat((float) rotation.y)
                     .putFloat((float) rotation.z).putFloat((float) rotation.w);
                 count++;
             }
         }
-        GEOMETRY.endFrame();
-        DATA.flip();
+        if (count == 0) {
+            data = BufferUtils.createByteBuffer(48);
+            TREE.clear();
+        }
+        ensureCapacity(Math.addExact(data.position(), ShipShadowTree.extraBytes(count)));
+        nodeCount = TREE.append(data, count);
+        data.flip();
         ensureTexture();
         GL15.glBindBuffer(GL31.GL_TEXTURE_BUFFER, buffer);
-        GL15.glBufferData(GL31.GL_TEXTURE_BUFFER, count == 0 ? 48L : DATA.remaining(), GL15.GL_STREAM_DRAW);
-        if (count > 0) GL15.glBufferSubData(GL31.GL_TEXTURE_BUFFER, 0, DATA);
+        GL15.glBufferData(GL31.GL_TEXTURE_BUFFER, count == 0 ? 48L : data.remaining(), GL15.GL_STREAM_DRAW);
+        if (count > 0) GL15.glBufferSubData(GL31.GL_TEXTURE_BUFFER, 0, data);
         // Attach the new data store after the buffer allocation.
         final int active = GL11.glGetInteger(GL13.GL_ACTIVE_TEXTURE);
         GlStateManager._activeTexture(GL13.GL_TEXTURE0 + TEXTURE_UNIT);
@@ -95,6 +110,15 @@ public final class ShipShadowRenderer {
         GEOMETRY.invalidate(shipId);
     }
 
+    private static void ensureCapacity(final int required) {
+        if (data.capacity() >= required) return;
+        final int capacity = (int) Math.min(Integer.MAX_VALUE, Math.max((long) required, data.capacity() * 2L));
+        final ByteBuffer larger = BufferUtils.createByteBuffer(capacity);
+        data.flip();
+        larger.put(data);
+        data = larger;
+    }
+
     static List<AABBd> collect(final LevelAccessor level, final ClientShip ship) {
         return collectGeometry(level, ship).boxes();
     }
@@ -105,10 +129,8 @@ public final class ShipShadowRenderer {
         final List<AABBi> full = new ArrayList<>();
         final List<AABBd> partial = new ArrayList<>();
         final BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
-        final int[] visited = {0};
         final boolean[] dynamic = {false};
         ship.getActiveChunksSet().forEach((cx, cz) -> {
-            if (visited[0] >= MAX_CELLS_PER_SHIP) return;
             final var chunk = level.getChunk(cx, cz,
                 net.minecraft.world.level.chunk.ChunkStatus.FULL, false);
             if (chunk == null) return;
@@ -117,11 +139,9 @@ public final class ShipShadowRenderer {
                 final var section = chunk.getSection(chunk.getSectionIndex(sy << 4));
                 if (section.hasOnlyAir()) continue;
                 final BitSet cells = new BitSet(4096);
-                scan:
                 for (int y = Math.max(bounds.minY(), sy << 4); y < Math.min(bounds.maxY(), (sy + 1) << 4); y++)
                     for (int z = Math.max(bounds.minZ(), cz << 4); z < Math.min(bounds.maxZ(), (cz + 1) << 4); z++)
                         for (int x = Math.max(bounds.minX(), cx << 4); x < Math.min(bounds.maxX(), (cx + 1) << 4); x++) {
-                            if (++visited[0] > MAX_CELLS_PER_SHIP) break scan;
                             pos.set(x, y, z);
                             final BlockState state = section.getBlockState(x & 15, y & 15, z & 15);
                             // Keep the tick refresh for shapes that can depend on the world.
@@ -133,21 +153,20 @@ public final class ShipShadowRenderer {
                             final var shape = state.getShape(level, pos);
                             if (Block.isShapeFullBlock(shape)) {
                                 cells.set(((y & 15) * 16 + (z & 15)) * 16 + (x & 15));
-                            } else if (partial.size() < MAX_BOXES) {
+                            } else {
                                 for (final var box : shape.toAabbs()) {
                                     partial.add(new AABBd(box.minX + x, box.minY + y, box.minZ + z,
                                         box.maxX + x, box.maxY + y, box.maxZ + z));
                                 }
                             }
                         }
-                for (final AABBi box : ShipShadowBoxes.merge(cells, 16, 16, 16, MAX_BOXES)) {
+                for (final AABBi box : ShipShadowBoxes.merge(cells, 16, 16, 16, Integer.MAX_VALUE)) {
                     full.add(new AABBi(box.minX + (cx << 4), box.minY + (sy << 4), box.minZ + (cz << 4),
                         box.maxX + (cx << 4), box.maxY + (sy << 4), box.maxZ + (cz << 4)));
                 }
-                if (visited[0] >= MAX_CELLS_PER_SHIP) break;
             }
         });
-        final List<AABBi> boxes = ShipShadowBoxes.joinSections(full, MAX_BOXES);
+        final List<AABBi> boxes = ShipShadowBoxes.joinSections(full, Integer.MAX_VALUE);
         final List<AABBd> result = new ArrayList<>(boxes.size() + partial.size());
         for (final AABBi box : boxes) result.add(new AABBd(
             box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ));
@@ -156,7 +175,8 @@ public final class ShipShadowRenderer {
     }
 
     public static void bind(final int programId) {
-        setStrength(programId, "u_VsShipShadowStrength", VSGameConfig.CLIENT.getShipShadowStrength());
+        final boolean enabled = VSGameConfig.CLIENT.getShipShadows();
+        setStrength(programId, "u_VsShipShadowStrength", enabled ? VSGameConfig.CLIENT.getShipShadowStrength() : 0.0);
         setStrength(programId, "u_VsShipShadeStrength", VSGameConfig.CLIENT.getShipShadeStrength());
         final int softness = GL20.glGetUniformLocation(programId, "u_VsShipShadowSoftness");
         if (softness >= 0) {
@@ -176,7 +196,9 @@ public final class ShipShadowRenderer {
         GlStateManager._activeTexture(active);
         GL20.glUniform1i(sampler, TEXTURE_UNIT);
         final int countLocation = GL20.glGetUniformLocation(programId, "u_VsShipShadowCount");
-        if (countLocation >= 0) GL20.glUniform1i(countLocation, count);
+        if (countLocation >= 0) GL20.glUniform1i(countLocation, enabled ? count : 0);
+        final int nodesLocation = GL20.glGetUniformLocation(programId, "u_VsShipShadowNodeCount");
+        if (nodesLocation >= 0) GL20.glUniform1i(nodesLocation, enabled ? nodeCount : 0);
     }
 
     private static void setStrength(final int programId, final String name, final double value) {
@@ -202,6 +224,10 @@ public final class ShipShadowRenderer {
         texture = 0;
         buffer = 0;
         count = 0;
+        nodeCount = 0;
+        data = BufferUtils.createByteBuffer(48);
+        TREE.clear();
+        FRAME.clear();
         GEOMETRY.clear();
     }
 }

@@ -31,9 +31,9 @@ void main() {
     if (color.a < 0.5) {
         discard;
     }
-    if (u_VsShipGlowEnabled != 0) {
+    if (u_VsShipGlowEnabled != 0 || u_VsShipShadowStrength > 0.0) {
         vec3 vsWorldPos = valkyrienair_CamRelPos + u_VsShipLightCameraPos;
-        float vsShipGlow = vs_shipGlowSmooth(vsWorldPos, v_VsWorldNormal);
+        float vsShipGlow = u_VsShipGlowEnabled != 0 ? vs_shipGlowSmooth(vsWorldPos, v_VsWorldNormal) : 0.0;
         vec2 vsAdjusted = v_VsLightCoordRaw;
         vsAdjusted.x = max(vsAdjusted.x, (vsShipGlow + 0.5) / 16.0);
         vec3 vsBase = texture(Sampler2, v_VsLightCoordRaw).rgb;

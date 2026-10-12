@@ -138,11 +138,16 @@ object VSGameConfig {
         @ConfigEntry(description = "Sample world block/sky light at the ship's rendered position so torches and sunlight in the world correctly light the ship (sodium/embeddium only). Only affects the VANILLA and FLYWHEEL ship renderers, the BATCHED renderer has this built into its own shaders and ignores this. Disable for a moderate perf gain — ship blocks fall back to the shipyard's baked lightmap.")
         var dynamicShipLighting = false
 
-        @ConfigEntry(description = "Enable ship sky shadows and light from ships for VANILLA and FLYWHEEL. BATCHED always enables these features and ignores this setting.")
+        @ConfigEntry(description = "Enable light from ships for VANILLA and FLYWHEEL. BATCHED always enables this lighting. Use shipShadows to control visual shadows.")
         var dynamicShipToWorldLighting = true
 
         fun isShipToWorldLightingEnabled(): Boolean =
             defaultRenderer == ShipRenderer.BATCHED || dynamicShipToWorldLighting
+
+        @ConfigEntry(description = "Draw ship shadows on terrain and other ships. Disable this to skip the visual shadow scan.")
+        var shipShadows = false
+
+        fun isShipToWorldShaderEnabled(): Boolean = isShipToWorldLightingEnabled() || shipShadows
 
         @ConfigEntry(description = "Visual ship shadow strength. 0 keeps full ambient sky light. 1 removes all sky light below a ship. This does not change mob spawn light checks.", min = 0.0, max = 1.0)
         var shipShadowStrength = 0.4
