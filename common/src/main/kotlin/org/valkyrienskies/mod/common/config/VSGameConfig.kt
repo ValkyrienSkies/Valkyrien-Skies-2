@@ -166,6 +166,13 @@ object VSGameConfig {
 
         @ConfigEntry(description = "Prefix character used for searching block properties. Must be a single character!")
         var searchPrefix = "~"
+
+        @ConfigEntry(
+            description = "Compute per-ship drag/lift debug info every singleplayer server tick. This data only feeds " +
+                "the F3+B ship drag/lift debug renderer, but costs rebuilding two maps " +
+                "over every loaded ship each tick. Turn it off if you want to test performance without it running. This setting does not affect servers"
+        )
+        var computeDragDebugInfo = true
     }
 
     class Server {
@@ -386,13 +393,6 @@ object VSGameConfig {
                 max = 200.0
             )
             var shipMobSpawnIntervalTicks = 1
-
-            @ConfigEntry(
-                description = "Compute per-ship drag/lift debug info every server tick. This data only feeds " +
-                    "the F3+B ship drag/lift debug renderer (singleplayer only), but costs rebuilding two maps " +
-                    "over every loaded ship each tick, so leave it off unless you are debugging ship drag."
-            )
-            var computeDragDebugInfo = false
 
             @ConfigEntry(
                 description = "EXPERIMENTAL. Load active ship chunks with radius-zero SHIP_CHUNK tickets " +

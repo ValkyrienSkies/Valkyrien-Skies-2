@@ -11,9 +11,11 @@ object DragInfoReporter {
     val shipLiftValues = Long2ObjectOpenHashMap<Vector3dc>()
 
     fun tick(level: ServerLevel) {
-        // This data only feeds the client F3+B ship drag/lift debug renderer, so don't pay for
-        // rebuilding these maps every tick unless explicitly enabled.
-        if (!VSGameConfig.SERVER.Performance.computeDragDebugInfo) {
+        // We don't sync this data on servers, so don't bother calculating it
+        if (level.server.isDedicatedServer) return
+
+        // We use another class to guard the loading of Minecraft to singleplayer only
+        if (!DragInfoReporterClient.isHitboxesEnabled()) {
             if (!shipDragValues.isEmpty()) {
                 shipDragValues.clear()
                 shipLiftValues.clear()
