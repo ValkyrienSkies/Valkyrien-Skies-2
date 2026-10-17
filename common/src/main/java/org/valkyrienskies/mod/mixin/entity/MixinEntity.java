@@ -12,6 +12,7 @@ import net.minecraft.ReportedException;
 import net.minecraft.core.BlockPos;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.tags.TagKey;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.player.Player;
@@ -233,6 +234,62 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         );
         final Vec3 newEyePos = VectorConversionsMCKt.toMinecraft(basePos.add(eyeRelativePos, new Vector3d()));
         cir.setReturnValue(newEyePos);
+    }
+
+    /**
+     * @reason Used to be needed for players to pick blocks correctly when mounted to a ship
+     *
+     * Additionally, this has to have dragging information included or it breaks. This is because of reasons that I literally
+     * do not know or understand, but minecraft's rendering pipeline is like that.
+     */
+    @Inject(method = "calculateViewVector", at = @At("HEAD"), cancellable = true)
+    private void preCalculateViewVector(final float xRot, final float yRot, final CallbackInfoReturnable<Vec3> cir) {
+        final LoadedShip shipMountedTo = VSGameUtilsKt.getShipMountedTo(Entity.class.cast(this));
+        if (shipMountedTo == null) {
+//            if (Entity.class.cast(this) instanceof final ServerPlayer sPlayer && sPlayer instanceof final IEntityDraggingInformationProvider dragProvider) {
+//                if (dragProvider.getDraggingInformation().isEntityBeingDraggedByAShip() && dragProvider.getDraggingInformation().getServerRelativePlayerYaw() != null) {
+//                    final Ship shipDraggedBy = VSGameUtilsKt.getAllShips(level).getById(dragProvider.getDraggingInformation().getLastShipStoodOn());
+//                    if (shipDraggedBy != null) {
+//                        final float realYRot = (float) EntityDragger.INSTANCE.serversideWorldEyeRotationOrDefault(sPlayer, shipDraggedBy, yRot);
+//                        final float f = xRot * (float) (Math.PI / 180.0);
+//                        final float g = -realYRot * (float) (Math.PI / 180.0);
+//                        final float h = Mth.cos(g);
+//                        final float i = Mth.sin(g);
+//                        final float j = Mth.cos(f);
+//                        final float k = Mth.sin(f);
+//                        final Vector3dc originalViewVector = new Vector3d(i * j, -k, h * j);
+//
+//                        final ShipTransform shipTransform;
+//                        if (shipDraggedBy instanceof ClientShip) {
+//                            shipTransform = ((ClientShip) shipDraggedBy).getRenderTransform();
+//                        } else {
+//                            shipTransform = shipDraggedBy.getShipTransform();
+//                        }
+//                        final Vec3 newViewVector = VectorConversionsMCKt.toMinecraft(
+//                            shipTransform.getShipCoordinatesToWorldCoordinatesRotation().transform(originalViewVector, new Vector3d()));
+//                        cir.setReturnValue(newViewVector);
+//                    }
+//                }
+//            }
+            return;
+        }
+        final float f = xRot * (float) (Math.PI / 180.0);
+        final float g = -yRot * (float) (Math.PI / 180.0);
+        final float h = Mth.cos(g);
+        final float i = Mth.sin(g);
+        final float j = Mth.cos(f);
+        final float k = Mth.sin(f);
+        final Vector3dc originalViewVector = new Vector3d(i * j, -k, h * j);
+
+        final ShipTransform shipTransform;
+        if (shipMountedTo instanceof ClientShip) {
+            shipTransform = ((ClientShip) shipMountedTo).getRenderTransform();
+        } else {
+            shipTransform = shipMountedTo.getTransform();
+        }
+        final Vec3 newViewVector = VectorConversionsMCKt.toMinecraft(
+            shipTransform.getShipToWorldRotation().transform(originalViewVector, new Vector3d()));
+        cir.setReturnValue(newViewVector);
     }
 
     /**

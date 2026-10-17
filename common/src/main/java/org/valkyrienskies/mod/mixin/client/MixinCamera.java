@@ -2,7 +2,6 @@ package org.valkyrienskies.mod.mixin.client;
 
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
-import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
@@ -36,7 +35,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.mod.client.IVSCamera;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.fluid.ShipFluidInteraction;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
@@ -128,28 +126,41 @@ public abstract class MixinCamera implements IVSCamera {
      * @reason This Injection will modify the Camera position to transform the eye offset with the ship player is mounted on.
      *  Funny thing that original code doesn't utilize getEyePosition().
      */
-    @WrapOperation(
-        method = "setup",
-        at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Camera;setPosition(DDD)V")
-    )
-    private void setPosition(Camera camera, double d, double e, double f, Operation<Void> original){
-        if(VSGameUtilsKt.getShipMountedTo(this.entity) instanceof ClientShip ship) {
-            double eyeHeight = Mth.lerp(f, this.eyeHeightOld, this.eyeHeight);
-            Vector3d eyeOffset = ship.getRenderTransform().getRotation().transform(new Vector3d(0, eyeHeight, 0));
-            original.call(camera, d + eyeOffset.x, e - eyeHeight + eyeOffset.y, f + eyeOffset.z);
-        }
-        else original.call(camera, d, e, f);
-    }
+//    @WrapOperation(
+//        method = "setup",
+//        at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Camera;setPosition(DDD)V")
+//    )
+//    private void setPosition(Camera camera, double d, double e, double f, Operation<Void> original){
+//        if(VSGameUtilsKt.getShipMountedTo(this.entity) instanceof ClientShip ship) {
+//            double eyeHeight = Mth.lerp(f, this.eyeHeightOld, this.eyeHeight);
+//            Vector3d eyeOffset = ship.getRenderTransform().getRotation().transform(new Vector3d(0, eyeHeight, 0));
+//            original.call(camera, d + eyeOffset.x, e - eyeHeight + eyeOffset.y, f + eyeOffset.z);
+//        }
+//        else original.call(camera, d, e, f);
+//    }
 
     @Override
     public void setupWithShipMounted(final @NotNull BlockGetter level, final @NotNull Entity renderViewEntity,
         final boolean thirdPerson, final boolean thirdPersonReverse, final float partialTicks,
         final @NotNull ClientShip shipMountedTo, final @NotNull Vector3dc inShipPlayerPosition) {
+        final ShipTransform renderTransform = shipMountedTo.getRenderTransform();
+        final Vector3dc playerBasePos =
+            renderTransform.getShipToWorld().transformPosition(inShipPlayerPosition, new Vector3d());
+        final Vector3dc playerEyePos = renderTransform.getRotation()
+            .transform(new Vector3d(0.0, Mth.lerp(partialTicks, this.eyeHeightOld, this.eyeHeight), 0.0))
+            .add(playerBasePos);
+
         this.initialized = true;
         this.level = level;
         this.entity = renderViewEntity;
         this.detached = thirdPerson;
+        this.setRotationWithShipTransform(renderViewEntity.getViewYRot(partialTicks),
+            renderViewEntity.getViewXRot(partialTicks), renderTransform);
+        this.setPosition(playerEyePos.x(), playerEyePos.y(), playerEyePos.z());
         if (thirdPerson) {
+            if (thirdPersonReverse) {
+                this.setRotationWithShipTransform(this.yRot + 180.0F, -this.xRot, renderTransform);
+            }
 
             final AABBi boundingBox = (AABBi) shipMountedTo.getShipVoxelAABB();
 
