@@ -303,11 +303,9 @@ public abstract class MixinGameRenderer {
         matrixStack.mulPose(invShipRenderRotation);
 
         // We also need to recompute [inverseViewRotationMatrix] after updating [matrixStack]
-        {
-            final Matrix3f matrix3f = new Matrix3f(matrixStack.last().normal());
-            matrix3f.invert();
-            RenderSystem.setInverseViewRotationMatrix(matrix3f);
-        }
+        final Matrix3f matrix3f = new Matrix3f(matrixStack.last().normal());
+        matrix3f.invert();
+        RenderSystem.setInverseViewRotationMatrix(matrix3f);
 
         // Camera FOV changes based on the position of the camera, so recompute FOV to account for the change of camera
         // position.

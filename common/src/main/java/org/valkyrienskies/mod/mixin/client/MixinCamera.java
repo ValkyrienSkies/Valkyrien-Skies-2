@@ -121,24 +121,6 @@ public abstract class MixinCamera implements IVSCamera {
         return original.call();
     }
 
-    /**
-     * @author Bunting_chj
-     * @reason This Injection will modify the Camera position to transform the eye offset with the ship player is mounted on.
-     *  Funny thing that original code doesn't utilize getEyePosition().
-     */
-//    @WrapOperation(
-//        method = "setup",
-//        at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Camera;setPosition(DDD)V")
-//    )
-//    private void setPosition(Camera camera, double d, double e, double f, Operation<Void> original){
-//        if(VSGameUtilsKt.getShipMountedTo(this.entity) instanceof ClientShip ship) {
-//            double eyeHeight = Mth.lerp(f, this.eyeHeightOld, this.eyeHeight);
-//            Vector3d eyeOffset = ship.getRenderTransform().getRotation().transform(new Vector3d(0, eyeHeight, 0));
-//            original.call(camera, d + eyeOffset.x, e - eyeHeight + eyeOffset.y, f + eyeOffset.z);
-//        }
-//        else original.call(camera, d, e, f);
-//    }
-
     @Override
     public void setupWithShipMounted(final @NotNull BlockGetter level, final @NotNull Entity renderViewEntity,
         final boolean thirdPerson, final boolean thirdPersonReverse, final float partialTicks,
