@@ -138,10 +138,9 @@ public abstract class MixinCamera implements IVSCamera {
         this.detached = thirdPerson;
 
         if (!isShoulderSurfing) {
-            if (thirdPerson)
-                this.setRotationWithShipTransform(renderViewEntity.getViewYRot(partialTicks),
-                    renderViewEntity.getViewXRot(partialTicks), renderTransform);
-            else if (thirdPersonReverse)
+            this.setRotationWithShipTransform(renderViewEntity.getViewYRot(partialTicks),
+                renderViewEntity.getViewXRot(partialTicks), renderTransform);
+            if (thirdPersonReverse)
                 this.setRotationWithShipTransform(this.yRot + 180.0F, -this.xRot, renderTransform);
         }
 
