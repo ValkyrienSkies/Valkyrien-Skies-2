@@ -96,6 +96,8 @@ dependencies {
 
     modCompileOnly("maven.modrinth:theatrical:1.0.0-alpha.28.120+mc1.20.1")
 
+    modCompileOnly("maven.modrinth:kepjj2sy:${shoulder_surfing_version}")
+
     // JEI
     modCompileOnlyApi("mezz.jei:jei-${minecraft_version}-common-api:15.62.0.219")
     modCompileOnly("maven.modrinth:jei:uyTkeINn")

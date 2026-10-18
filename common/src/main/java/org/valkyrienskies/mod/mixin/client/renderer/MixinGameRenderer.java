@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.mixin.client.renderer;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
@@ -15,7 +16,10 @@ import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import org.joml.Matrix3f;
 import org.joml.Matrix4f;
+import org.joml.Quaterniond;
+import org.joml.Quaternionf;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.joml.primitives.AABBdc;
@@ -37,6 +41,8 @@ import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.EntityRenderPosition;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
+import org.valkyrienskies.mod.compat.LoadedMods;
+import org.valkyrienskies.mod.compat.shoulder_surfing.ShoulderSurfingCompat;
 import org.valkyrienskies.mod.mixinducks.client.MinecraftDuck;
 
 import java.util.IdentityHashMap;
@@ -281,16 +287,31 @@ public abstract class MixinGameRenderer {
         }
 
         final ClientShip clientShip = (ClientShip) shipMountedToData.getShipMountedTo();
+        boolean isShoulderSurfing = LoadedMods.getShoulderSurfing() && ShoulderSurfingCompat.isShoulderSurfing();
 
         ((IVSCamera) camera).setupWithShipMounted(
             this.minecraft.level,
             this.minecraft.getCameraEntity() == null ? this.minecraft.player : this.minecraft.getCameraEntity(),
             !this.minecraft.options.getCameraType().isFirstPerson(),
             this.minecraft.options.getCameraType().isMirrored(),
+            isShoulderSurfing,
             partialTicks,
             clientShip,
             shipMountedToData.getMountPosInShip()
         );
+
+        if (!isShoulderSurfing) {
+            // Apply the ship render transform to [matrixStack]
+            final Quaternionf invShipRenderRotation = new Quaternionf(
+                clientShip.getRenderTransform().getShipToWorldRotation().conjugate(new Quaterniond())
+            );
+            matrixStack.mulPose(invShipRenderRotation);
+
+            // We also need to recompute [inverseViewRotationMatrix] after updating [matrixStack]
+            final Matrix3f matrix3f = new Matrix3f(matrixStack.last().normal());
+            matrix3f.invert();
+            RenderSystem.setInverseViewRotationMatrix(matrix3f);
+        }
 
         // Camera FOV changes based on the position of the camera, so recompute FOV to account for the change of camera
         // position.

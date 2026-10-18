@@ -21,6 +21,9 @@ object LoadedMods {
     val immersivePortals by CompatInfo("qouteall.imm_ptl.core.IPModMain")
 
     @JvmStatic
+    val shoulderSurfing by CompatInfo("com.github.exopandora.shouldersurfing.api.client.IShoulderSurfing")
+
+    @JvmStatic
     val create by CompatInfo("com.simibubi.create.AllMountedDispenseItemBehaviors")
 
     @JvmStatic
