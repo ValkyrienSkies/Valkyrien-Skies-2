@@ -123,8 +123,8 @@ public abstract class MixinCamera implements IVSCamera {
 
     @Override
     public void setupWithShipMounted(final @NotNull BlockGetter level, final @NotNull Entity renderViewEntity,
-        final boolean thirdPerson, final boolean thirdPersonReverse, final float partialTicks,
-        final @NotNull ClientShip shipMountedTo, final @NotNull Vector3dc inShipPlayerPosition) {
+        final boolean thirdPerson, final boolean thirdPersonReverse, final boolean isShoulderSurfing,
+        final float partialTicks, final @NotNull ClientShip shipMountedTo, final @NotNull Vector3dc inShipPlayerPosition) {
         final ShipTransform renderTransform = shipMountedTo.getRenderTransform();
         final Vector3dc playerBasePos =
             renderTransform.getShipToWorld().transformPosition(inShipPlayerPosition, new Vector3d());
@@ -136,14 +136,17 @@ public abstract class MixinCamera implements IVSCamera {
         this.level = level;
         this.entity = renderViewEntity;
         this.detached = thirdPerson;
-        this.setRotationWithShipTransform(renderViewEntity.getViewYRot(partialTicks),
-            renderViewEntity.getViewXRot(partialTicks), renderTransform);
+
+        if (!isShoulderSurfing) {
+            if (thirdPerson)
+                this.setRotationWithShipTransform(renderViewEntity.getViewYRot(partialTicks),
+                    renderViewEntity.getViewXRot(partialTicks), renderTransform);
+            else if (thirdPersonReverse)
+                this.setRotationWithShipTransform(this.yRot + 180.0F, -this.xRot, renderTransform);
+        }
+
         this.setPosition(playerEyePos.x(), playerEyePos.y(), playerEyePos.z());
         if (thirdPerson) {
-            if (thirdPersonReverse) {
-                this.setRotationWithShipTransform(this.yRot + 180.0F, -this.xRot, renderTransform);
-            }
-
             final AABBi boundingBox = (AABBi) shipMountedTo.getShipVoxelAABB();
 
             double dist = ((boundingBox.lengthX() + boundingBox.lengthY() + boundingBox.lengthZ()) / 3.0) * 1.5;
@@ -164,7 +167,7 @@ public abstract class MixinCamera implements IVSCamera {
         final Quaterniondc originalRotation =
             new Quaterniond().rotateY(Math.toRadians(-yaw)).rotateX(Math.toRadians(pitch)).normalize();
         final Quaterniondc newRotation =
-            renderTransform.getShipCoordinatesToWorldCoordinatesRotation().mul(originalRotation, new Quaterniond());
+            renderTransform.getRotation().mul(originalRotation, new Quaterniond());
         this.xRot = pitch;
         this.yRot = yaw;
         this.rotation.set(newRotation);

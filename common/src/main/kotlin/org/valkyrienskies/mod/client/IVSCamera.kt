@@ -12,9 +12,10 @@ interface IVSCamera {
         renderViewEntity: Entity,
         thirdPerson: Boolean,
         thirdPersonReverse: Boolean,
+        isShoulderSurfing: Boolean,
         partialTicks: Float,
         shipMountedTo: ClientShip,
-        inShipPlayerPosition: Vector3dc
+        inShipPlayerPosition: Vector3dc,
     )
 
     fun setPositionVS(pos: Vec3)
