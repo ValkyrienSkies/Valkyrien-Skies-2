@@ -581,6 +581,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
             srcLevel.getChunkSource().updateChunkForced(chunkPos, false);
             ((VSServerLevel) srcLevel).removeChunk(x, z);
         });
+        if (transfer != null) transfer.complete();
         }
     }
 }

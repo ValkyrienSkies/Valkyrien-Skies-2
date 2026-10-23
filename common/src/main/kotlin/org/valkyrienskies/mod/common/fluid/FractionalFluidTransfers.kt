@@ -17,29 +17,68 @@ import java.math.RoundingMode
 internal class FractionalFluidTransfers(private val sources: FractionalFluidSources) {
     data class Move(val from: Position, val to: Position?, val sourceVolume: BigDecimal,
         val destinationVolume: BigDecimal, val fallbackDimension: String, val worldPosition: Vector3d,
-        val velocity: Vector3d, val copy: Boolean = false)
+        val velocity: Vector3d, val copy: Boolean = false, val destinationPosition: Vector3d = worldPosition,
+        val destinationVelocity: Vector3d = velocity)
 
-    private class Pending(val move: Move, val original: Amount) {
+    private class Pending(val move: Move, val original: Amount, val previousDestination: Amount? = null,
+        val hadDestinationCarrier: Boolean = false) {
         val sourceZero = amount(move.from, original.fluid, BigDecimal.ZERO)
         val destinationZero = move.to?.let { amount(it, original.fluid, BigDecimal.ZERO) }
         val worldUnits = checked(original.units * move.sourceVolume)
+        val previousWorldUnits = checked((previousDestination?.units ?: BigDecimal.ZERO) * move.destinationVolume)
         val destinationUnits = if (move.to == null) BigDecimal.ZERO else minOf(FULL,
             worldUnits.divide(move.destinationVolume, 325 - maxOf(0, move.destinationVolume.scale()), RoundingMode.DOWN))
                 .stripTrailingZeros()
         val destination = move.to?.let { if (destinationUnits.compareTo(FULL) == 0) null
             else amount(it, original.fluid, destinationUnits) }
         val spill = checked(worldUnits - destinationUnits * move.destinationVolume)
+        val combinedWorldUnits = checked(worldUnits + if (previousDestination?.fluid == original.fluid) previousWorldUnits else BigDecimal.ZERO)
+        val combinedDestinationUnits = if (move.to == null) BigDecimal.ZERO else minOf(FULL,
+            combinedWorldUnits.divide(move.destinationVolume, 325 - maxOf(0, move.destinationVolume.scale()), RoundingMode.DOWN))
+                .stripTrailingZeros()
+        val combinedDestination = move.to?.let { if (combinedDestinationUnits.compareTo(FULL) == 0) null
+            else amount(it, original.fluid, combinedDestinationUnits) }
+        val combinedSpill = checked(combinedWorldUnits - combinedDestinationUnits * move.destinationVolume)
+        val previousZero = previousDestination?.let { amount(requireNotNull(move.to), it.fluid, BigDecimal.ZERO) }
+        val restoredDestination = previousDestination?.takeIf { it.units.compareTo(FULL) != 0 }
         val budget = 32768L + 8L * (move.from.dimension.length + (move.to?.dimension?.length ?: 0) +
-            move.fallbackDimension.length + original.fluid.length) + sourceZero.bytes + (destinationZero?.bytes ?: 0) +
-            maxOf(0, original.bytes - sourceZero.bytes) + maxOf(0, (destination?.bytes ?: 0) - (destinationZero?.bytes ?: 0))
+            move.fallbackDimension.length + original.fluid.length + (previousDestination?.fluid?.length ?: 0)) +
+            (if (previousDestination == null) 0 else 16384) + maxOf(sourceZero.bytes, original.bytes) +
+            maxOf(destinationZero?.bytes ?: 0, destination?.bytes ?: 0, combinedDestination?.bytes ?: 0,
+                previousZero?.bytes ?: 0, previousDestination?.bytes ?: 0)
         var active = false
         var committed = false
+        var completed = false
+        var destinationReleased = false
         var metadataBytes = 0L
+
+        fun resolve(sourcePresent: Boolean, sourceLoaded: Boolean, targetFluid: String?): Resolution {
+            val accepted = targetFluid == original.fluid && (previousDestination?.fluid != original.fluid || completed || !sourcePresent)
+            val keepSource = (sourcePresent || !sourceLoaded && move.copy) && move.to != null && (!accepted || move.copy)
+            val source = if (keepSource) original else if (sourcePresent || !sourceLoaded) sourceZero else null
+            if (accepted) {
+                val combine = !destinationReleased && previousDestination?.fluid == original.fluid
+                return Resolution(source, if (combine) combinedDestination else destination,
+                    if (combine) combinedSpill else spill,
+                    if (!destinationReleased && previousDestination?.fluid != original.fluid) previousWorldUnits else BigDecimal.ZERO, true)
+            }
+            val target = when (targetFluid) {
+                previousDestination?.fluid -> if (destinationReleased) previousZero else restoredDestination
+                original.fluid -> destinationZero
+                else -> null
+            }
+            return Resolution(source, target, if (keepSource) BigDecimal.ZERO else worldUnits,
+                if (!destinationReleased && targetFluid != previousDestination?.fluid) previousWorldUnits else BigDecimal.ZERO)
+        }
     }
+
+    private data class Resolution(val source: Amount?, val destination: Amount?, val sourceCredit: BigDecimal,
+        val destinationCredit: BigDecimal, val atDestination: Boolean = false)
 
     private var pending = LinkedHashMap<Position, Pending>()
     private var locked = HashMap<Position, Pending>()
     fun isLocked(position: Position) = locked.containsKey(position)
+    fun isUncommitted(position: Position) = locked[position]?.committed == false
     fun hasActiveTransfers() = pending.values.any { it.active }
 
     fun begin(moves: Sequence<Move>, levels: Map<String, ServerLevel>, parcels: WorldFluidOutflowManager): FractionalFluidTransferScope? {
@@ -51,14 +90,19 @@ internal class FractionalFluidTransfers(private val sources: FractionalFluidSour
                 val original = sources.amounts[move.from] ?: continue
                 if (move.from == move.to) continue
                 require(!isLocked(move.from) && endpoints.add(move.from)) { "Fluid source already moving" }
-                move.to?.let {
-                    require(!isLocked(it) && !sources.amounts.containsKey(it) && endpoints.add(it)) { "Fluid destination already owned" }
+                val previousCarrier = move.to?.let { sources.amounts[it] }
+                val previousDestination = move.to?.let {
+                    require(!isLocked(it) && endpoints.add(it)) { "Fluid destination already moving" }
                     val level = requireNotNull(levels[it.dimension])
-                    require(level.getBlockState(it.blockPos()).fluidState.isEmpty) { "Fractional fluid destination already contains fluid" }
+                    val state = level.getBlockState(it.blockPos())
+                    val fluid = FractionalFluidSources.fluidName(state)
+                    require(previousCarrier == null || previousCarrier.fluid == fluid) { "Fluid destination observation is stale" }
+                    if (fluid == null) null else previousCarrier ?: amount(it, fluid,
+                        BigDecimal.valueOf(state.fluidState.amount.coerceIn(0, 8) / 8.0) * FULL)
                 }
                 validate(move)
-                val transfer = Pending(move, original)
-                val extra = transfer.budget - original.bytes
+                val transfer = Pending(move, original, previousDestination, previousCarrier != null)
+                val extra = transfer.budget - original.bytes - (previousCarrier?.bytes ?: 0)
                 reserve(extra)
                 reserved += extra
                 staged.add(transfer)
@@ -76,7 +120,7 @@ internal class FractionalFluidTransfers(private val sources: FractionalFluidSour
         } catch (error: Throwable) {
             for (transfer in staged) {
                 sources.amounts[transfer.move.from] = transfer.original
-                transfer.move.to?.let { if (sources.amounts[it] === transfer.destinationZero) sources.amounts.remove(it) }
+                transfer.move.to?.let { replace(it, if (transfer.hadDestinationCarrier) transfer.previousDestination else null) }
                 pending.remove(transfer.move.from)
                 locked.remove(transfer.move.from)
                 transfer.move.to?.let { locked.remove(it) }
@@ -85,10 +129,10 @@ internal class FractionalFluidTransfers(private val sources: FractionalFluidSour
             throw error
         }
         if (staged.isEmpty()) return null
-        return FractionalFluidTransferScope {
+        return FractionalFluidTransferScope({
             staged.forEach { it.active = false }
             recover(levels, parcels)
-        }
+        }, { staged.forEach { it.completed = true } })
     }
 
     fun recover(levels: Map<String, ServerLevel>, parcels: WorldFluidOutflowManager) {
@@ -102,32 +146,35 @@ internal class FractionalFluidTransfers(private val sources: FractionalFluidSour
             val sourceLoaded = sourceLevel.hasChunkAt(sourcePos)
             val targetLevel = if (move.to == null) null else levels[move.to.dimension] ?: continue
             val targetPos = move.to?.blockPos()
-            if (move.to != null && (!sourceLoaded || !requireNotNull(targetLevel).hasChunkAt(requireNotNull(targetPos)))) continue
+            if (move.to != null && ((!sourceLoaded && !transfer.completed) || !requireNotNull(targetLevel).hasChunkAt(requireNotNull(targetPos)))) continue
             if (!transfer.committed) {
                 val sourcePresent = sourceLoaded && FractionalFluidSources.fluidName(sourceLevel.getBlockState(sourcePos)) == transfer.original.fluid
-                val targetPresent = targetLevel != null && FractionalFluidSources.fluidName(targetLevel.getBlockState(targetPos!!)) == transfer.original.fluid
-                val credit = when {
-                    targetPresent -> transfer.spill
-                    move.to != null && sourcePresent -> BigDecimal.ZERO
-                    else -> transfer.worldUnits
+                val targetFluid = targetLevel?.let { FractionalFluidSources.fluidName(it.getBlockState(targetPos!!)) }
+                var resolution = transfer.resolve(sourcePresent, sourceLoaded, targetFluid)
+                if (resolution.destinationCredit.signum() > 0) {
+                    if (parcels.enqueueExact(requireNotNull(move.to).dimension, requireNotNull(transfer.previousDestination).fluid,
+                            move.destinationPosition, move.destinationVelocity, resolution.destinationCredit) != VsiFluidOutflowResult.APPLIED) continue
+                    transfer.destinationReleased = true
+                    resolution = transfer.resolve(sourcePresent, sourceLoaded, targetFluid)
                 }
-                if (credit.signum() > 0) {
-                    if (levels[move.fallbackDimension] == null || parcels.enqueueExact(move.fallbackDimension,
-                            transfer.original.fluid, move.worldPosition, move.velocity, credit) != VsiFluidOutflowResult.APPLIED) continue
+                if (resolution.sourceCredit.signum() > 0) {
+                    val dimension = if (resolution.atDestination) requireNotNull(move.to).dimension else move.fallbackDimension
+                    if (levels[dimension] == null || parcels.enqueueExact(dimension, transfer.original.fluid,
+                            if (resolution.atDestination) move.destinationPosition else move.worldPosition,
+                            if (resolution.atDestination) move.destinationVelocity else move.velocity,
+                            resolution.sourceCredit) != VsiFluidOutflowResult.APPLIED) continue
                 }
-                val sourceValue = if (sourcePresent && ((targetPresent && move.copy) || (!targetPresent && move.to != null)))
-                    transfer.original else if (sourcePresent || !sourceLoaded) transfer.sourceZero else null
-                replace(move.from, sourceValue)
-                move.to?.let { replace(it, if (targetPresent) transfer.destination else null) }
+                replace(move.from, resolution.source)
+                move.to?.let { replace(it, resolution.destination) }
                 transfer.metadataBytes = transfer.budget - mapBytes(transfer)
                 transfer.committed = true
             }
             if (sourceLoaded) publish(sourceLevel, move.from)
             if (targetLevel != null) publish(targetLevel, requireNotNull(move.to))
-            if (targetLevel != null && transfer.destinationUnits.compareTo(FULL) == 0) {
+            if (targetLevel != null && sources.amounts[move.to] == null) {
                 val state = targetLevel.getBlockState(requireNotNull(targetPos))
                 val fluid = state.fluidState.type as? FlowingFluid
-                if (fluid != null && FractionalFluidSources.fluidName(state) == transfer.original.fluid)
+                if (fluid != null)
                     targetLevel.scheduleTick(targetPos, fluid, fluid.getTickDelay(targetLevel))
             }
             pending.remove(move.from)
@@ -174,10 +221,18 @@ internal class FractionalFluidTransfers(private val sources: FractionalFluidSour
             putDouble("x", move.worldPosition.x); putDouble("y", move.worldPosition.y); putDouble("z", move.worldPosition.z)
             putDouble("vx", move.velocity.x); putDouble("vy", move.velocity.y); putDouble("vz", move.velocity.z)
             putBoolean("copy", move.copy); putBoolean("committed", transfer.committed)
+            putDouble("target_x", move.destinationPosition.x); putDouble("target_y", move.destinationPosition.y); putDouble("target_z", move.destinationPosition.z)
+            putDouble("target_vx", move.destinationVelocity.x); putDouble("target_vy", move.destinationVelocity.y); putDouble("target_vz", move.destinationVelocity.z)
+            transfer.previousDestination?.let { previous -> put("destination_before", CompoundTag().apply {
+                putString("fluid", previous.fluid); putString("units", previous.units.toString())
+            }) }
+            putBoolean("destination_carrier", transfer.hadDestinationCarrier)
+            putBoolean("destination_released", transfer.destinationReleased)
+            putBoolean("completed", transfer.completed)
         })
     }
 
-    fun load(list: ListTag) {
+    fun load(list: ListTag, version: Int) {
         require(list.isEmpty() || list.elementType == Tag.TAG_COMPOUND)
         require(list.size.toLong() <= sources.maximumBytes / 32768)
         for (index in 0 until list.size) {
@@ -185,20 +240,39 @@ internal class FractionalFluidTransfers(private val sources: FractionalFluidSour
             val from = readPosition(tag, "from")
             val to = if (tag.contains("to")) readPosition(tag, "to") else null
             val fluid = text(tag, "fluid")
+            val position = vector(tag, "x", "y", "z")
+            val velocity = vector(tag, "vx", "vy", "vz")
             val move = Move(from, to, decimal(tag, "source_volume"), decimal(tag, "destination_volume"),
-                text(tag, "fallback_dimension"), vector(tag, "x", "y", "z"), vector(tag, "vx", "vy", "vz"),
-                boolean(tag, "copy"))
+                text(tag, "fallback_dimension"), position, velocity, boolean(tag, "copy"),
+                if (version >= 3) vector(tag, "target_x", "target_y", "target_z") else position,
+                if (version >= 3) vector(tag, "target_vx", "target_vy", "target_vz") else velocity)
             validate(move)
             require(from != to && !isLocked(from) && (to == null || !isLocked(to)))
             val units = decimal(tag, "units")
             require(units.signum() >= 0 && units < FULL)
-            val transfer = Pending(move, amount(from, fluid, units))
+            val previous = if (version >= 3 && tag.contains("destination_before")) {
+                require(tag.contains("destination_before", Tag.TAG_COMPOUND.toInt()) && to != null)
+                val value = tag.getCompound("destination_before")
+                val previousUnits = decimal(value, "units")
+                require(previousUnits <= FULL)
+                amount(to, text(value, "fluid"), previousUnits)
+            } else null
+            val hadCarrier = version >= 3 && boolean(tag, "destination_carrier")
+            require(!hadCarrier || previous != null && previous.units < FULL)
+            val transfer = Pending(move, amount(from, fluid, units), previous, hadCarrier)
             transfer.committed = boolean(tag, "committed")
+            transfer.completed = version >= 3 && boolean(tag, "completed")
+            transfer.destinationReleased = version >= 3 && boolean(tag, "destination_released")
+            require(!transfer.destinationReleased || previous != null && previous.units.signum() > 0)
             for (position in listOfNotNull(from, to)) {
                 val value = sources.amounts[position]
                 if (!transfer.committed) require(value?.fluid == fluid && value.units.signum() == 0)
-                else require(value == null || value.fluid == fluid && (value.units.signum() == 0 ||
-                    value.units.compareTo(if (position == from) units else transfer.destinationUnits) == 0))
+                else {
+                    val allowed = if (position == from) listOf(transfer.original, transfer.sourceZero)
+                        else listOfNotNull(transfer.destination, transfer.combinedDestination, transfer.destinationZero,
+                            transfer.previousZero, transfer.restoredDestination)
+                    require(value == null || allowed.any { it.fluid == value.fluid && it.units.compareTo(value.units) == 0 })
+                }
             }
             transfer.metadataBytes = transfer.budget - mapBytes(transfer)
             reserve(transfer.metadataBytes)
@@ -226,7 +300,8 @@ internal class FractionalFluidTransfers(private val sources: FractionalFluidSour
             require(move.from.dimension.length in 1..4096 && (move.to == null || move.to.dimension.length in 1..4096))
             require(move.fallbackDimension.length in 1..4096 && (!move.copy || move.to != null))
             require(checked(move.sourceVolume).signum() > 0 && checked(move.destinationVolume).signum() > 0)
-            for (vector in listOf(move.worldPosition, move.velocity)) require(vector.x.isFinite() && vector.y.isFinite() && vector.z.isFinite())
+            for (vector in listOf(move.worldPosition, move.velocity, move.destinationPosition, move.destinationVelocity))
+                require(vector.x.isFinite() && vector.y.isFinite() && vector.z.isFinite())
         }
         fun positionTag(position: Position) = CompoundTag().apply {
             putString("dimension", position.dimension); putIntArray("position", intArrayOf(position.x, position.y, position.z))

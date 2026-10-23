@@ -12,8 +12,9 @@ import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.fluid.FractionalFluidSources.Position
 import java.math.BigDecimal
 
-class FractionalFluidTransferScope internal constructor(private val finish: () -> Unit) : AutoCloseable {
+class FractionalFluidTransferScope internal constructor(private val finish: () -> Unit, private val markComplete: () -> Unit) : AutoCloseable {
     private var closed = false
+    fun complete() { check(!closed); markComplete() }
     override fun close() {
         if (closed) return
         closed = true
@@ -91,8 +92,12 @@ object FractionalFluidLifecycle {
         source?.shipToWorld?.transformPosition(position)
         val velocity = if (source == null) Vector3d() else Vector3d(source.angularVelocity)
             .cross(Vector3d(position).sub(source.transform.positionInWorld)).add(source.velocity)
+        val targetPosition = to?.let { Vector3d(it.x + 0.5, it.y + 0.5, it.z + 0.5) } ?: Vector3d(position)
+        destination?.shipToWorld?.transformPosition(targetPosition)
+        val targetVelocity = if (destination == null) Vector3d() else Vector3d(destination.angularVelocity)
+            .cross(Vector3d(targetPosition).sub(destination.transform.positionInWorld)).add(destination.velocity)
         return FractionalFluidTransfers.Move(from, to, cellVolume(source), cellVolume(destination),
-            from.dimension, position, velocity, copy)
+            from.dimension, position, velocity, copy, targetPosition, targetVelocity)
     }
 
     private fun cellVolume(ship: ServerShip?): BigDecimal {

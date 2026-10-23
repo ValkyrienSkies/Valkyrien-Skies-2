@@ -236,7 +236,7 @@ object ShipAssembler {
         val fromCenter = offset.get(Vector3d()).add(oldMin)
 
         val cornerOfShip = Vector3d(toCenter).sub(offset).ceil().let { BlockPos(it.x.toInt(), it.y.toInt(), it.z.toInt()) }
-        FractionalFluidLifecycle.beginMove(level, blocks, fromShip, toShip, minStructurePos, cornerOfShip, !removeOriginal).use {
+        FractionalFluidLifecycle.beginMove(level, blocks, fromShip, toShip, minStructurePos, cornerOfShip, !removeOriginal).use { fluidTransfer ->
         var wasSplittingEnabled = true
         if (fromShip is LoadedServerShip) {
             val splittingDisabler = fromShip.getAttachment(SplittingDisablerAttachment::class.java)
@@ -334,7 +334,9 @@ object ShipAssembler {
         structureSettings.rotationPivot = cornerOfShip
 
         VSAssemblyEvents.onPasteBeforeBlocksAreLoaded.emit(VSAssemblyEvents.OnPasteBeforeBlocksAreLoaded(level, fromShip, toShip, Pair(fromCenter, centerOfShip), eventData))
-        template.placeInWorld(level, cornerOfShip, cornerOfShip, structureSettings, level.random, Block.UPDATE_CLIENTS)
+        if (template.placeInWorld(level, cornerOfShip, cornerOfShip, structureSettings, level.random, Block.UPDATE_CLIENTS)) {
+            fluidTransfer?.complete()
+        }
 
         if (removeOriginal) {
             transferRetainedWater(level, fromShip, toShip, blocks, minStructurePos, cornerOfShip)
@@ -622,7 +624,7 @@ object ShipAssembler {
                 val removeFlags = Block.UPDATE_CLIENTS or Block.UPDATE_KNOWN_SHAPE or Block.UPDATE_SUPPRESS_DROPS or Block.UPDATE_MOVE_BY_PISTON
 
                 FractionalFluidLifecycle.beginMove(level, filteredBlocks, pending.fromShip, pending.toShip,
-                    pending.minB, cornerOfShip, false).use {
+                    pending.minB, cornerOfShip, false).use { fluidTransfer ->
                 if (filteredBlocksWithState.size <= 8) {
                     val destPositions = ArrayList<BlockPos>(filteredBlocksWithState.size)
                     for ((srcPos, state) in filteredBlocksWithState) {
@@ -702,6 +704,7 @@ object ShipAssembler {
                 }
 
                 // Both the small direct-move and template paths have moved this exact selection.
+                fluidTransfer?.complete()
                 transferRetainedWater(level, pending.fromShip, pending.toShip,
                     filteredBlocks, pending.minB, cornerOfShip)
                 }

@@ -56,6 +56,7 @@ class FractionalFluidLifecycleTest {
             every { world.getShipManagingPos(any<BlockPos>()) } returns null
             every { world.minBuildHeight } returns -64
             every { world.maxBuildHeight } returns 320
+            every { world.dimensionType().ultraWarm() } returns false
             every { world.players() } returns emptyList()
             every { world.getBlockState(any()) } answers {
                 val p = firstArg<BlockPos>()
@@ -180,6 +181,10 @@ class FractionalFluidLifecycleTest {
             .setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.WATERLOGGED, true)
         val target = mockk<ServerShip>()
         every { target.transform.scaling } returns Vector3d(2.0)
+        every { target.shipToWorld } returns Matrix4d().scale(2.0)
+        every { target.transform.positionInWorld } returns Vector3d()
+        every { target.velocity } returns Vector3d()
+        every { target.angularVelocity } returns Vector3d()
         val scope = FractionalFluidLifecycle.beginMove(level, setOf(BlockPos(from.x, from.y, from.z)),
             null, target, BlockPos(from.x, from.y, from.z), BlockPos(to.x, to.y, to.z), false)
         blocks[to] = blocks.getValue(from)
@@ -211,17 +216,112 @@ class FractionalFluidLifecycleTest {
         assertAmount("29"); assertAmount(null, to)
     }
 
-    @Test fun `an existing destination fluid is refused before either ownership can change`() {
+    @Test fun `same-fluid destinations merge exact amounts and spill only their excess`() {
+        for (prior in listOf("50.25", "255")) {
+            sources = FractionalFluidSources(); manager = WorldFluidOutflowManager(8, 8); blocks.clear()
+            seed(); seed(to, prior)
+            val scope = begin()
+            assertAmount("0"); assertAmount("0", to)
+            remove(from); scope.complete(); scope.close()
+            val expected = BigDecimal(29) + BigDecimal(prior)
+            val retained = amount(to) ?: BigDecimal(255)
+            assertEquals(0, (retained + pendingUnits()).compareTo(expected))
+            assertEquals(0, retained.compareTo(minOf(BigDecimal(255), expected)))
+            reload(); recover()
+            assertEquals(0, ((amount(to) ?: BigDecimal(255)) + pendingUnits()).compareTo(expected))
+        }
+    }
+
+    @Test fun `occupied dimension destination spills in the destination frame`() {
         seed()
-        for (state in listOf(Blocks.WATER.defaultBlockState(), Blocks.LAVA.defaultBlockState())) {
-            blocks[to] = state
-            val before = sources.save()
-            assertThrows(IllegalArgumentException::class.java) { begin() }
-            assertEquals(before, sources.save())
-            assertEquals(state, blocks[to])
-            assertAmount("29"); assertAmount(null, to)
+        val target = to.copy(dimension = OTHER)
+        seed(target, "255")
+        val scope = begin(move(destination = target).copy(destinationPosition = Vector3d(101.5, 80.5, -17.5),
+            destinationVelocity = Vector3d(3.0, 4.0, 5.0)))
+        remove(from); scope.complete(); scope.close()
+        val parcel = manager.save().getList("parcels", 10).getCompound(0)
+        assertEquals(OTHER, parcel.getString("dimension"))
+        assertEquals(101.5, parcel.getDouble("x"))
+        assertEquals(80.5, parcel.getDouble("y"))
+        assertEquals(-17.5, parcel.getDouble("z"))
+        assertEquals(3.0, parcel.getDouble("vx"))
+        assertEquals(0, pendingUnits().compareTo(BigDecimal(29)))
+        reload(); recover(); assertEquals(1, manager.activeParcelCount())
+    }
+
+    @Test fun `legacy unoccupied transfer saves recover without a destination inventory`() {
+        seed(); begin(); remove(from); blocks[to] = Blocks.WATER.defaultBlockState()
+        val saved = sources.save()
+        saved.putInt("version", 2)
+        val transfer = saved.getList("transfers", 10).getCompound(0)
+        for (key in listOf("target_x", "target_y", "target_z", "target_vx", "target_vy", "target_vz",
+                "destination_before", "destination_carrier", "destination_released", "completed")) transfer.remove(key)
+        sources = FractionalFluidSources().also { it.load(saved) }
+        recover(); assertAmount(null); assertAmount("29", to)
+        assertEquals(0, manager.activeParcelCount())
+    }
+
+    @Test fun `save before an occupied-destination move restores both original owners`() {
+        seed()
+        seed(to, "50.25")
+        begin(); reload(); recover()
+        assertAmount("29"); assertAmount("50.25", to)
+        assertEquals(0, manager.activeParcelCount())
+    }
+
+    @Test fun `copy completion is saved independently of unchanged destination block state`() {
+        for (complete in listOf(false, true)) {
+            sources = FractionalFluidSources(); blocks.clear()
+            seed(); seed(to, "50.25")
+            val scope = begin(move(copy = true))
+            if (complete) scope.complete()
+            reload(); recover()
+            assertAmount("29"); assertAmount(if (complete) "79.25" else "50.25", to)
             assertEquals(0, manager.activeParcelCount())
         }
+    }
+
+    @Test fun `different fluids keep separate ownership through single-parcel capacity and reload`() {
+        manager = WorldFluidOutflowManager(1, 8)
+        seed(units = "127.25")
+        val lava = "minecraft:lava"
+        blocks[to] = Blocks.LAVA.defaultBlockState()
+        assertTrue(sources.setAmount(DIM, to.x, to.y, to.z, lava, BigDecimal(100)))
+        val scope = begin(move(sourceVolume = "8").copy(destinationPosition = Vector3d(10.5, 1.5, 0.5), destinationVelocity = Vector3d()))
+        assertEquals(0, sources.sourceFillAmount(DIM, to.x, to.y, to.z, lava))
+        remove(from); blocks[to] = Blocks.WATER.defaultBlockState()
+        assertAmount("0", to)
+        scope.complete(); scope.close()
+        assertAmount("0", to)
+        assertEquals(1, manager.activeParcelCount())
+        assertEquals(lava, manager.save().getList("parcels", 10).getCompound(0).getString("fluid"))
+        val saved = sources.save()
+        assertTrue(saved.getList("transfers", 10).getCompound(0).getBoolean("destination_released"))
+        sources = FractionalFluidSources().also { it.load(saved) }
+        manager = WorldFluidOutflowManager(1, 8).also { it.load(manager.save()) }
+        recover(); assertEquals(1, manager.activeParcelCount())
+        manager.tick(levels)
+        assertEquals(0, manager.activeParcelCount())
+        recover()
+        assertAmount(null, to)
+        assertEquals(0, pendingUnits().compareTo(BigDecimal(763)))
+        assertEquals(0, requireNotNull(sources.amount(DIM, 10, 1, 0, lava)).compareTo(BigDecimal(100)))
+        reload(); recover()
+        assertEquals(0, pendingUnits().compareTo(BigDecimal(763)))
+    }
+
+    @Test fun `failed occupied move keeps incoming source and exports a displaced different fluid`() {
+        seed()
+        blocks[to] = Blocks.LAVA.defaultBlockState()
+        val scope = begin(move().copy(destinationPosition = Vector3d(33.5, 2.5, 3.5)))
+        blocks.remove(to)
+        scope.close()
+        assertAmount("29"); assertAmount(null, to)
+        val parcel = manager.save().getList("parcels", 10).getCompound(0)
+        assertEquals("minecraft:lava", parcel.getString("fluid"))
+        assertEquals(33.5, parcel.getDouble("x"))
+        assertEquals(0, pendingUnits().compareTo(BigDecimal(255)))
+        reload(); recover(); assertEquals(1, manager.activeParcelCount())
     }
 
     @Test fun `parcel capacity refusal retains deletion ownership across reload until queue drains`() {
@@ -274,6 +374,24 @@ class FractionalFluidLifecycleTest {
         val before = sources.save(); recover(); assertEquals(before, sources.save())
         every { level.hasChunkAt(any()) } returns true
         recover(); assertAmount("29", to)
+    }
+
+    @Test fun `completed migration resolves after its old chunks unload and copies retain their original`() {
+        for (copy in listOf(false, true)) {
+            sources = FractionalFluidSources(); blocks.clear()
+            seed(); seed(to, "50")
+            val scope = begin(move(copy = copy))
+            if (!copy) remove(from)
+            scope.complete()
+            every { level.hasChunkAt(BlockPos(from.x, from.y, from.z)) } returns false
+            scope.close()
+            assertAmount(if (copy) "29" else "0")
+            assertAmount("79", to)
+            assertEquals(0, manager.activeParcelCount())
+            reload(); recover(); assertAmount("79", to)
+            every { level.hasChunkAt(any()) } returns true
+        }
+        verify(exactly = 0) { level.getBlockState(BlockPos(from.x, from.y, from.z)) }
     }
 
     @Test fun `legacy block relocation carries exact amounts through ordinary removal callbacks`() {

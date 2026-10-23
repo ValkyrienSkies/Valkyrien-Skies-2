@@ -48,7 +48,9 @@ class FractionalFluidSources(internal val maximumBytes: Long = 16L * 1024 * 1024
 
     fun amount(dimension: String, x: Int, y: Int, z: Int, fluid: String): BigDecimal? {
         if (amounts.isEmpty()) return null
-        val value = amounts[Position(dimension, x, y, z)] ?: return null
+        val position = Position(dimension, x, y, z)
+        if (transfers.isUncommitted(position)) return BigDecimal.ZERO
+        val value = amounts[position] ?: return null
         return value.units.takeIf { value.fluid == fluid }
     }
 
@@ -162,7 +164,7 @@ class FractionalFluidSources(internal val maximumBytes: Long = 16L * 1024 * 1024
     }
 
     fun save(): CompoundTag = CompoundTag().apply {
-        putInt("version", 2)
+        putInt("version", 3)
         put("sources", ListTag().also { sources ->
             for ((position, amount) in amounts) sources.add(CompoundTag().apply {
                 putString("dimension", position.dimension)
@@ -176,7 +178,7 @@ class FractionalFluidSources(internal val maximumBytes: Long = 16L * 1024 * 1024
 
     fun load(tag: CompoundTag) {
         check(!transfers.hasActiveTransfers())
-        require(tag.contains("version", Tag.TAG_INT.toInt()) && tag.getInt("version") in 1..2)
+        require(tag.contains("version", Tag.TAG_INT.toInt()) && tag.getInt("version") in 1..3)
         require(tag.contains("sources", Tag.TAG_LIST.toInt()))
         val sources = tag.get("sources") as ListTag
         require(sources.isEmpty() || sources.elementType == Tag.TAG_COMPOUND)
@@ -199,9 +201,9 @@ class FractionalFluidSources(internal val maximumBytes: Long = 16L * 1024 * 1024
                 "Fractional fluid sources exceed their storage allowance"
             }
         }
-        if (tag.getInt("version") == 2) {
+        if (tag.getInt("version") >= 2) {
             require(tag.contains("transfers", Tag.TAG_LIST.toInt()))
-            restored.transfers.load(tag.get("transfers") as ListTag)
+            restored.transfers.load(tag.get("transfers") as ListTag, tag.getInt("version"))
         }
         amounts = restored.amounts
         transfers.adopt(restored.transfers)
