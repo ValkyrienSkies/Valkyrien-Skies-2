@@ -267,6 +267,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         at = @At("TAIL")
     )
     private void postTick(final CallbackInfo ci) {
+        fractionalFluidSources.recoverTransfers(dimensionToLevelMap, fluidOutflowManager);
         vsPipeline.postTickGame();
         org.valkyrienskies.mod.common.fluid.ShipFluidInteraction.prune(shipWorld);
         fluidOutflowManager.tick(dimensionToLevelMap);
@@ -517,6 +518,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
 
     @Override
     public boolean serviceFluidOutflowPressure() {
+        fractionalFluidSources.recoverTransfers(dimensionToLevelMap, fluidOutflowManager);
         return fluidOutflowManager.servicePressure(dimensionToLevelMap);
     }
 
@@ -524,6 +526,17 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     @Override
     public FractionalFluidSources getFractionalFluidSources() {
         return fractionalFluidSources;
+    }
+
+    @Override
+    public WorldFluidOutflowManager getFluidOutflowManager() {
+        return fluidOutflowManager;
+    }
+
+    @Override
+    public void beforeShipDeletion(@NotNull final org.valkyrienskies.core.api.ships.ServerShip ship) {
+        org.valkyrienskies.mod.common.fluid.FractionalFluidLifecycle.releaseShip(
+            fractionalFluidSources, dimensionToLevelMap, fluidOutflowManager, ship);
     }
 
     @NotNull
@@ -546,6 +559,8 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         final ServerLevel srcLevel = getLevelFromDimensionId(srcDimension);
         final ServerLevel destLevel = getLevelFromDimensionId(destDimension);
 
+        try (final org.valkyrienskies.mod.common.fluid.FractionalFluidTransferScope transfer =
+                 org.valkyrienskies.mod.common.fluid.FractionalFluidLifecycle.beginDimensionMove(srcLevel, destLevel, shipChunks)) {
         // Copy ship chunks from srcLevel to destLevel
         shipChunks.forEach((final int x, final int z) -> {
             final LevelChunk srcChunk = srcLevel.getChunk(x, z);
@@ -566,5 +581,6 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
             srcLevel.getChunkSource().updateChunkForced(chunkPos, false);
             ((VSServerLevel) srcLevel).removeChunk(x, z);
         });
+        }
     }
 }

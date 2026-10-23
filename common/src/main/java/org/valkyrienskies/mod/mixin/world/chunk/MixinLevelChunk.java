@@ -144,6 +144,11 @@ public abstract class MixinLevelChunk extends ChunkAccess implements VSLevelChun
 
         registerTickContainerInLevel((ServerLevel) level);
         this.unsaved = true;
+        if (level instanceof ServerLevel serverLevel) {
+            final org.valkyrienskies.mod.common.fluid.FractionalFluidSources sources =
+                org.valkyrienskies.mod.common.fluid.FractionalFluidSources.Companion.forLevel(serverLevel);
+            if (sources != null) sources.clearChunk(VSGameUtilsKt.getDimensionId(serverLevel), chunkPos.x, chunkPos.z);
+        }
     }
 
     @Override

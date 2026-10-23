@@ -38,6 +38,7 @@ import org.valkyrienskies.core.impl.config.VSCoreConfig
 import org.valkyrienskies.core.internal.ships.VsiServerShip
 import org.valkyrienskies.mod.common.assembly.ShipAssembler.assembleToShipFull
 import org.valkyrienskies.mod.common.dimensionId
+import org.valkyrienskies.mod.common.fluid.FractionalFluidLifecycle
 import org.valkyrienskies.mod.common.executeIf
 import org.valkyrienskies.mod.common.forEach
 import org.valkyrienskies.mod.common.getLoadedShipManagingPos
@@ -234,6 +235,8 @@ object ShipAssembler {
             .div(2.0)
         val fromCenter = offset.get(Vector3d()).add(oldMin)
 
+        val cornerOfShip = Vector3d(toCenter).sub(offset).ceil().let { BlockPos(it.x.toInt(), it.y.toInt(), it.z.toInt()) }
+        FractionalFluidLifecycle.beginMove(level, blocks, fromShip, toShip, minStructurePos, cornerOfShip, !removeOriginal).use {
         var wasSplittingEnabled = true
         if (fromShip is LoadedServerShip) {
             val splittingDisabler = fromShip.getAttachment(SplittingDisablerAttachment::class.java)
@@ -319,15 +322,6 @@ object ShipAssembler {
 
         //structure template builds from a corner, so offset center of plot so that structure's center and center of
         //plot roughly align
-        val cornerOfShip = Vector3d(toCenter)
-            .sub(offset)
-            .ceil()
-            .let { BlockPos(
-                it.x.toInt(),
-                it.y.toInt(),
-                it.z.toInt(),
-            ) }
-
         val centerOfShip = cornerOfShip.toJOMLD().add(offset)
 
         val structureSettings = StructurePlaceSettings().addProcessor(
@@ -406,6 +400,7 @@ object ShipAssembler {
         }
 
         return MoveContext(true, fromCenter, centerOfShip)
+        }
     }
 
     @JvmStatic
@@ -626,6 +621,8 @@ object ShipAssembler {
 
                 val removeFlags = Block.UPDATE_CLIENTS or Block.UPDATE_KNOWN_SHAPE or Block.UPDATE_SUPPRESS_DROPS or Block.UPDATE_MOVE_BY_PISTON
 
+                FractionalFluidLifecycle.beginMove(level, filteredBlocks, pending.fromShip, pending.toShip,
+                    pending.minB, cornerOfShip, false).use {
                 if (filteredBlocksWithState.size <= 8) {
                     val destPositions = ArrayList<BlockPos>(filteredBlocksWithState.size)
                     for ((srcPos, state) in filteredBlocksWithState) {
@@ -707,6 +704,7 @@ object ShipAssembler {
                 // Both the small direct-move and template paths have moved this exact selection.
                 transferRetainedWater(level, pending.fromShip, pending.toShip,
                     filteredBlocks, pending.minB, cornerOfShip)
+                }
 
                 // Set kinematics
                 val posOffset = Vector3d(pending.toShip.inertiaData.centerOfMass)
@@ -785,6 +783,7 @@ object ShipAssembler {
     }
 
     fun deleteShip(level: ServerLevel, ship: ServerShip, deleteBlocks: Boolean, dropBlocks: Boolean): Int {
+        FractionalFluidLifecycle.releaseShip(level, ship)
         if (ship is LoadedServerShip) {
             val splittingDisabler = ship.getAttachment(SplittingDisablerAttachment::class.java)
             splittingDisabler?.disableSplitting()

@@ -347,11 +347,29 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
         }
         val fluid = MassDatapackResolver.getFlowingFluid(outflow.fluidId)
             ?: return VsiFluidOutflowResult.UNSUPPORTED_FLUID
+        return enqueueParcel(outflow.dimensionId, fluid,
+            Vector3d(outflow.worldPositionX, outflow.worldPositionY, outflow.worldPositionZ),
+            Vector3d(outflow.worldVelocityX, outflow.worldVelocityY, outflow.worldVelocityZ),
+            BigDecimal.valueOf(outflow.worldVolume) * FULL_SOURCE)
+    }
+
+    internal fun enqueueExact(dimension: String, fluidName: String, position: Vector3d, velocity: Vector3d,
+        units: BigDecimal): VsiFluidOutflowResult {
+        require(units.signum() > 0 && units <= MAX_PARCEL_UNITS && units.scale() in -308..325 && units.precision() <= 640)
+        require(position.x.isFinite() && position.y.isFinite() && position.z.isFinite())
+        val name = ResourceLocation(fluidName)
+        val fluid = if (BuiltInRegistries.FLUID.containsKey(name)) BuiltInRegistries.FLUID.get(name) as? FlowingFluid else null
+        return if (fluid == null) VsiFluidOutflowResult.UNSUPPORTED_FLUID
+            else enqueueParcel(dimension, fluid, position, velocity, units)
+    }
+
+    private fun enqueueParcel(dimension: String, fluid: FlowingFluid, position: Vector3d, velocity: Vector3d,
+        units: BigDecimal): VsiFluidOutflowResult {
         if (parcels.size >= maxActiveParcels.coerceAtLeast(1)) {
             return VsiFluidOutflowResult.RETRY_LATER
         }
         val fluidName = BuiltInRegistries.FLUID.getKey(fluid)
-        val bytes = PARCEL_STORAGE_BYTES + nameStorageBytes(outflow.dimensionId.length.toLong(),
+        val bytes = PARCEL_STORAGE_BYTES + nameStorageBytes(dimension.length.toLong(),
             fluidName.namespace.length.toLong() + fluidName.path.length + 1)
         if (!parcelStorage.fits(bytes)) {
             if (bytes > parcelStorage.limit - MANAGER_STORAGE_BYTES) throw parcelStorage.failure(bytes)
@@ -360,23 +378,15 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
         parcelStorage.reserve(bytes)
         try {
             parcels.addLast(Parcel(
-                dimensionId = outflow.dimensionId,
-                worldPosition = Vector3d(
-                    outflow.worldPositionX,
-                    outflow.worldPositionY,
-                    outflow.worldPositionZ,
-                ),
-                velocity = Vector3d(
-                    outflow.worldVelocityX,
-                    outflow.worldVelocityY,
-                    outflow.worldVelocityZ,
-                ).also {
+                dimensionId = dimension,
+                worldPosition = Vector3d(position),
+                velocity = Vector3d(velocity).also {
                     // Match the motion integrator's recovery before this owner can be saved.
                     if (!it.x.isFinite() || !it.y.isFinite() || !it.z.isFinite()) it.zero()
                 },
                 fluid = fluid,
                 fluidName = fluidName,
-                sourceUnits = BigDecimal.valueOf(outflow.worldVolume) * FULL_SOURCE,
+                sourceUnits = units,
                 lastUpdatedTick = currentTick,
                 metadataBytes = bytes,
             ))

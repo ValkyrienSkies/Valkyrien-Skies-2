@@ -16,8 +16,8 @@ import org.valkyrienskies.mod.common.dimensionId
 import java.math.BigDecimal
 import java.util.TreeMap
 
-class FractionalFluidSources(private val maximumBytes: Long = 16L * 1024 * 1024) {
-    private data class Position(val dimension: String, val x: Int, val y: Int, val z: Int) : Comparable<Position> {
+class FractionalFluidSources(internal val maximumBytes: Long = 16L * 1024 * 1024) {
+    internal data class Position(val dimension: String, val x: Int, val y: Int, val z: Int) : Comparable<Position> {
         override fun compareTo(other: Position): Int {
             var order = dimension.compareTo(other.dimension)
             if (order == 0) order = (x shr 4).compareTo(other.x shr 4)
@@ -30,10 +30,11 @@ class FractionalFluidSources(private val maximumBytes: Long = 16L * 1024 * 1024)
         }
     }
 
-    private data class Amount(val fluid: String, val units: BigDecimal, val bytes: Long)
-    private var amounts = TreeMap<Position, Amount>()
+    internal data class Amount(val fluid: String, val units: BigDecimal, val bytes: Long)
+    internal var amounts = TreeMap<Position, Amount>()
+    internal val transfers = FractionalFluidTransfers(this)
     var retainedBytes = 0L
-        private set
+        internal set
     val size: Int get() = amounts.size
 
     init { require(maximumBytes >= 0) }
@@ -59,6 +60,7 @@ class FractionalFluidSources(private val maximumBytes: Long = 16L * 1024 * 1024)
         require(units.signum() >= 0 && units <= FULL_SOURCE)
         require(units.scale() in -308..325 && units.precision() <= 640)
         val position = Position(dimension, x, y, z)
+        if (transfers.isLocked(position)) return false
         val previous = amounts[position]
         if (units.compareTo(FULL_SOURCE) == 0) {
             if (previous != null) { amounts.remove(position); retainedBytes -= previous.bytes }
@@ -76,6 +78,7 @@ class FractionalFluidSources(private val maximumBytes: Long = 16L * 1024 * 1024)
     fun reconcileFluid(dimension: String, x: Int, y: Int, z: Int, fluid: String?) {
         if (amounts.isEmpty()) return
         val position = Position(dimension, x, y, z)
+        if (transfers.isLocked(position)) return
         val previous = amounts[position] ?: return
         if (previous.fluid != fluid) {
             amounts.remove(position)
@@ -99,6 +102,7 @@ class FractionalFluidSources(private val maximumBytes: Long = 16L * 1024 * 1024)
             require(units.scale() in -308..325 && units.precision() <= 640)
         }
         val position = Position(dimension, x, y, z)
+        if (transfers.isLocked(position)) return null
         val previous = amounts[position]
         if (previous != null && (previous.fluid != fluid || previous.units.compareTo(before) != 0)) return null
         val normalizedBefore = before.stripTrailingZeros()
@@ -131,6 +135,7 @@ class FractionalFluidSources(private val maximumBytes: Long = 16L * 1024 * 1024)
         val previous = amounts[source] ?: return true
         val destination = Position(destinationDimension, destinationX, destinationY, destinationZ)
         if (source == destination) return true
+        if (transfers.isLocked(source) || transfers.isLocked(destination)) return false
         if (amounts.containsKey(destination)) return false
         require(destinationDimension.length in 1..4096)
         val bytes = previous.bytes + 4L * (destinationDimension.length - dimension.length)
@@ -141,8 +146,23 @@ class FractionalFluidSources(private val maximumBytes: Long = 16L * 1024 * 1024)
         return true
     }
 
+    fun recoverTransfers(levels: Map<String, ServerLevel>, parcels: WorldFluidOutflowManager) = transfers.recover(levels, parcels)
+
+    fun clearChunk(dimension: String, x: Int, z: Int) {
+        if (amounts.isEmpty() || x !in -134217728..134217727 || z !in -134217728..134217727) return
+        val iterator = amounts.tailMap(Position(dimension, x shl 4, Int.MIN_VALUE, Int.MIN_VALUE)).entries.iterator()
+        while (iterator.hasNext()) {
+            val entry = iterator.next()
+            if (entry.key.dimension != dimension || entry.key.x shr 4 != x) break
+            if (entry.key.z shr 4 == z && !transfers.isLocked(entry.key)) {
+                retainedBytes -= entry.value.bytes
+                iterator.remove()
+            }
+        }
+    }
+
     fun save(): CompoundTag = CompoundTag().apply {
-        putInt("version", 1)
+        putInt("version", 2)
         put("sources", ListTag().also { sources ->
             for ((position, amount) in amounts) sources.add(CompoundTag().apply {
                 putString("dimension", position.dimension)
@@ -151,10 +171,12 @@ class FractionalFluidSources(private val maximumBytes: Long = 16L * 1024 * 1024)
                 putString("units", amount.units.toString())
             })
         })
+        put("transfers", transfers.save())
     }
 
     fun load(tag: CompoundTag) {
-        require(tag.contains("version", Tag.TAG_INT.toInt()) && tag.getInt("version") == 1)
+        check(!transfers.hasActiveTransfers())
+        require(tag.contains("version", Tag.TAG_INT.toInt()) && tag.getInt("version") in 1..2)
         require(tag.contains("sources", Tag.TAG_LIST.toInt()))
         val sources = tag.get("sources") as ListTag
         require(sources.isEmpty() || sources.elementType == Tag.TAG_COMPOUND)
@@ -177,7 +199,12 @@ class FractionalFluidSources(private val maximumBytes: Long = 16L * 1024 * 1024)
                 "Fractional fluid sources exceed their storage allowance"
             }
         }
+        if (tag.getInt("version") == 2) {
+            require(tag.contains("transfers", Tag.TAG_LIST.toInt()))
+            restored.transfers.load(tag.get("transfers") as ListTag)
+        }
         amounts = restored.amounts
+        transfers.adopt(restored.transfers)
         retainedBytes = restored.retainedBytes
     }
 
