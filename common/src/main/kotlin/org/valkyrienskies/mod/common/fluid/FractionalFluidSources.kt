@@ -1,0 +1,149 @@
+package org.valkyrienskies.mod.common.fluid
+
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.nbt.ListTag
+import net.minecraft.nbt.Tag
+import net.minecraft.server.level.ServerLevel
+import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.material.FlowingFluid
+import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider
+import java.math.BigDecimal
+import java.util.TreeMap
+
+class FractionalFluidSources(private val maximumBytes: Long = 16L * 1024 * 1024) {
+    private data class Position(val dimension: String, val x: Int, val y: Int, val z: Int) : Comparable<Position> {
+        override fun compareTo(other: Position): Int {
+            var order = dimension.compareTo(other.dimension)
+            if (order == 0) order = (x shr 4).compareTo(other.x shr 4)
+            if (order == 0) order = (y shr 4).compareTo(other.y shr 4)
+            if (order == 0) order = (z shr 4).compareTo(other.z shr 4)
+            if (order == 0) order = x.compareTo(other.x)
+            if (order == 0) order = y.compareTo(other.y)
+            if (order == 0) order = z.compareTo(other.z)
+            return order
+        }
+    }
+
+    private data class Amount(val fluid: String, val units: BigDecimal, val bytes: Long)
+    private var amounts = TreeMap<Position, Amount>()
+    var retainedBytes = 0L
+        private set
+    val size: Int get() = amounts.size
+
+    init { require(maximumBytes >= 0) }
+
+    fun hasChunk(dimension: String, x: Int, y: Int, z: Int): Boolean {
+        if (amounts.isEmpty() || x !in -134217728..134217727 || y !in -134217728..134217727 ||
+            z !in -134217728..134217727) return false
+        val next = amounts.ceilingKey(Position(dimension, x shl 4, y shl 4, z shl 4)) ?: return false
+        return next.dimension == dimension && next.x shr 4 == x && next.y shr 4 == y && next.z shr 4 == z
+    }
+
+    fun amount(dimension: String, x: Int, y: Int, z: Int, fluid: String): BigDecimal? {
+        if (amounts.isEmpty()) return null
+        val value = amounts[Position(dimension, x, y, z)] ?: return null
+        return value.units.takeIf { value.fluid == fluid }
+    }
+
+    fun sourceFillAmount(dimension: String, x: Int, y: Int, z: Int, fluid: String): Int =
+        amount(dimension, x, y, z, fluid)?.toInt() ?: 255
+
+    fun setAmount(dimension: String, x: Int, y: Int, z: Int, fluid: String, units: BigDecimal): Boolean {
+        require(dimension.length in 1..4096 && fluid.length in 1..4096)
+        require(units.signum() >= 0 && units <= FULL_SOURCE)
+        require(units.scale() in -308..325 && units.precision() <= 640)
+        val position = Position(dimension, x, y, z)
+        val previous = amounts[position]
+        if (units.compareTo(FULL_SOURCE) == 0) {
+            if (previous != null) { amounts.remove(position); retainedBytes -= previous.bytes }
+            return true
+        }
+        val normalized = units.stripTrailingZeros()
+        val bytes = 512L + 4L * (dimension.length + fluid.length + normalized.toString().length)
+        val additional = bytes - (previous?.bytes ?: 0L)
+        if (additional > maximumBytes - retainedBytes) return false
+        amounts[position] = Amount(fluid, normalized, bytes)
+        retainedBytes += additional
+        return true
+    }
+
+    fun reconcileFluid(dimension: String, x: Int, y: Int, z: Int, fluid: String?) {
+        if (amounts.isEmpty()) return
+        val position = Position(dimension, x, y, z)
+        val previous = amounts[position] ?: return
+        if (previous.fluid != fluid) {
+            amounts.remove(position)
+            retainedBytes -= previous.bytes
+        }
+    }
+
+    fun move(dimension: String, x: Int, y: Int, z: Int,
+             destinationDimension: String, destinationX: Int, destinationY: Int, destinationZ: Int): Boolean {
+        val source = Position(dimension, x, y, z)
+        val previous = amounts[source] ?: return true
+        val destination = Position(destinationDimension, destinationX, destinationY, destinationZ)
+        if (source == destination) return true
+        if (amounts.containsKey(destination)) return false
+        require(destinationDimension.length in 1..4096)
+        val bytes = previous.bytes + 4L * (destinationDimension.length - dimension.length)
+        if (bytes - previous.bytes > maximumBytes - retainedBytes) return false
+        amounts[destination] = previous.copy(bytes = bytes)
+        amounts.remove(source)
+        retainedBytes += bytes - previous.bytes
+        return true
+    }
+
+    fun save(): CompoundTag = CompoundTag().apply {
+        putInt("version", 1)
+        put("sources", ListTag().also { sources ->
+            for ((position, amount) in amounts) sources.add(CompoundTag().apply {
+                putString("dimension", position.dimension)
+                putIntArray("position", intArrayOf(position.x, position.y, position.z))
+                putString("fluid", amount.fluid)
+                putString("units", amount.units.toString())
+            })
+        })
+    }
+
+    fun load(tag: CompoundTag) {
+        require(tag.contains("version", Tag.TAG_INT.toInt()) && tag.getInt("version") == 1)
+        require(tag.contains("sources", Tag.TAG_LIST.toInt()))
+        val sources = tag.get("sources") as ListTag
+        require(sources.isEmpty() || sources.elementType == Tag.TAG_COMPOUND)
+        require(sources.size.toLong() <= maximumBytes / 512)
+        val restored = FractionalFluidSources(maximumBytes)
+        for (index in 0 until sources.size) {
+            val entry = sources.getCompound(index)
+            require(entry.contains("dimension", Tag.TAG_STRING.toInt()) && entry.contains("fluid", Tag.TAG_STRING.toInt()))
+            require(entry.contains("position", Tag.TAG_INT_ARRAY.toInt()) && entry.contains("units", Tag.TAG_STRING.toInt()))
+            val position = entry.getIntArray("position")
+            require(position.size == 3)
+            val dimension = entry.getString("dimension")
+            val fluid = entry.getString("fluid")
+            val encoded = entry.getString("units")
+            require(encoded.length in 1..640)
+            val units = encoded.toBigDecimal()
+            require(units < FULL_SOURCE)
+            require(!restored.amounts.containsKey(Position(dimension, position[0], position[1], position[2])))
+            require(restored.setAmount(dimension, position[0], position[1], position[2], fluid, units)) {
+                "Fractional fluid sources exceed their storage allowance"
+            }
+        }
+        amounts = restored.amounts
+        retainedBytes = restored.retainedBytes
+    }
+
+    companion object {
+        val FULL_SOURCE: BigDecimal = BigDecimal.valueOf(255)
+
+        fun forLevel(level: ServerLevel): FractionalFluidSources? =
+            (level.server as? IShipObjectWorldServerProvider)?.fractionalFluidSources
+
+        fun fluidName(state: BlockState): String? {
+            val type = state.fluidState.type
+            if (state.fluidState.isEmpty) return null
+            return BuiltInRegistries.FLUID.getKey(if (type is FlowingFluid) type.source else type).toString()
+        }
+    }
+}

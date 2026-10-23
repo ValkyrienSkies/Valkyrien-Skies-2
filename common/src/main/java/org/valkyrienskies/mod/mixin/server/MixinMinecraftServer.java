@@ -67,6 +67,7 @@ import org.valkyrienskies.mod.common.config.DimensionParametersResolver;
 import org.valkyrienskies.mod.common.config.MassDatapackResolver;
 import org.valkyrienskies.mod.common.fluid.VanillaFluidFlowWindProvider;
 import org.valkyrienskies.mod.common.fluid.FluidSourceWithdrawalHandler;
+import org.valkyrienskies.mod.common.fluid.FractionalFluidSources;
 import org.valkyrienskies.mod.common.fluid.WorldFluidOutflowManager;
 import org.valkyrienskies.mod.common.hooks.VSGameEvents;
 import org.valkyrienskies.mod.common.util.EntityDragger;
@@ -105,6 +106,9 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
 
     @Unique
     private WorldFluidOutflowManager fluidOutflowManager;
+
+    @Unique
+    private FractionalFluidSources fractionalFluidSources;
 
     @Inject(
         at = @At(value = "INVOKE", target = "Lnet/minecraft/server/MinecraftServer;initServer()Z"),
@@ -167,6 +171,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         // Create ship world and VS Pipeline
         vsPipeline = shipSavedData.getPipeline();
         fluidOutflowManager = shipSavedData.getFluidOutflowManager();
+        fractionalFluidSources = shipSavedData.getFractionalFluidSources();
 
         KrunchSupport.INSTANCE.setKrunchSupported(!vsPipeline.isUsingDummyPhysics());
 
@@ -513,6 +518,12 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     @Override
     public boolean serviceFluidOutflowPressure() {
         return fluidOutflowManager.servicePressure(dimensionToLevelMap);
+    }
+
+    @Nullable
+    @Override
+    public FractionalFluidSources getFractionalFluidSources() {
+        return fractionalFluidSources;
     }
 
     @NotNull

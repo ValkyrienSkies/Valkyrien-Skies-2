@@ -13,6 +13,7 @@ import org.valkyrienskies.core.internal.physics.VsiFluidSourceObservation
 import org.valkyrienskies.core.internal.physics.VsiFluidSourceWithdrawalResult
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.getShipManagingPos
+import org.valkyrienskies.mod.common.dimensionId
 
 object FluidSourceWithdrawalHandler {
     private const val FULL_VOXEL_FILL = 255
@@ -93,7 +94,10 @@ object FluidSourceWithdrawalHandler {
         if (!level.hasChunkAt(pos)) return null
         val state = level.getBlockState(pos)
         val blockType = MassDatapackResolver.getBlockStateType(state) ?: return null
-        return VsiFluidSourceObservation(level.getShipManagingPos(pos)?.id, blockType)
+        val fluid = FractionalFluidSources.fluidName(state)
+        val amount = if (fluid == null) FULL_VOXEL_FILL else
+            FractionalFluidSources.forLevel(level)?.sourceFillAmount(level.dimensionId, x, y, z, fluid) ?: FULL_VOXEL_FILL
+        return VsiFluidSourceObservation(level.getShipManagingPos(pos)?.id, blockType, amount)
     }
 
     internal fun validateSource(

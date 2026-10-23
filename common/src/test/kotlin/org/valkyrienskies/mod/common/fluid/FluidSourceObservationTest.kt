@@ -4,6 +4,7 @@ import io.mockk.*
 import net.minecraft.SharedConstants
 import net.minecraft.core.BlockPos
 import net.minecraft.server.Bootstrap
+import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.block.Blocks
 import org.junit.jupiter.api.*
@@ -13,6 +14,9 @@ import org.valkyrienskies.core.internal.physics.VsiFluidSourceWithdrawal
 import org.valkyrienskies.core.internal.world.chunks.VsiBlockType
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.getShipManagingPos
+import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider
+import org.valkyrienskies.mod.common.dimensionId
+import java.math.BigDecimal
 
 class FluidSourceObservationTest {
     companion object {
@@ -61,6 +65,27 @@ class FluidSourceObservationTest {
         val second = FluidSourceWithdrawalHandler.observe(level, event.sourcePositionX, event.sourcePositionY, event.sourcePositionZ)!!
         assertEquals(27L, second.ownerBodyId)
         assertSame(stone, second.blockType)
+        verify(exactly = 0) { level.setBlock(any(), any(), any()) }
+    }
+
+    @Test fun `observer publishes restored source units and keeps the sub-unit remainder owned`() {
+        val server = mockk<MinecraftServer>(moreInterfaces = arrayOf(IShipObjectWorldServerProvider::class))
+        val sources = FractionalFluidSources().apply {
+            setAmount(event.dimensionId, pos.x, pos.y, pos.z, "minecraft:water", BigDecimal("127.5"))
+        }
+        val restored = FractionalFluidSources().also { it.load(sources.save()) }
+        every { (server as IShipObjectWorldServerProvider).fractionalFluidSources } returns restored
+        every { level.server } returns server
+        every { level.dimensionId } returns event.dimensionId
+        every { level.hasChunkAt(pos) } returns true
+        every { level.getBlockState(pos) } returns Blocks.WATER.defaultBlockState()
+        every { level.getShipManagingPos(pos) } returns null
+        val water = mockk<VsiBlockType>()
+        every { MassDatapackResolver.getBlockStateType(Blocks.WATER.defaultBlockState()) } returns water
+        val observed = FluidSourceWithdrawalHandler.observe(level, event)!!
+        assertEquals(127, observed.sourceFillAmount)
+        assertSame(water, observed.blockType)
+        assertEquals(BigDecimal("127.5"), restored.amount(event.dimensionId, pos.x, pos.y, pos.z, "minecraft:water"))
         verify(exactly = 0) { level.setBlock(any(), any(), any()) }
     }
 }

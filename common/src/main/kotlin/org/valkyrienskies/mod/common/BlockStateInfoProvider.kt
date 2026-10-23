@@ -125,6 +125,12 @@ object BlockStateInfo {
         onSetBlock(level, blockPos.x, blockPos.y, blockPos.z, prevBlockState, newBlockState)
 
     fun onSetBlock(level: Level, x: Int, y: Int, z: Int, prevBlockState: BlockState, newBlockState: BlockState) {
+        if (level is ServerLevel) {
+            org.valkyrienskies.mod.common.fluid.FractionalFluidSources.forLevel(level)?.takeIf { it.size != 0 }?.let {
+                it.reconcileFluid(level.dimensionId, x, y, z,
+                    org.valkyrienskies.mod.common.fluid.FractionalFluidSources.fluidName(newBlockState))
+            }
+        }
         if (!::SORTED_REGISTRY.isInitialized) return
 
         val shipObjectWorld = level.shipObjectWorld
