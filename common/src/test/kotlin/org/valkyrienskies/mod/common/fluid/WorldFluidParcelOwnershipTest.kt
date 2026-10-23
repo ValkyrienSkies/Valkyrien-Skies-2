@@ -39,6 +39,7 @@ class WorldFluidParcelOwnershipTest {
     private val levels get() = mapOf(DIMENSION to level)
 
     @BeforeEach fun setup() {
+        every { level.server } returns mockk<net.minecraft.server.MinecraftServer>()
         mockkObject(MassDatapackResolver)
         every { MassDatapackResolver.getFlowingFluid(17) } returns Fluids.WATER
         every { MassDatapackResolver.getFlowingFluid(18) } returns Fluids.LAVA
@@ -360,7 +361,7 @@ class WorldFluidParcelOwnershipTest {
         restored.load(legacy)
         assertEquals(511 / 255.0, pending(restored))
         val migrated = restored.save()
-        assertEquals(3, migrated.getInt("version"))
+        assertEquals(4, migrated.getInt("version"))
         // The current journal format must preserve migrated legacy ownership on another load.
         restored.load(migrated)
         assertEquals(511 / 255.0, pending(restored))

@@ -126,6 +126,14 @@ object BlockStateInfo {
     fun onSetBlock(level: Level, blockPos: BlockPos, prevBlockState: BlockState, newBlockState: BlockState) =
         onSetBlock(level, blockPos.x, blockPos.y, blockPos.z, prevBlockState, newBlockState)
 
+    fun onSourceAmountChanged(level: ServerLevel, pos: BlockPos, state: BlockState, amount: Int) {
+        require(amount in 0..255)
+        if (!::SORTED_REGISTRY.isInitialized) return
+        val (mass, type) = get(state) ?: return
+        (level.shipObjectWorld as VsiServerShipWorld).onSetBlock(
+            pos.x, pos.y, pos.z, level.dimensionId, type, type, mass, mass, amount)
+    }
+
     fun onSetBlock(level: Level, x: Int, y: Int, z: Int, prevBlockState: BlockState, newBlockState: BlockState) {
         var sourceFillAmount: Int? = null
         if (level is ServerLevel) {

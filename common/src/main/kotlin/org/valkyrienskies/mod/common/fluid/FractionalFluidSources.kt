@@ -83,6 +83,48 @@ class FractionalFluidSources(private val maximumBytes: Long = 16L * 1024 * 1024)
         }
     }
 
+    internal class PreparedChange(private val applyChange: () -> Boolean, private val cancelChange: () -> Unit) {
+        fun commit(): Boolean = applyChange()
+        fun cancel() = cancelChange()
+    }
+
+    class StorageCapacityException(val retainedBytes: Long, val requestedBytes: Long, val limitBytes: Long) :
+        IllegalStateException("Fractional fluid storage needs $requestedBytes additional bytes; $retainedBytes/$limitBytes retained")
+
+    internal fun prepareChange(dimension: String, x: Int, y: Int, z: Int, fluid: String,
+        before: BigDecimal, after: BigDecimal): PreparedChange? {
+        require(dimension.length in 1..4096 && fluid.length in 1..4096)
+        for (units in listOf(before, after)) {
+            require(units.signum() >= 0 && units <= FULL_SOURCE)
+            require(units.scale() in -308..325 && units.precision() <= 640)
+        }
+        val position = Position(dimension, x, y, z)
+        val previous = amounts[position]
+        if (previous != null && (previous.fluid != fluid || previous.units.compareTo(before) != 0)) return null
+        val normalizedBefore = before.stripTrailingZeros()
+        val normalizedAfter = after.stripTrailingZeros()
+        fun bytes(units: BigDecimal) = 512L + 4L * (dimension.length + fluid.length + units.toString().length)
+        val replacement = if (after.compareTo(FULL_SOURCE) == 0) null else Amount(fluid, normalizedAfter, bytes(normalizedAfter))
+        val reserved = Amount(fluid, normalizedBefore, maxOf(bytes(normalizedBefore), replacement?.bytes ?: 0L))
+        val additional = reserved.bytes - (previous?.bytes ?: 0L)
+        if (additional > maximumBytes - retainedBytes) throw StorageCapacityException(retainedBytes, additional, maximumBytes)
+        val change = PreparedChange({
+            if (amounts[position] !== reserved) false else {
+                if (replacement == null) amounts.remove(position) else amounts[position] = replacement
+                retainedBytes += (replacement?.bytes ?: 0L) - reserved.bytes
+                true
+            }
+        }, {
+            if (amounts[position] === reserved) {
+                if (previous == null) amounts.remove(position) else amounts[position] = previous
+                retainedBytes -= additional
+            }
+        })
+        amounts[position] = reserved
+        retainedBytes += additional
+        return change
+    }
+
     fun move(dimension: String, x: Int, y: Int, z: Int,
              destinationDimension: String, destinationX: Int, destinationY: Int, destinationZ: Int): Boolean {
         val source = Position(dimension, x, y, z)

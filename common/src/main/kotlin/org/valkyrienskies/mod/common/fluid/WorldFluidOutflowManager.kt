@@ -27,6 +27,8 @@ import org.joml.Vector3d
 import org.valkyrienskies.core.internal.physics.VsiFluidOutflow
 import org.valkyrienskies.core.internal.physics.VsiFluidOutflowResult
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
+import org.valkyrienskies.mod.common.BlockStateInfo
+import org.valkyrienskies.mod.common.fluid.FractionalFluidSources.Companion.FULL_SOURCE
 import java.math.BigDecimal
 import java.util.UUID
 import kotlin.math.abs
@@ -196,7 +198,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
         val fluidName: ResourceLocation,
         val fluid: FlowingFluid?,
         // Decimal subtraction preserves tails even when one block is below the double's ULP.
-        var worldVolume: BigDecimal,
+        var sourceUnits: BigDecimal,
         var lastUpdatedTick: Long,
         var settledSources: SourceHistory? = null,
         var settlementAnchor: BlockPos? = null,
@@ -220,6 +222,8 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
         val unavailableBefore: CompoundTag? = null,
         val unavailableAfter: CompoundTag? = null,
         val storageBytes: Long = 0L,
+        val unitsBefore: BigDecimal? = null,
+        val unitsAfter: BigDecimal? = null,
     )
 
     // Journal fields live in the existing owner/scratch object, without a per-deposit allocation.
@@ -237,6 +241,8 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
         var placementBefore: BlockState? = null
         var placementAfter: BlockState? = null
         var placementDeposited: BigDecimal? = null
+        var placementUnitsBefore: BigDecimal? = null
+        var placementUnitsAfter: BigDecimal? = null
         var placementScheduledOnly = false
         var placementScheduleAttempted = false
         var placementUnavailableBefore: CompoundTag? = null
@@ -250,6 +256,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
                 placementStorageBytes = 0L
             }
             hasPlacement = false; placementBefore = null; placementAfter = null; placementDeposited = null
+            placementUnitsBefore = null; placementUnitsAfter = null
             placementScheduledOnly = false; placementScheduleAttempted = false
             placementUnavailableBefore = null; placementUnavailableAfter = null
         }
@@ -260,6 +267,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
             placementX = other.placementX; placementY = other.placementY; placementZ = other.placementZ
             placementBefore = other.placementBefore; placementAfter = other.placementAfter
             placementDeposited = other.placementDeposited; placementScheduledOnly = other.placementScheduledOnly
+            placementUnitsBefore = other.placementUnitsBefore; placementUnitsAfter = other.placementUnitsAfter
             placementScheduleAttempted = other.placementScheduleAttempted
             placementUnavailableBefore = other.placementUnavailableBefore; placementUnavailableAfter = other.placementUnavailableAfter
             placementStorageBytes = other.placementStorageBytes
@@ -368,7 +376,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
                 },
                 fluid = fluid,
                 fluidName = fluidName,
-                worldVolume = BigDecimal.valueOf(outflow.worldVolume),
+                sourceUnits = BigDecimal.valueOf(outflow.worldVolume) * FULL_SOURCE,
                 lastUpdatedTick = currentTick,
                 metadataBytes = bytes,
             ))
@@ -444,7 +452,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
                     }
                     val previousStorage = parcelStorage.usedBytes
                     restoreVisual(level, parcel)
-                    val previousVolume = parcel.worldVolume
+                    val previousVolume = parcel.sourceUnits
                     val result = updateParcel(level, parcel, fluid, elapsed)
                     if (result == ParcelUpdateResult.CONSUMED) {
                         parcels.removeFirst()
@@ -453,10 +461,10 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
                         consumed = true
                     } else {
                         if (result == ParcelUpdateResult.PAUSED) parcel.lastUpdatedTick = currentTick
-                        if (parcel.worldVolume.signum() > 0) showVisual(level, parcel, fluid)
+                        if (parcel.sourceUnits.signum() > 0) showVisual(level, parcel, fluid)
                         parcels.addLast(parcels.removeFirst())
                     }
-                    if (result == ParcelUpdateResult.PAUSED && parcel.worldVolume === previousVolume
+                    if (result == ParcelUpdateResult.PAUSED && parcel.sourceUnits === previousVolume
                         && parcelStorage.usedBytes >= previousStorage) {
                         // Compare after visual restoration AND redisplay. Temporary credit refunds
                         // and an updated clock do not make a blocked water owner able to drain.
@@ -508,7 +516,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
     private fun updateParcel(level: ServerLevel, parcel: Parcel, fluid: FlowingFluid, elapsed: Long): ParcelUpdateResult {
         if (parcel.hasPlacement) {
             finishPlacement(level, parcel, fluid)
-            return if (parcel.worldVolume.signum() == 0 && !parcel.hasPlacement)
+            return if (parcel.sourceUnits.signum() == 0 && !parcel.hasPlacement)
                 ParcelUpdateResult.CONSUMED else ParcelUpdateResult.PAUSED
         }
         val staged = motion
@@ -525,7 +533,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
             parcel.lastUpdatedTick++
             if (parcel.hasPlacement) {
                 finishPlacement(level, parcel, fluid)
-                return if (parcel.worldVolume.signum() == 0 && !parcel.hasPlacement)
+                return if (parcel.sourceUnits.signum() == 0 && !parcel.hasPlacement)
                     ParcelUpdateResult.CONSUMED else ParcelUpdateResult.PAUSED
             }
             if (result != ParcelUpdateResult.MOVED) return result
@@ -540,10 +548,10 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
                 if (candidate.y < level.minBuildHeight || candidate.y >= level.maxBuildHeight
                     || !level.hasChunkAt(candidate)) continue
                 val state = level.getBlockState(candidate)
-                if (fluid.isSame(state.fluidState.type) && state.fluidState.isSource
-                    && parcel.settledSources?.contains(candidate.asLong()) != true) return ParcelUpdateResult.CONSUMED
-                if (!canReceive(state, fluid)) continue
-                if (fluid.isSame(state.fluidState.type) && state.fluidState.amount >= 8) continue
+                if (isOcean(level, parcel, candidate, state, fluid)) return ParcelUpdateResult.CONSUMED
+                if (!canReceive(level, candidate, state, fluid)) continue
+                if (fluid.isSame(state.fluidState.type) && state.fluidState.amount >= 8
+                    && sourceAmount(level, parcel, candidate) == null) continue
                 staged.worldPosition.set(candidate.x + 0.5, candidate.y + 0.5, candidate.z + 0.5)
                 staged.velocity.zero()
                 staged.settlementAnchor = null
@@ -554,12 +562,20 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
         val start = staged.blockPosition()
         if (start.y < level.minBuildHeight) return ParcelUpdateResult.CONSUMED // The ordinary world void.
         if (!level.hasChunkAt(start)) return ParcelUpdateResult.PAUSED
+        if (sourceAmount(level, parcel, start) != null) {
+            val startState = level.getBlockState(start)
+            if (fluid.isSame(startState.fluidState.type)) {
+                prepareSettlement(level, parcel, staged, fluid, start, startState)
+                return ParcelUpdateResult.PAUSED
+            }
+        }
         when (advanceParcel(level, parcel, staged, fluid, start)) {
             ParcelMotionResult.MERGED -> return ParcelUpdateResult.CONSUMED
             ParcelMotionResult.RETRY_LATER -> return ParcelUpdateResult.PAUSED // Unavailable terrain pauses elapsed time.
             ParcelMotionResult.MOVED,
             ParcelMotionResult.BLOCKED -> Unit
         }
+        if (staged.hasPlacement) return ParcelUpdateResult.PAUSED
         val currentPos = staged.blockPosition()
         val belowPos = currentPos.below()
         if (!level.hasChunkAt(currentPos) || !level.hasChunkAt(belowPos)) {
@@ -567,17 +583,17 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
         }
         val currentState = level.getBlockState(currentPos)
         val belowState = level.getBlockState(belowPos)
-        val currentSameFluid = fluid.isSame(currentState.fluidState.type)
-        val belowSameFluid = fluid.isSame(belowState.fluidState.type)
+        if (sourceAmount(level, parcel, belowPos) != null && fluid.isSame(belowState.fluidState.type)) {
+            prepareSettlement(level, parcel, staged, fluid, belowPos, belowState)
+            return ParcelUpdateResult.PAUSED
+        }
         when (
             chooseFluidParcelAction(
-                currentReplaceable = canReceive(currentState, fluid),
-                currentIsSameSource = currentSameFluid && currentState.fluidState.isSource
-                    && parcel.settledSources?.contains(currentPos.asLong()) != true,
+                currentReplaceable = canReceive(level, currentPos, currentState, fluid),
+                currentIsSameSource = isOcean(level, parcel, currentPos, currentState, fluid),
                 belowReplaceable =
                     belowState.fluidState.isEmpty && belowState.canBeReplaced(),
-                belowIsSameSource = belowSameFluid && belowState.fluidState.isSource
-                    && parcel.settledSources?.contains(belowPos.asLong()) != true,
+                belowIsSameSource = isOcean(level, parcel, belowPos, belowState, fluid),
             )
         ) {
             FluidParcelAction.FALL -> Unit
@@ -603,26 +619,48 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
             !state.fluidState.isSource && state == state.fluidState.createLegacyBlock()
         } else state.fluidState.isEmpty && state.canBeReplaced()
 
+    private fun sourceAmount(level: ServerLevel, parcel: Parcel, pos: BlockPos): BigDecimal? =
+        FractionalFluidSources.forLevel(level)?.amount(parcel.dimensionId, pos.x, pos.y, pos.z, parcel.fluidName.toString())
+
+    private fun isOcean(level: ServerLevel, parcel: Parcel, pos: BlockPos, state: BlockState, fluid: FlowingFluid): Boolean =
+        fluid.isSame(state.fluidState.type) && state.fluidState.isSource
+            && parcel.settledSources?.contains(pos.asLong()) != true && sourceAmount(level, parcel, pos) == null
+
+    private fun canReceive(level: ServerLevel, pos: BlockPos, state: BlockState, fluid: FlowingFluid): Boolean =
+        canReceive(state, fluid) || (fluid.isSame(state.fluidState.type)
+            && state == state.fluidState.createLegacyBlock() && FractionalFluidSources.owns(level, pos))
+
+    private fun depositedState(current: BlockState, fluid: FlowingFluid, units: BigDecimal): BlockState {
+        if (current.fluidState.isSource) return current
+        return (if (units >= FULL_SOURCE) fluid.getSource(false)
+            else fluid.getFlowing(worldVolumeToVanillaLevel(units.toDouble() / 255.0).coerceAtMost(7), false)).createLegacyBlock()
+    }
+
     private fun prepareSettlement(level: ServerLevel, parcel: Parcel, staged: MotionState, fluid: FlowingFluid, pos: BlockPos,
         current: BlockState) {
         if (pos.y >= level.maxBuildHeight) return
-        val existing = if (fluid.isSame(current.fluidState.type))
-            BigDecimal.valueOf(current.fluidState.amount.coerceIn(0, 8) / 8.0) else BigDecimal.ZERO
-        if (existing >= BigDecimal.ONE) {
+        val sources = FractionalFluidSources.forLevel(level)
+        val existing = sourceAmount(level, parcel, pos) ?: if (fluid.isSame(current.fluidState.type))
+            BigDecimal.valueOf(current.fluidState.amount.coerceIn(0, 8) / 8.0) * FULL_SOURCE else BigDecimal.ZERO
+        if (existing >= FULL_SOURCE) {
             staged.settlementAnchor = pos
             staged.velocity.zero()
             return
         }
-        val deposited = minOf(parcel.worldVolume, BigDecimal.ONE - existing)
+        val deposited = minOf(parcel.sourceUnits, FULL_SOURCE - existing)
         val total = existing + deposited
-        val state = if (total >= BigDecimal.ONE) fluid.getSource(false)
-            else fluid.getFlowing(worldVolumeToVanillaLevel(total.toDouble()).coerceAtMost(7), false)
-        val after = state.createLegacyBlock()
+        val after = depositedState(current, fluid, total)
         preparePlacementStorage(staged, current, after)
+        if (sources != null) {
+            parcelStorage.reserve(QUANTITY_PLACEMENT_BYTES)
+            staged.placementStorageBytes += QUANTITY_PLACEMENT_BYTES
+        }
         staged.setPlacementPosition(pos)
         staged.placementBefore = current
         staged.placementAfter = after
         staged.placementDeposited = deposited
+        staged.placementUnitsBefore = existing.takeIf { sources != null }
+        staged.placementUnitsAfter = total.takeIf { sources != null }
     }
 
     /** Retain uncertain writes; expected before/after observations determine whether a debit is due. */
@@ -633,30 +671,50 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
         val before = placementState(parcel.placementBefore, parcel.placementUnavailableBefore) ?: return
         val after = placementState(parcel.placementAfter, parcel.placementUnavailableAfter) ?: return
         if (!parcel.placementScheduledOnly) {
-            val remaining = parcel.worldVolume - requireNotNull(parcel.placementDeposited)
+            val remaining = parcel.sourceUnits - requireNotNull(parcel.placementDeposited)
             if (remaining.signum() > 0) prepareSourceHistory(parcel, pos.asLong())
             // Intervening world callbacks may have changed terrain even on the first attempt.
             val current = level.getBlockState(pos)
+            if (current != before && current != after) return
+            val unitsBefore = parcel.placementUnitsBefore
+            val change = if (unitsBefore != null) {
+                val sources = FractionalFluidSources.forLevel(level) ?: return
+                if (current != before && sourceAmount(level, parcel, pos) == null) return
+                sources.prepareChange(parcel.dimensionId, pos.x, pos.y, pos.z, parcel.fluidName.toString(),
+                    unitsBefore, requireNotNull(parcel.placementUnitsAfter)) ?: return
+            } else null
             if (current != after) {
                 if (current != before) return // Keep ambiguous ownership until a consistent observation exists.
-                if (!level.setBlock(pos, after, Block.UPDATE_ALL)) {
+                val applied = level.setBlock(pos, after, Block.UPDATE_ALL)
+                if (!applied || change != null) {
                     val observed = level.getBlockState(pos)
                     if (observed != after) {
-                        if (observed == before) parcel.clearPlacement(parcelStorage) // Confirmed refusal, safe to retry motion later.
+                        if (observed == before) {
+                            change?.cancel()
+                            parcel.clearPlacement(parcelStorage)
+                        }
                         return
                     }
                 }
             }
+            if (change != null && !change.commit()) return
             // Capacity was admitted before the write; committing this debit cannot grow the history.
             if (remaining.signum() > 0) requireNotNull(parcel.settledSources).add(pos.asLong())
-            parcel.worldVolume = remaining
+            parcel.sourceUnits = remaining
             parcel.placementScheduledOnly = true
             if (remaining.signum() > 0) {
                 parcel.settlementAnchor = pos
                 parcel.velocity.zero()
             }
         }
-        if (!after.fluidState.isSource) finishScheduling(level, parcel, fluid, pos)
+        if (parcel.placementUnitsAfter != null) {
+            val state = level.getBlockState(pos)
+            if (state == after) {
+                val amount = sourceAmount(level, parcel, pos)?.toInt() ?: 255
+                BlockStateInfo.onSourceAmountChanged(level, pos, state, amount)
+            }
+        }
+        if (!after.fluidState.isSource || parcel.placementUnitsAfter != null) finishScheduling(level, parcel, fluid, pos)
         parcel.clearPlacement(parcelStorage)
     }
 
@@ -860,11 +918,16 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
 
             val sampleState = level.getBlockState(sampleBlockPos)
             val sameFluid = fluid.isSame(sampleState.fluidState.type)
-            if (sameFluid && sampleState.fluidState.isSource
-                && parcel.settledSources?.contains(sampleBlockPos.asLong()) != true) {
+            if (isOcean(level, parcel, sampleBlockPos, sampleState, fluid)) {
                 return ParcelMotionResult.MERGED
             }
-            val replaceable = canReceive(sampleState, fluid)
+            if (sameFluid && sourceAmount(level, parcel, sampleBlockPos) != null) {
+                staged.worldPosition.set(freeX, freeY, freeZ)
+                staged.velocity.zero()
+                prepareSettlement(level, parcel, staged, fluid, sampleBlockPos, sampleState)
+                return ParcelMotionResult.BLOCKED
+            }
+            val replaceable = canReceive(level, sampleBlockPos, sampleState, fluid)
             if (!replaceable) {
                 staged.worldPosition.set(freeX, freeY, freeZ)
                 staged.velocity.x = 0.0
@@ -910,7 +973,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
     // Each history's live reservation includes a same-sized output array. It is sufficient for
     // toLongArray while all live histories remain owned. Returned NBT belongs to the caller.
     fun save(): CompoundTag = CompoundTag().apply {
-        putInt("version", 3)
+        putInt("version", 4)
         put("parcels", ListTag().also { list ->
             parcels.forEach { parcel ->
                 list.add(CompoundTag().apply {
@@ -920,7 +983,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
                     putDouble("z", parcel.worldPosition.z)
                     putDouble("vx", parcel.velocity.x); putDouble("vy", parcel.velocity.y)
                     putDouble("vz", parcel.velocity.z)
-                    putString("volume", parcel.worldVolume.toString())
+                    putVolume(this, "volume", parcel.sourceUnits)
                     putLong("lag", currentTick - parcel.lastUpdatedTick)
                     if (parcel.hasPlacement) {
                         val pos = parcel.placementPosition()
@@ -928,7 +991,9 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
                             putIntArray("pos", intArrayOf(pos.x, pos.y, pos.z))
                             put("before", parcel.placementUnavailableBefore?.copy() ?: NbtUtils.writeBlockState(requireNotNull(parcel.placementBefore)))
                             put("after", parcel.placementUnavailableAfter?.copy() ?: NbtUtils.writeBlockState(requireNotNull(parcel.placementAfter)))
-                            putString("deposited", requireNotNull(parcel.placementDeposited).toString())
+                            putVolume(this, "deposited", requireNotNull(parcel.placementDeposited))
+                            parcel.placementUnitsBefore?.let { putString("units_before", it.toString()) }
+                            parcel.placementUnitsAfter?.let { putString("units_after", it.toString()) }
                             putBoolean("scheduled_only", parcel.placementScheduledOnly)
                             putBoolean("schedule_attempted", parcel.placementScheduleAttempted)
                         })
@@ -949,7 +1014,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
     fun load(tag: CompoundTag) {
         check(!servicing) { "Cannot replace parcel ownership during servicing" }
         val version = tag.getInt("version")
-        require(version in 1..3) { "Unsupported world-fluid parcel checkpoint" }
+        require(version in 1..4) { "Unsupported world-fluid parcel checkpoint" }
         require(tag.contains("parcels", Tag.TAG_LIST.toInt())) { "Missing world-fluid parcels" }
         val list = tag.getList("parcels", Tag.TAG_COMPOUND.toInt())
         require((tag.get("parcels") as ListTag).size == list.size) { "Invalid parcel list" }
@@ -989,19 +1054,20 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
                 val vx = savedCoordinate(entry, "vx"); val vy = savedCoordinate(entry, "vy"); val vz = savedCoordinate(entry, "vz")
                 val volume = if (version == 1) {
                     require(entry.contains("fill", Tag.TAG_INT.toInt()) && entry.getInt("fill") > 0)
-                    BigDecimal.valueOf(entry.getInt("fill") / 255.0)
+                    BigDecimal.valueOf(entry.getInt("fill") / 255.0) * FULL_SOURCE
                 } else {
-                    savedDecimal(entry, "volume")
+                    savedVolume(entry, "volume", version)
                 }
-                require(volume.signum() >= 0 && volume.toDouble().isFinite()) { "Invalid parcel volume" }
-                val placement = if (version == 3 && entry.contains("placement")) {
+                require(volume.signum() >= 0 && volume <= MAX_PARCEL_UNITS) { "Invalid parcel volume" }
+                val placement = if (version >= 3 && entry.contains("placement")) {
                     require(entry.contains("placement", Tag.TAG_COMPOUND.toInt()))
                     val intent = entry.getCompound("placement")
                     require(intent.contains("pos", Tag.TAG_INT_ARRAY.toInt()))
                     val pos = intent.getIntArray("pos"); require(pos.size == 3)
                     require(intent.contains("before", Tag.TAG_COMPOUND.toInt()) && intent.contains("after", Tag.TAG_COMPOUND.toInt()))
                     val before = intent.getCompound("before"); val after = intent.getCompound("after")
-                    val placementBytes = placementStorageBytes(before, after)
+                    val placementBytes = placementStorageBytes(before, after) +
+                        if (version >= 4 && (intent.contains("units_before") || intent.contains("units_after"))) QUANTITY_PLACEMENT_BYTES else 0L
                     parcelStorage.reserve(placementBytes)
                     restoreMetadata += placementBytes
                     for (state in listOf(before, after)) {
@@ -1010,8 +1076,15 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
                     }
                     val beforeState = resolveSavedState(before)
                     val afterState = resolveSavedState(after)
-                    val deposited = savedDecimal(intent, "deposited")
-                    require(deposited.signum() > 0 && deposited <= BigDecimal.ONE)
+                    val deposited = savedVolume(intent, "deposited", version)
+                    require(deposited.signum() > 0 && deposited <= FULL_SOURCE)
+                    val unitsBefore = if (version >= 4 && intent.contains("units_before")) savedDecimal(intent, "units_before") else null
+                    val unitsAfter = if (version >= 4 && intent.contains("units_after")) savedDecimal(intent, "units_after") else null
+                    require((unitsBefore == null) == (unitsAfter == null))
+                    if (unitsBefore != null) {
+                        require(unitsBefore.signum() >= 0 && unitsAfter!! <= FULL_SOURCE)
+                        require((unitsBefore + deposited).compareTo(unitsAfter) == 0)
+                    }
                     require(intent.contains("scheduled_only", Tag.TAG_BYTE.toInt()))
                     val scheduling = intent.getBoolean("scheduled_only")
                     // Earlier version3 receipts did not distinguish an unattempted scheduling phase.
@@ -1026,22 +1099,22 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
                     if (knownFluid != null) {
                         afterState?.let { placed ->
                             require(knownFluid.isSame(placed.fluidState.type)) { "Placement fluid does not match owner" }
-                            require(placed == placed.fluidState.createLegacyBlock()) { "Invalid parcel placement block" }
+                            require(placed == placed.fluidState.createLegacyBlock()
+                                || (unitsBefore != null && placed == beforeState && placed.fluidState.isSource)) { "Invalid parcel placement block" }
                             beforeState?.let { previous ->
-                                require(canReceive(previous, knownFluid)) { "Invalid parcel placement origin" }
-                                val existing = if (knownFluid.isSame(previous.fluidState.type))
-                                    BigDecimal.valueOf(previous.fluidState.amount.coerceIn(0, 8) / 8.0) else BigDecimal.ZERO
+                                require(canReceive(previous, knownFluid) || (unitsBefore != null
+                                    && knownFluid.isSame(previous.fluidState.type))) { "Invalid parcel placement origin" }
+                                val existing = unitsBefore ?: if (knownFluid.isSame(previous.fluidState.type))
+                                    BigDecimal.valueOf(previous.fluidState.amount.coerceIn(0, 8) / 8.0) * FULL_SOURCE else BigDecimal.ZERO
                                 val total = existing + deposited
-                                require(total <= BigDecimal.ONE)
-                                val expected = if (total >= BigDecimal.ONE) knownFluid.getSource(false)
-                                    else knownFluid.getFlowing(worldVolumeToVanillaLevel(total.toDouble()).coerceAtMost(7), false)
-                                require(placed == expected.createLegacyBlock()) { "Placement state and debit disagree" }
+                                require(total <= FULL_SOURCE)
+                                require(placed == depositedState(previous, knownFluid, total)) { "Placement state and debit disagree" }
                             }
                         }
                     }
                     PendingPlacement(BlockPos(pos[0], pos[1], pos[2]), beforeState, afterState, deposited, scheduling, scheduleAttempted,
                         if (beforeState == null || !inlineState(beforeState)) before.copy() else null,
-                        if (afterState == null || !inlineState(afterState)) after.copy() else null, placementBytes)
+                        if (afterState == null || !inlineState(afterState)) after.copy() else null, placementBytes, unitsBefore, unitsAfter)
                 } else null
                 require(volume.signum() > 0 || placement?.scheduledOnly == true) { "Empty parcel without a pending receipt" }
                 require(entry.contains("lag", Tag.TAG_LONG.toInt()))
@@ -1068,6 +1141,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
                     placement?.let {
                         owner.setPlacementPosition(it.pos); owner.placementBefore = it.before; owner.placementAfter = it.after
                         owner.placementDeposited = it.deposited; owner.placementScheduledOnly = it.scheduledOnly
+                        owner.placementUnitsBefore = it.unitsBefore; owner.placementUnitsAfter = it.unitsAfter
                         owner.placementScheduleAttempted = it.scheduleAttempted
                         owner.placementUnavailableBefore = it.unavailableBefore; owner.placementUnavailableAfter = it.unavailableAfter
                         owner.placementStorageBytes = it.storageBytes
@@ -1108,6 +1182,19 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
         return value
     }
 
+    private fun putVolume(tag: CompoundTag, key: String, units: BigDecimal) {
+        val volume = try { units.divide(FULL_SOURCE) } catch (_: ArithmeticException) { null }
+        if (volume == null) tag.putString(key + "_units", units.toString()) else tag.putString(key, volume.toString())
+    }
+
+    private fun savedVolume(tag: CompoundTag, key: String, version: Int): BigDecimal {
+        if (version >= 4 && tag.contains(key + "_units")) {
+            require(!tag.contains(key)) { "Duplicate parcel $key representation" }
+            return savedDecimal(tag, key + "_units")
+        }
+        return savedDecimal(tag, key) * FULL_SOURCE
+    }
+
     internal fun parcelStorageBytes(): Long = parcelStorage.usedBytes
     internal fun peakParcelStorageBytes(): Long = parcelStorage.peakBytes
 
@@ -1134,7 +1221,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
             if (recipients.isEmpty()) return
             val current = level.getBlockState(pos)
             if (!current.fluidState.isEmpty || !current.canBeReplaced()) return
-            val visualLevel = worldVolumeToVanillaLevel(parcel.worldVolume.toDouble()).coerceAtMost(7)
+            val visualLevel = worldVolumeToVanillaLevel(parcel.sourceUnits.toDouble() / 255.0).coerceAtMost(7)
             val packet = ClientboundBlockUpdatePacket(pos, fluid.getFlowing(visualLevel, true).createLegacyBlock())
             val recipientIds = HashSet<UUID>(recipients.size)
             recipients.forEach { recipientIds.add(it.uuid) }
@@ -1165,6 +1252,8 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
     }
 
     private companion object {
+        val MAX_PARCEL_UNITS = BigDecimal.valueOf(Double.MAX_VALUE) * FULL_SOURCE
+        const val QUANTITY_PLACEMENT_BYTES = 16L * 1024
         const val DEFAULT_PARCEL_STORAGE_BYTES = 256L * 1024 * 1024
         // Fixed envelopes include bounded decimals, owner/journal/vector/link objects, checkpoint
         // tags/list slots, and one save output. Manager scratch includes depth-limited NBT traversal.

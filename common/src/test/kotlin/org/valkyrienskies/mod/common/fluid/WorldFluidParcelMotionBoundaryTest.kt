@@ -27,6 +27,7 @@ class WorldFluidParcelMotionBoundaryTest {
     private val levels get() = mapOf(DIMENSION to level)
 
     @BeforeEach fun setup() {
+        every { level.server } returns mockk<net.minecraft.server.MinecraftServer>()
         mockkObject(MassDatapackResolver)
         every { MassDatapackResolver.getFlowingFluid(17) } returns Fluids.WATER
         every { level.minBuildHeight } returns -64
