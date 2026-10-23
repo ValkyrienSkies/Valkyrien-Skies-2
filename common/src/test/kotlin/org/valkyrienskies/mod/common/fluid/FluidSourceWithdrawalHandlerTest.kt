@@ -63,11 +63,18 @@ class FluidSourceWithdrawalHandlerTest {
         assertEquals(
             VsiFluidSourceWithdrawalResult.UNSUPPORTED_SOURCE,
             FluidSourceWithdrawalHandler.validateSource(
-                withdrawal(fillAmount = 128),
+                withdrawal(fillAmount = 0),
                 currentOwnerBodyId = SOURCE_BODY_ID,
                 currentFluidId = FLUID_ID
             )
         )
+    }
+
+    @Test
+    fun `accepts fractional source debit quantities`() {
+        for (amount in listOf(1, 127, 128, 254)) {
+            assertNull(FluidSourceWithdrawalHandler.validateSource(withdrawal(fillAmount = amount), SOURCE_BODY_ID, FLUID_ID))
+        }
     }
 
     @Test

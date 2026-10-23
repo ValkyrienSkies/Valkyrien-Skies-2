@@ -4,10 +4,15 @@ import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.ListTag
 import net.minecraft.nbt.Tag
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.core.BlockPos
+import net.minecraft.world.level.BlockGetter
+import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.material.FlowingFluid
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider
+import org.valkyrienskies.mod.common.dimensionId
 import java.math.BigDecimal
 import java.util.TreeMap
 
@@ -136,6 +141,22 @@ class FractionalFluidSources(private val maximumBytes: Long = 16L * 1024 * 1024)
 
     companion object {
         val FULL_SOURCE: BigDecimal = BigDecimal.valueOf(255)
+
+        @JvmStatic
+        fun owns(level: BlockGetter, position: BlockPos): Boolean {
+            if (level !is ServerLevel) return false
+            val sources = forLevel(level) ?: return false
+            return sources.amounts.isNotEmpty() && sources.amounts.containsKey(
+                Position(level.dimensionId, position.x, position.y, position.z))
+        }
+
+        @JvmStatic
+        fun vanillaFlowState(level: BlockGetter, position: BlockPos, state: BlockState): BlockState {
+            if (!owns(level, position)) return state
+            return if (state.hasProperty(BlockStateProperties.WATERLOGGED)) {
+                state.setValue(BlockStateProperties.WATERLOGGED, false)
+            } else Blocks.AIR.defaultBlockState()
+        }
 
         fun forLevel(level: ServerLevel): FractionalFluidSources? =
             (level.server as? IShipObjectWorldServerProvider)?.fractionalFluidSources

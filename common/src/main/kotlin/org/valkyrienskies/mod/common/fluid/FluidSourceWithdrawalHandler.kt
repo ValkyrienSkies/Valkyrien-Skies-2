@@ -14,6 +14,7 @@ import org.valkyrienskies.core.internal.physics.VsiFluidSourceWithdrawalResult
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.dimensionId
+import java.math.BigDecimal
 
 object FluidSourceWithdrawalHandler {
     private const val FULL_VOXEL_FILL = 255
@@ -47,9 +48,23 @@ object FluidSourceWithdrawalHandler {
             knownEmpty
         )?.let { return it }
 
-        if (state.hasProperty(BlockStateProperties.WATERLOGGED) &&
+        val sources = FractionalFluidSources.forLevel(level)
+        val fluid = FractionalFluidSources.fluidName(state)
+            ?: return VsiFluidSourceWithdrawalResult.UNSUPPORTED_SOURCE
+        val available = sources?.amount(level.dimensionId, pos.x, pos.y, pos.z, fluid)
+            ?: FractionalFluidSources.FULL_SOURCE
+        val remaining = available.subtract(BigDecimal.valueOf(withdrawal.fillAmount.toLong()))
+        if (remaining.signum() < 0) return VsiFluidSourceWithdrawalResult.STALE_SOURCE
+        val waterlogged = state.hasProperty(BlockStateProperties.WATERLOGGED) &&
             state.getValue(BlockStateProperties.WATERLOGGED)
-        ) {
+        if (remaining.signum() > 0) {
+            if (!waterlogged && state.block !is LiquidBlock) return VsiFluidSourceWithdrawalResult.UNSUPPORTED_SOURCE
+            return if (sources?.setAmount(level.dimensionId, pos.x, pos.y, pos.z, fluid, remaining) == true) {
+                VsiFluidSourceWithdrawalResult.APPLIED
+            } else VsiFluidSourceWithdrawalResult.RETRY_LATER
+        }
+
+        if (waterlogged) {
             return if (
                 level.setBlock(
                     pos,
@@ -57,6 +72,7 @@ object FluidSourceWithdrawalHandler {
                     Block.UPDATE_ALL
                 )
             ) {
+                sources?.reconcileFluid(level.dimensionId, pos.x, pos.y, pos.z, null)
                 VsiFluidSourceWithdrawalResult.APPLIED
             } else {
                 VsiFluidSourceWithdrawalResult.RETRY_LATER
@@ -64,6 +80,12 @@ object FluidSourceWithdrawalHandler {
         }
 
         val block = state.block
+        if (available < FractionalFluidSources.FULL_SOURCE && block is LiquidBlock) {
+            return if (level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL)) {
+                sources?.reconcileFluid(level.dimensionId, pos.x, pos.y, pos.z, null)
+                VsiFluidSourceWithdrawalResult.APPLIED
+            } else VsiFluidSourceWithdrawalResult.RETRY_LATER
+        }
         if (block is BucketPickup) {
             val pickedUp = block.pickupBlock(level, pos, state)
             if (!pickedUp.isEmpty) {
@@ -116,7 +138,7 @@ object FluidSourceWithdrawalHandler {
         // Only a known block with an empty Minecraft fluid state proves removal.
         if (knownEmpty && currentFluidId == null) return VsiFluidSourceWithdrawalResult.EMPTY_SOURCE
         if (currentFluidId != withdrawal.fluidId) return VsiFluidSourceWithdrawalResult.STALE_SOURCE
-        if (withdrawal.fillAmount != FULL_VOXEL_FILL) {
+        if (withdrawal.fillAmount !in 1..FULL_VOXEL_FILL) {
             return VsiFluidSourceWithdrawalResult.UNSUPPORTED_SOURCE
         }
         return null

@@ -165,6 +165,8 @@
     "feature.fire_between_ship_and_world.LavaFluidMixin",
     "feature.fix_blockstate_null_checks.MixinCarvedPumpkinBlock",
     "feature.fluid_escaping_ship_config.MixinFlowingFluid",
+    "feature.fluid_escaping_ship_config.MixinLiquidBlock",
+    "feature.fluid_escaping_ship_config.MixinSimpleWaterloggedBlock",
     "feature.fluid_escaping_ship_config.MixinVineBlock",
     "feature.get_entities.MixinLevel",
     "feature.ladders.MixinLivingEntity",
