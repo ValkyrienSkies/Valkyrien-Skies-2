@@ -21,6 +21,13 @@ public abstract class MixinShaderInstance {
     @Unique
     private boolean vs$fluidOcclusionSupported;
 
+    @Inject(method = "close()V", at = @At("HEAD"))
+    private void vs$closeFluidOcclusion(final CallbackInfo ci) {
+        FluidOcclusionRenderer.onProgramClosed(programId);
+        vs$fluidOcclusionChecked = false;
+        vs$fluidOcclusionSupported = false;
+    }
+
     @Inject(method = "apply()V", at = @At("TAIL"), require = 0)
     private void vs$applyFluidOcclusion(final CallbackInfo ci) {
         if (!vs$fluidOcclusionChecked) {

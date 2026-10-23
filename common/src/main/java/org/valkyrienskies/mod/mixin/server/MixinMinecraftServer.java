@@ -53,6 +53,7 @@ import org.valkyrienskies.core.api.ships.ShipTeleportData;
 import org.valkyrienskies.core.internal.physics.VsiFluidOutflow;
 import org.valkyrienskies.core.internal.physics.VsiFluidOutflowResult;
 import org.valkyrienskies.core.internal.physics.VsiFluidSourceWithdrawal;
+import org.valkyrienskies.core.internal.physics.VsiFluidSourceObservation;
 import org.valkyrienskies.core.internal.physics.VsiFluidSourceWithdrawalResult;
 import org.valkyrienskies.core.internal.ships.VsiLoadedServerShip;
 import org.valkyrienskies.core.internal.world.VsiPlayer;
@@ -103,7 +104,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     private final Map<String, ServerLevel> dimensionToLevelMap = new HashMap<>();
 
     @Unique
-    private final WorldFluidOutflowManager fluidOutflowManager = new WorldFluidOutflowManager();
+    private WorldFluidOutflowManager fluidOutflowManager;
 
     @Inject(
         at = @At(value = "INVOKE", target = "Lnet/minecraft/server/MinecraftServer;initServer()Z"),
@@ -165,6 +166,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
 
         // Create ship world and VS Pipeline
         vsPipeline = shipSavedData.getPipeline();
+        fluidOutflowManager = shipSavedData.getFluidOutflowManager();
 
         KrunchSupport.INSTANCE.setKrunchSupported(!vsPipeline.isUsingDummyPhysics());
 
@@ -261,6 +263,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     )
     private void postTick(final CallbackInfo ci) {
         vsPipeline.postTickGame();
+        org.valkyrienskies.mod.common.fluid.ShipFluidInteraction.prune(shipWorld);
         fluidOutflowManager.tick(dimensionToLevelMap);
         // Only drag entities after we have updated the ship positions
         for (final ServerLevel level : getAllLevels()) {
@@ -471,7 +474,8 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         at = @At("RETURN")
     )
     private void postStopServer(final CallbackInfo ci) {
-        fluidOutflowManager.clear(dimensionToLevelMap);
+        org.valkyrienskies.mod.common.fluid.ShipFluidInteraction.clear(shipWorld);
+        fluidOutflowManager.clearVisuals(dimensionToLevelMap);
         dimensionToLevelMap.clear();
         shipWorld.setGameServer(null);
         shipWorld = null;
@@ -491,6 +495,24 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
             dimensionToLevelMap.get(withdrawal.getDimensionId()),
             withdrawal
         );
+    }
+
+    @Nullable
+    @Override
+    public VsiFluidSourceObservation observeFluidSource(@NotNull final VsiFluidSourceWithdrawal withdrawal) {
+        return FluidSourceWithdrawalHandler.observe(dimensionToLevelMap.get(withdrawal.getDimensionId()), withdrawal);
+    }
+
+    @Nullable
+    @Override
+    public VsiFluidSourceObservation observeFluidSource(@NotNull final String dimensionId,
+                                                       final int x, final int y, final int z) {
+        return FluidSourceWithdrawalHandler.observe(dimensionToLevelMap.get(dimensionId), x, y, z);
+    }
+
+    @Override
+    public boolean serviceFluidOutflowPressure() {
+        return fluidOutflowManager.servicePressure(dimensionToLevelMap);
     }
 
     @NotNull

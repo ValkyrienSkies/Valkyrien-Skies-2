@@ -9,6 +9,7 @@ import net.minecraft.world.level.block.LiquidBlock
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import org.valkyrienskies.core.api.ships.properties.ShipId
 import org.valkyrienskies.core.internal.physics.VsiFluidSourceWithdrawal
+import org.valkyrienskies.core.internal.physics.VsiFluidSourceObservation
 import org.valkyrienskies.core.internal.physics.VsiFluidSourceWithdrawalResult
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.getShipManagingPos
@@ -35,10 +36,14 @@ object FluidSourceWithdrawalHandler {
         }
 
         val state = level.getBlockState(pos)
+        val liquidId = MassDatapackResolver.getLiquidStateId(state)
+        val knownEmpty = liquidId == null && state.fluidState.isEmpty &&
+            MassDatapackResolver.getBlockStateType(state) != null
         validateSource(
             withdrawal,
             level.getShipManagingPos(pos)?.id,
-            MassDatapackResolver.getLiquidStateId(state)
+            liquidId,
+            knownEmpty
         )?.let { return it }
 
         if (state.hasProperty(BlockStateProperties.WATERLOGGED) &&
@@ -76,19 +81,37 @@ object FluidSourceWithdrawalHandler {
         return VsiFluidSourceWithdrawalResult.UNSUPPORTED_SOURCE
     }
 
+    /** Read-only: a completed debit must not be retried merely to recover its voxel publication. */
+    @JvmStatic
+    fun observe(level: ServerLevel?, withdrawal: VsiFluidSourceWithdrawal): VsiFluidSourceObservation? =
+        observe(level, withdrawal.sourcePositionX, withdrawal.sourcePositionY, withdrawal.sourcePositionZ)
+
+    @JvmStatic
+    fun observe(level: ServerLevel?, x: Int, y: Int, z: Int): VsiFluidSourceObservation? {
+        if (level == null) return null
+        val pos = BlockPos(x, y, z)
+        if (!level.hasChunkAt(pos)) return null
+        val state = level.getBlockState(pos)
+        val blockType = MassDatapackResolver.getBlockStateType(state) ?: return null
+        return VsiFluidSourceObservation(level.getShipManagingPos(pos)?.id, blockType)
+    }
+
     internal fun validateSource(
         withdrawal: VsiFluidSourceWithdrawal,
         currentOwnerBodyId: ShipId?,
-        currentFluidId: Int?
+        currentFluidId: Int?,
+        knownEmpty: Boolean = false
     ): VsiFluidSourceWithdrawalResult? {
         val ownerMatches = if (withdrawal.sourceIsWorldBody) {
             currentOwnerBodyId == null
         } else {
             currentOwnerBodyId == withdrawal.sourceBodyId
         }
-        if (!ownerMatches || currentFluidId != withdrawal.fluidId) {
-            return VsiFluidSourceWithdrawalResult.STALE_SOURCE
-        }
+        if (!ownerMatches) return VsiFluidSourceWithdrawalResult.STALE_SOURCE
+        // Null mappings alone can also mean an unsupported/unknown fluid.
+        // Only a known block with an empty Minecraft fluid state proves removal.
+        if (knownEmpty && currentFluidId == null) return VsiFluidSourceWithdrawalResult.EMPTY_SOURCE
+        if (currentFluidId != withdrawal.fluidId) return VsiFluidSourceWithdrawalResult.STALE_SOURCE
         if (withdrawal.fillAmount != FULL_VOXEL_FILL) {
             return VsiFluidSourceWithdrawalResult.UNSUPPORTED_SOURCE
         }

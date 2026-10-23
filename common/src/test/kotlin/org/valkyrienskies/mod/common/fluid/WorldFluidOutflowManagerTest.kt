@@ -48,7 +48,7 @@ class WorldFluidOutflowManagerTest {
     @Test
     fun `does not replace an outlet that became blocked`() {
         assertEquals(
-            FluidParcelAction.DISCARD,
+            FluidParcelAction.WAIT,
             chooseFluidParcelAction(
                 currentReplaceable = false,
                 currentIsSameSource = false,
@@ -60,9 +60,12 @@ class WorldFluidOutflowManagerTest {
 
     @Test
     fun `maps retained voxel volume to vanilla fluid levels`() {
-        assertEquals(1, fillAmountToVanillaLevel(1))
-        assertEquals(4, fillAmountToVanillaLevel(127))
-        assertEquals(8, fillAmountToVanillaLevel(255))
+        assertEquals(1, worldVolumeToVanillaLevel(1 / 255.0))
+        assertEquals(4, worldVolumeToVanillaLevel(127 / 255.0))
+        assertEquals(8, worldVolumeToVanillaLevel(1.0))
+        assertEquals(1, worldVolumeToVanillaLevel(0.125))
+        assertEquals(6, worldVolumeToVanillaLevel(0.75))
+        assertEquals(8, worldVolumeToVanillaLevel(1e20))
     }
 
     @Test

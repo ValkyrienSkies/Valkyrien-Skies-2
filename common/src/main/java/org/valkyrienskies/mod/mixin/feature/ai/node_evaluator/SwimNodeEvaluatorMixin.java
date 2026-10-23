@@ -21,6 +21,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
+import org.valkyrienskies.mod.common.fluid.ShipFluidStateQueries;
 import org.valkyrienskies.mod.common.pathfinding.NearbyShip;
 import org.valkyrienskies.mod.common.pathfinding.PathPerFrameRegistry;
 import org.valkyrienskies.mod.common.pathfinding.PathTypeDanger;
@@ -60,9 +61,15 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
     private boolean vs$wrapIsPathFindable(BlockState instance, BlockGetter blockGetter, BlockPos blockPos,
         PathComputationType pathComputationType, Operation<Boolean> original) {
         final boolean vanilla = original.call(instance, blockGetter, blockPos, pathComputationType);
-        if (vanilla || !VSGameConfig.SERVER.getAiOnShips()) return vanilla;
+        if (!VSGameConfig.SERVER.getAiOnShips()) return vanilla;
         final Level level = vs$levelFrom(blockGetter);
         if (level == null) return vanilla;
+        final var controlled = ShipFluidStateQueries.forPath(level, blockPos);
+        if (controlled != null && pathComputationType == PathComputationType.WATER) {
+            return controlled.fluid().is(net.minecraft.tags.FluidTags.WATER)
+                && !controlled.blockState(instance).blocksMotion();
+        }
+        if (vanilla) return true;
 
         try {
             final PathfindingFrame frame = PathfindingFrame.current(null);
@@ -149,6 +156,8 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
         if (!VSGameConfig.SERVER.getAiOnShips()) return vanilla;
         final Level level = vs$levelFrom(instance);
         if (level == null) return vanilla;
+        final var controlled = ShipFluidStateQueries.forPath(level, blockPos);
+        if (controlled != null) return controlled.fluid();
 
         try {
             final PathfindingFrame frame = PathfindingFrame.current(null);
@@ -180,6 +189,8 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
         if (!VSGameConfig.SERVER.getAiOnShips()) return vanilla;
         final Level level = vs$levelFrom(instance);
         if (level == null) return vanilla;
+        final var controlled = ShipFluidStateQueries.forPath(level, blockPos);
+        if (controlled != null) return controlled.blockState(vanilla);
 
         try {
             final PathfindingFrame frame = PathfindingFrame.current(null);

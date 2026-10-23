@@ -13,6 +13,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.fluid.ShipFluidStateQueries;
 
 // RandomStroll.getTargetSwimPos validates each swim candidate by reading the world fluid
 // at the candidate cell; for a fish in ship-mounted water the world cell is air so the
@@ -37,6 +38,8 @@ public abstract class MixinRandomStrollSwim {
         final Level level, final BlockPos worldPos, final Operation<FluidState> original
     ) {
         final FluidState vanilla = original.call(level, worldPos);
+        final var controlled = ShipFluidStateQueries.at(level, worldPos);
+        if (controlled != null) return controlled.fluid();
         if (!vanilla.isEmpty()) return vanilla;
 
         final AABBd probe = VS$PROBE.get()

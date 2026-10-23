@@ -81,6 +81,14 @@ public final class FluidOcclusionRenderContext {
         return depth > 0 && level != null;
     }
 
+    public static void clear() {
+        depth = 0;
+        level = null;
+        cameraX = cameraY = cameraZ = 0.0;
+        FLUID_LAYERS.clear();
+        fluidLayersInitialized = false;
+    }
+
     public static @Nullable ClientLevel getLevel() {
         return level;
     }

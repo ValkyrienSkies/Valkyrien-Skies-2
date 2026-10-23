@@ -12,7 +12,7 @@ import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.common.ForgeMod;
+import java.util.function.Predicate;
 import net.minecraftforge.fluids.FluidType;
 import org.joml.Quaterniondc;
 import org.joml.Vector3d;
@@ -22,7 +22,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
+import org.valkyrienskies.mod.common.fluid.ShipFluidInteraction;
 
 @Mixin(Entity.class)
 public abstract class MixinEntity {
@@ -41,13 +41,41 @@ public abstract class MixinEntity {
     public abstract double getZ();
 
     @Shadow
-    private FluidType forgeFluidTypeOnEyes;
-
-    @Shadow
     protected Object2DoubleMap<FluidType> forgeFluidTypeHeight;
 
     @Unique
     private boolean isShipWater = false;
+
+    @Shadow
+    public abstract boolean touchingUnloadedChunk();
+    @Unique
+    private ShipFluidInteraction.VolumeQuery vs$fluidQuery;
+    @Unique
+    private boolean vs$hasWorldHeight;
+    @Unique
+    private float vs$worldHeight;
+
+    @WrapMethod(method = "updateFluidHeightAndDoFluidPushing(Ljava/util/function/Predicate;)V", remap = false)
+    private void vs$mergeRetainedFluid(final Predicate<FluidState> predicate, final Operation<Void> original) {
+        if (touchingUnloadedChunk()) { original.call(predicate); return; }
+        final ShipFluidInteraction.VolumeQuery previous = vs$fluidQuery;
+        vs$fluidQuery = ShipFluidInteraction.prepareVolume(level, bb.deflate(0.001));
+        try {
+            original.call(predicate);
+            vs$fluidQuery.forEachRetained((fluid, depth) -> {
+                if (predicate.test(fluid)) {
+                    final FluidType type = fluid.getFluidType();
+                    if (!type.isAir()) forgeFluidTypeHeight.put(type,
+                        Math.max(forgeFluidTypeHeight.getDouble(type), depth));
+                }
+            });
+        } finally {
+            vs$fluidQuery = previous;
+            vs$hasWorldHeight = false;
+            valkyrienskies$pushShipPos = null;
+            valkyrienskies$pushShip = null;
+        }
+    }
 
     /**
      * Correctness relies on the method querying getFluidState before
@@ -68,12 +96,15 @@ public abstract class MixinEntity {
         final Operation<FluidState> original) {
         valkyrienskies$pushShipPos = null;
         valkyrienskies$pushShip = null;
+        vs$hasWorldHeight = false;
 
         final FluidState world = original.call(lvl, pos);
         if (!world.isEmpty()) {
-            return world;
-        }
-        if (((IEntityDraggingInformationProvider) (Object) this).vs$isInSealedArea()) {
+            if (vs$fluidQuery != null && vs$fluidQuery.hasDomains()) {
+                vs$worldHeight = vs$fluidQuery.worldHeight(pos, world.getHeight(lvl, pos));
+                if (!Float.isFinite(vs$worldHeight)) return Fluids.EMPTY.defaultFluidState();
+                vs$hasWorldHeight = true;
+            }
             return world;
         }
 
@@ -81,6 +112,7 @@ public abstract class MixinEntity {
             final Vector3d sp = ship.getWorldToShip().transformPosition(
                 new Vector3d(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5));
             final BlockPos shipPos = BlockPos.containing(sp.x, sp.y, sp.z);
+            if (vs$fluidQuery != null && vs$fluidQuery.controlsCell(ship.getId(), shipPos)) continue;
             final FluidState shipFluid = original.call(lvl, shipPos);
             if (!shipFluid.isEmpty()) {
                 valkyrienskies$pushShipPos = shipPos;
@@ -98,6 +130,7 @@ public abstract class MixinEntity {
     )
     private float valkyrienskies$pushHeight(final FluidState instance, final BlockGetter bg, final BlockPos pos,
         final Operation<Float> original) {
+        if (vs$hasWorldHeight) return vs$worldHeight;
         if (valkyrienskies$pushShipPos != null) {
             return original.call(instance, this.level, valkyrienskies$pushShipPos);
         }
@@ -129,9 +162,11 @@ public abstract class MixinEntity {
         final Operation<FluidState> getFluidState) {
         final FluidState[] fluidState = {getFluidState.call(level, blockPos)};
         isShipWater = false;
-        final boolean seal = ((IEntityDraggingInformationProvider) (Object) this).vs$isInSealedArea();
-        if (seal) {
-            return Fluids.EMPTY.defaultFluidState();
+        final ShipFluidInteraction.PointSample retained = ShipFluidInteraction.samplePoint(
+            level, new Vec3(getX(), getEyeY(), getZ()));
+        if (retained.insideDomain()) {
+            isShipWater = retained.flooded();
+            return retained.flooded() ? retained.fluid().defaultFluidState() : Fluids.EMPTY.defaultFluidState();
         }
         if (fluidState[0].isEmpty()) {
 
@@ -154,15 +189,6 @@ public abstract class MixinEntity {
         return fluidState[0];
     }
 
-    @WrapMethod(method = "updateFluidOnEyes")
-    private void afterFluidOnEyes(Operation<Void> original) {
-        final boolean seal = ((IEntityDraggingInformationProvider) (Object) this).vs$isInSealedArea();
-        if (seal) {
-            forgeFluidTypeOnEyes = ForgeMod.EMPTY_TYPE.get();
-            forgeFluidTypeHeight.clear();
-        } else original.call();
-    }
-
     @WrapOperation(
         at = @At(value = "INVOKE",
             target = "Lnet/minecraft/world/level/material/FluidState;getHeight(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;)F"),
@@ -170,18 +196,7 @@ public abstract class MixinEntity {
     )
     private float fluidHeightOverride(final FluidState instance, final BlockGetter arg, final BlockPos arg2,
         final Operation<Float> getHeight) {
-        if (!instance.isEmpty() && this.level instanceof Level) {
-            final boolean seal = ((IEntityDraggingInformationProvider) (Object) this).vs$isInSealedArea();
-            if (seal) {
-                return 0;
-            }
-            if (isShipWater) {
-                if (instance.isSource()) {
-                    return 1;
-                }
-            }
-
-        }
+        if (isShipWater) return Float.POSITIVE_INFINITY;
         return getHeight.call(instance, arg, arg2);
     }
 

@@ -1,12 +1,17 @@
 package org.valkyrienskies.mod.fabric.mixin.feature.water_in_ships_entity;
 
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.core.BlockPos;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.material.Fluids;
+import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Quaterniondc;
@@ -17,7 +22,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
+import org.valkyrienskies.mod.common.fluid.ShipFluidInteraction;
 
 @Mixin(Entity.class)
 public abstract class MixinEntity {
@@ -39,6 +44,36 @@ public abstract class MixinEntity {
     @Unique
     private boolean isShipWater = false;
 
+    @Shadow
+    protected Object2DoubleMap<TagKey<Fluid>> fluidHeight;
+    @Shadow
+    public abstract boolean touchingUnloadedChunk();
+    @Unique
+    private ShipFluidInteraction.VolumeQuery vs$fluidQuery;
+    @Unique
+    private boolean vs$hasWorldHeight;
+    @Unique
+    private float vs$worldHeight;
+
+    @WrapMethod(method = "updateFluidHeightAndDoFluidPushing(Lnet/minecraft/tags/TagKey;D)Z")
+    private boolean vs$mergeRetainedFluid(final TagKey<Fluid> tag, final double motionScale,
+        final Operation<Boolean> original) {
+        if (touchingUnloadedChunk()) return original.call(tag, motionScale);
+        final ShipFluidInteraction.VolumeQuery previous = vs$fluidQuery;
+        vs$fluidQuery = ShipFluidInteraction.prepareVolume(level, bb.deflate(0.001));
+        try {
+            final boolean worldFluid = original.call(tag, motionScale);
+            final double retainedDepth = vs$fluidQuery.retainedDepth(tag);
+            if (retainedDepth > 0) fluidHeight.put(tag, Math.max(fluidHeight.getDouble(tag), retainedDepth));
+            return worldFluid || retainedDepth > 0;
+        } finally {
+            vs$fluidQuery = previous;
+            vs$hasWorldHeight = false;
+            valkyrienskies$pushShipPos = null;
+            valkyrienskies$pushShip = null;
+        }
+    }
+
     /**
      * Correctness relies on vanilla querying getFluidState before
      * getHeight/getFlow within each scanned cell: getFluidState sets these, the
@@ -58,12 +93,15 @@ public abstract class MixinEntity {
         final Operation<FluidState> original) {
         valkyrienskies$pushShipPos = null;
         valkyrienskies$pushShip = null;
+        vs$hasWorldHeight = false;
 
         final FluidState world = original.call(lvl, pos);
         if (!world.isEmpty()) {
-            return world;
-        }
-        if (((IEntityDraggingInformationProvider) this).vs$isInSealedArea()) {
+            if (vs$fluidQuery != null && vs$fluidQuery.hasDomains()) {
+                vs$worldHeight = vs$fluidQuery.worldHeight(pos, world.getHeight(lvl, pos));
+                if (!Float.isFinite(vs$worldHeight)) return Fluids.EMPTY.defaultFluidState();
+                vs$hasWorldHeight = true;
+            }
             return world;
         }
 
@@ -71,6 +109,7 @@ public abstract class MixinEntity {
             final Vector3d sp = ship.getWorldToShip().transformPosition(
                 new Vector3d(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5));
             final BlockPos shipPos = BlockPos.containing(sp.x, sp.y, sp.z);
+            if (vs$fluidQuery != null && vs$fluidQuery.controlsCell(ship.getId(), shipPos)) continue;
             final FluidState shipFluid = original.call(lvl, shipPos);
             if (!shipFluid.isEmpty()) {
                 valkyrienskies$pushShipPos = shipPos;
@@ -88,6 +127,7 @@ public abstract class MixinEntity {
     )
     private float valkyrienskies$pushHeight(final FluidState instance, final BlockGetter bg, final BlockPos pos,
         final Operation<Float> original) {
+        if (vs$hasWorldHeight) return vs$worldHeight;
         if (valkyrienskies$pushShipPos != null) {
             return original.call(instance, this.level, valkyrienskies$pushShipPos);
         }
@@ -120,6 +160,12 @@ public abstract class MixinEntity {
         final Operation<FluidState> getFluidState) {
         final FluidState[] fluidState = {getFluidState.call(level, blockPos)};
         isShipWater = false;
+        final ShipFluidInteraction.PointSample retained = ShipFluidInteraction.samplePoint(
+            level, new Vec3(getX(), getEyeY(), getZ()));
+        if (retained.insideDomain()) {
+            isShipWater = retained.flooded();
+            return retained.flooded() ? retained.fluid().defaultFluidState() : Fluids.EMPTY.defaultFluidState();
+        }
         if (fluidState[0].isEmpty()) {
 
             final double d = this.getEyeY() - 0.1111111119389534;
@@ -148,15 +194,7 @@ public abstract class MixinEntity {
     )
     private float fluidHeightOverride(final FluidState instance, final BlockGetter arg, final BlockPos arg2,
         final Operation<Float> getHeight) {
-        if (!instance.isEmpty() && this.level instanceof Level) {
-
-            if (isShipWater) {
-                if (instance.isSource()) {
-                    return 1;
-                }
-            }
-
-        }
+        if (isShipWater) return Float.POSITIVE_INFINITY;
         return getHeight.call(instance, arg, arg2);
     }
 

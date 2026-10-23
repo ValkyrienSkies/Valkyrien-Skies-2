@@ -28,7 +28,6 @@ import org.lwjgl.opengl.GL12;
 import org.lwjgl.opengl.GL13;
 import org.lwjgl.opengl.GL20;
 import org.valkyrienskies.core.api.ships.ClientShip;
-import org.valkyrienskies.core.internal.physics.VsiFluidTopologyVoxel;
 import org.valkyrienskies.core.internal.world.VsiClientShipWorld;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
@@ -38,10 +37,9 @@ import org.valkyrienskies.mod.common.config.VSGameConfig;
  */
 public final class FluidOcclusionRenderer {
     private static final Logger LOGGER = LogManager.getLogger("Valkyrien Skies Fluid Occlusion");
-    private static final int MAX_SHIPS = 9;
+    private static final int DIRECT_MASKS = 9;
     private static final int BASE_TEXTURE_UNIT = 2;
-    private static final int MASK_TEXTURE_WIDTH = 4096;
-    private static final int MAX_MASK_VOLUME = 16 * 1024 * 1024;
+    private static final int MASK_TEXTURE_WIDTH = FluidOcclusionMaskData.TEXTURE_WIDTH;
 
     private static final ResourceLocation WATER_STILL =
         new ResourceLocation("minecraft", "block/water_still");
@@ -61,6 +59,7 @@ public final class FluidOcclusionRenderer {
         new it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<>();
     private static final FloatBuffer MATRIX_BUFFER = BufferUtils.createFloatBuffer(16);
     private static final Vector3d CAMERA_IN_SHIP = new Vector3d();
+    private static final FluidOcclusionOverflow OVERFLOW = new FluidOcclusionOverflow();
     private static ClientLevel lastLevel;
 
     private FluidOcclusionRenderer() {
@@ -110,31 +109,39 @@ public final class FluidOcclusionRenderer {
         });
 
         int slot = 0;
+        final List<FluidOcclusionOverflow.Entry> overflow = new ArrayList<>();
         for (final ClientShip ship : ships) {
-            if (slot >= MAX_SHIPS) break;
+            final var pair = shipWorld.getFluidGameplaySnapshot(ship.getId());
             final FluidTopologyClientCache.CachedSnapshot topology =
-                FluidTopologyClientCache.get(shipWorld, ship.getId());
+                FluidTopologyClientCache.get(shipWorld, ship.getId(), pair);
             if (topology == null) continue;
             final FloodedFluidClientCache.CachedSnapshot flooding =
-                FloodedFluidClientCache.get(shipWorld, ship.getId());
+                FloodedFluidClientCache.get(shipWorld, ship.getId(), pair);
             final ShipMask mask = SHIP_MASKS.computeIfAbsent(ship.getId(), ShipMask::new);
-            if (!mask.update(topology, flooding)) continue;
-            uploadShipSlot(handles, slot++, ship, mask, cameraX, cameraY, cameraZ);
+            final boolean direct = slot < DIRECT_MASKS;
+            if (!mask.prepare(topology, flooding, direct)) continue;
+            if (direct) uploadShipSlot(handles, slot++, ship, mask, cameraX, cameraY, cameraZ);
+            else overflow.add(new FluidOcclusionOverflow.Entry(ship, mask.data));
         }
-        for (int i = slot; i < MAX_SHIPS; i++) {
+        for (int i = slot; i < DIRECT_MASKS; i++) {
             disableShipSlot(handles, i);
         }
 
+        // Stable packing avoids rewriting the atlas when distance order changes within the overflow set.
+        overflow.sort(Comparator.comparingLong(entry -> entry.ship().getId()));
+        OVERFLOW.update(overflow, cameraX, cameraY, cameraZ);
+        OVERFLOW.bind(handles.overflowMaskLocation, handles.overflowDescriptorLocation,
+            handles.overflowCountLocation, overflow.size());
         uploadFluidSpriteBounds(handles);
         GL20.glUniform1f(handles.enabledLocation, slot > 0 ? 1.0F : 0.0F);
         GlStateManager._activeTexture(GL13.GL_TEXTURE0);
-        FluidTopologyClientCache.prune(shipWorld);
-        FloodedFluidClientCache.prune(shipWorld);
     }
 
     public static void disableForProgram(final int programId) {
-        final ProgramHandles handles = PROGRAMS.get(programId);
-        if (handles != null && handles.enabledLocation >= 0) {
+        final ProgramHandles handles = handles(programId);
+        if (handles.enabledLocation >= 0) {
+            OVERFLOW.bind(handles.overflowMaskLocation, handles.overflowDescriptorLocation,
+                handles.overflowCountLocation, 0);
             GL20.glUniform1f(handles.enabledLocation, 0.0F);
         }
     }
@@ -143,13 +150,26 @@ public final class FluidOcclusionRenderer {
         clearMasks();
         PROGRAMS.clear();
         lastLevel = null;
+        FluidOcclusionRenderContext.clear();
+    }
+
+    /** Called before ShaderInstance deletes its GL program, whose integer ID may be reused. */
+    public static void onProgramClosed(final int programId) {
+        final ProgramHandles removed = PROGRAMS.remove(programId);
+        if (removed != null && removed.enabledLocation >= 0) {
+            clearMasks();
+            lastLevel = null;
+            FluidOcclusionRenderContext.clear();
+        }
     }
 
     private static void clearMasks() {
+        OVERFLOW.close();
         for (final ShipMask mask : SHIP_MASKS.values()) {
             mask.close();
         }
         SHIP_MASKS.clear();
+        LOADED_SHIP_IDS.clear();
     }
 
     private static void uploadShipSlot(
@@ -170,6 +190,7 @@ public final class FluidOcclusionRenderer {
             handles.gridSizeLocation[slot],
             mask.sizeX, mask.sizeY, mask.sizeZ
         );
+        GL20.glUniform1i(handles.partialCountLocation[slot], mask.partialCount);
 
         final Matrix4dc worldToShip = ship.getRenderTransform().getWorldToShip();
         worldToShip.transformPosition(cameraX, cameraY, cameraZ, CAMERA_IN_SHIP);
@@ -187,6 +208,7 @@ public final class FluidOcclusionRenderer {
 
     private static void disableShipSlot(final ProgramHandles handles, final int slot) {
         GL20.glUniform3f(handles.gridSizeLocation[slot], 0.0F, 0.0F, 0.0F);
+        GL20.glUniform1i(handles.partialCountLocation[slot], 0);
         GL20.glUniform1i(handles.maskLocation[slot], BASE_TEXTURE_UNIT + slot);
         GlStateManager._activeTexture(GL13.GL_TEXTURE0 + BASE_TEXTURE_UNIT + slot);
         GlStateManager._bindTexture(0);
@@ -245,18 +267,20 @@ public final class FluidOcclusionRenderer {
     private static final class ShipMask {
         private final long shipId;
         private final Matrix4f worldToShipLinear = new Matrix4f();
-        private long topologySequence = Long.MIN_VALUE;
-        private long floodingSequence = Long.MIN_VALUE;
+        private Object topologyContent;
+        private Object floodingContent;
         private int minX;
         private int minY;
         private int minZ;
         private int sizeX;
         private int sizeY;
         private int sizeZ;
+        private int partialCount;
         private int textureId;
         private int textureHeight;
         private boolean warnedOversized;
-        private boolean hasDryCells;
+        private FluidOcclusionMaskData data;
+        private FluidOcclusionMaskData uploadedData;
 
         private ShipMask(final long shipId) {
             this.shipId = shipId;
@@ -266,95 +290,48 @@ public final class FluidOcclusionRenderer {
             final FluidTopologyClientCache.CachedSnapshot topology,
             final FloodedFluidClientCache.CachedSnapshot flooding
         ) {
-            final long newTopologySequence =
-                topology.getSnapshot().getStreamSequence();
-            final long newFloodingSequence = flooding == null
-                ? Long.MIN_VALUE
-                : flooding.getSnapshot().getStreamSequence();
-            if (newTopologySequence == topologySequence &&
-                newFloodingSequence == floodingSequence) {
-                return hasDryCells && isLiveTexture(textureId);
-            }
+            return prepare(topology, flooding, true);
+        }
 
-            topologySequence = newTopologySequence;
-            floodingSequence = newFloodingSequence;
-            final List<VsiFluidTopologyVoxel> voxels =
-                topology.getSnapshot().getVoxels();
-            boolean found = false;
-            int newMinX = Integer.MAX_VALUE;
-            int newMinY = Integer.MAX_VALUE;
-            int newMinZ = Integer.MAX_VALUE;
-            int maxX = Integer.MIN_VALUE;
-            int maxY = Integer.MIN_VALUE;
-            int maxZ = Integer.MIN_VALUE;
-            for (final VsiFluidTopologyVoxel voxel : voxels) {
-                if (!topology.isDryDomainCell(
-                    voxel.getPositionX(), voxel.getPositionY(), voxel.getPositionZ(), flooding
-                )) continue;
-                found = true;
-                newMinX = Math.min(newMinX, voxel.getPositionX());
-                newMinY = Math.min(newMinY, voxel.getPositionY());
-                newMinZ = Math.min(newMinZ, voxel.getPositionZ());
-                maxX = Math.max(maxX, voxel.getPositionX());
-                maxY = Math.max(maxY, voxel.getPositionY());
-                maxZ = Math.max(maxZ, voxel.getPositionZ());
-            }
-            if (!found) {
-                hasDryCells = false;
-                return false;
-            }
-
-            final long newSizeX = (long) maxX - newMinX + 1L;
-            final long newSizeY = (long) maxY - newMinY + 1L;
-            final long newSizeZ = (long) maxZ - newMinZ + 1L;
-            final boolean oversized =
-                newSizeX > MAX_MASK_VOLUME ||
-                newSizeY > MAX_MASK_VOLUME / newSizeX ||
-                newSizeZ > MAX_MASK_VOLUME / (newSizeX * newSizeY);
-            final long volume = oversized ? (long) MAX_MASK_VOLUME + 1L :
-                newSizeX * newSizeY * newSizeZ;
-            if (volume <= 0L || volume > MAX_MASK_VOLUME) {
-                hasDryCells = false;
-                if (!warnedOversized) {
-                    warnedOversized = true;
-                    LOGGER.warn(
-                        "Skipping fluid-occlusion mask for ship {}: dense bounds contain {} voxels",
-                        shipId, volume
-                    );
+        private boolean prepare(
+            final FluidTopologyClientCache.CachedSnapshot topology,
+            final FloodedFluidClientCache.CachedSnapshot flooding,
+            final boolean individualTexture
+        ) {
+            final Object newTopologyContent = topology.occlusionIdentity();
+            final Object newFloodingContent = flooding == null ? null : flooding.occlusionIdentity();
+            if (newTopologyContent != topologyContent || newFloodingContent != floodingContent) {
+                try {
+                    final FluidOcclusionMaskData rebuilt = FluidOcclusionMaskData.build(topology, flooding);
+                    // A fill change outside the domain can leave the final mask unchanged.
+                    data = rebuilt != null && rebuilt.sameContent(data) ? data : rebuilt;
+                } catch (final IllegalArgumentException oversized) {
+                    data = null;
+                    if (!warnedOversized) {
+                        warnedOversized = true;
+                        LOGGER.warn("Skipping fluid-occlusion mask for ship {}: {}", shipId, oversized.getMessage());
+                    }
                 }
+                topologyContent = newTopologyContent;
+                floodingContent = newFloodingContent;
+            }
+            if (data == null) {
+                close();
                 return false;
             }
-
-            minX = newMinX;
-            minY = newMinY;
-            minZ = newMinZ;
-            sizeX = (int) newSizeX;
-            sizeY = (int) newSizeY;
-            sizeZ = (int) newSizeZ;
-            final int wordCount = ((int) volume + 31) >>> 5;
-            final int newTextureHeight =
-                Math.max(1, (wordCount + MASK_TEXTURE_WIDTH - 1) / MASK_TEXTURE_WIDTH);
-            final ByteBuffer bytes = BufferUtils.createByteBuffer(
-                MASK_TEXTURE_WIDTH * newTextureHeight * 4
-            );
-            for (final VsiFluidTopologyVoxel voxel : voxels) {
-                if (!topology.isDryDomainCell(
-                    voxel.getPositionX(), voxel.getPositionY(), voxel.getPositionZ(), flooding
-                )) continue;
-                final int x = voxel.getPositionX() - minX;
-                final int y = voxel.getPositionY() - minY;
-                final int z = voxel.getPositionZ() - minZ;
-                final int index = x + sizeX * (y + sizeY * z);
-                final int byteIndex = index >>> 3;
-                bytes.put(byteIndex, (byte) (bytes.get(byteIndex) | (1 << (index & 7))));
+            minX = data.minX; minY = data.minY; minZ = data.minZ;
+            sizeX = data.sizeX; sizeY = data.sizeY; sizeZ = data.sizeZ;
+            partialCount = data.partialCount;
+            if (individualTexture) {
+                ensureTexture(data.textureHeight);
+                if (uploadedData != data) {
+                    uploadTexture(textureId, MASK_TEXTURE_WIDTH, data.textureHeight, data.bytes);
+                    uploadedData = data;
+                }
+            } else {
+                // Overflow already owns these bytes on the GPU; do not keep a second per-ship texture.
+                close();
             }
-            bytes.position(0);
-            bytes.limit(bytes.capacity());
-
-            ensureTexture(newTextureHeight);
-            uploadTexture(textureId, MASK_TEXTURE_WIDTH, newTextureHeight, bytes);
-            textureHeight = newTextureHeight;
-            hasDryCells = true;
             return true;
         }
 
@@ -365,6 +342,8 @@ public final class FluidOcclusionRenderer {
             final int previousBinding = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
             final int previousAlignment = GL11.glGetInteger(GL11.GL_UNPACK_ALIGNMENT);
             try {
+                // External deletion can leave Minecraft's cached binding at a reused name.
+                GlStateManager._bindTexture(0);
                 GlStateManager._bindTexture(textureId);
                 GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
                 GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
@@ -389,6 +368,7 @@ public final class FluidOcclusionRenderer {
             }
             textureId = 0;
             textureHeight = 0;
+            uploadedData = null;
         }
     }
 
@@ -415,23 +395,32 @@ public final class FluidOcclusionRenderer {
 
     private static final class ProgramHandles {
         private final int enabledLocation;
+        private final int overflowMaskLocation;
+        private final int overflowDescriptorLocation;
+        private final int overflowCountLocation;
         private final int[] fluidBoundsLocation = new int[5];
-        private final int[] maskLocation = new int[MAX_SHIPS];
-        private final int[] gridSizeLocation = new int[MAX_SHIPS];
-        private final int[] cameraLocalLocation = new int[MAX_SHIPS];
-        private final int[] worldToShipLocation = new int[MAX_SHIPS];
+        private final int[] maskLocation = new int[DIRECT_MASKS];
+        private final int[] gridSizeLocation = new int[DIRECT_MASKS];
+        private final int[] partialCountLocation = new int[DIRECT_MASKS];
+        private final int[] cameraLocalLocation = new int[DIRECT_MASKS];
+        private final int[] worldToShipLocation = new int[DIRECT_MASKS];
 
         private ProgramHandles(final int programId) {
             enabledLocation = GL20.glGetUniformLocation(programId, "VsFluidOcclusionEnabled");
+            overflowMaskLocation = GL20.glGetUniformLocation(programId, "VsFluidOverflowMasks");
+            overflowDescriptorLocation = GL20.glGetUniformLocation(programId, "VsFluidOverflowDescriptors");
+            overflowCountLocation = GL20.glGetUniformLocation(programId, "VsFluidOverflowCount");
             for (int i = 0; i < fluidBoundsLocation.length; i++) {
                 fluidBoundsLocation[i] =
                     GL20.glGetUniformLocation(programId, "VsFluidOcclusionUv" + i);
             }
-            for (int i = 0; i < MAX_SHIPS; i++) {
+            for (int i = 0; i < DIRECT_MASKS; i++) {
                 maskLocation[i] =
                     GL20.glGetUniformLocation(programId, "VsFluidOcclusionMask" + i);
                 gridSizeLocation[i] =
                     GL20.glGetUniformLocation(programId, "VsFluidOcclusionGridSize" + i);
+                partialCountLocation[i] =
+                    GL20.glGetUniformLocation(programId, "VsFluidOcclusionPartialCount" + i);
                 cameraLocalLocation[i] =
                     GL20.glGetUniformLocation(programId, "VsFluidOcclusionCameraLocal" + i);
                 worldToShipLocation[i] =

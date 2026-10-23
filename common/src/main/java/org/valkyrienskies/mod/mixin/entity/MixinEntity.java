@@ -4,21 +4,16 @@ import static org.valkyrienskies.mod.common.util.VectorConversionsMCKt.toJOML;
 
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
-import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
-import java.util.Set;
 import net.minecraft.CrashReport;
 import net.minecraft.CrashReportCategory;
 import net.minecraft.ReportedException;
 import net.minecraft.core.BlockPos;
-import net.minecraft.tags.FluidTags;
-import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
@@ -77,32 +72,8 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         final ShipFluidInteraction.PointSample sample =
             ShipFluidInteraction.samplePoint(this.level, entity.getEyePosition());
         vs$setInSealedArea(sample.insideDomain() && !sample.flooded());
-        if (!sample.insideDomain()) {
-            original.call();
-            return;
-        }
-
-        this.wasEyeInWater = this.fluidOnEyes.contains(FluidTags.WATER);
-        this.fluidOnEyes.clear();
-        if (sample.fluid() != null) {
-            sample.fluid().defaultFluidState().getTags().forEach(this.fluidOnEyes::add);
-        }
-    }
-
-    @WrapMethod(method = "updateFluidHeightAndDoFluidPushing")
-    private boolean onUpdateFluidHeightAndDoFluidPushing(
-        final TagKey<Fluid> fluidTag,
-        final double motionScale,
-        final Operation<Boolean> original
-    ) {
-        final ShipFluidInteraction.VolumeSample sample =
-            ShipFluidInteraction.sampleVolume(this.level, this.getBoundingBox(), fluidTag);
-        if (!sample.controlsVanilla()) {
-            return original.call(fluidTag, motionScale);
-        }
-
-        this.fluidHeight.put(fluidTag, sample.fluidDepth());
-        return sample.submerged();
+        // Platform fluid-state hooks supply retained liquid while vanilla/Forge own their eye/type bookkeeping.
+        original.call();
     }
 
     @WrapMethod(method = "isInBubbleColumn")
@@ -308,17 +279,6 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
 
     @Shadow
     public abstract boolean isRemoved();
-
-    @Shadow
-    protected boolean wasEyeInWater;
-
-    @Shadow
-    @Final
-    private Set<TagKey<Fluid>> fluidOnEyes;
-
-    @Shadow
-    @Final
-    private Object2DoubleMap<TagKey<Fluid>> fluidHeight;
 
     @Override
     @NotNull

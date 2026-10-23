@@ -188,6 +188,24 @@ object ShipAssembler {
         return AssembleContext(toShip, fromCenter, toCenter)
     }
 
+    @OptIn(GameTickOnly::class)
+    internal fun transferRetainedWater(level: ServerLevel, fromShip: ServerShip?, toShip: ServerShip?,
+                                      blocks: Set<BlockPos>, sourceCorner: BlockPos, destinationCorner: BlockPos) {
+        // World source blocks carry their own liquid state through the ordinary block move.
+        val source = fromShip ?: return
+        val world = level.shipObjectWorld
+        val target = toShip?.id ?: checkNotNull(world.dimensionToGroundBodyIdImmutable[level.dimensionId])
+        val coordinates = IntArray(Math.multiplyExact(blocks.size, 3))
+        var index = 0
+        for (block in blocks) {
+            coordinates[index++] = block.x; coordinates[index++] = block.y; coordinates[index++] = block.z
+        }
+        world.moveFluidWithBlocks(source.id, target, level.dimensionId, coordinates,
+            Vector3i(Math.subtractExact(destinationCorner.x, sourceCorner.x),
+                Math.subtractExact(destinationCorner.y, sourceCorner.y),
+                Math.subtractExact(destinationCorner.z, sourceCorner.z)))
+    }
+
     data class MoveContext(val wasSuccessful: Boolean, val fromCenter: Vector3d, val toCenter: Vector3d)
     private val failedMove = MoveContext(false, Vector3d(), Vector3d())
 
@@ -325,6 +343,7 @@ object ShipAssembler {
         template.placeInWorld(level, cornerOfShip, cornerOfShip, structureSettings, level.random, Block.UPDATE_CLIENTS)
 
         if (removeOriginal) {
+            transferRetainedWater(level, fromShip, toShip, blocks, minStructurePos, cornerOfShip)
             StructureMetadataRelocator.relocateStructureMetadata(level, blocks, minStructurePos, maxStructurePos, cornerOfShip)
         }
 
@@ -684,6 +703,10 @@ object ShipAssembler {
                     }
                     initSkyLightForShip(level, destPositions2)
                 }
+
+                // Both the small direct-move and template paths have moved this exact selection.
+                transferRetainedWater(level, pending.fromShip, pending.toShip,
+                    filteredBlocks, pending.minB, cornerOfShip)
 
                 // Set kinematics
                 val posOffset = Vector3d(pending.toShip.inertiaData.centerOfMass)

@@ -18,6 +18,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.fluid.ShipFluidStateQueries;
 
 // getRandomSwimmablePos validates each candidate via isPathfindable(WATER) at the WORLD
 // cell; for a fish in a ship-mounted tank the world cell is air, the 10-retry loop fails,
@@ -45,10 +46,14 @@ public abstract class MixinBehaviorUtilsSwim {
         final PathComputationType type, final Operation<Boolean> original,
         @Local(argsOnly = true) final PathfinderMob mob
     ) {
-        if (original.call(worldState, blockGetter, worldPos, type)) return true;
-        if (type != PathComputationType.WATER) return false;
+        final boolean vanilla = original.call(worldState, blockGetter, worldPos, type);
+        if (type != PathComputationType.WATER) return vanilla;
         final Level level = mob.level();
-        if (level == null) return false;
+        if (level == null) return vanilla;
+        final var controlled = ShipFluidStateQueries.at(level, worldPos);
+        if (controlled != null) return controlled.fluid().is(FluidTags.WATER)
+            && !controlled.blockState(worldState).blocksMotion();
+        if (vanilla) return true;
 
         final double cx = worldPos.getX() + 0.5;
         final double cy = worldPos.getY() + 0.5;

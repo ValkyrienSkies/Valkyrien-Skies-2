@@ -120,6 +120,8 @@ loom {
 
 test {
     useJUnitPlatform()
+    // Optional hidden-window shader checks; ordinary CI need not have a graphics context.
+    systemProperty "vs.test.fluidGL", project.findProperty("fluidGlTests") ?: "false"
 }
 
 jar {
