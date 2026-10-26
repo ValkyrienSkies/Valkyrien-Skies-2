@@ -1,8 +1,5 @@
 package org.valkyrienskies.mod.mixin.feature.poi;
 
-import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
-import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import com.llamalad7.mixinextras.sugar.Local;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import net.minecraft.core.BlockPos;
@@ -20,7 +17,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
-import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
@@ -31,7 +27,9 @@ import org.valkyrienskies.mod.mixinducks.world.OfLevel;
  * @author Tomato
  * This atrocious mess of a mixin allows POIs in ship space to be detected, however it requires further mixins to Goals for the ship space positions to be correctly used, from what I can understand.
  */
-@Mixin(PoiManager.class)
+// Priority 1100 so that the getInRange overwrite below also applies over Lithium/Canary/Radium's PoiManagerMixin (priority 1000),
+// which overwrites getInRange with its own search. See issue #1788.
+@Mixin(value = PoiManager.class, priority = 1100)
 public abstract class MixinPOIManager implements OfLevel {
 
     @Unique
@@ -67,10 +65,17 @@ public abstract class MixinPOIManager implements OfLevel {
         });
     }
 
-    @WrapOperation(method = "getInRange", at = @At(value = "INVOKE", target = "Ljava/util/stream/Stream;filter(Ljava/util/function/Predicate;)Ljava/util/stream/Stream;"))
-    private Stream<PoiRecord> onGetInRange(Stream<PoiRecord> instance, Predicate<PoiType> predicate, Operation<Stream<PoiRecord>> original, @Local(argsOnly = true) BlockPos arg, @Local(argsOnly = true) int i) {
+    /**
+     * @author Mrgregles
+     * @reason The vanilla body with the distance measured in world space, so POIs aboard ships are found. An overwrite
+     * rather than a wrap of the Stream.filter call: Lithium-style optimisers (Canary on Forge, Radium) overwrite
+     * getInRange, after which the wrap has no target and Mixin refuses to apply this class, crashing on world load.
+     */
+    @Overwrite
+    public Stream<PoiRecord> getInRange(Predicate<PoiType> predicate, BlockPos blockPos, int i, Occupancy occupancy) {
         final int k = i * i;
-        return instance.filter(poiRecord -> POIChunkSearcher.INSTANCE.getWorldPos(poiRecord, this.valkyrienskies$sLevel).distanceToSqr(Vec3.atLowerCornerOf(arg)) <= (double)k);
+        return this.getInSquare(predicate, blockPos, i, occupancy).filter(poiRecord ->
+            POIChunkSearcher.INSTANCE.getWorldPos(poiRecord, this.valkyrienskies$sLevel).distanceToSqr(Vec3.atLowerCornerOf(blockPos)) <= (double) k);
     }
 
     @Override
