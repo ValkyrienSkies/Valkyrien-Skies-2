@@ -214,6 +214,8 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
         }
 
         this.level.onChunkLoaded(pos);
+        final ClientShip loadedShip = VSGameUtilsKt.getLoadedShipManagingPos(this.level, x, z);
+        if (loadedShip != null) VsDynamicLight.invalidateShipEmitters(loadedShip.getId());
         if (ValkyrienCommonMixinConfigPlugin.getVSRenderer() == VSRenderer.SODIUM) {
             // getVSRenderer() only returns SODIUM if the mod is installed.
             // Methods of SodiumCompat check if Sodium is present but calling them
@@ -226,6 +228,7 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
 
     @Override
     public void vs$removeShip(final ClientShip ship) {
+        VsDynamicLight.invalidateShipEmitters(ship.getId());
         final ChunkClaim chunks = ship.getChunkClaim();
         final int[] queued = new int[] {0};
         ship.getActiveChunksSet().forEach((x, z) -> {
@@ -314,6 +317,8 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
 
     @Unique
     private LevelChunk removeShipChunk(final int chunkX, final int chunkZ) {
+        final ClientShip ship = VSGameUtilsKt.getLoadedShipManagingPos(this.level, chunkX, chunkZ);
+        if (ship != null) VsDynamicLight.invalidateShipEmitters(ship.getId());
         final LevelChunk chunk = this.shipChunks.remove(ChunkPos.asLong(chunkX, chunkZ));
         this.emptyShipChunks.remove(ChunkPos.asLong(chunkX, chunkZ));
         this.vs$litOnce.remove(ChunkPos.asLong(chunkX, chunkZ));

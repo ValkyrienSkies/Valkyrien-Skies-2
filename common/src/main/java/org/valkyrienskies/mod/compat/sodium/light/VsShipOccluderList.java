@@ -24,7 +24,7 @@ import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 
 /**
  * Per-frame list of every solid ship voxel, packed as
- * {@code vec4(worldX, worldY, worldZ, padding)} entries into a buffer
+ * {@code vec4(worldX, worldY, worldZ, radiusSquared)} entries into a buffer
  * texture. Mirrors {@link VsShipEmitterList} structurally but populates
  * from solid (full-cube opaque) voxels instead of light-emitting voxels.
  *
@@ -135,7 +135,9 @@ public class VsShipOccluderList {
         MemoryUtil.memPutFloat(offset,        (float) worldX);
         MemoryUtil.memPutFloat(offset + 4,    (float) worldY);
         MemoryUtil.memPutFloat(offset + 8,    (float) worldZ);
-        MemoryUtil.memPutFloat(offset + 12,   0.0f);
+        final double normSquared = (double) qx * qx + (double) qy * qy
+            + (double) qz * qz + (double) qw * qw;
+        MemoryUtil.memPutFloat(offset + 12, Math.abs(normSquared - 1.0) < 0.001 ? 9.0f : 0.0f);
         MemoryUtil.memPutFloat(offset + 16,   qx);
         MemoryUtil.memPutFloat(offset + 20,   qy);
         MemoryUtil.memPutFloat(offset + 24,   qz);

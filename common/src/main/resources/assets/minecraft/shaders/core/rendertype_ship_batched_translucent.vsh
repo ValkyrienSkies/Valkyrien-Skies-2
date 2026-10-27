@@ -1,13 +1,11 @@
 #version 150
 
-#moj_import <fakelight.glsl>
 #moj_import <fog.glsl>
 
 in vec3 Position;
 in vec4 Color;
 in vec2 UV0;
 in ivec2 UV2;
-in vec3 Normal;
 
 uniform samplerBuffer ShipTransforms;
 uniform int ShipIndex;
@@ -24,7 +22,7 @@ out vec4 vertexColor;
 out vec2 texCoord0;
 
 out vec3 v_CameraRelWorldPos;   // worldPos - floor(camera); + u_VsRenderOrigin == abs world pos
-flat out vec3 v_WorldNormal;    // tilt-correct world-space face normal
+flat out float v_IsShaded;    // 1 for shaded faces.
 out vec2 v_BakedLightCoord;     // ship-internal baked lightmap UV (from UV2)
 flat out float v_Fullbright;    // 1.0 if the quad was baked emissive (UV2 == FULL_BRIGHT)
 
@@ -54,8 +52,7 @@ void main() {
     vertexDistance = fog_distance(modelView, pos, FogShape);
     texCoord0 = UV0;
 
-    vec3 worldNormal = normalize(mat3(vs_shipLocalToCameraRel()) * Normal);
-    v_WorldNormal = worldNormal;
+    v_IsShaded = Color.a == 0.0 ? 0.0 : 1.0;
 
     v_CameraRelWorldPos = (vs_shipLocalToCameraRel() * vec4(pos, 1.0)).xyz;
 
@@ -65,6 +62,6 @@ void main() {
     if (Color.a == 0.0) {
         vertexColor = vec4(Color.rgb, 1.0);
     } else {
-        vertexColor = vec4(Color.rgb * vanillaShadeFromNormal(worldNormal), Color.a);
+        vertexColor = vec4(Color.rgb, Color.a);
     }
 }

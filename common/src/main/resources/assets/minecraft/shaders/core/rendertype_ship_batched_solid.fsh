@@ -1,8 +1,10 @@
 #version 330 core
 
 #moj_import <fog.glsl>
+#moj_import <fakelight.glsl>
 #moj_import <vs_dynamic_light.glsl>
 #moj_import <vs_ship_glow_grid.glsl>
+#moj_import <vs_ship_shadows.glsl>
 
 uniform sampler2D Sampler0;   // block atlas
 uniform sampler2D Sampler2;   // lightmap
@@ -19,12 +21,15 @@ in vec4 vertexColor;
 in vec2 texCoord0;
 in vec2 v_BakedLightCoord;
 in vec3 v_CameraRelWorldPos;
-flat in vec3 v_WorldNormal;
+flat in float v_IsShaded;
 flat in float v_Fullbright;
 
 out vec4 fragColor;
 
 void main() {
+    vec3 v_WorldNormal = normalize(cross(dFdx(v_CameraRelWorldPos), dFdy(v_CameraRelWorldPos)));
+    if (!gl_FrontFacing) v_WorldNormal = -v_WorldNormal;
+
     vec4 tex = texture(Sampler0, texCoord0);
     vec3 relPos = v_CameraRelWorldPos - v_WorldNormal * 0.02;
     vec3 worldPos = vec3(ivec3(floor(relPos)) + u_VsRenderOrigin) + fract(relPos);
@@ -54,8 +59,12 @@ void main() {
     }
 
     vec4 lightSample = texture(Sampler2, lightCoord);
+    if (v_Fullbright < 0.5) {
+        lightSample = vs_shipShadowLight(Sampler2, lightCoord, worldPos + v_WorldNormal * 0.06, v_WorldNormal);
+    }
     vec4 color = tex * vertexColor * ColorModulator;
     color.rgb *= lightSample.rgb;
+    if (v_IsShaded > 0.5) color.rgb *= vanillaShadeFromNormal(v_WorldNormal);
 
     fragColor = linear_fog(color, vertexDistance, FogStart, FogEnd, FogColor);
 }

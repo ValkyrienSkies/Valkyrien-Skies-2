@@ -31,6 +31,7 @@ object VSGamePackets {
 
     fun register() = with(vsCore.simplePacketNetworking) {
         PacketPlayerDriving::class.register()
+        PacketPlayerShipPush::class.register()
         PacketStopChunkUpdates::class.register()
         PacketRestartChunkUpdates::class.register()
         PacketSyncVSEntityTypes::class.register()
@@ -39,9 +40,24 @@ object VSGamePackets {
         PacketMobShipRotation::class.register()
         PacketPlayerShipMotion::class.register()
         PacketChangeKnownShips::class.register()
+        PacketPhysicsDebug::class.register()
     }
 
     fun registerHandlers() = with(vsCore.simplePacketNetworking) {
+        PacketPlayerShipPush::class.registerServerHandler { input, iPlayer ->
+            val player = (iPlayer as MinecraftPlayer).player as ServerPlayer
+            player.server.execute {
+                org.valkyrienskies.mod.common.util.ShipPushing.receiveInput(player,
+                    input.active, input.left, input.forward)
+            }
+        }
+        PacketPhysicsDebug::class.registerClientHandler { packet ->
+            val minecraft = Minecraft.getInstance()
+            val connection = minecraft.connection
+            if (connection != null) {
+                org.valkyrienskies.mod.client.debug.ShipDebugRenderer.enqueue(packet, connection)
+            }
+        }
         PacketPlayerDriving::class.registerServerHandler { driving, iPlayer ->
             val player = (iPlayer as MinecraftPlayer).player as ServerPlayer
             val seat = player.vehicle as? ShipMountingEntity

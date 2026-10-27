@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.compat.jei
 
-import mezz.jei.core.search.ISearchStorage
+import mezz.jei.api.search.ISearchStorage
+import mezz.jei.api.search.ISearchStorageBuilder
 import java.util.Collections
 import java.util.IdentityHashMap
 import java.util.NavigableMap
@@ -14,7 +15,7 @@ import kotlin.math.min
 /**
  * Yes this is a massive file I'm sorry
  */
-class NumericAttributeStorage<T> : ISearchStorage<T> {
+class NumericAttributeStorage<T> : ISearchStorage<T>, ISearchStorageBuilder<T> {
 
     // attribute name -> (attribute value -> items with that amount)
     // e.g. {"kg": {5: ["minecraft:oak_log"]}}
@@ -72,6 +73,8 @@ class NumericAttributeStorage<T> : ISearchStorage<T> {
             this.unparseableKeyCount++
         }
     }
+
+    override fun build(): ISearchStorage<T> = this
 
     override fun getSearchResults(token: String, resultsConsumer: Consumer<MutableCollection<T>>) {
         val constraints = parseQuery(token)

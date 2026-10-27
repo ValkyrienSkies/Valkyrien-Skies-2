@@ -19,7 +19,7 @@ public class FlywheelDynLightCompat {
                     blockEntityManager.onLightUpdate(sectionLong);
                 }
             }
-            if (VSGameConfig.CLIENT.getDynamicShipToWorldLighting()) {
+            if (VSGameConfig.CLIENT.isShipToWorldLightingEnabled()) {
                 for (Long sectionLong : SodiumCompat.getWorldFromShipStorage().trackedSections()) {
                     blockEntityManager.onLightUpdate(sectionLong);
                 }

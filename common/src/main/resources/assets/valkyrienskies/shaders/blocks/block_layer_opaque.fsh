@@ -34,6 +34,8 @@ uniform usamplerBuffer u_VsLightSections;
 uniform usamplerBuffer u_VsLightLut;
 #endif
 #ifdef VS_SHIP_ON_SHIP
+// Use the shared shadow boxes when ships affect world lighting.
+#import <valkyrienskies:include/ship_shadows.glsl>
 // Per-frame ship-emitter list. TWO RGBA32F texels per emitter:
 //   texel 2i:   vec4(worldX, worldY, worldZ, lightLevel)
 //   texel 2i+1: vec4(qx, qy, qz, qw)   ship-to-world rotation quaternion
@@ -63,10 +65,13 @@ out vec4 fragColor;
 #define MINECRAFT_LIGHT_Z (0.8)
 #define MINECRAFT_LIGHT_Y (0.5)
 
+uniform float u_VsShipShadeStrength;
+
 // from Flywheel/common/src/backend/resources/assets/flywheel/flywheel/internal/diffuse.glsl
 float vanillaShadeFromNormal(vec3 normal) {
     vec3 n2 = normal * normal * vec3(.6, .25, .8);
-    return min(n2.x + n2.y * (3. + normal.y) + n2.z, 1.);
+    float shade = min(n2.x + n2.y * (3. + normal.y) + n2.z, 1.);
+    return mix(1.0, shade, clamp(u_VsShipShadeStrength, 0.0, 1.0));
 }
 
 // MC's lightmap texture uses GL's default GL_REPEAT wrap; at UV=0 a LINEAR
@@ -513,6 +518,12 @@ void main() {
 #endif
 
     vec4 lightSample = texture(u_LightTex, lightCoord);
+#ifdef VS_SHIP_ON_SHIP
+    if (!isFullbright) {
+        lightSample = vs_shipShadowLight(u_LightTex, lightCoord,
+            v_CameraRelWorldPos + vec3(u_VsRenderOrigin) + worldN * 0.04, worldN);
+    }
+#endif
     diffuseColor.rgb *= vertTint * lightSample.rgb;
 
 #ifdef VS_SHIP_ON_SHIP

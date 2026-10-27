@@ -282,19 +282,6 @@ subprojects {
                 url.contains("maven.fabricmc.net") ||
                 url.contains("maven.architectury.dev")
         }
-        if (project.name == "forge") {
-            repositories.exclusiveContent {
-                forRepository {
-                    project.repositories.maven {
-                        name = "Forge distribution"
-                        url = "https://maven.minecraftforge.net/"
-                    }
-                }
-                filter {
-                    includeModule("net.minecraftforge", "forge")
-                }
-            }
-        }
     }
 
     dependencies {

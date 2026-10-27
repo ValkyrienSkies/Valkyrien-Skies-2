@@ -25,7 +25,6 @@ import org.joml.Matrix4d;
 import org.joml.Matrix4f;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
-import org.joml.Vector3f;
 import org.lwjgl.opengl.GL20;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
@@ -35,7 +34,7 @@ import org.valkyrienskies.mod.common.VSRenderTypes;
 import org.valkyrienskies.mod.common.config.ShipRendererKt;
 import org.valkyrienskies.mod.common.render.light.VsDynamicLight;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
-import org.valkyrienskies.mod.compat.sodium.light.VsShipEmitterList;
+
 
 public final class ShipBatchRenderer {
 
@@ -55,7 +54,10 @@ public final class ShipBatchRenderer {
     private static final int SHIP_TRANSFORMS_TEXTURE_UNIT = 4;
 
     private final Matrix4d localToCameraRelScratch = new Matrix4d();
+    private final Matrix4d modelViewScratch = new Matrix4d();
     private final Matrix4f localToCameraRelFloat = new Matrix4f();
+    private final Vector3d cameraInShip = new Vector3d();
+    private ClientLevel currentLevel;
 
     private static final int MAX_SHIP_REMESH_PER_FRAME = 2;
 
@@ -77,6 +79,7 @@ public final class ShipBatchRenderer {
     }
 
     public void markSectionDirty(final long shipId, final int sx, final int sy, final int sz) {
+        VsDynamicLight.invalidateShipEmitters(shipId);
         final ShipRenderObject renderObject;
         synchronized (ships) {
             renderObject = ships.get(shipId);
@@ -108,15 +111,16 @@ public final class ShipBatchRenderer {
             freeAll();
             return;
         }
+        if (currentLevel != null && level != currentLevel) {
+            freeShipMeshes();
+        }
+        currentLevel = level;
 
         final long gameTime = level.getGameTime();
         if (gameTime != lastLightPopulationGameTime) {
             lastLightPopulationGameTime = gameTime;
             VsDynamicLight.populateWorldLightForBatched(level);
         }
-        final VsShipEmitterList shipEmitters = VsDynamicLight.getShipEmitterList();
-        shipEmitters.beginFrame();
-
         final BlockRenderDispatcher dispatcher = Minecraft.getInstance().getBlockRenderer();
         presentScratch.clear();
 
@@ -137,12 +141,7 @@ public final class ShipBatchRenderer {
             if (renderObject.ensureCompiled(level, dispatcher, compiler, reMeshBudget > 0)) {
                 reMeshBudget--;
             }
-            final double[] shipyardEmitters = renderObject.getShipyardEmitters(level);
-            if (shipyardEmitters.length != 0) {
-                shipEmitters.appendShipEmitters(ship, shipyardEmitters);
-            }
         }
-        shipEmitters.upload();
 
         synchronized (ships) {
             if (ships.size() != presentScratch.size()) {
@@ -156,7 +155,7 @@ public final class ShipBatchRenderer {
                 }
             }
             drawOrder.clear();
-            drawOrder.addAll(ships.values());
+            for (final ShipRenderObject ship : ships.values()) drawOrder.add(ship);
         }
     }
 
@@ -223,6 +222,7 @@ public final class ShipBatchRenderer {
         int shipIndexLoc = -1;
         if (usingBatchedShader) {
             final int programId = shader.getId();
+            org.valkyrienskies.mod.common.render.light.ShipShadowRenderer.bind(programId);
             transformStorage.bind(SHIP_TRANSFORMS_TEXTURE_UNIT);
             final int samplerLoc = GL20.glGetUniformLocation(programId, "ShipTransforms");
             if (samplerLoc >= 0) {
@@ -305,7 +305,7 @@ public final class ShipBatchRenderer {
         }
 
         if (chunkOffsetUniform != null) {
-            chunkOffsetUniform.set(new Vector3f());
+            chunkOffsetUniform.set(0.0f, 0.0f, 0.0f);
         }
         shader.clear();
         VertexBuffer.unbind();
@@ -346,8 +346,7 @@ public final class ShipBatchRenderer {
         }
 
         transformStorage.beginFrame();
-        final Vector3d camScratch = new Vector3d();
-        final PoseStack poseStack = levelPoseStack;
+        final Vector3d camScratch = cameraInShip;
         for (int i = 0; i < drawOrder.size(); i++) {
             final ShipRenderObject renderObject = drawOrder.get(i);
             final ShipFrameData data = frameData.get(i);
@@ -378,21 +377,9 @@ public final class ShipBatchRenderer {
             data.camShipY = camScratch.y;
             data.camShipZ = camScratch.z;
 
-            poseStack.pushPose();
-            VSClientGameUtils.transformRenderWithShip(transform, poseStack,
-                data.camShipX, data.camShipY, data.camShipZ, camX, camY, camZ);
-            data.modelView.set(poseStack.last().pose());
-            poseStack.popPose();
-
-            final int originX = (int) Math.floor(camX);
-            final int originY = (int) Math.floor(camY);
-            final int originZ = (int) Math.floor(camZ);
-            localToCameraRelScratch
-                .translation(camX - originX, camY - originY, camZ - originZ)
-                .translate(-camX, -camY, -camZ)
-                .mul(transform.getShipToWorld())
-                .translate(data.camShipX, data.camShipY, data.camShipZ);
-            localToCameraRelFloat.set(localToCameraRelScratch);
+            ShipRenderMatrices.prepare(transform.getShipToWorld(), levelPoseStack.last().pose(),
+                camX, camY, camZ, data.camShipX, data.camShipY, data.camShipZ,
+                localToCameraRelScratch, modelViewScratch, data.modelView, localToCameraRelFloat);
 
             data.transformIndex = transformStorage.append(data.modelView, localToCameraRelFloat);
 
@@ -454,6 +441,11 @@ public final class ShipBatchRenderer {
     }
 
     public void freeAll() {
+        freeShipMeshes();
+        VsDynamicLight.deleteStorages();
+    }
+
+    private void freeShipMeshes() {
         synchronized (ships) {
             for (final ShipRenderObject renderObject : ships.values()) {
                 renderObject.close();
@@ -461,7 +453,10 @@ public final class ShipBatchRenderer {
             ships.clear();
         }
         drawOrder.clear();
-        VsDynamicLight.deleteStorages();
+        frameData.clear();
+        transformStorage.delete();
+        preparedFrameToken = -1;
+        currentLevel = null;
         lastLightPopulationGameTime = Long.MIN_VALUE;
     }
 }

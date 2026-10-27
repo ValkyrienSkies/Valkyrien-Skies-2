@@ -120,6 +120,9 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
 
     @Inject(at = @At("TAIL"), method = "stopServer")
     private void afterStopServer(final CallbackInfo ci) {
+        org.valkyrienskies.mod.common.debug.ShipDebugService.clear();
+        org.valkyrienskies.mod.common.util.ShipInteractions.clear();
+        org.valkyrienskies.mod.common.util.ShipShadows.clear();
         ValkyrienSkiesMod.setCurrentServer(null);
     }
 
@@ -270,9 +273,11 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         fractionalFluidSources.recoverTransfers(dimensionToLevelMap, fluidOutflowManager);
         vsPipeline.postTickGame();
         org.valkyrienskies.mod.common.fluid.ShipFluidInteraction.prune(shipWorld);
+        org.valkyrienskies.mod.common.debug.ShipDebugService.tick((MinecraftServer) (Object) this);
         fluidOutflowManager.tick(dimensionToLevelMap);
         // Only drag entities after we have updated the ship positions
         for (final ServerLevel level : getAllLevels()) {
+            org.valkyrienskies.mod.common.util.ShipInteractions.afterPhysicsTick(level);
             EntityDragger.INSTANCE.dragEntitiesWithShips(level.getAllEntities(), false);
             VanillaFluidFlowWindProvider.INSTANCE.tick(level);
             if (LoadedMods.getWeather2())
@@ -447,6 +452,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         at = @At("HEAD")
     )
     private void preStopServer(final CallbackInfo ci) {
+        org.valkyrienskies.mod.common.assembly.ShipWelder.cancelAll(MinecraftServer.class.cast(this));
         if (vsPipeline != null) {
             vsPipeline.setDeleteResources(true);
             vsPipeline.setArePhysicsRunning(true);

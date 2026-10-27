@@ -55,6 +55,7 @@ import org.valkyrienskies.mod.common.VS2ChunkAllocator;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
+import org.valkyrienskies.mod.common.assembly.ShipWelder;
 import org.valkyrienskies.mod.common.block.WingBlock;
 import org.valkyrienskies.mod.common.config.DimensionParametersResolver;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
@@ -340,6 +341,11 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
         }
     }
 
+    @Inject(method = "tick", at = @At("HEAD"))
+    private void vs$checkPlayerShipImpacts(final BooleanSupplier shouldKeepTicking, final CallbackInfo ci) {
+        org.valkyrienskies.mod.common.util.ShipInteractions.beginTick((ServerLevel) (Object) this);
+    }
+
     @Inject(method = "tick", at = @At("TAIL"))
     private void postTick(final BooleanSupplier shouldKeepTicking, final CallbackInfo ci) {
         final ServerLevel self = ServerLevel.class.cast(this);
@@ -441,6 +447,8 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
         if (VSCoreConfig.SERVER.getSp().getEnableSplitting()) {
             ValkyrienSkiesMod.splitHandler.tick(ServerLevel.class.cast(this));
         }
+        ShipWelder.tick(ServerLevel.class.cast(this));
+        org.valkyrienskies.mod.common.util.ShipInteractions.tick((ServerLevel) (Object) this);
         final ConfigPhysicsBackendType backend = VSCoreConfig.SERVER.getPhysics().getPhysicsBackend();
         final boolean isFracturingBackend = backend == ConfigPhysicsBackendType.KRUNCH_KONSTANT
             || backend == ConfigPhysicsBackendType.KRUNCH_VOX3D;

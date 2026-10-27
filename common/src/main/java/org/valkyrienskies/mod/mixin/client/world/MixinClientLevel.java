@@ -58,6 +58,7 @@ import org.valkyrienskies.mod.client.audio.SimpleSoundInstanceOnShip;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.DimensionParametersResolver;
+import org.valkyrienskies.mod.common.render.light.VsDynamicLight;
 import org.valkyrienskies.mod.util.McMathUtilKt;
 
 @Mixin(ClientLevel.class)
@@ -93,6 +94,14 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
     // Maps chunk pos to number of ticks we have considered unloading the chunk
     @Unique
     private final Long2LongOpenHashMap vs$chunksToUnload = new Long2LongOpenHashMap();
+
+    @Inject(method = "sendBlockUpdated", at = @At("HEAD"))
+    private void vs$invalidateShipGeometry(final BlockPos pos, final BlockState oldState,
+        final BlockState newState, final int flags, final CallbackInfo ci) {
+        if (oldState == newState) return;
+        final Ship ship = VSGameUtilsKt.getShipManagingPos((ClientLevel) (Object) this, pos);
+        if (ship != null) VsDynamicLight.invalidateShipEmitters(ship.getId());
+    }
 
     @Inject(method = "<init>", at = @At("TAIL"))
     private void postInit(ClientPacketListener clientPacketListener, ClientLevelData clientLevelData,

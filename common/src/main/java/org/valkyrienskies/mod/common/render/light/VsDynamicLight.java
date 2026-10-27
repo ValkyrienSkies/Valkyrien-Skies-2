@@ -23,6 +23,7 @@ public final class VsDynamicLight {
     private static VsWorldFromShipLightStorage worldFromShipStorage;
     private static VsShipEmitterList shipEmitterList;
     private static VsShipOccluderList shipOccluderList;
+    private static final ShipGeometryCache<double[]> EMITTERS = new ShipGeometryCache<>();
 
     private VsDynamicLight() {
     }
@@ -56,6 +57,8 @@ public final class VsDynamicLight {
     }
 
     public static void deleteStorages() {
+        EMITTERS.clear();
+        ShipShadowRenderer.delete();
         if (lightStorage != null) {
             lightStorage.delete();
             lightStorage = null;
@@ -72,6 +75,28 @@ public final class VsDynamicLight {
             shipOccluderList.delete();
             shipOccluderList = null;
         }
+    }
+
+    public static void invalidateShipEmitters(final long shipId) {
+        EMITTERS.invalidate(shipId);
+        ShipShadowRenderer.invalidate(shipId);
+    }
+
+    /** Prepare one light list for all ship and world render paths. */
+    public static void prepareFrame(final ClientLevel level) {
+        ShipShadowRenderer.prepare(level);
+        EMITTERS.beginFrame(level);
+        final VsShipEmitterList list = getShipEmitterList();
+        list.beginFrame();
+        if (level != null) {
+            for (final ClientShip ship : VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips()) {
+                final double[] positions = EMITTERS.get(ship.getId(), ship.getShipAABB(),
+                    ship.getActiveChunksSet(), () -> VsShipEmitterList.scanShipEmitters(level, ship));
+                list.appendShipEmitters(ship, positions);
+            }
+        }
+        EMITTERS.endFrame();
+        list.upload();
     }
 
     public static void populateWorldLightForBatched(final ClientLevel level) {

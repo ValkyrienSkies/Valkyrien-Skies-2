@@ -238,6 +238,7 @@ object PerfTestCommand {
                                         Vector3i(worldPos, RoundingMode.FLOOR), false, 1.0, level.dimensionId
                                     )
                                     ship.isStatic = true
+                                    org.valkyrienskies.mod.common.debug.ShipDebugService.markCreated(level.server, ship, null)
                                     EntityShipCollisionUtils.markShipAsRecentlySpawned(ship.id, level.server.tickCount.toLong())
 
                                     val toCenter = ship.chunkClaim.getCenterBlockCoordinates(level.yRange, Vector3i())

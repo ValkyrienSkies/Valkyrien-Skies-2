@@ -68,6 +68,10 @@ public class MixinDebugRenderer {
         final ClientLevel world = Minecraft.getInstance().level;
         final VsiClientShipWorld shipObjectClientWorld = VSGameUtilsKt.getShipObjectWorld(world);
 
+        org.valkyrienskies.mod.client.debug.ShipDebugRenderer.render(
+            matrices, bufferSource, cameraX, cameraY, cameraZ
+        );
+
         FloodedVoxelRenderer.render(
             matrices, bufferSource, shipObjectClientWorld, cameraX, cameraY, cameraZ
         );

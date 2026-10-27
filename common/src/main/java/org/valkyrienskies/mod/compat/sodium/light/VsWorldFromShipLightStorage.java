@@ -464,15 +464,22 @@ public class VsWorldFromShipLightStorage {
             int l = bfsL.getInt(head);
             head++;
 
-            if (isWorldOccluder(level, x, y, z)) {
-                continue;
-            }
-
-            int idx = ensureSection(SectionPos.asLong(x >> 4, y >> 4, z >> 4));
+            long sectionPos = SectionPos.asLong(x >> 4, y >> 4, z >> 4);
             int ix = (x & 15) + 1;
             int iy = (y & 15) + 1;
             int iz = (z & 15) + 1;
             int voxelIdx = ix + iz * 18 + iy * 18 * 18;
+            int idx = section2Index.get(sectionPos);
+            // Old frame data must not stop the current light update.
+            if (idx != INVALID && requestedThisFrame.contains(sectionPos)) {
+                long lightPtr = arenaPtr + (long) idx * SECTION_SIZE_BYTES + LIGHT_START_BYTES + voxelIdx;
+                if ((MemoryUtil.memGetByte(lightPtr) & 0xF) >= l) continue;
+            }
+
+            // Check the world only when this cell can receive more light.
+            if (isWorldOccluder(level, x, y, z)) continue;
+
+            idx = ensureSection(sectionPos);
             long secPtr = arenaPtr + (long) idx * SECTION_SIZE_BYTES;
 
             // Solid voxels (ship walls) block light propagation. We let the

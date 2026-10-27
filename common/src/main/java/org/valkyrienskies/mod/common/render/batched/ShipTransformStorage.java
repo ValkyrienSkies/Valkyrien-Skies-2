@@ -47,6 +47,9 @@ public final class ShipTransformStorage {
     }
 
     public void beginFrame() {
+        if (arenaPtr == 0L) {
+            arenaPtr = MemoryUtil.nmemAlloc((long) capacityEntries * BYTES_PER_ENTRY);
+        }
         count = 0;
     }
 

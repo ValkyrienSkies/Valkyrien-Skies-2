@@ -32,6 +32,7 @@ import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
 import org.valkyrienskies.mod.common.blockentity.TestThrusterBlockEntity
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.entity.VSPhysicsEntity
+import org.valkyrienskies.mod.common.assembly.ShipWelder
 import org.valkyrienskies.mod.common.jackson.BlockPosDeserializer
 import org.valkyrienskies.mod.common.jackson.BlockPosKeyDeserializer
 import org.valkyrienskies.mod.common.jackson.BlockPosKeySerializer
@@ -65,6 +66,7 @@ object ValkyrienSkiesMod {
     lateinit var SHIP_CREATOR_ITEM: Item
     lateinit var SHIP_REMOVER_ITEM: Item
     lateinit var SHIP_ASSEMBLER_ITEM: Item
+    lateinit var SHIP_WELDER_ITEM: Item
     lateinit var SHIP_CREATOR_ITEM_SMALLER: Item
     lateinit var AREA_ASSEMBLER_ITEM: Item
     lateinit var CLASSIC_AREA_ASSEMBLER_ITEM: Item
@@ -151,6 +153,7 @@ object ValkyrienSkiesMod {
         splitHandler = SplitHandler(this.vsCore.hooks.enableBlockEdgeConnectivity, this.vsCore.hooks.enableBlockCornerConnectivity)
 
         core.registerAttachment(ShipSettings::class.java)
+        core.registerAttachment(org.valkyrienskies.mod.common.debug.ShipDebugMetadata::class.java)
         core.registerAttachment(SeatedControllingPlayer::class.java) {
             useLegacySerializer()
         }
@@ -159,6 +162,7 @@ object ValkyrienSkiesMod {
         }
         core.registerAttachment(BuoyancyHandlerAttachment::class.java)
         core.registerAttachment(ShipGravityAttachment::class.java)
+        core.registerAttachment(org.valkyrienskies.mod.common.util.ShovelRowingAttachment::class.java)
 
         core.shipLoadEvent.on { event ->
             event.ship.setAttachment(SplittingDisablerAttachment(true))
@@ -172,10 +176,17 @@ object ValkyrienSkiesMod {
 
         core.collisionStartEvent.on { event ->
             ImpactFractureHandler.onCollision(event)
+            org.valkyrienskies.mod.common.util.ShipInteractions.onCollision(event)
+        }
+        core.collisionPersistEvent.on { event ->
+            org.valkyrienskies.mod.common.util.ShipInteractions.onCollision(event)
         }
         ImpactFractureHandler.logRegistered()
 
         core.physTickEvent.on { event ->
+            org.valkyrienskies.mod.common.util.ShipPushing.physTick(event.world)
+            org.valkyrienskies.mod.common.util.ShipImpactVelocities.capture(event.world)
+            ShipWelder.physTick(event.world, event.delta)
             dimensionalGTPAs.forEach { dimensionId, gameTickForceApplier ->
                 if (event.world.dimension == dimensionId) {
                     gameTickForceApplier.physTick(event.world, event.delta)

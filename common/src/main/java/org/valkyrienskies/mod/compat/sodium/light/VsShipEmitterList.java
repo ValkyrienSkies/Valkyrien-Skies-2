@@ -11,9 +11,7 @@ import org.lwjgl.system.MemoryUtil;
 
 import com.mojang.blaze3d.platform.GlStateManager;
 
-import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.LevelAccessor;
-import net.minecraft.world.level.block.state.BlockState;
 
 import org.joml.Matrix4dc;
 import org.joml.Quaterniondc;
@@ -42,6 +40,7 @@ public class VsShipEmitterList {
      *  keep these in sync. 1024 entries × 32 bytes = 32 KB GPU buffer
      *  (2 RGBA32F texels per emitter: position+light + ship rotation). */
     public static final int MAX_EMITTERS = 1024;
+    public static final int MAX_RENDER_EMITTERS = 128;
     private static final int BYTES_PER_EMITTER = 32; // 8 floats: vec4(worldX, worldY, worldZ, lightLevel) + vec4(qx, qy, qz, qw)
     private static final int CAPACITY_BYTES = MAX_EMITTERS * BYTES_PER_EMITTER;
 
@@ -75,42 +74,66 @@ public class VsShipEmitterList {
         return count;
     }
 
+    /** Sample the same emitter range that the terrain shaders use. */
+    public float sampleLight(final double x, final double y, final double z) {
+        return sampleLight(x, y, z, false);
+    }
+
+    public float sampleLight(final double x, final double y, final double z, final boolean useShipAxes) {
+        double best = 0.0;
+        for (int i = 0; i < Math.min(count, MAX_RENDER_EMITTERS); i++) {
+            final long offset = arenaPtr + (long) i * BYTES_PER_EMITTER;
+            final double dx = x - MemoryUtil.memGetFloat(offset);
+            final double dy = y - MemoryUtil.memGetFloat(offset + 4);
+            final double dz = z - MemoryUtil.memGetFloat(offset + 8);
+            final double level = MemoryUtil.memGetFloat(offset + 12);
+            if (Math.abs(dx) >= level || Math.abs(dy) >= level || Math.abs(dz) >= level) continue;
+            double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            if (useShipAxes) {
+                final double qx = -MemoryUtil.memGetFloat(offset + 16);
+                final double qy = -MemoryUtil.memGetFloat(offset + 20);
+                final double qz = -MemoryUtil.memGetFloat(offset + 24);
+                final double qw = MemoryUtil.memGetFloat(offset + 28);
+                final double tx = 2.0 * (qy * dz - qz * dy);
+                final double ty = 2.0 * (qz * dx - qx * dz);
+                final double tz = 2.0 * (qx * dy - qy * dx);
+                distance = Math.abs(dx + qw * tx + qy * tz - qz * ty)
+                    + Math.abs(dy + qw * ty + qz * tx - qx * tz)
+                    + Math.abs(dz + qw * tz + qx * ty - qy * tx);
+            }
+            best = Math.max(best, level - distance);
+        }
+        return (float) Math.min(15.0, best);
+    }
+
     public static double[] scanShipEmitters(final LevelAccessor level, final ClientShip ship) {
         final AABBic shipyardAabb = ship.getShipAABB();
         if (shipyardAabb == null) return NO_EMITTERS;
 
-        final int xMin = shipyardAabb.minX();
-        final int yMin = shipyardAabb.minY();
-        final int zMin = shipyardAabb.minZ();
-        final int xMax = shipyardAabb.maxX();
-        final int yMax = shipyardAabb.maxY();
-        final int zMax = shipyardAabb.maxZ();
-
-        final BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
-        DoubleArrayList out = null;
-
-        for (int sy = yMin; sy < yMax; sy++) {
-            for (int sz = zMin; sz < zMax; sz++) {
-                for (int sx = xMin; sx < xMax; sx++) {
-                    final BlockState state = level.getBlockState(pos.set(sx, sy, sz));
-                    final int lightLevel = state.getLightEmission();
-                    if (lightLevel <= 0) continue;
-
-                    if (out == null) out = new DoubleArrayList();
-                    // Voxel center; transformed to world space per frame.
-                    out.add(sx + 0.5);
-                    out.add(sy + 0.5);
-                    out.add(sz + 0.5);
-                    out.add(lightLevel);
-                    if (out.size() >= MAX_EMITTERS * 4) {
-                        return out.toDoubleArray();
-                    }
-                }
+        final DoubleArrayList out = new DoubleArrayList();
+        ship.getActiveChunksSet().forEach((cx, cz) -> {
+            if (out.size() >= MAX_EMITTERS * 4) return;
+            final var chunk = level.getChunk(cx, cz, net.minecraft.world.level.chunk.ChunkStatus.FULL, false);
+            if (chunk == null) return;
+            for (int sy = Math.max(level.getMinSection(), shipyardAabb.minY() >> 4);
+                sy <= Math.min(level.getMaxSection() - 1, (shipyardAabb.maxY() - 1) >> 4); sy++) {
+                final var section = chunk.getSection(chunk.getSectionIndex(sy << 4));
+                if (!section.maybeHas(state -> state.getLightEmission() > 0)) continue;
+                for (int y = Math.max(shipyardAabb.minY(), sy << 4); y < Math.min(shipyardAabb.maxY(), (sy + 1) << 4); y++)
+                    for (int z = Math.max(shipyardAabb.minZ(), cz << 4); z < Math.min(shipyardAabb.maxZ(), (cz + 1) << 4); z++)
+                        for (int x = Math.max(shipyardAabb.minX(), cx << 4); x < Math.min(shipyardAabb.maxX(), (cx + 1) << 4); x++) {
+                            final int light = section.getBlockState(x & 15, y & 15, z & 15).getLightEmission();
+                            if (light <= 0) continue;
+                            out.add(x + 0.5);
+                            out.add(y + 0.5);
+                            out.add(z + 0.5);
+                            out.add(light);
+                            if (out.size() >= MAX_EMITTERS * 4) return;
+                        }
             }
-        }
-        return out == null ? NO_EMITTERS : out.toDoubleArray();
+        });
+        return out.isEmpty() ? NO_EMITTERS : out.toDoubleArray();
     }
-
     public void appendShipEmitters(final ClientShip ship, final double[] shipyardEmitters) {
         if (shipyardEmitters.length == 0 || count >= MAX_EMITTERS) return;
 

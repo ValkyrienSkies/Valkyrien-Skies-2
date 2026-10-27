@@ -27,6 +27,7 @@ fun createNewShipWithBlocks(
     if (blocks.isEmpty()) throw IllegalArgumentException()
 
     val ship = level.shipObjectWorld.createNewShipAtBlock(centerBlock.toJOML(), false, 1.0, level.dimensionId)
+    org.valkyrienskies.mod.common.debug.ShipDebugService.markCreated(level.server, ship, null)
 
     val shipChunkX = ship.chunkClaim.xMiddle
     val shipChunkZ = ship.chunkClaim.zMiddle

@@ -13,6 +13,18 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(Monster.class)
 public class MixinMonsterDarkness {
+    @WrapOperation(
+        method = "isDarkEnoughToSpawn",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/world/level/ServerLevelAccessor;getBrightness(Lnet/minecraft/world/level/LightLayer;Lnet/minecraft/core/BlockPos;)I",
+            ordinal = 1
+        )
+    )
+    private static int vs$includeWorldBlockLight(final ServerLevelAccessor accessor, final LightLayer layer,
+        final BlockPos pos, final Operation<Integer> original) {
+        return VSGameUtilsKt.shipAwareBlockBrightness(accessor, pos, original.call(accessor, layer, pos));
+    }
 
     @WrapOperation(
         method = "isDarkEnoughToSpawn",

@@ -39,6 +39,9 @@ public abstract class MixinShaderInstance {
                 VsShipWorldLightRenderContext.getCamX(),
                 VsShipWorldLightRenderContext.getCamY(),
                 VsShipWorldLightRenderContext.getCamZ());
+        } else if (((ShaderInstance) (Object) this).getName().contains("rendertype_ship_")) {
+            final var camera = net.minecraft.client.Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
+            VsShipWorldLightTerrainUniforms.setupForProgram(this.programId, camera.x, camera.y, camera.z);
         } else {
             VsShipWorldLightTerrainUniforms.disableForProgram(this.programId);
         }
