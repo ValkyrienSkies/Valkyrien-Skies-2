@@ -698,20 +698,35 @@ fun Ship.toWorldCoordinates(x: Double, y: Double, z: Double, dest: Vector3d = Ve
 
 @JvmOverloads
 fun LevelChunkSection.toDenseVoxelUpdate(chunkPos: Vector3ic, level: Level? = null): VsiTerrainUpdate {
+    val sources = (level as? ServerLevel)?.let(FractionalFluidSources::forLevel)?.takeIf {
+        it.size != 0 && it.hasChunk(level!!.dimensionId, chunkPos.x(), chunkPos.y(), chunkPos.z())
+    }
+    if (sources == null) return toDenseVoxelUpdateWithoutSourceAmounts(chunkPos)
     val update = vsCore.newDenseTerrainUpdateBuilder(chunkPos.x(), chunkPos.y(), chunkPos.z())
     val info = BlockStateInfo.cache
-    val sources = (level as? ServerLevel)?.let(FractionalFluidSources::forLevel)?.takeIf {
-        it.hasChunk(level!!.dimensionId, chunkPos.x(), chunkPos.y(), chunkPos.z())
-    }
     for (x in 0..15) {
         for (y in 0..15) {
             for (z in 0..15) {
                 val blockState = getBlockState(x, y, z)
                 val defaultBlockType = info.get(blockState)?.second ?: vsCore.blockTypes.air
-                val fluid = if (sources == null) null else FractionalFluidSources.fluidName(blockState)
+                val fluid = FractionalFluidSources.fluidName(blockState)
                 if (fluid == null) update.addBlock(x, y, z, defaultBlockType)
-                else update.addBlock(x, y, z, defaultBlockType, sources!!.sourceFillAmount(level!!.dimensionId,
+                else update.addBlock(x, y, z, defaultBlockType, sources.sourceFillAmount(level!!.dimensionId,
                     (chunkPos.x() shl 4) + x, (chunkPos.y() shl 4) + y, (chunkPos.z() shl 4) + z, fluid))
+            }
+        }
+    }
+    return update.build()
+}
+
+private fun LevelChunkSection.toDenseVoxelUpdateWithoutSourceAmounts(chunkPos: Vector3ic): VsiTerrainUpdate {
+    val update = vsCore.newDenseTerrainUpdateBuilder(chunkPos.x(), chunkPos.y(), chunkPos.z())
+    val info = BlockStateInfo.cache
+    for (x in 0..15) {
+        for (y in 0..15) {
+            for (z in 0..15) {
+                val blockState = getBlockState(x, y, z)
+                update.addBlock(x, y, z, info.get(blockState)?.second ?: vsCore.blockTypes.air)
             }
         }
     }

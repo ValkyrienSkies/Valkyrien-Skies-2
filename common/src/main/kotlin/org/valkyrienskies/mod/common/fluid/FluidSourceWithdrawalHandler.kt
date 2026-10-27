@@ -116,9 +116,11 @@ object FluidSourceWithdrawalHandler {
         if (!level.hasChunkAt(pos)) return null
         val state = level.getBlockState(pos)
         val blockType = MassDatapackResolver.getBlockStateType(state) ?: return null
-        val fluid = FractionalFluidSources.fluidName(state)
+        val sources = if (state.fluidState.isEmpty) null else
+            FractionalFluidSources.forLevel(level)?.takeIf { it.size != 0 }
+        val fluid = if (sources == null) null else FractionalFluidSources.fluidName(state)
         val amount = if (fluid == null) FULL_VOXEL_FILL else
-            FractionalFluidSources.forLevel(level)?.sourceFillAmount(level.dimensionId, x, y, z, fluid) ?: FULL_VOXEL_FILL
+            sources!!.sourceFillAmount(level.dimensionId, x, y, z, fluid)
         return VsiFluidSourceObservation(level.getShipManagingPos(pos)?.id, blockType, amount)
     }
 
