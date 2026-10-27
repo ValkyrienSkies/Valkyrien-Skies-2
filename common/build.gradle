@@ -120,9 +120,12 @@ loom {
 
 test {
     useJUnitPlatform()
+    maxHeapSize = '2g'
     testLogging { exceptionFormat = 'full' }
     // Optional hidden-window shader checks; ordinary CI need not have a graphics context.
-    systemProperty "vs.test.fluidGL", project.findProperty("fluidGlTests") ?: "false"
+    def fluidGlTests = (project.findProperty("fluidGlTests") ?: "false").toString().toBoolean()
+    systemProperty "vs.test.fluidGL", fluidGlTests
+    systemProperty "org.lwjgl.opengl.explicitInit", !fluidGlTests
 }
 
 jar {
