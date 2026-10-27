@@ -10,6 +10,7 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessor
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate
 import net.minecraft.world.level.storage.LevelResource
 import org.joml.Quaterniond
@@ -56,9 +57,12 @@ object VdexWrapper {
     }
 
     /**
-     * Returned component is null if the loading was successful, otherwise it will be the error message (translatable)
+     * Returned component is null if the loading was successful, otherwise it will be the error message (translatable).
+     *
+     * @param loadEntities Whether to paste in entities that were saved with the schematic. Note that this includes entities like Create Contraptions.
+     * @param additionalProcessors Pass in additional structure processors to do things like: Remove items from containers, Remove "unsafe" NBT from blocks/block entities/entities/items, Modify NBT data of particular blocks/block entities/entities/items, etc
      */
-    fun loadShip(level: ServerLevel, position: Vector3d, filename: String): Component? {
+    fun loadShip(level: ServerLevel, position: Vector3d, filename: String, loadEntities: Boolean = true, additionalProcessors: List<StructureProcessor> = listOf()): Component? {
         val schematicsDir = getSchematicDirectory(level.server)
 
         val schem: VdexData = try {
@@ -128,6 +132,10 @@ object VdexWrapper {
             )
 
             val settings = StructurePlaceSettings()
+            settings.isIgnoreEntities = !loadEntities
+            additionalProcessors.forEach { processor ->
+                settings.addProcessor(processor)
+            }
             settings.rotationPivot = cornerOfShip
             template.placeInWorld(level, cornerOfShip, cornerOfShip, settings, level.random, Block.UPDATE_CLIENTS)
         }
