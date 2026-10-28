@@ -16,6 +16,6 @@ public class MixinLiquidBlock {
     @Inject(method = "pickupBlock", at = @At("HEAD"), cancellable = true)
     private void beforePickup(final LevelAccessor level, final BlockPos pos, final BlockState state,
                               final CallbackInfoReturnable<ItemStack> cir) {
-        if (FractionalFluidSources.owns(level, pos)) cir.setReturnValue(ItemStack.EMPTY);
+        if (FractionalFluidSources.blocksPickup(level, pos)) cir.setReturnValue(ItemStack.EMPTY);
     }
 }

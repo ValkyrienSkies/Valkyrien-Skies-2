@@ -16,7 +16,7 @@ import org.valkyrienskies.mod.common.fluid.FractionalFluidSources;
 public interface MixinSimpleWaterloggedBlock {
     @Overwrite
     default ItemStack pickupBlock(final LevelAccessor level, final BlockPos pos, final BlockState state) {
-        if (FractionalFluidSources.owns(level, pos) || !state.getValue(BlockStateProperties.WATERLOGGED)) {
+        if (FractionalFluidSources.blocksPickup(level, pos) || !state.getValue(BlockStateProperties.WATERLOGGED)) {
             return ItemStack.EMPTY;
         }
         level.setBlock(pos, state.setValue(BlockStateProperties.WATERLOGGED, false), Block.UPDATE_ALL);

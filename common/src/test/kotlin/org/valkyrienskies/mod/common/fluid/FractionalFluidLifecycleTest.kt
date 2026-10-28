@@ -106,8 +106,8 @@ class FractionalFluidLifecycleTest {
         }
     private fun recover() = sources.recoverTransfers(levels, manager)
 
-    @Test fun `partial and zero carriers move without a transient whole-source owner`() {
-        for (units in listOf("0", "29", "127.000000000000000001")) {
+    @Test fun `finite carriers move without a transient whole-source owner`() {
+        for (units in listOf("0", "29", "127.000000000000000001", "255")) {
             sources = FractionalFluidSources(); blocks.clear()
             seed(units = units)
             val scope = begin()
@@ -122,15 +122,15 @@ class FractionalFluidLifecycleTest {
     }
 
     @Test fun `interrupted moves recover source destination or exported ownership once`() {
-        for (sourcePresent in listOf(false, true)) for (targetPresent in listOf(false, true)) {
+        for (units in listOf("29", "255")) for (sourcePresent in listOf(false, true)) for (targetPresent in listOf(false, true)) {
             sources = FractionalFluidSources(); manager = WorldFluidOutflowManager(8, 8); blocks.clear()
-            seed(); begin()
+            seed(units = units); begin()
             if (!sourcePresent) remove(from)
             if (targetPresent) blocks[to] = Blocks.WATER.defaultBlockState()
             reload(); recover()
-            assertAmount(if (sourcePresent) if (targetPresent) "0" else "29" else null)
-            assertAmount(if (targetPresent) "29" else null, to)
-            val expected = if (!sourcePresent && !targetPresent) BigDecimal(29) else BigDecimal.ZERO
+            assertAmount(if (sourcePresent) if (targetPresent) "0" else units else null)
+            assertAmount(if (targetPresent) units else null, to)
+            val expected = if (!sourcePresent && !targetPresent) BigDecimal(units) else BigDecimal.ZERO
             assertEquals(0, pendingUnits().compareTo(expected))
             reload(); recover()
             assertEquals(0, pendingUnits().compareTo(expected))
@@ -303,7 +303,7 @@ class FractionalFluidLifecycleTest {
         manager.tick(levels)
         assertEquals(0, manager.activeParcelCount())
         recover()
-        assertAmount(null, to)
+        assertAmount("255", to)
         assertEquals(0, pendingUnits().compareTo(BigDecimal(763)))
         assertEquals(0, requireNotNull(sources.amount(DIM, 10, 1, 0, lava)).compareTo(BigDecimal(100)))
         reload(); recover()
@@ -336,6 +336,23 @@ class FractionalFluidLifecycleTest {
         assertEquals(0, manager.activeParcelCount())
         recover(); assertEquals(0, pendingUnits().compareTo(BigDecimal(29)))
         reload(); recover(); assertEquals(0, pendingUnits().compareTo(BigDecimal(29)))
+    }
+
+    @Test fun `full moved sources cannot be picked up before publication completes`() {
+        seed(units = "255")
+        val scope = begin()
+        remove(from); blocks[to] = Blocks.WATER.defaultBlockState(); scope.complete()
+        every { BlockStateInfo.onSourceAmountChanged(any(), any(), any(), any()) } throws IllegalStateException("publication")
+        assertThrows(IllegalStateException::class.java) { scope.close() }
+        assertAmount("255", to)
+        val pos = BlockPos(to.x, to.y, to.z)
+        assertTrue(FractionalFluidSources.blocksPickup(level, pos))
+        reload()
+        assertTrue(FractionalFluidSources.blocksPickup(level, pos))
+        every { BlockStateInfo.onSourceAmountChanged(any(), any(), any(), any()) } just Runs
+        recover()
+        assertAmount("255", to)
+        assertFalse(FractionalFluidSources.blocksPickup(level, pos))
     }
 
     @Test fun `publication failure after export retains a receipt without exporting twice`() {

@@ -107,7 +107,7 @@ class FractionalFluidSettlementTest {
         sources.setAmount(DIMENSION, 0, 1, 0, WATER, BigDecimal(29))
         enqueue(1.0)
         manager.tick(levels)
-        assertNull(amount())
+        assertAmount("255")
         assertEquals(0, writes)
         assertEquals(0, pending().compareTo(BigDecimal(29)))
         assertTrue(entries().getCompound(0).contains("volume_units"))
@@ -117,8 +117,10 @@ class FractionalFluidSettlementTest {
         repeat(8) { manager.tick(levels) }
         assertEquals(0, manager.activeParcelCount())
         val stored = sources.save().getList("sources", Tag.TAG_COMPOUND.toInt())
-        assertEquals(1, stored.size)
-        assertEquals(0, stored.getCompound(0).getString("units").toBigDecimal().compareTo(BigDecimal(29)))
+        assertEquals(2, stored.size)
+        assertEquals(listOf(BigDecimal(29), BigDecimal(255)), stored.map {
+            (it as CompoundTag).getString("units").toBigDecimal()
+        }.sorted())
     }
 
     @Test fun `failed and ambiguous world writes retain one owner through saved pending journals`() {
@@ -226,16 +228,21 @@ class FractionalFluidSettlementTest {
         }
     }
 
-    @Test fun `full refill releases a carrier even when its allowance is completely occupied`() {
+    @Test fun `full refill waits for carrier capacity without releasing finite ownership`() {
         sources.setAmount(DIMENSION, 0, 1, 0, WATER, BigDecimal.ONE)
         val bytes = sources.retainedBytes
         val saved = sources.save()
         sources = FractionalFluidSources(bytes).also { it.load(saved) }
         blocks[pos] = Blocks.WATER.defaultBlockState()
         enqueue(1.0)
+        assertThrows(FractionalFluidSources.StorageCapacityException::class.java) { manager.tick(levels) }
+        assertAmount("1")
+        assertEquals(0, pending().compareTo(BigDecimal(255)))
+        sources = FractionalFluidSources(bytes + 8).also { it.load(sources.save()) }
         manager.tick(levels)
-        assertEquals(0L, sources.retainedBytes)
-        assertEquals(0, sources.size)
+        assertEquals(bytes + 8, sources.retainedBytes)
+        assertEquals(1, sources.size)
+        assertAmount("255")
         assertEquals(0, pending().compareTo(BigDecimal.ONE))
         assertEquals(0, writes)
     }
@@ -275,7 +282,7 @@ class FractionalFluidSettlementTest {
         blocks.remove(pos)
         ordinaryWrites()
         manager.tick(levels)
-        assertNull(amount())
+        assertAmount("255")
         assertTrue(requireNotNull(blocks[pos]).fluidState.isSource)
         assertEquals(0, manager.activeParcelCount())
     }

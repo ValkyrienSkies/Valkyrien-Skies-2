@@ -111,8 +111,8 @@ class FractionalFluidWithdrawalTest {
             FractionalFluidSources.vanillaFlowState(level, pos, slab))
         assertFalse(FractionalFluidSources.owns(level, pos.east()))
         sources.setAmount(dimension, pos.x, pos.y, pos.z, "minecraft:water", FractionalFluidSources.FULL_SOURCE)
-        assertFalse(FractionalFluidSources.owns(level, pos))
-        assertSame(water, FractionalFluidSources.vanillaFlowState(level, pos, water))
+        assertTrue(FractionalFluidSources.owns(level, pos))
+        assertTrue(FractionalFluidSources.vanillaFlowState(level, pos, water).isAir)
     }
 
     @Test fun `waterlogged pickup refuses a remainder and preserves ordinary full and dry behavior`() {

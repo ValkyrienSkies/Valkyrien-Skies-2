@@ -25,7 +25,7 @@ class FractionalFluidSourcesTest {
     }
 
     @Test
-    fun `refill releases ownership and a material replacement clears only its cell`() {
+    fun `refill keeps finite ownership and a material replacement clears only its cell`() {
         val sources = FractionalFluidSources()
         assertTrue(sources.setAmount(DIMENSION, 1, 2, 3, WATER, BigDecimal(29)))
         assertTrue(sources.setAmount(DIMENSION, 2, 2, 3, WATER, BigDecimal.ZERO))
@@ -35,8 +35,13 @@ class FractionalFluidSourcesTest {
         assertNull(sources.amount(DIMENSION, 1, 2, 3, WATER))
         assertEquals(0, sources.sourceFillAmount(DIMENSION, 2, 2, 3, WATER))
         assertTrue(sources.setAmount(DIMENSION, 2, 2, 3, WATER, BigDecimal("255.0")))
-        assertEquals(0, sources.size)
-        assertEquals(0L, sources.retainedBytes)
+        assertEquals(1, sources.size)
+        assertEquals(BigDecimal(255), sources.amount(DIMENSION, 2, 2, 3, WATER))
+        val restored = FractionalFluidSources().also { it.load(sources.save()) }
+        assertEquals(BigDecimal(255), restored.amount(DIMENSION, 2, 2, 3, WATER))
+        restored.reconcileFluid(DIMENSION, 2, 2, 3, null)
+        assertEquals(0, restored.size)
+        assertEquals(0L, restored.retainedBytes)
     }
 
     @Test

@@ -560,8 +560,10 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
                 val state = level.getBlockState(candidate)
                 if (isOcean(level, parcel, candidate, state, fluid)) return ParcelUpdateResult.CONSUMED
                 if (!canReceive(level, candidate, state, fluid)) continue
-                if (fluid.isSame(state.fluidState.type) && state.fluidState.amount >= 8
-                    && sourceAmount(level, parcel, candidate) == null) continue
+                if (fluid.isSame(state.fluidState.type)) {
+                    val units = sourceAmount(level, parcel, candidate)
+                    if (units != null && units >= FULL_SOURCE || units == null && state.fluidState.amount >= 8) continue
+                }
                 staged.worldPosition.set(candidate.x + 0.5, candidate.y + 0.5, candidate.z + 0.5)
                 staged.velocity.zero()
                 staged.settlementAnchor = null

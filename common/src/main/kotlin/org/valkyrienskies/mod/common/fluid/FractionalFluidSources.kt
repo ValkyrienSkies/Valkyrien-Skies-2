@@ -64,10 +64,6 @@ class FractionalFluidSources(internal val maximumBytes: Long = 16L * 1024 * 1024
         val position = Position(dimension, x, y, z)
         if (transfers.isLocked(position)) return false
         val previous = amounts[position]
-        if (units.compareTo(FULL_SOURCE) == 0) {
-            if (previous != null) { amounts.remove(position); retainedBytes -= previous.bytes }
-            return true
-        }
         val normalized = units.stripTrailingZeros()
         val bytes = 512L + 4L * (dimension.length + fluid.length + normalized.toString().length)
         val additional = bytes - (previous?.bytes ?: 0L)
@@ -110,14 +106,14 @@ class FractionalFluidSources(internal val maximumBytes: Long = 16L * 1024 * 1024
         val normalizedBefore = before.stripTrailingZeros()
         val normalizedAfter = after.stripTrailingZeros()
         fun bytes(units: BigDecimal) = 512L + 4L * (dimension.length + fluid.length + units.toString().length)
-        val replacement = if (after.compareTo(FULL_SOURCE) == 0) null else Amount(fluid, normalizedAfter, bytes(normalizedAfter))
-        val reserved = Amount(fluid, normalizedBefore, maxOf(bytes(normalizedBefore), replacement?.bytes ?: 0L))
+        val replacement = Amount(fluid, normalizedAfter, bytes(normalizedAfter))
+        val reserved = Amount(fluid, normalizedBefore, maxOf(bytes(normalizedBefore), replacement.bytes))
         val additional = reserved.bytes - (previous?.bytes ?: 0L)
         if (additional > maximumBytes - retainedBytes) throw StorageCapacityException(retainedBytes, additional, maximumBytes)
         val change = PreparedChange({
             if (amounts[position] !== reserved) false else {
-                if (replacement == null) amounts.remove(position) else amounts[position] = replacement
-                retainedBytes += (replacement?.bytes ?: 0L) - reserved.bytes
+                amounts[position] = replacement
+                retainedBytes += replacement.bytes - reserved.bytes
                 true
             }
         }, {
@@ -164,7 +160,7 @@ class FractionalFluidSources(internal val maximumBytes: Long = 16L * 1024 * 1024
     }
 
     fun save(): CompoundTag = CompoundTag().apply {
-        putInt("version", 3)
+        putInt("version", 4)
         put("sources", ListTag().also { sources ->
             for ((position, amount) in amounts) sources.add(CompoundTag().apply {
                 putString("dimension", position.dimension)
@@ -178,7 +174,7 @@ class FractionalFluidSources(internal val maximumBytes: Long = 16L * 1024 * 1024
 
     fun load(tag: CompoundTag) {
         check(!transfers.hasActiveTransfers())
-        require(tag.contains("version", Tag.TAG_INT.toInt()) && tag.getInt("version") in 1..3)
+        require(tag.contains("version", Tag.TAG_INT.toInt()) && tag.getInt("version") in 1..4)
         require(tag.contains("sources", Tag.TAG_LIST.toInt()))
         val sources = tag.get("sources") as ListTag
         require(sources.isEmpty() || sources.elementType == Tag.TAG_COMPOUND)
@@ -195,7 +191,7 @@ class FractionalFluidSources(internal val maximumBytes: Long = 16L * 1024 * 1024
             val encoded = entry.getString("units")
             require(encoded.length in 1..640)
             val units = encoded.toBigDecimal()
-            require(units < FULL_SOURCE)
+            require(units < FULL_SOURCE || tag.getInt("version") >= 4 && units.compareTo(FULL_SOURCE) == 0)
             require(!restored.amounts.containsKey(Position(dimension, position[0], position[1], position[2])))
             require(restored.setAmount(dimension, position[0], position[1], position[2], fluid, units)) {
                 "Fractional fluid sources exceed their storage allowance"
@@ -219,6 +215,17 @@ class FractionalFluidSources(internal val maximumBytes: Long = 16L * 1024 * 1024
             val sources = forLevel(level) ?: return false
             return sources.amounts.isNotEmpty() && sources.amounts.containsKey(
                 Position(level.dimensionId, position.x, position.y, position.z))
+        }
+
+        @JvmStatic
+        fun blocksPickup(level: BlockGetter, position: BlockPos): Boolean {
+            if (level !is ServerLevel) return false
+            val sources = forLevel(level) ?: return false
+            if (sources.size == 0) return false
+            if (sources.transfers.isLocked(Position(level.dimensionId, position.x, position.y, position.z))) return true
+            val fluid = fluidName(level.getBlockState(position)) ?: return false
+            val units = sources.amount(level.dimensionId, position.x, position.y, position.z, fluid) ?: return false
+            return units < FULL_SOURCE
         }
 
         @JvmStatic

@@ -29,18 +29,16 @@ internal class FractionalFluidTransfers(private val sources: FractionalFluidSour
         val destinationUnits = if (move.to == null) BigDecimal.ZERO else minOf(FULL,
             worldUnits.divide(move.destinationVolume, 325 - maxOf(0, move.destinationVolume.scale()), RoundingMode.DOWN))
                 .stripTrailingZeros()
-        val destination = move.to?.let { if (destinationUnits.compareTo(FULL) == 0) null
-            else amount(it, original.fluid, destinationUnits) }
+        val destination = move.to?.let { amount(it, original.fluid, destinationUnits) }
         val spill = checked(worldUnits - destinationUnits * move.destinationVolume)
         val combinedWorldUnits = checked(worldUnits + if (previousDestination?.fluid == original.fluid) previousWorldUnits else BigDecimal.ZERO)
         val combinedDestinationUnits = if (move.to == null) BigDecimal.ZERO else minOf(FULL,
             combinedWorldUnits.divide(move.destinationVolume, 325 - maxOf(0, move.destinationVolume.scale()), RoundingMode.DOWN))
                 .stripTrailingZeros()
-        val combinedDestination = move.to?.let { if (combinedDestinationUnits.compareTo(FULL) == 0) null
-            else amount(it, original.fluid, combinedDestinationUnits) }
+        val combinedDestination = move.to?.let { amount(it, original.fluid, combinedDestinationUnits) }
         val combinedSpill = checked(combinedWorldUnits - combinedDestinationUnits * move.destinationVolume)
         val previousZero = previousDestination?.let { amount(requireNotNull(move.to), it.fluid, BigDecimal.ZERO) }
-        val restoredDestination = previousDestination?.takeIf { it.units.compareTo(FULL) != 0 }
+        val restoredDestination = previousDestination?.takeIf { hadDestinationCarrier || it.units.compareTo(FULL) != 0 }
         val budget = 32768L + 8L * (move.from.dimension.length + (move.to?.dimension?.length ?: 0) +
             move.fallbackDimension.length + original.fluid.length + (previousDestination?.fluid?.length ?: 0)) +
             (if (previousDestination == null) 0 else 16384) + maxOf(sourceZero.bytes, original.bytes) +
@@ -249,7 +247,7 @@ internal class FractionalFluidTransfers(private val sources: FractionalFluidSour
             validate(move)
             require(from != to && !isLocked(from) && (to == null || !isLocked(to)))
             val units = decimal(tag, "units")
-            require(units.signum() >= 0 && units < FULL)
+            require(units.signum() >= 0 && (units < FULL || version >= 4 && units.compareTo(FULL) == 0))
             val previous = if (version >= 3 && tag.contains("destination_before")) {
                 require(tag.contains("destination_before", Tag.TAG_COMPOUND.toInt()) && to != null)
                 val value = tag.getCompound("destination_before")
@@ -258,7 +256,7 @@ internal class FractionalFluidTransfers(private val sources: FractionalFluidSour
                 amount(to, text(value, "fluid"), previousUnits)
             } else null
             val hadCarrier = version >= 3 && boolean(tag, "destination_carrier")
-            require(!hadCarrier || previous != null && previous.units < FULL)
+            require(!hadCarrier || previous != null && (previous.units < FULL || version >= 4 && previous.units <= FULL))
             val transfer = Pending(move, amount(from, fluid, units), previous, hadCarrier)
             transfer.committed = boolean(tag, "committed")
             transfer.completed = version >= 3 && boolean(tag, "completed")
