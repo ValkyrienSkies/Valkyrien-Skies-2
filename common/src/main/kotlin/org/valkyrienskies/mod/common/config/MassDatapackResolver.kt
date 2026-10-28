@@ -34,6 +34,7 @@ import org.valkyrienskies.core.internal.world.chunks.VsiBlockType
 import org.valkyrienskies.mod.api_impl.events.RegisterBlockStateEventImpl
 import org.valkyrienskies.mod.client.ClientBlockInfo
 import org.valkyrienskies.mod.common.BlockStateInfoProvider
+import org.valkyrienskies.mod.common.BlockStateInfo
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.hooks.VSGameEvents
 import org.valkyrienskies.mod.common.networking.PacketSyncBlockStateInfo
@@ -456,6 +457,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
 
         runRegisterBlockStateEvent()
         registeredBlocks = true
+        BlockStateInfo.invalidateCache()
     }
 
     /**

@@ -98,7 +98,7 @@ object BlockStateInfo {
     private var _cache = ThreadLocal.withInitial { Cache() }
     val cache: Cache get() = _cache.get()
 
-    private fun invalidateCache() {
+    internal fun invalidateCache() {
         _cache = ThreadLocal.withInitial { Cache() }
     }
 
