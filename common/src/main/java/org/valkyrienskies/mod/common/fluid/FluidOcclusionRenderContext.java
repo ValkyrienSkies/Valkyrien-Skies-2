@@ -9,6 +9,7 @@ import net.minecraft.world.level.material.FlowingFluid;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
 import org.jetbrains.annotations.Nullable;
+import org.valkyrienskies.mod.common.fluid.client.ShipFluidRenderTypes;
 
 /**
  * Render-thread state identifying a world chunk layer that can contain fluids.
@@ -41,6 +42,10 @@ public final class FluidOcclusionRenderContext {
         } catch (final Throwable ignored) {
             FLUID_LAYERS.add(RenderType.translucent());
         }
+        // World fluid is re-meshed into its own layer when ship fluid culling is on. That layer is
+        // not reachable through ItemBlockRenderTypes, so register it directly or the occlusion would
+        // simply stop applying to world fluid the moment culling is enabled.
+        FLUID_LAYERS.add(ShipFluidRenderTypes.AIR_CULL_RENDER_TYPE);
     }
 
     private static void addFluidLayer(final FluidState state) {

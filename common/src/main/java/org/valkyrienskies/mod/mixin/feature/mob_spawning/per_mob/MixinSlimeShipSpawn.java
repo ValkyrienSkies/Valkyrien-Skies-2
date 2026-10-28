@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
-@Mixin(Slime.class)
+@Mixin(value = Slime.class, priority = 1500)
 public abstract class MixinSlimeShipSpawn {
 
     @WrapOperation(
@@ -22,7 +22,8 @@ public abstract class MixinSlimeShipSpawn {
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/core/BlockPos;getY()I"
-        )
+        ),
+        require = 0
     )
     private static int vs$shipProjectedY(
         final BlockPos pos, final Operation<Integer> original,
@@ -36,7 +37,8 @@ public abstract class MixinSlimeShipSpawn {
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/world/level/LevelAccessor;getMaxLocalRawBrightness(Lnet/minecraft/core/BlockPos;)I"
-        )
+        ),
+        require = 0
     )
     private static int vs$shipAwareBrightness(
         final LevelAccessor level, final BlockPos pos, final Operation<Integer> original
@@ -51,7 +53,8 @@ public abstract class MixinSlimeShipSpawn {
         at = @At(
             value = "NEW",
             target = "(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/ChunkPos;"
-        )
+        ),
+        require = 0
     )
     private static ChunkPos vs$slimeChunkUsingWorldFrame(
         final BlockPos pos, final Operation<ChunkPos> original,

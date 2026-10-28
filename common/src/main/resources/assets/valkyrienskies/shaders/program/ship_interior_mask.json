@@ -1,0 +1,28 @@
+{
+  "blend": {
+    "func": "add",
+    "srcrgb": "one",
+    "dstrgb": "zero"
+  },
+  "vertex": "valkyrienskies:ship_post_blit",
+  "fragment": "valkyrienskies:ship_interior_mask",
+  "attributes": [
+    "Position"
+  ],
+  "samplers": [
+    { "name": "SceneDepthSampler" },
+    { "name": "ValkyrienAir_MaskAtlas" },
+    { "name": "ValkyrienAir_ShipMetaTex" }
+  ],
+  "uniforms": [
+    { "name": "ProjMat", "type": "matrix4x4", "count": 16, "values": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0] },
+    { "name": "OutSize", "type": "float", "count": 2, "values": [1.0, 1.0] },
+    { "name": "InverseProjMat", "type": "matrix4x4", "count": 16, "values": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0] },
+    { "name": "InverseViewMat", "type": "matrix4x4", "count": 16, "values": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0] },
+    { "name": "CameraWorldPos", "type": "float", "count": 3, "values": [0.0, 0.0, 0.0] },
+    { "name": "CameraLookVector", "type": "float", "count": 3, "values": [0.0, 0.0, -1.0] },
+    { "name": "CameraUpVector", "type": "float", "count": 3, "values": [0.0, 1.0, 0.0] },
+    { "name": "CameraLeftVector", "type": "float", "count": 3, "values": [1.0, 0.0, 0.0] },
+    { "name": "ValkyrienAir_ShipCount", "type": "int", "count": 1, "values": [0] }
+  ]
+}

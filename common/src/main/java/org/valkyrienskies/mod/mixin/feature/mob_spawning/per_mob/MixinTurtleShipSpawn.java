@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
-@Mixin(Turtle.class)
+@Mixin(value = Turtle.class, priority = 1500)
 public abstract class MixinTurtleShipSpawn {
 
     @WrapOperation(
@@ -20,7 +20,8 @@ public abstract class MixinTurtleShipSpawn {
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/core/BlockPos;getY()I"
-        )
+        ),
+        require = 0
     )
     private static int vs$shipTurtleY(
         final BlockPos pos, final Operation<Integer> original,
