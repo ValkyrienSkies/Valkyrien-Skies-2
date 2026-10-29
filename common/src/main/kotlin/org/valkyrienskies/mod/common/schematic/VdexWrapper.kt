@@ -10,9 +10,11 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessor
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate
 import net.minecraft.world.level.storage.LevelResource
 import org.joml.Quaterniond
+import org.joml.Quaterniondc
 import org.joml.Vector3d
 import org.joml.Vector3dc
 import org.joml.Vector3i
@@ -46,6 +48,7 @@ import java.io.FileNotFoundException
 import java.nio.file.Files
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
+import kotlin.jvm.Throws
 
 object VdexWrapper {
     fun getSchematicDirectory(server: MinecraftServer): Path {
@@ -56,9 +59,25 @@ object VdexWrapper {
     }
 
     /**
-     * Returned component is null if the loading was successful, otherwise it will be the error message (translatable)
+     * When the exceptions are thrown:
+     * - [FileNotFoundException] occurs if no VDex file was found in the schematic folder with the [filename].
+     * - [InvalidPathException] occurs if the [filename] contains illegal characters.
+     * - [IllegalStateException] occurs if the file was located, but was not a valid VDex file
      */
-    fun loadShip(level: ServerLevel, position: Vector3d, filename: String): Component? {
+    @Throws(FileNotFoundException::class, InvalidPathException::class, IllegalStateException::class)
+    fun loadShipRaw(level: ServerLevel, filename: String): VdexData {
+        val schematicsDir = getSchematicDirectory(level.server)
+        val filePath = schematicsDir.resolve("$filename.vdex")
+        return VdexIO.read(filePath)
+    }
+
+    /**
+     * Returned component is null if the loading was successful, otherwise it will be the error message (translatable).
+     *
+     * @param loadEntities Whether to paste in entities that were saved with the schematic. Note that this includes entities like Create Contraptions.
+     * @param additionalProcessors Pass in additional structure processors to do things like: Remove items from containers, Remove "unsafe" NBT from blocks/block entities/entities/items, Modify NBT data of particular blocks/block entities/entities/items, etc
+     */
+    fun loadShip(level: ServerLevel, position: Vector3d, filename: String, rotation: Quaterniondc = Quaterniond(), loadEntities: Boolean = true, additionalProcessors: List<StructureProcessor> = listOf()): Component? {
         val schematicsDir = getSchematicDirectory(level.server)
 
         val schem: VdexData = try {
@@ -77,7 +96,7 @@ object VdexWrapper {
 
         // Vector3dc because we don't want to mutate this as we go along
         val pastePos: Vector3dc = position
-        val pasteRot = Quaterniond() // identity for now, todo: make rotation command parameter
+        val pasteRot = rotation
 
         val indexToShip = mutableMapOf<Int, ServerShip>()
         schem.metadata.ships.forEachIndexed { index, vdexShipEntry ->
@@ -128,6 +147,10 @@ object VdexWrapper {
             )
 
             val settings = StructurePlaceSettings()
+            settings.isIgnoreEntities = !loadEntities
+            additionalProcessors.forEach { processor ->
+                settings.addProcessor(processor)
+            }
             settings.rotationPivot = cornerOfShip
             template.placeInWorld(level, cornerOfShip, cornerOfShip, settings, level.random, Block.UPDATE_CLIENTS)
         }

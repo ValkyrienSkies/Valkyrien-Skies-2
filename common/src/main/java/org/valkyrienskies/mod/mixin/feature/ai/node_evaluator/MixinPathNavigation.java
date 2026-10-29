@@ -97,7 +97,8 @@ public class MixinPathNavigation {
         PathPerFrameRegistry.setNearbyShips(nearbyShips);
 
         final Path result;
-        try {
+        try (final var fluidQuery = org.valkyrienskies.mod.common.fluid.ShipFluidStateQueries.beginPath(
+            level, frame, nearbyShips)) {
             result = original.call(pathFinder, effectiveRegion, mob, frameTargets, searchRange, accuracy, maxVisitedNodesMultiplier);
         } catch (final Throwable t) {
             return null;

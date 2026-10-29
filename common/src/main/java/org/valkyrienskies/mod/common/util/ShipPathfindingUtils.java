@@ -17,6 +17,7 @@ import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.mixin.feature.ai.node_evaluator.PathNavigationRegionAccessor;
 import org.valkyrienskies.mod.util.FluidStateManager;
+import org.valkyrienskies.mod.common.fluid.ShipFluidStateQueries;
 
 public final class ShipPathfindingUtils {
     private static final double SHIP_SUPPORT_CHECK_DISTANCE = 0.15;
@@ -170,6 +171,8 @@ public final class ShipPathfindingUtils {
 
     public static FluidState findExactShipFluid(final Level level, final double sampleX, final double sampleY,
         final double sampleZ) {
+        final var controlled = ShipFluidStateQueries.atWorld(level, sampleX, sampleY, sampleZ);
+        if (controlled != null) return controlled.fluid();
         final FluidState[] result = {null};
         final BlockPos.MutableBlockPos candidatePos = new BlockPos.MutableBlockPos();
         final FluidStateManager.QueryCache queryCache = new FluidStateManager.QueryCache();
@@ -205,6 +208,6 @@ public final class ShipPathfindingUtils {
 
     public static FluidState getShipAwareFluidState(final Level level, final BlockPos pos,
         final FluidStateManager.QueryCache queryCache) {
-        return FluidStateManager.getFluidState(level, pos, queryCache);
+        return ShipFluidStateQueries.getFluidState(level, pos, queryCache);
     }
 }

@@ -38,6 +38,7 @@ import org.valkyrienskies.core.impl.config.VSCoreConfig
 import org.valkyrienskies.core.internal.ships.VsiServerShip
 import org.valkyrienskies.mod.common.assembly.ShipAssembler.assembleToShipFull
 import org.valkyrienskies.mod.common.dimensionId
+import org.valkyrienskies.mod.common.fluid.FractionalFluidLifecycle
 import org.valkyrienskies.mod.common.executeIf
 import org.valkyrienskies.mod.common.forEach
 import org.valkyrienskies.mod.common.getLoadedShipManagingPos
@@ -189,6 +190,24 @@ object ShipAssembler {
         return AssembleContext(toShip, fromCenter, toCenter)
     }
 
+    @OptIn(GameTickOnly::class)
+    internal fun transferRetainedWater(level: ServerLevel, fromShip: ServerShip?, toShip: ServerShip?,
+                                      blocks: Set<BlockPos>, sourceCorner: BlockPos, destinationCorner: BlockPos) {
+        // World source blocks carry their own liquid state through the ordinary block move.
+        val source = fromShip ?: return
+        val world = level.shipObjectWorld
+        val target = toShip?.id ?: checkNotNull(world.dimensionToGroundBodyIdImmutable[level.dimensionId])
+        val coordinates = IntArray(Math.multiplyExact(blocks.size, 3))
+        var index = 0
+        for (block in blocks) {
+            coordinates[index++] = block.x; coordinates[index++] = block.y; coordinates[index++] = block.z
+        }
+        world.moveFluidWithBlocks(source.id, target, level.dimensionId, coordinates,
+            Vector3i(Math.subtractExact(destinationCorner.x, sourceCorner.x),
+                Math.subtractExact(destinationCorner.y, sourceCorner.y),
+                Math.subtractExact(destinationCorner.z, sourceCorner.z)))
+    }
+
     data class MoveContext(val wasSuccessful: Boolean, val fromCenter: Vector3d, val toCenter: Vector3d)
     private val failedMove = MoveContext(false, Vector3d(), Vector3d())
 
@@ -217,6 +236,8 @@ object ShipAssembler {
             .div(2.0)
         val fromCenter = offset.get(Vector3d()).add(oldMin)
 
+        val cornerOfShip = Vector3d(toCenter).sub(offset).ceil().let { BlockPos(it.x.toInt(), it.y.toInt(), it.z.toInt()) }
+        FractionalFluidLifecycle.beginMove(level, blocks, fromShip, toShip, minStructurePos, cornerOfShip, !removeOriginal).use { fluidTransfer ->
         var wasSplittingEnabled = true
         if (fromShip is LoadedServerShip) {
             val splittingDisabler = fromShip.getAttachment(SplittingDisablerAttachment::class.java)
@@ -302,15 +323,6 @@ object ShipAssembler {
 
         //structure template builds from a corner, so offset center of plot so that structure's center and center of
         //plot roughly align
-        val cornerOfShip = Vector3d(toCenter)
-            .sub(offset)
-            .ceil()
-            .let { BlockPos(
-                it.x.toInt(),
-                it.y.toInt(),
-                it.z.toInt(),
-            ) }
-
         val centerOfShip = cornerOfShip.toJOMLD().add(offset)
 
         val structureSettings = StructurePlaceSettings().addProcessor(
@@ -323,9 +335,12 @@ object ShipAssembler {
         structureSettings.rotationPivot = cornerOfShip
 
         VSAssemblyEvents.onPasteBeforeBlocksAreLoaded.emit(VSAssemblyEvents.OnPasteBeforeBlocksAreLoaded(level, fromShip, toShip, Pair(fromCenter, centerOfShip), eventData))
-        template.placeInWorld(level, cornerOfShip, cornerOfShip, structureSettings, level.random, Block.UPDATE_CLIENTS)
+        if (template.placeInWorld(level, cornerOfShip, cornerOfShip, structureSettings, level.random, Block.UPDATE_CLIENTS)) {
+            fluidTransfer?.complete()
+        }
 
         if (removeOriginal) {
+            transferRetainedWater(level, fromShip, toShip, blocks, minStructurePos, cornerOfShip)
             StructureMetadataRelocator.relocateStructureMetadata(level, blocks, minStructurePos, maxStructurePos, cornerOfShip)
         }
 
@@ -388,6 +403,7 @@ object ShipAssembler {
         }
 
         return MoveContext(true, fromCenter, centerOfShip)
+        }
     }
 
     @JvmStatic
@@ -609,6 +625,8 @@ object ShipAssembler {
 
                 val removeFlags = Block.UPDATE_CLIENTS or Block.UPDATE_KNOWN_SHAPE or Block.UPDATE_SUPPRESS_DROPS or Block.UPDATE_MOVE_BY_PISTON
 
+                FractionalFluidLifecycle.beginMove(level, filteredBlocks, pending.fromShip, pending.toShip,
+                    pending.minB, cornerOfShip, false).use { fluidTransfer ->
                 if (filteredBlocksWithState.size <= 8) {
                     val destPositions = ArrayList<BlockPos>(filteredBlocksWithState.size)
                     for ((srcPos, state) in filteredBlocksWithState) {
@@ -685,6 +703,12 @@ object ShipAssembler {
                         BlockPos(cornerOfShip.x + dx, cornerOfShip.y + dy, cornerOfShip.z + dz)
                     }
                     initSkyLightForShip(level, destPositions2)
+                }
+
+                // Both the small direct-move and template paths have moved this exact selection.
+                fluidTransfer?.complete()
+                transferRetainedWater(level, pending.fromShip, pending.toShip,
+                    filteredBlocks, pending.minB, cornerOfShip)
                 }
 
                 // Set kinematics
@@ -764,6 +788,7 @@ object ShipAssembler {
     }
 
     fun deleteShip(level: ServerLevel, ship: ServerShip, deleteBlocks: Boolean, dropBlocks: Boolean): Int {
+        FractionalFluidLifecycle.releaseShip(level, ship)
         if (ship is LoadedServerShip) {
             val splittingDisabler = ship.getAttachment(SplittingDisablerAttachment::class.java)
             splittingDisabler?.disableSplitting()

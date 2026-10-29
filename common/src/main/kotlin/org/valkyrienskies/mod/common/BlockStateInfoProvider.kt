@@ -20,6 +20,8 @@ import org.valkyrienskies.core.api.ships.Wing
 import org.valkyrienskies.core.api.world.connectivity.ConnectionStatus
 import org.valkyrienskies.core.api.world.connectivity.SparseVoxelPosition
 import org.valkyrienskies.core.internal.world.chunks.VsiBlockType
+import org.valkyrienskies.core.internal.world.VsiServerShipWorld
+import org.valkyrienskies.mod.common.fluid.FractionalFluidSources
 import org.valkyrienskies.mod.common.block.WingBlock
 import org.valkyrienskies.mod.common.config.ConfigType
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
@@ -96,7 +98,7 @@ object BlockStateInfo {
     private var _cache = ThreadLocal.withInitial { Cache() }
     val cache: Cache get() = _cache.get()
 
-    private fun invalidateCache() {
+    internal fun invalidateCache() {
         _cache = ThreadLocal.withInitial { Cache() }
     }
 
@@ -124,7 +126,23 @@ object BlockStateInfo {
     fun onSetBlock(level: Level, blockPos: BlockPos, prevBlockState: BlockState, newBlockState: BlockState) =
         onSetBlock(level, blockPos.x, blockPos.y, blockPos.z, prevBlockState, newBlockState)
 
+    fun onSourceAmountChanged(level: ServerLevel, pos: BlockPos, state: BlockState, amount: Int) {
+        require(amount in 0..255)
+        if (!::SORTED_REGISTRY.isInitialized) return
+        val (mass, type) = get(state) ?: return
+        (level.shipObjectWorld as VsiServerShipWorld).onSetBlock(
+            pos.x, pos.y, pos.z, level.dimensionId, type, type, mass, mass, amount)
+    }
+
     fun onSetBlock(level: Level, x: Int, y: Int, z: Int, prevBlockState: BlockState, newBlockState: BlockState) {
+        var sourceFillAmount: Int? = null
+        if (level is ServerLevel) {
+            FractionalFluidSources.forLevel(level)?.takeIf { it.size != 0 }?.let {
+                val fluid = FractionalFluidSources.fluidName(newBlockState)
+                it.reconcileFluid(level.dimensionId, x, y, z, fluid)
+                if (fluid != null) sourceFillAmount = it.amount(level.dimensionId, x, y, z, fluid)?.toInt()
+            }
+        }
         if (!::SORTED_REGISTRY.isInitialized) return
 
         val shipObjectWorld = level.shipObjectWorld
@@ -158,10 +176,13 @@ object BlockStateInfo {
         }
         // endregion
 
-        shipObjectWorld.onSetBlock(
-            x, y, z, level.dimensionId, prevBlockType, newBlockType, prevBlockMass,
-            newBlockMass
-        )
+        if (sourceFillAmount != null && shipObjectWorld is VsiServerShipWorld) {
+            shipObjectWorld.onSetBlock(x, y, z, level.dimensionId, prevBlockType, newBlockType,
+                prevBlockMass, newBlockMass, sourceFillAmount!!)
+        } else {
+            shipObjectWorld.onSetBlock(x, y, z, level.dimensionId, prevBlockType, newBlockType,
+                prevBlockMass, newBlockMass)
+        }
 
         fun Set<SparseVoxelPosition>.centerFromVoxelSet() : Vector3dc {
             val center = Vector3d(0.0, 0.0, 0.0)
@@ -240,6 +261,7 @@ object BlockStateInfo {
             ship.inertiaData.mass, 0.0
         )
         // Readding all blocks to ship's physics representation (mass, block type)
+        val sources = FractionalFluidSources.forLevel(level)?.takeIf { it.size != 0 }
         BlockPos.betweenClosed(
             aabb.minX(), aabb.minY(), aabb.minZ(), aabb.maxX(), aabb.maxY(),
             aabb.maxZ()
@@ -247,12 +269,15 @@ object BlockStateInfo {
             val state = level.getBlockState(it)
             val (realBlockMass, realBlockType) = get(state) ?: return false
             if (realBlockType != airBlockType) {
-                level.shipObjectWorld.onSetBlock(
-                    it.x, it.y, it.z,
-                    level.dimensionId,
-                    airBlockType, realBlockType,
-                    0.0, realBlockMass
-                )
+                val fluid = if (sources == null) null else FractionalFluidSources.fluidName(state)
+                val amount = fluid?.let { name -> sources!!.amount(level.dimensionId, it.x, it.y, it.z, name)?.toInt() }
+                if (amount == null) {
+                    level.shipObjectWorld.onSetBlock(it.x, it.y, it.z, level.dimensionId,
+                        airBlockType, realBlockType, 0.0, realBlockMass)
+                } else {
+                    level.shipObjectWorld.onSetBlock(it.x, it.y, it.z, level.dimensionId,
+                        airBlockType, realBlockType, 0.0, realBlockMass, amount)
+                }
             }
         }
         ship.isStatic = wasStatic

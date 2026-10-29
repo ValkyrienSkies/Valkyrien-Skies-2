@@ -50,6 +50,7 @@ configurations {
     common
     shadowCommon // Don't use shadow from the shadow plugin because we don't want IDEA to index this.
     core
+    testImplementation.extendsFrom common, core
     compileClasspath.extendsFrom common
     runtimeClasspath.extendsFrom common
     developmentForge.extendsFrom common
@@ -59,6 +60,9 @@ configurations {
 }
 
 dependencies {
+    testImplementation "org.junit.jupiter:junit-jupiter-api:5.8.1"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.8.1"
+    testImplementation "io.mockk:mockk:1.12.5"
     implementation(annotationProcessor("io.github.llamalad7:mixinextras-common:${rootProject.mixinextras_version}"))
     implementation(include("io.github.llamalad7:mixinextras-forge:${rootProject.mixinextras_version}"))
     annotationProcessor("net.fabricmc:sponge-mixin:0.12.5+mixin.0.8.5") // use fabric mixin so we can write interface injectors (conditionally loaded if mixinbooster is enabled)
@@ -247,6 +251,8 @@ dependencies {
 
     // endregion
 }
+
+tasks.named('test') { useJUnitPlatform() }
 
 // Copy the VS common access widener to the generated resources folder
 def generatedResourcesDir = layout.buildDirectory.dir("generated/resources")

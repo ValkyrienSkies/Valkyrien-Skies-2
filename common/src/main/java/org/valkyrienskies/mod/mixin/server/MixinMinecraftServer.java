@@ -53,6 +53,7 @@ import org.valkyrienskies.core.api.ships.ShipTeleportData;
 import org.valkyrienskies.core.internal.physics.VsiFluidOutflow;
 import org.valkyrienskies.core.internal.physics.VsiFluidOutflowResult;
 import org.valkyrienskies.core.internal.physics.VsiFluidSourceWithdrawal;
+import org.valkyrienskies.core.internal.physics.VsiFluidSourceObservation;
 import org.valkyrienskies.core.internal.physics.VsiFluidSourceWithdrawalResult;
 import org.valkyrienskies.core.internal.ships.VsiLoadedServerShip;
 import org.valkyrienskies.core.internal.world.VsiPlayer;
@@ -66,6 +67,7 @@ import org.valkyrienskies.mod.common.config.DimensionParametersResolver;
 import org.valkyrienskies.mod.common.config.MassDatapackResolver;
 import org.valkyrienskies.mod.common.fluid.VanillaFluidFlowWindProvider;
 import org.valkyrienskies.mod.common.fluid.FluidSourceWithdrawalHandler;
+import org.valkyrienskies.mod.common.fluid.FractionalFluidSources;
 import org.valkyrienskies.mod.common.fluid.WorldFluidOutflowManager;
 import org.valkyrienskies.mod.common.hooks.VSGameEvents;
 import org.valkyrienskies.mod.common.util.EntityDragger;
@@ -103,7 +105,10 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     private final Map<String, ServerLevel> dimensionToLevelMap = new HashMap<>();
 
     @Unique
-    private final WorldFluidOutflowManager fluidOutflowManager = new WorldFluidOutflowManager();
+    private WorldFluidOutflowManager fluidOutflowManager;
+
+    @Unique
+    private FractionalFluidSources fractionalFluidSources;
 
     @Inject(
         at = @At(value = "INVOKE", target = "Lnet/minecraft/server/MinecraftServer;initServer()Z"),
@@ -168,6 +173,8 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
 
         // Create ship world and VS Pipeline
         vsPipeline = shipSavedData.getPipeline();
+        fluidOutflowManager = shipSavedData.getFluidOutflowManager();
+        fractionalFluidSources = shipSavedData.getFractionalFluidSources();
 
         KrunchSupport.INSTANCE.setKrunchSupported(!vsPipeline.isUsingDummyPhysics());
 
@@ -263,7 +270,9 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         at = @At("TAIL")
     )
     private void postTick(final CallbackInfo ci) {
+        fractionalFluidSources.recoverTransfers(dimensionToLevelMap, fluidOutflowManager);
         vsPipeline.postTickGame();
+        org.valkyrienskies.mod.common.fluid.ShipFluidInteraction.prune(shipWorld);
         org.valkyrienskies.mod.common.debug.ShipDebugService.tick((MinecraftServer) (Object) this);
         fluidOutflowManager.tick(dimensionToLevelMap);
         // Only drag entities after we have updated the ship positions
@@ -477,7 +486,8 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         at = @At("RETURN")
     )
     private void postStopServer(final CallbackInfo ci) {
-        fluidOutflowManager.clear(dimensionToLevelMap);
+        org.valkyrienskies.mod.common.fluid.ShipFluidInteraction.clear(shipWorld);
+        fluidOutflowManager.clearVisuals(dimensionToLevelMap);
         dimensionToLevelMap.clear();
         shipWorld.setGameServer(null);
         shipWorld = null;
@@ -497,6 +507,42 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
             dimensionToLevelMap.get(withdrawal.getDimensionId()),
             withdrawal
         );
+    }
+
+    @Nullable
+    @Override
+    public VsiFluidSourceObservation observeFluidSource(@NotNull final VsiFluidSourceWithdrawal withdrawal) {
+        return FluidSourceWithdrawalHandler.observe(dimensionToLevelMap.get(withdrawal.getDimensionId()), withdrawal);
+    }
+
+    @Nullable
+    @Override
+    public VsiFluidSourceObservation observeFluidSource(@NotNull final String dimensionId,
+                                                       final int x, final int y, final int z) {
+        return FluidSourceWithdrawalHandler.observe(dimensionToLevelMap.get(dimensionId), x, y, z);
+    }
+
+    @Override
+    public boolean serviceFluidOutflowPressure() {
+        fractionalFluidSources.recoverTransfers(dimensionToLevelMap, fluidOutflowManager);
+        return fluidOutflowManager.servicePressure(dimensionToLevelMap);
+    }
+
+    @Nullable
+    @Override
+    public FractionalFluidSources getFractionalFluidSources() {
+        return fractionalFluidSources;
+    }
+
+    @Override
+    public WorldFluidOutflowManager getFluidOutflowManager() {
+        return fluidOutflowManager;
+    }
+
+    @Override
+    public void beforeShipDeletion(@NotNull final org.valkyrienskies.core.api.ships.ServerShip ship) {
+        org.valkyrienskies.mod.common.fluid.FractionalFluidLifecycle.releaseShip(
+            fractionalFluidSources, dimensionToLevelMap, fluidOutflowManager, ship);
     }
 
     @NotNull
@@ -519,6 +565,8 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         final ServerLevel srcLevel = getLevelFromDimensionId(srcDimension);
         final ServerLevel destLevel = getLevelFromDimensionId(destDimension);
 
+        try (final org.valkyrienskies.mod.common.fluid.FractionalFluidTransferScope transfer =
+                 org.valkyrienskies.mod.common.fluid.FractionalFluidLifecycle.beginDimensionMove(srcLevel, destLevel, shipChunks)) {
         // Copy ship chunks from srcLevel to destLevel
         shipChunks.forEach((final int x, final int z) -> {
             final LevelChunk srcChunk = srcLevel.getChunk(x, z);
@@ -539,5 +587,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
             srcLevel.getChunkSource().updateChunkForced(chunkPos, false);
             ((VSServerLevel) srcLevel).removeChunk(x, z);
         });
+        if (transfer != null) transfer.complete();
+        }
     }
 }

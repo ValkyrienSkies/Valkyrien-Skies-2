@@ -79,6 +79,9 @@ public class ValkyrienCommonMixinConfigPlugin implements IMixinConfigPlugin {
             return !LoadedMods.getImmersivePortals(); // Only load this if immersive portals is NOT present
         }
 
+        if (mixinClassName.contains("org.valkyrienskies.mod.mixin.mod_compat.iris")) {
+            return renderer == VSRenderer.SODIUM && classExists("net.irisshaders.iris.pipeline.SodiumTerrainPipeline");
+        }
         if (mixinClassName.contains("org.valkyrienskies.mod.mixin.mod_compat.sodium")) {
             return renderer == VSRenderer.SODIUM;
         }

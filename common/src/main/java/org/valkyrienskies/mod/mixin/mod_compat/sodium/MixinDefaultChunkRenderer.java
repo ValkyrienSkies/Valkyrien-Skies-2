@@ -4,6 +4,9 @@ import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.valkyrienskies.mod.compat.sodium.SodiumFluidOcclusion;
 
 import me.jellysquid.mods.sodium.client.render.chunk.ChunkRenderMatrices;
 import me.jellysquid.mods.sodium.client.render.chunk.DefaultChunkRenderer;
@@ -42,6 +45,7 @@ public abstract class MixinDefaultChunkRenderer {
             // (typically nothing on the first ship pass of the frame).
             SodiumCompat.getShipEmitterList().bind(SodiumCompat.SHIP_EMITTER_LIST_TEXTURE_UNIT);
             SodiumCompat.getShipOccluderList().bind(SodiumCompat.SHIP_OCCLUDER_LIST_TEXTURE_UNIT);
+            SodiumFluidOcclusion.begin();
             return;
         }
         // World chunk path: when ship-to-world dynamic lighting is on AND
@@ -63,8 +67,15 @@ public abstract class MixinDefaultChunkRenderer {
             // Per-frame ship occluder voxel list — used by the per-fragment
             // AO loop in the world FSH for rotation-aware shadow shape.
             SodiumCompat.getShipOccluderList().bind(SodiumCompat.SHIP_OCCLUDER_LIST_TEXTURE_UNIT);
+            SodiumFluidOcclusion.begin();
             return;
         }
         ((ShaderChunkRendererAccessor) (Object) this).invokeBegin(renderPass);
+        SodiumFluidOcclusion.begin();
+    }
+
+    @Inject(method = "render", at = @At("RETURN"), remap = false)
+    private void vs$restoreFluidTextures(final CallbackInfo ci) {
+        SodiumFluidOcclusion.end();
     }
 }

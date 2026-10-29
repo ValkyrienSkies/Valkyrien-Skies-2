@@ -149,6 +149,12 @@ jobs:
       - run:
           name: Build
           command: "./gradlew build --no-daemon --stacktrace --max-workers 1"
+      - store_test_results:
+          path: common/build/test-results
+      - store_artifacts:
+          path: common/build/reports/tests/test
+          destination: common-test-report
+          when: always
       - save_artifacts
       - persist_to_workspace:
           root: .
@@ -276,6 +282,12 @@ jobs:
       - run:
           name: Build
           command: "./gradlew build --no-daemon --stacktrace --max-workers 1"
+      - store_test_results:
+          path: common/build/test-results
+      - store_artifacts:
+          path: common/build/reports/tests/test
+          destination: common-test-report
+          when: always
       - save_artifacts_and_generate_discord
       - discord/status:
           success_message: ${DISCORD_MSG}

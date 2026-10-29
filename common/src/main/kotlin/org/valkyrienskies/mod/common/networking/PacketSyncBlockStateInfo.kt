@@ -7,5 +7,6 @@ import org.valkyrienskies.mod.client.ClientBlockInfo
  * Packet to sync datapack-defined blockstate info from server to client
  */
 data class PacketSyncBlockStateInfo(
-    val blockState2VS: Map<String, ClientBlockInfo>
+    val blockState2VS: Map<String, ClientBlockInfo>,
+    val liquidState2Fluid: Map<Int, String> = emptyMap()
 ) : SimplePacket

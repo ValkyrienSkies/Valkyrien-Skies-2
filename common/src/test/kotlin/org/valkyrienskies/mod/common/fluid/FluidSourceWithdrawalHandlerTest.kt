@@ -63,11 +63,38 @@ class FluidSourceWithdrawalHandlerTest {
         assertEquals(
             VsiFluidSourceWithdrawalResult.UNSUPPORTED_SOURCE,
             FluidSourceWithdrawalHandler.validateSource(
-                withdrawal(fillAmount = 128),
+                withdrawal(fillAmount = 0),
                 currentOwnerBodyId = SOURCE_BODY_ID,
                 currentFluidId = FLUID_ID
             )
         )
+    }
+
+    @Test
+    fun `accepts fractional source debit quantities`() {
+        for (amount in listOf(1, 127, 128, 254)) {
+            assertNull(FluidSourceWithdrawalHandler.validateSource(withdrawal(fillAmount = amount), SOURCE_BODY_ID, FLUID_ID))
+        }
+    }
+
+    @Test
+    fun `known empty source retains stronger proof for world and ship owners`() {
+        for (world in listOf(false, true)) {
+            assertEquals(VsiFluidSourceWithdrawalResult.EMPTY_SOURCE,
+                FluidSourceWithdrawalHandler.validateSource(withdrawal(sourceIsWorldBody = world),
+                    if (world) null else SOURCE_BODY_ID, null, knownEmpty = true))
+        }
+    }
+
+    @Test
+    fun `unknown mapping different fluid and changed owner cannot prove an empty source`() {
+        assertEquals(VsiFluidSourceWithdrawalResult.STALE_SOURCE,
+            FluidSourceWithdrawalHandler.validateSource(withdrawal(), SOURCE_BODY_ID, null))
+        assertEquals(VsiFluidSourceWithdrawalResult.STALE_SOURCE,
+            FluidSourceWithdrawalHandler.validateSource(withdrawal(), SOURCE_BODY_ID, FLUID_ID + 1, knownEmpty = true))
+        assertEquals(VsiFluidSourceWithdrawalResult.STALE_SOURCE,
+            FluidSourceWithdrawalHandler.validateSource(withdrawal(), SOURCE_BODY_ID + 1, null, knownEmpty = true))
+        assertNull(FluidSourceWithdrawalHandler.validateSource(withdrawal(), SOURCE_BODY_ID, FLUID_ID, knownEmpty = true))
     }
 
     private fun withdrawal(

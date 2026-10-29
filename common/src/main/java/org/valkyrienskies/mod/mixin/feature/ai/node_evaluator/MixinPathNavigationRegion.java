@@ -18,6 +18,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
+import org.valkyrienskies.mod.common.fluid.ShipFluidStateQueries;
 import org.valkyrienskies.mod.common.pathfinding.NearbyShip;
 import org.valkyrienskies.mod.common.pathfinding.PathPerFrameRegistry;
 import org.valkyrienskies.mod.common.pathfinding.PathTypeDanger;
@@ -136,6 +137,14 @@ public abstract class MixinPathNavigationRegion {
         final Level level = ((PathNavigationRegionAccessor) this).getLevel();
         if (level == null) return;
 
+        final var controlled = ShipFluidStateQueries.forPath(level, pos);
+        if (controlled != null) {
+            final BlockState state = controlled.blockState(cir.getReturnValue());
+            PathfindStateCache.putBlock(cacheKey, state);
+            cir.setReturnValue(state);
+            return;
+        }
+
         vs$REENTRY.set(true);
         try {
             final NearbyShip[] nearbyShips = PathPerFrameRegistry.getNearbyShips();
@@ -214,6 +223,13 @@ public abstract class MixinPathNavigationRegion {
 
         final Level level = ((PathNavigationRegionAccessor) this).getLevel();
         if (level == null) return;
+
+        final var controlled = ShipFluidStateQueries.forPath(level, pos);
+        if (controlled != null) {
+            PathfindStateCache.putFluid(cacheKey, controlled.fluid());
+            cir.setReturnValue(controlled.fluid());
+            return;
+        }
 
         vs$REENTRY.set(true);
         try {
