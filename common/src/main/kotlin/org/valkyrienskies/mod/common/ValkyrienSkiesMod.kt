@@ -162,7 +162,8 @@ object ValkyrienSkiesMod {
         }
         core.registerAttachment(BuoyancyHandlerAttachment::class.java)
         core.registerAttachment(ShipGravityAttachment::class.java)
-        core.registerAttachment(org.valkyrienskies.mod.common.util.ShovelRowingAttachment::class.java)
+        // Old rowing attachments contain no saved gameplay state.
+        core.registerAttachmentForRemoval("org.valkyrienskies.mod.common.util.ShovelRowingAttachment")
 
         core.shipLoadEvent.on { event ->
             event.ship.setAttachment(SplittingDisablerAttachment(true))
@@ -176,16 +177,10 @@ object ValkyrienSkiesMod {
 
         core.collisionStartEvent.on { event ->
             ImpactFractureHandler.onCollision(event)
-            org.valkyrienskies.mod.common.util.ShipInteractions.onCollision(event)
-        }
-        core.collisionPersistEvent.on { event ->
-            org.valkyrienskies.mod.common.util.ShipInteractions.onCollision(event)
         }
         ImpactFractureHandler.logRegistered()
 
         core.physTickEvent.on { event ->
-            org.valkyrienskies.mod.common.util.ShipPushing.physTick(event.world)
-            org.valkyrienskies.mod.common.util.ShipImpactVelocities.capture(event.world)
             ShipWelder.physTick(event.world, event.delta)
             dimensionalGTPAs.forEach { dimensionId, gameTickForceApplier ->
                 if (event.world.dimension == dimensionId) {

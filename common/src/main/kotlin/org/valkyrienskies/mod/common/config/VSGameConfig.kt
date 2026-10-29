@@ -173,60 +173,6 @@ object VSGameConfig {
         val ShipInteractions = SHIP_INTERACTIONS()
 
         class SHIP_INTERACTIONS {
-            @ConfigEntry(description = "Let players push ships with sneak and an empty main hand.")
-            var playerShipPushing = true
-
-            @ConfigEntry(description = "Maximum push force per player, in newtons.", min = 0.0)
-            var playerPushForce = 100000.0
-
-            @ConfigEntry(description = "Ship contact speed at which player push force reaches zero, in meters per second.", min = 0.01)
-            var playerPushSpeed = 1.5
-
-            @ConfigEntry(description = "Use a shovel in water to move the ship on which you stand.")
-            var shovelRowing = true
-
-            @ConfigEntry(description = "Impulse of one shovel stroke, in newton seconds.", min = 0.0)
-            var rowingImpulse = 4000.0
-
-            @ConfigEntry(description = "Minimum time between shovel strokes, in ticks.", min = 1.0)
-            var rowingCooldownTicks = 10
-
-            @ConfigEntry(description = "Break blocks in the fragile_ship_collision tag on impact.")
-            var breakFragileBlocks = true
-
-        @ConfigEntry(description = "Minimum estimated force per contact block that breaks a fragile block, in newtons.", min = 0.0)
-        var fragileBlockForce = 15000.0
-
-        @ConfigEntry(description = "Minimum closing speed for a fragile block impact, in meters per second. Slower contact and rebound do not break blocks.", min = 0.0)
-        var fragileBlockMinImpactSpeed = 4.0
-
-            @ConfigEntry(description = "Impact duration used for the force estimate, in seconds.", min = 0.001)
-            var impactDuration = 0.05
-
-            @ConfigEntry(description = "Let ships operate pressure plates, buttons, levers, and target blocks.")
-            var shipRedstone = true
-
-            @ConfigEntry(description = "Minimum relative speed for a ship to operate a target block, in meters per second.", min = 0.0)
-            var targetImpactSpeed = 4.0
-
-            @ConfigEntry(description = "Minimum push speed along the lever handle, in meters per second.", min = 0.0)
-            var leverPushSpeed = 0.5
-
-            @ConfigEntry(description = "Let fast ship collisions cause player damage.")
-            var shipImpactDamage = true
-
-            @ConfigEntry(description = "Minimum closing speed for player damage, in meters per second.", min = 0.0)
-            var playerImpactSpeed = 6.0
-
-            @ConfigEntry(description = "Damage points per meter per second above the speed limit.", min = 0.0)
-            var playerImpactDamageScale = 2.0
-
-            @ConfigEntry(description = "Maximum damage points from one ship impact.", min = 0.0)
-            var maxPlayerImpactDamage = 40.0
-
-            @ConfigEntry(description = "Minimum time between ship damage events for a player, in ticks.", min = 1.0)
-            var playerImpactCooldownTicks = 10
-
             @ConfigEntry(description = "Let ships block sky light in mob spawn and mob light checks.")
             var shipShadows = true
         }
