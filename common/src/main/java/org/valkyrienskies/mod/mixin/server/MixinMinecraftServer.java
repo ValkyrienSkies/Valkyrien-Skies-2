@@ -275,6 +275,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         org.valkyrienskies.mod.common.fluid.ShipFluidInteraction.prune(shipWorld);
         org.valkyrienskies.mod.common.debug.ShipDebugService.tick((MinecraftServer) (Object) this);
         fluidOutflowManager.tick(dimensionToLevelMap);
+        fractionalFluidSources.tickSplashes(dimensionToLevelMap);
         // Only drag entities after we have updated the ship positions
         for (final ServerLevel level : getAllLevels()) {
             org.valkyrienskies.mod.common.util.ShipInteractions.afterPhysicsTick(level);

@@ -77,10 +77,12 @@ class WorldFluidFeedbackTest {
 
     @AfterEach fun cleanup() { unmockkAll() }
 
-    private fun settle(volume: Double) {
-        val event = VsiFluidOutflow(1, 1, 1, DIMENSION, 7, 0.5, 1.5, 0.5,
+    private fun settle(volume: Double, at: BlockPos = pos, reloadBeforeLanding: Boolean = false) {
+        blocks[at.below()] = Blocks.STONE.defaultBlockState()
+        val event = VsiFluidOutflow(1, 1, 1, DIMENSION, 7, at.x + 0.5, at.y + 0.5, at.z + 0.5,
             0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 17, 255).copy(worldVolume = volume)
         assertEquals(VsiFluidOutflowResult.APPLIED, manager.enqueue(level, event))
+        if (reloadBeforeLanding) reload()
         repeat(4) { manager.tick(mapOf(DIMENSION to level)) }
         assertEquals(0, manager.activeParcelCount())
     }
@@ -90,7 +92,75 @@ class WorldFluidFeedbackTest {
         manager = WorldFluidOutflowManager().also { it.load(manager.save()) }
     }
 
+    @Test fun `tiny scattered droplets do not create water blocks or saved owners`() {
+        val positions = (0 until 64).map { pos.offset(it * 2, 0, 0) }
+        positions.forEach { settle(0.001, it) }
+        reload()
+        positions.forEach { at ->
+            assertTrue(level.getBlockState(at).isAir)
+            assertFalse(FractionalFluidSources.owns(level, at))
+        }
+        assertEquals(0, sources.size)
+        assertEquals(0L, sources.retainedBytes)
+    }
+
+    @Test fun `flowing water outflows settle with canonical finite ownership`() {
+        every { MassDatapackResolver.getFlowingFluid(17) } returns Fluids.FLOWING_WATER
+        settle(0.125)
+        reload()
+        assertEquals(BigDecimal("31.875"), sources.amount(DIMENSION, pos.x, pos.y, pos.z, WATER))
+        assertEquals(31, FluidSourceWithdrawalHandler.observe(level, pos.x, pos.y, pos.z)!!.sourceFillAmount)
+        blocks.remove(pos.below())
+        assertTrue(newLiquidBelow().isEmpty)
+    }
+
+    @Test fun `a droplet just below the minimum survives unloaded transit then disappears on landing`() {
+        val units = BigDecimal("31.87499999999999999999999")
+        every { level.hasChunkAt(any()) } returns false
+        assertEquals(VsiFluidOutflowResult.APPLIED, manager.enqueueExact(DIMENSION, WATER,
+            org.joml.Vector3d(0.5, 1.5, 0.5), org.joml.Vector3d(), units))
+        manager.tick(mapOf(DIMENSION to level))
+        assertEquals(1, manager.activeParcelCount())
+        reload()
+        every { level.hasChunkAt(any()) } returns true
+        repeat(4) { manager.tick(mapOf(DIMENSION to level)) }
+        assertEquals(0, manager.activeParcelCount())
+        assertTrue(level.getBlockState(pos).isAir)
+        assertEquals(0, sources.size)
+        verify(exactly = 0) { level.setBlock(any(), any(), any()) }
+        reload()
+        assertEquals(0, manager.activeParcelCount())
+        assertEquals(0, sources.size)
+    }
+
+    @Test fun `source and flowing variants preserve partial and full deposits through parcel reload`() {
+        for (fluid in listOf(Fluids.WATER, Fluids.FLOWING_WATER, Fluids.LAVA, Fluids.FLOWING_LAVA)) {
+            for (volume in listOf(0.001, 0.1, 0.125, 0.249, 0.501, 1.0)) {
+                sources = FractionalFluidSources()
+                manager = WorldFluidOutflowManager()
+                blocks.clear()
+                every { MassDatapackResolver.getFlowingFluid(17) } returns fluid
+                settle(volume, reloadBeforeLanding = true)
+                reload()
+                val name = if (fluid.isSame(Fluids.WATER)) WATER else "minecraft:lava"
+                if (volume < 0.125) {
+                    assertTrue(level.getBlockState(pos).isAir)
+                    assertEquals(0, sources.size)
+                    continue
+                }
+                val expected = BigDecimal.valueOf(volume) * BigDecimal(255)
+                assertEquals(0, expected.compareTo(sources.amount(DIMENSION, pos.x, pos.y, pos.z, name)))
+                assertEquals((volume * 8).toInt(), level.getBlockState(pos).fluidState.amount)
+                assertEquals(expected.toInt(), FluidSourceWithdrawalHandler.observe(level, pos.x, pos.y, pos.z)!!.sourceFillAmount)
+                assertTrue(FractionalFluidSources.owns(level, pos))
+                blocks.remove(pos.below())
+                assertTrue(newLiquidBelow(fluid).isEmpty)
+            }
+        }
+    }
+
     @Test fun `fractional spray can be withdrawn and re-emitted without increasing its amount`() {
+        every { MassDatapackResolver.getFlowingFluid(17) } returns Fluids.FLOWING_WATER
         val initial = BigDecimal("0.501") * BigDecimal(255)
         settle(0.501)
         repeat(16) { cycle ->
@@ -101,7 +171,8 @@ class WorldFluidFeedbackTest {
                 pos.x, pos.y, pos.z, 17, observed.sourceFillAmount)
             assertEquals(VsiFluidSourceWithdrawalResult.APPLIED, FluidSourceWithdrawalHandler.apply(level, withdrawal))
             assertEquals(0, FluidSourceWithdrawalHandler.observe(level, pos.x, pos.y, pos.z)!!.sourceFillAmount)
-            assertEquals(VsiFluidOutflowResult.APPLIED, manager.enqueueExact(DIMENSION, WATER,
+            val fluidName = if (cycle % 2 == 0) "minecraft:flowing_water" else WATER
+            assertEquals(VsiFluidOutflowResult.APPLIED, manager.enqueueExact(DIMENSION, fluidName,
                 org.joml.Vector3d(0.5, 1.5, 0.5), org.joml.Vector3d(), BigDecimal(127)))
             repeat(4) { manager.tick(mapOf(DIMENSION to level)) }
             assertEquals(0, manager.activeParcelCount())
@@ -144,12 +215,12 @@ class WorldFluidFeedbackTest {
         }
     }
 
-    private fun newLiquidBelow(): FluidState {
+    private fun newLiquidBelow(fluid: FlowingFluid = Fluids.WATER): FluidState {
         val getNewLiquid = FlowingFluid::class.java.getDeclaredMethod("getNewLiquid", Level::class.java,
             BlockPos::class.java, BlockState::class.java).apply { isAccessible = true }
         vanillaQuery = true
         return try {
-            getNewLiquid.invoke(Fluids.WATER, level, pos.below(), Blocks.AIR.defaultBlockState()) as FluidState
+            getNewLiquid.invoke(fluid, level, pos.below(), Blocks.AIR.defaultBlockState()) as FluidState
         } finally { vanillaQuery = false }
     }
 }

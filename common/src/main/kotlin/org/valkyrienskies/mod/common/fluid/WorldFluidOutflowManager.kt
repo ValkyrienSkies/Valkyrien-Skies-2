@@ -20,6 +20,7 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.LiquidBlock
 import net.minecraft.world.level.block.state.properties.Property
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.material.FlowingFluid
@@ -55,8 +56,13 @@ internal fun chooseFluidParcelAction(
     else -> FluidParcelAction.SETTLE
 }
 
-internal fun worldVolumeToVanillaLevel(worldVolume: Double): Int =
+internal fun worldVolumeToVisualLevel(worldVolume: Double): Int =
     ceil(worldVolume.coerceIn(0.0, 1.0) * 8).toInt().coerceIn(1, 8)
+
+private val MIN_SETTLED_UNITS = BigDecimal("31.875")
+
+internal fun settledFluidLevel(units: BigDecimal): Int =
+    units.divideToIntegralValue(MIN_SETTLED_UNITS).toInt().coerceIn(0, 8)
 
 internal fun fluidParcelTickDisplacement(velocity: Vector3d): Vector3d {
     if (!velocity.x.isFinite() || !velocity.y.isFinite() || !velocity.z.isFinite()) {
@@ -617,6 +623,9 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
             }
             FluidParcelAction.SETTLE -> {
                 if (staged.velocity.y <= 0.0) {
+                    if (currentState.fluidState.isEmpty && parcel.sourceUnits < MIN_SETTLED_UNITS) {
+                        return ParcelUpdateResult.CONSUMED
+                    }
                     prepareSettlement(level, parcel, staged, fluid, currentPos, currentState)
                     return ParcelUpdateResult.PAUSED
                 }
@@ -632,7 +641,8 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
         } else state.fluidState.isEmpty && state.canBeReplaced()
 
     private fun sourceAmount(level: ServerLevel, parcel: Parcel, pos: BlockPos): BigDecimal? =
-        FractionalFluidSources.forLevel(level)?.amount(parcel.dimensionId, pos.x, pos.y, pos.z, parcel.fluidName.toString())
+        FractionalFluidSources.forLevel(level)?.amount(parcel.dimensionId, pos.x, pos.y, pos.z,
+            FractionalFluidSources.fluidName(requireNotNull(parcel.fluid)))
 
     private fun isOcean(level: ServerLevel, parcel: Parcel, pos: BlockPos, state: BlockState, fluid: FlowingFluid): Boolean =
         fluid.isSame(state.fluidState.type) && state.fluidState.isSource
@@ -642,10 +652,12 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
         canReceive(state, fluid) || (fluid.isSame(state.fluidState.type)
             && state == state.fluidState.createLegacyBlock() && FractionalFluidSources.owns(level, pos))
 
-    private fun depositedState(current: BlockState, fluid: FlowingFluid, units: BigDecimal): BlockState {
+    private fun depositedState(current: BlockState, fluid: FlowingFluid, units: BigDecimal,
+        legacyRounding: Boolean = false): BlockState {
         if (current.fluidState.isSource) return current
+        val level = if (legacyRounding) worldVolumeToVisualLevel(units.toDouble() / 255.0) else settledFluidLevel(units)
         return (if (units >= FULL_SOURCE) fluid.getSource(false)
-            else fluid.getFlowing(worldVolumeToVanillaLevel(units.toDouble() / 255.0).coerceAtMost(7), false)).createLegacyBlock()
+            else fluid.getFlowing(level.coerceIn(1, 7), false)).createLegacyBlock()
     }
 
     private fun prepareSettlement(level: ServerLevel, parcel: Parcel, staged: MotionState, fluid: FlowingFluid, pos: BlockPos,
@@ -692,8 +704,9 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
             val change = if (unitsBefore != null) {
                 val sources = FractionalFluidSources.forLevel(level) ?: return
                 if (current != before && sourceAmount(level, parcel, pos) == null) return
-                sources.prepareChange(parcel.dimensionId, pos.x, pos.y, pos.z, parcel.fluidName.toString(),
-                    unitsBefore, requireNotNull(parcel.placementUnitsAfter)) ?: return
+                sources.prepareChange(parcel.dimensionId, pos.x, pos.y, pos.z, FractionalFluidSources.fluidName(fluid),
+                    unitsBefore, requireNotNull(parcel.placementUnitsAfter),
+                    if (after.block === Blocks.WATER) after.getValue(LiquidBlock.LEVEL) else null) ?: return
             } else null
             if (current != after) {
                 if (current != before) return // Keep ambiguous ownership until a consistent observation exists.
@@ -985,7 +998,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
     // Each history's live reservation includes a same-sized output array. It is sufficient for
     // toLongArray while all live histories remain owned. Returned NBT belongs to the caller.
     fun save(): CompoundTag = CompoundTag().apply {
-        putInt("version", 4)
+        putInt("version", 5)
         put("parcels", ListTag().also { list ->
             parcels.forEach { parcel ->
                 list.add(CompoundTag().apply {
@@ -1026,7 +1039,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
     fun load(tag: CompoundTag) {
         check(!servicing) { "Cannot replace parcel ownership during servicing" }
         val version = tag.getInt("version")
-        require(version in 1..4) { "Unsupported world-fluid parcel checkpoint" }
+        require(version in 1..5) { "Unsupported world-fluid parcel checkpoint" }
         require(tag.contains("parcels", Tag.TAG_LIST.toInt())) { "Missing world-fluid parcels" }
         val list = tag.getList("parcels", Tag.TAG_COMPOUND.toInt())
         require((tag.get("parcels") as ListTag).size == list.size) { "Invalid parcel list" }
@@ -1120,7 +1133,8 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
                                     BigDecimal.valueOf(previous.fluidState.amount.coerceIn(0, 8) / 8.0) * FULL_SOURCE else BigDecimal.ZERO
                                 val total = existing + deposited
                                 require(total <= FULL_SOURCE)
-                                require(placed == depositedState(previous, knownFluid, total)) { "Placement state and debit disagree" }
+                                require(placed == depositedState(previous, knownFluid, total)
+                                    || placed == depositedState(previous, knownFluid, total, true)) { "Placement state and debit disagree" }
                             }
                         }
                     }
@@ -1233,7 +1247,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
             if (recipients.isEmpty()) return
             val current = level.getBlockState(pos)
             if (!current.fluidState.isEmpty || !current.canBeReplaced()) return
-            val visualLevel = worldVolumeToVanillaLevel(parcel.sourceUnits.toDouble() / 255.0).coerceAtMost(7)
+            val visualLevel = worldVolumeToVisualLevel(parcel.sourceUnits.toDouble() / 255.0).coerceAtMost(7)
             val packet = ClientboundBlockUpdatePacket(pos, fluid.getFlowing(visualLevel, true).createLegacyBlock())
             val recipientIds = HashSet<UUID>(recipients.size)
             recipients.forEach { recipientIds.add(it.uuid) }

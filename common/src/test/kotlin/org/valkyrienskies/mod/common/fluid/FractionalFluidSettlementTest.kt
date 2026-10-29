@@ -87,22 +87,22 @@ class FractionalFluidSettlementTest {
     }
 
     @Test fun `same visible flowing level accumulates exact amounts across reload`() {
-        enqueue(0.01)
+        enqueue(0.125)
         manager.tick(levels)
         val state = blocks[pos]
-        assertAmount("2.55")
+        assertAmount("31.875")
         assertEquals(1, writes)
         reload()
         enqueue(0.01)
         manager.tick(levels)
         assertEquals(state, blocks[pos])
         assertEquals(1, writes)
-        assertAmount("5.10")
+        assertAmount("34.425")
         assertEquals(0, manager.activeParcelCount())
-        verify { BlockStateInfo.onSourceAmountChanged(level, pos, requireNotNull(state), 5) }
+        verify { BlockStateInfo.onSourceAmountChanged(level, pos, requireNotNull(state), 34) }
     }
 
-    @Test fun `refilling a partial source keeps the exact nondecimal world-volume remainder`() {
+    @Test fun `refill retains its exact remainder until an undersized dry landing discards it`() {
         blocks[pos] = Blocks.WATER.defaultBlockState()
         sources.setAmount(DIMENSION, 0, 1, 0, WATER, BigDecimal(29))
         enqueue(1.0)
@@ -117,16 +117,36 @@ class FractionalFluidSettlementTest {
         repeat(8) { manager.tick(levels) }
         assertEquals(0, manager.activeParcelCount())
         val stored = sources.save().getList("sources", Tag.TAG_COMPOUND.toInt())
-        assertEquals(2, stored.size)
-        assertEquals(listOf(BigDecimal(29), BigDecimal(255)), stored.map {
+        assertEquals(1, stored.size)
+        assertEquals(listOf(BigDecimal(255)), stored.map {
             (it as CompoundTag).getString("units").toBigDecimal()
         }.sorted())
+    }
+
+    @Test fun `legacy rounded-up placement receipts survive repeated saves and finish once`() {
+        enqueue(0.249)
+        every { level.setBlock(any(), any(), any()) } throws IllegalStateException("hold journal")
+        assertThrows(IllegalStateException::class.java) { manager.tick(levels) }
+        val saved = manager.save().apply { putInt("version", 4) }
+        val intent = saved.getList("parcels", 10).getCompound(0).getCompound("placement")
+        intent.put("after", net.minecraft.nbt.NbtUtils.writeBlockState(Fluids.WATER.getFlowing(2, false).createLegacyBlock()))
+        reload(saved)
+        reload()
+        ordinaryWrites()
+        manager.tick(levels)
+        assertEquals(0, manager.activeParcelCount())
+        assertEquals(2, blocks.getValue(pos).fluidState.amount)
+        assertAmount("63.495")
+        reload()
+        manager.tick(levels)
+        assertAmount("63.495")
+        assertEquals(1, writes)
     }
 
     @Test fun `failed and ambiguous world writes retain one owner through saved pending journals`() {
         for (applied in listOf(false, true)) {
             blocks.clear(); sources = FractionalFluidSources(); manager = WorldFluidOutflowManager(8, 8); writes = 0
-            enqueue(0.1)
+            enqueue(0.125)
             var checkpoint: Pair<CompoundTag, CompoundTag>? = null
             every { level.setBlock(any(), any(), any()) } answers {
                 if (applied) { blocks[firstArg<BlockPos>().immutable()] = secondArg(); writes++ }
@@ -135,17 +155,17 @@ class FractionalFluidSettlementTest {
             }
             assertThrows(IllegalStateException::class.java) { manager.tick(levels) }
             assertAmount("0")
-            assertEquals(0, pending().compareTo(BigDecimal("25.5")))
+            assertEquals(0, pending().compareTo(BigDecimal("31.875")))
             val saved = requireNotNull(checkpoint)
             reload(saved.first, saved.second)
             ordinaryWrites()
             manager.tick(levels)
             assertEquals(1, writes)
-            assertAmount("25.5")
+            assertAmount("31.875")
             assertEquals(0, manager.activeParcelCount())
             reload()
             manager.tick(levels)
-            assertAmount("25.5")
+            assertAmount("31.875")
         }
     }
 
@@ -168,27 +188,27 @@ class FractionalFluidSettlementTest {
 
     @Test fun `capacity refusal occurs before mutation and can resume with storage available`() {
         sources = FractionalFluidSources(0)
-        enqueue(0.1)
+        enqueue(0.125)
         assertThrows(FractionalFluidSources.StorageCapacityException::class.java) { manager.tick(levels) }
         assertEquals(0, writes)
         assertEquals(0, sources.size)
-        assertEquals(0, pending().compareTo(BigDecimal("25.5")))
+        assertEquals(0, pending().compareTo(BigDecimal("31.875")))
         reload()
         manager.tick(levels)
-        assertAmount("25.5")
+        assertAmount("31.875")
         assertEquals(0, manager.activeParcelCount())
     }
 
     @Test fun `confirmed refusal restores carrier storage and a later accepted write succeeds`() {
-        enqueue(0.1)
+        enqueue(0.125)
         every { level.setBlock(any(), any(), any()) } returns false
         manager.tick(levels)
         assertEquals(0, sources.size)
         assertEquals(0L, sources.retainedBytes)
-        assertEquals(0, pending().compareTo(BigDecimal("25.5")))
+        assertEquals(0, pending().compareTo(BigDecimal("31.875")))
         ordinaryWrites()
         manager.tick(levels)
-        assertAmount("25.5")
+        assertAmount("31.875")
         assertEquals(0, manager.activeParcelCount())
     }
 
@@ -216,7 +236,7 @@ class FractionalFluidSettlementTest {
     }
 
     @Test fun `malformed quantity intent cannot replace current parcel ownership`() {
-        enqueue(0.1)
+        enqueue(0.125)
         every { level.setBlock(any(), any(), any()) } throws IllegalStateException("hold journal")
         assertThrows(IllegalStateException::class.java) { manager.tick(levels) }
         val valid = manager.save()
@@ -248,22 +268,22 @@ class FractionalFluidSettlementTest {
     }
 
     @Test fun `a conflicting edit during placement cannot consume the parcel credit`() {
-        enqueue(0.1)
+        enqueue(0.125)
         every { level.setBlock(any(), any(), any()) } answers {
             blocks[pos] = Blocks.STONE.defaultBlockState()
             sources.reconcileFluid(DIMENSION, 0, 1, 0, null)
             true
         }
         manager.tick(levels)
-        assertEquals(0, pending().compareTo(BigDecimal("25.5")))
+        assertEquals(0, pending().compareTo(BigDecimal("31.875")))
         assertEquals(0, sources.size)
         reload()
         manager.tick(levels)
-        assertEquals(0, pending().compareTo(BigDecimal("25.5")))
+        assertEquals(0, pending().compareTo(BigDecimal("31.875")))
         blocks.remove(pos)
         ordinaryWrites()
         manager.tick(levels)
-        assertAmount("25.5")
+        assertAmount("31.875")
         assertEquals(0, manager.activeParcelCount())
     }
 
@@ -288,14 +308,14 @@ class FractionalFluidSettlementTest {
     }
 
     @Test fun `quantity journal storage is admitted before any carrier or world change`() {
-        enqueue(0.1)
+        enqueue(0.125)
         val retained = manager.parcelStorageBytes()
         manager.maxParcelStorageBytes = retained
         assertThrows(WorldFluidOutflowManager.StorageCapacityException::class.java) { manager.tick(levels) }
         assertEquals(retained, manager.parcelStorageBytes())
         assertEquals(0, sources.size)
         assertEquals(0, writes)
-        assertEquals(0, pending().compareTo(BigDecimal("25.5")))
+        assertEquals(0, pending().compareTo(BigDecimal("31.875")))
         manager.maxParcelStorageBytes = retained + 32768
         every { level.setBlock(any(), any(), any()) } throws IllegalStateException("hold admitted journal")
         assertThrows(IllegalStateException::class.java) { manager.tick(levels) }
@@ -305,7 +325,7 @@ class FractionalFluidSettlementTest {
         assertEquals(charged, manager.parcelStorageBytes())
         ordinaryWrites()
         manager.tick(levels)
-        assertAmount("25.5")
+        assertAmount("31.875")
         assertEquals(WorldFluidOutflowManager().parcelStorageBytes(), manager.parcelStorageBytes())
     }
 }

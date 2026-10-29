@@ -213,6 +213,7 @@ internal class FractionalFluidTransfers(private val sources: FractionalFluidSour
             move.to?.let { put("to", positionTag(it)) }
             putString("fluid", transfer.original.fluid)
             putString("units", transfer.original.units.toString())
+            sources.saveSplash(this, transfer.original)
             putString("source_volume", move.sourceVolume.toString())
             putString("destination_volume", move.destinationVolume.toString())
             putString("fallback_dimension", move.fallbackDimension)
@@ -223,6 +224,7 @@ internal class FractionalFluidTransfers(private val sources: FractionalFluidSour
             putDouble("target_vx", move.destinationVelocity.x); putDouble("target_vy", move.destinationVelocity.y); putDouble("target_vz", move.destinationVelocity.z)
             transfer.previousDestination?.let { previous -> put("destination_before", CompoundTag().apply {
                 putString("fluid", previous.fluid); putString("units", previous.units.toString())
+                sources.saveSplash(this, previous)
             }) }
             putBoolean("destination_carrier", transfer.hadDestinationCarrier)
             putBoolean("destination_released", transfer.destinationReleased)
@@ -237,7 +239,7 @@ internal class FractionalFluidTransfers(private val sources: FractionalFluidSour
             val tag = list.getCompound(index)
             val from = readPosition(tag, "from")
             val to = if (tag.contains("to")) readPosition(tag, "to") else null
-            val fluid = text(tag, "fluid")
+            val fluid = FractionalFluidSources.canonicalFluidName(text(tag, "fluid"))
             val position = vector(tag, "x", "y", "z")
             val velocity = vector(tag, "vx", "vy", "vz")
             val move = Move(from, to, decimal(tag, "source_volume"), decimal(tag, "destination_volume"),
@@ -253,11 +255,14 @@ internal class FractionalFluidTransfers(private val sources: FractionalFluidSour
                 val value = tag.getCompound("destination_before")
                 val previousUnits = decimal(value, "units")
                 require(previousUnits <= FULL)
-                amount(to, text(value, "fluid"), previousUnits)
+                val original = amount(to, FractionalFluidSources.canonicalFluidName(text(value, "fluid")), previousUnits)
+                if (version >= 5) sources.loadSplash(value, to, original) else original
             } else null
             val hadCarrier = version >= 3 && boolean(tag, "destination_carrier")
             require(!hadCarrier || previous != null && (previous.units < FULL || version >= 4 && previous.units <= FULL))
-            val transfer = Pending(move, amount(from, fluid, units), previous, hadCarrier)
+            val original = amount(from, fluid, units)
+            val transfer = Pending(move, if (version >= 5) sources.loadSplash(tag, from, original) else original,
+                previous, hadCarrier)
             transfer.committed = boolean(tag, "committed")
             transfer.completed = version >= 3 && boolean(tag, "completed")
             transfer.destinationReleased = version >= 3 && boolean(tag, "destination_released")
