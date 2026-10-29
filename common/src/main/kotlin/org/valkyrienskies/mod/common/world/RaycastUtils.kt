@@ -8,6 +8,7 @@ import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.ClipContext
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.chunk.ChunkStatus
 import net.minecraft.world.level.material.FluidState
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.BlockHitResult
@@ -15,14 +16,13 @@ import net.minecraft.world.phys.EntityHitResult
 import net.minecraft.world.phys.HitResult
 import net.minecraft.world.phys.Vec3
 import org.apache.logging.log4j.LogManager
-import org.joml.Intersectionf
+import org.joml.Intersectiond
 import org.joml.Vector2d
 import org.joml.Vector3d
 import org.joml.primitives.AABBd
 import org.joml.primitives.AABBdc
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.Ship
-import org.joml.primitives.LineSegmentf
 import org.valkyrienskies.core.api.ships.properties.ShipId
 import org.valkyrienskies.core.game.ships.ShipObjectClient
 import org.valkyrienskies.core.util.expand
@@ -60,16 +60,16 @@ fun Level.clipIncludeShips(
     var closestHitDist = closestHitPos.distanceToSqr(ctx.from)
 
     val clipAABB: AABBdc = AABBd(ctx.from.toJOML(), ctx.to.toJOML()).correctBounds()
-    val clipSegment = LineSegmentf(ctx.from.toVector3f(), ctx.to.toVector3f())
 
     // Iterate every ship, find do the raycast in ship space,
     // choose the raycast with the lowest distance to the start position.
     for (ship in getShipsIntersecting(clipAABB)) {
         val chopParam = Vector2d()
         // Pad AABB size to increase raycast tolerance
-        val expandedAABB = AABBd(ship.worldAABB).expand(1.0)
-        val intersectType = expandedAABB.intersectsLineSegment(clipSegment, chopParam);
-        if (intersectType == Intersectionf.OUTSIDE) {
+        val expandedAABB = AABBd((ship as? ClientShip)?.renderAABB ?: ship.worldAABB).expand(1.0)
+        val intersectType = expandedAABB.intersectsLineSegment(
+            ctx.from.x, ctx.from.y, ctx.from.z, ctx.to.x, ctx.to.y, ctx.to.z, chopParam)
+        if (intersectType == Intersectiond.OUTSIDE) {
             continue
         }
         // Skip skipShip
@@ -79,11 +79,11 @@ fun Level.clipIncludeShips(
 
         var choppedFrom: Vector3d
         var choppedTo : Vector3d
-        if (intersectType == Intersectionf.TWO_INTERSECTION) {
+        if (intersectType == Intersectiond.TWO_INTERSECTION) {
             choppedFrom = ctx.from.toJOML().add(ctx.to.toJOML().sub(ctx.from.toJOML()).mul(chopParam.x))
             choppedTo = ctx.from.toJOML().add(ctx.to.toJOML().sub(ctx.from.toJOML()).mul(chopParam.y))
 
-        } else if (intersectType == Intersectionf.ONE_INTERSECTION) {
+        } else if (intersectType == Intersectiond.ONE_INTERSECTION) {
             // This intersection type will result in both calculations above returning the same point,
             // and thus we need to determine which point is inside the AABB to recover.
             if (expandedAABB.containsPoint(ctx.from.toJOML())) {
@@ -101,8 +101,8 @@ fun Level.clipIncludeShips(
 
         val worldToShip = (ship as? ClientShip)?.renderTransform?.worldToShip ?: ship.worldToShip
         val shipToWorld = (ship as? ClientShip)?.renderTransform?.shipToWorld ?: ship.shipToWorld
-        val shipStart = worldToShip.transformPosition(ctx.from.toJOML()).toMinecraft()
-        val shipEnd = worldToShip.transformPosition(ctx.to.toJOML()).toMinecraft()
+        val shipStart = worldToShip.transformPosition(choppedFrom).toMinecraft()
+        val shipEnd = worldToShip.transformPosition(choppedTo).toMinecraft()
 
         val shipHit = clip(ctx, shipStart, shipEnd)
         val shipHitPos = shipToWorld.transformPosition(shipHit.location.toJOML()).toMinecraft()
@@ -126,9 +126,12 @@ fun Level.clipIncludeShips(
 private fun Level.clip(context: ClipContext, realStart: Vec3, realEnd: Vec3): BlockHitResult {
     return clip(
         realStart, realEnd, context,
-        { raycastContext: ClipContext, blockPos: BlockPos? ->
-            val blockState: BlockState = getBlockState(blockPos!!)
-            val fluidState: FluidState = getFluidState(blockPos)
+        cell@ { raycastContext: ClipContext, blockPos: BlockPos? ->
+            val pos = blockPos!!
+            val chunk = chunkSource.getChunk(pos.x shr 4, pos.z shr 4, ChunkStatus.FULL, false)
+                ?: return@cell null
+            val blockState: BlockState = chunk.getBlockState(pos)
+            val fluidState: FluidState = chunk.getFluidState(pos)
             val vec3d = realStart
             val vec3d2 = realEnd
             val voxelShape = raycastContext.getBlockShape(blockState, this, blockPos)
@@ -137,7 +140,7 @@ private fun Level.clip(context: ClipContext, realStart: Vec3, realEnd: Vec3): Bl
             val voxelShape2 = raycastContext.getFluidShape(fluidState, this, blockPos)
             val blockHitResult2 = voxelShape2.clip(vec3d, vec3d2, blockPos)
             val d = if (blockHitResult == null) Double.MAX_VALUE else realStart.distanceToSqr(blockHitResult.location)
-            val e = if (blockHitResult2 == null) Double.MAX_VALUE else realEnd.distanceToSqr(blockHitResult2.location)
+            val e = if (blockHitResult2 == null) Double.MAX_VALUE else realStart.distanceToSqr(blockHitResult2.location)
             if (d <= e) blockHitResult else blockHitResult2
         }
     ) { raycastContext: ClipContext ->

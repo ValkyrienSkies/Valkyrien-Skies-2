@@ -40,8 +40,8 @@ class ShipFluidStateQueriesTest {
         every { world.getFluidGameplaySnapshot(7) } answers { gameplaySnapshot(topology, flood) }
         every { level.getBlockState(any()) } returns Blocks.AIR.defaultBlockState()
         mockkObject(MassDatapackResolver)
-        every { MassDatapackResolver.getFlowingFluid(17) } returns Fluids.WATER
-        every { MassDatapackResolver.getFlowingFluid(18) } returns Fluids.LAVA
+        every { MassDatapackResolver.getFlowingFluid(17, true) } returns Fluids.WATER
+        every { MassDatapackResolver.getFlowingFluid(18, true) } returns Fluids.LAVA
     }
     @AfterEach fun cleanup() { ShipFluidInteraction.clear(world); unmockkAll() }
     private fun nearby() = NearbyShip(ship, bounds, toWorld.invert(Matrix4d()))
@@ -126,7 +126,7 @@ class ShipFluidStateQueriesTest {
         every { level.getBlockState(local) } returns Blocks.WATER.defaultBlockState()
         assertTrue(query().resolve(BlockPos.ZERO)!!.fluid().type.isSame(Fluids.WATER))
         every { world.getFluidGameplaySnapshot(7) } answers { gameplaySnapshot(topology, flood) }
-        every { MassDatapackResolver.getFlowingFluid(17) } returns null
+        every { MassDatapackResolver.getFlowingFluid(17, true) } returns null
         assertTrue(query().resolve(BlockPos.ZERO)!!.fluid().type.isSame(Fluids.WATER))
         every { level.getBlockState(local) } returns Blocks.AIR.defaultBlockState()
         assertNull(query().resolve(BlockPos.ZERO))

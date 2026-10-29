@@ -76,9 +76,19 @@ final class FluidOcclusionOverflow implements AutoCloseable {
     }
 
     void update(final List<Entry> entries, final double cameraX, final double cameraY, final double cameraZ) {
+        update(entries, cameraX, cameraY, cameraZ, MASK_UNIT, DESCRIPTOR_UNIT);
+    }
+
+    void update(final List<Entry> entries, final double cameraX, final double cameraY, final double cameraZ,
+                final int maskUnit, final int descriptorUnit) {
         if (entries.isEmpty()) {
             close();
             return;
+        }
+        if (!live(maskTexture)) maskTexture = 0;
+        if (!live(descriptorTexture)) {
+            descriptorTexture = 0;
+            descriptors = null;
         }
         final int[] words = new int[entries.size()];
         for (int i = 0; i < words.length; i++) words[i] = entries.get(i).data.bytes.capacity() / 4;
@@ -88,7 +98,7 @@ final class FluidOcclusionOverflow implements AutoCloseable {
         for (int i = 0; !changed && i < uploaded.length; i++) changed = uploaded[i] != entries.get(i).data;
         final int active = GL11.glGetInteger(GL13.GL_ACTIVE_TEXTURE);
         try (UnpackState ignored = new UnpackState()) {
-            GL13.glActiveTexture(GL13.GL_TEXTURE0 + MASK_UNIT);
+            GL13.glActiveTexture(GL13.GL_TEXTURE0 + maskUnit);
             if (!next.sameStorage(layout) || !live(maskTexture)) {
                 final int replacement = TextureUtil.generateTextureId();
                 GL11.glBindTexture(GL30.GL_TEXTURE_2D_ARRAY, replacement);
@@ -108,7 +118,7 @@ final class FluidOcclusionOverflow implements AutoCloseable {
                 for (int i = 0; i < entries.size(); i++) uploadMask(entries.get(i).data, next, next.offsets[i]);
                 uploaded = entries.stream().map(Entry::data).toArray(FluidOcclusionMaskData[]::new);
             }
-            GL13.glActiveTexture(GL13.GL_TEXTURE0 + DESCRIPTOR_UNIT);
+            GL13.glActiveTexture(GL13.GL_TEXTURE0 + descriptorUnit);
             final boolean newDescriptor = !live(descriptorTexture);
             if (newDescriptor) descriptorTexture = TextureUtil.generateTextureId();
             GL11.glBindTexture(GL11.GL_TEXTURE_2D, descriptorTexture);
@@ -142,15 +152,20 @@ final class FluidOcclusionOverflow implements AutoCloseable {
     }
 
     void bind(final int maskLocation, final int descriptorLocation, final int countLocation, final int count) {
-        GL20.glUniform1i(maskLocation, MASK_UNIT);
-        GL20.glUniform1i(descriptorLocation, DESCRIPTOR_UNIT);
+        bind(maskLocation, descriptorLocation, countLocation, count, MASK_UNIT, DESCRIPTOR_UNIT);
+    }
+
+    void bind(final int maskLocation, final int descriptorLocation, final int countLocation, final int count,
+              final int maskUnit, final int descriptorUnit) {
+        GL20.glUniform1i(maskLocation, maskUnit);
+        GL20.glUniform1i(descriptorLocation, descriptorUnit);
         GL20.glUniform1i(countLocation, count);
         if (count == 0) return;
         final int active = GL11.glGetInteger(GL13.GL_ACTIVE_TEXTURE);
         try {
-            GL13.glActiveTexture(GL13.GL_TEXTURE0 + MASK_UNIT);
+            GL13.glActiveTexture(GL13.GL_TEXTURE0 + maskUnit);
             GL11.glBindTexture(GL30.GL_TEXTURE_2D_ARRAY, maskTexture);
-            GL13.glActiveTexture(GL13.GL_TEXTURE0 + DESCRIPTOR_UNIT);
+            GL13.glActiveTexture(GL13.GL_TEXTURE0 + descriptorUnit);
             GL11.glBindTexture(GL11.GL_TEXTURE_2D, descriptorTexture);
         } finally {
             GL13.glActiveTexture(active);

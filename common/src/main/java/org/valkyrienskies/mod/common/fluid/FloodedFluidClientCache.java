@@ -78,7 +78,7 @@ public final class FloodedFluidClientCache {
                 continue;
             }
 
-            final FlowingFluid fluid = MassDatapackResolver.INSTANCE.getFlowingFluid(voxel.getFluidId());
+            final FlowingFluid fluid = MassDatapackResolver.INSTANCE.getFlowingFluid(voxel.getFluidId(), true);
             if (fluid != null) {
                 return new FloodedFluidSample(ship.getId(), voxel, fluid);
             }

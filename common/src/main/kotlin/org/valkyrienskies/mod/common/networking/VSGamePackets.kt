@@ -16,6 +16,7 @@ import org.valkyrienskies.mod.api.shipWorld
 import org.valkyrienskies.mod.client.ClientBlockStateInfo
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager
+import org.valkyrienskies.mod.common.fluid.ClientFluidTypes
 import org.valkyrienskies.mod.common.getLoadedShipManagingPos
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.toWorldCoordinates
@@ -90,6 +91,7 @@ object VSGamePackets {
 
         // sync mass/friction/elasticity to the client
         PacketSyncBlockStateInfo::class.registerClientHandler { syncBsi ->
+            ClientFluidTypes.replace(syncBsi.liquidState2Fluid)
             if (syncBsi.blockState2VS.isEmpty()) {
                 ClientBlockStateInfo.disable()
             } else {

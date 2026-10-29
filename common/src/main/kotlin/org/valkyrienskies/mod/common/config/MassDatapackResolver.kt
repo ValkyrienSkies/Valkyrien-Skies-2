@@ -37,6 +37,7 @@ import org.valkyrienskies.mod.common.BlockStateInfoProvider
 import org.valkyrienskies.mod.common.BlockStateInfo
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.hooks.VSGameEvents
+import org.valkyrienskies.mod.common.fluid.ClientFluidTypes
 import org.valkyrienskies.mod.common.networking.PacketSyncBlockStateInfo
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.vsCore
@@ -60,6 +61,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
     private val map = hashMapOf<ResourceLocation, VSBlockStateInfo>()
     private val mcBlockStateToVs: MutableMap<BlockState, VsiBlockState> = HashMap()
     private val liquidIdToFlowingFluid: MutableMap<Int, FlowingFluid?> = HashMap()
+    private var cachedFluidTypes: Map<Int, String>? = null
 
     val blockStateData: Collection<VsiBlockState> = mcBlockStateToVs.values
 
@@ -100,6 +102,21 @@ object MassDatapackResolver : BlockStateInfoProvider {
         }
         liquidIdToFlowingFluid[liquidStateId] = fluid
         return fluid
+    }
+
+    fun getFlowingFluid(liquidStateId: Int, clientSide: Boolean): FlowingFluid? =
+        if (clientSide) ClientFluidTypes.get(liquidStateId) else getFlowingFluid(liquidStateId)
+
+    internal fun fluidTypesForClient(): Map<Int, String> {
+        cachedFluidTypes?.let { return it }
+        val types = mutableMapOf<Int, String>()
+        for ((state, vsState) in mcBlockStateToVs) {
+            val fluid = state.fluidState.type as? FlowingFluid ?: continue
+            val blockType = vsCore.blockTypes.getType(vsState) ?: continue
+            val id = vsCore.blockTypes.getLiquidStateId(blockType) ?: continue
+            types[id] = BuiltInRegistries.FLUID.getKey(fluid.source).toString()
+        }
+        return types.toMap().also { cachedFluidTypes = it }
     }
 
     var registeredBlocks = false
@@ -478,7 +495,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
                     id.toString() to clientInfo
                 }.toMap()
 
-            PacketSyncBlockStateInfo(resourceLoc2VS).sendToClient(player)
+            PacketSyncBlockStateInfo(resourceLoc2VS, fluidTypesForClient()).sendToClient(player)
         }
     }
 
@@ -486,7 +503,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
     fun clearBlockStates(player: MinecraftPlayer) {
         logger.info("Clearing synced blockstates from ${player.uuid}")
         with(vsCore.simplePacketNetworking) {
-            PacketSyncBlockStateInfo(HashMap()).sendToClient(player)
+            PacketSyncBlockStateInfo(HashMap(), fluidTypesForClient()).sendToClient(player)
         }
     }
 
@@ -495,6 +512,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
         ValkyrienSkiesMod.api.registerBlockStateEvent.emit(event)
         mcBlockStateToVs.putAll(event.toRegister)
         liquidIdToFlowingFluid.clear()
+        cachedFluidTypes = null
     }
 
     private val logger by logger()

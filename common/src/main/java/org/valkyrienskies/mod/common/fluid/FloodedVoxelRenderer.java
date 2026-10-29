@@ -110,7 +110,7 @@ public final class FloodedVoxelRenderer {
             for (final VsiFluidFloodedVoxel voxel : cached.getSnapshot().getVoxels()) {
                 if (voxel.getFillAmount() <= 0) continue;
                 final FlowingFluid fluid =
-                    MassDatapackResolver.INSTANCE.getFlowingFluid(voxel.getFluidId());
+                    MassDatapackResolver.INSTANCE.getFlowingFluid(voxel.getFluidId(), true);
                 if (!WorldFluidCoverage.hasProtectedBoundary(voxel, topology, cached)
                     && worldCoverage.covers(shipToWorld, voxel, fluid)) continue;
                 shipToWorld.transformPosition(

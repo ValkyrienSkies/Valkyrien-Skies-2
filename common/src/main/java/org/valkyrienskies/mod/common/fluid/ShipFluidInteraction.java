@@ -74,7 +74,7 @@ public final class ShipFluidInteraction {
 
             final FlowingFluid fluid = localSample.fluidId() == null
                 ? null
-                : MassDatapackResolver.INSTANCE.getFlowingFluid(localSample.fluidId());
+                : MassDatapackResolver.INSTANCE.getFlowingFluid(localSample.fluidId(), shipWorld instanceof VsiClientShipWorld);
             if (fluid != null) {
                 return new PointSample(true, fluid);
             }
@@ -113,7 +113,7 @@ public final class ShipFluidInteraction {
                 if (box.bounds.intersects(result.relativeBounds)) result.domains.add(box);
             });
             body.forEachFlooded(localQuery, voxel -> {
-                final FlowingFluid fluid = MassDatapackResolver.INSTANCE.getFlowingFluid(voxel.getFluidId());
+                final FlowingFluid fluid = MassDatapackResolver.INSTANCE.getFlowingFluid(voxel.getFluidId(), world instanceof VsiClientShipWorld);
                 if (fluid == null || result.retained.getDouble(fluid) >= result.relativeBounds.maxY) return;
                 final AABB local = new AABB(voxel.getPositionX(), voxel.getPositionY(), voxel.getPositionZ(),
                     voxel.getPositionX() + 1.0, voxel.getPositionY() + Math.min(255, voxel.getFillAmount()) / 255.0,

@@ -71,8 +71,8 @@ class CameraFluidStateTest {
             gameplaySnapshot(topology.copy(bodyId = id), flood.copy(bodyId = id))
         }
         mockkObject(MassDatapackResolver)
-        every { MassDatapackResolver.getFlowingFluid(17) } returns Fluids.WATER
-        every { MassDatapackResolver.getFlowingFluid(18) } returns Fluids.LAVA
+        every { MassDatapackResolver.getFlowingFluid(17, true) } returns Fluids.WATER
+        every { MassDatapackResolver.getFlowingFluid(18, true) } returns Fluids.LAVA
     }
 
     @AfterEach

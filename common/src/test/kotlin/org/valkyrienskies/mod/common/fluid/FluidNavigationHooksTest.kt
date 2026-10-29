@@ -74,7 +74,7 @@ class FluidNavigationHooksTest {
         mockkObject(MassDatapackResolver)
         for ((id, real) in listOf(17 to Fluids.WATER, 18 to Fluids.LAVA)) {
             val fluid = mockk<FlowingFluid>()
-            every { MassDatapackResolver.getFlowingFluid(id) } returns fluid
+            every { MassDatapackResolver.getFlowingFluid(id, true) } returns fluid
             every { fluid.getSource(false) } answers { tagged(real.getSource(false)) }
             every { fluid.getFlowing(any(), false) } answers { tagged(real.getFlowing(firstArg(), false)) }
         }

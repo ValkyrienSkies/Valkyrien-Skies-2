@@ -19,6 +19,7 @@ import org.joml.Vector3d;
 import org.joml.primitives.AABBd;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.internal.world.VsiShipWorld;
+import org.valkyrienskies.core.internal.world.VsiClientShipWorld;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.MassDatapackResolver;
 import org.valkyrienskies.mod.common.pathfinding.NearbyShip;
@@ -91,7 +92,7 @@ public final class ShipFluidStateQueries {
         final VsiShipWorld world = shipWorld(level);
         // A live solid may be newer than the snapshot; preserve its real (possibly waterlogged) state.
         return world == null || level.getBlockState(pos).blocksMotion()
-            ? null : localCell(ShipFluidInteraction.bodyFor(world, ship.getId()), pos);
+            ? null : localCell(ShipFluidInteraction.bodyFor(world, ship.getId()), pos, world instanceof VsiClientShipWorld);
     }
 
     public static @Nullable Cell atWorld(final Level level, final double x, final double y, final double z) {
@@ -117,13 +118,14 @@ public final class ShipFluidStateQueries {
         return world instanceof VsiShipWorld ? (VsiShipWorld) world : null;
     }
 
-    private static @Nullable Cell localCell(final @Nullable ShipFluidInteraction.CachedBody body, final BlockPos pos) {
+    private static @Nullable Cell localCell(final @Nullable ShipFluidInteraction.CachedBody body, final BlockPos pos,
+        final boolean clientSide) {
         if (body == null) return null;
         // Sample the cell's bottom, not its center: a one-unit fill still occupies this cell.
         final var sample = body.sampleLocal(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
         if (!sample.insideDomain()) return null;
         if (sample.fluidId() == null) return new Cell(Fluids.EMPTY.defaultFluidState(), null);
-        final FlowingFluid fluid = MassDatapackResolver.INSTANCE.getFlowingFluid(sample.fluidId());
+        final FlowingFluid fluid = MassDatapackResolver.INSTANCE.getFlowingFluid(sample.fluidId(), clientSide);
         if (fluid == null) return null; // Unavailable registered fluid is not proof of dry air.
         final var voxel = body.getFloodedVoxel(pos.getX(), pos.getY(), pos.getZ());
         final int fill = Math.min(255, voxel.getFillAmount());
@@ -133,6 +135,7 @@ public final class ShipFluidStateQueries {
     /** One path's owning snapshots and transforms, also usable by direct regression tests. */
     static final class Query {
         private final Level level;
+        private final boolean clientSide;
         private final PathfindingFrame frame;
         private final NearbyShip[] ships;
         private final Long2ObjectOpenHashMap<ShipFluidInteraction.CachedBody> bodies = new Long2ObjectOpenHashMap<>();
@@ -140,6 +143,7 @@ public final class ShipFluidStateQueries {
         Query(final Level level, final @Nullable VsiShipWorld world, final @Nullable PathfindingFrame frame,
             final NearbyShip[] ships) {
             this.level = level;
+            this.clientSide = world instanceof VsiClientShipWorld;
             this.frame = frame instanceof PathfindingFrame.InShip inShip
                 ? new PathfindingFrame.InShip(inShip.getShip(), inShip.getShipId(), new Matrix4d(inShip.getShipToWorldSnapshot()))
                 : frame;
@@ -161,7 +165,7 @@ public final class ShipFluidStateQueries {
         @Nullable Cell resolve(final BlockPos pos) {
             if (frame instanceof PathfindingFrame.InShip inShip) {
                 final BlockState raw = level.getBlockState(pos);
-                final Cell cell = localCell(bodies.get(inShip.getShipId()), pos);
+                final Cell cell = localCell(bodies.get(inShip.getShipId()), pos, clientSide);
                 if (cell != null) return raw.blocksMotion() ? new Cell(Fluids.EMPTY.defaultFluidState(), raw) : cell;
                 if (inShip.getShip().getChunkClaim().contains(pos.getX() >> 4, pos.getZ() >> 4)
                     && (!raw.getFluidState().isEmpty() || raw.blocksMotion())) return null;
@@ -190,7 +194,7 @@ public final class ShipFluidStateQueries {
                     if (projectedBlocks == null) projectedBlocks = new ArrayList<>(2);
                     projectedBlocks.add(pos);
                 }
-                final Cell cell = localCell(bodies.get(ship.ship.getId()), pos);
+                final Cell cell = localCell(bodies.get(ship.ship.getId()), pos, clientSide);
                 controlled |= cell != null;
                 final FluidState candidate = cell != null ? cell.fluid() : raw.getFluidState();
                 if (!candidate.isEmpty() && (wet == null || candidate.is(FluidTags.LAVA)

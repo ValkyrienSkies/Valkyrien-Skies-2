@@ -48,7 +48,7 @@ public final class CameraFluidState {
                 FloodedFluidClientCache.get(world, ship.getId(), pair);
             final VsiFluidFloodedVoxel voxel = flooding == null ? null : flooding.get(x, y, z);
             if (voxel != null && FloodedFluidClientCache.isLocallySubmerged(voxel.getFillAmount(), local.y - y)) {
-                final FlowingFluid fluid = MassDatapackResolver.INSTANCE.getFlowingFluid(voxel.getFluidId());
+                final FlowingFluid fluid = MassDatapackResolver.INSTANCE.getFlowingFluid(voxel.getFluidId(), true);
                 if (fluid != null) {
                     if (renderRetainedFog) return new Sample(fluid.defaultFluidState(), true, false);
                     hiddenRetainedFluid = true;

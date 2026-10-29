@@ -108,6 +108,7 @@ public final class FluidOcclusionRenderer {
             return true;
         });
 
+        final int directMasks = handles.maskLocation[0] >= 0 ? DIRECT_MASKS : 0;
         int slot = 0;
         final List<FluidOcclusionOverflow.Entry> overflow = new ArrayList<>();
         for (final ClientShip ship : ships) {
@@ -118,22 +119,22 @@ public final class FluidOcclusionRenderer {
             final FloodedFluidClientCache.CachedSnapshot flooding =
                 FloodedFluidClientCache.get(shipWorld, ship.getId(), pair);
             final ShipMask mask = SHIP_MASKS.computeIfAbsent(ship.getId(), ShipMask::new);
-            final boolean direct = slot < DIRECT_MASKS;
+            final boolean direct = slot < directMasks;
             if (!mask.prepare(topology, flooding, direct)) continue;
             if (direct) uploadShipSlot(handles, slot++, ship, mask, cameraX, cameraY, cameraZ);
             else overflow.add(new FluidOcclusionOverflow.Entry(ship, mask.data));
         }
-        for (int i = slot; i < DIRECT_MASKS; i++) {
+        for (int i = slot; i < directMasks; i++) {
             disableShipSlot(handles, i);
         }
 
         // Stable packing avoids rewriting the atlas when distance order changes within the overflow set.
         overflow.sort(Comparator.comparingLong(entry -> entry.ship().getId()));
-        OVERFLOW.update(overflow, cameraX, cameraY, cameraZ);
+        OVERFLOW.update(overflow, cameraX, cameraY, cameraZ, handles.maskUnit, handles.descriptorUnit);
         OVERFLOW.bind(handles.overflowMaskLocation, handles.overflowDescriptorLocation,
-            handles.overflowCountLocation, overflow.size());
+            handles.overflowCountLocation, overflow.size(), handles.maskUnit, handles.descriptorUnit);
         uploadFluidSpriteBounds(handles);
-        GL20.glUniform1f(handles.enabledLocation, slot > 0 ? 1.0F : 0.0F);
+        GL20.glUniform1f(handles.enabledLocation, slot > 0 || !overflow.isEmpty() ? 1.0F : 0.0F);
         GlStateManager._activeTexture(GL13.GL_TEXTURE0);
     }
 
@@ -141,7 +142,7 @@ public final class FluidOcclusionRenderer {
         final ProgramHandles handles = handles(programId);
         if (handles.enabledLocation >= 0) {
             OVERFLOW.bind(handles.overflowMaskLocation, handles.overflowDescriptorLocation,
-                handles.overflowCountLocation, 0);
+                handles.overflowCountLocation, 0, handles.maskUnit, handles.descriptorUnit);
             GL20.glUniform1f(handles.enabledLocation, 0.0F);
         }
     }
@@ -394,6 +395,8 @@ public final class FluidOcclusionRenderer {
     }
 
     private static final class ProgramHandles {
+        private final int maskUnit;
+        private final int descriptorUnit;
         private final int enabledLocation;
         private final int overflowMaskLocation;
         private final int overflowDescriptorLocation;
@@ -426,6 +429,9 @@ public final class FluidOcclusionRenderer {
                 worldToShipLocation[i] =
                     GL20.glGetUniformLocation(programId, "VsFluidOcclusionWorldToShip" + i);
             }
+            final boolean compact = maskLocation[0] < 0;
+            maskUnit = compact ? FluidOcclusionTextureState.MASK_UNIT : FluidOcclusionOverflow.MASK_UNIT;
+            descriptorUnit = compact ? FluidOcclusionTextureState.DESCRIPTOR_UNIT : FluidOcclusionOverflow.DESCRIPTOR_UNIT;
         }
     }
 }

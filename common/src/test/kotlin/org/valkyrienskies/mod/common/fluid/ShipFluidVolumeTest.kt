@@ -36,7 +36,7 @@ class ShipFluidVolumeTest {
         every { ship.worldToShip } answers { transform.invert(Matrix4d()) }
         every { world.getFluidGameplaySnapshot(7) } answers { gameplaySnapshot(topology, flooding) }
         mockkObject(MassDatapackResolver)
-        every { MassDatapackResolver.getFlowingFluid(17) } returns water
+        every { MassDatapackResolver.getFlowingFluid(17, true) } returns water
         every { water.defaultFluidState() } returns waterState
         every { waterState.`is`(FluidTags.WATER) } returns true
         every { waterState.`is`(FluidTags.LAVA) } returns false
