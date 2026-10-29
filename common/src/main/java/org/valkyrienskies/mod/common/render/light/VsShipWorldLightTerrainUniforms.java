@@ -25,8 +25,7 @@ public final class VsShipWorldLightTerrainUniforms {
     public static void disableForProgram(final int programId) {
         setInt(programId, "u_VsShipEmitters", VsDynamicLight.SHIP_EMITTER_LIST_TEXTURE_UNIT);
         setInt(programId, "u_VsShipGlowEnabled", 0);
-        setInt(programId, "u_VsShipShadowCount", 0);
-        setInt(programId, "u_VsShipShadowNodeCount", 0);
+        setInt(programId, "u_VsShipShadowMapEnabled", 0);
         final int strength = GL20.glGetUniformLocation(programId, "u_VsShipShadowStrength");
         if (strength >= 0) GL20.glUniform1f(strength, 0.0f);
     }

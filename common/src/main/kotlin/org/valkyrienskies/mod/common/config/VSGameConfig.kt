@@ -144,7 +144,7 @@ object VSGameConfig {
         fun isShipToWorldLightingEnabled(): Boolean =
             defaultRenderer == ShipRenderer.BATCHED || dynamicShipToWorldLighting
 
-        @ConfigEntry(description = "Draw ship shadows on terrain and other ships. Disable this to skip the visual shadow scan.")
+        @ConfigEntry(description = "Draw ship shadows on terrain and other ships. Disable this to skip the shadow map pass.")
         var shipShadows = false
 
         fun isShipToWorldShaderEnabled(): Boolean = isShipToWorldLightingEnabled() || shipShadows
@@ -152,10 +152,10 @@ object VSGameConfig {
         @ConfigEntry(description = "Visual ship shadow strength. 0 keeps full ambient sky light. 1 removes all sky light below a ship. This does not change mob spawn light checks.", min = 0.0, max = 1.0)
         var shipShadowStrength = 0.4
 
-        @ConfigEntry(description = "Minimum width of the visual ship shadow edge fade, in blocks. Set this and shipShadowBlurGrowth to 0 for hard shadows.", min = 0.0, max = 4.0)
+        @ConfigEntry(description = "Width of the ship shadow filter, in blocks. Set this to 0 for hard shadows.", min = 0.0, max = 4.0)
         var shipShadowSoftness = 0.35
 
-        @ConfigEntry(description = "Increase the shadow fade width by this amount per block between the ship and the surface. The width limit is 8 blocks. 0 keeps the base width.", min = 0.0, max = 0.5)
+        @ConfigEntry(description = "Legacy setting. Shadow maps use a fixed filter width set by shipShadowSoftness. This value has no effect.", min = 0.0, max = 0.5)
         var shipShadowBlurGrowth = 0.08
 
         @ConfigEntry(description = "Directional shade strength for ship faces. 0 gives all faces the same shade. 1 uses the full Minecraft face shade.", min = 0.0, max = 1.0)

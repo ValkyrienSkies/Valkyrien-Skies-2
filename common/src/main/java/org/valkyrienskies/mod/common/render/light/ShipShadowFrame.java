@@ -17,10 +17,12 @@ final class ShipShadowFrame {
     private final ArrayList<Entry> entries = new ArrayList<>();
     private int size;
     private boolean changed;
+    private boolean geometryChanged;
 
     void begin() {
         size = 0;
         changed = false;
+        geometryChanged = false;
     }
 
     void add(final long shipId, final List<AABBd> boxes, final Matrix4dc transform) {
@@ -30,10 +32,13 @@ final class ShipShadowFrame {
             entry = new Entry();
             entries.add(entry);
             changed = true;
+            geometryChanged = true;
         } else {
             entry = entries.get(size);
         }
-        if (entry.shipId != shipId || entry.boxes != boxes || !entry.transform.equals(transform, 0.0)) {
+        final boolean newGeometry = entry.shipId != shipId || entry.boxes != boxes;
+        geometryChanged |= newGeometry;
+        if (newGeometry || !entry.transform.equals(transform, 0.0)) {
             entry.shipId = shipId;
             entry.boxes = boxes;
             entry.transform.set(transform);
@@ -46,6 +51,7 @@ final class ShipShadowFrame {
         if (size != entries.size()) {
             entries.subList(size, entries.size()).clear();
             changed = true;
+            geometryChanged = true;
         }
         return changed;
     }
@@ -54,9 +60,14 @@ final class ShipShadowFrame {
         return entries;
     }
 
+    boolean geometryChanged() {
+        return geometryChanged;
+    }
+
     void clear() {
         entries.clear();
         size = 0;
         changed = false;
+        geometryChanged = false;
     }
 }
