@@ -128,7 +128,7 @@ object ShipAssembler {
 
     @JvmStatic
     @OptIn(GameTickOnly::class)
-    fun <T : IAssembleContext> assembleToShipFull(
+    fun <T : IAssembleContext> assembleAndPlaceBlocks(
         level: ServerLevel,
         scale: Double = 1.0,
         worldPos: Vector3dc,
@@ -183,7 +183,7 @@ object ShipAssembler {
 
     @JvmStatic
     @OptIn(GameTickOnly::class)
-    fun assembleToShipFull(level: ServerLevel, blocks: Set<BlockPos>, scale: Double = 1.0): AssembleContext {
+    fun assembleAndCopyBlocks(level: ServerLevel, blocks: Set<BlockPos>, scale: Double = 1.0): AssembleContext {
         if (blocks.isEmpty()) {
             val error = RuntimeException("Assembly function received an empty set of blocks")
             ASSEMBLY_LOGGER.error(error)
@@ -200,7 +200,7 @@ object ShipAssembler {
             .div(2.0)
         val fromCenter = offset.get(Vector3d()).add(oldMin)
 
-        val ctx = assembleToShipFull(
+        val ctx = assembleAndPlaceBlocks(
             level, scale, fromCenter
         ) { ship, fromShip, worldpos, shipCenter ->
             val (wasSuccessful, _, toCenter) = moveBlocksFromTo(level, blocks, fromShip, ship, minB, maxB, Vector3i(shipCenter, RoundingMode.FLOOR))
@@ -213,6 +213,10 @@ object ShipAssembler {
         ctx.ship.isStatic = false
         return ctx
     }
+
+    @Deprecated(message = "renamed", replaceWith = ReplaceWith("assembleAndCopyBlocks"))
+    fun assembleToShipFull(level: ServerLevel, blocks: Set<BlockPos>, scale: Double = 1.0): AssembleContext
+        = assembleAndCopyBlocks(level, blocks, scale)
 
     @OptIn(GameTickOnly::class)
     internal fun transferRetainedWater(level: ServerLevel, fromShip: ServerShip?, toShip: ServerShip?,
@@ -433,7 +437,7 @@ object ShipAssembler {
     @JvmStatic
     @OptIn(GameTickOnly::class)
     fun assembleToShip(level: ServerLevel, blocks: Set<BlockPos>, scale: Double = 1.0): ServerShip {
-        return assembleToShipFull(level, blocks, scale).ship
+        return assembleAndCopyBlocks(level, blocks, scale).ship
     }
     //legacy method to not break shit
     @Deprecated("Old")
@@ -443,7 +447,7 @@ object ShipAssembler {
 
     /**
      * Batch-assembles multiple independent block sets into separate ships.
-     * This is much faster than calling [assembleToShipFull] in a loop because it:
+     * This is much faster than calling [assembleAndCopyBlocks] in a loop because it:
      * 1. Sends a single PacketStopChunkUpdates/PacketRestartChunkUpdates for all ships
      * 2. Batches all connectivity updates into one pass
      * 3. Uses a single executeIf callback instead of one per ship

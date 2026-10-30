@@ -21,6 +21,7 @@ import org.valkyrienskies.mod.common.vsCore
 import org.valkyrienskies.mod.util.relocateBlock
 import org.valkyrienskies.mod.util.updateBlock
 
+@Deprecated(message = "use ShipAssembler.assembleToShip")
 fun createNewShipWithBlocks(
     centerBlock: BlockPos, blocks: DenseBlockPosSet, level: ServerLevel
 ): ServerShip {
