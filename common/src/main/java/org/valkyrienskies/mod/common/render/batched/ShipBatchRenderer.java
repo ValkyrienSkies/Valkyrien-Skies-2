@@ -79,7 +79,8 @@ public final class ShipBatchRenderer {
     }
 
     public void markSectionDirty(final long shipId, final int sx, final int sy, final int sz) {
-        VsDynamicLight.invalidateShipEmitters(shipId);
+        // Block and chunk changes clear the light caches through their own hooks.
+        // A render update can also come from light changes, which do not change shapes.
         final ShipRenderObject renderObject;
         synchronized (ships) {
             renderObject = ships.get(shipId);

@@ -121,7 +121,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     @Inject(at = @At("TAIL"), method = "stopServer")
     private void afterStopServer(final CallbackInfo ci) {
         org.valkyrienskies.mod.common.debug.ShipDebugService.clear();
-        org.valkyrienskies.mod.common.util.ShipInteractions.clear();
+        org.valkyrienskies.mod.common.hooks.VSGameEvents.INSTANCE.getServerStopped().emit(kotlin.Unit.INSTANCE);
         org.valkyrienskies.mod.common.util.ShipShadows.clear();
         ValkyrienSkiesMod.setCurrentServer(null);
     }
@@ -278,7 +278,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         fractionalFluidSources.tickSplashes(dimensionToLevelMap);
         // Only drag entities after we have updated the ship positions
         for (final ServerLevel level : getAllLevels()) {
-            org.valkyrienskies.mod.common.util.ShipInteractions.afterPhysicsTick(level);
+            org.valkyrienskies.mod.common.hooks.VSGameEvents.INSTANCE.getShipPositionsUpdated().emit(level);
             EntityDragger.INSTANCE.dragEntitiesWithShips(level.getAllEntities(), false);
             VanillaFluidFlowWindProvider.INSTANCE.tick(level);
             if (LoadedMods.getWeather2())

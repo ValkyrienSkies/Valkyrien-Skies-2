@@ -1,122 +1,104 @@
 package org.valkyrienskies.mod.common.render.light;
 
-import com.mojang.blaze3d.platform.GlStateManager;
-import java.nio.ByteBuffer;
 import java.util.BitSet;
 import java.util.ArrayList;
 import java.util.List;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.state.BlockState;
-import org.joml.Quaterniond;
 import org.joml.Vector3d;
 import org.joml.primitives.AABBi;
 import org.joml.primitives.AABBd;
 import org.joml.primitives.AABBic;
-import org.lwjgl.BufferUtils;
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL13;
-import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL20;
-import org.lwjgl.opengl.GL30;
-import org.lwjgl.opengl.GL31;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 
 public final class ShipShadowRenderer {
-    private static final int TEXTURE_UNIT = 14;
-    private static ByteBuffer data = BufferUtils.createByteBuffer(48);
-    private static final ShipShadowTree TREE = new ShipShadowTree();
+    private static final ShipShadowInstances INSTANCES = new ShipShadowInstances();
+    private static final ShipShadowMap MAP = new ShipShadowMap();
+    private static final ShipShadowMapLayout LAYOUT = new ShipShadowMapLayout();
     private static final ShipShadowFrame FRAME = new ShipShadowFrame();
-    private record Geometry(List<AABBd> boxes, boolean dynamic) { }
+    private record Geometry(List<AABBd> boxes, boolean dynamic, AABBd bounds) { }
     private static final ShipGeometryCache<Geometry> GEOMETRY = new ShipGeometryCache<>();
-    private static final Quaterniond ROTATION = new Quaterniond();
-    private static final Vector3d SCALE = new Vector3d();
     private static final Vector3d CENTER = new Vector3d();
-    private static int buffer;
-    private static int texture;
     private static int count;
-    private static int nodeCount;
+    private static boolean ready;
+    private static ClientLevel currentLevel;
 
     private ShipShadowRenderer() {
     }
 
     public static void prepare(final ClientLevel level) {
+        if (currentLevel != level) {
+            delete();
+            currentLevel = level;
+        }
         GEOMETRY.beginFrame(level);
         if (level == null || !VSGameConfig.CLIENT.getShipShadows()
+            || VSGameConfig.CLIENT.getShipShadowStrength() <= 0.0
             || !level.dimensionType().hasSkyLight()) {
             count = 0;
-            nodeCount = 0;
+            if (ready) MAP.close();
+            ready = false;
             FRAME.clear();
+            INSTANCES.clear();
             GEOMETRY.endFrame();
             return;
         }
+        double minY = level.getMinBuildHeight() - 64.0;
+        double maxY = level.getMaxBuildHeight();
         FRAME.begin();
         for (final ClientShip ship : VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips()) {
-            final List<AABBd> boxes = GEOMETRY.get(ship.getId(), ship.getShipAABB(),
+            final Geometry geometry = GEOMETRY.get(ship.getId(), ship.getShipAABB(),
                 ship.getActiveChunksSet(), level.getGameTime(), Geometry::dynamic,
-                () -> collectGeometry(level, ship)).boxes();
+                () -> collectGeometry(level, ship));
+            final List<AABBd> boxes = geometry.boxes();
             FRAME.add(ship.getId(), boxes, ship.getRenderTransform().getShipToWorld());
-        }
-        GEOMETRY.endFrame();
-        if (!FRAME.finish()) return;
-        count = 0;
-        nodeCount = 0;
-        data.clear();
-        for (final ShipShadowFrame.Entry entry : FRAME.entries()) {
-            final List<AABBd> boxes = entry.boxes;
-            ensureCapacity(Math.multiplyExact(Math.addExact(count, boxes.size()), 48));
-            final var transform = entry.transform;
-            final Quaterniond rotation = transform.getNormalizedRotation(ROTATION);
-            final Vector3d scale = transform.getScale(SCALE);
-            for (final AABBd box : boxes) {
-                final Vector3d center = transform.transformPosition(CENTER.set(
-                    (box.minX + (double) box.maxX) * 0.5,
-                    (box.minY + (double) box.maxY) * 0.5,
-                    (box.minZ + (double) box.maxZ) * 0.5));
-                data.putFloat((float) center.x).putFloat((float) center.y).putFloat((float) center.z).putFloat(0);
-                data.putFloat((float) ((box.maxX - box.minX) * scale.x * 0.5));
-                data.putFloat((float) ((box.maxY - box.minY) * scale.y * 0.5));
-                data.putFloat((float) ((box.maxZ - box.minZ) * scale.z * 0.5)).putFloat(0);
-                data.putFloat((float) rotation.x).putFloat((float) rotation.y)
-                    .putFloat((float) rotation.z).putFloat((float) rotation.w);
-                count++;
+            final AABBd bounds = geometry.bounds();
+            if (bounds != null && !boxes.isEmpty()) {
+                for (int corner = 0; corner < 8; corner++) {
+                    ship.getRenderTransform().getShipToWorld().transformPosition(CENTER.set(
+                        (corner & 1) == 0 ? bounds.minX : bounds.maxX,
+                        (corner & 2) == 0 ? bounds.minY : bounds.maxY,
+                        (corner & 4) == 0 ? bounds.minZ : bounds.maxZ));
+                    minY = Math.min(minY, CENTER.y);
+                    maxY = Math.max(maxY, CENTER.y);
+                }
             }
         }
-        if (count == 0) {
-            data = BufferUtils.createByteBuffer(48);
-            TREE.clear();
+        GEOMETRY.endFrame();
+        final boolean frameChanged = FRAME.finish();
+        final var minecraft = Minecraft.getInstance();
+        final var camera = minecraft.gameRenderer.getMainCamera().getPosition();
+        final double oldX = LAYOUT.originX, oldY = LAYOUT.originY, oldZ = LAYOUT.originZ;
+        final boolean layoutChanged = LAYOUT.update(camera.x, camera.y, camera.z, minY, maxY,
+            minecraft.options.getEffectiveRenderDistance());
+        final boolean originChanged = oldX != LAYOUT.originX || oldY != LAYOUT.originY || oldZ != LAYOUT.originZ;
+        if (!frameChanged && !layoutChanged && ready) return;
+        if (!frameChanged && !originChanged && ready) {
+            MAP.renderLocal(null, null, count, LAYOUT);
+            return;
         }
-        ensureCapacity(Math.addExact(data.position(), ShipShadowTree.extraBytes(count)));
-        nodeCount = TREE.append(data, count);
-        data.flip();
-        ensureTexture();
-        GL15.glBindBuffer(GL31.GL_TEXTURE_BUFFER, buffer);
-        GL15.glBufferData(GL31.GL_TEXTURE_BUFFER, count == 0 ? 48L : data.remaining(), GL15.GL_STREAM_DRAW);
-        if (count > 0) GL15.glBufferSubData(GL31.GL_TEXTURE_BUFFER, 0, data);
-        // Attach the new data store after the buffer allocation.
-        final int active = GL11.glGetInteger(GL13.GL_ACTIVE_TEXTURE);
-        GlStateManager._activeTexture(GL13.GL_TEXTURE0 + TEXTURE_UNIT);
-        GL11.glBindTexture(GL31.GL_TEXTURE_BUFFER, texture);
-        GL31.glTexBuffer(GL31.GL_TEXTURE_BUFFER, GL30.GL_RGBA32F, buffer);
-        GlStateManager._activeTexture(active);
-        GL15.glBindBuffer(GL31.GL_TEXTURE_BUFFER, 0);
+        final boolean geometryChanged = FRAME.geometryChanged() || !ready;
+        INSTANCES.update(FRAME.entries(), geometryChanged, LAYOUT);
+        count = INSTANCES.count();
+        if (count == 0) {
+            INSTANCES.clear();
+            MAP.close();
+            ready = false;
+            return;
+        }
+        MAP.renderLocal(geometryChanged ? INSTANCES.boxes() : null, INSTANCES.transforms(), count, LAYOUT);
+        ready = true;
     }
 
     public static void invalidate(final long shipId) {
         GEOMETRY.invalidate(shipId);
-    }
-
-    private static void ensureCapacity(final int required) {
-        if (data.capacity() >= required) return;
-        final int capacity = (int) Math.min(Integer.MAX_VALUE, Math.max((long) required, data.capacity() * 2L));
-        final ByteBuffer larger = BufferUtils.createByteBuffer(capacity);
-        data.flip();
-        larger.put(data);
-        data = larger;
     }
 
     static List<AABBd> collect(final LevelAccessor level, final ClientShip ship) {
@@ -125,7 +107,7 @@ public final class ShipShadowRenderer {
 
     private static Geometry collectGeometry(final LevelAccessor level, final ClientShip ship) {
         final AABBic bounds = ship.getShipAABB();
-        if (bounds == null) return new Geometry(List.of(), false);
+        if (bounds == null) return new Geometry(List.of(), false, null);
         final List<AABBi> full = new ArrayList<>();
         final List<AABBd> partial = new ArrayList<>();
         final BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
@@ -171,34 +153,27 @@ public final class ShipShadowRenderer {
         for (final AABBi box : boxes) result.add(new AABBd(
             box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ));
         result.addAll(partial);
-        return new Geometry(result, dynamic[0]);
+        final AABBd shapeBounds = result.isEmpty() ? null : new AABBd(result.get(0));
+        if (shapeBounds != null) for (final AABBd box : result) {
+            shapeBounds.minX = Math.min(shapeBounds.minX, box.minX);
+            shapeBounds.minY = Math.min(shapeBounds.minY, box.minY);
+            shapeBounds.minZ = Math.min(shapeBounds.minZ, box.minZ);
+            shapeBounds.maxX = Math.max(shapeBounds.maxX, box.maxX);
+            shapeBounds.maxY = Math.max(shapeBounds.maxY, box.maxY);
+            shapeBounds.maxZ = Math.max(shapeBounds.maxZ, box.maxZ);
+        }
+        return new Geometry(result, dynamic[0], shapeBounds);
     }
 
     public static void bind(final int programId) {
-        final boolean enabled = VSGameConfig.CLIENT.getShipShadows();
+        final boolean enabled = VSGameConfig.CLIENT.getShipShadows() && ready;
         setStrength(programId, "u_VsShipShadowStrength", enabled ? VSGameConfig.CLIENT.getShipShadowStrength() : 0.0);
         setStrength(programId, "u_VsShipShadeStrength", VSGameConfig.CLIENT.getShipShadeStrength());
         final int softness = GL20.glGetUniformLocation(programId, "u_VsShipShadowSoftness");
         if (softness >= 0) {
             GL20.glUniform1f(softness, (float) Math.max(0.0, Math.min(4.0, VSGameConfig.CLIENT.getShipShadowSoftness())));
         }
-        final int blurGrowth = GL20.glGetUniformLocation(programId, "u_VsShipShadowBlurGrowth");
-        if (blurGrowth >= 0) {
-            GL20.glUniform1f(blurGrowth,
-                (float) Math.max(0.0, Math.min(0.5, VSGameConfig.CLIENT.getShipShadowBlurGrowth())));
-        }
-        final int sampler = GL20.glGetUniformLocation(programId, "u_VsShipShadowBoxes");
-        if (sampler < 0) return;
-        ensureTexture();
-        final int active = GL11.glGetInteger(GL13.GL_ACTIVE_TEXTURE);
-        GlStateManager._activeTexture(GL13.GL_TEXTURE0 + TEXTURE_UNIT);
-        GL11.glBindTexture(GL31.GL_TEXTURE_BUFFER, texture);
-        GlStateManager._activeTexture(active);
-        GL20.glUniform1i(sampler, TEXTURE_UNIT);
-        final int countLocation = GL20.glGetUniformLocation(programId, "u_VsShipShadowCount");
-        if (countLocation >= 0) GL20.glUniform1i(countLocation, enabled ? count : 0);
-        final int nodesLocation = GL20.glGetUniformLocation(programId, "u_VsShipShadowNodeCount");
-        if (nodesLocation >= 0) GL20.glUniform1i(nodesLocation, enabled ? nodeCount : 0);
+        MAP.bind(programId, LAYOUT, enabled);
     }
 
     private static void setStrength(final int programId, final String name, final double value) {
@@ -206,27 +181,12 @@ public final class ShipShadowRenderer {
         if (location >= 0) GL20.glUniform1f(location, (float) Math.max(0.0, Math.min(1.0, value)));
     }
 
-    private static void ensureTexture() {
-        if (buffer != 0) return;
-        buffer = GL15.glGenBuffers();
-        GL15.glBindBuffer(GL31.GL_TEXTURE_BUFFER, buffer);
-        GL15.glBufferData(GL31.GL_TEXTURE_BUFFER, 48L, GL15.GL_STREAM_DRAW);
-        texture = GL11.glGenTextures();
-        GL11.glBindTexture(GL31.GL_TEXTURE_BUFFER, texture);
-        GL31.glTexBuffer(GL31.GL_TEXTURE_BUFFER, GL30.GL_RGBA32F, buffer);
-        GL11.glBindTexture(GL31.GL_TEXTURE_BUFFER, 0);
-        GL15.glBindBuffer(GL31.GL_TEXTURE_BUFFER, 0);
-    }
-
     public static void delete() {
-        if (texture != 0) GL11.glDeleteTextures(texture);
-        if (buffer != 0) GL15.glDeleteBuffers(buffer);
-        texture = 0;
-        buffer = 0;
+        MAP.close();
         count = 0;
-        nodeCount = 0;
-        data = BufferUtils.createByteBuffer(48);
-        TREE.clear();
+        ready = false;
+        currentLevel = null;
+        INSTANCES.clear();
         FRAME.clear();
         GEOMETRY.clear();
     }
