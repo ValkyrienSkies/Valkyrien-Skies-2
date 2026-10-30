@@ -332,6 +332,9 @@ fun Level?.getLoadedShipManagingPos(chunkX: Int, chunkZ: Int) =
 fun Level?.getLoadedShipManagingPos(blockPos: Vec3i) =
     getLoadedShipManagingPos(blockPos.x shr 4, blockPos.z shr 4)
 
+fun Level?.getLoadedShipManagingPos(blockPos: Vector3ic) =
+    getLoadedShipManagingPos(blockPos.x() shr 4, blockPos.z() shr 4)
+
 fun Level?.getLoadedShipManagingPos(pos: Vector3dc) =
     getLoadedShipManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
 
@@ -401,6 +404,9 @@ fun ServerLevel?.getLoadedShipManagingPos(chunkX: Int, chunkZ: Int) =
 
 fun ServerLevel?.getLoadedShipManagingPos(blockPos: Vec3i) =
     getLoadedShipManagingPos(blockPos.x shr 4, blockPos.z shr 4)
+
+fun ServerLevel?.getLoadedShipManagingPos(blockPos: Vector3ic) =
+    getLoadedShipManagingPos(blockPos.x() shr 4, blockPos.z() shr 4)
 
 fun ServerLevel?.getLoadedShipManagingPos(chunkPos: ChunkPos) =
     getLoadedShipManagingPos(chunkPos.x, chunkPos.z)
@@ -645,6 +651,9 @@ fun Level?.getShipManagingPos(chunkX: Int, chunkZ: Int) =
 fun Level?.getShipManagingPos(blockPos: BlockPos) =
     getShipManagingPos(blockPos.x shr 4, blockPos.z shr 4)
 
+fun Level?.getShipManagingPos(blockPos: Vector3ic) =
+    getShipManagingPos(blockPos.x() shr 4, blockPos.z() shr 4)
+
 fun Level?.getShipManagingPos(pos: Position) =
     getShipManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
 
@@ -666,6 +675,9 @@ fun ServerLevel?.getShipManagingPos(chunkX: Int, chunkZ: Int) =
 
 fun ServerLevel?.getShipManagingPos(blockPos: BlockPos) =
     getShipManagingPos(blockPos.x shr 4, blockPos.z shr 4)
+
+fun ServerLevel?.getShipManagingPos(blockPos: Vector3ic) =
+    getShipManagingPos(blockPos.x() shr 4, blockPos.z() shr 4)
 
 fun ServerLevel?.getShipManagingPos(pos: Vector3dc) =
     getShipManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
