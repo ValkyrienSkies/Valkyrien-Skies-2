@@ -21,6 +21,7 @@ import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.core.api.util.GameTickOnly
 import org.valkyrienskies.core.api.util.PhysTickOnly
 import org.valkyrienskies.core.api.world.PhysLevel
+import org.valkyrienskies.core.impl.config.VSCoreConfig
 import org.valkyrienskies.core.internal.ships.VsiServerShip
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.dimensionId
@@ -293,12 +294,14 @@ internal object ShipWelder {
                 notifyBlock(level, move.from)
                 notifyBlock(level, move.to)
             }
-            val sections = saved.flatMap { listOf(Vector3i(it.from.x shr 4, it.from.y shr 4, it.from.z shr 4),
-                Vector3i(it.to.x shr 4, it.to.y shr 4, it.to.z shr 4)) }.toSet()
-            sections.forEach { pos ->
-                val chunk = level.getChunk(pos.x, pos.z)
-                val section = chunk.sections[chunk.getSectionIndexFromSectionY(pos.y)]
-                level.shipObjectWorld.forceUpdateConnectivityChunk(level.dimensionId, pos.x, pos.y, pos.z, section.toDenseVoxelUpdate(pos, level))
+            if (VSCoreConfig.SERVER.sp.enableConnectivity) {
+                val sections = saved.flatMap { listOf(Vector3i(it.from.x shr 4, it.from.y shr 4, it.from.z shr 4),
+                    Vector3i(it.to.x shr 4, it.to.y shr 4, it.to.z shr 4)) }.toSet()
+                sections.forEach { pos ->
+                    val chunk = level.getChunk(pos.x, pos.z)
+                    val section = chunk.sections[chunk.getSectionIndexFromSectionY(pos.y)]
+                    level.shipObjectWorld.forceUpdateConnectivityChunk(level.dimensionId, pos.x, pos.y, pos.z, section.toDenseVoxelUpdate(pos, level))
+                }
             }
             ShipAssembler.initSkyLightForShip(level, targetBlocks.toList() + if (success) saved.map { it.to } else emptyList())
         }

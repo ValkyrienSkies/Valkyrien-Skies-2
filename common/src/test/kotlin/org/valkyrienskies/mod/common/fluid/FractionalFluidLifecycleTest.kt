@@ -269,6 +269,30 @@ class FractionalFluidLifecycleTest {
         assertEquals(0, manager.activeParcelCount())
     }
 
+    @Test fun `legacy flowing identities recover interrupted transfers and destination ownership`() {
+        for (complete in listOf(false, true)) {
+            sources = FractionalFluidSources(); blocks.clear()
+            seed(); seed(to, "50.25")
+            val scope = begin()
+            if (complete) { remove(from); scope.complete() }
+            val saved = sources.save()
+            for (entry in saved.getList("sources", 10)) {
+                (entry as CompoundTag).putString("fluid", "minecraft:flowing_water")
+            }
+            val transfer = saved.getList("transfers", 10).getCompound(0)
+            transfer.putString("fluid", "minecraft:flowing_water")
+            transfer.getCompound("destination_before").putString("fluid", "minecraft:flowing_water")
+            sources = FractionalFluidSources().also { it.load(saved) }
+            recover()
+            assertAmount(if (complete) null else "29")
+            assertAmount(if (complete) "79.25" else "50.25", to)
+            assertEquals(0, manager.activeParcelCount())
+            reload(); recover()
+            assertAmount(if (complete) null else "29")
+            assertAmount(if (complete) "79.25" else "50.25", to)
+        }
+    }
+
     @Test fun `copy completion is saved independently of unchanged destination block state`() {
         for (complete in listOf(false, true)) {
             sources = FractionalFluidSources(); blocks.clear()

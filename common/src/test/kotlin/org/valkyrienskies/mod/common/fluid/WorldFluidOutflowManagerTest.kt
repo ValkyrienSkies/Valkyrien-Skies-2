@@ -59,13 +59,26 @@ class WorldFluidOutflowManagerTest {
     }
 
     @Test
-    fun `maps retained voxel volume to vanilla fluid levels`() {
-        assertEquals(1, worldVolumeToVanillaLevel(1 / 255.0))
-        assertEquals(4, worldVolumeToVanillaLevel(127 / 255.0))
-        assertEquals(8, worldVolumeToVanillaLevel(1.0))
-        assertEquals(1, worldVolumeToVanillaLevel(0.125))
-        assertEquals(6, worldVolumeToVanillaLevel(0.75))
-        assertEquals(8, worldVolumeToVanillaLevel(1e20))
+    fun `airborne visuals remain visible for sub-layer droplets`() {
+        assertEquals(1, worldVolumeToVisualLevel(1 / 255.0))
+        assertEquals(4, worldVolumeToVisualLevel(127 / 255.0))
+        assertEquals(8, worldVolumeToVisualLevel(1.0))
+        assertEquals(1, worldVolumeToVisualLevel(0.125))
+        assertEquals(6, worldVolumeToVisualLevel(0.75))
+        assertEquals(8, worldVolumeToVisualLevel(1e20))
+    }
+
+    @Test
+    fun `landed fluid levels round down at exact decimal boundaries`() {
+        val unit = java.math.BigDecimal("31.875")
+        val epsilon = java.math.BigDecimal("0.00000000000000000000001")
+        assertEquals(0, settledFluidLevel(java.math.BigDecimal.ZERO))
+        for (level in 1..8) {
+            val amount = unit * level.toBigDecimal()
+            assertEquals(level - 1, settledFluidLevel(amount - epsilon))
+            assertEquals(level, settledFluidLevel(amount))
+            assertEquals(level, settledFluidLevel(amount + epsilon))
+        }
     }
 
     @Test

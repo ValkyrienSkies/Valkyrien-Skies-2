@@ -19,6 +19,7 @@ import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.api.ships.Wing
 import org.valkyrienskies.core.api.world.connectivity.ConnectionStatus
 import org.valkyrienskies.core.api.world.connectivity.SparseVoxelPosition
+import org.valkyrienskies.core.impl.config.VSCoreConfig
 import org.valkyrienskies.core.internal.world.chunks.VsiBlockType
 import org.valkyrienskies.core.internal.world.VsiServerShipWorld
 import org.valkyrienskies.mod.common.fluid.FractionalFluidSources
@@ -201,7 +202,7 @@ object BlockStateInfo {
         }
 
         if (level is ServerLevel) {
-            if (ValkyrienSkiesMod.vsCore.hooks.enableConnectivity) {
+            if (VSCoreConfig.SERVER.sp.enableSplitting) {
                 ValkyrienSkiesMod.splitHandler.queueSplit(level, level.getShipManagingPos(x.toDouble(), y.toDouble(), z.toDouble())?.id)
             }
         }

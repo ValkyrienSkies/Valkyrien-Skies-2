@@ -21,7 +21,7 @@ import org.joml.primitives.AABBd
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable
-import org.valkyrienskies.core.api.ships.LoadedShip
+import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.internal.physics.VsiFluidFloodedVoxel
 import org.valkyrienskies.core.internal.physics.VsiFluidTopologyVoxel
 import org.valkyrienskies.core.internal.world.VsiClientShipWorld
@@ -42,7 +42,7 @@ class FluidNavigationHooksTest {
     }
     private val level = mockk<Level>()
     private val world = mockk<VsiClientShipWorld>()
-    private val ship = mockk<LoadedShip>()
+    private val ship = mockk<ClientShip>()
     private val local = BlockPos(1000, 0, 0)
     private var fill = 255
     private var fluidId = 17
@@ -65,6 +65,9 @@ class FluidNavigationHooksTest {
         every { ship.id } returns 7
         every { ship.worldAABB } answers { nearby[0].worldAABB }
         every { ship.worldToShip } returns Matrix4d().translation(1000.0, 0.0, 0.0)
+        every { ship.shipToWorld } returns Matrix4d().translation(-1000.0, 0.0, 0.0)
+        every { world.loadedShips.iterator() } answers { listOf(ship).iterator() }
+        every { world.allShips.getIntersecting(any(), any()) } returns listOf(ship)
         every { level.getBlockState(any()) } answers { if (firstArg<BlockPos>() == BlockPos.ZERO) ambient else Blocks.AIR.defaultBlockState() }
         every { world.getFluidGameplaySnapshot(7) } answers {
             gameplaySnapshot(topologySnapshot().copy(voxels = listOf(VsiFluidTopologyVoxel(1000, 0, 0, 1))),
@@ -80,6 +83,7 @@ class FluidNavigationHooksTest {
         }
         mockkStatic("org.valkyrienskies.mod.common.VSGameUtilsKt")
         every { level.shipWorldNullable } returns world
+        every { level.dimensionId } returns "test"
         every { level.getShipManagingPos(any<BlockPos>()) } answers { if (arg<BlockPos>(1).x >= 1000) ship else null }
         every { level.getShipsIntersecting(any<org.joml.primitives.AABBdc>()) } returns listOf(ship)
     }
@@ -214,7 +218,8 @@ class FluidNavigationHooksTest {
             assertEquals(original.amount, ShipFluidStateQueries.forPath(level, BlockPos.ZERO)!!.fluid().amount)
             scope().use { assertTrue(ShipFluidStateQueries.forPath(level, BlockPos.ZERO)!!.fluid().isEmpty) }
             assertEquals(original.amount, ShipFluidStateQueries.forPath(level, BlockPos.ZERO)!!.fluid().amount)
-            verify(exactly = 2) { world.getFluidGameplaySnapshot(7) }
+            verify(exactly = 3) { world.getFluidGameplaySnapshot(7) }
+            verify(exactly = 1) { world.loadedShips.iterator() }
         }
         scope().use { assertTrue(ShipFluidStateQueries.forPath(level, BlockPos.ZERO)!!.fluid().isEmpty) }
     }

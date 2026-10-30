@@ -35,20 +35,22 @@ public final class CameraFluidState {
         boolean dryDomain = false;
         boolean hiddenRetainedFluid = false;
         for (final ClientShip ship : world.getLoadedShips()) {
+            final var pair = world.getFluidGameplaySnapshot(ship.getId());
+            final boolean inHull = ship.getRenderAABB().containsPoint(position.x, position.y, position.z);
             // The simulation broadphase can miss a ship's interpolated position entirely.
-            if (!ship.getRenderAABB().containsPoint(position.x, position.y, position.z)) continue;
+            if (!inHull && !ShipFluidCandidates.containsRenderedDomain(world, ship, position, pair)) continue;
             ship.getRenderTransform().getWorldToShip().transformPosition(
                 position.x, position.y, position.z, local
             );
             final int x = ShipFluidInteraction.floorToInt(local.x);
             final int y = ShipFluidInteraction.floorToInt(local.y);
             final int z = ShipFluidInteraction.floorToInt(local.z);
-            final var pair = world.getFluidGameplaySnapshot(ship.getId());
             final FloodedFluidClientCache.CachedSnapshot flooding =
                 FloodedFluidClientCache.get(world, ship.getId(), pair);
             final VsiFluidFloodedVoxel voxel = flooding == null ? null : flooding.get(x, y, z);
-            if (voxel != null && FloodedFluidClientCache.isLocallySubmerged(voxel.getFillAmount(), local.y - y)) {
-                final FlowingFluid fluid = MassDatapackResolver.INSTANCE.getFlowingFluid(voxel.getFluidId(), true);
+            final int fluidId = voxel == null ? 0 : FluidVoxelGeometry.fluidAt(voxel, local.x - x, local.y - y, local.z - z);
+            if (fluidId != 0) {
+                final FlowingFluid fluid = MassDatapackResolver.INSTANCE.getFlowingFluid(fluidId, true);
                 if (fluid != null) {
                     if (renderRetainedFog) return new Sample(fluid.defaultFluidState(), true, false);
                     hiddenRetainedFluid = true;
@@ -57,11 +59,12 @@ public final class CameraFluidState {
             }
             final FluidTopologyClientCache.CachedSnapshot topology =
                 FluidTopologyClientCache.get(world, ship.getId(), pair);
-            if (topology != null && topology.get(x, y, z) != null) {
+            if (topology != null && topology.get(x, y, z) != null &&
+                FluidVoxelGeometry.contains(topology.get(x, y, z), local.x - x, local.y - y, local.z - z)) {
                 dryDomain = true;
                 continue;
             }
-            if (vanilla.isEmpty() && shipBlockFluid == null) {
+            if (inHull && vanilla.isEmpty() && shipBlockFluid == null) {
                 final BlockPos block = new BlockPos(x, y, z);
                 final FluidState fluid = level.getFluidState(block);
                 if (!fluid.isEmpty() && local.y - y <= fluid.getHeight(level, block)) {

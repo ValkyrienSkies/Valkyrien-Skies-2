@@ -109,6 +109,21 @@ public final class FloodedVoxelRenderer {
             final Matrix4f matrix = poseStack.last().pose();
             for (final VsiFluidFloodedVoxel voxel : cached.getSnapshot().getVoxels()) {
                 if (voxel.getFillAmount() <= 0) continue;
+                if (!voxel.getRegions().isEmpty()) {
+                    FluidVoxelGeometry.forEachFlooded(voxel, (id, box) -> {
+                        final FlowingFluid partFluid = MassDatapackResolver.INSTANCE.getFlowingFluid(id, true);
+                        final boolean partLava = partFluid == Fluids.LAVA || partFluid == Fluids.FLOWING_LAVA;
+                        shipToWorld.transformPosition((box.minX + box.maxX) * 0.5, box.maxY,
+                            (box.minZ + box.maxZ) * 0.5, worldSurface);
+                        worldBlock.set(Mth.floor(worldSurface.x), Mth.floor(worldSurface.y), Mth.floor(worldSurface.z));
+                        final int light = partLava || !level.hasChunkAt(worldBlock) ? LightTexture.FULL_BRIGHT
+                            : LevelRenderer.getLightColor(level, worldBlock);
+                        renderPartialBox(matrix, normalMatrix, consumer, box, renderOrigin,
+                            partLava ? 1 : waterRed, partLava ? 1 : waterGreen, partLava ? 1 : waterBlue,
+                            light, partLava ? lavaStill : waterStill, partLava ? lavaFlow : waterFlow);
+                    });
+                    continue;
+                }
                 final FlowingFluid fluid =
                     MassDatapackResolver.INSTANCE.getFlowingFluid(voxel.getFluidId(), true);
                 if (!WorldFluidCoverage.hasProtectedBoundary(voxel, topology, cached)
@@ -162,6 +177,12 @@ public final class FloodedVoxelRenderer {
         final TextureAtlasSprite stillSprite,
         final TextureAtlasSprite flowSprite
     ) {
+        if (!voxel.getRegions().isEmpty()) {
+            FluidVoxelGeometry.forEachFlooded(voxel, (id, box) -> renderPartialBox(matrix, normalMatrix, consumer,
+                box, renderOrigin, lava ? 1.0F : waterRed, lava ? 1.0F : waterGreen, lava ? 1.0F : waterBlue,
+                packedLight, stillSprite, flowSprite));
+            return;
+        }
         final int x = voxel.getPositionX();
         final int y = voxel.getPositionY();
         final int z = voxel.getPositionZ();
@@ -187,7 +208,7 @@ public final class FloodedVoxelRenderer {
             red, green, blue, alpha, packedLight, flowSprite,
             x1, y0, y1, z0, z1, renderOrigin.y(), verticalInset, true);
         final VsiFluidFloodedVoxel below = occupied.get(x, y - 1, z);
-        if (below == null || below.getFluidId() != voxel.getFluidId() || below.getFillAmount() < 255) {
+        if (below == null || !below.getRegions().isEmpty() || below.getFluidId() != voxel.getFluidId() || below.getFillAmount() < 255) {
             texturedQuad(matrix, normalMatrix, consumer, red, green, blue, alpha, packedLight,
                 x0, y0, z1, stillSprite.getU0(), stillSprite.getV1(),
                 x0, y0, z0, stillSprite.getU0(), stillSprite.getV0(),
@@ -196,7 +217,7 @@ public final class FloodedVoxelRenderer {
                 0.0F, -1.0F, 0.0F);
         }
         final VsiFluidFloodedVoxel above = occupied.get(x, y + 1, z);
-        if (voxel.getFillAmount() < 255 || above == null ||
+        if (voxel.getFillAmount() < 255 || above == null || !above.getRegions().isEmpty() ||
             above.getFluidId() != voxel.getFluidId() || above.getFillAmount() <= 0) {
             texturedQuad(matrix, normalMatrix, consumer, red, green, blue, alpha, packedLight,
                 x0, y1, z0, stillSprite.getU0(), stillSprite.getV0(),
@@ -213,6 +234,30 @@ public final class FloodedVoxelRenderer {
             z1, y0, y1, x0, x1, renderOrigin.y(), verticalInset, true);
     }
 
+    private static void renderPartialBox(final Matrix4f matrix, final Matrix3f normalMatrix,
+        final VertexConsumer consumer, final net.minecraft.world.phys.AABB box, final Vector3dc origin,
+        final float red, final float green, final float blue, final int light,
+        final TextureAtlasSprite still, final TextureAtlasSprite flow) {
+        final double inset = Math.min(INSET, (box.maxY - box.minY) * 0.25);
+        final float x0 = (float) (box.minX - origin.x() + INSET), x1 = (float) (box.maxX - origin.x() - INSET);
+        final float y0 = (float) (box.minY - origin.y() + inset), y1 = (float) (box.maxY - origin.y() - inset);
+        final float z0 = (float) (box.minZ - origin.z() + INSET), z1 = (float) (box.maxZ - origin.z() - INSET);
+        renderSideX(matrix, normalMatrix, consumer, null, 0, red, green, blue, 1, light, flow,
+            x0, y0, y1, z0, z1, origin.y(), (float) inset, false);
+        renderSideX(matrix, normalMatrix, consumer, null, 0, red, green, blue, 1, light, flow,
+            x1, y0, y1, z0, z1, origin.y(), (float) inset, true);
+        renderSideZ(matrix, normalMatrix, consumer, null, 0, red, green, blue, 1, light, flow,
+            z0, y0, y1, x0, x1, origin.y(), (float) inset, false);
+        renderSideZ(matrix, normalMatrix, consumer, null, 0, red, green, blue, 1, light, flow,
+            z1, y0, y1, x0, x1, origin.y(), (float) inset, true);
+        texturedQuad(matrix, normalMatrix, consumer, red, green, blue, 1, light,
+            x0, y0, z1, still.getU0(), still.getV1(), x0, y0, z0, still.getU0(), still.getV0(),
+            x1, y0, z0, still.getU1(), still.getV0(), x1, y0, z1, still.getU1(), still.getV1(), 0, -1, 0);
+        texturedQuad(matrix, normalMatrix, consumer, red, green, blue, 1, light,
+            x0, y1, z0, still.getU0(), still.getV0(), x0, y1, z1, still.getU0(), still.getV1(),
+            x1, y1, z1, still.getU1(), still.getV1(), x1, y1, z0, still.getU1(), still.getV0(), 0, 1, 0);
+    }
+
     private static float exposedSideBottom(
         final VsiFluidFloodedVoxel neighbor,
         final int fluidId,
@@ -220,7 +265,7 @@ public final class FloodedVoxelRenderer {
         final float y1,
         final double renderOriginY
     ) {
-        if (neighbor == null ||
+        if (neighbor == null || !neighbor.getRegions().isEmpty() ||
             neighbor.getFillAmount() <= 0 ||
             neighbor.getFluidId() != fluidId) return y0;
         final double neighborHeight = Math.min(255, neighbor.getFillAmount()) / 255.0;

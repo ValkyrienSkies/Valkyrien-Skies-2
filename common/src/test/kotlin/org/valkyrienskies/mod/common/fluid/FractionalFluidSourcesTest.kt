@@ -1,11 +1,31 @@
 package org.valkyrienskies.mod.common.fluid
 
 import net.minecraft.nbt.ListTag
+import net.minecraft.SharedConstants
+import net.minecraft.server.Bootstrap
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.math.BigDecimal
 
 class FractionalFluidSourcesTest {
+    @Test
+    fun `legacy flowing fluid ownership restores under its source identity`() {
+        val sources = FractionalFluidSources()
+        for ((x, fluid) in listOf("minecraft:flowing_water", "minecraft:flowing_lava", "missing:flowing_fluid").withIndex()) {
+            assertTrue(sources.setAmount(DIMENSION, x, 2, 3, fluid, BigDecimal("29.125")))
+        }
+        val restored = FractionalFluidSources().also { it.load(sources.save()) }
+        val expected = FractionalFluidSources()
+        for ((x, fluid) in listOf(WATER, "minecraft:lava", "missing:flowing_fluid").withIndex()) {
+            assertEquals(BigDecimal("29.125"), restored.amount(DIMENSION, x, 2, 3, fluid))
+            restored.reconcileFluid(DIMENSION, x, 2, 3, fluid)
+            assertTrue(expected.setAmount(DIMENSION, x, 2, 3, fluid, BigDecimal("29.125")))
+        }
+        assertEquals(expected.save(), restored.save())
+        assertEquals(expected.retainedBytes, restored.retainedBytes)
+    }
+
     @Test
     fun `partial source and sub-unit parcel remainder survive reload without rounding`() {
         val sources = FractionalFluidSources()
@@ -81,5 +101,6 @@ class FractionalFluidSourcesTest {
     private companion object {
         const val DIMENSION = "minecraft:overworld"
         const val WATER = "minecraft:water"
+        @JvmStatic @BeforeAll fun bootstrap() { SharedConstants.tryDetectVersion(); Bootstrap.bootStrap() }
     }
 }

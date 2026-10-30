@@ -78,10 +78,10 @@ object VSGameConfig {
             var dopplerEffectScale = 1.0 / 20
         }
         class CONNECTIVITY {
-            @ConfigEntry(
-                description = "Enable client connectivity; increases client load, but allows for client-sided sealed space visuals, like occluding water in a submarine."
-            )
-            var enableClientConnectivity = false
+            @Deprecated("Legacy dynamic connectivity is disabled.")
+            var enableClientConnectivity: Boolean
+                get() = false
+                set(value) {}
         }
 
         class PERFORMANCE {
@@ -176,6 +176,17 @@ object VSGameConfig {
     }
 
     class Server {
+        @ConfigCategory(title = "Spilled water")
+        val SpilledWater = SPILLED_WATER()
+
+        class SPILLED_WATER {
+            @ConfigEntry(description = "Lifetime of small settled water splashes in seconds of server tick time. Zero disables timed dissipation. Droplets below 1/8 block disappear on dry land regardless. Unloaded deposits are cleaned up after loading.", min = 0.0, max = 86400.0)
+            var splashLifetimeSeconds = 60
+
+            @ConfigEntry(description = "Water volume per block below which new spill deposits can dissipate, in full water blocks. Deposits reaching this volume remain finite puddles. Zero disables timed dissipation of landed puddles.", min = 0.0, max = 1.0)
+            var splashVolumeThreshold = 0.25
+        }
+
         @ConfigCategory(title = "Ship interactions")
         val ShipInteractions = SHIP_INTERACTIONS()
 

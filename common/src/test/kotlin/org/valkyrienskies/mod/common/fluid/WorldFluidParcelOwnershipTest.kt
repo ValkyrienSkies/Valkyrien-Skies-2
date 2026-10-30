@@ -302,14 +302,14 @@ class WorldFluidParcelOwnershipTest {
         val manager = WorldFluidOutflowManager()
         manager.enqueue(level, outflow(63))
         manager.tick(levels)
-        assertEquals(6, blocks.getValue(pos).fluidState.amount)
+        assertEquals(5, blocks.getValue(pos).fluidState.amount)
         assertEquals(0, manager.activeParcelCount())
         assertEquals(1, fluidTicks)
     }
 
     @Test fun `scaled physical quantities survive rejected writes and saves then settle at world scale`() {
         for ((volume, fullBlocks, flowingLevel) in listOf(
-            Triple(0.125, 0, 1), Triple(0.000001, 0, 1), Triple(8.0, 8, 0), Triple(4.75, 4, 6),
+            Triple(0.125, 0, 1), Triple(0.249, 0, 1), Triple(8.0, 8, 0), Triple(4.75, 4, 6),
         )) {
             blocks.clear()
             acceptWrites = false
@@ -361,7 +361,7 @@ class WorldFluidParcelOwnershipTest {
         restored.load(legacy)
         assertEquals(511 / 255.0, pending(restored))
         val migrated = restored.save()
-        assertEquals(4, migrated.getInt("version"))
+        assertEquals(5, migrated.getInt("version"))
         // The current journal format must preserve migrated legacy ownership on another load.
         restored.load(migrated)
         assertEquals(511 / 255.0, pending(restored))
@@ -628,7 +628,8 @@ class WorldFluidParcelOwnershipTest {
         }
     }
 
-    @Test fun `smallest parcel keeps its exact deposit and zero volume scheduling receipt`() {
+    @Test fun `smallest parcel merging into existing water keeps its exact deposit and scheduling receipt`() {
+        blocks[BlockPos(0, 1, 0)] = Fluids.WATER.getFlowing(1, false).createLegacyBlock()
         val manager = WorldFluidOutflowManager(1, 1)
         manager.enqueue(level, outflow().copy(worldVolume = Double.MIN_VALUE))
         every { level.scheduleTick(any<BlockPos>(), any<net.minecraft.world.level.material.Fluid>(), any<Int>()) } throws
@@ -649,7 +650,7 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(saved, manager.save())
     }
 
-    @Test fun `settlement preserves a fractional tail after every full voxel`() {
+    @Test fun `settlement rounds fractional tails down and discards tails below one layer`() {
         for (amount in listOf(1, 128, 254, 255, 256, 510, 511, 765)) {
             blocks.clear()
             val manager = WorldFluidOutflowManager(1, 1)
@@ -658,13 +659,13 @@ class WorldFluidParcelOwnershipTest {
             assertEquals(0, manager.activeParcelCount(), "amount=$amount")
             assertEquals(amount / 255, sources(), "amount=$amount")
             val flowing = blocks.values.filter { !it.fluidState.isEmpty && !it.fluidState.isSource }
-            if (amount % 255 == 0) assertTrue(flowing.isEmpty())
-            else assertEquals(listOf(worldVolumeToVanillaLevel((amount % 255) / 255.0).coerceAtMost(7)),
+            if (amount % 255 < 32) assertTrue(flowing.isEmpty())
+            else assertEquals(listOf(settledFluidLevel((amount % 255).toBigDecimal()).coerceAtMost(7)),
                 flowing.map { it.fluidState.amount })
         }
     }
 
-    @Test fun `existing flowing volume contributes to source capacity without consuming the remainder`() {
+    @Test fun `existing flowing volume fills a source before its undersized remainder lands`() {
         blocks[BlockPos(0, 1, 0)] = Fluids.WATER.getFlowing(4, false).createLegacyBlock()
         val manager = WorldFluidOutflowManager()
         manager.enqueue(level, outflow(128))
@@ -673,7 +674,7 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(128 / 255.0 - 0.5, pending(manager), 1e-16)
         manager.tick(levels)
         assertEquals(0, manager.activeParcelCount())
-        assertEquals(1, blocks.values.count { !it.fluidState.isEmpty && !it.fluidState.isSource })
+        assertEquals(0, blocks.values.count { !it.fluidState.isEmpty && !it.fluidState.isSource })
     }
 
     @Test fun `same quantized flowing level is acknowledged without a failing identical write`() {
@@ -703,7 +704,7 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(0, restored.activeParcelCount())
         assertEquals(falling, blocks[pos])
         assertEquals(0, sources())
-        assertEquals(1, writes)
+        assertEquals(0, writes)
     }
 
     @Test fun `rejected placement preserves volume and success debits it once`() {
