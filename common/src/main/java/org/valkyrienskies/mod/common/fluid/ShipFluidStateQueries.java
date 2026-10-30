@@ -69,7 +69,7 @@ public final class ShipFluidStateQueries {
     }
 
     public static Scope beginPath(final Level level, final PathfindingFrame frame, final NearbyShip[] ships) {
-        return new Scope(new Query(level, shipWorld(level), frame, ships));
+        return new Scope(new Query(level, shipWorld(level), frame, includeDomains(level, ships)));
     }
 
     public static @Nullable Cell forPath(final Level level, final BlockPos pos) {
@@ -77,7 +77,7 @@ public final class ShipFluidStateQueries {
         if (current != null && current.level == level) return current.resolve(pos);
         final PathfindingFrame frame = PathfindingFrame.current(null);
         if (frame == null) return at(level, pos);
-        return new Query(level, shipWorld(level), frame, PathPerFrameRegistry.getNearbyShips()).resolve(pos);
+        return new Query(level, shipWorld(level), frame, includeDomains(level, PathPerFrameRegistry.getNearbyShips())).resolve(pos);
     }
 
     /** Shipyard positions stay local; ordinary positions query the ships at that world cell. */
@@ -99,12 +99,24 @@ public final class ShipFluidStateQueries {
         final VsiShipWorld world = shipWorld(level);
         if (world == null) return null;
         final List<NearbyShip> ships = new ArrayList<>();
-        for (final Ship ship : VSGameUtilsKt.getShipsIntersecting(level,
+        for (final Ship ship : ShipFluidCandidates.intersecting(world, VSGameUtilsKt.getDimensionId(level),
             new AABBd(Math.floor(x), Math.floor(y), Math.floor(z), Math.floor(x) + 1,
                 Math.floor(y) + 1, Math.floor(z) + 1))) {
             ships.add(new NearbyShip(ship, new AABBd(ship.getWorldAABB()), new Matrix4d(ship.getWorldToShip())));
         }
         return new Query(level, world, null, ships.toArray(NearbyShip[]::new)).world(x, y, z);
+    }
+
+    private static NearbyShip[] includeDomains(final Level level, final NearbyShip[] ships) {
+        final VsiShipWorld world = shipWorld(level);
+        if (world == null) return ships;
+        final List<Ship> ordinary = new ArrayList<>(ships.length);
+        final List<NearbyShip> result = new ArrayList<>(List.of(ships));
+        for (final NearbyShip ship : ships) ordinary.add(ship.ship);
+        for (final Ship ship : ShipFluidCandidates.includeDomains(world, VSGameUtilsKt.getDimensionId(level), ordinary, null)) {
+            if (!ordinary.contains(ship)) result.add(new NearbyShip(ship, new AABBd(ship.getWorldAABB()), new Matrix4d(ship.getWorldToShip())));
+        }
+        return result.toArray(NearbyShip[]::new);
     }
 
     public static FluidState getFluidState(final Level level, final BlockPos pos,
@@ -150,8 +162,12 @@ public final class ShipFluidStateQueries {
             this.ships = new NearbyShip[ships.length];
             for (int i = 0; i < ships.length; ++i) {
                 final NearbyShip ship = ships[i];
-                this.ships[i] = new NearbyShip(ship.ship, new AABBd(ship.worldAABB), new Matrix4d(ship.worldToShip));
                 capture(world, ship.ship);
+                final AABBd bounds = new AABBd(ship.worldAABB);
+                final var body = bodies.get(ship.ship.getId());
+                if (body != null && body.domainBounds != null)
+                    bounds.union(new AABBd(body.domainBounds).transform(new Matrix4d(ship.worldToShip).invert()));
+                this.ships[i] = new NearbyShip(ship.ship, bounds, new Matrix4d(ship.worldToShip));
             }
             if (frame instanceof PathfindingFrame.InShip inShip) capture(world, inShip.getShip());
         }

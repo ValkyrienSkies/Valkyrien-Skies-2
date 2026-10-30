@@ -60,7 +60,9 @@ public final class FloodedFluidClientCache {
         final VsiClientShipWorld shipWorld = VSGameUtilsKt.getShipObjectWorld(level);
         final Vector3d local = new Vector3d();
         for (final ClientShip ship : shipWorld.getLoadedShips()) {
-            if (!ship.getRenderAABB().containsPoint(worldPosition.x, worldPosition.y, worldPosition.z)) {
+            final var pair = shipWorld.getFluidGameplaySnapshot(ship.getId());
+            if (!ship.getRenderAABB().containsPoint(worldPosition.x, worldPosition.y, worldPosition.z)
+                && !ShipFluidCandidates.containsRenderedDomain(shipWorld, ship, worldPosition, pair)) {
                 continue;
             }
 
@@ -70,7 +72,7 @@ public final class FloodedFluidClientCache {
             final int voxelX = floorToInt(local.x);
             final int voxelY = floorToInt(local.y);
             final int voxelZ = floorToInt(local.z);
-            final CachedSnapshot cached = get(shipWorld, ship.getId());
+            final CachedSnapshot cached = get(shipWorld, ship.getId(), pair);
             if (cached == null) continue;
 
             final VsiFluidFloodedVoxel voxel = cached.voxelsByPosition.get(pack(voxelX, voxelY, voxelZ));
