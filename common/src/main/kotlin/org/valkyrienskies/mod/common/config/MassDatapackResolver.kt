@@ -27,6 +27,7 @@ import org.joml.primitives.AABBi
 import org.joml.primitives.AABBic
 import org.valkyrienskies.core.api.physics.blockstates.BoxesBlockShape
 import org.valkyrienskies.core.api.physics.blockstates.CollisionPoint
+import org.valkyrienskies.core.api.physics.blockstates.FluidBoundaryShape
 import org.valkyrienskies.core.api.physics.blockstates.LiquidState
 import org.valkyrienskies.core.api.physics.blockstates.SolidBlockShape
 import org.valkyrienskies.core.internal.physics.blockstates.VsiBlockState
@@ -55,6 +56,7 @@ private data class VSBlockStateInfo(
     val elasticity: Double,
     val type: VsiBlockType?,
     val noCollision: Boolean?,
+    val fluidBoundary: String?,
 )
 
 object MassDatapackResolver : BlockStateInfoProvider {
@@ -163,7 +165,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
                             add(
                                 VSBlockStateInfo(
                                     BuiltInRegistries.BLOCK.getKey(it.value()), tagInfo.priority, tagInfo.mass, tagInfo.friction,
-                                    tagInfo.elasticity, tagInfo.type, tagInfo.noCollision
+                                    tagInfo.elasticity, tagInfo.type, tagInfo.noCollision, tagInfo.fluidBoundary
                                 )
                             )
                         }
@@ -197,14 +199,18 @@ object MassDatapackResolver : BlockStateInfoProvider {
             val priority = element.asJsonObject["priority"]?.asInt ?: decideDefaultPriority(origin)
 
             val noCollision = element.asJsonObject["no_collision"]?.asBoolean ?: false
+            val fluidBoundary = element.asJsonObject["fluid_boundary"]?.asString
+            require(fluidBoundary == null || fluidBoundary in setOf("shape", "open", "closed")) {
+                "fluid_boundary must be shape, open, or closed in $origin"
+            }
 
             if (tag != null) {
-                addToBeAddedTags(VSBlockStateInfo(ResourceLocation(tag), priority, weight, friction, elasticity, null, noCollision))
+                addToBeAddedTags(VSBlockStateInfo(ResourceLocation(tag), priority, weight, friction, elasticity, null, noCollision, fluidBoundary))
             } else {
                 val block = element.asJsonObject["block"]?.asString
                     ?: throw IllegalArgumentException("No block or tag in file $origin")
 
-                add(VSBlockStateInfo(ResourceLocation(block), priority, weight, friction, elasticity, null, noCollision))
+                add(VSBlockStateInfo(ResourceLocation(block), priority, weight, friction, elasticity, null, noCollision, fluidBoundary))
             }
         }
     }
@@ -362,6 +368,7 @@ object MassDatapackResolver : BlockStateInfoProvider {
         )
 
         val generatedCollisionShapesMap = HashMap<VoxelShape, SolidBlockShape?>()
+        val fluidBoundaries = HashMap<VoxelShape, FluidBoundaryShape>()
         val liquidMaterialToDensityMap: HashMap<Fluid, Pair<Double, Double>> = hashMapOf(Fluids.WATER to Pair(1000.0, 0.3), Fluids.LAVA to Pair(10000.0, 1.0), Fluids.FLOWING_WATER to Pair(1000.0, 0.3), Fluids.FLOWING_LAVA to Pair(10000.0, 1.0))
 
         val fluidStateToBlockTypeMap = HashMap<FluidState, LiquidState>()
@@ -444,6 +451,17 @@ object MassDatapackResolver : BlockStateInfoProvider {
                     }
 
                     val vsBlockStateInfo = map[BuiltInRegistries.BLOCK.getKey(blockState.block)]
+                    val fluidBoundary = when (vsBlockStateInfo?.fluidBoundary) {
+                        "open" -> FluidBoundaryShape.OPEN
+                        "closed" -> FluidBoundaryShape.CLOSED
+                        else -> try {
+                            val shape = blockState.getShape(dummyBlockGetter, BlockPos.ZERO)
+                            fluidBoundaries.getOrPut(shape) { FluidBoundaryRegistration.fromShape(shape) }
+                        } catch (exception: Exception) {
+                            logger.warn("Could not resolve fluid boundary for $blockState; using a closed boundary", exception)
+                            FluidBoundaryShape.CLOSED
+                        }
+                    }
 
                     // If noCollision is set to true in datapack, force it to have no collision shape
                     if (vsBlockStateInfo?.noCollision ?: false) {
@@ -454,6 +472,9 @@ object MassDatapackResolver : BlockStateInfoProvider {
                     // Create new solid block state
                     var solidState = vsCore.newSolidStateBuilder()
                         .shape(collisionShape)
+                        .fluidBoundary(fluidBoundary.takeUnless {
+                            it == FluidBoundaryShape.CLOSED && !voxelShape.isEmpty && vsBlockStateInfo?.noCollision != true
+                        })
                         .elasticity(vsBlockStateInfo?.elasticity ?: VSGameConfig.SERVER.defaultBlockElasticity)
                         .friction(vsBlockStateInfo?.friction ?: VSGameConfig.SERVER.defaultBlockFriction)
                         .hardness(VSGameConfig.SERVER.defaultBlockHardness) // Unused for now, placeholder for later

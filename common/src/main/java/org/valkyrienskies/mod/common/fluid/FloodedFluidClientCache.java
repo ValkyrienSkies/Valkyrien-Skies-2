@@ -74,11 +74,12 @@ public final class FloodedFluidClientCache {
             if (cached == null) continue;
 
             final VsiFluidFloodedVoxel voxel = cached.voxelsByPosition.get(pack(voxelX, voxelY, voxelZ));
-            if (voxel == null || !isLocallySubmerged(voxel.getFillAmount(), local.y - voxelY)) {
+            final int fluidId = voxel == null ? 0 : FluidVoxelGeometry.fluidAt(voxel, local.x - voxelX, local.y - voxelY, local.z - voxelZ);
+            if (fluidId == 0) {
                 continue;
             }
 
-            final FlowingFluid fluid = MassDatapackResolver.INSTANCE.getFlowingFluid(voxel.getFluidId(), true);
+            final FlowingFluid fluid = MassDatapackResolver.INSTANCE.getFlowingFluid(fluidId, true);
             if (fluid != null) {
                 return new FloodedFluidSample(ship.getId(), voxel, fluid);
             }
@@ -152,7 +153,8 @@ public final class FloodedFluidClientCache {
                     final long key = pack(voxel.getPositionX(), voxel.getPositionY(), voxel.getPositionZ());
                     if (sameFill) {
                         final VsiFluidFloodedVoxel old = previous.voxelsByPosition.get(key);
-                        sameFill = old != null && Math.min(255, old.getFillAmount()) == Math.min(255, voxel.getFillAmount());
+                        sameFill = old != null && Math.min(255, old.getFillAmount()) == Math.min(255, voxel.getFillAmount())
+                            && old.getRegions().equals(voxel.getRegions());
                         sameValues &= voxel.equals(old);
                     }
                     cells.put(key, voxel);

@@ -47,8 +47,9 @@ public final class CameraFluidState {
             final FloodedFluidClientCache.CachedSnapshot flooding =
                 FloodedFluidClientCache.get(world, ship.getId(), pair);
             final VsiFluidFloodedVoxel voxel = flooding == null ? null : flooding.get(x, y, z);
-            if (voxel != null && FloodedFluidClientCache.isLocallySubmerged(voxel.getFillAmount(), local.y - y)) {
-                final FlowingFluid fluid = MassDatapackResolver.INSTANCE.getFlowingFluid(voxel.getFluidId(), true);
+            final int fluidId = voxel == null ? 0 : FluidVoxelGeometry.fluidAt(voxel, local.x - x, local.y - y, local.z - z);
+            if (fluidId != 0) {
+                final FlowingFluid fluid = MassDatapackResolver.INSTANCE.getFlowingFluid(fluidId, true);
                 if (fluid != null) {
                     if (renderRetainedFog) return new Sample(fluid.defaultFluidState(), true, false);
                     hiddenRetainedFluid = true;
@@ -57,7 +58,8 @@ public final class CameraFluidState {
             }
             final FluidTopologyClientCache.CachedSnapshot topology =
                 FluidTopologyClientCache.get(world, ship.getId(), pair);
-            if (topology != null && topology.get(x, y, z) != null) {
+            if (topology != null && topology.get(x, y, z) != null &&
+                FluidVoxelGeometry.contains(topology.get(x, y, z), local.x - x, local.y - y, local.z - z)) {
                 dryDomain = true;
                 continue;
             }

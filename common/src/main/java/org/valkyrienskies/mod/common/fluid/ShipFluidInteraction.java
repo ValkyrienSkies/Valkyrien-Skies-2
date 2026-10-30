@@ -112,18 +112,15 @@ public final class ShipFluidInteraction {
                 final FluidVolumeGeometry.Box box = new FluidVolumeGeometry.Box(domain, toWorld, toLocal, result.origin);
                 if (box.bounds.intersects(result.relativeBounds)) result.domains.add(box);
             });
-            body.forEachFlooded(localQuery, voxel -> {
-                final FlowingFluid fluid = MassDatapackResolver.INSTANCE.getFlowingFluid(voxel.getFluidId(), world instanceof VsiClientShipWorld);
+            body.forEachFlooded(localQuery, voxel -> FluidVoxelGeometry.forEachFlooded(voxel, (fluidId, local) -> {
+                final FlowingFluid fluid = MassDatapackResolver.INSTANCE.getFlowingFluid(fluidId, world instanceof VsiClientShipWorld);
                 if (fluid == null || result.retained.getDouble(fluid) >= result.relativeBounds.maxY) return;
-                final AABB local = new AABB(voxel.getPositionX(), voxel.getPositionY(), voxel.getPositionZ(),
-                    voxel.getPositionX() + 1.0, voxel.getPositionY() + Math.min(255, voxel.getFillAmount()) / 255.0,
-                    voxel.getPositionZ() + 1.0);
                 final double top = new FluidVolumeGeometry.Box(local, toWorld, toLocal, result.origin)
                     .intersectionTop(result.relativeBounds);
                 if (Double.isFinite(top) && top > 0) {
                     result.retained.put(fluid, Math.max(result.retained.getDouble(fluid), top));
                 }
-            });
+            }));
         }
         return result;
     }
@@ -312,8 +309,7 @@ public final class ShipFluidInteraction {
         private static List<AABB> coalesceDomains(final Collection<VsiFluidTopologyVoxel> voxels) {
             List<AABB> boxes = new ArrayList<>(voxels.size());
             for (final VsiFluidTopologyVoxel voxel : voxels) {
-                boxes.add(new AABB(voxel.getPositionX(), voxel.getPositionY(), voxel.getPositionZ(),
-                    voxel.getPositionX() + 1.0, voxel.getPositionY() + 1.0, voxel.getPositionZ() + 1.0));
+                FluidVoxelGeometry.forEachDomain(voxel, boxes::add);
             }
             for (int axis = 0; axis < 3; axis++) {
                 final int mergeAxis = axis;
@@ -370,9 +366,8 @@ public final class ShipFluidInteraction {
 
         private void forEachDomain(final AABB bounds, final Consumer<AABB> visitor) {
             if (visitIndexedCells(bounds, domainBoxes.size(), (x, y, z) -> {
-                if (topologyByPosition.containsKey(FloodedFluidClientCache.pack(x, y, z))) {
-                    visitor.accept(new AABB(x, y, z, x + 1.0, y + 1.0, z + 1.0));
-                }
+                final var voxel = topologyByPosition.get(FloodedFluidClientCache.pack(x, y, z));
+                if (voxel != null) FluidVoxelGeometry.forEachDomain(voxel, visitor);
             })) return;
             for (final AABB box : domainBoxes) if (box.intersects(bounds)) visitor.accept(box);
         }
@@ -403,16 +398,14 @@ public final class ShipFluidInteraction {
             final int voxelY = floorToInt(y);
             final int voxelZ = floorToInt(z);
             final long packed = FloodedFluidClientCache.pack(voxelX, voxelY, voxelZ);
-            if (!topologyByPosition.containsKey(packed)) {
+            final var domain = topologyByPosition.get(packed);
+            if (domain == null || !FluidVoxelGeometry.contains(domain, x - voxelX, y - voxelY, z - voxelZ)) {
                 return new LocalPointSample(false, null);
             }
 
             final VsiFluidFloodedVoxel flooded = floodingByPosition.get(packed);
-            if (flooded != null && FloodedFluidClientCache.isLocallySubmerged(
-                flooded.getFillAmount(), y - voxelY
-            )) {
-                return new LocalPointSample(true, flooded.getFluidId());
-            }
+            final int fluidId = flooded == null ? 0 : FluidVoxelGeometry.fluidAt(flooded, x - voxelX, y - voxelY, z - voxelZ);
+            if (fluidId != 0) return new LocalPointSample(true, fluidId);
             return new LocalPointSample(true, null);
         }
 

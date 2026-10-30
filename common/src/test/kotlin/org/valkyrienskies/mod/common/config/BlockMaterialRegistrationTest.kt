@@ -12,6 +12,7 @@ import net.minecraft.world.phys.shapes.Shapes
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
 import org.valkyrienskies.core.api.physics.blockstates.BoxesBlockShape
+import org.valkyrienskies.core.api.physics.blockstates.FluidBoundaryShape
 import org.valkyrienskies.core.api.physics.blockstates.SolidState
 import org.valkyrienskies.core.internal.VsiCore
 import org.valkyrienskies.core.internal.physics.blockstates.VsiBlockState
@@ -42,6 +43,7 @@ class BlockMaterialRegistrationTest {
         val shape = mockk<BoxesBlockShape>()
         val fallback = mockk<VsiBlockType>()
         val registered = mutableMapOf<VsiBlockState, VsiBlockType>()
+        val boundaries = java.util.IdentityHashMap<SolidState, FluidBoundaryShape?>()
         mockkStatic("org.valkyrienskies.mod.common.VSGameUtilsKt")
         mockkStatic(StairBlockAccessor::class, SlabBlockAccessor::class)
         mockkStatic(MassDatapackResolver::class)
@@ -64,14 +66,16 @@ class BlockMaterialRegistrationTest {
             every { shapeBuilder.build() } returns shape
             every { core.newSolidStateBuilder() } answers {
                 var value = -1.0
+                var boundary: FluidBoundaryShape? = null
                 val builder = mockk<SolidState.Builder>()
                 every { builder.shape(any()) } returns builder
+                every { builder.fluidBoundary(any()) } answers { boundary = firstArg(); builder }
                 every { builder.elasticity(any()) } returns builder
                 every { builder.hardness(any()) } returns builder
                 every { builder.friction(any()) } answers { value = firstArg(); builder }
                 every { builder.build() } answers {
                     val captured = value
-                    mockk<SolidState> { every { friction } returns captured }
+                    mockk<SolidState> { every { friction } returns captured }.also { boundaries[it] = boundary }
                 }
                 builder
             }
@@ -85,10 +89,15 @@ class BlockMaterialRegistrationTest {
                 ResourceLocation("valkyrienskies", name) to requireNotNull(javaClass.getResourceAsStream(path))
                     .bufferedReader().use { JsonParser.parseReader(it) }
             }.toMutableMap()
+            resources[ResourceLocation("test", "boundaries")] = JsonParser.parseString("""[
+                {"block":"minecraft:dandelion","fluid_boundary":"closed","priority":999},
+                {"block":"minecraft:stone","fluid_boundary":"open","priority":999}
+            ]""")
             val loader = MassDatapackResolver.loader
             loader.javaClass.getDeclaredMethod("apply", Map::class.java, ResourceManager::class.java, ProfilerFiller::class.java)
                 .apply { isAccessible = true }.invoke(loader, resources, null, null)
-            MassDatapackResolver.registerAllBlockStates(blocks)
+            val overrides = listOf(Blocks.DANDELION.defaultBlockState(), Blocks.STONE.defaultBlockState())
+            MassDatapackResolver.registerAllBlockStates(blocks + overrides)
             MassDatapackResolver.blockStateData.forEach { registered[it] = mockk() }
 
             for ((index, state) in blocks.withIndex()) {
@@ -96,6 +105,11 @@ class BlockMaterialRegistrationTest {
                 val material = registered.entries.single { it.value === type }.key.solidState!!
                 assertEquals(listOf(0.0, 0.6, 0.5)[index], material.friction)
                 assertSame(type, BlockStateInfo.get(state)!!.second, "Cached material for $state")
+            }
+            for ((state, expected) in overrides.zip(listOf(FluidBoundaryShape.CLOSED, FluidBoundaryShape.OPEN))) {
+                val type = MassDatapackResolver.getBlockStateType(state)
+                val material = registered.entries.single { it.value === type }.key.solidState!!
+                assertEquals(expected, boundaries[material])
             }
         } finally {
             unmockkAll()
