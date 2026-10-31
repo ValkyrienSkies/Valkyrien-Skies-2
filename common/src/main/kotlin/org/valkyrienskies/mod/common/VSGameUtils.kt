@@ -3,7 +3,6 @@ package org.valkyrienskies.mod.common
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
-import net.minecraft.world.level.block.Blocks
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Position
 import net.minecraft.core.Vec3i
@@ -52,7 +51,7 @@ import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toJOMLD
 import org.valkyrienskies.mod.common.util.toMinecraft
 import org.valkyrienskies.mod.compat.LoadedMods
-import org.valkyrienskies.mod.compat.SableCompat
+import org.valkyrienskies.mod.compat.sableCompanion.SableCompat
 import org.valkyrienskies.mod.mixin.accessors.resource.ResourceKeyAccessor
 import org.valkyrienskies.mod.mixinducks.world.entity.PlayerDuck
 import java.util.function.Consumer
@@ -475,6 +474,12 @@ fun Ship.toWorldCoordinates(pos: BlockPos): Vector3d =
 
 fun Ship.toWorldCoordinates(pos: Vec3): Vec3 =
     shipToWorld.transformPosition(pos.toJOML()).toMinecraft()
+
+fun Ship.toWorldCoordinates(pos: Position): Vec3 =
+    shipToWorld.transformPosition(pos.toJOML()).toMinecraft()
+
+fun Ship.toWorldCoordinates(pos: Vector3d): Vector3d =
+    shipToWorld.transformPosition(pos)
 
 fun Level?.toWorldCoordinates(pos: BlockPos): Vec3 {
     return this?.getShipManagingPos(pos)?.toWorldCoordinates(pos)?.toMinecraft() ?: pos.toJOMLD().toMinecraft()

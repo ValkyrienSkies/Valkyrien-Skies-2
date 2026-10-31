@@ -27,7 +27,7 @@ object LoadedMods {
     val sableCompanion by CompatInfo("dev.ryanhcode.sable.companion.SableCompanion")
 
     @JvmStatic
-    val sable by CompatInfo("dev.ryanhcode.sable.companion.SableCompanion")
+    val sable by CompatInfo("dev.ryanhcode.sable.Sable")
 
     @JvmStatic
     val flywheel: FlywheelVersion by lazy {

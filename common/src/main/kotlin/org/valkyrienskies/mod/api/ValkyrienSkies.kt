@@ -500,6 +500,7 @@ fun Vector3ic.toBlockPos() = BlockPos(x(), y(), z())
  * @return a new [Vec3] with x, y, and z components matching this.
  */
 fun Vector3dc.toMinecraft() = Vec3(x(), y(), z())
+fun Vector3dc.toBlockPos() = BlockPos.containing(x(), y(), z())
 
 /**
  * Converts an [AABBdc] to an [AABB].
