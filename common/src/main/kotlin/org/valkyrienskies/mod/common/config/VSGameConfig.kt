@@ -337,5 +337,16 @@ object VSGameConfig {
             )
             var renderPathfinding = false // Requires ValkyrienCommonMixinConfigPlugin.PATH_FINDING_DEBUG to be true
         }
+
+        @JvmField
+        @ConfigCategory("")
+        val SABLE_COMPANION = SableCompanion()
+
+        class SableCompanion {
+            @ConfigEntry(
+                description = "Disable ShipSublevelAccess, ShipSublevelAccess might cause crash if a mod try to cast a SublevelAccess to a class from the Sable mod"
+            )
+            var disableShipSublevelAccess = false
+        }
     }
 }

@@ -38,7 +38,7 @@ import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.getShipMountedToData
 import org.valkyrienskies.mod.common.getShipsIntersecting
 import org.valkyrienskies.mod.compat.LoadedMods
-import org.valkyrienskies.mod.compat.SableCompat
+import org.valkyrienskies.mod.compat.sableCompanion.SableCompat
 import java.util.concurrent.ConcurrentHashMap
 
 @Suppress("OVERRIDE_DEPRECATION")

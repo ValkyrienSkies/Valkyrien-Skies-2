@@ -1,4 +1,4 @@
-package org.valkyrienskies.mod.compat
+package org.valkyrienskies.mod.compat.sableCompanion
 
 import dev.ryanhcode.sable.companion.SableCompanion
 import net.minecraft.core.BlockPos
