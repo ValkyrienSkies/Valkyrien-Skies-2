@@ -14,6 +14,7 @@ import net.minecraft.world.phys.shapes.Shapes
 import net.minecraft.world.phys.shapes.VoxelShape
 import org.joml.Matrix4dc
 import org.joml.Vector3d
+import org.joml.Vector3dc
 import org.joml.primitives.AABBd
 import org.joml.primitives.AABBdc
 import org.joml.primitives.AABBi
@@ -284,18 +285,38 @@ object EntityShipCollisionUtils {
         return support
     }
 
-    fun adjustShipDraggingMovement(entity: Entity, carryingShip: ShipId, movement: org.joml.Vector3dc): org.joml.Vector3dc {
+    data class DraggingCollisionResult(val movement: Vector3dc, val landedOnWorld: Boolean)
+
+    fun adjustShipDraggingMovement(entity: Entity, carryingShip: ShipId, movement: Vector3dc): DraggingCollisionResult {
         val box = entity.boundingBox
         val level = entity.level()
-        return MovementSubsteps.resolve(movement) { step, offset ->
-            val bounds = box.move(offset.toMinecraft())
-            val polygons = getShipPolygonsCollidingWithEntity(entity, step.toMinecraft(), bounds, level, carryingShip)
-            val clipped = if (polygons.isEmpty()) step else collider.adjustEntityMovementForPolygonCollisions(
-                step, bounds.toJOML(), 0.0, polygons, false
-            ).first
-            Entity.collideBoundingBox(entity, clipped.toMinecraft(), bounds, level,
-                level.getEntityCollisions(entity, bounds.expandTowards(clipped.toMinecraft()))).toJOML()
+        var landedOnWorld = false
+        fun collideExternal(start: AABB, requested: Vector3dc): Vector3d {
+            return MovementSubsteps.resolve(requested) { step, offset ->
+                val bounds = start.move(offset.toMinecraft())
+                val polygons = getShipPolygonsCollidingWithEntity(entity, step.toMinecraft(), bounds, level, carryingShip)
+                val clipped = if (polygons.isEmpty()) step else collider.adjustEntityMovementForPolygonCollisions(
+                    step, bounds.toJOML(), 0.0, polygons, false
+                ).first
+                val worldClipped = Entity.collideBoundingBox(entity, clipped.toMinecraft(), bounds, level,
+                    level.getEntityCollisions(entity, bounds.expandTowards(clipped.toMinecraft()))).toJOML()
+                if (ShipDraggingMath.landedOnWorld(clipped, worldClipped)) landedOnWorld = true
+                worldClipped
+            }
         }
+
+        val resolved = collideExternal(box, movement)
+        repeat(32) {
+            val bounds = box.move(resolved.toMinecraft())
+            val query = createShipCollisionQuery(entity, bounds, level, carryingShip)
+            val correction = query.penetrationResponse(bounds.minX, bounds.minY, bounds.minZ,
+                bounds.maxX, bounds.maxY, bounds.maxZ)
+            if (correction.lengthSquared() < 1e-14) return DraggingCollisionResult(resolved, landedOnWorld)
+            val clipped = collideExternal(bounds, correction)
+            resolved.add(clipped)
+            if (clipped.lengthSquared() < 1e-18) return DraggingCollisionResult(resolved, landedOnWorld)
+        }
+        return DraggingCollisionResult(resolved, landedOnWorld)
     }
 
     /**
@@ -459,12 +480,13 @@ object EntityShipCollisionUtils {
         return Vec3(clippedWorld.x, clippedWorld.y, clippedWorld.z)
     }
 
-    /** Gather block shapes once for all the support probes in a single sneaking movement. */
-    fun createShipCollisionQuery(entity: Entity, worldBounds: AABB, world: Level): ShipCollisionQuery {
+    @JvmOverloads
+    fun createShipCollisionQuery(entity: Entity, worldBounds: AABB, world: Level, onlyShip: ShipId? = null): ShipCollisionQuery {
         val query = ShipCollisionQuery()
         val worldBox = worldBounds.toJOML()
         val localBox = AABBd()
         for (ship in world.shipObjectWorld.loadedShips.getIntersecting(worldBox, world.dimensionId)) {
+            if (onlyShip != null && ship.id != onlyShip) continue
             val transform = ship.transform
             worldBox.transform(transform.worldToShip, localBox)
             val localBounds = localBox.toMinecraft()

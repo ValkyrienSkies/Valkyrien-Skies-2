@@ -42,8 +42,9 @@ object EntityDragger {
                     movement = keepSneakingPlayerOnShip(entity, ship, movement)
                 }
                 if (movement.isFinite) {
-                    val clipped = if (entity.noPhysics) movement else
+                    val collision = if (entity.noPhysics) null else
                         EntityShipCollisionUtils.adjustShipDraggingMovement(entity, ship.id, movement)
+                    val clipped = collision?.movement ?: movement
                     entity.setPos(entity.x + clipped.x(), entity.y + clipped.y(), entity.z + clipped.z())
                     val controllingPlayer = (entity as? ServerPlayer) ?: (entity.controllingPassenger as? ServerPlayer)
                     (controllingPlayer?.connection as? ShipMovementListener)?.`vs$onShipDrag`(entity, clipped)
@@ -62,7 +63,7 @@ object EntityDragger {
                     info.addedYawRotLastTick = yaw
                     if (clipped.distanceSquared(movement) > 1e-12) {
                         entity.hasImpulse = true
-                        if (ShipDraggingMath.landedOnWorld(movement, clipped)) {
+                        if (collision?.landedOnWorld == true) {
                             info.lastShipStoodOn = null
                             info.addedMovementLastTick = Vector3d()
                         }
