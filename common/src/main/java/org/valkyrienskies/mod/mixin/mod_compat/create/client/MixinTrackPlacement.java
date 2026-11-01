@@ -24,10 +24,9 @@ public abstract class MixinTrackPlacement {
         boolean girder, boolean maximiseTurn, Operation<PlacementInfo> original) {
         Ship ship = VSGameUtilsKt.getShipManagingPos(level, pos2);
         if(ship != null) {
-            PlayerUtil.transformPlayerTemporarily(player, level, pos2);
-            PlacementInfo info = original.call(level, player, pos2, state2, stack, girder, maximiseTurn);
-            PlayerUtil.untransformPlayer(player);
-            return info;
+            return PlayerUtil.transformPlayerTemporarily(
+                player, level, pos2, () -> original.call(level, player, pos2, state2, stack, girder, maximiseTurn)
+            );
         } else return original.call(level, player, pos2, state2, stack, girder, maximiseTurn);
     }
 }
