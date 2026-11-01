@@ -15,10 +15,9 @@ public class MixinTrackBlockItem {
     )
     private BlockState wrapPlacementState(UseOnContext context, Operation<BlockState> original){
         if(context != null && context.getPlayer() != null) {
-            PlayerUtil.transformPlayerTemporarily(context.getPlayer(), context.getLevel(), context.getClickedPos());
-            BlockState state = original.call(context);
-            PlayerUtil.untransformPlayer(context.getPlayer());
-            return state;
+            return PlayerUtil.transformPlayerTemporarily(
+                context.getPlayer(), context.getLevel(), context.getClickedPos(), () -> original.call(context)
+            );
         } else return original.call(context);
     }
 }
