@@ -40,7 +40,20 @@ private val logger = LogManager.getLogger("RaycastUtilsKt")
 
 @JvmOverloads
 fun Level.clipIncludeShips(
-    ctx: ClipContext, shouldTransformHitPos: Boolean = true, skipShip: ShipId? = null, skipWorld: Boolean = false
+    ctx: ClipContext,
+    shouldTransformHitPos: Boolean = true,
+    skipShip: ShipId? = null,
+    skipWorld: Boolean = false
+): BlockHitResult = clipIncludeShips(
+    ctx,
+    shouldTransformHitPos,
+    skipShip?.let { setOf(it) } ?: emptySet(),
+    skipWorld
+)
+
+@JvmOverloads
+fun Level.clipIncludeShips(
+    ctx: ClipContext, shouldTransformHitPos: Boolean = true, skipShips: Collection<ShipId>, skipWorld: Boolean = false
 ): BlockHitResult {
     val vanillaHit = if(skipWorld) {
         val line = ctx.to.subtract(ctx.from)
@@ -72,8 +85,8 @@ fun Level.clipIncludeShips(
         if (intersectType == Intersectionf.OUTSIDE) {
             continue
         }
-        // Skip skipShip
-        if (ship.id == skipShip) {
+        // Skip skipShips
+        if (ship.id in skipShips) {
             continue
         }
 

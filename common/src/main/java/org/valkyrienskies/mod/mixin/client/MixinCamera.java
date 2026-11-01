@@ -2,6 +2,7 @@ package org.valkyrienskies.mod.mixin.client;
 
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import java.util.List;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
@@ -34,7 +35,9 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 import org.valkyrienskies.mod.client.IVSCamera;
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.fluid.ShipFluidInteraction;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
@@ -121,24 +124,6 @@ public abstract class MixinCamera implements IVSCamera {
         return original.call();
     }
 
-    /**
-     * @author Bunting_chj
-     * @reason This Injection will modify the Camera position to transform the eye offset with the ship player is mounted on.
-     *  Funny thing that original code doesn't utilize getEyePosition().
-     */
-//    @WrapOperation(
-//        method = "setup",
-//        at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Camera;setPosition(DDD)V")
-//    )
-//    private void setPosition(Camera camera, double d, double e, double f, Operation<Void> original){
-//        if(VSGameUtilsKt.getShipMountedTo(this.entity) instanceof ClientShip ship) {
-//            double eyeHeight = Mth.lerp(f, this.eyeHeightOld, this.eyeHeight);
-//            Vector3d eyeOffset = ship.getRenderTransform().getRotation().transform(new Vector3d(0, eyeHeight, 0));
-//            original.call(camera, d + eyeOffset.x, e - eyeHeight + eyeOffset.y, f + eyeOffset.z);
-//        }
-//        else original.call(camera, d, e, f);
-//    }
-
     @Override
     public void setupWithShipMounted(final @NotNull BlockGetter level, final @NotNull Entity renderViewEntity,
         final boolean thirdPerson, final boolean thirdPersonReverse, final float partialTicks,
@@ -200,6 +185,8 @@ public abstract class MixinCamera implements IVSCamera {
     @Unique
     private double getMaxZoomIgnoringMountedShip(final Level level, double maxZoom,
         final @NotNull ClientShip toIgnore) {
+        List<Long> ignoreList = ValkyrienSkiesMod.getOrCreateGTPA(ValkyrienSkies.getDimensionId(level))
+            .getAllConnectedShips(toIgnore.getId());
         for (int i = 0; i < 8; ++i) {
             float f = (float) ((i & 1) * 2 - 1);
             float g = (float) ((i >> 1 & 1) * 2 - 1);
@@ -213,7 +200,7 @@ public abstract class MixinCamera implements IVSCamera {
                     this.position.y - (double) this.forwards.y() * maxZoom + (double) g,
                     this.position.z - (double) this.forwards.z() * maxZoom + (double) h);
             final HitResult hitResult = RaycastUtilsKt.clipIncludeShips(level,
-                new ClipContext(vec3, vec32, Block.VISUAL, Fluid.NONE, this.entity), true, toIgnore.getId());
+                new ClipContext(vec3, vec32, Block.VISUAL, Fluid.NONE, this.entity), true, ignoreList);
             if (hitResult.getType() != Type.MISS) {
                 final double e = hitResult.getLocation().distanceTo(this.position);
                 if (e < maxZoom) {
