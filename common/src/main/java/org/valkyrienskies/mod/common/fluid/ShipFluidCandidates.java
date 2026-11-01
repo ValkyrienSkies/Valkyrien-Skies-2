@@ -15,6 +15,7 @@ import org.joml.primitives.AABBdc;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.internal.physics.VsiFluidGameplaySnapshot;
+import org.valkyrienskies.core.internal.physics.VsiFluidTopologySnapshot;
 import org.valkyrienskies.core.internal.world.VsiShipWorld;
 
 final class ShipFluidCandidates {
@@ -36,14 +37,18 @@ final class ShipFluidCandidates {
         EXTRA_DOMAINS.remove(world);
     }
 
-    private static synchronized @Nullable AABBdc domainBounds(final VsiShipWorld world, final long id,
+    private static @Nullable AABBdc domainBounds(final VsiShipWorld world, final long id,
         final @Nullable VsiFluidGameplaySnapshot pair) {
+        return topologyBounds(world, id, pair == null ? null : pair.getTopology());
+    }
+
+    static synchronized @Nullable AABBdc topologyBounds(final VsiShipWorld world, final long id,
+        final @Nullable VsiFluidTopologySnapshot topology) {
         final Index index = EXTRA_DOMAINS.computeIfAbsent(world, ignored -> new Index());
-        if (pair == null || !pair.getTopology().getEnabled() || !pair.getTopology().getValid()) {
+        if (topology == null || !topology.getEnabled() || !topology.getValid()) {
             index.bounds.remove(id);
             return null;
         }
-        final var topology = pair.getTopology();
         Bounds bounds = index.bounds.get(id);
         if (bounds == null || bounds.sequence() != topology.getStreamSequence()) {
             final AABBd local = new AABBd();

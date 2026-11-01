@@ -45,6 +45,7 @@ class FractionalFluidSettlementTest {
         every { level.server } returns server
         every { level.dimensionId } returns DIMENSION
         every { (server as IShipObjectWorldServerProvider).fractionalFluidSources } answers { sources }
+        every { (server as IShipObjectWorldServerProvider).shipObjectWorld } returns null
         every { level.minBuildHeight } returns -64
         every { level.maxBuildHeight } returns 320
         every { level.hasChunkAt(any()) } returns true

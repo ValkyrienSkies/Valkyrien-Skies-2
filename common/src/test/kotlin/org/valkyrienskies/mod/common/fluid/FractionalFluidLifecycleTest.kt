@@ -48,6 +48,7 @@ class FractionalFluidLifecycleTest {
         mockkObject(BlockStateInfo)
         mockkStatic("org.valkyrienskies.mod.common.VSGameUtilsKt")
         every { (server as IShipObjectWorldServerProvider).fractionalFluidSources } answers { sources }
+        every { (server as IShipObjectWorldServerProvider).shipObjectWorld } returns null
         every { (server as IShipObjectWorldServerProvider).fluidOutflowManager } answers { manager }
         for ((dimension, world) in levels) {
             every { world.server } returns server

@@ -48,6 +48,7 @@ class SettledWaterSplashTest {
         mockkStatic("org.valkyrienskies.mod.common.VSGameUtilsKt")
         val server = mockk<MinecraftServer>(moreInterfaces = arrayOf(IShipObjectWorldServerProvider::class))
         every { (server as IShipObjectWorldServerProvider).fractionalFluidSources } answers { sources }
+        every { (server as IShipObjectWorldServerProvider).shipObjectWorld } returns null
         every { level.server } returns server
         every { level.dimensionId } returns DIM
         every { level.getShipManagingPos(any<BlockPos>()) } returns null

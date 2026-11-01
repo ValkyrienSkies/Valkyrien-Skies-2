@@ -361,7 +361,7 @@ class WorldFluidParcelOwnershipTest {
         restored.load(legacy)
         assertEquals(511 / 255.0, pending(restored))
         val migrated = restored.save()
-        assertEquals(5, migrated.getInt("version"))
+        assertEquals(6, migrated.getInt("version"))
         // The current journal format must preserve migrated legacy ownership on another load.
         restored.load(migrated)
         assertEquals(511 / 255.0, pending(restored))

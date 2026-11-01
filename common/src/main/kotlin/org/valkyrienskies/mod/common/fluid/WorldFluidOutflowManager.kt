@@ -27,6 +27,8 @@ import net.minecraft.world.level.material.FlowingFluid
 import org.joml.Vector3d
 import org.valkyrienskies.core.internal.physics.VsiFluidOutflow
 import org.valkyrienskies.core.internal.physics.VsiFluidOutflowResult
+import org.valkyrienskies.core.internal.physics.VsiFluidParcelInterception
+import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.BlockStateInfo
 import org.valkyrienskies.mod.common.fluid.FractionalFluidSources.Companion.FULL_SOURCE
@@ -213,10 +215,14 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
         val metadataBytes: Long,
     ) : PlacementState() {
         var queueNext: Parcel? = null
+        var interception: ParcelInterception? = null
         var visualStorageBytes = 0L
         fun blockPosition(): BlockPos =
             BlockPos.containing(worldPosition.x, worldPosition.y, worldPosition.z)
     }
+
+    private class ParcelInterception(val id: UUID, val end: Vector3d, val velocity: Vector3d,
+        var applied: Boolean = false, var collisionFraction: Double = 1.0)
 
     private data class PendingPlacement(
         val pos: BlockPos,
@@ -338,6 +344,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
     private var currentTick = 0L
     private var pressureClockNanos: Long? = null
     private var pressureAdvancedTime = false
+    private var sweepReceiverMotion = true
     private var parcelsWithDueMotion = 0
 
     private enum class ParcelUpdateResult { MOVED, PAUSED, CONSUMED }
@@ -405,6 +412,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
 
     fun tick(levels: Map<String, ServerLevel>) {
         if (servicing) return
+        sweepReceiverMotion = !pressureAdvancedTime
         // Pressure servicing already supplied the elapsed time for this game tick.
         // Its normal tail may drain remaining work, but must not advance that time again.
         if (!pressureAdvancedTime) {
@@ -419,6 +427,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
     /** Continue emitted water at wall-clock 20 Hz while the game is waiting for physics. */
     fun servicePressure(levels: Map<String, ServerLevel>): Boolean {
         if (servicing) return false
+        sweepReceiverMotion = false
         val now = nanoTime()
         val previous = pressureClockNanos
         if (previous == null) {
@@ -535,11 +544,40 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
             return if (parcel.sourceUnits.signum() == 0 && !parcel.hasPlacement)
                 ParcelUpdateResult.CONSUMED else ParcelUpdateResult.PAUSED
         }
+        parcel.interception?.let { pending ->
+            if (!pending.applied) {
+                val world = (level.server as? IShipObjectWorldServerProvider)?.shipObjectWorld
+                    ?: return ParcelUpdateResult.PAUSED
+                world.consumeFluidParcelInterception(pending.id) { receipt ->
+                    val remaining = parcel.sourceUnits - BigDecimal.valueOf(receipt.acceptedAmount)
+                    check(remaining.signum() >= 0) { "Parcel receiver accepted more water than the parcel owns" }
+                    parcel.sourceUnits = remaining
+                    pending.collisionFraction = receipt.collisionFraction
+                    pending.applied = true
+                }
+                if (!pending.applied) return ParcelUpdateResult.PAUSED
+            }
+            if (parcel.sourceUnits.signum() == 0) return ParcelUpdateResult.CONSUMED
+        }
         val staged = motion
         staged.worldPosition.set(parcel.worldPosition)
         staged.velocity.set(parcel.velocity)
         staged.settlementAnchor = parcel.settlementAnchor
         staged.clearPlacement(parcelStorage)
+        if (parcel.interception?.applied == true) {
+            val result = updateOneTick(level, parcel, staged, fluid)
+            parcel.worldPosition.set(staged.worldPosition)
+            parcel.velocity.set(staged.velocity)
+            parcel.settlementAnchor = staged.settlementAnchor
+            if (staged.hasPlacement) parcel.takePlacement(staged)
+            parcel.interception = null
+            if (parcel.hasPlacement) {
+                finishPlacement(level, parcel, fluid)
+                return if (parcel.sourceUnits.signum() == 0 && !parcel.hasPlacement)
+                    ParcelUpdateResult.CONSUMED else ParcelUpdateResult.PAUSED
+            }
+            if (result != ParcelUpdateResult.MOVED) return result
+        }
         for (tick in 0 until elapsed) {
             val result = updateOneTick(level, parcel, staged, fluid)
             parcel.worldPosition.set(staged.worldPosition)
@@ -900,6 +938,71 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
         return Vector3d(velocity).mul(FLUID_PARCEL_TIME_STEP)
     }
 
+    private fun submitInterception(level: ServerLevel, parcel: Parcel, staged: MotionState,
+        displacement: Vector3d, fluid: FlowingFluid): Boolean {
+        val world = (level.server as? IShipObjectWorldServerProvider)?.shipObjectWorld ?: return false
+        if (!world.supportsFluidParcelInterception) return false
+        val end = Vector3d(staged.worldPosition).add(displacement)
+        var preparationBytes = 0L
+        try {
+            val receivers = WorldFluidParcelReceivers.collect(world, parcel.dimensionId, staged.worldPosition, end,
+                sweepReceiverMotion && parcel.lastUpdatedTick == currentTick - 1) {
+                parcelStorage.reserve(it)
+                preparationBytes += it
+            } ?: return true
+            if (receivers.isEmpty()) return false
+            val fluidId = MassDatapackResolver.getLiquidStateId(fluid.getSource(false).createLegacyBlock()) ?: return true
+            var amount = parcel.sourceUnits.min(BigDecimal.valueOf(Double.MAX_VALUE)).toDouble()
+            if (BigDecimal.valueOf(amount) > parcel.sourceUnits) amount = Math.nextDown(amount)
+            if (amount <= 0) return false
+            val limit = parcelTerrainLimit(level, parcel, staged.worldPosition, displacement, fluid)
+            if (limit == 0.0) return false
+            val pending = ParcelInterception(UUID.randomUUID(), end, Vector3d(staged.velocity))
+            val start = staged.worldPosition
+            val request = VsiFluidParcelInterception(pending.id, parcel.dimensionId, fluidId, amount,
+                start.x, start.y, start.z, end.x, end.y, end.z, limit, receivers)
+            if (world.submitFluidParcelInterception(request)) parcel.interception = pending
+            return true
+        } finally {
+            parcelStorage.release(preparationBytes)
+        }
+    }
+
+    private fun parcelTerrainLimit(level: ServerLevel, parcel: Parcel, start: Vector3d,
+        displacement: Vector3d, fluid: FlowingFluid): Double {
+        var cell = BlockPos.containing(start.x, start.y, start.z)
+        fun blocked(position: BlockPos): Boolean {
+            if (!level.hasChunkAt(position)) return true
+            val state = level.getBlockState(position)
+            return isOcean(level, parcel, position, state, fluid) || !canReceive(level, position, state, fluid) ||
+                fluid.isSame(state.fluidState.type) && sourceAmount(level, parcel, position) != null
+        }
+        if (blocked(cell)) return 0.0
+        repeat(32) {
+            val x = if (displacement.x == 0.0) Double.POSITIVE_INFINITY else
+                (cell.x.toDouble() + if (displacement.x > 0) 1.0 else 0.0).minus(start.x) / displacement.x
+            val y = if (displacement.y == 0.0) Double.POSITIVE_INFINITY else
+                (cell.y.toDouble() + if (displacement.y > 0) 1.0 else 0.0).minus(start.y) / displacement.y
+            val z = if (displacement.z == 0.0) Double.POSITIVE_INFINITY else
+                (cell.z.toDouble() + if (displacement.z > 0) 1.0 else 0.0).minus(start.z) / displacement.z
+            val next = minOf(x, y, z)
+            if (next > 1.0) return 1.0
+            val axes = (if (abs(x - next) <= 1e-12) 1 else 0) or
+                (if (abs(y - next) <= 1e-12) 2 else 0) or (if (abs(z - next) <= 1e-12) 4 else 0)
+            val dx = displacement.x.compareTo(0.0)
+            val dy = displacement.y.compareTo(0.0)
+            val dz = displacement.z.compareTo(0.0)
+            for (mask in 1..7) if (mask and axes == mask) {
+                val touched = cell.offset(if (mask and 1 != 0) dx else 0,
+                    if (mask and 2 != 0) dy else 0, if (mask and 4 != 0) dz else 0)
+                if (blocked(touched)) return next.coerceIn(0.0, 1.0)
+            }
+            cell = cell.offset(if (axes and 1 != 0) dx else 0, if (axes and 2 != 0) dy else 0,
+                if (axes and 4 != 0) dz else 0)
+        }
+        return 0.0
+    }
+
     private fun advanceParcel(
         level: ServerLevel,
         parcel: Parcel,
@@ -909,7 +1012,18 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
     ): ParcelMotionResult {
         val startX = staged.worldPosition.x; val startY = staged.worldPosition.y; val startZ = staged.worldPosition.z
         val velocityX = staged.velocity.x; val velocityY = staged.velocity.y; val velocityZ = staged.velocity.z
-        val displacement = advanceFiniteVelocity(staged.velocity)
+        val interception = parcel.interception?.takeIf { it.applied }
+        val displacement = if (interception == null) advanceFiniteVelocity(staged.velocity) else {
+            staged.velocity.set(interception.velocity)
+            Vector3d(interception.end).sub(staged.worldPosition).mul(
+                if (interception.collisionFraction < 1.0) maxOf(0.0, interception.collisionFraction - 1e-7)
+                else 1.0)
+        }
+        if (interception == null && submitInterception(level, parcel, staged, displacement, fluid)) {
+            staged.velocity.set(velocityX, velocityY, velocityZ)
+            return ParcelMotionResult.RETRY_LATER
+        }
+        if (interception != null && interception.collisionFraction < 1.0) staged.velocity.zero()
         val endX = displacement.x + startX
         val endY = displacement.y + startY
         val endZ = displacement.z + startZ
@@ -998,7 +1112,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
     // Each history's live reservation includes a same-sized output array. It is sufficient for
     // toLongArray while all live histories remain owned. Returned NBT belongs to the caller.
     fun save(): CompoundTag = CompoundTag().apply {
-        putInt("version", 5)
+        putInt("version", 6)
         put("parcels", ListTag().also { list ->
             parcels.forEach { parcel ->
                 list.add(CompoundTag().apply {
@@ -1010,6 +1124,15 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
                     putDouble("vz", parcel.velocity.z)
                     putVolume(this, "volume", parcel.sourceUnits)
                     putLong("lag", currentTick - parcel.lastUpdatedTick)
+                    parcel.interception?.let { pending ->
+                        put("interception", CompoundTag().apply {
+                            putUUID("id", pending.id)
+                            putDouble("x", pending.end.x); putDouble("y", pending.end.y); putDouble("z", pending.end.z)
+                            putDouble("vx", pending.velocity.x); putDouble("vy", pending.velocity.y); putDouble("vz", pending.velocity.z)
+                            putBoolean("applied", pending.applied)
+                            putDouble("collision", pending.collisionFraction)
+                        })
+                    }
                     if (parcel.hasPlacement) {
                         val pos = parcel.placementPosition()
                         put("placement", CompoundTag().apply {
@@ -1039,7 +1162,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
     fun load(tag: CompoundTag) {
         check(!servicing) { "Cannot replace parcel ownership during servicing" }
         val version = tag.getInt("version")
-        require(version in 1..5) { "Unsupported world-fluid parcel checkpoint" }
+        require(version in 1..6) { "Unsupported world-fluid parcel checkpoint" }
         require(tag.contains("parcels", Tag.TAG_LIST.toInt())) { "Missing world-fluid parcels" }
         val list = tag.getList("parcels", Tag.TAG_COMPOUND.toInt())
         require((tag.get("parcels") as ListTag).size == list.size) { "Invalid parcel list" }
@@ -1142,7 +1265,22 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
                         if (beforeState == null || !inlineState(beforeState)) before.copy() else null,
                         if (afterState == null || !inlineState(afterState)) after.copy() else null, placementBytes, unitsBefore, unitsAfter)
                 } else null
-                require(volume.signum() > 0 || placement?.scheduledOnly == true) { "Empty parcel without a pending receipt" }
+                val interception = if (entry.contains("interception")) {
+                    require(version >= 6 && placement == null && entry.contains("interception", Tag.TAG_COMPOUND.toInt()))
+                    val pending = entry.getCompound("interception")
+                    require(pending.hasUUID("id") && pending.contains("applied", Tag.TAG_BYTE.toInt()))
+                    for (key in listOf("x", "y", "z", "vx", "vy", "vz", "collision"))
+                        require(pending.contains(key, Tag.TAG_DOUBLE.toInt()) && pending.getDouble(key).isFinite())
+                    val collision = pending.getDouble("collision")
+                    require(collision in 0.0..1.0)
+                    ParcelInterception(pending.getUUID("id"),
+                        Vector3d(pending.getDouble("x"), pending.getDouble("y"), pending.getDouble("z")),
+                        Vector3d(pending.getDouble("vx"), pending.getDouble("vy"), pending.getDouble("vz")),
+                        pending.getBoolean("applied"), collision)
+                } else null
+                require(volume.signum() > 0 || placement?.scheduledOnly == true || interception?.applied == true) {
+                    "Empty parcel without a pending receipt"
+                }
                 require(entry.contains("lag", Tag.TAG_LONG.toInt()))
                 val lag = entry.getLong("lag")
                 // A long pressure wait can retain more catch-up than one scheduling rotation.
@@ -1164,6 +1302,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
                     Vector3d(vx, vy, vz), name, fluid, volume,
                     -lag, settledSources, anchor,
                     metadataBytes = PARCEL_STORAGE_BYTES + nameBytes).also { owner ->
+                    owner.interception = interception
                     placement?.let {
                         owner.setPlacementPosition(it.pos); owner.placementBefore = it.before; owner.placementAfter = it.after
                         owner.placementDeposited = it.deposited; owner.placementScheduledOnly = it.scheduledOnly
