@@ -2,6 +2,17 @@
 # See: https://circleci.com/docs/2.0/configuration-reference
 version: 2.1
 
+parameters:
+  publish_dependency_chain:
+    type: boolean
+    default: false
+  chain_native_ref:
+    type: string
+    default: main
+  chain_api_ref:
+    type: string
+    default: main
+
 orbs:
   discord: antonioned/discord@0.1.0
 
@@ -142,10 +153,62 @@ commands:
           when: always
 
 jobs:
+  resolve_dependency_chain:
+    docker:
+      - image: cimg/python:3.12
+    resource_class: small
+    environment:
+      CHAIN_NATIVE_REF: << pipeline.parameters.chain_native_ref >>
+      CHAIN_API_REF: << pipeline.parameters.chain_api_ref >>
+    steps:
+      - checkout
+      - run:
+          name: Resolve immutable publishing inputs
+          command: |
+            python3 -m unittest discover -s ci/tests
+            python3 ci/publish_chain.py resolve --manifest chain/manifest.json \
+              --native-ref "$CHAIN_NATIVE_REF" --api-ref "$CHAIN_API_REF"
+      - persist_to_workspace:
+          root: chain
+          paths:
+            - manifest.json
+      - store_artifacts:
+          path: chain/manifest.json
+
+  publish_dependency_chain:
+    docker:
+      - image: cimg/python:3.12
+    resource_class: small
+    steps:
+      - checkout
+      - attach_workspace:
+          at: chain
+      - run:
+          name: Publish pinned dependencies through VS2
+          command: python3 ci/publish_chain.py publish --manifest chain/manifest.json --output chain/result.json
+          no_output_timeout: 5m
+      - store_artifacts:
+          path: chain
+          when: always
+
+  dependency_chain_superseded:
+    docker:
+      - image: cimg/python:3.12
+    resource_class: small
+    steps:
+      - run:
+          name: Report skipped publishing chain
+          command: |
+            echo "A newer dependency chain superseded this run. Start a new pipeline from the current branch head."
+            exit 1
+
   gradle_build:
     executor: java_large
     steps:
       - checkout_and_cache
+      - run:
+          name: Test publishing orchestration
+          command: python3 -m unittest discover -s ci/tests
       - run:
           name: Build
           command: "./gradlew build --no-daemon --stacktrace --max-workers 1"
@@ -344,7 +407,31 @@ jobs:
               -d '{"signal":"restart"}'
 
 workflows:
+  dependency_chain:
+    when: << pipeline.parameters.publish_dependency_chain >>
+    jobs:
+      - resolve_dependency_chain:
+          context: dependency-publishing
+          filters:
+            branches:
+              only: 1.20.1/playtest
+      - publish_dependency_chain:
+          requires:
+            - resolve_dependency_chain
+          serial-group: << pipeline.project.slug >>/dependency-publishing
+          context: dependency-publishing
+          filters:
+            branches:
+              only: 1.20.1/playtest
+      - dependency_chain_superseded:
+          requires:
+            - publish_dependency_chain: not_run
+          filters:
+            branches:
+              only: 1.20.1/playtest
   build:
+    when:
+      not: << pipeline.parameters.publish_dependency_chain >>
     jobs:
       - gradle_build:
           context:
