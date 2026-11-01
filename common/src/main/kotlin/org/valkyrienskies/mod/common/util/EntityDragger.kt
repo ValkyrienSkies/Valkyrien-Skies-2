@@ -1,10 +1,6 @@
 package org.valkyrienskies.mod.common.util
 
-import net.minecraft.client.player.LocalPlayer
-import net.minecraft.core.BlockPos
-import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
-import net.minecraft.util.Mth
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.player.Player
@@ -16,191 +12,77 @@ import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.mod.api.toMinecraft
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager
-import org.valkyrienskies.mod.common.networking.PacketEntityShipMotion
-import org.valkyrienskies.mod.common.networking.PacketPlayerShipMotion
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.EntityLerper.yawToWorld
-import org.valkyrienskies.mod.common.vsCore
-import org.valkyrienskies.mod.mixinducks.world.entity.PlayerDuck
 import org.valkyrienskies.mod.util.BugFixUtil
-import java.util.function.Predicate
-import kotlin.math.asin
-import kotlin.math.atan2
-import kotlin.math.cos
-import kotlin.math.sin
+import org.valkyrienskies.mod.mixinducks.server.ShipMovementListener
 
 object EntityDragger {
-    // How much we decay the addedMovement each tick after player hasn't collided with a ship for at least 10 ticks.
-    private const val ADDED_MOVEMENT_DECAY = 0.9
-
-
-    /**
-     * Drag these entities with the ship they're standing on.
-     */
     fun dragEntitiesWithShips(entities: Iterable<Entity>, preTick: Boolean = false) {
         for (entity in entities) {
-            val entityDraggingInformation = (entity as? IEntityDraggingInformationProvider)?.draggingInformation ?: continue
-
-            var dragTheEntity = false
-            var addedMovement: Vector3dc? = null
-            var addedYRot = 0.0
-
-            val shipDraggingEntity = entityDraggingInformation.lastShipStoodOn
-
-
-            // Only drag entities that aren't mounted to vehicles
-            if (shipDraggingEntity != null && entity.vehicle == null && isDraggable(entity)) {
-                if (entityDraggingInformation.isEntityBeingDraggedByAShip()) {
-                    // Compute how much we should drag the entity
-                    val shipData = entity.level().shipObjectWorld.allShips.getById(shipDraggingEntity)
-                    if (shipData != null) {
-                        dragTheEntity = true
-                        val entityReferencePos: Vector3dc = if (preTick) {
-                            Vector3d(entity.x, entity.y, entity.z)
-                        } else {
-                            Vector3d(entity.xo, entity.yo, entity.zo)
-                        }
-
-                        val referenceTransform = if (shipData is ClientShip) shipData.transform else shipData.transform
-
-                        // region Compute position dragging
-                        val newPosIdeal: Vector3dc = referenceTransform.shipToWorld.transformPosition(
-                            shipData.prevTickTransform.worldToShip.transformPosition(
-                                Vector3d(entityReferencePos)
-                            )
-                        )
-                        addedMovement = newPosIdeal.sub(entityReferencePos, Vector3d())
-                        if (entity is Player && entity.isShiftKeyDown &&
-                            (entity.onGround() || entity.fallDistance < entity.maxUpStep()) &&
-                            !entity.abilities.flying && !entity.noPhysics && entity.deltaMovement.y <= 0.0 &&
-                            addedMovement.isFinite
-                        ) {
-                            addedMovement = keepSneakingPlayerOnShip(entity, shipData, addedMovement)
-                        }
-                        // endregion
-
-                        // region Compute look dragging
-                        val yViewRot = entity.yRot.toDouble()
-
-                        // Get the y-look vector of the entity only using y-rotation, ignore x-rotation
-                        val entityLookYawOnly =
-                            Vector3d(sin(-Math.toRadians(yViewRot)), 0.0, cos(-Math.toRadians(yViewRot)))
-
-                        val newLookIdeal = referenceTransform.shipToWorld.transformDirection(
-                            shipData.prevTickTransform.worldToShip.transformDirection(
-                                entityLookYawOnly
-                            )
-                        )
-
-                        // Get the X and Y rotation from [newLookIdeal]
-                        val newXRot = asin(-newLookIdeal.y())
-                        val xRotCos = cos(newXRot)
-                        val newYRot = -atan2(newLookIdeal.x() / xRotCos, newLookIdeal.z() / xRotCos)
-
-                        // The Y rotation of the entity before dragging
-                        var entityYRotCorrected = entity.yRot % 360.0
-                        // Limit [entityYRotCorrected] to be between -180 to 180 degrees
-                        if (entityYRotCorrected <= -180.0) entityYRotCorrected += 360.0
-                        if (entityYRotCorrected >= 180.0) entityYRotCorrected -= 360.0
-
-                        // The Y rotation of the entity after dragging
-                        val newYRotAsDegrees = Math.toDegrees(newYRot)
-                        // Limit [addedYRotFromDragging] to be between -180 to 180 degrees
-                        var addedYRotFromDragging = newYRotAsDegrees - entityYRotCorrected
-                        if (addedYRotFromDragging <= -180.0) addedYRotFromDragging += 360.0
-                        if (addedYRotFromDragging >= 180.0) addedYRotFromDragging -= 360.0
-
-                        addedYRot = addedYRotFromDragging
-                        // endregion
-                    }
-                } else {
-                    addedMovement = Vector3d(entityDraggingInformation.addedMovementLastTick)
-                    addedYRot = 0.0
+            val info = (entity as? IEntityDraggingInformationProvider)?.draggingInformation ?: continue
+            info.mountedToEntity = entity.vehicle != null
+            if (!isDraggable(entity)) continue
+            val ship = info.lastShipStoodOn?.let { entity.level().shipObjectWorld.allShips.getById(it) }
+            if (ship != null && info.isEntityBeingDraggedByAShip() && entity.vehicle == null) {
+                if (EntityShipCollisionUtils.isCollidingWithUnloadedShips(entity)) continue
+                if (ship is ClientShip && info.usesShipInterpolation && !entity.isControlledByLocalInstance) {
+                    EntityLerper.lerpStep(info, ship, entity)
+                    info.finishTick()
+                    continue
                 }
-            }
-
-            if (dragTheEntity && addedMovement != null && addedMovement.isFinite && addedYRot.isFinite()) {
-                // TODO: Do collision on [addedMovement], as currently this can push players into
-                //       blocks
-                // Apply [addedMovement]
-                val newBB = entity.boundingBox.move(addedMovement.toMinecraft())
-                entity.boundingBox = newBB
-                entity.setPos(
-                    entity.x + addedMovement.x(),
-                    entity.y + addedMovement.y(),
-                    entity.z + addedMovement.z()
+                val position = Vector3d(entity.x, entity.y, entity.z)
+                var movement: Vector3dc = ShipDraggingMath.movement(
+                    position, ship.prevTickTransform.worldToShip, ship.transform.shipToWorld
                 )
-
-                if(entityDraggingInformation.shouldImpulseMovement && entity.isControlledByLocalInstance) { //This is the first Tick on the ship. Also, should push the entity in server side only and propagate the result.
-                    val acceleration = Vector3d(entityDraggingInformation.addedMovementLastTick) // if it was on a different ship last tick, consider that too.
-                        .sub(addedMovement) // relative velocity to current ship.
-                    entity.push(acceleration.x, acceleration.y, acceleration.z)
+                if (entity is Player && entity.isShiftKeyDown &&
+                    (entity.onGround() || entity.fallDistance < entity.maxUpStep()) &&
+                    !entity.abilities.flying && !entity.noPhysics && entity.deltaMovement.y <= 0.0 && movement.isFinite
+                ) {
+                    movement = keepSneakingPlayerOnShip(entity, ship, movement)
                 }
-
-                entityDraggingInformation.addedMovementLastTick = addedMovement
-
-                // Apply [addedYRot]
-                if (addedYRot.isFinite()) {
-                    if (!entity.level().isClientSide()) {
-                        if (entity !is ServerPlayer) {
-                            entity.yRot = ((entity.yRot + addedYRot.toFloat()) + 360f) % 360f
-                            entity.yHeadRot = ((entity.yHeadRot + addedYRot.toFloat()) + 360f) % 360f
-                            if(entity is LivingEntity) {
-                                entity.yBodyRot = ((entity.yBodyRot + addedYRot.toFloat()) + 360f) % 360f
-                            }
-                        } else {
-                            entity.yRot = Mth.wrapDegrees(entity.yRot + addedYRot.toFloat())
-                            entity.yHeadRot = Mth.wrapDegrees(entity.yHeadRot + addedYRot.toFloat())
-                            entity.yBodyRot = Mth.wrapDegrees(entity.yBodyRot + addedYRot.toFloat())
-                        }
-                    } else {
-                        if (!entity.isControlledByLocalInstance && entity !is Player) {
-                            entity.yRot = Mth.wrapDegrees(entity.yRot + addedYRot.toFloat())
-                            entity.yHeadRot = Mth.wrapDegrees(entity.yHeadRot + addedYRot.toFloat())
-                            if(entity is LivingEntity) {
-                                entity.yBodyRot = Mth.wrapDegrees(entity.yBodyRot + addedYRot.toFloat())
-                            }
-                        } else {
-                            entity.yRot = (entity.yRot + addedYRot.toFloat())
-                            entity.yHeadRot = (entity.yHeadRot + addedYRot.toFloat())
-                            if(entity is LivingEntity) {
-                                entity.yBodyRot = (entity.yBodyRot + addedYRot.toFloat())
-                            }
+                if (movement.isFinite) {
+                    val clipped = if (entity.noPhysics) movement else
+                        EntityShipCollisionUtils.adjustShipDraggingMovement(entity, ship.id, movement)
+                    entity.setPos(entity.x + clipped.x(), entity.y + clipped.y(), entity.z + clipped.z())
+                    val controllingPlayer = (entity as? ServerPlayer) ?: (entity.controllingPassenger as? ServerPlayer)
+                    (controllingPlayer?.connection as? ShipMovementListener)?.`vs$onShipDrag`(entity, clipped)
+                    if (info.shouldImpulseMovement && entity.isControlledByLocalInstance) {
+                        val acceleration = info.addedMovementLastTick.sub(movement, Vector3d())
+                        entity.push(acceleration.x, acceleration.y, acceleration.z)
+                    }
+                    info.addedMovementLastTick = clipped
+                    val yaw = ShipDraggingMath.wrapDegrees(Math.toDegrees(
+                        ShipDraggingMath.shipYaw(ship.prevTickTransform.shipToWorldRotation) -
+                            ShipDraggingMath.shipYaw(ship.transform.shipToWorldRotation)
+                    ))
+                    entity.yRot += yaw.toFloat()
+                    entity.yHeadRot += yaw.toFloat()
+                    if (entity is LivingEntity) entity.yBodyRot += yaw.toFloat()
+                    info.addedYawRotLastTick = yaw
+                    if (clipped.distanceSquared(movement) > 1e-12) {
+                        entity.hasImpulse = true
+                        if (ShipDraggingMath.landedOnWorld(movement, clipped)) {
+                            info.lastShipStoodOn = null
+                            info.addedMovementLastTick = Vector3d()
                         }
                     }
-
-                    entityDraggingInformation.addedYawRotLastTick = addedYRot
                 }
-                if (!entity.level().isClientSide && !entity.onGround() && entity.deltaMovement.y <= 0.0) {
-                    val ship = shipDraggingEntity?.let { entity.level().shipObjectWorld.allShips.getById(it) }
-                    if (ship != null) {
-                        val level = entity.level()
-                        val shipLocal = ship.transform.worldToShip.transformPosition(
-                            Vector3d(entity.x, entity.y - 0.2, entity.z), Vector3d()
-                        )
-                        val footProbe = BlockPos.containing(shipLocal.x, shipLocal.y, shipLocal.z)
-                        // Fallback to the cell below catches fences/walls whose collision extends
-                        // above the cell they occupy.
-                        val onShipBlock = !level.getBlockState(footProbe)
-                                .getCollisionShape(level, footProbe).isEmpty
-                            || !level.getBlockState(footProbe.below())
-                                .getCollisionShape(level, footProbe.below()).isEmpty
-                        if (onShipBlock) entity.setOnGround(true)
-                    }
+            } else {
+                if (entity.isControlledByLocalInstance && entity.vehicle == null && info.addedMovementLastTick.isFinite) {
+                    val movement = info.addedMovementLastTick
+                    if (movement.lengthSquared() > 1e-6) entity.push(movement.x(), movement.y(), movement.z())
                 }
-            } else if (entity.isControlledByLocalInstance && entityDraggingInformation.addedMovementLastTick.lengthSquared() > 1e-6) {
-                entity.push(entityDraggingInformation.addedMovementLastTick.x(),
-                    entityDraggingInformation.addedMovementLastTick.y(),
-                    entityDraggingInformation.addedMovementLastTick.z())
-                entityDraggingInformation.addedMovementLastTick = Vector3d()
-                entityDraggingInformation.addedYawRotLastTick = 0.0
+                info.addedMovementLastTick = Vector3d()
+                info.addedYawRotLastTick = 0.0
+                if (ship == null || info.ticksSinceStoodOnShip >= EntityDraggingInformation.TICKS_TO_DRAG_ENTITIES) {
+                    if (info.lastShipStoodOn != null) entity.hasImpulse = true
+                    info.lastShipStoodOn = null
+                }
             }
-
-            entityDraggingInformation.ticksSinceStoodOnShip++
-            entityDraggingInformation.mountedToEntity = entity.vehicle != null
+            info.finishTick()
         }
     }
-
     private fun keepSneakingPlayerOnShip(player: Player, ship: Ship, movement: Vector3dc): Vector3dc {
         val previous = ship.prevTickTransform
         val current = ship.transform

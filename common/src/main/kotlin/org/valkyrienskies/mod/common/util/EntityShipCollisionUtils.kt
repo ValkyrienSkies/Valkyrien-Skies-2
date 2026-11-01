@@ -255,20 +255,47 @@ object EntityShipCollisionUtils {
             entityBoundingBox
         }
 
-        val (newMovement, shipCollidingWith) = collider.adjustEntityMovementForPolygonCollisions(
+        val (newMovement, _) = collider.adjustEntityMovementForPolygonCollisions(
             movement.toJOML(), collisionBoundingBox.toJOML(), stepHeight, collidingShipPolygons, entity?.onGround() ?: false
         )
-        if (entity != null) {
-            val standingOnShip = entity.level().getLoadedShipManagingPos(entity.onPos)
-            if (shipCollidingWith != null && standingOnShip != null && standingOnShip.id == shipCollidingWith) {
-                // Update the [IEntity.lastShipStoodOn]
-                (entity as IEntityDraggingInformationProvider).draggingInformation.lastShipStoodOn = shipCollidingWith
-                for (entityRiding in entity.indirectPassengers) {
-                    (entityRiding as IEntityDraggingInformationProvider).draggingInformation.lastShipStoodOn = shipCollidingWith
-                }
+        return newMovement.toMinecraft()
+    }
+
+    @JvmStatic
+    fun findSupportingShip(entity: Entity): Ship? {
+        val bounds = entity.boundingBox
+        val feet = AABB(bounds.minX, bounds.minY - 0.01, bounds.minZ,
+            bounds.maxX, bounds.minY + 0.01, bounds.maxZ).toJOML()
+        val level = entity.level()
+        val previous = (entity as IEntityDraggingInformationProvider).draggingInformation.lastShipStoodOn
+        var support: Ship? = null
+        for (ship in level.shipObjectWorld.loadedShips.getIntersecting(feet, level.dimensionId)) {
+            val local = feet.transform(ship.worldToShip, AABBd()).toMinecraft()
+            if (BugFixUtil.isCollisionBoxTooBig(local)) continue
+            val query = ShipCollisionQuery()
+            val shapes = query.addShip(ship.shipToWorld)
+            for (shape in level.getBlockCollisions(entity, local)) shape.forAllBoxes(shapes::addBox)
+            if (query.hasStandingSupport(bounds.minX, bounds.minY, bounds.minZ,
+                    bounds.maxX, bounds.maxY, bounds.maxZ)) {
+                if (ship.id == previous) return ship
+                if (support == null || ship.id < support.id) support = ship
             }
         }
-        return newMovement.toMinecraft()
+        return support
+    }
+
+    fun adjustShipDraggingMovement(entity: Entity, carryingShip: ShipId, movement: org.joml.Vector3dc): org.joml.Vector3dc {
+        val box = entity.boundingBox
+        val level = entity.level()
+        return MovementSubsteps.resolve(movement) { step, offset ->
+            val bounds = box.move(offset.toMinecraft())
+            val polygons = getShipPolygonsCollidingWithEntity(entity, step.toMinecraft(), bounds, level, carryingShip)
+            val clipped = if (polygons.isEmpty()) step else collider.adjustEntityMovementForPolygonCollisions(
+                step, bounds.toJOML(), 0.0, polygons, false
+            ).first
+            Entity.collideBoundingBox(entity, clipped.toMinecraft(), bounds, level,
+                level.getEntityCollisions(entity, bounds.expandTowards(clipped.toMinecraft()))).toJOML()
+        }
     }
 
     /**
@@ -452,11 +479,13 @@ object EntityShipCollisionUtils {
         return query
     }
 
+    @JvmOverloads
     fun getShipPolygonsCollidingWithEntity(
         entity: Entity?,
         movement: Vec3,
         entityBoundingBox: AABB,
-        world: Level
+        world: Level,
+        excludedShip: ShipId? = null
     ): List<VsiConvexPolygonc> {
         if (world.shipObjectWorld.loadedShips.isEmpty()) {
             return emptyList()
@@ -468,6 +497,7 @@ object EntityShipCollisionUtils {
         val entityBoxWithMovementJoml = entityBoxWithMovement.toJOML()
         val entityBoundingBoxInShipCoordinates = AABBd()
         for (shipObject in world.shipObjectWorld.loadedShips.getIntersecting(entityBoundingBoxExtended, world.dimensionId)) {
+            if (shipObject.id == excludedShip) continue
             val shipTransform = shipObject.transform
             entityBoxWithMovementJoml.transform(shipTransform.worldToShip, entityBoundingBoxInShipCoordinates)
             if (BugFixUtil.isCollisionBoxTooBig(entityBoundingBoxInShipCoordinates.toMinecraft())) {
