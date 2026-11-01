@@ -34,6 +34,7 @@ import org.valkyrienskies.mod.common.fluid.FluidOcclusionRenderer;
 import org.valkyrienskies.mod.common.fluid.FluidTopologyClientCache;
 import org.valkyrienskies.mod.common.fluid.ShipFluidInteraction;
 import org.valkyrienskies.mod.common.util.EntityDragger;
+import org.valkyrienskies.mod.common.networking.ClientShipMovement;
 import org.valkyrienskies.mod.compat.LoadedMods;
 import org.valkyrienskies.mod.compat.LoadedMods.FlywheelVersion;
 import org.valkyrienskies.mod.mixinducks.client.MinecraftDuck;
@@ -144,6 +145,7 @@ public abstract class MixinMinecraft
             ShipFluidInteraction.prune(shipObjectWorld);
             FloodedFluidClientCache.prune(shipObjectWorld);
             FluidTopologyClientCache.prune(shipObjectWorld);
+            ClientShipMovement.INSTANCE.tick();
             EntityDragger.INSTANCE.dragEntitiesWithShips(level.entitiesForRendering(), false);
             if(player != null && level.isClientSide) ((PlayerKnownShipsDuck)player).vs_flushKnownShips();
         }

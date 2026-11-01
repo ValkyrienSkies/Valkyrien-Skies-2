@@ -29,10 +29,14 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
+import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
+import org.valkyrienskies.mod.common.util.MovementSubsteps;
+import org.valkyrienskies.mod.common.util.ShipDraggingMath;
+import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.common.util.ShipPathfindingUtils;
 import org.valkyrienskies.mod.mixinducks.world.entity.EntityShipGroundingDuck;
 
@@ -135,24 +139,20 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider,
         final AABB box = this.getBoundingBox();
         Long draggingShipID = getDraggingInformation().getLastShipStoodOn();
       
-        //Subdivide the movement if the speed is too high, to avoid clipping through.
-        int subdivision = (int) (movement.length() / 0.5) + 1;
-        Vec3 substep = movement.scale(1.0 / subdivision);
-        for (int i = 0; i < subdivision; i++) {
-            Vec3 partialResult = EntityShipCollisionUtils.INSTANCE
-                .adjustEntityMovementForShipCollisions(entity, substep, box.move(substep.scale(i)), this.level);
-            partialResult = EntityShipCollisionUtils
-              .adjustEntityMovementForShipyardEntityCollisions(entity, partialResult, box.move(substep.scale(i)), this.level);
-          if (partialResult.distanceToSqr(substep) > 1e-12) {
-                //Collision happened on this step.
-                movement = substep.scale(i).add(partialResult);
-                break;
-            }
-        }
+        movement = VectorConversionsMCKt.toMinecraft(MovementSubsteps.resolve(
+            VectorConversionsMCKt.toJOML(movement), (step, offset) -> {
+                final AABB substepBox = box.move(VectorConversionsMCKt.toMinecraft(offset));
+                Vec3 partialResult = EntityShipCollisionUtils.INSTANCE.adjustEntityMovementForShipCollisions(
+                    entity, VectorConversionsMCKt.toMinecraft(step), substepBox, this.level);
+                partialResult = EntityShipCollisionUtils.adjustEntityMovementForShipyardEntityCollisions(
+                    entity, partialResult, substepBox, this.level);
+                return VectorConversionsMCKt.toJOML(partialResult);
+            }));
         final Vec3 collisionResultWithWorld = collide.call(entity, movement);
 
-        if (collisionResultWithWorld.distanceToSqr(movement) > 1e-12) {
-            // We collided with the world? Set the dragging ship to null.
+        if (ShipDraggingMath.landedOnWorld(
+            VectorConversionsMCKt.toJOML(movement), VectorConversionsMCKt.toJOML(collisionResultWithWorld))
+            && !getDraggingInformation().getUsesShipInterpolation()) {
             final EntityDraggingInformation entityDraggingInformation = getDraggingInformation();
             if (entityDraggingInformation.getIgnoreNextGroundStand()) {
                 entityDraggingInformation.setIgnoreNextGroundStand(false);
@@ -303,12 +303,21 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider,
     )
     private void addShipSupportToOnGroundState(final Entity entity, final boolean onGround, final Vec3 movement,
         final Operation<Void> original) {
-        final BlockPos shipSupportPos =
-            onGround ? null : getPosStandingOnFromShips();
-        final boolean shouldBeGrounded = onGround || shipSupportPos != null;
+        final Ship support =
+            movement.y <= 0.0 ? EntityShipCollisionUtils.findSupportingShip(entity) : null;
+        final boolean shouldBeGrounded = onGround || support != null;
         original.call(entity, shouldBeGrounded, movement);
-        if (shipSupportPos != null) {
-            vs$setShipSupportingBlock(shipSupportPos);
+        if (support != null) {
+            final EntityDraggingInformation info = getDraggingInformation();
+            if (!info.getUsesShipInterpolation()) {
+                info.setLastShipStoodOn(support.getId());
+                for (Entity passenger : entity.getIndirectPassengers()) {
+                    ((IEntityDraggingInformationProvider) passenger).getDraggingInformation()
+                        .setLastShipStoodOn(support.getId());
+                }
+            }
+            final BlockPos shipSupportPos = getPosStandingOnFromShips();
+            if (shipSupportPos != null) vs$setShipSupportingBlock(shipSupportPos);
         }
     }
 

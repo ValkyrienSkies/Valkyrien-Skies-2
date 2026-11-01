@@ -8,6 +8,15 @@ import org.joml.Vector3d;
 import org.junit.jupiter.api.Test;
 
 class ShipCollisionQueryTest {
+    @Test
+    void groundingRequiresFootContactRatherThanANearbyBlock() {
+        final ShipCollisionQuery query = unitBlock(new Matrix4d());
+        assertTrue(query.hasStandingSupport(0.2, 1, 0.2, 0.8, 2.8, 0.8));
+        assertFalse(query.hasStandingSupport(0.2, 1.1, 0.2, 0.8, 2.9, 0.8));
+        assertFalse(query.hasStandingSupport(0.2, 2, 0.2, 0.8, 3.8, 0.8));
+        assertFalse(query.hasStandingSupport(1.01, 0.5, 0.2, 1.61, 2.3, 0.8));
+    }
+
     private static ShipCollisionQuery unitBlock(final Matrix4d transform) {
         final ShipCollisionQuery query = new ShipCollisionQuery();
         query.addShip(transform).addBox(0, 0, 0, 1, 1, 1);

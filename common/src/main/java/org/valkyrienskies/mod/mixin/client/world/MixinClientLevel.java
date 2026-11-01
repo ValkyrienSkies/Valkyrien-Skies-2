@@ -27,6 +27,7 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.GameType;
@@ -59,10 +60,17 @@ import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.DimensionParametersResolver;
 import org.valkyrienskies.mod.common.render.light.VsDynamicLight;
+import org.valkyrienskies.mod.common.util.EntityLerper;
+import org.valkyrienskies.mod.common.networking.ClientShipMovement;
 import org.valkyrienskies.mod.util.McMathUtilKt;
 
 @Mixin(ClientLevel.class)
 public abstract class MixinClientLevel implements IShipObjectWorldClientProvider {
+    @Inject(method = "tickNonPassenger", at = @At("HEAD"))
+    private void vs$prepareShipInterpolation(Entity entity, CallbackInfo ci) {
+        EntityLerper.INSTANCE.prepareTick(entity);
+    }
+
     @Unique
     private static final int VS_ANIMATE_TICK_GLOBAL_SAMPLE_BUDGET = 1334;
 
@@ -135,6 +143,7 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
 
     @Inject(method = "disconnect", at = @At("TAIL"))
     private void afterDisconnect(final CallbackInfo ci) {
+        ClientShipMovement.INSTANCE.clear();
         getVsCore().getHooks().afterDisconnect();
     }
 
