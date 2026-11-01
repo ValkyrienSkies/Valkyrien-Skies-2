@@ -10,6 +10,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.entity.LightningBolt;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.biome.Biome.Precipitation;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -51,7 +52,8 @@ public abstract class MixinServerLevel {
     @WrapOperation(method = "tickChunk", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerLevel;getHeightmapPos(Lnet/minecraft/world/level/levelgen/Heightmap$Types;Lnet/minecraft/core/BlockPos;)Lnet/minecraft/core/BlockPos;"))
     private BlockPos occlude(
         ServerLevel level, Types types, BlockPos pos, Operation<BlockPos> original,
-        @Local(argsOnly = true) LevelChunk chunk, @Share("ship") LocalRef<Ship> shipRef
+        @Local(argsOnly = true) LevelChunk chunk, @Share("ship") LocalRef<Ship> shipRef,
+        @Share("occluded") LocalRef<BlockPos> occludedRef
     ) {
         BlockPos result = original.call(level, types, pos);
         BlockPos failure = BlockPos.ZERO.above(level.getMinBuildHeight() - 1);
@@ -64,6 +66,7 @@ public abstract class MixinServerLevel {
             BlockPos worldHeight = original.call(level, types, worldPos);
             if (worldHeight.getY() > worldPos.getY()) { // the ship block is occluded by a world block above it
                 // Return an invalid BlockPos for which no snowfall and freezing will ever occur.
+                occludedRef.set(failure);
                 return failure;
             }
         }
@@ -71,7 +74,18 @@ public abstract class MixinServerLevel {
     }
 
     @WrapOperation(method = "tickChunk", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerLevel;getBiome(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/core/Holder;"))
-    private Holder<Biome> useBiomeAtWorldPos(ServerLevel level, BlockPos pos, Operation<Holder<Biome>> original, @Share("ship") LocalRef<Ship> shipRef) {
+    private Holder<Biome> useBiomeAtWorldPos(
+        ServerLevel level, BlockPos pos, Operation<Holder<Biome>> original,
+        @Local(argsOnly = true) LevelChunk chunk, @Share("ship") LocalRef<Ship> shipRef,
+        @Share("occluded") LocalRef<BlockPos> occludedRef
+    ) {
+        if (pos == occludedRef.get()) {
+            // The occluded position is below the world, where the biome can neither freeze nor snow and precipitation
+            // only reaches the empty handler of VOID_AIR. Transforming it through the ship would land far outside the
+            // world and sample uncached climate noise, so read a biome from the ticking chunk instead.
+            ChunkPos chunkPos = chunk.getPos();
+            return original.call(level, new BlockPos(chunkPos.getMinBlockX() + 8, pos.getY(), chunkPos.getMinBlockZ() + 8));
+        }
         return original.call(level, BlockPos.containing(CompatUtil.INSTANCE.toSameSpaceAs(level, pos.getCenter(), (Ship)null, shipRef.get())));
     }
 
