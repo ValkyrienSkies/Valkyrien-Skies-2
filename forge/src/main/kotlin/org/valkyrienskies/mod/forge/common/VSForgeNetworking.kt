@@ -1,10 +1,12 @@
 package org.valkyrienskies.mod.forge.common
 
 import io.netty.buffer.ByteBuf
+import io.netty.buffer.Unpooled
 import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerPlayer
 import net.minecraftforge.network.NetworkRegistry
+import net.minecraftforge.network.NetworkEvent
 import net.minecraftforge.network.PacketDistributor
 import net.minecraftforge.network.simple.SimpleChannel
 import org.valkyrienskies.core.internal.hooks.VsiCoreHooksIn
@@ -35,7 +37,7 @@ object VSForgeNetworking {
             { vsPacket, ctx ->
                 val sender = ctx.get().sender
                 if (sender != null) {
-                    hooks.onReceiveServer(vsPacket.buf, sender.playerWrapper)
+                    handleServerPacket(hooks, vsPacket.buf, sender, ctx.get())
                 } else {
                     hooks.onReceiveClient(vsPacket.buf)
                 }
@@ -55,7 +57,7 @@ object VSForgeNetworking {
                 if (assembled != null) {
                     val sender = ctx.get().sender
                     if (sender != null) {
-                        hooks.onReceiveServer(assembled, sender.playerWrapper)
+                        handleServerPacket(hooks, assembled, sender, ctx.get())
                     } else {
                         hooks.onReceiveClient(assembled)
                     }
@@ -63,6 +65,20 @@ object VSForgeNetworking {
                 ctx.get().packetHandled = true
             }
         )
+    }
+
+    private fun handleServerPacket(hooks: VsiCoreHooksIn, payload: ByteBuf, sender: ServerPlayer, context: NetworkEvent.Context) {
+        // Forge releases the received buffer when the network-thread consumer returns.
+        val copy = Unpooled.copiedBuffer(payload)
+        context.enqueueWork {
+            try {
+                if (!sender.hasDisconnected() && sender.connection.isAcceptingMessages) {
+                    hooks.onReceiveServer(copy, sender.playerWrapper)
+                }
+            } finally {
+                copy.release()
+            }
+        }
     }
 
     fun sendToClient(data: ByteBuf, player: VsiPlayer) {
