@@ -198,6 +198,19 @@ components.java {
     }
 }
 
+tasks.register('outputArtifacts') {
+    dependsOn tasks.remapJar
+    doLast {
+        def jarFile = tasks.remapJar.archiveFile.get().asFile
+        def targetDir = file("${rootDir}/${artifacts_output_dir}/")
+        copy {
+            from jarFile
+            into targetDir
+            rename { "${artifacts_output_name}-fabric-${artifacts_output_version}.jar" }
+        }
+    }
+}
+
 // Publish to Mavens
 publishing {
     publications {
