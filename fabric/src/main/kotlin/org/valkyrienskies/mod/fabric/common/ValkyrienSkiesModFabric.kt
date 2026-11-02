@@ -1,34 +1,38 @@
 package org.valkyrienskies.mod.fabric.common
 
+import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import dev.engine_room.flywheel.api.event.ReloadLevelRendererCallback
 import fuzs.forgeconfigapiport.api.config.v2.ForgeConfigRegistry
 import fuzs.forgeconfigapiport.api.config.v2.ModConfigEvents
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper
+import net.fabricmc.fabric.api.client.rendering.v1.CoreShaderRegistrationCallback
 import net.fabricmc.fabric.api.client.rendering.v1.EntityModelLayerRegistry
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents
 import net.fabricmc.fabric.api.`object`.builder.v1.block.entity.FabricBlockEntityTypeBuilder
 import net.fabricmc.fabric.api.`object`.builder.v1.entity.FabricDefaultAttributeRegistry
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.client.multiplayer.ClientLevel
+import net.minecraft.client.renderer.ShaderInstance
 import net.minecraft.client.renderer.entity.EntityRendererProvider.Context
 import net.minecraft.core.Registry
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.server.level.ServerPlayer
 import net.minecraft.server.packs.PackType.SERVER_DATA
 import net.minecraft.server.packs.resources.PreparableReloadListener.PreparationBarrier
 import net.minecraft.server.packs.resources.ResourceManager
 import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MobCategory
-import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.CreativeModeTabs
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.Item.Properties
@@ -39,12 +43,14 @@ import net.minecraftforge.fml.config.ModConfig
 import org.valkyrienskies.mod.client.EmptyRenderer
 import org.valkyrienskies.mod.client.VSPhysicsEntityModel
 import org.valkyrienskies.mod.client.VSPhysicsEntityRenderer
+import org.valkyrienskies.mod.common.VSRenderTypes
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod.AREA_ASSEMBLER_ITEM
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod.CLASSIC_AREA_ASSEMBLER_ITEM
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod.CONNECTION_CHECKER_ITEM
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod.PHYSICS_ENTITY_CREATOR_ITEM
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.SHIP_WELDER_ITEM
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod.SHIP_CREATOR_ITEM
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod.SHIP_CREATOR_ITEM_SMALLER
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod.SHIP_REMOVER_ITEM
@@ -66,6 +72,7 @@ import org.valkyrienskies.mod.common.blockentity.TestThrusterBlockEntity
 import org.valkyrienskies.mod.common.command.VSCommands
 import org.valkyrienskies.mod.common.config.DimensionParametersResolver
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
+import org.valkyrienskies.mod.common.config.SlugDatapackResolver
 import org.valkyrienskies.mod.common.config.VSConfigUpdater
 import org.valkyrienskies.mod.common.config.VSEntityHandlerDataLoader
 import org.valkyrienskies.mod.common.config.VSGameConfig
@@ -78,8 +85,12 @@ import org.valkyrienskies.mod.common.item.AreaAssemblerItem
 import org.valkyrienskies.mod.common.item.ConnectionCheckerItem
 import org.valkyrienskies.mod.common.item.PhysicsEntityCreatorItem
 import org.valkyrienskies.mod.common.item.ShipAssemblerItem
+import org.valkyrienskies.mod.common.item.ShipWelderItem
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
 import org.valkyrienskies.mod.common.item.ShipRemoverItem
+import org.valkyrienskies.mod.common.item.VSBlockItem
+import org.valkyrienskies.mod.common.playerWrapper
+import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.compat.LoadedMods
 import org.valkyrienskies.mod.compat.flywheel.FlywheelCompat
 import org.valkyrienskies.mod.compat.flywheel.ShipEmbeddingManager
@@ -101,8 +112,8 @@ class ValkyrienSkiesModFabric : ModInitializer {
         if (hasInitialized.getAndSet(true)) return
 
         ForgeConfigRegistry.INSTANCE.apply {
-            register(ValkyrienSkiesMod.MOD_ID, ModConfig.Type.SERVER, VSConfigUpdater.CORE_SERVER_SPEC, "valkyrienskies/vs-core-server.toml")
             register(ValkyrienSkiesMod.MOD_ID, ModConfig.Type.SERVER, VSConfigUpdater.SERVER_SPEC, "valkyrienskies/valkyrienskies-server.toml")
+            register(ValkyrienSkiesMod.MOD_ID, ModConfig.Type.SERVER, VSConfigUpdater.CORE_SERVER_SPEC, "valkyrienskies/vs-core-server.toml")
             register(ValkyrienSkiesMod.MOD_ID, ModConfig.Type.COMMON, VSConfigUpdater.COMMON_SPEC, "valkyrienskies/valkyrienskies-common.toml")
             register(ValkyrienSkiesMod.MOD_ID, ModConfig.Type.CLIENT, VSConfigUpdater.CLIENT_SPEC, "valkyrienskies/valkyrienskies-client.toml")
         }
@@ -130,6 +141,7 @@ class ValkyrienSkiesModFabric : ModInitializer {
             Properties()
         )
         ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM = ShipAssemblerItem(Properties())
+        ValkyrienSkiesMod.SHIP_WELDER_ITEM = ShipWelderItem(Properties())
         ValkyrienSkiesMod.AREA_ASSEMBLER_ITEM = AreaAssemblerItem(
             Properties(),
             { 1.0 },
@@ -202,6 +214,10 @@ class ValkyrienSkiesModFabric : ModInitializer {
             ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM
         )
         Registry.register(
+            BuiltInRegistries.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_welder"),
+            ValkyrienSkiesMod.SHIP_WELDER_ITEM
+        )
+        Registry.register(
             BuiltInRegistries.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_creator"),
             ValkyrienSkiesMod.SHIP_CREATOR_ITEM
         )
@@ -259,10 +275,22 @@ class ValkyrienSkiesModFabric : ModInitializer {
             event.accept(SHIP_CREATOR_ITEM)
             event.accept(SHIP_REMOVER_ITEM)
             event.accept(SHIP_ASSEMBLER_ITEM)
+            event.accept(SHIP_WELDER_ITEM)
             event.accept(SHIP_CREATOR_ITEM_SMALLER)
             event.accept(AREA_ASSEMBLER_ITEM)
             event.accept(CLASSIC_AREA_ASSEMBLER_ITEM)
             event.accept(PHYSICS_ENTITY_CREATOR_ITEM)
+        }
+
+        ServerPlayConnectionEvents.JOIN.register { handler, sender, server ->
+            if (handler.player is ServerPlayer) {
+                val player: MinecraftPlayer = handler.player.playerWrapper
+                if (VSGameConfig.SERVER.allowBlockInfo) {
+                    MassDatapackResolver.syncBlockStates(player)
+                } else {
+                    MassDatapackResolver.clearBlockStates(player)
+                }
+            }
         }
 
         CommandRegistrationCallback.EVENT.register { dispatcher ,d, _ ->
@@ -277,6 +305,7 @@ class ValkyrienSkiesModFabric : ModInitializer {
         val loader1 = MassDatapackResolver.loader // the get makes a new instance so get it only once
         val loader2 = VSEntityHandlerDataLoader // the get makes a new instance so get it only once
         val loader3 = DimensionParametersResolver
+        val loader4 = SlugDatapackResolver.loader
         ResourceManagerHelper.get(SERVER_DATA)
             .registerReloadListener(object : IdentifiableResourceReloadListener {
                 override fun getFabricId(): ResourceLocation {
@@ -322,6 +351,26 @@ class ValkyrienSkiesModFabric : ModInitializer {
                     )
                 }
             })
+        ResourceManagerHelper.get(SERVER_DATA)
+            .registerReloadListener(object : IdentifiableResourceReloadListener {
+                override fun getFabricId(): ResourceLocation {
+                    return ResourceLocation(ValkyrienSkiesMod.MOD_ID, "vs_slugs")
+                }
+
+                override fun reload(
+                    stage: PreparationBarrier,
+                    resourceManager: ResourceManager,
+                    preparationsProfiler: ProfilerFiller,
+                    reloadProfiler: ProfilerFiller,
+                    backgroundExecutor: Executor,
+                    gameExecutor: Executor
+                ): CompletableFuture<Void> {
+                    return loader4.reload(
+                        stage, resourceManager, preparationsProfiler, reloadProfiler,
+                        backgroundExecutor, gameExecutor
+                    )
+                }
+            })
         CommonLifecycleEvents.TAGS_LOADED.register { _, _ ->
             VSGameEvents.tagsAreLoaded.emit(Unit)
         }
@@ -359,6 +408,33 @@ class ValkyrienSkiesModFabric : ModInitializer {
             VSPhysicsEntityModel.Companion::createBodyLayer
         )
 
+        CoreShaderRegistrationCallback.EVENT.register { context ->
+            context.register(ResourceLocation("rendertype_ship_solid"), DefaultVertexFormat.BLOCK) { shaderInstance: ShaderInstance? ->
+                VSRenderTypes.shipSolidShader = shaderInstance
+            }
+            context.register(ResourceLocation("rendertype_ship_cutout_mipped"), DefaultVertexFormat.BLOCK) { shaderInstance: ShaderInstance? ->
+                VSRenderTypes.shipCutoutMippedShader = shaderInstance
+            }
+            context.register(ResourceLocation("rendertype_ship_cutout"), DefaultVertexFormat.BLOCK) { shaderInstance: ShaderInstance? ->
+                VSRenderTypes.shipCutoutShader = shaderInstance
+            }
+            context.register(ResourceLocation("rendertype_ship_translucent"), DefaultVertexFormat.BLOCK) { shaderInstance: ShaderInstance? ->
+                VSRenderTypes.shipTranslucentShader = shaderInstance
+            }
+            context.register(ResourceLocation("rendertype_ship_batched_solid"), DefaultVertexFormat.BLOCK) { shaderInstance: ShaderInstance? ->
+                VSRenderTypes.shipBatchedSolidShader = shaderInstance
+            }
+            context.register(ResourceLocation("rendertype_ship_batched_cutout_mipped"), DefaultVertexFormat.BLOCK) { shaderInstance: ShaderInstance? ->
+                VSRenderTypes.shipBatchedCutoutMippedShader = shaderInstance
+            }
+            context.register(ResourceLocation("rendertype_ship_batched_cutout"), DefaultVertexFormat.BLOCK) { shaderInstance: ShaderInstance? ->
+                VSRenderTypes.shipBatchedCutoutShader = shaderInstance
+            }
+            context.register(ResourceLocation("rendertype_ship_batched_translucent"), DefaultVertexFormat.BLOCK) { shaderInstance: ShaderInstance? ->
+                VSRenderTypes.shipBatchedTranslucentShader = shaderInstance
+            }
+        }
+
         VSKeyBindings.clientSetup {
             KeyBindingHelper.registerKeyBinding(it)
         }
@@ -379,7 +455,7 @@ class ValkyrienSkiesModFabric : ModInitializer {
             BuiltInRegistries.BLOCK, ResourceLocation(ValkyrienSkiesMod.MOD_ID, registryName),
             block
         )
-        val item = BlockItem(block, Properties())
+        val item = VSBlockItem(block, Properties())
         Registry.register(BuiltInRegistries.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, registryName), item)
         return item
     }

@@ -14,6 +14,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.mod.api.ValkyrienSkies;
+import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 
 @Mixin(MoveControl.class)
 public class MixinMoveControl {
@@ -29,6 +30,12 @@ public class MixinMoveControl {
     private VoxelShape vs$insertShipCollisions(BlockState instance, BlockGetter blockGetter, BlockPos blockPos,
         Operation<VoxelShape> original) {
         VoxelShape originalShape = original.call(instance, this.mob.level(), blockPos);
+        // For a ship-mounted mob the overlay would re-find the mob's own ship and fire
+        // an endless step-up jump on its own deck.
+        if (this.mob instanceof IEntityDraggingInformationProvider provider
+            && provider.getDraggingInformation().isEntityBeingDraggedByAShip()) {
+            return originalShape;
+        }
         if (originalShape.isEmpty()) {
             Iterable<Vector3d> alternates = ValkyrienSkies.positionToNearbyShips(this.mob.level(), blockPos.getX(), blockPos.getY(), blockPos.getZ());
             for (Vector3d alternate : alternates) {

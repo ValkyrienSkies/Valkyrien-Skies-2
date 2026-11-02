@@ -104,13 +104,6 @@ abstract class AbstractShipyardEntityHandler : VSEntityHandler {
         entity.xRotO = entity.xRot
 
         if (entity is AbstractHurtingProjectile) {
-            val power = Vector3d(entity.xPower, entity.yPower, entity.zPower)
-            ship.worldToShip.transformDirection(power)
-
-            entity.xPower = power.x
-            entity.yPower = power.y
-            entity.zPower = power.z
-
             ProjectileUtil.rotateTowardsMovement(entity, 1.0f)
         }
     }

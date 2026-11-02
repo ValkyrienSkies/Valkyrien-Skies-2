@@ -10,9 +10,9 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.valkyrienskies.mod.common.command.arguments.RelativeVector3Argument;
 import org.valkyrienskies.mod.common.command.arguments.ShipArgument;
 import org.valkyrienskies.mod.common.command.arguments.ShipArgumentInfo;
+import org.valkyrienskies.mod.common.command.arguments.RelativeVector3Argument;
 
 @Mixin(ArgumentTypeInfos.class)
 public class MixinArgumentTypeInfos {

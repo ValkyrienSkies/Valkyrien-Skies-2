@@ -20,19 +20,59 @@ object VSConfigApi {
     fun buildForgeConfigSpec(
         configCategory: VsiConfigModelCategory,
         builder: ForgeConfigSpec.Builder,
-        forgeConfigValueConsumer: (String, ForgeConfigSpec.ConfigValue<*>) -> Unit = { a, b -> }
+        forgeConfigValueConsumer: (String, ForgeConfigSpec.ConfigValue<*>) -> Unit = { a, b -> },
+        path: List<String> = emptyList(),
+        pathAwareConsumer: (List<String>, VsiConfigModelEntry<*>, ForgeConfigSpec.ConfigValue<*>) -> Unit? = {a, b, c ->}
     ): ForgeConfigSpec.Builder {
         for (node in configCategory.children) {
             val entry = node.value
             if (entry is VsiConfigModelCategory) {
                 builder.push(entry.title)
-                buildForgeConfigSpec(entry, builder, forgeConfigValueConsumer)
+                buildForgeConfigSpec(entry, builder, forgeConfigValueConsumer, path + entry.title, pathAwareConsumer)
                 builder.pop()
             } else if (entry is VsiConfigModelEntry<*>){
-                forgeConfigValueConsumer.invoke(entry.name, defineNode(builder, entry))
+                val value = defineNode(builder, entry)
+                forgeConfigValueConsumer.invoke(entry.name, value)
+                pathAwareConsumer.invoke(path + entry.name, entry, value)
             }
         }
         return builder
+    }
+
+    /**
+     * Binary-compatibility overload for addons compiled before the path-aware config API was added.
+     */
+    @Deprecated("Binary-compatibility overload for addons compiled before the path-aware config API was added.")
+    @JvmStatic
+    @JvmName("buildForgeConfigSpec")
+    fun buildForgeConfigSpecCompat(
+        configCategory: VsiConfigModelCategory,
+        builder: ForgeConfigSpec.Builder,
+        forgeConfigValueConsumer: (String, ForgeConfigSpec.ConfigValue<*>) -> Unit
+    ): ForgeConfigSpec.Builder = buildForgeConfigSpec(
+        configCategory,
+        builder,
+        forgeConfigValueConsumer,
+        emptyList()
+    )
+
+    @Deprecated("Binary-compatibility overload for addons compiled before the path-aware config API was added.")
+    @JvmStatic
+    @JvmName("buildForgeConfigSpec\$default")
+    @Suppress("UNUSED_PARAMETER")
+    fun buildForgeConfigSpecDefaultCompat(
+        configCategory: VsiConfigModelCategory,
+        builder: ForgeConfigSpec.Builder,
+        forgeConfigValueConsumer: ((String, ForgeConfigSpec.ConfigValue<*>) -> Unit)?,
+        mask: Int,
+        ignored: Any?
+    ): ForgeConfigSpec.Builder {
+        val consumer = if ((mask and 0x4) != 0 || forgeConfigValueConsumer == null) {
+            { _: String, _: ForgeConfigSpec.ConfigValue<*> -> }
+        } else {
+            forgeConfigValueConsumer
+        }
+        return buildForgeConfigSpec(configCategory, builder, consumer)
     }
 
     @JvmStatic
@@ -52,7 +92,7 @@ object VSConfigApi {
                                     // Convert string name to enum instance
                                     @Suppress("UNCHECKED_CAST")
                                     val enumConstants = defaultValue.declaringJavaClass.enumConstants as Array<Enum<*>>
-                                    enumConstants.find { it.name == newValue }
+                                    enumConstants.find { it.name.equals(newValue, ignoreCase = true) }
                                 }
                                 is Enum<*> -> newValue
                                 else -> null

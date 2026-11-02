@@ -1,11 +1,9 @@
 package org.valkyrienskies.mod.mixin.client;
 
-import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.client.Camera;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
@@ -14,7 +12,6 @@ import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.ClipContext.Block;
 import net.minecraft.world.level.ClipContext.Fluid;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.material.FogType;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.HitResult.Type;
 import net.minecraft.world.phys.Vec3;
@@ -31,18 +28,10 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
-import org.valkyrienskies.core.api.world.ClientShipWorld;
-import org.valkyrienskies.mod.api.ValkyrienSkies;
 import org.valkyrienskies.mod.client.IVSCamera;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.config.VSGameConfig;
-import org.valkyrienskies.mod.common.util.EntityDragger;
-import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 
 @Mixin(Camera.class)
@@ -85,12 +74,6 @@ public abstract class MixinCamera implements IVSCamera {
     @Shadow
     private BlockPos.MutableBlockPos blockPosition;
 
-    @Unique
-    private int vs$sealedGraceTicks = 0;
-
-    @Unique
-    private BlockPos vs$lastSealedCheckPos = BlockPos.ZERO;
-
     @Shadow
     protected abstract double getMaxZoom(double startingDistance);
 
@@ -101,66 +84,6 @@ public abstract class MixinCamera implements IVSCamera {
     protected abstract void setPosition(double x, double y, double z);
     // endregion
 
-    @Inject(method = "tick", at = @At("HEAD"))
-    private void onTick(CallbackInfo ci) {
-        if (!ValkyrienSkies.isConnectivityEnabled(true)) {
-            return;
-        }
-        LocalPlayer player = Minecraft.getInstance().player;
-        if (player != null && player.level() != null && player instanceof IEntityDraggingInformationProvider provider && initialized) {
-            Vec3 relativePosition = Vec3.ZERO;
-            if (provider.getDraggingInformation().isEntityBeingDraggedByAShip()) {
-                relativePosition = EntityDragger.INSTANCE.serversideEyePosition(player);
-            } else if (VSGameUtilsKt.getShipMountedTo(player) != null) {
-                relativePosition = VectorConversionsMCKt.toMinecraft(VSGameUtilsKt.getShipMountedToData(player, null).getMountPosInShip().add(0.0, (double) player.getEyeHeight(player.getPose()), 0.0, new Vector3d()));
-            }
-            boolean isInSealedArea = false;
-
-            if (!isInSealedArea) {
-                if (relativePosition != Vec3.ZERO && VSGameUtilsKt.isBlockInShipyard(player.level(), BlockPos.containing(relativePosition))) {
-                    if (BlockPos.containing(relativePosition).equals(vs$lastSealedCheckPos)) {
-                        isInSealedArea = provider.vs$isInSealedArea();
-                    } else {
-                        isInSealedArea = VSGameUtilsKt.isPositionSealed(player.level(),
-                            BlockPos.containing(relativePosition));
-                        vs$lastSealedCheckPos = BlockPos.containing(relativePosition);
-                    }
-                } else {
-                    if (!VSGameUtilsKt.isBlockInShipyard(player.level(), BlockPos.containing(relativePosition))) {
-                        // find overlapping ships
-                        ClientShipWorld shipWorld = VSGameUtilsKt.getShipObjectWorld(player.clientLevel);
-                        for (ClientShip ship : shipWorld.getAllShips().getIntersecting(VectorConversionsMCKt.toJOML(player.getBoundingBox().inflate(1.0)))) {
-                            relativePosition = VectorConversionsMCKt.toMinecraft(ship.getWorldToShip().transformPosition(VectorConversionsMCKt.toJOML(player.position()), new Vector3d()));
-                            if (VSGameUtilsKt.isPositionSealed(player.level(), BlockPos.containing(relativePosition))) {
-                                vs$lastSealedCheckPos = BlockPos.containing(relativePosition);
-                                isInSealedArea = true;
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (provider.vs$isInSealedArea()) {
-                vs$sealedGraceTicks = VSGameConfig.CLIENT.getSealedAreaCameraGracePeriod();
-            }
-
-            provider.vs$setInSealedArea(isInSealedArea);
-
-            if (vs$sealedGraceTicks > 0) vs$sealedGraceTicks--;
-        }
-    }
-
-    @WrapMethod(
-        method = "getFluidInCamera"
-    )
-    private FogType redirectGetFluidInCamera(Operation<FogType> original) {
-        if (vs$sealedGraceTicks > 0 && ValkyrienSkies.isConnectivityEnabled(true)) {
-            return FogType.NONE;
-        }
-        return original.call();
-    }
-
     /**
      * @author Bunting_chj
      * @reason This Injection will modify the Camera position to transform the eye offset with the ship player is mounted on.
@@ -170,9 +93,10 @@ public abstract class MixinCamera implements IVSCamera {
         method = "setup",
         at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Camera;setPosition(DDD)V")
     )
-    private void setPosition(Camera camera, double d, double e, double f, Operation<Void> original){
+    private void setPosition(Camera camera, double d, double e, double f, Operation<Void> original,
+        @Local(argsOnly = true) float partialTicks){
         if(VSGameUtilsKt.getShipMountedTo(this.entity) instanceof ClientShip ship) {
-            double eyeHeight = Mth.lerp(f, this.eyeHeightOld, this.eyeHeight);
+            double eyeHeight = Mth.lerp(partialTicks, this.eyeHeightOld, this.eyeHeight);
             Vector3d eyeOffset = ship.getRenderTransform().getRotation().transform(new Vector3d(0, eyeHeight, 0));
             original.call(camera, d + eyeOffset.x, e - eyeHeight + eyeOffset.y, f + eyeOffset.z);
         }

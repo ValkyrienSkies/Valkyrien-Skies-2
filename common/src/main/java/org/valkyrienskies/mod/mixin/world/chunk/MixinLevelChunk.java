@@ -9,6 +9,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.FullChunkStatus;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
@@ -17,11 +18,13 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.chunk.LevelChunk.PostLoadProcessor;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.chunk.ProtoChunk;
+import net.minecraft.world.level.chunk.UpgradeData;
 import net.minecraft.world.level.chunk.storage.ChunkSerializer;
 import net.minecraft.world.level.levelgen.Heightmap;
-import net.minecraft.world.level.levelgen.Heightmap.Types;
+import net.minecraft.world.level.levelgen.blending.BlendingData;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.ticks.LevelChunkTicks;
 import org.jetbrains.annotations.NotNull;
@@ -32,15 +35,20 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.BlockStateInfo;
 import org.valkyrienskies.mod.common.VS2ChunkAllocator;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.fluid.VanillaFluidFlowWindProvider;
 import org.valkyrienskies.mod.common.util.VSLevelChunk;
 
 @Mixin(LevelChunk.class)
 public abstract class MixinLevelChunk extends ChunkAccess implements VSLevelChunk {
+    @Unique
+    private static final Set<Heightmap.Types> ALL_HEIGHT_MAP_TYPES = new HashSet<>(Arrays.asList((Heightmap.Types.values())));
+
     @Shadow
     @Final
     Level level;
@@ -51,9 +59,6 @@ public abstract class MixinLevelChunk extends ChunkAccess implements VSLevelChun
     @Shadow
     @Mutable
     private LevelChunkTicks<Fluid> fluidTicks;
-
-    @Unique
-    private static final Set<Types> ALL_HEIGHT_MAP_TYPES = new HashSet<>(Arrays.asList((Heightmap.Types.values())));
 
     /**
      * Allow block entity ticking in shipyard chunks that were loaded only to FULL status.
@@ -95,14 +100,21 @@ public abstract class MixinLevelChunk extends ChunkAccess implements VSLevelChun
         throw new IllegalStateException("This should never be called!");
     }
 
-    @Inject(method = "setBlockState", at = @At("TAIL"))
+    @Inject(method = "setBlockState", at = @At("RETURN"))
     public void postSetBlockState(final BlockPos pos, final BlockState state, final boolean moved,
         final CallbackInfoReturnable<BlockState> cir) {
         final BlockState prevState = cir.getReturnValue();
+        if (prevState == null) {
+            return;
+        }
         // This function is getting invoked by non-game threads for some reason. So use executeOrSchedule() to schedule
         // onSetBlock() to be run on the next tick when this function is invoked by a non-game thread.
         // See https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues/913 for more info.
-        VSGameUtilsKt.executeOrSchedule(level, () -> BlockStateInfo.INSTANCE.onSetBlock(level, pos, prevState, state));
+        VSGameUtilsKt.executeOrSchedule(level, () -> {
+            BlockStateInfo.INSTANCE.onSetBlock(level, pos, prevState, state);
+            VanillaFluidFlowWindProvider.INSTANCE.markDirty(level, pos, prevState, state);
+        });
+        // VS benchmark patch (air pockets removed): per-block fluid snapshot updates are no longer needed.
     }
 
     @Shadow
@@ -132,6 +144,11 @@ public abstract class MixinLevelChunk extends ChunkAccess implements VSLevelChun
 
         registerTickContainerInLevel((ServerLevel) level);
         this.unsaved = true;
+        if (level instanceof ServerLevel serverLevel) {
+            final org.valkyrienskies.mod.common.fluid.FractionalFluidSources sources =
+                org.valkyrienskies.mod.common.fluid.FractionalFluidSources.Companion.forLevel(serverLevel);
+            if (sources != null) sources.clearChunk(VSGameUtilsKt.getDimensionId(serverLevel), chunkPos.x, chunkPos.z);
+        }
     }
 
     @Override

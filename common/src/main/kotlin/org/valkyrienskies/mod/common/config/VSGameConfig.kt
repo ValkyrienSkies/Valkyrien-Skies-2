@@ -28,8 +28,20 @@ object VSGameConfig {
         @ConfigCategory(title = "Connectivity")
         val Connectivity = CONNECTIVITY()
 
+        @ConfigCategory(title = "Performance")
+        val Performance = PERFORMANCE()
+
         @ConfigEntry(description = "Renders the VS2 debug HUD with TPS")
         var renderDebugText = false
+
+        @ConfigEntry(description = "Render synchronized retained flood fluid inside ships")
+        var renderFloodedVoxels = true
+
+        @ConfigEntry(description = "Use synchronized retained flood fluid for camera fog and fluid overlays")
+        var renderFloodedFluidFog = true
+
+        @ConfigEntry(description = "Hide external world fluid surfaces inside synchronized dry ship volumes")
+        var renderFluidOcclusion = true
 
         @ConfigEntry(description = "Grace period before a player's camera is no longer considered to be within a sealed area")
         var sealedAreaCameraGracePeriod = 2
@@ -66,19 +78,134 @@ object VSGameConfig {
             var dopplerEffectScale = 1.0 / 20
         }
         class CONNECTIVITY {
+            @Deprecated("Legacy dynamic connectivity is disabled.")
+            var enableClientConnectivity: Boolean
+                get() = false
+                set(value) {}
+        }
+
+        class PERFORMANCE {
             @ConfigEntry(
-                description = "Enable client connectivity; increases client load, but allows for client-sided sealed space visuals, like occluding water in a submarine."
+                description = "Base per-frame time budget, in milliseconds, for applying deferred ship chunk packets on the client.",
+                min = 1.0,
+                max = 200.0
             )
-            var enableClientConnectivity = false
+            var shipChunkPacketBaseBudgetMs = 5
+
+            @ConfigEntry(
+                description = "Per-frame time budget, in milliseconds, for applying deferred ship chunk packets when a small backlog is present.",
+                min = 1.0,
+                max = 300.0
+            )
+            var shipChunkPacketBacklogBudgetMs = 20
+
+            @ConfigEntry(
+                description = "Per-frame time budget, in milliseconds, for applying deferred ship chunk packets when a large backlog is present.",
+                min = 1.0,
+                max = 500.0
+            )
+            var shipChunkPacketLargeBacklogBudgetMs = 80
+
+            @ConfigEntry(
+                description = "Maximum number of cached ship chunks to unload per client tick.",
+                min = 1.0,
+                max = 1024.0
+            )
+            var shipChunkUnloadBatchSize = 64
+
+            @ConfigEntry(
+                description = "Maximum distance (blocks) from the camera at which client particles collide " +
+                    "with ships. Particle-vs-ship collision is purely cosmetic and runs per particle every " +
+                    "tick (convex-polygon collision), so it gets very expensive around large fleets. Particles " +
+                    "beyond this distance skip it (imperceptible). Set to 0 to disable particle-ship collision entirely.",
+                min = 0.0,
+                max = 256.0
+            )
+            var maxParticleShipCollisionDistance = 48
         }
 
         @ConfigEntry(
-            description = "The way ships are rendered by default"
+            description = "The default ship renderer. Changes rebuild client render state. FLYWHEEL requires an active Flywheel 1.x backend; otherwise ships use VANILLA."
         )
-        var defaultRenderer = ShipRenderer.VANILLA
+        var defaultRenderer = ShipRenderer.BATCHED
+
+        @ConfigEntry(description = "Apply face shading in world coordinates to tilted ships. Applies to vanilla, Sodium/Embeddium, and batched ship rendering.")
+        var betterVanillaShipShading = false
+
+        @ConfigEntry(description = "Use biome colors at the ship's world position. Applies to Sodium/Embeddium and batched ships. Disable to use baked shipyard colors and stop biome updates.")
+        var dynamicShipBiomeTinting = false
+
+        @ConfigEntry(description = "Sample world block and sky light at the ship's world position. Applies to Sodium/Embeddium, Flywheel, and batched ships. Disable to use baked shipyard light and stop world-light updates.")
+        var dynamicShipLighting = false
+
+        @ConfigEntry(description = "Enable light from ships for all renderers. Disable to stop emitter collection, light propagation, and light uploads. Use shipShadows to control visual shadows separately.")
+        var dynamicShipToWorldLighting = true
+
+        fun isShipToWorldLightingEnabled(): Boolean =
+            dynamicShipToWorldLighting
+
+        @ConfigEntry(description = "Draw ship shadows on terrain and other ships. Disable this to skip the shadow map pass.")
+        var shipShadows = false
+
+        fun isShipToWorldShaderEnabled(): Boolean =
+            isShipToWorldLightingEnabled() || (shipShadows && shipShadowStrength > 0.0)
+
+        @ConfigEntry(description = "Visual ship shadow strength. 0 keeps full ambient sky light. 1 removes all sky light below a ship. This does not change mob spawn light checks.", min = 0.0, max = 1.0)
+        var shipShadowStrength = 0.4
+
+        @ConfigEntry(description = "Width of the ship shadow filter, in blocks. Set this to 0 for hard shadows.", min = 0.0, max = 4.0)
+        var shipShadowSoftness = 0.35
+
+        @ConfigEntry(description = "Increase shadow filter width per block between the surface and the shadow caster. Zero keeps a fixed width. A softness of zero keeps hard shadows.", min = 0.0, max = 0.5)
+        var shipShadowBlurGrowth = 0.08
+
+        @ConfigEntry(description = "Directional shade strength for ship faces. 0 gives all faces the same shade. 1 uses the full Minecraft face shade.", min = 0.0, max = 1.0)
+        var shipShadeStrength = 0.6
+
+        @ConfigEntry(description = "Enable searching by block physical properties in JEI")
+        var jeiSearch = true
+
+        @ConfigEntry(description = "Prefix character used for searching block properties. Must be a single character!")
+        var searchPrefix = "~"
+
+        @ConfigEntry(
+            description = "Compute per-ship drag/lift debug info every singleplayer server tick. This data only feeds " +
+                "the F3+B ship drag/lift debug renderer, but costs rebuilding two maps " +
+                "over every loaded ship each tick. Turn it off if you want to test performance without it running. This setting does not affect servers"
+        )
+        var computeDragDebugInfo = true
     }
 
     class Server {
+        @ConfigCategory(title = "Spilled water")
+        val SpilledWater = SPILLED_WATER()
+
+        class SPILLED_WATER {
+            @ConfigEntry(description = "Lifetime of small settled water splashes in seconds of server tick time. Zero disables timed dissipation. Droplets below 1/8 block disappear on dry land regardless. Unloaded deposits are cleaned up after loading.", min = 0.0, max = 86400.0)
+            var splashLifetimeSeconds = 60
+
+            @ConfigEntry(description = "Water volume per block below which new spill deposits can dissipate, in full water blocks. Deposits reaching this volume remain finite puddles. Zero disables timed dissipation of landed puddles.", min = 0.0, max = 1.0)
+            var splashVolumeThreshold = 0.25
+        }
+
+        @ConfigCategory(title = "Ship interactions")
+        val ShipInteractions = SHIP_INTERACTIONS()
+
+        class SHIP_INTERACTIONS {
+            @ConfigEntry(description = "Let ships block sky light in mob spawn and mob light checks.")
+            var shipShadows = true
+        }
+
+        @ConfigCategory(title = "Create")
+        val Create = CREATE()
+
+        class CREATE {
+            @ConfigEntry(
+                description = "Adds contraptions to the ship collider"
+            )
+            var enableContraptionCollisions = false
+        }
+
         @ConfigCategory(title = "FTB Chunks")
         val FTBChunks = FTBCHUNKS()
 
@@ -152,11 +279,88 @@ object VSGameConfig {
         @ConfigCategory(title = "CBC")
         val Cbc = CBC()
 
+        @ConfigCategory(title = "Performance")
+        val Performance = PERFORMANCE()
+
         class CBC {
             @ConfigEntry(description = "Should cannon shots apply a recoil force to ships")
             var shellRecoil = false
             @ConfigEntry(description = "The force multiplier applied to recoil on ships")
             var shellRecoilMult = 500000.0
+        }
+
+        class PERFORMANCE {
+            @ConfigEntry(
+                description = "Maximum number of ship chunk watch tasks processed per server tick.",
+                min = 1.0,
+                max = 4096.0
+            )
+            var shipChunkWatchTasksPerTick = 128
+
+            @ConfigEntry(
+                description = "Maximum number of ship chunk unwatch tasks processed per server tick.",
+                min = 1.0,
+                max = 4096.0
+            )
+            var shipChunkUnwatchTasksPerTick = 256
+
+            @ConfigEntry(
+                description = "Minimum number of ship terrain chunks registered with VS core per server level " +
+                    "tick. This acts as the floor of the time-based ingestion budget (see " +
+                    "shipTerrainChunkLoadMillisPerTick): at least this many chunks are processed every tick, " +
+                    "even when the time budget is already exhausted, so terrain ingestion always makes progress.",
+                min = 1.0,
+                max = 4096.0
+            )
+            var shipTerrainChunkLoadsPerTick = 64
+
+            @ConfigEntry(
+                description = "Wall-clock budget in milliseconds for registering ship terrain chunks with VS " +
+                    "core each server level tick. After the shipTerrainChunkLoadsPerTick floor is met, " +
+                    "ingestion continues until this much time has elapsed. On ticks with headroom this lets " +
+                    "hundreds of chunks activate physics at once instead of serializing large fleets over " +
+                    "many seconds, while overloaded ticks stay bounded near the floor.",
+                min = 0.0,
+                max = 100.0
+            )
+            var shipTerrainChunkLoadMillisPerTick = 2
+
+            @ConfigEntry(
+                description = "Maximum number of ship terrain chunks unregistered from VS core per server level tick.",
+                min = 1.0,
+                max = 4096.0
+            )
+            var shipTerrainChunkUnloadsPerTick = 64
+
+            @ConfigEntry(
+                description = "Maximum number of ship chunk packets sent to players per server tick. Chunk " +
+                    "watch tasks queue their packet sends and a budgeted drain executes them, so a wave of " +
+                    "chunk-ticket promotions completing in the same tick cannot serialize thousands of chunk " +
+                    "packets in a single tick.",
+                min = 1.0,
+                max = 4096.0
+            )
+            var shipChunkSendsPerTick = 256
+
+            @ConfigEntry(
+                description = "How often (in ticks) the natural-mob-spawn pass runs for each ship. " +
+                    "1 = every spawn cycle (vanilla parity). Higher values stagger ships across ticks " +
+                    "and reduce the per-tick spawning cost of large ships carrying a whole population " +
+                    "(e.g. a village on a ship), at the cost of proportionally slower spawning on ships.",
+                min = 1.0,
+                max = 200.0
+            )
+            var shipMobSpawnIntervalTicks = 1
+
+            @ConfigEntry(
+                description = "EXPERIMENTAL. Load active ship chunks with radius-zero SHIP_CHUNK tickets " +
+                    "(level 33 / FULL) instead of vanilla FORCED tickets (level 31), which avoids the " +
+                    "propagated FULL chunk ring (~25-45 extra loaded chunks per ship). When enabled, " +
+                    "compatibility shims report those FULL-only chunks as ticking and run their block/" +
+                    "random tick pass directly. Leave off unless you are testing the reduced-chunk-footprint " +
+                    "ship loading."
+            )
+            var useRadiusZeroShipChunkTickets = false
         }
 
 
@@ -169,11 +373,8 @@ object VSGameConfig {
         )
         var enableInteractDistanceChecks = true
 
-        @ConfigEntry(description = "If true, enables buoyancy from serverside air pockets.")
-        var enablePocketBuoyancy = false
-
-        @ConfigEntry(description = "Buoyancy factor added per cubic meter of air pocket inside a ship")
-        var buoyancyFactorPerPocketVolume = 0.05 // per cubic meter
+        @ConfigEntry(description = "Force multiplier for flowing fluids pushing ships")
+        var fluidWindSpeedScale = 10.0
 
         @ConfigEntry(
             description = "If true, teleportation into the shipyard is redirected to " +
@@ -216,7 +417,7 @@ object VSGameConfig {
         @ConfigEntry(
             description = "Blast force in newtons of a TNT explosion at the center of the explosion."
         )
-        var explosionBlastForce = 500000.0
+        var explosionBlastForce = 70000.0
 
         @ConfigEntry(
             description = "Allow natural mob spawning on ships"
@@ -224,7 +425,7 @@ object VSGameConfig {
         var allowMobSpawns = true
 
         @ConfigEntry(
-            description = "Allow rudimentary pathfinding on ships"
+            description = "Allow pathfinding on ships"
         )
         var aiOnShips = true
 
@@ -237,6 +438,11 @@ object VSGameConfig {
             description = "Minimum scale of ships"
         )
         var minScaling = 0.25
+
+        @ConfigEntry(
+            description = "If players can see block info (mass, friction, elasticity). Disabling this will also disable JEI search."
+        )
+        var allowBlockInfo = true // they call me jade because i be showin block info
 
         @ConfigEntry(
             description = "Default mass for blocks that do not have it defined in data or code. Blocks with masses below 100 float in water"
@@ -259,6 +465,11 @@ object VSGameConfig {
         var defaultBlockHardness = 1.0
 
         @ConfigEntry(
+            description = "Target velocity (m/s) a piston push/pull applies to a ship's contact point"
+        )
+        var pistonPushSpeed = 10.2
+
+        @ConfigEntry(
             description = "Enable splitting in worldspace. (Experimental!)"
         )
         var enableWorldSplitting = false
@@ -267,6 +478,11 @@ object VSGameConfig {
             description = "The default grace timer for splitting. A split won't occur after a block break at a position until this many ticks have passed. Note that setting this too high may prevent things like explosions from properly launching split ships. (in ticks)"
         )
         var defaultSplitGraceTimer = 2
+
+        @ConfigEntry(
+            description = "When a fully-contained vanilla structure is assembled into a ship, move its structure metadata (start + chunk references) onto the ship so in_structure advancements and other structure lookups keep working there."
+        )
+        var relocateStructureMetadata = true
 
         @ConfigEntry(
             description = "The offset (in blocks) from the death-height ships will stop falling at. To disable saving ships from falling into the void, you need a dimension property datapack."
@@ -278,69 +494,104 @@ object VSGameConfig {
 
         class COMMANDS {
             @ConfigEntry(
-                description = "The permission level required to use the /vs delete command. Must be 0 <= x <= 4"
+                description = "The permission level required to use the /vs delete command",
+                min = 0.0,
+                max = 4.0
             )
             var deleteShipCommandPerms = 2
 
             @ConfigEntry(
-                description = "The permission level required to use the /vs get-ship command. Must be 0 <= x <= 4"
+                description = "The permission level required to use the /vs get-ship command",
+                min = 0.0,
+                max = 4.0
             )
             var getShipCommandPerms = 0
 
             @ConfigEntry(
-                description = "The permission level required to use the /vs get-air and /vs get-gravity command. Must be 0 <= x <= 4"
+                description = "The permission level required to use the /vs get-air and /vs get-gravity command",
+                min = 0.0,
+                max = 4.0
             )
             var getAirValuesPerms = 0
 
             @ConfigEntry(
-                description = "The permission level required to use the /vs rename command. Must be 0 <= x <= 4"
+                description = "The permission level required to use the /vs rename command",
+                min = 0.0,
+                max = 4.0
             )
             var renameShipCommandPerms = 2
 
             @ConfigEntry(
-                description = "The permission level required to use the /vs remass command. Must be 0 <= x <= 4"
+                description = "The permission level required to use the /vs remass command",
+                min = 0.0,
+                max = 4.0
             )
             var remassShipCommandPerms = 2
 
             @ConfigEntry(
-                description = "The permission level required to use the /vs scale command. Must be 0 <= x <= 4"
+                description = "The permission level required to use the /vs scale command",
+                min = 0.0,
+                max = 4.0
             )
             var scaleShipCommandPerms = 2
 
             @ConfigEntry(
-                description = "The permission level required to use the /vs set-static command. Must be 0 <= x <= 4"
+                description = "The permission level required to use the /vs set-static command",
+                min = 0.0,
+                max = 4.0
             )
             var setStaticShipCommandPerms = 2
 
             @ConfigEntry(
-                description = "The permission level required to use the /vs teleport command. Must be 0 <= x <= 4"
+                description = "The permission level required to use the /vs teleport command",
+                min = 0.0,
+                max = 4.0
             )
             var teleportShipCommandPerms = 2
 
             @ConfigEntry(
-                description = "The permission level required to use the /vs backend command. Must be 0 <= x <= 4"
+                description = "The permission level required to use the /vs backend command",
+                min = 0.0,
+                max = 4.0
             )
             var changeBackendCommandPerms = 4
 
             @ConfigEntry(
-                description = "The permission level required to use the /vs dry command. Must be 0 <= x <= 4"
+                description = "The permission level required to use the /vs dry command",
+                min = 0.0,
+                max = 4.0
             )
             var dryShipCommandPerms = 2
-        }
-    }
 
-    class Common {
-
-        @JvmField
-        @ConfigCategory(title = "Advanced")
-        val ADVANCED = Advanced()
-
-        class Advanced { // Debug configs that may be either side
             @ConfigEntry(
-                description = "Renders mob pathfinding nodes. Must be set on client and server to work. " +
-                    "Requires the system property -Dorg.valkyrienskies.render_pathfinding=true"
+                description = "The permission level required to use the /vs apply (force/torque) command",
+                min = 0.0,
+                max = 4.0
             )
-            var renderPathfinding = false // Requires ValkyrienCommonMixinConfigPlugin.PATH_FINDING_DEBUG to be true
+            var applyCommandPerms = 2
+
+            @ConfigEntry(
+                description = "The permission level required to use the /vs config (get/set) command",
+                min = 0.0,
+                max = 4.0
+            )
+            var configCommandPerms = 2
+
+            @ConfigEntry(
+                description = "The permission level required to use the /vs gravity command",
+                min = 0.0,
+                max = 4.0
+            )
+            var setGravityCommandPerms = 2
+
+            @ConfigEntry(
+                description = "The permission level required to use the /vs splitting command",
+                min = 0.0,
+                max = 4.0
+            )
+            var setSplittingCommandPerms = 2
         }
     }
+
+    class Common
 }

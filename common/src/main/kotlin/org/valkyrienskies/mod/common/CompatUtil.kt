@@ -140,7 +140,7 @@ object CompatUtil {
             else -> ClipContext.Fluid.NONE
         }
         val hit = level.clipIncludeShips(
-            ClipContext(start, end, blockClip, fluidClip, null),
+            ClipContext(start, end, blockClip, fluidClip, null as net.minecraft.world.entity.Entity?),
             skipWorld = true
         )
         return if (hit.type == HitResult.Type.MISS) null else hit
@@ -156,7 +156,7 @@ object CompatUtil {
 
         while (true) {
             val hit = level.clipIncludeShips(
-                ClipContext(currentStart, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.ANY, null),
+                ClipContext(currentStart, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.ANY, null as net.minecraft.world.entity.Entity?),
                 skipWorld = true
             )
 

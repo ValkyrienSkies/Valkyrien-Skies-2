@@ -2,11 +2,9 @@ package org.valkyrienskies.mod.common
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.module.SimpleModule
-import net.fabricmc.fabric.api.loot.v2.LootTableEvents
 import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.Registries
-import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
@@ -14,13 +12,13 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.tags.TagKey
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
-import net.minecraft.world.item.CreativeModeTab
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.entity.BlockEntityType
+import net.minecraft.world.level.levelgen.structure.Structure
 import net.minecraft.world.level.border.BorderChangeListener
 import net.minecraft.world.level.border.WorldBorder
 import org.valkyrienskies.core.api.ships.LoadedServerShip
@@ -42,6 +40,7 @@ import org.valkyrienskies.mod.common.blockentity.TestThrusterBlockEntity
 import org.valkyrienskies.mod.common.config.DimensionParametersResolver
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.entity.VSPhysicsEntity
+import org.valkyrienskies.mod.common.assembly.ShipWelder
 import org.valkyrienskies.mod.common.jackson.BlockPosDeserializer
 import org.valkyrienskies.mod.common.jackson.BlockPosKeyDeserializer
 import org.valkyrienskies.mod.common.jackson.BlockPosKeySerializer
@@ -49,6 +48,9 @@ import org.valkyrienskies.mod.common.jackson.BlockPosSerializer
 import org.valkyrienskies.mod.common.networking.VSGamePackets
 import org.valkyrienskies.mod.common.util.BuoyancyHandlerAttachment
 import org.valkyrienskies.mod.common.util.GameToPhysicsAdapter
+import org.valkyrienskies.mod.common.util.FractureEventHandler
+import org.valkyrienskies.mod.common.util.ImpactFractureHandler
+import org.valkyrienskies.mod.common.util.ShipGravityAttachment
 import org.valkyrienskies.mod.common.util.ShipSettings
 import org.valkyrienskies.mod.common.util.SplitHandler
 import org.valkyrienskies.mod.common.util.SplittingDisablerAttachment
@@ -56,6 +58,7 @@ import org.valkyrienskies.mod.common.util.VoidAttachment
 import org.valkyrienskies.mod.common.util.WorldBorderAttachment
 import org.valkyrienskies.mod.mixinducks.client.world.ClientChunkCacheDuck
 import org.valkyrienskies.mod.mixinducks.feature.tickets.PlayerKnownShipsDuck
+import org.valkyrienskies.mod.util.PlatformUtils
 import java.util.ServiceLoader
 import java.util.concurrent.ConcurrentHashMap
 
@@ -73,6 +76,7 @@ object ValkyrienSkiesMod {
     lateinit var SHIP_CREATOR_ITEM: Item
     lateinit var SHIP_REMOVER_ITEM: Item
     lateinit var SHIP_ASSEMBLER_ITEM: Item
+    lateinit var SHIP_WELDER_ITEM: Item
     lateinit var SHIP_CREATOR_ITEM_SMALLER: Item
     lateinit var AREA_ASSEMBLER_ITEM: Item
     lateinit var CLASSIC_AREA_ASSEMBLER_ITEM: Item
@@ -90,6 +94,14 @@ object ValkyrienSkiesMod {
     val ASSEMBLE_BLACKLIST: TagKey<Block> =
         TagKey.create(Registries.BLOCK, ResourceLocation(MOD_ID, "assemble_blacklist"))
 
+    @JvmField
+    val STRUCTURE_RELOCATION_BLACKLIST: TagKey<Structure> =
+        TagKey.create(Registries.STRUCTURE, ResourceLocation(MOD_ID, "relocation_blacklist"))
+
+    @JvmField
+    val NO_NATURAL_SHIP_SPAWN: TagKey<EntityType<*>> =
+        TagKey.create(Registries.ENTITY_TYPE, ResourceLocation(MOD_ID, "no_natural_ship_spawn"))
+
     @JvmStatic
     var currentServer: MinecraftServer? = null
 
@@ -100,6 +112,15 @@ object ValkyrienSkiesMod {
         loader.findFirst().orElseThrow {
             IllegalStateException("No VSCoreProvider implementation found via ServiceLoader!")
         }
+    }
+
+    @JvmStatic
+    val platformUtils by lazy {
+        ServiceLoader.load(PlatformUtils::class.java, PlatformUtils::class.java.classLoader)
+            .findFirst()
+            .orElseThrow {
+                IllegalStateException("No PlatformUtils implementation found via ServiceLoader!")
+            }
     }
 
     @JvmStatic
@@ -142,6 +163,7 @@ object ValkyrienSkiesMod {
         splitHandler = SplitHandler(this.vsCore.hooks.enableBlockEdgeConnectivity, this.vsCore.hooks.enableBlockCornerConnectivity)
 
         core.registerAttachment(ShipSettings::class.java)
+        core.registerAttachment(org.valkyrienskies.mod.common.debug.ShipDebugMetadata::class.java)
         core.registerAttachment(SeatedControllingPlayer::class.java) {
             useLegacySerializer()
         }
@@ -149,6 +171,9 @@ object ValkyrienSkiesMod {
             useLegacySerializer()
         }
         core.registerAttachment(BuoyancyHandlerAttachment::class.java)
+        core.registerAttachment(ShipGravityAttachment::class.java)
+        // Old rowing attachments contain no saved gameplay state.
+        core.registerAttachmentForRemoval("org.valkyrienskies.mod.common.util.ShovelRowingAttachment")
         core.registerAttachment(WorldBorderAttachment::class.java)
         core.registerAttachment(VoidAttachment::class.java)
 
@@ -169,7 +194,18 @@ object ValkyrienSkiesMod {
             }
         }
 
+        core.fractureEvent.on { event ->
+            FractureEventHandler.onFracture(event)
+        }
+        ImpactFractureHandler.enabled = false
+
+        core.collisionStartEvent.on { event ->
+            ImpactFractureHandler.onCollision(event)
+        }
+        ImpactFractureHandler.logRegistered()
+
         core.physTickEvent.on { event ->
+            ShipWelder.physTick(event.world, event.delta)
             dimensionalGTPAs.forEach { dimensionId, gameTickForceApplier ->
                 if (event.world.dimension == dimensionId) {
                     gameTickForceApplier.physTick(event.world, event.delta)
@@ -246,6 +282,10 @@ object ValkyrienSkiesMod {
 
     fun getEntityPhysTicker(dimensionId: DimensionId, entity: Entity): EntityPhysicsListener? {
         return entityPhysListeners.getOrPut(dimensionId, { ConcurrentHashMap() })[entity.id]
+    }
+
+    @JvmStatic
+    fun initClient() {
     }
 
     fun onLevelLoaded(level: ServerLevel) {

@@ -13,8 +13,9 @@ import java.util.Comparator
  * - SHIP_CHUNK ticket: radius 0 (level 33, FULL) = 0-chunk radius = 1 chunk per ship chunk
  *
  * This is appropriate for preload/copy/update flows where VS only needs the chunk data itself.
- * It is not appropriate for normal live ship chunk management because ships still need vanilla
- * random ticking, block ticking, and entity ticking.
+ * It can also be used for active ship chunks when the experimental server-side
+ * useRadiusZeroShipChunkTickets flag is enabled; in that mode VS mixins provide the ticking
+ * gates that vanilla normally derives from block/entity ticking ticket levels.
  */
 object VSTicketType {
     @JvmField

@@ -3,8 +3,6 @@ package org.valkyrienskies.mod.common.item
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.InteractionResult
-import net.minecraft.world.item.Item
-import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.context.UseOnContext
 import net.minecraft.world.level.block.Rotation.NONE
 import net.minecraft.world.level.block.state.BlockState
@@ -25,11 +23,7 @@ import java.util.function.DoubleSupplier
 
 class ShipCreatorItem(
     properties: Properties, private val scale: DoubleSupplier, private val minScaling: DoubleSupplier
-) : Item(properties) {
-
-    override fun isFoil(stack: ItemStack): Boolean {
-        return true
-    }
+) : VSItem(properties) {
 
     @OptIn(VsBeta::class)
     override fun useOn(ctx: UseOnContext): InteractionResult {
@@ -50,6 +44,7 @@ class ShipCreatorItem(
 
                 val serverShip =
                     level.shipObjectWorld.createNewShipAtBlock(blockPos.toJOML(), false, scale, dimensionId)
+                org.valkyrienskies.mod.common.debug.ShipDebugService.markCreated(level.server, serverShip, null)
 
                 org.slf4j.LoggerFactory.getLogger("VS2").info(" ShipCreatorItem: ship created id=${serverShip.id}, slug=${serverShip.slug}")
 

@@ -28,6 +28,15 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(LevelRenderer.class)
 public abstract class MixinLevelRenderer {
+    @Inject(method = "allChanged", at = @At("HEAD"))
+    private void vs$resetShipBackend(final CallbackInfo ci) {
+        org.valkyrienskies.mod.common.render.ShipRenderConfig.onRendererReload();
+    }
+
+    @Inject(method = "renderLevel", at = @At("HEAD"))
+    private void vs$prepareShipShadows(final CallbackInfo ci) {
+        org.valkyrienskies.mod.common.render.light.VsDynamicLight.prepareFrame(this.level);
+    }
 
     @Shadow
     private @Nullable ClientLevel level;
@@ -140,6 +149,9 @@ public abstract class MixinLevelRenderer {
     private boolean isInShipyardBorder(LevelRenderer instance, BlockPos blockPos, Operation<Boolean> original){
         if(original.call(instance, blockPos)) return true;
         if(VSGameUtilsKt.isBlockInShipyard(level, blockPos)) {
+            if (VSGameUtilsKt.getLoadedShipManagingPos(level, blockPos) != null) {
+                return true;
+            }
             BlockPos blockPos1 = blockPos.offset(-1, -1, -1);
             BlockPos blockPos2 = blockPos.offset(1, 1, 1);
             for(BlockPos neighbor : BlockPos.betweenClosed(blockPos1, blockPos2)) {

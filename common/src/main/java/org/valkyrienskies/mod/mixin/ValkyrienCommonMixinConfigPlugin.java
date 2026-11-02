@@ -17,8 +17,6 @@ import org.valkyrienskies.mod.compat.VSRenderer;
  */
 public class ValkyrienCommonMixinConfigPlugin implements IMixinConfigPlugin {
 
-    private static final boolean PATH_FINDING_DEBUG =
-        "false".equals(System.getProperty("org.valkyrienskies.render_pathfinding"));
     private static VSRenderer vsRenderer = null;
 
     public static VSRenderer getVSRenderer() {
@@ -32,7 +30,11 @@ public class ValkyrienCommonMixinConfigPlugin implements IMixinConfigPlugin {
         //TODO remove?
         if (classExists("optifine.OptiFineTransformationService")) {
             return VSRenderer.OPTIFINE;
-        } else if (classExists("me.jellysquid.mods.sodium.client.SodiumClientMod")) {
+        } else if (
+            classExists("net.caffeinemc.mods.sodium.client.SodiumClientMod") ||
+                classExists("me.jellysquid.mods.sodium.client.SodiumClientMod") ||
+                classExists("org.embeddedt.embeddium.impl.Embeddium")
+        ) {
             return VSRenderer.SODIUM;
         } else {
             return VSRenderer.VANILLA;
@@ -46,6 +48,10 @@ public class ValkyrienCommonMixinConfigPlugin implements IMixinConfigPlugin {
         } catch (final ClassNotFoundException ex) {
             return false;
         }
+    }
+
+    private static boolean supportsInterfaceInjections() {
+        return classExists("org.sinytra.mixinbooster.MixinTransformationService");
     }
 
     @Override
@@ -73,6 +79,9 @@ public class ValkyrienCommonMixinConfigPlugin implements IMixinConfigPlugin {
             return !LoadedMods.getImmersivePortals(); // Only load this if immersive portals is NOT present
         }
 
+        if (mixinClassName.contains("org.valkyrienskies.mod.mixin.mod_compat.iris")) {
+            return renderer == VSRenderer.SODIUM && classExists("net.irisshaders.iris.pipeline.SodiumTerrainPipeline");
+        }
         if (mixinClassName.contains("org.valkyrienskies.mod.mixin.mod_compat.sodium")) {
             return renderer == VSRenderer.SODIUM;
         }
@@ -85,10 +94,9 @@ public class ValkyrienCommonMixinConfigPlugin implements IMixinConfigPlugin {
         if (mixinClassName.contains("org.valkyrienskies.mod.mixin.mod_compat.optifine")) {
             return renderer == VSRenderer.OPTIFINE;
         }
-        if (mixinClassName.contains("org.valkyrienskies.mod.mixin.feature.render_pathfinding")) {
-            return PATH_FINDING_DEBUG;
+        if (mixinClassName.equals("org.valkyrienskies.mod.mixin.feature.sculk.MixinVibrationSystemTicker")) {
+            return supportsInterfaceInjections();
         }
-
         if (mixinClassName.contains("org.valkyrienskies.mod.mixin.mod_compat.flywheel")) {
             // Only load this mixin if Flywheel v1 is present
             return LoadedMods.getFlywheel() == FlywheelVersion.V1;

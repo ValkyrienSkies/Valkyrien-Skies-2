@@ -59,7 +59,7 @@ object SodiumOptionsMenu {
                 .setName(Component.literal(entry.fancyName))
                 .setTooltip(Component.literal(entry.description ?: ""))
                 .setBinding(
-                    { _, value -> setConfigOption(entry.name, value) },
+                    { _, value -> setConfigOption(entry, value) },
                     { entry.getValue.invoke() as T? }
                 ).setControl { option ->
                     CyclingControl(option, enumClass)
@@ -72,7 +72,7 @@ object SodiumOptionsMenu {
                 .setName(Component.literal(entry.fancyName))
                 .setTooltip(Component.literal(entry.description ?: ""))
                 .setBinding(
-                    { _, value -> setConfigOption(entry.name, value) },
+                    { _, value -> setConfigOption(entry, value) },
                     { entry.getValue.invoke() as Boolean }
                 )
                 .setControl(::TickBoxControl)
@@ -84,7 +84,7 @@ object SodiumOptionsMenu {
                 .setName(Component.literal(entry.fancyName))
                 .setTooltip(Component.literal(entry.description ?: ""))
                 .setBinding(
-                    { _, value -> setConfigOption(entry.name, value) },
+                    { _, value -> setConfigOption(entry, value) },
                     { entry.getValue.invoke() as Int }
                 )
                 .setControl { option ->
@@ -107,8 +107,13 @@ object SodiumOptionsMenu {
         }
     }
 
-    fun <T> setConfigOption(key: String, value: T) {
-        (VSConfigUpdater.forgeConfigValuesMap.get(key) as ForgeConfigSpec.ConfigValue<T>).set(value)
+    @Suppress("UNCHECKED_CAST")
+    fun <T> setConfigOption(entry: VsiConfigModelEntry<*>, value: T) {
+        // Write to the forge config
+        (VSConfigUpdater.forgeConfigValuesMap.get(entry.name) as ForgeConfigSpec.ConfigValue<T>).set(value)
+
+        // Write to the in-memory config to avoid race conditions with the forge config reloaded event
+        (entry as VsiConfigModelEntry<T>).setValue.invoke(value)
     }
 }
 

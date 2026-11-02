@@ -25,8 +25,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.config.ShipRenderer;
 import org.valkyrienskies.mod.common.config.ShipRendererKt;
+import org.valkyrienskies.mod.common.render.batched.ShipBatchRenderer;
 import org.valkyrienskies.mod.mixin.accessors.client.multiplayer.ClientLevelAccessor;
 import org.valkyrienskies.mod.mixin.accessors.client.render.chunk.RenderChunkAccessor;
 import org.valkyrienskies.mod.mixinducks.client.render.IVSViewAreaMethods;
@@ -143,7 +143,7 @@ public class MixinViewAreaVanilla implements IVSViewAreaMethods {
         }
 
         var ship = (ClientShip) VSGameUtilsKt.getShipManagingPos(level, x, z);
-        if (ship != null && ShipRendererKt.getShipRenderer(ship) == ShipRenderer.VANILLA) {
+        if (ship != null && ShipRendererKt.getUsesTerrainChunkRenderer(ship)) {
             if (this.level instanceof final ClientLevel clientLevel) {
                 final LevelRenderer levelRenderer = ((ClientLevelAccessor) clientLevel).getLevelRenderer();
                 if (levelRenderer instanceof final LevelRendererDuck levelRendererDuck) {
@@ -161,6 +161,9 @@ public class MixinViewAreaVanilla implements IVSViewAreaMethods {
             vs$markExistingShipRenderChunkDirty(x, y, z - 1, important);
             vs$markExistingShipRenderChunkDirty(x, y, z + 1, important);
 
+            callbackInfo.cancel();
+        } else if (ship != null && ShipRendererKt.getUsesBatchedRenderer(ship)) {
+            ShipBatchRenderer.INSTANCE.markSectionDirty(ship.getId(), x, y, z);
             callbackInfo.cancel();
         }
     }
@@ -180,7 +183,7 @@ public class MixinViewAreaVanilla implements IVSViewAreaMethods {
         }
 
         var ship = (ClientShip) VSGameUtilsKt.getShipManagingPos(level, chunkX, chunkZ);
-        if (ship != null && ShipRendererKt.getShipRenderer(ship) == ShipRenderer.VANILLA) {
+        if (ship != null && ShipRendererKt.getUsesTerrainChunkRenderer(ship)) {
             final long chunkPosAsLong = ChunkPos.asLong(chunkX, chunkZ);
             final ChunkRenderDispatcher.RenderChunk[] renderChunksArray = vs$shipRenderChunks.get(chunkPosAsLong);
             if (renderChunksArray == null) {
@@ -189,6 +192,8 @@ public class MixinViewAreaVanilla implements IVSViewAreaMethods {
             }
             final ChunkRenderDispatcher.RenderChunk renderChunk = renderChunksArray[chunkY];
             callbackInfoReturnable.setReturnValue(renderChunk);
+        } else if (ship != null && ShipRendererKt.getUsesBatchedRenderer(ship)) {
+            callbackInfoReturnable.setReturnValue(null);
         }
     }
 

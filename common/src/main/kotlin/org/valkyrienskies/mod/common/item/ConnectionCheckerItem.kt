@@ -19,11 +19,7 @@ import java.util.function.DoubleSupplier
 
 class ConnectionCheckerItem(
     properties: Properties, private val scale: DoubleSupplier, private val minScaling: DoubleSupplier
-) : Item(properties) {
-
-    override fun isFoil(stack: ItemStack): Boolean {
-        return true
-    }
+) : VSItem(properties) {
 
     override fun inventoryTick(item: ItemStack, level: Level, entity: Entity, i: Int, bl: Boolean) {
         super.inventoryTick(item, level, entity, i, bl)

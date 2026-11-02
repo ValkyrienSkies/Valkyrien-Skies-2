@@ -4,9 +4,11 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import dev.engine_room.flywheel.api.visual.DynamicVisual;
+import dev.engine_room.flywheel.api.visualization.VisualizationManager;
 import dev.engine_room.flywheel.lib.visual.AbstractBlockEntityVisual;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Position;
+import net.minecraft.core.Vec3i;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.Vec3;
 import org.joml.FrustumIntersection;
@@ -31,7 +33,14 @@ public class MixinAbstractBlockEntityVisual<T extends BlockEntity> {
     private boolean testRedirected(FrustumIntersection instance, float x, float y, float z, float r,
         Operation<Boolean> original) {
         Vec3 worldPos = VSGameUtilsKt.toWorldCoordinates(blockEntity.getLevel(), blockEntity.getBlockPos().getCenter());
-        return original.call(instance, (float)worldPos.x, (float)worldPos.y, (float)worldPos.z, r);
+        final VisualizationManager manager = VisualizationManager.get(blockEntity.getLevel());
+        final Vec3i renderOrigin = manager == null ? Vec3i.ZERO : manager.renderOrigin();
+        return original.call(instance,
+            (float) (worldPos.x - renderOrigin.getX()),
+            (float) (worldPos.y - renderOrigin.getY()),
+            (float) (worldPos.z - renderOrigin.getZ()),
+            r
+        );
     }
 
     @Redirect(

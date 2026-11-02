@@ -40,10 +40,10 @@ public class MixinIpNewChunkTrackingGraph {
         // region inject ships
         final AABBd box = new AABBd(
             (instance.center.x - instance.radius) << 4,
-            world.getMinBuildHeight(),
+            -Double.MAX_VALUE,
             (instance.center.z - instance.radius) << 4,
             (instance.center.x + instance.radius) << 4,
-            world.getMaxBuildHeight(),
+            Double.MAX_VALUE,
             (instance.center.z + instance.radius) << 4
         );
         for (final Ship ship : VSGameUtilsKt.getShipsIntersecting(world, box)) {

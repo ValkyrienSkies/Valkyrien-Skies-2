@@ -16,8 +16,6 @@ import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.entity.ShipyardPosSavable;
-import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
-import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(ChunkMap.class)
@@ -65,22 +63,10 @@ public class MixinChunkMap {
     }
 
 
-    /**
-     * Helper method to get shipyard pos of mob on a ship
-     *
-     * @author G_Mungus
-     */
     @Unique
     private Vector3d valkyrienskies$getShipyardPos(Entity entity) {
-        EntityDraggingInformation dragInfo = ((IEntityDraggingInformationProvider) entity).getDraggingInformation();
-
-        if (dragInfo.getLastShipStoodOn() != null) {
-            Ship ship = VSGameUtilsKt.getAllShips(this.level).getById(dragInfo.getLastShipStoodOn());
-            if (ship != null && ship.getWorldAABB().containsPoint(VectorConversionsMCKt.toJOML(entity.position()))) {
-                return ship.getWorldToShip().transformPosition(VectorConversionsMCKt.toJOML(entity.position()));
-            }
-        }
-
-        return null;
+        final Ship ship = VSGameUtilsKt.getEnclosingShip(entity);
+        if (ship == null) return null;
+        return ship.getWorldToShip().transformPosition(VectorConversionsMCKt.toJOML(entity.position()));
     }
 }

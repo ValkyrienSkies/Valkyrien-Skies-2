@@ -8,9 +8,11 @@ import net.minecraft.core.Direction
 import net.minecraft.core.Position
 import net.minecraft.core.Vec3i
 import net.minecraft.server.MinecraftServer
+import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
+import net.minecraft.world.level.levelgen.structure.StructureStart
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import org.jetbrains.annotations.Contract
@@ -40,6 +42,7 @@ import org.valkyrienskies.core.api.world.ShipWorld
 import org.valkyrienskies.core.api.world.properties.DimensionId
 import org.valkyrienskies.core.impl.config.VSCoreConfig
 import org.valkyrienskies.mod.common.config.VSGameConfig
+import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -146,6 +149,20 @@ fun Entity?.getShipManagingEntity(): Ship? =
     this?.level()?.getShipManagingBlock(position())
 
 /**
+ * The vanilla [StructureStart]s stored in this [Ship]'s chunks, i.e. the structures whose
+ * metadata was carried onto the ship during assembly. Only loaded chunks are consulted.
+ */
+fun Ship?.getStructureStarts(level: ServerLevel): List<StructureStart> {
+    if (this == null) return emptyList()
+    val starts = ArrayList<StructureStart>()
+    activeChunksSet.forEach { chunkX, chunkZ ->
+        val chunk = level.chunkSource.getChunkNow(chunkX, chunkZ) ?: return@forEach
+        starts.addAll(chunk.allStarts.values)
+    }
+    return starts
+}
+
+/**
  * If both endpoints of the given [aabb] are in the same ship, transform them
  * to the world and return the new AABB. Otherwise, leaves it untouched.
  */
@@ -231,14 +248,18 @@ fun Level?.getShipsIntersecting(aabb: AABBdc?): Iterable<Ship> =
  * Transforms the given world position x/y/z into the ship space of all ships whose AABBs contain x/y/z
  */
 fun Level?.positionToNearbyShips(x: Double, y: Double, z: Double): Iterable<Vector3d> =
-    getShipsIntersecting(x, y, z).map { it.positionToShip(Vector3d(x, y, z)) }
+    positionToNearbyShips(x, y, z, null)
 
 /**
  * Transforms the given world position into the ship space of all ships whose AABB intersects [aabb]
  */
 fun Level?.positionToNearbyShips(x: Double, y: Double, z: Double, aabb: AABBdc?): Iterable<Vector3d> {
-    if (this == null || aabb == null) return emptyList()
-    return getShipsIntersecting(aabb).map { it.positionToShip(Vector3d(x, y, z)) }
+    if (this == null) return emptyList()
+    val list = mutableListOf<Vector3d>()
+    positionToNearbyShips(x, y, z, aabb) { transformedX, transformedY, transformedZ ->
+        list.add(Vector3d(transformedX, transformedY, transformedZ))
+    }
+    return list
 }
 
 fun Level?.positionToNearbyShips(x: Double, y: Double, z: Double, aabbRadius: Double): Iterable<Vector3d> =
@@ -297,10 +318,14 @@ private inline fun Level?.positionToNearbyShips(
     aabb: AABBdc?,
     cb: (Double, Double, Double) -> Unit
 ) {
-    val ships = aabb?.let(this::getShipsIntersecting)
-        ?: this.getShipsIntersecting(x, y, z)
+    val queryAabb = aabb ?: AABBd(x, y, z, x, y, z)
+    val localQueryAabb = AABBd()
 
-    for (ship in ships) {
+    for (ship in getShipsIntersecting(queryAabb)) {
+        queryAabb.transform(ship.worldToShip, localQueryAabb)
+        if (!EntityShipCollisionUtils.mayShipIntersectLocalAabb(ship, localQueryAabb)) {
+            continue
+        }
         ship.worldToShip.transformPositionInline(x, y, z, cb)
     }
 }

@@ -23,11 +23,7 @@ import java.util.function.DoubleSupplier
 
 class AreaAssemblerItem(
     properties: Properties, private val scale: DoubleSupplier, private val minScaling: DoubleSupplier, private val classicAssembler: Boolean = false
-) : Item(properties) {
-
-    override fun isFoil(stack: ItemStack): Boolean {
-        return true
-    }
+) : VSItem(properties) {
 
     override fun useOn(ctx: UseOnContext): InteractionResult {
         val level = ctx.level as? ServerLevel ?: return super.useOn(ctx)

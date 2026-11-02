@@ -3,6 +3,8 @@ package org.valkyrienskies.mod.common
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.world.level.saveddata.SavedData
 import org.valkyrienskies.core.internal.world.VsiPipeline
+import org.valkyrienskies.mod.common.fluid.WorldFluidOutflowManager
+import org.valkyrienskies.mod.common.fluid.FractionalFluidSources
 
 /**
  * This class saves/loads ship data for a world.
@@ -16,6 +18,8 @@ class ShipSavedData : SavedData() {
         private const val QUERYABLE_SHIP_DATA_NBT_KEY = "queryable_ship_data"
         private const val CHUNK_ALLOCATOR_NBT_KEY = "chunk_allocator"
         private const val PIPELINE_NBT_KEY = "vs_pipeline"
+        private const val FLUID_PARCELS_NBT_KEY = "vs_fluid_parcels"
+        private const val FRACTIONAL_SOURCES_NBT_KEY = "vs_fractional_sources"
 
         fun createEmpty(): ShipSavedData {
             return ShipSavedData().apply { pipeline = vsCore.newPipeline() }
@@ -35,6 +39,12 @@ class ShipSavedData : SavedData() {
                 pipelineAsBytes.size / 1024, queryableShipDataAsBytes.size / 1024, chunkAllocatorAsBytes.size / 1024)
 
             try {
+                if (compoundTag.contains(FRACTIONAL_SOURCES_NBT_KEY)) {
+                    data.fractionalFluidSources.load(compoundTag.getCompound(FRACTIONAL_SOURCES_NBT_KEY))
+                }
+                if (compoundTag.contains(FLUID_PARCELS_NBT_KEY)) {
+                    data.fluidOutflowManager.load(compoundTag.getCompound(FLUID_PARCELS_NBT_KEY))
+                }
                 if (pipelineAsBytes.isNotEmpty()) {
                     data.pipeline = vsCore.newPipeline(pipelineAsBytes)
                     logger.info(" ShipSavedData.load(): loaded pipeline from {} KB of data", pipelineAsBytes.size / 1024)
@@ -53,6 +63,8 @@ class ShipSavedData : SavedData() {
     }
 
     lateinit var pipeline: VsiPipeline
+    val fluidOutflowManager = WorldFluidOutflowManager()
+    val fractionalFluidSources = FractionalFluidSources()
 
     var loadingException: Throwable? = null
         private set
@@ -62,6 +74,8 @@ class ShipSavedData : SavedData() {
         val bytes = vsCore.serializePipeline(pipeline)
         logger.info(" ShipSavedData.save(): pipeline bytes = {} KB", bytes.size / 1024)
         compoundTag.putByteArray(PIPELINE_NBT_KEY, bytes)
+        compoundTag.put(FLUID_PARCELS_NBT_KEY, fluidOutflowManager.save())
+        compoundTag.put(FRACTIONAL_SOURCES_NBT_KEY, fractionalFluidSources.save())
 
         return compoundTag
     }

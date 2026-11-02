@@ -22,7 +22,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.config.ShipRenderer;
 import org.valkyrienskies.mod.common.config.ShipRendererKt;
 import org.valkyrienskies.mod.mixin.accessors.client.render.chunk.RenderChunkAccessor;
 import org.valkyrienskies.mod.mixinducks.client.render.IVSViewAreaMethods;
@@ -80,7 +79,7 @@ public class MixinMyBuiltChunkStorage extends ViewArea implements IVSViewAreaMet
         }
 
         var ship = (ClientShip) VSGameUtilsKt.getShipManagingPos(level, x, z);
-        if (ship != null && ShipRendererKt.getShipRenderer(ship) == ShipRenderer.VANILLA) {
+        if (ship != null && ShipRendererKt.getUsesTerrainChunkRenderer(ship)) {
             // Only mark existing render chunks dirty — don't create new ones.
             // Creation is deferred to vs$getOrCreateShipRenderChunk (called from
             // vs$addShipVisibleChunks) which only creates for non-empty sections.
@@ -109,7 +108,7 @@ public class MixinMyBuiltChunkStorage extends ViewArea implements IVSViewAreaMet
         }
 
         var ship = (ClientShip) VSGameUtilsKt.getShipManagingPos(level, chunkX, chunkZ);
-        if (ship != null && ShipRendererKt.getShipRenderer(ship) == ShipRenderer.VANILLA) {
+        if (ship != null && ShipRendererKt.getUsesTerrainChunkRenderer(ship)) {
             final long chunkPosAsLong = ChunkPos.asLong(chunkX, chunkZ);
             final ChunkRenderDispatcher.RenderChunk[] renderChunksArray = vs$shipRenderChunks.get(chunkPosAsLong);
             if (renderChunksArray == null) {

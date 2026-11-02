@@ -13,6 +13,7 @@ import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
 import org.valkyrienskies.core.api.ships.ServerShip
+import org.valkyrienskies.mod.common.fluid.FractionalFluidLifecycle
 
 val AIR = Blocks.AIR.defaultBlockState()
 
@@ -30,6 +31,7 @@ fun relocateBlock(
     fromChunk: LevelChunk, from: BlockPos, toChunk: LevelChunk, to: BlockPos, doUpdate: Boolean, toShip: ServerShip?,
     rotation: Rotation = NONE
 ) {
+    FractionalFluidLifecycle.beginBlockMove(fromChunk, from, toChunk, to, toShip).use { fluidTransfer ->
     var state = fromChunk.getBlockState(from)
     val entity = fromChunk.getBlockEntity(from)
 	val level = toChunk.level
@@ -61,6 +63,7 @@ fun relocateBlock(
 
     fromChunk.setBlockState(from, AIR, false)
     toChunk.setBlockState(to, state, false)
+    fluidTransfer?.complete()
 
     if (doUpdate) {
         updateBlock(level, from, to, state)
@@ -70,6 +73,7 @@ fun relocateBlock(
         val be = level.getBlockEntity(to)!!
 
         be.load(it)
+    }
     }
 }
 

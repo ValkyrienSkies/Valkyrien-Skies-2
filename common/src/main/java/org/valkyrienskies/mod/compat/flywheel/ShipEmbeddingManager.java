@@ -1,11 +1,16 @@
 package org.valkyrienskies.mod.compat.flywheel;
 
 import dev.engine_room.flywheel.api.visualization.VisualizationManager;
+import it.unimi.dsi.fastutil.longs.Long2IntMap;
+import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.function.Function;
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.SectionPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.entity.EntitySection;
-import org.valkyrienskies.core.impl.hooks.VSEvents.ShipUnloadEventClient;
 import dev.engine_room.flywheel.api.visualization.VisualEmbedding;
 import dev.engine_room.flywheel.api.visualization.VisualizationContext;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,6 +22,7 @@ import org.joml.Quaternionf;
 import org.joml.Vector3d;
 import org.joml.Vector3f;
 import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 import org.valkyrienskies.mod.common.hooks.VSGameEvents;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
@@ -40,11 +46,14 @@ public class ShipEmbeddingManager {
 
     protected static ConcurrentHashMap<BlockEntity, ClientShip> vs$shipBEs = new ConcurrentHashMap<>();
 
+    protected static Long2IntMap vs$sectionBEsCount = new Long2IntOpenHashMap();
+
     private ShipEmbeddingManager(){
-        ShipUnloadEventClient.Companion.on(event -> this.unloadShip(event.getShip()));
+        ValkyrienSkies.api().getShipUnloadEventClient().on(event -> this.unloadShip(event.getShip()));
         VSGameEvents.INSTANCE.getShipsStartRendering().on(event -> this.updateAllShips());
         VSGameEvents.INSTANCE.getShipsStartRenderingSodium().on(event -> this.updateAllShips());
         VSGameEvents.INSTANCE.getEntitySectionSetShip().on(event -> this.updateEntitySection(event.getSection()));
+        ValkyrienSkies.api().getTickEndEvent().on(event -> this.updateRemoval());
     }
 
     private void updateEntitySection(EntitySection<?> section){
@@ -58,6 +67,23 @@ public class ShipEmbeddingManager {
         );
     }
 
+    private void removeBlockEntities(Function<Entry<BlockEntity, ClientShip>, Boolean> function) {
+        vs$shipBEs.entrySet().removeIf(entry -> {
+            if (function.apply(entry)) {
+                long sectionPos = SectionPos.asLong(entry.getKey().getBlockPos());
+                int count = vs$sectionBEsCount.get(sectionPos) - 1;
+                if (count <= 0) vs$sectionBEsCount.remove(sectionPos);
+                else vs$sectionBEsCount.put(sectionPos, count);
+                return true;
+            }
+            return false;
+        });
+    }
+
+    private void updateRemoval() {
+        removeBlockEntities(entry -> entry.getKey().isRemoved());
+    }
+
     /**
      * Get or Create a VisualEmbedding that is attached to the ship.
      * If the pre-existing one is invalid, delete it and create a new one.
@@ -68,7 +94,7 @@ public class ShipEmbeddingManager {
         if(prevEmbedding != null && ctx.renderOrigin().equals(vs$EmbeddingOrigin.get(ship))) return prevEmbedding;
 
         // remove previous mapping of visuals and embedding
-        vs$shipBEs.entrySet().removeIf(
+        removeBlockEntities(
             entry -> {
                 final VisualizationManager manager = VisualizationManager.get(entry.getKey().getLevel());
                 if (entry.getValue() == ship && manager != null){
@@ -115,7 +141,7 @@ public class ShipEmbeddingManager {
         if(embedding != null){
             embedding.delete();
         }
-        vs$shipBEs.entrySet().removeIf(
+        removeBlockEntities(
             entry -> {
                 if (entry.getValue() == ship) {
                     VisualizationManager.get(entry.getKey().getLevel()).blockEntities().queueRemove(entry.getKey());
@@ -136,6 +162,7 @@ public class ShipEmbeddingManager {
 
     public synchronized void unloadAllShip() {
         vs$shipBEs.clear();
+        vs$sectionBEsCount.clear();
         vs$shipEmbedding.clear();
         vs$shipAnchor.clear();
         vs$EmbeddingOrigin.clear();
@@ -178,5 +205,10 @@ public class ShipEmbeddingManager {
 
     public void register(BlockEntity blockEntity, ClientShip ship) {
         vs$shipBEs.put(blockEntity, ship);
+        long sectionPos = SectionPos.asLong(blockEntity.getBlockPos());
+        int count = vs$sectionBEsCount.getOrDefault(sectionPos, 0) + 1;
+        vs$sectionBEsCount.put(sectionPos, count);
     }
+
+    public Set<Long> sectionsWithBlockEntities() { return Set.copyOf(vs$sectionBEsCount.keySet()); }
 }

@@ -20,7 +20,7 @@ data class RelativeVector3(val x: RelativeValue, val y: RelativeValue, val z: Re
     )
 }
 
-data class RelativeValue(private val angleDegrees: Double, private val isRelative: Boolean) {
+data class RelativeValue(val angleDegrees: Double, val isRelative: Boolean) {
     fun getRelativeValue(sourceAngleDegrees: Double): Double {
         return if (isRelative) sourceAngleDegrees + angleDegrees else angleDegrees
     }

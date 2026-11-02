@@ -10,11 +10,7 @@ import net.minecraft.world.level.block.state.BlockState
 import org.valkyrienskies.mod.common.assembly.ShipAssembler
 import org.valkyrienskies.mod.common.getShipManagingPos
 
-class ShipRemoverItem(properties: Properties) : Item(properties) {
-
-    override fun isFoil(stack: ItemStack): Boolean {
-        return true
-    }
+class ShipRemoverItem(properties: Properties) : VSItem(properties) {
 
     override fun useOn(ctx: UseOnContext): InteractionResult {
         val level = ctx.level as? ServerLevel ?: return super.useOn(ctx)

@@ -1,6 +1,8 @@
 package org.valkyrienskies.mod.mixin.feature.particle_collision;
 
 import com.llamalad7.mixinextras.sugar.Local;
+import net.minecraft.client.Camera;
+import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
@@ -8,6 +10,7 @@ import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
+import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils;
 
 @Mixin(Entity.class)
@@ -30,6 +33,14 @@ public class MixinEntity {
         @Local(argsOnly = true) final Level level
     ) {
         if (entity != null || !level.isClientSide) {
+            return movement;
+        }
+        final double maxDist = VSGameConfig.CLIENT.getPerformance().getMaxParticleShipCollisionDistance();
+        if (maxDist <= 0.0) {
+            return movement;
+        }
+        final Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
+        if (camera == null || entityBoundingBox.getCenter().distanceToSqr(camera.getPosition()) > maxDist * maxDist) {
             return movement;
         }
         return EntityShipCollisionUtils.INSTANCE.adjustEntityMovementForShipCollisions(null, movement, entityBoundingBox, level);

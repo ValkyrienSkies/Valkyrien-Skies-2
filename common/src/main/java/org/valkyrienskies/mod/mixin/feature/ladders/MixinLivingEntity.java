@@ -6,6 +6,8 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -51,13 +53,19 @@ public abstract class MixinLivingEntity extends Entity {
             final EntityAccessor thisAsAccessor = (EntityAccessor) this;
             final BlockPos originalBlockPosition = thisAsAccessor.getBlockPosition();
 
-            VSGameUtilsKt.transformToNearbyShipsAndWorld(this.level(), origX, origY, origZ, 1, (x, y, z) -> {
+            // We add 0.1 to the y coordinate because otherwise slight precision issues in transforming to the ship
+            // can cause this to be run with the block _below_ the players feet, making them unable to start climbing
+            // until they jump. But adding 0.5 is too much, because it then prevents them from automatically getting
+            // _off_ the ladder at the top. 0.1 works for both situations.
+            VSGameUtilsKt.transformToNearbyShipsAndWorld(this.level(), origX, origY+0.1, origZ, 1, (x, y, z) -> {
 
                 // Only run this if we haven't modified cir yet
                 if (cir.getReturnValue() != Boolean.TRUE) {
                     // Modify the block position, then check if we can climb ladders
-                    thisAsAccessor.setBlockPosition(BlockPos.containing(Mth.floor(x), Mth.floor(y), Mth.floor(z)));
-                    thisAsAccessor.setFeetBlockState(null);
+                    final BlockPos shipLocalPos = BlockPos.containing(Mth.floor(x), Mth.floor(y), Mth.floor(z));
+                    thisAsAccessor.setBlockPosition(shipLocalPos);
+                    final BlockState shipLocalState = this.level().getBlockState(shipLocalPos);
+                    thisAsAccessor.setFeetBlockState(shipLocalState != null ? shipLocalState : Blocks.AIR.defaultBlockState());
                     if (onClimbable()) {
                         cir.setReturnValue(true);
                     }
@@ -66,7 +74,8 @@ public abstract class MixinLivingEntity extends Entity {
             });
             // Restore the original block position
             thisAsAccessor.setBlockPosition(originalBlockPosition);
-            thisAsAccessor.setFeetBlockState(null);
+            final BlockState restoredState = this.level().getBlockState(originalBlockPosition);
+            thisAsAccessor.setFeetBlockState(restoredState != null ? restoredState : Blocks.AIR.defaultBlockState());
             isModifyingClimbable = false;
         }
     }

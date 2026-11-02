@@ -4,13 +4,18 @@ import com.google.common.collect.Lists;
 import java.util.Map;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Final;
@@ -84,8 +89,57 @@ public abstract class StructureTemplateMixin implements StructureTemplateFillFro
         );
 
         List<StructureTemplate.StructureBlockInfo> finalBlockList = buildInfoList(basicBlocks, blocksWithEntities, specialBlocks);
-        this.entityInfoList.clear();
         this.palettes.clear();
         this.palettes.add(PaletteInvoker.invokeInit(finalBlockList));
+
+        this.vs$fillEntities(level, min, max);
+    }
+
+    @Unique
+    private void vs$fillEntities(
+        Level level,
+        BlockPos min,
+        BlockPos max
+    ) {
+        this.entityInfoList.clear();
+
+        AABB bounds = new AABB(
+            min.getX(), min.getY(), min.getZ(),
+            max.getX() + 1.0, max.getY() + 1.0, max.getZ() + 1.0
+        );
+
+        for (Entity entity : level.getEntitiesOfClass(
+            Entity.class,
+            bounds,
+            e -> !e.isPassenger() && !(e instanceof net.minecraft.world.entity.player.Player)
+        )) {
+            // Position relative to the copied structure's minimum corner.
+            Vec3 relativePos = entity.position().subtract(
+                min.getX(),
+                min.getY(),
+                min.getZ()
+            );
+
+            BlockPos relativeBlockPos = new BlockPos(
+                Mth.floor(relativePos.x),
+                Mth.floor(relativePos.y),
+                Mth.floor(relativePos.z)
+            );
+
+            CompoundTag entityNbt = new CompoundTag();
+            entity.saveWithoutId(entityNbt);
+            entityNbt.putString(
+                "id",
+                BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString()
+            );
+
+            this.entityInfoList.add(
+                new StructureTemplate.StructureEntityInfo(
+                    relativePos,
+                    relativeBlockPos,
+                    entityNbt
+                )
+            );
+        }
     }
 }
