@@ -42,7 +42,6 @@ class SplitHandler(private val doEdges: Boolean, private val doCorners: Boolean)
                 }
             }
             splitsToProcess.forEach {
-                SPLITLOGGER.logger.info("[split-debug] grace timer expired, running split() for ship=$it")
                 splitQueue[level.dimensionId]!!.remove(it)
                 split(level, it)
             }
@@ -55,13 +54,15 @@ class SplitHandler(private val doEdges: Boolean, private val doCorners: Boolean)
         if (loadedShip.getAttachment<SplittingDisablerAttachment>()?.canSplit() == false) return
 
         val allBlocks = collectShipBlocks(level, loadedShip) ?: run {
-            queueSplit(level, shipId)
+            // Give missing chunks time to load before the next scan.
+            splitQueue.getOrPut(level.dimensionId) { hashMapOf() }[shipId] =
+                maxOf(20, VSGameConfig.SERVER.defaultSplitGraceTimer)
             return
         }
         if (allBlocks.size <= 1) return
 
         val components = connectedComponents(allBlocks, getOffsets(doEdges, doCorners))
-        SPLITLOGGER.logger.info("[split-debug] BFS: ${components.size} component(s) from ${allBlocks.size} blocks")
+        SPLITLOGGER.logger.debug("[split-debug] BFS: ${components.size} component(s) from ${allBlocks.size} blocks")
         if (components.size <= 1) return // still one connected piece -> no split
 
         components.sortByDescending { it.size }
@@ -85,7 +86,7 @@ class SplitHandler(private val doEdges: Boolean, private val doCorners: Boolean)
                 val comp = components[i]
                 if (comp.isEmpty()) continue
                 val newShip = ShipAssembler.assembleToShip(level, comp, 1.0)
-                SPLITLOGGER.logger.info("[split-debug] split off new ship ${newShip.id} (${comp.size} blocks)")
+                SPLITLOGGER.logger.debug("[split-debug] split off new ship ${newShip.id} (${comp.size} blocks)")
                 after?.accept(newShip)
             }
         } finally {
