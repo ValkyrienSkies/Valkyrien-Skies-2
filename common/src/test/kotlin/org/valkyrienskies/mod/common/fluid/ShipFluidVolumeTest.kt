@@ -8,11 +8,17 @@ import net.minecraft.server.Bootstrap
 import net.minecraft.tags.FluidTags
 import net.minecraft.world.level.material.FlowingFluid
 import net.minecraft.world.level.material.FluidState
+import net.minecraft.world.level.Level
 import net.minecraft.world.phys.AABB
+import net.minecraft.world.phys.shapes.Shapes
 import org.joml.Matrix4d
+import org.joml.Vector3d
+import org.joml.primitives.AABBd
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
+import kotlin.random.Random
 import org.valkyrienskies.core.api.ships.Ship
+import org.valkyrienskies.core.internal.VsiCoreFactory
 import org.valkyrienskies.core.internal.physics.VsiFluidFloodedVoxel
 import org.valkyrienskies.core.internal.physics.VsiFluidTopologyVoxel
 import org.valkyrienskies.core.internal.world.VsiClientShipWorld
@@ -122,6 +128,72 @@ class ShipFluidVolumeTest {
         assertEquals(1.0f, query(AABB(0.1, 0.1, 0.1, 3.9, 3.9, 3.9)).worldHeight(BlockPos(1, 1, 1), 1.0f))
     }
 
+    @Test fun `stationary player in a rotated full block room stays dry at shipyard coordinates`() {
+        flooding = floodingSnapshot()
+        val localX = -28_661_760
+        val localY = 128
+        val localZ = 12_290_048
+        val cells = (-3..2).flatMap { x -> (-3..2).flatMap { y -> (-3..2).map { z ->
+            VsiFluidTopologyVoxel(localX + x, localY + y, localZ + z, 1)
+        } } }
+        topology = topology.copy(voxels = cells, totalDomainVoxelCount = cells.size)
+        val random = Random(7192026)
+        repeat(100) { orientation ->
+            transform.identity().translation(100.5, 65.0, -300.5)
+                .rotateXYZ(random.nextDouble(-0.3, 0.3), random.nextDouble(-Math.PI, Math.PI),
+                    random.nextDouble(-0.3, 0.3))
+                .translate(-localX.toDouble(), -localY.toDouble(), -localZ.toDouble())
+            val q = query(AABB(100.2, 64.1, -300.8, 100.8, 65.9, -300.2))
+            assertTrue(q.hasDomains())
+            assertEquals(0.0, q.retainedDepth(FluidTags.WATER))
+            for (y in 64..65) {
+                assertTrue(q.worldHeight(BlockPos(100, y, -301), 1.0f).isNaN(),
+                    "Dry room reported immersion at orientation $orientation, y=$y")
+            }
+        }
+    }
+
+    @Test fun `player colliding with a tilted sealed floor and wall stays dry`() {
+        flooding = floodingSnapshot()
+        val localX = -28_661_760
+        val localY = 128
+        val localZ = 12_290_048
+        val cells = (-3..2).flatMap { x -> (1..4).flatMap { y -> (-3..2).map { z ->
+            VsiFluidTopologyVoxel(localX + x, localY + y, localZ + z, 1)
+        } } }
+        topology = topology.copy(voxels = cells, totalDomainVoxelCount = cells.size)
+        val collider = VsiCoreFactory.instance.newVsCoreServer(mockk(relaxed = true)).entityPolygonCollider
+        val level = mockk<Level>()
+        for (tilt in listOf(-0.6, -0.2, 0.0, 0.2, 0.6)) for (yaw in listOf(0.0, 0.7, 2.2)) {
+            transform.identity().translation(100.5, 64.0, -300.5).rotateY(yaw).rotateZ(tilt)
+                .translate(-localX.toDouble(), -localY.toDouble(), -localZ.toDouble())
+            val floor = AABBd(localX - 4.0, localY.toDouble(), localZ - 4.0,
+                localX + 4.0, localY + 1.0, localZ + 4.0)
+            val wall = AABBd(localX + 3.0, localY + 1.0, localZ - 4.0,
+                localX + 4.0, localY + 5.0, localZ + 4.0)
+            val polygons = listOf(floor, wall).map { collider.createPolygonFromAABB(it, transform, 7) }
+            every { level.getBlockCollisions(null, any()) } returns listOf(floor, wall).map {
+                Shapes.create(AABB(it.minX, it.minY, it.minZ, it.maxX, it.maxY, it.maxZ))
+            }
+            val start = transform.transformPosition(Vector3d(localX.toDouble(), localY + 2.0, localZ.toDouble()))
+            var bounds = AABB(start.x - 0.3, start.y, start.z - 0.3, start.x + 0.3, start.y + 1.8, start.z + 0.3)
+            repeat(80) { tick ->
+                val horizontal = transform.transformDirection(Vector3d(if (tick > 30) 0.08 else 0.0, 0.0, 0.0))
+                val movement = Vector3d(horizontal.x, -0.08, horizontal.z)
+                val response = collider.adjustEntityMovementForPolygonCollisions(movement,
+                    AABBd(bounds.minX, bounds.minY, bounds.minZ, bounds.maxX, bounds.maxY, bounds.maxZ),
+                    0.6, polygons, true).first
+                bounds = bounds.move(response.x(), response.y(), response.z())
+                val q = ShipFluidInteraction.prepareVolume(level, world, listOf(ship), bounds.deflate(0.001))
+                for (pos in BlockPos.betweenClosed(BlockPos.containing(bounds.minX, bounds.minY, bounds.minZ),
+                    BlockPos.containing(bounds.maxX, bounds.maxY, bounds.maxZ))) {
+                    assertTrue(q.worldHeight(pos, 1.0f).isNaN(),
+                        "Wet contact: tilt=$tilt yaw=$yaw tick=$tick bounds=$bounds block=$pos")
+                }
+            }
+        }
+    }
+
     @Test fun `ordinary small queries use bounded hash probes and huge queries enumerate sparse cells`() {
         val cells = (0 until 5000).map { VsiFluidFloodedVoxel(it, 0, 0, 17, 255, 0) }
         val body = spyk(ShipFluidInteraction.CachedBody(topology, flooding.copy(voxels = cells)))
@@ -134,5 +206,35 @@ class ShipFluidVolumeTest {
         body.forEachFlooded(AABB(-1e20, -1e20, -1e20, 1e20, 1e20, 1e20)) { found.add(it) }
         assertEquals(5000, found.size)
         verify(exactly = 0) { body.getFloodedVoxel(any(), any(), any()) }
+    }
+
+    @Test fun `solid hull masks are lazy and preserve real water beyond the wall`() {
+        flooding = floodingSnapshot()
+        val level = mockk<Level>()
+        every { level.getBlockCollisions(null, any()) } returns listOf(Shapes.box(1.0, 0.0, 0.0, 2.0, 1.0, 1.0))
+        val q = ShipFluidInteraction.prepareVolume(level, world, listOf(ship), AABB(0.2, 0.1, 0.2, 2.2, 0.9, 0.8))
+        assertTrue(q.worldHeight(BlockPos.ZERO, 1.0f).isNaN())
+        verify(exactly = 0) { level.getBlockCollisions(any(), any()) }
+        assertTrue(q.worldHeight(BlockPos(1, 0, 0), 1.0f).isNaN())
+        assertEquals(1.0f, q.worldHeight(BlockPos(2, 0, 0), 1.0f))
+        verify(exactly = 1) { level.getBlockCollisions(null, any()) }
+    }
+
+    @Test fun `partial hull shapes leave water in their empty portion and retain interior liquid`() {
+        val level = mockk<Level>()
+        every { level.getBlockCollisions(null, any()) } returns listOf(Shapes.box(1.0, 0.0, 0.0, 2.0, 0.5, 1.0))
+        val q = ShipFluidInteraction.prepareVolume(level, world, listOf(ship), AABB(0.2, 0.1, 0.2, 1.2, 0.9, 0.8))
+        assertEquals(1.0f, q.worldHeight(BlockPos(1, 0, 0), 1.0f))
+        assertEquals(128.0 / 255 - 0.1, q.retainedDepth(FluidTags.WATER), 1e-12)
+        val below = ShipFluidInteraction.prepareVolume(level, world, listOf(ship), AABB(0.2, 0.1, 0.2, 1.2, 0.4, 0.8))
+        assertTrue(below.worldHeight(BlockPos(1, 0, 0), 1.0f).isNaN())
+    }
+
+    @Test fun `tiny ships do not cause unbounded hull block scans`() {
+        val level = mockk<Level>()
+        transform.scale(1e-9)
+        val q = ShipFluidInteraction.prepareVolume(level, world, listOf(ship), AABB(-1.0, -1.0, -1.0, 1.0, 1.0, 1.0))
+        assertEquals(1.0f, q.worldHeight(BlockPos.ZERO, 1.0f))
+        verify(exactly = 0) { level.getBlockCollisions(any(), any()) }
     }
 }

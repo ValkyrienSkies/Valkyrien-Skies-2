@@ -8,6 +8,7 @@ import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.material.Fluids
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
+import net.minecraft.world.phys.shapes.Shapes
 import org.joml.Matrix4d
 import org.joml.primitives.AABBd
 import org.junit.jupiter.api.*
@@ -91,5 +92,19 @@ class ShipFluidCandidatesTest {
         ShipFluidInteraction.prune(world)
         assertTrue(ShipFluidCandidates.intersecting(world, "test", first).isEmpty())
         assertSame(Fluids.WATER, ShipFluidInteraction.samplePoint(level, Vec3(40.5, .5, .5)).fluid())
+    }
+
+    @Test fun `eye contact with solid hull excludes world water without masking empty slab space`() {
+        topology = topology.copy(voxels = listOf(VsiFluidTopologyVoxel(0, 0, 0, 1)))
+        flooding = floodingSnapshot()
+        every { world.allShips.getIntersecting(any(), any()) } returns listOf(ship)
+        every { level.getBlockCollisions(null, any()) } returns listOf(Shapes.box(1.0, 0.0, 0.0, 2.0, 0.5, 1.0))
+        assertTrue(ShipFluidInteraction.samplePoint(level, Vec3(.5, .5, .5)).insideDomain())
+        verify(exactly = 0) { level.getBlockCollisions(any(), any()) }
+        val hull = ShipFluidInteraction.samplePoint(level, Vec3(1.5, .25, .5))
+        assertTrue(hull.insideDomain())
+        assertFalse(hull.flooded())
+        assertFalse(ShipFluidInteraction.samplePoint(level, Vec3(1.5, .75, .5)).insideDomain())
+        assertFalse(ShipFluidInteraction.samplePoint(level, Vec3(2.5, .25, .5)).insideDomain())
     }
 }

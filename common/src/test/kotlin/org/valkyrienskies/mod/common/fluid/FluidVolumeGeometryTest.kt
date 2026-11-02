@@ -96,6 +96,26 @@ class FluidVolumeGeometryTest {
     }
 
     @Test
+    fun `adjacent dry cells at shipyard coordinates cover the middle of a rotated room`() {
+        val random = Random(7192026)
+        val localOrigin = Vector3d(-28_661_760.0, 128.0, 12_290_048.0)
+        val origin = Vec3(100.2, 64.1, -300.3)
+        val liquid = AABB(0.0, 0.0, 0.0, 0.6, 1.8, 0.6)
+        repeat(300) { iteration ->
+            val transform = Matrix4d().translation(origin.x + 0.3, origin.y + 0.9, origin.z + 0.3)
+                .rotateXYZ(random.nextDouble(-0.2, 0.2), random.nextDouble(-Math.PI, Math.PI),
+                    random.nextDouble(-0.2, 0.2))
+                .translate(-localOrigin.x, -localOrigin.y, -localOrigin.z)
+            val cells = (-2 until 2).flatMap { x -> (-2 until 2).flatMap { y -> (-2 until 2).map { z ->
+                box(AABB(localOrigin.x + x, localOrigin.y + y, localOrigin.z + z,
+                    localOrigin.x + x + 1, localOrigin.y + y + 1, localOrigin.z + z + 1), transform, origin)
+            } } }
+            assertTrue(FluidVolumeGeometry.uncoveredTop(liquid, cells.shuffled(random)).isNaN(),
+                "Dry room leaked at orientation $iteration: $transform")
+        }
+    }
+
+    @Test
     fun `convex clipping agrees with independent separating axis tests across rotations and scales`() {
         val random = Random(1826)
         repeat(300) {

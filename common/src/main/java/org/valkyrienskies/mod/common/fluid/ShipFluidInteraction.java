@@ -18,6 +18,7 @@ import net.minecraft.world.level.material.FlowingFluid;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix4dc;
 import org.joml.Vector3d;
 import org.joml.primitives.AABBd;
 import org.valkyrienskies.core.api.ships.Ship;
@@ -68,7 +69,12 @@ public final class ShipFluidInteraction {
                 worldPosition.x, worldPosition.y, worldPosition.z, local
             );
             final LocalPointSample localSample = body.sampleLocal(local.x, local.y, local.z);
-            if (!localSample.insideDomain()) continue;
+            if (!localSample.insideDomain()) {
+                if (!body.topologyByPosition.isEmpty() && insideHull(level, local)) {
+                    drySample = new PointSample(true, null);
+                }
+                continue;
+            }
 
             final FlowingFluid fluid = localSample.fluidId() == null
                 ? null
@@ -81,11 +87,33 @@ public final class ShipFluidInteraction {
         return drySample;
     }
 
+    private static boolean insideHull(final Level level, final Vector3d point) {
+        final AABB query = new AABB(point.x - 1.0e-6, point.y - 1.0e-6, point.z - 1.0e-6,
+            point.x + 1.0e-6, point.y + 1.0e-6, point.z + 1.0e-6);
+        if (!boundedHullQuery(query)) return false;
+        for (final var shape : level.getBlockCollisions(null, query)) {
+            for (final AABB box : shape.toAabbs()) {
+                if (box.contains(point.x, point.y, point.z)) return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean boundedHullQuery(final AABB bounds) {
+        final double cells = (Math.floor(bounds.maxX + 1.0e-7) - Math.floor(bounds.minX - 1.0e-7) + 3)
+            * (Math.floor(bounds.maxY + 1.0e-7) - Math.floor(bounds.minY - 1.0e-7) + 3)
+            * (Math.floor(bounds.maxZ + 1.0e-7) - Math.floor(bounds.minZ - 1.0e-7) + 3);
+        return cells > 0 && cells <= 4096 && bounds.minX > Integer.MIN_VALUE + 2.0
+            && bounds.minY > Integer.MIN_VALUE + 2.0 && bounds.minZ > Integer.MIN_VALUE + 2.0
+            && bounds.maxX < Integer.MAX_VALUE - 2.0 && bounds.maxY < Integer.MAX_VALUE - 2.0
+            && bounds.maxZ < Integer.MAX_VALUE - 2.0;
+    }
+
     /** Prepare one immutable query for the platform's original fluid loop. */
     public static VolumeQuery prepareVolume(final Level level, final AABB worldBounds) {
         final VsiShipWorld world = shipWorld(level);
         if (world == null) return new VolumeQuery(worldBounds);
-        return prepareVolume(world, ShipFluidCandidates.intersecting(world, VSGameUtilsKt.getDimensionId(level), new AABBd(
+        return prepareVolume(level, world, ShipFluidCandidates.intersecting(world, VSGameUtilsKt.getDimensionId(level), new AABBd(
             worldBounds.minX, worldBounds.minY, worldBounds.minZ,
             worldBounds.maxX, worldBounds.maxY, worldBounds.maxZ
         )), worldBounds);
@@ -93,7 +121,12 @@ public final class ShipFluidInteraction {
 
     static VolumeQuery prepareVolume(final VsiShipWorld world, final Iterable<? extends Ship> ships,
         final AABB worldBounds) {
-        final VolumeQuery result = new VolumeQuery(worldBounds);
+        return prepareVolume(null, world, ships, worldBounds);
+    }
+
+    static VolumeQuery prepareVolume(final @Nullable Level level, final VsiShipWorld world,
+        final Iterable<? extends Ship> ships, final AABB worldBounds) {
+        final VolumeQuery result = new VolumeQuery(level, worldBounds);
         if (!result.valid) return result;
         for (final Ship ship : ships) {
             final CachedBody body = bodyFor(world, ship.getId());
@@ -105,6 +138,9 @@ public final class ShipFluidInteraction {
                 worldBounds.maxX, worldBounds.maxY, worldBounds.maxZ).transform(toLocal);
             final AABB localQuery = new AABB(transformed.minX, transformed.minY, transformed.minZ,
                 transformed.maxX, transformed.maxY, transformed.maxZ);
+            if (level != null && !body.topologyByPosition.isEmpty()) {
+                result.hulls.add(new Hull(localQuery, toWorld, toLocal));
+            }
             // Use local hash probes for small queries, sparse content for huge inverse-transformed volumes.
             body.forEachDomain(localQuery, domain -> {
                 final FluidVolumeGeometry.Box box = new FluidVolumeGeometry.Box(domain, toWorld, toLocal, result.origin);
@@ -123,16 +159,26 @@ public final class ShipFluidInteraction {
         return result;
     }
 
+    private record Hull(AABB bounds, Matrix4dc toWorld, Matrix4dc toLocal) { }
+
     public static final class VolumeQuery {
+        private final @Nullable Level level;
         private final Vec3 origin;
         private final AABB relativeBounds;
         private final boolean valid;
         private final List<FluidVolumeGeometry.Box> domains = new ArrayList<>();
+        private final List<Hull> hulls = new ArrayList<>();
+        private boolean hullsRead;
         private final Long2ObjectOpenHashMap<CachedBody> bodies = new Long2ObjectOpenHashMap<>();
         private final Object2DoubleOpenHashMap<FlowingFluid> retained =
             new Object2DoubleOpenHashMap<>();
 
         private VolumeQuery(final AABB bounds) {
+            this(null, bounds);
+        }
+
+        private VolumeQuery(final @Nullable Level level, final AABB bounds) {
+            this.level = level;
             origin = new Vec3(bounds.minX, bounds.minY, bounds.minZ);
             relativeBounds = bounds.move(-origin.x, -origin.y, -origin.z);
             valid = Double.isFinite(bounds.minX) && Double.isFinite(bounds.minY) && Double.isFinite(bounds.minZ)
@@ -142,7 +188,7 @@ public final class ShipFluidInteraction {
 
         /** NaN means this world-fluid cell has no positive-volume contact outside controlled ship space. */
         public float worldHeight(final BlockPos block, final float height) {
-            if (domains.isEmpty() || !valid) return height;
+            if (!valid || !hasDomains()) return height;
             final double minX = Math.max(0, block.getX() - origin.x);
             final double minY = Math.max(0, block.getY() - origin.y);
             final double minZ = Math.max(0, block.getZ() - origin.z);
@@ -155,15 +201,33 @@ public final class ShipFluidInteraction {
             for (final FluidVolumeGeometry.Box domain : domains) {
                 if (domain.bounds.intersects(liquid)) { intersects = true; break; }
             }
-            if (!intersects) return height;
-            final double top = FluidVolumeGeometry.uncoveredTop(liquid, domains);
+            double top = intersects ? FluidVolumeGeometry.uncoveredTop(liquid, domains) : maxY;
+            if (Double.isFinite(top) && !hullsRead && !hulls.isEmpty()) {
+                readHullMasks();
+                top = FluidVolumeGeometry.uncoveredTop(liquid, domains);
+            }
             // Side-only clipping leaves the original world surface/depth intact, including full submersion.
             if (Double.isFinite(top) && top >= Math.nextDown(maxY)) return height;
             return Double.isFinite(top) ? (float) (top + origin.y - block.getY()) : Float.NaN;
         }
 
         public boolean hasDomains() {
-            return !domains.isEmpty();
+            return !domains.isEmpty() || !hulls.isEmpty();
+        }
+
+        private void readHullMasks() {
+            hullsRead = true;
+            for (final Hull hull : hulls) {
+                final AABB local = hull.bounds;
+                if (!boundedHullQuery(local)) continue;
+                for (final var shape : level.getBlockCollisions(null, local)) {
+                    shape.forAllBoxes((minX, minY, minZ, maxX, maxY, maxZ) -> {
+                        final var box = new FluidVolumeGeometry.Box(new AABB(minX, minY, minZ, maxX, maxY, maxZ),
+                            hull.toWorld, hull.toLocal, origin);
+                        if (box.bounds.intersects(relativeBounds)) domains.add(box);
+                    });
+                }
+            }
         }
 
         /** Retained domains own their local cell; vanilla block fluid must not be reintroduced there. */
