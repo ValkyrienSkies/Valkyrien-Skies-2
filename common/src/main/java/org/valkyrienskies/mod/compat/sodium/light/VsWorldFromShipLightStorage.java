@@ -10,6 +10,7 @@ import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.IntBuffer;
+import java.util.Arrays;
 import java.util.BitSet;
 
 import java.util.Set;
@@ -22,6 +23,7 @@ import org.lwjgl.system.MemoryUtil;
 import com.mojang.blaze3d.platform.GlStateManager;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.SectionPos;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
@@ -113,6 +115,13 @@ public class VsWorldFromShipLightStorage {
     private final IntArrayList pendingEmitterZ = new IntArrayList();
     private final IntArrayList pendingEmitterL = new IntArrayList();
 
+    // Process the strongest queued light first. Each cell then needs at most one world read.
+    private static final int MAX_FLOOD_CELLS = 1 << 20;
+    private final IntArrayList[] lightQueues = new IntArrayList[MAX_LIGHT_DILATION + 1];
+    private byte[] queuedLight = new byte[0];
+    private int[] floodSections = new int[0];
+    private LevelChunkSection[] worldSections = new LevelChunkSection[0];
+
     public VsWorldFromShipLightStorage() {
         capacity = DEFAULT_CAPACITY;
         section2Index.defaultReturnValue(INVALID);
@@ -120,9 +129,11 @@ public class VsWorldFromShipLightStorage {
         for (int i = 0; i < capacity; i++) {
             free.set(i);
         }
+        for (int i = 1; i < lightQueues.length; i++) lightQueues[i] = new IntArrayList();
     }
 
     public void delete() {
+        worldSections = new LevelChunkSection[0];
         if (arenaPtr != 0L) {
             MemoryUtil.nmemFree(arenaPtr);
             arenaPtr = 0L;
@@ -304,18 +315,125 @@ public class VsWorldFromShipLightStorage {
     }
 
     public void runQueuedBfs(LevelAccessor level) {
-        for (int i = 0; i < pendingEmitterX.size(); i++) {
-            bfsLight(
-                    level,
-                    pendingEmitterX.getInt(i),
-                    pendingEmitterY.getInt(i),
-                    pendingEmitterZ.getInt(i),
-                    pendingEmitterL.getInt(i));
+        if (!floodEmittersTogether(level)) {
+            // Keep the old path for sources that span a very large area.
+            for (int i = 0; i < pendingEmitterX.size(); i++) {
+                bfsLight(level, pendingEmitterX.getInt(i), pendingEmitterY.getInt(i),
+                    pendingEmitterZ.getInt(i), pendingEmitterL.getInt(i));
+            }
         }
         pendingEmitterX.clear();
         pendingEmitterY.clear();
         pendingEmitterZ.clear();
         pendingEmitterL.clear();
+    }
+
+    private boolean floodEmittersTogether(final LevelAccessor level) {
+        if (pendingEmitterX.isEmpty()) return true;
+        long minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
+        long maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
+        for (int i = 0; i < pendingEmitterX.size(); i++) {
+            final int radius = Math.min(pendingEmitterL.getInt(i), MAX_LIGHT_DILATION) - 1;
+            if (radius < 0) continue;
+            final long x = pendingEmitterX.getInt(i), y = pendingEmitterY.getInt(i), z = pendingEmitterZ.getInt(i);
+            minX = Math.min(minX, x - radius); maxX = Math.max(maxX, x + radius);
+            minY = Math.min(minY, y - radius); maxY = Math.max(maxY, y + radius);
+            minZ = Math.min(minZ, z - radius); maxZ = Math.max(maxZ, z + radius);
+        }
+        if (maxX < minX) return true;
+        if (minX < Integer.MIN_VALUE || minY < Integer.MIN_VALUE || minZ < Integer.MIN_VALUE
+            || maxX > Integer.MAX_VALUE || maxY > Integer.MAX_VALUE || maxZ > Integer.MAX_VALUE) return false;
+        final long width = maxX - minX + 1, height = maxY - minY + 1, depth = maxZ - minZ + 1;
+        if (width > MAX_FLOOD_CELLS || height > MAX_FLOOD_CELLS || depth > MAX_FLOOD_CELLS
+            || width * depth > MAX_FLOOD_CELLS || width * depth * height > MAX_FLOOD_CELLS) return false;
+        final int cells = (int) (width * height * depth);
+        if (queuedLight.length < cells) queuedLight = new byte[cells];
+        else Arrays.fill(queuedLight, 0, cells, (byte) 0);
+        for (int light = 1; light < lightQueues.length; light++) lightQueues[light].clear();
+        final int row = (int) width, layer = (int) (width * depth);
+        final int sectionX = (int) minX >> 4, sectionY = (int) minY >> 4, sectionZ = (int) minZ >> 4;
+        final int sectionRow = ((int) maxX >> 4) - sectionX + 1;
+        final int sectionLayer = sectionRow * (((int) maxZ >> 4) - sectionZ + 1);
+        final int sections = sectionLayer * (((int) maxY >> 4) - sectionY + 1);
+        final boolean clientWorld = level instanceof ClientLevel;
+        if (floodSections.length < sections) {
+            floodSections = new int[sections];
+            worldSections = new LevelChunkSection[sections];
+        }
+        Arrays.fill(worldSections, null);
+        Arrays.fill(floodSections, 0, sections, -2);
+        for (int i = 0; i < pendingEmitterX.size(); i++) {
+            final int light = Math.min(pendingEmitterL.getInt(i), MAX_LIGHT_DILATION);
+            if (light <= 0) continue;
+            final int cell = (int) ((pendingEmitterX.getInt(i) - minX)
+                + (pendingEmitterZ.getInt(i) - minZ) * row + (pendingEmitterY.getInt(i) - minY) * layer);
+            queueLight(cell, light);
+        }
+        for (int light = MAX_LIGHT_DILATION; light > 0; light--) {
+            final IntArrayList queue = lightQueues[light];
+            for (int head = 0; head < queue.size(); head++) {
+                final int cell = queue.getInt(head);
+                if (queuedLight[cell] != light) continue;
+                final int plane = cell / layer;
+                final int inPlane = cell - plane * layer;
+                final int localZ = inPlane / row;
+                final int x = (int) minX + inPlane - localZ * row;
+                final int y = (int) minY + plane;
+                final int z = (int) minZ + localZ;
+                final int localSection = ((x >> 4) - sectionX) + ((z >> 4) - sectionZ) * sectionRow
+                    + ((y >> 4) - sectionY) * sectionLayer;
+                final int voxel = (x & 15) + 1 + ((z & 15) + 1) * 18 + ((y & 15) + 1) * 18 * 18;
+                int index = floodSections[localSection];
+                if (index == -2) {
+                    final long sectionPos = SectionPos.asLong(x >> 4, y >> 4, z >> 4);
+                    index = requestedThisFrame.contains(sectionPos) ? section2Index.get(sectionPos) : INVALID;
+                    floodSections[localSection] = index;
+                    // Check again for each flood. Block and chunk changes must take effect at once.
+                    if (clientWorld) worldSections[localSection] = worldSection((ClientLevel) level, x, y, z);
+                }
+                if (index != INVALID) {
+                    final long ptr = arenaPtr + (long) index * SECTION_SIZE_BYTES + LIGHT_START_BYTES + voxel;
+                    if ((MemoryUtil.memGetByte(ptr) & 15) >= light) continue;
+                }
+                final LevelChunkSection worldSection = worldSections[localSection];
+                if (clientWorld ? worldSection != null && worldSection.getBlockState(x & 15, y & 15, z & 15).canOcclude()
+                    : isWorldOccluder(level, x, y, z)) continue;
+                if (index == INVALID) {
+                    index = ensureSection(SectionPos.asLong(x >> 4, y >> 4, z >> 4));
+                    floodSections[localSection] = index;
+                }
+                final long section = arenaPtr + (long) index * SECTION_SIZE_BYTES;
+                final long ptr = section + LIGHT_START_BYTES + voxel;
+                final byte previous = MemoryUtil.memGetByte(ptr);
+                MemoryUtil.memPutByte(ptr, (byte) ((previous & 0xf0) | light));
+                if (light == 1 || (MemoryUtil.memGetInt(section + (long) (voxel >>> 5) * 4)
+                    & (1 << (voxel & 31))) != 0) continue;
+                // The bounds include each source's full range. These neighbors remain inside them.
+                queueLight(cell + 1, light - 1);
+                queueLight(cell - 1, light - 1);
+                queueLight(cell + layer, light - 1);
+                queueLight(cell - layer, light - 1);
+                queueLight(cell + row, light - 1);
+                queueLight(cell - row, light - 1);
+            }
+        }
+        Arrays.fill(worldSections, 0, sections, null);
+        return true;
+    }
+
+    private void queueLight(final int cell, final int light) {
+        if (queuedLight[cell] >= light) return;
+        queuedLight[cell] = (byte) light;
+        lightQueues[light].add(cell);
+    }
+
+    private LevelChunkSection worldSection(final ClientLevel level, final int x, final int y, final int z) {
+        if (level.isOutsideBuildHeight(y)) return null;
+        final ChunkAccess chunk = level.getChunk(x >> 4, z >> 4,
+            net.minecraft.world.level.chunk.ChunkStatus.FULL, false);
+        if (chunk == null) return null;
+        final LevelChunkSection section = chunk.getSection(chunk.getSectionIndex(y));
+        return section.hasOnlyAir() ? null : section;
     }
 
     public int getBlockLightAt(BlockPos pos) {

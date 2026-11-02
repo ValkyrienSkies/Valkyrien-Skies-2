@@ -36,6 +36,7 @@ uniform usamplerBuffer u_VsLightLut;
 #ifdef VS_SHIP_ON_SHIP
 // Use the shared shadow boxes when ships affect world lighting.
 #import <valkyrienskies:include/ship_shadows.glsl>
+#import <valkyrienskies:include/emitter_groups.glsl>
 // Per-frame ship-emitter list. TWO RGBA32F texels per emitter:
 //   texel 2i:   vec4(worldX, worldY, worldZ, lightLevel)
 //   texel 2i+1: vec4(qx, qy, qz, qw)   ship-to-world rotation quaternion
@@ -330,13 +331,30 @@ const int VS_SOS_OCCLUDER_LOOP_CAP = 128;
 float vs_sosEmitterLight(vec3 worldPos) {
     float maxLight = 0.0;
     int n = min(u_VsShipEmitterCount, VS_SOS_EMITTER_LOOP_CAP);
-    for (int i = 0; i < n; i++) {
-        vec4 e = texelFetch(u_VsShipEmitters, i * 2);
-        vec4 q = texelFetch(u_VsShipEmitters, i * 2 + 1);
-        vec3 offset_ship = vs_sosQuatRotateInv(q, worldPos - e.xyz);
-        float dist = abs(offset_ship.x) + abs(offset_ship.y) + abs(offset_ship.z);
-        float light = max(0.0, e.w - dist);
-        maxLight = max(maxLight, light);
+    if (n <= 0) return maxLight;
+    int mode = vs_emitterBoundsMode(u_VsShipEmitters, worldPos, n);
+    if (mode < 0) return maxLight;
+    if (mode == 0) {
+        for (int i = 0; i < n; i++) {
+            vec4 e = texelFetch(u_VsShipEmitters, i * 2);
+            vec4 q = texelFetch(u_VsShipEmitters, i * 2 + 1);
+            vec3 offset_ship = vs_sosQuatRotateInv(q, worldPos - e.xyz);
+            float dist = abs(offset_ship.x) + abs(offset_ship.y) + abs(offset_ship.z);
+            float light = max(0.0, e.w - dist);
+            maxLight = max(maxLight, light);
+        }
+        return maxLight;
+    }
+    for (int first = 0; first < n; first += 8) {
+        if (vs_emitterGroupOutside(u_VsShipEmitters, worldPos, first / 8)) continue;
+        for (int i = first; i < min(first + 8, n); i++) {
+            vec4 e = texelFetch(u_VsShipEmitters, i * 2);
+            vec4 q = texelFetch(u_VsShipEmitters, i * 2 + 1);
+            vec3 offset_ship = vs_sosQuatRotateInv(q, worldPos - e.xyz);
+            float dist = abs(offset_ship.x) + abs(offset_ship.y) + abs(offset_ship.z);
+            float light = max(0.0, e.w - dist);
+            maxLight = max(maxLight, light);
+        }
     }
     return maxLight;
 }

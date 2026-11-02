@@ -32,6 +32,6 @@ Shadow edges differ from the old box-based sky-visibility estimate. The new filt
 
 ## Validation
 
-See `performance-batched-shadows-2026-10-29.md` for the current measurements and checks. See `performance-shadow-map-2026-10-13.md` for the first map implementation. In-game checks remain required for the affected save and active shader packs.
+Check ship shadows in the affected save and with the active shader packs.
 
 Validation on 13 October 2026: all 215 common tests, 29 shader checks, and the production render checks pass. Both Forge and Fabric JARs build. The files are in `../.spark-analysis/oct13-shadow-map/artifacts/`, with `shadow-map` in their names.

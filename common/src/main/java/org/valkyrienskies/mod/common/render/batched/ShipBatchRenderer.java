@@ -72,7 +72,8 @@ public final class ShipBatchRenderer {
         float opaqueOffsetX, opaqueOffsetY, opaqueOffsetZ;
         // Translucent sections sorted back-to-front, computed once here and used by the translucent
         // layer's drawLayer (translucent stays per-section so its ordering is preserved).
-        final ArrayList<ShipSectionMesh> translucentOrder = new ArrayList<>();
+        final ShipTranslucentOrder<ShipSectionMesh> translucentOrder =
+            new ShipTranslucentOrder<>(ShipBatchRenderer::sortTranslucentSections);
     }
 
     private ShipBatchRenderer() {
@@ -267,7 +268,7 @@ public final class ShipBatchRenderer {
                 continue;
             }
             if (translucent) {
-                final ArrayList<ShipSectionMesh> order = data.translucentOrder;
+                final ArrayList<ShipSectionMesh> order = data.translucentOrder.sections();
                 boolean shipTransformSet = false;
                 for (int i = 0; i < order.size(); i++) {
                     final ShipSectionMesh mesh = order.get(i);
@@ -351,10 +352,9 @@ public final class ShipBatchRenderer {
         for (int i = 0; i < drawOrder.size(); i++) {
             final ShipRenderObject renderObject = drawOrder.get(i);
             final ShipFrameData data = frameData.get(i);
-            data.translucentOrder.clear();
-
             final ClientShip ship = renderObject.ship;
             if (renderObject.isEmpty()) {
+                data.translucentOrder.clear();
                 data.visible = true;
                 continue;
             }
@@ -390,15 +390,19 @@ public final class ShipBatchRenderer {
             data.opaqueOffsetZ = (float) (mesh.refZ - data.camShipZ);
 
             if (!mesh.translucentSections.isEmpty()) {
-                data.translucentOrder.addAll(mesh.translucentSections.values());
-                final double cx = data.camShipX;
-                final double cy = data.camShipY;
-                final double cz = data.camShipZ;
-                data.translucentOrder.sort((a, b) ->
-                    Double.compare(sectionCenterDistSq(b, cx, cy, cz), sectionCenterDistSq(a, cx, cy, cz)));
+                data.translucentOrder.update(mesh, mesh.translucentSections.values(),
+                    data.camShipX, data.camShipY, data.camShipZ);
+            } else {
+                data.translucentOrder.clear();
             }
         }
         transformStorage.upload();
+    }
+
+    private static void sortTranslucentSections(final ArrayList<ShipSectionMesh> sections,
+        final double cx, final double cy, final double cz) {
+        sections.sort((a, b) ->
+            Double.compare(sectionCenterDistSq(b, cx, cy, cz), sectionCenterDistSq(a, cx, cy, cz)));
     }
 
     private static double sectionCenterDistSq(final ShipSectionMesh mesh,
@@ -420,9 +424,6 @@ public final class ShipBatchRenderer {
         final Vec3 cam = camera.getPosition();
 
         for (int shipIdx = 0; shipIdx < drawOrder.size(); shipIdx++) {
-            if (shipIdx < frameData.size() && !frameData.get(shipIdx).visible) {
-                continue;
-            }
             final ShipRenderObject renderObject = drawOrder.get(shipIdx);
             final List<BlockEntity> shipBlockEntities = renderObject.getBlockEntities(level);
             if (shipBlockEntities.isEmpty()) {

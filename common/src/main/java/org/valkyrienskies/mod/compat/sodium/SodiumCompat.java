@@ -29,6 +29,7 @@ import me.jellysquid.mods.sodium.client.util.iterator.ByteIterator;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.resources.ResourceLocation;
@@ -50,6 +51,7 @@ import org.valkyrienskies.mod.common.config.ShipRendererKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.render.batched.ShipBatchRenderer;
 import org.valkyrienskies.mod.common.render.batched.ShipSectionMesh;
+import org.valkyrienskies.mod.common.render.batched.ShipRenderFrustum;
 import org.valkyrienskies.mod.common.render.light.VsDynamicLight;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.hooks.VSGameEvents;
@@ -542,8 +544,9 @@ public class SodiumCompat {
             return;
         }
         final PoseStack poseStack = new PoseStack();
-        poseStack.last().pose().set(new Matrix4f(matrices.modelView()));
+        poseStack.last().pose().set(matrices.modelView());
         final Matrix4f projection = new Matrix4f(matrices.projection());
+        final Frustum frustum = ShipRenderFrustum.create(poseStack.last().pose(), projection, x, y, z);
 
         if (renderLayer == RenderType.solid()) {
             ShipBatchRenderer.INSTANCE.beginFrame(net.minecraft.client.Minecraft.getInstance().level);
@@ -554,10 +557,10 @@ public class SodiumCompat {
                 if (layer == RenderType.translucent()) {
                     continue;
                 }
-                ShipBatchRenderer.INSTANCE.drawLayer(layer, poseStack, x, y, z, projection, null);
+                ShipBatchRenderer.INSTANCE.drawLayer(layer, poseStack, x, y, z, projection, frustum);
             }
         } else if (renderLayer == RenderType.translucent()) {
-            ShipBatchRenderer.INSTANCE.drawLayer(RenderType.translucent(), poseStack, x, y, z, projection, null);
+            ShipBatchRenderer.INSTANCE.drawLayer(RenderType.translucent(), poseStack, x, y, z, projection, frustum);
         }
     }
 

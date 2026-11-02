@@ -42,7 +42,7 @@ public class VsShipEmitterList {
     public static final int MAX_EMITTERS = 1024;
     public static final int MAX_RENDER_EMITTERS = 128;
     private static final int BYTES_PER_EMITTER = 32; // 8 floats: vec4(worldX, worldY, worldZ, lightLevel) + vec4(qx, qy, qz, qw)
-    private static final int CAPACITY_BYTES = MAX_EMITTERS * BYTES_PER_EMITTER;
+    private static final int CAPACITY_BYTES = MAX_EMITTERS * BYTES_PER_EMITTER + ShipEmitterBounds.HEADER_BYTES;
 
     private static final double[] NO_EMITTERS = new double[0];
 
@@ -56,7 +56,7 @@ public class VsShipEmitterList {
     private final Vector3d scratch = new Vector3d();
 
     public VsShipEmitterList() {
-        arenaPtr = MemoryUtil.nmemAlloc((long) MAX_EMITTERS * BYTES_PER_EMITTER);
+        arenaPtr = MemoryUtil.nmemAlloc(CAPACITY_BYTES);
     }
 
     public void delete() {
@@ -170,6 +170,7 @@ public class VsShipEmitterList {
     }
 
     public void upload() {
+        ShipEmitterBounds.write(arenaPtr, count);
         ensureGlObjects();
         GL15.glBindBuffer(GL31.GL_TEXTURE_BUFFER, buffer);
         final boolean respec = currentByteSize != CAPACITY_BYTES;
@@ -180,6 +181,8 @@ public class VsShipEmitterList {
         if (count > 0) {
             GL15.nglBufferSubData(GL31.GL_TEXTURE_BUFFER, 0L, (long) count * BYTES_PER_EMITTER, arenaPtr);
         }
+        GL15.nglBufferSubData(GL31.GL_TEXTURE_BUFFER, ShipEmitterBounds.HEADER_OFFSET,
+            ShipEmitterBounds.HEADER_BYTES, arenaPtr + ShipEmitterBounds.HEADER_OFFSET);
         GL15.glBindBuffer(GL31.GL_TEXTURE_BUFFER, 0);
         if (respec) {
             // Some drivers cache the buffer-data-store reference at glTexBuffer

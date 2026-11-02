@@ -1,5 +1,6 @@
 #version 330 core
 #import <valkyrienskies:include/ship_shadows.glsl>
+#import <valkyrienskies:include/emitter_groups.glsl>
 
 #import <sodium:include/fog.glsl>
 
@@ -189,13 +190,30 @@ const int VS_EMITTER_LOOP_CAP = 128;
 float vs_shipEmitterLight(vec3 worldPos) {
     float maxLight = 0.0;
     int n = min(u_VsShipEmitterCount, VS_EMITTER_LOOP_CAP);
-    for (int i = 0; i < n; i++) {
-        vec4 e = texelFetch(u_VsShipEmitters, i * 2);
-        vec4 q = texelFetch(u_VsShipEmitters, i * 2 + 1);
-        vec3 offset_ship = vs_quatRotateInv(q, worldPos - e.xyz);
-        float dist = abs(offset_ship.x) + abs(offset_ship.y) + abs(offset_ship.z);
-        float light = max(0.0, e.w - dist);
-        maxLight = max(maxLight, light);
+    if (n <= 0) return maxLight;
+    int mode = vs_emitterBoundsMode(u_VsShipEmitters, worldPos, n);
+    if (mode < 0) return maxLight;
+    if (mode == 0) {
+        for (int i = 0; i < n; i++) {
+            vec4 e = texelFetch(u_VsShipEmitters, i * 2);
+            vec4 q = texelFetch(u_VsShipEmitters, i * 2 + 1);
+            vec3 offset_ship = vs_quatRotateInv(q, worldPos - e.xyz);
+            float dist = abs(offset_ship.x) + abs(offset_ship.y) + abs(offset_ship.z);
+            float light = max(0.0, e.w - dist);
+            maxLight = max(maxLight, light);
+        }
+        return maxLight;
+    }
+    for (int first = 0; first < n; first += 8) {
+        if (vs_emitterGroupOutside(u_VsShipEmitters, worldPos, first / 8)) continue;
+        for (int i = first; i < min(first + 8, n); i++) {
+            vec4 e = texelFetch(u_VsShipEmitters, i * 2);
+            vec4 q = texelFetch(u_VsShipEmitters, i * 2 + 1);
+            vec3 offset_ship = vs_quatRotateInv(q, worldPos - e.xyz);
+            float dist = abs(offset_ship.x) + abs(offset_ship.y) + abs(offset_ship.z);
+            float light = max(0.0, e.w - dist);
+            maxLight = max(maxLight, light);
+        }
     }
     return maxLight;
 }
