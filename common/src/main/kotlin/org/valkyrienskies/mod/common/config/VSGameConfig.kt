@@ -484,6 +484,11 @@ object VSGameConfig {
         )
         var relocateStructureMetadata = true
 
+        @ConfigEntry(
+            description = "The offset (in blocks) from the death-height ships will stop falling at. To disable saving ships from falling into the void, you need a dimension property datapack."
+        )
+        var voidShipOffset = -3
+
         @ConfigCategory(title = "Commands")
         val Commands = COMMANDS()
 
