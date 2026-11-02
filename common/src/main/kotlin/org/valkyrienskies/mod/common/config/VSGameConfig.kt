@@ -259,6 +259,11 @@ object VSGameConfig {
         var defaultBlockHardness = 1.0
 
         @ConfigEntry(
+            description = "Target velocity (m/s) a piston push/pull applies to a ship's contact point"
+        )
+        var pistonPushSpeed = 10.2
+
+        @ConfigEntry(
             description = "Enable splitting in worldspace. (Experimental!)"
         )
         var enableWorldSplitting = false
