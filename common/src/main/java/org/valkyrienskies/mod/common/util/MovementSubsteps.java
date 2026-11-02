@@ -13,10 +13,11 @@ public final class MovementSubsteps {
         if (!movement.isFinite()) return new Vector3d();
         final int steps = Math.max(1, Math.min(1024, (int) Math.ceil(movement.length() / 0.5)));
         final Vector3dc step = movement.div(steps, new Vector3d());
-        final Vector3d offset = new Vector3d();
+        final Vector3d correction = new Vector3d();
         for (int i = 0; i < steps; i++) {
-            offset.add(collision.apply(step, offset));
+            final Vector3d offset = step.mul(i, new Vector3d()).add(correction);
+            correction.add(collision.apply(step, offset).sub(step, new Vector3d()));
         }
-        return offset;
+        return new Vector3d(movement).add(correction);
     }
 }
