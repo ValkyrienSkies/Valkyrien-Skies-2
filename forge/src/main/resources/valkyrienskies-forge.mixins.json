@@ -27,6 +27,10 @@
     "feature.fix_tp_ships_cross_dimension.MixinLevelChunk",
     "feature.forge_interact.MixinIForge2Player",
     "feature.forge_interact.MixinIForgePlayer",
+    "feature.sculk.MixinCalibratedSculkSensorBlock",
+    "feature.sculk.MixinSculkSensorBlock",
+    "feature.sculk.MixinSculkShriekerBlock",
+    "feature.sculk.MixinVibrationSystemEntities",
     "feature.shipyard_entities.MixinPersistentEntitySectionManager",
     "feature.water_in_ships_entity.MixinEntity",
     "world.level.block.FireMixin"

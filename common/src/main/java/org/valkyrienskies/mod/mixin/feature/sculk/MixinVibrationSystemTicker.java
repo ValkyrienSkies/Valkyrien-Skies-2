@@ -18,6 +18,8 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 // This mixin injects into private methods of an interface, which is supported by up-to-date
 // Fabric mixin, or with MixinBooster. Otherwise this will not work (but will not crash) as of Forge 1.20.1.
+// On Forge the position-source conversion is applied by the mixins in
+// org.valkyrienskies.mod.forge.mixin.feature.sculk instead, which wrap the users passed to Ticker.tick.
 @Mixin(Ticker.class)
 public interface MixinVibrationSystemTicker {
     @WrapOperation(method = "receiveVibration", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/gameevent/vibrations/VibrationInfo;pos()Lnet/minecraft/world/phys/Vec3;"))
