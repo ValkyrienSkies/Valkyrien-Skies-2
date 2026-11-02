@@ -133,6 +133,11 @@ public abstract class MixinGameRenderer {
 
             // Also update entity last tick positions, so that they interpolate correctly
             for (final Entity entity : clientWorld.entitiesForRendering()) {
+                // Neither mounted nor dragged: nothing below would move this entity
+                if (entity.getVehicle() == null && entity instanceof IEntityDraggingInformationProvider provider
+                    && provider.getDraggingInformation().getLastShipStoodOn() == null) {
+                    continue;
+                }
                 if (!EntityDragger.isDraggable(entity)) {
                     continue;
                 }
