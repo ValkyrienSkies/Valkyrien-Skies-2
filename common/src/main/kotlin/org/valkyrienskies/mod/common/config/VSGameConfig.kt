@@ -203,7 +203,7 @@ object VSGameConfig {
             @ConfigEntry(
                 description = "Adds contraptions to the ship collider"
             )
-            var enableContraptionCollisions = false
+            var enableContraptionCollisions = true
         }
 
         @ConfigCategory(title = "FTB Chunks")
