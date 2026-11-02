@@ -26,6 +26,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.material.FluidState;
+import org.valkyrienskies.core.api.ships.ClientShip;
 
 public final class ShipSectionCompiler {
 
@@ -38,9 +39,10 @@ public final class ShipSectionCompiler {
     private final OffsetVertexConsumer offsetConsumer = new OffsetVertexConsumer();
 
     public ShipMesh compileShip(final ClientLevel level, final BlockRenderDispatcher dispatcher,
-        final LongList sectionPositions, final int refX, final int refY, final int refZ) {
+        final LongList sectionPositions, final int refX, final int refY, final int refZ,
+        final ClientShip ship, final ShipBiomeTintCache biomeTints) {
 
-        final BlockAndTintGetter renderView = shadeRemovingView.forLevel(level);
+        final BlockAndTintGetter renderView = shadeRemovingView.forShip(level, ship, biomeTints);
         final PoseStack poseStack = new PoseStack();
         final RenderType translucentLayer = RenderType.translucent();
         final Set<RenderType> startedOpaque = new HashSet<>();

@@ -14,6 +14,7 @@ import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.compat.sodium.light.VsShipEmitterList;
+import org.valkyrienskies.mod.common.config.VSGameConfig;
 
 public final class ShipRenderObject implements AutoCloseable {
 
@@ -30,6 +31,8 @@ public final class ShipRenderObject implements AutoCloseable {
     private int lastActiveChunkCount = -1;
     private long lastChunkPollGameTime = Long.MIN_VALUE;
     private boolean built = false;
+    private final ShipBiomeTintCache biomeTints = new ShipBiomeTintCache();
+    private long lastBiomeTick = Long.MIN_VALUE;
 
     private static final int RELIGHT_SETTLE_QUIET_TICKS = 3;
     private static final long RELIGHT_SETTLE_MAX_DELAY_TICKS = 200L; // ~10s cap for slow mass-spawn propagation
@@ -91,6 +94,10 @@ public final class ShipRenderObject implements AutoCloseable {
         final ShipSectionCompiler compiler, final boolean incrementalBudgetAvailable) {
 
         final long gameTime = level.getGameTime();
+        if (built && VSGameConfig.CLIENT.getDynamicShipBiomeTinting() && lastBiomeTick != gameTime) {
+            lastBiomeTick = gameTime;
+            if (biomeTints.hasChanged(level, ship)) markSectionDirty(0, 0, 0);
+        }
         boolean structuralChange = false;
         if (!built || gameTime != lastChunkPollGameTime) {
             lastChunkPollGameTime = gameTime;
@@ -183,9 +190,10 @@ public final class ShipRenderObject implements AutoCloseable {
             }
         });
 
+        biomeTints.clear();
         final ShipMesh newMesh = sectionPositions.isEmpty()
             ? null
-            : compiler.compileShip(level, dispatcher, sectionPositions, minOrigin[0], minOrigin[1], minOrigin[2]);
+            : compiler.compileShip(level, dispatcher, sectionPositions, minOrigin[0], minOrigin[1], minOrigin[2], ship, biomeTints);
 
         final ShipMesh old = this.mesh;
         this.mesh = newMesh;
@@ -197,6 +205,7 @@ public final class ShipRenderObject implements AutoCloseable {
 
     @Override
     public void close() {
+        biomeTints.clear();
         if (mesh != null) {
             mesh.close();
             mesh = null;

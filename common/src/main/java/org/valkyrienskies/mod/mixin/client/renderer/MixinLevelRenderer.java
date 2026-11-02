@@ -28,6 +28,11 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(LevelRenderer.class)
 public abstract class MixinLevelRenderer {
+    @Inject(method = "allChanged", at = @At("HEAD"))
+    private void vs$resetShipBackend(final CallbackInfo ci) {
+        org.valkyrienskies.mod.common.render.ShipRenderConfig.onRendererReload();
+    }
+
     @Inject(method = "renderLevel", at = @At("HEAD"))
     private void vs$prepareShipShadows(final CallbackInfo ci) {
         org.valkyrienskies.mod.common.render.light.VsDynamicLight.prepareFrame(this.level);

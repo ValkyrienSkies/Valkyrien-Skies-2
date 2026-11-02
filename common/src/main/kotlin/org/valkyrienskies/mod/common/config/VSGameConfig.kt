@@ -125,29 +125,30 @@ object VSGameConfig {
         }
 
         @ConfigEntry(
-            description = "The way ships are rendered by default. BATCHED is the built-in default and powers advanced features; VANILLA uses MC's terrain chunk renderer; FLYWHEEL requires the Flywheel mod."
+            description = "The default ship renderer. Changes rebuild client render state. FLYWHEEL requires an active Flywheel 1.x backend; otherwise ships use VANILLA."
         )
         var defaultRenderer = ShipRenderer.BATCHED
 
-        @ConfigEntry(description = "Use a custom vanilla shader for rendering ship chunks, improving lighting on tilted and upside down ships. Also enables the directional-shade fix for the sodium/embeddium ship renderer. Only affects the VANILLA ship renderer, the BATCHED renderer has its own shading built in and ignores this.")
+        @ConfigEntry(description = "Apply face shading in world coordinates to tilted ships. Applies to vanilla, Sodium/Embeddium, and batched ship rendering.")
         var betterVanillaShipShading = false
 
-        @ConfigEntry(description = "Sample the world biome at the ship's actual rendered position so grass/leaves/water on ships show the correct biome color (sodium/embeddium only). Only affects the VANILLA ship renderer, the BATCHED renderer bakes biome color into its mesh and ignores this. Disable for a small perf gain — ship blocks fall back to whatever the chunk mesher baked.")
+        @ConfigEntry(description = "Use biome colors at the ship's world position. Applies to Sodium/Embeddium and batched ships. Disable to use baked shipyard colors and stop biome updates.")
         var dynamicShipBiomeTinting = false
 
-        @ConfigEntry(description = "Sample world block/sky light at the ship's rendered position so torches and sunlight in the world correctly light the ship (sodium/embeddium only). Only affects the VANILLA and FLYWHEEL ship renderers, the BATCHED renderer has this built into its own shaders and ignores this. Disable for a moderate perf gain — ship blocks fall back to the shipyard's baked lightmap.")
+        @ConfigEntry(description = "Sample world block and sky light at the ship's world position. Applies to Sodium/Embeddium, Flywheel, and batched ships. Disable to use baked shipyard light and stop world-light updates.")
         var dynamicShipLighting = false
 
-        @ConfigEntry(description = "Enable light from ships for VANILLA and FLYWHEEL. BATCHED always enables this lighting. Use shipShadows to control visual shadows.")
+        @ConfigEntry(description = "Enable light from ships for all renderers. Disable to stop emitter collection, light propagation, and light uploads. Use shipShadows to control visual shadows separately.")
         var dynamicShipToWorldLighting = true
 
         fun isShipToWorldLightingEnabled(): Boolean =
-            defaultRenderer == ShipRenderer.BATCHED || dynamicShipToWorldLighting
+            dynamicShipToWorldLighting
 
         @ConfigEntry(description = "Draw ship shadows on terrain and other ships. Disable this to skip the shadow map pass.")
         var shipShadows = false
 
-        fun isShipToWorldShaderEnabled(): Boolean = isShipToWorldLightingEnabled() || shipShadows
+        fun isShipToWorldShaderEnabled(): Boolean =
+            isShipToWorldLightingEnabled() || (shipShadows && shipShadowStrength > 0.0)
 
         @ConfigEntry(description = "Visual ship shadow strength. 0 keeps full ambient sky light. 1 removes all sky light below a ship. This does not change mob spawn light checks.", min = 0.0, max = 1.0)
         var shipShadowStrength = 0.4
@@ -155,7 +156,7 @@ object VSGameConfig {
         @ConfigEntry(description = "Width of the ship shadow filter, in blocks. Set this to 0 for hard shadows.", min = 0.0, max = 4.0)
         var shipShadowSoftness = 0.35
 
-        @ConfigEntry(description = "Legacy setting. Shadow maps use a fixed filter width set by shipShadowSoftness. This value has no effect.", min = 0.0, max = 0.5)
+        @ConfigEntry(description = "Increase shadow filter width per block between the surface and the shadow caster. Zero keeps a fixed width. A softness of zero keeps hard shadows.", min = 0.0, max = 0.5)
         var shipShadowBlurGrowth = 0.08
 
         @ConfigEntry(description = "Directional shade strength for ship faces. 0 gives all faces the same shade. 1 uses the full Minecraft face shade.", min = 0.0, max = 1.0)

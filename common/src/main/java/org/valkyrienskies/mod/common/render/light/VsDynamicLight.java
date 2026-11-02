@@ -5,6 +5,10 @@ import org.joml.primitives.AABBdc;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.ShipRendererKt;
+import org.valkyrienskies.mod.common.config.VSGameConfig;
+import org.valkyrienskies.mod.common.render.ShipRenderConfig;
+import org.valkyrienskies.mod.compat.VSRenderer;
+import org.valkyrienskies.mod.mixin.ValkyrienCommonMixinConfigPlugin;
 import org.valkyrienskies.mod.compat.sodium.light.VsShipEmitterList;
 import org.valkyrienskies.mod.compat.sodium.light.VsShipLightStorage;
 import org.valkyrienskies.mod.compat.sodium.light.VsShipOccluderList;
@@ -82,9 +86,38 @@ public final class VsDynamicLight {
         ShipShadowRenderer.invalidate(shipId);
     }
 
+    public static void invalidateLightSection(final long section) {
+        if (lightStorage != null) lightStorage.invalidateSection(section);
+    }
+
+    public static void releaseDisabledResources() {
+        if (!VSGameConfig.CLIENT.getDynamicShipLighting() && lightStorage != null) {
+            lightStorage.delete();
+            lightStorage = null;
+        }
+        if (!VSGameConfig.CLIENT.isShipToWorldLightingEnabled()) {
+            EMITTERS.clear();
+            if (worldFromShipStorage != null) {
+                worldFromShipStorage.delete();
+                worldFromShipStorage = null;
+            }
+            if (shipEmitterList != null) {
+                shipEmitterList.delete();
+                shipEmitterList = null;
+            }
+            if (shipOccluderList != null) {
+                shipOccluderList.delete();
+                shipOccluderList = null;
+            }
+        }
+    }
+
     /** Prepare one light list for all ship and world render paths. */
     public static void prepareFrame(final ClientLevel level) {
+        ShipRenderConfig.update(level);
+        releaseDisabledResources();
         ShipShadowRenderer.prepare(level);
+        if (level == null || !VSGameConfig.CLIENT.isShipToWorldLightingEnabled()) return;
         EMITTERS.beginFrame(level);
         final VsShipEmitterList list = getShipEmitterList();
         list.beginFrame();
@@ -100,9 +133,11 @@ public final class VsDynamicLight {
     }
 
     public static void populateWorldLightForBatched(final ClientLevel level) {
-        if (level == null) {
+        if (level == null || !VSGameConfig.CLIENT.getDynamicShipLighting()) {
             return;
         }
+        // Sodium collects world light for every ship on the client tick.
+        if (ValkyrienCommonMixinConfigPlugin.getVSRenderer() == VSRenderer.SODIUM) return;
         final VsShipLightStorage light = getLightStorage();
         light.beginFrame();
         light.beginSettleTick(level.getGameTime(), level.getLightEngine().hasLightWork());

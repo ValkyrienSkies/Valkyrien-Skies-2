@@ -32,6 +32,7 @@ import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.VSRenderTypes;
 import org.valkyrienskies.mod.common.config.ShipRendererKt;
+import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.render.light.VsDynamicLight;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
@@ -232,16 +233,23 @@ public final class ShipBatchRenderer {
             }
             shipIndexLoc = GL20.glGetUniformLocation(programId, "ShipIndex");
 
-            VsDynamicLight.getLightStorage().bind(
-                VsDynamicLight.LIGHT_SECTIONS_TEXTURE_UNIT, VsDynamicLight.LIGHT_LUT_TEXTURE_UNIT);
+            final boolean dynamicLight = VSGameConfig.CLIENT.getDynamicShipLighting();
+            final boolean shipLight = VSGameConfig.CLIENT.isShipToWorldLightingEnabled();
+            setFeatureUniform(programId, "u_VsDynamicShipLighting", dynamicLight);
+            setFeatureUniform(programId, "u_VsShipToWorldLighting", shipLight);
+            setFeatureUniform(programId, "u_VsBetterShipShading", VSGameConfig.CLIENT.getBetterVanillaShipShading());
+            if (dynamicLight) {
+                VsDynamicLight.getLightStorage().bind(
+                    VsDynamicLight.LIGHT_SECTIONS_TEXTURE_UNIT, VsDynamicLight.LIGHT_LUT_TEXTURE_UNIT);
+            }
 
             bindSamplerUniform(programId, "u_VsLightSections", VsDynamicLight.LIGHT_SECTIONS_TEXTURE_UNIT);
             bindSamplerUniform(programId, "u_VsLightLut", VsDynamicLight.LIGHT_LUT_TEXTURE_UNIT);
-            VsDynamicLight.getShipEmitterList().bind(VsDynamicLight.SHIP_EMITTER_LIST_TEXTURE_UNIT);
+            if (shipLight) VsDynamicLight.getShipEmitterList().bind(VsDynamicLight.SHIP_EMITTER_LIST_TEXTURE_UNIT);
             bindSamplerUniform(programId, "u_VsShipEmitters", VsDynamicLight.SHIP_EMITTER_LIST_TEXTURE_UNIT);
             final int emitterCountLoc = GL20.glGetUniformLocation(programId, "u_VsShipEmitterCount");
             if (emitterCountLoc >= 0) {
-                GL20.glUniform1i(emitterCountLoc, VsDynamicLight.getShipEmitterList().size());
+                GL20.glUniform1i(emitterCountLoc, shipLight ? VsDynamicLight.getShipEmitterList().size() : 0);
             }
 
             final int originX = (int) Math.floor(camX);
@@ -331,6 +339,11 @@ public final class ShipBatchRenderer {
         if (loc >= 0) {
             GL20.glUniform1i(loc, unit);
         }
+    }
+
+    private static void setFeatureUniform(final int programId, final String name, final boolean enabled) {
+        final int location = GL20.glGetUniformLocation(programId, name);
+        if (location >= 0) GL20.glUniform1i(location, enabled ? 1 : 0);
     }
 
     private void prepareFrameData(final PoseStack levelPoseStack, final double camX, final double camY,

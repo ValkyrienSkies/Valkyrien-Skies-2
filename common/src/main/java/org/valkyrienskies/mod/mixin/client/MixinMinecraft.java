@@ -120,6 +120,7 @@ public abstract class MixinMinecraft
         at = @At("HEAD")
     )
     private void vs$drainDeferredShipChunksBeforeFlywheelFrame(final boolean pauseOnly, final CallbackInfo ci) {
+        org.valkyrienskies.mod.common.render.ShipRenderConfig.update(level);
         if (LoadedMods.getFlywheel() != FlywheelVersion.V1 || level == null) {
             return;
         }

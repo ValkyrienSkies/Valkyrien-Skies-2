@@ -53,6 +53,7 @@ import org.valkyrienskies.mod.common.render.batched.ShipBatchRenderer;
 import org.valkyrienskies.mod.common.render.batched.ShipSectionMesh;
 import org.valkyrienskies.mod.common.render.batched.ShipRenderFrustum;
 import org.valkyrienskies.mod.common.render.light.VsDynamicLight;
+import org.valkyrienskies.mod.common.render.ShipRenderConfig;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.hooks.VSGameEvents;
 import org.valkyrienskies.mod.common.hooks.VSGameEvents.ShipRenderEventSodium;
@@ -130,9 +131,6 @@ public class SodiumCompat {
 
     /** Cached VS world chunk programs, keyed by sodium's render-pass options. */
     private static final Map<ChunkShaderOptions, GlProgram<WorldThing>> cachedWorldPrograms = new HashMap<>();
-    private static ClientLevel shaderConfigLevel;
-    private static int lastShipFeatures;
-    private static boolean lastWorldShader;
 
     public static VsShipLightStorage getLightStorage() {
         return VsDynamicLight.getLightStorage();
@@ -158,7 +156,10 @@ public class SodiumCompat {
     }
 
     public static void deleteStorages() {
-        shaderConfigLevel = null;
+        cachedPrograms.values().forEach(GlProgram::delete);
+        cachedPrograms.clear();
+        cachedWorldPrograms.values().forEach(GlProgram::delete);
+        cachedWorldPrograms.clear();
         if (biomeStorage != null) {
             biomeStorage.delete();
             biomeStorage = null;
@@ -166,17 +167,15 @@ public class SodiumCompat {
         VsDynamicLight.deleteStorages();
     }
 
-    /**
-     * Populate the world-from-ship storage AND the ship-emitter list,
-     * called from {@code MixinLevelRenderer.updateDynamicLight} so the data updates every game tick.
-     */
+    /** Update ship light before rendering, when one or more client ticks have run. */
     public static void populateWorldFromShipsForFrame(net.minecraft.client.multiplayer.ClientLevel level) {
         populateWorldFromShipsForFrame(level, null);
     }
 
     public static void populateWorldFromShipsForFrame(net.minecraft.client.multiplayer.ClientLevel level,
             Viewport viewport) {
-        refreshShaderConfig(level);
+        ShipRenderConfig.update(level);
+        VsDynamicLight.releaseDisabledResources();
         if (!VSGameConfig.CLIENT.isShipToWorldLightingEnabled()) return;
         if (level == null) return;
         VsWorldFromShipLightStorage storage = getWorldFromShipStorage();
@@ -194,20 +193,11 @@ public class SodiumCompat {
         occluders.upload();
     }
 
-    private static void refreshShaderConfig(final ClientLevel level) {
-        final int features = computeFeatureBits();
-        final boolean worldShader = shouldUseWorldFromShipShader();
-        final boolean reload = level != null && shaderConfigLevel == level
-            && (lastShipFeatures != features || lastWorldShader != worldShader);
-        shaderConfigLevel = level;
-        lastShipFeatures = features;
-        lastWorldShader = worldShader;
-        // Rebuild packed vertices when the selected shader format changes.
-        if (reload) net.minecraft.client.Minecraft.getInstance().levelRenderer.allChanged();
-    }
-
     public static void populateLightSectionStorage(ClientLevel level) {
-        if (!VSGameConfig.CLIENT.getDynamicShipLighting()) return;
+        if (level == null || !VSGameConfig.CLIENT.getDynamicShipLighting()) {
+            VsDynamicLight.releaseDisabledResources();
+            return;
+        }
         final VsShipLightStorage storage = getLightStorage();
         storage.beginFrame();
         storage.beginSettleTick(level.getGameTime(), level.getLightEngine().hasLightWork());
@@ -230,11 +220,18 @@ public class SodiumCompat {
     }
 
     public static void populateBiomeSectionStorage(ClientLevel level) {
-        if (!VSGameConfig.CLIENT.getDynamicShipBiomeTinting()) return;
+        if (level == null || !VSGameConfig.CLIENT.getDynamicShipBiomeTinting()) {
+            if (biomeStorage != null) {
+                biomeStorage.delete();
+                biomeStorage = null;
+            }
+            return;
+        }
         final VsShipBiomeColorStorage biomeStorageLocal = getBiomeStorage();
         biomeStorageLocal.beginFrame();
         for (ClientShip clientShip : VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips()) {
             final AABBdc aabb = clientShip.getRenderAABB();
+            if (aabb == null) continue;
             biomeStorageLocal.requestSectionsInAabb(level,
                 aabb.minX(), aabb.minY(), aabb.minZ(),
                 aabb.maxX(), aabb.maxY(), aabb.maxZ());

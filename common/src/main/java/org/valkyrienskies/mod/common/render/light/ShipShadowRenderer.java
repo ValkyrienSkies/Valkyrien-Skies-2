@@ -38,18 +38,14 @@ public final class ShipShadowRenderer {
             delete();
             currentLevel = level;
         }
-        GEOMETRY.beginFrame(level);
         if (level == null || !VSGameConfig.CLIENT.getShipShadows()
             || VSGameConfig.CLIENT.getShipShadowStrength() <= 0.0
             || !level.dimensionType().hasSkyLight()) {
-            count = 0;
-            if (ready) MAP.close();
-            ready = false;
-            FRAME.clear();
-            INSTANCES.clear();
-            GEOMETRY.endFrame();
+            delete();
+            currentLevel = level;
             return;
         }
+        GEOMETRY.beginFrame(level);
         double minY = level.getMinBuildHeight() - 64.0;
         double maxY = level.getMaxBuildHeight();
         FRAME.begin();
@@ -172,6 +168,10 @@ public final class ShipShadowRenderer {
         final int softness = GL20.glGetUniformLocation(programId, "u_VsShipShadowSoftness");
         if (softness >= 0) {
             GL20.glUniform1f(softness, (float) Math.max(0.0, Math.min(4.0, VSGameConfig.CLIENT.getShipShadowSoftness())));
+        }
+        final int growth = GL20.glGetUniformLocation(programId, "u_VsShipShadowBlurGrowth");
+        if (growth >= 0) {
+            GL20.glUniform1f(growth, (float) Math.max(0.0, Math.min(0.5, VSGameConfig.CLIENT.getShipShadowBlurGrowth())));
         }
         MAP.bind(programId, LAYOUT, enabled);
     }

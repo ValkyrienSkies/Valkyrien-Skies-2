@@ -11,9 +11,10 @@ public final class VsShipWorldLightTerrainUniforms {
     public static void setupForProgram(final int programId, final double camX, final double camY,
         final double camZ) {
         ShipShadowRenderer.bind(programId);
-        VsDynamicLight.getShipEmitterList().bind(VsDynamicLight.SHIP_EMITTER_LIST_TEXTURE_UNIT);
+        final boolean lighting = VSGameConfig.CLIENT.isShipToWorldLightingEnabled();
+        if (lighting) VsDynamicLight.getShipEmitterList().bind(VsDynamicLight.SHIP_EMITTER_LIST_TEXTURE_UNIT);
         setInt(programId, "u_VsShipEmitters", VsDynamicLight.SHIP_EMITTER_LIST_TEXTURE_UNIT);
-        setInt(programId, "u_VsShipEmitterCount", VsDynamicLight.getShipEmitterList().size());
+        setInt(programId, "u_VsShipEmitterCount", lighting ? VsDynamicLight.getShipEmitterList().size() : 0);
         setInt(programId, "u_VsShipGlowEnabled", VSGameConfig.CLIENT.isShipToWorldLightingEnabled() ? 1 : 0);
 
         final int camLoc = GL20.glGetUniformLocation(programId, "u_VsShipLightCameraPos");

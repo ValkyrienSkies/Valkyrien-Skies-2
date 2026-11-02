@@ -104,7 +104,7 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
      */
     @Inject(method = "onLightUpdate", at = @At("HEAD"))
     private void vs_sodium$onLightUpdate(LightLayer layer, SectionPos pos, CallbackInfo ci) {
-        VsDynamicLight.getLightStorage().invalidateSection(pos.asLong());
+        VsDynamicLight.invalidateLightSection(pos.asLong());
     }
 
     @Inject(method = "replaceWithPacketData", at = @At("HEAD"), cancellable = true)

@@ -319,6 +319,17 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererDuck, Le
     @Inject(method = "allChanged", at = @At("HEAD"))
     private void vs$freeBatchedBuffersOnAllChanged(final CallbackInfo ci) {
         ShipBatchRenderer.INSTANCE.freeAll();
+        shipRenderChunks.clear();
+        vs$shipSectionCaches.clear();
+        vs$clearRenderableChunkCaches();
+        vs$visibileShipChunks = new BlockPos2ByteOpenHashMap();
+        vs$shipChunkVisibilityDirty = true;
+        vs$renderableLayerCachesDirty = true;
+        vs$lastShipFrustumTailCount = 0;
+        vs$lastShipVisibilitySignature = Long.MIN_VALUE;
+        vs$lastSetupShipVisibilitySignature = Long.MIN_VALUE;
+        vs$lastFrustum = null;
+        needsFrustumUpdate.set(true);
     }
 
     @SuppressWarnings("unused")

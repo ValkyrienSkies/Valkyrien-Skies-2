@@ -6,6 +6,7 @@ uniform vec2 u_VsShipShadowHeight;
 uniform vec4 u_VsShipShadowCascades[3];
 uniform float u_VsShipShadowStrength;
 uniform float u_VsShipShadowSoftness;
+uniform float u_VsShipShadowBlurGrowth;
 
 // Compare four depths, then interpolate the results. Do not interpolate the depths.
 float vs_shadowCompare(vec2 uv, int layer, vec2 receiverXZ, float depth, vec2 slope, float bias) {
@@ -43,7 +44,12 @@ float vs_shadowCascade(vec3 pos, vec3 normal, int layer) {
         if (horizontal) return texture(u_VsShipShadowCompare, vec4(uv, float(layer), depth - bias));
         return vs_shadowCompare(uv, layer, pos.xz, depth, slope, bias);
     }
-    float radius = min(8.0, softness);
+    float separation = 0.0;
+    if (u_VsShipShadowBlurGrowth > 0.0) {
+        float blocker = texture(u_VsShipShadowMap, vec3(uv, float(layer))).r;
+        if (blocker < 1.0) separation = max(0.0, (depth - blocker) * u_VsShipShadowHeight.y);
+    }
+    float radius = min(8.0, softness + clamp(u_VsShipShadowBlurGrowth, 0.0, 0.5) * separation);
     // Fixed disk samples avoid aligned filter rows at a moving silhouette.
     const vec2 offsets[16] = vec2[16](
         vec2(0.17677670, 0.00000000),

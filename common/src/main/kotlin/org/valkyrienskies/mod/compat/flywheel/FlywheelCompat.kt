@@ -4,6 +4,7 @@ import dev.engine_room.flywheel.api.visualization.VisualizationManager
 import dev.engine_room.flywheel.impl.visualization.VisualManagerImpl
 import dev.engine_room.flywheel.lib.visualization.VisualizationHelper
 import net.minecraft.client.Minecraft
+import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.SectionPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.entity.BlockEntity
@@ -15,6 +16,19 @@ import org.valkyrienskies.mod.compat.LoadedMods
 import org.valkyrienskies.mod.compat.LoadedMods.FlywheelVersion
 
 object FlywheelCompat {
+
+    fun isBackendAvailable(): Boolean {
+        val level = Minecraft.getInstance().level ?: return false
+        return VisualizationManager.supportsVisualization(level)
+    }
+
+    fun refreshShipRendering(level: ClientLevel?) {
+        ShipEffect.refresh(level)
+    }
+
+    fun clearShipRendering() {
+        ShipEffect.clear()
+    }
 
     fun initClient() {
         // if (LoadedMods.flywheel != FlywheelVersion.V1) return
