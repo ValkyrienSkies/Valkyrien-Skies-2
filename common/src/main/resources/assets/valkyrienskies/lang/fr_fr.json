@@ -1,7 +1,24 @@
 {
+  "key.valkyrienskies.ship_cruise": "Croisière",
   "key.valkyrienskies.ship_down": "Descendre",
   "category.valkyrienskies.driving": "Conduite",
   "block.valkyrienskies.test_chair": "Siège de débogage",
+  "block.valkyrienskies.test_hinge": "Charnière de débogage",
+  "block.valkyrienskies.test_flap": "Volet de débogage",
+  "block.valkyrienskies.test_wing": "Aile de débogage",
   "item.valkyrienskies.ship_creator": "Créateur de vaisseau",
-  "item.valkyrienskies.ship_creator_smaller": "Créateur de mini vaisseau"
+  "item.valkyrienskies.ship_creator_smaller": "Créateur de mini vaisseau",
+  "item.valkyrienskies.physics_entity_creator": "Créateur d'entité physique",
+  "argument.valkyrienskies.ship.no_found": "Vaisseau non trouvé",
+  "argument.valkyrienskies.ship.multiple_found": "Multiples vaisseaux trouvés",
+  "command.valkyrienskies.delete.success": "Supprimé %d navires !",
+  "command.valkyrienskies.set_static.success": "Défini %d navires comme étant is-static=%s !",
+  "command.valkyrienskies.teleport.success": "Téléporté %d vaisseau à %s !",
+  "command.valkyrienskies.teleport.multiple_ship_success": "Téléporté %d vaisseau !",
+  "command.valkyrienskies.mc_teleport.can_only_teleport_to_one_ship": "Peut seulement téléporter exactement 1 vaisseau",
+  "command.valkyrienskies.get_ship.success": "Vaisseau trouvé avec le slug %s",
+  "command.valkyrienskies.get_ship.fail": "Aucun vaisseau trouvé",
+  "command.valkyrienskies.get_ship.only_usable_by_entities": "/vs get-ship ne peut être exécuté que par des entités !",
+  "tooltip.valkyrienskies.mass": "Masse",
+  "command.valkyrienskies.scale.success": "%d navires mis à l'échelle !"
 }

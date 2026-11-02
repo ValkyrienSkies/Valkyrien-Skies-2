@@ -5,15 +5,13 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.control.MoveControl;
-import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.shapes.VoxelShape;
-import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import org.valkyrienskies.mod.api.ValkyrienSkies;
+import org.valkyrienskies.mod.common.config.VSGameConfig;
+import org.valkyrienskies.mod.common.util.ShipPathfindingUtils;
 
 @Mixin(MoveControl.class)
 public class MixinMoveControl {
@@ -24,25 +22,21 @@ public class MixinMoveControl {
 
     @WrapOperation(
         method = "tick",
-        at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/block/state/BlockState;getCollisionShape(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/phys/shapes/VoxelShape;")
+        at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Mob;blockPosition()Lnet/minecraft/core/BlockPos;")
     )
-    private VoxelShape vs$insertShipCollisions(BlockState instance, BlockGetter blockGetter, BlockPos blockPos,
-        Operation<VoxelShape> original) {
-        VoxelShape originalShape = original.call(instance, this.mob.level(), blockPos);
-        if (originalShape.isEmpty()) {
-            Iterable<Vector3d> alternates = ValkyrienSkies.positionToNearbyShips(this.mob.level(), blockPos.getX(), blockPos.getY(), blockPos.getZ());
-            for (Vector3d alternate : alternates) {
-                BlockPos alternatePos = BlockPos.containing(ValkyrienSkies.toMinecraft(alternate));
-                BlockState alternateState = this.mob.level().getBlockState(alternatePos);
-                if (!alternateState.isAir()) {
-                    VoxelShape alternateShape = alternateState.getCollisionShape(this.mob.level(), alternatePos);
-                    if (!alternateShape.isEmpty()) {
-                        return alternateShape;
-                    }
-                }
-            }
+    private BlockPos vs$useShipSupportForStepChecks(final Mob instance, final Operation<BlockPos> original) {
+        final BlockPos blockPos = original.call(instance);
+        if (!VSGameConfig.SERVER.getAiOnShips()) {
+            return blockPos;
         }
-        return originalShape;
+
+        final BlockState worldState = this.mob.level().getBlockState(blockPos);
+        if (!worldState.isAir()) {
+            return blockPos;
+        }
+
+        final BlockPos supportPos = ShipPathfindingUtils.findSupportingShipBlock(this.mob.level(), this.mob,
+            this.mob.getBoundingBox());
+        return supportPos != null ? supportPos : blockPos;
     }
 }
-

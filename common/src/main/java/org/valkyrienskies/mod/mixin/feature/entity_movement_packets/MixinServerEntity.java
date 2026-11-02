@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import net.minecraft.network.protocol.game.ClientboundMoveEntityPacket;
 import net.minecraft.network.protocol.game.ClientboundRotateHeadPacket;
+import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket;
 import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
 import net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket;
 import net.minecraft.server.level.ServerEntity;
@@ -51,7 +52,7 @@ public class MixinServerEntity {
             target = "Ljava/util/function/Consumer;accept(Ljava/lang/Object;)V")
     )
     private void wrapBroadcastAccept(Consumer instance, Object t, Operation<Void> original) {
-        if (t instanceof ClientboundSetEntityMotionPacket || t instanceof ClientboundTeleportEntityPacket || t instanceof ClientboundMoveEntityPacket || t instanceof ClientboundRotateHeadPacket) {
+        if (t instanceof ClientboundSetEntityMotionPacket || t instanceof ClientboundTeleportEntityPacket || t instanceof ClientboundMoveEntityPacket || t instanceof ClientboundRotateHeadPacket || t instanceof ClientboundSetEntityDataPacket) {
             if (EntityDragger.isDraggable(entity)) {
                 IEntityDraggingInformationProvider draggedEntity = (IEntityDraggingInformationProvider) entity;
                 EntityDraggingInformation dragInfo = draggedEntity.getDraggingInformation();

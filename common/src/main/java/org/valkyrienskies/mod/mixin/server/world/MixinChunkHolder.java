@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.server.world;
 
+import java.util.Optional;
 import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.FullChunkStatus;
 import net.minecraft.server.level.ServerLevel;
@@ -13,6 +14,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.mod.common.VS2ChunkAllocator;
+import org.valkyrienskies.mod.mixin.accessors.server.level.ChunkHolderAccessor;
 
 /**
  * Fix multiple issues with shipyard chunks that were loaded only to FULL status:
@@ -41,6 +43,13 @@ public abstract class MixinChunkHolder {
     @Inject(method = "getTickingChunk", at = @At("HEAD"), cancellable = true)
     private void vs$getTickingChunkForShipyard(CallbackInfoReturnable<LevelChunk> cir) {
         if (VS2ChunkAllocator.INSTANCE.isChunkInShipyardCompanion(pos.x, pos.z)) {
+            final Optional<LevelChunk> fullChunk =
+                ((ChunkHolderAccessor) this).getFullChunkFuture().getNow(ChunkHolder.UNLOADED_LEVEL_CHUNK).left();
+            if (fullChunk.isPresent()) {
+                cir.setReturnValue(fullChunk.get());
+                return;
+            }
+
             if (levelHeightAccessor instanceof ServerLevel serverLevel) {
                 LevelChunk chunk = serverLevel.getChunkSource().getChunkNow(pos.x, pos.z);
                 if (chunk != null) {

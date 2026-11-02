@@ -12,6 +12,8 @@ import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.mod.api.ValkyrienSkies;
+import org.valkyrienskies.mod.common.util.ShipPathfindingUtils;
+import org.valkyrienskies.mod.util.FluidStateManager;
 
 @Mixin(GoalUtils.class)
 public class MixinGoalUtil {
@@ -49,10 +51,16 @@ public class MixinGoalUtil {
         Level instance, BlockPos blockPos, Operation<FluidState> original) {
         FluidState originalState = original.call(instance, blockPos);
         if (originalState.is(FluidTags.WATER)) return originalState;
+        final FluidStateManager.QueryCache queryCache = new FluidStateManager.QueryCache();
+        final BlockPos.MutableBlockPos candidatePos = new BlockPos.MutableBlockPos();
         Iterable<Vector3d> candidates = ValkyrienSkies.positionToNearbyShips(instance, blockPos.getX(), blockPos.getY(), blockPos.getZ());
         for (Vector3d candidate : candidates) {
-            BlockPos candidatePos = BlockPos.containing(ValkyrienSkies.toMinecraft(candidate));
-            FluidState candidateState = instance.getFluidState(candidatePos);
+            candidatePos.set(
+                net.minecraft.util.Mth.floor(candidate.x()),
+                net.minecraft.util.Mth.floor(candidate.y()),
+                net.minecraft.util.Mth.floor(candidate.z())
+            );
+            FluidState candidateState = ShipPathfindingUtils.getShipAwareFluidState(instance, candidatePos, queryCache);
             if (candidateState.is(FluidTags.WATER)) {
                 return candidateState;
             }

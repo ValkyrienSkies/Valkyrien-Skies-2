@@ -54,6 +54,9 @@ public class ValkyrienForgeMixinConfigPlugin implements IMixinConfigPlugin {
         if (mixinClassName.contains("MixinIForgePlayer")) {
             return forgeVersion.compareTo(forgeNewer) < 0;
         }
+        if (mixinClassName.contains("MixinEmbeddiumShaderModBridge")) {
+            return LoadingModList.get().getModFileById("embeddium") != null;
+        }
 
         // Create changed on 6.0.7 so we have some duplicate mixins
         // This only applies on forge, because fabric create is only 6.0.7+

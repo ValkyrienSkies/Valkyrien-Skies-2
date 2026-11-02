@@ -129,7 +129,10 @@ public abstract class MixinCamera implements IVSCamera {
                     if (!VSGameUtilsKt.isBlockInShipyard(player.level(), BlockPos.containing(relativePosition))) {
                         // find overlapping ships
                         ClientShipWorld shipWorld = VSGameUtilsKt.getShipObjectWorld(player.clientLevel);
-                        for (ClientShip ship : shipWorld.getAllShips().getIntersecting(VectorConversionsMCKt.toJOML(player.getBoundingBox().inflate(1.0)))) {
+                        for (ClientShip ship : shipWorld.getAllShips().getIntersecting(
+                            VectorConversionsMCKt.toJOML(player.getBoundingBox().inflate(1.0)),
+                            VSGameUtilsKt.getDimensionId(player.level())
+                        )) {
                             relativePosition = VectorConversionsMCKt.toMinecraft(ship.getWorldToShip().transformPosition(VectorConversionsMCKt.toJOML(player.position()), new Vector3d()));
                             if (VSGameUtilsKt.isPositionSealed(player.level(), BlockPos.containing(relativePosition))) {
                                 vs$lastSealedCheckPos = BlockPos.containing(relativePosition);

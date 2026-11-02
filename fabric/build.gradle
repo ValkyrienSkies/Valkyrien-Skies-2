@@ -47,7 +47,9 @@ dependencies {
     modCompileOnly("maven.modrinth:sodium:${sodium_version}")
     // Disable indium until we update sodium to newer versions
     //modRuntimeOnly("maven.modrinth:indium:${indium_version}")
+    modCompileOnly("maven.modrinth:iris:${iris_version}")
     modImplementation("maven.modrinth:modmenu:${modmenu_version}")
+
 
     // Depend on the fabric API
     modImplementation("net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}")

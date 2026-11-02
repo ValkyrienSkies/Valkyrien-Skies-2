@@ -1,11 +1,13 @@
 package org.valkyrienskies.mod.fabric.common
 
+import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import dev.engine_room.flywheel.api.event.ReloadLevelRendererCallback
 import fuzs.forgeconfigapiport.api.config.v2.ForgeConfigRegistry
 import fuzs.forgeconfigapiport.api.config.v2.ModConfigEvents
 import net.fabricmc.api.EnvType
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper
+import net.fabricmc.fabric.api.client.rendering.v1.CoreShaderRegistrationCallback
 import net.fabricmc.fabric.api.client.rendering.v1.EntityModelLayerRegistry
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
@@ -16,7 +18,9 @@ import net.fabricmc.fabric.api.`object`.builder.v1.entity.FabricDefaultAttribute
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper
 import net.fabricmc.loader.api.FabricLoader
+import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
+import net.minecraft.client.renderer.ShaderInstance
 import net.minecraft.client.renderer.entity.EntityRendererProvider.Context
 import net.minecraft.core.Registry
 import net.minecraft.core.registries.BuiltInRegistries
@@ -36,6 +40,7 @@ import net.minecraftforge.fml.config.ModConfig
 import org.valkyrienskies.mod.client.EmptyRenderer
 import org.valkyrienskies.mod.client.VSPhysicsEntityModel
 import org.valkyrienskies.mod.client.VSPhysicsEntityRenderer
+import org.valkyrienskies.mod.common.VSRenderTypes
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod.AREA_ASSEMBLER_ITEM
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod.CLASSIC_AREA_ASSEMBLER_ITEM
@@ -61,6 +66,7 @@ import org.valkyrienskies.mod.common.blockentity.TestAntigravBlockEntity
 import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
 import org.valkyrienskies.mod.common.blockentity.TestThrusterBlockEntity
 import org.valkyrienskies.mod.common.command.VSCommands
+import org.valkyrienskies.mod.common.config.ConfigType
 import org.valkyrienskies.mod.common.config.DimensionParametersResolver
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.config.VSConfigUpdater
@@ -351,6 +357,21 @@ class ValkyrienSkiesModFabric : ModInitializer {
             VSPhysicsEntityModel.LAYER_LOCATION,
             VSPhysicsEntityModel.Companion::createBodyLayer
         )
+
+        CoreShaderRegistrationCallback.EVENT.register { context ->
+            context.register(ResourceLocation("rendertype_ship_solid"), DefaultVertexFormat.BLOCK) { shaderInstance: ShaderInstance? ->
+                VSRenderTypes.shipSolidShader = shaderInstance
+            }
+            context.register(ResourceLocation("rendertype_ship_cutout_mipped"), DefaultVertexFormat.BLOCK) { shaderInstance: ShaderInstance? ->
+                VSRenderTypes.shipCutoutMippedShader = shaderInstance
+            }
+            context.register(ResourceLocation("rendertype_ship_cutout"), DefaultVertexFormat.BLOCK) { shaderInstance: ShaderInstance? ->
+                VSRenderTypes.shipCutoutShader = shaderInstance
+            }
+            context.register(ResourceLocation("rendertype_ship_translucent"), DefaultVertexFormat.BLOCK) { shaderInstance: ShaderInstance? ->
+                VSRenderTypes.shipTranslucentShader = shaderInstance
+            }
+        }
 
         VSKeyBindings.clientSetup {
             KeyBindingHelper.registerKeyBinding(it)

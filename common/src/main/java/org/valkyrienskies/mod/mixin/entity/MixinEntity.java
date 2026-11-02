@@ -43,6 +43,7 @@ import org.valkyrienskies.mod.common.entity.ShipMountedToData;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
+import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
@@ -74,45 +75,53 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         method = "baseTick", at = @At("HEAD")
     )
     private void onBaseTick(CallbackInfo ci) {
-        if (this.level != null) {
-            if (!this.isRemoved()) {
-                Entity entity = (Entity) (Object) this;
-                Vec3 relativePosition = Vec3.ZERO;
-                if (this.getDraggingInformation().isEntityBeingDraggedByAShip()) {
-                    relativePosition = EntityDragger.INSTANCE.serversidePosition(entity);
-                } else if (VSGameUtilsKt.getShipMountedTo(entity) != null) {
-                    relativePosition = VectorConversionsMCKt.toMinecraft(VSGameUtilsKt.getShipMountedToData(entity, null).getMountPosInShip().add(0.0, (double) entity.getEyeHeight(entity.getPose()), 0.0, new Vector3d()));
-                }
-                boolean isInSealedArea = false;
+        if (this.level == null || this.isRemoved()) {
+            return;
+        }
+        if (!ValkyrienSkies.isConnectivityEnabled(level.isClientSide)) {
+            vs$setInSealedArea(false);
+            return;
+        }
 
-                if (!isInSealedArea) {
-                    if (relativePosition != Vec3.ZERO && VSGameUtilsKt.isBlockInShipyard(level, BlockPos.containing(relativePosition))) {
-                        if (BlockPos.containing(relativePosition).equals(vs$lastCheckedSealedPos)) {
-                            isInSealedArea = vs$isInSealedArea();
-                        } else {
-                            isInSealedArea = VSGameUtilsKt.isPositionSealed(level,
-                                BlockPos.containing(relativePosition));
-                            vs$lastCheckedSealedPos = BlockPos.containing(relativePosition);
-                        }
-                    } else {
-                        if (!VSGameUtilsKt.isBlockInShipyard(level, BlockPos.containing(relativePosition))) {
-                            // find overlapping ships
-                            ShipWorld shipWorld = VSGameUtilsKt.getShipObjectWorld(level);
-                            for (Ship ship : shipWorld.getAllShips().getIntersecting(VectorConversionsMCKt.toJOML(entity.getBoundingBox().inflate(1.0)), VSGameUtilsKt.getDimensionId(level))) {
-                                relativePosition = VectorConversionsMCKt.toMinecraft(ship.getWorldToShip().transformPosition(VectorConversionsMCKt.toJOML(entity.position()), new Vector3d()));
-                                if (VSGameUtilsKt.isPositionSealed(level, BlockPos.containing(relativePosition))) {
-                                    vs$lastCheckedSealedPos = BlockPos.containing(relativePosition);
-                                    isInSealedArea = true;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                vs$setInSealedArea(isInSealedArea && ValkyrienSkies.isConnectivityEnabled(level.isClientSide));
+        Entity entity = (Entity) (Object) this;
+        Vec3 relativePosition = Vec3.ZERO;
+        if (this.getDraggingInformation().isEntityBeingDraggedByAShip()) {
+            relativePosition = EntityDragger.INSTANCE.serversidePosition(entity);
+        } else {
+            final ShipMountedToData shipMountedToData = VSGameUtilsKt.getShipMountedToData(entity, null);
+            if (shipMountedToData != null) {
+                relativePosition = VectorConversionsMCKt.toMinecraft(shipMountedToData.getMountPosInShip()
+                    .add(0.0, (double) entity.getEyeHeight(entity.getPose()), 0.0, new Vector3d()));
             }
         }
+
+        boolean isInSealedArea = false;
+        final BlockPos relativeBlockPos = BlockPos.containing(relativePosition);
+        if (relativePosition != Vec3.ZERO && VSGameUtilsKt.isBlockInShipyard(level, relativeBlockPos)) {
+            if (relativeBlockPos.equals(vs$lastCheckedSealedPos)) {
+                isInSealedArea = vs$isInSealedArea();
+            } else {
+                isInSealedArea = VSGameUtilsKt.isPositionSealed(level, relativeBlockPos);
+                vs$lastCheckedSealedPos = relativeBlockPos;
+            }
+        } else if (!VSGameUtilsKt.isBlockInShipyard(level, relativeBlockPos)) {
+            final ShipWorld shipWorld = VSGameUtilsKt.getShipObjectWorld(level);
+            for (Ship ship : shipWorld.getAllShips().getIntersecting(
+                VectorConversionsMCKt.toJOML(entity.getBoundingBox().inflate(1.0)), VSGameUtilsKt.getDimensionId(level)
+            )) {
+                relativePosition = VectorConversionsMCKt.toMinecraft(
+                    ship.getWorldToShip().transformPosition(VectorConversionsMCKt.toJOML(entity.position()), new Vector3d())
+                );
+                final BlockPos shipRelativeBlockPos = BlockPos.containing(relativePosition);
+                if (VSGameUtilsKt.isPositionSealed(level, shipRelativeBlockPos)) {
+                    vs$lastCheckedSealedPos = shipRelativeBlockPos;
+                    isInSealedArea = true;
+                    break;
+                }
+            }
+        }
+
+        vs$setInSealedArea(isInSealedArea);
     }
 
     @WrapMethod(
@@ -164,6 +173,9 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         final AABBd temp = new AABBd();
         for (final Ship ship : VSGameUtilsKt.getShipsIntersecting(level, boundingBox)) {
             final AABBd inShipBB = boundingBox.transform(ship.getShipTransform().getWorldToShipMatrix(), temp);
+            if (!EntityShipCollisionUtils.mayShipIntersectLocalAabb(ship, inShipBB)) {
+                continue;
+            }
             originalCheckInside(inShipBB);
         }
     }

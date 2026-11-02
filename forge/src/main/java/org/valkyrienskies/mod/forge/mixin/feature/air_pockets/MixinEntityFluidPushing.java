@@ -1,0 +1,84 @@
+package org.valkyrienskies.mod.forge.mixin.feature.air_pockets;
+
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import java.util.function.Predicate;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.level.material.Fluids;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Group;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.valkyrienskies.mod.common.air_pockets.ShipWaterPocketManager;
+import org.valkyrienskies.mod.common.config.VSGameConfig;
+import org.valkyrienskies.mod.mixinducks.feature.air_pockets.ship_water_pockets.ShipWaterPocketEntityDuck;
+
+@Mixin(Entity.class)
+public abstract class MixinEntityFluidPushing {
+
+    @Unique
+    private boolean valkyrienair$ignoreWorldWaterInAirPocket = false;
+
+    @Inject(
+        method = "updateFluidHeightAndDoFluidPushing(Ljava/util/function/Predicate;)V",
+        remap = false,
+        at = @At("HEAD")
+    )
+    private void valkyrienair$setupWaterPocketFluidPushOverride(final Predicate<FluidState> predicate,
+        final CallbackInfo ci) {
+        valkyrienair$ignoreWorldWaterInAirPocket = false;
+        if (!VSGameConfig.COMMON.getEnableAirPockets()) return;
+
+        valkyrienair$ignoreWorldWaterInAirPocket =
+            ((ShipWaterPocketEntityDuck) (Object) this).vs$isInShipAirPocketForWorldWater();
+    }
+
+    @Group(name = "valkyrienair$fluidStateForWaterPockets", min = 1, max = 1)
+    @WrapOperation(
+        method = "updateFluidHeightAndDoFluidPushing(Ljava/util/function/Predicate;)V",
+        remap = false,
+        require = 0,
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/world/level/Level;getFluidState(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/material/FluidState;"
+        )
+    )
+    private FluidState valkyrienair$overrideFluidStateForWaterPockets_named(final Level level, final BlockPos blockPos,
+        final Operation<FluidState> getFluidState) {
+        return valkyrienair$overrideFluidStateForWaterPockets(level, blockPos, getFluidState);
+    }
+
+    @Group(name = "valkyrienair$fluidStateForWaterPockets", min = 1, max = 1)
+    @WrapOperation(
+        method = "updateFluidHeightAndDoFluidPushing(Ljava/util/function/Predicate;)V",
+        remap = false,
+        require = 0,
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/world/level/Level;m_6425_(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/material/FluidState;"
+        )
+    )
+    private FluidState valkyrienair$overrideFluidStateForWaterPockets_srg(final Level level, final BlockPos blockPos,
+        final Operation<FluidState> getFluidState) {
+        return valkyrienair$overrideFluidStateForWaterPockets(level, blockPos, getFluidState);
+    }
+
+    @Unique
+    private FluidState valkyrienair$overrideFluidStateForWaterPockets(final Level level, final BlockPos blockPos,
+        final Operation<FluidState> getFluidState) {
+        final FluidState original = getFluidState.call(level, blockPos);
+        if (!VSGameConfig.COMMON.getEnableAirPockets()) return original;
+        if (original.isEmpty() || !original.is(Fluids.WATER)) return original;
+
+        if (valkyrienair$ignoreWorldWaterInAirPocket) {
+            return Fluids.EMPTY.defaultFluidState();
+        }
+
+        return ShipWaterPocketManager.overrideWaterFluidState(level, blockPos, original);
+    }
+}

@@ -11,7 +11,6 @@ import org.joml.Intersectiond;
 import org.joml.Vector2d;
 import org.joml.Vector3d;
 import org.joml.primitives.AABBd;
-import org.joml.primitives.AABBdc;
 import org.joml.primitives.AABBic;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
@@ -50,20 +49,10 @@ public final class AdvancedBlockWalker implements Iterator<AdvancedBlockWalker.B
         final Vector3d fromVec = new Vector3d();
         final Vector3d toVec = new Vector3d();
         final Vector2d tmp2d = new Vector2d();
-        for (final Ship ship : VSGameUtilsKt.getAllShips(level)) {
-            final AABBdc shipBox1 = ship.getWorldAABB();
-            if (
-                !tmpBox2
-                    .setMin(shipBox1.minX() - 1, shipBox1.minY() - 1, shipBox1.minZ() - 1)
-                    .setMax(shipBox1.maxX() + 1, shipBox1.maxY() + 1, shipBox1.maxZ() + 1)
-                    .intersectsAABB(
-                        tmpBox
-                            .setMin(worldBox.minX, worldBox.minY, worldBox.minZ)
-                            .setMax(worldBox.maxX, worldBox.maxY, worldBox.maxZ)
-                    )
-            ) {
-                continue;
-            }
+        final AABBd shipQueryBox = tmpBox2
+            .setMin(worldBox.minX - 1, worldBox.minY - 1, worldBox.minZ - 1)
+            .setMax(worldBox.maxX + 1, worldBox.maxY + 1, worldBox.maxZ + 1);
+        for (final Ship ship : VSGameUtilsKt.getShipsIntersecting(level, shipQueryBox)) {
             final AABBic shipBox2 = ship.getShipAABB();
             if (shipBox2 == null) {
                 continue;

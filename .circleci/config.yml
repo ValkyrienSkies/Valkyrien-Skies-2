@@ -277,11 +277,8 @@ jobs:
   deploy_to_lilypad:
     executor: java_large
     steps:
-      - checkout_and_cache
-      - run: echo 'export ORG_GRADLE_PROJECT_CustomReleaseVersion=${CIRCLE_TAG}' >> "$BASH_ENV"
-      - run:
-          name: Build
-          command: "./gradlew build --no-daemon --stacktrace"
+      - attach_workspace:
+          at: .
       - run:
           name: Find built Forge mod jar
           command: |
@@ -375,9 +372,11 @@ workflows:
             - github_maven
 
       - deploy_to_lilypad:
+          requires:
+            - notify_playtesters
           filters:
             tags:
-              only: /^playtest\/1\.20\.1-.*/
+              only: /^playtest\/1\.20\.1\/.*/
             branches:
               ignore: /.*/
           context:

@@ -22,10 +22,12 @@ plugins {
 if (project.hasProperty("CustomReleaseVersion")) {
     // Remove release/ from the version if present
     version = project.property("CustomReleaseVersion").replaceFirst("^release/", "")
-} else {
+} else if (!project.hasProperty("CustomVersion")) {
     String gitRevision = "git rev-parse HEAD".execute().text.trim()
 
     version = mod_version + "+" + gitRevision.substring(0, 10)
+} else {
+    version = mod_version + "+" + project.property("CustomVersion")
 }
 
 architectury {
@@ -71,6 +73,10 @@ subprojects {
     // Apply checkstyle and ktlint to check the code style of every sub project
     apply plugin: "org.jetbrains.kotlin.jvm"
     apply plugin: "io.github.juuxel.loom-vineflower"
+
+    loom {
+        intermediaryUrl = 'https://repo.spongepowered.org/repository/maven-public/net/fabricmc/intermediary/%1$s/intermediary-%1$s-v2.jar'
+    }
 
     repositories {
         try {

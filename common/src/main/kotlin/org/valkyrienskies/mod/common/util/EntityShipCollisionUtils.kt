@@ -22,6 +22,7 @@ import org.valkyrienskies.mod.common.allShips
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.getLoadedShipManagingPos
 import org.valkyrienskies.mod.common.shipObjectWorld
+import org.valkyrienskies.mod.common.unloadedShips
 import org.valkyrienskies.mod.common.vsCore
 import org.valkyrienskies.mod.mixinducks.feature.tickets.PlayerKnownShipsDuck
 import org.valkyrienskies.mod.util.BugFixUtil
@@ -38,6 +39,9 @@ object EntityShipCollisionUtils {
      */
     private val recentlySpawnedShips = ConcurrentHashMap<ShipId, Long>()
     private const val SPAWN_GRACE_PERIOD_TICKS = 100L // ~5 seconds
+    private val playerUnloadedShipBlockStartTicks = ConcurrentHashMap<Long, Long>()
+    private val playerClientSyncBlockStartTicks = ConcurrentHashMap<Int, Long>()
+    private const val PLAYER_UNLOADED_SHIP_BLOCK_TIMEOUT_TICKS = 200L // ~10 seconds
 
     @JvmStatic
     fun markShipAsRecentlySpawned(shipId: ShipId, currentTick: Long) {
@@ -55,6 +59,29 @@ object EntityShipCollisionUtils {
     fun isInSpawnGracePeriod(shipId: ShipId): Boolean {
         return recentlySpawnedShips.containsKey(shipId)
     }
+
+    private fun playerShipBlockKey(entity: Entity, shipId: ShipId): Long {
+        val uuid = entity.uuid
+        return uuid.leastSignificantBits xor java.lang.Long.rotateLeft(uuid.mostSignificantBits, 1) xor shipId
+    }
+
+    private fun shouldBlockPlayerForUnloadedShip(entity: Entity, ship: Ship, currentTick: Long): Boolean {
+        if (entity !is Player) {
+            return true
+        }
+        val key = playerShipBlockKey(entity, ship.id)
+        val firstBlockedTick = playerUnloadedShipBlockStartTicks.putIfAbsent(key, currentTick) ?: currentTick
+        return currentTick - firstBlockedTick <= PLAYER_UNLOADED_SHIP_BLOCK_TIMEOUT_TICKS
+    }
+
+    private fun shouldBlockPlayerForClientShipSync(entity: Entity, currentTick: Long): Boolean {
+        if (entity !is Player) {
+            return true
+        }
+        val firstBlockedTick = playerClientSyncBlockStartTicks.putIfAbsent(entity.id, currentTick) ?: currentTick
+        return currentTick - firstBlockedTick <= PLAYER_UNLOADED_SHIP_BLOCK_TIMEOUT_TICKS
+    }
+
     private const val PARTICLE_COLLISION_BOX_EXPANSION = 0.00390625 //1.0 / 256.0
 
     private val collider = vsCore.entityPolygonCollider
@@ -77,7 +104,7 @@ object EntityShipCollisionUtils {
     private fun getAllShipsIntersectingEvenIfNotYetFullyLoaded(level: Level, aabb: AABBd): Stream<Ship> {
         // shipAABB and worldAABB are sometimes too small when ship was just loaded for the first time.
         // To circumvent this, we use activeChunksSet to find a rougher bounding box which should always contain the entire ship.
-        return level.allShips.stream().filter { ship ->
+        return level.unloadedShips.stream().filter { ship ->
             ship.chunkClaimDimension == level.dimensionId &&
             getShipyardChunkAABBAround(ship).toAABBd(AABBd()).transform(ship.shipToWorld).intersectsAABB(aabb)
         }
@@ -89,10 +116,16 @@ object EntityShipCollisionUtils {
 
         if (level is ServerLevel || (level.isClientSide && level is ClientLevel)) {
             if (level.isClientSide && level is ClientLevel && !level.shipObjectWorld.isSyncedWithServer) {
-                return true
+                return shouldBlockPlayerForClientShipSync(entity, level.gameTime)
+            } else if (entity is Player) {
+                playerClientSyncBlockStartTicks.remove(entity.id)
+            }
+            if (level.unloadedShips.isEmpty()) {
+                return false
             }
 
             val aabb = entity.boundingBox.toJOML()
+            val currentTick = level.gameTime
             return getAllShipsIntersectingEvenIfNotYetFullyLoaded(level, aabb)
                 .allMatch { ship ->
                     // Skip collision check for recently-spawned ships whose chunks are still
@@ -104,11 +137,16 @@ object EntityShipCollisionUtils {
                     if (isInSpawnGracePeriod(ship.id)) {
                         return@allMatch true // pretend it's loaded → don't block movement
                     }
-                    if (entity is PlayerKnownShipsDuck && !entity.vs_isKnownShip(ship.id)) {
-                        return@allMatch false
-                    }
                     val aabbInShip = AABBd(aabb).transform(ship.worldToShip)
-                    areAllChunksLoaded(ship, aabbInShip, level)
+                    val chunksLoaded = areAllChunksLoaded(ship, aabbInShip, level)
+                    if (chunksLoaded) {
+                        playerUnloadedShipBlockStartTicks.remove(playerShipBlockKey(entity, ship.id))
+                        return@allMatch true
+                    }
+                    if (entity is PlayerKnownShipsDuck && !entity.vs_isKnownShip(ship.id)) {
+                        return@allMatch !shouldBlockPlayerForUnloadedShip(entity, ship, currentTick)
+                    }
+                    !shouldBlockPlayerForUnloadedShip(entity, ship, currentTick)
                 }
                 .not()
         }
@@ -133,6 +171,36 @@ object EntityShipCollisionUtils {
         }
 
         return true
+    }
+
+    @JvmStatic
+    fun overlapsAnyActiveChunk(ship: Ship, aABB: AABBdc): Boolean {
+        val minX = (Mth.floor(aABB.minX() - 1.0E-7) - 1) shr 4
+        val maxX = (Mth.floor(aABB.maxX() + 1.0E-7) + 1) shr 4
+        val minZ = (Mth.floor(aABB.minZ() - 1.0E-7) - 1) shr 4
+        val maxZ = (Mth.floor(aABB.maxZ() + 1.0E-7) + 1) shr 4
+
+        for (chunkX in minX..maxX) {
+            for (chunkZ in minZ..maxZ) {
+                if (ship.activeChunksSet.contains(chunkX, chunkZ)) {
+                    return true
+                }
+            }
+        }
+
+        return false
+    }
+
+    @JvmStatic
+    fun mayShipIntersectLocalAabb(ship: Ship, aABB: AABBdc): Boolean {
+        val shipAabb = ship.shipAABB ?: return false
+        return shipAabb.minX() <= aABB.maxX() &&
+            shipAabb.maxX() >= aABB.minX() &&
+            shipAabb.minY() <= aABB.maxY() &&
+            shipAabb.maxY() >= aABB.minY() &&
+            shipAabb.minZ() <= aABB.maxZ() &&
+            shipAabb.maxZ() >= aABB.minZ() &&
+            overlapsAnyActiveChunk(ship, aABB)
     }
 
     /**
@@ -189,20 +257,29 @@ object EntityShipCollisionUtils {
         entityBoundingBox: AABB,
         world: Level
     ): List<VsiConvexPolygonc> {
+        if (world.shipObjectWorld.loadedShips.isEmpty()) {
+            return emptyList()
+        }
+
         val entityBoxWithMovement = entityBoundingBox.expandTowards(movement)
         val collidingPolygons: MutableList<VsiConvexPolygonc> = ArrayList()
         val entityBoundingBoxExtended = entityBoundingBox.toJOML().extend(movement.toJOML())
+        val entityBoxWithMovementJoml = entityBoxWithMovement.toJOML()
+        val entityBoundingBoxInShipCoordinates = AABBd()
         for (shipObject in world.shipObjectWorld.loadedShips.getIntersecting(entityBoundingBoxExtended, world.dimensionId)) {
             val shipTransform = shipObject.transform
-            val entityPolyInShipCoordinates: VsiConvexPolygonc = collider.createPolygonFromAABB(
-                entityBoxWithMovement.toJOML(),
-                shipTransform.worldToShip
-            )
-            val entityBoundingBoxInShipCoordinates: AABBdc = entityPolyInShipCoordinates.getEnclosingAABB(AABBd())
+            entityBoxWithMovementJoml.transform(shipTransform.worldToShip, entityBoundingBoxInShipCoordinates)
             if (BugFixUtil.isCollisionBoxTooBig(entityBoundingBoxInShipCoordinates.toMinecraft())) {
                 // Box too large, skip it
                 continue
             }
+            if (!mayShipIntersectLocalAabb(shipObject, entityBoundingBoxInShipCoordinates)) {
+                continue
+            }
+            val entityPolyInShipCoordinates: VsiConvexPolygonc = collider.createPolygonFromAABB(
+                entityBoxWithMovementJoml,
+                shipTransform.worldToShip
+            )
             val shipBlockCollisionStream =
                 world.getBlockCollisions(entity, entityBoundingBoxInShipCoordinates.toMinecraft())
             shipBlockCollisionStream.forEach { voxelShape: VoxelShape ->

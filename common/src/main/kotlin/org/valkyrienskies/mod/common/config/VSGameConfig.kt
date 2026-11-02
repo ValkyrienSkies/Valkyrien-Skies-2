@@ -28,6 +28,12 @@ object VSGameConfig {
         @ConfigCategory(title = "Connectivity")
         val Connectivity = CONNECTIVITY()
 
+        @ConfigCategory(title = "Underwater")
+        val Underwater = UNDERWATER()
+
+        @ConfigCategory(title = "Performance")
+        val Performance = PERFORMANCE()
+
         @ConfigEntry(description = "Renders the VS2 debug HUD with TPS")
         var renderDebugText = false
 
@@ -72,10 +78,74 @@ object VSGameConfig {
             var enableClientConnectivity = false
         }
 
+        class UNDERWATER {
+            @ConfigEntry(description = "Enable the flat-face overlay of fluids outside of ships")
+            var enableFluidOverlay = true
+
+            @ConfigEntry(description = "Enable the custom fog shader for fluids outside of ships")
+            var enableCustomFluidFog = true
+
+            @ConfigEntry(description = "Fade overlay when camera is in custom fog")
+            var fadeFluidOverlayInCustomFog = true
+
+            //todo: probably data-drive this and lava or just fluids in general
+            @ConfigEntry(description = "Custom water fog density")
+            var waterFogDensity = 0.045f
+
+            @ConfigEntry(description = "Custom lava fog density")
+            var lavaFogDensity = 0.45f
+
+            @ConfigEntry(description = "Custom fog effected by vanilla fog modifiers (Water Breathing, Fire Resist, Conduits)")
+            var fogEffects = true
+        }
+
+        class PERFORMANCE {
+            @ConfigEntry(
+                description = "Base per-frame time budget, in milliseconds, for applying deferred ship chunk packets on the client.",
+                min = 1.0,
+                max = 200.0
+            )
+            var shipChunkPacketBaseBudgetMs = 5
+
+            @ConfigEntry(
+                description = "Per-frame time budget, in milliseconds, for applying deferred ship chunk packets when a small backlog is present.",
+                min = 1.0,
+                max = 300.0
+            )
+            var shipChunkPacketBacklogBudgetMs = 20
+
+            @ConfigEntry(
+                description = "Per-frame time budget, in milliseconds, for applying deferred ship chunk packets when a large backlog is present.",
+                min = 1.0,
+                max = 500.0
+            )
+            var shipChunkPacketLargeBacklogBudgetMs = 80
+
+            @ConfigEntry(
+                description = "Maximum number of cached ship chunks to unload per client tick.",
+                min = 1.0,
+                max = 1024.0
+            )
+            var shipChunkUnloadBatchSize = 64
+        }
+
         @ConfigEntry(
             description = "The way ships are rendered by default"
         )
         var defaultRenderer = ShipRenderer.VANILLA
+
+        @ConfigEntry(description = "Use a custom vanilla shader for rendering ship chunks, improving lighting on tilted and upside down ships. Also enables the directional-shade fix for the sodium/embeddium ship renderer.")
+        var betterVanillaShipShading = false
+
+        @ConfigEntry(description = "Sample the world biome at the ship's actual rendered position so grass/leaves/water on ships show the correct biome color (sodium/embeddium only). Disable for a small perf gain — ship blocks fall back to whatever the chunk mesher baked.")
+        var dynamicShipBiomeTinting = false
+
+        @ConfigEntry(description = "Sample world block/sky light at the ship's rendered position so torches and sunlight in the world correctly light the ship (sodium/embeddium only). Disable for a moderate perf gain — ship blocks fall back to the shipyard's baked lightmap.")
+        var dynamicShipLighting = false
+
+        @ConfigEntry(description = "Project ships into the world's lighting at render time so ships occlude sunlight on the ground beneath them and ship-internal torches illuminate nearby world blocks (sodium/embeddium only). Experimental — overrides sodium's stock world-chunk shader. Disable for the default vanilla behavior where ships don't affect world lighting.")
+        var dynamicShipToWorldLighting = false
+
     }
 
     class Server {
@@ -152,11 +222,44 @@ object VSGameConfig {
         @ConfigCategory(title = "CBC")
         val Cbc = CBC()
 
+        @ConfigCategory(title = "Performance")
+        val Performance = PERFORMANCE()
+
         class CBC {
             @ConfigEntry(description = "Should cannon shots apply a recoil force to ships")
             var shellRecoil = false
             @ConfigEntry(description = "The force multiplier applied to recoil on ships")
             var shellRecoilMult = 500000.0
+        }
+
+        class PERFORMANCE {
+            @ConfigEntry(
+                description = "Maximum number of ship chunk watch tasks processed per server tick.",
+                min = 1.0,
+                max = 4096.0
+            )
+            var shipChunkWatchTasksPerTick = 128
+
+            @ConfigEntry(
+                description = "Maximum number of ship chunk unwatch tasks processed per server tick.",
+                min = 1.0,
+                max = 4096.0
+            )
+            var shipChunkUnwatchTasksPerTick = 256
+
+            @ConfigEntry(
+                description = "Maximum number of ship terrain chunks registered with VS core per server level tick.",
+                min = 1.0,
+                max = 4096.0
+            )
+            var shipTerrainChunkLoadsPerTick = 64
+
+            @ConfigEntry(
+                description = "Maximum number of ship terrain chunks unregistered from VS core per server level tick.",
+                min = 1.0,
+                max = 4096.0
+            )
+            var shipTerrainChunkUnloadsPerTick = 64
         }
 
 
@@ -170,7 +273,7 @@ object VSGameConfig {
         var enableInteractDistanceChecks = true
 
         @ConfigEntry(description = "If true, enables buoyancy from serverside air pockets.")
-        var enablePocketBuoyancy = false
+        var enablePocketBuoyancy = true
 
         @ConfigEntry(description = "Buoyancy factor added per cubic meter of air pocket inside a ship")
         var buoyancyFactorPerPocketVolume = 0.05 // per cubic meter
@@ -325,6 +428,21 @@ object VSGameConfig {
     }
 
     class Common {
+
+        @ConfigEntry(
+            description = "Multiplier for ship pocket flooding speed. `1.0` = current baseline, `0.3333` = ~3x slower flooding."
+        )
+        var shipPocketFloodRateMultiplier = 0.3333333333333333
+
+        @ConfigEntry(
+            description = "Multiplier for ship pocket leak/flood particle velocity."
+        )
+        var shipPocketParticleSpeedMultiplier = 1.0
+
+        @ConfigEntry(
+            description = "Enables ship air pockets. Must be enabled on both client and server."
+        )
+        var enableAirPockets = true
 
         @JvmField
         @ConfigCategory(title = "Advanced")

@@ -32,10 +32,13 @@ import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.assembly.SeamlessChunksManager;
+import org.valkyrienskies.mod.compat.LoadedMods;
+import org.valkyrienskies.mod.compat.LoadedMods.FlywheelVersion;
 import org.valkyrienskies.mod.mixinducks.mod_compat.sodium.RenderSectionManagerDuck;
+import org.valkyrienskies.mod.mixinducks.mod_compat.sodium.SodiumWorldRendererDuck;
 
 @Mixin(SodiumWorldRenderer.class)
-public abstract class MixinSodiumWorldRenderer {
+public abstract class MixinSodiumWorldRenderer implements SodiumWorldRendererDuck {
 
     @Shadow
     private ClientLevel world;
@@ -46,6 +49,16 @@ public abstract class MixinSodiumWorldRenderer {
     private SortedRenderLists currentRenderLists;
     @Unique
     private boolean vs$prevFrameHadShips;
+
+    @Override
+    public void vs$markShipRenderListsDirty() {
+        ((RenderSectionManagerDuck) this.renderSectionManager).vs$markShipRenderListsDirty();
+    }
+
+    @Override
+    public void vs$invalidateShipSectionCache(final ClientShip ship) {
+        ((RenderSectionManagerDuck) this.renderSectionManager).vs$invalidateShipSectionCache(ship);
+    }
 
     @Redirect(
         method = "renderBlockEntity",
@@ -118,13 +131,33 @@ public abstract class MixinSodiumWorldRenderer {
     }
 
     @Inject(method = "setupTerrain", at = @At("HEAD"))
-    private void preUpdateChunks(final CallbackInfo callbackInfo) {
+    private void preUpdateChunks(final Camera camera, final Viewport viewport, final int frame,
+        final boolean spectator, final boolean updateChunksImmediately, final CallbackInfo callbackInfo) {
         final boolean curFrameHasShips =
             !VSGameUtilsKt.getShipObjectWorld(Minecraft.getInstance()).getLoadedShips().isEmpty();
-        if (vs$prevFrameHadShips || curFrameHasShips) {
-            this.renderSectionManager.markGraphDirty();
+        if (vs$prevFrameHadShips != curFrameHasShips) {
+            this.vs$markShipRenderListsDirty();
         }
         vs$prevFrameHadShips = curFrameHasShips;
+
+        // Populate world-from-ship storage + ship-emitter list BEFORE chunk
+        // rendering. The world FSH samples both during world chunk rendering,
+        // which happens after setupTerrain but before VS's ship pass — so
+        // populating here is the only place the data is ready in time.
+        Minecraft.getInstance().getProfiler().push("vs_world_from_ship_lighting");
+        try {
+            org.valkyrienskies.mod.compat.sodium.SodiumCompat.populateWorldFromShipsForFrame(
+                Minecraft.getInstance().level, viewport);
+        } finally {
+            Minecraft.getInstance().getProfiler().pop();
+        }
+    }
+
+    @Inject(method = "setupTerrain", at = @At("TAIL"))
+    private void updateShipRenderLists(final Camera camera, final Viewport viewport, final int frame,
+        final boolean spectator, final boolean updateChunksImmediately, final CallbackInfo ci) {
+        ((RenderSectionManagerDuck) this.renderSectionManager).vs$updateShipRenderLists(camera, viewport, frame,
+            spectator);
     }
 
     /**
@@ -149,9 +182,12 @@ public abstract class MixinSodiumWorldRenderer {
     private void drainShipChunksBeforeLightUpdate(final Camera camera, final Viewport viewport, final int frame, final boolean spectator, final boolean updateChunksImmediately, final CallbackInfo ci) {
         final SeamlessChunksManager manager = SeamlessChunksManager.get();
         if (manager != null) {
+            if (LoadedMods.getFlywheel() == FlywheelVersion.V1) {
+                return;
+            }
             manager.drainDeferredBatch();
             // Drain all queued light updates so the light engine has the latest data
-            while (!world.isLightUpdateQueueEmpty()) {
+            if (!world.isLightUpdateQueueEmpty()) {
                 world.pollLightUpdates();
             }
         }

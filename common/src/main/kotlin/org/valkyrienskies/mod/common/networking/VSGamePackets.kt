@@ -258,11 +258,13 @@ object VSGamePackets {
 
         PacketChangeKnownShips::class.registerServerHandler { ships, iPlayer ->
             val player = (iPlayer as MinecraftPlayer).player as PlayerKnownShipsDuck
-            if (!ships.add || iPlayer.player.level().shipWorld?.loadedShips?.contains(ships.shipID) == true) {
-                if (ships.add) {
-                    player.vs_addKnownShip(ships.shipID)
-                } else {
-                    player.vs_removeKnownShip(ships.shipID)
+            for (shipID in ships.shipIDs) {
+                if (!ships.add || iPlayer.player.level().shipWorld?.loadedShips?.contains(shipID) == true) {
+                    if (ships.add) {
+                        player.vs_addKnownShip(shipID)
+                    } else {
+                        player.vs_removeKnownShip(shipID)
+                    }
                 }
             }
         }

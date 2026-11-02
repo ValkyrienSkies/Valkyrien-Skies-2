@@ -17,6 +17,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.impl.hooks.VSEvents.ShipLoadEventClient;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils;
 import org.valkyrienskies.mod.common.util.ShipyardEntityQueryContext;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.mixinducks.world.OfLevel;
@@ -82,8 +83,11 @@ public abstract class MixinEntitySectionStorage implements OfLevel {
             loopingShips = true;
             try {
                 VSGameUtilsKt.getShipsIntersecting(level, aABB).forEach(ship -> {
-                    final var transformedAABB = VectorConversionsMCKt.toMinecraft(
-                        VectorConversionsMCKt.toJOML(aABB).transform(ship.getWorldToShip()));
+                    final var transformedAABBJoml = VectorConversionsMCKt.toJOML(aABB).transform(ship.getWorldToShip());
+                    if (!EntityShipCollisionUtils.mayShipIntersectLocalAabb(ship, transformedAABBJoml)) {
+                        return;
+                    }
+                    final var transformedAABB = VectorConversionsMCKt.toMinecraft(transformedAABBJoml);
 
                     // No idea how this method works or why it throws (subset bounds are messed up)
                     // but let's just catch it for now.

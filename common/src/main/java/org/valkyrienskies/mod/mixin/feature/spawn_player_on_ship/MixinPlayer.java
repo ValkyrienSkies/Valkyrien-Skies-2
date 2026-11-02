@@ -36,12 +36,27 @@ public abstract class MixinPlayer extends LivingEntity implements PlayerKnownShi
         }
     }
 
+    // Per-tick batch of add/remove ship-id notifications pending flush to
+    // the server. During a bulk spawn (/vs perf-test spawn-ship-cube 10) we
+    // previously sent one PacketChangeKnownShips per ship — 1000 round-trip
+    // packets during a single tick. Batching into one packet per tick drops
+    // that to 1 roundtrip, saving ~100ms of client-settle on the 1000-ship
+    // perf test.
+    @Unique
+    private final it.unimi.dsi.fastutil.longs.LongArrayList vs_pendingAdds =
+        new it.unimi.dsi.fastutil.longs.LongArrayList();
+    @Unique
+    private final it.unimi.dsi.fastutil.longs.LongArrayList vs_pendingRemoves =
+        new it.unimi.dsi.fastutil.longs.LongArrayList();
+    @Unique
+    private boolean vs_flushScheduled = false;
+
     @Override
     public void vs_addKnownShip(long shipId) {
         vs_knownShips.add(shipId);
         if (level().isClientSide) {
-            var packet = new PacketChangeKnownShips(true, shipId);
-            ValkyrienSkiesMod.getVsCore().getSimplePacketNetworking().sendToServer(packet);
+            vs_pendingAdds.add(shipId);
+            vs_scheduleKnownShipsFlush();
         }
     }
 
@@ -49,8 +64,45 @@ public abstract class MixinPlayer extends LivingEntity implements PlayerKnownShi
     public void vs_removeKnownShip(long shipId) {
         vs_knownShips.remove(shipId);
         if (level().isClientSide) {
-            var packet = new PacketChangeKnownShips(false, shipId);
-            ValkyrienSkiesMod.getVsCore().getSimplePacketNetworking().sendToServer(packet);
+            vs_pendingRemoves.add(shipId);
+            vs_scheduleKnownShipsFlush();
+        }
+    }
+
+    @Unique
+    private void vs_scheduleKnownShipsFlush() {
+        if (vs_flushScheduled) return;
+        vs_flushScheduled = true;
+        // Flush at end of the current client tick by queuing on the client
+        // instance's executor. Reflection avoids loading net.minecraft.client.Minecraft
+        // from dedicated-server dists — vs_addKnownShip / vs_removeKnownShip
+        // already gate on level().isClientSide, so this path is only reached
+        // on the physical client.
+        try {
+            Class<?> mc = Class.forName("net.minecraft.client.Minecraft");
+            Object instance = mc.getMethod("getInstance").invoke(null);
+            mc.getMethod("execute", Runnable.class)
+                .invoke(instance, (Runnable) this::vs_flushKnownShips);
+        } catch (ReflectiveOperationException e) {
+            // Should never happen — this code only runs client-side.
+            throw new AssertionError("Client-only path hit without Minecraft class", e);
+        }
+    }
+
+    @Unique
+    private void vs_flushKnownShips() {
+        vs_flushScheduled = false;
+        if (!vs_pendingAdds.isEmpty()) {
+            long[] ids = vs_pendingAdds.toLongArray();
+            vs_pendingAdds.clear();
+            ValkyrienSkiesMod.getVsCore().getSimplePacketNetworking()
+                .sendToServer(new PacketChangeKnownShips(true, ids));
+        }
+        if (!vs_pendingRemoves.isEmpty()) {
+            long[] ids = vs_pendingRemoves.toLongArray();
+            vs_pendingRemoves.clear();
+            ValkyrienSkiesMod.getVsCore().getSimplePacketNetworking()
+                .sendToServer(new PacketChangeKnownShips(false, ids));
         }
     }
 

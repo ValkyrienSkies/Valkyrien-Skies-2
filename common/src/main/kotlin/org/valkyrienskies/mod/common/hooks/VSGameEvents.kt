@@ -2,11 +2,7 @@ package org.valkyrienskies.mod.common.hooks
 
 import com.mojang.blaze3d.vertex.PoseStack
 import it.unimi.dsi.fastutil.objects.ObjectList
-import me.jellysquid.mods.sodium.client.render.chunk.ChunkRenderMatrices
-import me.jellysquid.mods.sodium.client.render.chunk.lists.SortedRenderLists
-import me.jellysquid.mods.sodium.client.render.chunk.terrain.TerrainRenderPass
 import net.minecraft.client.renderer.LevelRenderer
-import net.minecraft.client.renderer.LevelRenderer.RenderChunkInfo
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.world.level.entity.EntityAccess
 import net.minecraft.world.level.entity.EntitySection
@@ -64,7 +60,7 @@ object VSGameEvents {
         val camX: Double, val camY: Double, val camZ: Double,
         val projectionMatrix: Matrix4f,
         val ship: ClientShip,
-        val chunks: ObjectList<RenderChunkInfo>
+        val chunks: ObjectList<*>
     )
 
     data class ShipSplitEvent(
@@ -74,17 +70,17 @@ object VSGameEvents {
     )
 
     data class ShipStartRenderEventSodium(
-        val pass: TerrainRenderPass,
-        val matrices: ChunkRenderMatrices,
+        val pass: Any,
+        val matrices: Any,
         val camX: Double, val camY: Double, val camZ: Double
     )
 
     data class ShipRenderEventSodium(
-        val pass: TerrainRenderPass,
-        val matrices: ChunkRenderMatrices,
+        val pass: Any,
+        val matrices: Any,
         val camX: Double, val camY: Double, val camZ: Double,
         val ship: ClientShip,
-        val chunks: SortedRenderLists
+        val chunks: Any
     )
 }
 
