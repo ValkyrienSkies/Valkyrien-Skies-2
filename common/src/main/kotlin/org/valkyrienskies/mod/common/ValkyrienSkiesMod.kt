@@ -13,8 +13,6 @@ import net.minecraft.tags.TagKey
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.item.Item
-import net.minecraft.world.item.ItemStack
-import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.entity.BlockEntityType
@@ -187,7 +185,7 @@ object ValkyrienSkiesMod {
             level?.let {
                 event.ship.getAttachment(WorldBorderAttachment::class.java)!!.border = it.worldBorder
                 if (!(DimensionParametersResolver.dimensionMap[level.dimensionId]?.disableVoidSaving ?: false)) {
-                    event.ship.getAttachment(VoidAttachment::class.java)!!.lowestHeight = it.yRange.minY - 64
+                    event.ship.getAttachment(VoidAttachment::class.java)!!.lowestHeight = it.yRange.minY + (DimensionParametersResolver.dimensionMap[level.dimensionId]?.voidHeight ?: -64)
                 } else {
                     event.ship.getAttachment(VoidAttachment::class.java)!!.lowestHeight = null
                 }

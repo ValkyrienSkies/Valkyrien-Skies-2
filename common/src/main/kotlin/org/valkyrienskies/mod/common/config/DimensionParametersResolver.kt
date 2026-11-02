@@ -46,6 +46,7 @@ object DimensionParametersResolver: SimpleJsonResourceReloadListener(Gson(), "vs
         val gravity = element.asJsonObject["gravity"]?.asJsonArray ?: throw NoSuchElementException("Parameter \"gravity\" wasn't filled")
         val dimensionId = element.asJsonObject["dimensionId"]?.asString ?: throw NoSuchElementException("Parameter \"dimensionId\" wasn't filled")
         val disableVoidSaving = element.asJsonObject["disableVoidSaving"]?.asBoolean ?: false
+        val voidHeight = element.asJsonObject["voidHeight"]?.asInt ?: -64
         val priority = element.asJsonObject["priority"]?.asInt ?: 0
 
         fun JsonArray.toVector3d() : Vector3dc {
@@ -56,9 +57,9 @@ object DimensionParametersResolver: SimpleJsonResourceReloadListener(Gson(), "vs
             )
         }
 
-        map.getOrPut(dimensionId) { Parameters(maxYPos, seaLevel, gravity.toVector3d(), disableVoidSaving, priority) }.also {
+        map.getOrPut(dimensionId) { Parameters(maxYPos, seaLevel, gravity.toVector3d(), disableVoidSaving, voidHeight, priority) }.also {
             if (it.priority < priority) {
-                map[dimensionId] = Parameters(maxYPos, seaLevel, gravity.toVector3d(), disableVoidSaving, priority)
+                map[dimensionId] = Parameters(maxYPos, seaLevel, gravity.toVector3d(), disableVoidSaving, voidHeight, priority)
             }
         }
     }
@@ -71,6 +72,7 @@ object DimensionParametersResolver: SimpleJsonResourceReloadListener(Gson(), "vs
      * @param seaLevel The Y value representing sea level in the dimension. This is the Y value where the atmosphere is at its densest, and any Y levels below are equal to this value.
      * @param gravity The gravitational acceleration in the dimension, in m/s^2. Defaults to DEFAULT_WORLD_GRAVITY, or (0, -10, 0). Should be a negative value if downward.
      * @param disableVoidSaving if true, ships will fall into the void indefinitely
+     * @param voidHeight the height at which the void death layer is. All vanilla dimensions use -64
      */
-    data class Parameters(val maxY: Double, val seaLevel: Double, var gravity: Vector3dc = DEFAULT_WORLD_GRAVITY, val disableVoidSaving: Boolean = false, val priority: Int = -1)
+    data class Parameters(val maxY: Double, val seaLevel: Double, var gravity: Vector3dc = DEFAULT_WORLD_GRAVITY, val disableVoidSaving: Boolean = false, val voidHeight: Int = -64, val priority: Int = -1)
 }
