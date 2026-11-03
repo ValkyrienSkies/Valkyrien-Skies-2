@@ -12,6 +12,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.EntityModelLayerRegistry
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents
 import net.fabricmc.fabric.api.`object`.builder.v1.block.entity.FabricBlockEntityTypeBuilder
@@ -35,7 +36,9 @@ import net.minecraft.world.entity.MobCategory
 import net.minecraft.world.item.CreativeModeTabs
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.Item.Properties
+import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.LevelEvent
 import net.minecraftforge.fml.config.ModConfig
 import org.valkyrienskies.mod.client.EmptyRenderer
 import org.valkyrienskies.mod.client.VSPhysicsEntityModel
@@ -292,6 +295,10 @@ class ValkyrienSkiesModFabric : ModInitializer {
 
         CommandRegistrationCallback.EVENT.register { dispatcher ,d, _ ->
             VSCommands.registerServerCommands(dispatcher)
+        }
+
+        ServerWorldEvents.LOAD.register { _, serverLevel ->
+            ValkyrienSkiesMod.onLevelLoaded(serverLevel)
         }
 
         // registering data loaders

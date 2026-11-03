@@ -203,7 +203,7 @@ object VSGameConfig {
             @ConfigEntry(
                 description = "Adds contraptions to the ship collider"
             )
-            var enableContraptionCollisions = false
+            var enableContraptionCollisions = true
         }
 
         @ConfigCategory(title = "FTB Chunks")
@@ -483,6 +483,11 @@ object VSGameConfig {
             description = "When a fully-contained vanilla structure is assembled into a ship, move its structure metadata (start + chunk references) onto the ship so in_structure advancements and other structure lookups keep working there."
         )
         var relocateStructureMetadata = true
+
+        @ConfigEntry(
+            description = "The offset (in blocks) from the death-height ships will stop falling at. To disable saving ships from falling into the void, you need a dimension property datapack."
+        )
+        var voidShipOffset = -3
 
         @ConfigCategory(title = "Commands")
         val Commands = COMMANDS()

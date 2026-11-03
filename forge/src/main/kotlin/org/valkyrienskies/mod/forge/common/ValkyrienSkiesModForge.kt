@@ -6,12 +6,14 @@ import net.minecraft.client.renderer.ShaderInstance
 import net.minecraft.commands.Commands.CommandSelection.ALL
 import net.minecraft.commands.Commands.CommandSelection.INTEGRATED
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MobCategory
 import net.minecraft.world.item.CreativeModeTabs
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.Item.Properties
+import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraftforge.client.event.EntityRenderersEvent
@@ -22,6 +24,7 @@ import net.minecraftforge.event.BuildCreativeModeTabContentsEvent
 import net.minecraftforge.event.RegisterCommandsEvent
 import net.minecraftforge.event.TagsUpdatedEvent
 import net.minecraftforge.event.entity.EntityAttributeCreationEvent
+import net.minecraftforge.event.level.LevelEvent
 import net.minecraftforge.event.entity.player.PlayerEvent
 import net.minecraftforge.fml.ModList
 import net.minecraftforge.fml.ModLoadingContext
@@ -164,6 +167,8 @@ class ValkyrienSkiesModForge {
         modBus.addListener(::loadComplete)
         forgeBus.addListener(::playerJoin)
 
+        forgeBus.addListener(::onLevelLoaded)
+
         forgeBus.addListener(::registerCommands)
         forgeBus.addListener(::tagsUpdated)
         forgeBus.addListener(::registerResourceManagers)
@@ -298,6 +303,10 @@ class ValkyrienSkiesModForge {
             event.accept(CLASSIC_AREA_ASSEMBLER_ITEM)
             event.accept(PHYSICS_ENTITY_CREATOR_ITEM)
         }
+    }
+
+    private fun onLevelLoaded(event: LevelEvent.Load) {
+        if (event.level is ServerLevel) ValkyrienSkiesMod.onLevelLoaded(event.level as ServerLevel)
     }
 
     private fun onConfigLoad(event: ModConfigEvent.Loading) {
