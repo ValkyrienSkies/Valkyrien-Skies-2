@@ -38,25 +38,9 @@ import java.util.function.Supplier
 import java.util.regex.Pattern
 import kotlin.system.measureNanoTime
 
-data class VSBlockProperties(
-    val solid: SolidProperties? = null,
-    val medium: MediumProperties? = null,
-    val displacement: AABBic? = null
-)
-
-data class VSFluidProperties(
-    val density: Double,
-    val dragCoefficient: Double,
-    val velocity: Vector3d,
-    val shapeOverride: AABBic? = null
-)
 
 class MassJsonParseException(override val message: String) : Exception(message) {
     constructor(message: String, id: String) : this("Parsing exception for $id: $message")
-}
-
-class NonNullMap<K, V>(private val map: Map<K, V>) {
-    operator fun get(key: K): V = map[key]!!
 }
 
 // mass datapack resolver 2: electric boogaloo
@@ -82,6 +66,7 @@ object BlockStateInfoResolver {
     private val fluidTags: MutableMap<ResourceLocation, FluidTagProperties> = HashMap()
     private val pendingBlocks: MutableMap<ResourceLocation, MutableMap<String, PendingBlockProperties>> = HashMap()
     private val pendingFluids: MutableMap<ResourceLocation, MutableMap<String, PendingFluidProperties>> = HashMap()
+
     private val blocks: MutableMap<ResourceLocation, MutableMap<String, VSBlockProperties>> = HashMap()
     private val fluids: MutableMap<ResourceLocation, MutableMap<String, VSFluidProperties>> = HashMap()
     private val liquidIdToFlowingFluid: MutableMap<Int, FlowingFluid?> = HashMap()
@@ -92,13 +77,6 @@ object BlockStateInfoResolver {
      * If a value _is_ null, something has gone very wrong.
      */
     private val mcState2VsState: MutableMap<BlockState, VsiBlockState> = HashMap()
-
-    /**
-     * Values of this map should never be null, as we iterate through every single block state in [registerAllBlockStates]
-     * and thus we have a corresponding VsiBlockState for every BlockState.
-     * If a value _is_ null, something has gone very wrong.
-     */
-    val blockStateToVs = NonNullMap(mcState2VsState)
 
     /*
     TODO #2
@@ -182,6 +160,10 @@ object BlockStateInfoResolver {
     }
     // endregion
 
+    fun loadProperties(blockStates: List<BlockState>) {
+
+    }
+
     // region internal stuff
     /**
      * This is left public so that it can be called in [org.valkyrienskies.mod.mixin.server.MixinMinecraftServer]
@@ -221,14 +203,8 @@ object BlockStateInfoResolver {
                 .build()
 
         fun getSolidState(props: VSBlockProperties?, voxelShape: VoxelShape) = if (props?.solid != null) {
-            val shape: SolidBlockShape =
-                if (props.solid.noCollision) BlockShapeUtil.noCollisionShape
-                else if (props.solid.shapeOverride != null)
-                    vsCore.solidShapeUtils.generateShapeFromBoxes(mutableListOf(props.solid.shapeOverride)) ?: generateShape(voxelShape)
-                else generateShape(voxelShape)
-
             vsCore.newSolidStateBuilder()
-                .shape(shape)
+                .shape(props.solid.shapeOverride ?: generateShape(voxelShape))
                 .mass(props.solid.mass)
                 .friction(props.solid.friction)
                 .elasticity(props.solid.elasticity)
@@ -237,13 +213,10 @@ object BlockStateInfoResolver {
         } else buildDefaultSolidState(voxelShape)
 
         fun getLiquidState(props: VSFluidProperties?, voxelShape: VoxelShape) = if (props != null) {
-            val shape: AABBic = props.shapeOverride ?: voxelShape.toAABBi()
-
             vsCore.newLiquidStateBuilder()
-                .boxShape(shape)
+                .boxShape(voxelShape.toAABBi())
                 .density(props.density)
                 .dragCoefficient(props.dragCoefficient)
-                .velocity(props.velocity)
                 .build()
         } else buildDefaultLiquidState(voxelShape.toAABBi())
 
@@ -403,7 +376,7 @@ object BlockStateInfoResolver {
         val friction = resolveValue(p.friction, VSGameConfig.SERVER.blockProperties.defaultBlockFriction, force, blocks) { it.solid?.friction } ?: return null
         val elasticity = resolveValue(p.elasticity, VSGameConfig.SERVER.blockProperties.defaultBlockElasticity, force, blocks) { it.solid?.elasticity } ?: return null
         val hardness = resolveValue(p.hardness, VSGameConfig.SERVER.blockProperties.defaultBlockHardness, force,blocks) { it.solid?.hardness } ?: return null
-        return SolidProperties(mass, friction, elasticity, hardness, p.noCollision, p.shapeOverride)
+        return SolidProperties(mass, friction, elasticity, hardness, p.shapeOverride)
     }
 
     private fun resolveMedium(p: PendingMediumProperties, force: Boolean): MediumProperties? {
@@ -414,7 +387,7 @@ object BlockStateInfoResolver {
     private fun resolveFluid(p: PendingFluidProperties, force: Boolean): VSFluidProperties? {
         val density = resolveValue(p.properties.density, VSGameConfig.SERVER.blockProperties.defaultLiquidDensity, force, fluids) { it.density } ?: return null
         val drag = resolveValue(p.properties.dragCoefficient, VSGameConfig.SERVER.blockProperties.defaultLiquidDragCoefficient, force, fluids) { it.dragCoefficient } ?: return null
-        return VSFluidProperties(density, drag, p.properties.velocity, p.properties.shapeOverride)
+        return VSFluidProperties(density, drag)
     }
 
     private fun <T : Any> resolveValue(value: NumericValue, default: Double, force: Boolean, map: Map<ResourceLocation, Map<String, T>>, extractor: (T) -> Double?): Double? {
@@ -479,17 +452,57 @@ object BlockStateInfoResolver {
     fun JsonObject.hasAny(members: Iterable<String>): Boolean = members.any { has(it) }
     fun JsonObject.hasAny(vararg members: String): Boolean = hasAny(members.asIterable())
     fun JsonObject.hasAll(vararg members: String): Boolean = members.all { has(it) }
-    fun JsonObject.asBooleanValue(name: String): Boolean = get(name)?.asBooleanValue ?: false
+    fun JsonObject.getAll(members: Iterable<String>): MutableMap<String, JsonElement> = this.asMap().filter { members.contains(it.key) }.toMutableMap()
     val JsonElement.asBooleanValue: Boolean get() = isJsonPrimitive && asJsonPrimitive.isBoolean && asBoolean
     val JsonElement.isString: Boolean get() = isJsonPrimitive && asJsonPrimitive.isString
+    val JsonElement.isNumber: Boolean get() = isJsonPrimitive && asJsonPrimitive.isNumber
+    val JsonElement.isBoolean: Boolean get() = isJsonPrimitive && asJsonPrimitive.isBoolean
+    fun JsonElement.isJsonArray(test: (JsonElement) -> Boolean) = this.isJsonArray && this.asJsonArray.all { test(it) }
+    fun <T> JsonObject.getAsList(key: String, func: (JsonElement) -> T): List<T> {
+        val element = get(key) ?: return emptyList()
+        return if (element.isJsonArray)
+            element.asJsonArray.map(func)
+        else
+            listOf(func(element))
+    }
+
+    fun JsonObject.getAsBooleanValue(name: String): Boolean {
+        val value = get(name) ?: return false
+        return if (value.isBoolean)
+            value.asBoolean
+        else if (value.isNumber)
+            value.asInt != 0
+        else if (value.isString) {
+            value.asString == "true"
+        } else {
+            false
+        }
+    }
+
 
     fun <K, V> Map<K, V>.getOrOther(key: K, other: K): V? = if (key == other) get(key) else get(key) ?: get(other)
     // endregion
 
     class BlockStateInfoDataLoader : SimpleJsonResourceReloadListener(Gson(), "vs_mass") {
+        private val templates: MutableMap<ResourceLocation, JsonArray> = HashMap()
+
         override fun apply(data: MutableMap<ResourceLocation, JsonElement>, resourceManager: ResourceManager, profilerFiller: ProfilerFiller) {
-            val objects = data.filter { // filter out jsons / directories based on their name (being the mod id)
-                !it.key.path.startsWith("compat/") || ValkyrienSkiesMod.platformUtils.isModLoaded(it.key.path.split('/')[1])
+            data.filter { it.key.path.startsWith("template/") }.forEach { (location, json) ->
+                if (!json.isJsonArray) {
+                    logger.error("template $location is not a json array!")
+                    return@forEach
+                } else if (json.asJsonArray.size() != 2) {
+                    logger.error("templates must have 2 elements!")
+                }
+                templates[ResourceLocation(location.namespace, location.path.substring(10))] = json.asJsonArray
+            }
+
+
+            val objects = data.filter { // filter out templates and compat files for unloaded mods
+                if (it.key.path.startsWith("template/")) false // don't include templates
+                else if (it.key.path.startsWith("compat/")) // include jsons under compat/ only if their modid is loaded
+                    ValkyrienSkiesMod.platformUtils.isModLoaded(it.key.path.split("/")[1])
+                else true
             }
             //val templates = objects.filter { it.key.path == "templates" }
             objects.forEach { (location, element) ->
@@ -513,15 +526,15 @@ object BlockStateInfoResolver {
         /**
          * The type of object a property entry applies to.
          */
-        enum class IdType (val string: String) {
+        enum class IdType (val key: String) {
             BLOCK("block"),
             FLUID("fluid"),
-            BLOCK_TAG("tag"),
+            BLOCK_TAG("block_tag"),
             FLUID_TAG("fluid_tag"),
             NONE("");
 
             fun getIds(jsonObject: JsonObject): List<JsonElement> {
-                val ids = jsonObject[string]
+                val ids = jsonObject[key]
                 return if (ids.isString) listOf(ids) else ids.asJsonArray.asList()
             }
         }
@@ -544,6 +557,31 @@ object BlockStateInfoResolver {
 
             fun toStructure(): Structure {
                 return Structure(this)
+            }
+        }
+
+
+        enum class EntryFormat(val keys: List<String>) {
+            BLOCK_BASIC("mass", "friction", "elasticity", "hardness", "shape"),
+            BLOCK_COMPOUND("solid", "medium", "displacement"),
+            BLOCK_STATES("variants"),
+            BLOCK_MODIFIERS("modifiers"),
+            FLUID_BASIC("density", "drag"),
+            TEMPLATE("template", "inputs"),
+            NONE
+            ;
+
+            constructor(vararg keys: String) : this(keys.toList())
+
+            fun matches(json: JsonObject) = json.hasAny(keys)
+
+            companion object {
+                val ordered: List<EntryFormat> = listOf(
+                    TEMPLATE, BLOCK_BASIC, FLUID_BASIC, BLOCK_COMPOUND, BLOCK_STATES, BLOCK_MODIFIERS
+                )
+                fun determineStructure(json: JsonObject): EntryFormat {
+                    return ordered.firstOrNull { it.matches(json) } ?: NONE
+                }
             }
         }
 
@@ -576,6 +614,7 @@ object BlockStateInfoResolver {
 
         val blockValues = listOf("mass", "friction", "elasticity", "hardness", "no_collision", "shape_override")
         val fluidValues = listOf("density", "drag", "velocity", "no_collision", "shape_override")
+        val idKeys = listOf("block", "fluid", "block_tag", "fluid_tag")
         // endregion
 
         /**
@@ -618,119 +657,171 @@ object BlockStateInfoResolver {
                 }
             }
 
-            return when (idType) {
-                IdType.BLOCK -> {
-                    if (json.hasAny(blockValues)) {
-                        StructureType.BLOCK_BASIC.toStructure() // basic structure, same as old version
-                    }
-                    else if (json.hasAny("solid", "medium")) {
-                        determineCompoundBlockStructure()
-                    }
-                    else if (json.hasAll("base", "states")) {
-                        StructureType.BLOCK_STATES_MODIFIER.toStructure()
-                    }
-                    else if (json.has("states")) {
-                        val states = json["states"].asJsonObject
-                        // check to make sure we have a valid default state, otherwise return an error structure
-                        // technically this check will succeed if the default state has solid or medium but the internal format of those is invalid.
-                        // we'll just do that check later.
-                        if (!states.has("default"))
-                            throw MassJsonParseException("states object does not have a default state, which is required.", id)
-                        if (!states["default"].asJsonObject.hasAny(blockValues) && !states["default"].asJsonObject.hasAny("solid", "medium"))
-                            throw MassJsonParseException("default state is not in a valid format, but default is required.", id)
-
-                        val fullSize = states.size()
-
-                        states.keySet().forEach {
-                            if (!stateRegex.test(it)) {
-                                logger.error("$it does not match regex for block state strings, skipping.")
-                                states.remove(it) // remove invalid states completely
-                            }
+            try {
+                return when (idType) {
+                    IdType.BLOCK -> {
+                        if (json.hasAny(blockValues)) {
+                            StructureType.BLOCK_BASIC.toStructure() // basic structure, same as old version
                         }
+                        else if (json.hasAny("solid", "medium")) {
+                            determineCompoundBlockStructure()
+                        }
+                        else if (json.hasAll("base", "states")) {
+                            StructureType.BLOCK_STATES_MODIFIER.toStructure()
+                        }
+                        else if (json.has("states")) {
+                            val states = json["states"].asJsonObject
+                            val fullSize = states.size()
 
-                        val state2StructureType = mutableMapOf<String, StructureType>()
-                        states.asMap().forEach { (state, json) ->
-                            json as JsonObject
-                            if (json.hasAny(blockValues))
-                                state2StructureType[state] = StructureType.BLOCK_BASIC
-                            else if (json.hasAny("solid", "medium")) {
-                                try {
-                                    val structure = determineCompoundBlockStructure(json, "$id[$state]")
+                            states.keySet().forEach {
+                                if (!stateRegex.test(it)) {
+                                    logger.error("$it does not match regex for block state strings, skipping.")
+                                    states.remove(it) // remove invalid states completely
+                                }
+                            }
 
-                                    if (structure.isWarn())
-                                        logger.warn("warning while parsing block state $id[$state]: ${structure.warn}")
+                            val state2StructureType = mutableMapOf<String, StructureType>()
+                            states.asMap().forEach { (state, json) ->
+                                json as JsonObject
+                                if (json.hasAny(blockValues))
+                                    state2StructureType[state] = StructureType.BLOCK_BASIC
+                                else if (json.hasAny("solid", "medium")) {
+                                    try {
+                                        val structure = determineCompoundBlockStructure(json, "$id[$state]")
 
-                                    state2StructureType[state] = structure.type
-                                } catch (parseE: MassJsonParseException) {
-                                    logger.error(parseE.message)
+                                        if (structure.isWarn())
+                                            logger.warn("warning while parsing block state $id[$state]: ${structure.warn}")
+
+                                        state2StructureType[state] = structure.type
+                                    } catch (parseE: MassJsonParseException) {
+                                        logger.error(parseE.message)
+                                        states.remove(state)
+                                    }
+                                } else { // state format isn't valid here for obvious reasons
+                                    logger.error("invalid format for $id[$state], skipping this block state")
                                     states.remove(state)
                                 }
-                            } else { // state format isn't valid here for obvious reasons
-                                logger.error("invalid format for $id[$state], skipping this block state")
-                                states.remove(state)
                             }
-                        }
 
-                        if (states.size() == 0) {
-                            throw MassJsonParseException("No valid block states for $id!")
-                        }
+                            if (states.size() == 0) {
+                                throw MassJsonParseException("No valid block states for $id!")
+                            }
 
-                        Structure(StructureType.BLOCK_STATES, warn = if (states.size() == 1 && fullSize > 1) "The default state in block $id is the only valid state!" else null, state2StructureType = state2StructureType)
+                            Structure(StructureType.BLOCK_STATES, warn = if (states.size() == 1 && fullSize > 1) "The default state in block $id is the only valid state!" else null, state2StructureType = state2StructureType)
+                        }
+                        else {
+                            throw MassJsonParseException("Could not determine block structure", id)
+                        } // sowwy >.<
                     }
-                    else {
-                        throw MassJsonParseException("Could not determine block structure", id)
-                    } // sowwy >.<
-                }
-                IdType.FLUID -> {
-                    if (json.hasAny(fluidValues)) {
-                        StructureType.FLUID_BASIC.toStructure()
-                    } else if (json.has("states")) {
-                        val states = json["states"].asJsonObject
-                        if (!states.has("default"))
-                            throw MassJsonParseException("states object does not have a default fluid state, which is required.", id)
-                        if (!states["default"].asJsonObject.hasAny(fluidValues))
-                            throw MassJsonParseException("default state is not in a valid format, but default is required.", id)
+                    IdType.FLUID -> {
+                        if (json.hasAny(fluidValues)) {
+                            StructureType.FLUID_BASIC.toStructure()
+                        } else if (json.has("states")) {
+                            val states = json["states"].asJsonObject
+                            if (!states.has("default"))
+                                throw MassJsonParseException("states object does not have a default fluid state, which is required.", id)
+                            if (!states["default"].asJsonObject.hasAny(fluidValues))
+                                throw MassJsonParseException("default state is not in a valid format, but default is required.", id)
 
-                        val fullSize = states.size()
+                            val fullSize = states.size()
 
-                        states.keySet().forEach {
-                            if (!stateRegex.test(it)) {
-                                logger.error("$it does not match regex for fluid state strings, skipping.")
-                                states.remove(it)
+                            states.keySet().forEach {
+                                if (!stateRegex.test(it)) {
+                                    logger.error("$it does not match regex for fluid state strings, skipping.")
+                                    states.remove(it)
+                                }
                             }
-                        }
 
-                        val state2StructureType = mutableMapOf<String, StructureType>()
-                        states.asMap().forEach { (state, json) ->
-                            json as JsonObject
-                            if (json.hasAny(blockValues)) {
-                                state2StructureType[state] = StructureType.FLUID_BASIC
-                            } else {
-                                logger.error("invalid format for $id[$state], skipping this fluid state")
-                                states.remove(state)
+                            val state2StructureType = mutableMapOf<String, StructureType>()
+                            states.asMap().forEach { (state, json) ->
+                                json as JsonObject
+                                if (json.hasAny(blockValues)) {
+                                    state2StructureType[state] = StructureType.FLUID_BASIC
+                                } else {
+                                    logger.error("invalid format for $id[$state], skipping this fluid state")
+                                    states.remove(state)
+                                }
                             }
-                        }
 
-                        if (states.size() == 0) {
-                            throw MassJsonParseException("No valid fluid states for $id!")
-                        }
+                            if (states.size() == 0) {
+                                throw MassJsonParseException("No valid fluid states for $id!")
+                            }
 
-                        Structure(StructureType.FLUID_STATES, warn = if (states.size() == 1 && fullSize > 1) "The default state in fluid $id is the only valid state!" else null, state2StructureType = state2StructureType)
-                    } else throw MassJsonParseException("Could not determine fluid structure!", id)
+                            Structure(StructureType.FLUID_STATES, warn = if (states.size() == 1 && fullSize > 1) "The default state in fluid $id is the only valid state!" else null, state2StructureType = state2StructureType)
+                        } else throw MassJsonParseException("Could not determine fluid structure!", id)
+                    }
+                    IdType.BLOCK_TAG -> {
+                        if (json.hasAny(blockValues)) {
+                            StructureType.BLOCK_TAG_BASIC.toStructure()
+                        } else if (json.hasAny("solid", "medium")) {
+                            determineCompoundBlockStructure(tag = true)
+                        } else if (json.has("states")) {
+
+                            StructureType.BLOCK_TAG_STATES.toStructure()
+                        } else throw MassJsonParseException("Could not determine block tag structure!", id)
+                    }
+                    IdType.FLUID_TAG -> {
+                        if (json.hasAny(fluidValues)) {
+                            StructureType.FLUID_TAG_BASIC.toStructure()
+                        } else throw MassJsonParseException("Could not determine fluid tag structure!", id)
+                    }
+                    IdType.NONE -> throw MassJsonParseException("how") // this shouldn't be possible, but we're checking anyways because i have anxiety
                 }
-                IdType.BLOCK_TAG -> {
-                    if (json.hasAny(blockValues)) {
-                        StructureType.BLOCK_TAG_BASIC.toStructure()
-                    } else if (json.hasAny("solid", "medium")) {
-                        determineCompoundBlockStructure(tag = true) // i could implement states for tags but also that doesn't really make sense
-                    } else throw MassJsonParseException("Could not determine block tag structure!", id)
+            } catch (e: Exception) {
+                if (e is MassJsonParseException) throw e // rethrow if this exception is a parse exception
+                throw MassJsonParseException("Exception thrown while parsing $id! ${e.message}")
+            }
+        }
+
+        //genuinely i spent like my entire ap chem class writing notes on this i think im cooking
+
+        private fun parseButBetter(json: JsonObject, location: ResourceLocation, index: Int = -1) {
+            val loc = if (index == -1) location.toString() else "$index in $location"
+            if (json["ignore"]?.asBooleanValue ?: false) {
+                logger.info("ignoring entry $loc")
+                return
+            }
+
+            fun hasId(name: String): Boolean {
+                val id = json[name] ?: return false
+                return id.isJsonArray { it.isString } || id.isString // single string or array of
+            }
+
+            val idKey = idKeys.firstOrNull { hasId(it) } ?: run {
+                logger.error("could not find a valid block, fluid, or tag id in entry $loc")
+                return
+            }
+
+            val ids = json.getAsList(idKey) { it.asString }
+
+            for (id in ids) {
+                if (!ResourceLocation.isValidResourceLocation(id)) {
+                    logger.error("error parsing entry $loc: $id is not a valid id!")
+                    return
                 }
-                IdType.FLUID_TAG -> {
-                    if (json.hasAny(fluidValues)) {
-                        StructureType.FLUID_TAG_BASIC.toStructure()
-                    } else throw MassJsonParseException("Could not determine fluid tag structure!", id)
+
+                val priority = json["priority"]?.asInt ?: decideDefaultPriority(location)
+
+                val format = EntryFormat.determineStructure(json)
+
+                if (format == EntryFormat.NONE) {
+                    logger.error("could not determine format for entry $loc")
+                    return
                 }
-                IdType.NONE -> throw MassJsonParseException("how") // this shouldn't be possible, but we're checking anyways because i have anxiety
+
+                when (format) {
+                    EntryFormat.TEMPLATE -> {
+
+                    }
+
+                    EntryFormat.BLOCK_BASIC -> TODO()
+                    EntryFormat.BLOCK_COMPOUND -> TODO()
+                    EntryFormat.BLOCK_STATES -> TODO()
+                    EntryFormat.BLOCK_MODIFIERS -> TODO()
+                    EntryFormat.FLUID_BASIC -> TODO()
+                    EntryFormat.NONE -> TODO()
+                }
+
             }
         }
 
@@ -739,7 +830,7 @@ object BlockStateInfoResolver {
          */
         private fun parse(element: JsonElement, origin: ResourceLocation, index: Int = -1) {
             val json: JsonObject = element.asJsonObject
-            if (json.asBooleanValue("ignore")) {
+            if (json.getAsBooleanValue("ignore")) {
                 if (index == -1) {
                     logger.info("Ignoring entry $origin")
                 } else {
@@ -750,7 +841,7 @@ object BlockStateInfoResolver {
 
             fun hasId(name: String): Boolean {
                 val id = json[name] ?: return false
-                return id.isJsonArray || (id.isJsonPrimitive && id.asJsonPrimitive.isString)
+                return id.isJsonArray { it.isString } || id.isString
             }
 
             val idType = when {
@@ -870,25 +961,15 @@ object BlockStateInfoResolver {
             val friction = parseNumericValue(json["friction"], VSGameConfig.SERVER.blockProperties.defaultBlockFriction)
             val elasticity = parseNumericValue(json["elasticity"], VSGameConfig.SERVER.blockProperties.defaultBlockElasticity)
             val hardness = parseNumericValue(json["hardness"], VSGameConfig.SERVER.blockProperties.defaultBlockHardness)
-            val noCollision = json["no_collision"]?.asBoolean ?: false
             val shapeOverride = json["shape_override"]?.let { parseShape(it) }
-            return PendingSolidProperties(mass, friction, elasticity, hardness, noCollision, shapeOverride)
+            return PendingSolidProperties(mass, friction, elasticity, hardness, shapeOverride)
         }
 
         private fun parseLiquid(json: JsonObject): PendingLiquidProperties {
             val density = parseNumericValue(json["density"], VSGameConfig.SERVER.blockProperties.defaultLiquidDensity)
             val dragCoefficient = parseNumericValue(json["drag"], VSGameConfig.SERVER.blockProperties.defaultLiquidDragCoefficient)
 
-            val velocityArray = json["velocity"]?.asJsonArray
-            val velocity = if (velocityArray != null) {
-                Vector3d(velocityArray[0].asDouble, velocityArray[1].asDouble, velocityArray[2].asDouble)
-            } else {
-                Vector3d()
-            }
-
-            val shapeOverride = json["shape_override"]?.let { parseShape(it) }
-
-            return PendingLiquidProperties(density, dragCoefficient, velocity, shapeOverride)
+            return PendingLiquidProperties(density, dragCoefficient)
         }
 
         private fun parseMedium(json: JsonObject): PendingMediumProperties {
@@ -961,5 +1042,5 @@ object BlockStateInfoResolver {
         // endregion
     }
 
-    private val logger by logger()
+    private val logger by logger("Lego Factory")
 }

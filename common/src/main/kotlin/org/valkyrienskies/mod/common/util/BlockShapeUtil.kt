@@ -174,7 +174,6 @@ object BlockShapeUtil {
 
     @JvmField
     val noCollisionShape: SolidBlockShape = vsCore.newSolidStateBoxesShapeBuilder()
-        .addCollisionPoints(listOf())
         .addNegativeBox(fullLodBoundingBox)
         .build()
 
