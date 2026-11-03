@@ -107,6 +107,7 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
     private void vs$invalidateShipGeometry(final BlockPos pos, final BlockState oldState,
         final BlockState newState, final int flags, final CallbackInfo ci) {
         if (oldState == newState) return;
+        VsDynamicLight.invalidateLightingRevision();
         final Ship ship = VSGameUtilsKt.getShipManagingPos((ClientLevel) (Object) this, pos);
         if (ship != null) VsDynamicLight.invalidateShipEmitters(ship.getId());
     }

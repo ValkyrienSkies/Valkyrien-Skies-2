@@ -116,6 +116,7 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
         final Consumer<BlockEntityTagOutput> consumer,
         final CallbackInfoReturnable<LevelChunk> cir
     ) {
+        VsDynamicLight.invalidateLightingRevision();
         if (!VS2ChunkAllocator.INSTANCE.isChunkInShipyardCompanion(x, z)) {
             return;
         }
@@ -224,6 +225,21 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
             SodiumCompat.onChunkAdded(this.level, x, z);
         }
         cir.setReturnValue(worldChunk);
+    }
+
+    @Inject(method = "drop", at = @At("HEAD"))
+    private void vs$invalidateWorldLightOnChunkDrop(final int x, final int z, final CallbackInfo ci) {
+        VsDynamicLight.invalidateLightingRevision();
+    }
+
+    @Inject(method = "updateViewCenter", at = @At("HEAD"))
+    private void vs$invalidateWorldLightOnViewCenter(final int x, final int z, final CallbackInfo ci) {
+        VsDynamicLight.invalidateLightingRevision();
+    }
+
+    @Inject(method = "updateViewRadius", at = @At("HEAD"))
+    private void vs$invalidateWorldLightOnViewRadius(final int radius, final CallbackInfo ci) {
+        VsDynamicLight.invalidateLightingRevision();
     }
 
     @Override

@@ -15,6 +15,8 @@ import org.valkyrienskies.mod.compat.sodium.light.VsShipOccluderList;
 import org.valkyrienskies.mod.compat.sodium.light.VsWorldFromShipLightStorage;
 
 public final class VsDynamicLight {
+    private static final java.util.concurrent.atomic.AtomicLong LIGHTING_REVISION =
+        new java.util.concurrent.atomic.AtomicLong();
 
     public static final int LIGHT_SECTIONS_TEXTURE_UNIT = 6;
     public static final int LIGHT_LUT_TEXTURE_UNIT = 7;
@@ -82,8 +84,18 @@ public final class VsDynamicLight {
     }
 
     public static void invalidateShipEmitters(final long shipId) {
+        invalidateLightingRevision();
         EMITTERS.invalidate(shipId);
         ShipShadowRenderer.invalidate(shipId);
+        if (worldFromShipStorage != null) worldFromShipStorage.invalidateShipGeometry(shipId);
+    }
+
+    public static void invalidateLightingRevision() {
+        LIGHTING_REVISION.incrementAndGet();
+    }
+
+    public static long lightingRevision() {
+        return LIGHTING_REVISION.get();
     }
 
     public static void invalidateLightSection(final long section) {

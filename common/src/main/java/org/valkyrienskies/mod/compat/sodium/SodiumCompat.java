@@ -54,6 +54,7 @@ import org.valkyrienskies.mod.common.render.batched.ShipSectionMesh;
 import org.valkyrienskies.mod.common.render.batched.ShipRenderFrustum;
 import org.valkyrienskies.mod.common.render.light.VsDynamicLight;
 import org.valkyrienskies.mod.common.render.ShipRenderConfig;
+import org.valkyrienskies.mod.common.render.light.ShipLightFrameCache;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.hooks.VSGameEvents;
 import org.valkyrienskies.mod.common.hooks.VSGameEvents.ShipRenderEventSodium;
@@ -126,6 +127,8 @@ public class SodiumCompat {
     public static final int SHIP_OCCLUDER_LIST_TEXTURE_UNIT = 13;
 
     private static VsShipBiomeColorStorage biomeStorage;
+    private static final ShipLightFrameCache WORLD_LIGHT_FRAME = new ShipLightFrameCache();
+    private static final ArrayList<ClientShip> WORLD_LIGHT_SHIPS = new ArrayList<>();
 
     private static final double WORLD_FROM_SHIP_VISIBILITY_PADDING = 32.0;
 
@@ -156,6 +159,8 @@ public class SodiumCompat {
     }
 
     public static void deleteStorages() {
+        WORLD_LIGHT_FRAME.clear();
+        WORLD_LIGHT_SHIPS.clear();
         cachedPrograms.values().forEach(GlProgram::delete);
         cachedPrograms.clear();
         cachedWorldPrograms.values().forEach(GlProgram::delete);
@@ -180,17 +185,28 @@ public class SodiumCompat {
         if (level == null) return;
         VsWorldFromShipLightStorage storage = getWorldFromShipStorage();
         VsShipOccluderList occluders = getShipOccluderList();
-        storage.beginFrame();
-        occluders.beginFrame();
+        final long revision = VsDynamicLight.lightingRevision();
+        WORLD_LIGHT_SHIPS.clear();
+        WORLD_LIGHT_FRAME.begin(level, storage, revision);
         org.valkyrienskies.mod.common.VSGameUtilsKt.getShipObjectWorld(
                 net.minecraft.client.Minecraft.getInstance()).getLoadedShips().forEach(ship -> {
             ClientShip cs = ship;
             if (!isShipRelevantToWorldFromShipFrame(cs, viewport)) return;
-            storage.populateFromShip(level, cs, null, occluders);
+            WORLD_LIGHT_SHIPS.add(cs);
+            WORLD_LIGHT_FRAME.add(cs, cs.getId(), cs.getShipAABB(),
+                cs.getRenderTransform().getShipToWorld(), cs.getActiveChunksSet());
         });
+        if (WORLD_LIGHT_FRAME.finish() && storage.canReuseUnchangedFrame()
+            && revision == VsDynamicLight.lightingRevision()) return;
+        storage.beginFrame();
+        occluders.beginFrame();
+        for (final ClientShip cs : WORLD_LIGHT_SHIPS) {
+            storage.populateFromShip(level, cs, null, occluders);
+        }
         storage.pruneUnused();
         storage.upload();
         occluders.upload();
+        WORLD_LIGHT_FRAME.commit(storage.canReuseUnchangedFrame() && revision == VsDynamicLight.lightingRevision());
     }
 
     public static void populateLightSectionStorage(ClientLevel level) {
