@@ -9,7 +9,11 @@ import net.minecraft.tags.FluidTags
 import net.minecraft.world.level.material.FlowingFluid
 import net.minecraft.world.level.material.FluidState
 import net.minecraft.world.level.Level
+import net.minecraft.world.level.EmptyBlockGetter
+import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.phys.AABB
+import net.minecraft.world.phys.Vec3
+import net.minecraft.world.phys.shapes.BooleanOp
 import net.minecraft.world.phys.shapes.Shapes
 import org.joml.Matrix4d
 import org.joml.Vector3d
@@ -21,6 +25,9 @@ import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.internal.VsiCoreFactory
 import org.valkyrienskies.core.internal.physics.VsiFluidFloodedVoxel
 import org.valkyrienskies.core.internal.physics.VsiFluidTopologyVoxel
+import org.valkyrienskies.core.internal.physics.VsiFluidSurfaceRegion
+import org.valkyrienskies.core.internal.physics.VsiFluidSurfaceConstituent
+import org.valkyrienskies.core.internal.physics.VsiFluidCurrent
 import org.valkyrienskies.core.internal.world.VsiClientShipWorld
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 
@@ -49,6 +56,70 @@ class ShipFluidVolumeTest {
     }
     @AfterEach fun cleanup() { ShipFluidInteraction.clear(world); unmockkAll() }
     private fun query(bounds: AABB) = ShipFluidInteraction.prepareVolume(world, listOf(ship), bounds)
+
+    private fun flowing(current: VsiFluidCurrent?, top: Double = 1.0) {
+        val bounds = (16 shl 15) or (16 shl 20) or (16 shl 25)
+        flooding = floodingSnapshot(VsiFluidFloodedVoxel(0, 0, 0, 17, (255 * top).toInt(), 0,
+            surfaceRegions = listOf(VsiFluidSurfaceRegion(bounds, 0.0, 1.0, 0.0, 0.0, top,
+                listOf(VsiFluidSurfaceConstituent(17, 255 * top)), current))))
+        ShipFluidInteraction.clear(world)
+    }
+
+    @Test fun `retained current uses submerged volume and replaces its share of vanilla flow`() {
+        flowing(VsiFluidCurrent(1.0, 0.0, 0.0, 0.0, 0.0, 0.0), .5)
+        val q = query(AABB(.1, 0.0, .1, .9, 1.0, .9))
+        val pushed = q.currentMovement(Vec3.ZERO, Vec3(0.0, 0.0, .014), { true }, { .014 })
+        assertEquals(.007, pushed.x, 1e-12)
+        assertEquals(.007, pushed.z, 1e-12)
+        val dry = query(AABB(.1, .5, .1, .9, 1.5, .9))
+        assertEquals(Vec3.ZERO, dry.currentMovement(Vec3.ZERO, Vec3.ZERO, { true }, { .014 }))
+        val tiny = query(AABB(.1, .499999, .1, .9, 1.499999, .9))
+        assertEquals(.014e-6, tiny.currentMovement(Vec3.ZERO, Vec3.ZERO, { true }, { .014 }).x, 1e-12)
+    }
+
+    @Test fun `retained currents rotate and scale once without adding ship translation`() {
+        flowing(VsiFluidCurrent(.1, 0.0, 0.0, 0.0, 0.0, 0.0))
+        transform.translation(100.0, 20.0, -30.0).rotateY(Math.PI / 2).scale(2.0)
+        val q = query(AABB(100.1, 20.1, -31.9, 101.9, 21.9, -30.1))
+        val push = q.currentMovement(Vec3.ZERO, Vec3.ZERO, { true }, { .014 })
+        assertEquals(0.0, push.x, 1e-12)
+        assertEquals(-.0028, push.z, 1e-12)
+        flowing(VsiFluidCurrent(0.0, 0.0, 0.0, 0.0, 0.0, 0.0))
+        assertEquals(Vec3.ZERO, query(AABB(100.1, 20.1, -31.9, 101.9, 21.9, -30.1))
+            .currentMovement(Vec3.ZERO, Vec3.ZERO, { true }, { .014 }))
+    }
+
+    @Test fun `angular current integrates at the submerged centroid and never accelerates beyond flow`() {
+        flowing(VsiFluidCurrent(0.0, 0.0, 0.0, 0.0, 1.0, 0.0))
+        val q = query(AABB(.5, .1, .1, 1.0, .9, .9))
+        val push = q.currentMovement(Vec3.ZERO, Vec3.ZERO, { true }, { .014 })
+        assertEquals(-.0035, push.z, 1e-12)
+        assertEquals(0.0, push.x, 1e-12)
+        val fast = Vec3(0.0, 0.0, -1.0)
+        assertEquals(fast, q.currentMovement(fast, fast, { true }, { .014 }))
+        assertEquals(Vec3.ZERO, q.currentMovement(Vec3.ZERO, Vec3.ZERO, { false }, { .014 }))
+        assertEquals(Vec3.ZERO, q.currentMovement(Vec3.ZERO, Vec3.ZERO, { true }, { 0.0 }))
+    }
+
+    @Test fun `legacy current absence preserves original fluid motion`() {
+        flowing(null)
+        val movement = Vec3(.01, -.02, .03)
+        assertEquals(movement, query(AABB(.1, .1, .1, .9, .9, .9))
+            .currentMovement(Vec3.ZERO, movement, { true }, { .014 }))
+    }
+
+    @Test fun `current-only publication invalidates gameplay cache without changing a captured query`() {
+        flowing(VsiFluidCurrent(.2, 0.0, 0.0, 0.0, 0.0, 0.0))
+        val before = query(AABB(.1, .1, .1, .9, .9, .9))
+        val surface = flooding.voxels.single().surfaceRegions.single()
+        flooding = flooding.copy(streamSequence = flooding.streamSequence + 1,
+            nativePublicationId = flooding.nativePublicationId + 1,
+            voxels = listOf(flooding.voxels.single().copy(surfaceRegions = listOf(surface.copy(
+                current = VsiFluidCurrent(-.2, 0.0, 0.0, 0.0, 0.0, 0.0))))))
+        val after = query(AABB(.1, .1, .1, .9, .9, .9))
+        assertEquals(.0028, before.currentMovement(Vec3.ZERO, Vec3.ZERO, { true }, { .014 }).x, 1e-12)
+        assertEquals(-.0028, after.currentMovement(Vec3.ZERO, Vec3.ZERO, { true }, { .014 }).x, 1e-12)
+    }
 
     @Test fun `entity straddling a dry domain keeps exterior world immersion`() {
         flooding = floodingSnapshot()
@@ -149,6 +220,48 @@ class ShipFluidVolumeTest {
             for (y in 64..65) {
                 assertTrue(q.worldHeight(BlockPos(100, y, -301), 1.0f).isNaN(),
                     "Dry room reported immersion at orientation $orientation, y=$y")
+            }
+        }
+    }
+
+    @Test fun `placing a torch preserves dry immersion throughout a tilted sealed room`() {
+        flooding = floodingSnapshot()
+        val localX = -28_661_760
+        val localY = 128
+        val localZ = 12_290_048
+        val torch = Blocks.TORCH.defaultBlockState()
+        assertTrue(torch.getCollisionShape(EmptyBlockGetter.INSTANCE, BlockPos.ZERO).isEmpty)
+        val voids = Shapes.join(Shapes.block(), torch.getShape(EmptyBlockGetter.INSTANCE, BlockPos.ZERO),
+            BooleanOp.ONLY_FIRST).toAabbs().map { box ->
+            ((box.minX * 16).toLong() or ((box.minY * 16).toLong() shl 5) or
+                ((box.minZ * 16).toLong() shl 10) or ((box.maxX * 16).toLong() shl 15) or
+                ((box.maxY * 16).toLong() shl 20) or ((box.maxZ * 16).toLong() shl 25) or (1L shl 30))
+        }
+        val cells = (-3..2).flatMap { x -> (-3..2).flatMap { y -> (-3..2).map { z ->
+            VsiFluidTopologyVoxel(localX + x, localY + y, localZ + z, 1,
+                if (x == -2 && y == -3 && z == -2) voids else emptyList())
+        } } }
+        for (placed in listOf(false, true, false)) {
+            topology = topology.copy(streamSequence = topology.streamSequence + 1,
+                voxels = if (placed) cells else cells.map { it.copy(regions = emptyList()) }, totalDomainVoxelCount = cells.size)
+            val random = Random(11032026)
+            repeat(120) { orientation ->
+                transform.identity().translation(100.5, 65.0, -300.5)
+                    .rotateXYZ(random.nextDouble(-0.3, 0.3), random.nextDouble(-Math.PI, Math.PI),
+                        random.nextDouble(-0.3, 0.3))
+                    .translate(-localX.toDouble(), -localY.toDouble(), -localZ.toDouble())
+                for (x in -1..1) for (z in -1..1) {
+                    val center = transform.transformPosition(Vector3d(localX + x.toDouble(), localY.toDouble(), localZ + z.toDouble()))
+                    val bounds = AABB(center.x - .3, center.y - .9, center.z - .3,
+                        center.x + .3, center.y + .9, center.z + .3)
+                    val q = query(bounds)
+                    assertEquals(0.0, q.retainedDepth(FluidTags.WATER))
+                    for (pos in BlockPos.betweenClosed(BlockPos.containing(bounds.minX, bounds.minY, bounds.minZ),
+                        BlockPos.containing(bounds.maxX, bounds.maxY, bounds.maxZ))) {
+                        assertTrue(q.worldHeight(pos, 1.0f).isNaN(),
+                            "Torch room leaked away from torch: placed=$placed orientation=$orientation x=$x z=$z block=$pos")
+                    }
+                }
             }
         }
     }

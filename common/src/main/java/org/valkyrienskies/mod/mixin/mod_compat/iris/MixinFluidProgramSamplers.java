@@ -15,10 +15,17 @@ public abstract class MixinFluidProgramSamplers {
     @ModifyVariable(method = "builder", at = @At("HEAD"), argsOnly = true)
     private static Set<Integer> vs$reserveFluidSamplers(final Set<Integer> reserved, final int program,
                                                        final Set<Integer> original) {
-        if (GL20.glGetUniformLocation(program, "VsFluidOverflowMasks") < 0) return reserved;
+        final boolean masks = GL20.glGetUniformLocation(program, "VsFluidOverflowMasks") >= 0;
+        final boolean fog = GL20.glGetUniformLocation(program, "vs_ExteriorWaterPath") >= 0;
+        if (!masks && !fog) return reserved;
         final Set<Integer> result = new HashSet<>(reserved);
-        result.add(FluidOcclusionTextureState.MASK_UNIT);
-        result.add(FluidOcclusionTextureState.DESCRIPTOR_UNIT);
+        if (masks) {
+            result.add(FluidOcclusionTextureState.MASK_UNIT);
+            result.add(FluidOcclusionTextureState.DESCRIPTOR_UNIT);
+        }
+        if (fog) result.add(org.valkyrienskies.mod.compat.flooding.shaders.complementary.ComplementaryFog.TEXTURE_UNIT);
+        if (GL20.glGetUniformLocation(program, "vs_ExteriorWorldWater") >= 0)
+            result.add(org.valkyrienskies.mod.compat.flooding.shaders.complementary.ComplementaryFog.WATER_FIELD_UNIT);
         return result;
     }
 }

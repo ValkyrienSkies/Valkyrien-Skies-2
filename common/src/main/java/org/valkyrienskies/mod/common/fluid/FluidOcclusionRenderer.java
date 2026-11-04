@@ -4,7 +4,6 @@ import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.platform.TextureUtil;
 import com.mojang.blaze3d.systems.RenderSystem;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
@@ -54,7 +53,6 @@ public final class FluidOcclusionRenderer {
 
     private static final Long2ObjectOpenHashMap<ShipMask> SHIP_MASKS =
         new Long2ObjectOpenHashMap<>();
-    private static final LongOpenHashSet LOADED_SHIP_IDS = new LongOpenHashSet();
     private static final it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<ProgramHandles> PROGRAMS =
         new it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<>();
     private static final FloatBuffer MATRIX_BUFFER = BufferUtils.createFloatBuffer(16);
@@ -98,15 +96,7 @@ public final class FluidOcclusionRenderer {
             ship -> distanceSquared(ship.getRenderAABB(), cameraX, cameraY, cameraZ)
         ));
 
-        LOADED_SHIP_IDS.clear();
-        for (final ClientShip ship : ships) {
-            LOADED_SHIP_IDS.add(ship.getId());
-        }
-        SHIP_MASKS.long2ObjectEntrySet().removeIf(entry -> {
-            if (LOADED_SHIP_IDS.contains(entry.getLongKey())) return false;
-            entry.getValue().close();
-            return true;
-        });
+        prune(shipWorld);
 
         final int directMasks = handles.maskLocation[0] >= 0 ? DIRECT_MASKS : 0;
         int slot = 0;
@@ -154,6 +144,15 @@ public final class FluidOcclusionRenderer {
         FluidOcclusionRenderContext.clear();
     }
 
+    public static void prune(final VsiClientShipWorld shipWorld) {
+        final boolean removed = SHIP_MASKS.long2ObjectEntrySet().removeIf(entry -> {
+            if (shipWorld.getLoadedShips().getById(entry.getLongKey()) != null) return false;
+            entry.getValue().close();
+            return true;
+        });
+        if (removed) OVERFLOW.close();
+    }
+
     /** Called before ShaderInstance deletes its GL program, whose integer ID may be reused. */
     public static void onProgramClosed(final int programId) {
         final ProgramHandles removed = PROGRAMS.remove(programId);
@@ -170,7 +169,6 @@ public final class FluidOcclusionRenderer {
             mask.close();
         }
         SHIP_MASKS.clear();
-        LOADED_SHIP_IDS.clear();
     }
 
     private static void uploadShipSlot(

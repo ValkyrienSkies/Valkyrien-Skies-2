@@ -43,6 +43,28 @@ import java.util.function.Function
 @EnabledIfSystemProperty(named = "vs.test.fluidGL", matches = "true")
 class FluidOcclusionShaderTest {
     @Test
+    fun `ship shadow resources and fluid samplers work on the Minecraft OpenGL 3_2 context`() {
+        assertTrue(glfwInit())
+        glfwDefaultWindowHints()
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE)
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3)
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2)
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE)
+        val window = glfwCreateWindow(16, 16, "Ship shading compatibility", 0, 0)
+        assertNotEquals(0L, window)
+        try {
+            glfwMakeContextCurrent(window)
+            GL.createCapabilities()
+            println("Shadow compatibility context: ${glGetString(GL_VERSION)}")
+            verifyShadingSamplerIsolation()
+        } finally {
+            GL.setCapabilities(null)
+            glfwDestroyWindow(window)
+            glfwTerminate()
+        }
+    }
+
+    @Test
     fun `production shader compiles and uploaded masks preserve dry air on the GPU`() {
         assertTrue(glfwInit(), "GLFW initialization failed")
         glfwDefaultWindowHints()
@@ -59,10 +81,11 @@ class FluidOcclusionShaderTest {
             val vertexSource = resource("core/rendertype_translucent.vsh")
             val fragmentSource = expandImports(resource("core/rendertype_translucent.fsh"))
             val production = program(expandImports(vertexSource), expandImports(fragmentSource))
-            // All nine slots must survive linking, including the new per-mask metadata.
+            // Terrain uses the same atlas allocation as Sodium and exterior fog.
             for (slot in 0..8) {
-                assertTrue(glGetUniformLocation(production, "VsFluidOcclusionPartialCount$slot") >= 0)
+                assertEquals(-1, glGetUniformLocation(production, "VsFluidOcclusionMask$slot"))
             }
+            verifyShadingSamplerIsolation()
             verifyRendererUploadAndCleanup(production)
             glDeleteProgram(production)
             verifyOverflowRendering(fragmentSource)
@@ -71,6 +94,11 @@ class FluidOcclusionShaderTest {
             verifyInstalledTerrainShaders()
             verifyTerrainTextureState()
             verifyIrisSamplerReservation()
+            val retained = program(expandImports(resource("core/vs_retained_fluid.vsh")), expandImports(resource("core/vs_retained_fluid.fsh")))
+            glDeleteProgram(retained)
+            verifyMaterialInterfaces()
+            verifyWaterFieldRecenter()
+            verifyExteriorFog()
 
             // Execute the exact production decoder functions with controlled fragment positions.
             val constants = fragmentSource.substring(
@@ -149,6 +177,34 @@ class FluidOcclusionShaderTest {
                 assertPixel(harness, 0.75f, -128.5f, 0.5f, true)
                 setMatrix(harness, Matrix4f())
 
+                val upperVoid = (8L shl 5) or (16L shl 15) or (16L shl 20) or (16L shl 25)
+                val fineTopology = FluidTopologyClientCache.CachedSnapshot(
+                    maskTopology(Triple(0, 0, 0)).snapshot.copy(voxels = listOf(
+                        VsiFluidTopologyVoxel(0, 0, 0, 1, listOf(upperVoid or (1L shl 30))))))
+                val fineWater = maskFlooding(VsiFluidFloodedVoxel(0, 0, 0, 17, 128, 0,
+                    listOf(org.valkyrienskies.core.internal.physics.VsiFluidFloodedRegion(upperVoid.toInt(), 17, 0.75))))
+                val fineMask = FluidOcclusionMaskData.build(fineTopology, fineWater)!!
+                assertTrue(fineMask.partialCount < 0)
+                upload(harness, fineMask)
+                assertPixel(harness, 0.5f, 0.25f, 0.5f, false)
+                assertPixel(harness, 0.5f, 0.65f, 0.5f, false)
+                assertPixel(harness, 0.5f, 0.9f, 0.5f, true)
+                setMatrix(harness, Matrix4f().rotationZ((Math.PI / 2).toFloat()))
+                assertPixel(harness, 0.9f, -0.5f, 0.5f, true)
+                assertPixel(harness, 0.65f, -0.5f, 0.5f, false)
+                setMatrix(harness, Matrix4f())
+
+                val n = 1.0 / kotlin.math.sqrt(2.0)
+                val bounds = (16 shl 15) or (16 shl 20) or (16 shl 25)
+                val tilted = VsiFluidFloodedVoxel(0, 0, 0, 17, 128, 0, emptyList(), listOf(
+                    org.valkyrienskies.core.internal.physics.VsiFluidSurfaceRegion(bounds, n, n, 0.0, 0.0, n,
+                        listOf(org.valkyrienskies.core.internal.physics.VsiFluidSurfaceConstituent(17, 127.5)))))
+                upload(harness, FluidOcclusionMaskData.build(maskTopology(Triple(0, 0, 0)), maskFlooding(tilted))!!)
+                assertPixel(harness, 0.1f, 0.75f, 0.5f, false)
+                assertPixel(harness, 0.9f, 0.25f, 0.5f, true)
+                assertPixel(harness, 0.25f, 0.25f, 0.5f, false)
+                assertPixel(harness, 0.75f, 0.75f, 0.5f, true)
+
                 upload(harness, FluidOcclusionMaskDataTest.largeSparseMask())
                 assertPixel(harness, 0.5f, 0.5f, 128.5f, true)
                 assertPixel(harness, 255.5f, 255.5f, 255.5f, false)
@@ -198,8 +254,6 @@ class FluidOcclusionShaderTest {
         try {
             assertEquals(true, update.invoke(mask, topology, partial))
             upload.invoke(null, handles, 3, ship, mask, 0.0, 0.0, 0.0)
-            assertEquals(1, glGetUniformi(program, glGetUniformLocation(program, "VsFluidOcclusionPartialCount3")))
-            assertEquals(5, glGetUniformi(program, glGetUniformLocation(program, "VsFluidOcclusionMask3")))
             assertEquals(textureField.getInt(mask), glGetInteger(GL_TEXTURE_BINDING_2D))
             val bytes = BufferUtils.createByteBuffer(FluidOcclusionMaskData.TEXTURE_WIDTH * 4)
             glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, bytes)
@@ -227,7 +281,6 @@ class FluidOcclusionShaderTest {
             val dry = FloodedFluidClientCache.CachedSnapshot(floodingSnapshot().copy(streamSequence = 6))
             assertEquals(true, update.invoke(mask, topology, dry))
             upload.invoke(null, handles, 3, ship, mask, 0.0, 0.0, 0.0)
-            assertEquals(0, glGetUniformi(program, glGetUniformLocation(program, "VsFluidOcclusionPartialCount3")))
             val texture = textureField.getInt(mask)
             assertTrue(glIsTexture(texture))
             FluidOcclusionRenderer.onProgramClosed(program)
@@ -237,6 +290,120 @@ class FluidOcclusionShaderTest {
             FluidOcclusionRenderer.clear()
             GlStateManager._activeTexture(GL_TEXTURE0)
             GlStateManager._bindTexture(0)
+        }
+    }
+
+    private fun verifyWaterFieldRecenter() {
+        val level = mockk<ClientLevel>(relaxed = true)
+        val unsafe = sun.misc.Unsafe::class.java.getDeclaredField("theUnsafe")
+            .apply { isAccessible = true }.get(null) as sun.misc.Unsafe
+        val cacheType = net.minecraft.client.multiplayer.ClientChunkCache::class.java
+        val chunks = unsafe.allocateInstance(cacheType) as net.minecraft.client.multiplayer.ClientChunkCache
+        val storage = cacheType.getDeclaredField("storage").apply { isAccessible = true }
+        val constructor = storage.type.getDeclaredConstructor(cacheType, Int::class.javaPrimitiveType)
+            .apply { isAccessible = true }
+        storage.set(chunks, constructor.newInstance(chunks, 0))
+        every { (level as net.minecraft.world.level.Level).chunkSource } returns chunks
+        val field = ExteriorFluidField()
+        try {
+            repeat(15) { assertFalse(field.update(level, net.minecraft.core.BlockPos.ZERO)) }
+            assertTrue(field.update(level, net.minecraft.core.BlockPos.ZERO))
+            val texture = field.texture()
+            assertTrue(glIsTexture(texture))
+            for (x in listOf(16, 0, -16)) {
+                val camera = net.minecraft.core.BlockPos(x, 0, 0)
+                assertFalse(field.update(level, camera))
+                assertTrue(field.update(level, camera), "only the 64 newly exposed sections need sampling")
+                assertEquals(texture, field.texture())
+            }
+            field.close()
+            assertFalse(glIsTexture(texture))
+        } finally { field.close() }
+    }
+
+    private fun verifyExteriorFog() {
+        val shader = program(resource("core/vs_exterior_fluid_fog.vsh"),
+            expandImports(resource("core/vs_exterior_fluid_fog.fsh")))
+        val water = glGenTextures()
+        val depth = glGenTextures()
+        val vao = glGenVertexArrays()
+        val overflow = FluidOcclusionOverflow()
+        try {
+            glUseProgram(shader)
+            glBindVertexArray(vao)
+            glDisable(GL_BLEND); glDisable(GL_DEPTH_TEST); glDisable(GL_CULL_FACE)
+            glColorMask(true, true, true, true)
+            glViewport(0, 0, 1, 1)
+            glActiveTexture(GL_TEXTURE0)
+            glBindTexture(GL_TEXTURE_2D, depth)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, 1, 1, 0, GL_RED, GL_FLOAT,
+                BufferUtils.createFloatBuffer(1).put(0, 0.5f))
+            glActiveTexture(GL_TEXTURE1)
+            glBindTexture(GL_TEXTURE_3D, water)
+            glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
+            glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
+            glUniform1i(glGetUniformLocation(shader, "SceneDepth"), 0)
+            glUniform1i(glGetUniformLocation(shader, "WorldWater"), 1)
+            glUniform1i(glGetUniformLocation(shader, "VsFluidOverflowMasks"), 3)
+            glUniform1i(glGetUniformLocation(shader, "VsFluidOverflowDescriptors"), FluidOcclusionTextureState.DESCRIPTOR_UNIT)
+            glUniform1i(glGetUniformLocation(shader, "VsFluidOverflowCount"), 0)
+            glUniform1f(glGetUniformLocation(shader, "VsFluidOcclusionEnabled"), 0f)
+            glUniform3f(glGetUniformLocation(shader, "CameraInWaterGrid"), 2.5f, 2.5f, 2.5f)
+            glUniform3f(glGetUniformLocation(shader, "WaterFogColor"), 0.1f, 0.2f, 0.3f)
+            val matrix = BufferUtils.createFloatBuffer(16)
+            Matrix4f().translation(0f, 0f, 10f).get(matrix)
+            glUniformMatrix4fv(glGetUniformLocation(shader, "InverseViewProjection"), false, matrix)
+            fun uploadWater(height: Int, offset: Int = 0) {
+                val data = BufferUtils.createByteBuffer(16 * 16 * 16)
+                for (z in 6..8) for (y in 0..15) for (x in 0..15) {
+                    data.put(x + 16 * (y + 16 * ((z + offset) % 16)), height.toByte())
+                }
+                glUniform3f(glGetUniformLocation(shader, "WaterGridOffset"), 0f, 0f, offset.toFloat())
+                glActiveTexture(GL_TEXTURE1)
+                glBindTexture(GL_TEXTURE_3D, water)
+                glTexImage3D(GL_TEXTURE_3D, 0, GL_R8, 16, 16, 16, 0, GL_RED, GL_UNSIGNED_BYTE, data)
+            }
+            fun opacity(): Double {
+                glDrawArrays(GL_TRIANGLES, 0, 3)
+                val pixel = BufferUtils.createByteBuffer(4)
+                glReadPixels(0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixel)
+                assertEquals(GL_NO_ERROR, glGetError())
+                return (pixel.get(3).toInt() and 255) / 255.0
+            }
+            uploadWater(255)
+            assertEquals(1.0 - kotlin.math.exp(-3.0 * 0.075), opacity(), 0.008)
+            uploadWater(255, 10)
+            assertEquals(1.0 - kotlin.math.exp(-3.0 * 0.075), opacity(), 0.008,
+                "water samples must remain correct across the circular texture boundary")
+            uploadWater(0)
+            assertEquals(0.0, opacity(), 0.004, "an air cave below ocean level must remain clear")
+            uploadWater(128)
+            glUniform3f(glGetUniformLocation(shader, "CameraInWaterGrid"), 2.5f, 2.75f, 2.5f)
+            assertEquals(0.0, opacity(), 0.004, "ray is above the partial water surface")
+            glUniform3f(glGetUniformLocation(shader, "CameraInWaterGrid"), 2.5f, 2.25f, 2.5f)
+            assertEquals(1.0 - kotlin.math.exp(-3.0 * 0.075), opacity(), 0.008)
+            uploadWater(255)
+            glUniform3f(glGetUniformLocation(shader, "CameraInWaterGrid"), 2.5f, 2.5f, 2.5f)
+            val mask = FluidOcclusionMaskData.build(maskTopology(Triple(2, 2, 7)), null)!!
+            val ship = mockk<ClientShip>(relaxed = true)
+            every { ship.id } returns 7L
+            every { ship.renderTransform.shipToWorld } returns Matrix4d()
+            every { ship.renderTransform.worldToShip } returns Matrix4d()
+            val entries = listOf(FluidOcclusionOverflow.Entry(ship, mask))
+            overflow.update(entries, 2.5, 2.5, 2.5)
+            overflow.bind(glGetUniformLocation(shader, "VsFluidOverflowMasks"),
+                glGetUniformLocation(shader, "VsFluidOverflowDescriptors"),
+                glGetUniformLocation(shader, "VsFluidOverflowCount"), 1)
+            glUniform1f(glGetUniformLocation(shader, "VsFluidOcclusionEnabled"), 1f)
+            assertEquals(1.0 - kotlin.math.exp(-2.0 * 0.075), opacity(), 0.008,
+                "a protected dry cell must not contribute underwater fog")
+        } finally {
+            overflow.close()
+            glDeleteTextures(water); glDeleteTextures(depth)
+            glDeleteVertexArrays(vao); glDeleteProgram(shader)
+            glActiveTexture(GL_TEXTURE0)
         }
     }
 
@@ -269,7 +436,7 @@ class FluidOcclusionShaderTest {
             }
         """.trimIndent()
         val compact = renderer != "vanilla"
-        val directSlots = if (compact) 0 else 9
+        val directSlots = 0
         val compactVertex = vertex.replace("uniform vec3 TestPoint;", """
             uniform vec3 TestPoint;
             uniform vec2 TestUv;
@@ -332,6 +499,8 @@ class FluidOcclusionShaderTest {
             glUniform1i(glGetUniformLocation(p, "Sampler0"), 0)
             glUniform1i(glGetUniformLocation(p, "Sampler2"), 1)
             glUniform1i(glGetUniformLocation(p, "u_VsShipEmitters"), 12)
+            glUniform1i(glGetUniformLocation(p, "u_VsShipShadowMap"), 14)
+            glUniform1i(glGetUniformLocation(p, "u_VsShipShadowCompare"), 15)
             glUniform1i(glGetUniformLocation(p, "u_VsShipGlowEnabled"), 0)
             glUniform4f(glGetUniformLocation(p, "ColorModulator"), 1f, 1f, 1f, 1f)
             glUniform1f(glGetUniformLocation(p, "FogStart"), 1f)
@@ -502,13 +671,15 @@ class FluidOcclusionShaderTest {
         val initial = keys.map { glGetInteger(it) }
         val values = intArrayOf(8, 17, 3, 5, 19, 2)
         val unpack = glGenBuffers()
-        val sentinels = IntArray(6) { glGenTextures() }
-        val units = intArrayOf(6, 7, 10, 11, 12, 13)
+        val units = intArrayOf(4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)
+        val sentinels = IntArray(units.size) { glGenTextures() }
+        val samplers = IntArray(units.size) { glGenSamplers() }
         val active = glGetInteger(GL_ACTIVE_TEXTURE)
         try {
             for (index in units.indices) {
                 glActiveTexture(GL_TEXTURE0 + units[index])
-                glBindTexture(GL_TEXTURE_BUFFER, sentinels[index])
+                glBindTexture(if (units[index] >= 14) GL_TEXTURE_2D_ARRAY else GL_TEXTURE_BUFFER, sentinels[index])
+                glBindSampler(units[index], samplers[index])
             }
             glActiveTexture(GL_TEXTURE0 + 11)
             for (index in keys.indices) glPixelStorei(keys[index], values[index])
@@ -524,7 +695,9 @@ class FluidOcclusionShaderTest {
             for (index in keys.indices) assertEquals(values[index], glGetInteger(keys[index]))
             for (index in units.indices) {
                 glActiveTexture(GL_TEXTURE0 + units[index])
-                assertEquals(sentinels[index], glGetInteger(GL_TEXTURE_BINDING_BUFFER))
+                assertEquals(sentinels[index], glGetInteger(if (units[index] >= 14)
+                    GL_TEXTURE_BINDING_2D_ARRAY else GL_TEXTURE_BINDING_BUFFER), "texture unit ${units[index]}")
+                assertEquals(samplers[index], glGetInteger(GL_SAMPLER_BINDING), "sampler unit ${units[index]}")
             }
             val textureField = FluidOcclusionOverflow::class.java.getDeclaredField("maskTexture").apply { isAccessible = true }
             val layoutField = FluidOcclusionOverflow::class.java.getDeclaredField("layout").apply { isAccessible = true }
@@ -548,6 +721,7 @@ class FluidOcclusionShaderTest {
             glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0); glDeleteBuffers(unpack)
             for (index in keys.indices) glPixelStorei(keys[index], initial[index])
             overflow.close()
+            for (index in units.indices) { glBindSampler(units[index], 0); glDeleteSamplers(samplers[index]) }
             for (texture in sentinels) glDeleteTextures(texture)
             glActiveTexture(active)
         }
@@ -599,6 +773,139 @@ class FluidOcclusionShaderTest {
         assertEquals(if (dry) 255 else 0, pixel.get(0).toInt() and 255, "pixel at $x, $y, $z")
     }
 
+    private fun verifyMaterialInterfaces() {
+        val shader = program("""
+            #version 150
+            uniform int Reverse;
+            uniform int Interface;
+            uniform vec4 TestColor;
+            flat out int vs_FluidInterface;
+            out float vertexDistance;
+            out vec4 vertexColor;
+            out vec2 texCoord0;
+            out vec4 normal;
+            out vec3 valkyrienair_CamRelPos;
+            out vec2 v_VsLightCoordRaw;
+            out vec3 v_VsWorldNormal;
+            void main() {
+                int i = Reverse != 0 ? 2 - gl_VertexID : gl_VertexID;
+                vec2 p = i == 0 ? vec2(-1.0, -1.0) : (i == 1 ? vec2(3.0, -1.0) : vec2(-1.0, 3.0));
+                gl_Position = vec4(p, 0.0, 1.0);
+                vs_FluidInterface = Interface;
+                vertexDistance = 0.0;
+                vertexColor = TestColor;
+                texCoord0 = vec2(0.5);
+                normal = vec4(0.0, 0.0, 1.0, 0.0);
+                valkyrienair_CamRelPos = vec3(0.0);
+                v_VsLightCoordRaw = vec2(0.5);
+                v_VsWorldNormal = vec3(0.0, 0.0, 1.0);
+            }
+        """.trimIndent(), expandImports(resource("core/vs_retained_fluid.fsh")))
+        val vao = glGenVertexArrays()
+        val texture = glGenTextures()
+        try {
+            glBindVertexArray(vao)
+            glUseProgram(shader)
+            glActiveTexture(GL_TEXTURE0)
+            glBindTexture(GL_TEXTURE_2D, texture)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                BufferUtils.createByteBuffer(4).putInt(-1).flip())
+            glUniform1i(glGetUniformLocation(shader, "Sampler2"), 2)
+            FluidOcclusionRenderer.disableForProgram(shader)
+            org.valkyrienskies.mod.common.render.light.VsShipWorldLightTerrainUniforms.disableForProgram(shader)
+            glUniform4f(glGetUniformLocation(shader, "ColorModulator"), 1f, 1f, 1f, 1f)
+            glUniform1f(glGetUniformLocation(shader, "FogStart"), 10f)
+            glUniform1f(glGetUniformLocation(shader, "FogEnd"), 20f)
+            glViewport(0, 0, 1, 1)
+            glDisable(GL_CULL_FACE)
+            glDisable(GL_BLEND)
+            glDisable(GL_DEPTH_TEST)
+            fun draw(reverse: Int) {
+                glUniform1i(glGetUniformLocation(shader, "Reverse"), reverse)
+                glUniform4f(glGetUniformLocation(shader, "TestColor"), 1f - reverse, 1f - reverse, reverse.toFloat(), 1f)
+                glDrawArrays(GL_TRIANGLES, 0, 3)
+            }
+            for (view in 0..1) {
+                glFrontFace(if (view == 0) GL_CCW else GL_CW)
+                for (order in listOf(listOf(0, 1), listOf(1, 0))) {
+                    glClearColor(0f, 0f, 0f, 1f)
+                    glClear(GL_COLOR_BUFFER_BIT)
+                    glUniform1i(glGetUniformLocation(shader, "Interface"), 1)
+                    order.forEach(::draw)
+                    val pixel = BufferUtils.createByteBuffer(4)
+                    glReadPixels(0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixel)
+                    assertEquals(if (view == 0) 255 else 0, pixel[0].toInt() and 255, "view=$view order=$order")
+                    assertEquals(if (view == 1) 255 else 0, pixel[2].toInt() and 255, "view=$view order=$order")
+                }
+                glUniform1i(glGetUniformLocation(shader, "Interface"), 0)
+                draw(1 - view)
+                val pixel = BufferUtils.createByteBuffer(4)
+                glReadPixels(0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixel)
+                assertEquals(255, pixel[if (view == 0) 2 else 0].toInt() and 255, "Exterior back face must remain visible")
+            }
+            assertEquals(GL_NO_ERROR, glGetError())
+        } finally {
+            glFrontFace(GL_CCW)
+            glUseProgram(0)
+            glDeleteProgram(shader)
+            glDeleteTextures(texture)
+            glBindVertexArray(0)
+            glDeleteVertexArrays(vao)
+        }
+    }
+
+    private fun verifyShadingSamplerIsolation() {
+        val sources = listOf(
+            "rendertype_translucent" to "rendertype_translucent",
+            "rendertype_ship_translucent" to "rendertype_translucent",
+            "vs_retained_fluid" to "vs_retained_fluid",
+            "rendertype_ship_batched_translucent" to "rendertype_ship_batched_solid",
+        )
+        val shadow = org.valkyrienskies.mod.common.render.light.ShipShadowMap()
+        val layout = org.valkyrienskies.mod.common.render.light.ShipShadowMapLayout()
+        layout.update(0.0, 0.0, 0.0, -1.0, 1.0, 2)
+        try {
+            shadow.render(BufferUtils.createByteBuffer(0), 0, layout)
+            for ((vertex, fragment) in sources) {
+                val shader = program(expandImports(resource("core/$vertex.vsh")),
+                    expandImports(resource("core/$fragment.fsh")))
+                try {
+                    glUseProgram(shader)
+                    for ((name, unit) in mapOf("Sampler0" to 0, "Sampler2" to 2, "ShipTransforms" to 4,
+                        "u_VsLightSections" to 6, "u_VsLightLut" to 7, "u_VsShipEmitters" to 12)) {
+                        glUniform1i(glGetUniformLocation(shader, name), unit)
+                    }
+                    shadow.bind(shader, layout, true)
+                    FluidOcclusionRenderer.disableForProgram(shader)
+                    assertTrue(glGetUniformLocation(shader, "u_VsShipShadowMap") >= 0, vertex)
+                    val maskLocation = glGetUniformLocation(shader, "VsFluidOverflowMasks")
+                    if (maskLocation >= 0) {
+                        val maskUnit = glGetUniformi(shader, maskLocation)
+                        assertNotEquals(glGetUniformi(shader, glGetUniformLocation(shader, "u_VsShipShadowMap")),
+                            maskUnit, "$vertex fluid atlas must not overwrite shadow depth")
+                    }
+                    val descriptorLocation = glGetUniformLocation(shader, "VsFluidOverflowDescriptors")
+                    if (descriptorLocation >= 0) {
+                        assertEquals(FluidOcclusionTextureState.DESCRIPTOR_UNIT, glGetUniformi(shader, descriptorLocation))
+                        assertNotEquals(4, glGetUniformi(shader, descriptorLocation), "batched transforms own unit 4")
+                    }
+                    org.valkyrienskies.mod.common.render.light.VsShipWorldLightTerrainUniforms.disableForProgram(shader)
+                    assertEquals(14, glGetUniformi(shader, glGetUniformLocation(shader, "u_VsShipShadowMap")))
+                    assertEquals(15, glGetUniformi(shader, glGetUniformLocation(shader, "u_VsShipShadowCompare")))
+                    glValidateProgram(shader)
+                    assertEquals(GL_TRUE, glGetProgrami(shader, GL_VALIDATE_STATUS),
+                        "$vertex: ${glGetProgramInfoLog(shader)}")
+                    assertEquals(GL_NO_ERROR, glGetError())
+                } finally { FluidOcclusionRenderer.onProgramClosed(shader); glDeleteProgram(shader) }
+            }
+        } finally {
+            shadow.close()
+            glBindSampler(15, 0)
+            glActiveTexture(GL_TEXTURE0)
+        }
+    }
     private fun verifyIrisSamplerReservation() {
         val vertex = """
             #version 150
@@ -620,7 +927,7 @@ class FluidOcclusionShaderTest {
             val reserved = setOf(0, 1, 2, 7)
             @Suppress("UNCHECKED_CAST")
             val result = method.invoke(null, reserved, masked, reserved) as Set<Int>
-            assertEquals(setOf(0, 1, 2, 3, 4, 7), result)
+            assertEquals(setOf(0, 1, 2, 3, 5, 7), result)
             assertEquals(setOf(0, 1, 2, 7), reserved)
             assertSame(reserved, method.invoke(null, reserved, plain, reserved))
         } finally { glDeleteProgram(masked); glDeleteProgram(plain) }

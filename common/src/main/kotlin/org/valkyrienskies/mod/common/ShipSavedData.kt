@@ -20,6 +20,7 @@ class ShipSavedData : SavedData() {
         private const val PIPELINE_NBT_KEY = "vs_pipeline"
         private const val FLUID_PARCELS_NBT_KEY = "vs_fluid_parcels"
         private const val FRACTIONAL_SOURCES_NBT_KEY = "vs_fractional_sources"
+        private const val FLUID_BLOCK_INTERACTIONS_NBT_KEY = "vs_fluid_block_interactions"
 
         fun createEmpty(): ShipSavedData {
             return ShipSavedData().apply { pipeline = vsCore.newPipeline() }
@@ -39,6 +40,8 @@ class ShipSavedData : SavedData() {
                 pipelineAsBytes.size / 1024, queryableShipDataAsBytes.size / 1024, chunkAllocatorAsBytes.size / 1024)
 
             try {
+                if (compoundTag.contains(FLUID_BLOCK_INTERACTIONS_NBT_KEY))
+                    data.fluidBlockInteractions.load(compoundTag.getCompound(FLUID_BLOCK_INTERACTIONS_NBT_KEY))
                 if (compoundTag.contains(FRACTIONAL_SOURCES_NBT_KEY)) {
                     data.fractionalFluidSources.load(compoundTag.getCompound(FRACTIONAL_SOURCES_NBT_KEY))
                 }
@@ -65,6 +68,7 @@ class ShipSavedData : SavedData() {
     lateinit var pipeline: VsiPipeline
     val fluidOutflowManager = WorldFluidOutflowManager()
     val fractionalFluidSources = FractionalFluidSources()
+    val fluidBlockInteractions = org.valkyrienskies.mod.common.fluid.RetainedFluidBlockInteractions()
 
     var loadingException: Throwable? = null
         private set
@@ -76,6 +80,7 @@ class ShipSavedData : SavedData() {
         compoundTag.putByteArray(PIPELINE_NBT_KEY, bytes)
         compoundTag.put(FLUID_PARCELS_NBT_KEY, fluidOutflowManager.save())
         compoundTag.put(FRACTIONAL_SOURCES_NBT_KEY, fractionalFluidSources.save())
+        compoundTag.put(FLUID_BLOCK_INTERACTIONS_NBT_KEY, fluidBlockInteractions.save())
 
         return compoundTag
     }

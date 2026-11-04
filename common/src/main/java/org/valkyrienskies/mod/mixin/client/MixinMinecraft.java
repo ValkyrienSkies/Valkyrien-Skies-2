@@ -146,6 +146,7 @@ public abstract class MixinMinecraft
             ShipFluidInteraction.prune(shipObjectWorld);
             FloodedFluidClientCache.prune(shipObjectWorld);
             FluidTopologyClientCache.prune(shipObjectWorld);
+            FluidOcclusionRenderer.prune(shipObjectWorld);
             ClientShipMovement.INSTANCE.tick();
             EntityDragger.INSTANCE.dragEntitiesWithShips(level.entitiesForRendering(), false);
             if(player != null && level.isClientSide) ((PlayerKnownShipsDuck)player).vs_flushKnownShips();
@@ -197,6 +198,8 @@ public abstract class MixinMinecraft
         FloodedFluidClientCache.clear();
         FluidTopologyClientCache.clear();
         FluidOcclusionRenderer.clear();
+        org.valkyrienskies.mod.common.fluid.RetainedFluidRenderer.clear();
+        org.valkyrienskies.mod.common.fluid.ExteriorFluidFog.clear();
         shipObjectWorldCopy.destroyWorld();
         shipObjectWorld = null;
     }
@@ -206,6 +209,7 @@ public abstract class MixinMinecraft
         at = @At("TAIL")
     )
     private void postClearLevel(final CallbackInfo ci) {
+        org.valkyrienskies.mod.common.fluid.FluidParcelRenderer.clear();
         org.valkyrienskies.mod.common.fluid.ClientFluidTypes.clear();
         org.valkyrienskies.mod.client.debug.ShipDebugRenderer.clear();
         if (shipObjectWorld != null) {
@@ -214,6 +218,8 @@ public abstract class MixinMinecraft
             FloodedFluidClientCache.clear();
             FluidTopologyClientCache.clear();
             FluidOcclusionRenderer.clear();
+            org.valkyrienskies.mod.common.fluid.RetainedFluidRenderer.clear();
+            org.valkyrienskies.mod.common.fluid.ExteriorFluidFog.clear();
         }
     }
 }

@@ -18,6 +18,25 @@ public abstract class MixinLevelRenderer {
     @Shadow
     private @Nullable ClientLevel level;
 
+    @Inject(method = "renderLevel", at = @At("HEAD"))
+    private void vs$beginExteriorFog(final PoseStack poseStack, final float partialTick, final long finishTime,
+        final boolean blockOutline, final net.minecraft.client.Camera camera,
+        final net.minecraft.client.renderer.GameRenderer renderer,
+        final net.minecraft.client.renderer.LightTexture lightTexture, final Matrix4f projection, final CallbackInfo ci) {
+        org.valkyrienskies.mod.common.fluid.ExteriorFluidFog.beginFrame(projection, poseStack.last().pose());
+    }
+
+    @Inject(method = "setSectionDirty(IIIZ)V", at = @At("HEAD"))
+    private void vs$dirtyExteriorFluid(final int x, final int y, final int z, final boolean immediate, final CallbackInfo ci) {
+        org.valkyrienskies.mod.common.fluid.ExteriorFluidFog.dirtySection(x, y, z);
+    }
+
+    @Inject(method = "renderLevel", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/client/renderer/RenderType;translucent()Lnet/minecraft/client/renderer/RenderType;"))
+    private void vs$exteriorFogBeforeTranslucency(final CallbackInfo ci) {
+        org.valkyrienskies.mod.common.fluid.ExteriorFluidFog.beforeTranslucency();
+    }
+
     @Inject(
         method = "renderChunkLayer(Lnet/minecraft/client/renderer/RenderType;Lcom/mojang/blaze3d/vertex/PoseStack;DDDLorg/joml/Matrix4f;)V",
         at = @At("HEAD"),

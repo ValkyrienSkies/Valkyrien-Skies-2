@@ -5,6 +5,7 @@ import it.unimi.dsi.fastutil.longs.LongArrays
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
+import net.minecraft.tags.FluidTags
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.nbt.ByteArrayTag
 import net.minecraft.nbt.IntArrayTag
@@ -14,28 +15,42 @@ import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.NbtUtils
 import net.minecraft.nbt.ListTag
 import net.minecraft.nbt.Tag
-import net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.ConcretePowderBlock
+import net.minecraft.world.level.block.FarmBlock
 import net.minecraft.world.level.block.LiquidBlock
 import net.minecraft.world.level.block.state.properties.Property
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.material.FlowingFluid
+import net.minecraft.world.level.material.Fluids
 import org.joml.Vector3d
 import org.valkyrienskies.core.internal.physics.VsiFluidOutflow
 import org.valkyrienskies.core.internal.physics.VsiFluidOutflowResult
 import org.valkyrienskies.core.internal.physics.VsiFluidParcelInterception
+import org.valkyrienskies.core.internal.physics.VsiFluidParcelMomentum
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
+import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.BlockStateInfo
 import org.valkyrienskies.mod.common.fluid.FractionalFluidSources.Companion.FULL_SOURCE
+import org.valkyrienskies.mod.common.networking.FluidParcelState
+import org.valkyrienskies.mod.common.networking.FluidParcelUpdate
+import org.valkyrienskies.mod.common.networking.PacketFluidParcel
+import org.valkyrienskies.mod.common.networking.PacketFluidParcelBatch
+import org.valkyrienskies.mod.common.playerWrapper
+import org.valkyrienskies.mod.common.vsCore
 import java.math.BigDecimal
+import java.math.MathContext
+import java.math.RoundingMode
 import java.util.UUID
 import kotlin.math.abs
 import kotlin.math.ceil
+import kotlin.math.floor
 import kotlin.math.max
 
 internal enum class FluidParcelAction {
@@ -62,6 +77,10 @@ internal fun worldVolumeToVisualLevel(worldVolume: Double): Int =
     ceil(worldVolume.coerceIn(0.0, 1.0) * 8).toInt().coerceIn(1, 8)
 
 private val MIN_SETTLED_UNITS = BigDecimal("31.875")
+private val SPLASH_SPLIT_DIVISOR = BigDecimal.valueOf(2L)
+private val MIN_SPLIT_SPLASH_UNITS = MIN_SETTLED_UNITS * SPLASH_SPLIT_DIVISOR
+private val MAX_MERGED_PARCEL_UNITS = BigDecimal("63.75")
+private val SPONGE_CAPACITY = BigDecimal.valueOf(64L * 255)
 
 internal fun settledFluidLevel(units: BigDecimal): Int =
     units.divideToIntegralValue(MIN_SETTLED_UNITS).toInt().coerceIn(0, 8)
@@ -210,13 +229,26 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
         var lastUpdatedTick: Long,
         var settledSources: SourceHistory? = null,
         var settlementAnchor: BlockPos? = null,
-        var visualPos: BlockPos? = null,
+        val visualId: UUID = UUID.randomUUID(),
+        var visualRevision: Long = 0,
         var visualRecipients: Set<UUID> = emptySet(),
         val metadataBytes: Long,
+        val momentum: VsiFluidParcelMomentum? = null,
     ) : PlacementState() {
         var queueNext: Parcel? = null
         var interception: ParcelInterception? = null
         var visualStorageBytes = 0L
+        var consumed = false
+        var collectionAgeTicks = -1L
+        var surfaceMotion = SurfaceMotion.NONE
+        val mergeFluid = fluid?.source
+        val mergeFluidHash = mergeFluid?.let { BuiltInRegistries.FLUID.getKey(it).hashCode() } ?: 0
+        var mergeNext: Parcel? = null
+        var mergePrevious: Parcel? = null
+        var mergeBucket = -1
+        var mergeX = 0
+        var mergeY = 0
+        var mergeZ = 0
         fun blockPosition(): BlockPos =
             BlockPos.containing(worldPosition.x, worldPosition.y, worldPosition.z)
     }
@@ -294,17 +326,31 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
         val worldPosition = Vector3d()
         val velocity = Vector3d()
         var settlementAnchor: BlockPos? = null
+        var collectionAgeTicks = -1L
+        var surfaceMotion = SurfaceMotion.NONE
         fun blockPosition(): BlockPos = BlockPos.containing(worldPosition.x, worldPosition.y, worldPosition.z)
     }
 
     private val motion = MotionState()
     private var servicing = false
     private var clearVisualsRequested = false
+    private var visualChanges = ArrayList<VisualChange>()
+    private var visualBatchBytes = 0L
+
+    private class VisualChange(
+        val parcel: Parcel,
+        val packet: PacketFluidParcel,
+        val viewers: List<ServerPlayer>,
+        val leaving: List<ServerPlayer>,
+        val recipients: Set<UUID>,
+    )
+
+    private data class VisualRecipient(val player: ServerPlayer, val dimension: String)
 
     private enum class ParcelMotionResult {
         MOVED,
         BLOCKED,
-        MERGED,
+        CONSUMED,
         RETRY_LATER,
     }
 
@@ -341,6 +387,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
     }
 
     private var parcels = ParcelQueue()
+    private val mergeBuckets = arrayOfNulls<Parcel>(1024)
     private var currentTick = 0L
     private var pressureClockNanos: Long? = null
     private var pressureAdvancedTime = false
@@ -348,6 +395,109 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
     private var parcelsWithDueMotion = 0
 
     private enum class ParcelUpdateResult { MOVED, PAUSED, CONSUMED }
+    private enum class SurfaceMotion { NONE, RUNOFF, SPLASH }
+
+    private fun canMerge(parcel: Parcel): Boolean = !parcel.consumed && !parcel.hasPlacement &&
+        parcel.interception == null && parcel.momentum == null && parcel.settlementAnchor == null &&
+        parcel.settledSources == null && parcel.surfaceMotion == SurfaceMotion.NONE &&
+        parcel.mergeFluid != null && parcel.sourceUnits.signum() > 0 &&
+        parcel.sourceUnits < MAX_MERGED_PARCEL_UNITS
+
+    private fun mergeBucket(parcel: Parcel, x: Int, y: Int, z: Int): Int =
+        HashCommon.mix(BlockPos.asLong(x, y, z) xor parcel.dimensionId.hashCode().toLong() xor
+            parcel.mergeFluidHash.toLong()).toInt() and (mergeBuckets.size - 1)
+
+    private fun indexParcel(parcel: Parcel) {
+        if (parcel.mergeBucket >= 0 || !canMerge(parcel)) return
+        parcel.mergeX = floor(parcel.worldPosition.x).toInt()
+        parcel.mergeY = floor(parcel.worldPosition.y).toInt()
+        parcel.mergeZ = floor(parcel.worldPosition.z).toInt()
+        val bucket = mergeBucket(parcel, parcel.mergeX, parcel.mergeY, parcel.mergeZ)
+        parcel.mergeBucket = bucket
+        parcel.mergeNext = mergeBuckets[bucket]
+        parcel.mergeNext?.mergePrevious = parcel
+        mergeBuckets[bucket] = parcel
+    }
+
+    private fun unindexParcel(parcel: Parcel) {
+        if (parcel.mergeBucket < 0) return
+        val previous = parcel.mergePrevious
+        if (previous == null) mergeBuckets[parcel.mergeBucket] = parcel.mergeNext
+        else previous.mergeNext = parcel.mergeNext
+        parcel.mergeNext?.mergePrevious = previous
+        parcel.mergePrevious = null
+        parcel.mergeNext = null
+        parcel.mergeBucket = -1
+    }
+
+    private fun mergeParcel(level: ServerLevel, donor: Parcel, fluid: FlowingFluid): Boolean {
+        if (!canMerge(donor)) return false
+        val x = floor(donor.worldPosition.x).toInt()
+        val y = floor(donor.worldPosition.y).toInt()
+        val z = floor(donor.worldPosition.z).toInt()
+        val collecting = donor.collectionAgeTicks >= 0
+        val collectionLifetime = VSGameConfig.SERVER.SpilledWater.parcelCollectionSeconds.coerceIn(0, 60) * 20L
+        var visited = 0
+        var closest: Parcel? = null
+        var distance = if (collecting) 3.0 else 0.25
+        search@ for (dx in MERGE_CELL_OFFSETS) for (dy in MERGE_CELL_OFFSETS) for (dz in MERGE_CELL_OFFSETS) {
+            var candidate = mergeBuckets[mergeBucket(donor, x + dx, y + dy, z + dz)]
+            while (candidate != null) {
+                if (++visited > 64) break@search
+                val target = candidate
+                candidate = target.mergeNext
+                if (target.mergeX != x + dx || target.mergeY != y + dy || target.mergeZ != z + dz ||
+                    target.dimensionId != donor.dimensionId || target.mergeFluid !== donor.mergeFluid ||
+                    !collecting && target.lastUpdatedTick != donor.lastUpdatedTick ||
+                    (target.collectionAgeTicks >= 0) != collecting ||
+                    collecting && (dx != 0 || dy != 0 || dz != 0 ||
+                        target.collectionAgeTicks + (currentTick - target.lastUpdatedTick) >= collectionLifetime ||
+                        donor.collectionAgeTicks + (currentTick - donor.lastUpdatedTick) >= collectionLifetime) ||
+                    target.velocity.distanceSquared(donor.velocity) > 4.0 ||
+                    target.sourceUnits + donor.sourceUnits > MAX_MERGED_PARCEL_UNITS) continue
+                val separation = target.worldPosition.distanceSquared(donor.worldPosition)
+                if (separation <= distance) {
+                    closest = target
+                    distance = separation
+                }
+            }
+        }
+        val target = closest ?: return false
+        val displacement = Vector3d(target.worldPosition).sub(donor.worldPosition)
+        if (parcelTerrainLimit(level, donor, donor.worldPosition, displacement, fluid) < 1.0 ||
+            !mergePathClearOfShips(level, donor, target)) return false
+        val total = target.sourceUnits + donor.sourceUnits
+        val weight = donor.sourceUnits.divide(total, MathContext.DECIMAL128).toDouble()
+        val position = Vector3d(target.worldPosition).lerp(donor.worldPosition, weight)
+        val velocity = Vector3d(target.velocity).lerp(donor.velocity, weight)
+        unindexParcel(target)
+        target.sourceUnits = total
+        target.worldPosition.set(position)
+        target.velocity.set(velocity)
+        if (collecting) target.collectionAgeTicks = maxOf(target.collectionAgeTicks,
+            donor.collectionAgeTicks + (target.lastUpdatedTick - donor.lastUpdatedTick))
+        donor.sourceUnits = BigDecimal.ZERO
+        donor.consumed = true
+        indexParcel(target)
+        showVisual(level, target, requireNotNull(target.fluid))
+        return true
+    }
+
+    private fun mergePathClearOfShips(level: ServerLevel, donor: Parcel, target: Parcel): Boolean {
+        val world = (level.server as? IShipObjectWorldServerProvider)?.shipObjectWorld ?: return true
+        var reserved = 0L
+        return try {
+            WorldFluidParcelReceivers.collect(world, donor.dimensionId, donor.worldPosition,
+                target.worldPosition, sweepReceiverMotion) { bytes ->
+                parcelStorage.reserve(bytes)
+                reserved += bytes
+            }?.isEmpty() == true
+        } catch (_: StorageCapacityException) {
+            false
+        } finally {
+            parcelStorage.release(reserved)
+        }
+    }
 
     fun enqueue(
         level: ServerLevel?,
@@ -363,7 +513,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
         return enqueueParcel(outflow.dimensionId, fluid,
             Vector3d(outflow.worldPositionX, outflow.worldPositionY, outflow.worldPositionZ),
             Vector3d(outflow.worldVelocityX, outflow.worldVelocityY, outflow.worldVelocityZ),
-            BigDecimal.valueOf(outflow.worldVolume) * FULL_SOURCE)
+            BigDecimal.valueOf(outflow.worldVolume) * FULL_SOURCE, outflow.momentum)
     }
 
     internal fun enqueueExact(dimension: String, fluidName: String, position: Vector3d, velocity: Vector3d,
@@ -377,7 +527,9 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
     }
 
     private fun enqueueParcel(dimension: String, fluid: FlowingFluid, position: Vector3d, velocity: Vector3d,
-        units: BigDecimal): VsiFluidOutflowResult {
+        units: BigDecimal, momentum: VsiFluidParcelMomentum? = null,
+        surfaceMotion: SurfaceMotion = SurfaceMotion.NONE,
+    ): VsiFluidOutflowResult {
         if (parcels.size >= maxActiveParcels.coerceAtLeast(1)) {
             return VsiFluidOutflowResult.RETRY_LATER
         }
@@ -390,7 +542,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
         }
         parcelStorage.reserve(bytes)
         try {
-            parcels.addLast(Parcel(
+            val parcel = Parcel(
                 dimensionId = dimension,
                 worldPosition = Vector3d(position),
                 velocity = Vector3d(velocity).also {
@@ -402,7 +554,11 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
                 sourceUnits = units,
                 lastUpdatedTick = currentTick,
                 metadataBytes = bytes,
-            ))
+                momentum = momentum,
+            )
+            parcel.surfaceMotion = surfaceMotion
+            parcels.addLast(parcel)
+            indexParcel(parcel)
         } catch (error: Throwable) {
             parcelStorage.release(bytes)
             throw error
@@ -451,17 +607,19 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
         if (servicing) return
         servicing = true
         var failure: Throwable? = null
+        var pendingRetirements = false
         try {
             var motionStepsLeft = MAX_PARCEL_MOTION_STEPS_PER_PASS
             var parcelsLeft = minOf(parcels.size, parcelLimit)
             while (parcelsLeft-- > 0 && motionStepsLeft > 0) {
                 // The selected owner stays capacity-counted and saveable during every callback.
                 val parcel = parcels.first
+                unindexParcel(parcel)
                 val wasDue = parcel.lastUpdatedTick < currentTick
                 var consumed = false
                 try {
                     val elapsed = minOf(currentTick - parcel.lastUpdatedTick, motionStepsLeft)
-                    if (elapsed <= 0 && !parcel.hasPlacement) {
+                    if (elapsed <= 0 && !parcel.hasPlacement && !parcel.consumed) {
                         clearSourceCapacityFailure() // This owner still has a future motion turn.
                         parcels.addLast(parcels.removeFirst())
                         continue
@@ -476,13 +634,22 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
                         continue
                     }
                     val previousStorage = parcelStorage.usedBytes
-                    restoreVisual(level, parcel)
                     val previousVolume = parcel.sourceUnits
-                    val result = updateParcel(level, parcel, fluid, elapsed)
+                    var result = if (parcel.consumed) ParcelUpdateResult.CONSUMED else updateParcel(level, parcel, fluid, elapsed)
+                    if (result == ParcelUpdateResult.PAUSED) parcel.lastUpdatedTick = currentTick
+                    if (result != ParcelUpdateResult.CONSUMED && mergeParcel(level, parcel, fluid))
+                        result = ParcelUpdateResult.CONSUMED
                     if (result == ParcelUpdateResult.CONSUMED) {
+                        parcel.consumed = true
+                        restoreVisual(level, parcel)
                         parcels.removeFirst()
-                        parcel.settledSources?.let { sourceStorage.release(it.reservedBytes) }
-                        parcelStorage.release(parcel.metadataBytes)
+                        if (parcel.visualRecipients.isEmpty()) {
+                            releaseConsumedParcel(parcel)
+                        } else {
+                            parcel.lastUpdatedTick = currentTick
+                            parcels.addLast(parcel)
+                            pendingRetirements = true
+                        }
                         consumed = true
                     } else {
                         if (result == ParcelUpdateResult.PAUSED) parcel.lastUpdatedTick = currentTick
@@ -491,8 +658,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
                     }
                     if (result == ParcelUpdateResult.PAUSED && parcel.sourceUnits === previousVolume
                         && parcelStorage.usedBytes >= previousStorage) {
-                        // Compare after visual restoration AND redisplay. Temporary credit refunds
-                        // and an updated clock do not make a blocked water owner able to drain.
+                        // An updated clock does not make a blocked water owner able to drain.
                         if (sourceCapacityBlockedOwners < parcels.size) sourceCapacityBlockedOwners++
                     } else clearSourceCapacityFailure()
                 } catch (capacity: StorageCapacityException) {
@@ -508,8 +674,14 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
                     motion.clearPlacement(parcelStorage)
                     throw error
                 } finally {
+                    if (!consumed) indexParcel(parcel)
                     if (wasDue && (consumed || parcel.lastUpdatedTick == currentTick)) parcelsWithDueMotion--
                 }
+            }
+            flushVisualChanges()
+            if (pendingRetirements) {
+                releaseDeliveredRetirements()
+                pendingRetirements = false
             }
             sourceCapacityFailure?.let {
                 val fits = if (it.owner === sourceStorage) sourceStorage.fits(it.requestedBytes)
@@ -525,6 +697,8 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
             failure = error
             throw error
         } finally {
+            discardVisualChanges()
+            if (pendingRetirements) releaseDeliveredRetirements()
             try {
                 if (clearVisualsRequested) clearVisualsInternal(levels)
             } catch (cleanup: Throwable) {
@@ -537,6 +711,20 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
         }
     }
 
+    private fun releaseConsumedParcel(parcel: Parcel) {
+        parcel.settledSources?.let { sourceStorage.release(it.reservedBytes) }
+        parcelStorage.release(parcel.metadataBytes)
+    }
+
+    private fun releaseDeliveredRetirements() {
+        repeat(parcels.size) {
+            val parcel = parcels.removeFirst()
+            if (parcel.consumed && parcel.lastUpdatedTick == currentTick && parcel.visualRecipients.isEmpty()) {
+                releaseConsumedParcel(parcel)
+            } else parcels.addLast(parcel)
+        }
+    }
+
     /** Pure motion is staged; callbacks see the last committed tick plus any placement intent. */
     private fun updateParcel(level: ServerLevel, parcel: Parcel, fluid: FlowingFluid, elapsed: Long): ParcelUpdateResult {
         if (parcel.hasPlacement) {
@@ -544,6 +732,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
             return if (parcel.sourceUnits.signum() == 0 && !parcel.hasPlacement)
                 ParcelUpdateResult.CONSUMED else ParcelUpdateResult.PAUSED
         }
+        if (parcel.sourceUnits.signum() == 0 && parcel.interception == null) return ParcelUpdateResult.CONSUMED
         parcel.interception?.let { pending ->
             if (!pending.applied) {
                 val world = (level.server as? IShipObjectWorldServerProvider)?.shipObjectWorld
@@ -563,12 +752,16 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
         staged.worldPosition.set(parcel.worldPosition)
         staged.velocity.set(parcel.velocity)
         staged.settlementAnchor = parcel.settlementAnchor
+        staged.collectionAgeTicks = parcel.collectionAgeTicks
+        staged.surfaceMotion = parcel.surfaceMotion
         staged.clearPlacement(parcelStorage)
         if (parcel.interception?.applied == true) {
             val result = updateOneTick(level, parcel, staged, fluid)
             parcel.worldPosition.set(staged.worldPosition)
             parcel.velocity.set(staged.velocity)
             parcel.settlementAnchor = staged.settlementAnchor
+            parcel.collectionAgeTicks = staged.collectionAgeTicks
+            parcel.surfaceMotion = staged.surfaceMotion
             if (staged.hasPlacement) parcel.takePlacement(staged)
             parcel.interception = null
             if (parcel.hasPlacement) {
@@ -583,6 +776,8 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
             parcel.worldPosition.set(staged.worldPosition)
             parcel.velocity.set(staged.velocity)
             parcel.settlementAnchor = staged.settlementAnchor
+            parcel.collectionAgeTicks = staged.collectionAgeTicks
+            parcel.surfaceMotion = staged.surfaceMotion
             if (staged.hasPlacement) parcel.takePlacement(staged)
             parcel.lastUpdatedTick++
             if (parcel.hasPlacement) {
@@ -625,8 +820,10 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
                 return ParcelUpdateResult.PAUSED
             }
         }
-        when (advanceParcel(level, parcel, staged, fluid, start)) {
-            ParcelMotionResult.MERGED -> return ParcelUpdateResult.CONSUMED
+        val surfaceMotion = staged.surfaceMotion
+        val terrainMotion = advanceParcel(level, parcel, staged, fluid, start)
+        when (terrainMotion) {
+            ParcelMotionResult.CONSUMED -> return ParcelUpdateResult.CONSUMED
             ParcelMotionResult.RETRY_LATER -> return ParcelUpdateResult.PAUSED // Unavailable terrain pauses elapsed time.
             ParcelMotionResult.MOVED,
             ParcelMotionResult.BLOCKED -> Unit
@@ -637,8 +834,17 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
         if (!level.hasChunkAt(currentPos) || !level.hasChunkAt(belowPos)) {
             return ParcelUpdateResult.PAUSED
         }
-        val currentState = level.getBlockState(currentPos)
-        val belowState = level.getBlockState(belowPos)
+        val hitCurrent = level.getBlockState(currentPos)
+        val fromCurrent = if (staged.velocity.y < 0.0) currentPos.above() else currentPos
+        val currentState = if (reactToFluidImpact(level, parcel, fluid, fromCurrent, currentPos, hitCurrent)) {
+            if (parcel.sourceUnits.signum() == 0) return ParcelUpdateResult.CONSUMED
+            level.getBlockState(currentPos)
+        } else hitCurrent
+        val hitBelow = level.getBlockState(belowPos)
+        val belowState = if (staged.velocity.y <= 0.0 && reactToFluidImpact(level, parcel, fluid, currentPos, belowPos, hitBelow)) {
+            if (parcel.sourceUnits.signum() == 0) return ParcelUpdateResult.CONSUMED
+            level.getBlockState(belowPos)
+        } else hitBelow
         if (sourceAmount(level, parcel, belowPos) != null && fluid.isSame(belowState.fluidState.type)) {
             prepareSettlement(level, parcel, staged, fluid, belowPos, belowState)
             return ParcelUpdateResult.PAUSED
@@ -648,11 +854,18 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
                 currentReplaceable = canReceive(level, currentPos, currentState, fluid),
                 currentIsSameSource = isOcean(level, parcel, currentPos, currentState, fluid),
                 belowReplaceable =
-                    belowState.fluidState.isEmpty && belowState.canBeReplaced(),
+                    belowState.fluidState.isEmpty && canReceive(level, belowPos, belowState, fluid),
                 belowIsSameSource = isOcean(level, parcel, belowPos, belowState, fluid),
             )
         ) {
-            FluidParcelAction.FALL -> Unit
+            FluidParcelAction.FALL -> {
+                if (surfaceMotion == SurfaceMotion.RUNOFF) {
+                    staged.velocity.x = 0.0
+                    staged.velocity.z = 0.0
+                }
+                staged.surfaceMotion = SurfaceMotion.NONE
+                staged.collectionAgeTicks = -1
+            }
             FluidParcelAction.MERGE -> return ParcelUpdateResult.CONSUMED
             FluidParcelAction.WAIT -> {
                 // An outlet edited closed must not destroy already accepted ownership.
@@ -661,15 +874,116 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
             }
             FluidParcelAction.SETTLE -> {
                 if (staged.velocity.y <= 0.0) {
-                    if (currentState.fluidState.isEmpty && parcel.sourceUnits < MIN_SETTLED_UNITS) {
-                        return ParcelUpdateResult.CONSUMED
+                    staged.surfaceMotion = SurfaceMotion.NONE
+                    if (staged.collectionAgeTicks < 0 && isImpactWater(fluid) && currentState.isAir &&
+                        continueSurfaceMotion(level, parcel, staged, fluid, currentPos, surfaceMotion, terrainMotion)) {
+                        return ParcelUpdateResult.MOVED
                     }
+                    if (currentState.fluidState.isEmpty && parcel.sourceUnits < MIN_SETTLED_UNITS) {
+                        val lifetime = VSGameConfig.SERVER.SpilledWater.parcelCollectionSeconds.coerceIn(0, 60) * 20L
+                        staged.velocity.zero()
+                        if (staged.collectionAgeTicks >= 0) staged.worldPosition.set(parcel.worldPosition)
+                        staged.collectionAgeTicks++
+                        return if (staged.collectionAgeTicks >= lifetime) ParcelUpdateResult.CONSUMED
+                            else ParcelUpdateResult.MOVED
+                    }
+                    staged.collectionAgeTicks = -1
                     prepareSettlement(level, parcel, staged, fluid, currentPos, currentState)
                     return ParcelUpdateResult.PAUSED
                 }
             }
         }
         return ParcelUpdateResult.MOVED
+    }
+
+    private fun continueSurfaceMotion(
+        level: ServerLevel, parcel: Parcel, staged: MotionState, fluid: FlowingFluid, position: BlockPos,
+        previous: SurfaceMotion, terrainMotion: ParcelMotionResult,
+    ): Boolean {
+        val aboveSurface = terrainMotion == ParcelMotionResult.MOVED &&
+            staged.worldPosition.y > position.y + SURFACE_HEIGHT
+        val canSplash = parcel.sourceUnits >= MIN_SETTLED_UNITS
+        if (canSplash && previous == SurfaceMotion.NONE && aboveSurface &&
+            (staged.velocity.y < -MIN_VERTICAL_SPLASH_SPEED ||
+                Math.hypot(staged.velocity.x, staged.velocity.z) >= MIN_HORIZONTAL_SPLASH_SPEED)) {
+            return true
+        }
+        if (previous != SurfaceMotion.RUNOFF || terrainMotion != ParcelMotionResult.BLOCKED) {
+            val runoff = runoffDirection(level, position, fluid, staged.velocity)
+            if (runoff != null) {
+                if (previous == SurfaceMotion.NONE && aboveSurface) return true
+                startSurfaceMotion(staged, position, SurfaceMotion.RUNOFF,
+                    runoff.stepX * RUNOFF_SPEED, runoff.stepZ * RUNOFF_SPEED)
+                return true
+            }
+        }
+        if (!canSplash || previous == SurfaceMotion.RUNOFF) return false
+        if (previous == SurfaceMotion.SPLASH) {
+            if (terrainMotion == ParcelMotionResult.BLOCKED) return false
+            val x = staged.velocity.x * SPLASH_DAMPING
+            val z = staged.velocity.z * SPLASH_DAMPING
+            if (Math.hypot(x, z) < MIN_SURFACE_SPEED) return false
+            startSurfaceMotion(staged, position, SurfaceMotion.SPLASH, x, z)
+            return true
+        }
+        val horizontalSpeed = Math.hypot(staged.velocity.x, staged.velocity.z)
+        val verticalSpeed = -staged.velocity.y
+        if (horizontalSpeed < MIN_HORIZONTAL_SPLASH_SPEED && verticalSpeed < MIN_VERTICAL_SPLASH_SPEED) return false
+        val speed = minOf(MAX_SPLASH_SPEED, horizontalSpeed * 0.55 + verticalSpeed * 0.35)
+        if (horizontalSpeed >= MIN_SURFACE_SPEED) {
+            startSurfaceMotion(staged, position, SurfaceMotion.SPLASH,
+                staged.velocity.x * (speed / horizontalSpeed), staged.velocity.z * (speed / horizontalSpeed))
+            return true
+        }
+        val offsetX = staged.worldPosition.x - (position.x + 0.5)
+        val offsetZ = staged.worldPosition.z - (position.z + 0.5)
+        val directions = RUNOFF_DIRECTIONS.filter {
+            val adjacent = position.relative(it)
+            level.hasChunkAt(adjacent) && level.getBlockState(adjacent).isAir
+        }
+        val direction = directions.maxByOrNull { it.stepX * offsetX + it.stepZ * offsetZ } ?: return false
+        startSurfaceMotion(staged, position, SurfaceMotion.SPLASH, direction.stepX * speed, direction.stepZ * speed)
+        if (verticalSpeed >= MIN_SPLIT_IMPACT_SPEED && direction.opposite in directions &&
+            parcel.sourceUnits >= MIN_SPLIT_SPLASH_UNITS) {
+            val share = parcel.sourceUnits.divide(SPLASH_SPLIT_DIVISOR, maxOf(3, parcel.sourceUnits.scale()),
+                RoundingMode.DOWN)
+            val oppositeVelocity = Vector3d(-staged.velocity.x, 0.0, -staged.velocity.z)
+            if (enqueueParcel(parcel.dimensionId, fluid, staged.worldPosition, oppositeVelocity, share,
+                    parcel.momentum, SurfaceMotion.SPLASH) == VsiFluidOutflowResult.APPLIED) {
+                parcel.sourceUnits -= share
+            }
+        }
+        return true
+    }
+
+    private fun runoffDirection(
+        level: ServerLevel, position: BlockPos, fluid: FlowingFluid, velocity: Vector3d,
+    ): Direction? {
+        if (position.y <= level.minBuildHeight) return null
+        var selected: Direction? = null
+        var alignment = Double.NEGATIVE_INFINITY
+        for (direction in RUNOFF_DIRECTIONS) {
+            val adjacent = position.relative(direction)
+            if (!level.hasChunkAt(adjacent) || !level.getBlockState(adjacent).isAir) continue
+            val lower = adjacent.below()
+            val state = level.getBlockState(lower)
+            if (state.isAir || fluid.isSame(state.fluidState.type) && state.fluidState.isSource &&
+                state == state.fluidState.createLegacyBlock() && !FractionalFluidSources.owns(level, lower)) {
+                val score = direction.stepX * velocity.x + direction.stepZ * velocity.z
+                if (score > alignment) {
+                    selected = direction
+                    alignment = score
+                }
+            }
+        }
+        return selected
+    }
+
+    private fun startSurfaceMotion(staged: MotionState, position: BlockPos, motion: SurfaceMotion, x: Double, z: Double) {
+        staged.surfaceMotion = motion
+        staged.collectionAgeTicks = -1
+        staged.worldPosition.y = position.y + SURFACE_HEIGHT
+        staged.velocity.set(x, 0.0, z)
     }
 
     private fun canReceive(state: BlockState, fluid: FlowingFluid): Boolean =
@@ -686,9 +1000,101 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
         fluid.isSame(state.fluidState.type) && state.fluidState.isSource
             && parcel.settledSources?.contains(pos.asLong()) != true && sourceAmount(level, parcel, pos) == null
 
-    private fun canReceive(level: ServerLevel, pos: BlockPos, state: BlockState, fluid: FlowingFluid): Boolean =
-        canReceive(state, fluid) || (fluid.isSame(state.fluidState.type)
+    private fun canReceive(level: ServerLevel, pos: BlockPos, state: BlockState, fluid: FlowingFluid): Boolean {
+        if (isImpactWater(fluid) && !state.isAir && state.fluidState.isEmpty) return false
+        return canReceive(state, fluid) || (fluid.isSame(state.fluidState.type)
             && state == state.fluidState.createLegacyBlock() && FractionalFluidSources.owns(level, pos))
+    }
+
+    private fun isImpactWater(fluid: FlowingFluid): Boolean =
+        fluid.isSame(Fluids.WATER) || fluid.defaultFluidState().`is`(FluidTags.WATER)
+
+    private fun reactToFluidImpact(level: ServerLevel, parcel: Parcel, fluid: FlowingFluid, from: BlockPos,
+        pos: BlockPos, state: BlockState): Boolean {
+        if (state.block is LiquidBlock) {
+            val target = state.fluidState
+            val waterHitsLava = isImpactWater(fluid) && (target.`is`(FluidTags.LAVA) || Fluids.LAVA.isSame(target.type))
+            val lavaHitsWater = (fluid.isSame(Fluids.LAVA) || fluid.defaultFluidState().`is`(FluidTags.LAVA)) &&
+                (target.`is`(FluidTags.WATER) || Fluids.WATER.isSame(target.type))
+            if (waterHitsLava || lavaHitsWater) {
+                val sources = FractionalFluidSources.forLevel(level)
+                val fluidName = requireNotNull(FractionalFluidSources.fluidName(state))
+                val key = FractionalFluidSources.Position(parcel.dimensionId, pos.x, pos.y, pos.z)
+                if (sources?.transfers?.isLocked(key) == true) return false
+                val exactUnits = sources?.amount(parcel.dimensionId, pos.x, pos.y, pos.z, fluidName)
+                val units = exactUnits
+                    ?: MIN_SETTLED_UNITS * target.amount.toBigDecimal()
+                val downward = lavaHitsWater && from.y > pos.y
+                if (waterHitsLava || downward) {
+                    if (units < MIN_SETTLED_UNITS) return false
+                    val product = when {
+                        downward -> Blocks.STONE
+                        exactUnits?.let { it >= FULL_SOURCE } ?: target.isSource -> Blocks.OBSIDIAN
+                        else -> Blocks.COBBLESTONE
+                    }
+                    val debit = if (downward) minOf(parcel.sourceUnits, FULL_SOURCE) else BigDecimal.ZERO
+                    if (!applyParcelImpact(level, parcel, pos, state, debit) {
+                            level.setBlock(pos, product.defaultBlockState(), Block.UPDATE_ALL)
+                        }) return false
+                    sources?.reconcileFluid(parcel.dimensionId, pos.x, pos.y, pos.z, null)
+                    level.levelEvent(1501, pos, 0)
+                    return true
+                }
+                if (parcel.sourceUnits < MIN_SETTLED_UNITS || !level.hasChunkAt(from)) return false
+                val previous = level.getBlockState(from)
+                if (!previous.isAir || !applyParcelImpact(level, parcel, from, previous, minOf(parcel.sourceUnits, FULL_SOURCE)) {
+                        level.setBlock(from, Blocks.COBBLESTONE.defaultBlockState(), Block.UPDATE_ALL)
+                    }) return false
+                level.levelEvent(1501, from, 0)
+                return true
+            }
+        }
+        return reactToWaterImpact(level, parcel, fluid, pos, state, from.y < pos.y)
+    }
+
+    private fun reactToWaterImpact(level: ServerLevel, parcel: Parcel, fluid: FlowingFluid,
+        pos: BlockPos, state: BlockState, fromBelow: Boolean = false): Boolean {
+        if (!isImpactWater(fluid) || state.isAir) return false
+        val shallow = parcel.sourceUnits < MIN_SETTLED_UNITS
+        val available = parcel.sourceUnits
+        val absorption = if (shallow) available else BigDecimal.ZERO
+        return when {
+            state.`is`(Blocks.SPONGE) -> {
+                if (!applyParcelImpact(level, parcel, pos, state, minOf(available, SPONGE_CAPACITY)) {
+                        level.setBlock(pos, Blocks.WET_SPONGE.defaultBlockState(), Block.UPDATE_ALL)
+                    }) return false
+                level.levelEvent(2001, pos, Block.getId(Blocks.WATER.defaultBlockState()))
+                true
+            }
+            state.`is`(Blocks.FARMLAND) && state.getValue(FarmBlock.MOISTURE) < 7 ->
+                applyParcelImpact(level, parcel, pos, state,
+                    if (state.getValue(FarmBlock.MOISTURE) == 0) absorption else BigDecimal.ZERO) {
+                    level.setBlock(pos, state.setValue(FarmBlock.MOISTURE, 7), Block.UPDATE_CLIENTS)
+                }
+            RetainedWaterReactions.acceptsWater(state) -> {
+                if (fromBelow && state.block is ConcretePowderBlock) return false
+                applyParcelImpact(level, parcel, pos, state, absorption) {
+                    RetainedWaterReactions.apply(level, pos, state)
+                }
+            }
+            !shallow && RetainedFluidBlockInteractions.isWaterBreakable(state) -> level.destroyBlock(pos, true)
+            else -> false
+        }
+    }
+
+    private inline fun applyParcelImpact(level: ServerLevel, parcel: Parcel, pos: BlockPos, before: BlockState,
+        absorbed: BigDecimal, apply: () -> Boolean): Boolean {
+        if (absorbed.signum() == 0) return apply()
+        val previous = parcel.sourceUnits
+        parcel.sourceUnits -= absorbed
+        var applied = false
+        try {
+            applied = apply()
+            return applied
+        } finally {
+            if (!applied && level.getBlockState(pos) == before) parcel.sourceUnits = previous
+        }
+    }
 
     private fun depositedState(current: BlockState, fluid: FlowingFluid, units: BigDecimal,
         legacyRounding: Boolean = false): BlockState {
@@ -767,6 +1173,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
             parcel.placementScheduledOnly = true
             if (remaining.signum() > 0) {
                 parcel.settlementAnchor = pos
+                parcel.surfaceMotion = SurfaceMotion.NONE
                 parcel.velocity.zero()
             }
         }
@@ -960,7 +1367,8 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
             val pending = ParcelInterception(UUID.randomUUID(), end, Vector3d(staged.velocity))
             val start = staged.worldPosition
             val request = VsiFluidParcelInterception(pending.id, parcel.dimensionId, fluidId, amount,
-                start.x, start.y, start.z, end.x, end.y, end.z, limit, receivers)
+                start.x, start.y, start.z, end.x, end.y, end.z, limit, receivers,
+                staged.velocity.x, staged.velocity.y, staged.velocity.z, parcel.momentum)
             if (world.submitFluidParcelInterception(request)) parcel.interception = pending
             return true
         } finally {
@@ -1056,9 +1464,15 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
             }
 
             val sampleState = level.getBlockState(sampleBlockPos)
+            if (reactToFluidImpact(level, parcel, fluid, lastBlockPos, sampleBlockPos, sampleState)) {
+                if (parcel.sourceUnits.signum() == 0) return ParcelMotionResult.CONSUMED
+                staged.worldPosition.set(freeX, freeY, freeZ)
+                if (level.getBlockState(lastBlockPos).blocksMotion()) staged.settlementAnchor = lastBlockPos
+                return ParcelMotionResult.BLOCKED
+            }
             val sameFluid = fluid.isSame(sampleState.fluidState.type)
             if (isOcean(level, parcel, sampleBlockPos, sampleState, fluid)) {
-                return ParcelMotionResult.MERGED
+                return ParcelMotionResult.CONSUMED
             }
             if (sameFluid && sourceAmount(level, parcel, sampleBlockPos) != null) {
                 staged.worldPosition.set(freeX, freeY, freeZ)
@@ -1069,8 +1483,12 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
             val replaceable = canReceive(level, sampleBlockPos, sampleState, fluid)
             if (!replaceable) {
                 staged.worldPosition.set(freeX, freeY, freeZ)
-                staged.velocity.x = 0.0
-                staged.velocity.z = 0.0
+                val hitFloor = sampleBlockPos.y < lastBlockPos.y && sampleBlockPos.x == lastBlockPos.x &&
+                    sampleBlockPos.z == lastBlockPos.z
+                if (!hitFloor || !isImpactWater(fluid)) {
+                    staged.velocity.x = 0.0
+                    staged.velocity.z = 0.0
+                }
                 if (staged.velocity.y > 0.0) {
                     staged.velocity.y = 0.0
                 }
@@ -1100,11 +1518,16 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
     }
 
     private fun clearVisualsInternal(levels: Map<String, ServerLevel>) {
-        // Callbacks can enqueue new owners, so do not hold a deque iterator across them.
-        repeat(parcels.size) {
-            val parcel = parcels.first
-            levels[parcel.dimensionId]?.let { restoreVisual(it, parcel) }
-            parcels.addLast(parcels.removeFirst())
+        try {
+            // Callbacks can enqueue new owners, so do not hold a deque iterator across them.
+            repeat(parcels.size) {
+                val parcel = parcels.first
+                levels[parcel.dimensionId]?.let { restoreVisual(it, parcel) }
+                parcels.addLast(parcels.removeFirst())
+            }
+            flushVisualChanges()
+        } finally {
+            discardVisualChanges()
         }
     }
 
@@ -1112,9 +1535,15 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
     // Each history's live reservation includes a same-sized output array. It is sufficient for
     // toLongArray while all live histories remain owned. Returned NBT belongs to the caller.
     fun save(): CompoundTag = CompoundTag().apply {
-        putInt("version", 6)
+        putInt("version", when {
+            parcels.any { it.surfaceMotion != SurfaceMotion.NONE } -> 9
+            parcels.any { it.collectionAgeTicks >= 0 } -> 8
+            parcels.any { it.momentum != null } -> 7
+            else -> 6
+        })
         put("parcels", ListTag().also { list ->
             parcels.forEach { parcel ->
+                if (parcel.consumed || (parcel.sourceUnits.signum() == 0 && !parcel.hasPlacement && parcel.interception == null)) return@forEach
                 list.add(CompoundTag().apply {
                     putString("dimension", parcel.dimensionId)
                     putString("fluid", parcel.fluidName.toString())
@@ -1122,8 +1551,21 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
                     putDouble("z", parcel.worldPosition.z)
                     putDouble("vx", parcel.velocity.x); putDouble("vy", parcel.velocity.y)
                     putDouble("vz", parcel.velocity.z)
+                    parcel.momentum?.let { motion ->
+                        put("momentum", CompoundTag().apply {
+                            putDouble("density", motion.massDensity)
+                            putDouble("lx", motion.angularMomentumPerMassX)
+                            putDouble("ly", motion.angularMomentumPerMassY)
+                            putDouble("lz", motion.angularMomentumPerMassZ)
+                            putDouble("ixx", motion.inertiaPerMassXX); putDouble("iyy", motion.inertiaPerMassYY)
+                            putDouble("izz", motion.inertiaPerMassZZ); putDouble("ixy", motion.inertiaPerMassXY)
+                            putDouble("ixz", motion.inertiaPerMassXZ); putDouble("iyz", motion.inertiaPerMassYZ)
+                        })
+                    }
                     putVolume(this, "volume", parcel.sourceUnits)
                     putLong("lag", currentTick - parcel.lastUpdatedTick)
+                    if (parcel.collectionAgeTicks >= 0) putLong("collection_age", parcel.collectionAgeTicks)
+                    if (parcel.surfaceMotion != SurfaceMotion.NONE) putString("surface_motion", parcel.surfaceMotion.name)
                     parcel.interception?.let { pending ->
                         put("interception", CompoundTag().apply {
                             putUUID("id", pending.id)
@@ -1162,7 +1604,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
     fun load(tag: CompoundTag) {
         check(!servicing) { "Cannot replace parcel ownership during servicing" }
         val version = tag.getInt("version")
-        require(version in 1..6) { "Unsupported world-fluid parcel checkpoint" }
+        require(version in 1..9) { "Unsupported world-fluid parcel checkpoint" }
         require(tag.contains("parcels", Tag.TAG_LIST.toInt())) { "Missing world-fluid parcels" }
         val list = tag.getList("parcels", Tag.TAG_COMPOUND.toInt())
         require((tag.get("parcels") as ListTag).size == list.size) { "Invalid parcel list" }
@@ -1198,8 +1640,8 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
                 restoreMetadata += nameBytes
                 val name = ResourceLocation.tryParse(encodedName)
                     ?: throw IllegalArgumentException("Invalid saved parcel fluid name")
-                val x = savedCoordinate(entry, "x"); val y = savedCoordinate(entry, "y"); val z = savedCoordinate(entry, "z")
-                val vx = savedCoordinate(entry, "vx"); val vy = savedCoordinate(entry, "vy"); val vz = savedCoordinate(entry, "vz")
+                val x = savedDouble(entry, "x"); val y = savedDouble(entry, "y"); val z = savedDouble(entry, "z")
+                val vx = savedDouble(entry, "vx"); val vy = savedDouble(entry, "vy"); val vz = savedDouble(entry, "vz")
                 val volume = if (version == 1) {
                     require(entry.contains("fill", Tag.TAG_INT.toInt()) && entry.getInt("fill") > 0)
                     BigDecimal.valueOf(entry.getInt("fill") / 255.0) * FULL_SOURCE
@@ -1283,6 +1725,14 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
                 }
                 require(entry.contains("lag", Tag.TAG_LONG.toInt()))
                 val lag = entry.getLong("lag")
+                val collectionAge = if (entry.contains("collection_age")) {
+                    require(version >= 8 && entry.contains("collection_age", Tag.TAG_LONG.toInt()))
+                    entry.getLong("collection_age").also { require(it in 0..1200) }
+                } else -1L
+                val surfaceMotion = if (entry.contains("surface_motion")) {
+                    require(version >= 9 && entry.contains("surface_motion", Tag.TAG_STRING.toInt()))
+                    SurfaceMotion.valueOf(entry.getString("surface_motion"))
+                } else SurfaceMotion.NONE
                 // A long pressure wait can retain more catch-up than one scheduling rotation.
                 // Leave arithmetic headroom; processing is bounded independently of this debt.
                 require(lag in 0..Long.MAX_VALUE / 2) { "Invalid parcel scheduling lag" }
@@ -1298,11 +1748,21 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
                 val fluid = if (BuiltInRegistries.FLUID.containsKey(name))
                     BuiltInRegistries.FLUID.get(name) as? FlowingFluid else null
                 if (lag > 0) due++
+                val momentum = if (entry.contains("momentum")) {
+                    require(version >= 7 && entry.contains("momentum", Tag.TAG_COMPOUND.toInt()))
+                    val motion = entry.getCompound("momentum")
+                    VsiFluidParcelMomentum(savedDouble(motion, "density"),
+                        savedDouble(motion, "lx"), savedDouble(motion, "ly"), savedDouble(motion, "lz"),
+                        savedDouble(motion, "ixx"), savedDouble(motion, "iyy"), savedDouble(motion, "izz"),
+                        savedDouble(motion, "ixy"), savedDouble(motion, "ixz"), savedDouble(motion, "iyz"))
+                } else null
                 restored.addLast(Parcel(dimension, Vector3d(x, y, z),
                     Vector3d(vx, vy, vz), name, fluid, volume,
                     -lag, settledSources, anchor,
-                    metadataBytes = PARCEL_STORAGE_BYTES + nameBytes).also { owner ->
+                    metadataBytes = PARCEL_STORAGE_BYTES + nameBytes, momentum = momentum).also { owner ->
                     owner.interception = interception
+                    owner.collectionAgeTicks = collectionAge
+                    owner.surfaceMotion = surfaceMotion
                     placement?.let {
                         owner.setPlacementPosition(it.pos); owner.placementBefore = it.before; owner.placementAfter = it.after
                         owner.placementDeposited = it.deposited; owner.placementScheduledOnly = it.scheduledOnly
@@ -1315,6 +1775,8 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
             }
             // All allocation and validation precedes this reference/scalar publication.
             parcels = restored
+            mergeBuckets.fill(null)
+            parcels.forEach { indexParcel(it) }
             currentTick = 0
             parcelsWithDueMotion = due
             pressureClockNanos = null
@@ -1331,7 +1793,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
         }
     }
 
-    private fun savedCoordinate(entry: CompoundTag, key: String): Double {
+    private fun savedDouble(entry: CompoundTag, key: String): Double {
         require(entry.contains(key, Tag.TAG_DOUBLE.toInt())) { "Missing parcel $key" }
         return entry.getDouble(key).also { require(it.isFinite()) { "Invalid parcel $key" } }
     }
@@ -1370,53 +1832,118 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
 
     private fun showVisual(level: ServerLevel, parcel: Parcel, fluid: FlowingFluid) {
         val players = level.players()
-        if (players.isEmpty()) return
         val pos = parcel.blockPosition()
-        if (!level.hasChunkAt(pos)) return
+        if (players.isEmpty() || !level.hasChunkAt(pos)) {
+            restoreVisual(level, parcel)
+            return
+        }
         // Pay for the recipient snapshot, UUID set/table and retry scratch before constructing
         // them or sending a packet. New overlays are optional; existing receipts are never dropped.
-        val bytes = (players.size.toLong() + 1) * VISUAL_RECIPIENT_BYTES
+        val bytes = (players.size.toLong() + parcel.visualRecipients.size + 1) * VISUAL_RECIPIENT_BYTES
+        if (!parcelStorage.fits(bytes)) flushVisualChanges()
         if (!parcelStorage.fits(bytes)) return
         parcelStorage.reserve(bytes)
         var retained = false
         try {
             val recipients = players.filter {
-                it.distanceToSqr(pos.x + 0.5, pos.y + 0.5, pos.z + 0.5) <= VISUAL_RANGE_SQUARED
+                it.distanceToSqr(parcel.worldPosition.x, parcel.worldPosition.y, parcel.worldPosition.z) <= VISUAL_RANGE_SQUARED
             }
-            if (recipients.isEmpty()) return
-            val current = level.getBlockState(pos)
-            if (!current.fluidState.isEmpty || !current.canBeReplaced()) return
-            val visualLevel = worldVolumeToVisualLevel(parcel.sourceUnits.toDouble() / 255.0).coerceAtMost(7)
-            val packet = ClientboundBlockUpdatePacket(pos, fluid.getFlowing(visualLevel, true).createLegacyBlock())
+            val state = FluidParcelState(BuiltInRegistries.FLUID.getKey(fluid.source).toString(),
+                parcel.worldPosition.x, parcel.worldPosition.y, parcel.worldPosition.z,
+                parcel.velocity.x, parcel.velocity.y, parcel.velocity.z,
+                parcel.sourceUnits.divide(FULL_SOURCE, MathContext.DECIMAL128).toDouble())
+            val packet = PacketFluidParcel(parcel.visualId, level.dimension().location().toString(), ++parcel.visualRevision, state)
             val recipientIds = HashSet<UUID>(recipients.size)
             recipients.forEach { recipientIds.add(it.uuid) }
-            parcel.visualRecipients = recipientIds
-            parcel.visualPos = pos
+            val previousRecipients = parcel.visualRecipients
+            parcel.visualRecipients = previousRecipients + recipientIds
+            parcelStorage.release(parcel.visualStorageBytes)
             parcel.visualStorageBytes = bytes
             retained = true // The full receipt survives partial send/restore exceptions.
-            recipients.forEach { it.connection.send(packet) }
+            queueVisualChange(VisualChange(parcel, packet, recipients,
+                players.filter { it.uuid in previousRecipients && it.uuid !in recipientIds }, recipientIds))
         } finally {
             if (!retained) parcelStorage.release(bytes)
         }
     }
 
     private fun restoreVisual(level: ServerLevel, parcel: Parcel) {
-        val pos = parcel.visualPos ?: return
-        if (level.hasChunkAt(pos)) {
-            val recipients = level.players().filter { it.uuid in parcel.visualRecipients }
-            if (recipients.isNotEmpty()) {
-                val packet = ClientboundBlockUpdatePacket(pos, level.getBlockState(pos))
-                recipients.forEach { it.connection.send(packet) }
-            }
+        if (parcel.visualRecipients.isEmpty()) return
+        val packet = PacketFluidParcel(parcel.visualId, level.dimension().location().toString(), ++parcel.visualRevision, null)
+        queueVisualChange(VisualChange(parcel, packet,
+            level.players().filter { it.uuid in parcel.visualRecipients }, emptyList(), emptySet()))
+    }
+
+    private fun queueVisualChange(change: VisualChange) {
+        val viewers = change.viewers.size.toLong() + change.leaving.size
+        if (viewers == 0L) {
+            finishVisualChange(change)
+            return
         }
-        // On a send exception the full receipt remains, making restoration retryable.
-        parcel.visualPos = null
-        parcel.visualRecipients = emptySet()
-        parcelStorage.release(parcel.visualStorageBytes)
-        parcel.visualStorageBytes = 0L
+        val bytes = (viewers + 1) * VISUAL_RECIPIENT_BYTES
+        if (visualBatchBytes + bytes > MAX_VISUAL_BATCH_BYTES || !parcelStorage.fits(bytes)) flushVisualChanges()
+        if (bytes > MAX_VISUAL_BATCH_BYTES || !parcelStorage.fits(bytes)) {
+            val removal = change.packet.copy(state = null)
+            change.leaving.forEach { vsCore.simplePacketNetworking.sendToClient(removal, it.playerWrapper) }
+            change.viewers.forEach { vsCore.simplePacketNetworking.sendToClient(change.packet, it.playerWrapper) }
+            finishVisualChange(change)
+            return
+        }
+        visualChanges.add(change)
+        parcelStorage.reserve(bytes)
+        visualBatchBytes += bytes
+    }
+
+    private fun flushVisualChanges() {
+        if (visualChanges.isEmpty()) return
+        try {
+            val outgoing = LinkedHashMap<VisualRecipient, MutableList<PacketFluidParcel>>()
+            for (change in visualChanges) {
+                val packet = change.packet
+                if (change.leaving.isNotEmpty()) {
+                    val removal = packet.copy(state = null)
+                    change.leaving.forEach {
+                        outgoing.getOrPut(VisualRecipient(it, packet.dimension), ::ArrayList).add(removal)
+                    }
+                }
+                change.viewers.forEach {
+                    outgoing.getOrPut(VisualRecipient(it, packet.dimension), ::ArrayList).add(packet)
+                }
+            }
+            for ((recipient, packets) in outgoing) {
+                val player = recipient.player.playerWrapper
+                for (start in packets.indices step PacketFluidParcelBatch.MAX_UPDATES) {
+                    val end = minOf(start + PacketFluidParcelBatch.MAX_UPDATES, packets.size)
+                    val packet = if (end - start == 1) packets[start] else PacketFluidParcelBatch(
+                        recipient.dimension, packets.subList(start, end).map { FluidParcelUpdate(it.id, it.revision, it.state) })
+                    vsCore.simplePacketNetworking.sendToClient(packet, player)
+                }
+            }
+            visualChanges.forEach(::finishVisualChange)
+        } finally {
+            discardVisualChanges()
+        }
+    }
+
+    private fun finishVisualChange(change: VisualChange) {
+        val parcel = change.parcel
+        if (parcel.visualRevision != change.packet.revision) return
+        parcel.visualRecipients = change.recipients
+        if (change.recipients.isEmpty()) {
+            parcelStorage.release(parcel.visualStorageBytes)
+            parcel.visualStorageBytes = 0
+        }
+    }
+
+    private fun discardVisualChanges() {
+        if (visualBatchBytes == 0L) return
+        visualChanges = ArrayList()
+        parcelStorage.release(visualBatchBytes)
+        visualBatchBytes = 0
     }
 
     private companion object {
+        private val MERGE_CELL_OFFSETS = intArrayOf(0, -1, 1)
         val MAX_PARCEL_UNITS = BigDecimal.valueOf(Double.MAX_VALUE) * FULL_SOURCE
         const val QUANTITY_PLACEMENT_BYTES = 16L * 1024
         const val DEFAULT_PARCEL_STORAGE_BYTES = 256L * 1024 * 1024
@@ -1427,6 +1954,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
         const val INLINE_PLACEMENT_BYTES = 4096L
         const val INLINE_NAME_CHARS = 256L
         const val VISUAL_RECIPIENT_BYTES = 256L
+        const val MAX_VISUAL_BATCH_BYTES = 1024L * 1024
         fun nameStorageBytes(dimensionChars: Long, fluidChars: Long): Long =
             maxOf(0L, dimensionChars + fluidChars - INLINE_NAME_CHARS) * 8
         const val DEFAULT_SOURCE_STORAGE_BYTES = 64L * 1024 * 1024
@@ -1443,6 +1971,7 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
         const val MAX_PARCEL_MOTION_STEPS_PER_PASS = 4096L
         const val FLUID_PARCEL_TICK_NS = 50_000_000L
         const val VISUAL_RANGE_SQUARED = 128.0 * 128.0
+        val RUNOFF_DIRECTIONS = arrayOf(Direction.NORTH, Direction.SOUTH, Direction.WEST, Direction.EAST)
         val SETTLEMENT_DIRECTIONS = listOf(Direction.DOWN, Direction.NORTH, Direction.SOUTH,
             Direction.WEST, Direction.EAST, Direction.UP)
     }
@@ -1453,3 +1982,11 @@ private const val FLUID_PARCEL_GRAVITY = -9.81
 private const val MAX_FLUID_PARCEL_SPEED = 64.0
 private const val MAX_FLUID_PARCEL_SUBSTEP_DISTANCE = 0.45
 private const val MAX_FLUID_PARCEL_SUBSTEPS = 32
+private const val SURFACE_HEIGHT = 0.05
+private const val RUNOFF_SPEED = 6.0
+private const val MIN_HORIZONTAL_SPLASH_SPEED = 1.5
+private const val MIN_VERTICAL_SPLASH_SPEED = 3.0
+private const val MIN_SPLIT_IMPACT_SPEED = 10.0
+private const val MAX_SPLASH_SPEED = 7.0
+private const val MIN_SURFACE_SPEED = 0.45
+private const val SPLASH_DAMPING = 0.76

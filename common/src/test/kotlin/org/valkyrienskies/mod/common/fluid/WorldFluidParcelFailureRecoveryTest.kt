@@ -15,12 +15,16 @@ import net.minecraft.world.level.material.Fluids
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
 import org.valkyrienskies.core.internal.VsiCore
+import org.valkyrienskies.core.impl.networking.simple.SimplePacket
 import org.valkyrienskies.core.internal.physics.VsiFluidOutflow
 import org.valkyrienskies.core.internal.physics.VsiFluidOutflowResult
 import org.valkyrienskies.core.internal.world.VsiPipeline
 import org.valkyrienskies.mod.common.ShipSavedData
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
+import org.valkyrienskies.mod.common.networking.PacketFluidParcel
+import org.valkyrienskies.mod.common.networking.PacketFluidParcelBatch
 import org.valkyrienskies.mod.common.vsCore
+import org.valkyrienskies.mod.common.playerWrapper
 
 class WorldFluidParcelFailureRecoveryTest {
     companion object {
@@ -158,7 +162,7 @@ class WorldFluidParcelFailureRecoveryTest {
         blocks[BlockPos(0, 1, 0)] = state
         val manager = WorldFluidOutflowManager(1, 1)
         val empty = manager.parcelStorageBytes()
-        manager.enqueue(level, outflow())
+        manager.enqueue(level, outflow(fluid = 18))
         val retained = manager.parcelStorageBytes()
         manager.maxParcelStorageBytes = retained
         assertThrows(WorldFluidOutflowManager.StorageCapacityException::class.java) { manager.tick(levels) }
@@ -197,12 +201,12 @@ class WorldFluidParcelFailureRecoveryTest {
         val retained = manager.parcelStorageBytes()
         var sent = 0
         var fail = false
-        val clients = listOf(mutableMapOf<BlockPos, BlockState>(), mutableMapOf<BlockPos, BlockState>())
+        val clients = listOf(mutableMapOf<java.util.UUID,org.valkyrienskies.mod.common.networking.FluidParcelState?>(), mutableMapOf<java.util.UUID,org.valkyrienskies.mod.common.networking.FluidParcelState?>())
         visualClients { index, packet ->
             sent++
-            clients[index][packet.pos] = packet.blockState
+            clients[index][packet.id] = packet.state
             if (fail && index == 1) throw IllegalStateException("partial visual")
-            if (index == 0 && !packet.blockState.fluidState.isEmpty) {
+            if (index == 0 && packet.state != null) {
                 assertEquals(VsiFluidOutflowResult.RETRY_LATER, manager.enqueue(level, outflow()))
             }
         }
@@ -221,7 +225,7 @@ class WorldFluidParcelFailureRecoveryTest {
         manager.clearVisuals(levels)
         assertEquals(retained, manager.parcelStorageBytes())
         assertEquals(1.0, pending(manager))
-        assertTrue(clients.all { client -> client.isNotEmpty() && client.values.all { it.fluidState.isEmpty } })
+        assertTrue(clients.all { client -> client.isNotEmpty() && client.values.all { it == null } })
         assertTrue(manager.peakParcelStorageBytes() <= manager.maxParcelStorageBytes)
     }
 
@@ -508,31 +512,123 @@ class WorldFluidParcelFailureRecoveryTest {
         }
     }
 
-    private fun visualClients(onSend: (Int, net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket) -> Unit) {
+    private fun visualClients(
+        onBatch: (Int, PacketFluidParcelBatch) -> Unit = { _, _ -> },
+        onSend: (Int, PacketFluidParcel) -> Unit,
+    ) {
+        mockkStatic("org.valkyrienskies.mod.common.VSGameUtilsKt")
+        val core = mockk<VsiCore>()
+        val network = mockk<org.valkyrienskies.core.impl.networking.simple.SimplePacketNetworking>()
+        every { vsCore } returns core
+        every { core.simplePacketNetworking } returns network
+        every { level.dimension() } returns net.minecraft.world.level.Level.OVERWORLD
         val players = (0..1).map { index ->
             val player = mockk<net.minecraft.server.level.ServerPlayer>()
-            val connection = mockk<net.minecraft.server.network.ServerGamePacketListenerImpl>()
-            player.connection = connection
+            val wrapper = mockk<org.valkyrienskies.mod.common.util.MinecraftPlayer>()
+            every { player.playerWrapper } returns wrapper
             every { player.getUUID() } returns java.util.UUID(0L,index.toLong()+1L)
             every { player.distanceToSqr(any<Double>(), any<Double>(), any<Double>()) } returns 0.0
-            every { connection.send(any<net.minecraft.network.protocol.Packet<*>>()) } answers {
-                onSend(index, firstArg() as net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket)
+            every { network.sendToClient(any(), wrapper) } answers {
+                when (val packet = firstArg<SimplePacket>()) {
+                    is PacketFluidParcel -> onSend(index, packet)
+                    is PacketFluidParcelBatch -> {
+                        onBatch(index, packet)
+                        packet.packets().forEach { onSend(index, it) }
+                    }
+                    else -> error("Unexpected packet: $packet")
+                }
             }
             player
         }
         every { level.players() } returns players
     }
 
+    @Test fun `parcel batches are bounded and failed viewer removals retry independently of gameplay`() {
+        val clientPackets = List(2) { mutableListOf<PacketFluidParcel>() }
+        val batchSizes = List(2) { mutableListOf<Int>() }
+        var fail = false
+        visualClients(onBatch = { index, packet ->
+            if (fail && index == 1) throw IllegalStateException("batch delivery")
+            batchSizes[index].add(packet.updates.size)
+        }) { index, packet -> clientPackets[index].add(packet) }
+        val manager = WorldFluidOutflowManager(257, 257)
+        repeat(257) { manager.enqueue(level, outflow(x = 2.0 * it + 0.5, y = 100.5)) }
+        manager.tick(levels)
+        assertEquals(listOf(listOf(256), listOf(256)), batchSizes)
+        val ids = clientPackets[1].map { it.id }.toSet()
+        assertEquals(257, ids.size)
+        clientPackets.forEach { it.clear() }
+
+        val departing = level.players()[1]
+        every { departing.distanceToSqr(any<Double>(), any<Double>(), any<Double>()) } returns 1e9
+        fail = true
+        assertThrows(IllegalStateException::class.java) { manager.tick(levels) }
+        assertTrue(clientPackets[1].isEmpty())
+        fail = false
+        manager.tick(levels)
+        assertEquals(ids, clientPackets[1].map { it.id }.toSet())
+        assertTrue(clientPackets[1].all { it.state == null })
+        assertTrue(clientPackets[0].all { it.state != null })
+        assertEquals(257, manager.activeParcelCount())
+        assertEquals(0, writes)
+    }
+
+    @Test fun `airborne updates retain identity fractional volume and retire out of range recipients`() {
+        val packets = mutableListOf<org.valkyrienskies.mod.common.networking.PacketFluidParcel>()
+        visualClients { index, packet -> if (index == 0) packets.add(packet) }
+        val manager = WorldFluidOutflowManager(1, 1)
+        manager.enqueue(level, outflow(fill = 1, y = 100.5))
+        manager.tick(levels)
+        manager.tick(levels)
+        assertEquals(2, packets.size)
+        assertEquals(packets[0].id, packets[1].id)
+        assertTrue(packets[1].revision > packets[0].revision)
+        assertTrue(packets[1].state!!.y < packets[0].state!!.y)
+        for (packet in packets) assertEquals(1.0 / 255, packet.state!!.volume, 1e-18)
+        val quantity = pending(manager)
+        for (player in level.players()) every { player.distanceToSqr(any<Double>(), any<Double>(), any<Double>()) } returns 1e9
+        manager.tick(levels)
+        assertNull(packets.last().state)
+        assertEquals(quantity, pending(manager))
+        assertEquals(0, writes)
+    }
+
+    @Test fun `failed visual retirement never saves or reapplies already consumed fluid`() {
+        var fail = false
+        val clients = listOf(mutableMapOf<java.util.UUID, org.valkyrienskies.mod.common.networking.FluidParcelState?>(),
+            mutableMapOf<java.util.UUID, org.valkyrienskies.mod.common.networking.FluidParcelState?>())
+        visualClients { index, packet ->
+            if (fail && index == 1 && packet.state == null) throw IllegalStateException("retirement")
+            clients[index][packet.id] = packet.state
+        }
+        val manager = WorldFluidOutflowManager(1, 1)
+        val emptyBytes = manager.parcelStorageBytes()
+        manager.enqueue(level, outflow(y = 100.5))
+        manager.tick(levels)
+        terrain = { Blocks.WATER.defaultBlockState() }
+        fail = true
+        assertThrows(IllegalStateException::class.java) { manager.tick(levels) }
+        assertEquals(0, entries(manager).size, "Consumed inventory cannot reappear after checkpoint restore")
+        assertEquals(1, manager.activeParcelCount(), "Retirement receipt remains retryable")
+        terrain = { error("Retirement retry must not run another gameplay interaction") }
+        fail = false
+        manager.tick(levels)
+        assertEquals(0, manager.activeParcelCount())
+        assertEquals(emptyBytes, manager.parcelStorageBytes())
+        assertTrue(clients.all { it.values.all { state -> state == null } })
+        assertEquals(0, writes)
+    }
+
     @Test fun `partial visual delivery remains recoverable before and after the second client applies it`() {
         for (pressure in listOf(false,true)) for (applied in listOf(false,true)) {
-            val clients = listOf(mutableMapOf<BlockPos,BlockState>(), mutableMapOf<BlockPos,BlockState>())
+            val clients = listOf(mutableMapOf<java.util.UUID,org.valkyrienskies.mod.common.networking.FluidParcelState?>(), mutableMapOf<java.util.UUID,org.valkyrienskies.mod.common.networking.FluidParcelState?>())
             var fail = true
             visualClients { i, packet ->
                 if (i == 1 && fail) {
-                    if (applied) clients[i][packet.pos] = packet.blockState
+                    if (applied) clients[i][packet.id] = packet.state
                     throw IllegalStateException("visual delivery")
                 }
-                clients[i][packet.pos] = packet.blockState
+                clients[i][packet.id] = packet.state
             }
             var now = 0L
             val manager = WorldFluidOutflowManager(1,1) { now }
@@ -542,23 +638,23 @@ class WorldFluidParcelFailureRecoveryTest {
                 if (pressure) manager.servicePressure(levels) else manager.tick(levels)
             }
             assertEquals(1, entries(manager).size, "Delivery failure cannot discard the fluid owner")
-            assertTrue(clients[0].values.any { !it.fluidState.isEmpty })
+            assertTrue(clients[0].values.any { it != null })
             fail = false
             manager.clearVisuals(levels)
-            for (client in clients) assertTrue(client.values.all { it.fluidState.isEmpty }, "Every possibly delivered overlay is restored")
+            for (client in clients) assertTrue(client.values.all { it == null }, "Every possibly delivered parcel is removed")
         }
     }
 
     @Test fun `partial visual restoration retries all intended recipients`() {
         for (applied in listOf(false,true)) {
-            val clients = listOf(mutableMapOf<BlockPos,BlockState>(), mutableMapOf<BlockPos,BlockState>())
+            val clients = listOf(mutableMapOf<java.util.UUID,org.valkyrienskies.mod.common.networking.FluidParcelState?>(), mutableMapOf<java.util.UUID,org.valkyrienskies.mod.common.networking.FluidParcelState?>())
             var fail = false
             visualClients { i, packet ->
                 if (i == 1 && fail) {
-                    if (applied) clients[i][packet.pos] = packet.blockState
+                    if (applied) clients[i][packet.id] = packet.state
                     throw IllegalStateException("visual restoration")
                 }
-                clients[i][packet.pos] = packet.blockState
+                clients[i][packet.id] = packet.state
             }
             val manager = WorldFluidOutflowManager(1,1)
             manager.enqueue(level, outflow(y=100.5)); manager.tick(levels)
@@ -566,24 +662,24 @@ class WorldFluidParcelFailureRecoveryTest {
             assertThrows(IllegalStateException::class.java) { manager.clearVisuals(levels) }
             assertEquals(1, entries(manager).size)
             fail = false; manager.clearVisuals(levels)
-            for (client in clients) assertTrue(client.values.all { it.fluidState.isEmpty })
+            for (client in clients) assertTrue(client.values.all { it == null })
         }
     }
 
     @Test fun `clear requested inside packet delivery takes effect after the in flight send completes`() {
         for (pressure in listOf(false,true)) {
-            val clients = listOf(mutableMapOf<BlockPos,BlockState>(), mutableMapOf<BlockPos,BlockState>())
+            val clients = listOf(mutableMapOf<java.util.UUID,org.valkyrienskies.mod.common.networking.FluidParcelState?>(), mutableMapOf<java.util.UUID,org.valkyrienskies.mod.common.networking.FluidParcelState?>())
             var now = 0L
             val manager = WorldFluidOutflowManager(1,1) { now }
             visualClients { i, packet ->
-                clients[i][packet.pos] = packet.blockState
-                if (i == 0 && !packet.blockState.fluidState.isEmpty) manager.clearVisuals(levels)
+                clients[i][packet.id] = packet.state
+                if (i == 0 && packet.state != null) manager.clearVisuals(levels)
             }
             manager.enqueue(level, outflow(y=100.5))
             if (pressure) { manager.servicePressure(levels); now += 50_000_000L; manager.servicePressure(levels) }
             else manager.tick(levels)
             assertEquals(1, entries(manager).size)
-            for (client in clients) assertTrue(client.isNotEmpty() && client.values.all { it.fluidState.isEmpty })
+            for (client in clients) assertTrue(client.isNotEmpty() && client.values.all { it == null })
         }
     }
 
@@ -592,7 +688,7 @@ class WorldFluidParcelFailureRecoveryTest {
         val empty = WorldFluidOutflowManager().save()
         var attempted = false
         visualClients { i, packet ->
-            if (i == 0 && packet.blockState.fluidState.isEmpty) {
+            if (i == 0 && packet.state == null) {
                 attempted = true
                 assertThrows(IllegalStateException::class.java) { manager.load(empty) }
             }
@@ -620,24 +716,24 @@ class WorldFluidParcelFailureRecoveryTest {
     }
 
     @Test fun `deferred cleanup preserves the primary exception and can retry its own failure`() {
-        val clients = listOf(mutableMapOf<BlockPos,BlockState>(),mutableMapOf<BlockPos,BlockState>())
+        val clients = listOf(mutableMapOf<java.util.UUID,org.valkyrienskies.mod.common.networking.FluidParcelState?>(),mutableMapOf<java.util.UUID,org.valkyrienskies.mod.common.networking.FluidParcelState?>())
         val manager = WorldFluidOutflowManager(1,1)
         val primary = IllegalStateException("delivery primary")
         val cleanup = IllegalStateException("cleanup secondary")
         var fail = true
         visualClients { i, packet ->
-            clients[i][packet.pos] = packet.blockState
-            if (fail && i == 0 && !packet.blockState.fluidState.isEmpty) {
+            clients[i][packet.id] = packet.state
+            if (fail && i == 0 && packet.state != null) {
                 manager.clearVisuals(levels); throw primary
             }
-            if (fail && i == 1 && packet.blockState.fluidState.isEmpty) throw cleanup
+            if (fail && i == 1 && packet.state == null) throw cleanup
         }
         manager.enqueue(level,outflow(y=100.5))
         val actual = assertThrows(IllegalStateException::class.java) { manager.tick(levels) }
         assertSame(primary,actual); assertEquals(listOf(cleanup),actual.suppressed.toList())
         assertEquals(1,entries(manager).size)
         fail = false; manager.clearVisuals(levels)
-        assertTrue(clients.all { client -> client.values.all { it.fluidState.isEmpty } })
+        assertTrue(clients.all { client -> client.values.all { it == null } })
     }
 
     @Test fun `placement journal preserves full width coordinates across failed writes and restore`() {

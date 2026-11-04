@@ -7,6 +7,23 @@ import org.valkyrienskies.core.internal.physics.*
 import org.valkyrienskies.core.internal.world.VsiClientShipWorld
 
 class FluidOcclusionContentTest {
+    @Test fun `current-only changes update queries without rebuilding occlusion`() {
+        val f = MaskContentFixture()
+        try {
+            val bounds = (16 shl 15) or (16 shl 20) or (16 shl 25)
+            val surface = VsiFluidSurfaceRegion(bounds, 0.0, 1.0, 0.0, 0.0, .5,
+                listOf(VsiFluidSurfaceConstituent(17, 127.5)))
+            f.rows = listOf(VsiFluidFloodedVoxel(1, 0, 0, 17, 128, 0, surfaceRegions = listOf(surface)))
+            f.update()
+            val mask = f.data()
+            f.rows = f.rows.map { it.copy(surfaceRegions = listOf(surface.copy(current =
+                VsiFluidCurrent(1.0, 2.0, 3.0, .1, .2, .3)))) }
+            f.update()
+            assertEquals(1.0, f.flooding!!.get(1, 0, 0)!!.surfaceRegions.single().current!!.velocityX)
+            assertSame(mask, f.data())
+        } finally { f.close() }
+    }
+
     @Test
     fun `new publication metadata retains identical spatial indices and mask`() {
         val f = MaskContentFixture()

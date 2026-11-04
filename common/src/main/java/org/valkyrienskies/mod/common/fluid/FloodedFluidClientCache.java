@@ -76,7 +76,7 @@ public final class FloodedFluidClientCache {
             if (cached == null) continue;
 
             final VsiFluidFloodedVoxel voxel = cached.voxelsByPosition.get(pack(voxelX, voxelY, voxelZ));
-            final int fluidId = voxel == null ? 0 : FluidVoxelGeometry.fluidAt(voxel, local.x - voxelX, local.y - voxelY, local.z - voxelZ);
+            final int fluidId = voxel == null ? 0 : FluidVoxelGeometry.fluidAt(voxel, local.x - voxelX, local.y - voxelY, local.z - voxelZ, true);
             if (fluidId == 0) {
                 continue;
             }
@@ -151,12 +151,13 @@ public final class FloodedFluidClientCache {
             boolean sameFill = previous != null;
             boolean sameValues = sameFill;
             for (final VsiFluidFloodedVoxel voxel : snapshot.getVoxels()) {
-                if (voxel.getFillAmount() > 0) {
+                if (voxel.getFillAmount() > 0 || !voxel.getSurfaceRegions().isEmpty()) {
                     final long key = pack(voxel.getPositionX(), voxel.getPositionY(), voxel.getPositionZ());
                     if (sameFill) {
                         final VsiFluidFloodedVoxel old = previous.voxelsByPosition.get(key);
                         sameFill = old != null && Math.min(255, old.getFillAmount()) == Math.min(255, voxel.getFillAmount())
-                            && old.getRegions().equals(voxel.getRegions());
+                            && old.getRegions().equals(voxel.getRegions())
+                            && FluidVoxelGeometry.sameSurfaceGeometry(old.getSurfaceRegions(), voxel.getSurfaceRegions());
                         sameValues &= voxel.equals(old);
                     }
                     cells.put(key, voxel);

@@ -10,6 +10,42 @@ import org.lwjgl.opengl.GL20
 
 class FluidOcclusionLifecycleTest {
     @Test
+    fun `removing the last ship releases masks without another fluid draw`() {
+        mockkStatic(GL11::class, TextureUtil::class)
+        try {
+            every { GL11.glIsTexture(any()) } answers { firstArg<Int>() in 113..115 }
+            every { TextureUtil.releaseTextureId(any()) } just Runs
+            FluidOcclusionRenderer.clear()
+            val world = mockk<org.valkyrienskies.core.internal.world.VsiClientShipWorld>()
+            every { world.loadedShips.getById(7L) } returns mockk()
+            val type = FluidOcclusionRenderer::class.java
+            val masks = type.getDeclaredField("SHIP_MASKS").apply { isAccessible = true }.get(null) as Long2ObjectOpenHashMap<Any>
+            val maskType = Class.forName("org.valkyrienskies.mod.common.fluid.FluidOcclusionRenderer\$ShipMask")
+            val mask = maskType.getDeclaredConstructor(Long::class.javaPrimitiveType).apply { isAccessible = true }.newInstance(7L)
+            val texture = maskType.getDeclaredField("textureId").apply { isAccessible = true }
+            texture.setInt(mask, 113)
+            masks.put(7L, mask)
+            val overflow = type.getDeclaredField("OVERFLOW").apply { isAccessible = true }.get(null)
+            for ((name, id) in listOf("maskTexture" to 114, "descriptorTexture" to 115))
+                overflow.javaClass.getDeclaredField(name).apply { isAccessible = true }.setInt(overflow, id)
+
+            FluidOcclusionRenderer.prune(world)
+            assertEquals(1, masks.size)
+            verify(exactly = 0) { TextureUtil.releaseTextureId(any()) }
+            every { world.loadedShips.getById(7L) } returns null
+            FluidOcclusionRenderer.prune(world)
+            assertTrue(masks.isEmpty())
+            assertEquals(0, texture.getInt(mask))
+            for (id in 113..115) verify(exactly = 1) { TextureUtil.releaseTextureId(id) }
+            FluidOcclusionRenderer.prune(world)
+            for (id in 113..115) verify(exactly = 1) { TextureUtil.releaseTextureId(id) }
+        } finally {
+            FluidOcclusionRenderer.clear()
+            unmockkStatic(GL11::class, TextureUtil::class)
+        }
+    }
+
+    @Test
     fun `closing a shader releases masks and a reused program id gets fresh locations`() {
         // Exercise resource ownership without requiring a window or GL context.
         mockkStatic(GL20::class, GL11::class, TextureUtil::class)

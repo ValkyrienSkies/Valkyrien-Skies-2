@@ -16,6 +16,8 @@ interface IShipObjectWorldServerProvider : IShipObjectWorldProvider {
     val vsPipeline: VsiPipeline?
     val fractionalFluidSources: FractionalFluidSources?
     val fluidOutflowManager: WorldFluidOutflowManager?
+    val fluidBlockInteractions: org.valkyrienskies.mod.common.fluid.RetainedFluidBlockInteractions?
+        get() = null
 }
 
 interface IShipObjectWorldClientProvider : IShipObjectWorldProvider {

@@ -31,9 +31,21 @@ object VSGamePackets {
         PacketPlayerShipMotion::class.register()
         PacketChangeKnownShips::class.register()
         PacketPhysicsDebug::class.register()
+        PacketFluidParcel::class.register()
+        PacketFluidParcelBatch::class.register()
     }
 
     fun registerHandlers() = with(vsCore.simplePacketNetworking) {
+        PacketFluidParcel::class.registerClientHandler { packet ->
+            Minecraft.getInstance().connection?.let {
+                org.valkyrienskies.mod.common.fluid.FluidParcelRenderer.enqueue(packet, it)
+            }
+        }
+        PacketFluidParcelBatch::class.registerClientHandler { batch ->
+            Minecraft.getInstance().connection?.let {
+                org.valkyrienskies.mod.common.fluid.FluidParcelRenderer.enqueue(batch.packets(), it)
+            }
+        }
         PacketPhysicsDebug::class.registerClientHandler { packet ->
             val minecraft = Minecraft.getInstance()
             val connection = minecraft.connection

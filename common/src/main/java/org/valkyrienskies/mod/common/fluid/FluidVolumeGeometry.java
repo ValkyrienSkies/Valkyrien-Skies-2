@@ -14,16 +14,19 @@ final class FluidVolumeGeometry {
     private FluidVolumeGeometry() {
     }
 
+    record Contact(double top, double volume, Vec3 center) { }
+
     static final class Box {
         final AABB bounds;
-        private final Plane[] planes;
+        private Plane[] planes;
 
         Box(final AABB local, final Matrix4dc toWorld, final Matrix4dc toLocal, final Vec3 origin) {
-            final AABBd transformed = new AABBd(local.minX, local.minY, local.minZ,
-                local.maxX, local.maxY, local.maxZ).transform(toWorld);
-            bounds = new AABB(transformed.minX - origin.x, transformed.minY - origin.y, transformed.minZ - origin.z,
-                transformed.maxX - origin.x, transformed.maxY - origin.y, transformed.maxZ - origin.z);
             final Vector3d localOrigin = toLocal.transformPosition(origin.x, origin.y, origin.z, new Vector3d());
+            final var relative = new org.joml.Matrix4d(toWorld).setTranslation(0, 0, 0);
+            final AABBd transformed = new AABBd(local.minX - localOrigin.x, local.minY - localOrigin.y, local.minZ - localOrigin.z,
+                local.maxX - localOrigin.x, local.maxY - localOrigin.y, local.maxZ - localOrigin.z).transform(relative);
+            bounds = new AABB(transformed.minX, transformed.minY, transformed.minZ,
+                transformed.maxX, transformed.maxY, transformed.maxZ);
             planes = new Plane[] {
                 new Plane(-toLocal.m00(), -toLocal.m10(), -toLocal.m20(), localOrigin.x - local.minX),
                 new Plane(toLocal.m00(), toLocal.m10(), toLocal.m20(), local.maxX - localOrigin.x),
@@ -32,6 +35,23 @@ final class FluidVolumeGeometry {
                 new Plane(-toLocal.m02(), -toLocal.m12(), -toLocal.m22(), localOrigin.z - local.minZ),
                 new Plane(toLocal.m02(), toLocal.m12(), toLocal.m22(), local.maxZ - localOrigin.z)
             };
+        }
+
+        Box(final org.valkyrienskies.core.internal.physics.VsiFluidFloodedVoxel voxel,
+            final org.valkyrienskies.core.internal.physics.VsiFluidSurfaceRegion surface,
+            final Matrix4dc toWorld, final Matrix4dc toLocal, final Vec3 origin) {
+            this(FluidVoxelGeometry.localBounds(surface.getBounds()).move(voxel.getPositionX(), voxel.getPositionY(),
+                voxel.getPositionZ()), toWorld, toLocal, origin);
+            final var localOrigin = toLocal.transformPosition(origin.x, origin.y, origin.z, new Vector3d())
+                .sub(voxel.getPositionX(), voxel.getPositionY(), voxel.getPositionZ());
+            final double nx = surface.getNormalX(), ny = surface.getNormalY(), nz = surface.getNormalZ();
+            final double x = nx * toLocal.m00() + ny * toLocal.m01() + nz * toLocal.m02();
+            final double y = nx * toLocal.m10() + ny * toLocal.m11() + nz * toLocal.m12();
+            final double z = nx * toLocal.m20() + ny * toLocal.m21() + nz * toLocal.m22();
+            final double shift = nx * localOrigin.x + ny * localOrigin.y + nz * localOrigin.z;
+            planes = java.util.Arrays.copyOf(planes, 8);
+            planes[6] = new Plane(x, y, z, surface.getUpperProjection() - shift);
+            planes[7] = new Plane(-x, -y, -z, shift - surface.getLowerProjection());
         }
 
         double intersectionTop(final AABB query) {
@@ -44,12 +64,23 @@ final class FluidVolumeGeometry {
             return intersection == null ? Double.NaN : intersection.bounds.maxY;
         }
 
+        Contact contact(final AABB query) {
+            if (!bounds.intersects(query)) return null;
+            if (contains(query)) return new Contact(query.maxY, query.getXsize() * query.getYsize() * query.getZsize(), query.getCenter());
+            Poly intersection = Poly.box(query);
+            for (final Plane plane : planes) {
+                if (intersection == null) return null;
+                intersection = intersection.clip(plane);
+            }
+            return intersection == null ? null : intersection.contact();
+        }
+
         private boolean contains(final AABB query) {
             for (final Plane plane : planes) {
                 final double x = plane.x >= 0 ? query.maxX : query.minX;
                 final double y = plane.y >= 0 ? query.maxY : query.minY;
                 final double z = plane.z >= 0 ? query.maxZ : query.minZ;
-                if (plane.x * x + plane.y * y + plane.z * z > plane.offset) return false;
+                if (plane.distance(x, y, z) > 0) return false;
             }
             return true;
         }
@@ -93,7 +124,14 @@ final class FluidVolumeGeometry {
 
     private record Plane(double x, double y, double z, double offset) {
         double distance(final Vec3 point) {
-            return x * point.x + y * point.y + z * point.z - offset;
+            return distance(point.x, point.y, point.z);
+        }
+
+        double distance(final double px, final double py, final double pz) {
+            final double dx = x * px, dy = y * py, dz = z * pz;
+            final double distance = dx + dy + dz - offset;
+            final double tolerance = Math.ulp(Math.abs(dx) + Math.abs(dy) + Math.abs(dz) + Math.abs(offset)) * 8;
+            return Math.abs(distance) <= tolerance ? 0 : distance;
         }
 
         Plane reversed() {
@@ -185,6 +223,22 @@ final class FluidVolumeGeometry {
                 }
             }
             return volume6 > boxVolume * 1.0e-12;
+        }
+
+        private Contact contact() {
+            final Vec3 origin = faces.get(0).get(0);
+            double volume = 0;
+            Vec3 moment = Vec3.ZERO;
+            for (final List<Vec3> face : faces) {
+                final Vec3 a = face.get(0).subtract(origin);
+                for (int i = 1; i + 1 < face.size(); i++) {
+                    final Vec3 b = face.get(i).subtract(origin), c = face.get(i + 1).subtract(origin);
+                    final double part = Math.abs(a.dot(b.cross(c))) / 6;
+                    volume += part;
+                    moment = moment.add(a.add(b).add(c).scale(part / 4));
+                }
+            }
+            return volume > 0 ? new Contact(bounds.maxY, volume, origin.add(moment.scale(1 / volume))) : null;
         }
 
         private static void addUnique(final List<Vec3> points, final Vec3 added) {

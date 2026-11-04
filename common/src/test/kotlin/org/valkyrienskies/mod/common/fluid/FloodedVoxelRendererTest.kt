@@ -2,6 +2,7 @@ package org.valkyrienskies.mod.common.fluid
 
 import com.mojang.blaze3d.vertex.VertexConsumer
 import io.mockk.mockk
+import io.mockk.every
 import net.minecraft.client.renderer.texture.TextureAtlasSprite
 import org.joml.Matrix3f
 import org.joml.Matrix4f
@@ -12,6 +13,29 @@ import org.junit.jupiter.api.Test
 import org.valkyrienskies.core.internal.physics.VsiFluidFloodedVoxel
 
 class FloodedVoxelRendererTest {
+    @Test
+    fun `partial void faces crop textures at block scale instead of squeezing full sprites`() {
+        val sprite = mockk<TextureAtlasSprite>()
+        every { sprite.getU(any()) } answers { firstArg<Double>().toFloat() / 16f }
+        every { sprite.getV(any()) } answers { firstArg<Double>().toFloat() / 16f }
+        val recorder = Recorder()
+        FloodedVoxelRenderer.renderPartialBox(Matrix4f(), Matrix3f(), recorder,
+            net.minecraft.world.phys.AABB(-1.75, 3.25, 5.5, -1.5, 3.75, 6.0), Vector3d(-16.0, 0.0, 0.0),
+            1f, 1f, 1f, 1f, 0, sprite, sprite)
+        for (quad in recorder.vertices.chunked(4)) {
+            val normal = quad.first().normal
+            val u = quad.map { it.u }; val v = quad.map { it.v }
+            if (kotlin.math.abs(normal.y) > 0.99f) {
+                assertEquals(0.25f, u.min(), 1e-6f); assertEquals(0.5f, u.max(), 1e-6f)
+                assertEquals(0.5f, v.min(), 1e-6f); assertEquals(1f, v.max(), 1e-6f)
+            } else {
+                val start = if (kotlin.math.abs(normal.x) > 0.99f) 0.25f else 0.125f
+                assertEquals(start, u.min(), 1e-6f); assertEquals(start * 2, u.max(), 1e-6f)
+                assertEquals(0.126f, v.min(), 1e-6f); assertEquals(0.374f, v.max(), 1e-6f)
+            }
+        }
+    }
+
     @Test
     fun `partial stacked cells retain both horizontal faces across the air gap`() {
         val quads = renderCells(128, 128).chunked(4)
@@ -85,12 +109,14 @@ class FloodedVoxelRendererTest {
         return recorder.vertices
     }
 
-    private data class Vertex(val position: Vector3d, val normal: Vector3f)
+    private data class Vertex(val position: Vector3d, val normal: Vector3f, val u: Float, val v: Float)
 
     private class Recorder : VertexConsumer {
         val vertices = mutableListOf<Vertex>()
         private var position = Vector3d()
         private var normal = Vector3f()
+        private var u = 0f
+        private var v = 0f
         override fun vertex(x: Double, y: Double, z: Double): VertexConsumer = apply {
             position = Vector3d(x, y, z)
         }
@@ -98,10 +124,10 @@ class FloodedVoxelRendererTest {
             normal = Vector3f(x, y, z)
         }
         override fun color(r: Int, g: Int, b: Int, a: Int): VertexConsumer = this
-        override fun uv(u: Float, v: Float): VertexConsumer = this
+        override fun uv(u: Float, v: Float): VertexConsumer = apply { this.u = u; this.v = v }
         override fun overlayCoords(u: Int, v: Int): VertexConsumer = this
         override fun uv2(u: Int, v: Int): VertexConsumer = this
-        override fun endVertex() { vertices.add(Vertex(position, normal)) }
+        override fun endVertex() { vertices.add(Vertex(position, normal, u, v)) }
         override fun defaultColor(r: Int, g: Int, b: Int, a: Int) {}
         override fun unsetDefaultColor() {}
     }

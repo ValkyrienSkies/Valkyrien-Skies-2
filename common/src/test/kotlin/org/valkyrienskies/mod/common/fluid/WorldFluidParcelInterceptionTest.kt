@@ -89,6 +89,29 @@ class WorldFluidParcelInterceptionTest {
 
     private fun entry(manager: WorldFluidOutflowManager) = manager.save().getList("parcels", Tag.TAG_COMPOUND.toInt()).getCompound(0)
 
+    @Test fun `momentum survives airborne parcel reload and partial interception`() {
+        val momentum = VsiFluidParcelMomentum(1000.0, .02, .01, -.03, .1, .1, .1, .0, .0, .0)
+        val first = WorldFluidOutflowManager(8, 8)
+        assertEquals(VsiFluidOutflowResult.APPLIED, first.enqueue(level, VsiFluidOutflow(1, 1, 1, DIMENSION, 7,
+            .5, 100.5, .5, 0.0, -1.0, 0.0, 2.0, -5.0, 1.0, 17, 510, momentum = momentum)))
+        val saved = first.save()
+        assertEquals(7, saved.getInt("version"))
+        val manager = WorldFluidOutflowManager(8, 8).also { it.load(saved) }
+        assertEquals(saved, manager.save())
+        manager.tick(levels)
+        val request = requests.values.single()
+        assertEquals(momentum, request.momentum)
+        assertEquals(2.0, request.worldVelocityX)
+        assertTrue(requireNotNull(request.worldVelocityY) < -5.0)
+        receipts[request.id] = VsiFluidParcelInterceptionResult(255.0, .5, 19)
+        ships.clear()
+        val restored = WorldFluidOutflowManager(8, 8).also { it.load(manager.save()) }
+        restored.tick(levels)
+        assertEquals(1.0, entry(restored).getString("volume").toDouble())
+        assertEquals(.02, entry(restored).getCompound("momentum").getDouble("lx"))
+        assertEquals(1, requests.size)
+    }
+
     @Test fun `partial catch survives reload and debits the world parcel exactly once`() {
         var manager = manager()
         manager.tick(levels)

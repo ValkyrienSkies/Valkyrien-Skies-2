@@ -379,6 +379,12 @@ class ValkyrienSkiesModForge {
             ShaderInstance(event.resourceProvider, "rendertype_ship_cutout", DefaultVertexFormat.BLOCK)
         ) { shaderInstance: ShaderInstance? -> VSRenderTypes.shipCutoutShader = shaderInstance }
         event.registerShader(
+            ShaderInstance(event.resourceProvider, "vs_exterior_fluid_fog", DefaultVertexFormat.POSITION)
+        ) { shader -> org.valkyrienskies.mod.common.fluid.ExteriorFluidFog.setShader(shader) }
+        event.registerShader(
+            ShaderInstance(event.resourceProvider, "vs_retained_fluid", DefaultVertexFormat.NEW_ENTITY)
+        ) { shader -> org.valkyrienskies.mod.common.fluid.RetainedFluidRenderer.setShader(shader) }
+        event.registerShader(
             ShaderInstance(event.resourceProvider, "rendertype_ship_translucent", DefaultVertexFormat.BLOCK)
         ) { shaderInstance: ShaderInstance? -> VSRenderTypes.shipTranslucentShader = shaderInstance }
         event.registerShader(

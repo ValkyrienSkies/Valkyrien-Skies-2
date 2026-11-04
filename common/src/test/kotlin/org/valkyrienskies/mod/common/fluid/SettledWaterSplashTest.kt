@@ -102,6 +102,107 @@ class SettledWaterSplashTest {
         manager = WorldFluidOutflowManager().also { it.load(manager.save()) }
     }
 
+    @Test fun `landed water takes an open downhill step and preserves volume across reload`() {
+        val lower = pos.east().below()
+        blocks[lower] = Blocks.AIR.defaultBlockState()
+        assertEquals(VsiFluidOutflowResult.APPLIED, manager.enqueueExact(DIM, WATER,
+            Vector3d(0.5, 1.05, 0.5), Vector3d(), BigDecimal("63.75")))
+
+        manager.tick(levels)
+        assertEquals(1, manager.activeParcelCount())
+        assertTrue(level.getBlockState(pos).isAir)
+        reload()
+        repeat(20) { manager.tick(levels) }
+
+        assertEquals(0, manager.activeParcelCount())
+        assertEquals(1, sources.size)
+        assertEquals(BigDecimal("63.75"), amount(lower))
+        assertTrue(level.getBlockState(pos).isAir)
+    }
+
+    @Test fun `runoff drains into a lower natural source`() {
+        val lower = pos.east().below()
+        val source = Blocks.WATER.defaultBlockState()
+        blocks[lower] = source
+        assertEquals(VsiFluidOutflowResult.APPLIED, manager.enqueueExact(DIM, WATER,
+            Vector3d(0.5, 1.05, 0.5), Vector3d(), BigDecimal("63.75")))
+
+        repeat(20) { manager.tick(levels) }
+
+        assertEquals(0, manager.activeParcelCount())
+        assertEquals(0, sources.size)
+        assertEquals(source, level.getBlockState(lower))
+        assertTrue(level.getBlockState(pos).isAir)
+    }
+
+    @Test fun `runoff skips an unloaded downhill neighbor`() {
+        val unloaded = pos.west()
+        blocks[unloaded.below()] = Blocks.AIR.defaultBlockState()
+        every { level.hasChunkAt(unloaded) } returns false
+
+        settle("0.25")
+
+        assertEquals(BigDecimal("63.75"), amount())
+        verify(exactly = 0) { level.getBlockState(unloaded) }
+        verify(exactly = 0) { level.getBlockState(unloaded.below()) }
+    }
+
+    @Test fun `an oblique impact skims across a flat floor before settling`() {
+        assertEquals(VsiFluidOutflowResult.APPLIED, manager.enqueueExact(DIM, WATER,
+            Vector3d(0.5, 1.15, 0.5), Vector3d(6.0, -8.0, 0.0), BigDecimal("63.75")))
+
+        manager.tick(levels)
+        assertEquals(1, manager.activeParcelCount())
+        assertTrue(level.getBlockState(pos).isAir)
+        reload()
+        repeat(20) { manager.tick(levels) }
+
+        assertEquals(0, manager.activeParcelCount())
+        assertEquals(1, sources.size)
+        assertEquals(BigDecimal("63.75"), amount(pos.east()))
+    }
+
+    @Test fun `a hard vertical impact divides a parcel between opposite neighbors`() {
+        assertEquals(VsiFluidOutflowResult.APPLIED, manager.enqueueExact(DIM, WATER,
+            Vector3d(0.5, 1.15, 0.5), Vector3d(0.0, -12.0, 0.0), BigDecimal("63.75")))
+
+        manager.tick(levels)
+        assertEquals(2, manager.activeParcelCount())
+        reload()
+        repeat(20) { manager.tick(levels) }
+
+        assertEquals(0, manager.activeParcelCount())
+        assertEquals(2, sources.size)
+        assertEquals(BigDecimal("31.875"), amount(pos.north()))
+        assertEquals(BigDecimal("31.875"), amount(pos.south()))
+        assertTrue(level.getBlockState(pos).isAir)
+    }
+
+    @Test fun `a splash under parcel queue pressure keeps the original volume`() {
+        manager = WorldFluidOutflowManager(maxActiveParcels = 1)
+        assertEquals(VsiFluidOutflowResult.APPLIED, manager.enqueueExact(DIM, WATER,
+            Vector3d(0.5, 1.15, 0.5), Vector3d(0.0, -12.0, 0.0), BigDecimal("63.75")))
+
+        repeat(20) { manager.tick(levels) }
+
+        assertEquals(0, manager.activeParcelCount())
+        assertEquals(1, sources.size)
+        assertEquals(BigDecimal("63.75"), amount(pos.north()))
+    }
+
+    @Test fun `a solid wall stops impact spread`() {
+        blocks[pos.east()] = Blocks.STONE.defaultBlockState()
+        assertEquals(VsiFluidOutflowResult.APPLIED, manager.enqueueExact(DIM, WATER,
+            Vector3d(0.5, 1.15, 0.5), Vector3d(6.0, -8.0, 0.0), BigDecimal("63.75")))
+
+        repeat(20) { manager.tick(levels) }
+
+        assertEquals(0, manager.activeParcelCount())
+        assertEquals(1, sources.size)
+        assertEquals(BigDecimal("63.75"), amount())
+        assertEquals(Blocks.STONE.defaultBlockState(), level.getBlockState(pos.east()))
+    }
+
     @Test fun `small landed spray expires at its configured age across reload`() {
         settle("0.125")
         age(9)

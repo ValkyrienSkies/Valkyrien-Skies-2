@@ -8,11 +8,14 @@ import net.minecraft.server.Bootstrap
 import net.minecraft.server.packs.resources.ResourceManager
 import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.LiquidBlock
+import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.phys.shapes.Shapes
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
 import org.valkyrienskies.core.api.physics.blockstates.BoxesBlockShape
 import org.valkyrienskies.core.api.physics.blockstates.FluidBoundaryShape
+import org.valkyrienskies.core.api.physics.blockstates.LiquidState
 import org.valkyrienskies.core.api.physics.blockstates.SolidState
 import org.valkyrienskies.core.internal.VsiCore
 import org.valkyrienskies.core.internal.physics.blockstates.VsiBlockState
@@ -44,6 +47,7 @@ class BlockMaterialRegistrationTest {
         val fallback = mockk<VsiBlockType>()
         val registered = mutableMapOf<VsiBlockState, VsiBlockType>()
         val boundaries = java.util.IdentityHashMap<SolidState, FluidBoundaryShape?>()
+        val fluids = java.util.IdentityHashMap<LiquidState, Pair<String, String>>()
         mockkStatic("org.valkyrienskies.mod.common.VSGameUtilsKt")
         mockkStatic(StairBlockAccessor::class, SlabBlockAccessor::class)
         mockkStatic(MassDatapackResolver::class)
@@ -64,6 +68,19 @@ class BlockMaterialRegistrationTest {
             every { shapeBuilder.addCollisionPoints(any()) } returns shapeBuilder
             every { shapeBuilder.addPositiveBox(any()) } returns shapeBuilder
             every { shapeBuilder.build() } returns shape
+            every { core.newLiquidStateBuilder() } answers {
+                var key = ""
+                var group = ""
+                val builder = mockk<LiquidState.Builder>()
+                every { builder.materialKey(any()) } answers { key = firstArg(); builder }
+                every { builder.mixingGroup(any()) } answers { group = firstArg(); builder }
+                every { builder.boxShape(any()) } returns builder
+                every { builder.density(any()) } returns builder
+                every { builder.dragCoefficient(any()) } returns builder
+                every { builder.velocity(any()) } returns builder
+                every { builder.build() } answers { mockk<LiquidState>().also { fluids[it] = key to group } }
+                builder
+            }
             every { core.newSolidStateBuilder() } answers {
                 var value = -1.0
                 var boundary: FluidBoundaryShape? = null
@@ -91,7 +108,9 @@ class BlockMaterialRegistrationTest {
             }.toMutableMap()
             resources[ResourceLocation("test", "boundaries")] = JsonParser.parseString("""[
                 {"block":"minecraft:dandelion","fluid_boundary":"closed","priority":999},
-                {"block":"minecraft:stone","fluid_boundary":"open","priority":999}
+                {"block":"minecraft:stone","fluid_boundary":"open","priority":999},
+                {"block":"minecraft:water","fluid_mixing_group":"test:aqueous","priority":999},
+                {"block":"minecraft:oak_slab","fluid_mixing_group":"test:wrong_solid_group","priority":999}
             ]""")
             val loader = MassDatapackResolver.loader
             loader.javaClass.getDeclaredMethod("apply", Map::class.java, ResourceManager::class.java, ProfilerFiller::class.java)
@@ -110,6 +129,23 @@ class BlockMaterialRegistrationTest {
                 val type = MassDatapackResolver.getBlockStateType(state)
                 val material = registered.entries.single { it.value === type }.key.solidState!!
                 assertEquals(expected, boundaries[material])
+            }
+            val wetBlocks = listOf(
+                Blocks.OAK_SLAB.defaultBlockState().setValue(BlockStateProperties.WATERLOGGED, true),
+                Blocks.WATER.defaultBlockState(),
+                Blocks.WATER.defaultBlockState().setValue(LiquidBlock.LEVEL, 4),
+                Blocks.LAVA.defaultBlockState()
+            )
+            for (order in listOf(wetBlocks, wetBlocks.reversed())) {
+                MassDatapackResolver.registerAllBlockStates(order)
+                MassDatapackResolver.blockStateData.forEach { registered[it] = mockk() }
+                for (state in wetBlocks) {
+                    val type = MassDatapackResolver.getBlockStateType(state)
+                    val material = registered.entries.single { it.value === type }.key.liquidState!!
+                    val expected = if (state.block == Blocks.LAVA) "minecraft:lava" to "minecraft:lava"
+                        else "minecraft:water" to "test:aqueous"
+                    assertEquals(expected, fluids[material], "Material registration for $state")
+                }
             }
         } finally {
             unmockkAll()

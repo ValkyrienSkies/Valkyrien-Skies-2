@@ -9,7 +9,7 @@ import static org.lwjgl.opengl.GL33.*;
 /** Render all ship boxes into a shared depth texture. Restore the caller's OpenGL state. */
 public final class ShipShadowMap implements AutoCloseable {
     public static final int TEXTURE_UNIT = 14;
-    private static final int COMPARISON_TEXTURE_UNIT = 15;
+    public static final int COMPARISON_TEXTURE_UNIT = 15;
     private int comparisonSampler;
     private int texture;
     private int framebuffer;
@@ -216,7 +216,13 @@ public final class ShipShadowMap implements AutoCloseable {
         for (int i = 0; i < 3; i++) {
             glEnableVertexAttribArray(i);
             glVertexAttribPointer(i, 4, GL_FLOAT, false, 48, i * 16L);
-            glVertexAttribDivisor(i, 1);
+            if (org.lwjgl.opengl.GL.getCapabilities().OpenGL33) {
+                glVertexAttribDivisor(i, 1);
+            } else if (org.lwjgl.opengl.GL.getCapabilities().GL_ARB_instanced_arrays) {
+                org.lwjgl.opengl.ARBInstancedArrays.glVertexAttribDivisorARB(i, 1);
+            } else {
+                throw new IllegalStateException("Ship shadows require instanced vertex attributes");
+            }
         }
     }
 
