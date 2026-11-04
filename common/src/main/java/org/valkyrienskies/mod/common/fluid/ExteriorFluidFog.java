@@ -19,6 +19,7 @@ import org.lwjgl.opengl.GL30;
 import org.lwjgl.opengl.GL33;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.compat.LoadedMods;
+import org.valkyrienskies.mod.compat.flooding.shaders.ShaderFluidFog;
 import org.valkyrienskies.mod.compat.iris.IrisCompat;
 
 public final class ExteriorFluidFog {
@@ -59,7 +60,7 @@ public final class ExteriorFluidFog {
     }
 
     public static void clear() {
-        if (LoadedMods.getIris()) org.valkyrienskies.mod.compat.flooding.shaders.complementary.ComplementaryFog.clear();
+        if (LoadedMods.getIris()) ShaderFluidFog.clear();
         FIELD.close();
         if (depthTexture != 0) GlStateManager._deleteTexture(depthTexture);
         if (vertexArray != 0) GL30.glDeleteVertexArrays(vertexArray);

@@ -9,6 +9,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.mod.common.fluid.RetainedFluidRenderer;
+import org.valkyrienskies.mod.compat.flooding.shaders.NativeFluidCompat;
 
 @Mixin(VertexBuffer.class)
 public abstract class MixinRetainedFluidShader {
@@ -17,6 +18,6 @@ public abstract class MixinRetainedFluidShader {
     private void vs$allowRetainedFluidColor(final Matrix4f view, final Matrix4f projection,
         final ShaderInstance shader, final CallbackInfo ci) {
         if (RetainedFluidRenderer.isShader(shader)) DepthColorStorage.unlockDepthColor();
-        org.valkyrienskies.mod.compat.flooding.shaders.complementary.ComplementaryFluidCompat.apply(shader);
+        NativeFluidCompat.apply(shader);
     }
 }
