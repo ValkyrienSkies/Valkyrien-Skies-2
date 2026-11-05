@@ -8,6 +8,7 @@ import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.valkyrienskies.mod.common.fluid.FluidOcclusionTextureState;
+import org.valkyrienskies.mod.compat.flooding.shaders.ShaderFluidFog;
 
 @Pseudo
 @Mixin(targets = "net.irisshaders.iris.gl.program.ProgramSamplers", remap = false)
@@ -23,9 +24,9 @@ public abstract class MixinFluidProgramSamplers {
             result.add(FluidOcclusionTextureState.MASK_UNIT);
             result.add(FluidOcclusionTextureState.DESCRIPTOR_UNIT);
         }
-        if (fog) result.add(org.valkyrienskies.mod.compat.flooding.shaders.complementary.ComplementaryFog.TEXTURE_UNIT);
+        if (fog) result.add(ShaderFluidFog.TEXTURE_UNIT);
         if (GL20.glGetUniformLocation(program, "vs_ExteriorWorldWater") >= 0)
-            result.add(org.valkyrienskies.mod.compat.flooding.shaders.complementary.ComplementaryFog.WATER_FIELD_UNIT);
+            result.add(ShaderFluidFog.WATER_FIELD_UNIT);
         return result;
     }
 }

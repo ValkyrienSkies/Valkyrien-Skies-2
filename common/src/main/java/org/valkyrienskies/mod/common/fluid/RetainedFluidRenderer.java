@@ -33,7 +33,7 @@ import org.valkyrienskies.mod.common.config.MassDatapackResolver;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.compat.LoadedMods;
 import org.valkyrienskies.mod.compat.iris.IrisCompat;
-import org.valkyrienskies.mod.compat.flooding.shaders.complementary.ComplementaryFluidCompat;
+import org.valkyrienskies.mod.compat.flooding.shaders.NativeFluidCompat;
 
 public final class RetainedFluidRenderer {
     private static final Map<Long, ShipMeshes> SHIPS = new HashMap<>();
@@ -106,12 +106,12 @@ public final class RetainedFluidRenderer {
             entry.getValue().close(); return true;
         });
         draws.sort(Comparator.comparingDouble(Draw::distance).reversed());
-        final var packShader = LoadedMods.getIris() ? ComplementaryFluidCompat.shader(opaquePass) : null;
+        final var packShader = LoadedMods.getIris() ? NativeFluidCompat.shader(opaquePass) : null;
         final var drawShader = packShader == null ? shader : packShader;
         final RenderType type = opaquePass ? RenderType.solid() : RenderType.translucent();
         type.setupRenderState();
         RenderSystem.disableCull();
-        if (packShader != null) ComplementaryFluidCompat.drawing = true;
+        if (packShader != null) NativeFluidCompat.drawing = true;
         try {
             for (final var draw : draws) {
                 final var mesh = draw.mesh;
@@ -131,7 +131,7 @@ public final class RetainedFluidRenderer {
                 } finally { poseStack.popPose(); }
             }
         } finally {
-            if (packShader != null) ComplementaryFluidCompat.drawing = false;
+            if (packShader != null) NativeFluidCompat.drawing = false;
             VertexBuffer.unbind();
             RenderSystem.enableCull();
             type.clearRenderState();
@@ -219,7 +219,7 @@ public final class RetainedFluidRenderer {
 
         void update(final ClientLevel level, final ClientShip ship,
             final FloodedFluidClientCache.CachedSnapshot flooding, final FluidTopologyClientCache.CachedSnapshot topology) {
-            final boolean nativeMaterial = LoadedMods.getIris() && ComplementaryFluidCompat.active();
+            final boolean nativeMaterial = LoadedMods.getIris() && NativeFluidCompat.active();
             final var currentTransform = ship.getRenderTransform().getShipToWorld();
             final Object domain = topology == null ? null : topology.occlusionIdentity();
             if (nativeFormat == nativeMaterial && snapshot == flooding && topologyIdentity == domain && tick == level.getGameTime()
@@ -326,7 +326,7 @@ public final class RetainedFluidRenderer {
         }
 
         void update(final List<Cell> next, final FloodedFluidClientCache.CachedSnapshot flooding) {
-            final boolean nativeMaterial = LoadedMods.getIris() && ComplementaryFluidCompat.active();
+            final boolean nativeMaterial = LoadedMods.getIris() && NativeFluidCompat.active();
             if (built && packFormat == nativeMaterial && (buffer == null || !buffer.isInvalid()) && cells.equals(next)) return;
             packFormat = nativeMaterial;
             BUILDER.begin(VertexFormat.Mode.QUADS, packFormat ? DefaultVertexFormat.BLOCK : DefaultVertexFormat.NEW_ENTITY);
@@ -336,7 +336,7 @@ public final class RetainedFluidRenderer {
                     if (packFormat) {
                         final var fluid = ClientFluidTypes.get(cell.surface == null ? cell.voxel.getFluidId()
                             : FluidVoxelGeometry.dominantFluid(cell.surface, true));
-                        ComplementaryFluidCompat.beginFluid(BUILDER, fluid == null ? null : fluid.defaultFluidState(),
+                        NativeFluidCompat.beginFluid(BUILDER, fluid == null ? null : fluid.defaultFluidState(),
                             cell.voxel.getPositionX() & 15, cell.voxel.getPositionY() & 15, cell.voxel.getPositionZ() & 15);
                     }
                     if (cell.surface != null) renderSurface(cell, origin);
@@ -359,7 +359,7 @@ public final class RetainedFluidRenderer {
                 for (final var cell : next) { sprites.add(cell.appearance.still()); sprites.add(cell.appearance.flowing()); }
                 built = true;
             } finally {
-                if (packFormat) ComplementaryFluidCompat.endFluid(BUILDER);
+                if (packFormat) NativeFluidCompat.endFluid(BUILDER);
                 if (BUILDER.building()) BUILDER.discard();
             }
         }
@@ -410,8 +410,8 @@ public final class RetainedFluidRenderer {
         final boolean horizontal = Math.abs(textureY) >= Math.max(Math.abs(textureX), Math.abs(textureZ));
         final double textureScale = top ? 16 : 8;
         for (final var piece : FluidInterfaceGeometry.partition(cell, face, normal, includeSelf)) {
-            if (LoadedMods.getIris() && ComplementaryFluidCompat.active())
-                ComplementaryFluidCompat.interfaceFace(BUILDER, piece.interfaceFace());
+            if (LoadedMods.getIris() && NativeFluidCompat.active())
+                NativeFluidCompat.interfaceFace(BUILDER, piece.interfaceFace());
             final var points = piece.points();
             for (int i = 1; i + 1 < points.size(); i++) {
                 for (final int index : new int[]{0, i, i + 1, i + 1}) {

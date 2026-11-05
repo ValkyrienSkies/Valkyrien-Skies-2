@@ -7,7 +7,7 @@ import com.mojang.blaze3d.vertex.BufferUploader
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.mojang.blaze3d.vertex.VertexFormat
 import org.valkyrienskies.mod.compat.LoadedMods
-import org.valkyrienskies.mod.compat.flooding.shaders.complementary.ComplementaryFluidCompat
+import org.valkyrienskies.mod.compat.flooding.shaders.NativeFluidCompat
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.client.multiplayer.ClientPacketListener
@@ -115,7 +115,7 @@ object FluidParcelRenderer {
         val current = minecraft.level
         if (current == null) { clear(); return }
         bindLevel(current)
-        val nativeMaterial = LoadedMods.iris && ComplementaryFluidCompat.active()
+        val nativeMaterial = LoadedMods.iris && NativeFluidCompat.active()
         if (nativeMaterial && !renderingShaderFrame) {
             val pose = PoseStack().apply { mulPoseMatrix(org.joml.Matrix4f(matrices.last().pose())) }
             shaderSampleTime = clock.sample(System.nanoTime(), minecraft.isPaused)
@@ -169,7 +169,7 @@ object FluidParcelRenderer {
                         .also { appearances[key] = it }
                 }
                 val (appearance, light) = appearanceAndLight ?: continue
-                if (nativeMaterial) ComplementaryFluidCompat.beginFluid(packBuilder, fluid, pos.x and 15, pos.y and 15, pos.z and 15)
+                if (nativeMaterial) NativeFluidCompat.beginFluid(packBuilder, fluid, pos.x and 15, pos.y and 15, pos.z and 15)
                 val sprite = appearance.still()
                 if (sodium) org.valkyrienskies.mod.compat.sodium.SodiumFluidSprites.markActive(listOf(sprite))
                 val size = maxOf(1.0, kotlin.math.ceil(maxOf(face.maxU() - face.minU(), face.maxV() - face.minV()) / 8))
@@ -209,11 +209,11 @@ object FluidParcelRenderer {
                     type.setupRenderState()
                     RenderSystem.disableCull()
                     try {
-                        ComplementaryFluidCompat.drawing = true
-                        RenderSystem.setShader { ComplementaryFluidCompat.shader(opaquePass)!! }
+                        NativeFluidCompat.drawing = true
+                        RenderSystem.setShader { NativeFluidCompat.shader(opaquePass)!! }
                         BufferUploader.drawWithShader(rendered)
                     } finally {
-                        ComplementaryFluidCompat.drawing = false
+                        NativeFluidCompat.drawing = false
                         RenderSystem.enableCull()
                         type.clearRenderState()
                     }
@@ -221,7 +221,7 @@ object FluidParcelRenderer {
             } else buffers.endBatch(type)
         } finally {
             if (nativeMaterial) {
-                ComplementaryFluidCompat.endFluid(packBuilder)
+                NativeFluidCompat.endFluid(packBuilder)
                 if (packBuilder.building()) packBuilder.discard()
             }
         }

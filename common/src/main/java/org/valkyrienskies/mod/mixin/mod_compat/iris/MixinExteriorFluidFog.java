@@ -14,7 +14,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.mod.common.fluid.ExteriorFluidFog;
+import org.valkyrienskies.mod.common.fluid.FluidParcelRenderer;
 import org.valkyrienskies.mod.common.fluid.RetainedFluidRenderer;
+import org.valkyrienskies.mod.compat.flooding.shaders.NativeFluidCompat;
+import org.valkyrienskies.mod.compat.flooding.shaders.ShaderFluidFog;
 
 @Pseudo
 @Mixin(targets = "net.irisshaders.iris.pipeline.IrisRenderingPipeline", remap = false)
@@ -24,17 +27,17 @@ public abstract class MixinExteriorFluidFog {
     @Unique private GlFramebuffer vs$fogFramebuffer;
 
     @Inject(method = "beginTranslucents", at = @At("HEAD"))
-    private void vs$prepareComplementaryFog(final CallbackInfo ci) {
-        if (org.valkyrienskies.mod.compat.flooding.shaders.complementary.ComplementaryFluidCompat.active()) {
+    private void vs$prepareShaderFluidFog(final CallbackInfo ci) {
+        if (NativeFluidCompat.active()) {
             RetainedFluidRenderer.renderOpaqueShaderFrame();
-            org.valkyrienskies.mod.common.fluid.FluidParcelRenderer.renderOpaqueShaderFrame();
+            FluidParcelRenderer.renderOpaqueShaderFrame();
         }
-        org.valkyrienskies.mod.compat.flooding.shaders.complementary.ComplementaryFog.prepare();
+        ShaderFluidFog.prepare();
     }
 
     @Inject(method = "destroy", at = @At("HEAD"))
-    private void vs$clearComplementaryFog(final CallbackInfo ci) {
-        org.valkyrienskies.mod.compat.flooding.shaders.complementary.ComplementaryFog.clear();
+    private void vs$clearShaderFluidFog(final CallbackInfo ci) {
+        ShaderFluidFog.clear();
     }
 
     @Inject(method = "beginTranslucents", at = @At("RETURN"))
@@ -47,11 +50,11 @@ public abstract class MixinExteriorFluidFog {
             if (vs$fogFramebuffer == null) {
                 vs$fogFramebuffer = renderTargets.createGbufferFramebuffer(flippedAfterTranslucent, new int[]{0});
             }
-            if (!org.valkyrienskies.mod.compat.flooding.shaders.complementary.ComplementaryFluidCompat.active())
+            if (!NativeFluidCompat.active())
                 ExteriorFluidFog.renderToShaderTarget(vs$fogFramebuffer.getId(), color.getWidth(), color.getHeight());
             GL30.glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER, vs$fogFramebuffer.getId());
             RetainedFluidRenderer.renderShaderFrame();
-            org.valkyrienskies.mod.common.fluid.FluidParcelRenderer.renderShaderFrame();
+            FluidParcelRenderer.renderShaderFrame();
         } finally {
             GL30.glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER, draw);
             GL30.glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, read);
