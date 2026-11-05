@@ -868,6 +868,14 @@ class WorldFluidOutflowManager @JvmOverloads constructor(
             }
             FluidParcelAction.MERGE -> return ParcelUpdateResult.CONSUMED
             FluidParcelAction.WAIT -> {
+                for (direction in SETTLEMENT_DIRECTIONS) {
+                    val adjacent = currentPos.relative(direction)
+                    if (adjacent.y < level.minBuildHeight || adjacent.y >= level.maxBuildHeight ||
+                        !level.hasChunkAt(adjacent)) continue
+                    if (isOcean(level, parcel, adjacent, level.getBlockState(adjacent), fluid)) {
+                        return ParcelUpdateResult.CONSUMED
+                    }
+                }
                 // An outlet edited closed must not destroy already accepted ownership.
                 if (parcel.settledSources?.isEmpty() == false) staged.settlementAnchor = currentPos
                 return ParcelUpdateResult.PAUSED
