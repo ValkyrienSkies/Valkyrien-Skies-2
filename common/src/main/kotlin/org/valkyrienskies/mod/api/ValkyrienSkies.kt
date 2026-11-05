@@ -42,7 +42,9 @@ import org.valkyrienskies.core.api.world.ShipWorld
 import org.valkyrienskies.core.api.world.properties.DimensionId
 import org.valkyrienskies.core.impl.config.VSCoreConfig
 import org.valkyrienskies.mod.common.config.VSGameConfig
+import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils
+import org.valkyrienskies.mod.mixinducks.world.OfShip
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -122,12 +124,29 @@ fun Level?.getShipManagingChunk(chunkX: Int, chunkZ: Int): Ship? =
     vsApi.getShipManagingChunk(this, chunkX, chunkZ)
 
 fun Level?.getShipManagingChunk(pos: ChunkPos?): Ship? =
-    pos?.let { getShipManagingChunk(pos.x, pos.z) }
+    pos?.let {
+        if (pos is OfShip)
+            pos.ship ?: getShipManagingChunk(pos.x, pos.z)?.also { pos.ship = it }
+        else
+            getShipManagingChunk(pos.x, pos.z)
+    }
 
 fun Level?.getShipManagingBlock(x: Int, y: Int, z: Int): Ship? =
     getShipManagingChunk(x shr 4, z shr 4)
 
 fun Level?.getShipManagingBlock(pos: BlockPos?): Ship? =
+    if (pos is OfShip)
+        pos.ship ?: this?.getShipManagingBlock(pos as Vec3i?)?.also { pos.ship = it }
+    else
+        this?.getShipManagingBlock(pos as Vec3i?)
+
+fun Level?.getShipManagingBlock(pos: Vec3i?): Ship? =
+    pos?.let { if (pos is OfShip)
+        pos.ship ?: this?.getShipManagingBlock(pos.x, pos.y, pos.z)?.also { pos.ship = it }
+    else
+        this?.getShipManagingBlock(pos.x, pos.y, pos.z) }
+
+fun Level?.getShipManagingBlock(pos: Vector3i?): Ship? =
     pos?.let { getShipManagingBlock(pos.x, pos.y, pos.z) }
 
 fun Level?.getShipManagingBlock(x: Double, y: Double, z: Double): Ship? =
@@ -196,6 +215,18 @@ fun Level?.positionToWorld(pos: Vector3d): Vector3d =
 fun Level?.positionToWorld(pos: Vector3dc, dest: Vector3d): Vector3d =
     getShipManagingBlock(pos).positionToWorld(pos, dest)
 
+fun Level?.positionToWorld(pos: Vec3i): Vec3i =
+    getShipManagingBlock(pos).positionToWorld(pos)
+
+fun Level?.positionToWorld(pos: BlockPos): BlockPos =
+    getShipManagingBlock(pos).positionToWorld(pos)
+
+fun Level?.positionToWorld(pos: Vector3i): Vector3i =
+    positionToWorld(pos, pos)
+
+fun Level?.positionToWorld(pos: Vector3i, dest: Vector3i): Vector3i =
+    getShipManagingBlock(pos).positionToWorld(pos, dest)
+
 fun Ship?.positionToWorld(pos: Vec3): Vec3 =
     this?.transform.positionToWorld(pos)
 
@@ -203,6 +234,18 @@ fun Ship?.positionToWorld(pos: Vector3d): Vector3d =
     positionToWorld(pos, pos)
 
 fun Ship?.positionToWorld(pos: Vector3dc, dest: Vector3d): Vector3d =
+    this?.transform.positionToWorld(pos, dest)
+
+fun Ship?.positionToWorld(pos: Vec3i): Vec3i =
+    this?.transform.positionToWorld(pos)
+
+fun Ship?.positionToWorld(pos: BlockPos): BlockPos =
+    this?.transform.positionToWorld(pos)
+
+fun Ship?.positionToWorld(pos: Vector3i): Vector3i =
+    positionToWorld(pos, pos)
+
+fun Ship?.positionToWorld(pos: Vector3i, dest: Vector3i): Vector3i =
     this?.transform.positionToWorld(pos, dest)
 
 fun Ship?.positionToShip(pos: Vec3): Vec3 =
@@ -222,6 +265,21 @@ fun ShipTransform?.positionToWorld(pos: Vector3d): Vector3d =
 
 fun ShipTransform?.positionToWorld(pos: Vector3dc, dest: Vector3d): Vector3d =
     this?.shipToWorld?.transformPosition(pos, dest) ?: dest.set(pos)
+
+fun ShipTransform?.positionToWorld(pos: Vec3i): Vec3i =
+    this?.shipToWorld?.transformPosition(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble(), Vector3d())?.toBlockPos() ?: pos
+
+fun ShipTransform?.positionToWorld(pos: BlockPos): BlockPos =
+    this?.shipToWorld?.transformPosition(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble(), Vector3d())?.toBlockPos() ?: pos
+
+fun ShipTransform?.positionToWorld(pos: Vector3i): Vector3i =
+    positionToWorld(pos, pos)
+
+fun ShipTransform?.positionToWorld(pos: Vector3ic, dest: Vector3i): Vector3i {
+    val pos = dest.set(this?.shipToWorld?.transformPosition(pos.x().toDouble(), pos.y().toDouble(), pos.z().toDouble(), Vector3d())) ?: return dest.set(pos)
+    return dest.set(pos)
+}
+
 
 fun ShipTransform?.positionToShip(pos: Vec3): Vec3 =
     this?.worldToShip?.transformPosition(pos) ?: pos
@@ -525,6 +583,13 @@ fun Vector3ic.toBlockPos() = BlockPos(x(), y(), z())
  * @return a new [Vec3] with x, y, and z components matching this.
  */
 fun Vector3dc.toMinecraft() = Vec3(x(), y(), z())
+
+/**
+ * Converts a [Vector3dc] to a [BlockPos].
+ *
+ * @return a new [BlockPos] with x, y, and z components rounded to the closest int.
+ */
+fun Vector3dc.toBlockPos(): BlockPos = BlockPos.containing(x(), y(), z())
 
 /**
  * Converts an [AABBdc] to an [AABB].

@@ -8,4 +8,8 @@ public interface OfShip {
 
     void setShip(Ship ship);
 
+    default void setShip(OfShip ship) {
+        this.setShip(ship.getShip());
+    }
+
 }

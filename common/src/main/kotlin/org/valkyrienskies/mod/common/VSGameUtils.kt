@@ -50,6 +50,8 @@ import org.valkyrienskies.core.internal.world.VsiShipWorld
 import org.valkyrienskies.core.internal.world.chunks.VsiBlockType
 import org.valkyrienskies.core.internal.world.chunks.VsiTerrainUpdate
 import org.valkyrienskies.core.util.expand
+import org.valkyrienskies.mod.api.getShipManagingBlock
+import org.valkyrienskies.mod.api.getShipManagingChunk
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod.ASSEMBLE_BLACKLIST
 import org.valkyrienskies.mod.common.entity.ShipMountedToData
 import org.valkyrienskies.mod.common.entity.ShipMountedToDataProvider
@@ -643,7 +645,7 @@ fun Level?.getShipManagingPos(chunkX: Int, chunkZ: Int) =
     getShipManagingPosImpl(this, chunkX, chunkZ)
 
 fun Level?.getShipManagingPos(blockPos: BlockPos) =
-    getShipManagingPos(blockPos.x shr 4, blockPos.z shr 4)
+    getShipManagingBlock(blockPos)
 
 fun Level?.getShipManagingPos(pos: Position) =
     getShipManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
@@ -658,14 +660,14 @@ fun Level?.getShipManagingPos(posX: Float, posY: Float, posZ: Float) =
     getShipManagingPos(posX.toInt() shr 4, posZ.toInt() shr 4)
 
 fun Level?.getShipManagingPos(chunkPos: ChunkPos) =
-    getShipManagingPos(chunkPos.x, chunkPos.z)
+    getShipManagingChunk(chunkPos)
 
 // ServerLevel
 fun ServerLevel?.getShipManagingPos(chunkX: Int, chunkZ: Int) =
     getShipManagingPosImpl(this, chunkX, chunkZ) as ServerShip?
 
 fun ServerLevel?.getShipManagingPos(blockPos: BlockPos) =
-    getShipManagingPos(blockPos.x shr 4, blockPos.z shr 4)
+    getShipManagingBlock(blockPos) as ServerShip?
 
 fun ServerLevel?.getShipManagingPos(pos: Vector3dc) =
     getShipManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
@@ -674,7 +676,7 @@ fun ServerLevel?.getShipManagingPos(posX: Double, posY: Double, posZ: Double) =
     getShipManagingPos(posX.toInt() shr 4, posZ.toInt() shr 4)
 
 fun ServerLevel?.getShipManagingPos(chunkPos: ChunkPos) =
-    getShipManagingPos(chunkPos.x, chunkPos.z)
+    getShipManagingChunk(chunkPos) as ServerShip?
 
 fun Ship.toWorldCoordinates(pos: BlockPos): Vector3d =
     shipToWorld.transformPosition(pos.toJOMLD())
