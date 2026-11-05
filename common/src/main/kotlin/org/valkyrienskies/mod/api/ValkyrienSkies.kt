@@ -124,27 +124,16 @@ fun Level?.getShipManagingChunk(chunkX: Int, chunkZ: Int): Ship? =
     vsApi.getShipManagingChunk(this, chunkX, chunkZ)
 
 fun Level?.getShipManagingChunk(pos: ChunkPos?): Ship? =
-    pos?.let {
-        if (pos is OfShip)
-            pos.ship ?: getShipManagingChunk(pos.x, pos.z)?.also { pos.ship = it }
-        else
-            getShipManagingChunk(pos.x, pos.z)
-    }
+    pos?.let { getShipManagingChunk(pos.x, pos.z) }
 
 fun Level?.getShipManagingBlock(x: Int, y: Int, z: Int): Ship? =
     getShipManagingChunk(x shr 4, z shr 4)
 
 fun Level?.getShipManagingBlock(pos: BlockPos?): Ship? =
-    if (pos is OfShip)
-        pos.ship ?: this?.getShipManagingBlock(pos as Vec3i?)?.also { pos.ship = it }
-    else
-        this?.getShipManagingBlock(pos as Vec3i?)
+    this?.getShipManagingBlock(pos as Vec3i?)
 
 fun Level?.getShipManagingBlock(pos: Vec3i?): Ship? =
-    pos?.let { if (pos is OfShip)
-        pos.ship ?: this?.getShipManagingBlock(pos.x, pos.y, pos.z)?.also { pos.ship = it }
-    else
-        this?.getShipManagingBlock(pos.x, pos.y, pos.z) }
+    pos?.let { this?.getShipManagingBlock(pos.x, pos.y, pos.z) }
 
 fun Level?.getShipManagingBlock(pos: Vector3i?): Ship? =
     pos?.let { getShipManagingBlock(pos.x, pos.y, pos.z) }

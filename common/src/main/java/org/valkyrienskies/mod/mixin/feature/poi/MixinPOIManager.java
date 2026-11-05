@@ -23,6 +23,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.core.api.ships.LoadedServerShip;
+import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.api.ValkyrienSkies;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.world.POIChunkSearcher;
@@ -82,7 +83,9 @@ public abstract class MixinPOIManager implements OfLevel {
     private static BlockPos returnTransformedPos(PoiRecord instance, Operation<BlockPos> original) {
         BlockPos oPos = original.call(instance);
         if (oPos instanceof OfShip shipGetter && shipGetter.getShip() != null) {
-            return ValkyrienSkies.positionToWorld(shipGetter.getShip(), oPos);
+            Ship ship = shipGetter.getShip();
+            shipGetter.setShip((Ship) null);
+            return ValkyrienSkies.positionToWorld(ship, oPos);
         }
         return oPos;
     }
