@@ -1,31 +1,21 @@
 package org.valkyrienskies.mod.common.assembly
 
-import com.google.common.collect.Lists
-import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import net.minecraft.core.BlockPos
-import net.minecraft.core.Direction
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerLevel
-import net.minecraft.util.RandomSource
 import net.minecraft.world.Clearable
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
-import net.minecraft.world.level.LevelAccessor
 import net.minecraft.world.level.LevelReader
 import net.minecraft.world.level.ServerLevelAccessor
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
-import net.minecraft.world.level.block.LiquidBlockContainer
-import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkStatus
-import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessor
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessorType
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate
-import net.minecraft.world.phys.shapes.BitSetDiscreteVoxelShape
-import net.minecraft.world.phys.shapes.DiscreteVoxelShape
 import org.joml.Quaterniond
 import org.joml.RoundingMode
 import org.joml.Vector3d
@@ -36,38 +26,33 @@ import org.valkyrienskies.core.api.ships.properties.ShipId
 import org.valkyrienskies.core.api.util.GameTickOnly
 import org.valkyrienskies.core.impl.config.VSCoreConfig
 import org.valkyrienskies.core.internal.ships.VsiServerShip
-import org.valkyrienskies.mod.common.assembly.ShipAssembler.assembleToShipFull
-import org.valkyrienskies.mod.common.dimensionId
+import org.valkyrienskies.mod.api.getLoadedShipManagingPos
+import org.valkyrienskies.mod.api.getShipManagingPos
+import org.valkyrienskies.mod.api.dimensionId
+import org.valkyrienskies.mod.api.executeIf
 import org.valkyrienskies.mod.common.fluid.FractionalFluidLifecycle
-import org.valkyrienskies.mod.common.executeIf
-import org.valkyrienskies.mod.common.forEach
-import org.valkyrienskies.mod.common.getLoadedShipManagingPos
-import org.valkyrienskies.mod.common.getShipManagingPos
-import org.valkyrienskies.mod.common.inAssemblyBlacklist
-import org.valkyrienskies.mod.common.isChunkLoadedForVS
+import org.valkyrienskies.mod.api.forEach
+import org.valkyrienskies.mod.api.inAssemblyBlacklist
+import org.valkyrienskies.mod.api.isChunkLoadedForVS
+import org.valkyrienskies.mod.api.playerWrapper
 import org.valkyrienskies.mod.common.networking.sendRestartChunkUpdates
 import org.valkyrienskies.mod.common.networking.sendStopChunkUpdates
-import org.valkyrienskies.mod.common.playerWrapper
 import org.valkyrienskies.mod.common.shipObjectWorld
-import org.valkyrienskies.mod.common.toDenseVoxelUpdate
+import org.valkyrienskies.mod.api.toDenseVoxelUpdate
 import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils
 import org.valkyrienskies.mod.common.util.SplittingDisablerAttachment
-import org.valkyrienskies.mod.common.util.toJOML
-import org.valkyrienskies.mod.common.util.toJOMLD
-import org.valkyrienskies.mod.common.vsCore
+import org.valkyrienskies.mod.api.toJOML
+import org.valkyrienskies.mod.api.toJOMLd
+import org.valkyrienskies.mod.api.vsCore
 import org.valkyrienskies.mod.common.world.VSTicketType
-import org.valkyrienskies.mod.common.yRange
+import org.valkyrienskies.mod.api.yRange
 import org.valkyrienskies.mod.mixin.accessors.server.level.ServerChunkCacheAccessor
 import org.valkyrienskies.mod.util.AIR
 import org.valkyrienskies.mod.util.StructureTemplateFillFromVoxelSet
 import org.valkyrienskies.mod.util.logger
-import org.valkyrienskies.mod.util.relocateBlock
 import org.valkyrienskies.mod.util.updateBlock
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.locks.LockSupport
-import kotlin.Int.Companion
-import kotlin.math.max
-import kotlin.math.min
 
 object ShipAssembler {
 
@@ -137,8 +122,8 @@ object ShipAssembler {
         }
 
         val (minB, maxB) = findMinAndMax(blocks)
-        val oldMin = minB.toJOMLD()
-        val oldMax = maxB.toJOMLD()
+        val oldMin = minB.toJOMLd()
+        val oldMax = maxB.toJOMLd()
         //offset to center from corner of structure
         val offset = oldMax.get(Vector3d())
             .sub(oldMin)
@@ -227,8 +212,8 @@ object ShipAssembler {
         val fromId = fromShip?.id ?: -1L
         val eventData = mutableMapOf<String, CompoundTag>()
 
-        val oldMin = minStructurePos.toJOMLD()
-        val oldMax = maxStructurePos.toJOMLD()
+        val oldMin = minStructurePos.toJOMLd()
+        val oldMax = maxStructurePos.toJOMLd()
         //offset to center from corner of structure
         val offset = oldMax.get(Vector3d())
             .sub(oldMin)
@@ -323,7 +308,7 @@ object ShipAssembler {
 
         //structure template builds from a corner, so offset center of plot so that structure's center and center of
         //plot roughly align
-        val centerOfShip = cornerOfShip.toJOMLD().add(offset)
+        val centerOfShip = cornerOfShip.toJOMLd().add(offset)
 
         val structureSettings = StructurePlaceSettings().addProcessor(
             ICopyableProcessor(

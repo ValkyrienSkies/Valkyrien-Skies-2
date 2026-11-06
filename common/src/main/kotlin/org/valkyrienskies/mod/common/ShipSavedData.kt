@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.common
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.world.level.saveddata.SavedData
 import org.valkyrienskies.core.internal.world.VsiPipeline
+import org.valkyrienskies.mod.api.vsCore
 import org.valkyrienskies.mod.common.fluid.WorldFluidOutflowManager
 import org.valkyrienskies.mod.common.fluid.FractionalFluidSources
 

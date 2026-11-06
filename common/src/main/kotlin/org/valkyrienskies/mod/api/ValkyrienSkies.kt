@@ -54,6 +54,7 @@ import org.joml.primitives.AABBd
 import org.joml.primitives.AABBdc
 import org.joml.primitives.AABBic
 import org.slf4j.LoggerFactory
+import org.valkyrienskies.core.api.bodies.VsBody
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.core.api.ships.LoadedShip
@@ -72,7 +73,11 @@ import org.valkyrienskies.core.api.world.connectivity.ConnectionStatus
 import org.valkyrienskies.core.api.world.properties.DimensionId
 import org.valkyrienskies.core.impl.config.VSCoreConfig
 import org.valkyrienskies.core.internal.VsiCore
+import org.valkyrienskies.core.internal.collision.VsiEntityPolygonCollider
+import org.valkyrienskies.core.internal.world.VsiClientShipWorld
 import org.valkyrienskies.core.internal.world.VsiPlayer
+import org.valkyrienskies.core.internal.world.VsiServerShipWorld
+import org.valkyrienskies.core.internal.world.VsiShipWorld
 import org.valkyrienskies.core.internal.world.chunks.VsiTerrainUpdate
 import org.valkyrienskies.mod.common.BlockStateInfo
 import org.valkyrienskies.mod.common.CompatUtil
@@ -102,6 +107,7 @@ import kotlin.math.floor
 import kotlin.math.sqrt
 
 val vsCore: VsiCore get() = ValkyrienSkiesMod.vsCore
+val entityPolygonCollider: VsiEntityPolygonCollider get() = vsCore.entityPolygonCollider
 
 /**
  * The singleton instance of [VsApi].
@@ -336,13 +342,17 @@ val Level.dimensionId: DimensionId
     get() = (this as DimensionIdProvider).dimensionId
 
 @GameTickOnly
-val Level?.shipWorld: ShipWorld?
+val Level?.shipWorld: VsiShipWorld?
     get() = when {
         this == null -> null
         this is ServerLevel -> this.server.shipWorld
         this is ClientLevel && this.isClientSide -> this.shipWorld
         else -> null
     }
+
+@GameTickOnly
+val Level?.shipWorldOrException: VsiShipWorld
+    get() = shipWorld ?: error("No shipWorld for this level!")
 
 @GameTickOnly val Level?.allShips get() = this.shipWorld?.allShips
 @GameTickOnly val Level?.unloadedShips get() = this.shipWorld?.unloadedShips
@@ -368,6 +378,8 @@ fun getResourceKey(dimensionId: DimensionId): ResourceKey<Level> {
     }
     return cached
 }
+
+fun Level?.hasLoadedShips() = loadedShips?.isNotEmpty()
 
 /**
  * Execute [runnable] immediately if the thread invoking this is the same as the game thread.
@@ -397,8 +409,12 @@ fun Level?.isBlockInShipyard(blockX: Int, blockZ: Int): Boolean =
     isChunkInShipyard(blockX shr 4, blockZ shr 4)
 
 @GameTickOnly
-fun Level?.isBlockInShipyard(pos: BlockPos): Boolean =
+fun Level?.isBlockInShipyard(pos: Vec3i): Boolean =
     isBlockInShipyard(pos.x, pos.z)
+
+@GameTickOnly
+fun Level?.isBlockInShipyard(pos: Vec3): Boolean =
+    isBlockInShipyard(pos.x.toInt(), pos.y.toInt())
 
 @GameTickOnly
 fun Level?.isChunkInShipyard(chunkX: Int, chunkZ: Int): Boolean =
@@ -841,6 +857,43 @@ fun Level?.getShipsIntersecting(aabb: AABB): Iterable<Ship> =
 fun Level?.getShipsIntersecting(aabb: AABBdc?): Iterable<Ship> =
     if (aabb == null) emptyList() else this?.allShips?.getIntersecting(aabb, dimensionId) ?: emptyList()
 
+/**
+ * Returns all the ships whose AABBs contain x/y/z
+ */
+@GameTickOnly
+fun Level?.getLoadedShipsIntersecting(x: Double, y: Double, z: Double): Iterable<LoadedShip> =
+    getLoadedShipsIntersecting(AABBd(x, y, z, x, y, z))
+
+@GameTickOnly
+fun Level?.getLoadedShipsIntersecting(aabb: AABB): Iterable<LoadedShip> =
+    getLoadedShipsIntersecting(aabb.toJOML())
+
+/**
+ * Returns all the ships whose AABBs intersect [aabb]
+ */
+@GameTickOnly
+fun Level?.getLoadedShipsIntersecting(aabb: AABBdc?): Iterable<LoadedShip> =
+    if (aabb == null) emptyList() else this?.loadedShips?.getIntersecting(aabb, dimensionId) ?: emptyList()
+
+
+/**
+ * Returns all the bodies whose AABBs contain x/y/z
+ */
+@GameTickOnly
+fun Level?.getBodiesIntersecting(x: Double, y: Double, z: Double): Iterable<VsBody> =
+    getBodiesIntersecting(AABBd(x, y, z, x, y, z))
+
+@GameTickOnly
+fun Level?.getBodiesIntersecting(aabb: AABB): Iterable<VsBody> =
+    getBodiesIntersecting(aabb.toJOML())
+
+/**
+ * Returns all the bodies whose AABBs intersect [aabb]
+ */
+@GameTickOnly
+fun Level?.getBodiesIntersecting(aabb: AABBdc?): Iterable<VsBody> =
+    if (aabb == null) emptyList() else this?.allBodies?.getIntersecting(aabb, dimensionId) ?: emptyList()
+
 @GameTickOnly
 fun Level?.distance(x1: Double, y1: Double, z1: Double, x2: Double, y2: Double, z2: Double): Double =
     sqrt(distanceSquared(x1, y1, z1, x2, y2, z2))
@@ -960,11 +1013,11 @@ fun Level?.closerToCenterThan(v1: Vec3i, v2: Position, distance: Double): Boolea
 
 // region ClientLevel / Minecraft extensions
 @GameTickOnly
-val ClientLevel?.shipWorld: ClientShipWorld?
+val ClientLevel?.shipWorld: VsiClientShipWorld?
     get() = (this as IShipObjectWorldClientProvider?)?.shipObjectWorld
 
 @GameTickOnly
-val Minecraft?.shipWorld: ClientShipWorld?
+val Minecraft?.shipWorld: VsiClientShipWorld?
     get() = (this as IShipObjectWorldClientProvider?)?.shipObjectWorld
 
 @GameTickOnly
@@ -1010,11 +1063,11 @@ fun ClientLevel?.toShipRenderCoordinates(shipPos: Vec3, pos: Vec3): Vector3d =
 
 // region ServerLevel / MinecraftServer extensions
 @GameTickOnly
-val MinecraftServer?.shipWorld: ServerShipWorld?
+val MinecraftServer?.shipWorld: VsiServerShipWorld?
     get() = (this as IShipObjectWorldServerProvider?)?.shipObjectWorld
 
 @GameTickOnly
-val ServerLevel?.shipWorld: ServerShipWorld?
+val ServerLevel?.shipWorld: VsiServerShipWorld?
     get() = (this as IShipObjectWorldServerProvider?)?.shipObjectWorld
 
 val MinecraftServer?.vsPipeline
@@ -1042,7 +1095,7 @@ fun MinecraftServer.getLevelFromDimensionId(dimensionId: DimensionId): ServerLev
 
 @GameTickOnly
 fun ServerLevel?.getShipManagingPos(chunkX: Int, chunkZ: Int) =
-    getShipManagingPosImpl(this, chunkX, chunkZ)
+    getShipManagingPosImpl(this, chunkX, chunkZ) as ServerShip?
 
 @GameTickOnly
 fun ServerLevel?.getShipManagingPos(blockPos: Vec3i) =
@@ -1166,26 +1219,27 @@ fun Ship?.getStructureStarts(level: ServerLevel): List<StructureStart> {
  * Not technically required, slugs _can_ be duplicated, but
  * highly recommended.
  */
+@GameTickOnly
 fun ServerShip.safeRenameTo(level: ServerLevel, newSlug: String) {
     var newSlug = newSlug
-    var safeLimit = 0
-    while (safeLimit < 50) {
-        safeLimit++
-        run breaking@ {
-            level.allShips?.forEach {
-                if (it.slug == newSlug) {
-                    val suffix = newSlug.split("-").last()
-                    if (suffix.toIntOrNull() != null) {
-                        val newNum = suffix.toInt() + 1
-                        newSlug = newSlug.dropLast(suffix.length)
-                        newSlug += newNum.toString()
-                    } else newSlug += "-1"
-
-                    return@breaking
-                }
+    var count = 0
+    level.allShips?.forEach {
+        if (it.slug?.startsWith(newSlug) ?: false) {
+            val newCount: Int = if (it.slug!!.length < newSlug.length + 1)
+                1
+            else {
+                val suffix = it.slug!!.substring(newSlug.length + 1)
+                if (suffix.toIntOrNull() != null) suffix.toInt() + 1 else 0
             }
+
+            if (newCount > count)
+                count = newCount
         }
     }
+
+    if (count != 0)
+        newSlug += "-$count"
+
     this.slug = newSlug
 }
 // endregion

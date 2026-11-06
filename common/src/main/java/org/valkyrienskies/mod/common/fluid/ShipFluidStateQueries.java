@@ -20,6 +20,7 @@ import org.joml.primitives.AABBd;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.internal.world.VsiShipWorld;
 import org.valkyrienskies.core.internal.world.VsiClientShipWorld;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.MassDatapackResolver;
 import org.valkyrienskies.mod.common.pathfinding.NearbyShip;
@@ -28,6 +29,8 @@ import org.valkyrienskies.mod.common.pathfinding.PathfindStateCache;
 import org.valkyrienskies.mod.common.pathfinding.PathTypeDanger;
 import org.valkyrienskies.mod.common.pathfinding.PathfindingFrame;
 import org.valkyrienskies.mod.util.FluidStateManager;
+
+import static org.valkyrienskies.mod.api.ValkyrienSkies.getShipWorld;
 
 /** Read-only block-cell views. Unlike eye samples, a cell reports even a shallow retained layer. */
 public final class ShipFluidStateQueries {
@@ -69,7 +72,7 @@ public final class ShipFluidStateQueries {
     }
 
     public static Scope beginPath(final Level level, final PathfindingFrame frame, final NearbyShip[] ships) {
-        return new Scope(new Query(level, shipWorld(level), frame, includeDomains(level, ships)));
+        return new Scope(new Query(level, getShipWorld(level), frame, includeDomains(level, ships)));
     }
 
     public static @Nullable Cell forPath(final Level level, final BlockPos pos) {
@@ -77,29 +80,29 @@ public final class ShipFluidStateQueries {
         if (current != null && current.level == level) return current.resolve(pos);
         final PathfindingFrame frame = PathfindingFrame.current(null);
         if (frame == null) return at(level, pos);
-        return new Query(level, shipWorld(level), frame, includeDomains(level, PathPerFrameRegistry.getNearbyShips())).resolve(pos);
+        return new Query(level, getShipWorld(level), frame, includeDomains(level, PathPerFrameRegistry.getNearbyShips())).resolve(pos);
     }
 
     /** Shipyard positions stay local; ordinary positions query the ships at that world cell. */
     public static @Nullable Cell at(final Level level, final BlockPos pos) {
-        if (shipWorld(level) == null) return null;
-        final Ship owner = VSGameUtilsKt.getShipManagingPos(level, pos);
+        if (getShipWorld(level) == null) return null;
+        final Ship owner = ValkyrienSkies.getShipManagingPos(level, pos);
         if (owner != null) return local(level, owner, pos);
         return atWorld(level, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
     }
 
     public static @Nullable Cell local(final Level level, final Ship ship, final BlockPos pos) {
-        final VsiShipWorld world = shipWorld(level);
+        final VsiShipWorld world = getShipWorld(level);
         // A live solid may be newer than the snapshot; preserve its real (possibly waterlogged) state.
         return world == null || level.getBlockState(pos).blocksMotion()
             ? null : localCell(ShipFluidInteraction.bodyFor(world, ship.getId()), pos, world instanceof VsiClientShipWorld);
     }
 
     public static @Nullable Cell atWorld(final Level level, final double x, final double y, final double z) {
-        final VsiShipWorld world = shipWorld(level);
+        final VsiShipWorld world = getShipWorld(level);
         if (world == null) return null;
         final List<NearbyShip> ships = new ArrayList<>();
-        for (final Ship ship : ShipFluidCandidates.intersecting(world, VSGameUtilsKt.getDimensionId(level),
+        for (final Ship ship : ShipFluidCandidates.intersecting(world, ValkyrienSkies.getDimensionId(level),
             new AABBd(Math.floor(x), Math.floor(y), Math.floor(z), Math.floor(x) + 1,
                 Math.floor(y) + 1, Math.floor(z) + 1))) {
             ships.add(new NearbyShip(ship, new AABBd(ship.getWorldAABB()), new Matrix4d(ship.getWorldToShip())));
@@ -108,12 +111,12 @@ public final class ShipFluidStateQueries {
     }
 
     private static NearbyShip[] includeDomains(final Level level, final NearbyShip[] ships) {
-        final VsiShipWorld world = shipWorld(level);
+        final VsiShipWorld world = getShipWorld(level);
         if (world == null) return ships;
         final List<Ship> ordinary = new ArrayList<>(ships.length);
         final List<NearbyShip> result = new ArrayList<>(List.of(ships));
         for (final NearbyShip ship : ships) ordinary.add(ship.ship);
-        for (final Ship ship : ShipFluidCandidates.includeDomains(world, VSGameUtilsKt.getDimensionId(level), ordinary, null)) {
+        for (final Ship ship : ShipFluidCandidates.includeDomains(world, ValkyrienSkies.getDimensionId(level), ordinary, null)) {
             if (!ordinary.contains(ship)) result.add(new NearbyShip(ship, new AABBd(ship.getWorldAABB()), new Matrix4d(ship.getWorldToShip())));
         }
         return result.toArray(NearbyShip[]::new);
@@ -123,11 +126,6 @@ public final class ShipFluidStateQueries {
         final @Nullable FluidStateManager.QueryCache cache) {
         final Cell override = at(level, pos);
         return override != null ? override.fluid() : FluidStateManager.getFluidState(level, pos, cache);
-    }
-
-    private static @Nullable VsiShipWorld shipWorld(final Level level) {
-        final Object world = VSGameUtilsKt.getShipWorldNullable(level);
-        return world instanceof VsiShipWorld ? (VsiShipWorld) world : null;
     }
 
     private static @Nullable Cell localCell(final @Nullable ShipFluidInteraction.CachedBody body, final BlockPos pos,
