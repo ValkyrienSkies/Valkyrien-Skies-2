@@ -1,6 +1,7 @@
 @file:JvmName("ValkyrienSkies")
 package org.valkyrienskies.mod.api
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation
 import com.mojang.blaze3d.vertex.PoseStack
 import net.mehvahdjukaar.ml_classes.Vec2i
 import net.minecraft.client.Minecraft
@@ -14,10 +15,18 @@ import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerChunkCache
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.util.thread.BlockableEventLoop
 import net.minecraft.world.entity.Entity
+import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.player.Player
+import net.minecraft.world.level.BlockAndTintGetter
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
+import net.minecraft.world.level.LevelAccessor
+import net.minecraft.world.level.LightLayer
+import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.chunk.LevelChunkSection
+import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.levelgen.structure.StructureStart
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec2
@@ -43,37 +52,53 @@ import org.joml.Vector3ic
 import org.joml.Vector4f
 import org.joml.primitives.AABBd
 import org.joml.primitives.AABBdc
+import org.joml.primitives.AABBic
 import org.slf4j.LoggerFactory
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.core.api.ships.LoadedShip
+import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.api.ships.properties.ShipId
 import org.valkyrienskies.core.api.ships.properties.ShipTransform
 import org.valkyrienskies.core.api.util.GameTickOnly
 import org.valkyrienskies.core.api.util.functions.DoubleTernaryConsumer
+import org.valkyrienskies.core.api.util.functions.IntTernaryConsumer
 import org.valkyrienskies.core.api.world.ClientShipWorld
 import org.valkyrienskies.core.api.world.LevelYRange
 import org.valkyrienskies.core.api.world.ServerShipWorld
 import org.valkyrienskies.core.api.world.ShipWorld
+import org.valkyrienskies.core.api.world.connectivity.ConnectionStatus
 import org.valkyrienskies.core.api.world.properties.DimensionId
 import org.valkyrienskies.core.impl.config.VSCoreConfig
 import org.valkyrienskies.core.internal.VsiCore
 import org.valkyrienskies.core.internal.world.VsiPlayer
+import org.valkyrienskies.core.internal.world.chunks.VsiTerrainUpdate
+import org.valkyrienskies.mod.common.BlockStateInfo
+import org.valkyrienskies.mod.common.CompatUtil
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider
 import org.valkyrienskies.mod.common.VS2ChunkAllocator
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.ASSEMBLE_BLACKLIST
 import org.valkyrienskies.mod.common.config.VSGameConfig
+import org.valkyrienskies.mod.common.entity.ShipMountedToData
+import org.valkyrienskies.mod.common.entity.ShipMountedToDataProvider
+import org.valkyrienskies.mod.common.fluid.FractionalFluidSources
 import org.valkyrienskies.mod.common.util.DimensionIdProvider
+import org.valkyrienskies.mod.common.util.EntityDragger.serversidePosition
 import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
+import org.valkyrienskies.mod.common.util.ShipShadows
+import org.valkyrienskies.mod.mixin.accessors.entity.EntityAccessor
 import org.valkyrienskies.mod.mixin.accessors.resource.ResourceKeyAccessor
 import org.valkyrienskies.mod.mixinducks.world.entity.PlayerDuck
+import java.util.function.Consumer
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
+import kotlin.math.floor
 import kotlin.math.sqrt
 
 val vsCore: VsiCore get() = ValkyrienSkiesMod.vsCore
@@ -106,6 +131,50 @@ fun isConnectivityEnabled(isClient: Boolean): Boolean {
 // region misc extensions
 val VsiPlayer.mcPlayer: Player get() = (this as MinecraftPlayer).playerEntityReference.get()!!
 val Player.playerWrapper: MinecraftPlayer get() = (this as PlayerDuck).vs_getPlayer()
+
+/**
+ * Is the [BlockState] in the `assemble_blacklist`
+ * ([ValkyrienSkiesMod.ASSEMBLE_BLACKLIST]) block tag
+ */
+fun BlockState?.inAssemblyBlacklist(): Boolean {
+    return this?.`is`(ASSEMBLE_BLACKLIST) ?: false
+}
+
+@GameTickOnly
+fun BlockAndTintGetter.shipAwareSkyBrightness(pos: BlockPos, original: Int): Int {
+    if (this !is ServerLevel) return original
+    val ship = getShipManagingPos(pos) ?: return ShipShadows.skyBrightness(this, pos, original)
+
+    val rendered = ship.toWorldCoordinates(pos.x + 0.5, pos.y + 0.5, pos.z + 0.5)
+
+    val worldSky = getBrightness(LightLayer.SKY, BlockPos.containing(rendered.x, rendered.y, rendered.z))
+    return ShipShadows.skyBrightness(this, pos, original.coerceAtMost(worldSky))
+}
+
+@GameTickOnly
+fun BlockAndTintGetter.shipAwareBlockBrightness(pos: BlockPos, original: Int): Int {
+    if (this !is ServerLevel) return original
+    val ship = getShipManagingPos(pos) ?: return original
+
+    val world = ship.toWorldCoordinates(pos.x + 0.5, pos.y + 0.5, pos.z + 0.5)
+    return original.coerceAtLeast(getBrightness(LightLayer.BLOCK, BlockPos.containing(world.x, world.y, world.z)))
+}
+
+@GameTickOnly
+fun BlockAndTintGetter.shipAwareCombinedBrightness(pos: BlockPos, skyDarken: Int, original: Int): Int {
+    if (this !is ServerLevel) return original
+    val ship = getShipManagingPos(pos)
+
+    val shipSky = getBrightness(LightLayer.SKY, pos)
+    val rendered = ship?.toWorldCoordinates(pos.x + 0.5, pos.y + 0.5, pos.z + 0.5) ?: Vector3d(pos.x + 0.5, pos.y + 0.5, pos.z + 0.5)
+    val worldSky = getBrightness(LightLayer.SKY, BlockPos.containing(rendered.x, rendered.y, rendered.z))
+
+    val shadowSky = ShipShadows.skyBrightness(this, pos, shipSky.coerceAtMost(worldSky))
+    val adjustedSky = 0.coerceAtLeast(shadowSky - skyDarken)
+    val shipBlock = getBrightness(LightLayer.BLOCK, pos)
+    val worldBlock = getBrightness(LightLayer.BLOCK, BlockPos.containing(rendered.x, rendered.y, rendered.z))
+    return adjustedSky.coerceAtLeast(shipBlock.coerceAtLeast(worldBlock))
+}
 // endregion
 
 // region Entity extensions
@@ -115,9 +184,11 @@ val Player.playerWrapper: MinecraftPlayer get() = (this as PlayerDuck).vs_getPla
  *
  * @see getShipManagingBlock
  */
+@GameTickOnly
 fun Entity?.getShipManagingEntity(): Ship? =
     this?.level()?.getShipManagingBlock(position())
 
+@GameTickOnly
 fun Entity?.getShipManaging(): Ship? = this?.let { this.level().getShipManagingPos(this.position()) }
 
 @GameTickOnly
@@ -127,6 +198,133 @@ fun Entity?.getEnclosingShip(): Ship? {
     if (!info.isEntityBeingDraggedByAShip()) return null
     val shipId = info.lastShipStoodOn ?: return null
     return level().shipWorld?.loadedShips?.getById(shipId)
+}
+
+/**
+ * Like [Entity.distanceToSqr] except the destination is transformed into world coordinates if it is a ship
+ */
+@GameTickOnly
+fun Entity.shipAwareDistanceToSqr(x: Double, y: Double, z: Double): Double {
+    val pos = if (getShipMountedTo() != null) getShipMountedToData()!!.mountPosInShip.toMinecraft() else this.serversidePosition()
+    return level().distanceSquared(x, y, z, pos.x, pos.y, pos.z)
+}
+
+
+data class ShipBlock(@JvmField val ship: Ship, @JvmField val shipLocalBlockPos: BlockPos)
+
+@GameTickOnly
+fun Entity?.getShipBlockStoodOn(probeDepth: Double): ShipBlock? {
+    this ?: return null
+    val level = level()
+    val foot = Vector3d(this.x, this.boundingBox.minY - probeDepth, this.z)
+    val probe = AABBd(foot.x - 0.5, foot.y - 0.5, foot.z - 0.5, foot.x + 0.5, foot.y + 0.5, foot.z + 0.5)
+    for (ship in level.getShipsIntersecting(probe)) {
+        val local = ship.toWorldCoordinates(foot, Vector3d())
+        val centerPos = BlockPos.containing(local.x, local.y, local.z)
+        if (!level.getBlockState(centerPos).isAir) return ShipBlock(ship, centerPos)
+
+        val belowLocal = ship.toWorldCoordinates(Vector3d(foot.x, foot.y - 1.0, foot.z))
+        val belowPos = BlockPos.containing(belowLocal.x, belowLocal.y, belowLocal.z)
+        if (!level.getBlockState(belowPos).isAir) return ShipBlock(ship, belowPos)
+
+        val halfW = this.boundingBox.xsize / 2.0
+        val halfD = this.boundingBox.zsize / 2.0
+        if (halfW <= 0.5 && halfD <= 0.5) continue
+
+        val centerLong = centerPos.asLong()
+        val cornerScratch = Vector3d()
+        val cornerXs = doubleArrayOf(this.x - halfW, this.x + halfW, this.x - halfW, this.x + halfW)
+        val cornerZs = doubleArrayOf(this.z - halfD, this.z - halfD, this.z + halfD, this.z + halfD)
+        var lastSeen = centerLong
+        for (i in 0 until 4) {
+            cornerScratch.set(cornerXs[i], foot.y, cornerZs[i])
+            ship.toWorldCoordinates(cornerScratch)
+            val cornerPos = BlockPos.containing(cornerScratch.x, cornerScratch.y, cornerScratch.z)
+            val cornerLong = cornerPos.asLong()
+            if (cornerLong == centerLong || cornerLong == lastSeen) continue
+            lastSeen = cornerLong
+            if (!level.getBlockState(cornerPos).isAir) return ShipBlock(ship, cornerPos)
+        }
+    }
+    return null
+}
+
+@GameTickOnly
+fun Entity?.getShipStoodOn(): Ship? = getShipBlockStoodOn(0.2)?.ship
+
+
+/**
+ * Applies the ship velocity, including angular velocity, to the entity.
+ * Useful for cases like launching something on a ship.
+ */
+fun Entity?.applyShipVelocity(ship: Ship?) {
+    if (this == null || ship == null) return
+    val relPos = this.position().toJOML().sub(ship.transform.positionInWorld)
+    val shipSpeed = Vector3d(ship.velocity)
+        .add(ship.angularVelocity.cross(relPos, Vector3d()))
+        .mul(0.05)
+    this.push(shipSpeed.x, shipSpeed.y, shipSpeed.z)
+}
+
+@GameTickOnly
+fun Entity.getShipMountedToData(partialTicks: Float? = null): ShipMountedToData? {
+    if (this is LivingEntity && this.isSleeping) {
+        val sleepingPos = this.sleepingPos.orElse(null)
+        if (sleepingPos != null) {
+            val ship = this.level().getLoadedShipManagingPos(sleepingPos)
+            if (ship != null) {
+                val mountedPosInShip: Vector3dc = Vector3d(
+                    sleepingPos.x + 0.5,
+                    sleepingPos.y + 0.6875,
+                    sleepingPos.z + 0.5
+                )
+                return ShipMountedToData(ship, mountedPosInShip)
+            }
+        }
+    }
+
+    val vehicle = this.vehicle ?: return null
+    if (vehicle is ShipMountedToDataProvider)
+        return vehicle.provideShipMountedToData(this, partialTicks)
+
+    val shipObjectEntityMountedTo = this.level().getLoadedShipManagingPos(vehicle.position().toJOML()) ?: return null
+    val offset = Vector3d()
+    (vehicle as EntityAccessor).callPositionRider(this) { _, x, y, z -> offset.set(x, y, z).sub(vehicle.position().toJOML()) }
+    val mountedPosInShip: Vector3dc = vehicle.getPosition(partialTicks ?: 0.0f).toJOML().add(offset)
+
+    return ShipMountedToData(shipObjectEntityMountedTo, mountedPosInShip)
+}
+
+@GameTickOnly
+fun Entity.getShipMountedTo(): LoadedShip? =
+    getShipMountedToData()?.shipMountedTo
+
+@GameTickOnly
+fun Entity.shipAwareEntityLightLevelDependentMagicValue(): Float? {
+    val level = level()
+    if (level !is ServerLevel) return null
+    val ship = getEnclosingShip() ?: return null
+    val worldPos = BlockPos.containing(x, eyeY, z)
+    val shipyard = ship.transform.worldToShip.transformPosition(
+        x, eyeY, z, Vector3d()
+    )
+    val shipyardPos = BlockPos.containing(shipyard.x, shipyard.y, shipyard.z)
+    val shipSky = level.getBrightness(LightLayer.SKY, shipyardPos)
+    val worldSky = ShipShadows.skyBrightness(level, shipyardPos, level.getBrightness(LightLayer.SKY, worldPos))
+    val effectiveSky = 0.coerceAtLeast(shipSky.coerceAtMost(worldSky) - level.skyDarken)
+    val shipBlock = level.getBrightness(LightLayer.BLOCK, shipyardPos)
+    val worldBlock = level.getBrightness(LightLayer.BLOCK, worldPos)
+    val rawBrightness = effectiveSky.coerceAtLeast(shipBlock.coerceAtLeast(worldBlock))
+    val brightness = rawBrightness / 15.0f
+    val scaled = brightness / (4.0f - 3.0f * brightness)
+    val ambient = level.dimensionType().ambientLight()
+    return scaled + ambient * (1.0f - scaled)
+}
+
+fun Entity.shipMountedSpawnSeedPos(): BlockPos {
+    val ship = getShipStoodOn() ?: return blockPosition()
+    val local = ship.transform.worldToShip.transformPosition(x, y, z, Vector3d())
+    return BlockPos.containing(local.x, local.y, local.z)
 }
 // endregion
 
@@ -155,6 +353,7 @@ val Level?.shipWorld: ShipWorld?
 
 val Level.yRange get() = LevelYRange(minBuildHeight, maxBuildHeight - 1)
 
+
 private val levelResourceKeyMap: MutableMap<DimensionId, ResourceKey<Level>> = HashMap()
 
 fun getResourceKey(dimensionId: DimensionId): ResourceKey<Level> {
@@ -170,9 +369,28 @@ fun getResourceKey(dimensionId: DimensionId): ResourceKey<Level> {
     return cached
 }
 
+/**
+ * Execute [runnable] immediately if the thread invoking this is the same as the game thread.
+ * Otherwise, schedule [runnable] to run on the next tick.
+ */
+fun Level.executeOrSchedule(runnable: Runnable) {
+    val blockableEventLoop: BlockableEventLoop<Runnable> = if (!this.isClientSide) {
+        this.server!! as BlockableEventLoop<Runnable>
+    } else {
+        Minecraft.getInstance()
+    }
+
+    if (blockableEventLoop.isSameThread) runnable.run()
+    else blockableEventLoop.execute(runnable)
+}
+
 @GameTickOnly
 fun Level?.getShipById(id: ShipId): Ship? =
     shipWorld?.allShips?.getById(id)
+
+@GameTickOnly
+fun Level?.getLoadedShipById(id: ShipId): LoadedShip? =
+    shipWorld?.loadedShips?.getById(id)
 
 @GameTickOnly
 fun Level?.isBlockInShipyard(blockX: Int, blockZ: Int): Boolean =
@@ -208,6 +426,82 @@ fun Level.isChunkLoadedForVS(pos: ChunkPos): Boolean {
 }
 
 @GameTickOnly
+fun Level.shipAwareCanSeeSky(pos: BlockPos): Boolean {
+    val ship = getShipManagingPos(pos)
+    val worldPos = if (ship != null) {
+        val world = ship.transform.shipToWorld.transformPosition(
+            pos.x + 0.5, pos.y + 0.5, pos.z + 0.5, Vector3d()
+        )
+        BlockPos.containing(world.x, world.y, world.z)
+    } else pos
+
+    if (!canSeeSky(worldPos)) return false
+
+    val heightInclShips = CompatUtil.getWorldHeightmapPosIncludingShips(
+        this, Heightmap.Types.MOTION_BLOCKING, worldPos
+    )
+
+    return worldPos.y + 1 >= heightInclShips.y
+}
+
+@GameTickOnly
+fun LevelAccessor.shipProjectedWorldY(pos: BlockPos, original: Int): Int {
+    if (this !is ServerLevel) return original
+    val ship = getShipManagingPos(pos) ?: return original
+    val rendered = ship.toWorldCoordinates(pos.x + 0.5, pos.y + 0.5, pos.z + 0.5)
+    return floor(rendered.y).toInt()
+}
+
+fun LevelChunkSection.toDenseVoxelUpdate(chunkPos: Vector3ic, level: Level? = null): VsiTerrainUpdate {
+    val sources = (level as? ServerLevel)?.let(FractionalFluidSources::forLevel)?.takeIf {
+        it.size != 0 && it.hasChunk(level.dimensionId, chunkPos.x(), chunkPos.y(), chunkPos.z())
+    }
+
+    if (sources == null) return toDenseVoxelUpdateWithoutSourceAmounts(chunkPos)
+    val update = vsCore.newDenseTerrainUpdateBuilder(chunkPos.x(), chunkPos.y(), chunkPos.z())
+    val info = BlockStateInfo.cache
+    for (x in 0..15) {
+        for (y in 0..15) {
+            for (z in 0..15) {
+                val blockState = getBlockState(x, y, z)
+                val defaultBlockType = info.get(blockState)?.second ?: vsCore.blockTypes.air
+                val fluid = FractionalFluidSources.fluidName(blockState)
+                if (fluid == null) update.addBlock(x, y, z, defaultBlockType)
+                else update.addBlock(x, y, z, defaultBlockType, sources.sourceFillAmount(level.dimensionId,
+                    (chunkPos.x() shl 4) + x, (chunkPos.y() shl 4) + y, (chunkPos.z() shl 4) + z, fluid))
+            }
+        }
+    }
+    return update.build()
+}
+
+@GameTickOnly // idk why either of these exist and they seem to be the exact same but idk flooding is black magic
+fun Level.isPositionSealed(pos: BlockPos): Boolean {
+    val result = this.shipWorld?.isIsolatedAir(pos.x, pos.y, pos.z, this.dimensionId)
+    return result == ConnectionStatus.DISCONNECTED || result == ConnectionStatus.UNKNOWN
+}
+
+@GameTickOnly
+fun Level.isPositionMaybeSealed(pos: BlockPos): Boolean {
+    val result = this.shipWorld?.isIsolatedAir(pos.x, pos.y, pos.z, this.dimensionId)
+    return result == ConnectionStatus.DISCONNECTED || result == ConnectionStatus.UNKNOWN
+}
+
+private fun LevelChunkSection.toDenseVoxelUpdateWithoutSourceAmounts(chunkPos: Vector3ic): VsiTerrainUpdate {
+    val update = vsCore.newDenseTerrainUpdateBuilder(chunkPos.x(), chunkPos.y(), chunkPos.z())
+    val info = BlockStateInfo.cache
+    for (x in 0..15) {
+        for (y in 0..15) {
+            for (z in 0..15) {
+                val blockState = getBlockState(x, y, z)
+                update.addBlock(x, y, z, info.get(blockState)?.second ?: vsCore.blockTypes.air)
+            }
+        }
+    }
+    return update.build()
+}
+
+@GameTickOnly
 fun Level?.getShipManagingPos(chunkX: Int, chunkZ: Int) =
     getShipManagingPosImpl(this, chunkX, chunkZ)
 
@@ -231,6 +525,7 @@ fun Level?.getShipManagingPos(posX: Double, posZ: Double) =
 fun Level?.getShipManagingPos(chunkPos: ChunkPos) =
     getShipManagingPos(chunkPos.x, chunkPos.z)
 
+
 @GameTickOnly
 fun Level?.getShipManagingBlock(x: Int, z: Int): Ship? =
     getShipManagingPos(x shr 4, z shr 4)
@@ -250,6 +545,32 @@ fun Level?.getShipManagingBlock(v: Vector3dc?): Ship? =
 @GameTickOnly
 fun Level?.getShipManagingBlock(v: Position?): Ship? =
     v?.let { getShipManagingBlock(v.x(), v.z()) }
+
+
+@GameTickOnly
+fun Level?.getLoadedShipManagingPos(chunkX: Int, chunkZ: Int) =
+    getLoadedShipManagingPosImpl(this, chunkX, chunkZ)
+
+@GameTickOnly
+fun Level?.getLoadedShipManagingPos(blockPos: Vec3i) =
+    getLoadedShipManagingPos(blockPos.x shr 4, blockPos.z shr 4)
+
+@GameTickOnly
+fun Level?.getLoadedShipManagingPos(pos: Vector3dc) =
+    getLoadedShipManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
+
+@GameTickOnly
+fun Level?.getLoadedShipManagingPos(pos: Position) =
+    getLoadedShipManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
+
+@GameTickOnly
+fun Level?.getLoadedShipManagingPos(posX: Double, posZ: Double) =
+    getLoadedShipManagingPos(posX.toInt(), posZ.toInt())
+
+@GameTickOnly
+fun Level?.getLoadedShipManagingPos(chunkPos: ChunkPos) =
+    getLoadedShipManagingPos(chunkPos.x, chunkPos.z)
+
 /**
  * If both endpoints of the given [aabb] are in the same ship, transform them
  * to the world and return the new AABB. Otherwise, leaves it untouched.
@@ -288,6 +609,32 @@ fun Level?.positionToWorld(pos: Vector3d): Vector3d =
 @GameTickOnly
 fun Level?.positionToWorld(pos: Vector3dc, dest: Vector3d): Vector3d =
     getShipManagingBlock(pos).positionToWorld(pos, dest)
+
+@GameTickOnly
+fun Level?.toWorldCoordinates(blockPos: Vec3i): Vector3d =
+    getShipManagingPos(blockPos)?.toWorldCoordinates(blockPos) ?: blockPos.toJOMLd()
+
+@GameTickOnly
+fun Level?.toWorldCoordinates(pos: Vec3): Vector3d =
+    getShipManagingPos(pos)?.toWorldCoordinates(pos) ?: pos.toJOML()
+
+@GameTickOnly
+fun Level?.toWorldCoordinates(pos: Vector3d, dest: Vector3d): Vector3d =
+    getShipManagingPos(pos)?.toWorldCoordinates(pos, dest) ?: dest.set(pos)
+
+@GameTickOnly
+fun Level?.toWorldCoordinates(pos: Vector3d): Vector3d =
+    getShipManagingPos(pos)?.toWorldCoordinates(pos) ?: pos
+
+@GameTickOnly
+@JvmOverloads
+fun Level?.toWorldCoordinates(x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
+    getShipManagingPos(x, z)?.toWorldCoordinates(x, y, z, dest) ?: dest.set(x, y, z)
+
+@GameTickOnly
+fun Level?.getWorldCoordinates(blockPos: Vec3i, pos: Vector3d) =
+    getShipManagingPos(blockPos)?.toWorldCoordinates(pos) ?: pos
+
 
 private inline fun Level?.positionToNearbyShipsAndWorld(
     x: Double,
@@ -368,16 +715,131 @@ fun Level?.positionToNearbyShipsAndWorld(x: Double, y: Double, z: Double, aabbRa
 
 
 /**
+ * Get all ships intersecting an AABB in world-space, then call [cb] with the AABB itself,
+ * followed by the AABB in the ship-space of the intersecting ships.
+ */
+@GameTickOnly
+fun Level.transformFromWorldToNearbyShipsAndWorld(aabb: AABB, cb: Consumer<AABB>) =
+    transformFromWorldToNearbyShipsAndWorld(aabb.toJOML()) { cb.accept(it.toMinecraft()) }
+
+/**
+ * Get all ships intersecting an AABB in world-space, then call [cb] with the AABB itself,
+ * followed by the AABB in the ship-space of the intersecting ships.
+ */
+@GameTickOnly
+fun Level.transformFromWorldToNearbyShipsAndWorld(aabb: AABBd, cb: Consumer<AABBd>) {
+    val tmpAABB = AABBd()
+    cb.accept(aabb)
+    getShipsIntersecting(aabb).forEach { ship ->
+        tmpAABB.set(aabb).transform(ship.worldToShip)
+        if (EntityShipCollisionUtils.mayShipIntersectLocalAabb(ship, tmpAABB)) {
+            cb.accept(tmpAABB)
+        }
+    }
+}
+
+/**
+ * Same as [transformFromWorldToNearbyShipsAndWorld], but without calling [cb] with the original aabb
+ */
+@GameTickOnly
+fun Level.transformFromWorldToNearbyShips(aabb: AABB, cb: Consumer<AABB>) =
+    transformFromWorldToNearbyShips(aabb.toJOML()) { cb.accept(it.toMinecraft()) }
+
+/**
+ * Same as [transformFromWorldToNearbyShipsAndWorld], but without calling [cb] with the original aabb
+ */
+@GameTickOnly
+fun Level.transformFromWorldToNearbyShips(aabb: AABBd, cb: Consumer<AABBd>) {
+    val tmpAABB = AABBd()
+    getShipsIntersecting(aabb).forEach { ship ->
+        tmpAABB.set(aabb).transform(ship.worldToShip)
+        if (EntityShipCollisionUtils.mayShipIntersectLocalAabb(ship, tmpAABB)) {
+            cb.accept(tmpAABB)
+        }
+    }
+}
+
+
+@GameTickOnly
+fun Level?.transformAABBToWorld(aabb: AABB) = transformAABBToWorld(aabb.toJOML())
+
+@GameTickOnly
+fun Level?.transformAABBToWorld(aabb: AABBd) = transformAABBToWorld(aabb, aabb)
+
+@GameTickOnly
+fun Level?.transformAABBToWorld(aabb: AABBdc, dest: AABBd): AABBd {
+    val ship0 = getShipManagingPos(aabb.minX(), aabb.minZ()) ?: return dest.set(aabb)
+    val ship1 = getShipManagingPos(aabb.maxX(), aabb.maxZ()) ?: return dest.set(aabb)
+
+    return if (ship0.id == ship1.id) aabb.transform(ship1.shipToWorld, dest) else dest.set(aabb)
+}
+
+/**
+ * Like [org.valkyrienskies.mod.api.transformAABBToWorld], but instead gives
+ * the actual OBB (sets the dest vectors)
+ *
+ * @param aabb the AABB to transform
+ */
+@GameTickOnly
+fun Level?.transformAABBToWorldOBB(
+    aabb: AABBdc,
+    destCenter: Vector3d,
+    destAxisX: Vector3d,
+    destAxisY: Vector3d,
+    destAxisZ: Vector3d,
+    destHalfExtents: Vector3d,
+) {
+    val cx = (aabb.minX() + aabb.maxX()) * 0.5
+    val cy = (aabb.minY() + aabb.maxY()) * 0.5
+    val cz = (aabb.minZ() + aabb.maxZ()) * 0.5
+    val hx = (aabb.maxX() - aabb.minX()) * 0.5
+    val hy = (aabb.maxY() - aabb.minY()) * 0.5
+    val hz = (aabb.maxZ() - aabb.minZ()) * 0.5
+
+    val ship1 = getShipManagingPos(aabb.minX(), aabb.minZ())
+    val ship2 = getShipManagingPos(aabb.maxX(), aabb.maxZ())
+    val ship = if (ship1 != null && ship2 != null && ship1.id == ship2.id) ship1 else null
+
+    if (ship == null) {
+        destCenter.set(cx, cy, cz)
+        destAxisX.set(1.0, 0.0, 0.0)
+        destAxisY.set(0.0, 1.0, 0.0)
+        destAxisZ.set(0.0, 0.0, 1.0)
+        destHalfExtents.set(hx, hy, hz)
+        return
+    }
+
+    val m = ship.shipToWorld
+    m.transformPosition(destCenter.set(cx, cy, cz))
+    m.transformDirection(destAxisX.set(hx, 0.0, 0.0))
+    m.transformDirection(destAxisY.set(0.0, hy, 0.0))
+    m.transformDirection(destAxisZ.set(0.0, 0.0, hz))
+    val lx = destAxisX.length()
+    val ly = destAxisY.length()
+    val lz = destAxisZ.length()
+    destHalfExtents.set(lx, ly, lz)
+    if (lx > 0.0) destAxisX.div(lx)
+    if (ly > 0.0) destAxisY.div(ly)
+    if (lz > 0.0) destAxisZ.div(lz)
+}
+
+/**
  * Returns all the ships whose AABBs contain x/y/z
  */
+@GameTickOnly
 fun Level?.getShipsIntersecting(x: Double, y: Double, z: Double): Iterable<Ship> =
-    vsApi.getShipsIntersecting(this, x, y, z)
+    getShipsIntersecting(AABBd(x, y, z, x, y, z))
+
+@GameTickOnly
+fun Level?.getShipsIntersecting(aabb: AABB): Iterable<Ship> =
+    getShipsIntersecting(aabb.toJOML())
 
 /**
  * Returns all the ships whose AABBs intersect [aabb]
  */
+@GameTickOnly
 fun Level?.getShipsIntersecting(aabb: AABBdc?): Iterable<Ship> =
-    vsApi.getShipsIntersecting(this, aabb)
+    if (aabb == null) emptyList() else this?.allShips?.getIntersecting(aabb, dimensionId) ?: emptyList()
 
 @GameTickOnly
 fun Level?.distance(x1: Double, y1: Double, z1: Double, x2: Double, y2: Double, z2: Double): Double =
@@ -386,6 +848,16 @@ fun Level?.distance(x1: Double, y1: Double, z1: Double, x2: Double, y2: Double, 
 @GameTickOnly
 fun Level?.distance(v1: Position, v2: Position): Double =
     sqrt(distanceSquared(v1, v2))
+
+@GameTickOnly
+fun Level?.distanceSquared(v1: Vec3, v2: Vec3, originalDistance: Operation<Double>?): Double {
+    originalDistance ?: return distanceSquared(v1.x, v1.y, v1.z, v2.x, v2.y, v2.z)
+
+    val inWorldV1 = toWorldCoordinates(v1)
+    val inWorldV2 = toWorldCoordinates(v2)
+
+    return originalDistance.call(inWorldV1, inWorldV2)
+}
 
 /**
  * Calculates squared distance including ships.
@@ -483,28 +955,7 @@ fun Level?.closerToCenterThan(v1: Vec3i, x2: Double, y2: Double, z2: Double, dis
 fun Level?.closerToCenterThan(v1: Vec3i, v2: Position, distance: Double): Boolean =
     distanceToCenterSquared(v1, v2) < distance.squared()
 
-@GameTickOnly
-fun Level?.getLoadedShipManagingPos(chunkX: Int, chunkZ: Int) = getLoadedShipManagingPosImpl(this, chunkX, chunkZ)
 
-@GameTickOnly
-fun Level?.getLoadedShipManagingPos(blockPos: Vec3i) =
-    getLoadedShipManagingPos(blockPos.x shr 4, blockPos.z shr 4)
-
-@GameTickOnly
-fun Level?.getLoadedShipManagingPos(pos: Vector3dc) =
-    getLoadedShipManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
-
-@GameTickOnly
-fun Level?.getLoadedShipManagingPos(pos: Position) =
-    getLoadedShipManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
-
-@GameTickOnly
-fun Level?.getLoadedShipManagingPos(posX: Double, posZ: Double) =
-    getLoadedShipManagingPos(posX.toInt(), posZ.toInt())
-
-@GameTickOnly
-fun Level?.getLoadedShipManagingPos(chunkPos: ChunkPos) =
-    getLoadedShipManagingPos(chunkPos.x, chunkPos.z)
 // endregion
 
 // region ClientLevel / Minecraft extensions
@@ -548,6 +999,13 @@ fun ClientLevel?.transformRenderAABBToWorld(pos: Position, aabb: AABB): AABB {
     }
     return aabb
 }
+
+@GameTickOnly
+fun ClientLevel?.toShipRenderCoordinates(shipPos: Vec3, pos: Vec3): Vector3d =
+    this?.getLoadedShipManagingPos(shipPos)
+        ?.renderTransform
+        ?.worldToShip
+        ?.transformPosition(pos.toJOML()) ?: pos.toJOML()
 // endregion
 
 // region ServerLevel / MinecraftServer extensions
@@ -583,6 +1041,30 @@ fun MinecraftServer.getLevelFromDimensionId(dimensionId: DimensionId): ServerLev
     getLevel(getResourceKey(dimensionId))
 
 @GameTickOnly
+fun ServerLevel?.getShipManagingPos(chunkX: Int, chunkZ: Int) =
+    getShipManagingPosImpl(this, chunkX, chunkZ)
+
+@GameTickOnly
+fun ServerLevel?.getShipManagingPos(blockPos: Vec3i) =
+    getShipManagingPos(blockPos.x shr 4, blockPos.z shr 4)
+
+@GameTickOnly
+fun ServerLevel?.getShipManagingPos(pos: Vector3dc) =
+    getShipManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
+
+@GameTickOnly
+fun ServerLevel?.getShipManagingPos(pos: Position) =
+    getShipManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
+
+@GameTickOnly
+fun ServerLevel?.getShipManagingPos(posX: Double, posZ: Double) =
+    getShipManagingPos(posX.toInt() shr 4, posZ.toInt() shr 4)
+
+@GameTickOnly
+fun ServerLevel?.getShipManagingPos(chunkPos: ChunkPos) =
+    getShipManagingPos(chunkPos.x, chunkPos.z)
+
+@GameTickOnly
 fun ServerLevel?.getLoadedShipManagingPos(chunkX: Int, chunkZ: Int) =
     getLoadedShipManagingPosImpl(this, chunkX, chunkZ) as LoadedServerShip?
 
@@ -608,6 +1090,7 @@ fun ServerLevel?.getLoadedShipManagingPos(chunkPos: ChunkPos) =
 // endregion
 
 // region Ship extensions
+// region position transforming stuff
 fun Ship?.positionToWorld(pos: Vec3): Vec3 =
     this?.transform.positionToWorld(pos)
 
@@ -644,6 +1127,24 @@ fun ShipTransform?.positionToShip(pos: Vector3d): Vector3d =
 fun ShipTransform?.positionToShip(pos: Vector3dc, dest: Vector3d): Vector3d =
     this?.worldToShip?.transformPosition(pos, dest) ?: dest.set(pos)
 
+@JvmOverloads
+fun Ship.toWorldCoordinates(x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
+    transform.shipToWorld.transformPosition(dest.set(x, y, z))
+
+fun Ship.toWorldCoordinates(pos: Vector3d, dest: Vector3d): Vector3d =
+    shipToWorld.transformPosition(pos, dest)
+
+fun Ship.toWorldCoordinates(pos: Vector3d): Vector3d =
+    shipToWorld.transformPosition(pos)
+
+fun Ship.toWorldCoordinates(blockPos: Vec3i): Vector3d =
+    shipToWorld.transformPosition(blockPos.toJOMLd())
+
+fun Ship.toWorldCoordinates(pos: Vec3): Vector3d =
+    shipToWorld.transformPosition(pos.toJOML())
+
+// endregion
+
 /**
  * The vanilla [StructureStart]s stored in this [Ship]'s chunks, i.e. the structures whose
  * metadata was carried onto the ship during assembly. Only loaded chunks are consulted.
@@ -656,6 +1157,36 @@ fun Ship?.getStructureStarts(level: ServerLevel): List<StructureStart> {
         starts.addAll(chunk.allStarts.values)
     }
     return starts
+}
+
+/**
+ * Will attempt to rename the ServerShip to the newSlug,
+ * but if an existing ship is found with that slug it will
+ * append a number like `-1` to the slug to make them unique.
+ * Not technically required, slugs _can_ be duplicated, but
+ * highly recommended.
+ */
+fun ServerShip.safeRenameTo(level: ServerLevel, newSlug: String) {
+    var newSlug = newSlug
+    var safeLimit = 0
+    while (safeLimit < 50) {
+        safeLimit++
+        run breaking@ {
+            level.allShips?.forEach {
+                if (it.slug == newSlug) {
+                    val suffix = newSlug.split("-").last()
+                    if (suffix.toIntOrNull() != null) {
+                        val newNum = suffix.toInt() + 1
+                        newSlug = newSlug.dropLast(suffix.length)
+                        newSlug += newNum.toString()
+                    } else newSlug += "-1"
+
+                    return@breaking
+                }
+            }
+        }
+    }
+    this.slug = newSlug
 }
 // endregion
 
@@ -819,6 +1350,21 @@ fun AABBd.set(v: AABB) = also {
     maxX = v.maxX
     maxY = v.maxY
     maxZ = v.maxZ
+}
+
+/**
+ * Calls the consumer [f] for every (integer) position in the AABBic.
+ *
+ * This function is expensive, don't call it too often.
+ */
+fun AABBic.forEach(f: IntTernaryConsumer) {
+    for (x in this.minX()..this.maxX()) {
+        for (y in this.minY()..this.maxY()) {
+            for (z in this.minZ()..this.maxZ()) {
+                f.accept(x, y, z)
+            }
+        }
+    }
 }
 
 @JvmOverloads
