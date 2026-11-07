@@ -469,6 +469,7 @@
     "mod_compat.create.client.MixinChainConveyorConnectionHandler",
     "mod_compat.create.client.MixinChainConveyorRenderer",
     "mod_compat.create.client.MixinChainConveyorVisual",
+    "mod_compat.create.client.MixinChasingAABBOutline",
     "mod_compat.create.client.MixinCogwheelBlockItem",
     "mod_compat.create.client.MixinContraptionControlsRenderer",
     "mod_compat.create.client.MixinContraptionRenderDispatcher",
