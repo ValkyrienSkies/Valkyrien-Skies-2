@@ -261,6 +261,15 @@ subprojects {
                     includeGroup("ram.talia.hexal")
                 }
             }
+            // caffeine config
+            maven {
+                name = "redlancePublic"
+                url = "https://repo.redlance.org/public"
+                content {
+                    includeGroup("com.github.dima_dencep.mods")
+                }
+            }
+
         }
         maven {
             name = "Valkyrien Skies Internal"
