@@ -366,8 +366,7 @@ public class ContraptionSegmentHelper {
         if (body == null) {
             return false;
         }
-        body.setCollisionSegmentTransform(segmentId, anchorVec, contraptionRot, velocity, angularVelocity);
-        return true;
+        return CollisionSegmentOperations.update(body, segmentId, anchorVec, contraptionRot, velocity, angularVelocity);
     }
 
     public static boolean removeContraptionSegment(ServerLevel level, int segmentId, long bodyId, boolean isWorld) {
@@ -383,6 +382,6 @@ public class ContraptionSegmentHelper {
         if (body == null) {
             return false;
         }
-        return body.removeCollisionSegment(segmentId);
+        return CollisionSegmentOperations.remove(body, segmentId);
     }
 }
