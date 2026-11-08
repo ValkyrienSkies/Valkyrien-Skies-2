@@ -38,6 +38,7 @@ import org.valkyrienskies.mod.common.blockentity.TestThrusterBlockEntity
 import org.valkyrienskies.mod.common.config.DimensionParametersResolver
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.entity.VSPhysicsEntity
+import org.valkyrienskies.mod.common.hooks.VSGameEvents
 import org.valkyrienskies.mod.common.assembly.ShipWelder
 import org.valkyrienskies.mod.common.jackson.BlockPosDeserializer
 import org.valkyrienskies.mod.common.jackson.BlockPosKeyDeserializer
@@ -54,6 +55,7 @@ import org.valkyrienskies.mod.common.util.SplitHandler
 import org.valkyrienskies.mod.common.util.SplittingDisablerAttachment
 import org.valkyrienskies.mod.common.util.VoidAttachment
 import org.valkyrienskies.mod.common.util.WorldBorderAttachment
+import org.valkyrienskies.mod.common.util.refreshPhysicsListenerOwners
 import org.valkyrienskies.mod.mixinducks.client.world.ClientChunkCacheDuck
 import org.valkyrienskies.mod.mixinducks.feature.tickets.PlayerKnownShipsDuck
 import org.valkyrienskies.mod.util.PlatformUtils
@@ -201,6 +203,17 @@ object ValkyrienSkiesMod {
             ImpactFractureHandler.onCollision(event)
         }
         ImpactFractureHandler.logRegistered()
+
+        VSGameEvents.shipPositionsUpdated.on { level ->
+            // Registration can precede ship ownership becoming available during assembly/loading.
+            // Resolve ownership on the game thread; physics callbacks only read the published ID.
+            blockEntityPhysListeners[level.dimensionId]?.let { listeners ->
+                refreshPhysicsListenerOwners(listeners) { pos -> level.getShipManagingBlock(pos)?.id }
+            }
+        }
+        VSGameEvents.serverStopped.on {
+            blockEntityPhysListeners.clear()
+        }
 
         core.physTickEvent.on { event ->
             ShipWelder.physTick(event.world, event.delta)
