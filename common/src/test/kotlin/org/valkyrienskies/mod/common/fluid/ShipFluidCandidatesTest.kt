@@ -1,6 +1,9 @@
 package org.valkyrienskies.mod.common.fluid
 
 import io.mockk.*
+import net.minecraft.core.BlockPos
+import net.minecraft.world.level.EmptyBlockGetter
+import net.minecraft.world.phys.shapes.BooleanOp
 import net.minecraft.SharedConstants
 import net.minecraft.server.Bootstrap
 import net.minecraft.world.level.Level
@@ -92,6 +95,30 @@ class ShipFluidCandidatesTest {
         ShipFluidInteraction.prune(world)
         assertTrue(ShipFluidCandidates.intersecting(world, "test", first).isEmpty())
         assertSame(Fluids.WATER, ShipFluidInteraction.samplePoint(level, Vec3(40.5, .5, .5)).fluid())
+    }
+
+    @Test fun `eye contact inside a noncolliding torch outline stays dry`() {
+        flooding = floodingSnapshot()
+        every { world.allShips.getIntersecting(any(), any()) } returns listOf(ship)
+        every { level.getBlockCollisions(null, any()) } returns emptyList()
+        for (block in listOf(Blocks.TORCH, Blocks.WALL_TORCH)) {
+            val state = block.defaultBlockState()
+            val outline = state.getShape(EmptyBlockGetter.INSTANCE, BlockPos.ZERO)
+            val voids = Shapes.join(Shapes.block(), outline, BooleanOp.ONLY_FIRST).toAabbs().map { box ->
+                ((box.minX * 16).toLong() or ((box.minY * 16).toLong() shl 5) or
+                    ((box.minZ * 16).toLong() shl 10) or ((box.maxX * 16).toLong() shl 15) or
+                    ((box.maxY * 16).toLong() shl 20) or ((box.maxZ * 16).toLong() shl 25) or (1L shl 30))
+            }
+            topology = topology.copy(streamSequence = topology.streamSequence + 1,
+                voxels = listOf(VsiFluidTopologyVoxel(0, 0, 0, 1, voids)))
+            every { level.getBlockState(any()) } answers {
+                if (firstArg<BlockPos>() == BlockPos.ZERO) state else Blocks.AIR.defaultBlockState()
+            }
+            val point = ShipFluidInteraction.samplePoint(level, outline.bounds().center)
+            assertTrue(point.insideDomain(), "Outline point at $state")
+            assertFalse(point.flooded())
+            assertFalse(ShipFluidInteraction.samplePoint(level, Vec3(1.1, .5, .5)).insideDomain())
+        }
     }
 
     @Test fun `eye contact with solid hull excludes world water without masking empty slab space`() {
