@@ -89,4 +89,43 @@ class FluidParcelCuboidsTest {
         val invalid = listOf(parcel(0.0, volume = Double.NaN), parcel(Double.NaN), parcel(0.0, volume = -1.0))
         assertEquals(6, FluidParcelCuboids.build(listOf(parcel(0.0)) + invalid).faces().size)
     }
+    @Test
+    fun `long separated streams preserve cubes along every sweep axis`() {
+        for (axis in 0..2) {
+            val inputs = List(1024) { i ->
+                val position = Vector3d().setComponent(axis, i * 0.25)
+                FluidParcelCuboids.Parcel(position, 0.001, 0)
+            }
+            check(inputs)
+            assertEquals(6 * inputs.size, FluidParcelCuboids.build(inputs).faces().size)
+        }
+    }
+
+    @Test
+    fun `touching and overlapping streams preserve volume along every sweep axis`() {
+        for (axis in 0..2) for (step in listOf(0.0, 0.2, 0.5)) {
+            val inputs = List(32) { i ->
+                val position = Vector3d().setComponent(axis, i * step)
+                FluidParcelCuboids.Parcel(position, 0.125, 0)
+            }
+            check(inputs)
+            if (step == 0.5) assertEquals(4 * inputs.size + 2, FluidParcelCuboids.build(inputs).faces().size)
+        }
+    }
+
+    @Test
+    fun `elongated mixed-size and mixed-material streams preserve volume`() {
+        val random = Random(8675309)
+        for (axis in 0..2) repeat(12) {
+            val inputs = List(96) { i ->
+                val position = Vector3d(random.nextDouble(), random.nextDouble(), random.nextDouble())
+                position.setComponent(axis, position[axis] * 30.0)
+                FluidParcelCuboids.Parcel(position, 0.001 + random.nextDouble() * 0.125, i % 2)
+            }
+            check(inputs)
+            assertArrayEquals(bounds(FluidParcelCuboids.build(inputs)),
+                bounds(FluidParcelCuboids.build(inputs.reversed())), 1e-10)
+        }
+    }
+
 }

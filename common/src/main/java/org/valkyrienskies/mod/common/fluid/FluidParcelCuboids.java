@@ -55,6 +55,57 @@ public final class FluidParcelCuboids {
         }
     }
 
+    /** Keep clipping order stable while pruning along the longest axis, including vertical streams. */
+    private static final class BoxIndex {
+        private final List<Box> boxes;
+        private final Integer[] order;
+        private final double[] prefixMax;
+        private final int axis;
+
+        static BoxIndex forElongated(List<Box> boxes) {
+            final double[] lo = {Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY};
+            final double[] hi = {Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY};
+            for (final var box : boxes) for (int a = 0; a < 3; a++) {
+                lo[a] = Math.min(lo[a], box.lo[a]);
+                hi[a] = Math.max(hi[a], box.hi[a]);
+            }
+            int longest = 0;
+            for (int a = 1; a < 3; a++)
+                if (hi[a] - lo[a] > hi[longest] - lo[longest]) longest = a;
+            // Keep the cheap original path for clouds and clusters with comparable extents.
+            if (longest == 0 || hi[longest] - lo[longest] <= 2 * (hi[0] - lo[0])) return null;
+            return new BoxIndex(boxes, longest);
+        }
+
+        private BoxIndex(List<Box> boxes, int axis) {
+            this.boxes = boxes;
+            this.axis = axis;
+            order = new Integer[boxes.size()];
+            for (int i = 0; i < order.length; i++) order[i] = i;
+            if (axis != 0) Arrays.sort(order, Comparator.comparingDouble((Integer i) -> boxes.get(i).lo[axis])
+                .thenComparingInt(i -> i));
+            prefixMax = new double[order.length];
+            for (int i = 0; i < order.length; i++)
+                prefixMax[i] = Math.max(i == 0 ? Double.NEGATIVE_INFINITY : prefixMax[i - 1], boxes.get(order[i]).hi[axis]);
+        }
+
+        int overlaps(Box box, int[] result) {
+            int start = Arrays.binarySearch(prefixMax, box.lo[axis]);
+            if (start < 0) start = -start - 1;
+            else while (start > 0 && prefixMax[start - 1] >= box.lo[axis]) start--;
+            int count = 0;
+            for (int k = start; k < order.length; k++) {
+                final int i = order[k];
+                final var other = boxes.get(i);
+                if (other.lo[axis] > box.hi[axis]) break;
+                if (box.overlaps(other)) result[count++] = i;
+            }
+            // Preserve density addition, coincident-face ownership, clipping and face emission order.
+            if (axis != 0) Arrays.sort(result, 0, count);
+            return count;
+        }
+    }
+
     private static final class Rectangles {
         double[] current = new double[256], next = new double[256];
         int count;
@@ -105,18 +156,27 @@ public final class FluidParcelCuboids {
             boxes.sort(Comparator.comparingDouble((Box b) -> b.lo[0])
                 .thenComparingDouble(b -> b.lo[1]).thenComparingDouble(b -> b.lo[2])
                 .thenComparingDouble(b -> b.volume));
+            final var densityIndex = BoxIndex.forElongated(boxes);
+            final int[] neighbors = densityIndex == null ? null : new int[boxes.size()];
             double target = 0;
             for (int i = 0; i < boxes.size(); i++) {
                 final var a = boxes.get(i);
                 target += a.volume;
-                for (int j = i + 1; j < boxes.size(); j++) {
-                    final var b = boxes.get(j);
-                    if (b.lo[0] >= a.hi[0]) break;
-                    double overlap = 1;
-                    for (int axis = 0; axis < 3; axis++)
-                        overlap *= Math.max(0, Math.min(a.hi[axis], b.hi[axis]) - Math.max(a.lo[axis], b.lo[axis]));
-                    a.density += overlap / a.volume;
-                    b.density += overlap / b.volume;
+                if (densityIndex == null) {
+                    for (int j = i + 1; j < boxes.size(); j++) {
+                        final var b = boxes.get(j);
+                        if (b.lo[0] >= a.hi[0]) break;
+                        addOverlapDensity(a, b);
+                    }
+                } else {
+                    final int count = densityIndex.overlaps(a, neighbors);
+                    for (int k = 0; k < count; k++) {
+                        final int j = neighbors[k];
+                        if (j <= i) continue;
+                        final var b = boxes.get(j);
+                        if (b.lo[0] >= a.hi[0]) break;
+                        addOverlapDensity(a, b);
+                    }
                 }
             }
             for (final var box : boxes) { box.half *= Math.cbrt(box.density); box.update(); }
@@ -159,25 +219,45 @@ public final class FluidParcelCuboids {
         return new Mesh(origin, faces);
     }
 
+    private static void addOverlapDensity(Box a, Box b) {
+        double overlap = 1;
+        for (int axis = 0; axis < 3; axis++)
+            overlap *= Math.max(0, Math.min(a.hi[axis], b.hi[axis]) - Math.max(a.lo[axis], b.lo[axis]));
+        a.density += overlap / a.volume;
+        b.density += overlap / b.volume;
+    }
+
     private static double emit(List<Box> boxes, Rectangles scratch, List<Face> faces, int material) {
         double volume = 0;
         final double origin = boxes.get(0).center[0];
         final int[] neighbors = new int[boxes.size()];
-        final double[] prefixMax = new double[boxes.size()];
-        for (int i = 0; i < boxes.size(); i++)
+        final var index = BoxIndex.forElongated(boxes);
+        final double[] prefixMax = index == null ? new double[boxes.size()] : null;
+        if (prefixMax != null) for (int i = 0; i < boxes.size(); i++)
             prefixMax[i] = Math.max(i == 0 ? Double.NEGATIVE_INFINITY : prefixMax[i - 1], boxes.get(i).hi[0]);
         bodies: for (int i = 0; i < boxes.size(); i++) {
             final var box = boxes.get(i);
             int count = 0;
-            int start = Arrays.binarySearch(prefixMax, box.lo[0]);
-            if (start < 0) start = -start - 1;
-            else while (start > 0 && prefixMax[start - 1] >= box.lo[0]) start--;
-            for (int j = start; j < boxes.size(); j++) {
-                final var other = boxes.get(j);
-                if (other.lo[0] > box.hi[0]) break;
-                if (i == j || !box.overlaps(other)) continue;
-                if (other.contains(box) && (j < i || !box.contains(other))) continue bodies;
-                neighbors[count++] = j;
+            if (index == null) {
+                int start = Arrays.binarySearch(prefixMax, box.lo[0]);
+                if (start < 0) start = -start - 1;
+                else while (start > 0 && prefixMax[start - 1] >= box.lo[0]) start--;
+                for (int j = start; j < boxes.size(); j++) {
+                    final var other = boxes.get(j);
+                    if (other.lo[0] > box.hi[0]) break;
+                    if (i == j || !box.overlaps(other)) continue;
+                    if (other.contains(box) && (j < i || !box.contains(other))) continue bodies;
+                    neighbors[count++] = j;
+                }
+            } else {
+                final int candidates = index.overlaps(box, neighbors);
+                for (int k = 0; k < candidates; k++) {
+                    final int j = neighbors[k];
+                    if (i == j) continue;
+                    final var other = boxes.get(j);
+                    if (other.contains(box) && (j < i || !box.contains(other))) continue bodies;
+                    neighbors[count++] = j;
+                }
             }
             for (int axis = 0; axis < 3; axis++) for (int sign = -1; sign <= 1; sign += 2) {
                 final int u = (axis + 1) % 3, v = (axis + 2) % 3;
