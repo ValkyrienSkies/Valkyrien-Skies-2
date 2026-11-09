@@ -97,6 +97,11 @@ subprojects {
         mavenCentral()
         if (!project.block_external_repositories) {
             maven {
+                name = "NeoForge Releases"
+                url = "https://maven.neoforged.net/releases/"
+                content { includeGroupByRegex("net\\.neoforged(\\..*)?") }
+            }
+            maven {
                 name = "Robotix's Public Maven"
                 url = "https://maven.realrobotix.me/master/"
             }

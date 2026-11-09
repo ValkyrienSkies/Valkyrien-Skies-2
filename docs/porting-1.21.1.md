@@ -28,6 +28,7 @@ Status: local merge plus rendering/entity API adaptation, **not a working or val
 - Convert sprite UV inputs from the old 0..16 convention to 1.21's normalized coordinates. Preserve the custom no-shade alpha marker in the updated bulk vertex method.
 - Update Iris 1.8.7's `beginBlock` signature, including block emission. Pin Iris to the release that requires the existing Sodium 0.6.9 dependency.
 - Adapt physics entity synchronization, spawn packets, interpolation, packed model colors, and portal-state copying to the 1.21 entity API.
+- Add the NeoForge repository and its explicit compile-only universal API jar for common config types.
 - Correct KotlinForForge repository filtering, JEI coordinates, and common compile-only Create Big Cannons/RPL/Vista APIs. The latter use published 1.21.1 NeoForge artifacts with Mojang names. This does not establish cross-loader compatibility.
 - Prevent old Create/Moonlight transitive dependency graphs from entering the common target classpath; remove obsolete split Immersive Portals coordinates.
 
@@ -54,7 +55,7 @@ java.io.UncheckedIOException: java.net.SocketException: Operation not permitted
 
 A temporary build-only Java instrumentation shim reports that optional capability as unavailable, with Gradle's own instrumentation agent disabled. It lives outside the repository and is not included in the mod. No permissions were changed. This allowed Loom to proceed through Minecraft setup into dependency resolution/remapping.
 
-The next configuration failure identified the inherited 1.20.1 Vista artifact as requiring newer Loom. The compile-only reference now uses Vista 1.21.1-5.6.5's Mojang-mapped NeoForge artifact. Dependency setup is being retried. No complete module compilation, mod jar, or successful game launch has been produced.
+The next configuration failure identified the inherited 1.20.1 Vista artifact as requiring newer Loom. The compile-only reference now uses Vista 1.21.1-5.6.5's Mojang-mapped NeoForge artifact. Common project configuration now completes and Gradle reaches `:common:compileKotlin`, which is still resolving its compile classpath. Platform configuration was stopped to prioritize common compiler feedback. No complete module compilation, mod jar, or successful game launch has been produced.
 
 ## Remaining port work
 
