@@ -1,12 +1,17 @@
 package org.valkyrienskies.mod.forge.mixin.compat.create;
 
+import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
 import com.simibubi.create.content.contraptions.Contraption;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.valkyrienskies.mod.compat.create.ContraptionSegmentHelper;
 
 @Mixin(Contraption.class)
 public class MixinContraption {
@@ -22,5 +27,12 @@ public class MixinContraption {
             entity.moveTo(anchor.getX() + .5, anchor.getY(), anchor.getZ() + .5);
         }
         return added;
+    }
+
+    @Inject(method = "onEntityCreated", at = @At("HEAD"), remap = false)
+    private void preOnEntityCreated(AbstractContraptionEntity entity, CallbackInfo ci) {
+        if (entity.level() instanceof ServerLevel serverLevel) {
+            ContraptionSegmentHelper.ensureContraptionSegment(serverLevel, entity);
+        }
     }
 }

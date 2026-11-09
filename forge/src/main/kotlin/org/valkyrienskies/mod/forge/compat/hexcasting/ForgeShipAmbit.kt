@@ -2,7 +2,7 @@ package org.valkyrienskies.mod.forge.compat.hexcasting
 
 import at.petrak.hexcasting.api.casting.eval.CastingEnvironment
 import net.minecraft.world.phys.Vec3
-import net.minecraftforge.fml.ModList
+import net.neoforged.fml.ModList
 import org.valkyrienskies.mod.compat.hexcasting.ShipAmbit
 import org.valkyrienskies.mod.compat.hexcasting.hexal.HexalCompat
 import org.valkyrienskies.mod.compat.hexcasting.hextweaks.HexTweaksCompat

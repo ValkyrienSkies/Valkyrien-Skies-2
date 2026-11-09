@@ -15,6 +15,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.mod.common.VS2ChunkAllocator;
+import org.valkyrienskies.mod.common.config.VSGameConfig;
 
 /**
  * Fix multiple issues with ship chunks at level 33 (FULL status):
@@ -38,7 +39,8 @@ public abstract class MixinChunkHolder {
     @Inject(method = "getTickingChunk", at = @At("HEAD"), cancellable = true)
     private void vs$getTickingChunkForShipyard(CallbackInfoReturnable<LevelChunk> cir) {
         final ChunkPos pos = ((ChunkHolder) (Object) this).getPos();
-        if (VS2ChunkAllocator.INSTANCE.isChunkInShipyardCompanion(pos.x, pos.z)) {
+        if (VSGameConfig.SERVER.getPerformance().getUseRadiusZeroShipChunkTickets()
+            && VS2ChunkAllocator.INSTANCE.isChunkInShipyardCompanion(pos.x, pos.z)) {
             if (levelHeightAccessor instanceof ServerLevel serverLevel) {
                 LevelChunk chunk = serverLevel.getChunkSource().getChunkNow(pos.x, pos.z);
                 if (chunk != null) {
@@ -72,7 +74,7 @@ public abstract class MixinChunkHolder {
     )
     private FullChunkStatus vs$promoteShipyardStatus(final int ticketLevel, final Operation<FullChunkStatus> op) {
         final ChunkPos pos = ((ChunkHolder) (Object) this).getPos();
-        if (ticketLevel == 33
+        if (VSGameConfig.SERVER.getPerformance().getUseRadiusZeroShipChunkTickets() && ticketLevel == 33
                 && VS2ChunkAllocator.INSTANCE.isChunkInShipyardCompanion(pos.x, pos.z)) {
             return FullChunkStatus.BLOCK_TICKING;
         }

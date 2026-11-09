@@ -1,0 +1,42 @@
+package org.valkyrienskies.mod.common.render.light;
+
+import org.lwjgl.opengl.GL20;
+import org.valkyrienskies.mod.common.config.VSGameConfig;
+
+public final class VsShipWorldLightTerrainUniforms {
+
+    private VsShipWorldLightTerrainUniforms() {
+    }
+
+    public static void setupForProgram(final int programId, final double camX, final double camY,
+        final double camZ) {
+        ShipShadowRenderer.bind(programId);
+        final boolean lighting = VSGameConfig.CLIENT.isShipToWorldLightingEnabled();
+        if (lighting) VsDynamicLight.getShipEmitterList().bind(VsDynamicLight.SHIP_EMITTER_LIST_TEXTURE_UNIT);
+        setInt(programId, "u_VsShipEmitters", VsDynamicLight.SHIP_EMITTER_LIST_TEXTURE_UNIT);
+        setInt(programId, "u_VsShipEmitterCount", lighting ? VsDynamicLight.getShipEmitterList().size() : 0);
+        setInt(programId, "u_VsShipGlowEnabled", VSGameConfig.CLIENT.isShipToWorldLightingEnabled() ? 1 : 0);
+
+        final int camLoc = GL20.glGetUniformLocation(programId, "u_VsShipLightCameraPos");
+        if (camLoc >= 0) {
+            GL20.glUniform3f(camLoc, (float) camX, (float) camY, (float) camZ);
+        }
+    }
+
+    public static void disableForProgram(final int programId) {
+        setInt(programId, "u_VsShipShadowMap", ShipShadowMap.TEXTURE_UNIT);
+        setInt(programId, "u_VsShipShadowCompare", ShipShadowMap.COMPARISON_TEXTURE_UNIT);
+        setInt(programId, "u_VsShipEmitters", VsDynamicLight.SHIP_EMITTER_LIST_TEXTURE_UNIT);
+        setInt(programId, "u_VsShipGlowEnabled", 0);
+        setInt(programId, "u_VsShipShadowMapEnabled", 0);
+        final int strength = GL20.glGetUniformLocation(programId, "u_VsShipShadowStrength");
+        if (strength >= 0) GL20.glUniform1f(strength, 0.0f);
+    }
+
+    private static void setInt(final int programId, final String name, final int value) {
+        final int loc = GL20.glGetUniformLocation(programId, name);
+        if (loc >= 0) {
+            GL20.glUniform1i(loc, value);
+        }
+    }
+}

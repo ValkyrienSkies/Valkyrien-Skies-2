@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.mixin.accessors.server.level;
 
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import java.util.function.BooleanSupplier;
 import net.minecraft.server.level.ChunkHolder;
@@ -24,6 +25,9 @@ public interface ChunkMapAccessor {
 
     @Invoker("getChunks")
     Iterable<ChunkHolder> callGetChunks();
+
+    @Invoker("anyPlayerCloseEnoughForSpawning")
+    boolean callAnyPlayerCloseEnoughForSpawning(ChunkPos chunkPos);
 
     @Invoker("getVisibleChunkIfPresent")
     ChunkHolder callGetVisibleChunkIfPresent(long l);
@@ -51,4 +55,6 @@ public interface ChunkMapAccessor {
 
     @Accessor("level")
     ServerLevel getLevel();
+    @Accessor("entityMap")
+    Int2ObjectMap<ChunkMap.TrackedEntity> getEntityMap();
 }

@@ -2,7 +2,9 @@ package org.valkyrienskies.mod.mixin.server.world;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongIterator;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.ChunkMap;
 import net.minecraft.server.level.ServerLevel;
@@ -14,7 +16,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.mod.common.VS2ChunkAllocator;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 /**
  * Fast-paths shipyard chunk unloads. Two interventions; they work together.
@@ -57,14 +58,14 @@ public abstract class MixinChunkMapScheduleUnload {
 
     @Shadow
     @Final
-    private ServerLevel level;
+    ServerLevel level;
 
     @Inject(method = "scheduleUnload", at = @At("HEAD"), cancellable = true)
     private void vs$fastScheduleUnloadForShipyard(final long chunkPos, final ChunkHolder holder,
                                                   final CallbackInfo ci) {
         final int cx = ChunkPos.getX(chunkPos);
         final int cz = ChunkPos.getZ(chunkPos);
-        if (!VSGameUtilsKt.isChunkInShipyard(level, cx, cz)) return;
+        if (!VS2ChunkAllocator.INSTANCE.isChunkInShipyardCompanion(cx, cz)) return;
 
         // Shipyard chunks on their way out: skip the whole async save + cleanup
         // chain. The only bookkeeping we have to do before returning is the
@@ -74,6 +75,18 @@ public abstract class MixinChunkMapScheduleUnload {
     }
 
     /**
+     * Tracks the {@link #toDrop} size at the last bulk-eviction pass.
+     * If the set hasn't grown, there's nothing new to evict — skip the
+     * full walk. This is what prevents the shutdown-hang spin: on worlds
+     * with accumulated shipyard chunks, {@code processUnloads} is called
+     * every tick across many stop-phase ticks, and without this guard
+     * each call re-iterates the full toDrop set even though our first
+     * eviction already cleared every shipyard entry.
+     */
+    @org.spongepowered.asm.mixin.Unique
+    private int vs$lastToDropSize = -1;
+
+    /**
      * Bulk-evict shipyard entries before MC's per-entry processUnloads loop runs.
      * MC's loop iterates the toDrop set at a rate that's bounded by how quickly
      * the DistanceManager commits ticket changes — with 62k cascaded shipyard
@@ -81,23 +94,63 @@ public abstract class MixinChunkMapScheduleUnload {
      * `ServerChunkCache.tickChunks` keeps iterating them every tick. Pulling them
      * out of both toDrop and updatingChunkMap up front cuts the per-tick iteration
      * cost to the non-shipyard portion immediately.
+     *
+     * <p>On shutdown of a world with 1000+ ships: processUnloads fires on every
+     * tick of stopServer()'s drain loop, and without the size-change guard
+     * below we re-iterate the full toDrop each tick. 62k entries × 100s of
+     * ticks = ~1000 CPU-seconds spinning on {@code LongOpenHashSet$SetIterator
+     * .nextLong} — the user-visible "world-close hang". The size check makes
+     * repeat calls an O(1) no-op once we've emptied the shipyard portion.
      */
     @Inject(method = "processUnloads", at = @At("HEAD"))
     private void vs$bulkEvictShipyardAtHead(final java.util.function.BooleanSupplier shouldContinue,
                                             final CallbackInfo ci) {
-        if (toDrop.isEmpty()) return;
+        final int currentSize = toDrop.size();
+        if (currentSize == 0) {
+            vs$lastToDropSize = 0;
+            return;
+        }
+        // Fast path: toDrop hasn't changed since last walk → we already
+        // evicted every shipyard entry that was there. Skip the O(n)
+        // iteration. If MC's own loop later removes entries from toDrop,
+        // the size will shrink and we'll re-walk on that call — but the
+        // walk will find no shipyard entries (we've been maintaining the
+        // invariant) so it's still O(n) without evictions, then the size
+        // stabilizes and subsequent calls are no-ops.
+        if (currentSize == vs$lastToDropSize) return;
 
-        // Walk toDrop once, pulling out every shipyard entry. iterator.remove()
-        // drops from toDrop; updatingChunkMap.remove drops the holder itself.
         final LongIterator it = toDrop.iterator();
+        int evicted = 0;
         while (it.hasNext()) {
             final long chunkPos = it.nextLong();
             final int cx = ChunkPos.getX(chunkPos);
             final int cz = ChunkPos.getZ(chunkPos);
-            if (!VSGameUtilsKt.isChunkInShipyard(level, cx, cz)) continue;
+            if (!VS2ChunkAllocator.INSTANCE.isChunkInShipyardCompanion(cx, cz)) continue;
             updatingChunkMap.remove(chunkPos);
             pendingUnloads.remove(chunkPos);
             it.remove();
+            evicted++;
         }
+        // Trim the backing array any time we evict a non-trivial chunk
+        // of entries. A LongOpenHashSet that peaked at 60k entries stays
+        // at 60k capacity even after removal — every
+        // iterator.nextLong() call walks empty slots until the next
+        // occupied one, so vanilla's own per-tick processUnloads loop
+        // walks 60k slots per call. Over hundreds of stopServer() ticks
+        // that's minutes of hang (stack shows server RUNNABLE in
+        // LongOpenHashSet$SetIterator.nextLong during world-save).
+        //
+        // Prior condition gated on `size() <= 500` which failed in
+        // practice — 1000-ship worlds often have a few thousand
+        // non-shipyard entries in toDrop alongside the shipyard ones,
+        // so post-evict size stayed above 500 and trim never fired.
+        // Now trims on any evict ≥ 100 regardless of remaining size.
+        // trim() is O(size) so calling it on a now-small set is cheap;
+        // the amortized cost over repeated processUnloads calls is
+        // fine.
+        if (evicted >= 100 && toDrop instanceof LongOpenHashSet los) {
+            los.trim();
+        }
+        vs$lastToDropSize = toDrop.size();
     }
 }

@@ -1,13 +1,17 @@
 package org.valkyrienskies.mod.mixin.mod_compat.sodium;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
-import com.llamalad7.mixinextras.sugar.ref.LocalBooleanRef;
 import com.mojang.blaze3d.vertex.PoseStack;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import java.util.SortedSet;
-import net.caffeinemc.mods.sodium.client.render.SodiumWorldRenderer;
-import net.caffeinemc.mods.sodium.client.render.chunk.RenderSectionManager;
-import net.caffeinemc.mods.sodium.client.render.chunk.lists.SortedRenderLists;
+
+import me.jellysquid.mods.sodium.client.gl.device.CommandList;
+import net.minecraft.client.Minecraft;
+import me.jellysquid.mods.sodium.client.render.SodiumWorldRenderer;
+import me.jellysquid.mods.sodium.client.render.chunk.RenderSectionManager;
+import me.jellysquid.mods.sodium.client.render.chunk.lists.SortedRenderLists;
+import me.jellysquid.mods.sodium.client.render.viewport.Viewport;
+import net.minecraft.client.Camera;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -17,6 +21,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.BlockDestructionProgress;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.entity.BlockEntity;
+
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -27,10 +32,16 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.assembly.SeamlessChunksManager;
+import org.valkyrienskies.mod.common.render.batched.ShipBatchRenderer;
+import org.valkyrienskies.mod.compat.LoadedMods;
+import org.valkyrienskies.mod.compat.LoadedMods.FlywheelVersion;
+import org.valkyrienskies.mod.compat.sodium.SodiumCompat;
 import org.valkyrienskies.mod.mixinducks.mod_compat.sodium.RenderSectionManagerDuck;
+import org.valkyrienskies.mod.mixinducks.mod_compat.sodium.SodiumWorldRendererDuck;
 
 @Mixin(SodiumWorldRenderer.class)
-public abstract class MixinSodiumWorldRenderer {
+public abstract class MixinSodiumWorldRenderer implements SodiumWorldRendererDuck {
 
     @Shadow
     private ClientLevel level;
@@ -39,6 +50,18 @@ public abstract class MixinSodiumWorldRenderer {
     private RenderSectionManager renderSectionManager;
     @Unique
     private SortedRenderLists currentRenderLists;
+    @Unique
+    private boolean vs$prevFrameHadShips;
+
+    @Override
+    public void vs$markShipRenderListsDirty() {
+        ((RenderSectionManagerDuck) this.renderSectionManager).vs$markShipRenderListsDirty();
+    }
+
+    @Override
+    public void vs$invalidateShipSectionCache(final ClientShip ship) {
+        ((RenderSectionManagerDuck) this.renderSectionManager).vs$invalidateShipSectionCache(ship);
+    }
 
     @Redirect(
         method = "renderBlockEntity",
@@ -52,11 +75,9 @@ public abstract class MixinSodiumWorldRenderer {
 
         final BlockPos pos = entity.getBlockPos();
 
-        // fix for https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues/818
-        if(!(dispatcher.level instanceof ClientLevel)) return;
-
-        final ClientLevel level = (ClientLevel) dispatcher.level;
-        final ClientShip ship = VSGameUtilsKt.getShipObjectManagingPos(level, pos);
+        // We don't use the level from the BlockEntityRenderDispatcher because it might not be a ClientLevel
+        // see https://github.com/maruohon/litematica/issues/937 for more info
+        final ClientShip ship = (ClientShip) VSGameUtilsKt.getShipManagingPos(Minecraft.getInstance().level, pos);
 
         if (ship == null) {
             instance.translate(d, e, f);
@@ -77,7 +98,7 @@ public abstract class MixinSodiumWorldRenderer {
         float tickDelta, MultiBufferSource.BufferSource immediate, double x, double y, double z,
         BlockEntityRenderDispatcher blockEntityRenderer, LocalPlayer player, LocalBooleanRef isGlowing) {
 
-        renderBlockEntities(matrices, bufferBuilders, blockBreakingProgressions, tickDelta, immediate, x, y, z, blockEntityRenderer, player, isGlowing);
+        renderBlockEntities(matrices, bufferBuilders, blockBreakingProgressions, tickDelta, immediate, x, y, z, blockEntityRenderer);
 
         for (final SortedRenderLists renderLists : ((RenderSectionManagerDuck) this.renderSectionManager).vs_getShipRenderLists().values()) {
             this.currentRenderLists = renderLists;
@@ -100,20 +121,34 @@ public abstract class MixinSodiumWorldRenderer {
         }
     }
 
-//    /**
-//     * @reason Fix ship ghosts when ships are deleted and camera hasn't moved, and ships not rendering when teleported
-//     * and camera hasn't moved
-//     */
-//    @Inject(method = "updateChunks", at = @At("HEAD"))
-//    private void preUpdateChunks(final CallbackInfo callbackInfo) {
-//        final boolean curFrameHasShips =
-//            !VSGameUtilsKt.getShipObjectWorld(Minecraft.getInstance()).getLoadedShips().isEmpty();
-//        // Mark the graph dirty if ships were loaded this frame or the previous one
-//        if (vs$prevFrameHadShips || curFrameHasShips) {
-//            this.renderSectionManager.markGraphDirty();
-//        }
-//        vs$prevFrameHadShips = curFrameHasShips;
-//    }
+    @Inject(
+        method = "renderBlockEntities(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/RenderBuffers;Lit/unimi/dsi/fastutil/longs/Long2ObjectMap;Lnet/minecraft/client/Camera;F)V",
+        at = @At("TAIL")
+    )
+    private void vs$renderBatchedShipBlockEntities(final PoseStack matrices, final RenderBuffers bufferBuilders,
+        final Long2ObjectMap<SortedSet<BlockDestructionProgress>> blockBreakingProgressions, final Camera camera,
+        final float tickDelta, final CallbackInfo ci) {
+        ShipBatchRenderer.INSTANCE.renderBlockEntities(world, matrices, bufferBuilders.bufferSource(), camera,
+            tickDelta);
+    }
+
+    @Inject(method = "setupTerrain", at = @At("HEAD"))
+    private void preUpdateChunks(final Camera camera, final Viewport viewport, final int frame,
+        final boolean spectator, final boolean updateChunksImmediately, final CallbackInfo callbackInfo) {
+        final boolean curFrameHasShips =
+            !VSGameUtilsKt.getShipObjectWorld(Minecraft.getInstance()).getLoadedShips().isEmpty();
+        if (vs$prevFrameHadShips != curFrameHasShips) {
+            this.vs$markShipRenderListsDirty();
+        }
+        vs$prevFrameHadShips = curFrameHasShips;
+    }
+
+    @Inject(method = "setupTerrain", at = @At("TAIL"))
+    private void updateShipRenderLists(final Camera camera, final Viewport viewport, final int frame,
+        final boolean spectator, final boolean updateChunksImmediately, final CallbackInfo ci) {
+        ((RenderSectionManagerDuck) this.renderSectionManager).vs$updateShipRenderLists(camera, viewport, frame,
+            spectator);
+    }
 
     /**
      * Fix entities in ships not rendering when Sodium is installed
@@ -123,5 +158,50 @@ public abstract class MixinSodiumWorldRenderer {
         if (VSGameUtilsKt.isBlockInShipyard(level, entity.position())) {
             cir.setReturnValue(true);
         }
+    }
+
+    /**
+     * TODO: check if this comment is true for sodium renderer.
+     * Process deferred ship chunk packets BEFORE vanilla's light updates so that
+     * ship chunks are loaded and their light is computed before render chunks compile.
+     */
+    @Inject(
+        method = "setupTerrain",
+        at = @At("HEAD")
+    )
+    private void drainShipChunksBeforeLightUpdate(final Camera camera, final Viewport viewport, final int frame, final boolean spectator, final boolean updateChunksImmediately, final CallbackInfo ci) {
+        final SeamlessChunksManager manager = SeamlessChunksManager.get();
+        if (manager != null) {
+            if (LoadedMods.getFlywheel() == FlywheelVersion.V1) {
+                return;
+            }
+            manager.drainDeferredBatch();
+            // Drain all queued light updates so the light engine has the latest data
+            if (!world.isLightUpdateQueueEmpty()) {
+                world.pollLightUpdates();
+            }
+        }
+    }
+
+    @Inject(
+        method = {"reload", "unloadWorld"},
+        at = @At("HEAD"),
+        remap = false
+    )
+    private void deleteStorages(CallbackInfo ci) {
+        ShipBatchRenderer.INSTANCE.freeAll();
+        SodiumCompat.deleteStorages();
+    }
+
+    @Inject(
+        method = "initRenderer",
+        at = @At("HEAD"),
+        remap = false
+    )
+    private void populateStorage(CommandList commandList, CallbackInfo ci){
+        SodiumCompat.populateWorldFromShipsForFrame(world);
+        SodiumCompat.populateLightSectionStorage(world);
+        SodiumCompat.populateBiomeSectionStorage(world);
+
     }
 }

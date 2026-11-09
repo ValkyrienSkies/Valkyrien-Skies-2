@@ -12,6 +12,10 @@ Valkyrien Skies
 <a href="https://discord.gg/rG3QNDV"><img src="https://img.shields.io/badge/Discord-white?style=for-the-badge&logo=discord" alt="Discord"></a>
 </p>
 
+<h2 align="center">
+<a href="https://docs.valkyrienskies.org"><b>Developer Wiki</b></a>
+</h2>
+
 *The physics mod to end all other physics mods. Better compatibility,
 performance, collisions, interactions and physics than anything prior!*
 

@@ -32,7 +32,6 @@
   "command.valkyrienskies.mc_teleport.can_only_teleport_to_one_ship": "정확히 1척의 선박으로만 이동할 수 있습니다",
   "command.valkyrienskies.get_ship.success": "슬러그가 %s인 선박을 찾았습니다",
   "command.valkyrienskies.get_ship.fail": "선박을 찾을 수 없습니다",
-  "command.valkyrienskies.get_ship.only_usable_by_entities": "/vs get-ship은 엔티티에 의해서만 실행될 수 있습니다!",
   "command.valkyrienskies.scale.success": "%d척의 선박을 크기를 조절했습니다!",
 
   "misc.valkyrienskies.create.deployer_working_mode": "선박 동작 방식",

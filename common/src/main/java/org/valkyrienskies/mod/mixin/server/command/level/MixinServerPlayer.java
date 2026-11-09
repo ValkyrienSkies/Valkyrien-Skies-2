@@ -17,7 +17,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(ServerPlayer.class)
 public abstract class MixinServerPlayer extends Player {
@@ -59,18 +58,8 @@ public abstract class MixinServerPlayer extends Player {
         if (ship != null) {
             ci.cancel();
 
-            Vector3d lookVector = VectorConversionsMCKt.toJOML(this.getLookAngle());
-            final Vector3d transformedLook = ship.getTransform().getShipToWorld().transformDirection(lookVector);
-            final double yaw = Math.atan2(-transformedLook.x, transformedLook.z) * 180.0 / Math.PI;
-            final double pitch = Math.atan2(-transformedLook.y, Math.sqrt((transformedLook.x * transformedLook.x) + (transformedLook.z * transformedLook.z))) * 180.0 / Math.PI;
-            this.setYRot((float) yaw);
-            this.setXRot((float) pitch);
-
-            //Predict the position 2 ticks ahead for dismount
             final Vector3d inWorld = ship.getTransform().getShipToWorld().transformPosition(x, y, z, new Vector3d());
-            final Vector3d inWorldPrev = ship.getPrevTickTransform().getShipToWorld().transformPosition(x, y, z, new Vector3d());
-            final Vector3d inWorldNext = inWorld.mul(3, new Vector3d()).sub(inWorldPrev.mul(2, new Vector3d()));
-            this.teleportTo(level, inWorldNext.x, inWorldNext.y, inWorldNext.z, Set.of(), this.getYRot(), this.getXRot());
+            this.teleportTo(level, inWorld.x, inWorld.y, inWorld.z, Set.of(), this.getYRot(), this.getXRot());
             ((IEntityDraggingInformationProvider)this).vs$dragImmediately(ship);
         }
     }

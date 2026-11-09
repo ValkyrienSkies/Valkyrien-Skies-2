@@ -1,7 +1,7 @@
 package org.valkyrienskies.mod.common.config
 
 import net.neoforged.neoforge.common.ModConfigSpec
-import org.valkyrienskies.core.internal.config.VsiConfigModel
+import org.valkyrienskies.core.internal.config.VsiConfigModelEntry
 import org.valkyrienskies.mod.api.config.VSConfigApi
 import org.valkyrienskies.mod.api.config.VSConfigApi.applyToModel
 import org.valkyrienskies.mod.api.config.VSConfigApi.buildModConfigSpec
@@ -29,32 +29,62 @@ object VSConfigUpdater {
         forgeConfigValuesMap[name] = value
     }
 
+    /**
+     * This stores us a map of [ConfigType] -> `Category.value` -> (VSConfigEntry, ForgeConfigEntry)
+     * for the sole purpose of the [ConfigCommand] being able to get/edit values with the nicer
+     * path with categories included.
+     *
+     * [forgeConfigValuesMap] is what we actually use for the config api,
+     * but it doesn't differentiate between config types and categories.
+     * It's just a map of rawPropertyName -> ForgeConfigEntry
+     */
+    @JvmStatic
+    val pathAwareConfigValuesMap: HashMap<ConfigType, HashMap<String, Pair<VsiConfigModelEntry<*>, ModConfigSpec.ConfigValue<*>>>> = HashMap()
+
+    /**
+     * @see pathAwareConfigValuesMap
+     */
+    private fun pathAwareConsumerFor(configType: ConfigType) =
+        { path: List<String>, entry: VsiConfigModelEntry<*>, forgeValue: ModConfigSpec.ConfigValue<*> ->
+            val path = if (path.size == 1) { listOf("General") + path } else { path }
+            pathAwareConfigValuesMap.getOrPut(configType) { HashMap() }
+                .set(sanitiseCategoryName(path.joinToString(".")), Pair(entry, forgeValue))
+        }
+
+    private fun sanitiseCategoryName(category: String): String {
+        return category.replace(" ", "").filter { it.isLetterOrDigit() || it == '.' }
+    }
+
     private val core_server_config = ValkyrienSkiesMod.vsCore.getServerConfig()
     val CORE_SERVER_SPEC: ModConfigSpec = buildModConfigSpec(
         configCategory = core_server_config.root,
         builder = ModConfigSpec.Builder(),
-        forgeConfigValueConsumer = configValueConsumer
+        forgeConfigValueConsumer = configValueConsumer,
+        pathAwareConsumer = pathAwareConsumerFor(ConfigType.CORE_SERVER)
     ).build()
 
     private val server_config = VSConfigApi.buildVSConfigModel(VSGameConfig.SERVER)
     val SERVER_SPEC: ModConfigSpec = buildModConfigSpec(
         configCategory = server_config.root,
         builder = ModConfigSpec.Builder(),
-        forgeConfigValueConsumer = configValueConsumer
+        forgeConfigValueConsumer = configValueConsumer,
+        pathAwareConsumer = pathAwareConsumerFor(ConfigType.SERVER)
     ).build()
 
     private val common_config = VSConfigApi.buildVSConfigModel(VSGameConfig.COMMON)
     val COMMON_SPEC: ModConfigSpec = buildModConfigSpec(
         configCategory = common_config.root,
         builder = ModConfigSpec.Builder(),
-        forgeConfigValueConsumer = configValueConsumer
+        forgeConfigValueConsumer = configValueConsumer,
+        pathAwareConsumer = pathAwareConsumerFor(ConfigType.COMMON)
     ).build()
 
     private val client_config = VSConfigApi.buildVSConfigModel(VSGameConfig.CLIENT)
     val CLIENT_SPEC: ModConfigSpec = buildModConfigSpec(
         configCategory = client_config.root,
         builder = ModConfigSpec.Builder(),
-        forgeConfigValueConsumer = configValueConsumer
+        forgeConfigValueConsumer = configValueConsumer,
+        pathAwareConsumer = pathAwareConsumerFor(ConfigType.CLIENT)
     ).build()
 
     /**

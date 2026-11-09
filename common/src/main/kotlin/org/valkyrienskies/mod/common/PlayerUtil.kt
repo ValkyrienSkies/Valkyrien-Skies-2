@@ -17,7 +17,13 @@ object PlayerUtil {
 
     private val prevPosInfo: ConcurrentMap<Player, TempPlayerPosInfo> = MapMaker().weakKeys().makeMap()
 
-    private data class TempPlayerPosInfo(val yaw: Float, val headYaw: Float, val pitch: Float, val pos: Vec3)
+    private data class TempPlayerPosInfo(
+        val yaw: Float,
+        val headYaw: Float,
+        val pitch: Float,
+        val pos: Vec3,
+        var depth: Int = 1
+    )
 
     @JvmStatic
     fun transformPlayerTemporarily(player: Player, world: Level, blockInShip: BlockPos) =
@@ -25,6 +31,10 @@ object PlayerUtil {
 
     @JvmStatic
     fun transformPlayerTemporarily(player: Player, ship: LoadedShip?) {
+        prevPosInfo[player]?.let {
+            it.depth++
+            return
+        }
         if (ship == null) return
         // player is already in shipyard
         if (player.level().isBlockInShipyard(player.x, player.y, player.z)) {
@@ -49,7 +59,9 @@ object PlayerUtil {
 
     @JvmStatic
     fun untransformPlayer(player: Player) {
-        val info = prevPosInfo.remove(player) ?: return
+        val info = prevPosInfo[player] ?: return
+        if (--info.depth > 0) return
+        prevPosInfo.remove(player)
         player.xRot = info.pitch
 
         player.yRot = info.yaw

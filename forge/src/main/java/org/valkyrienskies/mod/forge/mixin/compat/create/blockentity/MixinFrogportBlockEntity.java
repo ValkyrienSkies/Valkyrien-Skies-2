@@ -61,6 +61,27 @@ public abstract class MixinFrogportBlockEntity extends PackagePortBlockEntity {
         );
     }
 
+    @Inject(
+        method = "tryPullingFromOwnAndAdjacentInventories",
+        at = @At(value = "INVOKE", target = "Lcom/simibubi/create/content/logistics/packagePort/frogport/FrogportBlockEntity;isAnimationInProgress()Z"),
+        remap = false,
+        cancellable = true
+    )
+    private void injectPull(CallbackInfo ci) {
+        BlockPos targetPos = getBlockPos().offset(target != null ? target.relativePos : BlockPos.ZERO);
+        if (
+            VSGameUtilsKt.getShipManagingPos(level, worldPosition) == VSGameUtilsKt.getShipManagingPos(level, targetPos)
+        ) return;
+        double dist = CompatUtil.INSTANCE.toSameSpaceAs(
+            level,
+            getBlockPos().getCenter(),
+            targetPos.getCenter()
+        ).distanceTo(targetPos.getCenter());
+        if (dist > (double)((Integer) AllConfigs.server().logistics.packagePortRange.get() + 2)) { // copied from Create
+            ci.cancel();
+        }
+    }
+
     // Dummy
     public MixinFrogportBlockEntity(BlockEntityType<?> blockEntityType, BlockPos blockPos, BlockState blockState) {
         super(blockEntityType, blockPos, blockState);

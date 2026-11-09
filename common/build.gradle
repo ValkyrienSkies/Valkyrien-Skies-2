@@ -1,5 +1,6 @@
 dependencies {
-    implementation(annotationProcessor("io.github.llamalad7:mixinextras-common:0.4.1"))
+    implementation(annotationProcessor("io.github.llamalad7:mixinextras-common:${rootProject.mixinextras_version}"))
+    testImplementation "junit:junit:4.13.2"
 
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
     // We depend on fabric loader here to use the fabric @Environment annotations
@@ -13,6 +14,7 @@ dependencies {
     modCompileOnly "fuzs.forgeconfigapiport:forgeconfigapiport-common:${rootProject.fcap_version}"
 
     modCompileOnly("maven.modrinth:sodium:${sodium_version}")
+    modCompileOnly("maven.modrinth:iris:${iris_version}")
 
     // Alex Caves
     modCompileOnly("maven.modrinth:alexs-caves:$alexscaves_version")
@@ -26,10 +28,10 @@ dependencies {
     implementation("org.valkyrienskies.core:internal:${rootProject.vs_core_version}")
     implementation("org.valkyrienskies.core:util:${rootProject.vs_core_version}")
 
-    implementation("com.google.guava:guava:31.1-jre")
+    compileOnly("com.google.guava:guava:31.1-jre")
 
     // FTB Stuffs
-    //modCompileOnly("dev.ftb.mods:ftb-chunks-forge:2001.3.6") { transitive = false }
+    //modCompileOnly("dev.ftb.mods:ftb-chunks:2001.3.6") { transitive = false }
 
     // Weather2 1.20.1
     modCompileOnly("curse.maven:weather-storms-tornadoes-237746:5244118")
@@ -47,7 +49,7 @@ dependencies {
     // The related sources are excluded below until the 1.21.1 coordinates are restored.
 
     // Supplementaries (Moonlight Lib)
-    modImplementation("maven.modrinth:moonlight:$moonlight_version")
+    modCompileOnly("maven.modrinth:moonlight:$moonlight_version")
 
     // Common create compat,
     // We just use a version from a platform and hope the classes exist on both versions and mixins apply correctly
@@ -56,18 +58,21 @@ dependencies {
     modCompileOnly("curse.maven:entity-model-features-844662:5696901")
     modCompileOnly("curse.maven:entity-texture-features-fabric-568563:5697084")
 
+    modCompileOnly("curse.maven:vista-1368607:7929284")
+
     // Weather2 1.20.1
     modCompileOnly("curse.maven:weather-storms-tornadoes-237746:5244118")
 
-    modCompileOnly("net.fabricmc.fabric-api:fabric-api:${fabric_api_version}")
-    //Common create compat,
+    // Common create compat,
     //We just use a version from a platform and hope the classes exist on both versions and mixins apply correctly
     modCompileOnly("com.simibubi.create:create-fabric:${create_fabric_version}")
         { exclude group: 'com.github.AlphaMode', module: 'fakeconfigtoml' }
+    modCompileOnly("net.fabricmc.fabric-api:fabric-api:${fabric_api_version}") { transitive = false }
     modCompileOnly("curse.maven:vanillin-965702:6446557")
 
     modCompileOnly("maven.modrinth:create-utilities:${create_utilities_version}")
-    modImplementation("teamreborn:energy:${energy_version}")
+    modCompileOnly("teamreborn:energy:${energy_version}") { transitive = false }
+    // modCompileOnly("io.github.fabricators_of_create:Porting-Lib:${port_lib_version}+${minecraft_version}")
 
     //Very many players
     modCompileOnly("curse.maven:vmp-fabric-552542:4754074")
@@ -79,6 +84,28 @@ dependencies {
     // These older common-side compat coordinates were kept in 1.20.1, but do not resolve on 1.21.1.
     // Platform-specific compat remains under fabric/forge where available.
     modCompileOnly("dev.ryanhcode.sable:sable-common-${minecraft_version}:${sable_version}")
+    modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:imm_ptl_core:${immptl_version}") { transitive = false }
+    modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:q_misc_util:${immptl_version}") { transitive = false }
+    modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:build:${immptl_version}") { transitive = false }
+
+    modCompileOnly("com.rbasamoyai:createbigcannons:${createbigcannons_version}+mc.${minecraft_version}-fabric${createbigcannons_build}") { transitive = false }
+    modCompileOnly("com.rbasamoyai:createbigcannons:${createbigcannons_version}+mc.${minecraft_version}-forge${createbigcannons_build}") { transitive = false }
+    modCompileOnly("com.rbasamoyai:ritchiesprojectilelib:${rpl_version}+mc.${minecraft_version}-forge") { transitive = false }
+
+    modCompileOnly("maven.modrinth:theatrical:1.0.0-alpha.28.120+mc1.20.1")
+
+    // JEI
+    modCompileOnlyApi("mezz.jei:jei-${minecraft_version}-common-api:15.62.0.219")
+    modCompileOnly("maven.modrinth:jei:uyTkeINn")
+
+    // Unit testing
+    def kotestVersion = "5.4.1"
+    testImplementation "org.junit.jupiter:junit-jupiter-api:5.8.1"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.8.1"
+    testImplementation "io.kotest:kotest-runner-junit5:${kotestVersion}"
+    testImplementation "io.kotest:kotest-property:${kotestVersion}"
+    testImplementation "io.kotest:kotest-assertions-core:${kotestVersion}"
+    testImplementation "io.mockk:mockk:1.12.5"
 }
 
 architectury {
@@ -100,23 +127,24 @@ sourceSets {
             exclude "org/valkyrienskies/mod/compat/FlywheelEvents.java"
             exclude "org/valkyrienskies/mod/compat/flywheel/**"
             exclude "org/valkyrienskies/mod/mixin/accessors/client/render/chunk/**"
-            exclude "org/valkyrienskies/mod/mixin/accessors/server/level/ChunkHolderAccessor.java"
             exclude "org/valkyrienskies/mod/mixin/feature/enchantment_table/**"
-            exclude "org/valkyrienskies/mod/mixin/feature/ai/node_evaluator/**"
-            exclude "org/valkyrienskies/mod/mixin/feature/sculk/**"
             exclude "org/valkyrienskies/mod/mixin/mod_compat/alex_caves/**"
         }
         kotlin {
             exclude "org/valkyrienskies/mod/compat/hexcasting/**"
             exclude "org/valkyrienskies/mod/compat/flywheel/**"
-            exclude "org/valkyrienskies/mod/client/VSPhysicsEntityModel.kt"
-            exclude "org/valkyrienskies/mod/client/VSPhysicsEntityRenderer.kt"
-            exclude "org/valkyrienskies/mod/common/entity/VSPhysicsEntity.kt"
-            exclude "org/valkyrienskies/mod/common/item/AreaAssemblerItem.kt"
-            exclude "org/valkyrienskies/mod/common/item/ConnectionCheckerItem.kt"
-            exclude "org/valkyrienskies/mod/common/item/PhysicsEntityCreatorItem.kt"
         }
     }
+}
+
+test {
+    useJUnitPlatform()
+    maxHeapSize = '2g'
+    testLogging { exceptionFormat = 'full' }
+    // Optional hidden-window shader checks; ordinary CI need not have a graphics context.
+    def fluidGlTests = (project.findProperty("fluidGlTests") ?: "false").toString().toBoolean()
+    systemProperty "vs.test.fluidGL", fluidGlTests
+    systemProperty "org.lwjgl.opengl.explicitInit", !fluidGlTests
 }
 
 jar {

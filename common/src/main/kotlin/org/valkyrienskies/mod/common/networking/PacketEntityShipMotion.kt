@@ -17,4 +17,10 @@ data class PacketEntityShipMotion(
     val zVel: Double,
     val yRot: Double,
     val xRot: Double,
+    val onGround: Boolean,
+    val worldX: Double,
+    val worldY: Double,
+    val worldZ: Double,
+    val headYaw: Double,
+    val ticksSinceContact: Int,
 ): SimplePacket

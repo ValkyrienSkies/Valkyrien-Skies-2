@@ -37,6 +37,13 @@ import org.valkyrienskies.core.api.util.AerodynamicUtils;
 import org.valkyrienskies.core.api.ships.LoadedServerShip;
 import org.valkyrienskies.core.api.ships.properties.IShipActiveChunksSet;
 import org.valkyrienskies.core.internal.VsiGameServer;
+import org.valkyrienskies.core.api.ships.ShipTeleportData;
+import org.valkyrienskies.core.internal.physics.VsiFluidOutflow;
+import org.valkyrienskies.core.internal.physics.VsiFluidOutflowResult;
+import org.valkyrienskies.core.internal.physics.VsiFluidSourceWithdrawal;
+import org.valkyrienskies.core.internal.physics.VsiFluidSourceObservation;
+import org.valkyrienskies.core.internal.physics.VsiFluidSourceWithdrawalResult;
+import org.valkyrienskies.core.internal.ships.VsiLoadedServerShip;
 import org.valkyrienskies.core.internal.world.VsiPlayer;
 import org.valkyrienskies.core.internal.world.VsiPipeline;
 import org.valkyrienskies.core.internal.world.VsiServerShipWorld;
@@ -45,6 +52,10 @@ import org.valkyrienskies.mod.common.ShipSavedData;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.config.MassDatapackResolver;
+import org.valkyrienskies.mod.common.fluid.VanillaFluidFlowWindProvider;
+import org.valkyrienskies.mod.common.fluid.FluidSourceWithdrawalHandler;
+import org.valkyrienskies.mod.common.fluid.FractionalFluidSources;
+import org.valkyrienskies.mod.common.fluid.WorldFluidOutflowManager;
 import org.valkyrienskies.mod.common.hooks.VSGameEvents;
 import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.common.util.VSLevelChunk;
@@ -78,6 +89,15 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     @Unique
     private final Map<String, ServerLevel> dimensionToLevelMap = new HashMap<>();
 
+    @Unique
+    private WorldFluidOutflowManager fluidOutflowManager;
+
+    @Unique
+    private FractionalFluidSources fractionalFluidSources;
+
+    @Unique
+    private org.valkyrienskies.mod.common.fluid.RetainedFluidBlockInteractions fluidBlockInteractions;
+
     @Inject(
         at = @At(value = "INVOKE", target = "Lnet/minecraft/server/MinecraftServer;initServer()Z"),
         method = "runServer"
@@ -88,6 +108,9 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
 
     @Inject(at = @At("TAIL"), method = "stopServer")
     private void afterStopServer(final CallbackInfo ci) {
+        org.valkyrienskies.mod.common.debug.ShipDebugService.clear();
+        org.valkyrienskies.mod.common.hooks.VSGameEvents.INSTANCE.getServerStopped().emit(kotlin.Unit.INSTANCE);
+        org.valkyrienskies.mod.common.util.ShipShadows.clear();
         ValkyrienSkiesMod.setCurrentServer(null);
     }
 
@@ -141,6 +164,9 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
 
         // Create ship world and VS Pipeline
         vsPipeline = shipSavedData.getPipeline();
+        fluidOutflowManager = shipSavedData.getFluidOutflowManager();
+        fractionalFluidSources = shipSavedData.getFractionalFluidSources();
+        fluidBlockInteractions = shipSavedData.getFluidBlockInteractions();
 
         KrunchSupport.INSTANCE.setKrunchSupported(!vsPipeline.isUsingDummyPhysics());
 
@@ -167,7 +193,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
             .map(VSGameUtilsKt::getPlayerWrapper).collect(Collectors.toSet());
         shipWorld.setPlayers(vsPlayers);
 
-        // region Tell the VS world to load new levels, and unload deleted ones
+        // region Tell the VS world to load new levels
         final Map<String, ServerLevel> newLoadedLevels = new HashMap<>();
         for (final ServerLevel level : getAllLevels()) {
             final String dimensionId = VSGameUtilsKt.getDimensionId(level);
@@ -182,7 +208,12 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
             }
         }
         */
+        // endregion
 
+        vsPipeline.preTickGame();
+
+        // region Tell VS to unload deleted levels and update the loaded level set.
+        // VsiServerShipWorld::removeDimension must happen after the PRE_TICK stage, otherwise the game crashes.
         for (final String oldLoadedLevelId : loadedLevels) {
             if (!newLoadedLevels.containsKey(oldLoadedLevelId)) {
                 shipWorld.removeDimension(oldLoadedLevelId);
@@ -191,8 +222,6 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         }
         loadedLevels = newLoadedLevels.keySet();
         // endregion
-
-        vsPipeline.preTickGame();
     }
 
     /**
@@ -218,10 +247,18 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         at = @At("TAIL")
     )
     private void postTick(final CallbackInfo ci) {
+        fractionalFluidSources.recoverTransfers(dimensionToLevelMap, fluidOutflowManager);
         vsPipeline.postTickGame();
+        fluidBlockInteractions.tick(shipWorld, dimensionToLevelMap);
+        org.valkyrienskies.mod.common.fluid.ShipFluidInteraction.prune(shipWorld);
+        org.valkyrienskies.mod.common.debug.ShipDebugService.tick((MinecraftServer) (Object) this);
+        fluidOutflowManager.tick(dimensionToLevelMap);
+        fractionalFluidSources.tickSplashes(dimensionToLevelMap);
         // Only drag entities after we have updated the ship positions
         for (final ServerLevel level : getAllLevels()) {
+            org.valkyrienskies.mod.common.hooks.VSGameEvents.INSTANCE.getShipPositionsUpdated().emit(level);
             EntityDragger.INSTANCE.dragEntitiesWithShips(level.getAllEntities(), false);
+            VanillaFluidFlowWindProvider.INSTANCE.tick(level);
             if (LoadedMods.getWeather2())
                 Weather2Compat.INSTANCE.tick(level);
         }
@@ -364,6 +401,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         at = @At("HEAD")
     )
     private void preStopServer(final CallbackInfo ci) {
+        org.valkyrienskies.mod.common.assembly.ShipWelder.cancelAll(MinecraftServer.class.cast(this));
         if (vsPipeline != null) {
             vsPipeline.setDeleteResources(true);
             vsPipeline.setArePhysicsRunning(true);
@@ -390,6 +428,8 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
                 }
             }
         }
+
+        ChunkManagement.clearPendingState();
     }
 
     // Only clear these after stopping the server so preStopServer and the
@@ -399,6 +439,8 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         at = @At("RETURN")
     )
     private void postStopServer(final CallbackInfo ci) {
+        org.valkyrienskies.mod.common.fluid.ShipFluidInteraction.clear(shipWorld);
+        fluidOutflowManager.clearVisuals(dimensionToLevelMap);
         dimensionToLevelMap.clear();
         if (shipWorld != null) {
             shipWorld.setGameServer(null);
@@ -411,6 +453,75 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         return dimensionToLevelMap.get(dimensionId);
     }
 
+    @NotNull
+    @Override
+    public VsiFluidSourceWithdrawalResult applyFluidSourceWithdrawal(
+        @NotNull final VsiFluidSourceWithdrawal withdrawal
+    ) {
+        return FluidSourceWithdrawalHandler.apply(
+            dimensionToLevelMap.get(withdrawal.getDimensionId()),
+            withdrawal
+        );
+    }
+
+    @Nullable
+    @Override
+    public VsiFluidSourceObservation observeFluidSource(@NotNull final VsiFluidSourceWithdrawal withdrawal) {
+        return FluidSourceWithdrawalHandler.observe(dimensionToLevelMap.get(withdrawal.getDimensionId()), withdrawal);
+    }
+
+    @Nullable
+    @Override
+    public VsiFluidSourceObservation observeFluidSource(@NotNull final String dimensionId,
+                                                       final int x, final int y, final int z) {
+        return FluidSourceWithdrawalHandler.observe(dimensionToLevelMap.get(dimensionId), x, y, z);
+    }
+
+    @Override
+    public boolean serviceFluidOutflowPressure() {
+        fractionalFluidSources.recoverTransfers(dimensionToLevelMap, fluidOutflowManager);
+        return fluidOutflowManager.servicePressure(dimensionToLevelMap);
+    }
+
+    @Nullable
+    @Override
+    public FractionalFluidSources getFractionalFluidSources() {
+        return fractionalFluidSources;
+    }
+
+    @Override
+    public org.valkyrienskies.mod.common.fluid.RetainedFluidBlockInteractions getFluidBlockInteractions() {
+        return fluidBlockInteractions;
+    }
+
+    @Override
+    public void onFluidGameplaySnapshot(
+        final org.valkyrienskies.core.internal.physics.VsiFluidGameplaySnapshot snapshot) {
+        fluidBlockInteractions.onSnapshot(snapshot);
+    }
+
+    @Override
+    public WorldFluidOutflowManager getFluidOutflowManager() {
+        return fluidOutflowManager;
+    }
+
+    @Override
+    public void beforeShipDeletion(@NotNull final org.valkyrienskies.core.api.ships.ServerShip ship) {
+        org.valkyrienskies.mod.common.fluid.FractionalFluidLifecycle.releaseShip(
+            fractionalFluidSources, dimensionToLevelMap, fluidOutflowManager, ship);
+    }
+
+    @NotNull
+    @Override
+    public VsiFluidOutflowResult applyFluidOutflow(
+        @NotNull final VsiFluidOutflow outflow
+    ) {
+        return fluidOutflowManager.enqueue(
+            dimensionToLevelMap.get(outflow.getDimensionId()),
+            outflow
+        );
+    }
+
     @Override
     public void moveTerrainAcrossDimensions(
         @NotNull final IShipActiveChunksSet shipChunks,
@@ -420,6 +531,8 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         final ServerLevel srcLevel = getLevelFromDimensionId(srcDimension);
         final ServerLevel destLevel = getLevelFromDimensionId(destDimension);
 
+        try (final org.valkyrienskies.mod.common.fluid.FractionalFluidTransferScope transfer =
+                 org.valkyrienskies.mod.common.fluid.FractionalFluidLifecycle.beginDimensionMove(srcLevel, destLevel, shipChunks)) {
         // Copy ship chunks from srcLevel to destLevel
         shipChunks.forEach((final int x, final int z) -> {
             final LevelChunk srcChunk = srcLevel.getChunk(x, z);
@@ -440,5 +553,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
             srcLevel.getChunkSource().updateChunkForced(chunkPos, false);
             ((VSServerLevel) srcLevel).removeChunk(x, z);
         });
+        if (transfer != null) transfer.complete();
+        }
     }
 }

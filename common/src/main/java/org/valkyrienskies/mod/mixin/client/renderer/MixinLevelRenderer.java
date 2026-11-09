@@ -22,6 +22,16 @@ import org.valkyrienskies.mod.client.IVSCamera;
 
 @Mixin(LevelRenderer.class)
 public abstract class MixinLevelRenderer {
+    @Inject(method = "allChanged", at = @At("HEAD"))
+    private void vs$resetShipBackend(final CallbackInfo ci) {
+        org.valkyrienskies.mod.common.render.ShipRenderConfig.onRendererReload();
+    }
+
+    @Inject(method = "renderLevel", at = @At("HEAD"))
+    private void vs$prepareShipShadows(final CallbackInfo ci) {
+        org.valkyrienskies.mod.common.render.light.VsDynamicLight.prepareFrame(this.level);
+    }
+
     @Shadow
     @Final
     private SectionOcclusionGraph sectionOcclusionGraph;
@@ -105,4 +115,27 @@ public abstract class MixinLevelRenderer {
 
      */
 
+    /**
+     * If an entity, for example an arrow stuck on a ship, is attached outside the border of the ship's chunk claim,
+     * it won't be rendered because the chunk isn't compiled.
+     * This injector bypasses that if the entity is in shipyard next to the compiled chunk.
+     */
+    @WrapOperation(
+        method = "renderLevel",
+        at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/LevelRenderer;isSectionCompiled(Lnet/minecraft/core/BlockPos;)Z")
+    )
+    private boolean isInShipyardBorder(LevelRenderer instance, BlockPos blockPos, Operation<Boolean> original){
+        if(original.call(instance, blockPos)) return true;
+        if(VSGameUtilsKt.isBlockInShipyard(level, blockPos)) {
+            if (VSGameUtilsKt.getLoadedShipManagingPos(level, blockPos) != null) {
+                return true;
+            }
+            BlockPos blockPos1 = blockPos.offset(-1, -1, -1);
+            BlockPos blockPos2 = blockPos.offset(1, 1, 1);
+            for(BlockPos neighbor : BlockPos.betweenClosed(blockPos1, blockPos2)) {
+                if (original.call(instance, neighbor)) return true;
+            }
+        }
+        return false;
+    }
 }

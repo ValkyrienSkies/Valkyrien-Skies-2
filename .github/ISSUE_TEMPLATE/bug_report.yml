@@ -1,49 +1,55 @@
-name: Bug report
-description: Let us know about a bug that occurs without other mods
+name: Bug Report
+description: Let us know about a bug that occurs **without** other mods
 title: '<title>'
 labels: bug
 assignees: []
 body:
 - type: checkboxes
   attributes:
-    label: This issue occurs when only Valkyrien Skies and addons are installed and no other mods
+    label: This issue occurs when only Valkyrien Skies and addons are installed and no other mods.
     options:
       - label: I have tested this issue and it occurs when no other mods are installed
         required: true
-- type: dropdown
+- type: checkboxes
   attributes:
     label: Minecraft Version
-    description: What Minecraft version does this issue occur on?
+    description: Which Minecraft versions display this issue?
     options:
-      - 1.16
-      - 1.18
-      - 1.19
-      - 1.20.x
+      - label: 1.20.x
+      - label: 1.21.x
+      - label: Older (Unsupported)
   validations:
     required: true
-- type: dropdown
+- type: checkboxes
   attributes:
     label: Mod Loader
-    description: What mod loader does this issue occur on?
+    description: Which mod loaders display this issue?
     options:
-      - Forge
-      - Fabric
-      - Quilt
+      - label: Forge
+      - label: NeoForge
+      - label: Fabric
+      - label: Quilt
   validations:
     required: true
 - type: textarea
   attributes:
-    label: Issue description
-    description: Describe what happens, and what you expect to happen instead
+    label: Expected Behavior
+    description: Describe the expected behavior.
   validations:
     required: true
 - type: textarea
   attributes:
-    label: Issue reproduction
-    description: Describe how to reproduce your issue
+    label: Actual Behavior
+    description: Describe the actual displayed behavior, and how it differs from expected.
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: How to Reproduce
+    description: Describe how to reproduce your issue; Descriptive steps are preferred.
   validations:
     required: true
 - type: textarea
   attributes:
     label: Logs
-    description: Go to `.minecraft/logs` and drag and drop the `latest.log` and `debug.log` file into this text field
+    description: Upload to https://mclo.gs/ and paste a link, or alternatively go to `.minecraft/logs` and drag and drop the `latest.log` and `debug.log` file into this text field.

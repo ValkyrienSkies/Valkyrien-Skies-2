@@ -63,6 +63,7 @@ fun AABBd.set(v: AABB) = also {
 
 fun Vector3ic.toBlockPos() = BlockPos(x(), y(), z())
 fun Vector3dc.toMinecraft() = Vec3(x(), y(), z())
+fun Vector3dc.floorToInt() = Vector3i(this.x().toInt(), this.y().toInt(), this.z().toInt())
 
 fun Matrix4d.mul(m: Matrix4fc): Matrix4d = mul(m, this)
 

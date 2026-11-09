@@ -12,6 +12,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.entity.ShipMountedToData;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 
@@ -25,6 +26,18 @@ public class MixinEntityRenderer {
      */
     @WrapOperation(method = "shouldRender", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;getBoundingBoxForCulling()Lnet/minecraft/world/phys/AABB;"))
     private AABB redirectAABBConstructor(Entity instance, Operation<AABB> original) {
+        // Mount relationship is authoritative: if the entity is ridden-on / sleeping-in a
+        // ship-mounted vehicle/bed, MixinGameRenderer renders it via the ship's render
+        // transform * mount pos. Use the same projection for the cull AABB so the entity
+        // doesn't get culled at its stale stored bounding box.
+        final ShipMountedToData mountedTo = VSGameUtilsKt.getShipMountedToData(instance, null);
+        if (mountedTo != null) {
+            final ClientShip mountShip = (ClientShip) mountedTo.getShipMountedTo();
+            final Vector3dc mountWorld = mountShip.getRenderTransform().getShipToWorld()
+                .transformPosition(mountedTo.getMountPosInShip(), new Vector3d());
+            return instance.getDimensions(instance.getPose())
+                .makeBoundingBox(mountWorld.x(), mountWorld.y(), mountWorld.z()).inflate(0.5D);
+        }
         if (instance instanceof IEntityDraggingInformationProvider dragProvider && dragProvider.getDraggingInformation().isEntityBeingDraggedByAShip() && dragProvider.getDraggingInformation().getLastShipStoodOn() != null) {
             EntityDraggingInformation dragInfo = dragProvider.getDraggingInformation();
             ClientShip ship = VSGameUtilsKt.getShipObjectWorld((ClientLevel) instance.level()).getAllShips().getById(dragInfo.getLastShipStoodOn());

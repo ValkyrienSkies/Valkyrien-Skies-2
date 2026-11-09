@@ -6,7 +6,10 @@ import kotlin.reflect.KProperty
 object LoadedMods {
 
     @JvmStatic
-    val iris by CompatInfo("net.coderbot.iris.Iris")
+    val itemPhysic by CompatInfo("team.creative.itemphysic.ItemPhysic")
+
+    @JvmStatic
+    val iris by CompatInfo("net.irisshaders.iris.Iris")
 
     @JvmStatic
     val weather2 by CompatInfo("weather2.Weather")

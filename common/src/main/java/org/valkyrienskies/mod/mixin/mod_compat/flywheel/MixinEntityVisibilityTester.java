@@ -2,6 +2,8 @@ package org.valkyrienskies.mod.mixin.mod_compat.flywheel;
 
 import dev.engine_room.flywheel.lib.math.MoreMath;
 import dev.engine_room.flywheel.lib.visual.EntityVisibilityTester;
+import dev.engine_room.flywheel.api.visualization.VisualizationManager;
+import net.minecraft.core.Vec3i;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.AABB;
 import org.joml.FrustumIntersection;
@@ -40,6 +42,9 @@ public class MixinEntityVisibilityTester {
         if(VSGameUtilsKt.getShipManaging(entity) instanceof ClientShip ship){
             final Vector3f pos = ship.getRenderTransform().getShipToWorld().transformPosition(VectorConversionsMCKt.toJOML(entity.position())).get(
                 new Vector3f());
+            final VisualizationManager manager = VisualizationManager.get(entity.level());
+            final Vec3i renderOrigin = manager == null ? Vec3i.ZERO : manager.renderOrigin();
+            pos.sub(renderOrigin.getX(), renderOrigin.getY(), renderOrigin.getZ());
             final float maxSize = (float) Math.max(aabb.getXsize(), Math.max(aabb.getYsize(), aabb.getZsize()));
             if (frustum.testSphere(pos.x, pos.y, pos.z, maxSize * MoreMath.SQRT_3_OVER_2 * scale)){
                 cir.setReturnValue(true);

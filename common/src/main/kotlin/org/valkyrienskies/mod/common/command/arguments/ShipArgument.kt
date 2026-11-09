@@ -14,46 +14,68 @@ import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.mod.common.command.shipWorld
 import java.util.concurrent.CompletableFuture
 
-open class ShipArgument private constructor(val selectorOnly: Boolean) : ArgumentType<ShipSelector> {
-    private val EXAMPLES = listOf("the-mogus", "@v", "@v[slug=the-mogus]")
+class ShipArgument private constructor(val selectorOnly: Boolean) : ArgumentType<ShipSelector?> {
+    @Throws(CommandSyntaxException::class)
+    override fun parse(pReader: StringReader): ShipSelector {
+        val entityselectorparser = ShipSelectorParser(null, pReader)
+        return entityselectorparser.parse(selectorOnly)
+    }
 
     /**
      * In vanilla, the only classes [S] will be are impls of [SharedSuggestionProvider].
      * Another mod might violate this, but hopefully null checks will handle it
      */
-    override fun <S : Any> listSuggestions(
-        context: CommandContext<S>, builder: SuggestionsBuilder
+    override fun <S> listSuggestions(
+        pContext: CommandContext<S>, pBuilder: SuggestionsBuilder
     ): CompletableFuture<Suggestions> {
-        val reader = StringReader(builder.input)
-        reader.cursor = builder.start
+
+        val reader = StringReader(pBuilder.input)
+        reader.cursor = getSuggestionParseStart(pBuilder)
 
         val startsWithAt = reader.canRead() && reader.peek() == '@'
 
         // If context.source isn't an impl of SharedSuggestionProvider,
         // and is null, the parser will just not suggest anything
-        val parser = ShipArgumentParser(context.source as? SharedSuggestionProvider, selectorOnly)
+        val parser = ShipSelectorParser(pContext.source as? SharedSuggestionProvider, reader)
 
         try {
-            parser.parse(reader, true)
+            parser.parse(selectorOnly)
         } catch (_: CommandSyntaxException) {
 
         }
 
         // Reset cursor to fix suggestions
         if (!startsWithAt) {
-            reader.cursor = builder.start
+            reader.cursor = pBuilder.start
         }
 
-        val nBuilder = builder.createOffset(reader.cursor)
-        parser.suggestionProvider(nBuilder)
-
-        return nBuilder.buildFuture()
+        val nBuilder = pBuilder.createOffset(reader.cursor)
+        return parser.suggestionProvider(nBuilder)
     }
 
-    override fun parse(reader: StringReader): ShipSelector =
-        ShipArgumentParser(null, selectorOnly).parse(reader, false)
+    private fun getSuggestionParseStart(builder: SuggestionsBuilder): Int {
+        val selectorStart = builder.input.lastIndexOf("@v")
+        if (selectorStart == -1) {
+            return builder.start
+        }
+
+        val previousWhitespace = builder.input
+            .substring(0, builder.start.coerceAtMost(builder.input.length))
+            .indexOfLast { it.isWhitespace() }
+
+        return if (selectorStart > previousWhitespace) {
+            selectorStart
+        } else {
+            builder.start
+        }
+    }
+
+    override fun getExamples(): List<String> {
+        return EXAMPLES
+    }
 
     companion object {
+        private val EXAMPLES = listOf("the-mogus", "@v", "@v[slug=the-mogus]")
 
         @JvmStatic
         fun selectorOnly(): ShipArgument = ShipArgument(true)
@@ -70,13 +92,13 @@ open class ShipArgument private constructor(val selectorOnly: Boolean) : Argumen
 
             val shipWorld = context.source.shipWorld
 
-            val fromLoadedShips = selector.select(shipWorld.loadedShips)
+            val fromLoadedShips = selector.select(context.source, shipWorld.loadedShips)
             val fromLoadedShipIds = fromLoadedShips.map { it.id }.toSet()
 
-            val fromUnloadedShips = selector.select(shipWorld.allShips)
+            val fromUnloadedShips = selector.select(context.source, shipWorld.allShips)
 
             // Return loaded ships and unloaded ships, do not return a loaded ship twice
-            return fromLoadedShips + (fromUnloadedShips.filter { !fromLoadedShipIds.contains(it.id) })
+            return (fromLoadedShips + (fromUnloadedShips.filter { !fromLoadedShipIds.contains(it.id) })).toSet()
         }
 
         /**
@@ -88,13 +110,13 @@ open class ShipArgument private constructor(val selectorOnly: Boolean) : Argumen
 
 
             // First attempt to return a loaded ship
-            val loadedShips = selector.select(context.source.shipWorld.loadedShips)
-            if (loadedShips.size == 1) return loadedShips.first()
+            val loadedShips = selector.select(context.source, context.source.shipWorld.loadedShips)
+            if (loadedShips.count() == 1) return loadedShips.first()
 
             // Then try to return an unloaded ship
-            val r = selector.select(context.source.shipWorld.allShips)
-            if (r.isEmpty()) throw ERROR_NO_SHIP_FOUND
-            if (r.size == 1) return r.first() else throw ERROR_MANY_SHIP_FOUND
+            val r = selector.select(context.source, context.source.shipWorld.allShips)
+            if (r.none()) throw ERROR_NO_SHIP_FOUND
+            if (r.count() == 1) return r.first() else throw ERROR_MANY_SHIP_FOUND
         }
 
         private val ERROR_NO_SHIP_FOUND = SimpleCommandExceptionType(
@@ -104,6 +126,4 @@ open class ShipArgument private constructor(val selectorOnly: Boolean) : Argumen
             Component.translatable("argument.valkyrienskies.ship.multiple_found")
         ).create()
     }
-
-    override fun getExamples(): Collection<String> = EXAMPLES
 }

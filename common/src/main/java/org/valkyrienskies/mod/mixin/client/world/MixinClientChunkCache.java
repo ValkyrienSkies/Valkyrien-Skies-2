@@ -4,8 +4,11 @@ import static org.valkyrienskies.mod.common.BlockStateInfo.isSortedRegistryIniti
 import static org.valkyrienskies.mod.common.ValkyrienSkiesMod.getApi;
 import static org.valkyrienskies.mod.common.ValkyrienSkiesMod.getVsCore;
 
+import it.unimi.dsi.fastutil.longs.LongArrayFIFOQueue;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongIterator;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import java.util.ArrayList;
 import java.util.function.Consumer;
 import net.minecraft.client.Minecraft;
@@ -21,13 +24,9 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
-import net.minecraft.world.level.chunk.status.ChunkStatus;
+import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.lighting.LevelLightEngine;
 import org.joml.Vector3i;
-import org.valkyrienskies.core.api.ships.ClientShip;
-import org.valkyrienskies.core.api.ships.properties.ChunkClaim;
-import org.valkyrienskies.core.internal.world.VsiClientShipWorld;
-import org.valkyrienskies.core.internal.world.chunks.VsiTerrainUpdate;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -36,11 +35,17 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.core.api.ships.properties.ChunkClaim;
+import org.valkyrienskies.core.internal.world.VsiClientShipWorld;
+import org.valkyrienskies.core.internal.world.chunks.VsiTerrainUpdate;
+import org.valkyrienskies.mod.common.assembly.SeamlessChunksManager;
 import org.valkyrienskies.mod.common.VS2ChunkAllocator;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
-import org.valkyrienskies.mod.compat.SodiumCompat;
+import org.valkyrienskies.mod.common.render.light.VsDynamicLight;
 import org.valkyrienskies.mod.compat.VSRenderer;
+import org.valkyrienskies.mod.compat.sodium.SodiumCompat;
 import org.valkyrienskies.mod.mixin.ValkyrienCommonMixinConfigPlugin;
 import org.valkyrienskies.mod.mixin.accessors.client.multiplayer.ClientLevelAccessor;
 import org.valkyrienskies.mod.mixin.accessors.client.render.LevelRendererAccessor;
@@ -63,134 +68,282 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
     ClientLevel level;
 
     @Unique
-    private final Long2ObjectMap<LevelChunk> emptyShipChunks = new Long2ObjectOpenHashMap<>();
-
-    public Long2ObjectMap<LevelChunk> vs$getShipChunks() {
-        return vs$shipChunks;
-    }
+    private final Long2ObjectMap<LevelChunk> shipChunks = new Long2ObjectOpenHashMap<>();
 
     @Unique
-    private final Long2ObjectMap<LevelChunk> vs$shipChunks = new Long2ObjectOpenHashMap<>();
+    private final Long2ObjectMap<LevelChunk> emptyShipChunks = new Long2ObjectOpenHashMap<>();
+
+    @Unique
+    private final it.unimi.dsi.fastutil.longs.LongSet vs$litOnce =
+        new it.unimi.dsi.fastutil.longs.LongOpenHashSet();
+
+    @Unique
+    private final LongArrayFIFOQueue vs$pendingShipChunkUnloadQueue = new LongArrayFIFOQueue();
+
+    @Unique
+    private final LongOpenHashSet vs$pendingShipChunkUnloads = new LongOpenHashSet();
 
     @Override
-    public void vs$removeShip(final ClientShip ship) {
-        final ChunkClaim chunks = ship.getChunkClaim();
-        for (int x = chunks.getXStart(); x <= chunks.getXEnd(); x++) {
-            for (int z = chunks.getZStart(); z <= chunks.getZEnd(); z++) {
-                removeShipChunk(x, z);
-            }
-        }
+    public Long2ObjectMap<LevelChunk> vs$getShipChunks() {
+        return shipChunks;
+    }
+
+    /**
+     * Notify the VS sodium light storage when the world's light engine reports a
+     * section update. Without this hook, freshly placed torches / sky changes
+     * near an already-tracked ship section are never reflected in the GPU light
+     * buffer used by the ship shader.
+     */
+    @Inject(method = "onLightUpdate", at = @At("HEAD"))
+    private void vs_sodium$onLightUpdate(LightLayer layer, SectionPos pos, CallbackInfo ci) {
+        VsDynamicLight.invalidateLightSection(pos.asLong());
     }
 
     @Inject(method = "replaceWithPacketData", at = @At("HEAD"), cancellable = true)
-    private void preLoadChunkFromPacket(final int x, final int z,
+    private void preReplaceWithPacketData(
+        final int x,
+        final int z,
         final FriendlyByteBuf buf,
         final CompoundTag tag,
-        final Consumer<BlockEntityTagOutput> consumer, final CallbackInfoReturnable<LevelChunk> cir) {
-        final ClientChunkCacheStorageAccessor clientChunkMapAccessor =
-            ClientChunkCacheStorageAccessor.class.cast(storage);
-        if (!clientChunkMapAccessor.callInRange(x, z)) {
-            if (VSGameUtilsKt.isChunkInShipyard(level, x, z)) {
-                if (Minecraft.getInstance().levelRenderer instanceof final LevelRendererDuck levelRenderer) {
-                    levelRenderer.vs$setNeedsFrustumUpdate();
-                }
-                final long chunkPosLong = ChunkPos.asLong(x, z);
-                final ChunkPos pos = new ChunkPos(x, z);
-                final LevelChunk oldChunk = vs$shipChunks.get(chunkPosLong);
-                final LevelChunk oldEmptyChunk = this.emptyShipChunks.remove(chunkPosLong);
-                final LevelChunk worldChunk;
-                boolean shouldForce = false;
-                if (oldChunk != null) {
-                    worldChunk = oldChunk;
-                    oldChunk.replaceWithPacketData(buf, tag, consumer);
-                } else {
-                    worldChunk = oldEmptyChunk == null ? new LevelChunk(this.level, pos) : oldEmptyChunk;
-                    worldChunk.replaceWithPacketData(buf, tag, consumer);
-                    vs$shipChunks.put(chunkPosLong, worldChunk);
-                    clientChunkMapAccessor.setChunkCount(clientChunkMapAccessor.getChunkCount() + 1);
-                }
+        final Consumer<BlockEntityTagOutput> consumer,
+        final CallbackInfoReturnable<LevelChunk> cir
+    ) {
+        VsDynamicLight.invalidateLightingRevision();
+        if (!VS2ChunkAllocator.INSTANCE.isChunkInShipyardCompanion(x, z)) {
+            return;
+        }
+        if (Minecraft.getInstance().levelRenderer instanceof final LevelRendererDuck levelRenderer) {
+            levelRenderer.vs$setNeedsFrustumUpdate();
+        }
+        final ChunkPos pos = new ChunkPos(x, z);
+        final long chunkPosLong = pos.toLong();
+        this.vs$pendingShipChunkUnloads.remove(chunkPosLong);
+        final LevelChunk oldChunk = this.shipChunks.get(chunkPosLong);
+        this.vs$litOnce.remove(chunkPosLong);
+        // When real data arrives from server, remove the empty placeholder from VS cache
+        final LevelChunk oldEmptyChunk = this.emptyShipChunks.remove(chunkPosLong);
+        final LevelChunk worldChunk;
+        boolean shouldForce = false;
+        if (oldChunk != null) {
+            worldChunk = oldChunk;
+            worldChunk.replaceWithPacketData(buf, tag, consumer);
+            shouldForce = true;
+        } else {
+            worldChunk = oldEmptyChunk == null ? new LevelChunk(this.level, pos) : oldEmptyChunk;
+            worldChunk.replaceWithPacketData(buf, tag, consumer);
+            this.shipChunks.put(chunkPosLong, worldChunk);
+            final ClientChunkCacheStorageAccessor storageAccessor = (ClientChunkCacheStorageAccessor) (Object) this.storage;
+            storageAccessor.setChunkCount(storageAccessor.getChunkCount() + 1);
+        }
 
-                if (oldChunk != null) {
-                    shouldForce = true;
-                }
-
-                final boolean shouldDefer = !isSortedRegistryInitialized();
-                if (shouldDefer) {
-                    ClientConnectivityUpdateQueue.queueChunkForInitialization(pos, shouldForce);
-                } else {
-                    final VsiClientShipWorld clientShipWorld = VSGameUtilsKt.getShipObjectWorld(level);
-                    if (clientShipWorld != null && VSGameConfig.CLIENT.getConnectivity().getEnableClientConnectivity()) {
-                        final LevelChunkSection[] chunkSections = worldChunk.getSections();
-                        final ArrayList<VsiTerrainUpdate> voxelShapeUpdates = new ArrayList<>(chunkSections.length);
-                        for (int i = 0; i < chunkSections.length; i++) {
-                            final LevelChunkSection chunkSection = chunkSections[i];
-                            final int sectionY = worldChunk.getSectionYFromSectionIndex(i);
-                            voxelShapeUpdates.add(
-                                chunkSection != null && !chunkSection.hasOnlyAir()
-                                    ? VSGameUtilsKt.toDenseVoxelUpdate(chunkSection, new Vector3i(pos.x, sectionY, pos.z))
-                                    : getVsCore().newEmptyVoxelShapeUpdate(pos.x, sectionY, pos.z, true)
+        final boolean connectivityEnabled = VSGameConfig.CLIENT.getConnectivity().getEnableClientConnectivity();
+        boolean shouldDefer = !isSortedRegistryInitialized();
+        if (connectivityEnabled) {
+            if (shouldDefer) {
+                ClientConnectivityUpdateQueue.queueChunkForInitialization(pos, shouldForce);
+            } else {
+                final VsiClientShipWorld clientShipWorld = VSGameUtilsKt.getShipObjectWorld(level);
+                if (clientShipWorld != null) {
+                    final LevelChunkSection[] chunkSections = worldChunk.getSections();
+                    final ArrayList<VsiTerrainUpdate> voxelShapeUpdates = new ArrayList<>(chunkSections.length);
+                    for (int i = 0; i < chunkSections.length; i++) {
+                        final LevelChunkSection chunkSection = chunkSections[i];
+                        final int sectionY = worldChunk.getSectionYFromSectionIndex(i);
+                        voxelShapeUpdates.add(
+                            chunkSection != null && !chunkSection.hasOnlyAir()
+                                ? VSGameUtilsKt.toDenseVoxelUpdate(chunkSection, new Vector3i(pos.x, sectionY, pos.z))
+                                : getVsCore().newEmptyVoxelShapeUpdate(pos.x, sectionY, pos.z, true)
+                        );
+                    }
+                    final String dimensionId = getApi().getDimensionId(level);
+                    if (shouldForce) {
+                        for (VsiTerrainUpdate update : voxelShapeUpdates) {
+                            clientShipWorld.forceUpdateConnectivityChunk(
+                                dimensionId,
+                                update.getChunkX(),
+                                update.getChunkY(),
+                                update.getChunkZ(),
+                                update
                             );
                         }
-                        final String dimensionId = getApi().getDimensionId(level);
-                        if (shouldForce) {
-                            for (final VsiTerrainUpdate update : voxelShapeUpdates) {
-                                clientShipWorld.forceUpdateConnectivityChunk(
-                                    dimensionId,
-                                    update.getChunkX(),
-                                    update.getChunkY(),
-                                    update.getChunkZ(),
-                                    update
-                                );
-                            }
-                        } else {
-                            clientShipWorld.addTerrainUpdates(dimensionId, voxelShapeUpdates);
+                    } else {
+                        clientShipWorld.addTerrainUpdates(dimensionId, voxelShapeUpdates);
+                    }
+                }
+            }
+        }
+
+        // Force MC's light engine to recompute lighting for this ship chunk.
+        // The client's LevelLightEngine is synchronous — call checkBlock for each
+        // non-air block so the engine computes proper sky light with shadows.
+        this.relightChunk(worldChunk);
+
+        // Flush all queued light updates NOW so that when render chunks are dirtied
+        // below, they recompile with correct light data. Without this, there's a race
+        // condition (~5% on Fabric) where render chunks compile before light is ready.
+        // Loop because cascading propagation may queue additional work.
+        final SeamlessChunksManager manager = SeamlessChunksManager.get();
+        if (manager == null || !manager.inBulkDrain) {
+            while (this.level.getLightEngine().runLightUpdates() > 0) {
+                // keep flushing
+            }
+        }
+        this.vs$markLitOnce(x, z);
+
+        // Mark render chunks dirty AFTER relighting so they recompile with correct
+        // light data. Include neighbors — light propagates across chunk boundaries.
+        if (ValkyrienCommonMixinConfigPlugin.getVSRenderer() != VSRenderer.SODIUM) {
+            final IVSViewAreaMethods viewArea = (IVSViewAreaMethods)
+                ((LevelRendererAccessor) ((ClientLevelAccessor) level).getLevelRenderer()).getViewArea();
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dz = -1; dz <= 1; dz++) {
+                    for (int sy = level.getMinSection(); sy < level.getMaxSection(); sy++) {
+                        final SectionRenderDispatcher.RenderSection renderChunk = viewArea.vs$getShipRenderSection(x + dx, sy, z + dz);
+                        if (renderChunk != null) {
+                            renderChunk.setDirty(true);
                         }
                     }
                 }
+            }
+        }
 
-                relightChunk(worldChunk);
-                while (this.level.getLightEngine().runLightUpdates() > 0) {
-                    // Keep flushing until light propagation settles for this ship chunk.
-                }
+        this.level.onChunkLoaded(pos);
+        final ClientShip loadedShip = VSGameUtilsKt.getLoadedShipManagingPos(this.level, x, z);
+        if (loadedShip != null) VsDynamicLight.invalidateShipEmitters(loadedShip.getId());
+        if (ValkyrienCommonMixinConfigPlugin.getVSRenderer() == VSRenderer.SODIUM) {
+            // getVSRenderer() only returns SODIUM if the mod is installed.
+            // Methods of SodiumCompat check if Sodium is present but calling them
+            // is not safe anyway as the class references Sodium classes so the game
+            // crashes with NoClassDefFoundError.
+            SodiumCompat.onChunkAdded(this.level, x, z);
+        }
+        cir.setReturnValue(worldChunk);
+    }
 
-                if (ValkyrienCommonMixinConfigPlugin.getVSRenderer() != VSRenderer.SODIUM) {
-                    final IVSViewAreaMethods viewArea = (IVSViewAreaMethods)
-                        ((LevelRendererAccessor) ((ClientLevelAccessor) level).getLevelRenderer()).getViewArea();
-                    for (int dx = -1; dx <= 1; dx++) {
-                        for (int dz = -1; dz <= 1; dz++) {
-                            for (int sy = level.getMinSection(); sy < level.getMaxSection(); sy++) {
-                                final SectionRenderDispatcher.RenderSection renderSection =
-                                    viewArea.vs$getShipRenderSection(x + dx, sy, z + dz);
-                                if (renderSection != null) {
-                                    renderSection.setDirty(true);
-                                }
-                            }
-                        }
-                    }
-                }
+    @Inject(method = "drop", at = @At("HEAD"))
+    private void vs$invalidateWorldLightOnChunkDrop(final ChunkPos pos, final CallbackInfo ci) {
+        VsDynamicLight.invalidateLightingRevision();
+    }
 
-                this.level.onChunkLoaded(pos);
-                if (ValkyrienCommonMixinConfigPlugin.getVSRenderer() == VSRenderer.SODIUM) {
-                    SodiumCompat.onChunkAdded(this.level, x, z);
+    @Inject(method = "updateViewCenter", at = @At("HEAD"))
+    private void vs$invalidateWorldLightOnViewCenter(final int x, final int z, final CallbackInfo ci) {
+        VsDynamicLight.invalidateLightingRevision();
+    }
+
+    @Inject(method = "updateViewRadius", at = @At("HEAD"))
+    private void vs$invalidateWorldLightOnViewRadius(final int radius, final CallbackInfo ci) {
+        VsDynamicLight.invalidateLightingRevision();
+    }
+
+    @Override
+    public void vs$removeShip(final ClientShip ship) {
+        VsDynamicLight.invalidateShipEmitters(ship.getId());
+        final ChunkClaim chunks = ship.getChunkClaim();
+        final int[] queued = new int[] {0};
+        ship.getActiveChunksSet().forEach((x, z) -> {
+            if (this.vs$enqueueShipChunkUnload(x, z)) {
+                queued[0]++;
+            }
+        });
+        if (queued[0] > 0) {
+            return;
+        }
+
+        this.vs$enqueueCachedShipChunksInClaim(chunks, this.shipChunks.keySet().iterator());
+        this.vs$enqueueCachedShipChunksInClaim(chunks, this.emptyShipChunks.keySet().iterator());
+    }
+
+    @Override
+    public void vs$drainShipChunkUnloadQueue() {
+        if (this.vs$pendingShipChunkUnloadQueue.isEmpty()) {
+            return;
+        }
+
+        final VsiClientShipWorld clientShipWorld = VSGameUtilsKt.getShipObjectWorld(level);
+        final boolean updateConnectivity =
+            clientShipWorld != null && VSGameConfig.CLIENT.getConnectivity().getEnableClientConnectivity();
+        final ArrayList<VsiTerrainUpdate> voxelShapeUpdates = updateConnectivity ? new ArrayList<>() : null;
+
+        int removedChunks = 0;
+        final int maxRemovedChunks =
+            Math.max(1, Math.min(1024, VSGameConfig.CLIENT.getPerformance().getShipChunkUnloadBatchSize()));
+        while (removedChunks < maxRemovedChunks && !this.vs$pendingShipChunkUnloadQueue.isEmpty()) {
+            final long chunkPos = this.vs$pendingShipChunkUnloadQueue.dequeueLong();
+            if (!this.vs$pendingShipChunkUnloads.remove(chunkPos)) {
+                continue;
+            }
+            final int chunkX = (int) (chunkPos >> 32);
+            final int chunkZ = (int) chunkPos;
+            final LevelChunk removedChunk = this.removeShipChunk(chunkX, chunkZ);
+            if (removedChunk == null) {
+                continue;
+            }
+            removedChunks++;
+            if (voxelShapeUpdates != null) {
+                for (int sectionY = removedChunk.getMinSection(); sectionY < removedChunk.getMaxSection(); sectionY++) {
+                    voxelShapeUpdates.add(getVsCore().newDeleteTerrainUpdate(chunkX, sectionY, chunkZ));
                 }
-                cir.setReturnValue(worldChunk);
+            }
+        }
+
+        if (voxelShapeUpdates != null && !voxelShapeUpdates.isEmpty()) {
+            clientShipWorld.addTerrainUpdates(getApi().getDimensionId(level), voxelShapeUpdates);
+        }
+    }
+
+    @Unique
+    private boolean vs$enqueueShipChunkUnload(final int chunkX, final int chunkZ) {
+        final long chunkPos = ChunkPos.asLong(chunkX, chunkZ);
+        if (!this.shipChunks.containsKey(chunkPos) && !this.emptyShipChunks.containsKey(chunkPos)) {
+            return false;
+        }
+        if (!this.vs$pendingShipChunkUnloads.add(chunkPos)) {
+            return false;
+        }
+        this.vs$pendingShipChunkUnloadQueue.enqueue(chunkPos);
+        return true;
+    }
+
+    @Unique
+    private void vs$enqueueCachedShipChunksInClaim(final ChunkClaim claim, final LongIterator chunkPositions) {
+        while (chunkPositions.hasNext()) {
+            final long chunkPos = chunkPositions.nextLong();
+            if (this.vs$isChunkInClaim(chunkPos, claim)) {
+                final int chunkX = (int) (chunkPos >> 32);
+                final int chunkZ = (int) chunkPos;
+                this.vs$enqueueShipChunkUnload(chunkX, chunkZ);
             }
         }
     }
 
-    @Inject(method = "drop", at = @At("HEAD"), cancellable = true)
-    public void preUnload(final ChunkPos chunkPos, final CallbackInfo ci) {
-        final int chunkX = chunkPos.x;
-        final int chunkZ = chunkPos.z;
-        if (VSGameUtilsKt.isChunkInShipyard(level, chunkX, chunkZ)) {
-            vs$shipChunks.remove(ChunkPos.asLong(chunkX, chunkZ));
-            if (ValkyrienCommonMixinConfigPlugin.getVSRenderer() != VSRenderer.SODIUM) {
-                ((IVSViewAreaMethods) ((LevelRendererAccessor) ((ClientLevelAccessor) level).getLevelRenderer()).getViewArea())
-                    .valkyrienskies$unloadChunk(chunkX, chunkZ);
-            }
-            SodiumCompat.onChunkRemoved(this.level, chunkX, chunkZ);
-            ci.cancel();
+    @Unique
+    private boolean vs$isChunkInClaim(final long chunkPos, final ChunkClaim claim) {
+        final int chunkX = (int) (chunkPos >> 32);
+        final int chunkZ = (int) chunkPos;
+        return chunkX >= claim.getXStart() && chunkX <= claim.getXEnd()
+            && chunkZ >= claim.getZStart() && chunkZ <= claim.getZEnd();
+    }
+
+    @Unique
+    private LevelChunk removeShipChunk(final int chunkX, final int chunkZ) {
+        final ClientShip ship = VSGameUtilsKt.getLoadedShipManagingPos(this.level, chunkX, chunkZ);
+        if (ship != null) VsDynamicLight.invalidateShipEmitters(ship.getId());
+        final LevelChunk chunk = this.shipChunks.remove(ChunkPos.asLong(chunkX, chunkZ));
+        this.emptyShipChunks.remove(ChunkPos.asLong(chunkX, chunkZ));
+        this.vs$litOnce.remove(ChunkPos.asLong(chunkX, chunkZ));
+        if (chunk == null) {
+            return null;
         }
+        final ClientChunkCacheStorageAccessor storageAccessor = (ClientChunkCacheStorageAccessor) (Object) this.storage;
+        storageAccessor.setChunkCount(storageAccessor.getChunkCount() - 1);
+        this.level.unload(chunk);
+        if (ValkyrienCommonMixinConfigPlugin.getVSRenderer() != VSRenderer.SODIUM) {
+            ((IVSViewAreaMethods) ((LevelRendererAccessor) ((ClientLevelAccessor) level).getLevelRenderer()).getViewArea())
+                .valkyrienskies$unloadChunk(chunkX, chunkZ);
+        } else {
+            SodiumCompat.onChunkRemoved(this.level, chunkX, chunkZ);
+        }
+        return chunk;
     }
 
     @Inject(
@@ -201,7 +354,7 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
         if (!VSGameUtilsKt.isChunkInShipyard(level, chunkX, chunkZ)) {
             return;
         }
-        final LevelChunk shipChunk = vs$shipChunks.get(ChunkPos.asLong(chunkX, chunkZ));
+        final LevelChunk shipChunk = shipChunks.get(ChunkPos.asLong(chunkX, chunkZ));
         if (shipChunk != null) {
             cir.setReturnValue(shipChunk);
             return;
@@ -210,24 +363,53 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
     }
 
     @Unique
-    private void removeShipChunk(final int chunkX, final int chunkZ) {
-        final LevelChunk chunk = vs$shipChunks.remove(ChunkPos.asLong(chunkX, chunkZ));
-        emptyShipChunks.remove(ChunkPos.asLong(chunkX, chunkZ));
+    private void relightChunk(LevelChunk chunk) {
+        relightChunk(chunk, false);
+    }
+
+    @Override
+    public void vs$relightShipChunk(final int chunkX, final int chunkZ) {
+        this.vs$relightShipChunk(chunkX, chunkZ, false);
+    }
+
+    @Override
+    public void vs$relightShipChunk(final int chunkX, final int chunkZ, final boolean sweepAirCells) {
+        final LevelChunk chunk = this.shipChunks.get(ChunkPos.asLong(chunkX, chunkZ));
         if (chunk == null) {
             return;
         }
-        final ClientChunkCacheStorageAccessor clientChunkMapAccessor = ClientChunkCacheStorageAccessor.class.cast(storage);
-        clientChunkMapAccessor.setChunkCount(clientChunkMapAccessor.getChunkCount() - 1);
-        level.unload(chunk);
-        if (ValkyrienCommonMixinConfigPlugin.getVSRenderer() != VSRenderer.SODIUM) {
-            ((IVSViewAreaMethods) ((LevelRendererAccessor) ((ClientLevelAccessor) level).getLevelRenderer()).getViewArea())
-                .valkyrienskies$unloadChunk(chunkX, chunkZ);
+        relightChunk(chunk, sweepAirCells);
+        while (this.level.getLightEngine().runLightUpdates() > 0) {
+            // keep flushing
         }
-        SodiumCompat.onChunkRemoved(level, chunkX, chunkZ);
+    }
+
+    @Override
+    public void vs$preEnableShipChunkNeighborhood(final int chunkX, final int chunkZ) {
+        final LevelLightEngine lightEngine = this.level.getLightEngine();
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                final int ncx = chunkX + dx;
+                final int ncz = chunkZ + dz;
+                if (VSGameUtilsKt.isChunkInShipyard(this.level, ncx, ncz)) {
+                    lightEngine.setLightEnabled(new ChunkPos(ncx, ncz), true);
+                }
+            }
+        }
+    }
+
+    @Override
+    public boolean vs$hasBeenLitOnce(final int chunkX, final int chunkZ) {
+        return this.vs$litOnce.contains(ChunkPos.asLong(chunkX, chunkZ));
+    }
+
+    @Override
+    public void vs$markLitOnce(final int chunkX, final int chunkZ) {
+        this.vs$litOnce.add(ChunkPos.asLong(chunkX, chunkZ));
     }
 
     @Unique
-    private void relightChunk(final LevelChunk chunk) {
+    private void relightChunk(LevelChunk chunk, final boolean sweepAirCells) {
         try {
             final LevelLightEngine lightEngine = this.level.getLightEngine();
             final ChunkPos cp = chunk.getPos();
@@ -235,6 +417,10 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
             final int baseZ = cp.getMinBlockZ();
 
             final LevelChunkSection[] sections = chunk.getSections();
+
+            lightEngine.setLightEnabled(cp, true);
+
+            // Step 1: Tell the light engine about non-empty sections (mirrors server's updateSectionStatus)
             for (int sIdx = 0; sIdx < sections.length; sIdx++) {
                 final LevelChunkSection section = sections[sIdx];
                 if (section != null && !section.hasOnlyAir()) {
@@ -259,7 +445,7 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
                 for (int lx = 0; lx < 16; lx++) {
                     for (int ly = 0; ly < 16; ly++) {
                         for (int lz = 0; lz < 16; lz++) {
-                            if (!section.getBlockState(lx, ly, lz).is(Blocks.AIR)) {
+                            if (sweepAirCells || !section.getBlockState(lx, ly, lz).is(Blocks.AIR)) {
                                 lightEngine.checkBlock(new BlockPos(baseX + lx, baseY + ly, baseZ + lz));
                             }
                         }

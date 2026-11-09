@@ -16,6 +16,8 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.config.ShipRendererKt;
+import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.mixinducks.client.render.IVSViewAreaMethods;
 import qouteall.imm_ptl.core.render.ImmPtlViewArea;
 
@@ -36,6 +38,11 @@ public class MixinMyBuiltChunkStorage extends ViewArea implements IVSViewAreaMet
     public MixinMyBuiltChunkStorage(final SectionRenderDispatcher chunkRenderDispatcher, final Level level, final int i,
         final LevelRenderer levelRenderer) {
         super(chunkRenderDispatcher, level, i, levelRenderer);
+    }
+
+    @Override
+    public void vs$fillRenderChunkPool() {
+        // Immersive Portals owns the lifetime of its view areas; allocate on demand.
     }
 
     /**
@@ -61,7 +68,11 @@ public class MixinMyBuiltChunkStorage extends ViewArea implements IVSViewAreaMet
             return; // Weird, but just ignore it
         }
 
-        if (VSGameUtilsKt.isChunkInShipyard(level, x, z)) {
+        var ship = (ClientShip) VSGameUtilsKt.getShipManagingPos(level, x, z);
+        if (ship != null && ShipRendererKt.getUsesTerrainChunkRenderer(ship)) {
+            // Only mark existing render chunks dirty — don't create new ones.
+            // Creation is deferred to vs$getOrCreateShipRenderChunk (called from
+            // vs$addShipVisibleChunks) which only creates for non-empty sections.
             final long chunkPosAsLong = ChunkPos.asLong(x, z);
             final SectionRenderDispatcher.RenderSection[] renderChunksArray =
                 vs$shipRenderChunks.computeIfAbsent(chunkPosAsLong,
@@ -97,7 +108,8 @@ public class MixinMyBuiltChunkStorage extends ViewArea implements IVSViewAreaMet
             return; // Weird, but ignore it
         }
 
-        if (VSGameUtilsKt.isChunkInShipyard(level, chunkX, chunkZ)) {
+        var ship = (ClientShip) VSGameUtilsKt.getShipManagingPos(level, chunkX, chunkZ);
+        if (ship != null && ShipRendererKt.getUsesTerrainChunkRenderer(ship)) {
             final long chunkPosAsLong = ChunkPos.asLong(chunkX, chunkZ);
             final SectionRenderDispatcher.RenderSection[] renderChunksArray = vs$shipRenderChunks.get(chunkPosAsLong);
             if (renderChunksArray == null) {

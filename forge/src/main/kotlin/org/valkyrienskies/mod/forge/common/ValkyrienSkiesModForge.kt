@@ -1,58 +1,111 @@
 package org.valkyrienskies.mod.forge.common
 
-import net.minecraft.commands.Commands.CommandSelection.ALL
-import net.minecraft.commands.Commands.CommandSelection.INTEGRATED
+import com.mojang.blaze3d.vertex.DefaultVertexFormat
+import dev.engine_room.flywheel.api.event.ReloadLevelRendererEvent
+import net.minecraft.client.renderer.ShaderInstance
 import net.minecraft.commands.synchronization.ArgumentTypeInfos
 import net.minecraft.commands.synchronization.SingletonArgumentInfo
-import net.minecraft.core.BlockPos
-import net.minecraft.core.component.DataComponentType
-import net.minecraft.core.registries.Registries
+import org.valkyrienskies.mod.common.command.arguments.RelativeVector3Argument
+import org.valkyrienskies.mod.common.command.arguments.ShipArgument
+import net.minecraft.commands.Commands.CommandSelection.ALL
+import net.minecraft.commands.Commands.CommandSelection.INTEGRATED
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.server.level.ServerLevel
+import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MobCategory
-import net.minecraft.world.item.BlockItem
+import net.minecraft.world.item.CreativeModeTabs
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.Item.Properties
+import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.entity.BlockEntityType
+import net.neoforged.neoforge.client.event.EntityRenderersEvent
+import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent
+import net.neoforged.neoforge.client.event.RegisterShadersEvent
+import net.neoforged.neoforge.event.AddReloadListenerEvent
+import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent
+import net.neoforged.neoforge.event.RegisterCommandsEvent
+import net.neoforged.neoforge.event.TagsUpdatedEvent
+import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent
+import net.neoforged.neoforge.event.level.LevelEvent
+import net.neoforged.neoforge.event.entity.player.PlayerEvent
+import net.neoforged.fml.ModList
 import net.neoforged.fml.ModLoadingContext
 import net.neoforged.fml.common.Mod
 import net.neoforged.fml.config.ModConfig
 import net.neoforged.fml.event.config.ModConfigEvent
 import net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent
 import net.neoforged.fml.loading.FMLEnvironment
-import net.neoforged.neoforge.client.event.EntityRenderersEvent
-import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent
-import net.neoforged.neoforge.event.AddReloadListenerEvent
-import net.neoforged.neoforge.event.RegisterCommandsEvent
-import net.neoforged.neoforge.event.TagsUpdatedEvent
-import net.neoforged.neoforge.registries.DeferredBlock
-import net.neoforged.neoforge.registries.DeferredHolder
-import net.neoforged.neoforge.registries.DeferredItem
 import net.neoforged.neoforge.registries.DeferredRegister
+import net.neoforged.neoforge.registries.DeferredHolder
+import net.neoforged.neoforge.registries.DeferredBlock
+import net.neoforged.neoforge.registries.DeferredItem
+import net.minecraft.core.component.DataComponentType
+import net.minecraft.core.BlockPos
+import thedarkcolour.kotlinforforge.neoforge.forge.MOD_BUS
+import thedarkcolour.kotlinforforge.neoforge.forge.FORGE_BUS
 import org.valkyrienskies.mod.client.EmptyRenderer
+import org.valkyrienskies.mod.client.VSPhysicsEntityModel
+import org.valkyrienskies.mod.client.VSPhysicsEntityRenderer
+import org.valkyrienskies.mod.common.VSRenderTypes
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.AREA_ASSEMBLER_ITEM
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.CLASSIC_AREA_ASSEMBLER_ITEM
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.CONNECTION_CHECKER_ITEM
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod.MOD_ID
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.PHYSICS_ENTITY_CREATOR_ITEM
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.SHIP_WELDER_ITEM
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.SHIP_CREATOR_ITEM
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.SHIP_CREATOR_ITEM_SMALLER
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.SHIP_REMOVER_ITEM
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.TEST_ANTIGRAV
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.TEST_CHAIR
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.TEST_FLAP
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.TEST_HINGE
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.TEST_THRUSTER
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod.TEST_WING
+import org.valkyrienskies.mod.common.block.TestAntigravBlock
 import org.valkyrienskies.mod.common.block.TestChairBlock
 import org.valkyrienskies.mod.common.block.TestFlapBlock
 import org.valkyrienskies.mod.common.block.TestHingeBlock
+import org.valkyrienskies.mod.common.block.TestThrusterBlock
 import org.valkyrienskies.mod.common.block.TestWingBlock
+import org.valkyrienskies.mod.common.blockentity.TestAntigravBlockEntity
 import org.valkyrienskies.mod.common.blockentity.TestHingeBlockEntity
-import org.valkyrienskies.mod.common.command.arguments.RelativeVector3Argument
-import org.valkyrienskies.mod.common.command.arguments.ShipArgument
+import org.valkyrienskies.mod.common.blockentity.TestThrusterBlockEntity
 import org.valkyrienskies.mod.common.command.VSCommands
+import org.valkyrienskies.mod.common.config.DimensionParametersResolver
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
+import org.valkyrienskies.mod.common.config.SlugDatapackResolver
 import org.valkyrienskies.mod.common.config.VSConfigUpdater
 import org.valkyrienskies.mod.common.config.VSEntityHandlerDataLoader
 import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.config.VSKeyBindings
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
+import org.valkyrienskies.mod.common.entity.VSPhysicsEntity
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager
 import org.valkyrienskies.mod.common.hooks.VSGameEvents
+import org.valkyrienskies.mod.common.item.AreaAssemblerItem
+import org.valkyrienskies.mod.common.item.ConnectionCheckerItem
+import org.valkyrienskies.mod.common.item.PhysicsEntityCreatorItem
 import org.valkyrienskies.mod.common.item.ShipAssemblerItem
+import org.valkyrienskies.mod.common.item.ShipWelderItem
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
-import thedarkcolour.kotlinforforge.neoforge.forge.FORGE_BUS
-import thedarkcolour.kotlinforforge.neoforge.forge.MOD_BUS
+import org.valkyrienskies.mod.common.item.ShipRemoverItem
+import org.valkyrienskies.mod.common.item.VSBlockItem
+import org.valkyrienskies.mod.common.playerWrapper
+import org.valkyrienskies.mod.common.util.MinecraftPlayer
+import org.valkyrienskies.mod.compat.LoadedMods
+import org.valkyrienskies.mod.compat.flywheel.FlywheelCompat
+import org.valkyrienskies.mod.compat.flywheel.ShipEmbeddingManager
+import org.valkyrienskies.mod.compat.hexcasting.HexcastingCompat
+import org.valkyrienskies.mod.forge.client.ValkyrienSkiesModForgeClient
+import org.valkyrienskies.mod.forge.compat.dynmap.ForgeDynmapHandler
+import org.valkyrienskies.mod.forge.compat.epicfight.FracturedBlockStateInfoProvider
+import org.valkyrienskies.mod.forge.compat.hexcasting.ForgeShipAmbit
+import org.valkyrienskies.mod.util.ClientConnectivityUpdateQueue
 
 @Mod(MOD_ID)
 object ValkyrienSkiesModForge {
@@ -60,146 +113,136 @@ object ValkyrienSkiesModForge {
     private val ITEMS = DeferredRegister.Items.createItems(MOD_ID)
     private val ENTITIES = DeferredRegister.create(Registries.ENTITY_TYPE, MOD_ID)
     private val BLOCK_ENTITIES = DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, MOD_ID)
-    private val DATA_COMPONENTS = DeferredRegister.DataComponents.createDataComponents(Registries.DATA_COMPONENT_TYPE, MOD_ID)
-    private val COMMAND_ARGUMENT_TYPES = DeferredRegister.create(Registries.COMMAND_ARGUMENT_TYPE, MOD_ID)
     private val TEST_CHAIR_REGISTRY: DeferredBlock<Block>
     private val TEST_HINGE_REGISTRY: DeferredBlock<Block>
     private val TEST_FLAP_REGISTRY: DeferredBlock<Block>
     private val TEST_WING_REGISTRY: DeferredBlock<Block>
+    private val TEST_THRUSTER_REGISTRY: DeferredBlock<Block>
+    private val TEST_ANTIGRAV_REGISTRY: DeferredBlock<Block>
     private val CONNECTION_CHECKER_ITEM_REGISTRY: DeferredItem<Item>
     private val SHIP_CREATOR_ITEM_REGISTRY: DeferredItem<Item>
     private val SHIP_CREATOR_SMALLER_ITEM_REGISTRY: DeferredItem<Item>
+    private val SHIP_REMOVER_ITEM_REGISTRY: DeferredItem<Item>
     private val AREA_ASSEMBLER_ITEM_REGISTRY: DeferredItem<Item>
+    private val CLASSIC_AREA_ASSEMBLER_ITEM_REGISTRY: DeferredItem<Item>
     private val PHYSICS_ENTITY_CREATOR_ITEM_REGISTRY: DeferredItem<Item>
     private val SHIP_MOUNTING_ENTITY_REGISTRY: DeferredHolder<EntityType<*>, EntityType<ShipMountingEntity>>
+    private val PHYSICS_ENTITY_TYPE_REGISTRY: DeferredHolder<EntityType<*>, EntityType<VSPhysicsEntity>>
     private val SHIP_ASSEMBLER_ITEM_REGISTRY: DeferredItem<Item>
+    private val SHIP_WELDER_ITEM_REGISTRY: DeferredItem<Item>
     private val TEST_HINGE_BLOCK_ENTITY_TYPE_REGISTRY: DeferredHolder<BlockEntityType<*>, BlockEntityType<TestHingeBlockEntity>>
+    private val TEST_THRUSTER_BLOCK_ENTITY_TYPE_REGISTRY: DeferredHolder<BlockEntityType<*>, BlockEntityType<TestThrusterBlockEntity>>
+    private val TEST_ANTIGRAV_BLOCK_ENTITY_TYPE_REGISTRY: DeferredHolder<BlockEntityType<*>, BlockEntityType<TestAntigravBlockEntity>>
+
+    private val DATA_COMPONENTS = DeferredRegister.DataComponents.createDataComponents(Registries.DATA_COMPONENT_TYPE, MOD_ID)
+    private val COMMAND_ARGUMENT_TYPES = DeferredRegister.create(Registries.COMMAND_ARGUMENT_TYPE, MOD_ID)
     private val BLOCK_POS_COMPONENT: DeferredHolder<DataComponentType<*>, DataComponentType<BlockPos>>
 
     init {
         val isClient = FMLEnvironment.dist.isClient
 
-        // VS2 1.21.1: set synchronizePhysics=true at mod init, BEFORE any VsiPipeline is
-        // created. The pipeline samples this config when it's constructed, so setting it
-        // later (e.g. ServerStartedEvent) leaves the pipeline running in async mode and
-        // the flag is ignored. Synchronous physics means postTickGame runs
-        // physicsTicksPerGameTick (default 3) steps inline per server tick — ships
-        // actually move each tick instead of waiting on a wall-clock-scheduled physics
-        // thread. Critical for gametests (which run server ticks faster than 20 Hz) and
-        // for general responsiveness.
-        //
-        // Also zero out shipLoadFreezeSeconds. vs-core defaults this to 5.0s, and
-        // ShipObjectServerWorld re-arms the freeze on every DenseVoxelShapeUpdate that
-        // arrives for a ship. In gametest environments (and under heavy streaming)
-        // these updates keep coming, so the freeze never expires and ship positions get
-        // clamped to their spawn pose by effectiveKinematicTarget in VSGamePipelineStage.
-        try {
-            val pt = org.valkyrienskies.core.impl.config.VSCoreConfig.SERVER.pt
-            pt.synchronizePhysics = true
-            org.valkyrienskies.core.impl.config.VSCoreConfig.SERVER.physics.shipLoadFreezeSeconds = 0.0
-            org.slf4j.LoggerFactory.getLogger("VS2").info(
-                "VS2: synchronizePhysics=true, shipLoadFreezeSeconds=0.0 set at mod init, physicsTicksPerGameTick={}",
-                pt.physicsTicksPerGameTick)
-        } catch (t: Throwable) {
-            org.slf4j.LoggerFactory.getLogger("VS2").warn(
-                "VS2: failed to set synchronizePhysics at mod init", t)
+        val modBus = MOD_BUS
+        val forgeBus = FORGE_BUS
+
+        ModLoadingContext.get().activeContainer.apply {
+            registerConfig(ModConfig.Type.SERVER, VSConfigUpdater.SERVER_SPEC, "valkyrienskies/valkyrienskies-server.toml")
+            registerConfig(ModConfig.Type.SERVER, VSConfigUpdater.CORE_SERVER_SPEC, "valkyrienskies/vs-core-server.toml")
+            registerConfig(ModConfig.Type.COMMON, VSConfigUpdater.COMMON_SPEC, "valkyrienskies/valkyrienskies-common.toml")
+            registerConfig(ModConfig.Type.CLIENT, VSConfigUpdater.CLIENT_SPEC, "valkyrienskies/valkyrienskies-client.toml")
         }
+
+        modBus.addListener(::onConfigLoad)
+        modBus.addListener(::onConfigReload)
 
         ValkyrienSkiesMod.init()
         VSEntityManager.registerContraptionHandler(ContraptionShipyardEntityHandlerForge)
 
-        // Register the ModConfigSpecs with NeoForge so their ConfigValues have a backing
-        // Config to read/write. Without this, /vs backend <engine> calls .set(...) on an
-        // unbacked ConfigValue and NPEs with "Cannot set config value without assigned
-        // Config object present". Each spec lives in its own TOML file named after the
-        // spec type to avoid collisions.
-        ModLoadingContext.get().activeContainer.apply {
-            // Core and mod server configs are both semantically server-side, but NeoForge's
-            // ConfigurationScreen labels each tab by Type — two SERVER-typed configs both
-            // show up as "Server Settings" buttons with no way to distinguish. Typing the
-            // vs-core one as STARTUP sidesteps the collision (tab is labeled "Startup
-            // Settings") and is actually a decent semantic fit: physics-backend selection
-            // and related fields want to be fixed before the pipeline initializes.
-            registerConfig(ModConfig.Type.STARTUP, VSConfigUpdater.CORE_SERVER_SPEC, "valkyrienskies-core-server.toml")
-            registerConfig(ModConfig.Type.SERVER, VSConfigUpdater.SERVER_SPEC, "valkyrienskies-server.toml")
-            registerConfig(ModConfig.Type.COMMON, VSConfigUpdater.COMMON_SPEC, "valkyrienskies-common.toml")
-            registerConfig(ModConfig.Type.CLIENT, VSConfigUpdater.CLIENT_SPEC, "valkyrienskies-client.toml")
-
-            // Wire up the "Config" button in the vanilla Mods menu. NeoForge ships a
-            // generic ConfigurationScreen that can render any registered ModConfigSpec,
-            // but only activates when a mod registers an IConfigScreenFactory extension
-            // point. Without this the button is greyed out. Client-only — guarded by
-            // FMLEnvironment.dist so a dedicated server doesn't try to classload Screen.
-            if (isClient) {
-                registerExtensionPoint(
-                    net.neoforged.neoforge.client.gui.IConfigScreenFactory::class.java,
-                    net.neoforged.neoforge.client.gui.IConfigScreenFactory { container, parent ->
-                        net.neoforged.neoforge.client.gui.ConfigurationScreen(container, parent)
-                    }
-                )
-            }
-        }
-
-        // Propagate TOML changes (from disk edits and the in-game config UI) back into the
-        // in-memory Kotlin config vars like VSGameConfig.CLIENT.renderDebugText. Without
-        // this, toggling anything in the Mods-menu config screen writes to the TOML but
-        // the running code keeps reading the default. Handles both first-load and
-        // subsequent reloads; Loading fires on mod construction so the bus listener has
-        // to be registered here, before we finish constructing.
-        MOD_BUS.addListener<ModConfigEvent.Loading> { applyModConfigToVSConfigUpdater(it.config) }
-        MOD_BUS.addListener<ModConfigEvent.Reloading> { applyModConfigToVSConfigUpdater(it.config) }
-
-        val modBus = MOD_BUS
-        val forgeBus = FORGE_BUS
-
         BLOCKS.register(modBus)
         ITEMS.register(modBus)
+
         ENTITIES.register(modBus)
         BLOCK_ENTITIES.register(modBus)
+        DATA_COMPONENTS.register(modBus)
+        COMMAND_ARGUMENT_TYPES.register(modBus)
+        modBus.addListener(VSForgeNetworking::register)
         if (isClient) {
             modBus.addListener(::registerKeyBindings)
             modBus.addListener(::entityRenderers)
+            modBus.addListener(::registerLayerDefinitions)
+            modBus.addListener(::registerShaders)
+            modBus.addListener(ValkyrienSkiesModForgeClient::clientInit)
+            if (LoadedMods.flywheel == LoadedMods.FlywheelVersion.V1) FlywheelCompat.initClient()
+            if (ModList.get().isLoaded("flywheel")) {
+                forgeBus.addListener(::registerFlywheelReload)
+            }
+            VSGameEvents.registriesCompleted.on {
+                ClientConnectivityUpdateQueue.onRegistriesCompleted()
+            }
         }
         modBus.addListener(::loadComplete)
+        forgeBus.addListener(::playerJoin)
+
+        forgeBus.addListener(::onLevelLoaded)
 
         forgeBus.addListener(::registerCommands)
         forgeBus.addListener(::tagsUpdated)
         forgeBus.addListener(::registerResourceManagers)
-        modBus.addListener(VSForgeNetworking::register)
-        DATA_COMPONENTS.register(modBus)
-        COMMAND_ARGUMENT_TYPES.register(modBus)
 
         TEST_CHAIR_REGISTRY = registerBlockAndItem("test_chair") { TestChairBlock() }
         TEST_HINGE_REGISTRY = registerBlockAndItem("test_hinge") { TestHingeBlock }
         TEST_FLAP_REGISTRY = registerBlockAndItem("test_flap") { TestFlapBlock() }
         TEST_WING_REGISTRY = registerBlockAndItem("test_wing") { TestWingBlock() }
+        TEST_THRUSTER_REGISTRY = registerBlockAndItem("test_thruster") { TestThrusterBlock }
+        TEST_ANTIGRAV_REGISTRY = registerBlockAndItem("test_antigrav") { TestAntigravBlock }
         SHIP_CREATOR_ITEM_REGISTRY =
-            ITEMS.register("ship_creator") { ->
+            ITEMS.register("ship_creator") {
                 ShipCreatorItem(Properties(),
                     { 1.0 },
                     { VSGameConfig.SERVER.minScaling })
             }
+        SHIP_REMOVER_ITEM_REGISTRY =
+            ITEMS.register("ship_remover") {
+                ShipRemoverItem(Properties())
+            }
         CONNECTION_CHECKER_ITEM_REGISTRY =
-            ITEMS.register("connection_checker") { ->
-                Item(Properties())
+            ITEMS.register("connection_checker") {
+                ConnectionCheckerItem(
+                    Properties(),
+                    { 1.0 },
+                    { VSGameConfig.SERVER.minScaling }
+                )
             }
         SHIP_CREATOR_SMALLER_ITEM_REGISTRY =
-            ITEMS.register("ship_creator_smaller") { ->
+            ITEMS.register("ship_creator_smaller") {
                 ShipCreatorItem(
                     Properties(),
                     { VSGameConfig.SERVER.miniShipSize },
                     { VSGameConfig.SERVER.minScaling }
                 )
             }
-        AREA_ASSEMBLER_ITEM_REGISTRY = ITEMS.register("area_assembler") { ->
-            Item(Properties())
+        AREA_ASSEMBLER_ITEM_REGISTRY = ITEMS.register("area_assembler") {
+            AreaAssemblerItem(
+                Properties(),
+                { 1.0 },
+                { VSGameConfig.SERVER.minScaling }
+            )
+        }
+        CLASSIC_AREA_ASSEMBLER_ITEM_REGISTRY = ITEMS.register("classic_area_assembler") {
+            AreaAssemblerItem(
+                Properties(),
+                { 1.0 },
+                { VSGameConfig.SERVER.minScaling },
+                true
+            )
         }
         PHYSICS_ENTITY_CREATOR_ITEM_REGISTRY =
-            ITEMS.register("physics_entity_creator") { ->
-                Item(Properties())
+            ITEMS.register("physics_entity_creator") {
+                PhysicsEntityCreatorItem(
+                    Properties(),
+                )
             }
 
-        SHIP_MOUNTING_ENTITY_REGISTRY = ENTITIES.register("ship_mounting_entity") { ->
+        SHIP_MOUNTING_ENTITY_REGISTRY = ENTITIES.register("ship_mounting_entity") {
             EntityType.Builder.of(
                 ::ShipMountingEntity,
                 MobCategory.MISC
@@ -207,12 +250,32 @@ object ValkyrienSkiesModForge {
                 .build(ResourceLocation.fromNamespaceAndPath(MOD_ID, "ship_mounting_entity").toString())
         }
 
-        SHIP_ASSEMBLER_ITEM_REGISTRY =
-            ITEMS.register("ship_assembler") { -> ShipAssemblerItem(Properties()) }
+        PHYSICS_ENTITY_TYPE_REGISTRY = ENTITIES.register("vs_physics_entity") {
+            EntityType.Builder.of(
+                ::VSPhysicsEntity,
+                MobCategory.MISC
+            ).sized(1f, 1f)
+                .setUpdateInterval(1)
+                .clientTrackingRange(10)
+                .build(ResourceLocation.fromNamespaceAndPath(MOD_ID, "vs_physics_entity").toString())
+        }
+        modBus.addListener(::registerAttributes)
 
-        TEST_HINGE_BLOCK_ENTITY_TYPE_REGISTRY = BLOCK_ENTITIES.register<BlockEntityType<TestHingeBlockEntity>>("test_hinge_block_entity") { ->
+
+        SHIP_ASSEMBLER_ITEM_REGISTRY =
+            ITEMS.register("ship_assembler") { ShipAssemblerItem(Properties()) }
+        SHIP_WELDER_ITEM_REGISTRY = ITEMS.register("ship_welder") { ShipWelderItem(Properties()) }
+        TEST_HINGE_BLOCK_ENTITY_TYPE_REGISTRY = BLOCK_ENTITIES.register("test_hinge_block_entity") {
             BlockEntityType.Builder.of(::TestHingeBlockEntity, TEST_HINGE_REGISTRY.get()).build(null)
         }
+        TEST_THRUSTER_BLOCK_ENTITY_TYPE_REGISTRY = BLOCK_ENTITIES.register("test_thruster_block_entity") {
+            BlockEntityType.Builder.of(::TestThrusterBlockEntity, TEST_THRUSTER_REGISTRY.get()).build(null)
+        }
+        TEST_ANTIGRAV_BLOCK_ENTITY_TYPE_REGISTRY = BLOCK_ENTITIES.register("test_antigrav_block_entity") {
+            BlockEntityType.Builder.of(::TestAntigravBlockEntity, TEST_ANTIGRAV_REGISTRY.get()).build(null)
+        }
+
+
 
         BLOCK_POS_COMPONENT = DATA_COMPONENTS.register("coordinate") { ->
             DataComponentType.builder<BlockPos>().persistent(BlockPos.CODEC).build()
@@ -232,23 +295,72 @@ object ValkyrienSkiesModForge {
             )
         }
 
-        val deferredRegister = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MOD_ID)
-        deferredRegister.register("general") { ->
-            ValkyrienSkiesMod.createCreativeTab()
+        // val deferredRegister = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MOD_ID)
+        // deferredRegister.register("general") {
+        //     ValkyrienSkiesMod.createCreativeTab()
+        // }
+        // deferredRegister.register(modBus)
+
+        modBus.addListener(::onTabModify)
+
+
+
+        if (ModList.get().isLoaded("epicfight")) {
+            FracturedBlockStateInfoProvider.register()
         }
-        deferredRegister.register(modBus)
+
+        if (ModList.get().isLoaded("dynmap")) {
+            ForgeDynmapHandler().register()
+            forgeBus.addListener(ForgeDynmapHandler::tick)
+        }
+
+        if (ModList.get().isLoaded("hexcasting"))
+            HexcastingCompat.register(ForgeShipAmbit::class.java)
+    }
+
+    private fun onTabModify(event: BuildCreativeModeTabContentsEvent) {
+        if (event.tabKey == CreativeModeTabs.OP_BLOCKS) {
+            event.accept(TEST_CHAIR.asItem())
+            event.accept(TEST_HINGE.asItem())
+            event.accept(TEST_FLAP.asItem())
+            event.accept(TEST_WING.asItem())
+            event.accept(TEST_THRUSTER.asItem())
+            event.accept(TEST_ANTIGRAV.asItem())
+            event.accept(CONNECTION_CHECKER_ITEM)
+            event.accept(SHIP_CREATOR_ITEM)
+            event.accept(SHIP_REMOVER_ITEM)
+            event.accept(SHIP_ASSEMBLER_ITEM)
+            event.accept(SHIP_WELDER_ITEM)
+            event.accept(SHIP_CREATOR_ITEM_SMALLER)
+            event.accept(AREA_ASSEMBLER_ITEM)
+            event.accept(CLASSIC_AREA_ASSEMBLER_ITEM)
+            event.accept(PHYSICS_ENTITY_CREATOR_ITEM)
+        }
+    }
+
+    private fun onLevelLoaded(event: LevelEvent.Load) {
+        if (event.level is ServerLevel) ValkyrienSkiesMod.onLevelLoaded(event.level as ServerLevel)
+    }
+
+    private fun onConfigLoad(event: ModConfigEvent.Loading) {
+        if (event.config.modId == MOD_ID) {
+            applyModConfigToVSConfigUpdater(event.config)
+        }
+    }
+
+    private fun onConfigReload(event: ModConfigEvent.Reloading) {
+        if (event.config.modId == MOD_ID) {
+            applyModConfigToVSConfigUpdater(event.config)
+        }
     }
 
     private fun registerResourceManagers(event: AddReloadListenerEvent) {
+        event.addListener(SlugDatapackResolver.loader)
         event.addListener(MassDatapackResolver.loader)
         event.addListener(VSEntityHandlerDataLoader)
+        event.addListener(DimensionParametersResolver)
     }
 
-    /**
-     * Matches the event's ModConfig against one of VSConfigUpdater's four specs and pushes
-     * the loaded NightConfig values into the matching VsiConfigModel. Guards the spec check
-     * by identity because that's how VSConfigUpdater dispatches internally.
-     */
     private fun applyModConfigToVSConfigUpdater(config: ModConfig) {
         val spec = config.spec as? net.neoforged.neoforge.common.ModConfigSpec ?: return
         val loaded = config.loadedConfig?.config() ?: return
@@ -261,13 +373,29 @@ object ValkyrienSkiesModForge {
         }
     }
 
+    private fun registerFlywheelReload(event: ReloadLevelRendererEvent) {
+        ShipEmbeddingManager.INSTANCE.unloadAllShip()
+    }
+
     private fun entityRenderers(event: EntityRenderersEvent.RegisterRenderers) {
         event.registerEntityRenderer(SHIP_MOUNTING_ENTITY_REGISTRY.get(), ::EmptyRenderer)
+        event.registerEntityRenderer(PHYSICS_ENTITY_TYPE_REGISTRY.get(), ::VSPhysicsEntityRenderer)
+    }
+
+    private fun registerLayerDefinitions(event: EntityRenderersEvent.RegisterLayerDefinitions) {
+        event.registerLayerDefinition(
+            VSPhysicsEntityModel.LAYER_LOCATION,
+            VSPhysicsEntityModel.Companion::createBodyLayer
+        )
+    }
+
+    fun registerAttributes(event: EntityAttributeCreationEvent) {
+        event.put(PHYSICS_ENTITY_TYPE_REGISTRY.get(), VSPhysicsEntity.createAttributes().build())
     }
 
     private fun registerBlockAndItem(registryName: String, blockSupplier: () -> Block): DeferredBlock<Block> {
         val blockRegistry = BLOCKS.register(registryName, blockSupplier)
-        ITEMS.register(registryName) { -> BlockItem(blockRegistry.get(), Properties()) }
+        ITEMS.register(registryName) { VSBlockItem(blockRegistry.get(), Properties()) }
         return blockRegistry
     }
 
@@ -279,22 +407,75 @@ object ValkyrienSkiesModForge {
         }
     }
 
+    private fun registerShaders(event: RegisterShadersEvent) {
+        event.registerShader(
+            ShaderInstance(event.resourceProvider, "rendertype_ship_solid", DefaultVertexFormat.BLOCK)
+        ) { shaderInstance: ShaderInstance? -> VSRenderTypes.shipSolidShader = shaderInstance }
+        event.registerShader(
+            ShaderInstance(event.resourceProvider, "rendertype_ship_cutout_mipped", DefaultVertexFormat.BLOCK)
+        ) { shaderInstance: ShaderInstance? -> VSRenderTypes.shipCutoutMippedShader = shaderInstance }
+        event.registerShader(
+            ShaderInstance(event.resourceProvider, "rendertype_ship_cutout", DefaultVertexFormat.BLOCK)
+        ) { shaderInstance: ShaderInstance? -> VSRenderTypes.shipCutoutShader = shaderInstance }
+        event.registerShader(
+            ShaderInstance(event.resourceProvider, "vs_exterior_fluid_fog", DefaultVertexFormat.POSITION)
+        ) { shader -> org.valkyrienskies.mod.common.fluid.ExteriorFluidFog.setShader(shader) }
+        event.registerShader(
+            ShaderInstance(event.resourceProvider, "vs_retained_fluid", DefaultVertexFormat.NEW_ENTITY)
+        ) { shader -> org.valkyrienskies.mod.common.fluid.RetainedFluidRenderer.setShader(shader) }
+        event.registerShader(
+            ShaderInstance(event.resourceProvider, "rendertype_ship_translucent", DefaultVertexFormat.BLOCK)
+        ) { shaderInstance: ShaderInstance? -> VSRenderTypes.shipTranslucentShader = shaderInstance }
+        event.registerShader(
+            ShaderInstance(event.resourceProvider, "rendertype_ship_batched_solid", DefaultVertexFormat.BLOCK)
+        ) { shaderInstance: ShaderInstance? -> VSRenderTypes.shipBatchedSolidShader = shaderInstance }
+        event.registerShader(
+            ShaderInstance(event.resourceProvider, "rendertype_ship_batched_cutout_mipped", DefaultVertexFormat.BLOCK)
+        ) { shaderInstance: ShaderInstance? -> VSRenderTypes.shipBatchedCutoutMippedShader = shaderInstance }
+        event.registerShader(
+            ShaderInstance(event.resourceProvider, "rendertype_ship_batched_cutout", DefaultVertexFormat.BLOCK)
+        ) { shaderInstance: ShaderInstance? -> VSRenderTypes.shipBatchedCutoutShader = shaderInstance }
+        event.registerShader(
+            ShaderInstance(event.resourceProvider, "rendertype_ship_batched_translucent", DefaultVertexFormat.BLOCK)
+        ) { shaderInstance: ShaderInstance? -> VSRenderTypes.shipBatchedTranslucentShader = shaderInstance }
+    }
+
     private fun tagsUpdated(event: TagsUpdatedEvent) {
         VSGameEvents.tagsAreLoaded.emit(Unit)
     }
+
+    private fun playerJoin(event: PlayerEvent.PlayerLoggedInEvent) {
+        if (event.entity is ServerPlayer) {
+            val player: MinecraftPlayer = event.entity.playerWrapper
+            if (VSGameConfig.SERVER.allowBlockInfo) {
+                MassDatapackResolver.syncBlockStates(player)
+            } else {
+                MassDatapackResolver.clearBlockStates(player)
+            }
+        }
+    }
+
     private fun loadComplete(event: FMLLoadCompleteEvent) {
         ValkyrienSkiesMod.TEST_CHAIR = TEST_CHAIR_REGISTRY.get()
         ValkyrienSkiesMod.TEST_HINGE = TEST_HINGE_REGISTRY.get()
         ValkyrienSkiesMod.TEST_FLAP = TEST_FLAP_REGISTRY.get()
         ValkyrienSkiesMod.TEST_WING = TEST_WING_REGISTRY.get()
+        ValkyrienSkiesMod.TEST_THRUSTER = TEST_THRUSTER_REGISTRY.get()
+        ValkyrienSkiesMod.TEST_ANTIGRAV = TEST_ANTIGRAV_REGISTRY.get()
         ValkyrienSkiesMod.CONNECTION_CHECKER_ITEM = CONNECTION_CHECKER_ITEM_REGISTRY.get()
         ValkyrienSkiesMod.SHIP_CREATOR_ITEM = SHIP_CREATOR_ITEM_REGISTRY.get()
+        ValkyrienSkiesMod.SHIP_REMOVER_ITEM = SHIP_REMOVER_ITEM_REGISTRY.get()
         ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM = SHIP_ASSEMBLER_ITEM_REGISTRY.get()
+        ValkyrienSkiesMod.SHIP_WELDER_ITEM = SHIP_WELDER_ITEM_REGISTRY.get()
         ValkyrienSkiesMod.SHIP_CREATOR_ITEM_SMALLER = SHIP_CREATOR_SMALLER_ITEM_REGISTRY.get()
         ValkyrienSkiesMod.AREA_ASSEMBLER_ITEM = AREA_ASSEMBLER_ITEM_REGISTRY.get()
+        ValkyrienSkiesMod.CLASSIC_AREA_ASSEMBLER_ITEM = CLASSIC_AREA_ASSEMBLER_ITEM_REGISTRY.get()
         ValkyrienSkiesMod.PHYSICS_ENTITY_CREATOR_ITEM = PHYSICS_ENTITY_CREATOR_ITEM_REGISTRY.get()
         ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE = SHIP_MOUNTING_ENTITY_REGISTRY.get()
+        ValkyrienSkiesMod.PHYSICS_ENTITY_TYPE = PHYSICS_ENTITY_TYPE_REGISTRY.get()
         ValkyrienSkiesMod.TEST_HINGE_BLOCK_ENTITY_TYPE = TEST_HINGE_BLOCK_ENTITY_TYPE_REGISTRY.get()
         ValkyrienSkiesMod.BLOCK_POS_COMPONENT = BLOCK_POS_COMPONENT.get()
+        ValkyrienSkiesMod.TEST_THRUSTER_BLOCK_ENTITY_TYPE = TEST_THRUSTER_BLOCK_ENTITY_TYPE_REGISTRY.get()
+        ValkyrienSkiesMod.TEST_ANTIGRAV_BLOCK_ENTITY_TYPE = TEST_ANTIGRAV_BLOCK_ENTITY_TYPE_REGISTRY.get()
     }
 }

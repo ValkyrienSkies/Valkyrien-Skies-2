@@ -222,7 +222,7 @@ open class VSPhysicsEntity(type: EntityType<VSPhysicsEntity>, level: Level) : Mo
         compoundTag.remove("Dimension")
         loadForTeleport(compoundTag)
         ((this as EntityAccessor).portalCooldown) = (entity as EntityAccessor).portalCooldown
-        portalEntrancePos = entity.portalEntrancePos
+        (this as EntityAccessor).portalEntrancePos = (entity as EntityAccessor).portalEntrancePos
     }
 
     companion object {

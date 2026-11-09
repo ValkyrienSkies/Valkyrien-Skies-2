@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.mixin.client.world;
 import static org.valkyrienskies.mod.common.ValkyrienSkiesMod.getVsCore;
 
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +27,7 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.GameType;
@@ -57,10 +59,21 @@ import org.valkyrienskies.mod.client.audio.SimpleSoundInstanceOnShip;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.DimensionParametersResolver;
+import org.valkyrienskies.mod.common.render.light.VsDynamicLight;
+import org.valkyrienskies.mod.common.util.EntityLerper;
+import org.valkyrienskies.mod.common.networking.ClientShipMovement;
 import org.valkyrienskies.mod.util.McMathUtilKt;
 
 @Mixin(ClientLevel.class)
 public abstract class MixinClientLevel implements IShipObjectWorldClientProvider {
+    @Inject(method = "tickNonPassenger", at = @At("HEAD"))
+    private void vs$prepareShipInterpolation(Entity entity, CallbackInfo ci) {
+        EntityLerper.INSTANCE.prepareTick(entity);
+    }
+
+    @Unique
+    private static final int VS_ANIMATE_TICK_GLOBAL_SAMPLE_BUDGET = 1334;
+
     @Unique
     private final RandomSource vsRandom = RandomSource.create();
 
@@ -89,6 +102,15 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
     // Maps chunk pos to number of ticks we have considered unloading the chunk
     @Unique
     private final Long2LongOpenHashMap vs$chunksToUnload = new Long2LongOpenHashMap();
+
+    @Inject(method = "sendBlockUpdated", at = @At("HEAD"))
+    private void vs$invalidateShipGeometry(final BlockPos pos, final BlockState oldState,
+        final BlockState newState, final int flags, final CallbackInfo ci) {
+        if (oldState == newState) return;
+        VsDynamicLight.invalidateLightingRevision();
+        final Ship ship = VSGameUtilsKt.getShipManagingPos((ClientLevel) (Object) this, pos);
+        if (ship != null) VsDynamicLight.invalidateShipEmitters(ship.getId());
+    }
 
     @Inject(method = "<init>", at = @At("TAIL"))
     private void postInit(ClientPacketListener clientPacketListener, ClientLevelData clientLevelData,
@@ -122,6 +144,7 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
 
     @Inject(method = "disconnect", at = @At("TAIL"))
     private void afterDisconnect(final CallbackInfo ci) {
+        ClientShipMovement.INSTANCE.clear();
         getVsCore().getHooks().afterDisconnect();
     }
 
@@ -150,9 +173,24 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
         final Vec3 pos = player.position();
 
         final AABBdc playerCenterBB = new AABBd(pos.x, pos.y, pos.z, pos.x, pos.y, pos.z);
-        final AABBdc shipIntersectBB = AABBdUtilKt.expand(new AABBd(playerCenterBB), 32.0);
+        final AABBd shipIntersectBB = AABBdUtilKt.expand(new AABBd(playerCenterBB), 32.0);
         final double biggerBBProbability = 668.0 / (32.0 * 32.0 * 32.0);
         final double smallerBBProbability = 668.0 / (16.0 * 16.0 * 16.0);
+
+        final List<Ship> nearbyShips = new ArrayList<>();
+        for (final Ship ship : VSGameUtilsKt.getShipsIntersecting(ClientLevel.class.cast(this), shipIntersectBB)) {
+            if (ship.getShipAABB() == null) {
+                continue;
+            }
+            final AABBdc shipWorldAABB = ship.getWorldAABB();
+            if (shipWorldAABB != null && !shipWorldAABB.intersectsAABB(shipIntersectBB)) {
+                continue;
+            }
+            nearbyShips.add(ship);
+        }
+        if (nearbyShips.isEmpty()) {
+            return;
+        }
 
         final AABBd temp0 = new AABBd();
         final AABBi temp1 = new AABBi();
@@ -162,7 +200,12 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
         final AABBi temp5 = new AABBi();
         final AABBd temp6 = new AABBd();
         final AABBd temp7 = new AABBd();
-        for (final Ship ship : VSGameUtilsKt.getShipsIntersecting(ClientLevel.class.cast(this), shipIntersectBB)) {
+
+        int sampleBudget = VS_ANIMATE_TICK_GLOBAL_SAMPLE_BUDGET;
+        final int shipCount = nearbyShips.size();
+        final int startIndex = vsRandom.nextInt(shipCount);
+        for (int shipIdx = 0; shipIdx < shipCount && sampleBudget > 0; shipIdx++) {
+            final Ship ship = nearbyShips.get((startIndex + shipIdx) % shipCount);
             final AABBic shipVoxelAABB = ship.getShipAABB();
             if (shipVoxelAABB == null) {
                 continue;
@@ -186,27 +229,34 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
                 VectorConversionsKt.expand(shipVoxelAABB, 1, temp5).intersection(smallerBBTransformed);
 
             if (biggerBBIntersection.isValid()) {
-                animateTickVS(biggerBBIntersection, biggerBBProbability, holdingBarrierItem);
+                sampleBudget -= animateTickVS(biggerBBIntersection, biggerBBProbability, holdingBarrierItem,
+                    sampleBudget);
             }
-            if (smallerBBIntersection.isValid()) {
-                animateTickVS(smallerBBIntersection, smallerBBProbability, holdingBarrierItem);
+            if (sampleBudget > 0 && smallerBBIntersection.isValid()) {
+                sampleBudget -= animateTickVS(smallerBBIntersection, smallerBBProbability, holdingBarrierItem,
+                    sampleBudget);
             }
         }
     }
 
     @Unique
-    private void animateTickVS(
+    private int animateTickVS(
         final AABBic region,
         final double regionBlockProbability,
-        final boolean holdingBarrierItem
+        final boolean holdingBarrierItem,
+        final int maxBlocksToTick
     ) {
         final int volume = (region.maxX() - region.minX() + 1) * (region.maxY() - region.minY() + 1)
             * (region.maxZ() - region.minZ() + 1);
         final double blocksToTickAsDouble = volume * regionBlockProbability;
         int blocksToTick = (int) Math.floor(blocksToTickAsDouble);
         // Handle the case of partial blocks to tick
-        if (vsRandom.nextDouble() > blocksToTickAsDouble - blocksToTick) {
+        if (vsRandom.nextDouble() < blocksToTickAsDouble - blocksToTick) {
             blocksToTick++;
+        }
+        blocksToTick = Math.min(blocksToTick, maxBlocksToTick);
+        if (blocksToTick <= 0) {
+            return 0;
         }
         final ClientLevel thisAsClientLevel = ClientLevel.class.cast(this);
         final BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos();
@@ -257,6 +307,7 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
                     (double) posZ + 0.5, 0.0, 0.0, 0.0);
             }
         }
+        return blocksToTick;
     }
 
     @Redirect(

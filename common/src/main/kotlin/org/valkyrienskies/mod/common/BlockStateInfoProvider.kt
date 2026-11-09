@@ -19,7 +19,10 @@ import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.api.ships.Wing
 import org.valkyrienskies.core.api.world.connectivity.ConnectionStatus
 import org.valkyrienskies.core.api.world.connectivity.SparseVoxelPosition
+import org.valkyrienskies.core.impl.config.VSCoreConfig
 import org.valkyrienskies.core.internal.world.chunks.VsiBlockType
+import org.valkyrienskies.core.internal.world.VsiServerShipWorld
+import org.valkyrienskies.mod.common.fluid.FractionalFluidSources
 import org.valkyrienskies.mod.common.block.WingBlock
 import org.valkyrienskies.mod.common.config.ConfigType
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
@@ -96,7 +99,7 @@ object BlockStateInfo {
     private var _cache = ThreadLocal.withInitial { Cache() }
     val cache: Cache get() = _cache.get()
 
-    private fun invalidateCache() {
+    internal fun invalidateCache() {
         _cache = ThreadLocal.withInitial { Cache() }
     }
 
@@ -124,14 +127,33 @@ object BlockStateInfo {
     fun onSetBlock(level: Level, blockPos: BlockPos, prevBlockState: BlockState, newBlockState: BlockState) =
         onSetBlock(level, blockPos.x, blockPos.y, blockPos.z, prevBlockState, newBlockState)
 
+    fun onSourceAmountChanged(level: ServerLevel, pos: BlockPos, state: BlockState, amount: Int) {
+        require(amount in 0..255)
+        if (!::SORTED_REGISTRY.isInitialized) return
+        val (mass, type) = get(state) ?: return
+        (level.shipObjectWorld as VsiServerShipWorld).onSetBlock(
+            pos.x, pos.y, pos.z, level.dimensionId, type, type, mass, mass, amount)
+    }
+
     fun onSetBlock(level: Level, x: Int, y: Int, z: Int, prevBlockState: BlockState, newBlockState: BlockState) {
+        var sourceFillAmount: Int? = null
+        if (level is ServerLevel) {
+            FractionalFluidSources.forLevel(level)?.takeIf { it.size != 0 }?.let {
+                val fluid = FractionalFluidSources.fluidName(newBlockState)
+                it.reconcileFluid(level.dimensionId, x, y, z, fluid)
+                if (fluid != null) sourceFillAmount = it.amount(level.dimensionId, x, y, z, fluid)?.toInt()
+            }
+        }
         if (!::SORTED_REGISTRY.isInitialized) return
 
         val shipObjectWorld = level.shipObjectWorld
 
-        val (prevBlockMass, prevBlockType) = get(prevBlockState) ?: return
+        val (prevBlockMass, rawPrevBlockType) = get(prevBlockState) ?: return
 
-        val (newBlockMass, newBlockType) = get(newBlockState) ?: return
+        val (newBlockMass, rawNewBlockType) = get(newBlockState) ?: return
+
+        val prevBlockType = rawPrevBlockType
+        val newBlockType = rawNewBlockType
 
         // region Inject wings
         if (level is ServerLevel) {
@@ -155,10 +177,13 @@ object BlockStateInfo {
         }
         // endregion
 
-        shipObjectWorld.onSetBlock(
-            x, y, z, level.dimensionId, prevBlockType, newBlockType, prevBlockMass,
-            newBlockMass
-        )
+        if (sourceFillAmount != null && shipObjectWorld is VsiServerShipWorld) {
+            shipObjectWorld.onSetBlock(x, y, z, level.dimensionId, prevBlockType, newBlockType,
+                prevBlockMass, newBlockMass, sourceFillAmount!!)
+        } else {
+            shipObjectWorld.onSetBlock(x, y, z, level.dimensionId, prevBlockType, newBlockType,
+                prevBlockMass, newBlockMass)
+        }
 
         fun Set<SparseVoxelPosition>.centerFromVoxelSet() : Vector3dc {
             val center = Vector3d(0.0, 0.0, 0.0)
@@ -177,47 +202,7 @@ object BlockStateInfo {
         }
 
         if (level is ServerLevel) {
-            val loadedShip = level.getLoadedShipManagingPos(x shr 4, z shr 4)
-            if (loadedShip != null) {
-                if (VSGameConfig.SERVER.enablePocketBuoyancy) {
-                    val buoyancyHandler = loadedShip.getAttachment(BuoyancyHandlerAttachment::class.java)
-                    val dimension = loadedShip.chunkClaimDimension
-                    val allComponentsInClaim = level.shipObjectWorld.getAllAirComponentsFromClaim(dimension, loadedShip.chunkClaim)
-                    var newTotal = 0.0
-                    var centerSum = Vector3d(0.0, 0.0, 0.0)
-                    if (allComponentsInClaim.isNotEmpty()) {
-                        for (component in allComponentsInClaim) {
-                            if (level.shipObjectWorld.isIsolatedAir(
-                                    component.x(), component.y(), component.z(), dimension
-                                ) != ConnectionStatus.DISCONNECTED
-                            ) continue
-                            val componentSize = level.shipObjectWorld.getAirComponentSize(
-                                component.x(), component.y(), component.z(), dimension
-                            )
-                            val componentVoxels = level.shipObjectWorld.indexAirComponentVoxels(
-                                component.x(), component.y(), component.z(), dimension
-                            )
-                            val componentCenter = componentVoxels.centerFromVoxelSet()
-
-                            newTotal += componentSize
-                            centerSum.add(
-                                componentCenter.x() * componentSize,
-                                componentCenter.y() * componentSize,
-                                componentCenter.z() * componentSize
-                            )
-                        }
-                    }
-                    if (newTotal > 0.0) {
-                        centerSum.div(newTotal)
-                    } else {
-                        centerSum.set(0.0, 0.0, 0.0)
-                    }
-                    buoyancyHandler?.buoyancyData?.pocketVolumeTotal = newTotal.toDouble()
-                    if (loadedShip.shipAABB?.containsPoint(centerSum.x().toFloat(), centerSum.y().toFloat(), centerSum.z().toFloat()) != false) buoyancyHandler?.buoyancyData?.pocketCenterAverage = centerSum
-                    //println("is center sum contained within ship aabb?: ${loadedShip.shipAABB?.containsPoint(centerSum.x().toFloat(), centerSum.y().toFloat(), centerSum.z().toFloat())}")
-                }
-            }
-            if (ValkyrienSkiesMod.vsCore.hooks.enableConnectivity) {
+            if (VSCoreConfig.SERVER.sp.enableSplitting) {
                 ValkyrienSkiesMod.splitHandler.queueSplit(level, level.getShipManagingPos(x.toDouble(), y.toDouble(), z.toDouble())?.id)
             }
         }
@@ -277,6 +262,7 @@ object BlockStateInfo {
             ship.inertiaData.mass, 0.0
         )
         // Readding all blocks to ship's physics representation (mass, block type)
+        val sources = FractionalFluidSources.forLevel(level)?.takeIf { it.size != 0 }
         BlockPos.betweenClosed(
             aabb.minX(), aabb.minY(), aabb.minZ(), aabb.maxX(), aabb.maxY(),
             aabb.maxZ()
@@ -284,12 +270,15 @@ object BlockStateInfo {
             val state = level.getBlockState(it)
             val (realBlockMass, realBlockType) = get(state) ?: return false
             if (realBlockType != airBlockType) {
-                level.shipObjectWorld.onSetBlock(
-                    it.x, it.y, it.z,
-                    level.dimensionId,
-                    airBlockType, realBlockType,
-                    0.0, realBlockMass
-                )
+                val fluid = if (sources == null) null else FractionalFluidSources.fluidName(state)
+                val amount = fluid?.let { name -> sources!!.amount(level.dimensionId, it.x, it.y, it.z, name)?.toInt() }
+                if (amount == null) {
+                    level.shipObjectWorld.onSetBlock(it.x, it.y, it.z, level.dimensionId,
+                        airBlockType, realBlockType, 0.0, realBlockMass)
+                } else {
+                    level.shipObjectWorld.onSetBlock(it.x, it.y, it.z, level.dimensionId,
+                        airBlockType, realBlockType, 0.0, realBlockMass, amount)
+                }
             }
         }
         ship.isStatic = wasStatic

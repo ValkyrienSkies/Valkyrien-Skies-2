@@ -12,6 +12,7 @@ description = '''
 Moving blocks with physics :)
 '''
 logoFile = "icon.png"
+displayTest = "MATCH_VERSION"
 
 [[mixins]]
 config = "valkyrienskies-common.mixins.json"

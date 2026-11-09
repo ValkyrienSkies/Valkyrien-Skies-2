@@ -8,7 +8,7 @@ import net.minecraft.commands.arguments.coordinates.Vec3Argument
 import net.minecraft.network.chat.Component.translatable
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.world.ServerShipWorld
-import org.valkyrienskies.core.internal.ShipTeleportData
+import org.valkyrienskies.core.api.ships.ShipTeleportData
 import org.valkyrienskies.mod.common.command.arguments.RelativeVector3Argument
 import org.valkyrienskies.mod.common.command.arguments.ShipArgument
 import org.valkyrienskies.mod.common.command.getMessage

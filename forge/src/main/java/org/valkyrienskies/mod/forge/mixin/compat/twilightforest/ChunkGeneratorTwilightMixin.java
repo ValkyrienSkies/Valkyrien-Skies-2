@@ -85,4 +85,18 @@ public class ChunkGeneratorTwilightMixin {
             cir.setReturnValue(null);
         }
     }
+
+    @Inject(method = "createStructures", at = @At("HEAD"), cancellable = true)
+    private void vs$skipCreateStructuresInShipyard(
+        RegistryAccess registryAccess,
+        ChunkGeneratorStructureState chunkGeneratorStructureState,
+        StructureManager structureManager,
+        ChunkAccess chunkAccess,
+        StructureTemplateManager structureTemplateManager,
+        CallbackInfo ci
+    ) {
+        if (VS2ChunkAllocator.INSTANCE.isChunkInShipyardCompanion(chunkAccess.getPos().x, chunkAccess.getPos().z)) {
+            ci.cancel();
+        }
+    }
 }

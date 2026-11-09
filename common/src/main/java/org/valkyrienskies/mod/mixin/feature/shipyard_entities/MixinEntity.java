@@ -5,7 +5,10 @@ import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import java.util.Set;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Entity.RemovalReason;
@@ -14,8 +17,12 @@ import net.minecraft.world.entity.RelativeMovement;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+import org.joml.Quaterniond;
 import org.joml.Vector3d;
 import org.joml.primitives.AABBic;
+import org.slf4j.Logger;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -24,14 +31,20 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.LoadedShip;
+import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager;
 import org.valkyrienskies.mod.common.entity.handling.WorldEntityHandler;
+import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(Entity.class)
 public abstract class MixinEntity {
+    @Shadow
+    @Final
+    private static Logger LOGGER;
 
     @Shadow
     public abstract Level level();
@@ -67,6 +80,9 @@ public abstract class MixinEntity {
     @Unique
     private boolean isModifyingSetPos = false;
 
+    @Unique
+    private Vec3 lastSafePosition = new Vec3(0.0, 0.0, 0.0);
+
     /**
      * @author ewoudje
      * @reason use vs2 entity handler to handle this method
@@ -74,9 +90,31 @@ public abstract class MixinEntity {
     @Inject(method = "setPosRaw", at = @At(value = "HEAD"), cancellable = true)
     private void handlePosSet(final double x, final double y, final double z, final CallbackInfo ci) {
         final Level level = level();
+
+        /*
+        Store the last known valid position of the entity incase something goes
+        wrong and their ship ends up outside valid coordinates, we can then teleport
+        them (and the ship) back to a known safe location.
+        */
+        final BlockPos pos = BlockPos.containing(x, y, z);
+        if (Level.isInSpawnableBounds(pos)) {
+            lastSafePosition = new Vec3(x, y, z);
+        } else {
+            valkyrienskies$resolveInvalidPosition(x, y, z);
+            ci.cancel();
+            return;
+        }
+
         //noinspection ConstantValue
         if (!Player.class.isInstance(this) || level == null || isModifyingSetPos ||
             !VSGameUtilsKt.isBlockInShipyard(level, x, y, z)) {
+            return;
+        }
+
+        // This is a little strange, because technically dragging info has nothing to do with shipyard entities.
+        // But an entity that doesn't want to be dragged probably doesn't want its setPosRaw messed with either.
+        // E.g. the CC: Tweaked turtle fake player
+        if (!((IEntityDraggingInformationProvider) this).vs$shouldDrag()) {
             return;
         }
 
@@ -87,6 +125,66 @@ public abstract class MixinEntity {
             isModifyingSetPos = false;
             ci.cancel();
         }
+    }
+
+    /**
+     * Called when this Entity object tries to set its position to an invalid
+     * coordinate (very far outside of Level bounds). This can only happen
+     * if a ship has yeeted incredibly (and unrecoverably) far.
+     * <br><br>
+     * If we do nothing, something will crash. Usually worldgen.
+     * <br>
+     * So, we restore both the player and their ship to the last known safe location.
+     * <br>
+     * (And yell at them that something went wrong.)
+     */
+    @Unique
+    private void valkyrienskies$resolveInvalidPosition(double x, double y, double z) {
+        final Level level = level();
+        LOGGER.error("[VS] Something went very wrong! Player and ship position have been rolled back. Please report this as a bug");
+        LOGGER.error("newPos: {}", new Vec3(x, y, z));
+        LOGGER.error("safePos: {}", lastSafePosition);
+
+        if (level instanceof ServerLevel sl) {
+            ServerShip ship = VSGameUtilsKt.getShipManagingPos(sl, x, y, z);
+            // Attempt to get the ship a different way
+            if (ship == null) {
+                // lastShipStoodOn is a nullable ShipId (Long?) -- an entity that has never stood on a ship
+                // (e.g. a projectile that flew straight to an out-of-bounds position without ever touching
+                // one) is an entirely ordinary state here, not an edge case, so it must not be unboxed
+                // unconditionally.
+                Long id = ((IEntityDraggingInformationProvider) this).getDraggingInformation().getLastShipStoodOn();
+                if (id != null) {
+                    ship = VSGameUtilsKt.getShipObjectWorld(sl).getAllShips().getById(id);
+                }
+            }
+            if (ship != null) {
+                ValkyrienSkiesMod.getVsCore().teleportShip(
+                    VSGameUtilsKt.getShipObjectWorld(sl),
+                    ship,
+                    ValkyrienSkiesMod.getVsCore().newShipTeleportData(
+                        VectorConversionsMCKt.toJOML(lastSafePosition),
+                        new Quaterniond(),
+                        new Vector3d(),
+                        new Vector3d(),
+                        null,
+                        null,
+                        null
+                    )
+                );
+                ship.setStatic(true);
+            }
+        }
+        //noinspection ConstantValue
+        if (Player.class.isInstance(this)) {
+            ((Player) (Object) this).sendSystemMessage(
+                Component.literal("[VS] Something went very wrong! Your position has been rolled back. Please report this as a bug")
+                    .withStyle(ChatFormatting.RED)
+                    .withStyle(ChatFormatting.BOLD)
+            );
+        }
+
+        this.setPosRaw(lastSafePosition.x, lastSafePosition.y, lastSafePosition.z);
     }
 
     @Unique
@@ -124,8 +222,9 @@ public abstract class MixinEntity {
         isModifyingTeleport = true;
         final Vector3d pos = VSEntityManager.INSTANCE.getHandler(Entity.class.cast(this))
             .getTeleportPos(Entity.class.cast(this), new Vector3d(d, e, f));
-        teleportTo(serverLevel, pos.x, pos.y, pos.z, set, g, h);
+        final boolean result = teleportTo(serverLevel, pos.x, pos.y, pos.z, set, g, h);
         isModifyingTeleport = false;
+        ci.setReturnValue(result);
     }
 
     /**

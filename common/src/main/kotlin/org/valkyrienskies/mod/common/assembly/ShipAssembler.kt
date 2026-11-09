@@ -1,21 +1,31 @@
 package org.valkyrienskies.mod.common.assembly
 
+import com.google.common.collect.Lists
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.util.RandomSource
 import net.minecraft.world.Clearable
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
+import net.minecraft.world.level.LevelAccessor
 import net.minecraft.world.level.LevelReader
 import net.minecraft.world.level.ServerLevelAccessor
-import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.Block
-import net.minecraft.world.level.block.entity.BlockEntity
+import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.LiquidBlockContainer
+import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.chunk.status.ChunkStatus
+import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessor
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessorType
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate
+import net.minecraft.world.phys.shapes.BitSetDiscreteVoxelShape
+import net.minecraft.world.phys.shapes.DiscreteVoxelShape
 import org.joml.Quaterniond
 import org.joml.RoundingMode
 import org.joml.Vector3d
@@ -26,8 +36,9 @@ import org.valkyrienskies.core.api.ships.properties.ShipId
 import org.valkyrienskies.core.api.util.GameTickOnly
 import org.valkyrienskies.core.impl.config.VSCoreConfig
 import org.valkyrienskies.core.internal.ships.VsiServerShip
-import org.valkyrienskies.mod.common.config.VSGameConfig
+import org.valkyrienskies.mod.common.assembly.ShipAssembler.assembleToShipFull
 import org.valkyrienskies.mod.common.dimensionId
+import org.valkyrienskies.mod.common.fluid.FractionalFluidLifecycle
 import org.valkyrienskies.mod.common.executeIf
 import org.valkyrienskies.mod.common.forEach
 import org.valkyrienskies.mod.common.getLoadedShipManagingPos
@@ -44,10 +55,19 @@ import org.valkyrienskies.mod.common.util.SplittingDisablerAttachment
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toJOMLD
 import org.valkyrienskies.mod.common.vsCore
+import org.valkyrienskies.mod.common.world.VSTicketType
 import org.valkyrienskies.mod.common.yRange
+import org.valkyrienskies.mod.mixin.accessors.server.level.ServerChunkCacheAccessor
 import org.valkyrienskies.mod.util.AIR
 import org.valkyrienskies.mod.util.StructureTemplateFillFromVoxelSet
 import org.valkyrienskies.mod.util.logger
+import org.valkyrienskies.mod.util.relocateBlock
+import org.valkyrienskies.mod.util.updateBlock
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.locks.LockSupport
+import kotlin.Int.Companion
+import kotlin.math.max
+import kotlin.math.min
 
 object ShipAssembler {
 
@@ -99,6 +119,14 @@ object ShipAssembler {
 
     data class AssembleContext(val ship: ServerShip, val fromCenter: Vector3d, val toCenter: Vector3d)
 
+    private fun splitVelocity(fromShip: ServerShip?, fromCenter: Vector3d, posOffset: Vector3d): Vector3d {
+        if (fromShip == null) return Vector3d()
+        val newWorldCom = fromShip.shipToWorld.transformPosition(Vector3d(fromCenter)).add(posOffset)
+        val parentCom = fromShip.shipToWorld.transformPosition(Vector3d(fromShip.inertiaData.centerOfMass))
+        val r = newWorldCom.sub(parentCom)
+        return Vector3d(fromShip.velocity).add(Vector3d(fromShip.angularVelocity).cross(r))
+    }
+
     @JvmStatic
     @OptIn(GameTickOnly::class)
     fun assembleToShipFull(level: ServerLevel, blocks: Set<BlockPos>, scale: Double = 1.0): AssembleContext {
@@ -124,6 +152,7 @@ object ShipAssembler {
 
         val toShip = level.shipObjectWorld.createNewShipAtBlock(Vector3i(worldOldCenter, RoundingMode.FLOOR), false, scale * oldScale, level.dimensionId)
         toShip.isStatic = fromShip == null || fromShip.isStatic
+        org.valkyrienskies.mod.common.debug.ShipDebugService.markCreated(level.server, toShip, fromShip)
 
         // Mark as recently spawned immediately so player movement packets processed
         // during chunk loading don't treat this new ship as "unloaded".
@@ -147,7 +176,7 @@ object ShipAssembler {
                 .let { fromShip?.shipToWorld?.transformDirection(it) ?: it }
 
         (toShip as VsiServerShip).unsafeSetKinematics(vsCore.newBodyKinematics(
-            fromShip?.velocity ?: Vector3d(),
+            splitVelocity(fromShip, fromCenter, posOffset),
             fromShip?.angularVelocity ?: Vector3d(),
             vsCore.newBodyTransform(
                 (fromShip?.shipToWorld?.transformPosition(Vector3d(fromCenter)) ?: fromCenter).add(posOffset),
@@ -159,6 +188,24 @@ object ShipAssembler {
         toShip.isStatic = false
 
         return AssembleContext(toShip, fromCenter, toCenter)
+    }
+
+    @OptIn(GameTickOnly::class)
+    internal fun transferRetainedWater(level: ServerLevel, fromShip: ServerShip?, toShip: ServerShip?,
+                                      blocks: Set<BlockPos>, sourceCorner: BlockPos, destinationCorner: BlockPos) {
+        // World source blocks carry their own liquid state through the ordinary block move.
+        val source = fromShip ?: return
+        val world = level.shipObjectWorld
+        val target = toShip?.id ?: checkNotNull(world.dimensionToGroundBodyIdImmutable[level.dimensionId])
+        val coordinates = IntArray(Math.multiplyExact(blocks.size, 3))
+        var index = 0
+        for (block in blocks) {
+            coordinates[index++] = block.x; coordinates[index++] = block.y; coordinates[index++] = block.z
+        }
+        world.moveFluidWithBlocks(source.id, target, level.dimensionId, coordinates,
+            Vector3i(Math.subtractExact(destinationCorner.x, sourceCorner.x),
+                Math.subtractExact(destinationCorner.y, sourceCorner.y),
+                Math.subtractExact(destinationCorner.z, sourceCorner.z)))
     }
 
     data class MoveContext(val wasSuccessful: Boolean, val fromCenter: Vector3d, val toCenter: Vector3d)
@@ -189,6 +236,8 @@ object ShipAssembler {
             .div(2.0)
         val fromCenter = offset.get(Vector3d()).add(oldMin)
 
+        val cornerOfShip = Vector3d(toCenter).sub(offset).ceil().let { BlockPos(it.x.toInt(), it.y.toInt(), it.z.toInt()) }
+        FractionalFluidLifecycle.beginMove(level, blocks, fromShip, toShip, minStructurePos, cornerOfShip, !removeOriginal).use { fluidTransfer ->
         var wasSplittingEnabled = true
         if (fromShip is LoadedServerShip) {
             val splittingDisabler = fromShip.getAttachment(SplittingDisablerAttachment::class.java)
@@ -236,25 +285,37 @@ object ShipAssembler {
 
         // ========== Removing Old Blocks
         if (removeOriginal) {
-            // Single-pass removal: clear block entities and set to air in one pass.
-            // Use UPDATE_KNOWN_SHAPE to skip expensive neighbor shape updates during bulk removal,
-            // and UPDATE_SUPPRESS_DROPS to prevent item drops. We use flag 2 (UPDATE_CLIENTS) to
-            // send changes to clients. Skip the old two-pass approach (barrier then remove) which
-            // doubled the work and triggered expensive recursive neighbor updates per block.
-            val flags = Block.UPDATE_CLIENTS or Block.UPDATE_KNOWN_SHAPE or Block.UPDATE_SUPPRESS_DROPS or Block.UPDATE_MOVE_BY_PISTON
             for (pos in blocks) {
                 level.getBlockEntity(pos)?.let {
                     if (it is Clearable) {
                         Clearable.tryClear(it)
                     } else {
+                        // Clear all NBT if it doesn't implement IClearable
                         it.loadWithComponents(CompoundTag(), level.registryAccess())
                     }
+                    // Without this, copycats still drop their items
                     level.removeBlockEntity(pos)
                 }
-                level.setBlock(pos, Blocks.AIR.defaultBlockState(), flags)
+
+                level.setBlock(pos, Blocks.BARRIER.defaultBlockState(), Block.UPDATE_CLIENTS)
             }
-            // Batch light updates after all blocks are removed
             for (pos in blocks) {
+                val block = level.getBlockState(pos)
+                level.removeBlock(pos, false)
+                // 75 = flag 1 (block update) & flag 2 (send to clients) + flag 8 (force rerenders)
+                val flags = 11 or Block.UPDATE_MOVE_BY_PISTON or Block.UPDATE_SUPPRESS_DROPS
+
+                //updateNeighbourShapes recurses through nearby blocks, recursionLeft is the limit
+                val recursionLeft = 511
+
+                level.setBlocksDirty(pos, block, AIR)
+                level.sendBlockUpdated(pos, block, AIR, flags)
+                level.blockUpdated(pos, AIR.block)
+                // This handles the update for neighboring blocks in worldspace
+                AIR.updateIndirectNeighbourShapes(level, pos, flags, recursionLeft - 1)
+                AIR.updateNeighbourShapes(level, pos, flags, recursionLeft)
+                AIR.updateIndirectNeighbourShapes(level, pos, flags, recursionLeft)
+                //This updates lighting for blocks in worldspace
                 level.chunkSource.lightEngine.checkBlock(pos)
             }
         }
@@ -262,15 +323,6 @@ object ShipAssembler {
 
         //structure template builds from a corner, so offset center of plot so that structure's center and center of
         //plot roughly align
-        val cornerOfShip = Vector3d(toCenter)
-            .sub(offset)
-            .ceil()
-            .let { BlockPos(
-                it.x.toInt(),
-                it.y.toInt(),
-                it.z.toInt(),
-            ) }
-
         val centerOfShip = cornerOfShip.toJOMLD().add(offset)
 
         val structureSettings = StructurePlaceSettings().addProcessor(
@@ -283,7 +335,14 @@ object ShipAssembler {
         structureSettings.rotationPivot = cornerOfShip
 
         VSAssemblyEvents.onPasteBeforeBlocksAreLoaded.emit(VSAssemblyEvents.OnPasteBeforeBlocksAreLoaded(level, fromShip, toShip, Pair(fromCenter, centerOfShip), eventData))
-        template.placeInWorld(level, cornerOfShip, cornerOfShip, structureSettings, level.random, Block.UPDATE_CLIENTS)
+        if (template.placeInWorld(level, cornerOfShip, cornerOfShip, structureSettings, level.random, Block.UPDATE_CLIENTS)) {
+            fluidTransfer?.complete()
+        }
+
+        if (removeOriginal) {
+            transferRetainedWater(level, fromShip, toShip, blocks, minStructurePos, cornerOfShip)
+            StructureMetadataRelocator.relocateStructureMetadata(level, blocks, minStructurePos, maxStructurePos, cornerOfShip)
+        }
 
         // Compute correct sky light for the destination blocks using column-based shadows.
         val moveDestPositions = blocks.map { srcPos ->
@@ -299,9 +358,9 @@ object ShipAssembler {
         level.server.executeIf(
             // This condition will return true if all modified chunks have been both loaded AND
             // chunk update packets were sent to players
-            { chunkPoses.all(level::isChunkLoadedForVS) || level.server.tickCount - timeAtExecution > 60 }
+            { chunkPoses.all(level::isChunkLoadedForVS) || level.server.tickCount - timeAtExecution > 20 }
         ) {
-            if (level.server.tickCount - timeAtExecution > 60) {
+            if (level.server.tickCount - timeAtExecution > 20) {
                 ASSEMBLY_LOGGER.warn("Timed out waiting for chunks to start ticking after assembly! Forcibly resuming...")
                 ASSEMBLY_LOGGER.warn("All chunks involved in assembly: $chunkPoses")
                 ASSEMBLY_LOGGER.warn("Chunks that were not loaded: ${chunkPoses.filterNot { level.isChunkLoadedForVS(it) }}")
@@ -323,7 +382,7 @@ object ShipAssembler {
                         val sectionPos = Vector3i(pos.x, worldChunk.getSectionYFromSectionIndex(sectionY), pos.z)
                         val section = chunkSections[sectionY] ?: continue
                         if (section.hasOnlyAir()) continue
-                        val update = section.toDenseVoxelUpdate(sectionPos)
+                        val update = section.toDenseVoxelUpdate(sectionPos, level)
                         level.shipObjectWorld.forceUpdateConnectivityChunk(
                             level.dimensionId,
                             sectionPos.x,
@@ -344,6 +403,7 @@ object ShipAssembler {
         }
 
         return MoveContext(true, fromCenter, centerOfShip)
+        }
     }
 
     @JvmStatic
@@ -409,6 +469,7 @@ object ShipAssembler {
                 Vector3i(worldOldCenter, RoundingMode.FLOOR), false, scale * oldScale, level.dimensionId
             )
             toShip.isStatic = fromShip == null || fromShip.isStatic
+            org.valkyrienskies.mod.common.debug.ShipDebugService.markCreated(level.server, toShip, fromShip)
 
             // Mark ship as recently spawned immediately so that player movement packets
             // processed during managedBlock (in the preload phase) don't treat this new
@@ -452,29 +513,61 @@ object ShipAssembler {
         }
 
         // Pre-load all destination chunks.
-        // Uses addRegionTicket to schedule all chunk loads concurrently, then runs the
-        // distance manager + main thread tasks until all chunks reach FULL status.
-        // This is much faster than calling level.getChunk() 1000 times sequentially,
-        // because the chunk pipeline processes multiple chunks on its worker thread pool.
         val preloadStart = System.currentTimeMillis()
         val chunkSource = level.chunkSource
 
-        // Add tickets for all dest chunks first (non-blocking, just queues them)
-        for (cp in allDestChunkPoses) {
-            chunkSource.addRegionTicket(
-                org.valkyrienskies.mod.common.world.VSTicketType.SHIP_CHUNK, cp, 0, cp
-            )
+        BatchAssemblyFastPath.registerAll(allDestChunkPoses)
+        try {
+            for (cp in allDestChunkPoses) {
+                chunkSource.addRegionTicket(
+                    VSTicketType.SHIP_CHUNK, cp, 0, cp
+                )
+            }
+
+            val chunkSourceAccessor = chunkSource as
+                ServerChunkCacheAccessor
+            chunkSourceAccessor.callRunDistanceManagerUpdates()
+
+            val preloadFutures = allDestChunkPoses.map { cp ->
+                chunkSourceAccessor.callGetChunkFutureMainThread(
+                    cp.x, cp.z, ChunkStatus.FULL, false
+                )
+            }
+
+            val allChunksLoaded =
+                CompletableFuture.allOf(*preloadFutures.toTypedArray())
+            val preloadDeadline = System.currentTimeMillis() + 60_000L
+            while (!allChunksLoaded.isDone) {
+                if (!chunkSource.pollTask()) {
+                    if (System.currentTimeMillis() > preloadDeadline) {
+                        ASSEMBLY_LOGGER.error(
+                            "Batch assembly preload timed out after 60s with " +
+                                "${preloadFutures.count { !it.isDone }}/${preloadFutures.size}" +
+                                " dest chunks not FULL! Proceeding to the verification pass."
+                        )
+                        break
+                    }
+                    LockSupport.parkNanos(100_000L)
+                }
+            }
+        } finally {
+            BatchAssemblyFastPath.unregisterAll(allDestChunkPoses)
         }
 
-        // Process tickets and wait for all chunks to reach FULL status.
-        // runDistanceManagerUpdates processes the tickets we just added, creating
-        // ChunkHolders and starting their pipelines. Then getChunk blocks on each
-        // one — but since all pipelines are already running concurrently on the worker
-        // thread pool, most will complete quickly.
-        (chunkSource as org.valkyrienskies.mod.mixin.accessors.server.level.ServerChunkCacheAccessor)
-            .callRunDistanceManagerUpdates()
         for (cp in allDestChunkPoses) {
-            level.getChunk(cp.x, cp.z)
+            if (chunkSource.getChunkNow(cp.x, cp.z) == null) {
+                ASSEMBLY_LOGGER.error(
+                    "Batch assembly preload: dest chunk $cp failed to reach FULL status via " +
+                        "the fast path, falling back to a blocking vanilla load"
+                )
+                level.getChunk(cp.x, cp.z)
+            }
+        }
+
+        val preloadLightEngine = chunkSource.lightEngine
+        for (cp in allDestChunkPoses) {
+            preloadLightEngine.setLightEnabled(cp, true)
+            chunkSource.getChunkNow(cp.x, cp.z)?.setLightCorrect(true)
         }
 
         val preloadMs = System.currentTimeMillis() - preloadStart
@@ -496,6 +589,11 @@ object ShipAssembler {
 
             if (filteredBlocksWithState.isEmpty()) {
                 level.shipObjectWorld.deleteShip(pending.toShip)
+                for (cp in pending.destChunks) {
+                    level.chunkSource.removeRegionTicket(
+                        VSTicketType.SHIP_CHUNK, cp, 0, cp
+                    )
+                }
                 continue
             }
 
@@ -516,124 +614,126 @@ object ShipAssembler {
                 splittingDisabler?.disableSplitting()
             }
 
-            VSAssemblyEvents.beforeCopy.emit(VSAssemblyEvents.BeforeCopy(level, oldMin, oldMax, fromCenter, pending.fromShip, filteredBlocks, eventData))
+            try {
+                VSAssemblyEvents.beforeCopy.emit(VSAssemblyEvents.BeforeCopy(level, oldMin, oldMax, fromCenter, pending.fromShip, filteredBlocks, eventData))
 
-            // Place blocks at destination
-            val cornerOfShip = Vector3d(pending.toCenter)
-                .sub(offset)
-                .ceil()
-                .let { BlockPos(it.x.toInt(), it.y.toInt(), it.z.toInt()) }
-            val centerOfShip = cornerOfShip.toJOMLD().add(offset)
+                val cornerOfShip = Vector3d(pending.toCenter)
+                    .sub(offset)
+                    .ceil()
+                    .let { BlockPos(it.x.toInt(), it.y.toInt(), it.z.toInt()) }
+                val centerOfShip = cornerOfShip.toJOMLD().add(offset)
 
-            val removeFlags = Block.UPDATE_CLIENTS or Block.UPDATE_KNOWN_SHAPE or Block.UPDATE_SUPPRESS_DROPS or Block.UPDATE_MOVE_BY_PISTON
+                val removeFlags = Block.UPDATE_CLIENTS or Block.UPDATE_KNOWN_SHAPE or Block.UPDATE_SUPPRESS_DROPS or Block.UPDATE_MOVE_BY_PISTON
 
-            // Fast path for small block sets (<=8 blocks): directly copy block state
-            // instead of going through StructureTemplate (which serializes to NBT,
-            // creates a template, then deserializes — ~40ms overhead per ship).
-            // For 125 1-block ships, this saves ~5 seconds total.
-            if (filteredBlocksWithState.size <= 8) {
-                val destPositions = ArrayList<BlockPos>(filteredBlocksWithState.size)
-                for ((srcPos, state) in filteredBlocksWithState) {
-                    val beTag = level.getBlockEntity(srcPos)?.saveWithFullMetadata(level.registryAccess())
-                    val dx = srcPos.x - pending.minB.x
-                    val dy = srcPos.y - pending.minB.y
-                    val dz = srcPos.z - pending.minB.z
-                    val destPos = BlockPos(cornerOfShip.x + dx, cornerOfShip.y + dy, cornerOfShip.z + dz)
-                    destPositions.add(destPos)
+                FractionalFluidLifecycle.beginMove(level, filteredBlocks, pending.fromShip, pending.toShip,
+                    pending.minB, cornerOfShip, false).use { fluidTransfer ->
+                if (filteredBlocksWithState.size <= 8) {
+                    val destPositions = ArrayList<BlockPos>(filteredBlocksWithState.size)
+                    for ((srcPos, state) in filteredBlocksWithState) {
+                        val beTag = level.getBlockEntity(srcPos)?.saveWithFullMetadata(level.registryAccess())
+                        val dx = srcPos.x - pending.minB.x
+                        val dy = srcPos.y - pending.minB.y
+                        val dz = srcPos.z - pending.minB.z
+                        val destPos = BlockPos(cornerOfShip.x + dx, cornerOfShip.y + dy, cornerOfShip.z + dz)
+                        destPositions.add(destPos)
 
-                    // Remove source — use chunk-level setBlockState to bypass all MC
-                    // neighbor update machinery. Skip sendBlockUpdated since source chunks
-                    // are stalled by PacketStopChunkUpdates.
-                    level.getBlockEntity(srcPos)?.let {
-                        if (it is Clearable) Clearable.tryClear(it) else it.loadWithComponents(CompoundTag(), level.registryAccess())
-                        level.removeBlockEntity(srcPos)
+                        level.getBlockEntity(srcPos)?.let {
+                            if (it is Clearable) Clearable.tryClear(it) else it.loadWithComponents(CompoundTag(), level.registryAccess())
+                            level.removeBlockEntity(srcPos)
+                        }
+                        val srcChunk = level.getChunkAt(srcPos)
+                        srcChunk.setBlockState(srcPos, Blocks.AIR.defaultBlockState(), false)
+
+                        val destChunk = level.getChunkAt(destPos)
+                        destChunk.setBlockState(destPos, state, false)
+                        beTag?.let { tag ->
+                            tag.putInt("x", destPos.x)
+                            tag.putInt("y", destPos.y)
+                            tag.putInt("z", destPos.z)
+                            level.getBlockEntity(destPos)?.loadWithComponents(tag, level.registryAccess())
+                        }
+
+                        updateBlock(level, srcPos, destPos, state)
                     }
-                    val srcChunk = level.getChunkAt(srcPos)
-                    srcChunk.setBlockState(srcPos, Blocks.AIR.defaultBlockState(), false)
 
-                    // Place at destination using chunk-level setBlockState directly.
-                    // This bypasses Level.setBlock's sendBlockUpdated + onBlockStateChange
-                    // which are unnecessary while dest chunks are stalled.
-                    // LevelChunk.setBlockState handles block entity creation internally.
-                    val destChunk = level.getChunkAt(destPos)
-                    destChunk.setBlockState(destPos, state, false)
-                    beTag?.let { tag ->
-                        tag.putInt("x", destPos.x)
-                        tag.putInt("y", destPos.y)
-                        tag.putInt("z", destPos.z)
-                        level.getBlockEntity(destPos)?.loadWithComponents(tag, level.registryAccess())
-                    }
-                }
-
-                initSkyLightForShip(level, destPositions)
-            } else {
-                // Full StructureTemplate path for larger block sets
-                val template = StructureTemplate()
-                template as StructureTemplateFillFromVoxelSet
-                template.`vs$fillFromVoxelSet`(
-                    level, filteredBlocks,
-                    pending.fromShip?.let { listOf(it) } ?: emptyList(),
-                    SingleItemMap(fromId, fromCenter, Vector3d()),
-                    pending.minB, pending.maxB
-                )
-
-                for (pos in filteredBlocks) {
-                    level.getBlockEntity(pos)?.let {
-                        if (it is Clearable) Clearable.tryClear(it) else it.loadWithComponents(CompoundTag(), level.registryAccess())
-                        level.removeBlockEntity(pos)
-                    }
-                    level.setBlock(pos, Blocks.AIR.defaultBlockState(), removeFlags)
-                }
-                for (pos in filteredBlocks) {
-                    level.chunkSource.lightEngine.checkBlock(pos)
-                }
-
-                val structureSettings = StructurePlaceSettings().addProcessor(
-                    ICopyableProcessor(
-                        SingleItemMap(fromId, pending.toShip.id, -1L) { it },
-                        SingleItemMap(fromId, Pair(fromCenter, Vector3d(centerOfShip)), Pair(Vector3d(), Vector3d()))
+                    initSkyLightForShip(level, destPositions)
+                    StructureMetadataRelocator.relocateStructureMetadata(level, filteredBlocks, pending.minB, pending.maxB, cornerOfShip)
+                } else {
+                    // Full StructureTemplate path for larger block sets
+                    val template = StructureTemplate()
+                    template as StructureTemplateFillFromVoxelSet
+                    template.`vs$fillFromVoxelSet`(
+                        level, filteredBlocks,
+                        pending.fromShip?.let { listOf(it) } ?: emptyList(),
+                        SingleItemMap(fromId, fromCenter, Vector3d()),
+                        pending.minB, pending.maxB
                     )
-                )
-                structureSettings.rotationPivot = cornerOfShip
 
-                VSAssemblyEvents.onPasteBeforeBlocksAreLoaded.emit(
-                    VSAssemblyEvents.OnPasteBeforeBlocksAreLoaded(level, pending.fromShip, pending.toShip, Pair(fromCenter, centerOfShip), eventData)
-                )
-                template.placeInWorld(level, cornerOfShip, cornerOfShip, structureSettings, level.random, Block.UPDATE_CLIENTS)
+                    for (pos in filteredBlocks) {
+                        level.getBlockEntity(pos)?.let {
+                            if (it is Clearable) Clearable.tryClear(it) else it.loadWithComponents(CompoundTag(), level.registryAccess())
+                            level.removeBlockEntity(pos)
+                        }
+                        level.setBlock(pos, Blocks.AIR.defaultBlockState(), removeFlags)
+                    }
+                    for (pos in filteredBlocks) {
+                        level.chunkSource.lightEngine.checkBlock(pos)
+                    }
 
-                // Compute correct sky light for the ship using column-based shadows.
-                val destPositions2 = filteredBlocks.map { srcPos ->
-                    val dx = srcPos.x - pending.minB.x
-                    val dy = srcPos.y - pending.minB.y
-                    val dz = srcPos.z - pending.minB.z
-                    BlockPos(cornerOfShip.x + dx, cornerOfShip.y + dy, cornerOfShip.z + dz)
+                    val structureSettings = StructurePlaceSettings().addProcessor(
+                        ICopyableProcessor(
+                            SingleItemMap(fromId, pending.toShip.id, -1L) { it },
+                            SingleItemMap(fromId, Pair(fromCenter, Vector3d(centerOfShip)), Pair(Vector3d(), Vector3d()))
+                        )
+                    )
+                    structureSettings.rotationPivot = cornerOfShip
+
+                    VSAssemblyEvents.onPasteBeforeBlocksAreLoaded.emit(
+                        VSAssemblyEvents.OnPasteBeforeBlocksAreLoaded(level, pending.fromShip, pending.toShip, Pair(fromCenter, centerOfShip), eventData)
+                    )
+                    template.placeInWorld(level, cornerOfShip, cornerOfShip, structureSettings, level.random, Block.UPDATE_CLIENTS)
+
+                    StructureMetadataRelocator.relocateStructureMetadata(level, filteredBlocks, pending.minB, pending.maxB, cornerOfShip)
+
+                    // Compute correct sky light for the ship using column-based shadows.
+                    val destPositions2 = filteredBlocks.map { srcPos ->
+                        val dx = srcPos.x - pending.minB.x
+                        val dy = srcPos.y - pending.minB.y
+                        val dz = srcPos.z - pending.minB.z
+                        BlockPos(cornerOfShip.x + dx, cornerOfShip.y + dy, cornerOfShip.z + dz)
+                    }
+                    initSkyLightForShip(level, destPositions2)
                 }
-                initSkyLightForShip(level, destPositions2)
-            }
 
-            // Set kinematics
-            val posOffset = Vector3d(pending.toShip.inertiaData.centerOfMass)
-                .sub(Vector3d(centerOfShip))
-                .let { pending.fromShip?.shipToWorld?.transformDirection(it) ?: it }
+                // Both the small direct-move and template paths have moved this exact selection.
+                fluidTransfer?.complete()
+                transferRetainedWater(level, pending.fromShip, pending.toShip,
+                    filteredBlocks, pending.minB, cornerOfShip)
+                }
 
-            val oldScale = pending.fromShip?.transform?.scaling?.x() ?: 1.0
-            (pending.toShip as VsiServerShip).unsafeSetKinematics(vsCore.newBodyKinematics(
-                pending.fromShip?.velocity ?: Vector3d(),
-                pending.fromShip?.angularVelocity ?: Vector3d(),
-                vsCore.newBodyTransform(
-                    (pending.fromShip?.shipToWorld?.transformPosition(Vector3d(fromCenter)) ?: fromCenter).add(posOffset),
-                    pending.fromShip?.transform?.shipToWorldRotation ?: Quaterniond(),
-                    Vector3d(scale * oldScale, scale * oldScale, scale * oldScale),
-                    centerOfShip
-                )
-            ))
-            pending.toShip.isStatic = false
+                // Set kinematics
+                val posOffset = Vector3d(pending.toShip.inertiaData.centerOfMass)
+                    .sub(Vector3d(centerOfShip))
+                    .let { pending.fromShip?.shipToWorld?.transformDirection(it) ?: it }
 
-            results.add(AssembleContext(pending.toShip, fromCenter, centerOfShip))
+                val oldScale = pending.fromShip?.transform?.scaling?.x() ?: 1.0
+                (pending.toShip as VsiServerShip).unsafeSetKinematics(vsCore.newBodyKinematics(
+                    splitVelocity(pending.fromShip, pending.fromCenter, posOffset),
+                    pending.fromShip?.angularVelocity ?: Vector3d(),
+                    vsCore.newBodyTransform(
+                        (pending.fromShip?.shipToWorld?.transformPosition(Vector3d(fromCenter)) ?: fromCenter).add(posOffset),
+                        pending.fromShip?.transform?.shipToWorldRotation ?: Quaterniond(),
+                        Vector3d(scale * oldScale, scale * oldScale, scale * oldScale),
+                        centerOfShip
+                    )
+                ))
+                pending.toShip.isStatic = false
 
-            // Re-enable splitting on source
-            if (pending.fromShip is LoadedServerShip && wasSplittingEnabled) {
-                pending.fromShip.getAttachment(SplittingDisablerAttachment::class.java)?.enableSplitting()
+                results.add(AssembleContext(pending.toShip, fromCenter, centerOfShip))
+            } finally {
+                if (pending.fromShip is LoadedServerShip && wasSplittingEnabled) {
+                    pending.fromShip.getAttachment(SplittingDisablerAttachment::class.java)?.enableSplitting()
+                }
             }
         }
 
@@ -666,7 +766,7 @@ object ShipAssembler {
                         val sectionPos = Vector3i(pos.x, worldChunk.getSectionYFromSectionIndex(sectionY), pos.z)
                         val section = chunkSections[sectionY] ?: continue
                         if (section.hasOnlyAir()) continue
-                        val update = section.toDenseVoxelUpdate(sectionPos)
+                        val update = section.toDenseVoxelUpdate(sectionPos, level)
                         level.shipObjectWorld.forceUpdateConnectivityChunk(
                             level.dimensionId, sectionPos.x, sectionPos.y, sectionPos.z, update
                         )
@@ -688,6 +788,7 @@ object ShipAssembler {
     }
 
     fun deleteShip(level: ServerLevel, ship: ServerShip, deleteBlocks: Boolean, dropBlocks: Boolean): Int {
+        FractionalFluidLifecycle.releaseShip(level, ship)
         if (ship is LoadedServerShip) {
             val splittingDisabler = ship.getAttachment(SplittingDisablerAttachment::class.java)
             splittingDisabler?.disableSplitting()

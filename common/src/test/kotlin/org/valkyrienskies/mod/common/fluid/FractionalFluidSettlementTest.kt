@@ -1,0 +1,402 @@
+package org.valkyrienskies.mod.common.fluid
+
+import io.mockk.*
+import net.minecraft.SharedConstants
+import net.minecraft.core.BlockPos
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.nbt.Tag
+import net.minecraft.server.Bootstrap
+import net.minecraft.server.MinecraftServer
+import net.minecraft.server.level.ServerLevel
+import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.block.state.properties.BlockStateProperties
+import net.minecraft.world.level.material.Fluids
+import org.junit.jupiter.api.*
+import org.junit.jupiter.api.Assertions.*
+import org.valkyrienskies.core.internal.physics.VsiFluidOutflow
+import org.valkyrienskies.core.internal.physics.VsiFluidOutflowResult
+import org.valkyrienskies.mod.common.BlockStateInfo
+import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider
+import org.valkyrienskies.mod.common.config.MassDatapackResolver
+import org.valkyrienskies.mod.common.config.VSGameConfig
+import org.valkyrienskies.mod.common.dimensionId
+import java.math.BigDecimal
+
+class FractionalFluidSettlementTest {
+    companion object {
+        private const val DIMENSION = "minecraft:overworld"
+        private const val WATER = "minecraft:water"
+        @JvmStatic @BeforeAll fun bootstrap() { SharedConstants.tryDetectVersion(); Bootstrap.bootStrap() }
+    }
+
+    private val level = mockk<ServerLevel>()
+    private val server = mockk<MinecraftServer>(moreInterfaces = arrayOf(IShipObjectWorldServerProvider::class))
+    private val pos = BlockPos(0, 1, 0)
+    private val blocks = mutableMapOf<BlockPos, BlockState>()
+    private var sources = FractionalFluidSources()
+    private var manager = WorldFluidOutflowManager(8, 8)
+    private val levels get() = mapOf(DIMENSION to level)
+    private var writes = 0
+
+    @BeforeEach fun setup() {
+        mockkObject(MassDatapackResolver, BlockStateInfo)
+        mockkStatic("org.valkyrienskies.mod.common.VSGameUtilsKt")
+        every { MassDatapackResolver.getFlowingFluid(17) } returns Fluids.WATER
+        every { MassDatapackResolver.getFlowingFluid(18) } returns Fluids.LAVA
+        every { level.server } returns server
+        every { level.dimensionId } returns DIMENSION
+        every { (server as IShipObjectWorldServerProvider).fractionalFluidSources } answers { sources }
+        every { (server as IShipObjectWorldServerProvider).shipObjectWorld } returns null
+        every { level.minBuildHeight } returns -64
+        every { level.maxBuildHeight } returns 320
+        every { level.hasChunkAt(any()) } returns true
+        every { level.players() } returns emptyList()
+        every { level.getBlockState(any()) } answers {
+            blocks[firstArg<BlockPos>()] ?: if (firstArg<BlockPos>().y <= 0) Blocks.STONE.defaultBlockState() else Blocks.AIR.defaultBlockState()
+        }
+        ordinaryWrites()
+        every { level.scheduleTick(any<BlockPos>(), any<net.minecraft.world.level.material.Fluid>(), any<Int>()) } just Runs
+        every { BlockStateInfo.onSourceAmountChanged(any(), any(), any(), any()) } just Runs
+    }
+
+    @AfterEach fun cleanup() { unmockkAll() }
+
+    private fun ordinaryWrites() {
+        every { level.setBlock(any(), any(), any()) } answers {
+            writes++
+            blocks[firstArg<BlockPos>().immutable()] = secondArg()
+            true
+        }
+    }
+
+    private fun enqueue(volume: Double, x: Double = 0.5, y: Double = 1.5, vx: Double = 0.0, fluid: Int = 17) {
+        val event = VsiFluidOutflow(1, 1, 1, DIMENSION, 7, x, y, 0.5,
+            0.0, -1.0, 0.0, vx, 0.0, 0.0, fluid, 255).copy(worldVolume = volume)
+        assertEquals(VsiFluidOutflowResult.APPLIED, manager.enqueue(level, event))
+    }
+
+    private fun amount(position: BlockPos = pos) = sources.amount(DIMENSION, position.x, position.y, position.z, WATER)
+    private fun assertAmount(expected: String, position: BlockPos = pos) =
+        assertEquals(0, BigDecimal(expected).compareTo(requireNotNull(amount(position))))
+    private fun entries() = manager.save().getList("parcels", Tag.TAG_COMPOUND.toInt())
+    private fun units(entry: CompoundTag, key: String = "volume"): BigDecimal =
+        if (entry.contains(key + "_units")) entry.getString(key + "_units").toBigDecimal()
+        else entry.getString(key).toBigDecimal() * BigDecimal(255)
+    private fun pending() = entries().fold(BigDecimal.ZERO) { total, entry -> total + units(entry as CompoundTag) }
+    private fun reload(parcelSave: CompoundTag = manager.save(), sourceSave: CompoundTag = sources.save()) {
+        sources = FractionalFluidSources().also { it.load(sourceSave) }
+        manager = WorldFluidOutflowManager(8, 8).also { it.load(parcelSave) }
+    }
+
+    @Test fun `shallow water solidifies lava by exact target volume`() {
+        every { level.levelEvent(any<Int>(), any<BlockPos>(), any<Int>()) } just Runs
+        val target = pos.below()
+        blocks[target] = Blocks.LAVA.defaultBlockState()
+        enqueue(0.0625)
+        manager.tick(levels)
+        assertEquals(Blocks.OBSIDIAN, blocks.getValue(target).block)
+        repeat(VSGameConfig.SERVER.SpilledWater.parcelCollectionSeconds * 20) { manager.tick(levels) }
+        assertEquals(0, manager.activeParcelCount())
+
+        val lava = Fluids.LAVA.getFlowing(1, false).createLegacyBlock()
+        blocks[target] = lava
+        assertTrue(sources.setAmount(DIMENSION, target.x, target.y, target.z, "minecraft:lava", BigDecimal("31.874")))
+        enqueue(0.0625)
+        manager.tick(levels)
+        assertEquals(lava, blocks.getValue(target))
+
+        assertTrue(sources.setAmount(DIMENSION, target.x, target.y, target.z, "minecraft:lava", BigDecimal("31.875")))
+        enqueue(0.0625)
+        manager.tick(levels)
+        assertEquals(Blocks.COBBLESTONE, blocks.getValue(target).block)
+        assertNull(sources.amount(DIMENSION, target.x, target.y, target.z, "minecraft:lava"))
+    }
+
+    @Test fun `descending lava turns water into stone and spends the parcel`() {
+        every { level.levelEvent(1501, pos.below(), 0) } just Runs
+        blocks[pos.below()] = Blocks.WATER.defaultBlockState()
+        enqueue(0.0625, fluid = 18)
+        manager.tick(levels)
+        assertEquals(Blocks.STONE, blocks.getValue(pos.below()).block)
+        assertEquals(0, manager.activeParcelCount())
+        assertNull(amount())
+    }
+
+    @Test fun `sub-layer impacts wet farmland and sponges before the dry landing cutoff`() {
+        every { level.levelEvent(any<Int>(), any<BlockPos>(), any<Int>()) } just Runs
+        for (target in listOf(Blocks.FARMLAND, Blocks.SPONGE)) {
+            blocks[pos.below()] = target.defaultBlockState()
+            enqueue(0.0625)
+            manager.tick(levels)
+            val state = blocks.getValue(pos.below())
+            if (target == Blocks.FARMLAND) assertEquals(7, state.getValue(BlockStateProperties.MOISTURE))
+            else assertEquals(Blocks.WET_SPONGE, state.block)
+            assertEquals(0, manager.activeParcelCount())
+            assertNull(amount())
+        }
+    }
+
+    @Test fun `water breaks a replaceable block only at or above one layer`() {
+        blocks[pos.below()] = Blocks.GRASS.defaultBlockState()
+        every { level.destroyBlock(pos.below(), true) } answers {
+            blocks[pos.below()] = Blocks.AIR.defaultBlockState()
+            true
+        }
+        enqueue(0.124)
+        manager.tick(levels)
+        assertEquals(Blocks.GRASS, blocks.getValue(pos.below()).block)
+        repeat(VSGameConfig.SERVER.SpilledWater.parcelCollectionSeconds * 20) { manager.tick(levels) }
+        assertEquals(0, manager.activeParcelCount())
+        verify(exactly = 0) { level.destroyBlock(any(), any<Boolean>()) }
+
+        enqueue(0.125)
+        manager.tick(levels)
+        verify(exactly = 1) { level.destroyBlock(pos.below(), true) }
+        assertTrue(blocks.getValue(pos.below()).isAir)
+        assertEquals(0, pending().compareTo(BigDecimal("31.875")))
+    }
+
+    @Test fun `same visible flowing level accumulates exact amounts across reload`() {
+        enqueue(0.125)
+        manager.tick(levels)
+        val state = blocks[pos]
+        assertAmount("31.875")
+        assertEquals(1, writes)
+        reload()
+        enqueue(0.01)
+        manager.tick(levels)
+        assertEquals(state, blocks[pos])
+        assertEquals(1, writes)
+        assertAmount("34.425")
+        assertEquals(0, manager.activeParcelCount())
+        verify { BlockStateInfo.onSourceAmountChanged(level, pos, requireNotNull(state), 34) }
+    }
+
+    @Test fun `refill retains its exact remainder until an undersized dry landing expires`() {
+        blocks[pos] = Blocks.WATER.defaultBlockState()
+        sources.setAmount(DIMENSION, 0, 1, 0, WATER, BigDecimal(29))
+        enqueue(1.0)
+        manager.tick(levels)
+        assertAmount("255")
+        assertEquals(0, writes)
+        assertEquals(0, pending().compareTo(BigDecimal(29)))
+        assertTrue(entries().getCompound(0).contains("volume_units"))
+        verify { BlockStateInfo.onSourceAmountChanged(level, pos, Blocks.WATER.defaultBlockState(), 255) }
+        verify(exactly = 1) { level.scheduleTick(pos, Fluids.WATER, any<Int>()) }
+        reload()
+        repeat(8 + VSGameConfig.SERVER.SpilledWater.parcelCollectionSeconds * 20) { manager.tick(levels) }
+        assertEquals(0, manager.activeParcelCount())
+        val stored = sources.save().getList("sources", Tag.TAG_COMPOUND.toInt())
+        assertEquals(1, stored.size)
+        assertEquals(listOf(BigDecimal(255)), stored.map {
+            (it as CompoundTag).getString("units").toBigDecimal()
+        }.sorted())
+    }
+
+    @Test fun `legacy rounded-up placement receipts survive repeated saves and finish once`() {
+        enqueue(0.249)
+        every { level.setBlock(any(), any(), any()) } throws IllegalStateException("hold journal")
+        assertThrows(IllegalStateException::class.java) { manager.tick(levels) }
+        val saved = manager.save().apply { putInt("version", 4) }
+        val intent = saved.getList("parcels", 10).getCompound(0).getCompound("placement")
+        intent.put("after", net.minecraft.nbt.NbtUtils.writeBlockState(Fluids.WATER.getFlowing(2, false).createLegacyBlock()))
+        reload(saved)
+        reload()
+        ordinaryWrites()
+        manager.tick(levels)
+        assertEquals(0, manager.activeParcelCount())
+        assertEquals(2, blocks.getValue(pos).fluidState.amount)
+        assertAmount("63.495")
+        reload()
+        manager.tick(levels)
+        assertAmount("63.495")
+        assertEquals(1, writes)
+    }
+
+    @Test fun `failed and ambiguous world writes retain one owner through saved pending journals`() {
+        for (applied in listOf(false, true)) {
+            blocks.clear(); sources = FractionalFluidSources(); manager = WorldFluidOutflowManager(8, 8); writes = 0
+            enqueue(0.125)
+            var checkpoint: Pair<CompoundTag, CompoundTag>? = null
+            every { level.setBlock(any(), any(), any()) } answers {
+                if (applied) { blocks[firstArg<BlockPos>().immutable()] = secondArg(); writes++ }
+                checkpoint = manager.save() to sources.save()
+                throw IllegalStateException("interrupted write")
+            }
+            assertThrows(IllegalStateException::class.java) { manager.tick(levels) }
+            assertAmount("0")
+            assertEquals(0, pending().compareTo(BigDecimal("31.875")))
+            val saved = requireNotNull(checkpoint)
+            reload(saved.first, saved.second)
+            ordinaryWrites()
+            manager.tick(levels)
+            assertEquals(1, writes)
+            assertAmount("31.875")
+            assertEquals(0, manager.activeParcelCount())
+            reload()
+            manager.tick(levels)
+            assertAmount("31.875")
+        }
+    }
+
+    @Test fun `publication interruption after a same-state credit cannot replay the deposit`() {
+        blocks[pos] = Blocks.WATER.defaultBlockState()
+        sources.setAmount(DIMENSION, 0, 1, 0, WATER, BigDecimal("127.25"))
+        enqueue(0.1)
+        every { BlockStateInfo.onSourceAmountChanged(any(), any(), any(), any()) } throws IllegalStateException("publication")
+        assertThrows(IllegalStateException::class.java) { manager.tick(levels) }
+        assertAmount("152.75")
+        assertEquals(0, pending().signum())
+        assertTrue(entries().getCompound(0).getCompound("placement").getBoolean("scheduled_only"))
+        reload()
+        every { BlockStateInfo.onSourceAmountChanged(any(), any(), any(), any()) } just Runs
+        manager.tick(levels)
+        assertAmount("152.75")
+        assertEquals(0, manager.activeParcelCount())
+        assertEquals(0, writes)
+    }
+
+    @Test fun `capacity refusal occurs before mutation and can resume with storage available`() {
+        sources = FractionalFluidSources(0)
+        enqueue(0.125)
+        assertThrows(FractionalFluidSources.StorageCapacityException::class.java) { manager.tick(levels) }
+        assertEquals(0, writes)
+        assertEquals(0, sources.size)
+        assertEquals(0, pending().compareTo(BigDecimal("31.875")))
+        reload()
+        manager.tick(levels)
+        assertAmount("31.875")
+        assertEquals(0, manager.activeParcelCount())
+    }
+
+    @Test fun `confirmed refusal restores carrier storage and a later accepted write succeeds`() {
+        enqueue(0.125)
+        every { level.setBlock(any(), any(), any()) } returns false
+        manager.tick(levels)
+        assertEquals(0, sources.size)
+        assertEquals(0L, sources.retainedBytes)
+        assertEquals(0, pending().compareTo(BigDecimal("31.875")))
+        ordinaryWrites()
+        manager.tick(levels)
+        assertAmount("31.875")
+        assertEquals(0, manager.activeParcelCount())
+    }
+
+    @Test fun `waterlogged partial source refills without replacing its solid`() {
+        val state = Blocks.OAK_SLAB.defaultBlockState().setValue(BlockStateProperties.WATERLOGGED, true)
+        blocks[pos] = state
+        sources.setAmount(DIMENSION, 0, 1, 0, WATER, BigDecimal("127.25"))
+        enqueue(0.1, y = 2.1)
+        manager.tick(levels)
+        assertEquals(state, blocks[pos])
+        assertAmount("152.75")
+        assertEquals(0, writes)
+        assertEquals(0, manager.activeParcelCount())
+        reload()
+        assertAmount("152.75")
+    }
+
+    @Test fun `moving parcel credits a partial source at its first crossed cell`() {
+        blocks[BlockPos(1, 1, 0)] = Blocks.WATER.defaultBlockState()
+        sources.setAmount(DIMENSION, 1, 1, 0, WATER, BigDecimal(29))
+        enqueue(0.1, vx = 100.0)
+        manager.tick(levels)
+        assertAmount("54.5", BlockPos(1, 1, 0))
+        assertEquals(0, manager.activeParcelCount())
+    }
+
+    @Test fun `malformed quantity intent cannot replace current parcel ownership`() {
+        enqueue(0.125)
+        every { level.setBlock(any(), any(), any()) } throws IllegalStateException("hold journal")
+        assertThrows(IllegalStateException::class.java) { manager.tick(levels) }
+        val valid = manager.save()
+        for ((key, value) in listOf("units_before" to "1", "units_after" to "256", "units_after" to "-1")) {
+            val invalid = valid.copy()
+            invalid.getList("parcels", Tag.TAG_COMPOUND.toInt()).getCompound(0).getCompound("placement").putString(key, value)
+            assertThrows(IllegalArgumentException::class.java) { manager.load(invalid) }
+            assertEquals(valid, manager.save())
+        }
+    }
+
+    @Test fun `full refill waits for carrier capacity without releasing finite ownership`() {
+        sources.setAmount(DIMENSION, 0, 1, 0, WATER, BigDecimal.ONE)
+        val bytes = sources.retainedBytes
+        val saved = sources.save()
+        sources = FractionalFluidSources(bytes).also { it.load(saved) }
+        blocks[pos] = Blocks.WATER.defaultBlockState()
+        enqueue(1.0)
+        assertThrows(FractionalFluidSources.StorageCapacityException::class.java) { manager.tick(levels) }
+        assertAmount("1")
+        assertEquals(0, pending().compareTo(BigDecimal(255)))
+        sources = FractionalFluidSources(bytes + 8).also { it.load(sources.save()) }
+        manager.tick(levels)
+        assertEquals(bytes + 8, sources.retainedBytes)
+        assertEquals(1, sources.size)
+        assertAmount("255")
+        assertEquals(0, pending().compareTo(BigDecimal.ONE))
+        assertEquals(0, writes)
+    }
+
+    @Test fun `a conflicting edit during placement cannot consume the parcel credit`() {
+        enqueue(0.125)
+        every { level.setBlock(any(), any(), any()) } answers {
+            blocks[pos] = Blocks.STONE.defaultBlockState()
+            sources.reconcileFluid(DIMENSION, 0, 1, 0, null)
+            true
+        }
+        manager.tick(levels)
+        assertEquals(0, pending().compareTo(BigDecimal("31.875")))
+        assertEquals(0, sources.size)
+        reload()
+        manager.tick(levels)
+        assertEquals(0, pending().compareTo(BigDecimal("31.875")))
+        blocks.remove(pos)
+        ordinaryWrites()
+        manager.tick(levels)
+        assertAmount("31.875")
+        assertEquals(0, manager.activeParcelCount())
+    }
+
+    @Test fun `a successful write with a conflicting same-fluid callback retains its pending credit`() {
+        enqueue(1.0)
+        every { level.setBlock(any(), any(), any()) } answers {
+            blocks[pos] = Fluids.WATER.getFlowing(2, false).createLegacyBlock()
+            true
+        }
+        manager.tick(levels)
+        assertAmount("0")
+        assertEquals(0, pending().compareTo(BigDecimal(255)))
+        reload()
+        manager.tick(levels)
+        assertEquals(0, pending().compareTo(BigDecimal(255)))
+        blocks.remove(pos)
+        ordinaryWrites()
+        manager.tick(levels)
+        assertAmount("255")
+        assertTrue(requireNotNull(blocks[pos]).fluidState.isSource)
+        assertEquals(0, manager.activeParcelCount())
+    }
+
+    @Test fun `quantity journal storage is admitted before any carrier or world change`() {
+        enqueue(0.125)
+        val retained = manager.parcelStorageBytes()
+        manager.maxParcelStorageBytes = retained
+        assertThrows(WorldFluidOutflowManager.StorageCapacityException::class.java) { manager.tick(levels) }
+        assertEquals(retained, manager.parcelStorageBytes())
+        assertEquals(0, sources.size)
+        assertEquals(0, writes)
+        assertEquals(0, pending().compareTo(BigDecimal("31.875")))
+        manager.maxParcelStorageBytes = retained + 32768
+        every { level.setBlock(any(), any(), any()) } throws IllegalStateException("hold admitted journal")
+        assertThrows(IllegalStateException::class.java) { manager.tick(levels) }
+        val charged = manager.parcelStorageBytes()
+        assertTrue(charged > retained)
+        reload()
+        assertEquals(charged, manager.parcelStorageBytes())
+        ordinaryWrites()
+        manager.tick(levels)
+        assertAmount("31.875")
+        assertEquals(WorldFluidOutflowManager().parcelStorageBytes(), manager.parcelStorageBytes())
+    }
+}

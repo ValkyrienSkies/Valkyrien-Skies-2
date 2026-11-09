@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.common.assembly
 
+import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerLevel
 import org.jetbrains.annotations.ApiStatus
 import org.joml.Vector3dc
@@ -42,4 +43,10 @@ interface ICopyableAttachment {
         loadedShips: Map<Long, ServerShip>,
         centerPositions: Map<ShipId, Pair<Vector3dc, Vector3dc>>
     )
+
+    fun saveToTag(): CompoundTag
+}
+
+interface ICopyableAttachmentFactory<T : ICopyableAttachment> {
+    fun create(tag: CompoundTag): T
 }

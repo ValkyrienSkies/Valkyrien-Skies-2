@@ -31,7 +31,6 @@
   "command.valkyrienskies.mc_teleport.can_only_teleport_to_one_ship": "Voi teleportata vain tarkalleen yhteen alukseen",
   "command.valkyrienskies.get_ship.success": "Löydettiin alus tunnisteella %s",
   "command.valkyrienskies.get_ship.fail": "Alusta ei löytynyt",
-  "command.valkyrienskies.get_ship.only_usable_by_entities": "/vs get-ship voidaan suorittaa vain entiteeteiltä!",
   "command.valkyrienskies.scale.success": "Skaalattiin %d alusta!",
 
   "misc.valkyrienskies.create.deployer_working_mode": "Aluksen Käyttäytyminen",

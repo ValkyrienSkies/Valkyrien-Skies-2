@@ -4,9 +4,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -24,61 +21,10 @@ public abstract class MixinPlayer extends LivingEntity implements PlayerDuck {
 
     @Unique
     private final MinecraftPlayer vsPlayer = new MinecraftPlayer(Player.class.cast(this));
-    @Unique
-    private Vec3 queuedPositionUpdate = null;
-    @Unique
-    private boolean handledMovePacket = false;
-
-    protected MixinPlayer(EntityType<? extends LivingEntity> entityType,
-        Level level) {
-        super(entityType, level);
-    }
 
     @Override
     public MinecraftPlayer vs_getPlayer() {
         return vsPlayer;
     }
 
-    @Override
-    public Vec3 vs_getQueuedPositionUpdate() {
-        return this.queuedPositionUpdate;
-    }
-
-    @Override
-    public void vs_setQueuedPositionUpdate(final Vec3 queuedPositionUpdate) {
-        this.queuedPositionUpdate = queuedPositionUpdate;
-    }
-
-    @Override
-    public boolean vs_handledMovePacket() {
-        return this.handledMovePacket;
-    }
-
-    @Override
-    public void vs_setHandledMovePacket(final boolean handledMovePacket) {
-        this.handledMovePacket = handledMovePacket;
-    }
-
-    @Shadow
-    public abstract double blockInteractionRange();
-
-    @Inject(
-        method = "canInteractWithBlock",
-        at = @At("RETURN"),
-        cancellable = true
-    )
-    private void includeShipsInDistanceCheck(BlockPos blockPos, double reachDistance, CallbackInfoReturnable<Boolean> cir) {
-        // If the player can already interact then just return
-        if (cir.getReturnValueZ()) {
-            return;
-        }
-        final Ship ship = VSGameUtilsKt.getShipManagingPos(level(), blockPos);
-        if (ship != null) {
-            final double e = this.blockInteractionRange() + reachDistance;
-            final Vec3 eyePosInShip = VectorConversionsMCKt.toMinecraft(ship.getWorldToShip().transformPosition(VectorConversionsMCKt.toJOML(getEyePosition())));
-            // Handle scaling
-            final double distanceSq = (new AABB(blockPos)).distanceToSqr(eyePosInShip) * ship.getTransform().getShipToWorldScaling().x() * ship.getTransform().getShipToWorldScaling().x();
-            cir.setReturnValue(distanceSq < e * e);
-        }
-    }
 }

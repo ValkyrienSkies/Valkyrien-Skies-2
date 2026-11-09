@@ -14,6 +14,15 @@ public class ValkyrienForgeMixinConfigPlugin implements IMixinConfigPlugin {
 
     @Override
     public void onLoad(final String s) {
+
+        if (LoadingModList.get().getModFileById("create") != null) {
+            final DefaultArtifactVersion createVersion =
+                new DefaultArtifactVersion(LoadingModList.get().getModFileById("create").versionString());
+            final DefaultArtifactVersion createNewer = new DefaultArtifactVersion("6.0.7");
+
+            is607orAbove = createVersion.compareTo(createNewer) >= 0;
+        }
+
         MixinExtrasBootstrap.init();
     }
 
@@ -29,6 +38,9 @@ public class ValkyrienForgeMixinConfigPlugin implements IMixinConfigPlugin {
         }
         if (mixinClassName.contains("MixinIForgePlayer")) {
             return true;
+        }
+        if (mixinClassName.contains("MixinEmbeddiumShaderModBridge")) {
+            return LoadingModList.get().getModFileById("embeddium") != null;
         }
 
         if (mixinClassName.contains("MixinSuperGlueSelectionHandler67")) {

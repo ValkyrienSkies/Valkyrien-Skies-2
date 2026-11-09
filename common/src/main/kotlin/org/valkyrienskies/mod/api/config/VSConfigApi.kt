@@ -18,7 +18,9 @@ object VSConfigApi {
     fun buildModConfigSpec(
         configCategory: VsiConfigModelCategory,
         builder: ModConfigSpec.Builder,
-        forgeConfigValueConsumer: (String, ModConfigSpec.ConfigValue<*>) -> Unit = { a, b -> }
+        forgeConfigValueConsumer: (String, ModConfigSpec.ConfigValue<*>) -> Unit = { a, b -> },
+        path: List<String> = emptyList(),
+        pathAwareConsumer: (List<String>, VsiConfigModelEntry<*>, ModConfigSpec.ConfigValue<*>) -> Unit = { _, _, _ -> }
     ): ModConfigSpec.Builder {
         for (node in configCategory.children) {
             val entry = node.value
@@ -29,10 +31,12 @@ object VSConfigApi {
                 // ("valkyrienskies.configuration.Block Tint").
                 builder.translation(entry.title)
                 builder.push(entry.title)
-                buildModConfigSpec(entry, builder, forgeConfigValueConsumer)
+                buildModConfigSpec(entry, builder, forgeConfigValueConsumer, path + entry.title, pathAwareConsumer)
                 builder.pop()
             } else if (entry is VsiConfigModelEntry<*>){
-                forgeConfigValueConsumer.invoke(entry.name, defineNode(builder, entry))
+                val value = defineNode(builder, entry)
+                forgeConfigValueConsumer.invoke(entry.name, value)
+                pathAwareConsumer.invoke(path + entry.name, entry, value)
             }
         }
         return builder
@@ -62,7 +66,7 @@ object VSConfigApi {
                     is String -> {
                         @Suppress("UNCHECKED_CAST")
                         val constants = defaultValue.declaringJavaClass.enumConstants as Array<Enum<*>>
-                        constants.find { it.name == newValue }
+                        constants.find { it.name.equals(newValue, ignoreCase = true) }
                     }
                     is Enum<*> -> newValue
                     else -> null

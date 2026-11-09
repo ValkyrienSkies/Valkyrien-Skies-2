@@ -2,7 +2,7 @@ package org.valkyrienskies.mod.mixin.feature.entity_movement_packets;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import net.minecraft.client.Minecraft;
+import java.util.Objects;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.protocol.Packet;
@@ -12,90 +12,72 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.Level;
 import org.joml.Vector3d;
-import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
-import org.valkyrienskies.core.api.ships.ClientShip;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
-import org.valkyrienskies.mod.common.networking.PacketEntityShipMotion;
 import org.valkyrienskies.mod.common.networking.PacketPlayerShipMotion;
+import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.EntityLerper;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(LocalPlayer.class)
-public abstract class MixinLocalPlayer extends Entity implements IEntityDraggingInformationProvider {
-    @Shadow
-    public abstract float getViewYRot(float f);
+public abstract class MixinLocalPlayer extends Entity {
+    @Shadow private int positionReminder;
+    @Unique private Long vs$lastSentShip;
 
     public MixinLocalPlayer(EntityType<?> entityType, Level level) {
         super(entityType, level);
     }
 
-    /**
-     * @author Tomato
-     * @reason Intercept client -> server player position sending to send our own data.
-     */
-    @WrapOperation(method = "sendPosition", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientPacketListener;send(Lnet/minecraft/network/protocol/Packet;)V"))
-    private void wrapSendPosition(ClientPacketListener instance, Packet<?> arg, Operation<Void> original) {
-        Packet<?> realArg = arg;
-        if (getDraggingInformation().isEntityBeingDraggedByAShip()) {
-            if (getDraggingInformation().getLastShipStoodOn() != null) {
-                ClientShip ship = VSGameUtilsKt.getShipObjectWorld(Minecraft.getInstance().level).getAllShips().getById(getDraggingInformation().getLastShipStoodOn());
-                if (ship != null) {
-                    Vector3dc relativePosition = ship.getWorldToShip().transformPosition(
-                        VectorConversionsMCKt.toJOML(getPosition(1f)), new Vector3d());
-
-                    double relativeYaw = EntityLerper.INSTANCE.yawToShip(ship, getViewYRot(1f));
-
-                    PacketPlayerShipMotion packet = new PacketPlayerShipMotion(ship.getId(), relativePosition.x(), relativePosition.y(), relativePosition.z(), relativeYaw);
-                    ValkyrienSkiesMod.getVsCore().getSimplePacketNetworking().sendToServer(packet);
-                }
-            }
-            if (realArg instanceof ServerboundMovePlayerPacket movePacket) {
-                final boolean isOnGround = movePacket.isOnGround() || getDraggingInformation().isEntityBeingDraggedByAShip();
-                if (movePacket.hasPosition() && movePacket.hasRotation()) {
-                    //posrot
-                    realArg = new ServerboundMovePlayerPacket.PosRot(movePacket.getX(0.0), movePacket.getY(0.0), movePacket.getZ(0.0), movePacket.getYRot(0.0f), movePacket.getXRot(0.0f), isOnGround);
-                } else if (movePacket.hasPosition()) {
-                    //pos
-                    realArg = new ServerboundMovePlayerPacket.Pos(movePacket.getX(0.0), movePacket.getY(0.0), movePacket.getZ(0.0), isOnGround);
-                } else if (movePacket.hasRotation()) {
-                    //rot
-                    realArg = new ServerboundMovePlayerPacket.Rot(movePacket.getYRot(0.0f), movePacket.getXRot(0.0f), isOnGround);
-                } else {
-                    //status only
-                    realArg = new ServerboundMovePlayerPacket.StatusOnly(isOnGround);
-                }
-            }
-        }
-        original.call(instance, realArg);
+    @Inject(method = "sendPosition", at = @At("HEAD"))
+    private void vs$sendFrameChangesImmediately(CallbackInfo ci) {
+        final EntityDraggingInformation info = ((IEntityDraggingInformationProvider) this).getDraggingInformation();
+        final Long shipId = info.isEntityBeingDraggedByAShip() ? info.getLastShipStoodOn() : null;
+        if (!Objects.equals(shipId, vs$lastSentShip)) positionReminder = 20;
     }
 
-    @WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientPacketListener;send(Lnet/minecraft/network/protocol/Packet;)V"))
-    private void wrapSendVehiclePosition(ClientPacketListener instance, Packet<?> arg, Operation<Void> original) {
-        if (arg instanceof ServerboundMoveVehiclePacket vehiclePacket && getRootVehicle() instanceof IEntityDraggingInformationProvider dragProvider) {
-            if (dragProvider.getDraggingInformation().isEntityBeingDraggedByAShip()) {
-                if (dragProvider.getDraggingInformation().getLastShipStoodOn() != null) {
-                    if (!dragProvider.vs$shouldDrag()) return;
-
-                    ClientShip ship = VSGameUtilsKt.getShipObjectWorld(Minecraft.getInstance().level).getAllShips().getById(
-                        dragProvider.getDraggingInformation().getLastShipStoodOn());
-                    if (ship != null) {
-                        Vector3dc relativePosition = ship.getWorldToShip().transformPosition(
-                            VectorConversionsMCKt.toJOML(getRootVehicle().getPosition(1f)), new Vector3d());
-
-                        double relativeYaw = EntityLerper.INSTANCE.yawToShip(ship, getRootVehicle().getYRot());
-
-                        PacketEntityShipMotion packet = new PacketEntityShipMotion(getRootVehicle().getId(), ship.getId(), relativePosition.x(), relativePosition.y(), relativePosition.z(), 0.0, 0.0, 0.0, relativeYaw, 0.0);
-                        ValkyrienSkiesMod.getVsCore().getSimplePacketNetworking().sendToServer(packet);
-                    }
-                }
-            }
+    @WrapOperation(method = "sendPosition", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/client/multiplayer/ClientPacketListener;send(Lnet/minecraft/network/protocol/Packet;)V"))
+    private void wrapSendPosition(ClientPacketListener connection, Packet<?> packet, Operation<Void> original) {
+        if (packet instanceof ServerboundMovePlayerPacket movement) {
+            if (vs$sendShipMotion(this, -1, movement.isOnGround())) return;
+            vs$lastSentShip = null;
         }
-        original.call(instance, arg);
+        original.call(connection, packet);
     }
 
+    @WrapOperation(method = "tick", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/client/multiplayer/ClientPacketListener;send(Lnet/minecraft/network/protocol/Packet;)V"))
+    private void wrapSendVehiclePosition(ClientPacketListener connection, Packet<?> packet, Operation<Void> original) {
+        final Entity vehicle = getRootVehicle();
+        if (packet instanceof ServerboundMoveVehiclePacket && vehicle != this
+            && vehicle.getControllingPassenger() == (Object) this
+            && vs$sendShipMotion(vehicle, vehicle.getId(), vehicle.onGround())) return;
+        original.call(connection, packet);
+    }
+
+    @Unique
+    private boolean vs$sendShipMotion(Entity entity, int vehicleId, boolean onGround) {
+        final IEntityDraggingInformationProvider provider = (IEntityDraggingInformationProvider) entity;
+        final EntityDraggingInformation info = provider.getDraggingInformation();
+        if (!provider.vs$shouldDrag() || !info.isEntityBeingDraggedByAShip()
+            || info.getLastShipStoodOn() == null) return false;
+        final Ship ship = VSGameUtilsKt.getShipObjectWorld(level()).getAllShips()
+            .getById(info.getLastShipStoodOn());
+        if (ship == null) return false;
+        final Vector3d position = ship.getWorldToShip()
+            .transformPosition(new Vector3d(entity.getX(), entity.getY(), entity.getZ()));
+        ValkyrienSkiesMod.getVsCore().getSimplePacketNetworking().sendToServer(new PacketPlayerShipMotion(
+            ship.getId(), position.x, position.y, position.z,
+            EntityLerper.INSTANCE.yawToShip(ship, entity.getYRot()), entity.getXRot(), onGround,
+            info.getTicksSinceStoodOnShip(), vehicleId));
+        if (vehicleId == -1) vs$lastSentShip = ship.getId();
+        return true;
+    }
 }

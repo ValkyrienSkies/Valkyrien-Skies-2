@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.mixin.client.renderer;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Camera;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
@@ -10,7 +11,9 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
@@ -33,9 +36,14 @@ import org.valkyrienskies.mod.common.entity.ShipMountedToData;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
+import org.valkyrienskies.mod.common.util.ShipDraggingMath;
+import org.valkyrienskies.mod.common.util.EntityRenderPosition;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 import org.valkyrienskies.mod.mixinducks.client.MinecraftDuck;
+
+import java.util.IdentityHashMap;
+import java.util.Map;
 
 @Mixin(GameRenderer.class)
 public abstract class MixinGameRenderer {
@@ -53,6 +61,9 @@ public abstract class MixinGameRenderer {
 
     @Shadow
     public abstract Matrix4f getProjectionMatrix(double d);
+
+    @Unique
+    private final Map<Entity, EntityRenderPosition.Snapshot> vs$renderPositionSnapshots = new IdentityHashMap<>();
 
     /**
      * {@link Entity#pick(double, float, boolean)} except the hit pos is not transformed
@@ -86,10 +97,18 @@ public abstract class MixinGameRenderer {
     public HitResult modifyCrosshairTargetBlocks(final Entity receiver, final double maxDistance, final float tickDelta,
         final boolean includeFluids, final Operation<HitResult> pick) {
 
-        final HitResult original = entityRaycastNoTransform(receiver, maxDistance, tickDelta, includeFluids);
-        ((MinecraftDuck) this.minecraft).vs$setOriginalCrosshairTarget(original);
-
-        return pick.call(receiver, maxDistance, tickDelta, includeFluids);
+        HitResult result = pick.call(receiver, maxDistance, tickDelta, includeFluids);
+        HitResult noTransform;
+        if(result instanceof BlockHitResult blockHitResult) {
+            noTransform = new BlockHitResult(
+                VSGameUtilsKt.toShipRenderCoordinates(Minecraft.getInstance().level, blockHitResult.getBlockPos().getCenter(), blockHitResult.location),
+                blockHitResult.getDirection(),
+                blockHitResult.getBlockPos(),
+                blockHitResult.isInside()
+            );
+        } else noTransform = result;
+        ((MinecraftDuck) this.minecraft).vs$setOriginalCrosshairTarget(noTransform);
+        return result;
     }
 
     @WrapOperation(
@@ -135,13 +154,7 @@ public abstract class MixinGameRenderer {
                     final Vector3dc passengerPos = shipMountedToData.getMountPosInShip();
                     entityShouldBeHere = shipMountedTo.getRenderTransform().getShipToWorld()
                         .transformPosition(passengerPos, new Vector3d());
-                    entity.setPos(entityShouldBeHere.x(), entityShouldBeHere.y(), entityShouldBeHere.z());
-                    entity.xo = entityShouldBeHere.x();
-                    entity.yo = entityShouldBeHere.y();
-                    entity.zo = entityShouldBeHere.z();
-                    entity.xOld = entityShouldBeHere.x();
-                    entity.yOld = entityShouldBeHere.y();
-                    entity.zOld = entityShouldBeHere.z();
+                    vs$moveEntityToRenderPosition(entity, entityShouldBeHere);
                     continue;
                 }
 
@@ -149,57 +162,53 @@ public abstract class MixinGameRenderer {
                     ((IEntityDraggingInformationProvider) entity).getDraggingInformation();
                 final Long lastShipStoodOn = entityDraggingInformation.getLastShipStoodOn();
                 // Then try getting [entityShouldBeHere] from [entityDraggingInformation]
+//                if (!entityDraggingInformation.shouldUseClientPrediction(entity)) {
+//                    continue;
+//                }
                 if (lastShipStoodOn != null && entityDraggingInformation.isEntityBeingDraggedByAShip()) {
                     final ClientShip shipObject =
                         VSGameUtilsKt.getShipObjectWorld(clientWorld).getLoadedShips().getById(lastShipStoodOn);
                     if (shipObject != null) {
-                        entityDraggingInformation.setCachedLastPosition(
-                            new Vector3d(entity.xo, entity.yo, entity.zo));
-                        entityDraggingInformation.setRestoreCachedLastPosition(true);
-
-                        // The velocity added to the entity by ship dragging
-                        final Vector3dc entityAddedVelocity = entityDraggingInformation.getAddedMovementLastTick();
-
-                        // The velocity of the entity before we added ship dragging
-                        final double entityMovementX = entity.getX() - entityAddedVelocity.x() - entity.xo;
-                        final double entityMovementY = entity.getY() - entityAddedVelocity.y() - entity.yo;
-                        final double entityMovementZ = entity.getZ() - entityAddedVelocity.z() - entity.zo;
-
-                        // Without ship dragging, the entity would've been here
-                        final Vector3dc entityShouldBeHerePreTransform = new Vector3d(
-                            entity.xo + entityMovementX * partialTick,
-                            entity.yo + entityMovementY * partialTick,
-                            entity.zo + entityMovementZ * partialTick
-                        );
-
-                        // Move [entityShouldBeHerePreTransform] with the ship, using the prev transform and the
-                        // current render transform
-                        entityShouldBeHere = shipObject.getRenderTransform().getShipToWorldMatrix()
-                            .transformPosition(
-                                shipObject.getPrevTickShipTransform().getWorldToShipMatrix()
-                                    .transformPosition(entityShouldBeHerePreTransform, new Vector3d()));
+                        entityShouldBeHere = ShipDraggingMath.renderPosition(
+                            new Vector3d(entity.xo, entity.yo, entity.zo),
+                            new Vector3d(entity.getX(), entity.getY(), entity.getZ()),
+                            shipObject.getPrevTickTransform().getWorldToShip(),
+                            shipObject.getTransform().getWorldToShip(),
+                            shipObject.getRenderTransform().getShipToWorld(), partialTick);
                     }
                 }
 
-                // Apply entityShouldBeHere, if its present
-                //
-                // Also, don't run this if [tickDelta] is too small, getting so close to dividing by 0 could mess
-                // something up
-                if (entityShouldBeHere != null && partialTick < .99999) {
-                    // Update the entity last tick positions such that the entity's render position will be
-                    // interpolated to be [entityShouldBeHere]
-                    entity.xo = (entityShouldBeHere.x() - (entity.getX() * partialTick)) / (1.0 - partialTick);
-                    entity.yo = (entityShouldBeHere.y() - (entity.getY() * partialTick)) / (1.0 - partialTick);
-                    entity.zo = (entityShouldBeHere.z() - (entity.getZ() * partialTick)) / (1.0 - partialTick);
+                if (entityShouldBeHere != null) {
+                    vs$moveEntityToRenderPosition(entity, entityShouldBeHere);
                 }
             }
         }
+    }
+
+    @Unique
+    private void vs$moveEntityToRenderPosition(final Entity entity, final Vector3dc renderPosition) {
+        vs$renderPositionSnapshots.computeIfAbsent(entity, EntityRenderPosition::capture);
+        EntityRenderPosition.setWithoutSectionUpdate(
+            entity,
+            renderPosition.x(),
+            renderPosition.y(),
+            renderPosition.z()
+        );
+        entity.xo = renderPosition.x();
+        entity.yo = renderPosition.y();
+        entity.zo = renderPosition.z();
+        entity.xOld = renderPosition.x();
+        entity.yOld = renderPosition.y();
+        entity.zOld = renderPosition.z();
     }
 
     @Inject(method = "render", at = @At("TAIL"))
     private void postRender(DeltaTracker deltaTracker, boolean bl, CallbackInfo ci) {
         final ClientLevel clientWorld = minecraft.level;
         if (clientWorld != null) {
+            vs$renderPositionSnapshots.forEach((entity, snapshot) -> snapshot.restore(entity));
+            vs$renderPositionSnapshots.clear();
+
             // Restore the entity last tick positions that were replaced during this frame
             for (final Entity entity : clientWorld.entitiesForRendering()) {
                 final EntityDraggingInformation vsEntity =
@@ -255,7 +264,7 @@ public abstract class MixinGameRenderer {
         }
 
         final Entity playerVehicle = player.getVehicle();
-        if (playerVehicle == null) {
+        if (playerVehicle == null && !(player instanceof LivingEntity living && living.isSleeping())) {
             prepareCullFrustum.call(instance, vec3, rotationMatrix, matrix4f2);
             return;
         }

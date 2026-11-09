@@ -1,38 +1,28 @@
 package org.valkyrienskies.mod.forge.mixin.feature.water_in_ships_entity;
 
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import com.llamalad7.mixinextras.sugar.Local;
-import com.llamalad7.mixinextras.sugar.ref.LocalRef;
-import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
+import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
 import net.minecraft.core.BlockPos;
-import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.common.extensions.IEntityExtension;
 import net.neoforged.neoforge.fluids.FluidType;
-import org.apache.commons.lang3.tuple.MutableTriple;
-import org.joml.primitives.AABBd;
-import org.objectweb.asm.Opcodes;
-import org.spongepowered.asm.mixin.Debug;
+import org.joml.Quaterniondc;
+import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.At.Shift;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
+import org.valkyrienskies.mod.common.fluid.ShipFluidInteraction;
 
-@Debug(export = true)
 @Mixin(Entity.class)
 public abstract class MixinEntity {
     @Shadow
@@ -50,86 +40,123 @@ public abstract class MixinEntity {
     public abstract double getZ();
 
     @Shadow
-    public abstract boolean touchingUnloadedChunk();
-
-    @Shadow
-    public abstract AABB getBoundingBox();
-
-    @Shadow
-    public abstract boolean isPushedByFluid();
-
-    @Shadow
-    public abstract Vec3 getDeltaMovement();
-
-    @Shadow
-    public abstract void setDeltaMovement(Vec3 vec3);
+    protected Object2DoubleMap<FluidType> forgeFluidTypeHeight;
 
     @Unique
     private boolean isShipWater = false;
 
     @Shadow
-    protected abstract void setFluidTypeHeight(FluidType type, double height);
-
-    @Shadow
-    public abstract void updateFluidHeightAndDoFluidPushing();
-
+    public abstract boolean touchingUnloadedChunk();
+    @Shadow public abstract Vec3 getDeltaMovement();
+    @Shadow public abstract void setDeltaMovement(Vec3 movement);
     @Unique
-    private boolean VS$finishComputingFluidPushing = false;
+    private ShipFluidInteraction.VolumeQuery vs$fluidQuery;
     @Unique
-    private Object2ObjectMap VS$interimCalcs = null;
+    private boolean vs$hasWorldHeight;
     @Unique
-    private Ship VS$ship = null;
+    private float vs$worldHeight;
 
-    @Unique //avoid realloc
-    private AABBd VS$tmpAABB = new AABBd();
-
-    @WrapOperation(method = "updateFluidHeightAndDoFluidPushing()V",
-        at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;getBoundingBox()Lnet/minecraft/world/phys/AABB;"),
-        remap = false)
-    private AABB returnShipedAABB(Entity instance, Operation<AABB> original) {
-        if (VS$ship == null)
-            return original.call(instance);
-        return VectorConversionsMCKt.toMinecraft(VectorConversionsMCKt.set(VS$tmpAABB, original.call(instance)).transform(VS$ship.getWorldToShip()));
+    @WrapMethod(method = "updateFluidHeightAndDoFluidPushing()V", remap = false)
+    private void vs$mergeRetainedFluid(final Operation<Void> original) {
+        if (touchingUnloadedChunk()) { original.call(); return; }
+        final ShipFluidInteraction.VolumeQuery previous = vs$fluidQuery;
+        vs$fluidQuery = ShipFluidInteraction.prepareVolume(level, bb.deflate(0.001));
+        try {
+            final Vec3 before = getDeltaMovement();
+            original.call();
+            setDeltaMovement(vs$fluidQuery.currentMovement(before, getDeltaMovement(), fluid -> true, fluid -> {
+                final Entity entity = (Entity) (Object) this;
+                return entity.isPushedByFluid(fluid.getFluidType()) ? entity.getFluidMotionScale(fluid.getFluidType()) : 0;
+            }));
+            vs$fluidQuery.forEachRetained((fluid, depth) -> {
+                if (!fluid.isEmpty()) {
+                    final FluidType type = fluid.getFluidType();
+                    if (!type.isAir()) forgeFluidTypeHeight.put(type,
+                        Math.max(forgeFluidTypeHeight.getDouble(type), depth));
+                }
+            });
+        } finally {
+            vs$fluidQuery = previous;
+            vs$hasWorldHeight = false;
+            valkyrienskies$pushShipPos = null;
+            valkyrienskies$pushShip = null;
+        }
     }
 
-    @Inject(method = "updateFluidHeightAndDoFluidPushing()V",
-        at = @At(
-            value = "JUMP", opcode = Opcodes.IFNULL, //inject at the "if (interimCalcs != null)" after the loop end
-            shift = Shift.BY, by = -1 //shift before interimCalcs is loaded on the stack
-        ),
-        cancellable = true,
-        remap = false, locals = LocalCapture.CAPTURE_FAILHARD, require = 1)
-    private void recallUpdateFluidWithVSShip(CallbackInfo ci, AABB aabb, @Local LocalRef<Object2ObjectMap> interimCalcs) {
-        if (VS$finishComputingFluidPushing)
-            return;
-        if (VS$ship != null) {
-            if (interimCalcs.get() != null) {
-                if (VS$interimCalcs == null)
-                    VS$interimCalcs = interimCalcs.get();
-                else
-                    VS$interimCalcs.putAll(interimCalcs.get());
+    /**
+     * Correctness relies on the method querying getFluidState before
+     * getHeight/getFlow within each scanned cell: getFluidState sets these, the
+     * other two read them. Null = current cell is world fluid, not ship fluid.
+     */
+    @Unique
+    private BlockPos valkyrienskies$pushShipPos = null;
+    @Unique
+    private Ship valkyrienskies$pushShip = null;
+
+    @WrapOperation(
+        at = @At(value = "INVOKE",
+            target = "Lnet/minecraft/world/level/Level;getFluidState(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/material/FluidState;"),
+        method = "updateFluidHeightAndDoFluidPushing()V"
+    )
+    private FluidState valkyrienskies$pushFluidState(final Level lvl, final BlockPos pos,
+        final Operation<FluidState> original) {
+        valkyrienskies$pushShipPos = null;
+        valkyrienskies$pushShip = null;
+        vs$hasWorldHeight = false;
+
+        final FluidState world = original.call(lvl, pos);
+        if (!world.isEmpty()) {
+            if (vs$fluidQuery != null && vs$fluidQuery.hasDomains()) {
+                vs$worldHeight = vs$fluidQuery.worldHeight(pos, world.getHeight(lvl, pos));
+                if (!Float.isFinite(vs$worldHeight)) return Fluids.EMPTY.defaultFluidState();
+                vs$hasWorldHeight = true;
             }
-            ci.cancel();
-            return;
+            return world;
         }
 
-        VS$interimCalcs = interimCalcs.get();
-
-        for (Ship ship : VSGameUtilsKt.getShipsIntersecting(level, this.getBoundingBox())) {
-            VS$ship = ship;
-            updateFluidHeightAndDoFluidPushing();
+        for (final Ship ship : VSGameUtilsKt.getShipsIntersecting(this.level, new AABB(pos))) {
+            final Vector3d sp = ship.getWorldToShip().transformPosition(
+                new Vector3d(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5));
+            final BlockPos shipPos = BlockPos.containing(sp.x, sp.y, sp.z);
+            if (vs$fluidQuery != null && vs$fluidQuery.controlsCell(ship.getId(), shipPos)) continue;
+            final FluidState shipFluid = original.call(lvl, shipPos);
+            if (!shipFluid.isEmpty()) {
+                valkyrienskies$pushShipPos = shipPos;
+                valkyrienskies$pushShip = ship;
+                return shipFluid;
+            }
         }
-
-        interimCalcs.set(VS$interimCalcs);
-        VS$interimCalcs = null;
-        VS$ship = null;
-        VS$finishComputingFluidPushing = true;
+        return world;
     }
 
-    @Inject(method = "updateFluidHeightAndDoFluidPushing()V", at = @At("TAIL"), remap = false)
-    private void resetState(CallbackInfo ci) {
-        VS$interimCalcs = null;
-        VS$finishComputingFluidPushing = false;
+    @WrapOperation(
+        at = @At(value = "INVOKE",
+            target = "Lnet/minecraft/world/level/material/FluidState;getHeight(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;)F"),
+        method = "updateFluidHeightAndDoFluidPushing()V"
+    )
+    private float valkyrienskies$pushHeight(final FluidState instance, final BlockGetter bg, final BlockPos pos,
+        final Operation<Float> original) {
+        if (vs$hasWorldHeight) return vs$worldHeight;
+        if (valkyrienskies$pushShipPos != null) {
+            return original.call(instance, this.level, valkyrienskies$pushShipPos);
+        }
+        return original.call(instance, bg, pos);
+    }
+
+    @WrapOperation(
+        at = @At(value = "INVOKE",
+            target = "Lnet/minecraft/world/level/material/FluidState;getFlow(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/phys/Vec3;"),
+        method = "updateFluidHeightAndDoFluidPushing()V"
+    )
+    private Vec3 valkyrienskies$pushFlow(final FluidState instance, final BlockGetter bg, final BlockPos pos,
+        final Operation<Vec3> original) {
+        if (valkyrienskies$pushShipPos == null || valkyrienskies$pushShip == null) {
+            return original.call(instance, bg, pos);
+        }
+        final Vec3 shipFlow = original.call(instance, this.level, valkyrienskies$pushShipPos);
+        final Quaterniondc shipToWorldRot = valkyrienskies$pushShip.getTransform().getShipToWorldRotation();
+        final Vector3d rotated = shipToWorldRot.transform(new Vector3d(shipFlow.x, shipFlow.y, shipFlow.z));
+        return new Vec3(rotated.x, rotated.y, rotated.z);
     }
 
     @WrapOperation(
@@ -141,6 +168,12 @@ public abstract class MixinEntity {
         final Operation<FluidState> getFluidState) {
         final FluidState[] fluidState = {getFluidState.call(level, blockPos)};
         isShipWater = false;
+        final ShipFluidInteraction.PointSample retained = ShipFluidInteraction.samplePoint(
+            level, new Vec3(getX(), getEyeY(), getZ()));
+        if (retained.insideDomain()) {
+            isShipWater = retained.flooded();
+            return retained.flooded() ? retained.fluid().defaultFluidState() : Fluids.EMPTY.defaultFluidState();
+        }
         if (fluidState[0].isEmpty()) {
 
             final double d = this.getEyeY() - 0.1111111119389534;
@@ -151,9 +184,13 @@ public abstract class MixinEntity {
 
             VSGameUtilsKt.transformToNearbyShipsAndWorld(this.level, origX, origY, origZ, this.bb.getSize(),
                 (x, y, z) -> {
-                    fluidState[0] = getFluidState.call(level, BlockPos.containing(x, y, z));
+                    final BlockPos shipPos = BlockPos.containing(x, y, z);
+                    final FluidState fs = getFluidState.call(level, shipPos);
+                    if (!fs.isEmpty() && y < shipPos.getY() + fs.getHeight(level, shipPos)) {
+                        fluidState[0] = fs;
+                    }
                 });
-            isShipWater = true;
+            isShipWater = !fluidState[0].isEmpty();
         }
         return fluidState[0];
     }
@@ -165,15 +202,7 @@ public abstract class MixinEntity {
     )
     private float fluidHeightOverride(final FluidState instance, final BlockGetter arg, final BlockPos arg2,
         final Operation<Float> getHeight) {
-        if (!instance.isEmpty() && this.level instanceof Level) {
-
-            if (isShipWater) {
-                if (instance.isSource()) {
-                    return 1;
-                }
-            }
-
-        }
+        if (isShipWater) return Float.POSITIVE_INFINITY;
         return getHeight.call(instance, arg, arg2);
     }
 

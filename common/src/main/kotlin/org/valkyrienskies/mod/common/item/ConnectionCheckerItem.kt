@@ -19,18 +19,14 @@ import java.util.function.DoubleSupplier
 
 class ConnectionCheckerItem(
     properties: Properties, private val scale: DoubleSupplier, private val minScaling: DoubleSupplier
-) : Item(properties) {
-
-    override fun isFoil(stack: ItemStack): Boolean {
-        return true
-    }
+) : VSItem(properties) {
 
     override fun inventoryTick(item: ItemStack, level: Level, entity: Entity, i: Int, bl: Boolean) {
         super.inventoryTick(item, level, entity, i, bl)
-        if (item.tag != null && item.tag!!.contains("firstPosX")) {
-            val firstPosX = item.tag!!.getInt("firstPosX")
-            val firstPosY = item.tag!!.getInt("firstPosY")
-            val firstPosZ = item.tag!!.getInt("firstPosZ")
+        if (item.vsSelectionTag != null && item.vsSelectionTag!!.contains("firstPosX")) {
+            val firstPosX = item.vsSelectionTag!!.getInt("firstPosX")
+            val firstPosY = item.vsSelectionTag!!.getInt("firstPosY")
+            val firstPosZ = item.vsSelectionTag!!.getInt("firstPosZ")
 
             if (level.isClientSide) {
                 //spawn grey particles surrounding originally selected position
@@ -68,10 +64,10 @@ class ConnectionCheckerItem(
             val dimensionId = level.dimensionId
 
             if (parentShip != null) {
-                if (item.tag != null && item.tag!!.contains("firstPosX")) {
-                    val firstPosX = item.tag!!.getInt("firstPosX")
-                    val firstPosY = item.tag!!.getInt("firstPosY")
-                    val firstPosZ = item.tag!!.getInt("firstPosZ")
+                if (item.vsSelectionTag != null && item.vsSelectionTag!!.contains("firstPosX")) {
+                    val firstPosX = item.vsSelectionTag!!.getInt("firstPosX")
+                    val firstPosY = item.vsSelectionTag!!.getInt("firstPosY")
+                    val firstPosZ = item.vsSelectionTag!!.getInt("firstPosZ")
                     val connected = level.shipObjectWorld.isConnectedBySolid(blockPos.x, blockPos.y, blockPos.z, firstPosX, firstPosY, firstPosZ, dimensionId)
                     val chatColor = when (connected) {
                         ConnectionStatus.CONNECTED -> ChatFormatting.GREEN
@@ -104,11 +100,11 @@ class ConnectionCheckerItem(
                             }
                         }
                     }
-                    item.tag!!.remove("firstPosX")
-                    item.tag!!.remove("firstPosY")
-                    item.tag!!.remove("firstPosZ")
+                    item.vsSelectionTag = item.vsSelectionTag?.apply { remove("firstPosX") }
+                    item.vsSelectionTag = item.vsSelectionTag?.apply { remove("firstPosY") }
+                    item.vsSelectionTag = item.vsSelectionTag?.apply { remove("firstPosZ") }
                 } else {
-                    item.tag = item.orCreateTag.apply {
+                    item.vsSelectionTag = (item.vsSelectionTag ?: net.minecraft.nbt.CompoundTag()).apply {
                         putInt("firstPosX", blockPos.x)
                         putInt("firstPosY", blockPos.y)
                         putInt("firstPosZ", blockPos.z)

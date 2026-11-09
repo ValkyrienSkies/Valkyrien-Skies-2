@@ -18,9 +18,12 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.config.VSGameConfig;
+import org.valkyrienskies.mod.common.pathfinding.PathfindingFrame;
 
 @Mixin(PathFinder.class)
 public class MixinPathFinder {
+
     @Shadow
     @Final
     private NodeEvaluator nodeEvaluator;
@@ -30,11 +33,25 @@ public class MixinPathFinder {
         at = @At(
             value = "INVOKE",
             target = "Ljava/util/stream/Stream;collect(Ljava/util/stream/Collector;)Ljava/lang/Object;"))
-    private Object onCollectPath(Stream<BlockPos> instance, Collector<BlockPos, ?, Map<Target, BlockPos>> arCollector, Operation<Map<Target, BlockPos>> original, @Local
-    Mob mob) {
+    private Object onCollectPath(
+        Stream<BlockPos> instance,
+        Collector<BlockPos, ?, Map<Target, BlockPos>> arCollector,
+        Operation<Map<Target, BlockPos>> original,
+        @Local Mob mob
+    ) {
+        final PathfindingFrame frame = VSGameConfig.SERVER.getAiOnShips()
+            ? PathfindingFrame.current(mob)
+            : null;
         return original.call(instance, Collectors.<BlockPos, Target, BlockPos>toMap(blockPos ->  {
-            BlockPos transformedPos = BlockPos.containing(VSGameUtilsKt.toWorldCoordinates(mob.level(), blockPos));
-            return this.nodeEvaluator.getGoal(transformedPos.getX(), transformedPos.getY(), transformedPos.getZ());
+            if (frame instanceof PathfindingFrame.InShip) {
+                return this.nodeEvaluator.getGoal(blockPos.getX(), blockPos.getY(), blockPos.getZ());
+            }
+            final BlockPos transformedPos = BlockPos.containing(
+                VSGameUtilsKt.toWorldCoordinates(mob.level(), blockPos)
+            );
+            return this.nodeEvaluator.getGoal(
+                transformedPos.getX(), transformedPos.getY(), transformedPos.getZ()
+            );
         }, Function.identity(), (last, second) -> second));
     }
 }

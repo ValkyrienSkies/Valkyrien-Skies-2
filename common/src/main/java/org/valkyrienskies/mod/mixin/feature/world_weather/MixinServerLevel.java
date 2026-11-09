@@ -9,17 +9,44 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.level.biome.Biome.Precipitation;
 import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.Heightmap.Types;
+import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.CompatUtil;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 
 @Mixin(ServerLevel.class)
 public abstract class MixinServerLevel {
+
+    @WrapOperation(method = "tickChunk", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerLevel;findLightningTargetAround(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/core/BlockPos;"))
+    private BlockPos vs2$lightningTargetIncludingShips(
+        ServerLevel level, BlockPos pos, Operation<BlockPos> original,
+        @Local(argsOnly = true) LevelChunk chunk
+    ) {
+        if (VSGameUtilsKt.getShipManagingPos(level, chunk.getPos()) == null) {
+            return original.call(level, pos);
+        }
+        return CompatUtil.INSTANCE.getWorldHeightmapPosIncludingShips(level, Heightmap.Types.MOTION_BLOCKING, pos);
+    }
+
+    @WrapOperation(method = "tickChunk", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/LightningBolt;moveTo(Lnet/minecraft/world/phys/Vec3;)V"))
+    private void vs2$attachLightningBoltToShip(
+        LightningBolt bolt, Vec3 pos, Operation<Void> original,
+        @Local(argsOnly = true) LevelChunk chunk
+    ) {
+        original.call(bolt, pos);
+        Ship ship = VSGameUtilsKt.getShipManagingPos(bolt.level(), chunk.getPos());
+        if (ship != null) {
+            ((IEntityDraggingInformationProvider) (Object) bolt).vs$dragImmediately(ship);
+        }
+    }
 
     @WrapOperation(method = "tickChunk", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerLevel;getHeightmapPos(Lnet/minecraft/world/level/levelgen/Heightmap$Types;Lnet/minecraft/core/BlockPos;)Lnet/minecraft/core/BlockPos;"))
     private BlockPos occlude(

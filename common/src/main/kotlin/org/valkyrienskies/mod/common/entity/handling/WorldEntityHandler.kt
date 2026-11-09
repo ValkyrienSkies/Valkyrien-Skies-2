@@ -19,6 +19,7 @@ import org.valkyrienskies.mod.common.getShipManaging
 import org.valkyrienskies.mod.common.isBlockInShipyard
 import org.valkyrienskies.mod.common.toWorldCoordinates
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider
+import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toMinecraft
 import kotlin.math.atan2
@@ -27,6 +28,9 @@ import kotlin.math.sqrt
 object WorldEntityHandler : VSEntityHandler {
     override fun freshEntityInShipyard(entity: Entity, ship: Ship) {
         moveEntityFromShipyardToWorld(entity, ship)
+        if (entity !is Projectile && entity.deltaMovement.y <= 0.0) {
+            entity.setOnGround(EntityShipCollisionUtils.findSupportingShip(entity) != null)
+        }
     }
 
     override fun entityRemovedFromShipyard(entity: Entity, ship: Ship) {

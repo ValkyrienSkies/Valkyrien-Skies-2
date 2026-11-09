@@ -48,7 +48,8 @@ public class MixinChunkMap$TrackedEntity {
     }
 
     @WrapOperation(method = "updatePlayer", at = @At(value = "INVOKE",
-        target = "Lnet/minecraft/server/level/ChunkMap;isChunkTracked(Lnet/minecraft/server/level/ServerPlayer;II)Z"))
+        target = "Lnet/minecraft/server/level/ChunkMap;isChunkTracked(Lnet/minecraft/server/level/ServerPlayer;II)Z"),
+        require = 0)
     boolean skipWierdCheck2(ChunkMap instance, ServerPlayer serverPlayer, int i, int j, Operation<Boolean> original) {
         return valkyrienskies$inCallShip != null || original.call(instance, serverPlayer, i, j);
     }

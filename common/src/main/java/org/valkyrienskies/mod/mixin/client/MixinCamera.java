@@ -1,6 +1,10 @@
 package org.valkyrienskies.mod.mixin.client;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.client.Camera;
+import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.BlockGetter;
@@ -23,9 +27,11 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.mod.client.IVSCamera;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 
 @Mixin(Camera.class)
@@ -50,6 +56,10 @@ public abstract class MixinCamera implements IVSCamera {
     private float xRot;
     @Shadow
     private float yRot;
+
+    @Unique
+    private float vs$zRot;
+
     @Shadow
     @Final
     private Quaternionf rotation;
@@ -66,6 +76,8 @@ public abstract class MixinCamera implements IVSCamera {
     private float getMaxZoom(float startingDistance) {
         return 0.0f;
     }
+    @Shadow
+    private BlockPos.MutableBlockPos blockPosition;
 
     @Shadow
     protected abstract void move(float distanceOffset, float verticalOffset, float horizontalOffset);
@@ -76,6 +88,24 @@ public abstract class MixinCamera implements IVSCamera {
 
     @Unique
     private ShipTransform valkyrienskies$shipMountedToTransform = null;
+    /**
+     * @author Bunting_chj
+     * @reason This Injection will modify the Camera position to transform the eye offset with the ship player is mounted on.
+     *  Funny thing that original code doesn't utilize getEyePosition().
+     */
+    @WrapOperation(
+        method = "setup",
+        at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Camera;setPosition(DDD)V")
+    )
+    private void setPosition(Camera camera, double d, double e, double f, Operation<Void> original,
+        @Local(argsOnly = true) float partialTicks){
+        if(VSGameUtilsKt.getShipMountedTo(this.entity) instanceof ClientShip ship) {
+            double eyeHeight = Mth.lerp(partialTicks, this.eyeHeightOld, this.eyeHeight);
+            Vector3d eyeOffset = ship.getRenderTransform().getRotation().transform(new Vector3d(0, eyeHeight, 0));
+            original.call(camera, d + eyeOffset.x, e - eyeHeight + eyeOffset.y, f + eyeOffset.z);
+        }
+        else original.call(camera, d, e, f);
+    }
 
     @Override
     public void setupWithShipMounted(final @NotNull BlockGetter level, final @NotNull Entity renderViewEntity,
@@ -170,5 +200,27 @@ public abstract class MixinCamera implements IVSCamera {
         }
 
         return maxZoom;
+    }
+
+    @Override
+    public void setRotationVS(float yaw, float pitch, float roll) {
+        this.xRot = pitch;
+        this.yRot = yaw;
+        this.vs$zRot = roll;
+        this.rotation.rotationYXZ(-yaw * ((float)Math.PI / 180), pitch * ((float)Math.PI / 180), roll * ((float)Math.PI / 180));
+        this.forwards.set(0.0f, 0.0f, 1.0f).rotate(this.rotation);
+        this.up.set(0.0f, 1.0f, 0.0f).rotate(this.rotation);
+        this.left.set(1.0f, 0.0f, 0.0f).rotate(this.rotation);
+    }
+
+    @Override
+    public void setPositionVS(Vec3 position) {
+        this.position = position;
+        this.blockPosition.set(position.x, position.y, position.z);
+    }
+
+    @Override
+    public float getZrot() {
+        return vs$zRot;
     }
 }

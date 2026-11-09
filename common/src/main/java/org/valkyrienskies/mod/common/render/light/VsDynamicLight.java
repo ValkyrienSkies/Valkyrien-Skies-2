@@ -1,0 +1,175 @@
+package org.valkyrienskies.mod.common.render.light;
+
+import net.minecraft.client.multiplayer.ClientLevel;
+import org.joml.primitives.AABBdc;
+import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.config.ShipRendererKt;
+import org.valkyrienskies.mod.common.config.VSGameConfig;
+import org.valkyrienskies.mod.common.render.ShipRenderConfig;
+import org.valkyrienskies.mod.compat.VSRenderer;
+import org.valkyrienskies.mod.mixin.ValkyrienCommonMixinConfigPlugin;
+import org.valkyrienskies.mod.compat.sodium.light.VsShipEmitterList;
+import org.valkyrienskies.mod.compat.sodium.light.VsShipLightStorage;
+import org.valkyrienskies.mod.compat.sodium.light.VsShipOccluderList;
+import org.valkyrienskies.mod.compat.sodium.light.VsWorldFromShipLightStorage;
+
+public final class VsDynamicLight {
+    private static final java.util.concurrent.atomic.AtomicLong LIGHTING_REVISION =
+        new java.util.concurrent.atomic.AtomicLong();
+
+    public static final int LIGHT_SECTIONS_TEXTURE_UNIT = 6;
+    public static final int LIGHT_LUT_TEXTURE_UNIT = 7;
+    public static final int WORLD_FROM_SHIP_SECTIONS_TEXTURE_UNIT = 10;
+    public static final int WORLD_FROM_SHIP_LUT_TEXTURE_UNIT = 11;
+    public static final int SHIP_EMITTER_LIST_TEXTURE_UNIT = 12;
+    public static final int SHIP_OCCLUDER_LIST_TEXTURE_UNIT = 13;
+
+    private static VsShipLightStorage lightStorage;
+    private static VsWorldFromShipLightStorage worldFromShipStorage;
+    private static VsShipEmitterList shipEmitterList;
+    private static VsShipOccluderList shipOccluderList;
+    private static final ShipGeometryCache<double[]> EMITTERS = new ShipGeometryCache<>();
+
+    private VsDynamicLight() {
+    }
+
+    public static VsShipLightStorage getLightStorage() {
+        if (lightStorage == null) {
+            lightStorage = new VsShipLightStorage();
+        }
+        return lightStorage;
+    }
+
+    public static VsWorldFromShipLightStorage getWorldFromShipStorage() {
+        if (worldFromShipStorage == null) {
+            worldFromShipStorage = new VsWorldFromShipLightStorage();
+        }
+        return worldFromShipStorage;
+    }
+
+    public static VsShipEmitterList getShipEmitterList() {
+        if (shipEmitterList == null) {
+            shipEmitterList = new VsShipEmitterList();
+        }
+        return shipEmitterList;
+    }
+
+    public static VsShipOccluderList getShipOccluderList() {
+        if (shipOccluderList == null) {
+            shipOccluderList = new VsShipOccluderList();
+        }
+        return shipOccluderList;
+    }
+
+    public static void deleteStorages() {
+        EMITTERS.clear();
+        ShipShadowRenderer.delete();
+        if (lightStorage != null) {
+            lightStorage.delete();
+            lightStorage = null;
+        }
+        if (worldFromShipStorage != null) {
+            worldFromShipStorage.delete();
+            worldFromShipStorage = null;
+        }
+        if (shipEmitterList != null) {
+            shipEmitterList.delete();
+            shipEmitterList = null;
+        }
+        if (shipOccluderList != null) {
+            shipOccluderList.delete();
+            shipOccluderList = null;
+        }
+    }
+
+    public static void invalidateShipEmitters(final long shipId) {
+        invalidateLightingRevision();
+        EMITTERS.invalidate(shipId);
+        ShipShadowRenderer.invalidate(shipId);
+        if (worldFromShipStorage != null) worldFromShipStorage.invalidateShipGeometry(shipId);
+    }
+
+    public static void invalidateLightingRevision() {
+        LIGHTING_REVISION.incrementAndGet();
+    }
+
+    public static long lightingRevision() {
+        return LIGHTING_REVISION.get();
+    }
+
+    public static void invalidateLightSection(final long section) {
+        if (lightStorage != null) lightStorage.invalidateSection(section);
+    }
+
+    public static void releaseDisabledResources() {
+        if (!VSGameConfig.CLIENT.getDynamicShipLighting() && lightStorage != null) {
+            lightStorage.delete();
+            lightStorage = null;
+        }
+        if (!VSGameConfig.CLIENT.isShipToWorldLightingEnabled()) {
+            EMITTERS.clear();
+            if (worldFromShipStorage != null) {
+                worldFromShipStorage.delete();
+                worldFromShipStorage = null;
+            }
+            if (shipEmitterList != null) {
+                shipEmitterList.delete();
+                shipEmitterList = null;
+            }
+            if (shipOccluderList != null) {
+                shipOccluderList.delete();
+                shipOccluderList = null;
+            }
+        }
+    }
+
+    /** Prepare one light list for all ship and world render paths. */
+    public static void prepareFrame(final ClientLevel level) {
+        ShipRenderConfig.update(level);
+        releaseDisabledResources();
+        ShipShadowRenderer.prepare(level);
+        if (level == null || !VSGameConfig.CLIENT.isShipToWorldLightingEnabled()) return;
+        EMITTERS.beginFrame(level);
+        final VsShipEmitterList list = getShipEmitterList();
+        list.beginFrame();
+        if (level != null) {
+            for (final ClientShip ship : VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips()) {
+                final double[] positions = EMITTERS.get(ship.getId(), ship.getShipAABB(),
+                    ship.getActiveChunksSet(), () -> VsShipEmitterList.scanShipEmitters(level, ship));
+                list.appendShipEmitters(ship, positions);
+            }
+        }
+        EMITTERS.endFrame();
+        list.upload();
+    }
+
+    public static void populateWorldLightForBatched(final ClientLevel level) {
+        if (level == null || !VSGameConfig.CLIENT.getDynamicShipLighting()) {
+            return;
+        }
+        // Sodium collects world light for every ship on the client tick.
+        if (ValkyrienCommonMixinConfigPlugin.getVSRenderer() == VSRenderer.SODIUM) return;
+        final VsShipLightStorage light = getLightStorage();
+        light.beginFrame();
+        light.beginSettleTick(level.getGameTime(), level.getLightEngine().hasLightWork());
+        for (final ClientShip ship : VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips()) {
+            if (!ShipRendererKt.getUsesBatchedRenderer(ship)) {
+                continue;
+            }
+            final AABBdc aabb = ship.getRenderAABB();
+            if (aabb != null) {
+                if (light.shipNeedsResettle(ship.getId())) {
+                    light.markAabbDirty(
+                        aabb.minX(), aabb.minY(), aabb.minZ(),
+                        aabb.maxX(), aabb.maxY(), aabb.maxZ());
+                }
+                light.requestSectionsInAabb(level,
+                    aabb.minX(), aabb.minY(), aabb.minZ(),
+                    aabb.maxX(), aabb.maxY(), aabb.maxZ());
+            }
+        }
+        light.pruneUnused();
+        light.upload();
+    }
+}

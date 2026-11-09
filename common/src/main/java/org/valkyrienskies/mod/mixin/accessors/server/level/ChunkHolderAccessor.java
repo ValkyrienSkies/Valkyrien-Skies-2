@@ -1,6 +1,6 @@
 package org.valkyrienskies.mod.mixin.accessors.server.level;
 
-import com.mojang.datafixers.util.Either;
+import net.minecraft.server.level.ChunkResult;
 import it.unimi.dsi.fastutil.shorts.ShortSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReferenceArray;
@@ -13,16 +13,10 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 @Mixin(ChunkHolder.class)
 public interface ChunkHolderAccessor {
     @Accessor("fullChunkFuture")
-    void setFullChunkFuture(CompletableFuture<Either<LevelChunk, ChunkHolder.ChunkLoadingFailure>> future);
+    void setFullChunkFuture(CompletableFuture<ChunkResult<LevelChunk>> future);
 
     @Accessor("fullChunkFuture")
-    CompletableFuture<Either<LevelChunk, ChunkHolder.ChunkLoadingFailure>> getFullChunkFuture();
-
-    @Accessor("futures")
-    AtomicReferenceArray<CompletableFuture<Either<ChunkAccess, ChunkHolder.ChunkLoadingFailure>>> getFutures();
-
-    @Accessor("chunkToSave")
-    CompletableFuture<? extends ChunkAccess> getChunkToSave();
+    CompletableFuture<ChunkResult<LevelChunk>> getFullChunkFuture();
 
     @Accessor("pendingFullStateConfirmation")
     CompletableFuture<Void> getPendingFullStateConfirmation();
