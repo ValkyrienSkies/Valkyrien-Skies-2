@@ -53,10 +53,10 @@ object EntityDragger {
                         entity.push(acceleration.x, acceleration.y, acceleration.z)
                     }
                     info.addedMovementLastTick = clipped
-                    val yaw = ShipDraggingMath.wrapDegrees(Math.toDegrees(
-                        ShipDraggingMath.shipYaw(ship.prevTickTransform.shipToWorldRotation) -
-                            ShipDraggingMath.shipYaw(ship.transform.shipToWorldRotation)
-                    ))
+                    val yaw = ShipDraggingMath.draggedYaw(
+                        ship.prevTickTransform.shipToWorldRotation, ship.transform.shipToWorldRotation,
+                        entity.yRot.toDouble()
+                    )
                     entity.yRot += yaw.toFloat()
                     entity.yHeadRot += yaw.toFloat()
                     if (entity is LivingEntity) entity.yBodyRot += yaw.toFloat()

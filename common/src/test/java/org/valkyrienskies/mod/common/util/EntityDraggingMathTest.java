@@ -11,6 +11,41 @@ import org.junit.jupiter.api.Test;
 
 class EntityDraggingMathTest {
     @Test
+    void rockingAcrossVerticalDoesNotFlipPlayerYaw() {
+        final Quaterniond previous = new Quaterniond().rotateX(Math.toRadians(89));
+        final Quaterniond current = new Quaterniond().rotateX(Math.toRadians(91));
+        assertEquals(0, ShipDraggingMath.draggedYaw(previous, current, 0), 1e-10);
+        for (double yaw : new double[] {-179, -90, -45, 0, 45, 90, 179}) {
+            assertTrue(Math.abs(ShipDraggingMath.draggedYaw(previous, current, yaw)) < 0.1);
+        }
+    }
+
+    @Test
+    void dragYawDoesNotDependOnShipAssemblyOrientation() {
+        final Quaterniond previous = new Quaterniond().rotateX(Math.toRadians(90));
+        final Quaterniond delta = new Quaterniond().rotateY(Math.toRadians(3)).rotateZ(Math.toRadians(2));
+        final Quaterniond current = new Quaterniond(delta).mul(previous);
+        for (double yaw : new double[] {-179, -90, 0, 45, 179}) {
+            assertEquals(ShipDraggingMath.draggedYaw(new Quaterniond(), delta, yaw),
+                ShipDraggingMath.draggedYaw(previous, current, yaw), 1e-10);
+        }
+    }
+
+    @Test
+    void dragYawPreservesTurningDirectionAcrossAngleWrap() {
+        for (double yaw : new double[] {-179, 0, 179, 720}) {
+            assertEquals(-10, ShipDraggingMath.draggedYaw(new Quaterniond(),
+                new Quaterniond().rotateY(Math.toRadians(10)), yaw), 1e-10);
+        }
+    }
+
+    @Test
+    void verticalDraggedLookKeepsPreviousYaw() {
+        assertEquals(0, ShipDraggingMath.draggedYaw(new Quaterniond(),
+            new Quaterniond().rotateX(Math.toRadians(90)), 0), 1e-10);
+    }
+
+    @Test
     void wallsAndCeilingsDoNotCountAsLandingOnWorldTerrain() {
         assertFalse(ShipDraggingMath.landedOnWorld(new Vector3d(1, -0.08, 0), new Vector3d(0, -0.08, 0)));
         assertFalse(ShipDraggingMath.landedOnWorld(new Vector3d(0, 1, 0), new Vector3d()));
