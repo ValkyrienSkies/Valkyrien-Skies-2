@@ -101,13 +101,16 @@ object VdexWrapper {
         val pastePos: Vector3dc = position
         val pasteRot = rotation
 
-        // Used for joints and ICopyableBlocks
+        // Used for joints
+        val indexToShip = mutableMapOf<Int, ServerShip>()
+
+        // Used for ICopyableBlocks
         val oldIdToNewShip = mutableMapOf<Long, ServerShip>()
         val oldIdToOldCenter = mutableMapOf<Long, Vector3dc>()
 
         // Assemble all the ships and store their new ids
         // This does not paste their structure data just yet
-        schem.metadata.ships.forEach { vdexShipEntry ->
+        schem.metadata.ships.forEachIndexed { index, vdexShipEntry ->
             val worldPos = Vector3d(vdexShipEntry.relativePos)
                 .rotate(pasteRot)
                 .add(pastePos)
@@ -122,6 +125,7 @@ object VdexWrapper {
                 level.dimensionId
             )
 
+            indexToShip[index] = ship
             oldIdToNewShip[vdexShipEntry.previousId] = ship
             oldIdToOldCenter[vdexShipEntry.previousId] = vdexShipEntry.previousCenter
 
@@ -141,10 +145,8 @@ object VdexWrapper {
             shipsNeedingAttachmentLoad.put(ship.id, vdexShipEntry.attachedData)
         }
 
-        // Put it into a map that ICopyableBlock expects
+        // Put them into maps that ICopyableBlock expects
         val oldIdToNewId: Map<Long, Long> = oldIdToNewShip.mapValues { it.value.id }
-
-
         val newCenters = oldIdToNewShip.values.toList().centerPositions(level, false)
 
         // basically just store (oldId, (oldCenter, newCenter))
@@ -197,8 +199,8 @@ object VdexWrapper {
             val joint = pair.joint
             val meta = pair.metadata
 
-            val ship0 = oldIdToNewShip[meta.shipIndex0] ?: return@forEach
-            val ship1 = oldIdToNewShip[meta.shipIndex1] ?: return@forEach
+            val ship0 = indexToShip[meta.shipIndex0] ?: return@forEach
+            val ship1 = indexToShip[meta.shipIndex1] ?: return@forEach
 
             val newPos0 = ship0.shipAABB?.center(Vector3d())?.add(meta.position0offset, Vector3d()) ?: return@forEach
             val newRot0 = joint.pose0.rot
@@ -316,6 +318,12 @@ object VdexWrapper {
             ))
         }
 
+        // Build ship ID -> index map for constraint references
+        val shipIdToIndex = mutableMapOf<Long, Int>()
+        for (idx in orderedShips.indices) {
+            shipIdToIndex[orderedShips[idx].id] = idx
+        }
+
         // Collect constraints between ships in the set
         val constraintEntries = mutableListOf<VdexConstraintEntry>()
         val seenJoints = mutableSetOf<Any>()
@@ -325,8 +333,8 @@ object VdexWrapper {
                 //println("test")
                 if (!seenJoints.add(jointId)) continue
                 val joint = gtpa.getJointById(jointId) ?: continue
-                val idx0 = joint.shipId0 ?: continue
-                val idx1 = joint.shipId1 ?: continue
+                val idx0 = shipIdToIndex[joint.shipId0] ?: continue
+                val idx1 = shipIdToIndex[joint.shipId1] ?: continue
 
                 // We can't rely on our ship iterator here because it could be either ship0 OR ship1
                 val firstShip = level.shipObjectWorld.allShips.getById(joint.shipId0!!)!!
@@ -351,10 +359,11 @@ object VdexWrapper {
         )
 
         val metadata = VdexMetadata(
-            version = 2,
+            version = 1,
             social = socialMetadata,
             ships = shipEntries,
-            constraints = constraintEntries
+            constraints = constraintEntries,
+            shipIdToIndex = shipIdToIndex
         )
 
         val modList = mutableListOf(
