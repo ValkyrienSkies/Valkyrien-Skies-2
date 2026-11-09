@@ -96,7 +96,8 @@ dependencies {
     modCompileOnly("maven.modrinth:entity-model-features:3.0.7-fabric-1.20.1")
     modCompileOnly("maven.modrinth:entitytexturefeatures:7.0.6-fabric-1.20.1")
 
-    modCompileOnly("curse.maven:vista-1368607:7929284")
+    // Vista common APIs are Mojang-mapped in the 1.21.1 NeoForge artifact.
+    compileOnly("curse.maven:vista-1368607:${rootProject.vista_neoforge_file}") { transitive = false }
 
     // Create compat
     // modCompileOnly("com.simibubi.create:create-fabric-${minecraft_version}:${create_fabric_version}") {

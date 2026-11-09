@@ -3,7 +3,6 @@ package org.valkyrienskies.mod.common.render.batched;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 
 final class OffsetVertexConsumer implements VertexConsumer {
-
     private VertexConsumer delegate;
     private double dx;
     private double dy;
@@ -18,56 +17,41 @@ final class OffsetVertexConsumer implements VertexConsumer {
     }
 
     @Override
-    public VertexConsumer vertex(final double x, final double y, final double z) {
-        // Returns the delegate so the chained color()/uv()/... calls (which need no offset) skip this wrapper.
-        return delegate.vertex(x + dx, y + dy, z + dz);
+    public VertexConsumer addVertex(final float x, final float y, final float z) {
+        // Attribute setters can bypass this wrapper: only positions need an offset.
+        return delegate.addVertex((float) (x + dx), (float) (y + dy), (float) (z + dz));
     }
 
     @Override
-    public void vertex(final float x, final float y, final float z, final float red, final float green,
-        final float blue, final float alpha, final float texU, final float texV, final int overlayUV,
-        final int lightmapUV, final float normalX, final float normalY, final float normalZ) {
-        delegate.vertex((float) (x + dx), (float) (y + dy), (float) (z + dz), red, green, blue, alpha,
-            texU, texV, overlayUV, lightmapUV, normalX, normalY, normalZ);
+    public void addVertex(final float x, final float y, final float z, final int color,
+        final float u, final float v, final int overlay, final int light,
+        final float normalX, final float normalY, final float normalZ) {
+        delegate.addVertex((float) (x + dx), (float) (y + dy), (float) (z + dz), color,
+            u, v, overlay, light, normalX, normalY, normalZ);
     }
 
     @Override
-    public VertexConsumer color(final int red, final int green, final int blue, final int alpha) {
-        return delegate.color(red, green, blue, alpha);
+    public VertexConsumer setColor(final int red, final int green, final int blue, final int alpha) {
+        return delegate.setColor(red, green, blue, alpha);
     }
 
     @Override
-    public VertexConsumer uv(final float u, final float v) {
-        return delegate.uv(u, v);
+    public VertexConsumer setUv(final float u, final float v) {
+        return delegate.setUv(u, v);
     }
 
     @Override
-    public VertexConsumer overlayCoords(final int u, final int v) {
-        return delegate.overlayCoords(u, v);
+    public VertexConsumer setUv1(final int u, final int v) {
+        return delegate.setUv1(u, v);
     }
 
     @Override
-    public VertexConsumer uv2(final int u, final int v) {
-        return delegate.uv2(u, v);
+    public VertexConsumer setUv2(final int u, final int v) {
+        return delegate.setUv2(u, v);
     }
 
     @Override
-    public VertexConsumer normal(final float x, final float y, final float z) {
-        return delegate.normal(x, y, z);
-    }
-
-    @Override
-    public void endVertex() {
-        delegate.endVertex();
-    }
-
-    @Override
-    public void defaultColor(final int red, final int green, final int blue, final int alpha) {
-        delegate.defaultColor(red, green, blue, alpha);
-    }
-
-    @Override
-    public void unsetDefaultColor() {
-        delegate.unsetDefaultColor();
+    public VertexConsumer setNormal(final float x, final float y, final float z) {
+        return delegate.setNormal(x, y, z);
     }
 }

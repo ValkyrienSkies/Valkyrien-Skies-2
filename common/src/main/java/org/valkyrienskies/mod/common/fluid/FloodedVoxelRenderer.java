@@ -121,8 +121,8 @@ public final class FloodedVoxelRenderer {
         final float localZ0 = (float) (box.minZ - Math.floor(box.minZ));
         final float localZ1 = localZ0 + (float) box.getZsize();
         final float textureBaseY = (float) (Math.floor(box.minY) - origin.y());
-        final float u0 = still.getU(localX0 * 16), u1 = still.getU(localX1 * 16);
-        final float v0 = still.getV(localZ0 * 16), v1 = still.getV(localZ1 * 16);
+        final float u0 = still.getU(localX0), u1 = still.getU(localX1);
+        final float v0 = still.getV(localZ0), v1 = still.getV(localZ1);
         final float x0 = (float) (box.minX - origin.x() + INSET), x1 = (float) (box.maxX - origin.x() - INSET);
         final float y0 = (float) (box.minY - origin.y() + inset), y1 = (float) (box.maxY - origin.y() - inset);
         final float z0 = (float) (box.minZ - origin.z() + INSET), z1 = (float) (box.maxZ - origin.z() - INSET);
@@ -190,10 +190,10 @@ public final class FloodedVoxelRenderer {
         final float topHeight = Mth.clamp(y1 - blockBaseY, 0.0F, 1.0F);
         final float bottomHeight =
             Mth.clamp(exposedY0 - blockBaseY, 0.0F, topHeight);
-        final float u0 = sprite.getU(textureU0);
-        final float u1 = sprite.getU(textureU1);
-        final float vTop = sprite.getV((1.0F - topHeight) * 8.0F);
-        final float vBottom = sprite.getV((1.0F - bottomHeight) * 8.0F);
+        final float u0 = sprite.getU(textureU0 / 16.0F);
+        final float u1 = sprite.getU(textureU1 / 16.0F);
+        final float vTop = sprite.getV((1.0F - topHeight) * 0.5F);
+        final float vBottom = sprite.getV((1.0F - bottomHeight) * 0.5F);
         if (positive) {
             texturedQuad(matrix, normalMatrix, consumer, red, green, blue, alpha, packedLight,
                 x, exposedY0, z1, u1, vBottom,
@@ -240,10 +240,10 @@ public final class FloodedVoxelRenderer {
         final float topHeight = Mth.clamp(y1 - blockBaseY, 0.0F, 1.0F);
         final float bottomHeight =
             Mth.clamp(exposedY0 - blockBaseY, 0.0F, topHeight);
-        final float u0 = sprite.getU(textureU0);
-        final float u1 = sprite.getU(textureU1);
-        final float vTop = sprite.getV((1.0F - topHeight) * 8.0F);
-        final float vBottom = sprite.getV((1.0F - bottomHeight) * 8.0F);
+        final float u0 = sprite.getU(textureU0 / 16.0F);
+        final float u1 = sprite.getU(textureU1 / 16.0F);
+        final float vTop = sprite.getV((1.0F - topHeight) * 0.5F);
+        final float vBottom = sprite.getV((1.0F - bottomHeight) * 0.5F);
         if (positive) {
             texturedQuad(matrix, normalMatrix, consumer, red, green, blue, alpha, packedLight,
                 x0, exposedY0, z, u0, vBottom,
@@ -312,12 +312,11 @@ public final class FloodedVoxelRenderer {
         final float normalY,
         final float normalZ
     ) {
-        consumer.vertex(matrix, x, y, z)
-            .color(red, green, blue, alpha)
-            .uv(u, v)
-            .overlayCoords(0, 0)
-            .uv2(packedLight)
-            .normal(normalX, normalY, normalZ)
-            .endVertex();
+        consumer.addVertex(matrix, x, y, z)
+            .setColor(red, green, blue, alpha)
+            .setUv(u, v)
+            .setUv1(0, 0)
+            .setLight(packedLight)
+            .setNormal(normalX, normalY, normalZ);
     }
 }

@@ -57,7 +57,8 @@ public final class NativeFluidCompat {
         final int x, final int y, final int z) {
         final var ids = WorldRenderingSettings.INSTANCE.getBlockStateIds();
         final int id = fluid == null || ids == null ? -1 : ids.getInt(fluid.createLegacyBlock());
-        ((BlockSensitiveBufferBuilder) builder).beginBlock((short) id, (short) 1, x, y, z);
+        ((BlockSensitiveBufferBuilder) builder).beginBlock(id, (byte) 1,
+            (byte) (fluid == null ? 0 : fluid.createLegacyBlock().getLightEmission()), x, y, z);
     }
 
     public static void endFluid(final BufferBuilder builder) {
@@ -66,7 +67,7 @@ public final class NativeFluidCompat {
 
     public static void interfaceFace(final BufferBuilder builder, final boolean value) {
         final var extended = (net.irisshaders.iris.vertices.IrisExtendedBufferBuilder) builder;
-        ((BlockSensitiveBufferBuilder) builder).beginBlock(extended.iris$currentBlock(), (short) (value ? 2 : 1),
+        ((BlockSensitiveBufferBuilder) builder).beginBlock(extended.iris$currentBlock(), (byte) (value ? 2 : 1), (byte) 0,
             extended.iris$currentLocalPosX(), extended.iris$currentLocalPosY(), extended.iris$currentLocalPosZ());
     }
 

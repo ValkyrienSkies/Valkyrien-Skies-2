@@ -7,6 +7,7 @@ import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.core.Vec3i;
+import net.minecraft.util.FastColor;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
@@ -16,9 +17,8 @@ import org.spongepowered.asm.mixin.Mixin;
 @Mixin(VertexConsumer.class)
 public interface MixinVertexConsumer {
     // Our ridiculously bright shade has made it through and now will be passed to shader as Color.a = 0.
-    // Sadly, the Mixin version used in Forge 1.20.1 does not support injecting into default interfaces.
-    // Mostly a copy of the original method. Will need an updated once we switch versions.
-    default void putBulkData(PoseStack.Pose pose, BakedQuad bakedQuad, float[] fs, float f, float g, float h, int[] is,
+    // Preserve the no-shade marker while emitting 1.21 packed-ARGB vertices.
+    default void putBulkData(PoseStack.Pose pose, BakedQuad bakedQuad, float[] fs, float f, float g, float h, float alpha, int[] is,
         int i, boolean bl) {
         float[] gs = new float[] {fs[0], fs[1], fs[2], fs[3]};
         int[] js = new int[] {is[0], is[1], is[2], is[3]};
@@ -68,7 +68,10 @@ public interface MixinVertexConsumer {
                 float r = byteBuffer.getFloat(20);
                 Vector4f vector4f = matrix4f.transform(new Vector4f(m, n, o, 1.0F));
                 // The vertex is colored as alpha = 0, which is used in shader as a "no shade" marker.
-                ((VertexConsumer)this).vertex(vector4f.x(), vector4f.y(), vector4f.z(), s, t, u, smuggledNoShade ? 0f : 1f, q, r, i, v, vector3f.x(),
+                ((VertexConsumer)this).addVertex(vector4f.x(), vector4f.y(), vector4f.z(),
+                    FastColor.ARGB32.color(smuggledNoShade ? 0 : (int) (alpha * 255.0F),
+                        (int) (s * 255.0F), (int) (t * 255.0F), (int) (u * 255.0F)),
+                    q, r, i, v, vector3f.x(),
                     vector3f.y(), vector3f.z());
             }
         }

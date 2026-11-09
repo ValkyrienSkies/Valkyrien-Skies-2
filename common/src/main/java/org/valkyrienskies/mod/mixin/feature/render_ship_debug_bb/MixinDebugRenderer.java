@@ -558,12 +558,12 @@ public class MixinDebugRenderer {
         final float dy = (float) (y1 - y0);
         final float dz = (float) (z1 - z0);
 
-        vertexConsumer.vertex(m4, (float) x0, (float) y0, (float) z0)
-            .color(r, g, b, alpha)
-            .normal(m3, dx, dy, dz).endVertex();
-        vertexConsumer.vertex(m4, (float) x1, (float) y1, (float) z1)
-            .color(r, g, b, alpha)
-            .normal(m3, dx, dy, dz).endVertex();
+        vertexConsumer.addVertex(m4, (float) x0, (float) y0, (float) z0)
+            .setColor(r, g, b, alpha)
+            .setNormal(poseStack.last(), dx, dy, dz);
+        vertexConsumer.addVertex(m4, (float) x1, (float) y1, (float) z1)
+            .setColor(r, g, b, alpha)
+            .setNormal(poseStack.last(), dx, dy, dz);
     }
 
     @Unique
@@ -577,12 +577,12 @@ public class MixinDebugRenderer {
             Math.min(Math.max(-cap, force.z() * scale), cap)
         );
 
-        vertexConsumer.vertex(m4, (float) pos.x(), (float) pos.y(), (float) pos.z())
-            .color(r, g, b, alpha)
-            .normal(m3, (float) diff.x, (float) diff.y, (float) diff.z).endVertex();
-        vertexConsumer.vertex(m4, (float) (pos.x() + diff.x), (float) (pos.y() + diff.y), (float) (pos.z() + diff.z))
-            .color(1.0F, 1.0F, 1.0F, 0.0F) // Fade out effect for force lines to stand out against AABBs and gizmos
-            .normal(m3, (float) diff.x, (float) diff.y, (float) diff.z).endVertex();
+        vertexConsumer.addVertex(m4, (float) pos.x(), (float) pos.y(), (float) pos.z())
+            .setColor(r, g, b, alpha)
+            .setNormal(poseStack.last(), (float) diff.x, (float) diff.y, (float) diff.z);
+        vertexConsumer.addVertex(m4, (float) (pos.x() + diff.x), (float) (pos.y() + diff.y), (float) (pos.z() + diff.z))
+            .setColor(1.0F, 1.0F, 1.0F, 0.0F) // Fade out effect for force lines to stand out against AABBs and gizmos
+            .setNormal(poseStack.last(), (float) diff.x, (float) diff.y, (float) diff.z);
     }
 
     @Unique
@@ -615,12 +615,12 @@ public class MixinDebugRenderer {
             float dx = b.x - a.x;
             float dy = b.y - a.y;
             float dz = b.z - a.z;
-            vertexConsumer.vertex(m4, a.x, a.y, a.z)
-                .color(color.x, color.y, color.z, alpha)
-                .normal(m3, dx, dy, dz).endVertex();
-            vertexConsumer.vertex(m4, b.x, b.y, b.z)
-                .color(color.x, color.y, color.z, alpha)
-                .normal(m3, dx, dy, dz).endVertex();
+            vertexConsumer.addVertex(m4, a.x, a.y, a.z)
+                .setColor(color.x, color.y, color.z, alpha)
+                .setNormal(poseStack.last(), dx, dy, dz);
+            vertexConsumer.addVertex(m4, b.x, b.y, b.z)
+                .setColor(color.x, color.y, color.z, alpha)
+                .setNormal(poseStack.last(), dx, dy, dz);
         };
 
         color.set(1, 0, 0);

@@ -2,6 +2,8 @@ package org.valkyrienskies.mod.common.fluid;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.ByteBufferBuilder;
+import com.mojang.blaze3d.vertex.MeshData;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexBuffer;
@@ -37,7 +39,13 @@ import org.valkyrienskies.mod.compat.flooding.shaders.NativeFluidCompat;
 
 public final class RetainedFluidRenderer {
     private static final Map<Long, ShipMeshes> SHIPS = new HashMap<>();
-    private static final BufferBuilder BUILDER = new BufferBuilder(256 * 1024);
+    private static ByteBufferBuilder storage;
+    private static BufferBuilder builder;
+
+    private static ByteBufferBuilder storage() {
+        if (storage == null) storage = new ByteBufferBuilder(256 * 1024);
+        return storage;
+    }
     private static final Matrix4f IDENTITY = new Matrix4f();
     private static final Matrix3f NORMAL = new Matrix3f();
     private static final int[][] NEIGHBORS = {{-1, 0, 0}, {1, 0, 0}, {0, -1, 0}, {0, 1, 0}, {0, 0, -1}, {0, 0, 1}};
@@ -59,6 +67,8 @@ public final class RetainedFluidRenderer {
         shaderFrame = null;
         for (final var ship : SHIPS.values()) ship.close();
         SHIPS.clear();
+        if (storage != null) { storage.close(); storage = null; }
+        builder = null;
         lastLevel = null;
         lastWorld = null;
     }
@@ -149,7 +159,7 @@ public final class RetainedFluidRenderer {
         shaderFrame = null;
         if (frame == null) return;
         final var pose = new PoseStack();
-        pose.mulPoseMatrix(frame.view);
+        pose.mulPose(frame.view);
         renderingShaderFrame = true;
         opaquePass = opaque;
         try { render(pose, frame.world, frame.x, frame.y, frame.z); }
@@ -316,7 +326,7 @@ public final class RetainedFluidRenderer {
         private boolean built;
         private boolean packFormat;
         private VertexBuffer buffer;
-        private BufferBuilder.SortState sortState;
+        private MeshData.SortState sortState;
         private final Vector3d lastCamera = new Vector3d(Double.NaN);
 
         private final boolean opaque;
@@ -329,49 +339,55 @@ public final class RetainedFluidRenderer {
             final boolean nativeMaterial = LoadedMods.getIris() && NativeFluidCompat.active();
             if (built && packFormat == nativeMaterial && (buffer == null || !buffer.isInvalid()) && cells.equals(next)) return;
             packFormat = nativeMaterial;
-            BUILDER.begin(VertexFormat.Mode.QUADS, packFormat ? DefaultVertexFormat.BLOCK : DefaultVertexFormat.NEW_ENTITY);
+            builder = new BufferBuilder(storage(), VertexFormat.Mode.QUADS,
+                packFormat ? DefaultVertexFormat.BLOCK : DefaultVertexFormat.NEW_ENTITY);
             try {
                 for (final var cell : next) {
                     final var a = cell.appearance;
                     if (packFormat) {
                         final var fluid = ClientFluidTypes.get(cell.surface == null ? cell.voxel.getFluidId()
                             : FluidVoxelGeometry.dominantFluid(cell.surface, true));
-                        NativeFluidCompat.beginFluid(BUILDER, fluid == null ? null : fluid.defaultFluidState(),
+                        NativeFluidCompat.beginFluid(builder, fluid == null ? null : fluid.defaultFluidState(),
                             cell.voxel.getPositionX() & 15, cell.voxel.getPositionY() & 15, cell.voxel.getPositionZ() & 15);
                     }
                     if (cell.surface != null) renderSurface(cell, origin);
-                    else if (cell.box == null) FloodedVoxelRenderer.renderExposedFaces(IDENTITY, NORMAL, BUILDER,
+                    else if (cell.box == null) FloodedVoxelRenderer.renderExposedFaces(IDENTITY, NORMAL, builder,
                         flooding, cell.voxel, origin, a.red(), a.green(), a.blue(), cell.light, false, a.still(), a.flowing(), a.alpha());
-                    else FloodedVoxelRenderer.renderPartialBox(IDENTITY, NORMAL, BUILDER, cell.box, origin,
+                    else FloodedVoxelRenderer.renderPartialBox(IDENTITY, NORMAL, builder, cell.box, origin,
                         a.red(), a.green(), a.blue(), a.alpha(), cell.light, a.still(), a.flowing());
                 }
-                if (BUILDER.isCurrentBatchEmpty()) {
-                    BUILDER.endOrDiscardIfEmpty(); close(); cells = List.copyOf(next); built = true; return;
+                final MeshData rendered = builder.build();
+                if (rendered == null) {
+                    close(); cells = List.copyOf(next); built = true; return;
                 }
-                BUILDER.setQuadSorting(VertexSorting.DISTANCE_TO_ORIGIN);
-                final var nextSort = BUILDER.getSortState();
-                final var rendered = BUILDER.end();
-                final var replacement = new VertexBuffer(VertexBuffer.Usage.STATIC);
-                try { replacement.bind(); replacement.upload(rendered); }
-                catch (final RuntimeException failure) { replacement.close(); throw failure; }
-                finally { VertexBuffer.unbind(); }
-                close(); buffer = replacement; sortState = nextSort; cells = List.copyOf(next);
-                for (final var cell : next) { sprites.add(cell.appearance.still()); sprites.add(cell.appearance.flowing()); }
-                built = true;
+                try (rendered) {
+                    final var nextSort = rendered.sortQuads(storage(), VertexSorting.DISTANCE_TO_ORIGIN);
+                    final var replacement = new VertexBuffer(VertexBuffer.Usage.STATIC);
+                    try { replacement.bind(); replacement.upload(rendered); }
+                    catch (final RuntimeException failure) { replacement.close(); throw failure; }
+                    finally { VertexBuffer.unbind(); }
+                    close(); buffer = replacement; sortState = nextSort; cells = List.copyOf(next);
+                    for (final var cell : next) { sprites.add(cell.appearance.still()); sprites.add(cell.appearance.flowing()); }
+                    built = true;
+                }
             } finally {
-                if (packFormat) NativeFluidCompat.endFluid(BUILDER);
-                if (BUILDER.building()) BUILDER.discard();
+                if (packFormat) NativeFluidCompat.endFluid(builder);
+                builder = null;
+                storage().clear();
             }
         }
 
         void sort(final Vector3d camera) {
             if (buffer == null || lastCamera.equals(camera)) return;
-            BUILDER.begin(VertexFormat.Mode.QUADS, packFormat ? DefaultVertexFormat.BLOCK : DefaultVertexFormat.NEW_ENTITY);
-            BUILDER.restoreSortState(sortState);
-            BUILDER.setQuadSorting(VertexSorting.byDistance((float) (camera.x - origin.x),
-                (float) (camera.y - origin.y), (float) (camera.z - origin.z)));
-            try { buffer.bind(); buffer.upload(BUILDER.end()); lastCamera.set(camera); }
-            finally { VertexBuffer.unbind(); if (BUILDER.building()) BUILDER.discard(); }
+            try (final var sorted = sortState.buildSortedIndexBuffer(storage(), VertexSorting.byDistance(
+                (float) (camera.x - origin.x), (float) (camera.y - origin.y), (float) (camera.z - origin.z)))) {
+                buffer.bind();
+                buffer.uploadIndexBuffer(sorted);
+                lastCamera.set(camera);
+            } finally {
+                VertexBuffer.unbind();
+                storage().clear();
+            }
         }
 
         @Override public void close() {
@@ -411,7 +427,7 @@ public final class RetainedFluidRenderer {
         final double textureScale = top ? 16 : 8;
         for (final var piece : FluidInterfaceGeometry.partition(cell, face, normal, includeSelf)) {
             if (LoadedMods.getIris() && NativeFluidCompat.active())
-                NativeFluidCompat.interfaceFace(BUILDER, piece.interfaceFace());
+                NativeFluidCompat.interfaceFace(builder, piece.interfaceFace());
             final var points = piece.points();
             for (int i = 1; i + 1 < points.size(); i++) {
                 for (final int index : new int[]{0, i, i + 1, i + 1}) {
@@ -419,12 +435,13 @@ public final class RetainedFluidRenderer {
                     final var vertexNormal = normals.isEmpty() ? normal : interpolatedNormal(p, face, normals);
                     final double u = !horizontal && Math.abs(textureX) > Math.abs(textureZ) ? p.z : p.x;
                     final double v = horizontal ? p.z : 1.0 - p.y;
-                    BUILDER.vertex(p.x + cell.voxel.getPositionX() - origin.x,
-                            p.y + cell.voxel.getPositionY() - origin.y, p.z + cell.voxel.getPositionZ() - origin.z)
-                        .color(a.red(), a.green(), a.blue(), a.alpha())
-                        .uv(sprite.getU(u * textureScale), sprite.getV(v * textureScale))
-                        .overlayCoords(piece.interfaceFace() ? 1 : 0, 0).uv2(cell.light)
-                        .normal((float) vertexNormal.x, (float) vertexNormal.y, (float) vertexNormal.z).endVertex();
+                    builder.addVertex((float) (p.x + cell.voxel.getPositionX() - origin.x),
+                            (float) (p.y + cell.voxel.getPositionY() - origin.y),
+                            (float) (p.z + cell.voxel.getPositionZ() - origin.z))
+                        .setColor(a.red(), a.green(), a.blue(), a.alpha())
+                        .setUv(sprite.getU((float) (u * textureScale / 16.0)), sprite.getV((float) (v * textureScale / 16.0)))
+                        .setUv1(piece.interfaceFace() ? 1 : 0, 0).setLight(cell.light)
+                        .setNormal((float) vertexNormal.x, (float) vertexNormal.y, (float) vertexNormal.z);
                 }
             }
         }

@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.common.render.batched;
 
 import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.MeshData;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexBuffer;
@@ -10,9 +11,11 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongList;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.Map;
 import java.util.Set;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.renderer.ChunkBufferBuilderPack;
+import net.minecraft.client.renderer.SectionBufferBuilderPack;
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
@@ -32,7 +35,8 @@ public final class ShipSectionCompiler {
 
     private static final int TRANSLUCENT_LAYER_INDEX = ShipSectionMesh.layerIndex(RenderType.translucent());
 
-    private final ChunkBufferBuilderPack buffers = new ChunkBufferBuilderPack();
+    private final SectionBufferBuilderPack buffers = new SectionBufferBuilderPack();
+    private final Map<RenderType, BufferBuilder> builders = new IdentityHashMap<>();
     private final RandomSource random = RandomSource.create();
     private final BlockPos.MutableBlockPos scratchPos = new BlockPos.MutableBlockPos();
     private final ShipShadeRemovingGetter shadeRemovingView = new ShipShadeRemovingGetter();
@@ -92,7 +96,7 @@ public final class ShipSectionCompiler {
                                 final RenderType fluidLayer = ItemBlockRenderTypes.getRenderLayer(fluid);
                                 if (fluidLayer == translucentLayer) {
                                     final BufferBuilder builder =
-                                        beginSectionTranslucent(translucentLayer, startedTranslucent);
+                                        beginSectionTranslucent(translucentLayer);
                                     startedTranslucent = true;
                                     dispatcher.renderLiquid(scratchPos, renderView, builder, state, fluid);
                                 } else {
@@ -110,7 +114,7 @@ public final class ShipSectionCompiler {
                                     .getRenderTypes(dispatcher, state, random, modelData)) {
                                     if (blockLayer == translucentLayer) {
                                         final BufferBuilder builder =
-                                            beginSectionTranslucent(translucentLayer, startedTranslucent);
+                                            beginSectionTranslucent(translucentLayer);
                                         startedTranslucent = true;
                                         poseStack.pushPose();
                                         poseStack.translate(lx, ly, lz);
@@ -132,8 +136,8 @@ public final class ShipSectionCompiler {
                 }
 
                 if (startedTranslucent) {
-                    final BufferBuilder builder = buffers.builder(translucentLayer);
-                    final BufferBuilder.RenderedBuffer rendered = builder.endOrDiscardIfEmpty();
+                    final BufferBuilder builder = builders.remove(translucentLayer);
+                    final MeshData rendered = builder.build();
                     if (rendered != null) {
                         final VertexBuffer vb = new VertexBuffer(VertexBuffer.Usage.STATIC);
                         vb.bind();
@@ -148,13 +152,13 @@ public final class ShipSectionCompiler {
             final VertexBuffer[] opaque = new VertexBuffer[ShipSectionMesh.CHUNK_LAYERS.length];
             for (final RenderType layer : startedOpaque) {
                 final int layerIndex = ShipSectionMesh.layerIndex(layer);
-                final BufferBuilder builder = buffers.builder(layer);
-                final BufferBuilder.RenderedBuffer rendered = builder.endOrDiscardIfEmpty();
+                final BufferBuilder builder = builders.get(layer);
+                final MeshData rendered = builder.build();
                 if (rendered == null) {
                     continue;
                 }
                 if (layerIndex < 0) {
-                    rendered.release();
+                    rendered.close();
                     continue;
                 }
                 final VertexBuffer vb = new VertexBuffer(VertexBuffer.Usage.STATIC);
@@ -167,22 +171,19 @@ public final class ShipSectionCompiler {
             return new ShipMesh(opaque, translucentSections, refX, refY, refZ);
         } finally {
             ModelBlockRenderer.clearCache();
+            builders.clear();
+            buffers.clearAll();
         }
     }
 
     private BufferBuilder beginOpaque(final RenderType layer, final Set<RenderType> startedOpaque) {
-        final BufferBuilder builder = buffers.builder(layer);
-        if (startedOpaque.add(layer)) {
-            builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK);
-        }
-        return builder;
+        startedOpaque.add(layer);
+        return builders.computeIfAbsent(layer,
+            key -> new BufferBuilder(buffers.buffer(key), VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK));
     }
 
-    private BufferBuilder beginSectionTranslucent(final RenderType translucentLayer, final boolean alreadyStarted) {
-        final BufferBuilder builder = buffers.builder(translucentLayer);
-        if (!alreadyStarted) {
-            builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK);
-        }
-        return builder;
+    private BufferBuilder beginSectionTranslucent(final RenderType layer) {
+        return builders.computeIfAbsent(layer,
+            key -> new BufferBuilder(buffers.buffer(key), VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK));
     }
 }

@@ -21,10 +21,9 @@ class VSPhysicsEntityModel<T : Mob>(root: ModelPart) :
     private val bb_main: ModelPart = root.getChild("bb_main")
 
     override fun renderToBuffer(
-        poseStack: PoseStack, vertexConsumer: VertexConsumer, packedLight: Int, packedOverlay: Int, red: Float,
-        green: Float, blue: Float, alpha: Float
+        poseStack: PoseStack, vertexConsumer: VertexConsumer, packedLight: Int, packedOverlay: Int, color: Int
     ) {
-        bb_main.render(poseStack, vertexConsumer, packedLight, packedOverlay, red, green, blue, alpha)
+        bb_main.render(poseStack, vertexConsumer, packedLight, packedOverlay, color)
     }
 
     override fun setupAnim(entity: T, f: Float, g: Float, h: Float, i: Float, j: Float) {

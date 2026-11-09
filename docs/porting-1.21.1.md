@@ -1,6 +1,6 @@
 # 1.21.1 playtest integration checkpoint
 
-Status: initial local merge and source adaptation, **not a working or validated playtest build**.
+Status: local merge plus rendering/entity API adaptation, **not a working or validated playtest build**.
 
 ## Inputs
 
@@ -21,6 +21,16 @@ Status: initial local merge and source adaptation, **not a working or validated 
 - Port tool selection storage to CUSTOM_DATA and block-entity save/load calls to registry-aware APIs.
 - Keep source removals/moves made by current playtest; retain the 1.21-specific generation-holder and Immersive Portals hooks. Deduplicate mixin registrations and remove references to source files removed by the merge.
 
+## Follow-up port changes
+
+- Migrate retained-water, droplet, flooded-voxel, batched-ship, and debug rendering to the 1.21 `VertexConsumer` setters and packed vertex API.
+- Replace persistent `BufferBuilder` reuse with `ByteBufferBuilder` storage and per-batch builders. Upload `MeshData`, retain its centroid-based `SortState`, and rebuild index buffers when the camera moves. Close native storage on renderer reset.
+- Convert sprite UV inputs from the old 0..16 convention to 1.21's normalized coordinates. Preserve the custom no-shade alpha marker in the updated bulk vertex method.
+- Update Iris 1.8.7's `beginBlock` signature, including block emission. Pin Iris to the release that requires the existing Sodium 0.6.9 dependency.
+- Adapt physics entity synchronization, spawn packets, interpolation, packed model colors, and portal-state copying to the 1.21 entity API.
+- Correct KotlinForForge repository filtering, JEI coordinates, and common compile-only Create Big Cannons/RPL/Vista APIs. The latter use published 1.21.1 NeoForge artifacts with Mojang names. This does not establish cross-loader compatibility.
+- Prevent old Create/Moonlight transitive dependency graphs from entering the common target classpath; remove obsolete split Immersive Portals coordinates.
+
 ## Validation performed
 
 - Java parser: all 825 production Java files parse without syntax errors.
@@ -29,21 +39,27 @@ Status: initial local merge and source adaptation, **not a working or validated 
 - Main mixin configuration JSON parses; entries are unique and every referenced source file exists.
 - No remaining conflict markers. These are syntax/structural checks, not type checking, mixin application, or runtime tests.
 
-## Build blocker
+- The exterior-fog render-level call, depth-clear call, translucent-layer calls, and section-dirty signature exist in actual 1.21.1 bytecode. This does not validate mixin application.
+- Two focused JUnit tests pass against the actual remapped Minecraft 1.21.1 client classes: vertex offset/attribute forwarding and translucent mesh sorting after the original mesh closes. These were run independently of Gradle; no mock Minecraft classes were used.
+- The offset consumer, vanilla batched-model adapter/interface, and bulk-vertex shader mixin type-check against those actual target classes. This is limited type checking, not a complete module build.
 
-Gradle 8.11 and the Architectury plugins were downloaded. Compilation was requested for common, Fabric, and NeoForge. Loom 1.9.428 fails while initializing its platform support, before dependency configuration/source compilation:
+## Build progress and blockers
+
+Gradle 8.11 and the Architectury plugins were downloaded. Compilation has been requested for common, Fabric, and NeoForge. Loom 1.9.428 initially failed before dependency setup because this environment denies its optional Unix-domain socket probe:
 
 ```
 net.fabricmc.loom.util.CurrentPlatform.isUnixDomainSocketsSupported
 java.io.UncheckedIOException: java.net.SocketException: Operation not permitted
 ```
 
-This environment denies Loom's Unix-domain socket probe. No compiled jar, passing unit-test result, or successful game launch has been produced.
+A temporary build-only Java instrumentation shim reports that optional capability as unavailable, with Gradle's own instrumentation agent disabled. It lives outside the repository and is not included in the mod. No permissions were changed. This allowed Loom to proceed through Minecraft setup into dependency resolution/remapping.
+
+The next configuration failure identified the inherited 1.20.1 Vista artifact as requiring newer Loom. The compile-only reference now uses Vista 1.21.1-5.6.5's Mojang-mapped NeoForge artifact. Dependency setup is being retried. No complete module compilation, mod jar, or successful game launch has been produced.
 
 ## Remaining port work
 
-1. Run the actual compiler in an environment where Loom initializes. Fix type/API errors; syntax parsing does not establish compilation.
-2. Finish adapting the new water/batched/debug rendering code to 1.21's vertex, shader, render-level, and buffer APIs. Audit every new injection against the target bytecode, including fluid occlusion and block-entity rendering.
+1. Finish dependency setup and run the complete module compiler. Fix type/API errors; focused tests and syntax parsing do not establish a full build.
+2. Validate the adapted water/batched/debug rendering paths in game and audit remaining shader/render-level APIs. Audit every new injection against the target bytecode, including fluid occlusion and block-entity rendering.
 3. Reconcile optional compatibility dependency coordinates, exclusions inherited from the old 1.21 base, and new compatibility sources. Several pre-existing coordinates still point at 1.20.1. No compatibility parity is claimed.
 4. Audit item/entity/block API changes in features restored from the destination's placeholders/exclusions; ensure registries initialize identically on both loaders.
 5. Run common and platform tests, then launch both clients and dedicated servers. Exercise ship creation, save/reload, tracking, movement, collision, assembly/welding, VDEX, flooding, retained water/droplets, and renderer reload/disconnect.

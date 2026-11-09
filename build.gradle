@@ -123,7 +123,7 @@ subprojects {
                 name = 'Kotlin for Forge'
                 url = 'https://thedarkcolour.github.io/KotlinForForge/'
                 content {
-                    includeGroup("thedarkcolor")
+                    includeGroup("thedarkcolour")
                 }
             }
             maven {

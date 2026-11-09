@@ -2,6 +2,7 @@ package org.valkyrienskies.mod.common.fluid
 
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.PoseStack
+import com.mojang.blaze3d.vertex.ByteBufferBuilder
 import com.mojang.blaze3d.vertex.BufferBuilder
 import com.mojang.blaze3d.vertex.BufferUploader
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
@@ -33,7 +34,7 @@ object FluidParcelRenderer {
     private var meshInputs = emptyList<FluidParcelCuboids.Parcel>()
     private var cachedMesh: FluidParcelCuboids.Mesh? = null
     private var scheduled = false
-    private val packBuilder = BufferBuilder(64 * 1024)
+    private var packStorage: ByteBufferBuilder? = null
     private var shaderFrame: (() -> Unit)? = null
     private var renderingShaderFrame = false
     private var opaquePass = false
@@ -84,6 +85,8 @@ object FluidParcelRenderer {
     @JvmStatic
     fun clear() {
         shaderFrame = null
+        packStorage?.close()
+        packStorage = null
         synchronized(pending) { pending.clear() }
         visuals.clear()
         meshInputs = emptyList()
@@ -117,7 +120,7 @@ object FluidParcelRenderer {
         bindLevel(current)
         val nativeMaterial = LoadedMods.iris && NativeFluidCompat.active()
         if (nativeMaterial && !renderingShaderFrame) {
-            val pose = PoseStack().apply { mulPoseMatrix(org.joml.Matrix4f(matrices.last().pose())) }
+            val pose = PoseStack().apply { mulPose(org.joml.Matrix4f(matrices.last().pose())) }
             shaderSampleTime = clock.sample(System.nanoTime(), minecraft.isPaused)
             shaderFrame = { render(pose, buffers, cameraX, cameraY, cameraZ) }
             return
@@ -145,8 +148,11 @@ object FluidParcelRenderer {
         mesh.faces().sortByDescending { it.distanceSquared(localCamera.x, localCamera.y, localCamera.z) }
         val frustum = ShipRenderFrustum.create(matrices.last().pose(), RenderSystem.getProjectionMatrix(), cameraX, cameraY, cameraZ)
         val type = if (nativeMaterial) (if (opaquePass) RenderType.solid() else RenderType.translucent()) else RenderType.entityTranslucent(TextureAtlas.LOCATION_BLOCKS)
-        if (nativeMaterial) packBuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK)
-        val consumer = if (nativeMaterial) packBuilder else buffers.getBuffer(type)
+        val packBuilder = if (nativeMaterial) {
+            val storage = packStorage ?: ByteBufferBuilder(64 * 1024).also { packStorage = it }
+            BufferBuilder(storage, VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK)
+        } else null
+        val consumer = packBuilder ?: buffers.getBuffer(type)
         val appearances = HashMap<Pair<Int, BlockPos>, Pair<FluidAppearance, Int>?>()
         val sodium = org.valkyrienskies.mod.mixin.ValkyrienCommonMixinConfigPlugin.getVSRenderer() ==
             org.valkyrienskies.mod.compat.VSRenderer.SODIUM
@@ -169,7 +175,7 @@ object FluidParcelRenderer {
                         .also { appearances[key] = it }
                 }
                 val (appearance, light) = appearanceAndLight ?: continue
-                if (nativeMaterial) NativeFluidCompat.beginFluid(packBuilder, fluid, pos.x and 15, pos.y and 15, pos.z and 15)
+                if (nativeMaterial) NativeFluidCompat.beginFluid(packBuilder!!, fluid, pos.x and 15, pos.y and 15, pos.z and 15)
                 val sprite = appearance.still()
                 if (sodium) org.valkyrienskies.mod.compat.sodium.SodiumFluidSprites.markActive(listOf(sprite))
                 val size = maxOf(1.0, kotlin.math.ceil(maxOf(face.maxU() - face.minU(), face.maxV() - face.minV()) / 8))
@@ -189,22 +195,22 @@ object FluidParcelRenderer {
                             val index = if (face.sign() > 0) corner else 3 - corner
                             val u = if (index == 0 || index == 3) minU else maxU
                             val v = if (index < 2) minV else maxV
-                            consumer.vertex(matrices.last().pose(), (face.coordinate(0, u, v) - localCamera.x).toFloat(),
+                            consumer.addVertex(matrices.last().pose(), (face.coordinate(0, u, v) - localCamera.x).toFloat(),
                                 (face.coordinate(1, u, v) - localCamera.y).toFloat(),
                                 (face.coordinate(2, u, v) - localCamera.z).toFloat())
-                                .color(appearance.red(), appearance.green(), appearance.blue(), appearance.alpha())
-                                .uv(sprite.getU(((u - tileU) / size).coerceIn(0.0, 1.0) * 16),
-                                    sprite.getV(((v - tileV) / size).coerceIn(0.0, 1.0) * 16))
-                                .overlayCoords(OverlayTexture.NO_OVERLAY).uv2(light)
-                                .normal(matrices.last().normal(), if (face.axis() == 0) face.sign().toFloat() else 0f,
+                                .setColor(appearance.red(), appearance.green(), appearance.blue(), appearance.alpha())
+                                .setUv(sprite.getU(((u - tileU) / size).coerceIn(0.0, 1.0).toFloat()),
+                                    sprite.getV(((v - tileV) / size).coerceIn(0.0, 1.0).toFloat()))
+                                .setOverlay(OverlayTexture.NO_OVERLAY).setLight(light)
+                                .setNormal(matrices.last(), if (face.axis() == 0) face.sign().toFloat() else 0f,
                                     if (face.axis() == 1) face.sign().toFloat() else 0f,
-                                    if (face.axis() == 2) face.sign().toFloat() else 0f).endVertex()
+                                    if (face.axis() == 2) face.sign().toFloat() else 0f)
                         }
                     }
                 }
             }
             if (nativeMaterial) {
-                val rendered = packBuilder.endOrDiscardIfEmpty()
+                val rendered = packBuilder!!.build()
                 if (rendered != null) {
                     type.setupRenderState()
                     RenderSystem.disableCull()
@@ -221,8 +227,8 @@ object FluidParcelRenderer {
             } else buffers.endBatch(type)
         } finally {
             if (nativeMaterial) {
-                NativeFluidCompat.endFluid(packBuilder)
-                if (packBuilder.building()) packBuilder.discard()
+                NativeFluidCompat.endFluid(packBuilder!!)
+                packStorage?.clear()
             }
         }
     }

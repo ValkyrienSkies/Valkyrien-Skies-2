@@ -15,6 +15,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.util.FastColor;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.RenderShape;
@@ -302,7 +303,7 @@ public class MixinEntityRenderDispatcher {
         final float x, final float y, final float z, final float u, final float v
     ) {
         final Vector3f vec = pose.pose().transformPosition(x, y, z, VS$VERTEX);
-        vc.vertex(vec.x(), vec.y(), vec.z(), 1.0f, 1.0f, 1.0f, alpha,
+        vc.addVertex(vec.x(), vec.y(), vec.z(), FastColor.ARGB32.color((int) (alpha * 255.0F), 255, 255, 255),
             u, v, OverlayTexture.NO_OVERLAY, 15728880, 0.0f, 1.0f, 0.0f);
     }
 

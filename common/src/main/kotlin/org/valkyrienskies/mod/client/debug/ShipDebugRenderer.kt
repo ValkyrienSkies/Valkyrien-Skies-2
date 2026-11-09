@@ -246,11 +246,10 @@ object ShipDebugRenderer {
         direction.normalize()
         val pose = matrices.last()
         for (position in listOf(from, to)) {
-            consumer.vertex(pose.pose(), (position.x - camera.x).toFloat(),
+            consumer.addVertex(pose.pose(), (position.x - camera.x).toFloat(),
                 (position.y - camera.y).toFloat(), (position.z - camera.z).toFloat())
-                .color(red(color), green(color), blue(color), 1.0f)
-                .normal(pose.normal(), direction.x.toFloat(), direction.y.toFloat(), direction.z.toFloat())
-                .endVertex()
+                .setColor(red(color), green(color), blue(color), 1.0f)
+                .setNormal(pose, direction.x.toFloat(), direction.y.toFloat(), direction.z.toFloat())
         }
     }
 }

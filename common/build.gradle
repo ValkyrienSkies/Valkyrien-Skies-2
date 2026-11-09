@@ -49,7 +49,7 @@ dependencies {
     // The related sources are excluded below until the 1.21.1 coordinates are restored.
 
     // Supplementaries (Moonlight Lib)
-    modCompileOnly("maven.modrinth:moonlight:$moonlight_version")
+    modCompileOnly("maven.modrinth:moonlight:$moonlight_version") { transitive = false }
 
     // Common create compat,
     // We just use a version from a platform and hope the classes exist on both versions and mixins apply correctly
@@ -58,7 +58,8 @@ dependencies {
     modCompileOnly("curse.maven:entity-model-features-844662:5696901")
     modCompileOnly("curse.maven:entity-texture-features-fabric-568563:5697084")
 
-    modCompileOnly("curse.maven:vista-1368607:7929284")
+    // Vista common APIs are Mojang-mapped in the 1.21.1 NeoForge artifact.
+    compileOnly("curse.maven:vista-1368607:${rootProject.vista_neoforge_file}") { transitive = false }
 
     // Weather2 1.20.1
     modCompileOnly("curse.maven:weather-storms-tornadoes-237746:5244118")
@@ -66,7 +67,7 @@ dependencies {
     // Common create compat,
     //We just use a version from a platform and hope the classes exist on both versions and mixins apply correctly
     modCompileOnly("com.simibubi.create:create-fabric:${create_fabric_version}")
-        { exclude group: 'com.github.AlphaMode', module: 'fakeconfigtoml' }
+        { transitive = false }
     modCompileOnly("net.fabricmc.fabric-api:fabric-api:${fabric_api_version}") { transitive = false }
     modCompileOnly("curse.maven:vanillin-965702:6446557")
 
@@ -84,19 +85,15 @@ dependencies {
     // These older common-side compat coordinates were kept in 1.20.1, but do not resolve on 1.21.1.
     // Platform-specific compat remains under fabric/forge where available.
     modCompileOnly("dev.ryanhcode.sable:sable-common-${minecraft_version}:${sable_version}")
-    modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:imm_ptl_core:${immptl_version}") { transitive = false }
-    modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:q_misc_util:${immptl_version}") { transitive = false }
-    modCompileOnly("com.github.iPortalTeam.ImmersivePortalsMod:build:${immptl_version}") { transitive = false }
 
-    modCompileOnly("com.rbasamoyai:createbigcannons:${createbigcannons_version}+mc.${minecraft_version}-fabric${createbigcannons_build}") { transitive = false }
-    modCompileOnly("com.rbasamoyai:createbigcannons:${createbigcannons_version}+mc.${minecraft_version}-forge${createbigcannons_build}") { transitive = false }
-    modCompileOnly("com.rbasamoyai:ritchiesprojectilelib:${rpl_version}+mc.${minecraft_version}-forge") { transitive = false }
+    // Common compatibility sources use the published 1.21.1 NeoForge APIs for type checking.
+    modCompileOnly("maven.modrinth:create-big-cannons:${rootProject.cbc_neoforge_version}") { transitive = false }
+    modCompileOnly("maven.modrinth:B3pb093D:${rootProject.rpl_neoforge_version}") { transitive = false }
 
     modCompileOnly("maven.modrinth:theatrical:1.0.0-alpha.28.120+mc1.20.1")
 
     // JEI
-    modCompileOnlyApi("mezz.jei:jei-${minecraft_version}-common-api:15.62.0.219")
-    modCompileOnly("maven.modrinth:jei:uyTkeINn")
+    modCompileOnlyApi("mezz.jei:jei-${minecraft_version}-common-api:${rootProject.jei_version}")
 
     // Unit testing
     def kotestVersion = "5.4.1"
