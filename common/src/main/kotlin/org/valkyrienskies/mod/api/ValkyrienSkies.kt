@@ -54,10 +54,15 @@ import org.joml.primitives.AABBd
 import org.joml.primitives.AABBdc
 import org.joml.primitives.AABBic
 import org.slf4j.LoggerFactory
+import org.valkyrienskies.core.api.bodies.ClientVsBody
+import org.valkyrienskies.core.api.bodies.LoadedServerVsBody
+import org.valkyrienskies.core.api.bodies.QueryableVsBodyData
+import org.valkyrienskies.core.api.bodies.ServerVsBody
 import org.valkyrienskies.core.api.bodies.VsBody
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.core.api.ships.LoadedShip
+import org.valkyrienskies.core.api.ships.QueryableShipData
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.api.ships.properties.ShipId
@@ -65,15 +70,13 @@ import org.valkyrienskies.core.api.ships.properties.ShipTransform
 import org.valkyrienskies.core.api.util.GameTickOnly
 import org.valkyrienskies.core.api.util.functions.DoubleTernaryConsumer
 import org.valkyrienskies.core.api.util.functions.IntTernaryConsumer
-import org.valkyrienskies.core.api.world.ClientShipWorld
 import org.valkyrienskies.core.api.world.LevelYRange
-import org.valkyrienskies.core.api.world.ServerShipWorld
-import org.valkyrienskies.core.api.world.ShipWorld
 import org.valkyrienskies.core.api.world.connectivity.ConnectionStatus
 import org.valkyrienskies.core.api.world.properties.DimensionId
 import org.valkyrienskies.core.impl.config.VSCoreConfig
 import org.valkyrienskies.core.internal.VsiCore
 import org.valkyrienskies.core.internal.collision.VsiEntityPolygonCollider
+import org.valkyrienskies.core.internal.ships.VsiQueryableShipData
 import org.valkyrienskies.core.internal.world.VsiClientShipWorld
 import org.valkyrienskies.core.internal.world.VsiPlayer
 import org.valkyrienskies.core.internal.world.VsiServerShipWorld
@@ -97,7 +100,6 @@ import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.util.ShipShadows
 import org.valkyrienskies.mod.mixin.accessors.entity.EntityAccessor
-import org.valkyrienskies.mod.mixin.accessors.resource.ResourceKeyAccessor
 import org.valkyrienskies.mod.mixinducks.world.entity.PlayerDuck
 import java.util.function.Consumer
 import kotlin.contracts.ExperimentalContracts
@@ -105,6 +107,9 @@ import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 import kotlin.math.floor
 import kotlin.math.sqrt
+
+// one api to rule them all
+// this file is gigantic lmao
 
 val vsCore: VsiCore get() = ValkyrienSkiesMod.vsCore
 val entityPolygonCollider: VsiEntityPolygonCollider get() = vsCore.entityPolygonCollider
@@ -134,9 +139,22 @@ fun isConnectivityEnabled(isClient: Boolean): Boolean {
     }
 }
 
+
 // region misc extensions
 val VsiPlayer.mcPlayer: Player get() = (this as MinecraftPlayer).playerEntityReference.get()!!
 val Player.playerWrapper: MinecraftPlayer get() = (this as PlayerDuck).vs_getPlayer()
+
+fun ResourceKey<Level>.toDimensionId() =
+    "${registry()}:${location()}"
+
+fun DimensionId.toResourceKey(): ResourceKey<Level>? {
+    try {
+        val (registryNamespace, registryName, namespace, name) = split(":")
+        return ResourceKey.create(ResourceLocation(registryNamespace, registryName), ResourceLocation(namespace, name))
+    } catch (e: IndexOutOfBoundsException) { // not a valid format
+        return null
+    }
+}
 
 /**
  * Is the [BlockState] in the `assemble_blacklist`
@@ -145,6 +163,12 @@ val Player.playerWrapper: MinecraftPlayer get() = (this as PlayerDuck).vs_getPla
 fun BlockState?.inAssemblyBlacklist(): Boolean {
     return this?.`is`(ASSEMBLE_BLACKLIST) ?: false
 }
+
+fun <T : Ship> QueryableShipData<T>.dimension(level: Level?) =
+    getByDimension(level?.dimensionId)
+
+fun <T : VsBody> QueryableVsBodyData<T>.dimension(level: Level?) =
+    getByDimension(level?.dimensionId)
 
 @GameTickOnly
 fun BlockAndTintGetter.shipAwareSkyBrightness(pos: BlockPos, original: Int): Int {
@@ -341,6 +365,11 @@ fun Entity.shipMountedSpawnSeedPos(): BlockPos {
 val Level.dimensionId: DimensionId
     get() = (this as DimensionIdProvider).dimensionId
 
+/**
+ * the [VsiShipWorld] for this level. Note that although this takes a level, the
+ * given ship world is not specific to this level. If you need ships or bodies filtered
+ * by this specific level, see [allShips], [loadedShips], [unloadedShips], [allBodies], [unloadedBodies]
+ */
 @GameTickOnly
 val Level?.shipWorld: VsiShipWorld?
     get() = when {
@@ -354,32 +383,89 @@ val Level?.shipWorld: VsiShipWorld?
 val Level?.shipWorldOrException: VsiShipWorld
     get() = shipWorld ?: error("No shipWorld for this level!")
 
-@GameTickOnly val Level?.allShips get() = this.shipWorld?.allShips
-@GameTickOnly val Level?.unloadedShips get() = this.shipWorld?.unloadedShips
-@GameTickOnly val Level?.loadedShips get() = this.shipWorld?.loadedShips
+/**
+ * Returns a [QueryableShipData] which you can use to query all ships in this dimension,
+ * loaded and unloaded. This can be slow if the ship is not loaded, and we need to fetch it from disk.
+ * If you need all ships regardless of dimension, use [allShipsGlobal]
+ */
+@GameTickOnly val Level?.allShips get() = this.shipWorld?.allShips?.dimension(this)
+/**
+ * Returns a [QueryableShipData] which you can use to query unloaded ships in this dimension.
+ * If you need unloaded ships regardless of dimension, use [unloadedShipsGlobal]
+ */
+@GameTickOnly val Level?.unloadedShips get() = this.shipWorld?.unloadedShips?.dimension(this)
+/**
+ * Returns a [QueryableShipData] which you can use to query loaded ships in this dimension.
+ * If you need loaded ships regardless of dimension, use [loadedShipsGlobal]
+ */
+@GameTickOnly val Level?.loadedShips get() = this.shipWorld?.loadedShips?.dimension(this)
 
-@GameTickOnly val Level?.allBodies get() = this.shipWorld?.allBodies
-@GameTickOnly val Level?.unloadedBodies get() = this.shipWorld?.unloadedBodies
+/**
+ * Returns a [QueryableVsBodyData] which you can use to query all bodies in this dimension.
+ * If you need all bodies regardless of dimension, use [allBodiesGlobal]
+ */
+@GameTickOnly val Level?.allBodies get() = this.shipWorld?.allBodies?.dimension(this)
+/**
+ * Returns a [QueryableVsBodyData] which you can use to query unloaded bodies in this dimension.
+ * If you need unloaded bodies regardless of dimension, use [unloadedBodiesGlobal]
+ */
+@GameTickOnly val Level?.unloadedBodies get() = this.shipWorld?.unloadedBodies?.dimension(this)
+
+/**
+ * Returns a [QueryableShipData] which you can use to query all ships, regardless of dimension.
+ * If you need all ships filtered by dimension, use [allShips].
+ *
+ * @see QueryableShipData.getByDimension
+ */
+@GameTickOnly val Level?.allShipsGlobal get() = this.shipWorld?.allShips
+/**
+ * Returns a [QueryableShipData] which you can use to query unloaded ships, regardless of dimension.
+ * If you need unloaded ships filtered by dimension, use [unloadedShips].
+ *
+ * @see QueryableShipData.getByDimension
+ */
+@GameTickOnly val Level?.unloadedShipsGlobal get() = this.shipWorld?.unloadedShips
+/**
+ * Returns a [QueryableShipData] which you can use to query loaded ships, regardless of dimension.
+ * If you need loaded ships filtered by dimension, use [loadedShips].
+ *
+ * @see QueryableShipData.getByDimension
+ */
+@GameTickOnly val Level?.loadedShipsGlobal get() = this.shipWorld?.loadedShips
+
+/**
+ * Returns a [QueryableVsBodyData] which you can use to query all bodies, regardless of dimension.
+ * If you need all bodies filtered by dimension, use [allBodies]
+ *
+ * @see QueryableVsBodyData.getByDimension
+ */
+@GameTickOnly val Level?.allBodiesGlobal get() = this.shipWorld?.allBodies
+/**
+ * Returns a [QueryableVsBodyData] which you can use to query unloaded bodies, regardless of dimension.
+ * If you need unloaded bodies filtered by dimension, use [unloadedBodies]
+ *
+ * @see QueryableVsBodyData.getByDimension
+ */
+@GameTickOnly val Level?.unloadedBodiesGlobal get() = this.shipWorld?.unloadedBodies
 
 val Level.yRange get() = LevelYRange(minBuildHeight, maxBuildHeight - 1)
 
 
 private val levelResourceKeyMap: MutableMap<DimensionId, ResourceKey<Level>> = HashMap()
 
-fun getResourceKey(dimensionId: DimensionId): ResourceKey<Level> {
+/**
+ * Get the resource key corresponding to the given [dimensionId]. If the given [dimensionId]
+ * is not a valid format, returns `null`
+ */
+fun getResourceKey(dimensionId: DimensionId): ResourceKey<Level>? {
     val cached = levelResourceKeyMap[dimensionId]
     if (cached == null) {
-        val (registryNamespace, registryName, namespace, name) = dimensionId.split(":")
-        val toReturn: ResourceKey<Level> = ResourceKeyAccessor.callCreate(
-            ResourceLocation(registryNamespace, registryName), ResourceLocation(namespace, name)
-        )
+        val toReturn = dimensionId.toResourceKey() ?: return null
         levelResourceKeyMap[dimensionId] = toReturn
         return toReturn
     }
     return cached
 }
-
-fun Level?.hasLoadedShips() = loadedShips?.isNotEmpty()
 
 /**
  * Execute [runnable] immediately if the thread invoking this is the same as the game thread.
@@ -398,11 +484,23 @@ fun Level.executeOrSchedule(runnable: Runnable) {
 
 @GameTickOnly
 fun Level?.getShipById(id: ShipId): Ship? =
-    shipWorld?.allShips?.getById(id)
+    allShips?.getById(id)
 
 @GameTickOnly
 fun Level?.getLoadedShipById(id: ShipId): LoadedShip? =
-    shipWorld?.loadedShips?.getById(id)
+    loadedShips?.getById(id)
+
+@GameTickOnly
+fun Level?.forAllShips(cb: Consumer<Ship>) =
+    allShips?.forEach(cb)
+
+@GameTickOnly
+fun Level?.forLoadedShips(cb: Consumer<LoadedShip>) =
+    loadedShips?.forEach(cb)
+
+@GameTickOnly
+fun Level?.forAllBodies(cb: Consumer<VsBody>) =
+    allBodies?.forEach(cb)
 
 @GameTickOnly
 fun Level?.isBlockInShipyard(blockX: Int, blockZ: Int): Boolean =
@@ -419,6 +517,26 @@ fun Level?.isBlockInShipyard(pos: Vec3): Boolean =
 @GameTickOnly
 fun Level?.isChunkInShipyard(chunkX: Int, chunkZ: Int): Boolean =
     this != null && shipWorld?.isChunkInShipyard(chunkX, chunkZ, dimensionId) ?: false
+
+@GameTickOnly
+fun Level?.getShipByIdGlobal(id: ShipId): Ship? =
+    allShipsGlobal?.getById(id)
+
+@GameTickOnly
+fun Level?.getLoadedShipByIdGlobal(id: ShipId): LoadedShip? =
+    loadedShipsGlobal?.getById(id)
+
+@GameTickOnly
+fun Level?.forAllShipsGlobal(cb: Consumer<Ship>) =
+    this?.allShipsGlobal?.forEach(cb)
+
+@GameTickOnly
+fun Level?.forLoadedShipsGlobal(cb: Consumer<LoadedShip>) =
+    this?.loadedShipsGlobal?.forEach(cb)
+
+@GameTickOnly
+fun Level?.forAllBodiesGlobal(cb: Consumer<VsBody>) =
+    this?.allBodiesGlobal?.forEach(cb)
 
 fun Level.isTickingChunk(pos: ChunkPos) = isTickingChunk(pos.x, pos.z)
 fun Level.isTickingChunk(chunkX: Int, chunkZ: Int) =
@@ -1020,6 +1138,117 @@ val ClientLevel?.shipWorld: VsiClientShipWorld?
 val Minecraft?.shipWorld: VsiClientShipWorld?
     get() = (this as IShipObjectWorldClientProvider?)?.shipObjectWorld
 
+@GameTickOnly val ClientLevel?.allShips get() = this.shipWorld?.allShips?.dimension(this)
+@GameTickOnly val ClientLevel?.loadedShips get() = this.shipWorld?.loadedShips?.dimension(this)
+@GameTickOnly val ClientLevel?.unloadedShips get() = this.shipWorld?.unloadedShips?.dimension(this)
+
+@GameTickOnly val ClientLevel?.allBodies get() = this.shipWorld?.allBodies?.dimension(this)
+@GameTickOnly val ClientLevel?.unloadedBodies get() = this.shipWorld?.unloadedBodies?.dimension(this)
+
+/**
+ * Returns a [QueryableShipData] which you can use to query all ships, regardless of dimension.
+ * If you need all ships filtered by dimension, use [allShips].
+ *
+ * @see QueryableShipData.getByDimension
+ */
+@GameTickOnly val ClientLevel?.allShipsGlobal get() = this.shipWorld?.allShips
+/**
+ * Returns a [QueryableShipData] which you can use to query unloaded ships, regardless of dimension.
+ * If you need unloaded ships filtered by dimension, use [unloadedShips].
+ *
+ * @see QueryableShipData.getByDimension
+ */
+@GameTickOnly val ClientLevel?.unloadedShipsGlobal get() = this.shipWorld?.unloadedShips
+/**
+ * Returns a [QueryableShipData] which you can use to query loaded ships, regardless of dimension.
+ * If you need loaded ships filtered by dimension, use [loadedShips].
+ *
+ * @see QueryableShipData.getByDimension
+ */
+@GameTickOnly val ClientLevel?.loadedShipsGlobal get() = this.shipWorld?.loadedShips
+
+/**
+ * Returns a [QueryableVsBodyData] which you can use to query all bodies, regardless of dimension.
+ * If you need all bodies filtered by dimension, use [allBodies]
+ *
+ * @see QueryableVsBodyData.getByDimension
+ */
+@GameTickOnly val ClientLevel?.allBodiesGlobal get() = this.shipWorld?.allBodies
+/**
+ * Returns a [QueryableVsBodyData] which you can use to query unloaded bodies, regardless of dimension.
+ * If you need unloaded bodies filtered by dimension, use [unloadedBodies]
+ *
+ * @see QueryableVsBodyData.getByDimension
+ */
+@GameTickOnly val ClientLevel?.unloadedBodiesGlobal get() = this.shipWorld?.unloadedBodies
+
+@GameTickOnly val Minecraft?.allShips get() = this.shipWorld?.allShips
+@GameTickOnly val Minecraft?.unloadedShips get() = this.shipWorld?.unloadedShips
+@GameTickOnly val Minecraft?.loadedShips get() = this.shipWorld?.loadedShips
+
+@GameTickOnly val Minecraft?.allBodies get() = this.shipWorld?.allBodies
+@GameTickOnly val Minecraft?.unloadedBodies get() = this.shipWorld?.unloadedBodies
+
+@GameTickOnly
+fun ClientLevel?.getShipById(shipId: ShipId) =
+    allShips?.getById(shipId)
+
+@GameTickOnly
+fun ClientLevel?.getLoadedShipById(shipId: ShipId) =
+    loadedShips?.getById(shipId)
+
+@GameTickOnly
+fun ClientLevel?.getShipByIdGlobal(shipId: ShipId) =
+    allShipsGlobal?.getById(shipId)
+
+@GameTickOnly
+fun ClientLevel?.getLoadedShipByIdGlobal(shipId: ShipId) =
+    loadedShipsGlobal?.getById(shipId)
+
+@GameTickOnly
+fun Minecraft?.getShipById(shipId: ShipId) =
+    allShips?.getById(shipId)
+
+@GameTickOnly
+fun Minecraft?.getLoadedShipById(shipId: ShipId) =
+    loadedShips?.getById(shipId)
+
+@GameTickOnly
+fun ClientLevel?.forAllShips(cb: Consumer<ClientShip>) =
+    allShips?.forEach(cb)
+
+@GameTickOnly
+fun ClientLevel?.forLoadedShips(cb: Consumer<ClientShip>) =
+    loadedShips?.forEach(cb)
+
+@GameTickOnly
+fun ClientLevel?.forAllBodies(cb: Consumer<ClientVsBody>) =
+    allBodies?.forEach(cb)
+
+@GameTickOnly
+fun ClientLevel?.forAllShipsGlobal(cb: Consumer<ClientShip>) =
+    allShipsGlobal?.forEach(cb)
+
+@GameTickOnly
+fun ClientLevel?.forLoadedShipsGlobal(cb: Consumer<ClientShip>) =
+    loadedShipsGlobal?.forEach(cb)
+
+@GameTickOnly
+fun ClientLevel?.forAllBodiesGlobal(cb: Consumer<ClientVsBody>) =
+    allBodiesGlobal?.forEach(cb)
+
+@GameTickOnly
+fun Minecraft?.forAllShips(cb: Consumer<ClientShip>) =
+    allShips?.forEach(cb)
+
+@GameTickOnly
+fun Minecraft?.forLoadedShips(cb: Consumer<ClientShip>) =
+    loadedShips?.forEach(cb)
+
+@GameTickOnly
+fun Minecraft?.forAllBodies(cb: Consumer<ClientVsBody>) =
+    allBodies?.forEach(cb)
+
 @GameTickOnly
 fun ClientLevel?.getLoadedShipManagingPos(chunkX: Int, chunkZ: Int) =
     getLoadedShipManagingPosImpl(this, chunkX, chunkZ) as ClientShip?
@@ -1038,7 +1267,7 @@ fun ClientLevel?.getLoadedShipManagingPos(pos: Position) =
 
 @GameTickOnly
 fun ClientLevel?.getLoadedShipManagingPos(posX: Double, posZ: Double) =
-    getLoadedShipManagingPos(posX.toInt(), posZ.toInt())
+    getLoadedShipManagingPos(posX.toInt() shr 4, posZ.toInt() shr 4)
 
 @GameTickOnly
 fun ClientLevel?.getLoadedShipManagingPos(chunkPos: ChunkPos) =
@@ -1059,6 +1288,38 @@ fun ClientLevel?.toShipRenderCoordinates(shipPos: Vec3, pos: Vec3): Vector3d =
         ?.renderTransform
         ?.worldToShip
         ?.transformPosition(pos.toJOML()) ?: pos.toJOML()
+
+@GameTickOnly
+fun Minecraft?.getLoadedShipManagingPos(chunkX: Int, chunkZ: Int) =
+    this?.level.getLoadedShipManagingPos(chunkX, chunkZ)
+
+@GameTickOnly
+fun Minecraft?.getLoadedShipManagingPos(blockPos: Vec3i) =
+    this?.level.getLoadedShipManagingPos(blockPos)
+
+@GameTickOnly
+fun Minecraft?.getLoadedShipManagingPos(pos: Vector3dc) =
+    this?.level.getLoadedShipManagingPos(pos)
+
+@GameTickOnly
+fun Minecraft?.getLoadedShipManagingPos(pos: Position) =
+    this?.level.getLoadedShipManagingPos(pos)
+
+@GameTickOnly
+fun Minecraft?.getLoadedShipManagingPos(posX: Double, posZ: Double) =
+    this?.level.getLoadedShipManagingPos(posX, posZ)
+
+@GameTickOnly
+fun Minecraft?.getLoadedShipManagingPos(chunkPos: ChunkPos) =
+    this?.level.getLoadedShipManagingPos(chunkPos.x, chunkPos.z)
+
+@GameTickOnly
+fun Minecraft?.transformRenderAABBToWorld(pos: Position, aabb: AABB) =
+    this?.level.transformRenderAABBToWorld(pos, aabb)
+
+@GameTickOnly
+fun Minecraft?.toShipRenderCoordinates(shipPos: Vec3, pos: Vec3): Vector3d =
+    this?.level.toShipRenderCoordinates(shipPos, pos)
 // endregion
 
 // region ServerLevel / MinecraftServer extensions
@@ -1072,6 +1333,68 @@ val ServerLevel?.shipWorld: VsiServerShipWorld?
 
 val MinecraftServer?.vsPipeline
     get() = (this as IShipObjectWorldServerProvider?)?.vsPipeline
+
+val ServerLevel?.vsPipeline
+    get() = (this as IShipObjectWorldServerProvider?)?.vsPipeline
+
+@GameTickOnly val ServerLevel?.allShips get() = this.shipWorld?.allShips?.dimension(this)
+@GameTickOnly val ServerLevel?.loadedShips get() = this.shipWorld?.loadedShips?.dimension(this)
+@GameTickOnly val ServerLevel?.unloadedShips get() = this.shipWorld?.unloadedShips?.dimension(this)
+
+@GameTickOnly val ServerLevel?.allBodies get() = this.shipWorld?.allBodies?.dimension(this)
+@GameTickOnly val ServerLevel?.loadedBodies get() = this.shipWorld?.loadedBodies?.dimension(this)
+@GameTickOnly val ServerLevel?.unloadedBodies get() = this.shipWorld?.unloadedBodies?.dimension(this)
+
+/**
+ * Returns a [QueryableShipData] which you can use to query all ships, regardless of dimension.
+ * If you need all ships filtered by dimension, use [allShips].
+ *
+ * @see QueryableShipData.getByDimension
+ */
+@GameTickOnly val ServerLevel?.allShipsGlobal get() = this.shipWorld?.allShips
+/**
+ * Returns a [QueryableShipData] which you can use to query unloaded ships, regardless of dimension.
+ * If you need unloaded ships filtered by dimension, use [unloadedShips].
+ *
+ * @see QueryableShipData.getByDimension
+ */
+@GameTickOnly val ServerLevel?.unloadedShipsGlobal get() = this.shipWorld?.unloadedShips
+/**
+ * Returns a [QueryableShipData] which you can use to query loaded ships, regardless of dimension.
+ * If you need loaded ships filtered by dimension, use [loadedShips].
+ *
+ * @see QueryableShipData.getByDimension
+ */
+@GameTickOnly val ServerLevel?.loadedShipsGlobal get() = this.shipWorld?.loadedShips
+
+/**
+ * Returns a [QueryableVsBodyData] which you can use to query all bodies, regardless of dimension.
+ * If you need all bodies filtered by dimension, use [allBodies]
+ *
+ * @see QueryableVsBodyData.getByDimension
+ */
+@GameTickOnly val ServerLevel?.allBodiesGlobal get() = this.shipWorld?.allBodies
+/**
+ * Returns a [QueryableVsBodyData] which you can use to query unloaded bodies, regardless of dimension.
+ * If you need unloaded bodies filtered by dimension, use [unloadedBodies]
+ *
+ * @see QueryableVsBodyData.getByDimension
+ */
+@GameTickOnly val ServerLevel?.unloadedBodiesGlobal get() = this.shipWorld?.unloadedBodies
+
+/**
+ * Returns a [QueryableVsBodyData] which you can use to query loaded bodies, regardless of dimension.
+ * If you need loaded bodies filtered by dimension, use [loadedBodies]
+ */
+@GameTickOnly val ServerLevel?.loadedBodiesGlobal get() = this.shipWorld?.loadedBodies
+
+@GameTickOnly val MinecraftServer?.allShips get() = this.shipWorld?.allShips
+@GameTickOnly val MinecraftServer?.loadedShips get() = this.shipWorld?.loadedShips
+@GameTickOnly val MinecraftServer?.unloadedShips get() = this.shipWorld?.unloadedShips
+
+@GameTickOnly val MinecraftServer?.allBodies get() = this.shipWorld?.allBodies
+@GameTickOnly val MinecraftServer?.loadedBodies get() = this.shipWorld?.loadedBodies
+@GameTickOnly val MinecraftServer?.unloadedBodies get() = this.shipWorld?.unloadedBodies
 
 @GameTickOnly
 fun MinecraftServer.executeIf(condition: () -> Boolean, toExecute: Runnable) {
@@ -1090,8 +1413,74 @@ fun MinecraftServer.executeIf(condition: () -> Boolean, toExecute: Runnable) {
     }
 }
 
-fun MinecraftServer.getLevelFromDimensionId(dimensionId: DimensionId): ServerLevel? =
-    getLevel(getResourceKey(dimensionId))
+fun MinecraftServer.getLevel(dimensionId: DimensionId): ServerLevel? =
+    getResourceKey(dimensionId)?.let { getLevel(it) }
+
+
+@GameTickOnly
+fun ServerLevel?.getShipByIdGlobal(shipId: ShipId) =
+    allShipsGlobal?.getById(shipId)
+
+@GameTickOnly
+fun ServerLevel?.getLoadedShipByIdGlobal(shipId: ShipId) =
+    loadedShipsGlobal?.getById(shipId)
+
+@GameTickOnly
+fun MinecraftServer?.getShipByIdGlobal(shipId: ShipId) =
+    allShips?.getById(shipId)
+
+@GameTickOnly
+fun MinecraftServer?.getLoadedShipByIdGlobal(shipId: ShipId) =
+    loadedShips?.getById(shipId)
+
+@GameTickOnly
+fun ServerLevel?.forAllShips(cb: Consumer<ServerShip>) =
+    allShips?.forEach(cb)
+
+@GameTickOnly
+fun ServerLevel?.forLoadedShips(cb: Consumer<LoadedServerShip>) =
+    loadedShips?.forEach(cb)
+
+@GameTickOnly
+fun ServerLevel?.forAllBodies(cb: Consumer<ServerVsBody>) =
+    allBodies?.forEach(cb)
+
+@GameTickOnly
+fun ServerLevel?.forLoadedBodies(cb: Consumer<LoadedServerVsBody>) =
+    loadedBodies?.forEach(cb)
+
+@GameTickOnly
+fun ServerLevel?.forAllShipsGlobal(cb: Consumer<ServerShip>) =
+    allShipsGlobal?.forEach(cb)
+
+@GameTickOnly
+fun ServerLevel?.forLoadedShipsGlobal(cb: Consumer<LoadedServerShip>) =
+    loadedShipsGlobal?.forEach(cb)
+
+@GameTickOnly
+fun ServerLevel?.forAllBodiesGlobal(cb: Consumer<ServerVsBody>) =
+    allBodiesGlobal?.forEach(cb)
+
+@GameTickOnly
+fun ServerLevel?.forLoadedBodiesGlobal(cb: Consumer<LoadedServerVsBody>) =
+    loadedBodiesGlobal?.forEach(cb)
+
+@GameTickOnly
+fun MinecraftServer?.forAllShips(cb: Consumer<ServerShip>) =
+    allShips?.forEach(cb)
+
+@GameTickOnly
+fun MinecraftServer?.forLoadedShips(cb: Consumer<LoadedServerShip>) =
+    loadedShips?.forEach(cb)
+
+@GameTickOnly
+fun MinecraftServer?.forAllBodies(cb: Consumer<ServerVsBody>) =
+    allBodies?.forEach(cb)
+
+@GameTickOnly
+fun MinecraftServer?.forLoadedBodies(cb: Consumer<LoadedServerVsBody>) =
+    loadedBodies?.forEach(cb)
+
 
 @GameTickOnly
 fun ServerLevel?.getShipManagingPos(chunkX: Int, chunkZ: Int) =
@@ -1140,6 +1529,105 @@ fun ServerLevel?.getLoadedShipManagingPos(posX: Double, posZ: Double) =
 @GameTickOnly
 fun ServerLevel?.getLoadedShipManagingPos(chunkPos: ChunkPos) =
     getLoadedShipManagingPos(chunkPos.x, chunkPos.z)
+
+@GameTickOnly
+fun MinecraftServer?.getShipManagingPos(dimensionId: DimensionId, chunkX: Int, chunkZ: Int) =
+    this?.getLevel(dimensionId).getShipManagingPos(chunkX, chunkZ)
+
+@GameTickOnly
+fun MinecraftServer?.getShipManagingPos(dimensionId: DimensionId, blockPos: Vec3i) =
+    this?.getLevel(dimensionId).getShipManagingPos(blockPos)
+
+@GameTickOnly
+fun MinecraftServer?.getShipManagingPos(dimensionId: DimensionId, pos: Vector3dc) =
+    this?.getLevel(dimensionId).getShipManagingPos(pos)
+
+@GameTickOnly
+fun MinecraftServer?.getShipManagingPos(dimensionId: DimensionId, pos: Position) =
+    this?.getLevel(dimensionId).getShipManagingPos(pos)
+
+@GameTickOnly
+fun MinecraftServer?.getShipManagingPos(dimensionId: DimensionId, posX: Double, posZ: Double) =
+    this?.getLevel(dimensionId).getShipManagingPos(posX, posZ)
+
+@GameTickOnly
+fun MinecraftServer?.getShipManagingPos(dimensionId: DimensionId, chunkPos: ChunkPos) =
+    this?.getLevel(dimensionId).getShipManagingPos(chunkPos)
+
+@GameTickOnly
+fun MinecraftServer?.getLoadedShipManagingPos(dimensionId: DimensionId, chunkX: Int, chunkZ: Int) =
+    this?.getLevel(dimensionId).getLoadedShipManagingPos(chunkX, chunkZ)
+
+@GameTickOnly
+fun MinecraftServer?.getLoadedShipManagingPos(dimensionId: DimensionId, blockPos: Vec3i) =
+    this?.getLevel(dimensionId).getLoadedShipManagingPos(blockPos)
+
+@GameTickOnly
+fun MinecraftServer?.getLoadedShipManagingPos(dimensionId: DimensionId, pos: Vector3dc) =
+    this?.getLevel(dimensionId).getLoadedShipManagingPos(pos)
+
+@GameTickOnly
+fun MinecraftServer?.getLoadedShipManagingPos(dimensionId: DimensionId, pos: Position) =
+    this?.getLevel(dimensionId).getLoadedShipManagingPos(pos)
+
+@GameTickOnly
+fun MinecraftServer?.getLoadedShipManagingPos(dimensionId: DimensionId, posX: Double, posZ: Double) =
+    this?.getLevel(dimensionId).getLoadedShipManagingPos(posX, posZ)
+
+@GameTickOnly
+fun MinecraftServer?.getLoadedShipManagingPos(dimensionId: DimensionId, chunkPos: ChunkPos) =
+    this?.getLevel(dimensionId).getLoadedShipManagingPos(chunkPos)
+
+
+
+@GameTickOnly
+fun MinecraftServer?.getShipManagingPos(levelKey: ResourceKey<Level>, chunkX: Int, chunkZ: Int) =
+    this?.getLevel(levelKey).getShipManagingPos(chunkX, chunkZ)
+
+@GameTickOnly
+fun MinecraftServer?.getShipManagingPos(levelKey: ResourceKey<Level>, blockPos: Vec3i) =
+    this?.getLevel(levelKey).getShipManagingPos(blockPos)
+
+@GameTickOnly
+fun MinecraftServer?.getShipManagingPos(levelKey: ResourceKey<Level>, pos: Vector3dc) =
+    this?.getLevel(levelKey).getShipManagingPos(pos)
+
+@GameTickOnly
+fun MinecraftServer?.getShipManagingPos(levelKey: ResourceKey<Level>, pos: Position) =
+    this?.getLevel(levelKey).getShipManagingPos(pos)
+
+@GameTickOnly
+fun MinecraftServer?.getShipManagingPos(levelKey: ResourceKey<Level>, posX: Double, posZ: Double) =
+    this?.getLevel(levelKey).getShipManagingPos(posX, posZ)
+
+@GameTickOnly
+fun MinecraftServer?.getShipManagingPos(levelKey: ResourceKey<Level>, chunkPos: ChunkPos) =
+    this?.getLevel(levelKey).getShipManagingPos(chunkPos)
+
+@GameTickOnly
+fun MinecraftServer?.getLoadedShipManagingPos(levelKey: ResourceKey<Level>, chunkX: Int, chunkZ: Int) =
+    this?.getLevel(levelKey).getLoadedShipManagingPos(chunkX, chunkZ)
+
+@GameTickOnly
+fun MinecraftServer?.getLoadedShipManagingPos(levelKey: ResourceKey<Level>, blockPos: Vec3i) =
+    this?.getLevel(levelKey).getLoadedShipManagingPos(blockPos)
+
+@GameTickOnly
+fun MinecraftServer?.getLoadedShipManagingPos(levelKey: ResourceKey<Level>, pos: Vector3dc) =
+    this?.getLevel(levelKey).getLoadedShipManagingPos(pos)
+
+@GameTickOnly
+fun MinecraftServer?.getLoadedShipManagingPos(levelKey: ResourceKey<Level>, pos: Position) =
+    this?.getLevel(levelKey).getLoadedShipManagingPos(pos)
+
+@GameTickOnly
+fun MinecraftServer?.getLoadedShipManagingPos(levelKey: ResourceKey<Level>, posX: Double, posZ: Double) =
+    this?.getLevel(levelKey).getLoadedShipManagingPos(posX, posZ)
+
+@GameTickOnly
+fun MinecraftServer?.getLoadedShipManagingPos(levelKey: ResourceKey<Level>, chunkPos: ChunkPos) =
+    this?.getLevel(levelKey).getLoadedShipManagingPos(chunkPos)
+
 // endregion
 
 // region Ship extensions
@@ -1478,6 +1966,102 @@ fun PoseStack.multiply(modelTransform: Matrix4dc) = also {
 }
 
 fun Vec3i.toDouble() = Vec3(x.toDouble(), y.toDouble(), z.toDouble())
+// endregion
+
+// region client utils
+@GameTickOnly
+fun multiplyWithShipToWorld(poseStack: PoseStack, ship: ClientShip) {
+    poseStack.multiply(ship.renderTransform.shipToWorld, ship.renderTransform.shipToWorldRotation)
+}
+
+@GameTickOnly
+fun transformRenderIfInShipyard(poseStack: PoseStack, offsetX: Double, offsetY: Double, offsetZ: Double) {
+    val ship = Minecraft.getInstance().getLoadedShipManagingPos(offsetX, offsetZ)
+
+    if (ship != null) {
+        val transform = ship.renderTransform
+        val renderMatrix = Matrix4d()
+            .mul(transform.shipToWorld)
+            .translate(offsetX, offsetY, offsetZ)
+
+        poseStack.multiply(renderMatrix)
+    } else {
+        poseStack.translate(offsetX, offsetY, offsetZ)
+    }
+}
+/**
+ * Modify the last transform of [poseStack] to be the following:
+ *
+ * Last = Last * translate(-[camX], -[camY], -[camZ]) * [renderTransform] * translate([offsetX], [offsetY], [offsetZ])
+ */
+fun transformRenderWithShip(
+    renderTransform: ShipTransform,
+    poseStack: PoseStack,
+    offsetX: Double,
+    offsetY: Double,
+    offsetZ: Double,
+    camX: Double,
+    camY: Double,
+    camZ: Double
+) {
+    val shipToWorldMatrix = renderTransform.shipToWorld
+
+    // Create the render matrix from the render transform and player position
+    val renderMatrix = Matrix4d()
+    renderMatrix.translate(-camX, -camY, -camZ)
+    renderMatrix.mul(shipToWorldMatrix)
+    renderMatrix.translate(offsetX, offsetY, offsetZ)
+
+    // Multiply the last transform of [poseStack] by [shipToWorldMatrix]
+    poseStack.multiply(renderMatrix, renderTransform.shipToWorldRotation)
+}
+
+
+fun transformRenderWithShip(
+    renderTransform: ShipTransform,
+    matrix: Matrix4f,
+    offsetX: Double,
+    offsetY: Double,
+    offsetZ: Double,
+    camX: Double,
+    camY: Double,
+    camZ: Double
+) {
+    val shipToWorldMatrix = renderTransform.shipToWorld
+
+    // Create the render matrix from the render transform and player position
+    val renderMatrix = Matrix4d()
+    renderMatrix.translate(-camX, -camY, -camZ)
+    renderMatrix.mul(shipToWorldMatrix)
+    renderMatrix.translate(offsetX, offsetY, offsetZ)
+
+    // Multiply the last transform of [poseStack] by [shipToWorldMatrix]
+    matrix.mul(Matrix4f(renderMatrix))
+}
+
+/**
+ * @param renderTransform The ship's render transform
+ * @param matrix          The {@link PoseStack} we are multiplying
+ * @param blockPos        The position of the block in question
+ * @param camX            Player camera X
+ * @param camY            Player camera Y
+ * @param camZ            Player camera Z
+ */
+fun transformRenderWithShip(
+    renderTransform: ShipTransform,
+    matrix: PoseStack,
+    blockPos: BlockPos,
+    camX: Double,
+    camY: Double,
+    camZ: Double
+) {
+    transformRenderWithShip(
+        renderTransform,
+        matrix,
+        blockPos.x.toDouble(), blockPos.y.toDouble(), blockPos.z.toDouble(),
+        camX, camY, camZ
+    )
+}
 // endregion
 
 // region private utils

@@ -13,7 +13,11 @@ import net.minecraft.world.phys.AABB
 import org.joml.Vector3d
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.internal.physics.VsiDebugVector
-import org.valkyrienskies.mod.common.dimensionId
+import org.valkyrienskies.mod.api.allShips
+import org.valkyrienskies.mod.api.dimensionId
+import org.valkyrienskies.mod.api.getShipById
+import org.valkyrienskies.mod.api.loadedShips
+import org.valkyrienskies.mod.api.shipWorld
 import org.valkyrienskies.mod.common.debug.DebugRendererMode
 import org.valkyrienskies.mod.common.debug.LatestValueTask
 import org.valkyrienskies.mod.common.networking.DebugShipInfo
@@ -97,8 +101,9 @@ object ShipDebugRenderer {
     fun render(matrices: PoseStack, buffers: MultiBufferSource.BufferSource,
         cameraX: Double, cameraY: Double, cameraZ: Double) {
         if (!active() || Minecraft.getInstance().showOnlyReducedInfo()) return
-        val world = Minecraft.getInstance().level.shipObjectWorld
         val camera = Vector3d(cameraX, cameraY, cameraZ)
+        val allShips = Minecraft.getInstance().allShips
+        val loadedShips = Minecraft.getInstance().loadedShips
         val labelsToRender = ArrayList<Label>()
         val now = System.nanoTime()
         if (packet.mode.showText && now >= nextLabelUpdate) {
@@ -109,7 +114,7 @@ object ShipDebugRenderer {
         try {
             val consumer = if (packet.mode.showMarkers) buffers.getBuffer(RenderType.lines()) else null
             for (info in packet.ships) {
-                val ship = world.loadedShips.getById(info.physics.id) ?: continue
+                val ship = allShips?.getById(info.physics.id) ?: continue
                 val bounds = ship.renderAABB
                 val center = Vector3d(ship.renderTransform.position)
                 if (!center.isFinite) continue
@@ -166,8 +171,8 @@ object ShipDebugRenderer {
                     line(matrices, consumer, point, Vector3d(point).fma(0.6, vector(contact.normal)), camera, 0xFF5555)
                 }
                 for (joint in packet.joints) {
-                    val point0 = renderEndpoint(world.loadedShips.getById(joint.bodyId0 ?: -1L), joint.position0, joint.positionInModel0)
-                    val point1 = renderEndpoint(world.loadedShips.getById(joint.bodyId1 ?: -1L), joint.position1, joint.positionInModel1)
+                    val point0 = renderEndpoint(loadedShips?.getById(joint.bodyId0 ?: -1L), joint.position0, joint.positionInModel0)
+                    val point1 = renderEndpoint(loadedShips?.getById(joint.bodyId1 ?: -1L), joint.position1, joint.positionInModel1)
                     line(matrices, consumer, point0, point1, camera, 0xFFCC55)
                     point(matrices, consumer, point0, camera, 0xFFCC55, 0.1)
                     point(matrices, consumer, point1, camera, 0xFFCC55, 0.1)

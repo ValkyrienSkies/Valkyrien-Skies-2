@@ -7,7 +7,6 @@
     "feature.assembly.MixinWelderBlockInteraction",
     "accessors.entity.EntityAccessor",
     "accessors.network.protocol.game.ClientboundSectionBlocksUpdatePacketAccessor",
-    "accessors.resource.ResourceKeyAccessor",
     "accessors.server.level.ChunkHolderAccessor",
     "accessors.server.level.ChunkMapAccessor",
     "accessors.server.level.DistanceManagerAccessor",

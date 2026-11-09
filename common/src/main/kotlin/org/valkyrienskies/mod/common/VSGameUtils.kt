@@ -60,7 +60,6 @@ import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toJOMLD
 import org.valkyrienskies.mod.common.util.toMinecraft
 import org.valkyrienskies.mod.mixin.accessors.entity.EntityAccessor
-import org.valkyrienskies.mod.mixin.accessors.resource.ResourceKeyAccessor
 import org.valkyrienskies.mod.mixinducks.world.entity.PlayerDuck
 import java.util.function.Consumer
 
@@ -114,9 +113,7 @@ fun getResourceKey(dimensionId: DimensionId): ResourceKey<Level> {
     val cached = levelResourceKeyMap[dimensionId]
     if (cached == null) {
         val (registryNamespace, registryName, namespace, name) = dimensionId.split(":")
-        val toReturn: ResourceKey<Level> = ResourceKeyAccessor.callCreate(
-            ResourceLocation(registryNamespace, registryName), ResourceLocation(namespace, name)
-        )
+        val toReturn: ResourceKey<Level> = ResourceKey.create(ResourceLocation(registryNamespace, registryName), ResourceLocation(namespace, name))
         levelResourceKeyMap[dimensionId] = toReturn
         return toReturn
     }
@@ -170,7 +167,7 @@ fun Level.isChunkLoadedForVS(pos: ChunkPos): Boolean {
     return isTickingChunk(pos)
 }
 
-@Deprecated(dep, ReplaceWith("getLevelFromDimensionId(dimensionId)", "org.valkyrienskies.mod.api.getLevelFromDimensionId"))
+@Deprecated(dep, ReplaceWith("getLevel(dimensionId)", "org.valkyrienskies.mod.api.getLevelFromDimensionId"))
 fun MinecraftServer.getLevelFromDimensionId(dimensionId: DimensionId): ServerLevel? {
     return getLevel(getResourceKey(dimensionId))
 }
@@ -422,22 +419,22 @@ fun ClientLevel?.getLoadedShipManagingPos(pos: Position) =
 fun ClientLevel?.getLoadedShipManagingPos(chunkPos: ChunkPos) =
     getLoadedShipManagingPos(chunkPos.x, chunkPos.z)
 
-@Deprecated("$dep and use getLoadedShipManagingPos", ReplaceWith("getLoadedShipManagingPos(chunkX, chunkZ)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
+@Deprecated(dep, ReplaceWith("getLoadedShipManagingPos(chunkX, chunkZ)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun ClientLevel?.getShipObjectManagingPos(chunkX: Int, chunkZ: Int) =
     getShipObjectManagingPosImpl(this, chunkX, chunkZ) as ClientShip?
-@Deprecated("$dep and use getLoadedShipManagingPos instead", ReplaceWith("getLoadedShipManagingPos(blockPos)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
+@Deprecated(dep, ReplaceWith("getLoadedShipManagingPos(blockPos)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun ClientLevel?.getShipObjectManagingPos(blockPos: Vec3i) =
     getShipObjectManagingPos(blockPos.x shr 4, blockPos.z shr 4)
-@Deprecated("$dep and use getLoadedShipManagingPos instead", ReplaceWith("getLoadedShipManagingPos(posX, posZ)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
+@Deprecated(dep, ReplaceWith("getLoadedShipManagingPos(posX, posZ)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun ClientLevel?.getShipObjectManagingPos(posX: Double, posY: Double, posZ: Double) =
     getShipObjectManagingPos(posX.toInt() shr 4, posZ.toInt() shr 4)
-@Deprecated("$dep and use getLoadedShipManagingPos instead", ReplaceWith("getLoadedShipManagingPos(pos)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
+@Deprecated(dep, ReplaceWith("getLoadedShipManagingPos(pos)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun ClientLevel?.getShipObjectManagingPos(pos: Vector3dc) =
     getShipObjectManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
-@Deprecated("$dep and use getLoadedShipManagingPos instead", ReplaceWith("getLoadedShipManagingPos(pos)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
+@Deprecated(dep, ReplaceWith("getLoadedShipManagingPos(pos)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun ClientLevel?.getShipObjectManagingPos(pos: Position) =
     getShipObjectManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
-@Deprecated("$dep and use getLoadedShipManagingPos instead", ReplaceWith("getLoadedShipManagingPos(chunkPos)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
+@Deprecated(dep, ReplaceWith("getLoadedShipManagingPos(chunkPos)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun ClientLevel?.getShipObjectManagingPos(chunkPos: ChunkPos) =
     getShipObjectManagingPos(chunkPos.x, chunkPos.z)
 

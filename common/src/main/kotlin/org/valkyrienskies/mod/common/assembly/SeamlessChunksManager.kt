@@ -12,6 +12,7 @@ import net.minecraft.world.level.ChunkPos
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.properties.ChunkClaim
 import org.valkyrienskies.core.util.pollUntilEmpty
+import org.valkyrienskies.mod.api.toChunkPos
 import org.valkyrienskies.mod.api.toMinecraft
 import org.valkyrienskies.mod.api.vsApi
 import org.valkyrienskies.mod.api.vsCore
@@ -47,7 +48,7 @@ class SeamlessChunksManager(private val listener: ClientPacketListener) {
     init {
         with(vsCore.simplePacketNetworking) {
             PacketStopChunkUpdates::class.registerClientHandler { (chunks) ->
-                chunks.forEach { stalledChunks.add(it.toMinecraft().toLong()) }
+                chunks.forEach { stalledChunks.add(it.toChunkPos().toLong()) }
             }
             PacketRestartChunkUpdates::class.registerClientHandler { packet ->
                 Minecraft.getInstance().execute {
@@ -83,6 +84,8 @@ class SeamlessChunksManager(private val listener: ClientPacketListener) {
 
     private fun flushLoadedShipQueuedUpdates(level: ClientLevel?) {
         if (level == null || shipQueuedUpdates.isEmpty()) return
+
+        level.for
 
         for (ship in level.shipObjectWorld.loadedShips) {
             if (ship.chunkClaimDimension == level.dimensionId) {

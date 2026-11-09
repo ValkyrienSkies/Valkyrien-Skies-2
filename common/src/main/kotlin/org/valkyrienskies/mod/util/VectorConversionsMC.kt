@@ -82,7 +82,7 @@ fun AABBdc.toMinecraft() = AABB(minX(), minY(), minZ(), maxX(), maxY(), maxZ())
 @Deprecated(dep, ReplaceWith("toJOML()", "org.valkyrienskies.mod.api.toJOML"))
 fun AABB.toJOML() = AABBd().set(this)
 
-@Deprecated(dep, ReplaceWith("toMinecraft()", "org.valkyrienskies.mod.api.toMinecraft"))
+@Deprecated(dep, ReplaceWith("toChunkPos()", "org.valkyrienskies.mod.api.toChunkPos"))
 fun Vector2ic.toMinecraft() = ChunkPos(x(), y())
 
 @Deprecated(dep, ReplaceWith("toJOML()", "org.valkyrienskies.mod.api.toJOML"))

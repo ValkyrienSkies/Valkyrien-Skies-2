@@ -49,6 +49,7 @@ import org.valkyrienskies.core.api.util.AerodynamicUtils;
 import org.valkyrienskies.core.impl.api_impl.config.ConfigFracturingMode;
 import org.valkyrienskies.core.impl.api_impl.config.ConfigPhysicsBackendType;
 import org.valkyrienskies.core.impl.config.VSCoreConfig;
+import org.valkyrienskies.core.internal.world.VsiPipeline;
 import org.valkyrienskies.core.internal.world.VsiServerShipWorld;
 import org.valkyrienskies.core.internal.world.chunks.VsiTerrainUpdate;
 import org.valkyrienskies.mod.common.VS2ChunkAllocator;
@@ -130,6 +131,12 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
     @Override
     public VsiServerShipWorld getShipObjectWorld() {
         return ((IShipObjectWorldServerProvider) getServer()).getShipObjectWorld();
+    }
+
+    @Override
+    @Nullable
+    public VsiPipeline getVsPipeline() {
+        return ((IShipObjectWorldServerProvider) getServer()).getVsPipeline();
     }
 
     @Inject(method = "<init>", at = @At("RETURN"))
