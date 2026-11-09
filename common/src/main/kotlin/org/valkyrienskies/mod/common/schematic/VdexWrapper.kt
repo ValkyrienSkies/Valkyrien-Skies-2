@@ -149,17 +149,7 @@ object VdexWrapper {
 
         // Put them into maps that ICopyableBlock expects
         val oldIdToNewId: Map<Long, Long> = oldIdToNewShip.mapValues { it.value.id }
-        val newCenters = oldIdToNewShip.values.toList().centerPositions(level, false)
 
-        // basically just store (oldId, (oldCenter, newCenter))
-        // NOTE: the old centers are the center of Ship AABB. Since we haven't pasted blocks yet, we can't do that.
-        // So instead we pass in center of chunk claim. Since we paste the blocks such that their new AABB is centered in the
-        // new plot, these centers work out to be equivalent.
-        val centerMigrate: Map<Long, Pair<Vector3d, Vector3d>> =
-            oldIdToOldCenter.mapValues { (oldId, oldCenter) ->
-                val newShip = oldIdToNewShip.getValue(oldId)
-                Vector3d(oldCenter) to newCenters.getValue(newShip.id)
-            }
 
         val blocksToProcess: MutableMap<Long, List<BlockPos>> = mutableMapOf()
         // Place the structures
@@ -193,7 +183,6 @@ object VdexWrapper {
             }
             settings.rotationPivot = cornerOfShip
             template.placeInWorld(level, cornerOfShip, cornerOfShip, settings, level.random, Block.UPDATE_CLIENTS)
-
             blocksToProcess[ship.id] = shipBlocksToProcess
         }
 
@@ -234,33 +223,55 @@ object VdexWrapper {
         }
 
         // This is very ugly and weird, but it works.
-        // Basically if a ship loads, and we have blocks to process for it,
-        // schedule a game tick to process all those blocks.
+        // Basically we wait until all our ships are loaded, _then_
+        // schedule a game tick to process all those ICopyable blocks.
         // If we've done all our ships, stop listening.
+        val shipsThatHaveLoaded = mutableListOf<Long>()
         ValkyrienSkiesMod.api.shipLoadEvent.on { event, listener ->
-            if (blocksToProcess.isEmpty()) {
-                listener.unregister()
+            if (blocksToProcess.keys.contains(event.ship.id)) {
+                shipsThatHaveLoaded.add(event.ship.id)
             }
 
-            blocksToProcess[event.ship.id]?.let {
+            if (shipsThatHaveLoaded.size == blocksToProcess.keys.size) {
                 ValkyrienSkiesMod.api.tickEndEvent.on { event_, listener_ ->
-                    it.forEach { pos ->
-                        val sl = ValkyrienSkiesMod.currentServer?.getLevelFromDimensionId(event.ship.chunkClaimDimension) ?: return@forEach
-                        val state = sl.getBlockState(pos)
-                        if (state.isAir || state.block !is ICopyableBlock) return@forEach
-                        level.getChunkAt(pos).removeBlockEntity(pos)
+                    val sl =
+                        ValkyrienSkiesMod.currentServer?.getLevelFromDimensionId(event.ship.chunkClaimDimension)
+                            ?: return@on
 
-                        val be = level.getBlockEntity(pos)
-                        var tag = be?.saveWithFullMetadata()
+                    val newCenters = oldIdToNewShip.values.toList().centerPositions(level)
+                    println(newCenters)
 
-                        tag  = (state.block as ICopyableBlock).onPaste(level, pos, state, oldIdToNewId, centerMigrate, tag) ?: tag
+                    // basically just store (oldId, (oldCenter, newCenter))
+                    // NOTE: the old centers are the center of Ship AABB. Since we haven't pasted blocks yet, we can't do that.
+                    // So instead we pass in center of chunk claim. Since we paste the blocks such that their new AABB is centered in the
+                    // new plot, these centers work out to be equivalent.
+                    val centerMigrate: Map<Long, Pair<Vector3d, Vector3d>> =
+                        oldIdToOldCenter.mapValues { (oldId, oldCenter) ->
+                            val newShip = oldIdToNewShip.getValue(oldId)
+                            Vector3d(oldCenter) to newCenters.getValue(newShip.id)
+                        }
 
-                        be?.load(tag ?: CompoundTag())
+                    println(centerMigrate)
+
+                    blocksToProcess.values.forEach { posList ->
+                        posList.forEach { pos ->
+                            val state = sl.getBlockState(pos)
+                            if (state.isAir || state.block !is ICopyableBlock) return@forEach
+
+                            val be = level.getBlockEntity(pos)
+                            var tag = be?.saveWithFullMetadata()
+
+                            tag = (state.block as ICopyableBlock).onPaste(
+                                level, pos, state, oldIdToNewId, centerMigrate, tag
+                            ) ?: tag
+
+                            be?.load(tag ?: CompoundTag())
+                        }
                     }
                     listener_.unregister()
                 }
+                listener.unregister()
             }
-            blocksToProcess.remove(event.ship.id)
         }
 
         return null
@@ -307,6 +318,7 @@ object VdexWrapper {
             val minB = minMax.first
             val maxB = minMax.second
             val template = StructureTemplate()
+            println(allShips.centerPositions(level))
             (template as StructureTemplateFillFromVoxelSet).`vs$fillFromVoxelSet`(
                 level, blocks, allShips,
                 allShips.centerPositions(level),
