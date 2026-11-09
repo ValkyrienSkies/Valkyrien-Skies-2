@@ -8,9 +8,11 @@ import net.minecraft.nbt.NbtIo
 import net.minecraft.network.chat.Component
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.world.level.LevelReader
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessor
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessorType
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate
 import net.minecraft.world.level.storage.LevelResource
 import org.joml.Quaterniond
@@ -32,10 +34,12 @@ import org.valkyrienskies.core.internal.joints.VSSphericalJoint
 import org.valkyrienskies.core.internal.joints.VSSpringJoint
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.assembly.ICopyableAttachment
+import org.valkyrienskies.mod.common.assembly.ICopyableBlock
 import org.valkyrienskies.mod.common.assembly.ShipAssembler
 import org.valkyrienskies.mod.common.command.commands.SchematicCommand.shipsNeedingAttachmentLoad
 import org.valkyrienskies.mod.common.debug.ShipDebugService
 import org.valkyrienskies.mod.common.dimensionId
+import org.valkyrienskies.mod.common.getLevelFromDimensionId
 import org.valkyrienskies.mod.common.safeRenameTo
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.floorToInt
@@ -50,8 +54,6 @@ import java.io.FileNotFoundException
 import java.nio.file.Files
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
-import kotlin.jvm.Throws
-
 
 object VdexWrapper {
     fun getSchematicDirectory(server: MinecraftServer): Path {
@@ -159,6 +161,7 @@ object VdexWrapper {
                 Vector3d(oldCenter) to newCenters.getValue(newShip.id)
             }
 
+        val blocksToProcess: MutableMap<Long, List<BlockPos>> = mutableMapOf()
         // Place the structures
         schem.metadata.ships.forEach { vdexShipEntry ->
             val ship = oldIdToNewShip[vdexShipEntry.previousId] ?: return@forEach
@@ -179,11 +182,9 @@ object VdexWrapper {
             )
 
             val settings = StructurePlaceSettings()
+            val shipBlocksToProcess = mutableListOf<BlockPos>()
             settings.addProcessor(
-                ShipAssembler.ICopyableProcessor(
-                    oldIdToNewId,
-                    centerMigrate
-                )
+                DelayedICopyableProcessor(shipBlocksToProcess)
             )
 
             settings.isIgnoreEntities = !loadEntities
@@ -192,6 +193,8 @@ object VdexWrapper {
             }
             settings.rotationPivot = cornerOfShip
             template.placeInWorld(level, cornerOfShip, cornerOfShip, settings, level.random, Block.UPDATE_CLIENTS)
+
+            blocksToProcess[ship.id] = shipBlocksToProcess
         }
 
         val gtpa = ValkyrienSkiesMod.getOrCreateGTPA(level.dimensionId)
@@ -228,6 +231,36 @@ object VdexWrapper {
             }
 
             gtpa.addJoint(newJoint, 2) {}
+        }
+
+        // This is very ugly and weird, but it works.
+        // Basically if a ship loads, and we have blocks to process for it,
+        // schedule a game tick to process all those blocks.
+        // If we've done all our ships, stop listening.
+        ValkyrienSkiesMod.api.shipLoadEvent.on { event, listener ->
+            if (blocksToProcess.isEmpty()) {
+                listener.unregister()
+            }
+
+            blocksToProcess[event.ship.id]?.let {
+                ValkyrienSkiesMod.api.tickEndEvent.on { event_, listener_ ->
+                    it.forEach { pos ->
+                        val sl = ValkyrienSkiesMod.currentServer?.getLevelFromDimensionId(event.ship.chunkClaimDimension) ?: return@forEach
+                        val state = sl.getBlockState(pos)
+                        if (state.isAir || state.block !is ICopyableBlock) return@forEach
+                        level.getChunkAt(pos).removeBlockEntity(pos)
+
+                        val be = level.getBlockEntity(pos)
+                        var tag = be?.saveWithFullMetadata()
+
+                        tag  = (state.block as ICopyableBlock).onPaste(level, pos, state, oldIdToNewId, centerMigrate, tag) ?: tag
+
+                        be?.load(tag ?: CompoundTag())
+                    }
+                    listener_.unregister()
+                }
+            }
+            blocksToProcess.remove(event.ship.id)
         }
 
         return null
@@ -419,6 +452,24 @@ object VdexWrapper {
             }
         }
         return blocks
+    }
+
+    class DelayedICopyableProcessor(
+        val blocks: MutableList<BlockPos>
+    ): StructureProcessor() {
+        override fun processBlock(
+            levelReader: LevelReader, oldBPos: BlockPos, newBPos: BlockPos,
+            oldStructureBlockInfo: StructureTemplate.StructureBlockInfo,
+            newStructureBlockInfo: StructureTemplate.StructureBlockInfo, structurePlaceSettings: StructurePlaceSettings
+        ): StructureTemplate.StructureBlockInfo {
+            if (newStructureBlockInfo.state.block is ICopyableBlock) {
+                blocks.add(newStructureBlockInfo.pos.immutable())
+            }
+            return newStructureBlockInfo
+        }
+
+        // getType is used for referencing this processor from a datapack, which we don't need
+        override fun getType(): StructureProcessorType<*>? = null
     }
 }
 
