@@ -144,12 +144,18 @@ object VdexWrapper {
         // Put it into a map that ICopyableBlock expects
         val oldIdToNewId: Map<Long, Long> = oldIdToNewShip.mapValues { it.value.id }
 
+
+        val newCenters = oldIdToNewShip.values.toList().centerPositions(level, false)
+
         // basically just store (oldId, (oldCenter, newCenter))
         // NOTE: the old centers are the center of Ship AABB. Since we haven't pasted blocks yet, we can't do that.
         // So instead we pass in center of chunk claim. Since we paste the blocks such that their new AABB is centered in the
         // new plot, these centers work out to be equivalent.
         val centerMigrate: Map<Long, Pair<Vector3d, Vector3d>> =
-            oldIdToOldCenter.mapValues { (key, v1) -> Vector3d(v1) to oldIdToNewShip.values.toList().centerPositions(level, false).getValue(key) }
+            oldIdToOldCenter.mapValues { (oldId, oldCenter) ->
+                val newShip = oldIdToNewShip.getValue(oldId)
+                Vector3d(oldCenter) to newCenters.getValue(newShip.id)
+            }
 
         // Place the structures
         schem.metadata.ships.forEach { vdexShipEntry ->
