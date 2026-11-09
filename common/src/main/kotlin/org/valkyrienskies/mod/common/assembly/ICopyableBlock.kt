@@ -40,6 +40,9 @@ interface ICopyableBlock {
      * If ShipID is -1 then it's copied to ground.
      *
      * [centerPositions] should use old shipId's as keys, with values being a pair of old center, and new center.
+     *
+     * With VDex, the old center will be the center of the ships AABB (model space), and the new center will be the center of the chunk claim.
+     * These will be equivalent, since [org.valkyrienskies.mod.common.schematic.VdexWrapper] pastes the blocks such that they're centered in the chunk claim. But it's good to know.
      */
     fun onPaste(level: ServerLevel, pos: BlockPos, state: BlockState, oldShipIdToNewId: Map<Long, Long>, centerPositions: Map<Long, Pair<Vector3dc, Vector3dc>>, tag: CompoundTag?): CompoundTag?
 

@@ -30,8 +30,8 @@ data class VdexJointPose(
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class VdexConstraintMetadata(
-    val shipIndex0: Int = 0,
-    val shipIndex1: Int = 1,
+    val shipIndex0: Long = 0,
+    val shipIndex1: Long = 1,
     val position0offset: Vector3d = Vector3d(0.0, 0.0, 0.0),
     val position1offset: Vector3d = Vector3d(0.0, 0.0, 0.0),
 )
@@ -47,7 +47,9 @@ data class VdexShipEntry(
     val relativeRot: Quaterniondc = Quaterniond(0.0, 0.0, 0.0, 1.0),
     val isStatic: Boolean = false,
     val scale: Double = 1.0,
-    val attachedData: ByteArray = byteArrayOf()
+    val previousId: Long = -1,
+    val previousCenter: Vector3dc = Vector3d(),
+    val attachedData: ByteArray = byteArrayOf(),
 )
 
 /**
@@ -80,7 +82,6 @@ data class VdexSocialMetadata(
 data class VdexMetadata(
     val version: Int = 1,
     val social: VdexSocialMetadata = VdexSocialMetadata(),
-    val shipIdToIndex: Map<Long, Int> = mapOf(),
     @JsonIgnore val ships: List<VdexShipEntry> = emptyList(),
     @JsonIgnore val constraints: List<VdexConstraintEntry> = emptyList(),
 )
