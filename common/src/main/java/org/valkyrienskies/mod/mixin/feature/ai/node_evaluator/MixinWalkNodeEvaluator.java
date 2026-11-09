@@ -3,7 +3,7 @@ package org.valkyrienskies.mod.mixin.feature.ai.node_evaluator;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Mob;
-import net.minecraft.world.level.pathfinder.BlockPathTypes;
+import net.minecraft.world.level.pathfinder.PathType;
 import net.minecraft.world.level.pathfinder.Node;
 import net.minecraft.world.level.pathfinder.NodeEvaluator;
 import net.minecraft.world.level.pathfinder.WalkNodeEvaluator;
@@ -30,7 +30,7 @@ public abstract class MixinWalkNodeEvaluator extends NodeEvaluator {
     protected abstract Node getStartNode(BlockPos blockPos);
 
     @Shadow
-    protected abstract BlockPathTypes getBlockPathType(Mob mob, BlockPos blockPos);
+    protected abstract PathType getBlockPathType(Mob mob, BlockPos blockPos);
 
     @Unique
     private static final ThreadLocal<Vector3d> VS$IN = ThreadLocal.withInitial(Vector3d::new);
@@ -67,7 +67,7 @@ public abstract class MixinWalkNodeEvaluator extends NodeEvaluator {
 
         // Vanilla corner-search projected to shipyard: if the multi-cell footprint at the
         // center cell has negative malus, sample the four bbox corners at the mob's foot Y.
-        final BlockPathTypes centerType = this.getBlockPathType(this.mob, centerCell);
+        final PathType centerType = this.getBlockPathType(this.mob, centerCell);
         if (this.mob.getPathfindingMalus(centerType) < 0.0F) {
             final AABB bbox = this.mob.getBoundingBox();
             final double mobY = this.mob.getY();

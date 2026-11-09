@@ -87,7 +87,7 @@ object FluidSourceWithdrawalHandler {
             } else VsiFluidSourceWithdrawalResult.RETRY_LATER
         }
         if (block is BucketPickup) {
-            val pickedUp = block.pickupBlock(level, pos, state)
+            val pickedUp = block.pickupBlock(null, level, pos, state)
             if (!pickedUp.isEmpty) {
                 return VsiFluidSourceWithdrawalResult.APPLIED
             }

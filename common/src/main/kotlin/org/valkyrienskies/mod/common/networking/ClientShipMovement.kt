@@ -48,7 +48,7 @@ object ClientShipMovement {
             info.addedMovementLastTick = Vector3d()
             info.addedYawRotLastTick = 0.0
             entity.lerpTo(packet.worldX, packet.worldY, packet.worldZ,
-                packet.yRot.toFloat(), packet.xRot.toFloat(), 3, true)
+                packet.yRot.toFloat(), packet.xRot.toFloat(), 3)
             entity.lerpHeadTo(packet.headYaw.toFloat(), 3)
         } else {
             info.usesShipInterpolation = true

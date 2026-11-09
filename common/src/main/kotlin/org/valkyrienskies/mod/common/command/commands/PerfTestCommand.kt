@@ -109,7 +109,7 @@ object PerfTestCommand {
                         player.eyePosition.add(player.lookAngle.multiply(10.0, 10.0, 10.0)),
                         ClipContext.Block.COLLIDER,
                         ClipContext.Fluid.ANY,
-                        null
+                        null as net.minecraft.world.entity.Entity?
                     )
                     var target = level.clip(clipContext).blockPos
 

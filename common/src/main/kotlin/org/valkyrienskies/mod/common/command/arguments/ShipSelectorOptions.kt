@@ -86,7 +86,7 @@ object ContraptionSelectorOptions {
                 "distance", { parser: ShipSelectorParser ->
                     val i = parser.reader.cursor
                     val `minmaxbounds$doubles` = MinMaxBounds.Doubles.fromReader(parser.reader)
-                    if ((`minmaxbounds$doubles`.getMin() == null || !(`minmaxbounds$doubles`.getMin()!! < 0.0)) && (`minmaxbounds$doubles`.getMax() == null || !(`minmaxbounds$doubles`.getMax()!! < 0.0))) {
+                    if ((`minmaxbounds$doubles`.min().orElse(null) == null || !(`minmaxbounds$doubles`.min().orElse(null)!! < 0.0)) && (`minmaxbounds$doubles`.max().orElse(null) == null || !(`minmaxbounds$doubles`.max().orElse(null)!! < 0.0))) {
                         parser.distance = `minmaxbounds$doubles`
                         parser.needsSpecificLevel = true
                     } else {
@@ -176,7 +176,7 @@ object ContraptionSelectorOptions {
                 "velocity", { parser: ShipSelectorParser ->
                     val i = parser.reader.cursor
                     val `minmaxbounds$doubles` = MinMaxBounds.Doubles.fromReader(parser.reader)
-                    if ((`minmaxbounds$doubles`.getMin() == null || (`minmaxbounds$doubles`.getMin()!! >= 0.0)) && (`minmaxbounds$doubles`.getMax() == null || (`minmaxbounds$doubles`.getMax()!! >= 0.0))) {
+                    if ((`minmaxbounds$doubles`.min().orElse(null) == null || (`minmaxbounds$doubles`.min().orElse(null)!! >= 0.0)) && (`minmaxbounds$doubles`.max().orElse(null) == null || (`minmaxbounds$doubles`.max().orElse(null)!! >= 0.0))) {
                         parser.velocity = `minmaxbounds$doubles`
                     } else {
                         parser.reader.cursor = i
@@ -208,7 +208,7 @@ object ContraptionSelectorOptions {
                 "omega", { parser: ShipSelectorParser ->
                     val i = parser.reader.cursor
                     val `minmaxbounds$doubles` = MinMaxBounds.Doubles.fromReader(parser.reader)
-                    if ((`minmaxbounds$doubles`.getMin() == null || (`minmaxbounds$doubles`.getMin()!! >= 0.0)) && (`minmaxbounds$doubles`.getMax() == null || (`minmaxbounds$doubles`.getMax()!! >= 0.0))) {
+                    if ((`minmaxbounds$doubles`.min().orElse(null) == null || (`minmaxbounds$doubles`.min().orElse(null)!! >= 0.0)) && (`minmaxbounds$doubles`.max().orElse(null) == null || (`minmaxbounds$doubles`.max().orElse(null)!! >= 0.0))) {
                         parser.omega = `minmaxbounds$doubles`
                     } else {
                         parser.reader.cursor = i
@@ -221,7 +221,7 @@ object ContraptionSelectorOptions {
                 "size", { parser: ShipSelectorParser ->
                     val i = parser.reader.cursor
                     val `minmaxbounds$ints` = MinMaxBounds.Doubles.fromReader(parser.reader)
-                    if ((`minmaxbounds$ints`.getMin() == null || (`minmaxbounds$ints`.getMin()!! >= 0)) && (`minmaxbounds$ints`.getMax() == null || (`minmaxbounds$ints`.getMax()!! >= 0))) {
+                    if ((`minmaxbounds$ints`.min().orElse(null) == null || (`minmaxbounds$ints`.min().orElse(null)!! >= 0)) && (`minmaxbounds$ints`.max().orElse(null) == null || (`minmaxbounds$ints`.max().orElse(null)!! >= 0))) {
                         parser.size = `minmaxbounds$ints`
                     } else {
                         parser.reader.cursor = i

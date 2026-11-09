@@ -3,14 +3,14 @@ package org.valkyrienskies.mod.common.pathfinding
 import net.minecraft.core.BlockPos
 import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.block.state.BlockState
-import net.minecraft.world.level.pathfinder.BlockPathTypes
+import net.minecraft.world.level.pathfinder.PathType
 import org.valkyrienskies.mod.mixin.accessors.world.level.pathfinder.WalkNodeEvaluatorInvoker
 
 /**
  * Merge resolution for overlapping ship lookups: when several ships' AABBs share a world cell,
  * the cell physically contains the union of their geometry, so the most-dangerous verdict wins
  * (a wall on any ship blocks the cell; lava on any ship hazards it). Driven by vanilla's
- * [BlockPathTypes.malus] so no VS2-invented ranking gets layered on top of vanilla pathfinding.
+ * [PathType.malus] so no VS2-invented ranking gets layered on top of vanilla pathfinding.
  */
 object PathTypeDanger {
 
@@ -18,7 +18,7 @@ object PathTypeDanger {
     fun pickMostDangerousState(level: BlockGetter, candidates: List<BlockPos>): BlockState {
         require(candidates.isNotEmpty()) { "candidates must be non-empty" }
         var bestState: BlockState = level.getBlockState(candidates[0])
-        var bestType: BlockPathTypes =
+        var bestType: PathType =
             WalkNodeEvaluatorInvoker.`vs$getBlockPathTypeRaw`(level, candidates[0])
         for (i in 1 until candidates.size) {
             val pos = candidates[i]
@@ -32,7 +32,7 @@ object PathTypeDanger {
     }
 
     // -1 (absolute reject) trumps any non-negative malus; otherwise higher malus = more dangerous.
-    private fun moreThreatening(a: BlockPathTypes, b: BlockPathTypes): Boolean {
+    private fun moreThreatening(a: PathType, b: PathType): Boolean {
         val am = a.malus
         val bm = b.malus
         if (am < 0f && bm >= 0f) return true

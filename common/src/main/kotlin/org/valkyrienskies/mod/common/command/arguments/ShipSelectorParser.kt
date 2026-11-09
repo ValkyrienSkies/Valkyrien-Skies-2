@@ -93,8 +93,8 @@ class ShipSelectorParser(
         get() {
             val aabb: AABB?
             if (this.deltaX == null && this.deltaY == null && this.deltaZ == null) {
-                if (this.distance.getMax() != null) {
-                    val d0: Double = this.distance.getMax()!!
+                if (this.distance.max().orElse(null) != null) {
+                    val d0: Double = this.distance.max().orElse(null)!!
                     aabb = AABB(-d0, -d0, -d0, d0 + 1.0, d0 + 1.0, d0 + 1.0)
                 } else {
                     aabb = null

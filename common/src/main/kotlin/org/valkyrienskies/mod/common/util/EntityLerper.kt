@@ -10,7 +10,7 @@ object EntityLerper {
     fun prepareTick(entity: Entity) {
         val info = (entity as? IEntityDraggingInformationProvider)?.draggingInformation ?: return
         if (!info.usesShipInterpolation || entity.isControlledByLocalInstance) return
-        entity.lerpTo(entity.x, entity.y, entity.z, entity.yRot, entity.xRot, 0, true)
+        entity.lerpTo(entity.x, entity.y, entity.z, entity.yRot, entity.xRot, 0)
         entity.lerpHeadTo(entity.yHeadRot, 0)
     }
 

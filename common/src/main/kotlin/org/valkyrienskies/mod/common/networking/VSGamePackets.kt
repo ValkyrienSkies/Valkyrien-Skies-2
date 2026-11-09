@@ -91,7 +91,7 @@ object VSGamePackets {
             } else {
                 ClientBlockStateInfo.clientHasMassInfo = true
                 syncBsi.blockState2VS.forEach { (id, state) ->
-                    ClientBlockStateInfo.registerBlockInfo(ResourceLocation.of(id, ':'), state)
+                    ClientBlockStateInfo.registerBlockInfo(ResourceLocation.parse(id), state)
                 }
             }
         }

@@ -38,7 +38,7 @@ public abstract class MixinPathNavigationFollow {
     @Shadow protected abstract void doStuckDetection(Vec3 vec3);
     @Shadow protected abstract boolean shouldTargetNextNodeInDirection(Vec3 vec3);
     @Shadow protected abstract boolean canMoveDirectly(Vec3 fromWorld, Vec3 toWorld);
-    @Shadow public abstract boolean canCutCorner(net.minecraft.world.level.pathfinder.BlockPathTypes type);
+    @Shadow public abstract boolean canCutCorner(net.minecraft.world.level.pathfinder.PathType type);
 
     @Inject(method = "followThePath", at = @At("HEAD"), cancellable = true)
     private void vs$followInShipFrame(final CallbackInfo ci) {

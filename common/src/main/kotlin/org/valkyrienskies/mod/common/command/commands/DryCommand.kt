@@ -29,7 +29,7 @@ object DryCommand {
                 .then(argument("fluid", ResourceLocationArgument.id())
                     .suggests { _, builder ->
                         SharedSuggestionProvider.suggestResource(
-                            MassDatapackResolver.fluidTypesForClient().values.distinct().map(::ResourceLocation), builder)
+                            MassDatapackResolver.fluidTypesForClient().values.distinct().map(ResourceLocation::parse), builder)
                     }
                     .executes {
                         dryShip(it, ShipArgument.getShip(it, "ship"), ResourceLocationArgument.getId(it, "fluid"))

@@ -529,7 +529,7 @@ object ShipAssembler {
             chunkSourceAccessor.callRunDistanceManagerUpdates()
 
             val preloadFutures = allDestChunkPoses.map { cp ->
-                chunkSourceAccessor.callGetChunkFutureMainThread(
+                chunkSource.getChunkFuture(
                     cp.x, cp.z, ChunkStatus.FULL, false
                 )
             }

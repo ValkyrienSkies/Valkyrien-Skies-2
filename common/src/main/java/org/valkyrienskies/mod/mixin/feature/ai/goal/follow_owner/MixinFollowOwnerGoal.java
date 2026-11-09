@@ -8,7 +8,7 @@ import net.minecraft.world.entity.ai.goal.FollowOwnerGoal;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelReader;
-import net.minecraft.world.level.pathfinder.BlockPathTypes;
+import net.minecraft.world.level.pathfinder.PathType;
 import net.minecraft.world.level.pathfinder.WalkNodeEvaluator;
 import net.minecraft.world.phys.AABB;
 import org.joml.Vector3d;
@@ -41,13 +41,13 @@ public abstract class MixinFollowOwnerGoal {
         method = "canTeleportTo",
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/world/level/pathfinder/WalkNodeEvaluator;getBlockPathTypeStatic(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos$MutableBlockPos;)Lnet/minecraft/world/level/pathfinder/BlockPathTypes;"
+            target = "Lnet/minecraft/world/level/pathfinder/WalkNodeEvaluator;getBlockPathTypeStatic(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos$MutableBlockPos;)Lnet/minecraft/world/level/pathfinder/PathType;"
         )
     )
-    private BlockPathTypes vs$shipAwarePathType(final BlockGetter blockGetter,
-        final BlockPos.MutableBlockPos worldPos, final Operation<BlockPathTypes> original) {
-        final BlockPathTypes vanilla = original.call(blockGetter, worldPos);
-        if (vanilla == BlockPathTypes.WALKABLE) return vanilla;
+    private PathType vs$shipAwarePathType(final BlockGetter blockGetter,
+        final BlockPos.MutableBlockPos worldPos, final Operation<PathType> original) {
+        final PathType vanilla = original.call(blockGetter, worldPos);
+        if (vanilla == PathType.WALKABLE) return vanilla;
         if (!(blockGetter instanceof Level level)) return vanilla;
 
         final double cx = worldPos.getX() + 0.5;
@@ -63,8 +63,8 @@ public abstract class MixinFollowOwnerGoal {
             if (!ship.getWorldAABB().containsPoint(worldCenter)) continue;
             ship.getTransform().getWorldToShip().transformPosition(worldCenter, local);
             shipyardPos.set((int) Math.floor(local.x), (int) Math.floor(local.y), (int) Math.floor(local.z));
-            final BlockPathTypes shipyardTypes = original.call(blockGetter, shipyardPos);
-            if (shipyardTypes == BlockPathTypes.WALKABLE) return shipyardTypes;
+            final PathType shipyardTypes = original.call(blockGetter, shipyardPos);
+            if (shipyardTypes == PathType.WALKABLE) return shipyardTypes;
         }
         return vanilla;
     }

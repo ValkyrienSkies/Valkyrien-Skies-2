@@ -32,6 +32,10 @@ Status: local merge plus rendering/entity API adaptation, **not a working or val
 - Correct KotlinForForge repository filtering, JEI coordinates, and common compile-only Create Big Cannons/RPL/Vista APIs. The latter use published 1.21.1 NeoForge artifacts with Mojang names. This does not establish cross-loader compatibility.
 - Prevent old Create/Moonlight transitive dependency graphs from entering the common target classpath; remove obsolete split Immersive Portals coordinates.
 
+- Compiler-driven follow-up: restore creative-tab imports; use optional selector bounds, tooltip contexts, resource-location factories, nullable bucket-pickup player, spawn-placement APIs, stream-codec vehicle packet decoding, and six-argument interpolation.
+- Preserve assembly preload behavior through the public 1.21 chunk-future entry point. Rename the path-type enum and point the raw-state invoker at `getPathTypeFromState`.
+- Update the Sodium options UI/storage package names to Sodium 0.6.
+
 ## Validation performed
 
 - Java parser: all 825 production Java files parse without syntax errors.
@@ -55,7 +59,12 @@ java.io.UncheckedIOException: java.net.SocketException: Operation not permitted
 
 A temporary build-only Java instrumentation shim reports that optional capability as unavailable, with Gradle's own instrumentation agent disabled. It lives outside the repository and is not included in the mod. No permissions were changed. This allowed Loom to proceed through Minecraft setup into dependency resolution/remapping.
 
-The next configuration failure identified the inherited 1.20.1 Vista artifact as requiring newer Loom. The compile-only reference now uses Vista 1.21.1-5.6.5's Mojang-mapped NeoForge artifact. Common project configuration now completes and Gradle reaches `:common:compileKotlin`, which is still resolving its compile classpath. Platform configuration was stopped to prioritize common compiler feedback. No complete module compilation, mod jar, or successful game launch has been produced.
+The next configuration failure identified the inherited 1.20.1 Vista artifact as requiring newer Loom. The compile-only reference now uses Vista 1.21.1-5.6.5's Mojang-mapped NeoForge artifact. Common project configuration and compile-classpath resolution now complete. Gradle runs the Kotlin compiler. The first pass reported 127 Kotlin diagnostics; after the API corrections, the latest pass reports **12 diagnostics in two files**:
+
+- `common/config/ShipRenderer.kt`: the inherited source exclusions omit `FlywheelCompat`, which the current playtest renderer selection now references (2 diagnostics).
+- `compat/jei/NumericAttributeStorage.kt`: the selected JEI 1.21.1 API lacks playtest's `mezz.jei.api.search` interfaces (10 diagnostics).
+
+These compatibility features have not been deleted or replaced with stubs to force compilation. The Java compile task is downstream of Kotlin and has not run, so the count is not an estimate of all remaining port errors. Platform configuration was stopped to prioritize common compiler feedback. No complete module compilation, mod jar, or successful game launch has been produced.
 
 ## Remaining port work
 

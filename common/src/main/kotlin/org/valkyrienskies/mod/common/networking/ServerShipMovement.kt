@@ -44,7 +44,7 @@ object ServerShipMovement {
                 try {
                     buffer.writeDouble(position.x).writeDouble(position.y).writeDouble(position.z)
                     buffer.writeFloat(yaw).writeFloat(packet.xRot)
-                    player.connection.handleMoveVehicle(ServerboundMoveVehiclePacket(buffer))
+                    player.connection.handleMoveVehicle(ServerboundMoveVehiclePacket.STREAM_CODEC.decode(buffer))
                 } finally {
                     buffer.release()
                 }

@@ -220,7 +220,7 @@ object ShipNaturalSpawner {
 
                     spawnGroupData = mob.finalizeSpawn(
                         level, level.getCurrentDifficultyAt(worldPos),
-                        MobSpawnType.NATURAL, spawnGroupData, null
+                        MobSpawnType.NATURAL, spawnGroupData
                     )
                     spawnedInGroup++
                     totalSpawned++
@@ -278,9 +278,9 @@ object ShipNaturalSpawner {
         val despawnDist = type.category.despawnDistance.toDouble()
         if (playerDistSqr > despawnDist * despawnDist && !type.canSpawnFarFromPlayer()) return false
         val placementType = SpawnPlacements.getPlacementType(type)
-        if (!NaturalSpawner.isSpawnPositionOk(placementType, level, pos, type)) return false
+        if (!placementType.isSpawnPositionOk(level, pos, type)) return false
         if (!SpawnPlacements.checkSpawnRules(type, level, MobSpawnType.NATURAL, pos, level.random)) return false
-        val aabb = type.getAABB(pos.x + 0.5, pos.y.toDouble(), pos.z + 0.5)
+        val aabb = type.getSpawnAABB(pos.x + 0.5, pos.y.toDouble(), pos.z + 0.5)
         return level.noCollision(aabb)
     }
 

@@ -37,7 +37,7 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
     @WrapOperation(
         at = @At(value = "INVOKE",
             target = "Lnet/minecraft/world/level/BlockGetter;getFluidState(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/material/FluidState;"),
-        method = "getBlockPathType(Lnet/minecraft/world/level/BlockGetter;IIILnet/minecraft/world/entity/Mob;)Lnet/minecraft/world/level/pathfinder/BlockPathTypes;"
+        method = "getBlockPathType(Lnet/minecraft/world/level/BlockGetter;IIILnet/minecraft/world/entity/Mob;)Lnet/minecraft/world/level/pathfinder/PathType;"
     )
     private FluidState vs$wrapFluidStatePathType(BlockGetter instance, BlockPos blockPos,
         Operation<FluidState> original) {
@@ -47,7 +47,7 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
     @WrapOperation(
         at = @At(value = "INVOKE",
             target = "Lnet/minecraft/world/level/BlockGetter;getBlockState(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/block/state/BlockState;"),
-        method = "getBlockPathType(Lnet/minecraft/world/level/BlockGetter;IIILnet/minecraft/world/entity/Mob;)Lnet/minecraft/world/level/pathfinder/BlockPathTypes;"
+        method = "getBlockPathType(Lnet/minecraft/world/level/BlockGetter;IIILnet/minecraft/world/entity/Mob;)Lnet/minecraft/world/level/pathfinder/PathType;"
     )
     private BlockState vs$wrapBlockStatePathType(BlockGetter instance, BlockPos blockPos,
         Operation<BlockState> original) {
@@ -57,7 +57,7 @@ public abstract class SwimNodeEvaluatorMixin extends NodeEvaluator {
     @WrapOperation(
         at = @At(value = "INVOKE",
             target = "Lnet/minecraft/world/level/block/state/BlockState;isPathfindable(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/pathfinder/PathComputationType;)Z"),
-        method = "getBlockPathType(Lnet/minecraft/world/level/BlockGetter;IIILnet/minecraft/world/entity/Mob;)Lnet/minecraft/world/level/pathfinder/BlockPathTypes;"
+        method = "getBlockPathType(Lnet/minecraft/world/level/BlockGetter;IIILnet/minecraft/world/entity/Mob;)Lnet/minecraft/world/level/pathfinder/PathType;"
     )
     private boolean vs$wrapIsPathFindable(BlockState instance, BlockGetter blockGetter, BlockPos blockPos,
         PathComputationType pathComputationType, Operation<Boolean> original) {

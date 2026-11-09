@@ -1,6 +1,6 @@
 package org.valkyrienskies.mod.compat;
 
-import me.jellysquid.mods.sodium.client.gui.options.storage.OptionStorage;
+import net.caffeinemc.mods.sodium.client.gui.options.storage.OptionStorage;
 
 /**
  * Sodium requires an options storage, but we don't actually use it (we set config values instead)
