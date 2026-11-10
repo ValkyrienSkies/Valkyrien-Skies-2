@@ -1163,18 +1163,34 @@ fun Level?.closerToCenterThan(v1: Vec3i, v2: Position, distance: Double): Boolea
 // endregion
 
 // region ClientLevel / Minecraft extensions
+/**
+ * Returns the [VsiClientShipWorld] associated with this [ClientLevel]. Will be
+ * null if the player is not logged in to a world.
+ */
 @GameTickOnly
 val ClientLevel?.shipWorldNullable: VsiClientShipWorld?
     get() = (this as IShipObjectWorldClientProvider?)?.shipObjectWorld
 
+/**
+ * Returns the [VsiClientShipWorld] associated with this [Minecraft]. Will be
+ * null if the player is not logged in to a world.
+ */
 @GameTickOnly
 val Minecraft?.shipWorldNullable: VsiClientShipWorld?
     get() = (this as IShipObjectWorldClientProvider?)?.shipObjectWorld
 
+/**
+ * Returns the [VsiClientShipWorld] associated with this [ClientLevel] if it
+ * is not null, or throws an error if it is.
+ */
 @GameTickOnly
 val ClientLevel?.shipWorld: VsiClientShipWorld
     get() = shipWorldNullable ?: error("no shipWorld for this ClientLevel!")
 
+/**
+ * Returns the [VsiClientShipWorld] assocaiated with this [Minecraft] if it
+ * is not null, or throws an error if it is.
+ */
 @GameTickOnly
 val Minecraft?.shipWorld: VsiClientShipWorld
     get() = shipWorldNullable ?: error("no shipWorld for this Minecraft!")
