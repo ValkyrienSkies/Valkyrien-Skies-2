@@ -151,7 +151,7 @@ object VdexWrapper {
         val oldIdToNewId: Map<Long, Long> = oldIdToNewShip.mapValues { it.value.id }
 
 
-        val blocksToProcess: MutableMap<Long, List<BlockPos>> = mutableMapOf()
+        val blocksToProcess: MutableMap<Long, List<StructureTemplate.StructureBlockInfo>> = mutableMapOf()
         // Place the structures
         schem.metadata.ships.forEach { vdexShipEntry ->
             val ship = oldIdToNewShip[vdexShipEntry.previousId] ?: return@forEach
@@ -172,15 +172,13 @@ object VdexWrapper {
             )
 
             val settings = StructurePlaceSettings()
-            val shipBlocksToProcess = mutableListOf<BlockPos>()
-            settings.addProcessor(
-                DelayedICopyableProcessor(shipBlocksToProcess)
-            )
+            val shipBlocksToProcess = mutableListOf<StructureTemplate.StructureBlockInfo>()
 
             settings.isIgnoreEntities = !loadEntities
             additionalProcessors.forEach { processor ->
                 settings.addProcessor(processor)
             }
+            settings.addProcessor(DelayedICopyableProcessor(shipBlocksToProcess))
             settings.rotationPivot = cornerOfShip
             template.placeInWorld(level, cornerOfShip, cornerOfShip, settings, level.random, Block.UPDATE_CLIENTS)
             blocksToProcess[ship.id] = shipBlocksToProcess
@@ -253,19 +251,27 @@ object VdexWrapper {
 
                     println(centerMigrate)
 
-                    blocksToProcess.values.forEach { posList ->
-                        posList.forEach { pos ->
+                    blocksToProcess.values.forEach { blockInfos ->
+                        blockInfos.forEach { blockInfo ->
+                            val pos = blockInfo.pos
                             val state = sl.getBlockState(pos)
                             if (state.isAir || state.block !is ICopyableBlock) return@forEach
 
-                            val be = level.getBlockEntity(pos)
-                            var tag = be?.saveWithFullMetadata()
+                            val be = sl.getBlockEntity(pos)
+                            var tag = blockInfo.nbt?.copy()
 
                             tag = (state.block as ICopyableBlock).onPaste(
-                                level, pos, state, oldIdToNewId, centerMigrate, tag
+                                sl, pos, state, oldIdToNewId, centerMigrate, tag
                             ) ?: tag
 
-                            be?.load(tag ?: CompoundTag())
+                            if (be != null && tag != null) {
+                                tag.putInt("x", pos.x)
+                                tag.putInt("y", pos.y)
+                                tag.putInt("z", pos.z)
+                                be.load(tag)
+                                be.setChanged()
+                                sl.sendBlockUpdated(pos, state, state, Block.UPDATE_CLIENTS)
+                            }
                         }
                     }
                     listener_.unregister()
@@ -467,7 +473,7 @@ object VdexWrapper {
     }
 
     class DelayedICopyableProcessor(
-        val blocks: MutableList<BlockPos>
+        val blocks: MutableList<StructureTemplate.StructureBlockInfo>
     ): StructureProcessor() {
         override fun processBlock(
             levelReader: LevelReader, oldBPos: BlockPos, newBPos: BlockPos,
@@ -475,7 +481,10 @@ object VdexWrapper {
             newStructureBlockInfo: StructureTemplate.StructureBlockInfo, structurePlaceSettings: StructurePlaceSettings
         ): StructureTemplate.StructureBlockInfo {
             if (newStructureBlockInfo.state.block is ICopyableBlock) {
-                blocks.add(newStructureBlockInfo.pos.immutable())
+                blocks.add(StructureTemplate.StructureBlockInfo(
+                    newStructureBlockInfo.pos.immutable(), newStructureBlockInfo.state, newStructureBlockInfo.nbt?.copy()
+                ))
+                return StructureTemplate.StructureBlockInfo(newStructureBlockInfo.pos, newStructureBlockInfo.state, null)
             }
             return newStructureBlockInfo
         }
