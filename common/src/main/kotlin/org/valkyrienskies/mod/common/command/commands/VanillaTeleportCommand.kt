@@ -24,15 +24,14 @@ import org.joml.Quaterniond
 import org.valkyrienskies.core.api.ships.LoadedShip
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.ships.Ship
-import org.valkyrienskies.core.api.world.ServerShipWorld
 import org.valkyrienskies.mod.common.command.arguments.ShipArgument
-import org.valkyrienskies.mod.common.dimensionId
-import org.valkyrienskies.mod.common.getLevelFromDimensionId
-import org.valkyrienskies.mod.common.shipObjectWorld
-import org.valkyrienskies.mod.common.toWorldCoordinates
-import org.valkyrienskies.mod.common.util.toJOML
-import org.valkyrienskies.mod.common.util.toMinecraft
-import org.valkyrienskies.mod.common.vsCore
+import org.valkyrienskies.mod.api.dimensionId
+import org.valkyrienskies.mod.api.getLevel
+import org.valkyrienskies.mod.api.shipWorld
+import org.valkyrienskies.mod.api.toWorldCoordinates
+import org.valkyrienskies.mod.api.toJOML
+import org.valkyrienskies.mod.api.toMinecraft
+import org.valkyrienskies.mod.api.vsCore
 import kotlin.math.atan2
 import kotlin.math.sqrt
 
@@ -318,7 +317,7 @@ object VanillaTeleportCommand {
         val targets = getShipTargets(context)
         val destination = EntityArgument.getEntity(context, "entityDestination")
         val level = destination.level() as ServerLevel
-        val position = level.toWorldCoordinates(destination.position())
+        val position = level.toWorldCoordinates(destination.position()).toMinecraft()
         val rotation = rotationToShipYaw(destination.yRot.toDouble())
 
         teleportShips(source, targets, level, position, rotation)
@@ -367,7 +366,7 @@ object VanillaTeleportCommand {
             )
         }
         ships.forEach { ship ->
-            vsCore.teleportShip(source.server.shipObjectWorld as ServerShipWorld, ship, teleportData)
+            vsCore.teleportShip(source.server.shipWorld, ship, teleportData)
         }
     }
 
@@ -385,7 +384,7 @@ object VanillaTeleportCommand {
     }
 
     private fun getShipLevel(source: CommandSourceStack, ship: Ship): ServerLevel =
-        source.server.getLevelFromDimensionId(ship.chunkClaimDimension) ?: source.level
+        source.server.getLevel(ship.chunkClaimDimension) ?: source.level
 
     private fun rotationFacing(from: Vec3, to: Vec3): Quaterniond {
         val deltaX = to.x - from.x

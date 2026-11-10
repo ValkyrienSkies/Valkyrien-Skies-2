@@ -68,7 +68,7 @@ private const val dep = "Use ValkyrienSkies instead"
 @Deprecated(dep, ReplaceWith("vsCore", "org.valkyrienskies.mod.api.vsCore"))
 val vsCore get() = ValkyrienSkiesMod.vsCore
 
-@Deprecated(dep, ReplaceWith("shipWorld", "org.valkyrienskies.mod.api.shipWorld"))
+@Deprecated(dep, ReplaceWith("shipWorldNullable", "org.valkyrienskies.mod.api.shipWorld"))
 val Level?.shipWorldNullable: VsiShipWorld?
     get() = when {
         this == null -> null

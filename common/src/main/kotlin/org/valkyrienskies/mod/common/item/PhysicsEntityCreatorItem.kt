@@ -2,24 +2,20 @@ package org.valkyrienskies.mod.common.item
 
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.InteractionResult
-import net.minecraft.world.item.Item
-import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.context.UseOnContext
 import org.joml.Matrix3d
 import org.joml.Quaterniond
 import org.joml.Vector3d
 import org.joml.Vector3dc
 import org.valkyrienskies.core.api.bodies.VsBodyCreateData
-import org.valkyrienskies.core.api.bodies.properties.BodyInertia
-import org.valkyrienskies.mod.api.vsApi
+import org.valkyrienskies.mod.api.shipWorld
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
-import org.valkyrienskies.mod.common.dimensionId
+import org.valkyrienskies.mod.api.dimensionId
 import org.valkyrienskies.mod.common.entity.VSPhysicsEntity
-import org.valkyrienskies.mod.common.getShipManagingPos
-import org.valkyrienskies.mod.common.shipObjectWorld
-import org.valkyrienskies.mod.common.util.toJOML
-import org.valkyrienskies.mod.common.util.toJOMLD
-import org.valkyrienskies.mod.common.vsCore
+import org.valkyrienskies.mod.api.getShipManagingPos
+import org.valkyrienskies.mod.api.toJOML
+import org.valkyrienskies.mod.api.toJOMLd
+import org.valkyrienskies.mod.api.vsCore
 
 class PhysicsEntityCreatorItem(
     properties: Properties
@@ -30,9 +26,9 @@ class PhysicsEntityCreatorItem(
 
         if (!level.isClientSide) {
             val entity = ValkyrienSkiesMod.PHYSICS_ENTITY_TYPE.create(level)!!
-            val shipId = level.shipObjectWorld.allocateShipId(level.dimensionId)
+            val shipId = level.shipWorld.allocateShipId(level.dimensionId)
             val sphereRadius = 0.5
-            val offsetInLocal: Vector3dc = ctx.clickedFace.normal.toJOMLD().mul(sphereRadius)
+            val offsetInLocal: Vector3dc = ctx.clickedFace.normal.toJOMLd().mul(sphereRadius)
 
             val shipOn = ctx.level.getShipManagingPos(ctx.clickedPos)
             val offsetInGlobal = if (shipOn != null) {
@@ -54,7 +50,7 @@ class PhysicsEntityCreatorItem(
             entity.setPos(entityPos.x(), entityPos.y(), entityPos.z())
             level.addFreshEntity(entity)
 
-            level.shipObjectWorld.createBody(
+            level.shipWorld.createBody(
                 VsBodyCreateData(
                     dimensionId = level.dimensionId,
                     inertiaData = vsCore.newShipInertiaData(Vector3d(0.0, 0.0, 0.0), 50.0, Matrix3d().identity()),

@@ -35,12 +35,13 @@ import org.valkyrienskies.mod.common.assembly.ICopyableAttachment
 import org.valkyrienskies.mod.common.assembly.ShipAssembler
 import org.valkyrienskies.mod.common.assembly.ShipAssembler.SingleItemMap
 import org.valkyrienskies.mod.common.command.commands.SchematicCommand.shipsNeedingAttachmentLoad
-import org.valkyrienskies.mod.common.dimensionId
-import org.valkyrienskies.mod.common.safeRenameTo
-import org.valkyrienskies.mod.common.shipObjectWorld
-import org.valkyrienskies.mod.common.util.floorToInt
-import org.valkyrienskies.mod.common.vsCore
-import org.valkyrienskies.mod.common.yRange
+import org.valkyrienskies.mod.api.dimensionId
+import org.valkyrienskies.mod.api.safeRenameTo
+import org.valkyrienskies.mod.api.shipWorld
+import org.valkyrienskies.mod.api.floorToInt
+import org.valkyrienskies.mod.api.getShipById
+import org.valkyrienskies.mod.api.vsCore
+import org.valkyrienskies.mod.api.yRange
 import org.valkyrienskies.mod.util.StructureTemplateFillFromVoxelSet
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
@@ -107,7 +108,7 @@ object VdexWrapper {
             val worldRot = Quaterniond(pasteRot)
                 .mul(Quaterniond(vdexShipEntry.relativeRot))
 
-            val ship = level.shipObjectWorld.createNewShipAtBlock(
+            val ship = level.shipWorld.createNewShipAtBlock(
                 worldPos.floorToInt(),
                 false,
                 vdexShipEntry.scale,
@@ -202,9 +203,7 @@ object VdexWrapper {
         // Find all connected ships via constraints
         val gtpa = ValkyrienSkiesMod.getOrCreateGTPA(level.dimensionId)
         val connectedIds = gtpa.getAllConnectedShips(mainShip.id)
-        val allShips = connectedIds.mapNotNull { id ->
-            level.shipObjectWorld.allShips.getById(id)
-        }
+        val allShips = connectedIds.mapNotNull(level::getShipById)
         val collectedModList = mutableListOf<String>()
 
         // Main ship is index 0; find its index in the connected set
@@ -296,8 +295,8 @@ object VdexWrapper {
                 val idx1 = shipIdToIndex[joint.shipId1] ?: continue
 
                 // We can't rely on our ship iterator here because it could be either ship0 OR ship1
-                val firstShip = level.shipObjectWorld.allShips.getById(joint.shipId0!!)!!
-                val secondShip = level.shipObjectWorld.allShips.getById(joint.shipId1!!)!!
+                val firstShip = level.getShipById(joint.shipId0!!)!!
+                val secondShip = level.getShipById(joint.shipId1!!)!!
 
                 constraintEntries.add(VdexConstraintEntry(
                     joint,

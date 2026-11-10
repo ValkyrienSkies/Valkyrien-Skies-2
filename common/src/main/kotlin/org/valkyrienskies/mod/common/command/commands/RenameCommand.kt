@@ -8,7 +8,7 @@ import net.minecraft.commands.Commands.literal
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.mod.common.command.arguments.ShipArgument
 import org.valkyrienskies.mod.common.config.VSGameConfig
-import org.valkyrienskies.mod.common.vsCore
+import org.valkyrienskies.mod.api.vsCore
 
 object RenameCommand {
     fun register(vs: LiteralArgumentBuilder<CommandSourceStack>) {

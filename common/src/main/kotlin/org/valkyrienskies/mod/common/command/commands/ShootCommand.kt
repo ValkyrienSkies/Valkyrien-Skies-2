@@ -21,11 +21,11 @@ import org.joml.Vector3d
 import org.joml.Vector3i
 import org.valkyrienskies.core.internal.ships.VsiServerShip
 import org.valkyrienskies.mod.common.assembly.ShipAssembler
-import org.valkyrienskies.mod.common.dimensionId
-import org.valkyrienskies.mod.common.shipObjectWorld
+import org.valkyrienskies.mod.api.dimensionId
+import org.valkyrienskies.mod.api.shipWorld
 import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils
-import org.valkyrienskies.mod.common.vsCore
-import org.valkyrienskies.mod.common.yRange
+import org.valkyrienskies.mod.api.vsCore
+import org.valkyrienskies.mod.api.yRange
 
 object ShootCommand {
 
@@ -96,7 +96,7 @@ object ShootCommand {
         val spawnDist = size * 1.5 + 4.0
         val spawnCenter = Vector3d(eye.x, eye.y, eye.z).add(dir.x * spawnDist, dir.y * spawnDist, dir.z * spawnDist)
 
-        val ship = level.shipObjectWorld.createNewShipAtBlock(
+        val ship = level.shipWorld.createNewShipAtBlock(
             Vector3i(spawnCenter, RoundingMode.FLOOR), false, 1.0, level.dimensionId
         )
         EntityShipCollisionUtils.markShipAsRecentlySpawned(ship.id, level.server.tickCount.toLong())

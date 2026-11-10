@@ -12,10 +12,9 @@ import org.valkyrienskies.mod.client.ClientBlockStateInfo
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager
 import org.valkyrienskies.mod.common.fluid.ClientFluidTypes
-import org.valkyrienskies.mod.common.getLoadedShipManagingPos
-import org.valkyrienskies.mod.common.shipObjectWorld
+import org.valkyrienskies.mod.api.getLoadedShipManagingPos
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
-import org.valkyrienskies.mod.common.vsCore
+import org.valkyrienskies.mod.api.vsCore
 import org.valkyrienskies.mod.mixinducks.feature.tickets.PlayerKnownShipsDuck
 
 object VSGamePackets {

@@ -15,11 +15,11 @@ import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.core.api.ships.setAttachment
 import org.valkyrienskies.mod.api.SeatedControllingPlayer
 import org.valkyrienskies.mod.common.config.VSKeyBindings
-import org.valkyrienskies.mod.common.getShipManagingPos
-import org.valkyrienskies.mod.common.getLoadedShipManagingPos
-import org.valkyrienskies.mod.common.isBlockInShipyard
+import org.valkyrienskies.mod.api.getShipManagingPos
+import org.valkyrienskies.mod.api.getLoadedShipManagingPos
+import org.valkyrienskies.mod.api.isBlockInShipyard
 import org.valkyrienskies.mod.common.networking.PacketPlayerDriving
-import org.valkyrienskies.mod.common.vsCore
+import org.valkyrienskies.mod.api.vsCore
 
 open class ShipMountingEntity(type: EntityType<ShipMountingEntity>, level: Level) : Entity(type, level) {
     // Decides if this entity controls the ship it is in.

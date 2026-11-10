@@ -12,8 +12,11 @@ import net.minecraft.world.level.ChunkPos
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.properties.ChunkClaim
 import org.valkyrienskies.core.util.pollUntilEmpty
+import org.valkyrienskies.mod.api.dimensionId
+import org.valkyrienskies.mod.api.forLoadedShips
+import org.valkyrienskies.mod.api.getShipManagingPos
+import org.valkyrienskies.mod.api.isChunkInShipyard
 import org.valkyrienskies.mod.api.toChunkPos
-import org.valkyrienskies.mod.api.toMinecraft
 import org.valkyrienskies.mod.api.vsApi
 import org.valkyrienskies.mod.api.vsCore
 import org.valkyrienskies.mod.common.config.VSGameConfig
@@ -85,9 +88,7 @@ class SeamlessChunksManager(private val listener: ClientPacketListener) {
     private fun flushLoadedShipQueuedUpdates(level: ClientLevel?) {
         if (level == null || shipQueuedUpdates.isEmpty()) return
 
-        level.for
-
-        for (ship in level.shipObjectWorld.loadedShips) {
+        level.forLoadedShips { ship: ClientShip ->
             if (ship.chunkClaimDimension == level.dimensionId) {
                 loadedShipClaims.add(ship.chunkClaim)
                 releaseQueuedShipUpdates(ship.chunkClaim, "loaded ship claim reconciliation")
@@ -112,7 +113,7 @@ class SeamlessChunksManager(private val listener: ClientPacketListener) {
         val (chunks) = packet
 
         chunks.forEach { p ->
-            val pos = p.toMinecraft()
+            val pos = p.toChunkPos()
             stalledChunks.remove(pos.toLong())
             val packets = queuedUpdates.remove(pos)
             if (!packets.isNullOrEmpty()) {

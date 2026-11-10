@@ -3,8 +3,10 @@ package org.valkyrienskies.mod.common.util
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import net.minecraft.server.level.ServerLevel
 import org.joml.Vector3dc
-import org.valkyrienskies.mod.common.shipObjectWorld
-import org.valkyrienskies.mod.common.vsCore
+import org.valkyrienskies.core.api.ships.LoadedServerShip
+import org.valkyrienskies.mod.api.forLoadedShips
+import org.valkyrienskies.mod.api.shipWorld
+import org.valkyrienskies.mod.api.vsCore
 
 object DragInfoReporter {
     val shipDragValues = Long2ObjectOpenHashMap<Vector3dc>()
@@ -27,7 +29,7 @@ object DragInfoReporter {
         }
         shipDragValues.clear()
         shipLiftValues.clear()
-        level.shipObjectWorld.loadedShips.forEach { ship ->
+        level.forLoadedShips { ship: LoadedServerShip ->
             shipDragValues.put(ship.id, ship.dragController!!.getDragForce())
             shipLiftValues.put(ship.id, ship.dragController!!.getLiftForce())
         }

@@ -13,7 +13,7 @@ import org.valkyrienskies.core.api.ships.ShipTeleportData
 import org.valkyrienskies.core.api.util.GameTickOnly
 import org.valkyrienskies.core.api.world.ShipWorld
 import org.valkyrienskies.core.api.world.properties.DimensionId
-import org.valkyrienskies.mod.api.shipWorldOrException
+import org.valkyrienskies.mod.api.shipWorld
 import org.valkyrienskies.mod.common.command.arguments.ContraptionSelectorOptions
 import org.valkyrienskies.mod.common.command.commands.BackendCommand
 import org.valkyrienskies.mod.common.command.commands.ConfigCommand
@@ -34,7 +34,6 @@ import org.valkyrienskies.mod.common.command.commands.ShootCommand
 import org.valkyrienskies.mod.common.command.commands.PerfTestCommand
 import org.valkyrienskies.mod.common.command.commands.StaticCommand
 import org.valkyrienskies.mod.common.command.commands.TeleportCommand
-import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.mixin.feature.commands.ClientSuggestionProviderAccessor
 import org.valkyrienskies.mod.util.logger
 import java.text.NumberFormat
@@ -103,23 +102,17 @@ fun DimensionId.toNiceString(): String {
 
 @OptIn(GameTickOnly::class)
 val SharedSuggestionProvider.shipWorld: ShipWorld
-    get() {
-        return (
-            when (this) {
-                is CommandSourceStack -> {
-                    this.level.shipWorldOrException
-                }
-
-                is ClientSuggestionProviderAccessor -> {
-                    checkNotNull(this.minecraft.level)
-                    this.minecraft.level.shipWorldOrException
-                }
-
-                else -> {
-                    // Shouldn't happen
-                    throw IllegalStateException("Command source wasn't CommandSourceStack or ClientSuggestionProvider")
-                }
-            }
-            )
+    get() = when (this) {
+        is CommandSourceStack -> {
+            this.level.shipWorld
+        }
+        is ClientSuggestionProviderAccessor -> {
+            checkNotNull(this.minecraft.level)
+            this.minecraft.level.shipWorld
+        }
+        else -> {
+            // Shouldn't happen
+            throw IllegalStateException("Command source wasn't CommandSourceStack or ClientSuggestionProvider")
+        }
     }
 

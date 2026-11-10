@@ -7,10 +7,10 @@ import net.minecraft.commands.Commands.argument
 import net.minecraft.commands.Commands.literal
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.api.world.ServerShipWorld
+import org.valkyrienskies.mod.api.vsCore
 import org.valkyrienskies.mod.common.command.arguments.ShipArgument
 import org.valkyrienskies.mod.common.command.shipWorld
 import org.valkyrienskies.mod.common.config.VSGameConfig
-import org.valkyrienskies.mod.common.vsCore
 
 object ScaleCommand {
     fun register(vs: LiteralArgumentBuilder<CommandSourceStack>) {

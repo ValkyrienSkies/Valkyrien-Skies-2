@@ -9,15 +9,15 @@ import net.minecraft.world.level.block.state.BlockState
 import org.joml.Vector3d
 import org.valkyrienskies.core.api.VsBeta
 import org.valkyrienskies.core.internal.ships.VsiServerShip
-import org.valkyrienskies.mod.common.dimensionId
-import org.valkyrienskies.mod.common.getShipManagingPos
-import org.valkyrienskies.mod.common.shipObjectWorld
+import org.valkyrienskies.mod.api.dimensionId
+import org.valkyrienskies.mod.api.getShipManagingPos
+import org.valkyrienskies.mod.api.shipWorld
 import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils
-import org.valkyrienskies.mod.common.util.toBlockPos
-import org.valkyrienskies.mod.common.util.toJOML
-import org.valkyrienskies.mod.common.util.toJOMLD
-import org.valkyrienskies.mod.common.vsCore
-import org.valkyrienskies.mod.common.yRange
+import org.valkyrienskies.mod.api.toBlockPos
+import org.valkyrienskies.mod.api.toJOML
+import org.valkyrienskies.mod.api.toJOMLd
+import org.valkyrienskies.mod.api.vsCore
+import org.valkyrienskies.mod.api.yRange
 import org.valkyrienskies.mod.util.relocateBlock
 import java.util.function.DoubleSupplier
 
@@ -25,7 +25,6 @@ class ShipCreatorItem(
     properties: Properties, private val scale: DoubleSupplier, private val minScaling: DoubleSupplier
 ) : VSItem(properties) {
 
-    @OptIn(VsBeta::class)
     override fun useOn(ctx: UseOnContext): InteractionResult {
         val level = ctx.level as? ServerLevel ?: return super.useOn(ctx)
         val blockPos = ctx.clickedPos
@@ -42,8 +41,7 @@ class ShipCreatorItem(
 
                 org.slf4j.LoggerFactory.getLogger("VS2").info(" ShipCreatorItem: creating ship at $blockPos (block=$blockState, dim=$dimensionId, scale=$scale)")
 
-                val serverShip =
-                    level.shipObjectWorld.createNewShipAtBlock(blockPos.toJOML(), false, scale, dimensionId)
+                val serverShip = level.shipWorld.createNewShipAtBlock(blockPos.toJOML(), false, scale, dimensionId)
                 org.valkyrienskies.mod.common.debug.ShipDebugService.markCreated(level.server, serverShip, null)
 
                 org.slf4j.LoggerFactory.getLogger("VS2").info(" ShipCreatorItem: ship created id=${serverShip.id}, slug=${serverShip.slug}")
@@ -66,8 +64,8 @@ class ShipCreatorItem(
                 if (parentShip != null) {
                     // Compute the ship transform
                     val newShipPosInWorld =
-                        parentShip.shipToWorld.transformPosition(blockPos.toJOMLD().add(0.5, 0.5, 0.5))
-                    val newShipPosInShipyard = blockPos.toJOMLD().add(0.5, 0.5, 0.5)
+                        parentShip.shipToWorld.transformPosition(blockPos.toJOMLd().add(0.5, 0.5, 0.5))
+                    val newShipPosInShipyard = blockPos.toJOMLd().add(0.5, 0.5, 0.5)
                     val newShipRotation = parentShip.transform.shipToWorldRotation
                     var newShipScaling = parentShip.transform.shipToWorldScaling.mul(scale, Vector3d())
                     if (newShipScaling.x() < minScaling) {

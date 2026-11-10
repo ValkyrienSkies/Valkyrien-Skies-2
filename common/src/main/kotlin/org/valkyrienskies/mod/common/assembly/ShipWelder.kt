@@ -25,7 +25,6 @@ import org.valkyrienskies.core.impl.config.VSCoreConfig
 import org.valkyrienskies.core.internal.ships.VsiServerShip
 import org.valkyrienskies.mod.api.dimensionId
 import org.valkyrienskies.mod.api.gameToPhysicsAdapter
-import org.valkyrienskies.mod.api.shipWorldOrException
 import org.valkyrienskies.mod.api.executeIf
 import org.valkyrienskies.mod.api.getLoadedShipById
 import org.valkyrienskies.mod.api.isChunkLoadedForVS
@@ -39,6 +38,7 @@ import org.valkyrienskies.mod.api.toJOML
 import org.valkyrienskies.mod.common.util.ShipGravityAttachment
 import org.valkyrienskies.mod.api.getLoadedShipManagingPos
 import org.valkyrienskies.mod.api.getShipById
+import org.valkyrienskies.mod.api.shipWorld
 import org.valkyrienskies.mod.api.vsCore
 import org.valkyrienskies.mod.util.logger
 import kotlin.math.abs
@@ -77,7 +77,7 @@ internal object ShipWelder {
 
         val adapter = level.gameToPhysicsAdapter
         val joints = adapter.getAllJoints().toMutableMap()
-        val persisted = level.shipWorldOrException.persistedJointStore
+        val persisted = level.shipWorld.persistedJointStore
         persisted.getJointIdsForShip(source.id).forEach { id -> persisted.getJoint(id)?.let { joints.putIfAbsent(id, it) } }
         val sourceJoints = joints.filterValues { it.shipId0 == source.id || it.shipId1 == source.id }
         if (sourceJoints.isNotEmpty()) return refuse("jointed")
@@ -162,7 +162,7 @@ internal object ShipWelder {
                 source != null && (abs(source.inertiaData.mass - session.sourceMass) > 1e-6 ||
                     Vector3d(source.inertiaData.centerOfMass).distance(session.sourceCenter) > 1e-6 ||
                     !session.sourceTensor.equals(source.inertiaData.inertiaTensor, 1e-6) || source.isStatic ||
-                    level.shipWorldOrException.persistedJointStore.hasJointsForShip(source.id) ||
+                    level.shipWorld.persistedJointStore.hasJointsForShip(source.id) ||
                     level.gameToPhysicsAdapter.getJointsFromShip(source.id).isNotEmpty())
             if (invalid) { finish(session, "stale", false); continue }
             if (level.server.tickCount - session.startTick > 1200) { finish(session, "timeout", false); continue }
@@ -265,7 +265,7 @@ internal object ShipWelder {
             val center = WeldKinematics.rebase(oldTransform, oldCom, oldVelocity, oldOmega, newCom)
             (target as VsiServerShip).unsafeSetKinematics(vsCore.newBodyKinematics(center.velocity, oldOmega,
                 vsCore.newBodyTransform(center.position, oldRotation, oldScale, newCom)))
-            level.shipWorldOrException.deleteShip(source)
+            level.shipWorld.deleteShip(source)
             success = true
         } catch (exception: Exception) {
             log.error("Ship welding failed; restoring the original blocks", exception)
@@ -302,7 +302,7 @@ internal object ShipWelder {
                 sections.forEach { pos ->
                     val chunk = level.getChunk(pos.x, pos.z)
                     val section = chunk.sections[chunk.getSectionIndexFromSectionY(pos.y)]
-                    level.shipWorldOrException.forceUpdateConnectivityChunk(level.dimensionId, pos.x, pos.y, pos.z, section.toDenseVoxelUpdate(pos, level))
+                    level.shipWorld.forceUpdateConnectivityChunk(level.dimensionId, pos.x, pos.y, pos.z, section.toDenseVoxelUpdate(pos, level))
                 }
             }
             ShipAssembler.initSkyLightForShip(level, targetBlocks.toList() + if (success) saved.map { it.to } else emptyList())

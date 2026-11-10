@@ -376,8 +376,8 @@ val Level.dimensionId: DimensionId
 val Level?.shipWorldNullable: VsiShipWorld?
     get() = when {
         this == null -> null
-        this is ServerLevel -> this.server.shipWorld
-        this is ClientLevel && this.isClientSide -> this.shipWorld
+        this is ServerLevel -> this.server.shipWorldNullable
+        this is ClientLevel && this.isClientSide -> this.shipWorldNullable
         else -> null
     }
 
@@ -388,7 +388,7 @@ val Level?.shipWorldNullable: VsiShipWorld?
  */
 @GameTickOnly
 val Level?.shipWorld: VsiShipWorld
-    get() = shipWorldNullable ?: error("No shipWorld for this Level!")
+    get() = shipWorldNullable ?: error("No shipWorld for this level: ${this?.javaClass?.simpleName ?: "null"}")
 
 /**
  * Returns a [QueryableShipData] which you can use to query all ships in this dimension,
@@ -1180,11 +1180,11 @@ val Minecraft?.shipWorld: VsiClientShipWorld
     get() = shipWorldNullable ?: error("no shipWorld for this Minecraft!")
 
 @GameTickOnly val ClientLevel?.allShips get() = this?.shipWorld?.allShips?.dimension(this)
-@GameTickOnly val ClientLevel?.loadedShips get() = this.shipWorld.loadedShips.dimension(this)
-@GameTickOnly val ClientLevel?.unloadedShips get() = this.shipWorld.unloadedShips.dimension(this)
+@GameTickOnly val ClientLevel?.loadedShips get() = this?.shipWorld?.loadedShips?.dimension(this)
+@GameTickOnly val ClientLevel?.unloadedShips get() = this?.shipWorld?.unloadedShips?.dimension(this)
 
-@GameTickOnly val ClientLevel?.allBodies get() = this.shipWorld?.allBodies?.dimension(this)
-@GameTickOnly val ClientLevel?.unloadedBodies get() = this.shipWorld?.unloadedBodies?.dimension(this)
+@GameTickOnly val ClientLevel?.allBodies get() = this?.shipWorld?.allBodies?.dimension(this)
+@GameTickOnly val ClientLevel?.unloadedBodies get() = this?.shipWorld?.unloadedBodies?.dimension(this)
 
 /**
  * Returns a [QueryableShipData] which you can use to query all ships, regardless of dimension.
@@ -1192,21 +1192,21 @@ val Minecraft?.shipWorld: VsiClientShipWorld
  *
  * @see QueryableShipData.getByDimension
  */
-@GameTickOnly val ClientLevel?.allShipsGlobal get() = this.shipWorld?.allShips
+@GameTickOnly val ClientLevel?.allShipsGlobal get() = this?.shipWorld?.allShips
 /**
  * Returns a [QueryableShipData] which you can use to query unloaded ships, regardless of dimension.
  * If you need unloaded ships filtered by dimension, use [unloadedShips].
  *
  * @see QueryableShipData.getByDimension
  */
-@GameTickOnly val ClientLevel?.unloadedShipsGlobal get() = this.shipWorld?.unloadedShips
+@GameTickOnly val ClientLevel?.unloadedShipsGlobal get() = this?.shipWorld?.unloadedShips
 /**
  * Returns a [QueryableShipData] which you can use to query loaded ships, regardless of dimension.
  * If you need loaded ships filtered by dimension, use [loadedShips].
  *
  * @see QueryableShipData.getByDimension
  */
-@GameTickOnly val ClientLevel?.loadedShipsGlobal get() = this.shipWorld?.loadedShips
+@GameTickOnly val ClientLevel?.loadedShipsGlobal get() = this?.shipWorld?.loadedShips
 
 /**
  * Returns a [QueryableVsBodyData] which you can use to query all bodies, regardless of dimension.
@@ -1214,21 +1214,21 @@ val Minecraft?.shipWorld: VsiClientShipWorld
  *
  * @see QueryableVsBodyData.getByDimension
  */
-@GameTickOnly val ClientLevel?.allBodiesGlobal get() = this.shipWorld?.allBodies
+@GameTickOnly val ClientLevel?.allBodiesGlobal get() = this?.shipWorld?.allBodies
 /**
  * Returns a [QueryableVsBodyData] which you can use to query unloaded bodies, regardless of dimension.
  * If you need unloaded bodies filtered by dimension, use [unloadedBodies]
  *
  * @see QueryableVsBodyData.getByDimension
  */
-@GameTickOnly val ClientLevel?.unloadedBodiesGlobal get() = this.shipWorld?.unloadedBodies
+@GameTickOnly val ClientLevel?.unloadedBodiesGlobal get() = this?.shipWorld?.unloadedBodies
 
-@GameTickOnly val Minecraft?.allShips get() = this.shipWorld?.allShips
-@GameTickOnly val Minecraft?.unloadedShips get() = this.shipWorld?.unloadedShips
-@GameTickOnly val Minecraft?.loadedShips get() = this.shipWorld?.loadedShips
+@GameTickOnly val Minecraft?.allShips get() = this?.shipWorld?.allShips
+@GameTickOnly val Minecraft?.unloadedShips get() = this?.shipWorld?.unloadedShips
+@GameTickOnly val Minecraft?.loadedShips get() = this?.shipWorld?.loadedShips
 
-@GameTickOnly val Minecraft?.allBodies get() = this.shipWorld?.allBodies
-@GameTickOnly val Minecraft?.unloadedBodies get() = this.shipWorld?.unloadedBodies
+@GameTickOnly val Minecraft?.allBodies get() = this?.shipWorld?.allBodies
+@GameTickOnly val Minecraft?.unloadedBodies get() = this?.shipWorld?.unloadedBodies
 
 @GameTickOnly
 fun ClientLevel?.getShipById(shipId: ShipId) =
@@ -1365,20 +1365,20 @@ fun Minecraft?.toShipRenderCoordinates(shipPos: Vec3, pos: Vec3): Vector3d =
 
 // region ServerLevel / MinecraftServer extensions
 @GameTickOnly
-val MinecraftServer?.shipWorld: VsiServerShipWorld?
+val MinecraftServer?.shipWorldNullable: VsiServerShipWorld?
     get() = (this as IShipObjectWorldServerProvider?)?.shipObjectWorld
 
 @GameTickOnly
-val ServerLevel?.shipWorld: VsiServerShipWorld?
+val ServerLevel?.shipWorldNullable: VsiServerShipWorld?
     get() = (this as IShipObjectWorldServerProvider?)?.shipObjectWorld
 
 @GameTickOnly
-val ServerLevel?.shipWorldOrException: VsiServerShipWorld
-    get() = shipWorld ?: error("no shipWorld for this ServerLevel!")
+val ServerLevel?.shipWorld: VsiServerShipWorld
+    get() = shipWorldNullable ?: error("no shipWorld for this ServerLevel!")
 
 @GameTickOnly
-val MinecraftServer?.shipWorldOrException: VsiServerShipWorld
-    get() = shipWorld ?: error("no shipWorld for this MinecraftServer!")
+val MinecraftServer?.shipWorld: VsiServerShipWorld
+    get() = shipWorldNullable ?: error("no shipWorld for this MinecraftServer!")
 
 val MinecraftServer?.vsPipeline
     get() = (this as IShipObjectWorldServerProvider?)?.vsPipeline

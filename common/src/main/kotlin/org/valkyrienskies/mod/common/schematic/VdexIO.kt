@@ -3,7 +3,7 @@ package org.valkyrienskies.mod.common.schematic
 import com.fasterxml.jackson.core.type.TypeReference
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.NbtIo
-import org.valkyrienskies.mod.common.vsCore
+import org.valkyrienskies.mod.api.vsCore
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.InputStream

@@ -7,7 +7,7 @@ import org.joml.Vector3d
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.util.datastructures.DenseBlockPosSet
 import org.valkyrienskies.mod.api.dimensionId
-import org.valkyrienskies.mod.api.shipWorldOrException
+import org.valkyrienskies.mod.api.shipWorld
 import org.valkyrienskies.mod.api.toJOML
 import org.valkyrienskies.mod.api.executeIf
 import org.valkyrienskies.mod.api.isChunkLoadedForVS
@@ -23,7 +23,7 @@ fun createNewShipWithBlocks(
 ): ServerShip {
     if (blocks.isEmpty()) throw IllegalArgumentException()
 
-    val ship = level.shipWorldOrException.createNewShipAtBlock(centerBlock.toJOML(), false, 1.0, level.dimensionId)
+    val ship = level.shipWorld.createNewShipAtBlock(centerBlock.toJOML(), false, 1.0, level.dimensionId)
     org.valkyrienskies.mod.common.debug.ShipDebugService.markCreated(level.server, ship, null)
 
     val shipChunkX = ship.chunkClaim.xMiddle
