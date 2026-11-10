@@ -10,8 +10,10 @@ import org.joml.Quaterniondc
 import org.joml.Vector3d
 import org.joml.Vector3dc
 import org.valkyrienskies.core.api.ships.ShipTeleportData
+import org.valkyrienskies.core.api.util.GameTickOnly
 import org.valkyrienskies.core.api.world.ShipWorld
 import org.valkyrienskies.core.api.world.properties.DimensionId
+import org.valkyrienskies.mod.api.shipWorldOrException
 import org.valkyrienskies.mod.common.command.arguments.ContraptionSelectorOptions
 import org.valkyrienskies.mod.common.command.commands.BackendCommand
 import org.valkyrienskies.mod.common.command.commands.ConfigCommand
@@ -99,17 +101,24 @@ fun DimensionId.toNiceString(): String {
     return split[2] + split[3]
 }
 
+@OptIn(GameTickOnly::class)
 val SharedSuggestionProvider.shipWorld: ShipWorld
     get() {
         return (
-            if (this is CommandSourceStack) {
-                return this.level.shipObjectWorld
-            } else if (this is ClientSuggestionProviderAccessor) {
-                checkNotNull(this.minecraft.level)
-                return this.minecraft.level.shipObjectWorld
-            } else {
-                // Shouldn't happen
-                throw IllegalStateException("Command source wasn't CommandSourceStack or ClientSuggestionProvider")
+            when (this) {
+                is CommandSourceStack -> {
+                    this.level.shipWorldOrException
+                }
+
+                is ClientSuggestionProviderAccessor -> {
+                    checkNotNull(this.minecraft.level)
+                    this.minecraft.level.shipWorldOrException
+                }
+
+                else -> {
+                    // Shouldn't happen
+                    throw IllegalStateException("Command source wasn't CommandSourceStack or ClientSuggestionProvider")
+                }
             }
             )
     }

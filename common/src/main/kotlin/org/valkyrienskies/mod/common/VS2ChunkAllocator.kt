@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.common
 
+import org.valkyrienskies.mod.api.vsCore
+
 object VS2ChunkAllocator {
     // TODO: Move this to ChunkAllocator eventually
     fun isChunkInShipyardCompanion(chunkX: Int, chunkZ: Int): Boolean {
