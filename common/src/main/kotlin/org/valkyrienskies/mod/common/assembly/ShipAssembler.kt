@@ -252,7 +252,7 @@ object ShipAssembler {
         template as StructureTemplateFillFromVoxelSet
         template.`vs$fillFromVoxelSet`(
             level, blocks,
-            fromShip?.let { listOf(it) } ?: emptyList(),
+            fromShip, fromShip?.let { listOf(it) } ?: emptyList(),
             SingleItemMap(fromId, fromCenter, Vector3d()),
             minStructurePos, maxStructurePos
         )
@@ -664,7 +664,7 @@ object ShipAssembler {
                     template as StructureTemplateFillFromVoxelSet
                     template.`vs$fillFromVoxelSet`(
                         level, filteredBlocks,
-                        pending.fromShip?.let { listOf(it) } ?: emptyList(),
+                        pending.fromShip,pending.fromShip?.let { listOf(it) } ?: emptyList(),
                         SingleItemMap(fromId, fromCenter, Vector3d()),
                         pending.minB, pending.maxB
                     )

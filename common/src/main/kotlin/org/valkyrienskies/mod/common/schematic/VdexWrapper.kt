@@ -320,7 +320,7 @@ object VdexWrapper {
             val template = StructureTemplate()
             println(allShips.centerPositions(level))
             (template as StructureTemplateFillFromVoxelSet).`vs$fillFromVoxelSet`(
-                level, blocks, allShips,
+                level, blocks, ship, allShips,
                 allShips.centerPositions(level),
                 minB, maxB
             )

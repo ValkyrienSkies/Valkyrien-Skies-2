@@ -9,6 +9,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -17,6 +18,7 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemp
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -24,6 +26,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import java.util.List;
 import org.valkyrienskies.core.api.ships.ServerShip;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 import org.valkyrienskies.mod.common.assembly.ICopyableBlock;
 import org.valkyrienskies.mod.util.StructureTemplateFillFromVoxelSet;
 
@@ -51,7 +54,7 @@ public abstract class StructureTemplateMixin implements StructureTemplateFillFro
 
     @Unique
     public void vs$fillFromVoxelSet(@NotNull Level level, @NotNull Iterable<BlockPos> voxels,
-        @NotNull List<ServerShip> shipsBeingCopied, @NotNull Map<Long, Vector3d> centerPositions,
+        @Nullable ServerShip ship, @NotNull List<ServerShip> shipsBeingCopied, @NotNull Map<Long, Vector3d> centerPositions,
         @NotNull BlockPos min, @NotNull BlockPos max) {
 
         List<StructureTemplate.StructureBlockInfo> basicBlocks = Lists.newArrayList();
@@ -92,12 +95,13 @@ public abstract class StructureTemplateMixin implements StructureTemplateFillFro
         this.palettes.clear();
         this.palettes.add(PaletteInvoker.invokeInit(finalBlockList));
 
-        this.vs$fillEntities(level, min, max);
+        this.vs$fillEntities(level, ship, min, max);
     }
 
     @Unique
     private void vs$fillEntities(
         Level level,
+        ServerShip ship,
         BlockPos min,
         BlockPos max
     ) {
@@ -111,7 +115,16 @@ public abstract class StructureTemplateMixin implements StructureTemplateFillFro
         for (Entity entity : level.getEntitiesOfClass(
             Entity.class,
             bounds,
-            e -> !e.isPassenger() && !(e instanceof net.minecraft.world.entity.player.Player)
+            (e) -> {
+                ServerShip entityShip = (ServerShip)ValkyrienSkies.getShipManagingEntity(e);
+                return
+                    !e.isPassenger()
+                    && !(e instanceof Player)
+                    && (
+                        (ship == null && entityShip == null)
+                        || (ship != null && entityShip != null && ship.getId() == entityShip.getId())
+                    );
+            }
         )) {
             // Position relative to the copied structure's minimum corner.
             Vec3 relativePos = entity.position().subtract(
