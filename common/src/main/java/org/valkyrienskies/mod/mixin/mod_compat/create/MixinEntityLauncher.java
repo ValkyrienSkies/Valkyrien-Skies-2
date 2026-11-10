@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.mixin.mod_compat.create;
 
 import com.simibubi.create.content.logistics.depot.EntityLauncher;
+import java.util.Objects;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.Entity;
@@ -14,9 +15,8 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.Ship;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 @Mixin(EntityLauncher.class)
 public abstract class MixinEntityLauncher {
@@ -43,13 +43,13 @@ public abstract class MixinEntityLauncher {
     private Vec3 outMotion(Entity entity, Vec3 motion) {
         if (entity instanceof final IEntityDraggingInformationProvider dragProvider) {
             if (dragProvider.getDraggingInformation().isEntityBeingDraggedByAShip()) {
-                final Ship ship = VSGameUtilsKt.getAllShips(entity.level())
-                    // TODO: will this ever be null, or is Java just being a bitch
-                    .getById(dragProvider.getDraggingInformation().getLastShipStoodOn());
+                long shipId = Objects.requireNonNull(dragProvider.getDraggingInformation().getLastShipStoodOn(), "what");
+                // this is safe, as isEntityBeingDraggedByAShip will not return true if the ship id is null
+                final Ship ship = ValkyrienSkies.getShipById(entity.level(), shipId);
                 if (ship != null) {
-                    Vector3d tempVec = VectorConversionsMCKt.toJOML(motion);
+                    Vector3d tempVec = ValkyrienSkies.toJOML(motion);
                     ship.getTransform().getShipToWorld().transformDirection(tempVec);
-                    motion = VectorConversionsMCKt.toMinecraft(tempVec);
+                    motion = ValkyrienSkies.toMinecraft(tempVec);
                 }
             }
         }

@@ -20,11 +20,12 @@ import org.joml.Vector3d
 import org.joml.Vector3i
 import org.valkyrienskies.core.internal.ships.VsiServerShip
 import org.valkyrienskies.mod.common.assembly.ShipAssembler
-import org.valkyrienskies.mod.common.dimensionId
+import org.valkyrienskies.mod.api.dimensionId
+import org.valkyrienskies.mod.api.shipWorldOrException
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils
-import org.valkyrienskies.mod.common.vsCore
-import org.valkyrienskies.mod.common.yRange
+import org.valkyrienskies.mod.api.vsCore
+import org.valkyrienskies.mod.api.yRange
 
 object PerfTestCommand {
 
@@ -234,7 +235,7 @@ object PerfTestCommand {
                                         baseZ + gz * stepZ
                                     )
 
-                                    val ship = level.shipObjectWorld.createNewShipAtBlock(
+                                    val ship = level.shipWorldOrException.createNewShipAtBlock(
                                         Vector3i(worldPos, RoundingMode.FLOOR), false, 1.0, level.dimensionId
                                     )
                                     ship.isStatic = true
@@ -264,7 +265,7 @@ object PerfTestCommand {
                                         }
                                     }
                                     if (placedBlocks.isEmpty()) {
-                                        level.shipObjectWorld.deleteShip(ship)
+                                        level.shipWorldOrException.deleteShip(ship)
                                         continue
                                     }
                                     ShipAssembler.initSkyLightForShip(level, placedBlocks)

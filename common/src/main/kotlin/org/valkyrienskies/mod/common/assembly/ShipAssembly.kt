@@ -6,18 +6,15 @@ import net.minecraft.world.level.ChunkPos
 import org.joml.Vector3d
 import org.valkyrienskies.core.api.ships.ServerShip
 import org.valkyrienskies.core.util.datastructures.DenseBlockPosSet
-import org.valkyrienskies.mod.common.dimensionId
-import org.valkyrienskies.mod.common.executeIf
-import org.valkyrienskies.mod.common.isChunkLoadedForVS
-import org.valkyrienskies.mod.common.isTickingChunk
-import org.valkyrienskies.mod.common.networking.PacketRestartChunkUpdates
-import org.valkyrienskies.mod.common.networking.PacketStopChunkUpdates
+import org.valkyrienskies.mod.api.dimensionId
+import org.valkyrienskies.mod.api.shipWorldOrException
+import org.valkyrienskies.mod.api.toJOML
+import org.valkyrienskies.mod.api.executeIf
+import org.valkyrienskies.mod.api.isChunkLoadedForVS
 import org.valkyrienskies.mod.common.networking.sendRestartChunkUpdates
 import org.valkyrienskies.mod.common.networking.sendStopChunkUpdates
-import org.valkyrienskies.mod.common.playerWrapper
-import org.valkyrienskies.mod.common.shipObjectWorld
-import org.valkyrienskies.mod.common.util.toJOML
-import org.valkyrienskies.mod.common.vsCore
+import org.valkyrienskies.mod.api.playerWrapper
+import org.valkyrienskies.mod.api.vsCore
 import org.valkyrienskies.mod.util.relocateBlock
 import org.valkyrienskies.mod.util.updateBlock
 
@@ -26,7 +23,7 @@ fun createNewShipWithBlocks(
 ): ServerShip {
     if (blocks.isEmpty()) throw IllegalArgumentException()
 
-    val ship = level.shipObjectWorld.createNewShipAtBlock(centerBlock.toJOML(), false, 1.0, level.dimensionId)
+    val ship = level.shipWorldOrException.createNewShipAtBlock(centerBlock.toJOML(), false, 1.0, level.dimensionId)
     org.valkyrienskies.mod.common.debug.ShipDebugService.markCreated(level.server, ship, null)
 
     val shipChunkX = ship.chunkClaim.xMiddle

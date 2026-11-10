@@ -1,9 +1,9 @@
 package org.valkyrienskies.mod.mixin.entity;
 
-import static org.valkyrienskies.mod.common.util.VectorConversionsMCKt.toJOML;
 
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import java.util.Objects;
 import net.minecraft.CrashReport;
 import net.minecraft.CrashReportCategory;
 import net.minecraft.ReportedException;
@@ -21,7 +21,6 @@ import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.joml.primitives.AABBd;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -34,14 +33,13 @@ import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.api.ships.LoadedShip;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 import org.valkyrienskies.mod.common.entity.ShipMountedToData;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.fluid.ShipFluidInteraction;
 import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
-import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 
 @Mixin(Entity.class)
@@ -87,10 +85,10 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         method = "checkInsideBlocks"
     )
     private void afterCheckInside(final CallbackInfo ci) {
-        final AABBd boundingBox = toJOML(getBoundingBox());
+        final AABBd boundingBox = ValkyrienSkies.toJOML(getBoundingBox());
         final AABBd temp = new AABBd();
-        for (final Ship ship : VSGameUtilsKt.getShipsIntersecting(level, boundingBox)) {
-            final AABBd inShipBB = boundingBox.transform(ship.getShipTransform().getWorldToShipMatrix(), temp);
+        for (final Ship ship : ValkyrienSkies.getShipsIntersecting(level, boundingBox)) {
+            final AABBd inShipBB = boundingBox.transform(ship.getTransform().getToModel(), temp);
             if (!EntityShipCollisionUtils.mayShipIntersectLocalAabb(ship, inShipBB)) {
                 continue;
             }
@@ -134,15 +132,15 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
      */
     @Inject(method = "getEyePosition(F)Lnet/minecraft/world/phys/Vec3;", at = @At("HEAD"), cancellable = true)
     private void preGetEyePosition(final float partialTicks, final CallbackInfoReturnable<Vec3> cir) {
-        final ShipMountedToData shipMountedToData = VSGameUtilsKt.getShipMountedToData(Entity.class.cast(this), partialTicks);
+        final ShipMountedToData shipMountedToData = ValkyrienSkies.getShipMountedToData(Entity.class.cast(this), partialTicks);
         if (shipMountedToData == null) {
             //return;
             if (Entity.class.cast(this) instanceof final Player player && player instanceof final IEntityDraggingInformationProvider dragProvider) {
                 if (dragProvider.getDraggingInformation().isEntityBeingDraggedByAShip() && dragProvider.getDraggingInformation().getServerRelativePlayerYaw() != null) {
-                    final Ship shipDraggedBy = VSGameUtilsKt.getAllShips(level).getById(dragProvider.getDraggingInformation().getLastShipStoodOn());
+                    final Ship shipDraggedBy = ValkyrienSkies.getShipById(level, Objects.requireNonNull(dragProvider.getDraggingInformation().getLastShipStoodOn()));
                     if (shipDraggedBy != null) {
                         final Vec3 localEyePosition = EntityDragger.INSTANCE.serversideEyePosition(player);
-                        if (!VSGameUtilsKt.isBlockInShipyard(level, localEyePosition)) {
+                        if (!ValkyrienSkies.isBlockInShipyard(level, localEyePosition)) {
                             return;
                         }
 
@@ -150,10 +148,11 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
                         if (shipDraggedBy instanceof ClientShip) {
                             shipTransform = ((ClientShip) shipDraggedBy).getRenderTransform();
                         } else {
-                            shipTransform = shipDraggedBy.getShipTransform();
+                            shipTransform = shipDraggedBy.getTransform();
                         }
-                        final Vec3 worldEyePosition = VectorConversionsMCKt.toMinecraft(
-                            shipTransform.getShipToWorld().transformPosition(VectorConversionsMCKt.toJOML(localEyePosition))
+
+                        final Vec3 worldEyePosition = ValkyrienSkies.toMinecraft(
+                            shipTransform.getShipToWorld().transformPosition(ValkyrienSkies.toJOML(localEyePosition))
                         );
                         cir.setReturnValue(worldEyePosition);
                     }
@@ -174,7 +173,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         final Vector3dc eyeRelativePos = shipTransform.getShipToWorldRotation().transform(
             new Vector3d(0.0, getEyeHeight(), 0.0)
         );
-        final Vec3 newEyePos = VectorConversionsMCKt.toMinecraft(basePos.add(eyeRelativePos, new Vector3d()));
+        final Vec3 newEyePos = ValkyrienSkies.toMinecraft(basePos.add(eyeRelativePos, new Vector3d()));
         cir.setReturnValue(newEyePos);
     }
 
@@ -185,7 +184,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
      */
     @Inject(method = "getEyePosition()Lnet/minecraft/world/phys/Vec3;", at = @At("HEAD"), cancellable = true)
     private void preGetEyePositionServer(final CallbackInfoReturnable<Vec3> cir) {
-        final ShipMountedToData shipMountedToData = VSGameUtilsKt.getShipMountedToData(Entity.class.cast(this), null);
+        final ShipMountedToData shipMountedToData = ValkyrienSkies.getShipMountedToData(Entity.class.cast(this), null);
         if (shipMountedToData == null) {
             return;
         }
@@ -195,14 +194,14 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         if (shipMountedTo instanceof ClientShip) {
             shipTransform = ((ClientShip) shipMountedTo).getRenderTransform();
         } else {
-            shipTransform = shipMountedTo.getShipTransform();
+            shipTransform = shipMountedTo.getTransform();
         }
-        final Vector3dc basePos = shipTransform.getShipToWorldMatrix()
+        final Vector3dc basePos = shipTransform.getToWorld()
             .transformPosition(shipMountedToData.getMountPosInShip(), new Vector3d());
-        final Vector3dc eyeRelativePos = shipTransform.getShipCoordinatesToWorldCoordinatesRotation().transform(
+        final Vector3dc eyeRelativePos = shipTransform.getRotation().transform(
             new Vector3d(0.0, getEyeHeight(), 0.0)
         );
-        final Vec3 newEyePos = VectorConversionsMCKt.toMinecraft(basePos.add(eyeRelativePos, new Vector3d()));
+        final Vec3 newEyePos = ValkyrienSkies.toMinecraft(basePos.add(eyeRelativePos, new Vector3d()));
         cir.setReturnValue(newEyePos);
     }
 
@@ -212,7 +211,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
      */
     @Inject(method = "shouldRender", at = @At("HEAD"), cancellable = true)
     private void onShouldRender(double d, double e, double f, CallbackInfoReturnable<Boolean> cir) {
-        final ShipMountedToData mountedTo = VSGameUtilsKt.getShipMountedToData(Entity.class.cast(this), null);
+        final ShipMountedToData mountedTo = ValkyrienSkies.getShipMountedToData(Entity.class.cast(this), null);
         if (mountedTo != null) {
             final LoadedShip ship = mountedTo.getShipMountedTo();
             final ShipTransform shipTransform = ship instanceof ClientShip
@@ -225,7 +224,7 @@ public abstract class MixinEntity implements IEntityDraggingInformationProvider 
         }
 
         if (this.draggingInformation.isEntityBeingDraggedByAShip()) {
-            final Ship ship = VSGameUtilsKt.getShipObjectWorld(this.level).getAllShips().getById(this.draggingInformation.getLastShipStoodOn());
+            final Ship ship = ValkyrienSkies.getShipById(level, Objects.requireNonNull(this.draggingInformation.getLastShipStoodOn()));
             if (ship != null) {
                 final ShipTransform shipTransform = (ship instanceof ClientShip ? ((ClientShip) ship).getRenderTransform() : ship.getTransform());
                 final Vector3dc relativePosition = this.draggingInformation.bestRelativeEntityPosition();

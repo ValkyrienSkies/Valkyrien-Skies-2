@@ -23,21 +23,23 @@ import org.valkyrienskies.core.api.util.PhysTickOnly
 import org.valkyrienskies.core.api.world.PhysLevel
 import org.valkyrienskies.core.impl.config.VSCoreConfig
 import org.valkyrienskies.core.internal.ships.VsiServerShip
-import org.valkyrienskies.mod.common.ValkyrienSkiesMod
-import org.valkyrienskies.mod.common.dimensionId
-import org.valkyrienskies.mod.common.executeIf
-import org.valkyrienskies.mod.common.isChunkLoadedForVS
+import org.valkyrienskies.mod.api.dimensionId
+import org.valkyrienskies.mod.api.gameToPhysicsAdapter
+import org.valkyrienskies.mod.api.shipWorldOrException
+import org.valkyrienskies.mod.api.executeIf
+import org.valkyrienskies.mod.api.getLoadedShipById
+import org.valkyrienskies.mod.api.isChunkLoadedForVS
 import org.valkyrienskies.mod.common.networking.sendRestartChunkUpdates
 import org.valkyrienskies.mod.common.networking.sendStopChunkUpdates
-import org.valkyrienskies.mod.common.playerWrapper
-import org.valkyrienskies.mod.common.shipObjectWorld
-import org.valkyrienskies.mod.common.toDenseVoxelUpdate
+import org.valkyrienskies.mod.api.playerWrapper
+import org.valkyrienskies.mod.api.toDenseVoxelUpdate
 import org.valkyrienskies.mod.common.util.SplittingDisablerAttachment
 import org.valkyrienskies.mod.common.util.collectShipBlocks
-import org.valkyrienskies.mod.common.util.toJOML
+import org.valkyrienskies.mod.api.toJOML
 import org.valkyrienskies.mod.common.util.ShipGravityAttachment
-import org.valkyrienskies.mod.common.getLoadedShipManagingPos
-import org.valkyrienskies.mod.common.vsCore
+import org.valkyrienskies.mod.api.getLoadedShipManagingPos
+import org.valkyrienskies.mod.api.getShipById
+import org.valkyrienskies.mod.api.vsCore
 import org.valkyrienskies.mod.util.logger
 import kotlin.math.abs
 import kotlin.math.min
@@ -73,9 +75,9 @@ internal object ShipWelder {
         if ((0..2).any { abs(scale.get(it) - source.transform.scaling.get(it)) > 1e-6 } ||
             abs(scale.x() - scale.y()) > 1e-6 || abs(scale.x() - scale.z()) > 1e-6) return refuse("scale")
 
-        val adapter = ValkyrienSkiesMod.getOrCreateGTPA(level.dimensionId)
+        val adapter = level.gameToPhysicsAdapter
         val joints = adapter.getAllJoints().toMutableMap()
-        val persisted = level.shipObjectWorld.persistedJointStore
+        val persisted = level.shipWorldOrException.persistedJointStore
         persisted.getJointIdsForShip(source.id).forEach { id -> persisted.getJoint(id)?.let { joints.putIfAbsent(id, it) } }
         val sourceJoints = joints.filterValues { it.shipId0 == source.id || it.shipId1 == source.id }
         if (sourceJoints.isNotEmpty()) return refuse("jointed")
@@ -149,8 +151,8 @@ internal object ShipWelder {
             }
             if (session.level !== level) continue
             val drive = session.drive
-            val source = level.shipObjectWorld.loadedShips.getById(drive.sourceId)
-            val target = level.shipObjectWorld.loadedShips.getById(drive.targetId)
+            val source = level.getLoadedShipById(drive.sourceId)
+            val target = level.getLoadedShipById(drive.targetId)
             val player = level.server.playerList.getPlayer(session.player)
             val invalid = source == null || target == null || player?.level() !== level || drive.invalid ||
                 level.getLoadedShipManagingPos(session.sourcePos)?.id != drive.sourceId ||
@@ -160,8 +162,8 @@ internal object ShipWelder {
                 source != null && (abs(source.inertiaData.mass - session.sourceMass) > 1e-6 ||
                     Vector3d(source.inertiaData.centerOfMass).distance(session.sourceCenter) > 1e-6 ||
                     !session.sourceTensor.equals(source.inertiaData.inertiaTensor, 1e-6) || source.isStatic ||
-                    level.shipObjectWorld.persistedJointStore.hasJointsForShip(source.id) ||
-                    ValkyrienSkiesMod.getOrCreateGTPA(level.dimensionId).getJointsFromShip(source.id).isNotEmpty())
+                    level.shipWorldOrException.persistedJointStore.hasJointsForShip(source.id) ||
+                    level.gameToPhysicsAdapter.getJointsFromShip(source.id).isNotEmpty())
             if (invalid) { finish(session, "stale", false); continue }
             if (level.server.tickCount - session.startTick > 1200) { finish(session, "timeout", false); continue }
             val readySource = source!!
@@ -203,7 +205,7 @@ internal object ShipWelder {
         session.drive.active = false
         drives.remove(session.player, session.drive)
         sessions.remove(session.player)
-        if (!merged && session.sourceWasStatic) session.level.shipObjectWorld.allShips.getById(session.drive.sourceId)?.isStatic = true
+        if (!merged && session.sourceWasStatic) session.level.getShipById(session.drive.sourceId)?.isStatic = true
         message?.let { session.level.server.playerList.getPlayer(session.player)?.sendSystemMessage(Component.translatable("item.valkyrienskies.ship_welder.$it")) }
     }
 
@@ -263,7 +265,7 @@ internal object ShipWelder {
             val center = WeldKinematics.rebase(oldTransform, oldCom, oldVelocity, oldOmega, newCom)
             (target as VsiServerShip).unsafeSetKinematics(vsCore.newBodyKinematics(center.velocity, oldOmega,
                 vsCore.newBodyTransform(center.position, oldRotation, oldScale, newCom)))
-            level.shipObjectWorld.deleteShip(source)
+            level.shipWorldOrException.deleteShip(source)
             success = true
         } catch (exception: Exception) {
             log.error("Ship welding failed; restoring the original blocks", exception)
@@ -300,7 +302,7 @@ internal object ShipWelder {
                 sections.forEach { pos ->
                     val chunk = level.getChunk(pos.x, pos.z)
                     val section = chunk.sections[chunk.getSectionIndexFromSectionY(pos.y)]
-                    level.shipObjectWorld.forceUpdateConnectivityChunk(level.dimensionId, pos.x, pos.y, pos.z, section.toDenseVoxelUpdate(pos, level))
+                    level.shipWorldOrException.forceUpdateConnectivityChunk(level.dimensionId, pos.x, pos.y, pos.z, section.toDenseVoxelUpdate(pos, level))
                 }
             }
             ShipAssembler.initSkyLightForShip(level, targetBlocks.toList() + if (success) saved.map { it.to } else emptyList())

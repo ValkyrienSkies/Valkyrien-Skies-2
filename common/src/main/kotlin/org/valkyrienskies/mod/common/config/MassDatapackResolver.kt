@@ -41,7 +41,7 @@ import org.valkyrienskies.mod.common.hooks.VSGameEvents
 import org.valkyrienskies.mod.common.fluid.ClientFluidTypes
 import org.valkyrienskies.mod.common.networking.PacketSyncBlockStateInfo
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
-import org.valkyrienskies.mod.common.vsCore
+import org.valkyrienskies.mod.api.vsCore
 import org.valkyrienskies.mod.mixin.accessors.world.level.block.SlabBlockAccessor
 import org.valkyrienskies.mod.mixin.accessors.world.level.block.StairBlockAccessor
 import org.valkyrienskies.mod.util.logger

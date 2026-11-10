@@ -1,13 +1,10 @@
 package org.valkyrienskies.mod.common
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation
-import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
-import net.minecraft.world.level.block.Blocks
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Position
-import net.minecraft.core.SectionPos
 import net.minecraft.core.Vec3i
 import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
@@ -47,7 +44,6 @@ import org.valkyrienskies.core.api.world.properties.DimensionId
 import org.valkyrienskies.core.internal.world.VsiPlayer
 import org.valkyrienskies.core.internal.world.VsiServerShipWorld
 import org.valkyrienskies.core.internal.world.VsiShipWorld
-import org.valkyrienskies.core.internal.world.chunks.VsiBlockType
 import org.valkyrienskies.core.internal.world.chunks.VsiTerrainUpdate
 import org.valkyrienskies.core.util.expand
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod.ASSEMBLE_BLACKLIST
@@ -57,18 +53,22 @@ import org.valkyrienskies.mod.common.fluid.FractionalFluidSources
 import org.valkyrienskies.mod.common.util.DimensionIdProvider
 import org.valkyrienskies.mod.common.util.EntityDragger.serversidePosition
 import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils
+import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.util.set
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toJOMLD
 import org.valkyrienskies.mod.common.util.toMinecraft
 import org.valkyrienskies.mod.mixin.accessors.entity.EntityAccessor
-import org.valkyrienskies.mod.mixin.accessors.resource.ResourceKeyAccessor
 import org.valkyrienskies.mod.mixinducks.world.entity.PlayerDuck
 import java.util.function.Consumer
 
+private const val dep = "Use ValkyrienSkies instead"
+
+@Deprecated(dep, ReplaceWith("vsCore", "org.valkyrienskies.mod.api.vsCore"))
 val vsCore get() = ValkyrienSkiesMod.vsCore
 
+@Deprecated(dep, ReplaceWith("shipWorld", "org.valkyrienskies.mod.api.shipWorld"))
 val Level?.shipWorldNullable: VsiShipWorld?
     get() = when {
         this == null -> null
@@ -77,20 +77,29 @@ val Level?.shipWorldNullable: VsiShipWorld?
         else -> null
     }
 
+@Deprecated(dep, ReplaceWith("shipWorld", "org.valkyrienskies.mod.api.shipWorld"))
 val Level?.shipObjectWorld
     get() = shipWorldNullable ?: vsCore.dummyShipWorldClient
 
+@Deprecated(dep, ReplaceWith("allShips", "org.valkyrienskies.mod.api.allShips"))
 val Level?.allShips get() = this.shipObjectWorld.allShips
+@Deprecated(dep, ReplaceWith("unloadedShips", "org.valkyrienskies.mod.api.unloadedShips"))
 val Level?.unloadedShips get() = this.shipObjectWorld.unloadedShips
+@Deprecated(dep, ReplaceWith("allBodies", "org.valkyrienskies.mod.api.allBodies"))
 val Level?.allBodies get() = this.shipObjectWorld.allBodies
 
+@Deprecated(dep, ReplaceWith("shipWorld", "org.valkyrienskies.mod.api.shipWorld"))
 val MinecraftServer.shipObjectWorld: VsiServerShipWorld
     get() = (this as IShipObjectWorldServerProvider).shipObjectWorld ?: vsCore.dummyShipWorldServer
+
+@Deprecated(dep, ReplaceWith("vsPipeline", "org.valkyrienskies.mod.api.vsPipeline"))
 val MinecraftServer.vsPipeline get() = (this as IShipObjectWorldServerProvider).vsPipeline!!
 
+@Deprecated(dep, ReplaceWith("shipWorld", "org.valkyrienskies.mod.api.shipWorld"))
 val ServerLevel?.shipObjectWorld: VsiServerShipWorld
     get() = this?.server?.shipObjectWorld ?: vsCore.dummyShipWorldServer
 
+@Deprecated(dep, ReplaceWith("dimensionId", "org.valkyrienskies.mod.api.dimensionId"))
 val Level.dimensionId: DimensionId
     get() {
         this as DimensionIdProvider
@@ -99,19 +108,19 @@ val Level.dimensionId: DimensionId
 
 private val levelResourceKeyMap: MutableMap<DimensionId, ResourceKey<Level>> = HashMap()
 
+@Deprecated(dep, ReplaceWith("getResourceKey(dimensionId)", "org.valkyrienskies.mod.api.getResourceKey"))
 fun getResourceKey(dimensionId: DimensionId): ResourceKey<Level> {
     val cached = levelResourceKeyMap[dimensionId]
     if (cached == null) {
         val (registryNamespace, registryName, namespace, name) = dimensionId.split(":")
-        val toReturn: ResourceKey<Level> = ResourceKeyAccessor.callCreate(
-            ResourceLocation(registryNamespace, registryName), ResourceLocation(namespace, name)
-        )
+        val toReturn: ResourceKey<Level> = ResourceKey.create(ResourceLocation(registryNamespace, registryName), ResourceLocation(namespace, name))
         levelResourceKeyMap[dimensionId] = toReturn
         return toReturn
     }
     return cached
 }
 
+@Deprecated(dep, ReplaceWith("executeIf(condition, toExecute)", "org.valkyrienskies.mod.api.executeIf"))
 fun MinecraftServer.executeIf(condition: () -> Boolean, toExecute: Runnable) {
     val registeredAtTick = this.tickCount
     vsCore.tickEndEvent.on { ev, handler ->
@@ -131,9 +140,12 @@ fun MinecraftServer.executeIf(condition: () -> Boolean, toExecute: Runnable) {
     }
 }
 
+@Deprecated(dep, ReplaceWith("yRange", "org.valkyrienskies.mod.api.yRange"))
 val Level.yRange get() = LevelYRange(minBuildHeight, maxBuildHeight - 1)
 
+@Deprecated(dep, ReplaceWith("isTickingChunk(pos)", "org.valkyrienskies.mod.api.isTickingChunk"))
 fun Level.isTickingChunk(pos: ChunkPos) = isTickingChunk(pos.x, pos.z)
+@Deprecated(dep, ReplaceWith("isTickingChunk(chunkX, chunkZ)", "org.valkyrienskies.mod.api.isTickingChunk"))
 fun Level.isTickingChunk(chunkX: Int, chunkZ: Int) =
     (chunkSource as ServerChunkCache).isPositionTicking(ChunkPos.asLong(chunkX, chunkZ))
 
@@ -147,6 +159,7 @@ fun Level.isTickingChunk(chunkX: Int, chunkZ: Int) =
  * only reach FULL status, so they won't pass [isPositionTicking]. For those chunks we accept a
  * non-null [ServerChunkCache.getChunkNow].
  */
+@Deprecated(dep, ReplaceWith("isChunkLoadedForVS(pos)", "org.valkyrienskies.mod.api.isChunkLoadedForVS"))
 fun Level.isChunkLoadedForVS(pos: ChunkPos): Boolean {
     if (VS2ChunkAllocator.isChunkInShipyardCompanion(pos.x, pos.z)) {
         return (chunkSource as ServerChunkCache).getChunkNow(pos.x, pos.z) != null
@@ -154,21 +167,28 @@ fun Level.isChunkLoadedForVS(pos: ChunkPos): Boolean {
     return isTickingChunk(pos)
 }
 
+@Deprecated(dep, ReplaceWith("getLevel(dimensionId)", "org.valkyrienskies.mod.api.getLevelFromDimensionId"))
 fun MinecraftServer.getLevelFromDimensionId(dimensionId: DimensionId): ServerLevel? {
     return getLevel(getResourceKey(dimensionId))
 }
 
+@Deprecated(dep, ReplaceWith("shipWorld", "org.valkyrienskies.mod.api.shipWorld"))
 val Minecraft.shipObjectWorld
     get() = (this as IShipObjectWorldClientProvider).shipObjectWorld ?: vsCore.dummyShipWorldClient
+
+@Deprecated(dep, ReplaceWith("shipWorld", "org.valkyrienskies.mod.api.shipWorld"))
 val ClientLevel?.shipObjectWorld get() = Minecraft.getInstance().shipObjectWorld
 
+@Deprecated(dep, ReplaceWith("mcPlayer", "org.valkyrienskies.mod.api.mcPlayer"))
 val VsiPlayer.mcPlayer: Player get() = (this as MinecraftPlayer).playerEntityReference.get()!!
 
+@Deprecated(dep, ReplaceWith("playerWrapper", "org.valkyrienskies.mod.api.playerWrapper"))
 val Player.playerWrapper get() = (this as PlayerDuck).vs_getPlayer()
 
 /**
  * Like [Entity.squaredDistanceTo] except the destination is transformed into world coordinates if it is a ship
  */
+@Deprecated(dep, ReplaceWith("shipAwareDistanceToSqr(x, y, z)", "org.valkyrienskies.mod.api.shipAwareDistanceToSqr"))
 fun Entity.squaredDistanceToInclShips(x: Double, y: Double, z: Double): Double {
     val pos = if (getShipMountedTo(this) != null) getShipMountedToData(
         this, null
@@ -179,6 +199,7 @@ fun Entity.squaredDistanceToInclShips(x: Double, y: Double, z: Double): Double {
 /**
  * Meant to be used with @WrapOperation to replace distance checks in a compatible way
  */
+@Deprecated(dep, ReplaceWith("distanceSquared(v1, v2, originalDistance)", "org.valkyrienskies.mod.api.distanceSquared"))
 fun Level?.squaredDistanceBetweenInclShips(
     v1: Vec3,
     v2: Vec3,
@@ -198,6 +219,7 @@ fun Level?.squaredDistanceBetweenInclShips(
  * Calculates the squared distance between to points.
  * x1/y1/z1 are transformed into world coordinates if they are on a ship
  */
+@Deprecated(dep, ReplaceWith("distanceSquared(x1, y1, z1, x2, y2, z2)", "org.valkyrienskies.mod.api.distanceSquared"))
 fun Level?.squaredDistanceBetweenInclShips(
     x1: Double,
     y1: Double,
@@ -249,6 +271,7 @@ private fun getShipObjectManagingPosImpl(world: Level?, chunkX: Int, chunkZ: Int
  * Get all ships intersecting an AABB in world-space, then call [cb] with the AABB itself,
  * followed by the AABB in the ship-space of the intersecting ships.
  */
+@Deprecated(dep, ReplaceWith("transformFromWorldToNearbyShipsAndWorld(aabb, cb)", "org.valkyrienskies.mod.api.transformFromWorldToNearbyShipsAndWorld"))
 fun Level.transformFromWorldToNearbyShipsAndWorld(aabb: AABB, cb: Consumer<AABB>) {
     val tmpAABB = AABBd()
     cb.accept(aabb)
@@ -265,6 +288,7 @@ fun Level.transformFromWorldToNearbyShipsAndWorld(aabb: AABB, cb: Consumer<AABB>
  *
  * Not sure if this is actually useful, but our MixinEntity for water-flowing on ships seems to need it.
  */
+@Deprecated(dep, ReplaceWith("transformFromWorldToNearbyShips(aabb, cb)", "org.valkyrienskies.mod.api.transformFromWorldToNearbyShips"))
 fun Level.transformFromWorldToNearbyShips(aabb: AABB, cb: Consumer<AABB>) {
     val tmpAABB = AABBd()
     //cb.accept(aabb)
@@ -276,6 +300,7 @@ fun Level.transformFromWorldToNearbyShips(aabb: AABB, cb: Consumer<AABB>) {
     }
 }
 
+@Deprecated(dep, ReplaceWith("positionToNearbyShipsAndWorld(x, y, z, aabbRadius)", "org.valkyrienskies.mod.api.positionToNearbyShipsAndWorld"))
 fun Level?.transformToNearbyShipsAndWorld(x: Double, y: Double, z: Double, aabbRadius: Double): List<Vector3d> {
     val list = mutableListOf<Vector3d>()
 
@@ -284,12 +309,14 @@ fun Level?.transformToNearbyShipsAndWorld(x: Double, y: Double, z: Double, aabbR
     return list
 }
 
+@Deprecated(dep, ReplaceWith("transformToNearbyShipsAndWorld(x, y, z, aabbRadius, cb)", "org.valkyrienskies.mod.api.transformToNearbyShipsAndWorld"))
 fun Level?.transformToNearbyShipsAndWorld(
     x: Double, y: Double, z: Double, aabbRadius: Double, cb: DoubleTernaryConsumer
 ) {
     this?.transformToNearbyShipsAndWorld(x, y, z, aabbRadius, cb::accept)
 }
 
+@Deprecated(dep, ReplaceWith("transformToNearbyShipsAndWorld(x, y, z, aabbRadius, cb)", "org.valkyrienskies.mod.api.transformToNearbyShipsAndWorld"))
 inline fun Level.transformToNearbyShipsAndWorld(
     x: Double, y: Double, z: Double, aabbRadius: Double, cb: (Double, Double, Double) -> Unit
 ) {
@@ -313,116 +340,137 @@ inline fun Level.transformToNearbyShipsAndWorld(
 }
 
 // Level
+@Deprecated(dep, ReplaceWith("isChunkInShipyard(chunk, chunkZ)", "org.valkyrienskies.mod.api.isChunkInShipyard"))
 fun Level.isChunkInShipyard(chunkX: Int, chunkZ: Int) =
     shipObjectWorld.isChunkInShipyard(chunkX, chunkZ, dimensionId)
 
+@Deprecated(dep, ReplaceWith("isBlockInShipyard(blockX, blockY, blockZ)", "org.valkyrienskies.mod.api.isBlockInShipyard"))
 fun Level.isBlockInShipyard(blockX: Int, blockY: Int, blockZ: Int) =
     shipObjectWorld.isBlockInShipyard(blockX, blockY, blockZ, dimensionId)
 
+@Deprecated(dep, ReplaceWith("isBlockInShipyard(pos)", "org.valkyrienskies.mod.api.isBlockInShipyard"))
 fun Level.isBlockInShipyard(pos: BlockPos) = isBlockInShipyard(pos.x, pos.y, pos.z)
 
+@Deprecated(dep, ReplaceWith("isBlockInShipyard(pos)", "org.valkyrienskies.mod.api.isBlockInShipyard"))
 fun Level.isBlockInShipyard(pos: Vec3) = isBlockInShipyard(pos.x.toInt(), pos.y.toInt(), pos.z.toInt())
 
+@Deprecated(dep, ReplaceWith("isBlockInShipyard(x, y, z)", "org.valkyrienskies.mod.api.isBlockInShipyard"))
 fun Level.isBlockInShipyard(x: Double, y: Double, z: Double) =
     isBlockInShipyard(x.toInt(), y.toInt(), z.toInt())
 
+@Deprecated(dep, ReplaceWith("getLoadedShipManagingPos(chunkX, chunkZ)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun Level?.getLoadedShipManagingPos(chunkX: Int, chunkZ: Int) =
     getShipObjectManagingPosImpl(this, chunkX, chunkZ)
 
+@Deprecated(dep, ReplaceWith("getLoadedShipManagingPos(blockPos)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun Level?.getLoadedShipManagingPos(blockPos: Vec3i) =
     getLoadedShipManagingPos(blockPos.x shr 4, blockPos.z shr 4)
 
+@Deprecated(dep, ReplaceWith("getLoadedShipManagingPos(pos)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun Level?.getLoadedShipManagingPos(pos: Vector3dc) =
     getLoadedShipManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
 
+@Deprecated(dep, ReplaceWith("getLoadedShipManagingPos(posX, posZ)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun Level?.getLoadedShipManagingPos(posX: Double, posY: Double, posZ: Double) =
     getLoadedShipManagingPos(posX.toInt() shr 4, posZ.toInt() shr 4)
 
+@Deprecated(dep, ReplaceWith("getLoadedShipManagingPos(chunkPos)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun Level?.getLoadedShipManagingPos(chunkPos: ChunkPos) =
     getLoadedShipManagingPos(chunkPos.x, chunkPos.z)
 
-@Deprecated("Use getLoadedShipManagingPos instead", ReplaceWith("getLoadedShipManagingPos(chunkX, chunkZ)"))
+@Deprecated("$dep and use getLoadedShipManagingPos", ReplaceWith("getLoadedShipManagingPos(chunkX, chunkZ)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun Level?.getShipObjectManagingPos(chunkX: Int, chunkZ: Int) =
     getShipObjectManagingPosImpl(this, chunkX, chunkZ)
-@Deprecated("Use getLoadedShipManagingPos instead", ReplaceWith("getLoadedShipManagingPos(blockPos)"))
+@Deprecated("$dep and use getLoadedShipManagingPos instead", ReplaceWith("getLoadedShipManagingPos(blockPos)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun Level?.getShipObjectManagingPos(blockPos: Vec3i) =
     getShipObjectManagingPos(blockPos.x shr 4, blockPos.z shr 4)
-@Deprecated("Use getLoadedShipManagingPos instead", ReplaceWith("getLoadedShipManagingPos(pos)"))
+@Deprecated("$dep and use getLoadedShipManagingPos instead", ReplaceWith("getLoadedShipManagingPos(pos)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun Level?.getShipObjectManagingPos(pos: Vector3dc) =
     getShipObjectManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
-@Deprecated("Use getLoadedShipManagingPos instead", ReplaceWith("getLoadedShipManagingPos(posX, posY, posZ)"))
+@Deprecated("$dep and use getLoadedShipManagingPos instead", ReplaceWith("getLoadedShipManagingPos(posX, posZ)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun Level?.getShipObjectManagingPos(posX: Double, posY: Double, posZ: Double) =
     getShipObjectManagingPos(posX.toInt() shr 4, posZ.toInt() shr 4)
-@Deprecated("Use getLoadedShipManagingPos instead", ReplaceWith("getLoadedShipManagingPos(chunkPos)"))
+@Deprecated("$dep and use getLoadedShipManagingPos instead", ReplaceWith("getLoadedShipManagingPos(chunkPos)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun Level?.getShipObjectManagingPos(chunkPos: ChunkPos) =
     getShipObjectManagingPos(chunkPos.x, chunkPos.z)
 
 // ClientLevel
+@Deprecated(dep, ReplaceWith("getLoadedShipManagingPos(chunkX, chunkZ)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun ClientLevel?.getLoadedShipManagingPos(chunkX: Int, chunkZ: Int) =
     getShipObjectManagingPosImpl(this, chunkX, chunkZ) as ClientShip?
 
+@Deprecated(dep, ReplaceWith("getLoadedShipManagingPos(blockPos)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun ClientLevel?.getLoadedShipManagingPos(blockPos: Vec3i) =
     getLoadedShipManagingPos(blockPos.x shr 4, blockPos.z shr 4)
 
+@Deprecated(dep, ReplaceWith("getLoadedShipManagingPos(posX, posZ)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun ClientLevel?.getLoadedShipManagingPos(posX: Double, posY: Double, posZ: Double) =
     getLoadedShipManagingPos(posX.toInt() shr 4, posZ.toInt() shr 4)
 
+@Deprecated(dep, ReplaceWith("getLoadedShipManagingPos(pos)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun ClientLevel?.getLoadedShipManagingPos(pos: Vector3dc) =
     getLoadedShipManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
 
+@Deprecated(dep, ReplaceWith("getLoadedShipManagingPos(pos)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun ClientLevel?.getLoadedShipManagingPos(pos: Position) =
     getLoadedShipManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
 
+@Deprecated(dep, ReplaceWith("getLoadedShipManagingPos(chunkPos)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun ClientLevel?.getLoadedShipManagingPos(chunkPos: ChunkPos) =
     getLoadedShipManagingPos(chunkPos.x, chunkPos.z)
 
-@Deprecated("Use getLoadedShipManagingPos instead", ReplaceWith("getLoadedShipManagingPos(chunkX, chunkZ)"))
+@Deprecated(dep, ReplaceWith("getLoadedShipManagingPos(chunkX, chunkZ)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun ClientLevel?.getShipObjectManagingPos(chunkX: Int, chunkZ: Int) =
     getShipObjectManagingPosImpl(this, chunkX, chunkZ) as ClientShip?
-@Deprecated("Use getLoadedShipManagingPos instead", ReplaceWith("getLoadedShipManagingPos(blockPos)"))
+@Deprecated(dep, ReplaceWith("getLoadedShipManagingPos(blockPos)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun ClientLevel?.getShipObjectManagingPos(blockPos: Vec3i) =
     getShipObjectManagingPos(blockPos.x shr 4, blockPos.z shr 4)
-@Deprecated("Use getLoadedShipManagingPos instead", ReplaceWith("getLoadedShipManagingPos(pos)"))
+@Deprecated(dep, ReplaceWith("getLoadedShipManagingPos(posX, posZ)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun ClientLevel?.getShipObjectManagingPos(posX: Double, posY: Double, posZ: Double) =
     getShipObjectManagingPos(posX.toInt() shr 4, posZ.toInt() shr 4)
-@Deprecated("Use getLoadedShipManagingPos instead", ReplaceWith("getLoadedShipManagingPos(pos)"))
+@Deprecated(dep, ReplaceWith("getLoadedShipManagingPos(pos)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun ClientLevel?.getShipObjectManagingPos(pos: Vector3dc) =
     getShipObjectManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
-@Deprecated("Use getLoadedShipManagingPos instead", ReplaceWith("getLoadedShipManagingPos(chunkPos)"))
+@Deprecated(dep, ReplaceWith("getLoadedShipManagingPos(pos)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun ClientLevel?.getShipObjectManagingPos(pos: Position) =
     getShipObjectManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
-@Deprecated("Use getLoadedShipManagingPos instead", ReplaceWith("getLoadedShipManagingPos(chunkPos)"))
+@Deprecated(dep, ReplaceWith("getLoadedShipManagingPos(chunkPos)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun ClientLevel?.getShipObjectManagingPos(chunkPos: ChunkPos) =
     getShipObjectManagingPos(chunkPos.x, chunkPos.z)
 
 // ServerWorld
+@Deprecated(dep, ReplaceWith("getLoadedShipManagingPos(chunkX, chunkZ)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun ServerLevel?.getLoadedShipManagingPos(chunkX: Int, chunkZ: Int) =
     getShipObjectManagingPosImpl(this, chunkX, chunkZ) as LoadedServerShip?
 
+@Deprecated(dep, ReplaceWith("getLoadedShipManagingPos(blockPos)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun ServerLevel?.getLoadedShipManagingPos(blockPos: Vec3i) =
     getLoadedShipManagingPos(blockPos.x shr 4, blockPos.z shr 4)
 
+@Deprecated(dep, ReplaceWith("getLoadedShipManagingPos(chunkPos)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun ServerLevel?.getLoadedShipManagingPos(chunkPos: ChunkPos) =
     getLoadedShipManagingPos(chunkPos.x, chunkPos.z)
 
+@Deprecated(dep, ReplaceWith("getLoadedShipManagingPos(posX, posZ)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun ServerLevel?.getLoadedShipManagingPos(posX: Double, posY: Double, posZ: Double) =
     getLoadedShipManagingPos(posX.toInt() shr 4, posZ.toInt() shr 4)
 
+@Deprecated(dep, ReplaceWith("getLoadedShipManagingPos(pos)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun ServerLevel?.getLoadedShipManagingPos(pos: Vector3dc) =
     getLoadedShipManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
-@Deprecated("Use getLoadedShipManagingPos instead", ReplaceWith("getLoadedShipManagingPos(chunkX, chunkZ)"))
+@Deprecated("$dep and use getLoadedShipManagingPos", ReplaceWith("getLoadedShipManagingPos(chunkX, chunkZ)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun ServerLevel?.getShipObjectManagingPos(chunkX: Int, chunkZ: Int) =
     getShipObjectManagingPosImpl(this, chunkX, chunkZ) as LoadedServerShip?
-@Deprecated("Use getLoadedShipManagingPos instead", ReplaceWith("getLoadedShipManagingPos(blockPos)"))
+@Deprecated("$dep and use getLoadedShipManagingPos instead", ReplaceWith("getLoadedShipManagingPos(blockPos)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun ServerLevel?.getShipObjectManagingPos(blockPos: Vec3i) =
     getShipObjectManagingPos(blockPos.x shr 4, blockPos.z shr 4)
-@Deprecated("Use getLoadedShipManagingPos instead", ReplaceWith("getLoadedShipManagingPos(pos)"))
+@Deprecated("$dep and use getLoadedShipManagingPos instead", ReplaceWith("getLoadedShipManagingPos(chunkPos)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun ServerLevel?.getShipObjectManagingPos(chunkPos: ChunkPos) =
     getShipObjectManagingPos(chunkPos.x, chunkPos.z)
-@Deprecated("Use getLoadedShipManagingPos instead", ReplaceWith("getLoadedShipManagingPos(posX, posY, posZ)"))
+@Deprecated("$dep and use getLoadedShipManagingPos instead", ReplaceWith("getLoadedShipManagingPos(posX, posZ)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun ServerLevel?.getShipObjectManagingPos(posX: Double, posY: Double, posZ: Double) =
     getShipObjectManagingPos(posX.toInt() shr 4, posZ.toInt() shr 4)
-@Deprecated("Use getLoadedShipManagingPos instead", ReplaceWith("getLoadedShipManagingPos(pos)"))
+@Deprecated("$dep and use getLoadedShipManagingPos instead", ReplaceWith("getLoadedShipManagingPos(pos)", "org.valkyrienskies.mod.api.getLoadedShipManagingPos"))
 fun ServerLevel?.getShipObjectManagingPos(pos: Vector3dc) =
     getShipObjectManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
 
@@ -442,6 +490,7 @@ private fun getShipManagingPosImpl(world: Level?, x: Int, z: Int): Ship? {
     }
 }
 
+@Deprecated(dep, ReplaceWith("transformRenderAABBToWorld(pos, aabb)", "org.valkyrienskies.mod.api.transformRenderAABBToWorld"))
 fun ClientLevel?.transformRenderAABBToWorld(pos: Position, aabb: AABB): AABB {
     val ship = getLoadedShipManagingPos(pos)
     if (ship != null) {
@@ -450,6 +499,7 @@ fun ClientLevel?.transformRenderAABBToWorld(pos: Position, aabb: AABB): AABB {
     return aabb
 }
 
+@Deprecated(dep, ReplaceWith("getShipManagingEntity()", "org.valkyrienskies.mod.api.getShipManaging"))
 fun Entity?.getShipManaging(): Ship? = this?.let { this.level().getShipManagingPos(this.position()) }
 
 /**
@@ -460,6 +510,7 @@ fun Entity?.getShipManaging(): Ship? = this?.let { this.level().getShipManagingP
  * dragger attribution rather than worldAABB containment, so a mob in midair below a flying
  * ship correctly returns null instead of being misattributed to the ship overhead.
  */
+@Deprecated(dep, ReplaceWith("getEnclosingShip()", "org.valkyrienskies.mod.api.getEnclosingShip"))
 fun Entity?.getEnclosingShip(): Ship? {
     if (this !is IEntityDraggingInformationProvider) return null
     val info = this.draggingInformation
@@ -469,6 +520,7 @@ fun Entity?.getEnclosingShip(): Ship? {
 }
 
 /** Result of [getShipBlockStoodOn]: the ship the entity is standing on plus the shipyard cell of the supporting block. */
+@Deprecated(dep, ReplaceWith("ShipBlock", "org.valkyrienskies.mod.api.ShipBlock"))
 data class ShipBlock(@JvmField val ship: Ship, @JvmField val shipLocalBlockPos: BlockPos)
 
 /**
@@ -485,6 +537,7 @@ data class ShipBlock(@JvmField val ship: Ship, @JvmField val shipLocalBlockPos: 
  * rather than just AABB overlap (a sparse ship's worldAABB encloses huge empty volume). Mirrors the
  * algorithm used by `MixinEntity.getPosStandingOnFromShips` for the dragger's per-tick detection.
  */
+@Deprecated(dep, ReplaceWith("entity.getShipBlockStoodOn(probeDepth)", "org.valkyrienskies.mod.api.getShipBlockStoodOn"))
 fun Entity?.getShipBlockStoodOn(probeDepth: Double): ShipBlock? {
     if (this == null) return null
     val level = level()
@@ -526,9 +579,11 @@ fun Entity?.getShipBlockStoodOn(probeDepth: Double): ShipBlock? {
  * [getShipBlockStoodOn] with a tight 0.2-block probe depth, returning just the ship. Use at
  * finalizeSpawn / mob-spawn time, before the dragger system has populated `lastShipStoodOn`.
  */
+@Deprecated(dep, ReplaceWith("entity.getShipStoodOn()", "org.valkyrienskies.mod.api.getShipStoodOn"))
 fun Entity?.getShipStoodOn(): Ship? = getShipBlockStoodOn(0.2)?.ship
 
 /** Entity's `blockPosition()` projected into its enclosing ship, else world `blockPosition()`. */
+@Deprecated(dep, ReplaceWith("entity.shipMountedSeedSpawnPos()", "org.valkyrienskies.mod.api.shipMountedSeedSpawnPos"))
 @JvmStatic
 fun shipMountedSpawnSeedPos(entity: Entity): BlockPos {
     val ship = entity.getShipStoodOn() ?: return entity.blockPosition()
@@ -537,6 +592,7 @@ fun shipMountedSpawnSeedPos(entity: Entity): BlockPos {
 }
 
 /** A shipyard `BlockPos`'s Y projected to its world-rendered Y, else `original`. */
+@Deprecated(dep, ReplaceWith("level.shipProjectedWorldY(pos, original)", "org.valkyrienskies.mod.api.shipProjectedWorldY"))
 @JvmStatic
 fun shipProjectedWorldY(level: LevelAccessor, pos: BlockPos, original: Int): Int {
     if (level !is ServerLevel) return original
@@ -552,6 +608,7 @@ fun shipProjectedWorldY(level: LevelAccessor, pos: BlockPos, original: Int): Int
  * `min(shipSky, worldSky)` so a ship under a world ceiling reads dim. `original` returned
  * when not on a ship.
  */
+@Deprecated(dep, ReplaceWith("getter.shipAwareCombinedBrightness(pos, skyDarken, original)", "org.valkyrienskies.mod.api.shipAwareCombinedBrightness"))
 @JvmStatic
 fun shipAwareCombinedBrightness(getter: BlockAndTintGetter, pos: BlockPos, skyDarken: Int, original: Int): Int {
     if (getter !is ServerLevel) return original
@@ -570,6 +627,7 @@ fun shipAwareCombinedBrightness(getter: BlockAndTintGetter, pos: BlockPos, skyDa
 }
 
 /** Include world block light at a ship's position. */
+@Deprecated(dep, ReplaceWith("getter.shipAwareBlockBrightness(pos, original)", "org.valkyrienskies.mod.api.shipAwareBlockBrightness"))
 @JvmStatic
 fun shipAwareBlockBrightness(getter: BlockAndTintGetter, pos: BlockPos, original: Int): Int {
     if (getter !is ServerLevel) return original
@@ -579,6 +637,7 @@ fun shipAwareBlockBrightness(getter: BlockAndTintGetter, pos: BlockPos, original
 }
 
 /** Sky-only counterpart to [shipAwareCombinedBrightness] — returns `min(original, worldSky)`. */
+@Deprecated(dep, ReplaceWith("getter.shipAwareSkyBrightness(pos, original)", "org.valkyrienskies.mod.api.shipAwareSkyBrightness"))
 @JvmStatic
 fun shipAwareSkyBrightness(getter: BlockAndTintGetter, pos: BlockPos, original: Int): Int {
     if (getter !is ServerLevel) return original
@@ -594,6 +653,7 @@ fun shipAwareSkyBrightness(getter: BlockAndTintGetter, pos: BlockPos, original: 
 
 /** Vanilla `canSeeSky` projected to the ship's world pos, plus a heightmap-including-ships
  *  check so other ships above also block the sky view. */
+@Deprecated(dep, ReplaceWith("level.shipAwareCanSeeSky(pos)", "org.valkyrienskies.mod.api.shipAwareCanSeeSky"))
 @JvmStatic
 fun shipAwareCanSeeSky(level: Level, pos: BlockPos): Boolean {
     val ship = level.getShipManagingPos(pos)
@@ -615,6 +675,7 @@ fun shipAwareCanSeeSky(level: Level, pos: BlockPos): Boolean {
  * and `max(shipBlock, worldBlock)` so AI gates that read it see the entity's actual local
  * lighting on the ship. Null when not on a ship — caller falls back to vanilla.
  */
+@Deprecated(dep, ReplaceWith("entity.shipAwareEntityLightLevelDependentMagicValue()", "org.valkyrienskies.mod.api.shipAwareEntityLightLevelDependentMagicValue"))
 @JvmStatic
 fun shipAwareEntityLightLevelDependentMagicValue(entity: Entity): Float? {
     val level = entity.level()
@@ -639,57 +700,73 @@ fun shipAwareEntityLightLevelDependentMagicValue(entity: Entity): Float? {
 }
 
 // Level
+@Deprecated(dep, ReplaceWith("getShipManagingPos(chunkX, chunkZ)", "org.valkyrienskies.mod.api.getShipManagingPos"))
 fun Level?.getShipManagingPos(chunkX: Int, chunkZ: Int) =
     getShipManagingPosImpl(this, chunkX, chunkZ)
 
+@Deprecated(dep, ReplaceWith("getShipManagingPos(blockPod)", "org.valkyrienskies.mod.api.getShipManagingPos"))
 fun Level?.getShipManagingPos(blockPos: BlockPos) =
     getShipManagingPos(blockPos.x shr 4, blockPos.z shr 4)
 
+@Deprecated(dep, ReplaceWith("getShipManagingPos(pos)", "org.valkyrienskies.mod.api.getShipManagingPos"))
 fun Level?.getShipManagingPos(pos: Position) =
     getShipManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
 
+@Deprecated(dep, ReplaceWith("getShipManagingPos(pos)", "org.valkyrienskies.mod.api.getShipManagingPos"))
 fun Level?.getShipManagingPos(pos: Vector3dc) =
     getShipManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
 
+@Deprecated(dep, ReplaceWith("getShipManagingPos(posX, posZ)", "org.valkyrienskies.mod.api.getShipManagingPos"))
 fun Level?.getShipManagingPos(posX: Double, posY: Double, posZ: Double) =
     getShipManagingPos(posX.toInt() shr 4, posZ.toInt() shr 4)
 
+@Deprecated(dep, ReplaceWith("getShipManagingPos(posX, posZ)", "org.valkyrienskies.mod.api.getShipManagingPos"))
 fun Level?.getShipManagingPos(posX: Float, posY: Float, posZ: Float) =
     getShipManagingPos(posX.toInt() shr 4, posZ.toInt() shr 4)
 
+@Deprecated(dep, ReplaceWith("getShipManagingPos(chunkPos)", "org.valkyrienskies.mod.api.getShipManagingPos"))
 fun Level?.getShipManagingPos(chunkPos: ChunkPos) =
     getShipManagingPos(chunkPos.x, chunkPos.z)
 
 // ServerLevel
+@Deprecated(dep, ReplaceWith("getShipManagingPos(chunkX, chunkZ)", "org.valkyrienskies.mod.api.getShipManagingPos"))
 fun ServerLevel?.getShipManagingPos(chunkX: Int, chunkZ: Int) =
     getShipManagingPosImpl(this, chunkX, chunkZ) as ServerShip?
 
+@Deprecated(dep, ReplaceWith("getShipManagingPos(blockPos)", "org.valkyrienskies.mod.api.getShipManagingPos"))
 fun ServerLevel?.getShipManagingPos(blockPos: BlockPos) =
     getShipManagingPos(blockPos.x shr 4, blockPos.z shr 4)
 
+@Deprecated(dep, ReplaceWith("getShipManagingPos(pos)", "org.valkyrienskies.mod.api.getShipManagingPos"))
 fun ServerLevel?.getShipManagingPos(pos: Vector3dc) =
     getShipManagingPos(pos.x().toInt() shr 4, pos.z().toInt() shr 4)
 
+@Deprecated(dep, ReplaceWith("getShipManagingPos(posX, posZ)", "org.valkyrienskies.mod.api.getShipManagingPos"))
 fun ServerLevel?.getShipManagingPos(posX: Double, posY: Double, posZ: Double) =
     getShipManagingPos(posX.toInt() shr 4, posZ.toInt() shr 4)
 
+@Deprecated(dep, ReplaceWith("getShipManagingPos(chunkPos)", "org.valkyrienskies.mod.api.getShipManagingPos"))
 fun ServerLevel?.getShipManagingPos(chunkPos: ChunkPos) =
     getShipManagingPos(chunkPos.x, chunkPos.z)
 
+@Deprecated(dep, ReplaceWith("toWorldCoordinates(pos)", "org.valkyrienskies.mod.api.toWorldCoordinates"))
 fun Ship.toWorldCoordinates(pos: BlockPos): Vector3d =
     shipToWorld.transformPosition(pos.toJOMLD())
 
+@Deprecated(dep, ReplaceWith("toWorldCoordinates(pos).toMinecraft()", "org.valkyrienskies.mod.api.toWorldCoordinates"))
 fun Ship.toWorldCoordinates(pos: Vec3): Vec3 =
     shipToWorld.transformPosition(pos.toJOML()).toMinecraft()
 
+@Deprecated(dep, ReplaceWith("toWorldCoordinates(pos).toMinecraft()", "org.valkyrienskies.mod.api.toWorldCoordinates"))
 fun Level?.toWorldCoordinates(pos: BlockPos): Vec3 {
     return this?.getShipManagingPos(pos)?.toWorldCoordinates(pos)?.toMinecraft() ?: pos.toJOMLD().toMinecraft()
 }
-
+@Deprecated(dep, ReplaceWith("toWorldCoordinates(pos).toMinecraft()", "org.valkyrienskies.mod.api.toWorldCoordinates"))
 fun Level?.toWorldCoordinates(pos: Vec3): Vec3 {
     return this?.getShipManagingPos(pos)?.toWorldCoordinates(pos) ?: pos
 }
 
+@Deprecated(dep, ReplaceWith("toShipRenderCoordinates(shipPos, pos).toMinecraft()", "org.valkyrienskies.mod.api.toShipRenderCoordinates"))
 fun ClientLevel?.toShipRenderCoordinates(shipPos: Vec3, pos: Vec3): Vec3 =
     this?.getLoadedShipManagingPos(shipPos)
         ?.renderTransform
@@ -697,19 +774,23 @@ fun ClientLevel?.toShipRenderCoordinates(shipPos: Vec3, pos: Vec3): Vec3 =
         ?.transformPosition(pos.toJOML())
         ?.toMinecraft() ?: pos
 
+@Deprecated(dep, ReplaceWith("toWorldCoordinates(pos)", "org.valkyrienskies.mod.api.toWorldCoordinates"))
 fun Level?.toWorldCoordinates(pos: Vector3d): Vector3d {
     return this?.getShipManagingPos(pos)?.shipToWorld?.transformPosition(pos) ?: pos
 }
 
 @JvmOverloads
+@Deprecated(dep, ReplaceWith("toWorldCoordinates(x, y, z, dest)", "org.valkyrienskies.mod.api.toWorldCoordinates"))
 fun Level?.toWorldCoordinates(x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
     getShipManagingPos(x, y, z)?.toWorldCoordinates(x, y, z) ?: dest.set(x, y, z)
 
 @JvmOverloads
+@Deprecated(dep, ReplaceWith("toWorldCoordinates(x, y, z, dest)", "org.valkyrienskies.mod.api.toWorldCoordinates"))
 fun Ship.toWorldCoordinates(x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
     transform.shipToWorld.transformPosition(dest.set(x, y, z))
 
 @JvmOverloads
+@Deprecated(dep, ReplaceWith("toDenseVoxelUpdate(chunkPos, level)", "org.valkyrienskies.mod.api.toDenseVoxelUpdate"))
 fun LevelChunkSection.toDenseVoxelUpdate(chunkPos: Vector3ic, level: Level? = null): VsiTerrainUpdate {
     val sources = (level as? ServerLevel)?.let(FractionalFluidSources::forLevel)?.takeIf {
         it.size != 0 && it.hasChunk(level!!.dimensionId, chunkPos.x(), chunkPos.y(), chunkPos.z())
@@ -752,14 +833,20 @@ private fun LevelChunkSection.toDenseVoxelUpdateWithoutSourceAmounts(chunkPos: V
  * Different from [getWorldCoordinates(World, Vector3d)] only in that resolves the ship owning
  * [blockPos] rather than inferring it from [pos], which might be helpful at the boundaries of ships.
  */
+@Deprecated(dep, ReplaceWith("getWorldCoordinates(blockPos, pos)", "org.valkyrienskies.mod.api.getWorldCoordinates"))
 fun Level?.getWorldCoordinates(blockPos: BlockPos, pos: Vector3d): Vector3d {
     return this.getLoadedShipManagingPos(blockPos)?.transform?.shipToWorld?.transformPosition(pos) ?: pos
 }
 
+@Deprecated(dep, ReplaceWith("getShipsIntersecting(aabb)", "org.valkyrienskies.mod.api.getShipsIntersecting"))
 fun Level.getShipsIntersecting(aabb: AABB): Iterable<Ship> = getShipsIntersecting(aabb.toJOML())
+@Deprecated(dep, ReplaceWith("getShipsIntersecting(aabb)", "org.valkyrienskies.mod.api.getShipsIntersecting"))
 fun Level.getShipsIntersecting(aabb: AABBdc): Iterable<Ship> = allShips.getIntersecting(aabb, dimensionId)
+@Deprecated(dep, ReplaceWith("transformAABBToWorld(aabb).toMinecraft()", "org.valkyrienskies.mod.api.transformAABBToWorld"))
 fun Level?.transformAabbToWorld(aabb: AABB): AABB = transformAabbToWorld(aabb.toJOML()).toMinecraft()
+@Deprecated(dep, ReplaceWith("transformAABBToWorld(aabb)", "org.valkyrienskies.mod.api.transformAABBToWorld"))
 fun Level?.transformAabbToWorld(aabb: AABBd) = this?.transformAabbToWorld(aabb, aabb) ?: aabb
+@Deprecated(dep, ReplaceWith("transformAABBToWorld(aabb, dest)", "org.valkyrienskies.mod.api.transformAABBToWorld"))
 fun Level?.transformAabbToWorld(aabb: AABBdc, dest: AABBd): AABBd {
     val ship1 = getShipManagingPos(aabb.minX(), aabb.minY(), aabb.minZ())
         ?: return dest.set(aabb)
@@ -778,6 +865,7 @@ fun Level?.transformAabbToWorld(aabb: AABBdc, dest: AABBd): AABBd {
  * Like [transformAabbToWorld], but yields the actual OBB (center, three unit axes, half-extents)
  * rather than the loose AABB around it. Output layout matches [Intersectiond]'s `testObOb`.
  */
+@Deprecated(dep, ReplaceWith("transformAABBToWorldOBB(aabb, centerOut, axisXOut, axisYOut, axisZOut, halfExtentsOut)", "org.valkyrienskies.mod.api.transformAABBToWorldOBB"))
 fun Level?.transformAabbToWorldObb(
     aabb: AABBdc,
     centerOut: Vector3d,
@@ -824,6 +912,7 @@ fun Level?.transformAabbToWorldObb(
  * Execute [runnable] immediately iff the thread invoking this is the same as the game thread.
  * Otherwise, schedule [runnable] to run on the next tick.
  */
+@Deprecated(dep, ReplaceWith("executeOrSchedule(runnable)", "org.valkyrienskies.mod.api.executeOrSchedule"))
 fun Level.executeOrSchedule(runnable: Runnable) {
     val blockableEventLoop: BlockableEventLoop<Runnable> = if (!this.isClientSide) {
         this.server!! as BlockableEventLoop<Runnable>
@@ -839,6 +928,7 @@ fun Level.executeOrSchedule(runnable: Runnable) {
     }
 }
 
+@Deprecated(dep, ReplaceWith("passenger.getShipMountedToData(partialTicks)", "org.valkyrienskies.mod.api.getShipMountedToData"))
 fun getShipMountedToData(passenger: Entity, partialTicks: Float? = null): ShipMountedToData? {
     // Sleeping in a ship-mounted bed counts as a mount relationship — render/cull/packet
     // paths then treat it like a vehicle ride. Offset matches vanilla setPosToBed.
@@ -869,15 +959,18 @@ fun getShipMountedToData(passenger: Entity, partialTicks: Float? = null): ShipMo
     return ShipMountedToData(shipObjectEntityMountedTo, mountedPosInShip)
 }
 
+@Deprecated(dep, ReplaceWith("entity.getShipMountedTo()", "org.valkyrienskies.mod.api.getShipMountedTo"))
 fun getShipMountedTo(entity: Entity): LoadedShip? {
     return getShipMountedToData(entity)?.shipMountedTo
 }
 
+@Deprecated(dep, ReplaceWith("isPositionSealed(pos)", "org.valkyrienskies.mod.api.isPositionSealed"))
 fun Level.isPositionSealed(pos: BlockPos): Boolean {
     val result = this.shipObjectWorld.isIsolatedAir(pos.x, pos.y, pos.z, this.dimensionId)
     return result == ConnectionStatus.DISCONNECTED || result == ConnectionStatus.UNKNOWN
 }
 
+@Deprecated(dep, ReplaceWith("isPositionSealed(pos)", "org.valkyrienskies.mod.api.isPositionSealed"))
 fun Level.isPositionMaybeSealed(pos: BlockPos): Boolean {
     val result = this.shipObjectWorld.isIsolatedAir(pos.x, pos.y, pos.z, this.dimensionId)
     return result == ConnectionStatus.DISCONNECTED || result == ConnectionStatus.UNKNOWN
@@ -887,6 +980,7 @@ fun Level.isPositionMaybeSealed(pos: BlockPos): Boolean {
  * Applies the ship velocity, inluding angular velocity, to the entity.
  * Useful for cases like launching something on a ship.
  */
+@Deprecated(dep, ReplaceWith("applyShipVelocity(ship)", "org.valkyrienskies.mod.api.applyShipVelocity"))
 fun Entity?.applyShipVelocity(ship: Ship?) {
     if (this == null || ship == null) return
     val relPos = this.position().toJOML().sub(ship.transform.positionInWorld)
@@ -901,6 +995,7 @@ fun Entity?.applyShipVelocity(ship: Ship?) {
  * ([ValkyrienSkiesMod.ASSEMBLE_BLACKLIST]) block tag
  */
 @Suppress("unused")
+@Deprecated(dep, ReplaceWith("inAssemblyBlacklist()", "org.valkyrienskies.mod.api.inAssemblyBlacklist"))
 fun BlockState?.inAssemblyBlacklist(): Boolean {
     return this?.`is`(ASSEMBLE_BLACKLIST) ?: false
 }
@@ -910,6 +1005,7 @@ fun BlockState?.inAssemblyBlacklist(): Boolean {
  *
  * This function is expensive, don't call it too often.
  */
+@Deprecated(dep, ReplaceWith("forEach(f)", "org.valkyrienskies.mod.api.forEach"))
 fun AABBic.forEach(f: (Int, Int, Int) -> Unit) {
     for (x in this.minX()..this.maxX()) {
         for (y in this.minY()..this.maxY()) {
@@ -927,6 +1023,7 @@ fun AABBic.forEach(f: (Int, Int, Int) -> Unit) {
  * Not technically required, slugs _can_ be duplicated, but
  * highly recommended.
  */
+@Deprecated(dep, ReplaceWith("safeRenameTo(level, newSlug)", "org.valkyrienskies.mod.api.safeRenameTo"))
 fun ServerShip.safeRenameTo(level: ServerLevel, newSlug: String) {
     var newSlug = newSlug
     var safeLimit = 0

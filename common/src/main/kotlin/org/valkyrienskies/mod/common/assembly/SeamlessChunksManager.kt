@@ -12,16 +12,13 @@ import net.minecraft.world.level.ChunkPos
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.properties.ChunkClaim
 import org.valkyrienskies.core.util.pollUntilEmpty
+import org.valkyrienskies.mod.api.toChunkPos
+import org.valkyrienskies.mod.api.toMinecraft
 import org.valkyrienskies.mod.api.vsApi
-import org.valkyrienskies.mod.common.dimensionId
-import org.valkyrienskies.mod.common.getShipManagingPos
-import org.valkyrienskies.mod.common.isChunkInShipyard
+import org.valkyrienskies.mod.api.vsCore
 import org.valkyrienskies.mod.common.config.VSGameConfig
-import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.networking.PacketRestartChunkUpdates
 import org.valkyrienskies.mod.common.networking.PacketStopChunkUpdates
-import org.valkyrienskies.mod.common.util.toMinecraft
-import org.valkyrienskies.mod.common.vsCore
 import org.valkyrienskies.mod.mixinducks.feature.seamless_copy.SeamlessCopyClientPacketListenerDuck
 import org.valkyrienskies.mod.mixinducks.feature.tickets.PlayerKnownShipsDuck
 import org.valkyrienskies.mod.util.logger
@@ -51,7 +48,7 @@ class SeamlessChunksManager(private val listener: ClientPacketListener) {
     init {
         with(vsCore.simplePacketNetworking) {
             PacketStopChunkUpdates::class.registerClientHandler { (chunks) ->
-                chunks.forEach { stalledChunks.add(it.toMinecraft().toLong()) }
+                chunks.forEach { stalledChunks.add(it.toChunkPos().toLong()) }
             }
             PacketRestartChunkUpdates::class.registerClientHandler { packet ->
                 Minecraft.getInstance().execute {
@@ -87,6 +84,8 @@ class SeamlessChunksManager(private val listener: ClientPacketListener) {
 
     private fun flushLoadedShipQueuedUpdates(level: ClientLevel?) {
         if (level == null || shipQueuedUpdates.isEmpty()) return
+
+        level.for
 
         for (ship in level.shipObjectWorld.loadedShips) {
             if (ship.chunkClaimDimension == level.dimensionId) {
