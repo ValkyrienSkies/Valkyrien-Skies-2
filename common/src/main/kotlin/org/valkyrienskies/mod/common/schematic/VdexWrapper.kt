@@ -399,6 +399,8 @@ object VdexWrapper {
                 //println("test")
                 if (!seenJoints.add(jointId)) continue
                 val joint = gtpa.getJointById(jointId) ?: continue
+                if (!joint.shouldBeSerialized) continue
+
                 val idx0 = shipIdToIndex[joint.shipId0] ?: continue
                 val idx1 = shipIdToIndex[joint.shipId1] ?: continue
 
