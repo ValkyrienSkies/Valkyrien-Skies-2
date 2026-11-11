@@ -448,6 +448,7 @@ public abstract class MixinServerLevel implements IShipObjectWorldServerProvider
             ValkyrienSkiesMod.splitHandler.tick(ServerLevel.class.cast(this));
         }
         ShipWelder.tick(ServerLevel.class.cast(this));
+        org.valkyrienskies.mod.common.item.DebugGravitron.tick(ServerLevel.class.cast(this));
         org.valkyrienskies.mod.common.hooks.VSGameEvents.INSTANCE.getLevelShipTickEnd().emit((ServerLevel) (Object) this);
         final ConfigPhysicsBackendType backend = VSCoreConfig.SERVER.getPhysics().getPhysicsBackend();
         final boolean isFracturingBackend = backend == ConfigPhysicsBackendType.KRUNCH_KONSTANT

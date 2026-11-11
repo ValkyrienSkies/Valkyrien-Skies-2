@@ -86,6 +86,7 @@ import org.valkyrienskies.mod.common.item.ConnectionCheckerItem
 import org.valkyrienskies.mod.common.item.PhysicsEntityCreatorItem
 import org.valkyrienskies.mod.common.item.ShipAssemblerItem
 import org.valkyrienskies.mod.common.item.ShipWelderItem
+import org.valkyrienskies.mod.common.item.DebugGravitronItem
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
 import org.valkyrienskies.mod.common.item.ShipRemoverItem
 import org.valkyrienskies.mod.common.item.VSBlockItem
@@ -142,6 +143,7 @@ class ValkyrienSkiesModFabric : ModInitializer {
         )
         ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM = ShipAssemblerItem(Properties())
         ValkyrienSkiesMod.SHIP_WELDER_ITEM = ShipWelderItem(Properties())
+        ValkyrienSkiesMod.DEBUG_GRAVITRON_ITEM = DebugGravitronItem(Properties())
         ValkyrienSkiesMod.AREA_ASSEMBLER_ITEM = AreaAssemblerItem(
             Properties(),
             { 1.0 },
@@ -218,6 +220,10 @@ class ValkyrienSkiesModFabric : ModInitializer {
             ValkyrienSkiesMod.SHIP_WELDER_ITEM
         )
         Registry.register(
+            BuiltInRegistries.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "debug_gravitron"),
+            ValkyrienSkiesMod.DEBUG_GRAVITRON_ITEM
+        )
+        Registry.register(
             BuiltInRegistries.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_creator"),
             ValkyrienSkiesMod.SHIP_CREATOR_ITEM
         )
@@ -276,6 +282,7 @@ class ValkyrienSkiesModFabric : ModInitializer {
             event.accept(SHIP_REMOVER_ITEM)
             event.accept(SHIP_ASSEMBLER_ITEM)
             event.accept(SHIP_WELDER_ITEM)
+            event.accept(ValkyrienSkiesMod.DEBUG_GRAVITRON_ITEM)
             event.accept(SHIP_CREATOR_ITEM_SMALLER)
             event.accept(AREA_ASSEMBLER_ITEM)
             event.accept(CLASSIC_AREA_ASSEMBLER_ITEM)

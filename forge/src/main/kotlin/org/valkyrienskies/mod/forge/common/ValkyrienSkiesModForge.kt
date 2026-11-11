@@ -84,6 +84,7 @@ import org.valkyrienskies.mod.common.item.ConnectionCheckerItem
 import org.valkyrienskies.mod.common.item.PhysicsEntityCreatorItem
 import org.valkyrienskies.mod.common.item.ShipAssemblerItem
 import org.valkyrienskies.mod.common.item.ShipWelderItem
+import org.valkyrienskies.mod.common.item.DebugGravitronItem
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
 import org.valkyrienskies.mod.common.item.ShipRemoverItem
 import org.valkyrienskies.mod.common.item.VSBlockItem
@@ -122,6 +123,7 @@ class ValkyrienSkiesModForge {
     private val PHYSICS_ENTITY_TYPE_REGISTRY: RegistryObject<EntityType<VSPhysicsEntity>>
     private val SHIP_ASSEMBLER_ITEM_REGISTRY: RegistryObject<Item>
     private val SHIP_WELDER_ITEM_REGISTRY: RegistryObject<Item>
+    private val DEBUG_GRAVITRON_ITEM_REGISTRY: RegistryObject<Item>
     private val TEST_HINGE_BLOCK_ENTITY_TYPE_REGISTRY: RegistryObject<BlockEntityType<TestHingeBlockEntity>>
     private val TEST_THRUSTER_BLOCK_ENTITY_TYPE_REGISTRY: RegistryObject<BlockEntityType<TestThrusterBlockEntity>>
     private val TEST_ANTIGRAV_BLOCK_ENTITY_TYPE_REGISTRY: RegistryObject<BlockEntityType<TestAntigravBlockEntity>>
@@ -250,6 +252,7 @@ class ValkyrienSkiesModForge {
         SHIP_ASSEMBLER_ITEM_REGISTRY =
             ITEMS.register("ship_assembler") { ShipAssemblerItem(Properties()) }
         SHIP_WELDER_ITEM_REGISTRY = ITEMS.register("ship_welder") { ShipWelderItem(Properties()) }
+        DEBUG_GRAVITRON_ITEM_REGISTRY = ITEMS.register("debug_gravitron") { DebugGravitronItem(Properties()) }
         TEST_HINGE_BLOCK_ENTITY_TYPE_REGISTRY = BLOCK_ENTITIES.register("test_hinge_block_entity") {
             BlockEntityType.Builder.of(::TestHingeBlockEntity, TestHingeBlock).build(null)
         }
@@ -298,6 +301,7 @@ class ValkyrienSkiesModForge {
             event.accept(SHIP_REMOVER_ITEM)
             event.accept(SHIP_ASSEMBLER_ITEM)
             event.accept(SHIP_WELDER_ITEM)
+            event.accept(ValkyrienSkiesMod.DEBUG_GRAVITRON_ITEM)
             event.accept(SHIP_CREATOR_ITEM_SMALLER)
             event.accept(AREA_ASSEMBLER_ITEM)
             event.accept(CLASSIC_AREA_ASSEMBLER_ITEM)
@@ -428,6 +432,7 @@ class ValkyrienSkiesModForge {
         ValkyrienSkiesMod.SHIP_REMOVER_ITEM = SHIP_REMOVER_ITEM_REGISTRY.get()
         ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM = SHIP_ASSEMBLER_ITEM_REGISTRY.get()
         ValkyrienSkiesMod.SHIP_WELDER_ITEM = SHIP_WELDER_ITEM_REGISTRY.get()
+        ValkyrienSkiesMod.DEBUG_GRAVITRON_ITEM = DEBUG_GRAVITRON_ITEM_REGISTRY.get()
         ValkyrienSkiesMod.SHIP_CREATOR_ITEM_SMALLER = SHIP_CREATOR_SMALLER_ITEM_REGISTRY.get()
         ValkyrienSkiesMod.AREA_ASSEMBLER_ITEM = AREA_ASSEMBLER_ITEM_REGISTRY.get()
         ValkyrienSkiesMod.CLASSIC_AREA_ASSEMBLER_ITEM = CLASSIC_AREA_ASSEMBLER_ITEM_REGISTRY.get()

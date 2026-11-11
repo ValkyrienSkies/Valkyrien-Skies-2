@@ -35,12 +35,11 @@ import org.valkyrienskies.mod.common.toDenseVoxelUpdate
 import org.valkyrienskies.mod.common.util.SplittingDisablerAttachment
 import org.valkyrienskies.mod.common.util.collectShipBlocks
 import org.valkyrienskies.mod.common.util.toJOML
-import org.valkyrienskies.mod.common.util.ShipGravityAttachment
+import org.valkyrienskies.mod.common.item.DebugGravitron
 import org.valkyrienskies.mod.common.getLoadedShipManagingPos
 import org.valkyrienskies.mod.common.vsCore
 import org.valkyrienskies.mod.util.logger
 import kotlin.math.abs
-import kotlin.math.min
 import kotlin.math.sqrt
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -54,16 +53,23 @@ internal object ShipWelder {
     private data class Preparation(val plan: Plan? = null, val refusal: String? = null)
     private data class Session(val level: ServerLevel, val player: UUID, val targetPos: BlockPos, val targetFace: Direction,
                                val sourcePos: BlockPos, val sourceFace: Direction, val plan: Plan, val drive: WeldPullDrive,
+                               val collisions: WeldCollisionGuard,
                                val startTick: Int, val sourceWasStatic: Boolean, val sourceMass: Double, val sourceCenter: Vector3d,
                                val sourceTensor: Matrix3d, val sourceState: BlockState, val targetState: BlockState)
     private val sessions = LinkedHashMap<UUID, Session>()
-    private val drives = ConcurrentHashMap<UUID, WeldPullDrive>()
+    private val collisionGuards = ConcurrentHashMap.newKeySet<WeldCollisionGuard>()
+
+    fun isBusy(level: ServerLevel, shipId: Long) = sessions.values.any {
+        it.level === level && (it.drive.sourceId == shipId || it.drive.targetId == shipId)
+    }
 
     private fun prepare(level: ServerLevel, target: LoadedServerShip, targetPos: BlockPos, targetFace: Direction,
                         source: LoadedServerShip, sourcePos: BlockPos, sourceFace: Direction,
                         fixedRotation: WeldRotation? = null): Preparation {
         fun refuse(reason: String) = Preparation(refusal = reason)
         if (source.id == target.id) return refuse("same_ship")
+        if (DebugGravitron.isHeld(level, source.id) || DebugGravitron.isHeld(level, target.id)) return refuse("busy")
+        if (source.transformProvider != null || (source as VsiServerShip).kinematicTarget != null) return refuse("busy")
         val sourceBlocks = collectShipBlocks(level, source) ?: return refuse("unloaded")
         val targetBlocks = collectShipBlocks(level, target) ?: return refuse("unloaded")
         if (sourcePos !in sourceBlocks || targetPos !in targetBlocks) return refuse("stale")
@@ -123,21 +129,24 @@ internal object ShipWelder {
             .add(destination.x + 0.5, destination.y + 0.5, destination.z + 0.5)
         val scale = source.transform.scaling.x()
         val radius = (plan.moves.maxOf { Vector3d(it.from.x + 0.5, it.from.y + 0.5, it.from.z + 0.5).distance(sourceCenter) } + sqrt(3.0) / 2.0) * scale
-        val drive = WeldPullDrive(level.dimensionId, target.id, source.id, modelCenter, rotation, radius, min(0.02, 0.02 * scale))
-        drive.gravityOverride = source.getAttachment<ShipGravityAttachment>()?.gravityOverride
+        val startCenter = target.worldToShip.transformPosition(Vector3d(source.kinematics.position))
+        val startRotation = Quaterniond(target.transform.rotation).invert().mul(source.transform.rotation).normalize()
+        val distance = target.shipToWorld.transformPosition(Vector3d(modelCenter)).distance(source.kinematics.position)
+        val drive = WeldPullDrive(target.id, source.id, startCenter, startRotation, modelCenter, rotation, distance, radius)
+        val collisions = WeldCollisionGuard(level.dimensionId, target.id, source.id)
         val session = Session(level, player, targetPos.immutable(), targetFace, sourcePos.immutable(), sourceFace,
-            plan, drive, level.server.tickCount, source.isStatic, source.inertiaData.mass, sourceCenter,
+            plan, drive, collisions, level.server.tickCount, source.isStatic, source.inertiaData.mass, sourceCenter,
             Matrix3d(source.inertiaData.inertiaTensor), level.getBlockState(sourcePos), level.getBlockState(targetPos))
-        source.isStatic = false
+        source.isStatic = true
         sessions[player] = session
-        drives[player] = drive
+        collisionGuards.add(collisions)
         return null
     }
 
     @JvmStatic
     @OptIn(PhysTickOnly::class)
-    fun physTick(level: PhysLevel, delta: Double) {
-        drives.values.forEach { it.tick(level, delta) }
+    fun physTick(level: PhysLevel) {
+        collisionGuards.removeIf { it.tick(level) }
     }
 
     @JvmStatic
@@ -152,33 +161,33 @@ internal object ShipWelder {
             val source = level.shipObjectWorld.loadedShips.getById(drive.sourceId)
             val target = level.shipObjectWorld.loadedShips.getById(drive.targetId)
             val player = level.server.playerList.getPlayer(session.player)
-            val invalid = source == null || target == null || player?.level() !== level || drive.invalid ||
+            val invalid = source == null || target == null || player?.level() !== level ||
                 level.getLoadedShipManagingPos(session.sourcePos)?.id != drive.sourceId ||
                 level.getLoadedShipManagingPos(session.targetPos)?.id != drive.targetId ||
                 level.getBlockState(session.sourcePos) != session.sourceState ||
                 level.getBlockState(session.targetPos) != session.targetState ||
                 source != null && (abs(source.inertiaData.mass - session.sourceMass) > 1e-6 ||
                     Vector3d(source.inertiaData.centerOfMass).distance(session.sourceCenter) > 1e-6 ||
-                    !session.sourceTensor.equals(source.inertiaData.inertiaTensor, 1e-6) || source.isStatic ||
+                    !session.sourceTensor.equals(source.inertiaData.inertiaTensor, 1e-6) || !source.isStatic ||
                     level.shipObjectWorld.persistedJointStore.hasJointsForShip(source.id) ||
                     ValkyrienSkiesMod.getOrCreateGTPA(level.dimensionId).getJointsFromShip(source.id).isNotEmpty())
             if (invalid) { finish(session, "stale", false); continue }
             if (level.server.tickCount - session.startTick > 1200) { finish(session, "timeout", false); continue }
             val readySource = source!!
             val readyTarget = target!!
-            drive.gravityOverride = readySource.getAttachment<ShipGravityAttachment>()?.gravityOverride
-            if (drive.settledSeconds < 0.25) continue
-            val goal = WeldPullController.goal(pose(readyTarget), readyTarget.shipToWorld, drive.modelCenter, drive.relativeRotation)
-            if (!WeldPullController.command(pose(readySource), goal, drive.radius).aligned(drive.tolerance)) continue
-            val preparation = prepare(level, readyTarget, session.targetPos, session.targetFace, readySource, session.sourcePos, session.sourceFace, session.plan.rotation)
-            if (preparation.refusal != null) { finish(session, preparation.refusal, false); continue }
-            val originalBlocks = session.plan.moves.associate { it.from to it.oldState }
-            if (preparation.plan!!.moves.size != originalBlocks.size || preparation.plan.moves.any { originalBlocks[it.from] != it.oldState }) {
-                finish(session, "stale", false)
-                continue
-            }
-            drive.active = false
             try {
+                val goal = drive.step(pose(readyTarget), readyTarget.shipToWorld)
+                level.shipObjectWorld.teleportShip(readySource, vsCore.newShipTeleportData(
+                    newPos = goal.position, newRot = goal.rotation, newVel = goal.velocity, newOmega = goal.omega
+                ))
+                if (!drive.complete) continue
+                val preparation = prepare(level, readyTarget, session.targetPos, session.targetFace, readySource, session.sourcePos, session.sourceFace, session.plan.rotation)
+                if (preparation.refusal != null) { finish(session, preparation.refusal, false); continue }
+                val originalBlocks = session.plan.moves.associate { it.from to it.oldState }
+                if (preparation.plan!!.moves.size != originalBlocks.size || preparation.plan.moves.any { originalBlocks[it.from] != it.oldState }) {
+                    finish(session, "stale", false)
+                    continue
+                }
                 val refusal = merge(level, readyTarget, session.targetPos, session.targetFace, readySource, session.sourcePos, preparation.plan)
                 finish(session, refusal ?: "success", refusal == null)
             } catch (exception: Exception) {
@@ -196,14 +205,16 @@ internal object ShipWelder {
 
     @JvmStatic
     fun cancelAll(server: MinecraftServer) {
-        sessions.values.toList().filter { it.level.server === server }.forEach { finish(it, null, false) }
+        sessions.values.toList().filter { it.level.server === server }.forEach {
+            finish(it, null, false)
+        }
+        collisionGuards.removeIf { !it.active }
     }
 
     private fun finish(session: Session, message: String?, merged: Boolean) {
-        session.drive.active = false
-        drives.remove(session.player, session.drive)
+        session.collisions.active = false
         sessions.remove(session.player)
-        if (!merged && session.sourceWasStatic) session.level.shipObjectWorld.allShips.getById(session.drive.sourceId)?.isStatic = true
+        if (!merged) session.level.shipObjectWorld.allShips.getById(session.drive.sourceId)?.isStatic = session.sourceWasStatic
         message?.let { session.level.server.playerList.getPlayer(session.player)?.sendSystemMessage(Component.translatable("item.valkyrienskies.ship_welder.$it")) }
     }
 

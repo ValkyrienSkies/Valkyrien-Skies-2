@@ -459,6 +459,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     )
     private void preStopServer(final CallbackInfo ci) {
         org.valkyrienskies.mod.common.assembly.ShipWelder.cancelAll(MinecraftServer.class.cast(this));
+        org.valkyrienskies.mod.common.item.DebugGravitron.releaseAll(MinecraftServer.class.cast(this));
         if (vsPipeline != null) {
             vsPipeline.setDeleteResources(true);
             vsPipeline.setArePhysicsRunning(true);

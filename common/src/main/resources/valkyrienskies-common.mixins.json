@@ -404,7 +404,9 @@
     "world.level.lighting.MixinThreadedLevelLightEngine"
   ],
   "client": [
+    "feature.debug_gravitron.MixinGravitronInput",
     "accessors.client.multiplayer.ClientLevelAccessor",
+    "accessors.client.render.BufferBuilderAccessor",
     "accessors.client.render.GameRendererAccessor",
     "accessors.client.render.LevelRendererAccessor",
     "accessors.client.render.OverlayVertexConsumerAccessor",
