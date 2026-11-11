@@ -43,6 +43,11 @@ public abstract class MixinChunkMap {
     @Final
     private Supplier<DimensionDataStorage> overworldDataStorage;
 
+    @Shadow
+    private boolean isExistingChunkFull(ChunkPos pos) {
+        throw new AssertionError();
+    }
+
     /**
      * Force the game to generate empty chunks in the shipyard.
      *
@@ -139,7 +144,7 @@ public abstract class MixinChunkMap {
     }
 
     /**
-     * Only save ship chunks that actually have something in them to avoid massive lag when closing/saving the game.
+     * Skip saving empty shipyard chunks that have no full chunk on disk.
      *
      * <p>Previously this gated on {@code ship.getActiveChunksSet().contains(pos)}
      * but that set is populated asynchronously by the connectivity-update
@@ -162,6 +167,7 @@ public abstract class MixinChunkMap {
      */
     @Inject(method = "save", at = @At("HEAD"), cancellable = true)
     private void preSave(ChunkAccess chunkAccess, CallbackInfoReturnable<Boolean> cir) {
+        if (!chunkAccess.isUnsaved()) return;
         for (LevelChunkSection section : chunkAccess.getSections()) {
             if (section != null && !section.hasOnlyAir()) {
                 return; // chunk has content — let vanilla save run
@@ -170,7 +176,7 @@ public abstract class MixinChunkMap {
 
         final ChunkPos pos = chunkAccess.getPos();
         final Ship ship = VSGameUtilsKt.getShipManagingPos(level, pos);
-        if (ship == null) return; // all-air non-ship chunk — vanilla handles it as before
+        if (ship == null || isExistingChunkFull(pos)) return;
 
         chunkAccess.setUnsaved(false);
         cir.setReturnValue(false);
