@@ -26,6 +26,7 @@ import org.valkyrienskies.core.internal.joints.VSD6Joint
 import org.valkyrienskies.core.internal.joints.VSDistanceJoint
 import org.valkyrienskies.core.internal.joints.VSFixedJoint
 import org.valkyrienskies.core.internal.joints.VSGearJoint
+import org.valkyrienskies.core.internal.joints.VSJoint
 import org.valkyrienskies.core.internal.joints.VSJointPose
 import org.valkyrienskies.core.internal.joints.VSPrismaticJoint
 import org.valkyrienskies.core.internal.joints.VSRackAndPinionJoint
@@ -185,6 +186,7 @@ object VdexWrapper {
         }
 
         val gtpa = ValkyrienSkiesMod.getOrCreateGTPA(level.dimensionId)
+        val oldJointIdsToNewJoints = mutableMapOf<Int, VSJoint>()
         schem.metadata.constraints.forEach { pair ->
             val joint = pair.joint
             val meta = pair.metadata
@@ -217,7 +219,10 @@ object VdexWrapper {
                 }
             }
 
-            gtpa.addJoint(newJoint, 2) {}
+            // old schematic data, discard joint since we can't handle it properly
+            if (pair.previousId == -1) return@forEach
+
+            oldJointIdsToNewJoints[pair.previousId] = newJoint
         }
 
         // This is very ugly and weird, but it works.
@@ -231,13 +236,25 @@ object VdexWrapper {
             }
 
             if (shipsThatHaveLoaded.size == blocksToProcess.keys.size) {
+                val oldJointIdsToNewIds = mutableMapOf<Int, Int>()
                 ValkyrienSkiesMod.api.tickEndEvent.on { event_, listener_ ->
+                    // Use the tick to load joints until all are loaded, then proceed
+                    if (oldJointIdsToNewIds.size < oldJointIdsToNewJoints.size) {
+                        oldJointIdsToNewJoints.forEach { (oldId, joint) ->
+                            if (oldJointIdsToNewIds.contains(oldId)) return@forEach
+                            gtpa.addJoint(joint, 0) { newId ->
+                                oldJointIdsToNewIds[oldId] = newId
+                            }
+                         }
+                        return@on
+                    }
+
+                    // On next tick, load all copyables
                     val sl =
                         ValkyrienSkiesMod.currentServer?.getLevelFromDimensionId(event.ship.chunkClaimDimension)
                             ?: return@on
 
                     val newCenters = oldIdToNewShip.values.toList().centerPositions(level)
-                    println(newCenters)
 
                     // basically just store (oldId, (oldCenter, newCenter))
                     // NOTE: the old centers are the center of Ship AABB. Since we haven't pasted blocks yet, we can't do that.
@@ -249,8 +266,6 @@ object VdexWrapper {
                             Vector3d(oldCenter) to newCenters.getValue(newShip.id)
                         }
 
-                    println(centerMigrate)
-
                     blocksToProcess.values.forEach { blockInfos ->
                         blockInfos.forEach { blockInfo ->
                             val pos = blockInfo.pos
@@ -261,7 +276,7 @@ object VdexWrapper {
                             var tag = blockInfo.nbt?.copy()
 
                             tag = (state.block as ICopyableBlock).onPaste(
-                                sl, pos, state, oldIdToNewId, centerMigrate, tag
+                                sl, pos, state, oldIdToNewId, centerMigrate, oldJointIdsToNewIds, tag
                             ) ?: tag
 
                             if (be != null && tag != null) {
@@ -398,7 +413,8 @@ object VdexWrapper {
                         idx1,
                         joint.pose0.pos.sub(firstShip.shipAABB!!.center(Vector3d()), Vector3d()),
                         joint.pose1.pos.sub(secondShip.shipAABB!!.center(Vector3d()), Vector3d()),
-                    )
+                    ),
+                    jointId
                 ))
             }
         }

@@ -1,31 +1,21 @@
 package org.valkyrienskies.mod.common.assembly
 
-import com.google.common.collect.Lists
-import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import net.minecraft.core.BlockPos
-import net.minecraft.core.Direction
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerLevel
-import net.minecraft.util.RandomSource
 import net.minecraft.world.Clearable
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
-import net.minecraft.world.level.LevelAccessor
 import net.minecraft.world.level.LevelReader
 import net.minecraft.world.level.ServerLevelAccessor
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
-import net.minecraft.world.level.block.LiquidBlockContainer
-import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkStatus
-import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessor
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessorType
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate
-import net.minecraft.world.phys.shapes.BitSetDiscreteVoxelShape
-import net.minecraft.world.phys.shapes.DiscreteVoxelShape
 import org.joml.Quaterniond
 import org.joml.RoundingMode
 import org.joml.Vector3d
@@ -38,8 +28,8 @@ import org.valkyrienskies.core.impl.config.VSCoreConfig
 import org.valkyrienskies.core.internal.ships.VsiServerShip
 import org.valkyrienskies.mod.common.assembly.ShipAssembler.assembleToShipFull
 import org.valkyrienskies.mod.common.dimensionId
-import org.valkyrienskies.mod.common.fluid.FractionalFluidLifecycle
 import org.valkyrienskies.mod.common.executeIf
+import org.valkyrienskies.mod.common.fluid.FractionalFluidLifecycle
 import org.valkyrienskies.mod.common.forEach
 import org.valkyrienskies.mod.common.getLoadedShipManagingPos
 import org.valkyrienskies.mod.common.getShipManagingPos
@@ -61,13 +51,9 @@ import org.valkyrienskies.mod.mixin.accessors.server.level.ServerChunkCacheAcces
 import org.valkyrienskies.mod.util.AIR
 import org.valkyrienskies.mod.util.StructureTemplateFillFromVoxelSet
 import org.valkyrienskies.mod.util.logger
-import org.valkyrienskies.mod.util.relocateBlock
 import org.valkyrienskies.mod.util.updateBlock
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.locks.LockSupport
-import kotlin.Int.Companion
-import kotlin.math.max
-import kotlin.math.min
 
 object ShipAssembler {
 
@@ -808,7 +794,7 @@ object ShipAssembler {
         return 1
     }
 
-    class ICopyableProcessor(
+    public class ICopyableProcessor(
         val oldShipIdToNewShipId: Map<ShipId, ShipId>,
         val centerPositions: Map<Long, Pair<Vector3d, Vector3d>>
     ): StructureProcessor() {
@@ -819,7 +805,7 @@ object ShipAssembler {
         ): StructureTemplate.StructureBlockInfo? {
             val block = newStructureBlockInfo.state.block
             if (block !is ICopyableBlock) return newStructureBlockInfo
-            block.onPaste((levelReader as ServerLevelAccessor).level, newBPos, newStructureBlockInfo.state, oldShipIdToNewShipId, centerPositions, newStructureBlockInfo.nbt)
+            block.onPaste((levelReader as ServerLevelAccessor).level, newBPos, newStructureBlockInfo.state, oldShipIdToNewShipId, centerPositions, mutableMapOf(), newStructureBlockInfo.nbt)
             return newStructureBlockInfo
         }
 

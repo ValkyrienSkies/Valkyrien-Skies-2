@@ -57,7 +57,8 @@ data class VdexShipEntry(
  */
 data class VdexConstraintEntry(
     val joint: VSJoint,
-    val metadata: VdexConstraintMetadata = VdexConstraintMetadata()
+    val metadata: VdexConstraintMetadata = VdexConstraintMetadata(),
+    val previousId: Int = -1
 )
 
 /**
