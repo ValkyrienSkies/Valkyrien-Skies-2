@@ -31,9 +31,9 @@ object VSGamePackets {
         PacketPlayerShipMotion::class.register()
         PacketChangeKnownShips::class.register()
         PacketPhysicsDebug::class.register()
-<<<<<<< Updated upstream
         PacketFluidParcel::class.register()
         PacketFluidParcelBatch::class.register()
+        PacketGravitronFreeze::class.register()
     }
 
     fun registerHandlers() = with(vsCore.simplePacketNetworking) {
@@ -45,16 +45,12 @@ object VSGamePackets {
         PacketFluidParcelBatch::class.registerClientHandler { batch ->
             Minecraft.getInstance().connection?.let {
                 org.valkyrienskies.mod.common.fluid.FluidParcelRenderer.enqueue(batch.packets(), it)
-=======
-        PacketGravitronFreeze::class.register()
-    }
-
-    fun registerHandlers() = with(vsCore.simplePacketNetworking) {
+            }
+        }
         PacketGravitronFreeze::class.registerServerHandler { packet, iPlayer ->
             val player = (iPlayer as MinecraftPlayer).player as ServerPlayer
             if (packet.hand == net.minecraft.world.InteractionHand.MAIN_HAND) {
                 player.server.execute { org.valkyrienskies.mod.common.item.DebugGravitron.freeze(player) }
->>>>>>> Stashed changes
             }
         }
         PacketPhysicsDebug::class.registerClientHandler { packet ->
