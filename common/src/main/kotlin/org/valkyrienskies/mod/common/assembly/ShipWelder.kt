@@ -260,7 +260,7 @@ internal object ShipWelder {
             for (move in saved) {
                 if (level.getBlockState(move.to) != move.newState) error("Could not place welded block at ${move.to}")
                 val copyable = move.newState.block as? ICopyableBlock
-                move.pasteTag = copyable?.onPaste(level, move.to, move.newState, ids, centers, move.pasteTag) ?: move.pasteTag
+                move.pasteTag = copyable?.onPaste(level, move.to, move.newState, ids, centers, mutableMapOf(), move.pasteTag) ?: move.pasteTag
                 move.pasteTag?.let { tag ->
                     val entity = level.getBlockEntity(move.to)
                     if (move.newState.hasBlockEntity() && entity == null) error("Missing welded block entity at ${move.to}")

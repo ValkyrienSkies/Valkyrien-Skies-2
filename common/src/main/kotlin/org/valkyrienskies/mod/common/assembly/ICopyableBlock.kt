@@ -39,12 +39,14 @@ interface ICopyableBlock {
      *
      * If ShipID is -1 then it's copied to ground.
      *
+     * [oldJointIdToNewId] will give you the new joint IDs of any `.serialized()` joints that were saved and auto-pasted/duplicated by VDex.
+     *
      * [centerPositions] should use old shipId's as keys, with values being a pair of old center, and new center.
      *
      * With VDex, the old center will be the center of the ships AABB (model space), and the new center will be the center of the chunk claim.
      * These will be equivalent, since [org.valkyrienskies.mod.common.schematic.VdexWrapper] pastes the blocks such that they're centered in the chunk claim. But it's good to know.
      */
-    fun onPaste(level: ServerLevel, pos: BlockPos, state: BlockState, oldShipIdToNewId: Map<Long, Long>, centerPositions: Map<Long, Pair<Vector3dc, Vector3dc>>, tag: CompoundTag?): CompoundTag?
+    fun onPaste(level: ServerLevel, pos: BlockPos, state: BlockState, oldShipIdToNewId: Map<Long, Long>, centerPositions: Map<Long, Pair<Vector3dc, Vector3dc>>, oldJointIdToNewId: Map<Int, Int>, tag: CompoundTag?): CompoundTag?
 
     /**
      * Should return what items are required for pasting in survival. Should be used if cross-ship connection requires additional items. Should be ignored for creative schematics.
