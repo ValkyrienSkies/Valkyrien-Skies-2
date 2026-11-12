@@ -38,6 +38,7 @@ void main() {
     vec3 worldPos = vec3(ivec3(floor(relPos)) + u_VsRenderOrigin) + fract(relPos);
 
     vec2 lightCoord = clamp(v_BakedLightCoord, VS_UV_MIN, VS_UV_MAX);
+    float worldAo = 1.0;
     if (v_Fullbright > 0.5) {
         lightCoord = vec2(VS_UV_MAX);
     } else {
@@ -47,6 +48,7 @@ void main() {
             vsLight.ao = 1.0;
             if (vs_lightSmooth(worldPos, v_WorldNormal, vsLight)) {
                 lightCoord = vec2(max(vsLight.light.x, v_BakedLightCoord.x), vsLight.light.y);
+                worldAo = vsLight.ao;
             } else {
                 vec2 flatLight;
                 if (vs_lightFlat(worldPos, flatLight)) {
@@ -70,7 +72,7 @@ void main() {
         lightSample = vs_shipShadowLight(Sampler2, lightCoord, worldPos + v_WorldNormal * 0.06, v_WorldNormal);
     }
     vec4 color = tex * vertexColor * ColorModulator;
-    color.rgb *= lightSample.rgb;
+    color.rgb *= lightSample.rgb * worldAo;
     if (u_VsBetterShipShading != 0 && v_IsShaded > 0.5) color.rgb *= vanillaShadeFromNormal(v_WorldNormal);
 
     fragColor = linear_fog(color, vertexDistance, FogStart, FogEnd, FogColor);

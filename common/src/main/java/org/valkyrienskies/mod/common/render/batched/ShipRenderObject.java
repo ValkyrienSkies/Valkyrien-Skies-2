@@ -1,10 +1,15 @@
 package org.valkyrienskies.mod.common.render.batched;
 
+import com.mojang.blaze3d.vertex.VertexBuffer;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import net.minecraft.core.SectionPos;
@@ -24,6 +29,13 @@ public final class ShipRenderObject implements AutoCloseable {
 
     private ShipMesh mesh = null;
     private boolean meshEmpty = true;
+
+    // Compiled sections, kept so a change only re-tessellates the sections it touched.
+    private final Long2ObjectOpenHashMap<ShipSectionCompiler.CompiledSection> sections =
+        new Long2ObjectOpenHashMap<>();
+    private int refX, refY, refZ;
+    private final boolean[] changedLayers = new boolean[ShipSectionCompiler.LAYER_COUNT];
+    private boolean fullRemeshRequested = false;
 
     private final LongOpenHashSet dirtySections = new LongOpenHashSet();
 
@@ -90,13 +102,24 @@ public final class ShipRenderObject implements AutoCloseable {
         emittersDirty = true;
     }
 
+    /** Like {@link #markSectionDirty} for a light-only change: emitters and block entities stay valid. */
+    public void markSectionLightDirty(final int sx, final int sy, final int sz) {
+        synchronized (dirtySections) {
+            dirtySections.add(SectionPos.asLong(sx, sy, sz));
+        }
+    }
+
     public boolean ensureCompiled(final ClientLevel level, final BlockRenderDispatcher dispatcher,
         final ShipSectionCompiler compiler, final boolean incrementalBudgetAvailable) {
 
         final long gameTime = level.getGameTime();
         if (built && VSGameConfig.CLIENT.getDynamicShipBiomeTinting() && lastBiomeTick != gameTime) {
             lastBiomeTick = gameTime;
-            if (biomeTints.hasChanged(level, ship)) markSectionDirty(0, 0, 0);
+            if (biomeTints.hasChanged(level, ship)) {
+                fullRemeshRequested = true;
+                blockEntitiesDirty = true;
+                emittersDirty = true;
+            }
         }
         boolean structuralChange = false;
         if (!built || gameTime != lastChunkPollGameTime) {
@@ -159,48 +182,133 @@ public final class ShipRenderObject implements AutoCloseable {
         synchronized (dirtySections) {
             hasDirty = !dirtySections.isEmpty();
         }
-        if (!hasDirty) {
+        if (!hasDirty && !fullRemeshRequested) {
             return false;
         }
         if (!incrementalBudgetAvailable) {
             return false; // defer; re-mesh on a later frame when budget allows
         }
-        fullRemesh(level, dispatcher, compiler);
-        synchronized (dirtySections) {
-            dirtySections.clear();
+        if (fullRemeshRequested) {
+            fullRemesh(level, dispatcher, compiler);
+            synchronized (dirtySections) {
+                dirtySections.clear();
+            }
+        } else {
+            final LongOpenHashSet dirty;
+            synchronized (dirtySections) {
+                dirty = new LongOpenHashSet(dirtySections);
+                dirtySections.clear();
+            }
+            partialRemesh(level, dispatcher, compiler, dirty);
         }
         blockEntitiesDirty = true;
         return true;
     }
 
+    /** Re-tessellate every section of the ship. Needed when its chunks or reference point change. */
     private void fullRemesh(final ClientLevel level, final BlockRenderDispatcher dispatcher,
         final ShipSectionCompiler compiler) {
+        fullRemeshRequested = false;
+        closeSections();
+
         final LongList sectionPositions = new LongArrayList();
-        final int[] minOrigin = {Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE};
+        final int[] minChunk = {Integer.MAX_VALUE, Integer.MAX_VALUE};
         ship.getActiveChunksSet().forEach((x, z) -> {
+            minChunk[0] = Math.min(minChunk[0], x);
+            minChunk[1] = Math.min(minChunk[1], z);
             final LevelChunk chunk = level.getChunk(x, z);
             for (int y = level.getMinSection(); y < level.getMaxSection(); y++) {
                 final LevelChunkSection sec = chunk.getSection(level.getSectionIndexFromSectionY(y));
                 if (!sec.hasOnlyAir()) {
                     sectionPositions.add(SectionPos.asLong(x, y, z));
-                    minOrigin[0] = Math.min(minOrigin[0], x << 4);
-                    minOrigin[1] = Math.min(minOrigin[1], y << 4);
-                    minOrigin[2] = Math.min(minOrigin[2], z << 4);
                 }
             }
         });
+        if (minChunk[0] != Integer.MAX_VALUE) {
+            refX = minChunk[0] << 4;
+            refY = level.getMinBuildHeight();
+            refZ = minChunk[1] << 4;
+        }
 
         biomeTints.clear();
-        final ShipMesh newMesh = sectionPositions.isEmpty()
-            ? null
-            : compiler.compileShip(level, dispatcher, sectionPositions, minOrigin[0], minOrigin[1], minOrigin[2], ship, biomeTints);
+        Arrays.fill(changedLayers, true);
+        if (!sectionPositions.isEmpty()) {
+            compiler.compileSections(level, dispatcher, ship, biomeTints, sectionPositions,
+                refX, refY, refZ, sections, changedLayers);
+        }
+        rebuildMesh(compiler);
+    }
 
+    /** Re-tessellate only the dirty sections, then rebuild the opaque layers they touched. */
+    private void partialRemesh(final ClientLevel level, final BlockRenderDispatcher dispatcher,
+        final ShipSectionCompiler compiler, final LongOpenHashSet dirty) {
+        final LongList sectionPositions = new LongArrayList(dirty.size());
+        final var it = dirty.iterator();
+        while (it.hasNext()) {
+            final long secPos = it.nextLong();
+            final int y = SectionPos.y(secPos);
+            // Neighbor marks can fall outside the ship's chunks or the world's height.
+            if (y < level.getMinSection() || y >= level.getMaxSection()
+                || !ship.getActiveChunksSet().contains(SectionPos.x(secPos), SectionPos.z(secPos))) {
+                continue;
+            }
+            sectionPositions.add(secPos);
+        }
+        if (sectionPositions.isEmpty()) {
+            return;
+        }
+        Arrays.fill(changedLayers, false);
+        compiler.compileSections(level, dispatcher, ship, biomeTints, sectionPositions,
+            refX, refY, refZ, sections, changedLayers);
+        rebuildMesh(compiler);
+    }
+
+    /** Merge the changed opaque layers and collect the translucent sections into a new mesh. */
+    private void rebuildMesh(final ShipSectionCompiler compiler) {
         final ShipMesh old = this.mesh;
-        this.mesh = newMesh;
-        this.meshEmpty = newMesh == null || newMesh.isEmpty();
+        if (sections.isEmpty()) {
+            this.mesh = null;
+            this.meshEmpty = true;
+            if (old != null) {
+                old.close();
+            }
+            return;
+        }
+
+        final VertexBuffer[] opaque = new VertexBuffer[ShipSectionCompiler.LAYER_COUNT];
+        final int translucentIndex = ShipSectionMesh.layerIndex(RenderType.translucent());
+        for (int i = 0; i < opaque.length; i++) {
+            if (i == translucentIndex) {
+                continue;
+            }
+            if (old == null || changedLayers[i]) {
+                opaque[i] = compiler.mergeOpaqueLayer(i, sections.values());
+            } else {
+                // Unchanged layer: move the buffer to the new mesh so closing the old one keeps it.
+                opaque[i] = old.opaque[i];
+                old.opaque[i] = null;
+            }
+        }
+
+        final Long2ObjectMap<ShipSectionMesh> translucent = new Long2ObjectOpenHashMap<>();
+        for (final var entry : sections.long2ObjectEntrySet()) {
+            if (entry.getValue().translucent != null) {
+                translucent.put(entry.getLongKey(), entry.getValue().translucent);
+            }
+        }
+
+        this.mesh = new ShipMesh(opaque, translucent, refX, refY, refZ);
+        this.meshEmpty = this.mesh.isEmpty();
         if (old != null) {
             old.close();
         }
+    }
+
+    private void closeSections() {
+        for (final ShipSectionCompiler.CompiledSection section : sections.values()) {
+            section.close();
+        }
+        sections.clear();
     }
 
     @Override
@@ -210,6 +318,7 @@ public final class ShipRenderObject implements AutoCloseable {
             mesh.close();
             mesh = null;
         }
+        closeSections();
         meshEmpty = true;
     }
 }

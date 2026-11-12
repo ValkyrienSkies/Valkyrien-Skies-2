@@ -92,6 +92,16 @@ public final class ShipBatchRenderer {
         }
     }
 
+    public void markSectionLightDirty(final long shipId, final int sx, final int sy, final int sz) {
+        final ShipRenderObject renderObject;
+        synchronized (ships) {
+            renderObject = ships.get(shipId);
+        }
+        if (renderObject != null) {
+            renderObject.markSectionLightDirty(sx, sy, sz);
+        }
+    }
+
     public void onShipUnload(final long shipId) {
         final ShipRenderObject removed;
         synchronized (ships) {

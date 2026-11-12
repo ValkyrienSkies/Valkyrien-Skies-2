@@ -67,7 +67,16 @@ public abstract class MixinClientLevel extends Level {
         final int sectionZ = pos.getZ() >> 4;
         if (VSGameUtilsKt.getShipManagingPos((ClientLevel) (Object) this, sectionX, sectionZ)
                 instanceof final ClientShip ship && ShipRendererKt.getUsesBatchedRenderer(ship)) {
-            ShipBatchRenderer.INSTANCE.markSectionDirty(ship.getId(), sectionX, sectionY, sectionZ);
+            final int minX = (pos.getX() - 1) >> 4, maxX = (pos.getX() + 1) >> 4;
+            final int minY = (pos.getY() - 1) >> 4, maxY = (pos.getY() + 1) >> 4;
+            final int minZ = (pos.getZ() - 1) >> 4, maxZ = (pos.getZ() + 1) >> 4;
+            for (int x = minX; x <= maxX; x++) {
+                for (int y = minY; y <= maxY; y++) {
+                    for (int z = minZ; z <= maxZ; z++) {
+                        ShipBatchRenderer.INSTANCE.markSectionDirty(ship.getId(), x, y, z);
+                    }
+                }
+            }
         }
     }
 }
