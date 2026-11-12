@@ -19,6 +19,7 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemp
 import org.joml.Quaterniond
 import org.joml.RoundingMode
 import org.joml.Vector3d
+import org.joml.Vector3dc
 import org.joml.Vector3i
 import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.core.api.ships.ServerShip
@@ -26,7 +27,6 @@ import org.valkyrienskies.core.api.ships.properties.ShipId
 import org.valkyrienskies.core.api.util.GameTickOnly
 import org.valkyrienskies.core.impl.config.VSCoreConfig
 import org.valkyrienskies.core.internal.ships.VsiServerShip
-import org.valkyrienskies.mod.common.assembly.ShipAssembler.assembleToShipFull
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.executeIf
 import org.valkyrienskies.mod.common.fluid.FractionalFluidLifecycle
@@ -103,8 +103,6 @@ object ShipAssembler {
         return chunkSet
     }
 
-    data class AssembleContext(val ship: ServerShip, val fromCenter: Vector3d, val toCenter: Vector3d)
-
     private fun splitVelocity(fromShip: ServerShip?, fromCenter: Vector3d, posOffset: Vector3d): Vector3d {
         if (fromShip == null) return Vector3d()
         val newWorldCom = fromShip.shipToWorld.transformPosition(Vector3d(fromCenter)).add(posOffset)
@@ -113,9 +111,79 @@ object ShipAssembler {
         return Vector3d(fromShip.velocity).add(Vector3d(fromShip.angularVelocity).cross(r))
     }
 
+    interface IAssembleContext {
+        val ship: ServerShip
+        val worldPos: Vector3d
+        val shipCenterPos: Vector3d
+    }
+
+    data class AssembleContext(override val ship: ServerShip, override val worldPos: Vector3d, override val shipCenterPos: Vector3d): IAssembleContext {
+        val fromCenter get() = worldPos
+        val toCenter get() = shipCenterPos
+    }
+
+    fun interface AssembleBlockPlacer<T : IAssembleContext> {
+        fun placeBlock(ship: ServerShip, fromShip: ServerShip?, worldPos: Vector3d, shipCenterPos: Vector3d): T?
+    }
+
     @JvmStatic
     @OptIn(GameTickOnly::class)
-    fun assembleToShipFull(level: ServerLevel, blocks: Set<BlockPos>, scale: Double = 1.0): AssembleContext {
+    fun <T : IAssembleContext> assembleAndPlaceBlocks(
+        level: ServerLevel,
+        scale: Double = 1.0,
+        worldPos: Vector3dc,
+        blockPlacer: AssembleBlockPlacer<T>): T?
+    {
+        val fromShip = level.getLoadedShipManagingPos(worldPos) ?: level.getShipManagingPos(worldPos)
+        val oldScale = fromShip?.transform?.scaling?.x() ?: 1.0
+        val worldPos = fromShip?.shipToWorld?.transformPosition(worldPos.get(Vector3d())) ?: worldPos.get(Vector3d())
+
+        val toShip = level.shipObjectWorld.createNewShipAtBlock(Vector3i(worldPos, RoundingMode.FLOOR), false, scale * oldScale, level.dimensionId)
+        toShip.isStatic = true
+        org.valkyrienskies.mod.common.debug.ShipDebugService.markCreated(level.server, toShip, fromShip)
+        // Mark as recently spawned immediately so player movement packets processed
+        // during chunk loading don't treat this new ship as "unloaded".
+        EntityShipCollisionUtils.markShipAsRecentlySpawned(
+            toShip.id, level.server.tickCount.toLong()
+        )
+
+        val ctx: T?
+        try {
+            ctx = blockPlacer.placeBlock(toShip, fromShip, worldPos, Vector3d(toShip.chunkClaim.getCenterBlockCoordinates(level.yRange)))
+            if (ctx == null) {
+                level.shipObjectWorld.deleteShip(toShip)
+                return null
+            }
+        } catch (error: Throwable) {
+            level.shipObjectWorld.deleteShip(toShip)
+            ASSEMBLY_LOGGER.error(error)
+            throw error
+        }
+
+        val posOffset =
+            Vector3d(toShip.inertiaData.centerOfMass)
+                .sub(ctx.shipCenterPos)
+                .let { fromShip?.shipToWorld?.transformDirection(it) ?: it }
+
+        (toShip as VsiServerShip).unsafeSetKinematics(vsCore.newBodyKinematics(
+            splitVelocity(fromShip, Vector3d(worldPos), posOffset),
+            fromShip?.angularVelocity ?: Vector3d(),
+            vsCore.newBodyTransform(
+                (fromShip?.shipToWorld?.transformPosition(Vector3d(worldPos)) ?: worldPos).add(posOffset),
+                fromShip?.transform?.shipToWorldRotation ?: Quaterniond(),
+                Vector3d(scale * oldScale, scale * oldScale, scale * oldScale),
+                ctx.shipCenterPos
+            )
+        ))
+
+        toShip.isStatic = fromShip?.isStatic ?: false
+
+        return ctx
+    }
+
+    @JvmStatic
+    @OptIn(GameTickOnly::class)
+    fun assembleAndCopyBlocks(level: ServerLevel, blocks: Set<BlockPos>, scale: Double = 1.0): AssembleContext {
         if (blocks.isEmpty()) {
             val error = RuntimeException("Assembly function received an empty set of blocks")
             ASSEMBLY_LOGGER.error(error)
@@ -132,49 +200,23 @@ object ShipAssembler {
             .div(2.0)
         val fromCenter = offset.get(Vector3d()).add(oldMin)
 
-        val fromShip = level.getLoadedShipManagingPos(fromCenter) ?: level.getShipManagingPos(fromCenter)
-        val oldScale = fromShip?.transform?.scaling?.x() ?: 1.0
-        val worldOldCenter = fromShip?.shipToWorld?.transformPosition(fromCenter.get(Vector3d())) ?: fromCenter.get(Vector3d())
+        val ctx = assembleAndPlaceBlocks(
+            level, scale, fromCenter
+        ) { ship, fromShip, worldpos, shipCenter ->
+            val (wasSuccessful, _, toCenter) = moveBlocksFromTo(level, blocks, fromShip, ship, minB, maxB, Vector3i(shipCenter, RoundingMode.FLOOR))
+            if (!wasSuccessful) {
+                throw AssertionError("Couldn't move blocks")
+            }
+            AssembleContext(ship, worldpos, toCenter)
+        }!!
 
-        val toShip = level.shipObjectWorld.createNewShipAtBlock(Vector3i(worldOldCenter, RoundingMode.FLOOR), false, scale * oldScale, level.dimensionId)
-        toShip.isStatic = fromShip == null || fromShip.isStatic
-        org.valkyrienskies.mod.common.debug.ShipDebugService.markCreated(level.server, toShip, fromShip)
-
-        // Mark as recently spawned immediately so player movement packets processed
-        // during chunk loading don't treat this new ship as "unloaded".
-        EntityShipCollisionUtils.markShipAsRecentlySpawned(
-            toShip.id, level.server.tickCount.toLong()
-        )
-
-        val (wasSuccessful, _, toCenter) = moveBlocksFromTo(level, blocks, fromShip, toShip, minB, maxB, toShip.chunkClaim.getCenterBlockCoordinates(level.yRange, Vector3i()))
-
-        if (!wasSuccessful) {
-            level.shipObjectWorld.deleteShip(toShip)
-            val error = AssertionError("Couldn't move blocks")
-            ASSEMBLY_LOGGER.error(error)
-            throw error
-        }
-
-        //teleport fn uses COM as center of ship, so it calculates such offset that centerOfShip will be "center" instead
-        val posOffset =
-            Vector3d(toShip.inertiaData.centerOfMass)
-                .sub(Vector3d(toCenter))
-                .let { fromShip?.shipToWorld?.transformDirection(it) ?: it }
-
-        (toShip as VsiServerShip).unsafeSetKinematics(vsCore.newBodyKinematics(
-            splitVelocity(fromShip, fromCenter, posOffset),
-            fromShip?.angularVelocity ?: Vector3d(),
-            vsCore.newBodyTransform(
-                (fromShip?.shipToWorld?.transformPosition(Vector3d(fromCenter)) ?: fromCenter).add(posOffset),
-                fromShip?.transform?.shipToWorldRotation ?: Quaterniond(),
-                Vector3d(scale * oldScale, scale * oldScale, scale * oldScale),
-                toCenter
-            )
-        ))
-        toShip.isStatic = false
-
-        return AssembleContext(toShip, fromCenter, toCenter)
+        ctx.ship.isStatic = false
+        return ctx
     }
+
+    @Deprecated(message = "renamed", replaceWith = ReplaceWith("assembleAndCopyBlocks"))
+    fun assembleToShipFull(level: ServerLevel, blocks: Set<BlockPos>, scale: Double = 1.0): AssembleContext
+        = assembleAndCopyBlocks(level, blocks, scale)
 
     @OptIn(GameTickOnly::class)
     internal fun transferRetainedWater(level: ServerLevel, fromShip: ServerShip?, toShip: ServerShip?,
@@ -395,7 +437,7 @@ object ShipAssembler {
     @JvmStatic
     @OptIn(GameTickOnly::class)
     fun assembleToShip(level: ServerLevel, blocks: Set<BlockPos>, scale: Double = 1.0): ServerShip {
-        return assembleToShipFull(level, blocks, scale).ship
+        return assembleAndCopyBlocks(level, blocks, scale).ship
     }
     //legacy method to not break shit
     @Deprecated("Old")
@@ -405,7 +447,7 @@ object ShipAssembler {
 
     /**
      * Batch-assembles multiple independent block sets into separate ships.
-     * This is much faster than calling [assembleToShipFull] in a loop because it:
+     * This is much faster than calling [assembleAndCopyBlocks] in a loop because it:
      * 1. Sends a single PacketStopChunkUpdates/PacketRestartChunkUpdates for all ships
      * 2. Batches all connectivity updates into one pass
      * 3. Uses a single executeIf callback instead of one per ship
