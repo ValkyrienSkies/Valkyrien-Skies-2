@@ -49,7 +49,14 @@ object WorldEntityHandler : VSEntityHandler {
 
     override fun positionSetFromVehicle(self: Entity, vehicle: Entity, x: Double, y: Double, z: Double) {
         if (self.level().isBlockInShipyard(vehicle.position()) && vehicle.getShipManaging() == null) {
-            self.stopRiding()
+            // No ship owns the vehicle's place in the shipyard. On the server that means the ship is gone, so the
+            // rider is put off rather than left in the shipyard. On a client it can also mean the ship hasn't arrived
+            // yet: after a ship changes dimension, a seat on it reaches the client before the ship does. Dismounting
+            // there would desync the client, as the server still has the rider seated and so never tells it to mount
+            // again. Leave the rider where it is, and leave dismounting to the server.
+            if (!self.level().isClientSide) {
+                self.stopRiding()
+            }
             return
         }
         val (wx, wy, wz) = self.level().toWorldCoordinates(x, y, z)
