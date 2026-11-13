@@ -22,7 +22,10 @@ public abstract class MixinLivingEntity implements ShipWalkAnimation {
         final EntityDraggingInformation info = ((IEntityDraggingInformationProvider) self).getDraggingInformation();
         if (info.getUsesShipInterpolation() && info.isEntityBeingDraggedByAShip()
             && !self.isControlledByLocalInstance() && EntityDragger.isDraggable(self)) {
-            // Vanilla runs before EntityLerper moves this entity at the end of the client tick.
+            // LivingEntity.calculateEntityAnimation runs during the entity tick (for example,
+            // RemotePlayer.tick calls it after super.tick). VS applies the replacement position
+            // interpolation later, in Minecraft.tick's tail, so measuring displacement here
+            // would miss the entity's walk across the deck.
             info.setPendingWalkAnimation(includeVertical);
             ci.cancel();
         }

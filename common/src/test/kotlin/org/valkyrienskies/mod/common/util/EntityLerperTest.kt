@@ -100,15 +100,27 @@ class EntityLerperTest {
         verify { (entity as ShipWalkAnimation).`vs$updateShipWalkAnimation`(0f) }
     }
 
-    @Test fun `walking speed excludes ship translation and rotation`() {
-        position.set(3.0, 0.0, 0.0)
-        every { ship.prevTickTransform } returns transform(0.0, 0.0)
-        every { ship.transform } returns transform(10.0, Math.PI / 2)
-        info.lerpPositionOnShip = Vector3d(3.6, 0.0, 0.0)
-        info.lerpSteps = 3
-        info.pendingWalkAnimation = false
-        EntityLerper.lerpStep(info, ship, entity)
-        verify { (entity as ShipWalkAnimation).`vs$updateShipWalkAnimation`(0.2f) }
+    @Test fun `walking advances every interpolation tick independently of deck motion`() {
+        // Cover translation and rotation separately as well as together. The entity walks
+        // 0.2 blocks per tick relative to the deck in every case, then stops walking while
+        // the deck continues moving. Ship motion must neither inflate nor cancel the stride.
+        val deckMotions = listOf(0.0 to 0.0, 10.0 to 0.0, 0.0 to Math.PI / 2, 10.0 to Math.PI / 2)
+        for ((index, motion) in deckMotions.withIndex()) {
+            position.set(3.0, 0.0, 0.0)
+            info.lerpPositionOnShip = Vector3d(3.6, 0.0, 0.0)
+            info.lerpSteps = 3
+            for (tick in 1..4) {
+                every { ship.prevTickTransform } returns transform((tick - 1) * motion.first, (tick - 1) * motion.second)
+                every { ship.transform } returns transform(tick * motion.first, tick * motion.second)
+                info.pendingWalkAnimation = false
+                EntityLerper.lerpStep(info, ship, entity)
+                assertNull(info.pendingWalkAnimation)
+            }
+            verify(exactly = (index + 1) * 3) {
+                (entity as ShipWalkAnimation).`vs$updateShipWalkAnimation`(0.2f)
+            }
+            verify(exactly = index + 1) { (entity as ShipWalkAnimation).`vs$updateShipWalkAnimation`(0f) }
+        }
     }
 
     @Test fun `vertical displacement follows the vanilla animation request`() {
