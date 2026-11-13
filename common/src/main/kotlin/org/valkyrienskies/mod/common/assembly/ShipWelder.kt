@@ -257,6 +257,7 @@ internal object ShipWelder {
         try {
             level.players().forEach { player -> with(vsCore.simplePacketNetworking) { sendStopChunkUpdates(chunkVectors, player.playerWrapper) } }
             for (move in saved) level.getChunkAt(move.to).setBlockState(move.to, move.newState, false)
+            val destinations = saved.associate { it.from to it.to }
             for (move in saved) {
                 if (level.getBlockState(move.to) != move.newState) error("Could not place welded block at ${move.to}")
                 val copyable = move.newState.block as? ICopyableBlock
@@ -264,7 +265,10 @@ internal object ShipWelder {
                 move.pasteTag?.let { tag ->
                     val entity = level.getBlockEntity(move.to)
                     if (move.newState.hasBlockEntity() && entity == null) error("Missing welded block entity at ${move.to}")
-                    entity?.load(WeldBlockData.relocatedTag(tag, move.to))
+                    val relocated = WeldBlockData.relocatedTag(tag, move.to)
+                    // Positions outside the welded set did not move.
+                    MovedBlockEntityTags.relocate(move.newState, relocated) { destinations[it] ?: it }
+                    entity?.load(relocated)
                     entity?.setChanged()
                 }
             }

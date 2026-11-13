@@ -23,6 +23,7 @@ import org.joml.Vector3d;
 import org.joml.Vector3f;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.api.ValkyrienSkies;
+import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.hooks.VSGameEvents;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
@@ -123,6 +124,7 @@ public class ShipEmbeddingManager {
      * @author Bunting_chj
      */
     public synchronized void updateAllShips() {
+        requeueOrphans();
         for(final ClientShip ship : vs$shipEmbedding.keySet()){
             final Vec3i anchor = vs$shipAnchor.get(ship);
             final VisualEmbedding embedding = vs$shipEmbedding.get(ship);
@@ -163,6 +165,7 @@ public class ShipEmbeddingManager {
     public synchronized void unloadAllShip() {
         vs$shipBEs.clear();
         vs$sectionBEsCount.clear();
+        vs$orphanBEs.clear();
         vs$shipEmbedding.clear();
         vs$shipAnchor.clear();
         vs$EmbeddingOrigin.clear();
@@ -201,6 +204,34 @@ public class ShipEmbeddingManager {
         poseMatrix.scale(ship.getRenderTransform().getShipToWorldScaling().get(new Vector3f()));
         normalMatrix.set(poseMatrix);
         embedding.transforms(poseMatrix, normalMatrix);
+    }
+
+    /**
+     * Shipyard block entities whose visual was created while no ship managed their position.
+     * Visuals can be created off the render thread, so this set is concurrent.
+     */
+    protected static final Set<BlockEntity> vs$orphanBEs = ConcurrentHashMap.newKeySet();
+
+    public void registerOrphan(BlockEntity blockEntity) {
+        vs$orphanBEs.add(blockEntity);
+    }
+
+    /** Recreate the visuals of orphaned block entities whose ship is now loaded, inside its embedding. */
+    private void requeueOrphans() {
+        if (vs$orphanBEs.isEmpty()) return;
+        vs$orphanBEs.removeIf(blockEntity -> {
+            if (blockEntity.isRemoved() || blockEntity.getLevel() == null) return true;
+            if (!(VSGameUtilsKt.getShipManagingPos(blockEntity.getLevel(), blockEntity.getBlockPos())
+                instanceof ClientShip)) {
+                return false;
+            }
+            final VisualizationManager manager = VisualizationManager.get(blockEntity.getLevel());
+            if (manager != null) {
+                manager.blockEntities().queueRemove(blockEntity);
+                manager.blockEntities().queueAdd(blockEntity);
+            }
+            return true;
+        });
     }
 
     public void register(BlockEntity blockEntity, ClientShip ship) {

@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.common.assembly
 
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Vec3i
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.Clearable
@@ -314,7 +315,8 @@ object ShipAssembler {
         val structureSettings = StructurePlaceSettings().addProcessor(
             ICopyableProcessor(
                 SingleItemMap(fromId, toShip?.id ?: -1L, -1L) {it},
-                SingleItemMap(fromId, Pair(fromCenter, Vector3d(centerOfShip)), Pair(Vector3d(), Vector3d()))
+                SingleItemMap(fromId, Pair(fromCenter, Vector3d(centerOfShip)), Pair(Vector3d(), Vector3d())),
+                cornerOfShip.subtract(minStructurePos)
             )
         )
 
@@ -636,6 +638,8 @@ object ShipAssembler {
                             tag.putInt("x", destPos.x)
                             tag.putInt("y", destPos.y)
                             tag.putInt("z", destPos.z)
+                            val blockOffset = cornerOfShip.subtract(pending.minB)
+                            MovedBlockEntityTags.relocate(state, tag) { it.offset(blockOffset) }
                             level.getBlockEntity(destPos)?.load(tag)
                         }
 
@@ -669,7 +673,8 @@ object ShipAssembler {
                     val structureSettings = StructurePlaceSettings().addProcessor(
                         ICopyableProcessor(
                             SingleItemMap(fromId, pending.toShip.id, -1L) { it },
-                            SingleItemMap(fromId, Pair(fromCenter, Vector3d(centerOfShip)), Pair(Vector3d(), Vector3d()))
+                            SingleItemMap(fromId, Pair(fromCenter, Vector3d(centerOfShip)), Pair(Vector3d(), Vector3d())),
+                            cornerOfShip.subtract(pending.minB)
                         )
                     )
                     structureSettings.rotationPivot = cornerOfShip
@@ -796,13 +801,19 @@ object ShipAssembler {
 
     public class ICopyableProcessor(
         val oldShipIdToNewShipId: Map<ShipId, ShipId>,
-        val centerPositions: Map<Long, Pair<Vector3d, Vector3d>>
+        val centerPositions: Map<Long, Pair<Vector3d, Vector3d>>,
+        /** How far every block moves (destination corner minus source corner), or null when unknown. */
+        val blockOffset: Vec3i? = null
     ): StructureProcessor() {
         override fun processBlock(
             levelReader: LevelReader, oldBPos: BlockPos, newBPos: BlockPos,
             oldStructureBlockInfo: StructureTemplate.StructureBlockInfo,
             newStructureBlockInfo: StructureTemplate.StructureBlockInfo, structurePlaceSettings: StructurePlaceSettings
         ): StructureTemplate.StructureBlockInfo? {
+            val nbt = newStructureBlockInfo.nbt
+            if (nbt != null && blockOffset != null) {
+                MovedBlockEntityTags.relocate(newStructureBlockInfo.state, nbt) { it.offset(blockOffset) }
+            }
             val block = newStructureBlockInfo.state.block
             if (block !is ICopyableBlock) return newStructureBlockInfo
             block.onPaste((levelReader as ServerLevelAccessor).level, newBPos, newStructureBlockInfo.state, oldShipIdToNewShipId, centerPositions, mutableMapOf(), newStructureBlockInfo.nbt)

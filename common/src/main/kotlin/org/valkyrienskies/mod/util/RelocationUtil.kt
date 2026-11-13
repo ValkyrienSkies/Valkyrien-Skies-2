@@ -13,6 +13,7 @@ import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
 import org.valkyrienskies.core.api.ships.ServerShip
+import org.valkyrienskies.mod.common.assembly.MovedBlockEntityTags
 import org.valkyrienskies.mod.common.fluid.FractionalFluidLifecycle
 
 val AIR = Blocks.AIR.defaultBlockState()
@@ -72,6 +73,8 @@ fun relocateBlock(
     tag?.let {
         val be = level.getBlockEntity(to)!!
 
+        val blockOffset = to.subtract(from)
+        MovedBlockEntityTags.relocate(state, it) { pos -> pos.offset(blockOffset) }
         be.load(it)
     }
     }

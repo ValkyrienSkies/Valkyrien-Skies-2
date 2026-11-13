@@ -30,7 +30,12 @@ public class BlockEntityVisualizerDecorator<T extends BlockEntity> implements Bl
             ShipEmbeddingManager.INSTANCE.register(blockEntity, ship);
             return visual;
         }
-        else return inner.createVisual(ctx, blockEntity, partialTick);
+        // A shipyard block entity can arrive before the client knows its ship. Its visual is then
+        // placed at the raw shipyard position, far from the ship, so rebuild it once the ship loads.
+        if (VSGameUtilsKt.isBlockInShipyard(blockEntity.getLevel(), blockEntity.getBlockPos())) {
+            ShipEmbeddingManager.INSTANCE.registerOrphan(blockEntity);
+        }
+        return inner.createVisual(ctx, blockEntity, partialTick);
     }
 
     @Override

@@ -18,6 +18,8 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.mod.compat.LoadedMods;
+import org.valkyrienskies.mod.compat.flywheel.FlywheelCompat;
 import org.valkyrienskies.mod.compat.sodium.light.VsShipEmitterList;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 
@@ -85,9 +87,17 @@ public final class ShipRenderObject implements AutoCloseable {
     public List<BlockEntity> getBlockEntities(final ClientLevel level) {
         if (blockEntitiesDirty) {
             blockEntities.clear();
+            final boolean flywheel = LoadedMods.getFlywheel() == LoadedMods.FlywheelVersion.V1;
             ship.getActiveChunksSet().forEach((x, z) -> {
                 final LevelChunk chunk = level.getChunk(x, z);
-                blockEntities.addAll(chunk.getBlockEntities().values());
+                for (final BlockEntity blockEntity : chunk.getBlockEntities().values()) {
+                    // Like the chunk builders: register with Flywheel, and leave out of the
+                    // vanilla renderer whatever Flywheel draws.
+                    if (flywheel && FlywheelCompat.INSTANCE.tryAddBlockEntity(blockEntity)) {
+                        continue;
+                    }
+                    blockEntities.add(blockEntity);
+                }
             });
             blockEntitiesDirty = false;
         }
