@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.mod.common.util.ShipAwareCollisionUtil;
 
 // Warden.checkSpawnObstruction validates the candidate spawn AABB with level.noCollision, which only checks world chunks; without this wrap a warden could spawn inside ship geometry.
-@Mixin(Warden.class)
+@Mixin(value = Warden.class, priority = 1500)
 public abstract class MixinWardenSpawn {
 
     @WrapOperation(
@@ -20,7 +20,8 @@ public abstract class MixinWardenSpawn {
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/world/level/LevelReader;noCollision(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/phys/AABB;)Z"
-        )
+        ),
+        require = 0
     )
     private boolean vs$noCollisionIncludingShips(
         final LevelReader levelReader, final Entity entity, final AABB aabb,

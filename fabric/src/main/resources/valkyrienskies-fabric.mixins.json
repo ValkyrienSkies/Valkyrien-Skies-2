@@ -24,8 +24,10 @@
     "world.level.block.FireMixin"
   ],
   "client": [
+    "client.render.MixinEffectInstance",
     "client.render.MixinLevelRenderer",
     "client.render.MixinScreenEffectRenderer",
+    "client.render.MixinShaderInstanceLoader",
     "compat.connectiblechains.client.MixinChainKnotEntityRenderer",
     "compat.create.client.MixinBlockEntityRenderHelper",
     "compat.create.client.MixinChainConveyorBlockEntity",
