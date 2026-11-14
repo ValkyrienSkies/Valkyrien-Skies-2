@@ -404,6 +404,7 @@
     "world.level.lighting.MixinThreadedLevelLightEngine"
   ],
   "client": [
+    "feature.ship_walk_animation.MixinLivingEntity",
     "feature.debug_gravitron.MixinGravitronInput",
     "accessors.client.multiplayer.ClientLevelAccessor",
     "accessors.client.render.BufferBuilderAccessor",
