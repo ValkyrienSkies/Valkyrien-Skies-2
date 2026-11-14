@@ -16,7 +16,10 @@ plugins {
     id "org.jetbrains.kotlin.jvm" version "2.0.0" apply false
     id 'com.matthewprenger.cursegradle' version '1.4.0' apply false
     id "com.modrinth.minotaur" version "2.4.3" apply false
+    id "org.valkyrienskies.translations" version "1.0.0"
 }
+
+translations { projectId = "2773cd59-d95d-4548-9852-d1c8073627ac" }
 
 // Determine the version
 if (project.hasProperty("CustomReleaseVersion")) {
