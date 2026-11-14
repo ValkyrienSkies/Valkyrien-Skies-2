@@ -21,10 +21,12 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.LoadedShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager;
 import org.valkyrienskies.mod.common.util.MinecraftPlayer;
+import org.valkyrienskies.mod.mixinducks.world.entity.PlayerDuck;
 import org.valkyrienskies.mod.util.KrunchSupport;
 
 @Mixin(PlayerList.class)
@@ -58,6 +60,20 @@ public abstract class MixinPlayerList {
                     .withStyle(ChatFormatting.RED, ChatFormatting.BOLD));
         }
         VSEntityManager.INSTANCE.syncHandlers(wrapped);
+    }
+
+    @Inject(method = "respawn", at = @At("RETURN"))
+    private void afterPlayerRespawn(final ServerPlayer oldPlayer, final boolean alive,
+        final CallbackInfoReturnable<ServerPlayer> cir) {
+        final ServerPlayer newPlayer = cir.getReturnValue();
+        // Respawn retains the client VS world and connection. A genuinely new connection must
+        // keep its fresh wrapper so core sends its initial body/ship snapshots.
+        if (newPlayer == oldPlayer || newPlayer.connection != oldPlayer.connection) {
+            return;
+        }
+        final MinecraftPlayer wrapped = VSGameUtilsKt.getPlayerWrapper(oldPlayer);
+        wrapped.rebindPlayer(newPlayer);
+        ((PlayerDuck) newPlayer).vs_setPlayer(wrapped);
     }
 
     /**

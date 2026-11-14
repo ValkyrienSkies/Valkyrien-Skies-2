@@ -13,14 +13,24 @@ import java.lang.ref.WeakReference
 import java.util.UUID
 
 /**
- * We use this wrapper around [PlayerEntity] to create [VsiPlayer] objects used by vs-core.
+ * A connection's stable [VsiPlayer], rebound when respawn replaces its [Player] entity.
+ * Identity is deliberately per wrapper, not per account UUID: a reconnect needs fresh tracking,
+ * whereas respawn must retain this exact wrapper and all of its existing tracking state.
  */
 class MinecraftPlayer(playerObject: Player) : VsiPlayer {
 
     override val uuid: UUID = playerObject.uuid
 
-    // Hold a weak reference to avoid memory leaks
-    val playerEntityReference: WeakReference<Player> = WeakReference(playerObject)
+    // Network readers may retain this wrapper across a game-thread respawn. Replace the weak
+    // reference rather than clearing it, so they see either complete entity reference.
+    @Volatile
+    var playerEntityReference: WeakReference<Player> = WeakReference(playerObject)
+        private set
+
+    fun rebindPlayer(playerObject: Player) {
+        require(playerObject.uuid == uuid) { "Cannot rebind a player wrapper to another account" }
+        playerEntityReference = WeakReference(playerObject)
+    }
 
     val player: Player get() = playerEntityReference.get()!!
 
@@ -36,31 +46,19 @@ class MinecraftPlayer(playerObject: Player) : VsiPlayer {
     override val forceWatchingShips = HashSet<ShipId>()
 
     override fun getPosition(dest: Vector3d): Vector3d {
+        val player = player
         return dest.set(player.x, player.y, player.z)
     }
 
     override fun getPlayerState(): VsiPlayerState {
+        val player = player
         val mountedShipAndPos = getShipMountedToData(player)
         return VsiPlayerState(
             Vector3d(player.x, player.y, player.z),
             Vector3d(Vector3d(player.x - player.xo, player.y - player.yo, player.z - player.zo)),
-            dimension,
+            player.level().dimensionId,
             mountedShipAndPos?.shipMountedTo?.id,
             mountedShipAndPos?.mountPosInShip,
         )
-    }
-
-    override fun hashCode(): Int {
-        return uuid.hashCode()
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if (super.equals(other)) {
-            return true
-        }
-        if (other is MinecraftPlayer) {
-            return uuid == other.uuid
-        }
-        return false
     }
 }
