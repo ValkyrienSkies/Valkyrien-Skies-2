@@ -24,6 +24,8 @@ REPOSITORIES = {
 }
 NATIVE_FILES = {'KrunchJni64.dll', 'KrunchJniArm64.dll', 'libKrunchJni64.so',
                 'libKrunchJniarm64.so', 'libKrunchJni64.dylib', 'libKrunchJniarm64.dylib'}
+# Built by KrunchX CI but not bundled into the bridge jar; older native builds predate them.
+OPTIONAL_NATIVE_FILES = {'libKrunchJniAndroidarm64.so'}
 BUNDLED_FILES = NATIVE_FILES - {'KrunchJniArm64.dll'}
 NATIVE_JOBS = ('build-ubuntu-x86-64', 'build-ubuntu-arm-64', 'build-windows-x86-64',
                'build-windows-arm-64', 'build-mac-os-x86-64', 'build-mac-os-64', 'commit_artifacts')
@@ -160,10 +162,10 @@ def native_manifest(sha):
         raise ChainError('Native manifest commit mismatch')
     entries = {}
     for checksum, size, name in re.findall(r'^([0-9a-f]{64})\s+(\d+)\s+(\S+)\s*$', text, re.MULTILINE):
-        if name not in NATIVE_FILES or name in entries:
+        if name not in NATIVE_FILES | OPTIONAL_NATIVE_FILES or name in entries:
             raise ChainError(f'Unexpected native artifact: {name}')
         entries[name] = {'sha256': checksum, 'size': int(size)}
-    if set(entries) != NATIVE_FILES:
+    if not NATIVE_FILES <= set(entries):
         raise ChainError('Native manifest is missing platform artifacts')
     for name, entry in entries.items():
         result = request(f'{MAVEN}/physxbinaries/krunchxbinaries/{sha}/{name}', method='HEAD', missing_ok=True)

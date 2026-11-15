@@ -170,6 +170,21 @@ class ChainTests(unittest.TestCase):
             self.run_chain()
         self.assertEqual([], self.github.updates)
 
+    def test_optional_android_native_is_accepted_but_not_bundled(self):
+        name = 'libKrunchJniAndroidarm64.so'
+        self.native_bytes[name] = b'android native bytes'
+        self.native_entries[name] = {'size': len(self.native_bytes[name]),
+                                     'sha256': hashlib.sha256(self.native_bytes[name]).hexdigest()}
+        result = self.run_chain()
+        self.assertIn(name, result['published']['native']['artifacts'])
+        self.assertEqual(['bridge', 'core', 'vs2'], [key for key, sha in self.github.updates])
+
+    def test_unknown_native_artifact_is_rejected(self):
+        self.native_entries['libKrunchJniSomethingElse.so'] = {'size': 1, 'sha256': '0' * 64}
+        with self.assertRaisesRegex(chain.ChainError, 'Unexpected native artifact'):
+            self.run_chain()
+        self.assertEqual([], self.github.updates)
+
     def test_missing_ci_status_is_not_success(self):
         self.github.statuses = lambda *args: {}
         artifact = unittest.mock.Mock(return_value=True)
