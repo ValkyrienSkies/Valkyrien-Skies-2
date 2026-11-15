@@ -28,6 +28,7 @@ import org.joml.primitives.AABBic
 import org.valkyrienskies.core.api.physics.blockstates.BoxesBlockShape
 import org.valkyrienskies.core.api.physics.blockstates.CollisionPoint
 import org.valkyrienskies.core.api.physics.blockstates.FluidBoundaryShape
+import org.valkyrienskies.core.api.physics.blockstates.FluidBoundarySolidState
 import org.valkyrienskies.core.api.physics.blockstates.LiquidState
 import org.valkyrienskies.core.api.physics.blockstates.SolidBlockShape
 import org.valkyrienskies.core.internal.physics.blockstates.VsiBlockState
@@ -521,6 +522,15 @@ object MassDatapackResolver : BlockStateInfoProvider {
         val event = RegisterBlockStateEventImpl()
         ValkyrienSkiesMod.api.registerBlockStateEvent.emit(event)
         mcBlockStateToVs.putAll(event.toRegister)
+        event.tireSurfaces.forEach { (state, surface) ->
+            val previous = mcBlockStateToVs[state] ?: return@forEach
+            val solid = previous.solidState ?: return@forEach
+            val updated = vsCore.newSolidStateBuilder()
+                .shape(solid.shape).elasticity(solid.elasticity).friction(solid.friction).hardness(solid.hardness)
+                .fluidBoundary((solid as? FluidBoundarySolidState)?.fluidBoundary)
+                .tireSurface(surface).build()
+            mcBlockStateToVs[state] = VsiBlockState(updated, previous.liquidState, previous.displacementState)
+        }
         liquidIdToFlowingFluid.clear()
         cachedFluidTypes = null
     }
