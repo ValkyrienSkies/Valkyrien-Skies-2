@@ -528,6 +528,10 @@ fun Level?.isBlockInShipyard(blockX: Int, blockZ: Int): Boolean =
     isChunkInShipyard(blockX shr 4, blockZ shr 4)
 
 @GameTickOnly
+fun Level?.isBlockInShipyard(x: Double, z: Double): Boolean =
+    isChunkInShipyard(x.toInt() shr 4, z.toInt() shr 4)
+
+@GameTickOnly
 fun Level?.isBlockInShipyard(pos: Vec3i): Boolean =
     isBlockInShipyard(pos.x, pos.z)
 

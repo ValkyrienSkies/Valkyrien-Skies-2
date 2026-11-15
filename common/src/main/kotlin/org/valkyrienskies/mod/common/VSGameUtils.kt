@@ -68,7 +68,7 @@ private const val dep = "Use ValkyrienSkies instead"
 @Deprecated(dep, ReplaceWith("vsCore", "org.valkyrienskies.mod.api.vsCore"))
 val vsCore get() = ValkyrienSkiesMod.vsCore
 
-@Deprecated(dep, ReplaceWith("shipWorldNullable", "org.valkyrienskies.mod.api.shipWorld"))
+@Deprecated(dep, ReplaceWith("shipWorldNullable", "org.valkyrienskies.mod.api.shipWorldNullable"))
 val Level?.shipWorldNullable: VsiShipWorld?
     get() = when {
         this == null -> null
@@ -344,7 +344,7 @@ inline fun Level.transformToNearbyShipsAndWorld(
 fun Level.isChunkInShipyard(chunkX: Int, chunkZ: Int) =
     shipObjectWorld.isChunkInShipyard(chunkX, chunkZ, dimensionId)
 
-@Deprecated(dep, ReplaceWith("isBlockInShipyard(blockX, blockY, blockZ)", "org.valkyrienskies.mod.api.isBlockInShipyard"))
+@Deprecated(dep, ReplaceWith("isBlockInShipyard(blockX, blockZ)", "org.valkyrienskies.mod.api.isBlockInShipyard"))
 fun Level.isBlockInShipyard(blockX: Int, blockY: Int, blockZ: Int) =
     shipObjectWorld.isBlockInShipyard(blockX, blockY, blockZ, dimensionId)
 
@@ -354,7 +354,7 @@ fun Level.isBlockInShipyard(pos: BlockPos) = isBlockInShipyard(pos.x, pos.y, pos
 @Deprecated(dep, ReplaceWith("isBlockInShipyard(pos)", "org.valkyrienskies.mod.api.isBlockInShipyard"))
 fun Level.isBlockInShipyard(pos: Vec3) = isBlockInShipyard(pos.x.toInt(), pos.y.toInt(), pos.z.toInt())
 
-@Deprecated(dep, ReplaceWith("isBlockInShipyard(x, y, z)", "org.valkyrienskies.mod.api.isBlockInShipyard"))
+@Deprecated(dep, ReplaceWith("isBlockInShipyard(x, z)", "org.valkyrienskies.mod.api.isBlockInShipyard"))
 fun Level.isBlockInShipyard(x: Double, y: Double, z: Double) =
     isBlockInShipyard(x.toInt(), y.toInt(), z.toInt())
 
@@ -584,7 +584,6 @@ fun Entity?.getShipStoodOn(): Ship? = getShipBlockStoodOn(0.2)?.ship
 
 /** Entity's `blockPosition()` projected into its enclosing ship, else world `blockPosition()`. */
 @Deprecated(dep, ReplaceWith("entity.shipMountedSeedSpawnPos()", "org.valkyrienskies.mod.api.shipMountedSeedSpawnPos"))
-@JvmStatic
 fun shipMountedSpawnSeedPos(entity: Entity): BlockPos {
     val ship = entity.getShipStoodOn() ?: return entity.blockPosition()
     val local = ship.transform.worldToShip.transformPosition(entity.x, entity.y, entity.z, Vector3d())
@@ -593,7 +592,6 @@ fun shipMountedSpawnSeedPos(entity: Entity): BlockPos {
 
 /** A shipyard `BlockPos`'s Y projected to its world-rendered Y, else `original`. */
 @Deprecated(dep, ReplaceWith("level.shipProjectedWorldY(pos, original)", "org.valkyrienskies.mod.api.shipProjectedWorldY"))
-@JvmStatic
 fun shipProjectedWorldY(level: LevelAccessor, pos: BlockPos, original: Int): Int {
     if (level !is ServerLevel) return original
     val ship = level.getShipManagingPos(pos) ?: return original
@@ -609,7 +607,6 @@ fun shipProjectedWorldY(level: LevelAccessor, pos: BlockPos, original: Int): Int
  * when not on a ship.
  */
 @Deprecated(dep, ReplaceWith("getter.shipAwareCombinedBrightness(pos, skyDarken, original)", "org.valkyrienskies.mod.api.shipAwareCombinedBrightness"))
-@JvmStatic
 fun shipAwareCombinedBrightness(getter: BlockAndTintGetter, pos: BlockPos, skyDarken: Int, original: Int): Int {
     if (getter !is ServerLevel) return original
     val ship = getter.getShipManagingPos(pos)
@@ -628,7 +625,6 @@ fun shipAwareCombinedBrightness(getter: BlockAndTintGetter, pos: BlockPos, skyDa
 
 /** Include world block light at a ship's position. */
 @Deprecated(dep, ReplaceWith("getter.shipAwareBlockBrightness(pos, original)", "org.valkyrienskies.mod.api.shipAwareBlockBrightness"))
-@JvmStatic
 fun shipAwareBlockBrightness(getter: BlockAndTintGetter, pos: BlockPos, original: Int): Int {
     if (getter !is ServerLevel) return original
     val ship = getter.getShipManagingPos(pos) ?: return original
@@ -638,7 +634,6 @@ fun shipAwareBlockBrightness(getter: BlockAndTintGetter, pos: BlockPos, original
 
 /** Sky-only counterpart to [shipAwareCombinedBrightness] — returns `min(original, worldSky)`. */
 @Deprecated(dep, ReplaceWith("getter.shipAwareSkyBrightness(pos, original)", "org.valkyrienskies.mod.api.shipAwareSkyBrightness"))
-@JvmStatic
 fun shipAwareSkyBrightness(getter: BlockAndTintGetter, pos: BlockPos, original: Int): Int {
     if (getter !is ServerLevel) return original
     val ship = getter.getShipManagingPos(pos)
@@ -654,7 +649,6 @@ fun shipAwareSkyBrightness(getter: BlockAndTintGetter, pos: BlockPos, original: 
 /** Vanilla `canSeeSky` projected to the ship's world pos, plus a heightmap-including-ships
  *  check so other ships above also block the sky view. */
 @Deprecated(dep, ReplaceWith("level.shipAwareCanSeeSky(pos)", "org.valkyrienskies.mod.api.shipAwareCanSeeSky"))
-@JvmStatic
 fun shipAwareCanSeeSky(level: Level, pos: BlockPos): Boolean {
     val ship = level.getShipManagingPos(pos)
     val worldPos = if (ship != null) {
@@ -676,7 +670,6 @@ fun shipAwareCanSeeSky(level: Level, pos: BlockPos): Boolean {
  * lighting on the ship. Null when not on a ship — caller falls back to vanilla.
  */
 @Deprecated(dep, ReplaceWith("entity.shipAwareEntityLightLevelDependentMagicValue()", "org.valkyrienskies.mod.api.shipAwareEntityLightLevelDependentMagicValue"))
-@JvmStatic
 fun shipAwareEntityLightLevelDependentMagicValue(entity: Entity): Float? {
     val level = entity.level()
     if (level !is ServerLevel) return null
@@ -749,19 +742,19 @@ fun ServerLevel?.getShipManagingPos(posX: Double, posY: Double, posZ: Double) =
 fun ServerLevel?.getShipManagingPos(chunkPos: ChunkPos) =
     getShipManagingPos(chunkPos.x, chunkPos.z)
 
-@Deprecated(dep, ReplaceWith("toWorldCoordinates(pos)", "org.valkyrienskies.mod.api.toWorldCoordinates"))
+@Deprecated(dep, ReplaceWith("transformToWorld(pos)", "org.valkyrienskies.mod.api.transformToWorld"))
 fun Ship.toWorldCoordinates(pos: BlockPos): Vector3d =
     shipToWorld.transformPosition(pos.toJOMLD())
 
-@Deprecated(dep, ReplaceWith("toWorldCoordinates(pos).toMinecraft()", "org.valkyrienskies.mod.api.toWorldCoordinates"))
+@Deprecated(dep, ReplaceWith("transformToWorld(pos)", "org.valkyrienskies.mod.api.transformToWorld"))
 fun Ship.toWorldCoordinates(pos: Vec3): Vec3 =
     shipToWorld.transformPosition(pos.toJOML()).toMinecraft()
 
-@Deprecated(dep, ReplaceWith("toWorldCoordinates(pos).toMinecraft()", "org.valkyrienskies.mod.api.toWorldCoordinates"))
+@Deprecated(dep, ReplaceWith("transformToWorld(pos).toMinecraft()", "org.valkyrienskies.mod.api.transformToWorld"))
 fun Level?.toWorldCoordinates(pos: BlockPos): Vec3 {
     return this?.getShipManagingPos(pos)?.toWorldCoordinates(pos)?.toMinecraft() ?: pos.toJOMLD().toMinecraft()
 }
-@Deprecated(dep, ReplaceWith("toWorldCoordinates(pos).toMinecraft()", "org.valkyrienskies.mod.api.toWorldCoordinates"))
+@Deprecated(dep, ReplaceWith("transformToWorld(pos)", "org.valkyrienskies.mod.api.transformToWorld"))
 fun Level?.toWorldCoordinates(pos: Vec3): Vec3 {
     return this?.getShipManagingPos(pos)?.toWorldCoordinates(pos) ?: pos
 }
@@ -774,18 +767,18 @@ fun ClientLevel?.toShipRenderCoordinates(shipPos: Vec3, pos: Vec3): Vec3 =
         ?.transformPosition(pos.toJOML())
         ?.toMinecraft() ?: pos
 
-@Deprecated(dep, ReplaceWith("toWorldCoordinates(pos)", "org.valkyrienskies.mod.api.toWorldCoordinates"))
+@Deprecated(dep, ReplaceWith("transformToWorld(pos)", "org.valkyrienskies.mod.api.transformToWorld"))
 fun Level?.toWorldCoordinates(pos: Vector3d): Vector3d {
     return this?.getShipManagingPos(pos)?.shipToWorld?.transformPosition(pos) ?: pos
 }
 
 @JvmOverloads
-@Deprecated(dep, ReplaceWith("toWorldCoordinates(x, y, z, dest)", "org.valkyrienskies.mod.api.toWorldCoordinates"))
+@Deprecated(dep, ReplaceWith("transformToWorld(x, y, z, dest)", "org.valkyrienskies.mod.api.transformToWorld"))
 fun Level?.toWorldCoordinates(x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
     getShipManagingPos(x, y, z)?.toWorldCoordinates(x, y, z) ?: dest.set(x, y, z)
 
 @JvmOverloads
-@Deprecated(dep, ReplaceWith("toWorldCoordinates(x, y, z, dest)", "org.valkyrienskies.mod.api.toWorldCoordinates"))
+@Deprecated(dep, ReplaceWith("transformToWorld(x, y, z, dest)", "org.valkyrienskies.mod.api.transformToWorld"))
 fun Ship.toWorldCoordinates(x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
     transform.shipToWorld.transformPosition(dest.set(x, y, z))
 
@@ -833,7 +826,7 @@ private fun LevelChunkSection.toDenseVoxelUpdateWithoutSourceAmounts(chunkPos: V
  * Different from [getWorldCoordinates(World, Vector3d)] only in that resolves the ship owning
  * [blockPos] rather than inferring it from [pos], which might be helpful at the boundaries of ships.
  */
-@Deprecated(dep, ReplaceWith("getWorldCoordinates(blockPos, pos)", "org.valkyrienskies.mod.api.getWorldCoordinates"))
+@Deprecated(dep, ReplaceWith("transformToWorld(blockPos, pos)", "org.valkyrienskies.mod.api.transformToWorld"))
 fun Level?.getWorldCoordinates(blockPos: BlockPos, pos: Vector3d): Vector3d {
     return this.getLoadedShipManagingPos(blockPos)?.transform?.shipToWorld?.transformPosition(pos) ?: pos
 }
