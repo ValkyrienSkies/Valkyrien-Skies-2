@@ -1,4 +1,5 @@
 @file:JvmName("ValkyrienSkies")
+@file:Suppress("unused", "spellcheckinginspection", "duplicates")
 package org.valkyrienskies.mod.api
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation
@@ -73,10 +74,8 @@ import org.valkyrienskies.core.api.util.functions.IntTernaryConsumer
 import org.valkyrienskies.core.api.world.LevelYRange
 import org.valkyrienskies.core.api.world.connectivity.ConnectionStatus
 import org.valkyrienskies.core.api.world.properties.DimensionId
-import org.valkyrienskies.core.impl.config.VSCoreConfig
 import org.valkyrienskies.core.internal.VsiCore
 import org.valkyrienskies.core.internal.collision.VsiEntityPolygonCollider
-import org.valkyrienskies.core.internal.ships.VsiQueryableShipData
 import org.valkyrienskies.core.internal.world.VsiClientShipWorld
 import org.valkyrienskies.core.internal.world.VsiPlayer
 import org.valkyrienskies.core.internal.world.VsiServerShipWorld
@@ -90,13 +89,13 @@ import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider
 import org.valkyrienskies.mod.common.VS2ChunkAllocator
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod.ASSEMBLE_BLACKLIST
-import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.entity.ShipMountedToData
 import org.valkyrienskies.mod.common.entity.ShipMountedToDataProvider
 import org.valkyrienskies.mod.common.fluid.FractionalFluidSources
 import org.valkyrienskies.mod.common.util.DimensionIdProvider
 import org.valkyrienskies.mod.common.util.EntityDragger.serversidePosition
 import org.valkyrienskies.mod.common.util.EntityShipCollisionUtils
+import org.valkyrienskies.mod.common.util.GameToPhysicsAdapter
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.common.util.ShipShadows
@@ -114,7 +113,12 @@ import kotlin.math.sqrt
 
 @get:JvmName("vsCore")
 val vsCore: VsiCore get() = ValkyrienSkiesMod.vsCore
+@get:JvmName("entityPolygonCollider")
 val entityPolygonCollider: VsiEntityPolygonCollider get() = vsCore.entityPolygonCollider
+@get:JvmName("solidShapeUtils")
+val solidShapeUtils get() = vsCore.solidShapeUtils
+@get:JvmName("blockTypes")
+val blockTypes get() = vsCore.blockTypes
 
 /**
  * The singleton instance of [VsApi].
@@ -133,22 +137,27 @@ val vsApi: VsApi by lazy {
     }
 }
 
-fun isConnectivityEnabled(isClient: Boolean): Boolean {
-    return if (isClient) {
-        VSGameConfig.CLIENT.Connectivity.enableClientConnectivity
-    } else {
-        VSCoreConfig.SERVER.sp.enableConnectivity
-    }
-}
-
-
 // region misc extensions
+/**
+ * The vanilla [Player] associated with this [VsiPlayer].
+ */
 val VsiPlayer.mcPlayer: Player get() = (this as MinecraftPlayer).playerEntityReference.get()!!
+
+/**
+ * The vs2 [MinecraftPlayer] associated with this [Player].
+ */
 val Player.playerWrapper: MinecraftPlayer get() = (this as PlayerDuck).vs_getPlayer()
 
+/**
+ * Convert this resource key into a [String]/[DimensionId]
+ */
 fun ResourceKey<Level>.toDimensionId() =
     "${registry()}:${location()}"
 
+/**
+ * Convert this [DimensionId] into a [ResourceKey], or null if this [DimensionId] is
+ * not formatted correctly.
+ */
 fun DimensionId.toResourceKey(): ResourceKey<Level>? {
     try {
         val (registryNamespace, registryName, namespace, name) = split(":")
@@ -177,7 +186,7 @@ fun BlockAndTintGetter.shipAwareSkyBrightness(pos: BlockPos, original: Int): Int
     if (this !is ServerLevel) return original
     val ship = getShipManagingPos(pos) ?: return ShipShadows.skyBrightness(this, pos, original)
 
-    val rendered = ship.toWorldCoordinates(pos.x + 0.5, pos.y + 0.5, pos.z + 0.5)
+    val rendered = ship.transformToWorld(pos.x + 0.5, pos.y + 0.5, pos.z + 0.5) // todo: maybe just ship.transformToWorld(pos) because we convert it back to a pos?
 
     val worldSky = getBrightness(LightLayer.SKY, BlockPos.containing(rendered.x, rendered.y, rendered.z))
     return ShipShadows.skyBrightness(this, pos, original.coerceAtMost(worldSky))
@@ -188,17 +197,16 @@ fun BlockAndTintGetter.shipAwareBlockBrightness(pos: BlockPos, original: Int): I
     if (this !is ServerLevel) return original
     val ship = getShipManagingPos(pos) ?: return original
 
-    val world = ship.toWorldCoordinates(pos.x + 0.5, pos.y + 0.5, pos.z + 0.5)
+    val world = ship.transformToWorld(pos.x + 0.5, pos.y + 0.5, pos.z + 0.5)  // todo: maybe just ship.transformToWorld(pos) because we convert it back to a pos?
     return original.coerceAtLeast(getBrightness(LightLayer.BLOCK, BlockPos.containing(world.x, world.y, world.z)))
 }
 
 @GameTickOnly
 fun BlockAndTintGetter.shipAwareCombinedBrightness(pos: BlockPos, skyDarken: Int, original: Int): Int {
     if (this !is ServerLevel) return original
-    val ship = getShipManagingPos(pos)
 
     val shipSky = getBrightness(LightLayer.SKY, pos)
-    val rendered = ship?.toWorldCoordinates(pos.x + 0.5, pos.y + 0.5, pos.z + 0.5) ?: Vector3d(pos.x + 0.5, pos.y + 0.5, pos.z + 0.5)
+    val rendered = transformToWorld(pos.x + 0.5, pos.y + 0.5, pos.z + 0.5)
     val worldSky = getBrightness(LightLayer.SKY, BlockPos.containing(rendered.x, rendered.y, rendered.z))
 
     val shadowSky = ShipShadows.skyBrightness(this, pos, shipSky.coerceAtMost(worldSky))
@@ -229,7 +237,7 @@ fun Entity?.getEnclosingShip(): Ship? {
     val info = this.draggingInformation
     if (!info.isEntityBeingDraggedByAShip()) return null
     val shipId = info.lastShipStoodOn ?: return null
-    return level().shipWorld?.loadedShips?.getById(shipId)
+    return level()?.shipWorld?.loadedShips?.getById(shipId)
 }
 
 /**
@@ -251,11 +259,11 @@ fun Entity?.getShipBlockStoodOn(probeDepth: Double): ShipBlock? {
     val foot = Vector3d(this.x, this.boundingBox.minY - probeDepth, this.z)
     val probe = AABBd(foot.x - 0.5, foot.y - 0.5, foot.z - 0.5, foot.x + 0.5, foot.y + 0.5, foot.z + 0.5)
     for (ship in level.getShipsIntersecting(probe)) {
-        val local = ship.toWorldCoordinates(foot, Vector3d())
+        val local = ship.transformToWorld(foot, Vector3d())
         val centerPos = BlockPos.containing(local.x, local.y, local.z)
         if (!level.getBlockState(centerPos).isAir) return ShipBlock(ship, centerPos)
 
-        val belowLocal = ship.toWorldCoordinates(Vector3d(foot.x, foot.y - 1.0, foot.z))
+        val belowLocal = ship.transformToWorld(Vector3d(foot.x, foot.y - 1.0, foot.z))
         val belowPos = BlockPos.containing(belowLocal.x, belowLocal.y, belowLocal.z)
         if (!level.getBlockState(belowPos).isAir) return ShipBlock(ship, belowPos)
 
@@ -270,7 +278,7 @@ fun Entity?.getShipBlockStoodOn(probeDepth: Double): ShipBlock? {
         var lastSeen = centerLong
         for (i in 0 until 4) {
             cornerScratch.set(cornerXs[i], foot.y, cornerZs[i])
-            ship.toWorldCoordinates(cornerScratch)
+            ship.transformToWorld(cornerScratch)
             val cornerPos = BlockPos.containing(cornerScratch.x, cornerScratch.y, cornerScratch.z)
             val cornerLong = cornerPos.asLong()
             if (cornerLong == centerLong || cornerLong == lastSeen) continue
@@ -376,7 +384,7 @@ val Level.dimensionId: DimensionId
 val Level?.shipWorldNullable: VsiShipWorld?
     get() = when {
         this == null -> null
-        this is ServerLevel -> this.server.shipWorldNullable
+        this is ServerLevel -> this.shipWorldNullable
         this is ClientLevel && this.isClientSide -> this.shipWorldNullable
         else -> null
     }
@@ -478,6 +486,7 @@ fun getResourceKey(dimensionId: DimensionId): ResourceKey<Level>? {
  * Execute [runnable] immediately if the thread invoking this is the same as the game thread.
  * Otherwise, schedule [runnable] to run on the next tick.
  */
+@Suppress("unchecked_cast")
 fun Level.executeOrSchedule(runnable: Runnable) {
     val blockableEventLoop: BlockableEventLoop<Runnable> = if (!this.isClientSide) {
         this.server!! as BlockableEventLoop<Runnable>
@@ -489,6 +498,9 @@ fun Level.executeOrSchedule(runnable: Runnable) {
     else blockableEventLoop.execute(runnable)
 }
 
+/**
+ * The [GameToPhysicsAdapter] for this level.
+ */
 val Level.gameToPhysicsAdapter get() = ValkyrienSkiesMod.getOrCreateGTPA(dimensionId)
 
 @GameTickOnly
@@ -558,7 +570,7 @@ fun Level.isTickingChunk(chunkX: Int, chunkZ: Int) =
  * It is not a substitute for [isTickingChunk] when gameplay needs random, block, or entity ticks.
  *
  * Shipyard chunks loaded through [org.valkyrienskies.mod.common.world.VSTicketType.SHIP_CHUNK]
- * only reach FULL status, so they won't pass [isPositionTicking]. For those chunks we accept a
+ * only reach FULL status, so they won't pass [ServerChunkCache.isPositionTicking]. For those chunks we accept a
  * non-null [ServerChunkCache.getChunkNow].
  */
 fun Level.isChunkLoadedForVS(pos: ChunkPos): Boolean {
@@ -591,7 +603,7 @@ fun Level.shipAwareCanSeeSky(pos: BlockPos): Boolean {
 fun LevelAccessor.shipProjectedWorldY(pos: BlockPos, original: Int): Int {
     if (this !is ServerLevel) return original
     val ship = getShipManagingPos(pos) ?: return original
-    val rendered = ship.toWorldCoordinates(pos.x + 0.5, pos.y + 0.5, pos.z + 0.5)
+    val rendered = ship.transformToWorld(pos.x + 0.5, pos.y + 0.5, pos.z + 0.5)
     return floor(rendered.y).toInt()
 }
 
@@ -618,7 +630,7 @@ fun LevelChunkSection.toDenseVoxelUpdate(chunkPos: Vector3ic, level: Level? = nu
     return update.build()
 }
 
-@GameTickOnly // idk why either of these exist and they seem to be the exact same but idk flooding is black magic
+@GameTickOnly // dunno why either of these exist, and they seem to be the exact same but flooding is black magic
 fun Level.isPositionSealed(pos: BlockPos): Boolean {
     val result = shipWorld.isIsolatedAir(pos.x, pos.y, pos.z, dimensionId)
     return result == ConnectionStatus.DISCONNECTED || result == ConnectionStatus.UNKNOWN
@@ -649,8 +661,8 @@ fun Level?.getShipManagingPos(chunkX: Int, chunkZ: Int) =
     getShipManagingPosImpl(this, chunkX, chunkZ)
 
 @GameTickOnly
-fun Level?.getShipManagingPos(blockPos: Vec3i) =
-    getShipManagingPos(blockPos.x shr 4, blockPos.z shr 4)
+fun Level?.getShipManagingPos(pos: Vec3i) =
+    getShipManagingPos(pos.x shr 4, pos.z shr 4)
 
 @GameTickOnly
 fun Level?.getShipManagingPos(pos: Position) =
@@ -667,7 +679,6 @@ fun Level?.getShipManagingPos(posX: Double, posZ: Double) =
 @GameTickOnly
 fun Level?.getShipManagingPos(chunkPos: ChunkPos) =
     getShipManagingPos(chunkPos.x, chunkPos.z)
-
 
 @GameTickOnly
 fun Level?.getShipManagingBlock(x: Int, z: Int): Ship? =
@@ -741,44 +752,460 @@ fun Level?.toWorld(aabb: AABBd) =
 fun Level?.toWorld(aabb: AABB): AABB =
     toWorld(aabb.toJOML()).toMinecraft()
 
-@GameTickOnly
-fun Level?.positionToWorld(pos: Vec3): Vec3 =
-    getShipManagingBlock(pos).positionToWorld(pos)
-
-@GameTickOnly
-fun Level?.positionToWorld(pos: Vector3d): Vector3d =
-    positionToWorld(pos, pos)
-
-@GameTickOnly
-fun Level?.positionToWorld(pos: Vector3dc, dest: Vector3d): Vector3d =
-    getShipManagingBlock(pos).positionToWorld(pos, dest)
-
-@GameTickOnly
-fun Level?.toWorldCoordinates(blockPos: Vec3i): Vector3d =
-    getShipManagingPos(blockPos)?.toWorldCoordinates(blockPos) ?: blockPos.toJOMLd()
-
-@GameTickOnly
-fun Level?.toWorldCoordinates(pos: Vec3): Vector3d =
-    getShipManagingPos(pos)?.toWorldCoordinates(pos) ?: pos.toJOML()
-
-@GameTickOnly
-fun Level?.toWorldCoordinates(pos: Vector3d, dest: Vector3d): Vector3d =
-    getShipManagingPos(pos)?.toWorldCoordinates(pos, dest) ?: dest.set(pos)
-
-@GameTickOnly
-fun Level?.toWorldCoordinates(pos: Vector3d): Vector3d =
-    getShipManagingPos(pos)?.toWorldCoordinates(pos) ?: pos
-
-@GameTickOnly
+/**
+ * Get the ship at [x], [y], [z], and use it to transform [x], [y], [z] from
+ * ship space into world space, and store the result in [dest]. If there is no
+ * ship at the given position, the untransformed position is the result.
+ *
+ * @param x The x-coordinate in ship space
+ * @param y The y-coordinate in ship space
+ * @param z The z-coordinate in ship space
+ * @param dest The vector to hold the final result
+ *
+ * @return [dest]
+ */
 @JvmOverloads
-fun Level?.toWorldCoordinates(x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
-    getShipManagingPos(x, z)?.toWorldCoordinates(x, y, z, dest) ?: dest.set(x, y, z)
+@GameTickOnly
+fun Level?.transformToWorld(x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
+    getShipManagingPos(x, z).transformToWorld(x, y, z, dest)
+
+/**
+ * Get the ship at [shipAtX], [shipAtZ], and use it to transform [x], [y], [z]
+ * from ship space into world space, and store the result in [dest]. If there
+ * is no ship at the given position, the untransformed position is the result.
+ *
+ * @param shipAtX The x-coordinate of the ship in ship space
+ * @param shipAtX The z-coordinate of the ship in ship space
+ * @param x The x-coordinate to transform
+ * @param y The y-coordinate to transform
+ * @param z The z-coordinate to transform
+ * @param dest The vector to hold the final result
+ *
+ * @return [dest]
+ */
+@JvmOverloads
+@GameTickOnly
+fun Level?.transformToWorld(shipAtX: Double, shipAtZ: Double, x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
+    getShipManagingPos(shipAtX, shipAtZ).transformToWorld(x, y, z, dest)
+
+/**
+ * Get the ship at [shipAt], and use it to transform [x], [y], [z] from ship
+ * space into world space, and store the result in [dest]. If there is no ship
+ * at the given position, the untransformed position is the result.
+ *
+ * @param shipAt The position of the ship in ship space
+ * @param x The x-coordinate to transform
+ * @param y The y-coordinate to transform
+ * @param z The z-coordinate to transform
+ * @param dest The vector to hold the final result
+ *
+ * @return [dest]
+ */
+@JvmOverloads
+@GameTickOnly
+fun Level?.transformToWorld(shipAt: Vector3d, x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
+    getShipManagingPos(shipAt).transformToWorld(x, y, z, dest)
+
+/**
+ * Get the ship at [shipAt], and use it to transform [x], [y], [z] from ship
+ * space into world space, and store the result in [dest]. If there is no ship
+ * at the given position, the untransformed position is the result.
+ *
+ * @param shipAt The position of the ship in ship space
+ * @param x The x-coordinate to transform
+ * @param y The y-coordinate to transform
+ * @param z The z-coordinate to transform
+ * @param dest The vector to hold the final result
+ *
+ * @return [dest]
+ */
+@JvmOverloads
+@GameTickOnly
+fun Level?.transformToWorld(shipAt: Position, x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
+    getShipManagingPos(shipAt).transformToWorld(x, y, z, dest)
+
+/**
+ * Get the ship at [shipAt], and use it to transform [x], [y], [z] from ship
+ * space into world space, and store the result in [dest]. If there is no ship
+ * at the given position, the untransformed position is the result.
+ *
+ * @param shipAt The position of the ship in ship space
+ * @param x The x-coordinate to transform
+ * @param y The y-coordinate to transform
+ * @param z The z-coordinate to transform
+ * @param dest The vector to hold the final result
+ *
+ * @return [dest]
+ */
+@JvmOverloads
+@GameTickOnly
+fun Level?.transformToWorld(shipAt: Vec3i, x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
+    getShipManagingPos(shipAt).transformToWorld(x, y, z, dest)
+
+/**
+ * Get the ship at [shipAt], and use it to transform [x], [y], [z] from ship
+ * space into world space, and store the result in [dest]. If there is no ship
+ * at the given position, the untransformed position is the result.
+ *
+ * @param shipAt The position of the ship in ship space
+ * @param x The x-coordinate to transform
+ * @param y The y-coordinate to transform
+ * @param z The z-coordinate to transform
+ * @param dest The vector to hold the final result
+ *
+ * @return [dest]
+ */
+@JvmOverloads
+@GameTickOnly
+fun Level?.transformToWorld(shipAt: ChunkPos, x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
+    getShipManagingPos(shipAt).transformToWorld(x, y, z, dest)
+
+/**
+ * Get the ship at [pos], and use it to transform [pos] from ship space into
+ * world space. If there is no ship at the given position, the untransformed
+ * position is the result.
+ *
+ * @param pos The position of the ship in ship space, and the position to
+ * transform.
+ *
+ * @return A new [Vec3] containing the result
+ */
+@GameTickOnly
+fun Level?.transformToWorld(pos: Vec3): Vec3 =
+    getShipManagingPos(pos).transformToWorld(pos)
+
+/**
+ * Get the ship at [shipAtX], [shipAtZ] and use it to transform [pos] from ship
+ * space into world space. If there is no ship at the given position, the
+ * untransformed position is the result.
+ *
+ * @param shipAtX The x-coordinate of the ship in ship space
+ * @param shipAtX The z-coordinate of the ship in ship space
+ * @param pos The position to transform
+ *
+ * @return A new [Vec3] containing the result
+ */
+@GameTickOnly
+fun Level?.transformToWorld(shipAtX: Double, shipAtZ: Double, pos: Vec3): Vec3 =
+    getShipManagingPos(shipAtX, shipAtZ).transformToWorld(pos)
+
+/**
+ * Get the ship at [shipAt] and use it to transform [pos] from ship space into
+ * world space. If there is no ship at the given position, the untransformed
+ * position is the result.
+ *
+ * @param shipAt The position of the ship in ship space
+ * @param pos The position to transform
+ *
+ * @return A new [Vec3] containing the result
+ */
+@GameTickOnly
+fun Level?.transformToWorld(shipAt: Vector3d, pos: Vec3): Vec3 =
+    getShipManagingPos(shipAt).transformToWorld(pos)
+
+/**
+ * Get the ship at [shipAt] and use it to transform [pos] from ship space into
+ * world space. If there is no ship at the given position, the untransformed
+ * position is the result.
+ *
+ * @param shipAt The position of the ship in ship space
+ * @param pos The position to transform
+ *
+ * @return A new [Vec3] containing the result
+ */
+@GameTickOnly
+fun Level?.transformToWorld(shipAt: Position, pos: Vec3): Vec3 =
+    getShipManagingPos(shipAt).transformToWorld(pos)
+
+/**
+ * Get the ship at [shipAt] and use it to transform [pos] from ship space into
+ * world space. If there is no ship at the given position, the untransformed
+ * position is the result.
+ *
+ * @param shipAt The position of the ship in ship space
+ * @param pos The position to transform
+ *
+ * @return A new [Vec3] containing the result
+ */
+@GameTickOnly
+fun Level?.transformToWorld(shipAt: Vec3i, pos: Vec3): Vec3 =
+    getShipManagingPos(shipAt).transformToWorld(pos)
+
+/**
+ * Get the ship at [shipAt] and use it to transform [pos] from ship space into
+ * world space. If there is no ship at the given position, the untransformed
+ * position is the result.
+ *
+ * @param shipAt The position of the ship in ship space
+ * @param pos The position to transform
+ *
+ * @return A new [Vec3] containing the result
+ */
+@GameTickOnly
+fun Level?.transformToWorld(shipAt: ChunkPos, pos: Vec3) =
+    getShipManagingPos(shipAt).transformToWorld(pos)
+
+/**
+ * Get the ship at [pos], and use it to transform [pos] from ship space into
+ * world space, and store the result in [pos]. If there is no ship at the given
+ * position, the untransformed position is the result.
+ *
+ * @param pos The position of the ship in ship space, and the position to
+ * transform and hold the final result
+ *
+ * @return [pos]
+ */
+@GameTickOnly
+fun Level?.transformToWorld(pos: Vector3d): Vector3d =
+    getShipManagingPos(pos).transformToWorld(pos)
+
+/**
+ * Get the ship at [shipAtX], [shipAtZ] and use it to transform [pos] from ship
+ * space into world space, and store the result in [pos]. If there is no ship at
+ * the given position, the untransformed position is the result.
+ *
+ * @param shipAtX The x-coordinate of the ship in ship space
+ * @param shipAtX The z-coordinate of the ship in ship space
+ * @param pos The position to transform and hold the final result
+ *
+ * @return [pos]
+ */
+@GameTickOnly
+fun Level?.transformToWorld(shipAtX: Double, shipAtZ: Double, pos: Vector3d): Vector3d =
+    getShipManagingPos(shipAtX, shipAtZ).transformToWorld(pos)
+
+/**
+ * Get the ship at [shipAt] and use it to transform [pos] from ship space into
+ * world space, and store the result in [pos]. If there is no ship at the given
+ * position, the untransformed position is the result.
+ *
+ * @param shipAt The position of the ship in ship space
+ * @param pos The position to transform and hold the final result
+ *
+ * @return [pos]
+ */
+@GameTickOnly
+fun Level?.transformToWorld(shipAt: Vector3d, pos: Vector3d): Vector3d =
+    getShipManagingPos(shipAt).transformToWorld(pos)
+
+/**
+ * Get the ship at [shipAt] and use it to transform [pos] from ship space into
+ * world space, and store the result in [pos]. If there is no ship at the given
+ * position, the untransformed position is the result.
+ *
+ * @param shipAt The position of the ship in ship space
+ * @param pos The position to transform and hold the final result
+ *
+ * @return [pos]
+ */
+@GameTickOnly
+fun Level?.transformToWorld(shipAt: Position, pos: Vector3d): Vector3d =
+    getShipManagingPos(shipAt).transformToWorld(pos)
+
+/**
+ * Get the ship at [shipAt] and use it to transform [pos] from ship space into
+ * world space, and store the result in [pos]. If there is no ship at the given
+ * position, the untransformed position is the result.
+ *
+ * @param shipAt The position of the ship in ship space
+ * @param pos The position to transform and hold the final result
+ *
+ * @return [pos]
+ */
+@GameTickOnly
+fun Level?.transformToWorld(shipAt: Vec3i, pos: Vector3d): Vector3d =
+    getShipManagingPos(shipAt).transformToWorld(pos)
+
+/**
+ * Get the ship at [shipAt] and use it to transform [pos] from ship space into
+ * world space, and store the result in [pos]. If there is no ship at the
+ * given position, the untransformed position is the result.
+ *
+ * @param shipAt The position of the ship in ship space
+ * @param pos The position to transform and hold the final result
+ *
+ * @return [pos]
+ */
+@GameTickOnly
+fun Level?.transformToWorld(shipAt: ChunkPos, pos: Vector3d): Vector3d =
+    getShipManagingPos(shipAt).transformToWorld(pos)
+
+/**
+ * Get the ship at [pos] and use it to transform [pos] from ship space into
+ * world space, and store the result in [dest]. If there is no ship at the given
+ * position, the untransformed position is the result.
+ *
+ * @param pos The position of the ship in ship space, and the position to
+ * transform
+ * @param dest The vector to hold the final result
+ *
+ * @return [dest]
+ */
+@GameTickOnly
+fun Level?.transformToWorld(pos: Vector3dc, dest: Vector3d): Vector3d =
+    getShipManagingPos(pos).transformToWorld(pos, dest)
+
+/**
+ * Get the ship at [shipAtX], [shipAtZ] and use it to transform [pos] from ship
+ * space into world space, and store the result in [dest]. If there is no ship
+ * at the given position, the untransformed position is the result.
+ *
+ * @param shipAtX The x-coordinate of the ship in ship space
+ * @param shipAtX The z-coordinate of the ship in ship space
+ * @param pos The position to transform
+ * @param dest The vector to hold the final result
+ *
+ * @return [dest]
+ */
+@GameTickOnly
+fun Level?.transformToWorld(shipAtX: Double, shipAtZ: Double, pos: Vector3dc, dest: Vector3d): Vector3d =
+    getShipManagingPos(shipAtX, shipAtZ).transformToWorld(pos, dest)
+
+/**
+ * Get the ship at [shipAt] and use it to transform [pos] from ship space into
+ * world space, and store the result in [dest]. If there is no ship at the given
+ * position, the untransformed position is the result.
+ *
+ * @param shipAt The position of the ship in ship space
+ * @param pos The position to transform
+ * @param dest The vector to hold the final result
+ *
+ * @return [dest]
+ */
+@GameTickOnly
+fun Level?.transformToWorld(shipAt: Vector3d, pos: Vector3dc, dest: Vector3d): Vector3d =
+    getShipManagingPos(shipAt).transformToWorld(pos, dest)
+
+/**
+ * Get the ship at [shipAt] and use it to transform [pos] from ship space into
+ * world space, and store the result in [dest]. If there is no ship at the given
+ * position, the untransformed position is the result.
+ *
+ * @param shipAt The position of the ship in ship space
+ * @param pos The position to transform
+ * @param dest The vector to hold the final result
+ *
+ * @return [dest]
+ */
+@GameTickOnly
+fun Level?.transformToWorld(shipAt: Position, pos: Vector3dc, dest: Vector3d): Vector3d =
+    getShipManagingPos(shipAt).transformToWorld(pos, dest)
+
+/**
+ * Get the ship at [shipAt] and use it to transform [pos] from ship space into
+ * world space, and store the result in [dest]. If there is no ship at the given
+ * position, the untransformed position is the result.
+ *
+ * @param shipAt The position of the ship in ship space
+ * @param pos The position to transform
+ * @param dest The vector to hold the final result
+ *
+ * @return [dest]
+ */
+@GameTickOnly
+fun Level?.transformToWorld(shipAt: Vec3i, pos: Vector3dc, dest: Vector3d): Vector3d =
+    getShipManagingPos(shipAt).transformToWorld(pos, dest)
+
+/**
+ * Get the ship at [shipAt] and use it to transform [pos] from ship space into
+ * world space, and store the result in [dest]. If there is no ship at the given
+ * position, the untransformed position is the result.
+ *
+ * @param shipAt The position of the ship in ship space
+ * @param pos The position to transform
+ * @param dest The vector to hold the final result
+ *
+ * @return [dest]
+ */
+@GameTickOnly
+fun Level?.transformToWorld(shipAt: ChunkPos, pos: Vector3dc, dest: Vector3d): Vector3d =
+    getShipManagingPos(shipAt).transformToWorld(pos, dest)
+
+/**
+ * Get the ship at [pos] and use it to transform [pos] from ship space into
+ * world space. If there is no ship at the given position, the untransformed
+ * position is the result.
+ *
+ * @param pos The position of the ship in ship space, and the position to
+ * transform
+ *
+ * @return A new [Vector3d] containing the result
+ */
+@GameTickOnly
+fun Level?.transformToWorld(pos: Vec3i): Vector3d =
+    getShipManagingPos(pos).transformToWorld(pos)
+
+/**
+ * Get the ship at [shipAtX], [shipAtZ] and use it to transform [pos] from ship
+ * space into world space. If there is no ship at the given position, the
+ * untransformed position is the result.
+ *
+ * @param shipAtX The x-coordinate of the ship in ship space
+ * @param shipAtX The z-coordinate of the ship in ship space
+ * @param pos The position to transform
+ *
+ * @return A new [Vector3d] containing the result
+ */
+@GameTickOnly
+fun Level?.transformToWorld(shipAtX: Double, shipAtZ: Double, pos: Vec3i): Vector3d =
+    getShipManagingPos(shipAtX, shipAtZ).transformToWorld(pos)
+
+/**
+ * Get the ship at [shipAt] and use it to tranform [pos] from ship space into
+ * world space. If there is no ship at the given position, the untransformed
+ * position is the result.
+ *
+ * @param shipAt The position of the ship in ship space
+ * @param pos The position to transform
+ *
+ * @return A new [Vector3d] containing the result
+ */
+@GameTickOnly
+fun Level?.transformToWorld(shipAt: Vector3d, pos: Vec3i): Vector3d =
+    getShipManagingPos(shipAt).transformToWorld(pos)
+
+/**
+ * Get the ship at [shipAt] and use it to tranform [pos] from ship space into
+ * world space. If there is no ship at the given position, the untransformed
+ * position is the result.
+ *
+ * @param shipAt The position of the ship in ship space
+ * @param pos The position to transform
+ *
+ * @return A new [Vector3d] containing the result
+ */
+@GameTickOnly
+fun Level?.transformToWorld(shipAt: Position, pos: Vec3i): Vector3d =
+    getShipManagingPos(shipAt).transformToWorld(pos)
+
+/**
+ * Get the ship at [shipAt] and use it to tranform [pos] from ship space into
+ * world space. If there is no ship at the given position, the untransformed
+ * position is the result.
+ *
+ * @param shipAt The position of the ship in ship space
+ * @param pos The position to transform
+ *
+ * @return A new [Vector3d] containing the result
+ */
+@GameTickOnly
+fun Level?.transformToWorld(shipAt: Vec3i, pos: Vec3i): Vector3d =
+    getShipManagingPos(shipAt).transformToWorld(pos)
+
+/**
+ * Get the ship at [shipAt] and use it to tranform [pos] from ship space into
+ * world space. If there is no ship at the given position, the untransformed position is the result.
+ *
+ * @param shipAt The position of the ship in ship space
+ * @param pos The position to transform
+ *
+ * @return A new [Vector3d] containing the result
+ */
+@GameTickOnly
+fun Level?.transformToWorld(shipAt: ChunkPos, pos: Vec3i): Vector3d =
+    getShipManagingPos(shipAt).transformToWorld(pos)
 
 @GameTickOnly
-fun Level?.getWorldCoordinates(blockPos: Vec3i, pos: Vector3d) =
-    getShipManagingPos(blockPos)?.toWorldCoordinates(pos) ?: pos
-
-
 private inline fun Level?.positionToNearbyShipsAndWorld(
     x: Double,
     y: Double,
@@ -791,10 +1218,20 @@ private inline fun Level?.positionToNearbyShipsAndWorld(
 }
 
 /**
- * Gets all ships intersecting [aabb] (or x, y, z if [aabb] is null), then
- * transforms the position x, y, z to their respective ship spaces
- * and calls [cb] with the transformed positions.
+ * Transforms a position into the local coordinate space of each nearby ship
+ * whose collision geometry may intersect the specified bounding box.
+ *
+ * If [aabb] is `null`, a zero-sized bounding box is created at the specified
+ * position. Each ship is checked for potential intersection before the position
+ * is transformed using its world-to-ship transform.
+ *
+ * @param x the world-space X coordinate.
+ * @param y the world-space Y coordinate.
+ * @param z the world-space Z coordinate.
+ * @param aabb the optional world-space bounding box used to determine nearby ships.
+ * @param cb callback invoked with the transformed local-space coordinates for each qualifying ship.
  */
+@GameTickOnly
 private inline fun Level?.positionToNearbyShips(
     x: Double,
     y: Double,
@@ -802,11 +1239,11 @@ private inline fun Level?.positionToNearbyShips(
     aabb: AABBdc?,
     cb: (Double, Double, Double) -> Unit
 ) {
-    val queryAabb = aabb ?: AABBd(x, y, z, x, y, z)
+    val worldAABB = aabb ?: AABBd(x, y, z, x, y, z)
     val localQueryAabb = AABBd()
 
-    for (ship in getShipsIntersecting(queryAabb)) {
-        queryAabb.transform(ship.worldToShip, localQueryAabb)
+    for (ship in getShipsIntersecting(worldAABB)) {
+        worldAABB.transform(ship.worldToShip, localQueryAabb)
         if (!EntityShipCollisionUtils.mayShipIntersectLocalAabb(ship, localQueryAabb)) {
             continue
         }
@@ -815,9 +1252,14 @@ private inline fun Level?.positionToNearbyShips(
 }
 
 /**
- * Transforms the given world position into the ship space of all ships whose AABB intersects [aabb]
+ * Transforms the given world position into the ship space of all ships whose AABB intersects [aabb].
+ *
+ * If [aabb] is `null`, a zero-sized bounding box is created
+ *
+ * @return An [Iterable] containing the transformed vectors
  */
 @JvmOverloads
+@GameTickOnly
 fun Level?.positionToNearbyShips(x: Double, y: Double, z: Double, aabb: AABBdc? = null): Iterable<Vector3d> {
     if (this == null) return emptyList()
     val list = mutableListOf<Vector3d>()
@@ -827,32 +1269,43 @@ fun Level?.positionToNearbyShips(x: Double, y: Double, z: Double, aabb: AABBdc? 
     return list
 }
 
+/**
+ * Transforms the given world position into the ship space of all ships whose AABB intersects [aabb]
+ */
 @JvmOverloads
+@GameTickOnly
 fun Level?.positionToNearbyShipsAndWorld(x: Double, y: Double, z: Double, aabb: AABBdc? = null): Iterable<Vector3d> =
     listOf(Vector3d(x, y, z)) + positionToNearbyShips(x, y, z, aabb)
 
-
+@GameTickOnly
 fun Level?.positionToNearbyShips(x: Double, y: Double, z: Double, cb: DoubleTernaryConsumer): Unit =
     positionToNearbyShips(x, y, z, null, cb::accept)
 
+@GameTickOnly
 fun Level?.positionToNearbyShips(x: Double, y: Double, z: Double, aabb: AABBdc?, cb: DoubleTernaryConsumer): Unit =
     positionToNearbyShips(x, y, z, aabb, cb::accept)
 
+@GameTickOnly
 fun Level?.positionToNearbyShips(x: Double, y: Double, z: Double, aabbRadius: Double): Iterable<Vector3d> =
     positionToNearbyShips(x, y, z, newAABBWithRadius(x, y, z, aabbRadius))
 
+@GameTickOnly
 fun Level?.positionToNearbyShips(x: Double, y: Double, z: Double, aabbRadius: Double, cb: DoubleTernaryConsumer): Unit =
     positionToNearbyShips(x, y, z, newAABBWithRadius(x, y, z, aabbRadius), cb)
 
+@GameTickOnly
 fun Level?.positionToNearbyShipsAndWorld(x: Double, y: Double, z: Double, cb: DoubleTernaryConsumer): Unit =
     positionToNearbyShipsAndWorld(x, y, z, null, cb::accept)
 
+@GameTickOnly
 fun Level?.positionToNearbyShipsAndWorld(x: Double, y: Double, z: Double, aabb: AABBdc?, cb: DoubleTernaryConsumer): Unit =
     positionToNearbyShipsAndWorld(x, y, z, aabb, cb::accept)
 
+@GameTickOnly
 fun Level?.positionToNearbyShipsAndWorld(x: Double, y: Double, z: Double, aabbRadius: Double): Iterable<Vector3d> =
     positionToNearbyShipsAndWorld(x, y, z, newAABBWithRadius(x, y, z, aabbRadius))
 
+@GameTickOnly
 fun Level?.positionToNearbyShipsAndWorld(x: Double, y: Double, z: Double, aabbRadius: Double, cb: DoubleTernaryConsumer): Unit =
     positionToNearbyShipsAndWorld(x, y, z, newAABBWithRadius(x, y, z, aabbRadius), cb)
 
@@ -913,7 +1366,7 @@ fun Level.transformToNearbyShipsAndWorld(x: Double, y: Double, z: Double, aabbRa
     val currentShip = getShipManagingPos(x, z)
     val pos = Vector3d(x, y, z)
 
-    currentShip?.toWorldCoordinates(pos) // transform to world if not already world pos
+    currentShip?.transformToWorld(pos) // transform to world if not already world pos
 
     cb.accept(pos.x(), pos.y(), pos.z()) // call for world pos
 
@@ -1057,8 +1510,8 @@ fun Level?.distance(v1: Position, v2: Position): Double =
 fun Level?.distanceSquared(v1: Vec3, v2: Vec3, originalDistance: Operation<Double>?): Double {
     originalDistance ?: return distanceSquared(v1.x, v1.y, v1.z, v2.x, v2.y, v2.z)
 
-    val inWorldV1 = toWorldCoordinates(v1)
-    val inWorldV2 = toWorldCoordinates(v2)
+    val inWorldV1 = transformToWorld(v1)
+    val inWorldV2 = transformToWorld(v2)
 
     return originalDistance.call(inWorldV1, inWorldV2)
 }
@@ -1182,19 +1635,26 @@ val Minecraft?.shipWorldNullable: VsiClientShipWorld?
 /**
  * Returns the [VsiClientShipWorld] associated with this [ClientLevel] if it
  * is not null, or throws an error if it is.
+ *
+ * @see shipWorldNullable
  */
 @GameTickOnly
 val ClientLevel?.shipWorld: VsiClientShipWorld
-    get() = shipWorldNullable ?: error("no shipWorld for this ClientLevel!")
+    get() = shipWorldNullable ?: error("no shipWorld for this client level: ${this?.javaClass?.simpleName ?: "null"}")
 
 /**
- * Returns the [VsiClientShipWorld] assocaiated with this [Minecraft] if it
+ * Returns the [VsiClientShipWorld] associated with this [Minecraft] if it
  * is not null, or throws an error if it is.
+ *
+ * @see shipWorldNullable
  */
 @GameTickOnly
 val Minecraft?.shipWorld: VsiClientShipWorld
-    get() = shipWorldNullable ?: error("no shipWorld for this Minecraft!")
+    get() = shipWorldNullable ?: error("no shipWorld for this minecraft: ${this?.javaClass?.simpleName ?: "null"}")
 
+/**
+ * Returns a [QueryableShipData] containing all sh
+ */
 @GameTickOnly val ClientLevel?.allShips get() = this?.shipWorld?.allShips?.dimension(this)
 @GameTickOnly val ClientLevel?.loadedShips get() = this?.shipWorld?.loadedShips?.dimension(this)
 @GameTickOnly val ClientLevel?.unloadedShips get() = this?.shipWorld?.unloadedShips?.dimension(this)
@@ -1390,11 +1850,11 @@ val ServerLevel?.shipWorldNullable: VsiServerShipWorld?
 
 @GameTickOnly
 val ServerLevel?.shipWorld: VsiServerShipWorld
-    get() = shipWorldNullable ?: error("no shipWorld for this ServerLevel!")
+    get() = shipWorldNullable ?: error("no shipWorld for this server level: ${this?.javaClass?.simpleName ?: "null"}")
 
 @GameTickOnly
 val MinecraftServer?.shipWorld: VsiServerShipWorld
-    get() = shipWorldNullable ?: error("no shipWorld for this MinecraftServer!")
+    get() = shipWorldNullable ?: error("no shipWorld for this minecraft server: ${this?.javaClass?.simpleName ?: "null"}")
 
 val MinecraftServer?.vsPipeline
     get() = (this as IShipObjectWorldServerProvider?)?.vsPipeline
@@ -1402,13 +1862,13 @@ val MinecraftServer?.vsPipeline
 val ServerLevel?.vsPipeline
     get() = (this as IShipObjectWorldServerProvider?)?.vsPipeline
 
-@GameTickOnly val ServerLevel?.allShips get() = this.shipWorld?.allShips?.dimension(this)
-@GameTickOnly val ServerLevel?.loadedShips get() = this.shipWorld?.loadedShips?.dimension(this)
-@GameTickOnly val ServerLevel?.unloadedShips get() = this.shipWorld?.unloadedShips?.dimension(this)
+@GameTickOnly val ServerLevel?.allShips get() = this?.shipWorld?.allShips?.dimension(this)
+@GameTickOnly val ServerLevel?.loadedShips get() = this?.shipWorld?.loadedShips?.dimension(this)
+@GameTickOnly val ServerLevel?.unloadedShips get() = this?.shipWorld?.unloadedShips?.dimension(this)
 
-@GameTickOnly val ServerLevel?.allBodies get() = this.shipWorld?.allBodies?.dimension(this)
-@GameTickOnly val ServerLevel?.loadedBodies get() = this.shipWorld?.loadedBodies?.dimension(this)
-@GameTickOnly val ServerLevel?.unloadedBodies get() = this.shipWorld?.unloadedBodies?.dimension(this)
+@GameTickOnly val ServerLevel?.allBodies get() = this?.shipWorld?.allBodies?.dimension(this)
+@GameTickOnly val ServerLevel?.loadedBodies get() = this?.shipWorld?.loadedBodies?.dimension(this)
+@GameTickOnly val ServerLevel?.unloadedBodies get() = this?.shipWorld?.unloadedBodies?.dimension(this)
 
 /**
  * Returns a [QueryableShipData] which you can use to query all ships, regardless of dimension.
@@ -1416,21 +1876,21 @@ val ServerLevel?.vsPipeline
  *
  * @see QueryableShipData.getByDimension
  */
-@GameTickOnly val ServerLevel?.allShipsGlobal get() = this.shipWorld?.allShips
+@GameTickOnly val ServerLevel?.allShipsGlobal get() = this?.shipWorld?.allShips
 /**
  * Returns a [QueryableShipData] which you can use to query unloaded ships, regardless of dimension.
  * If you need unloaded ships filtered by dimension, use [unloadedShips].
  *
  * @see QueryableShipData.getByDimension
  */
-@GameTickOnly val ServerLevel?.unloadedShipsGlobal get() = this.shipWorld?.unloadedShips
+@GameTickOnly val ServerLevel?.unloadedShipsGlobal get() = this?.shipWorld?.unloadedShips
 /**
  * Returns a [QueryableShipData] which you can use to query loaded ships, regardless of dimension.
  * If you need loaded ships filtered by dimension, use [loadedShips].
  *
  * @see QueryableShipData.getByDimension
  */
-@GameTickOnly val ServerLevel?.loadedShipsGlobal get() = this.shipWorld?.loadedShips
+@GameTickOnly val ServerLevel?.loadedShipsGlobal get() = this?.shipWorld?.loadedShips
 
 /**
  * Returns a [QueryableVsBodyData] which you can use to query all bodies, regardless of dimension.
@@ -1438,28 +1898,28 @@ val ServerLevel?.vsPipeline
  *
  * @see QueryableVsBodyData.getByDimension
  */
-@GameTickOnly val ServerLevel?.allBodiesGlobal get() = this.shipWorld?.allBodies
+@GameTickOnly val ServerLevel?.allBodiesGlobal get() = this?.shipWorld?.allBodies
 /**
  * Returns a [QueryableVsBodyData] which you can use to query unloaded bodies, regardless of dimension.
  * If you need unloaded bodies filtered by dimension, use [unloadedBodies]
  *
  * @see QueryableVsBodyData.getByDimension
  */
-@GameTickOnly val ServerLevel?.unloadedBodiesGlobal get() = this.shipWorld?.unloadedBodies
+@GameTickOnly val ServerLevel?.unloadedBodiesGlobal get() = this?.shipWorld?.unloadedBodies
 
 /**
  * Returns a [QueryableVsBodyData] which you can use to query loaded bodies, regardless of dimension.
  * If you need loaded bodies filtered by dimension, use [loadedBodies]
  */
-@GameTickOnly val ServerLevel?.loadedBodiesGlobal get() = this.shipWorld?.loadedBodies
+@GameTickOnly val ServerLevel?.loadedBodiesGlobal get() = this?.shipWorld?.loadedBodies
 
-@GameTickOnly val MinecraftServer?.allShips get() = this.shipWorld?.allShips
-@GameTickOnly val MinecraftServer?.loadedShips get() = this.shipWorld?.loadedShips
-@GameTickOnly val MinecraftServer?.unloadedShips get() = this.shipWorld?.unloadedShips
+@GameTickOnly val MinecraftServer?.allShips get() = this?.shipWorld?.allShips
+@GameTickOnly val MinecraftServer?.loadedShips get() = this?.shipWorld?.loadedShips
+@GameTickOnly val MinecraftServer?.unloadedShips get() = this?.shipWorld?.unloadedShips
 
-@GameTickOnly val MinecraftServer?.allBodies get() = this.shipWorld?.allBodies
-@GameTickOnly val MinecraftServer?.loadedBodies get() = this.shipWorld?.loadedBodies
-@GameTickOnly val MinecraftServer?.unloadedBodies get() = this.shipWorld?.unloadedBodies
+@GameTickOnly val MinecraftServer?.allBodies get() = this?.shipWorld?.allBodies
+@GameTickOnly val MinecraftServer?.loadedBodies get() = this?.shipWorld?.loadedBodies
+@GameTickOnly val MinecraftServer?.unloadedBodies get() = this?.shipWorld?.unloadedBodies
 
 @GameTickOnly
 fun MinecraftServer.executeIf(condition: () -> Boolean, toExecute: Runnable) {
@@ -1478,35 +1938,69 @@ fun MinecraftServer.executeIf(condition: () -> Boolean, toExecute: Runnable) {
     }
 }
 
+/**
+ * Get the [ServerLevel] corresponding to this [dimensionId], or null if none.
+ */
 fun MinecraftServer.getLevel(dimensionId: DimensionId): ServerLevel? =
     getResourceKey(dimensionId)?.let { getLevel(it) }
 
-
+/**
+ * Get a [ServerShip] by the given id in this dimension.
+ *
+ * @see ServerLevel.allShips
+ */
 @GameTickOnly
 fun ServerLevel?.getShipById(shipId: ShipId) =
-    allShips?.getById(shipId)
+    this?.allShips?.getById(shipId)
 
+/**
+ * Get a [LoadedServerShip] by the given id in this dimension.
+ *
+ * @see loadedShips
+ */
 @GameTickOnly
 fun ServerLevel?.getLoadedShipById(shipId: ShipId) =
     loadedShips?.getById(shipId)
 
-
+/**
+ * Get a [ServerShip] by the given id.
+ *
+ * @see allShipsGlobal
+ */
 @GameTickOnly
 fun ServerLevel?.getShipByIdGlobal(shipId: ShipId) =
     allShipsGlobal?.getById(shipId)
 
+/**
+ * Get a [LoadedServerShip] by the given id.
+ *
+ * @see ServerLevel.loadedShipsGlobal
+ */
 @GameTickOnly
 fun ServerLevel?.getLoadedShipByIdGlobal(shipId: ShipId) =
     loadedShipsGlobal?.getById(shipId)
 
+/**
+ * Get a [ServerShip] by the given id.
+ *
+ * @see MinecraftServer.allShips
+ */
 @GameTickOnly
 fun MinecraftServer?.getShipByIdGlobal(shipId: ShipId) =
     allShips?.getById(shipId)
 
+/**
+ * Get a [LoadedServerShip] by the given id.
+ *
+ * @see MinecraftServer.loadedShips
+ */
 @GameTickOnly
 fun MinecraftServer?.getLoadedShipByIdGlobal(shipId: ShipId) =
     loadedShips?.getById(shipId)
 
+/**
+ *
+ */
 @GameTickOnly
 fun ServerLevel?.forAllShips(cb: Consumer<ServerShip>) =
     allShips?.forEach(cb)
@@ -1705,60 +2199,159 @@ fun MinecraftServer?.getLoadedShipManagingPos(levelKey: ResourceKey<Level>, chun
 // endregion
 
 // region Ship extensions
-// region position transforming stuff
-fun Ship?.positionToWorld(pos: Vec3): Vec3 =
-    this?.transform.positionToWorld(pos)
+@JvmOverloads
+fun Ship?.transformToWorld(x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
+    this?.transform.transformToWorld(x, y, z, dest)
 
-fun Ship?.positionToWorld(pos: Vector3d): Vector3d =
-    positionToWorld(pos, pos)
+fun Ship?.transformToWorld(pos: Position): Vec3 =
+    this?.transform.transformToWorld(pos)
 
-fun Ship?.positionToWorld(pos: Vector3dc, dest: Vector3d): Vector3d =
-    this?.transform.positionToWorld(pos, dest)
+fun Ship?.transformToWorld(pos: Vector3d): Vector3d =
+    this?.transform.transformToWorld(pos)
 
-fun Ship?.positionToShip(pos: Vec3): Vec3 =
-    this?.transform.positionToShip(pos)
+fun Ship?.transformToWorld(pos: Vector3dc, dest: Vector3d): Vector3d =
+    this?.transform.transformToWorld(pos, dest)
 
-fun Ship?.positionToShip(pos: Vector3d): Vector3d =
-    positionToShip(pos, pos)
-
-fun Ship?.positionToShip(pos: Vector3dc, dest: Vector3d): Vector3d =
-    this?.transform.positionToShip(pos, dest)
-
-fun ShipTransform?.positionToWorld(pos: Vec3): Vec3 =
-    this?.shipToWorld?.transformPosition(pos) ?: pos
-
-fun ShipTransform?.positionToWorld(pos: Vector3d): Vector3d =
-    positionToWorld(pos, pos)
-
-fun ShipTransform?.positionToWorld(pos: Vector3dc, dest: Vector3d): Vector3d =
-    this?.shipToWorld?.transformPosition(pos, dest) ?: dest.set(pos)
-
-fun ShipTransform?.positionToShip(pos: Vec3): Vec3 =
-    this?.worldToShip?.transformPosition(pos) ?: pos
-
-fun ShipTransform?.positionToShip(pos: Vector3d): Vector3d =
-    positionToShip(pos, pos)
-
-fun ShipTransform?.positionToShip(pos: Vector3dc, dest: Vector3d): Vector3d =
-    this?.worldToShip?.transformPosition(pos, dest) ?: dest.set(pos)
+fun Ship?.transformToWorld(pos: Vec3i): Vector3d =
+    this?.transform.transformToWorld(pos)
 
 @JvmOverloads
-fun Ship.toWorldCoordinates(x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
-    transform.shipToWorld.transformPosition(dest.set(x, y, z))
+fun Ship?.transformToShip(x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
+    this?.transform.transformToShip(x, y, z, dest)
 
-fun Ship.toWorldCoordinates(pos: Vector3d, dest: Vector3d): Vector3d =
-    shipToWorld.transformPosition(pos, dest)
+fun Ship?.transformToShip(pos: Position): Vec3 =
+    this?.transform.transformToShip(pos)
 
-fun Ship.toWorldCoordinates(pos: Vector3d): Vector3d =
-    shipToWorld.transformPosition(pos)
+fun Ship?.transformToShip(pos: Vector3d): Vector3d =
+    this?.transform.transformToShip(pos)
 
-fun Ship.toWorldCoordinates(blockPos: Vec3i): Vector3d =
-    shipToWorld.transformPosition(blockPos.toJOMLd())
+fun Ship?.transformToShip(pos: Vector3dc, dest: Vector3d): Vector3d =
+    this?.transform.transformToShip(pos, dest)
 
-fun Ship.toWorldCoordinates(pos: Vec3): Vector3d =
-    shipToWorld.transformPosition(pos.toJOML())
+fun Ship?.transformToShip(pos: Vec3i): Vector3d =
+    this?.transform.transformToShip(pos)
 
-// endregion
+@JvmOverloads
+fun Ship?.rotateToWorld(x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
+    this?.transform.rotateToWorld(x, y, z, dest)
+
+fun Ship?.rotateToWorld(pos: Position): Vec3 =
+    this?.transform.rotateToWorld(pos)
+
+fun Ship?.rotateToWorld(pos: Vector3d): Vector3d =
+    this?.transform.rotateToWorld(pos)
+
+fun Ship?.rotateToWorld(pos: Vector3d, dest: Vector3d = Vector3d()): Vector3d =
+    this?.transform.rotateToWorld(pos, dest)
+
+fun Ship?.rotateToWorld(pos: Vec3i): Vector3d =
+    this?.transform.rotateToWorld(pos)
+
+@JvmOverloads
+fun Ship?.rotateToShip(x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
+    this?.transform.rotateToShip(x, y, z, dest)
+
+fun Ship?.rotateToShip(pos: Position): Vec3 =
+    this?.transform.rotateToShip(pos)
+
+fun Ship?.rotateToShip(pos: Vector3d): Vector3d =
+    this?.transform.rotateToShip(pos)
+
+fun Ship?.rotateToShip(pos: Vector3d, dest: Vector3d = Vector3d()): Vector3d =
+    this?.transform.rotateToShip(pos, dest)
+
+fun Ship?.rotateToShip(pos: Vec3i): Vector3d =
+    this?.transform.rotateToShip(pos)
+
+/**
+ * Transform the given [x], [y], and [z] from ship space into world space, and store the
+ * result in [dest]
+ *
+ * @param x The x-coordinate in ship space
+ * @param y The y-coordinate in ship space
+ * @param z The z-coordinate in ship space
+ * @param dest The vector to store the transformed result in
+ *
+ * @return [dest]
+ */
+@JvmOverloads
+fun ShipTransform?.transformToWorld(x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
+    this?.shipToWorld?.transformPosition(dest.set(x, y, z)) ?: dest.set(x, y, z)
+
+/**
+ * Transform the given [Position] from ship space into world space
+ *
+ * @param pos The position in ship space
+ *
+ * @return A new [Vec3] the contains the transformed result
+ */
+fun ShipTransform?.transformToWorld(pos: Position): Vec3 =
+    this?.shipToWorld?.transformPosition(pos) ?: pos.vec3()
+
+/**
+ * Transform the given [Vector3d] from ship space into world space and store
+ * the result in that vector.
+ *
+ * @param pos The vector to transform and store the result.
+ *
+ * @return [pos]
+ */
+fun ShipTransform?.transformToWorld(pos: Vector3d): Vector3d =
+    this?.shipToWorld?.transformPosition(pos) ?: pos
+
+fun ShipTransform?.transformToWorld(pos: Vector3dc, dest: Vector3d): Vector3d =
+    this?.shipToWorld?.transformPosition(pos, dest) ?: dest.set(pos)
+
+fun ShipTransform?.transformToWorld(pos: Vec3i): Vector3d =
+    this?.shipToWorld?.transformPosition(pos.toJOMLd()) ?: pos.toJOMLd()
+
+@JvmOverloads
+fun ShipTransform?.transformToShip(x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
+    this?.worldToShip?.transformPosition(dest.set(x, y, z)) ?: dest.set(x, y, z)
+
+fun ShipTransform?.transformToShip(pos: Position): Vec3 =
+    this?.worldToShip?.transformPosition(pos) ?: pos.vec3()
+
+fun ShipTransform?.transformToShip(pos: Vector3d): Vector3d =
+    this?.worldToShip?.transformPosition(pos) ?: pos
+
+fun ShipTransform?.transformToShip(pos: Vector3dc, dest: Vector3d): Vector3d =
+    this?.worldToShip?.transformPosition(pos, dest) ?: dest.set(pos)
+
+fun ShipTransform?.transformToShip(pos: Vec3i): Vector3d =
+    this?.worldToShip?.transformPosition(pos.toJOMLd()) ?: pos.toJOMLd()
+
+@JvmOverloads
+fun ShipTransform?.rotateToWorld(x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
+    this?.shipToWorldRotation?.transform(dest.set(x, y, z)) ?: dest.set(x, y, z)
+
+fun ShipTransform?.rotateToWorld(pos: Position): Vec3 =
+    this?.shipToWorldRotation?.transform(pos) ?: pos.vec3()
+
+fun ShipTransform?.rotateToWorld(pos: Vector3d): Vector3d =
+    this?.shipToWorldRotation?.transform(pos) ?: pos
+
+fun ShipTransform?.rotateToWorld(pos: Vector3dc, dest: Vector3d): Vector3d =
+    this?.shipToWorldRotation?.transform(pos, dest) ?: dest.set(pos)
+
+fun ShipTransform?.rotateToWorld(pos: Vec3i): Vector3d =
+    this?.shipToWorldRotation?.transform(pos.toJOMLd()) ?: pos.toJOMLd()
+
+@JvmOverloads
+fun ShipTransform?.rotateToShip(x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
+    this?.shipToWorldRotation?.transformInverse(dest.set(x, y, z)) ?: dest.set(x, y, z)
+
+fun ShipTransform?.rotateToShip(pos: Position): Vec3 =
+    this?.shipToWorldRotation?.transformInverse(pos) ?: pos.vec3()
+
+fun ShipTransform?.rotateToShip(pos: Vector3d): Vector3d =
+    this?.shipToWorldRotation?.transformInverse(pos) ?: pos
+
+fun ShipTransform?.rotateToShip(pos: Vector3dc, dest: Vector3d): Vector3d =
+    this?.shipToWorldRotation?.transformInverse(pos, dest) ?: dest.set(pos)
+
+fun ShipTransform?.rotateToShip(pos: Vec3i): Vector3d =
+    this?.shipToWorldRotation?.transformInverse(pos.toJOMLd()) ?: pos.toJOMLd()
 
 /**
  * The vanilla [StructureStart]s stored in this [Ship]'s chunks, i.e. the structures whose
@@ -1816,9 +2409,6 @@ fun Vec3i.toJOMLd() = Vector3d().set(this)
 fun Vec3i.toJOMLf() = Vector3f().set(this)
 fun Vec3.toJOML() = Vector3d().set(this)
 
-fun Vec2i.toJOML() = Vector2i().set(this)
-fun Vec2i.toJOMLd() = Vector2d().set(this)
-fun Vec2i.toJOMLf() = Vector2f().set(this)
 fun Vec2.toJOML() = Vector2f().set(this)
 
 fun ChunkPos.toJOML() = Vector2i().set(this)
@@ -2012,6 +2602,18 @@ fun Matrix4dc.transformPosition(v: Position): Vec3 {
     }
 }
 
+fun Quaterniondc.transform(v: Position): Vec3 {
+    transformInline(v.x(), v.y(), v.z()) { x, y, z ->
+        return Vec3(x, y, z)
+    }
+}
+
+fun Quaterniondc.transformInverse(v: Position): Vec3 {
+    transformInverseInline(v.x(), v.y(), v.z()) { x, y, z ->
+        return Vec3(x, y, z)
+    }
+}
+
 fun Matrix4d.mul(m: Matrix4fc): Matrix4d = mul(m, this)
 
 fun Quaterniondc.toFloat(): Quaternionfc = Quaternionf(x(), y(), z(), w())
@@ -2040,6 +2642,8 @@ fun PoseStack.multiply(modelTransform: Matrix4dc) = also {
 }
 
 fun Vec3i.toDouble() = Vec3(x.toDouble(), y.toDouble(), z.toDouble())
+
+fun Position.vec3() = Vec3(x(), y(), z())
 // endregion
 
 // region client utils
@@ -2164,10 +2768,84 @@ private inline fun <T> Matrix4dc.transformPositionInline(
     )
 }
 
+@OptIn(ExperimentalContracts::class)
+private inline fun <T> Quaterniondc.transformInline(
+    x: Double,
+    y: Double,
+    z: Double,
+    transformed: (Double, Double, Double) -> T
+): T {
+    contract {
+        callsInPlace(transformed, InvocationKind.EXACTLY_ONCE)
+    }
+
+    val qx = this.x()
+    val qy = this.y()
+    val qz = this.z()
+    val qw = this.w()
+
+    val num1 = qx * 2.0
+    val num2 = qy * 2.0
+    val num3 = qz * 2.0
+
+    val num4 = qx * num1
+    val num5 = qy * num2
+    val num6 = qz * num3
+    val num7 = qx * num2
+    val num8 = qx * num3
+    val num9 = qy * num3
+    val num10 = qw * num1
+    val num11 = qw * num2
+    val num12 = qw * num3
+
+    return transformed(
+        (1.0 - (num5 + num6)) * x + (num7 - num12) * y + (num8 + num11) * z,
+        (num7 + num12) * x + (1.0 - (num4 + num6)) * y + (num9 - num10) * z,
+        (num8 - num11) * x + (num9 + num10) * y + (1.0 - (num4 + num5)) * z
+    )
+}
+
+@OptIn(ExperimentalContracts::class)
+private inline fun <T> Quaterniondc.transformInverseInline(
+    x: Double,
+    y: Double,
+    z: Double,
+    transformed: (Double, Double, Double) -> T
+): T {
+    contract {
+        callsInPlace(transformed, InvocationKind.EXACTLY_ONCE)
+    }
+
+    val qx = x()
+    val qy = y()
+    val qz = z()
+    val qw = w()
+
+    val num1 = qx * 2.0
+    val num2 = qy * 2.0
+    val num3 = qz * 2.0
+
+    val num4 = qx * num1
+    val num5 = qy * num2
+    val num6 = qz * num3
+    val num7 = qx * num2
+    val num8 = qx * num3
+    val num9 = qy * num3
+    val num10 = qw * num1
+    val num11 = qw * num2
+    val num12 = qw * num3
+
+    return transformed(
+        (1.0 - (num5 + num6)) * x + (num7 + num12) * y + (num8 - num11) * z,
+        (num7 - num12) * x + (1.0 - (num4 + num6)) * y + (num9 + num10) * z,
+        (num8 + num11) * x + (num9 - num10) * y + (1.0 - (num4 + num5)) * z
+    )
+}
+
 @GameTickOnly
 private fun getLoadedShipManagingPosImpl(level: Level?, chunkX: Int, chunkZ: Int): LoadedShip? {
     level ?: return null
-    val sw = level.shipWorld ?: return null
+    val sw = level.shipWorldNullable ?: return null
     val dim = level.dimensionId
     return if (sw.isChunkInShipyard(chunkX, chunkZ, dim))
         sw.loadedShips.getByChunkPos(chunkX, chunkZ, dim)
@@ -2177,7 +2855,7 @@ private fun getLoadedShipManagingPosImpl(level: Level?, chunkX: Int, chunkZ: Int
 @GameTickOnly
 private fun getShipManagingPosImpl(level: Level?, chunkX: Int, chunkZ: Int): Ship? {
     level ?: return null
-    val sw = level.shipWorld ?: return null
+    val sw = level.shipWorldNullable ?: return null
     val dim = level.dimensionId
     return if (sw.isChunkInShipyard(chunkX, chunkZ, dim))
         sw.allShips.getByChunkPos(chunkX, chunkZ, dim)
