@@ -44,6 +44,9 @@ class EntityDraggingInformation {
     var lerpSteps: Int = 0
     var headLerpSteps: Int = 0
 
+    // Null unless vanilla requested an animation update before ship interpolation this tick.
+    var pendingWalkAnimation: Boolean? = null
+
     // Used by the client rendering code only
     var cachedLastPosition: Vector3dc? = null
     var restoreCachedLastPosition = false
@@ -78,6 +81,7 @@ class EntityDraggingInformation {
         serverRelativePlayerYaw = null
         lerpSteps = 0
         headLerpSteps = 0
+        pendingWalkAnimation = null
         ignoreNextGroundStand = false
         usesShipInterpolation = false
     }
