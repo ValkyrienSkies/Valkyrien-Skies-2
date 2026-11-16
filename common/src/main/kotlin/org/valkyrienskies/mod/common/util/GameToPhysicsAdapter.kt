@@ -26,7 +26,12 @@ class GameToPhysicsAdapter {
     private val worldToModelForces = ConcurrentLinkedQueue<Pair<ShipId, ForceAtPos>>()
     private val worldToBodyForces = ConcurrentLinkedQueue<Pair<ShipId, ForceAtPos>>()
 
-    private val addedJoints = ConcurrentHashMap<Pair<VSJoint, Consumer<VSJointId>>, Int>()
+    private class JointRequest(var delay: Int, var bodyWaitTicks: Int?) {
+        @Volatile var cancelled = false
+        var createdId: VSJointId? = null
+    }
+
+    private val addedJoints = ConcurrentHashMap<Pair<VSJoint, Consumer<VSJointId>>, JointRequest>()
     private val updatedJoints = ConcurrentLinkedQueue<VSJointAndId>()
     private val deletedJoints = ConcurrentLinkedQueue<VSJointId>()
 
@@ -116,12 +121,31 @@ class GameToPhysicsAdapter {
         val callbackQueue = ArrayList<Pair<Consumer<VSJointId>, VSJointId>>()
 
         val safeJoints = HashMap(addedJoints)
-        safeJoints.forEach { newJoint, timer ->
-            if (timer > 0) {
-                addedJoints[newJoint] = timer - 1
-            } else {
-                callbackQueue.add(Pair(newJoint.second, (physLevel as VsiPhysLevel).addJoint(newJoint.first)))
-                addedJoints.remove(newJoint)
+        safeJoints.forEach { newJoint, request ->
+            synchronized(request) {
+                if (request.cancelled) {
+                    addedJoints.remove(newJoint, request)
+                } else if (request.delay > 0) {
+                    request.delay--
+                } else {
+                    val joint = newJoint.first
+                    // Null is the world endpoint. Body lookup also supports non-ship bodies.
+                    val waiting = request.bodyWaitTicks != null &&
+                        listOfNotNull(joint.shipId0, joint.shipId1).any { physLevel.getBodyById(it) == null }
+                    if (waiting && request.bodyWaitTicks!! > 0) {
+                        request.bodyWaitTicks = request.bodyWaitTicks!! - 1
+                    } else {
+                        // Only missing-body admission is deferred; do not retry permanent insertion failures.
+                        val id = if (waiting) -1 else (physLevel as VsiPhysLevel).addJoint(joint)
+                        request.createdId = id
+                        // Insertion may invoke listeners that cancel reentrantly on this thread.
+                        if (request.cancelled && id >= 0) deletedJoints.add(id)
+                        callbackQueue.add(Pair(Consumer { result ->
+                            if (!request.cancelled) newJoint.second.accept(result)
+                        }, id))
+                        addedJoints.remove(newJoint, request)
+                    }
+                }
             }
         }
 
@@ -271,7 +295,30 @@ class GameToPhysicsAdapter {
     }
 
     fun addJoint(joint: VSJoint, delay: Int = 0, function: Consumer<VSJointId>) {
-        addedJoints.put(joint to function, delay)
+        addedJoints[joint to function] = JointRequest(delay, null)
+    }
+
+    /**
+     * Defers insertion until all non-world endpoints exist on the physics thread.
+     * [bodyWaitTicks] bounds the wait after [delay]; expiry reports -1 once.
+     * The returned cancellation action also removes a joint that completed before cancellation.
+     */
+    fun addJointWhenBodiesReady(
+        joint: VSJoint, delay: Int = 0, bodyWaitTicks: Int = 600, function: Consumer<VSJointId>
+    ): () -> Unit {
+        require(delay >= 0 && bodyWaitTicks >= 0)
+        val key = joint to function
+        val request = JointRequest(delay, bodyWaitTicks)
+        addedJoints[key] = request
+        return {
+            synchronized(request) {
+                if (!request.cancelled) {
+                    request.cancelled = true
+                    addedJoints.remove(key, request)
+                    request.createdId?.takeIf { it >= 0 }?.let { deletedJoints.add(it) }
+                }
+            }
+        }
     }
 
     fun updateJoint(jointAndId: VSJointAndId) {
