@@ -4,6 +4,7 @@ import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -223,6 +224,19 @@ public abstract class MixinGameRenderer {
                 }
             }
         }
+    }
+
+    @Inject(
+        method = "renderLevel",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/client/Camera;setup(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/world/entity/Entity;ZZF)V",
+            shift = At.Shift.AFTER
+        )
+    )
+    private void vs$applyMountedCameraRoll(final float partialTicks, final long finishTimeNano,
+        final PoseStack matrixStack, final CallbackInfo ci) {
+        matrixStack.mulPose(Axis.ZP.rotationDegrees(((IVSCamera) this.mainCamera).getZrot()));
     }
 
     /**
