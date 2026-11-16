@@ -122,6 +122,7 @@ public abstract class MixinGameRenderer {
 
     @Inject(method = "render", at = @At("HEAD"))
     private void preRender(final float tickDelta, final long startTime, final boolean tick, final CallbackInfo ci) {
+        org.valkyrienskies.mod.compat.lod.LodCompat.onFrameStart();
         final ClientLevel clientWorld = minecraft.level;
         if (clientWorld != null) {
             // Update ship render transforms
@@ -304,8 +305,10 @@ public abstract class MixinGameRenderer {
             double dMinZ = shipAABB.minZ() - cameraPos.z();  
             double dMaxZ = shipAABB.maxZ() - cameraPos.z();  
             double furthestDist = Math.sqrt(Math.max(dMinX * dMinX, dMaxX * dMaxX) + Math.max(dMinY * dMinY, dMaxY * dMaxY) + Math.max(dMinZ * dMinZ, dMaxZ * dMaxZ));  
-            maxDistance = Math.max(maxDistance, (float) furthestDist);  
+            maxDistance = Math.max(maxDistance, (float) furthestDist);
         }
+        maxDistance = Math.max(maxDistance, (float) org.valkyrienskies.mod.common.render.batched.DistantShips
+            .furthestCornerDistance(this.mainCamera.getPosition()));
 
         return maxDistance;
     }

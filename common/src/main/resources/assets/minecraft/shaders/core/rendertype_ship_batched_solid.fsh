@@ -5,6 +5,7 @@
 #moj_import <vs_dynamic_light.glsl>
 #moj_import <vs_ship_glow_grid.glsl>
 #moj_import <vs_ship_shadows.glsl>
+#moj_import <vs_lod_occlusion.glsl>
 
 uniform sampler2D Sampler0;   // block atlas
 uniform sampler2D Sampler2;   // lightmap
@@ -24,12 +25,17 @@ in vec4 vertexColor;
 in vec2 texCoord0;
 in vec2 v_BakedLightCoord;
 in vec3 v_CameraRelWorldPos;
+in vec3 v_VsViewPos;
 flat in float v_IsShaded;
 flat in float v_Fullbright;
 
 out vec4 fragColor;
 
 void main() {
+    if (vs_behindLodTerrain(v_VsViewPos)) {
+        discard;
+    }
+
     vec3 v_WorldNormal = normalize(cross(dFdx(v_CameraRelWorldPos), dFdy(v_CameraRelWorldPos)));
     if (!gl_FrontFacing) v_WorldNormal = -v_WorldNormal;
 

@@ -54,6 +54,7 @@ dependencies {
     modCompileOnly("maven.modrinth:iris:${iris_version}")
 
     modRuntimeOnly("maven.modrinth:modmenu:${modmenu_version}")
+    modRuntimeOnly("maven.modrinth:distanthorizons:${distant_horizons_version}")
 
 
     // Depend on the fabric API

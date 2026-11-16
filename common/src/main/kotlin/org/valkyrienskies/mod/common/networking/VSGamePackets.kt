@@ -9,6 +9,8 @@ import org.valkyrienskies.core.api.ships.LoadedServerShip
 import org.valkyrienskies.mod.api.SeatedControllingPlayer
 import org.valkyrienskies.mod.api.shipWorld
 import org.valkyrienskies.mod.client.ClientBlockStateInfo
+import org.valkyrienskies.mod.common.distant.DistantShipServer
+import org.valkyrienskies.mod.common.render.batched.DistantShips
 import org.valkyrienskies.mod.common.entity.ShipMountingEntity
 import org.valkyrienskies.mod.common.entity.handling.VSEntityManager
 import org.valkyrienskies.mod.common.fluid.ClientFluidTypes
@@ -34,9 +36,27 @@ object VSGamePackets {
         PacketFluidParcel::class.register()
         PacketFluidParcelBatch::class.register()
         PacketGravitronFreeze::class.register()
+        PacketShipRenderDistance::class.register()
+        PacketDistantShip::class.register()
+        PacketDistantShipTransforms::class.register()
+        PacketRemoveDistantShips::class.register()
     }
 
     fun registerHandlers() = with(vsCore.simplePacketNetworking) {
+        PacketShipRenderDistance::class.registerServerHandler { packet, iPlayer ->
+            val player = (iPlayer as MinecraftPlayer).player as ServerPlayer
+            player.server.execute { DistantShipServer.setRenderDistance(player, packet.blocks, packet.dimension) }
+        }
+        PacketDistantShip::class.registerClientHandler { packet ->
+            Minecraft.getInstance().execute { DistantShips.onShip(packet) }
+        }
+        PacketDistantShipTransforms::class.registerClientHandler { packet ->
+            Minecraft.getInstance().execute { DistantShips.onTransforms(packet) }
+        }
+        PacketRemoveDistantShips::class.registerClientHandler { packet ->
+            Minecraft.getInstance().execute { DistantShips.onRemove(packet) }
+        }
+
         PacketFluidParcel::class.registerClientHandler { packet ->
             Minecraft.getInstance().connection?.let {
                 org.valkyrienskies.mod.common.fluid.FluidParcelRenderer.enqueue(packet, it)

@@ -150,6 +150,7 @@ public abstract class MixinMinecraft
             ClientShipMovement.INSTANCE.tick();
             EntityDragger.INSTANCE.dragEntitiesWithShips(level.entitiesForRendering(), false);
             if(player != null && level.isClientSide) ((PlayerKnownShipsDuck)player).vs_flushKnownShips();
+            org.valkyrienskies.mod.common.render.batched.DistantShips.tick((Minecraft) (Object) this);
         }
     }
 
@@ -212,6 +213,7 @@ public abstract class MixinMinecraft
         org.valkyrienskies.mod.common.fluid.FluidParcelRenderer.clear();
         org.valkyrienskies.mod.common.fluid.ClientFluidTypes.clear();
         org.valkyrienskies.mod.client.debug.ShipDebugRenderer.clear();
+        org.valkyrienskies.mod.common.render.batched.DistantShips.onDisconnect();
         if (shipObjectWorld != null) {
             deleteShipObjectWorldClient();
         } else {

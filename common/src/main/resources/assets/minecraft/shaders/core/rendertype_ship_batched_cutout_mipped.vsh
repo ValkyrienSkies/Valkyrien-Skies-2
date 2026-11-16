@@ -21,6 +21,7 @@ out float vertexDistance;
 out vec4 vertexColor;
 out vec2 texCoord0;
 
+out vec3 v_VsViewPos;          // view-space position, for the LOD depth test
 out vec3 v_CameraRelWorldPos;   // worldPos - floor(camera); + u_VsRenderOrigin == abs world pos
 flat out float v_IsShaded;    // 1 for shaded faces.
 out vec2 v_BakedLightCoord;     // ship-internal baked lightmap UV (from UV2)
@@ -47,7 +48,9 @@ mat4 vs_shipLocalToCameraRel() {
 void main() {
     mat4 modelView = vs_shipModelView();
     vec3 pos = Position + ChunkOffset;
-    gl_Position = ProjMat * modelView * vec4(pos, 1.0);
+    vec4 viewPos = modelView * vec4(pos, 1.0);
+    gl_Position = ProjMat * viewPos;
+    v_VsViewPos = viewPos.xyz;
 
     vertexDistance = fog_distance(modelView, pos, FogShape);
     texCoord0 = UV0;

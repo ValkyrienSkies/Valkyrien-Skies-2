@@ -81,15 +81,32 @@ public final class ShipSectionCompiler {
         final ShipBiomeTintCache biomeTints, final LongIterable sectionPositions,
         final int refX, final int refY, final int refZ,
         final Long2ObjectMap<CompiledSection> sections, final boolean[] changedLayers) {
+        compileSections(level, dispatcher, shadeRemovingView.forShip(level, ship, biomeTints),
+            secPos -> loadedSection(level, secPos), sectionPositions, refX, refY, refZ, sections, changedLayers);
+    }
 
-        final BlockAndTintGetter renderView = shadeRemovingView.forShip(level, ship, biomeTints);
+    @FunctionalInterface
+    interface SectionSource {
+        LevelChunkSection get(long sectionPos);
+    }
+
+    /**
+     * Like {@link #compileSections(ClientLevel, BlockRenderDispatcher, ClientShip, ShipBiomeTintCache, LongIterable,
+     * int, int, int, Long2ObjectMap, boolean[])}, reading blocks from {@code source} and models' neighbors, light and
+     * tint from {@code renderView}. Distant ships use this with their block snapshot.
+     */
+    void compileSections(final ClientLevel level, final BlockRenderDispatcher dispatcher,
+        final BlockAndTintGetter renderView, final SectionSource source, final LongIterable sectionPositions,
+        final int refX, final int refY, final int refZ,
+        final Long2ObjectMap<CompiledSection> sections, final boolean[] changedLayers) {
+
         ModelBlockRenderer.enableCaching();
         try {
             final var it = sectionPositions.iterator();
             while (it.hasNext()) {
                 final long secPos = it.nextLong();
                 final CompiledSection compiled =
-                    compileSection(level, dispatcher, renderView, secPos, refX, refY, refZ);
+                    compileSection(level, dispatcher, renderView, source.get(secPos), secPos, refX, refY, refZ);
                 final CompiledSection old = compiled == null ? sections.remove(secPos) : sections.put(secPos, compiled);
                 markChanged(old, changedLayers);
                 markChanged(compiled, changedLayers);
@@ -143,23 +160,26 @@ public final class ShipSectionCompiler {
         access.vs$setNextElementByte(start + bytes);
     }
 
-    private CompiledSection compileSection(final ClientLevel level, final BlockRenderDispatcher dispatcher,
-        final BlockAndTintGetter renderView, final long secPos, final int refX, final int refY, final int refZ) {
-
-        final int sx = SectionPos.x(secPos);
-        final int sy = SectionPos.y(secPos);
-        final int sz = SectionPos.z(secPos);
-
-        final LevelChunk chunk = level.getChunk(sx, sz);
-        final int sectionIndex = level.getSectionIndexFromSectionY(sy);
+    private static LevelChunkSection loadedSection(final ClientLevel level, final long secPos) {
+        final LevelChunk chunk = level.getChunk(SectionPos.x(secPos), SectionPos.z(secPos));
+        final int sectionIndex = level.getSectionIndexFromSectionY(SectionPos.y(secPos));
         final LevelChunkSection[] allSections = chunk.getSections();
         if (sectionIndex < 0 || sectionIndex >= allSections.length) {
             return null;
         }
-        final LevelChunkSection section = allSections[sectionIndex];
-        if (section.hasOnlyAir()) {
+        return allSections[sectionIndex];
+    }
+
+    private CompiledSection compileSection(final ClientLevel level, final BlockRenderDispatcher dispatcher,
+        final BlockAndTintGetter renderView, final LevelChunkSection section, final long secPos,
+        final int refX, final int refY, final int refZ) {
+
+        if (section == null || section.hasOnlyAir()) {
             return null;
         }
+        final int sx = SectionPos.x(secPos);
+        final int sy = SectionPos.y(secPos);
+        final int sz = SectionPos.z(secPos);
 
         final RenderType translucentLayer = RenderType.translucent();
         final int originX = sx << 4;

@@ -38,6 +38,20 @@ public abstract class MixinLevelRenderer {
         org.valkyrienskies.mod.common.render.light.VsDynamicLight.prepareFrame(this.level);
     }
 
+    /**
+     * Draw ships that Distant Horizons' vanilla fade would paint over. Its last pass over the image runs at the start
+     * of the tripwire layer (Forge) or around particles (Fabric); both come before the weather.
+     */
+    @Inject(method = "renderLevel", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/client/renderer/LevelRenderer;renderSnowAndRain(Lnet/minecraft/client/renderer/LightTexture;FDDD)V"))
+    private void vs$drawShipsAfterLodFade(final PoseStack poseStack, final float partialTick, final long finishNanoTime,
+        final boolean renderBlockOutline, final net.minecraft.client.Camera camera,
+        final net.minecraft.client.renderer.GameRenderer gameRenderer,
+        final net.minecraft.client.renderer.LightTexture lightTexture, final org.joml.Matrix4f projectionMatrix,
+        final CallbackInfo ci) {
+        org.valkyrienskies.mod.common.render.batched.ShipBatchRenderer.INSTANCE.drawDeferredShips(projectionMatrix);
+    }
+
     @Shadow
     private @Nullable ClientLevel level;
 

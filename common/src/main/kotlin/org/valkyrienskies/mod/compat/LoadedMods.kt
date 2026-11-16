@@ -15,6 +15,9 @@ object LoadedMods {
     val weather2 by CompatInfo("weather2.Weather")
 
     @JvmStatic
+    val distantHorizons by CompatInfo("com.seibel.distanthorizons.api.DhApi")
+
+    @JvmStatic
     val alexCaves by CompatInfo("com.github.alexmodguy.alexscaves.AlexsCaves")
 
     @JvmStatic

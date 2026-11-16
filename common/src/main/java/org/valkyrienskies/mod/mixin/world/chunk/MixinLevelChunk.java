@@ -114,6 +114,7 @@ public abstract class MixinLevelChunk extends ChunkAccess implements VSLevelChun
             BlockStateInfo.INSTANCE.onSetBlock(level, pos, prevState, state);
             VanillaFluidFlowWindProvider.INSTANCE.markDirty(level, pos, prevState, state);
             org.valkyrienskies.mod.common.fluid.RetainedFluidBlockInteractions.onBlockChanged(level, pos, prevState, state);
+            org.valkyrienskies.mod.common.distant.DistantShipServer.onBlockChanged(level, pos);
         });
         // VS benchmark patch (air pockets removed): per-block fluid snapshot updates are no longer needed.
     }
