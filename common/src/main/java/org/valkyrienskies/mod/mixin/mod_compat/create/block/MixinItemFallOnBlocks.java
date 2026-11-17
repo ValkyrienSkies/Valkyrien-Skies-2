@@ -19,6 +19,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.Ship;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
@@ -39,12 +40,12 @@ public class MixinItemFallOnBlocks extends Block {
         at = @At("HEAD")
     )
     protected void findIfOnShip(BlockGetter worldIn, Entity entity, CallbackInfo ci, @Share("ship") LocalRef<Ship> ship) {
-        List<Vector3d> possiblePositions = VSGameUtilsKt.transformToNearbyShipsAndWorld(entity.level(), entity.getX(), entity.getY(), entity.getZ(), entity.getBoundingBox().getSize());
+        List<Vector3d> possiblePositions = ValkyrienSkies.positionToNearbyShipsAndWorld(entity.level(), entity.getX(), entity.getY(), entity.getZ(), entity.getBoundingBox().getSize());
         for (Vector3d tempPos : possiblePositions) {
             BlockPos tempBlockPos = BlockPos.containing(tempPos.x, tempPos.y, tempPos.z);
             if(worldIn.getBlockState(tempBlockPos).is(((Block)this).getClass().cast(this))
                 || worldIn.getBlockState(tempBlockPos.below()).is(((Block)this).getClass().cast(this))) {
-                ship.set(VSGameUtilsKt.getShipManagingPos(entity.level(), tempPos));
+                ship.set(ValkyrienSkies.getShipManagingPos(entity.level(), tempPos));
                 break;
             }
         }
@@ -76,7 +77,7 @@ public class MixinItemFallOnBlocks extends Block {
     private Vec3 redirectPosition(final Entity entity, @Share("ship") LocalRef<Ship> ship) {
         if (ship.get() != null) {
             Vector3d posInShip = ship.get().getTransform().getWorldToShip().transformPosition(entity.getX(), entity.getY(), entity.getZ(), new Vector3d());
-            return VectorConversionsMCKt.toMinecraft(posInShip);
+            return ValkyrienSkies.toMinecraft(posInShip);
         } else return entity.position();
     }
 
@@ -90,9 +91,9 @@ public class MixinItemFallOnBlocks extends Block {
     )
     private Vec3 redirectDeltaMovement(final Entity entity, @Share("ship") LocalRef<Ship> ship) {
         if (ship.get() != null) {
-            Vector3d deltaInShip = VectorConversionsMCKt.toJOML(entity.getDeltaMovement());
+            Vector3d deltaInShip = ValkyrienSkies.toJOML(entity.getDeltaMovement());
             ship.get().getTransform().getWorldToShip().transformDirection(deltaInShip);
-            return VectorConversionsMCKt.toMinecraft(deltaInShip);
+            return ValkyrienSkies.toMinecraft(deltaInShip);
         } else return entity.getDeltaMovement();
     }
 }

@@ -33,6 +33,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ServerShip;
 import org.valkyrienskies.core.internal.world.VsiServerShipWorld;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
@@ -191,7 +192,7 @@ public abstract class MixinServerGamePacketListenerImpl implements ShipMovementL
         }
 
         final BlockPos blockPos = BlockPos.containing(x, y, z);
-        final ServerShip ship = VSGameUtilsKt.getShipManagingPos((ServerLevel) player.level(), blockPos);
+        final ServerShip ship = ValkyrienSkies.getShipManagingPos((ServerLevel) player.level(), blockPos);
 
         // TODO add flag to disable this https://github.com/ValkyrienSkies/Valkyrien-Skies-2/issues/30
         if (ship != null) {
@@ -217,9 +218,9 @@ public abstract class MixinServerGamePacketListenerImpl implements ShipMovementL
         at = @At("HEAD")
     )
     void onDisconnect(final Component reason, final CallbackInfo ci) {
-        final VsiServerShipWorld world = VSGameUtilsKt.getShipObjectWorld(this.server);
+        final VsiServerShipWorld world = ValkyrienSkies.getShipWorldNullable(this.server);
         if (world != null) {
-            world.onDisconnect(VSGameUtilsKt.getPlayerWrapper(this.player));
+            world.onDisconnect(ValkyrienSkies.getPlayerWrapper(this.player));
         }
     }
 

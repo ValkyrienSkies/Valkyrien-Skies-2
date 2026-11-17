@@ -28,10 +28,9 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.core.internal.world.VsiClientShipWorld;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 import org.valkyrienskies.mod.client.IVSCamera;
-import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
 import org.valkyrienskies.mod.common.entity.ShipMountedToData;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.ShipDraggingMath;
@@ -99,7 +98,7 @@ public abstract class MixinGameRenderer {
         HitResult noTransform;
         if(result instanceof BlockHitResult blockHitResult) {
             noTransform = new BlockHitResult(
-                VSGameUtilsKt.toShipRenderCoordinates(Minecraft.getInstance().level, blockHitResult.getBlockPos().getCenter(), blockHitResult.location),
+                ValkyrienSkies.toMinecraft(ValkyrienSkies.toShipRenderCoordinates(Minecraft.getInstance().level, blockHitResult.getBlockPos().getCenter(), blockHitResult.location)),
                 blockHitResult.getDirection(),
                 blockHitResult.getBlockPos(),
                 blockHitResult.isInside()
@@ -117,7 +116,7 @@ public abstract class MixinGameRenderer {
         )
     )
     public double correctDistanceChecks(final Vec3 instance, final Vec3 vec3, final Operation<Double> original) {
-        return VSGameUtilsKt.squaredDistanceBetweenInclShips(this.minecraft.level, instance, vec3, original);
+        return ValkyrienSkies.distanceSquared(this.minecraft.level, instance, vec3, original);
     }
 
     @Inject(method = "render", at = @At("HEAD"))
@@ -125,8 +124,7 @@ public abstract class MixinGameRenderer {
         final ClientLevel clientWorld = minecraft.level;
         if (clientWorld != null) {
             // Update ship render transforms
-            final VsiClientShipWorld shipWorld =
-                IShipObjectWorldClientProvider.class.cast(this.minecraft).getShipObjectWorld();
+            final VsiClientShipWorld shipWorld = ValkyrienSkies.getShipWorldNullable(this.minecraft);
             if (shipWorld == null) {
                 return;
             }
@@ -143,7 +141,7 @@ public abstract class MixinGameRenderer {
                 Vector3dc entityShouldBeHere = null;
 
                 // First, try getting the ship the entity is mounted to, if one exists
-                final ShipMountedToData shipMountedToData = VSGameUtilsKt.getShipMountedToData(entity, tickDelta);
+                final ShipMountedToData shipMountedToData = ValkyrienSkies.getShipMountedToData(entity, tickDelta);
 
                 if (shipMountedToData != null) {
                     final ClientShip shipMountedTo = (ClientShip) shipMountedToData.getShipMountedTo();
@@ -164,7 +162,7 @@ public abstract class MixinGameRenderer {
 //                }
                 if (lastShipStoodOn != null && entityDraggingInformation.isEntityBeingDraggedByAShip()) {
                     final ClientShip shipObject =
-                        VSGameUtilsKt.getShipObjectWorld(clientWorld).getLoadedShips().getById(lastShipStoodOn);
+                        ValkyrienSkies.getShipWorld(clientWorld).getLoadedShips().getById(lastShipStoodOn);
                     if (shipObject != null) {
                         entityShouldBeHere = ShipDraggingMath.renderPosition(
                             new Vector3d(entity.xo, entity.yo, entity.zo),
@@ -246,7 +244,7 @@ public abstract class MixinGameRenderer {
             return;
         }
 
-        final ShipMountedToData shipMountedToData = VSGameUtilsKt.getShipMountedToData(player, partialTicks);
+        final ShipMountedToData shipMountedToData = ValkyrienSkies.getShipMountedToData(player, partialTicks);
         if (shipMountedToData == null) {
             prepareCullFrustum.call(instance, matrixStack, vec3, matrix4f);
             return;
@@ -292,7 +290,7 @@ public abstract class MixinGameRenderer {
     @ModifyReturnValue(method = "getDepthFar", at = @At("RETURN"))
     public float includeShipsIn(final float originalDepth) {
         float maxDistance = originalDepth;
-        for (final ClientShip ship : VSGameUtilsKt.getShipObjectWorld(Minecraft.getInstance()).getLoadedShips()) {
+        for (final ClientShip ship : ValkyrienSkies.getLoadedShips(Minecraft.getInstance())) {
             Vec3 cameraPos = this.mainCamera.getPosition();
             AABBdc shipAABB = ship.getRenderAABB();
             // find the furthest distance from the camera to the ship AABB corners

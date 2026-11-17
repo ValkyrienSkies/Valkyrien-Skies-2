@@ -59,6 +59,7 @@ import org.valkyrienskies.core.internal.ships.VsiLoadedServerShip;
 import org.valkyrienskies.core.internal.world.VsiPlayer;
 import org.valkyrienskies.core.internal.world.VsiServerShipWorld;
 import org.valkyrienskies.core.internal.world.VsiPipeline;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
 import org.valkyrienskies.mod.common.ShipSavedData;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
@@ -183,20 +184,20 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
 
         VSGameEvents.INSTANCE.getRegistriesCompleted().emit(Unit.INSTANCE);
 
-        DimensionParametersResolver.Parameters params = DimensionParametersResolver.INSTANCE.getDimensionMap().get(VSGameUtilsKt.getDimensionId(overworld()));
+        DimensionParametersResolver.Parameters params = DimensionParametersResolver.INSTANCE.getDimensionMap().get(ValkyrienSkies.getDimensionId(overworld()));
 
         if (params != null) {
             getShipObjectWorld().addDimension(
-                VSGameUtilsKt.getDimensionId(overworld()),
-                VSGameUtilsKt.getYRange(overworld()),
+                ValkyrienSkies.getDimensionId(overworld()),
+                ValkyrienSkies.getYRange(overworld()),
                 params.getGravity(),
                 params.getSeaLevel(),
                 params.getMaxY()
             );
         } else {
             getShipObjectWorld().addDimension(
-                VSGameUtilsKt.getDimensionId(overworld()),
-                VSGameUtilsKt.getYRange(overworld()),
+                ValkyrienSkies.getDimensionId(overworld()),
+                ValkyrienSkies.getYRange(overworld()),
                 McMathUtilKt.getDEFAULT_WORLD_GRAVITY(),
                 63.0,
                 962.0
@@ -210,13 +211,13 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     )
     private void preTick(final CallbackInfo ci) {
         final Set<VsiPlayer> vsPlayers = playerList.getPlayers().stream()
-            .map(VSGameUtilsKt::getPlayerWrapper).collect(Collectors.toSet());
+            .map(ValkyrienSkies::getPlayerWrapper).collect(Collectors.toSet());
         shipWorld.setPlayers(vsPlayers);
 
         // region Tell the VS world to load new levels
         final Map<String, ServerLevel> newLoadedLevels = new HashMap<>();
         for (final ServerLevel level : getAllLevels()) {
-            final String dimensionId = VSGameUtilsKt.getDimensionId(level);
+            final String dimensionId = ValkyrienSkies.getDimensionId(level);
             newLoadedLevels.put(dimensionId, level);
             dimensionToLevelMap.put(dimensionId, level);
         }

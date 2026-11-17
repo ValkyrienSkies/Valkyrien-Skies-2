@@ -13,7 +13,6 @@ import net.minecraft.world.entity.MobCategory
 import net.minecraft.world.item.CreativeModeTabs
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.Item.Properties
-import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraftforge.client.event.EntityRenderersEvent
@@ -87,7 +86,7 @@ import org.valkyrienskies.mod.common.item.ShipWelderItem
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
 import org.valkyrienskies.mod.common.item.ShipRemoverItem
 import org.valkyrienskies.mod.common.item.VSBlockItem
-import org.valkyrienskies.mod.common.playerWrapper
+import org.valkyrienskies.mod.api.playerWrapper
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 import org.valkyrienskies.mod.compat.LoadedMods
 import org.valkyrienskies.mod.compat.flywheel.FlywheelCompat
@@ -232,7 +231,7 @@ class ValkyrienSkiesModForge {
                 ::ShipMountingEntity,
                 MobCategory.MISC
             ).sized(.3f, .3f)
-                .build(ResourceLocation(MOD_ID, "ship_mounting_entity").toString())
+                .build(ResourceLocation.fromNamespaceAndPath(MOD_ID, "ship_mounting_entity").toString())
         }
 
         PHYSICS_ENTITY_TYPE_REGISTRY = ENTITIES.register("vs_physics_entity") {
@@ -242,7 +241,7 @@ class ValkyrienSkiesModForge {
             ).sized(1f, 1f)
                 .setUpdateInterval(1)
                 .clientTrackingRange(10)
-                .build(ResourceLocation(MOD_ID, "vs_physics_entity").toString())
+                .build(ResourceLocation.fromNamespaceAndPath(MOD_ID, "vs_physics_entity").toString())
         }
         modBus.addListener(::registerAttributes)
 
@@ -411,21 +410,21 @@ class ValkyrienSkiesModForge {
     }
 
     private fun loadComplete(event: FMLLoadCompleteEvent) {
-        ValkyrienSkiesMod.TEST_CHAIR = TEST_CHAIR_REGISTRY.get()
-        ValkyrienSkiesMod.TEST_HINGE = TEST_HINGE_REGISTRY.get()
-        ValkyrienSkiesMod.TEST_FLAP = TEST_FLAP_REGISTRY.get()
-        ValkyrienSkiesMod.TEST_WING = TEST_WING_REGISTRY.get()
-        ValkyrienSkiesMod.TEST_THRUSTER = TEST_THRUSTER_REGISTRY.get()
-        ValkyrienSkiesMod.TEST_ANTIGRAV = TEST_ANTIGRAV_REGISTRY.get()
-        ValkyrienSkiesMod.CONNECTION_CHECKER_ITEM = CONNECTION_CHECKER_ITEM_REGISTRY.get()
-        ValkyrienSkiesMod.SHIP_CREATOR_ITEM = SHIP_CREATOR_ITEM_REGISTRY.get()
-        ValkyrienSkiesMod.SHIP_REMOVER_ITEM = SHIP_REMOVER_ITEM_REGISTRY.get()
-        ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM = SHIP_ASSEMBLER_ITEM_REGISTRY.get()
-        ValkyrienSkiesMod.SHIP_WELDER_ITEM = SHIP_WELDER_ITEM_REGISTRY.get()
-        ValkyrienSkiesMod.SHIP_CREATOR_ITEM_SMALLER = SHIP_CREATOR_SMALLER_ITEM_REGISTRY.get()
-        ValkyrienSkiesMod.AREA_ASSEMBLER_ITEM = AREA_ASSEMBLER_ITEM_REGISTRY.get()
-        ValkyrienSkiesMod.CLASSIC_AREA_ASSEMBLER_ITEM = CLASSIC_AREA_ASSEMBLER_ITEM_REGISTRY.get()
-        ValkyrienSkiesMod.PHYSICS_ENTITY_CREATOR_ITEM = PHYSICS_ENTITY_CREATOR_ITEM_REGISTRY.get()
+        TEST_CHAIR = TEST_CHAIR_REGISTRY.get()
+        TEST_HINGE = TEST_HINGE_REGISTRY.get()
+        TEST_FLAP = TEST_FLAP_REGISTRY.get()
+        TEST_WING = TEST_WING_REGISTRY.get()
+        TEST_THRUSTER = TEST_THRUSTER_REGISTRY.get()
+        TEST_ANTIGRAV = TEST_ANTIGRAV_REGISTRY.get()
+        CONNECTION_CHECKER_ITEM = CONNECTION_CHECKER_ITEM_REGISTRY.get()
+        SHIP_CREATOR_ITEM = SHIP_CREATOR_ITEM_REGISTRY.get()
+        SHIP_REMOVER_ITEM = SHIP_REMOVER_ITEM_REGISTRY.get()
+        SHIP_ASSEMBLER_ITEM = SHIP_ASSEMBLER_ITEM_REGISTRY.get()
+        SHIP_WELDER_ITEM = SHIP_WELDER_ITEM_REGISTRY.get()
+        SHIP_CREATOR_ITEM_SMALLER = SHIP_CREATOR_SMALLER_ITEM_REGISTRY.get()
+        AREA_ASSEMBLER_ITEM = AREA_ASSEMBLER_ITEM_REGISTRY.get()
+        CLASSIC_AREA_ASSEMBLER_ITEM = CLASSIC_AREA_ASSEMBLER_ITEM_REGISTRY.get()
+        PHYSICS_ENTITY_CREATOR_ITEM = PHYSICS_ENTITY_CREATOR_ITEM_REGISTRY.get()
         ValkyrienSkiesMod.SHIP_MOUNTING_ENTITY_TYPE = SHIP_MOUNTING_ENTITY_REGISTRY.get()
         ValkyrienSkiesMod.PHYSICS_ENTITY_TYPE = PHYSICS_ENTITY_TYPE_REGISTRY.get()
         ValkyrienSkiesMod.TEST_HINGE_BLOCK_ENTITY_TYPE = TEST_HINGE_BLOCK_ENTITY_TYPE_REGISTRY.get()

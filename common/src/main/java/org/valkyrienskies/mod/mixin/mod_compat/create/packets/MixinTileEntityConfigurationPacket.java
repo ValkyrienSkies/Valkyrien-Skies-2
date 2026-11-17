@@ -11,12 +11,12 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 
 @Mixin(BlockEntityConfigurationPacket.class)
 public abstract class MixinTileEntityConfigurationPacket {
     @Unique
-    private Level _clockworkLevel;
+    private Level valkyrienskies$level;
 
     @Redirect(
             method = "lambda$handle$0",
@@ -26,12 +26,11 @@ public abstract class MixinTileEntityConfigurationPacket {
             )
     )
     private boolean redirectCloserThan(final BlockPos instance, final Vec3i vec3i, final double v, @Local ServerPlayer player) {
-        BlockPos blockPos = instance;
-        if (VSGameUtilsKt.isBlockInShipyard(this._clockworkLevel, instance)) {
-            double distance = VSGameUtilsKt.squaredDistanceToInclShips(player, instance.getX(), instance.getY(), instance.getZ());
+        if (ValkyrienSkies.isBlockInShipyard(this.valkyrienskies$level, instance)) {
+            double distance = ValkyrienSkies.shipAwareDistanceToSqr(player, instance.getX(), instance.getY(), instance.getZ());
             return distance < Mth.square(v);
         }
-        return blockPos.closerThan(vec3i, v);
+        return instance.closerThan(vec3i, v);
     }
 
     @Redirect(
@@ -41,8 +40,8 @@ public abstract class MixinTileEntityConfigurationPacket {
                     target = "Lnet/minecraft/world/level/Level;isLoaded(Lnet/minecraft/core/BlockPos;)Z"
             )
     )
-    private boolean injectCaptureLevel(final Level instance, final BlockPos pos) {
-        this._clockworkLevel = instance;
-        return instance.isLoaded(pos);
+    private boolean injectCaptureLevel(final Level instance, final BlockPos blockPos) {
+        this.valkyrienskies$level = instance;
+        return instance.isLoaded(blockPos);
     }
 }

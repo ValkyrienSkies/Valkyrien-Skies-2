@@ -10,7 +10,7 @@ import org.valkyrienskies.core.internal.hooks.VsiCoreHooksIn
 import org.valkyrienskies.core.internal.world.VsiPlayer
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.networking.VSPacketFragmenter
-import org.valkyrienskies.mod.common.playerWrapper
+import org.valkyrienskies.mod.api.playerWrapper
 import org.valkyrienskies.mod.common.util.MinecraftPlayer
 
 /**

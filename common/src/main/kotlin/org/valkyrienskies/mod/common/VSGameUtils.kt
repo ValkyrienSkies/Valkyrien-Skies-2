@@ -167,7 +167,7 @@ fun Level.isChunkLoadedForVS(pos: ChunkPos): Boolean {
     return isTickingChunk(pos)
 }
 
-@Deprecated(dep, ReplaceWith("getLevel(dimensionId)", "org.valkyrienskies.mod.api.getLevelFromDimensionId"))
+@Deprecated(dep, ReplaceWith("getLevel(dimensionId)", "org.valkyrienskies.mod.api.getLevel"))
 fun MinecraftServer.getLevelFromDimensionId(dimensionId: DimensionId): ServerLevel? {
     return getLevel(getResourceKey(dimensionId))
 }

@@ -9,12 +9,10 @@ import net.minecraft.world.entity.vehicle.ContainerEntity;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 
 @Mixin(ContainerEntity.class)
 public interface MixinContainerEntity extends Container, MenuProvider {
-    @Shadow
-    boolean isRemoved();
 
     @Shadow
     Vec3 position();
@@ -27,7 +25,7 @@ public interface MixinContainerEntity extends Container, MenuProvider {
         method = "isChestVehicleStillValid"
     )
     default boolean isChestVehicleStillValid(Player player, Operation<Boolean> original) {
-        if(original.call(player)) return true;
-        return VSGameUtilsKt.squaredDistanceToInclShips(player, this.position().x, this.position().y, this.position().z) <= 8.0F * 8.0F;
+        if (original.call(player)) return true;
+        return ValkyrienSkies.shipAwareDistanceToSqr(player, this.position().x, this.position().y, this.position().z) <= 8.0F * 8.0F;
     }
 }

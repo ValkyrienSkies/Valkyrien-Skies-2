@@ -369,7 +369,8 @@ fun Entity.shipMountedSpawnSeedPos(): BlockPos {
 }
 // endregion
 
-// region Level extensions
+
+// region Level extension properties
 /**
  * The String/[DimensionId] used within vs-core for representing this [Level].
  */
@@ -465,6 +466,10 @@ val Level?.shipWorld: VsiShipWorld
 
 val Level.yRange get() = LevelYRange(minBuildHeight, maxBuildHeight - 1)
 
+/**
+ * The [GameToPhysicsAdapter] for this level.
+ */
+val Level.gameToPhysicsAdapter get() = ValkyrienSkiesMod.getOrCreateGTPA(dimensionId)
 
 private val levelResourceKeyMap: MutableMap<DimensionId, ResourceKey<Level>> = HashMap()
 
@@ -481,28 +486,9 @@ fun getResourceKey(dimensionId: DimensionId): ResourceKey<Level>? {
     }
     return cached
 }
+// endregion
 
-/**
- * Execute [runnable] immediately if the thread invoking this is the same as the game thread.
- * Otherwise, schedule [runnable] to run on the next tick.
- */
-@Suppress("unchecked_cast")
-fun Level.executeOrSchedule(runnable: Runnable) {
-    val blockableEventLoop: BlockableEventLoop<Runnable> = if (!this.isClientSide) {
-        this.server!! as BlockableEventLoop<Runnable>
-    } else {
-        Minecraft.getInstance()
-    }
-
-    if (blockableEventLoop.isSameThread) runnable.run()
-    else blockableEventLoop.execute(runnable)
-}
-
-/**
- * The [GameToPhysicsAdapter] for this level.
- */
-val Level.gameToPhysicsAdapter get() = ValkyrienSkiesMod.getOrCreateGTPA(dimensionId)
-
+// region Level get ship, bodies, for each, shipyard checks
 @GameTickOnly
 fun Level?.getShipById(id: ShipId): Ship? =
     allShips?.getById(id)
@@ -584,6 +570,26 @@ fun Level.isChunkLoadedForVS(pos: ChunkPos): Boolean {
     return isTickingChunk(pos)
 }
 
+// endregion
+
+// region Level misc
+
+/**
+ * Execute [runnable] immediately if the thread invoking this is the same as the game thread.
+ * Otherwise, schedule [runnable] to run on the next tick.
+ */
+@Suppress("unchecked_cast")
+fun Level.executeOrSchedule(runnable: Runnable) {
+    val blockableEventLoop: BlockableEventLoop<Runnable> = if (!this.isClientSide) {
+        this.server!! as BlockableEventLoop<Runnable>
+    } else {
+        Minecraft.getInstance()
+    }
+
+    if (blockableEventLoop.isSameThread) runnable.run()
+    else blockableEventLoop.execute(runnable)
+}
+
 @GameTickOnly
 fun Level.shipAwareCanSeeSky(pos: BlockPos): Boolean {
     val ship = getShipManagingPos(pos)
@@ -660,6 +666,10 @@ private fun LevelChunkSection.toDenseVoxelUpdateWithoutSourceAmounts(chunkPos: V
     return update.build()
 }
 
+// endregion
+
+// region Level getShip/LoadedShipMangingPos, ships and bodies intersecting
+
 @GameTickOnly
 fun Level?.getShipManagingPos(chunkX: Int, chunkZ: Int) =
     getShipManagingPosImpl(this, chunkX, chunkZ)
@@ -730,6 +740,76 @@ fun Level?.getLoadedShipManagingPos(chunkPos: ChunkPos) =
     getLoadedShipManagingPos(chunkPos.x, chunkPos.z)
 
 /**
+ * Returns all the ships whose AABBs contain x/y/z
+ */
+@GameTickOnly
+fun Level?.getShipsIntersecting(x: Double, y: Double, z: Double): Iterable<Ship> =
+    getShipsIntersecting(AABBd(x, y, z, x, y, z))
+
+@GameTickOnly
+fun Level?.getShipsIntersecting(pos: Position): Iterable<Ship> =
+    getShipsIntersecting(AABBd(pos.toJOML(), pos.toJOML()))
+
+@GameTickOnly
+fun Level?.getShipsIntersecting(pos: Vector3d): Iterable<Ship> =
+    getShipsIntersecting(AABBd(pos, pos))
+
+@GameTickOnly
+fun Level?.getShipsIntersecting(pos: Vec3i): Iterable<Ship> =
+    getShipsIntersecting(AABBd(pos.toJOMLd(), pos.toJOMLd()))
+
+@GameTickOnly
+fun Level?.getShipsIntersecting(aabb: AABB): Iterable<Ship> =
+    getShipsIntersecting(aabb.toJOML())
+
+/**
+ * Returns all the ships whose AABBs intersect [aabb]
+ */
+@GameTickOnly
+fun Level?.getShipsIntersecting(aabb: AABBdc?): Iterable<Ship> =
+    if (aabb == null) emptyList() else this?.allShips?.getIntersecting(aabb, dimensionId) ?: emptyList()
+
+/**
+ * Returns all the ships whose AABBs contain x/y/z
+ */
+@GameTickOnly
+fun Level?.getLoadedShipsIntersecting(x: Double, y: Double, z: Double): Iterable<LoadedShip> =
+    getLoadedShipsIntersecting(AABBd(x, y, z, x, y, z))
+
+@GameTickOnly
+fun Level?.getLoadedShipsIntersecting(aabb: AABB): Iterable<LoadedShip> =
+    getLoadedShipsIntersecting(aabb.toJOML())
+
+/**
+ * Returns all the ships whose AABBs intersect [aabb]
+ */
+@GameTickOnly
+fun Level?.getLoadedShipsIntersecting(aabb: AABBdc?): Iterable<LoadedShip> =
+    if (aabb == null) emptyList() else this?.loadedShips?.getIntersecting(aabb, dimensionId) ?: emptyList()
+
+
+/**
+ * Returns all the bodies whose AABBs contain x/y/z
+ */
+@GameTickOnly
+fun Level?.getBodiesIntersecting(x: Double, y: Double, z: Double): Iterable<VsBody> =
+    getBodiesIntersecting(AABBd(x, y, z, x, y, z))
+
+@GameTickOnly
+fun Level?.getBodiesIntersecting(aabb: AABB): Iterable<VsBody> =
+    getBodiesIntersecting(aabb.toJOML())
+
+/**
+ * Returns all the bodies whose AABBs intersect [aabb]
+ */
+@GameTickOnly
+fun Level?.getBodiesIntersecting(aabb: AABBdc?): Iterable<VsBody> =
+    if (aabb == null) emptyList() else this?.allBodies?.getIntersecting(aabb, dimensionId) ?: emptyList()
+
+// endregion
+
+
+/**
  * If both endpoints of the given [aabb] are in the same ship, transform them
  * to the world and return the new AABB. Otherwise, leaves it untouched.
  */
@@ -755,6 +835,8 @@ fun Level?.toWorld(aabb: AABBd) =
 @GameTickOnly
 fun Level?.toWorld(aabb: AABB): AABB =
     toWorld(aabb.toJOML()).toMinecraft()
+
+// region level transform position to world
 
 /**
  * Get the ship at [x], [y], [z], and use it to transform [x], [y], [z] from
@@ -1209,6 +1291,408 @@ fun Level?.transformToWorld(shipAt: Vec3i, pos: Vec3i): Vector3d =
 fun Level?.transformToWorld(shipAt: ChunkPos, pos: Vec3i): Vector3d =
     getShipManagingPos(shipAt).transformToWorld(pos)
 
+// endregion
+
+// region Level transform position to ships
+
+
+/**
+ * Get all ships with their bounding box at [x], [y], [z], and for each ship
+ * transform [x], [y], [z] into their space and add the transformed position
+ * to [dest]. If there are no ships at the given position, no positions are
+ * added to [dest].
+ *
+ * @param x The x-coordinate in world space
+ * @param y The y-coordinate in world space
+ * @param z The z-coordinate in world space
+ * @param dest The collection to add all the transformed positions to
+ *
+ * @return [dest]
+ */
+@JvmOverloads
+@GameTickOnly
+fun Level?.transformToShips(x: Double, y: Double, z: Double, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
+    dest.also { c -> c.addAll(getShipsIntersecting(x, y, z).map { it.transformToShip(x, y, z) }) }
+
+
+/**
+ * Get all ships with their bounding box at [shipAtX], [shipAtY], [shipAtZ], and
+ * for each ship transform [x], [y], [z] from world space into their ship space
+ * and add the transformed position to [dest]. If there are no ships at the
+ * given position, no positions are added to [dest].
+ *
+ * @param shipAtX The x-coordinate of the ship(s) in world space
+ * @param shipAtY The y-coordinate of the ship(s) in world space
+ * @param shipAtZ The z-coordinate of the ship(s) in world space
+ * @param x The x-coordinate to transform
+ * @param y The y-coordinate to transform
+ * @param z The z-coordinate to transform
+ * @param dest The collection to add all the transformed positions to
+ *
+ * @return [dest]
+ */
+@JvmOverloads
+@GameTickOnly
+fun Level?.transformToShips(shipAtX: Double, shipAtY: Double, shipAtZ: Double, x: Double, y: Double, z: Double, dest: MutableCollection<Vector3d> = mutableListOf()):  MutableCollection<Vector3d> =
+    dest.also { c -> c.addAll(getShipsIntersecting(shipAtX, shipAtY, shipAtZ).map { it.transformToShip(x, y, z) }) }
+
+/**
+ * Get all ships with their bounding box at [shipAt], and for each ship
+ * transform [x], [y], [z] from world space into their ship space and add the
+ * transformed position to [dest]. If there are no ships at the given position,
+ * no positions are added to [dest].
+ *
+ * @param shipAt The position of the ship(s) in world space
+ * @param x The x-coordinate to transform
+ * @param y The y-coordinate to transform
+ * @param z The z-coordinate to transform
+ * @param dest The collection to add all the transformed positions to
+ *
+ * @return [dest]
+ */
+@JvmOverloads
+@GameTickOnly
+fun Level?.transformToShips(shipAt: Vector3d, x: Double, y: Double, z: Double, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
+    dest.also { c -> c.addAll(getShipsIntersecting(shipAt).map { it.transformToShip(x, y, z) }) }
+
+/**
+ * Get all ships with their bounding box at [shipAt], and for each ship
+ * transform [x], [y], [z] from world space into their ship space and add the
+ * transformed position to [dest]. If there are no ships at the given position,
+ * no positions are added to [dest].
+ *
+ * @param shipAt The position of the ship(s) in world space
+ * @param x The x-coordinate to transform
+ * @param y The y-coordinate to transform
+ * @param z The z-coordinate to transform
+ * @param dest The collection to add all the transformed positions to
+ *
+ * @return [dest]
+ */
+@JvmOverloads
+@GameTickOnly
+fun Level?.transformToShips(shipAt: Position, x: Double, y: Double, z: Double, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
+    dest.also { c -> c.addAll(getShipsIntersecting(shipAt).map { it.transformToShip(x, y, z) }) }
+
+/**
+ * Get all ships with their bounding box at [shipAt], and for each ship
+ * transform [x], [y], [z] from world space into their ship space and add the
+ * transformed position to [dest]. If there are no ships at the given position,
+ * no positions are added to [dest].
+ *
+ * @param shipAt The position of the ship(s) in world space
+ * @param x The x-coordinate to transform
+ * @param y The y-coordinate to transform
+ * @param z The z-coordinate to transform
+ * @param dest The collection to add all the transformed positions to
+ *
+ * @return [dest]
+ */
+@JvmOverloads
+@GameTickOnly
+fun Level?.transformToShips(shipAt: Vec3i, x: Double, y: Double, z: Double, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
+    dest.also { c -> c.addAll(getShipsIntersecting(shipAt).map { it.transformToShip(x, y, z) }) }
+
+/**
+ * Get all ships with their bounding box at [pos], and for each ship
+ * transform [pos] from world space into their ship space and add the
+ * transformed position to [dest]. If there are no ships at the given position,
+ * no positions are added to [dest].
+ *
+ * @param pos The position of the ship(s) in world space, and the position to
+ * transform.
+ * @param dest The collection to add all the transformed positions to
+ *
+ * @return [dest]
+ */
+@GameTickOnly
+fun Level?.transformToShips(pos: Position, dest: MutableCollection<Vec3> = mutableListOf()): MutableCollection<Vec3> =
+    dest.also { c -> c.addAll(getShipsIntersecting(pos).map { it.transformToShip(pos) }) }
+
+/**
+ * Get all ships with their bounding box at [shipAtX], [shipAtY], [shipAtZ], and
+ * for each ship transform [pos] from world space into their ship space and add
+ * the transformed position to [dest]. If there are no ships at the given
+ * position, no positions are added to [dest].
+ *
+ *
+ * @param shipAtX The x-coordinate of the ship in world space
+ * @param shipAtY The y-coordinate of the ship in world space
+ * @param shipAtZ The z-coordinate of the ship in world space
+ * @param pos The position to transform
+ * @param dest The collection to add all the transformed positions to
+ *
+ * @return [dest]
+ */
+@GameTickOnly
+fun Level?.transformToShips(shipAtX: Double, shipAtY: Double, shipAtZ: Double, pos: Position, dest: MutableCollection<Vec3> = mutableListOf()): MutableCollection<Vec3> =
+    dest.also { c -> c.addAll(getShipsIntersecting(shipAtX, shipAtY, shipAtZ).map { it.transformToShip(pos) }) }
+
+/**
+ * Get all ships with their bounding box at [shipAt], and for each ship
+ * transform [pos] from world space into their ship space and add the
+ * transformed position to [dest]. If there are no ships at the given position,
+ * no positions are added to [dest].
+ *
+ * @param shipAt The position of the ship(s) in world space
+ * @param pos The position to transform
+ * @param dest The collection to add all the transformed positions to
+ *
+ * @return [dest]
+ */
+@GameTickOnly
+fun Level?.transformToShips(shipAt: Vector3d, pos: Position, dest: MutableCollection<Vec3> = mutableListOf()): MutableCollection<Vec3> =
+    dest.also { c -> c.addAll(getShipsIntersecting(shipAt).map { it.transformToShip(pos) }) }
+
+/**
+ * Get all ships with their bounding box at [shipAt], and for each ship
+ * transform [pos] from world space into their ship space and add the
+ * transformed position to [dest]. If there are no ships at the given position,
+ * no positions are added to [dest].
+ *
+ * @param shipAt The position of the ship(s) in world space
+ * @param pos The position to transform
+ * @param dest The collection to add all the transformed positions to
+ *
+ * @return [dest]
+ */
+@GameTickOnly
+fun Level?.transformToShips(shipAt: Position, pos: Position, dest: MutableCollection<Vec3> = mutableListOf()): MutableCollection<Vec3> =
+    dest.also { c -> c.addAll(getShipsIntersecting(shipAt).map { it.transformToShip(pos) }) }
+
+/**
+ * Get all ships with their bounding box at [shipAt], and for each ship
+ * transform [pos] from world space into their ship space and add the
+ * transformed position to [dest]. If there are no ships at the given position,
+ * no positions are added to [dest].
+ *
+ * @param shipAt The position of the ship(s) in world space
+ * @param pos The position to transform
+ * @param dest The collection to add all the transformed positions to
+ *
+ * @return [dest]
+ */
+@GameTickOnly
+fun Level?.transformToShips(shipAt: Vec3i, pos: Position, dest: MutableCollection<Vec3> = mutableListOf()): MutableCollection<Vec3> =
+    dest.also { c -> c.addAll(getShipsIntersecting(shipAt).map { it.transformToShip(pos) }) }
+
+/**
+ * Get all ships with their bounding box at [pos], and for each ship
+ * transform [pos] from world space into their ship space and add the
+ * transformed position to [dest]. If there are no ships at the given position,
+ * no positions are added to [dest].
+ *
+ * @param pos The position of the ship in ship space, and the position to
+ * transform and hold the final result
+ * @param dest The collection to add all the transformed positions to
+ *
+ * @return [dest]
+ */
+@GameTickOnly
+fun Level?.transformToShips(pos: Vector3d, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
+    dest.also { c -> c.addAll(getShipsIntersecting(pos).map { it.transformToShip(pos, Vector3d()) }) }
+
+/**
+ * Get all ships with their bounding box at [shipAtX], [shipAtY], [shipAtZ], and
+ * for each ship transform [pos] from world space into their ship space and add
+ * the transformed position to [dest]. If there are no ships at the given
+ * position, no positions are added to [dest].
+ *
+ * @param shipAtX The x-coordinate of the ship in world space
+ * @param shipAtY The y-coordinate of the ship in world space
+ * @param shipAtZ The z-coordinate of the ship in world space
+ * @param pos The position to transform and hold the final result
+ * @param dest The collection to add all the transformed positions to
+ *
+ * @return [dest]
+ */
+@GameTickOnly
+fun Level?.transformToShips(shipAtX: Double, shipAtY: Double, shipAtZ: Double, pos: Vector3d, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
+    dest.also { c -> c.addAll(getShipsIntersecting(shipAtX, shipAtY, shipAtZ).map { it.transformToShip(pos, Vector3d()) }) }
+
+/**
+ * Get all ships with their bounding box at [shipAt], and for each ship
+ * transform [pos] from world space into their ship space and add the
+ * transformed position to [dest]. If there are no ships at the given position,
+ * no positions are added to [dest].
+ *
+ * @param shipAt The position of the ship(s) in world space
+ * @param pos The position to transform and hold the final result
+ * @param dest The collection to add all the transformed positions to
+ *
+ * @return [dest]
+ */
+@GameTickOnly
+fun Level?.transformToShips(shipAt: Vector3d, pos: Vector3dc, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
+    dest.also { c -> c.addAll(getShipsIntersecting(shipAt).map { it.transformToShip(pos, Vector3d()) }) }
+
+/**
+ * Get all ships with their bounding box at [shipAt], and for each ship
+ * transform [pos] from world space into their ship space and add the
+ * transformed position to [dest]. If there are no ships at the given position,
+ * no positions are added to [dest].
+ *
+ * @param shipAt The position of the ship(s) in world space
+ * @param pos The position to transform and hold the final result
+ * @param dest The collection to add all the transformed positions to
+ *
+ * @return [dest]
+ */
+@GameTickOnly
+fun Level?.transformToShips(shipAt: Position, pos: Vector3dc, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
+    dest.also { c -> c.addAll(getShipsIntersecting(shipAt).map { it.transformToShip(pos, Vector3d()) }) }
+
+/**
+ * Get all ships with their bounding box at [shipAt], and for each ship
+ * transform [pos] from world space into their ship space and add the
+ * transformed position to [dest]. If there are no ships at the given position,
+ * no positions are added to [dest].
+ *
+ * @param shipAt The position of the ship(s) in world space
+ * @param pos The position to transform and hold the final result
+ * @param dest The collection to add all the transformed positions to
+ *
+ * @return [dest]
+ */
+@GameTickOnly
+fun Level?.transformToShips(shipAt: Vec3i, pos: Vector3dc, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
+    dest.also { c -> c.addAll(getShipsIntersecting(shipAt).map { it.transformToShip(pos, Vector3d()) }) }
+
+/**
+ * Get all ships with their bounding box at [pos], and for each ship
+ * transform [pos] from world space into their ship space and add the
+ * transformed position to [dest]. If there are no ships at the given position,
+ * no positions are added to [dest].
+ *
+ * @param pos The position of the ship in ship space, and the position to
+ * transform
+ * @param dest The collection to add all the transformed positions to
+ *
+ * @return [dest]
+ */
+@GameTickOnly
+fun Level?.transformToShips(pos: Vec3i, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
+    dest.also { c -> c.addAll(getShipsIntersecting(pos).map { it.transformToShip(pos) }) }
+
+/**
+ * Get all ships with their bounding box at [shipAtX], [shipAtY], [shipAtZ], and
+ * for each ship transform [pos] from world space into their ship space and add
+ * the transformed position to [dest]. If there are no ships at the given
+ * position, no positions are added to [dest].
+ *
+ *
+ * @param shipAtX The x-coordinate of the ship(s) in world space
+ * @param shipAtY The y-coordinate of the ship(s) in world space
+ * @param shipAtZ The z-coordinate of the ship(s) in world space
+ * @param pos The position to transform
+ * @param dest The collection to add all the transformed positions to
+ *
+ * @return [dest]
+ */
+@GameTickOnly
+fun Level?.transformToShips(shipAtX: Double, shipAtY: Double, shipAtZ: Double, pos: Vec3i, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
+    dest.also { c -> c.addAll(getShipsIntersecting(shipAtX, shipAtY, shipAtZ).map { it.transformToShip(pos) }) }
+
+/**
+ * Get all ships with their bounding box at [shipAt], and for each ship
+ * transform [pos] from world space into their ship space and add the
+ * transformed position to [dest]. If there are no ships at the given position,
+ * no positions are added to [dest].
+ *
+ * @param shipAt The position of the ship(s) in world space
+ * @param pos The position to transform
+ * @param dest The collection to add all the transformed positions to
+ *
+ * @return [dest]
+ */
+@GameTickOnly
+fun Level?.transformToShips(shipAt: Vector3d, pos: Vec3i, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
+    dest.also { c -> c.addAll(getShipsIntersecting(shipAt).map { it.transformToShip(pos) }) }
+
+/**
+ * Get all ships with their bounding box at [shipAt], and for each ship
+ * transform [pos] from world space into their ship space and add the
+ * transformed position to [dest]. If there are no ships at the given position,
+ * no positions are added to [dest].
+ *
+ * @param shipAt The position of the ship(s) in world space
+ * @param pos The position to transform
+ * @param dest The collection to add all the transformed positions to
+ *
+ * @return [dest]
+ */
+@GameTickOnly
+fun Level?.transformToShips(shipAt: Position, pos: Vec3i, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
+    dest.also { c -> c.addAll(getShipsIntersecting(shipAt).map { it.transformToShip(pos) }) }
+
+/**
+ * Get all ships with their bounding box at [shipAt], and for each ship
+ * transform [pos] from world space into their ship space and add the
+ * transformed position to [dest]. If there are no ships at the given position,
+ * no positions are added to [dest].
+ *
+ * @param shipAt The position of the ship(s) in world space
+ * @param pos The position to transform
+ * @param dest The collection to add all the transformed positions to
+ *
+ * @return [dest]
+ */
+@GameTickOnly
+fun Level?.transformToShips(shipAt: Vec3i, pos: Vec3i, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
+    dest.also { c -> c.addAll(getShipsIntersecting(shipAt).map { it.transformToShip(pos) }) }
+
+
+// endregion
+
+// region Level rotate direction vector to world
+
+// endregion
+
+// region rotate direction vector to ships
+
+// endregion
+
+// region Level transform aabb to world
+@GameTickOnly
+fun Level?.transformToWorld(aabb: AABBd): AABBd =
+    getShipManagingPos(aabb.center()).transformToWorld(aabb)
+
+@GameTickOnly
+fun Level?.transformToWorld(shipAtX: Double, shipAtZ: Double, aabb: AABBd): AABBd =
+    getShipManagingPos(shipAtX, shipAtZ).transformToWorld(aabb)
+
+@GameTickOnly
+fun Level?.transformToWorld(pos: Vec3, aabb: AABBd): AABBd =
+    getShipManagingPos(pos).transformToWorld(aabb)
+
+@GameTickOnly
+fun Level?.transformToWorld(pos: Vector3dc, aabb: AABBd): AABBd =
+    getShipManagingPos(pos).transformToWorld(aabb)
+
+@GameTickOnly
+fun Level?.transformToWorld(pos: Vec3i, aabb: AABBd): AABBd =
+    getShipManagingPos(pos).transformToWorld(aabb)
+
+@GameTickOnly
+fun Level?.transformToWorld(chunkPos: ChunkPos, aabb: AABBd): AABBd =
+    getShipManagingPos(chunkPos).transformToWorld(aabb)
+
+@GameTickOnly
+fun Level?.transformToWorld(aabb: AABBdc, dest: AABBd): AABBd =
+    getShipManagingPos(aabb.center()).transformToWorld(aabb, dest)
+
+@GameTickOnly
+fun Level?.transformToWorld(aabb: AABB): AABBd =
+    getShipManagingPos(aabb.center).transformToWorld(aabb)
+// endregion
+
+// region Level transform aabb to ships
+
+// endregion
+
+// region i need to move these
+
+
 @GameTickOnly
 private inline fun Level?.positionToNearbyShipsAndWorld(
     x: Double,
@@ -1264,7 +1748,7 @@ private inline fun Level?.positionToNearbyShips(
  */
 @JvmOverloads
 @GameTickOnly
-fun Level?.positionToNearbyShips(x: Double, y: Double, z: Double, aabb: AABBdc? = null): Iterable<Vector3d> {
+fun Level?.positionToNearbyShips(x: Double, y: Double, z: Double, aabb: AABBdc? = null): List<Vector3d> {
     if (this == null) return emptyList()
     val list = mutableListOf<Vector3d>()
     positionToNearbyShips(x, y, z, aabb) { transformedX, transformedY, transformedZ ->
@@ -1278,7 +1762,7 @@ fun Level?.positionToNearbyShips(x: Double, y: Double, z: Double, aabb: AABBdc? 
  */
 @JvmOverloads
 @GameTickOnly
-fun Level?.positionToNearbyShipsAndWorld(x: Double, y: Double, z: Double, aabb: AABBdc? = null): Iterable<Vector3d> =
+fun Level?.positionToNearbyShipsAndWorld(x: Double, y: Double, z: Double, aabb: AABBdc? = null): List<Vector3d> =
     listOf(Vector3d(x, y, z)) + positionToNearbyShips(x, y, z, aabb)
 
 @GameTickOnly
@@ -1290,7 +1774,7 @@ fun Level?.positionToNearbyShips(x: Double, y: Double, z: Double, aabb: AABBdc?,
     positionToNearbyShips(x, y, z, aabb, cb::accept)
 
 @GameTickOnly
-fun Level?.positionToNearbyShips(x: Double, y: Double, z: Double, aabbRadius: Double): Iterable<Vector3d> =
+fun Level?.positionToNearbyShips(x: Double, y: Double, z: Double, aabbRadius: Double): List<Vector3d> =
     positionToNearbyShips(x, y, z, newAABBWithRadius(x, y, z, aabbRadius))
 
 @GameTickOnly
@@ -1306,7 +1790,7 @@ fun Level?.positionToNearbyShipsAndWorld(x: Double, y: Double, z: Double, aabb: 
     positionToNearbyShipsAndWorld(x, y, z, aabb, cb::accept)
 
 @GameTickOnly
-fun Level?.positionToNearbyShipsAndWorld(x: Double, y: Double, z: Double, aabbRadius: Double): Iterable<Vector3d> =
+fun Level?.positionToNearbyShipsAndWorld(x: Double, y: Double, z: Double, aabbRadius: Double): List<Vector3d> =
     positionToNearbyShipsAndWorld(x, y, z, newAABBWithRadius(x, y, z, aabbRadius))
 
 @GameTickOnly
@@ -1447,60 +1931,9 @@ fun Level?.transformAABBToWorldOBB(
     if (lz > 0.0) destAxisZ.div(lz)
 }
 
-/**
- * Returns all the ships whose AABBs contain x/y/z
- */
-@GameTickOnly
-fun Level?.getShipsIntersecting(x: Double, y: Double, z: Double): Iterable<Ship> =
-    getShipsIntersecting(AABBd(x, y, z, x, y, z))
+// endregion
 
-@GameTickOnly
-fun Level?.getShipsIntersecting(aabb: AABB): Iterable<Ship> =
-    getShipsIntersecting(aabb.toJOML())
-
-/**
- * Returns all the ships whose AABBs intersect [aabb]
- */
-@GameTickOnly
-fun Level?.getShipsIntersecting(aabb: AABBdc?): Iterable<Ship> =
-    if (aabb == null) emptyList() else this?.allShips?.getIntersecting(aabb, dimensionId) ?: emptyList()
-
-/**
- * Returns all the ships whose AABBs contain x/y/z
- */
-@GameTickOnly
-fun Level?.getLoadedShipsIntersecting(x: Double, y: Double, z: Double): Iterable<LoadedShip> =
-    getLoadedShipsIntersecting(AABBd(x, y, z, x, y, z))
-
-@GameTickOnly
-fun Level?.getLoadedShipsIntersecting(aabb: AABB): Iterable<LoadedShip> =
-    getLoadedShipsIntersecting(aabb.toJOML())
-
-/**
- * Returns all the ships whose AABBs intersect [aabb]
- */
-@GameTickOnly
-fun Level?.getLoadedShipsIntersecting(aabb: AABBdc?): Iterable<LoadedShip> =
-    if (aabb == null) emptyList() else this?.loadedShips?.getIntersecting(aabb, dimensionId) ?: emptyList()
-
-
-/**
- * Returns all the bodies whose AABBs contain x/y/z
- */
-@GameTickOnly
-fun Level?.getBodiesIntersecting(x: Double, y: Double, z: Double): Iterable<VsBody> =
-    getBodiesIntersecting(AABBd(x, y, z, x, y, z))
-
-@GameTickOnly
-fun Level?.getBodiesIntersecting(aabb: AABB): Iterable<VsBody> =
-    getBodiesIntersecting(aabb.toJOML())
-
-/**
- * Returns all the bodies whose AABBs intersect [aabb]
- */
-@GameTickOnly
-fun Level?.getBodiesIntersecting(aabb: AABBdc?): Iterable<VsBody> =
-    if (aabb == null) emptyList() else this?.allBodies?.getIntersecting(aabb, dimensionId) ?: emptyList()
+// region Level ship aware distance stuff
 
 @GameTickOnly
 fun Level?.distance(x1: Double, y1: Double, z1: Double, x2: Double, y2: Double, z2: Double): Double =
@@ -1619,6 +2052,7 @@ fun Level?.closerToCenterThan(v1: Vec3i, v2: Position, distance: Double): Boolea
 
 // endregion
 
+
 // region ClientLevel / Minecraft extensions
 /**
  * Returns the [VsiClientShipWorld] associated with this [ClientLevel]. Will be
@@ -1703,12 +2137,12 @@ val Minecraft?.shipWorld: VsiClientShipWorld
  */
 @GameTickOnly val ClientLevel?.unloadedBodiesGlobal get() = this?.shipWorld?.unloadedBodies
 
-@GameTickOnly val Minecraft?.allShips get() = this?.shipWorld?.allShips
-@GameTickOnly val Minecraft?.unloadedShips get() = this?.shipWorld?.unloadedShips
-@GameTickOnly val Minecraft?.loadedShips get() = this?.shipWorld?.loadedShips
+@GameTickOnly val Minecraft?.allShips get() = this.shipWorld.allShips
+@GameTickOnly val Minecraft?.unloadedShips get() = this.shipWorld.unloadedShips
+@GameTickOnly val Minecraft?.loadedShips get() = this.shipWorld.loadedShips
 
-@GameTickOnly val Minecraft?.allBodies get() = this?.shipWorld?.allBodies
-@GameTickOnly val Minecraft?.unloadedBodies get() = this?.shipWorld?.unloadedBodies
+@GameTickOnly val Minecraft?.allBodies get() = this.shipWorld.allBodies
+@GameTickOnly val Minecraft?.unloadedBodies get() = this.shipWorld.unloadedBodies
 
 @GameTickOnly
 fun ClientLevel?.getShipById(shipId: ShipId) =
@@ -1728,11 +2162,11 @@ fun ClientLevel?.getLoadedShipByIdGlobal(shipId: ShipId) =
 
 @GameTickOnly
 fun Minecraft?.getShipById(shipId: ShipId) =
-    allShips?.getById(shipId)
+    allShips.getById(shipId)
 
 @GameTickOnly
 fun Minecraft?.getLoadedShipById(shipId: ShipId) =
-    loadedShips?.getById(shipId)
+    loadedShips.getById(shipId)
 
 @GameTickOnly
 fun ClientLevel?.forAllShips(cb: Consumer<ClientShip>) =
@@ -1760,15 +2194,15 @@ fun ClientLevel?.forAllBodiesGlobal(cb: Consumer<ClientVsBody>) =
 
 @GameTickOnly
 fun Minecraft?.forAllShips(cb: Consumer<ClientShip>) =
-    allShips?.forEach(cb)
+    allShips.forEach(cb)
 
 @GameTickOnly
 fun Minecraft?.forLoadedShips(cb: Consumer<ClientShip>) =
-    loadedShips?.forEach(cb)
+    loadedShips.forEach(cb)
 
 @GameTickOnly
 fun Minecraft?.forAllBodies(cb: Consumer<ClientVsBody>) =
-    allBodies?.forEach(cb)
+    allBodies.forEach(cb)
 
 @GameTickOnly
 fun ClientLevel?.getLoadedShipManagingPos(chunkX: Int, chunkZ: Int) =
@@ -1842,6 +2276,7 @@ fun Minecraft?.transformRenderAABBToWorld(pos: Position, aabb: AABB) =
 fun Minecraft?.toShipRenderCoordinates(shipPos: Vec3, pos: Vec3): Vector3d =
     this?.level.toShipRenderCoordinates(shipPos, pos)
 // endregion
+
 
 // region ServerLevel / MinecraftServer extensions
 @GameTickOnly
@@ -2202,6 +2637,7 @@ fun MinecraftServer?.getLoadedShipManagingPos(levelKey: ResourceKey<Level>, chun
 
 // endregion
 
+
 // region Ship extensions
 @JvmOverloads
 fun Ship?.transformToWorld(x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
@@ -2219,6 +2655,15 @@ fun Ship?.transformToWorld(pos: Vector3dc, dest: Vector3d): Vector3d =
 fun Ship?.transformToWorld(pos: Vec3i): Vector3d =
     this?.transform.transformToWorld(pos)
 
+fun Ship?.transformToWorld(aabb: AABBd): AABBd =
+    this?.transform.transformToWorld(aabb)
+
+fun Ship?.transformToWorld(aabb: AABBdc, dest: AABBd): AABBd =
+    this?.transform.transformToWorld(aabb, dest)
+
+fun Ship?.transformToWorld(aabb: AABB): AABBd =
+    this?.transform.transformToWorld(aabb)
+
 @JvmOverloads
 fun Ship?.transformToShip(x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
     this?.transform.transformToShip(x, y, z, dest)
@@ -2234,6 +2679,15 @@ fun Ship?.transformToShip(pos: Vector3dc, dest: Vector3d): Vector3d =
 
 fun Ship?.transformToShip(pos: Vec3i): Vector3d =
     this?.transform.transformToShip(pos)
+
+fun Ship?.transformToShip(aabb: AABBd): AABBd =
+    this?.transform.transformToShip(aabb)
+
+fun Ship?.transformToShip(aabb: AABBdc, dest: AABBd): AABBd =
+    this?.transform.transformToShip(aabb, dest)
+
+fun Ship?.transformToShip(aabb: AABB): AABBd =
+    this?.transform.transformToShip(aabb)
 
 @JvmOverloads
 fun Ship?.rotateToWorld(x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
@@ -2309,6 +2763,15 @@ fun ShipTransform?.transformToWorld(pos: Vector3dc, dest: Vector3d): Vector3d =
 fun ShipTransform?.transformToWorld(pos: Vec3i): Vector3d =
     this?.shipToWorld?.transformPosition(pos.toJOMLd()) ?: pos.toJOMLd()
 
+fun ShipTransform?.transformToWorld(aabb: AABBd): AABBd =
+    this?.shipToWorld?.let { aabb.transform(it) } ?: aabb
+
+fun ShipTransform?.transformToWorld(aabb: AABBdc, dest: AABBd): AABBd =
+    this?.shipToWorld?.let { aabb.transform(it, dest) } ?: dest.set(aabb)
+
+fun ShipTransform?.transformToWorld(aabb: AABB): AABBd =
+    this?.shipToWorld?.let { aabb.toJOML().transform(it) } ?: aabb.toJOML()
+
 @JvmOverloads
 fun ShipTransform?.transformToShip(x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
     this?.worldToShip?.transformPosition(dest.set(x, y, z)) ?: dest.set(x, y, z)
@@ -2324,6 +2787,15 @@ fun ShipTransform?.transformToShip(pos: Vector3dc, dest: Vector3d): Vector3d =
 
 fun ShipTransform?.transformToShip(pos: Vec3i): Vector3d =
     this?.worldToShip?.transformPosition(pos.toJOMLd()) ?: pos.toJOMLd()
+
+fun ShipTransform?.transformToShip(aabb: AABBd): AABBd =
+    this?.worldToShip?.let { aabb.transform(it) } ?: aabb
+
+fun ShipTransform?.transformToShip(aabb: AABBdc, dest: AABBd): AABBd =
+    this?.worldToShip?.let { aabb.transform(it, dest) } ?: dest.set(aabb)
+
+fun ShipTransform?.transformToShip(aabb: AABB): AABBd =
+    this?.worldToShip?.let { aabb.toJOML().transform(it) } ?: aabb.toJOML()
 
 @JvmOverloads
 fun ShipTransform?.rotateToWorld(x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
@@ -2576,6 +3048,8 @@ fun AABBic.forEach(f: IntTernaryConsumer) {
         }
     }
 }
+
+fun AABBdc.center(): Vector3d = center(Vector3d())
 
 @JvmOverloads
 fun Matrix4dc.transformDirection(v: Vec3i, dest: Vector3d = Vector3d()): Vector3d =

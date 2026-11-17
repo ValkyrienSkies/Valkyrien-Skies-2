@@ -17,6 +17,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import org.valkyrienskies.mod.api.ValkyrienSkies;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
 @Mixin(Bee.BeePollinateGoal.class)
@@ -43,13 +44,13 @@ public abstract class MixinPollinateGoal {
         if (!cir.getReturnValue().isEmpty()) return;
         final BlockPos beePos = field_20377.blockPosition();
         try {
-            final Optional<BlockPos> res = VSGameUtilsKt.transformToNearbyShipsAndWorld(
+            final Optional<BlockPos> res = ValkyrienSkies.positionToNearbyShipsAndWorld(
                 this.field_20377.level(), beePos.getX(), beePos.getY(), beePos.getZ(), 5.0
             ).stream().flatMap(pos -> {
                 vs$searchCenterOverride.set(BlockPos.containing(pos.x, pos.y, pos.z));
                 return findNearestBlock(VALID_POLLINATION_BLOCKS, 5.0).stream();
             }).min(Comparator.comparingDouble(pos ->
-                VSGameUtilsKt.squaredDistanceBetweenInclShips(this.field_20377.level(),
+                ValkyrienSkies.distanceSquared(this.field_20377.level(),
                     beePos.getX(), beePos.getY(), beePos.getZ(),
                     pos.getX(), pos.getY(), pos.getZ())));
             cir.setReturnValue(res);
@@ -77,6 +78,6 @@ public abstract class MixinPollinateGoal {
         )
     )
     private Vec3 vs$atBottomCenterOfProjected(final Vec3i pos, final Operation<Vec3> original) {
-        return VSGameUtilsKt.toWorldCoordinates(this.field_20377.level(), original.call(pos));
+        return ValkyrienSkies.transformToWorld(this.field_20377.level(), original.call(pos));
     }
 }
