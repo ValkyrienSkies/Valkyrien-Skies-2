@@ -8,12 +8,11 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.phys.Vec3;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.joml.primitives.AABBdc;
 import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.ShipRendererKt;
@@ -42,6 +41,8 @@ public final class DistantShips {
     private static final long REMOVE_GRACE_NANOS = 5_000_000_000L;
     private static final long OTHER_RENDERER_DELAY_NANOS = 1_000_000_000L;
     private static final int MESH_BUILDS_PER_FRAME = 1;
+    private static final long NANOS_PER_TICK = 50_000_000L;
+    private static final int VIEW_DISTANCE_CHECK_INTERVAL_TICKS = 20;
 
     private static final Long2ObjectOpenHashMap<DistantShipRenderObject> SHIPS = new Long2ObjectOpenHashMap<>();
     private static final Long2LongOpenHashMap LOADED_SINCE = new Long2LongOpenHashMap();
@@ -53,6 +54,7 @@ public final class DistantShips {
     private static int sentDistance = -1;
     private static String sentDimension;
     private static ClientLevel sentLevel;
+    private static int ticksUntilViewDistanceCheck;
 
     private DistantShips() {
     }
@@ -68,10 +70,11 @@ public final class DistantShips {
         if (!VSGameConfig.CLIENT.getDistantShips().getRenderDistantShips()) {
             return;
         }
-        final Long2ObjectOpenHashMap<LevelChunkSection> blocks = new Long2ObjectOpenHashMap<>();
+        final DistantShipSnapshots.Decoded snapshot = new DistantShipSnapshots.Decoded(
+            new Long2ObjectOpenHashMap<>(), new Long2ObjectOpenHashMap<>(), new Long2ObjectOpenHashMap<>());
         try {
-            if (!DistantShipSnapshots.decode(packet.getBlocks(),
-                current.registryAccess().registryOrThrow(Registries.BIOME), blocks)) {
+            if (!DistantShipSnapshots.decode(packet.getSnapshot(),
+                current.registryAccess().registryOrThrow(Registries.BIOME), snapshot)) {
                 return;
             }
         } catch (final RuntimeException e) {
@@ -88,10 +91,10 @@ public final class DistantShips {
             SHIPS.put(packet.getShipId(), ship);
             ship.setTransform(transform, 0);
         } else {
-            ship.blendTo(transform, 0);
+            ship.blendTo(transform, 0, packet.getTransformIntervalTicks() * NANOS_PER_TICK);
         }
         ship.removeRequestedNanos = -1;
-        ship.setBlocks(packet.getRevision(), packet.getShipAABB(), blocks);
+        ship.setSnapshot(packet.getRevision(), packet.getShipAABB(), snapshot);
         ship.updatePose(0);
     }
 
@@ -103,6 +106,7 @@ public final class DistantShips {
         }
         final long[] ids = packet.getShipIds();
         final double[] transforms = packet.getTransforms();
+        final long blendNanos = packet.getIntervalTicks() * NANOS_PER_TICK;
         for (int i = 0; i < ids.length; i++) {
             final int offset = i * DistantShipTransforms.SIZE;
             if (offset + DistantShipTransforms.SIZE > transforms.length) {
@@ -110,7 +114,7 @@ public final class DistantShips {
             }
             final DistantShipRenderObject ship = SHIPS.get(ids[i]);
             if (ship != null) {
-                ship.blendTo(transforms, offset);
+                ship.blendTo(transforms, offset, blendNanos);
             }
         }
     }
@@ -136,7 +140,7 @@ public final class DistantShips {
         syncLevel(current);
         final String dimension = VSGameUtilsKt.getDimensionId(current);
         final int distance = viewDistanceBlocks(minecraft);
-        if (distance == sentDistance && current == sentLevel && dimension.equals(sentDimension)) {
+        if (!levelChanged && distance == sentDistance && dimension.equals(sentDimension)) {
             return;
         }
         sentDistance = distance;
@@ -157,16 +161,14 @@ public final class DistantShips {
         return Math.max(minecraft.options.getEffectiveRenderDistance() * 16, LodCompat.renderDistanceBlocks());
     }
 
-    public static double furthestCornerDistance(final Vec3 camera) {
-        double furthest = 0.0;
+    /** Squared distance from the camera to the furthest corner of any distant ship, for the projection's far plane. */
+    public static double farthestCornerDistanceSq(final Vec3 camera) {
+        double farthest = 0.0;
         for (final DistantShipRenderObject ship : SHIPS.values()) {
-            final AABBdc aabb = ship.renderWorldAABB();
-            final double dx = Math.max(Math.abs(aabb.minX() - camera.x), Math.abs(aabb.maxX() - camera.x));
-            final double dy = Math.max(Math.abs(aabb.minY() - camera.y), Math.abs(aabb.maxY() - camera.y));
-            final double dz = Math.max(Math.abs(aabb.minZ() - camera.z), Math.abs(aabb.maxZ() - camera.z));
-            furthest = Math.max(furthest, Math.sqrt(dx * dx + dy * dy + dz * dz));
+            farthest = Math.max(farthest, VSClientGameUtils.farthestCornerDistanceSq(
+                ship.renderWorldAABB(), camera.x, camera.y, camera.z));
         }
-        return furthest;
+        return farthest;
     }
 
     /**
@@ -272,5 +274,6 @@ public final class DistantShips {
         sentDistance = -1;
         sentDimension = null;
         sentLevel = null;
+        ticksUntilViewDistanceCheck = 0;
     }
 }

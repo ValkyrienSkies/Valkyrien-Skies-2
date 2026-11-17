@@ -17,6 +17,7 @@ import org.apache.logging.log4j.Logger;
 import org.lwjgl.opengl.GL13;
 import org.lwjgl.opengl.GL20;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
+import org.valkyrienskies.mod.common.render.batched.DistantShips;
 import org.valkyrienskies.mod.compat.LoadedMods;
 
 /**
@@ -132,6 +133,23 @@ public final class LodCompat {
         return distance;
     }
 
+    public static LodOcclusionTest occlusionTest() {
+        LodOcclusionTest combined = null;
+        for (final LodRenderBackend backend : backends()) {
+            final LodOcclusionTest test;
+            try {
+                test = backend.occlusionTest();
+            } catch (final Throwable t) {
+                disable(backend, t);
+                return null;
+            }
+            if (test == null) continue;
+            final LodOcclusionTest previous = combined;
+            combined = previous == null ? test : aabb -> previous.isHidden(aabb) || test.isHidden(aabb);
+        }
+        return combined;
+    }
+
     private static boolean depthThisFrame(final LodDepth out) {
         for (final LodRenderBackend backend : backends()) {
             try {
@@ -239,7 +257,7 @@ public final class LodCompat {
             }
         }
         final float shipBlocks =
-            org.valkyrienskies.mod.common.render.batched.DistantShips.viewDistanceBlocks(Minecraft.getInstance());
+            DistantShips.viewDistanceBlocks(Minecraft.getInstance());
         if (fog[1] > 0.0f && shipBlocks > fog[1]) {
             final float scale = shipBlocks / fog[1];
             fog[0] *= scale;

@@ -41,6 +41,7 @@ import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.BlockStateInfo;
 import org.valkyrienskies.mod.common.VS2ChunkAllocator;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.distant.DistantShipServer;
 import org.valkyrienskies.mod.common.fluid.VanillaFluidFlowWindProvider;
 import org.valkyrienskies.mod.common.util.VSLevelChunk;
 
@@ -114,7 +115,7 @@ public abstract class MixinLevelChunk extends ChunkAccess implements VSLevelChun
             BlockStateInfo.INSTANCE.onSetBlock(level, pos, prevState, state);
             VanillaFluidFlowWindProvider.INSTANCE.markDirty(level, pos, prevState, state);
             org.valkyrienskies.mod.common.fluid.RetainedFluidBlockInteractions.onBlockChanged(level, pos, prevState, state);
-            org.valkyrienskies.mod.common.distant.DistantShipServer.onBlockChanged(level, pos);
+            DistantShipServer.onBlockChanged(level, pos);
         });
         // VS benchmark patch (air pockets removed): per-block fluid snapshot updates are no longer needed.
     }

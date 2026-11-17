@@ -5,11 +5,22 @@ import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
 import org.joml.Matrix4d
 import org.joml.Matrix4f
+import org.joml.primitives.AABBdc
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.api.ships.properties.ShipTransform
 import org.valkyrienskies.mod.common.util.multiply
+import kotlin.math.abs
+import kotlin.math.max
 
 object VSClientGameUtils {
+
+    @JvmStatic
+    fun farthestCornerDistanceSq(aabb: AABBdc, x: Double, y: Double, z: Double): Double {
+        val dx = max(abs(aabb.minX() - x), abs(aabb.maxX() - x))
+        val dy = max(abs(aabb.minY() - y), abs(aabb.maxY() - y))
+        val dz = max(abs(aabb.minZ() - z), abs(aabb.maxZ() - z))
+        return dx * dx + dy * dy + dz * dz
+    }
 
     @JvmStatic
     fun multiplyWithShipToWorld(poseStack: PoseStack, ship: ClientShip) {

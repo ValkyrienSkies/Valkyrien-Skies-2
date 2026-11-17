@@ -2,6 +2,7 @@ package org.valkyrienskies.mod.common.render.batched;
 
 import com.mojang.blaze3d.vertex.VertexBuffer;
 import net.minecraft.client.renderer.RenderType;
+import org.valkyrienskies.mod.mixin.accessors.client.render.RenderTypeAccessor;
 
 public final class ShipSectionMesh implements AutoCloseable {
 
@@ -12,6 +13,19 @@ public final class ShipSectionMesh implements AutoCloseable {
         RenderType.translucent(),
         RenderType.tripwire()
     };
+
+    private static boolean[] sortedLayers;
+
+    public static boolean isSorted(final int layerIndex) {
+        if (sortedLayers == null) {
+            final boolean[] sorted = new boolean[CHUNK_LAYERS.length];
+            for (int i = 0; i < sorted.length; i++) {
+                sorted[i] = ((RenderTypeAccessor) CHUNK_LAYERS[i]).vs$sortOnUpload();
+            }
+            sortedLayers = sorted;
+        }
+        return layerIndex >= 0 && layerIndex < sortedLayers.length && sortedLayers[layerIndex];
+    }
 
     public static int layerIndex(final RenderType renderType) {
         for (int i = 0; i < CHUNK_LAYERS.length; i++) {

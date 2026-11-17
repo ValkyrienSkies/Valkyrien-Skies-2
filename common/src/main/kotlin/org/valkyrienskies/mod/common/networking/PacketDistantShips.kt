@@ -10,14 +10,15 @@ data class PacketDistantShip(
     val revision: Int,
     val shipAABB: IntArray,
     val transform: DoubleArray,
-    val blocks: ByteArray,
+    val transformIntervalTicks: Int,
+    val snapshot: ByteArray,
 ) : SimplePacket {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is PacketDistantShip) return false
         return shipId == other.shipId && dimension == other.dimension && revision == other.revision &&
             shipAABB.contentEquals(other.shipAABB) && transform.contentEquals(other.transform) &&
-            blocks.contentEquals(other.blocks)
+            transformIntervalTicks == other.transformIntervalTicks && snapshot.contentEquals(other.snapshot)
     }
 
     override fun hashCode(): Int {
@@ -26,7 +27,8 @@ data class PacketDistantShip(
         result = 31 * result + revision
         result = 31 * result + shipAABB.contentHashCode()
         result = 31 * result + transform.contentHashCode()
-        result = 31 * result + blocks.contentHashCode()
+        result = 31 * result + transformIntervalTicks
+        result = 31 * result + snapshot.contentHashCode()
         return result
     }
 }
@@ -34,18 +36,20 @@ data class PacketDistantShip(
 /** Server to client: new transforms of moving distant ships. [transforms] holds [DistantShipTransforms.SIZE] values per ship. */
 data class PacketDistantShipTransforms(
     val dimension: String,
+    val intervalTicks: Int,
     val shipIds: LongArray,
     val transforms: DoubleArray,
 ) : SimplePacket {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is PacketDistantShipTransforms) return false
-        return dimension == other.dimension && shipIds.contentEquals(other.shipIds) &&
-            transforms.contentEquals(other.transforms)
+        return dimension == other.dimension && intervalTicks == other.intervalTicks &&
+            shipIds.contentEquals(other.shipIds) && transforms.contentEquals(other.transforms)
     }
 
     override fun hashCode(): Int =
-        31 * (31 * dimension.hashCode() + shipIds.contentHashCode()) + transforms.contentHashCode()
+        31 * (31 * (31 * dimension.hashCode() + intervalTicks) + shipIds.contentHashCode()) +
+            transforms.contentHashCode()
 }
 
 /** Server to client: stop drawing these distant ships. */

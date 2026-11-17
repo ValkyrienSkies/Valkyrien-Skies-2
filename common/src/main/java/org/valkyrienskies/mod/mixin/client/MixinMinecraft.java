@@ -33,6 +33,7 @@ import org.valkyrienskies.mod.common.fluid.FloodedFluidClientCache;
 import org.valkyrienskies.mod.common.fluid.FluidOcclusionRenderer;
 import org.valkyrienskies.mod.common.fluid.FluidTopologyClientCache;
 import org.valkyrienskies.mod.common.fluid.ShipFluidInteraction;
+import org.valkyrienskies.mod.common.render.batched.DistantShips;
 import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.common.networking.ClientShipMovement;
 import org.valkyrienskies.mod.compat.LoadedMods;
@@ -150,7 +151,7 @@ public abstract class MixinMinecraft
             ClientShipMovement.INSTANCE.tick();
             EntityDragger.INSTANCE.dragEntitiesWithShips(level.entitiesForRendering(), false);
             if(player != null && level.isClientSide) ((PlayerKnownShipsDuck)player).vs_flushKnownShips();
-            org.valkyrienskies.mod.common.render.batched.DistantShips.tick((Minecraft) (Object) this);
+            DistantShips.tick((Minecraft) (Object) this);
         }
     }
 
@@ -213,7 +214,7 @@ public abstract class MixinMinecraft
         org.valkyrienskies.mod.common.fluid.FluidParcelRenderer.clear();
         org.valkyrienskies.mod.common.fluid.ClientFluidTypes.clear();
         org.valkyrienskies.mod.client.debug.ShipDebugRenderer.clear();
-        org.valkyrienskies.mod.common.render.batched.DistantShips.onDisconnect();
+        DistantShips.onDisconnect();
         if (shipObjectWorld != null) {
             deleteShipObjectWorldClient();
         } else {

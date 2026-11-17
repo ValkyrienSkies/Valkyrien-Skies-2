@@ -8,6 +8,7 @@ import it.unimi.dsi.fastutil.longs.LongArrayList
 import it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.minecraft.core.BlockPos
+import net.minecraft.core.SectionPos
 import net.minecraft.core.registries.Registries
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.MinecraftServer
@@ -15,6 +16,7 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
+import net.minecraft.world.level.LightLayer
 import net.minecraft.world.level.chunk.LevelChunk
 import org.apache.logging.log4j.LogManager
 import org.joml.primitives.AABBd
@@ -159,8 +161,10 @@ object DistantShipServer {
         val phase = player.id.toLong()
         if ((tick + phase) % REEVALUATE_INTERVAL_TICKS == 0L) reevaluate(player, level, state, distance)
         sendPending(player, level, state, config)
-        if ((tick + phase) % max(1, config.transformUpdateIntervalTicks) == 0L) sendTransforms(player, level, state)
+        if ((tick + phase) % transformIntervalTicks() == 0L) sendTransforms(player, level, state)
     }
+
+    private fun transformIntervalTicks(): Int = max(1, VSGameConfig.SERVER.DistantShips.transformUpdateIntervalTicks)
 
     /** Find the ships this player should have as distant ships. */
     private fun reevaluate(player: ServerPlayer, level: ServerLevel, state: PlayerState, distance: Double) {
@@ -228,7 +232,8 @@ object DistantShipServer {
             send(
                 player,
                 PacketDistantShip(
-                    id, level.dimensionId, snapshot.revision, snapshot.shipAABB, sentShip.transform.copyOf(), blocks
+                    id, level.dimensionId, snapshot.revision, snapshot.shipAABB, sentShip.transform.copyOf(),
+                    transformIntervalTicks(), blocks
                 )
             )
             budget--
@@ -257,7 +262,12 @@ object DistantShipServer {
             values.addElements(values.size, scratch)
         }
         if (!ids.isEmpty) {
-            send(player, PacketDistantShipTransforms(level.dimensionId, ids.toLongArray(), values.toDoubleArray()))
+            send(
+                player,
+                PacketDistantShipTransforms(
+                    level.dimensionId, transformIntervalTicks(), ids.toLongArray(), values.toDoubleArray()
+                )
+            )
         }
     }
 
@@ -294,12 +304,15 @@ object DistantShipServer {
 
         val chunks = LongArrayList()
         ship.activeChunksSet.forEach { chunkX, chunkZ -> chunks.add(ChunkPos.asLong(chunkX, chunkZ)) }
+        val shipAABB = ship.shipAABB
+        val minY = max(level.minSection, ((shipAABB?.minY() ?: level.minBuildHeight) shr 4) - 1)
+        val maxY = min(level.maxSection - 1, ((shipAABB?.maxY() ?: (level.maxBuildHeight - 1)) shr 4) + 1)
         val sections = ArrayList<DistantShipSnapshots.Section>()
         val missing = LongArrayList()
         for (i in 0 until chunks.size) {
             val key = chunks.getLong(i)
             val chunk = level.chunkSource.getChunkNow(ChunkPos.getX(key), ChunkPos.getZ(key))
-            if (chunk != null) addSections(level, chunk, sections) else missing.add(key)
+            if (chunk != null) addSections(level, chunk, minY, maxY, sections) else missing.add(key)
         }
         if (missing.isEmpty) return store(id, ship, revision, sections, config)
 
@@ -327,12 +340,12 @@ object DistantShipServer {
                     val chunkZ = ChunkPos.getZ(key)
                     val chunk = level.chunkSource.getChunkNow(chunkX, chunkZ)
                     if (chunk != null) {
-                        addSections(level, chunk, all)
+                        addSections(level, chunk, minY, maxY, all)
                         continue
                     }
                     val tag = reads[key]?.getNow(Optional.empty())?.orElse(null) ?: continue
                     try {
-                        DistantShipSnapshots.sectionsFromSavedChunk(tag, chunkX, chunkZ, biomes, all)
+                        DistantShipSnapshots.sectionsFromSavedChunk(tag, chunkX, chunkZ, minY, maxY, biomes, all)
                     } catch (e: Exception) {
                         logger.warn("Could not decode saved chunk [{}, {}] of ship {}", chunkX, chunkZ, id, e)
                     }
@@ -343,16 +356,20 @@ object DistantShipServer {
         return null
     }
 
-    private fun addSections(level: ServerLevel, chunk: LevelChunk, out: MutableList<DistantShipSnapshots.Section>) {
-        val sections = chunk.sections
-        for (index in sections.indices) {
-            val section = sections[index] ?: continue
-            if (section.hasOnlyAir()) continue
-            out.add(
-                DistantShipSnapshots.Section(
-                    chunk.pos.x, level.getSectionYFromSectionIndex(index), chunk.pos.z, section
-                )
-            )
+    /** Add the blocks and light of sections [minY]..[maxY] of a loaded chunk. */
+    private fun addSections(
+        level: ServerLevel, chunk: LevelChunk, minY: Int, maxY: Int, out: MutableList<DistantShipSnapshots.Section>
+    ) {
+        val blockLight = level.lightEngine.getLayerListener(LightLayer.BLOCK)
+        val skyLight = level.lightEngine.getLayerListener(LightLayer.SKY)
+        for (y in minY..maxY) {
+            val blocks = chunk.getSection(level.getSectionIndexFromSectionY(y)).takeIf { !it.hasOnlyAir() }
+            val pos = SectionPos.of(chunk.pos.x, y, chunk.pos.z)
+            val block = blockLight.getDataLayerData(pos)?.copy()?.data
+            val sky = skyLight.getDataLayerData(pos)?.copy()?.data
+            if (blocks != null || block != null || sky != null) {
+                out.add(DistantShipSnapshots.Section(chunk.pos.x, y, chunk.pos.z, blocks, block, sky))
+            }
         }
     }
 
@@ -361,7 +378,7 @@ object DistantShipServer {
         config: VSGameConfig.Server.DISTANT_SHIPS
     ): Snapshot {
         var blocks: ByteArray? = null
-        if (sections.isNotEmpty()) {
+        if (sections.any { it.blocks != null }) {
             val encoded = DistantShipSnapshots.encode(sections)
             if (encoded.size <= config.maxSnapshotKilobytes.toLong() * 1024) {
                 blocks = encoded

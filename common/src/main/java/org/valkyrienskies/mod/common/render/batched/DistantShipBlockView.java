@@ -1,6 +1,5 @@
 package org.valkyrienskies.mod.common.render.batched;
 
-import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -13,10 +12,11 @@ import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.DataLayer;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.lighting.LevelLightEngine;
 import net.minecraft.world.level.material.FluidState;
-import org.valkyrienskies.mod.common.config.VSGameConfig;
+import org.valkyrienskies.mod.common.distant.DistantShipSnapshots;
 
 /**
  * The blocks of a distant ship, for meshing. The client has no light data for these ships, so every block gets full
@@ -28,28 +28,26 @@ final class DistantShipBlockView implements BlockAndTintGetter {
     private static final BlockState AIR = Blocks.AIR.defaultBlockState();
 
     private ClientLevel level;
-    private Long2ObjectMap<LevelChunkSection> sections;
+    private DistantShipSnapshots.Decoded snapshot;
     private Holder<Biome> biome;
 
-    DistantShipBlockView set(final ClientLevel level, final Long2ObjectMap<LevelChunkSection> sections,
+    DistantShipBlockView set(final ClientLevel level, final DistantShipSnapshots.Decoded snapshot,
         final Holder<Biome> biome) {
         this.level = level;
-        this.sections = sections;
+        this.snapshot = snapshot;
         this.biome = biome;
         return this;
     }
 
     void clear() {
         this.level = null;
-        this.sections = null;
+        this.snapshot = null;
         this.biome = null;
     }
 
     @Override
     public float getShade(final Direction direction, final boolean shade) {
-        if (VSGameConfig.CLIENT.getBetterVanillaShipShading()) return 1.0f;
-        final float strength = (float) Math.max(0.0, Math.min(1.0, VSGameConfig.CLIENT.getShipShadeStrength()));
-        return 1.0f + (level.getShade(direction, shade) - 1.0f) * strength;
+        return ShipShadeRemovingGetter.shipShade(level, direction, shade);
     }
 
     @Override
@@ -59,17 +57,17 @@ final class DistantShipBlockView implements BlockAndTintGetter {
 
     @Override
     public int getBrightness(final LightLayer layer, final BlockPos pos) {
-        return layer == LightLayer.SKY ? 15 : getBlockState(pos).getLightEmission();
+        final long section = SectionPos.asLong(pos.getX() >> 4, pos.getY() >> 4, pos.getZ() >> 4);
+        final DataLayer data = (layer == LightLayer.SKY ? snapshot.skyLight : snapshot.blockLight).get(section);
+        if (data != null) {
+            return data.get(pos.getX() & 15, pos.getY() & 15, pos.getZ() & 15);
+        }
+        return layer == LightLayer.SKY && level.dimensionType().hasSkyLight() ? 15 : 0;
     }
 
     @Override
     public int getRawBrightness(final BlockPos pos, final int darkening) {
-        return Math.max(15 - darkening, getBlockState(pos).getLightEmission());
-    }
-
-    @Override
-    public boolean canSeeSky(final BlockPos pos) {
-        return true;
+        return Math.max(getBrightness(LightLayer.BLOCK, pos), getBrightness(LightLayer.SKY, pos) - darkening);
     }
 
     @Override
@@ -85,7 +83,7 @@ final class DistantShipBlockView implements BlockAndTintGetter {
     @Override
     public BlockState getBlockState(final BlockPos pos) {
         final LevelChunkSection section =
-            sections.get(SectionPos.asLong(pos.getX() >> 4, pos.getY() >> 4, pos.getZ() >> 4));
+            snapshot.blocks.get(SectionPos.asLong(pos.getX() >> 4, pos.getY() >> 4, pos.getZ() >> 4));
         return section == null ? AIR : section.getBlockState(pos.getX() & 15, pos.getY() & 15, pos.getZ() & 15);
     }
 

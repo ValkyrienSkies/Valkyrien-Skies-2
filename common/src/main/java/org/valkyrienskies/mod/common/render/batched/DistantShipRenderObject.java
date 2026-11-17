@@ -17,6 +17,7 @@ import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.joml.primitives.AABBd;
 import org.joml.primitives.AABBdc;
+import org.valkyrienskies.mod.common.distant.DistantShipSnapshots;
 import org.valkyrienskies.mod.common.networking.DistantShipTransforms;
 
 /**
@@ -31,7 +32,8 @@ final class DistantShipRenderObject extends BatchedShipDrawable {
     final String dimension;
     private int revision;
 
-    private final Long2ObjectOpenHashMap<LevelChunkSection> blocks = new Long2ObjectOpenHashMap<>();
+    private final DistantShipSnapshots.Decoded snapshot = new DistantShipSnapshots.Decoded(
+        new Long2ObjectOpenHashMap<>(), new Long2ObjectOpenHashMap<>(), new Long2ObjectOpenHashMap<>());
     /** Shipyard block bounds: min x, y, z then max x, y, z, inclusive. */
     private final int[] shipAABB = new int[6];
 
@@ -75,12 +77,16 @@ final class DistantShipRenderObject extends BatchedShipDrawable {
         return revision;
     }
 
-    /** Replace the blocks. The mesh is rebuilt on the next frame that draws this ship. */
-    void setBlocks(final int revision, final int[] shipAABB, final Long2ObjectMap<LevelChunkSection> blocks) {
+    /** Replace the blocks and light. The mesh is rebuilt on the next frame that draws this ship. */
+    void setSnapshot(final int revision, final int[] shipAABB, final DistantShipSnapshots.Decoded decoded) {
         this.revision = revision;
         System.arraycopy(shipAABB, 0, this.shipAABB, 0, Math.min(6, shipAABB.length));
-        this.blocks.clear();
-        this.blocks.putAll(blocks);
+        snapshot.blocks.clear();
+        snapshot.blocks.putAll(decoded.blocks);
+        snapshot.blockLight.clear();
+        snapshot.blockLight.putAll(decoded.blockLight);
+        snapshot.skyLight.clear();
+        snapshot.skyLight.putAll(decoded.skyLight);
         this.meshDirty = true;
     }
 
@@ -89,19 +95,16 @@ final class DistantShipRenderObject extends BatchedShipDrawable {
         System.arraycopy(transform, offset, to, 0, DistantShipTransforms.SIZE);
         System.arraycopy(transform, offset, from, 0, DistantShipTransforms.SIZE);
         blendNanos = 0;
-        lastUpdateNanos = System.nanoTime();
         poseFrame = Long.MIN_VALUE;
     }
 
-    /** Blend from the current pose to a new transform over about the time since the last update. */
-    void blendTo(final double[] transform, final int offset) {
+    /** Blend from the current pose to a new transform over {@code durationNanos}: the time until the next update. */
+    void blendTo(final double[] transform, final int offset, final long durationNanos) {
         final long now = System.nanoTime();
         writePose(now, from);
         System.arraycopy(transform, offset, to, 0, DistantShipTransforms.SIZE);
-        // The server sends updates every few ticks; use the measured gap, kept to a sane range.
-        blendNanos = Math.max(50_000_000L, Math.min(500_000_000L, now - lastUpdateNanos));
+        blendNanos = durationNanos;
         blendStartNanos = now;
-        lastUpdateNanos = now;
         poseFrame = Long.MIN_VALUE;
     }
 
@@ -163,7 +166,7 @@ final class DistantShipRenderObject extends BatchedShipDrawable {
         final ShipSectionCompiler compiler, final DistantShipBlockView view) {
         meshDirty = false;
         closeSections();
-        final LongArrayList positions = new LongArrayList(blocks.keySet());
+        final LongArrayList positions = new LongArrayList(snapshot.blocks.keySet());
         int minX = Integer.MAX_VALUE;
         int minZ = Integer.MAX_VALUE;
         for (int i = 0; i < positions.size(); i++) {
@@ -183,9 +186,9 @@ final class DistantShipRenderObject extends BatchedShipDrawable {
                 (worldAABB.minX() + worldAABB.maxX()) * 0.5,
                 (worldAABB.minY() + worldAABB.maxY()) * 0.5,
                 (worldAABB.minZ() + worldAABB.maxZ()) * 0.5));
-            view.set(level, blocks, biome);
+            view.set(level, snapshot, biome);
             try {
-                compiler.compileSections(level, dispatcher, view, blocks::get, positions,
+                compiler.compileSections(level, dispatcher, view, snapshot.blocks::get, positions,
                     refX, refY, refZ, sections, changedLayers);
             } finally {
                 view.clear();
@@ -261,6 +264,8 @@ final class DistantShipRenderObject extends BatchedShipDrawable {
     @Override
     public void close() {
         freeMesh();
-        blocks.clear();
+        snapshot.blocks.clear();
+        snapshot.blockLight.clear();
+        snapshot.skyLight.clear();
     }
 }

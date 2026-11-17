@@ -31,7 +31,6 @@ import org.valkyrienskies.mod.mixin.accessors.client.render.BufferBuilderAccesso
 public final class ShipSectionCompiler {
 
     static final int LAYER_COUNT = ShipSectionMesh.CHUNK_LAYERS.length;
-    private static final int TRANSLUCENT_LAYER_INDEX = ShipSectionMesh.layerIndex(RenderType.translucent());
 
     private final ChunkBufferBuilderPack buffers = new ChunkBufferBuilderPack();
     private final RandomSource random = RandomSource.create();
@@ -39,18 +38,19 @@ public final class ShipSectionCompiler {
     private final ShipShadeRemovingGetter shadeRemovingView = new ShipShadeRemovingGetter();
     private final OffsetVertexConsumer offsetConsumer = new OffsetVertexConsumer();
     private final PoseStack poseStack = new PoseStack();
-    private final boolean[] startedOpaque = new boolean[LAYER_COUNT];
+    private final boolean[] startedMerged = new boolean[LAYER_COUNT];
+    private final boolean[] startedSorted = new boolean[LAYER_COUNT];
 
     /** The output of one section. It owns its CPU vertex bytes and its translucent buffer. */
     static final class CompiledSection implements AutoCloseable {
-        /** Opaque vertex bytes per layer index, relative to the ship reference point. Null when empty. */
-        final ByteBuffer[] opaque = new ByteBuffer[LAYER_COUNT];
-        /** Translucent geometry relative to the section origin, drawn per section for sorting. */
-        ShipSectionMesh translucent;
+        /** Vertex bytes of the merged layers, relative to the ship reference point. Null when empty. */
+        final ByteBuffer[] merged = new ByteBuffer[LAYER_COUNT];
+        /** Geometry of the sorted layers ({@link ShipSectionMesh#isSorted}), relative to the section origin. */
+        ShipSectionMesh sorted;
 
         boolean isEmpty() {
-            if (translucent != null) return false;
-            for (final ByteBuffer data : opaque) {
+            if (sorted != null) return false;
+            for (final ByteBuffer data : merged) {
                 if (data != null) return false;
             }
             return true;
@@ -58,15 +58,15 @@ public final class ShipSectionCompiler {
 
         @Override
         public void close() {
-            for (int i = 0; i < opaque.length; i++) {
-                if (opaque[i] != null) {
-                    MemoryUtil.memFree(opaque[i]);
-                    opaque[i] = null;
+            for (int i = 0; i < merged.length; i++) {
+                if (merged[i] != null) {
+                    MemoryUtil.memFree(merged[i]);
+                    merged[i] = null;
                 }
             }
-            if (translucent != null) {
-                translucent.close();
-                translucent = null;
+            if (sorted != null) {
+                sorted.close();
+                sorted = null;
             }
         }
     }
@@ -75,7 +75,7 @@ public final class ShipSectionCompiler {
      * Re-tessellate the given sections and store the results in {@code sections}, replacing and
      * freeing any previous entry. Sections that are now empty are removed.
      *
-     * @param changedLayers set to true for every opaque layer whose merged buffer must be rebuilt
+     * @param changedLayers set to true for every merged layer whose buffer must be rebuilt
      */
     void compileSections(final ClientLevel level, final BlockRenderDispatcher dispatcher, final ClientShip ship,
         final ShipBiomeTintCache biomeTints, final LongIterable sectionPositions,
@@ -122,17 +122,17 @@ public final class ShipSectionCompiler {
     private static void markChanged(final CompiledSection section, final boolean[] changedLayers) {
         if (section == null) return;
         for (int i = 0; i < LAYER_COUNT; i++) {
-            if (section.opaque[i] != null) changedLayers[i] = true;
+            if (section.merged[i] != null) changedLayers[i] = true;
         }
     }
 
-    /** Merge the cached opaque bytes of every section into one GPU buffer for one layer. */
-    VertexBuffer mergeOpaqueLayer(final int layerIndex, final Iterable<CompiledSection> sections) {
+    /** Merge the cached bytes of every section into one GPU buffer for one merged layer. */
+    VertexBuffer mergeLayer(final int layerIndex, final Iterable<CompiledSection> sections) {
         final RenderType layer = ShipSectionMesh.CHUNK_LAYERS[layerIndex];
         final BufferBuilder builder = buffers.builder(layer);
         builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK);
         for (final CompiledSection section : sections) {
-            final ByteBuffer data = section.opaque[layerIndex];
+            final ByteBuffer data = section.merged[layerIndex];
             if (data != null) {
                 appendVertices(builder, data);
             }
@@ -181,7 +181,6 @@ public final class ShipSectionCompiler {
         final int sy = SectionPos.y(secPos);
         final int sz = SectionPos.z(secPos);
 
-        final RenderType translucentLayer = RenderType.translucent();
         final int originX = sx << 4;
         final int originY = sy << 4;
         final int originZ = sz << 4;
@@ -189,8 +188,8 @@ public final class ShipSectionCompiler {
         final int offY = originY - refY;
         final int offZ = originZ - refZ;
 
-        boolean startedTranslucent = false;
-        java.util.Arrays.fill(startedOpaque, false);
+        java.util.Arrays.fill(startedMerged, false);
+        java.util.Arrays.fill(startedSorted, false);
 
         for (int ly = 0; ly < 16; ly++) {
             for (int lz = 0; lz < 16; lz++) {
@@ -205,17 +204,13 @@ public final class ShipSectionCompiler {
                     scratchPos.set(originX + lx, originY + ly, originZ + lz);
 
                     if (hasFluid) {
-                        final RenderType fluidLayer = ItemBlockRenderTypes.getRenderLayer(fluid);
-                        if (fluidLayer == translucentLayer) {
-                            final BufferBuilder builder = beginTranslucent(translucentLayer, startedTranslucent);
-                            startedTranslucent = true;
-                            dispatcher.renderLiquid(scratchPos, renderView, builder, state, fluid);
-                        } else {
-                            final BufferBuilder builder = beginOpaque(fluidLayer);
-                            if (builder != null) {
-                                final VertexConsumer consumer = offsetConsumer.set(builder, offX, offY, offZ);
-                                dispatcher.renderLiquid(scratchPos, renderView, consumer, state, fluid);
-                            }
+                        final int fluidLayer = ShipSectionMesh.layerIndex(ItemBlockRenderTypes.getRenderLayer(fluid));
+                        if (ShipSectionMesh.isSorted(fluidLayer)) {
+                            dispatcher.renderLiquid(scratchPos, renderView, beginSorted(fluidLayer), state, fluid);
+                        } else if (fluidLayer >= 0) {
+                            final VertexConsumer consumer =
+                                offsetConsumer.set(beginMerged(fluidLayer), offX, offY, offZ);
+                            dispatcher.renderLiquid(scratchPos, renderView, consumer, state, fluid);
                         }
                     }
 
@@ -225,18 +220,17 @@ public final class ShipSectionCompiler {
                         random.setSeed(state.getSeed(scratchPos));
                         for (final RenderType blockLayer : BatchedModelRenderer.INSTANCE
                             .getRenderTypes(dispatcher, state, random, modelData)) {
+                            final int layerIndex = ShipSectionMesh.layerIndex(blockLayer);
+                            if (layerIndex < 0) {
+                                continue; // a layer the batched path does not draw
+                            }
                             final BufferBuilder builder;
-                            if (blockLayer == translucentLayer) {
-                                builder = beginTranslucent(translucentLayer, startedTranslucent);
-                                startedTranslucent = true;
-                                poseStack.pushPose();
+                            poseStack.pushPose();
+                            if (ShipSectionMesh.isSorted(layerIndex)) {
+                                builder = beginSorted(layerIndex);
                                 poseStack.translate(lx, ly, lz);
                             } else {
-                                builder = beginOpaque(blockLayer);
-                                if (builder == null) {
-                                    continue;
-                                }
-                                poseStack.pushPose();
+                                builder = beginMerged(layerIndex);
                                 poseStack.translate(offX + lx, offY + ly, offZ + lz);
                             }
                             BatchedModelRenderer.INSTANCE.renderModel(dispatcher, state, scratchPos,
@@ -250,30 +244,28 @@ public final class ShipSectionCompiler {
 
         final CompiledSection compiled = new CompiledSection();
         for (int i = 0; i < LAYER_COUNT; i++) {
-            if (!startedOpaque[i]) continue;
+            if (!startedMerged[i] && !startedSorted[i]) continue;
             final BufferBuilder.RenderedBuffer rendered =
                 buffers.builder(ShipSectionMesh.CHUNK_LAYERS[i]).endOrDiscardIfEmpty();
             if (rendered == null) continue;
-            try {
-                final ByteBuffer source = rendered.vertexBuffer();
-                final ByteBuffer copy = MemoryUtil.memAlloc(source.remaining());
-                MemoryUtil.memCopy(source, copy);
-                compiled.opaque[i] = copy;
-            } finally {
-                rendered.release();
-            }
-        }
-
-        if (startedTranslucent) {
-            final BufferBuilder.RenderedBuffer rendered = buffers.builder(translucentLayer).endOrDiscardIfEmpty();
-            if (rendered != null) {
+            if (startedSorted[i]) {
                 final VertexBuffer vb = new VertexBuffer(VertexBuffer.Usage.STATIC);
                 vb.bind();
                 vb.upload(rendered);
                 VertexBuffer.unbind();
-                final ShipSectionMesh mesh = new ShipSectionMesh(originX, originY, originZ);
-                mesh.setBuffer(TRANSLUCENT_LAYER_INDEX, vb);
-                compiled.translucent = mesh;
+                if (compiled.sorted == null) {
+                    compiled.sorted = new ShipSectionMesh(originX, originY, originZ);
+                }
+                compiled.sorted.setBuffer(i, vb);
+                continue;
+            }
+            try {
+                final ByteBuffer source = rendered.vertexBuffer();
+                final ByteBuffer copy = MemoryUtil.memAlloc(source.remaining());
+                MemoryUtil.memCopy(source, copy);
+                compiled.merged[i] = copy;
+            } finally {
+                rendered.release();
             }
         }
 
@@ -283,23 +275,19 @@ public final class ShipSectionCompiler {
         return compiled;
     }
 
-    /** Begin the layer's builder for this section, or return null for a layer the batched path does not draw. */
-    private BufferBuilder beginOpaque(final RenderType layer) {
-        final int layerIndex = ShipSectionMesh.layerIndex(layer);
-        if (layerIndex < 0 || layerIndex == TRANSLUCENT_LAYER_INDEX) {
-            return null;
-        }
-        final BufferBuilder builder = buffers.builder(layer);
-        if (!startedOpaque[layerIndex]) {
-            startedOpaque[layerIndex] = true;
-            builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK);
-        }
-        return builder;
+    private BufferBuilder beginMerged(final int layerIndex) {
+        return begin(layerIndex, startedMerged);
     }
 
-    private BufferBuilder beginTranslucent(final RenderType translucentLayer, final boolean alreadyStarted) {
-        final BufferBuilder builder = buffers.builder(translucentLayer);
-        if (!alreadyStarted) {
+    private BufferBuilder beginSorted(final int layerIndex) {
+        return begin(layerIndex, startedSorted);
+    }
+
+    /** The section's builder for a layer, begun on first use. */
+    private BufferBuilder begin(final int layerIndex, final boolean[] started) {
+        final BufferBuilder builder = buffers.builder(ShipSectionMesh.CHUNK_LAYERS[layerIndex]);
+        if (!started[layerIndex]) {
+            started[layerIndex] = true;
             builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK);
         }
         return builder;

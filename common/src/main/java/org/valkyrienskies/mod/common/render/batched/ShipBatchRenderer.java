@@ -28,6 +28,7 @@ import org.joml.Vector3dc;
 import org.joml.primitives.AABBdc;
 import org.lwjgl.opengl.GL20;
 import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.VSRenderTypes;
@@ -36,6 +37,7 @@ import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.render.light.VsDynamicLight;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.compat.lod.LodCompat;
+import org.valkyrienskies.mod.compat.lod.LodOcclusionTest;
 
 
 public final class ShipBatchRenderer {
@@ -74,12 +76,12 @@ public final class ShipBatchRenderer {
         boolean deferred;
         // Slot of this ship's matrix in transformStorage (= the ShipIndex uniform value).
         int transformIndex;
-        // ChunkOffset for the merged opaque buffers: ship reference R minus the camera in ship space.
-        // The opaque vertices are stored relative to R, so this single offset covers the whole ship.
-        float opaqueOffsetX, opaqueOffsetY, opaqueOffsetZ;
-        // Translucent sections sorted back-to-front, computed once here and used by the translucent
-        // layer's drawLayer (translucent stays per-section so its ordering is preserved).
-        final ShipTranslucentOrder<ShipSectionMesh> translucentOrder =
+        // ChunkOffset for the merged buffers: ship reference R minus the camera in ship space.
+        // The merged vertices are stored relative to R, so this single offset covers the whole ship.
+        float mergedOffsetX, mergedOffsetY, mergedOffsetZ;
+        // Sections with sorted layers, back to front, computed once per frame and used by every sorted
+        // layer's draw (sorted layers stay per section so their ordering is preserved).
+        final ShipTranslucentOrder<ShipSectionMesh> sortedOrder =
             new ShipTranslucentOrder<>(ShipBatchRenderer::sortTranslucentSections);
     }
 
@@ -308,15 +310,15 @@ public final class ShipBatchRenderer {
 
         final Uniform modelViewUniform = shader.MODEL_VIEW_MATRIX;
         final Uniform chunkOffsetUniform = shader.CHUNK_OFFSET;
-        final boolean translucent = renderType == RenderType.translucent();
+        final boolean sorted = ShipSectionMesh.isSorted(layerIndex);
 
         for (int shipIdx = 0; shipIdx < frameData.size(); shipIdx++) {
             final ShipFrameData data = frameData.get(shipIdx);
             if (!data.visible || data.deferred != deferredPass) {
                 continue;
             }
-            if (translucent) {
-                final ArrayList<ShipSectionMesh> order = data.translucentOrder.sections();
+            if (sorted) {
+                final ArrayList<ShipSectionMesh> order = data.sortedOrder.sections();
                 boolean shipTransformSet = false;
                 for (int i = 0; i < order.size(); i++) {
                     final ShipSectionMesh mesh = order.get(i);
@@ -340,13 +342,13 @@ public final class ShipBatchRenderer {
                 }
             } else {
                 final ShipMesh mesh = drawOrder.get(shipIdx).getMesh();
-                final VertexBuffer buffer = mesh == null ? null : mesh.getOpaque(layerIndex);
+                final VertexBuffer buffer = mesh == null ? null : mesh.getMerged(layerIndex);
                 if (buffer == null) {
                     continue;
                 }
                 setShipTransform(data, usingBatchedShader, shipIndexLoc, modelViewUniform);
                 if (chunkOffsetUniform != null) {
-                    chunkOffsetUniform.set(data.opaqueOffsetX, data.opaqueOffsetY, data.opaqueOffsetZ);
+                    chunkOffsetUniform.set(data.mergedOffsetX, data.mergedOffsetY, data.mergedOffsetZ);
                     chunkOffsetUniform.upload();
                 }
                 buffer.bind();
@@ -408,25 +410,27 @@ public final class ShipBatchRenderer {
         hasDeferredShips = false;
         final float overpaint = LodCompat.overpaintDistanceBlocks();
         final double overpaintSq = Float.isFinite(overpaint) ? (double) overpaint * overpaint : Double.POSITIVE_INFINITY;
+        final LodOcclusionTest lodOcclusion = LodCompat.occlusionTest();
         final Vector3d camScratch = cameraInShip;
         for (int i = 0; i < drawOrder.size(); i++) {
             final BatchedShipDrawable renderObject = drawOrder.get(i);
             final ShipFrameData data = frameData.get(i);
             data.deferred = false;
             if (renderObject.isEmpty()) {
-                data.translucentOrder.clear();
+                data.sortedOrder.clear();
                 data.visible = true;
                 continue;
             }
 
             final AABBdc worldAABB = renderObject.renderWorldAABB();
-            if (frustum != null && !frustum.isVisible(VectorConversionsMCKt.toMinecraft(worldAABB))) {
+            if ((frustum != null && !frustum.isVisible(VectorConversionsMCKt.toMinecraft(worldAABB)))
+                || (lodOcclusion != null && lodOcclusion.isHidden(worldAABB))) {
                 data.visible = false;
                 continue;
             }
             data.visible = true;
             if (overpaintSq != Double.POSITIVE_INFINITY
-                && farthestCornerDistanceSq(worldAABB, camX, camY, camZ) > overpaintSq) {
+                && VSClientGameUtils.farthestCornerDistanceSq(worldAABB, camX, camY, camZ) > overpaintSq) {
                 data.deferred = true;
                 hasDeferredShips = true;
             }
@@ -449,26 +453,18 @@ public final class ShipBatchRenderer {
             data.transformIndex = transformStorage.append(data.modelView, localToCameraRelFloat);
 
             final ShipMesh mesh = renderObject.getMesh();
-            data.opaqueOffsetX = (float) (mesh.refX - data.camShipX);
-            data.opaqueOffsetY = (float) (mesh.refY - data.camShipY);
-            data.opaqueOffsetZ = (float) (mesh.refZ - data.camShipZ);
+            data.mergedOffsetX = (float) (mesh.refX - data.camShipX);
+            data.mergedOffsetY = (float) (mesh.refY - data.camShipY);
+            data.mergedOffsetZ = (float) (mesh.refZ - data.camShipZ);
 
-            if (!mesh.translucentSections.isEmpty()) {
-                data.translucentOrder.update(mesh, mesh.translucentSections.values(),
+            if (!mesh.sortedSections.isEmpty()) {
+                data.sortedOrder.update(mesh, mesh.sortedSections.values(),
                     data.camShipX, data.camShipY, data.camShipZ);
             } else {
-                data.translucentOrder.clear();
+                data.sortedOrder.clear();
             }
         }
         transformStorage.upload();
-    }
-
-    private static double farthestCornerDistanceSq(final AABBdc aabb, final double x, final double y,
-        final double z) {
-        final double dx = Math.max(Math.abs(aabb.minX() - x), Math.abs(aabb.maxX() - x));
-        final double dy = Math.max(Math.abs(aabb.minY() - y), Math.abs(aabb.maxY() - y));
-        final double dz = Math.max(Math.abs(aabb.minZ() - z), Math.abs(aabb.maxZ() - z));
-        return dx * dx + dy * dy + dz * dz;
     }
 
     private static void sortTranslucentSections(final ArrayList<ShipSectionMesh> sections,
@@ -504,8 +500,7 @@ public final class ShipBatchRenderer {
             if (shipBlockEntities.isEmpty()) {
                 continue;
             }
-            final org.valkyrienskies.core.api.ships.properties.ShipTransform transform =
-                renderObject.ship.getRenderTransform();
+            final ShipTransform transform = renderObject.ship.getRenderTransform();
             for (int i = 0; i < shipBlockEntities.size(); i++) {
                 final BlockEntity blockEntity = shipBlockEntities.get(i);
                 final BlockPos pos = blockEntity.getBlockPos();
