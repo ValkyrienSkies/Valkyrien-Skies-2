@@ -13,6 +13,9 @@ dependencies {
     modCompileOnly("maven.modrinth:sodium:${sodium_version}")
     modCompileOnly("maven.modrinth:iris:${iris_version}")
 
+    // Distant Horizons: only its API package is used, which has no Minecraft references, so it needs no remapping.
+    compileOnly("maven.modrinth:distanthorizons:${distant_horizons_version}") { transitive = false }
+
     // Alex Caves
     modCompileOnly("maven.modrinth:alexs-caves:$alexscaves_version")
 

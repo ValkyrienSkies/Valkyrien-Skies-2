@@ -19,7 +19,6 @@ import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
-import org.joml.primitives.AABBdc;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -32,7 +31,10 @@ import org.valkyrienskies.core.internal.world.VsiClientShipWorld;
 import org.valkyrienskies.mod.client.IVSCamera;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
 import org.valkyrienskies.mod.common.entity.ShipMountedToData;
+import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.render.batched.DistantShips;
+import org.valkyrienskies.mod.compat.lod.LodCompat;
 import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
 import org.valkyrienskies.mod.common.util.ShipDraggingMath;
@@ -123,6 +125,7 @@ public abstract class MixinGameRenderer {
 
     @Inject(method = "render", at = @At("HEAD"))
     private void preRender(final float tickDelta, final long startTime, final boolean tick, final CallbackInfo ci) {
+        LodCompat.onFrameStart();
         final ClientLevel clientWorld = minecraft.level;
         if (clientWorld != null) {
             // Update ship render transforms
@@ -305,22 +308,14 @@ public abstract class MixinGameRenderer {
 
     @ModifyReturnValue(method = "getDepthFar", at = @At("RETURN"))
     public float includeShipsIn(final float originalDepth) {
-        float maxDistance = originalDepth;
+        final Vec3 camera = this.mainCamera.getPosition();
+        double maxDistanceSq = (double) originalDepth * originalDepth;
         for (final ClientShip ship : VSGameUtilsKt.getShipObjectWorld(Minecraft.getInstance()).getLoadedShips()) {
-            Vec3 cameraPos = this.mainCamera.getPosition();
-            AABBdc shipAABB = ship.getRenderAABB();
-            // find the furthest distance from the camera to the ship AABB corners
-            double furthestDistanceSq = 0;
-            double dMinX = shipAABB.minX() - cameraPos.x();  
-            double dMaxX = shipAABB.maxX() - cameraPos.x();  
-            double dMinY = shipAABB.minY() - cameraPos.y();  
-            double dMaxY = shipAABB.maxY() - cameraPos.y();  
-            double dMinZ = shipAABB.minZ() - cameraPos.z();  
-            double dMaxZ = shipAABB.maxZ() - cameraPos.z();  
-            double furthestDist = Math.sqrt(Math.max(dMinX * dMinX, dMaxX * dMaxX) + Math.max(dMinY * dMinY, dMaxY * dMaxY) + Math.max(dMinZ * dMinZ, dMaxZ * dMaxZ));  
-            maxDistance = Math.max(maxDistance, (float) furthestDist);  
+            maxDistanceSq = Math.max(maxDistanceSq,
+                VSClientGameUtils.farthestCornerDistanceSq(ship.getRenderAABB(), camera.x, camera.y, camera.z));
         }
-
-        return maxDistance;
+        // Distant ships can be far beyond the render distance, out to the ship render distance.
+        maxDistanceSq = Math.max(maxDistanceSq, DistantShips.farthestCornerDistanceSq(camera));
+        return (float) Math.sqrt(maxDistanceSq);
     }
 }

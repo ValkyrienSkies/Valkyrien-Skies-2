@@ -566,14 +566,20 @@ public class SodiumCompat {
             if (ShipBatchRenderer.INSTANCE.hasRenderableShips()) {
                 markBatchedShipAnimatedSpritesActive();
             }
-            for (final RenderType layer : ShipSectionMesh.CHUNK_LAYERS) {
-                if (layer == RenderType.translucent()) {
-                    continue;
-                }
-                ShipBatchRenderer.INSTANCE.drawLayer(layer, poseStack, x, y, z, projection, frustum);
-            }
+            drawBatchedLayers(false, poseStack, x, y, z, projection, frustum);
         } else if (renderLayer == RenderType.translucent()) {
-            ShipBatchRenderer.INSTANCE.drawLayer(RenderType.translucent(), poseStack, x, y, z, projection, frustum);
+            // Sorted layers (translucent, tripwire) draw after the terrain they blend over.
+            drawBatchedLayers(true, poseStack, x, y, z, projection, frustum);
+        }
+    }
+
+    private static void drawBatchedLayers(final boolean sorted, final PoseStack poseStack, final double x,
+        final double y, final double z, final Matrix4f projection, final Frustum frustum) {
+        for (int i = 0; i < ShipSectionMesh.CHUNK_LAYERS.length; i++) {
+            if (ShipSectionMesh.isSorted(i) == sorted) {
+                ShipBatchRenderer.INSTANCE.drawLayer(ShipSectionMesh.CHUNK_LAYERS[i], poseStack, x, y, z,
+                    projection, frustum);
+            }
         }
     }
 

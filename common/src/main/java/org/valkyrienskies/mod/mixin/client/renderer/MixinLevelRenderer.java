@@ -4,10 +4,13 @@ import static org.valkyrienskies.mod.common.VSClientGameUtils.transformRenderWit
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.Camera;
 import net.minecraft.client.multiplayer.ClientLevel;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -15,6 +18,7 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -25,6 +29,7 @@ import org.spongepowered.asm.mixin.injection.ModifyConstant;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.render.batched.ShipBatchRenderer;
 
 @Mixin(LevelRenderer.class)
 public abstract class MixinLevelRenderer {
@@ -36,6 +41,20 @@ public abstract class MixinLevelRenderer {
     @Inject(method = "renderLevel", at = @At("HEAD"))
     private void vs$prepareShipShadows(final CallbackInfo ci) {
         org.valkyrienskies.mod.common.render.light.VsDynamicLight.prepareFrame(this.level);
+    }
+
+    /**
+     * Draw ships that Distant Horizons' vanilla fade would paint over. Its last pass over the image runs at the start
+     * of the tripwire layer (Forge) or around particles (Fabric); both come before the weather.
+     */
+    @Inject(method = "renderLevel", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/client/renderer/LevelRenderer;renderSnowAndRain(Lnet/minecraft/client/renderer/LightTexture;FDDD)V"))
+    private void vs$drawShipsAfterLodFade(final PoseStack poseStack, final float partialTick, final long finishNanoTime,
+        final boolean renderBlockOutline, final Camera camera,
+        final GameRenderer gameRenderer,
+        final LightTexture lightTexture, final Matrix4f projectionMatrix,
+        final CallbackInfo ci) {
+        ShipBatchRenderer.INSTANCE.drawDeferredShips(projectionMatrix);
     }
 
     @Shadow

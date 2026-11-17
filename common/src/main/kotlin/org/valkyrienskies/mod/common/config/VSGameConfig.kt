@@ -31,6 +31,9 @@ object VSGameConfig {
         @ConfigCategory(title = "Performance")
         val Performance = PERFORMANCE()
 
+        @ConfigCategory(title = "Distant ships")
+        val DistantShips = DISTANT_SHIPS()
+
         @ConfigEntry(description = "Renders the VS2 debug HUD with TPS")
         var renderDebugText = false
 
@@ -124,6 +127,38 @@ object VSGameConfig {
             var maxParticleShipCollisionDistance = 48
         }
 
+        class DISTANT_SHIPS {
+            @ConfigEntry(
+                description = "Show ships beyond the ship load distance, out to your view distance: the larger of " +
+                    "the vanilla render distance and the Distant Horizons LOD distance. The server sends these ships " +
+                    "as block snapshots and the batched renderer draws them. They are not loaded, so you cannot " +
+                    "interact with them until they are within the ship load distance."
+            )
+            var renderDistantShips = true
+
+            @ConfigEntry(
+                description = "Ship render distance, in chunks. 0 matches your view distance: the larger of the " +
+                    "vanilla render distance and the Distant Horizons LOD distance. Any other value is used as is, " +
+                    "even beyond your terrain: 64 shows ships 64 chunks away with a render distance of 16. " +
+                    "The server can set a lower limit (Distant ships.maxRenderDistance in the server config).",
+                min = 0.0,
+                max = 4096.0
+            )
+            var shipRenderDistance = 0
+
+            @ConfigEntry(
+                description = "Hide batched ships behind Distant Horizons LOD terrain by testing them against its " +
+                    "depth buffer. Without this, ships beyond the vanilla render distance show through LOD hills."
+            )
+            var hideShipsBehindLodTerrain = true
+
+            @ConfigEntry(
+                description = "While Distant Horizons is active, fade batched ships with the LOD fog instead of the " +
+                    "vanilla fog, which would hide every ship beyond the vanilla render distance."
+            )
+            var useLodFogForShips = true
+        }
+
         @ConfigEntry(
             description = "The default ship renderer. Changes rebuild client render state. FLYWHEEL requires an active Flywheel 1.x backend; otherwise ships use VANILLA."
         )
@@ -197,6 +232,53 @@ object VSGameConfig {
         class SHIP_INTERACTIONS {
             @ConfigEntry(description = "Let ships block sky light in mob spawn and mob light checks.")
             var shipShadows = true
+        }
+
+        @ConfigCategory(title = "Distant ships")
+        val DistantShips = DISTANT_SHIPS()
+
+        class DISTANT_SHIPS {
+            @ConfigEntry(
+                description = "Send block snapshots of ships beyond the ship load distance to players whose view " +
+                    "distance reaches them, so they can see those ships without loading them. Each player's " +
+                    "view distance includes LOD mods such as Distant Horizons."
+            )
+            var enabled = true
+
+            @ConfigEntry(
+                description = "Largest ship render distance a player can ask for, in blocks.",
+                min = 0.0,
+                max = 65536.0
+            )
+            var maxRenderDistance = 8192
+
+            @ConfigEntry(
+                description = "Ticks between position updates for moving distant ships.",
+                min = 1.0,
+                max = 100.0
+            )
+            var transformUpdateIntervalTicks = 4
+
+            @ConfigEntry(
+                description = "Ticks to wait after a block change on a ship before its distant copies are sent again.",
+                min = 1.0,
+                max = 1200.0
+            )
+            var blockUpdateDelayTicks = 40
+
+            @ConfigEntry(
+                description = "Distant ship snapshots sent to each player per tick.",
+                min = 1.0,
+                max = 64.0
+            )
+            var snapshotsPerPlayerPerTick = 2
+
+            @ConfigEntry(
+                description = "Largest distant ship snapshot, in kilobytes. Bigger ships are only shown once loaded.",
+                min = 16.0,
+                max = 65536.0
+            )
+            var maxSnapshotKilobytes = 4096
         }
 
         @ConfigCategory(title = "Create")

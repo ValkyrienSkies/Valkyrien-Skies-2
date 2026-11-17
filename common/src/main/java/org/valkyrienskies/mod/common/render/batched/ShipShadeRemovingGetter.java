@@ -34,6 +34,10 @@ public final class ShipShadeRemovingGetter implements BlockAndTintGetter {
 
     @Override
     public float getShade(final Direction direction, final boolean shade) {
+        return shipShade(level, direction, shade);
+    }
+
+    static float shipShade(final ClientLevel level, final Direction direction, final boolean shade) {
         if (VSGameConfig.CLIENT.getBetterVanillaShipShading()) return 1.0f;
         final float strength = (float) Math.max(0.0, Math.min(1.0, VSGameConfig.CLIENT.getShipShadeStrength()));
         return 1.0f + (level.getShade(direction, shade) - 1.0f) * strength;

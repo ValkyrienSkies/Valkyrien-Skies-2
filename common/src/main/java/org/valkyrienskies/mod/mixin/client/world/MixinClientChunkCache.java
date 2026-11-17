@@ -105,6 +105,10 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
     @Inject(method = "onLightUpdate", at = @At("HEAD"))
     private void vs_sodium$onLightUpdate(LightLayer layer, SectionPos pos, CallbackInfo ci) {
         VsDynamicLight.invalidateLightSection(pos.asLong());
+        // Batched ships bake light into their meshes. A light change can spread up to 15 blocks
+        // from the block that caused it, so rebuild every section whose light changed, plus its
+        // neighbors (their smooth lighting samples across the section edge), like vanilla's
+        // setSectionDirtyWithNeighbors. On Sodium nothing else forwards these updates.
         if (VSGameUtilsKt.getShipManagingPos(this.level, pos.getX(), pos.getZ()) instanceof final ClientShip ship
             && org.valkyrienskies.mod.common.config.ShipRendererKt.getUsesBatchedRenderer(ship)) {
             for (int x = pos.getX() - 1; x <= pos.getX() + 1; x++) {

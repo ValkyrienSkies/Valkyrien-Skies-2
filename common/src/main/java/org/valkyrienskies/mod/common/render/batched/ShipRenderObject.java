@@ -17,13 +17,17 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
+import org.joml.Matrix4dc;
+import org.joml.Quaterniondc;
+import org.joml.Vector3dc;
+import org.joml.primitives.AABBdc;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.compat.LoadedMods;
 import org.valkyrienskies.mod.compat.flywheel.FlywheelCompat;
 import org.valkyrienskies.mod.compat.sodium.light.VsShipEmitterList;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 
-public final class ShipRenderObject implements AutoCloseable {
+public final class ShipRenderObject extends BatchedShipDrawable {
 
     private static final double[] NO_EMITTERS = new double[0];
 
@@ -65,12 +69,49 @@ public final class ShipRenderObject implements AutoCloseable {
         this.ship = ship;
     }
 
+    @Override
     public ShipMesh getMesh() {
         return mesh;
     }
 
+    @Override
     public boolean isEmpty() {
         return meshEmpty;
+    }
+
+    @Override
+    long shipId() {
+        return ship.getId();
+    }
+
+    @Override
+    Vector3dc renderPosition() {
+        return ship.getRenderTransform().getPosition();
+    }
+
+    @Override
+    Quaterniondc renderRotation() {
+        return ship.getRenderTransform().getRotation();
+    }
+
+    @Override
+    Vector3dc renderScaling() {
+        return ship.getRenderTransform().getScaling();
+    }
+
+    @Override
+    Vector3dc renderPositionInModel() {
+        return ship.getRenderTransform().getPositionInModel();
+    }
+
+    @Override
+    Matrix4dc renderShipToWorld() {
+        return ship.getRenderTransform().getShipToWorld();
+    }
+
+    @Override
+    AABBdc renderWorldAABB() {
+        return ship.getRenderAABB();
     }
 
     public double[] getShipyardEmitters(final ClientLevel level) {
@@ -275,43 +316,8 @@ public final class ShipRenderObject implements AutoCloseable {
 
     /** Merge the changed opaque layers and collect the translucent sections into a new mesh. */
     private void rebuildMesh(final ShipSectionCompiler compiler) {
-        final ShipMesh old = this.mesh;
-        if (sections.isEmpty()) {
-            this.mesh = null;
-            this.meshEmpty = true;
-            if (old != null) {
-                old.close();
-            }
-            return;
-        }
-
-        final VertexBuffer[] opaque = new VertexBuffer[ShipSectionCompiler.LAYER_COUNT];
-        final int translucentIndex = ShipSectionMesh.layerIndex(RenderType.translucent());
-        for (int i = 0; i < opaque.length; i++) {
-            if (i == translucentIndex) {
-                continue;
-            }
-            if (old == null || changedLayers[i]) {
-                opaque[i] = compiler.mergeOpaqueLayer(i, sections.values());
-            } else {
-                // Unchanged layer: move the buffer to the new mesh so closing the old one keeps it.
-                opaque[i] = old.opaque[i];
-                old.opaque[i] = null;
-            }
-        }
-
-        final Long2ObjectMap<ShipSectionMesh> translucent = new Long2ObjectOpenHashMap<>();
-        for (final var entry : sections.long2ObjectEntrySet()) {
-            if (entry.getValue().translucent != null) {
-                translucent.put(entry.getLongKey(), entry.getValue().translucent);
-            }
-        }
-
-        this.mesh = new ShipMesh(opaque, translucent, refX, refY, refZ);
-        this.meshEmpty = this.mesh.isEmpty();
-        if (old != null) {
-            old.close();
-        }
+        this.mesh = ShipMesh.rebuild(this.mesh, sections, changedLayers, compiler, refX, refY, refZ);
+        this.meshEmpty = this.mesh == null || this.mesh.isEmpty();
     }
 
     private void closeSections() {

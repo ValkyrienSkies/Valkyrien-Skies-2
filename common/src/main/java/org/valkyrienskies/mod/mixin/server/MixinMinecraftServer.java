@@ -65,6 +65,7 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.config.DimensionParametersResolver;
 import org.valkyrienskies.mod.common.config.MassDatapackResolver;
+import org.valkyrienskies.mod.common.distant.DistantShipServer;
 import org.valkyrienskies.mod.common.fluid.VanillaFluidFlowWindProvider;
 import org.valkyrienskies.mod.common.fluid.FluidSourceWithdrawalHandler;
 import org.valkyrienskies.mod.common.fluid.FractionalFluidSources;
@@ -279,6 +280,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         fluidBlockInteractions.tick(shipWorld, dimensionToLevelMap);
         org.valkyrienskies.mod.common.fluid.ShipFluidInteraction.prune(shipWorld);
         org.valkyrienskies.mod.common.debug.ShipDebugService.tick((MinecraftServer) (Object) this);
+        DistantShipServer.tick((MinecraftServer) (Object) this);
         fluidOutflowManager.tick(dimensionToLevelMap);
         fractionalFluidSources.tickSplashes(dimensionToLevelMap);
         // Only drag entities after we have updated the ship positions
@@ -561,6 +563,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     public void beforeShipDeletion(@NotNull final org.valkyrienskies.core.api.ships.ServerShip ship) {
         org.valkyrienskies.mod.common.fluid.FractionalFluidLifecycle.releaseShip(
             fractionalFluidSources, dimensionToLevelMap, fluidOutflowManager, ship);
+        DistantShipServer.onShipDeleted(ship.getId());
     }
 
     @NotNull
