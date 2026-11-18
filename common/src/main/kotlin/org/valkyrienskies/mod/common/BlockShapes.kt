@@ -36,7 +36,7 @@ object BlockShapes {
         if (level == null || block !is VsShapedBlock) {
             return null
         }
-        val solid = block.getPhysicsShape(level, pos, state) ?: return null
+        val solid = block.getPhysicsSolidState(level, pos, state) ?: return null
         return vsCore.registerBlockStateLate(VsiBlockState(solid, null))
     }
 

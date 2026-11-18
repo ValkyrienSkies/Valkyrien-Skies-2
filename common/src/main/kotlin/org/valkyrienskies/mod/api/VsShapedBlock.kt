@@ -33,5 +33,5 @@ interface VsShapedBlock {
      * Called on the game thread, with the block entity available. Returning null is not an error and
      * is the right answer for a position that has nothing special about it.
      */
-    fun getPhysicsShape(level: BlockGetter, pos: BlockPos, state: BlockState): SolidState?
+    fun getPhysicsSolidState(level: BlockGetter, pos: BlockPos, state: BlockState): SolidState?
 }
