@@ -61,7 +61,11 @@ class ShipMaterialShaderTest {
             try {
                 glBindVertexArray(vao)
                 storage.beginFrame()
-                storage.append(Matrix4f(), Matrix4f())
+                // The transform texture stores current model-view, camera-relative, and
+                // previous model-view matrices. The material test has no motion, so previous
+                // equals current.
+                val modelView = Matrix4f()
+                storage.append(modelView, Matrix4f(), Matrix4f(modelView))
                 storage.upload()
                 storage.bind(4)
                 glActiveTexture(GL_TEXTURE0)
