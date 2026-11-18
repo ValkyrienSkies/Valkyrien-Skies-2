@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.common.fluid;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.platform.TextureUtil;
 import com.mojang.blaze3d.systems.RenderSystem;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import java.nio.ByteBuffer;
@@ -28,6 +29,7 @@ import org.lwjgl.opengl.GL12;
 import org.lwjgl.opengl.GL13;
 import org.lwjgl.opengl.GL20;
 import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.mod.client.render.ShipRenderViews;
 import org.valkyrienskies.core.internal.world.VsiClientShipWorld;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
@@ -55,8 +57,8 @@ public final class FluidOcclusionRenderer {
     private static final Long2ObjectOpenHashMap<ShipMask> SHIP_MASKS =
         new Long2ObjectOpenHashMap<>();
     private static final LongOpenHashSet LOADED_SHIP_IDS = new LongOpenHashSet();
-    private static final it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<ProgramHandles> PROGRAMS =
-        new it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<>();
+    private static final Int2ObjectOpenHashMap<ProgramHandles> PROGRAMS =
+        new Int2ObjectOpenHashMap<>();
     private static final FloatBuffer MATRIX_BUFFER = BufferUtils.createFloatBuffer(16);
     private static final Vector3d CAMERA_IN_SHIP = new Vector3d();
     private static final FluidOcclusionOverflow OVERFLOW = new FluidOcclusionOverflow();
@@ -112,6 +114,7 @@ public final class FluidOcclusionRenderer {
         int slot = 0;
         final List<FluidOcclusionOverflow.Entry> overflow = new ArrayList<>();
         for (final ClientShip ship : ships) {
+            if (!ShipRenderViews.shouldRenderShip(ship)) continue;
             final var pair = shipWorld.getFluidGameplaySnapshot(ship.getId());
             final FluidTopologyClientCache.CachedSnapshot topology =
                 FluidTopologyClientCache.get(shipWorld, ship.getId(), pair);

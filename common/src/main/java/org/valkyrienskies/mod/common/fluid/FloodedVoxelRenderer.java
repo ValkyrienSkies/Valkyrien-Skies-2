@@ -23,6 +23,7 @@ import org.joml.Matrix4f;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.mod.client.render.ShipRenderViews;
 import org.valkyrienskies.core.internal.physics.VsiFluidFloodedVoxel;
 import org.valkyrienskies.core.internal.physics.VsiFluidFloodingSnapshot;
 import org.valkyrienskies.core.internal.world.VsiClientShipWorld;
@@ -64,6 +65,7 @@ public final class FloodedVoxelRenderer {
         final TextureAtlasSprite lavaFlow = atlas.apply(LAVA_FLOW);
 
         for (final ClientShip ship : shipWorld.getLoadedShips()) {
+            if (!ShipRenderViews.shouldRenderShip(ship)) continue;
             final var pair = shipWorld.getFluidGameplaySnapshot(ship.getId());
             final FloodedFluidClientCache.CachedSnapshot cached =
                 FloodedFluidClientCache.get(shipWorld, ship.getId(), pair);

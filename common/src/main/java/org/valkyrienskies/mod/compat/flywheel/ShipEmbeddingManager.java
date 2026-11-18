@@ -23,6 +23,7 @@ import org.joml.Vector3d;
 import org.joml.Vector3f;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.api.ValkyrienSkies;
+import org.valkyrienskies.mod.mixinducks.mod_compat.flywheel.ShipVisualEmbedding;
 import org.valkyrienskies.mod.common.hooks.VSGameEvents;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
@@ -109,6 +110,7 @@ public class ShipEmbeddingManager {
         BlockPos anchor = BlockPos.containing(VectorConversionsMCKt.toMinecraft(ship.getRenderTransform().getPositionInShip()));
         Vec3i origin = ctx.renderOrigin();
         VisualEmbedding result = ctx.createEmbedding(anchor);
+        if (result instanceof ShipVisualEmbedding shipEmbedding) shipEmbedding.vs$setShip(ship);
         setEmbeddingTransform(result, ship, anchor, origin);
         vs$shipAnchor.put(ship, anchor);
         vs$EmbeddingOrigin.put(ship, origin);

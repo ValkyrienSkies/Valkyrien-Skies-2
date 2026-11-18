@@ -10,6 +10,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.ChunkStatus;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
 import org.joml.primitives.AABBi;
@@ -27,7 +28,7 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 
 public final class ShipShadowRenderer {
-    private static final int TEXTURE_UNIT = 14;
+    public static final int TEXTURE_UNIT = 14;
     private static ByteBuffer data = BufferUtils.createByteBuffer(48);
     private static final ShipShadowTree TREE = new ShipShadowTree();
     private static final ShipShadowFrame FRAME = new ShipShadowFrame();
@@ -132,7 +133,7 @@ public final class ShipShadowRenderer {
         final boolean[] dynamic = {false};
         ship.getActiveChunksSet().forEach((cx, cz) -> {
             final var chunk = level.getChunk(cx, cz,
-                net.minecraft.world.level.chunk.ChunkStatus.FULL, false);
+                ChunkStatus.FULL, false);
             if (chunk == null) return;
             for (int sy = Math.max(level.getMinSection(), bounds.minY() >> 4);
                 sy <= Math.min(level.getMaxSection() - 1, (bounds.maxY() - 1) >> 4); sy++) {

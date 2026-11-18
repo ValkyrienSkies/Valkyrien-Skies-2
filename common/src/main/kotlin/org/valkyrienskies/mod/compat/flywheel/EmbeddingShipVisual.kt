@@ -23,6 +23,7 @@ import org.valkyrienskies.mod.common.config.shipRenderer
 import org.valkyrienskies.mod.common.util.toBlockPos
 import org.valkyrienskies.mod.common.util.toFloat
 import org.valkyrienskies.mod.common.util.toJOMLD
+import org.valkyrienskies.mod.mixinducks.mod_compat.flywheel.ShipVisualEmbedding
 
 class EmbeddingShipVisual(val effect: ShipEffect, val visualContext: VisualizationContext) :
     EffectVisual<ShipEffect>, DynamicVisual, ShaderLightVisual, LightUpdatedVisual
@@ -32,7 +33,7 @@ class EmbeddingShipVisual(val effect: ShipEffect, val visualContext: Visualizati
         effect.ship.chunkClaim.getCenterBlockCoordinates(
             LevelYRange(effect.level.minBuildHeight, effect.level.maxBuildHeight - 1)
         ).toBlockPos()
-    )
+    ).also { (it as? ShipVisualEmbedding)?.`vs$setShip`(ship) }
     val camera = ShipEffectCamera(ship)
     val frustum = FrustumIntersection()
 

@@ -30,6 +30,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.mod.client.render.ShipRenderViews;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.assembly.SeamlessChunksManager;
@@ -52,6 +53,18 @@ public abstract class MixinSodiumWorldRenderer implements SodiumWorldRendererDuc
     private SortedRenderLists currentRenderLists;
     @Unique
     private boolean vs$prevFrameHadShips;
+
+    @Override
+    public void vs$renderNestedShipView(final Runnable draw) {
+        final SortedRenderLists outer = currentRenderLists;
+        currentRenderLists = null;
+        try {
+            if (renderSectionManager instanceof RenderSectionManagerDuck duck) duck.vs$renderNestedShipView(draw);
+            else draw.run();
+        } finally {
+            currentRenderLists = outer;
+        }
+    }
 
     @Override
     public void vs$markShipRenderListsDirty() {
@@ -109,12 +122,15 @@ public abstract class MixinSodiumWorldRenderer implements SodiumWorldRendererDuc
 
         renderBlockEntities(matrices, bufferBuilders, blockBreakingProgressions, tickDelta, immediate, x, y, z, blockEntityRenderer);
 
-        for (final SortedRenderLists renderLists : ((RenderSectionManagerDuck) this.renderSectionManager).vs_getShipRenderLists().values()) {
-            this.currentRenderLists = renderLists;
-            renderBlockEntities(matrices, bufferBuilders, blockBreakingProgressions, tickDelta, immediate, x, y, z, blockEntityRenderer);
+        try {
+            for (final var entry : ((RenderSectionManagerDuck) this.renderSectionManager).vs_getShipRenderLists().entrySet()) {
+                if (!ShipRenderViews.shouldRenderShip(entry.getKey())) continue;
+                this.currentRenderLists = entry.getValue();
+                renderBlockEntities(matrices, bufferBuilders, blockBreakingProgressions, tickDelta, immediate, x, y, z, blockEntityRenderer);
+            }
+        } finally {
+            this.currentRenderLists = null;
         }
-
-        this.currentRenderLists = null;
     }
     
     @ModifyExpressionValue(

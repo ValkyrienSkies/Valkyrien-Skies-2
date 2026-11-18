@@ -33,6 +33,7 @@ import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -45,15 +46,19 @@ import org.joml.Matrix4f;
 import org.joml.Matrix4fc;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
+import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL20;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.mod.common.config.ShipRendererKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.render.batched.ShipBatchRenderer;
 import org.valkyrienskies.mod.common.render.batched.ShipSectionMesh;
+import org.valkyrienskies.mod.common.render.light.ShipShadowRenderer;
 import org.valkyrienskies.mod.common.render.light.VsDynamicLight;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.hooks.VSGameEvents;
 import org.valkyrienskies.mod.common.hooks.VSGameEvents.ShipRenderEventSodium;
+import org.valkyrienskies.mod.client.render.ShipRenderViews;
 import org.valkyrienskies.mod.compat.LoadedMods;
 import org.valkyrienskies.mod.compat.VSRenderer;
 import org.valkyrienskies.mod.compat.iris.IrisCompat;
@@ -168,11 +173,11 @@ public class SodiumCompat {
      * Populate the world-from-ship storage AND the ship-emitter list,
      * called from {@code MixinLevelRenderer.updateDynamicLight} so the data updates every game tick.
      */
-    public static void populateWorldFromShipsForFrame(net.minecraft.client.multiplayer.ClientLevel level) {
+    public static void populateWorldFromShipsForFrame(ClientLevel level) {
         populateWorldFromShipsForFrame(level, null);
     }
 
-    public static void populateWorldFromShipsForFrame(net.minecraft.client.multiplayer.ClientLevel level,
+    public static void populateWorldFromShipsForFrame(ClientLevel level,
             Viewport viewport) {
         refreshShaderConfig(level);
         if (!VSGameConfig.CLIENT.isShipToWorldLightingEnabled()) return;
@@ -181,8 +186,8 @@ public class SodiumCompat {
         VsShipOccluderList occluders = getShipOccluderList();
         storage.beginFrame();
         occluders.beginFrame();
-        org.valkyrienskies.mod.common.VSGameUtilsKt.getShipObjectWorld(
-                net.minecraft.client.Minecraft.getInstance()).getLoadedShips().forEach(ship -> {
+        VSGameUtilsKt.getShipObjectWorld(
+                Minecraft.getInstance()).getLoadedShips().forEach(ship -> {
             ClientShip cs = ship;
             if (!isShipRelevantToWorldFromShipFrame(cs, viewport)) return;
             storage.populateFromShip(level, cs, null, occluders);
@@ -201,7 +206,7 @@ public class SodiumCompat {
         lastShipFeatures = features;
         lastWorldShader = worldShader;
         // Rebuild packed vertices when the selected shader format changes.
-        if (reload) net.minecraft.client.Minecraft.getInstance().levelRenderer.allChanged();
+        if (reload) Minecraft.getInstance().levelRenderer.allChanged();
     }
 
     public static void populateLightSectionStorage(ClientLevel level) {
@@ -299,8 +304,8 @@ public class SodiumCompat {
     }
 
     public static void setupShipShaderState(GlProgram<ChunkShaderInterface> program, ChunkRenderMatrices matrices, Matrix4fc transformMatrix) {
-        org.valkyrienskies.mod.common.render.light.ShipShadowRenderer.bind(
-            org.lwjgl.opengl.GL11.glGetInteger(org.lwjgl.opengl.GL20.GL_CURRENT_PROGRAM));
+        ShipShadowRenderer.bind(
+            GL11.glGetInteger(GL20.GL_CURRENT_PROGRAM));
         ShipThing shipInterface = (ShipThing) program.getInterface();
         shipInterface.setupState();
         // Set projection and model-view matrices
@@ -407,7 +412,7 @@ public class SodiumCompat {
         final ArrayList<ClientShip> renderableShips = new ArrayList<>();
         final ArrayList<SortedRenderLists> renderableRenderLists = new ArrayList<>();
         ((RenderSectionManagerDuck) renderSectionManager).vs_getShipRenderLists().forEach((ship, renderList) -> {
-            if (hasRenderableGeometryForPass(renderList, pass)) {
+            if (ShipRenderViews.shouldRenderShip(ship) && hasRenderableGeometryForPass(renderList, pass)) {
                 renderableShips.add(ship);
                 renderableRenderLists.add(renderList);
             }
@@ -546,7 +551,8 @@ public class SodiumCompat {
         final Matrix4f projection = new Matrix4f(matrices.projection());
 
         if (renderLayer == RenderType.solid()) {
-            ShipBatchRenderer.INSTANCE.beginFrame(net.minecraft.client.Minecraft.getInstance().level);
+            final var view = ShipRenderViews.getCurrent();
+            ShipBatchRenderer.INSTANCE.beginFrame(view == null ? Minecraft.getInstance().level : view.getLevel());
             if (ShipBatchRenderer.INSTANCE.hasRenderableShips()) {
                 markBatchedShipAnimatedSpritesActive();
             }
@@ -605,8 +611,8 @@ public class SodiumCompat {
     }
 
     public static void setupWorldShaderState(GlProgram<ChunkShaderInterface> program, ChunkRenderMatrices matrices) {
-        org.valkyrienskies.mod.common.render.light.ShipShadowRenderer.bind(
-            org.lwjgl.opengl.GL11.glGetInteger(org.lwjgl.opengl.GL20.GL_CURRENT_PROGRAM));
+        ShipShadowRenderer.bind(
+            GL11.glGetInteger(GL20.GL_CURRENT_PROGRAM));
         WorldThing wt = (WorldThing) program.getInterface();
         wt.setupState();
         wt.setProjectionMatrix(matrices.projection());
@@ -618,8 +624,8 @@ public class SodiumCompat {
         // VSH adds u_VsCameraFrac to convert; the FSH then does
         //   block = floor(v_CameraRelWorldPos) + u_VsRenderOrigin
         // = floor(vertex - floor(camera)) + floor(camera) = floor(vertex).
-        net.minecraft.world.phys.Vec3 cameraPos =
-                net.minecraft.client.Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
+        Vec3 cameraPos =
+                Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
         int ox = (int) Math.floor(cameraPos.x);
         int oy = (int) Math.floor(cameraPos.y);
         int oz = (int) Math.floor(cameraPos.z);

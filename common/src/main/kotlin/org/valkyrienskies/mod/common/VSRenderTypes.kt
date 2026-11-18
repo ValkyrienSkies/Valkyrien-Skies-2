@@ -26,6 +26,7 @@ class VSRenderTypes(
         var shipBatchedCutoutMippedShader: ShaderInstance? = null
         var shipBatchedCutoutShader: ShaderInstance? = null
         var shipBatchedTranslucentShader: ShaderInstance? = null
+        var shipMaskShader: ShaderInstance? = null
 
         private val RENDERTYPE_SHIP_SOLID_SHADER: ShaderStateShard = ShaderStateShard(Supplier { shipSolidShader })
         private val RENDERTYPE_SHIP_CUTOUT_MIPPED_SHADER: ShaderStateShard = ShaderStateShard(Supplier { shipCutoutMippedShader })

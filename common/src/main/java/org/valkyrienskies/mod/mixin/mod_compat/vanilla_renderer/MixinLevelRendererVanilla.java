@@ -62,6 +62,7 @@ import org.valkyrienskies.mod.common.hooks.VSGameEvents;
 import org.valkyrienskies.mod.common.render.ShipSectionCache;
 import org.valkyrienskies.mod.common.render.ShipSectionCandidate;
 import org.valkyrienskies.mod.common.render.batched.ShipBatchRenderer;
+import org.valkyrienskies.mod.client.render.ShipRenderViews;
 import org.valkyrienskies.mod.common.render.light.VsShipWorldLightRenderContext;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 import org.valkyrienskies.mod.compat.LoadedMods;
@@ -72,9 +73,10 @@ import org.valkyrienskies.mod.mixinducks.client.render.IVSViewAreaMethods;
 import org.valkyrienskies.mod.mixin.mod_compat.optifine.RenderChunkInfoAccessorOptifine;
 import org.valkyrienskies.mod.mixinducks.mod_compat.vanilla_renderer.LevelRendererDuck;
 import org.valkyrienskies.mod.mixinducks.client.render.LevelRendererVanillaDuck;
+import org.valkyrienskies.mod.mixinducks.client.render.NestedShipView;
 
 @Mixin(value = LevelRenderer.class, priority = 999)
-public abstract class MixinLevelRendererVanilla implements LevelRendererDuck, LevelRendererVanillaDuck {
+public abstract class MixinLevelRendererVanilla implements LevelRendererDuck, LevelRendererVanillaDuck, NestedShipView {
     @Unique
     private final WeakHashMap<ClientShip, ObjectList<RenderChunkInfo>> shipRenderChunks = new WeakHashMap<>();
     @Unique
@@ -507,6 +509,7 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererDuck, Le
             final ObjectArrayList<ClientShip> renderableShips = new ObjectArrayList<>();
             final ObjectArrayList<ObjectList<RenderChunkInfo>> renderableChunkLists = new ObjectArrayList<>();
             renderableChunkMap.forEach((ship, chunks) -> {
+                if (!ShipRenderViews.shouldRenderShip(ship)) return;
                 renderableShips.add(ship);
                 renderableChunkLists.add(chunks);
             });
@@ -692,6 +695,25 @@ public abstract class MixinLevelRendererVanilla implements LevelRendererDuck, Le
         VertexBuffer.unbind();
         this.minecraft.getProfiler().pop();
         renderType.clearRenderState();
+    }
+
+    @Override
+    public void vs$renderNestedShipView(final Runnable draw) {
+        final VisibleChunkData outer = vs$captureShipVisibleChunks();
+        final var outerChunks = renderChunksInFrustum;
+        final boolean started = vs$emittedShipsStartRenderingThisFrame;
+        final int tail = vs$lastShipFrustumTailCount;
+        renderChunksInFrustum = new ObjectArrayList<>(outerChunks);
+        vs$setNeedsFrustumUpdate();
+        try {
+            draw.run();
+        } finally {
+            renderChunksInFrustum = outerChunks;
+            vs$reloadShipVisibleChunks(outer);
+            vs$lastShipFrustumTailCount = tail;
+            vs$emittedShipsStartRenderingThisFrame = started;
+            vs$setNeedsFrustumUpdate();
+        }
     }
 
     @Override

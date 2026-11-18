@@ -5,8 +5,9 @@ import me.jellysquid.mods.sodium.client.render.viewport.Viewport;
 import net.minecraft.client.Camera;
 import me.jellysquid.mods.sodium.client.render.chunk.lists.SortedRenderLists;
 import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.mod.mixinducks.client.render.NestedShipView;
 
-public interface RenderSectionManagerDuck {
+public interface RenderSectionManagerDuck extends NestedShipView {
 
     WeakHashMap<ClientShip, SortedRenderLists> vs_getShipRenderLists();
 
