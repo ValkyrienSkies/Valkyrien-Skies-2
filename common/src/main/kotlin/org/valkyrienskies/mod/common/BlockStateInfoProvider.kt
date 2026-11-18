@@ -153,7 +153,10 @@ object BlockStateInfo {
         val (newBlockMass, rawNewBlockType) = get(newBlockState) ?: return
 
         val prevBlockType = rawPrevBlockType
-        val newBlockType = rawNewBlockType
+        // A block entity may own a per-position collision shape that its finite BlockState cannot
+        // encode. Preserve PR 2048's mass/fluid/wing bookkeeping and substitute only that shape.
+        val newBlockType = BlockShapes.typeAt(level, BlockPos(x, y, z), newBlockState)
+            ?: rawNewBlockType
 
         // region Inject wings
         if (level is ServerLevel) {
