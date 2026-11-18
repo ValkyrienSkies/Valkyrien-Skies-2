@@ -94,14 +94,21 @@ object ShipAssembler {
         return minCorner to maxCorner
     }
 
-    @JvmStatic
-    private fun getDistinctChunksFromBlockPosSet(blocks: Set<BlockPos>): Set<ChunkPos> {
-        val chunkSet = hashSetOf<ChunkPos>()
-        for (blockPos in blocks) {
-            val chunkPos = ChunkPos(blockPos)
-            chunkSet.add(chunkPos)
+    private fun destinationCorner(center: Vector3i, offset: Vector3d): BlockPos =
+        Vector3d(center).sub(offset).ceil().let { BlockPos(it.x.toInt(), it.y.toInt(), it.z.toInt()) }
+
+    internal fun chunksForMove(
+        blocks: Set<BlockPos>, sourceCorner: BlockPos, destinationCorner: BlockPos
+    ): Pair<Set<ChunkPos>, Set<ChunkPos>> {
+        val sourceChunks = linkedSetOf<ChunkPos>()
+        val destinationChunks = linkedSetOf<ChunkPos>()
+        val dx = destinationCorner.x - sourceCorner.x
+        val dz = destinationCorner.z - sourceCorner.z
+        for (pos in blocks) {
+            sourceChunks.add(ChunkPos(pos))
+            destinationChunks.add(ChunkPos((pos.x + dx) shr 4, (pos.z + dz) shr 4))
         }
-        return chunkSet
+        return sourceChunks to destinationChunks
     }
 
     data class AssembleContext(val ship: ServerShip, val fromCenter: Vector3d, val toCenter: Vector3d)
@@ -223,7 +230,7 @@ object ShipAssembler {
             .div(2.0)
         val fromCenter = offset.get(Vector3d()).add(oldMin)
 
-        val cornerOfShip = Vector3d(toCenter).sub(offset).ceil().let { BlockPos(it.x.toInt(), it.y.toInt(), it.z.toInt()) }
+        val cornerOfShip = destinationCorner(toCenter, offset)
         FractionalFluidLifecycle.beginMove(level, blocks, fromShip, toShip, minStructurePos, cornerOfShip, !removeOriginal).use { fluidTransfer ->
         var wasSplittingEnabled = true
         if (fromShip is LoadedServerShip) {
@@ -246,21 +253,8 @@ object ShipAssembler {
 
         // ========== Pause Chunk Updates
 
-        val toChunkCenter = ChunkPos(toCenter.x.toInt() shr 4, toCenter.z.toInt() shr 4)
-
-        val fromChunkX = ((minStructurePos.x + maxStructurePos.x) / 2) shr 4
-        val fromChunkZ = ((minStructurePos.z + maxStructurePos.z) / 2) shr 4
-
-        val deltaX = fromChunkX - toChunkCenter.x
-        val deltaZ = fromChunkZ - toChunkCenter.z
-
-        val chunksToBeUpdated = mutableMapOf<ChunkPos, Pair<ChunkPos, ChunkPos>>()
-        getDistinctChunksFromBlockPosSet(blocks).forEach { sourcePos ->
-            val destPos = ChunkPos(sourcePos.x - deltaX, sourcePos.z - deltaZ)
-            chunksToBeUpdated[sourcePos] = Pair(sourcePos, destPos)
-        }
-        val chunkPairs = chunksToBeUpdated.values.toList()
-        val chunkPoses = chunkPairs.flatMap { it.toList() }
+        val (sourceChunks, destChunks) = chunksForMove(blocks, minStructurePos, cornerOfShip)
+        val chunkPoses = sourceChunks + destChunks
         val chunkPosesJOML = chunkPoses.map { it.toJOML() }
 
         level.players().forEach { player ->
@@ -431,9 +425,8 @@ object ShipAssembler {
             val minB: BlockPos,
             val maxB: BlockPos,
             val fromCenter: Vector3d,
-            val toCenter: Vector3i,
+            val destinationCorner: BlockPos,
             val offset: Vector3d,
-            val sourceChunks: Set<ChunkPos>,
             val destChunks: Set<ChunkPos>
         )
 
@@ -467,20 +460,14 @@ object ShipAssembler {
             )
 
             val toCenter = toShip.chunkClaim.getCenterBlockCoordinates(level.yRange, Vector3i())
-            val toChunkCenter = ChunkPos(toCenter.x.toInt() shr 4, toCenter.z.toInt() shr 4)
-            val fromChunkX = ((minB.x + maxB.x) / 2) shr 4
-            val fromChunkZ = ((minB.z + maxB.z) / 2) shr 4
-            val deltaX = fromChunkX - toChunkCenter.x
-            val deltaZ = fromChunkZ - toChunkCenter.z
-
-            val sourceChunks = getDistinctChunksFromBlockPosSet(blockSet)
-            val destChunks = sourceChunks.map { ChunkPos(it.x - deltaX, it.z - deltaZ) }.toSet()
+            val destinationCorner = destinationCorner(toCenter, offset)
+            val (sourceChunks, destChunks) = chunksForMove(blockSet, minB, destinationCorner)
 
             allSourceChunkPoses.addAll(sourceChunks)
             allDestChunkPoses.addAll(destChunks)
 
             pendingAssemblies.add(PendingAssembly(
-                blockSet, fromShip, toShip, minB, maxB, fromCenter, toCenter, offset, sourceChunks, destChunks
+                blockSet, fromShip, toShip, minB, maxB, fromCenter, destinationCorner, offset, destChunks
             ))
         }
 
@@ -605,10 +592,7 @@ object ShipAssembler {
             try {
                 VSAssemblyEvents.beforeCopy.emit(VSAssemblyEvents.BeforeCopy(level, oldMin, oldMax, fromCenter, pending.fromShip, filteredBlocks, eventData))
 
-                val cornerOfShip = Vector3d(pending.toCenter)
-                    .sub(offset)
-                    .ceil()
-                    .let { BlockPos(it.x.toInt(), it.y.toInt(), it.z.toInt()) }
+                val cornerOfShip = pending.destinationCorner
                 val centerOfShip = cornerOfShip.toJOMLD().add(offset)
 
                 val removeFlags = Block.UPDATE_CLIENTS or Block.UPDATE_KNOWN_SHAPE or Block.UPDATE_SUPPRESS_DROPS or Block.UPDATE_MOVE_BY_PISTON
