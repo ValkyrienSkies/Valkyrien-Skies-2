@@ -13,8 +13,10 @@ import net.minecraft.SharedConstants
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.client.renderer.MultiBufferSource
+import net.minecraft.client.renderer.RenderType
 import net.minecraft.core.BlockPos
 import net.minecraft.server.Bootstrap
+import net.minecraft.world.level.GameType
 import net.minecraft.world.phys.Vec3
 import org.joml.Matrix4f
 import org.joml.Matrix4d
@@ -110,10 +112,15 @@ class ShipHitboxRendererTest {
             every { view.viewMatrix } returns Matrix4f().translation(3f, 0f, 0f)
             every { view.camera.position } returns Vec3(100.0, 0.0, 0.0)
         }
+        val requestedLayers = mutableSetOf<RenderType>()
         fun draw(): Map<Int, List<Int>> {
             val builder = BufferBuilder(1024)
             val format = DefaultVertexFormat.POSITION_COLOR_NORMAL
-            every { event.buffers } returns MultiBufferSource { builder }
+            requestedLayers.clear()
+            every { event.buffers } returns MultiBufferSource { layer ->
+                requestedLayers.add(layer)
+                builder
+            }
             builder.begin(VertexFormat.Mode.LINES, format)
             ShipRenderViews.overlays.emit(event)
             val batch = builder.endOrDiscardIfEmpty() ?: return emptyMap()
@@ -136,6 +143,17 @@ class ShipHitboxRendererTest {
             val first = draw()
             assertEquals(setOf(4, 8), first.getValue(234).toSet())
             assertEquals(setOf(-5, 1), first.getValue(127).toSet())
+            val xrayLines = requestedLayers.single { it !== RenderType.lines() }
+            for (mode in GameType.values()) {
+                every { client.player!!.isCreative } returns (mode == GameType.CREATIVE)
+                every { client.player!!.isSpectator } returns (mode == GameType.SPECTATOR)
+                assertEquals(first, draw(), mode.name)
+                val expectedLayers = when (mode) {
+                    GameType.CREATIVE, GameType.SPECTATOR -> setOf(RenderType.lines(), xrayLines)
+                    else -> setOf(RenderType.lines())
+                }
+                assertEquals(expectedLayers, requestedLayers, mode.name)
+            }
             ShipHitboxRenderer.setEnabled(true)
             assertEquals(first, draw())
             every { client.showOnlyReducedInfo() } returns true

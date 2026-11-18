@@ -6,8 +6,6 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.WeakHashMap;
 import java.util.function.BiConsumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LevelRenderer;
@@ -15,16 +13,12 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderStateShard;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.ClipContext;
-import net.minecraft.world.level.ClipContext.Block;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import org.joml.Intersectiond;
 import org.joml.Matrix3f;
 import org.joml.Matrix4d;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
-import org.joml.Vector2d;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.joml.Vector3f;
@@ -51,7 +45,6 @@ import org.valkyrienskies.mod.common.util.DragInfoReporter;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
 public final class ShipHitboxRenderer {
-    private static final Map<ShipRenderView, Vec3> sightEnds = new WeakHashMap<>();
     private static RegisteredListener listener;
 
     private ShipHitboxRenderer() { }
@@ -62,33 +55,12 @@ public final class ShipHitboxRenderer {
         } else if (!enabled && listener != null) {
             listener.unregister();
             listener = null;
-            sightEnds.clear();
         }
     }
 
-    private static boolean canSeeThroughBlocks(final ShipRenderView view, final AABBdc bounds) {
+    private static RenderType markerLines() {
         final var player = Minecraft.getInstance().player;
-        if (player.isSpectator() || player.isCreative()) return true;
-        if (player.level() == view.getLevel() && bounds.containsPoint(VectorConversionsMCKt.toJOML(player.position()))) return true;
-        final Vec3 start = view.getCamera().getPosition();
-        final Vec3 end = sightEnds.computeIfAbsent(view, ShipHitboxRenderer::sightEnd);
-        return bounds.intersectsLineSegment(start.x, start.y, start.z, end.x, end.y, end.z, new Vector2d()) != Intersectiond.OUTSIDE;
-    }
-
-    private static Vec3 sightEnd(final ShipRenderView view) {
-        final var camera = view.getCamera();
-        final var entity = camera.getEntity();
-        final Vec3 start, direction;
-        if (entity != null && camera == Minecraft.getInstance().gameRenderer.getMainCamera() && entity.level() == view.getLevel()) {
-            start = entity.getEyePosition(0.0f);
-            direction = entity.getViewVector(0.0f);
-        } else {
-            start = camera.getPosition();
-            final var look = camera.getLookVector();
-            direction = new Vec3(look.x(), look.y(), look.z());
-        }
-        return view.getLevel().clip(new ClipContext(start, start.add(direction.scale(20)), Block.COLLIDER,
-            ClipContext.Fluid.NONE, entity != null ? entity : Minecraft.getInstance().player)).getLocation();
+        return player != null && (player.isSpectator() || player.isCreative()) ? XRAY_LINES : RenderType.LINES;
     }
 
     private static void renderShip(final PostRenderShipEvent event) {
@@ -98,8 +70,7 @@ public final class ShipHitboxRenderer {
         final var view = event.getView();
         final var buffers = event.getBuffers();
         final Vec3 camera = view.getCamera().getPosition();
-        final boolean xray = canSeeThroughBlocks(view, ship.getRenderAABB());
-        final var lineType = xray ? XRAY_LINES : RenderType.LINES;
+        final var lineType = markerLines();
         final AABBic bounds = ship.getShipAABB();
         final PoseStack worldPose = new PoseStack();
         worldPose.last().pose().set(view.getViewMatrix());
@@ -125,7 +96,7 @@ public final class ShipHitboxRenderer {
         final Vector3d center = new Vector3d(transform.getPositionInModel()).sub(origin.getX(), origin.getY(), origin.getZ());
         LevelRenderer.renderLineBox(poses, buffers.getBuffer(lineType),
             AABB.ofSize(VectorConversionsMCKt.toMinecraft(center), 0.25, 0.25, 0.25), 250 / 255f, 194 / 255f, 19 / 255f, 1);
-        if (xray) renderGizmoInsideAABB(poses, buffers.getBuffer(lineType), localBounds, center.x, center.y, center.z, 1, 0.125f);
+        renderGizmoInsideAABB(poses, buffers.getBuffer(lineType), localBounds, center.x, center.y, center.z, 1, 0.125f);
         final var drag = DragInfoReporter.INSTANCE.getShipDragValues().get(ship.getId());
         final var lift = DragInfoReporter.INSTANCE.getShipLiftValues().get(ship.getId());
         if (drag != null) renderForce(poses, buffers.getBuffer(RenderType.LINES), center,
@@ -138,6 +109,7 @@ public final class ShipHitboxRenderer {
         final PoseStack matrices, final MultiBufferSource.BufferSource bufferSource) {
         final Vec3 camera = view.getCamera().getPosition();
         final String dimension = VSGameUtilsKt.getDimensionId(view.getLevel());
+        final var lineType = markerLines();
         final var shipBodyIds = new HashSet<Long>();
         for (final ClientShip ship : shipObjectClientWorld.getLoadedShips()) shipBodyIds.add(ship.getBodyId());
         for (ClientVsBody clientVsBody : shipObjectClientWorld.getAllBodies()) {
@@ -146,8 +118,6 @@ public final class ShipHitboxRenderer {
 
             AABBdc renderAABBd = validAABBWithMinSize(clientVsBody.getRenderAABB(), 0.1);
             matrices.pushPose();
-
-            final boolean xrayEligible = canSeeThroughBlocks(view, renderAABBd);
 
             AABB renderAABB = VectorConversionsMCKt.toMinecraft(renderAABBd)
                 .move(-camera.x, -camera.y, -camera.z);
@@ -171,7 +141,7 @@ public final class ShipHitboxRenderer {
 
             final BodyShapeData collisionShape = clientVsBody.getCollisionShape();
             renderBodyShape(
-                matrices, bufferSource.getBuffer(xrayEligible ? XRAY_LINES : RenderType.LINES),
+                matrices, bufferSource.getBuffer(lineType),
                 collisionShape, false, 0
             );
 
@@ -180,18 +150,16 @@ public final class ShipHitboxRenderer {
             final double comBoxSize = .25;
             final AABB comBox = AABB.ofSize(VectorConversionsMCKt.toMinecraft(centerOfMass), comBoxSize, comBoxSize, comBoxSize);
             LevelRenderer.renderLineBox(
-                matrices, bufferSource.getBuffer(xrayEligible ? XRAY_LINES : RenderType.LINES),
+                matrices, bufferSource.getBuffer(lineType),
                 comBox,
                 250.0F / 255.0F, 194.0F / 255.0F, 19.0F / 255.0F, 1.0F
             );
             // Render gizmos (X, Y, Z axes from center of mass)
-            if (xrayEligible) {
-                renderGizmoInsideAABB(
-                    matrices, bufferSource.getBuffer(XRAY_LINES),
-                    VectorConversionsMCKt.toMinecraft(localRenderAABB),
-                    centerOfMass.x, centerOfMass.y, centerOfMass.z, 1.0F, .125F
-                );
-            }
+            renderGizmoInsideAABB(
+                matrices, bufferSource.getBuffer(lineType),
+                VectorConversionsMCKt.toMinecraft(localRenderAABB),
+                centerOfMass.x, centerOfMass.y, centerOfMass.z, 1.0F, .125F
+            );
 
             matrices.popPose();
         }
