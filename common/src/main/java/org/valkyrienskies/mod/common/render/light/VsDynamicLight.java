@@ -134,7 +134,9 @@ public final class VsDynamicLight {
         final VsShipEmitterList list = getShipEmitterList();
         list.beginFrame();
         if (level != null) {
+            final String dimension = VSGameUtilsKt.getDimensionId(level);
             for (final ClientShip ship : VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips()) {
+                if (!dimension.equals(ship.getChunkClaimDimension())) continue;
                 final double[] positions = EMITTERS.get(ship.getId(), ship.getShipAABB(),
                     ship.getActiveChunksSet(), () -> VsShipEmitterList.scanShipEmitters(level, ship));
                 list.appendShipEmitters(ship, positions);

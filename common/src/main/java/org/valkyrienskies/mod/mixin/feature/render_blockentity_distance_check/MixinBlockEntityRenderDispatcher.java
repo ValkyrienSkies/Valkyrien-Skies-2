@@ -14,6 +14,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.mod.client.render.ShipRenderViews;
 import org.valkyrienskies.core.api.ships.Ship;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 
@@ -42,14 +43,16 @@ public class MixinBlockEntityRenderDispatcher {
     private <E extends BlockEntity> boolean isTileEntityInRenderRange(final BlockEntityRenderer<E> instance,
         final E blockEntity, final Vec3 cameraPos, final Operation<Boolean> operation) {
 
-        if (operation.call(instance, blockEntity, cameraPos)) {
+        final boolean inRange = operation.call(instance, blockEntity, cameraPos);
+        if (inRange && !ShipRenderViews.hasHiddenShips()) {
             return true;
         }
 
-        // If by default was false, then check if this BlockEntity belongs to a ship
         final BlockPos bePos = blockEntity.getBlockPos();
         final Ship nullableShip = VSGameUtilsKt.getLoadedShipManagingPos(level, bePos);
         if (nullableShip instanceof ClientShip ship) {
+            if (!ShipRenderViews.shouldRenderShip(ship)) return false;
+            if (inRange) return true;
             final Matrix4dc m = ship.getRenderTransform().getShipToWorld();
 
             return new Vec3(
@@ -59,6 +62,6 @@ public class MixinBlockEntityRenderDispatcher {
             ).closerThan(this.camera.getPosition(), instance.getViewDistance());
         }
 
-        return false;
+        return inRange;
     }
 }

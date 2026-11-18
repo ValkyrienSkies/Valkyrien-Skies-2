@@ -4,10 +4,15 @@ import static org.valkyrienskies.mod.common.VSClientGameUtils.transformRenderWit
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import net.minecraft.client.Camera;
 import net.minecraft.client.multiplayer.ClientLevel;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.LightTexture;
+import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -15,6 +20,7 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -24,18 +30,68 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyConstant;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.mod.api.render.ShipRenderView;
+import org.valkyrienskies.mod.client.render.ShipRenderViews;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.render.ShipRenderConfig;
+import org.valkyrienskies.mod.common.render.batched.ShipBatchRenderer;
+import org.valkyrienskies.mod.common.render.batched.ShipRenderFrustum;
+import org.valkyrienskies.mod.common.render.light.VsDynamicLight;
+import org.valkyrienskies.mod.mixinducks.client.render.NestedShipView;
 
 @Mixin(LevelRenderer.class)
 public abstract class MixinLevelRenderer {
+    @Shadow private Frustum cullingFrustum;
+    @Shadow private @Nullable Frustum capturedFrustum;
+
+    @Inject(method = "setLevel", at = @At("HEAD"))
+    private void vs$releaseShipMeshes(final ClientLevel next, final CallbackInfo ci) {
+        if (level != null && level != next) ShipBatchRenderer.INSTANCE.releaseLevel(level);
+    }
+
+    @WrapMethod(method = "renderLevel")
+    private void vs$renderView(final PoseStack poses, final float partialTick, final long finishNanoTime,
+        final boolean blockOutline, final Camera camera, final GameRenderer renderer, final LightTexture light,
+        final Matrix4f projection, final Operation<Void> original) {
+        final var outer = ShipRenderViews.getCurrent();
+        Frustum frustum = capturedFrustum != null ? capturedFrustum : cullingFrustum;
+        if (outer != null || frustum == null) {
+            final Vec3 pos = camera.getPosition();
+            frustum = ShipRenderFrustum.create(poses.last().pose(), projection, pos.x, pos.y, pos.z);
+        }
+        final ShipRenderView view = new ShipRenderView(level, camera, new Matrix4f(poses.last().pose()),
+            new Matrix4f(projection), frustum, partialTick);
+        final Runnable draw = () ->
+            original.call(poses, partialTick, finishNanoTime, blockOutline, camera, renderer, light, projection);
+        try {
+            ShipRenderViews.render(view, () -> VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips(), () -> {
+                if (outer != null && (Object) this instanceof NestedShipView nested) {
+                    nested.vs$renderNestedShipView(draw);
+                } else {
+                    draw.run();
+                }
+            });
+        } finally {
+            if (outer != null) VsDynamicLight.prepareFrame(outer.getLevel());
+        }
+    }
+
+    @Inject(method = "renderLevel", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/client/renderer/debug/DebugRenderer;render(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;DDD)V"))
+    private void vs$renderShipOverlays(final PoseStack poses, final float partialTick, final long finishNanoTime,
+        final boolean blockOutline, final Camera camera, final GameRenderer renderer, final LightTexture light,
+        final Matrix4f projection, final CallbackInfo ci) {
+        ShipRenderViews.renderOverlays(poses);
+    }
+
     @Inject(method = "allChanged", at = @At("HEAD"))
     private void vs$resetShipBackend(final CallbackInfo ci) {
-        org.valkyrienskies.mod.common.render.ShipRenderConfig.onRendererReload();
+        ShipRenderConfig.onRendererReload();
     }
 
     @Inject(method = "renderLevel", at = @At("HEAD"))
     private void vs$prepareShipShadows(final CallbackInfo ci) {
-        org.valkyrienskies.mod.common.render.light.VsDynamicLight.prepareFrame(this.level);
+        VsDynamicLight.prepareFrame(this.level);
     }
 
     @Shadow
@@ -75,6 +131,7 @@ public abstract class MixinLevelRenderer {
         ci.cancel();
         final ClientShip ship = VSGameUtilsKt.getLoadedShipManagingPos(level, blockPos);
         if (ship != null) {
+            if (!ShipRenderViews.shouldRenderShip(ship)) return;
             matrixStack.pushPose();
             transformRenderWithShip(ship.getRenderTransform(), matrixStack, blockPos, camX, camY, camZ);
             renderShape(matrixStack, vertexConsumer,

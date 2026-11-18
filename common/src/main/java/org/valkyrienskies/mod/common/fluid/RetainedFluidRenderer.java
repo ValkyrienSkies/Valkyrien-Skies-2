@@ -26,6 +26,7 @@ import org.joml.Matrix4d;
 import org.joml.Matrix4f;
 import org.joml.Vector3d;
 import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.mod.client.render.ShipRenderViews;
 import org.valkyrienskies.core.internal.physics.VsiFluidFloodedVoxel;
 import org.valkyrienskies.core.internal.world.VsiClientShipWorld;
 import org.valkyrienskies.mod.common.VSClientGameUtils;
@@ -86,6 +87,7 @@ public final class RetainedFluidRenderer {
             final var flooding = FloodedFluidClientCache.get(world, ship.getId(), pair);
             if (flooding == null || flooding.getSnapshot().getVoxels().isEmpty()) continue;
             present.add(ship.getId());
+            if (!ShipRenderViews.shouldRenderShip(ship)) continue;
             final var topology = FluidTopologyClientCache.get(world, ship.getId(), pair);
             final var meshes = SHIPS.computeIfAbsent(ship.getId(), ignored -> new ShipMeshes());
             meshes.update(level, ship, flooding, topology);

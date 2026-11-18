@@ -33,12 +33,13 @@ public final class ShipRenderConfig {
             LoadedMods.getIris() && IrisCompat.isIrisShaderActive(),
             config.getBetterVanillaShipShading() ? 0.0 : config.getShipShadeStrength());
         final boolean sameLevel = currentLevel == level;
-        final boolean changed = previous != null && (!sameLevel || !previous.equals(state));
+        final boolean configChanged = previous != null && !previous.equals(state);
+        final boolean changed = previous != null && (!sameLevel || configChanged);
         currentLevel = level;
         previous = state;
         if (changed) {
             onRendererReload();
-            ShipBatchRenderer.INSTANCE.freeAll();
+            if (configChanged || level == null) ShipBatchRenderer.INSTANCE.freeAll();
             if (ValkyrienCommonMixinConfigPlugin.getVSRenderer() == VSRenderer.SODIUM) {
                 SodiumCompat.deleteStorages();
             } else {

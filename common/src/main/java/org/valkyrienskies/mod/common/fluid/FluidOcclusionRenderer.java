@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.common.fluid;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.platform.TextureUtil;
 import com.mojang.blaze3d.systems.RenderSystem;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
@@ -27,6 +28,7 @@ import org.lwjgl.opengl.GL12;
 import org.lwjgl.opengl.GL13;
 import org.lwjgl.opengl.GL20;
 import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.mod.client.render.ShipRenderViews;
 import org.valkyrienskies.core.internal.world.VsiClientShipWorld;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
@@ -53,8 +55,8 @@ public final class FluidOcclusionRenderer {
 
     private static final Long2ObjectOpenHashMap<ShipMask> SHIP_MASKS =
         new Long2ObjectOpenHashMap<>();
-    private static final it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<ProgramHandles> PROGRAMS =
-        new it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<>();
+    private static final Int2ObjectOpenHashMap<ProgramHandles> PROGRAMS =
+        new Int2ObjectOpenHashMap<>();
     private static final FloatBuffer MATRIX_BUFFER = BufferUtils.createFloatBuffer(16);
     private static final Vector3d CAMERA_IN_SHIP = new Vector3d();
     private static final FluidOcclusionOverflow OVERFLOW = new FluidOcclusionOverflow();
@@ -88,9 +90,10 @@ public final class FluidOcclusionRenderer {
         }
 
         final VsiClientShipWorld shipWorld = VSGameUtilsKt.getShipObjectWorld(level);
+        final String dimension = VSGameUtilsKt.getDimensionId(level);
         final List<ClientShip> ships = new ArrayList<>();
         for (final ClientShip ship : shipWorld.getLoadedShips()) {
-            ships.add(ship);
+            if (dimension.equals(ship.getChunkClaimDimension()) && ShipRenderViews.shouldRenderShip(ship)) ships.add(ship);
         }
         ships.sort(Comparator.comparingDouble(
             ship -> distanceSquared(ship.getRenderAABB(), cameraX, cameraY, cameraZ)

@@ -8,6 +8,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.valkyrienskies.mod.client.render.ShipRenderViews;
 import org.valkyrienskies.mod.common.render.light.VsShipWorldLightRenderContext;
 import org.valkyrienskies.mod.common.render.light.VsShipWorldLightTerrainUniforms;
 
@@ -40,7 +41,7 @@ public abstract class MixinShaderInstance {
                 VsShipWorldLightRenderContext.getCamY(),
                 VsShipWorldLightRenderContext.getCamZ());
         } else if (((ShaderInstance) (Object) this).getName().contains("rendertype_ship_")) {
-            final var camera = net.minecraft.client.Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
+            final var camera = ShipRenderViews.getCameraPosition();
             VsShipWorldLightTerrainUniforms.setupForProgram(this.programId, camera.x, camera.y, camera.z);
         } else {
             VsShipWorldLightTerrainUniforms.disableForProgram(this.programId);
