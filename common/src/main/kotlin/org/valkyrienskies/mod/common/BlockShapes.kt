@@ -71,6 +71,14 @@ object BlockShapes {
      * So a shape too finely broken up to describe is refused, and null means "use the block state's
      * own". A panel that is a plate, a fold or a curve is a handful of boxes and gets its real shape;
      * one that has been crushed into a dozen separate pieces of metal goes back to being a cube.
+     *
+     * No boxes at all is **not** a refusal, and used to be one. "I have nothing to say about this
+     * block" and "there is nothing here" are opposite statements, and answering the second with the
+     * first is how a panel beaten until it holds no metal came to collide as a solid cube — more
+     * than it collided as when it was full, because the block state behind it is a whole block. The
+     * empty shape is the same one [MassDatapackResolver] builds for a datapack's `no_collision`, by
+     * the same call, which is where it is known that an empty box list is a shape rather than a
+     * failure.
      */
     @JvmStatic
     @JvmOverloads
@@ -85,10 +93,17 @@ object BlockShapes {
             // Inclusive at the top, which is how a block shape is spelled here.
             positive.add(AABBi(box[0], box[1], box[2], box[3] - 1, box[4] - 1, box[5] - 1))
         }
-        if (positive.isEmpty()) {
-            return null
-        }
         val utils = vsCore.solidShapeUtils
+        if (positive.isEmpty()) {
+            // Never null for an empty list, which is the one case this call is documented for.
+            val nothing = utils.generateShapeFromBoxes(mutableListOf()) ?: return null
+            return vsCore.newSolidStateBuilder()
+                .friction(friction)
+                .elasticity(elasticity)
+                .hardness(hardness)
+                .shape(nothing)
+                .build()
+        }
         val merged = utils.mergeBoxes(positive)
         if (merged.size > MAX_BOXES) {
             return null
