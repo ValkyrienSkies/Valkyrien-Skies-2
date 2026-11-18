@@ -50,8 +50,8 @@ object BlockShapes {
      * .VsiSolidShapeUtils.generateShapeFromBoxes] uses ten and twenty, which is the conservative
      * reading; these are what the engine was found to actually take.
      */
-    private val MAX_BOXES = Integer.getInteger("vs.maxShapeBoxes", 10)
-    private val MAX_POINTS = Integer.getInteger("vs.maxShapePoints", 20)
+    private val MAX_BOXES = 10
+    private val MAX_POINTS = 20
 
     /**
      * A solid state made of boxes on the sixteenth-of-a-block grid.
