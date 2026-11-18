@@ -12,8 +12,8 @@ import org.lwjgl.system.MemoryUtil;
 public final class ShipTransformStorage {
 
     private static final int FLOATS_PER_MATRIX = 16;
-    private static final int MATRICES_PER_ENTRY = 2;
-    private static final int BYTES_PER_ENTRY = FLOATS_PER_MATRIX * MATRICES_PER_ENTRY * 4; // 128 B = 8 texels
+    private static final int MATRICES_PER_ENTRY = 3;
+    private static final int BYTES_PER_ENTRY = FLOATS_PER_MATRIX * MATRICES_PER_ENTRY * 4; // 192 B = 12 texels
 
     private long arenaPtr;
     private int capacityEntries;
@@ -53,7 +53,8 @@ public final class ShipTransformStorage {
         count = 0;
     }
 
-    public int append(final Matrix4f modelView, final Matrix4f localToCameraRel) {
+    public int append(final Matrix4f modelView, final Matrix4f localToCameraRel,
+        final Matrix4f previousModelView) {
         if (count >= capacityEntries) {
             grow();
         }
@@ -67,6 +68,11 @@ public final class ShipTransformStorage {
         final long secondOffset = entryOffset + (long) FLOATS_PER_MATRIX * 4;
         for (int i = 0; i < FLOATS_PER_MATRIX; i++) {
             MemoryUtil.memPutFloat(secondOffset + (long) i * 4, scratch[i]);
+        }
+        previousModelView.get(scratch);
+        final long thirdOffset = secondOffset + (long) FLOATS_PER_MATRIX * 4;
+        for (int i = 0; i < FLOATS_PER_MATRIX; i++) {
+            MemoryUtil.memPutFloat(thirdOffset + (long) i * 4, scratch[i]);
         }
         count++;
         return index;
@@ -117,6 +123,14 @@ public final class ShipTransformStorage {
             // until it is first bound, and glTexBuffer rejects a name that isn't
             // one yet with GL_INVALID_OPERATION. Bind once to materialize it.
             GL15.glBindBuffer(GL31.GL_TEXTURE_BUFFER, buffer);
+            // And a data store, not merely a name. glTexBuffer against a buffer that has
+            // never seen glBufferData leaves the texture incomplete, and every draw that
+            // samples it is GL_INVALID_OPERATION -- "The required buffer is missing", which
+            // is what a client sitting in a world with no ships in it used to report on
+            // every frame. One zeroed texel is enough to make it legal; the shaders early
+            // out on the count uniforms long before they read anything here.
+            GL15.glBufferData(GL31.GL_TEXTURE_BUFFER, new float[] {0f, 0f, 0f, 0f},
+                    GL15.GL_DYNAMIC_DRAW);
             GL15.glBindBuffer(GL31.GL_TEXTURE_BUFFER, 0);
         }
         if (texture == 0) {

@@ -69,6 +69,8 @@ public final class ShipBatchRenderer {
     private final Matrix4d localToCameraRelScratch = new Matrix4d();
     private final Matrix4d modelViewScratch = new Matrix4d();
     private final Matrix4f localToCameraRelFloat = new Matrix4f();
+    private final Matrix4d previousRenderScratch = new Matrix4d();
+    private final Matrix4f previousRenderFloat = new Matrix4f();
     private final Vector3d cameraInShip = new Vector3d();
     private ClientLevel currentLevel;
 
@@ -76,6 +78,7 @@ public final class ShipBatchRenderer {
 
     private static final class ShipFrameData {
         final Matrix4f modelView = new Matrix4f();
+        final Matrix4f previousModelView = new Matrix4f();
         double camShipX, camShipY, camShipZ;
         boolean visible;
         ShipMesh mesh;
@@ -279,8 +282,10 @@ public final class ShipBatchRenderer {
         }
 
         final Uniform modelViewUniform = shader.MODEL_VIEW_MATRIX;
+        final Uniform previousModelViewUniform = shader.getUniform("PreviousModelViewMat");
         final Uniform chunkOffsetUniform = shader.CHUNK_OFFSET;
         final boolean translucent = renderType == RenderType.translucent();
+        final boolean collectingMotion = ShipMotionVectors.begin();
         final ShipMaterialUniforms materialUniforms = usingBatchedShader ? ShipMaterialUniforms.forShader(shader) : null;
         final boolean useBlendedOrder = translucent && !translucentShips.isEmpty();
         final boolean depthWrite = useBlendedOrder && GL11.glGetBoolean(GL11.GL_DEPTH_WRITEMASK);
@@ -291,7 +296,8 @@ public final class ShipBatchRenderer {
             if (materialUniforms != null) materialUniforms.select(data.material);
             if (translucent) {
                 if (!data.blended && data.translucentOrder.sections().isEmpty()) continue;
-                setShipTransform(data, usingBatchedShader, shipIndexLoc, modelViewUniform);
+                setShipTransform(data, usingBatchedShader, shipIndexLoc, modelViewUniform,
+                    previousModelViewUniform);
                 if (data.blended) {
                     RenderSystem.depthMask(false);
                     try {
@@ -308,13 +314,15 @@ public final class ShipBatchRenderer {
                 if (buffer == null) {
                     continue;
                 }
-                setShipTransform(data, usingBatchedShader, shipIndexLoc, modelViewUniform);
+                setShipTransform(data, usingBatchedShader, shipIndexLoc, modelViewUniform,
+                    previousModelViewUniform);
                 setOpaqueOrigin(data, chunkOffsetUniform, materialUniforms);
                 buffer.bind();
                 buffer.draw();
             }
         }
         if (materialUniforms != null) materialUniforms.select(null);
+        if (collectingMotion) ShipMotionVectors.end();
 
         if (chunkOffsetUniform != null) {
             chunkOffsetUniform.set(0.0f, 0.0f, 0.0f);
@@ -369,7 +377,8 @@ public final class ShipBatchRenderer {
     }
 
     private static void setShipTransform(final ShipFrameData data, final boolean usingBatchedShader,
-        final int shipIndexLoc, final Uniform modelViewUniform) {
+        final int shipIndexLoc, final Uniform modelViewUniform,
+        final Uniform previousModelViewUniform) {
         if (usingBatchedShader) {
             if (shipIndexLoc >= 0) {
                 GL20.glUniform1i(shipIndexLoc, data.transformIndex);
@@ -377,6 +386,10 @@ public final class ShipBatchRenderer {
         } else if (modelViewUniform != null) {
             modelViewUniform.set(data.modelView);
             modelViewUniform.upload();
+            if (previousModelViewUniform != null) {
+                previousModelViewUniform.set(data.previousModelView);
+                previousModelViewUniform.upload();
+            }
         }
     }
 
@@ -472,6 +485,7 @@ public final class ShipBatchRenderer {
         }
 
         transformStorage.beginFrame();
+        final boolean motionVectors = ShipMotionVectors.getTexture() != 0;
         translucentShips.clear();
         boolean hasBlended = false;
         final Vector3d camScratch = cameraInShip;
@@ -517,7 +531,19 @@ public final class ShipBatchRenderer {
                 camX, camY, camZ, data.camShipX, data.camShipY, data.camShipZ,
                 localToCameraRelScratch, modelViewScratch, data.modelView, localToCameraRelFloat);
 
-            data.transformIndex = transformStorage.append(data.modelView, localToCameraRelFloat);
+            if (motionVectors) {
+                previousRenderScratch
+                    .translation(-camX, -camY, -camZ)
+                    .mul(ShipMotionVectors.previousShipToWorld(ship.getId(), transform.getShipToWorld()))
+                    .translate(data.camShipX, data.camShipY, data.camShipZ);
+                previousRenderFloat.set(previousRenderScratch);
+                data.previousModelView.set(levelPoseStack.last().pose()).mul(previousRenderFloat);
+            } else {
+                data.previousModelView.set(data.modelView);
+            }
+
+            data.transformIndex = transformStorage.append(
+                data.modelView, localToCameraRelFloat, data.previousModelView);
 
             final ShipMesh mesh = data.mesh;
             data.opaqueOffsetX = (float) (mesh.refX - data.camShipX);

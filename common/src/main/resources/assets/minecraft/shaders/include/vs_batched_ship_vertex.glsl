@@ -1,7 +1,14 @@
 void vs_shipVertex(mat4 modelView, mat4 localToCameraRel) {
     vs_ShipPos = Position + vs_MaterialOrigin;
     vec3 pos = Position + ChunkOffset;
-    gl_Position = ProjMat * modelView * vec4(pos, 1.0);
+    vec4 currentClip = ProjMat * modelView * vec4(pos, 1.0);
+#ifdef VS_SHIP_MOTION_VECTORS
+    vec4 previousClip = ProjMat * vs_shipPreviousModelView() * vec4(pos, 1.0);
+    v_VsMotion = previousClip.w > 0.05
+        ? currentClip.xy / currentClip.w - previousClip.xy / previousClip.w
+        : vec2(0.0);
+#endif
+    gl_Position = currentClip;
 
     vertexDistance = fog_distance(modelView, pos, FogShape);
     texCoord0 = UV0;
