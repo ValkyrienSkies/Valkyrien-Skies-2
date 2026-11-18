@@ -43,8 +43,10 @@ public abstract class MixinDefaultChunkRenderer {
             // setupShipShaderState wrote into the shader's samplers. Without
             // this the ship shader would sample whatever was last bound
             // (typically nothing on the first ship pass of the frame).
-            SodiumCompat.getShipEmitterList().bind(SodiumCompat.SHIP_EMITTER_LIST_TEXTURE_UNIT);
-            SodiumCompat.getShipOccluderList().bind(SodiumCompat.SHIP_OCCLUDER_LIST_TEXTURE_UNIT);
+            if (org.valkyrienskies.mod.common.config.VSGameConfig.CLIENT.isShipToWorldLightingEnabled()) {
+                SodiumCompat.getShipEmitterList().bind(SodiumCompat.SHIP_EMITTER_LIST_TEXTURE_UNIT);
+                SodiumCompat.getShipOccluderList().bind(SodiumCompat.SHIP_OCCLUDER_LIST_TEXTURE_UNIT);
+            }
             SodiumFluidOcclusion.begin();
             return;
         }
@@ -59,14 +61,16 @@ public abstract class MixinDefaultChunkRenderer {
             ((ShaderChunkRendererAccessor) instance).getActiveProgram().bind();
             SodiumCompat.setupWorldShaderState(((ShaderChunkRendererAccessor) instance).getActiveProgram(), matrices);
             // Bind ship-voxel storage to the units the world FSH samples.
-            SodiumCompat.getShipEmitterList().bind(SodiumCompat.SHIP_EMITTER_LIST_TEXTURE_UNIT);
-            // World-from-ship storage (occluder strength) for the AO sample.
-            SodiumCompat.getWorldFromShipStorage().bind(
-                    SodiumCompat.WORLD_FROM_SHIP_SECTIONS_TEXTURE_UNIT,
-                    SodiumCompat.WORLD_FROM_SHIP_LUT_TEXTURE_UNIT);
-            // Per-frame ship occluder voxel list — used by the per-fragment
-            // AO loop in the world FSH for rotation-aware shadow shape.
-            SodiumCompat.getShipOccluderList().bind(SodiumCompat.SHIP_OCCLUDER_LIST_TEXTURE_UNIT);
+            if (org.valkyrienskies.mod.common.config.VSGameConfig.CLIENT.isShipToWorldLightingEnabled()) {
+                SodiumCompat.getShipEmitterList().bind(SodiumCompat.SHIP_EMITTER_LIST_TEXTURE_UNIT);
+                // World-from-ship storage (occluder strength) for the AO sample.
+                SodiumCompat.getWorldFromShipStorage().bind(
+                        SodiumCompat.WORLD_FROM_SHIP_SECTIONS_TEXTURE_UNIT,
+                        SodiumCompat.WORLD_FROM_SHIP_LUT_TEXTURE_UNIT);
+                // Per-frame ship occluder voxel list — used by the per-fragment
+                // AO loop in the world FSH for rotation-aware shadow shape.
+                SodiumCompat.getShipOccluderList().bind(SodiumCompat.SHIP_OCCLUDER_LIST_TEXTURE_UNIT);
+            }
             SodiumFluidOcclusion.begin();
             return;
         }

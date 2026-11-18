@@ -9,6 +9,8 @@ class IfNotNullPlan<C: Any, V>(val nullable: () -> V?, val getPlan: (V) -> Plan<
         val n = nullable()
         if (n != null) {
             getPlan(n).execute(taskExecutor, context, onCompletion)
+        } else {
+            onCompletion.run()
         }
     }
 }

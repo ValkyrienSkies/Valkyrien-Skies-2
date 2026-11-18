@@ -101,7 +101,7 @@ public final class FluidTopologyClientCache {
                         voxel.getPositionX(), voxel.getPositionY(), voxel.getPositionZ());
                     if (sameDomain) {
                         final VsiFluidTopologyVoxel old = previous.voxelsByPosition.get(key);
-                        sameDomain = old != null;
+                        sameDomain = old != null && old.getRegions().equals(voxel.getRegions());
                         sameValues &= voxel.equals(old);
                     }
                     cells.put(key, voxel);
@@ -134,9 +134,8 @@ public final class FluidTopologyClientCache {
             final int z,
             final @Nullable FloodedFluidClientCache.CachedSnapshot flooding
         ) {
-            if (!voxelsByPosition.containsKey(
-                FloodedFluidClientCache.pack(x, y, z)
-            )) {
+            final var domain = voxelsByPosition.get(FloodedFluidClientCache.pack(x, y, z));
+            if (domain == null || !domain.getRegions().isEmpty()) {
                 return -1;
             }
             final var voxel = flooding == null ? null : flooding.get(x, y, z);

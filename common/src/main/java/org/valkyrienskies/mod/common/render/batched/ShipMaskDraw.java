@@ -10,13 +10,13 @@ import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.api.render.ShipMaterialPass;
 import org.valkyrienskies.mod.api.render.ShipMaterialSelection;
 import org.valkyrienskies.mod.client.render.ShipMaskTerrain;
-import org.valkyrienskies.mod.common.render.light.ShipShadowRenderer;
+import org.valkyrienskies.mod.common.render.light.ShipShadowMap;
 import org.valkyrienskies.mod.common.render.light.VsDynamicLight;
 import static org.lwjgl.opengl.GL33C.*;
 
 final class ShipMaskDraw {
     private static final int[] LIGHT_UNITS = {VsDynamicLight.LIGHT_SECTIONS_TEXTURE_UNIT,
-        VsDynamicLight.LIGHT_LUT_TEXTURE_UNIT, VsDynamicLight.SHIP_EMITTER_LIST_TEXTURE_UNIT, ShipShadowRenderer.TEXTURE_UNIT};
+        VsDynamicLight.LIGHT_LUT_TEXTURE_UNIT, VsDynamicLight.SHIP_EMITTER_LIST_TEXTURE_UNIT};
     private static int atlasSampler;
 
     static void draw(final ShaderInstance shader, final ShipMaskTerrain terrain, final ClientShip ship,
@@ -29,6 +29,14 @@ final class ShipMaskDraw {
         for (int i = 0; i < lights.length; i++) {
             GlStateManager._activeTexture(GL_TEXTURE0 + LIGHT_UNITS[i]);
             lights[i] = glGetInteger(GL_TEXTURE_BINDING_BUFFER);
+        }
+        int shadowMap = 0, comparisonMap = 0, comparisonSampler = 0;
+        if (needsLighting) {
+            GlStateManager._activeTexture(GL_TEXTURE0 + ShipShadowMap.TEXTURE_UNIT);
+            shadowMap = glGetInteger(GL_TEXTURE_BINDING_2D_ARRAY);
+            GlStateManager._activeTexture(GL_TEXTURE0 + ShipShadowMap.COMPARISON_TEXTURE_UNIT);
+            comparisonMap = glGetInteger(GL_TEXTURE_BINDING_2D_ARRAY);
+            comparisonSampler = glGetInteger(GL_SAMPLER_BINDING);
         }
         GlStateManager._activeTexture(GL_TEXTURE2);
         final int lightmap = glGetInteger(GL_TEXTURE_BINDING_2D);
@@ -51,6 +59,13 @@ final class ShipMaskDraw {
             for (int i = 0; i < lights.length; i++) {
                 GlStateManager._activeTexture(GL_TEXTURE0 + LIGHT_UNITS[i]);
                 glBindTexture(GL_TEXTURE_BUFFER, lights[i]);
+            }
+            if (needsLighting) {
+                GlStateManager._activeTexture(GL_TEXTURE0 + ShipShadowMap.TEXTURE_UNIT);
+                glBindTexture(GL_TEXTURE_2D_ARRAY, shadowMap);
+                GlStateManager._activeTexture(GL_TEXTURE0 + ShipShadowMap.COMPARISON_TEXTURE_UNIT);
+                glBindTexture(GL_TEXTURE_2D_ARRAY, comparisonMap);
+                glBindSampler(ShipShadowMap.COMPARISON_TEXTURE_UNIT, comparisonSampler);
             }
             GlStateManager._activeTexture(GL_TEXTURE2);
             glBindTexture(GL_TEXTURE_2D, lightmap);

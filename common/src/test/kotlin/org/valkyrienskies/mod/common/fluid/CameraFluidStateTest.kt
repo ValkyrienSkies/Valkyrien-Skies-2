@@ -33,6 +33,7 @@ import org.valkyrienskies.core.internal.world.VsiClientShipWorld
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.getShipMountedTo
+import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.mixin.feature.fluid_camera_fix.MixinCamera
 import org.valkyrienskies.mod.mixin.client.MixinCamera as MountedCamera
 
@@ -81,6 +82,7 @@ class CameraFluidStateTest {
         VSGameConfig.CLIENT.renderFloodedFluidFog = oldFog
         FloodedFluidClientCache.clear()
         FluidTopologyClientCache.clear()
+        ShipFluidCandidates.clear(world)
         unmockkAll()
     }
 
@@ -161,10 +163,30 @@ class CameraFluidStateTest {
     }
 
     @Test
+    fun `child domains outside render bounds use interpolated camera and retained lookup positions`() {
+        val transform = Matrix4d().translation(10.0, 0.0, 0.0)
+        val child = ship(transform = transform)
+        every { child.renderAABB } returns AABBd(-2.0, -2.0, -2.0, 2.0, 2.0, 2.0)
+        topology = topology.copy(voxels = listOf(org.valkyrienskies.core.internal.physics.VsiFluidTopologyVoxel(20, 0, 0, 1)))
+        flood = flood.copy(voxels = listOf(VsiFluidFloodedVoxel(20, 0, 0, 17, 128, 0)))
+        mockkStatic("org.valkyrienskies.mod.common.VSGameUtilsKt")
+        every { level.shipObjectWorld } returns world
+        val wet = Vec3(10.5, .25, .5)
+        assertSame(Fluids.WATER, sample(wet).fluid().type)
+        assertTrue(sample(Vec3(10.5, .75, .5), Fluids.WATER.defaultFluidState()).dryDomain())
+        assertTrue(sample(wet, fog = false).fluid().isEmpty)
+        assertNotNull(FloodedFluidClientCache.findAtWorldPosition(level, wet))
+        transform.translation(20.0, 0.0, 0.0)
+        assertFalse(sample(wet).submergedInShip())
+        assertNull(FloodedFluidClientCache.findAtWorldPosition(level, wet))
+        assertSame(Fluids.WATER, sample(Vec3(.5, .25, .5)).fluid().type)
+    }
+
+    @Test
     fun `render bounds filter empty candidates and overlapping dry ships do not hide retained water`() {
         val distant = ship(8)
         every { distant.renderAABB } returns AABBd(100.0, 100.0, 100.0, 101.0, 101.0, 101.0)
-        every { world.getFluidGameplaySnapshot(8) } throws AssertionError("Out-of-render-bounds ship was sampled")
+        every { world.getFluidGameplaySnapshot(8) } returns null
         ship(9)
         every { world.getFluidGameplaySnapshot(9) } returns gameplaySnapshot(
             topology.copy(bodyId = 9), floodingSnapshot().copy(bodyId = 9))

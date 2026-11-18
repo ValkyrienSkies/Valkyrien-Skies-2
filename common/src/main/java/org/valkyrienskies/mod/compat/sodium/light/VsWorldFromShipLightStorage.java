@@ -10,6 +10,7 @@ import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.IntBuffer;
+import java.util.Arrays;
 import java.util.BitSet;
 
 import java.util.Set;
@@ -22,6 +23,7 @@ import org.lwjgl.system.MemoryUtil;
 import com.mojang.blaze3d.platform.GlStateManager;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.SectionPos;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
@@ -35,6 +37,7 @@ import org.joml.Vector3d;
 import org.joml.primitives.AABBic;
 
 import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.mod.common.render.light.ShipGeometryCache;
 import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 
 /**
@@ -47,10 +50,9 @@ import org.valkyrienskies.core.api.ships.properties.ShipTransform;
  * (vs_chunkCoordToSectionIndex, vs_isSolid, vs_lightAt) work with this
  * storage's textures swapped in for the buffer/LUT samplers.
  *
- * <p>Unlike {@link VsShipLightStorage} which collects from the world's light
- * engine on first request and re-uses across frames, this storage is rebuilt
- * every frame because ship voxels' world coordinates change as ships move and
- * rotate. Sections are allocated on demand and pruned each frame.
+ * <p>Ship-space solid and emitter cells are cached until their geometry changes.
+ * A new lighting frame projects those cells into world coordinates and rebuilds
+ * the light sections. The caller can retain the result for unchanged frames.
  *
  * <p>Sky-light bits in the byte are unused (set to 0); only the block-light
  * nibble carries data (ship-internal emitters projected into world coords).
@@ -82,6 +84,8 @@ public class VsWorldFromShipLightStorage {
     private boolean lutDirty = true;
 
     private LongSet requestedThisFrame = new LongOpenHashSet();
+    private long lastSectionPos;
+    private int lastSectionIndex = INVALID;
 
     private long arenaPtr;
     private int capacity;
@@ -100,6 +104,12 @@ public class VsWorldFromShipLightStorage {
     private final Quaterniond scratchQuat = new Quaterniond();
     private final BlockPos.MutableBlockPos scratchBlockPos = new BlockPos.MutableBlockPos();
 
+    // Each cell stores x, y, z, the solid flag, and the raw light emission.
+    private record LocalLightCells(int[] cells, boolean uncacheable) { }
+    private final ShipGeometryCache<LocalLightCells> localGeometry = new ShipGeometryCache<>();
+    private boolean localGeometryFrameStarted;
+    private boolean reusableUnchangedFrame = true;
+
     // Reusable BFS queue (parallel int arrays, cleared per emitter). Used to
     // flood block-light through the world's voxel grid while skipping cells
     // whose solid bit is set (ship walls block their own light).
@@ -113,6 +123,13 @@ public class VsWorldFromShipLightStorage {
     private final IntArrayList pendingEmitterZ = new IntArrayList();
     private final IntArrayList pendingEmitterL = new IntArrayList();
 
+    // Process the strongest queued light first. Each cell then needs at most one world read.
+    private static final int MAX_FLOOD_CELLS = 1 << 20;
+    private final IntArrayList[] lightQueues = new IntArrayList[MAX_LIGHT_DILATION + 1];
+    private byte[] queuedLight = new byte[0];
+    private int[] floodSections = new int[0];
+    private LevelChunkSection[] worldSections = new LevelChunkSection[0];
+
     public VsWorldFromShipLightStorage() {
         capacity = DEFAULT_CAPACITY;
         section2Index.defaultReturnValue(INVALID);
@@ -120,9 +137,15 @@ public class VsWorldFromShipLightStorage {
         for (int i = 0; i < capacity; i++) {
             free.set(i);
         }
+        for (int i = 1; i < lightQueues.length; i++) lightQueues[i] = new IntArrayList();
     }
 
     public void delete() {
+        lastSectionIndex = INVALID;
+        localGeometry.clear();
+        localGeometryFrameStarted = false;
+        reusableUnchangedFrame = false;
+        worldSections = new LevelChunkSection[0];
         if (arenaPtr != 0L) {
             MemoryUtil.nmemFree(arenaPtr);
             arenaPtr = 0L;
@@ -135,14 +158,24 @@ public class VsWorldFromShipLightStorage {
 
     /** Begin a fresh frame: forget which sections were touched last frame. */
     public void beginFrame() {
+        lastSectionIndex = INVALID;
         requestedThisFrame.clear();
+        localGeometryFrameStarted = false;
+        reusableUnchangedFrame = true;
+    }
+
+    public boolean canReuseUnchangedFrame() {
+        return reusableUnchangedFrame;
+    }
+
+    public void invalidateShipGeometry(final long shipId) {
+        localGeometry.invalidate(shipId);
+        reusableUnchangedFrame = false;
     }
 
     /**
-     * Walk every block in {@code ship}'s shipyard-space AABB, transform each one
-     * to world coordinates via the ship's render transform, and write its solid
-     * bit / block-light value into the world section that contains it. Sections
-     * are allocated as needed and zeroed before first write each frame.
+     * Project the cached ship cells into the world light grid. Sections are
+     * allocated as needed and cleared before the first write in a lighting frame.
      */
     public void populateFromShip(LevelAccessor level, ClientShip ship) {
         populateFromShip(level, ship, null, null);
@@ -171,130 +204,110 @@ public class VsWorldFromShipLightStorage {
         final float qz = (float) scratchQuat.z;
         final float qw = (float) scratchQuat.w;
 
-        int minChunkX = xMin >> 4;
-        int maxChunkX = xMax >> 4;
-        int minChunkZ = zMin >> 4;
-        int maxChunkZ = zMax >> 4;
-        int minSectionY = yMin >> 4;
-        int maxSectionY = yMax >> 4;
+        if (!localGeometryFrameStarted) {
+            localGeometry.beginFrame(level);
+            localGeometryFrameStarted = true;
+        }
+        final LocalLightCells local = localGeometry.get(ship.getId(), shipyardAabb,
+            ship.getActiveChunksSet(), () -> collectLocalLightCells(level, shipyardAabb));
+        if (local.uncacheable()) {
+            reusableUnchangedFrame = false;
+            localGeometry.invalidate(ship.getId());
+        }
+        final int[] cells = local.cells();
+        for (int cell = 0; cell < cells.length; cell += 5) {
+            final int sx = cells[cell];
+            final int sy = cells[cell + 1];
+            final int sz = cells[cell + 2];
+            final boolean isSolid = cells[cell + 3] != 0;
+            final int blockLight = cells[cell + 4];
+            scratchPos.set(sx + 0.5, sy + 0.5, sz + 0.5);
+            shipToWorld.transformPosition(scratchPos);
+            double cwx = scratchPos.x;
+            double cwy = scratchPos.y;
+            double cwz = scratchPos.z;
+            int wx = (int) Math.floor(cwx + 1.0e-4);
+            int wy = (int) Math.floor(cwy + 1.0e-4);
+            int wz = (int) Math.floor(cwz + 1.0e-4);
 
+            int idx = ensureSection(SectionPos.asLong(wx >> 4, wy >> 4, wz >> 4));
+
+            // Voxel offset within the section's 18^3 grid (matches the
+            // VsShipLightStorage layout: +1 to skip the leading border).
+            int ix = (wx & 15) + 1;
+            int iy = (wy & 15) + 1;
+            int iz = (wz & 15) + 1;
+            int voxelIdx = ix + iz * 18 + iy * 18 * 18;
+
+            if (isSolid) {
+                long secPtr = arenaPtr + (long) idx * SECTION_SIZE_BYTES;
+                long solidWordPtr = secPtr + SOLID_START_BYTES + (long)(voxelIdx >>> 5) * 4L;
+                int existing = MemoryUtil.memGetInt(solidWordPtr);
+                MemoryUtil.memPutInt(solidWordPtr, existing | (1 << (voxelIdx & 31)));
+                splatOccluderStrength(cwx, cwy, cwz);
+                if (occluders != null) {
+                    occluders.appendOccluder(cwx, cwy, cwz, qx, qy, qz, qw);
+                }
+            }
+            if (blockLight > 0) {
+                splatEmitterSeeds(cwx, cwy, cwz, blockLight & 0xF);
+                if (emitters != null) {
+                    emitters.appendEmitter(cwx, cwy, cwz, blockLight, qx, qy, qz, qw);
+                }
+            }
+        }
+    }
+
+    /** Keep the original cell order while caching only solid or emitting cells. */
+    private LocalLightCells collectLocalLightCells(final LevelAccessor level, final AABBic bounds) {
+        final IntArrayList cells = new IntArrayList();
+        boolean uncacheable = false;
+        final int minChunkX = bounds.minX() >> 4;
+        final int maxChunkX = bounds.maxX() >> 4;
+        final int minChunkZ = bounds.minZ() >> 4;
+        final int maxChunkZ = bounds.maxZ() >> 4;
+        final int minSectionY = bounds.minY() >> 4;
+        final int maxSectionY = bounds.maxY() >> 4;
         for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
-            int sectionXMin = Math.max(xMin, chunkX << 4);
-            int sectionXMax = Math.min(xMax, (chunkX << 4) + 15);
-
+            final int sectionXMin = Math.max(bounds.minX(), chunkX << 4);
+            final int sectionXMax = Math.min(bounds.maxX(), (chunkX << 4) + 15);
             for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
-                ChunkAccess chunk = level.getChunk(chunkX, chunkZ);
-
-                int sectionZMin = Math.max(zMin, chunkZ << 4);
-                int sectionZMax = Math.min(zMax, (chunkZ << 4) + 15);
-
+                final ChunkAccess chunk = level.getChunk(chunkX, chunkZ);
+                final int sectionZMin = Math.max(bounds.minZ(), chunkZ << 4);
+                final int sectionZMax = Math.min(bounds.maxZ(), (chunkZ << 4) + 15);
                 for (int sectionY = minSectionY; sectionY <= maxSectionY; sectionY++) {
-                    int sectionIndex = sectionY - level.getMinSection();
-                    if (sectionIndex < 0 || sectionIndex >= chunk.getSections().length) {
-                        continue;
-                    }
-
-                    LevelChunkSection section = chunk.getSection(sectionIndex);
-                    if (section.hasOnlyAir()) {
-                        continue;
-                    }
-
-                    int sectionYMin = Math.max(yMin, sectionY << 4);
-                    int sectionYMax = Math.min(yMax, (sectionY << 4) + 15);
-
+                    final int sectionIndex = sectionY - level.getMinSection();
+                    if (sectionIndex < 0 || sectionIndex >= chunk.getSections().length) continue;
+                    final LevelChunkSection section = chunk.getSection(sectionIndex);
+                    if (section.hasOnlyAir()) continue;
+                    final int sectionYMin = Math.max(bounds.minY(), sectionY << 4);
+                    final int sectionYMax = Math.min(bounds.maxY(), (sectionY << 4) + 15);
                     for (int sy = sectionYMin; sy <= sectionYMax; sy++) {
-                        int localY = sy & 15;
                         for (int sz = sectionZMin; sz <= sectionZMax; sz++) {
-                            int localZ = sz & 15;
                             for (int sx = sectionXMin; sx <= sectionXMax; sx++) {
-                                BlockState state = section.getBlockState(sx & 15, localY, localZ);
-                    if (state.isAir()) continue;
-
-                    scratchBlockPos.set(sx, sy, sz);
-                    boolean isSolid = state.canOcclude()
-                            && Block.isShapeFullBlock(state.getOcclusionShape(level, scratchBlockPos));
-                    int blockLight = state.getLightEmission();
-                    if (!isSolid && blockLight == 0) continue;
-
-                    // Project block center to world coords (floats — sub-block
-                    // accuracy preserved). The CENTER cell (floor of these) is
-                    // where we set the binary solid bit + queue the emitter
-                    // BFS source. The 8 cells overlapping the voxel get
-                    // trilinear-weighted occluder STRENGTH so the shader's
-                    // sky/wall attenuation tracks ship motion smoothly even
-                    // when the ship moves a fraction of a block.
-                    scratchPos.set(sx + 0.5, sy + 0.5, sz + 0.5);
-                    shipToWorld.transformPosition(scratchPos);
-                    double cwx = scratchPos.x;
-                    double cwy = scratchPos.y;
-                    double cwz = scratchPos.z;
-                    // +1e-4 bias absorbs FP rounding error from the ship-to-
-                    // world matrix multiply. A clean integer ship transform
-                    // can produce e.g. 9.99999998 instead of exactly 10.0,
-                    // and a naked floor() then puts the splat in cell 9
-                    // instead of 10 — visible as an AO shape that's offset
-                    // by one cell from where vanilla AO would render an
-                    // equivalent solid block. The bias is small enough to
-                    // not affect genuinely-at-half positions (10.5 ± epsilon
-                    // floors the same with or without it).
-                    int wx = (int) Math.floor(cwx + 1.0e-4);
-                    int wy = (int) Math.floor(cwy + 1.0e-4);
-                    int wz = (int) Math.floor(cwz + 1.0e-4);
-
-                    int idx = ensureSection(SectionPos.asLong(wx >> 4, wy >> 4, wz >> 4));
-
-                    // Voxel offset within the section's 18^3 grid (matches the
-                    // VsShipLightStorage layout: +1 to skip the leading border).
-                    int ix = (wx & 15) + 1;
-                    int iy = (wy & 15) + 1;
-                    int iz = (wz & 15) + 1;
-                    int voxelIdx = ix + iz * 18 + iy * 18 * 18;
-
-                    if (isSolid) {
-                        long secPtr = arenaPtr + (long) idx * SECTION_SIZE_BYTES;
-                        // Binary solid bit at center cell — used by the BFS
-                        // dilation as an opaque-block check (light propagation
-                        // stops on solid). Smoothness is handled separately
-                        // via the trilinear-splatted occluder strength below.
-                        long solidWordPtr = secPtr + SOLID_START_BYTES + (long)(voxelIdx >>> 5) * 4L;
-                        int existing = MemoryUtil.memGetInt(solidWordPtr);
-                        MemoryUtil.memPutInt(solidWordPtr, existing | (1 << (voxelIdx & 31)));
-                        // Trilinear splat the voxel's "1.0 occluder" across the
-                        // 8 world cells it overlaps. As the ship moves
-                        // sub-block, the weights redistribute smoothly —
-                        // shadow on the ground tracks the motion instead of
-                        // jumping at integer crossings.
-                        splatOccluderStrength(cwx, cwy, cwz);
-                        if (occluders != null) {
-                            occluders.appendOccluder(cwx, cwy, cwz, qx, qy, qz, qw);
-                        }
-                    }
-                    if (blockLight > 0) {
-                        // Defer BFS dilation to pass 2 — solid bits for this
-                        // and every later voxel of the current ship aren't all
-                        // written yet, and we want the BFS to treat them as
-                        // occluders. Trilinear-splat the emitter source: for
-                        // each of the (up to) 8 cells the voxel overlaps,
-                        // queue an independent BFS source at full L. The BFS
-                        // dedupes via existing-light max-merge, so additional
-                        // seeds don't make things brighter — they just keep
-                        // the lit region tracking ship motion smoothly across
-                        // block boundaries. Without this the torch BFS source
-                        // sits at a single floor()'d cell and the lit region
-                        // jumps a full block whenever the ship's sub-block
-                        // position crosses an integer.
-                        splatEmitterSeeds(cwx, cwy, cwz, blockLight & 0xF);
-                        if (emitters != null) {
-                            emitters.appendEmitter(cwx, cwy, cwz, blockLight, qx, qy, qz, qw);
+                                final BlockState state = section.getBlockState(sx & 15, sy & 15, sz & 15);
+                                if (state.isAir()) continue;
+                                final Block block = state.getBlock();
+                                if (block.hasDynamicShape() || !block.getClass().getName().startsWith("net.minecraft.")) {
+                                    uncacheable = true;
+                                }
+                                scratchBlockPos.set(sx, sy, sz);
+                                final boolean solid = state.canOcclude()
+                                    && Block.isShapeFullBlock(state.getOcclusionShape(level, scratchBlockPos));
+                                final int emission = state.getLightEmission();
+                                if (!solid && emission == 0) continue;
+                                cells.add(sx);
+                                cells.add(sy);
+                                cells.add(sz);
+                                cells.add(solid ? 1 : 0);
+                                cells.add(emission);
+                            }
                         }
                     }
                 }
             }
         }
-                }
-            }
-        }
-
+        return new LocalLightCells(cells.toIntArray(), uncacheable);
     }
 
     public void populateFromShip(LevelAccessor level, ClientShip ship, VsShipEmitterList emitters,
@@ -304,18 +317,125 @@ public class VsWorldFromShipLightStorage {
     }
 
     public void runQueuedBfs(LevelAccessor level) {
-        for (int i = 0; i < pendingEmitterX.size(); i++) {
-            bfsLight(
-                    level,
-                    pendingEmitterX.getInt(i),
-                    pendingEmitterY.getInt(i),
-                    pendingEmitterZ.getInt(i),
-                    pendingEmitterL.getInt(i));
+        if (!floodEmittersTogether(level)) {
+            // Keep the old path for sources that span a very large area.
+            for (int i = 0; i < pendingEmitterX.size(); i++) {
+                bfsLight(level, pendingEmitterX.getInt(i), pendingEmitterY.getInt(i),
+                    pendingEmitterZ.getInt(i), pendingEmitterL.getInt(i));
+            }
         }
         pendingEmitterX.clear();
         pendingEmitterY.clear();
         pendingEmitterZ.clear();
         pendingEmitterL.clear();
+    }
+
+    private boolean floodEmittersTogether(final LevelAccessor level) {
+        if (pendingEmitterX.isEmpty()) return true;
+        long minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
+        long maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
+        for (int i = 0; i < pendingEmitterX.size(); i++) {
+            final int radius = Math.min(pendingEmitterL.getInt(i), MAX_LIGHT_DILATION) - 1;
+            if (radius < 0) continue;
+            final long x = pendingEmitterX.getInt(i), y = pendingEmitterY.getInt(i), z = pendingEmitterZ.getInt(i);
+            minX = Math.min(minX, x - radius); maxX = Math.max(maxX, x + radius);
+            minY = Math.min(minY, y - radius); maxY = Math.max(maxY, y + radius);
+            minZ = Math.min(minZ, z - radius); maxZ = Math.max(maxZ, z + radius);
+        }
+        if (maxX < minX) return true;
+        if (minX < Integer.MIN_VALUE || minY < Integer.MIN_VALUE || minZ < Integer.MIN_VALUE
+            || maxX > Integer.MAX_VALUE || maxY > Integer.MAX_VALUE || maxZ > Integer.MAX_VALUE) return false;
+        final long width = maxX - minX + 1, height = maxY - minY + 1, depth = maxZ - minZ + 1;
+        if (width > MAX_FLOOD_CELLS || height > MAX_FLOOD_CELLS || depth > MAX_FLOOD_CELLS
+            || width * depth > MAX_FLOOD_CELLS || width * depth * height > MAX_FLOOD_CELLS) return false;
+        final int cells = (int) (width * height * depth);
+        if (queuedLight.length < cells) queuedLight = new byte[cells];
+        else Arrays.fill(queuedLight, 0, cells, (byte) 0);
+        for (int light = 1; light < lightQueues.length; light++) lightQueues[light].clear();
+        final int row = (int) width, layer = (int) (width * depth);
+        final int sectionX = (int) minX >> 4, sectionY = (int) minY >> 4, sectionZ = (int) minZ >> 4;
+        final int sectionRow = ((int) maxX >> 4) - sectionX + 1;
+        final int sectionLayer = sectionRow * (((int) maxZ >> 4) - sectionZ + 1);
+        final int sections = sectionLayer * (((int) maxY >> 4) - sectionY + 1);
+        final boolean clientWorld = level instanceof ClientLevel;
+        if (floodSections.length < sections) {
+            floodSections = new int[sections];
+            worldSections = new LevelChunkSection[sections];
+        }
+        Arrays.fill(worldSections, null);
+        Arrays.fill(floodSections, 0, sections, -2);
+        for (int i = 0; i < pendingEmitterX.size(); i++) {
+            final int light = Math.min(pendingEmitterL.getInt(i), MAX_LIGHT_DILATION);
+            if (light <= 0) continue;
+            final int cell = (int) ((pendingEmitterX.getInt(i) - minX)
+                + (pendingEmitterZ.getInt(i) - minZ) * row + (pendingEmitterY.getInt(i) - minY) * layer);
+            queueLight(cell, light);
+        }
+        for (int light = MAX_LIGHT_DILATION; light > 0; light--) {
+            final IntArrayList queue = lightQueues[light];
+            for (int head = 0; head < queue.size(); head++) {
+                final int cell = queue.getInt(head);
+                if (queuedLight[cell] != light) continue;
+                final int plane = cell / layer;
+                final int inPlane = cell - plane * layer;
+                final int localZ = inPlane / row;
+                final int x = (int) minX + inPlane - localZ * row;
+                final int y = (int) minY + plane;
+                final int z = (int) minZ + localZ;
+                final int localSection = ((x >> 4) - sectionX) + ((z >> 4) - sectionZ) * sectionRow
+                    + ((y >> 4) - sectionY) * sectionLayer;
+                final int voxel = (x & 15) + 1 + ((z & 15) + 1) * 18 + ((y & 15) + 1) * 18 * 18;
+                int index = floodSections[localSection];
+                if (index == -2) {
+                    final long sectionPos = SectionPos.asLong(x >> 4, y >> 4, z >> 4);
+                    index = requestedThisFrame.contains(sectionPos) ? section2Index.get(sectionPos) : INVALID;
+                    floodSections[localSection] = index;
+                    // Check again for each flood. Block and chunk changes must take effect at once.
+                    if (clientWorld) worldSections[localSection] = worldSection((ClientLevel) level, x, y, z);
+                }
+                if (index != INVALID) {
+                    final long ptr = arenaPtr + (long) index * SECTION_SIZE_BYTES + LIGHT_START_BYTES + voxel;
+                    if ((MemoryUtil.memGetByte(ptr) & 15) >= light) continue;
+                }
+                final LevelChunkSection worldSection = worldSections[localSection];
+                if (clientWorld ? worldSection != null && worldSection.getBlockState(x & 15, y & 15, z & 15).canOcclude()
+                    : isWorldOccluder(level, x, y, z)) continue;
+                if (index == INVALID) {
+                    index = ensureSection(SectionPos.asLong(x >> 4, y >> 4, z >> 4));
+                    floodSections[localSection] = index;
+                }
+                final long section = arenaPtr + (long) index * SECTION_SIZE_BYTES;
+                final long ptr = section + LIGHT_START_BYTES + voxel;
+                final byte previous = MemoryUtil.memGetByte(ptr);
+                MemoryUtil.memPutByte(ptr, (byte) ((previous & 0xf0) | light));
+                if (light == 1 || (MemoryUtil.memGetInt(section + (long) (voxel >>> 5) * 4)
+                    & (1 << (voxel & 31))) != 0) continue;
+                // The bounds include each source's full range. These neighbors remain inside them.
+                queueLight(cell + 1, light - 1);
+                queueLight(cell - 1, light - 1);
+                queueLight(cell + layer, light - 1);
+                queueLight(cell - layer, light - 1);
+                queueLight(cell + row, light - 1);
+                queueLight(cell - row, light - 1);
+            }
+        }
+        Arrays.fill(worldSections, 0, sections, null);
+        return true;
+    }
+
+    private void queueLight(final int cell, final int light) {
+        if (queuedLight[cell] >= light) return;
+        queuedLight[cell] = (byte) light;
+        lightQueues[light].add(cell);
+    }
+
+    private LevelChunkSection worldSection(final ClientLevel level, final int x, final int y, final int z) {
+        if (level.isOutsideBuildHeight(y)) return null;
+        final ChunkAccess chunk = level.getChunk(x >> 4, z >> 4,
+            net.minecraft.world.level.chunk.ChunkStatus.FULL, false);
+        if (chunk == null) return null;
+        final LevelChunkSection section = chunk.getSection(chunk.getSectionIndex(y));
+        return section.hasOnlyAir() ? null : section;
     }
 
     public int getBlockLightAt(BlockPos pos) {
@@ -518,6 +638,9 @@ public class VsWorldFromShipLightStorage {
     /** Allocate or reuse a section for {@code sectionPos}, zeroing it on first
      *  request this frame. */
     private int ensureSection(long sectionPos) {
+        if (lastSectionIndex != INVALID && lastSectionPos == sectionPos) return lastSectionIndex;
+        lastSectionPos = sectionPos;
+        lastSectionIndex = INVALID;
         if (requestedThisFrame.add(sectionPos)) {
             int existing = section2Index.get(sectionPos);
             if (existing == INVALID) {
@@ -527,19 +650,25 @@ public class VsWorldFromShipLightStorage {
                 lutDirty = true;
                 MemoryUtil.memSet(arenaPtr + (long) idx * SECTION_SIZE_BYTES, 0, SECTION_SIZE_BYTES);
                 changed.set(idx);
+                lastSectionIndex = idx;
                 return idx;
             } else {
                 // Re-using a section from last frame: zero it before writing.
                 MemoryUtil.memSet(arenaPtr + (long) existing * SECTION_SIZE_BYTES, 0, SECTION_SIZE_BYTES);
                 changed.set(existing);
+                lastSectionIndex = existing;
                 return existing;
             }
         }
-        return section2Index.get(sectionPos);
+        lastSectionIndex = section2Index.get(sectionPos);
+        return lastSectionIndex;
     }
 
     /** Release any sections that no ship populated this frame. */
     public void pruneUnused() {
+        lastSectionIndex = INVALID;
+        if (localGeometryFrameStarted) localGeometry.endFrame();
+        else localGeometry.clear();
         if (section2Index.isEmpty()) return;
         ObjectIterator<Long2IntMap.Entry> it = section2Index.long2IntEntrySet().iterator();
         boolean anyRemoved = false;

@@ -110,6 +110,9 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     @Unique
     private FractionalFluidSources fractionalFluidSources;
 
+    @Unique
+    private org.valkyrienskies.mod.common.fluid.RetainedFluidBlockInteractions fluidBlockInteractions;
+
     @Inject(
         at = @At(value = "INVOKE", target = "Lnet/minecraft/server/MinecraftServer;initServer()Z"),
         method = "runServer"
@@ -121,7 +124,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     @Inject(at = @At("TAIL"), method = "stopServer")
     private void afterStopServer(final CallbackInfo ci) {
         org.valkyrienskies.mod.common.debug.ShipDebugService.clear();
-        org.valkyrienskies.mod.common.util.ShipInteractions.clear();
+        org.valkyrienskies.mod.common.hooks.VSGameEvents.INSTANCE.getServerStopped().emit(kotlin.Unit.INSTANCE);
         org.valkyrienskies.mod.common.util.ShipShadows.clear();
         ValkyrienSkiesMod.setCurrentServer(null);
     }
@@ -175,6 +178,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         vsPipeline = shipSavedData.getPipeline();
         fluidOutflowManager = shipSavedData.getFluidOutflowManager();
         fractionalFluidSources = shipSavedData.getFractionalFluidSources();
+        fluidBlockInteractions = shipSavedData.getFluidBlockInteractions();
 
         KrunchSupport.INSTANCE.setKrunchSupported(!vsPipeline.isUsingDummyPhysics());
 
@@ -272,13 +276,14 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     private void postTick(final CallbackInfo ci) {
         fractionalFluidSources.recoverTransfers(dimensionToLevelMap, fluidOutflowManager);
         vsPipeline.postTickGame();
+        fluidBlockInteractions.tick(shipWorld, dimensionToLevelMap);
         org.valkyrienskies.mod.common.fluid.ShipFluidInteraction.prune(shipWorld);
         org.valkyrienskies.mod.common.debug.ShipDebugService.tick((MinecraftServer) (Object) this);
         fluidOutflowManager.tick(dimensionToLevelMap);
         fractionalFluidSources.tickSplashes(dimensionToLevelMap);
         // Only drag entities after we have updated the ship positions
         for (final ServerLevel level : getAllLevels()) {
-            org.valkyrienskies.mod.common.util.ShipInteractions.afterPhysicsTick(level);
+            org.valkyrienskies.mod.common.hooks.VSGameEvents.INSTANCE.getShipPositionsUpdated().emit(level);
             EntityDragger.INSTANCE.dragEntitiesWithShips(level.getAllEntities(), false);
             VanillaFluidFlowWindProvider.INSTANCE.tick(level);
             if (LoadedMods.getWeather2())
@@ -454,6 +459,7 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     )
     private void preStopServer(final CallbackInfo ci) {
         org.valkyrienskies.mod.common.assembly.ShipWelder.cancelAll(MinecraftServer.class.cast(this));
+        org.valkyrienskies.mod.common.item.DebugGravitron.releaseAll(MinecraftServer.class.cast(this));
         if (vsPipeline != null) {
             vsPipeline.setDeleteResources(true);
             vsPipeline.setArePhysicsRunning(true);
@@ -533,6 +539,17 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
     @Override
     public FractionalFluidSources getFractionalFluidSources() {
         return fractionalFluidSources;
+    }
+
+    @Override
+    public org.valkyrienskies.mod.common.fluid.RetainedFluidBlockInteractions getFluidBlockInteractions() {
+        return fluidBlockInteractions;
+    }
+
+    @Override
+    public void onFluidGameplaySnapshot(
+        final org.valkyrienskies.core.internal.physics.VsiFluidGameplaySnapshot snapshot) {
+        fluidBlockInteractions.onSnapshot(snapshot);
     }
 
     @Override

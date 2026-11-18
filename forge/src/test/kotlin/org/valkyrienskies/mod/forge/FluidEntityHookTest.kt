@@ -30,11 +30,14 @@ class FluidEntityHookTest {
             try { Bootstrap.bootStrap() } finally { unmockkStatic(NetworkHooks::class) }
         }
     }
+    private var movement = Vec3.ZERO
     private val entity = object : MixinEntity() {
         override fun getX() = 0.5
         override fun getZ() = 0.5
         override fun getEyeY() = 1.5
         override fun touchingUnloadedChunk() = false
+        override fun getDeltaMovement() = movement
+        override fun setDeltaMovement(value: Vec3) { movement = value }
     }
     private val level = mockk<Level>()
     private val query = mockk<ShipFluidInteraction.VolumeQuery>()
@@ -48,6 +51,7 @@ class FluidEntityHookTest {
         field("forgeFluidTypeHeight", heights)
         mockkStatic(ShipFluidInteraction::class)
         every { ShipFluidInteraction.prepareVolume(level, any()) } returns query
+        every { query.currentMovement(any(), any(), any(), any()) } answers { secondArg() }
         every { waterState.fluidType } returns waterType
         every { waterType.isAir } returns false
         every { query.forEachRetained(any()) } answers {
@@ -59,6 +63,15 @@ class FluidEntityHookTest {
         .apply { isAccessible = true }.set(entity, value)
     private fun invoke(name: String, vararg args: Any): Any? = MixinEntity::class.java.declaredMethods
         .single { it.name == name }.apply { isAccessible = true }.invoke(entity, *args)
+
+    @Test fun `retained current replaces Forge motion once after its fluid loop`() {
+        val world = Vec3(.01, 0.0, 0.0)
+        val retained = Vec3(0.0, .005, 0.0)
+        every { query.currentMovement(Vec3.ZERO, world, any(), any()) } returns retained
+        invoke("vs\$mergeRetainedFluid", Predicate<FluidState> { true }, Operation<Void> { movement = world; null })
+        assertEquals(retained, movement)
+        verify(exactly = 1) { query.currentMovement(Vec3.ZERO, world, any(), any()) }
+    }
 
     @Test fun `real Forge type map merges retained depth after the original flow loop and respects its predicate`() {
         var calls = 0

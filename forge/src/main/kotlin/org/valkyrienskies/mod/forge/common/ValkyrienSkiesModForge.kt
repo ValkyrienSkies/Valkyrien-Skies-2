@@ -6,12 +6,14 @@ import net.minecraft.client.renderer.ShaderInstance
 import net.minecraft.commands.Commands.CommandSelection.ALL
 import net.minecraft.commands.Commands.CommandSelection.INTEGRATED
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MobCategory
 import net.minecraft.world.item.CreativeModeTabs
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.Item.Properties
+import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraftforge.client.event.EntityRenderersEvent
@@ -22,6 +24,7 @@ import net.minecraftforge.event.BuildCreativeModeTabContentsEvent
 import net.minecraftforge.event.RegisterCommandsEvent
 import net.minecraftforge.event.TagsUpdatedEvent
 import net.minecraftforge.event.entity.EntityAttributeCreationEvent
+import net.minecraftforge.event.level.LevelEvent
 import net.minecraftforge.event.entity.player.PlayerEvent
 import net.minecraftforge.fml.ModList
 import net.minecraftforge.fml.ModLoadingContext
@@ -81,6 +84,7 @@ import org.valkyrienskies.mod.common.item.ConnectionCheckerItem
 import org.valkyrienskies.mod.common.item.PhysicsEntityCreatorItem
 import org.valkyrienskies.mod.common.item.ShipAssemblerItem
 import org.valkyrienskies.mod.common.item.ShipWelderItem
+import org.valkyrienskies.mod.common.item.DebugGravitronItem
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
 import org.valkyrienskies.mod.common.item.ShipRemoverItem
 import org.valkyrienskies.mod.common.item.VSBlockItem
@@ -119,6 +123,7 @@ class ValkyrienSkiesModForge {
     private val PHYSICS_ENTITY_TYPE_REGISTRY: RegistryObject<EntityType<VSPhysicsEntity>>
     private val SHIP_ASSEMBLER_ITEM_REGISTRY: RegistryObject<Item>
     private val SHIP_WELDER_ITEM_REGISTRY: RegistryObject<Item>
+    private val DEBUG_GRAVITRON_ITEM_REGISTRY: RegistryObject<Item>
     private val TEST_HINGE_BLOCK_ENTITY_TYPE_REGISTRY: RegistryObject<BlockEntityType<TestHingeBlockEntity>>
     private val TEST_THRUSTER_BLOCK_ENTITY_TYPE_REGISTRY: RegistryObject<BlockEntityType<TestThrusterBlockEntity>>
     private val TEST_ANTIGRAV_BLOCK_ENTITY_TYPE_REGISTRY: RegistryObject<BlockEntityType<TestAntigravBlockEntity>>
@@ -163,6 +168,8 @@ class ValkyrienSkiesModForge {
         }
         modBus.addListener(::loadComplete)
         forgeBus.addListener(::playerJoin)
+
+        forgeBus.addListener(::onLevelLoaded)
 
         forgeBus.addListener(::registerCommands)
         forgeBus.addListener(::tagsUpdated)
@@ -245,6 +252,7 @@ class ValkyrienSkiesModForge {
         SHIP_ASSEMBLER_ITEM_REGISTRY =
             ITEMS.register("ship_assembler") { ShipAssemblerItem(Properties()) }
         SHIP_WELDER_ITEM_REGISTRY = ITEMS.register("ship_welder") { ShipWelderItem(Properties()) }
+        DEBUG_GRAVITRON_ITEM_REGISTRY = ITEMS.register("debug_gravitron") { DebugGravitronItem(Properties()) }
         TEST_HINGE_BLOCK_ENTITY_TYPE_REGISTRY = BLOCK_ENTITIES.register("test_hinge_block_entity") {
             BlockEntityType.Builder.of(::TestHingeBlockEntity, TestHingeBlock).build(null)
         }
@@ -293,11 +301,16 @@ class ValkyrienSkiesModForge {
             event.accept(SHIP_REMOVER_ITEM)
             event.accept(SHIP_ASSEMBLER_ITEM)
             event.accept(SHIP_WELDER_ITEM)
+            event.accept(ValkyrienSkiesMod.DEBUG_GRAVITRON_ITEM)
             event.accept(SHIP_CREATOR_ITEM_SMALLER)
             event.accept(AREA_ASSEMBLER_ITEM)
             event.accept(CLASSIC_AREA_ASSEMBLER_ITEM)
             event.accept(PHYSICS_ENTITY_CREATOR_ITEM)
         }
+    }
+
+    private fun onLevelLoaded(event: LevelEvent.Load) {
+        if (event.level is ServerLevel) ValkyrienSkiesMod.onLevelLoaded(event.level as ServerLevel)
     }
 
     private fun onConfigLoad(event: ModConfigEvent.Loading) {
@@ -370,6 +383,12 @@ class ValkyrienSkiesModForge {
             ShaderInstance(event.resourceProvider, "rendertype_ship_cutout", DefaultVertexFormat.BLOCK)
         ) { shaderInstance: ShaderInstance? -> VSRenderTypes.shipCutoutShader = shaderInstance }
         event.registerShader(
+            ShaderInstance(event.resourceProvider, "vs_exterior_fluid_fog", DefaultVertexFormat.POSITION)
+        ) { shader -> org.valkyrienskies.mod.common.fluid.ExteriorFluidFog.setShader(shader) }
+        event.registerShader(
+            ShaderInstance(event.resourceProvider, "vs_retained_fluid", DefaultVertexFormat.NEW_ENTITY)
+        ) { shader -> org.valkyrienskies.mod.common.fluid.RetainedFluidRenderer.setShader(shader) }
+        event.registerShader(
             ShaderInstance(event.resourceProvider, "rendertype_ship_translucent", DefaultVertexFormat.BLOCK)
         ) { shaderInstance: ShaderInstance? -> VSRenderTypes.shipTranslucentShader = shaderInstance }
         event.registerShader(
@@ -416,6 +435,7 @@ class ValkyrienSkiesModForge {
         ValkyrienSkiesMod.SHIP_REMOVER_ITEM = SHIP_REMOVER_ITEM_REGISTRY.get()
         ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM = SHIP_ASSEMBLER_ITEM_REGISTRY.get()
         ValkyrienSkiesMod.SHIP_WELDER_ITEM = SHIP_WELDER_ITEM_REGISTRY.get()
+        ValkyrienSkiesMod.DEBUG_GRAVITRON_ITEM = DEBUG_GRAVITRON_ITEM_REGISTRY.get()
         ValkyrienSkiesMod.SHIP_CREATOR_ITEM_SMALLER = SHIP_CREATOR_SMALLER_ITEM_REGISTRY.get()
         ValkyrienSkiesMod.AREA_ASSEMBLER_ITEM = AREA_ASSEMBLER_ITEM_REGISTRY.get()
         ValkyrienSkiesMod.CLASSIC_AREA_ASSEMBLER_ITEM = CLASSIC_AREA_ASSEMBLER_ITEM_REGISTRY.get()

@@ -11,6 +11,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket;
 import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
+import net.minecraft.network.protocol.game.ServerboundMoveVehiclePacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -23,6 +24,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.joml.Vector3d;
+import org.joml.Vector3dc;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -34,10 +36,45 @@ import org.valkyrienskies.core.internal.world.VsiServerShipWorld;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
-import org.valkyrienskies.mod.mixinducks.world.entity.PlayerDuck;
+import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
+import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
+import org.valkyrienskies.mod.mixinducks.server.ShipMovementListener;
 
 @Mixin(ServerGamePacketListenerImpl.class)
-public abstract class MixinServerGamePacketListenerImpl {
+public abstract class MixinServerGamePacketListenerImpl implements ShipMovementListener {
+    @Shadow private double firstGoodX;
+    @Shadow private double firstGoodY;
+    @Shadow private double firstGoodZ;
+    @Shadow private double lastGoodX;
+    @Shadow private double lastGoodY;
+    @Shadow private double lastGoodZ;
+    @Shadow private Entity lastVehicle;
+    @Shadow private double vehicleFirstGoodX;
+    @Shadow private double vehicleFirstGoodY;
+    @Shadow private double vehicleFirstGoodZ;
+    @Shadow private double vehicleLastGoodX;
+    @Shadow private double vehicleLastGoodY;
+    @Shadow private double vehicleLastGoodZ;
+
+    @Override
+    public void vs$onShipDrag(Entity entity, Vector3dc movement) {
+        if (entity == player) {
+            firstGoodX += movement.x();
+            firstGoodY += movement.y();
+            firstGoodZ += movement.z();
+            lastGoodX += movement.x();
+            lastGoodY += movement.y();
+            lastGoodZ += movement.z();
+        }
+        if (entity == lastVehicle) {
+            vehicleFirstGoodX += movement.x();
+            vehicleFirstGoodY += movement.y();
+            vehicleFirstGoodZ += movement.z();
+            vehicleLastGoodX += movement.x();
+            vehicleLastGoodY += movement.y();
+            vehicleLastGoodZ += movement.z();
+        }
+    }
 
     @Shadow
     public ServerPlayer player;
@@ -222,17 +259,22 @@ public abstract class MixinServerGamePacketListenerImpl {
         };
     }
 
-    @Inject(
-        method = "handleMovePlayer",
-        at = @At("TAIL")
-    )
-    void afterHandleMovePlayer(ServerboundMovePlayerPacket serverboundMovePlayerPacket, CallbackInfo ci) {
-        if (this.player instanceof PlayerDuck duck) {
-            duck.vs_setHandledMovePacket(true);
-            if (duck.vs_getQueuedPositionUpdate() != null) {
-                this.player.setPos(duck.vs_getQueuedPositionUpdate());
-                duck.vs_setQueuedPositionUpdate(null);
-            }
+    @Inject(method = "handleMovePlayer", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/network/protocol/PacketUtils;ensureRunningOnSameThread(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketListener;Lnet/minecraft/server/level/ServerLevel;)V",
+        shift = At.Shift.AFTER))
+    private void vs$receiveWorldMovement(ServerboundMovePlayerPacket packet, CallbackInfo ci) {
+        final EntityDraggingInformation info = ((IEntityDraggingInformationProvider) player).getDraggingInformation();
+        if (!info.getHandlingClientMovement()) info.setLastShipStoodOn(null);
+    }
+
+    @Inject(method = "handleMoveVehicle", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/network/protocol/PacketUtils;ensureRunningOnSameThread(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketListener;Lnet/minecraft/server/level/ServerLevel;)V",
+        shift = At.Shift.AFTER))
+    private void vs$receiveWorldVehicleMovement(ServerboundMoveVehiclePacket packet, CallbackInfo ci) {
+        final Entity vehicle = player.getRootVehicle();
+        if (vehicle != player && vehicle.getControllingPassenger() == player) {
+            final EntityDraggingInformation info = ((IEntityDraggingInformationProvider) vehicle).getDraggingInformation();
+            if (!info.getHandlingClientMovement()) info.setLastShipStoodOn(null);
         }
     }
 

@@ -32,6 +32,7 @@ object SodiumOptionsMenu {
 
     fun buildSodiumConfigSpec(configCategory: VsiConfigModelCategory, groups: MutableList<OptionGroup>) {
         val currentBuilder = OptionGroup.createBuilder()
+        var hasOptions = false
 
         for (node in configCategory.children) {
             val entry = node.value
@@ -41,10 +42,13 @@ object SodiumOptionsMenu {
                 val definedNode = defineNode(entry)
                 definedNode?.let {
                     currentBuilder.add(it.build())
+                    hasOptions = true
                 }
             }
         }
-        groups.add(currentBuilder.build())
+        if (hasOptions) {
+            groups.add(currentBuilder.build())
+        }
     }
 
     private fun defineNode(

@@ -12,6 +12,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.EntityModelLayerRegistry
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents
 import net.fabricmc.fabric.api.`object`.builder.v1.block.entity.FabricBlockEntityTypeBuilder
@@ -35,7 +36,9 @@ import net.minecraft.world.entity.MobCategory
 import net.minecraft.world.item.CreativeModeTabs
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.Item.Properties
+import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.LevelEvent
 import net.minecraftforge.fml.config.ModConfig
 import org.valkyrienskies.mod.client.EmptyRenderer
 import org.valkyrienskies.mod.client.VSPhysicsEntityModel
@@ -83,6 +86,7 @@ import org.valkyrienskies.mod.common.item.ConnectionCheckerItem
 import org.valkyrienskies.mod.common.item.PhysicsEntityCreatorItem
 import org.valkyrienskies.mod.common.item.ShipAssemblerItem
 import org.valkyrienskies.mod.common.item.ShipWelderItem
+import org.valkyrienskies.mod.common.item.DebugGravitronItem
 import org.valkyrienskies.mod.common.item.ShipCreatorItem
 import org.valkyrienskies.mod.common.item.ShipRemoverItem
 import org.valkyrienskies.mod.common.item.VSBlockItem
@@ -139,6 +143,7 @@ class ValkyrienSkiesModFabric : ModInitializer {
         )
         ValkyrienSkiesMod.SHIP_ASSEMBLER_ITEM = ShipAssemblerItem(Properties())
         ValkyrienSkiesMod.SHIP_WELDER_ITEM = ShipWelderItem(Properties())
+        ValkyrienSkiesMod.DEBUG_GRAVITRON_ITEM = DebugGravitronItem(Properties())
         ValkyrienSkiesMod.AREA_ASSEMBLER_ITEM = AreaAssemblerItem(
             Properties(),
             { 1.0 },
@@ -215,6 +220,10 @@ class ValkyrienSkiesModFabric : ModInitializer {
             ValkyrienSkiesMod.SHIP_WELDER_ITEM
         )
         Registry.register(
+            BuiltInRegistries.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "debug_gravitron"),
+            ValkyrienSkiesMod.DEBUG_GRAVITRON_ITEM
+        )
+        Registry.register(
             BuiltInRegistries.ITEM, ResourceLocation(ValkyrienSkiesMod.MOD_ID, "ship_creator"),
             ValkyrienSkiesMod.SHIP_CREATOR_ITEM
         )
@@ -273,6 +282,7 @@ class ValkyrienSkiesModFabric : ModInitializer {
             event.accept(SHIP_REMOVER_ITEM)
             event.accept(SHIP_ASSEMBLER_ITEM)
             event.accept(SHIP_WELDER_ITEM)
+            event.accept(ValkyrienSkiesMod.DEBUG_GRAVITRON_ITEM)
             event.accept(SHIP_CREATOR_ITEM_SMALLER)
             event.accept(AREA_ASSEMBLER_ITEM)
             event.accept(CLASSIC_AREA_ASSEMBLER_ITEM)
@@ -292,6 +302,10 @@ class ValkyrienSkiesModFabric : ModInitializer {
 
         CommandRegistrationCallback.EVENT.register { dispatcher ,d, _ ->
             VSCommands.registerServerCommands(dispatcher)
+        }
+
+        ServerWorldEvents.LOAD.register { _, serverLevel ->
+            ValkyrienSkiesMod.onLevelLoaded(serverLevel)
         }
 
         // registering data loaders
@@ -410,6 +424,12 @@ class ValkyrienSkiesModFabric : ModInitializer {
             }
             context.register(ResourceLocation("rendertype_ship_cutout"), DefaultVertexFormat.BLOCK) { shaderInstance: ShaderInstance? ->
                 VSRenderTypes.shipCutoutShader = shaderInstance
+            }
+            context.register(ResourceLocation("vs_exterior_fluid_fog"), DefaultVertexFormat.POSITION) { shader ->
+                org.valkyrienskies.mod.common.fluid.ExteriorFluidFog.setShader(shader)
+            }
+            context.register(ResourceLocation("vs_retained_fluid"), DefaultVertexFormat.NEW_ENTITY) { shader ->
+                org.valkyrienskies.mod.common.fluid.RetainedFluidRenderer.setShader(shader)
             }
             context.register(ResourceLocation("rendertype_ship_translucent"), DefaultVertexFormat.BLOCK) { shaderInstance: ShaderInstance? ->
                 VSRenderTypes.shipTranslucentShader = shaderInstance

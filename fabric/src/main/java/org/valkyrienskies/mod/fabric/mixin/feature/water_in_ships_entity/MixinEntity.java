@@ -48,6 +48,9 @@ public abstract class MixinEntity {
     protected Object2DoubleMap<TagKey<Fluid>> fluidHeight;
     @Shadow
     public abstract boolean touchingUnloadedChunk();
+    @Shadow public abstract Vec3 getDeltaMovement();
+    @Shadow public abstract void setDeltaMovement(Vec3 movement);
+    @Shadow public abstract boolean isPushedByFluid();
     @Unique
     private ShipFluidInteraction.VolumeQuery vs$fluidQuery;
     @Unique
@@ -62,7 +65,9 @@ public abstract class MixinEntity {
         final ShipFluidInteraction.VolumeQuery previous = vs$fluidQuery;
         vs$fluidQuery = ShipFluidInteraction.prepareVolume(level, bb.deflate(0.001));
         try {
+            final Vec3 before = getDeltaMovement();
             final boolean worldFluid = original.call(tag, motionScale);
+            if (isPushedByFluid()) setDeltaMovement(vs$fluidQuery.currentMovement(before, getDeltaMovement(), fluid -> fluid.is(tag), fluid -> motionScale));
             final double retainedDepth = vs$fluidQuery.retainedDepth(tag);
             if (retainedDepth > 0) fluidHeight.put(tag, Math.max(fluidHeight.getDouble(tag), retainedDepth));
             return worldFluid || retainedDepth > 0;

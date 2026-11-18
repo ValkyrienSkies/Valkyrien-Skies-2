@@ -3,6 +3,7 @@ package org.valkyrienskies.mod.compat.flywheel
 import dev.engine_room.flywheel.api.visual.Effect
 import dev.engine_room.flywheel.api.visual.EffectVisual
 import dev.engine_room.flywheel.api.visualization.VisualManager
+import dev.engine_room.flywheel.api.visualization.VisualizationManager
 import dev.engine_room.flywheel.api.visualization.VisualizationContext
 import dev.engine_room.flywheel.lib.visualization.VisualizationHelper
 import it.unimi.dsi.fastutil.longs.LongArraySet
@@ -15,7 +16,9 @@ import net.minecraft.core.SectionPos
 import net.minecraft.world.level.LevelAccessor
 import net.minecraft.world.level.block.entity.BlockEntity
 import org.valkyrienskies.core.api.ships.ClientShip
-import org.valkyrienskies.mod.util.logger
+import org.valkyrienskies.mod.common.config.ShipRenderer
+import org.valkyrienskies.mod.common.config.shipRenderer
+import org.valkyrienskies.mod.common.shipObjectWorld
 import java.util.WeakHashMap
 
 class ShipEffect(val ship: ClientShip, val level: ClientLevel) : Effect {
@@ -62,11 +65,43 @@ class ShipEffect(val ship: ClientShip, val level: ClientLevel) : Effect {
 
     companion object {
         private val map = WeakHashMap<ClientShip, ShipEffect>()
-        private val logger by logger("(Valkyrien Skies) ShipEffect-Flywheel")
+        private var visualManager: VisualManager<Effect>? = null
+
+        fun clear() {
+            map.values.forEach { visualManager?.queueRemove(it) }
+            map.clear()
+            visualManager = null
+        }
+
+        fun refresh(level: ClientLevel?) {
+            val nextManager = level?.let { VisualizationManager.get(it)?.effects() }
+            if (nextManager !== visualManager) {
+                clear()
+                visualManager = nextManager
+            }
+            val selected = if (level == null || nextManager == null) emptySet() else level.shipObjectWorld.loadedShips
+                .filter { it.shipRenderer == ShipRenderer.FLYWHEEL }.toSet()
+            val iterator = map.entries.iterator()
+            while (iterator.hasNext()) {
+                val (ship, effect) = iterator.next()
+                if (effect.level !== level || ship !in selected) {
+                    VisualizationHelper.queueRemove(effect)
+                    iterator.remove()
+                }
+            }
+            for (ship in selected) {
+                if (!map.containsKey(ship)) getShipEffect(ship)
+            }
+        }
 
         fun getShipEffect(ship: ClientShip): ShipEffect = map.getOrPut(ship) {
             ShipEffect(ship, Minecraft.getInstance().level!!).apply {
-                logger.warn("Added dynamically a ship effect, shouldn't happen.")
+                ship.activeChunksSet.forEach { x, z ->
+                    val chunk = level.getChunk(x, z)
+                    for (y in level.minSection until level.maxSection) {
+                        if (!chunk.getSection(level.getSectionIndexFromSectionY(y)).hasOnlyAir()) setDirty(x, y, z)
+                    }
+                }
                 VisualizationHelper.queueAdd(this)
             }
         }

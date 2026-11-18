@@ -33,6 +33,50 @@ public final class ShipCollisionQuery {
         return !Double.isNaN(supportHeight(minX, minY, minZ, maxX, maxY, maxZ, false));
     }
 
+    public Vector3d penetrationResponse(final double minX, final double minY, final double minZ,
+        final double maxX, final double maxY, final double maxZ) {
+        final double halfX = (maxX - minX) * 0.5;
+        final double halfY = (maxY - minY) * 0.5;
+        final double halfZ = (maxZ - minZ) * 0.5;
+        final Vector3d result = new Vector3d();
+        final Vector3d response = new Vector3d();
+        final Vector3d candidate = new Vector3d();
+        for (final ShipShapes ship : ships) {
+            for (final Box box : ship.boxes) {
+                final double dx = (minX + maxX) * 0.5 - box.center.x;
+                final double dy = (minY + maxY) * 0.5 - box.center.y;
+                final double dz = (minZ + maxZ) * 0.5 - box.center.z;
+                double shortestResponse = Double.POSITIVE_INFINITY;
+                for (int i = 0; i < ship.separatingAxes.size(); i++) {
+                    final Vector3d normal = ship.separatingAxes.get(i);
+                    final double radius = box.radii[i] + Math.abs(normal.x) * halfX
+                        + Math.abs(normal.y) * halfY + Math.abs(normal.z) * halfZ;
+                    final double offset = normal.x * dx + normal.y * dy + normal.z * dz;
+                    final double overlap = radius - Math.abs(offset);
+                    if (overlap <= EPSILON) {
+                        shortestResponse = 0.0;
+                        break;
+                    }
+                    final double distance = Math.copySign(overlap + EPSILON, offset);
+                    if (Math.abs(normal.y) >= MIN_WALKABLE_NORMAL_Y) {
+                        candidate.set(0.0, distance / normal.y, 0.0);
+                    } else {
+                        final double horizontalScale = distance / (normal.x * normal.x + normal.z * normal.z);
+                        candidate.set(normal.x * horizontalScale, 0.0, normal.z * horizontalScale);
+                    }
+                    if (candidate.lengthSquared() < shortestResponse) {
+                        shortestResponse = candidate.lengthSquared();
+                        response.set(candidate);
+                    }
+                }
+                if (shortestResponse > result.lengthSquared() && Double.isFinite(shortestResponse)) {
+                    result.set(response);
+                }
+            }
+        }
+        return result;
+    }
+
     /** Highest walkable contact under the full footprint, or NaN when none exists in the probe. */
     public double supportHeight(final double minX, final double minY, final double minZ,
         final double maxX, final double maxY, final double maxZ) {

@@ -22,6 +22,7 @@ public abstract class MixinClientLevelChunk {
         final boolean moved, final CallbackInfoReturnable<BlockState> cir) {
         // Also handle block changes that do not send a render update.
         if (!level.isClientSide || cir.getReturnValue() == null || cir.getReturnValue() == state) return;
+        VsDynamicLight.invalidateLightingRevision();
         final var ship = VSGameUtilsKt.getShipManagingPos(level, pos);
         if (ship != null) VsDynamicLight.invalidateShipEmitters(ship.getId());
     }

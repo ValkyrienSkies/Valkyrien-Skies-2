@@ -104,7 +104,18 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
      */
     @Inject(method = "onLightUpdate", at = @At("HEAD"))
     private void vs_sodium$onLightUpdate(LightLayer layer, SectionPos pos, CallbackInfo ci) {
-        VsDynamicLight.getLightStorage().invalidateSection(pos.asLong());
+        VsDynamicLight.invalidateLightSection(pos.asLong());
+        if (VSGameUtilsKt.getShipManagingPos(this.level, pos.getX(), pos.getZ()) instanceof final ClientShip ship
+            && org.valkyrienskies.mod.common.config.ShipRendererKt.getUsesBatchedRenderer(ship)) {
+            for (int x = pos.getX() - 1; x <= pos.getX() + 1; x++) {
+                for (int y = pos.getY() - 1; y <= pos.getY() + 1; y++) {
+                    for (int z = pos.getZ() - 1; z <= pos.getZ() + 1; z++) {
+                        org.valkyrienskies.mod.common.render.batched.ShipBatchRenderer.INSTANCE
+                            .markSectionLightDirty(ship.getId(), x, y, z);
+                    }
+                }
+            }
+        }
     }
 
     @Inject(method = "replaceWithPacketData", at = @At("HEAD"), cancellable = true)
@@ -116,6 +127,7 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
         final Consumer<BlockEntityTagOutput> consumer,
         final CallbackInfoReturnable<LevelChunk> cir
     ) {
+        VsDynamicLight.invalidateLightingRevision();
         if (!VS2ChunkAllocator.INSTANCE.isChunkInShipyardCompanion(x, z)) {
             return;
         }
@@ -224,6 +236,21 @@ public abstract class MixinClientChunkCache implements ClientChunkCacheDuck {
             SodiumCompat.onChunkAdded(this.level, x, z);
         }
         cir.setReturnValue(worldChunk);
+    }
+
+    @Inject(method = "drop", at = @At("HEAD"))
+    private void vs$invalidateWorldLightOnChunkDrop(final int x, final int z, final CallbackInfo ci) {
+        VsDynamicLight.invalidateLightingRevision();
+    }
+
+    @Inject(method = "updateViewCenter", at = @At("HEAD"))
+    private void vs$invalidateWorldLightOnViewCenter(final int x, final int z, final CallbackInfo ci) {
+        VsDynamicLight.invalidateLightingRevision();
+    }
+
+    @Inject(method = "updateViewRadius", at = @At("HEAD"))
+    private void vs$invalidateWorldLightOnViewRadius(final int radius, final CallbackInfo ci) {
+        VsDynamicLight.invalidateLightingRevision();
     }
 
     @Override

@@ -58,11 +58,8 @@ public abstract class MixinServerPlayer extends Player {
         if (ship != null) {
             ci.cancel();
 
-            //Predict the position 2 ticks ahead for dismount
             final Vector3d inWorld = ship.getTransform().getShipToWorld().transformPosition(x, y, z, new Vector3d());
-            final Vector3d inWorldPrev = ship.getPrevTickTransform().getShipToWorld().transformPosition(x, y, z, new Vector3d());
-            final Vector3d inWorldNext = inWorld.mul(3, new Vector3d()).sub(inWorldPrev.mul(2, new Vector3d()));
-            this.teleportTo(level, inWorldNext.x, inWorldNext.y, inWorldNext.z, Set.of(), this.getYRot(), this.getXRot());
+            this.teleportTo(level, inWorld.x, inWorld.y, inWorld.z, Set.of(), this.getYRot(), this.getXRot());
             ((IEntityDraggingInformationProvider)this).vs$dragImmediately(ship);
         }
     }

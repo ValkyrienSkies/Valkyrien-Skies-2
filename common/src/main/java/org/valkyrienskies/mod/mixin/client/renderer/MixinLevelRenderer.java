@@ -33,7 +33,9 @@ import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.api.render.ShipRenderView;
 import org.valkyrienskies.mod.client.render.ShipRenderViews;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.render.ShipRenderConfig;
 import org.valkyrienskies.mod.common.render.batched.ShipBatchRenderer;
+import org.valkyrienskies.mod.common.render.batched.ShipRenderFrustum;
 import org.valkyrienskies.mod.common.render.light.VsDynamicLight;
 import org.valkyrienskies.mod.mixinducks.client.render.NestedShipView;
 
@@ -53,10 +55,9 @@ public abstract class MixinLevelRenderer {
         final Matrix4f projection, final Operation<Void> original) {
         final var outer = ShipRenderViews.getCurrent();
         Frustum frustum = capturedFrustum != null ? capturedFrustum : cullingFrustum;
-        if (frustum == null) {
-            frustum = new Frustum(poses.last().pose(), projection);
+        if (outer != null || frustum == null) {
             final Vec3 pos = camera.getPosition();
-            frustum.prepare(pos.x, pos.y, pos.z);
+            frustum = ShipRenderFrustum.create(poses.last().pose(), projection, pos.x, pos.y, pos.z);
         }
         final ShipRenderView view = new ShipRenderView(level, camera, new Matrix4f(poses.last().pose()),
             new Matrix4f(projection), frustum, partialTick);
@@ -77,6 +78,11 @@ public abstract class MixinLevelRenderer {
         final boolean blockOutline, final Camera camera, final GameRenderer renderer, final LightTexture light,
         final Matrix4f projection, final CallbackInfo ci) {
         ShipRenderViews.renderOverlays(poses);
+    }
+
+    @Inject(method = "allChanged", at = @At("HEAD"))
+    private void vs$resetShipBackend(final CallbackInfo ci) {
+        ShipRenderConfig.onRendererReload();
     }
 
     @Inject(method = "renderLevel", at = @At("HEAD"))

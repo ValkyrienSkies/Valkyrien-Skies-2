@@ -33,6 +33,8 @@ public final class FluidOcclusionShader {
             + MARKER + "();\n}\n";
     }
 
+    public static String atlasDecoder() { return Decoder.ATLAS_SOURCE; }
+
     private static String wrap(final String source) {
         final String withoutComments = COMMENTS.matcher(source).replaceAll(" ");
         final var main = MAIN.matcher(withoutComments);
@@ -42,6 +44,7 @@ public final class FluidOcclusionShader {
 
     private static final class Decoder {
         private static final String SOURCE = load();
+        private static final String ATLAS_SOURCE = SOURCE.replaceAll("(?s)#ifndef VS_FLUID_ATLAS_ONLY.*?#endif", "");
 
         private static String load() {
             try (var stream = FluidOcclusionShader.class.getResourceAsStream(

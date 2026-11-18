@@ -4,6 +4,7 @@ import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -34,6 +35,7 @@ import org.valkyrienskies.mod.common.entity.ShipMountedToData;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.util.EntityDragger;
 import org.valkyrienskies.mod.common.util.EntityDraggingInformation;
+import org.valkyrienskies.mod.common.util.ShipDraggingMath;
 import org.valkyrienskies.mod.common.util.EntityRenderPosition;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
@@ -165,27 +167,12 @@ public abstract class MixinGameRenderer {
                     final ClientShip shipObject =
                         VSGameUtilsKt.getShipObjectWorld(clientWorld).getLoadedShips().getById(lastShipStoodOn);
                     if (shipObject != null) {
-                        // The velocity added to the entity by ship dragging
-                        final Vector3dc entityAddedVelocity = entityDraggingInformation.getAddedMovementLastTick();
-
-                        // The velocity of the entity before we added ship dragging
-                        final double entityMovementX = entity.getX() - entityAddedVelocity.x() - entity.xo;
-                        final double entityMovementY = entity.getY() - entityAddedVelocity.y() - entity.yo;
-                        final double entityMovementZ = entity.getZ() - entityAddedVelocity.z() - entity.zo;
-
-                        // Without ship dragging, the entity would've been here
-                        final Vector3dc entityShouldBeHerePreTransform = new Vector3d(
-                            entity.xo + entityMovementX * tickDelta,
-                            entity.yo + entityMovementY * tickDelta,
-                            entity.zo + entityMovementZ * tickDelta
-                        );
-
-                        // Move [entityShouldBeHerePreTransform] with the ship, using the prev transform and the
-                        // current render transform
-                        entityShouldBeHere = shipObject.getRenderTransform().getShipToWorldMatrix()
-                            .transformPosition(
-                                shipObject.getPrevTickShipTransform().getWorldToShipMatrix()
-                                    .transformPosition(entityShouldBeHerePreTransform, new Vector3d()));
+                        entityShouldBeHere = ShipDraggingMath.renderPosition(
+                            new Vector3d(entity.xo, entity.yo, entity.zo),
+                            new Vector3d(entity.getX(), entity.getY(), entity.getZ()),
+                            shipObject.getPrevTickTransform().getWorldToShip(),
+                            shipObject.getTransform().getWorldToShip(),
+                            shipObject.getRenderTransform().getShipToWorld(), tickDelta);
                     }
                 }
 
@@ -237,6 +224,19 @@ public abstract class MixinGameRenderer {
                 }
             }
         }
+    }
+
+    @Inject(
+        method = "renderLevel",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/client/Camera;setup(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/world/entity/Entity;ZZF)V",
+            shift = At.Shift.AFTER
+        )
+    )
+    private void vs$applyMountedCameraRoll(final float partialTicks, final long finishTimeNano,
+        final PoseStack matrixStack, final CallbackInfo ci) {
+        matrixStack.mulPose(Axis.ZP.rotationDegrees(((IVSCamera) this.mainCamera).getZrot()));
     }
 
     /**

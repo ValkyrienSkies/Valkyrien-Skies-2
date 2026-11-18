@@ -45,9 +45,5 @@ final class ShipMesh implements AutoCloseable {
                 opaque[i] = null;
             }
         }
-        for (final ShipSectionMesh mesh : translucentSections.values()) {
-            mesh.close();
-        }
-        translucentSections.clear();
     }
 }

@@ -59,7 +59,7 @@ class WorldFluidOutflowManagerTest {
     }
 
     @Test
-    fun `airborne visuals remain visible for sub-layer droplets`() {
+    fun `legacy deposit levels retain their historical quantization`() {
         assertEquals(1, worldVolumeToVisualLevel(1 / 255.0))
         assertEquals(4, worldVolumeToVisualLevel(127 / 255.0))
         assertEquals(8, worldVolumeToVisualLevel(1.0))

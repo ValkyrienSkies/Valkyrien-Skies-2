@@ -15,6 +15,7 @@ import org.lwjgl.opengl.GL33C.*
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.mod.api.render.*
 import org.valkyrienskies.mod.client.render.ShipMaskTerrain
+import org.valkyrienskies.mod.common.render.light.ShipShadowMap
 import org.valkyrienskies.mod.common.render.light.VsDynamicLight
 
 internal object ShipGeometryMaskGpu {
@@ -26,6 +27,9 @@ internal object ShipGeometryMaskGpu {
         val color = glGenRenderbuffers()
         val atlas = glGenTextures()
         val depthTexture = glGenTextures()
+        val shadowTexture = glGenTextures()
+        val comparisonTexture = glGenTextures()
+        val comparisonSampler = glGenSamplers()
         val outer = ShipMaskTarget.acquire()
         val inner = ShipMaskTarget.acquire()
         val opaque = arrayOfNulls<VertexBuffer>(ShipSectionMesh.CHUNK_LAYERS.size)
@@ -86,7 +90,19 @@ internal object ShipGeometryMaskGpu {
                 val bounds = ShipMaskTarget.bounds(terrain, AABBd(0.0, 0.0, 0.0, 8.0, 4.0, 0.0), viewport)
                 return requireNotNull(target.render(viewport, bounds) { ShipMaskDraw.draw(shader, terrain, ship, mesh, selection) })
             }
+            glActiveTexture(GL_TEXTURE0 + ShipShadowMap.TEXTURE_UNIT)
+            glBindTexture(GL_TEXTURE_2D_ARRAY, shadowTexture)
+            glActiveTexture(GL_TEXTURE0 + ShipShadowMap.COMPARISON_TEXTURE_UNIT)
+            glBindTexture(GL_TEXTURE_2D_ARRAY, comparisonTexture)
+            glBindSampler(ShipShadowMap.COMPARISON_TEXTURE_UNIT, comparisonSampler)
+            glActiveTexture(GL_TEXTURE0)
             val first = mask(outer, null)
+            glActiveTexture(GL_TEXTURE0 + ShipShadowMap.TEXTURE_UNIT)
+            assertEquals(shadowTexture, glGetInteger(GL_TEXTURE_BINDING_2D_ARRAY))
+            glActiveTexture(GL_TEXTURE0 + ShipShadowMap.COMPARISON_TEXTURE_UNIT)
+            assertEquals(comparisonTexture, glGetInteger(GL_TEXTURE_BINDING_2D_ARRAY))
+            assertEquals(comparisonSampler, glGetInteger(GL_SAMPLER_BINDING))
+            glActiveTexture(GL_TEXTURE0)
             val original = pixels(first)
             assertEquals(listOf(0, 255, 255, 255, 255, 255, 255, 255), original.take(8))
             assertEquals(listOf(0, 0, 0, 0, 255, 255, 255, 255), original.subList(8, 16))
@@ -141,6 +157,9 @@ internal object ShipGeometryMaskGpu {
             glDeleteRenderbuffers(color)
             glDeleteTextures(atlas)
             glDeleteTextures(depthTexture)
+            glDeleteTextures(shadowTexture)
+            glDeleteTextures(comparisonTexture)
+            glDeleteSamplers(comparisonSampler)
         }
     }
 

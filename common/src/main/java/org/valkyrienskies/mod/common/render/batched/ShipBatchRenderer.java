@@ -41,6 +41,7 @@ import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.VSRenderTypes;
 import org.valkyrienskies.mod.common.config.ShipRendererKt;
 import org.valkyrienskies.mod.common.render.light.ShipShadowRenderer;
+import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.render.light.VsDynamicLight;
 import org.valkyrienskies.mod.common.util.VectorConversionsMCKt;
 
@@ -89,20 +90,31 @@ public final class ShipBatchRenderer {
         float opaqueOffsetX, opaqueOffsetY, opaqueOffsetZ;
         // Translucent sections sorted back-to-front, computed once here and used by the translucent
         // layer's drawLayer (translucent stays per-section so its ordering is preserved).
-        final ArrayList<ShipSectionMesh> translucentOrder = new ArrayList<>();
+        final ShipTranslucentOrder<ShipSectionMesh> translucentOrder =
+            new ShipTranslucentOrder<>(ShipBatchRenderer::sortTranslucentSections);
     }
 
     private ShipBatchRenderer() {
     }
 
     public void markSectionDirty(final long shipId, final int sx, final int sy, final int sz) {
-        VsDynamicLight.invalidateShipEmitters(shipId);
         synchronized (inactiveLevels) {
             final ShipRenderObject renderObject = ships.get(shipId);
             if (renderObject != null) renderObject.markSectionDirty(sx, sy, sz);
             for (final var meshes : inactiveLevels.values()) {
                 final ShipRenderObject inactive = meshes.get(shipId);
                 if (inactive != null) inactive.markSectionDirty(sx, sy, sz);
+            }
+        }
+    }
+
+    public void markSectionLightDirty(final long shipId, final int sx, final int sy, final int sz) {
+        synchronized (inactiveLevels) {
+            final ShipRenderObject renderObject = ships.get(shipId);
+            if (renderObject != null) renderObject.markSectionLightDirty(sx, sy, sz);
+            for (final var meshes : inactiveLevels.values()) {
+                final ShipRenderObject inactive = meshes.get(shipId);
+                if (inactive != null) inactive.markSectionLightDirty(sx, sy, sz);
             }
         }
     }
@@ -278,7 +290,7 @@ public final class ShipBatchRenderer {
             }
             if (materialUniforms != null) materialUniforms.select(data.material);
             if (translucent) {
-                if (!data.blended && data.translucentOrder.isEmpty()) continue;
+                if (!data.blended && data.translucentOrder.sections().isEmpty()) continue;
                 setShipTransform(data, usingBatchedShader, shipIndexLoc, modelViewUniform);
                 if (data.blended) {
                     RenderSystem.depthMask(false);
@@ -314,7 +326,7 @@ public final class ShipBatchRenderer {
 
     private static void drawSections(final ShipFrameData data, final int layer, final Uniform chunkOffset,
         final ShipMaterialUniforms uniforms) {
-        for (final ShipSectionMesh section : data.translucentOrder) {
+        for (final ShipSectionMesh section : data.translucentOrder.sections()) {
             final VertexBuffer buffer = section.getBuffer(layer);
             if (buffer == null) continue;
             if (uniforms != null && data.material != null) {
@@ -381,16 +393,23 @@ public final class ShipBatchRenderer {
 
     static void bindLighting(final int programId, final double camX, final double camY, final double camZ) {
         ShipShadowRenderer.bind(programId);
-        VsDynamicLight.getLightStorage().bind(
-            VsDynamicLight.LIGHT_SECTIONS_TEXTURE_UNIT, VsDynamicLight.LIGHT_LUT_TEXTURE_UNIT);
+        final boolean dynamicLight = VSGameConfig.CLIENT.getDynamicShipLighting();
+        final boolean shipLight = VSGameConfig.CLIENT.isShipToWorldLightingEnabled();
+        setFeatureUniform(programId, "u_VsDynamicShipLighting", dynamicLight);
+        setFeatureUniform(programId, "u_VsShipToWorldLighting", shipLight);
+        setFeatureUniform(programId, "u_VsBetterShipShading", VSGameConfig.CLIENT.getBetterVanillaShipShading());
+        if (dynamicLight) {
+            VsDynamicLight.getLightStorage().bind(
+                VsDynamicLight.LIGHT_SECTIONS_TEXTURE_UNIT, VsDynamicLight.LIGHT_LUT_TEXTURE_UNIT);
+        }
 
         bindSamplerUniform(programId, "u_VsLightSections", VsDynamicLight.LIGHT_SECTIONS_TEXTURE_UNIT);
         bindSamplerUniform(programId, "u_VsLightLut", VsDynamicLight.LIGHT_LUT_TEXTURE_UNIT);
-        VsDynamicLight.getShipEmitterList().bind(VsDynamicLight.SHIP_EMITTER_LIST_TEXTURE_UNIT);
+        if (shipLight) VsDynamicLight.getShipEmitterList().bind(VsDynamicLight.SHIP_EMITTER_LIST_TEXTURE_UNIT);
         bindSamplerUniform(programId, "u_VsShipEmitters", VsDynamicLight.SHIP_EMITTER_LIST_TEXTURE_UNIT);
         final int emitterCountLoc = GL20.glGetUniformLocation(programId, "u_VsShipEmitterCount");
         if (emitterCountLoc >= 0) {
-            GL20.glUniform1i(emitterCountLoc, VsDynamicLight.getShipEmitterList().size());
+            GL20.glUniform1i(emitterCountLoc, shipLight ? VsDynamicLight.getShipEmitterList().size() : 0);
         }
 
         final int originX = (int) Math.floor(camX);
@@ -430,6 +449,11 @@ public final class ShipBatchRenderer {
         }
     }
 
+    private static void setFeatureUniform(final int programId, final String name, final boolean enabled) {
+        final int location = GL20.glGetUniformLocation(programId, name);
+        if (location >= 0) GL20.glUniform1i(location, enabled ? 1 : 0);
+    }
+
     private void prepareFrameData(final PoseStack levelPoseStack, final double camX, final double camY,
         final double camZ, final Frustum frustum) {
         final ShipRenderView view = ShipRenderViews.getCurrent();
@@ -454,7 +478,6 @@ public final class ShipBatchRenderer {
         for (int i = 0; i < drawOrder.size(); i++) {
             final ShipRenderObject renderObject = drawOrder.get(i);
             final ShipFrameData data = frameData.get(i);
-            data.translucentOrder.clear();
             data.mesh = renderObject.getMesh();
             data.blended = false;
 
@@ -464,6 +487,7 @@ public final class ShipBatchRenderer {
                 continue;
             }
             if (renderObject.isEmpty()) {
+                data.translucentOrder.clear();
                 data.visible = true;
                 continue;
             }
@@ -501,12 +525,10 @@ public final class ShipBatchRenderer {
             data.opaqueOffsetZ = (float) (mesh.refZ - data.camShipZ);
 
             if (!mesh.translucentSections.isEmpty()) {
-                data.translucentOrder.addAll(mesh.translucentSections.values());
-                final double cx = data.camShipX;
-                final double cy = data.camShipY;
-                final double cz = data.camShipZ;
-                data.translucentOrder.sort((a, b) ->
-                    Double.compare(sectionCenterDistSq(b, cx, cy, cz), sectionCenterDistSq(a, cx, cy, cz)));
+                data.translucentOrder.update(mesh, mesh.translucentSections.values(),
+                    data.camShipX, data.camShipY, data.camShipZ);
+            } else {
+                data.translucentOrder.clear();
             }
         }
         if (hasBlended) {
@@ -520,6 +542,12 @@ public final class ShipBatchRenderer {
             translucentShips.sort((a, b) -> Double.compare(b.distanceSquared, a.distanceSquared));
         }
         transformStorage.upload();
+    }
+
+    private static void sortTranslucentSections(final ArrayList<ShipSectionMesh> sections,
+        final double cx, final double cy, final double cz) {
+        sections.sort((a, b) ->
+            Double.compare(sectionCenterDistSq(b, cx, cy, cz), sectionCenterDistSq(a, cx, cy, cz)));
     }
 
     private static double sectionCenterDistSq(final ShipSectionMesh mesh,

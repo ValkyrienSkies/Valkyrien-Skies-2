@@ -125,37 +125,38 @@ object VSGameConfig {
         }
 
         @ConfigEntry(
-            description = "The way ships are rendered by default. BATCHED is the built-in default and powers advanced features; VANILLA uses MC's terrain chunk renderer; FLYWHEEL requires the Flywheel mod."
+            description = "The default ship renderer. Changes rebuild client render state. FLYWHEEL requires an active Flywheel 1.x backend; otherwise ships use VANILLA."
         )
         var defaultRenderer = ShipRenderer.BATCHED
 
-        @ConfigEntry(description = "Use a custom vanilla shader for rendering ship chunks, improving lighting on tilted and upside down ships. Also enables the directional-shade fix for the sodium/embeddium ship renderer. Only affects the VANILLA ship renderer, the BATCHED renderer has its own shading built in and ignores this.")
+        @ConfigEntry(description = "Apply face shading in world coordinates to tilted ships. Applies to vanilla, Sodium/Embeddium, and batched ship rendering.")
         var betterVanillaShipShading = false
 
-        @ConfigEntry(description = "Sample the world biome at the ship's actual rendered position so grass/leaves/water on ships show the correct biome color (sodium/embeddium only). Only affects the VANILLA ship renderer, the BATCHED renderer bakes biome color into its mesh and ignores this. Disable for a small perf gain — ship blocks fall back to whatever the chunk mesher baked.")
+        @ConfigEntry(description = "Use biome colors at the ship's world position. Applies to Sodium/Embeddium and batched ships. Disable to use baked shipyard colors and stop biome updates.")
         var dynamicShipBiomeTinting = false
 
-        @ConfigEntry(description = "Sample world block/sky light at the ship's rendered position so torches and sunlight in the world correctly light the ship (sodium/embeddium only). Only affects the VANILLA and FLYWHEEL ship renderers, the BATCHED renderer has this built into its own shaders and ignores this. Disable for a moderate perf gain — ship blocks fall back to the shipyard's baked lightmap.")
+        @ConfigEntry(description = "Sample world block and sky light at the ship's world position. Applies to Sodium/Embeddium, Flywheel, and batched ships. Disable to use baked shipyard light and stop world-light updates.")
         var dynamicShipLighting = false
 
-        @ConfigEntry(description = "Enable light from ships for VANILLA and FLYWHEEL. BATCHED always enables this lighting. Use shipShadows to control visual shadows.")
+        @ConfigEntry(description = "Enable light from ships for all renderers. Disable to stop emitter collection, light propagation, and light uploads. Use shipShadows to control visual shadows separately.")
         var dynamicShipToWorldLighting = true
 
         fun isShipToWorldLightingEnabled(): Boolean =
-            defaultRenderer == ShipRenderer.BATCHED || dynamicShipToWorldLighting
+            dynamicShipToWorldLighting
 
-        @ConfigEntry(description = "Draw ship shadows on terrain and other ships. Disable this to skip the visual shadow scan.")
+        @ConfigEntry(description = "Draw ship shadows on terrain and other ships. Disable this to skip the shadow map pass.")
         var shipShadows = false
 
-        fun isShipToWorldShaderEnabled(): Boolean = isShipToWorldLightingEnabled() || shipShadows
+        fun isShipToWorldShaderEnabled(): Boolean =
+            isShipToWorldLightingEnabled() || (shipShadows && shipShadowStrength > 0.0)
 
         @ConfigEntry(description = "Visual ship shadow strength. 0 keeps full ambient sky light. 1 removes all sky light below a ship. This does not change mob spawn light checks.", min = 0.0, max = 1.0)
         var shipShadowStrength = 0.4
 
-        @ConfigEntry(description = "Minimum width of the visual ship shadow edge fade, in blocks. Set this and shipShadowBlurGrowth to 0 for hard shadows.", min = 0.0, max = 4.0)
+        @ConfigEntry(description = "Width of the ship shadow filter, in blocks. Set this to 0 for hard shadows.", min = 0.0, max = 4.0)
         var shipShadowSoftness = 0.35
 
-        @ConfigEntry(description = "Increase the shadow fade width by this amount per block between the ship and the surface. The width limit is 8 blocks. 0 keeps the base width.", min = 0.0, max = 0.5)
+        @ConfigEntry(description = "Increase shadow filter width per block between the surface and the shadow caster. Zero keeps a fixed width. A softness of zero keeps hard shadows.", min = 0.0, max = 0.5)
         var shipShadowBlurGrowth = 0.08
 
         @ConfigEntry(description = "Directional shade strength for ship faces. 0 gives all faces the same shade. 1 uses the full Minecraft face shade.", min = 0.0, max = 1.0)
@@ -180,7 +181,10 @@ object VSGameConfig {
         val SpilledWater = SPILLED_WATER()
 
         class SPILLED_WATER {
-            @ConfigEntry(description = "Lifetime of small settled water splashes in seconds of server tick time. Zero disables timed dissipation. Droplets below 1/8 block disappear on dry land regardless. Unloaded deposits are cleaned up after loading.", min = 0.0, max = 86400.0)
+            @ConfigEntry(description = "Time landed droplets can collect before evaporating, in seconds of loaded server tick time. Once enough water collects for a vanilla water layer, it becomes a finite puddle. Zero discards undersized droplets immediately.", min = 0.0, max = 60.0)
+            var parcelCollectionSeconds = 2
+
+            @ConfigEntry(description = "Lifetime of small settled water splashes in seconds of server tick time. Zero disables timed dissipation of placed puddles. Unloaded deposits are cleaned up after loading.", min = 0.0, max = 86400.0)
             var splashLifetimeSeconds = 60
 
             @ConfigEntry(description = "Water volume per block below which new spill deposits can dissipate, in full water blocks. Deposits reaching this volume remain finite puddles. Zero disables timed dissipation of landed puddles.", min = 0.0, max = 1.0)
@@ -191,60 +195,6 @@ object VSGameConfig {
         val ShipInteractions = SHIP_INTERACTIONS()
 
         class SHIP_INTERACTIONS {
-            @ConfigEntry(description = "Let players push ships with sneak and an empty main hand.")
-            var playerShipPushing = true
-
-            @ConfigEntry(description = "Maximum push force per player, in newtons.", min = 0.0)
-            var playerPushForce = 100000.0
-
-            @ConfigEntry(description = "Ship contact speed at which player push force reaches zero, in meters per second.", min = 0.01)
-            var playerPushSpeed = 1.5
-
-            @ConfigEntry(description = "Use a shovel in water to move the ship on which you stand.")
-            var shovelRowing = true
-
-            @ConfigEntry(description = "Impulse of one shovel stroke, in newton seconds.", min = 0.0)
-            var rowingImpulse = 4000.0
-
-            @ConfigEntry(description = "Minimum time between shovel strokes, in ticks.", min = 1.0)
-            var rowingCooldownTicks = 10
-
-            @ConfigEntry(description = "Break blocks in the fragile_ship_collision tag on impact.")
-            var breakFragileBlocks = true
-
-        @ConfigEntry(description = "Minimum estimated force per contact block that breaks a fragile block, in newtons.", min = 0.0)
-        var fragileBlockForce = 15000.0
-
-        @ConfigEntry(description = "Minimum closing speed for a fragile block impact, in meters per second. Slower contact and rebound do not break blocks.", min = 0.0)
-        var fragileBlockMinImpactSpeed = 4.0
-
-            @ConfigEntry(description = "Impact duration used for the force estimate, in seconds.", min = 0.001)
-            var impactDuration = 0.05
-
-            @ConfigEntry(description = "Let ships operate pressure plates, buttons, levers, and target blocks.")
-            var shipRedstone = true
-
-            @ConfigEntry(description = "Minimum relative speed for a ship to operate a target block, in meters per second.", min = 0.0)
-            var targetImpactSpeed = 4.0
-
-            @ConfigEntry(description = "Minimum push speed along the lever handle, in meters per second.", min = 0.0)
-            var leverPushSpeed = 0.5
-
-            @ConfigEntry(description = "Let fast ship collisions cause player damage.")
-            var shipImpactDamage = true
-
-            @ConfigEntry(description = "Minimum closing speed for player damage, in meters per second.", min = 0.0)
-            var playerImpactSpeed = 6.0
-
-            @ConfigEntry(description = "Damage points per meter per second above the speed limit.", min = 0.0)
-            var playerImpactDamageScale = 2.0
-
-            @ConfigEntry(description = "Maximum damage points from one ship impact.", min = 0.0)
-            var maxPlayerImpactDamage = 40.0
-
-            @ConfigEntry(description = "Minimum time between ship damage events for a player, in ticks.", min = 1.0)
-            var playerImpactCooldownTicks = 10
-
             @ConfigEntry(description = "Let ships block sky light in mob spawn and mob light checks.")
             var shipShadows = true
         }
@@ -256,7 +206,7 @@ object VSGameConfig {
             @ConfigEntry(
                 description = "Adds contraptions to the ship collider"
             )
-            var enableContraptionCollisions = false
+            var enableContraptionCollisions = true
         }
 
         @ConfigCategory(title = "FTB Chunks")
@@ -536,6 +486,11 @@ object VSGameConfig {
             description = "When a fully-contained vanilla structure is assembled into a ship, move its structure metadata (start + chunk references) onto the ship so in_structure advancements and other structure lookups keep working there."
         )
         var relocateStructureMetadata = true
+
+        @ConfigEntry(
+            description = "The offset (in blocks) from the death-height ships will stop falling at. To disable saving ships from falling into the void, you need a dimension property datapack."
+        )
+        var voidShipOffset = -3
 
         @ConfigCategory(title = "Commands")
         val Commands = COMMANDS()

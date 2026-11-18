@@ -36,6 +36,7 @@ uniform usamplerBuffer u_VsLightLut;
 #ifdef VS_SHIP_ON_SHIP
 // Use the shared shadow boxes when ships affect world lighting.
 #import <valkyrienskies:include/ship_shadows.glsl>
+#import <valkyrienskies:include/emitter_groups.glsl>
 // Per-frame ship-emitter list. TWO RGBA32F texels per emitter:
 //   texel 2i:   vec4(worldX, worldY, worldZ, lightLevel)
 //   texel 2i+1: vec4(qx, qy, qz, qw)   ship-to-world rotation quaternion
@@ -144,38 +145,53 @@ bool vs_isSolid(uint sectionOffset, uvec3 blockInSectionPos) {
 }
 
 uint vs_fetchSolid3x3x3(uint sectionOffset, ivec3 blockInSectionPos) {
+    uint base = uint(blockInSectionPos.x - 1)
+        + uint(blockInSectionPos.z - 1) * 18u + uint(blockInSectionPos.y - 1) * 324u;
     uint ret = 0u;
-    #define VS_FETCH_SOLID(x, y, z, i) { \
-        bool flag = vs_isSolid(sectionOffset, uvec3(blockInSectionPos + ivec3(x, y, z))); \
-        ret |= uint(flag) << uint(i); \
+    // One word supplies three adjacent bits, except at a word boundary.
+    #define VS_FETCH_SOLID_ROW(_y, _z, i) { \
+        uint cell = base + uint(_y) * 324u + uint(_z) * 18u; \
+        uint word = sectionOffset + VS_SOLID_START_INTS + (cell >> 5u); \
+        uint shift = cell & 31u; \
+        uint row = vs_indexLight(word) >> shift; \
+        if (shift > 29u) row |= vs_indexLight(word + 1u) << (32u - shift); \
+        ret |= (row & 7u) << uint(i); \
     }
-    VS_FETCH_SOLID(-1, -1, -1, 0)  VS_FETCH_SOLID(0, -1, -1, 1)  VS_FETCH_SOLID(1, -1, -1, 2)
-    VS_FETCH_SOLID(-1, -1,  0, 3)  VS_FETCH_SOLID(0, -1,  0, 4)  VS_FETCH_SOLID(1, -1,  0, 5)
-    VS_FETCH_SOLID(-1, -1,  1, 6)  VS_FETCH_SOLID(0, -1,  1, 7)  VS_FETCH_SOLID(1, -1,  1, 8)
-    VS_FETCH_SOLID(-1,  0, -1, 9)  VS_FETCH_SOLID(0,  0, -1,10)  VS_FETCH_SOLID(1,  0, -1,11)
-    VS_FETCH_SOLID(-1,  0,  0,12)  VS_FETCH_SOLID(0,  0,  0,13)  VS_FETCH_SOLID(1,  0,  0,14)
-    VS_FETCH_SOLID(-1,  0,  1,15)  VS_FETCH_SOLID(0,  0,  1,16)  VS_FETCH_SOLID(1,  0,  1,17)
-    VS_FETCH_SOLID(-1,  1, -1,18)  VS_FETCH_SOLID(0,  1, -1,19)  VS_FETCH_SOLID(1,  1, -1,20)
-    VS_FETCH_SOLID(-1,  1,  0,21)  VS_FETCH_SOLID(0,  1,  0,22)  VS_FETCH_SOLID(1,  1,  0,23)
-    VS_FETCH_SOLID(-1,  1,  1,24)  VS_FETCH_SOLID(0,  1,  1,25)  VS_FETCH_SOLID(1,  1,  1,26)
+    VS_FETCH_SOLID_ROW(0, 0, 0)  VS_FETCH_SOLID_ROW(0, 1, 3)  VS_FETCH_SOLID_ROW(0, 2, 6)
+    VS_FETCH_SOLID_ROW(1, 0, 9)  VS_FETCH_SOLID_ROW(1, 1,12)  VS_FETCH_SOLID_ROW(1, 2,15)
+    VS_FETCH_SOLID_ROW(2, 0,18)  VS_FETCH_SOLID_ROW(2, 1,21)  VS_FETCH_SOLID_ROW(2, 2,24)
     return ret;
 }
 
 uint[27] vs_fetchLight3x3x3(uint sectionOffset, ivec3 blockInSectionPos, uint solidMask) {
     uint[27] lights;
-    #define VS_FETCH_LIGHT(_x, _y, _z, i) { \
-        uvec2 light = vs_lightAt(sectionOffset, uvec3(blockInSectionPos + ivec3(_x, _y, _z))); \
-        lights[i] = (light.x) | ((light.y) << 10u) | (uint((solidMask & (1u << uint(i))) == 0u) << 20u); \
+    uint base = uint(blockInSectionPos.x - 1)
+        + uint(blockInSectionPos.z - 1) * 18u + uint(blockInSectionPos.y - 1) * 324u;
+    // Read a second word only when these three bytes cross a word boundary.
+    #define VS_FETCH_LIGHT_ROW(_y, _z, i) { \
+        uint cell = base + uint(_y) * 324u + uint(_z) * 18u; \
+        uint word = sectionOffset + VS_LIGHT_START_INTS + (cell >> 2u); \
+        uint first = vs_indexLight(word); \
+        uint byteInWord = cell & 3u; \
+        uvec3 row; \
+        if (byteInWord < 2u) { \
+            row = uvec3(first) >> (uvec3(byteInWord) + uvec3(0u, 1u, 2u)) * 8u; \
+        } else { \
+            uint second = vs_indexLight(word + 1u); \
+            row = byteInWord == 2u ? uvec3(first >> 16u, first >> 24u, second) \
+                : uvec3(first >> 24u, second, second >> 8u); \
+        } \
+        row &= uvec3(255u); \
+        lights[uint(i)] = (row.x & 15u) | ((row.x & 240u) << 6u) \
+            | (uint((solidMask & (1u << uint(i))) == 0u) << 20u); \
+        lights[uint(i) + 1u] = (row.y & 15u) | ((row.y & 240u) << 6u) \
+            | (uint((solidMask & (1u << (uint(i) + 1u))) == 0u) << 20u); \
+        lights[uint(i) + 2u] = (row.z & 15u) | ((row.z & 240u) << 6u) \
+            | (uint((solidMask & (1u << (uint(i) + 2u))) == 0u) << 20u); \
     }
-    VS_FETCH_LIGHT(-1, -1, -1, 0)  VS_FETCH_LIGHT(0, -1, -1, 1)  VS_FETCH_LIGHT(1, -1, -1, 2)
-    VS_FETCH_LIGHT(-1, -1,  0, 3)  VS_FETCH_LIGHT(0, -1,  0, 4)  VS_FETCH_LIGHT(1, -1,  0, 5)
-    VS_FETCH_LIGHT(-1, -1,  1, 6)  VS_FETCH_LIGHT(0, -1,  1, 7)  VS_FETCH_LIGHT(1, -1,  1, 8)
-    VS_FETCH_LIGHT(-1,  0, -1, 9)  VS_FETCH_LIGHT(0,  0, -1,10)  VS_FETCH_LIGHT(1,  0, -1,11)
-    VS_FETCH_LIGHT(-1,  0,  0,12)  VS_FETCH_LIGHT(0,  0,  0,13)  VS_FETCH_LIGHT(1,  0,  0,14)
-    VS_FETCH_LIGHT(-1,  0,  1,15)  VS_FETCH_LIGHT(0,  0,  1,16)  VS_FETCH_LIGHT(1,  0,  1,17)
-    VS_FETCH_LIGHT(-1,  1, -1,18)  VS_FETCH_LIGHT(0,  1, -1,19)  VS_FETCH_LIGHT(1,  1, -1,20)
-    VS_FETCH_LIGHT(-1,  1,  0,21)  VS_FETCH_LIGHT(0,  1,  0,22)  VS_FETCH_LIGHT(1,  1,  0,23)
-    VS_FETCH_LIGHT(-1,  1,  1,24)  VS_FETCH_LIGHT(0,  1,  1,25)  VS_FETCH_LIGHT(1,  1,  1,26)
+    VS_FETCH_LIGHT_ROW(0, 0, 0)  VS_FETCH_LIGHT_ROW(0, 1, 3)  VS_FETCH_LIGHT_ROW(0, 2, 6)
+    VS_FETCH_LIGHT_ROW(1, 0, 9)  VS_FETCH_LIGHT_ROW(1, 1,12)  VS_FETCH_LIGHT_ROW(1, 2,15)
+    VS_FETCH_LIGHT_ROW(2, 0,18)  VS_FETCH_LIGHT_ROW(2, 1,21)  VS_FETCH_LIGHT_ROW(2, 2,24)
     return lights;
 }
 
@@ -330,13 +346,30 @@ const int VS_SOS_OCCLUDER_LOOP_CAP = 128;
 float vs_sosEmitterLight(vec3 worldPos) {
     float maxLight = 0.0;
     int n = min(u_VsShipEmitterCount, VS_SOS_EMITTER_LOOP_CAP);
-    for (int i = 0; i < n; i++) {
-        vec4 e = texelFetch(u_VsShipEmitters, i * 2);
-        vec4 q = texelFetch(u_VsShipEmitters, i * 2 + 1);
-        vec3 offset_ship = vs_sosQuatRotateInv(q, worldPos - e.xyz);
-        float dist = abs(offset_ship.x) + abs(offset_ship.y) + abs(offset_ship.z);
-        float light = max(0.0, e.w - dist);
-        maxLight = max(maxLight, light);
+    if (n <= 0) return maxLight;
+    int mode = vs_emitterBoundsMode(u_VsShipEmitters, worldPos, n);
+    if (mode < 0) return maxLight;
+    if (mode == 0) {
+        for (int i = 0; i < n; i++) {
+            vec4 e = texelFetch(u_VsShipEmitters, i * 2);
+            vec4 q = texelFetch(u_VsShipEmitters, i * 2 + 1);
+            vec3 offset_ship = vs_sosQuatRotateInv(q, worldPos - e.xyz);
+            float dist = abs(offset_ship.x) + abs(offset_ship.y) + abs(offset_ship.z);
+            float light = max(0.0, e.w - dist);
+            maxLight = max(maxLight, light);
+        }
+        return maxLight;
+    }
+    for (int first = 0; first < n; first += 8) {
+        if (vs_emitterGroupOutside(u_VsShipEmitters, worldPos, first / 8)) continue;
+        for (int i = first; i < min(first + 8, n); i++) {
+            vec4 e = texelFetch(u_VsShipEmitters, i * 2);
+            vec4 q = texelFetch(u_VsShipEmitters, i * 2 + 1);
+            vec3 offset_ship = vs_sosQuatRotateInv(q, worldPos - e.xyz);
+            float dist = abs(offset_ship.x) + abs(offset_ship.y) + abs(offset_ship.z);
+            float light = max(0.0, e.w - dist);
+            maxLight = max(maxLight, light);
+        }
     }
     return maxLight;
 }

@@ -8,9 +8,11 @@ import net.minecraft.nbt.NbtIo
 import net.minecraft.network.chat.Component
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.world.level.LevelReader
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessor
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessorType
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate
 import net.minecraft.world.level.storage.LevelResource
 import org.joml.Quaterniond
@@ -24,6 +26,7 @@ import org.valkyrienskies.core.internal.joints.VSD6Joint
 import org.valkyrienskies.core.internal.joints.VSDistanceJoint
 import org.valkyrienskies.core.internal.joints.VSFixedJoint
 import org.valkyrienskies.core.internal.joints.VSGearJoint
+import org.valkyrienskies.core.internal.joints.VSJoint
 import org.valkyrienskies.core.internal.joints.VSJointPose
 import org.valkyrienskies.core.internal.joints.VSPrismaticJoint
 import org.valkyrienskies.core.internal.joints.VSRackAndPinionJoint
@@ -32,13 +35,17 @@ import org.valkyrienskies.core.internal.joints.VSSphericalJoint
 import org.valkyrienskies.core.internal.joints.VSSpringJoint
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.assembly.ICopyableAttachment
+import org.valkyrienskies.mod.common.assembly.ICopyableBlock
 import org.valkyrienskies.mod.common.assembly.ShipAssembler
-import org.valkyrienskies.mod.common.assembly.ShipAssembler.SingleItemMap
 import org.valkyrienskies.mod.common.command.commands.SchematicCommand.shipsNeedingAttachmentLoad
+import org.valkyrienskies.mod.common.debug.ShipDebugService
 import org.valkyrienskies.mod.common.dimensionId
+import org.valkyrienskies.mod.common.getLevelFromDimensionId
 import org.valkyrienskies.mod.common.safeRenameTo
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.floorToInt
+import org.valkyrienskies.mod.common.util.toBlockPos
+import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.vsCore
 import org.valkyrienskies.mod.common.yRange
 import org.valkyrienskies.mod.util.StructureTemplateFillFromVoxelSet
@@ -48,7 +55,6 @@ import java.io.FileNotFoundException
 import java.nio.file.Files
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
-import kotlin.jvm.Throws
 
 object VdexWrapper {
     fun getSchematicDirectory(server: MinecraftServer): Path {
@@ -98,7 +104,15 @@ object VdexWrapper {
         val pastePos: Vector3dc = position
         val pasteRot = rotation
 
+        // Used for joints
         val indexToShip = mutableMapOf<Int, ServerShip>()
+
+        // Used for ICopyableBlocks
+        val oldIdToNewShip = mutableMapOf<Long, ServerShip>()
+        val oldIdToOldCenter = mutableMapOf<Long, Vector3dc>()
+
+        // Assemble all the ships and store their new ids
+        // This does not paste their structure data just yet
         schem.metadata.ships.forEachIndexed { index, vdexShipEntry ->
             val worldPos = Vector3d(vdexShipEntry.relativePos)
                 .rotate(pasteRot)
@@ -113,8 +127,12 @@ object VdexWrapper {
                 vdexShipEntry.scale,
                 level.dimensionId
             )
+
             indexToShip[index] = ship
-            org.valkyrienskies.mod.common.debug.ShipDebugService.markCreated(level.server, ship, null)
+            oldIdToNewShip[vdexShipEntry.previousId] = ship
+            oldIdToOldCenter[vdexShipEntry.previousId] = vdexShipEntry.previousCenter
+
+            ShipDebugService.markCreated(level.server, ship, null)
 
             ship.isStatic = vdexShipEntry.isStatic
             ship.safeRenameTo(level, vdexShipEntry.name)
@@ -128,9 +146,17 @@ object VdexWrapper {
             )
 
             shipsNeedingAttachmentLoad.put(ship.id, vdexShipEntry.attachedData)
+        }
 
-            val structureTag = schem.nbtData[vdexShipEntry.nbtFile]
-                ?: return Component.translatable("command.valkyrienskies.schematic.load.fail.missing_structure", vdexShipEntry.nbtFile)
+        // Put them into maps that ICopyableBlock expects
+        val oldIdToNewId: Map<Long, Long> = oldIdToNewShip.mapValues { it.value.id }
+
+
+        val blocksToProcess: MutableMap<Long, List<StructureTemplate.StructureBlockInfo>> = mutableMapOf()
+        // Place the structures
+        schem.metadata.ships.forEach { vdexShipEntry ->
+            val ship = oldIdToNewShip[vdexShipEntry.previousId] ?: return@forEach
+            val structureTag = schem.nbtData[vdexShipEntry.nbtFile] ?: return@forEach
 
             val template = StructureTemplate()
             template.load(level.holderLookup(Registries.BLOCK), structureTag)
@@ -147,15 +173,20 @@ object VdexWrapper {
             )
 
             val settings = StructurePlaceSettings()
+            val shipBlocksToProcess = mutableListOf<StructureTemplate.StructureBlockInfo>()
+
             settings.isIgnoreEntities = !loadEntities
             additionalProcessors.forEach { processor ->
                 settings.addProcessor(processor)
             }
+            settings.addProcessor(DelayedICopyableProcessor(shipBlocksToProcess))
             settings.rotationPivot = cornerOfShip
             template.placeInWorld(level, cornerOfShip, cornerOfShip, settings, level.random, Block.UPDATE_CLIENTS)
+            blocksToProcess[ship.id] = shipBlocksToProcess
         }
 
         val gtpa = ValkyrienSkiesMod.getOrCreateGTPA(level.dimensionId)
+        val oldJointIdsToNewJoints = mutableMapOf<Int, VSJoint>()
         schem.metadata.constraints.forEach { pair ->
             val joint = pair.joint
             val meta = pair.metadata
@@ -188,7 +219,80 @@ object VdexWrapper {
                 }
             }
 
-            gtpa.addJoint(newJoint, 2) {}
+            // old schematic data, discard joint since we can't handle it properly
+            if (pair.previousId == -1) return@forEach
+
+            oldJointIdsToNewJoints[pair.previousId] = newJoint
+        }
+
+        // This is very ugly and weird, but it works.
+        // Basically we wait until all our ships are loaded, _then_
+        // schedule a game tick to process all those ICopyable blocks.
+        // If we've done all our ships, stop listening.
+        val shipsThatHaveLoaded = mutableListOf<Long>()
+        ValkyrienSkiesMod.api.shipLoadEvent.on { event, listener ->
+            if (blocksToProcess.keys.contains(event.ship.id)) {
+                shipsThatHaveLoaded.add(event.ship.id)
+            }
+
+            if (shipsThatHaveLoaded.size == blocksToProcess.keys.size) {
+                val oldJointIdsToNewIds = mutableMapOf<Int, Int>()
+                ValkyrienSkiesMod.api.tickEndEvent.on { event_, listener_ ->
+                    // Use the tick to load joints until all are loaded, then proceed
+                    if (oldJointIdsToNewIds.size < oldJointIdsToNewJoints.size) {
+                        oldJointIdsToNewJoints.forEach { (oldId, joint) ->
+                            if (oldJointIdsToNewIds.contains(oldId)) return@forEach
+                            gtpa.addJoint(joint, 0) { newId ->
+                                oldJointIdsToNewIds[oldId] = newId
+                            }
+                         }
+                        return@on
+                    }
+
+                    // On next tick, load all copyables
+                    val sl =
+                        ValkyrienSkiesMod.currentServer?.getLevelFromDimensionId(event.ship.chunkClaimDimension)
+                            ?: return@on
+
+                    val newCenters = oldIdToNewShip.values.toList().centerPositions(level)
+
+                    // basically just store (oldId, (oldCenter, newCenter))
+                    // NOTE: the old centers are the center of Ship AABB. Since we haven't pasted blocks yet, we can't do that.
+                    // So instead we pass in center of chunk claim. Since we paste the blocks such that their new AABB is centered in the
+                    // new plot, these centers work out to be equivalent.
+                    val centerMigrate: Map<Long, Pair<Vector3d, Vector3d>> =
+                        oldIdToOldCenter.mapValues { (oldId, oldCenter) ->
+                            val newShip = oldIdToNewShip.getValue(oldId)
+                            Vector3d(oldCenter) to newCenters.getValue(newShip.id)
+                        }
+
+                    blocksToProcess.values.forEach { blockInfos ->
+                        blockInfos.forEach { blockInfo ->
+                            val pos = blockInfo.pos
+                            val state = sl.getBlockState(pos)
+                            if (state.isAir || state.block !is ICopyableBlock) return@forEach
+
+                            val be = sl.getBlockEntity(pos)
+                            var tag = blockInfo.nbt?.copy()
+
+                            tag = (state.block as ICopyableBlock).onPaste(
+                                sl, pos, state, oldIdToNewId, centerMigrate, oldJointIdsToNewIds, tag
+                            ) ?: tag
+
+                            if (be != null && tag != null) {
+                                tag.putInt("x", pos.x)
+                                tag.putInt("y", pos.y)
+                                tag.putInt("z", pos.z)
+                                be.load(tag)
+                                be.setChanged()
+                                sl.sendBlockUpdated(pos, state, state, Block.UPDATE_CLIENTS)
+                            }
+                        }
+                    }
+                    listener_.unregister()
+                }
+                listener.unregister()
+            }
         }
 
         return null
@@ -235,9 +339,10 @@ object VdexWrapper {
             val minB = minMax.first
             val maxB = minMax.second
             val template = StructureTemplate()
+            println(allShips.centerPositions(level))
             (template as StructureTemplateFillFromVoxelSet).`vs$fillFromVoxelSet`(
-                level, blocks, listOf(ship),
-                SingleItemMap(ship.id, Vector3d(), Vector3d()),
+                level, blocks, ship, allShips,
+                allShips.centerPositions(level),
                 minB, maxB
             )
 
@@ -273,7 +378,9 @@ object VdexWrapper {
                 relativeRot = relRot,
                 isStatic = ship.isStatic,
                 scale = ship.transform.scaling.x(),
-                attachedData = attachmentsAsBytes
+                previousId = ship.id,
+                previousCenter = ship.shipAABB?.center(Vector3d()) ?: Vector3d(),
+                attachedData = attachmentsAsBytes,
             ))
         }
 
@@ -292,6 +399,8 @@ object VdexWrapper {
                 //println("test")
                 if (!seenJoints.add(jointId)) continue
                 val joint = gtpa.getJointById(jointId) ?: continue
+                if (!joint.shouldBeSerialized) continue
+
                 val idx0 = shipIdToIndex[joint.shipId0] ?: continue
                 val idx1 = shipIdToIndex[joint.shipId1] ?: continue
 
@@ -306,7 +415,8 @@ object VdexWrapper {
                         idx1,
                         joint.pose0.pos.sub(firstShip.shipAABB!!.center(Vector3d()), Vector3d()),
                         joint.pose1.pos.sub(secondShip.shipAABB!!.center(Vector3d()), Vector3d()),
-                    )
+                    ),
+                    jointId
                 ))
             }
         }
@@ -325,7 +435,6 @@ object VdexWrapper {
             shipIdToIndex = shipIdToIndex
         )
 
-        //todo, figure out some way to get real mod versions
         val modList = mutableListOf(
             VdexModEntry("valkyrienskies", ValkyrienSkiesMod.platformUtils.getModVersion("valkyrienskies"), true),
         )
@@ -379,5 +488,41 @@ object VdexWrapper {
             }
         }
         return blocks
+    }
+
+    class DelayedICopyableProcessor(
+        val blocks: MutableList<StructureTemplate.StructureBlockInfo>
+    ): StructureProcessor() {
+        override fun processBlock(
+            levelReader: LevelReader, oldBPos: BlockPos, newBPos: BlockPos,
+            oldStructureBlockInfo: StructureTemplate.StructureBlockInfo,
+            newStructureBlockInfo: StructureTemplate.StructureBlockInfo, structurePlaceSettings: StructurePlaceSettings
+        ): StructureTemplate.StructureBlockInfo {
+            if (newStructureBlockInfo.state.block is ICopyableBlock) {
+                blocks.add(StructureTemplate.StructureBlockInfo(
+                    newStructureBlockInfo.pos.immutable(), newStructureBlockInfo.state, newStructureBlockInfo.nbt?.copy()
+                ))
+                return StructureTemplate.StructureBlockInfo(newStructureBlockInfo.pos, newStructureBlockInfo.state, null)
+            }
+            return newStructureBlockInfo
+        }
+
+        // getType is used for referencing this processor from a datapack, which we don't need
+        override fun getType(): StructureProcessorType<*>? = null
+    }
+}
+
+/**
+ * Set [useAABB] to false if you have yet to paste blocks to the ship
+ */
+private fun List<ServerShip>.centerPositions(level: ServerLevel, useAABB: Boolean = true): Map<Long, Vector3d> {
+    return if (useAABB) {
+        this.associate { ship ->
+            ship.id to (ship.shipAABB?.center(Vector3d()) ?: Vector3d())
+        }
+    } else {
+        this.associate { ship ->
+            ship.id to Vector3d(ship.chunkClaim.getCenterBlockCoordinates(level.yRange).toBlockPos().center.toJOML())
+        }
     }
 }

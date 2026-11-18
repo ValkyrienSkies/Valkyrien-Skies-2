@@ -15,16 +15,17 @@ class EntityDraggingInformation {
     var shouldImpulseMovement = false
     var lastShipStoodOn: ShipId? = null
         set(value) {
-            if(value != null) ticksSinceStoodOnShip = 0 // ensure this is set before boardedShipLastTick check.
-            shouldImpulseMovement = field != value && value != null // only if it boarded different ship.
-            changedShipLastTick = field != value
+            if (field != value) {
+                clearRelativeState()
+                shouldImpulseMovement = value != null
+                changedShipLastTick = true
+            }
             field = value
+            if (value != null) ticksSinceStoodOnShip = 0
         }
     var ticksSinceStoodOnShip: Int = 0
-        set(value) {
-            shouldImpulseMovement = false
-            field = value
-        }
+    var usesShipInterpolation = false
+    var handlingClientMovement = false
     var ignoreNextGroundStand = false
     var mountedToEntity: Boolean = false
 
@@ -43,12 +44,47 @@ class EntityDraggingInformation {
     var lerpSteps: Int = 0
     var headLerpSteps: Int = 0
 
+    // Null unless vanilla requested an animation update before ship interpolation this tick.
+    var pendingWalkAnimation: Boolean? = null
+
     // Used by the client rendering code only
     var cachedLastPosition: Vector3dc? = null
     var restoreCachedLastPosition = false
 
     var serverRelativePlayerPosition: Vector3dc? = null
     var serverRelativePlayerYaw: Double? = null
+
+    fun applyNetworkShip(shipId: ShipId?, ticksSinceContact: Int) {
+        lastShipStoodOn = shipId
+        ticksSinceStoodOnShip = ticksSinceContact.coerceIn(0, TICKS_TO_DRAG_ENTITIES)
+        shouldImpulseMovement = false
+    }
+
+    fun finishTick() {
+        shouldImpulseMovement = false
+        changedShipLastTick = false
+        if (ticksSinceStoodOnShip < TICKS_TO_DRAG_ENTITIES) ticksSinceStoodOnShip++
+    }
+
+    private fun clearRelativeState() {
+        lerpPositionOnShip = null
+        relativeVelocityOnShip = null
+        lerpYawOnShip = null
+        lerpHeadYawOnShip = null
+        lerpPitchOnShip = null
+        relativePositionOnShip = null
+        previousRelativeVelocityOnShip = null
+        relativeYawOnShip = null
+        relativeHeadYawOnShip = null
+        relativePitchOnShip = null
+        serverRelativePlayerPosition = null
+        serverRelativePlayerYaw = null
+        lerpSteps = 0
+        headLerpSteps = 0
+        pendingWalkAnimation = null
+        ignoreNextGroundStand = false
+        usesShipInterpolation = false
+    }
 
     fun isEntityBeingDraggedByAShip(): Boolean {
         return (lastShipStoodOn != null) && (ticksSinceStoodOnShip < TICKS_TO_DRAG_ENTITIES) && !mountedToEntity

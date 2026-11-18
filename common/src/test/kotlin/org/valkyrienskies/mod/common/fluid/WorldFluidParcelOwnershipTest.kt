@@ -20,6 +20,7 @@ import org.valkyrienskies.core.internal.physics.VsiFluidOutflowResult
 import org.valkyrienskies.core.internal.world.VsiPipeline
 import org.valkyrienskies.mod.common.ShipSavedData
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
+import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.vsCore
 
 class WorldFluidParcelOwnershipTest {
@@ -361,12 +362,13 @@ class WorldFluidParcelOwnershipTest {
         restored.load(legacy)
         assertEquals(511 / 255.0, pending(restored))
         val migrated = restored.save()
-        assertEquals(5, migrated.getInt("version"))
+        assertEquals(6, migrated.getInt("version"))
         // The current journal format must preserve migrated legacy ownership on another load.
         restored.load(migrated)
         assertEquals(511 / 255.0, pending(restored))
         repeat(3) { restored.tick(levels) }
         assertEquals(2, sources())
+        repeat(VSGameConfig.SERVER.SpilledWater.parcelCollectionSeconds * 20) { restored.tick(levels) }
         assertEquals(0, restored.activeParcelCount())
     }
 
@@ -650,12 +652,12 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(saved, manager.save())
     }
 
-    @Test fun `settlement rounds fractional tails down and discards tails below one layer`() {
+    @Test fun `settlement rounds fractional tails down and expires tails below one layer`() {
         for (amount in listOf(1, 128, 254, 255, 256, 510, 511, 765)) {
             blocks.clear()
             val manager = WorldFluidOutflowManager(1, 1)
             manager.enqueue(level, outflow(amount))
-            repeat(amount / 255 + 2) { manager.tick(levels) }
+            repeat(amount / 255 + 2 + VSGameConfig.SERVER.SpilledWater.parcelCollectionSeconds * 20) { manager.tick(levels) }
             assertEquals(0, manager.activeParcelCount(), "amount=$amount")
             assertEquals(amount / 255, sources(), "amount=$amount")
             val flowing = blocks.values.filter { !it.fluidState.isEmpty && !it.fluidState.isSource }
@@ -673,6 +675,7 @@ class WorldFluidParcelOwnershipTest {
         assertEquals(1, sources())
         assertEquals(128 / 255.0 - 0.5, pending(manager), 1e-16)
         manager.tick(levels)
+        repeat(VSGameConfig.SERVER.SpilledWater.parcelCollectionSeconds * 20) { manager.tick(levels) }
         assertEquals(0, manager.activeParcelCount())
         assertEquals(0, blocks.values.count { !it.fluidState.isEmpty && !it.fluidState.isSource })
     }
@@ -701,6 +704,7 @@ class WorldFluidParcelOwnershipTest {
         val restored = WorldFluidOutflowManager()
         restored.load(manager.save())
         restored.tick(levels)
+        repeat(VSGameConfig.SERVER.SpilledWater.parcelCollectionSeconds * 20) { restored.tick(levels) }
         assertEquals(0, restored.activeParcelCount())
         assertEquals(falling, blocks[pos])
         assertEquals(0, sources())
@@ -734,12 +738,12 @@ class WorldFluidParcelOwnershipTest {
     }
 
     @Test fun `remainder can merge into an unrelated source but never its own deposit`() {
-        blocks[BlockPos(0, 0, -1)] = Fluids.WATER.getSource(false).createLegacyBlock()
         val manager = WorldFluidOutflowManager()
         manager.enqueue(level, outflow(510))
         manager.tick(levels)
         assertEquals(1.0, pending(manager))
         assertEquals(1, writes)
+        blocks[BlockPos(0, 0, -1)] = Fluids.WATER.getSource(false).createLegacyBlock()
         manager.tick(levels)
         assertEquals(0, manager.activeParcelCount())
         assertEquals(1, writes, "The existing source absorbs the remainder without another source placement")
@@ -751,6 +755,68 @@ class WorldFluidParcelOwnershipTest {
         manager.enqueue(level, outflow())
         blocks[pos] = Blocks.STONE.defaultBlockState()
         repeat(3) { manager.tick(levels) }
+        assertEquals(1.0, pending(manager))
+        assertEquals(0, writes)
+    }
+
+    @Test fun `outflow starting inside the seabed reaches the ocean without replacing gravel`() {
+        terrain = { if (it.y <= 46) Blocks.GRAVEL.defaultBlockState() else Blocks.WATER.defaultBlockState() }
+        val manager = WorldFluidOutflowManager()
+        val event = outflow(32, x = -309.36734424888556, y = 46.998995916536664).copy(
+            worldPositionZ = 1.4665588472686728, worldVelocityY = -0.1666679024425754)
+        assertEquals(VsiFluidOutflowResult.APPLIED, manager.enqueue(level, event))
+        repeat(3) { manager.tick(levels) }
+        assertEquals(0, manager.activeParcelCount())
+        assertEquals(0, writes)
+    }
+
+    @Test fun `full restored seabed parcel queue drains under pressure without advancing the game`() {
+        terrain = { if (it.y <= 46) Blocks.GRAVEL.defaultBlockState() else Blocks.WATER.defaultBlockState() }
+        var now = 0L
+        var manager = WorldFluidOutflowManager(nanoTime = { now })
+        repeat(4096) { index ->
+            val event = outflow(32, x = -309.36729545346316, y = 46.04942974980358).copy(
+                worldPositionZ = 1.4665096255133077, worldVelocityY = -64.0,
+                worldVolume = if (index % 2 == 0) 0.12549019607843137 else 1.5719173239747263E-10)
+            assertEquals(VsiFluidOutflowResult.APPLIED, manager.enqueue(level, event))
+        }
+        assertEquals(VsiFluidOutflowResult.RETRY_LATER, manager.enqueue(level, outflow()))
+        val saved = manager.save()
+        saved.getList("parcels", Tag.TAG_COMPOUND.toInt()).forEach { (it as CompoundTag).putLong("lag", 15) }
+        manager = WorldFluidOutflowManager(nanoTime = { now }).also { it.load(saved) }
+        repeat(48) {
+            now += 50_000_000L
+            manager.servicePressure(levels)
+        }
+        assertEquals(0, manager.activeParcelCount())
+        assertEquals(0, writes)
+        assertEquals(VsiFluidOutflowResult.APPLIED, manager.enqueue(level, outflow()))
+    }
+
+    @Test fun `blocked parcel cannot discard its remainder into its own settled source`() {
+        terrain = { if (it.y <= 46) Blocks.GRAVEL.defaultBlockState() else Blocks.WATER.defaultBlockState() }
+        var manager = WorldFluidOutflowManager()
+        manager.enqueue(level, outflow(y = 46.05))
+        val saved = manager.save()
+        saved.getList("parcels", Tag.TAG_COMPOUND.toInt()).getCompound(0)
+            .putLongArray("settled_sources", longArrayOf(BlockPos(0, 47, 0).asLong()))
+        manager = WorldFluidOutflowManager().also { it.load(saved) }
+        repeat(4) { manager.tick(levels) }
+        assertEquals(1.0, pending(manager))
+        assertEquals(0, writes)
+    }
+
+    @Test fun `blocked parcel cannot disappear into an adjacent finite puddle`() {
+        terrain = { if (it.y <= 46) Blocks.GRAVEL.defaultBlockState() else Blocks.WATER.defaultBlockState() }
+        val deposits = mockk<FractionalFluidSources>()
+        mockkObject(FractionalFluidSources.Companion)
+        every { FractionalFluidSources.forLevel(level) } returns deposits
+        every { deposits.amount(any(), any(), any(), any(), any()) } answers {
+            if (thirdArg<Int>() == 47) 255.toBigDecimal() else null
+        }
+        val manager = WorldFluidOutflowManager()
+        manager.enqueue(level, outflow(y = 46.05))
+        repeat(4) { manager.tick(levels) }
         assertEquals(1.0, pending(manager))
         assertEquals(0, writes)
     }

@@ -15,6 +15,11 @@ import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.mod.common.config.ConfigType
 
 object VSGameEvents {
+    /** Game thread hooks. Ship positions are current before entities are moved with ships. */
+    val levelTickStart = EventEmitterImpl<net.minecraft.server.level.ServerLevel>()
+    val levelShipTickEnd = EventEmitterImpl<net.minecraft.server.level.ServerLevel>()
+    val shipPositionsUpdated = EventEmitterImpl<net.minecraft.server.level.ServerLevel>()
+    val serverStopped = EventEmitterImpl<Unit>()
 
     val registriesCompleted = EventEmitterImpl<Unit>()
     val tagsAreLoaded = EventEmitterImpl<Unit>()
