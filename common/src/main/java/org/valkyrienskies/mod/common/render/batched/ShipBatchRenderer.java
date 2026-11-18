@@ -54,6 +54,7 @@ public final class ShipBatchRenderer {
     private final IdentityHashMap<ClientLevel, Long2ObjectMap<ShipRenderObject>> inactiveLevels = new IdentityHashMap<>();
     private final ShipSectionCompiler compiler = new ShipSectionCompiler();
     private final LongOpenHashSet presentScratch = new LongOpenHashSet();
+    private final LongOpenHashSet portraitPins = new LongOpenHashSet();
     private final ArrayList<ShipRenderObject> drawOrder = new ArrayList<>();
 
     private final ArrayList<ShipFrameData> frameData = new ArrayList<>();
@@ -125,6 +126,7 @@ public final class ShipBatchRenderer {
     public void onShipUnload(final long shipId) {
         final ShipRenderObject removed;
         synchronized (inactiveLevels) {
+            portraitPins.remove(shipId);
             removed = ships.remove(shipId);
             for (final var meshes : inactiveLevels.values()) {
                 final ShipRenderObject inactive = meshes.remove(shipId);
@@ -140,6 +142,36 @@ public final class ShipBatchRenderer {
 
     public boolean hasRenderableShips() {
         return !drawOrder.isEmpty();
+    }
+
+    /**
+     * Returns the canonical compiled geometry for an off-screen portrait.
+     *
+     * <p>The object is retained until {@link #forgetPortrait(long)} and shares the improved
+     * renderer's compiler, biome tint cache, block entities, and vertex buffers.
+     */
+    public ShipRenderObject acquirePortraitObject(final ClientLevel level, final ClientShip ship) {
+        RenderSystem.assertOnRenderThread();
+        if (currentLevel != level) beginFrame(level);
+        final ShipRenderObject object;
+        synchronized (inactiveLevels) {
+            ShipRenderObject existing = ships.get(ship.getId());
+            if (existing == null) {
+                existing = new ShipRenderObject(ship);
+                ships.put(ship.getId(), existing);
+            }
+            object = existing;
+            portraitPins.add(ship.getId());
+        }
+        object.ensureCompiled(level, Minecraft.getInstance().getBlockRenderer(), compiler, true);
+        return object;
+    }
+
+    /** Releases retention requested by {@link #acquirePortraitObject}. */
+    public void forgetPortrait(final long shipId) {
+        synchronized (inactiveLevels) {
+            portraitPins.remove(shipId);
+        }
     }
 
     public void beginFrame(final ClientLevel level) {
@@ -192,7 +224,8 @@ public final class ShipBatchRenderer {
                 final var it = ships.long2ObjectEntrySet().iterator();
                 while (it.hasNext()) {
                     final var entry = it.next();
-                    if (!presentScratch.contains(entry.getLongKey())) {
+                    if (!presentScratch.contains(entry.getLongKey())
+                        && !portraitPins.contains(entry.getLongKey())) {
                         entry.getValue().close();
                         it.remove();
                     }
@@ -644,6 +677,7 @@ public final class ShipBatchRenderer {
 
     private void freeShipMeshes() {
         synchronized (inactiveLevels) {
+            portraitPins.clear();
             for (final var meshes : inactiveLevels.values()) meshes.values().forEach(ShipRenderObject::close);
             inactiveLevels.clear();
             for (final ShipRenderObject renderObject : ships.values()) {
