@@ -7,43 +7,17 @@ import org.joml.Matrix4d;
 import org.joml.Matrix4f;
 import org.joml.Vector3d;
 import org.valkyrienskies.core.api.ships.ClientShip;
-import org.valkyrienskies.mod.api.render.ShipMaterialPass;
-import org.valkyrienskies.mod.api.render.ShipMaterialSelection;
+import org.valkyrienskies.mod.client.render.ShipMaterialStack;
 import org.valkyrienskies.mod.client.render.ShipMaskTerrain;
-import org.valkyrienskies.mod.common.render.light.ShipShadowMap;
-import org.valkyrienskies.mod.common.render.light.VsDynamicLight;
 import static org.lwjgl.opengl.GL33C.*;
 
 final class ShipMaskDraw {
-    private static final int[] LIGHT_UNITS = {VsDynamicLight.LIGHT_SECTIONS_TEXTURE_UNIT,
-        VsDynamicLight.LIGHT_LUT_TEXTURE_UNIT, VsDynamicLight.SHIP_EMITTER_LIST_TEXTURE_UNIT};
     private static int atlasSampler;
 
     static void draw(final ShaderInstance shader, final ShipMaskTerrain terrain, final ClientShip ship,
-        final ShipMesh mesh, final ShipMaterialSelection selection) {
-        final int program = glGetInteger(GL_CURRENT_PROGRAM);
-        final int vao = glGetInteger(GL_VERTEX_ARRAY_BINDING);
-        final int active = glGetInteger(GL_ACTIVE_TEXTURE);
+        final ShipMesh mesh, final ShipMaterialStack materials) {
         final boolean needsLighting = glGetUniformLocation(shader.getId(), "Sampler2") >= 0;
-        final int[] lights = new int[needsLighting ? LIGHT_UNITS.length : 0];
-        for (int i = 0; i < lights.length; i++) {
-            GlStateManager._activeTexture(GL_TEXTURE0 + LIGHT_UNITS[i]);
-            lights[i] = glGetInteger(GL_TEXTURE_BINDING_BUFFER);
-        }
-        int shadowMap = 0, comparisonMap = 0, comparisonSampler = 0;
-        if (needsLighting) {
-            GlStateManager._activeTexture(GL_TEXTURE0 + ShipShadowMap.TEXTURE_UNIT);
-            shadowMap = glGetInteger(GL_TEXTURE_BINDING_2D_ARRAY);
-            GlStateManager._activeTexture(GL_TEXTURE0 + ShipShadowMap.COMPARISON_TEXTURE_UNIT);
-            comparisonMap = glGetInteger(GL_TEXTURE_BINDING_2D_ARRAY);
-            comparisonSampler = glGetInteger(GL_SAMPLER_BINDING);
-        }
-        GlStateManager._activeTexture(GL_TEXTURE2);
-        final int lightmap = glGetInteger(GL_TEXTURE_BINDING_2D);
-        GlStateManager._activeTexture(GL_TEXTURE0);
-        final int atlas = glGetInteger(GL_TEXTURE_BINDING_2D);
-        final int sampler = glGetInteger(GL_SAMPLER_BINDING);
-        try {
+        try (var bindings = new ShipMaskBindings(false, needsLighting)) {
             glBindTexture(GL_TEXTURE_2D, terrain.getAtlas());
             glBindSampler(0, atlasSampler());
             GlStateManager._activeTexture(GL_TEXTURE2);
@@ -52,31 +26,17 @@ final class ShipMaskDraw {
             if (needsLighting) {
                 ShipBatchRenderer.bindLighting(shader.getId(), terrain.getX(), terrain.getY(), terrain.getZ());
             }
-            drawMesh(shader, terrain, ship, mesh, selection);
-        } finally {
-            glBindVertexArray(vao);
-            glUseProgram(program);
-            for (int i = 0; i < lights.length; i++) {
-                GlStateManager._activeTexture(GL_TEXTURE0 + LIGHT_UNITS[i]);
-                glBindTexture(GL_TEXTURE_BUFFER, lights[i]);
+            final var uniforms = ShipMaterialUniforms.forShader(shader);
+            final int previous = uniforms == null ? -1 : uniforms.bindTable(materials == null ? null : materials.getTable());
+            try {
+                drawMesh(shader, terrain, ship, mesh, materials, uniforms);
+            } finally {
+                ShipMaterialUniforms.restoreTable(previous);
             }
-            if (needsLighting) {
-                GlStateManager._activeTexture(GL_TEXTURE0 + ShipShadowMap.TEXTURE_UNIT);
-                glBindTexture(GL_TEXTURE_2D_ARRAY, shadowMap);
-                GlStateManager._activeTexture(GL_TEXTURE0 + ShipShadowMap.COMPARISON_TEXTURE_UNIT);
-                glBindTexture(GL_TEXTURE_2D_ARRAY, comparisonMap);
-                glBindSampler(ShipShadowMap.COMPARISON_TEXTURE_UNIT, comparisonSampler);
-            }
-            GlStateManager._activeTexture(GL_TEXTURE2);
-            glBindTexture(GL_TEXTURE_2D, lightmap);
-            GlStateManager._activeTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, atlas);
-            glBindSampler(0, sampler);
-            GlStateManager._activeTexture(active);
         }
     }
 
-    private static int atlasSampler() {
+    static int atlasSampler() {
         if (atlasSampler == 0) {
             atlasSampler = glGenSamplers();
             glSamplerParameteri(atlasSampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
@@ -91,7 +51,7 @@ final class ShipMaskDraw {
     }
 
     private static void drawMesh(final ShaderInstance shader, final ShipMaskTerrain terrain, final ClientShip ship,
-        final ShipMesh mesh, final ShipMaterialSelection selection) {
+        final ShipMesh mesh, final ShipMaterialStack materials, final ShipMaterialUniforms uniforms) {
         final int program = shader.getId();
         final var transform = ship.getRenderTransform();
         final var camera = new Vector3d();
@@ -107,15 +67,14 @@ final class ShipMaskDraw {
         glUniform1i(glGetUniformLocation(program, "Sampler0"), 0);
         glUniform1i(glGetUniformLocation(program, "Sampler2"), 2);
 
-        final var uniforms = ShipMaterialUniforms.forShader(shader);
-        final boolean hasMaterial = selection != null && uniforms != null;
-        if (uniforms != null) uniforms.select(selection);
+        final boolean hasMaterial = materials != null && uniforms != null;
+        if (uniforms != null) uniforms.select(materials);
         final int claimX = hasMaterial ? ship.getChunkClaim().getXStart() << 4 : 0;
         final int claimZ = hasMaterial ? ship.getChunkClaim().getZStart() << 4 : 0;
         final int alpha = glGetUniformLocation(program, "vs_MaskUsesAlpha");
         final int cutout = glGetUniformLocation(program, "vs_MaskCutout");
         final int offset = glGetUniformLocation(program, "ChunkOffset");
-        glUniform1i(alpha, selection != null && selection.getPass() == ShipMaterialPass.BLENDED ? 1 : 0);
+        glUniform1i(alpha, materials != null && materials.getBlended() ? 1 : 0);
         glUniform3f(offset, (float) (mesh.refX - camera.x), (float) (mesh.refY - camera.y), (float) (mesh.refZ - camera.z));
         if (hasMaterial) uniforms.origin(mesh.refX - claimX, mesh.refY, mesh.refZ - claimZ);
         for (int i = 0; i < ShipSectionMesh.CHUNK_LAYERS.length; i++) {

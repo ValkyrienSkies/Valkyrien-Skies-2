@@ -18,8 +18,7 @@ import org.joml.FrustumIntersection
 import org.joml.Matrix3f
 import org.joml.Matrix4f
 import org.valkyrienskies.core.api.world.LevelYRange
-import org.valkyrienskies.mod.common.config.ShipRenderer.FLYWHEEL
-import org.valkyrienskies.mod.common.config.shipRenderer
+import org.valkyrienskies.mod.common.config.usesFlywheelHull
 import org.valkyrienskies.mod.common.util.toBlockPos
 import org.valkyrienskies.mod.common.util.toFloat
 import org.valkyrienskies.mod.common.util.toJOMLD
@@ -44,10 +43,10 @@ class EmbeddingShipVisual(val effect: ShipEffect, val visualContext: Visualizati
     var renderingShipVisual: RenderingShipVisual? = null
 
     override fun update(partialTick: Float) {
-        if (renderingShipVisual == null && ship.shipRenderer == FLYWHEEL) {
+        if (renderingShipVisual == null && ship.usesFlywheelHull) {
             renderingShipVisual = RenderingShipVisual(effect, embedding)
         } else if (renderingShipVisual != null) {
-            if (ship.shipRenderer != FLYWHEEL) {
+            if (!ship.usesFlywheelHull) {
                 renderingShipVisual!!.delete()
                 renderingShipVisual = null
             } else {

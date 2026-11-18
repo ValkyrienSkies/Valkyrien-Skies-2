@@ -14,7 +14,7 @@ public abstract class MixinShipMaterialShader {
     private static Program vs$loadShipMaterials(final ResourceProvider resources, final Program.Type type,
         final String name, final Operation<Program> original) {
         final boolean shipFragment = type == Program.Type.FRAGMENT &&
-            (name.startsWith("rendertype_ship_batched_") || name.startsWith("minecraft:rendertype_ship_batched_"));
+            (name.startsWith("rendertype_ship_") || name.startsWith("minecraft:rendertype_ship_"));
         return original.call(shipFragment ? ShipMaterials.shaderResources(resources) : resources, type, name);
     }
 }

@@ -112,6 +112,11 @@ public final class ShipMaskTarget {
         else glBlendEquationSeparate(rgb, alpha);
     }
 
+    public ShipGeometryMask render(final ShipMaskTerrain terrain, final AABBdc box, final Runnable draw) {
+        final Rect viewport = Rect.read(GL_VIEWPORT);
+        return render(viewport, bounds(terrain, box, viewport), draw);
+    }
+
     ShipGeometryMask render(final Rect viewport, Rect area, final Runnable draw) {
         final int scene = glGetInteger(GL_DRAW_FRAMEBUFFER_BINDING);
         if (scene == 0 || glGetInteger(GL_SAMPLE_BUFFERS) != 0) return null;

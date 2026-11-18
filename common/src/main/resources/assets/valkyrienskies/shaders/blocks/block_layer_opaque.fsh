@@ -1,6 +1,9 @@
 #version 330 core
 
 #import <sodium:include/fog.glsl>
+#ifdef VS_MATERIAL_TERRAIN
+#import <minecraft:include/vs_ship_materials.glsl>
+#endif
 
 in vec4 v_Color;            // RGB = sodium-baked vertex color; .a = AO (decoded in VSH)
 in vec2 v_TexCoord;
@@ -60,6 +63,9 @@ vec3 vs_sosQuatRotateInv(vec4 q, vec3 v) {
 }
 #endif
 
+#ifdef VS_TERRAIN_MASK
+uniform int vs_MaskMode;
+#endif
 out vec4 fragColor;
 
 #define MINECRAFT_LIGHT_X (0.6)
@@ -441,8 +447,12 @@ void main() {
     }
 #endif
 
+#ifdef VS_NATIVE_SHIP_COLOR
 #ifdef USE_VANILLA_COLOR_FORMAT
     diffuseColor *= v_Color;
+#else
+    diffuseColor.rgb *= v_Color.rgb * v_Color.a;
+#endif
 #else
 #if defined(VS_DYNAMIC_LIGHT) || defined(VS_DYNAMIC_SHADE) || defined(VS_SHIP_ON_SHIP)
     // World-space normal: the VSH packs the per-quad face direction into the
@@ -583,5 +593,14 @@ void main() {
 #endif
 #endif
 
+#ifdef VS_MATERIAL_TERRAIN
+    vs_applyShipMaterial(diffuseColor);
+#endif
+#ifdef VS_TERRAIN_MASK
+    if (vs_MaskMode != 0) {
+        fragColor = vec4(vs_MaskMode == 2 ? diffuseColor.a : 1.0);
+        return;
+    }
+#endif
     fragColor = _linearFog(diffuseColor, v_FragDistance, u_FogColor, u_FogStart, u_FogEnd);
 }

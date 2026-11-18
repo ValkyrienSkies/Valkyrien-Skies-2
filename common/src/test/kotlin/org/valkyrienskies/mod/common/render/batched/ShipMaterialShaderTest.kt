@@ -23,6 +23,7 @@ import org.lwjgl.opengl.GL13.*
 import org.lwjgl.opengl.GL20.*
 import org.lwjgl.opengl.GL30.*
 import org.valkyrienskies.mod.api.render.ShipMaterialSelection
+import org.valkyrienskies.mod.client.render.ShipMaterialTable
 import org.valkyrienskies.mod.client.render.ShipMaterials
 import java.util.Optional
 
@@ -45,11 +46,14 @@ class ShipMaterialShaderTest {
             GL.createCapabilities()
             if (!RenderSystem.isOnRenderThread()) RenderSystem.initRenderThread()
             val effect = ShipMaterials.register(ResourceLocation("test:dissolve"))
+            val tint = ShipMaterials.register(ResourceLocation("other:tint"))
             var body = "if (color.r < 0.01 || fract(shipPos.x * 0.25) < params.x) discard; color.gb = vec2(0); color.a *= params.y;"
             val pack = mockk<PackResources>(relaxed = true)
             val provider = ResourceProvider { id ->
                 if (id == ResourceLocation("test:shaders/include/ship_material/dissolve.glsl")) {
                     Optional.of(Resource(pack) { body.byteInputStream() })
+                } else if (id == ResourceLocation("other:shaders/include/ship_material/tint.glsl")) {
+                    Optional.of(Resource(pack) { "color.rgb = color.grb * params.z; color.a *= params.w;".byteInputStream() })
                 } else {
                     Optional.ofNullable(javaClass.getResource("/assets/${id.namespace}/${id.path}"))
                         .map { url -> Resource(pack) { url.openStream() } }
@@ -72,20 +76,23 @@ class ShipMaterialShaderTest {
                 glViewport(0, 0, 1, 1)
                 glEnable(GL_DEPTH_TEST)
                 glClearColor(0f, 0f, 1f, 1f)
-                for (layer in listOf("solid", "cutout", "cutout_mipped", "translucent")) {
-                    ShaderInstance(ShipMaterials.shaderResources(provider), "rendertype_ship_batched_$layer",
+                for (name in listOf("batched_solid", "batched_cutout", "batched_cutout_mipped", "batched_translucent", "material")) {
+                    ShaderInstance(ShipMaterials.shaderResources(provider), "rendertype_ship_$name",
                         DefaultVertexFormat.BLOCK).use { shader ->
                         val program = shader.id
                         assertEquals(GL_TRUE, glGetProgrami(program, GL_LINK_STATUS), glGetProgramInfoLog(program))
                         glUseProgram(program)
                         fun loc(name: String) = glGetUniformLocation(program, name)
                         glUniform1i(loc("ShipTransforms"), 4)
-                        glUniform1i(loc("u_VsLightSections"), 5)
-                        glUniform1i(loc("u_VsLightLut"), 5)
+                        glUniform1i(loc("u_VsLightSections"), 6)
+                        glUniform1i(loc("u_VsLightLut"), 7)
                         glUniform1i(loc("u_VsShipEmitters"), 4)
                         glUniform1i(loc("u_VsShipShadowMap"), 14)
                         glUniform1i(loc("u_VsShipShadowCompare"), 15)
                         glUniformMatrix4fv(loc("ProjMat"), false, Matrix4f().get(FloatArray(16)))
+                        glUniformMatrix4fv(loc("ModelViewMat"), false, Matrix4f().get(FloatArray(16)))
+                        glUniform1i(loc("VsFluidOverflowMasks"), 3)
+                        glUniform1i(loc("VsFluidOverflowDescriptors"), 5)
                         glUniform1f(loc("FogStart"), 10f)
                         glUniform1f(loc("FogEnd"), 20f)
                         glUniform4f(loc("ColorModulator"), 1f, 1f, 1f, 1f)
@@ -96,15 +103,31 @@ class ShipMaterialShaderTest {
                         glDepthMask(true)
                         glDisable(GL_BLEND)
                         glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
-                        uniforms.select(selection)
-                        uniforms.origin(1, 0, 0)
+                        val table = ShipMaterialTable()
+                        val tinted = ShipMaterialSelection(tint, z = 0.5f, w = 1f)
+                        val red = table.append(listOf(selection))
+                        val green = table.append(listOf(selection, tinted))
+                        val reversed = table.append(listOf(tinted, selection))
+                        val faded = table.append(listOf(selection.copy(y = 0.5f)))
+                        val unit = if (name == "material") ShipMaterialUniforms.TERRAIN_TEXTURE_UNIT else 5
+                        val previousTable = uniforms.bindTable(table, unit)
+                        uniforms.select(red)
+                        uniforms.origin(1f, 0f, 0f)
                         glDrawArrays(GL_POINTS, 0, 1)
                         assertPixel(0, 0, 255, 1f)
-                        uniforms.origin(3, 0, 0)
+                        uniforms.origin(3f, 0f, 0f)
                         glDrawArrays(GL_POINTS, 0, 1)
                         assertPixel(255, 0, 0, 0.5f)
                         glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
-                        uniforms.select(selection.copy(y = 0.5f))
+                        uniforms.select(green)
+                        glDrawArrays(GL_POINTS, 0, 1)
+                        assertPixel(0, 128, 0, 0.5f)
+                        glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
+                        uniforms.select(reversed)
+                        glDrawArrays(GL_POINTS, 0, 1)
+                        assertPixel(128, 0, 0, 0.5f)
+                        glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
+                        uniforms.select(faded)
                         glDepthMask(false)
                         glEnable(GL_BLEND)
                         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
@@ -121,22 +144,24 @@ class ShipMaterialShaderTest {
                         glUniform4f(loc("ColorModulator"), 1f, 1f, 1f, 1f)
                         glDrawArrays(GL_POINTS, 0, 1)
                         assertPixel(255, 255, 255, 0.5f)
+                        ShipMaterialUniforms.restoreTable(previousTable, unit)
                         glUseProgram(0)
                     }
                 }
                 ShaderInstance(ShipMaterials.shaderResources(provider), "rendertype_ship_batched_mask",
-                    DefaultVertexFormat.BLOCK).use { ShipGeometryMaskGpu.check(it, effect) }
+                    DefaultVertexFormat.BLOCK).use { ShipGeometryMaskGpu.check(it, effect, tint) }
                 ShaderInstance(provider, "rendertype_ship_batched_mask", DefaultVertexFormat.BLOCK).use {
-                    assertEquals(-1, glGetUniformLocation(it.id, "vs_MaterialId"))
+                    assertEquals(-1, glGetUniformLocation(it.id, "vs_MaterialRange"))
                     assertTrue(glGetUniformLocation(it.id, "vs_MaskCutout") >= 0)
                 }
                 body = "color.rgb = params.xyz;"
                 ShaderInstance(ShipMaterials.shaderResources(provider), "rendertype_ship_batched_solid",
                     DefaultVertexFormat.BLOCK).use { shader ->
                     assertEquals(-1, glGetUniformLocation(shader.id, "vs_MaterialOrigin"))
-                    assertTrue(glGetUniformLocation(shader.id, "vs_MaterialParams") >= 0)
+                    assertTrue(glGetUniformLocation(shader.id, "vs_MaterialData") >= 0)
                 }
             } finally {
+                ShipMaterialUniforms.release()
                 storage.delete()
                 glDeleteTextures(white)
                 glDeleteVertexArrays(vao)

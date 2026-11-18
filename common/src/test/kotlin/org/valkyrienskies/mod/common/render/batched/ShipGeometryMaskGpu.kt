@@ -14,6 +14,8 @@ import org.lwjgl.BufferUtils
 import org.lwjgl.opengl.GL33C.*
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.mod.api.render.*
+import org.valkyrienskies.mod.client.render.ShipMaterialStack
+import org.valkyrienskies.mod.client.render.ShipMaterialTable
 import org.valkyrienskies.mod.client.render.ShipMaskTerrain
 import org.valkyrienskies.mod.common.render.light.ShipShadowMap
 import org.valkyrienskies.mod.common.render.light.VsDynamicLight
@@ -21,12 +23,13 @@ import org.valkyrienskies.mod.common.render.light.VsDynamicLight
 internal object ShipGeometryMaskGpu {
     private const val claim = 28_000_000
 
-    fun check(shader: ShaderInstance, effect: ShipMaterial) {
+    fun check(shader: ShaderInstance, effect: ShipMaterial, tint: ShipMaterial) {
         val scene = glGenFramebuffers()
         val depth = glGenRenderbuffers()
         val color = glGenRenderbuffers()
         val atlas = glGenTextures()
         val depthTexture = glGenTextures()
+        val previousMaterialTexture = glGenTextures()
         val shadowTexture = glGenTextures()
         val comparisonTexture = glGenTextures()
         val comparisonSampler = glGenSamplers()
@@ -84,7 +87,7 @@ internal object ShipGeometryMaskGpu {
                 every { chunkClaim.zStart } returns 0
             }
             val projection = Matrix4f().ortho(0f, 8f, 0f, 4f, -1f, 1f)
-            fun mask(target: ShipMaskTarget, selection: ShipMaterialSelection?, cameraX: Double = 0.0): ShipGeometryMask {
+            fun mask(target: ShipMaskTarget, selection: ShipMaterialStack?, cameraX: Double = 0.0): ShipGeometryMask {
                 val terrain = ShipMaskTerrain(PoseStack(), projection, cameraX, 0.0, 0.0)
                 val viewport = ShipMaskTarget.Rect.read(GL_VIEWPORT)
                 val bounds = ShipMaskTarget.bounds(terrain, AABBd(0.0, 0.0, 0.0, 8.0, 4.0, 0.0), viewport)
@@ -109,10 +112,19 @@ internal object ShipGeometryMaskGpu {
             assertEquals(listOf(0, 0, 0, 0, 255, 255, 255, 255), original.subList(16, 24))
             assertEquals(listOf(0, 128, 128, 128, 128, 128, 128, 128), original.takeLast(8))
 
-            val dissolve = ShipMaterialSelection(effect, ShipMaterialPass.BLENDED, x = 0.5f, y = 0.5f)
+            val dissolve = ShipMaterialTable().append(listOf(
+                ShipMaterialSelection(effect, x = 0.5f, y = 0.5f),
+                ShipMaterialSelection(tint, ShipMaterialPass.BLENDED, z = 1f, w = 0.5f)
+            ))
+            glActiveTexture(GL_TEXTURE5)
+            glBindTexture(GL_TEXTURE_BUFFER, previousMaterialTexture)
+            glActiveTexture(GL_TEXTURE0)
             val second = mask(inner, dissolve, 1.0)
+            glActiveTexture(GL_TEXTURE5)
+            assertEquals(previousMaterialTexture, glGetInteger(GL_TEXTURE_BINDING_BUFFER))
+            glActiveTexture(GL_TEXTURE0)
             assertNotEquals(first.textureId, second.textureId)
-            assertEquals(listOf(0, 32, 32, 0, 0, 32, 32, 0), pixels(second).take(8))
+            assertEquals(listOf(0, 16, 16, 0, 0, 16, 16, 0), pixels(second).take(8))
             assertEquals(original, pixels(first))
             glEnable(GL_SCISSOR_TEST)
             glScissor(5, 0, 1, 4)
@@ -157,6 +169,7 @@ internal object ShipGeometryMaskGpu {
             glDeleteRenderbuffers(color)
             glDeleteTextures(atlas)
             glDeleteTextures(depthTexture)
+            glDeleteTextures(previousMaterialTexture)
             glDeleteTextures(shadowTexture)
             glDeleteTextures(comparisonTexture)
             glDeleteSamplers(comparisonSampler)

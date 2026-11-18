@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test
 import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.mod.api.VsApi
 import org.valkyrienskies.mod.api.render.ShipMaterial
+import org.valkyrienskies.mod.api.render.ShipMaterialPass
 import org.valkyrienskies.mod.api.render.ShipMaterialSelection
 import org.valkyrienskies.mod.api.render.ShipRenderView
 import org.valkyrienskies.mod.api_impl.events.VsApiImpl
@@ -47,7 +48,7 @@ class ShipRenderViewsTest {
         val ship = hull(0.0)
         val outside = hull(10.0)
         val material = ShipMaterialSelection(ShipMaterial(ResourceLocation("test:effect"), 1))
-        val other = material.copy(x = 0.5f)
+        val other = material.copy(x = 0.5f, pass = ShipMaterialPass.BLENDED)
         val calls = mutableListOf<ShipRenderView>()
         val filter = api.registerShipRenderPredicate { candidate, _ -> candidate !== hidden }
         val first = api.registerShipMaterialSelector { candidate, view ->
@@ -55,24 +56,23 @@ class ShipRenderViewsTest {
             calls.add(view)
             material.takeIf { view === outer }
         }
-        val second = api.registerShipMaterialSelector { _, view ->
-            assertSame(inner, view)
-            other
-        }
+        val second = api.registerShipMaterialSelector { _, _ -> other }
         try {
             ShipRenderViews.render(outer, { listOf(ship, hidden, outside) }) {
-                assertNull(ShipRenderViews.materialFor(hidden))
-                assertNull(ShipRenderViews.materialFor(outside))
-                assertSame(material, ShipRenderViews.materialFor(ship))
+                assertNull(ShipRenderViews.materialsFor(hidden))
+                assertNull(ShipRenderViews.materialsFor(outside))
+                val stack = requireNotNull(ShipRenderViews.materialsFor(ship))
+                assertEquals(2, stack.count)
+                assertTrue(stack.blended)
                 ShipRenderViews.render(inner, { listOf(ship) }) {
-                    assertSame(other, ShipRenderViews.materialFor(ship))
+                    assertEquals(1, ShipRenderViews.materialsFor(ship)?.count)
                     first.unregister()
                     second.unregister()
                 }
-                assertSame(material, ShipRenderViews.materialFor(ship))
+                assertSame(stack, ShipRenderViews.materialsFor(ship))
             }
             assertEquals(listOf(outer, inner), calls)
-            assertNull(ShipRenderViews.materialFor(ship))
+            assertNull(ShipRenderViews.materialsFor(ship))
         } finally {
             second.unregister()
             first.unregister()

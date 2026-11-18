@@ -35,6 +35,8 @@ import org.valkyrienskies.mod.api.events.PostRenderShipEvent
 import org.valkyrienskies.mod.api.render.ShipGeometryMask
 import org.valkyrienskies.mod.api.render.ShipRenderView
 import org.valkyrienskies.mod.api_impl.events.VsApiImpl
+import org.valkyrienskies.mod.common.config.ShipRenderer
+import org.valkyrienskies.mod.common.config.shipRenderer
 import org.valkyrienskies.mod.common.util.DimensionIdProvider
 import org.valkyrienskies.mod.common.render.batched.ShipBatchRenderer
 import java.util.Optional
@@ -116,7 +118,12 @@ class ShipOverlayTest {
                 outerBuffers = event.buffers
                 ShipRenderViews.render(monitor, { ships }) {
                     assertNull(outerEvent!!.geometryMask())
-                    ShipRenderViews.recordTerrain(poses, Matrix4f(), 0.0, 0.0, 0.0)
+                    ShipRenderViews.recordNativeTerrain(poses, Matrix4f(), 15.75, 0.0, 0.0) { _, ship, terrain ->
+                        assertSame(hull, ship)
+                        assertEquals(15.75, terrain.x)
+                        assertFalse(masks.containsKey(monitor))
+                        ShipGeometryMask(2, 8, 8, 0, 0, 8, 8).also { masks[monitor] = it }
+                    }
                     ShipRenderViews.renderOverlays(poses)
                 }
                 assertSame(main, api.currentShipRenderView)
@@ -128,10 +135,13 @@ class ShipOverlayTest {
         val renderer = ShipBatchRenderer.INSTANCE
         mockkObject(renderer)
         mockkStatic(RenderSystem::class)
+        mockkStatic(ClientShip::shipRenderer)
         try {
+            every { hull.shipRenderer } returns ShipRenderer.VANILLA
             every { renderer.geometryMask(any(), any(), any(), any()) } answers {
                 assertSame(hull, secondArg<ClientShip>())
                 val view = thirdArg<ShipRenderView>()
+                assertSame(main, view)
                 assertFalse(masks.containsKey(view))
                 ShipGeometryMask(masks.size + 1, 8, 8, 0, 0, 8, 8).also { masks[view] = it }
             }
@@ -153,6 +163,7 @@ class ShipOverlayTest {
             second.unregister()
             unmockkObject(renderer)
             visibility.unregister()
+            unmockkStatic(ClientShip::shipRenderer)
             unmockkStatic(RenderSystem::class)
         }
     }

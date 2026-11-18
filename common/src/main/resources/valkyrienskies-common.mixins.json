@@ -410,6 +410,7 @@
     "accessors.client.render.BufferBuilderAccessor",
     "accessors.client.render.GameRendererAccessor",
     "accessors.client.render.LevelRendererAccessor",
+    "accessors.client.render.LightTextureAccessor",
     "accessors.client.render.OverlayVertexConsumerAccessor",
     "accessors.client.render.ViewAreaAccessor",
     "accessors.client.render.chunk.RenderChunkAccessor",

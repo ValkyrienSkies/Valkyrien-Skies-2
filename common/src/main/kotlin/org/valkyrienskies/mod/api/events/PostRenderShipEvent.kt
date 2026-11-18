@@ -18,6 +18,6 @@ interface PostRenderShipEvent {
     val poseStack: PoseStack
     val buffers: MultiBufferSource
 
-    /** Request while the view's scene framebuffer is bound. Available for batched terrain with single-sample scene depth. */
+    /** Request while the view's scene framebuffer is bound. Requires single-sample scene depth and available hull geometry. */
     fun geometryMask(): ShipGeometryMask? = null
 }

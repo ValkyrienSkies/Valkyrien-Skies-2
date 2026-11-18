@@ -11,7 +11,7 @@ void main() {
     vec4 color = tex * vertexColor * ColorModulator;
     if ((vs_MaskCutout == 1 && color.a < 0.1) || (vs_MaskCutout == 2 && color.a < 0.5)) discard;
 #ifdef VS_SHIP_MATERIALS
-    if (vs_MaterialId != 0) {
+    if (vs_MaterialRange.y != 0) {
         vs_lightShipColor(color, normal);
         vs_applyShipMaterial(color);
     }

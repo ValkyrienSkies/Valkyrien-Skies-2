@@ -28,8 +28,7 @@ import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL11;
-import org.valkyrienskies.mod.api.render.ShipMaterialPass;
-import org.valkyrienskies.mod.api.render.ShipMaterialSelection;
+import org.valkyrienskies.mod.client.render.ShipMaterialStack;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.api.render.ShipRenderView;
 import org.valkyrienskies.mod.api.render.ShipGeometryMask;
@@ -79,7 +78,7 @@ public final class ShipBatchRenderer {
         double camShipX, camShipY, camShipZ;
         boolean visible;
         ShipMesh mesh;
-        ShipMaterialSelection material;
+        ShipMaterialStack materials;
         boolean blended;
         int claimX, claimZ;
         double distanceSquared;
@@ -284,37 +283,42 @@ public final class ShipBatchRenderer {
         final ShipMaterialUniforms materialUniforms = usingBatchedShader ? ShipMaterialUniforms.forShader(shader) : null;
         final boolean useBlendedOrder = translucent && !translucentShips.isEmpty();
         final boolean depthWrite = useBlendedOrder && GL11.glGetBoolean(GL11.GL_DEPTH_WRITEMASK);
-        for (final ShipFrameData data : useBlendedOrder ? translucentShips : frameData) {
-            if (!data.visible || data.mesh == null || (data.blended && !translucent && renderType != RenderType.tripwire())) {
-                continue;
-            }
-            if (materialUniforms != null) materialUniforms.select(data.material);
-            if (translucent) {
-                if (!data.blended && data.translucentOrder.sections().isEmpty()) continue;
-                setShipTransform(data, usingBatchedShader, shipIndexLoc, modelViewUniform);
-                if (data.blended) {
-                    RenderSystem.depthMask(false);
-                    try {
-                        drawBlendedHull(data, chunkOffsetUniform, materialUniforms);
-                        drawSections(data, layerIndex, chunkOffsetUniform, materialUniforms);
-                    } finally {
-                        RenderSystem.depthMask(depthWrite);
-                    }
-                } else {
-                    drawSections(data, layerIndex, chunkOffsetUniform, materialUniforms);
-                }
-            } else {
-                final VertexBuffer buffer = data.mesh.getOpaque(layerIndex);
-                if (buffer == null) {
+        final int previousTable = materialUniforms == null ? -1 : materialUniforms.bindTable(ShipRenderViews.getMaterialTable());
+        try {
+            for (final ShipFrameData data : useBlendedOrder ? translucentShips : frameData) {
+                if (!data.visible || data.mesh == null || (data.blended && !translucent && renderType != RenderType.tripwire())) {
                     continue;
                 }
-                setShipTransform(data, usingBatchedShader, shipIndexLoc, modelViewUniform);
-                setOpaqueOrigin(data, chunkOffsetUniform, materialUniforms);
-                buffer.bind();
-                buffer.draw();
+                if (materialUniforms != null) materialUniforms.select(data.materials);
+                if (translucent) {
+                    if (!data.blended && data.translucentOrder.sections().isEmpty()) continue;
+                    setShipTransform(data, usingBatchedShader, shipIndexLoc, modelViewUniform);
+                    if (data.blended) {
+                        RenderSystem.depthMask(false);
+                        try {
+                            drawBlendedHull(data, chunkOffsetUniform, materialUniforms);
+                            drawSections(data, layerIndex, chunkOffsetUniform, materialUniforms);
+                        } finally {
+                            RenderSystem.depthMask(depthWrite);
+                        }
+                    } else {
+                        drawSections(data, layerIndex, chunkOffsetUniform, materialUniforms);
+                    }
+                } else {
+                    final VertexBuffer buffer = data.mesh.getOpaque(layerIndex);
+                    if (buffer == null) {
+                        continue;
+                    }
+                    setShipTransform(data, usingBatchedShader, shipIndexLoc, modelViewUniform);
+                    setOpaqueOrigin(data, chunkOffsetUniform, materialUniforms);
+                    buffer.bind();
+                    buffer.draw();
+                }
             }
+        } finally {
+            if (materialUniforms != null) materialUniforms.select(null);
+            ShipMaterialUniforms.restoreTable(previousTable);
         }
-        if (materialUniforms != null) materialUniforms.select(null);
 
         if (chunkOffsetUniform != null) {
             chunkOffsetUniform.set(0.0f, 0.0f, 0.0f);
@@ -329,7 +333,7 @@ public final class ShipBatchRenderer {
         for (final ShipSectionMesh section : data.translucentOrder.sections()) {
             final VertexBuffer buffer = section.getBuffer(layer);
             if (buffer == null) continue;
-            if (uniforms != null && data.material != null) {
+            if (uniforms != null && data.materials != null) {
                 uniforms.origin(section.originX - data.claimX, section.originY, section.originZ - data.claimZ);
             }
             if (chunkOffset != null) {
@@ -348,7 +352,7 @@ public final class ShipBatchRenderer {
             chunkOffset.set(data.opaqueOffsetX, data.opaqueOffsetY, data.opaqueOffsetZ);
             chunkOffset.upload();
         }
-        if (uniforms != null && data.material != null) {
+        if (uniforms != null && data.materials != null) {
             uniforms.origin(data.mesh.refX - data.claimX, data.mesh.refY, data.mesh.refZ - data.claimZ);
         }
     }
@@ -436,10 +440,8 @@ public final class ShipBatchRenderer {
             object = meshes == null ? null : meshes.get(ship.getId());
         }
         if (object == null || object.ship != ship || object.isEmpty()) return null;
-        final var viewport = ShipMaskTarget.Rect.read(GL11.GL_VIEWPORT);
-        final var bounds = ShipMaskTarget.bounds(terrain, ship.getRenderAABB(), viewport);
-        return target.render(viewport, bounds, () ->
-            ShipMaskDraw.draw(shader, terrain, ship, object.getMesh(), ShipRenderViews.materialFor(ship)));
+        return target.render(terrain, ship.getRenderAABB(), () ->
+            ShipMaskDraw.draw(shader, terrain, ship, object.getMesh(), ShipRenderViews.materialsFor(ship)));
     }
 
     private static void bindSamplerUniform(final int programId, final String name, final int unit) {
@@ -479,6 +481,7 @@ public final class ShipBatchRenderer {
             final ShipRenderObject renderObject = drawOrder.get(i);
             final ShipFrameData data = frameData.get(i);
             data.mesh = renderObject.getMesh();
+            data.materials = null;
             data.blended = false;
 
             final ClientShip ship = renderObject.ship;
@@ -500,11 +503,11 @@ public final class ShipBatchRenderer {
             data.visible = true;
 
             final ShipTransform transform = ship.getRenderTransform();
-            data.material = ShipRenderViews.materialFor(ship);
-            if (data.material != null) {
+            data.materials = ShipRenderViews.materialsFor(ship);
+            if (data.materials != null) {
                 data.claimX = ship.getChunkClaim().getXStart() << 4;
                 data.claimZ = ship.getChunkClaim().getZStart() << 4;
-                data.blended = data.material.getPass() == ShipMaterialPass.BLENDED &&
+                data.blended = data.materials.getBlended() &&
                     ShipMaterialUniforms.forShader(VSRenderTypes.Companion.getShipBatchedTranslucentShader()) != null;
                 hasBlended |= data.blended;
             }
@@ -628,6 +631,7 @@ public final class ShipBatchRenderer {
         drawOrder.clear();
         frameData.clear();
         translucentShips.clear();
+        ShipMaterialUniforms.release();
         transformStorage.delete();
         preparedFrameToken = -1;
         preparedView = null;

@@ -25,6 +25,7 @@ data class ShipMaterialSelection @JvmOverloads constructor(
     val w: Float = 0f
 )
 
+/** Non-null selections run in selector registration order. Any BLENDED selection moves the stack to that pass. */
 @Experimental
 fun interface ShipMaterialSelector {
     fun selectShipMaterial(ship: ClientShip, view: ShipRenderView): ShipMaterialSelection?

@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.common.config
 
 import org.valkyrienskies.core.api.ships.ClientShip
+import org.valkyrienskies.mod.common.render.ShipRenderConfig
 import org.valkyrienskies.mod.common.util.settings
 import org.valkyrienskies.mod.compat.LoadedMods
 import org.valkyrienskies.mod.compat.flywheel.FlywheelCompat
@@ -22,7 +23,14 @@ fun resolveShipRenderer(renderer: ShipRenderer): ShipRenderer =
     } else renderer
 
 val ClientShip.usesTerrainChunkRenderer: Boolean
-    get() = shipRenderer == ShipRenderer.VANILLA
+    get() = when (shipRenderer) {
+        ShipRenderer.VANILLA -> true
+        ShipRenderer.FLYWHEEL -> ShipRenderConfig.useTerrainForFlywheelHull()
+        ShipRenderer.BATCHED -> false
+    }
+
+val ClientShip.usesFlywheelHull: Boolean
+    get() = shipRenderer == ShipRenderer.FLYWHEEL && !ShipRenderConfig.useTerrainForFlywheelHull()
 
 val ClientShip.usesBatchedRenderer: Boolean
     get() = shipRenderer == ShipRenderer.BATCHED

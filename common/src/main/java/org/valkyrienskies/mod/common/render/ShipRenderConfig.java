@@ -1,6 +1,7 @@
 package org.valkyrienskies.mod.common.render;
 
 import net.minecraft.client.Minecraft;
+import org.valkyrienskies.mod.client.render.ShipRenderViews;
 import net.minecraft.client.multiplayer.ClientLevel;
 import org.valkyrienskies.mod.common.config.ShipRenderer;
 import org.valkyrienskies.mod.common.config.ShipRendererKt;
@@ -17,20 +18,32 @@ import org.valkyrienskies.mod.mixin.ValkyrienCommonMixinConfigPlugin;
 /** Apply config changes before a render path can use old meshes or light data. */
 public final class ShipRenderConfig {
     private record State(ShipRenderer renderer, boolean shade, boolean biome, boolean light,
-        boolean emitters, boolean shadows, boolean tint, boolean shaderPack, double bakedShade) { }
+        boolean emitters, boolean shadows, boolean tint, boolean shaderPack, boolean terrainForFlywheel, double bakedShade) { }
     private static ClientLevel currentLevel;
     private static State previous;
+    private static ClientLevel flywheelMaskLevel;
+
+    public static void requestFlywheelMask(final ClientLevel level) {
+        flywheelMaskLevel = level;
+    }
 
     private ShipRenderConfig() { }
 
+    public static boolean useTerrainForFlywheelHull() {
+        return previous != null && previous.terrainForFlywheel();
+    }
+
     public static void update(final ClientLevel level) {
         final var config = VSGameConfig.CLIENT;
+        if (flywheelMaskLevel != level || !ShipRenderViews.hasOverlayListeners()) flywheelMaskLevel = null;
+        final boolean shaderPack = LoadedMods.getIris() && IrisCompat.isIrisShaderActive();
         final State state = new State(ShipRendererKt.resolveShipRenderer(config.getDefaultRenderer()),
             config.getBetterVanillaShipShading(), config.getDynamicShipBiomeTinting(),
             config.getDynamicShipLighting(), config.isShipToWorldLightingEnabled(),
             config.getShipShadows() && config.getShipShadowStrength() > 0.0,
             config.getBlockTinting().getFixBlockTinting(),
-            LoadedMods.getIris() && IrisCompat.isIrisShaderActive(),
+            shaderPack, !shaderPack && LoadedMods.getFlywheel() == LoadedMods.FlywheelVersion.V1 &&
+                (ShipRenderViews.hasMaterialSelectors() || (level != null && flywheelMaskLevel == level)),
             config.getBetterVanillaShipShading() ? 0.0 : config.getShipShadeStrength());
         final boolean sameLevel = currentLevel == level;
         final boolean configChanged = previous != null && !previous.equals(state);

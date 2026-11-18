@@ -26,6 +26,14 @@ uniform usamplerBuffer u_VsBiomeSections;
 uniform usamplerBuffer u_VsBiomeLut;
 #endif
 
+#ifdef VS_NATIVE_SHIP_COLOR
+uniform sampler2D u_LightTex;
+#endif
+#ifdef VS_MATERIAL_TERRAIN
+uniform vec3 vs_MaterialOrigin;
+out vec3 vs_ShipPos;
+#endif
+
 out vec4 v_Color;
 out vec2 v_TexCoord;
 out vec2 v_BakedLightCoord;
@@ -147,6 +155,9 @@ void main() {
 
     vec3 translation = u_RegionOffset + _get_draw_translation(_draw_id);
     vec3 position = _vert_position + translation;
+#ifdef VS_MATERIAL_TERRAIN
+    vs_ShipPos = position + vs_MaterialOrigin;
+#endif
 
 #if defined(VS_DYNAMIC_LIGHT) || defined(VS_SHIP_ON_SHIP)
     // Camera-relative world position. The fragment adds u_VsRenderOrigin to
@@ -174,7 +185,11 @@ void main() {
     v_IsShaded = (faceSlot < 6u) ? 1 : 0;
     v_IsFullbright = (faceSlot == 7u) ? 1 : 0;
     float aoFloat = float(aoLevel) * 0.2;
+#ifdef VS_NATIVE_SHIP_COLOR
+    v_Color = _vert_color * texture(u_LightTex, clamp(v_BakedLightCoord, vec2(0.5 / 16.0), vec2(15.5 / 16.0)));
+#else
     v_Color = vec4(_vert_color.rgb, aoFloat);
+#endif
 
 #if defined(VS_DYNAMIC_LIGHT) || defined(VS_DYNAMIC_SHADE) || defined(VS_SHIP_ON_SHIP)
     // World-space surface normal: shipyard-space face direction transformed by

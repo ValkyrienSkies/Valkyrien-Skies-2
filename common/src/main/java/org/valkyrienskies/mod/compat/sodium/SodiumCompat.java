@@ -27,6 +27,7 @@ import me.jellysquid.mods.sodium.client.render.viewport.Viewport;
 import me.jellysquid.mods.sodium.client.render.texture.SpriteUtil;
 import me.jellysquid.mods.sodium.client.util.iterator.ByteIterator;
 import net.minecraft.client.Minecraft;
+import org.valkyrienskies.mod.mixin.accessors.client.render.LightTextureAccessor;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.culling.Frustum;
@@ -37,6 +38,10 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
+import me.jellysquid.mods.sodium.client.gl.shader.ShaderParser;
+import org.valkyrienskies.mod.client.render.ShipMaterialStack;
+import org.valkyrienskies.mod.client.render.ShipMaterials;
+import org.valkyrienskies.mod.common.render.batched.ShipMaterialUniforms;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -53,6 +58,10 @@ import org.valkyrienskies.core.api.ships.properties.ShipTransform;
 import org.valkyrienskies.mod.common.config.ShipRendererKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.render.batched.ShipBatchRenderer;
+import org.valkyrienskies.mod.common.render.batched.ShipMaskBindings;
+import org.valkyrienskies.mod.common.render.batched.ShipMaskTarget;
+import org.valkyrienskies.mod.client.render.ShipMaskTerrain;
+import org.valkyrienskies.mod.api.render.ShipGeometryMask;
 import org.valkyrienskies.mod.common.render.batched.ShipSectionMesh;
 import org.valkyrienskies.mod.common.render.light.ShipShadowRenderer;
 import org.valkyrienskies.mod.common.render.batched.ShipRenderFrustum;
@@ -93,6 +102,22 @@ public class SodiumCompat {
 
     /** Bit flags for VS-specific shader feature defines. Package-visible because
      * {@link ShipThing} needs them at construction to decide which uniforms to bind. */
+    private static final int FEATURE_MATERIAL = 16;
+    private static final int FEATURE_MASK = 32;
+    private static int maskMode;
+    private static final TerrainRenderPass MASK_PASS = new TerrainRenderPass(RenderType.solid(), false, false) {
+        @Override public void startDrawing() { }
+        @Override public void endDrawing() { }
+    };
+    private static ShipMaterialStack currentMaterials;
+    private static final Vector3d materialOrigin = new Vector3d();
+    private static int previousMaterialTexture = -1;
+
+    public static TerrainRenderPass drawingPass(TerrainRenderPass source) {
+        if (maskMode != 0) return MASK_PASS;
+        return currentMaterials != null && currentMaterials.getBlended() ? DefaultTerrainRenderPasses.TRANSLUCENT : source;
+    }
+
     static final int FEATURE_BIOME = 1;
     static final int FEATURE_LIGHT = 2;
     static final int FEATURE_SHADE = 4;
@@ -288,7 +313,7 @@ public class SodiumCompat {
     }
 
     public static GlProgram<ChunkShaderInterface> getOrCreateShipProgram(ChunkShaderOptions options) {
-        int features = computeFeatureBits();
+        int features = computeFeatureBits() | (currentMaterials == null ? 0 : FEATURE_MATERIAL) | (maskMode == 0 ? 0 : FEATURE_MASK);
         ShaderCacheKey key = new ShaderCacheKey(options, features);
         GlProgram<ShipThing> program = cachedPrograms.get(key);
         if (program == null) {
@@ -308,14 +333,8 @@ public class SodiumCompat {
         return bits;
     }
 
-    /**
-     * True iff at least one of the three ship-shader features is enabled. When
-     * false there's no reason to swap in the VS ship shader at all — the
-     * mesher mixin's gates fall through to sodium's native byte format and
-     * sodium's stock chunk shader can render ship blocks correctly.
-     */
     public static boolean anyShipShaderFeatureEnabled() {
-        return computeFeatureBits() != 0;
+        return maskMode != 0 || currentMaterials != null || computeFeatureBits() != 0;
     }
 
     public static void setupShipShaderState(GlProgram<ChunkShaderInterface> program, ChunkRenderMatrices matrices, Matrix4fc transformMatrix) {
@@ -323,6 +342,19 @@ public class SodiumCompat {
             GL11.glGetInteger(GL20.GL_CURRENT_PROGRAM));
         ShipThing shipInterface = (ShipThing) program.getInterface();
         shipInterface.setupState();
+        if (maskMode != 0) GL20.glUniform1i(GL20.glGetUniformLocation(program.handle(), "vs_MaskMode"), maskMode);
+        if (currentMaterials != null) {
+            if (shipInterface.materials == null) shipInterface.materials = new ShipMaterialUniforms(program.handle());
+            final var uniforms = shipInterface.materials;
+            previousMaterialTexture = uniforms.bindTable(currentMaterials.getTable(), ShipMaterialUniforms.TERRAIN_TEXTURE_UNIT);
+            uniforms.select(currentMaterials);
+            uniforms.origin((float) materialOrigin.x, (float) materialOrigin.y, (float) materialOrigin.z);
+            if (maskMode == 0 && currentMaterials.getBlended()) {
+                RenderSystem.enableBlend();
+                RenderSystem.defaultBlendFunc();
+                RenderSystem.depthMask(false);
+            }
+        }
         // Set projection and model-view matrices
         shipInterface.setProjectionMatrix(matrices.projection());
         shipInterface.setModelViewMatrix(matrices.modelView());
@@ -424,94 +456,125 @@ public class SodiumCompat {
         final boolean dynamicBiome = VSGameConfig.CLIENT.getDynamicShipBiomeTinting();
         final VsShipLightStorage storage = dynamicLight ? getLightStorage() : null;
         final VsShipBiomeColorStorage biomeStorageLocal = dynamicBiome ? getBiomeStorage() : null;
-        final ArrayList<ClientShip> renderableShips = new ArrayList<>();
-        final ArrayList<SortedRenderLists> renderableRenderLists = new ArrayList<>();
-        ((RenderSectionManagerDuck) renderSectionManager).vs_getShipRenderLists().forEach((ship, renderList) -> {
-            if (ShipRenderViews.shouldRenderShip(ship) && hasRenderableGeometryForPass(renderList, pass)) {
-                renderableShips.add(ship);
-                renderableRenderLists.add(renderList);
+        final var lists = ((RenderSectionManagerDuck) renderSectionManager).vs_getShipRenderLists();
+        final boolean materialsEnabled = ShipRenderViews.getMaterialTable() != null &&
+            !(LoadedMods.getIris() && IrisCompat.isIrisShaderActive());
+        final var renderableShips = new ArrayList<ClientShip>();
+        boolean sort = false;
+        for (final var entry : lists.entrySet()) {
+            final var ship = entry.getKey();
+            if (!ShipRenderViews.shouldRenderShip(ship)) continue;
+            final var stack = materialsEnabled ? ShipRenderViews.materialsFor(ship) : null;
+            if (stack != null && stack.getBlended()) {
+                if (pass != DefaultTerrainRenderPasses.TRANSLUCENT) continue;
+                sort = true;
+            } else if (!hasRenderableGeometryForPass(entry.getValue(), pass)) continue;
+            renderableShips.add(ship);
+        }
+        if (sort) renderableShips.sort((a, b) -> Double.compare(
+            b.getRenderTransform().getPosition().distanceSquared(x, y, z),
+            a.getRenderTransform().getPosition().distanceSquared(x, y, z)));
+        for (final var ship : renderableShips) {
+            final var list = lists.get(ship);
+            final var stack = materialsEnabled ? ShipRenderViews.materialsFor(ship) : null;
+            if (stack != null && stack.getBlended()) {
+                for (final var source : DefaultTerrainRenderPasses.ALL) {
+                    if (source == pass || !hasRenderableGeometryForPass(list, source)) continue;
+                    drawShipPass(renderSectionManager, matrices, source, x, y, z, commandList, ship, list, stack, storage, biomeStorageLocal);
+                }
+                if (!hasRenderableGeometryForPass(list, pass)) continue;
             }
-        });
-        if (renderableShips.isEmpty()) {
-            return;
+            drawShipPass(renderSectionManager, matrices, pass, x, y, z, commandList, ship, list, stack, storage, biomeStorageLocal);
+        }
+    }
+
+    private static void drawShipPass(RenderSectionManager renderSectionManager, ChunkRenderMatrices matrices,
+        TerrainRenderPass pass, double x, double y, double z, CommandList commandList, ClientShip ship,
+        SortedRenderLists renderList, ShipMaterialStack materials, VsShipLightStorage storage,
+        VsShipBiomeColorStorage biomeStorageLocal) {
+        if (maskMode == 0) VSGameEvents.INSTANCE.getRenderShipSodium().emit(new ShipRenderEventSodium(pass, matrices, x, y, z, ship, renderList));
+        final ShipTransform shipTransform = ship.getRenderTransform();
+
+        final float distanceScaling = 1 / (float) shipTransform.getShipToWorldScaling().x();
+        final float initialFogStart = RenderSystem.getShaderFogStart();
+        final float initialFogEnd = RenderSystem.getShaderFogEnd();
+
+        if (distanceScaling != 1f) {
+            RenderSystem.setShaderFogStart(initialFogStart * distanceScaling);
+            RenderSystem.setShaderFogEnd(initialFogEnd * distanceScaling);
         }
 
-        for (int i = 0; i < renderableShips.size(); i++) {
-            final ClientShip ship = renderableShips.get(i);
-            final SortedRenderLists renderList = renderableRenderLists.get(i);
-            VSGameEvents.INSTANCE.getRenderShipSodium().emit(new ShipRenderEventSodium(pass, matrices, x, y, z, ship, renderList));
-            final ShipTransform shipTransform = ship.getRenderTransform();
+        final Vector3dc cameraShipSpace = shipTransform.getWorldToShip().transformPosition(new Vector3d(x, y, z));
+        final Matrix4dc s = ship.getRenderTransform().getShipToWorld();
+        final Matrix4d newModelView = new Matrix4d(matrices.modelView())
+            .translate(-x, -y, -z)
+            .mul(s)
+            .translate(cameraShipSpace);
 
-            final float distanceScaling = 1 / (float) shipTransform.getShipToWorldScaling().x();
-            final float initialFogStart = RenderSystem.getShaderFogStart();
-            final float initialFogEnd = RenderSystem.getShaderFogEnd();
+        // Build a precision-friendly matrix that maps a sodium-chunk-local vertex
+        // pos to (worldPos - renderOrigin), where renderOrigin is the integer
+        // camera world block position. Combined with the ivec3 renderOrigin
+        // uniform, the shader can reconstruct an exact world block pos for the
+        // flywheel-style light fetch.
+        //
+        // We want `M * p = worldPos - origin = S*(p + cameraShipSpace) - origin`.
+        // To stay precision-friendly when origin can be ~30M, we build:
+        //   T(camera-origin) * T(-camera) * S * T(cameraShipSpace)
+        // = T(-origin) * S * T(cameraShipSpace)
+        // where the FINAL translation column equals (cameraWorld - origin) ~= frac
+        // and is therefore safe to truncate to float.
+        final int originX = (int) Math.floor(x);
+        final int originY = (int) Math.floor(y);
+        final int originZ = (int) Math.floor(z);
+        final Matrix4d localToCameraRel = new Matrix4d()
+            .translate(x - originX, y - originY, z - originZ)
+            .translate(-x, -y, -z)
+            .mul(s)
+            .translate(cameraShipSpace);
 
-            if (distanceScaling != 1f) {
-                RenderSystem.setShaderFogStart(initialFogStart * distanceScaling);
-                RenderSystem.setShaderFogEnd(initialFogEnd * distanceScaling);
-            }
+        final ChunkRenderMatrices newMatrices =
+            new ChunkRenderMatrices(matrices.projection(), new Matrix4f(newModelView));
+        DefaultChunkRenderer chunkRenderer = (DefaultChunkRenderer) ((RenderSectionManagerAccessor) renderSectionManager).getChunkRenderer();
 
-            final Vector3dc cameraShipSpace = shipTransform.getWorldToShip().transformPosition(new Vector3d(x, y, z));
-            final Matrix4dc s = ship.getRenderTransform().getShipToWorld();
-            final Matrix4d newModelView = new Matrix4d(matrices.modelView())
-                .translate(-x, -y, -z)
-                .mul(s)
-                .translate(cameraShipSpace);
+        // Stash uniforms for the mixin's redirected begin() to consume
+        pushTransform(new Matrix4f(s));
+        pushLocalToWorld(new Matrix4f(localToCameraRel));
+        pushRenderOrigin(originX, originY, originZ);
+        IS_RENDERING_SHIP.set(true);
 
-            // Build a precision-friendly matrix that maps a sodium-chunk-local vertex
-            // pos to (worldPos - renderOrigin), where renderOrigin is the integer
-            // camera world block position. Combined with the ivec3 renderOrigin
-            // uniform, the shader can reconstruct an exact world block pos for the
-            // flywheel-style light fetch.
-            //
-            // We want `M * p = worldPos - origin = S*(p + cameraShipSpace) - origin`.
-            // To stay precision-friendly when origin can be ~30M, we build:
-            //   T(camera-origin) * T(-camera) * S * T(cameraShipSpace)
-            // = T(-origin) * S * T(cameraShipSpace)
-            // where the FINAL translation column equals (cameraWorld - origin) ~= frac
-            // and is therefore safe to truncate to float.
-            final int originX = (int) Math.floor(x);
-            final int originY = (int) Math.floor(y);
-            final int originZ = (int) Math.floor(z);
-            final Matrix4d localToCameraRel = new Matrix4d()
-                .translate(x - originX, y - originY, z - originZ)
-                .translate(-x, -y, -z)
-                .mul(s)
-                .translate(cameraShipSpace);
+        // Bind the world-light + biome-color buffer textures so the ship
+        // shader can sample them. Bound only when the corresponding feature
+        // is enabled; the shaders' #ifdef gates ensure the matching sampler
+        // is never read when its feature is off.
+        if (storage != null) storage.bind(LIGHT_SECTIONS_TEXTURE_UNIT, LIGHT_LUT_TEXTURE_UNIT);
+        if (biomeStorageLocal != null) biomeStorageLocal.bind(BIOME_SECTIONS_TEXTURE_UNIT, BIOME_LUT_TEXTURE_UNIT);
+        // Same world-from-ship storage the world chunk shader queries —
+        // bound here so the ship shader can read it for ship-on-ship.
+        if (VSGameConfig.CLIENT.isShipToWorldLightingEnabled()) {
+            getShipEmitterList().bind(SHIP_EMITTER_LIST_TEXTURE_UNIT);
+        }
 
-            final ChunkRenderMatrices newMatrices =
-                new ChunkRenderMatrices(matrices.projection(), new Matrix4f(newModelView));
-            DefaultChunkRenderer chunkRenderer = (DefaultChunkRenderer) ((RenderSectionManagerAccessor) renderSectionManager).getChunkRenderer();
-
-            // Stash uniforms for the mixin's redirected begin() to consume
-            pushTransform(new Matrix4f(s));
-            pushLocalToWorld(new Matrix4f(localToCameraRel));
-            pushRenderOrigin(originX, originY, originZ);
-            IS_RENDERING_SHIP.set(true);
-
-            // Bind the world-light + biome-color buffer textures so the ship
-            // shader can sample them. Bound only when the corresponding feature
-            // is enabled; the shaders' #ifdef gates ensure the matching sampler
-            // is never read when its feature is off.
-            if (storage != null) storage.bind(LIGHT_SECTIONS_TEXTURE_UNIT, LIGHT_LUT_TEXTURE_UNIT);
-            if (biomeStorageLocal != null) biomeStorageLocal.bind(BIOME_SECTIONS_TEXTURE_UNIT, BIOME_LUT_TEXTURE_UNIT);
-            // Same world-from-ship storage the world chunk shader queries —
-            // bound here so the ship shader can read it for ship-on-ship.
-            if (VSGameConfig.CLIENT.isShipToWorldLightingEnabled()) {
-                getShipEmitterList().bind(SHIP_EMITTER_LIST_TEXTURE_UNIT);
-            }
-
+        final boolean blended = maskMode == 0 && materials != null && materials.getBlended();
+        final boolean depthWrite = blended && GL11.glGetBoolean(GL11.GL_DEPTH_WRITEMASK);
+        currentMaterials = materials;
+        if (materials != null) materialOrigin.set(cameraShipSpace).sub(
+            ship.getChunkClaim().getXStart() << 4, 0, ship.getChunkClaim().getZStart() << 4);
+        try {
             chunkRenderer.render(newMatrices, commandList, renderList, pass,
                 new CameraTransform(cameraShipSpace.x(), cameraShipSpace.y(), cameraShipSpace.z()));
+        } finally {
+            ShipMaterialUniforms.restoreTable(previousMaterialTexture, ShipMaterialUniforms.TERRAIN_TEXTURE_UNIT);
+            previousMaterialTexture = -1;
+            currentMaterials = null;
             IS_RENDERING_SHIP.set(false);
-
-             if (distanceScaling != 1f) {
+            if (blended) RenderSystem.depthMask(depthWrite);
+            if (distanceScaling != 1f) {
                 RenderSystem.setShaderFogStart(initialFogStart);
                 RenderSystem.setShaderFogEnd(initialFogEnd);
             }
-
-            VSGameEvents.INSTANCE.getPostRenderShipSodium().emit(new ShipRenderEventSodium(pass, matrices, x, y, z, ship, renderList));
         }
+
+        if (maskMode == 0) VSGameEvents.INSTANCE.getPostRenderShipSodium().emit(new ShipRenderEventSodium(pass, matrices, x, y, z, ship, renderList));
     }
 
     private static boolean hasRenderableGeometryForPass(final SortedRenderLists renderList, final TerrainRenderPass pass) {
@@ -554,6 +617,45 @@ public class SodiumCompat {
             renderShipsForPass(renderSectionManager, matrices, DefaultTerrainRenderPasses.TRANSLUCENT, x, y, z);
         }
         renderBatchedShips(renderLayer, matrices, x, y, z);
+        if (renderLayer == RenderType.solid() && ShipRenderViews.hasOverlayListeners()
+            && !(LoadedMods.getIris() && IrisCompat.isIrisShaderActive())) {
+            final PoseStack pose = new PoseStack();
+            pose.last().pose().set(matrices.modelView());
+            ShipRenderViews.recordNativeTerrain(pose, new Matrix4f(matrices.projection()), x, y, z,
+                (target, ship, terrain) -> geometryMask(renderSectionManager, target, ship, terrain));
+        }
+    }
+
+    private static ShipGeometryMask geometryMask(final RenderSectionManager manager, final ShipMaskTarget target,
+        final ClientShip ship, final ShipMaskTerrain terrain) {
+        final var list = ((RenderSectionManagerDuck) manager).vs_getShipRenderLists().get(ship);
+        if (list == null) return null;
+        final var matrices = new ChunkRenderMatrices(terrain.getProjection(), terrain.getModelView());
+        final var materials = ShipRenderViews.materialsFor(ship);
+        return target.render(terrain, ship.getRenderAABB(), () -> {
+            try (var bindings = new ShipMaskBindings(true, true)) {
+                final int atlas = RenderSystem.getShaderTexture(0);
+                final int lightmap = RenderSystem.getShaderTexture(2);
+                final var minecraft = Minecraft.getInstance();
+                RenderDevice.enterManagedCode();
+                try (var commands = RenderDevice.INSTANCE.createCommandList()) {
+                    RenderSystem.setShaderTexture(0, TextureAtlas.LOCATION_BLOCKS);
+                    RenderSystem.setShaderTexture(2, ((LightTextureAccessor) minecraft.gameRenderer.lightTexture()).vs$getLightTexture().getId());
+                    for (final var pass : DefaultTerrainRenderPasses.ALL) {
+                        if (!hasRenderableGeometryForPass(list, pass)) continue;
+                        maskMode = pass == DefaultTerrainRenderPasses.TRANSLUCENT || (materials != null && materials.getBlended()) ? 2 : 1;
+                        drawShipPass(manager, matrices, pass, terrain.getX(), terrain.getY(), terrain.getZ(), commands,
+                            ship, list, materials, VSGameConfig.CLIENT.getDynamicShipLighting() ? getLightStorage() : null,
+                            VSGameConfig.CLIENT.getDynamicShipBiomeTinting() ? getBiomeStorage() : null);
+                    }
+                } finally {
+                    maskMode = 0;
+                    RenderSystem.setShaderTexture(0, atlas);
+                    RenderSystem.setShaderTexture(2, lightmap);
+                    RenderDevice.exitManagedCode();
+                }
+            }
+        });
     }
 
     public static void renderBatchedShips(RenderType renderLayer, ChunkRenderMatrices matrices,
@@ -715,10 +817,16 @@ public class SodiumCompat {
         GlShader vertShader = ShaderLoader.loadShader(ShaderType.VERTEX,
                 new ResourceLocation("valkyrienskies", path + ".vsh"), constants);
         
-        GlShader fragShader = ShaderLoader.loadShader(ShaderType.FRAGMENT,
-                new ResourceLocation("valkyrienskies", path + ".fsh"), constants);
-
+        final ResourceLocation fragment = new ResourceLocation("valkyrienskies", path + ".fsh");
+        GlShader fragShader = null;
         try {
+            if ((features & FEATURE_MATERIAL) != 0) {
+                final String source = ShipMaterials.terrainFragment(Minecraft.getInstance().getResourceManager(),
+                    ShaderLoader.getShaderSource(fragment));
+                fragShader = new GlShader(ShaderType.FRAGMENT, fragment, ShaderParser.parseShader(source, constants));
+            } else {
+                fragShader = ShaderLoader.loadShader(ShaderType.FRAGMENT, fragment, constants);
+            }
             return GlProgram.builder(new ResourceLocation("valkyrienskies", "chunk_shader"))
                     .attachShader(vertShader)
                     .attachShader(fragShader)
@@ -730,13 +838,14 @@ public class SodiumCompat {
                     .link((shader) -> new ShipThing(shader, options, features));
         } finally {
             vertShader.delete();
-            fragShader.delete();
+            if (fragShader != null) fragShader.delete();
         }
     }
 
     private static ShaderConstants createShipShaderConstants(ChunkShaderOptions options, int features) {
         ShaderConstants.Builder builder = ShaderConstants.builder();
 
+        final boolean nativeColor = (features & ~(FEATURE_MATERIAL | FEATURE_MASK)) == 0;
         for (String define : options.constants().getDefineStrings()) {
             String[] parts = define.split("\\s+", 3);
             if (parts.length < 2 || !"#define".equals(parts[0])) {
@@ -744,7 +853,7 @@ public class SodiumCompat {
             }
 
             String name = parts[1];
-            if ("USE_VANILLA_COLOR_FORMAT".equals(name)) {
+            if (!nativeColor && "USE_VANILLA_COLOR_FORMAT".equals(name)) {
                 continue;
             }
 
@@ -762,6 +871,9 @@ public class SodiumCompat {
         if ((features & FEATURE_SHADE) != 0) builder.add("VS_DYNAMIC_SHADE");
         if ((features & FEATURE_SHIP_ON_SHIP) != 0) builder.add("VS_SHIP_ON_SHIP");
 
+        if ((features & FEATURE_MASK) != 0) builder.add("VS_TERRAIN_MASK");
+        if (nativeColor) builder.add("VS_NATIVE_SHIP_COLOR");
+        if ((features & FEATURE_MATERIAL) != 0) builder.add("VS_MATERIAL_TERRAIN");
         return builder.build();
     }
 }

@@ -1,0 +1,5 @@
+{
+  "vertex": "rendertype_ship_solid",
+  "fragment": "rendertype_ship_terrain_mask",
+  "attributes": ["Position", "Color", "UV0", "UV2", "Normal"]
+}

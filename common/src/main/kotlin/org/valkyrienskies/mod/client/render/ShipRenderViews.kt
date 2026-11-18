@@ -21,6 +21,9 @@ import org.valkyrienskies.mod.common.render.batched.ShipBatchRenderer
 import org.valkyrienskies.mod.common.render.batched.ShipMaskTarget
 import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.util.toMinecraft
+import org.valkyrienskies.mod.common.config.ShipRenderer
+import org.valkyrienskies.mod.common.config.shipRenderer
+import org.valkyrienskies.mod.common.render.ShipRenderConfig
 import java.util.ArrayDeque
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.function.Supplier
@@ -28,8 +31,10 @@ import java.util.function.Supplier
 object ShipRenderViews {
     private class Frame(val view: ShipRenderView, val ships: Supplier<Iterable<ClientShip>>) {
         var hidden: Set<ClientShip> = emptySet()
-        var materials: Map<ClientShip, ShipMaterialSelection> = emptyMap()
+        var materialTable: ShipMaterialTable? = null
+        var materials: Map<ClientShip, ShipMaterialStack> = emptyMap()
         var renderedOverlays = false
+        var nativeMask: ShipTerrainMaskRenderer? = null
         var terrain: ShipMaskTerrain? = null
         var maskTargets: MutableList<ShipMaskTarget>? = null
 
@@ -51,6 +56,9 @@ object ShipRenderViews {
     @JvmStatic val cameraPosition get() = (current?.camera ?: Minecraft.getInstance().gameRenderer.mainCamera).position
     @JvmStatic val renderLevel get() = current?.level ?: Minecraft.getInstance().level
 
+    @get:JvmStatic @get:JvmName("getMaterialTable")
+    internal val materialTable get() = active.get()?.materialTable
+
     @JvmStatic fun hasHiddenShips(): Boolean = active.get()?.hidden?.isNotEmpty() == true
 
     fun register(predicate: ShipRenderPredicate): RegisteredListener {
@@ -62,6 +70,8 @@ object ShipRenderViews {
     @JvmStatic
     fun shouldRenderShip(ship: ClientShip): Boolean = active.get()?.hidden?.contains(ship) != true
 
+    @JvmStatic fun hasMaterialSelectors(): Boolean = selectors.isNotEmpty()
+
     fun registerSelector(selector: ShipMaterialSelector): RegisteredListener {
         val listener = ShipMaterialSelector(selector::selectShipMaterial)
         selectors.add(listener)
@@ -69,7 +79,18 @@ object ShipRenderViews {
     }
 
     @JvmStatic
-    fun materialFor(ship: ClientShip): ShipMaterialSelection? = active.get()?.materials?.get(ship)
+    @JvmName("materialsFor")
+    internal fun materialsFor(ship: ClientShip): ShipMaterialStack? = active.get()?.materials?.get(ship)
+
+    @JvmStatic fun hasOverlayListeners(): Boolean = overlays.hasListeners
+
+    @JvmStatic
+    @JvmName("recordNativeTerrain")
+    internal fun recordNativeTerrain(pose: PoseStack, projection: Matrix4f, x: Double, y: Double, z: Double,
+                                    renderer: ShipTerrainMaskRenderer) {
+        recordTerrain(pose, projection, x, y, z)
+        active.get()?.nativeMask = renderer
+    }
 
     @JvmStatic
     fun recordTerrain(pose: PoseStack, projection: Matrix4f, x: Double, y: Double, z: Double) {
@@ -93,12 +114,16 @@ object ShipRenderViews {
                 }
             }
             if (materialSelectors != null) {
+                val table = ShipMaterialTable()
+                val selections = ArrayList<ShipMaterialSelection>(materialSelectors.size)
                 frame.materials = buildMap {
                     for (ship in frame.visibleShips()) {
-                        val selection = materialSelectors.firstNotNullOfOrNull { it.selectShipMaterial(ship, view) }
-                        if (selection != null) put(ship, selection)
+                        selections.clear()
+                        materialSelectors.mapNotNullTo(selections) { it.selectShipMaterial(ship, view) }
+                        if (selections.isNotEmpty()) put(ship, table.append(selections))
                     }
                 }
+                if (frame.materials.isNotEmpty()) frame.materialTable = table
             }
             draw.run()
         } finally {
@@ -158,7 +183,17 @@ object ShipRenderViews {
             val terrain = frame.terrain ?: return null
             val target = ShipMaskTarget.acquire()
             try {
-                mask = ShipBatchRenderer.INSTANCE.geometryMask(target, ship, view, terrain)
+                val native = frame.nativeMask
+                val renderer = if (native == null) ShipRenderer.BATCHED else ship.shipRenderer
+                mask = if (native == null || renderer == ShipRenderer.BATCHED) {
+                    ShipBatchRenderer.INSTANCE.geometryMask(target, ship, view, terrain)
+                } else {
+                    if (renderer == ShipRenderer.FLYWHEEL) {
+                        ShipRenderConfig.requestFlywheelMask(view.level)
+                        if (!ShipRenderConfig.useTerrainForFlywheelHull()) return null
+                    }
+                    native.render(target, ship, terrain)
+                }
                 if (mask != null) {
                     val targets = frame.maskTargets ?: ArrayList<ShipMaskTarget>().also { frame.maskTargets = it }
                     targets.add(target)

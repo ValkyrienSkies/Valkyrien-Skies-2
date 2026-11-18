@@ -406,6 +406,12 @@ class ValkyrienSkiesModForge {
         event.registerShader(
             ShaderInstance(event.resourceProvider, "rendertype_ship_batched_mask", DefaultVertexFormat.BLOCK)
         ) { VSRenderTypes.shipMaskShader = it }
+        event.registerShader(
+            ShaderInstance(event.resourceProvider, "rendertype_ship_material", DefaultVertexFormat.BLOCK)
+        ) { VSRenderTypes.shipMaterialShader = it }
+        event.registerShader(
+            ShaderInstance(event.resourceProvider, "rendertype_ship_terrain_mask", DefaultVertexFormat.BLOCK)
+        ) { VSRenderTypes.shipTerrainMaskShader = it }
     }
 
     private fun tagsUpdated(event: TagsUpdatedEvent) {
