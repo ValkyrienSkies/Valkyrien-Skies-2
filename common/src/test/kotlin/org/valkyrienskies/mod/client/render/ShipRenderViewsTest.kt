@@ -6,6 +6,7 @@ import net.minecraft.SharedConstants
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.Bootstrap
+import net.minecraft.world.phys.Vec3
 import net.minecraft.world.phys.AABB
 import org.joml.primitives.AABBd
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -102,8 +103,16 @@ class ShipRenderViewsTest {
 
     @Test
     fun nestedCameraHasItsOwnDecisionAndRestoresTheOuterViewAfterFailure() {
-        val main = mockk<ShipRenderView>()
-        val camera = mockk<ShipRenderView>()
+        val mainLevel = mockk<ClientLevel>()
+        val otherLevel = mockk<ClientLevel>()
+        val main = mockk<ShipRenderView> {
+            every { this@mockk.camera.position } returns Vec3(1.0, 2.0, 3.0)
+            every { level } returns mainLevel
+        }
+        val camera = mockk<ShipRenderView> {
+            every { this@mockk.camera.position } returns Vec3(1000.0, 2.0, 3.0)
+            every { level } returns otherLevel
+        }
         val ship = mockk<ClientShip>()
         val calls = mutableListOf<ShipRenderView>()
         val filter = api.registerShipRenderPredicate { candidate, view ->
@@ -118,10 +127,14 @@ class ShipRenderViewsTest {
                 repeat(3) { assertFalse(ShipRenderViews.shouldRenderShip(ship)) }
                 assertThrows(IllegalStateException::class.java) {
                     ShipRenderViews.render(camera, { listOf(ship) }) {
+                        assertSame(otherLevel, ShipRenderViews.renderLevel)
+                        assertEquals(camera.camera.position, ShipRenderViews.cameraPosition)
                         assertTrue(ShipRenderViews.shouldRenderShip(ship))
                         error("camera render failed")
                     }
                 }
+                assertSame(mainLevel, ShipRenderViews.renderLevel)
+                assertEquals(main.camera.position, ShipRenderViews.cameraPosition)
                 assertSame(main, api.currentShipRenderView)
                 assertFalse(ShipRenderViews.shouldRenderShip(ship))
             }

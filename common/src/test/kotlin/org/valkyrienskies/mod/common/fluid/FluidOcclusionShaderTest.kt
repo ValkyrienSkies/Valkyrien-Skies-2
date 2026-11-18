@@ -30,6 +30,7 @@ import org.valkyrienskies.core.internal.physics.VsiFluidFloodedVoxel
 import org.valkyrienskies.core.internal.physics.VsiFluidGameplaySnapshot
 import org.valkyrienskies.core.internal.physics.VsiFluidTopologyVoxel
 import org.valkyrienskies.core.internal.world.VsiClientShipWorld
+import org.valkyrienskies.mod.common.dimensionId
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.config.VSGameConfig
 import net.minecraft.client.Minecraft
@@ -471,6 +472,7 @@ class FluidOcclusionShaderTest {
         val vao = glGenVertexArrays()
         mockkStatic("org.valkyrienskies.mod.common.VSGameUtilsKt")
         mockkStatic(Minecraft::class)
+        every { level.dimensionId } returns "test:primary"
         every { level.shipObjectWorld } returns world
         every { Minecraft.getInstance() } returns minecraft
         every { minecraft.getTextureAtlas(any()) } returns Function { sprite }
@@ -481,6 +483,7 @@ class FluidOcclusionShaderTest {
         fun add(id: Long, transform: Matrix4d, fill: Int = 0) {
             val ship = mockk<ClientShip>(relaxed = true)
             every { ship.id } returns id
+            every { ship.chunkClaimDimension } returns "test:primary"
             every { ship.renderTransform.shipToWorld } answers { poses.getValue(id) }
             every { ship.renderTransform.worldToShip } answers { Matrix4d(poses.getValue(id)).invert() }
             every { ship.renderAABB } answers {
@@ -534,6 +537,12 @@ class FluidOcclusionShaderTest {
             bindProgram(shader)
             assertEquals(40 - directSlots, glGetUniformi(shader, glGetUniformLocation(shader, "VsFluidOverflowCount")))
             for (point in queries.values) pixel(shader, point, true)
+            val otherDimension = ships.first()
+            every { otherDimension.chunkClaimDimension } returns "test:other"
+            bindProgram(shader)
+            pixel(shader, queries.getValue(otherDimension.id), false)
+            every { otherDimension.chunkClaimDimension } returns "test:primary"
+            bindProgram(shader)
             pixel(shader, Vector3d(120.5, 0.25, 0.5), false)
             pixel(shader, Vector3d(9000.0, 0.75, 0.5), false)
 

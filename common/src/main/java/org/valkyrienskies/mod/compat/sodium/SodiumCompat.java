@@ -640,8 +640,7 @@ public class SodiumCompat {
         // VSH adds u_VsCameraFrac to convert; the FSH then does
         //   block = floor(v_CameraRelWorldPos) + u_VsRenderOrigin
         // = floor(vertex - floor(camera)) + floor(camera) = floor(vertex).
-        Vec3 cameraPos =
-                Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
+        Vec3 cameraPos = ShipRenderViews.getCameraPosition();
         int ox = (int) Math.floor(cameraPos.x);
         int oy = (int) Math.floor(cameraPos.y);
         int oz = (int) Math.floor(cameraPos.z);

@@ -2,6 +2,7 @@ package org.valkyrienskies.mod.client.render
 
 import com.mojang.blaze3d.vertex.BufferBuilder
 import com.mojang.blaze3d.vertex.PoseStack
+import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.core.BlockPos
 import org.joml.Matrix3f
@@ -47,6 +48,8 @@ object ShipRenderViews {
     private val active = ThreadLocal<Frame>()
 
     @JvmStatic val current get() = active.get()?.view
+    @JvmStatic val cameraPosition get() = (current?.camera ?: Minecraft.getInstance().gameRenderer.mainCamera).position
+    @JvmStatic val renderLevel get() = current?.level ?: Minecraft.getInstance().level
 
     @JvmStatic fun hasHiddenShips(): Boolean = active.get()?.hidden?.isNotEmpty() == true
 

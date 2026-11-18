@@ -63,13 +63,17 @@ public abstract class MixinLevelRenderer {
             new Matrix4f(projection), frustum, partialTick);
         final Runnable draw = () ->
             original.call(poses, partialTick, finishNanoTime, blockOutline, camera, renderer, light, projection);
-        ShipRenderViews.render(view, () -> VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips(), () -> {
-            if (outer != null && (Object) this instanceof NestedShipView nested) {
-                nested.vs$renderNestedShipView(draw);
-            } else {
-                draw.run();
-            }
-        });
+        try {
+            ShipRenderViews.render(view, () -> VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips(), () -> {
+                if (outer != null && (Object) this instanceof NestedShipView nested) {
+                    nested.vs$renderNestedShipView(draw);
+                } else {
+                    draw.run();
+                }
+            });
+        } finally {
+            if (outer != null) VsDynamicLight.prepareFrame(outer.getLevel());
+        }
     }
 
     @Inject(method = "renderLevel", at = @At(value = "INVOKE",

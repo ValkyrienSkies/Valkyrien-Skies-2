@@ -16,6 +16,7 @@ import org.joml.primitives.AABBd;
 import org.joml.primitives.AABBic;
 import org.lwjgl.opengl.GL20;
 import org.valkyrienskies.core.api.ships.ClientShip;
+import org.valkyrienskies.mod.client.render.ShipRenderViews;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 
@@ -50,7 +51,9 @@ public final class ShipShadowRenderer {
         double minY = level.getMinBuildHeight() - 64.0;
         double maxY = level.getMaxBuildHeight();
         FRAME.begin();
+        final String dimension = VSGameUtilsKt.getDimensionId(level);
         for (final ClientShip ship : VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips()) {
+            if (!dimension.equals(ship.getChunkClaimDimension())) continue;
             final Geometry geometry = GEOMETRY.get(ship.getId(), ship.getShipAABB(),
                 ship.getActiveChunksSet(), level.getGameTime(), Geometry::dynamic,
                 () -> collectGeometry(level, ship));
@@ -71,7 +74,7 @@ public final class ShipShadowRenderer {
         GEOMETRY.endFrame();
         final boolean frameChanged = FRAME.finish();
         final var minecraft = Minecraft.getInstance();
-        final var camera = minecraft.gameRenderer.getMainCamera().getPosition();
+        final var camera = ShipRenderViews.getCameraPosition();
         final double oldX = LAYOUT.originX, oldY = LAYOUT.originY, oldZ = LAYOUT.originZ;
         final boolean layoutChanged = LAYOUT.update(camera.x, camera.y, camera.z, minY, maxY,
             minecraft.options.getEffectiveRenderDistance());

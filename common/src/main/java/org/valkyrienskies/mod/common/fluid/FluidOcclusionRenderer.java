@@ -90,9 +90,10 @@ public final class FluidOcclusionRenderer {
         }
 
         final VsiClientShipWorld shipWorld = VSGameUtilsKt.getShipObjectWorld(level);
+        final String dimension = VSGameUtilsKt.getDimensionId(level);
         final List<ClientShip> ships = new ArrayList<>();
         for (final ClientShip ship : shipWorld.getLoadedShips()) {
-            ships.add(ship);
+            if (dimension.equals(ship.getChunkClaimDimension()) && ShipRenderViews.shouldRenderShip(ship)) ships.add(ship);
         }
         ships.sort(Comparator.comparingDouble(
             ship -> distanceSquared(ship.getRenderAABB(), cameraX, cameraY, cameraZ)
@@ -104,7 +105,6 @@ public final class FluidOcclusionRenderer {
         int slot = 0;
         final List<FluidOcclusionOverflow.Entry> overflow = new ArrayList<>();
         for (final ClientShip ship : ships) {
-            if (!ShipRenderViews.shouldRenderShip(ship)) continue;
             final var pair = shipWorld.getFluidGameplaySnapshot(ship.getId());
             final FluidTopologyClientCache.CachedSnapshot topology =
                 FluidTopologyClientCache.get(shipWorld, ship.getId(), pair);
