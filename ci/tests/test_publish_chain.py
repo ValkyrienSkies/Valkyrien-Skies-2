@@ -45,7 +45,10 @@ class FakeGitHub:
         return self.trees[self.commits[sha]['commit']['tree']['sha']]
 
     def statuses(self, key, sha):
-        jobs = {'native': chain.NATIVE_JOBS, 'bridge': chain.BRIDGE_JOBS,
+        jobs = {'native': ('build-ubuntu-x86-64', 'build-ubuntu-arm-64', 'build-windows-x86-64',
+                           'build-windows-arm-64', 'build-mac-os-universal', 'build-android-arm-64', 'commit_artifacts'),
+                'bridge': ('test-ubuntu-arm-64', 'test-ubuntu-24-x86-64', 'test-ubuntu-20-x86-64',
+                           'test-macos', 'publish_to_maven'),
                 'vs2': ('gradle_build', 'fabric_server_test', 'forge_server_test', 'publish_to_maven')}
         return {'ci/circleci: ' + name: {'state': 'failure' if self.fail == key else 'success',
                                        'context': 'ci/circleci: ' + name, 'target_url': 'https://ci.example/job'}
@@ -193,6 +196,13 @@ class ChainTests(unittest.TestCase):
             chain.wait_for(self.github, 'api', 'a' * 40, ('gradle_build',), artifact,
                            timeout=1, clock=lambda: next(times), sleep=lambda _: None)
         artifact.assert_not_called()
+
+    def test_failed_platform_build_stops_chain_before_publication(self):
+        job = 'ci/circleci: build-mac-os-universal'
+        self.github.statuses = lambda *args: {job: {'context': job, 'state': 'failure'}}
+        with self.assertRaisesRegex(chain.ChainError, 'native CI failed: .*build-mac-os-universal'):
+            self.run_chain()
+        self.assertEqual([], self.github.updates)
 
     def test_duplicate_properties_are_rejected(self):
         with self.assertRaisesRegex(chain.ChainError, 'exactly one'):
