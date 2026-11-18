@@ -294,8 +294,8 @@ public final class ShipMotionVectors {
      * Torque's panel filter running offscreen rather than on the block face.
      *
      * <p>It costs a pass over ship geometry and nothing else: no terrain, no entities, opaque
-     * layers only. The mesh is {@link ShipMeshCache}'s, shared with the batched renderer and the
-     * portrait, so a ship one of those is already drawing is not meshed twice.
+     * layers only. The mesh comes from {@link ShipBatchRenderer}'s canonical cache, shared with
+     * portraits and world rendering, so a ship already being drawn is not meshed twice.
      *
      * <p>The caller is responsible for the depth buffer. Handing this one primed with the scene's
      * depth and a {@code GL_LEQUAL} test is what makes a car behind a wall stay behind it; handing
@@ -330,12 +330,12 @@ public final class ShipMotionVectors {
             }
 
             prepassShips++;
-            final ShipRenderObject object = ShipMeshCache.INSTANCE.obtain(ship);
-            // Pinned because nothing else is keeping it: the renderer that would have retained this
-            // ship is the one that has been stood down.
-            ShipMeshCache.INSTANCE.pin(ship.getId());
+            // The official renderer owns and compiles the canonical object. Retaining it through
+            // the portrait lifecycle keeps this prepass independent of the active world backend
+            // without recreating a parallel mesh cache.
+            final ShipRenderObject object =
+                ShipBatchRenderer.INSTANCE.acquirePortraitObject(level, ship);
             prepassSeen.add(ship.getId());
-            ShipMeshCache.INSTANCE.compile(level, object, true);
             final ShipMesh mesh = object.getMesh();
             if (mesh == null) {
                 continue;
@@ -409,7 +409,7 @@ public final class ShipMotionVectors {
                 if (prepassSeen.contains(id)) {
                     return false;
                 }
-                ShipMeshCache.INSTANCE.unpin(id);
+                ShipBatchRenderer.INSTANCE.forgetPortrait(id);
                 return true;
             });
         }
