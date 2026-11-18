@@ -12,7 +12,6 @@ import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.core.internal.physics.blockstates.VsiBlockState
 import org.valkyrienskies.core.internal.world.chunks.VsiBlockType
 import org.valkyrienskies.mod.api.VsShapedBlock
-import org.valkyrienskies.mod.common.ValkyrienSkiesMod.vsCore
 
 /**
  * Collision shapes that belong to a position rather than to a block state.
