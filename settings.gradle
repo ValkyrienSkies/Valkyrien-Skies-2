@@ -49,7 +49,6 @@ try {
         providers.gradleProperty("vsCoreDir").orNull,
         System.getenv("VS_CORE_DIR"),
         "./vs-core",
-        "../vs-core-torque-rebase",
         "../vs-core",
     ].findAll { it != null && !it.isBlank() }
 
@@ -72,13 +71,10 @@ try {
             dependencySubstitution {
                 // Tell Gradle: "Whenever someone asks for 'org.valkyrienskies.core:api',
                 // use the project named ':api' inside this included build instead."
-                // Compile VS2 against the checked-out Torque API sources. Keep the runtime
-                // implementation on the version pinned in gradle.properties: current VS-Core
-                // main contains mesh-body integration for a not-yet-published native API, so
-                // substituting :impl makes every VS2 build compile that unrelated broken task.
                 substitute module('org.valkyrienskies.core:api') using project(':api')
                 substitute module('org.valkyrienskies.core:internal') using project(':internal')
                 substitute module('org.valkyrienskies.core:util') using project(':util')
+                substitute module('org.valkyrienskies.core:impl') using project(':impl')
             }
         }
     }
