@@ -58,6 +58,7 @@ import org.valkyrienskies.core.util.VectorConversionsKt;
 import org.valkyrienskies.mod.client.audio.SimpleSoundInstanceOnShip;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.ValkyrienSkiesMod;
 import org.valkyrienskies.mod.common.config.DimensionParametersResolver;
 import org.valkyrienskies.mod.common.render.light.VsDynamicLight;
 import org.valkyrienskies.mod.common.util.EntityLerper;
@@ -116,7 +117,7 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
     private void postInit(ClientPacketListener clientPacketListener, ClientLevelData clientLevelData,
         ResourceKey resourceKey, Holder holder, int i, int j, Supplier supplier, LevelRenderer levelRenderer,
         boolean bl, long l, CallbackInfo ci) {
-        if (getShipObjectWorld() != null) {
+        if (getShipObjectWorld() != ValkyrienSkiesMod.getVsCore().getDummyShipWorldClient()) {
             DimensionParametersResolver.Parameters params = DimensionParametersResolver.INSTANCE.getDimensionMap().get(
                 VSGameUtilsKt.getDimensionId((ClientLevel) (Object) this)
             );
