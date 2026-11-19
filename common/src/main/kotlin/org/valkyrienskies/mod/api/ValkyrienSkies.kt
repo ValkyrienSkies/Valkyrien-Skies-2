@@ -563,6 +563,30 @@ fun Level?.forLoadedShipsGlobal(cb: Consumer<LoadedShip>) =
 fun Level?.forAllBodiesGlobal(cb: Consumer<VsBody>) =
     allBodiesGlobal?.forEach(cb)
 
+@GameTickOnly
+fun Level?.sameShip(pos1: Vector3dc, pos2: Vector3dc) =
+    getShipManagingPos(pos1) == getShipManagingPos(pos2)
+
+@GameTickOnly
+fun Level?.sameShip(pos1: Position, pos2: Position) =
+    getShipManagingPos(pos1) == getShipManagingPos(pos2)
+
+@GameTickOnly
+fun Level?.sameShip(pos1: Vec3i, pos2: Vec3i) =
+    getShipManagingPos(pos1) == getShipManagingPos(pos2)
+
+@GameTickOnly
+fun Level?.sameLoadedShip(pos1: Vector3dc, pos2: Vector3dc) =
+    getLoadedShipManagingPos(pos1) == getLoadedShipManagingPos(pos2)
+
+@GameTickOnly
+fun Level?.sameLoadedShip(pos1: Position, pos2: Position) =
+    getLoadedShipManagingPos(pos1) == getLoadedShipManagingPos(pos2)
+
+@GameTickOnly
+fun Level?.sameLoadedShip(pos1: Vec3i, pos2: Vec3i) =
+    getLoadedShipManagingPos(pos1) == getLoadedShipManagingPos(pos2)
+
 fun Level.isTickingChunk(pos: ChunkPos) = isTickingChunk(pos.x, pos.z)
 fun Level.isTickingChunk(chunkX: Int, chunkZ: Int) =
     (chunkSource as ServerChunkCache).isPositionTicking(ChunkPos.asLong(chunkX, chunkZ))
@@ -905,7 +929,7 @@ fun Level?.transformToWorld(x: Double, y: Double, z: Double, dest: Vector3d = Ve
  */
 @JvmOverloads
 @GameTickOnly
-fun Level?.transformToWorld(shipAtX: Double, shipAtZ: Double, x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
+fun Level?.transformToWorldAt(shipAtX: Double, shipAtZ: Double, x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
     getShipManagingPos(shipAtX, shipAtZ).transformToWorld(x, y, z, dest)
 
 /**
@@ -923,7 +947,7 @@ fun Level?.transformToWorld(shipAtX: Double, shipAtZ: Double, x: Double, y: Doub
  */
 @JvmOverloads
 @GameTickOnly
-fun Level?.transformToWorld(shipAt: Vector3d, x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
+fun Level?.transformToWorldAt(shipAt: Vector3dc, x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
     getShipManagingPos(shipAt).transformToWorld(x, y, z, dest)
 
 /**
@@ -941,7 +965,7 @@ fun Level?.transformToWorld(shipAt: Vector3d, x: Double, y: Double, z: Double, d
  */
 @JvmOverloads
 @GameTickOnly
-fun Level?.transformToWorld(shipAt: Position, x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
+fun Level?.transformToWorldAt(shipAt: Position, x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
     getShipManagingPos(shipAt).transformToWorld(x, y, z, dest)
 
 /**
@@ -959,7 +983,7 @@ fun Level?.transformToWorld(shipAt: Position, x: Double, y: Double, z: Double, d
  */
 @JvmOverloads
 @GameTickOnly
-fun Level?.transformToWorld(shipAt: Vec3i, x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
+fun Level?.transformToWorldAt(shipAt: Vec3i, x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
     getShipManagingPos(shipAt).transformToWorld(x, y, z, dest)
 
 /**
@@ -977,93 +1001,9 @@ fun Level?.transformToWorld(shipAt: Vec3i, x: Double, y: Double, z: Double, dest
  */
 @JvmOverloads
 @GameTickOnly
-fun Level?.transformToWorld(shipAt: ChunkPos, x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
+fun Level?.transformToWorldAt(shipAt: ChunkPos, x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
     getShipManagingPos(shipAt).transformToWorld(x, y, z, dest)
 
-/**
- * Get the ship at [pos], and use it to transform [pos] from ship space into
- * world space. If there is no ship at the given position, the untransformed
- * position is the result.
- *
- * @param pos The position of the ship in ship space, and the position to
- * transform.
- *
- * @return A new [Vec3] containing the result
- */
-@GameTickOnly
-fun Level?.transformToWorld(pos: Position): Vec3 =
-    getShipManagingPos(pos).transformToWorld(pos)
-
-/**
- * Get the ship at [shipAtX], [shipAtZ] and use it to transform [pos] from ship
- * space into world space. If there is no ship at the given position, the
- * untransformed position is the result.
- *
- * @param shipAtX The x-coordinate of the ship in ship space
- * @param shipAtX The z-coordinate of the ship in ship space
- * @param pos The position to transform
- *
- * @return A new [Vec3] containing the result
- */
-@GameTickOnly
-fun Level?.transformToWorld(shipAtX: Double, shipAtZ: Double, pos: Position): Vec3 =
-    getShipManagingPos(shipAtX, shipAtZ).transformToWorld(pos)
-
-/**
- * Get the ship at [shipAt] and use it to transform [pos] from ship space into
- * world space. If there is no ship at the given position, the untransformed
- * position is the result.
- *
- * @param shipAt The position of the ship in ship space
- * @param pos The position to transform
- *
- * @return A new [Vec3] containing the result
- */
-@GameTickOnly
-fun Level?.transformToWorld(shipAt: Vector3d, pos: Position): Vec3 =
-    getShipManagingPos(shipAt).transformToWorld(pos)
-
-/**
- * Get the ship at [shipAt] and use it to transform [pos] from ship space into
- * world space. If there is no ship at the given position, the untransformed
- * position is the result.
- *
- * @param shipAt The position of the ship in ship space
- * @param pos The position to transform
- *
- * @return A new [Vec3] containing the result
- */
-@GameTickOnly
-fun Level?.transformToWorld(shipAt: Position, pos: Position): Vec3 =
-    getShipManagingPos(shipAt).transformToWorld(pos)
-
-/**
- * Get the ship at [shipAt] and use it to transform [pos] from ship space into
- * world space. If there is no ship at the given position, the untransformed
- * position is the result.
- *
- * @param shipAt The position of the ship in ship space
- * @param pos The position to transform
- *
- * @return A new [Vec3] containing the result
- */
-@GameTickOnly
-fun Level?.transformToWorld(shipAt: Vec3i, pos: Position): Vec3 =
-    getShipManagingPos(shipAt).transformToWorld(pos)
-
-/**
- * Get the ship at [shipAt] and use it to transform [pos] from ship space into
- * world space. If there is no ship at the given position, the untransformed
- * position is the result.
- *
- * @param shipAt The position of the ship in ship space
- * @param pos The position to transform
- *
- * @return A new [Vec3] containing the result
- */
-@GameTickOnly
-fun Level?.transformToWorld(shipAt: ChunkPos, pos: Position): Vec3 =
-    getShipManagingPos(shipAt).transformToWorld(pos)
 
 /**
  * Get the ship at [pos], and use it to transform [pos] from ship space into
@@ -1091,7 +1031,7 @@ fun Level?.transformToWorld(pos: Vector3d): Vector3d =
  * @return [pos]
  */
 @GameTickOnly
-fun Level?.transformToWorld(shipAtX: Double, shipAtZ: Double, pos: Vector3d): Vector3d =
+fun Level?.transformToWorldAt(shipAtX: Double, shipAtZ: Double, pos: Vector3d): Vector3d =
     getShipManagingPos(shipAtX, shipAtZ).transformToWorld(pos)
 
 /**
@@ -1099,13 +1039,12 @@ fun Level?.transformToWorld(shipAtX: Double, shipAtZ: Double, pos: Vector3d): Ve
  * world space, and store the result in [pos]. If there is no ship at the given
  * position, the untransformed position is the result.
  *
- * @param shipAt The position of the ship in ship space
  * @param pos The position to transform and hold the final result
  *
  * @return [pos]
  */
 @GameTickOnly
-fun Level?.transformToWorld(shipAt: Vector3d, pos: Vector3d): Vector3d =
+fun Level?.transformToWorldAt(shipAt: Vector3dc, pos: Vector3d): Vector3d =
     getShipManagingPos(shipAt).transformToWorld(pos)
 
 /**
@@ -1119,7 +1058,7 @@ fun Level?.transformToWorld(shipAt: Vector3d, pos: Vector3d): Vector3d =
  * @return [pos]
  */
 @GameTickOnly
-fun Level?.transformToWorld(shipAt: Position, pos: Vector3d): Vector3d =
+fun Level?.transformToWorldAt(shipAt: Position, pos: Vector3d): Vector3d =
     getShipManagingPos(shipAt).transformToWorld(pos)
 
 /**
@@ -1133,7 +1072,7 @@ fun Level?.transformToWorld(shipAt: Position, pos: Vector3d): Vector3d =
  * @return [pos]
  */
 @GameTickOnly
-fun Level?.transformToWorld(shipAt: Vec3i, pos: Vector3d): Vector3d =
+fun Level?.transformToWorldAt(shipAt: Vec3i, pos: Vector3d): Vector3d =
     getShipManagingPos(shipAt).transformToWorld(pos)
 
 /**
@@ -1147,8 +1086,9 @@ fun Level?.transformToWorld(shipAt: Vec3i, pos: Vector3d): Vector3d =
  * @return [pos]
  */
 @GameTickOnly
-fun Level?.transformToWorld(shipAt: ChunkPos, pos: Vector3d): Vector3d =
+fun Level?.transformToWorldAt(shipAt: ChunkPos, pos: Vector3d): Vector3d =
     getShipManagingPos(shipAt).transformToWorld(pos)
+
 
 /**
  * Get the ship at [pos] and use it to transform [pos] from ship space into
@@ -1178,7 +1118,7 @@ fun Level?.transformToWorld(pos: Vector3dc, dest: Vector3d): Vector3d =
  * @return [dest]
  */
 @GameTickOnly
-fun Level?.transformToWorld(shipAtX: Double, shipAtZ: Double, pos: Vector3dc, dest: Vector3d): Vector3d =
+fun Level?.transformToWorldAt(shipAtX: Double, shipAtZ: Double, pos: Vector3dc, dest: Vector3d): Vector3d =
     getShipManagingPos(shipAtX, shipAtZ).transformToWorld(pos, dest)
 
 /**
@@ -1193,7 +1133,7 @@ fun Level?.transformToWorld(shipAtX: Double, shipAtZ: Double, pos: Vector3dc, de
  * @return [dest]
  */
 @GameTickOnly
-fun Level?.transformToWorld(shipAt: Vector3d, pos: Vector3dc, dest: Vector3d): Vector3d =
+fun Level?.transformToWorldAt(shipAt: Vector3dc, pos: Vector3dc, dest: Vector3d): Vector3d =
     getShipManagingPos(shipAt).transformToWorld(pos, dest)
 
 /**
@@ -1208,7 +1148,7 @@ fun Level?.transformToWorld(shipAt: Vector3d, pos: Vector3dc, dest: Vector3d): V
  * @return [dest]
  */
 @GameTickOnly
-fun Level?.transformToWorld(shipAt: Position, pos: Vector3dc, dest: Vector3d): Vector3d =
+fun Level?.transformToWorldAt(shipAt: Position, pos: Vector3dc, dest: Vector3d): Vector3d =
     getShipManagingPos(shipAt).transformToWorld(pos, dest)
 
 /**
@@ -1223,7 +1163,7 @@ fun Level?.transformToWorld(shipAt: Position, pos: Vector3dc, dest: Vector3d): V
  * @return [dest]
  */
 @GameTickOnly
-fun Level?.transformToWorld(shipAt: Vec3i, pos: Vector3dc, dest: Vector3d): Vector3d =
+fun Level?.transformToWorldAt(shipAt: Vec3i, pos: Vector3dc, dest: Vector3d): Vector3d =
     getShipManagingPos(shipAt).transformToWorld(pos, dest)
 
 /**
@@ -1238,8 +1178,95 @@ fun Level?.transformToWorld(shipAt: Vec3i, pos: Vector3dc, dest: Vector3d): Vect
  * @return [dest]
  */
 @GameTickOnly
-fun Level?.transformToWorld(shipAt: ChunkPos, pos: Vector3dc, dest: Vector3d): Vector3d =
+fun Level?.transformToWorldAt(shipAt: ChunkPos, pos: Vector3dc, dest: Vector3d): Vector3d =
     getShipManagingPos(shipAt).transformToWorld(pos, dest)
+
+
+/**
+ * Get the ship at [pos], and use it to transform [pos] from ship space into
+ * world space. If there is no ship at the given position, the untransformed
+ * position is the result.
+ *
+ * @param pos The position of the ship in ship space, and the position to
+ * transform.
+ *
+ * @return A new [Vec3] containing the result
+ */
+@GameTickOnly
+fun Level?.transformToWorld(pos: Position): Vec3 =
+    getShipManagingPos(pos).transformToWorld(pos)
+
+/**
+ * Get the ship at [shipAtX], [shipAtZ] and use it to transform [pos] from ship
+ * space into world space. If there is no ship at the given position, the
+ * untransformed position is the result.
+ *
+ * @param shipAtX The x-coordinate of the ship in ship space
+ * @param shipAtX The z-coordinate of the ship in ship space
+ * @param pos The position to transform
+ *
+ * @return A new [Vec3] containing the result
+ */
+@GameTickOnly
+fun Level?.transformToWorldAt(shipAtX: Double, shipAtZ: Double, pos: Position): Vec3 =
+    getShipManagingPos(shipAtX, shipAtZ).transformToWorld(pos)
+
+/**
+ * Get the ship at [shipAt] and use it to transform [pos] from ship space into
+ * world space. If there is no ship at the given position, the untransformed
+ * position is the result.
+ *
+ * @param shipAt The position of the ship in ship space
+ * @param pos The position to transform
+ *
+ * @return A new [Vec3] containing the result
+ */
+@GameTickOnly
+fun Level?.transformToWorldAt(shipAt: Vector3dc, pos: Position): Vec3 =
+    getShipManagingPos(shipAt).transformToWorld(pos)
+
+/**
+ * Get the ship at [shipAt] and use it to transform [pos] from ship space into
+ * world space. If there is no ship at the given position, the untransformed
+ * position is the result.
+ *
+ * @param shipAt The position of the ship in ship space
+ * @param pos The position to transform
+ *
+ * @return A new [Vec3] containing the result
+ */
+@GameTickOnly
+fun Level?.transformToWorldAt(shipAt: Position, pos: Position): Vec3 =
+    getShipManagingPos(shipAt).transformToWorld(pos)
+
+/**
+ * Get the ship at [shipAt] and use it to transform [pos] from ship space into
+ * world space. If there is no ship at the given position, the untransformed
+ * position is the result.
+ *
+ * @param shipAt The position of the ship in ship space
+ * @param pos The position to transform
+ *
+ * @return A new [Vec3] containing the result
+ */
+@GameTickOnly
+fun Level?.transformToWorldAt(shipAt: Vec3i, pos: Position): Vec3 =
+    getShipManagingPos(shipAt).transformToWorld(pos)
+
+/**
+ * Get the ship at [shipAt] and use it to transform [pos] from ship space into
+ * world space. If there is no ship at the given position, the untransformed
+ * position is the result.
+ *
+ * @param shipAt The position of the ship in ship space
+ * @param pos The position to transform
+ *
+ * @return A new [Vec3] containing the result
+ */
+@GameTickOnly
+fun Level?.transformToWorldAt(shipAt: ChunkPos, pos: Position): Vec3 =
+    getShipManagingPos(shipAt).transformToWorld(pos)
+
 
 /**
  * Get the ship at [pos] and use it to transform [pos] from ship space into
@@ -1267,7 +1294,7 @@ fun Level?.transformToWorld(pos: Vec3i): Vector3d =
  * @return A new [Vector3d] containing the result
  */
 @GameTickOnly
-fun Level?.transformToWorld(shipAtX: Double, shipAtZ: Double, pos: Vec3i): Vector3d =
+fun Level?.transformToWorldAt(shipAtX: Double, shipAtZ: Double, pos: Vec3i): Vector3d =
     getShipManagingPos(shipAtX, shipAtZ).transformToWorld(pos)
 
 /**
@@ -1281,7 +1308,7 @@ fun Level?.transformToWorld(shipAtX: Double, shipAtZ: Double, pos: Vec3i): Vecto
  * @return A new [Vector3d] containing the result
  */
 @GameTickOnly
-fun Level?.transformToWorld(shipAt: Vector3d, pos: Vec3i): Vector3d =
+fun Level?.transformToWorldAt(shipAt: Vector3dc, pos: Vec3i): Vector3d =
     getShipManagingPos(shipAt).transformToWorld(pos)
 
 /**
@@ -1295,7 +1322,7 @@ fun Level?.transformToWorld(shipAt: Vector3d, pos: Vec3i): Vector3d =
  * @return A new [Vector3d] containing the result
  */
 @GameTickOnly
-fun Level?.transformToWorld(shipAt: Position, pos: Vec3i): Vector3d =
+fun Level?.transformToWorldAt(shipAt: Position, pos: Vec3i): Vector3d =
     getShipManagingPos(shipAt).transformToWorld(pos)
 
 /**
@@ -1309,7 +1336,7 @@ fun Level?.transformToWorld(shipAt: Position, pos: Vec3i): Vector3d =
  * @return A new [Vector3d] containing the result
  */
 @GameTickOnly
-fun Level?.transformToWorld(shipAt: Vec3i, pos: Vec3i): Vector3d =
+fun Level?.transformToWorldAt(shipAt: Vec3i, pos: Vec3i): Vector3d =
     getShipManagingPos(shipAt).transformToWorld(pos)
 
 /**
@@ -1322,9 +1349,8 @@ fun Level?.transformToWorld(shipAt: Vec3i, pos: Vec3i): Vector3d =
  * @return A new [Vector3d] containing the result
  */
 @GameTickOnly
-fun Level?.transformToWorld(shipAt: ChunkPos, pos: Vec3i): Vector3d =
+fun Level?.transformToWorldAt(shipAt: ChunkPos, pos: Vec3i): Vector3d =
     getShipManagingPos(shipAt).transformToWorld(pos)
-
 // endregion
 
 // region Level transform world position to ships (transformToShips)
@@ -1369,7 +1395,7 @@ fun Level?.transformToShips(x: Double, y: Double, z: Double, dest: MutableCollec
  */
 @JvmOverloads
 @GameTickOnly
-fun Level?.transformToShips(shipAtX: Double, shipAtY: Double, shipAtZ: Double, x: Double, y: Double, z: Double, dest: MutableCollection<Vector3d> = mutableListOf()):  MutableCollection<Vector3d> =
+fun Level?.transformToShipsAt(shipAtX: Double, shipAtY: Double, shipAtZ: Double, x: Double, y: Double, z: Double, dest: MutableCollection<Vector3d> = mutableListOf()):  MutableCollection<Vector3d> =
     dest.also { c -> c.addAll(getShipsIntersecting(shipAtX, shipAtY, shipAtZ).map { it.transformToShip(x, y, z) }) }
 
 /**
@@ -1388,7 +1414,7 @@ fun Level?.transformToShips(shipAtX: Double, shipAtY: Double, shipAtZ: Double, x
  */
 @JvmOverloads
 @GameTickOnly
-fun Level?.transformToShips(shipAt: Vector3d, x: Double, y: Double, z: Double, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
+fun Level?.transformToShipsAt(shipAt: Vector3dc, x: Double, y: Double, z: Double, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
     dest.also { c -> c.addAll(getShipsIntersecting(shipAt).map { it.transformToShip(x, y, z) }) }
 
 /**
@@ -1409,7 +1435,7 @@ fun Level?.transformToShips(shipAt: Vector3d, x: Double, y: Double, z: Double, d
  */
 @JvmOverloads
 @GameTickOnly
-fun Level?.transformToShips(shipAt: Position, x: Double, y: Double, z: Double, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
+fun Level?.transformToShipsAt(shipAt: Position, x: Double, y: Double, z: Double, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
     dest.also { c -> c.addAll(getShipsIntersecting(shipAt).map { it.transformToShip(x, y, z) }) }
 
 /**
@@ -1430,7 +1456,7 @@ fun Level?.transformToShips(shipAt: Position, x: Double, y: Double, z: Double, d
  */
 @JvmOverloads
 @GameTickOnly
-fun Level?.transformToShips(shipAt: Vec3i, x: Double, y: Double, z: Double, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
+fun Level?.transformToShipsAt(shipAt: Vec3i, x: Double, y: Double, z: Double, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
     dest.also { c -> c.addAll(getShipsIntersecting(shipAt).map { it.transformToShip(x, y, z) }) }
 
 /**
@@ -1470,7 +1496,7 @@ fun Level?.transformToShips(pos: Position, dest: MutableCollection<Vec3> = mutab
  */
 @JvmOverloads
 @GameTickOnly
-fun Level?.transformToShips(shipAtX: Double, shipAtY: Double, shipAtZ: Double, pos: Position, dest: MutableCollection<Vec3> = mutableListOf()): MutableCollection<Vec3> =
+fun Level?.transformToShipsAt(shipAtX: Double, shipAtY: Double, shipAtZ: Double, pos: Position, dest: MutableCollection<Vec3> = mutableListOf()): MutableCollection<Vec3> =
     dest.also { c -> c.addAll(getShipsIntersecting(shipAtX, shipAtY, shipAtZ).map { it.transformToShip(pos) }) }
 
 /**
@@ -1489,7 +1515,7 @@ fun Level?.transformToShips(shipAtX: Double, shipAtY: Double, shipAtZ: Double, p
  */
 @JvmOverloads
 @GameTickOnly
-fun Level?.transformToShips(shipAt: Vector3d, pos: Position, dest: MutableCollection<Vec3> = mutableListOf()): MutableCollection<Vec3> =
+fun Level?.transformToShipsAt(shipAt: Vector3dc, pos: Position, dest: MutableCollection<Vec3> = mutableListOf()): MutableCollection<Vec3> =
     dest.also { c -> c.addAll(getShipsIntersecting(shipAt).map { it.transformToShip(pos) }) }
 
 /**
@@ -1508,7 +1534,7 @@ fun Level?.transformToShips(shipAt: Vector3d, pos: Position, dest: MutableCollec
  */
 @JvmOverloads
 @GameTickOnly
-fun Level?.transformToShips(shipAt: Position, pos: Position, dest: MutableCollection<Vec3> = mutableListOf()): MutableCollection<Vec3> =
+fun Level?.transformToShipsAt(shipAt: Position, pos: Position, dest: MutableCollection<Vec3> = mutableListOf()): MutableCollection<Vec3> =
     dest.also { c -> c.addAll(getShipsIntersecting(shipAt).map { it.transformToShip(pos) }) }
 
 /**
@@ -1527,7 +1553,7 @@ fun Level?.transformToShips(shipAt: Position, pos: Position, dest: MutableCollec
  */
 @JvmOverloads
 @GameTickOnly
-fun Level?.transformToShips(shipAt: Vec3i, pos: Position, dest: MutableCollection<Vec3> = mutableListOf()): MutableCollection<Vec3> =
+fun Level?.transformToShipsAt(shipAt: Vec3i, pos: Position, dest: MutableCollection<Vec3> = mutableListOf()): MutableCollection<Vec3> =
     dest.also { c -> c.addAll(getShipsIntersecting(shipAt).map { it.transformToShip(pos) }) }
 
 /**
@@ -1546,7 +1572,7 @@ fun Level?.transformToShips(shipAt: Vec3i, pos: Position, dest: MutableCollectio
  */
 @JvmOverloads
 @GameTickOnly
-fun Level?.transformToShips(pos: Vector3d, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
+fun Level?.transformToShips(pos: Vector3dc, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
     dest.also { c -> c.addAll(getShipsIntersecting(pos).map { it.transformToShip(pos, Vector3d()) }) }
 
 /**
@@ -1567,7 +1593,7 @@ fun Level?.transformToShips(pos: Vector3d, dest: MutableCollection<Vector3d> = m
  */
 @JvmOverloads
 @GameTickOnly
-fun Level?.transformToShips(shipAtX: Double, shipAtY: Double, shipAtZ: Double, pos: Vector3d, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
+fun Level?.transformToShipsAt(shipAtX: Double, shipAtY: Double, shipAtZ: Double, pos: Vector3dc, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
     dest.also { c -> c.addAll(getShipsIntersecting(shipAtX, shipAtY, shipAtZ).map { it.transformToShip(pos, Vector3d()) }) }
 
 /**
@@ -1586,7 +1612,7 @@ fun Level?.transformToShips(shipAtX: Double, shipAtY: Double, shipAtZ: Double, p
  */
 @JvmOverloads
 @GameTickOnly
-fun Level?.transformToShips(shipAt: Vector3d, pos: Vector3dc, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
+fun Level?.transformToShipsAt(shipAt: Vector3dc, pos: Vector3dc, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
     dest.also { c -> c.addAll(getShipsIntersecting(shipAt).map { it.transformToShip(pos, Vector3d()) }) }
 
 /**
@@ -1605,7 +1631,7 @@ fun Level?.transformToShips(shipAt: Vector3d, pos: Vector3dc, dest: MutableColle
  */
 @JvmOverloads
 @GameTickOnly
-fun Level?.transformToShips(shipAt: Position, pos: Vector3dc, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
+fun Level?.transformToShipsAt(shipAt: Position, pos: Vector3dc, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
     dest.also { c -> c.addAll(getShipsIntersecting(shipAt).map { it.transformToShip(pos, Vector3d()) }) }
 
 /**
@@ -1624,7 +1650,7 @@ fun Level?.transformToShips(shipAt: Position, pos: Vector3dc, dest: MutableColle
  */
 @JvmOverloads
 @GameTickOnly
-fun Level?.transformToShips(shipAt: Vec3i, pos: Vector3dc, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
+fun Level?.transformToShipsAt(shipAt: Vec3i, pos: Vector3dc, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
     dest.also { c -> c.addAll(getShipsIntersecting(shipAt).map { it.transformToShip(pos, Vector3d()) }) }
 
 /**
@@ -1665,7 +1691,7 @@ fun Level?.transformToShips(pos: Vec3i, dest: MutableCollection<Vector3d> = muta
  */
 @JvmOverloads
 @GameTickOnly
-fun Level?.transformToShips(shipAtX: Double, shipAtY: Double, shipAtZ: Double, pos: Vec3i, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
+fun Level?.transformToShipsAt(shipAtX: Double, shipAtY: Double, shipAtZ: Double, pos: Vec3i, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
     dest.also { c -> c.addAll(getShipsIntersecting(shipAtX, shipAtY, shipAtZ).map { it.transformToShip(pos) }) }
 
 /**
@@ -1684,7 +1710,7 @@ fun Level?.transformToShips(shipAtX: Double, shipAtY: Double, shipAtZ: Double, p
  */
 @JvmOverloads
 @GameTickOnly
-fun Level?.transformToShips(shipAt: Vector3d, pos: Vec3i, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
+fun Level?.transformToShipsAt(shipAt: Vector3dc, pos: Vec3i, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
     dest.also { c -> c.addAll(getShipsIntersecting(shipAt).map { it.transformToShip(pos) }) }
 
 /**
@@ -1703,7 +1729,7 @@ fun Level?.transformToShips(shipAt: Vector3d, pos: Vec3i, dest: MutableCollectio
  */
 @JvmOverloads
 @GameTickOnly
-fun Level?.transformToShips(shipAt: Position, pos: Vec3i, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
+fun Level?.transformToShipsAt(shipAt: Position, pos: Vec3i, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
     dest.also { c -> c.addAll(getShipsIntersecting(shipAt).map { it.transformToShip(pos) }) }
 
 /**
@@ -1722,7 +1748,7 @@ fun Level?.transformToShips(shipAt: Position, pos: Vec3i, dest: MutableCollectio
  */
 @JvmOverloads
 @GameTickOnly
-fun Level?.transformToShips(shipAt: Vec3i, pos: Vec3i, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
+fun Level?.transformToShipsAt(shipAt: Vec3i, pos: Vec3i, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
     dest.also { c -> c.addAll(getShipsIntersecting(shipAt).map { it.transformToShip(pos) }) }
 
 
@@ -2194,7 +2220,93 @@ fun Level?.transformToNearbyShipsAndWorld(pos: Vec3i, radius: Double, dest: Muta
 
 
 // region Level rotate ship direction vector to world (rotateToWorld)
+@JvmOverloads
+@GameTickOnly
+fun Level?.rotateToWorld(shipAtX: Double, shipAtZ: Double, x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
+    getShipManagingPos(shipAtX, shipAtZ).rotateToWorld(x, y, z, dest)
 
+@JvmOverloads
+@GameTickOnly
+fun Level?.rotateToWorld(shipAt: Vector3dc, x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
+    getShipManagingPos(shipAt).rotateToWorld(x, y, z, dest)
+
+@JvmOverloads
+@GameTickOnly
+fun Level?.rotateToWorld(shipAt: Position, x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
+    getShipManagingPos(shipAt).rotateToWorld(x, y, z, dest)
+
+@JvmOverloads
+@GameTickOnly
+fun Level?.rotateToWorld(shipAt: Vec3i, x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
+    getShipManagingPos(shipAt).rotateToWorld(x, y, z, dest)
+
+
+@GameTickOnly
+fun Level?.rotateToWorld(shipAtX: Double, shipAtZ: Double, dir: Vector3d): Vector3d =
+    getShipManagingPos(shipAtX, shipAtZ).rotateToWorld(dir)
+
+@GameTickOnly
+fun Level?.rotateToWorld(shipAt: Vector3dc, dir: Vector3d): Vector3d =
+    getShipManagingPos(shipAt).rotateToWorld(dir)
+
+@GameTickOnly
+fun Level?.rotateToWorld(shipAt: Position, dir: Vector3d): Vector3d =
+    getShipManagingPos(shipAt).rotateToWorld(dir)
+
+@GameTickOnly
+fun Level?.rotateToWorld(shipAt: Vec3i, dir: Vector3d): Vector3d =
+    getShipManagingPos(shipAt).rotateToWorld(dir)
+
+
+@GameTickOnly
+fun Level?.rotateToWorld(shipAtX: Double, shipAtZ: Double, dir: Vector3dc, dest: Vector3d): Vector3d =
+    getShipManagingPos(shipAtX, shipAtZ).rotateToWorld(dir, dest)
+
+@GameTickOnly
+fun Level?.rotateToWorld(shipAt: Vector3dc, dir: Vector3dc, dest: Vector3d): Vector3d =
+    getShipManagingPos(shipAt).rotateToWorld(dir, dest)
+
+@GameTickOnly
+fun Level?.rotateToWorld(shipAt: Position, dir: Vector3dc, dest: Vector3d): Vector3d =
+    getShipManagingPos(shipAt).rotateToWorld(dir, dest)
+
+@GameTickOnly
+fun Level?.rotateToWorld(shipAt: Vec3i, dir: Vector3dc, dest: Vector3d): Vector3d =
+    getShipManagingPos(shipAt).rotateToWorld(dir, dest)
+
+
+@GameTickOnly
+fun Level?.rotateToWorld(shipAtX: Double, shipAtZ: Double, dir: Position): Vec3 =
+    getShipManagingPos(shipAtX, shipAtZ).rotateToWorld(dir)
+
+@GameTickOnly
+fun Level?.rotateToWorld(shipAt: Vector3dc, dir: Position): Vec3 =
+    getShipManagingPos(shipAt).rotateToWorld(dir)
+
+@GameTickOnly
+fun Level?.rotateToWorld(shipAt: Position, dir: Position): Vec3 =
+    getShipManagingPos(shipAt).rotateToWorld(dir)
+
+@GameTickOnly
+fun Level?.rotateToWorld(shipAt: Vec3i, dir: Position): Vec3 =
+    getShipManagingPos(shipAt).rotateToWorld(dir)
+
+
+@GameTickOnly
+fun Level?.rotateToWorld(shipAtX: Double, shipAtZ: Double, dir: Vec3i): Vector3d =
+    getShipManagingPos(shipAtX, shipAtZ).rotateToWorld(dir)
+
+@GameTickOnly
+fun Level?.rotateToWorld(shipAt: Vector3dc, dir: Vec3i): Vector3d =
+    getShipManagingPos(shipAt).rotateToWorld(dir)
+
+@GameTickOnly
+fun Level?.rotateToWorld(shipAt: Position, dir: Vec3i): Vector3d =
+    getShipManagingPos(shipAt).rotateToWorld(dir)
+
+@GameTickOnly
+fun Level?.rotateToWorld(shipAt: Vec3i, dir: Vec3i): Vector3d =
+    getShipManagingPos(shipAt).rotateToWorld(dir)
 // endregion
 
 // region Level rotate world direction vector to ships (rotateToShips)
@@ -2223,24 +2335,25 @@ fun Level?.transformToWorldEP(aabb: AABBd): AABBd =
     getShipInside(aabb).transformToWorld(aabb)
 
 @GameTickOnly
-fun Level?.transformToWorld(shipAtX: Double, shipAtZ: Double, aabb: AABBd): AABBd =
+fun Level?.transformToWorldAt(shipAtX: Double, shipAtZ: Double, aabb: AABBd): AABBd =
     getShipManagingPos(shipAtX, shipAtZ).transformToWorld(aabb)
 
 @GameTickOnly
-fun Level?.transformToWorld(pos: Position, aabb: AABBd): AABBd =
-    getShipManagingPos(pos).transformToWorld(aabb)
+fun Level?.transformToWorldAt(shipAt: Position, aabb: AABBd): AABBd =
+    getShipManagingPos(shipAt).transformToWorld(aabb)
 
 @GameTickOnly
-fun Level?.transformToWorld(pos: Vector3dc, aabb: AABBd): AABBd =
-    getShipManagingPos(pos).transformToWorld(aabb)
+fun Level?.transformToWorldAt(shipAt: Vector3dc, aabb: AABBd): AABBd =
+    getShipManagingPos(shipAt).transformToWorld(aabb)
 
 @GameTickOnly
-fun Level?.transformToWorld(pos: Vec3i, aabb: AABBd): AABBd =
-    getShipManagingPos(pos).transformToWorld(aabb)
+fun Level?.transformToWorldAt(shipAt: Vec3i, aabb: AABBd): AABBd =
+    getShipManagingPos(shipAt).transformToWorld(aabb)
 
 @GameTickOnly
-fun Level?.transformToWorld(chunkPos: ChunkPos, aabb: AABBd): AABBd =
-    getShipManagingPos(chunkPos).transformToWorld(aabb)
+fun Level?.transformToWorldAt(shipAt: ChunkPos, aabb: AABBd): AABBd =
+    getShipManagingPos(shipAt).transformToWorld(aabb)
+
 
 @GameTickOnly
 fun Level?.transformToWorld(aabb: AABBdc, dest: AABBd): AABBd =
@@ -2251,24 +2364,25 @@ fun Level?.transformToWorldEP(aabb: AABBdc, dest: AABBd): AABBd =
     getShipInside(aabb).transformToWorld(aabb, dest)
 
 @GameTickOnly
-fun Level?.transformToWorld(shipAtX: Double, shipAtZ: Double, aabb: AABBdc, dest: AABBd): AABBd =
+fun Level?.transformToWorldAt(shipAtX: Double, shipAtZ: Double, aabb: AABBdc, dest: AABBd): AABBd =
     getShipManagingPos(shipAtX, shipAtZ).transformToWorld(aabb, dest)
 
 @GameTickOnly
-fun Level?.transformToWorld(pos: Position, aabb: AABBdc, dest: AABBd): AABBd =
-    getShipManagingPos(pos).transformToWorld(aabb, dest)
+fun Level?.transformToWorldAt(shipAt: Position, aabb: AABBdc, dest: AABBd): AABBd =
+    getShipManagingPos(shipAt).transformToWorld(aabb, dest)
 
 @GameTickOnly
-fun Level?.transformToWorld(pos: Vector3dc, aabb: AABBdc, dest: AABBd): AABBd =
-    getShipManagingPos(pos).transformToWorld(aabb, dest)
+fun Level?.transformToWorldAt(shipAt: Vector3dc, aabb: AABBdc, dest: AABBd): AABBd =
+    getShipManagingPos(shipAt).transformToWorld(aabb, dest)
 
 @GameTickOnly
-fun Level?.transformToWorld(pos: Vec3i, aabb: AABBdc, dest: AABBd): AABBd =
-    getShipManagingPos(pos).transformToWorld(aabb, dest)
+fun Level?.transformToWorldAt(shipAt: Vec3i, aabb: AABBdc, dest: AABBd): AABBd =
+    getShipManagingPos(shipAt).transformToWorld(aabb, dest)
 
 @GameTickOnly
-fun Level?.transformToWorld(chunkPos: ChunkPos, aabb: AABBdc, dest: AABBd): AABBd =
-    getShipManagingPos(chunkPos).transformToWorld(aabb, dest)
+fun Level?.transformToWorldAt(shipAt: ChunkPos, aabb: AABBdc, dest: AABBd): AABBd =
+    getShipManagingPos(shipAt).transformToWorld(aabb, dest)
+
 
 @GameTickOnly
 fun Level?.transformToWorld(aabb: AABB): AABB =
@@ -2279,50 +2393,50 @@ fun Level?.transformToWorldEP(aabb: AABB): AABB =
     getShipInside(aabb).transformToWorld(aabb)
 
 @GameTickOnly
-fun Level?.transformToWorld(shipAtX: Double, shipAtZ: Double, aabb: AABB): AABB =
+fun Level?.transformToWorldAt(shipAtX: Double, shipAtZ: Double, aabb: AABB): AABB =
     getShipManagingPos(shipAtX, shipAtZ).transformToWorld(aabb)
 
 @GameTickOnly
-fun Level?.transformToWorld(pos: Position, aabb: AABB): AABB =
-    getShipManagingPos(pos).transformToWorld(aabb)
+fun Level?.transformToWorldAt(shipAt: Position, aabb: AABB): AABB =
+    getShipManagingPos(shipAt).transformToWorld(aabb)
 
 @GameTickOnly
-fun Level?.transformToWorld(pos: Vector3dc, aabb: AABB): AABB =
-    getShipManagingPos(pos).transformToWorld(aabb)
+fun Level?.transformToWorldAt(shipAt: Vector3dc, aabb: AABB): AABB =
+    getShipManagingPos(shipAt).transformToWorld(aabb)
 
 @GameTickOnly
-fun Level?.transformToWorld(pos: Vec3i, aabb: AABB): AABB =
-    getShipManagingPos(pos).transformToWorld(aabb)
+fun Level?.transformToWorldAt(shipAt: Vec3i, aabb: AABB): AABB =
+    getShipManagingPos(shipAt).transformToWorld(aabb)
 
 @GameTickOnly
-fun Level?.transformToWorld(chunkPos: ChunkPos, aabb: AABB): AABB =
-    getShipManagingPos(chunkPos).transformToWorld(aabb)
+fun Level?.transformToWorldAt(shipAt: ChunkPos, aabb: AABB): AABB =
+    getShipManagingPos(shipAt).transformToWorld(aabb)
 // endregion
 
 // region Level transform world aabb to ships (transformToShips)
 @GameTickOnly
-fun Level?.transformToShips(aabb: AABBd, dest: MutableCollection<AABBd>): MutableCollection<AABBd> =
+fun Level?.transformToShips(aabb: AABBdc, dest: MutableCollection<AABBd>): MutableCollection<AABBd> =
     dest.also { c -> c.addAll(getShipsIntersecting(aabb).map { it.transformToShip(aabb, AABBd()) }) }
 
 @GameTickOnly
-fun Level?.transformToShipsAtCenter(aabb: AABBd, dest: MutableCollection<AABBd>): MutableCollection<AABBd> =
+fun Level?.transformToShipsAtCenter(aabb: AABBdc, dest: MutableCollection<AABBd>): MutableCollection<AABBd> =
     dest.also { c -> c.addAll(getShipsIntersecting(aabb.center()).map { it.transformToShip(aabb, AABBd()) }) }
 
 @GameTickOnly
-fun Level?.transformToShips(shipAtX: Double, shipAtY: Double, shipAtZ: Double, aabb: AABBd, dest: MutableCollection<AABBd>): MutableCollection<AABBd> =
+fun Level?.transformToShipsAt(shipAtX: Double, shipAtY: Double, shipAtZ: Double, aabb: AABBdc, dest: MutableCollection<AABBd>): MutableCollection<AABBd> =
     dest.also { c -> c.addAll(getShipsIntersecting(shipAtX, shipAtY, shipAtZ).map { it.transformToShip(aabb, AABBd()) }) }
 
 @GameTickOnly
-fun Level?.transformToShips(pos: Position, aabb: AABBd, dest: MutableCollection<AABBd>): MutableCollection<AABBd> =
-    dest.also { c -> c.addAll(getShipsIntersecting(pos).map { it.transformToShip(aabb, AABBd()) }) }
+fun Level?.transformToShipsAt(shipAt: Position, aabb: AABBdc, dest: MutableCollection<AABBd>): MutableCollection<AABBd> =
+    dest.also { c -> c.addAll(getShipsIntersecting(shipAt).map { it.transformToShip(aabb, AABBd()) }) }
 
 @GameTickOnly
-fun Level?.transformToShips(pos: Vector3dc, aabb: AABBd, dest: MutableCollection<AABBd>): MutableCollection<AABBd> =
-    dest.also { c -> c.addAll(getShipsIntersecting(pos).map { it.transformToShip(aabb, AABBd()) }) }
+fun Level?.transformToShipsAt(shipAt: Vector3dc, aabb: AABBdc, dest: MutableCollection<AABBd>): MutableCollection<AABBd> =
+    dest.also { c -> c.addAll(getShipsIntersecting(shipAt).map { it.transformToShip(aabb, AABBd()) }) }
 
 @GameTickOnly
-fun Level?.transformToShips(pos: Vec3i, aabb: AABBd, dest: MutableCollection<AABBd>): MutableCollection<AABBd> =
-    dest.also { c -> c.addAll(getShipsIntersecting(pos).map { it.transformToShip(aabb, AABBd()) }) }
+fun Level?.transformToShipsAt(shipAt: Vec3i, aabb: AABBdc, dest: MutableCollection<AABBd>): MutableCollection<AABBd> =
+    dest.also { c -> c.addAll(getShipsIntersecting(shipAt).map { it.transformToShip(aabb, AABBd()) }) }
 
 @GameTickOnly
 fun Level?.transformToShips(aabb: AABB, dest: MutableCollection<AABB>):  MutableCollection<AABB> =
@@ -2333,20 +2447,20 @@ fun Level?.transformToShipsAtCenter(aabb: AABB, dest: MutableCollection<AABB>): 
     dest.also { c -> c.addAll(getShipsIntersecting(aabb.center).map { it.transformToShip(aabb) }) }
 
 @GameTickOnly
-fun Level?.transformToShips(shipAtX: Double, shipAtY: Double, shipAtZ: Double, aabb: AABB, dest: MutableCollection<AABB>): MutableCollection<AABB> =
+fun Level?.transformToShipsAt(shipAtX: Double, shipAtY: Double, shipAtZ: Double, aabb: AABB, dest: MutableCollection<AABB>): MutableCollection<AABB> =
     dest.also { c -> c.addAll(getShipsIntersecting(shipAtX, shipAtY, shipAtZ).map { it.transformToShip(aabb) }) }
 
 @GameTickOnly
-fun Level?.transformToShips(pos: Position, aabb: AABB, dest: MutableCollection<AABB>): MutableCollection<AABB> =
-    dest.also { c -> c.addAll(getShipsIntersecting(pos).map { it.transformToShip(aabb) }) }
+fun Level?.transformToShipsAt(shipAt: Position, aabb: AABB, dest: MutableCollection<AABB>): MutableCollection<AABB> =
+    dest.also { c -> c.addAll(getShipsIntersecting(shipAt).map { it.transformToShip(aabb) }) }
 
 @GameTickOnly
-fun Level?.transformToShips(pos: Vector3dc, aabb: AABB, dest: MutableCollection<AABB>): MutableCollection<AABB> =
-    dest.also { c -> c.addAll(getShipsIntersecting(pos).map { it.transformToShip(aabb) }) }
+fun Level?.transformToShipsAt(shipAt: Vector3dc, aabb: AABB, dest: MutableCollection<AABB>): MutableCollection<AABB> =
+    dest.also { c -> c.addAll(getShipsIntersecting(shipAt).map { it.transformToShip(aabb) }) }
 
 @GameTickOnly
-fun Level?.transformToShips(pos: Vec3i, aabb: AABB, dest: MutableCollection<AABB>): MutableCollection<AABB> =
-    dest.also { c -> c.addAll(getShipsIntersecting(pos).map { it.transformToShip(aabb) }) }
+fun Level?.transformToShipsAt(shipAt: Vec3i, aabb: AABB, dest: MutableCollection<AABB>): MutableCollection<AABB> =
+    dest.also { c -> c.addAll(getShipsIntersecting(shipAt).map { it.transformToShip(aabb) }) }
 // endregion
 
 // region i need to move these
@@ -3352,33 +3466,33 @@ fun Ship?.transformToShip(aabb: AABB): AABB =
 fun Ship?.rotateToWorld(x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
     this?.transform.rotateToWorld(x, y, z, dest)
 
-fun Ship?.rotateToWorld(pos: Position): Vec3 =
-    this?.transform.rotateToWorld(pos)
+fun Ship?.rotateToWorld(dir: Position): Vec3 =
+    this?.transform.rotateToWorld(dir)
 
-fun Ship?.rotateToWorld(pos: Vector3d): Vector3d =
-    this?.transform.rotateToWorld(pos)
+fun Ship?.rotateToWorld(dir: Vector3d): Vector3d =
+    this?.transform.rotateToWorld(dir)
 
-fun Ship?.rotateToWorld(pos: Vector3d, dest: Vector3d = Vector3d()): Vector3d =
-    this?.transform.rotateToWorld(pos, dest)
+fun Ship?.rotateToWorld(dir: Vector3dc, dest: Vector3d): Vector3d =
+    this?.transform.rotateToWorld(dir, dest)
 
-fun Ship?.rotateToWorld(pos: Vec3i): Vector3d =
-    this?.transform.rotateToWorld(pos)
+fun Ship?.rotateToWorld(dir: Vec3i): Vector3d =
+    this?.transform.rotateToWorld(dir)
 
 @JvmOverloads
 fun Ship?.rotateToShip(x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
     this?.transform.rotateToShip(x, y, z, dest)
 
-fun Ship?.rotateToShip(pos: Position): Vec3 =
-    this?.transform.rotateToShip(pos)
+fun Ship?.rotateToShip(dir: Position): Vec3 =
+    this?.transform.rotateToShip(dir)
 
-fun Ship?.rotateToShip(pos: Vector3d): Vector3d =
-    this?.transform.rotateToShip(pos)
+fun Ship?.rotateToShip(dir: Vector3d): Vector3d =
+    this?.transform.rotateToShip(dir)
 
-fun Ship?.rotateToShip(pos: Vector3d, dest: Vector3d = Vector3d()): Vector3d =
-    this?.transform.rotateToShip(pos, dest)
+fun Ship?.rotateToShip(dir: Vector3dc, dest: Vector3d): Vector3d =
+    this?.transform.rotateToShip(dir, dest)
 
-fun Ship?.rotateToShip(pos: Vec3i): Vector3d =
-    this?.transform.rotateToShip(pos)
+fun Ship?.rotateToShip(dir: Vec3i): Vector3d =
+    this?.transform.rotateToShip(dir)
 
 /**
  * Transform the given [x], [y], and [z] from ship space into world space, and store the
@@ -3460,33 +3574,33 @@ fun ShipTransform?.transformToShip(aabb: AABB): AABB =
 fun ShipTransform?.rotateToWorld(x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
     this?.shipToWorldRotation?.transform(dest.set(x, y, z)) ?: dest.set(x, y, z)
 
-fun ShipTransform?.rotateToWorld(pos: Position): Vec3 =
-    this?.shipToWorldRotation?.transform(pos) ?: pos.vec3()
+fun ShipTransform?.rotateToWorld(dir: Position): Vec3 =
+    this?.shipToWorldRotation?.transform(dir) ?: dir.vec3()
 
-fun ShipTransform?.rotateToWorld(pos: Vector3d): Vector3d =
-    this?.shipToWorldRotation?.transform(pos) ?: pos
+fun ShipTransform?.rotateToWorld(dir: Vector3d): Vector3d =
+    this?.shipToWorldRotation?.transform(dir) ?: dir
 
-fun ShipTransform?.rotateToWorld(pos: Vector3dc, dest: Vector3d): Vector3d =
-    this?.shipToWorldRotation?.transform(pos, dest) ?: dest.set(pos)
+fun ShipTransform?.rotateToWorld(dir: Vector3dc, dest: Vector3d): Vector3d =
+    this?.shipToWorldRotation?.transform(dir, dest) ?: dest.set(dir)
 
-fun ShipTransform?.rotateToWorld(pos: Vec3i): Vector3d =
-    this?.shipToWorldRotation?.transform(pos.toJOMLd()) ?: pos.toJOMLd()
+fun ShipTransform?.rotateToWorld(dir: Vec3i): Vector3d =
+    this?.shipToWorldRotation?.transform(dir.toJOMLd()) ?: dir.toJOMLd()
 
 @JvmOverloads
 fun ShipTransform?.rotateToShip(x: Double, y: Double, z: Double, dest: Vector3d = Vector3d()): Vector3d =
     this?.shipToWorldRotation?.transformInverse(dest.set(x, y, z)) ?: dest.set(x, y, z)
 
-fun ShipTransform?.rotateToShip(pos: Position): Vec3 =
-    this?.shipToWorldRotation?.transformInverse(pos) ?: pos.vec3()
+fun ShipTransform?.rotateToShip(dir: Position): Vec3 =
+    this?.shipToWorldRotation?.transformInverse(dir) ?: dir.vec3()
 
-fun ShipTransform?.rotateToShip(pos: Vector3d): Vector3d =
-    this?.shipToWorldRotation?.transformInverse(pos) ?: pos
+fun ShipTransform?.rotateToShip(dir: Vector3d): Vector3d =
+    this?.shipToWorldRotation?.transformInverse(dir) ?: dir
 
-fun ShipTransform?.rotateToShip(pos: Vector3dc, dest: Vector3d): Vector3d =
-    this?.shipToWorldRotation?.transformInverse(pos, dest) ?: dest.set(pos)
+fun ShipTransform?.rotateToShip(dir: Vector3dc, dest: Vector3d): Vector3d =
+    this?.shipToWorldRotation?.transformInverse(dir, dest) ?: dest.set(dir)
 
-fun ShipTransform?.rotateToShip(pos: Vec3i): Vector3d =
-    this?.shipToWorldRotation?.transformInverse(pos.toJOMLd()) ?: pos.toJOMLd()
+fun ShipTransform?.rotateToShip(dir: Vec3i): Vector3d =
+    this?.shipToWorldRotation?.transformInverse(dir.toJOMLd()) ?: dir.toJOMLd()
 
 /**
  * The vanilla [StructureStart]s stored in this [Ship]'s chunks, i.e. the structures whose
@@ -3779,6 +3893,8 @@ fun PoseStack.multiply(modelTransform: Matrix4dc) = also {
 }
 
 fun Vec3i.toDouble() = Vec3(x.toDouble(), y.toDouble(), z.toDouble())
+fun Vec3.toInt() = Vec3i(x.toInt(), y.toInt(), z.toInt())
+fun Vec3.toContaining(): BlockPos = BlockPos.containing(this)
 
 fun Position.vec3() = Vec3(x(), y(), z())
 
