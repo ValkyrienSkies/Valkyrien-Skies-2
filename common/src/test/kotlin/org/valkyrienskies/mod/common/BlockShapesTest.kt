@@ -161,7 +161,7 @@ class BlockShapesTest {
         every { BlockStateInfo.cache } returns cache
     }
 
-    @Test fun `placing a shaped block hands the engine its registered shape, not the block state's`() {
+    @Test fun `placing or updating a shaped block does not recalculate its dynamic shape`() {
         stubBlockStateInfo()
         val registry = BlockStateInfo::class.java.getDeclaredField("SORTED_REGISTRY").apply { isAccessible = true }
         val saved = runCatching { registry.get(BlockStateInfo) }.getOrNull()
@@ -169,21 +169,19 @@ class BlockShapesTest {
         try {
             val level = mockk<ClientLevel>(relaxed = true)
             val ships = mockk<VsiShipWorld>(relaxed = true)
-            // The Level overload, which is the one BlockStateInfo asks; ClientLevel has its own.
             every { (level as Level).shipObjectWorld } returns ships
             every { level.dimensionId } returns "minecraft:dimension:minecraft:overworld"
             val pos = BlockPos(10, 64, 10)
             shapes[pos] = plate(4)
 
             BlockStateInfo.onSetBlock(level, pos, stone, panel)
+            BlockStateInfo.onSetBlock(level, pos, panel, panel)
 
-            val newType = slot<VsiBlockType>()
+            verify(exactly = 0) { panelBlock.getPhysicsSolidState(any(), any(), any()) }
             verify {
                 ships.onSetBlock(10, 64, 10, "minecraft:dimension:minecraft:overworld",
-                    stoneType, capture(newType), stoneMass, panelMass)
+                    stoneType, panelStateType, stoneMass, panelMass)
             }
-            assertEquals(BlockShapes.typeAt(level, pos, panel), newType.captured)
-            assertNotEquals(panelStateType, newType.captured)
         } finally {
             registry.set(BlockStateInfo, saved)
         }
