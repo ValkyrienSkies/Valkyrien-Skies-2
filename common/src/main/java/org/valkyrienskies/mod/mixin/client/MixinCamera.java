@@ -32,6 +32,7 @@ import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.client.IVSCamera;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
+import org.valkyrienskies.mod.mixinducks.client.player.LocalPlayerDuck;
 
 @Mixin(Camera.class)
 public abstract class MixinCamera implements IVSCamera {
@@ -135,6 +136,9 @@ public abstract class MixinCamera implements IVSCamera {
         }
 
         final Vector3d shipUp = ship.getRenderTransform().getRotation().transform(new Vector3d(0.0, 1.0, 0.0));
+        if (this.entity instanceof LocalPlayerDuck player && player.vs$getMountedCameraRotation().isMounted()) {
+            player.vs$getMountedCameraRotation().getRotation().transform(shipUp.set(0.0, 1.0, 0.0));
+        }
         final double up = shipUp.dot(this.up.x(), this.up.y(), this.up.z());
         final double left = shipUp.dot(this.left.x(), this.left.y(), this.left.z());
         if (up * up + left * left > 1.0E-12) {

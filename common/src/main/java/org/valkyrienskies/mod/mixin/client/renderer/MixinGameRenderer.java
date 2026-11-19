@@ -40,6 +40,7 @@ import org.valkyrienskies.mod.common.util.EntityRenderPosition;
 import org.valkyrienskies.mod.common.util.IEntityDraggingInformationProvider;
 import org.valkyrienskies.mod.common.world.RaycastUtilsKt;
 import org.valkyrienskies.mod.mixinducks.client.MinecraftDuck;
+import org.valkyrienskies.mod.mixinducks.client.player.LocalPlayerDuck;
 
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -133,6 +134,10 @@ public abstract class MixinGameRenderer {
             }
 
             shipWorld.updateRenderTransforms(tickDelta);
+
+            if (this.minecraft.player != null) {
+                ((LocalPlayerDuck) this.minecraft.player).vs$updateMountedCameraRotation(true);
+            }
 
             // Also update entity last tick positions, so that they interpolate correctly
             for (final Entity entity : clientWorld.entitiesForRendering()) {

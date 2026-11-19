@@ -26,6 +26,7 @@ import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.mod.common.getShipMountedTo
 import org.valkyrienskies.mod.mixin.client.MixinCamera
 import org.valkyrienskies.mod.mixin.client.renderer.MixinGameRenderer
+import org.valkyrienskies.mod.mixinducks.client.player.LocalPlayerDuck
 
 class MountedCameraRollTest {
     companion object {
@@ -109,6 +110,29 @@ class MountedCameraRollTest {
         applyRotation(0.0f, 0.0f)
         assertEquals(previousRoll, camera.getZrot())
         assertTrue(rotation.isFinite)
+    }
+
+    @Test
+    fun `mounted local frame keeps camera up continuous through vertical views in both perspectives`() {
+        val player = mockk<Entity>(moreInterfaces = arrayOf(LocalPlayerDuck::class))
+        val state = MountedCameraRotation()
+        val mount = Any()
+        every { getShipMountedTo(player) } returns ship
+        every { (player as LocalPlayerDuck).`vs$getMountedCameraRotation`() } returns state
+        MixinCamera::class.java.getDeclaredField("entity").apply { isAccessible = true }.set(camera, player)
+        state.update(mount, 1, Quaterniond(), 0.0f, 0.0f)
+        for (angle in listOf(0.0, 89.0, 90.0, 91.0, 180.0, 269.0, 270.0, 271.0, 360.0)) {
+            shipRotation.identity().rotateX(Math.toRadians(angle)).rotateZ(0.3)
+            state.update(mount, 1, shipRotation, state.worldYaw, state.worldPitch)
+            val expectedUp = state.rotation.transform(Vector3d(0.0, 1.0, 0.0))
+            for (reverse in listOf(false, true)) {
+                val yaw = state.worldYaw + if (reverse) 180.0f else 0.0f
+                val pitch = state.worldPitch * if (reverse) -1.0f else 1.0f
+                applyRotation(yaw, pitch)
+                assertTrue(expectedUp.distance(Vector3d(up)) < 1e-5)
+                assertAim(yaw, pitch)
+            }
+        }
     }
 
     @Test
