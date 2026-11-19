@@ -18,12 +18,21 @@ public final class ShipPortraits {
     private ShipPortraits() {
     }
 
+    /**
+     * Draws a ship as seen from a point in its own shipyard coordinates.
+     *
+     * @param opaqueOnly skip the translucent layer
+     * @param fullBright use maximum light instead of the shipyard's block and sky light
+     * @param renderBlockEntities draw block entities after the ship's block geometry
+     * @return whether anything was drawn
+     */
     public static boolean render(final ClientLevel level, final ClientShip ship,
         final Matrix4f modelView, final Matrix4f projection,
         final double cameraX, final double cameraY, final double cameraZ,
-        final boolean fullBright, final boolean renderBlockEntities) {
+        final boolean opaqueOnly, final boolean fullBright,
+        final boolean renderBlockEntities) {
         return ShipPortraitRenderer.render(level, ship, modelView, projection,
-            cameraX, cameraY, cameraZ, fullBright, renderBlockEntities);
+            cameraX, cameraY, cameraZ, opaqueOnly, fullBright, renderBlockEntities);
     }
 
     /** Stop retaining geometry for a portrait that is no longer displayed. */

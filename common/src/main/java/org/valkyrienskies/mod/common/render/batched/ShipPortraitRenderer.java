@@ -58,12 +58,13 @@ public final class ShipPortraitRenderer {
      * @param fullBright light the ship as though the sun were on it, rather than by the block and
      *                   sky light of wherever in the shipyard it happens to live. A shipyard is
      *                   sealed and unlit, so a portrait taken by its own light is a silhouette
+     * @param renderBlockEntities draw the ship's block entities after its block geometry
      * @return whether anything was drawn
      */
     public static boolean render(final ClientLevel level, final ClientShip ship,
         final Matrix4f modelView, final Matrix4f projection,
         final double camX, final double camY, final double camZ, final boolean opaqueOnly,
-        final boolean fullBright) {
+        final boolean fullBright, final boolean renderBlockEntities) {
 
         RenderSystem.assertOnRenderThread();
         if (level == null || ship == null) {
@@ -122,8 +123,10 @@ public final class ShipPortraitRenderer {
                 renderType.clearRenderState();
                 drew = true;
             }
-            drew |= renderBlockEntities(level, object, modelView, projection, camX, camY, camZ,
-                fullBright);
+            if (renderBlockEntities) {
+                drew |= renderBlockEntities(level, object, modelView, projection, camX, camY, camZ,
+                    fullBright);
+            }
         } finally {
             RenderSystem.setShaderFogStart(fogStart);
             RenderSystem.setShaderFogEnd(fogEnd);
