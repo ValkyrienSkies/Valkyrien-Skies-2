@@ -271,8 +271,7 @@ object ShipAssembler {
                     if (it is Clearable) {
                         Clearable.tryClear(it)
                     } else {
-                        // Clear all NBT if it doesn't implement IClearable
-                        it.load(CompoundTag())
+                        MovedBlockEntityTags.clearBeforeRemoval(it)
                     }
                     // Without this, copycats still drop their items
                     level.removeBlockEntity(pos)
@@ -601,8 +600,9 @@ object ShipAssembler {
                     pending.minB, cornerOfShip, false).use { fluidTransfer ->
                 if (filteredBlocksWithState.size <= 8) {
                     val destPositions = ArrayList<BlockPos>(filteredBlocksWithState.size)
-                    for ((srcPos, state) in filteredBlocksWithState) {
-                        val beTag = level.getBlockEntity(srcPos)?.saveWithFullMetadata()
+                    val tags = filteredBlocksWithState.map { (pos, _) -> level.getBlockEntity(pos)?.saveWithFullMetadata() }
+                    for ((index, entry) in filteredBlocksWithState.withIndex()) {
+                        val (srcPos, state) = entry
                         val dx = srcPos.x - pending.minB.x
                         val dy = srcPos.y - pending.minB.y
                         val dz = srcPos.z - pending.minB.z
@@ -610,7 +610,7 @@ object ShipAssembler {
                         destPositions.add(destPos)
 
                         level.getBlockEntity(srcPos)?.let {
-                            if (it is Clearable) Clearable.tryClear(it) else it.load(CompoundTag())
+                            if (it is Clearable) Clearable.tryClear(it) else MovedBlockEntityTags.clearBeforeRemoval(it)
                             level.removeBlockEntity(srcPos)
                         }
                         val srcChunk = level.getChunkAt(srcPos)
@@ -618,7 +618,7 @@ object ShipAssembler {
 
                         val destChunk = level.getChunkAt(destPos)
                         destChunk.setBlockState(destPos, state, false)
-                        beTag?.let { tag ->
+                        tags[index]?.let { tag ->
                             tag.putInt("x", destPos.x)
                             tag.putInt("y", destPos.y)
                             tag.putInt("z", destPos.z)
@@ -645,7 +645,7 @@ object ShipAssembler {
 
                     for (pos in filteredBlocks) {
                         level.getBlockEntity(pos)?.let {
-                            if (it is Clearable) Clearable.tryClear(it) else it.load(CompoundTag())
+                            if (it is Clearable) Clearable.tryClear(it) else MovedBlockEntityTags.clearBeforeRemoval(it)
                             level.removeBlockEntity(pos)
                         }
                         level.setBlock(pos, Blocks.AIR.defaultBlockState(), removeFlags)

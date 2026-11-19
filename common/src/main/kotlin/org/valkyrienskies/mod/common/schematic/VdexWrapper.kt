@@ -36,6 +36,7 @@ import org.valkyrienskies.core.internal.joints.VSSpringJoint
 import org.valkyrienskies.mod.common.ValkyrienSkiesMod
 import org.valkyrienskies.mod.common.assembly.ICopyableAttachment
 import org.valkyrienskies.mod.common.assembly.ICopyableBlock
+import org.valkyrienskies.mod.common.assembly.MovedBlockEntityTags
 import org.valkyrienskies.mod.common.assembly.ShipAssembler
 import org.valkyrienskies.mod.common.command.commands.SchematicCommand.shipsNeedingAttachmentLoad
 import org.valkyrienskies.mod.common.debug.ShipDebugService
@@ -283,7 +284,7 @@ object VdexWrapper {
                                 tag.putInt("x", pos.x)
                                 tag.putInt("y", pos.y)
                                 tag.putInt("z", pos.z)
-                                be.load(tag)
+                                MovedBlockEntityTags.loadDeferred(be, tag)
                                 be.setChanged()
                                 sl.sendBlockUpdated(pos, state, state, Block.UPDATE_CLIENTS)
                             }
@@ -498,6 +499,7 @@ object VdexWrapper {
             oldStructureBlockInfo: StructureTemplate.StructureBlockInfo,
             newStructureBlockInfo: StructureTemplate.StructureBlockInfo, structurePlaceSettings: StructurePlaceSettings
         ): StructureTemplate.StructureBlockInfo {
+            newStructureBlockInfo.nbt?.let { MovedBlockEntityTags.relocate(newStructureBlockInfo.state, it) }
             if (newStructureBlockInfo.state.block is ICopyableBlock) {
                 blocks.add(StructureTemplate.StructureBlockInfo(
                     newStructureBlockInfo.pos.immutable(), newStructureBlockInfo.state, newStructureBlockInfo.nbt?.copy()
