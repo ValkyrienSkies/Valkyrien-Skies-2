@@ -7,7 +7,8 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
 class WeldPullControllerTest {
-    @Test fun distantBodiesApproachGraduallyAndSettleAcrossPhysicsTickRates() {
+    @Test
+    fun `distant bodies approach gradually and settle across physics tick rates`() {
         for (delta in listOf(1.0 / 20.0, 1.0 / 60.0, 1.0 / 120.0)) {
             val position = Vector3d(-10.0, -4.0, 2.0)
             val velocity = Vector3d()
@@ -24,7 +25,8 @@ class WeldPullControllerTest {
         }
     }
 
-    @Test fun oppositeQuaternionSignsProduceTheSameShortestRotation() {
+    @Test
+    fun `opposite quaternion signs produce the same shortest rotation`() {
         val source = WeldPullController.Pose(Vector3d(), Quaterniond(), Vector3d(), Vector3d())
         val rotation = Quaterniond().rotateY(Math.PI - 0.01)
         val a = WeldPullController.command(source, WeldPullController.Goal(Vector3d(), rotation, Vector3d(), Vector3d()), 2.0)
@@ -33,7 +35,8 @@ class WeldPullControllerTest {
         assertTrue(a.angularAcceleration.y > 0.0)
     }
 
-    @Test fun longBeamCannotMergeWithOnlyItsCenterAligned() {
+    @Test
+    fun `long beam cannot merge with only its center aligned`() {
         val source = WeldPullController.Pose(Vector3d(), Quaterniond().rotateY(0.01), Vector3d(), Vector3d())
         val goal = WeldPullController.Goal(Vector3d(), Quaterniond(), Vector3d(), Vector3d())
         val result = WeldPullController.command(source, goal, 30.0)
@@ -42,7 +45,8 @@ class WeldPullControllerTest {
         assertTrue(result.angularAcceleration.length() <= 10.0 / 30.0 + 1e-10)
     }
 
-    @Test fun goalFollowsTheSelectedPointOnARotatingAndScaledTarget() {
+    @Test
+    fun `goal follows the selected point on a rotating and scaled target`() {
         val target = WeldPullController.Pose(Vector3d(10.0, 70.0, -8.0), Quaterniond().rotateY(0.7), Vector3d(1.0, 0.0, 0.0), Vector3d(0.0, 0.5, 0.0))
         val modelCenter = Vector3d(28672000.5, 128.5, -28672000.5)
         val offset = Vector3d(3.0, 0.0, -2.0)

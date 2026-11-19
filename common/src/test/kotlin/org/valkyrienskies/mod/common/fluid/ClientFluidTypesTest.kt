@@ -5,7 +5,6 @@ import io.mockk.*
 import java.util.UUID
 import net.minecraft.SharedConstants
 import net.minecraft.client.multiplayer.ClientLevel
-import net.minecraft.core.BlockPos
 import net.minecraft.server.Bootstrap
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Blocks
@@ -15,6 +14,7 @@ import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import org.joml.Matrix4d
 import org.joml.primitives.AABBd
+import org.joml.primitives.AABBdc
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
 import org.valkyrienskies.core.api.ships.ClientShip
@@ -25,8 +25,12 @@ import org.valkyrienskies.core.internal.physics.VsiFluidFloodedVoxel
 import org.valkyrienskies.core.internal.physics.blockstates.VsiBlockState
 import org.valkyrienskies.core.internal.world.VsiClientShipWorld
 import org.valkyrienskies.core.internal.world.chunks.VsiBlockType
+import org.valkyrienskies.mod.api.dimensionId
+import org.valkyrienskies.mod.api.getShipsIntersecting
+import org.valkyrienskies.mod.api.shipWorld
+import org.valkyrienskies.mod.api.shipWorldNullable
+import org.valkyrienskies.mod.api.vsCore
 import org.valkyrienskies.mod.client.ClientBlockStateInfo
-import org.valkyrienskies.mod.common.*
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.networking.PacketSyncBlockStateInfo
 import org.valkyrienskies.mod.common.networking.VSGamePackets
@@ -59,10 +63,11 @@ class ClientFluidTypesTest {
         it.getMethod("getPacketMapper").invoke(it.getField("INSTANCE").get(null)) as ObjectMapper
     }
 
-    @BeforeEach fun setup() {
+    @BeforeEach
+    fun setup() {
         registry.clear(); cache.clear(); syncField.set(MassDatapackResolver, null)
         ClientFluidTypes.clear()
-        mockkStatic("org.valkyrienskies.mod.common.VSGameUtilsKt")
+        mockkStatic("org.valkyrienskies.mod.api.ValkyrienSkies")
         every { vsCore } returns core
         every { core.simplePacketNetworking } returns networking
         every { player.uuid } returns UUID(0, 1)
@@ -71,13 +76,13 @@ class ClientFluidTypesTest {
         }
         every { with(networking) { PacketSyncBlockStateInfo::class.registerClientHandler(capture(handler)) } } returns mockk()
         VSGamePackets.registerHandlers()
-        every { level.shipObjectWorld } returns world
-        every { (level as Level).shipObjectWorld } returns world
+        every { level.shipWorld } returns world
+        every { (level as Level).shipWorld } returns world
         every { level.shipWorldNullable } returns world
         every { level.dimensionId } returns "test"
         every { level.getBlockState(any()) } returns Blocks.AIR.defaultBlockState()
         every { level.getFluidState(any()) } returns Fluids.EMPTY.defaultFluidState()
-        every { level.getShipsIntersecting(any<org.joml.primitives.AABBdc>()) } returns listOf(ship)
+        every { level.getShipsIntersecting(any<AABBdc>()) } returns listOf(ship)
         every { world.allShips.getIntersecting(any(), any()) } returns listOf(ship)
         every { world.loadedShips.iterator() } answers { listOf(ship).iterator() }
         every { ship.id } returns 7
@@ -90,7 +95,8 @@ class ClientFluidTypesTest {
             floodingSnapshot(VsiFluidFloodedVoxel(0, 0, 0, 17, 255, 0)))
     }
 
-    @AfterEach fun cleanup() {
+    @AfterEach
+    fun cleanup() {
         ShipFluidInteraction.clear(world)
         FloodedFluidClientCache.clear()
         FluidTopologyClientCache.clear()
@@ -114,7 +120,8 @@ class ClientFluidTypesTest {
         handler.captured(mapper.readValue(mapper.writeValueAsBytes(packet), PacketSyncBlockStateInfo::class.java))
     }
 
-    @Test fun `remote client gets body eye camera and block fluid from a serialized mapping without local physics registration`() {
+    @Test
+    fun `remote client gets body eye camera and block fluid from a serialized mapping without local physics registration`() {
         assertNull(MassDatapackResolver.getFlowingFluid(17))
         assertFalse(ShipFluidInteraction.samplePoint(level, Vec3(0.5, 0.5, 0.5)).flooded())
         receive(PacketSyncBlockStateInfo(emptyMap(), mapOf(17 to "minecraft:water")))
@@ -130,7 +137,8 @@ class ClientFluidTypesTest {
         assertNull(MassDatapackResolver.getFlowingFluid(17), "Client mapping must not populate the server registry")
     }
 
-    @Test fun `both mass info settings send the registered fluid IDs`() {
+    @Test
+    fun `both mass info settings send the registered fluid IDs`() {
         register(Blocks.WATER.defaultBlockState(), 17)
         register(Blocks.LAVA.defaultBlockState(), 18)
         MassDatapackResolver.syncBlockStates(player)
@@ -147,7 +155,8 @@ class ClientFluidTypesTest {
         assertFalse(ClientBlockStateInfo.clientHasMassInfo)
     }
 
-    @Test fun `server changes replace IDs and disconnect removes them without changing local server lookup`() {
+    @Test
+    fun `server changes replace IDs and disconnect removes them without changing local server lookup`() {
         register(Blocks.WATER.defaultBlockState(), 17)
         assertSame(Fluids.WATER, MassDatapackResolver.getFlowingFluid(17))
         receive(PacketSyncBlockStateInfo(emptyMap(), mapOf(17 to "minecraft:water", 18 to "minecraft:lava")))
@@ -160,7 +169,8 @@ class ClientFluidTypesTest {
         assertSame(Fluids.WATER, MassDatapackResolver.getFlowingFluid(17, false))
     }
 
-    @Test fun `unknown or invalid fluid names do not resolve to water`() {
+    @Test
+    fun `unknown or invalid fluid names do not resolve to water`() {
         receive(PacketSyncBlockStateInfo(emptyMap(), mapOf(17 to "missing:fluid", 18 to "bad name", 19 to "minecraft:empty")))
         for (id in 17..19) assertNull(ClientFluidTypes.get(id))
     }

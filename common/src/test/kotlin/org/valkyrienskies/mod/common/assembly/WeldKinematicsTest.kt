@@ -7,7 +7,8 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
 class WeldKinematicsTest {
-    @Test fun changingMassCenterPreservesEveryRetainedBlockAndItsVelocity() {
+    @Test
+    fun `changing center of mass preserves every retained block and its velocity`() {
         val oldModelCenter = Vector3d(28672000.5, 128.5, -28672000.5)
         val worldCenter = Vector3d(10.5, 70.5, -15.0)
         val oldVelocity = Vector3d(2.0, -1.0, 0.5)

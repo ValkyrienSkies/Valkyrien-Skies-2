@@ -18,6 +18,7 @@ import net.minecraft.world.level.material.Fluids
 import net.minecraft.world.level.pathfinder.*
 import org.joml.Matrix4d
 import org.joml.primitives.AABBd
+import org.joml.primitives.AABBdc
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable
@@ -25,7 +26,10 @@ import org.valkyrienskies.core.api.ships.ClientShip
 import org.valkyrienskies.core.internal.physics.VsiFluidFloodedVoxel
 import org.valkyrienskies.core.internal.physics.VsiFluidTopologyVoxel
 import org.valkyrienskies.core.internal.world.VsiClientShipWorld
-import org.valkyrienskies.mod.common.*
+import org.valkyrienskies.mod.api.dimensionId
+import org.valkyrienskies.mod.api.getShipManagingPos
+import org.valkyrienskies.mod.api.getShipsIntersecting
+import org.valkyrienskies.mod.api.shipWorldNullable
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.config.VSGameConfig
 import org.valkyrienskies.mod.common.pathfinding.*
@@ -35,11 +39,13 @@ import org.valkyrienskies.mod.mixin.feature.ai.swim.MixinRandomStrollSwim
 import org.valkyrienskies.mod.mixin.feature.ai.swim.MixinBehaviorUtilsSwim
 import org.valkyrienskies.mod.mixin.feature.ai.goal.MixinGoalUtil
 import org.valkyrienskies.mod.mixin.feature.ai.frog.MixinFrogspawnFluidState
+import net.minecraft.world.level.pathfinder.Target
 
 class FluidNavigationHooksTest {
     companion object {
         @JvmStatic @BeforeAll fun bootstrap() { SharedConstants.tryDetectVersion(); Bootstrap.bootStrap() }
     }
+
     private val level = mockk<Level>()
     private val world = mockk<VsiClientShipWorld>()
     private val ship = mockk<ClientShip>()
@@ -57,7 +63,8 @@ class FluidNavigationHooksTest {
         every { it.`is`(FluidTags.LAVA) } returns real.type.isSame(Fluids.LAVA)
     }
 
-    @BeforeEach fun setup() {
+    @BeforeEach
+    fun setup() {
         oldAi = VSGameConfig.SERVER.aiOnShips
         VSGameConfig.SERVER.aiOnShips = true
         PathfindingFrame.CURRENT.set(PathfindingFrame.World)
@@ -81,34 +88,41 @@ class FluidNavigationHooksTest {
             every { fluid.getSource(false) } answers { tagged(real.getSource(false)) }
             every { fluid.getFlowing(any(), false) } answers { tagged(real.getFlowing(firstArg(), false)) }
         }
-        mockkStatic("org.valkyrienskies.mod.common.VSGameUtilsKt")
+        mockkStatic("org.valkyrienskies.mod.api.ValkyrienSkies")
         every { level.shipWorldNullable } returns world
         every { level.dimensionId } returns "test"
         every { level.getShipManagingPos(any<BlockPos>()) } answers { if (arg<BlockPos>(1).x >= 1000) ship else null }
-        every { level.getShipsIntersecting(any<org.joml.primitives.AABBdc>()) } returns listOf(ship)
+        every { level.getShipsIntersecting(any<AABBdc>()) } returns listOf(ship)
     }
-    @AfterEach fun cleanup() {
+
+    @AfterEach
+    fun cleanup() {
         PathfindingFrame.CURRENT.remove()
         PathfindStateCache.reset()
         ShipFluidInteraction.clear(world)
         VSGameConfig.SERVER.aiOnShips = oldAi
         unmockkAll()
     }
+
     private fun invoke(type: Class<*>, target: Any?, name: String, vararg args: Any?): Any? =
         type.declaredMethods.single { it.name == name }.apply { isAccessible = true }.invoke(target, *args)
+
     private fun scope() = ShipFluidStateQueries.beginPath(level, PathfindingFrame.World, nearby)
+
     private fun region() = object : MixinPathNavigationRegion(), PathNavigationRegionAccessor {
         override fun getLevel(): Level = this@FluidNavigationHooksTest.level
     }
+
     private fun swim() = object : SwimNodeEvaluatorMixin() {
         override fun getStart() = Node(0, 0, 0)
-        override fun getGoal(x: Double, y: Double, z: Double): net.minecraft.world.level.pathfinder.Target = mockk()
+        override fun getGoal(x: Double, y: Double, z: Double): Target = mockk()
         override fun getNeighbors(nodes: Array<Node>, node: Node) = 0
         override fun getBlockPathType(getter: BlockGetter, x: Int, y: Int, z: Int, mob: Mob) = BlockPathTypes.OPEN
         override fun getBlockPathType(getter: BlockGetter, x: Int, y: Int, z: Int) = BlockPathTypes.OPEN
     }
 
-    @Test fun `region fluid and block peeks consistently override wet and dry vanilla state`() {
+    @Test
+    fun `region fluid and block peeks consistently override wet and dry vanilla state`() {
         for (amount in listOf(255, 1, 0)) {
             fill = amount; sequence++
             scope().use {
@@ -124,27 +138,29 @@ class FluidNavigationHooksTest {
         }
     }
 
-    @Test fun `swim fluid and pathfindable hooks reject dry ocean and accept retained shallow water`() {
+    @Test
+    fun `swim fluid and pathfindable hooks reject dry ocean and accept retained shallow water`() {
         val target = swim()
         for (amount in listOf(0, 1, 255)) {
             fill = amount; sequence++
             scope().use {
                 val state = invoke(SwimNodeEvaluatorMixin::class.java, null, "vs\$peekFluid", level, BlockPos.ZERO,
-                    Operation<FluidState> { Fluids.WATER.defaultFluidState() }) as FluidState
+                    Operation { Fluids.WATER.defaultFluidState() }) as FluidState
                 assertEquals(amount == 0, state.isEmpty)
                 val block = invoke(SwimNodeEvaluatorMixin::class.java, null, "vs\$peekBlock", level, BlockPos.ZERO,
-                    Operation<BlockState> { Blocks.AIR.defaultBlockState() }) as BlockState
+                    Operation { Blocks.AIR.defaultBlockState() }) as BlockState
                 assertEquals(amount == 0, block.isAir)
                 for (vanilla in listOf(false, true)) {
                     assertEquals(amount > 0, invoke(SwimNodeEvaluatorMixin::class.java, target, "vs\$wrapIsPathFindable",
                         Blocks.WATER.defaultBlockState(), level, BlockPos.ZERO, PathComputationType.WATER,
-                        Operation<Boolean> { vanilla }))
+                        Operation { vanilla }))
                 }
             }
         }
     }
 
-    @Test fun `vanilla walk node classification consumes the region wet dry and hazard views`() {
+    @Test
+    fun `vanilla walk node classification consumes the region wet dry and hazard views`() {
         val region = region()
         val getter = mockk<BlockGetter>()
         every { getter.getBlockState(any()) } answers {
@@ -176,7 +192,8 @@ class FluidNavigationHooksTest {
         }
     }
 
-    @Test fun `general local queries preserve newly solid and waterlogged blocks`() {
+    @Test
+    fun `general local queries preserve newly solid and waterlogged blocks`() {
         for (state in listOf(Blocks.STONE.defaultBlockState(), Blocks.OAK_SLAB.defaultBlockState()
             .setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.WATERLOGGED, true))) {
             every { level.getBlockState(local) } returns state
@@ -184,7 +201,8 @@ class FluidNavigationHooksTest {
         }
     }
 
-    @Test fun `ordinary swim and water-goal hooks consult domains before accepting ambient water`() {
+    @Test
+    fun `ordinary swim and water-goal hooks consult domains before accepting ambient water`() {
         val mob = mockk<PathfinderMob>()
         every { mob.level() } returns level
         for (amount in listOf(0, 128)) {
@@ -193,16 +211,17 @@ class FluidNavigationHooksTest {
                 MixinRandomStrollSwim::class.java to "vs\$shipAwareSwimFluid",
                 MixinGoalUtil::class.java to "vs\$getFluidStateIsWater")) {
                 val result = invoke(type, null, method, level, BlockPos.ZERO,
-                    Operation<FluidState> { Fluids.WATER.defaultFluidState() }) as FluidState
+                    Operation { Fluids.WATER.defaultFluidState() }) as FluidState
                 assertEquals(amount == 0, result.isEmpty)
             }
             assertEquals(amount > 0, invoke(MixinBehaviorUtilsSwim::class.java, null, "vs\$shipAwareSwimmable",
                 Blocks.WATER.defaultBlockState(), level, BlockPos.ZERO, PathComputationType.WATER,
-                Operation<Boolean> { true }, mob))
+                Operation { true }, mob))
         }
     }
 
-    @Test fun `general ship-aware helpers expose local and world retained state and authoritative dry`() {
+    @Test
+    fun `general ship-aware helpers expose local and world retained state and authoritative dry`() {
         for (amount in listOf(0, 128)) {
             fill = amount; sequence++
             assertEquals(amount == 0, ShipPathfindingUtils.getShipAwareFluidState(level, local, null).isEmpty)
@@ -211,7 +230,8 @@ class FluidNavigationHooksTest {
         }
     }
 
-    @Test fun `one path stays coherent across new publications and nested scopes release their cache`() {
+    @Test
+    fun `one path stays coherent across new publications and nested scopes release their cache`() {
         scope().use {
             val original = ShipFluidStateQueries.forPath(level, BlockPos.ZERO)!!.fluid()
             fill = 0; sequence++
@@ -224,37 +244,40 @@ class FluidNavigationHooksTest {
         scope().use { assertTrue(ShipFluidStateQueries.forPath(level, BlockPos.ZERO)!!.fluid().isEmpty) }
     }
 
-    @Test fun `disabled AI preserves native navigation decisions`() {
+    @Test
+    fun `disabled AI preserves native navigation decisions`() {
         VSGameConfig.SERVER.aiOnShips = false
         fill = 0
         val original = Fluids.WATER.defaultFluidState()
         assertSame(original, invoke(SwimNodeEvaluatorMixin::class.java, null, "vs\$peekFluid", level, BlockPos.ZERO,
-            Operation<FluidState> { original }))
+            Operation { original }))
         val fluid = CallbackInfoReturnable("fluid", true, original)
         invoke(MixinPathNavigationRegion::class.java, region(), "vs\$frameAwareGetFluidState", BlockPos.ZERO, fluid)
         assertSame(original, fluid.returnValue)
         verify(exactly = 0) { world.getFluidGameplaySnapshot(any()) }
     }
 
-    @Test fun `frogspawn support sees retained source water and clears when the source drains`() {
+    @Test
+    fun `frogspawn support sees retained source water and clears when the source drains`() {
         for (amount in listOf(255, 254, 0)) {
             fill = amount; sequence++
             val state = invoke(MixinFrogspawnFluidState::class.java, null, "vs\$shipFluidSupport", level, local,
-                Operation<FluidState> { Fluids.EMPTY.defaultFluidState() }) as FluidState
+                Operation { Fluids.EMPTY.defaultFluidState() }) as FluidState
             assertEquals(amount == 255, state.type == Fluids.WATER)
         }
         val ordinary = mockk<BlockGetter>()
         val original = Fluids.WATER.defaultFluidState()
         assertSame(original, invoke(MixinFrogspawnFluidState::class.java, null, "vs\$shipFluidSupport", ordinary, local,
-            Operation<FluidState> { original }))
+            Operation { original }))
     }
 
-    @Test fun `vanilla frogspawn survival accepts only full retained water with dry space above`() {
+    @Test
+    fun `vanilla frogspawn survival accepts only full retained water with dry space above`() {
         val getter = mockk<BlockGetter>()
         every { getter.getFluidState(any()) } answers {
             val pos = firstArg<BlockPos>()
             invoke(MixinFrogspawnFluidState::class.java, null, "vs\$shipFluidSupport", level, pos,
-                Operation<FluidState> { level.getBlockState(pos).fluidState }) as FluidState
+                Operation { level.getBlockState(pos).fluidState }) as FluidState
         }
         for (amount in listOf(255, 254, 0)) {
             fill = amount; sequence++

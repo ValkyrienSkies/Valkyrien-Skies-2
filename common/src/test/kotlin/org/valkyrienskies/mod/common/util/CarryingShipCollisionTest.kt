@@ -18,9 +18,12 @@ import org.valkyrienskies.core.api.ships.LoadedShip
 import org.valkyrienskies.core.internal.VsiCore
 import org.valkyrienskies.core.internal.VsiCoreFactory
 import org.valkyrienskies.core.internal.world.VsiShipWorld
-import org.valkyrienskies.mod.common.dimensionId
-import org.valkyrienskies.mod.common.shipObjectWorld
-import org.valkyrienskies.mod.common.vsCore
+import org.valkyrienskies.mod.api.dimensionId
+import org.valkyrienskies.mod.api.shipWorld
+import org.valkyrienskies.mod.api.toJOML
+import org.valkyrienskies.mod.api.toMinecraft
+import org.valkyrienskies.mod.api.vsCore
+import kotlin.math.tan
 
 class CarryingShipCollisionTest {
     companion object {
@@ -39,10 +42,10 @@ class CarryingShipCollisionTest {
     private var transform = Matrix4d()
 
     @BeforeEach fun setup() {
-        mockkStatic("org.valkyrienskies.mod.common.VSGameUtilsKt")
+        mockkStatic("org.valkyrienskies.mod.api.ValkyrienSkies")
         every { vsCore } returns core
         every { core.entityPolygonCollider } returns collider
-        every { level.shipObjectWorld } returns world
+        every { level.shipWorld } returns world
         every { level.dimensionId } returns "test"
         every { entity.level() } returns level
         every { entity.boundingBox } returns box
@@ -100,7 +103,7 @@ class CarryingShipCollisionTest {
         blocks += AABB(-4.0, 0.0, -4.0, 4.0, 1.0, 4.0)
         transform.translate(0.5, 1.0, 0.5).rotateZ(Math.toRadians(30.0)).translate(-0.5, -1.0, -0.5)
         val result = drag()
-        assertEquals(0.3 * Math.tan(Math.toRadians(30.0)), result.y(), 2e-7)
+        assertEquals(0.3 * tan(Math.toRadians(30.0)), result.y(), 2e-7)
         assertNoShipOverlap(box.move(result.toMinecraft()))
     }
 

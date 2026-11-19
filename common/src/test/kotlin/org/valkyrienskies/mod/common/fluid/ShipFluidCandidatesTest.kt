@@ -35,7 +35,7 @@ class ShipFluidCandidatesTest {
     private var loaded = true
 
     @BeforeEach fun setup() {
-        mockkStatic("org.valkyrienskies.mod.common.VSGameUtilsKt")
+        mockkStatic("org.valkyrienskies.mod.api.ValkyrienSkies")
         every { level.shipObjectWorld } returns world
         every { level.shipWorldNullable } returns world
         every { level.dimensionId } returns "test"

@@ -17,7 +17,8 @@ class WeldBlockStateTest {
         }
     }
 
-    @Test fun cubeAndLogCanBeAlignedToAnyFace() {
+    @Test
+    fun `cube and log can be aligned to any face`() {
         for (rotation in WeldRotation.ALL) {
             assertEquals(Blocks.STONE.defaultBlockState(), rotation.rotateState(Blocks.STONE.defaultBlockState()))
             val log = rotation.rotateState(Blocks.OAK_LOG.defaultBlockState())!!
@@ -25,15 +26,17 @@ class WeldBlockStateTest {
         }
     }
 
-    @Test fun directionalBlocksRotateAllSixDirections() {
-        for (rotation in WeldRotation.ALL) for (direction in Direction.values()) {
+    @Test
+    fun `directional blocks rotate all six directions`() {
+        for (rotation in WeldRotation.ALL) for (direction in Direction.entries) {
             val state = Blocks.OBSERVER.defaultBlockState().setValue(BlockStateProperties.FACING, direction)
             val result = rotation.rotateState(state)!!
             assertEquals(rotation.transform(direction), result.getValue(BlockStateProperties.FACING))
         }
     }
 
-    @Test fun stairsAndDoorsUseMinecraftYawRotationAndRejectTilting() {
+    @Test
+    fun `stairs and doors use minecraft yaw rotation and reject tilting`() {
         for (rotation in WeldRotation.ALL) {
             for (block in listOf(Blocks.OAK_STAIRS, Blocks.OAK_DOOR, Blocks.GLASS_PANE, Blocks.RAIL)) {
                 val state = block.defaultBlockState()

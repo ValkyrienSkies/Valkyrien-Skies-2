@@ -32,9 +32,10 @@ import org.valkyrienskies.core.internal.physics.VsiFluidFloodedVoxel
 import org.valkyrienskies.core.internal.world.VsiClientShipWorld
 import org.valkyrienskies.mod.common.config.MassDatapackResolver
 import org.valkyrienskies.mod.common.config.VSGameConfig
-import org.valkyrienskies.mod.common.getShipMountedTo
-import org.valkyrienskies.mod.common.shipObjectWorld
+import org.valkyrienskies.mod.api.getShipMountedTo
+import org.valkyrienskies.mod.api.shipWorld
 import org.valkyrienskies.mod.mixin.feature.fluid_camera_fix.MixinCamera
+import java.lang.reflect.InvocationTargetException
 import org.valkyrienskies.mod.mixin.client.MixinCamera as MountedCamera
 
 class CameraFluidStateTest {
@@ -169,8 +170,8 @@ class CameraFluidStateTest {
         every { child.renderAABB } returns AABBd(-2.0, -2.0, -2.0, 2.0, 2.0, 2.0)
         topology = topology.copy(voxels = listOf(org.valkyrienskies.core.internal.physics.VsiFluidTopologyVoxel(20, 0, 0, 1)))
         flood = flood.copy(voxels = listOf(VsiFluidFloodedVoxel(20, 0, 0, 17, 128, 0)))
-        mockkStatic("org.valkyrienskies.mod.common.VSGameUtilsKt")
-        every { level.shipObjectWorld } returns world
+        mockkStatic("org.valkyrienskies.mod.api.ValkyrienSkies")
+        every { level.shipWorld } returns world
         val wet = Vec3(10.5, .25, .5)
         assertSame(Fluids.WATER, sample(wet).fluid().type)
         assertTrue(sample(Vec3(10.5, .75, .5), Fluids.WATER.defaultFluidState()).dryDomain())
@@ -257,9 +258,9 @@ class CameraFluidStateTest {
         val camera = object : MixinCamera() {
             override fun getPosition() = Vec3(0.5, 0.8, 0.5)
         }
-        val fluidOperation = Operation<FluidState> { empty }
-        fun height() = invoke(camera, "vs\$fluidHeight", empty, level, BlockPos.ZERO, Operation<Float> { 0.25f }) as Float
-        val query = Operation<FogType> {
+        val fluidOperation = Operation { empty }
+        fun height() = invoke(camera, "vs\$fluidHeight", empty, level, BlockPos.ZERO, Operation { 0.25f }) as Float
+        val query = Operation {
             assertTrue((invoke(camera, "vs\$centerFluid", level, BlockPos.ZERO, fluidOperation) as FluidState).isEmpty)
             assertEquals(0.25f, height())
             val plane = invoke(camera, "vs\$nearPlaneFluid", level, BlockPos.ZERO, fluidOperation, cameraPosition) as FluidState
@@ -274,9 +275,9 @@ class CameraFluidStateTest {
         VSGameConfig.CLIENT.sealedAreaCameraGracePeriod = 2
         assertEquals(FogType.NONE, invoke(camera, "vs\$cameraGrace", query))
         invoke(camera, "vs\$resetFluid", CallbackInfo("reset", false))
-        assertEquals(FogType.LAVA, invoke(camera, "vs\$cameraGrace", Operation<FogType> { FogType.LAVA }))
+        assertEquals(FogType.LAVA, invoke(camera, "vs\$cameraGrace", Operation { FogType.LAVA }))
         // A failed render query must not leave a strong level reference or stale height override.
-        assertThrows(java.lang.reflect.InvocationTargetException::class.java) {
+        assertThrows(InvocationTargetException::class.java) {
             invoke(camera, "vs\$cameraGrace", Operation<FogType> { throw IllegalStateException("render failure") })
         }
         val levelField = MixinCamera::class.java.getDeclaredField("vs\$sampleLevel").apply { isAccessible = true }
@@ -290,7 +291,7 @@ class CameraFluidStateTest {
         every { mountedShip.renderTransform.rotation } returns rotation
         val entity = mockk<Entity>()
         mockkStatic("org.valkyrienskies.mod.common.VSGameUtilsKt")
-        every { getShipMountedTo(entity) } returns mountedShip
+        every { entity.getShipMountedTo() } returns mountedShip
         val camera = object : MountedCamera() {
             override fun getMaxZoom(startingDistance: Double) = startingDistance
             override fun move(distanceOffset: Double, verticalOffset: Double, horizontalOffset: Double) = Unit

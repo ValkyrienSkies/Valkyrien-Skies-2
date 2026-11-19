@@ -2310,7 +2310,10 @@ fun Level?.rotateToWorld(shipAt: Vec3i, dir: Vec3i): Vector3d =
 // endregion
 
 // region Level rotate world direction vector to ships (rotateToShips)
-
+@JvmOverloads
+@GameTickOnly
+fun Level?.rotateToShips(shipAtX: Double, shipAtY: Double, shipAtZ: Double, x: Double, y: Double, z: Double, dest: MutableCollection<Vector3d> = mutableListOf()): MutableCollection<Vector3d> =
+    dest.also { c -> c.addAll(getShipsIntersecting(shipAtX, shipAtY, shipAtZ).map { it.rotateToShip(x, y, z) }) }
 // endregion
 
 // region Level rotate ship direction vector to nearby ships (rotateToNearbyShips)

@@ -19,7 +19,7 @@ import org.valkyrienskies.core.internal.physics.blockstates.VsiBlockState
 import org.valkyrienskies.core.internal.world.chunks.VsiBlockType
 import org.valkyrienskies.mod.common.BlockStateInfo
 import org.valkyrienskies.mod.common.DefaultBlockStateInfoProvider
-import org.valkyrienskies.mod.common.vsCore
+import org.valkyrienskies.mod.api.vsCore
 import org.valkyrienskies.mod.mixin.accessors.world.level.block.SlabBlockAccessor
 import org.valkyrienskies.mod.mixin.accessors.world.level.block.StairBlockAccessor
 
@@ -28,7 +28,8 @@ class BlockMaterialRegistrationTest {
         @BeforeAll @JvmStatic fun bootstrap() { SharedConstants.tryDetectVersion(); Bootstrap.bootStrap() }
     }
 
-    @Test fun `early fallback must not hide registered blue ice dirt and grass materials`() {
+    @Test
+    fun `early fallback must not hide registered blue ice dirt and grass materials`() {
         val providers = BlockStateInfo::class.java.getDeclaredField("SORTED_REGISTRY").apply { isAccessible = true }
         val oldProviders = providers.get(BlockStateInfo)
         val registration = MassDatapackResolver::class.java.getDeclaredField("registeredBlocks").apply { isAccessible = true }
@@ -44,7 +45,7 @@ class BlockMaterialRegistrationTest {
         val fallback = mockk<VsiBlockType>()
         val registered = mutableMapOf<VsiBlockState, VsiBlockType>()
         val boundaries = java.util.IdentityHashMap<SolidState, FluidBoundaryShape?>()
-        mockkStatic("org.valkyrienskies.mod.common.VSGameUtilsKt")
+        mockkStatic("org.valkyrienskies.mod.api.ValkyrienSkies")
         mockkStatic(StairBlockAccessor::class, SlabBlockAccessor::class)
         mockkStatic(MassDatapackResolver::class)
         mockkObject(MassDatapackResolver, recordPrivateCalls = true)

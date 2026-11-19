@@ -55,11 +55,11 @@ class FloodedVoxelRendererTest {
             val edgeA = Vector3d(quad[1].position).sub(quad[0].position)
             val edgeB = Vector3d(quad[2].position).sub(quad[0].position)
             val expected = edgeA.cross(edgeB).normalize()
-            for (vertex in quad) {
-                assertEquals(1.0, vertex.normal.length().toDouble(), 1e-6)
-                assertEquals(expected.x, vertex.normal.x.toDouble(), 1e-4)
-                assertEquals(expected.y, vertex.normal.y.toDouble(), 1e-4)
-                assertEquals(expected.z, vertex.normal.z.toDouble(), 1e-4)
+            for ((_, normal) in quad) {
+                assertEquals(1.0, normal.length().toDouble(), 1e-6)
+                assertEquals(expected.x, normal.x.toDouble(), 1e-4)
+                assertEquals(expected.y, normal.y.toDouble(), 1e-4)
+                assertEquals(expected.z, normal.z.toDouble(), 1e-4)
             }
         }
     }

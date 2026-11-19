@@ -1,16 +1,19 @@
 package org.valkyrienskies.mod.common.fluid
 
+import com.mojang.blaze3d.platform.GlStateManager
 import io.mockk.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import org.lwjgl.opengl.GL11
 import org.valkyrienskies.core.internal.physics.*
 import org.valkyrienskies.core.internal.world.VsiClientShipWorld
+import java.nio.ByteBuffer
 
 class FluidOcclusionContentTest {
     @Test
     fun `new publication metadata retains identical spatial indices and mask`() {
         val f = MaskContentFixture()
-        try {
+        f.use { f ->
             f.update()
             val topologyMap = f.index(f.topology!!)
             val floodingMap = f.index(f.flooding!!)
@@ -20,7 +23,7 @@ class FluidOcclusionContentTest {
             assertSame(floodingMap, f.index(f.flooding!!), "unchanged flooding index")
             assertSame(mask, f.data(), "unchanged mask must not be reconstructed")
             assertEquals(2L, f.flooding!!.snapshot.streamSequence)
-        } finally { f.close() }
+        }
     }
 
     @Test
@@ -44,7 +47,7 @@ class FluidOcclusionContentTest {
     @Test
     fun `reordering and topology flags retain mask identity while exposing new flags`() {
         val f = MaskContentFixture()
-        try {
+        f.use { f ->
             f.update()
             val mask = f.data()
             f.domain = f.domain.reversed().map { it.copy(flags = 3) }
@@ -57,13 +60,13 @@ class FluidOcclusionContentTest {
             f.update()
             assertSame(map, f.index(f.topology!!))
             assertSame(mask, f.data())
-        } finally { f.close() }
+        }
     }
 
     @Test
     fun `all partial fills and full-empty transitions match freshly constructed masks`() {
         val f = MaskContentFixture()
-        try {
+        f.use { f ->
             var previous: FluidOcclusionMaskData? = null
             for (fill in 0..255) {
                 f.rows = listOf(VsiFluidFloodedVoxel(1, 0, 0, 17, fill, 0))
@@ -79,16 +82,16 @@ class FluidOcclusionContentTest {
             f.rows = emptyList()
             assertTrue(f.update())
             f.assertFreshMask()
-        } finally { f.close() }
+        }
     }
 
     @Test
     fun `outside-domain changes retain mask but moving its origin does not`() {
         val f = MaskContentFixture()
-        try {
+        f.use { f ->
             f.update()
             val mask = f.data()!!
-            f.rows = f.rows + VsiFluidFloodedVoxel(100, 0, 0, 17, 128, 0)
+            f.rows += VsiFluidFloodedVoxel(100, 0, 0, 17, 128, 0)
             f.update()
             assertSame(mask, f.data())
             f.domain = f.domain.map { it.copy(positionX = it.positionX + 10) }
@@ -98,13 +101,13 @@ class FluidOcclusionContentTest {
             assertEquals(mask.bytes, f.data()!!.bytes)
             assertEquals(10, f.data()!!.minX)
             f.assertFreshMask()
-        } finally { f.close() }
+        }
     }
 
     @Test
     fun `disabled invalid empty and replacement worlds cannot reuse stale dry space`() {
         val f = MaskContentFixture()
-        try {
+        f.use { f ->
             f.update()
             f.enabled = false
             assertFalse(f.update()); assertNull(f.data())
@@ -125,23 +128,23 @@ class FluidOcclusionContentTest {
             assertEquals(-10, f.data()!!.minX)
             f.domain = emptyList()
             assertFalse(f.update()); assertNull(f.data())
-        } finally { f.close() }
+        }
     }
 
     @Test
     fun `failed direct upload retries unchanged content and commits only after success`() {
-        mockkStatic(org.lwjgl.opengl.GL11::class, com.mojang.blaze3d.platform.GlStateManager::class)
+        mockkStatic(GL11::class, GlStateManager::class)
         val f = MaskContentFixture()
         try {
             val type = f.mask.javaClass
             type.getDeclaredField("textureId").apply { isAccessible = true }.setInt(f.mask, 113)
             type.getDeclaredField("textureHeight").apply { isAccessible = true }.setInt(f.mask, 1)
-            every { org.lwjgl.opengl.GL11.glIsTexture(113) } returns true
-            every { org.lwjgl.opengl.GL11.glGetInteger(any()) } returns 0
-            every { org.lwjgl.opengl.GL11.glPixelStorei(any(), any()) } just Runs
-            every { com.mojang.blaze3d.platform.GlStateManager._bindTexture(any()) } just Runs
+            every { GL11.glIsTexture(113) } returns true
+            every { GL11.glGetInteger(any()) } returns 0
+            every { GL11.glPixelStorei(any(), any()) } just Runs
+            every { GlStateManager._bindTexture(any()) } just Runs
             var attempts = 0
-            every { org.lwjgl.opengl.GL11.glTexSubImage2D(any(), any(), any(), any(), any(), any(), any(), any(), any<java.nio.ByteBuffer>()) } answers {
+            every { GL11.glTexSubImage2D(any(), any(), any(), any(), any(), any(), any(), any(), any<ByteBuffer>()) } answers {
                 if (++attempts == 1) error("injected upload failure")
             }
             val failure = assertThrows(java.lang.reflect.InvocationTargetException::class.java) { f.update(true) }
@@ -149,7 +152,7 @@ class FluidOcclusionContentTest {
             assertTrue(f.update(true))
             assertTrue(f.update(true))
             assertEquals(2, attempts)
-        } finally { f.close(); unmockkStatic(org.lwjgl.opengl.GL11::class, com.mojang.blaze3d.platform.GlStateManager::class) }
+        } finally { f.close(); unmockkStatic(GL11::class, GlStateManager::class) }
     }
 }
 

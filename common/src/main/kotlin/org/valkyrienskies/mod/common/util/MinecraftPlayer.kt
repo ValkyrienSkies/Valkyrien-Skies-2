@@ -3,17 +3,17 @@ package org.valkyrienskies.mod.common.util
 import net.minecraft.world.entity.player.Player
 import org.joml.Vector3d
 import org.valkyrienskies.core.api.ships.properties.ShipId
+import org.valkyrienskies.core.api.world.properties.DimensionId
 import org.valkyrienskies.core.internal.world.VsiPlayer
 import org.valkyrienskies.core.internal.world.VsiPlayerState
-import org.valkyrienskies.core.internal.world.properties.DimensionId
-import org.valkyrienskies.mod.common.dimensionId
-import org.valkyrienskies.mod.common.getShipMountedToData
-import org.valkyrienskies.mod.common.vsCore
+import org.valkyrienskies.mod.api.dimensionId
+import org.valkyrienskies.mod.api.getShipMountedToData
+import org.valkyrienskies.mod.api.vsCore
 import java.lang.ref.WeakReference
 import java.util.UUID
 
 /**
- * We use this wrapper around [PlayerEntity] to create [VsiPlayer] objects used by vs-core.
+ * We use this wrapper around [Player] to create [VsiPlayer] objects used by vs-core.
  */
 class MinecraftPlayer(playerObject: Player) : VsiPlayer {
 
@@ -40,7 +40,7 @@ class MinecraftPlayer(playerObject: Player) : VsiPlayer {
     }
 
     override fun getPlayerState(): VsiPlayerState {
-        val mountedShipAndPos = getShipMountedToData(player)
+        val mountedShipAndPos = player.getShipMountedToData()
         return VsiPlayerState(
             Vector3d(player.x, player.y, player.z),
             Vector3d(Vector3d(player.x - player.xo, player.y - player.yo, player.z - player.zo)),
