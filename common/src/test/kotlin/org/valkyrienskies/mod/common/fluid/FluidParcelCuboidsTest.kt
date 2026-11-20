@@ -90,6 +90,24 @@ class FluidParcelCuboidsTest {
         assertEquals(6, FluidParcelCuboids.build(listOf(parcel(0.0)) + invalid).faces().size)
     }
     @Test
+    fun `touching parcels across index words keep all six faces of an interior cavity`() {
+        val parcels = buildList {
+            for (x in 0..4) for (y in 0..4) for (z in 0..4) {
+                if (x != 2 || y != 2 || z != 2) add(parcel(x * 0.5, y * 0.5, z * 0.5))
+            }
+        }
+        val mesh = FluidParcelCuboids.build(parcels)
+        assertEquals(156, mesh.faces().size)
+        assertEquals(124 * 0.125, volume(mesh), 1e-12)
+        for (axis in 0..2) for (sign in listOf(-1, 1)) {
+            assertTrue(mesh.faces().any {
+                it.axis() == axis && it.sign() == sign && it.plane() == 1.0 - sign * 0.25 &&
+                    it.minU() == 0.75 && it.maxU() == 1.25 && it.minV() == 0.75 && it.maxV() == 1.25
+            })
+        }
+    }
+
+    @Test
     fun `long separated streams preserve cubes along every sweep axis`() {
         for (axis in 0..2) {
             val inputs = List(1024) { i ->
