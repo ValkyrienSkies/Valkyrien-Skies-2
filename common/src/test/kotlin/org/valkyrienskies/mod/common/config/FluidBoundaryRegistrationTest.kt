@@ -50,8 +50,28 @@ class FluidBoundaryRegistrationTest {
         assertEquals(FluidBoundaryShape.CLOSED, boundary(Blocks.STONE.defaultBlockState()))
     }
 
-    @Test fun `overhanging shapes use closed fallback and subgrid geometry rounds outward`() {
+    @Test fun `open sliding and folding doors register only the panel inside the cell`() {
+        for (width in listOf(3, 9)) {
+            val w = width / 16.0
+            for (far in listOf(false, true)) for (hinge in listOf(false, true)) for (rotate in listOf(false, true)) {
+                val panelStart = if (far) 13 / 16.0 else 0.0
+                val lo = if (hinge) 1 - w else if (width == 3) -13 / 16.0 else -3 / 16.0
+                val hi = if (!hinge) w else if (width == 3) 29 / 16.0 else 19 / 16.0
+                fun panel(a: Double, b: Double) = if (rotate) Shapes.box(a, 0.0, panelStart, b, 1.0, panelStart + 3 / 16.0)
+                    else Shapes.box(panelStart, 0.0, a, panelStart + 3 / 16.0, 1.0, b)
+                val boundary = FluidBoundaryRegistration.fromShape(panel(lo, hi))
+                assertEquals(FluidBoundaryRegistration.fromShape(panel(maxOf(0.0, lo), minOf(1.0, hi))), boundary)
+                assertEquals(3 * 16 * width, solidCount(boundary))
+            }
+        }
+    }
+
+    @Test fun `overhangs retain local boxes and subgrid geometry rounds outward`() {
         assertEquals(FluidBoundaryShape.CLOSED, FluidBoundaryRegistration.fromShape(Shapes.box(0.0, 0.0, 0.0, 1.0, 1.5, 1.0)))
+        val outside = Shapes.box(-2.0, 0.0, 0.0, 0.0, 1.0, 1.0)
+        val middle = Shapes.box(.25, .25, .25, .75, .75, .75)
+        assertEquals(FluidBoundaryShape.OPEN, FluidBoundaryRegistration.fromShape(outside))
+        assertEquals(FluidBoundaryRegistration.fromShape(middle), FluidBoundaryRegistration.fromShape(Shapes.or(outside, middle)))
         assertEquals(256, solidCount(FluidBoundaryRegistration.fromShape(Shapes.box(0.0, 0.0, 0.0, 0.001, 1.0, 1.0))))
     }
 }
