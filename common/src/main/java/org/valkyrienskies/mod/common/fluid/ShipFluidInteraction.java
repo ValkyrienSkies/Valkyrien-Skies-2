@@ -19,6 +19,7 @@ import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FlowingFluid;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4dc;
 import org.joml.Vector3d;
@@ -34,6 +35,7 @@ import org.valkyrienskies.core.internal.world.VsiServerShipWorld;
 import org.valkyrienskies.core.internal.world.VsiShipWorld;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.MassDatapackResolver;
+import org.valkyrienskies.mod.common.config.FluidBoundaryRegistration;
 
 /**
  * Shared client/server view of the fluid occupying a ship topology domain.
@@ -114,27 +116,20 @@ public final class ShipFluidInteraction {
         if (voxel.getRegions().isEmpty()) return List.of();
         final BlockPos pos = new BlockPos(voxel.getPositionX(), voxel.getPositionY(), voxel.getPositionZ());
         final var state = level.getBlockState(pos);
-        final List<AABB> boxes;
+        final VoxelShape shape;
         try {
             if (!state.getCollisionShape(level, pos).isEmpty()) return List.of();
-            boxes = state.getShape(level, pos).toAabbs();
+            shape = state.getShape(level, pos);
         } catch (final RuntimeException exception) {
             // Registration also tolerates shape-query failures. Do not turn a fluid query into a crash.
             return List.of();
         }
         final List<AABB> masks = new ArrayList<>();
-        for (final AABB box : boxes) {
-            // Match the outward 1/16-block rounding used by FluidBoundaryRegistration.
-            // Invalid/out-of-cell outlines cannot safely describe this published partial cell.
-            if (!(box.minX >= 0 && box.minY >= 0 && box.minZ >= 0
-                && box.maxX <= 1 && box.maxY <= 1 && box.maxZ <= 1)) return List.of();
-            if (box.maxX <= box.minX || box.maxY <= box.minY || box.maxZ <= box.minZ) continue;
-            masks.add(new AABB(Math.floor(box.minX * 16) / 16 + pos.getX(),
-                Math.floor(box.minY * 16) / 16 + pos.getY(), Math.floor(box.minZ * 16) / 16 + pos.getZ(),
-                Math.ceil(box.maxX * 16) / 16 + pos.getX(), Math.ceil(box.maxY * 16) / 16 + pos.getY(),
-                Math.ceil(box.maxZ * 16) / 16 + pos.getZ()));
-        }
-        return masks;
+        final boolean valid = FluidBoundaryRegistration.forEachCellBox(shape, box -> masks.add(new AABB(
+            pos.getX() + box.minX() / 16.0, pos.getY() + box.minY() / 16.0, pos.getZ() + box.minZ() / 16.0,
+            pos.getX() + (box.maxX() + 1) / 16.0, pos.getY() + (box.maxY() + 1) / 16.0,
+            pos.getZ() + (box.maxZ() + 1) / 16.0)));
+        return valid ? masks : List.of();
     }
 
     private static boolean boundedHullQuery(final AABB bounds) {
