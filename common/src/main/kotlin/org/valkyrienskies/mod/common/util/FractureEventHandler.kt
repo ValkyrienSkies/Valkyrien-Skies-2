@@ -13,6 +13,9 @@ import org.valkyrienskies.core.impl.api_impl.config.ConfigPhysicsBackendType
 import org.valkyrienskies.core.impl.config.VSCoreConfig
 import org.valkyrienskies.mod.common.assembly.ShipAssembler
 import org.valkyrienskies.mod.common.dimensionId
+import org.valkyrienskies.mod.common.isBlockInShipyard
+import org.valkyrienskies.mod.common.shipObjectWorld
+import org.valkyrienskies.mod.common.getShipManagingPos
 import org.valkyrienskies.mod.util.logger
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -27,7 +30,8 @@ object FractureEventHandler {
         val backend = VSCoreConfig.SERVER.physics.physicsBackend
         val isFracturingBackend = backend == ConfigPhysicsBackendType.KRUNCH_KONSTANT ||
             backend == ConfigPhysicsBackendType.KRUNCH_VOX3D
-        return isFracturingBackend && VSCoreConfig.SERVER.physics.fracturing != ConfigFracturingMode.OFF
+        return (isFracturingBackend && VSCoreConfig.SERVER.physics.fracturing != ConfigFracturingMode.OFF) ||
+            (backend == ConfigPhysicsBackendType.KRUNCH_KONSTANT && VSCoreConfig.SERVER.physics.konstantTerrainImpactDamage)
     }
 
     private data class PendingFracture(
@@ -60,10 +64,36 @@ object FractureEventHandler {
         if (pending.isEmpty()) return
 
         val seen = HashSet<Set<BlockPos>>()
+        val physics = VSCoreConfig.SERVER.physics
+        val ground = level.shipObjectWorld.dimensionToGroundBodyIdImmutable[level.dimensionId]
         val blockSets = pending.mapNotNull { frac ->
+            if (frac.parentShipId == ground) {
+                if (physics.physicsBackend == ConfigPhysicsBackendType.KRUNCH_KONSTANT && physics.konstantTerrainImpactDamage &&
+                    frac.reason == FractureReason.IMPACT) {
+                    for (cell in frac.cells) {
+                        val pos = BlockPos(cell.x(), cell.y(), cell.z())
+                        if (level.hasChunkAt(pos) && !level.isBlockInShipyard(pos) &&
+                            level.getBlockState(pos).getDestroySpeed(level, pos) >= 0f) level.destroyBlock(pos, true)
+                    }
+                }
+                return@mapNotNull null
+            }
+            if (physics.fracturing == ConfigFracturingMode.OFF) return@mapNotNull null
+            if (frac.reason == FractureReason.IMPACT && frac.cells.size == 1 &&
+                VSCoreConfig.SERVER.physics.physicsBackend == ConfigPhysicsBackendType.KRUNCH_KONSTANT) {
+                val cell = frac.cells.single()
+                val pos = BlockPos(cell.x(), cell.y(), cell.z())
+                if (level.getShipManagingPos(pos)?.id == frac.parentShipId &&
+                    level.getBlockState(pos).getDestroySpeed(level, pos) >= 0f) {
+                    level.destroyBlock(pos, true)
+                }
+                return@mapNotNull null
+            }
             val blocks = HashSet<BlockPos>(frac.cells.size)
             for (cell in frac.cells) {
                 val pos = BlockPos(cell.x(), cell.y(), cell.z())
+                if (physics.physicsBackend == ConfigPhysicsBackendType.KRUNCH_KONSTANT &&
+                    level.getShipManagingPos(pos)?.id != frac.parentShipId) continue
                 if (!level.getBlockState(pos).isAir) blocks.add(pos)
             }
             if (blocks.isEmpty() || !seen.add(blocks)) null else blocks
