@@ -112,31 +112,6 @@ public abstract class MixinServerGamePacketListenerImpl implements ShipMovementL
     }
 
     @WrapOperation(
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/phys/Vec3;subtract(Lnet/minecraft/world/phys/Vec3;)Lnet/minecraft/world/phys/Vec3;"
-        ),
-        method = "handleUseItemOn"
-    )
-    private Vec3 skipDistanceCheck2(final Vec3 instance, final Vec3 vec3, final Operation<Vec3> subtract) {
-        return VSGameUtilsKt.toWorldCoordinates(player.level(), subtract.call(instance, vec3));
-    }
-
-    /*
-    @WrapOperation(
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/level/ChunkPos;getChessboardDistance(Lnet/minecraft/world/level/ChunkPos;)I"
-        ),
-        method = "handleUseItemOn"
-    )
-    private int skipDistanceCheck(final ChunkPos instance, final ChunkPos chunkPos, final Operation<Integer> getChessboardDistance) {
-        return 0;
-    }
-
-     */
-
-    @WrapOperation(
         method = "handleMovePlayer",
         at = @At(
             value = "INVOKE",

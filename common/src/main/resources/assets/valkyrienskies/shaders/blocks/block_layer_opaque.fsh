@@ -438,7 +438,14 @@ float vs_sosShipAo(vec3 worldPosWorld, vec3 nf) {
 // (No biome helpers in the FSH — biome lookup happens per-vertex in the VSH
 // and arrives via the v_VertexBiomeTint varying. The FSH just multiplies it.)
 
+#ifdef VS_NATIVE_PIECE
+#import <minecraft:include/vs_native_piece.glsl>
+#endif
+
 void main() {
+#ifdef VS_NATIVE_PIECE
+    vs_clipNativePiece();
+#endif
     vec4 diffuseColor = texture(u_BlockTex, v_TexCoord, v_MaterialMipBias);
 
 #ifdef USE_FRAGMENT_DISCARD

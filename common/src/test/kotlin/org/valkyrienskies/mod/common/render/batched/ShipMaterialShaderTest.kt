@@ -11,6 +11,11 @@ import net.minecraft.server.Bootstrap
 import net.minecraft.server.packs.PackResources
 import net.minecraft.server.packs.resources.Resource
 import net.minecraft.server.packs.resources.ResourceProvider
+import org.joml.Matrix4d
+import org.joml.Vector4d
+import org.joml.primitives.AABBd
+import org.valkyrienskies.core.api.ships.ShipPhysicalPiece
+import org.valkyrienskies.mod.common.render.NativeShipPieces
 import org.joml.Matrix4f
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -82,6 +87,7 @@ class ShipMaterialShaderTest {
                         val program = shader.id
                         assertEquals(GL_TRUE, glGetProgrami(program, GL_LINK_STATUS), glGetProgramInfoLog(program))
                         glUseProgram(program)
+                        if (name == "material") NativeShipPieces.bind(program, null, 0.0, 0.0, 0.0)
                         fun loc(name: String) = glGetUniformLocation(program, name)
                         glUniform1i(loc("ShipTransforms"), 4)
                         glUniform1i(loc("u_VsLightSections"), 6)
@@ -145,6 +151,11 @@ class ShipMaterialShaderTest {
                         glDrawArrays(GL_POINTS, 0, 1)
                         assertPixel(255, 255, 255, 0.5f)
                         ShipMaterialUniforms.restoreTable(previousTable, unit)
+                        if (name.startsWith("batched_")) {
+                            checkClippedMesh(program, storage, vao)
+                        } else {
+                            checkNativeClip(program, vao)
+                        }
                         glUseProgram(0)
                     }
                 }
@@ -161,6 +172,7 @@ class ShipMaterialShaderTest {
                     assertTrue(glGetUniformLocation(shader.id, "vs_MaterialData") >= 0)
                 }
             } finally {
+                NativeShipPieces.release()
                 ShipMaterialUniforms.release()
                 storage.delete()
                 glDeleteTextures(white)
@@ -171,6 +183,71 @@ class ShipMaterialShaderTest {
             GL.setCapabilities(null)
             glfwTerminate()
         }
+    }
+
+    private fun checkClippedMesh(program: Int, storage: ShipTransformStorage, vao: Int) {
+        val clip = glGetUniformLocation(program, "vs_ClipRange")
+        assertTrue(clip >= 0)
+        storage.beginFrame()
+        val entrance = storage.append(Matrix4f(), Matrix4f())
+        val left = storage.appendPlanes(listOf(Vector4d(-1.0, 0.0, 0.0, 102.0)), 100.75, 0.0, 0.0)
+        val exitPose = Matrix4f().translation(4f, 0f, 0f)
+        val exit = storage.append(exitPose, exitPose)
+        val right = storage.appendPlanes(listOf(Vector4d(1.0, 0.0, 0.0, -106.0)), 100.75, 0.0, 0.0)
+        storage.upload()
+        storage.bind(4)
+        val index = glGetUniformLocation(program, "ShipIndex")
+        glViewport(0, 0, 8, 1)
+        glUniformMatrix4fv(glGetUniformLocation(program, "ProjMat"), false,
+            Matrix4f().ortho(0f, 8f, 0f, 1f, -1f, 1f).get(FloatArray(16)))
+        glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
+        ShipGeometryMaskGpu.strip(0, .5f, .5f).use { mesh ->
+            mesh.bind()
+            glUniform1i(index, entrance)
+            glUniform2i(clip, left, 1)
+            mesh.draw()
+            glUniform1i(index, exit)
+            glUniform2i(clip, right, 1)
+            mesh.draw()
+            val depth = FloatArray(8)
+            glReadPixels(0, 0, 8, 1, GL_DEPTH_COMPONENT, GL_FLOAT, depth)
+            assertEquals(listOf(true, true, false, false, false, false, true, true), depth.map { it < 1f })
+        }
+        glUniform2i(clip, 0, 0)
+        glUniform1i(index, 0)
+        glViewport(0, 0, 1, 1)
+        glBindVertexArray(vao)
+    }
+
+    private fun checkNativeClip(program: Int, vao: Int) {
+        val model = Matrix4d().translation(100.5, 70.0, 50.25).rotateY(Math.PI / 2).scale(2.0)
+        val near = Vector4d(0.0, 0.0, -1.0, 46.25)
+        val far = Vector4d(0.0, 0.0, 1.0, -38.25)
+        glViewport(0, 0, 8, 1)
+        glUniformMatrix4fv(glGetUniformLocation(program, "ProjMat"), false,
+            Matrix4f().ortho(0f, 8f, 0f, 1f, -1f, 1f).get(FloatArray(16)))
+        ShipGeometryMaskGpu.strip(0, .5f, .5f).use { mesh ->
+            mesh.bind()
+            fun pixels(vararg planes: Vector4d): List<Int> {
+                val piece = if (planes.isEmpty()) null else ShipPhysicalPiece(1L, "test", AABBd(100.5, 70.0, 34.25, 102.5, 72.0, 50.25), model, planes.toList())
+                val previous = NativeShipPieces.bind(program, piece, 100.5, 70.0, 50.25)
+                try {
+                    glClear(GL_DEPTH_BUFFER_BIT)
+                    mesh.draw()
+                    val depth = FloatArray(8)
+                    glReadPixels(0, 0, 8, 1, GL_DEPTH_COMPONENT, GL_FLOAT, depth)
+                    assertEquals(GL_NO_ERROR, glGetError())
+                    return depth.indices.filter { depth[it] < 1f }
+                } finally {
+                    NativeShipPieces.restore(previous)
+                }
+            }
+            assertEquals((2..7).toList(), pixels(near))
+            assertEquals((2..5).toList(), pixels(near, far))
+            assertEquals((0..7).toList(), pixels())
+        }
+        glViewport(0, 0, 1, 1)
+        glBindVertexArray(vao)
     }
 
     private fun assertPixel(r: Int, g: Int, b: Int, expectedDepth: Float) {

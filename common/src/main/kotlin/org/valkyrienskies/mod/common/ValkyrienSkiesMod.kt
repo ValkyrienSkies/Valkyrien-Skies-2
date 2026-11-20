@@ -45,6 +45,7 @@ import org.valkyrienskies.mod.common.jackson.BlockPosKeyDeserializer
 import org.valkyrienskies.mod.common.jackson.BlockPosKeySerializer
 import org.valkyrienskies.mod.common.jackson.BlockPosSerializer
 import org.valkyrienskies.mod.common.networking.VSGamePackets
+import org.valkyrienskies.mod.common.portals.ShipPortalRegistry
 import org.valkyrienskies.mod.common.util.BuoyancyHandlerAttachment
 import org.valkyrienskies.mod.common.util.GameToPhysicsAdapter
 import org.valkyrienskies.mod.common.util.FractureEventHandler
@@ -56,6 +57,8 @@ import org.valkyrienskies.mod.common.util.SplittingDisablerAttachment
 import org.valkyrienskies.mod.common.util.VoidAttachment
 import org.valkyrienskies.mod.common.util.WorldBorderAttachment
 import org.valkyrienskies.mod.common.util.refreshPhysicsListenerOwners
+import org.valkyrienskies.mod.compat.LoadedMods
+import org.valkyrienskies.mod.compat.immersiveportals.ImmersiveShipPortals
 import org.valkyrienskies.mod.mixinducks.client.world.ClientChunkCacheDuck
 import org.valkyrienskies.mod.mixinducks.feature.tickets.PlayerKnownShipsDuck
 import org.valkyrienskies.mod.util.PlatformUtils
@@ -147,6 +150,8 @@ object ValkyrienSkiesMod {
     fun init() {
         val core = this.vsCore
 
+        ShipPortalRegistry.init()
+        if (LoadedMods.immersivePortals) ImmersiveShipPortals.init()
         BlockStateInfo.init()
         VSGamePackets.register()
         VSGamePackets.registerHandlers()

@@ -6,11 +6,16 @@ import net.minecraft.core.BlockPos
 import net.minecraft.server.Bootstrap
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.chunk.LevelChunk
+import net.minecraft.world.level.chunk.LevelChunkSection
+import org.joml.Vector3i
 import org.joml.primitives.AABBi
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
 import org.valkyrienskies.core.api.ships.LoadedServerShip
+import org.valkyrienskies.core.api.util.functions.IntBinaryConsumer
 import org.valkyrienskies.core.internal.world.VsiServerShipWorld
 import org.valkyrienskies.core.internal.world.chunks.VsiBlockType
 import org.valkyrienskies.mod.common.BlockStateInfo
@@ -22,6 +27,42 @@ import java.math.BigDecimal
 class FractionalFluidRemassTest {
     companion object {
         @JvmStatic @BeforeAll fun bootstrap() { SharedConstants.tryDetectVersion(); Bootstrap.bootStrap() }
+    }
+
+    @Test fun `legacy mass backfill waits for every active chunk and preserves world coordinates`() {
+        val registry = BlockStateInfo.javaClass.getDeclaredField("SORTED_REGISTRY").apply { isAccessible = true }
+        val previous = registry.get(null)
+        try {
+            registry.set(null, emptyList<Any>())
+            mockkObject(BlockStateInfo)
+            val ship = mockk<LoadedServerShip>(relaxed = true)
+            every { ship.activeChunksSet.size } returns 2
+            every { ship.activeChunksSet.forEach(any()) } answers {
+                firstArg<IntBinaryConsumer>().apply { accept(-1, 2); accept(0, 2) }
+                Unit
+            }
+            val loading = mockk<LevelChunk>()
+            every { loading.pos } returns ChunkPos(-1, 2)
+            assertNull(BlockStateInfo.rootVoxelMasses(ship, loading) { _, _ -> null })
+            val adjacent = mockk<LevelChunk>()
+            every { adjacent.sections } returns emptyArray()
+            val section = mockk<LevelChunkSection>()
+            every { loading.sections } returns arrayOf(section)
+            every { loading.getSectionYFromSectionIndex(0) } returns -1
+            every { section.hasOnlyAir() } returns false
+            every { section.getBlockState(any(),any(),any()) } returns Blocks.AIR.defaultBlockState()
+            every { section.getBlockState(3,2,1) } returns Blocks.STONE.defaultBlockState()
+            every { BlockStateInfo.get(Blocks.STONE.defaultBlockState()) } returns (2.0 to mockk())
+            val cells = BlockStateInfo.rootVoxelMasses(ship, loading) { x, z ->
+                assertEquals(0, x)
+                assertEquals(2, z)
+                adjacent
+            }
+            assertEquals(mapOf(Vector3i(-13,-14,33) to 2.0), cells)
+        } finally {
+            unmockkAll()
+            registry.set(null, previous)
+        }
     }
 
     @Test fun `mass recalculation rebuilds the saved source quantity without debiting its carrier`() {

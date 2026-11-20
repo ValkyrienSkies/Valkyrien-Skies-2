@@ -89,7 +89,8 @@ public final class ShipRenderObject implements AutoCloseable {
             blockEntities.clear();
             final boolean flywheel = LoadedMods.getFlywheel() == LoadedMods.FlywheelVersion.V1;
             ship.getActiveChunksSet().forEach((x, z) -> {
-                final LevelChunk chunk = level.getChunk(x, z);
+                final LevelChunk chunk = level.getChunkSource().getChunkNow(x, z);
+                if (chunk == null) return;
                 for (final BlockEntity blockEntity : chunk.getBlockEntities().values()) {
                     // Like the chunk builders: register with Flywheel, and leave out of the
                     // vanilla renderer whatever Flywheel draws.

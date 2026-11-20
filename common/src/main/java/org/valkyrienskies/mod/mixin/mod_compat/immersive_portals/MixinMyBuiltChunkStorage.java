@@ -5,6 +5,7 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectMap.Entry;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.ViewArea;
 import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
@@ -23,8 +24,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.ShipRendererKt;
+import org.valkyrienskies.mod.common.render.batched.ShipBatchRenderer;
+import org.valkyrienskies.mod.common.render.batched.SplitShipRenderer;
 import org.valkyrienskies.mod.mixin.accessors.client.render.chunk.RenderChunkAccessor;
 import org.valkyrienskies.mod.mixinducks.client.render.IVSViewAreaMethods;
+import org.valkyrienskies.mod.mixinducks.mod_compat.vanilla_renderer.LevelRendererDuck;
 import qouteall.imm_ptl.core.render.MyBuiltChunkStorage;
 
 /**
@@ -79,7 +83,13 @@ public class MixinMyBuiltChunkStorage extends ViewArea implements IVSViewAreaMet
         }
 
         var ship = (ClientShip) VSGameUtilsKt.getShipManagingPos(level, x, z);
+        if (ship != null && level instanceof ClientLevel client
+            && !ShipRendererKt.getUsesBatchedRenderer(ship) && !ShipRendererKt.getUsesTerrainChunkRenderer(ship)
+            && SplitShipRenderer.split(client, ship.getId())) {
+            ShipBatchRenderer.INSTANCE.markSectionDirty(ship.getId(), x, y, z);
+        }
         if (ship != null && ShipRendererKt.getUsesTerrainChunkRenderer(ship)) {
+            if (levelRenderer instanceof LevelRendererDuck renderer) renderer.vs$setShipChunkVisibilityDirty();
             // Only mark existing render chunks dirty — don't create new ones.
             // Creation is deferred to vs$getOrCreateShipRenderChunk (called from
             // vs$addShipVisibleChunks) which only creates for non-empty sections.
@@ -89,6 +99,9 @@ public class MixinMyBuiltChunkStorage extends ViewArea implements IVSViewAreaMet
                 renderChunksArray[yIndex].setDirty(important);
             }
 
+            callbackInfo.cancel();
+        } else if (ship != null && ShipRendererKt.getUsesBatchedRenderer(ship)) {
+            ShipBatchRenderer.INSTANCE.markSectionDirty(ship.getId(), x, y, z);
             callbackInfo.cancel();
         }
     }

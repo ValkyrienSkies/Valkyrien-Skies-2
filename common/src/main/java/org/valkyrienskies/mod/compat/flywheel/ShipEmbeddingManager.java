@@ -3,7 +3,9 @@ package org.valkyrienskies.mod.compat.flywheel;
 import dev.engine_room.flywheel.api.visualization.VisualizationManager;
 import it.unimi.dsi.fastutil.longs.Long2IntMap;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
+import java.util.List;
 import java.util.Map.Entry;
+import org.valkyrienskies.core.api.ships.ShipPhysicalPiece;
 import java.util.Set;
 import java.util.function.Function;
 import net.minecraft.client.Minecraft;
@@ -186,6 +188,9 @@ public class ShipEmbeddingManager {
      * @author Bunting_chj
      */
     protected static void setEmbeddingTransform(VisualEmbedding embedding, ClientShip ship, Vec3i anchor, Vec3i origin) {
+        if (embedding instanceof ShipVisualEmbedding attached && Minecraft.getInstance().level != null) {
+            attached.vs$setPieces(VSGameUtilsKt.getAllShips(Minecraft.getInstance().level).getSplitPieces(ship.getId()));
+        }
         final Matrix4f poseMatrix = new Matrix4f();
         final Matrix3f normalMatrix = new Matrix3f();
 
@@ -213,6 +218,12 @@ public class ShipEmbeddingManager {
      * Visuals can be created off the render thread, so this set is concurrent.
      */
     protected static final Set<BlockEntity> vs$orphanBEs = ConcurrentHashMap.newKeySet();
+
+    public static List<ShipPhysicalPiece> piecesFor(BlockEntity blockEntity) {
+        var ship = vs$shipBEs.get(blockEntity);
+        var embedding = ship == null ? null : vs$shipEmbedding.get(ship);
+        return embedding instanceof ShipVisualEmbedding attached ? attached.vs$pieces() : List.of();
+    }
 
     public void registerOrphan(BlockEntity blockEntity) {
         vs$orphanBEs.add(blockEntity);

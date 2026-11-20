@@ -28,6 +28,16 @@ flat in float v_Fullbright;
 
 out vec4 fragColor;
 
+uniform samplerBuffer ShipTransforms;
+uniform ivec2 vs_ClipRange;
+
+void vs_clipShipPiece() {
+    for (int i = 0; i < vs_ClipRange.y; ++i) {
+        vec4 plane = texelFetch(ShipTransforms, vs_ClipRange.x + i);
+        if (dot(plane.xyz, v_CameraRelWorldPos) + plane.w < 0.0) discard;
+    }
+}
+
 vec3 vs_shipWorldNormal() {
     vec3 normal = normalize(cross(dFdx(v_CameraRelWorldPos), dFdy(v_CameraRelWorldPos)));
     return gl_FrontFacing ? normal : -normal;

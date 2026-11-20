@@ -8,6 +8,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientChunkCache;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -58,6 +60,9 @@ import org.valkyrienskies.core.util.VectorConversionsKt;
 import org.valkyrienskies.mod.client.audio.SimpleSoundInstanceOnShip;
 import org.valkyrienskies.mod.common.IShipObjectWorldClientProvider;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
+import org.valkyrienskies.mod.common.ShipEffectLocations;
+import org.valkyrienskies.mod.common.util.ClippedShipBox;
+import org.valkyrienskies.core.api.ships.ShipPhysicalPiece;
 import org.valkyrienskies.mod.common.config.DimensionParametersResolver;
 import org.valkyrienskies.mod.common.render.light.VsDynamicLight;
 import org.valkyrienskies.mod.common.util.EntityLerper;
@@ -177,13 +182,15 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
         final double biggerBBProbability = 668.0 / (32.0 * 32.0 * 32.0);
         final double smallerBBProbability = 668.0 / (16.0 * 16.0 * 16.0);
 
+        final ClientLevel client = (ClientLevel) (Object) this;
         final List<Ship> nearbyShips = new ArrayList<>();
         for (final Ship ship : VSGameUtilsKt.getShipsIntersecting(ClientLevel.class.cast(this), shipIntersectBB)) {
             if (ship.getShipAABB() == null) {
                 continue;
             }
             final AABBdc shipWorldAABB = ship.getWorldAABB();
-            if (shipWorldAABB != null && !shipWorldAABB.intersectsAABB(shipIntersectBB)) {
+            if (shipWorldAABB != null && !shipWorldAABB.intersectsAABB(shipIntersectBB)
+                && VSGameUtilsKt.getAllShips(client).getSplitPieces(ship.getId()).isEmpty()) {
                 continue;
             }
             nearbyShips.add(ship);
@@ -215,26 +222,32 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
             final AABBdc biggerBB = AABBdUtilKt.expand(temp6.set(playerCenterBB), 32.0 * playerScale);
             final AABBdc smallerBB = AABBdUtilKt.expand(temp7.set(playerCenterBB), 16.0 * playerScale);
 
-            // Only spawn particles in the intersection of the ship bounding box and the particle spawning bounding
-            // boxes surrounding the player
-            final AABBic biggerBBTransformed =
-                VectorConversionsKt.toAABBi(biggerBB.transform(ship.getWorldToShip(), temp0), temp1);
-            final AABBic smallerBBTransformed =
-                VectorConversionsKt.toAABBi(smallerBB.transform(ship.getWorldToShip(), temp2), temp3);
+            final var pieces = VSGameUtilsKt.getAllShips(client).getSplitPieces(ship.getId());
+            for (int index = 0; index < Math.max(1, pieces.size()) && sampleBudget > 0; index++) {
+                final var piece = pieces.isEmpty() ? null : pieces.get(index);
+                if (piece != null && !piece.getWorldBounds().intersectsAABB(temp0.set(biggerBB))) continue;
+                final var worldToShip = piece == null ? ship.getWorldToShip() : piece.getWorldToShip();
+                // Only spawn particles in the intersection of the ship bounding box and the particle spawning bounding
+                // boxes surrounding the player
+                final AABBic biggerBBTransformed =
+                    VectorConversionsKt.toAABBi(biggerBB.transform(worldToShip, temp0), temp1);
+                final AABBic smallerBBTransformed =
+                    VectorConversionsKt.toAABBi(smallerBB.transform(worldToShip, temp2), temp3);
 
-            // Expand [shipVoxelAABB] by 1 on each side to account for blocks like torches not expanding the voxel AABB
-            final AABBic biggerBBIntersection =
-                VectorConversionsKt.expand(shipVoxelAABB, 1, temp4).intersection(biggerBBTransformed);
-            final AABBic smallerBBIntersection =
-                VectorConversionsKt.expand(shipVoxelAABB, 1, temp5).intersection(smallerBBTransformed);
+                // Expand [shipVoxelAABB] by 1 on each side to account for blocks like torches not expanding the voxel AABB
+                final AABBic biggerBBIntersection =
+                    VectorConversionsKt.expand(shipVoxelAABB, 1, temp4).intersection(biggerBBTransformed);
+                final AABBic smallerBBIntersection =
+                    VectorConversionsKt.expand(shipVoxelAABB, 1, temp5).intersection(smallerBBTransformed);
 
-            if (biggerBBIntersection.isValid()) {
-                sampleBudget -= animateTickVS(biggerBBIntersection, biggerBBProbability, holdingBarrierItem,
-                    sampleBudget);
-            }
-            if (sampleBudget > 0 && smallerBBIntersection.isValid()) {
-                sampleBudget -= animateTickVS(smallerBBIntersection, smallerBBProbability, holdingBarrierItem,
-                    sampleBudget);
+                if (biggerBBIntersection.isValid()) {
+                    sampleBudget -= animateTickVS(biggerBBIntersection, biggerBBProbability, holdingBarrierItem,
+                        sampleBudget, piece);
+                }
+                if (sampleBudget > 0 && smallerBBIntersection.isValid()) {
+                    sampleBudget -= animateTickVS(smallerBBIntersection, smallerBBProbability, holdingBarrierItem,
+                        sampleBudget, piece);
+                }
             }
         }
     }
@@ -244,7 +257,7 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
         final AABBic region,
         final double regionBlockProbability,
         final boolean holdingBarrierItem,
-        final int maxBlocksToTick
+        final int maxBlocksToTick, final ShipPhysicalPiece piece
     ) {
         final int volume = (region.maxX() - region.minX() + 1) * (region.maxY() - region.minY() + 1)
             * (region.maxZ() - region.minZ() + 1);
@@ -286,6 +299,9 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
                 chunkCache[cx][cz] = levelChunk;
             }
 
+            if (piece != null && ClippedShipBox.Companion.classify(
+                new AABBd(posX, posY, posZ, posX + 1, posY + 1, posZ + 1), piece)
+                == ClippedShipBox.Location.REMOVED) continue;
             final BlockState blockState = levelChunk.getBlockState(mutableBlockPos);
             blockState.getBlock().animateTick(blockState, thisAsClientLevel, mutableBlockPos, vsRandom);
             final FluidState fluidState = levelChunk.getFluidState(mutableBlockPos);
@@ -308,6 +324,23 @@ public abstract class MixinClientLevel implements IShipObjectWorldClientProvider
             }
         }
         return blocksToTick;
+    }
+
+    @WrapOperation(
+        method = "playSound(DDDLnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FFZJ)V",
+        at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/Vec3;distanceToSqr(DDD)D"))
+    private double vs$soundDelayDistance(Vec3 camera, double x, double y, double z,
+        Operation<Double> original) {
+        final var level = (ClientLevel) (Object) this;
+        final var ships = VSGameUtilsKt.getAllShips(level);
+        if (!ships.getSplitShipIds().isEmpty()) {
+            final var ship = VSGameUtilsKt.getLoadedShipManagingPos(level, x, y, z);
+            if (ship != null) {
+                final var p = ShipEffectLocations.nearestBlock(ships.getSplitPieces(ship.getId()), x, y, z, camera);
+                if (p != null) return camera.distanceToSqr(p.x, p.y, p.z);
+            }
+        }
+        return original.call(camera, x, y, z);
     }
 
     @Redirect(

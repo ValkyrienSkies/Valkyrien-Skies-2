@@ -132,11 +132,18 @@ vec3 vs_faceSlotToNormal(uint slot) {
 }
 // =========================================================================
 
+#ifdef VS_NATIVE_PIECE
+out vec3 vs_PiecePos;
+#endif
+
 void main() {
     _vert_init();
 
     vec3 translation = u_RegionOffset + _get_draw_translation(_draw_id);
     vec3 position = _vert_position + translation;
+#ifdef VS_NATIVE_PIECE
+    vs_PiecePos = position;
+#endif
 #ifdef VS_MATERIAL_TERRAIN
     vs_ShipPos = position + vs_MaterialOrigin;
 #endif

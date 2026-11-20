@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.compat.flooding.shaders.complementary;
 
+import java.util.regex.Pattern;
 import org.valkyrienskies.mod.compat.flooding.shaders.NativeFluidCompat;
 import org.valkyrienskies.mod.compat.flooding.shaders.ShaderWaterVolume;
 
@@ -13,7 +14,7 @@ public final class ComplementaryVolumetrics {
         if (start < 0) return source;
         final int opening = source.indexOf('{', start);
         int end = opening + 1, depth = 1;
-        final String syntax = java.util.regex.Pattern.compile("/\\*.*?\\*/|//[^\\r\\n]*", java.util.regex.Pattern.DOTALL)
+        final String syntax = Pattern.compile("/\\*.*?\\*/|//[^\\r\\n]*", Pattern.DOTALL)
             .matcher(source).replaceAll(match -> " ".repeat(match.group().length()));
         for (; end < syntax.length() && depth > 0; end++) {
             if (syntax.charAt(end) == '{') depth++;

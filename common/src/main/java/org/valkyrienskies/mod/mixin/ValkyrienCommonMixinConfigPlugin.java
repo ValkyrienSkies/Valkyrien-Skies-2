@@ -69,6 +69,9 @@ public class ValkyrienCommonMixinConfigPlugin implements IMixinConfigPlugin {
     public boolean shouldApplyMixin(final String s, final String mixinClassName) {
         final VSRenderer renderer = getVSRenderer();
 
+        if (mixinClassName.endsWith(".fix_frustum_dead_loop.MixinFrustum") && LoadedMods.getImmersivePortals()) {
+            return false;
+        }
         if (mixinClassName.contains("org.valkyrienskies.mod.mixin.mod_compat.immersive_portals")) {
             return LoadedMods.getImmersivePortals(); // Only load this mixin if immersive portals is present
         }

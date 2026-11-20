@@ -1,5 +1,9 @@
 package org.valkyrienskies.mod.common
 
+import net.minecraft.world.level.chunk.ChunkAccess
+import org.joml.Vector3ic
+import org.joml.Vector3i
+import org.valkyrienskies.core.internal.world.RootVoxelMassBackfill
 import com.mojang.serialization.Lifecycle
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
 import net.minecraft.core.BlockPos
@@ -117,6 +121,36 @@ object BlockStateInfo {
             SORTED_REGISTRY.firstNotNullOf { it.getBlockStateMass(blockState) },
             SORTED_REGISTRY.firstNotNullOf { it.getBlockStateType(blockState) },
         )
+
+    @JvmStatic
+    fun backfillShipMasses(level: ServerLevel, ship: Ship, loading: ChunkAccess) {
+        val world = level.shipObjectWorld as? RootVoxelMassBackfill ?: return
+        if (!world.needsRootVoxelMassBackfill(ship.id) || !::SORTED_REGISTRY.isInitialized) return
+        val cells = rootVoxelMasses(ship, loading) { x, z -> level.chunkSource.getChunkNow(x, z) } ?: return
+        world.supplyRootVoxelMasses(ship.id, cells)
+    }
+
+    internal fun rootVoxelMasses(ship: Ship, loading: ChunkAccess, loadedChunk: (Int, Int) -> ChunkAccess?): Map<Vector3ic, Double>? {
+        val chunks = ArrayList<ChunkAccess>(ship.activeChunksSet.size)
+        ship.activeChunksSet.forEach { x, z ->
+            val chunk = if (loading.pos.x == x && loading.pos.z == z) loading else loadedChunk(x, z)
+            if (chunk != null) chunks.add(chunk)
+        }
+        if (chunks.size != ship.activeChunksSet.size) return null
+        val cells = HashMap<Vector3ic, Double>()
+        for (chunk in chunks) for ((index, section) in chunk.sections.withIndex()) {
+            if (section.hasOnlyAir()) continue
+            val y0 = chunk.getSectionYFromSectionIndex(index) shl 4
+            for (y in 0..15) for (z in 0..15) for (x in 0..15) {
+                val state = section.getBlockState(x, y, z)
+                if (state.isAir) continue
+                val mass = get(state)?.first ?: return null
+                if (!mass.isFinite() || mass < 0) return null
+                if (mass > 0) cells[Vector3i(chunk.pos.minBlockX + x, y0 + y, chunk.pos.minBlockZ + z)] = mass
+            }
+        }
+        return cells
+    }
 
     // NOTE: this gets called irrelevant if the block is actually on a ship; so it needs to be changed that
     // shipObjectWorld only requests the data if needed (maybe supplier?)

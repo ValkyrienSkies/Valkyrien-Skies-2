@@ -1,5 +1,11 @@
 package org.valkyrienskies.mod.common.fluid;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Objects;
+import org.joml.Vector3d;
+import org.valkyrienskies.core.internal.physics.VsiFluidSurfaceRegion;
+import org.valkyrienskies.mod.common.config.MassDatapackResolver;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import net.minecraft.world.phys.AABB;
@@ -13,22 +19,22 @@ public final class FluidVoxelGeometry {
         return ((bounds >>> (axis * 5)) & 31) / 16.0;
     }
 
-    static org.valkyrienskies.core.internal.physics.VsiFluidSurfaceRegion withoutCurrent(
-        final org.valkyrienskies.core.internal.physics.VsiFluidSurfaceRegion region) {
-        return region.getCurrent() == null ? region : new org.valkyrienskies.core.internal.physics.VsiFluidSurfaceRegion(
+    static VsiFluidSurfaceRegion withoutCurrent(
+        final VsiFluidSurfaceRegion region) {
+        return region.getCurrent() == null ? region : new VsiFluidSurfaceRegion(
             region.getBounds(), region.getNormalX(), region.getNormalY(), region.getNormalZ(),
             region.getLowerProjection(), region.getUpperProjection(), region.getConstituents());
     }
 
-    static java.util.List<org.valkyrienskies.core.internal.physics.VsiFluidSurfaceRegion> withoutCurrents(
-        final java.util.List<org.valkyrienskies.core.internal.physics.VsiFluidSurfaceRegion> regions) {
+    static List<VsiFluidSurfaceRegion> withoutCurrents(
+        final List<VsiFluidSurfaceRegion> regions) {
         for (final var region : regions) if (region.getCurrent() != null)
             return regions.stream().map(FluidVoxelGeometry::withoutCurrent).toList();
         return regions;
     }
 
-    static boolean sameSurfaceGeometry(final java.util.List<org.valkyrienskies.core.internal.physics.VsiFluidSurfaceRegion> a,
-        final java.util.List<org.valkyrienskies.core.internal.physics.VsiFluidSurfaceRegion> b) {
+    static boolean sameSurfaceGeometry(final List<VsiFluidSurfaceRegion> a,
+        final List<VsiFluidSurfaceRegion> b) {
         if (a == b) return true;
         if (a.size() != b.size()) return false;
         for (int i = 0; i < a.size(); ++i) {
@@ -79,11 +85,11 @@ public final class FluidVoxelGeometry {
         return 0;
     }
 
-    static int dominantFluid(final org.valkyrienskies.core.internal.physics.VsiFluidSurfaceRegion region,
+    static int dominantFluid(final VsiFluidSurfaceRegion region,
         final boolean clientSide) {
         final var parts = region.getConstituents();
         if (parts.size() == 1) return parts.get(0).getFluidId();
-        final var materials = new java.util.HashMap<Object, MaterialAmount>();
+        final var materials = new HashMap<Object, MaterialAmount>();
         for (final var part : parts) {
             final var key = material(part.getFluidId(), clientSide);
             final var total = materials.computeIfAbsent(key, ignored -> new MaterialAmount(part.getFluidId()));
@@ -94,7 +100,7 @@ public final class FluidVoxelGeometry {
         for (final var total : materials.values()) {
             if (best == null || total.amount > best.amount || total.amount == best.amount && total.id < best.id) best = total;
         }
-        return java.util.Objects.requireNonNull(best).id;
+        return Objects.requireNonNull(best).id;
     }
 
     static boolean sameMaterial(final int first, final int second, final boolean clientSide) {
@@ -102,7 +108,7 @@ public final class FluidVoxelGeometry {
     }
 
     private static Object material(final int id, final boolean clientSide) {
-        final var fluid = org.valkyrienskies.mod.common.config.MassDatapackResolver.INSTANCE.getFlowingFluid(id, clientSide);
+        final var fluid = MassDatapackResolver.INSTANCE.getFlowingFluid(id, clientSide);
         return fluid == null ? Integer.valueOf(id) : fluid.getSource();
     }
 
@@ -118,9 +124,9 @@ public final class FluidVoxelGeometry {
             maximum(bounds, 0), maximum(bounds, 1), maximum(bounds, 2));
     }
 
-    static java.util.List<java.util.List<org.joml.Vector3d>> faces(
-        final org.valkyrienskies.core.internal.physics.VsiFluidSurfaceRegion region) {
-        if (region.getUpperProjection() - region.getLowerProjection() <= 1e-12) return java.util.List.of();
+    static List<List<Vector3d>> faces(
+        final VsiFluidSurfaceRegion region) {
+        if (region.getUpperProjection() - region.getLowerProjection() <= 1e-12) return List.of();
         return FluidSurfaceGeometry.clip(localBounds(region.getBounds()),
             new FluidSurfaceGeometry.Plane(region.getNormalX(), region.getNormalY(), region.getNormalZ(), region.getUpperProjection()),
             new FluidSurfaceGeometry.Plane(region.getNormalX(), region.getNormalY(), region.getNormalZ(), region.getLowerProjection()));

@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.common
 
+import org.valkyrienskies.mod.common.fluid.RetainedFluidBlockInteractions
 import org.valkyrienskies.core.api.world.ShipWorld
 import org.valkyrienskies.core.internal.world.VsiClientShipWorld
 import org.valkyrienskies.core.internal.world.VsiServerShipWorld
@@ -16,7 +17,7 @@ interface IShipObjectWorldServerProvider : IShipObjectWorldProvider {
     val vsPipeline: VsiPipeline?
     val fractionalFluidSources: FractionalFluidSources?
     val fluidOutflowManager: WorldFluidOutflowManager?
-    val fluidBlockInteractions: org.valkyrienskies.mod.common.fluid.RetainedFluidBlockInteractions?
+    val fluidBlockInteractions: RetainedFluidBlockInteractions?
         get() = null
 }
 

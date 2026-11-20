@@ -58,7 +58,7 @@ public final class ShipPathfindingUtils {
 
         for (final Ship ship : VSGameUtilsKt.getShipsIntersecting(level, supportQueryAabb)) {
             supportQueryAabb.transform(ship.getWorldToShip(), localSupportQueryAabb);
-            if (!EntityShipCollisionUtils.mayShipIntersectLocalAabb(ship, localSupportQueryAabb)) {
+            if (VSGameUtilsKt.getAllShips(level).getSplitPieces(ship.getId()).isEmpty() && !EntityShipCollisionUtils.mayShipIntersectLocalAabb(ship, localSupportQueryAabb)) {
                 continue;
             }
 
@@ -95,17 +95,10 @@ public final class ShipPathfindingUtils {
         final AABBd localTestAABB = new AABBd();
         for (final Ship ship : intersectingShips) {
             testAABB.transform(ship.getWorldToShip(), localTestAABB);
-            if (!EntityShipCollisionUtils.mayShipIntersectLocalAabb(ship, localTestAABB)) {
-                continue;
-            }
-            final Vector3d samplePosInGlobal = new Vector3d(sampleX, sampleY, sampleZ);
-            final Vector3d blockPosInLocal =
-                ship.getTransform().getWorldToShip().transformPosition(samplePosInGlobal, new Vector3d());
-            final BlockPos blockPos = BlockPos.containing(blockPosInLocal.x(), blockPosInLocal.y(), blockPosInLocal.z());
-            final BlockState blockState = level.getBlockState(blockPos);
-            if (!blockState.isAir()) {
-                return blockPos;
-            }
+            if (VSGameUtilsKt.getAllShips(level).getSplitPieces(ship.getId()).isEmpty()
+                && !EntityShipCollisionUtils.mayShipIntersectLocalAabb(ship, localTestAABB)) continue;
+            final BlockPos pos = findSupportingShipBlock(level, ship, new Vector3d(sampleX, sampleY, sampleZ), new Vector3d());
+            if (pos != null) return pos;
         }
 
         return null;
@@ -113,6 +106,16 @@ public final class ShipPathfindingUtils {
 
     private static BlockPos findSupportingShipBlock(final Level level, final Ship ship, final Vector3d samplePosInGlobal,
         final Vector3d samplePosInShip) {
+        final var pieces = VSGameUtilsKt.getAllShips(level).getSplitPieces(ship.getId());
+        if (!pieces.isEmpty()) {
+            for (final var piece : pieces) {
+                final var cell = piece.blockPositionAt(samplePosInGlobal);
+                if (cell == null) continue;
+                final BlockPos pos = new BlockPos(cell.x, cell.y, cell.z);
+                if (!level.getBlockState(pos).isAir()) return pos;
+            }
+            return null;
+        }
         ship.getWorldToShip().transformPosition(samplePosInGlobal, samplePosInShip);
         final BlockPos blockPos = BlockPos.containing(samplePosInShip.x(), samplePosInShip.y(), samplePosInShip.z());
         final BlockState blockState = level.getBlockState(blockPos);

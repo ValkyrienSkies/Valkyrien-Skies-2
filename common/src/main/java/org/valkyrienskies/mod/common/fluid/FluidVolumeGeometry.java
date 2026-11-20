@@ -1,5 +1,9 @@
 package org.valkyrienskies.mod.common.fluid;
 
+import java.util.Arrays;
+import org.joml.Matrix4d;
+import org.valkyrienskies.core.internal.physics.VsiFluidFloodedVoxel;
+import org.valkyrienskies.core.internal.physics.VsiFluidSurfaceRegion;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -22,7 +26,7 @@ final class FluidVolumeGeometry {
 
         Box(final AABB local, final Matrix4dc toWorld, final Matrix4dc toLocal, final Vec3 origin) {
             final Vector3d localOrigin = toLocal.transformPosition(origin.x, origin.y, origin.z, new Vector3d());
-            final var relative = new org.joml.Matrix4d(toWorld).setTranslation(0, 0, 0);
+            final var relative = new Matrix4d(toWorld).setTranslation(0, 0, 0);
             final AABBd transformed = new AABBd(local.minX - localOrigin.x, local.minY - localOrigin.y, local.minZ - localOrigin.z,
                 local.maxX - localOrigin.x, local.maxY - localOrigin.y, local.maxZ - localOrigin.z).transform(relative);
             bounds = new AABB(transformed.minX, transformed.minY, transformed.minZ,
@@ -37,8 +41,8 @@ final class FluidVolumeGeometry {
             };
         }
 
-        Box(final org.valkyrienskies.core.internal.physics.VsiFluidFloodedVoxel voxel,
-            final org.valkyrienskies.core.internal.physics.VsiFluidSurfaceRegion surface,
+        Box(final VsiFluidFloodedVoxel voxel,
+            final VsiFluidSurfaceRegion surface,
             final Matrix4dc toWorld, final Matrix4dc toLocal, final Vec3 origin) {
             this(FluidVoxelGeometry.localBounds(surface.getBounds()).move(voxel.getPositionX(), voxel.getPositionY(),
                 voxel.getPositionZ()), toWorld, toLocal, origin);
@@ -49,7 +53,7 @@ final class FluidVolumeGeometry {
             final double y = nx * toLocal.m10() + ny * toLocal.m11() + nz * toLocal.m12();
             final double z = nx * toLocal.m20() + ny * toLocal.m21() + nz * toLocal.m22();
             final double shift = nx * localOrigin.x + ny * localOrigin.y + nz * localOrigin.z;
-            planes = java.util.Arrays.copyOf(planes, 8);
+            planes = Arrays.copyOf(planes, 8);
             planes[6] = new Plane(x, y, z, surface.getUpperProjection() - shift);
             planes[7] = new Plane(-x, -y, -z, shift - surface.getLowerProjection());
         }

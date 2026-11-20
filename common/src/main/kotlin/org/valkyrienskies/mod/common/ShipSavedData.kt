@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.common
 
+import org.valkyrienskies.mod.common.fluid.RetainedFluidBlockInteractions
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.world.level.saveddata.SavedData
 import org.valkyrienskies.core.internal.world.VsiPipeline
@@ -68,7 +69,7 @@ class ShipSavedData : SavedData() {
     lateinit var pipeline: VsiPipeline
     val fluidOutflowManager = WorldFluidOutflowManager()
     val fractionalFluidSources = FractionalFluidSources()
-    val fluidBlockInteractions = org.valkyrienskies.mod.common.fluid.RetainedFluidBlockInteractions()
+    val fluidBlockInteractions = RetainedFluidBlockInteractions()
 
     var loadingException: Throwable? = null
         private set

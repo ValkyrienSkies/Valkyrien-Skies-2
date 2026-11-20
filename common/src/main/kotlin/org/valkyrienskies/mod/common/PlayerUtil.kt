@@ -9,6 +9,7 @@ import org.valkyrienskies.core.api.ships.LoadedShip
 import org.valkyrienskies.mod.common.util.toJOML
 import org.valkyrienskies.mod.common.util.toMinecraft
 import org.valkyrienskies.mod.mixin.accessors.entity.EntityAccessor
+import org.joml.Matrix4dc
 import java.util.concurrent.ConcurrentMap
 import kotlin.math.atan2
 import kotlin.math.sqrt
@@ -30,12 +31,14 @@ object PlayerUtil {
         transformPlayerTemporarily(player, world.getLoadedShipManagingPos(blockInShip))
 
     @JvmStatic
-    fun transformPlayerTemporarily(player: Player, ship: LoadedShip?) {
+    fun transformPlayerTemporarily(player: Player, ship: LoadedShip?) = transformPlayerTemporarily(player, ship?.worldToShip)
+
+    private fun transformPlayerTemporarily(player: Player, shipMatrix: Matrix4dc?) {
         prevPosInfo[player]?.let {
             it.depth++
             return
         }
-        if (ship == null) return
+        if (shipMatrix == null) return
         // player is already in shipyard
         if (player.level().isBlockInShipyard(player.x, player.y, player.z)) {
             // player is already in shipyard
@@ -43,8 +46,6 @@ object PlayerUtil {
         }
 
         prevPosInfo[player] = TempPlayerPosInfo(player.yRot, player.yHeadRot, player.xRot, player.position())
-
-        val shipMatrix = ship.worldToShip
 
         val direction = shipMatrix.transformDirection(player.lookAngle.toJOML())
         val position = shipMatrix.transformPosition(player.position().toJOML())
@@ -68,6 +69,18 @@ object PlayerUtil {
         player.yHeadRot = info.headYaw
 
         (player as EntityAccessor).setPosNoUpdates(info.pos)
+    }
+
+    @JvmStatic
+    fun <T> withPlacementPose(player: Player, level: Level, pos: BlockPos, hit: Vec3, inside: () -> T): T {
+        val ship = level.getLoadedShipManagingPos(pos) ?: return inside()
+        val piece = retainedUsePiece(level.allShips.getSplitPieces(ship.id), hit, player.eyePosition)
+        transformPlayerTemporarily(player, piece?.worldToShip ?: ship.worldToShip)
+        try {
+            return inside()
+        } finally {
+            untransformPlayer(player)
+        }
     }
 
     /**

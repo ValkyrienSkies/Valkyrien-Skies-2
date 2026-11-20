@@ -176,7 +176,7 @@ internal object ShipGeometryMaskGpu {
         }
     }
 
-    private fun strip(y: Int, leftUv: Float, rightUv: Float): VertexBuffer {
+    fun strip(y: Int, leftUv: Float, rightUv: Float): VertexBuffer {
         val builder = BufferBuilder(256)
         builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK)
         fun vertex(x: Int, dy: Int, uv: Float) {

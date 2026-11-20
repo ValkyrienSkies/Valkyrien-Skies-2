@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.common.fluid;
 
+import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import java.nio.ByteBuffer;
@@ -104,7 +105,7 @@ public final class ExteriorFluidFog {
             Math.floorMod(minimum.getZ() * 16, ExteriorFluidField.SIZE));
     }
 
-    private static void copyDepth(final com.mojang.blaze3d.pipeline.RenderTarget target) {
+    private static void copyDepth(final RenderTarget target) {
         if (depthTexture == 0) depthTexture = GlStateManager._genTexture();
         GlStateManager._activeTexture(GL13.GL_TEXTURE0);
         GlStateManager._bindTexture(depthTexture);

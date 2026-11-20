@@ -41,7 +41,7 @@ public class MixinEntityRenderer {
         if (instance instanceof IEntityDraggingInformationProvider dragProvider && dragProvider.getDraggingInformation().isEntityBeingDraggedByAShip() && dragProvider.getDraggingInformation().getLastShipStoodOn() != null) {
             EntityDraggingInformation dragInfo = dragProvider.getDraggingInformation();
             ClientShip ship = VSGameUtilsKt.getShipObjectWorld((ClientLevel) instance.level()).getAllShips().getById(dragInfo.getLastShipStoodOn());
-            if (ship == null) {
+            if (ship == null || dragInfo.getSupportPiece() != null) {
                 return original.call(instance);
             }
             if (dragInfo.getLastShipStoodOn() != null && (dragInfo.getRelativePositionOnShip() != null || dragInfo.getServerRelativePlayerPosition() != null)) {

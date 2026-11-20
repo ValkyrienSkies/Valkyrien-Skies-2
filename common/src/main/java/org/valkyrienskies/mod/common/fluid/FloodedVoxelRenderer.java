@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.common.fluid;
 
+import net.minecraft.world.phys.AABB;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -112,7 +113,7 @@ public final class FloodedVoxelRenderer {
     }
 
     static void renderPartialBox(final Matrix4f matrix, final Matrix3f normalMatrix,
-        final VertexConsumer consumer, final net.minecraft.world.phys.AABB box, final Vector3dc origin,
+        final VertexConsumer consumer, final AABB box, final Vector3dc origin,
         final float red, final float green, final float blue, final float alpha, final int light,
         final TextureAtlasSprite still, final TextureAtlasSprite flow) {
         final double inset = Math.min(INSET, (box.maxY - box.minY) * 0.25);

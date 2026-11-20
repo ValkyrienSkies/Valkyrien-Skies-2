@@ -1,5 +1,10 @@
 package org.valkyrienskies.mod.common.fluid
 
+import net.minecraft.tags.FluidTags
+import org.joml.Matrix4f
+import org.valkyrienskies.mod.compat.VSRenderer
+import org.valkyrienskies.mod.compat.sodium.SodiumFluidSprites
+import org.valkyrienskies.mod.mixin.ValkyrienCommonMixinConfigPlugin
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.BufferBuilder
@@ -123,7 +128,7 @@ object FluidParcelRenderer {
         bindLevel(current)
         val nativeMaterial = LoadedMods.iris && NativeFluidCompat.active()
         if (nativeMaterial && !renderingShaderFrame) {
-            val pose = PoseStack().apply { mulPoseMatrix(org.joml.Matrix4f(matrices.last().pose())) }
+            val pose = PoseStack().apply { mulPoseMatrix(Matrix4f(matrices.last().pose())) }
             shaderSampleTime = clock.sample(System.nanoTime(), minecraft.isPaused)
             shaderFrame = { render(pose, buffers, cameraX, cameraY, cameraZ) }
             return
@@ -140,7 +145,7 @@ object FluidParcelRenderer {
         val materials = samples.map { it.state.fluid }.distinct()
         val materialIds = materials.withIndex().associate { it.value to it.index }
         val fluids = materials.map { name -> ResourceLocation.tryParse(name)?.let { BuiltInRegistries.FLUID.get(it).defaultFluidState() } }
-        if (nativeMaterial && fluids.none { it != null && it.`is`(net.minecraft.tags.FluidTags.LAVA) == opaquePass }) return
+        if (nativeMaterial && fluids.none { it != null && it.`is`(FluidTags.LAVA) == opaquePass }) return
         val inputs = samples.map {
             FluidParcelCuboids.Parcel(it.position, it.state.volume, materialIds.getValue(it.state.fluid))
         }
@@ -154,7 +159,7 @@ object FluidParcelRenderer {
         visibleFaces.clear()
         for (face in mesh.faces()) {
             val fluid = fluids[face.material()] ?: continue
-            if (fluid.isEmpty || nativeMaterial && fluid.`is`(net.minecraft.tags.FluidTags.LAVA) != opaquePass) continue
+            if (fluid.isEmpty || nativeMaterial && fluid.`is`(FluidTags.LAVA) != opaquePass) continue
             val x0 = origin.x() + face.coordinate(0, face.minU(), face.minV())
             val y0 = origin.y() + face.coordinate(1, face.minU(), face.minV())
             val z0 = origin.z() + face.coordinate(2, face.minU(), face.minV())
@@ -169,8 +174,8 @@ object FluidParcelRenderer {
         if (nativeMaterial) packBuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK)
         val consumer = if (nativeMaterial) packBuilder else buffers.getBuffer(type)
         val appearances = HashMap<Pair<Int, BlockPos>, Pair<FluidAppearance, Int>?>()
-        val sodium = org.valkyrienskies.mod.mixin.ValkyrienCommonMixinConfigPlugin.getVSRenderer() ==
-            org.valkyrienskies.mod.compat.VSRenderer.SODIUM
+        val sodium = ValkyrienCommonMixinConfigPlugin.getVSRenderer() ==
+            VSRenderer.SODIUM
         try {
             for (face in visibleFaces) {
                 val x0 = origin.x() + face.coordinate(0, face.minU(), face.minV())
@@ -190,7 +195,7 @@ object FluidParcelRenderer {
                 val (appearance, light) = appearanceAndLight ?: continue
                 if (nativeMaterial) NativeFluidCompat.beginFluid(packBuilder, fluid, pos.x and 15, pos.y and 15, pos.z and 15)
                 val sprite = appearance.still()
-                if (sodium) org.valkyrienskies.mod.compat.sodium.SodiumFluidSprites.markActive(listOf(sprite))
+                if (sodium) SodiumFluidSprites.markActive(listOf(sprite))
                 val size = maxOf(1.0, kotlin.math.ceil(maxOf(face.maxU() - face.minU(), face.maxV() - face.minV()) / 8))
                 val startU = kotlin.math.floor((face.minU() + origin[face.u()]) / size) * size - origin[face.u()]
                 val startV = kotlin.math.floor((face.minV() + origin[face.v()]) / size) * size - origin[face.v()]

@@ -4,6 +4,7 @@
 
 void main() {
     vec3 normal = vs_shipWorldNormal();
+    vs_clipShipPiece();
     vec4 color = texture(Sampler0, texCoord0) * vertexColor * ColorModulator;
     if (color.a < 0.1) discard;
     vs_lightShipColor(color, normal);

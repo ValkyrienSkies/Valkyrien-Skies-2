@@ -19,6 +19,16 @@ public final class ShipSneakingDrag {
     private final ShipCollisionQuery.ShipShapes currentShapes;
     private final List<double[]> boxes = new ArrayList<>();
 
+    private final List<List<Vector3d>> clippedFaces = new ArrayList<>();
+
+    public void addClipped(final ClippedShipBox before, final ClippedShipBox after) {
+        if (before != null) {
+            previous.addClipped(before.getVertices(), before.getAxes());
+            clippedFaces.addAll(before.getFaces());
+        }
+        if (after != null) current.addClipped(after.getVertices(), after.getAxes());
+    }
+
     public ShipSneakingDrag(final Matrix4dc previousToWorld, final Matrix4dc currentToWorld) {
         this.previousToWorld = new Matrix4d(previousToWorld);
         previousToCurrent = new Matrix4d(currentToWorld).mul(previousToWorld.invert(new Matrix4d()));
@@ -57,83 +67,85 @@ public final class ShipSneakingDrag {
         final double[] clipMax = {player.maxX(), player.minY() + 0.05, player.maxZ()};
         Vector3dc best = drag;
         double bestDistance = Double.POSITIVE_INFINITY;
-        for (final double[] box : boxes) {
-            // An edge between faces can also provide an upward SAT response,
-            // so retain all faces and validate the resulting standing contact.
-            for (int faceIndex = 0; faceIndex < 6; faceIndex++) {
-                final int axis = faceIndex / 2;
-                final int u = (axis + 1) % 3;
-                final int v = (axis + 2) % 3;
-                List<Vector3d> face = new ArrayList<>(4);
-                for (int corner = 0; corner < 4; corner++) {
-                    final Vector3d point = new Vector3d();
-                    point.setComponent(axis, box[axis + (faceIndex % 2 == 0 ? 0 : 3)]);
-                    point.setComponent(u, box[u + (corner == 1 || corner == 2 ? 3 : 0)]);
-                    point.setComponent(v, box[v + (corner >= 2 ? 3 : 0)]);
-                    face.add(previousToWorld.transformPosition(point));
-                }
-                final Vector3d faceCenter = new Vector3d();
-                for (final Vector3d point : face) {
-                    faceCenter.add(point);
-                }
-                faceCenter.mul(0.25);
-                for (int clipAxis = 0; clipAxis < 3 && !face.isEmpty(); clipAxis++) {
-                    face = clip(face, clipAxis, clipMin[clipAxis], true);
-                    face = clip(face, clipAxis, clipMax[clipAxis], false);
-                }
-                if (face.size() < 3) {
-                    continue;
-                }
-                final Vector3d anchor = new Vector3d();
-                for (final Vector3d point : face) {
-                    anchor.add(point);
-                }
-                anchor.div(face.size());
-                final Vector3d candidate = previousToCurrent.transformPosition(anchor, new Vector3d()).sub(anchor);
-                // Keep the carried contact inside the inset used by the next
-                // sneak probe, including a little room for floating-point error.
-                candidate.x += anchor.x - Math.max(player.minX() + inset, Math.min(player.maxX() - inset, anchor.x));
-                candidate.z += anchor.z - Math.max(player.minZ() + inset, Math.min(player.maxZ() - inset, anchor.z));
-                double height = supportHeight(player, candidate, stepHeight);
-                if (Double.isNaN(height)) {
-                    // A newly tilted side can obscure the contact. Move only as
-                    // far into the supporting face as needed to recover support.
-                    final Vector3d centered = previousToCurrent.transformPosition(faceCenter, new Vector3d())
-                        .sub((player.minX() + player.maxX()) * 0.5, 0.0,
-                            (player.minZ() + player.maxZ()) * 0.5);
-                    centered.y = candidate.y;
-                    final double centeredHeight = supportHeight(player, centered, stepHeight);
-                    if (!Double.isNaN(centeredHeight)) {
-                        double low = 0.0;
-                        double high = 1.0;
-                        final Vector3d trial = new Vector3d();
-                        for (int iteration = 0; iteration < 8; iteration++) {
-                            final double fraction = (low + high) * 0.5;
-                            candidate.lerp(centered, fraction, trial);
-                            if (Double.isNaN(supportHeight(player, trial, stepHeight))) {
-                                low = fraction;
-                            } else {
-                                high = fraction;
-                            }
+        for (int i = 0; i < boxes.size() * 6 + clippedFaces.size(); i++) {
+            List<Vector3d> face = i < boxes.size() * 6 ? boxFace(boxes.get(i / 6), i % 6)
+                : clippedFaces.get(i - boxes.size() * 6);
+            final Vector3d faceCenter = new Vector3d();
+            for (final Vector3d point : face) {
+                faceCenter.add(point);
+            }
+            faceCenter.div(face.size());
+            for (int clipAxis = 0; clipAxis < 3 && !face.isEmpty(); clipAxis++) {
+                face = clip(face, clipAxis, clipMin[clipAxis], true);
+                face = clip(face, clipAxis, clipMax[clipAxis], false);
+            }
+            if (face.size() < 3) {
+                continue;
+            }
+            final Vector3d anchor = new Vector3d();
+            for (final Vector3d point : face) {
+                anchor.add(point);
+            }
+            anchor.div(face.size());
+            final Vector3d candidate = previousToCurrent.transformPosition(anchor, new Vector3d()).sub(anchor);
+            // Keep the carried contact inside the inset used by the next
+            // sneak probe, including a little room for floating-point error.
+            candidate.x += anchor.x - Math.max(player.minX() + inset, Math.min(player.maxX() - inset, anchor.x));
+            candidate.z += anchor.z - Math.max(player.minZ() + inset, Math.min(player.maxZ() - inset, anchor.z));
+            double height = supportHeight(player, candidate, stepHeight);
+            if (Double.isNaN(height)) {
+                // A newly tilted side can obscure the contact. Move only as
+                // far into the supporting face as needed to recover support.
+                final Vector3d centered = previousToCurrent.transformPosition(faceCenter, new Vector3d())
+                    .sub((player.minX() + player.maxX()) * 0.5, 0.0,
+                        (player.minZ() + player.maxZ()) * 0.5);
+                centered.y = candidate.y;
+                final double centeredHeight = supportHeight(player, centered, stepHeight);
+                if (!Double.isNaN(centeredHeight)) {
+                    double low = 0.0;
+                    double high = 1.0;
+                    final Vector3d trial = new Vector3d();
+                    for (int iteration = 0; iteration < 8; iteration++) {
+                        final double fraction = (low + high) * 0.5;
+                        candidate.lerp(centered, fraction, trial);
+                        if (Double.isNaN(supportHeight(player, trial, stepHeight))) {
+                            low = fraction;
+                        } else {
+                            high = fraction;
                         }
-                        candidate.lerp(centered, high);
-                        height = supportHeight(player, candidate, stepHeight);
                     }
+                    candidate.lerp(centered, high);
+                    height = supportHeight(player, candidate, stepHeight);
                 }
-                if (Double.isNaN(height) || Math.abs(height - player.minY() - candidate.y) > stepHeight) {
-                    continue;
-                }
-                // Rotation also changes which corner of the feet touches a slope.
-                // Settle vertically onto the highest supporting surface in the box.
-                candidate.y = height - player.minY() + CONTACT_EPSILON;
-                final double distance = candidate.distanceSquared(drag);
-                if (distance < bestDistance) {
-                    best = candidate;
-                    bestDistance = distance;
-                }
+            }
+            if (Double.isNaN(height) || Math.abs(height - player.minY() - candidate.y) > stepHeight) {
+                continue;
+            }
+            // Rotation also changes which corner of the feet touches a slope.
+            // Settle vertically onto the highest supporting surface in the box.
+            candidate.y = height - player.minY() + CONTACT_EPSILON;
+            final double distance = candidate.distanceSquared(drag);
+            if (distance < bestDistance) {
+                best = candidate;
+                bestDistance = distance;
             }
         }
         return best;
+    }
+
+    private List<Vector3d> boxFace(final double[] box, final int faceIndex) {
+        final int axis = faceIndex / 2;
+        final int u = (axis + 1) % 3;
+        final int v = (axis + 2) % 3;
+        List<Vector3d> face = new ArrayList<>(4);
+        for (int corner = 0; corner < 4; corner++) {
+            final Vector3d point = new Vector3d();
+            point.setComponent(axis, box[axis + (faceIndex % 2 == 0 ? 0 : 3)]);
+            point.setComponent(u, box[u + (corner == 1 || corner == 2 ? 3 : 0)]);
+            point.setComponent(v, box[v + (corner >= 2 ? 3 : 0)]);
+            face.add(previousToWorld.transformPosition(point));
+        }
+        return face;
     }
 
     private double supportHeight(final AABBdc player, final Vector3dc drag, final double stepHeight) {

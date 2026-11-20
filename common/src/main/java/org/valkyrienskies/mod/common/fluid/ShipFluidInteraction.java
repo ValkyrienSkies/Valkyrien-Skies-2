@@ -1,5 +1,6 @@
 package org.valkyrienskies.mod.common.fluid;
 
+import java.util.HashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
 import java.util.ArrayList;
@@ -241,7 +242,7 @@ public final class ShipFluidInteraction {
         private final Long2ObjectOpenHashMap<CachedBody> bodies = new Long2ObjectOpenHashMap<>();
         private final Object2DoubleOpenHashMap<FlowingFluid> retained =
             new Object2DoubleOpenHashMap<>();
-        private final Map<FlowingFluid, CurrentContact> currents = new java.util.HashMap<>();
+        private final Map<FlowingFluid, CurrentContact> currents = new HashMap<>();
 
         private VolumeQuery(final AABB bounds) {
             this(null, bounds);

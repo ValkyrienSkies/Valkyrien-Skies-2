@@ -38,6 +38,9 @@ uniform int vs_MaskUsesAlpha;
 #endif
 
 void main() {
+#ifdef VS_NATIVE_PIECE
+    vs_clipNativePiece();
+#endif
 #ifdef VS_RETAINED_FLUID
     if (vs_FluidInterface != 0 && !gl_FrontFacing) discard;
 #endif
@@ -55,6 +58,9 @@ void main() {
     vec4 color = vs_shipAtlasColor(Sampler0, texCoord0) * vertexColor * ColorModulator;
 #else
     vec4 color = texture(Sampler0, texCoord0) * vertexColor * ColorModulator;
+#endif
+#ifdef VS_NATIVE_PIECE
+    if ((vs_PieceCutout == 1 && color.a < 0.1) || (vs_PieceCutout == 2 && color.a < 0.5)) discard;
 #endif
     if (u_VsShipGlowEnabled != 0 || u_VsShipShadowStrength > 0.0) {
         vec3 vsWorldPos = valkyrienair_CamRelPos + u_VsShipLightCameraPos;

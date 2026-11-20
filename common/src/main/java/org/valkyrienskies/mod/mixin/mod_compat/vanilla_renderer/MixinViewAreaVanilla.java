@@ -27,6 +27,7 @@ import org.valkyrienskies.core.api.ships.ClientShip;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.config.ShipRendererKt;
 import org.valkyrienskies.mod.common.render.batched.ShipBatchRenderer;
+import org.valkyrienskies.mod.common.render.batched.SplitShipRenderer;
 import org.valkyrienskies.mod.mixin.accessors.client.multiplayer.ClientLevelAccessor;
 import org.valkyrienskies.mod.mixin.accessors.client.render.chunk.RenderChunkAccessor;
 import org.valkyrienskies.mod.mixinducks.client.render.IVSViewAreaMethods;
@@ -143,6 +144,11 @@ public class MixinViewAreaVanilla implements IVSViewAreaMethods {
         }
 
         var ship = (ClientShip) VSGameUtilsKt.getShipManagingPos(level, x, z);
+        if (ship != null && level instanceof ClientLevel client
+            && !ShipRendererKt.getUsesBatchedRenderer(ship) && !ShipRendererKt.getUsesTerrainChunkRenderer(ship)
+            && SplitShipRenderer.split(client, ship.getId())) {
+            ShipBatchRenderer.INSTANCE.markSectionDirty(ship.getId(), x, y, z);
+        }
         if (ship != null && ShipRendererKt.getUsesTerrainChunkRenderer(ship)) {
             if (this.level instanceof final ClientLevel clientLevel) {
                 final LevelRenderer levelRenderer = ((ClientLevelAccessor) clientLevel).getLevelRenderer();

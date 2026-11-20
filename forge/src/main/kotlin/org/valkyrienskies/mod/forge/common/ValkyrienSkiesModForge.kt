@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.forge.common
 
+import org.valkyrienskies.mod.common.fluid.ExteriorFluidFog
+import org.valkyrienskies.mod.common.fluid.RetainedFluidRenderer
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import dev.engine_room.flywheel.api.event.ReloadLevelRendererEvent
 import net.minecraft.client.renderer.ShaderInstance
@@ -384,10 +386,10 @@ class ValkyrienSkiesModForge {
         ) { shaderInstance: ShaderInstance? -> VSRenderTypes.shipCutoutShader = shaderInstance }
         event.registerShader(
             ShaderInstance(event.resourceProvider, "vs_exterior_fluid_fog", DefaultVertexFormat.POSITION)
-        ) { shader -> org.valkyrienskies.mod.common.fluid.ExteriorFluidFog.setShader(shader) }
+        ) { shader -> ExteriorFluidFog.setShader(shader) }
         event.registerShader(
             ShaderInstance(event.resourceProvider, "vs_retained_fluid", DefaultVertexFormat.NEW_ENTITY)
-        ) { shader -> org.valkyrienskies.mod.common.fluid.RetainedFluidRenderer.setShader(shader) }
+        ) { shader -> RetainedFluidRenderer.setShader(shader) }
         event.registerShader(
             ShaderInstance(event.resourceProvider, "rendertype_ship_translucent", DefaultVertexFormat.BLOCK)
         ) { shaderInstance: ShaderInstance? -> VSRenderTypes.shipTranslucentShader = shaderInstance }

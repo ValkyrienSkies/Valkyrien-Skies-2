@@ -19,6 +19,7 @@ import org.joml.Matrix3f
 import org.joml.Matrix4f
 import org.valkyrienskies.core.api.world.LevelYRange
 import org.valkyrienskies.mod.common.config.usesFlywheelHull
+import org.valkyrienskies.mod.common.render.batched.SplitShipRenderer
 import org.valkyrienskies.mod.common.util.toBlockPos
 import org.valkyrienskies.mod.common.util.toFloat
 import org.valkyrienskies.mod.common.util.toJOMLD
@@ -86,6 +87,7 @@ class EmbeddingShipVisual(val effect: ShipEffect, val visualContext: Visualizati
 
         val normal = Matrix3f().set(rotation)
 
+        if (SplitShipRenderer.split(effect.level, ship.id)) pose.scale(0f)
         embedding.transforms(pose, normal)
     }
 

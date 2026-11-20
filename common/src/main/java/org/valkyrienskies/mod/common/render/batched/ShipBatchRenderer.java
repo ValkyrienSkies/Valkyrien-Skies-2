@@ -22,6 +22,7 @@ import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.Vec3;
+import org.valkyrienskies.core.api.ships.ShipPhysicalPiece;
 import org.joml.Matrix4d;
 import org.joml.Matrix4f;
 import org.joml.Vector3d;
@@ -39,6 +40,7 @@ import org.valkyrienskies.mod.common.VSClientGameUtils;
 import org.valkyrienskies.mod.common.VSGameUtilsKt;
 import org.valkyrienskies.mod.common.VSRenderTypes;
 import org.valkyrienskies.mod.common.config.ShipRendererKt;
+import org.valkyrienskies.mod.common.render.NativeShipPieces;
 import org.valkyrienskies.mod.common.render.light.ShipShadowRenderer;
 import org.valkyrienskies.mod.common.config.VSGameConfig;
 import org.valkyrienskies.mod.common.render.light.VsDynamicLight;
@@ -57,8 +59,12 @@ public final class ShipBatchRenderer {
 
     private final ArrayList<ShipFrameData> frameData = new ArrayList<>();
     private final ArrayList<ShipFrameData> translucentShips = new ArrayList<>();
+    private boolean hasPieces;
     private int preparedFrameToken = -1;
     private ShipRenderView preparedView;
+    private Frustum preparedFrustum;
+    private final Matrix4f preparedCameraMatrix = new Matrix4f();
+    private double preparedCameraX, preparedCameraY, preparedCameraZ;
     private int currentFrameToken = 0;
     private long lastLightPopulationGameTime = Long.MIN_VALUE;
 
@@ -76,6 +82,9 @@ public final class ShipBatchRenderer {
     private static final class ShipFrameData {
         final Matrix4f modelView = new Matrix4f();
         double camShipX, camShipY, camShipZ;
+        ClientShip ship;
+        ShipPhysicalPiece piece;
+        int clipStart, clipCount;
         boolean visible;
         ShipMesh mesh;
         ShipMaterialStack materials;
@@ -94,6 +103,10 @@ public final class ShipBatchRenderer {
     }
 
     private ShipBatchRenderer() {
+    }
+
+    public static boolean usesMesh(ClientLevel level, ClientShip ship) {
+        return ShipRendererKt.getUsesBatchedRenderer(ship) || (!ShipRendererKt.getUsesTerrainChunkRenderer(ship) && SplitShipRenderer.split(level, ship.getId()));
     }
 
     public void markSectionDirty(final long shipId, final int sx, final int sy, final int sz) {
@@ -166,7 +179,8 @@ public final class ShipBatchRenderer {
         int reMeshBudget = MAX_SHIP_REMESH_PER_FRAME;
         final String dimension = VSGameUtilsKt.getDimensionId(level);
         for (final ClientShip ship : VSGameUtilsKt.getShipObjectWorld(level).getLoadedShips()) {
-            if (!ShipRendererKt.getUsesBatchedRenderer(ship) || !dimension.equals(ship.getChunkClaimDimension())) {
+            if (!dimension.equals(ship.getChunkClaimDimension())
+                || !usesMesh(level, ship)) {
                 continue;
             }
             presentScratch.add(ship.getId());
@@ -213,9 +227,16 @@ public final class ShipBatchRenderer {
 
         prepareFrameData(poseStack, camX, camY, camZ, frustum);
 
+        final boolean splitTripwire = hasPieces && renderType == RenderType.tripwire();
+        drawPreparedLayer(renderType, layerIndex, poseStack, projectionMatrix, camX, camY, camZ, splitTripwire, false);
+        if (splitTripwire) drawPreparedLayer(renderType, layerIndex, poseStack, projectionMatrix, camX, camY, camZ, true, true);
+    }
+
+    private void drawPreparedLayer(RenderType renderType, int layerIndex, PoseStack poseStack, Matrix4f projectionMatrix,
+        double camX, double camY, double camZ, boolean separatePieces, boolean piecesOnly) {
         renderType.setupRenderState();
 
-        ShaderInstance shader = VSRenderTypes.Companion.shipBatchedShaderFor(renderType);
+        ShaderInstance shader = VSRenderTypes.Companion.shipBatchedShaderFor(piecesOnly ? RenderType.translucent() : renderType);
         final boolean usingBatchedShader = shader != null;
         if (shader == null) {
             shader = VSRenderTypes.Companion.shipShaderFor(renderType);
@@ -281,6 +302,7 @@ public final class ShipBatchRenderer {
         final Uniform chunkOffsetUniform = shader.CHUNK_OFFSET;
         final boolean translucent = renderType == RenderType.translucent();
         final ShipMaterialUniforms materialUniforms = usingBatchedShader ? ShipMaterialUniforms.forShader(shader) : null;
+        final int clipRange = hasPieces ? GL20.glGetUniformLocation(shader.getId(), "vs_ClipRange") : -1;
         final boolean useBlendedOrder = translucent && !translucentShips.isEmpty();
         final boolean depthWrite = useBlendedOrder && GL11.glGetBoolean(GL11.GL_DEPTH_WRITEMASK);
         final int previousTable = materialUniforms == null ? -1 : materialUniforms.bindTable(ShipRenderViews.getMaterialTable());
@@ -289,6 +311,9 @@ public final class ShipBatchRenderer {
                 if (!data.visible || data.mesh == null || (data.blended && !translucent && renderType != RenderType.tripwire())) {
                     continue;
                 }
+                if (separatePieces && (data.piece != null) != piecesOnly) continue;
+                if (data.clipCount != 0 && clipRange < 0) continue;
+                if (clipRange >= 0) GL20.glUniform2i(clipRange, data.clipStart, data.clipCount);
                 if (materialUniforms != null) materialUniforms.select(data.materials);
                 if (translucent) {
                     if (!data.blended && data.translucentOrder.sections().isEmpty()) continue;
@@ -316,6 +341,7 @@ public final class ShipBatchRenderer {
                 }
             }
         } finally {
+            if (clipRange >= 0) GL20.glUniform2i(clipRange, 0, 0);
             if (materialUniforms != null) materialUniforms.select(null);
             ShipMaterialUniforms.restoreTable(previousTable);
         }
@@ -459,92 +485,113 @@ public final class ShipBatchRenderer {
     private void prepareFrameData(final PoseStack levelPoseStack, final double camX, final double camY,
         final double camZ, final Frustum frustum) {
         final ShipRenderView view = ShipRenderViews.getCurrent();
-        if (preparedFrameToken == currentFrameToken && preparedView == view) {
+        final Frustum viewFrustum = view == null ? frustum : view.getFrustum();
+        final Matrix4f cameraMatrix = levelPoseStack.last().pose();
+        if (preparedFrameToken == currentFrameToken && preparedView == view && preparedFrustum == viewFrustum
+            && camX == preparedCameraX && camY == preparedCameraY && camZ == preparedCameraZ
+            && preparedCameraMatrix.equals(cameraMatrix)) {
             return;
         }
         preparedFrameToken = currentFrameToken;
         preparedView = view;
-        final Frustum viewFrustum = view == null ? frustum : view.getFrustum();
-
-        while (frameData.size() < drawOrder.size()) {
-            frameData.add(new ShipFrameData());
-        }
-        while (frameData.size() > drawOrder.size()) {
-            frameData.remove(frameData.size() - 1);
-        }
+        preparedFrustum = viewFrustum;
+        preparedCameraX = camX;
+        preparedCameraY = camY;
+        preparedCameraZ = camZ;
+        preparedCameraMatrix.set(cameraMatrix);
 
         transformStorage.beginFrame();
         translucentShips.clear();
+        hasPieces = false;
         boolean hasBlended = false;
-        final Vector3d camScratch = cameraInShip;
-        for (int i = 0; i < drawOrder.size(); i++) {
-            final ShipRenderObject renderObject = drawOrder.get(i);
-            final ShipFrameData data = frameData.get(i);
-            data.mesh = renderObject.getMesh();
-            data.materials = null;
-            data.blended = false;
-
-            final ClientShip ship = renderObject.ship;
-            if (!ShipRenderViews.shouldRenderShip(ship)) {
-                data.visible = false;
-                continue;
-            }
-            if (renderObject.isEmpty()) {
-                data.translucentOrder.clear();
-                data.visible = true;
-                continue;
-            }
-
-            if (viewFrustum != null
-                && !viewFrustum.isVisible(VectorConversionsMCKt.toMinecraft(ship.getRenderAABB()))) {
-                data.visible = false;
-                continue;
-            }
-            data.visible = true;
-
-            final ShipTransform transform = ship.getRenderTransform();
-            data.materials = ShipRenderViews.materialsFor(ship);
-            if (data.materials != null) {
-                data.claimX = ship.getChunkClaim().getXStart() << 4;
-                data.claimZ = ship.getChunkClaim().getZStart() << 4;
-                data.blended = data.materials.getBlended() &&
-                    ShipMaterialUniforms.forShader(VSRenderTypes.Companion.getShipBatchedTranslucentShader()) != null;
-                hasBlended |= data.blended;
-            }
-            cameraInShip(transform, camX, camY, camZ, camScratch);
-            data.camShipX = camScratch.x;
-            data.camShipY = camScratch.y;
-            data.camShipZ = camScratch.z;
-
-            ShipRenderMatrices.prepare(transform.getShipToWorld(), levelPoseStack.last().pose(),
-                camX, camY, camZ, data.camShipX, data.camShipY, data.camShipZ,
-                localToCameraRelScratch, modelViewScratch, data.modelView, localToCameraRelFloat);
-
-            data.transformIndex = transformStorage.append(data.modelView, localToCameraRelFloat);
-
-            final ShipMesh mesh = data.mesh;
-            data.opaqueOffsetX = (float) (mesh.refX - data.camShipX);
-            data.opaqueOffsetY = (float) (mesh.refY - data.camShipY);
-            data.opaqueOffsetZ = (float) (mesh.refZ - data.camShipZ);
-
-            if (!mesh.translucentSections.isEmpty()) {
-                data.translucentOrder.update(mesh, mesh.translucentSections.values(),
-                    data.camShipX, data.camShipY, data.camShipZ);
-            } else {
-                data.translucentOrder.clear();
+        int count = 0;
+        final var allShips = VSGameUtilsKt.getAllShips(currentLevel);
+        final boolean worldHasPieces = !allShips.getSplitShipIds().isEmpty();
+        for (final ShipRenderObject object : drawOrder) {
+            final List<ShipPhysicalPiece> pieces = worldHasPieces ? allShips.getSplitPieces(object.ship.getId()) : List.of();
+            for (int i = 0; i < Math.max(1, pieces.size()); i++) {
+                final var piece = pieces.isEmpty() ? null : ShipPieceRenderFrames.rendered(pieces.get(i));
+                if (count == frameData.size()) frameData.add(new ShipFrameData());
+                final ShipFrameData data = frameData.get(count++);
+                prepareInstance(object, data, piece, viewFrustum, levelPoseStack, camX, camY, camZ);
+                hasPieces |= piece != null;
+                hasBlended |= data.visible && data.blended;
             }
         }
+        while (frameData.size() > count) frameData.remove(frameData.size() - 1);
         if (hasBlended) {
-            for (int i = 0; i < frameData.size(); i++) {
-                final ShipFrameData data = frameData.get(i);
-                if (data.visible && data.mesh != null) {
-                    data.distanceSquared = drawOrder.get(i).ship.getRenderTransform().getPosition().distanceSquared(camX, camY, camZ);
-                    translucentShips.add(data);
-                }
+            for (final ShipFrameData data : frameData) {
+                if (!data.visible || data.mesh == null) continue;
+                data.distanceSquared = data.piece == null ? data.ship.getRenderTransform().getPosition().distanceSquared(camX, camY, camZ)
+                    : data.piece.getWorldBounds().center(cameraInShip).distanceSquared(camX, camY, camZ);
+                translucentShips.add(data);
             }
             translucentShips.sort((a, b) -> Double.compare(b.distanceSquared, a.distanceSquared));
         }
         transformStorage.upload();
+    }
+
+    private void prepareInstance(ShipRenderObject renderObject, ShipFrameData data, ShipPhysicalPiece piece,
+        Frustum viewFrustum, PoseStack levelPoseStack, double camX, double camY, double camZ) {
+        data.ship = renderObject.ship;
+        data.piece = piece;
+        data.clipStart = 0;
+        data.clipCount = piece == null ? 0 : piece.getClippingPlanes().size();
+        data.mesh = renderObject.getMesh();
+        data.materials = null;
+        data.blended = false;
+
+        final ClientShip ship = renderObject.ship;
+        if (!ShipRenderViews.shouldRenderShip(ship)) {
+            data.visible = false;
+            return;
+        }
+        if (renderObject.isEmpty()) {
+            data.translucentOrder.clear();
+            data.visible = true;
+            return;
+        }
+
+        if (viewFrustum != null
+            && !viewFrustum.isVisible(VectorConversionsMCKt.toMinecraft(piece == null ? ship.getRenderAABB() : piece.getWorldBounds()))) {
+            data.visible = false;
+            return;
+        }
+        data.visible = true;
+
+        final ShipTransform transform = ship.getRenderTransform();
+        data.materials = ShipRenderViews.materialsFor(ship);
+        if (data.materials != null) {
+            data.claimX = ship.getChunkClaim().getXStart() << 4;
+            data.claimZ = ship.getChunkClaim().getZStart() << 4;
+            data.blended = data.materials.getBlended() &&
+                ShipMaterialUniforms.forShader(VSRenderTypes.Companion.getShipBatchedTranslucentShader()) != null;
+        }
+        if (piece == null) cameraInShip(transform, camX, camY, camZ, cameraInShip);
+        else piece.getWorldToShip().transformPosition(cameraInShip.set(camX, camY, camZ));
+        data.camShipX = cameraInShip.x;
+        data.camShipY = cameraInShip.y;
+        data.camShipZ = cameraInShip.z;
+
+        ShipRenderMatrices.prepare(piece == null ? transform.getShipToWorld() : piece.getShipToWorld(), levelPoseStack.last().pose(),
+            camX, camY, camZ, data.camShipX, data.camShipY, data.camShipZ,
+            localToCameraRelScratch, modelViewScratch, data.modelView, localToCameraRelFloat);
+
+        data.transformIndex = transformStorage.append(data.modelView, localToCameraRelFloat);
+
+        if (data.clipCount != 0) data.clipStart = transformStorage.appendPlanes(piece.getClippingPlanes(), camX, camY, camZ);
+
+        final ShipMesh mesh = data.mesh;
+        data.opaqueOffsetX = (float) (mesh.refX - data.camShipX);
+        data.opaqueOffsetY = (float) (mesh.refY - data.camShipY);
+        data.opaqueOffsetZ = (float) (mesh.refZ - data.camShipZ);
+
+        if (!mesh.translucentSections.isEmpty()) {
+            data.translucentOrder.update(mesh, mesh.translucentSections.values(),
+                data.camShipX, data.camShipY, data.camShipZ);
+        } else {
+            data.translucentOrder.clear();
+        }
     }
 
     private static void sortTranslucentSections(final ArrayList<ShipSectionMesh> sections,
@@ -564,9 +611,7 @@ public final class ShipBatchRenderer {
     public void renderBlockEntities(final ClientLevel level, final PoseStack poseStack,
         final MultiBufferSource bufferSource, final Camera camera, final float partialTick) {
         if (currentLevel != null && currentLevel != level && ShipRenderViews.getCurrent() != null) beginFrame(level);
-        if (drawOrder.isEmpty()) {
-            return;
-        }
+        if (drawOrder.isEmpty()) return;
         RenderSystem.assertOnRenderThread();
         final BlockEntityRenderDispatcher dispatcher =
             Minecraft.getInstance().getBlockEntityRenderDispatcher();
@@ -574,7 +619,8 @@ public final class ShipBatchRenderer {
         final ShipRenderView view = ShipRenderViews.getCurrent();
         for (final ShipRenderObject renderObject : List.copyOf(drawOrder)) {
             if (!ShipRenderViews.shouldRenderShip(renderObject.ship)) continue;
-            if (view != null && !renderObject.isEmpty()
+            final var pieces = VSGameUtilsKt.getAllShips(level).getSplitPieces(renderObject.ship.getId());
+            if (pieces.isEmpty() && view != null && !renderObject.isEmpty()
                 && !view.getFrustum().isVisible(VectorConversionsMCKt.toMinecraft(renderObject.ship.getRenderAABB()))) continue;
             final List<BlockEntity> shipBlockEntities = renderObject.getBlockEntities(level);
             if (shipBlockEntities.isEmpty()) {
@@ -583,6 +629,11 @@ public final class ShipBatchRenderer {
             final ShipTransform transform = renderObject.ship.getRenderTransform();
             for (int i = 0; i < shipBlockEntities.size(); i++) {
                 final BlockEntity blockEntity = shipBlockEntities.get(i);
+                if (!pieces.isEmpty()) {
+                    ShipPieceBuffers.draw(pieces, blockEntity.getBlockPos(), poseStack, cam, bufferSource,
+                        (pose, buffers) -> dispatcher.render(blockEntity, partialTick, pose, buffers));
+                    continue;
+                }
                 final BlockPos pos = blockEntity.getBlockPos();
                 poseStack.pushPose();
                 VSClientGameUtils.transformRenderWithShip(transform, poseStack, pos,
@@ -594,6 +645,7 @@ public final class ShipBatchRenderer {
     }
 
     public void freeAll() {
+        NativeShipPieces.release();
         ShipMaskTarget.clearPool();
         freeShipMeshes();
         VsDynamicLight.deleteStorages();

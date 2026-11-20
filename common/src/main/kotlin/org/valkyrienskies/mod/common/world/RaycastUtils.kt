@@ -1,5 +1,7 @@
 package org.valkyrienskies.mod.common.world
 
+import net.minecraft.client.multiplayer.ClientLevel
+import org.valkyrienskies.mod.common.toShipRenderCoordinates
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.util.Mth
@@ -26,6 +28,8 @@ import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.api.ships.properties.ShipId
 import org.valkyrienskies.core.game.ships.ShipObjectClient
 import org.valkyrienskies.core.util.expand
+import org.valkyrienskies.core.api.ships.ShipPhysicalPiece
+import org.valkyrienskies.mod.common.allShips
 import org.valkyrienskies.mod.common.getShipsIntersecting
 import org.valkyrienskies.mod.common.shipObjectWorld
 import org.valkyrienskies.mod.common.util.toJOML
@@ -37,6 +41,16 @@ import java.util.function.Function
 import java.util.function.Predicate
 
 private val logger = LogManager.getLogger("RaycastUtilsKt")
+
+private class MappedShipHit(world: Vec3, val local: BlockHitResult) :
+    BlockHitResult(world, local.direction, local.blockPos, local.isInside)
+
+fun ClientLevel?.blockHitForUse(hit: BlockHitResult): BlockHitResult {
+    if (hit is MappedShipHit) return hit.local
+    if (hit.type == HitResult.Type.MISS || hit.blockPos.center.closerThan(hit.location, 1.0)) return hit
+    val local = toShipRenderCoordinates(hit.blockPos.center, hit.location)
+    return if (local == hit.location) hit else BlockHitResult(local, hit.direction, hit.blockPos, hit.isInside)
+}
 
 @JvmOverloads
 fun Level.clipIncludeShips(
@@ -59,11 +73,31 @@ fun Level.clipIncludeShips(
     var closestHitPos = vanillaHit.location
     var closestHitDist = closestHitPos.distanceToSqr(ctx.from)
 
-    val clipAABB: AABBdc = AABBd(ctx.from.toJOML(), ctx.to.toJOML()).correctBounds()
+    val clipAABB = AABBd(ctx.from.toJOML(), ctx.to.toJOML()).correctBounds()
 
     // Iterate every ship, find do the raycast in ship space,
     // choose the raycast with the lowest distance to the start position.
     for (ship in getShipsIntersecting(clipAABB)) {
+        val split = allShips.getSplitPieces(ship.id)
+        if (split.isNotEmpty()) {
+            if (ship.id == skipShip) continue
+            for (piece in split) {
+                if (!piece.worldBounds.intersectsAABB(clipAABB)) continue
+                val segment = clipToPiece(ctx.from, ctx.to, piece) ?: continue
+                val start = piece.worldToShip.transformPosition(segment.first.toJOML()).toMinecraft()
+                val end = piece.worldToShip.transformPosition(segment.second.toJOML()).toMinecraft()
+                val hit = clip(ctx, start, end)
+                if (hit.type == HitResult.Type.MISS) continue
+                val pos = piece.shipToWorld.transformPosition(hit.location.toJOML()).toMinecraft()
+                val distance = ctx.from.distanceToSqr(pos)
+                if (distance < closestHitDist) {
+                    closestHit = hit
+                    closestHitPos = pos
+                    closestHitDist = distance
+                }
+            }
+            continue
+        }
         val chopParam = Vector2d()
         // Pad AABB size to increase raycast tolerance
         val expandedAABB = AABBd((ship as? ClientShip)?.renderAABB ?: ship.worldAABB).expand(1.0)
@@ -115,11 +149,25 @@ fun Level.clipIncludeShips(
         }
     }
 
-    if (shouldTransformHitPos) {
-        closestHit.location = closestHitPos
-    }
+    return if (shouldTransformHitPos && closestHit !== vanillaHit) MappedShipHit(closestHitPos, closestHit) else closestHit
+}
 
-    return closestHit
+internal fun clipToPiece(from: Vec3, to: Vec3, piece: ShipPhysicalPiece): Pair<Vec3, Vec3>? {
+    val delta = to.subtract(from)
+    var first = 0.0
+    var last = 1.0
+    for (plane in piece.clippingPlanes) {
+        val start = plane.x() * from.x + plane.y() * from.y + plane.z() * from.z + plane.w()
+        val slope = plane.x() * delta.x + plane.y() * delta.y + plane.z() * delta.z
+        if (slope == 0.0) {
+            if (start < 0.0) return null
+        } else {
+            val t = -start / slope
+            if (slope > 0.0) first = maxOf(first, t) else last = minOf(last, t)
+            if (first >= last) return null
+        }
+    }
+    return from.add(delta.scale(first)) to from.add(delta.scale(last))
 }
 
 // copy paste of vanilla raycast with the option to specify a custom start/end

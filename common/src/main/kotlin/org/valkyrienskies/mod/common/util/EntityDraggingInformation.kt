@@ -1,6 +1,8 @@
 package org.valkyrienskies.mod.common.util
 
+import org.joml.Quaterniond
 import org.joml.Vector3d
+import org.valkyrienskies.core.api.ships.ShipPhysicalPiece
 import org.joml.Vector3dc
 import org.valkyrienskies.core.api.ships.Ship
 import org.valkyrienskies.core.api.ships.properties.ShipId
@@ -23,6 +25,15 @@ class EntityDraggingInformation {
             field = value
             if (value != null) ticksSinceStoodOnShip = 0
         }
+    var supportPiece: ShipPhysicalPiece? = null
+        internal set
+    internal var lastDragPiece: ShipPhysicalPiece? = null
+    internal var lastPieces: List<ShipPhysicalPiece> = emptyList()
+
+    fun worldToSupport(ship: Ship) = supportPiece?.worldToShip ?: ship.worldToShip
+    fun supportRotation(ship: Ship) = supportPiece?.shipToWorld?.getUnnormalizedRotation(Quaterniond())
+        ?: ship.transform.shipToWorldRotation
+
     var ticksSinceStoodOnShip: Int = 0
     var usesShipInterpolation = false
     var handlingClientMovement = false
@@ -67,6 +78,9 @@ class EntityDraggingInformation {
     }
 
     private fun clearRelativeState() {
+        supportPiece = null
+        lastDragPiece = null
+        lastPieces = emptyList()
         lerpPositionOnShip = null
         relativeVelocityOnShip = null
         lerpYawOnShip = null

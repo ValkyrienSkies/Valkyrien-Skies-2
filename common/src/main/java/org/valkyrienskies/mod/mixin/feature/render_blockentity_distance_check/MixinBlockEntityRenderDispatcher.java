@@ -2,7 +2,10 @@ package org.valkyrienskies.mod.mixin.feature.render_blockentity_distance_check;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.client.Camera;
+import net.minecraft.client.renderer.MultiBufferSource;
+import org.valkyrienskies.mod.common.render.batched.ShipPieceBuffers;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.core.BlockPos;
@@ -41,7 +44,11 @@ public class MixinBlockEntityRenderDispatcher {
         )
     )
     private <E extends BlockEntity> boolean isTileEntityInRenderRange(final BlockEntityRenderer<E> instance,
-        final E blockEntity, final Vec3 cameraPos, final Operation<Boolean> operation) {
+        final E blockEntity, final Vec3 cameraPos, final Operation<Boolean> operation,
+        @Local(argsOnly = true) final MultiBufferSource source) {
+        if (source instanceof ShipPieceBuffers piece) {
+            return operation.call(instance, blockEntity, piece.cameraInShip(cameraPos));
+        }
 
         final boolean inRange = operation.call(instance, blockEntity, cameraPos);
         if (inRange && !ShipRenderViews.hasHiddenShips()) {

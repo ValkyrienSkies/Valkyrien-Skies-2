@@ -20,6 +20,7 @@ uniform int FogShape;
 uniform int vs_DisableShipShade;
 uniform vec3 vs_MaterialOrigin;
 out vec3 vs_ShipPos;
+out vec3 vs_PiecePos;
 
 out float vertexDistance;
 out vec4 vertexColor;
@@ -33,6 +34,7 @@ out vec3 v_VsWorldNormal;
 void main() {
     vs_ShipPos = Position + vs_MaterialOrigin;
     vec3 pos = Position + ChunkOffset;
+    vs_PiecePos = pos;
     vec4 viewPos = ModelViewMat * vec4(pos, 1.0);
     gl_Position = ProjMat * viewPos;
 

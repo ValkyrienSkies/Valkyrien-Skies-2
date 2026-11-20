@@ -4,6 +4,7 @@
 
 void main() {
     vec3 normal = vs_shipWorldNormal();
+    vs_clipShipPiece();
     vec4 color = vs_shipAtlasColor(Sampler0, texCoord0) * vertexColor * ColorModulator;
     vs_lightShipColor(color, normal);
     vs_applyShipMaterial(color);
